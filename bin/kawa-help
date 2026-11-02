@@ -9,9 +9,9 @@
 # after its gap of two spaces); a line starting with # is the sheet's own note (its sources).
 # What is typed finds by its letters in order too ("wpa": the wallpaper picker), the best first.
 # The program you are in: the focused window as the bar knows it (kawa-dwlstatus: its app id
-# and title) — one of ours by its app id (warm-notes …, kawa-git …, zathura, mpv), a terminal by
-# its title: yazi titles itself "Yazi: …", the shell names any other program with a sheet while
-# it runs (fedokawaii.sh, __kawa_preexec).
+# and title) — one of ours by its app id (warm-notes …, kawa-git …, zathura, mpv), a popup of ours
+# by its title (wallpaper, books), a terminal by its title: yazi titles itself "Yazi: …", the shell
+# names any other program with a sheet while it runs (fedokawaii.sh, __kawa_preexec).
 # No arguments (--help: this text).
 set -u
 case ${1:-} in
@@ -28,13 +28,14 @@ export LC_ALL=C.UTF-8                            # (a column a character)
 # or a program's (a part of your own: the keycap; no subshell: the sheet is built at every
 # press, the one that closes it too)
 part_icon() {
-  case ${1%%[^a-z]*} in
+  case ${1%%[^a-z-]*} in
     launch) K=$ICON_TORII_SMALL ;; screenshots) K=$ICON_CAMERA ;; windows) K=$ICON_WINDOW ;; workspaces) K=$ICON_TILE ;;
     sound) K=$ICON_SPEAKER ;; terminal) K=$ICON_TERMINAL ;; files|yazi) K=$ICON_FOLDER ;; drives) K=$ICON_DRIVE ;;
     session) K=$ICON_POWER ;; drawing) K=$ICON_BRUSH ;;
     nvim) K=$ICON_CODE ;; lazygit) K=$ICON_BRANCH ;; btop) K=$ICON_CPU ;; wiremix) K=$ICON_SLIDERS ;;
     bluetui) K=$ICON_BLUETOOTH ;; visidata) K=$ICON_SHEET ;; gdu) K=$ICON_USAGE ;; zathura) K=$ICON_PAGES ;;
-    mpv) K=$ICON_MONITOR ;;
+    mpv) K=$ICON_MONITOR ;; notes) K=$ICON_NOTE ;; to-do) K=$ICON_TODO ;; clipboard) K=$ICON_CLIPBOARD ;;
+    wallpaper) K=$ICON_PICTURE ;; books) K=$ICON_BOOK ;; system) K=$ICON_SEC_SYSTEM ;;
     *) K=$ICON_KEYCAP ;;
   esac
 }
@@ -87,7 +88,7 @@ here() {
     warm-notes) s=notes ;; warm-clip) s=clip ;; warm-system) s=system ;;
     kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;;
     org.pwmt.zathura) s=zathura ;; mpv) s=mpv ;;
-    foot|footclient)
+    foot|footclient|float|kawa-dialog)   # (a terminal, a popup of ours — wallpaper, books —, the file dialog)
       case $title in "Yazi: "*) s=yazi ;; *) [[ $title =~ ^[a-z0-9-]+$ ]] && s=$title ;; esac ;;
   esac
   [[ -n $s && -r $keys/$s.txt ]] && HERE=$s

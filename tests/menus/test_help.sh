@@ -91,10 +91,10 @@ parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }
 ALL="launch screenshots windows workspaces sound, music, monitor terminal files drives session drawing tablet "
 case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
 keys_setup; answer esc; rc 0 kawa-help
-eq "$(parts)" "${ALL}bluetui btop gdu lazygit mpv nvim visidata wiremix yazi zathura "
+eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system visidata wallpaper wiremix yazi zathura "
 case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
 keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
-eq "$(parts)" "yazi ${ALL}bluetui btop gdu lazygit mpv nvim visidata wiremix zathura "
+eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system visidata wallpaper wiremix zathura "
 eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
 case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
 for t in nvim:nvim lazygit:lazygit vd:visidata; do
@@ -104,11 +104,18 @@ done
 for t in "~/repos/fedokawaii" "btop2" "Yazi"; do
   keys_setup; focus footclient "$t"; answer esc; kawa-help; eq "$(parts | cut -d' ' -f1)" launch "titled $t"
 done
-case_ "one of ours by its app id: Git lazygit, Disk usage gdu, Tables visidata, zathura, mpv; Brave: the desktop's first"
-for t in kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
+case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, zathura, mpv; Brave: the desktop's first"
+for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
   keys_setup; focus "${t%%:*}" "a title"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "app id ${t%%:*}"
 done
+case_ "a popup of ours by its title (the wallpaper picker, the books), the file dialog by yazi's: their keys first"
+for t in "float|wallpaper|wallpaper" "float|books|books" "kawa-dialog|Yazi: ~/Downloads|yazi" "float|tui|launch"; do
+  IFS='|' read -r a ti want <<<"$t"
+  keys_setup; focus "$a" "$ti"; answer esc; kawa-help
+  eq "$(parts | cut -d' ' -f1)" "$want" "$a titled $ti"
+done
+eq "$(keys_setup; focus warm-notes notes; answer esc; kawa-help; parts | cut -d' ' -f1-3)" "notes to-do launch" "the notes' two parts, then the desktop's"
 case_ "every row of every sheet is in the menu (none lost, none twice), its notes (# …) never; each program's parts under its own icon"
 keys_setup; answer esc; kawa-help
 want=$(cat "$HOME/.config/fedokawaii/keybinds.txt" "$SHEETS"/*.txt | grep -v -e '^#' -e '^─' -e '^[[:space:]]*$' | wc -l)
@@ -116,6 +123,8 @@ eq "$(fz_rows | grep -c '^info')" "$want"
 eq "$(fz_rows | grep -c -e 'source:' -e '^info		# ')" 0 "a sheet's notes shown"
 eq "$(fz_rows | awk -F'\t' '$1 == "part" { print $3 "=" $2 }' | sort -u | grep -E '^(yazi|nvim|lazygit|btop|wiremix|bluetui|visidata|gdu|zathura|mpv)=' | tr '\n' ' ')" \
   "bluetui=$ICON_BLUETOOTH btop=$ICON_CPU gdu=$ICON_USAGE lazygit=$ICON_BRANCH mpv=$ICON_MONITOR nvim=$ICON_CODE visidata=$ICON_SHEET wiremix=$ICON_SLIDERS yazi=$ICON_FOLDER zathura=$ICON_PAGES "
+eq "$(fz_rows | awk -F'\t' '$1 == "part" { print $3 "=" $2 }' | sort -u | grep -E '^(notes|to-do|clipboard|wallpaper|books|system)=' | tr '\n' ' ')" \
+  "books=$ICON_BOOK clipboard=$ICON_CLIPBOARD notes=$ICON_NOTE system=$ICON_SEC_SYSTEM to-do=$ICON_TODO wallpaper=$ICON_PICTURE " "our own screens"
 eq "$(fz_rows | awk -F'\t' '$1 == "part" && $2 == "'"$ICON_KEYCAP"'"' | wc -l)" 0 "a program's part under the keycap (a part of your own)"
 case_ "each program's sheet in the sheet's own columns: notes on top (#: the version, its command, its sources), the rules ending in column 67, each description at 24"
 for k in "$SHEETS"/*.txt; do

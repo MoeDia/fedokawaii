@@ -1,0 +1,17 @@
+# notes (Super+N): the notes window — neovim as a page; it opens typing, at the end of the page
+# source: configs/home/.config/fedokawaii/notes.lua (its maps: Tab, Ctrl+C; the to-do's Space, Enter, o, O, Backspace; the look)
+# source: configs/home/.config/fedokawaii/keybinds.txt (Super+N)
+── notes: Super+N ─────────────────────────────────────────────────
+Super+N                 put them away, saved (again: back, on a new line)
+Tab                     the to-do list (Tab there: back to the notes)
+Esc                     stop typing (i or a: type again)
+Ctrl+C                  stop typing, as Esc
+the wheel               read up the page (the next key: back to the pen)
+u / Ctrl+R              undo / redo (kept when the window closes)
+── to-do: beside the notes ────────────────────────────────────────
+Space                   tick or untick (a line of words: made an item)
+Enter / o               a new item under this one (O: above it)
+Enter, typing           the next item (on an empty one: the list ends)
+Backspace               on an empty item: it goes, back to the one before
+Esc                     stop typing
+Tab                     back to the notes

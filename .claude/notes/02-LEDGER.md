@@ -3669,6 +3669,35 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the sheets' columns and sources), test_panel 637/0 (found, ranked, --fuzzy), test_shell 189/0 (the hook: 16 command
   lines), test_menu 84/0, test_deps 197/0 (blehook), test_syntax 781/0, test_design_doc 54/0. LEFT for T23: our own
   screens' sheets (notes, clip, Super+U, wallpaper, books), shots of nvim/lazygit in front, the master.
+- r27-test-leftovers (2 Nov 17:27–17:37): 39 kawa-test.* folders (~30 MB) left in /tmp by suites since 1 Nov (seen in a
+  kit shot of gdu /tmp). Causes: test_play's own `trap quit_all EXIT` replaced the harness's (its folder never went);
+  the installer, session and look libraries' and test_autostart's traps removed the folder without the on_exit
+  commands' order; and a process a test left (a player, a window's loop) wrote on into its folder. FIX: harness
+  _h_reap — before a sandbox goes, every process whose environment names its TMP is killed (bash alone, ~15 ms over
+  449 processes); every custom trap reaps first; test_play uses on_exit. The five culprit tests re-run (test_play
+  55/0, test_clip 207/0, test_term_float 114/0, test_wallpaper 270/0, test_shrink 121/0) — test_play still left one
+  until its trap went: now 40 → 40. The 40 old folders deleted. A harness change: the whole suite owed (next).
+- r27-21-master-9 (2 Nov 17:08–17:28, the master's re-review 9 on 4c8de66, rerun after the first was cut off by the
+  pass's end at 16:49; its probes archived in master-archive/T21-r9a): VERDICT FAIL (.claude/notes/master-T21-verdict-9.md).
+  Held: verdict 8's three must-fixes and should-fix 4 (hide/show, a click on a line, a paste, Ctrl-O k), no regression
+  in 99 scenarios, the look through focus, a resize, the pause's save in the real TUI. MUST-FIX: a mouse key that places
+  no pen (the tabline's heading row, the winbar's blank row, the middle button) ended the look without the put-back —
+  "q" into 147 (the to-do: item 40). Should-fix: §7's look sentence predates the click rule; deciding by the key's
+  NAME would end the look on a bare move. Nits: the comment's words; a click on the footer fell through the floats.
+- r27-21-master-9-fix (2 Nov 17:28–17:37): a mouse key decides by where a PRESS lands (getmousepos): on a line of the
+  page (this window, a buffer line, above the foot's two float rows) the look ends where it points; anywhere else, and
+  the middle button's paste, the pen goes back first; a move, a drag, a release leave the look as it is. A click on the
+  foot's two rows places nothing, look or not (<LeftMouse>/<RightMouse> expr maps: nit 5). §7 says the whole rule in
+  one sentence; the comment's words with it. Rows (each against the same step with no look): the tabline, the winbar,
+  the foot's rows 38 and 39, the to-do's heading, the middle button with a clipboard holding words, a bare move —
+  12 FAIL on 4c8de66's notes.lua, all pass now: test_notes 166/0 (was 153). Re-review 10 next.
+- r27-23-own (2 Nov 17:24–17:33): Super+/ over our own screens — keys/notes.txt (the page and the to-do: two parts, ICON_NOTE
+  and ICON_TODO), clip.txt, wallpaper.txt, books.txt, system.txt (Super+U), each read from its code (notes.lua's maps,
+  kawa-clip's/kawa-books'/kawa-wallpaper's/system/fedokawaii's fzf binds), each a part of its own icon, its key as the
+  part's value; a popup of ours (app id float: wallpaper, books) and the file dialog (kawa-dialog, yazi's title) by
+  their titles; part_icon reads "to-do" whole. Kit both moods (/dev/shm/r27/t23/help-v1/, kit2/, kit3/): over the
+  notes, over Super+U, over gdu run in a terminal (the hook: the bar's title "gdu" while it runs, "~" after —
+  ble.sh linked into the play's kit home, read-only: its run and cache folders are the kit's). test_help 123/0.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).

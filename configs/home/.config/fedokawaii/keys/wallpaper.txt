@@ -1,0 +1,7 @@
+# wallpaper (Super+W): the picker — the wallpapers, the one under the cursor shown below
+# source: bin/kawa-wallpaper (its fzf, no field to type in: r and a click on the footer's line toggle the change)
+── wallpaper: Super+W ─────────────────────────────────────────────
+↑ / ↓                   the one before / after (shown below)
+Enter                   make it the wallpaper (it washes in)
+r                       change by itself every 4 h, on or off (a click too)
+Esc / Super+W           away, as it was

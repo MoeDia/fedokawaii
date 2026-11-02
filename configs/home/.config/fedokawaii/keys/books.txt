@@ -1,0 +1,9 @@
+# books (Super+R): your books in ~/Books, read in zathura — the ones you are reading first
+# source: bin/kawa-books (its fzf keys: enter, ctrl-a, ctrl-d; --add and --remove)
+── books: Super+R ─────────────────────────────────────────────────
+type                    find a book by its title
+↑ / ↓                   the one before / after (its cover beside)
+Enter                   read it in zathura, where you stopped
+Ctrl+A                  add books from ~/Downloads and ~/Documents
+Ctrl+D                  remove it (to the trash)
+Esc / Super+R           away

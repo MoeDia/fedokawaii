@@ -1,0 +1,10 @@
+# clipboard (Super+V): what you copied, text and pictures (cliphist), the newest first
+# source: bin/kawa-clip (its fzf keys: enter, esc, ctrl-d, ctrl-x) and keybinds.txt (Super+V, Super+Z)
+── clipboard: Super+V ─────────────────────────────────────────────
+type                    find in what you copied
+↑ / ↓                   the one before / after (shown below)
+Enter                   copy it again (it goes on top), and away
+Ctrl+D                  forget this one
+Ctrl+X                  forget all of it
+Super+Z                 shrink or convert what you copied
+Esc / Super+V           away
