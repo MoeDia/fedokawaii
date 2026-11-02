@@ -309,6 +309,25 @@ SCROLLLUA
   for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
   diary "$TMP/v.md"
   eq "$(scrolls "$TMP/v.md" '<Tab>' '<Esc>' '<C-y>' '<C-y>' | cut -d'|' -f1)" "0 -1 -1 "
+  case_ "...a line typed in long notes, then tab into that to-do: the pen on the fresh item, the last line, and his words go into it (the master, verdict 5's must-fix 1: the notes' remembered top walked the pen up to item 41)"
+  diary "$TMP/v.md"
+  eq "$(KAWA_NOTES_WHERE='~/Notes/v.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
+vim.o.lines = 40; vim.o.columns = 64
+kawa_notes_shown(); vim.cmd("redraw")
+vim.api.nvim_input("a line of today<CR>")
+vim.defer_fn(function()
+  vim.cmd("redraw")
+  vim.api.nvim_input("<Tab>")
+  vim.defer_fn(function()
+    vim.cmd("redraw")
+    local pen = vim.fn.line(".") .. "/" .. vim.fn.line("$")
+    vim.api.nvim_input("new one")
+    vim.defer_fn(function()
+      io.stdout:write(pen .. " " .. vim.fn.getline(46) .. " | " .. vim.fn.getline(41))
+      vim.cmd("qa!")
+    end, 250)
+  end, 250)
+end, 250)' -- "$TMP/v.md" 2>/dev/null)" "46/46 [ ] new one | [ ] thing 41"
   case_ "notes.lua: the page moves by lines — smoothscroll off: it cut a wrapped line at the top and drew neovim's <<< over the margin (the master, verdict 3's must-fix 1)"
   { cat "$TMP/v.md"; for i in 1 2 3; do echo "a long line $i that runs well past the right edge of this page and wraps onto a second row, then a third row of paper"; done; } >"$TMP/w2.md"
   eq "$(KAWA_NOTES_WHERE='~/Notes/w2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \

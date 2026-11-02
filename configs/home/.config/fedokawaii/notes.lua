@@ -217,7 +217,8 @@ local ruled = {}                              -- buffer → the line count its r
 -- (a namespace of its own: a clear of the rules never takes the paper, nor gives its id to a rule)
 local paperns = vim.api.nvim_create_namespace("kawa_paper")
 local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }
-local seen_top = {}                           -- window → its top line at the last look (keep_room, below)
+local seen_top = {}                           -- window → its top line at the last look (keep_room, below): a
+                                              -- window's, as the view is; forgotten when another page enters it
 local function rows()                         -- the paper's virtual rows, as many as the screen has
   if sheet.cols ~= vim.o.columns or sheet.lines ~= vim.o.lines then
     local row = { { string.rep(" ", vim.o.columns), "KawaRule" } }
@@ -306,11 +307,13 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = 
 -- the pen on the window's last row, under the floats, and scrolloff keeps it there (the master, 2 Nov:
 -- verdict 2's must-fix 2). (Safe since the paper moves inside the change: asking the pen's row then
 -- never sees a new line below the old paper)
--- A scroll he made is his (the master, verdict 4): when the page went UP since the last look —
--- only he scrolls it up: Ctrl+Y, Ctrl+B, the wheel — the view stays and the PEN yields, up a line
--- at a time into its room; otherwise the view follows the pen (pen_room). Neovim's own scrolloff
--- does the same, but the paper's rows meet it under the floats. (Another page in the window, or its
--- own opening, is no scroll of his: forgotten there.)
+-- A scroll he made is his (the master, verdict 4): when the page went UP since the last look, the
+-- view stays and the PEN yields, up a line at a time into its room; otherwise the view follows the
+-- pen (pen_room). Only his scrolls (Ctrl+Y, Ctrl+B, the wheel) take the top up and leave the pen
+-- below its room: the pen gone up past the top (k, a search), on_day and a resize each bring the
+-- page to the pen, so the yield finds it in its room and moves nothing; typing never yields (follow,
+-- below). Neovim's own scrolloff does the same, but the paper's rows meet it under the floats. (The
+-- look is the window's, forgotten when another page enters it: its line numbers are another page's)
 local function pen_yield()
   local room = vim.fn.winheight(0) - ROOM
   for _ = 1, vim.o.lines do
