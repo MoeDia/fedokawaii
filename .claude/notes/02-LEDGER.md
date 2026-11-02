@@ -3384,9 +3384,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
 ## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
 ##     tools/vm-inject/f45-checks.sh f45; T46's pre-flight (tools/vm-preflight.sh) and the upgrade's WAIT (60 days).
-## (4) T22: grid, cursor, footer, contrast, kinds BUILT (r27-22-grid, -kinds); bug 10 BUILT (r27-22-b10-built) — next: the
-##     held password window seen in the kit (Super+D → unlock on a qpdf-locked PDF: wrong, then right; both moods),
-##     zathura's prompt by eye, the grill ("No items", the tabs row), the master.
+## (4) T22: grid, cursor, footer, contrast, kinds, empty states BUILT (r27-22-grid, -kinds, -empty); bug 10 BUILT
+##     (r27-22-b10-built) — next, in the kit (one at a time, never beside a suite): the held password window (Super+D →
+##     unlock on a qpdf-locked PDF: wrong, then right; both moods), the empty states, zathura's prompt by eye, yazi's
+##     tabs row (t: two tabs — §7's tab grammar?), then the master's T22 review.
 ## (5) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
 ##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
-## (6) T53 goes on (the plan's list) + the test_yazi flake under load (r27-suite-2939cc8).
+## (6) T53 goes on (the plan's list); the test_yazi flake fixed (89a1b06: a mount event lists the drives again).
