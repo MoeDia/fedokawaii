@@ -287,7 +287,9 @@ local function step(i, t0)
     local f = io.open(OUT, "w"); f:write(table.concat(dt, " ") .. " | " .. table.concat(rows, " ") .. pen); f:close()
     return vim.cmd("qa!")
   end
-  vim.api.nvim_input(steps[i])
+  -- (a step "lua:CODE" is a call as kawa-warm makes one, by RPC — no key: never through a
+  -- <Cmd> key, which a look would see as a key — the master, verdict 8)
+  if steps[i]:sub(1, 4) == "lua:" then assert(loadstring(steps[i]:sub(5)))() else vim.api.nvim_input(steps[i]) end
   vim.defer_fn(function()
     vim.cmd("redraw")
     local t = vim.fn.line("w0")
@@ -322,6 +324,23 @@ SCROLLLUA
   case_ "...a notch after Esc's yield (typing again at the end of the pen's line): the keys at its end"
   diary "$TMP/v.md"
   eq "$(VDUMP="153 150" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<Esc>' 'A' '<ScrollWheelUp>' 'q' 'r' | cut -d'|' -f3)" " 153:4 153=xqr 150=x"
+  case_ "...a look, then Super+N away and back (calls, no key): the look is over — the next keys on the fresh line the page opens on (the master, verdict 8's must-fix 1: \"helloqr\" on 156)"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="156 157" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))hello" '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:kawa_notes_hidden()' 'lua:kawa_notes_shown()' 'q' 'r' | cut -d'|' -f3)" " 157:3 156=hello 157=qr"
+  case_ "...a look in the to-do, then Super+N away and back: the to-do's place never lands in the notes"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="46 127" scrolls "$TMP/v.md" '<Tab>' 'abc' '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:kawa_notes_hidden()' 'lua:kawa_notes_shown()' 'q' 'r' | cut -d'|' -f3)" " 127:3 46= 127=qr" "(the notes' line 46 — the item's number in the to-do — untouched; the words on the fresh line)"
+  case_ "...a look, then a click: the pen goes where the pointer is — the line the same click picks after the same scroll in normal mode (putting it back first scrolled the page under the pointer: verdict 8's must-fix 2)"
+  diary "$TMP/v.md"; look=$(VDUMP="0" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' '<LeftMouse><10,9>' | cut -d'|' -f3)
+  diary "$TMP/v.md"; norm=$(VDUMP="0" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc><ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' '<LeftMouse><10,9>' | cut -d'|' -f3)
+  eq "$look" "$norm" "(typing: $look · normal mode: $norm)"
+  case_ "...a look, then a paste (foot's is no key — nvim_paste): the text at the pen (verdict 8's must-fix 3: it went into line 150)"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="150 156 157" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:vim.api.nvim_paste("one\ntwo", true, -1)' | cut -d'|' -f3)" " 157:4 150=x 156=one 157=two"
+  case_ "...a look, then Ctrl+O and a k: from the pen, one line up (the restore's own scroll is no look: verdict 8's should-fix 4)"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="150 155" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<ScrollWheelUp>' '<ScrollWheelUp>' '<C-o>' 'k' 'q' | cut -d'|' -f3)" " 155:2 150=x 155=qx"
   case_ "...typing, a wheel up, then nothing for 1.25 s: the pause's save (a write counts as a change) leaves the page where the wheel left it (the master, verdict 7's should-fix 2)"
   diary "$TMP/v.md"
   eq "$(scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))z" '<ScrollWheelUp>' '' '' '' '' '' | cut -d'|' -f1)" "-3 0 0 0 0 0 "

@@ -302,7 +302,7 @@ end
 page()
 rule(notes, true)
 vim.api.nvim_create_autocmd("BufWinEnter", {
-  group = group, callback = function(ev) page(); rule(ev.buf, true); seen_top[vim.api.nvim_get_current_win()] = nil end,
+  group = group, callback = function(ev) page(); rule(ev.buf, true); seen_top[vim.api.nvim_get_current_win()] = nil; look = nil end,
 })
 vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = function(ev) plain(ev.buf); rule(ev.buf, true) end })
 -- after every change and every move, the pen keeps its room: scrolloff alone keeps it for a step of
@@ -358,6 +358,7 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
 vim.api.nvim_create_autocmd("InsertLeave", {
   group = group,
   callback = function(ev)
+    look = nil
     ticks[ev.buf] = vim.b[ev.buf].changedtick
     local w, top = vim.api.nvim_get_current_win(), vim.fn.winsaveview().topline
     if not (seen_top[w] and top < seen_top[w]) then return end
@@ -378,18 +379,33 @@ vim.api.nvim_create_autocmd("CursorMoved", { group = group, callback = keep_room
 -- cursor inside the window, so past one notch — or one anywhere but at the foot, where the paper's
 -- rows give it room — it drags the cursor along with no key, and his next keys went into an older
 -- line (the master, verdicts 6 and 7). The pen is noted as a look begins and put back before the
--- next key acts — any key: a letter, Enter, Backspace, an arrow act from the pen; a click then
--- goes where it points; Esc yields the pen to the page (InsertLeave). Nothing is noted meanwhile:
--- WinScrolled does nothing in typing (neovim tells it a wheel only once the window has been
--- through normal mode), follow() nothing during a look
+-- next key acts — any key: a letter, Enter, Backspace, an arrow, Ctrl+O act from the pen, the
+-- page brought to it (the put-back splits the typing's undo, as an arrow does; a completion ends
+-- when the look drags the cursor — neovim's own); a paste too (foot's is no key: vim.paste, below).
+-- Esc ends the look where the page is, and yields (InsertLeave); a click ends it where it points
+-- (putting the pen back first would scroll the page under the pointer — the master, verdict 8);
+-- so does the program placing the pen: the page shown again, turned (BufWinEnter), left.
+-- Nothing is noted meanwhile: WinScrolled does nothing in typing (neovim tells it a wheel only once
+-- the window has been through normal mode), follow() nothing during a look
+local function pen_back(at)                   -- the pen put back where he typed, the page brought to it
+  pcall(vim.api.nvim_win_set_cursor, 0, at)
+  follow()
+end
 vim.on_key(function(key)
   if not vim.api.nvim_get_mode().mode:find("^[iR]") then look = nil; return end
   local k = vim.fn.keytrans(key)
   if k:find("ScrollWheel", 1, true) then look = look or vim.api.nvim_win_get_cursor(0); return end
-  -- (Esc ends the look where the page is: putting the pen back would scroll to it first)
-  if look and k ~= "<Esc>" then pcall(vim.api.nvim_win_set_cursor, 0, look) end
+  local at = look
   look = nil
+  if at and k ~= "<Esc>" and not (k:find("Mouse", 1, true) or k:find("Drag", 1, true) or k:find("Release", 1, true)) then
+    pen_back(at)
+  end
 end, vim.api.nvim_create_namespace("kawa_look"))
+local paste = vim.paste
+vim.paste = function(lines, phase)          -- (a paste's first part: the pen put back before it goes in)
+  if look and phase < 2 then local at = look; look = nil; pen_back(at) end
+  return paste(lines, phase)
+end
 vim.api.nvim_create_autocmd("WinScrolled", {
   group = group,
   callback = function() if not vim.api.nvim_get_mode().mode:find("^[iR]") then keep_room() end end,
@@ -505,12 +521,14 @@ local function notes_open()                 -- the page turned back: the notes, 
   vim.cmd("startinsert!")
 end
 function _G.kawa_notes_hidden()
+  look = nil                                  -- (Super+N's hide and show come by RPC: no key ends a look)
   todo_tidy()
   save_all()
   run("--tidy")
   return ""
 end
 function _G.kawa_notes_shown()
+  look = nil
   save()
   run("--today")
   vim.cmd("silent! wall")                     -- (another file open here: saved, and the notes back)
