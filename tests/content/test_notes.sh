@@ -279,7 +279,12 @@ kawa_notes_shown(); vim.cmd("redraw")
 local dt, rows = {}, {}
 local function step(i, t0)
   if i > #steps then
-    local f = io.open(OUT, "w"); f:write(table.concat(dt, " ") .. " | " .. table.concat(rows, " ")); f:close()
+    local pen = ""
+    if os.getenv("VDUMP") then   -- (then the pen's line:column and the lines named — where his words went)
+      pen = " | " .. vim.fn.line(".") .. ":" .. vim.fn.col(".")
+      for n in os.getenv("VDUMP"):gmatch("%d+") do pen = pen .. " " .. n .. "=" .. vim.fn.getline(tonumber(n)) end
+    end
+    local f = io.open(OUT, "w"); f:write(table.concat(dt, " ") .. " | " .. table.concat(rows, " ") .. pen); f:close()
     return vim.cmd("qa!")
   end
   vim.api.nvim_input(steps[i])
@@ -292,7 +297,7 @@ local function step(i, t0)
 end
 vim.defer_fn(function() step(1, vim.fn.line("w0")) end, 200)
 SCROLLLUA
-  scrolls() {   # scrolls FILE KEYS… — the top line's change at each step after the first, then the pen's rows
+  scrolls() {   # scrolls FILE KEYS… — the top line's change at each step after the first, then the pen's rows (VDUMP="N …": then the pen and those lines)
     local f=$1; shift
     VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/scroll.out KAWA_NOTES_WHERE='~/Notes/v.md' \
       nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/scroll.lua" -- "$f" >/dev/null 2>&1
@@ -305,6 +310,12 @@ SCROLLLUA
   case_ "...typing at the foot, a wheel up, Esc: the page stays where the wheel left it, the pen yields into its room (the master, verdict 5's should-fix 3: neovim's own check as typing ends scrolled back)"
   diary "$TMP/v.md"
   eq "$(scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<ScrollWheelUp>' '<Esc>')" "-3 0 | 36 33"
+  case_ "...a wheel up while typing in a window that has been through normal mode once (the warm window after its first Esc: neovim tells it the wheel), then two keys: they go on his line, the page back to the pen (the master, verdict 6's must-fix 1: the pen walked into line 153 and \"qr\" went there)"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="156 153" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc>' 'A' '<ScrollWheelUp>' 'q' 'r' '<Esc>')" "0 0 -3 3 0 0 | 33 33 36 33 33 33 | 156:2 156=qr 153=x"
+  case_ "...typing on a line, a wheel up, Esc: the pen yields up into its room on its own column, as Ctrl+Y's yield keeps it (the master, verdict 6's should-fix 2: Esc's yield put it at the line's start)"
+  diary "$TMP/v.md"
+  eq "$(VDUMP="152" scrolls "$TMP/v.md" "$(printf 'hello world<CR>%.0s' $(seq 1 29))hello world" '<ScrollWheelUp>' '<Esc>' | cut -d'|' -f3)" " 152:11 152=hello world"
   case_ "...and on a to-do longer than the page (tab, esc, then Ctrl+Y twice): the list moves up each time"
   for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
   diary "$TMP/v.md"

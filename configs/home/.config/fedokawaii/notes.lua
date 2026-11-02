@@ -219,6 +219,8 @@ local paperns = vim.api.nvim_create_namespace("kawa_paper")
 local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }
 local seen_top = {}                           -- window → its top line at the last look (keep_room, below): a
                                               -- window's, as the view is; forgotten when another page enters it
+                                              -- (one window for the session: nothing to drop)
+local ticks = {}                              -- page → its change count at the last change handled
 local function rows()                         -- the paper's virtual rows, as many as the screen has
   if sheet.cols ~= vim.o.columns or sheet.lines ~= vim.o.lines then
     local row = { { string.rep(" ", vim.o.columns), "KawaRule" } }
@@ -252,7 +254,7 @@ local function rule(b, force)
       on_lines = function(_, buf, _, _, last_old, last_new)
         if last_new ~= last_old and paper[buf] then to_end(buf) end
       end,
-      on_detach = function(_, buf) attached[buf], paper[buf], ruled[buf] = nil, nil, nil end,
+      on_detach = function(_, buf) attached[buf], paper[buf], ruled[buf], ticks[buf] = nil, nil, nil, nil end,
     })
   end
   local n = vim.api.nvim_buf_line_count(b)
@@ -330,7 +332,6 @@ local function keep_room()
 end
 -- (a typed key is a change, never a scroll of his: CursorMovedI follows the pen; and the TextChanged
 -- that leaving typing brings, with no new change in it, is only a look — the master, verdict 5)
-local ticks = {}
 local function follow()
   pen_room()
   seen_top[vim.api.nvim_get_current_win()] = vim.fn.line("w0")
@@ -345,28 +346,41 @@ vim.api.nvim_create_autocmd({ "TextChanged", "TextChangedI" }, {
     ticks[ev.buf] = tick
   end,
 })
--- (leaving typing after a wheel up — the wheel moves no pen in typing, nor tells anyone: neovim's
--- own check as typing ends would scroll the page back to the pen; the pen yields first, its row
--- counted without that check)
+-- (leaving typing after a wheel up — the wheel in typing moves no pen and is only a look (below):
+-- neovim's own check as typing ends would scroll the page back to the pen; the pen yields first,
+-- pen_yield's rule with its rows counted by text_height, as winline() would make that check itself)
 vim.api.nvim_create_autocmd("InsertLeave", {
   group = group,
   callback = function(ev)
     ticks[ev.buf] = vim.b[ev.buf].changedtick
     local w, top = vim.api.nvim_get_current_win(), vim.fn.winsaveview().topline
     if not (seen_top[w] and top < seen_top[w]) then return end
-    local room, r = vim.fn.winheight(0) - ROOM, vim.api.nvim_win_get_cursor(0)[1]
+    local room, pen = vim.fn.winheight(0) - ROOM, vim.api.nvim_win_get_cursor(0)
+    local r = pen[1]
     while r > top and vim.api.nvim_win_text_height(0, { start_row = top - 1, end_row = r - 1 }).all > room do r = r - 1 end
-    if r ~= vim.api.nvim_win_get_cursor(0)[1] then vim.api.nvim_win_set_cursor(0, { r, 0 }) end
+    if r ~= pen[1] then
+      local line = vim.api.nvim_buf_get_lines(0, r - 1, r, false)[1] or ""
+      vim.api.nvim_win_set_cursor(0, { r, math.min(pen[2], #line) })   -- (its column kept, as pen_yield keeps it)
+    end
     seen_top[w] = top
   end,
 })
 vim.api.nvim_create_autocmd("CursorMovedI", { group = group, callback = follow })
-vim.api.nvim_create_autocmd({ "CursorMoved", "WinScrolled" }, { group = group, callback = keep_room })
+vim.api.nvim_create_autocmd("CursorMoved", { group = group, callback = keep_room })
+-- the wheel in typing is a look: nothing moves and nothing is noted — the next key brings the page
+-- back to the pen (follow), Esc yields the pen to the page (InsertLeave). (Neovim tells a wheel in
+-- typing only to a window that has been through normal mode once — the warm window after its first
+-- Esc: there it walked his pen into an older line as he typed — the master, verdict 6)
+vim.api.nvim_create_autocmd("WinScrolled", {
+  group = group,
+  callback = function() if not vim.api.nvim_get_mode().mode:find("^[iR]") then keep_room() end end,
+})
 vim.api.nvim_create_autocmd("VimResized", {
   group = group,
   callback = function()   -- (the pen at the notes' end, as they open: on a day's line again)
     page(); rule(vim.api.nvim_get_current_buf(), true)
     if vim.api.nvim_get_current_buf() == notes and vim.fn.line(".") == vim.fn.line("$") then on_day() else pen_room() end
+    seen_top[vim.api.nvim_get_current_win()] = vim.fn.line("w0")   -- (the new size's page: a look)
   end,
 })
 
