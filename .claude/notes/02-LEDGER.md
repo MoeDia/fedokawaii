@@ -3990,6 +3990,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   warm (22 ms the first, cold), GTK 3 + GtkLayerShell + Gdk + GLib in 55 ms (3 runs each, headless, python3 -I); a
   451-line menu (Super+/'s size) laid out in 0.7 ms, ranked for a typed word in 0.2 ms. The panel starts once at login
   and stays (drawn, hidden): every menu after that is a fifo line and a sub-millisecond layout — no cost worth a change.
+- r27-30-baseline (3 Nov 02:36–02:42, T30's before, MEASURED): his nvim (LazyVim, a reflinked copy of his config and
+  plugins in ~/.cache, removed after) in a pty, 140 × 40, TERM=foot, 10 runs: VeryLazy 30.7 ms median from nvim's own
+  start (29.6–83.3), lazy.nvim's startuptime 11.7 ms, 16 of 45 plugins loaded by then. A 1.0 s wait at every exit seen
+  first was the probe's: nvim's TUI waits up to a second for the terminal's answer to DA1 (CSI c) — `nvim --clean` the
+  same 1002 ms; with the pty answering as foot does, 1 ms (both). Exit hooks at VimLeavePre: vim.lsp's and noice's only.
+  Next for T30: the per-plugin cost table (lazy's profile, in a pty that answers), cuts and lazy-loads by it, editing
+  latency, the lock committed and restored by setup.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace

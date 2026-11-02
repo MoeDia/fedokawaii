@@ -41,7 +41,9 @@ CONTAINED=$(awk '/^contained\(\) \{/ { on = 1 } on { print } on && /^}/ { exit }
 trapped() {   # (a script file, as setup is one: its lines and its call stack as a script's)
   printf '%s\n' 'set -Eeuo pipefail' "IFS=\$'\\n\\t'" ". '$REPO/lib/common.sh'" 'CONTAINED_RC=0' "$CONTAINED" \
     "${TRAP:-$SETUP_TRAP}" "$1" >"$TMP/trapped.sh"
-  OUT=$(LOG_FILE=${LOGF:-$TMP/log} bash "$TMP/trapped.sh" 2>&1); RC=$?
+  # (STATE_DIR too: lib/common.sh's default is the machine's /var/lib/fedokawaii — run with root's
+  # rights once, this file's "dnf_install foo bar" left foo and bar in the real dnf-failed record)
+  OUT=$(LOG_FILE=${LOGF:-$TMP/log} STATE_DIR=$TMP/state bash "$TMP/trapped.sh" 2>&1); RC=$?
 }
 trapped_theme() { TRAP=$THEME_TRAP trapped "$@"; }
 
