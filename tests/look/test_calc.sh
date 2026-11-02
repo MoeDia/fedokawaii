@@ -35,6 +35,8 @@ raw=$(typed '1+1' '\x7f'); has "$raw" $'\e[?2026h'; has "$raw" $'\e[?2026l'; lac
 has "$(plain "$raw")" "ctrl+q  qalc's prompt"; lacks "$(plain "$raw")" "esc close"; lacks "$(plain "$raw")" "enter copy"; lacks "$raw" "↑"
 has "$(plain "$raw")" "copy" "the answer's copy"
 has "$raw" "   "$'\e[38;5;20m'"$ICON_CHEVRON_RIGHT"$'\e[0m  1+1' "the line typed: the chevron (accent_text) at the rows' icon column, the words at their names'"
+case_ "a shorter answer over a longer one: the rest of its line erased before the copy's column (the kit saw \"152.4 cm005083516811 s*c\")"
+raw=$(typed '5 ft to c' 'm'); has "$raw" "152.4 cm"$'\e[0m\e[K\e[' "(the answer, its ink's end, the erase, then the jump to copy)"
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
 rc 1 kawa-calc --answer steam

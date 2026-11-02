@@ -97,7 +97,9 @@ draw() {
   f=$'\e[?2026h\e[?25l\e[H\e[K\n  '"$(screen_heading "$ICON_CALC" calculator "$w")"$'\e[K\n\e[K\n'
   f+="   $INK_ACCENT_TEXT$ICON_CHEVRON_RIGHT$INK_OFF  $expr"$'\e7\e[K\n'
   if [[ -n $ans ]]; then
-    f+="   $INK_MUTED$ICON_EQUALS$INK_OFF  $INK_STRONG$ans$INK_OFF"
+    # (the rest of the line erased before copy's jump to its column: a shorter answer over a longer
+    # one left its tail — "152.4 cm005083516811 s*c", the kit's shot of "5 ft to cm" typed, T19m)
+    f+="   $INK_MUTED$ICON_EQUALS$INK_OFF  $INK_STRONG$ans$INK_OFF"$'\e[K'
     # (copy ending at the content's last column — the terminal's w + 2: two columns of paper first)
     ((w - 4 - $(screen_cols "$ans") >= 8)) && f+=$'\e['"$((w - 1))"'G'"${INK_MUTED}copy$INK_OFF"
     f+=$'\e[K\n'
