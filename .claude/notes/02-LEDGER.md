@@ -3457,20 +3457,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   item; the tests passed only by the events' order). test_notes 140/0. The suite on b2f7444: ends red on the explained
   test_theme flake (r27-53-flake-theme).
 - r27-suite-b2f7444 (2 Nov 12:43–13:28): 127 of 128 green; the one red: look/test_theme's load flake (fixed since, eb11633;
-  the same tree alone 263/0). A fresh suite on 7ca416a (everything of this pass) STARTED 13:41, alone (nothing heavy beside
+  the same tree alone 263/0). A fresh suite on 7ca416a (everything of this pass) STARTED 13:40, alone (nothing heavy beside
   it): /dev/shm/r27p/suite-7ca416a.log, the frozen tree /dev/shm/r27w-suite-7ca416a.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
 ##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
-## (1) T21: the master's RE-REVIEW 5 — verdict 4 FAIL (a scroll up from the foot was dead) → fixed in 597a84c/7dd0e0b
-##     (r27-21-master-4-fix): brief from the newest HEAD, NARROW (keep_room: the pen yields on a scroll up; probe from the
-##     FOOT as well as mid-page — the lesson of verdict 4); verdicts 1–4 in .claude/notes/, the old folders in
-##     /dev/shm/r27/master-archive/T21-r1..r3 (archive r4 first: the brief tool wipes /dev/shm/r27/master/T21). The suite on b2f7444 ends RED on test_theme's load flake (fixed since:
-##     r27-53-flake-theme) — run a fresh suite on the newest HEAD, nothing heavy beside it (no kit, no test runs: two
-##     flakes today came from load). Master PASS + that suite green → push main (GitHub main = e083197 still), then APPLY from the frozen
-##     tree when he is away + a SESSION RESTART (START §4) for the dwl fix, and the panel (bug 10) restarted per memory
-##     live-panel-restart; the warm notes window takes the new page at its start.
+## (1) T21: the master's RE-REVIEW 5 on d56fe4a STARTED 13:39 (r27-21-review5) → /dev/shm/r27/master/T21/verdict.md; if the
+##     pass ended first, its verdict file may be missing or partial: run it again from the newest HEAD (archive the folder
+##     first: the brief tool wipes it; verdicts 1–4 are in .claude/notes/, folders r1–r4 in /dev/shm/r27/master-archive/).
+##     It must probe from the FOOT as well as mid-page (verdict 4's lesson) and the to-do's opening after the notes
+##     (a6809d4). The suite on 7ca416a (r27-suite-b2f7444's line): read its rc line; nothing heavy beside a suite.
+##     Master PASS + that suite green → push main (GitHub main = e083197 still), then APPLY from the frozen tree when he
+##     is away + a SESSION RESTART (START §4) for the dwl fix, and the panel (bug 10) restarted per memory
+##     live-panel-restart; the warm notes window takes the new page at its next start.
 ## (2) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is
 ##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
 ## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
