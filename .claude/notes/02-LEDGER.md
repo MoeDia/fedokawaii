@@ -3359,7 +3359,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   field, keys ignored while held, the 1 s guard, done only for its caller and only a held window, no --stay as before —
   3 fail on HEAD's kawa-panel), test_file 276/0 (the stub knows --done and Esc; wrong-then-Esc: asked again in place,
   nothing extracted, no notice; wrong-then-right: opened, --done; the RAR stand-in's t; the PDF unlock wrong-then-right).
-  Still to see with eyes: the held window's swap in the kit (a play with a locked PDF through Super+D), both moods.
+  SEEN 12:55–12:57 (kit, both moods, /dev/shm/r27/t22/b10/{dark,light}/: kawa-file on a qpdf-locked PDF → unlock →
+  "wrong" → "secret"): the prompt "locked.pdf · password", then "locked.pdf · wrong password" in the SAME window
+  (its box 803,500–1117,602 both times), the field empty, the pen ready; the right one: the window gone, the
+  "unlocked" notice, locked.unlocked.pdf made. Grill note for T22's review: "wrong password" stands in the title's
+  quiet ink — an error might want accent_text (the panel's title is one ink today).
 - r27-suite-2939cc8 (2 Nov 11:40–12:26): 127 of 128 files green; test_yazi 120/1 — "Esc, q and M each close the list
   (three times opened, three times listed)" — the suite ran beside my kit renders and test runs; the same tree's
   test_yazi ALONE: 121/0 (12:43). A timing flake under load → T53 (make that case wait for the list, not a fixed time).
