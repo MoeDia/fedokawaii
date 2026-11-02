@@ -1,9 +1,12 @@
 #!/usr/bin/env bash
 # tests/content/test_tiles.sh — the terminal at every size dwl tiles it to on a 1920×1080
 # screen (gap 8, a 1 px border; Sumi Term at 16 px: 8 × 20 px cells, 8 px of paper round —
-# the widths in columns: the window's width less its border and paper, over 8):
-#   full 235 · the spiral's and the columns' 144, 116, 88, 76, 56, 53 · the narrowest 31
-# (the rows matter less here: each test sizes its own)
+# a window's columns are its width less the border and the paper, over 8: full (1920 − 2 × 8 gap
+# − 2 − 16) / 8 = 235). WIDTHS are what dwl gives foot for 1–8 windows in the spiral (mfact
+# 0.618: 144, 88, 83, 76, 72) and in columns (116, 76), and with Super+H/L at mfact's ends (159);
+# the narrowest is dwl's tileminw (600 px: 72) — measured, not worked out:
+# tools/regress/tile-widths.sh tiles them in a headless kit and fails while this line differs.
+# (the rows matter less here: each test sizes its own; narrower floating windows: the lay cases)
 # The prompt (~/.bashrc.d/fedokawaii.sh): one short line — what it gives up as the window
 # narrows (the time, the jobs, the branch, the folder above, then the folder's end), real
 # prompts in a terminal of each width, the line laid out anew when the width changes under it
@@ -16,7 +19,7 @@ BLESH_DIR=${FEDOKAWAII_BLESH:-$HOME/.local/share/blesh}
 BLESH_PIN=$(sed -n 's/^BLESH_COMMIT=//p' "$REPO/lib/upstream.sh")
 REAL_LAZYGIT=$(command -v lazygit 2>/dev/null)
 YD=$(cd "$C/../yazi" && pwd)
-WIDTHS="235 144 116 88 76 56 53 31"
+WIDTHS="235 159 144 116 88 83 76 72"
 
 home() {   # home — a fresh home with the shell's files (Fedora's ~/.bashrc reads ~/.bashrc.d)
   sandbox
@@ -94,7 +97,7 @@ for c in $WIDTHS; do
     ((w + 4 <= c - 1)) && _ok || _no "$((w + 4)) wide: [$h]"
   done <<<"$H"
   [[ $(sed -n 3p <<<"$H") == *' I 3 I'* ]] && _ok || _no "header 3: [$(sed -n 3p <<<"$H")]"
-  [[ $(sed -n 2p <<<"$H") == *'.config'* || $c -lt 30 ]] && _ok || _no "the folder: [$(sed -n 2p <<<"$H")]"
+  [[ $(sed -n 2p <<<"$H") == *'.config'* ]] && _ok || _no "the folder: [$(sed -n 2p <<<"$H")]"
 done
 case_ "deep in a repository: the folder and the one above it, the branch while there is room"
 eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I I  I home/.config I I  main* I I  exit"

@@ -74,9 +74,11 @@ fake_lpf_era() {
 # make file and main source (ble.pp), whose build the fake make knows
 fake_blesh_source() { mkdir -p "$1"; echo '# ble.sh (fake source)' >"$1/ble.pp"; echo 'install:' >"$1/GNUmakefile"; }
 # fake_blesh_install DIR — what ble.sh's build installs there: its ble.sh, which says its
-# version ($FKH/blesh-version, else the pinned commit's)
+# version ($FKH/blesh-version, else the pinned commit's), and loaded unattached in an
+# interactive shell on a terminal notes its TERM in the cache (ble.sh's tput cache: blesh/warmed)
 fake_blesh_install() {
   mkdir -p "$1/lib" "$1/contrib/integration"
-  printf '#!/bin/bash\n# ble.sh (fake)\n[[ $1 == --version ]] && echo "ble.sh (Bash Line Editor), version %s"\n' \
-    "$(cat "$FKH/blesh-version" 2>/dev/null || echo 0.4.0-devel4+d81fd54)" >"$1/ble.sh"
+  printf '#!/bin/bash\n# ble.sh (fake)\n[[ $1 == --version ]] && echo "ble.sh (Bash Line Editor), version %s"\n%s\n' \
+    "$(cat "$FKH/blesh-version" 2>/dev/null || echo 0.4.0-devel4+d81fd54)" \
+    '[[ $1 == --attach=none && $- == *i* && -t 0 && -t 1 ]] && c=${XDG_CACHE_HOME:-$HOME/.cache}/blesh && mkdir -p "$c" && echo "$TERM" >>"$c/warmed"' >"$1/ble.sh"
 }

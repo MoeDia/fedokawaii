@@ -372,10 +372,27 @@ blesh_runs() {
 }
 blesh_current() { [[ $(up_tag blesh) == "$BLESH_COMMIT" ]] && blesh_runs; }
 
+# blesh_warm — ble.sh's descriptions of foot and the console cached now, by you: it writes them
+# on its first load in an interactive shell on a terminal, saying "updating tput cache for
+# TERM=foot… done" in that first window otherwise. (Python's pty; the shell's rc file is ble.sh
+# alone — nothing else of yours is read.)
+blesh_warm() {
+  local t
+  for t in foot linux; do
+    as_user env TERM="$t" timeout 20 python3 -I -c 'import os, pty, sys, tempfile
+os.makedirs(os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache"), exist_ok=True)
+with tempfile.NamedTemporaryFile("w") as rc:
+    rc.write(f"source {sys.argv[1]} --attach=none --norc\nexit 0\n"); rc.flush()
+    pty.spawn(["bash", "--rcfile", rc.name, "-i"])' "$(blesh_dir)/ble.sh" </dev/null >/dev/null 2>&1
+  done
+  return 0
+}
+
 # install_blesh — a no-op when the pinned commit is in place and loads. Else that commit is
 # fetched by its hash (as you, into a folder of yours that goes again) with its contrib/
-# part, built into a new folder, and that folder must load before it replaces the old one.
-# Returns 1, having changed nothing, when any of that fails.
+# part, built into a new folder, and that folder must load before it replaces the old one
+# (its terminal caches then warmed: blesh_warm). Returns 1, having changed nothing, when any
+# of that fails.
 install_blesh() {
   local d src
   d=$(blesh_dir)
@@ -396,6 +413,7 @@ install_blesh() {
   fi
   swap_in "$src/new" "$d" ble.sh || { as_user rm -rf "$src"; return 1; }
   as_user rm -rf "$src"
+  blesh_warm
   record_tag blesh "$BLESH_COMMIT"
   ok "ble.sh ${BLESH_COMMIT:0:7} (the shell's colours, suggestions and menus) → ~/.local/share/blesh"
 }

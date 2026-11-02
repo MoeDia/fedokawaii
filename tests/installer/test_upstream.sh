@@ -275,6 +275,8 @@ called "^fkuser\[make\] -C /tmp/[^ ]*/s install INSDIR=/tmp/[^ ]*/new$"
 eq "$(fk stat -c %U "$H/.local/share/blesh/ble.sh")" fkuser
 eq "$(cat "$bt")" "$BLESH"
 as_fk bash "$H/.local/share/blesh/ble.sh" --version; eq "$OUT" "ble.sh (Bash Line Editor), version 0.4.0-devel4+${BLESH:0:7}"
+eq "$(cat "$W$H/.cache/blesh/warmed")" $'foot\nlinux' "loaded by you on a terminal for foot and the console: the first window says no 'updating tput cache'"
+eq "$(fk stat -c %U "$H/.cache/blesh/warmed")" fkuser
 case_ "a second run: in place, nothing fetched"
 reset_calls; up 'install_blesh'; eq "$RC" 0; has "$OUT" "ble.sh ${BLESH:0:7} — in place"; not_called '\[git\]'; not_called '\[make\]'
 keep blesh

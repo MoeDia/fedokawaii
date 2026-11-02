@@ -4092,6 +4092,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   selinux-policy 45.23, openssl 4.0, Podman 6 (safe for the Prowlarr quadlet); ROCm 7.2 and Fedora's own Ollama 0.24 (ROCm
   + Vulkan; gfx1200 in the default targets) for T47; F46 will refuse silent RPM Fusion/COPR vendor changes. The dry runs
   wrote lines to ~/.local/state/dnf5.log (dnf5's own user log).
+- r27-24-fix3 (3 Nov 03:33–03:50, T24, the master's nits 4 and 5): test_tiles' WIDTHS MEASURED, not copied — new
+  tools/regress/tile-widths.sh (a headless kit with the bar up: foot windows 1–8 in the spiral and in columns, then
+  Super+H/L to mfact's ends with two and three windows; each terminal reports `stty size`; fails while test_tiles' WIDTHS
+  differ): dwl gives foot 235 159 144 116 88 83 76 72 columns — the old list's 56, 53 and 31 never occur (the narrowest tile
+  is dwl's tileminw, 600 px = 72 columns; mfact's ends stop there: 159 + 72), and 159, 83, 72 were missing. The header
+  derives them (full: (1920 − 16 − 2 − 16) / 8 = 235) and names the check; the dead `$c -lt 30` branch gone. test_tiles
+  143/0, tile-widths held. The renders' cache line: ble.sh prints "ble/term.sh: updating tput cache for TERM=foot… done"
+  on its first load per TERM after every install or new commit (ble.sh lib/init-term.sh:251; its cache must be newer than
+  init-term.sh, ble.sh:8106) — so his first terminal after a fresh install or a pin bump would have shown it too: FIXED in
+  lib/upstream.sh blesh_warm (install_blesh, after the swap): ble.sh loaded unattached for foot and the console, as him, in
+  an interactive bash on Python's pty (ble.sh refuses `bash -c` and a shell without a terminal: ble.sh:142–160); proven in
+  a scratch home (the first load writes term.foot, the second is silent; a first probe without a cache folder wrote ble.sh's
+  fallback ~/.local/share/blesh/cache.d/1000/term.foot — removed at once). The stand-in ble.sh notes its TERM when loaded so
+  (tests/installer/stubs/_lib.sh): test_upstream 248/0 (foot then linux, owned by the user); the installer area re-run
+  (the stand-ins changed). Renders /dev/shm/r27/t24/fix3/pair.png (both moods, the play warming the cache the same way): no
+  cache line, the prompts as in fix1.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
