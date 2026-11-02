@@ -125,11 +125,15 @@ chord   = { fg = "lightcyan" }
 action  = {}
 hovered = { bg = "24", fg = "25" }
 
-# file names by kind; folders in blue, like ls
+# file names by kind; folders in blue, like ls — each kind in its brighter slot (in light the
+# brighter slots are the deeper inks): at rest every name ≥ 4.5 : 1 on its ground in both moods
+# (the regular ones fell to 3.5–4.3 on the light paper: pictures, scripts, media, folders).
+# Programs and scripts keep the words' ink: their icon says what they are, and no green of the
+# palette reaches 4.5 : 1 on the light paper (4.09, its brighter one 4.47)
 [filetype]
 rules = [
-	{ mime = "**/image/*", fg = "yellow" },
-	{ mime = "**/{audio,video}/*", fg = "magenta" },
+	{ mime = "**/image/*", fg = "lightyellow" },
+	{ mime = "**/{audio,video}/*", fg = "lightmagenta" },
 	{ mime = "**/application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", fg = "red" },
 	{ mime = "**/application/{pdf,doc,rtf,epub+zip}", fg = "cyan" },
 	{ mime = "vfs/{absent,stale}", fg = "darkgray" },
@@ -137,10 +141,9 @@ rules = [
 	# bar: under the cursor the row takes the selection ink as its ground, and ink letters
 	# on it would vanish.)
 	{ url = "*", is = "orphan", fg = "red", crossed = true },
-	{ url = "*", is = "exec", fg = "green" },
 	{ url = "*", is = "dummy", fg = "red", crossed = true },
 	{ url = "*/", is = "dummy", fg = "red", crossed = true },
-	{ url = "*/", fg = "blue", bold = true },
+	{ url = "*/", fg = "lightblue", bold = true },
 ]
 
 # icons: the desktop's own pixel icons (Sumi Icons, the font of the bar and the menus;

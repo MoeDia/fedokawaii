@@ -3305,6 +3305,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   panel's (tests/menus: --stay with a typed answer, --done) and test_file (a wrong then a right password: one
   window, no notice). Live: kawa-panel restarted only per memory live-panel-restart (kit render first, SIGKILL when
   nothing is open) and only when he is away.
+- r27-22-kinds (2 Nov 13:12–13:22, T22's grill 1): the file kinds' colours at rest measured on the ground (WCAG, foot's
+  palettes): in LIGHT four names were under 4.5 : 1 — pictures (yellow 986f2d) 3.49, folders (blue 006eb8) 4.13,
+  scripts (green 437742) 4.09, media (magenta 66629c) 4.27; dark all ≥ 4.57. → each kind in its brighter slot (in
+  light the brighter slots are the deeper inks): pictures 6.31 / 14.44 (light / dark), media 6.72 / 8.74, folders
+  5.62 / 11.24; scripts: no green of the palette reaches 4.5 in light (4.09, the brighter 4.47) → programs keep the
+  words' ink (12.18 / 11.80), their icon says what they are. Rendered both moods (/dev/shm/r27/t22/p/kinds.png).
+  test_yazi 123/0, contrast 52 pairs 0 under; test_shrink 121, test_play 55, test_syncplay 86 (its real-session part
+  skipped: syncplay not on this shell's PATH — as in earlier suites) green.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 11:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
