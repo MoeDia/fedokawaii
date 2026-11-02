@@ -10,11 +10,16 @@ Sumi UI at its own pixels), and between the torches the Hannya mask (Ritsuō's N
 art/masters/SOURCES.md) on its round stone plate, its lip lit from above, its shadow on the wall;
 the password is typed in its open mouth. The flames are 8 frames (8 fps, a second's loop), drawn
 over the scene by the lock's module: a teardrop that sways and breathes, an ember now and then.
-(light: the Willow Kannon's scene — next.)
+light: a room of pale gold leaf (16 × 16 leaves, hairline seams, a fleck of gold here and there)
+lit by two hanging chōchin, the quote in sumi on a wooden plaque with its red seal, and between the
+lanterns a round window (marumado) in a wooden ring: through it Seiōbo, the Queen Mother of the
+West (Kōgyo's Noh print, AIC: SOURCES.md), her masked face, her crown and the peach she offers;
+the password is typed in the window's calm sky beside the peach.
 
-Writes art/lock/out/lock-dark.png (indexed) and flame-dark.png (8 frames side by side, 18 × 30
-each, transparent around the flame); prints where the mouth is on a 1080p screen. --preview DIR:
-the scene with the first frame at 3 × 3 and the frames at 8 × 8. Needs Pillow and numpy.
+Writes art/lock/out/lock-dark.png, lock-light.png (indexed) and flame-dark.png (8 frames side by
+side, 18 × 30 each, transparent around the flame); prints where the password goes on a 1080p screen
+(the mouth; the sky by the peach). --preview DIR: each scene at 3 × 3 (the dark one with the first
+frame), the frames at 8 × 8. Needs Pillow and numpy.
 """
 import argparse
 import hashlib
@@ -38,6 +43,7 @@ W, H = 640, 360
 BAY = bm.BAYER + 0.5                                   # (0 … 15/16)
 QUOTE = "鍵は心にあり"
 MASK = ("hannya-mask.jpg", "1bb6dda639aa74e2f8ee0f4f79885628a21dd0961bbdbd04f7469da422dc3d1d")
+SEIOBO = ("seiobo-noh.jpg", "c1d9bdd680571b492a095be35d4c524dfd9977e7d40ec7ee433891e3e8cac5bb")
 TORCH_X, FLAME_Y = (106, 534), 112                     # the flames' middles
 CX, CY, RD, RIM = 320, 189, 132, 5                     # the plate: its middle, the picture's radius, its lip
 LINTEL = (248, 391, 13, 41)                            # x0 x1 y0 y1
@@ -205,6 +211,107 @@ def flames(P):
     return strip
 
 
+def lanternlight(x, y):
+    return sum(1.0 / (1 + ((x - tx) ** 2 + ((y - LAMP_Y) * 1.15) ** 2) / 2200.0) for tx in TORCH_X)
+
+
+LAMP_Y = 118                                           # the lanterns' middles (at the torches' x)
+
+
+def window_of(path, sha, d):
+    """Seiōbo through the round window: the circle on her face, crown and peach, at d × d in the
+    light mood's inks."""
+    data = path.read_bytes()
+    if hashlib.sha256(data).hexdigest() != sha:
+        sys.exit(f"build-lock: {path} is not the file art/masters/SOURCES.md names (sha256)")
+    src = Image.open(path)
+    cx, cy, r = 0.605 * src.width, 0.345 * src.height, 0.205 * src.width
+    crop = [int(cx - r), int(cy - r), int(2 * r), int(2 * r)]
+    bm.W, bm.H = d, d
+    lab = bm.tones(bm.smooth(bm.oklab(bm.reduce(src, crop)), passes=3), {"tone": "keep", "lift": 0.0}, "light")
+    idx = bm.quantise(lab, "light", 0.07, 40)
+    pal = (bm.hexes(bm.PALETTE["light"]) * 255).round().astype(np.uint8)
+    return Image.fromarray(pal[idx], "RGB")
+
+
+def light_scene():
+    P = inks("light")
+    img = Image.new("RGB", (W, H))
+    px = img.load()
+    rng = np.random.default_rng(11)
+    # 1 gold leaf: 16 × 16 leaves, a hairline seam where two overlap, each leaf one tone — its own
+    # shade and the lanterns' light —, the tones close (leaf, not tiles); now and then a fleck of gold
+    leaf = [P["edge"], P["ground"], P["view"], P["key"]]
+    lw = 16
+    shade = np.clip(rng.normal(0, 0.035, (H // lw + 2, W // lw + 2)), -0.05, 0.05)
+    def tone(r, c):
+        v = 0.30 + 0.70 * min(lanternlight(c * lw + lw / 2, r * lw + lw / 2), 1.0) + shade[r, c]
+        return int(min(max(v * len(leaf), 0), len(leaf) - 1))
+    for y in range(H):
+        for x in range(W):
+            i = tone(y // lw, x // lw)
+            if y % lw == 0 or x % lw == 0:
+                px[x, y] = leaf[max(i - 1, 0)] if i else P["edge2"]   # (a seam: a step under its leaf)
+                continue
+            px[x, y] = leaf[i]
+            if rng.random() < 0.0025:
+                px[x, y] = P["gold"]
+    d = ImageDraw.Draw(img)
+    # 2 the plaque: a wooden frame, its paper, the quote in sumi, the seal in our red at its end
+    font = ImageFont.truetype(str(FONT), 14)
+    text = Image.new("1", (16 * len(QUOTE) + 8, 20), 0)
+    td = ImageDraw.Draw(text)
+    td.fontmode = "1"
+    for i, ch in enumerate(QUOTE):
+        td.text((16 * i, 0), ch, font=font, fill=1)
+    text = text.crop(text.getbbox())
+    x0, x1, y0, y1 = LINTEL
+    d.rectangle([x0 - 2, y0 - 2, x1 + 2, y1 + 2], fill=P["lo"])
+    d.rectangle([x0 - 1, y0 - 1, x1 + 1, y1 + 1], fill=P["edge2"])
+    d.rectangle([x0, y0, x1, y1], fill=P["key"])
+    d.line([(x0, y1), (x1, y1)], fill=P["edge"])
+    # (the words and the seal after them, 6 px apart, centred together on the plaque)
+    gx, gy = (x0 + x1 + 1 - (text.width + 6 + 8)) // 2, (y0 + y1 + 1 - text.height) // 2
+    for y in range(text.height):
+        for x in range(text.width):
+            if text.getpixel((x, y)):
+                px[gx + x, gy + y] = P["strong"]
+    sx = gx + text.width + 6
+    d.rectangle([sx, gy + text.height - 8, sx + 7, gy + text.height - 1], fill=P["accent"])   # the seal
+    # 3 the round window: its shadow on the leaf, a wooden ring (lit above, a groove inside),
+    # Seiōbo through it
+    for x, y, _ in ring(CX, CY + 5, 0, RD + RIM + 3):
+        c = px[x, y]
+        px[x, y] = leaf[max((leaf.index(c) if c in leaf else 1) - 1, 0)]
+    wood = [P["muted"], P["lo"], P["edge2"]]
+    for x, y, r in ring(CX, CY, RD, RD + RIM):
+        a = math.atan2(y + 0.5 - CY, x + 0.5 - CX)
+        v = 0.55 - 0.40 * math.sin(a)
+        if r >= RD + RIM - 1 or r < RD + 1:
+            v -= 0.35
+        px[x, y] = ramp_at(min(max(v, 0), 0.999), wood, x, y)
+    pic = window_of(CACHE / SEIOBO[0], SEIOBO[1], 2 * RD)
+    cut = Image.new("L", pic.size, 0)
+    ImageDraw.Draw(cut).ellipse([0, 0, pic.width - 1, pic.height - 1], fill=255)
+    img.paste(pic, (CX - RD, CY - RD), cut)
+    # 4 two chōchin on their cords: a lacquered cap and foot, ribbed paper lit from inside, our red
+    # mark on it
+    for tx in TORCH_X:
+        d.line([(tx, 0), (tx, LAMP_Y - 23)], fill=P["muted"])
+        d.rectangle([tx - 6, LAMP_Y - 23, tx + 5, LAMP_Y - 20], fill=P["strong"])
+        for yy in range(LAMP_Y - 19, LAMP_Y + 20):
+            t = (yy - (LAMP_Y - 19)) / 38
+            hw = 6 + 5 * math.sin(math.pi * t)
+            for xx in range(int(tx - hw), int(tx + hw) + 1):
+                px[xx, yy] = P["edge"] if (yy - LAMP_Y) % 5 == 0 else P["key"]
+            px[int(tx - hw), yy] = px[int(tx + hw), yy] = P["edge2"]
+        d.rectangle([tx - 6, LAMP_Y + 20, tx + 5, LAMP_Y + 23], fill=P["strong"])
+        d.rectangle([tx - 2, LAMP_Y - 6, tx + 1, LAMP_Y + 5], fill=P["accent"])
+    # the password's field: the window's calm sky, right of her crown and over the peach
+    field = (3 * (CX + 40), 3 * (CY - 90), 3 * (CX + 110), 3 * (CY - 60))
+    return img, field
+
+
 def main():
     ap = argparse.ArgumentParser(description="the lock screen's scenes (T20)")
     ap.add_argument("--preview", type=pathlib.Path, help="also write the 3 × 3 previews here")
@@ -215,6 +322,9 @@ def main():
     scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "lock-dark.png", optimize=True)
     strip.save(OUT / "flame-dark.png", optimize=True)
     print("dark: the mouth on a 1080p screen x0 y0 x1 y1:", *mouth)
+    light, field = light_scene()
+    light.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "lock-light.png", optimize=True)
+    print("light: the sky by the peach on a 1080p screen x0 y0 x1 y1:", *field)
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
         prev = scene.copy()
@@ -223,6 +333,7 @@ def main():
             prev.paste(one, (tx - FW // 2, 115 - FH + 2), one)
         prev.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-dark-3x.png")
         strip.resize((8 * FW * FRAMES, 8 * FH), Image.NEAREST).save(a.preview / "flame-dark-8x.png")
+        light.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-light-3x.png")
 
 
 if __name__ == "__main__":

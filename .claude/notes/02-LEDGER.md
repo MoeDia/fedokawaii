@@ -3956,6 +3956,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   right, beside the peach she offers, the ◆ in vermilion on the print's pale sky. To refine when built: the leaf squares
   read as tiles (smaller, closer tones, a few gold flecks), the window's ring a lighter wood for this mood, the lanterns
   drawn properly; SOURCES.md row + the source in ~/.cache/r27-art (from /dev/shm/r27/t20/hunt/seiobo-noh/).
+- r27-20-light-built (3 Nov 02:24–02:30, T20 step 2, WIP — not wired): tools/build-lock.py light_scene() →
+  art/lock/out/lock-light.png (16 KB): gold leaf of 16 × 16 leaves (each leaf one tone by the lanterns' light and its
+  own shade, clamped; a seam a step under its leaf — the lit leaves glow without a grid; gold flecks 0.25 %), the plaque
+  (wood, paper, the quote in sumi and the red seal centred together), the round window (a wooden ring lit above, its
+  shadow on the leaf, Seiōbo through it: the source checked by sha256 from ~/.cache/r27-art, SOURCES.md's light table
+  has her row now), two chōchin at the torches' x; the password's field printed: x 1080–1290, y 297–387 on 1080p
+  (the sky by the peach). Grilled twice (/dev/shm/r27/master/T20-evidence/lock-light-built-3x.png): the seams drew a
+  graph-paper grid → a step under each leaf; three stray dark leaves → the shade clamped; the quote and seal 20 px right
+  of centre → centred as one group. Left for the grill: the grid away from the lanterns still a little ruled, the ring
+  thin, the lanterns plain — then the wiring (lock.ui, gtklock.css, kawa-lockmod, kawa-lock, the greeter).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
