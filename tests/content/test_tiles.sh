@@ -72,16 +72,18 @@ home
 # changes, exit 2, 4.2s, a job) at COLS, as it reads (I a pixel icon)
 lay() { fn "COLUMNS=$1; __kawa_place=fedokawaii __kawa_above=repos/ __g_branch=main __g_dirty='*' __kawa_ok=0 __kawa_rc=2 __kawa_took=4.2s __kawa_jobs='jobs 1'
   __kawa_layout; printf '%s' \"\$__kawa_line\"" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g' | plain; }
+# (the blocks: the line's edge I, the mark's block " I  ", each block's stamp edge I and its words
+# between two spaces, the end's edge I, a space, the › I and its second half, a space)
 case_ "__kawa_layout: all of it while it fits a column short of the edge; then the time goes, the jobs, the branch, the folder above, then the folder's end — never an ellipsis"
-eq "$(lay 52)" "I  repos/fedokawaii  I  main*  2  4.2s  jobs 1  I  " "52 columns: everything"
-eq "$(lay 51)" "I  repos/fedokawaii  I  main*  2  jobs 1  I  " "the time first"
-eq "$(lay 46)" "I  repos/fedokawaii  I  main*  2  jobs 1  I  "
-eq "$(lay 45)" "I  repos/fedokawaii  I  main*  2  I  " "then the jobs"
-eq "$(lay 36)" "I  repos/fedokawaii  2  I  " "then the branch"
-eq "$(lay 26)" "I  fedokawaii  2  I  " "then the folder above"
-eq "$(lay 20)" "I  fedokawa  2  I  " "then the folder's end"
-for c in 80 52 45 36 26 20 16; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
-lacks "$(lay 12)" "…"; [[ $(lay 12) == "I  "?*"  2  I  " ]] && _ok || _no "a letter of the folder kept at least: [$(lay 12)]"
+eq "$(lay 61)" "I I  I repos/fedokawaii I I  main* I 2 I 4.2s I jobs 1 I I  " "61 columns: everything (60 wide)"
+eq "$(lay 60)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  " "the time first"
+eq "$(lay 54)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  "
+eq "$(lay 53)" "I I  I repos/fedokawaii I I  main* I 2 I I  " "then the jobs"
+eq "$(lay 44)" "I I  I repos/fedokawaii I 2 I I  " "then the branch"
+eq "$(lay 33)" "I I  I fedokawaii I 2 I I  " "then the folder above"
+eq "$(lay 24)" "I I  I fedoka I 2 I I  " "then the folder's end"
+for c in 80 61 60 53 44 33 24 20; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
+lacks "$(lay 19)" "…"; [[ $(lay 19) == "I I  I "?*" I 2 I I  " ]] && _ok || _no "a letter of the folder kept at least: [$(lay 19)]"
 
 # ── real prompts at every tile's width ────────────────────────────────────────
 for c in $WIDTHS; do
@@ -90,15 +92,15 @@ for c in $WIDTHS; do
   case_ "$c columns: every prompt one short line, never as wide as the window; the code after a failure kept while the folder can make room"
   eq "$(wc -l <<<"$H")" 6 "six prompts: $H"
   while IFS= read -r h; do
-    h=${h%"  I  "*}; w=$(width "$h")            # (the line up to its ›: what is typed after it is not the prompt)
-    ((w + 5 <= c - 1)) && _ok || _no "$((w + 5)) wide: [$h]"
+    h=${h%" I  "*}; w=$(width "$h")             # (the line up to its › — the last " I  ": what is typed after it is not the prompt)
+    ((w + 4 <= c - 1)) && _ok || _no "$((w + 4)) wide: [$h]"
   done <<<"$H"
-  [[ $(sed -n 3p <<<"$H") == *'  3  '* ]] && _ok || _no "header 3: [$(sed -n 3p <<<"$H")]"
+  [[ $(sed -n 3p <<<"$H") == *' I 3 I'* ]] && _ok || _no "header 3: [$(sed -n 3p <<<"$H")]"
   [[ $(sed -n 2p <<<"$H") == *'.config'* || $c -lt 30 ]] && _ok || _no "the folder: [$(sed -n 2p <<<"$H")]"
 done
 case_ "deep in a repository: the folder and the one above it, the branch while there is room"
-eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I  home/.config  I  main*  I  exit"
-eq "$(headers 20 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I  .config  I  exit"
+eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I I  I home/.config I I  main* I I  exit"
+eq "$(headers 24 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p | tr -d '\r' | sed 's/ *$//')" "I I  I .config I I  exit" "24 columns (the typed word ends on the last column: the terminal's wrap mark taken off)"
 
 # ── laid out anew when the width changes (ble.sh runs the prompt command again) ──
 case_ "a second run under the same prompt (ble.sh's line number unchanged) only lays the line out for the new width — its result and time kept, nothing printed"
@@ -109,15 +111,15 @@ out=$(fn '_ble_edit_lineno=7; COLUMNS=156; cd ~/repos/fedokawaii/configs/home/.c
   printf "%s\n" "$a" "$b" "$c" | sed "s/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g"
   wc -c <"$TMP/o2"; wc -c <"$TMP/o3"')
 a=$(sed -n 1p <<<"$out") b=$(sed -n 2p <<<"$out") c=$(sed -n 3p <<<"$out")
-[[ $a =~ \ \ 3\ \ 4\.[2-9]s\ \  ]] && _ok || _no "the first width: [$a]"
-((${#b} < ${#a})) && _ok || _no "narrower: [$b]"; has "$b" "  3  " "its code kept (the run of exit 0 between is a redraw, not a command)"
+[[ $a == *" 3 $ICON_CAP_STAMP 4."[2-9]"s "* ]] && _ok || _no "the first width: [$a]"
+((${#b} < ${#a})) && _ok || _no "narrower: [$b]"; has "$b" " 3 $ICON_CAP_STAMP" "its code kept (the run of exit 0 between is a redraw, not a command)"
 eq "$c" "$a" "back to the first width: the same line"
 eq "$(sed -n 4p <<<"$out")" 0 "nothing printed on a redraw (no OSC 133;D again, no title, no notice)"
 eq "$(sed -n 5p <<<"$out")" 0
 case_ "… and a new prompt (a new line number) is a new entry: its own result, foot told the status"
 out=$(fn '_ble_edit_lineno=7; COLUMNS=80; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null
   _ble_edit_lineno=8; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 0); __kawa_prompt; printf "\n%s\n" "$__kawa_line" | sed "s/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g"')
-has "$out" $'\e]133;D;0\e\\'; lacks "$(tail -n1 <<<"$out")" "  3  "
+has "$out" $'\e]133;D;0\e\\'; lacks "$(tail -n1 <<<"$out")" " 3 $ICON_CAP_STAMP"
 case_ "without ble.sh every prompt is a new entry (bash never runs the prompt command twice)"
 out=$(fn 'COLUMNS=80; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; (exit 0); __kawa_prompt')
 has "$out" $'\e]133;D;0\e\\'
@@ -179,7 +181,7 @@ if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+$
     h=${h#LINE[} h=${h%] C=*}
     w=$(width "$h")
     ((w <= ${to%x*} - 1)) && _ok || _no "$w wide: [$h]"
-    [[ $h == *'  3  '* ]] && _ok || _no "the code: [$h]"
+    [[ $h == *' I 3 I'* ]] && _ok || _no "the code: [$h]"
   done 2>/dev/null
 else
   case_ "ble.sh resize"; skip "no ble.sh ${BLESH_PIN:0:7} at $BLESH_DIR (FEDOKAWAII_BLESH names one)"

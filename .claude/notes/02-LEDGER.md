@@ -3870,6 +3870,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (nvim>out and nvim<in named; probed); torrra.txt's r. test_help 139/0, test_shell 190/0 (on the T23 state; T24's
   prompt is uncommitted), ruff clean. Left: the kit play's Space g g shots and the light pass, the live check (the
   verdict's list), the master's review 3.
+- r27-24 (3 Nov 01:45–02:00, T24 BUILT; kit-verified both moods; LIVE with the next apply; left: the dup bursts, the
+  Learn piece, the master): the prompt as a strip of stamps. art/icons.txt cap-stamp and cap-stamp-start (8 × 20 — an
+  8 × 20 drawing centred 6 px over the baseline is foot's cell exactly in the term font: rows 16 … −4) → build-icons.py
+  (458 glyphs, appended: none renumbered); build-themes.py PROMPT (Wada #300) → foot.ini 26–29 the papers, 30 their ink
+  (dark 111314, light 121b1b), both moods, so the theme switch recolours open prompts; fedokawaii.sh __kawa_blk (the
+  stamp edge in the left paper over the right one's, the words between two spaces) and __kawa_layout counting the
+  frames (FOUND while rewriting test_tiles: the first count missed the folder block's own edge and spaces — 3 columns,
+  the line would have wrapped at the edge widths instead of giving up a block; fixed: 2 × mark + 9). The console keeps
+  its plain line. Renders (/dev/shm/r27/master/T24-evidence: kit-dark, kit-light, pair1x.png, zoom4.png): ls, false,
+  a 3.2 s failure (the code's vermilion block, then the time's), a background job — the stamp edges on the cell grid,
+  the blocks the cell's full height. test_shell 187/0 (the prompt cases rewritten for the blocks: edges, papers, inks),
+  test_tiles 138/0 (the order of giving up at 61 / 60 / 53 / 44 / 33 / 24 columns, every real tile width, ble.sh's
+  resize keeping the code), test_generated 267/0, test_syntax 781/0, test_design_doc 54/0 (§7's prompt paragraph).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).

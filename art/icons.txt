@@ -3122,3 +3122,50 @@
 .##########.
 .##########.
 ............
+
+# the prompt's stamp edge (T24): the paper of one block reaching into the next in round tongues, a strip
+# of stamps — a whole terminal cell (8 × 20: foot's cell at Sumi Term 16 px), drawn in the left block's
+# colour on the right block's; cap-stamp-start the line's first edge, mirrored
+@cap-stamp adv=8 x=0
+####....
+######..
+#######.
+######..
+####....
+####....
+######..
+#######.
+######..
+####....
+####....
+######..
+#######.
+######..
+####....
+####....
+######..
+#######.
+######..
+####....
+
+@cap-stamp-start adv=8 x=0
+....####
+..######
+.#######
+..######
+....####
+....####
+..######
+.#######
+..######
+....####
+....####
+..######
+.#######
+..######
+....####
+....####
+..######
+.#######
+..######
+....####

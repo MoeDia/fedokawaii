@@ -78,26 +78,28 @@ __kawa_glass() {
 unset -f __kawa_glass
 
 # ── prompt ──────────────────────────────────────────────────────────────────
-# One short line, a few words, and only colour carries the result:
+# One short line of paper blocks, a strip of stamps — the stamp edge of each reaching into the
+# next — and only a block's colour tells what it is:
 #
-#   ⛩ repos/fedokawaii  ⑂ main*  ›  ls          the last command went well: the torii green
-#   ⛩ repos/fedokawaii  ⑂ main*  2  4.2s  ›     it failed (exit 2, after 4.2 s): vermilion
+#   [>_ | repos/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
+#   [>_ | repos/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
 #
-#   ⛩        the torii: green when the command before went well, vermilion when it failed
-#   folder   the one you are in, in the strongest ink, after the one above it in the faint
-#            ink (~ at home, / at the root) — the whole path is the window's title, in the bar
-#   branch   in git: the branch mark faint, the branch muted; * when anything is not committed
-#   the code only when it failed, vermilion
-#   the time only when it took 3 s or more, muted
-#   jobs     "jobs 1", muted, while a program waits in the background
+#   >_       the terminal's mark, on Grenadine Pink: where a command line starts
+#   folder   the one you are in, after the one above it (~ at home, / at the root), on Cream
+#            Yellow — the whole path is the window's title, in the bar
+#   branch   in git, on Turquoise Green: its mark, the branch, * when anything is not committed
+#   the code only when the command failed: its own block, the vermilion, cream words
+#   the time when it took 3 s or more, and "jobs 1" while a program waits in the background,
+#            on Calamine Blue
 #   ›        the desktop's pixel chevron, in the vermilion ink every list's search line has
-# Two spaces between the parts, one after the torii (whose ink stops short of its second
-# column: 14 px of air to the folder); the icons carry a space for their second half.
-# A narrow window gives up the time, then the branch, then the folder's end. The line is
-# the same once its command has run, so the history above reads as a column of them.
-# On a text console (no foot) the same words, plain: '#' for the torii, '>' for the ›.
-# Cost: pure bash outside git repositories (one git call inside); the timer is stamped by
-# PS0 without a fork. A blank line separates each command's output from the next.
+# The papers are Wada's combination #300 (tools/build-themes.py PROMPT: foot's colours 26–29,
+# their ink 30, both moods); a block is its words with a space either side, the stamp edge a
+# cell of its own (art/icons.txt cap-stamp: the block before's paper over the next one's). A
+# narrow window gives up the time, then the branch, then the folder above, then the folder's
+# end. The line is the same once its command has run, so the history above reads as a column
+# of them. On a text console (no foot) the same words, plain: '#' for the mark, '>' for the ›.
+# Cost: pure bash outside git repositories (one git call inside); the timer is stamped by PS0
+# without a fork. A blank line separates each command's output from the next.
 __kawa_in_git() {                              # pure bash: no fork outside repositories
   local d=$PWD
   while :; do [[ -e $d/.git ]] && return 0; [[ -z $d ]] && return 1; d=${d%/*}; done
@@ -128,18 +130,17 @@ __kawa_git() {
 if [[ $TERM == foot* ]]; then
   # shellcheck source=/dev/null
   . ~/.config/fedokawaii/icons.sh
-  __i_torii="$ICON_TORII " __i_mark="$ICON_CHEVRON_RIGHT " __i_branch="$ICON_BRANCH  " __i_w=2 __i_bw=3
-  __c_ok=$'\001\e[92m\002' __c_bad=$'\001\e[38;5;20m\002' __c_here=$'\001\e[38;5;23m\002'
-  __c_dim=$'\001\e[38;5;21m\002' __c_dirty=$'\001\e[93m\002' __c_mark=$'\001\e[38;5;20m\002'
-  __c_faint=$'\001\e[38;5;22m\002'
+  __kawa_blocks=1 __i_torii="$ICON_TERMINAL " __i_mark="$ICON_CHEVRON_RIGHT " __i_branch="$ICON_BRANCH  " __i_w=2 __i_bw=3
+  __i_cap=$ICON_CAP_STAMP __i_cap0=$ICON_CAP_STAMP_START
+  __c_mark=$'\001\e[38;5;20m\002'
 else
-  __i_torii='#' __i_mark='>' __i_branch='' __i_w=1 __i_bw=0
+  __kawa_blocks=0 __i_torii='#' __i_mark='>' __i_branch='' __i_w=1 __i_bw=0
   __c_ok=$'\001\e[32m\002' __c_bad=$'\001\e[31m\002' __c_here=$'\001\e[1;37m\002'
   __c_dim=$'\001\e[37m\002' __c_dirty=$'\001\e[33m\002' __c_mark=$'\001\e[90m\002'
   __c_faint=$'\001\e[90m\002'
 fi
 __c_off=$'\001\e[0m\002'
-__kawa_one=x __kawa_fresh=1 __kawa_j='\j' __kawa_line='' __kawa_pwd=$PWD __kawa_z=0 __kawa_lineno=''
+__kawa_one=x __kawa_fresh=1 __kawa_j='\j' __kawa_line='' __kawa_prev='' __kawa_pwd=$PWD __kawa_z=0 __kawa_lineno=''
 __kawa_ok=1 __kawa_rc=0 __kawa_took='' __kawa_jobs='' __kawa_place='' __kawa_above='' __g_branch='' __g_dirty=''
 # __kawa_t0: when the command being run started (PS0 stamps it; 0: no command since the
 # last prompt — a new window, or Enter on an empty line)
@@ -155,8 +156,19 @@ __kawa_w() {
   __w=$(( ${#1} + ${#wide} ))
 }
 
+# __kawa_blk PAPER INK TEXT — a block of the line: the stamp edge from the block before (its
+# paper over this one's; the first, the line's own edge over the ground), then TEXT between a
+# space either side on PAPER (foot's colours: 26–29 the papers, 16 the vermilion)
+__kawa_blk() {
+  if [[ -z $__kawa_prev ]]; then __kawa_line+=$'\001\e[38;5;'"$1"$';49m\002'"$__i_cap0"
+  else __kawa_line+=$'\001\e[38;5;'"$__kawa_prev;48;5;$1"$'m\002'"$__i_cap"; fi
+  __kawa_line+=$'\001\e[38;5;'"$2;48;5;$1"$'m\002'" $3 "
+  __kawa_prev=$1
+}
+
 # __kawa_layout → __kawa_line, from the pieces and $COLUMNS now: what does not fit goes
-# (the time, then the branch, then the folder's end), a column kept free at the right
+# (the time, then the branch, then the folder above, then the folder's end), a column kept
+# free at the right
 __kawa_layout() {
   if ((!__kawa_ran)) || [[ ${COLUMNS-} != +([0-9]) ]]; then __kawa_winsize || return 0; fi
   [[ ${LC_ALL-} == C.UTF-8 ]] || local LC_ALL=C.UTF-8
@@ -166,13 +178,29 @@ __kawa_layout() {
   __kawa_w "$place"; pw=$__w; __kawa_w "$above"; aw=$__w; __kawa_w "$git"; gw=$__w
   ((gw)) && gw=$((gw + __i_bw))
   cw=${#code} tw=${#took} jw=${#jobs}
-  # (the torii and its space, the two spaces and the › and its space: the fixed part)
-  local fixed=$((2 * __i_w + 4)) extra=$(( (gw ? gw + 2 : 0) + (cw ? cw + 2 : 0) + (tw ? tw + 2 : 0) + (jw ? jw + 2 : 0) ))
-  if ((fixed + aw + pw + extra > c && tw)); then extra=$((extra - tw - 2)) took=''; fi
-  if ((fixed + aw + pw + extra > c && jw)); then extra=$((extra - jw - 2)) jobs=''; fi
-  if ((fixed + aw + pw + extra > c && gw)); then extra=$((extra - gw - 2)) git=''; fi
+  # the fixed part — foot: the mark's block (the line's edge, a space, the mark, a space), the
+  # folder's frame (its edge, a space either side) and the end (its edge, a space, the ›, a
+  # space); each other block its edge and a space either side. The console: the mark and its
+  # space, the two spaces and the › and its space
+  local fixed=$((2 * __i_w + 4)) gap=2
+  ((__kawa_blocks)) && fixed=$((2 * __i_w + 9)) gap=3
+  local extra=$(( (gw ? gw + gap : 0) + (cw ? cw + gap : 0) + (tw ? tw + gap : 0) + (jw ? jw + gap : 0) ))
+  if ((fixed + aw + pw + extra > c && tw)); then extra=$((extra - tw - gap)) took=''; fi
+  if ((fixed + aw + pw + extra > c && jw)); then extra=$((extra - jw - gap)) jobs=''; fi
+  if ((fixed + aw + pw + extra > c && gw)); then extra=$((extra - gw - gap)) git=''; fi
   ((fixed + aw + pw + extra > c)) && above='' aw=0
   while ((fixed + pw + extra > c && ${#place} > 1)); do place=${place:0:-1}; __kawa_w "$place"; pw=$__w; done
+  if ((__kawa_blocks)); then
+    __kawa_line='' __kawa_prev=''
+    __kawa_blk 26 30 "$__i_torii"
+    __kawa_blk 27 30 "$above$place"
+    [[ -n $git ]] && __kawa_blk 28 30 "$__i_branch$git"
+    [[ -n $code ]] && __kawa_blk 16 25 "$code"
+    [[ -n $took ]] && __kawa_blk 29 30 "$took"
+    [[ -n $jobs ]] && __kawa_blk 29 30 "$jobs"
+    __kawa_line+=$'\001\e[38;5;'"$__kawa_prev"$';49m\002'"$__i_cap"$'\001\e[0m\002'" $__c_mark$__i_mark$__c_off "
+    return 0
+  fi
   local t=$__c_ok; ((__kawa_ok)) || t=$__c_bad
   __kawa_line="$t$__i_torii$__c_off $__c_faint$above$__c_here$place$__c_off"
   [[ -n $git ]] && __kawa_line+="  $__c_faint$__i_branch$__c_dim${git%\*}$__c_off${__g_dirty:+$__c_dirty*$__c_off}"

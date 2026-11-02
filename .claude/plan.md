@@ -349,7 +349,7 @@ approach:
 - (from T12) a sheet for Super+U (the system menu): Tab / Shift+Tab or → / ← a tab, a click on a tab, Enter, Esc — context: the warm window's title `system`.
 accept: Super+/ inside yazi/nvim/lazygit/btop/torrra shows that app's keys first (shots); fuzzy "wpa" finds "wallpaper picker"; every config.h key present (test); 0 kanji headings; both themes measured.
 
-### T24 — the prompt: our own, pastel-powerline, the terminal icon, Wada pastels  [wip 3 Nov — DECIDED: Wada #300's four pastels, a stamp-edge cap (ledger r27-24-direction); next: build it]
+### T24 — the prompt: our own, pastel-powerline, the terminal icon, Wada pastels  [wip 3 Nov — BUILT 02:00 (ledger r27-24): stamp blocks on Wada #300, tests green, kit both moods; left: the 8-window dup bursts, the Learn piece, the apply, the master]
 deps: T08, T11  · model: main  · ledger: r27-24
 files: configs/home/.bashrc.d/fedokawaii.sh (PROMPT_COMMAND/PS1), configs/home/.config/blesh/*, configs/home/.config/fedokawaii/screen.sh (pastel roles), art/icons.txt (powerline caps drawn on the term grid: a stamp-edge cap instead of the round powerline arrow), tests/content/test_shell.sh (dup-heading regression kept), docs design-system §9
 approach:
