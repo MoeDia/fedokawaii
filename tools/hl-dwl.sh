@@ -50,6 +50,16 @@ if ((asan)); then
   bin=$abuild/dwl
 fi
 [[ -x $bin ]] || { echo "hl-dwl: no dwl at $bin" >&2; exit 2; }
+# (the run in a PID namespace of its own, the same user inside: ps, pgrep and kill there see only
+# this run's processes — a script that kills by a list it worked out can never reach the session;
+# 3 Nov one killed ~60 of the session's programs. dwl is the namespace's first process, so all of
+# it ends with dwl). Two user namespaces: the outer one's root mounts an X socket folder of the
+# run's own (Xwayland refuses the machine's, whose owner it cannot see from inside), the inner
+# one is you again
+fence=(unshare --map-root-user --pid --fork --mount-proc --kill-child sh -c 'u=$1 g=$2; shift 2
+  mount -t tmpfs -o mode=1777 tmpfs /tmp/.X11-unix && exec unshare --user --map-user="$u" --map-group="$g" "$@"' \
+  fence "$(id -u)" "$(id -g)")
+"${fence[@]}" true 2>/dev/null || { echo "hl-dwl: no PID namespace of its own (unshare --user --pid)" >&2; exit 2; }
 rt=$(mktemp -d /tmp/hl-dwl.XXXXXX)
 chmod 700 "$rt"
 # (on the way out, every process the run left — its environment names this run's own runtime dir,
@@ -75,7 +85,7 @@ chmod +x "$rt/inside.sh"
 env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless "${gpu[@]}" \
   WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
   DWL_FRAMELOG="$rt/frames.log" ASAN_OPTIONS="log_path=$rt/asan:detect_leaks=1" \
-  timeout "$limit" "$bin" -s "$rt/inside.sh" >"$rt/dwl.log" 2>&1
+  timeout "$limit" "${fence[@]}" "$bin" -s "$rt/inside.sh" >"$rt/dwl.log" 2>&1
 rc=$?
 if [[ -n $keep ]]; then
   mkdir -p "$keep" && cp -a "$rt"/frames.log "$rt"/dwl.log "$rt"/script.log "$keep"/ 2>/dev/null

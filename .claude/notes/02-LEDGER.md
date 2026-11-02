@@ -3757,6 +3757,21 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   glyph), the clock's seal the day's (月 … 日 by tm_wday, as the bar's clock). Seen in the kit both moods
   (/dev/shm/r27/t19m/saver/: "月 06:15 PM", a zzz seal in the seal's red); test_saver 78/0 (glyph count, the seals'
   names, the days the only kanji, the clock's seal by the day). Live with the apply (theme.sh builds kawa-saver).
+- r27-incident-kill (3 Nov 00:37:12, FOUND 00:44 by the 00:42 pass, FENCED 00:52): the 00:11 pass's scratch kit
+  script for T29s (/dev/shm/r27/t29s/hl/close.sh, run through tools/hl-dwl.sh) ended with `for p in $(tree $F); do
+  kill -9 …` — its awk tree() listed nearly every process of user dia (`k[p[i]]` creates the key it tests; `for (i in k)`
+  then walks them all). SIGKILLed (audit /dev/shm/r27/t29s/kill-audit.txt, 60 of them): Brave (5 processes), Steam
+  (+4 webhelpers), an nvim and 18 shells (his terminal windows closed; no fresh swap file in ~/.local/state/nvim/swap),
+  the session D-Bus (portals and mako came back on demand), waybar (its keep loop restarted it at 00:37:13), kawa-panel,
+  five of autostart.sh's keep loops (panel, downloads, the clipboard watch, steam watch, swayidle: the programs run on,
+  unsupervised until the next login), the round's inhibitor and the pass itself (it ended with no output). dwl, his
+  Syncplay window (footclient + mpv) and everything root-owned survived. RESTORED 00:46: kawa-panel started hidden
+  with the session's environment (kawa-menu would have on the first press), the inhibitor again. Brave and Steam are
+  his to reopen (Brave offers its tabs back); the keep loops return with the next session start. FENCE (never again):
+  tools/hl-dwl.sh runs dwl in a PID namespace of its own (two user namespaces: the outer root mounts an X socket
+  folder of the run's own so Xwayland starts, the inner is dia again) — ps/pgrep/kill inside see only the run; probed
+  (8 processes visible, his dwl's pid unreachable, foot and Xwayland up), kit bar + quick rendered through it,
+  test_tools 24/0, test_dwl_anim 64/0, ShellCheck clean. Memory: never-kill-a-computed-list.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
