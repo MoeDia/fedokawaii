@@ -217,6 +217,7 @@ local ruled = {}                              -- buffer → the line count its r
 -- (a namespace of its own: a clear of the rules never takes the paper, nor gives its id to a rule)
 local paperns = vim.api.nvim_create_namespace("kawa_paper")
 local paper, attached, sheet = {}, {}, { cols = 0, lines = 0 }
+local seen_top = {}                           -- window → its top line at the last look (keep_room, below)
 local function rows()                         -- the paper's virtual rows, as many as the screen has
   if sheet.cols ~= vim.o.columns or sheet.lines ~= vim.o.lines then
     local row = { { string.rep(" ", vim.o.columns), "KawaRule" } }
@@ -296,7 +297,9 @@ local function on_day()
 end
 page()
 rule(notes, true)
-vim.api.nvim_create_autocmd("BufWinEnter", { group = group, callback = function(ev) page(); rule(ev.buf, true) end })
+vim.api.nvim_create_autocmd("BufWinEnter", {
+  group = group, callback = function(ev) page(); rule(ev.buf, true); seen_top[vim.api.nvim_get_current_win()] = nil end,
+})
 vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = function(ev) plain(ev.buf); rule(ev.buf, true) end })
 -- after every change and every move, the pen keeps its room: scrolloff alone keeps it for a step of
 -- one row, but a jump to the end — a paste, lines given at once, the to-do opened at its end — lands
@@ -306,8 +309,8 @@ vim.api.nvim_create_autocmd("FileChangedShellPost", { group = group, callback = 
 -- A scroll he made is his (the master, verdict 4): when the page went UP since the last look —
 -- only he scrolls it up: Ctrl+Y, Ctrl+B, the wheel — the view stays and the PEN yields, up a line
 -- at a time into its room; otherwise the view follows the pen (pen_room). Neovim's own scrolloff
--- does the same, but the paper's rows meet it under the floats.
-local seen_top = {}
+-- does the same, but the paper's rows meet it under the floats. (Another page in the window, or its
+-- own opening, is no scroll of his: forgotten there.)
 local function pen_yield()
   local room = vim.fn.winheight(0) - ROOM
   for _ = 1, vim.o.lines do
