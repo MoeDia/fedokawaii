@@ -446,6 +446,21 @@ finally:
             p.wait(10)
         except subprocess.TimeoutExpired:
             os.killpg(p.pid, signal.SIGKILL)
+    # (and its mpv, in the same group: ended before the harness takes the films away — an mpv still
+    # reading a film that goes dumped core, SIGBUS)
+    for p in procs:
+        end = time.time() + 5
+        while time.time() < end:
+            try:
+                os.killpg(p.pid, 0)
+            except OSError:
+                break
+            time.sleep(0.05)
+        else:
+            try:
+                os.killpg(p.pid, signal.SIGKILL)
+            except OSError:
+                pass
     if server:
         try:
             os.killpg(server.pid, signal.SIGKILL)

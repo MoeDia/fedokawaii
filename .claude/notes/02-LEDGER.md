@@ -3981,6 +3981,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   SIGINT/SIGTERM first. tools/regress/term-burst.sh (N headless runs on the render node, TERMs 1 ms apart until gone):
   the installed dwl 2 of 10 aborted (status 134), the fixed build 10 of 10 and 20 of 20 clean. (Those test aborts are
   coredumps of /usr/local/bin/dwl as him: the pid-matched crashnote of r27-crashnote-pid tells none of them.)
+- r27-53-mpvdumps (3 Nov 02:30–02:34): test_syncplay's run at 01:58 left two mpv coredumps (SIGABRT, SIGBUS) — the
+  driver waited for each friend's Syncplay but not for the mpv it started (the same process group), so the harness took
+  the films away under a still-ending mpv. syncplay_pair.py now waits for the whole group to be gone (5 s, then
+  SIGKILL). test_syncplay 147/0 on the installed Syncplay (58a77fc6e993: the closing cases ran), mpv coredumps 3 before
+  and 3 after the run.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
@@ -4002,8 +4007,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     window: live), the torrents TUI (with T29); then pass 2 side by side (incl. Super+/'s frame height by headings,
 ##     r27-23-help).
 ## (5) T53's rest: run/retry failure paths, the pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start and
-##     first draw, line counts; test_syncplay's own mpv leave coredumps (SIGABRT/SIGBUS as the harness takes their media
-##     away: end them first).
+##     first draw, line counts (test_syncplay's mpv coredumps: done, r27-53-mpvdumps).
 ## (6) The next login (or the kernel trial's reboot, 7.2.13) brings the two dwl fixes (r27-dwl-noxwayland, -termburst):
 ##     after it, tools/regress/no-xwayland-exit.sh and term-burst.sh pass on /usr/local/bin/dwl already (checked 02:29);
 ##     the new crashnote writes "TIME PID" at that login (check ~/.local/state/fedokawaii/session-start).
