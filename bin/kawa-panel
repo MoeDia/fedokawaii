@@ -1805,8 +1805,8 @@ class Panel:
     # the mouse
     def at(self, x, y):
         if self.view:                                 # (a menu's list that scrolls: only what shows)
-            top, h, _ = self.view
-            if not top <= y < top + h:
+            top = self.view[0]
+            if not top <= y < top + self.drawn_h():
                 return None
         return next((i for i in self.items if i.inside(x, y + (self.scroll if i.scrolls else 0))), None)
 
@@ -1882,6 +1882,16 @@ class Panel:
         if key and key not in self.busy and key not in self.wanted:
             self.refresh()                             # (its level confirmed: read back)
 
+    def scroll_event(self, x, y, up=None, dy=0.0, mouse=False):
+        """One scroll event as GDK hands it: a step (up True or False) or smooth parts (dy). Under
+        Wayland a mouse's notch comes both ways in one frame — a step (emulated) and the same notch
+        as 1.5 of smooth parts —: its step counts, its smooth parts are dropped (one notch, one
+        move: three lines of a list, one step of a meter); a touchpad sends smooth parts alone."""
+        if up is not None:
+            self.wheel(x, y, up)
+        elif dy and not mouse:
+            self.scroll_by(x, y, dy)
+
     def wheel(self, x, y, up):
         if self.view:
             self.scroll_list((-3 if up else 3) * (METER_H + METER_GAP))
@@ -1906,6 +1916,15 @@ class Panel:
                     | {hd[3] - top for hd in self.heads} | {0})
         end = next((y for y in ys if y >= full - h), full - h)
         return [y for y in ys if y <= end] + ([end] if end not in ys else [])
+
+    def drawn_h(self):
+        """How much of a menu's list view shows at its scroll: down to the foot of its last whole
+        line (rows, rows only read, headings) — the paper under it; a line is never cut at the foot
+        either (the top is stops()' part). (Not `shown`: the dial's lit beads have that name.)"""
+        top, h, _ = self.view
+        feet = {it.y + it.h - top for it in self.items} | {mk[2] + ROW - top for mk in self.marks if mk[0] in SHOWN_KINDS} \
+            | {hd[3] + ROW - top for hd in self.heads}
+        return max((f for f in feet if self.scroll < f <= self.scroll + h), default=self.scroll + h) - self.scroll
 
     def scroll_list(self, dy):
         """A menu's list moved by about dy px (a key: a line or a page; the wheel: three lines a
@@ -2922,14 +2941,15 @@ def main(argv):
         W, H = panel.size
         hx, hy = panel.head
         # (a menu's list that scrolls: what is in it drawn moved up, cut to its view)
-        top, vh = (panel.view[0], panel.view[1]) if panel.view else (H, 0)
+        top = panel.view[0] if panel.view else H
+        shown = panel.drawn_h() if panel.view else 0
 
         def listed(y, draw_it):
             if y < top:
                 draw_it()
                 return
             cr.save()
-            cr.rectangle(0, top, W, vh)
+            cr.rectangle(0, top, W, shown)              # (cut under its last whole line: shown())
             cr.clip()
             cr.translate(0, -panel.scroll)
             draw_it()
@@ -3181,12 +3201,13 @@ def main(argv):
         return True
 
     def on_scroll(w, ev):
+        dev = ev.get_source_device() or ev.get_device()
+        mouse = dev is not None and dev.get_source() == Gdk.InputSource.MOUSE
         if ev.direction == Gdk.ScrollDirection.SMOOTH:
             _, dx, dy = ev.get_scroll_deltas()
-            if dy:
-                panel.scroll_by(ev.x - panel.ox, ev.y + panel.dy, dy)
+            panel.scroll_event(ev.x - panel.ox, ev.y + panel.dy, dy=dy, mouse=mouse)
         elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
-            panel.wheel(ev.x - panel.ox, ev.y + panel.dy, ev.direction == Gdk.ScrollDirection.UP)
+            panel.scroll_event(ev.x - panel.ox, ev.y + panel.dy, up=ev.direction == Gdk.ScrollDirection.UP)
         return True
 
     def on_tip(w, x, y, kb, tip):

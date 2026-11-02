@@ -1179,6 +1179,29 @@ print(all(x in st for x in s + [w]), s[:3] == [st[1], st[2], st[1]], 0 < s[3] - 
       s[6] == st[-1] >= full - vh, s[7] == st[-1], s[8:] == [0, 0], w == max(y for y in st if y <= 3 * R))
 p.key("j", "j"); p.key("space", " "); p.key("k", "k")
 print(p.state.query == "j k", p.scroll)')" "$(printf '%s\n' "True True True True True True True True True" "True 0")"
+case_ "...and at every place it stands no line is cut at either edge: the top a line's top (stops), the view drawn down to its last whole line's foot (shown), the mouse finding nothing under that"
+eq "$(py 'fresh(); L = []
+for n in range(6): L += ["part\tI\tpart %d\tvalue" % n] + ["info\t\tk%d.%d\trow %d" % (n, i, i) for i in range(7 + n)]
+p.request("menu kawa-help", kp.Menu(L, prompt="", fuzzy=True, lines_shown=24), lambda rc, t: 0)
+top, vh, full = p.view
+lines = [(it.y - top, it.y + it.h - top) for it in p.items] + [(mk[2] - top, mk[2] + kp.ROW - top) for mk in p.marks if mk[0] in kp.SHOWN_KINDS] + [(hd[3] - top, hd[3] + kp.ROW - top) for hd in p.heads]
+bad = []
+for st in p.stops():
+    p.scroll = st; sh = p.drawn_h()
+    if not 0 < sh <= vh: bad.append(("shown", st, sh))
+    for t, f in lines:
+        if t < st < f or t < st + sh < f: bad.append((st, sh, t, f))
+p.scroll = p.stops()[1]; sh = p.drawn_h()
+print(bad[:3], len(p.stops()) > 5, p.at(30, top + sh + 2) is None)')" "[] True True"
+case_ "...one mouse notch, one move: under Wayland a mouse's notch comes as a step and as 1.5 of smooth parts in one frame — the step counts (three lines; a meter one step), in either order; a touchpad's smooth parts summed as before"
+eq "$(py 'fresh(); L = ["part\tI\tlaunch"] + ["info\t\tSuper+%d\trow %d" % (i, i) for i in range(60)]
+M = lambda: p.request("menu kawa-help", kp.Menu(L, prompt="", fuzzy=True, lines_shown=24), lambda rc, t: 0)
+M(); p.wheel(0, 0, False); one = p.scroll
+M(); p.scroll = 0; p.scroll_event(0, 0, up=False); p.scroll_event(0, 0, dy=1.5, mouse=True); a = p.scroll
+M(); p.scroll = 0; p.scroll_event(0, 0, dy=1.5, mouse=True); p.scroll_event(0, 0, up=False); b = p.scroll
+M(); p.scroll = 0; p.scrolled = (None, 0.0); p.scroll_event(0, 0, dy=1.5); c = p.scroll; st = p.stops()
+print(a == one == b, one == max(y for y in st if y <= 3 * kp.ROW), c == st[4])')" "True True True"
+eq "$(py 'fresh(); x, y = bead("brightness", 9); p.scroll_event(x, y, up=True); p.scroll_event(x, y, dy=-1.5, mouse=True); print(p.state["brightness"])')" "75%" "a mouse notch on a meter: one step (70 → 75), not two"
 case_ "...a touchpad's small scrolls summed: a line per third of a notch, never a line for each small part"
 eq "$(py 'fresh(); L = ["part\tI\tlaunch"] + ["info\t\tSuper+%d\trow %d" % (i, i) for i in range(60)]
 p.request("menu kawa-help", kp.Menu(L, prompt="", fuzzy=True, lines_shown=24), lambda rc, t: 0)

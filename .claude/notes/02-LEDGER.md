@@ -4004,14 +4004,30 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   record removed. Second run: rc 0 — every check clean, the torture suite in its fake machine green (1m57s; logs
   /dev/shm/r27p/selftest-sandbox{,-2}.log). Left in T53: the harness itself could pin STATE_DIR for every test (a
   harness change: whole areas re-run).
+- r27-23-master-3 (3 Nov 02:21–02:44, the master's review 3 of T23): VERDICT FAIL (.claude/notes/master-T23-verdict-3.md):
+  verdict 2's findings held; MUST-FIX 1: the list still cut a line at its FOOT on most positions (the stops chose the top
+  only; the drawing clipped at the view's height: one Down → 8 px of the next row's glyph tops, 13 of 21 pages, 144 of 192
+  wheel notches); MUST-FIX 2: one mouse notch handled twice under Wayland — GDK 3.24.52 hands a step (emulated) AND the same
+  notch as 1.5 of smooth parts in one frame: wheel() 3 lines + scroll_by 4–5 more (a meter two steps), since r27-19k.
+  Should-fix: the live J shot (02:14) showed the bug, not the fix; the light pass to close. Nits: test counts at HEAD; vd.txt's
+  header; End leaves paper under the last line (allowed); the floats' titles are hidden from the bar's title cell (kawa-help
+  reads them all the same).
+- r27-23-fix3 (02:44–02:58): kawa-panel drawn_h() — the view drawn down to the foot of its last whole line for the scroll
+  (rows, rows only read, headings), the paper under it, and the mouse finding nothing below (at()); scroll_event(): one
+  path per device — a mouse's step counts, its smooth parts dropped; a touchpad's smooth parts summed as before (meters
+  the same: one notch one step). test_panel 642/0 (every stop of a list with six headings: no line cut at either edge, the
+  mouse nothing under the cut; a mouse notch in either event order = one wheel step; a touchpad 1.5 → four stops; a
+  meter one step a notch). Kit, both moods (/dev/shm/r27/master/T23-evidence-v4: after one Down, one notch, Page Up from
+  End): the last ink bands are whole 13 px text rows (805–817, 825–837), paper to the frame — the 4-row fragment at
+  845–848 gone; geometry identical in light (should-fix 2 closed with these and the master's own light run). vd.txt says
+  why it is vd. Left: the live re-shot after the apply (J paged, one Down, one notch) — the next pass, he away.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
 ##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
-## (1) THE MASTERS, one at a time: T23 review 3 (launched 02:21: /dev/shm/r27/master/T23/verdict.md → .claude/notes/
-##     master-T23-verdict-3.md; FAIL → fix → review 4, PASS → T23 DONE); then T24 review 1 (brief READY at
-##     /dev/shm/r27/master/T24/brief.md — if /dev/shm was wiped by a reboot: tools/master-brief.sh T24 again, the evidence
-##     re-made from the ledger's r27-24*); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
+## (1) THE MASTERS: T23 review 3 FAILED (r27-23-master-3), fixed (r27-23-fix3) → apply + the live re-shot (J paged, one
+##     Down, one mouse notch, with his real wheel if he is there? no: wtype/wlrctl only, he away) → review 4; T24 review 1
+##     (launched 02:40 — its verdict at /dev/shm/r27/master/T24/verdict.md → .claude/notes/master-T24-verdict-1.md); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
 ##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
 ## (2) T20 — wire the lock: lock.ui (no date, time or keys: the entry alone, on the demon's mouth x 959–1138 y 638–737 /
 ##     on the sky by Seiōbo's peach x 1080–1290 y 297–387 at 1080p), gtklock.css per mood, kawa-lock handing gtklock the
