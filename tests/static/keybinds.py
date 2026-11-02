@@ -127,7 +127,7 @@ def check(repo):
     have = config_keys(ch)
     told = set()
     problems = []
-    for n, spec, desc in sheet_keys(sheet):
+    for n, spec, _desc in sheet_keys(sheet):
         if spec == "Alt+Shift":
             conf = (repo / "fedokawaii.conf").read_text()
             if not re.search(r"^KB_TOGGLE=.*alt_shift_toggle", conf, re.M):

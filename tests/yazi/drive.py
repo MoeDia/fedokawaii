@@ -104,19 +104,22 @@ class Screen:
             c = text[i]
             if c == "\x1b":
                 if i + 1 >= n:
-                    self.pending = text[i:]; break
+                    self.pending = text[i:]
+                    break
                 nxt = text[i + 1]
                 if nxt == "[":
                     m = self.CSI.match(text, i)
                     if not m:
-                        self.pending = text[i:]; break      # (the rest comes with the next read)
+                        self.pending = text[i:]   # (the rest comes with the next read)
+                        break
                     self.csi(m.group(1), m.group(2))
                     i = m.end()
                     continue
                 if nxt in "]P_^":
                     m = self.STR.match(text, i)
                     if not m:
-                        self.pending = text[i:]; break
+                        self.pending = text[i:]
+                        break
                     i = m.end()
                     continue
                 if nxt == "7":
@@ -223,11 +226,14 @@ def main(argv):
     size, cwd = "100x30", None
     while argv and argv[0] != "--":
         if argv[0] == "--size":
-            size = argv[1]; argv = argv[2:]
+            size = argv[1]
+            argv = argv[2:]
         elif argv[0] == "--cwd":
-            cwd = argv[1]; argv = argv[2:]
+            cwd = argv[1]
+            argv = argv[2:]
         else:
-            print(f"drive.py: unknown option {argv[0]}", file=sys.stderr); return 2
+            print(f"drive.py: unknown option {argv[0]}", file=sys.stderr)
+            return 2
     if not argv[1:]:
         print("usage: drive.py [--size COLSxROWS] [--cwd DIR] -- PROGRAM ARG…", file=sys.stderr)
         return 2
@@ -242,7 +248,8 @@ def main(argv):
         try:
             os.execvp(argv[1], argv[1:])
         except OSError as e:
-            print(e); os._exit(127)
+            print(e)
+            os._exit(127)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
     scr = Screen(cols, rows)
     alive = [True]
@@ -306,10 +313,10 @@ def main(argv):
         cmd, _, arg = ln.partition(" ")
         arg = os.path.expandvars(arg)
         if cmd == "wait":
-            if not until(lambda: squash(arg) in squash(scr.text())):
+            if not until(lambda arg=arg: squash(arg) in squash(scr.text())):
                 return fail(f"never on the screen: {arg}")
         elif cmd == "gone":
-            if not until(lambda: squash(arg) not in squash(scr.text())):
+            if not until(lambda arg=arg: squash(arg) not in squash(scr.text())):
                 return fail(f"still on the screen: {arg}")
         elif cmd == "key":
             os.write(fd, keys(arg).encode())
@@ -324,7 +331,7 @@ def main(argv):
         elif cmd == "sleep":
             pump(float(arg))
         elif cmd == "waitfile":
-            if not until(lambda: os.path.exists(arg)):
+            if not until(lambda arg=arg: os.path.exists(arg)):
                 return fail(f"never made: {arg}")
         elif cmd == "screen":
             print(scr.text())

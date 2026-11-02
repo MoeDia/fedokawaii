@@ -33,7 +33,8 @@ def main(argv):
         print(__doc__.strip())
         return 0 if args and args[0] in ("-h", "--help") else 2
     path, px, out = args[0], int(args[1]), args[2]
-    opt = lambda n, d: args[args.index(n) + 1] if n in args else d
+    def opt(n, d):
+        return args[args.index(n) + 1] if n in args else d
     scale = int(opt("--scale", "3"))
     fg = tuple(int(opt("--fg", "cfc3a6")[i:i + 2], 16) for i in (0, 2, 4))
     bg = tuple(int(opt("--bg", "0f0e0c")[i:i + 2], 16) for i in (0, 2, 4))
@@ -49,7 +50,7 @@ def main(argv):
     asc, desc = font.getmetrics()
     title = opt("--title", path.rsplit("/", 1)[-1])
     lh = asc + desc + 2
-    w = int(max(font.getlength(l) for l in LINES)) + 16
+    w = int(max(font.getlength(ln) for ln in LINES)) + 16
     h = lh * (len(LINES) + 1) + 12
     im = Image.new("RGB", (w, h), bg)
     d = ImageDraw.Draw(im)

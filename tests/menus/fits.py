@@ -35,7 +35,7 @@ def f(line):
 
 
 KINDS = ("part", "row", "on", "off", "key", "cell", "note")
-lines = [(i, f(l)) for i, l in enumerate(rows) if l.strip()]
+lines = [(i, f(ln)) for i, ln in enumerate(rows) if ln.strip()]
 named = [px(x[2]) for _, x in lines if x[0] in ("row", "on", "off") and x[3]]
 dx = 24 + (max(named) if named else 0) + 12
 bad = []

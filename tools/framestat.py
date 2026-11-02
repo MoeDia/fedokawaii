@@ -104,7 +104,7 @@ def main(argv):
         pres = sorted(o["P"])
         ivals, frames, drops, streaks = [], 0, 0, 0
         if ref:
-            ks = [(b - a) / ref for a, b in zip(pres, pres[1:])]
+            ks = [(b - a) / ref for a, b in zip(pres, pres[1:], strict=False)]
             smooth = [k < 1.5 for k in ks]
             # runs: 4+ consecutive one-refresh intervals; a gap (< 3.5) between two runs
             # joins them (its missing frames dropped)
@@ -182,13 +182,13 @@ def main(argv):
     anim_rep = []
     skipped = 0
     for o, kind, cur, ref in seqs:
-        gaps = [(b[0] - a[0]) / ref for a, b in zip(cur, cur[1:])] if ref else []
+        gaps = [(b[0] - a[0]) / ref for a, b in zip(cur, cur[1:], strict=False)] if ref else []
         skip = sum(int(round(g)) - 1 for g in gaps if g >= 1.5)
         skipped += skip
         anim_rep.append({"output": o, "kind": kind, "steps": len(cur),
                          "ms": round((cur[-1][0] - cur[0][0]) / 1000.0, 1),
                          "max_gap": round(max(gaps), 3) if gaps else None, "skipped": skip,
-                         "monotonic": all(b[1] >= a[1] for a, b in zip(cur, cur[1:])),
+                         "monotonic": all(b[1] >= a[1] for a, b in zip(cur, cur[1:], strict=False)),
                          "ends_at_1": cur[-1][1] >= 0.999})
     if not any(r["commits"] or r["presents"] for r in report.values()):
         print("framestat: no frames in " + path, file=sys.stderr)

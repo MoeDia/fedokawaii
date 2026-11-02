@@ -29,6 +29,7 @@ every colour written in them is one of the palettes' (COPIES below), and stops i
 
 Outputs are committed, so installing needs no Python. Run again after changing a colour.
 """
+import importlib.util as _iu
 import pathlib
 import re
 
@@ -43,7 +44,6 @@ THEMES = HOME / ".config/fedokawaii/themes"
 # Every colour comes from Sanzo Wada's swatches (A Dictionary of Color Combinations): the
 # tokens below are chosen in tools/wada-palette.py — a Wada colour, or a mix of two — and only
 # read here. P: both themes' roles; KAMI, TILE: the bar's washi; EDITOR: nvim's extra inks.
-import importlib.util as _iu
 _spec = _iu.spec_from_file_location("wada_palette", pathlib.Path(__file__).with_name("wada-palette.py"))
 _wada = _iu.module_from_spec(_spec)
 _spec.loader.exec_module(_wada)
@@ -739,7 +739,8 @@ def foot_block():
 
 def mako(m, p):
     k = KAMI[m]
-    hx = lambda c: "".join(f"{v:02x}" for v in c)
+    def hx(c):
+        return "".join(f"{v:02x}" for v in c)
     return f"""# {header('~/.config/fedokawaii/current/mako', NAMES[m] + ' colours for notifications')}
 # Included at the top of ~/.config/mako/config (mako allows include only outside a
 # [section]); this file starts at the top level again, so it can have sections of its own.
@@ -830,7 +831,8 @@ def square_rules(gtk):
         accent, on = "var(--accent-bg-color)", "var(--accent-fg-color)"
         c = {k: f"var(--kawa-{k.replace('_', '-')})" for k in KAWA}
     wins = WIN + (["window.message"] if gtk == 3 else ["window.messagedialog", "popover > contents", "popover > arrow"])
-    sel = lambda xs, s="": ", ".join(x + w + s for x in xs)
+    def sel(xs, s=""):
+        return ", ".join(x + w + s for x in xs)
     rows = (["row", "treeview.view", "iconview", "flowboxchild", ".view"] if gtk == 3
             else ["row", "gridview > child", "flowboxchild", ".view"])
     fill = f"background-image: none; background-color: {accent}; color: {on};"
@@ -1048,7 +1050,8 @@ def gtklock_css(m, p):
     is empty); a rule; three keys — sleep, restart, power off — words, accent_text under the
     pointer and the keyboard's focus. Sumi UI at 14 px, as in every panel. The pictures sit
     beside this file (current/ for the lock, the greeter's own folder for the login)."""
-    ink = lambda k: f"#{p[k]}"
+    def ink(k):
+        return f"#{p[k]}"
     k = KAMI[m]
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
 window {{ background-color: {ink('ground')}; }}
@@ -1447,7 +1450,8 @@ def dwl_colors(m, p):
     KAMI's, as the tiles and panels have them, and the wash's ink (§11): RRGGBBAA. dwl reads the file at its start and
     again at every switch (kawa-theme sends it SIGUSR1)."""
     k = KAMI[m]
-    hx = lambda c: "".join(f"{v:02x}" for v in c)
+    def hx(c):
+        return "".join(f"{v:02x}" for v in c)
     # the wash's ink (a theme switch, a new wallpaper: dwl.patch washframe): the mood's darkest —
     # of the saver's colours, as the wash drawn by kawa-saver took it
     dark = m == "dark"

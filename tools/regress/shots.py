@@ -112,8 +112,9 @@ def bar(f, fibre):
             tiles.append((x0, x - 1))
         else:
             x += 1
-    paper_of = lambda a, b, ink_set: [(c, y) for c in range(a, b + 1) for y in range(5, 23)
-                                      if tuple(int(v) for v in im[y, c]) not in ink_set]
+    def paper_of(a, b, ink_set):
+        return [(c, y) for c in range(a, b + 1) for y in range(5, 23)
+                if tuple(int(v) for v in im[y, c]) not in ink_set]
     for a, b in tiles:
         scroll = (b - a) > 150                       # (the clock: rods 4 px, no shadow column)
         L, R = (a + 3, b - 3) if scroll else (a, b - 1)   # (the scroll: the rods, 4 px, are its edges)
@@ -135,7 +136,7 @@ def bar(f, fibre):
                 else:
                     parts.append([c, c])
             out.append("clock " + " ".join(f"{p0}-{p1}" for p0, p1 in parts)
-                       + " gaps " + " ".join(str(q[0] - p[1] - 1) for p, q in zip(parts, parts[1:])))
+                       + " gaps " + " ".join(str(q[0] - p[1] - 1) for p, q in zip(parts, parts[1:], strict=False)))
     col = im[:, tiles[0][0] + 1]
     runs, y = [], 0
     while y < 27:
@@ -144,7 +145,7 @@ def bar(f, fibre):
             y += 1
         runs.append(f"{y0}+{y - y0}")
     out.append("rows " + " ".join(runs))
-    out.append("gaps " + " ".join(str(t2[0] - t1[1] - 1) for t1, t2 in zip(tiles, tiles[1:])))
+    out.append("gaps " + " ".join(str(t2[0] - t1[1] - 1) for t1, t2 in zip(tiles, tiles[1:], strict=False)))
     return out
 
 

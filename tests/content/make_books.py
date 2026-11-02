@@ -12,11 +12,17 @@ from nothing but the standard library (no ImageMagick, no PIL):
   cbz OUT NAME…                   a comic book: each NAME a picture (a .txt NAME: text)
   sqlite DB FILE PAGE WHEN …      zathura's bookmarks.sqlite: a fileinfo row per triple
 """
-import os, sqlite3, struct, sys, zipfile, zlib
+import os
+import sqlite3
+import struct
+import sys
+import zipfile
+import zlib
 
 
 def png_bytes(w, h, c1, c2=None):
-    a = bytes.fromhex(c1); b = bytes.fromhex(c2) if c2 else a
+    a = bytes.fromhex(c1)
+    b = bytes.fromhex(c2) if c2 else a
     rows = []
     for y in range(h):
         inner = h // 4 <= y < h - h // 4
@@ -36,10 +42,12 @@ def pdf_bytes(pages, colour="d0583a"):
         objs.append("<< /Length %d >>\nstream\n%s\nendstream" % (len(draw), draw))
     out, offs = bytearray(b"%PDF-1.4\n"), []
     for n, o in enumerate(objs, 1):
-        offs.append(len(out)); out += b"%d 0 obj\n%s\nendobj\n" % (n, o.encode())
+        offs.append(len(out))
+        out += b"%d 0 obj\n%s\nendobj\n" % (n, o.encode())
     xref = len(out)
     out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objs) + 1)
-    for o in offs: out += b"%010d 00000 n \n" % o
+    for o in offs:
+        out += b"%010d 00000 n \n" % o
     out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objs) + 1, xref)
     return bytes(out)
 
@@ -63,9 +71,12 @@ def epub(out, cover):
                    '</rootfiles></container>')
         z.writestr("OEBPS/content.opf", opf)
         z.writestr("OEBPS/text.xhtml", "<html><body><p>once upon a time</p></body></html>")
-        if cover in ("meta", "property"): z.writestr("OEBPS/images/front.png", pic)
-        if cover == "named": z.writestr("OEBPS/images/Cover.png", pic)
-        if cover == "encoded": z.writestr("OEBPS/images/front page.png", pic)
+        if cover in ("meta", "property"):
+            z.writestr("OEBPS/images/front.png", pic)
+        if cover == "named":
+            z.writestr("OEBPS/images/Cover.png", pic)
+        if cover == "encoded":
+            z.writestr("OEBPS/images/front page.png", pic)
 
 
 def main(a):
@@ -89,7 +100,8 @@ def main(a):
         for i in range(0, len(rest), 3):
             con.execute("INSERT OR REPLACE INTO fileinfo (file, page, time) VALUES (?, ?, ?)",
                         (os.fsdecode(os.fsencode(rest[i])), int(rest[i + 1]), rest[i + 2]))
-        con.commit(); con.close()
+        con.commit()
+        con.close()
     else:
         sys.exit("make_books: unknown kind " + kind)
 

@@ -27,7 +27,16 @@ e.g. a prompt's '\\x1b]133;A') appears anew, the next --line is typed, then Ente
 the next --line waits for the redraw — output, then a second of quiet — not for a mark (a
 window resized under a prompt that is already up draws no new prompt of its own).
 """
-import codecs, os, pty, select, signal, struct, sys, termios, fcntl, time
+import codecs
+import os
+import pty
+import select
+import signal
+import struct
+import sys
+import termios
+import fcntl
+import time
 
 
 def unescape(s):
@@ -41,23 +50,53 @@ def main(argv):
     i = 0
     while i < len(argv) and argv[i] != "--":
         a = argv[i]
-        if a == "--cols": cols = int(argv[i + 1]); i += 2
-        elif a == "--stdin": stdin = True; i += 1
-        elif a == "--flush": flush = True; i += 1
-        elif a == "--rows": rows = int(argv[i + 1]); i += 2
-        elif a == "--delay": delay = float(argv[i + 1]); i += 2
-        elif a == "--timeout": timeout = float(argv[i + 1]); i += 2
-        elif a == "--answer": answers.append((unescape(argv[i + 1]), unescape(argv[i + 2]))); i += 3
-        elif a == "--send": sends.append((float(argv[i + 1]), unescape(argv[i + 2]))); i += 3
-        elif a == "--resize": sends.append((float(argv[i + 1]), tuple(map(int, argv[i + 2].split("x"))))); i += 3
-        elif a == "--hangup": hangup = argv[i + 1]; i += 2
-        elif a == "--each": each = unescape(argv[i + 1]); i += 2
-        elif a == "--quiet": quiet = float(argv[i + 1]); i += 2
-        elif a == "--line": lines.append(codecs.escape_decode(argv[i + 1].encode())[0] + b"\r"); i += 2   # (any script)
-        elif a == "--line-resize": lines.append(tuple(map(int, argv[i + 1].split("x")))); i += 2
-        else: sys.exit(f"pty_run: unknown option {a}")
+        if a == "--cols":
+            cols = int(argv[i + 1])
+            i += 2
+        elif a == "--stdin":
+            stdin = True
+            i += 1
+        elif a == "--flush":
+            flush = True
+            i += 1
+        elif a == "--rows":
+            rows = int(argv[i + 1])
+            i += 2
+        elif a == "--delay":
+            delay = float(argv[i + 1])
+            i += 2
+        elif a == "--timeout":
+            timeout = float(argv[i + 1])
+            i += 2
+        elif a == "--answer":
+            answers.append((unescape(argv[i + 1]), unescape(argv[i + 2])))
+            i += 3
+        elif a == "--send":
+            sends.append((float(argv[i + 1]), unescape(argv[i + 2])))
+            i += 3
+        elif a == "--resize":
+            sends.append((float(argv[i + 1]), tuple(map(int, argv[i + 2].split("x")))))
+            i += 3
+        elif a == "--hangup":
+            hangup = argv[i + 1]
+            i += 2
+        elif a == "--each":
+            each = unescape(argv[i + 1])
+            i += 2
+        elif a == "--quiet":
+            quiet = float(argv[i + 1])
+            i += 2
+        elif a == "--line":
+            lines.append(codecs.escape_decode(argv[i + 1].encode())[0] + b"\r")   # (any script)
+            i += 2
+        elif a == "--line-resize":
+            lines.append(tuple(map(int, argv[i + 1].split("x"))))
+            i += 2
+        else:
+            sys.exit(f"pty_run: unknown option {a}")
     cmd = argv[i + 1:]
-    if not cmd: sys.exit("pty_run: no command")
+    if not cmd:
+        sys.exit("pty_run: no command")
     pid, fd = pty.fork()
     if pid == 0:
         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
@@ -66,7 +105,8 @@ def main(argv):
         try:
             os.execvp(cmd[0], cmd)
         except OSError as e:
-            os.write(2, f"pty_run: {e}\n".encode()); os._exit(127)
+            os.write(2, f"pty_run: {e}\n".encode())
+            os._exit(127)
     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
     start = time.monotonic()
     out, seen, end = bytearray(), 0, start + timeout
@@ -74,7 +114,8 @@ def main(argv):
     answered, done = None, set()
     resized, last_out = None, start                  # (--line-resize: when; the last output)
     due = False                                      # (--quiet: a mark came, the line waits)
-    if hangup is not None and not hangup.startswith("+"): hangup = start + float(hangup)
+    if hangup is not None and not hangup.startswith("+"):
+        hangup = start + float(hangup)
     status = None
     while True:
         now = time.monotonic()
@@ -84,39 +125,53 @@ def main(argv):
             else:
                 os.write(fd, p[1])
             pending.remove(p)
-            if answered is None and p[2:] == ("answer",): answered = now
+            if answered is None and p[2:] == ("answer",):
+                answered = now
         if now > end:
-            os.kill(pid, signal.SIGKILL); os.waitpid(pid, 0); status = 124; break
-        if isinstance(hangup, str) and answered is not None: hangup = answered + float(hangup[1:])
+            os.kill(pid, signal.SIGKILL)
+            os.waitpid(pid, 0)
+            status = 124
+            break
+        if isinstance(hangup, str) and answered is not None:
+            hangup = answered + float(hangup[1:])
         if isinstance(hangup, float) and now >= hangup:
             os.close(fd)
             for _ in range(200):                     # (10 s at most to go)
                 p, st = os.waitpid(pid, os.WNOHANG)
-                if p: break
+                if p:
+                    break
                 time.sleep(0.05)
             else:
-                os.kill(pid, signal.SIGKILL); p, st = os.waitpid(pid, 0)
+                os.kill(pid, signal.SIGKILL)
+                p, st = os.waitpid(pid, 0)
             status = os.waitstatus_to_exitcode(st)
             status = status if status >= 0 else 128 - status
             break
         if resized is not None and lines and last_out > resized and now - last_out >= 1.0:
-            resized = None; marks = out.count(each) if each else 0
+            resized = None
+            marks = out.count(each) if each else 0
             nxt = lines.pop(0)
             if isinstance(nxt, tuple):
-                fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", nxt[1], nxt[0], 0, 0)); resized = now
+                fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", nxt[1], nxt[0], 0, 0))
+                resized = now
             else:
                 os.write(fd, nxt)
         if due and lines and now - last_out >= quiet:
-            due = False; marks = out.count(each); nxt = lines.pop(0)
+            due = False
+            marks = out.count(each)
+            nxt = lines.pop(0)
             if isinstance(nxt, tuple):
-                fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", nxt[1], nxt[0], 0, 0)); resized = now
+                fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", nxt[1], nxt[0], 0, 0))
+                resized = now
             else:
                 os.write(fd, nxt)
         r, _, _ = select.select([fd, 0] if stdin else [fd], [], [], 0.02)
         if stdin and 0 in r:
             typed = os.read(0, 65536)
-            if typed: os.write(fd, typed)
-            else: stdin = False                      # (the keys ran out: CMD runs on)
+            if typed:
+                os.write(fd, typed)
+            else:
+                stdin = False  # (the keys ran out: CMD runs on)
         if fd in r:
             try:
                 chunk = os.read(fd, 65536)
@@ -124,12 +179,16 @@ def main(argv):
                 chunk = b""
             if not chunk:
                 break
-            out += chunk; last_out = time.monotonic()
-            if flush: sys.stdout.buffer.write(chunk); sys.stdout.buffer.flush()
+            out += chunk
+            last_out = time.monotonic()
+            if flush:
+                sys.stdout.buffer.write(chunk)
+                sys.stdout.buffer.flush()
             if each is not None and lines and resized is None and quiet and out.count(each) > marks:
                 due = True
             elif each is not None and lines and resized is None and out.count(each) > marks:
-                marks = out.count(each); nxt = lines.pop(0)
+                marks = out.count(each)
+                nxt = lines.pop(0)
                 if isinstance(nxt, tuple):
                     fcntl.ioctl(fd, termios.TIOCSWINSZ, struct.pack("HHHH", nxt[1], nxt[0], 0, 0))
                     resized = time.monotonic()
@@ -137,15 +196,18 @@ def main(argv):
                     os.write(fd, nxt)
             for q, reply in answers:                 # each new appearance of a query
                 start = max(0, seen - len(q) + 1)
-                if q in done: continue
+                if q in done:
+                    continue
                 if out.find(q, start) >= 0:
-                    pending.append((time.monotonic() + delay, reply, "answer")); done.add(q)
+                    pending.append((time.monotonic() + delay, reply, "answer"))
+                    done.add(q)
             seen = len(out)
     if status is None:
         _, st = os.waitpid(pid, 0)
         status = os.waitstatus_to_exitcode(st)
         status = status if status >= 0 else 128 - status
-    if not flush: sys.stdout.buffer.write(bytes(out))
+    if not flush:
+        sys.stdout.buffer.write(bytes(out))
     sys.exit(status)
 
 

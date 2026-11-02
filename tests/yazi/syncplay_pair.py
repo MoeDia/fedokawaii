@@ -10,7 +10,16 @@ sockets, the way a person would press keys; what Syncplay says is read from its 
 MEDIA holds film.mkv and other.mkv. Prints "case TEXT", then "ok" or "no WHY" per check (the
 test file turns them into its report); anything else is commentary.
 """
-import glob, json, os, re, shutil, signal, socket, subprocess, sys, time
+import glob
+import json
+import os
+import re
+import shutil
+import signal
+import socket
+import subprocess
+import sys
+import time
 
 TEMPLATE, MEDIA, SPDIR, MPV, TOGETHER = sys.argv[1:6]
 FILM, OTHER = MEDIA + "/film.mkv", MEDIA + "/other.mkv"
@@ -212,7 +221,8 @@ try:
     start_server()
 
     case("alice and bob start kawa-together: both in room 'film' (password taken), the same film, paused")
-    alice.mark(); bob.mark()
+    alice.mark()
+    bob.mark()
     sa = alice.start(FILM)
     check(alice.said(r"Successfully connected to server", 15), alice.log()[-300:])
     check(sa, "alice's mpv never answered")
@@ -259,7 +269,8 @@ try:
     check(alice.said(r"bob jumped from .* to 00:25", 5))
 
     case("chat: from bob's terminal (ch), and typed in alice's mpv window (Enter, the words, Enter)")
-    alice.mark(); bob.mark()
+    alice.mark()
+    bob.mark()
     bob.say("ch hello from bob")
     check(alice.said(r"<bob> hello from bob", 6), alice.log()[alice.at:][-300:])
     for k in ["ENTER", "h", "i", "SPACE", "b", "o", "b", "ENTER"]:
@@ -296,7 +307,8 @@ try:
     check(not [j for j in jumps if 25 <= int(j) <= 35], re.findall(r"alice jumped[^\n]*", bob.log()[bob.at:]))
 
     case("the server restarts: both reconnect, and a seek still travels")
-    alice.mark(); bob.mark()
+    alice.mark()
+    bob.mark()
     stop_server()
     check(alice.said(r"Connection with server lost", 15))
     time.sleep(1)

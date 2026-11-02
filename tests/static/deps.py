@@ -65,7 +65,9 @@ def strip_jsonc(text):
         if q:
             out.append(c)
             if c == "\\":
-                out.append(text[i + 1]); i += 2; continue
+                out.append(text[i + 1])
+                i += 2
+                continue
             if c == '"':
                 q = False
             i += 1
@@ -79,7 +81,8 @@ def strip_jsonc(text):
         elif text.startswith("/*", i):
             i = text.find("*/", i) + 2
             continue
-        out.append(c); i += 1
+        out.append(c)
+        i += 1
     return re.sub(r",(\s*[}\]])", r"\1", "".join(out))
 
 
@@ -286,7 +289,7 @@ def check(repo, fixdir, manifest_file):
     rows += [("yazi", f"yazi 26.9.1 preset: {why}", prog, g)
              for prog, why, g in yazi_builtin(fixdir)]
     seen = {}
-    for source, where, prog, guarded in rows:
+    for _source, where, prog, guarded in rows:
         if prog in own or prog in up:
             continue
         kind = progs.get(prog, (None,))[0]

@@ -68,9 +68,9 @@ def main(argv):
                 continue
             print(f'{name:<16} {mood:<5} {p["left"]:>4} {p["right"]:>5} {p["top"]:>4} {p["bottom"]:>6}  '
                   f'{p["inside"][0]}×{p["inside"][1]}')
-        d, l = row.get('dark'), row.get('light')
-        if d and l and not d.get('empty') and not l.get('empty'):
-            if any(d[k] != l[k] for k in ('left', 'right', 'top', 'bottom')):
+        d, lt = row.get('dark'), row.get('light')
+        if d and lt and not d.get('empty') and not lt.get('empty'):
+            if any(d[k] != lt[k] for k in ('left', 'right', 'top', 'bottom')):
                 print(f'{"":<16} ↑ the moods differ')
     return 0
 

@@ -10,7 +10,13 @@ plays its part.
 SYNCPLAY_DIR is the folder the syncplay starter runs (its dir=). Prints "case TEXT", then
 "ok" or "no WHY" per check, as syncplay_pair.py does.
 """
-import os, shutil, socket, sys, tempfile, threading, time
+import os
+import shutil
+import socket
+import sys
+import tempfile
+import threading
+import time
 
 sys.path.insert(0, sys.argv[1])
 from syncplay.vendor.python_mpv_jsonipc import python_mpv_jsonipc as jsonipc

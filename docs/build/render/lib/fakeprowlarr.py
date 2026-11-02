@@ -49,7 +49,7 @@ def releases(query):
     if "ubuntu" not in q:
         return []
     out = []
-    for i, (title, gib, se, le, ix, pub) in enumerate(UBUNTU):
+    for _i, (title, gib, se, le, ix, pub) in enumerate(UBUNTU):
         h = hashlib.sha1(title.encode()).hexdigest()
         name = INDEXERS[ix - 1]["name"]
         magnet = ("magnet:?xt=urn:btih:" + h + "&dn=" + urllib.parse.quote(title)

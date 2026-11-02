@@ -148,12 +148,12 @@ def main(argv):
             sp = spans(ink_mask(a, bg), axis)
             off = ox if axis == "x" else oy
             n = a.shape[1] if axis == "x" else a.shape[0]
-            res = {"background": hexc(bg), "spans": [[s + off, l] for s, l in sp],
+            res = {"background": hexc(bg), "spans": [[s + off, ln] for s, ln in sp],
                    "gaps": [sp[i + 1][0] - (sp[i][0] + sp[i][1]) for i in range(len(sp) - 1)],
                    "lead": sp[0][0] if sp else None, "trail": n - (sp[-1][0] + sp[-1][1]) if sp else None}
             if not as_json:
                 print(f"background {res['background']} · lead {res['lead']} · trail {res['trail']}")
-                print("spans " + " ".join(f"{s}+{l}" for s, l in res["spans"]))
+                print("spans " + " ".join(f"{s}+{ln}" for s, ln in res["spans"]))
                 print("gaps  " + " ".join(str(g) for g in res["gaps"]))
         elif cmd == "centre":
             img = load(args[1])

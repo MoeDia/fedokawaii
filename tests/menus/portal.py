@@ -62,14 +62,14 @@ def run(writing, multiple, directory, path: bytes):
     except OSError:
         return None
     # count the lines with characters, then read that many lines in order (as getline does)
-    n = sum(1 for l in data.split(b"\n") if l)
+    n = sum(1 for ln in data.split(b"\n") if ln)
     os.remove(out)
     if n == 0:
         return []
     lines = data.split(b"\n")
     uris = []
-    for l in lines[:n]:
-        uris.append("file://" + quote(l, safe="/"))
+    for ln in lines[:n]:
+        uris.append("file://" + quote(ln, safe="/"))
     return uris
 
 

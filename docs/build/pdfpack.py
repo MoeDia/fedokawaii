@@ -3,7 +3,8 @@
 predictors (the handbook's pictures are whole-number NEAREST enlargements, so most rows
 repeat the one above: the Up/Paeth filters turn them into zeros), then qpdf-style object
 streams. Pixels are bit-for-bit the same."""
-import sys, zlib
+import sys
+import zlib
 import numpy as np
 import pikepdf
 
@@ -11,9 +12,12 @@ def png_filter(a, bpp):
     """a: H x (W*bpp) uint8 → PNG-filtered bytes: per row the filter of None/Sub/Up/Average/
     Paeth whose output has the smallest sum of signed magnitudes (libpng's heuristic)."""
     x = a.astype(np.int16)
-    up = np.zeros_like(x); up[1:] = x[:-1]
-    left = np.zeros_like(x); left[:, bpp:] = x[:, :-bpp]
-    ul = np.zeros_like(x); ul[1:, bpp:] = x[:-1, :-bpp]
+    up = np.zeros_like(x)
+    up[1:] = x[:-1]
+    left = np.zeros_like(x)
+    left[:, bpp:] = x[:, :-bpp]
+    ul = np.zeros_like(x)
+    ul[1:, bpp:] = x[:-1, :-bpp]
     p = left + up - ul
     pa, pb, pc = np.abs(p - left), np.abs(p - up), np.abs(p - ul)
     paeth = np.where((pa <= pb) & (pa <= pc), left, np.where(pb <= pc, up, ul))

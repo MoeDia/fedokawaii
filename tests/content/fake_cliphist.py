@@ -10,14 +10,18 @@ else stores what is not blank — the same bytes again move to the top — and k
 -max-items (750 unless given); a copy over 5,000,000 bytes is dropped without a word, exit 0
 (0.7's maxStoreSize: no flag for it before 0.8's -max-store-size — measured: 5000000 kept,
 5000001 not). Every call is logged to $CLIP_DB.log, its options with it."""
-import os, re, struct, sys
+import os
+import re
+import struct
+import sys
 
 db = os.environ["CLIP_DB"]
 with open(db + ".log", "a") as log:
     log.write(" ".join(sys.argv[1:]) + "\n")
 max_items = 750
 while len(sys.argv) > 2 and sys.argv[1] == "-max-items":
-    max_items = int(sys.argv[2]); del sys.argv[1:3]
+    max_items = int(sys.argv[2])
+    del sys.argv[1:3]
 
 
 def ids():
@@ -26,41 +30,50 @@ def ids():
 
 def size(n):
     for u in ("B", "KiB", "MiB", "GiB"):
-        if n < 1024 or u == "GiB": return "%.0f %s" % (n, u)
+        if n < 1024 or u == "GiB":
+            return "%.0f %s" % (n, u)
         n /= 1024
 
 
 def picture(b):
-    if b.startswith(b"\x89PNG\r\n\x1a\n"): return "png", struct.unpack(">II", b[16:24])
-    if b[:6] in (b"GIF87a", b"GIF89a"): return "gif", struct.unpack("<HH", b[6:10])
-    if b.startswith(b"BM") and len(b) > 26: return "bmp", struct.unpack("<ii", b[18:26])
+    if b.startswith(b"\x89PNG\r\n\x1a\n"):
+        return "png", struct.unpack(">II", b[16:24])
+    if b[:6] in (b"GIF87a", b"GIF89a"):
+        return "gif", struct.unpack("<HH", b[6:10])
+    if b.startswith(b"BM") and len(b) > 26:
+        return "bmp", struct.unpack("<ii", b[18:26])
     if b.startswith(b"\xff\xd8"):
         i = 2
         while i + 9 < len(b):
-            if b[i] != 0xFF: break
+            if b[i] != 0xFF:
+                break
             m, ln = b[i + 1], struct.unpack(">H", b[i + 2:i + 4])[0]
             if m in (0xC0, 0xC1, 0xC2):
-                h, w = struct.unpack(">HH", b[i + 5:i + 9]); return "jpeg", (w, h)
+                h, w = struct.unpack(">HH", b[i + 5:i + 9])
+                return "jpeg", (w, h)
             i += 2 + ln
     return None
 
 
 def preview(b):
     p = picture(b)
-    if p: return "[[ binary data %s %s %dx%d ]]" % (size(len(b)), p[0], p[1][0], p[1][1])
+    if p:
+        return "[[ binary data %s %s %dx%d ]]" % (size(len(b)), p[0], p[1][0], p[1][1])
     t = " ".join(re.split(r"[ \t\n\r\v\f]+", b.decode("utf-8", "replace").strip(" \t\n\r\v\f")))
     return t[:100] + "…" if len(t) > 100 else t
 
 
 def bad(id_):
-    sys.stderr.write('extracting id: converting id: strconv.Atoi: parsing "%s": invalid syntax\n' % id_); sys.exit(1)
+    sys.stderr.write('extracting id: converting id: strconv.Atoi: parsing "%s": invalid syntax\n' % id_)
+    sys.exit(1)
 
 
 def wanted():                      # delete: a line per entry, "ID<tab>…" or just "ID"
     out = []
     for line in sys.stdin.buffer.read().decode("utf-8", "replace").splitlines():
         id_ = line.split("\t", 1)[0]
-        if not id_.isdigit(): bad(id_)
+        if not id_.isdigit():
+            bad(id_)
         out.append(int(id_))
     return out
 
@@ -68,7 +81,8 @@ def wanted():                      # delete: a line per entry, "ID<tab>…" or j
 def one():                         # decode: all of stdin is one entry — the ID is what comes
     s = sys.stdin.buffer.read().decode("utf-8", "replace")      # before a tab, or all of it
     id_ = s.split("\t", 1)[0]     # (so "ID\n" is no ID, as for cliphist itself)
-    if not id_.isdigit(): bad(id_)
+    if not id_.isdigit():
+        bad(id_)
     return [int(id_)]
 
 
@@ -80,27 +94,35 @@ elif cmd == "decode":
     for i in one():
         f = os.path.join(db, str(i))
         if not os.path.exists(f):
-            sys.stderr.write("id %d not found\n" % i); sys.exit(1)
+            sys.stderr.write("id %d not found\n" % i)
+            sys.exit(1)
         sys.stdout.buffer.write(open(f, "rb").read())
 elif cmd == "delete":
     for i in wanted():
-        try: os.remove(os.path.join(db, str(i)))
-        except FileNotFoundError: pass
+        try:
+            os.remove(os.path.join(db, str(i)))
+        except FileNotFoundError:
+            pass
 elif cmd == "wipe":
-    for i in ids(): os.remove(os.path.join(db, str(i)))
+    for i in ids():
+        os.remove(os.path.join(db, str(i)))
 elif cmd == "store":
     state = os.environ.get("CLIPBOARD_STATE", "")
     if state == "clear":
-        if ids(): os.remove(os.path.join(db, str(ids()[0])))
+        if ids():
+            os.remove(os.path.join(db, str(ids()[0])))
     elif state != "sensitive":
         b = sys.stdin.buffer.read()
         if b.strip() and len(b) <= 5_000_000:
             for i in ids():
-                if open(os.path.join(db, str(i)), "rb").read() == b: os.remove(os.path.join(db, str(i)))
+                if open(os.path.join(db, str(i)), "rb").read() == b:
+                    os.remove(os.path.join(db, str(i)))
             n = (ids() or [0])[0] + 1
             n = max(n, int(open(db + ".seq").read()) + 1) if os.path.exists(db + ".seq") else n
             open(db + ".seq", "w").write(str(n))
             open(os.path.join(db, str(n)), "wb").write(b)
-            for i in ids()[max_items:]: os.remove(os.path.join(db, str(i)))
+            for i in ids()[max_items:]:
+                os.remove(os.path.join(db, str(i)))
 else:
-    sys.stderr.write("fake cliphist: %s?\n" % cmd); sys.exit(2)
+    sys.stderr.write("fake cliphist: %s?\n" % cmd)
+    sys.exit(2)

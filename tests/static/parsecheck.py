@@ -67,7 +67,9 @@ def strip_jsonc(text):
         if q:
             out.append(c)
             if c == "\\":
-                out.append(text[i + 1]); i += 2; continue
+                out.append(text[i + 1])
+                i += 2
+                continue
             q = c != '"'
             i += 1
             continue
@@ -80,7 +82,8 @@ def strip_jsonc(text):
         elif text.startswith("/*", i):
             i = text.find("*/", i) + 2
             continue
-        out.append(c); i += 1
+        out.append(c)
+        i += 1
     return "".join(out)
 
 
@@ -294,7 +297,7 @@ def lua_check(paths):
             continue
         try:
             lib = ctypes.CDLL(name)
-            lib.luaL_loadfilex
+            _ = lib.luaL_loadfilex   # (a library without the symbol: AttributeError, the next name is tried)
             break
         except (OSError, AttributeError):
             lib = None

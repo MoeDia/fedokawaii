@@ -3,7 +3,8 @@
 with an ObjectManager and an AgentManager1 that accepts an agent. Without "adapter" it lists
 no adapters (bluetui's "no adapters" screen); with it, one powered adapter hci0 holding a
 paired game controller and a paired headset, and one unpaired phone found nearby."""
-import asyncio, sys
+import asyncio
+import sys
 from dbus_next.aio import MessageBus
 from dbus_next.service import ServiceInterface, method, dbus_property
 from dbus_next import BusType, Variant, PropertyAccess
@@ -121,7 +122,8 @@ class Device(ServiceInterface):
 
 class Battery(ServiceInterface):
     def __init__(self, pct):
-        super().__init__("org.bluez.Battery1"); self.pct = pct
+        super().__init__("org.bluez.Battery1")
+        self.pct = pct
 
     @dbus_property(access=PropertyAccess.READ)
     def Percentage(self) -> "y": return self.pct
@@ -136,13 +138,15 @@ async def main():
     bus = await MessageBus(bus_address=sys.argv[1], bus_type=BusType.SYSTEM).connect()
     objects = {}
     if WITH_ADAPTER:
-        a = Adapter(); bus.export("/org/bluez/hci0", a)
+        a = Adapter()
+        bus.export("/org/bluez/hci0", a)
         objects["/org/bluez/hci0"] = {"org.bluez.Adapter1": props({
             "Address": ("s", "AC:80:0A:00:00:01"), "Name": ("s", "fedokawaii"), "Alias": ("s", "fedokawaii"),
             "Powered": ("b", True), "Discoverable": ("b", False), "Pairable": ("b", True),
             "Discovering": ("b", False), "UUIDs": ("as", [])})}
         for path, addr, name, icon, paired, trusted, connected in DEVICES:
-            bus.export(path, Device(addr, name, icon, paired, trusted, connected)); bus.export(path, Battery(72))
+            bus.export(path, Device(addr, name, icon, paired, trusted, connected))
+            bus.export(path, Battery(72))
             objects[path] = {"org.bluez.Device1": props({
                 "Address": ("s", addr), "Name": ("s", name), "Alias": ("s", name), "Icon": ("s", icon),
                 "Paired": ("b", paired), "Bonded": ("b", paired), "Trusted": ("b", trusted), "Blocked": ("b", False),

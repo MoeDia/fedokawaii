@@ -148,8 +148,8 @@ def parse_config(text):
             for m in re.finditer(rf"\b{name}\(([^()]*)\)", line):
                 args = [a.strip() for a in m.group(1).split(",")]
                 b = body
-                for p, a in zip(params, args):
-                    b = re.sub(rf"(\w*)##{p}\b", lambda x: x.group(1) + a, b)
+                for p, a in zip(params, args, strict=True):
+                    b = re.sub(rf"(\w*)##{p}\b", lambda x, a=a: x.group(1) + a, b)
                     b = re.sub(rf"\b{p}\b", a, b)
                 line = line.replace(m.group(0), b)
         return line
@@ -210,7 +210,7 @@ def check(repo):
         if len(ks) != len(acts):
             out.append(f"keybinds.txt:{n}: {spec} names {len(ks)} keys, the check knows {len(acts)} actions")
             continue
-        for k, want in zip(ks, acts):
+        for k, want in zip(ks, acts, strict=True):
             told.add(k)
             got = binds.get(k, ["(nothing)"])[0]
             if want != got:

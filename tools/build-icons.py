@@ -132,7 +132,10 @@ def glyph(ic, raise_px=0):
     for x0, y0, x1, y1 in rectangles(ic["rows"]):
         L, R = (x + x0) * PX, (x + x1) * PX
         T, B = (top - y0) * PX, (top - y1) * PX
-        pen.moveTo((L, B)); pen.lineTo((L, T)); pen.lineTo((R, T)); pen.lineTo((R, B))
+        pen.moveTo((L, B))
+        pen.lineTo((L, T))
+        pen.lineTo((R, T))
+        pen.lineTo((R, B))
         pen.closePath()                      # clockwise: TrueType's filled direction
     return pen.glyph()
 
@@ -143,13 +146,19 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, cell=0, upm=UPM, asc
     fb.setupGlyphOrder(names)
     fb.setupCharacterMap({0x20: "space", **{ic["code"]: names[i + 2] for i, ic in enumerate(icons)}})
     notdef = TTGlyphPen(None)                # a hollow box: outer clockwise, inner hole anticlockwise
-    notdef.moveTo((100, 0)); notdef.lineTo((100, 1300)); notdef.lineTo((700, 1300)); notdef.lineTo((700, 0))
+    notdef.moveTo((100, 0))
+    notdef.lineTo((100, 1300))
+    notdef.lineTo((700, 1300))
+    notdef.lineTo((700, 0))
     notdef.closePath()
-    notdef.moveTo((200, 100)); notdef.lineTo((600, 100)); notdef.lineTo((600, 1200)); notdef.lineTo((200, 1200))
+    notdef.moveTo((200, 100))
+    notdef.lineTo((600, 100))
+    notdef.lineTo((600, 1200))
+    notdef.lineTo((200, 1200))
     notdef.closePath()
     glyphs = {".notdef": notdef.glyph(), "space": TTGlyphPen(None).glyph()}
     metrics = {".notdef": (800, 100), "space": (800, 0)}
-    for ic, name in zip(icons, names[2:]):
+    for ic, name in zip(icons, names[2:], strict=True):
         if cell:                             # (centred in whole cells of the terminal's face)
             adv = -(-ic["w"] // cell) * cell
             ic = {**ic, "adv": adv, "x": (adv - ic["w"]) // 2}
@@ -246,12 +255,12 @@ def preview(icons, path, scale=8):
         d.rectangle((x0, y0, x0 + tile - 1, y0 + tile - 1), fill=(22, 20, 17))
         ink = [(x, y) for y, r in enumerate(ic["rows"]) for x, c in enumerate(r) if c == "#"]
         if ink:
-            l, t = min(x for x, _ in ink), min(y for _, y in ink)
-            w = max(x for x, _ in ink) - l + 1
+            lf, t = min(x for x, _ in ink), min(y for _, y in ink)
+            w = max(x for x, _ in ink) - lf + 1
             h = max(y for _, y in ink) - t + 1
             ox, oy = x0 + (tile - w * scale) // 2, y0 + (tile - h * scale) // 2   # (scale even: exact)
             for x, y in ink:
-                X, Y = ox + (x - l) * scale, oy + (y - t) * scale
+                X, Y = ox + (x - lf) * scale, oy + (y - t) * scale
                 d.rectangle((X, Y, X + scale - 1, Y + scale - 1), fill=(207, 195, 166))
         tw = d.textlength(ic["name"], font=label)
         d.text((x0 + (tile - tw) / 2, y0 + tile + 8), ic["name"], fill=(135, 127, 111), font=label)

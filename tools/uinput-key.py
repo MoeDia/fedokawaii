@@ -9,7 +9,11 @@ Run as root (/dev/uinput): sudo python3 -I tools/uinput-key.py KEY… [--gap S]
   --gap S  seconds between keys (default 0.15)
 The device is made, given 1 s for libinput and the compositor to take it in, used, then
 destroyed. Exit 0 · 1 /dev/uinput unusable · 2 misuse."""
-import fcntl, os, struct, sys, time
+import fcntl
+import os
+import struct
+import sys
+import time
 
 # linux/input-event-codes.h — the keys a check needs (add more as they are needed)
 KEYS = {"ESC": 1, "A": 30, "S": 31, "Q": 16, "W": 17, "E": 18, "R": 19, "SPACE": 57,
@@ -33,18 +37,22 @@ def main(argv):
         if a == "--gap":
             gap = float(next(it, "0.15"))
         elif a in ("-h", "--help"):
-            print(__doc__); return 0
+            print(__doc__)
+            return 0
         else:
             names = a.upper().split("+")
             if not all(n in KEYS for n in names):
-                print(f"uinput-key: no key {a!r} here (have: {' '.join(sorted(KEYS))})", file=sys.stderr); return 2
+                print(f"uinput-key: no key {a!r} here (have: {' '.join(sorted(KEYS))})", file=sys.stderr)
+                return 2
             keys.append([KEYS[n] for n in names])
     if not keys:
-        print(__doc__, file=sys.stderr); return 2
+        print(__doc__, file=sys.stderr)
+        return 2
     try:
         fd = os.open("/dev/uinput", os.O_WRONLY | os.O_NONBLOCK)
     except OSError as e:
-        print(f"uinput-key: /dev/uinput: {e.strerror} (root needed)", file=sys.stderr); return 1
+        print(f"uinput-key: /dev/uinput: {e.strerror} (root needed)", file=sys.stderr)
+        return 1
     try:
         fcntl.ioctl(fd, UI_SET_EVBIT, EV_KEY)
         for code in set(KEYS.values()):

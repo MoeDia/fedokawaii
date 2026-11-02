@@ -24,7 +24,7 @@ newest() { ls "$CLIP_DB" | sort -n | tail -n1; }
 # 3000 bytes of binary data that `file` calls just that (random bytes are, now and then, a
 # TGA picture or a DOS program to it)
 binary() { python3 -I -c 'import sys; sys.stdout.buffer.write((bytes(range(255, -1, -1)) * 12)[:3000])'; }
-prev() { FZF_PREVIEW_COLUMNS=${COLS:-74} FZF_PREVIEW_LINES=${LINES_:-9} KAWA_CELL=9x21 kawa-clip --preview "$@"; }
+prev() { FZF_PREVIEW_COLUMNS=${COLS:-74} FZF_PREVIEW_LINES=${LINES_:-10} KAWA_CELL=9x21 kawa-clip --preview "$@" | sed 1d; }   # (less its first line, the rule)
 . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null || . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 # rows LIST — the list's rows as words: its own inks (screen.sh's: 38;5;N and the reset) out, the
 # row's indent (a column: screen_row's; kawa-clip's own text rows keep two) and glyph out (checked
@@ -68,9 +68,9 @@ case_ "bytes that are not text (cliphist shows them as �): a 'data' row, not t
 binary | python3 -I "$C/fake_cliphist.py" store
 eq "$(kawa-clip --list | rows | grep $'^2\t')" $'2\tdata  not text'
 case_ "an escape in a text's preview: shown as ^[; tabs and lines kept; Windows line ends quiet"
-eq "$(prev 1)" $'   red ^[[31mtext^[[0m, a clear ^[[2J and a bell \a'
+eq "$(prev 1)" $'     red ^[[31mtext^[[0m, a clear ^[[2J and a bell \a'
 put 'one\r\ntwo\tcolumns\r\n'
-eq "$(prev 3)" $'   one\n   two\tcolumns'
+eq "$(prev 3)" $'     one\n     two\tcolumns'
 
 case_ "an empty history: no rows, no error"
 setup
@@ -84,33 +84,37 @@ eq "$(PATH=$(without cliphist) kawa-clip --list 2>&1)" ""
 case_ "text: the whole of it, two columns in, tabs and lines kept"
 setup
 put 'line one\n\tline two\twith tab\nline three'
-eq "$(prev 1)" $'   line one\n   \tline two\twith tab\n   line three'
+eq "$(prev 1)" $'     line one\n     \tline two\twith tab\n     line three'
 put -- '--version'
-eq "$(prev 2)" '   --version' "a leading dash is shown, not taken as an option"
+eq "$(prev 2)" '     --version' "a leading dash is shown, not taken as an option"
 
-case_ "a huge copy: the first 64 KiB, three columns in (the list's glyphs' column)"
+case_ "a huge copy: the first 64 KiB, five columns in (the list's names' column)"
 python3 -c 'print("x" * 300000, end="")' | python3 -I "$C/fake_cliphist.py" store
 id=$(newest); out=$(prev "$id")
-eq "${#out}" $((65536 + 3))
+eq "${#out}" $((65536 + 5))
 
 case_ "code, mail and keys are text too (not 'application/…, N bytes')"
 put 'const fs = require("fs");\nfunction f(a) { return a + 1; }\nmodule.exports = f;\n'
-has "$(prev "$(newest)")" '   const fs = require("fs");' "JavaScript"
+has "$(prev "$(newest)")" '     const fs = require("fs");' "JavaScript"
 put 'From: a@example.com\nTo: b@example.com\nSubject: hi\n\nbody\n'
-has "$(prev "$(newest)")" '   Subject: hi' "an e-mail"
+has "$(prev "$(newest)")" '     Subject: hi' "an e-mail"
 put -- '-----BEGIN PGP PUBLIC KEY BLOCK-----\nmQENBF\n-----END PGP PUBLIC KEY BLOCK-----\n'
-has "$(prev "$(newest)")" '   -----BEGIN PGP PUBLIC KEY BLOCK-----' "a PGP key"
+has "$(prev "$(newest)")" '     -----BEGIN PGP PUBLIC KEY BLOCK-----' "a PGP key"
 put '{"a": [1, 2]}'
-eq "$(prev "$(newest)")" '   {"a": [1, 2]}' "JSON"
+eq "$(prev "$(newest)")" '     {"a": [1, 2]}' "JSON"
 
 case_ "binary data: its kind and size, not its bytes"
 binary | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)")" "   $ICON_BOX_OFF  application/octet-stream, 3000 bytes"
+eq "$(prev "$(newest)")" "  $ICON_BOX_OFF application/octet-stream, 3000 bytes"
 head -c 100 /dev/zero | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)")" "   $ICON_BOX_OFF  application/octet-stream, 100 bytes" "zero bytes"
+eq "$(prev "$(newest)")" "  $ICON_BOX_OFF application/octet-stream, 100 bytes" "zero bytes"
 
+case_ "the preview's first line: the rule under the list, from the content's first column to its last as the heading's (fzf's border ran a column past each end — T19m pass 1); held as the text scrolls; the text under the list's names"
+first=$(FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=10 KAWA_CELL=9x21 kawa-clip --preview 1 | head -n1)
+eq "$(sed 's/\x1b\[[0-9;]*m//g' <<<"$first")" " $(printf '─%.0s' {1..76})" "(a space, then 76 columns: the heading's 76)"
+has "$first" $'\e[38;5;19m' "(in the rule's ink, edge2)"
 case_ "no XDG_RUNTIME_DIR (a shell outside the session): the preview and the copy still work"
-eq "$(env -u XDG_RUNTIME_DIR FZF_PREVIEW_COLUMNS=74 FZF_PREVIEW_LINES=9 kawa-clip --preview 1 2>&1)" $'   line one\n   \tline two\twith tab\n   line three'
+eq "$(env -u XDG_RUNTIME_DIR FZF_PREVIEW_COLUMNS=74 FZF_PREVIEW_LINES=10 kawa-clip --preview 1 2>&1 | sed 1d)" $'     line one\n     \tline two\twith tab\n     line three'
 rc 0 env -u XDG_RUNTIME_DIR kawa-clip --copy 1
 
 case_ "the preview of an id that is not there (forgotten meanwhile), or not an id: nothing"
@@ -159,14 +163,14 @@ case_ "a broken picture (cut short): its kind in words, nothing on stderr"
 magick -size 640x480 plasma: png:- 2>/dev/null | head -c 300 | python3 -I "$C/fake_cliphist.py" store
 id=$(newest); err=$(prev "$id" 2>&1 >/dev/null); out=$(prev "$id" 2>/dev/null)
 eq "$err" "" "an fzf preview shows stderr"
-[[ $out == *$'\e'Pq* || $out == *$'\e'P0\;1\;* || $out == "   $ICON_PICTURE  picture (png)" ]] && _ok \
+[[ $out == *$'\e'Pq* || $out == *$'\e'P0\;1\;* || $out == "  $ICON_PICTURE picture (png)" ]] && _ok \
   || _no "neither a picture nor its kind: ${out:0:80}"
 printf 'GIF89a\x10\x00\x10\x00garbage' | python3 -I "$C/fake_cliphist.py" store
-eq "$(prev "$(newest)" 2>&1)" "   $ICON_PICTURE  picture (gif)" "a header and nothing after it"
+eq "$(prev "$(newest)" 2>&1)" "  $ICON_PICTURE picture (gif)" "a header and nothing after it"
 
 case_ "a preview too short or too narrow for a picture: its kind in words"
-eq "$(LINES_=2 prev 1 2>&1)" "   $ICON_PICTURE  picture (png)"
-eq "$(COLS=0 prev 1 2>&1)" "   $ICON_PICTURE  picture (png)"
+eq "$(LINES_=2 prev 1 2>&1)" "  $ICON_PICTURE picture (png)"
+eq "$(COLS=0 prev 1 2>&1)" "  $ICON_PICTURE picture (png)"
 has "$(COLS=1 prev 1 | sixel_info | jget raster)" "[1, 1, 9, 168]" "one column: a picture one column wide"
 
 case_ "Turkish and Arabic locales: the list and the picture as in English, no stray files"
@@ -183,7 +187,7 @@ unset LOCPATH
 
 case_ "kawa-sixel failing: the kind in words, never its error"
 stub kawa-sixel 'cat >/dev/null; echo "kawa-sixel: boom" >&2; exit 1'
-eq "$(prev 1 2>/dev/null)" "   $ICON_PICTURE  picture (png)"
+eq "$(prev 1 2>/dev/null)" "  $ICON_PICTURE picture (png)"
 
 case_ "a preview killed half-way (fzf kills one when you move on): its copy does not stay in memory"
 setup
@@ -403,13 +407,14 @@ case_ "a home with a space, an accent and a quote: every key's command still fin
 setup; odd_home kawa-clip
 put 'hello there'
 "$HOME/.local/bin/kawa-clip" --tui
+has "$(cat "$FZF_ARGS")" "--preview-window=down,10,wrap-word,border-none,noinfo,~1"; has "$(cat "$FZF_ARGS")" "--preview-wrap-sign=     "
 for key in "--preview=" "--bind=enter:become(" "--bind=ctrl-d:execute-silent("; do
   line=$(grep -F -- "$key" "$FZF_ARGS")
   [[ -n $line ]] && _ok || _no "no $key"
 done
 pcmd=$(grep -F -- "--preview=" "$FZF_ARGS"); pcmd=${pcmd#--preview=}
-eq "$(sh -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "the preview, run as fzf runs it (sh -c)"
-eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1)" "   hello there" "and with bash as \$SHELL"
+eq "$(sh -c "${pcmd//\{1\}/1}" 2>&1 | sed 1d)" "     hello there" "the preview, run as fzf runs it (sh -c)"
+eq "$(bash -c "${pcmd//\{1\}/1}" 2>&1 | sed 1d)" "     hello there" "and with bash as \$SHELL"
 ccmd=$(grep -F -- "--bind=enter:become(" "$FZF_ARGS"); ccmd=${ccmd#--bind=enter:become(}; ccmd=${ccmd%)}
 sh -c "${ccmd//\{1\}/1}"; eq "$(cat "$COPIED")" "hello there" "enter, run as fzf runs it"
 eq "$(grep -cF -- "--bind=esc,ctrl-c,ctrl-g,ctrl-q:abort" "$FZF_ARGS")" 1 "outside the warm window: Esc only ends it"

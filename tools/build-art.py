@@ -103,8 +103,8 @@ def seal(p, ch, font):
     dk = ImageDraw.Draw(ink)
     dk.fontmode = "1"                     # whole pixels only: the font is a pixel font
     dk.text((SEAL // 2, SEAL // 2), ch, font=font, fill=1)
-    l, t, r, b = ink.getbbox()            # (r, b: one past the ink)
-    x = (SEAL - (r - l)) // 2 - l + SEAL // 2
+    lf, t, r, b = ink.getbbox()           # (r, b: one past the ink)
+    x = (SEAL - (r - lf)) // 2 - lf + SEAL // 2
     y = (SEAL - (b - t)) // 2 - t + SEAL // 2
     d.fontmode = "1"
     d.text((x, y), ch, font=font, fill=rgb(p["accent_text"]) + (255,))

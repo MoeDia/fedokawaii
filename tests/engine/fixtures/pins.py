@@ -1,6 +1,9 @@
 """pins.py CONSTRAINTS SITE — every library CONSTRAINTS pins, there in SITE at its pin (a
 dist-info of its own: what pipx's install leaves), any other version of it gone."""
-import glob, os, shutil, sys
+import glob
+import os
+import shutil
+import sys
 
 for line in open(sys.argv[1]):
     if line.strip() and not line.startswith("#"):

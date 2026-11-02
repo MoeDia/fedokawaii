@@ -55,6 +55,18 @@ while IFS= read -r -d '' where && IFS= read -r -d '' text; do
 done < <(python3 "$S/deps.py" snippets "$REPO")
 ((n > 60)) && _ok || _no "only $n pieces of shell found in the configs (the reader lost some)"
 
+case_ "every Python file is clean for ruff — its defaults and bugbear (ruff.toml); mason's ruff, the one neovim's Python extra runs"
+RUFF=$(getent passwd "$(id -un)" | cut -d: -f6)/.local/share/nvim/mason/bin/ruff
+if [[ -x $RUFF ]]; then
+  PYALL=()   # (every .py, and every script without a suffix that starts with python3's #!)
+  while IFS= read -r -d '' f; do
+    if [[ $f == *.py ]]; then PYALL+=("$f")
+    elif [[ ${f##*/} != *.* ]]; then first=""; read -r first <"$f" 2>/dev/null; [[ $first == '#!'*python3* ]] && PYALL+=("$f"); fi
+  done < <(find bin system tools tests docs configs -type f -print0)
+  ((${#PYALL[@]} >= 70)) && _ok || _no "only ${#PYALL[@]} Python files found (76 on 2 Nov)"
+  out=$("$RUFF" check --no-cache --force-exclude --output-format concise "${PYALL[@]}" 2>&1) && _ok || _no "${out:0:600}"
+else skipped "no ruff here (LazyVim's Python extra installs it with mason)"; fi
+
 case_ "the shell inside the configs is clean for shellcheck (as sh, -S warning)"
 if command -v shellcheck >/dev/null; then
   while IFS= read -r -d '' where && IFS= read -r -d '' text; do

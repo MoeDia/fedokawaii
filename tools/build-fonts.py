@@ -141,7 +141,7 @@ def rectangles(pix):
     for y, xs in rows.items():
         xs = sorted(xs)
         r, s = [], xs[0]
-        for a, b in zip(xs, xs[1:] + [None]):
+        for a, b in zip(xs, xs[1:] + [None], strict=True):
             if b != a + 1:
                 r.append((s, a + 1))
                 if b is not None:
@@ -167,7 +167,10 @@ def outline(pix, base):
     for x0, y0, x1, y1 in rectangles(pix):
         L, R = x0 * PX, x1 * PX
         T, B = (base - y0) * PX, (base - y1) * PX
-        pen.moveTo((L, B)); pen.lineTo((L, T)); pen.lineTo((R, T)); pen.lineTo((R, B))
+        pen.moveTo((L, B))
+        pen.lineTo((L, T))
+        pen.lineTo((R, T))
+        pen.lineTo((R, B))
         pen.closePath()
     return pen.glyph()
 
@@ -370,7 +373,8 @@ def build_ui(face_path, cozette_path):
         if min(x for x, _ in pix) > 0:
             glyphs[cp] = (adv, {(x - 1, y) for x, y in pix})
             continue
-        colof = lambda x: frozenset(y for x2, y in pix if x2 == x)
+        def colof(x, pix=pix):
+            return frozenset(y for x2, y in pix if x2 == x)
         mid_x = (adv - 1) / 2
         spare = [x for x in range(2, adv - 2) if colof(x) == colof(x - 1) or colof(x) == colof(x + 1)]
         if spare:

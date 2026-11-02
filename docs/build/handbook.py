@@ -1,7 +1,13 @@
 #!/usr/bin/env python3
 """Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
 ($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
-import re, os, sys, math, html as H
+import re
+import os
+import sys
+import math
+import html as H
+import subprocess
+import importlib.util
 from pathlib import Path
 USAGE = """usage: python3 docs/build/handbook.py        builds docs/Fedokawaii-Guide.pdf (a few minutes)
        python3 docs/build/handbook.py --help  this text
@@ -12,8 +18,8 @@ if len(sys.argv) > 1:
     print(USAGE, file=sys.stdout if sys.argv[1] in ("-h", "--help") else sys.stderr)
     sys.exit(0 if sys.argv[1] in ("-h", "--help") else 2)
 sys.dont_write_bytecode = True                 # (no __pycache__ left in the repository)
-import markdown, numpy as np, importlib.util
-from PIL import Image, ImageDraw, ImageFont
+import markdown  # noqa: E402 (deliberately after the argument check and sys.dont_write_bytecode)
+from PIL import Image, ImageDraw, ImageFont  # noqa: E402 (same: after the argument check and the flag)
 S = os.environ.get("FEDOKAWAII_SCRATCH") or sys.exit("handbook.py: FEDOKAWAII_SCRATCH names the folder with the renders (real/shots)")
 # the repository this script belongs to (docs/build/ → its root), never a fixed path: run from a
 # copy, it builds that copy
@@ -21,7 +27,8 @@ REPO = os.environ.get("FEDOKAWAII_REPO", str(Path(__file__).resolve().parents[2]
 # the palette: the desktop's own (tools/build-themes.py, the only place a colour is written
 # down) — the light theme's tokens are the book's ink and paper, the dark theme's the cover's
 _spec = importlib.util.spec_from_file_location("build_themes", f"{REPO}/tools/build-themes.py")
-_bt = importlib.util.module_from_spec(_spec); _spec.loader.exec_module(_bt)
+_bt = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_bt)
 LT, DK = _bt.P["light"], _bt.P["dark"]
 def rgb(h): return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 def stitch(col, on, per, h, k=4):
@@ -29,10 +36,12 @@ def stitch(col, on, per, h, k=4):
     drawn K times larger (sharp when the page is zoomed). An image, never a CSS gradient:
     Chromium prints a repeating gradient as a picture of its whole clip — on a table row, a
     page-sized one per row (18 000 of them: a 135 MB PDF that took most of an hour)."""
-    import base64, io
+    import base64
+    import io
     t = Image.new("RGBA", (per * k, h * k), (0, 0, 0, 0))
     t.paste(rgb(col) + (255,), (0, 0, on * k, h * k))
-    b = io.BytesIO(); t.save(b, "PNG")
+    b = io.BytesIO()
+    t.save(b, "PNG")
     return "url(data:image/png;base64," + base64.b64encode(b.getvalue()).decode() + ")"
 CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
 OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/guide")   # (test copy: configurable)
@@ -52,7 +61,8 @@ PIXEL = os.environ.get("FEDOKAWAII_PIXEL_FONT", f"{REPO}/system/fonts/SumiUI.ttf
 SUMI = f"{REPO}/configs/home/.local/share/fonts/SumiIcons.ttf"
 COVER = os.environ.get("FEDOKAWAII_COVER", "/home/kawau/.local/share/fedokawaii/wallpapers/dark/ink-ridges-night.src")
 for need in (PIXEL, SUMI, COVER):
-    if not os.path.exists(need): sys.exit(f"handbook.py: {need} is missing")
+    if not os.path.exists(need):
+        sys.exit(f"handbook.py: {need} is missing")
 DM = ImageFont.truetype(PIXEL, 32)                      # (32 px: the face's grid × 2)
 
 def im(p): return Image.open(p).convert("RGB")
@@ -72,32 +82,40 @@ def grid(rows, out, gap=16, bg=GAP, align="center", row_bg=None, pad=0):
     y = 0
     for i, r in keep:
         h = max(x.height for x in r) + 2 * pad
-        if row_bg: d.rectangle([0, y, W - 1, y + h - 1], fill=row_bg[i])
+        if row_bg:
+            d.rectangle([0, y, W - 1, y + h - 1], fill=row_bg[i])
         w = sum(x.width for x in r) + gap * (len(r) - 1)
         x0 = (W - w) // 2 if align == "center" else pad
         for x in r:
-            canvas.paste(x, (x0, y + pad)); x0 += x.width + gap
+            canvas.paste(x, (x0, y + pad))
+            x0 += x.width + gap
         y += h + gap
-    canvas.save(out); return out
+    canvas.save(out)
+    return out
 
 def both(name, k=1):
-    d, l = f"{R}/dark/{name}.png", f"{R}/light/{name}.png"
-    if not (os.path.exists(d) and os.path.exists(l)): return None
-    return scale(im(d), k), scale(im(l), k)
+    d, lt = f"{R}/dark/{name}.png", f"{R}/light/{name}.png"
+    if not (os.path.exists(d) and os.path.exists(lt)):
+        return None
+    return scale(im(d), k), scale(im(lt), k)
 
 def pair(name, out, k=1, vertical=False):
     b = both(name, k)
-    if not b: return None
+    if not b:
+        return None
     return grid([[b[0]], [b[1]]] if vertical else [[b[0], b[1]]], out)
 
 def shrink(src, out, w):
     i = im(src)
-    if i.width > w: i = i.resize((w, round(i.height * w / i.width)), Image.LANCZOS)
-    i.save(out); return out
+    if i.width > w:
+        i = i.resize((w, round(i.height * w / i.width)), Image.LANCZOS)
+    i.save(out)
+    return out
 
 FIG, FIGW, FIGH = {}, {}, {}
 def add(name, path):   # a figure at its natural size (1 px = 1 CSS px); sized in fig()
-    if not (path and os.path.exists(path)): return
+    if not (path and os.path.exists(path)):
+        return
     i = Image.open(path)
     FIG[name], FIGW[name], FIGH[name] = path, i.width, i.height
 
@@ -116,7 +134,8 @@ MAXH = {"desktop-dark": 236, "desktop-light": 236, "packsheet": 236, "lock": 84,
 def printable(src, scale, out):
     i = Image.open(src).convert("RGB")
     k = max(1, math.ceil(2.5 * scale - 1e-9))
-    if k > 1: i = i.resize((i.width * k, i.height * k), Image.NEAREST)
+    if k > 1:
+        i = i.resize((i.width * k, i.height * k), Image.NEAREST)
     i.save(out, optimize=True)
     return out
 def layout(name):
@@ -138,8 +157,10 @@ bars = []
 for t in ("dark", "light"):
     for part in ("bar-left", "bar-center", "bar-right"):
         p = f"{R}/{t}/{part}.png"
-        if os.path.exists(p): bars.append([scale(im(p), 2)])
-if bars: add("bar", grid(bars, f"{IMG}/bar.png", gap=10))
+        if os.path.exists(p):
+            bars.append([scale(im(p), 2)])
+if bars:
+    add("bar", grid(bars, f"{IMG}/bar.png", gap=10))
 
 def menus_fig():
     names = ["menu-quick", "menu-power", "menu-calendar", "menu-audio"]
@@ -167,13 +188,15 @@ def drives_fig():   # a stick that opened, then eject's "safe to unplug": dark a
     rows = []
     for t in ("dark", "light"):
         rows.append([im(f"{R}/{t}/{n}.png") for n in ("notify-drive", "notify-eject") if os.path.exists(f"{R}/{t}/{n}.png")])
-    if not any(rows): return None
+    if not any(rows):
+        return None
     return grid(rows, f"{IMG}/drives.png", gap=24, pad=24, bg=INK, row_bg=[INK, PAPER])
 add("drives", drives_fig())
 if os.path.exists(f"{R}/dark/wallpaper-picker.png") and os.path.exists(f"{R}/light/wallpaper-picker.png"):
     add("wallpaper-picker", grid([[im(f"{R}/dark/wallpaper-picker.png"), im(f"{R}/light/wallpaper-picker.png")]], f"{IMG}/wallpaper-picker.png"))
 lk = both("lock-center", 2)
-if lk: add("lock", grid([[lk[0], lk[1]]], f"{IMG}/lock.png"))
+if lk:
+    add("lock", grid([[lk[0], lk[1]]], f"{IMG}/lock.png"))
 for app in ("app-yazi", "app-nvim", "app-lazygit", "app-btop", "app-mpv", "app-zathura", "app-filechooser",
             "app-share", "app-torrra", "app-brave", "app-wiremix", "app-bluetui", "app-visidata"):
     b = both(app)
@@ -186,12 +209,12 @@ for app in ("app-yazi", "app-nvim", "app-lazygit", "app-btop", "app-mpv", "app-z
 if os.path.exists(f"{R}/dark/app-books.png") and os.path.exists(f"{R}/light/app-books-add.png"):
     add("books", grid([[im(f"{R}/dark/app-books.png"), im(f"{R}/light/app-books-add.png")]], f"{IMG}/books.png"))
 nb = both("app-notes")
-if nb: add("notes", grid([[nb[0], nb[1]]], f"{IMG}/notes.png"))
+if nb:
+    add("notes", grid([[nb[0], nb[1]]], f"{IMG}/notes.png"))
 # the system's control (Super+U): the status on ink, the move to the next Fedora on paper
 if os.path.exists(f"{R}/dark/app-system.png") and os.path.exists(f"{R}/light/app-system-upgrade.png"):
     add("system", grid([[im(f"{R}/dark/app-system.png"), im(f"{R}/light/app-system-upgrade.png")]], f"{IMG}/system.png"))
 # the pointers, from their drawings (tools/build-cursors.py --preview)
-import subprocess
 if subprocess.run(["python3", f"{REPO}/tools/build-cursors.py", "--preview", f"{IMG}/pointers.png"], capture_output=True).returncode == 0:
     add("pointers", f"{IMG}/pointers.png")
 # the walkthrough shots (nvim, lazygit, yazi): marker "nvim-picker" ← render "app-nvim-picker"
@@ -200,39 +223,46 @@ for name in ("nvim-whichkey", "nvim-picker", "nvim-grep", "nvim-split", "nvim-ls
     # one theme each, alternating, full width: a walkthrough reads better large than twice
     t = ("dark", "light")[len([k for k in FIG if k.startswith(("nvim-", "lazygit-", "yazi-"))]) % 2]
     src = f"{R}/{t}/app-{name}.png"
-    if os.path.exists(src): add(name, src)            # (sized, never resampled twice: layout())
+    if os.path.exists(src):
+        add(name, src)  # (sized, never resampled twice: layout())
 
 # the pack: two pictures, then the whole sheet
 W = "/home/kawau/.local/share/fedokawaii/wallpapers"
-entries = [l.split()[:2] for l in open(f"{REPO}/configs/home/.local/share/fedokawaii/wallpapers.list") if l.split()[:1] in (["dark"], ["light"])]
+entries = [ln.split()[:2] for ln in open(f"{REPO}/configs/home/.local/share/fedokawaii/wallpapers.list") if ln.split()[:1] in (["dark"], ["light"])]
 # (each kept as fetched: NAME.src, any size, a painting rather than pixel art — scaled smoothly)
 def wall(mode, name, w, h): return im(f"{W}/{mode}/{name}.src").resize((w, h), Image.LANCZOS)
 add("pack", grid([[wall("dark", "ink-ridges-night", 960, 540), wall("light", "ink-ridges", 960, 540)]], f"{IMG}/pack.png"))
 tw, th, cols = 320, 180, 6
 rows = -(-len(entries) // cols)
-sheet = Image.new("RGB", (cols * (tw + 12) + 12, rows * (th + 40) + 12), INK); d = ImageDraw.Draw(sheet)
+sheet = Image.new("RGB", (cols * (tw + 12) + 12, rows * (th + 40) + 12), INK)
+d = ImageDraw.Draw(sheet)
 for i, (mode, name) in enumerate(entries):
-    x = 12 + (i % cols) * (tw + 12); y = 12 + (i // cols) * (th + 40)
+    x = 12 + (i % cols) * (tw + 12)
+    y = 12 + (i // cols) * (th + 40)
     sheet.paste(wall(mode, name, tw, th), (x, y))
     d.text((x, y + th + 6), name, font=DM, fill=rgb(DK["text"]) if mode == "dark" else rgb(DK["accent_hi"]))
-sheet.save(f"{IMG}/packsheet.png"); add("packsheet", f"{IMG}/packsheet.png")
+sheet.save(f"{IMG}/packsheet.png")
+add("packsheet", f"{IMG}/packsheet.png")
 
 # fetch: the ten pictures, read from bin/fetch, on ink and on paper
 src = open(f"{REPO}/bin/fetch").read()
 arts = re.findall(r"^ART_(\w+)=\(\n(.*?)\n\)", src, re.M | re.S)
 k = 8
 fw = len(arts) * (20 * k + 24) + 24
-fimg = Image.new("RGB", (fw, 2 * (16 * k + 24) + 24), INK); fd = ImageDraw.Draw(fimg)
+fimg = Image.new("RGB", (fw, 2 * (16 * k + 24) + 24), INK)
+fd = ImageDraw.Draw(fimg)
 fd.rectangle([0, 16 * k + 36, fw, fimg.height], fill=PAPER)
-for n, (name, body) in enumerate(arts):
+for n, (_name, body) in enumerate(arts):
     ls = [x.strip().strip('"') for x in body.splitlines()]
     pal = dict(kv.split("=") for kv in ls[0].split())
     for g in range(2):
         ox, oy = 24 + n * (20 * k + 24), 12 + g * (16 * k + 36)
         for y, r in enumerate(ls[1:]):
             for x, ch in enumerate(r):
-                if ch != ".": fd.rectangle([ox + x * k, oy + y * k, ox + x * k + k - 1, oy + y * k + k - 1], fill="#" + pal[ch])
-fimg.save(f"{IMG}/fetch.png"); add("fetch", f"{IMG}/fetch.png")
+                if ch != ".":
+                    fd.rectangle([ox + x * k, oy + y * k, ox + x * k + k - 1, oy + y * k + k - 1], fill="#" + pal[ch])
+fimg.save(f"{IMG}/fetch.png")
+add("fetch", f"{IMG}/fetch.png")
 
 add("grub", f"{R}/grub.png")                            # (render/grub.sh: GRUB itself, in QEMU)
 subprocess.run(["python3", f"{REPO}/tools/build-icons.py", "--preview", f"{IMG}/icons.png"], check=True, capture_output=True)
@@ -246,7 +276,8 @@ missing = []
 def fig(m):
     name, cap = m.group(1).strip(), m.group(2).strip()
     if name not in FIG:
-        missing.append(name); return ""
+        missing.append(name)
+        return ""
     src, dw, dh = layout(name)
     return (f"<figure class='fig-{name}'><img src='file://{src}' style='width:{dw:.3f}px;height:{dh:.3f}px'>"
             f"<figcaption style='width:{dw:.3f}px'>{cap}</figcaption></figure>")
@@ -276,7 +307,8 @@ def short_cols(m):   # a column whose every cell is short (a key, a name) never 
     rows = re.findall(r"<tr>(.*?)</tr>", t, re.S)
     cells = [re.findall(r"<t[hd][^>]*>(.*?)</t[hd]>", r, re.S) for r in rows]
     n = min(len(c) for c in cells)
-    vis = lambda x: H.unescape(re.sub(r"<[^>]+>", "", x)).strip()
+    def vis(x):
+        return H.unescape(re.sub(r"<[^>]+>", "", x)).strip()
     narrow = {i for i in range(n) if max(len(vis(c[i])) for c in cells) <= 20}
     for r in rows:
         cs = re.findall(r"<t[hd][^>]*>.*?</t[hd]>", r, re.S)
@@ -349,7 +381,9 @@ def kanji_of(title):
     t = H.unescape(re.sub(r"<[^>]+>", "", title)).strip()
     m = re.match(r"(\d+|[A-Z])\. ", t)
     k = KANJI.get(m[1] if m else t)
-    if not k: print(f"handbook.py: no kanji for the chapter “{t}” (KANJI): 節, a section"); k = "節"
+    if not k:
+        print(f"handbook.py: no kanji for the chapter “{t}” (KANJI): 節, a section")
+        k = "節"
     return k
 def seal(k, cls="seal"): return f"<span class='{cls}'>{k}</span>"
 def heading(k, inner): return f"{seal(k)}<span class='nm'>{inner}</span><span class='st'></span>"
@@ -361,7 +395,8 @@ def seal_heads(html):
         if part:
             pk = re.match(r"Part ([IVXLC]+)\b", inner)
             return f"<h1 class='part' id='{hid}'>{seal(PART_KANJI.get(pk[1] if pk else 'Appendices', '付'), 'wseal')}<span class='nm'>{inner}</span></h1>"
-        if lvl == "1": k = kanji_of(inner)
+        if lvl == "1":
+            k = kanji_of(inner)
         return f"<h{lvl} id='{hid}'>{heading(k, inner)}</h{lvl}>"
     return re.sub(r"<h([12])( class='part')? id='(t\d+)'>(.*?)</h\1>", one, html, flags=re.S)
 html = seal_heads(html)
@@ -382,9 +417,12 @@ def keys(m):
     tok = re.findall(r"(?:Right|Left|Page) (?:Shift|Up|Down)(?:\+\S+)?|\S+", t)
     out = []
     for i, x in enumerate(tok):
-        if x == "·" or (x == "/" and 0 < i < len(tok) - 1): out.append(f"<span class='ksep'>{H.escape(x)}</span>")
-        elif CHORD.fullmatch(x) or ALONE.fullmatch(x) or (len(tok) > 1 and re.fullmatch(KEYNAME, x)): out.append(f"<kbd>{H.escape(x)}</kbd>")
-        else: return m[0]                                  # words: an emphasis, not keys
+        if x == "·" or (x == "/" and 0 < i < len(tok) - 1):
+            out.append(f"<span class='ksep'>{H.escape(x)}</span>")
+        elif CHORD.fullmatch(x) or ALONE.fullmatch(x) or (len(tok) > 1 and re.fullmatch(KEYNAME, x)):
+            out.append(f"<kbd>{H.escape(x)}</kbd>")
+        else:
+            return m[0]  # words: an emphasis, not keys
     return " ".join(out)
 html = re.sub(r"<strong>([^<]{1,40})</strong>", keys, html)
 
@@ -544,7 +582,8 @@ heads = re.findall(r"^(#{1,%d}) (.+)$" % int(os.environ.get("BOOK_TOC_LEVELS", "
 assert len(heads) == len(re.findall(r"<h[12][ >]", html)), "contents and headings differ"
 def toc_mark(h, t):   # a Part's filled seal, a chapter's kanji (as the help sheet's rows), a section none
     p = re.match(r"Part ([IVXLC]+)\b|Appendices", t)
-    if p: return "l0", seal(PART_KANJI.get(p[1] or "Appendices", "付"), "wseal")
+    if p:
+        return "l0", seal(PART_KANJI.get(p[1] or "Appendices", "付"), "wseal")
     return "l" + str(len(h)), (f"<span class='k'>{kanji_of(t)}</span>" if len(h) == 1 else "")
 toc = f"<section class='toc'><h1>{heading(KANJI['Contents'], 'Contents')}</h1><ol>" + "".join(   # (page numbers: 000 until the first print says where)
     f"<li class='{c}'><a href='#t{i}'>{mk}"
@@ -553,8 +592,11 @@ toc = f"<section class='toc'><h1>{heading(KANJI['Contents'], 'Contents')}</h1><o
 # ink-ridges-night, cut to the page (210 × 297): the moon and the ridges under it, from the
 # right of the picture, the moon high in the sky; the title on the dark ridges, shaded under the words
 _c = Image.open(COVER).convert("RGB")
-_h = _c.height; _w = round(_h * 210 / 297); _x = round(_c.width * 0.473)
-cover_bg = f"{IMG}/cover.jpg"; _c.crop((_x, 0, _x + _w, _h)).save(cover_bg, quality=92)
+_h = _c.height
+_w = round(_h * 210 / 297)
+_x = round(_c.width * 0.473)
+cover_bg = f"{IMG}/cover.jpg"
+_c.crop((_x, 0, _x + _w, _h)).save(cover_bg, quality=92)
 torii = chr(0xFE000)
 doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>{H.escape(meta['title'])}</title><style>{CSS}</style></head><body>"
        f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='shade'></div><div class='t'>"
@@ -562,19 +604,24 @@ doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>{H.escape(meta[
        f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
        f"<main>{toc}{html}</main></body></html>")
 open(f"{OUT}/guide2.html", "w", encoding="utf-8").write(doc)
-if missing: print("figures missing:", ", ".join(missing))
+if missing:
+    print("figures missing:", ", ".join(missing))
 
-from playwright.sync_api import sync_playwright
+from playwright.sync_api import sync_playwright  # noqa: E402 (the PDF stage's own import, needed only from here on)
 with sync_playwright() as p:
     b = p.chromium.launch(executable_path=CHROME, args=["--no-sandbox"])
     pg = b.new_page()
-    pg.goto(f"file://{OUT}/guide2.html"); pg.evaluate("document.fonts.ready"); pg.wait_for_timeout(800)
+    pg.goto(f"file://{OUT}/guide2.html")
+    pg.evaluate("document.fonts.ready")
+    pg.wait_for_timeout(800)
     # nothing may be wider than the page: Chromium would shrink every page to fit it
-    pg.emulate_media(media="print"); pg.set_viewport_size({"width": round(210 * MM), "height": 1123})
+    pg.emulate_media(media="print")
+    pg.set_viewport_size({"width": round(210 * MM), "height": 1123})
     wide = pg.evaluate("""() => [...document.querySelectorAll('main *')].filter(e => {
         const r = e.getBoundingClientRect(); return r.right > document.documentElement.clientWidth - 15 * 96 / 25.4 + 0.5 && r.width > 0;
       }).slice(0, 12).map(e => e.tagName + '.' + (e.className || '') + ' ' + Math.round(e.getBoundingClientRect().right) + ' ' + (e.textContent || '').slice(0, 60))""")
-    if wide: print("wider than the text column:", *wide, sep="\n  ")
+    if wide:
+        print("wider than the text column:", *wide, sep="\n  ")
     pg.evaluate("""() => {   // tables in a row with the same header (Keys | Does …) get the same column widths
         const tws = [...document.querySelectorAll('.tw')], sig = t => [...t.querySelectorAll('th')].map(x => x.textContent).join('|');
         let run = [];
@@ -615,15 +662,17 @@ with sync_playwright() as p:
     for _ in range(3):   # print, write the numbers in (same width: nothing moves), print again
         pg.pdf(path=f"{OUT}/{PDF}", format="A4", print_background=True, prefer_css_page_size=True)
         nums = pages()
-        if nums == pg.evaluate("() => [...document.querySelectorAll('.toc .pn')].map(e => e.textContent)"): break
+        if nums == pg.evaluate("() => [...document.querySelectorAll('.toc .pn')].map(e => e.textContent)"):
+            break
         pg.evaluate("ns => document.querySelectorAll('.toc .pn').forEach((e, i) => e.textContent = ns[i])", nums)
-    else: print("contents: page numbers still moving")
+    else:
+        print("contents: page numbers still moving")
     b.close()
 print("pdf", os.path.getsize(f"{OUT}/{PDF}") // 1024, "KiB")
 # the pictures re-compressed losslessly (pdfpack.py, beside this script): every pixel the same, a tenth smaller
 sys.dont_write_bytecode = True                 # (no __pycache__ left in the repository)
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-import pdfpack
+import pdfpack  # noqa: E402 (found through the sys.path entry just above)
 pdfpack.main(f"{OUT}/{PDF}", f"{OUT}/{PDF}.packed")
 os.replace(f"{OUT}/{PDF}.packed", f"{OUT}/{PDF}")
 print("packed", os.path.getsize(f"{OUT}/{PDF}") // 1024, "KiB")

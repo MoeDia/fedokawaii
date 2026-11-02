@@ -72,8 +72,11 @@ class Lexer:
         j, out = self.i, []
         while j < len(self.s) and self.s[j] != "`":
             if self.s[j] == "\\" and j + 1 < len(self.s):
-                out.append(self.s[j + 1]); j += 2; continue
-            out.append(self.s[j]); j += 1
+                out.append(self.s[j + 1])
+                j += 2
+                continue
+            out.append(self.s[j])
+            j += 1
         inner = "".join(out)
         run_string(inner, self.sink, self.line)
         self.line += inner.count("\n")
@@ -203,20 +206,24 @@ class Lexer:
                     exp = True
                     continue
                 if c in "<>" and self.dbracket:
-                    lit.append(c); self.i += 1
+                    lit.append(c)
+                    self.i += 1
                     continue
                 break
             if c == "\\":
                 if self.peek(1) == "\n":
-                    self.i += 2; self.line += 1
+                    self.i += 2
+                    self.line += 1
                     continue
-                lit.append(self.peek(1)); self.i += 2
+                lit.append(self.peek(1))
+                self.i += 2
             elif c == "'":
                 j = self.s.find("'", self.i + 1)
                 j = len(self.s) if j < 0 else j
                 part = self.s[self.i + 1:j]
                 self.line += part.count("\n")
-                lit.append(part); self.i = j + 1
+                lit.append(part)
+                self.i = j + 1
             elif c == '"':
                 j0 = self.i
                 if self.dquote():
@@ -232,7 +239,8 @@ class Lexer:
                 self.backtick()
                 exp = True
             else:
-                lit.append(c); self.i += 1
+                lit.append(c)
+                self.i += 1
         text = self.s[start:self.i]
         value = "".join(lit)
         return Tok("w", text, None if exp else value, line)
@@ -256,7 +264,8 @@ class Lexer:
                 end = self.s.find("\n", self.i)
                 end = len(self.s) if end < 0 else end
                 ln = self.s[self.i:end]
-                self.i = min(end + 1, len(self.s)); self.line += 1
+                self.i = min(end + 1, len(self.s))
+                self.line += 1
                 if (ln.lstrip("\t") if strip else ln) == delim:
                     break
                 lines.append(ln)
@@ -280,7 +289,8 @@ class Lexer:
                 self.i += 1
                 continue
             if c == "\\" and self.peek(1) == "\n":
-                self.i += 2; self.line += 1
+                self.i += 2
+                self.line += 1
                 continue
             if c == "#":
                 j = s.find("\n", self.i)
@@ -288,7 +298,8 @@ class Lexer:
                 continue
             if c == "\n":
                 self.emit("op", "\n")
-                self.i += 1; self.line += 1
+                self.i += 1
+                self.line += 1
                 if self.heredocs:
                     self.heredoc_bodies()
                 continue
@@ -473,7 +484,8 @@ class Parser:
             if t[j].kind == "redir":
                 j += 2
                 continue
-            args.append(t[j]); j += 1
+            args.append(t[j])
+            j += 1
         # PROGRAM … || OTHER: the caller has a way on when PROGRAM fails or is absent
         self.fallback = j < len(t) and t[j].text == "||"
         self.wrapped(name, line, args, t[i])
@@ -677,7 +689,7 @@ def main(argv):
         items = [("-c", argv[1])]
     else:
         items = [(f, open(f, encoding="utf-8").read()) for f in argv]
-    for where, text in items:
+    for _where, text in items:
         for ln, name, guarded in programs(text):
             print(f"{ln}\t{name}" + ("\tguarded" if guarded else ""))
 
