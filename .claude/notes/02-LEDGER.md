@@ -4041,14 +4041,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   WIDTHS for the 8 × 20 cell (235 144 116 88 76 56 53 31); blesh/init.sh's comment; design-system §7 says the lacquer and
   the one block. test_shell 187/0, test_tiles 138/0, test_generated 267/0, test_contrast 18/0, test_design_doc 54/0,
   test_syntax 785/0. Kept as decided: the narrow order (time, jobs, branch, folder above, folder's end); 41 cells in a
-  dirty repo (the plan line said ≤ 40 — amended there). Left: kit renders of the fixed states, the apply, review 2.
+  dirty repo (the plan line said ≤ 40 — amended there). Kit, both moods (/dev/shm/r27/master/T24-evidence/fix1): after
+  `sleep 60 &` and `sleep 3.2; (exit 2)` — the code "2" on the lacquer in cream, then one "3.2s  jobs 1" block, a stamp
+  edge at each end. APPLIED 03:00 (his next terminal draws it). Left: review 2.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
 ##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
 ## (1) THE MASTERS: T23 review 3 FAILED (r27-23-master-3), fixed (r27-23-fix3), live (r27-23-live-2) → review 4
-##     (tools/master-brief.sh T23 with /dev/shm/r27/master/T23-evidence-v4 and verdict-3); T24 review 1
-##     (launched 02:40 — its verdict at /dev/shm/r27/master/T24/verdict.md → .claude/notes/master-T24-verdict-1.md); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
+##     (launched 02:50: /dev/shm/r27/master/T23/verdict.md → .claude/notes/master-T23-verdict-4.md); T24 review 1 FAILED
+##     (r27-24-master-1), fixed and applied (r27-24-fix1) → review 2 (tools/master-brief.sh T24, evidence
+##     /dev/shm/r27/master/T24-evidence incl. fix1/, verdict-1); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
 ##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
 ## (2) T20 — wire the lock: lock.ui (no date, time or keys: the entry alone, on the demon's mouth x 959–1138 y 638–737 /
 ##     on the sky by Seiōbo's peach x 1080–1290 y 297–387 at 1080p), gtklock.css per mood, kawa-lock handing gtklock the
