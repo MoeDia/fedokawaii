@@ -3363,6 +3363,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-suite-2939cc8 (2 Nov 11:40–12:26): 127 of 128 files green; test_yazi 120/1 — "Esc, q and M each close the list
   (three times opened, three times listed)" — the suite ran beside my kit renders and test runs; the same tree's
   test_yazi ALONE: 121/0 (12:43). A timing flake under load → T53 (make that case wait for the list, not a fixed time).
+- r27-22-empty (2 Nov 12:45–12:48): yazi's empty states — "No items", "Loading...", "No filter results" were drawn
+  CENTRED in the default ink (and "..." breaks the no-ellipsis rule): now one word in faint (§1: what is not there
+  yet) where a row's name stands — "empty", "loading", "nothing matches", "cannot be read: …" — in the list
+  (Current:empty) and in a folder's preview (yazi's own folder previewer wrapped from init.lua: `require("folder")`
+  there IS the table yazi peeks with — the pty shows our word in the preview). test_yazi 126/0 (a row: the word at
+  the names' column in the preview and in the list, no "No items"/"Loading..."; its five waits for "No items" wait
+  for the footer's 0/0 now). §7 Files: the rule. The kit render with the next batch (the suite was running).
+  Also 12:44: test_yazi's drives-list count made robust (r27-suite-2939cc8's flake: yazi's mount event refreshes).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 12:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory

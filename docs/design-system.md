@@ -371,7 +371,9 @@ content, inside its margin of one cell:
   hovered file's facts, `muted` — its size, its permissions — from column 0, its place in the
   list at the right, ending where the heading's rule does; the mode's word only when it is not
   the usual one; a narrow window drops the permissions, then the size. The dialog's last line
-  is its own keys instead.
+  is its own keys instead. What is not there yet — an empty folder, one still being read, a
+  filter that finds nothing — one word in `faint` where a row's name would stand ("empty",
+  "loading", "nothing matches"), in the list and in a folder's preview; never centred.
 - **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
   heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
   shown, a row of paper. The tab shown: its icon in `accent_text`, two columns, its name in

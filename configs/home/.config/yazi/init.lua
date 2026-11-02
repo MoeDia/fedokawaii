@@ -42,6 +42,37 @@ function Header:new(area, ...)
 end
 Entity:children_add(function() return " " end, 1500) -- (the cell between the cursor's column and the icon)
 
+-- What is not there yet, said quietly where a row's name would stand (§1: faint; never centred, never
+-- "…"): an empty folder, one still being read, a filter that finds nothing, one that cannot be read —
+-- in this folder's list and in a folder's preview alike
+local NAME_AT = "     "                        -- (the cursor's cell, column 0, the icon and its air)
+local function nothing(area, folder)
+	local s = "loading"
+	if folder and folder.files.filter then
+		s = "nothing matches"
+	elseif folder then
+		local done, err = folder.stage()
+		s = not done and "loading" or err and ("cannot be read: " .. tostring(err)) or "empty"
+	end
+	return ui.Line { ui.Span(NAME_AT .. s):fg("22") }:area(area)
+end
+function Current:empty()
+	return { nothing(self._area, self._folder), table.unpack(Dnd:new(self._area):redraw()) }
+end
+do -- (yazi's own folder previewer, its empty and loading states only)
+	local ok, folder = pcall(require, "folder")
+	if ok and type(folder) == "table" and folder.peek then
+		local peek = folder.peek
+		function folder:peek(job)
+			local f = cx.active.preview.folder
+			if not f or (f.cwd == job.file.url and #f.files == 0) then
+				return ya.preview_widget(job, nothing(job.area, f))
+			end
+			return peek(self, job)
+		end
+	end
+end
+
 -- The heading: the folder icon in accent_text, two columns, NAME in strong — then, the file
 -- dialog's, the folder it is in, muted — a space and the rule (─, edge2) to its end. A folder
 -- too long loses its start, nothing in its place; two stitches at least stay.

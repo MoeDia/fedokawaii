@@ -90,7 +90,7 @@ y <<'EOF'
 wait a.txt
 settle
 key <Enter>
-wait No items
+wait 0/0
 quit
 EOF
 eq "$(last_dir)" "$W/empty"; not_called '^editor'
@@ -228,15 +228,30 @@ settle
 key j
 settle
 key <Enter>
-wait No items
+wait 0/0
 quit
 EOF
 eq "$(last_dir)" "$W/notes.xopp"; not_called '^xournalpp'
 
+case_ "what is not there yet, said quietly where a row's name stands (§1 faint, never centred, no \"…\"): an empty folder says \"empty\" in its list and in its preview — yazi's centred \"No items\" gone"
+setup
+out=$(y 100x8 <<'EOF'
+wait a.txt
+settle
+screen
+key l
+wait 0/0
+settle
+screen
+quit
+EOF
+)
+eq "$(grep -c '│      empty' <<<"$out")" 2 "(the word at the names' column: in the empty folder's preview, then in its own list)"
+lacks "$out" "No items"; lacks "$out" "Loading..."
 case_ "Enter in an empty folder does nothing at all"
 reset_calls
 CWD=$W/empty y <<'EOF'
-wait No items
+wait 0/0
 settle
 key <Enter>
 sleep 0.3
@@ -417,7 +432,7 @@ reset_calls
 printf '/dev/sdc2\t/dev/sdc\tWD Elements\t431.5G\tntfs\t\n/dev/sdb1\t/dev/sdb\tKINGSTON\t28.9G\tvfat\t%s\n' \
   "$MNT/KINGSTON" >"$KD/list"
 out=$(CWD=$MNT/KINGSTON/photos y <<'EOF'
-wait No items
+wait 0/0
 settle
 key M
 wait  eject
@@ -592,7 +607,7 @@ settle
 key jj
 settle
 key <Enter>
-wait No items
+wait 0/0
 settle
 key h
 wait a.txt
