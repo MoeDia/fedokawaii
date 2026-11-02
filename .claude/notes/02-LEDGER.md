@@ -3986,6 +3986,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the films away under a still-ending mpv. syncplay_pair.py now waits for the whole group to be gone (5 s, then
   SIGKILL). test_syncplay 147/0 on the installed Syncplay (58a77fc6e993: the closing cases ran), mpv coredumps 3 before
   and 3 after the run.
+- r27-53-panel-start (3 Nov 02:35, T53 hot paths, MEASURED, nothing to cut): kawa-panel's own module loads in 5.7–6.0 ms
+  warm (22 ms the first, cold), GTK 3 + GtkLayerShell + Gdk + GLib in 55 ms (3 runs each, headless, python3 -I); a
+  451-line menu (Super+/'s size) laid out in 0.7 ms, ranked for a typed word in 0.2 ms. The panel starts once at login
+  and stays (drawn, hidden): every menu after that is a fifo line and a sub-millisecond layout — no cost worth a change.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 02:30 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
