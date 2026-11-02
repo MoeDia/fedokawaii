@@ -3605,6 +3605,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   a "lua:" step (a call, as kawa-warm's RPC — a <Cmd> key would end the look and pass blind): hide/show, the same from
   the to-do, a click compared with the same click in normal mode (122 both; the old 126), a paste, Ctrl-O k — all five
   FAIL on b583de2 as the master saw them. test_notes 153/0. Re-review 9 started 15:54.
+- r27-leak-2 (2 Nov 16:04–16:07, OPEN): AGAIN one "recording — the recording did not start" critical notice (id 310, no
+  reason in the body) on his screen, the only notice since 14:12 — during the bee0316 suite, which has the harness fix
+  (the ten "timing" ones are gone). Dismissed. Not test_report (its fake machine: fkuser 31000, its own /run), not
+  test_report_rows (rows run with the sandbox's runtime folder), no lingering kawa-record. The body without a reason
+  fits a kawa-record whose run folder vanished (its log unreadable). WATCHER: /dev/shm/r27p/mako-watch.sh (setsid,
+  since 16:06) logs every new notice with the test file running at that moment → /dev/shm/r27p/mako-watch.log; read
+  it after this suite and the next; fix the test (or the script's fallback) it names.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 15:32 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar or panel restart, a live play,
 ##     a notice): `wpctl status`, `playerctl -a status`, one half-scale grim (memory presence-not-just-input-idle). At
