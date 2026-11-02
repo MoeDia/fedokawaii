@@ -3617,6 +3617,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   line, Super+V's preview, the idle timer cell, proc-load). The later commits each tested on their own (test_notes
   153/0, test_calc 43/0, test_wallpaper 270/0, test_dwlstatus 183/0, test_design_doc 54/0; the sheets: noellipsis,
   the three test_configs, test_help). PUSHED 16:10: GitHub main e083197 → 2521e97 (95 commits).
+- r27-22-b10-rec (2 Nov 16:10–16:14, kit, both moods): T22's acceptance asks a recording — a qpdf-locked PDF unlocked
+  through kawa-file: the menu, the ask, "wrong", "again" (wrong twice), "secret": the SAME window both times with the
+  failed state (the vermilion ✗ in the icon column, "locked.pdf · wrong password" in text, the field empty, the window
+  ending a pad under the field), then gone, locked.unlocked.pdf made. Shots /dev/shm/r27/t22/b10rec/{dark,light}/
+  (menu, ask, wrong1, wrong2, right), recordings rec-{dark,light}.mkv (157 frames each, wf-recorder in the kit) — the
+  evidence for the master's T22 review.
+- r27-leak-2, more (2 Nov 16:10–16:13): at 16:10:23 his screen showed "recording ×4 — the recording did not start", yet
+  his mako (pid 1601, the only notification daemon on his compositor — every client of his wayland-0 listed: his own
+  programs) lists NONE (makoctl list and the D-Bus ListNotifications: 0); `makoctl dismiss --all` and `makoctl reload`
+  leave the drawing — a stale layer surface of mako's, or a second drawer not found. The wallpaper "restore" lines at
+  12:40:47, 14:32:36 and 16:10:12 in HIS wallpaper.log (swaybg on HDMI-A-1, his env) come from his dwl's monitor wake
+  (kawa-display --hotplug restores the wallpaper as a monitor lights) — his screens woke then: him back at the PC (the
+  round's inhibitor is logind's; swayidle's Wayland idle still darkens them), not the kit. NEXT: grim the corner again;
+  if still drawn, restart mako when he is away (systemctl --user restart mako) and watch the watcher's log.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 15:32 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar or panel restart, a live play,
 ##     a notice): `wpctl status`, `playerctl -a status`, one half-scale grim (memory presence-not-just-input-idle). At
