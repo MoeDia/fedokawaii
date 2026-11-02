@@ -10,8 +10,10 @@
 # What is typed finds by its letters in order too ("lck": the lock screen), the best first.
 # The program you are in: the focused window as the bar knows it (kawa-dwlstatus: its app id
 # and title) — one of ours by its app id (warm-notes …, kawa-git …, zathura, mpv), a popup of ours
-# by its title (wallpaper, books), a terminal by its title: yazi titles itself "Yazi: …", the shell
-# names any other program with a sheet while it runs (fedokawaii.sh, __kawa_preexec).
+# by its title (wallpaper, books, quick settings' mixer and pairing windows, the file dialog's
+# "open file" …: yazi), a terminal by its title: yazi titles itself "Yazi: …", nvim "nvim" (or the
+# program in its terminal buffer: lazygit), the shell names any other program with a sheet while
+# it runs (fedokawaii.sh, __kawa_preexec).
 # No arguments (--help: this text).
 set -u
 case ${1:-} in
@@ -96,7 +98,8 @@ here() {
   case $app in
     foot|footclient|float|kawa-dialog|kawa-git|kawa-disk|kawa-tables)
       case $title in
-        "Yazi: "*) s=yazi ;; mixer) s=wiremix ;; "pair a device") s=bluetui ;;
+        "Yazi: "*|"open file"|"open files"|"open folder"|"open folders"|"save file") s=yazi ;;   # (the file dialog: kawa-pick's locked titles)
+        mixer) s=wiremix ;; "pair a device") s=bluetui ;;
         *) [[ $title =~ ^[a-z0-9-]+$ && -r $keys/$title.txt ]] && s=$title ;;
       esac ;;
   esac

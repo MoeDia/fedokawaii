@@ -408,12 +408,12 @@ try:
             act(pid, fd, m)
             ended = gone(pid, 1)
             check(ended, "Syncplay still running 1 s after")
-            check(until(lambda: not os.path.exists(f"/proc/{m[0]}"), 1), "its mpv still running 1 s after")
+            check(until(lambda m=m: not os.path.exists(f"/proc/{m[0]}"), 1), "its mpv still running 1 s after")
             check(bob.said(r"dan has left", 5), bob.log()[bob.at:][-300:])
             rest = said()[at:].replace("^C", "").strip()
             check(not rest, rest[-300:])
             if crash:
-                check(until(lambda: len(notices()) > n0, 2)
+                check(until(lambda n0=n0: len(notices()) > n0, 2)
                       and notices()[n0:] == ["-a|together|--|the film stopped|mpv crashed (killed): you left the room|"],
                       f"notices: {notices()[n0:]}")
             else:

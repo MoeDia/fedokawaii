@@ -3855,6 +3855,21 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   with fg = the left block, bg = the right; the end cap over the ground; the widths with the caps), the narrow-window
   order kept (time, then git, then the folder's end), the console plain; tests (test_shell, test_tiles, dup bursts),
   renders both moods measured (caps on the cell grid), the master.
+- r27-23-master-2 (3 Nov 01:13–01:40, the master's review 2 of T23 on 49e916b): VERDICT FAIL (.claude/notes/master-T23-
+  verdict-2.md) — review 1's must-fix 2–4 and should-fix 1, 2, 4, 5, 6 held; MUST-FIX: after Space g g → q, nvim kept the title
+  "lazygit" (snacks closes its float with no BufEnter; TermClose runs with the terminal still in front). Should-fix: the file
+  dialog's locked titles never reached yazi's sheet (its test faked "Yazi: …"), the hook did not cut at > (bash reads >( in a
+  bracket as a substitution), torrra.txt lacked r (reannounce), the play skipped the Space g g path. Nits: kawa-help's header,
+  ruff B023 in syncplay_pair.py (T29s's).
+- r27-23-fix2 (3 Nov 01:40–01:52): options.lua — the title read by one function from the buffer in front, on BufEnter,
+  WinEnter, TermOpen, and a tick after TermClose (vim.schedule): the master's own socket probe with his whole config now
+  gives "after q: file.txt | titlestring=nvim" and OSC 2 "nvim" on the pty; a regression case in test_shell (nvim --clean
+  --headless, a terminal in a float closed by a TermClose autocmd as snacks does: "nvim sleep nvim"; the old code gives
+  "nvim sleep sleep"). kawa-help here(): the dialog's "open file(s)", "open folder(s)", "save file" → yazi (a job dialog,
+  backup, stays the desktop's), the header says it all; the hook cuts at each of ; & | < > ( ) escaped in the bracket
+  (nvim>out and nvim<in named; probed); torrra.txt's r. test_help 139/0, test_shell 190/0 (on the T23 state; T24's
+  prompt is uncommitted), ruff clean. Left: the kit play's Space g g shots and the light pass, the live check (the
+  verdict's list), the master's review 3.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).

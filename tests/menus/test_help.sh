@@ -109,8 +109,8 @@ for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygi
   keys_setup; focus "${t%%:*}" "a title"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "app id ${t%%:*}"
 done
-case_ "a popup of ours by its title (the wallpaper picker, the books), the file dialog by yazi's: their keys first"
-for t in "float|wallpaper|wallpaper" "float|books|books" "kawa-dialog|Yazi: ~/Downloads|yazi" "float|tui|launch"; do
+case_ "a popup of ours by its title (the wallpaper picker, the books), the file dialog by its locked titles (open file, save file …: yazi's), a job window (backup) the desktop's: their keys first"
+for t in "float|wallpaper|wallpaper" "float|books|books" "kawa-dialog|open file|yazi" "kawa-dialog|save file|yazi" "kawa-dialog|open folders|yazi" "kawa-dialog|backup|launch" "float|tui|launch"; do
   IFS='|' read -r a ti want <<<"$t"
   keys_setup; focus "$a" "$ti"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "$want" "$a titled $ti"

@@ -9,12 +9,15 @@ require("config.clipboard").setup()
 -- named again
 vim.o.title = true
 vim.o.titlestring = "nvim"
-vim.api.nvim_create_autocmd({ "BufEnter", "TermOpen", "TermClose" }, {
-  group = vim.api.nvim_create_augroup("kawa_title", { clear = true }),
-  callback = function()
-    -- (a terminal buffer's name is term://DIR//PID:COMMAND — the program, without its path)
-    local cmd = vim.bo.buftype == "terminal" and vim.api.nvim_buf_get_name(0):match("^term://.-//%d+:(%S+)")
-    local name = cmd and cmd:match("([^/]+)$") or "nvim"
-    if vim.o.titlestring ~= name then vim.o.titlestring = name end
-  end,
-})
+local function kawa_title()
+  -- (a terminal buffer's name is term://DIR//PID:COMMAND — the program, without its path)
+  local buf = vim.api.nvim_get_current_buf()
+  local cmd = vim.bo[buf].buftype == "terminal" and vim.api.nvim_buf_get_name(buf):match("^term://.-//%d+:(%S+)")
+  local name = cmd and cmd:match("([^/]+)$") or "nvim"
+  if vim.o.titlestring ~= name then vim.o.titlestring = name end
+end
+local group = vim.api.nvim_create_augroup("kawa_title", { clear = true })
+vim.api.nvim_create_autocmd({ "BufEnter", "WinEnter", "TermOpen" }, { group = group, callback = kawa_title })
+-- a terminal that ends (q in lazygit) is still the buffer in front as it ends, and its float
+-- closes without a BufEnter for the file: the title is read again a tick later
+vim.api.nvim_create_autocmd("TermClose", { group = group, callback = function() vim.schedule(kawa_title) end })

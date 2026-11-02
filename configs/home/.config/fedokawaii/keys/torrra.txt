@@ -24,6 +24,7 @@ f                       hide the ones with no seeders, or show them
 x                       the sorting and filter back to yours
 ── torrra: downloads ──────────────────────────────────────────────
 p                       pause or go on
+r                       ask its trackers for peers again (reannounce)
 f                       choose its files
 o                       its limits, ratio and in-order download
 d / D                   remove it / remove it and delete its files

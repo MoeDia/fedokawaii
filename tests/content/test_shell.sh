@@ -189,7 +189,7 @@ for s in nvim lazygit vd yazi zathura mpv; do : >"$HOME/.config/fedokawaii/keys/
 out=$(bash -c 'set -u; . <(sed -n "/^__kawa_preexec() {/,/^}/p" "$1"); alias lg=lazygit v="nvim -p"
   for c in "nvim x" "sudo -E nvim /etc/fstab" "LANG=C env nvim" "/usr/bin/nvim" "lg" "v a b" "vd t.csv" "yazi" \
     "ls -la" "git status" "btop" "sudo -u root nvim" "" "  " "Nvim" "../nvim" \
-    "\\nvim a" "nvim;ls" "lazygit&" "zathura a.pdf" "mpv film.mkv" "sudo"; do
+    "\\nvim a" "nvim;ls" "lazygit&" "zathura a.pdf" "mpv film.mkv" "sudo" "nvim>out" "nvim<in"; do
     printf "%s|" "$c"; __kawa_preexec "$c" | od -An -c | tr -s " " | tr -d "\n"; echo; done' _ "$HOME/.bashrc.d/fedokawaii.sh" 2>&1)
 eq "$out" "nvim x| 033 ] 2 ; n v i m 033 \\
 sudo -E nvim /etc/fstab| 033 ] 2 ; n v i m 033 \\
@@ -212,7 +212,21 @@ nvim;ls| 033 ] 2 ; n v i m 033 \\
 lazygit&| 033 ] 2 ; l a z y g i t 033 \\
 zathura a.pdf|
 mpv film.mkv|
-sudo|"
+sudo|
+nvim>out| 033 ] 2 ; n v i m 033 \\
+nvim<in| 033 ] 2 ; n v i m 033 \\"
+case_ "nvim titles its window by the program in front: nvim; a terminal buffer's program (lazygit from Space g g); nvim again when it ends and its float closes with no BufEnter for the file, as snacks closes lazygit's"
+if command -v nvim >/dev/null; then
+  sed -n '/^vim.o.title = true/,$p' "$REPO/configs/home/.config/nvim/lua/config/options.lua" >"$TMP/title.lua"
+  out=$(cd "$TMP" && timeout 30 nvim --clean --headless "+luafile $TMP/title.lua" "+lua
+    local t = { vim.o.titlestring }
+    vim.api.nvim_create_autocmd('TermClose', { callback = function() vim.api.nvim_win_close(0, true) end })
+    vim.api.nvim_open_win(vim.api.nvim_create_buf(false, true), true, { relative = 'editor', row = 1, col = 1, width = 20, height = 5 })
+    vim.fn.jobstart({ 'sleep', '0.3' }, { term = true })
+    t[#t + 1] = vim.o.titlestring
+    vim.defer_fn(function() t[#t + 1] = vim.o.titlestring; io.stdout:write(table.concat(t, ' ')); vim.cmd('qa!') end, 1500)" 2>&1)
+  eq "$out" "nvim sleep nvim"
+else printf "  – skipped: no nvim here\n"; fi
 grep -qx '\[\[ -n \${BLE_VERSION-} \]\] && blehook PREEXEC+=__kawa_preexec' "$REPO/configs/home/.bashrc.d/fedokawaii.sh" \
   && _ok || _no "the hook is not registered with ble.sh"
 

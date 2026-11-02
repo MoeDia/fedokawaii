@@ -357,7 +357,7 @@ __kawa_preexec() {
   local i=0 c
   read -r -a w <<<"$1"
   while [[ ${w[i]-} == @(sudo|env|command|exec|nice|nohup|time|-*|[A-Za-z_]*([A-Za-z0-9_])=*) ]]; do i=$((i + 1)); done
-  c=${w[i]-}; c=${c#\\}; c=${c%%[;&|<>()]*}
+  c=${w[i]-}; c=${c#\\}; c=${c%%[\;\&\|\<\>\(\)]*}     # (each escaped: bash reads <( and >( in a bracket as a substitution)
   [[ -n $c && -n ${BASH_ALIASES[$c]-} ]] && { read -r -a a <<<"${BASH_ALIASES[$c]}"; c=${a[0]-}; }
   c=${c##*/}
   [[ $c == +([a-z0-9-]) && $c != @(zathura|mpv) && -f $HOME/.config/fedokawaii/keys/$c.txt ]] && printf '\e]2;%s\e\\' "$c"
