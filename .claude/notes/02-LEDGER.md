@@ -3974,6 +3974,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /tmp/.X11-unix's owner, so Xwayland refuses it; ended by its startup script) — the installed dwl: status 139 (signal
   11); the fixed build: 0. test_dwl_anim 64/0, test_dwlconfig 2/0; tools/dwl-patch.sh wrote the patch (only the guard
   changed, the rest renumbered hunks).
+- r27-dwl-termburst (3 Nov 02:27–02:33, FIXED in the tree + patch; live with the next apply and a new session): the
+  headless dwl's abort of 2 Nov 17:04 (the "crash" kawa-crashnote told) was dwl's own: a second SIGTERM while it ends —
+  a logout's TERM, then its session scope's — ran quit() → wl_display_terminate on a display on its way out → wl_abort
+  (backtrace: quit ← __restore_rt, the main thread joining the GPU driver's threads in cleanup). cleanup() now ignores
+  SIGINT/SIGTERM first. tools/regress/term-burst.sh (N headless runs on the render node, TERMs 1 ms apart until gone):
+  the installed dwl 2 of 10 aborted (status 134), the fixed build 10 of 10 and 20 of 20 clean. (Those test aborts are
+  coredumps of /usr/local/bin/dwl as him: the pid-matched crashnote of r27-crashnote-pid tells none of them.)
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
