@@ -3714,7 +3714,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   scene, its open mouth). The dark header's count was stale (110 for 106): computed now — 117 dark, 120 light.
   Shots: /dev/shm/r27p/t18-{dark,light}-2.png, /dev/shm/r27p/t18kit/{dark,light}/wall.png. Next for T18: the lock's
   two scenes (hannya-mask's or warai-hannya's open mouth framing the field; a tennin for the light), then the master.
-- r27-kanji-words (2 Nov 17:31–17:58, his rule: kanji only on the workspace stamps, the lock's quote and the bar's
+- r27-kanji-words (2 Nov 17:39–17:55, his rule: kanji only on the workspace stamps, the lock's quote and the bar's
   day seal): a sweep of bin/, system/, lib/ for kanji. In code: the bar's day seal (allowed), the greeter (weekday,
   verses, 眠/再/電 buttons — T20 rebuilds it as the lock's twin), gtklock's messages (T20), and the BOOT SPLASH:
   "起動中 · starting Fedora" (and 終了中, 再起動中, パスワード) drawn under the torii at every boot — now the words alone, quiet
@@ -3723,6 +3723,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   scripts' headers named the kanji their headings had before the icons; kawa-file's parts; the Learn book's file
   tools table and 6.7; a FreeSync message naming a "滑 tile" quick settings no longer has (now its hour, "games ·
   on"). Tests: test_syntax 781/0, test_menu 738/0, test_file 276/0, test_barreload 2/0 (+ the splash's below).
+- r27-20-proto (2 Nov 17:55–17:57, T20's direction, NOT built — /dev/shm/r27/t20/proto-1/: proto.py, lock-dark{,-3x}.png):
+  the dark lock as a scene at the wallpapers' grid (640 × 360, ×3): a dungeon wall (24 × 12 blocks, staggered, each
+  stone its own shade, 1 px mortar) lit by two torches — the light falling off in the ramp's steps, Bayer-mixed —
+  and between them the Hannya mask on its round stone plate (the Met's Noh mask, hannya-mask.jpg, cut to the plate's
+  circle, build-masters' pipeline at the disc's own size 280 px) as a medallion; the password typed in its open mouth:
+  x 959–1148, y 633–739 at 1080p (the mask is tilted: the mouth sits 93 px right of centre — kept, the art's own).
+  Chosen over warai-hannya (the grin is all teeth, and she holds a child's head). Left: the torches as real pixel
+  art (an iron sconce, a wooden haft, 6–8 flame frames at 8 fps drawn by kawa-lockmod over the picture, the light
+  pools breathing with them), the plate's rim (a sliver of the paper under it at the bottom), the quote (display
+  lettering: research a licensed brush face; 「鍵は心にあり」 is the plan's first pick), the light mood's scene (a tennin
+  on kinari paper with gold), then lock.ui/gtklock.css placing the entry on the mouth, caret, wrong-password path,
+  5 s screens off, the greeter twin.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).
