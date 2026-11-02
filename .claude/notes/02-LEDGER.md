@@ -3948,6 +3948,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   6 Kōgyo "Ema"; no bold Kannon print exists in either API. AIC serves full native width (Seiōbo 2036 × 3000). Next
   pass: Seiōbo first — render the light scene (gold leaf, the lanterns, the plaque) around her, the password by the
   peach or in her halo, and grill against the dark one.
+- r27-20-light (3 Nov 02:22–02:26, T20, DECIDED — a draft render, not built; /dev/shm/r27/master/T20-evidence/
+  lock-light3-3x.png, light3.py): the light lock is Kōgyo's Seiōbo (AIC 154624, CC0, sha256 c1d9bdd6… — the hunt's first) seen
+  through a round window (marumado) in a wall of pale gold leaf: the circle (256 px, ×3) on her masked face, the gold crown
+  and the peach tray she raises — the face reads (eyes, nose, red lips), unlike the Willow Kannon's; two chōchin, the
+  quote in sumi on a wooden plaque over the window (the dark lintel's twin). The password: in the window's calm upper
+  right, beside the peach she offers, the ◆ in vermilion on the print's pale sky. To refine when built: the leaf squares
+  read as tiles (smaller, closer tones, a few gold flecks), the window's ring a lighter wood for this mood, the lanterns
+  drawn properly; SOURCES.md row + the source in ~/.cache/r27-art (from /dev/shm/r27/t20/hunt/seiobo-noh/).
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
 ##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
