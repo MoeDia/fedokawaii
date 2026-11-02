@@ -474,6 +474,10 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-inbox-2356 | Hire a master: a source of truth that nothing was missed | T19n | wip | this trace written; reviewer gate not yet running | |
 | r27-inbox-0011 | Custom beautiful progress bar inside the downloads icon, any source | T31 | wip | kit: fill drawn at 5/25/62/99/100% (r27-31a); sources unproven | |
 | r27-inbox-1710 | Study the Fedora 45 update well and use it fully (a newer Python and such) | T46b | todo | none yet — the digest .claude/notes/f45-changes.md, Python first | |
+| r27-inbox-2227 | The to-do NOT in Learning: only in Super+N | T21t | done | ledger r27-21t (Super+N's tab its only way in) | |
+| r27-inbox-1822a | Closing the mpv beside Syncplay closes both, connected nicely | T29s | todo | none yet | |
+| r27-inbox-1822b | Terminal text alignment and spacing tested in an insane range of situations | T59 | todo | none yet — tools/regress/term-grid.sh | |
+| r27-inbox-1826 | A good refresh shortcut: the window manager, the GPU and the rest | T20r | todo | none yet — Super+Ctrl+R | |
 
 ## Appendix A: open items the ledger itself records (not owner requests; counted apart)
 

@@ -19,3 +19,9 @@ make sure you study the fedora 45 update well and utilize it fully like they swi
 
 ## 2026-11-01 22:27 — in the plan: T21t
 to-do should NOT be in learning thats stupid remove it from there just keep it in the super n
+
+## 2026-11-02 18:22 — in the plan: T29s (mpv and Syncplay close as one), T59 (term-grid.sh: terminal text in every situation)
+when you close the mpv window instance that is in the same workspace where syncplay is open you should close both be connected nicely and make sure terminal text alignemnt and spacing and everything iss tested in an insane wide range of situations later on the testing phase
+
+## 2026-11-02 18:26 — in the plan: T20r (the refresh key, Super+Ctrl+R)
+also create a shortcut that refreshed the window manager and the gpu and etcc.. a good refresh shortcut
