@@ -3477,6 +3477,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   up into the room while the view stays — BUILT so: probe 124 → 121 (wheel) → 121 (Esc), the pen on row 33; a row (typing
   at the foot, a wheel up, Esc → "-3 0 | 36 33"), test_notes 141/0, the row FAILS on 89345d6. Left: the to-do row's pen
   line after Tab (must-fix 1's ask); the two nits (the seen_top comment, its key).
+- r27-21-master-5-left (2 Nov 13:52–13:57, c2511a4): verdict 5's last asks. MUST-FIX 1's row: a line typed in the
+  long notes (the diary, 125 lines: typing sets the remembered top), then Tab into a 45-item to-do → "46/46 [ ] new one |
+  [ ] thing 41" (the pen on the fresh item, his words in it). Proven to catch the bug: on d56fe4a's notes.lua it fails as
+  the master's B.log did ("41/46 [ ]  | [ ] new onething 41"); without the typed line first it passed there (no look
+  remembered yet: the first version of the row was blind, caught by that negative run). Nits 4 and 5: the comments on
+  seen_top and keep_room say why the yield is safe (every other way the top goes up — k, a search, on_day, a resize —
+  brings the page to the pen, so the yield moves nothing; typing never yields) and why the look is the window's and
+  forgotten on BufWinEnter (another page's line numbers). test_notes 142/0.
 ## >>> NEXT PASS STARTS HERE (2 Nov, written 13:50 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
 ##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
