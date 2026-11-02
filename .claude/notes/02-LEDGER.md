@@ -3733,7 +3733,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   art (an iron sconce, a wooden haft, 6–8 flame frames at 8 fps drawn by kawa-lockmod over the picture, the light
   pools breathing with them), the plate's rim (a sliver of the paper under it at the bottom), the quote (display
   lettering: research a licensed brush face; 「鍵は心にあり」 is the plan's first pick), the light mood's scene (a tennin
-  on kinari paper with gold), then lock.ui/gtklock.css placing the entry on the mouth, caret, wrong-password path,
+  on kinari paper with gold — a first try, proto-light.py: the minimal Kannon's halo line VANISHES at 640 × 360, a
+  2 px brush line shrunk 4×: draw the halo as our own gold pixel ring; her face near 40 % height; real lantern art), then lock.ui/gtklock.css placing the entry on the mouth, caret, wrong-password path,
   5 s screens off, the greeter twin.
 - r27-21-master-10 (2 Nov 17:39–17:58, the master's re-review 10 on f0994be): VERDICT PASS (.claude/notes/master-T21-verdict-10.md).
   Held: verdict 9's must-fix (tabline, winbar, the side buttons, the middle button with PRIMARY, the to-do's heading:
@@ -3750,33 +3751,34 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   a look + "q" → "156:2 147=x 156=q mode=i", a double click in normal mode → "mode=n": all 5 FAIL on f0994be (Visual
   mode; the q-rows hang on a register until ended), test_notes 171/0 on the fix. T21 DONE (code, master PASS): live
   with the apply + a session restart (the dwl cold-Super+N fix); its Learn figure at the book update.
-## >>> NEXT PASS STARTS HERE (2 Nov, written 16:25 by the 13:51 bulk pass — the lines above say what it did): the inbox first.
-## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle); at 16:57 he was in a Discord
-##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (memory probes-cut-off-session).
-##     /dev/shm/r27p/mako-watch.log: nothing new since 16:06. The stuck drawing is FIXED in the tree (r27-stuck-notice-fix):
-##     it leaves his screen with the apply + session restart of (3), when he is away.
-## (1) T21: the master's RE-REVIEW 9 (from 15:54 on 4c8de66) — if /dev/shm/r27/master/T21/verdict.md exists, copy it to
-##     .claude/notes/master-T21-verdict-9.md and act: FAIL → fix → review 10 (archive /dev/shm/r27/master/T21 first; r1–r8
-##     in master-archive); PASS → T21 done but for the apply + a SESSION RESTART (the dwl cold-Super+N fix) when he is
-##     away, and the Learn piece's figure at the book update. If it never finished (the pass ended): run review 9 again.
-## (2) Pushed 16:13 (35dec67; the suite green on bee0316). Before the next push: a suite, or every later commit's own
-##     tests named in the ledger.
-## (3) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart —
-##     live then: bug 10's held window with its failed state and the lone field's air, zathura's line, Super+V's and
-##     Super+W's preview rule, the calculator's erase, the idle timer cell, T21's notebook, the focused app id file.
-##     The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start: the reboot the same way (r27-49-B3).
-## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45,
-##     tools/vm-inject/f45-checks.sh, T46's pre-flight; the upgrade's WAIT (60 days).
-## (5) T23 (wired 17:23, r27-23-help): our own screens' sheets — notes (Super+N and its to-do tab), clip (Super+V),
-##     system (Super+U), wallpaper (Super+W), books (Super+R): their keys read from the code, each its own icon (notes
-##     ICON_NOTE, clip ICON_CLIPBOARD, system ICON_SEC_SYSTEM, wallpaper ICON_PICTURE, books ICON_BOOK) in part_icon;
-##     how the wallpaper/books popups are told apart (app id float + title?) — then shots with nvim and lazygit in
-##     front (the hook needs the apply: the kit's bash reads the installed fedokawaii.sh), then the master's T23 review.
-## (6) T19m (b) pass 1's rest (audit-r27.md): lock, greeter, saver, boot splash, GRUB (their own renders); GTK/Qt themes,
-##     window borders and gaps; torrents, the downloads' list, kawa-file's parts. Then pass 2 (side by side).
-## (7) T22: the master's T22 review — tools/master-brief.sh T22 with the evidence: /dev/shm/r27/t22/b10rec/ (wrong twice
-##     then right, both moods, shots + rec-{dark,light}.mkv), /dev/shm/r27/t22/zpad/v2-{dark,light}/ (zathura's line),
-##     /dev/shm/r27/t22/p/ (the tabs, empty states), the grid's renders (r27-22-grid). Its Learn piece at the book update.
-## (8) T53's rest: the run/retry call sites (the helpers' own failure paths are tested: test_common), the pipefail
-##     audit, `fedokawaii selftest --sandbox`, kawa-panel's start and first draw and the warm windows' open measured
-##     (tools/proc-load.py for process trees), line counts at its end (bin+lib: 16061 at its start, 16158 at 16:00).
+## >>> NEXT PASS STARTS HERE (2 Nov, written 18:12 by the 16:56 bulk pass — the lines above say what it did): the inbox first.
+## (0) PRESENCE before anything he could see or hear (memory presence-not-just-input-idle): at 16:57 he was in a Discord
+##     call (Brave: mic + sound). Every probe outside the harness/kit cut off from his session (probes-cut-off-session).
+##     The stuck "recording ×4" picture is FIXED in the tree (7246d44, r27-stuck-notice-fix): it leaves his screen with
+##     the session restart of (1).
+## (1) APPLY from a frozen tree when he is away + the panel restart (memory live-panel-restart) + the session restart —
+##     live then: dwl (no picture outlives its screen), T21's notebook with verdicts 9–10's fixes, Super+/ (T23: the
+##     program in front first, fuzzy, the fixed-size typed menus; the shell's title hook needs a new terminal), the new
+##     wallpapers (the pack fetches the toolkit's pictures: kawa-wallpaper --pack), the splash without kanji (theme.sh
+##     remakes the boot images: dracut), bug 10's held window, zathura's line, Super+V/W's preview rule, the
+##     calculator's erase, the idle timer cell. The KERNEL TRIAL (7.2.13, snapshot 381 pinned) closes at the next start:
+##     the reboot the same way (r27-49-B3).
+## (2) The suite on dab011a (started 17:38, /dev/shm/r27p/suite-dab011a.log): green → push (the later commits' own tests are
+##     in their ledger lines: e6a6913, 9cd2939, a2a6151, 3f3157c, 4eb98fc); red → fix forward first.
+## (3) T23: the master's review 1 (from 18:12) — /dev/shm/r27/master/T23/verdict.md → .claude/notes/master-T23-verdict-1.md;
+##     FAIL → fix → review 2 (archive /dev/shm/r27/master/T23 first); PASS → T23 done but for the apply.
+## (4) T46/T46b (F45 out Tue 3 Nov): vm-create f45 fresh from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh,
+##     T46's pre-flight; the upgrade's WAIT (60 days).
+## (5) T20 from the prototype (r27-20-proto, /dev/shm/r27/t20/proto-1/): tools/build-lock.py — the dark scene (the wall,
+##     the Hannya medallion, the plate's rim), the torches' 8 frames (torch.py: the core still a little square), the light
+##     scene redone (above); the quote DECIDED 「鍵は心にあり」 (kagi wa kokoro ni ari: the key is in the heart) in Sumi UI
+##     at display size (whole pixels, no new font); lock.ui/gtklock.css put the entry on the mouth (x 959–1148, y 633–739);
+##     kawa-lockmod: torches at 8 fps, its own caret, the wrong-password path ≤ 400 ms (PAM faildelay), 5 s screens off;
+##     the greeter its twin (its kanji — weekday, verses, 眠/再/電 — go with it); gtklock's "大文字" message too.
+## (6) T19m (b) pass 1's rest: the SAVER (src/kawa-saver/glyphs.h stamps kanji seals, 時 for its clock: outside his three
+##     allowed places — icons or words), the boot splash rendered (VM), GRUB; GTK/Qt themes, window borders and gaps; the
+##     downloads' list, kawa-file's parts (menus via the kit). Then pass 2 (side by side).
+## (7) T22: the master's T22 review — tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/, p/ (r27-22-*).
+## (8) T18: the master's review of the 21 wallpapers (contact sheets /dev/shm/r27p/t18-*-2.png; in place at 1080p).
+## (9) T53's rest: the run/retry call sites, the pipefail audit, `fedokawaii selftest --sandbox`, kawa-panel's start and
+##     first draw measured, line counts.
