@@ -337,7 +337,9 @@ lit() { sed -n "$((30 * $1 + 31)),$((30 * $1 + 60))p" <<<"$out" | grep -oE 'KING
 eq "$(lit 0)" "KINGSTON"; eq "$(lit 1)" "WD Elements"; eq "$(lit 2)" "WD Elements" "j at the end"
 eq "$(lit 3)" "KINGSTON"; eq "$(lit 4)" "KINGSTON" "↑ at the top"
 case_ "Esc, q and M each close the list (the session ran through all three)"
-eq "$(grep -c '^kawa-drives list' "$CALLS")" 3 "three times opened, three times listed"
+# (each open lists the drives; any mount change on the machine meanwhile lists them once more — yazi's
+# "mount" event, the plugin's refresh: seen in a suite run beside other work, 2 Nov — so at least three)
+n=$(grep -c '^kawa-drives list' "$CALLS"); ((n >= 3)) && _ok || _no "three times opened, listed only $n times"
 
 case_ "Enter on a closed drive opens it (kawa-drives open) and goes there"
 reset_calls; echo "$MNT/WD" >"$KD/open"
