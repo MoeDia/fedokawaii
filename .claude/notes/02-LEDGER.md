@@ -4059,8 +4059,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
 ##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
-## (1) THE MASTERS: T23 PASSED review 4 (r27-23-master-4) — its should-fix: the master's virtual-pointer client as a tool
-##     and a kit check of a real mouse notch; T24 review 1 FAILED
+## (1) THE MASTERS: T23 PASSED review 4 (r27-23-master-4) — its should-fix: the client is in now (tools/vpointer.c +
+##     tools/protocols/, builds; 03:10) — left: tools/regress/wheel-notch.sh (build it to /tmp, Super+/ in the kit, one real
+##     notch → one stop: the first visible line read from the shot); T24 review 1 FAILED
 ##     (r27-24-master-1), fixed and applied (r27-24-fix1) → review 2 (tools/master-brief.sh T24, evidence
 ##     /dev/shm/r27/master/T24-evidence incl. fix1/, verdict-1); then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
 ##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
