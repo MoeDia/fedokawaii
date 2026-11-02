@@ -3261,30 +3261,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the paper held at the line's start (124/1). The kit check (tools/regress/notes-page.sh) caught B and C and
   reproduced C once more by accident (a run that copied the start-held notes.lua: the same 36 frames). design-system §7: the opening rules. Nit 6 was already in §7 ("an unruled
   row of paper"); nit 7: the virt rows named (the screen's rows, never short of paper).
-## >>> NEXT PASS STARTS HERE (2 Nov, written ~00:50 by the 00:10 pass — the lines above say what it did): the inbox first. Then:
+- r27-21-review2 (2 Nov 11:40, IN FLIGHT): commit 2939cc8 (T21's cold press, opening rules, to-do typing, bugs A–C;
+  origin/r27 = 2939cc8, GitHub main still e083197). The whole suite STARTED 11:40 from the frozen
+  /dev/shm/r27w-suite-2939cc8 → /dev/shm/r27p/suite-2939cc8.log (its rc line at the end). The master's RE-REVIEW 2
+  STARTED 11:41 (Fable, max): /dev/shm/r27/master/T21/brief.md (+ 25 evidence files) → verdict.md; verdict 1 kept as
+  .claude/notes/master-T21-verdict-1.md (the brief tool wipes its folder; the old folder also in
+  /dev/shm/r27/master-archive/T21-r1). Old suite worktrees (42892e1, 0737d1b: both rc 0) removed.
+## >>> NEXT PASS STARTS HERE (2 Nov, written 11:45 by the 11:03 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE: before anything he could see or hear (a reboot, a session restart, a bar restart, a live play, a notice):
-##     `wpctl status` (a mic capture or playback [active]), `playerctl -a status`, one half-scale grim — not only the
-##     60 s swayidle probe (memory presence-not-just-input-idle). 2 Nov 00:11: Brave playing sound → this pass headless.
-## (1) GITHUB + PC: GitHub main = e083197 (nothing pushed to main this pass); origin/r27 = the newest local main. Local main
-##     carries: T21's merge + the master's fixes, brave --is-open, theme's live() scope, yazi show_hidden (code commits
-##     a627678 … this pass's last). The suite on 42892e1 (T21 before the master's fixes): /dev/shm/r27p/suite-42892e1.log
-##     (frozen tree /dev/shm/r27w-suite-42892e1; its rc line at the end) — it does NOT cover the later commits. A suite on
-##     the newest HEAD was chained to start after it: /dev/shm/r27p/suite-<HEAD>.log from /dev/shm/r27w-suite-<HEAD> (see
-##     the last ledger line for the commit). rc 0 there + (2) PASS → push main, apply from that frozen tree when he is away.
-## (2) THE MASTER, T21 RE-REVIEW: verdict 1 FAIL (r27-21-master-1); both must-fixes BUILT (r27-21-master-fix). The cold Super+N
-##     shows nothing on its first press in the kit — pre-T21 too (r27-21-cold): its own item, settle it. Owed before the
-##     re-review: a cold-start scene in tools/regress/notes-page.sh (Super+N with no warm window on a written day — the pen
-##     above the floats; the kit can start it as kawa-warm does: `kawa-notes --inside notes show`), should-fix 4 (a short
-##     file opens on its last day line) and 5 (the to-do opens typing on its last item). Then `tools/master-brief.sh T21 …`
-##     with /dev/shm/r27/t21/fix/*-win.png and the master's Re-review 2 (Fable, max).
-## (3) AFTER THE APPLY (he away): the warm notes window takes the new page at its next start (its buffer saved, then
-##     kawa-warm --start after its footclient ends); swaybg's /proc/PID/cgroup under user@1000.service (r27-53-scope).
-## (4) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is away
-##     ((0)), START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3.
-## (5) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
-##     tools/vm-inject/f45-checks.sh f45 (all five green on the branched tree 1 Nov). T46's pre-flight
-##     (tools/vm-preflight.sh) and the upgrade's WAIT (60 days by default) for the PC's own move.
-## (6) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a reduce-motion
-##     switch) with the next dwl batch (a session restart: only when he is away).
-## (7) T22: the yazi rebuild (grid onto §7: heading x 25, rows 33 — the dialog's still 17/25; contrast); hidden files DONE.
-## (8) T53 goes on (the plan's list).
+##     `wpctl status`, `playerctl -a status`, one half-scale grim — not only the swayidle probe (memory
+##     presence-not-just-input-idle). The 11:03 bulk run was started by hand: assume him at the PC, headless only.
+## (1) T21: the master's re-review 2 (r27-21-review2) → /dev/shm/r27/master/T21/verdict.md; the suite on 2939cc8
+##     (/dev/shm/r27p/suite-2939cc8.log). Both green → push main (GitHub main = e083197 still), then APPLY from the
+##     frozen tree when he is away + a SESSION RESTART (START §4) — the dwl fix (cold Super+N/V/U) needs a new dwl; the
+##     warm notes window takes the new page at its next start. A FAIL → fix its must-fixes first, re-review.
+## (2) THE KERNEL TRIAL (since 1 Nov 14:43, 7.2.13, snapshot 381 pinned): closes at the next start — only when he is
+##     away, START §4's reboot way; then read fedokawaii-boot-good's journal — ledger r27-49-B3. Can go with (1)'s restart.
+## (3) T46/T46b (F45 out Tue 3 Nov): after the release — vm-create f45 fresh from the released tree, vm-smoke f45, then
+##     tools/vm-inject/f45-checks.sh f45; T46's pre-flight (tools/vm-preflight.sh) and the upgrade's WAIT (60 days).
+## (4) T22: the yazi rebuild (grid onto §7: heading x 25, rows 33 — the dialog's still 17/25; contrast); hidden DONE.
+## (5) T19m (b): pass 1 goes on; items 3–5 (24 px hit areas, JLREQ, the spacing scale, the optical centre, a
+##     reduce-motion switch) with the next dwl batch (a session restart: only when he is away).
+## (6) T53 goes on (the plan's list).
