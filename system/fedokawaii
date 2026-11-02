@@ -584,8 +584,8 @@ pull() {   # git pull, then the update from the clone, repair if verify still fi
   {
     printf '── fedokawaii pull · %s\n' "$(date '+%F %T')"
     clone_ready || exit 1
-    [[ -z $(git -C "$COPY" status --porcelain --untracked-files=no 2>/dev/null | grep -v ' fedokawaii.conf$') ]] \
-      || echo "  (your changes in the clone are kept: GitHub's are added beside them)"
+    git -C "$COPY" status --porcelain --untracked-files=no 2>/dev/null | grep -qv ' fedokawaii.conf$' \
+      && echo "  (your changes in the clone are kept: GitHub's are added beside them)"
     from=$(git -C "$COPY" rev-parse --short HEAD)
     fgit -C "$COPY" fetch --quiet origin || { echo "  GitHub does not answer — is the network up?" >&2; exit 1; }
     git -C "$COPY" merge --ff-only --quiet '@{u}' || { echo "  your commits and GitHub's went apart — lazygit in ${COPY/#$HOME/\~} (rebase), then pull again" >&2; exit 1; }

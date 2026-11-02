@@ -342,7 +342,7 @@ def parse_sound(text):
             s[f[0]] = f[1]
     for kind in ("output", "input"):                 # (alike within a list: the outputs, the inputs)
         mine = [f for f in devs if f[0] == kind]
-        for f, name in zip(mine, device_names([(f[0], *f[3:]) for f in mine])):
+        for f, name in zip(mine, device_names([(f[0], *f[3:]) for f in mine]), strict=True):
             s[kind + "s"].append((f[1], f[2] == "1", name))
     return s
 
@@ -633,7 +633,7 @@ class Menu:
 
     def __init__(self, lines, drop=False, title="", width=0, lines_shown=0, select=None,
                  prompt=None, index=False, stay=False, password=False, middle=False):
-        self.lines = [parse_line(i, l) for i, l in enumerate(lines)]
+        self.lines = [parse_line(i, ln) for i, ln in enumerate(lines)]
         self.stay = stay          # (its keys answer and keep it on screen: the next page in place)
         self.drop, self.title, self.width, self.shown = drop, title, width, lines_shown
         self.middle = middle      # (dropped from the bar's middle: the date's place)
@@ -793,7 +793,7 @@ def layout_menu(m):
             k -= 1
             if prev == "key":
                 y += GAP
-            for c, (j, _, g) in enumerate(run):
+            for c, (_, _, g) in enumerate(run):
                 if c and c % 7 == 0:
                     y += ROW
                 xx = x0 + (c % 7) * (CELL_W + GAP)
@@ -862,7 +862,7 @@ def layout_quick(s):
         items.append(Arc(key, "arc", lo, cy - BEAD_R - BAND, w, 2 * (BEAD_R + BAND), 0, icon=icon, name=key,
                          value=s.get(key, ""), muted=key == "sound" and s.get("muted") == "on",
                          side=side, cx=cx, cy=cy))
-    for (key, ic, name), (ax, ay) in zip(CORNERS, ((0, 0), (1, 0), (0, 1), (1, 1))):
+    for (key, ic, name), (ax, ay) in zip(CORNERS, ((0, 0), (1, 0), (0, 1), (1, 1)), strict=True):
         ix, iy, iw, ih = pic_ink(ic)
         # (its place flush with the corner, 4 px into the pad — the four mirror images —, the
         # picture's ink centred in it, its odd pixel of air right and below)
@@ -1907,7 +1907,7 @@ def poke(what):
     pid = waybar() if sigs else 0
     if pid:
         try:
-            caught = next(int(l.split()[1], 16) for l in open(f"/proc/{pid}/status") if l.startswith("SigCgt:"))
+            caught = next(int(ln.split()[1], 16) for ln in open(f"/proc/{pid}/status") if ln.startswith("SigCgt:"))
             for n in sigs:
                 if caught >> (signal.SIGRTMIN + n - 1) & 1:
                     os.kill(pid, signal.SIGRTMIN + n)
@@ -2664,8 +2664,10 @@ def main(argv):
             x, y = bx - BEAD // 2, by - BEAD // 2
             ink = ("text_on_select" if on else seg_ink(j)) if j < lit else ("select_lo" if on else "edge2")
             if j < lit and it.muted:              # (hollow: its outline, the ground showing through)
-                box(cr, x + 1, y, BEAD - 2, 1, ink); box(cr, x + 1, y + BEAD - 1, BEAD - 2, 1, ink)
-                box(cr, x, y + 1, 1, BEAD - 2, ink); box(cr, x + BEAD - 1, y + 1, 1, BEAD - 2, ink)
+                box(cr, x + 1, y, BEAD - 2, 1, ink)
+                box(cr, x + 1, y + BEAD - 1, BEAD - 2, 1, ink)
+                box(cr, x, y + 1, 1, BEAD - 2, ink)
+                box(cr, x + BEAD - 1, y + 1, 1, BEAD - 2, ink)
             else:
                 box(cr, x + 1, y, BEAD - 2, BEAD, ink)
                 box(cr, x, y + 1, BEAD, BEAD - 2, ink)
@@ -3071,7 +3073,7 @@ def main(argv):
         except OSError:
             return
         panel.ui.redraw()
-    mon = watch_theme(Gio, on_theme)
+    _theme_watch = watch_theme(Gio, on_theme)   # (held: a monitor nothing holds is collected, and goes quiet)
 
     # the requests (the fifo, see the top): in the order they came, each answered at once
     def menu_from(pid):

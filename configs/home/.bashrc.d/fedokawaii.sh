@@ -1,4 +1,5 @@
 # ~/.bashrc.d/fedokawaii.sh — bash tuned for foot. Sourced by Fedora's stock ~/.bashrc.
+# shellcheck disable=SC1003  # ('\e\\' is ESC \, the terminal's string terminator — no quote escaped)
 # Interactive shells only. Typing is ble.sh's (the Bash Line Editor, lib/upstream.sh): the
 # line coloured as you type, a grey suggestion from your history, a completion menu. It is
 # loaded first and attached last, as it asks; everything between is plain bash. The prompt

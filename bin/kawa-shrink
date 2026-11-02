@@ -186,8 +186,8 @@ done
 ((${#out[@]})) || { say "it did not work" "the file may be damaged — $failed could not be read"; exit 1; }
 
 # ── onto the clipboard ──────────────────────────────────────────────────────────────────
-if ((${#out[@]} == 1)) && [[ $(kind "${out[0]}") == image/* ]]; then
-  clip_put "$(kind "${out[0]}")" <"${out[0]}"
+if ((${#out[@]} == 1)) && mime=$(kind "${out[0]}") && [[ $mime == image/* ]]; then
+  clip_put "$mime" <"${out[0]}"
 else
   kawa-clipfiles copy --quiet "${out[@]}"
 fi && on=" · on the clipboard (Ctrl+V)" || on=" · saved, but the clipboard did not take it"

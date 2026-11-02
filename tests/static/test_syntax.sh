@@ -39,9 +39,9 @@ for f in "${SH[@]}" "${SOURCED[@]}"; do
   if err=$(bash -n "$f" 2>&1); then _ok; else _no "$f: ${err:0:300}"; fi
 done
 
-case_ "every shell file is clean for shellcheck -S warning -x"
+case_ "every shell file is clean for shellcheck -S style -x (the notes answered once: .shellcheckrc)"
 if command -v shellcheck >/dev/null; then
-  shellcheck -S warning -x -f gcc "${SH[@]}" >"$TMP/sc" 2>&1
+  shellcheck -S style -x -f gcc "${SH[@]}" >"$TMP/sc" 2>&1
   for f in "${SH[@]}"; do
     if grep -q "^$f:" "$TMP/sc"; then _no "$(grep "^$f:" "$TMP/sc" | head -n 3 | tr '\n' ' ')"; else _ok; fi
   done

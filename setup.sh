@@ -1517,10 +1517,12 @@ build_filechooser() {
   as_user git -C "$src" clean -fdxq
   # -Dwerror=false: upstream builds with -Werror, and a newer compiler's new warning must not
   # fail a pinned release · no man page (no scdoc) · sd-bus from systemd · its user unit
-  as_user meson setup "$src/build" "$src" --prefix=/usr/local --buildtype=release -Dwerror=false \
-    -Dman-pages=disabled -Dsd-bus-provider=libsystemd -Dsystemd=enabled >>"$LOG_FILE" 2>&1
-  as_user meson compile -C "$src/build" >>"$LOG_FILE" 2>&1
-  as_user meson install -C "$src/build" --no-rebuild --destdir "$stage" >>"$LOG_FILE" 2>&1
+  {
+    as_user meson setup "$src/build" "$src" --prefix=/usr/local --buildtype=release -Dwerror=false \
+      -Dman-pages=disabled -Dsd-bus-provider=libsystemd -Dsystemd=enabled
+    as_user meson compile -C "$src/build"
+    as_user meson install -C "$src/build" --no-rebuild --destdir "$stage"
+  } >>"$LOG_FILE" 2>&1
   for f in "$TFC_BIN" "${TFC_FILES[@]}"; do
     [[ -f $stage$f && ! -L $stage$f ]] || die "the termfilechooser build did not make $f"
   done
@@ -1872,10 +1874,10 @@ fstab_noatime() {
   ((ok)) || { log "fstab with noatime does not verify (findmnt --verify) — /etc/fstab left as it is"; return 1; }
   printf '%s\n' "$new" | write_file /etc/fstab 0644
   log "fstab: the Btrfs mounts noatime (a read writes nothing)"
-  for mp in $(awk '!/^[[:space:]]*#/ && $3 == "btrfs" { print $2 }' /etc/fstab); do
+  while IFS= read -r mp; do
     [[ $(findmnt -n -o OPTIONS --target "$mp" 2>/dev/null) == *noatime* ]] && continue
     mount -o remount,noatime "$mp" 2>/dev/null || log "$mp takes noatime at the next start (it could not be switched now)"
-  done
+  done < <(awk '!/^[[:space:]]*#/ && $3 == "btrfs" { print $2 }' /etc/fstab)
 }
 
 # ── a clean system and home ──────────────────────────────────────────────────
@@ -2725,7 +2727,7 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
     die "/.snapshots is not mounted from its subvolume — no snapshot before $1, nothing changed (sudo mount /.snapshots, then again)"
   fi
   n=$(snapper -c root create -t single -c number "${imp[@]}" -p -d "before $1" 2>/dev/null) || n=""
-  if ! [[ $n =~ ^[0-9]+$ ]] || [[ -z $(snapper -c root --csvout list --columns number 2>/dev/null | grep -x "$n") ]]; then
+  if ! [[ $n =~ ^[0-9]+$ ]] || ! grep -qx "$n" < <(snapper -c root --csvout list --columns number 2>/dev/null); then
     die "the snapshot before $1 could not be taken — nothing changed (sudo snapper -c root list; fedokawaii repair)"
   fi
   SNAP_N=$n

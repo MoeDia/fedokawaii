@@ -320,9 +320,10 @@ fi
 if [[ -r $TOOLKIT/lib/upstream.sh ]]; then
   # (the UPSTREAM array's rows only: their last field names the binaries — the icons' rows
   # below it end in a checksum, which is no program)
-  checks "27. applications" < <(for b in $(sed -nE '/^UPSTREAM=\(/,/^\)/s/^\s*"[^"|]+\|[^"]*\|([^"|]*)"\s*$/\1/p' "$TOOLKIT/lib/upstream.sh"); do
-    printf '%s | user | fail | ~/.local/bin/%s | %s --version | prints its version | run: fedokawaii update\n' "$b" "$b" "$b"
-  done)
+  checks "27. applications" < <(sed -nE '/^UPSTREAM=\(/,/^\)/s/^\s*"[^"|]+\|[^"]*\|([^"|]*)"\s*$/\1/p' "$TOOLKIT/lib/upstream.sh" |
+    while IFS= read -r b; do
+      printf '%s | user | fail | ~/.local/bin/%s | %s --version | prints its version | run: fedokawaii update\n' "$b" "$b" "$b"
+    done)
 fi
 
 checks "18. screen sharing and the file dialog" <<'ROWS'
@@ -1637,7 +1638,7 @@ if ((QUICK == 0 && SES)) && asu bash -c 'command -v kawa-theme' >/dev/null; then
       if [[ -z $t_gtk ]]; then cs=$(asu gsettings get org.gnome.desktop.interface color-scheme 2>/dev/null)
         [[ $want == dark && $cs == "'prefer-dark'" || $want == light && $cs != "'prefer-dark'" ]] && t_gtk=$(ms_since "$t0"); fi
       [[ -z $t_proc ]] && ! pgrep -u "$U" -f '^(/usr/bin/)?bash [^ ]*/kawa-theme( |$)' >/dev/null && t_proc=$(ms_since "$t0")
-      [[ -z $t_busy ]] && { [[ ! -e /run/user/$UID_/kawa-theme.busy ]] || flock -n /run/user/$UID_/kawa-theme.busy true; } && t_busy=$(ms_since "$t0")
+      [[ -z $t_busy ]] && { [[ ! -e /run/user/$UID_/kawa-theme.busy ]] || flock -n "/run/user/$UID_/kawa-theme.busy" true; } && t_busy=$(ms_since "$t0")
       [[ -z $t_bar ]] && (($(grep -c 'Reloading\|appearance' "$UH/.cache/waybar.log" 2>/dev/null) > wb0)) && t_bar=$(ms_since "$t0")
       [[ -n $t_link && -n $t_gtk && -n $t_proc && -n $t_busy ]] && break
       sleep 0.01
@@ -1729,7 +1730,7 @@ took=$(ms_since "$START")
   echo
   echo "── fine (the findings outside the tables) ─────────────────────────────────────────"
   awk -F'\t' '$2 == "ok" { printf "  ok    %s\n", $3 }' "$FIND"
-  for b in $(cd "$TMP" && ls body.* | sort -t. -k2,2n); do cat "$TMP/$b"; done
+  for b in $(cd "$TMP" && printf '%s\n' body.* | sort -t. -k2,2n); do cat "$TMP/$b"; done
   printf '\n\n══════ the checks: what each one printed (all but the passed and skipped) %s\n' "$(printf '═%.0s' $(seq 8))"
   cat "$TMP/captures"
   printf '\n\n══════ machine-readable: STATUS<tab>area<tab>check<tab>detail (diff two runs) %s\n' "$(printf '═%.0s' $(seq 4))"

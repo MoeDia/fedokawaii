@@ -66,7 +66,7 @@ job() {
 meter() {
   local l n last=-1
   while IFS= read -r l; do
-    if [[ $l =~ ^\ *([0-9]+)%  ]]; then n=$(($2 / 100 * BASH_REMATCH[1] + $2 % 100 * BASH_REMATCH[1] / 100))
+    if [[ $l =~ ^\ *([0-9]+)%  ]]; then n=$(($2 * BASH_REMATCH[1] / 100))
     elif [[ $l =~ ^tar:\ ([0-9]+)$ ]]; then n=$((BASH_REMATCH[1] * 10240)); ((n > $2)) && n=$2
     elif [[ $l =~ ^\ *[0-9] ]]; then continue          # (7z's other counters: "0M Scan")
     else [[ -n ${l// } ]] && printf '%s\n' "$l" >>"$LOG"; continue; fi
@@ -520,6 +520,7 @@ pdf_each() {   # pdf_each ACTION — ACTION on every PDF: the results, the notic
   local f out=() o done_=0 all   # row in the downloads' folder (job), file by file
   all=$(bytes_of "${pdfs[@]}")
   for f in "${pdfs[@]}"; do
+    # shellcheck disable=SC2153  # (TITLE comes with each call: TITLE=… pdf_each)
     job "$TITLE · ${f##*/}" "$done_" "$all" "$f"
     o=$("$1" "$f") || exit 1; out+=("$o"); done_=$((done_ + $(stat -c %s -- "$f")))
   done

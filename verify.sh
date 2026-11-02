@@ -503,8 +503,8 @@ else fail "Prowlarr's page opens with no login" "authentication: ${pauth:-?}, it
 check "Prowlarr's files are yours (~/.config/prowlarr)" bash -c '[[ -d $1 && -z $(find "$1" ! -user "$2" -print -quit) ]]' _ "$TARGET_HOME/.config/prowlarr" "$TARGET_USER"
 # the usual public indexers setup adds (system/prowlarr-indexers.py): each there, by its
 # definition (switched off by you counts: yours to decide)
-ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/system/prowlarr-indexers.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr 'A-Z' 'a-z' | sort)
-ix_have=$(prowlarr_get indexer 2>/dev/null | jq -r '.[].definitionName // empty' 2>/dev/null | tr 'A-Z' 'a-z' | sort)
+ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/system/prowlarr-indexers.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr '[:upper:]' '[:lower:]' | sort)
+ix_have=$(prowlarr_get indexer 2>/dev/null | jq -r '.[].definitionName // empty' 2>/dev/null | tr '[:upper:]' '[:lower:]' | sort)
 ix_miss=$(comm -23 <(printf '%s\n' "$ix_want") <(printf '%s\n' "$ix_have") | paste -sd ' ')
 nidx=$(prowlarr_get indexer 2>/dev/null | jq '[.[] | select(.enable)] | length' 2>/dev/null) || nidx=0
 if [[ -z $ix_miss ]]; then pass "Prowlarr's indexers: all $(wc -l <<<"$ix_want") of the usual ones, $nidx switched on"
@@ -726,7 +726,7 @@ else
     0) pass "every file in sync with the repo" ;;
     4) pass "every file in sync with the repo"
        while IFS= read -r tl; do warn "${tl#"${tl%%[![:space:]]*}"}" "repair, or the next theme run, tries again"; done \
-         < <(sed 's/\x1b\[[0-9;]*m//g' <<<"$tout" | sed -n '/not made here/,$p' | tail -n +2) ;;
+         < <(sed 's/\x1b\[[0-9;]*m//g; /not made here/,$!d' <<<"$tout" | tail -n +2) ;;
     *) fail "every file in sync with the repo" "fedokawaii drift lists what differs; the theme run puts it back" ;;
   esac
   if grep -q 'vt.default_red=15,' /proc/cmdline; then pass "console palette active (the login console)"
@@ -855,7 +855,7 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
     check "mako config loads"                          U env WAYLAND_DISPLAY="$WD" makoctl reload
   fi
   # brightness over DDC/CI depends on the monitor having DDC/CI switched on in its own menu
-  if [[ -n $(U ddcutil detect --terse 2>/dev/null | grep '^Display [0-9]') ]]; then
+  if grep -q '^Display [0-9]' < <(U ddcutil detect --terse 2>/dev/null); then
     pass "a monitor answers DDC/CI (brightness control works)"
   elif compgen -G '/sys/class/backlight/*' >/dev/null && grep -qsx connected /sys/class/drm/card*-eDP-*/status; then
     pass "the laptop's own screen: brightness through its backlight"

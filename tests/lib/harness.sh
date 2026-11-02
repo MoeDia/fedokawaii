@@ -44,6 +44,12 @@ sandbox() {   # sandbox — every test file starts here (call again for a clean 
          XDG_CACHE_HOME=$TMP/home/.cache XDG_STATE_HOME=$TMP/home/.local/state \
          XDG_DATA_HOME=$TMP/home/.local/share LC_ALL=C.UTF-8 USER=${USER:-tester} \
          PYTHONDONTWRITEBYTECODE=1 KAWA_TOOLKIT=$TMP/toolkit
+  # never his session: a Wayland name inside the sandbox's runtime folder (no compositor there), a
+  # session bus that is not there, no X display — the runner's own session bus reached his desktop
+  # through any test that sets PATH itself (2 Nov: test_report_rows' latency run put ten "timing"
+  # notices on his screen through the real notify-send)
+  export WAYLAND_DISPLAY=wayland-0 DBUS_SESSION_BUS_ADDRESS=unix:path=$TMP/run/bus
+  unset DISPLAY WAYLAND_SOCKET
   # the scripts under test come straight from the repository; anything they call is a stub first
   export PATH="$STUBS:$REPO/bin:/usr/local/bin:/usr/bin:/bin"
   # the icon names, the menus' width helper, the text screens' grammar and the dark theme's

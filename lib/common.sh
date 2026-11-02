@@ -698,7 +698,7 @@ load_conf() {                       # load_conf REPO_DIR — read + validate, di
   local problems
   read_conf "$1/fedokawaii.conf"
   problems=$(conf_report)
-  [[ -z $problems ]] || die "fedokawaii.conf:"$'\n'"$(sed 's/^/    /' <<<"$problems")"
+  [[ -z $problems ]] || die "fedokawaii.conf:"$'\n'"    ${problems//$'\n'/$'\n'    }"
 }
 # hold_families HOLDS — what the updates hold back (lib/update.sh: UPD/holds — NAME HELD AT DAY
 # SOURCE WHY, a line a package) as "NAME VERSION<TAB>WHY", a line a family: the packages of one

@@ -75,19 +75,19 @@ waitfor() {   # waitfor TRIES CMD… — CMD tried every half second until it su
 dnd() {   # do not disturb, once mako answers (it starts beside the bar); added or taken out as a
   # mode of its own, so the modes others set (screen sharing's) stay
   waitfor 20 makoctl mode || { note dnd failed "$1"; return; }
-  if [[ $1 == on ]]; then makoctl mode -a do-not-disturb; else makoctl mode -r do-not-disturb; fi >/dev/null 2>&1 \
-    && note dnd ok "$1" || note dnd failed "$1"
+  local how=-r; [[ $1 == on ]] && how=-a
+  if makoctl mode "$how" do-not-disturb >/dev/null 2>&1; then note dnd ok "$1"; else note dnd failed "$1"; fi
   kawa-dwlstatus --poke 12 2>/dev/null   # (the bar's quiet bell)
 }
 bluetooth() {   # the adapter powered as you left it, once bluetoothd answers (it starts at boot)
   local b=false; [[ $1 == on ]] && b=true
   compgen -G "$SYS/class/bluetooth/hci*" >/dev/null || { note bluetooth kept "$1"; return; }   # (no adapter now)
-  waitfor 20 busctl --system get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
-    && busctl --system set-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered b "$b" >/dev/null 2>&1 \
-    && note bluetooth ok "$1" || note bluetooth failed "$1"
+  if waitfor 20 busctl --system get-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered \
+    && busctl --system set-property org.bluez /org/bluez/hci0 org.bluez.Adapter1 Powered b "$b" >/dev/null 2>&1
+  then note bluetooth ok "$1"; else note bluetooth failed "$1"; fi
 }
 brightness() {  # the monitors' level as last set (DDC/CI is slow: in the background)
-  kawa-brightness "$1" >/dev/null 2>&1 && note brightness ok "$1" || note brightness failed "$1"
+  if kawa-brightness "$1" >/dev/null 2>&1; then note brightness ok "$1"; else note brightness failed "$1"; fi
 }
 
 restore() {

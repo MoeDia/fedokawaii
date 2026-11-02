@@ -1,0 +1,16 @@
+# ShellCheck's notes this repository answers once, for every script (tests/static/test_syntax.sh
+# runs -S style -x: any other note fails the suite). Each is a pattern used on purpose here:
+# SC2016 — code handed over in single quotes (awk, sed, jq, bash -c, nvim -c, a VM's shell)
+#          expands where it runs, not here
+disable=SC2016
+# SC2015 — `cond && ok || bad` where ok only prints (pass/good/_ok cannot fail), and
+#          `a && b || handle` where a and b are one condition
+disable=SC2015
+# SC2329 — functions called by name (traps, do_$action, a table's rows): tools/deadcode.sh
+#          looks for every function's callers across the whole repository instead
+disable=SC2329
+# SC1091 — files sourced from paths known at run time (the toolkit's lib/, a theme's colours)
+disable=SC1091
+# SC2031, SC2119 — a variable set inside ( … ) is meant to stay there; a function's optional
+#          $1 is not the script's
+disable=SC2031,SC2119

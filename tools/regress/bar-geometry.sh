@@ -30,7 +30,8 @@ for th in dark light; do
   first=$(grep -m1 '^tile ' <<<"$m"); last=$(grep '^tile ' <<<"$m" | tail -n1)
   [[ $(cut -d' ' -f2 <<<"$first") == 8 ]] || no "the left tile's hairline on x $(cut -d' ' -f2 <<<"$first"), not 8"
   [[ $(cut -d' ' -f3 <<<"$last") == 1912 ]] || no "the right tile's shadow column on x $(cut -d' ' -f3 <<<"$last"), not 1912 (its hairline on 1911)"
-  for g in $(grep '^gaps ' <<<"$m" | cut -d' ' -f2-); do
+  read -ra air < <(sed -n 's/^gaps //p' <<<"$m")
+  for g in "${air[@]}"; do
     ((g == 3 || g == 11 || g > 100)) || no "a gap of $g px of air between tiles (3 within a group, 11 between: + the shadow's column)"
   done
   while read -r _ a b _ _ _ _ i0 i1 _ r0 r1 _ l _ r rest; do   # (tile A B paper P0 P1 ink I0 I1 rows R0 R1 left L right R)

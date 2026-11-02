@@ -1,0 +1,10 @@
+# ruff — the Python linter neovim already runs (LazyVim's Python extra, mason's ruff):
+# the rules tests/static/test_syntax.sh holds every Python file of the repository to
+extend-exclude = [".claude"]                  # (design drafts kept as evidence, never run)
+
+[lint]
+select = ["E4", "E7", "E9", "F", "B"]         # ruff's defaults (pycodestyle's errors, pyflakes) + bugbear
+
+[lint.per-file-ignores]
+"configs/home/.config/visidata/config.py" = ["F821"]       # visidata hands `options` in
+"docs/build/render/lib/fakebluez.py" = ["F722", "F821"]    # dbus-next reads its D-Bus signatures from the annotations
