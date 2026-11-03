@@ -43,7 +43,8 @@ sandbox() {   # sandbox — every test file starts here (call again for a clean 
   export HOME=$TMP/home XDG_RUNTIME_DIR=$TMP/run XDG_CONFIG_HOME=$TMP/home/.config \
          XDG_CACHE_HOME=$TMP/home/.cache XDG_STATE_HOME=$TMP/home/.local/state \
          XDG_DATA_HOME=$TMP/home/.local/share LC_ALL=C.UTF-8 USER=${USER:-tester} \
-         PYTHONDONTWRITEBYTECODE=1 KAWA_TOOLKIT=$TMP/toolkit
+         PYTHONDONTWRITEBYTECODE=1 KAWA_TOOLKIT=$TMP/toolkit \
+         STATE_DIR=$TMP/state   # (lib/common.sh's records: never the machine's /var/lib/fedokawaii)
   # never his session: a Wayland name inside the sandbox's runtime folder (no compositor there), a
   # session bus that is not there, no X display — the runner's own session bus reached his desktop
   # through any test that sets PATH itself (2 Nov: test_report_rows' latency run put ten "timing"
