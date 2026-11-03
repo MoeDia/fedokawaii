@@ -34,7 +34,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r24-5 | Custom pixel icons instead of the duck and sheep launcher icons | T16 | done | seals checked r24; r27-16 pixel icons, 22 entries, test_launcher | |
 | r24-6 | Clipboard: gap between input line and first entry | T52 | done | blank row between input and first entry, checked live | |
 | r24-7 | Dark/light switch transition better, matching the wallpaper transition | T19 | done | wash.sh 199 frames over 1204.6 ms; anim-check wash 1200.0 | |
-| r24-8a | Opening many terminals fast: no mis-laid text or duplicate headings | T24, T52 | done | 8-window bursts 0/17 duplicates (was 40%); test_tiles 142/0 | |
+| r24-8a | Opening many terminals fast: no mis-laid text or duplicate headings | T24, T52 | done | 0/160 duplicates (r27-24-burst); kept: tools/regress/prompt-burst.sh (3 bursts × 8 windows, one prompt line each) | |
 | r24-8b | Restyle the prompt to the newest design system | T24 | dropped | superseded by the r27 pastel-powerline prompt (r27-dec-6a) | |
 | r24-8c | Proper space between cursor line and first item in every TUI | T16 | done | six TUIs: heading, blank, input, blank, list; r27-16 grammar | |
 | r24-9 | Super+N rapid toggle faster | T52 | done | 3 presses in 163 ms toggled 3 times | |
@@ -110,7 +110,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r26-4 | Bar: stitch-separate the right-hand icons | T14 | dropped | superseded by kami tiles (r26-20) | |
 | r26-5 | Bar: middle colours (warm grey, date, kanji, strong time) | T14 | dropped | superseded by kami colours (r26-20) and the r27 palette | |
 | r26-6 | Animations: frame-driven, eased, 220 ms | T19 | dropped | superseded by the r27 dissolve motion (r27-dec-1a) | |
-| r26-7a | Many terminals opened fast: no duplicate headings (= r24-8a) | T24, T52 | done | 0/17 duplicates (was 40%); test_tiles 142/0 (r27) | |
+| r26-7a | Many terminals opened fast: no duplicate headings (= r24-8a) | T24, T52 | done | 0/160 duplicates (r27-24-burst); kept: tools/regress/prompt-burst.sh | |
 | r26-7b | Prompt: full drastic rework | T24 | dropped | superseded by r26-24, then the r27 pastel-powerline prompt | |
 | r26-8 | Busy cursor after unlock | T52 | done | none recorded; needs the owner's unlock to confirm | UNPROVEN |
 | r26-9 | Design consistency upgrade across menus, lock, saver | T09, T17 | dropped | superseded by the r27 design system and audit | |
@@ -155,16 +155,16 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-dec-2b | Terminal font 20 to 16 px; everything re-aligned | T11 | done | foot cell 8x20, capitals rows 4-15 measured; verify FONT checks | |
 | r27-dec-3a | Workspace stamps: black numeral, small, fully inside the red circle, 1-9 | T14 | done | bar-geometry: seal x 60-75, numeral inside, 5 px paper each side | |
 | r27-dec-3b | Kanji only on stamps, lock quote, day seal; pixel icons elsewhere | T16 | done | grep-tested; test_notices allows no kanji; shots both themes | |
-| r27-dec-4a | Lock screen: new art, no date, time or power buttons | T20 | todo | none recorded | |
-| r27-dec-4b | Password typed inside a demon's mouth (dark) or an angel (light) | T20 | todo | none recorded | |
-| r27-dec-4c | Two retro torches and a dungeon feel on the lock | T20 | todo | none recorded | |
-| r27-dec-4d | One Japanese quote, no translation, display lettering; you pick it | T20 | wip | quotes chosen r27-9, dictionary-checked; not yet on the lock | |
+| r27-dec-4a | Lock screen: new art, no date, time or power buttons | T20 | wip | built on branch t20 (r27-20-wire): the scenes, no date/time/keys; kit + headless + ASan; master review 1 3 Nov; not live | |
+| r27-dec-4b | Password typed inside a demon's mouth (dark) or an angel (light) | T20 | wip | built on t20: embers in the Hannya's dark mouth, motes in Seiōbo's sky (r27-20-wire); not live | |
+| r27-dec-4c | Two retro torches and a dungeon feel on the lock | T20 | wip | built on t20: two torches burning at 8 fps over a lit stone wall (r27-20-dark, -wire); not live | |
+| r27-dec-4d | One Japanese quote, no translation, display lettering; you pick it | T20 | wip | built on t20: 口は禍の門 (dark) / 言わぬが花 (light), design-system §0's sourced proverbs; not live | |
 | r27-dec-4e | Art as pixel versions of public-domain old masters (Kuniyoshi, Hokusai, Buddhist angels) | T18 | wip | build-masters.py built; 14 demons and 14 angels sourced, licences checked | |
-| r27-dec-4f | About 10 demon wallpapers (dark) and 10 angel wallpapers (light) | T18 | todo | pipeline and sources only; none of the 20 made | |
+| r27-dec-4f | About 10 demon wallpapers (dark) and 10 angel wallpapers (light) | T18 | done | 21 old-master wallpapers (11 demons, 10 angels) in the pack, live (r27-18-walls); the master's T18 review pending | |
 | r27-dec-4g | Bar's far-right icon: demon (dark) or angel (light) | T18, T19k-4 | done | live grim: hannya 7/8 px across, 1/1 above and below | |
 | r27-dec-4h | Fetch art: the mood's demon or angel | T18 | done | test_fetch 98/0; no render recorded | |
 | r27-dec-5 | Yazi: keep the engine, rebuild the whole UI, contrast, many sizes | T22 | wip | the grid, cursor, footer, contrast, kinds, empty states, tabs built (r27-22-*); kit at 3 sizes, both moods; the master's T22 review next | |
-| r27-dec-6a | Prompt rebuilt in pastel-powerline style with the terminal icon | T24 | todo | none recorded | |
+| r27-dec-6a | Prompt rebuilt in pastel-powerline style with the terminal icon | T24 | done | T24 DONE 3 Nov: master verdict 3 PASS (r27-24-master-3); live; contrast guarded by test_contrast; bursts kept as tools/regress/prompt-burst.sh | |
 | r27-dec-6b | Wada palette informs the whole design system | T08 | done | every text role at least 4.5:1; live shots both themes | |
 | r27-dec-7 | Theme switch animates the mouse cursor too | T19 | done | wash.sh: cursor loaded once between go and end | |
 | r27-dec-8 | Wallpaper 4-hour auto-change toggle key inside Super+W, at the bottom | T16 | done | r toggles, state on last line; shots both themes | |
@@ -196,15 +196,15 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 
 | id | request | task | status | proof | flag |
 |---|---|---|---|---|---|
-| r27-bug-1 | Saver to lock after long absence: frozen picture, then a sudden cut | T20 | wip | headless fix verified; real long-absence reproduction not done | |
+| r27-bug-1 | Saver to lock after long absence: frozen picture, then a sudden cut | T20 | wip | headless fix verified; tools/regress/saver-lock.sh (t20-fix): saver over the lock, the first key only washes it off, the next two typed; the real 35-min reproduction not done | |
 | r27-bug-2a | Notes: black areas around the text while typing | T21 | wip | foot alpha-mode=matching (4940712), seen in the kit over a wallpaper; the master's reviews of T21 (verdicts 1–7, fixed; 8 running 2 Nov 15:24) | |
 | r27-bug-2b | Notes: flicker on save | T21 | wip | neovim ui2 footer blank per :write fixed (0f50860); kit frames; T21 in the master's review | |
 | r27-bug-2c | Notes: spacing between header and first line | T21 | wip | the heading in the tabline, a blank row under it (a627678); kit renders both moods; T21 in review | |
 | r27-bug-2d | Notes redesigned as a vertical lined notebook | T21 | wip | the ruled portrait page, vermilion margin rule (a627678, design-system §7 "The page"); kit typing play; T21 in review | |
 | r27-bug-2e | Notes: margins constant while scrolling | T21 | wip | margins fixed by floats + paper; scroll/pen rules through verdicts 2–7 (test_notes 148/0); T21 in review | |
 | r27-bug-3 | Bar dropdown rows inactive until first click, fixed for good | T13 | done | kit: row lit at open, first click pages; menu-first-click.sh | |
-| r27-bug-4a | Lock: blinking cursor sometimes missing | T20 | todo | none recorded | |
-| r27-bug-4b | Lock: wrong password takes long to report; make it fast | T20 | todo | none recorded | |
+| r27-bug-4a | Lock: blinking cursor sometimes missing | T20 | wip | built on t20: the module's own caret, a mark tall, blinking 1 Hz while the line has the keyboard (r27-20-wire); not live | |
+| r27-bug-4b | Lock: wrong password takes long to report; make it fast | T20 | wip | built on t20, PROVEN IN THE VM: wrong password 0.26–0.39 s (was 1.6–2.4), right one still works (r27-20-wire-2: system/gtklock.pam); not live | |
 | r27-bug-5 | Wallpaper change: a black box flashes first | T19 | done | wash.sh both themes: only old, new, rim ink; picker keeps page | |
 | r27-bug-6a | Flicker on notes save (= r27-bug-2b) | T21 | wip | = r27-bug-2b | |
 | r27-bug-6b | Flicker when typing launcher calculations or conversions | T16 | done | answer row stays in place; shots 36 to 408; test_calc 29/0 | |
@@ -333,15 +333,15 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 
 | id | request | task | status | proof | flag |
 |---|---|---|---|---|---|
-| r27-never-1 | Every ledger item r24 to r27 becomes an automated regression check | T52 | wip | nine tools/regress scripts exist; the item list is not built | |
+| r27-never-1 | Every ledger item r24 to r27 becomes an automated regression check | T52 | wip | tools/regress has 20 checks now (+ prompt-burst, tile-widths, lock-start, saver-lock, lock-screens 3 Nov); the item list is not built | |
 | r27-never-2 | Run all regression checks before every push and at the end | T52, T61 | todo | none recorded | |
 | r27-never-3 | Keep the checks in the installer's selftest | T52 | todo | none recorded | |
 | r27-net-1 | firewalld default-deny inbound; only needed services, LAN-only | T39 | todo | none recorded | |
-| r27-net-2 | sshd keys-only or off | T39 | wip | keys-only drop-in written by setup (r26-12); PC state not rechecked | |
+| r27-net-2 | sshd keys-only or off | T39 | wip | PC rechecked 3 Nov (r27-39-audit): sshd -T keys only, no root; but SSH open to any source in the firewall | |
 | r27-net-3 | Every local service bound to localhost or LAN only | T39 | todo | none recorded | |
 | r27-net-4 | Network sysctls, IPv6 parity, no UPnP, DNS privacy if free | T39 | todo | none recorded | |
 | r27-net-5 | Verify by port scan from another machine; add checks to verify | T39 | todo | none recorded | |
-| r27-lock5-1 | Lock idle 5 s turns the monitors off; any key lights them onto the lock | T20 | todo | none recorded | |
+| r27-lock5-1 | Lock idle 5 s turns the monitors off; any key lights them onto the lock | T20 | wip | built on t20: dark 5 s after the last input, lit by any input, the wake rule; 10 cycles headless, tools/regress/lock-screens.sh (r27-20-wire, -wire-3); not live | |
 
 ## r27, reported 26 Oct 14:07 (fix first)
 
