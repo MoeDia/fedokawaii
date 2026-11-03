@@ -1313,19 +1313,26 @@ s_session() {
   greetd_config
   # greetd is enabled only in the last step, after verify.sh has passed
 }
+# lock_pam — the lock screen's password check: a wrong password said in 0.3 s, not 2
+# (system/gtklock.pam). The file is gtklock's own, not a config file to rpm: an update of
+# gtklock writes its version back — the update and the after-dnf follow-up call this again
+lock_pam() { cmp -s "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock || install -m 0644 "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock; }
 greetd_config() {   # the login: the greeter, its look, and greetd pointed at our own file of it
   local t d
   install -m 0755 "$REPO_DIR/system/kawa-greet" /usr/local/bin/
   rm -f /usr/local/bin/kawa-greeter                      # (the text login before it)
-  # its look, both themes (the greeter's own user reads them): the lock screen's colours and
-  # pictures, so the two are one design
+  # its look, both themes (the greeter's own user reads them): the lock screen's scene and
+  # colours (lock-scene.*, the dark's flames; gtklock.css and its scroll for a login without
+  # them), so the two are one design — the old look's padlock and seals gone
   for t in dark light; do
     d=/usr/local/share/fedokawaii/greeter/$t
     install -d -m 0755 "$d"
     install -m 0644 "$REPO_DIR/configs/home/.config/fedokawaii/themes/$t/gtklock.css" \
       "$REPO_DIR/configs/home/.config/fedokawaii/themes/$t/"lock-{scroll,fibre}.png \
-      "$REPO_DIR/configs/home/.local/share/fedokawaii/$t/"{padlock,seal-1,seal-2,seal-3,seal-4,seal-5,seal-6,seal-7}.png "$d/"
+      "$REPO_DIR/configs/home/.local/share/fedokawaii/$t/"lock-* "$d/"
+    rm -f "$d/padlock.png" "$d"/seal-[1-7].png
   done
+  rm -f /var/lib/fedokawaii-greeter/lock-{dark,light}.png   # (the wallpaper shaded: the login before its scene)
   # which theme it wears: a folder of yours, where kawa-theme notes the one you switch to
   install -d -m 0755 -o "$TARGET_UID" -g "$TARGET_GID" /var/lib/fedokawaii-greeter
   # the theme it wears from the start (THEME); kawa-theme keeps it the one you last had
@@ -1333,6 +1340,7 @@ greetd_config() {   # the login: the greeter, its look, and greetd pointed at ou
     || printf '%s\n' "$THEME" | install -m 0644 -o "$TARGET_UID" -g "$TARGET_GID" /dev/stdin /var/lib/fedokawaii-greeter/theme
   # the lock's and login's two messages in the desktop's words (kawa-lock: LANGUAGE=fk)
   install -D -m 0644 "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
+  lock_pam
   # the pixel font crisp for every account (the greeter's too): /etc/fonts
   install -m 0644 "$REPO_DIR/system/60-fedokawaii-pixel.conf" /etc/fonts/conf.d/
   # greetd's own config.toml stays the package's: ours is a file of its own, and greetd is
@@ -2900,6 +2908,7 @@ update_steps() {
   step_on "inbound SSH ($SSH_SERVER)" s_ssh
   step_on "the performance profile" s_tuning
   step_on "a quiet boot (the boot's arguments, a blank console)" s_quiet_boot
+  step_on "the lock's quick answer (its PAM file)" lock_pam
   step_on "your services' stop at shutdown" user_stop
   step_on "files of root's in your home, handed back" home_back
   step_on "the manifest" manifest_sync

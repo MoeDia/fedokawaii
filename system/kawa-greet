@@ -2,15 +2,17 @@
 """/usr/local/bin/kawa-greet USER — the login screen. greetd runs it in cage (a kiosk
 compositor: one full-screen window) on tty1, as its own user (greetd).
 
-It is the lock screen's twin: on your wallpaper shaded into the ground (as the lock shows it:
-kawa-wallpaper leaves a copy in /var/lib/fedokawaii-greeter), no panel, no box — one column in
-the middle: the pixel padlock beside the time at 56 px, the day (its seal, the date, the
-weekday in kanji: 火曜日), a line of the season and the hour (VERSES — the same sixteen as
-kawa-lockmod's), and one line for your password, each character a ◆ in accent_text. A wrong
-password empties it and says so above it; the right one starts the desktop
-(/usr/local/bin/start-dwl). Under it three keys: sleep, restart and power off — words alone,
-accent_text under the pointer and under the keyboard's focus (Tab). The lock screen has the
-same (kawa-lockmod).
+It is the lock screen's twin — the first lock of the day: the mood's scene (lock-scene.png and
+lock-scene.txt, tools/build-lock.py — the same pictures kawa-lockmod draws on the lock) at whole
+pixels, centred, its edges' own colour round it; the torches' flames, 8 frames a second; your
+password as marks in the scene's row (an ember in the demon's mouth, a mote in Seiōbo's sky),
+the newest ones while more are typed than the row holds, the arms in the Caps Lock ink while it
+is on; the caret a bar as tall as a mark, blinking once a second while the line has the keyboard.
+A wrong password: the marks scatter and fade, the face shakes a pixel of the scene twice (240 ms,
+five steps of 48), and the line is empty again; the right one starts the desktop
+(/usr/local/bin/start-dwl). No date, no time, no keys. Anything else the system says on the way
+(an expiring password, a session that will not start) is the one line of words, low on the
+screen. The check runs beside the screen, so the flames never stop while greetd answers.
 
 The key that wakes the computer only wakes it: from logind's word that the machine is going to
 sleep (PrepareForSleep) until 2 s after it is awake again, every key and click is swallowed —
@@ -19,23 +21,23 @@ an Enter that woke it is never a wrong password. An Enter in an empty field is n
 There is one person on this computer, so there is no user name to type: setup writes yours
 into greetd's settings (/etc/greetd/fedokawaii.toml), which hand it to this program.
 
-Its look: /usr/local/share/fedokawaii/greeter/<theme>/ (gtklock.css, padlock.png,
-seal-1.png … seal-7.png — setup installs both themes), dark or light as the desktop is
-(kawa-theme writes the name into /var/lib/fedokawaii-greeter/theme, a file of yours).
+Its look: /usr/local/share/fedokawaii/greeter/<theme>/ (gtklock.css, lock-scene.png,
+lock-scene.txt, the dark's lock-flame.png — setup installs both themes), dark or light as the
+desktop is (kawa-theme writes the name into /var/lib/fedokawaii-greeter/theme, a file of yours).
 
 greetd's protocol: JSON messages over the socket in $GREETD_SOCK, each after its length
 (4 bytes, the machine's byte order) — create_session, post_auth_message_response,
 start_session, cancel_session (man 7 greetd-ipc).
 """
 import json
-import locale
 import os
 import socket
 import struct
-import subprocess
 import sys
+import threading
 import time
 
+import cairo
 import gi
 
 gi.require_version("Gtk", "3.0")
@@ -47,27 +49,37 @@ SHARE = "/usr/local/share/fedokawaii/greeter"
 THEME_FILE = "/var/lib/fedokawaii-greeter/theme"
 GUARD = 2.0                                # seconds after a wake that keys and clicks only wake
 ENTER = (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_ISO_Enter)
-WEEKDAYS = ("月曜日", "火曜日", "水曜日", "木曜日", "金曜日", "土曜日", "日曜日")
-# VERSES: a season (spring Mar–May … winter Dec–Feb), an hour (morning 5–10, day 11–16,
-# evening 17–19, night) — the same in kawa-lockmod
-VERSES = (
-    (("春の朝", "spring morning, the first thread"), ("春の昼", "plum blossom on the sleeve"),
-     ("春の夕", "the needle rests in silk"), ("春の夜", "a lantern, a quiet stitch")),
-    (("夏の朝", "cool tatami, early light"), ("夏の昼", "cicadas behind the screen"),
-     ("夏の夕", "a fan, the river breeze"), ("夏の夜", "fireflies between the reeds")),
-    (("秋の朝", "frost on the bamboo fence"), ("秋の昼", "red leaves on still water"),
-     ("秋の夕", "crows home, the sky in ink"), ("秋の夜", "the moon, a seal on paper")),
-    (("冬の朝", "snow on the temple roof"), ("冬の昼", "a kettle sings, a quiet room"),
-     ("冬の夕", "the lamp lit early"), ("冬の夜", "the stove's last ember")),
-)
+WRONG = "ちがう · wrong password"           # (said by the scene: the marks scatter, the face shakes)
+STEP, STEPS = 0.048, 5                      # the wrong password's steps (s), as kawa-lockmod's
 
 
-def verse(t):
-    """The season's and the hour's line for a time.struct_time: (kanji, words)."""
-    m, h = t.tm_mon, t.tm_hour
-    season = 0 if 3 <= m <= 5 else 1 if 6 <= m <= 8 else 2 if 9 <= m <= 11 else 3
-    hour = 0 if 5 <= h <= 10 else 1 if 11 <= h <= 16 else 2 if 17 <= h <= 19 else 3
-    return VERSES[season][hour]
+class Scene:
+    """lock-scene.txt (the lock's words: where the marks and flames go, their inks) and its
+    pictures, from FOLDER."""
+
+    def __init__(self, folder):
+        kv = {}
+        with open(f"{folder}/lock-scene.txt") as f:
+            for line in f:
+                w = line.split("#")[0].split()
+                if w:
+                    kv.setdefault(w[0], []).append(w[1:])
+        ink = lambda h: tuple(int(h[i:i + 2], 16) / 255 for i in (0, 2, 4))   # noqa: E731
+        self.w, self.h = map(int, kv["size"][0])
+        self.ground = ink(kv["ground"][0][0])
+        self.rx, self.ry, self.pitch, self.rn = map(int, kv["row"][0])
+        self.arms, self.core, self.corner = (ink(h) for h in kv["mark"][0])
+        self.caps, self.caret = ink(kv["caps"][0][0]), ink(kv["caret"][0][0])
+        self.cx, self.cy, self.cr = map(int, kv["plate"][0])
+        self.img = cairo.ImageSurface.create_from_png(f"{folder}/lock-scene.png")
+        self.flames = [tuple(map(int, f)) for f in kv.get("flame", [])]
+        self.fw, self.fh, self.frames = map(int, kv["frames"][0]) if self.flames else (0, 0, 1)
+        self.flame = cairo.ImageSurface.create_from_png(f"{folder}/lock-flame.png") if self.flames else None
+
+    def fit(self, w, h):
+        """The scale (whole) and the corner of the scene on a W × H screen."""
+        n = max(1, min(w // self.w, h // self.h))
+        return n, (w - n * self.w) // 2, (h - n * self.h) // 2
 
 
 class Greetd:
@@ -108,70 +120,37 @@ class Greeter(Gtk.Window):
         css = Gtk.CssProvider()
         css.load_from_path(f"{art}/gtklock.css")
         Gtk.StyleContext.add_provider_for_screen(self.get_screen(), css, Gtk.STYLE_PROVIDER_PRIORITY_USER)
-        # the wallpaper shaded into the ground, as the lock shows it (none yet: the plain ground)
-        bg = f"{os.path.dirname(THEME_FILE)}/lock-{theme()}.png"
-        if os.path.isfile(bg):
-            wall = Gtk.CssProvider()
-            wall.load_from_data(f'window {{ background-image: url("file://{bg}"); background-size: cover; '
-                                f'background-position: center; }}'.encode())
-            Gtk.StyleContext.add_provider_for_screen(self.get_screen(), wall, Gtk.STYLE_PROVIDER_PRIORITY_USER + 1)
+        try:
+            self.scene = Scene(art)
+        except (OSError, KeyError, ValueError, cairo.Error) as e:   # (its plain line: the theme's ground)
+            print(f"kawa-greet: no scene ({e})", file=sys.stderr)
+            self.scene = None
+        self.frame, self.caret_on, self.wrong, self.tried = 0, True, 0.0, 0
 
-        # the lock screen's column (~/.config/fedokawaii/lock.ui), part for part: the padlock and
-        # the time, the day (its seal, the date, the weekday), the season, the line for what
-        # went wrong, the password's line — then the three keys
-        box = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="window-box",
-                      halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
-        info = Gtk.Box(orientation=Gtk.Orientation.VERTICAL, name="info-box")
-        # the face: the padlock, the time in the display size (56 px: design-system §2), AM/PM
-        face = Gtk.Box(name="face", halign=Gtk.Align.CENTER)
-        face.add(Gtk.Image(file=f"{art}/padlock.png", name="padlock", valign=Gtk.Align.CENTER))
-        self.clock = Gtk.Label(name="clock-label", valign=Gtk.Align.CENTER)
-        face.add(self.clock)
-        self.ampm = Gtk.Label(name="ampm", valign=Gtk.Align.END)
-        face.add(self.ampm)
-        info.add(face)
-        heading = Gtk.Box(name="heading", halign=Gtk.Align.CENTER)
-        heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime('%u')}.png", name="seal", valign=Gtk.Align.CENTER))
-        self.date = Gtk.Label(name="date-label", valign=Gtk.Align.CENTER)
-        heading.add(self.date)
-        self.weekday = Gtk.Label(name="weekday", valign=Gtk.Align.CENTER)
-        heading.add(self.weekday)
-        info.add(heading)
-        line = Gtk.Box(name="verse-line", spacing=6, halign=Gtk.Align.CENTER)
-        self.verse_kanji = Gtk.Label(name="verse-kanji")
-        self.verse = Gtk.Label(name="verse")
-        line.add(self.verse_kanji)
-        line.add(self.verse)
-        info.add(line)
-        box.add(info)
-
-        messages = Gtk.Box(name="messages")
-        self.error = Gtk.Label(name="error-label", halign=Gtk.Align.START, hexpand=True, xalign=0,
-                               wrap=True, max_width_chars=44)   # (a long one from PAM: whole, on more lines)
-        messages.add(self.error)
-        box.add(messages)
-        self.entry = Gtk.Entry(name="input-field", hexpand=True, xalign=0.5,
-                               visibility=False, invisible_char=ord("◆"), caps_lock_warning=False,   # (a code point: GTK takes a number)
-                               input_purpose=Gtk.InputPurpose.PASSWORD)
+        # the password's line (gtklock.css hides it under .kawa: the scene draws what is typed)
+        self.entry = Gtk.Entry(name="input-field", xalign=0.5, visibility=False,
+                               invisible_char=ord("◆"), caps_lock_warning=False,   # (a code point: GTK takes a number)
+                               input_purpose=Gtk.InputPurpose.PASSWORD,
+                               halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         self.entry.connect("activate", self.login)
-        # each ◆ at 28 px (gtklock.css), the hint at 14 over the empty line: a label of its own,
-        # as kawa-lockmod does it (the entry's placeholder would grow with the ◆)
-        hint = Gtk.Label(name="input-hint", label=f"{user} · パスワード · password",
-                         halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER, no_show_all=True)
-        line = Gtk.Overlay(hexpand=True)
-        line.add(self.entry)
-        line.add_overlay(hint)
-        line.set_overlay_pass_through(hint, True)
-        self.entry.connect("changed", lambda e: hint.set_visible(not e.get_text()))
-        hint.set_visible(True)
-        box.add(line)
-
-        power = Gtk.Box(name="keys", homogeneous=True)
-        for label, verb in (("眠 sleep", "suspend"), ("再 restart", "reboot"), ("電 power off", "poweroff")):
-            b = Gtk.Button(label=label, can_focus=True, hexpand=True, focus_on_click=False)
-            b.connect("clicked", self.power, verb)
-            power.add(b)
-        box.add(power)
+        self.error = Gtk.Label(name="error-label", halign=Gtk.Align.CENTER, valign=Gtk.Align.END,
+                               margin_bottom=48, wrap=True, max_width_chars=60)   # (a long one from PAM: whole)
+        layers = Gtk.Overlay()
+        if self.scene:
+            self.get_style_context().add_class("kawa")
+            self.area = Gtk.DrawingArea(can_focus=False)
+            self.area.connect("draw", self.draw)
+            layers.add(self.area)
+            self.entry.connect("changed", self.typed)
+            self.entry.connect("notify::has-focus", lambda *_: self.redraw_row())
+            self.entry.connect("notify::sensitive", lambda *_: self.redraw_row())
+            Gdk.Keymap.get_for_display(Gdk.Display.get_default()).connect("state-changed", lambda *_: self.redraw_row())
+            if self.scene.flames:
+                GLib.timeout_add(1000 // 8, self.flames_tick)
+            self.blink = GLib.timeout_add(500, self.caret_tick)
+        layers.add_overlay(self.entry)
+        layers.add_overlay(self.error)
+        layers.set_overlay_pass_through(self.error, True)
 
         # the wake guard: asleep (or about to be), and GUARD s after waking, input only wakes
         self.asleep, self.woke = False, 0.0
@@ -181,13 +160,112 @@ class Greeter(Gtk.Window):
         for ev in ("key-press-event", "key-release-event", "button-press-event", "button-release-event"):
             self.connect(ev, self.input)
 
-        self.add(box)
-        self.tick()
-        GLib.timeout_add_seconds(1, self.tick)
+        self.add(layers)
         self.fullscreen()
         self.show_all()
         self.entry.grab_focus()
 
+    # ── the scene: drawn as kawa-lockmod draws the lock ─────────────────────────────────
+    def draw(self, area, cr):
+        s = self.scene
+        n, ox, oy = s.fit(area.get_allocated_width(), area.get_allocated_height())
+        cr.set_source_rgb(*s.ground)
+        cr.paint()
+        cr.translate(ox, oy)
+        cr.scale(n, n)
+
+        def picture(dx):
+            cr.set_source_surface(s.img, dx, 0)
+            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.rectangle(dx, 0, s.w, s.h)
+            cr.fill()
+
+        picture(0)
+        step = int((time.monotonic() - self.wrong) / STEP) if self.wrong else -1
+        step = step if step < STEPS else -1
+        dx = (1 if step in (0, 2) else -1 if step in (1, 3) else 0) if step >= 0 else 0
+        if dx:
+            cr.save()
+            cr.arc(s.cx + dx, s.cy, s.cr, 0, 6.2832)
+            cr.clip()
+            picture(dx)
+            cr.restore()
+        for i, (fx, fy) in enumerate(s.flames):
+            f = (self.frame + 3 * i) % s.frames      # (the two out of step)
+            cr.set_source_surface(s.flame, fx - f * s.fw, fy)
+            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.rectangle(fx, fy, s.fw, s.fh)
+            cr.fill()
+
+        def dot(x, y, c):
+            cr.set_source_rgb(*c)
+            cr.rectangle(x, y, 1, 1)
+            cr.fill()
+
+        def mark(x, y, arms, core, corner):
+            for ax, ay in ((1, 1), (1, -1), (-1, 1), (-1, -1)) if corner else ():
+                dot(x + ax, y + ay, corner)
+            for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                dot(x + ax, y + ay, arms)
+            if core:
+                dot(x, y, core)
+
+        caps = Gdk.Keymap.get_for_display(Gdk.Display.get_default()).get_caps_lock_state()
+        arms = s.caps if caps else s.arms
+        shown = min(len(self.entry.get_text()), s.rn)
+        if step >= 0:                            # the tried ones scatter, dimming, then go
+            for i in range(min(self.tried, s.rn)):
+                vx, vy = (i * 7 + 3) % 5 - 2, (-1 - (i % 3 > 0)) if i % 2 else (1 + (i % 4 == 0))
+                x, y = s.rx + s.pitch * i + dx + vx * step, s.ry + vy * step
+                if step < 2:
+                    mark(x, y, arms, s.core, s.corner)
+                elif step < 4:
+                    mark(x, y, s.corner, arms, None)
+        else:
+            for i in range(shown):
+                mark(s.rx + s.pitch * i, s.ry, arms, s.core, s.corner)
+        if self.caret_on and step < 0 and self.entry.has_focus() and self.entry.is_sensitive():
+            cr.set_source_rgb(*s.caret)
+            cr.rectangle(s.rx + s.pitch * shown, s.ry - 1, 1, 3)   # (a mark's height)
+            cr.fill()
+        return False
+
+    def redraw(self, x, y, w, h):               # a part, in the scene's pixels
+        a = self.area
+        n, ox, oy = self.scene.fit(a.get_allocated_width(), a.get_allocated_height())
+        a.queue_draw_area(ox + n * x, oy + n * y, n * w, n * h)
+
+    def redraw_row(self):
+        s = self.scene
+        self.redraw(s.rx - 2, s.ry - 3, s.pitch * s.rn + 4, 7)
+
+    def flames_tick(self):
+        s = self.scene
+        self.frame = (self.frame + 1) % s.frames
+        for fx, fy in s.flames:
+            self.redraw(fx, fy, s.fw, s.fh)
+        return True
+
+    def caret_tick(self):
+        self.caret_on = not self.caret_on
+        self.redraw_row()
+        return True
+
+    def typed(self, _entry):                    # (solid while typing: the blink starts over)
+        self.caret_on = True
+        GLib.source_remove(self.blink)
+        self.blink = GLib.timeout_add(500, self.caret_tick)
+        self.redraw_row()
+
+    def wrong_tick(self, _area, _clock):
+        s = self.scene
+        self.redraw(s.cx - s.cr - 4, s.cy - s.cr - 4, 2 * s.cr + 8, 2 * s.cr + 8)
+        if time.monotonic() - self.wrong < STEPS * STEP:
+            return True
+        self.wrong = 0.0
+        return False
+
+    # ── input and the login ───────────────────────────────────────────────────────────
     def sleeping(self, _bus, _sender, _path, _iface, _signal, params):
         self.asleep = params.unpack()[0]
         if not self.asleep:
@@ -203,65 +281,59 @@ class Greeter(Gtk.Window):
         return (ev.type == Gdk.EventType.KEY_PRESS and ev.keyval in ENTER
                 and self.entry.has_focus() and not self.entry.get_text())
 
-    def power(self, _button, verb):
-        if not self.guarded():
-            subprocess.Popen(["systemctl", verb])
-
-    def tick(self):
-        self.clock.set_text(time.strftime("%I:%M"))
-        self.ampm.set_text(time.strftime("%p"))
-        self.date.set_text(time.strftime("%a %d %b"))   # ("Mon 19 Oct": the weekday in words, and its seal above)
-        now = time.localtime()
-        self.weekday.set_text(WEEKDAYS[now.tm_wday])
-        kanji, words = verse(now)
-        self.verse_kanji.set_text(kanji)
-        self.verse.set_text(words)
-        return True
-
     def say(self, text):
         self.error.set_text(text)
 
     def login(self, _entry):
-        self.say("")
         password = self.entry.get_text()
-        self.entry.set_text("")
+        self.tried = len(password)
+        self.say("")
         self.entry.set_sensitive(False)
+        threading.Thread(target=self.check, args=(password,), daemon=True).start()
+
+    def check(self, password):                  # (beside the screen: greetd may take seconds)
+        notes = []
         try:
-            ok = self.run_pam(password)
+            ok = self.run_pam(password, notes.append)
         except (OSError, ConnectionError, ValueError) as e:
-            self.say(f"the login service did not answer ({e})")
-            ok = False
+            ok, notes = False, [f"the login service did not answer ({e})"]
+        GLib.idle_add(self.answered, ok, notes)
+
+    def answered(self, ok, notes):
         if ok:
             Gtk.main_quit()
-            return
+            return False
+        self.entry.set_text("")
         self.entry.set_sensitive(True)
         self.entry.grab_focus()
+        if WRONG in notes and self.scene:
+            notes.remove(WRONG)
+            self.wrong = time.monotonic()
+            self.area.add_tick_callback(self.wrong_tick)
+        self.say("  ".join(notes))
+        return False
 
-    def run_pam(self, password):
+    def run_pam(self, password, say):
         r = self.greetd.ask(type="create_session", username=self.user)
         while r.get("type") == "auth_message":
             kind = r.get("auth_message_type")
             if kind in ("secret", "visible"):
                 r = self.greetd.ask(type="post_auth_message_response", response=password)
             else:                          # info or error from PAM: shown, then acknowledged
-                self.say(r.get("auth_message", "").strip())
+                say(r.get("auth_message", "").strip())
                 r = self.greetd.ask(type="post_auth_message_response")
         if r.get("type") == "success":
             r = self.greetd.ask(type="start_session", cmd=SESSION, env=[])
             if r.get("type") == "success":
                 return True
         self.greetd.ask(type="cancel_session")
-        if r.get("error_type") == "auth_error":
-            self.say("ちがう · wrong password")
-        else:
-            self.say(r.get("description", "the login failed"))
+        say(WRONG if r.get("error_type") == "auth_error" else r.get("description", "the login failed"))
         return False
 
 
 def main():
     if len(sys.argv) != 2:
         sys.exit("usage: kawa-greet USER (greetd runs it: /etc/greetd/fedokawaii.toml)")
-    locale.setlocale(locale.LC_TIME, "C")  # the words in English (the seal says the rest), as on the lock
     greetd = Greetd(os.environ["GREETD_SOCK"])
     win = Greeter(sys.argv[1], greetd)
     win.connect("destroy", Gtk.main_quit)

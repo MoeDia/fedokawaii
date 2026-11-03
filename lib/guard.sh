@@ -273,6 +273,7 @@ do_after_dnf() {
     step_on "a quiet boot (the boot's arguments)" s_quiet_boot
   fi
   grep -qx foot "$ch" && step_on "foot's config" configs_sound
+  grep -qx gtklock "$ch" && step_on "the lock's quick answer (its PAM file)" lock_pam
   step_on "the guard's records" needs_record
   bash "$REPO_DIR/verify.sh" >>"$LOG_FILE" 2>&1 || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial

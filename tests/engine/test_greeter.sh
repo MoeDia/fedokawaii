@@ -1,9 +1,10 @@
 #!/usr/bin/env bash
 # tests/engine/test_greeter.sh — kawa-greet, the login screen (greetd runs it in cage, as its
-# own user). Its window needs a screen, so GTK is a stand-in here (a small fake "gi" module:
-# widgets that do nothing); what is tested is everything else — the conversation with greetd
-# over its socket (a fake greetd, speaking greetd's real protocol: a 4-byte length in the
-# machine's byte order, then JSON), what it says on a wrong password, and which theme it wears.
+# own user), the lock's twin. Its window needs a screen, so GTK is a stand-in here (a small fake
+# "gi" module: widgets that do nothing; cairo is the real one); what is tested is everything else
+# — the conversation with greetd over its socket (a fake greetd, speaking greetd's real protocol:
+# a 4-byte length in the machine's byte order, then JSON), what it says on a wrong password, which
+# theme it wears, and the scene it reads (the lock's own lock-scene.txt and pictures).
 . "$(dirname "$0")/lib.sh"
 need_py() { command -v python3 >/dev/null || { echo "test_greeter: skipped — needs python3"; exit 0; }; }
 need_py
@@ -45,8 +46,7 @@ if mode == "guard":                            # the wake guard and the empty En
         text = ""
         def has_focus(self): return True
         def get_text(self): return self.text
-    w.entry = Entry(); run = []
-    kg.subprocess = types.SimpleNamespace(Popen=run.append)
+    w.entry = Entry()
     key = lambda k, t=kg.Gdk.EventType.KEY_PRESS: types.SimpleNamespace(type=t, keyval=k)
     sig = lambda v: w.sleeping(None, None, None, None, None, types.SimpleNamespace(unpack=lambda: (v,)))
     out = []
@@ -54,14 +54,16 @@ if mode == "guard":                            # the wake guard and the empty En
     out.append(("empty enter", w.input(None, key(kg.Gdk.KEY_Return))))
     w.entry.text = "pw"; out.append(("enter with a password", w.input(None, key(kg.Gdk.KEY_Return))))
     sig(True); out.append(("asleep enter", w.input(None, key(kg.Gdk.KEY_Return))))
-    w.power(None, "poweroff"); out.append(("asleep power off ran", bool(run)))
     sig(False); out.append(("just woke enter", w.input(None, key(kg.Gdk.KEY_Return))))
     out.append(("just woke release", w.input(None, key(kg.Gdk.KEY_Return, kg.Gdk.EventType.KEY_RELEASE))))
-    w.power(None, "suspend"); out.append(("just woke sleep ran", bool(run)))
     w.woke = time.monotonic() - kg.GUARD - 0.1
     out.append(("2 s later enter", w.input(None, key(kg.Gdk.KEY_Return))))
-    w.power(None, "suspend"); out.append(("2 s later sleep ran", run))
     print(" | ".join(f"{a}: {b}" for a, b in out)); sys.exit(0)
+if mode == "scene":                            # the lock's scene as the login reads it, both moods
+    for t in ("dark", "light"):
+        sc = kg.Scene(f"{sys.argv[4]}/{t}")
+        print(t, sc.w, sc.h, sc.rn, len(sc.flames), sc.img.get_width(), sc.fit(1920, 1080), sc.fit(1366, 768), sc.fit(1280, 800))
+    sys.exit(0)
 answers = json.loads(sys.argv[4])          # the fake greetd's answer to each request, in turn
 a, b = socket.socketpair()
 log = []
@@ -75,8 +77,8 @@ def greetd():
 t = threading.Thread(target=greetd, daemon=True); t.start()
 g = kg.Greetd.__new__(kg.Greetd); g.sock = a
 w = kg.Greeter.__new__(kg.Greeter); w.greetd = g; w.user = "kawau"
-said = []; w.say = said.append
-ok = w.run_pam(sys.argv[5])
+said = []
+ok = w.run_pam(sys.argv[5], said.append)
 t.join(2)
 print(json.dumps({"ok": ok, "said": said, "asked": log}, ensure_ascii=False))
 EOF
@@ -123,31 +125,19 @@ echo '../../etc' >"$TMP/theme"; eq "$(th)" dark "a name that is not a theme: dar
 
 case_ "the wake guard: asleep, and 2 s after waking, keys and clicks only wake; an empty Enter is never a try"
 eq "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" guard)" \
-  "awake a: False | empty enter: True | enter with a password: False | asleep enter: True | asleep power off ran: False | just woke enter: True | just woke release: True | just woke sleep ran: False | 2 s later enter: False | 2 s later sleep ran: [['systemctl', 'suspend']]"
-case_ "three keys under the rule — sleep, restart, power off — as on the lock screen (kawa-lockmod)"
-grep -qF '(("眠 sleep", "suspend"), ("再 restart", "reboot"), ("電 power off", "poweroff"))' "$REPO/system/kawa-greet" && _ok || _no "the greeter's keys"
-grep -qF '{ "眠 sleep", "suspend" }, { "再 restart", "reboot" }, { "電 power off", "poweroff" }' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && _ok || _no "the lock screen's keys differ from the greeter's"
+  "awake a: False | empty enter: True | enter with a password: False | asleep enter: True | just woke enter: True | just woke release: True | 2 s later enter: False"
 grep -qF '"PrepareForSleep"' "$REPO/system/kawa-greet" && _ok || _no "the greeter does not hear of a sleep"
 
-case_ "its flavour, the lock screen's too: the day's seal (a picture, the weekday's), the weekday in kanji, the season's and the hour's line — the same sixteen lines in both"
-lines() { grep -oE '"[春夏秋冬]の[朝昼夕夜]", "[^"]*"' "$1"; }
-eq "$(lines "$REPO/system/kawa-greet" | wc -l)" 16
-eq "$(lines "$REPO/system/kawa-greet")" "$(lines "$REPO/src/kawa-lockmod/kawa-lockmod.c")" "kawa-greet's and kawa-lockmod's"
-eq "$(python3 -I -B -c 'import sys, importlib.machinery as m, importlib.util as u, time
-sys.path.insert(0, sys.argv[2]); sys.dont_write_bytecode = True
-l = m.SourceFileLoader("kg", sys.argv[1]); g = u.module_from_spec(u.spec_from_loader("kg", l)); l.exec_module(g)
-t = lambda mon, h: time.struct_time((2026, mon, 1, h, 0, 0, 0, 1, 0))
-print(g.verse(t(10, 23))[0], g.verse(t(3, 5))[0], g.verse(t(7, 12))[0], g.verse(t(1, 18))[0], g.verse(t(12, 4))[0], g.WEEKDAYS[1])' "$REPO/system/kawa-greet" "$G")" \
-  "秋の夜 春の朝 夏の昼 冬の夕 冬の夜 火曜日"
-grep -q 'heading.add(Gtk.Image(file=f"{art}/seal-{time.strftime(.%u.)}.png", name="seal"' "$REPO/system/kawa-greet" && _ok || _no "the login's seal, before the date"
-U=$REPO/configs/home/.config/fedokawaii/lock.ui
-has "$(grep -A8 '<object class="GtkImage" id="seal">' "$U")" '<property name="name">seal</property>' "the lock's seal (lock.ui)"
-has "$(grep -A8 '<object class="GtkImage" id="seal">' "$U")" '{SEAL}'
-has "$(cat "$REPO/bin/kawa-lock")" 's|{SEAL}|$art/seal-$day.png|' "kawa-lock: today's"
-lacks "$(cat "$REPO/system/kawa-greet" "$REPO/src/kawa-lockmod/kawa-lockmod.c")" 'name="stamp"' "no stamped label any more"
-for id in heading weekday padlock verse-kanji verse; do
-  for t in dark light; do grep -q "#$id " "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" && _ok || _no "$t gtklock.css has no #$id"; done
-done
+case_ "the lock's twin: the same scene (lock-scene.txt and its pictures, both moods) at whole pixels, centred — no date, no time, no keys"
+eq "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" scene "$REPO/configs/home/.local/share/fedokawaii")" \
+  "dark 640 360 7 2 640 (3, 0, 0) (2, 43, 24) (2, 0, 40)
+light 640 360 7 0 640 (3, 0, 0) (2, 43, 24) (2, 0, 40)"
+g=$REPO/system/kawa-greet
+lacks "$(cat "$g")" 'Gtk.Button(' "no keys"; lacks "$(cat "$g")" 'strftime' "no date or time"
+grep -q 'self.get_style_context().add_class("kawa")' "$g" && _ok || _no "its window not marked: gtklock.css would show the line"
+grep -q 'threading.Thread(target=self.check' "$g" && _ok || _no "the check on the screen's own thread: the flames would stop while greetd answers"
+for v in 'STEP, STEPS = 0.048, 5' '(i * 7 + 3) % 5 - 2'; do grep -qF "$v" "$g" && _ok || _no "the wrong password's motion differs from the lock's ($v)"; done
+grep -qF '#define STEP_US (48 * 1000)' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && grep -qF '#define STEPS 5' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && _ok || _no "the lock's steps moved: the twins differ"
 
 case_ "kawa-theme notes the theme for it, where setup gave you a folder"
 grep -q '/var/lib/fedokawaii-greeter/theme' "$REPO/bin/kawa-theme" && _ok || _no "kawa-theme does not write the greeter's theme"
@@ -157,18 +147,13 @@ grep -qF 'command = "env \$(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sum
 grep -qF 'command = \"env \$(/usr/local/bin/start-dwl --gpu) \\\"XCURSOR_THEME=Sumi-\$(cat /var/lib/fedokawaii-greeter/theme)\\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet $TARGET_USER\"' "$REPO/verify.sh" && _ok || _no "verify.sh's check does not match setup's line"
 
 case_ "its look: every file it loads is one setup installs (both themes)"
-for f in gtklock.css lock-scroll.png lock-fibre.png padlock.png seal-{1..7}.png; do
-  for t in dark light; do
-    case $f in gtklock.css|lock-*) src=$REPO/configs/home/.config/fedokawaii/themes/$t/$f ;; *) src=$REPO/configs/home/.local/share/fedokawaii/$t/$f ;; esac
-    [[ -s $src ]] && _ok || _no "no $src"
-  done
-done
-grep -q 'f"{art}/seal-{time.strftime(.%u.)}.png"' "$REPO/system/kawa-greet" && _ok || _no "the seal's file name changed"
 for t in dark light; do
+  for f in "$REPO/configs/home/.config/fedokawaii/themes/$t/"{gtklock.css,lock-scroll.png,lock-fibre.png} "$REPO/configs/home/.local/share/fedokawaii/$t/"lock-scene.{png,txt}; do
+    [[ -s $f ]] && _ok || _no "no $f"
+  done
   for u in $(grep -o 'url("[^"]*")' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" | sed 's/url("//; s/")//'); do
-    grep -q "lock-{scroll,fibre}.png" <<<"$(sed -n '/greeter\/\$t$/,/done/p' "$REPO/setup.sh")" && [[ $u == lock-scroll.png || $u == lock-fibre.png ]] && _ok || _no "$t gtklock.css names $u: not installed beside it by setup.sh"
+    [[ $u == lock-scroll.png || $u == lock-fibre.png ]] && _ok || _no "$t gtklock.css names $u: not installed beside it by setup.sh"
   done
 done
-grep -q 'lock-scroll.png lock-fibre.png' "$REPO/verify.sh" && _ok || _no "verify does not check the pictures the login's look names"
-
+has "$(sed -n '/^greetd_config()/,/^}/p' "$REPO/setup.sh")" '"$REPO_DIR/configs/home/.local/share/fedokawaii/$t/"lock-* "$d/"' "setup installs the scene beside the css"
 done_

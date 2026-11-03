@@ -75,7 +75,7 @@ eq "$(readlink "$W$H/.config/fedokawaii/current")" themes/light
 for l in .config/qt6ct/qt6ct.conf .config/imv/config .config/wiremix/wiremix.toml .config/btop/themes/fedokawaii.theme; do
   [[ -L $W$H/$l && -e $W$H/$l ]] && _ok || _no "$l is not a working link into the current theme"
 done
-[[ -s $W$H/.local/share/fedokawaii/dark/padlock.png && -s $W$H/.local/share/fedokawaii/light/padlock.png && -s $W$H/.local/share/fedokawaii/light/seal-7.png ]] && _ok || _no "the lock's pictures not copied"
+[[ -s $W$H/.local/share/fedokawaii/dark/lock-scene.png && -s $W$H/.local/share/fedokawaii/dark/lock-flame.png && -s $W$H/.local/share/fedokawaii/light/lock-scene.txt ]] && _ok || _no "the lock's scenes not copied"
 
 case_ "the programs the desktop no longer has: their files of ours into the backup, folders left empty gone, yours kept"
 [[ ! -e $W$H/.config/presenterm && ! -e $W$H/.config/spotify-player && ! -e $W$H/.config/sc-im/scimrc ]] && _ok \

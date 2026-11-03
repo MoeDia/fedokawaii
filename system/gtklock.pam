@@ -1,0 +1,11 @@
+#%PAM-1.0
+# /etc/pam.d/gtklock — the lock screen's password check (gtklock: Super+Escape, before a sleep),
+# put here by fedokawaii (setup.sh lock_pam) in place of gtklock's own `auth include login`,
+# which says a wrong password only after 2 s (system-auth's pam_faildelay, and pam_unix's own).
+# The check of Fedora's "local" profile (authselect), a wrong password said in 0.3 s: pam_unix
+# without its delay, pam_faildelay at 300 ms — about three tries a second at most.
+auth       required     pam_env.so
+auth       required     pam_faildelay.so delay=300000
+auth       sufficient   pam_unix.so nodelay
+auth       required     pam_deny.so
+account    required     pam_unix.so
