@@ -53,8 +53,23 @@ grep -Pzq '\+	if \(!monbatch\)\n\+		focusclient\(focustop\(selmon\), 1\);' "$P" 
   && (($(grep -c '^+[[:space:]]*monbatch = 1;' "$P") == 2)) && (($(grep -c '^+[[:space:]]*monbatch = 0;' "$P") == 2)) \
   && _ok || _no "monbatch"
 
+case_ "back after it dropped off, its first picture waits for its wallpaper and bar, drawn and done (T02b: wlroots shows clients no output without a mode, so they are made anew only once it is lit)"
+f=$(added monwhole) g=$(added wholearm) h=$(added wholesettle)
+grep -q 'w |= WHOLE_WALL;' <<<"$f" && grep -q 'l->layer_surface->current.exclusive_zone > 0' <<<"$f" \
+  && grep -q 'k->whole = m->fresh || m->wholehold ? m->whole : monwhole(m);' <<<"$(added monkeep)" \
+  && grep -q 'holdmon(m, WHOLE_CAP_MS);' <<<"$g" && grep -q 'm->lockhold = 1;' <<<"$g" \
+  && grep -q 'WHOLE_SETTLE_MS' <<<"$h" && grep -q '^+#define WHOLE_CAP_MS 1000 ' "$P" \
+  && grep -Pzq '\+		m->wakemode = NULL;\n\+		wholearm\(m\);' "$P" \
+  && grep -Pzq '\+		if \(wlr_output->enabled\)    /\* \(lit by the cable; one kept dark: as it is woken\) \*/\n\+			wholearm\(m\);' "$P" \
+  && grep -q '^+		if (m->wholehold == 1 && (monwhole(m) & m->whole) == m->whole && (!locked' "$P" \
+  && grep -Pzq '\+		if \(l->mon->wholehold == 2\)\n\+			wholesettle\(l->mon\);' "$P" \
+  && grep -Pzq '\+	m->wholehold = 0;\n\+	wl_list_for_each\(c, &clients, link\)\n\+		if \(c->mon == m\)\n\+			c->resizeserial = 0;' "$P" \
+  && _ok || _no "the whole-desktop hold"
+
 case_ "the runtime check exists and fails the old way: tools/hotplug-test.sh (root, a free card)"
 t=$REPO/tools/hotplug-test.sh
 [[ -f $t && -f $REPO/tools/xconf.c ]] && grep -q 'kill -USR1' "$t" && grep -q 'echo 1 >"$dbg/trigger_hotplug"' "$t" && grep -q 'focus $want_title · C at $want_c' "$t" \
+  && grep -q "ok = s\[1\] == 'settled' and h\['F'\] == 0" "$t" && grep -q 'dbus-run-session --config-file="$T/bus.conf" -- waybar' "$t" \
+  && grep -q '"custom/late": { "exec": "sleep 0.04; echo late"' "$t" \
   && bash -n "$t" && _ok || _no "tools/hotplug-test.sh"
 done_

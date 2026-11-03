@@ -41,7 +41,7 @@ approach:
 accept: on the PC: windows on workspaces 3 and 5, spiral with mfact 0.5, one floating window moved; monitor powered off 30 s and on; DPMS off/on via wlopm: workspace, layout, mfact, the floating window's x/y (grim + tools/px.py) and focus identical — 5/5 cycles each; headless: 50 hook cycles, state identical every time (tools/hotplug-test.sh output in the ledger); test_hotplug.sh added; both T01+T02 in one batch-A restart.
 STATE (2026-10-27, ledger r27-2): implemented as MonKept (tags, layouts, mfact, nmaster, mode, focus by output name; kept-off outputs stay off, lit by a key PRESS — never a release — since a reconnected-while-off output has no wl_output for wlopm); NO test hook: the real-hotplug test on the iGPU (tools/hotplug-test.sh, 12 checks) + live on HDMI-A-1 (workspace 3 kept, 144 Hz) + DPMS 90 s (the LG stayed connected). DONE: hotplug-test.sh now checks tags, layout, mode, the focused window, a floating window's x/y and (once) the spiral's mfact over 5 real cycles — it caught a real bug (the focus went to another window: setmon focused each re-attached window and reordered the focus stack → `monbatch`); all pass. The power button itself cannot be pressed from here — the kernel unplug is the same event; T38 tries `ddcutil setvcp D6 4/5` as a second real path.
 
-### T02b — the bar made in the dark: a monitor that came back while dark lights onto a whole desktop  [open, found 2026-11-03 06:00 — ledger r27-02b-found]
+### T02b — the bar made in the dark: a monitor that came back while dark lights onto a whole desktop  [wip 3 Nov 06:40 — BUILT and proven on the test card (ledger r27-02b): the approach below was closed by wlroots itself, replaced by the whole-desktop hold; LEFT: live at his next session (screen off 5 min, the LG drops its line, a key: D lines + a shot), the real bar's burst measured (L lines) against WHOLE_SETTLE_MS]
 deps: T02 · model: main (dwl) · ledger: r27-02b
 evidence (3 Nov): 02:48:33 the screens dark (journal: kawa-lock "screens off" — quick settings' screen off leaves the
 desktop UNLOCKED); 02:52:03 a DRM hot-plug (lact: "got kernel drm subsystem event"; lxqt-policykit-agent: "There are no
@@ -53,13 +53,17 @@ empty until their first exec). From 02:48:33 to 02:52:03 (dark, not unplugged) w
 keeps its place and wl_output — the reconnected one should be the same.
 files: ~/.local/src/dwl/dwl.c (createmon's kept-off path, updatemons) → src/dwl/dwl.patch, tools/hotplug-test.sh,
 tests/session/test_hotplug.sh
-approach: a reconnected-while-dark output gets its layout place and wl_output while it stays dark (as DPMS leaves them),
-so waybar makes its bar in the dark; if wlroots wants a committed mode first, commit the mode and power off in the same
-commit (never a lit frame). wlopm then sees it again (kawa-lock --screens on works through wlopm as for any dark
+approach (as planned — IMPOSSIBLE, wlroots 0.20.2's own source, 3 Nov: types/output/output.c:666–683 sets no mode on a
+disabled output; types/wlr_output_layout.c:125–133 exposes no wl_output without a mode): a reconnected-while-dark output gets
+its layout place and wl_output while it stays dark, so waybar makes its bar in the dark.
+approach (BUILT): the screen keeps what its desktop had as it dropped off (monwhole: its wallpaper = a background layer
+surface, its bar = one with an exclusive zone); lit again — by the cable, or by the key after coming back dark — its first
+picture is held (rendermon's hold; the modeset's black meanwhile) until both are back and drawn, then until no layer
+surface has drawn for WHOLE_SETTLE_MS (100 ms: the bar's modules fill), 1 s at most; locked, the lock too. wlopm then sees it again (kawa-lock --screens on works through wlopm as for any dark
 output); T02's "lit by a key PRESS, never a release" stays.
-accept: tools/hotplug-test.sh with the real waybar config on the test dwl: unplugged while dark and replugged dark —
-waybar's layer surface exists on the dark output before the first key; at the key, the first lit frame (dwl's frame log
-+ a grim shot at once) shows the bar with its modules filled; 5/5 cycles; live: quick settings' screen off, 5 min (the
+accept (as built): tools/hotplug-test.sh section 4 (a swaybg and a waybar on the test dwl: a module at once, one after
+40 ms): every return held, whole, shown "settled" (not at the cap), 0 frames drawn before (dwl's frame log), the shot
+after: bar, both modules, wallpaper; 5 cable cycles + the key [MET 3 Nov, ASan too]; live: quick settings' screen off, 5 min (the
 LG drops its line), a key → the bar there in the first shot (within 50 ms). Regression check kept in test_hotplug.sh.
 
 ### T03 — the verification toolbox (headless runs on the real GPU, frame log, shots, pixel measurement)  [done 2026-10-27 see ledger r27-3]

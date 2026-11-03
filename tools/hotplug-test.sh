@@ -16,6 +16,11 @@
 #   3 turned off (wlopm) before it dropped off: it comes back still off (no wl_output then:
 #     wlopm cannot reach it); a key let go leaves it dark, a key pressed lights it, at its
 #     mode, and kawa-display --hotplug runs then — not while it stays dark
+#   4 every time it is back and lit (by the cable, or by the key): its wallpaper and its bar
+#     (swaybg and waybar — their own clients make them anew for the new output) are back,
+#     drawn and done before its first picture — no frame drawn before (dwl's frame log: the
+#     D lines of wholearm, the F lines of rendermon), not at the 1 s cap; the bar's two
+#     modules (one at once, one after 40 ms) and the wallpaper on the screen after it
 #   sudo bash tools/hotplug-test.sh [DWL]     DWL: the binary to test (default: the invoking
 #                                             user's ~/.local/src/dwl/dwl); CYCLES=N in the env
 # Exit 0 every check passed · 1 one failed (each printed) · 2 cannot run here
@@ -27,7 +32,7 @@ uhome=$(getent passwd "$user" | cut -d: -f6)
 dwl=${1:-$uhome/.local/src/dwl/dwl}
 cycles=${CYCLES:-5}
 [[ -x $dwl ]] || { echo "hotplug-test: no dwl at $dwl" >&2; exit 2; }
-for t in wlr-randr wlopm wtype cc; do
+for t in wlr-randr wlopm wtype cc grim swaybg waybar dbus-run-session; do
   command -v "$t" >/dev/null || { echo "hotplug-test: $t is missing" >&2; exit 2; }
 done
 
@@ -67,8 +72,17 @@ restore() {
   echo detect >"$status" 2>/dev/null
   echo 0 >"$dbg/trigger_hotplug" 2>/dev/null
 }
+ended() { ! kill -0 "$1" 2>/dev/null; }
+# the layer clients end with the test dwl (their display gone): waybar's dbus-run-session then
+# takes its own bus down — killed itself, it would leave that bus running
+clientsend() {
+  local p
+  for p in ${bgpid:-} ${barpid:-}; do wait_for 5 ended "$p" || kill -9 "$p" 2>/dev/null; done
+  bgpid="" barpid=""
+}
 cleanup() {
   [[ -n $pid ]] && kill "$pid" 2>/dev/null && wait "$pid" 2>/dev/null
+  clientsend
   restore
   rm -rf "$T"
 }
@@ -94,7 +108,7 @@ chmod 700 "$T"
 plug
 env -i PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" HOME="$T" XDG_RUNTIME_DIR="$T" \
   LIBSEAT_BACKEND=noop WLR_BACKENDS=drm WLR_DRM_DEVICES="/dev/dri/$card" WLR_RENDERER=gles2 \
-  "$dwl" -s "$T/startup.sh" >"$T/dwl.out" 2>"$T/dwl.err" &
+  DWL_FRAMELOG="$T/frames.log" "$dwl" -s "$T/startup.sh" >"$T/dwl.out" 2>"$T/dwl.err" &
 pid=$!
 wl() { local s; for s in "$T"/wayland-[0-9]; do break; done; WAYLAND_DISPLAY=${s##*/} XDG_RUNTIME_DIR=$T "$@"; }
 randr() { wl wlr-randr 2>/dev/null | awk -v o="$conn" '$1 == o { on = 1; next } /^[^ ]/ { on = 0 } on'; }
@@ -127,6 +141,31 @@ if ! wait_for 15 enabled yes || ! wait_for 10 test -s "$T/display"; then
   echo "hotplug-test: the test dwl did not come up — its log:" >&2; tail -n 15 "$T/dwl.err" >&2; exit 2
 fi
 sleep 1
+# (4) the desktop's own layer clients on it, cut off from everything else as dwl is: a
+# wallpaper of one colour, a bar of one colour with two modules in another
+cat >"$T/bar.json" <<'BAR'
+{ "layer": "top", "position": "top", "height": 27,
+  "modules-left": ["custom/now", "custom/late"],
+  "custom/now": { "exec": "echo now", "interval": 3600 },
+  "custom/late": { "exec": "sleep 0.04; echo late", "interval": 3600 } }
+BAR
+printf '* { font-family: monospace; font-size: 14px; min-height: 0; border: none; }
+window#waybar { background: #00ff00; color: #ff00ff; }
+#custom-now { margin-right: 24px; }\n' >"$T/bar.css"
+client() {
+  local s; for s in "$T"/wayland-[0-9]; do break; done
+  env -i PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" HOME="$T" XDG_RUNTIME_DIR="$T" \
+    WAYLAND_DISPLAY="${s##*/}" GDK_BACKEND=wayland NO_AT_BRIDGE=1 "$@"
+}
+client swaybg -c '#0000ff' >"$T/swaybg.log" 2>&1 & bgpid=$!
+# (waybar wants a session bus: one of its own, which starts nothing — no portals)
+printf '<busconfig><type>session</type><listen>unix:dir=%s</listen><auth>EXTERNAL</auth>
+<policy context="default"><allow send_destination="*" eavesdrop="true"/><allow eavesdrop="true"/><allow own="*"/></policy></busconfig>\n' \
+  "$T" >"$T/bus.conf"
+client dbus-run-session --config-file="$T/bus.conf" -- waybar -c "$T/bar.json" -s "$T/bar.css" \
+  >"$T/waybar.log" 2>&1 & barpid=$!
+wait_for 15 grep -qs "Bar configured" "$T/waybar.log" || { echo "hotplug-test: the bar did not come up — its log:" >&2; tail -n 5 "$T/waybar.log" >&2; exit 2; }
+sleep 0.5
 # (set up) a mode other than the preferred one; tag 3; A and B tiled in the spiral, its mfact
 # raised twice; C floating at x 300 y 200, focused; the layout of Super+T
 pref=$(randr | sed -n 's/^ *\([0-9]*x[0-9]*\) px, \([0-9.]*\) Hz.*preferred.*/\1@\2/p' | head -1)
@@ -198,6 +237,69 @@ wait_for 5 enabled yes && pass "a key pressed lights it" || fail "a key pressed 
 [[ $(seltags) == "$want_tags" ]] && pass "lit on the tag it showed" || fail "lit on tags $(seltags), not $want_tags"
 wait_for 3 more "$n" && pass "kawa-display --hotplug ran as it lit" || fail "kawa-display did not run as it lit"
 kill -0 "$pid" 2>/dev/null || fail "dwl died"
+
+# 4 the screen it lit onto: the bar (a band of #00ff00 with its two modules' words in
+# #ff00ff, two runs of them) over the wallpaper (#0000ff) — then the frame log, written out
+# as the test dwl ends (shown on an empty tag)
+sleep 1.5
+key -M logo -k 9 -m logo; sleep 1          # (an empty tag: the wallpaper, not the windows)
+if wl grim -t ppm -o "$conn" "$T/shot.ppm" 2>/dev/null; then
+  look=$(python3 -I - "$T/shot.ppm" <<'PX'
+import sys
+d = open(sys.argv[1], 'rb').read()
+parts, i = [], 0
+while len(parts) < 4:                     # P6, width, height, maxval — whitespace between
+    while d[i:i + 1].isspace(): i += 1
+    j = i
+    while not d[j:j + 1].isspace(): j += 1
+    parts.append(d[i:j]); i = j
+w, h = int(parts[1]), int(parts[2]); px = d[i + 1:]
+at = lambda x, y: px[3 * (y * w + x):3 * (y * w + x) + 3]
+band = sum(at(x, 13) == b'\x00\xff\x00' for x in range(w)) * 100 // w
+cols = [any(at(x, y)[0] > 128 and at(x, y)[2] > 128 and at(x, y)[1] < 128 for y in range(27))
+        for x in range(w)]
+runs, prev = 0, False
+for i, c in enumerate(cols):
+    if c and not prev and (i < 8 or not any(cols[i - 8:i])): runs += 1
+    prev = c
+wall = all(at(x, y) == b'\x00\x00\xff' for x, y in ((w // 2, h // 2), (5, h - 5), (w - 5, 40)))
+print(band, runs, int(wall))
+PX
+)
+  read -r band runs wall <<<"$look"
+  ((${band:-0} >= 50 && ${runs:-0} == 2 && ${wall:-0} == 1)) \
+    && pass "lit onto its bar (both modules) and its wallpaper" \
+    || fail "lit onto band ${band:-?} %, ${runs:-?} module runs, wallpaper ${wall:-?} (want ≥ 50, 2, 1)"
+else
+  fail "no shot of the screen it lit (grim)"
+fi
+kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; pid=""
+clientsend
+want=$((cycles + 1))
+while IFS= read -r line; do
+  case $line in ok*) pass "${line#ok }" ;; *) fail "$line" ;; esac
+done < <(python3 -I - "$T/frames.log" "$conn" "$want" <<'FL'
+import sys
+log, conn, want = sys.argv[1], sys.argv[2], int(sys.argv[3])
+holds, cur = [], None
+for line in open(log, errors='replace'):
+    f = line.split()
+    if len(f) < 3 or f[2] != conn: continue
+    if f[0] == 'D' and f[3] == 'held': cur = {'t0': int(f[1]), 'whole': None, 'shown': None, 'F': 0, 'L': 0}; holds.append(cur)
+    elif cur is None or cur['shown']: continue
+    elif f[0] == 'D' and f[3] == 'whole': cur['whole'] = int(f[1])
+    elif f[0] == 'D' and f[3] == 'shown': cur['shown'] = (int(f[1]), ' '.join(f[4:]))
+    elif f[0] == 'F': cur['F'] += 1
+    elif f[0] == 'L': cur['L'] += 1
+print(('ok ' if len(holds) == want else '') + f"{len(holds)} times back and held (of {want}: each cable cycle, and the key)")
+for n, h in enumerate(holds, 1):
+    s = h['shown']
+    if not s or not h['whole']: print(f"back {n}: never whole ({h})"); continue
+    ms = lambda t: (t - h['t0']) / 1000
+    ok = s[1] == 'settled' and h['F'] == 0
+    print(('ok ' if ok else '') + f"back {n}: whole at {ms(h['whole']):.0f} ms, shown {s[1]} at {ms(s[0]):.0f} ms, {h['L']} layer commits, {h['F']} frames drawn before")
+FL
+)
 
 ((fails == 0)) && { echo "hotplug-test: all passed"; exit 0; }
 echo "hotplug-test: $fails failed — the test dwl's log: $T/dwl.err (kept)"; trap - EXIT

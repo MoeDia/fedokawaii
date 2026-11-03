@@ -4392,6 +4392,31 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   main; the trial merge merge-t20, never pushed, both parents in main: its branch deleted). The t20-fix installer-area
   run (fix-inst2) stopped at the shell's time limit after 23 of 26 files, all green (test_upstream, test_verify,
   test_vm_tools not reached on that branch; test_verify ran on main: 186/0).
+- r27-02b (3 Nov 06:17–06:42, dwl; proven on the test card, live at his next session): the plan's way is closed by
+  wlroots itself — wlroots 0.20.2 (Fedora's wlroots-0.20.2-1.fc44 = our private copy; its tarball
+  gitlab.freedesktop.org/wlroots/wlroots/-/archive/0.20.2): types/output/output.c:666–683 sets no mode on a disabled
+  output ("Tried to set mode on a disabled output"), types/wlr_output_layout.c:125–133 exposes no wl_output without one
+  ("Don't expose the output if it doesn't have a current mode") — so waybar cannot see a screen that came back dark
+  until it is lit (forcing a 0 × 0 wl_output on every client — Xwayland, Brave, foot — rejected as unsafe). BUILT
+  instead (dwl.c): the screen keeps what its desktop had as it dropped off (monwhole → MonKept.whole: a background
+  layer surface = its wallpaper, one with an exclusive zone = its bar; the saver, notices, menus not counted); lit
+  again — by the cable (createmon) or by the key after it came back dark (monpower) — its first picture is held
+  (wholearm → rendermon's hold; the modeset's black meanwhile) until both are back and drawn, then until no layer
+  surface has drawn for WHOLE_SETTLE_MS 100 ms (waybar shows each custom module only once its first exec answers),
+  WHOLE_CAP_MS 1 s at most; locked, the lock's surface too; their frame callbacks answered meanwhile. Frame log: D
+  held/whole/shown, L layer commits during a hold. tools/hotplug-test.sh section 4: a swaybg and a waybar on the test
+  dwl (a module at once, one after 40 ms; waybar on a private bus with no service dirs) — 26/26 (run5), the ASan build
+  26/26, no AddressSanitizer error (LeakSanitizer: only setup()'s lifelong objects at exit); each of the 6 returns (5
+  by the cable, 1 by the key): whole at 2–11 ms, shown "settled" at 142–152 ms, 7 layer commits, 0 frames drawn
+  before; the shot after: the band, both modules' words, the wallpaper. Found on the way: run 2's stock private bus
+  ACTIVATED xdg-desktop-portal, -document-portal (a FUSE mount in the test's runtime dir) and -permission-store as root,
+  and killing dbus-run-session orphaned its bus — those four pids (each XDG_RUNTIME_DIR=/tmp/hotplug.GhHyOp) stopped,
+  unmounted, the dir removed; the test now gives the bus no service dirs and lets the bar end with the test dwl. Round
+  trip: pinned dwl + the new dwl.patch = the tree (dwl.c, client.h, config.def.h identical). tests/session/
+  test_hotplug.sh: a case for the hold and the runtime check's new parts — 9/0. LEFT: live (quick settings' screen
+  off, 5 min for the LG to drop its line, a key → D "shown settled" in his frame log via SIGUSR2 + a grim shot), the
+  real bar's burst measured by its L lines against the 100 ms (the LG's own time from signal to picture cannot be
+  measured from here: no camera).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4400,8 +4425,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     scene's low line, as kawa-greet does), bug 1's real
 ##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
 ##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
-## (1b) T02b (new, plan): the bar made in the dark — a monitor that came back while dark gets its wl_output and layout
-##     place (waybar builds its bar unseen); tools/hotplug-test.sh with waybar; dwl work → the next login.
+## (1b) T02b BUILT (r27-02b): the whole-desktop hold (wlroots forbids the bar in the dark); live at the next session:
+##     screen off 5 min, the LG drops its line, a key → D "shown settled" in the frame log + a shot; L lines vs 100 ms.
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
