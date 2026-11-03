@@ -4469,6 +4469,41 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   that matters on a one-monitor desk), plymouth/boot with video=…e (only via BOOT_ARGS + a VM proof first); undo:
   `echo detect` + edid_override reset (as the test's restore()). Decide in writing in the ledger; if adopted, the
   hold stays for a monitor that truly comes back (a new cable, the other card).
+- r27-02b-fixes (4 Nov 00:54–01:12, dwl — the master's T02b must-fix 2, should-fixes 3 and 4, nits 7–9; built in
+  ~/.local/src/dwl, NOT installed: the apply waits — he was at the PC (Brave's sound playing at 00:55, his inbox entry of
+  00:55) and the apply's live step runs kawa-theme apply in his session). SF3: outputmgrapplyortest calls wholearm when an
+  output-management client lights a kept-dark output (wlr-randr --on, kanshi). SF4: the settle re-arms only on a new
+  buffer (WLR_SURFACE_STATE_BUFFER) of what monwhole counts (a background surface or one with an exclusive zone, never the
+  saver) — the L line carries that flag; the held screen's layer and lock frame callbacks are answered by a refresh-paced
+  timer per monitor (wholetick, 1e6/refresh ms), no longer on every frame event in rendermon (nit 9: the lock's once).
+  Nit 8: wholearm arms nothing when holdmon did not (the output did not light). Nit 7: the frame-log header names D and
+  L. MF2: the locked path proven — a real gtklock (root on the test dwl, no modules, a red style) locks; off, unplugged,
+  back dark, a key → "D lock drawn" at 14–30 ms ≤ "D whole", shown settled at 151 ms, 0 frames before; the shot after:
+  99 % the lock's red, no bar. tools/hotplug-test.sh gained 3b (wlr-randr --on --mode: lit at its mode, kawa-display ran,
+  held), a passing surface through every return (a second waybar, "exclusive": false, an endless 0.5 s CSS colour
+  animation) and section 5 (locked); the frame-log check: 8 holds, each settled, 0 F before, ≤ one layer commit a refresh
+  + 15, the locked one's lock drawn first. NEW dwl: 33/33 (run7: whole 2–11 ms, shown settled 142–151 ms, 26–27 layer
+  commits, 4 of them new pictures of the bar and wallpaper); ASan build 33/33, no report. THE OLD BUILD (d132345, rebuilt
+  from its source) FAILS it: 3 of 4 holds (none on the wlr-randr light), every return "at the cap" at 1.5–2.3 s with
+  63,751–97,921 layer commits — GTK 3 redraws at once on each answered callback: the master's spin was real. Found on
+  the way: my first 3b turned the screen off and unplugged it ~150 ms after the key lit it, mid-hold — that hold never
+  ended (the monitor went, its timers with it; dwl right: monkeep keeps the old `whole`): the test waits 1.5 s first.
+  test_hotplug 10/0 (a new case: the part rule, wholetick, the paced answer, the bail, the client's light); ShellCheck
+  clean, test_syntax 800/0; round trip tools/dwl-patch.sh → src/dwl/dwl.patch (117 hunks). Evidence: /dev/shm/r27/T02b/run7.txt,
+  run-asan2.txt, run-old2.txt.
+- r27-02b-sf6 (4 Nov 01:12, the master's should-fix 6 WEIGHED — its measurement needs his screen dark 5+ min: not
+  tonight). The forced connector answers THIS case at its root: card0-HDMI-A-1 forced on, the LG's standby drop is no
+  hot-plug — the output, its layers, the lock's surface and T02's state stay; nothing rebuilt, no 150 ms hold. Its costs:
+  at boot (video=HDMI-A-1:e + drm.edid_firmware with the EDID in the initramfs: kernel-parameters.txt, modedb.rst) a
+  swapped monitor keeps the LG's modes until the arguments change; at runtime (sysfs status "on" + debugfs
+  edid_override, as the test does to card1) it follows the EDID read unforced, but debugfs is no stable ABI; a real
+  unplug leaves dwl drawing to a screen nobody has; T32–T34 move the host to the iGPU (the force moves with it).
+  DECISION: the hold stays — it answers a genuinely new output (a cable, the other card, a swapped monitor) and costs two
+  int tests a frame outside a hold. The forced connector is adopted only if a live measurement (he away an hour+:
+  presence first) shows all four: (a) the LG's drop changes nothing (no udev/journal event, wlr-randr the same), (b) a
+  key → his picture, the bar as it was, 144 Hz, (c) the monitor's power button off/on → the picture back, (d) a cable
+  pull and back → the picture back; then as kawa-display's runtime force for the EDID it read unforced at boot only (a
+  different monitor: no force), VM-proven for the boot path first. Until then: not adopted.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4477,12 +4512,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     scene's low line, as kawa-greet does), bug 1's real
 ##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
 ##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
-## (1b) T02b — the master's review 1: PASS WITH CONDITIONS (r27-02b-master-1). FIRST weigh should-fix 6 (the forced
-##     connector: it may make the hold moot for this case — measure, decide in writing); then must-fix 2 (a lock client
-##     on the test dwl), should-fix 4 (re-arm only for counted surfaces on a new buffer; frame callbacks once a refresh)
-##     and 3 (wholearm in outputmgrapplyortest + a wlr-randr --on return); THEN `fedokawaii apply` from a frozen tree
-##     (the dwl for his next login; 96033e1 + 0065a2b refresh his pack's ten light pictures); live: screen off 5 min, the
-##     LG drops its line, a key → D "shown settled" + a shot; should-fix 5 from its L lines; the master's review 2.
+## (1a) T19p NEW (his inbox of 4 Nov 00:55): before the last design refinement, the review pack + one notice asking his
+##     opinion — T19m passes 2–3 wait for his answers (plan T19p). Build the pack once T18, T20's nits, T22 mf3, T19m p1 close.
+## (1b) T02b — must-fix 2, should-fixes 3 + 4, nits 7–9 DONE (r27-02b-fixes: 33/33, ASan, the old build fails);
+##     should-fix 6 WEIGHED (r27-02b-sf6: the hold stays; the forced connector only after a live measurement).
+##     LEFT: `fedokawaii apply` from a frozen tree when he is NOT at the PC (its live step runs kawa-theme apply; the dwl
+##     for his next login; 96033e1 + 0065a2b refresh his pack's ten light pictures); live: screen off 5 min, the LG drops
+##     its line, a key → D "shown settled" + a shot; should-fix 5 from its L lines (only the part=1 ones set the settle);
+##     should-fix 6's four measurements (away an hour+); then the master's review 2.
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.

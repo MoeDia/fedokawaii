@@ -16,11 +16,17 @@
 #   3 turned off (wlopm) before it dropped off: it comes back still off (no wl_output then:
 #     wlopm cannot reach it); a key let go leaves it dark, a key pressed lights it, at its
 #     mode, and kawa-display --hotplug runs then — not while it stays dark
-#   4 every time it is back and lit (by the cable, or by the key): its wallpaper and its bar
-#     (swaybg and waybar — their own clients make them anew for the new output) are back,
-#     drawn and done before its first picture — no frame drawn before (dwl's frame log: the
-#     D lines of wholearm, the F lines of rendermon), not at the 1 s cap; the bar's two
-#     modules (one at once, one after 40 ms) and the wallpaper on the screen after it
+#     — and the same lit by a client of the output protocol (wlr-randr --on, as kanshi would)
+#   4 every time it is back and lit (by the cable, by the key, by wlr-randr): its wallpaper and
+#     its bar (swaybg and waybar — their own clients make them anew for the new output) are
+#     back, drawn and done before its first picture — no frame drawn before (dwl's frame log:
+#     the D lines of wholearm, the F lines of rendermon), not at the 1 s cap; the bar's two
+#     modules (one at once, one after 40 ms) and the wallpaper on the screen after it. A
+#     passing surface drawing itself all the while (a second waybar with no zone of its own
+#     and a CSS animation: a notice, a menu) does not keep the picture waiting
+#   5 locked (gtklock), turned off, dropped off, back dark, a key: the picture waits for the
+#     lock to have drawn itself on the new output (D lock drawn before D whole), then the
+#     lock on the screen — not the desktop
 #   sudo bash tools/hotplug-test.sh [DWL]     DWL: the binary to test (default: the invoking
 #                                             user's ~/.local/src/dwl/dwl); CYCLES=N in the env
 # Exit 0 every check passed · 1 one failed (each printed) · 2 cannot run here
@@ -32,7 +38,7 @@ uhome=$(getent passwd "$user" | cut -d: -f6)
 dwl=${1:-$uhome/.local/src/dwl/dwl}
 cycles=${CYCLES:-5}
 [[ -x $dwl ]] || { echo "hotplug-test: no dwl at $dwl" >&2; exit 2; }
-for t in wlr-randr wlopm wtype cc grim swaybg waybar dbus-run-session; do
+for t in wlr-randr wlopm wtype cc grim swaybg waybar dbus-run-session gtklock; do
   command -v "$t" >/dev/null || { echo "hotplug-test: $t is missing" >&2; exit 2; }
 done
 
@@ -77,8 +83,8 @@ ended() { ! kill -0 "$1" 2>/dev/null; }
 # takes its own bus down — killed itself, it would leave that bus running
 clientsend() {
   local p
-  for p in ${bgpid:-} ${barpid:-}; do wait_for 5 ended "$p" || kill -9 "$p" 2>/dev/null; done
-  bgpid="" barpid=""
+  for p in ${bgpid:-} ${barpid:-} ${lockpid:-}; do wait_for 5 ended "$p" || kill -9 "$p" 2>/dev/null; done
+  bgpid="" barpid="" lockpid=""
 }
 cleanup() {
   [[ -n $pid ]] && kill "$pid" 2>/dev/null && wait "$pid" 2>/dev/null
@@ -157,14 +163,26 @@ client() {
   env -i PATH="$T/bin:/usr/local/bin:/usr/bin:/bin" HOME="$T" XDG_RUNTIME_DIR="$T" \
     WAYLAND_DISPLAY="${s##*/}" GDK_BACKEND=wayland NO_AT_BRIDGE=1 "$@"
 }
+# a passing surface on top, no zone of its own, drawing itself every frame (a CSS animation)
+cat >"$T/spin.json" <<'BAR'
+{ "layer": "top", "position": "bottom", "height": 27, "exclusive": false,
+  "modules-right": ["custom/spin"],
+  "custom/spin": { "exec": "echo spin", "interval": 3600 } }
+BAR
+printf '* { font-family: monospace; font-size: 14px; min-height: 0; border: none; }
+window#waybar { background: #0000ff; color: #ffffff; }
+#custom-spin { animation: spin 0.5s linear infinite; }
+@keyframes spin { from { color: #ffffff; } to { color: #808080; } }\n' >"$T/spin.css"
 client swaybg -c '#0000ff' >"$T/swaybg.log" 2>&1 & bgpid=$!
 # (waybar wants a session bus: one of its own, which starts nothing — no portals)
 printf '<busconfig><type>session</type><listen>unix:dir=%s</listen><auth>EXTERNAL</auth>
 <policy context="default"><allow send_destination="*" eavesdrop="true"/><allow eavesdrop="true"/><allow own="*"/></policy></busconfig>\n' \
   "$T" >"$T/bus.conf"
-client dbus-run-session --config-file="$T/bus.conf" -- waybar -c "$T/bar.json" -s "$T/bar.css" \
-  >"$T/waybar.log" 2>&1 & barpid=$!
-wait_for 15 grep -qs "Bar configured" "$T/waybar.log" || { echo "hotplug-test: the bar did not come up — its log:" >&2; tail -n 5 "$T/waybar.log" >&2; exit 2; }
+client dbus-run-session --config-file="$T/bus.conf" -- sh -c 'waybar -c "$1/bar.json" -s "$1/bar.css" >"$1/waybar.log" 2>&1 &
+waybar -c "$1/spin.json" -s "$1/spin.css" >"$1/spin.log" 2>&1 & wait' sh "$T" >/dev/null 2>&1 & barpid=$!
+for b in waybar spin; do
+  wait_for 15 grep -qs "Bar configured" "$T/$b.log" || { echo "hotplug-test: the bar ($b) did not come up — its log:" >&2; tail -n 5 "$T/$b.log" >&2; exit 2; }
+done
 sleep 0.5
 # (set up) a mode other than the preferred one; tag 3; A and B tiled in the spiral, its mfact
 # raised twice; C floating at x 300 y 200, focused; the layout of Super+T
@@ -237,14 +255,31 @@ wait_for 5 enabled yes && pass "a key pressed lights it" || fail "a key pressed 
 [[ $(seltags) == "$want_tags" ]] && pass "lit on the tag it showed" || fail "lit on tags $(seltags), not $want_tags"
 wait_for 3 more "$n" && pass "kawa-display --hotplug ran as it lit" || fail "kawa-display did not run as it lit"
 kill -0 "$pid" 2>/dev/null || fail "dwl died"
+# 3b the same, lit by a client of the output protocol (wlr-randr --on — kanshi would) — once
+# the key's picture is shown (turned off and dropped off mid-hold, that hold never ends: its
+# monitor is gone, its frames with it)
+sleep 1.5
+wl wlopm --off "$conn" >/dev/null 2>&1
+wait_for 5 enabled no || fail "wlopm --off did not turn it off (3b)"
+unplug; wait_for 10 gone
+n=$(calls)
+plug
+sleep 2
+enabled no || fail "back while turned off (3b): lit by the cable"
+wl wlr-randr --output "$conn" --on --mode "${want_mode%@*}@${want_mode#*@}Hz" >/dev/null 2>&1
+wait_for 5 enabled yes && pass "wlr-randr --on lights it" || fail "wlr-randr --on did not light it"
+[[ $(current) == "$want_mode" ]] && pass "lit by wlr-randr at the mode it had ($want_mode)" || fail "lit by wlr-randr at $(current), not $want_mode"
+wait_for 3 more "$n" && pass "kawa-display --hotplug ran as wlr-randr lit it" || fail "kawa-display did not run as wlr-randr lit it"
 
 # 4 the screen it lit onto: the bar (a band of #00ff00 with its two modules' words in
 # #ff00ff, two runs of them) over the wallpaper (#0000ff) — then the frame log, written out
 # as the test dwl ends (shown on an empty tag)
 sleep 1.5
 key -M logo -k 9 -m logo; sleep 1          # (an empty tag: the wallpaper, not the windows)
-if wl grim -t ppm -o "$conn" "$T/shot.ppm" 2>/dev/null; then
-  look=$(python3 -I - "$T/shot.ppm" <<'PX'
+# look FILE — of a shot: the green band's share of row 13 (%), the module runs in it, the
+# wallpaper at three places (1/0), the lock's red share of the whole screen (%)
+look() {
+  python3 -I - "$1" <<'PX'
 import sys
 d = open(sys.argv[1], 'rb').read()
 parts, i = [], 0
@@ -263,41 +298,74 @@ for i, c in enumerate(cols):
     if c and not prev and (i < 8 or not any(cols[i - 8:i])): runs += 1
     prev = c
 wall = all(at(x, y) == b'\x00\x00\xff' for x, y in ((w // 2, h // 2), (5, h - 5), (w - 5, 40)))
-print(band, runs, int(wall))
+red = sum(px[k:k + 3] == b'\xff\x00\x00' for k in range(0, 3 * w * h, 3 * 7)) * 100 // len(range(0, 3 * w * h, 3 * 7))
+print(band, runs, int(wall), red)
 PX
-)
-  read -r band runs wall <<<"$look"
+}
+if wl grim -t ppm -o "$conn" "$T/shot.ppm" 2>/dev/null; then
+  read -r band runs wall _ < <(look "$T/shot.ppm")
   ((${band:-0} >= 50 && ${runs:-0} == 2 && ${wall:-0} == 1)) \
     && pass "lit onto its bar (both modules) and its wallpaper" \
     || fail "lit onto band ${band:-?} %, ${runs:-?} module runs, wallpaper ${wall:-?} (want ≥ 50, 2, 1)"
 else
   fail "no shot of the screen it lit (grim)"
 fi
+
+# 5 locked: off, dropped off, back dark, a key — the lock's own picture first (gtklock, red)
+printf 'window { background: #ff0000; }\n' >"$T/lock.css"
+client gtklock -s "$T/lock.css" >"$T/gtklock.log" 2>&1 & lockpid=$!
+lockred() { wl grim -t ppm -o "$conn" "$T/lock.ppm" 2>/dev/null && (($(look "$T/lock.ppm" | cut -d' ' -f4) >= 80)); }
+if wait_for 10 lockred; then
+  wl wlopm --off "$conn" >/dev/null 2>&1
+  wait_for 5 enabled no || fail "wlopm --off did not turn it off (locked)"
+  unplug; wait_for 10 gone
+  plug
+  sleep 2
+  enabled no || fail "back while turned off (locked): lit by the cable"
+  key -P Shift_L -p Shift_L
+  wait_for 5 enabled yes && pass "locked: a key pressed lights it" || fail "locked: a key pressed did not light it"
+  sleep 1.5
+  if wl grim -t ppm -o "$conn" "$T/lock2.ppm" 2>/dev/null; then
+    read -r band _ _ red < <(look "$T/lock2.ppm")
+    ((${red:-0} >= 80 && ${band:-1} == 0)) && pass "locked: lit onto the lock (${red} % of it the lock's red, no bar)" \
+      || fail "locked: lit onto ${red:-?} % lock, the bar's band ${band:-?} % (want ≥ 80, 0)"
+  else
+    fail "no shot of the locked screen it lit (grim)"
+  fi
+else
+  fail "gtklock did not lock the test dwl — its log: $(tail -n 2 "$T/gtklock.log" | tr '\n' ' ')"
+fi
 kill "$pid" 2>/dev/null; wait "$pid" 2>/dev/null; pid=""
 clientsend
-want=$((cycles + 1))
+want=$((cycles + 3))
 while IFS= read -r line; do
   case $line in ok*) pass "${line#ok }" ;; *) fail "$line" ;; esac
-done < <(python3 -I - "$T/frames.log" "$conn" "$want" <<'FL'
+done < <(python3 -I - "$T/frames.log" "$conn" "$want" "${want_mode#*@}" <<'FL'
 import sys
-log, conn, want = sys.argv[1], sys.argv[2], int(sys.argv[3])
+log, conn, want, hz = sys.argv[1], sys.argv[2], int(sys.argv[3]), float(sys.argv[4])
 holds, cur = [], None
 for line in open(log, errors='replace'):
     f = line.split()
     if len(f) < 3 or f[2] != conn: continue
-    if f[0] == 'D' and f[3] == 'held': cur = {'t0': int(f[1]), 'whole': None, 'shown': None, 'F': 0, 'L': 0}; holds.append(cur)
+    if f[0] == 'D' and f[3] == 'held': cur = {'t0': int(f[1]), 'whole': None, 'lock': None, 'shown': None, 'F': 0, 'L': 0, 'part': 0}; holds.append(cur)
     elif cur is None or cur['shown']: continue
     elif f[0] == 'D' and f[3] == 'whole': cur['whole'] = int(f[1])
+    elif f[0] == 'D' and f[3] == 'lock': cur['lock'] = int(f[1])
     elif f[0] == 'D' and f[3] == 'shown': cur['shown'] = (int(f[1]), ' '.join(f[4:]))
     elif f[0] == 'F': cur['F'] += 1
-    elif f[0] == 'L': cur['L'] += 1
-print(('ok ' if len(holds) == want else '') + f"{len(holds)} times back and held (of {want}: each cable cycle, and the key)")
+    elif f[0] == 'L': cur['L'] += 1; cur['part'] += f[-1] == '1'
+print(('ok ' if len(holds) == want else '') + f"{len(holds)} times back and held (of {want}: each cable cycle, the key, wlr-randr, the key while locked)")
 for n, h in enumerate(holds, 1):
     s = h['shown']
     if not s or not h['whole']: print(f"back {n}: never whole ({h})"); continue
     ms = lambda t: (t - h['t0']) / 1000
-    ok = s[1] == 'settled' and h['F'] == 0
-    print(('ok ' if ok else '') + f"back {n}: whole at {ms(h['whole']):.0f} ms, shown {s[1]} at {ms(s[0]):.0f} ms, {h['L']} layer commits, {h['F']} frames drawn before")
+    locked = n == want
+    # (the frames of what draws itself answered once a refresh, not at the processor's speed:
+    # the passing surface's animation at most one picture a refresh, the rest a handful)
+    paced = h['L'] <= ms(s[0]) * hz / 1000 + 15
+    ok = s[1] == 'settled' and h['F'] == 0 and paced and (not locked or (h['lock'] is not None and h['lock'] <= h['whole']))
+    lk = (f"the lock drawn at {ms(h['lock']):.0f} ms, " if h['lock'] is not None else "the lock never drawn, ") if locked else ""
+    print(('ok ' if ok else '') + f"back {n}{' (locked)' if locked else ''}: {lk}whole at {ms(h['whole']):.0f} ms, shown {s[1]} at {ms(s[0]):.0f} ms, {h['L']} layer commits{'' if paced else ' (more than one a refresh)'} ({h['part']} new pictures of the bar and wallpaper), {h['F']} frames drawn before")
 FL
 )
 

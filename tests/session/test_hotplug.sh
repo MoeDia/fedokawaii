@@ -62,14 +62,30 @@ grep -q 'w |= WHOLE_WALL;' <<<"$f" && grep -q 'l->layer_surface->current.exclusi
   && grep -Pzq '\+		m->wakemode = NULL;\n\+		wholearm\(m\);' "$P" \
   && grep -Pzq '\+		if \(wlr_output->enabled\)    /\* \(lit by the cable; one kept dark: as it is woken\) \*/\n\+			wholearm\(m\);' "$P" \
   && grep -q '^+		if (m->wholehold == 1 && (monwhole(m) & m->whole) == m->whole && (!locked' "$P" \
-  && grep -Pzq '\+		if \(l->mon->wholehold == 2\)\n\+			wholesettle\(l->mon\);' "$P" \
+  && grep -Pzq '\+		if \(l->mon->wholehold == 2 && part\)\n\+			wholesettle\(l->mon\);' "$P" \
   && grep -Pzq '\+	m->wholehold = 0;\n\+	wl_list_for_each\(c, &clients, link\)\n\+		if \(c->mon == m\)\n\+			c->resizeserial = 0;' "$P" \
   && _ok || _no "the whole-desktop hold"
+
+case_ "the hold's settle waits only for new pictures of the wallpaper and the bar, its frames answered once a refresh, every way of lighting held (the master's T02b should-fixes 3 and 4)"
+t=$(added wholetick) g=$(added wholearm)
+grep -Pzq '\+		int part = !l->saver && \(layer_surface->current.layer\n\+					== ZWLR_LAYER_SHELL_V1_LAYER_BACKGROUND\n\+				\|\| layer_surface->current.exclusive_zone > 0\)\n\+				&& layer_surface->surface->current.committed & WLR_SURFACE_STATE_BUFFER;' "$P" \
+  && grep -q 'wlr_layer_surface_v1_for_each_surface(l->layer_surface, heldframedone, &now);' <<<"$t" \
+  && grep -q 'wl_event_source_timer_update(m->wholetick, m->wlr_output->refresh > 0' <<<"$t" \
+  && grep -Pzq '\+		if \(m->wholehold\)\n\+			pending = 1;\n' "$P" \
+  && grep -Pzq '\+	holdmon\(m, WHOLE_CAP_MS\);\n\+	if \(!m->holding\)\n\+		return;' "$P" \
+  && grep -q 'wl_event_source_timer_update(m->wholetick, 1);' <<<"$g" \
+  && grep -q '^+	m->wholetick = wl_event_loop_add_timer(event_loop, wholetick, m);' "$P" \
+  && grep -q '^+	wl_event_source_remove(m->wholetick);' "$P" \
+  && grep -Pzq '\+			m->wakemode = NULL;\n\+			wholearm\(m\);' "$P" \
+  && _ok || _no "the settle, the paced frames, the client's light"
 
 case_ "the runtime check exists and fails the old way: tools/hotplug-test.sh (root, a free card)"
 t=$REPO/tools/hotplug-test.sh
 [[ -f $t && -f $REPO/tools/xconf.c ]] && grep -q 'kill -USR1' "$t" && grep -q 'echo 1 >"$dbg/trigger_hotplug"' "$t" && grep -q 'focus $want_title · C at $want_c' "$t" \
-  && grep -q "ok = s\[1\] == 'settled' and h\['F'\] == 0" "$t" && grep -q 'dbus-run-session --config-file="$T/bus.conf" -- waybar' "$t" \
+  && grep -q "ok = s\[1\] == 'settled' and h\['F'\] == 0" "$t" && grep -q "dbus-run-session --config-file=\"\$T/bus.conf\" -- sh -c 'waybar -c \"\$1/bar.json\"" "$t" \
   && grep -q '"custom/late": { "exec": "sleep 0.04; echo late"' "$t" \
+  && grep -q 'wl wlr-randr --output "$conn" --on --mode' "$t" && grep -q '"exclusive": false' "$t" \
+  && grep -q '#custom-spin { animation: spin 0.5s linear infinite; }' "$t" && grep -q 'client gtklock -s "$T/lock.css"' "$t" \
+  && grep -q "paced = h\['L'\] <= ms(s\[0\]) \* hz / 1000 + 15" "$t" && grep -q "h\['lock'\] <= h\['whole'\]" "$t" \
   && bash -n "$t" && _ok || _no "tools/hotplug-test.sh"
 done_

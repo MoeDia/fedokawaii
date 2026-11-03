@@ -25,3 +25,6 @@ when you close the mpv window instance that is in the same workspace where syncp
 
 ## 2026-11-02 18:26 — in the plan: T20r (the refresh key, Super+Ctrl+R)
 also create a shortcut that refreshed the window manager and the gpu and etcc.. a good refresh shortcut
+
+## 2026-11-04 00:55 — in the plan: T19p (the design review: the pack and a notice before the last refinement; T19m passes 2–3 wait for your answers)
+before you finish everything related to the design i want you to stop and ask me my opinion and what to change before you get to the phase of refining and cleaning up and optimizing the full last design yea
