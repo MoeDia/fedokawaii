@@ -55,7 +55,7 @@ _spec.loader.exec_module(_wada)
 _P = _wada.palette()[0]
 RAMP = {
     "dark": [_P["dark"][k] for k in ("lo", "ground", "edge", "edge2", "hi", "art_umber", "art_olive", "gold", "art_kinari", "strong")],
-    "light": [_P["light"][k] for k in ("strong", "text", "muted", "faint", "lo", "edge2", "edge", "ground", "key")],
+    "light": [_P["light"][k] for k in ("strong", "text", "muted", "lo", "faint", "edge2", "edge", "ground", "key")],
 }
 ACCENT = {
     "dark": [_P["dark"][k] for k in ("accent_lo", "accent", "flame", "asagi")],
@@ -143,6 +143,8 @@ def quantise(lab, mood, chroma=0.07, hue_deg=40, margin=0.1):
     L = lab[..., 0]
     # the ramp: the step below and the step above, and how far between
     rl = ramp[:, 0]
+    if np.any(np.diff(rl) <= 0):     # (searchsorted needs a climbing ramp: one out of order inverts midtones)
+        sys.exit(f"build-masters: the {mood} ramp is not in OKLab lightness order: {np.round(rl, 3).tolist()}")
     k = np.clip(np.searchsorted(rl, L) - 1, 0, len(rl) - 2)
     f = np.clip((L - rl[k]) / np.maximum(rl[k + 1] - rl[k], 1e-9), 0, 1)
     thr = np.tile(BAYER, (H // 4 + 1, W // 4 + 1))[:H, :W] + 0.5
