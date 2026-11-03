@@ -4287,25 +4287,28 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   gruvbox 1.3 ms. The real measure needs a pty that answers (T30).
 - r27-shm (05:09): the F45 digest's downloaded repository metadata (2.9 GB of /dev/shm/r27/t46b/raw/repo and rpms) freed
   from RAM — its findings are in the notes; the released tree is fetched fresh for T46.
-## >>> NEXT PASS STARTS HERE (3 Nov, written ~04:57 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
+## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
-## (1) T20 — the lock as a scene, on branch t20 (~/repos/fk-t20, pushed; r27-20-wire, -wire-2): the master's review 1 was
-##     running at 04:42 (/dev/shm/r27/master/T20/verdict-1.md → .claude/notes/master-T20-verdict-1.md). Ready to apply with
-##     its fixes: /dev/shm/r27/t20/patch-lockstub.py (the installer world's stand-in for tools/regress/lock-start.sh — without
-##     it test_update_flow runs the real kit: "could not run"), patch-words.py (gtklock's messages and the greeter's in plain
-##     words: his kanji rule), /dev/shm/r27/t20/guide/{login,lock}.md (docs/fedokawaii-guide.md §6.1 and §6.6's first part).
-##     Then: the suite on t20, merge into main, apply (a frozen worktree: sudo FEDOKAWAII_COPY=… fedokawaii apply), check
-##     live (tools/regress/lock-start.sh on the installed lock; /etc/pam.d/gtklock ours; the greeter's folder), the master's
-##     re-review if it failed. Then bug 1 for real (saver → lock after 35 min dark, frames) when he is away for an hour+.
-## (2) THE MASTERS: T22's review 1 was running at 04:56 (/dev/shm/r27/master/T22/verdict-1.md); then T18 (evidence ready:
-##     /dev/shm/r27/t18/evidence/), T53 as a whole (after the suite on main: the harness's STATE_DIR pin is uncommitted in
-##     tests/lib/harness.sh until /dev/shm/r27/main-suite.log ends green — commit it then).
-## (3) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC): read .claude/notes/f45-changes-3nov.md first; then
-##     vm-create f45 fresh from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh, T46's pre-flight.
-## (4) T19m — the boot's black box (r27-19m-boot: an 80 × 25 text console cleared at the hand-over; not gfxpayload: which
-##     step — a finer capture, GRUB's EFI loader), pass 1's rest (the polkit dialog live, the torrents TUI with T29), pass 2.
-## (5) T39 from r27-39-audit (SSH LAN-only like 8737, LocalSend LAN-only, mDNS, the sysctls checked against the docs) and
-##     the stray Ollama (T42/T47).
-## (6) The next login brings the two dwl fixes (r27-dwl-noxwayland, -termburst): tools/regress/no-xwayland-exit.sh and
-##     term-burst.sh pass on /usr/local/bin/dwl already; the crashnote writes "TIME PID" at that login.
+## (1) T20 — the lock as a scene: branch t20-fix (~/repos/fk-t20b, pushed; = t20 + r27-20-wire-3 + r27-20-fix-1, HEAD
+##     e29aeea). The master's review 2 ran from 05:22 (/dev/shm/r27/master/T20/verdict-2.md → .claude/notes/). On a PASS:
+##     merge t20-fix into main (it merges cleanly), the suite (the installer area serialises on its lock: ~25 min),
+##     /dev/shm/r27/t20/golive.sh (a frozen worktree, `fedokawaii apply`, then lock-start, lock-screens, saver-lock on the
+##     INSTALLED lock, /etc/pam.d/gtklock ours, the greeter's folder) — no session restart needed (gtklock loads the
+##     module at each lock). On a FAIL: its fixes on t20-fix, review 3. Follow-ups (not blocking): bug 1's real 35-min
+##     saver → lock reproduction when he is away an hour+; Caps Lock's ink seen with a real keymap (live, his next lock);
+##     the Learn piece; gtklock's two upstream faults (plan, T20 follow-up); §11's lock-leaving motion (PLANNED).
+## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
+##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
+##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
+## (3) THE MASTERS next: T18 (brief + prompt ready: /dev/shm/r27/master/T18/{brief.md,prompt.txt}, evidence beside),
+##     T53 as a whole (once the harness pin is committed — below).
+## (4) The harness pins STATE_DIR (tests/lib/harness.sh, UNCOMMITTED): the suite on main ran from 04:43
+##     (/dev/shm/r27/main-suite.log) — commit it when it ends green (then T53 → the master).
+## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
+##     .claude/notes/f45-changes-3nov.md first; then vm-create f45 fresh from the released tree, vm-smoke f45,
+##     tools/vm-inject/f45-checks.sh, T46's pre-flight.
+## (6) T19m — the boot's black box (r27-19m-boot: an 80 × 25 text console cleared at the hand-over; not gfxpayload),
+##     pass 1's rest (the polkit dialog live, the torrents TUI with T29), pass 2. T39 from r27-39-audit. T30 needs a pty
+##     that answers DA1/OSC 11 (r27-30-baseline).
+## (7) The next login brings the two dwl fixes (r27-dwl-noxwayland, -termburst); the crashnote writes "TIME PID" then.
