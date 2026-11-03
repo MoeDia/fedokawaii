@@ -4455,6 +4455,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   connector, a real unplug) and decide in writing. Its "verified sound" list: the wlroots constraint (both lines),
   rejecting a forced 0 × 0 wl_output, the timer sharing, a drop mid-hold, dead clients, the round trip, the test's
   fence; the runtime test re-run by it green.
+- r27-02b-sf6-facts (3 Nov 07:02, for the master's should-fix 6 — read, nothing changed): the kernel's own docs
+  (git.kernel.org torvalds/linux, Documentation/fb/modedb.rst:47–53): "'e' will force the display to be enabled, i.e.
+  it will override the detection if a display is connected" (video=HDMI-A-1:e, or with a mode: video=HDMI-A-1:
+  1920x1080@144e); Documentation/admin-guide/kernel-parameters.txt:1368–1378: drm.edid_firmware=[<connector>:]<file>
+  — an EDID from /lib/firmware used instead of the monitor's (so a forced connector keeps the LG's real modes, and
+  the file must be in the initramfs to apply at boot). The same is possible AT RUNTIME, no reboot — what
+  tools/hotplug-test.sh does to card1: `echo on > /sys/class/drm/card0-HDMI-A-1/status` + its debugfs edid_override
+  (then the LG's HPD drop in deep standby is no hotplug at all: the output, its layers, the lock surface, T02's state
+  stay). To measure when he is away an hour+ (presence first): force card0-HDMI-A-1 on at runtime, quick settings'
+  screen off, wait 5 min (the LG drops its line: journal/udev must show NO change), a key → the LG wakes, the bar as
+  it was, `wlr-randr` 144 Hz; then a real cable pull and back (forced: dwl keeps a screen nothing shows — decide if
+  that matters on a one-monitor desk), plymouth/boot with video=…e (only via BOOT_ARGS + a VM proof first); undo:
+  `echo detect` + edid_override reset (as the test's restore()). Decide in writing in the ledger; if adopted, the
+  hold stays for a monitor that truly comes back (a new cable, the other card).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
