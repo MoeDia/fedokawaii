@@ -428,7 +428,8 @@ content, inside its margin of one cell:
   its footer names the keys of the moment.
 - **The prompt**: one short line of paper blocks, a strip of stamps — Wada's combination #300
   (Grenadine Pink, Cream Yellow, Turquoise Green, Calamine Blue: `tools/wada-palette.py`'s paper_*
-  tokens, foot's colours 26–29, their ink 30, the same papers in both moods) with ink words at 6.8 : 1 or more: the terminal's mark, the
+  tokens, foot's colours 26–29, their ink 30, the same papers in both moods) in ink — the mark's icon at 6.8 : 1, words at 9.5 : 1
+  and more (APCA Lc 68 and more): the terminal's mark, the
   folder (the one above it too), the branch and its changes, the time of a long command and the
   background jobs (one block); a failure's code a block of its own on the lacquer, cream words (7.9 : 1). Between two blocks and at
   both ends the stamp edge — a cell of its own, the left paper reaching into the next in round

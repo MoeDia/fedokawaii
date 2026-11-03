@@ -23,6 +23,12 @@ out=$(python3 -I "$G/tools/contrast.py" --quiet 2>&1); rc=$?
 eq "$rc" 1 "a 5.1 : 1 row passed"
 has "$out" "the row under the cursor: its words"
 
+case_ "it fails the prompt's ink moved off its papers (foot's 30 dark the faint grey: every block under)"
+sed -i '/^\[colors-dark\]/,/^\[/s/^30=.*/30=907e5d/' "$G/configs/home/.config/foot/foot.ini"
+out=$(python3 -I "$G/tools/contrast.py" --quiet 2>&1); rc=$?
+eq "$rc" 1 "the prompt's words at a grey ink passed"
+has "$out" "the folder's words on their paper"; has "$out" "the time and the jobs on their paper"
+
 case_ "tools/contrast.py --apca: every role and pair at its APCA level, both themes (T19m: light words on sumi)"
 out=$(python3 -I "$REPO/tools/contrast.py" --apca --quiet 2>&1); rc=$?
 eq "$rc" 0 "$(grep '✘' <<<"$out" | head -5)"
