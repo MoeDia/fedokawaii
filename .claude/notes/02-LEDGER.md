@@ -4543,6 +4543,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   211); every larger red kept (the hannya's blood, the robes). Before/after at 2×: /dev/shm/r27/T18/sf8-zoom.png; the
   sheet /dev/shm/r27/T18/sheet-sf8.png. The edge check passes on all; wallpapers.list's 20 hashes; test_masters 3/0,
   test_syntax 800/0 (ruff: zip strict).
+- r27-tidy-4nov (01:31): removed a stray /tmp/kit.UhAm3O (2 Nov 18:20: a kit run's throw-away home — fonts.conf, home,
+  inside.sh, waybar.log; nothing held it: lsof empty, no process named it) and this pass's scratch binaries in /dev/shm.
+  A kit run cut off by a pass's timeout leaves its folder: T42's stray check should look in /tmp for kit.* and hotplug.*.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 01:30 by the 00:54 pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
