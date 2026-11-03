@@ -4316,24 +4316,53 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   at the eyes, pervasive dither, stray vermilion specks, Kyōsai's patchy gold face, stale docstrings and credits, dead
   e-Museum links; the weakest named: raigo-1668, lotus-sutra-gateway, dragon-palace-jewel (light), taira-ghosts-bay,
   yawata-beings, fujin-korin (dark). → a T18 pass of fixes, then review 2.
+- r27-20-master-2 (3 Nov 05:22–05:50, the master's review 2 of T20 on t20-fix e29aeea): VERDICT PASS
+  (.claude/notes/master-T20-verdict-2.md). MUST-FIX 1 truly fixed: gtklock's box at opacity 0 before its window is ever
+  shown (on_window_create runs before gtk_widget_show_all upstream), nothing transitions in the css; its own review-1
+  harness, 36 shots at 0–214 ms after "locked", both moods: 0 off-scene pixels in every one; lock-start held (dark 138 ms,
+  light 136 ms), lock-screens held (dark 5.05–5.24 s after each wake with the 250 ms tick), saver-lock held; the flare
+  (past the 7th mark too), the held wake key with its repeats swallowed and a second key under it typed, all seen in its
+  own plays; every review-1 should-fix and nit in the code; the art byte-identical on rebuild; tests: test_lock 163/0,
+  test_greeter 46/0, test_update_flow 354/0, test_theme 141/0, test_syntax 795/0, test_generated 267/0. Nits (next pass):
+  kawa-lock's comment on a failed --screens on (the next keys are typed into dark screens: touch the note to retry);
+  the r2 10-cycle log predates the 250 ms tick (its own2 run evidences it); the stub's red text in the old wording;
+  lock-start's parser turns "181715" into an int; gtklock's PAM info messages have no place under the module (rare: give
+  them the scene's low line as kawa-greet does); kawa-greet's draw() shadows Gtk.Widget.draw.
+- r27-20-live (3 Nov 05:50–05:56, T20 LIVE): t20-fix (with 5d24804, the keeper's fallback after three quick crashes —
+  after review 2, test_lock 166/0) merged into main (eb76d3b, pushed); a frozen worktree applied (`fedokawaii apply`:
+  77 files to the toolkit, theme, builds, repair — verify 8 problems before, 2 after); ON THE PC: lock-start on the
+  INSTALLED lock held (dark 137 ms, light 137 ms, not a pixel off the scene at once nor a second later), lock-screens
+  held (6 keys), saver-lock held, /etc/pam.d/gtklock ours, the greeter's folder holds the scenes (both moods: lock-scene.*,
+  lock-flame.png, gtklock.css, the scroll), ~/.local/share/fedokawaii/{dark,light} the scenes (the padlock and seals
+  gone). His next lock is the scene (gtklock loads the module at each lock: no session restart); the login screen at
+  his next login. FOUND while checking: verify's "kawa-mem running" / "kawa-nowplaying running" fail while his monitor
+  is off — dwl removed HDMI-A-1 at 02:52 (the monitor's standby drops its hot-plug line), so waybar has no bar and no
+  module processes until it returns (waybar.log: "Bar removed from output"); a FALSE ALARM verify should not raise with
+  no output (next pass: the bar-module checks only while an output exists). His old waybar (02:04, two zombie module
+  children since 02:05:20) was ended by its pid and autostart's keep started a fresh one (05:54:14, presence: no input
+  since 02:48). Follow-ups before T20 is DONE: bug 1's real 35-min reproduction (plan), Caps Lock's ink with a real
+  keymap (his next lock), the Learn piece, the six nits, the greeter's first frame in cage.
+- r27-18-fix-1 (3 Nov 05:49–05:52, T18 must-fix 2, 8bf8d1c): the light ramp in OKLab lightness order (faint 0.646 and lo
+  0.624 swapped) and build-masters refuses a ramp out of order; the ten light pictures rebuilt (the eleven dark ones
+  byte-identical). Live in the toolkit with the apply; his pack keeps the old copies until must-fix 3 (the pack re-checks
+  each .src's hash) — next pass with must-fixes 1, 3, 4.
+- r27-53-harness (05:54, 150381b): the harness pins STATE_DIR — the whole suite on main with it: 128 files, 0 failed
+  (/dev/shm/r27/main-suite.log, 04:43–05:54). T53's rest done; T53 → the master next.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
-## (1) T20 — the lock as a scene: branch t20-fix (~/repos/fk-t20b, pushed; = t20 + r27-20-wire-3 + r27-20-fix-1, HEAD
-##     e29aeea). The master's review 2 ran from 05:22 (/dev/shm/r27/master/T20/verdict-2.md → .claude/notes/). On a PASS:
-##     merge t20-fix into main (it merges cleanly), the suite (the installer area serialises on its lock: ~25 min),
-##     /dev/shm/r27/t20/golive.sh (a frozen worktree, `fedokawaii apply`, then lock-start, lock-screens, saver-lock on the
-##     INSTALLED lock, /etc/pam.d/gtklock ours, the greeter's folder) — no session restart needed (gtklock loads the
-##     module at each lock). On a FAIL: its fixes on t20-fix, review 3. Follow-ups (not blocking): bug 1's real 35-min
-##     saver → lock reproduction when he is away an hour+; Caps Lock's ink seen with a real keymap (live, his next lock);
-##     the Learn piece; gtklock's two upstream faults (plan, T20 follow-up); §11's lock-leaving motion (PLANNED).
+## (1) T20 — the lock is LIVE (r27-20-live; the master's review 2 PASS). Its follow-ups: the six nits of verdict 2,
+##     verify's bar-module checks only while an output exists (the false alarm with his monitor off), bug 1's real 35-min
+##     reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock: a real keymap), the greeter's
+##     first frame in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion.
+##     The worktrees ~/repos/fk-t20, ~/repos/fk-t20b and /dev/shm/r27/merge-t20 can go (branches merged).
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
-## (3) T18 — the master's review 1 FAILED (r27-18-master-1: edges, the light ramp's order, the pack's refresh, a test
-##     over art/masters/out): fix, rebuild, review 2. T53 as a whole to the master once the harness pin is committed.
-## (4) The harness pins STATE_DIR (tests/lib/harness.sh, UNCOMMITTED): the suite on main ran from 04:43
-##     (/dev/shm/r27/main-suite.log) — commit it when it ends green (then T53 → the master).
+## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fix 2 (the light ramp's order) DONE 8bf8d1c; LEFT
+##     1 (the edges of six pictures, a build check), 3 (the pack re-checks each .src's hash), 4 (a test over
+##     art/masters/out, fresh evidence), the should-fixes; then review 2.
+## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
 ##     .claude/notes/f45-changes-3nov.md first; then vm-create f45 fresh from the released tree, vm-smoke f45,
 ##     tools/vm-inject/f45-checks.sh, T46's pre-flight.
