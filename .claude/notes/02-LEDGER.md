@@ -4536,7 +4536,14 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the loss; white-kannon-kyosai `chroma = 0.12` (as raigo-1668): the face stays in the ramp — no gold patches on forehead,
   cheeks and chin, nor on the hands. Before/after at 1:1: /dev/shm/r27/T18/sf69.png. Both pass the edge check; the list's
   two new hashes; test_masters 3/0.
-## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
+- r27-18-sf8 (4 Nov 01:26–01:29, the master's T18 should-fix 8): quantise() hands every accent group of fewer than 4
+  pixels (8-connected: specks()) back to the ramp — a bounded walk per pixel, no new dependency. All 21 rebuilt in 9.3 s,
+  20 changed: speck pixels 2,032 → 0 (the master's four: fujin-korin 12, raijin-korin 17, takiyasha 13, taira 21 → 0;
+  the most: feather-robe-tennin 1,000 of its 12,261 accent pixels, yawata 55, warai-hannya 234, goddess-dragon 115 of
+  211); every larger red kept (the hannya's blood, the robes). Before/after at 2×: /dev/shm/r27/T18/sf8-zoom.png; the
+  sheet /dev/shm/r27/T18/sheet-sf8.png. The edge check passes on all; wallpapers.list's 20 hashes; test_masters 3/0,
+  test_syntax 800/0 (ruff: zip strict).
+## >>> NEXT PASS STARTS HERE (4 Nov, written 01:30 by the 00:54 pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
 ##     Scratch runs that call kawa-lock stub logger (r27-02b-found: my PAM runs wrote into his journal).
@@ -4549,21 +4556,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (1b) T02b — must-fix 2, should-fixes 3 + 4, nits 7–9 DONE (r27-02b-fixes: 33/33, ASan, the old build fails);
 ##     should-fix 6 WEIGHED (r27-02b-sf6: the hold stays; the forced connector only after a live measurement).
 ##     LEFT: `fedokawaii apply` from a frozen tree when he is NOT at the PC (its live step runs kawa-theme apply; the dwl
-##     for his next login; 96033e1 + 0065a2b refresh his pack's ten light pictures); live: screen off 5 min, the LG drops
+##     for his next login; the pack takes the 20 rebuilt masters, r27-18-mf1/-sf69/-sf8); live: screen off 5 min, the LG drops
 ##     its line, a key → D "shown settled" + a shot; should-fix 5 from its L lines (only the part=1 ones set the settle);
 ##     should-fix 6's four measurements (away an hour+); then the master's review 2.
+## (1c) FOUND by r27-02b-fixes, to check in dwl: rendermon's awaitmap/resize branch answers a HELD window's frame
+##     callbacks on every frame event too (heldframedone per call, no flip while held) — GTK 3 redraws at once on each
+##     answer (the old whole-hold spun to 63k–98k commits), so a new window with a running animation (a spinner) may spin
+##     the CPU for its whole 250 ms hold. Measure: a GTK 3 window with an endless CSS animation opened on a headless dwl,
+##     count its commits during the hold; if > one a refresh, pace it with the same tick (wholetick's way).
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
 ## (3) T18 — the master's review 1 FAILED (r27-18-master-1): ALL FOUR must-fixes DONE (r27-18-mf1 the edge check and
 ##     seven crops, 8bf8d1c, r27-18-mf3, r27-18-mf4a + mf4b the sheet and in-place shots from the committed files);
-##     should-fixes 6 + 9 DONE (r27-18-sf69); LEFT 5 (the sheets composed edge to edge with a tone each — the hag's right
-##     sheet prints lighter), 7 (calmer fields, margin ≈ 0.3), 8 (stray accents < 4 px), 10 (the weakest named), review 2.
+##     should-fixes 6, 8, 9 DONE (r27-18-sf69, -sf8); LEFT 5 (the sheets composed edge to edge with a tone each — the
+##     hag's right sheet prints lighter), 7 (calmer fields, margin ≈ 0.3), 10 (the weakest named), the master's review 2.
 ## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
 ##     .claude/notes/f45-changes-3nov.md first; then vm-create f45 fresh from the released tree, vm-smoke f45,
 ##     tools/vm-inject/f45-checks.sh, T46's pre-flight.
 ## (6) T19m — the boot's black box (r27-19m-boot: an 80 × 25 text console cleared at the hand-over; not gfxpayload),
-##     pass 1's rest (the polkit dialog live, the torrents TUI with T29), pass 2. T39 from r27-39-audit. T30 needs a pty
+##     pass 1's rest (the polkit dialog live, the torrents TUI with T29); pass 2 waits for T19p. T39 from r27-39-audit. T30 needs a pty
 ##     that answers DA1/OSC 11 (r27-30-baseline).
 ## (7) The next login brings the two dwl fixes (r27-dwl-noxwayland, -termburst); the crashnote writes "TIME PID" then.

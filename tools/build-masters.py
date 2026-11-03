@@ -170,7 +170,34 @@ def quantise(lab, mood, chroma=0.07, hue_deg=40, margin=0.1):
     d = np.where(dh < hue_deg, d, np.inf)
     best = d.argmin(-1)
     use = (c > chroma) & np.isfinite(d.min(-1))
+    use &= ~specks(use)
     return np.where(use, len(rl) + best, ramp_idx)
+
+
+# an accent of fewer pixels than this, touching no other (8 ways round): a speck — at 3 × a stray
+# vermilion dot in a brown field (the master's T18 review: up to 22 in a picture) — the ramp's
+ACCENT_MIN = 4
+
+
+def specks(mask, least=ACCENT_MIN):
+    """The pixels of MASK in a group of fewer than LEAST (each group walked only that far)."""
+    hh, ww = mask.shape
+    small = np.zeros_like(mask)
+    for y, x in zip(*np.nonzero(mask), strict=True):
+        if small[y, x]:
+            continue
+        group, todo = {(y, x)}, [(y, x)]
+        while todo and len(group) < least:
+            cy, cx = todo.pop()
+            for ny in range(max(cy - 1, 0), min(cy + 2, hh)):
+                for nx in range(max(cx - 1, 0), min(cx + 2, ww)):
+                    if mask[ny, nx] and (ny, nx) not in group:
+                        group.add((ny, nx))
+                        todo.append((ny, nx))
+        if len(group) < least:           # (all of it seen, and small)
+            for q in group:
+                small[q] = True
+    return small
 
 
 # the edges a picture must not have (the master's T18 review: six had a print's paper margin,
