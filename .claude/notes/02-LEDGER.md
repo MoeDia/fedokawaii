@@ -4445,8 +4445,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     scene's low line, as kawa-greet does), bug 1's real
 ##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
 ##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
-## (1b) T02b BUILT (r27-02b): the whole-desktop hold (wlroots forbids the bar in the dark); live at the next session:
-##     screen off 5 min, the LG drops its line, a key → D "shown settled" in the frame log + a shot; L lines vs 100 ms.
+## (1b) T02b BUILT (r27-02b): the whole-desktop hold (wlroots forbids the bar in the dark); the master's review 1 was
+##     started 06:43 → .claude/notes/master-T02b-verdict-1.md (if missing: run it again — tools/master-brief.sh T02b);
+##     fix its must-fixes, THEN `fedokawaii apply` from a frozen tree (d132345's dwl for his next login; 96033e1 +
+##     0065a2b refresh his pack's ten light pictures); live: screen off 5 min, the LG drops its line, a key → D "shown
+##     settled" in the frame log + a shot; L lines vs 100 ms.
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
