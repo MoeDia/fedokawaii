@@ -4303,6 +4303,19 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the 3rd start with the module, the 4th without, the journal line). The merge of t20-fix (e29aeea) into main tried in a
   scratch worktree (/dev/shm/r27/merge-t20, branch merge-t20): clean; test_lock 163/0, test_greeter 46/0, test_contrast
   21/0, test_design_doc 54/0, the static area 13 files green. The light scene seen whole again (/dev/shm/r27/t20/prev3).
+- r27-18-master-1 (3 Nov 05:31–05:48, the master's review 1 of T18): VERDICT FAIL (.claude/notes/master-T18-verdict-1.md).
+  Held: all 21 licences on the museums' own records (Met 7, AIC 10 by its API, Cleveland CC0, Commons 3 PD-Art), sha256
+  21/21, the pipeline rebuilt byte-identical for all 21, palette-only PNGs, the live covers exact 3× copies. MUST-FIX:
+  (1) paper margins, frame lines and a mount strip left at the edges of six pictures (asajigahara-hag: a 9 px strip right,
+  a 70 × 194 poem-card remnant, sheet joins; benten-biwa both sides; goddess-dragon right; feather-robe-tennin top and
+  bottom; lotus-sutra-gateway 26 blank rows at the foot; dragon-palace-jewel top) — make the edge measurement a build
+  check; (2) the light ramp is not sorted by OKLab L (faint 0.646 before lo 0.624) while quantise() uses searchsorted:
+  midtones invert in every light picture (up to 22 % of pixels) — sort it, rebuild the ten; (3) `kawa-wallpaper --pack`
+  keeps an existing .src without re-checking its hash: a rebuilt picture never reaches his PC; (4) no test reads
+  art/masters/out, and the evidence predates the committed files. Should-fix: triptych joins as black bars, oiwa's face cut
+  at the eyes, pervasive dither, stray vermilion specks, Kyōsai's patchy gold face, stale docstrings and credits, dead
+  e-Museum links; the weakest named: raigo-1668, lotus-sutra-gateway, dragon-palace-jewel (light), taira-ghosts-bay,
+  yawata-beings, fujin-korin (dark). → a T18 pass of fixes, then review 2.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4317,8 +4330,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
-## (3) THE MASTERS next: T18 (brief + prompt ready: /dev/shm/r27/master/T18/{brief.md,prompt.txt}, evidence beside),
-##     T53 as a whole (once the harness pin is committed — below).
+## (3) T18 — the master's review 1 FAILED (r27-18-master-1: edges, the light ramp's order, the pack's refresh, a test
+##     over art/masters/out): fix, rebuild, review 2. T53 as a whole to the master once the harness pin is committed.
 ## (4) The harness pins STATE_DIR (tests/lib/harness.sh, UNCOMMITTED): the suite on main ran from 04:43
 ##     (/dev/shm/r27/main-suite.log) — commit it when it ends green (then T53 → the master).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
