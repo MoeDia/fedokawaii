@@ -4296,6 +4296,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   yazi patch — his own rule names yazi among what we patch — i.e. building yazi from the pinned tag with a small patch
   (Rounded → Plain, the titles moved into a heading row) in the installer like dwl (rustup is there: r_dev), or a
   theme.toml-only answer (inks) and say why. Decide by a render of each in the next pass.
+- r27-20-fix-2 (3 Nov 05:33–05:35, t20-fix 5d24804, pushed — after the master's review 2 began on e29aeea): a SAFETY NET
+  before going live — a module that failed every time (some machine, some GTK update) would have kept the desktop
+  locked for good (the keeper restarts gtklock with it forever): after three stops within 10 s each, kawa-lock's keeper
+  starts gtklock without -m (gtklock's own plain line, the same password) and says so; test_lock 166/0 (the crash case:
+  the 3rd start with the module, the 4th without, the journal line). The merge of t20-fix (e29aeea) into main tried in a
+  scratch worktree (/dev/shm/r27/merge-t20, branch merge-t20): clean; test_lock 163/0, test_greeter 46/0, test_contrast
+  21/0, test_design_doc 54/0, the static area 13 files green. The light scene seen whole again (/dev/shm/r27/t20/prev3).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
