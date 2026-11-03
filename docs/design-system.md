@@ -21,7 +21,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | fire and metal | torchlight: Apricot Orange; old brass: Isabella | gold leaf: Yellow Ocher |
 | lit | a cold teal: Venice Green toward Ecru | a deep porcelain teal |
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
-| the lock | a dungeon wall, two torches, a demon's open mouth | a temple in clouds, two stone lanterns, an angel's halo |
+| the lock | a dungeon wall, two torches, the Hannya's open mouth | a temple in clouds — golden mist on a paper sky —, two hanging bronze lanterns, Seiōbo through a round window |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
 | quick settings' face | the hannya (after Hokusai's Warai Hannya): gold horns, parted black hair, slanted gold eyes, a fanged lacquer grin (roaring while its panel is open: the mouth deeper, the eyes all gold) | the tennin: a gold nimbus, a pinned bun, the urna, eyes closed (open while its panel is open: gold irises, a smile) |
 
@@ -494,8 +494,11 @@ the tiles of a group, 12 px between groups.
   while Caps Lock is on), the newest seven in sight — and the caret a bar as tall as a mark in
   `flame`, blinking once a second, always there while the line has the keyboard. The scene is
   drawn at whole pixels (×3 on 1080p), centred, its edges' own colour round it (kawa-lockmod).
-  Light — a temple in clouds, two stone lanterns, an angel (tennin) whose halo holds the password,
-  each character a gold mote. One quote per mood (§0) in Sumi UI's own pixels on a plaque over the
+  Light — a temple in clouds: golden mist (suyari-gasumi, the stepped gold bands of the old
+  screens) on a paper sky lit by two hanging bronze lanterns (tsuri-dōrō, verdigris here and there,
+  a small flame in each fire box, 8 frames a second), and through a round window in a wooden ring
+  Seiōbo (Kōgyo's Noh print) offering her peach; the password in her sky beside it, each character
+  a gold mote (arms `yellow`, middle `gold`). One quote per mood (§0) in Sumi UI's own pixels on a plaque over the
   art, as a temple's hall carries its name (gilded on the dark's stone lintel), no translation; no
   date, no time, no buttons, no hint. A wrong password says so at once (the embers scatter, the face shakes 3 px
   twice — §11), and the line is empty again.

@@ -14,7 +14,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 out=$(mktemp -d /dev/shm/regress-lock.XXXXXX)
 [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$out"' EXIT
 src=${LOCK_HOME:-$HOME} art=${LOCK_HOME:-$HOME}/.local/share/fedokawaii/dark
-[[ -s $art/lock-scene.png && -s $art/lock-scene.txt ]] || { echo "lock-start: no scene in $art (fedokawaii apply)" >&2; exit 1; }
+[[ -s $art/lock-scene.png && -s $art/lock-scene.txt && -s $art/lock-flame.png ]] || { echo "lock-start: no scene in $art (fedokawaii apply)" >&2; exit 1; }
 cat >"$out/play.sh" <<'PLAY'
 mkdir -p "$HOME/.local/share/fedokawaii" "$HOME/.local/lib" "$KIT_OUT/stub"
 ln -s "$REAL/.local/share/fedokawaii/dark" "$REAL/.local/share/fedokawaii/light" "$HOME/.local/share/fedokawaii/"

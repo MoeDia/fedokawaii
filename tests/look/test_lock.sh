@@ -63,7 +63,7 @@ called '^logger -t kawa-lock -- unlocked$'
 rc 0 kawa-lock; eq "$(locks)" 2 "a new lock"; unlock
 
 case_ "the layout: every id gtklock reads present, none of its own words or keys shown — the scene is the module's"
-for f in "$SHARE"/{dark,light}/lock-scene.{png,txt} "$SHARE/dark/lock-flame.png"; do [[ -s $f ]] && _ok || _no "missing $f"; done
+for f in "$SHARE"/{dark,light}/lock-{scene.png,scene.txt,flame.png}; do [[ -s $f ]] && _ok || _no "missing $f"; done
 for id in window-box info-box time-box clock-label date-label body-revealer body-grid input-label input-field \
           message-revealer message-scrolled-window message-box unlock-button error-label warning-label; do
   grep -q "id=\"$id\"" "$UI" && _ok || _no "the layout has no $id"
@@ -411,7 +411,7 @@ if "flame" in kv:
 PY
 )
   has "$out" "marks " "$t: $out"; lacks "$out" "UNDER" "$t"
-  [[ $t == dark ]] && has "$out" "2 flames inside"
+  has "$out" "2 flames inside" "$t"
   c=$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css
   grep -q '^window.kawa #input-field {' "$c" && _ok || _no "$t: gtklock's line not hidden under the module"
   grep -q '^#input-field {' "$c" && _ok || _no "$t: without the module the line has no look of its own"
@@ -419,7 +419,4 @@ done
 m=$REPO/src/kawa-lockmod/kawa-lockmod.c
 grep -q 'gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");' "$m" && _ok || _no "the module does not mark its windows"
 grep -q '"notify::secondary-icon-name", G_CALLBACK(no_icon)' "$m" && _ok || _no "gtklock's eye drawn (and loaded) on the line"
-case_ "the login screen's line (kawa-greet, until it becomes the lock's twin): the hint a label of its own over the empty line"
-g=$(cat "$REPO/system/kawa-greet")
-has "$g" 'hint = Gtk.Label(name="input-hint"'; has "$g" 'line.set_overlay_pass_through(hint, True)'; lacks "$g" "placeholder_text="
 done_

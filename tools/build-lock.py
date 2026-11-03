@@ -213,40 +213,112 @@ def dark_scene():
     return img, gate(img, P)
 
 
-def flames(P):
-    """8 frames of a torch flame: four nested teardrops (deep red, vermilion, orange, the cream
-    core), the tip swaying more than the foot, the body breathing; an ember off the tip twice."""
-    layers = [(P["accent_lo"], 1.00, 0.00), (P["accent"], 0.80, 0.08), (P["flame"], 0.60, 0.30),
-              (P["strong"], 0.40, 0.55)]
-    strip = Image.new("RGBA", (FW * FRAMES, FH), (0, 0, 0, 0))
+def flames(layers, ember, fw=FW, fh=FH):
+    """8 frames of a flame fw × fh: nested teardrops (LAYERS: ink, width and where it starts, the
+    outer first), the tip swaying more than the foot, the body breathing; EMBER off the tip twice.
+    The dark's torch: deep red, vermilion, orange, the cream core; the light's lantern: a small
+    candle of the same shape."""
+    k, kw = fh / FH, fw / FW
+    strip = Image.new("RGBA", (fw * FRAMES, fh), (0, 0, 0, 0))
     sp = strip.load()
-    base = FH - 2
+    base = fh - 2
     for f in range(FRAMES):
         ph = 2 * math.pi * f / FRAMES
-        h = 25 + round(1.6 * math.sin(ph + 1.1))
-        hw = 6.4 + 0.6 * math.sin(2 * ph)
-        sway = 1.9 * math.sin(ph)
-        for col, kw, kh in layers:
+        h = round((25 + 1.6 * math.sin(ph + 1.1)) * k)
+        hw = (6.4 + 0.6 * math.sin(2 * ph)) * kw
+        sway = 1.9 * math.sin(ph) * k
+        for col, lw, kh in layers:
             top = base - h + kh * h
-            for y in range(FH):
+            for y in range(fh):
                 if not top <= y <= base:
                     continue
                 t = (y - top) / max(base - top, 1)              # 0 at the tip, 1 at the foot
-                half = kw * hw * math.sqrt(t) * (1 - 0.55 * t ** 4)
-                mid = FW / 2 + sway * (1 - t) ** 2
-                for x in range(FW):
+                half = lw * hw * math.sqrt(t) * (1 - 0.55 * t ** 4)
+                mid = fw / 2 + sway * (1 - t) ** 2
+                for x in range(fw):
                     if abs(x + 0.5 - mid) < half:
-                        sp[f * FW + x, y] = col + (255,)
+                        sp[f * fw + x, y] = col + (255,)
         if f in (2, 5):
-            sp[f * FW + int(FW / 2 + 1.5 * sway), max(base - h - 2 - (f == 5), 0)] = P["flame"] + (255,)
+            sp[f * fw + int(fw / 2 + 1.5 * sway), max(base - h - 2 - (f == 5), 0)] = ember + (255,)
     return strip
 
 
+LAMP_X, LAMP_FIRE = TORCH_X, 85                        # the lanterns' middles, their fire boxes' middle
+LAMP_FLAME = (8, 12)                                   # a lantern's flame frame (the torch's shape, smaller)
+# the golden mist (suyari-gasumi, as on the old screens): each cloud a union of rounded layers
+# x0 x1 y0 y1, stepped — framing the window, never over the plaque
+CLOUDS = [
+    [(-40, 150, 70, 92), (-40, 196, 80, 100), (20, 120, 62, 76)],
+    [(470, 700, 44, 64), (430, 700, 56, 78), (520, 640, 36, 50)],
+    [(-40, 130, 190, 206), (-40, 165, 198, 216)],
+    [(500, 700, 206, 224), (470, 700, 216, 234), (540, 620, 200, 210)],
+    [(36, 222, 276, 296), (70, 250, 288, 306)],
+    [(410, 640, 284, 304), (390, 600, 296, 314)],
+    [(-40, 700, 336, 380), (-40, 300, 328, 344), (380, 700, 330, 344)],
+]
+
+
 def lanternlight(x, y):
-    return sum(1.0 / (1 + ((x - tx) ** 2 + ((y - LAMP_Y) * 1.15) ** 2) / 2200.0) for tx in TORCH_X)
+    return sum(1.0 / (1 + ((x - lx) ** 2 + ((y - LAMP_FIRE) * 1.1) ** 2) / 2600.0) for lx in LAMP_X)
 
 
-LAMP_Y = 118                                           # the lanterns' middles (at the torches' x)
+def in_layer(x, y, layer):
+    """(x, y) inside a rounded layer x0 x1 y0 y1: a band whose ends are half circles."""
+    x0, x1, y0, y1 = layer
+    r, yc = (y1 - y0) / 2, (y0 + y1) / 2
+    if not y0 <= y + 0.5 <= y1:
+        return False
+    if x0 + r <= x + 0.5 <= x1 - r:
+        return True
+    cx = x0 + r if x + 0.5 < x0 + r else x1 - r
+    return (x + 0.5 - cx) ** 2 + (y + 0.5 - yc) ** 2 <= r * r
+
+
+def lantern(img, P, lx):
+    """A hanging temple lantern (tsuri-dōrō) at x LX: its chain from the top, the jewel, a
+    six-sided bronze roof with curled tips, the fire box — a lattice lit from inside round a clear
+    window, where the module's flame burns —, its foot; ochre bronze lit from the left, verdigris
+    here and there."""
+    px = img.load()
+    d = ImageDraw.Draw(img)
+    br, br_hi, br_lo, pat = P["yellow"], P["gold"], P["lo"], P["asagi"]
+    for y in range(0, 48):                                       # the chain: links side-on and face-on
+        if (y // 4) % 2:
+            px[lx, y] = br
+        else:
+            px[lx - 1, y] = px[lx + 1, y] = br
+            if y % 4 in (0, 3):
+                px[lx, y] = br
+    d.ellipse([lx - 3, 48, lx + 2, 53], fill=br, outline=br_lo)  # the jewel
+    px[lx - 1, 49] = br_hi
+    for i, y in enumerate(range(54, 68)):                       # the roof: six-sided, flaring
+        hw = 4 + i * 1.3
+        for x in range(int(lx - hw), int(lx + hw) + 1):
+            px[x, y] = br_hi if x < lx - hw / 3 and i < 11 else br
+        px[int(lx - hw), y] = px[int(lx + hw), y] = br_lo
+    for x in range(lx - 22, lx + 22):                            # its eave, the tips curled up
+        px[x, 68] = br_lo
+    for t in (-1, 1):
+        px[lx + t * 22 - (t > 0), 67] = px[lx + t * 23 - (t > 0), 66] = br_lo
+    for y, x in ((57, lx - 3), (61, lx + 6), (64, lx - 9), (60, lx - 1)):
+        px[x, y] = pat                                           # (verdigris)
+    x0, x1, y0, y1 = lx - 11, lx + 10, 69, 101                   # the fire box
+    d.rectangle([x0, y0, x1, y1], fill=br)
+    d.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=P["key"])
+    for x in range(x0 + 2, x1 - 1):                              # the lattice, the window clear
+        if (x - x0) % 3 == 1 and not lx - 5 <= x <= lx + 4:
+            d.line([(x, y0 + 2), (x, y1 - 2)], fill=br)
+    d.rectangle([lx - 5, y0 + 6, lx + 4, y1 - 6], outline=br)
+    d.line([(x0, y0), (x1, y0)], fill=br_hi)
+    d.line([(x0, y0), (x0, y1)], fill=br_hi)
+    d.line([(x1, y0 + 1), (x1, y1)], fill=br_lo)
+    px[x0 + 1, y1 - 3] = px[x1 - 1, y0 + 4] = pat
+    for i, y in enumerate(range(102, 108)):                      # the foot, narrowing
+        hw = 10 - i * 1.2
+        d.line([(int(lx - hw), y), (int(lx + hw), y)], fill=br if i < 5 else br_lo)
+        px[int(lx - hw), y] = br_hi
+    d.rectangle([lx - 1, 108, lx, 111], fill=br)                 # its knob
+    return (lx - LAMP_FLAME[0] // 2, (y0 + y1) // 2 - LAMP_FLAME[1] // 2 + 2)
 
 
 def window_of(path, sha, d):
@@ -269,26 +341,30 @@ def light_scene():
     P = inks("light")
     img = Image.new("RGB", (W, H))
     px = img.load()
-    rng = np.random.default_rng(11)
-    # 1 gold leaf: 16 × 16 leaves, a hairline seam where two overlap, each leaf one tone — its own
-    # shade and the lanterns' light —, the tones close (leaf, not tiles); now and then a fleck of gold
-    leaf = [P["edge"], P["ground"], P["view"], P["key"]]
-    lw = 16
-    shade = np.clip(rng.normal(0, 0.035, (H // lw + 2, W // lw + 2)), -0.05, 0.05)
-    def tone(r, c):
-        v = 0.30 + 0.70 * min(lanternlight(c * lw + lw / 2, r * lw + lw / 2), 1.0) + shade[r, c]
-        return int(min(max(v * len(leaf), 0), len(leaf) - 1))
+    # 1 the sky: paper in daylight, a step lighter toward the lanterns (Bayer between steps)
+    sky = [P["ground"], P["view"], P["key"]]
     for y in range(H):
         for x in range(W):
-            i = tone(y // lw, x // lw)
-            if y % lw == 0 or x % lw == 0:
-                px[x, y] = leaf[max(i - 1, 0)] if i else P["edge2"]   # (a seam: a step under its leaf)
-                continue
-            px[x, y] = leaf[i]
-            if rng.random() < 0.0025:
-                px[x, y] = P["gold"]
+            v = 0.25 + 0.15 * (1 - y / H) + 0.35 * min(lanternlight(x, y), 1.0)
+            px[x, y] = ramp_at(min(v, 0.999), sky, x, y)
+    # 2 the golden mist: gold leaf in an ochre line, a pale gilt edge on top where the light falls
+    for cloud in CLOUDS:
+        xs = [v for c in cloud for v in c[:2]]
+        ys = [v for c in cloud for v in c[2:]]
+        def ins(x, y, cloud=cloud):
+            return any(in_layer(x, y, c) for c in cloud)
+        for y in range(max(min(ys) - 1, 0), min(max(ys) + 2, H)):
+            for x in range(max(min(xs) - 1, 0), min(max(xs) + 2, W)):
+                if not ins(x, y):
+                    continue
+                if not all(ins(x + dx, y + dy) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1))):
+                    px[x, y] = P["yellow"]
+                elif not ins(x, y - 2):
+                    px[x, y] = P["edge"]
+                else:
+                    px[x, y] = P["gold"]
     d = ImageDraw.Draw(img)
-    # 2 the plaque: a wooden frame, its paper, the quote in sumi, the seal in our red at its end
+    # 3 the plaque: a wooden frame, its paper, the quote in sumi, the seal in our red at its end
     text = lettered(QUOTES["light"])
     x0, x1, y0, y1 = LINTEL
     d.rectangle([x0 - 2, y0 - 2, x1 + 2, y1 + 2], fill=P["lo"])
@@ -303,11 +379,11 @@ def light_scene():
                 px[gx + x, gy + y] = P["strong"]
     sx = gx + text.width + 6
     d.rectangle([sx, gy + text.height - 8, sx + 7, gy + text.height - 1], fill=P["accent"])   # the seal
-    # 3 the round window: its shadow on the leaf, a wooden ring (lit above, a groove inside),
-    # Seiōbo through it
+    # 4 the round window: its shadow on the sky and the mist, a wooden ring (lit above, a groove
+    # inside), Seiōbo through it
+    shade = {P["key"]: P["view"], P["view"]: P["ground"], P["ground"]: P["edge"], P["gold"]: P["yellow"], P["edge"]: P["gold"]}
     for x, y, _ in ring(CX, CY + 5, 0, RD + RIM + 3):
-        c = px[x, y]
-        px[x, y] = leaf[max((leaf.index(c) if c in leaf else 1) - 1, 0)]
+        px[x, y] = shade.get(px[x, y], px[x, y])
     wood = [P["muted"], P["lo"], P["edge2"]]
     for x, y, r in ring(CX, CY, RD, RD + RIM):
         a = math.atan2(y + 0.5 - CY, x + 0.5 - CX)
@@ -319,21 +395,10 @@ def light_scene():
     cut = Image.new("L", pic.size, 0)
     ImageDraw.Draw(cut).ellipse([0, 0, pic.width - 1, pic.height - 1], fill=255)
     img.paste(pic, (CX - RD, CY - RD), cut)
-    # 4 two chōchin on their cords: a lacquered cap and foot, ribbed paper lit from inside, our red
-    # mark on it
-    for tx in TORCH_X:
-        d.line([(tx, 0), (tx, LAMP_Y - 23)], fill=P["muted"])
-        d.rectangle([tx - 6, LAMP_Y - 23, tx + 5, LAMP_Y - 20], fill=P["strong"])
-        for yy in range(LAMP_Y - 19, LAMP_Y + 20):
-            t = (yy - (LAMP_Y - 19)) / 38
-            hw = 6 + 5 * math.sin(math.pi * t)
-            for xx in range(int(tx - hw), int(tx + hw) + 1):
-                px[xx, yy] = P["edge"] if (yy - LAMP_Y) % 5 == 0 else P["key"]
-            px[int(tx - hw), yy] = px[int(tx + hw), yy] = P["edge2"]
-        d.rectangle([tx - 6, LAMP_Y + 20, tx + 5, LAMP_Y + 23], fill=P["strong"])
-        d.rectangle([tx - 2, LAMP_Y - 6, tx + 1, LAMP_Y + 5], fill=P["accent"])
+    # 5 two hanging lanterns at the torches' places; their flames are the module's
+    fires = [lantern(img, P, lx) for lx in LAMP_X]
     # the password's row: the window's calm sky, right of her crown and over the peach
-    return img, (CX + 46, CY - 75)
+    return img, (CX + 46, CY - 75), fires
 
 
 def hexof(c):
@@ -348,7 +413,7 @@ def rim_ink(img):
     return max(set(edge), key=edge.count)
 
 
-def placed(mood, row, P, plate, rim, flame_x=()):
+def placed(mood, row, P, plate, rim, fires=(), frame=(FW, FH)):
     """lock-scene.txt: where the module draws on the scene, in the scene's own pixels."""
     marks = {"dark": (P["flame"], P["strong"], P["accent_lo"], P["asagi"], P["flame"]),
              "light": (P["yellow"], P["gold"], P["edge2"], P["asagi"], P["yellow"])}[mood]
@@ -356,8 +421,8 @@ def placed(mood, row, P, plate, rim, flame_x=()):
              "# N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.",
              f"size {W} {H}",
              f"ground {hexof(rim)}   # round the scene: its edges' commonest colour",
-             f"frames {FW} {FH} {FRAMES}   # lock-flame.png: the frames side by side, 8 a second"]
-    lines += [f"flame {x - FW // 2} {FLAME_TOP}   # a flame's frame, its top-left" for x in flame_x]
+             f"frames {frame[0]} {frame[1]} {FRAMES}   # lock-flame.png: the frames side by side, 8 a second"]
+    lines += [f"flame {x} {y}   # a flame's frame, its top-left" for x, y in fires]
     lines += [f"row {row[0]} {row[1]} {GATE_PITCH} {GATE_N}   # the password: the first mark's middle, the pitch, how many in sight",
               "mark {} {} {}   # a mark: its arms, its middle, its corners".format(*map(hexof, marks[:3])),
               f"caps {hexof(marks[3])}   # the arms while Caps Lock is on",
@@ -373,13 +438,18 @@ def main():
     for mood in ("dark", "light"):
         (OUT / mood).mkdir(parents=True, exist_ok=True)
     scene, row = dark_scene()
-    strip = flames(inks("dark"))
+    D, L = inks("dark"), inks("light")
+    strip = flames([(D["accent_lo"], 1.00, 0.00), (D["accent"], 0.80, 0.08), (D["flame"], 0.60, 0.30),
+                    (D["strong"], 0.40, 0.55)], D["flame"])
     scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "dark/lock-scene.png", optimize=True)
     strip.save(OUT / "dark/lock-flame.png", optimize=True)
-    (OUT / "dark/lock-scene.txt").write_text(placed("dark", row, inks("dark"), (CX, CY, RD + RIM + 1), rim_ink(scene), TORCH_X))
-    light, lrow = light_scene()
+    (OUT / "dark/lock-scene.txt").write_text(placed("dark", row, D, (CX, CY, RD + RIM + 1), rim_ink(scene),
+                                                    [(x - FW // 2, FLAME_TOP) for x in TORCH_X]))
+    light, lrow, fires = light_scene()
+    lstrip = flames([(L["accent"], 1.00, 0.00), (L["gold"], 0.70, 0.30), (L["hi"], 0.35, 0.60)], L["gold"], *LAMP_FLAME)
     light.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "light/lock-scene.png", optimize=True)
-    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, inks("light"), (CX, CY, RD + RIM + 1), rim_ink(light)))
+    lstrip.save(OUT / "light/lock-flame.png", optimize=True)
+    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, L, (CX, CY, RD + RIM + 1), rim_ink(light), fires, LAMP_FLAME))
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
         prev = scene.copy()
@@ -397,7 +467,11 @@ def main():
             pp[x, y] = core
         prev.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-dark-3x.png")
         strip.resize((8 * FW * FRAMES, 8 * FH), Image.NEAREST).save(a.preview / "flame-dark-8x.png")
-        light.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-light-3x.png")
+        lp = light.copy()
+        one = lstrip.crop((0, 0, *LAMP_FLAME))
+        for fx, fy in fires:
+            lp.paste(one, (fx, fy), one)
+        lp.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-light-3x.png")
 
 
 if __name__ == "__main__":
