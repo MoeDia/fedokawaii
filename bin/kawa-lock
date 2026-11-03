@@ -20,10 +20,12 @@
 #
 # The screens, dark or lit (`--screens off|on`: wlopm, and a note of it in
 # $XDG_RUNTIME_DIR/kawa-screens — "off", or "on" from the moment they came back). The lock
-# screen reads that note (its module, kawa-lockmod: src/kawa-lockmod): while the screens are
-# dark, and for 2 s after they come back, every key and click on it only wakes — the Enter
-# that woke the computer is never taken for a password. An empty Enter is never one either.
-# `--resumed` (swayidle, as the machine wakes) lights the screens and notes the wake.
+# screen keeps them so (its module, kawa-lockmod: src/kawa-lockmod): nothing touched for 5 s
+# while it shows, the screens go dark; any key or move lights them straight onto it — the key
+# that lights screens dark for longer than 2 s only wakes, and after a sleep every key in the
+# first 2 s: the Enter that woke the computer is never taken for a password. An empty Enter is
+# never one either. `--resumed` (swayidle, as the machine wakes) lights the screens and notes
+# the wake ("resumed").
 #
 # The lock holds until your password, whatever happens meanwhile: gtklock runs under a
 # keeper (kawa-lock --keep, started here). Should gtklock stop without the password — a
@@ -65,20 +67,20 @@ keep() {
     ((${t1%.*} - ${t0%.*} >= 1)) || sleep 1
   done
 }
-# screens off|on — every output dark (wlopm), or lit again; the note the lock screen reads
-# (written before they go dark, after they are lit: its wake guard never misses an edge)
+# screens off|on [NOTE] — every output dark (wlopm), or lit again; the note the lock screen
+# reads (written before they go dark, after they are lit: its wake guard never misses an edge)
 screens() {
   if [[ $1 == off ]]; then
     echo off >"$run/kawa-screens"; say "screens off"; wlopm --off '*'
   else
-    wlopm --on '*'; echo on >"$run/kawa-screens"; say "screens on"
+    wlopm --on '*'; echo "${2:-on}" >"$run/kawa-screens"; say "screens ${2:-on}"
   fi
 }
 case ${1:-} in
   --up) : >"$locked"; say "lock up"; exit 0 ;;        # gtklock's --lock-command: every screen locked
   --screens) [[ ${2:-} == @(on|off) ]] || { echo "usage: kawa-lock --screens on|off" >&2; exit 2; }
              screens "$2"; exit 0 ;;
-  --resumed) screens on
+  --resumed) screens on resumed
              if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
   --keep) shift; keep "$@" ;;
 esac

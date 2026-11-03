@@ -14,12 +14,15 @@
  *  steps of 48. gtklock's own line stays for the keys: invisible (current/gtklock.css,
  *  window.kawa), its words never shown. No date, no time, no keys: the scene is the lock.
  *
- *  The wake guard. The key that wakes the computer, or lights the dark screens, only wakes:
- *  kawa-lock notes the screens in $XDG_RUNTIME_DIR/kawa-screens — "off" before they go dark,
- *  "on" once they are lit (its time: the moment) — and while they are dark, and for 2 s after
- *  they come back, every key and click here is swallowed: an Enter that woke the machine is
- *  never a wrong password. A stale "off" (a session that ended in the dark) holds only the
- *  first 2 s of keys after it was written. And an Enter in an empty box is never a try.
+ *  The screens. Nothing touched for 5 s while the lock shows — the screensaver not over it —,
+ *  the screens go dark (kawa-lock --screens off); any key, click, scroll or move lights them
+ *  again straight onto the lock (--screens on). kawa-lock notes them in
+ *  $XDG_RUNTIME_DIR/kawa-screens — "off" before they go dark, "on" once lit, "resumed" once lit
+ *  as the computer wakes, the file's time the moment. The key that lights screens dark for
+ *  longer than 2 s only wakes (it was pressed to wake: never a character, never a try); one
+ *  within 2 s of their going dark counts as typed. After a sleep, every key and click in the
+ *  first 2 s only wakes: an Enter that woke the machine is never a wrong password. And an
+ *  Enter in an empty box is never a try.
  *
  * Without its art (no KAWA_LOCK_ART, a file missing) only the guard runs: gtklock's plain line.
  * Built by theme.sh (src/kawa-lockmod/Makefile) against GTK 3's headers.
@@ -29,6 +32,7 @@
 #include <limits.h>
 #include <stdio.h>
 #include <string.h>
+#include <sys/file.h>
 #include <sys/stat.h>
 #include <unistd.h>
 #include <gtk/gtk.h>
@@ -63,42 +67,86 @@ const guint module_major_version = 4;
 const guint module_minor_version = 0;
 
 #define GUARD_US (2 * G_USEC_PER_SEC)
+#define DARK_AFTER_US (5 * G_USEC_PER_SEC)
 
 static int self_id;
-static char screens[PATH_MAX];            /* $XDG_RUNTIME_DIR/kawa-screens */
-static gint64 off_mtime = -1, off_first;  /* the "off" last seen, and its first swallowed event */
+static char screens[PATH_MAX], saver[PATH_MAX];   /* kawa-lock's note; the screensaver's lock */
+static gint64 touched_at;                 /* the last input (µs, real time), the lock's start first */
+static gint64 woken;                      /* the "off" note already answered (its time) */
+static gboolean saver_was_up;
+enum { NONE, OFF, ON, RESUMED };
 
-/* true while what reaches the lock screen only wakes it (above) */
-static gboolean guarded(void)
+/* kawa-lock's note: what it says, and *when (µs, real time) it was written */
+static int note(gint64 *when)
 {
-	char buf[8] = { 0 };
+	char buf[16] = { 0 };
 	struct stat st;
 	int fd = open(screens, O_RDONLY | O_CLOEXEC);
 	if (fd < 0)
-		return FALSE;
+		return NONE;
 	ssize_t n = read(fd, buf, sizeof buf - 1);
 	int r = fstat(fd, &st);
 	close(fd);
 	if (n <= 0 || r < 0)
+		return NONE;
+	*when = (gint64)st.st_mtim.tv_sec * G_USEC_PER_SEC + st.st_mtim.tv_nsec / 1000;
+	return !strncmp(buf, "off", 3) ? OFF : !strncmp(buf, "on", 2) ? ON : !strncmp(buf, "resumed", 7) ? RESUMED : NONE;
+}
+static void screens_set(const char *how)
+{
+	gchar *argv[] = { "kawa-lock", "--screens", (gchar *)how, NULL };
+	g_spawn_async(NULL, argv, NULL, G_SPAWN_SEARCH_PATH | G_SPAWN_STDOUT_TO_DEV_NULL |
+			G_SPAWN_STDERR_TO_DEV_NULL, NULL, NULL, NULL, NULL);
+}
+/* the screensaver shows (it holds its lock file while it runs): the lock under it is not idle */
+static gboolean saver_up(void)
+{
+	int fd = open(saver, O_RDONLY | O_CLOEXEC);
+	if (fd < 0)
 		return FALSE;
-	gint64 now = g_get_real_time();
-	gint64 mt = (gint64)st.st_mtim.tv_sec * G_USEC_PER_SEC + st.st_mtim.tv_nsec / 1000;
-	if (!strncmp(buf, "on", 2))
-		return now >= mt && now - mt < GUARD_US;
-	if (strncmp(buf, "off", 3))
-		return FALSE;
-	if (mt != off_mtime) {
-		off_mtime = mt;
-		off_first = now;
+	gboolean up = flock(fd, LOCK_SH | LOCK_NB) < 0;
+	close(fd);
+	return up;
+}
+
+/* every input on the lock, before the lock sees it: the 5 s clock set again; dark screens lit.
+ * True when the input only wakes (above) — then it goes no further */
+static gboolean waking(void)
+{
+	gint64 mt = 0, now = g_get_real_time();
+	int n = note(&mt);
+	touched_at = now;
+	if (n == OFF && mt != woken) {
+		woken = mt;
+		screens_set("on");
+		return now - mt > GUARD_US;
 	}
-	return now - off_first < GUARD_US;
+	return n == RESUMED && now >= mt && now - mt < GUARD_US;
+}
+/* once a second: nothing touched for 5 s on lit screens, the screensaver not over the lock — dark */
+static gboolean idle_tick(gpointer data)
+{
+	gint64 mt = 0, now = g_get_real_time();
+	int n = note(&mt);
+	gboolean up = saver_up();
+	(void)data;
+	if (saver_was_up && !up)
+		touched_at = now;                 /* (the saver washed off: the lock seen from now) */
+	saver_was_up = up;
+	if (n == OFF || up)
+		return G_SOURCE_CONTINUE;
+	if (now - MAX(touched_at, mt) >= DARK_AFTER_US) {
+		touched_at = now;
+		screens_set("off");
+	}
+	return G_SOURCE_CONTINUE;
 }
 
 static gboolean on_key(GtkWidget *w, GdkEventKey *ev, gpointer data)
 {
 	struct Window *win = data;
 	(void)w;
-	if (guarded())
+	if (waking())
 		return TRUE;
 	if (ev->type == GDK_KEY_PRESS && win->input_field && gtk_widget_has_focus(win->input_field) &&
 			(ev->keyval == GDK_KEY_Return || ev->keyval == GDK_KEY_KP_Enter ||
@@ -111,7 +159,13 @@ static gboolean on_key(GtkWidget *w, GdkEventKey *ev, gpointer data)
 static gboolean on_button(GtkWidget *w, GdkEventButton *ev, gpointer data)
 {
 	(void)w, (void)ev, (void)data;
-	return guarded();
+	return waking();
+}
+static gboolean on_move(GtkWidget *w, GdkEvent *ev, gpointer data)   /* a move or a scroll */
+{
+	(void)w, (void)ev, (void)data;
+	waking();
+	return FALSE;
 }
 
 /* gtklock puts an eye on the line's end each time the keyboard moves to another screen's lock (a
@@ -374,6 +428,10 @@ void on_activation(struct GtkLock *gtklock, int id)
 	self_id = id;
 	const char *run = g_getenv("XDG_RUNTIME_DIR"), *art = g_getenv("KAWA_LOCK_ART");
 	g_snprintf(screens, sizeof screens, "%s/kawa-screens", run && *run ? run : "/nonexistent");
+	g_snprintf(saver, sizeof saver, "%s/kawa-saver.lock", run && *run ? run : "/nonexistent");
+	touched_at = g_get_real_time();
+	saver_was_up = saver_up();
+	g_timeout_add_seconds(1, idle_tick, NULL);
 	if (!art || !*art || !scene_load(art))
 		return;
 	if (S.nflames)
@@ -389,6 +447,9 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	g_signal_connect(win->window, "key-release-event", G_CALLBACK(on_key), win);
 	g_signal_connect(win->window, "button-press-event", G_CALLBACK(on_button), win);
 	g_signal_connect(win->window, "button-release-event", G_CALLBACK(on_button), win);
+	gtk_widget_add_events(win->window, GDK_POINTER_MOTION_MASK | GDK_SCROLL_MASK | GDK_SMOOTH_SCROLL_MASK);
+	g_signal_connect(win->window, "motion-notify-event", G_CALLBACK(on_move), win);
+	g_signal_connect(win->window, "scroll-event", G_CALLBACK(on_move), win);
 	if (win->input_field)
 		g_signal_connect(win->input_field, "notify::secondary-icon-name", G_CALLBACK(no_icon), NULL);
 	if (!S.img || !win->overlay || !GTK_IS_OVERLAY(win->overlay) || !win->window_box || !win->input_field)

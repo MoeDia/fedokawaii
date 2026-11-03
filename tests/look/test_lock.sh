@@ -153,7 +153,7 @@ called '^logger -t kawa-lock -- locker exited rc=137 — the desktop has ended$'
 case_ "the machine wakes (swayidle's after-resume): the screens lit, the journal says whether it is locked"
 setup
 rc 0 kawa-lock --resumed; called '^logger -t kawa-lock -- resumed — not locked$'
-args_eq wlopm 1 --on '*'; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on "the lock screen's note: lit"
+args_eq wlopm 1 --on '*'; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" resumed "the lock screen's note: lit as the machine woke"
 kawa-lock --now; reset_calls
 rc 0 kawa-lock --resumed; called '^logger -t kawa-lock -- resumed — locked$'
 eq "$(locks)" 0 "it only looks: it never locks"
@@ -183,38 +183,59 @@ case_ "autostart clears the note at login (a session that ended in the dark leav
 grep -q '"$XDG_RUNTIME_DIR/kawa-screens"' "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "kawa-screens is not cleared at login"
 
 # ── kawa-lockmod: the wake guard and the keys (built here with GTK 3's headers, if present) ──
-case_ "the wake guard: dark, and 2 s after the screens are lit, keys and clicks only wake; a stale dark holds 2 s"
+case_ "the screens (kawa-lockmod): dark after 5 s untouched, never under the screensaver; any input lights them — the key only wakes when they were dark over 2 s, or in the 2 s after a sleep"
 if command -v cc >/dev/null && pkg-config --exists gtk+-3.0 2>/dev/null; then
   cat >"$TMP/guard.c" <<'EOF'
 #include "kawa-lockmod.c"
 #include <stdio.h>
 #include <utime.h>
-static void note(const char *s, long ago_s) {
+static void say(const char *s, long ago_s) {
 	FILE *f = fopen(screens, "w"); fputs(s, f); fclose(f);
 	struct utimbuf t = { time(NULL) - ago_s, time(NULL) - ago_s }; utime(screens, &t);
 }
+static int asked(void) {   /* what kawa-lock --screens was asked since the last look (on 1 · off 2) */
+	usleep(300000);
+	FILE *f = fopen(getenv("CALLS_AT"), "r"); char l[64]; int r = 0;
+	if (f) { while (fgets(l, sizeof l, f)) r |= strstr(l, " on") ? 1 : strstr(l, " off") ? 2 : 0; fclose(f); }
+	remove(getenv("CALLS_AT"));
+	return r;
+}
 int main(void) {
+	int w, q;
+#define LOOK(label) (w = waking(), q = asked(), printf(label " %d %d", w, q))
 	on_activation(NULL, 0);
-	printf("none %d|", guarded());
-	note("off\n", 3600); printf("dark %d %d|", guarded(), guarded());
-	note("on\n", 0); printf("just lit %d|", guarded());
-	note("on\n", 3); printf("lit 3 s ago %d|", guarded());
-	note("off\n", 7200); printf("stale dark %d, ", guarded());
-	off_first -= 3 * G_USEC_PER_SEC; printf("3 s on %d|", guarded());
-	note("off\n", 10); printf("dark anew %d|", guarded());
+	LOOK("none"); printf("|");
+	say("off\n", 3600); LOOK("dark long"); LOOK(", again"); printf("|");
+	say("off\n", 0); LOOK("just dark"); printf("|");
+	say("on\n", 0); LOOK("lit"); printf("|");
+	say("resumed\n", 0); w = waking(); printf("resumed %d|", w);
+	say("resumed\n", 3); w = waking(); printf("resumed 3 s ago %d|", w);
+	say("on\n", 10); touched_at -= 6 * G_USEC_PER_SEC; idle_tick(NULL); printf("idle 6 s %d|", asked());
+	say("on\n", 10); idle_tick(NULL); printf("just reset %d|", asked());
+	int lk = open(saver, O_CREAT | O_RDWR, 0600); flock(lk, LOCK_EX);
+	touched_at -= 9 * G_USEC_PER_SEC; idle_tick(NULL); printf("under the saver %d|", asked());
+	close(lk); idle_tick(NULL); printf("the saver gone %d|", asked());
+	say("off\n", 0); touched_at -= 9 * G_USEC_PER_SEC; idle_tick(NULL); printf("dark already %d|", asked());
 	return 0;
 }
 EOF
-  # (the module's own source, with GTK's headers; only its guard runs: no display needed)
+  printf '#!/bin/sh\necho "kawa-lock $*" >>"$CALLS_AT"\n' >"$TMP/bin-kl/kawa-lock" 2>/dev/null || { mkdir -p "$TMP/bin-kl"; printf '#!/bin/sh\necho "kawa-lock $*" >>"$CALLS_AT"\n' >"$TMP/bin-kl/kawa-lock"; }
+  chmod +x "$TMP/bin-kl/kawa-lock"
+  # (the module's own source, with GTK's headers: its rules run, no display needed)
   # shellcheck disable=SC2046  # (pkg-config's words)
   if cc -std=gnu11 -I"$REPO/src/kawa-lockmod" $(pkg-config --cflags gtk+-3.0) -o "$TMP/guard" "$TMP/guard.c" $(pkg-config --libs gtk+-3.0) 2>"$TMP/cc.log"; then
-    eq "$(XDG_RUNTIME_DIR=$TMP "$TMP/guard")" "none 0|dark 1 1|just lit 1|lit 3 s ago 0|stale dark 1, 3 s on 0|dark anew 1|"
+    eq "$(XDG_RUNTIME_DIR=$TMP CALLS_AT=$TMP/kl.calls PATH="$TMP/bin-kl:$PATH" "$TMP/guard")" \
+      "none 0 0|dark long 1 1, again 0 0|just dark 0 1|lit 0 0|resumed 1|resumed 3 s ago 0|idle 6 s 2|just reset 0|under the saver 0|the saver gone 0|dark already 0|"
   else _no "kawa-lockmod.c does not build: $(head -n 3 "$TMP/cc.log")"; fi
-else echo "  (no cc or GTK 3 headers here: the guard's run skipped)"; fi
+else echo "  (no cc or GTK 3 headers here: the rules' run skipped)"; fi
+case_ "kawa-lock --resumed notes the wake as \"resumed\" (the lock's 2 s after a sleep), --screens on as \"on\""
+setup
+kawa-lock --resumed; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" resumed
+kawa-lock --screens on; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
 case_ "kawa-lockmod: an empty Enter is no try; every key, release and click passes the guard; theme.sh builds it"
 L=$REPO/src/kawa-lockmod/kawa-lockmod.c
 grep -q 'gtk_entry_get_text_length(GTK_ENTRY(win->input_field)) == 0' "$L" && _ok || _no "the empty Enter"
-for e in key-press-event key-release-event button-press-event button-release-event; do
+for e in key-press-event key-release-event button-press-event button-release-event motion-notify-event scroll-event; do
   grep -q "\"$e\"" "$L" && _ok || _no "$e does not pass the guard"
 done
 grep -q 'module_major_version = 4;' "$L" && _ok || _no "not a gtklock 4 module"
