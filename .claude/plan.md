@@ -304,6 +304,14 @@ approach:
 - Bug 1 for real on the PC after batch B: the test above, frames from the log; if the freeze persists, trace which surface holds the last frame (saver vs lock) with the frame log's per-surface commit lines and fix in saverinput/saverwake.
 accept: shots both themes (art, caret visible at 0.0 s and 0.5 s, torches' frames); wrong password reported in ≤ 400 ms (timestamps from the module's log, 10 tries); 5 s idle on the lock → screens off (kawa-screens note) and a key → lit and the key consumed only as a wake when dark > 2 s (10 cycles logged); saver→lock after a 35 min dark wait: the recording shows a fade, no frozen frame and no cut (framestat.py); greeter shot (headless cage); tests updated; Learn "lock" piece corrected.
 
+- (T20, bug 1 for real — once the new lock is live, when he is away an hour or more: the swayidle 1 s helper from the
+  last dark still alive, nothing playing, no mic in use, a grim shot of a dark screen) reproduce the long absence on his
+  PC: `kawa-saver --idle` in his session (it locks — he unlocks with his password when back; we never unlock), after
+  15 min `kawa-lock --screens off` (the 30-min dark), wait 35 min, then wf-recorder (raw .nut in /dev/shm, the -c
+  rawvideo that worked for T20) and ONE key by `wtype -s 1000` into his session: the frames from the key — the cloth's
+  wash (~180 ms) onto the lock's scene, no frame held over 100 ms, no cut; tools/framestat.py on dwl's own commit log
+  if the freeze shows. The ledger line names the times; the recording deleted after.
+
 - (T20 follow-up, found 3 Nov 04:50 in gtklock 4.0.0's source — github.com/jovanlanik/gtklock v4.0.0 src/source.c,
   window.c, auth.c — and seen under ASan) two upstream faults on a monitor that goes away while locked (his HDMI monitor
   powered off: dwl removes the output): (a) monitors_removed() takes `windows[1]` when the removed window is the only
