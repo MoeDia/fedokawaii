@@ -379,18 +379,18 @@ def light_scene():
                 px[gx + x, gy + y] = P["strong"]
     sx = gx + text.width + 6
     d.rectangle([sx, gy + text.height - 8, sx + 7, gy + text.height - 1], fill=P["accent"])   # the seal
-    # 4 the round window: its shadow on the sky and the mist, a wooden ring (lit above, a groove
-    # inside), Seiōbo through it
+    # 4 the round window: its shadow on the sky and the mist, its ring, Seiōbo through it
     shade = {P["key"]: P["view"], P["view"]: P["ground"], P["ground"]: P["edge"], P["gold"]: P["yellow"], P["edge"]: P["gold"]}
     for x, y, _ in ring(CX, CY + 5, 0, RD + RIM + 3):
         px[x, y] = shade.get(px[x, y], px[x, y])
-    wood = [P["muted"], P["lo"], P["edge2"]]
+    # its ring gilded wood — the lanterns' bronze and the mist's line in one material: an ochre
+    # body, gold where the light falls from above, shadowed at its foot, a dark line at both edges
     for x, y, r in ring(CX, CY, RD, RD + RIM):
-        a = math.atan2(y + 0.5 - CY, x + 0.5 - CX)
-        v = 0.55 - 0.40 * math.sin(a)
         if r >= RD + RIM - 1 or r < RD + 1:
-            v -= 0.35
-        px[x, y] = ramp_at(min(max(v, 0), 0.999), wood, x, y)
+            px[x, y] = P["lo"]
+            continue
+        up = -math.sin(math.atan2(y + 0.5 - CY, x + 0.5 - CX))       # 1 at the top, -1 at the foot
+        px[x, y] = P["gold"] if up > 0.55 else P["yellow"] if up > -0.6 else P["lo"]
     pic = window_of(CACHE / SEIOBO[0], SEIOBO[1], 2 * RD)
     cut = Image.new("L", pic.size, 0)
     ImageDraw.Draw(cut).ellipse([0, 0, pic.width - 1, pic.height - 1], fill=255)
