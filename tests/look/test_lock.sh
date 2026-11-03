@@ -139,6 +139,9 @@ start=$SECONDS; rc 0 kawa-lock
 for _ in {1..150}; do (( $(locks) >= 4 )) && break; /bin/sleep 0.1; done   # (three pauses of a second: up to 15 s on a busy machine)
 (( $(locks) >= 4 )) || _no "not started again each time: $(locks)"
 /bin/sleep 0.5; eq "$(locks)" 4 "four starts: the crash, two more, the one that holds"
+has "$(grep '^gtklock' "$CALLS" | sed -n 3p)" " -m " "the third start still with the module"
+lacks "$(grep '^gtklock' "$CALLS" | sed -n 4p)" " -m " "after three quick stops: the plain lock, without the module"
+called '^logger -t kawa-lock -- three quick stops: started without its module'
 keeping && _ok || _no "the keeper gave up"
 ((SECONDS - start >= 2)) && _ok || _no "restarted in a busy loop"
 unlock

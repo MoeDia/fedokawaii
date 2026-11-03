@@ -48,22 +48,29 @@ keeping() { ! flock -n "$held" true 2>/dev/null; }   # the keeper runs: the desk
 # keep GTKLOCK-COMMAND… — the keeper: runs gtklock until it ends with the password (status 0).
 # gtklock gone any other way after it had locked, dwl keeps the desktop locked with no lock
 # screen on it: gtklock is started again at once (after a second, should it stop again within
-# a second), for as long as the desktop runs. One that stops before it ever locked ends the
+# a second), for as long as the desktop runs — after three quick stops in a row without its
+# module (-m): should the module be what fails, the lock is still gtklock's own plain line and
+# your password, never a desktop locked for good. One that stops before it ever locked ends the
 # keeper: kawa-lock says why.
 keep() {
   exec 8>>"$held"
   flock -n 8 || exit 0                               # (one keeper at a time)
   echo "$$" >"$held"
-  local rc ever=0 t0 t1
+  local rc ever=0 t0 t1 quick=0 a cmd=("$@")
   while :; do
     read -r t0 _ </proc/uptime
-    "$@" </dev/null >/dev/null 2>&1 8>&-; rc=$?
+    "${cmd[@]}" </dev/null >/dev/null 2>&1 8>&-; rc=$?
     read -r t1 _ </proc/uptime
     [[ -e $locked ]] && ever=1
     if ((rc == 0)); then rm -f "$locked"; say "unlocked"; exit 0; fi
     if ((!ever)); then say "locker exited rc=$rc before it locked"; exit 1; fi
     if ! pgrep -xu "$UID" dwl >/dev/null; then rm -f "$locked"; say "locker exited rc=$rc — the desktop has ended"; exit 0; fi
     say "locker exited rc=$rc — the desktop stays locked: started again"
+    if ((${t1%.*} - ${t0%.*} < 10)); then quick=$((quick + 1)); else quick=0; fi
+    if ((quick == 3)); then                          # (the command without -m and the module's path)
+      a=(); while (($#)); do [[ $1 == -m ]] && { shift 2; continue; }; a+=("$1"); shift; done
+      cmd=("${a[@]}"); set -- "${a[@]}"; say "three quick stops: started without its module (the plain lock)"
+    fi
     ((${t1%.*} - ${t0%.*} >= 1)) || sleep 1
   done
 }
