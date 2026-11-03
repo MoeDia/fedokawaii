@@ -29,7 +29,7 @@ chroma = 0.095
 theme  = "dark"
 source = "oiwa-lantern.jpg"
 sha256 = "a318aea6cc9e96aae4ad3787f8820dcb26d6b136b1acdb2dfbaf09515d40ed61"
-crop   = [42, 295, 1602, 901]
+crop   = [42, 545, 1602, 901]
 tone   = "keep"
 
 [fudo-flames]
@@ -104,6 +104,7 @@ sha256 = "e74e7e302e34e2ead42951efce6e47e72eb6dbc15fc4d66796b06a8320d67a8e"
 crop   = [59, 493, 2852, 1604]
 lift   = 0.05
 gain   = 1.1
+chroma = 0.12
 
 [white-kannon-cleveland]
 theme  = "light"

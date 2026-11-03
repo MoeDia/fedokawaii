@@ -4531,6 +4531,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /dev/shm/r27/T18/kit/light/wall.png (benten-biwa: clean edges). Seen at 3×: right of the hag's second join the right
   sheet's black prints lighter (L 0.28–0.34 against the middle sheet's 0.20, rows 0–59) — a tone step between sheets,
   not the seam: should-fix 5's work (compose the sheets, a tone per sheet). MUST-FIX 4 DONE (test r27-18-mf4a + this).
+- r27-18-sf69 (4 Nov 01:25–01:28, the master's T18 should-fixes 6 and 9): oiwa-lantern's window lowered 250 source px
+  ([42, 545, 1602, 901], y 24–64 % of the print, as the master measured): the eyes well inside the frame, the lantern's top
+  the loss; white-kannon-kyosai `chroma = 0.12` (as raigo-1668): the face stays in the ramp — no gold patches on forehead,
+  cheeks and chin, nor on the hands. Before/after at 1:1: /dev/shm/r27/T18/sf69.png. Both pass the edge check; the list's
+  two new hashes; test_masters 3/0.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4552,9 +4557,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
 ## (3) T18 — the master's review 1 FAILED (r27-18-master-1): ALL FOUR must-fixes DONE (r27-18-mf1 the edge check and
 ##     seven crops, 8bf8d1c, r27-18-mf3, r27-18-mf4a + mf4b the sheet and in-place shots from the committed files);
-##     LEFT the should-fixes 5–10 (5: the sheets composed edge to edge with a tone each — the hag's right sheet prints
-##     lighter; 6 oiwa's crop; 7 calmer fields, margin ≈ 0.3; 8 stray accents; 9 white-kannon-kyosai's face; 10 the
-##     weakest named), then the master's review 2.
+##     should-fixes 6 + 9 DONE (r27-18-sf69); LEFT 5 (the sheets composed edge to edge with a tone each — the hag's right
+##     sheet prints lighter), 7 (calmer fields, margin ≈ 0.3), 8 (stray accents < 4 px), 10 (the weakest named), review 2.
 ## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
 ##     .claude/notes/f45-changes-3nov.md first; then vm-create f45 fresh from the released tree, vm-smoke f45,
