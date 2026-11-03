@@ -291,17 +291,19 @@ def lantern(img, P, lx):
                 px[lx, y] = br
     d.ellipse([lx - 3, 48, lx + 2, 53], fill=br, outline=br_lo)  # the jewel
     px[lx - 1, 49] = br_hi
-    for i, y in enumerate(range(54, 68)):                       # the roof: six-sided, flaring
-        hw = 4 + i * 1.3
-        for x in range(int(lx - hw), int(lx + hw) + 1):
-            px[x, y] = br_hi if x < lx - hw / 3 and i < 11 else br
-        px[int(lx - hw), y] = px[int(lx + hw), y] = br_lo
-    for x in range(lx - 22, lx + 22):                            # its eave, the tips curled up
+    for i, y in enumerate(range(54, 68)):                       # the roof: a temple's, swept — narrow
+        hw = round(3 + 19 * (i / 13) ** 1.7)                     # near the jewel, flaring to the eave
+        for x in range(lx - hw, lx + hw + 1):
+            px[x, y] = br
+        for x in range(lx - hw, lx - hw + 2):                    # (gilt along the lit slope's edge)
+            px[x, y] = br_hi
+        px[lx - hw, y] = px[lx + hw, y] = br_lo
+    for x in range(lx - 22, lx + 23):                            # its eave, the tips curled up
         px[x, 68] = br_lo
     for t in (-1, 1):
-        px[lx + t * 22 - (t > 0), 67] = px[lx + t * 23 - (t > 0), 66] = br_lo
-    for y, x in ((57, lx - 3), (61, lx + 6), (64, lx - 9), (60, lx - 1)):
-        px[x, y] = pat                                           # (verdigris)
+        px[lx + t * 23, 67] = px[lx + t * 24, 66] = br_lo
+    for y, x in ((65, lx - 14), (66, lx + 9), (64, lx + 17)):
+        px[x, y] = pat                                           # (verdigris, where rain sits)
     x0, x1, y0, y1 = lx - 11, lx + 10, 69, 101                   # the fire box
     d.rectangle([x0, y0, x1, y1], fill=br)
     d.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=P["key"])
