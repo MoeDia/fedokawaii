@@ -4108,6 +4108,20 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (tests/installer/stubs/_lib.sh): test_upstream 248/0 (foot then linux, owned by the user); the installer area re-run
   (the stand-ins changed). Renders /dev/shm/r27/t24/fix3/pair.png (both moods, the play warming the cache the same way): no
   cache line, the prompts as in fix1.
+- r27-24-master-3 (3 Nov 03:48–04:05, the master's review 3 of T24 on 24957d7): VERDICT PASS (.claude/notes/master-T24-verdict-3.md).
+  Verdict 2's must-fix and should-fix fixed in code (prompt_pairs() fails on scratch copies with the ink or the lacquer
+  moved; the paper_* rows in --doc and §1); fix3 held (tile-widths ran "held"; blesh_warm proven with the real ble.sh in a
+  scratch home); measured both moods: every band 20 rows, cells on 17 + 8k, the [4,6,7,6,4] tongues at every edge.
+  SHOULD-FIX 1 (keep r26-7's burst as a check) and 2 (apply fix2's comments) and NITS 3 (a prompt negative case), 4
+  (tile-widths' fixed pause), 6 (§7's 6.8 : 1 was the icon's) DONE 04:05–04:10 (f5a5519): tools/regress/prompt-burst.sh —
+  three bursts of 8 real foot windows 50 ms apart in the kit, one prompt line counted per window (held: 8/8 ×3);
+  test_contrast 21/0 (foot's dark 30 moved to the faint grey: the prompt's pairs under, exit 1); measure() waits for every
+  terminal's size (5 s at most) then 0.6 s (held again); §7: the mark's icon 6.8 : 1, words 9.5 : 1 and more (Lc 68+),
+  test_design_doc 54/0. Applied: `sudo bash <frozen f5a5519>/fedokawaii.sh theme` — 2 of 654 files (the prompt's comments,
+  kawa-panel's comment; nothing to restart). (Found: `fedokawaii theme` with FEDOKAWAII_COPY runs the TOOLKIT's theme —
+  only `apply` reads that variable; a copy's own fedokawaii.sh makes it the toolkit first.) Nit 5 (blesh_warm on repair
+  when ~/.cache was wiped) left as the master allows: ble.sh rewrites its cache by itself, one line once. Nit 7 the book
+  pass. T24 DONE.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace

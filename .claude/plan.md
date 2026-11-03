@@ -349,7 +349,7 @@ approach:
 - (from T12) a sheet for Super+U (the system menu): Tab / Shift+Tab or → / ← a tab, a click on a tab, Enter, Esc — context: the warm window's title `system`.
 accept: Super+/ inside yazi/nvim/lazygit/btop/torrra shows that app's keys first (shots); fuzzy "wpa" finds "wallpaper picker"; every config.h key present (test); 0 kanji headings; both themes measured.
 
-### T24 — the prompt: our own, pastel-powerline, the terminal icon, Wada pastels  [wip 3 Nov — BUILT 02:00 (ledger r27-24), bursts 0/160 duplicates (r27-24-burst), LIVE 02:04 (seen in a real foot); left: the Learn piece (book pass), the master]
+### T24 — the prompt: our own, pastel-powerline, the terminal icon, Wada pastels  [DONE 3 Nov 04:10 — the master's verdict 3 PASS (ledger r27-24-master-3), its should-fixes and nits done (tools/regress/prompt-burst.sh, test_contrast's prompt case, tile-widths polls, §7's figures), applied (theme from f5a5519). History: BUILT 02:00 (ledger r27-24), bursts 0/160 duplicates (r27-24-burst), LIVE 02:04; review 1 FAIL → fix1; review 2 FAIL → fix2; fix3 (tile widths measured: tools/regress/tile-widths.sh; ble.sh's first-load line gone: lib/upstream.sh blesh_warm). Left for the book pass (T63): the Learn book's prompt line]
 deps: T08, T11  · model: main  · ledger: r27-24
 files: configs/home/.bashrc.d/fedokawaii.sh (PROMPT_COMMAND/PS1), configs/home/.config/blesh/*, configs/home/.config/fedokawaii/screen.sh (pastel roles), art/icons.txt (powerline caps drawn on the term grid: a stamp-edge cap instead of the round powerline arrow), tests/content/test_shell.sh (dup-heading regression kept), docs design-system §9
 approach:
