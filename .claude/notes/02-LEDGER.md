@@ -4221,12 +4221,28 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   only: a rich rule), Steam *:27036 tcp+udp and mDNS 5353 (steamwebhelper; gaming leaves the host in T35), dhcpv6 546;
   loopback only: Ollama 127.0.0.1:11434, resolved 53, chrony 323, Steam's own. FIREWALL public zone (enp8s0): services
   dhcpv6-client, mdns, ssh — SSH OPEN TO ANY SOURCE (the 8737 rule shows how LAN-only reads) —, ports 6881 tcp/udp (the
-  torrents' peers: worldwide by need) and 53317 tcp/udp (LocalSend: LAN is enough). SYSCTLS left at the kernel's:
-  rp_filter 0, accept_redirects 1 (v4 and v6), send_redirects 1 (this PC routes nothing) — candidates, each to be
-  checked against Fedora's and the kernel's docs (T39, not on faith). FOUND (T42/T47): an Ollama outside the toolkit —
+  torrents' peers: worldwide by need) and 53317 tcp/udp (LocalSend: LAN is enough). SYSCTLS: reverse-path filtering is
+  loose already (all = 0, but Fedora's /usr/lib/sysctl.d/50-default.conf sets every interface to 2: enp8s0 2, and the
+  higher of all/interface counts), source routing off (0); left at the kernel's: accept_redirects 1 (v4 and v6,
+  secure_redirects 1) and send_redirects 1 (this PC routes nothing) — candidates for 0, to be checked against the
+  kernel's ip-sysctl docs and Fedora's (T39, not on faith). FOUND (T42/T47): an Ollama outside the toolkit —
   /usr/local/bin/ollama (24 Oct, the upstream install script's place), /etc/systemd/system/ollama.service + override
-  (26 Oct), enabled, running since boot (16 MB, no model loaded) — nothing of setup's; T47's fixer must load only during
+  (26 Oct: OLLAMA_CONTEXT_LENGTH=16384), user ollama, enabled, running since boot (16 MB, no model loaded), 16 GB of
+  models in /usr/share/ollama — nothing of setup's, no ledger line (his own, or a pre-round test); T47's fixer must load only during
   an update (the F45 digest: Fedora ships its own ollama 0.24): replaced or removed there, never left beside it.
+- r27-20-wire-3 (3 Nov 04:58–05:02, T20, on branch t20-fix — ~/repos/fk-t20b, from t20 while the master reviewed t20's
+  5cea79b; pushed): FOUND by reading the installer harness: its fake machine replaced only tools/regress/session-start and
+  bar-geometry with stand-ins — with lock-start in desktop_starts the update flow would have run the real kit there ("could
+  not run" → every test_update_flow case off): a stand-in now (red with $FKH/lock-red; the fake dnf's replay-breaks-lock),
+  test_update_flow counts the lock's start before and after and has the case "the lock off its scene after the update only:
+  red, the set held". Plain words (his kanji rule; seen only without the module): gtklock's messages "wrong password",
+  "Caps Lock" (art/gtklock.mo rebuilt), the greeter's WRONG; verify's row text. docs/fedokawaii-guide.md §6.1 and §6.6
+  rewritten for the scenes (the marks, Caps Lock's blue-green, the 0.3 s answer and why, the screens' 5 s rule and the
+  wake rules, no keys — the case's power button shuts down: logind's HandlePowerKey left at poweroff) and five stale padlock
+  / ちがう lines elsewhere in it. The light window's ring gilded wood (ochre, gold where the light falls, a dark line at both
+  edges — it read as a dotted grey line). tools/regress/saver-lock.sh (new): kawa-saver --idle with the lock under it in the
+  kit — the saver over the scene, the first key only washes it off (scene pixel-exact, nothing typed), the next two keys
+  two marks: held. test_lock 157/0, test_greeter 46/0 there; the installer area running.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~04:57 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
