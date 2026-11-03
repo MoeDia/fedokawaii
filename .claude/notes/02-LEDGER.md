@@ -4426,6 +4426,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   no longer has → gone, rc 1, "1 failed" (failed the old way first: "0 fetched", the stale file kept) — 273/0;
   test_syntax 800/0. Cost: only theme.sh calls --pack; hashing his whole pack (237 pictures) 0.45 s warm. Not live
   until the next apply (the live pack is current: the master counted 21/21).
+- r27-18-mf4a (3 Nov 06:55–06:58, the master's T18 must-fix 4, its test half): tests/static/test_masters.sh — every
+  picture wallpapers.list takes from the toolkit is committed with the list's SHA-256 and no other is; each 640 × 360,
+  mode P, its palette exactly its mood's inks (build-masters' PALETTE, loaded with python3 -I -B: no .pyc) and no index
+  past them. ITS FIRST RUN FOUND A REAL BREAK: 8bf8d1c (must-fix 2, 05:49) rebuilt the ten light pictures but kept their
+  old hashes in wallpapers.list — a clean install's --pack would have refused all ten (the light mood without its own
+  pictures), the PC's pack kept the pre-fix ones. The ten hashes now the committed files' (benten-biwa, goddess-dragon,
+  white-kannon-kyosai, white-kannon-cleveland, hagoromo-noh, yoshino-tennin, feather-robe-tennin, raigo-1668,
+  lotus-sutra-gateway, dragon-palace-jewel); with r27-18-mf3 the next apply replaces the PC's ten. test_masters 2/0
+  (failed the old way: 10 checksums), test_syntax 800/0. Also removed tools/__pycache__ (three .pyc of 03:53/05:34,
+  earlier probes; git-ignored; memory probe-caches-are-strays). LEFT of must-fix 4: the final sheet (--sheet) and
+  both in-place shots made again from the committed files, cited; must-fix 1 (six pictures' edges + the build check).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4440,7 +4451,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
 ## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fix 2 (the light ramp's order) DONE 8bf8d1c, 3 (the
-##     pack re-checks each .src's hash) DONE (r27-18-mf3); LEFT 1 (the edges of six pictures, a build check), 4 (a test over
+##     pack re-checks each .src's hash) DONE (r27-18-mf3), 4's test DONE (r27-18-mf4a: it caught 8bf8d1c's stale list
+##     hashes — fixed); LEFT 1 (the edges of six pictures, a build check), 4's sheet + shots (a test over
 ##     art/masters/out, fresh evidence), the should-fixes; then review 2.
 ## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
