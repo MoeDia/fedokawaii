@@ -4379,8 +4379,10 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   Gtk.Widget.draw); NIT 2 — the evidence for the 250 ms tick is the master's own run, kept at
   /dev/shm/r27/master/T20/kept/own2-regress ("dark 5 s after each last input … a key after over 2 s of dark only
   woke"), not r2's 10-cycle log (recorded before the tick). Also: test_lock's "gtklock stopping before it locks" case
-  printed kawa-lock's stderr into the run — captured and asserted now. test_lock 170/0, test_greeter 46/0. LEFT: nit 3
-  (the stub's red text, with a test_update_flow run), nit 5 (gtklock's PAM messages a place on the scene).
+  printed kawa-lock's stderr into the run — captured and asserted now. test_lock 170/0, test_greeter 46/0. NIT 3 (06:13)
+  — the fake machine's lock-start stand-in speaks the tool's words ("the dark screen is not the scene — 1804 pixels off
+  it at once, 1804 a second later (×3)"), test_update_flow asserts the whole line: 354/0 (06:13–06:16). LEFT: nit 5 (gtklock's PAM
+  messages a place on the scene).
 - r27-apply-cba7 (3 Nov 06:09–06:11, cba7f3d applied from a frozen worktree): `fedokawaii apply` — 1 of 645 files
   updated (~/.local/bin/kawa-lock), /usr/local/bin/kawa-greet with draw_scene, verify 2 problems before → 1 after (his
   qbittorrent, T35); ON THE PC: lock-start held (dark 138 ms, light 137 ms, 0 px off at once and a second later),
@@ -4394,8 +4396,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
 ##     Scratch runs that call kawa-lock stub logger (r27-02b-found: my PAM runs wrote into his journal).
-## (1) T20 — LIVE (r27-20-live), nits 1, 2, 4, 6 done (r27-20-nits). LEFT: nit 3 (the stub dnf's red text → the tool's
-##     words, test_update_flow line 195 with it), nit 5 (gtklock's PAM messages on the scene's low line), bug 1's real
+## (1) T20 — LIVE (r27-20-live), nits 1, 2, 3, 4, 6 done (r27-20-nits). LEFT: nit 5 (gtklock's PAM messages on the
+##     scene's low line, as kawa-greet does), bug 1's real
 ##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
 ##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
 ## (1b) T02b (new, plan): the bar made in the dark — a monitor that came back while dark gets its wl_output and layout

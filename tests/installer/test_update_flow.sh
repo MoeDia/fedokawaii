@@ -192,7 +192,7 @@ case_ "the lock no longer comes up on its scene after the update only: red — t
 back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"; fkh replay-breaks-lock
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" offered; has "$(cat "$U/report")" "the desktop does not start"
-has "$OUT" "lock-start: the screen is not the scene"
+has "$OUT" "lock-start: the dark screen is not the scene — 1804 pixels off it at once, 1804 a second later (×3)"
 grep -q '^gtk3 3.24.51-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
 
 case_ "the desktop's check could not run once (a loaded machine): tried again — green, kept"
