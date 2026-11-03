@@ -4227,29 +4227,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /usr/local/bin/ollama (24 Oct, the upstream install script's place), /etc/systemd/system/ollama.service + override
   (26 Oct), enabled, running since boot (16 MB, no model loaded) — nothing of setup's; T47's fixer must load only during
   an update (the F45 digest: Fedora ships its own ollama 0.24): replaced or removed there, never left beside it.
-## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
+## >>> NEXT PASS STARTS HERE (3 Nov, written ~04:57 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
-##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
-##     of its own); never a kill by a list. Live keys: wtype -s 1000 on every call.
-## (1) THE MASTERS: T23 DONE (r27-23-master-4; its should-fix done: r27-23-wheelcheck); T24 review 1 FAILED
-##     (r27-24-master-1), fixed (r27-24-fix1); review 2 FAILED (r27-24-master-2), fixed (r27-24-fix2; apply it — theme only,
-##     the contrast tool and the doc change nothing installed but the comments) → review 3; then T22 (tools/master-brief.sh T22 with /dev/shm/r27/t22/b10rec/, zpad/v2-*/,
-##     p/) and T18 (the 21 wallpapers' contact sheets /dev/shm/r27p/t18-*-2.png).
-## (2) T20 — wire the lock: lock.ui (no date, time or keys: the entry alone, on the demon's mouth x 959–1138 y 638–737 /
-##     on the sky by Seiōbo's peach x 1080–1290 y 297–387 at 1080p), gtklock.css per mood, kawa-lock handing gtklock the
-##     scene ×N (lock-THEME.png in ~/.cache/fedokawaii per resolution; tools/build-lock.py's art/lock/out), kawa-lockmod
-##     (the flames at 8 fps over the dark scene from flame-dark.png, its own caret, wrong password ≤ 400 ms (PAM
-##     faildelay), 5 s screens off, the wake guard kept), the greeter its twin, tools/regress/lock-start.sh; grill the
-##     light scene once more (the grid away from the lanterns, the ring, the lanterns) — then the master.
-## (3) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 was 403 at 01:30): read
-##     .claude/notes/f45-changes-3nov.md + f45-installed-version-changes.tsv (r27-46b-digest) first; then vm-create f45 fresh
-##     from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh, T46's pre-flight; the upgrade's WAIT.
-## (4) T19m — pass 1's rest: the boot splash and GRUB (VM), the polkit password dialog (lxqt-policykit, the one Qt
-##     window: live), the torrents TUI (with T29); then pass 2 side by side (incl. Super+/'s frame height by headings,
-##     r27-23-help).
-## (5) T53's rest: run/retry failure paths, the pipefail audit, line counts, the harness pinning STATE_DIR for every test
-##     (done: selftest --sandbox rc 0, r27-53-selftest; the panel's start measured, r27-53-panel-start; test_syncplay's mpv
-##     coredumps, r27-53-mpvdumps).
-## (6) The next login (or the kernel trial's reboot, 7.2.13) brings the two dwl fixes (r27-dwl-noxwayland, -termburst):
-##     after it, tools/regress/no-xwayland-exit.sh and term-burst.sh pass on /usr/local/bin/dwl already (checked 02:29);
-##     the new crashnote writes "TIME PID" at that login (check ~/.local/state/fedokawaii/session-start).
+##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
+## (1) T20 — the lock as a scene, on branch t20 (~/repos/fk-t20, pushed; r27-20-wire, -wire-2): the master's review 1 was
+##     running at 04:42 (/dev/shm/r27/master/T20/verdict-1.md → .claude/notes/master-T20-verdict-1.md). Ready to apply with
+##     its fixes: /dev/shm/r27/t20/patch-lockstub.py (the installer world's stand-in for tools/regress/lock-start.sh — without
+##     it test_update_flow runs the real kit: "could not run"), patch-words.py (gtklock's messages and the greeter's in plain
+##     words: his kanji rule), /dev/shm/r27/t20/guide/{login,lock}.md (docs/fedokawaii-guide.md §6.1 and §6.6's first part).
+##     Then: the suite on t20, merge into main, apply (a frozen worktree: sudo FEDOKAWAII_COPY=… fedokawaii apply), check
+##     live (tools/regress/lock-start.sh on the installed lock; /etc/pam.d/gtklock ours; the greeter's folder), the master's
+##     re-review if it failed. Then bug 1 for real (saver → lock after 35 min dark, frames) when he is away for an hour+.
+## (2) THE MASTERS: T22's review 1 was running at 04:56 (/dev/shm/r27/master/T22/verdict-1.md); then T18 (evidence ready:
+##     /dev/shm/r27/t18/evidence/), T53 as a whole (after the suite on main: the harness's STATE_DIR pin is uncommitted in
+##     tests/lib/harness.sh until /dev/shm/r27/main-suite.log ends green — commit it then).
+## (3) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC): read .claude/notes/f45-changes-3nov.md first; then
+##     vm-create f45 fresh from the released tree, vm-smoke f45, tools/vm-inject/f45-checks.sh, T46's pre-flight.
+## (4) T19m — the boot's black box (r27-19m-boot: an 80 × 25 text console cleared at the hand-over; not gfxpayload: which
+##     step — a finer capture, GRUB's EFI loader), pass 1's rest (the polkit dialog live, the torrents TUI with T29), pass 2.
+## (5) T39 from r27-39-audit (SSH LAN-only like 8737, LocalSend LAN-only, mDNS, the sysctls checked against the docs) and
+##     the stray Ollama (T42/T47).
+## (6) The next login brings the two dwl fixes (r27-dwl-noxwayland, -termburst): tools/regress/no-xwayland-exit.sh and
+##     term-burst.sh pass on /usr/local/bin/dwl already; the crashnote writes "TIME PID" at that login.
