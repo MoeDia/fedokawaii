@@ -4524,6 +4524,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   findings). Not caught by the rule, by eye only: a margin of DITHERED paper wider than 4 lines (lotus' was; fixed by its
   crop) — said in the script. Left of T18: must-fix 4's sheet + both in-place shots from the committed files, the
   should-fixes, the master's review 2; the pack refreshes the seven at the next apply (r27-18-mf3).
+- r27-18-mf4b (4 Nov 01:22–01:27, the master's T18 must-fix 4, its evidence half): from the COMMITTED files (9e33646) —
+  the sheet: `build-masters.py --sheet /dev/shm/r27/T18/sheet.png` (all 21 rebuilt byte-identical: git status clean,
+  every hash the list's); in place at 1920 × 1080 with the bar (tools/kit.sh play: swaybg of the picture ×3 by whole
+  pixels): /dev/shm/r27/T18/kit/dark/wall.png (asajigahara-hag: no card, no paper strip, the joins gone) and
+  /dev/shm/r27/T18/kit/light/wall.png (benten-biwa: clean edges). Seen at 3×: right of the hag's second join the right
+  sheet's black prints lighter (L 0.28–0.34 against the middle sheet's 0.20, rows 0–59) — a tone step between sheets,
+  not the seam: should-fix 5's work (compose the sheets, a tone per sheet). MUST-FIX 4 DONE (test r27-18-mf4a + this).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4543,9 +4550,11 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
-## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fixes 1 (r27-18-mf1: the edge check, seven crops),
-##     2 (8bf8d1c), 3 (r27-18-mf3), 4's test (r27-18-mf4a) DONE; LEFT 4's sheet + both in-place shots (fresh evidence
-##     from the committed files), the should-fixes; then review 2.
+## (3) T18 — the master's review 1 FAILED (r27-18-master-1): ALL FOUR must-fixes DONE (r27-18-mf1 the edge check and
+##     seven crops, 8bf8d1c, r27-18-mf3, r27-18-mf4a + mf4b the sheet and in-place shots from the committed files);
+##     LEFT the should-fixes 5–10 (5: the sheets composed edge to edge with a tone each — the hag's right sheet prints
+##     lighter; 6 oiwa's crop; 7 calmer fields, margin ≈ 0.3; 8 stray accents; 9 white-kannon-kyosai's face; 10 the
+##     weakest named), then the master's review 2.
 ## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
 ##     .claude/notes/f45-changes-3nov.md first; then vm-create f45 fresh from the released tree, vm-smoke f45,
