@@ -4215,6 +4215,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   clears it — GRUB's EFI linux loader before ExitBootServices or the kernel's EFI stub (quiet: no messages, but a
   ClearScreen?) — a finer capture (every 0.05 s around the choice) and GRUB 2.12's loader/efi source next; then the same
   look on his PC's next real boot (AMI firmware). The VM was stopped again after.
+- r27-39-audit (3 Nov 04:56–04:58, T39's first look, read-only on the PC: ss -tulpn, firewall-cmd --list-all, sshd -T,
+  sysctl): LISTENING beyond loopback: sshd *:22 (v4+v6; keys only, no root — PasswordAuthentication no,
+  KbdInteractive no, PermitRootLogin no), fk-remote python3 0.0.0.0:8737 (the firewall admits it from 10.62.79.0/24
+  only: a rich rule), Steam *:27036 tcp+udp and mDNS 5353 (steamwebhelper; gaming leaves the host in T35), dhcpv6 546;
+  loopback only: Ollama 127.0.0.1:11434, resolved 53, chrony 323, Steam's own. FIREWALL public zone (enp8s0): services
+  dhcpv6-client, mdns, ssh — SSH OPEN TO ANY SOURCE (the 8737 rule shows how LAN-only reads) —, ports 6881 tcp/udp (the
+  torrents' peers: worldwide by need) and 53317 tcp/udp (LocalSend: LAN is enough). SYSCTLS left at the kernel's:
+  rp_filter 0, accept_redirects 1 (v4 and v6), send_redirects 1 (this PC routes nothing) — candidates, each to be
+  checked against Fedora's and the kernel's docs (T39, not on faith). FOUND (T42/T47): an Ollama outside the toolkit —
+  /usr/local/bin/ollama (24 Oct, the upstream install script's place), /etc/systemd/system/ollama.service + override
+  (26 Oct), enabled, running since boot (16 MB, no model loaded) — nothing of setup's; T47's fixer must load only during
+  an update (the F45 digest: Fedora ships its own ollama 0.24): replaced or removed there, never left beside it.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
