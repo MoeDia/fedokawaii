@@ -54,7 +54,7 @@ kv = {}
 for line in open(f"{art}/lock-scene.txt"):
     w = line.split("#")[0].split()
     if w:
-        kv.setdefault(w[0], []).append([int(v) if v.isdigit() else v for v in w[1:]])
+        kv.setdefault(w[0], []).append(w[1:])          # (as written: "181715" is a colour, not a number)
 out = []
 for name in ("first", "lock"):
     shot = np.asarray(Image.open(f"{o}/{name}.png").convert("RGB"))
@@ -64,10 +64,10 @@ for name in ("first", "lock"):
     want = np.asarray(img.resize((img.width * n, img.height * n), Image.NEAREST))
     got = shot[oy:oy + want.shape[0], ox:ox + want.shape[1]]
     keep = np.ones(want.shape[:2], bool)
-    fw, fh, _ = kv["frames"][0] if "flame" in kv else (0, 0, 0)
-    for fx, fy in kv.get("flame", []):
+    fw, fh, _ = map(int, kv["frames"][0]) if "flame" in kv else (0, 0, 0)
+    for fx, fy in (map(int, f) for f in kv.get("flame", [])):
         keep[n * fy:n * (fy + fh), n * fx:n * (fx + fw)] = False
-    rx, ry, pitch, rn = kv["row"][0]
+    rx, ry, pitch, rn = map(int, kv["row"][0])
     keep[n * (ry - 3):n * (ry + 4), n * (rx - 2):n * (rx + pitch * rn + 3)] = False
     out.append(str(int((~(got == want).all(axis=2))[keep].sum())))   # (pixels off the scene)
 print(*out, n)

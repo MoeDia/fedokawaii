@@ -142,7 +142,7 @@ class Greeter(Gtk.Window):
             self.get_style_context().add_class("kawa")
             self.entry.set_opacity(0)      # (its line unseen from the first frame, whatever the CSS does)
             self.area = Gtk.DrawingArea(can_focus=False)
-            self.area.connect("draw", self.draw)
+            self.area.connect("draw", self.draw_scene)
             layers.add(self.area)
             self.entry.connect("changed", self.typed)
             self.entry.connect("notify::has-focus", lambda *_: self.redraw_row())
@@ -172,7 +172,7 @@ class Greeter(Gtk.Window):
         self.entry.grab_focus()
 
     # ── the scene: drawn as kawa-lockmod draws the lock ─────────────────────────────────
-    def draw(self, area, cr):
+    def draw_scene(self, area, cr):
         s = self.scene
         n, ox, oy = s.fit(area.get_allocated_width(), area.get_allocated_height())
         cr.set_source_rgb(*s.ground)

@@ -156,9 +156,9 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-dec-3a | Workspace stamps: black numeral, small, fully inside the red circle, 1-9 | T14 | done | bar-geometry: seal x 60-75, numeral inside, 5 px paper each side | |
 | r27-dec-3b | Kanji only on stamps, lock quote, day seal; pixel icons elsewhere | T16 | done | grep-tested; test_notices allows no kanji; shots both themes | |
 | r27-dec-4a | Lock screen: new art, no date, time or power buttons | T20 | wip | built on branch t20 (r27-20-wire): the scenes, no date/time/keys; kit + headless + ASan; master review 1 3 Nov; not live | |
-| r27-dec-4b | Password typed inside a demon's mouth (dark) or an angel (light) | T20 | wip | built on t20: embers in the Hannya's dark mouth, motes in Seiōbo's sky (r27-20-wire); not live | |
-| r27-dec-4c | Two retro torches and a dungeon feel on the lock | T20 | wip | built on t20: two torches burning at 8 fps over a lit stone wall (r27-20-dark, -wire); not live | |
-| r27-dec-4d | One Japanese quote, no translation, display lettering; you pick it | T20 | wip | built on t20: 口は禍の門 (dark) / 言わぬが花 (light), design-system §0's sourced proverbs; not live | |
+| r27-dec-4b | Password typed inside a demon's mouth (dark) or an angel (light) | T20 | wip | LIVE 3 Nov 05:56 (r27-20-live, the master's review 2 PASS); built on t20: embers in the Hannya's dark mouth, motes in Seiōbo's sky (r27-20-wire); not live | |
+| r27-dec-4c | Two retro torches and a dungeon feel on the lock | T20 | wip | LIVE 3 Nov 05:56 (r27-20-live, the master's review 2 PASS); built on t20: two torches burning at 8 fps over a lit stone wall (r27-20-dark, -wire); not live | |
+| r27-dec-4d | One Japanese quote, no translation, display lettering; you pick it | T20 | wip | LIVE 3 Nov 05:56 (r27-20-live, the master's review 2 PASS); built on t20: 口は禍の門 (dark) / 言わぬが花 (light), design-system §0's sourced proverbs; not live | |
 | r27-dec-4e | Art as pixel versions of public-domain old masters (Kuniyoshi, Hokusai, Buddhist angels) | T18 | wip | build-masters.py built; 14 demons and 14 angels sourced, licences checked | |
 | r27-dec-4f | About 10 demon wallpapers (dark) and 10 angel wallpapers (light) | T18 | done | 21 old-master wallpapers (11 demons, 10 angels) in the pack, live (r27-18-walls); the master's T18 review pending | |
 | r27-dec-4g | Bar's far-right icon: demon (dark) or angel (light) | T18, T19k-4 | done | live grim: hannya 7/8 px across, 1/1 above and below | |
@@ -196,15 +196,15 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 
 | id | request | task | status | proof | flag |
 |---|---|---|---|---|---|
-| r27-bug-1 | Saver to lock after long absence: frozen picture, then a sudden cut | T20 | wip | headless fix verified; tools/regress/saver-lock.sh (t20-fix): saver over the lock, the first key only washes it off, the next two typed; the real 35-min reproduction not done | |
+| r27-bug-1 | Saver to lock after long absence: frozen picture, then a sudden cut | T20 | wip | headless fix verified; tools/regress/saver-lock.sh held on the INSTALLED lock 3 Nov 05:56 (r27-20-live): saver over the lock, the first key only washes it off, the next two typed; the real 35-min reproduction not done | |
 | r27-bug-2a | Notes: black areas around the text while typing | T21 | wip | foot alpha-mode=matching (4940712), seen in the kit over a wallpaper; the master's reviews of T21 (verdicts 1–7, fixed; 8 running 2 Nov 15:24) | |
 | r27-bug-2b | Notes: flicker on save | T21 | wip | neovim ui2 footer blank per :write fixed (0f50860); kit frames; T21 in the master's review | |
 | r27-bug-2c | Notes: spacing between header and first line | T21 | wip | the heading in the tabline, a blank row under it (a627678); kit renders both moods; T21 in review | |
 | r27-bug-2d | Notes redesigned as a vertical lined notebook | T21 | wip | the ruled portrait page, vermilion margin rule (a627678, design-system §7 "The page"); kit typing play; T21 in review | |
 | r27-bug-2e | Notes: margins constant while scrolling | T21 | wip | margins fixed by floats + paper; scroll/pen rules through verdicts 2–7 (test_notes 148/0); T21 in review | |
 | r27-bug-3 | Bar dropdown rows inactive until first click, fixed for good | T13 | done | kit: row lit at open, first click pages; menu-first-click.sh | |
-| r27-bug-4a | Lock: blinking cursor sometimes missing | T20 | wip | built on t20: the module's own caret, a mark tall, blinking 1 Hz while the line has the keyboard (r27-20-wire); not live | |
-| r27-bug-4b | Lock: wrong password takes long to report; make it fast | T20 | wip | built on t20, PROVEN IN THE VM: wrong password 0.26–0.39 s (was 1.6–2.4), right one still works (r27-20-wire-2: system/gtklock.pam); not live | |
+| r27-bug-4a | Lock: blinking cursor sometimes missing | T20 | wip | LIVE 3 Nov 05:56 (r27-20-live, the master's review 2 PASS); built on t20: the module's own caret, a mark tall, blinking 1 Hz while the line has the keyboard (r27-20-wire); not live | |
+| r27-bug-4b | Lock: wrong password takes long to report; make it fast | T20 | wip | LIVE 3 Nov 05:56 (r27-20-live, the master's review 2 PASS); built on t20, PROVEN IN THE VM: wrong password 0.26–0.39 s (was 1.6–2.4), right one still works (r27-20-wire-2: system/gtklock.pam); not live | |
 | r27-bug-5 | Wallpaper change: a black box flashes first | T19 | done | wash.sh both themes: only old, new, rim ink; picker keeps page | |
 | r27-bug-6a | Flicker on notes save (= r27-bug-2b) | T21 | wip | = r27-bug-2b | |
 | r27-bug-6b | Flicker when typing launcher calculations or conversions | T16 | done | answer row stays in place; shots 36 to 408; test_calc 29/0 | |
@@ -341,7 +341,7 @@ Also read for the wording of the r24 and r25 requests, which the ledger only abb
 | r27-net-3 | Every local service bound to localhost or LAN only | T39 | todo | none recorded | |
 | r27-net-4 | Network sysctls, IPv6 parity, no UPnP, DNS privacy if free | T39 | todo | none recorded | |
 | r27-net-5 | Verify by port scan from another machine; add checks to verify | T39 | todo | none recorded | |
-| r27-lock5-1 | Lock idle 5 s turns the monitors off; any key lights them onto the lock | T20 | wip | built on t20: dark 5 s after the last input, lit by any input, the wake rule; 10 cycles headless, tools/regress/lock-screens.sh (r27-20-wire, -wire-3); not live | |
+| r27-lock5-1 | Lock idle 5 s turns the monitors off; any key lights them onto the lock | T20 | wip | LIVE 3 Nov 05:56 (r27-20-live, the master's review 2 PASS); built on t20: dark 5 s after the last input, lit by any input, the wake rule; 10 cycles headless, tools/regress/lock-screens.sh (r27-20-wire, -wire-3); not live | |
 
 ## r27, reported 26 Oct 14:07 (fix first)
 

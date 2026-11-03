@@ -178,12 +178,15 @@ args_eq wlopm 1 --off '*'; args_eq wlopm 2 --on '*'
 eq "$(tr '\n' '|' <"$TMP/notes")" "note: off|note: off|" "off before the dark; on only once lit"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
 rc 2 kawa-lock --screens; rc 2 kawa-lock --screens dim
-case_ "--screens on when wlopm fails: the note stays dark (the lock still treats them so: the next key only wakes) and it says so"
+case_ "--screens on when wlopm fails: the note stays dark, written anew (the lock's next input tries again) and it says so"
 setup
-echo off >"$XDG_RUNTIME_DIR/kawa-screens"
+echo off >"$XDG_RUNTIME_DIR/kawa-screens"; touch -d '1 hour ago' "$XDG_RUNTIME_DIR/kawa-screens"
 argv wlopm 'exit 1'
 rc 1 kawa-lock --screens on
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" off
+eq "$(( $(date +%s) - $(stat -c %Y "$XDG_RUNTIME_DIR/kawa-screens") < 60 ))" 1 "a new time on the note: the module answers it again"
+rm "$XDG_RUNTIME_DIR/kawa-screens"; rc 1 kawa-lock --screens on
+eq "$(ls "$XDG_RUNTIME_DIR/kawa-screens" 2>/dev/null)" "" "no note made where none was"
 called '^logger -t kawa-lock -- screens on failed \(wlopm\)$'
 case_ "the module (the scene, the wake guard) missing: it still locks, and says what to repair"
 setup; rm "$MOD"
@@ -297,8 +300,8 @@ called '^logger -t kawa-lock -- could not lock: gtklock is not installed'
 case_ "gtklock stopping before it locks (a crash at start): failed within about a second, not 10 — and not started again"
 setup; stub systemctl
 argv gtklock 'exit 1'
-start=$SECONDS; KAWA_LOCK_SLEEP=1 kawa-lock --sleep; r=$?; took=$((SECONDS - start))
-eq "$r" 1
+start=$SECONDS; KAWA_LOCK_SLEEP=1 kawa-lock --sleep 2>"$TMP/err"; r=$?; took=$((SECONDS - start))
+eq "$r" 1; eq "$(cat "$TMP/err")" "kawa-lock: gtklock stopped before it locked" "said on stderr too"
 ((took <= 3)) && _ok || _no "it waited $took s for a gtklock that had stopped"
 /bin/sleep 1.5; not_called '^systemctl'
 has "$(grep notify-send "$CALLS")" "gtklock stopped before it locked"

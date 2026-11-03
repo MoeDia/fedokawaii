@@ -4348,6 +4348,39 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   each .src's hash) — next pass with must-fixes 1, 3, 4.
 - r27-53-harness (05:54, 150381b): the harness pins STATE_DIR — the whole suite on main with it: 128 files, 0 failed
   (/dev/shm/r27/main-suite.log, 04:43–05:54). T53's rest done; T53 → the master next.
+- r27-02b-found (3 Nov 05:57–06:02, while checking verify's false alarm): his screens went dark at 02:48:33 (journal:
+  kawa-lock "screens off" — quick settings' screen off, the desktop left UNLOCKED; the idle inhibitor of this run keeps
+  the saver away); at 02:52:03 a DRM hot-plug event (lact: "got kernel drm subsystem event"; lxqt-policykit-agent:
+  "There are no outputs - creating placeholder screen") — the LG's deep standby drops its hot-plug line ~3.5 min after
+  it went dark; waybar.log: "Bar removed from output: HDMI-A-1"; 2 s later the line was back: the output kept dark by
+  MonKept (T02), `wlr-randr` lists it "Enabled: no", `wlopm` (read-only) lists nothing — no wl_output. So waybar has no
+  bar and none of its modules until his first key, and then builds them on a LIT screen (the modules empty until their
+  first exec). From 02:48:33 to 02:52:03 (dark, still plugged) waybar kept its bar. Filed as plan T02b (the bar made in
+  the dark; acceptance by tools/hotplug-test.sh with waybar + live after 5 min of screen off). Also measured (fenced
+  headless dwl, WLR_HEADLESS_OUTPUTS=0): `wlopm --on '*'` and `wlopm --on HDMI-A-1` both exit 0 with no outputs — so
+  T20's "on only when wlopm lit them" cannot leave a stale "off" here (and wlopm's 0 does not prove anything was lit).
+  Note: the journal's kawa-lock lines of 03:57–03:59 ("locker exited rc=1 … started again", "lock up") were my own
+  unfenced PAM runs of r27-20-wire-2 (their keeper logged with the real logger): his session had no gtklock and no
+  keeper (checked 06:01: kawa-lock.held free, no gtklock under /run/user/1000). Scratch tools must stub logger too.
+- r27-verify-dark (06:00–06:08): verify's "kawa-mem running" / "kawa-nowplaying running" (waybar's own module children)
+  and its "refresh N Hz" check now run only while a screen is lit (`wlr-randr` "Enabled: yes"); every screen dark: one
+  info line, "the bar's modules and the refresh — skipped: every screen is dark (they come back lit)" — no false alarm
+  (and no "refresh 0 Hz" pass read off a dark screen). waybar itself, kawa-dwlstatus and the rest are still asked for.
+  tests/installer/test_verify.sh: two cases (dark: skipped, waybar still failed when missing; lit: both modules asked
+  for, refresh 144 read; the themed checks need theme-applied in the world) — test_verify 186/0, test_syntax 800/0.
+  LIVE (06:08, the repo's verify.sh on the PC, his screens dark): "· the bar's modules and the refresh — skipped: every
+  screen is dark (they come back lit)", waybar running ✔; 2 of 261 failed: qbittorrent outside the manifest (open, T30's
+  audit) and "every file in sync" (these edits, before the apply below).
+- r27-20-nits (06:02–06:12, the master's verdict 2): NIT 1 — a failed `kawa-lock --screens on` touches the note (still
+  "off", a new time, never created where none was): the lock's next input tries wlopm again instead of typing into dark
+  screens (test_lock: the note's new time, no note made); NIT 4 — lock-start's parser keeps lock-scene.txt's words as
+  written ("181715" a colour, not an int), numbers taken where used: lock-start on the INSTALLED lock held again (dark
+  137 ms, light 137 ms, 0 px off at once and a second later); NIT 6 — kawa-greet's draw() → draw_scene() (no shadow of
+  Gtk.Widget.draw); NIT 2 — the evidence for the 250 ms tick is the master's own run, kept at
+  /dev/shm/r27/master/T20/kept/own2-regress ("dark 5 s after each last input … a key after over 2 s of dark only
+  woke"), not r2's 10-cycle log (recorded before the tick). Also: test_lock's "gtklock stopping before it locks" case
+  printed kawa-lock's stderr into the run — captured and asserted now. test_lock 170/0, test_greeter 46/0. LEFT: nit 3
+  (the stub's red text, with a test_update_flow run), nit 5 (gtklock's PAM messages a place on the scene).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.

@@ -225,6 +225,22 @@ EOF
 chmod 755 "$W/usr/local/bin/ddcutil"
 V; has "$OUT" "✔  a monitor answers DDC/CI"
 
+case_ "every screen dark (idle, the monitor's standby took the bar away): the bar's modules and the refresh are not asked for"
+back built; fkh procs "/usr/local/bin/dwl"
+fk_plain bash -c 'mkdir -p "$1" && echo dark >"$1/theme-applied"' _ "$W/home/fkuser/.local/state/fedokawaii"   # (themed: the desktop's own checks)
+rm -f "$W/usr/local/bin/wlr-randr"; cat >"$W/usr/local/bin/wlr-randr" <<'EOF'
+#!/bin/bash
+printf '%s\n' 'HDMI-A-1 "LG Electronics LG ULTRAGEAR (HDMI-A-1)"' '  Enabled: no' '  Modes:' '    1920x1080 px, 143.981003 Hz (preferred)'
+EOF
+chmod 755 "$W/usr/local/bin/wlr-randr"
+V; has "$OUT" "·  the bar's modules and the refresh — skipped: every screen is dark (they come back lit)"
+lacks "$OUT" "kawa-mem running" "no module asked for while dark"; lacks "$OUT" "refresh 0 Hz" "no refresh read off a dark screen"
+has "$OUT" "✘  waybar running" "the bar itself still asked for"
+case_ "…a lit screen: they are asked for (and missing, a failure)"
+sed -i 's/Enabled: no/Enabled: yes/; s/(preferred)/(preferred, current)/' "$W/usr/local/bin/wlr-randr"
+V; has "$OUT" "✘  kawa-mem running"; has "$OUT" "✘  kawa-nowplaying running"; has "$OUT" "✔  refresh 144 Hz = best available ≤"
+lacks "$OUT" "every screen is dark"
+
 case_ "\"Share\" (the loopback of ~/.config/pipewire): found by its node name in PipeWire's list — WirePlumber 0.5's wpctl status shows a loopback under Filters by node.name, never \"Share\""
 back built; fkh procs "/usr/local/bin/dwl"
 cat >"$FKH/pw-dump" <<'J'

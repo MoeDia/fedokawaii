@@ -838,21 +838,32 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
     jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["node.name"] == "share_sink"
                    and .info.props["media.class"] == "Audio/Sink")' <<<"$(U pw-dump 2>/dev/null)"   # (no PipeWire: no input, jq -e fails)
   if ((THEMED)); then
-    for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus kawa-nowplaying kawa-mem lxqt-policykit-agent; do
+    WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
+    for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus lxqt-policykit-agent; do
       check "$p running" pgrep -u "$TARGET_UID" -f "(^|/)$p( |$)"
     done
+    # the bar's own modules and the screen's refresh need a lit screen: the screens dark (idle,
+    # quick settings), a monitor's deep standby drops its hot-plug line and waybar its bar, the
+    # modules with it — they come back with the screens, which is no fault
+    lit=$(U env WAYLAND_DISPLAY="$WD" wlr-randr 2>/dev/null | grep -c '^  Enabled: yes')
+    if ((lit)); then
+      for p in kawa-nowplaying kawa-mem; do
+        check "$p running" pgrep -u "$TARGET_UID" -f "(^|/)$p( |$)"
+      done
+    else info "the bar's modules and the refresh — skipped: every screen is dark (they come back lit)"; fi
     # night light is yours to switch off (quick settings): off is not a fault
     if pgrep -u "$TARGET_UID" -x gammastep >/dev/null; then pass "night light running"
     else info "night light off (quick settings turns it on)"; fi
-    WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
     check "clipboard history running"                  pgrep -u "$TARGET_UID" -f 'wl-paste --watch kawa-clip --store'
     check "the drives watcher running (the bar's USB mark at once)" pgrep -u "$TARGET_UID" -f 'kawa-drives watch'
     check "the update season's reminder (timer) running" U systemctl --user is-active --quiet fedokawaii-remind.timer
     check "copies outlive their app (kawa-clipkeep)"   pgrep -u "$TARGET_UID" -x kawa-clipkeep
-    IFS=' ' read -r cur best < <(U env WAYLAND_DISPLAY="$WD" wlr-randr | awk -v want="$MONITOR_HZ" '
-      /^[^ ]/ { if (c) exit } /^    [0-9]+x[0-9]+ px/ { r[++n] = $1; hz[n] = $3 + 0; if ($0 ~ /current/) { c = $1; ch = $3 + 0 } }
-      END { for (i = 1; i <= n; i++) if (r[i] == c && hz[i] <= want + 0.5 && hz[i] > b) b = hz[i]; printf "%d %d\n", ch + 0.5, b + 0.5 }')
-    check "refresh ${cur:-?} Hz = best available ≤ $MONITOR_HZ" test "${cur:-0}" -ge "${best:-1}"
+    if ((lit)); then
+      IFS=' ' read -r cur best < <(U env WAYLAND_DISPLAY="$WD" wlr-randr | awk -v want="$MONITOR_HZ" '
+        /^[^ ]/ { if (c) exit } /^    [0-9]+x[0-9]+ px/ { r[++n] = $1; hz[n] = $3 + 0; if ($0 ~ /current/) { c = $1; ch = $3 + 0 } }
+        END { for (i = 1; i <= n; i++) if (r[i] == c && hz[i] <= want + 0.5 && hz[i] > b) b = hz[i]; printf "%d %d\n", ch + 0.5, b + 0.5 }')
+      check "refresh ${cur:-?} Hz = best available ≤ $MONITOR_HZ" test "${cur:-0}" -ge "${best:-1}"
+    fi
     check "mako config loads"                          U env WAYLAND_DISPLAY="$WD" makoctl reload
   fi
   # brightness over DDC/CI depends on the monitor having DDC/CI switched on in its own menu
