@@ -4369,8 +4369,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   tests/installer/test_verify.sh: two cases (dark: skipped, waybar still failed when missing; lit: both modules asked
   for, refresh 144 read; the themed checks need theme-applied in the world) — test_verify 186/0, test_syntax 800/0.
   LIVE (06:08, the repo's verify.sh on the PC, his screens dark): "· the bar's modules and the refresh — skipped: every
-  screen is dark (they come back lit)", waybar running ✔; 2 of 261 failed: qbittorrent outside the manifest (open, T30's
-  audit) and "every file in sync" (these edits, before the apply below).
+  screen is dark (they come back lit)", waybar running ✔; 2 of 261 failed: qbittorrent outside the manifest (his own install
+  of 28 Oct: T35 decides it) and "every file in sync" (these edits, before the apply below).
 - r27-20-nits (06:02–06:12, the master's verdict 2): NIT 1 — a failed `kawa-lock --screens on` touches the note (still
   "off", a new time, never created where none was): the lock's next input tries wlopm again instead of typing into dark
   screens (test_lock: the note's new time, no note made); NIT 4 — lock-start's parser keeps lock-scene.txt's words as
@@ -4381,14 +4381,25 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   woke"), not r2's 10-cycle log (recorded before the tick). Also: test_lock's "gtklock stopping before it locks" case
   printed kawa-lock's stderr into the run — captured and asserted now. test_lock 170/0, test_greeter 46/0. LEFT: nit 3
   (the stub's red text, with a test_update_flow run), nit 5 (gtklock's PAM messages a place on the scene).
-## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
+- r27-apply-cba7 (3 Nov 06:09–06:11, cba7f3d applied from a frozen worktree): `fedokawaii apply` — 1 of 645 files
+  updated (~/.local/bin/kawa-lock), /usr/local/bin/kawa-greet with draw_scene, verify 2 problems before → 1 after (his
+  qbittorrent, T35); ON THE PC: lock-start held (dark 138 ms, light 137 ms, 0 px off at once and a second later),
+  lock-screens held (6 keys), saver-lock held, /etc/pam.d/gtklock ours; the installed verify with his screens dark:
+  "· the bar's modules and the refresh — skipped: every screen is dark" — 1 of 261 failed (qbittorrent). Worktrees
+  ~/repos/fk-t20, ~/repos/fk-t20b, /dev/shm/r27/merge-t20 removed (no process in them, clean; t20 and t20-fix merged into
+  main; the trial merge merge-t20, never pushed, both parents in main: its branch deleted). The t20-fix installer-area
+  run (fix-inst2) stopped at the shell's time limit after 23 of 26 files, all green (test_upstream, test_verify,
+  test_vm_tools not reached on that branch; test_verify ran on main: 186/0).
+## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
-## (1) T20 — the lock is LIVE (r27-20-live; the master's review 2 PASS). Its follow-ups: the six nits of verdict 2,
-##     verify's bar-module checks only while an output exists (the false alarm with his monitor off), bug 1's real 35-min
-##     reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock: a real keymap), the greeter's
-##     first frame in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion.
-##     The worktrees ~/repos/fk-t20, ~/repos/fk-t20b and /dev/shm/r27/merge-t20 can go (branches merged).
+##     Scratch runs that call kawa-lock stub logger (r27-02b-found: my PAM runs wrote into his journal).
+## (1) T20 — LIVE (r27-20-live), nits 1, 2, 4, 6 done (r27-20-nits). LEFT: nit 3 (the stub dnf's red text → the tool's
+##     words, test_update_flow line 195 with it), nit 5 (gtklock's PAM messages on the scene's low line), bug 1's real
+##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
+##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
+## (1b) T02b (new, plan): the bar made in the dark — a monitor that came back while dark gets its wl_output and layout
+##     place (waybar builds its bar unseen); tools/hotplug-test.sh with waybar; dwl work → the next login.
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
