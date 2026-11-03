@@ -9,6 +9,22 @@ show_hidden = true
 
 [plugin]
 # a PDF's preview through kawa-pdf (yazi's own, but a locked PDF says so in the desktop's
-# words instead of pdftoppm's error): before yazi's rules, for the page and its cache alike
-prepend_previewers = [ { mime = "application/pdf", run = "kawa-pdf" } ]
+# words instead of pdftoppm's error): before yazi's rules, for the page and its cache alike;
+# a RAR's (a .cbr's) through kawa-rar — unrar's list: Fedora's 7-Zip has no RAR
+prepend_previewers = [
+  { mime = "application/pdf", run = "kawa-pdf" },
+  { url = "*.{rar,cbr,RAR,CBR}", run = "kawa-rar" },
+  { mime = "application/{rar,vnd.rar,x-rar,x-rar-compressed}", run = "kawa-rar" },
+]
 prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]
+
+[opener]
+# File tools (Super+D's): unpack, list, test — unrar inside, a password asked in place
+file-tools = [ { run = 'kawa-file %s', orphan = true, desc = "File tools" } ]
+
+[open]
+# Enter on a RAR (a .cbr) opens File tools: yazi's own extract runs 7-Zip, which has no RAR here
+prepend_rules = [
+  { url = "*.{rar,cbr,RAR,CBR}", use = "file-tools" },
+  { mime = "application/{rar,vnd.rar,x-rar,x-rar-compressed}", use = "file-tools" },
+]

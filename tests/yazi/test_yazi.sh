@@ -757,5 +757,28 @@ EOF
 has "$out" ".hidden-note"
 rm -f "$W/.hidden-note"
 
+# ── a RAR (bug 11, the master's T22 review 1): Fedora's 7-Zip has no RAR ────────────────────
+case_ "a .rar: its entries in the preview (unrar's list, at the names' column), never 7-Zip's error; Enter opens File tools on it"
+if command -v unrar >/dev/null; then
+  setup
+  R=$HOME/comics; mkdir -p "$R"
+  python3 -I -B "$REPO/tests/lib/rar4.py" "$R/comic.rar" "page-01.txt=first page" "page-02.txt=second page" "notes.md=# hi"
+  echo x >"$R/z.txt"
+  stub kawa-file ': >"$TMP/hit.kawa-file"'
+  out=$(CWD=$R y <<'EOF'
+wait comic.rar
+settle
+screen
+key <Enter>
+waitfile $TMP/hit.kawa-file
+quit
+EOF
+)
+  has "$out" "page-01.txt"; has "$out" "notes.md"
+  lacks "$out" "7-zip"; lacks "$out" "Cannot open"
+  called "^kawa-file $R/comic\.rar$" "Enter: File tools on the archive"
+  not_called '^7z'
+else echo "  (no unrar here: the RAR case skipped)"; fi
+
 flush; rm -f "$SF"
 done_

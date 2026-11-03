@@ -224,11 +224,12 @@ lacks "$(cat "$TMP/fzf.args")" "esc close" "nothing obvious on its last line (§
 
 case_ "RAR (unrar, its own tool): asked on stdin through setsid, the password never an argument"
 setup
-command -v unrar >/dev/null && { printf '  – the real unrar is here: its stand-in skipped\n'; } || {
+{   # (a stand-in unrar, whether the real one is here or not: stubs come first on PATH)
 printf 'Rar!\x1a\x07\x01\x00LOCKED' >"$A/comic.rar"
 stub unrar 'cmd=$1; shift; pw=0; [ "$1" = -p ] && pw=1
 case $cmd in
-  lt) [ "$1" = -p- ] && { echo "        Name: page1.png"; echo "       Flags: encrypted"; exit 0; } ;;
+  lt) [ "$1" = -p- ] && { echo "        Name: page1.png"; echo "       Flags: encrypted"; exit 0; }
+      [ $pw = 1 ] || exit 11; read -r p; [ "$p" = secret-Pa55 ] || exit 11; echo "        Name: page1.png" ;;
   t)  [ $pw = 1 ] || exit 11; read -r p; [ "$p" = secret-Pa55 ] || exit 11 ;;
   x)  [ $pw = 1 ] || exit 11; read -r p; [ "$p" = secret-Pa55 ] || exit 11; for d; do :; done; echo img >"${d}page1.png" ;;
 esac'
@@ -238,6 +239,13 @@ eq "$(cat "$A/comic/page1.png" 2>/dev/null)" img; called '^unrar x -p -idq -o- -
 reset_calls; TPW=no TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/comic.rar"; called "^kawa-menu --title ${FAILED}comic\.rar · wrong password "; not_called 'notify-send'
 TPW=secret-Pa55 TPW2=""
 }
+case_ "a RAR unpacked by the real unrar (a generated RAR 4 archive): extract into a folder — every entry there, whole"
+if command -v unrar >/dev/null; then
+  setup
+  python3 -I -B "$REPO/tests/lib/rar4.py" "$A/pages.rar" "page-01.txt=first page" "page-02.txt=second page"
+  answers "extract into a folder"; rc 0 kawa-file "$A/pages.rar"
+  eq "$(cat "$A/pages/page-01.txt" 2>/dev/null)" "first page"; eq "$(cat "$A/pages/page-02.txt" 2>/dev/null)" "second page"
+else echo "  (no unrar here: the real archive's case skipped)"; fi
 case_ "… unrar missing: said, critical (repair puts it back)"
 setup; printf 'Rar!\x1a\x07\x01\x00' >"$A/c.rar"
 if ! command -v unrar >/dev/null; then answers esc; rc 1 kawa-file "$A/c.rar"; called 'notify-send -a desktop -u critical -- .*unrar is missing'; fi
