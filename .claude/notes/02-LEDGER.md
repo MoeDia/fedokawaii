@@ -4161,6 +4161,31 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   greeter twin (kawa-greet draws the same scene; kawa-wallpaper's lock_ground then goes), the light scene's redesign
   (its gold-leaf grid reads as graph paper at 1×; §0/§9 say a temple in clouds, stone lanterns, a halo), the
   lock-start regress check + lib/guard.sh, kawa-lock's journal lines, the master; then live.
+- r27-20-wire-2 (3 Nov 04:28–04:42, T20 step 4, WIP on branch t20 — pushed, NOT live): BUG 4's slow wrong password FIXED and
+  PROVEN IN THE VM (f44, gtklock 4.0.0-3, authselect "local", a throwaway user pamtest, tools' own ctypes PAM client doing
+  gtklock's pam_start/authenticate/setcred(REFRESH)/end): stock `auth include login` refused wrong passwords in 1.63 / 2.24
+  / 2.36 s; ours (system/gtklock.pam: pam_env, pam_faildelay delay=300000, pam_unix nodelay, pam_deny; account pam_unix)
+  0.257 / 0.299 / 0.338 / 0.343 / 0.386 / 0.286 s — all ≤ 400 ms —, the right password ok twice (0.019 s), empty and a
+  passwd -l account refused; the VM's stock file restored and the user removed. /etc/pam.d/gtklock is the gtklock
+  package's own (not %config: `rpm -q --queryformat '[%{FILENAMES} %{FILEFLAGS:fflags}]'` shows no flag), so an update
+  writes it back: setup.sh lock_pam (cmp, then install) runs in greetd_config, in update_steps and in do_after_dnf when
+  gtklock changed; verify checks it. THE LOGIN SCREEN THE LOCK'S TWIN: kawa-greet draws the same scene (Scene reads
+  lock-scene.txt), flames, marks, caret, Caps Lock ink and the wrong password's 240 ms scatter and shake; greetd's check
+  runs on a thread (the flames never stop while it answers ~2 s — greetd's own PAM untouched: its stack does the
+  session too); no keys, no date, no verses; a system note on the way is the one line of words, low. Headless against a
+  fake greetd (the real protocol): wrong → cancel, scatter at 1.96–2.20 s in five steps; right → start_session, the
+  greeter ends. RETIRED: the padlock, the seven seals (build-art.py, the repo, ~/.local/share copies by theme.sh, the
+  greeter's folder by setup), the wallpaper-shaded lock ground (kawa-wallpaper lock_ground, ~/.cache and
+  /var/lib/fedokawaii-greeter copies), gtklock.css's dead rules (face, time, day, verse, keys; the scroll kept for a lock
+  without its module, the caret visible there now). tools/regress/lock-start.sh (in lib/guard.sh desktop_starts after
+  session-start and bar-geometry: every update proves the lock comes up; logger stood in for — no lines in his journal):
+  locked in 103 ms, the dark scene ×3 100.00 % of its still pixels exact; without the module 44 % → exit 1. THE LIGHT
+  SCENE REDRAWN (its gold-leaf grid read as graph paper at 1×): a paper sky, the golden mist of the old screens
+  (suyari-gasumi: stepped rounded layers, an ochre line, a pale gilt top) framing Seiōbo's window, two hanging bronze
+  tsuri-dōrō at the torches' places with verdigris, a lit lattice and their own 8 × 12 flames (light/lock-flame.png,
+  one flames() for both moods); kit render through the module: lantern flames burning, seven gold motes and the caret
+  by the peach. test_lock 157/0, test_greeter 46/0, test_upstream/installer area green on the earlier state; §0/§9
+  describe both locks as built. NEXT: the whole suite on t20's HEAD, the master's review of T20, merge, apply, live.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
