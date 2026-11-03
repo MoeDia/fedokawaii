@@ -4243,6 +4243,50 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   edges — it read as a dotted grey line). tools/regress/saver-lock.sh (new): kawa-saver --idle with the lock under it in the
   kit — the saver over the scene, the first key only washes it off (scene pixel-exact, nothing typed), the next two keys
   two marks: held. test_lock 157/0, test_greeter 46/0 there; the installer area running.
+- r27-20-master-1 (3 Nov 04:42–05:14, the master's review 1 of T20 on t20 5cea79b): VERDICT FAIL (.claude/notes/master-T20-verdict-1.md).
+  Held: the module clean under -Wconversion -Wshadow, its gtklock-4.0.0 assumptions and destroy order traced in upstream
+  source (no use-after-free), the art byte-for-byte reproducible and all-palette, test_lock 157/0, test_greeter 46/0, the
+  installer's test_theme 141/0, test_syntax 791/0, test_generated 267/0; its own headless runs: lock-start held, the caret at
+  0 s / off 0.5 s / on 1.0 s, 3 → 7 marks, dark 5.24 s after the last key, a key after > 2 s dark only woke. MUST-FIX 1:
+  gtklock's own line and caret eased in at the scene's centre for the first ~140 ms of every lock (154–172 blended
+  pixels: a GTK style transition from the plain rule to window.kawa). SHOULD-FIX: no answer to keys past the seventh; the
+  PAM wait is base × (1 + U) in libpam (150–450 ms), not "0.3 s, never below"; six VM tries, ten asked; the 5 s rule at
+  5.0–6.0 s (a 1 s tick); Caps Lock's ink unproven (wtype carries no Lock); light art (a dithered ring, a floating plaque,
+  a flat seal, motes without a glow); lock-start dark only; "on" noted when wlopm failed. Nits: the shake's clip
+  anti-aliased, test shell warnings, a held wake key's repeats typed, on_caps connected again, the greeter dying
+  without a system bus, the header's 240 ms.
+- r27-20-fix-1 (05:14–05:22, on t20-fix e29aeea, pushed): MUST-FIX 1 FIXED — gtklock's box at opacity 0 from the module's
+  first touch (the greeter's entry the same) and `transition: none` on everything in gtklock.css; tools/regress/lock-start.sh
+  now shoots the instant the lock is up and a second later in BOTH moods and allows zero pixels off the scene: 0 / 0
+  with the fix (dark 137 ms, light 137 ms), 156 / 0 on the reviewed branch — the check catches the flash. SHOULD-FIX:
+  every key flares the newest mark 90 ms (its corners in the arms' ink; the timer re-armed by a fast key, removed with its
+  window; the greeter the same); the 5 s rule ticks every 250 ms; the PAM text says about 0.3 s (0.15–0.45, libpam's
+  pam_delay.c) and TEN VM TRIES were timed: 0.317 0.330 0.271 0.310 0.206 0.258 0.337 0.300 0.236 0.355 s, the right
+  password 0.019 s, the VM's stock file restored; kawa-lock writes "on" only when wlopm lit them (else "screens on
+  failed (wlopm)", exit 1 — a test); the light ring gilded wood, the lantern roofs swept, the plaque on two knotted
+  cords, the seal with a carved square, the motes with white corner glints. Nits: the clip without anti-aliasing, the
+  test warnings, a held waking key swallowed with its repeats until let go, on_caps once, the greeter's bus in a try,
+  the header's "five steps of 48 ms", §11's "the lock goes" marked PLANNED. Also: a frame-less flame line draws no flame
+  and runs no timer. Held again with the fixed module: lock-screens (6 keys), saver-lock. test_lock 163/0,
+  test_greeter 46/0. Caps Lock's ink stays a live follow-up (no Lock modifier through wtype). The master's review 2 on
+  e29aeea from 05:22.
+- r27-22-master-1 (3 Nov 04:56–05:21, the master's review 1 of T22): VERDICT FAIL (.claude/notes/master-T22-verdict-1.md).
+  Held: §7's grid pixel-identical in both moods, contrast 62 pairs 0 under (WCAG and APCA), hidden files in yazi and the
+  dialog, bug 10's prompt one window through ask → wrong → wrong (the light recording's frames 69–102 steady), zathura
+  asks in place; test_yazi 130/0, test_file 276/0. MUST-FIX: (1) .rar in YAZI still errors — the preview runs 7-zip
+  ("Cannot open the file as archive") and Enter runs yazi's 7z extract; only Alt+F's kawa-file uses unrar, and
+  test_file skips its RAR case where unrar is installed (a hand-built RAR4 archive makes a real test possible: the
+  verdict's recipe); (2) "…" in yazi's drives popup (drives.yazi:124 ui.truncate, :200 a literal), test_yazi:538 asserts
+  it; (3) yazi's modals untouched (rename/create input, the trash confirm, help, tasks: rounded boxes with titles in the
+  border, against §4). Should-fix: the vermilion progress block in the footer; preview messages in yazi's words/place
+  and kawa-pdf's locked message centred; the prompt's lock 1 px left of the ✗'s column; arc_pw_ok on the first entry; Esc
+  while held; the three sizes re-shot; a picker dotfile test; the count badge/marker grammar. → the next pass's T22 work.
+- r27-30-baseline (3 Nov 05:13, T30's first number, a pty that does not answer): `nvim --startuptime` five times —
+  116.4–122.4 ms to "NVIM STARTED", of which ~106 ms is vim._core.defaults waiting on the terminal's answer (its OSC 11 /
+  DA1 query: a silent pty times it out; foot answers at once — memory pty-probes-answer-da1); init.lua + lazy 8.8 ms,
+  gruvbox 1.3 ms. The real measure needs a pty that answers (T30).
+- r27-shm (05:09): the F45 digest's downloaded repository metadata (2.9 GB of /dev/shm/r27/t46b/raw/repo and rpms) freed
+  from RAM — its findings are in the notes; the released tree is fetched fresh for T46.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~04:57 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
