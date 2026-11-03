@@ -112,6 +112,26 @@ for by in range(0, 1080, 37):
         bad += im.getpixel((bx, by)) != want
 print(bad)' "$(shown)")" 0 "every screen pixel the colour of its source pixel, 3 × 3 (no smoothing, no shift)"
 
+case_ "a picture rebuilt under the same name (a new hash in the list): the next --pack replaces it; one that cannot be had as listed goes — never the old picture under the new one's name"
+setup
+export KAWA_TOOLKIT=$TMP/tk; mkdir -p "$KAWA_TOOLKIT/art/masters/out"
+own=$KAWA_TOOLKIT/art/masters/out/own-demon.png
+draw() { python3 -I -c 'import sys; from PIL import Image
+im = Image.new("P", (640, 360)); im.putpalette([0x18, 0x17, 0x15, 0xeb, 0x53, 0x24] + [0] * 762)
+im.putdata([(x * int(sys.argv[2]) + y) % 2 for y in range(360) for x in range(640)]); im.save(sys.argv[1])' "$own" "$1"; }
+draw 1; old=$(sha256sum "$own" | cut -d' ' -f1)
+printf 'dark  own-demon  -  center  %s  toolkit:art/masters/out/own-demon.png  ours (CC0 source)\n' "$old" >"$SHARE/wallpapers.list"
+kawa-wallpaper --pack >/dev/null 2>&1
+draw 2; new=$(sha256sum "$own" | cut -d' ' -f1)
+sed -i "s/$old/$new/" "$SHARE/wallpapers.list"
+out=$(kawa-wallpaper --pack 2>&1); rc=$?
+((rc == 0)) && [[ $out == *"1 fetched, 0 already here"* ]] && cmp -s "$PACK/dark/own-demon.src" "$own" \
+  && _ok || _no "the rebuilt picture was not taken (rc $rc: $out)"
+kawa-wallpaper --pack 2>&1 | grep -q '0 fetched, 1 already here' && _ok || _no "the current one fetched again"
+sed -i "s/$new/$old/" "$SHARE/wallpapers.list"           # (listed as the old one, the toolkit has the new)
+out=$(kawa-wallpaper --pack 2>&1); rc=$?
+((rc != 0)) && [[ ! -e $PACK/dark/own-demon.src && $out == *"1 failed"* ]] && _ok || _no "a picture not as listed was kept (rc $rc: $out)"
+
 # ── --restore: the theme's choice, every monitor at its size ───────────────────
 setup
 case_ "before the pack is here: the theme's plain ground, nothing else"

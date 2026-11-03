@@ -315,7 +315,7 @@ behind() {   # what is not drawn yet for these screens, drawn in the background 
   setsid "$0" --cache --background </dev/null >/dev/null 2>&1 7>&- 8>&- 9>&- &
 }
 
-pack() {   # download and check every pack picture not here yet; it is kept as it came
+pack() {   # download and check every pack picture not here as listed; it is kept as it came
   local mode name pair crop sum url _ tmp out rc host n=0 have=0 fail=0 offline=0 untried=0
   [[ -r $LIST ]] || { echo "kawa-wallpaper: $LIST is missing (run theme.sh)" >&2; return 1; }
   tmp=$(mktemp -d) || return 1
@@ -323,7 +323,12 @@ pack() {   # download and check every pack picture not here yet; it is kept as i
   while read -r mode name pair crop sum url _; do
     [[ $mode == dark || $mode == light ]] || continue          # comments and blank lines
     out="$PACK/$mode/$name.src"
-    if [[ -s $out ]]; then have=$((have + 1)); continue; fi
+    # (here only as the list names it: one rebuilt under the same name — the toolkit's own —
+    # comes again, and goes if it cannot: cover() would draw it under the new one's name)
+    if [[ -s $out ]]; then
+      [[ $(sha256sum <"$out") == "$sum "* ]] && { have=$((have + 1)); continue; }
+      rm -f -- "$out"
+    fi
     # every picture comes from the same host: three in a row that found no way there (no
     # network, its name not found, no answer) and the rest are left for the next run —
     # curl retries each one, so offline the whole list would take minutes

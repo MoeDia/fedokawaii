@@ -4417,6 +4417,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   off, 5 min for the LG to drop its line, a key → D "shown settled" in his frame log via SIGUSR2 + a grim shot), the
   real bar's burst measured by its L lines against the 100 ms (the LG's own time from signal to picture cannot be
   measured from here: no camera).
+- r27-18-mf3 (3 Nov 06:44–06:55, the master's T18 must-fix 3): `kawa-wallpaper --pack` kept any picture already in the
+  pack, so one rebuilt under the same name (a new hash in wallpapers.list — the toolkit's own pictures, which must-fixes
+  1 and 2 rebuild) stayed stale and cover() drew it under the new picture's name. Now a pack file counts as here only
+  when its SHA-256 is the list's; otherwise it is removed and fetched as a missing one — and stays gone when that fails
+  (said, counted as failed), never the old picture under the new key. tests/look/test_wallpaper.sh: a case — rebuilt
+  → "1 fetched, 0 already here" and the new file; again → "0 fetched, 1 already here"; listed as a picture the toolkit
+  no longer has → gone, rc 1, "1 failed" (failed the old way first: "0 fetched", the stale file kept) — 273/0;
+  test_syntax 800/0. Cost: only theme.sh calls --pack; hashing his whole pack (237 pictures) 0.45 s warm. Not live
+  until the next apply (the live pack is current: the master counted 21/21).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4430,8 +4439,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
-## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fix 2 (the light ramp's order) DONE 8bf8d1c; LEFT
-##     1 (the edges of six pictures, a build check), 3 (the pack re-checks each .src's hash), 4 (a test over
+## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fix 2 (the light ramp's order) DONE 8bf8d1c, 3 (the
+##     pack re-checks each .src's hash) DONE (r27-18-mf3); LEFT 1 (the edges of six pictures, a build check), 4 (a test over
 ##     art/masters/out, fresh evidence), the should-fixes; then review 2.
 ## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
