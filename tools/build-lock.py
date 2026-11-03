@@ -361,7 +361,7 @@ def placed(mood, row, P, plate, rim, flame_x=()):
     lines += [f"row {row[0]} {row[1]} {GATE_PITCH} {GATE_N}   # the password: the first mark's middle, the pitch, how many in sight",
               "mark {} {} {}   # a mark: its arms, its middle, its corners".format(*map(hexof, marks[:3])),
               f"caps {hexof(marks[3])}   # the arms while Caps Lock is on",
-              f"caret {hexof(marks[4])}   # a bar 1 × 5 at the next place, once a second",
+              f"caret {hexof(marks[4])}   # a bar as tall as a mark at the next place, once a second",
               "plate {} {} {}   # what shakes at a wrong password: its middle, its radius".format(*plate)]
     return "\n".join(lines) + "\n"
 

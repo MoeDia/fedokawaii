@@ -8,8 +8,8 @@
  *  torches' flames (lock-flame.png's frames, 8 a second, the two out of step), the password as
  *  marks in the mood's row (the demon's mouth: an ember for each character; the sky by Seiōbo's
  *  peach: a mote) — the newest ones while more are typed than the row holds —, the arms in the
- *  Caps Lock ink while it is on, and the caret: a bar at the next place, once a second, there
- *  while the line has the keyboard. A wrong password (gtklock's error line, never shown): the
+ *  Caps Lock ink while it is on, and the caret: a bar as tall as a mark at the next place, once a
+ *  second, there while the line has the keyboard. A wrong password (gtklock's error line, never shown): the
  *  marks scatter and fade, the face (the plate) shakes a pixel of the scene twice — 240 ms, five
  *  steps of 48. gtklock's own line stays for the keys: invisible (current/gtklock.css,
  *  window.kawa), its words never shown. No date, no time, no keys: the scene is the lock.
@@ -294,7 +294,7 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 	}
 	if (caret_on && step < 0 && e && gtk_widget_has_focus(e) && gtk_widget_is_sensitive(e)) {
 		cairo_set_source_rgb(cr, S.caret.r, S.caret.g, S.caret.b);
-		cairo_rectangle(cr, S.rx + S.pitch * shown, S.ry - 2, 1, 5);
+		cairo_rectangle(cr, S.rx + S.pitch * shown, S.ry - 1, 1, 3);   /* (a mark's height) */
 		cairo_fill(cr);
 	}
 	return FALSE;

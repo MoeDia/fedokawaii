@@ -12,7 +12,7 @@ need python3 flock setsid
 
 # the stand-in gtklock's body (sh): its environment and inherited locks noted, the lock taken,
 # then running until unlocked (BODY_PRE runs first: a gate, a crash at start…)
-FAKE_LOCK='echo "LANGUAGE=$LANGUAGE LC_TIME=$LC_TIME" >>"$FAKE_TMP/gtklock.env"
+FAKE_LOCK='echo "LANGUAGE=$LANGUAGE KAWA_LOCK_ART=$KAWA_LOCK_ART" >>"$FAKE_TMP/gtklock.env"
 [ -e /proc/$$/fd/9 ] && echo "busy lock held" >>"$FAKE_TMP/fd9"
 [ -e /proc/$$/fd/8 ] && echo "keeper lock held" >>"$FAKE_TMP/fd8"
 trap "exit 0" TERM
@@ -24,7 +24,7 @@ setup() {
   look
   config .config/fedokawaii/lock.ui .local/share/fedokawaii/dark .local/share/fedokawaii/light
   SHARE=$HOME/.local/share/fedokawaii CSS=$HOME/.config/fedokawaii/current/gtklock.css
-  UI=$XDG_RUNTIME_DIR/kawa-lock.ui
+  UI=$HOME/.config/fedokawaii/lock.ui
   argv gtklock "$FAKE_LOCK"
   argv wlopm
   stub logger
@@ -45,11 +45,11 @@ unlock() { : >"$TMP/unlock"; waitfor '! keeping'; rm -f "$TMP/unlock"; }       #
 
 # ── a lock ───────────────────────────────────────────────────────────────────
 setup
-case_ "Super+Escape: gtklock with the theme's stylesheet and the layout, the date in English, the desktop's words"
+case_ "Super+Escape: gtklock with the theme's stylesheet, the layout and the module, which finds the mood's scene; the desktop's words"
 rc 0 kawa-lock
 eq "$(locks)" 1
-args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --date-format '%a %d %b' --time-format '%I:%M' --lock-command "kawa-lock --up"
-eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk LC_TIME=C" "LANGUAGE=fk (ちがう · wrong password), LC_TIME=C"
+args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --lock-command "kawa-lock --up"
+eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk KAWA_LOCK_ART=$SHARE/dark" "LANGUAGE=fk (ちがう · wrong password, without the module), the dark scene"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "gtklock keeps kawa-lock's lock: every later call would wait"
 [[ ! -e $TMP/fd8 ]] && _ok || _no "gtklock keeps its keeper's lock: the desktop would look locked after the password"
 case_ "… it runs under its keeper, and the journal says the lock is up"
@@ -62,25 +62,32 @@ called '^logger -t kawa-lock -- unlocked$'
 [[ ! -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && _ok || _no "still marked locked after the password"
 rc 0 kawa-lock; eq "$(locks)" 2 "a new lock"; unlock
 
-case_ "the layout: today's seal and the theme's padlock filled in, every id gtklock reads present"
-day=$(date +%u)
-has "$(cat "$UI")" "$SHARE/dark/seal-$day.png"
-has "$(cat "$UI")" "$SHARE/dark/padlock.png"
-lacks "$(cat "$UI")" "{SEAL}"
-for f in "$SHARE/dark/seal-$day.png" "$SHARE/dark/padlock.png"; do [[ -s $f ]] && _ok || _no "missing $f"; done
+case_ "the layout: every id gtklock reads present, none of its own words or keys shown — the scene is the module's"
+for f in "$SHARE"/{dark,light}/lock-scene.{png,txt} "$SHARE/dark/lock-flame.png"; do [[ -s $f ]] && _ok || _no "missing $f"; done
 for id in window-box info-box time-box clock-label date-label body-revealer body-grid input-label input-field \
           message-revealer message-scrolled-window message-box unlock-button error-label warning-label; do
   grep -q "id=\"$id\"" "$UI" && _ok || _no "the layout has no $id"
 done
 python3 -c 'import sys, xml.dom.minidom as m; m.parse(sys.argv[1])' "$UI" && _ok || _no "the layout is not well-formed XML"
 grep -q '<property name="invisible-char">◆</property>' "$UI" && _ok || _no "the box's dots are not ◆ (GtkBuilder reads a gunichar as the character itself)"
+python3 -I -c '
+import sys, xml.etree.ElementTree as E
+r = E.parse(sys.argv[1]).getroot()
+def hidden(o): return any(p.get("name") == "no-show-all" and p.text == "1" for p in o.findall("property"))
+for i in ("info-box", "input-label", "message-revealer", "unlock-button"):
+    o = r.find(f".//object[@id=\"{i}\"]")
+    print(i, "hidden" if o is not None and hidden(o) else "SHOWN")' "$UI" >"$TMP/shown"
+eq "$(cat "$TMP/shown")" "info-box hidden
+input-label hidden
+message-revealer hidden
+unlock-button hidden" "no time, date, hint or button of gtklock's"
 
-case_ "the light theme: its own stylesheet link and pictures"
+case_ "the light theme: its own stylesheet link and scene"
 setup
 ln -sfn themes/light "$HOME/.config/fedokawaii/current"
 kawa-lock --now
-has "$(cat "$UI")" "$SHARE/light/padlock.png"
-args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --date-format '%a %d %b' --time-format '%I:%M' --lock-command "kawa-lock --up"
+eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk KAWA_LOCK_ART=$SHARE/light"
+args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --lock-command "kawa-lock --up"
 
 case_ "already locked (a second press, idle while locked): nothing more"
 setup
@@ -280,12 +287,12 @@ out=$(kawa-lock 2>&1); r=$?
 eq "$r" 0; eq "$(locks)" 1; called 'notify-send .*lock screen .*lock.ui.*fedokawaii repair'
 lacks "$(grep "^gtklock" "$CALLS")" " -x "
 
-case_ "HOME with a space: the stylesheet and picture paths arrive whole"
+case_ "HOME with a space: the stylesheet, layout and scene paths arrive whole"
 setup
 mkdir -p "$TMP/my home"; cp -a "$HOME/." "$TMP/my home/"; export HOME="$TMP/my home"
 kawa-lock --now
-args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$UI" -m "$HOME/.local/lib/fedokawaii/kawa-lockmod.so" --date-format '%a %d %b' --time-format '%I:%M' --lock-command "kawa-lock --up"
-has "$(cat "$UI")" "$HOME/.local/share/fedokawaii/dark/padlock.png"
+args_eq gtklock 1 -s "$HOME/.config/fedokawaii/current/gtklock.css" -x "$HOME/.config/fedokawaii/lock.ui" -m "$HOME/.local/lib/fedokawaii/kawa-lockmod.so" --lock-command "kawa-lock --up"
+eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk KAWA_LOCK_ART=$HOME/.local/share/fedokawaii/dark"
 
 case_ "--help shows how it is used"
 setup
@@ -350,17 +357,48 @@ eq "$(locks)" 1
 case_ "the machine awake again: swayidle's after-resume tells the journal (the health report reads it)"
 grep -qF "  after-resume 'kawa-lock --resumed' \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
 
-case_ "the password's line: each ◆ at 28 px (Sumi UI at twice its pixels), 8 px apart, no caret; the hint a 14 px label of its own over the empty line (lock and login alike)"
+case_ "the scene (build-lock.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; gtklock's own line hidden only under the module"
 for t in dark light; do
-  c=$(sed -n '/^#input-field {/,/^}/p' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css")
-  has "$c" "font-size: 28px;" "$t"; has "$c" "letter-spacing: 8px;" "$t"; has "$c" "caret-color: transparent;" "$t"
-  grep -q '^#input-label, #input-hint { color: #' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" && _ok || _no "$t: the hint's ink"
+  out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
+import sys
+from PIL import Image
+d = sys.argv[1]
+img = Image.open(f"{d}/lock-scene.png").convert("RGB"); px = img.load()
+kv = {}
+for line in open(f"{d}/lock-scene.txt"):
+    w = line.split("#")[0].split()
+    if w: kv.setdefault(w[0], []).append(w[1:])
+def lum(c):
+    c = [v / 255 for v in c]; c = [v / 12.92 if v <= 0.04045 else ((v + 0.055) / 1.055) ** 2.4 for v in c]
+    return 0.2126 * c[0] + 0.7152 * c[1] + 0.0722 * c[2]
+def ratio(a, b):
+    a, b = sorted((lum(a), lum(b)), reverse=True); return (a + 0.05) / (b + 0.05)
+hexc = lambda h: tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
+x0, y0, pitch, n = map(int, kv["row"][0]); arms = hexc(kv["mark"][0][0]); caret = hexc(kv["caret"][0][0])
+w, h = map(int, kv["size"][0])
+assert (w, h) == img.size, f"size {w}x{h}, the picture {img.size}"
+worst = min(ratio(arms, px[x0 + pitch * i + dx, y0 + dy]) for i in range(n) for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
+worst = min(worst, min(ratio(caret, px[x0 + pitch * n, y0 + dy]) for dy in range(-1, 2)))
+print(f"marks {worst:.1f}" if worst >= 3 else f"UNDER {worst:.2f}")
+if "flame" in kv:
+    fw, fh, frames = map(int, kv["frames"][0])
+    strip = Image.open(f"{d}/lock-flame.png")
+    assert strip.size == (fw * frames, fh), f"flames {strip.size}"
+    for fx, fy in (map(int, f) for f in kv["flame"]):
+        assert 0 <= fx and fx + fw <= w and 0 <= fy and fy + fh <= h, f"a flame at {fx},{fy} outside"
+    print(len(kv["flame"]), "flames inside")
+PY
+)
+  has "$out" "marks " "$t: $out"; lacks "$out" "UNDER" "$t"
+  [[ $t == dark ]] && has "$out" "2 flames inside"
+  c=$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css
+  grep -q '^window.kawa #input-field {' "$c" && _ok || _no "$t: gtklock's line not hidden under the module"
+  grep -q '^#input-field {' "$c" && _ok || _no "$t: without the module the line has no look of its own"
 done
-m=$(sed -n '/^static void hint_add/,/^}/p' "$REPO/src/kawa-lockmod/kawa-lockmod.c")
-has "$m" 'gtk_overlay_set_overlay_pass_through(GTK_OVERLAY(ov), hint, TRUE);' "clicks reach the line"
-has "$m" 'gtk_entry_set_placeholder_text(GTK_ENTRY(entry), NULL);' "the entry's own placeholder (it would grow) gone"
-has "$m" 'g_signal_connect(entry, "changed", G_CALLBACK(hint_update), hint);'
-has "$(sed -n '/^void on_window_create/,/^}/p' "$REPO/src/kawa-lockmod/kawa-lockmod.c")" "hint_add(win->input_field);"
+m=$REPO/src/kawa-lockmod/kawa-lockmod.c
+grep -q 'gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");' "$m" && _ok || _no "the module does not mark its windows"
+grep -q '"notify::secondary-icon-name", G_CALLBACK(no_icon)' "$m" && _ok || _no "gtklock's eye drawn (and loaded) on the line"
+case_ "the login screen's line (kawa-greet, until it becomes the lock's twin): the hint a label of its own over the empty line"
 g=$(cat "$REPO/system/kawa-greet")
-has "$g" 'hint = Gtk.Label(name="input-hint"'; has "$g" 'line.set_overlay_pass_through(hint, True)'; lacks "$g" "placeholder_text=" "the login screen's twin"
+has "$g" 'hint = Gtk.Label(name="input-hint"'; has "$g" 'line.set_overlay_pass_through(hint, True)'; lacks "$g" "placeholder_text="
 done_

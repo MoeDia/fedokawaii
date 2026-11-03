@@ -488,12 +488,16 @@ the tiles of a group, 12 px between groups.
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
 - **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper): dark — a dungeon
   wall of stone (`edge`, `edge2`, `hi`, mortar `lo`), two torches flickering (`flame`, brass
-  `gold`), a demon's face after the old masters, its mouth open: the password is typed inside it,
-  each character an ember (◆, `flame`), the caret a 1 × 10 bar in `flame` blinking once a second
-  and always there while the field has the keyboard. Light — a temple in clouds, two stone
-  lanterns, an angel (tennin) whose halo holds the password, each character a gold mote. One
-  quote per mood (§0), lettered by hand in vertical writing, no translation; no date, no time, no
-  buttons, no hint. A wrong password says so at once (the embers scatter, the face shakes 3 px
+  `gold`, 8 frames a second, out of step), the Hannya after the old masters on a round stone plate,
+  its mouth open on a dark gate: the password glows inside it, each character an ember — a mark of
+  the scene's own pixels (arms `flame`, middle `strong`, corners `accent_lo`; the arms `asagi`
+  while Caps Lock is on), the newest seven in sight — and the caret a bar as tall as a mark in
+  `flame`, blinking once a second, always there while the line has the keyboard. The scene is
+  drawn at whole pixels (×3 on 1080p), centred, its edges' own colour round it (kawa-lockmod).
+  Light — a temple in clouds, two stone lanterns, an angel (tennin) whose halo holds the password,
+  each character a gold mote. One quote per mood (§0) in Sumi UI's own pixels on a plaque over the
+  art, as a temple's hall carries its name (gilded on the dark's stone lintel), no translation; no
+  date, no time, no buttons, no hint. A wrong password says so at once (the embers scatter, the face shakes 3 px
   twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
