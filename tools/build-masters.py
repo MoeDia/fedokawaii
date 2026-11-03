@@ -16,10 +16,17 @@ Reads art/masters/masters.toml — one table a picture:
                                  lacquer, the lines and colours light, as gold on lacquer
     lift    = 0.0                lightness added before the palette (−0.2 … 0.2)
     gain    = 1.0                contrast around the middle before the palette
+    joins   = [[x0, x1], …]      the source's columns where two sheets of a print meet (a pale
+                                 seam down the picture): filled across from either side
 writes art/masters/out/NAME.png: 640 × 360 pixels, every one a colour of its mood's palette
 (an indexed PNG: a few dozen kilobytes) — the screen shows each as 3 × 3 (1920 × 1080; 2 × 2 on
 1280 × 720, 4 × 4 on 2560 × 1440, 6 × 6 on 4K: always whole pixels, never smoothed).
 --sheet FILE: every picture written, side by side at 1:1 and halved, for the grill.
+--check FILE…: the edge check (below) on pictures already made — tests/static/test_masters.sh.
+
+No paper at the edges: a picture whose side still holds the print's margin, its frame line or
+a mount is refused (edges(): the outer 1–4 rows or columns against the 20 inside them, by
+lightness) — the crop comes in until none is left.
 
 How: the crop reduced to 640 × 360 in linear light (Lanczos: each pixel the mean of what it
 covers, no darkening at edges), its tones set as the table asks, then each pixel given the
@@ -90,9 +97,14 @@ def hexes(h):
     return np.array([[int(x[i:i + 2], 16) for i in (0, 2, 4)] for x in h]) / 255
 
 
-def reduce(img, crop):
+def reduce(img, crop, joins=()):
     x, y, w, h = crop
     a = np.asarray(img.convert("RGB").crop((x, y, x + w, y + h)), dtype=np.float64) / 255
+    for x0, x1 in joins:              # (each seam filled across, column by column, from its sides)
+        lo, hi = x0 - x - 1, x1 - x + 1   # (the last column before it, the first after)
+        if 0 <= lo and hi < w:
+            t = (np.arange(lo + 1, hi) - lo)[None, :, None] / (hi - lo)
+            a[:, lo + 1:hi] = a[:, lo:lo + 1] * (1 - t) + a[:, hi:hi + 1] * t
     lin = srgb_to_linear(a)
     # (Pillow resizes 8-bit or float images: each channel as a float plane, in linear light)
     planes = [Image.fromarray(lin[..., i].astype(np.float32), "F").resize((W, H), Image.LANCZOS)
@@ -161,18 +173,54 @@ def quantise(lab, mood, chroma=0.07, hue_deg=40, margin=0.1):
     return np.where(use, len(rl) + best, ramp_idx)
 
 
+# the edges a picture must not have (the master's T18 review: six had a print's paper margin,
+# its frame line or a mount at the screen's edge), by lightness, side by side: flat lines at the
+# edge (one ink across: paper, a mount) unlike the EDGE_IN after them — a print's plain ground
+# going on inside is its own; or the outer 1–EDGE_BAND lines stepping by more than EDGE_STEP
+# from the EDGE_BAND just inside them (a frame line) — a painting's own gradient ramps, it does
+# not step. (A margin of dithered paper wider than that is seen only by eye: lotus-sutra-gateway's)
+EDGE_BAND, EDGE_IN, EDGE_STEP, EDGE_FLAT, EDGE_LINE = 4, 20, 0.08, 0.03, 0.05
+
+
+def edges(L):
+    """L: the picture's lightness (OKLab), H × W. What is wrong at its edges, a phrase each."""
+    found = []
+    for side, a in (("top", L), ("bottom", L[::-1]), ("left", L.T), ("right", L.T[::-1])):
+        what = "row" if side in ("top", "bottom") else "column"
+        k = 0
+        while k < 40 and a[k].std() < EDGE_FLAT:
+            k += 1
+        if k:
+            inner = a[k:k + EDGE_IN].mean()
+            if abs(a[:k].mean() - inner) > EDGE_LINE:
+                found.append(f"{side}: {k} flat {what}{'s' * (k > 1)} at L {a[:k].mean():.2f}, inside {inner:.2f}")
+                continue
+        for n in range(1, EDGE_BAND + 1):
+            band, nxt = a[:n].mean(), a[n:n + EDGE_BAND].mean()
+            if abs(band - nxt) > EDGE_STEP:
+                found.append(f"{side}: its outer {n} {what}{'s' * (n > 1)} at L {band:.2f}, the next {EDGE_BAND} {nxt:.2f}")
+                break
+    return found
+
+
+def lightness(img):
+    return oklab(srgb_to_linear(np.asarray(img.convert("RGB"), dtype=np.float64) / 255))[..., 0]
+
+
 def build(name, spec):
     src = CACHE / spec["source"]
     data = src.read_bytes()
     if hashlib.sha256(data).hexdigest() != spec["sha256"]:
         sys.exit(f"build-masters: {name}: {src} is not the file SOURCES.md names (sha256)")
     img = Image.open(src)
-    lin = reduce(img, spec["crop"])
+    lin = reduce(img, spec["crop"], spec.get("joins", ()))
     lab = tones(smooth(oklab(lin)), spec, spec["theme"])
     idx = quantise(lab, spec["theme"], spec.get("chroma", 0.07), spec.get("hue", 40))
     out = Image.fromarray(idx.astype(np.uint8), "P")
     flat = (hexes(PALETTE[spec["theme"]]) * 255).round().astype(np.uint8).flatten().tolist()
     out.putpalette(flat + [0] * (768 - len(flat)))
+    if bad := edges(lightness(out)):
+        sys.exit(f"build-masters: {name}: paper at its edges — bring the crop in: " + "; ".join(bad))
     OUT.mkdir(parents=True, exist_ok=True)
     out.save(OUT / f"{name}.png", optimize=True)
     return out
@@ -183,7 +231,15 @@ def main(argv):
     ap.add_argument("names", nargs="*")
     ap.add_argument("--sheet")
     ap.add_argument("--spec", default=str(SPEC))
+    ap.add_argument("--check", nargs="+", metavar="FILE")
     a = ap.parse_args(argv)
+    if a.check:
+        bad = 0
+        for f in a.check:
+            for b in edges(lightness(Image.open(f))):
+                print(f"{pathlib.Path(f).stem}: {b}")
+                bad += 1
+        return 1 if bad else 0
     specs = tomllib.loads(pathlib.Path(a.spec).read_text())
     names = a.names or list(specs)
     made = []

@@ -39,4 +39,8 @@ for line in open(lst):
 PY
 )
 [[ $? -eq 0 && -z $out ]] && _ok || _no "$out"
+
+case_ "no paper at any picture's edges: no print margin, frame line or mount left at a side (build-masters' edge check; the master's T18 review 1, must-fix 1)"
+out=$(cd "$REPO" && python3 -I -B tools/build-masters.py --check "$OUT"/*.png 2>&1)
+[[ $? -eq 0 && -z $out ]] && _ok || _no "$out"
 done_

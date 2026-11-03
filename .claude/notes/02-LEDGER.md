@@ -4504,6 +4504,26 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   key → his picture, the bar as it was, 144 Hz, (c) the monitor's power button off/on → the picture back, (d) a cable
   pull and back → the picture back; then as kawa-display's runtime force for the EDID it read unforced at boot only (a
   different monitor: no force), VM-proven for the boot path first. Until then: not adopted.
+- r27-18-mf1 (4 Nov 01:13–01:18, the master's T18 must-fix 1): tools/build-masters.py's edge check — edges(): by
+  lightness, side by side, flat lines at the edge (one ink across: paper, a mount) whose lightness differs by > 0.05 from
+  the 20 inside them, or the outer 1–4 lines stepping by > 0.08 from the 4 just inside them (a frame line); a painting's
+  own gradient ramps and passes (the master's first form — outer band vs the next 20 — also flagged fudo-flames,
+  raijin-korin and white-kannon-kyosai, whose edges RAMP with texture, std 0.15–0.21: measured profiles, a 5× look —
+  so the step is taken against the adjacent lines; a print's plain ground going on inside passes: hagoromo-noh, white-
+  kannon-cleveland). The build refuses a picture with paper at an edge; `--check FILE…` runs it on made ones. On HEAD's 21
+  it found the master's six (asajigahara-hag right 3 paper columns; benten-biwa 6 + 3; dragon-palace-jewel top 4 dark
+  rows; feather-robe-tennin top 3 + bottom 4; goddess-dragon a frame line at right; lotus-sutra-gateway top row + right 3)
+  and a seventh: takiyasha-skeleton's bottom row, a border line (L 0.41 against 0.57). Seven crops brought in
+  (masters.toml, each 16:9 inside its file: hag [508, 93, 1168, 657] past the poem card, its two pale sheet joins filled
+  across from either side — a new `joins` key, source columns 574–595 and 1122–1137; benten [88, 201, 2080, 1170]; dragon-
+  palace [244, 124, 3161, 1778]; feather-robe [316, 14, 1077, 606]; goddess-dragon [93, 311, 1472, 828]; lotus-sutra a
+  narrower window inside the field, [640, 250, 2720, 1530], its blank 26 bottom rows gone; takiyasha [313, 60, 6044,
+  3400]); rebuilt (3.3 s), all 21 pass, looked at 1:1 (/dev/shm/r27/T02b/seven-0.png, seven-1.png): margins, lines and
+  the card gone, compositions kept (the hag now enters from the left edge). wallpapers.list: the seven new SHA-256s.
+  tests/static/test_masters.sh: a case running --check over art/masters/out — 3/0; HEAD's pictures fail it (10
+  findings). Not caught by the rule, by eye only: a margin of DITHERED paper wider than 4 lines (lotus' was; fixed by its
+  crop) — said in the script. Left of T18: must-fix 4's sheet + both in-place shots from the committed files, the
+  should-fixes, the master's review 2; the pack refreshes the seven at the next apply (r27-18-mf3).
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4523,10 +4543,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
-## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fix 2 (the light ramp's order) DONE 8bf8d1c, 3 (the
-##     pack re-checks each .src's hash) DONE (r27-18-mf3), 4's test DONE (r27-18-mf4a: it caught 8bf8d1c's stale list
-##     hashes — fixed); LEFT 1 (the edges of six pictures, a build check), 4's sheet + shots (a test over
-##     art/masters/out, fresh evidence), the should-fixes; then review 2.
+## (3) T18 — the master's review 1 FAILED (r27-18-master-1): must-fixes 1 (r27-18-mf1: the edge check, seven crops),
+##     2 (8bf8d1c), 3 (r27-18-mf3), 4's test (r27-18-mf4a) DONE; LEFT 4's sheet + both in-place shots (fresh evidence
+##     from the committed files), the should-fixes; then review 2.
 ## (4) T53 → the master (the harness pin committed, 150381b: the suite 128/0).
 ## (5) T46/T46b — Fedora 45 is released TODAY (3 Nov, ~14:00 UTC; releases/45 still 403 at 00:57 UTC): read
 ##     .claude/notes/f45-changes-3nov.md first; then vm-create f45 fresh from the released tree, vm-smoke f45,
