@@ -4186,6 +4186,35 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   one flames() for both moods); kit render through the module: lantern flames burning, seven gold motes and the caret
   by the peach. test_lock 157/0, test_greeter 46/0, test_upstream/installer area green on the earlier state; §0/§9
   describe both locks as built. NEXT: the whole suite on t20's HEAD, the master's review of T20, merge, apply, live.
+- r27-53-rest (3 Nov 04:40–04:45, T53's last items): (a) the set -u / pipefail audit — every bash and sh script in bin/,
+  system/, tools/, tools/regress/ and the five top scripts sets -u except bin/kawa-sixel (pipefail, every variable
+  defaulted: ${1:-}) and system/start-dwl (POSIX sh, the session's own start: must never die on an unset variable —
+  deliberate), and tools/claude-loop.sh (the owner's); tests/static/test_pipefail.sh (since 20 Oct) holds the early-stopping
+  readers under pipefail. (b) run/retry's failure paths: tested in tests/installer/test_common.sh (run's own status not
+  tee's — false → 1, exit 7 → 7; retry's tries, pauses and none after the last; FAILED_CMD/FAILED_AT named by the ERR
+  trap: "in s_dwl(), called from line…") — nothing missing found. (c) LINE COUNTS (git show of every bin/ and lib/ file):
+  15185 lines at d06bf9f^ (1 Nov 00:06, before T53's first commit) → 16399 at HEAD (t20: 16373) — the growth is the
+  round's features since (T21's notebook, T23's help, T45's update, T48's snapshots); T53's own 21 commits: +39 −27 in
+  bin+lib (net +12) — the accept line "not larger than before" cannot be read on the whole tree while features land; read
+  as "the hardening adds no weight": held. (d) the harness pins STATE_DIR=$TMP/state in sandbox() (tests/lib/harness.sh),
+  so no test that sources lib/common.sh on the host can write the machine's /var/lib/fedokawaii again (r27-53-selftest's
+  stray record); a harness change: the whole suite running on main (04:43).
+- r27-19m-boot (3 Nov 04:44–04:46, T19m pass 1's boot screens, the f44 VM at "built", virsh screenshot every 0.4 s from
+  power-on, 91 shots, 13 distinct — /dev/shm/r27/master/T19m-boot/: boot-sheet.png, s006.png the menu, s018.png the
+  box): the firmware's TianoCore logo, then GRUB themed (the torii, the vermilion row on the first entry, the seigaiha
+  band, "enter boot · e edit · c console", the timeout's line) at 1280 × 800; then, as the kernel takes over, A BLACK
+  RECTANGLE (~640 × 400, centred) over the menu for a frame — the "black box after the kernel choice" of r24-2/r25-7,
+  still there in the VM (virtio-gpu; his amdgpu may differ: to be seen on his next real boot, the kernel trial's); no
+  boot splash caught between 0.4 s shots (plymouth's frames: a finer capture next — or none drawn on virtio); then the
+  login screen (the VM's old greeter: the scroll). Pass 2 measures GRUB's grid (the row, the torii, the hint line) in
+  px.py. THE BOX'S SIZE: ~640 × 400 = an 80 × 25 text console of 8 × 16 cells, centred — the firmware's own text
+  console (UEFI ConOut over GOP) cleared as the hand-over goes through text mode. Ruled out: GRUB's gfxpayload — Fedora's
+  built-in blscfg already writes `set gfxpayload=keep` into every BLS entry (strings of grubx64.efi, grub2-efi-x64
+  2.12-66.fc44), so GRUB_GFXPAYLOAD_LINUX=keep would change nothing; simpledrm is blacklisted (initcall_blacklist) and
+  fbcon defers its take-over (kernel: "fbcon: Deferring console take-over"; virtio_gpu at 1.02 s). Left: which step
+  clears it — GRUB's EFI linux loader before ExitBootServices or the kernel's EFI stub (quiet: no messages, but a
+  ClearScreen?) — a finer capture (every 0.05 s around the choice) and GRUB 2.12's loader/efi source next; then the same
+  look on his PC's next real boot (AMI firmware). The VM was stopped again after.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
