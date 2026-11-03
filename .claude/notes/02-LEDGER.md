@@ -4122,6 +4122,45 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   only `apply` reads that variable; a copy's own fedokawaii.sh makes it the toolkit first.) Nit 5 (blesh_warm on repair
   when ~/.cache was wiped) left as the master allows: ble.sh rewrites its cache by itself, one line once. Nit 7 the book
   pass. T24 DONE.
+- r27-20-wire (3 Nov 03:48–04:45, T20 step 3, WIP on branch t20 — ~/repos/fk-t20, pushed; NOT live, nothing installed):
+  the lock wired as a scene. DECIDED: the quotes are design-system §0's sourced proverbs — 口は禍の門 (dark: the mouth is
+  the gate of misfortune, typed into a demon's mouth) and 言わぬが花 (light) — not the earlier invented 鍵は心にあり;
+  horizontal on the plaques (§9 now says so: a temple hall's name board). build-lock.py writes each mood's
+  configs/home/.local/share/fedokawaii/MOOD/lock-scene.png + lock-scene.txt (size, the surround — the scene's edges'
+  commonest colour —, the flames' frames and places, the password's row, the marks' inks, Caps Lock's ink, the caret,
+  the plate that shakes) and dark/lock-flame.png (art/lock/out retired); the Hannya's mouth is a dark gate (from its
+  middle row up and down while the lacquer's red goes on — the teeth stop it — inside a lens). src/kawa-lockmod
+  rewritten: a GtkDrawingArea under gtklock's layout (the overlay's main child) draws the scene at whole pixels per
+  screen (N = the most that fits, centred), the flames at 8 fps (the two out of step), the password as marks of the
+  scene's own pixels (arms flame, middle strong, corners accent_lo; asagi arms while Caps Lock is on; the newest 7), the
+  caret a bar as tall as a mark blinking 1 Hz (solid while typing, gone while the check runs), a wrong password as five
+  48 ms steps (240 ms): the marks scatter and dim, the plate shakes ±1 scene pixel twice; the old date, time, AM/PM,
+  verse, hint and the three keys gone (the owner: no date/time/power buttons). lock.ui keeps only gtklock's ids (all
+  hidden but the line); gtklock.css hides the line under window.kawa only (the greeter and a lock without the module
+  keep the scroll); kawa-lock hands KAWA_LOCK_ART, no -b, no date formats. THE SCREENS (owner 01:48): nothing touched
+  for 5 s while the lock shows and the screensaver is not over it (its kawa-saver.lock held) → kawa-lock --screens off;
+  any key, click, scroll or move lights them; the key that lights screens dark > 2 s only wakes, one within 2 s counts;
+  after a sleep (--resumed now notes "resumed") the first 2 s only wake; the old 2 s of swallowed keys after every wake
+  gone ("no extra wake press lost"). VERIFIED headless (unfenced dwl, own runtime dir/home, only $! killed): kit shots
+  both sizes; typing 6/11 characters, the caret's blink; a wrong password frame by frame (wf-recorder raw .nut,
+  ffmpeg passthrough: busy → steps at 3.991/4.045/4.094/4.136/4.184 s → the caret back; PAM answered in ~1.7 s — bug
+  4's 300 ms still to do); 1366×768 and 1280×800 (×2, centred); the 5 s rule end to end (dark at 5.7 s, the waking key
+  not typed, the next two typed, dark again 5 s later). ASan (LD_PRELOAD libasan.so.8, two screens, a resize, a screen
+  off and on mid-check, 20 characters, four wrong passwords): the module clean; FOUND + FIXED: gtklock sets an eye icon
+  (view-reveal-symbolic) on its line whenever the keyboard moves to another screen's lock (a monitor off and on) — drawn
+  on his current lock too, and an icon that fails to load aborts GTK 3 (seen under ASan): the module takes it off as it
+  is set. FOUND (upstream gtklock, not fixed): a check finishing for a screen switched off mid-check calls GTK on
+  destroyed widgets (criticals; the keeper restarts gtklock should it ever crash). FOUND (test rig): wtype's Return
+  never triggers a GTK 3 entry's Enter (a plain GTK window the same) and the kit's user-namespace fence cannot run PAM —
+  wrong-password runs use a test-only build that emits "activate" (memory: wtype-enter-gtk3). test_lock 158/0 (the
+  rules compiled from the module's own source with a stand-in kawa-lock: none/dark long/again/just dark/lit/resumed/
+  idle/under the saver/the saver gone; every mark's and the caret's pixels ≥ 3 : 1 on the scene in both moods — it
+  caught the caret's foot on a tooth: the caret a mark tall). LEFT for T20: the PAM file (a wrong password in ≤ 400
+  ms: /etc/pam.d/gtklock is gtklock's own, not %config — an update rewrites it: setup.sh lock_pam + the after-dnf and
+  update steps + a verify row, PROVEN IN THE VM first: the right password must still work and I cannot type his), the
+  greeter twin (kawa-greet draws the same scene; kawa-wallpaper's lock_ground then goes), the light scene's redesign
+  (its gold-leaf grid reads as graph paper at 1×; §0/§9 say a temple in clouds, stone lanterns, a halo), the
+  lock-start regress check + lib/guard.sh, kawa-lock's journal lines, the master; then live.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written 03:28 by the 00:42 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh (now a PID namespace
