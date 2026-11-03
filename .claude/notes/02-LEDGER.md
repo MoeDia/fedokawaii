@@ -4392,7 +4392,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   main; the trial merge merge-t20, never pushed, both parents in main: its branch deleted). The t20-fix installer-area
   run (fix-inst2) stopped at the shell's time limit after 23 of 26 files, all green (test_upstream, test_verify,
   test_vm_tools not reached on that branch; test_verify ran on main: 186/0).
-- r27-02b (3 Nov 06:17–06:42, dwl; proven on the test card, live at his next session): the plan's way is closed by
+- r27-02b (3 Nov 06:17–06:42, dwl; proven on the test card — NOT installed: /usr/local/bin/dwl is still the 02:29 build
+  until `fedokawaii apply`, then his next session; the master's must-fix 1): the plan's way is closed by
   wlroots itself — wlroots 0.20.2 (Fedora's wlroots-0.20.2-1.fc44 = our private copy; its tarball
   gitlab.freedesktop.org/wlroots/wlroots/-/archive/0.20.2): types/output/output.c:666–683 sets no mode on a disabled
   output ("Tried to set mode on a disabled output"), types/wlr_output_layout.c:125–133 exposes no wl_output without one
@@ -4437,6 +4438,23 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (failed the old way: 10 checksums), test_syntax 800/0. Also removed tools/__pycache__ (three .pyc of 03:53/05:34,
   earlier probes; git-ignored; memory probe-caches-are-strays). LEFT of must-fix 4: the final sheet (--sheet) and
   both in-place shots made again from the committed files, cited; must-fix 1 (six pictures' edges + the build check).
+- r27-02b-master-1 (3 Nov 06:43–07:00, the master's review 1 of T02b, Fable): PASS WITH CONDITIONS
+  (.claude/notes/master-T02b-verdict-1.md). MUST-FIX 1: not installed (above: the claim corrected; apply after the
+  fixes below). MUST-FIX 2: the locked path is claimed, not proven — a session-lock client on the test dwl (gtklock
+  unfenced as the greeter tests do, or a small ext-session-lock client in tools/): D held/whole/shown settled with the
+  lock's surface buffered first, 0 F before, a shot showing the lock (his daily wake since T20: lock → dark → the LG
+  drops its line → a key). SHOULD-FIX 3: outputmgrapplyortest lights a kept-dark output with no wholearm (wlr-randr
+  --on, kanshi) — wholearm there, a 7th return in the test. 4: the settle re-arms on every layer commit on the screen
+  (a notice, a menu, frame-only commits) — re-arm only for what monwhole counts and only on a new buffer; the hold
+  answers frame callbacks on every idle frame event (no flip pending → wlroots schedules one per commit with
+  callbacks): a client redrawing per callback spins at CPU speed up to the cap — answer at most once a refresh
+  (a refresh-paced timer). 5: 100 ms / 1 s unmeasured — the real bar's L-line burst live, the number in the ledger.
+  6: the root-cause alternative not weighed — keep the connector forced on the live card (video=HDMI-A-1:e +
+  drm.edid_firmware from the LG's EDID, lib/common.sh BOOT_ARGS): the output, its layers, lock surface and T02's state
+  would survive the LG's drop, nothing rebuilt — measure its risks (link after standby, boot/plymouth on a forced
+  connector, a real unplug) and decide in writing. Its "verified sound" list: the wlroots constraint (both lines),
+  rejecting a forced 0 × 0 wl_output, the timer sharing, a drop mid-hold, dead clients, the round trip, the test's
+  fence; the runtime test re-run by it green.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~06:10 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
@@ -4445,11 +4463,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     scene's low line, as kawa-greet does), bug 1's real
 ##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
 ##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
-## (1b) T02b BUILT (r27-02b): the whole-desktop hold (wlroots forbids the bar in the dark); the master's review 1 was
-##     started 06:43 → .claude/notes/master-T02b-verdict-1.md (if missing: run it again — tools/master-brief.sh T02b);
-##     fix its must-fixes, THEN `fedokawaii apply` from a frozen tree (d132345's dwl for his next login; 96033e1 +
-##     0065a2b refresh his pack's ten light pictures); live: screen off 5 min, the LG drops its line, a key → D "shown
-##     settled" in the frame log + a shot; L lines vs 100 ms.
+## (1b) T02b — the master's review 1: PASS WITH CONDITIONS (r27-02b-master-1). FIRST weigh should-fix 6 (the forced
+##     connector: it may make the hold moot for this case — measure, decide in writing); then must-fix 2 (a lock client
+##     on the test dwl), should-fix 4 (re-arm only for counted surfaces on a new buffer; frame callbacks once a refresh)
+##     and 3 (wholearm in outputmgrapplyortest + a wlr-randr --on return); THEN `fedokawaii apply` from a frozen tree
+##     (the dwl for his next login; 96033e1 + 0065a2b refresh his pack's ten light pictures); live: screen off 5 min, the
+##     LG drops its line, a key → D "shown settled" + a shot; should-fix 5 from its L lines; the master's review 2.
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
