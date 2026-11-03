@@ -49,6 +49,7 @@ r=$(grep -n 'dnf\] -y -C replay' "$CALLS" | head -n1 | cut -d: -f1)
 # (the desktop's start checked before and after: the installed dwl, as the user)
 eq "$(grep -c '^fkuser\[session-start\.sh\] --dwl /usr/local/bin/dwl$' "$CALLS")" 2 "the session's start, before and after"
 eq "$(grep -c '^fkuser\[bar-geometry\.sh\] --dwl /usr/local/bin/dwl$' "$CALLS")" 2 "the bar's measure, before and after"
+eq "$(grep -c '^fkuser\[lock-start\.sh\] --dwl /usr/local/bin/dwl$' "$CALLS")" 2 "the lock's start, before and after"
 
 case_ "red in the copy: the culprit found by halves, held at the version that broke it, the rest applied"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44" "foot 1.24-1.fc44 1.25-1.fc44" "mesa 26.0-1.fc44 26.1-1.fc44" "zlib 1.3-1.fc44 1.3.1-1.fc44"
@@ -185,6 +186,13 @@ back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"
 fkh replay-breaks-bar       # (the bar is drawn right before, a row too tall after the replay)
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" offered; has "$(cat "$U/report")" "the desktop does not start"
+grep -q '^gtk3 3.24.51-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
+
+case_ "the lock no longer comes up on its scene after the update only: red — the set held, the snapshot offered"
+back built; reset_calls; pending "gtk3 3.24.50-1.fc44 3.24.51-1.fc44"; fkh replay-breaks-lock
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+eq "$(report)" offered; has "$(cat "$U/report")" "the desktop does not start"
+has "$OUT" "lock-start: the screen is not the scene"
 grep -q '^gtk3 3.24.51-1.fc44 ' "$U/holds" && _ok || _no "the set not held: $(cat "$U/holds" 2>/dev/null)"
 
 case_ "the desktop's check could not run once (a loaded machine): tried again — green, kept"

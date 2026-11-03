@@ -99,6 +99,7 @@ case "$a" in
       countdown replay && { echo "Transaction failed: a scriptlet failed" >&2; exit 1; }
       [[ -f $FKH/replay-breaks-dwl ]] && touch "$FKH/dwl-crash"   # (what only the running system shows)
       # (the bar grows a row: its line first, before any red the bar had — the check says it first)
+      [[ -f $FKH/replay-breaks-lock ]] && { echo "the screen is not the scene — 44.04 % of its still pixels match (×3)" >"$FKH/lock-red"; chmod 666 "$FKH/lock-red"; }
       [[ -f $FKH/replay-breaks-bar ]] && { { echo "dark: rows: 0+3 3+1 4+21 24+1 25+1 26+1 (want 3 air, hairline, 20 paper, hairline, 2 shadow)"; cat "$FKH/bar-red" 2>/dev/null; } >"$FKH/bar-red.n"; mv "$FKH/bar-red.n" "$FKH/bar-red"; chmod 666 "$FKH/bar-red"; }
       [[ -f $FKH/replay-blinds-check ]] && { echo 2 >"$FKH/fail-session-cannot"; chmod 666 "$FKH/fail-session-cannot"; }   # (the check cannot run after it: twice — counted down by the user's check)
       while read -r n v; do

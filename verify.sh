@@ -400,10 +400,11 @@ check "a login screen that cannot start is said on tty1, not a black screen (gre
 check "the health report (fedokawaii-report) is the toolkit's" cmp -s "$TK/system/fedokawaii-report" /usr/local/bin/fedokawaii-report
 ((PRE)) || check "the health report runs once, on the first start"  systemctl is-enabled --quiet fedokawaii-report.service   # (finalize enables it)
 check "the login screen (kawa-greet) installed"          test -x /usr/local/bin/kawa-greet
-check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css lock-scroll.png lock-fibre.png padlock.png seal-{1..7}.png; do [[ -s $d/$f ]] || exit 1; done; done'
+check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css lock-scroll.png lock-fibre.png lock-scene.png lock-scene.txt lock-flame.png; do [[ -s $d/$f ]] || exit 1; done; done'
 check "the login screen follows your theme (/var/lib/fedokawaii-greeter is yours)" test "$(stat -c %U /var/lib/fedokawaii-greeter 2>/dev/null)" = "$TARGET_USER"
 check "the pixel font crisp for every account (/etc/fonts/conf.d)" test -s /etc/fonts/conf.d/60-fedokawaii-pixel.conf
-check "the lock screen's words (\"ちがう · wrong password\")" cmp -s "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
+check "the lock says a wrong password in about 0.3 s (/etc/pam.d/gtklock)" cmp -s "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock
+check "the lock screen's words (\"wrong password\", without its module)" cmp -s "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
 # the notices: the desktop's mako (setup.sh: build_mako — src/mako/mako.patch, the pinned tag),
 # which ~/.config/mako/config needs (its options are not Fedora's mako's); Fedora's unit runs it
 mk=/usr/local/bin/mako
@@ -785,8 +786,8 @@ else
   check "clipboard and wallpaper windows (fzf ≥ 0.68)" bash -c 'v=$(fzf --version 2>/dev/null) || exit 1; IFS=. read -r a b _ <<<"${v%% *}"; ((a > 0 || b >= 68))'
   check "wallpaper previews (ImageMagick draws sixels)" bash -c 'magick -size 2x2 xc:black sixel:- | grep -q "^.P"'
   art=$TARGET_HOME/.local/share/fedokawaii
-  check "the lock screen's pictures, both themes (padlock, the seven seals)" \
-    bash -c 'for t in dark light; do for f in padlock seal-{1..7}; do [[ -s $1/$t/$f.png ]] || exit 1; done; done' _ "$art"
+  check "the lock screen's scenes, both themes (lock-scene.png and .txt, the flames)" \
+    bash -c 'for t in dark light; do for f in lock-scene.png lock-scene.txt lock-flame.png; do [[ -s $1/$t/$f ]] || exit 1; done; done' _ "$art"
   if [[ $WALLPAPER_PACK == yes ]]; then
     want=$(grep -cE '^(dark|light) ' "$art/wallpapers.list" 2>/dev/null || echo 0)
     have=$(find "$art/wallpapers" -name '*.src' 2>/dev/null | wc -l)

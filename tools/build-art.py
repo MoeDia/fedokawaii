@@ -1,15 +1,10 @@
 #!/usr/bin/env python3
-"""tools/build-art.py — draw the lock and login screens' pictures for both themes.
+"""tools/build-art.py — draw the boot splash's pictures, the screensaver's letters and the lock's
+words (the lock's and login's scenes are tools/build-lock.py's).
 
     python3 tools/build-art.py
 
 Writes (committed, so installing needs neither Python nor Pillow):
-    configs/home/.local/share/fedokawaii/<theme>/padlock.png   the pixel padlock (18 × 19
-        cells of 3 px: square pixels, shown 1:1, so every edge is sharp)
-    configs/home/.local/share/fedokawaii/<theme>/seal-1.png … seal-7.png   the weekday's
-        kanji (月 火 水 木 金 土 日, Monday first, as `date +%u` counts) as a heading's seal,
-        the one that opens the lock and login screens' panel: 26 px square, a 1 px edge2
-        frame, the kanji in accent_text in Sumi UI at 14 px (its own grid: crisp)
     system/plymouth/sumi/*.png   the boot splash's pictures (always ink-dark, like the boot
         menu): the torii (art/grub/torii.xpm, 8× — the size the boot menu shows it at 1080p),
         "starting Fedora" (and, as the machine goes down, "shutting down" or "restarting"),
@@ -21,7 +16,8 @@ Writes (committed, so installing needs neither Python nor Pillow):
         the bar's clock has it), the digits and the clock's few letters as Sumi UI draws them at
         14 px — a bitmap a row, for the C program to draw dot by dot
     art/gtklock.mo   gtklock's two messages in the desktop's words ("Login failed" →
-        "ちがう · wrong password", "Caps Lock is on" → "Caps Lock · 大文字"), a message
+        "wrong password", "Caps Lock is on" → "Caps Lock"; seen only on a lock without its
+        module — the scene says both), a message
         catalogue for a language of its own ("fk": no package has one), which kawa-lock
         asks for (LANGUAGE=fk); setup installs it as /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
 The colours come from tools/build-themes.py's palettes (imported), so a colour changed
@@ -43,77 +39,13 @@ spec = importlib.util.spec_from_file_location("themes", ROOT / "tools/build-them
 themes = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(themes)
 P = themes.P
-OUT = ROOT / "configs/home/.local/share/fedokawaii"
-KANJI = "月火水木金土日"
 
 
 def rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
-# the padlock, cell by cell: S shackle, T the lit top edge, B body, K keyhole, D the shadowed
-# bottom edge. Every cell is a CELL × CELL square of one colour — retro, crisp at 1:1
-PADLOCK = """
-.....########.....
-...############...
-..####......####..
-..###........###..
-..###........###..
-..###........###..
-..###........###..
-..###........###..
-TTTTTTTTTTTTTTTTTT
-BBBBBBBBBBBBBBBBBB
-BBBBBBBBKKBBBBBBBB
-BBBBBBBKKKKBBBBBBB
-BBBBBBBKKKKBBBBBBB
-BBBBBBBBKKBBBBBBBB
-BBBBBBBBKKBBBBBBBB
-BBBBBBBBKKBBBBBBBB
-BBBBBBBBBBBBBBBBBB
-BBBBBBBBBBBBBBBBBB
-DDDDDDDDDDDDDDDDDD
-""".split()
-CELL = 3                                  # (54 × 57: the glyph beside the big clock, as tall as its capitals)
-
-
-def padlock(p):
-    """54 × 57: the pixel padlock — 18 × 19 cells of 3 px, no smoothing (beside the clock)."""
-    ink = {"#": p["muted"], "T": p["lit_hi"], "B": p["lit"], "K": p["ground"], "D": p["lit_lo"]}
-    im = Image.new("RGBA", (len(PADLOCK[0]) * CELL, len(PADLOCK) * CELL), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    for y, row in enumerate(PADLOCK):
-        for x, c in enumerate(row):
-            if c in ink:
-                d.rectangle([x * CELL, y * CELL, x * CELL + CELL - 1, y * CELL + CELL - 1], fill=rgb(ink[c]))
-    return im
-
-
-SEAL = 24                                 # a heading's seal (docs/design-system.md, kawa-panel)
-
-
-def seal(p, ch, font):
-    """24 × 24, a heading's seal as the panels draw it: a 1 px frame in edge2, the kanji in
-    accent_text, its ink centred (4 px of paper all round), pixel-exact (no smoothing); the ground
-    clear, so the panel's surface shows through."""
-    im = Image.new("RGBA", (SEAL, SEAL), (0, 0, 0, 0))
-    d = ImageDraw.Draw(im)
-    d.rectangle([0, 0, SEAL - 1, SEAL - 1], outline=rgb(p["edge2"]) + (255,))
-    # the kanji's ink — drawn once on its own and measured pixel by pixel (the font's box has
-    # the glyph's side bearings in it: centred by that, a kanji sits 1–2 px to the left)
-    ink = Image.new("1", (SEAL * 2, SEAL * 2), 0)
-    dk = ImageDraw.Draw(ink)
-    dk.fontmode = "1"                     # whole pixels only: the font is a pixel font
-    dk.text((SEAL // 2, SEAL // 2), ch, font=font, fill=1)
-    lf, t, r, b = ink.getbbox()           # (r, b: one past the ink)
-    x = (SEAL - (r - lf)) // 2 - lf + SEAL // 2
-    y = (SEAL - (b - t)) // 2 - t + SEAL // 2
-    d.fontmode = "1"
-    d.text((x, y), ch, font=font, fill=rgb(p["accent_text"]) + (255,))
-    return im
-
-
-MESSAGES = {"Login failed": "ちがう · wrong password", "Caps Lock is on": "Caps Lock · 大文字"}
+MESSAGES = {"Login failed": "wrong password", "Caps Lock is on": "Caps Lock"}
 
 
 def mo(messages):
@@ -238,16 +170,7 @@ def main():
     ttf = ROOT / "system/fonts/SumiUI.ttf"
     font = ImageFont.truetype(str(ttf), 28)
     font14 = ImageFont.truetype(str(ttf), 14)
-    n = 0
-    for m, p in P.items():
-        d = OUT / m
-        d.mkdir(parents=True, exist_ok=True)
-        padlock(p).save(d / "padlock.png", optimize=True)
-        n += 1
-        for i, ch in enumerate(KANJI, 1):
-            seal(p, ch, font14).save(d / f"seal-{i}.png", optimize=True)
-            n += 1
-    n += splash(font)
+    n = splash(font)
     saver_glyphs(font14)
     (ROOT / "art/gtklock.mo").write_bytes(mo(MESSAGES))
     print(f"{n} pictures written, art/gtklock.mo and src/kawa-saver/glyphs.h")

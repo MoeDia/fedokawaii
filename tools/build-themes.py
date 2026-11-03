@@ -1056,28 +1056,28 @@ overlay_background_alpha = e6
 
 
 def gtklock_css(m, p):
-    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it: on the
-    wallpaper shaded into the ground (kawa-wallpaper draws it), the bar's clock grown into a
-    hanging scroll (紙 kami, design-system §9) — the same washi, rule and lacquered, gold-capped
-    rods, at twice the bar's pixels (lock-scroll.png, sliced 12 16 12 16; its fibres
-    lock-fibre.png) — and on it one column: the pixel padlock and the time in the display size
-    (56 px, ×4 of Sumi UI's grid: design-system §2) with AM/PM on its baseline; the day (its
-    seal — a picture, tools/build-art.py —, the date, the weekday in kanji); a line of the
-    season and the hour; a line for what went wrong; the password's line (the rule's colour
-    under it, each typed character a ◆ in accent_text, "パスワード · password" in faint while it
-    is empty); a rule; three keys — sleep, restart, power off — words, accent_text under the
-    pointer and the keyboard's focus. Sumi UI at 14 px, as in every panel. The pictures sit
-    beside this file (current/ for the lock, the greeter's own folder for the login)."""
+    """The lock screen (gtklock, kawa-lock) and the login screen (kawa-greet) share it. Both are a
+    scene (T20): kawa-lockmod and kawa-greet mark their windows .kawa and draw the mood's picture,
+    the flames and what is typed — the rules under window.kawa leave gtklock's line there to take
+    the keys, unseen, and put the login's one line of words (a note from the system on the way)
+    low on the screen. Without a scene (a lock whose module did not build, a login without its
+    pictures) the bar's clock grown into a hanging scroll (紙 kami, design-system §9) holds the
+    password's line — the same washi, rule and lacquered, gold-capped rods, at twice the bar's
+    pixels (lock-scroll.png, sliced 12 16 12 16; its fibres lock-fibre.png): each typed
+    character a ◆ in accent_text at 28 px, a wrong password said over it. Sumi UI at 14 px, as in
+    every panel. The pictures sit beside this file (current/ for the lock, the greeter's own
+    folder for the login)."""
     def ink(k):
         return f"#{p[k]}"
     k = KAMI[m]
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
 window {{ background-color: {ink('ground')}; }}
 * {{ font-family: "Sumi UI"; font-size: 14px; color: {ink('text')}; box-shadow: none;
-  text-shadow: none; outline: none; -gtk-icon-shadow: none; }}
-/* the scroll: the bar's clock, twice its size — 24 px of its picture at the top and the foot
-   (hairline, paper, rule), 32 at the sides (the rods, the paper, the rule); 40 px of paper
-   inside the rule to the column, 32 above and below it */
+  text-shadow: none; outline: none; -gtk-icon-shadow: none; transition: none; }}
+/* (no transitions: nothing on the lock moves through GTK — a style eased in shows for frames) */
+/* without a scene — the scroll: the bar's clock, twice its size — 24 px of its picture at the top
+   and the foot (hairline, paper, rule), 32 at the sides (the rods, the paper, the rule); 40 px of
+   paper inside the rule to the line, 32 above and below it */
 #window-box {{
   border-style: solid; border-color: transparent; border-width: 12px 16px;
   border-image: url("lock-scroll.png") 12 16 12 16 stretch;
@@ -1085,46 +1085,29 @@ window {{ background-color: {ink('ground')}; }}
   background-clip: padding-box; background-origin: padding-box;
   padding: 32px 40px 28px; min-width: 400px;
 }}
-/* the face: the padlock (54 × 57), 16 px, the time — Sumi UI at 56 px, no smoothing
-   (/etc/fonts: 60-fedokawaii-pixel.conf) — and AM/PM at 14 px on its baseline (56 px type:
-   baseline 48 from the top; 14 px: 12, so 6 px off the foot) */
-#face {{ margin: 0; }}
-#padlock {{ margin-right: 16px; }}
-#clock-label {{ color: {ink('strong')}; font-size: 56px; margin: 0; }}
-#ampm {{ color: {ink('muted')}; margin: 0 0 6px 8px; }}
-/* the day, under the time: the seal (26 × 26), 8 px, the date, 8 px, the weekday in kanji */
-#heading {{ min-height: 26px; margin-top: 16px; }}
-#date-label {{ color: {ink('text')}; margin-left: 8px; }}
-#weekday {{ color: {ink('accent_text')}; margin-left: 8px; }}
-/* the season and the hour (秋の夜 · the moon, a seal on paper): its kanji in accent_text, its
-   words muted */
-#verse-line {{ min-height: 14px; margin-top: 8px; }}
-#verse-kanji {{ color: {ink('accent_text')}; }}
-#verse {{ color: {ink('muted')}; }}
-/* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then: words to be
+/* what went wrong (wrong password, Caps Lock), empty until then: words to be
    read, in the strongest ink (vermilion is a mark's, never words': design-system §1) */
-#messages {{ min-height: 14px; margin: 24px 0 8px; }}
+#messages {{ min-height: 14px; margin: 0 0 8px; }}
 #error-label, #warning-label {{ color: {ink('strong')}; margin: 0 8px; }}
-/* the password's line: no box — the paper, a line of the rule's colour under it (the muted
-   ink while it has the keyboard), each ◆ in vermilion ink at 28 px (Sumi UI at twice its
-   pixels, as the time is at four: counted at a glance), 8 px apart; no caret (each ◆ that
-   comes and goes is the answer to a key, and a caret through the hint or against the last ◆
-   only crowds them); the hint over the empty line at 14 px, faint (#input-hint:
-   kawa-lockmod's, kawa-greet's) */
+/* the password's line: no box — the paper, a line of the rule's colour under it (the muted ink
+   while it has the keyboard), each ◆ in vermilion ink at 28 px (Sumi UI at twice its pixels:
+   counted at a glance), 8 px apart */
 #input-field {{
   min-width: 320px; min-height: 40px; padding: 0 8px; margin: 0; font-size: 28px; letter-spacing: 8px;
-  color: {ink('accent_text')}; caret-color: transparent;
+  color: {ink('accent_text')}; caret-color: {ink('accent_text')};
   background: none; border: none; border-bottom: 2px solid #{k['rule']}; border-radius: 0;
 }}
 #input-field:focus {{ border-bottom-color: {ink('muted')}; }}
 #input-field selection {{ background-color: {ink('select')}; color: {ink('text_on_select')}; }}
-#input-label, #input-hint {{ color: {ink('faint')}; }}
-/* the three keys (kawa-lockmod; kawa-greet): 24 px under the line, words, muted; under the
-   pointer and the keyboard's focus (Tab) accent_text */
-#keys {{ margin-top: 24px; }}
-button {{ min-height: 24px; padding: 0 8px; border: none; border-radius: 0; background: none; }}
-button label {{ color: {ink('muted')}; }}
-button:hover label, button:focus label {{ color: {ink('accent_text')}; }}
+/* the scene (window.kawa): gtklock's line takes the keys, unseen — no scroll, no words, nothing
+   typed shows here: the scene draws the marks and the caret */
+window.kawa #window-box {{ border-image: none; border-width: 0; background: none; padding: 0; min-width: 0; }}
+window.kawa #messages {{ opacity: 0; }}
+window.kawa #input-field {{ min-width: 1px; min-height: 1px; font-size: 1px; letter-spacing: 0; padding: 0;
+  color: transparent; caret-color: transparent; border: none; }}
+window.kawa #input-field selection {{ background: none; color: transparent; }}
+/* the login's one line of words (an expiring password, a session that will not start) */
+window.kawa #error-label {{ color: {ink('strong')}; }}
 """
 
 

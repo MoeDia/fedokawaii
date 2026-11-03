@@ -21,7 +21,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | fire and metal | torchlight: Apricot Orange; old brass: Isabella | gold leaf: Yellow Ocher |
 | lit | a cold teal: Venice Green toward Ecru | a deep porcelain teal |
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
-| the lock | a dungeon wall, two torches, a demon's open mouth | a temple in clouds, two stone lanterns, an angel's halo |
+| the lock | a dungeon wall, two torches, the Hannya's open mouth | a temple in clouds — golden mist on a paper sky —, two hanging bronze lanterns, Seiōbo through a round window |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
 | quick settings' face | the hannya (after Hokusai's Warai Hannya): gold horns, parted black hair, slanted gold eyes, a fanged lacquer grin (roaring while its panel is open: the mouth deeper, the eyes all gold) | the tennin: a gold nimbus, a pinned bun, the urna, eyes closed (open while its panel is open: gold irises, a smile) |
 
@@ -489,12 +489,19 @@ the tiles of a group, 12 px between groups.
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
 - **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper): dark — a dungeon
   wall of stone (`edge`, `edge2`, `hi`, mortar `lo`), two torches flickering (`flame`, brass
-  `gold`), a demon's face after the old masters, its mouth open: the password is typed inside it,
-  each character an ember (◆, `flame`), the caret a 1 × 10 bar in `flame` blinking once a second
-  and always there while the field has the keyboard. Light — a temple in clouds, two stone
-  lanterns, an angel (tennin) whose halo holds the password, each character a gold mote. One
-  quote per mood (§0), lettered by hand in vertical writing, no translation; no date, no time, no
-  buttons, no hint. A wrong password says so at once (the embers scatter, the face shakes 3 px
+  `gold`, 8 frames a second, out of step), the Hannya after the old masters on a round stone plate,
+  its mouth open on a dark gate: the password glows inside it, each character an ember — a mark of
+  the scene's own pixels (arms `flame`, middle `strong`, corners `accent_lo`; the arms `asagi`
+  while Caps Lock is on), the newest seven in sight — and the caret a bar as tall as a mark in
+  `flame`, blinking once a second, always there while the line has the keyboard. The scene is
+  drawn at whole pixels (×3 on 1080p), centred, its edges' own colour round it (kawa-lockmod).
+  Light — a temple in clouds: golden mist (suyari-gasumi, the stepped gold bands of the old
+  screens) on a paper sky lit by two hanging bronze lanterns (tsuri-dōrō, verdigris here and there,
+  a small flame in each fire box, 8 frames a second), and through a round window in a wooden ring
+  Seiōbo (Kōgyo's Noh print) offering her peach; the password in her sky beside it, each character
+  a gold mote (arms `yellow`, middle `gold`). One quote per mood (§0) in Sumi UI's own pixels on a plaque over the
+  art, as a temple's hall carries its name (gilded on the dark's stone lintel), no translation; no
+  date, no time, no buttons, no hint. A wrong password says so at once (the embers scatter, the face shakes 3 px
   twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
@@ -531,7 +538,7 @@ stamp is a choice made, a scroll is something long opening.
 | a notice | its frame at once, its words dissolving in; dissolves away | 240 · 200 |
 | the level display | at once with the key; dissolves away | 0 · 300 |
 | the lock comes | at once | 0 |
-| the lock goes (the right password) | the mouth (the halo) closes in three frames of art, then the scene dissolves off the desktop | 600 |
+| the lock goes (the right password) | PLANNED (not built yet, T19/T20): the mouth (the window) closes in three frames of art, then the scene dissolves off the desktop; today dwl's own unlock dissolve | 600 |
 | a wrong password | the embers (motes) scatter and fade, the face shakes 3 px twice | 240 |
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |

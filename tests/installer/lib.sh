@@ -243,8 +243,9 @@ world() {   # world fresh|built [--themed]
   # the desktop's start check (the update's: tools/regress) as it would see this machine, which has
   # no screen — in the project as the user cloned it, so every toolkit made from it (setup's, a
   # finished install's) carries them: the session comes up when dwl — its stand-in — starts; red
-  # with $FKH/session-red or a bar off its measure, $FKH/bar-red (each file: what the check says —
-  # the bar's a line an item, "THEME: what", as bar-geometry.sh says it, both themes in one run);
+  # with $FKH/session-red, a bar off its measure, $FKH/bar-red (each file: what the check says —
+  # the bar's a line an item, "THEME: what", as bar-geometry.sh says it, both themes in one run),
+  # or a lock that does not come up on its scene, $FKH/lock-red;
   # $FKH/fail-session-cannot = N: the check itself cannot run N times (exit 2, its machinery)
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
     'countdown session-cannot && { echo "session-start: the kit could not run: hl-dwl: out of time (60 s)" >&2; exit 2; }' \
@@ -254,6 +255,9 @@ world() {   # world fresh|built [--themed]
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
     '[[ -s $FKH/bar-red ]] && { while IFS= read -r l; do [[ $l == @(dark|light):* ]] || l="dark: $l"; echo "bar-geometry (${l%%:*}):${l#*:}" >&2; done <"$FKH/bar-red"; exit 1; }' 'exit 0' \
     >"$W/home/fkuser/fedokawaii/tools/regress/bar-geometry.sh"
+  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
+    '[[ -s $FKH/lock-red ]] && { echo "lock-start: $(cat "$FKH/lock-red")" >&2; exit 1; }' 'echo "lock-start: held"' \
+    >"$W/home/fkuser/fedokawaii/tools/regress/lock-start.sh"
   # what dwl's build needs of wlroots: its header folder and library (a real .so, so ldd reads it)
   mkdir -p "$W/usr/local/fkh-sys/include/wlroots-0.20/wlr" "$W/usr/local/fkh-sys/lib64"
   echo '/* wlroots */' >"$W/usr/local/fkh-sys/include/wlroots-0.20/wlr/backend.h"
@@ -451,11 +455,12 @@ built() {
   install -m 0755 "$REPO/system/kawa-greet" "$W/usr/local/bin/kawa-greet"
   for t in dark light; do   # the login screen's look, as greetd_config installs it
     mkdir -p "$W/usr/local/share/fedokawaii/greeter/$t"
-    cp "$REPO/configs/home/.config/fedokawaii/themes/$t/"{gtklock.css,lock-scroll.png,lock-fibre.png} "$REPO/configs/home/.local/share/fedokawaii/$t/"{padlock,seal-?}.png \
+    cp "$REPO/configs/home/.config/fedokawaii/themes/$t/"{gtklock.css,lock-scroll.png,lock-fibre.png} "$REPO/configs/home/.local/share/fedokawaii/$t/"lock-* \
       "$W/usr/local/share/fedokawaii/greeter/$t/"
   done
   mkdir -p "$W/var/lib/fedokawaii-greeter" "$W/etc/fonts/conf.d" "$W/usrshare/locale/fk/LC_MESSAGES"
   cp "$REPO/system/60-fedokawaii-pixel.conf" "$W/etc/fonts/conf.d/"; cp "$REPO/art/gtklock.mo" "$W/usrshare/locale/fk/LC_MESSAGES/gtklock.mo"   # (the fake /usr/share)
+  mkdir -p "$W/etc/pam.d"; cp "$REPO/system/gtklock.pam" "$W/etc/pam.d/gtklock"   # (the lock's quick answer: lock_pam)
   fake_cmd "$W/usrbin/agreety"; fake_cmd "$W/usr/local/bin/kawa-torrra"
   mkdir -p "$W/etc/greetd" "$W/etc/systemd/system/greetd.service.d" "$W/etc/profile.d" "$W/etc/NetworkManager/conf.d" "$W/etc/dnf/libdnf5.conf.d" \
     "$W/etc/yum.repos.d" "$W/usr/local/sbin" "$W/etc/dnf/libdnf5-plugins/actions.d" "$W/etc/mpv/scripts"

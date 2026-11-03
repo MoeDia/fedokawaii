@@ -1515,29 +1515,31 @@ that start things, and the right ways to leave.
 
 ## 6.1 Logging in
 
-After the restart the login screen fills the display: your wallpaper shaded deep into the
-theme's ground, no box anywhere, and in the middle one column — a pixel padlock beside the
-time, the day's seal with the date and the weekday in kanji, a line of the season, and the
-line for your password. There is one person on this computer, so there is no user name to
-type — the password's line already says whose password it wants.
+After the restart the login screen fills the display: the lock screen's own scene (§6.6) — in
+the dark theme a dungeon wall, two torches and the Hannya's mask; in the light one golden mist,
+two hanging lanterns and Seiōbo through a round window — with nothing written on it but its
+proverb. There is one person on this computer, so there is no user name to type: just type your
+password.
 
 | You see | It means |
 |---|---|
-| the underlined line | type your password: each character shows as a vermilion ◆; **Enter** when done |
-| `you · パスワード · password` | on the line while it is empty: your user name (setup wrote it in), then *pasuwādo*, "password", and the same in English |
-| `ちがう · wrong password` | *chigau*, "that's not it": the line is empty again — type it once more |
-| `眠 sleep` · `再 restart` · `電 power off` | three words under it, vermilion under the pointer: click one, or **Tab** to it and **Enter** |
+| an ember in the mask's open mouth (a gold mote in Seiōbo's sky) for each character, a blinking bar after them | your password going in — the newest seven show; **Enter** when done |
+| the embers scatter and the mask (the window) shakes | wrong password: the line is empty again — type it once more |
+| the embers burn blue-green | Caps Lock is on: a password typed in capitals is wrong — press Caps Lock first |
+| a line of words low on the screen | the system says something on the way: a password about to expire, a desktop that would not start |
 
-A few seconds later the desktop appears. The login screen does not warn about Caps Lock: if a
-password you know is right is refused, check that key first.
+A few seconds later the desktop appears. There are no keys on the screen: to switch off without
+logging in, press the computer's power button — it shuts down properly.
 
 The **login screen** is `kawa-greet`, a small program of this desktop's. greetd, the login
 manager, shows it inside **cage**, a *kiosk* compositor that shows one window full screen and
 nothing else. It wears the theme you last used, dark or light, with its pointer, and it is the
-lock screen's twin (§6.6). Should the desktop never appear — the login screen comes straight
-back — press **Ctrl+Alt+F2**, log in on the text console there, and run `fedokawaii repair`.
+lock screen's twin (§6.6): the same pictures (`/usr/local/share/fedokawaii/greeter/`, setup puts
+them there), the same marks and motion. Should the desktop never appear — the login screen comes
+straight back — press **Ctrl+Alt+F2**, log in on the text console there, and run
+`fedokawaii repair`.
 
-> **On Windows.** It looks much like the Windows lock screen, but there is no list of accounts:
+> **On Windows.** It looks nothing like the Windows lock screen, and there is no list of accounts:
 > the computer has one. The password is the one you chose in the installer (§4.2), not a PIN
 > or a Microsoft account's.
 
@@ -1701,33 +1703,39 @@ while it waits is in ch. 40.
 
 ## 6.6 Locking the screen
 
-<!-- fig:lock | The middle of the lock screen on both themes, on the shaded wallpaper: the pixel padlock and the time, the day's seal and date, the season's line, the password's underline and the three keys. -->
+<!-- fig:lock | The lock screen in both themes: the dungeon wall, the torches and the Hannya's mouth with embers in it (dark); the golden mist, the lanterns and Seiōbo's sky with motes (light). -->
 
-The **lock screen** (gtklock, started by `kawa-lock`) has no panel and no box: your wallpaper,
-shaded three quarters of the way into the theme's ground (`kawa-wallpaper` draws that picture
-whenever the wallpaper changes, so the lock never waits for it; with none yet, the plain
-ground), and one column in the middle of each screen. First the pixel padlock and the time at
-64 px — four times the desktop's letters — with AM/PM on its baseline; then the day: its kanji
-in a small vermilion seal (月 Monday, 火 Tuesday, 水 Wednesday, 木 Thursday, 金 Friday, 土
-Saturday, 日 Sunday), the date (`Mon 19 Oct`) and the weekday in kanji (`月曜日`); a line of the
-season and the hour (*秋の夜* — an autumn night — and a few words); and the password's line, an
-underline with `パスワード · password` on it while it is empty. The pictures are drawn once, when
-the desktop is built, so the lock is up at once — before sleep too, so the lid can close.
+The **lock screen** (gtklock, started by `kawa-lock`) is a picture, not a form: one scene for
+each theme, drawn in the desktop's pixel art at whole pixels (each of its pixels 3 × 3 on a
+1080p screen). Dark: a dungeon wall lit by two torches that burn, and between them the Hannya —
+the demon mask of the Noh theatre, after a mask in the Met — on a round stone plate, its mouth
+open on darkness; over it a stone lintel gilded with **口は禍の門** (*kuchi wa wazawai no kado*,
+"the mouth is the gate of misfortune"). Light: a sky of golden mist, as on the old folding
+screens, two bronze temple lanterns hanging in it with a flame in each, and through a round
+window Seiōbo, the Queen Mother of the West (from Kōgyo's woodblock print), offering her peach;
+over it a wooden plaque with **言わぬが花** (*iwanu ga hana*, "better left unsaid") and the red
+seal. Both proverbs are about keeping words in — the right thing to read where a password goes.
+No date, no time, no keys.
 
-Each character you type shows as a vermilion ◆, big enough to count at a glance (no caret:
-each ◆ that comes and goes is the answer to a key). The right password fades the lock off the
-desktop; a wrong password empties the line and says so
-under it: **ちがう · wrong password** (*chigau*, "that's not it"). With Caps Lock on, a line
-says **Caps Lock · 大文字** (*ōmoji*, capital letters) — a password typed in capitals is wrong,
-so press Caps Lock again first. Under the line, three keys as words alone: **眠 sleep**,
-**再 restart** and **電 power off**, vermilion under the pointer (a click, or **Tab** to one and
-**Enter**). The login screen (§6.1) is the lock's twin: the same look on the same shaded
-wallpaper, the same line, the same three keys.
+Each character you type glows in the scene: an ember in the mask's mouth, a gold mote in
+Seiōbo's sky beside the peach — the newest seven show — and a bar after them blinks once a
+second while the lock waits for you. The right password ends the lock; a wrong one scatters the
+marks and shakes the face, and the line is empty again. With Caps Lock on, the marks burn
+blue-green: a password typed in capitals is wrong, so press Caps Lock first. The login screen
+(§6.1) is the lock's twin.
 
-**The key that wakes the computer only wakes it.** While the screens are dark, and for two
-seconds after they come back, the lock screen takes no key and no click — so the **Enter** you
-pressed to wake the machine never counts as a (wrong) password. An **Enter** in an empty box
-is never a try either. Wait for the picture, then type.
+A wrong password is answered at once — within half a second. Fedora's own setting waits two
+seconds before saying so (to slow down guessing); the lock's own password check
+(`/etc/pam.d/gtklock`, which setup writes and `verify` checks) waits about 0.3 s — the system
+spreads it between 0.15 and 0.45 s —: a few tries a second at most, at the keyboard only.
+
+**The screens go dark when you are away from the lock.** Nothing touched for 5 seconds while the
+lock shows, the screens power off; any key or move of the mouse lights them again, straight on
+the lock. The key that lights screens that were dark for more than two seconds only wakes them
+— it never counts as a character or as a (wrong) password; a key within two seconds of their
+going dark counts as typed. Right after a sleep, every key in the first two seconds only wakes:
+the **Enter** you pressed to wake the machine is never a try. An **Enter** in an empty line is
+never one either.
 
 The computer sleeps only when you ask it to. Left alone, it stays awake; after a while the
 screensaver comes with the lock behind it, and later the screens go dark — never while a video
@@ -1735,11 +1743,11 @@ or music plays:
 
 | What you do | What happens |
 |---|---|
-| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in a quiet thread, seals stamped on it, the time on a stitched patch. The lock comes up under it as it starts, so the first key or move of the mouse only washes the cloth off a lock already there — that key goes nowhere else. With the 夢 *screensaver* tile in quick settings off, the lock alone |
-| nothing, for 30 minutes | the screens power off (windows stay where they were); the first key wakes them — to the lock, which takes that key for nothing |
-| a video or music playing (Brave, mpv, any player), or a program holding off idleness | none of the two: they wait until it stops |
+| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in a quiet thread, seals stamped on it, the time on a stitched patch. The lock comes up under it as it starts, so the first key or move of the mouse only washes the cloth off a lock already there — that key goes nowhere else. With the *screensaver* tile in quick settings off, the lock alone |
+| nothing, for 30 minutes | the screens power off (windows stay where they were); the first key wakes them |
+| a video or music playing (the browser, mpv, any player), or a program holding off idleness | none of the two: they wait until it stops |
 | **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |
-| *sleep* in the power menu (**Super+Shift+E**), the keyboard's Sleep key, or *sleep* on the lock or login screen | at once: the screens go black, the lock comes up behind them, the machine sleeps — nothing flashes on the way. A key wakes it to the lock screen |
+| *sleep* in the power menu (**Super+Shift+E**) or the keyboard's Sleep key | at once: the screens go black, the lock comes up behind them, the machine sleeps — nothing flashes on the way. A key wakes it to the lock screen |
 
 There is no hibernation: sleep is always *suspend* — memory kept powered, back in seconds at
 a key. (Hibernation writes memory to disk and switches off; setup turns it off for good in
@@ -1822,7 +1830,7 @@ the long press for a machine that answers nothing else (ch. 39).
 
 **What you learnt**
 
-- The login screen asks only for your password: a ◆ for each character, *ちがう · wrong password* when it is wrong.
+- The login screen asks only for your password: an ember (a gold mote in the light theme) for each character, scattered when it is wrong.
 - The bar runs along the top; there are no desktop icons and no window buttons.
 - **Super+Space** starts any program by name; **Super+/** lists every key; **Super+Q** closes.
 - **Super+Escape** locks — and, left locked for 90 seconds, puts the computer to sleep. Away
@@ -12869,7 +12877,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | boot & kernel | the boot-menu setting · the boot-success timer · one kernel, the newest, running (two only while a new one settles in) · the start-up check that keeps it one · every kernel's boot image · no rescue image · the boot's arguments on every entry (rhgb quiet: the splash; a quiet boot — no kernel or systemd messages, no console cursor; no console-size wait) · a text console's cursor back at login · vi a script for nvim (never a link: dracut would follow it) · the GPU kernel argument |
 | GPU & media | hardware video decoding · Vulkan · btop's view of an AMD card (the ROCm SMI library) · ffmpeg encoders |
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
-| compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock screen's words (*ちがう · wrong password*) · the yazi file dialog built and known to the portals |
+| compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock's quick wrong-password answer (its PAM file) and its words without its module · the yazi file dialog built and known to the portals |
 | services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
 | upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh · GE-Proton |
 | applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
@@ -14157,7 +14165,7 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
 | the theme key does nothing | run `kawa-theme` in a terminal: it says why. "current is a folder, not a link" (a backup or sync tool copied it): **Super+U** → *theme, applied again* |
 | Print does nothing, or "Screenshot not saved" | `ls -ld ~/Pictures/Screenshots` — it must be a folder you can write to |
 | Super+Print saves a plain shot: *not annotated: satty is missing* | satty is fetched from GitHub, so an install made offline may lack it: once online, **Super+U** → *repair* |
-| the screen stays locked with no padlock (the lock program crashed) | Ctrl+Alt+F2, log in, then `WAYLAND_DISPLAY=wayland-0 kawa-lock` and type your password at the desktop again; Ctrl+Alt+F1 goes back to it |
+| the screen stays locked with no scene on it (the lock program crashed) | Ctrl+Alt+F2, log in, then `WAYLAND_DISPLAY=wayland-0 kawa-lock` and type your password at the desktop again; Ctrl+Alt+F1 goes back to it |
 | SELinux denial | `sudo ausearch -m avc -ts recent`; never disable SELinux |
 | a config change didn't apply | `fedokawaii drift`; foot fonts and dwl changes apply at the next login |
 | want an old config back | `~/.local/state/fedokawaii/backup/<time>/` |
@@ -15542,7 +15550,7 @@ For the desktop itself, look the part up here. Every path is inside your working
 | drives | `configs/home/.config/udiskie/config.yml` (what opens by itself, the hook); `bin/kawa-drives` (the notices, the mark, the menu, eject); `configs/home/.config/yazi/plugins/drives.yazi/main.lua` (M in yazi) | YAML · bash · Lua | `kawa-drives` at once; udiskie's file at the next login; M the next time yazi starts | drives |
 | autostart, idle and lock times | `configs/home/.config/dwl/autostart.sh` (the `swayidle` line: seconds) | POSIX sh | next login | autostart |
 | the lock screen | `bin/kawa-lock`; its layout: `configs/home/.config/fedokawaii/lock.ui`; its colours: `configs/home/.config/fedokawaii/themes/{dark,light}/gtklock.css` | bash · GTK UI XML · CSS | the next lock | — |
-| the lock's and login's pictures, the boot splash | `tools/build-art.py` draws the padlock, the seven day seals and the splash's pictures from the palettes and Sumi UI (it needs Pillow and `system/fonts/SumiUI.ttf`) | Python | the next lock; the login screen's after `fedokawaii repair`, the splash's after **Theme** | — |
+| the lock's and login's pictures, the boot splash | `tools/build-lock.py` draws the two lock scenes (from the old masters' pictures in `~/.cache/r27-art`, checked by their SHA-256 — art/masters/SOURCES.md); `tools/build-art.py` the splash's pictures, the screensaver's letters and gtklock's two messages, from the palettes and Sumi UI (they need Pillow and `system/fonts/SumiUI.ttf`) | Python | the next lock; the login screen's after `fedokawaii repair`, the splash's after **Theme** | — |
 | icons | `art/icons.txt` — `#` is a pixel. The menu draws them into the font with `tools/build-icons.py`, fetching fontTools once | text grids | next login | icons |
 | pointers | `art/cursors.txt`, then `python3 tools/build-cursors.py` in the copy | text grids | at the next theme switch (dwl loads them again), else the next login | — |
 | packages | `lib/manifest.sh`, and a row in `PACKAGES.md` | bash lists | apply installs them (repair) | packages |
@@ -16559,7 +16567,7 @@ a package is §42.11.
 | launcher and every menu | `kawa-panel` (this repository, Python and GTK), through `kawa-menu` | one look for the launcher, every menu and quick settings, one process; its sums answered as you type |
 | terminal | foot | fast, live dark/light palettes, prompt integration, pictures (Sixel) |
 | login | greetd + `kawa-greet` (this repository, Python and GTK) in cage | the lock screen's twin: your password only, in the theme you last had; cage is the smallest compositor that shows one window |
-| lock / idle | gtklock (`kawa-lock`) · swayidle · wlopm | gtklock takes a layout of its own, so the lock is one column — padlock and time, the day's seal and date, the password's line of ◆ — and the login screen its twin; wlopm powers the screens off without moving windows |
+| lock / idle | gtklock (`kawa-lock`) · swayidle · wlopm | gtklock takes a module of ours (kawa-lockmod), which draws the lock as a pixel-art scene — the password as embers in the demon's mouth, or motes in Seiōbo's sky — and the login screen is its twin; wlopm powers the screens off without moving windows |
 | quick settings | `kawa-panel` (this repository, Python and GTK) · `kawa-quick` | a panel of tiles and meters, drawn on the pixel grid in the theme's colours; the launcher and the menus are the same panel's |
 | clipboard | wl-clipboard · cliphist · fzf · `kawa-clipkeep` (this repository, C) | history of text and pictures with a searchable window and picture previews (ImageMagick, as sixels); copies that outlive their program — the one clipboard keeper for wlroots is not packaged for Fedora, and a small one is quick to check |
 | notifications | mako | |

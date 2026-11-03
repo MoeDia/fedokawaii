@@ -170,13 +170,13 @@ dwl_starts() {
 # desktop_starts — the desktop's session comes up (the update's check, update-design §4.2): as you,
 # the installed dwl headless on the card the desktop draws on, a throw-away home with the
 # installed configs (tools/kit.sh) — the bar, the notices, the terminals, quick settings and the
-# warm windows running, the bar drawn and measured in both themes; your own session is never
-# touched. → 0 · 1 red · 2 the check itself could not run (a check's own verdict on stdout, one
+# warm windows running, the bar drawn and measured in both themes, the lock up on the mood's
+# scene (gtklock, its layout, kawa-lockmod); your own session is never touched. → 0 · 1 red · 2 the check itself could not run (a check's own verdict on stdout, one
 # line — never the programs' log noise). A check that could not run is tried once more (a loaded
 # machine): an update is never undone on a check that did not happen
 desktop_starts() {
   local t out rc _
-  for t in session-start bar-geometry; do
+  for t in session-start bar-geometry lock-start; do
     for _ in 1 2; do
       rc=0; out=$(as_user bash "$REPO_DIR/tools/regress/$t.sh" --dwl /usr/local/bin/dwl 2>&1) || rc=$?
       ((rc == 2)) || break
@@ -273,6 +273,7 @@ do_after_dnf() {
     step_on "a quiet boot (the boot's arguments)" s_quiet_boot
   fi
   grep -qx foot "$ch" && step_on "foot's config" configs_sound
+  grep -qx gtklock "$ch" && step_on "the lock's quick answer (its PAM file)" lock_pam
   step_on "the guard's records" needs_record
   bash "$REPO_DIR/verify.sh" >>"$LOG_FILE" 2>&1 || result=checks
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial

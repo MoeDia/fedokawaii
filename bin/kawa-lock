@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
-# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu) with gtklock: your
-# wallpaper shaded into the theme's ground (kawa-wallpaper draws it as it shows a picture;
-# none yet: the plain ground), and in the middle of each screen, no box, the pixel padlock and
-# the time, the day's seal (土 on a Saturday) and the date, and one line for the password —
-# each character you type shows as a vermilion ◆; a wrong one empties it and says so above it
-# (ちがう · wrong password). The login screen (kawa-greet) is its twin. The layout is
-# ~/.config/fedokawaii/lock.ui, the colours current/gtklock.css (dark or light), the
-# pictures ~/.local/share/fedokawaii/<theme>/ (tools/build-art.py).
+# kawa-lock — locks the screen (Super+Escape, before sleep, the power menu) with gtklock: the
+# mood's scene on every screen, at whole pixels (design-system §9) — dark, a dungeon wall, two
+# torches burning and the Hannya's open mouth, where each character you type glows as an ember;
+# light, a room of gold leaf, two lanterns and Seiōbo through a round window, the password in
+# her sky. No date, no time, no keys. A wrong password scatters the marks and shakes the face.
+# The scene and its marks are kawa-lockmod's (src/kawa-lockmod), drawn from
+# ~/.local/share/fedokawaii/<theme>/lock-scene.png and lock-scene.txt (tools/build-lock.py);
+# gtklock's own line takes the keys, unseen (~/.config/fedokawaii/lock.ui, current/gtklock.css).
 #
 # `kawa-lock --sleep` (Super+Escape, the power menu's "lock"): a lock you asked for — still
 # locked 90 seconds later, the computer sleeps (unlock before then and it stays awake). That
@@ -20,11 +20,12 @@
 #
 # The screens, dark or lit (`--screens off|on`: wlopm, and a note of it in
 # $XDG_RUNTIME_DIR/kawa-screens — "off", or "on" from the moment they came back). The lock
-# screen reads that note (its module, kawa-lockmod: src/kawa-lockmod): while the screens are
-# dark, and for 2 s after they come back, every key and click on it only wakes — the Enter
-# that woke the computer is never taken for a password. An empty Enter is never one either.
-# `--resumed` (swayidle, as the machine wakes) lights the screens and notes the wake.
-# Under the line, three keys — sleep, restart, power off — as on the login screen.
+# screen keeps them so (its module, kawa-lockmod: src/kawa-lockmod): nothing touched for 5 s
+# while it shows, the screens go dark; any key or move lights them straight onto it — the key
+# that lights screens dark for longer than 2 s only wakes, and after a sleep every key in the
+# first 2 s: the Enter that woke the computer is never taken for a password. An empty Enter is
+# never one either. `--resumed` (swayidle, as the machine wakes) lights the screens and notes
+# the wake ("resumed").
 #
 # The lock holds until your password, whatever happens meanwhile: gtklock runs under a
 # keeper (kawa-lock --keep, started here). Should gtklock stop without the password — a
@@ -47,39 +48,48 @@ keeping() { ! flock -n "$held" true 2>/dev/null; }   # the keeper runs: the desk
 # keep GTKLOCK-COMMAND… — the keeper: runs gtklock until it ends with the password (status 0).
 # gtklock gone any other way after it had locked, dwl keeps the desktop locked with no lock
 # screen on it: gtklock is started again at once (after a second, should it stop again within
-# a second), for as long as the desktop runs. One that stops before it ever locked ends the
+# a second), for as long as the desktop runs — after three quick stops in a row without its
+# module (-m): should the module be what fails, the lock is still gtklock's own plain line and
+# your password, never a desktop locked for good. One that stops before it ever locked ends the
 # keeper: kawa-lock says why.
 keep() {
   exec 8>>"$held"
   flock -n 8 || exit 0                               # (one keeper at a time)
   echo "$$" >"$held"
-  local rc ever=0 t0 t1
+  local rc ever=0 t0 t1 quick=0 a cmd=("$@")
   while :; do
     read -r t0 _ </proc/uptime
-    "$@" </dev/null >/dev/null 2>&1 8>&-; rc=$?
+    "${cmd[@]}" </dev/null >/dev/null 2>&1 8>&-; rc=$?
     read -r t1 _ </proc/uptime
     [[ -e $locked ]] && ever=1
     if ((rc == 0)); then rm -f "$locked"; say "unlocked"; exit 0; fi
     if ((!ever)); then say "locker exited rc=$rc before it locked"; exit 1; fi
     if ! pgrep -xu "$UID" dwl >/dev/null; then rm -f "$locked"; say "locker exited rc=$rc — the desktop has ended"; exit 0; fi
     say "locker exited rc=$rc — the desktop stays locked: started again"
+    if ((${t1%.*} - ${t0%.*} < 10)); then quick=$((quick + 1)); else quick=0; fi
+    if ((quick == 3)); then                          # (the command without -m and the module's path)
+      a=(); while (($#)); do [[ $1 == -m ]] && { shift 2; continue; }; a+=("$1"); shift; done
+      cmd=("${a[@]}"); set -- "${a[@]}"; say "three quick stops: started without its module (the plain lock)"
+    fi
     ((${t1%.*} - ${t0%.*} >= 1)) || sleep 1
   done
 }
-# screens off|on — every output dark (wlopm), or lit again; the note the lock screen reads
-# (written before they go dark, after they are lit: its wake guard never misses an edge)
+# screens off|on [NOTE] — every output dark (wlopm), or lit again; the note the lock screen
+# reads (written before they go dark, after they are lit: its wake guard never misses an edge)
 screens() {
   if [[ $1 == off ]]; then
     echo off >"$run/kawa-screens"; say "screens off"; wlopm --off '*'
+  elif wlopm --on '*'; then
+    echo "${2:-on}" >"$run/kawa-screens"; say "screens ${2:-on}"
   else
-    wlopm --on '*'; echo on >"$run/kawa-screens"; say "screens on"
+    say "screens on failed (wlopm)"; return 1   # (the note stays: the lock still treats them as dark)
   fi
 }
 case ${1:-} in
   --up) : >"$locked"; say "lock up"; exit 0 ;;        # gtklock's --lock-command: every screen locked
   --screens) [[ ${2:-} == @(on|off) ]] || { echo "usage: kawa-lock --screens on|off" >&2; exit 2; }
-             screens "$2"; exit 0 ;;
-  --resumed) screens on
+             screens "$2"; exit ;;
+  --resumed) screens on resumed
              if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
   --keep) shift; keep "$@" ;;
 esac
@@ -105,35 +115,24 @@ fail() {
 keeping && exit 0                                     # already locked
 command -v gtklock >/dev/null || fail "gtklock is not installed — fedokawaii repair puts it back"
 
-# today's seal and the theme's padlock into a copy of the layout (pictures drawn once, at
-# build time: nothing to draw now, so the lock is up at once)
-art=$HOME/.local/share/fedokawaii/$THEME
-printf -v day '%(%u)T' -1
-ui=$run/kawa-lock.ui
 # The layout missing is no reason not to lock: the screen still locks, in gtklock's own plain
 # look, and a notice says what to repair (the one place a lesser way is taken — a sleep must
 # never find the screen unlocked)
-layout=(-x "$ui")
-sed -e "s|{SEAL}|$art/seal-$day.png|" -e "s|{PADLOCK}|$art/padlock.png|" \
-  "$HOME/.config/fedokawaii/lock.ui" >"$ui.tmp" 2>/dev/null && mv -f "$ui.tmp" "$ui" || {
-  layout=()
-  notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its layout is missing (~/.config/fedokawaii/lock.ui), so it locks plain — fedokawaii repair puts it back" 2>/dev/null
-}
+ui=$HOME/.config/fedokawaii/lock.ui layout=()
+if [[ -r $ui ]]; then layout=(-x "$ui")
+else notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its layout is missing (~/.config/fedokawaii/lock.ui), so it locks plain — fedokawaii repair puts it back" 2>/dev/null; fi
 
-# the module (the three keys, the wake guard: built from src/kawa-lockmod by theme.sh) — gone,
-# the screen still locks, without them, and a notice says what to repair
+# the module (the scene, the wake guard: built from src/kawa-lockmod by theme.sh) — gone, the
+# screen still locks, plain, and a notice says what to repair
 mod=$HOME/.local/lib/fedokawaii/kawa-lockmod.so
-[[ -r $mod ]] || notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its keys and wake guard are missing ($mod), so it locks without them — fedokawaii repair builds it again" 2>/dev/null
+[[ -r $mod ]] || notify-send -a desktop -u critical -- "${ICON_LOCK:-}  lock screen" "its scene and wake guard are missing ($mod), so it locks plain — fedokawaii repair builds it again" 2>/dev/null
 
 rm -f "$locked"
-# the ground: the wallpaper shaded (kawa-wallpaper's lock_ground), or the theme's plain one
-bg=$HOME/.cache/fedokawaii/lock-$THEME.png ground=()
-[[ -s $bg ]] && ground=(-b "$bg")
 # gtklock, under its keeper (above); --lock-command marks the moment every screen is locked.
-# The date in English whatever the language (C), the ◆ box and the seal say the rest; its two
-# messages in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
-setsid -f "$0" --keep env LC_TIME=C LANGUAGE=fk gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" "${ground[@]}" -m "$mod" \
-  --date-format '%a %d %b' --time-format '%I:%M' \
+# The module finds the mood's scene in KAWA_LOCK_ART; gtklock's two messages (seen only
+# without it) in the desktop's words (LANGUAGE=fk: the catalogue setup installs, art/gtklock.mo)
+setsid -f "$0" --keep env LANGUAGE=fk KAWA_LOCK_ART="$HOME/.local/share/fedokawaii/$THEME" \
+  gtklock -s "$HOME/.config/fedokawaii/current/gtklock.css" "${layout[@]}" -m "$mod" \
   --lock-command "kawa-lock --up" </dev/null >/dev/null 2>&1 9>&-
 # (gone after a second without locking — it could not start: said at once, not after 10 s)
 for ((i = 0; i < 100; i++)); do

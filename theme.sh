@@ -1023,7 +1023,9 @@ U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots
   "$TARGET_HOME/repos"
 # the drawn wallpaper and the old lock's picture, from before (the wallpapers are the pack's
 # and your own, at full quality; the lock draws its own): their files go
-U rm -f "$TARGET_HOME"/.local/share/fedokawaii/{dark,light}/{pattern,scene,lock}.{xpm,png}
+U rm -f "$TARGET_HOME"/.local/share/fedokawaii/{dark,light}/{pattern,scene,lock}.{xpm,png} \
+  "$TARGET_HOME"/.local/share/fedokawaii/{dark,light}/{padlock,seal-[1-7]}.png \
+  "$TARGET_HOME"/.cache/fedokawaii/lock-{dark,light}.png{,.src}   # (the lock before its scene: its pictures, the wallpaper shaded)
 # the wallpaper cache from before (~/.cache/kawa-wallpaper: now ~/.cache/fedokawaii's
 # wallpaper-screens and wallpaper-previews)
 U rm -rf "$TARGET_HOME/.cache/kawa-wallpaper"
