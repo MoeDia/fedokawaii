@@ -1067,7 +1067,9 @@ def gtklock_css(m, p):
     under it, each typed character a ◆ in accent_text, "パスワード · password" in faint while it
     is empty); a rule; three keys — sleep, restart, power off — words, accent_text under the
     pointer and the keyboard's focus. Sumi UI at 14 px, as in every panel. The pictures sit
-    beside this file (current/ for the lock, the greeter's own folder for the login)."""
+    beside this file (current/ for the lock, the greeter's own folder for the login). The lock
+    itself is a scene (T20): kawa-lockmod marks its windows .kawa and draws it — the last rules
+    hide gtklock's own line there; the scroll stays for the login and a lock without the module."""
     def ink(k):
         return f"#{p[k]}"
     k = KAMI[m]
@@ -1125,6 +1127,14 @@ window {{ background-color: {ink('ground')}; }}
 button {{ min-height: 24px; padding: 0 8px; border: none; border-radius: 0; background: none; }}
 button label {{ color: {ink('muted')}; }}
 button:hover label, button:focus label {{ color: {ink('accent_text')}; }}
+/* the lock as a scene (kawa-lockmod marks its windows .kawa: it draws the picture, the flames,
+   the password's marks and the caret) — gtklock's line stays to take the keys, unseen: no
+   scroll, no words, nothing typed shows here */
+window.kawa #window-box {{ border-image: none; border-width: 0; background: none; padding: 0; min-width: 0; }}
+window.kawa #messages {{ opacity: 0; }}
+window.kawa #input-field {{ min-width: 1px; min-height: 1px; font-size: 1px; letter-spacing: 0; padding: 0;
+  color: transparent; caret-color: transparent; border: none; }}
+window.kawa #input-field selection {{ background: none; color: transparent; }}
 """
 
 

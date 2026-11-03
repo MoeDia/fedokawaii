@@ -5,21 +5,24 @@ wallpapers' grid: 640 × 360, shown 3 × 3 on 1080p (2 × 2, 4 × 4 … elsewher
     python3 tools/build-lock.py [--preview DIR]
 
 dark: a dungeon wall lit by two torches — each stone one tone, the light pooling stone by stone —,
-a stone lintel with the quote carved and gilded in it (「鍵は心にあり」, the key is in the heart:
-Sumi UI at its own pixels), and between the torches the Hannya mask (Ritsuō's Noh mask, the Met:
-art/masters/SOURCES.md) on its round stone plate, its lip lit from above, its shadow on the wall;
-the password is typed in its open mouth. The flames are 8 frames (8 fps, a second's loop), drawn
-over the scene by the lock's module: a teardrop that sways and breathes, an ember now and then.
+a stone lintel with the quote carved and gilded in it (口は禍の門, the mouth is the gate of
+misfortune — design-system §0: Sumi UI at its own pixels), and between the torches the Hannya mask
+(Ritsuō's Noh mask, the Met: art/masters/SOURCES.md) on its round stone plate, its lip lit from
+above, its shadow on the wall; its open mouth a dark gate where the password glows, ember by ember.
+The flames are 8 frames (8 fps, a second's loop), drawn over the scene by the lock's module
+(src/kawa-lockmod): a teardrop that sways and breathes, an ember now and then.
 light: a room of pale gold leaf (16 × 16 leaves, hairline seams, a fleck of gold here and there)
 lit by two hanging chōchin, the quote in sumi on a wooden plaque with its red seal, and between the
 lanterns a round window (marumado) in a wooden ring: through it Seiōbo, the Queen Mother of the
 West (Kōgyo's Noh print, AIC: SOURCES.md), her masked face, her crown and the peach she offers;
-the password is typed in the window's calm sky beside the peach.
+the quote 言わぬが花 (better left unsaid); the password, mote by mote, in the window's calm sky
+beside the peach.
 
-Writes art/lock/out/lock-dark.png, lock-light.png (indexed) and flame-dark.png (8 frames side by
-side, 18 × 30 each, transparent around the flame); prints where the password goes on a 1080p screen
-(the mouth; the sky by the peach). --preview DIR: each scene at 3 × 3 (the dark one with the first
-frame), the frames at 8 × 8. Needs Pillow and numpy.
+Writes, for theme.sh to install, configs/home/.local/share/fedokawaii/MOOD/lock-scene.png (indexed)
+and lock-scene.txt — where the module draws on it (the flames, the password's row, their inks) —
+and dark/lock-flame.png (8 frames side by side, 18 × 30 each, transparent around the flame).
+--preview DIR: each scene at 3 × 3 (the dark one with the first frame and six embers), the frames
+at 8 × 8. Needs Pillow and numpy.
 """
 import argparse
 import hashlib
@@ -32,7 +35,7 @@ import numpy as np
 from PIL import Image, ImageDraw, ImageFont
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-OUT = ROOT / "art/lock/out"
+OUT = ROOT / "configs/home/.local/share/fedokawaii"
 CACHE = pathlib.Path.home() / ".cache/r27-art"
 FONT = pathlib.Path("/usr/local/share/fonts/fedokawaii/SumiUI.ttf")     # (theme.sh installs it)
 _spec = importlib.util.spec_from_file_location("build_masters", ROOT / "tools/build-masters.py")
@@ -41,13 +44,16 @@ _spec.loader.exec_module(bm)
 
 W, H = 640, 360
 BAY = bm.BAYER + 0.5                                   # (0 … 15/16)
-QUOTE = "鍵は心にあり"
+QUOTES = {"dark": "口は禍の門", "light": "言わぬが花"}       # (design-system §0: proverbs about keeping words in)
 MASK = ("hannya-mask.jpg", "1bb6dda639aa74e2f8ee0f4f79885628a21dd0961bbdbd04f7469da422dc3d1d")
 SEIOBO = ("seiobo-noh.jpg", "c1d9bdd680571b492a095be35d4c524dfd9977e7d40ec7ee433891e3e8cac5bb")
 TORCH_X, FLAME_Y = (106, 534), 112                     # the flames' middles
 CX, CY, RD, RIM = 320, 189, 132, 5                     # the plate: its middle, the picture's radius, its lip
 LINTEL = (248, 391, 13, 41)                            # x0 x1 y0 y1
 FW, FH, FRAMES = 18, 30, 8                             # a flame's frame
+FLAME_TOP = 87                                         # its frame's top (the flame stands on the haft's head)
+GATE = (314, 364, 222, 7.0)                            # the mouth: its lens x0 x1, middle row, half height
+GATE_PITCH, GATE_N = 5, 7                              # embers 5 px apart, the newest 7 in sight (the caret the 8th)
 
 
 def inks(mood):
@@ -77,10 +83,7 @@ def disc_of(path, sha, d):
     lab = bm.tones(bm.smooth(bm.oklab(bm.reduce(src, crop))), {"tone": "keep", "lift": 0.05}, "dark")
     idx = bm.quantise(lab, "dark", 0.07, 40)
     pal = (bm.hexes(bm.PALETTE["dark"]) * 255).round().astype(np.uint8)
-    # the open mouth (SOURCES.md: x50–67 % y61–71 % of the source) in the disc's pixels
-    mouth = ((0.50 * src.width - crop[0]) / crop[2] * d, (0.61 * src.height - crop[1]) / crop[3] * d,
-             (0.67 * src.width - crop[0]) / crop[2] * d, (0.71 * src.height - crop[1]) / crop[3] * d)
-    return Image.fromarray(pal[idx], "RGB"), mouth
+    return Image.fromarray(pal[idx], "RGB")
 
 
 def ring(cx, cy, r0, r1):
@@ -89,6 +92,41 @@ def ring(cx, cy, r0, r1):
             r = math.hypot(x + 0.5 - cx, y + 0.5 - cy)
             if r0 <= r < r1:
                 yield x, y, r
+
+
+def lettered(quote):
+    """The quote in Sumi UI at its own pixels (14 px a character, 2 px apart), cropped to its ink."""
+    font = ImageFont.truetype(str(FONT), 14)
+    text = Image.new("1", (16 * len(quote) + 8, 20), 0)
+    td = ImageDraw.Draw(text)
+    td.fontmode = "1"
+    for i, ch in enumerate(quote):
+        td.text((16 * i, 0), ch, font=font, fill=1)
+    return text.crop(text.getbbox())
+
+
+def gate(img, P):
+    """The open mouth made a dark gate: from its middle row up and down while the lacquer's red
+    goes on — the teeth stop it —, inside a lens that bounds it at the corners: the throat in the
+    darkest ink, a step lighter by the teeth, deep red where it meets them. → (x, y) of the first
+    ember's middle; the row holds GATE_N, GATE_PITCH apart."""
+    px = img.load()
+    red = {P["accent"], P["accent_lo"], P["flame"]}
+    xl, xr, ym, hh = GATE
+    for x in range(xl, xr + 1):
+        if px[x, ym] not in red:
+            continue
+        t = min(max((x + 0.5 - xl) / (xr - xl), 0.0), 1.0)
+        half = hh * math.sin(math.pi * t) ** 0.55
+        top = bot = ym
+        while top - 1 >= ym - half and px[x, top - 1] in red:
+            top -= 1
+        while bot + 1 <= ym + half and px[x, bot + 1] in red:
+            bot += 1
+        for y in range(top, bot + 1):
+            e = min(y - top, bot - y)
+            px[x, y] = P["accent_lo"] if e == 0 else P["ground"] if e == 1 else P["lo"]
+    return xl + 6, ym
 
 
 def dark_scene():
@@ -127,13 +165,7 @@ def dark_scene():
             px[x, y] = (P["hi"] if y == y0 or x == x0 else P["edge"] if y == y1 or x == x1
                         else P["edge"] if rng.random() < 0.06 else P["edge2"])
     d.rectangle([x0 - 1, y0 - 1, x1 + 1, y1 + 1], outline=P["lo"])
-    font = ImageFont.truetype(str(FONT), 14)
-    text = Image.new("1", (16 * len(QUOTE) + 8, 20), 0)
-    td = ImageDraw.Draw(text)
-    td.fontmode = "1"
-    for i, ch in enumerate(QUOTE):
-        td.text((16 * i, 0), ch, font=font, fill=1)
-    text = text.crop(text.getbbox())
+    text = lettered(QUOTES["dark"])
     gx, gy = (x0 + x1 + 1 - text.width) // 2, (y0 + y1 + 1 - text.height) // 2
     on = [(x, y) for y in range(text.height) for x in range(text.width) if text.getpixel((x, y))]
     for x, y in on:
@@ -156,7 +188,7 @@ def dark_scene():
         if r < RD + 1:
             v -= 0.20
         px[x, y] = ramp_at(min(max(v, 0), 0.999), stone[1:], x, y)
-    disc, mouth = disc_of(CACHE / MASK[0], MASK[1], 2 * RD)
+    disc = disc_of(CACHE / MASK[0], MASK[1], 2 * RD)
     cut = Image.new("L", disc.size, 0)
     ImageDraw.Draw(cut).ellipse([0, 0, disc.width - 1, disc.height - 1], fill=255)
     img.paste(disc, (CX - RD, CY - RD), cut)
@@ -178,8 +210,7 @@ def dark_scene():
         d.line([(tx - 3, 128), (tx + 2, 128)], fill=iron_hi)
         d.rectangle([tx - 3, 112, tx + 2, 117], fill=P["edge"])
         d.line([(tx - 3, 112), (tx + 2, 112)], fill=P["accent_lo"])
-    mouth = tuple(round(3 * v) for v in (CX - RD + mouth[0], CY - RD + mouth[1], CX - RD + mouth[2], CY - RD + mouth[3]))
-    return img, mouth
+    return img, gate(img, P)
 
 
 def flames(P):
@@ -258,13 +289,7 @@ def light_scene():
                 px[x, y] = P["gold"]
     d = ImageDraw.Draw(img)
     # 2 the plaque: a wooden frame, its paper, the quote in sumi, the seal in our red at its end
-    font = ImageFont.truetype(str(FONT), 14)
-    text = Image.new("1", (16 * len(QUOTE) + 8, 20), 0)
-    td = ImageDraw.Draw(text)
-    td.fontmode = "1"
-    for i, ch in enumerate(QUOTE):
-        td.text((16 * i, 0), ch, font=font, fill=1)
-    text = text.crop(text.getbbox())
+    text = lettered(QUOTES["light"])
     x0, x1, y0, y1 = LINTEL
     d.rectangle([x0 - 2, y0 - 2, x1 + 2, y1 + 2], fill=P["lo"])
     d.rectangle([x0 - 1, y0 - 1, x1 + 1, y1 + 1], fill=P["edge2"])
@@ -307,30 +332,61 @@ def light_scene():
             px[int(tx - hw), yy] = px[int(tx + hw), yy] = P["edge2"]
         d.rectangle([tx - 6, LAMP_Y + 20, tx + 5, LAMP_Y + 23], fill=P["strong"])
         d.rectangle([tx - 2, LAMP_Y - 6, tx + 1, LAMP_Y + 5], fill=P["accent"])
-    # the password's field: the window's calm sky, right of her crown and over the peach
-    field = (3 * (CX + 40), 3 * (CY - 90), 3 * (CX + 110), 3 * (CY - 60))
-    return img, field
+    # the password's row: the window's calm sky, right of her crown and over the peach
+    return img, (CX + 46, CY - 75)
+
+
+def hexof(c):
+    return "%02x%02x%02x" % c
+
+
+def placed(mood, row, P, plate, flame_x=()):
+    """lock-scene.txt: where the module draws on the scene, in the scene's own pixels."""
+    marks = {"dark": (P["flame"], P["strong"], P["accent_lo"], P["asagi"], P["flame"]),
+             "light": (P["yellow"], P["gold"], P["edge2"], P["asagi"], P["yellow"])}[mood]
+    lines = ["# lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown",
+             "# N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.",
+             f"size {W} {H}",
+             f"ground {hexof(P['lo'] if mood == 'dark' else P['ground'])}   # round the scene",
+             f"frames {FW} {FH} {FRAMES}   # lock-flame.png: the frames side by side, 8 a second"]
+    lines += [f"flame {x - FW // 2} {FLAME_TOP}   # a flame's frame, its top-left" for x in flame_x]
+    lines += [f"row {row[0]} {row[1]} {GATE_PITCH} {GATE_N}   # the password: the first mark's middle, the pitch, how many in sight",
+              "mark {} {} {}   # a mark: its arms, its middle, its corners".format(*map(hexof, marks[:3])),
+              f"caps {hexof(marks[3])}   # the arms while Caps Lock is on",
+              f"caret {hexof(marks[4])}   # a bar 1 × 5 at the next place, once a second",
+              "plate {} {} {}   # what shakes at a wrong password: its middle, its radius".format(*plate)]
+    return "\n".join(lines) + "\n"
 
 
 def main():
     ap = argparse.ArgumentParser(description="the lock screen's scenes (T20)")
     ap.add_argument("--preview", type=pathlib.Path, help="also write the 3 × 3 previews here")
     a = ap.parse_args()
-    OUT.mkdir(parents=True, exist_ok=True)
-    scene, mouth = dark_scene()
+    for mood in ("dark", "light"):
+        (OUT / mood).mkdir(parents=True, exist_ok=True)
+    scene, row = dark_scene()
     strip = flames(inks("dark"))
-    scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "lock-dark.png", optimize=True)
-    strip.save(OUT / "flame-dark.png", optimize=True)
-    print("dark: the mouth on a 1080p screen x0 y0 x1 y1:", *mouth)
-    light, field = light_scene()
-    light.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "lock-light.png", optimize=True)
-    print("light: the sky by the peach on a 1080p screen x0 y0 x1 y1:", *field)
+    scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "dark/lock-scene.png", optimize=True)
+    strip.save(OUT / "dark/lock-flame.png", optimize=True)
+    (OUT / "dark/lock-scene.txt").write_text(placed("dark", row, inks("dark"), (CX, CY, RD + RIM + 1), TORCH_X))
+    light, lrow = light_scene()
+    light.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "light/lock-scene.png", optimize=True)
+    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, inks("light"), (CX, CY, RD + RIM + 1)))
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
         prev = scene.copy()
         one = strip.crop((0, 0, FW, FH))
         for tx in TORCH_X:
-            prev.paste(one, (tx - FW // 2, 115 - FH + 2), one)
+            prev.paste(one, (tx - FW // 2, FLAME_TOP), one)
+        pp = prev.load()
+        arms, core, corner = inks("dark")["flame"], inks("dark")["strong"], inks("dark")["accent_lo"]
+        for i in range(6):
+            x, y = row[0] + GATE_PITCH * i, row[1]
+            for dx, dy in ((1, 1), (1, -1), (-1, 1), (-1, -1)):
+                pp[x + dx, y + dy] = corner
+            for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)):
+                pp[x + dx, y + dy] = arms
+            pp[x, y] = core
         prev.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-dark-3x.png")
         strip.resize((8 * FW * FRAMES, 8 * FH), Image.NEAREST).save(a.preview / "flame-dark-8x.png")
         light.resize((3 * W, 3 * H), Image.NEAREST).save(a.preview / "lock-light-3x.png")

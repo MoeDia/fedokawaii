@@ -52,3 +52,11 @@ window { background-color: #181715; }
 button { min-height: 24px; padding: 0 8px; border: none; border-radius: 0; background: none; }
 button label { color: #cab596; }
 button:hover label, button:focus label { color: #f47b58; }
+/* the lock as a scene (kawa-lockmod marks its windows .kawa: it draws the picture, the flames,
+   the password's marks and the caret) — gtklock's line stays to take the keys, unseen: no
+   scroll, no words, nothing typed shows here */
+window.kawa #window-box { border-image: none; border-width: 0; background: none; padding: 0; min-width: 0; }
+window.kawa #messages { opacity: 0; }
+window.kawa #input-field { min-width: 1px; min-height: 1px; font-size: 1px; letter-spacing: 0; padding: 0;
+  color: transparent; caret-color: transparent; border: none; }
+window.kawa #input-field selection { background: none; color: transparent; }
