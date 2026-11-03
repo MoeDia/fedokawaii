@@ -1,7 +1,7 @@
 # lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown
 # N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.
 size 640 360
-ground 111314   # round the scene
+ground 181715   # round the scene: its edges' commonest colour
 frames 18 30 8   # lock-flame.png: the frames side by side, 8 a second
 flame 97 87   # a flame's frame, its top-left
 flame 525 87   # a flame's frame, its top-left

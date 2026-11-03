@@ -114,6 +114,16 @@ static gboolean on_button(GtkWidget *w, GdkEventButton *ev, gpointer data)
 	return guarded();
 }
 
+/* gtklock puts an eye on the line's end each time the keyboard moves to another screen's lock (a
+ * monitor off and on): never drawn here — taken off as it is set, before any picture of it loads
+ * (an icon that fails to load aborts GTK 3: a lock screen gone) */
+static void no_icon(GObject *o, GParamSpec *p, gpointer data)
+{
+	(void)p, (void)data;
+	if (gtk_entry_get_icon_name(GTK_ENTRY(o), GTK_ENTRY_ICON_SECONDARY))
+		gtk_entry_set_icon_from_icon_name(GTK_ENTRY(o), GTK_ENTRY_ICON_SECONDARY, NULL);
+}
+
 /* ── the scene (lock-scene.txt: build-lock.py's words) ────────────────────────────────── */
 typedef struct { double r, g, b; } ink;
 static struct {
@@ -379,6 +389,8 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	g_signal_connect(win->window, "key-release-event", G_CALLBACK(on_key), win);
 	g_signal_connect(win->window, "button-press-event", G_CALLBACK(on_button), win);
 	g_signal_connect(win->window, "button-release-event", G_CALLBACK(on_button), win);
+	if (win->input_field)
+		g_signal_connect(win->input_field, "notify::secondary-icon-name", G_CALLBACK(no_icon), NULL);
 	if (!S.img || !win->overlay || !GTK_IS_OVERLAY(win->overlay) || !win->window_box || !win->input_field)
 		return;
 	/* the scene under the layout: the overlay's main child, gtklock's box over it */

@@ -340,14 +340,22 @@ def hexof(c):
     return "%02x%02x%02x" % c
 
 
-def placed(mood, row, P, plate, flame_x=()):
+def rim_ink(img):
+    """The scene's commonest colour along its four edges: the ground drawn round it where the
+    screen is not a whole multiple of it, so the scene seems to go on."""
+    px = img.load()
+    edge = [px[x, y] for x in range(W) for y in (0, H - 1)] + [px[x, y] for y in range(H) for x in (0, W - 1)]
+    return max(set(edge), key=edge.count)
+
+
+def placed(mood, row, P, plate, rim, flame_x=()):
     """lock-scene.txt: where the module draws on the scene, in the scene's own pixels."""
     marks = {"dark": (P["flame"], P["strong"], P["accent_lo"], P["asagi"], P["flame"]),
              "light": (P["yellow"], P["gold"], P["edge2"], P["asagi"], P["yellow"])}[mood]
     lines = ["# lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown",
              "# N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.",
              f"size {W} {H}",
-             f"ground {hexof(P['lo'] if mood == 'dark' else P['ground'])}   # round the scene",
+             f"ground {hexof(rim)}   # round the scene: its edges' commonest colour",
              f"frames {FW} {FH} {FRAMES}   # lock-flame.png: the frames side by side, 8 a second"]
     lines += [f"flame {x - FW // 2} {FLAME_TOP}   # a flame's frame, its top-left" for x in flame_x]
     lines += [f"row {row[0]} {row[1]} {GATE_PITCH} {GATE_N}   # the password: the first mark's middle, the pitch, how many in sight",
@@ -368,10 +376,10 @@ def main():
     strip = flames(inks("dark"))
     scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "dark/lock-scene.png", optimize=True)
     strip.save(OUT / "dark/lock-flame.png", optimize=True)
-    (OUT / "dark/lock-scene.txt").write_text(placed("dark", row, inks("dark"), (CX, CY, RD + RIM + 1), TORCH_X))
+    (OUT / "dark/lock-scene.txt").write_text(placed("dark", row, inks("dark"), (CX, CY, RD + RIM + 1), rim_ink(scene), TORCH_X))
     light, lrow = light_scene()
     light.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "light/lock-scene.png", optimize=True)
-    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, inks("light"), (CX, CY, RD + RIM + 1)))
+    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, inks("light"), (CX, CY, RD + RIM + 1), rim_ink(light)))
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
         prev = scene.copy()
