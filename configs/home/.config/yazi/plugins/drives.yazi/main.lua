@@ -119,9 +119,22 @@ function M:layout(area)
 	}
 end
 
+-- a label too long for its room is cut there, nothing put in its place (never "…": the
+-- desktop's rule; init.lua's cut() for the panes, this one for the popup)
+local function cut(s, max)
+	local keep, w = {}, 0
+	for _, c in utf8.codes(s) do
+		local ch = utf8.char(c)
+		w = w + ui.Line(ch):width()
+		if w > max then break end
+		keep[#keep + 1] = ch
+	end
+	return table.concat(keep)
+end
+
 local function row_line(r, width)
 	local state = r.dir ~= "" and "open" or "closed"
-	local label = ui.truncate(r.label, { max = math.max(1, width - 26) })
+	local label = cut(r.label, math.max(1, width - 26))
 	local left = ICON_DRIVE .. " " .. label
 	local right = string.format("%7s  %-6s %-6s", r.size, r.fs:sub(1, 6), state)
 	local gap = math.max(1, width - ui.Line(left):width() - ui.Line(right):width())
@@ -197,7 +210,7 @@ function M:entry(job)
 		elseif act == "open" then
 			local r = hovered()
 			if r then
-				set_busy("opening " .. r.label .. "…")
+				set_busy("opening " .. r.label)
 				local dir = run { "open", r.dev }
 				set_busy(nil)
 				if dir and dir ~= "" then

@@ -535,7 +535,7 @@ gone  eject
 quit
 EOF
 )
-has "$out" "Photos from the long trip to"; lacks "$out" "coast"; has "$out" "…"
+has "$out" "Photos from the long trip to"; lacks "$out" "coast"; lacks "$out" "…" "a long label cut, nothing in its place (master T22/1)"
 has "$out" "写真とビデオのバックアップ"; lacks "$out" "二〇二六年夏" "the long Japanese label is cut too"
 has "$out" "$odd"
 called '^kawa-drives open /dev/sdd1$' "opening passes the drive's device, never its label"
