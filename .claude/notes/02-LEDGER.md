@@ -4287,6 +4287,15 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   gruvbox 1.3 ms. The real measure needs a pty that answers (T30).
 - r27-shm (05:09): the F45 digest's downloaded repository metadata (2.9 GB of /dev/shm/r27/t46b/raw/repo and rpms) freed
   from RAM — its findings are in the notes; the released tree is fetched fresh for T46.
+- r27-22-modals-research (3 Nov 05:36, T22 must-fix 3, read-only): yazi v26.9.1's own source (github.com/sxyazi/yazi,
+  the tag lib/upstream.sh pins as a musl release binary): its Lua components are 20 files (app, backdrop, current, dnd,
+  entity, header, linemode, marker(s), modal, parent, preview, progress, rail(s), root, status, tab(s), TASKS) — the rename/
+  create Input, the trash Confirm, Help and Which are RUST widgets: yazi-fm/src/input/input.rs:50 and
+  confirm/confirm.rs:22 hard-code `BorderType::Rounded` and put the title in the border. So the master's "override them in
+  init.lua" holds only for Tasks (and Progress: the footer's vermilion block, progress.lua); the square frames need a
+  yazi patch — his own rule names yazi among what we patch — i.e. building yazi from the pinned tag with a small patch
+  (Rounded → Plain, the titles moved into a heading row) in the installer like dwl (rustup is there: r_dev), or a
+  theme.toml-only answer (inks) and say why. Decide by a render of each in the next pass.
 ## >>> NEXT PASS STARTS HERE (3 Nov, written ~05:32 by the 03:32 bulk pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
