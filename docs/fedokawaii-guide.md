@@ -1726,8 +1726,8 @@ blue-green: a password typed in capitals is wrong, so press Caps Lock first. The
 
 A wrong password is answered at once — within half a second. Fedora's own setting waits two
 seconds before saying so (to slow down guessing); the lock's own password check
-(`/etc/pam.d/gtklock`, which setup writes and `verify` checks) waits 0.3 s: three tries a
-second at most, at the keyboard only.
+(`/etc/pam.d/gtklock`, which setup writes and `verify` checks) waits about 0.3 s — the system
+spreads it between 0.15 and 0.45 s —: a few tries a second at most, at the keyboard only.
 
 **The screens go dark when you are away from the lock.** Nothing touched for 5 seconds while the
 lock shows, the screens power off; any key or move of the mouse lights them again, straight on

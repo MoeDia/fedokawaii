@@ -72,14 +72,16 @@ keep() {
 screens() {
   if [[ $1 == off ]]; then
     echo off >"$run/kawa-screens"; say "screens off"; wlopm --off '*'
+  elif wlopm --on '*'; then
+    echo "${2:-on}" >"$run/kawa-screens"; say "screens ${2:-on}"
   else
-    wlopm --on '*'; echo "${2:-on}" >"$run/kawa-screens"; say "screens ${2:-on}"
+    say "screens on failed (wlopm)"; return 1   # (the note stays: the lock still treats them as dark)
   fi
 }
 case ${1:-} in
   --up) : >"$locked"; say "lock up"; exit 0 ;;        # gtklock's --lock-command: every screen locked
   --screens) [[ ${2:-} == @(on|off) ]] || { echo "usage: kawa-lock --screens on|off" >&2; exit 2; }
-             screens "$2"; exit 0 ;;
+             screens "$2"; exit ;;
   --resumed) screens on resumed
              if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
   --keep) shift; keep "$@" ;;

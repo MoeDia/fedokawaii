@@ -380,7 +380,11 @@ def light_scene():
             if text.getpixel((x, y)):
                 px[gx + x, gy + y] = P["strong"]
     sx = gx + text.width + 6
-    d.rectangle([sx, gy + text.height - 8, sx + 7, gy + text.height - 1], fill=P["accent"])   # the seal
+    d.rectangle([sx, gy + text.height - 8, sx + 7, gy + text.height - 1], fill=P["accent"])   # the seal,
+    d.rectangle([sx + 2, gy + text.height - 6, sx + 5, gy + text.height - 3], outline=P["key"])  # its carved square
+    for cx in (x0 + 10, x1 - 10):                                # the cords it hangs by, knotted on its frame
+        d.line([(cx, 0), (cx, y0 - 4)], fill=P["muted"])
+        d.rectangle([cx - 1, y0 - 4, cx, y0 - 3], fill=P["lo"])
     # 4 the round window: its shadow on the sky and the mist, its ring, Seiōbo through it
     shade = {P["key"]: P["view"], P["view"]: P["ground"], P["ground"]: P["edge"], P["gold"]: P["yellow"], P["edge"]: P["gold"]}
     for x, y, _ in ring(CX, CY + 5, 0, RD + RIM + 3):
@@ -418,7 +422,7 @@ def rim_ink(img):
 def placed(mood, row, P, plate, rim, fires=(), frame=(FW, FH)):
     """lock-scene.txt: where the module draws on the scene, in the scene's own pixels."""
     marks = {"dark": (P["flame"], P["strong"], P["accent_lo"], P["asagi"], P["flame"]),
-             "light": (P["yellow"], P["gold"], P["edge2"], P["asagi"], P["yellow"])}[mood]
+             "light": (P["yellow"], P["gold"], P["hi"], P["asagi"], P["yellow"])}[mood]
     lines = ["# lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown",
              "# N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.",
              f"size {W} {H}",

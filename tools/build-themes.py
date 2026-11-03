@@ -1073,7 +1073,8 @@ def gtklock_css(m, p):
     return f"""/* {header('~/.config/fedokawaii/current/gtklock.css', 'the lock and login screens in ' + NAMES[m])} */
 window {{ background-color: {ink('ground')}; }}
 * {{ font-family: "Sumi UI"; font-size: 14px; color: {ink('text')}; box-shadow: none;
-  text-shadow: none; outline: none; -gtk-icon-shadow: none; }}
+  text-shadow: none; outline: none; -gtk-icon-shadow: none; transition: none; }}
+/* (no transitions: nothing on the lock moves through GTK — a style eased in shows for frames) */
 /* without a scene — the scroll: the bar's clock, twice its size — 24 px of its picture at the top
    and the foot (hairline, paper, rule), 32 at the sides (the rods, the paper, the rule); 40 px of
    paper inside the rule to the line, 32 above and below it */

@@ -1313,7 +1313,7 @@ s_session() {
   greetd_config
   # greetd is enabled only in the last step, after verify.sh has passed
 }
-# lock_pam — the lock screen's password check: a wrong password said in 0.3 s, not 2
+# lock_pam — the lock screen's password check: a wrong password said in about 0.3 s, not 2
 # (system/gtklock.pam). The file is gtklock's own, not a config file to rpm: an update of
 # gtklock writes its version back — the update and the after-dnf follow-up call this again
 lock_pam() { cmp -s "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock || install -m 0644 "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock; }

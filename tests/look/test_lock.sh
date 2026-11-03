@@ -175,7 +175,14 @@ args_eq wlopm 1 --off '*'; args_eq wlopm 2 --on '*'
 eq "$(tr '\n' '|' <"$TMP/notes")" "note: off|note: off|" "off before the dark; on only once lit"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
 rc 2 kawa-lock --screens; rc 2 kawa-lock --screens dim
-case_ "the module (the keys, the wake guard) missing: it still locks, and says what to repair"
+case_ "--screens on when wlopm fails: the note stays dark (the lock still treats them so: the next key only wakes) and it says so"
+setup
+echo off >"$XDG_RUNTIME_DIR/kawa-screens"
+argv wlopm 'exit 1'
+rc 1 kawa-lock --screens on
+eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" off
+called '^logger -t kawa-lock -- screens on failed \(wlopm\)$'
+case_ "the module (the scene, the wake guard) missing: it still locks, and says what to repair"
 setup; rm "$MOD"
 rc 0 kawa-lock; eq "$(locks)" 1
 called "notify-send -a desktop -u critical -- .*lock screen .*kawa-lockmod.so.*fedokawaii repair"
@@ -219,7 +226,7 @@ int main(void) {
 	return 0;
 }
 EOF
-  printf '#!/bin/sh\necho "kawa-lock $*" >>"$CALLS_AT"\n' >"$TMP/bin-kl/kawa-lock" 2>/dev/null || { mkdir -p "$TMP/bin-kl"; printf '#!/bin/sh\necho "kawa-lock $*" >>"$CALLS_AT"\n' >"$TMP/bin-kl/kawa-lock"; }
+  mkdir -p "$TMP/bin-kl"; printf '#!/bin/sh\necho "kawa-lock $*" >>"$CALLS_AT"\n' >"$TMP/bin-kl/kawa-lock"
   chmod +x "$TMP/bin-kl/kawa-lock"
   # (the module's own source, with GTK's headers: its rules run, no display needed)
   # shellcheck disable=SC2046  # (pkg-config's words)
@@ -412,11 +419,13 @@ PY
 )
   has "$out" "marks " "$t: $out"; lacks "$out" "UNDER" "$t"
   has "$out" "2 flames inside" "$t"
-  c=$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css
-  grep -q '^window.kawa #input-field {' "$c" && _ok || _no "$t: gtklock's line not hidden under the module"
-  grep -q '^#input-field {' "$c" && _ok || _no "$t: without the module the line has no look of its own"
+  css=$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css
+  grep -q '^window.kawa #input-field {' "$css" && _ok || _no "$t: gtklock's line not hidden under the module"
+  grep -q '^#input-field {' "$css" && _ok || _no "$t: without the module the line has no look of its own"
+  grep -q 'transition: none;' "$css" && _ok || _no "$t: a transition could ease gtklock's line in for frames"
 done
 m=$REPO/src/kawa-lockmod/kawa-lockmod.c
 grep -q 'gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");' "$m" && _ok || _no "the module does not mark its windows"
+grep -q 'gtk_widget_set_opacity(win->window_box, 0);' "$m" && _ok || _no "gtklock's line could show for frames before the stylesheet hides it (master T20/1)"
 grep -q '"notify::secondary-icon-name", G_CALLBACK(no_icon)' "$m" && _ok || _no "gtklock's eye drawn (and loaded) on the line"
 done_

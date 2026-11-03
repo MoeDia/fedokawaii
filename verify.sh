@@ -403,7 +403,7 @@ check "the login screen (kawa-greet) installed"          test -x /usr/local/bin/
 check "the login screen's look, both themes (/usr/local/share/fedokawaii/greeter)" bash -c 'for t in dark light; do d=/usr/local/share/fedokawaii/greeter/$t; for f in gtklock.css lock-scroll.png lock-fibre.png lock-scene.png lock-scene.txt lock-flame.png; do [[ -s $d/$f ]] || exit 1; done; done'
 check "the login screen follows your theme (/var/lib/fedokawaii-greeter is yours)" test "$(stat -c %U /var/lib/fedokawaii-greeter 2>/dev/null)" = "$TARGET_USER"
 check "the pixel font crisp for every account (/etc/fonts/conf.d)" test -s /etc/fonts/conf.d/60-fedokawaii-pixel.conf
-check "the lock says a wrong password in 0.3 s (/etc/pam.d/gtklock)" cmp -s "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock
+check "the lock says a wrong password in about 0.3 s (/etc/pam.d/gtklock)" cmp -s "$REPO_DIR/system/gtklock.pam" /etc/pam.d/gtklock
 check "the lock screen's words (\"wrong password\", without its module)" cmp -s "$REPO_DIR/art/gtklock.mo" /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
 # the notices: the desktop's mako (setup.sh: build_mako — src/mako/mako.patch, the pinned tag),
 # which ~/.config/mako/config needs (its options are not Fedora's mako's); Fedora's unit runs it

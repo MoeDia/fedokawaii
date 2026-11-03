@@ -51,6 +51,7 @@ GUARD = 2.0                                # seconds after a wake that keys and 
 ENTER = (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_ISO_Enter)
 WRONG = "wrong password"                    # (said by the scene: the marks scatter, the face shakes)
 STEP, STEPS = 0.048, 5                      # the wrong password's steps (s), as kawa-lockmod's
+FLARE = 0.090                               # a key's answer: the newest mark flares (s), as kawa-lockmod's
 
 
 class Scene:
@@ -126,6 +127,7 @@ class Greeter(Gtk.Window):
             print(f"kawa-greet: no scene ({e})", file=sys.stderr)
             self.scene = None
         self.frame, self.caret_on, self.wrong, self.tried = 0, True, 0.0, 0
+        self.length, self.flare, self.flare_src = 0, 0.0, 0
 
         # the password's line (gtklock.css hides it under .kawa: the scene draws what is typed)
         self.entry = Gtk.Entry(name="input-field", xalign=0.5, visibility=False,
@@ -138,6 +140,7 @@ class Greeter(Gtk.Window):
         layers = Gtk.Overlay()
         if self.scene:
             self.get_style_context().add_class("kawa")
+            self.entry.set_opacity(0)      # (its line unseen from the first frame, whatever the CSS does)
             self.area = Gtk.DrawingArea(can_focus=False)
             self.area.connect("draw", self.draw)
             layers.add(self.area)
@@ -154,9 +157,12 @@ class Greeter(Gtk.Window):
 
         # the wake guard: asleep (or about to be), and GUARD s after waking, input only wakes
         self.asleep, self.woke = False, 0.0
-        Gio.bus_get_sync(Gio.BusType.SYSTEM, None).signal_subscribe(
-            "org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
-            "/org/freedesktop/login1", None, Gio.DBusSignalFlags.NONE, self.sleeping)
+        try:                               # (no system bus: the login stays up, without the guard)
+            Gio.bus_get_sync(Gio.BusType.SYSTEM, None).signal_subscribe(
+                "org.freedesktop.login1", "org.freedesktop.login1.Manager", "PrepareForSleep",
+                "/org/freedesktop/login1", None, Gio.DBusSignalFlags.NONE, self.sleeping)
+        except GLib.Error as e:
+            print(f"kawa-greet: no word of sleeps ({e.message})", file=sys.stderr)
         for ev in ("key-press-event", "key-release-event", "button-press-event", "button-release-event"):
             self.connect(ev, self.input)
 
@@ -222,8 +228,9 @@ class Greeter(Gtk.Window):
                 elif step < 4:
                     mark(x, y, s.corner, arms, None)
         else:
+            flaring = shown and time.monotonic() < self.flare    # (the newest: its corners in the arms' ink)
             for i in range(shown):
-                mark(s.rx + s.pitch * i, s.ry, arms, s.core, s.corner)
+                mark(s.rx + s.pitch * i, s.ry, arms, s.core, arms if flaring and i == shown - 1 else s.corner)
         if self.caret_on and step < 0 and self.entry.has_focus() and self.entry.is_sensitive():
             cr.set_source_rgb(*s.caret)
             cr.rectangle(s.rx + s.pitch * shown, s.ry - 1, 1, 3)   # (a mark's height)
@@ -251,11 +258,23 @@ class Greeter(Gtk.Window):
         self.redraw_row()
         return True
 
-    def typed(self, _entry):                    # (solid while typing: the blink starts over)
+    def typed(self, entry):                     # (solid while typing: the blink starts over)
+        n = len(entry.get_text())
+        if n > self.length:                    # (a key typed: its answer, also past the seventh)
+            self.flare = time.monotonic() + FLARE
+            if self.flare_src:
+                GLib.source_remove(self.flare_src)
+            self.flare_src = GLib.timeout_add(int(FLARE * 1000) + 1, self.flare_end)
+        self.length = n
         self.caret_on = True
         GLib.source_remove(self.blink)
         self.blink = GLib.timeout_add(500, self.caret_tick)
         self.redraw_row()
+
+    def flare_end(self):
+        self.flare_src = 0
+        self.redraw_row()
+        return False
 
     def wrong_tick(self, _area, _clock):
         s = self.scene

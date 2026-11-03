@@ -151,9 +151,9 @@ for t in dark light; do
   for f in "$REPO/configs/home/.config/fedokawaii/themes/$t/"{gtklock.css,lock-scroll.png,lock-fibre.png} "$REPO/configs/home/.local/share/fedokawaii/$t/"lock-scene.{png,txt}; do
     [[ -s $f ]] && _ok || _no "no $f"
   done
-  for u in $(grep -o 'url("[^"]*")' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" | sed 's/url("//; s/")//'); do
+  while IFS= read -r u; do
     [[ $u == lock-scroll.png || $u == lock-fibre.png ]] && _ok || _no "$t gtklock.css names $u: not installed beside it by setup.sh"
-  done
+  done < <(grep -o 'url("[^"]*")' "$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css" | sed 's/url("//; s/")//')
 done
 has "$(sed -n '/^greetd_config()/,/^}/p' "$REPO/setup.sh")" '"$REPO_DIR/configs/home/.local/share/fedokawaii/$t/"lock-* "$d/"' "setup installs the scene beside the css"
 done_

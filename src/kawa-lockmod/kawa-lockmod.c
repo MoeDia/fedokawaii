@@ -9,10 +9,12 @@
  *  marks in the mood's row (the demon's mouth: an ember for each character; the sky by Seiōbo's
  *  peach: a mote) — the newest ones while more are typed than the row holds —, the arms in the
  *  Caps Lock ink while it is on, and the caret: a bar as tall as a mark at the next place, once a
- *  second, there while the line has the keyboard. A wrong password (gtklock's error line, never shown): the
- *  marks scatter and fade, the face (the plate) shakes a pixel of the scene twice — 240 ms, five
- *  steps of 48. gtklock's own line stays for the keys: invisible (current/gtklock.css,
- *  window.kawa), its words never shown. No date, no time, no keys: the scene is the lock.
+ *  second, there while the line has the keyboard; every key flares the newest mark for a moment
+ *  (an answer too past the seventh, when the row no longer grows). A wrong password (gtklock's
+ *  error line, never shown): the marks scatter and fade, the face (the plate) shakes a pixel of
+ *  the scene twice — five steps of 48 ms. gtklock's own line stays for the keys, unseen from its
+ *  first frame (its box at opacity 0; current/gtklock.css: window.kawa, no transitions), its
+ *  words never shown. No date, no time, no keys: the scene is the lock.
  *
  *  The screens. Nothing touched for 5 s while the lock shows — the screensaver not over it —,
  *  the screens go dark (kawa-lock --screens off); any key, click, scroll or move lights them
@@ -73,6 +75,7 @@ static int self_id;
 static char screens[PATH_MAX], saver[PATH_MAX];   /* kawa-lock's note; the screensaver's lock */
 static gint64 touched_at;                 /* the last input (µs, real time), the lock's start first */
 static gint64 woken;                      /* the "off" note already answered (its time) */
+static guint waking_key;                  /* the key that woke them, swallowed until it is let go */
 static gboolean saver_was_up;
 enum { NONE, OFF, ON, RESUMED };
 
@@ -123,7 +126,7 @@ static gboolean waking(void)
 	}
 	return n == RESUMED && now >= mt && now - mt < GUARD_US;
 }
-/* once a second: nothing touched for 5 s on lit screens, the screensaver not over the lock — dark */
+/* four times a second: nothing touched for 5 s on lit screens, the screensaver not over the lock — dark */
 static gboolean idle_tick(gpointer data)
 {
 	gint64 mt = 0, now = g_get_real_time();
@@ -146,8 +149,16 @@ static gboolean on_key(GtkWidget *w, GdkEventKey *ev, gpointer data)
 {
 	struct Window *win = data;
 	(void)w;
-	if (waking())
+	if (waking_key && ev->hardware_keycode == waking_key) {   /* (its repeats, then its release) */
+		if (ev->type == GDK_KEY_RELEASE)
+			waking_key = 0;
 		return TRUE;
+	}
+	if (waking()) {
+		if (ev->type == GDK_KEY_PRESS)
+			waking_key = ev->hardware_keycode;
+		return TRUE;
+	}
 	if (ev->type == GDK_KEY_PRESS && win->input_field && gtk_widget_has_focus(win->input_field) &&
 			(ev->keyval == GDK_KEY_Return || ev->keyval == GDK_KEY_KP_Enter ||
 			 ev->keyval == GDK_KEY_ISO_Enter) &&
@@ -195,9 +206,12 @@ struct look {                             /* one window's */
 	struct Window *win;
 	GtkWidget *area;
 	int tried;                            /* marks when the last try began */
+	int typed;                            /* the line's length at its last change */
 	gint64 wrong;                         /* its failure's moment (µs, monotonic), 0 none */
-	guint tick;
+	gint64 flare;                         /* the newest mark flares until then (µs, monotonic) */
+	guint tick, flare_src;
 };
+#define FLARE_US (90 * 1000)
 static GList *looks;
 static int frame;                         /* the flames' (8 a second) */
 static gboolean caret_on = TRUE;
@@ -318,6 +332,7 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 	}
 	if (dx) {
 		cairo_save(cr);
+		cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);   /* (the rim in whole pixels: no blended ink) */
 		cairo_arc(cr, S.cx + dx, S.cy, S.cr, 0, 2 * G_PI);
 		cairo_clip(cr);
 		paint_scene(cr, dx);
@@ -344,8 +359,9 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 				mark(cr, x, y, &S.corner, arms, NULL);
 		}
 	} else {
-		for (int i = 0; i < shown; i++)
-			mark(cr, S.rx + S.pitch * i, S.ry, arms, &S.core, &S.corner);
+		gboolean flaring = shown && g_get_monotonic_time() < l->flare;
+		for (int i = 0; i < shown; i++)       /* (the newest flaring: its corners in the arms' ink) */
+			mark(cr, S.rx + S.pitch * i, S.ry, arms, &S.core, flaring && i == shown - 1 ? arms : &S.corner);
 	}
 	if (caret_on && step < 0 && e && gtk_widget_has_focus(e) && gtk_widget_is_sensitive(e)) {
 		cairo_set_source_rgb(cr, S.caret.r, S.caret.g, S.caret.b);
@@ -390,11 +406,26 @@ static gboolean wrong_tick(GtkWidget *a, GdkFrameClock *clock, gpointer data)
 	l->wrong = 0, l->tick = 0;
 	return G_SOURCE_REMOVE;
 }
+static gboolean flare_end(gpointer data)
+{
+	struct look *l = data;
+	l->flare_src = 0;
+	redraw_row(l);
+	return G_SOURCE_REMOVE;
+}
 static void on_changed(GtkEditable *e, gpointer data)
 {
-	(void)e;
+	struct look *l = data;
+	int len = (int)gtk_entry_get_text_length(GTK_ENTRY(e));
+	if (len > l->typed) {                 /* (a key typed: its answer, also past the seventh) */
+		l->flare = g_get_monotonic_time() + FLARE_US;
+		if (l->flare_src)                 /* (a key within the last one's flare: it ends later) */
+			g_source_remove(l->flare_src);
+		l->flare_src = g_timeout_add(FLARE_US / 1000 + 1, flare_end, l);
+	}
+	l->typed = len;
 	caret_restart();
-	redraw_row(data);
+	redraw_row(l);
 }
 static void on_state(GObject *o, GParamSpec *p, gpointer data)   /* focus or busy changed */
 {
@@ -432,7 +463,7 @@ void on_activation(struct GtkLock *gtklock, int id)
 	g_snprintf(saver, sizeof saver, "%s/kawa-saver.lock", run && *run ? run : "/nonexistent");
 	touched_at = g_get_real_time();
 	saver_was_up = saver_up();
-	g_timeout_add_seconds(1, idle_tick, NULL);
+	g_timeout_add(250, idle_tick, NULL);   /* (dark 5.0–5.25 s after the last input) */
 	if (!art || !*art || !scene_load(art))
 		return;
 	if (S.nflames)
@@ -467,15 +498,19 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	gtk_overlay_add_overlay(GTK_OVERLAY(win->overlay), win->window_box);
 	g_object_unref(win->window_box);
 	gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");
+	gtk_widget_set_opacity(win->window_box, 0);   /* (its line unseen from the first frame, whatever the CSS does) */
 	g_signal_connect(win->input_field, "changed", G_CALLBACK(on_changed), l);
 	g_signal_connect(win->input_field, "notify::has-focus", G_CALLBACK(on_state), l);
 	g_signal_connect(win->input_field, "notify::sensitive", G_CALLBACK(on_state), l);
 	g_signal_connect_after(win->input_field, "activate", G_CALLBACK(on_try), l);
 	if (win->error_label)
 		g_signal_connect(win->error_label, "notify::label", G_CALLBACK(on_error), l);
-	if (!looks)
+	static gboolean caps_heard;
+	if (!caps_heard) {
+		caps_heard = TRUE;
 		g_signal_connect(gdk_keymap_get_for_display(gtk_widget_get_display(win->window)),
 				"state-changed", G_CALLBACK(on_caps), NULL);
+	}
 	win->module_data[self_id] = l;
 	looks = g_list_prepend(looks, l);
 }
@@ -487,6 +522,8 @@ void on_window_destroy(struct GtkLock *gtklock, struct Window *win)
 	if (!l)
 		return;
 	looks = g_list_remove(looks, l);
+	if (l->flare_src)
+		g_source_remove(l->flare_src);
 	g_free(l);
 	win->module_data[self_id] = NULL;
 }
