@@ -4562,11 +4562,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     for his next login; the pack takes the 20 rebuilt masters, r27-18-mf1/-sf69/-sf8); live: screen off 5 min, the LG drops
 ##     its line, a key → D "shown settled" + a shot; should-fix 5 from its L lines (only the part=1 ones set the settle);
 ##     should-fix 6's four measurements (away an hour+); then the master's review 2.
-## (1c) FOUND by r27-02b-fixes, to check in dwl: rendermon's awaitmap/resize branch answers a HELD window's frame
-##     callbacks on every frame event too (heldframedone per call, no flip while held) — GTK 3 redraws at once on each
-##     answer (the old whole-hold spun to 63k–98k commits), so a new window with a running animation (a spinner) may spin
-##     the CPU for its whole 250 ms hold. Measure: a GTK 3 window with an endless CSS animation opened on a headless dwl,
-##     count its commits during the hold; if > one a refresh, pace it with the same tick (wholetick's way).
+## (1c) WEIGHED 01:34 (low): rendermon's awaitmap/resize branch also answers a HELD window's frame callbacks on every
+##     frame event (no flip while held), and GTK 3 redraws at once on each answer (the old whole-hold spun to 63k–98k
+##     commits). But by commitnotify a held window is let go by the very commit that acks its configure (resizeserial
+##     cleared; showclient at mapserial) — GTK 3 acks on its next commit — so it cannot spin across the hold; the whole
+##     hold differed because it waits 100 ms of quiet while answering. To confirm when a dwl pass has room: a GTK 3
+##     window with an endless CSS animation opened on a headless dwl, its commits counted before W (a log line in a
+##     scratch build only).
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
