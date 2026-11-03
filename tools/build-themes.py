@@ -1084,7 +1084,7 @@ window {{ background-color: {ink('ground')}; }}
   background-clip: padding-box; background-origin: padding-box;
   padding: 32px 40px 28px; min-width: 400px;
 }}
-/* what went wrong (ちがう · wrong password, Caps Lock · 大文字), empty until then: words to be
+/* what went wrong (wrong password, Caps Lock), empty until then: words to be
    read, in the strongest ink (vermilion is a mark's, never words': design-system §1) */
 #messages {{ min-height: 14px; margin: 0 0 8px; }}
 #error-label, #warning-label {{ color: {ink('strong')}; margin: 0 8px; }}

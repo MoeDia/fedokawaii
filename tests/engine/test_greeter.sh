@@ -97,7 +97,7 @@ case_ "a wrong password: the session cancelled (the next try starts afresh), sai
 out=$(drive "[$SECRET,{\"type\":\"error\",\"error_type\":\"auth_error\",\"description\":\"pam_authenticate: AUTH_ERR\"},$OK]" wrong)
 eq "$(field ok <<<"$out")" false
 has "$(field asked <<<"$out")" '{"type": "cancel_session"}'
-eq "$(field said <<<"$out")" '["ちがう · wrong password"]'
+eq "$(field said <<<"$out")" '["wrong password"]'
 
 case_ "a password with Arabic or Japanese letters: its length counted in bytes, as greetd reads it"
 out=$(drive "[$SECRET,$OK,$OK]" 'كلمة·パス')

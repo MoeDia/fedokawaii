@@ -16,7 +16,8 @@ Writes (committed, so installing needs neither Python nor Pillow):
         the bar's clock has it), the digits and the clock's few letters as Sumi UI draws them at
         14 px — a bitmap a row, for the C program to draw dot by dot
     art/gtklock.mo   gtklock's two messages in the desktop's words ("Login failed" →
-        "ちがう · wrong password", "Caps Lock is on" → "Caps Lock · 大文字"), a message
+        "wrong password", "Caps Lock is on" → "Caps Lock"; seen only on a lock without its
+        module — the scene says both), a message
         catalogue for a language of its own ("fk": no package has one), which kawa-lock
         asks for (LANGUAGE=fk); setup installs it as /usr/share/locale/fk/LC_MESSAGES/gtklock.mo
 The colours come from tools/build-themes.py's palettes (imported), so a colour changed
@@ -44,7 +45,7 @@ def rgb(h):
     return tuple(int(h[i:i + 2], 16) for i in (0, 2, 4))
 
 
-MESSAGES = {"Login failed": "ちがう · wrong password", "Caps Lock is on": "Caps Lock · 大文字"}
+MESSAGES = {"Login failed": "wrong password", "Caps Lock is on": "Caps Lock"}
 
 
 def mo(messages):

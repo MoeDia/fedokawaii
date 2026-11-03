@@ -49,7 +49,7 @@ case_ "Super+Escape: gtklock with the theme's stylesheet, the layout and the mod
 rc 0 kawa-lock
 eq "$(locks)" 1
 args_eq gtklock 1 -s "$CSS" -x "$UI" -m "$MOD" --lock-command "kawa-lock --up"
-eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk KAWA_LOCK_ART=$SHARE/dark" "LANGUAGE=fk (ちがう · wrong password, without the module), the dark scene"
+eq "$(cat "$TMP/gtklock.env")" "LANGUAGE=fk KAWA_LOCK_ART=$SHARE/dark" "LANGUAGE=fk (gtklock's words, seen without the module), the dark scene"
 [[ ! -e $TMP/fd9 ]] && _ok || _no "gtklock keeps kawa-lock's lock: every later call would wait"
 [[ ! -e $TMP/fd8 ]] && _ok || _no "gtklock keeps its keeper's lock: the desktop would look locked after the password"
 case_ "… it runs under its keeper, and the journal says the lock is up"

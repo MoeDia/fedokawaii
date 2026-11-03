@@ -49,7 +49,7 @@ SHARE = "/usr/local/share/fedokawaii/greeter"
 THEME_FILE = "/var/lib/fedokawaii-greeter/theme"
 GUARD = 2.0                                # seconds after a wake that keys and clicks only wake
 ENTER = (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_ISO_Enter)
-WRONG = "ちがう · wrong password"           # (said by the scene: the marks scatter, the face shakes)
+WRONG = "wrong password"                    # (said by the scene: the marks scatter, the face shakes)
 STEP, STEPS = 0.048, 5                      # the wrong password's steps (s), as kawa-lockmod's
 
 
