@@ -242,15 +242,16 @@ static gboolean scene_load(const char *dir)
 		S.img = NULL;
 		return FALSE;
 	}
-	if (S.nflames && S.frames > 0) {
+	if (S.nflames && S.frames > 0 && S.fw > 0 && S.fh > 0) {
 		g_snprintf(path, sizeof path, "%s/lock-flame.png", dir);
 		S.flame = cairo_image_surface_create_from_png(path);
 		if (cairo_surface_status(S.flame) != CAIRO_STATUS_SUCCESS) {
 			cairo_surface_destroy(S.flame);
 			S.flame = NULL;
-			S.nflames = 0;
 		}
 	}
+	if (!S.flame)
+		S.nflames = 0;                    /* (no frames to draw: no flames, no timer for them) */
 	return TRUE;
 }
 
