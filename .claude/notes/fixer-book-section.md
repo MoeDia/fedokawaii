@@ -37,5 +37,6 @@ with it, each file as it was: the older version would refuse the new text.
 > the card's memory free: with a game holding the card, the package waits for the next press. And it works per
 > failure: a release that changes something big is beyond it, as section 8.4 says.
 
-*held: NAME — the fixer: …* in a report means nothing is broken and that package waits. The next press tries
-again, and a newer version often brings its own fix.
+*held: foot — the fixer: the docs do not say* in a report means nothing is broken and that package waits. The
+next press tries again, and a newer version often brings its own fix. A move to a new Fedora goes the same way:
+the fix is proven with the whole move in the copy, comes into force after the restart, and is said at the login.

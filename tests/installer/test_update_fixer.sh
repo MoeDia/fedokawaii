@@ -26,7 +26,7 @@ stand_in() {
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 case $1 in
-  names) grep -q "does not take" "$3"; exit $? ;;
+  names) grep -q "does not take" "$3" || exit 3; echo foot ;;
   run) cat "$2" >"$FKH/fixer-case"
        case $(cat "$FKH/fixer-says") in
          fixed) rm -f "$FKH/cand-red"; printf '{"verdict":"fixed"}' >"$4"; echo "fixed foot.ini in 1 try, 9 s: renamed"; exit 0 ;;

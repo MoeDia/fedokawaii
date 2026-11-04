@@ -10,6 +10,10 @@ not in it (no amdgpu reset, no ring timeout in the log since 17:45). The next re
 cold-boot test: memtest or the BIOS's CPU/RAM profile if it comes back (T01's random restart may be the same family).
 
 ## Status (newest first)
+- 20:33 restarted by the conductor before the reboot came. Done on no-GPU work: lane-updates (5c1d32e9) merged into lane-fixer (the 4 conflicts: both sides kept), the move hooked
+  (lib/move.sh move_fix; do_after_upgrade: fixes_commit, fixes_apply, fixes_settled; move_undo: fixes_undo; up_home_copy in do_move, dropped before the restart; said at the login),
+  tests for it in test_update_fixer (7 new cases), .claude/notes/fixer-book-section.md is in docs/fedokawaii-learn.md as 8.7. Steps 4 below are done except the syllabus row (lane-learning not merged here).
+  Left: steps 1–3 (the tests on the merged tree, the real model on the final harness) and 5, on a healthy machine after the reboot.
 - 20:14 STOPPED by main's order (forced reboot about 20:25: the 19:15 oops, PID 1 stuck since 19:51). llama-server and my bench and test jobs stopped by me,
   all committed and pushed. NOT DONE. Next, in order, after the reboot and main's memory check, once the lanes restart:
   1. `python3 -B -I system/kawa-fixer status --full` (the model and runtime stay in ~/.local; candidates in ~/.cache/r27-fixer/models; scripts copied to
