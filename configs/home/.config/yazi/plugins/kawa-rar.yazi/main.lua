@@ -9,6 +9,22 @@ local ICON_LOCK = "\243\190\128\160" -- lock (U+FE020)
 local NAME_AT = "  "                 -- (the cursor's cell and the icon's column, as the lists' rows)
 
 local function say(job, lines) ya.preview_widget(job, ui.Text(lines):area(job.area)) end
+-- words on the names' column, faint, wrapped at a word to the pane's width W (never cut inside one;
+-- kawa-pdf's twin)
+local function hint(words, w)
+	local rows, line = {}, ""
+	local function put() rows[#rows + 1] = ui.Line(NAME_AT .. "   " .. line):fg("darkgray") end
+	for word in words:gmatch("%S+") do
+		if line ~= "" and ui.Line(line .. " " .. word):width() > w then
+			put()
+			line = word
+		else
+			line = line == "" and word or line .. " " .. word
+		end
+	end
+	if line ~= "" then put() end
+	return rows
+end
 
 function M:peek(job)
 	local out = Command("unrar"):arg({ "lb", "-p-", "--", tostring(job.file.url) })
@@ -16,12 +32,13 @@ function M:peek(job)
 	if not out or not out.status.success then
 		local err = (out and (out.stderr .. out.stdout)) or "unrar did not run"
 		if err:find("password", 1, true) or err:find("encrypted", 1, true) then
-			return say(job, {
-				ui.Line { ui.Span(NAME_AT .. ICON_LOCK):fg("red"), ui.Span("  locked") },
-				ui.Line(NAME_AT .. "   Enter opens File tools: it asks the password"):fg("darkgray"),
-			})
+			local rows = { ui.Line { ui.Span(NAME_AT .. ICON_LOCK):fg("red"), ui.Span("  locked") } }
+			for _, r in ipairs(hint("Enter opens File tools: it asks the password", job.area.w - 5)) do
+				rows[#rows + 1] = r
+			end
+			return say(job, rows)
 		end
-		return say(job, { ui.Line(NAME_AT .. "   cannot be read: " .. (err:match("[^\n]+") or "?")):fg("darkgray") })
+		return say(job, hint("cannot be read: " .. (err:match("[^\n]+") or "?"), job.area.w - 5))
 	end
 	local rows, n = {}, 0
 	for name in out.stdout:gmatch("[^\n]+") do

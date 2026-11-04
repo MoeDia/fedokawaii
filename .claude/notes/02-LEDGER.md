@@ -4660,6 +4660,12 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   cells) — the same hint() there. FOUND on the way: test_config's kawa-pdf case had been RED since d918023 (3 Nov:
   the previewers' list became multi-line; the case matched the old single line) — it now reads yazi.toml as TOML
   (kawa-pdf first among PDF previewers and preloaders). test_config 105/0, test_yazi 136/0.
+- r27-22-sf2b (4 Nov 16:26–16:28): kawa-rar got kawa-pdf's hint() — its locked hint and its "cannot be read: …" line
+  wrapped at a word on the names' column (was one line clipped by the pane). Rendered (the kit, a broken .rar in a
+  100 × 30 window): "cannot be read: Unexpected end" / "of archive", both moods, both lines at the names' column.
+  test_yazi 136/0. Not in r27-f45's aeec3b8 (the next apply). LEFT of should-fix 2: §5's ✘ for "cannot be read"
+  (kawa-rar, kawa-pdf's other errors), yazi's own "Empty file", 7-Zip's raw errors; preview entry names longer than
+  the pane are still clipped by its edge (init.lua's cut() for them).
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or
