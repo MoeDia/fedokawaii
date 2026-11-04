@@ -30,6 +30,16 @@ mkdir -p "$W/etc/systemd/system/user@.service.d"; echo '[Service]' >"$W/etc/syst
 step asobi_system; eq "$RC" 0 "$OUT"
 [[ ! -e $W/etc/systemd/system/user@.service.d/50-kawa-asobi.conf ]] && _ok || _no "the old drop-in stayed: the desktop's manager would not start"
 grep -q 'user@\.service\.d' "$W/etc/systemd/system/kawa-asobi.service" && _no "the session names the template" || _ok
+case_ "no number of its own (empty, or the desktop's): nothing written, the walls can never land on your manager"
+desk=$(awk -F: '$1 == "fkuser" { print $3 }' "$W/etc/passwd")
+for n in "" "$desk"; do
+  printf '#!/bin/bash\n[[ $* == "-u asobi" ]] && { echo -n "%s"; exit 0; }\nexec /usr/bin/id "$@"\n' "$n" >"$W/usr/local/bin/id"; chmod 755 "$W/usr/local/bin/id"
+  rm -f "$W/etc/systemd/system/kawa-asobi.service"
+  step asobi_system; [[ $RC -ne 0 ]] && _ok || _no "went on with the number \"$n\""
+  has "$OUT" "its walls would land on your manager"
+  [[ ! -e $W/etc/systemd/system/user@.service.d/50-kawa-asobi.conf && ! -e $W/etc/systemd/system/user@$desk.service.d/50-kawa-asobi.conf && ! -e $W/etc/systemd/system/kawa-asobi.service ]] && _ok || _no "written all the same with the number \"$n\""
+done
+rm -f "$W/usr/local/bin/id"; step asobi_system; eq "$RC" 0 "$OUT"
 has "$(cat "$W/etc/polkit-1/rules.d/60-kawa-asobi.rules")" 'subject.user == "fkuser"'
 for f in rules/kawa-asobi symbols/kawa-asobi types/kawa-asobi; do [[ -s $W/etc/xkb/$f ]] && _ok || _no "no xkb $f"; done
 [[ -s $W/etc/systemd/user/kawa-asobi-world.service && -s $W/etc/pam.d/kawa-asobi && -s $W/etc/gamemode.ini ]] && _ok || _no "a file missing"

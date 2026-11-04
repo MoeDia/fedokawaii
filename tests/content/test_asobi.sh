@@ -18,7 +18,7 @@ world() {   # a fresh home and a stand-in world: run folder, drop folder, status
   printf 'world\t2200000000\t14300000000\nsnap\tclean\t1793800000\t52000000\t6200000000\nsnap\t20261104-1830\t1793810000\t310000000\t14300000000\nfree\t764000000000\n' >"$KAWA_ASOBI_RUN/status"
   # (is-active: the world runs only when the test says so; everything else: logged, done)
   stub systemctl 'case "$*" in *is-active*.timer) exit 0 ;; *"is-active --quiet kawa-asobi.service") [ -e "$TMP/running" ] || [ -e "$TMP/steam-open" ]; exit $? ;; *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
-  stub busctl; stub notify-send; stub loginctl; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
+  stub busctl; stub notify-send; stub loginctl 'case "$1" in show-user) [ -e "$TMP/logind-holds" ]; exit $? ;; esac; exit 0'; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
   stub runuser; stub pgrep 'exit 1'; stub ionice 'shift 2; exec "$@"'
   stub btrfs '
 case "$1 $2" in
@@ -153,6 +153,15 @@ echo tty8 >"$KAWA_ASOBI_TTY0"; reset_calls; root poststop; eq "$RC" 0 "$OUT"
 called '^chvt 1$'; called '^nft delete table inet kawa_asobi'; called '^loginctl terminate-user asobi'
 called '^systemctl start snapper-timeline.timer'; eq "$(cat "$KAWA_ASOBI_RUN/state")" off
 echo tty1 >"$KAWA_ASOBI_TTY0"; reset_calls; root poststop; not_called '^chvt'
+case_ "poststop waits until logind has forgotten the user: a manager started before that loses its session and hangs"
+touch "$TMP/logind-holds"; stub loginctl 'case "$1" in show-user) n=$(cat "$TMP/asked" 2>/dev/null); echo $((n + 1)) >"$TMP/asked"; [ "${n:-0}" -lt 2 ]; exit $? ;; esac; exit 0'
+reset_calls; root poststop; eq "$RC" 0 "$OUT"; eq "$(grep -c '^loginctl show-user asobi' "$CALLS")" 3 "asked until it was gone"
+case_ "a world dead before it got going, or at once: said; closed on purpose, or after a long life: nothing"
+stub loginctl 'case "$1" in show-user) exit 1 ;; esac; exit 0'
+rm -f "$KAWA_ASOBI_RUN/born" "$KAWA_ASOBI_RUN/closing"; reset_calls; root poststop; called 'notify-send .*would not start'
+date +%s >"$KAWA_ASOBI_RUN/born"; reset_calls; root poststop; called 'notify-send .*would not start'
+echo 1000 >"$KAWA_ASOBI_RUN/born"; reset_calls; root poststop; not_called 'notify-send'
+: >"$KAWA_ASOBI_RUN/closing"; date +%s >"$KAWA_ASOBI_RUN/born"; reset_calls; root poststop; not_called 'notify-send'
 
 world
 case_ "the watch: in front, thawed, the desktop's idle held and its notices hushed; behind with a game: frozen"
