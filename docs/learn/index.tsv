@@ -85,7 +85,7 @@ L	open-it	005-open-it.md	4	zero	2	open it: five commands	4	what-pieces	2.1 open 
 L	time-savers	006-time-savers.md	5	zero	2	the keys that save the most time, and help	9	open-it	2.3 the keys that save the most time|2.4 help is always one command away
 L	read-errors	007-read-errors.md	6	zero	3	last line first, and the ten you will meet	10	time-savers	3.1 the method: last line first|3.2 the ten you will meet most|3.3 ask for an explanation
 L	ten-keys	008-ten-keys.md	7	desktop	4	the ten keys, and how windows arrange	2	time-savers	4.1 the ten keys to learn first|4.2 how the windows arrange themselves
-L	desks-session	009-desks-session.md	8	desktop	4	workspaces, the session, how things move	9	ten-keys	4.3 workspaces: nine desks|4.4 the session|4.5 how things move
+L	desks-session	009-desks-session.md	8	desktop	4	workspaces, the session, how things move	10	ten-keys	4.3 workspaces: nine desks|4.4 the session|4.5 how things move
 L	keys-projects	010-keys-projects.md	0	desktop	4	projects	30	desks-session	
 L	the-bar	011-the-bar.md	9	desktop	5	the bar, left to right	3	desks-session	5.1 the bar, left to right
 L	menus-notices	012-menus-notices.md	10	desktop	5	menus and notices	11	the-bar	5.2 the menus|5.3 notices

@@ -481,15 +481,17 @@ With two monitors, **Super+,** and **Super+.** move the focus left and right, an
 
 ## 4.5 How things move
 
-Everything here moves on purpose, and each kind of movement means one thing, so after a day you read
-them without thinking:
+Everything here moves on purpose, like water: it starts from rest, flows and settles. Each kind of
+movement means one thing, so after a day you read them without thinking:
 
 | You see | It means | Where |
 |---|---|---|
-| a window or a menu arriving and leaving, in square pixels | something is coming or going | every window, menu and notice |
-| a red seal pressed down for a moment | a choice was made | a switch turned on, the workspace you moved to, a lesson finished |
-| something unrolling like a hanging scroll, a rod going down before it | something long is opening | **Super+U**, **Super+N**, **Super+V**, a lesson |
-| ink bleeding across the whole screen | the whole picture is changing | a new wallpaper, dark to light (**Super+Shift+W**) |
+| a window rising to its place and settling, or sinking away | a window arriving, or leaving | every window |
+| the whole screen sliding sideways, like a fusuma on its track | a place left for another: to a higher number it goes left, to a lower one right | **Super+1** to **Super+9** |
+| something unrolling behind a lacquer rod | something opened; it rolls up again as it goes | every menu, **Super+U**, **Super+N**, **Super+V**, a lesson |
+| a quiet thing dissolving, in square pixels | a message passing | a notice, the level display |
+| a red seal pressed down for a moment | a choice made | the workspace's seal, a lesson stamped |
+| ink bleeding across the whole screen | the whole picture changing | a new wallpaper, dark to light (**Super+Shift+W**) |
 
 Nothing ever waits for a movement: a key or a click acts at once on where things are going. Press
 **Super+2**, **Super+3**, **Super+1** as fast as you like: you are never held up, and nothing is

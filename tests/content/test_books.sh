@@ -239,17 +239,17 @@ case_ "a comic whose pages have glob characters in their names: its first page"
 mk cbz "$B/glob.cbz" 'p[1].png' 'q*2.png' 'r?3.png'      # (as a pattern, p[1].png would be p1.png)
 lacks "$(cover "$B/glob.cbz" | sixel_info | jget colours)" "$CARD"
 
-case_ "the pane: cover centred between the rule and the pane's end (where the title's rule ends), the words under it, inside the pane"
+case_ "the pane: cover centred between the rule and the window's frame (a column off the pane's middle: the window's own 16 px past the pane's end), the words under it, inside the pane"
 for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do
   read -r cols lines <<<"$size"
   out=$(cover "$B/Reading Now.pdf" "$cols" "$lines"); info=$(sixel_info <<<"$out")
   w=$(jget width <<<"$info"); h=$(jget raster 3 <<<"$info"); bb=$(jget bbox <<<"$info")
   read -r x0 _ x1 _ < <(tr -d '[],' <<<"$bb")
   a=$(( 2 * 9 - (9 - 1) / 2 - 1 ))                       # the rule's right edge → the first column
-  ((w <= cols * 9 - a)) && _ok || _no "$size: the picture ($w px) is wider than the pane"
+  ((w <= cols * 9)) && _ok || _no "$size: the picture ($w px) is wider than the pane"
   L=$(( a + x0 )) R=$(( cols * 9 - x1 ))
-  (( L - R <= 1 && R - L <= 1 )) && _ok || _no "$size: the paper left ($L px) and right ($R px) of the cover"
-  (( x1 <= cols * 9 - a )) && _ok || _no "$size: the cover passes the pane's edge"
+  (( L - R - 2 * 9 <= 1 && R + 2 * 9 - L <= 1 )) && _ok || _no "$size: the paper left ($L px) and right ($R px) of the cover: not a column off the middle"
+  (( x1 <= cols * 9 )) && _ok || _no "$size: the cover passes the pane's edge"
   after=$(jrepr after <<<"$info")
   text=$(python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.argv[1]))' "$after" | plain)
   rows=$(( (h + 20) / 21 + $(wc -l <<<"$text") - 1 ))

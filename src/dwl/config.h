@@ -52,41 +52,39 @@ static float focuscolor[3][4]              = { PCOLOR(SHU), PCOLOR(SHADOW1), PCO
 static float urgentcolor[3][4]             = { PCOLOR(ASAGI), PCOLOR(SHADOW1), PCOLOR(SHADOW2) };
 static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 
-/* animations (dwl.patch; docs/design-system.md §11 — playful pixel): a new window dissolves
- * in — cell by cell, cells of the wallpapers' pixel (3 × 3 at 1080p), in a 4 × 4 Bayer
- * matrix's order — rising its last anim_rise px to its place; a closed one dissolves out,
- * sinking as much; a workspace switch dissolves the windows out as they drift anim_drift px
- * to one side, and the next ones in from the other, the two overlapping — every frame the
- * screen shows, drawn for the moment that frame reaches the screen, the movement eased out
- * and the cells on a smoothstep; never a full-screen window; unlocked, the lock screen
- * dissolves off the desktop (locking: at once). No edge sweeps across the screen (a moving
- * cut reads as a tear), nothing is ever half-transparent. 0: everything at once */
+/* animations (dwl.patch; docs/design-system.md §11; the owner: "more movement, fluid like water, calm,
+ * Japanese"): springs, no bezier and no parabola — a new window rises from well below its place,
+ * growing, and settles; a closed one sinks away, fading; a workspace switch moves both workspaces on
+ * one strip, a fusuma's rail between them, a wave through the windows; tiled windows making room flow
+ * to their places. Every frame the screen shows is drawn for the moment that frame reaches the
+ * screen; never a full-screen window; unlocked, the lock screen dissolves off the desktop (locking: at
+ * once). 0: everything at once */
 static const int animations                = 1;
-static const unsigned int anim_open_ms     = 420;  /* a window opening */
+static const unsigned int anim_open_ms     = 450;  /* a window opening */
+static const int anim_hop_low              = 120;  /* px below its place it starts */
+static const double anim_hop_small         = 0.18; /* how much smaller it starts */
 static const unsigned int anim_close_ms    = 400;  /* …closing */
-static const unsigned int anim_tag_ms      = 420;  /* a workspace switch, all of it: */
-static const unsigned int anim_tag_each_ms = 280;  /* …the windows leaving its first 280 ms,
-                                                    * those coming its last 280 (140 – 420) */
+static const int anim_fall                 = 64;   /* px it sinks */
+static const unsigned int anim_tag_ms      = 450;  /* a workspace move, all of it */
+static const unsigned int anim_tag_wave    = 48;   /* …ms between the first window's start and the last's */
 static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving off the
                                                     * desktop once the password is right */
-static const int anim_rise                 = 9;    /* px: three of the wallpapers' pixels */
-static const int anim_drift                = 24;   /* px */
 static const unsigned int anim_unroll_ms   = 300;  /* a warm window shown (Super+U, N, V):
                                                     * it unrolls from its top edge, its rod
                                                     * (the frame's foot) travelling down */
 static const unsigned int anim_rollup_ms   = 240;  /* …put away: rolls up into its top edge */
-static const unsigned int anim_slide_ms    = 240;  /* tiled windows making room: each slides
+static const unsigned int anim_slide_ms    = 300;  /* tiled windows making room: each slides
                                                     * from where it was to its new place */
 static const unsigned int anim_wash_ms     = 1200; /* a theme switch, a new wallpaper: the
                                                     * ink bleeding the old picture away */
 static const unsigned int anim_wash_hold_ms = 3000; /* …a cover never told to go goes then */
-/* layer surfaces, by their namespace (§11): the panels' menus dissolve in as they drop 4 px into
- * place, and out; a notice in and out; the level display comes at once (with its key) and
- * dissolves away; the screensaver dissolves off into what it covered (it comes in its own way).
- * Any other (the bar, the wallpaper, the wash): at once */
+/* layer surfaces, by their namespace (§11): the panels' menus unroll and roll up, as a warm window;
+ * a notice dissolves in and out; the level display comes at once (with its key) and dissolves away;
+ * the screensaver dissolves off into what it covered (it comes in its own way). Any other (the bar,
+ * the wallpaper, the wash): at once */
 static const LayerAnim layeranims[] = {
-	/* namespace        in ms  out ms  drop px */
-	{ "kawa-panel",     200,   160,    4 },
+	/* namespace        in ms  out ms  rolls */
+	{ "kawa-panel",     300,   240,    1 },
 	{ "notifications",  240,   200,    0 },
 	{ "kawa-level",     0,     300,    0 },
 	{ "kawa-saver",     0,     180,    0 },
