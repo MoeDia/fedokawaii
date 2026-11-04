@@ -620,6 +620,12 @@ def inherit():
     s.close()
     r = subprocess.run([sys.executable, os.path.join(REPO, "bin/kawa-torrents"), "inherit", os.path.join(TMP, "none.db")], capture_output=True, text=True, check=False)
     eq((r.returncode, r.stdout), (0, ""), "nothing to take over: nothing said")
+    # one torrra had finished, its swarm long dead: it looks, but holds neither the bar nor the engine
+    with open(os.path.join(STATE, "inherited.json"), "w", encoding="utf-8") as f:
+        json.dump([{"magnet": "magnet:?xt=urn:btih:" + "cd" * 20, "name": "long dead", "told": True}], f)
+    e = spawn_engine(idle=1)
+    eq(e.proc.wait(15), 0, "the engine ends by itself")
+    assert not os.path.exists(os.path.join(STATE, "unfinished")), "nothing unfinished for the next login"
 
 
 def socket_started():

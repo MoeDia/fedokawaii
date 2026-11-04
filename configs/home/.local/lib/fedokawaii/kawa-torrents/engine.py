@@ -1059,15 +1059,18 @@ class Engine:
                 st.finish()
 
     # ── the loop ────────────────────────────────────────────────────────────────────────────
+    def coming(self, r):
+        """Is this row something still to download? Not one told of already: a finished torrent taken over from torrra,
+        looking for its files' list in a swarm that may be long dead, holds neither the bar nor this process."""
+        return r["word"] in ("downloading", "finding", "checking", "queued", "moving") and not self.meta["told"].get(r["id"])
+
     def wanting(self):
         """Anything that needs this process alive: something to download, a player, a link being asked."""
-        if self.streams or self.pend:
-            return True
-        return any(r["word"] in ("downloading", "finding", "checking", "queued", "moving") for r in self.rows.values())
+        return bool(self.streams or self.pend) or any(self.coming(r) for r in self.rows.values())
 
     def mark_unfinished(self):
         """A file that says downloads are unfinished: the next login's autostart looks at it."""
-        now = any(r["word"] in ("downloading", "finding", "checking", "queued") for r in self.rows.values())
+        now = any(self.coming(r) for r in self.rows.values())
         if now != self.wanting_mark:
             self.wanting_mark = now
             path = os.path.join(STATE, "unfinished")
@@ -1083,7 +1086,7 @@ class Engine:
         """What the bar shows (kawa-downloads' torrent.PID): the name, bytes done, bytes wanted, where."""
         lines = []
         for r in self.rows.values():
-            if r["word"] in ("downloading", "finding", "asking", "checking"):
+            if r["word"] == "asking" or (self.coming(r) and r["word"] != "queued"):
                 where = os.path.join(r["folder"], r["name"]) if r["meta"] else r["folder"]
                 lines.append("\t".join((r["name"].replace("\t", " "), str(r["done"]), str(r["total"]), where.replace("\t", " "))) + "\n")
         try:
