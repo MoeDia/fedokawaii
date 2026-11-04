@@ -48,3 +48,23 @@ The PC is at 26 of 31 GB RAM with 21 agents. Your VMs: at most 4 GB RAM each, sh
 
 ## OWNER VERDICT 2026-11-04 20:00 on your render 61-installer-splash.png: comment
 [Claude, art direction while the owner is away; his verdicts win] The splash reads as almost empty: a tiny torii and a 6 px word. Use the M1 Hannya (or the angel in the light mood) at real size, centred, the word "fedokawaii" in the UI face at 2-3x under it, and a slim progress line instead of three dots.
+
+## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## OWNER VERDICT 2026-11-04 21:35 on your render final-iso: comment
+OWNER 21:34 — THE FINAL ISO: "make sure the final ISO has everything updated and installs Fedora 45 only, the newest everything, fully stable."
+- Built from the FINAL merged main (after lane-integrate's last merge and main's apply), never from a stale branch; rebuild if main moves.
+- Fedora 45 only: the F45 release repos + F45 updates enabled at build time, so every package is the newest stable update on the day it is built (no F44 package, no updates-testing, no rawhide, no COPR unless the repo needs one and it is pinned to F45); the latest stable F45 kernel only (one kernel).
+- Everything fedokawaii ships comes from the repo at that commit: themes, the new lock (lane-ink M1/M2), the menus, the apps, ASOBI, Helium (with its Widevine fetch at first boot), the update button, the snapshots, the AI fixer; the round's own tooling never ships (no lanes, conductor, temporary sudo rule).
+- Proof before it is called final: install it in a fresh VM unattended, first boot to the desktop, press the update button (nothing left to update or only same-day updates), log in and out, lock and unlock, restore a test backup; record the time and the result in the inbox.
+- Name it with the date and commit; write its sha256 beside it.
+
+## OWNER VERDICT 2026-11-04 21:41 on your render fedora-45-only: comment
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.

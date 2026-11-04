@@ -17,7 +17,7 @@ import subprocess
 import termios
 import time
 
-from glyphs import COLOURS, G
+from glyphs import COLOURS, CREST_COLS, CREST_ROWS, G
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TTY = "/dev/tty8"
@@ -31,7 +31,7 @@ FAINT, MUTED, TEXT, STRONG, ACCENT_TEXT, ASAGI, _14, ON_SELECT = range(8, 16)
 KDSETMODE, KD_TEXT = 0x4B3A, 0
 KDSKBMODE, K_UNICODE = 0x4B45, 3
 VT_ACTIVATE, VT_LOCKSWITCH = 0x5606, 0x560B
-WIDTH = 72                       # the content's columns, centred on any screen
+WIDTH = 73                       # the content's columns: odd, for 1080p's 137 cells: truly centred, as the demon
 
 
 def active():
@@ -168,14 +168,21 @@ class Screen:
     def left(self):
         return (self.cols - WIDTH) // 2
 
-    def torii(self, row):
-        """The torii as on the splash, centred, and our name under it: 5 rows."""
-        t = G["torii_big"]
-        col = (self.cols - 7) // 2
-        for r in range(4):
-            self.at(row + r, col, t[r * 7:(r + 1) * 7], ACCENT)
-        name = "fedokawaii"
-        self.at(row + 4, (self.cols - len(name)) // 2, name, MUTED)
+    @property
+    def head(self):
+        """A page's heading, in rows under the page's top: the demon when the screen holds it and the longest
+        page (the form), our name always."""
+        return (CREST_ROWS if self.rows >= CREST_ROWS + 15 else 0) + 2
+
+    def crest(self, row):
+        """The demon of the splash, in the one ink a cell has, centred, and our name under it."""
+        if self.head > 2:
+            col = (self.cols - CREST_COLS) // 2
+            for r in range(CREST_ROWS):
+                self.at(row, col, G["crest"][r * CREST_COLS:(r + 1) * CREST_COLS], STRONG)
+                row += 1
+        name = " ".join("fedokawaii")     # (tracked, an odd count of cells: on the demon's axis)
+        self.at(row, (self.cols - len(name)) // 2, name, MUTED)
 
     def heading(self, row, icon, name, width=WIDTH, col=None):
         """§7: the icon at column 0, its name from column 3, a rule to the last column."""
@@ -218,12 +225,12 @@ class Screen:
         os.close(self.fd)
 
 
-def message_page(s, icon, title, lines, row=None):
-    """A page of its own: the torii, a heading, a paragraph at the heading's column."""
+def message_page(s, icon, title, lines):
+    """A page of its own: the demon, a heading, a paragraph at the heading's column."""
     s.clear()
-    top = row if row is not None else max(1, (s.rows - 9 - len(lines) - 2) // 2)
-    s.torii(top)
-    r = top + 7
+    top = max(1, (s.rows - s.head - 2 - len(lines)) // 2)
+    s.crest(top)
+    r = top + s.head
     s.heading(r, icon, title)
     r += 2
     for line in lines:

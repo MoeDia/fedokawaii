@@ -9,7 +9,7 @@
 # images/product.img (Anaconda overlays it on its stage 2), the boot splash as a second initrd, the
 # toolkit as a tarball in the first. Same inputs (iso/inputs.sh) and same commit = the same bytes.
 # Written up in .claude/notes/iso-design.md. Needs: xorriso, mtools, cpio, xz, git, curl, python3-pillow.
-# Exit: 0 built (fedokawaii-DATE.iso + .sha256) · 1 failed (the line above says why) · 2 misuse.
+# Exit: 0 built (fedokawaii-DATE-COMMIT.iso + .sha256) · 1 failed (the line above says why) · 2 misuse.
 set -Eeuo pipefail
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
@@ -63,8 +63,8 @@ done
 # ── the pictures ─────────────────────────────────────────────────────────────
 # (from the commit, not the working tree: the same bytes whatever lies around)
 mkdir "$work/src"
-git -C "$repo" archive "$commit" -- art system tools iso lib | tar -xf - -C "$work/src"
-python3 -B "$work/src/tools/build-iso-art.py" "$work/art"
+git -C "$repo" archive "$commit" -- art system tools iso lib configs/home/.local/share/fedokawaii/dark/lock-scene.png | tar -xf - -C "$work/src"
+python3 -B "$work/src/tools/build-iso-art.py" "$work/art" "fedokawaii $(date -u -d "@$SOURCE_DATE_EPOCH" +%Y.%m.%d) · ${commit:0:7} · Fedora $ISO_RELEASE"
 
 # reproducible <dir> <out>: a directory as a newc cpio, sorted, its times the commit's, root's
 reproducible() {
@@ -182,7 +182,7 @@ cp -r "$work/art/grub" "$mine/boot/grub2/themes/fedokawaii"
   (cd "$mine" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum); } | LC_ALL=C sort -k2 >"$work/fk-sums"
 
 # ── the ISO ─────────────────────────────────────────────────────────────────
-iso=$out/fedokawaii-$stamp.iso
+iso=$out/fedokawaii-$stamp-${commit:0:7}.iso
 say "the ISO: $iso"
 rm -f "$iso"
 xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \

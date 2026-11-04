@@ -15,11 +15,14 @@
 #   bash tools/vm-iso-test.sh install NAME [PASSWORD]  the questions answered through the screens
 #   bash tools/vm-iso-test.sh watch NAME DIR [SECONDS] the display as PNGs, one each time it changes, until stopped
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
+#   bash tools/vm-iso-test.sh whole NAME ISO QCOW2 [--…] the owner's path, the final proof: a run with a drive of his
+#                                                      things in, then the update button, the lock, the log out, the facts
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
 #   bash tools/vm-iso-test.sh midway ISO DIR           an install cut off: the reset, the mirrors gone
 #   bash tools/vm-iso-test.sh again NAME ISO           the same VM and disk, started from a stick again
 #   bash tools/vm-iso-test.sh over NAME ISO            a whole run over a finished install (`i` on that page)
+#   bash tools/vm-iso-test.sh session NAME             at its keyboard: locked and unlocked, logged out and in
 #   bash tools/vm-iso-test.sh path NAME QCOW2          after a run: his things back, the update button, verify
 #   bash tools/vm-iso-test.sh facts NAME               what a run left: hash in logs, strays, firmware, the splash…
 #   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
@@ -190,7 +193,7 @@ console_font() {
   local f=$V/.art/console/sumi-console.psf
   if [[ ! -s $f || $here/build-iso-art.py -nt $f ]]; then
     rm -rf "$V/.art"; mkdir -p "$V"
-    SOURCE_DATE_EPOCH=1 python3 -B "$here/build-iso-art.py" "$V/.art" >/dev/null || return 1
+    SOURCE_DATE_EPOCH=1 python3 -B "$here/build-iso-art.py" --console "$V/.art" >/dev/null || return 1
   fi
   printf '%s\n' "$f"
 }
@@ -277,9 +280,10 @@ do_follow() {
     ph=$(vm_ssh "$name" 'sudo head -n1 /var/lib/fedokawaii/phase 2>/dev/null') || continue
     if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; since=$SECONDS; fi
     [[ $ph == "done" ]] && break
-    # (FK_SLOW_BEFORE=N: until setup's phase N a slow, far line, again after every restart: passt has no shaping)
+    # (FK_SLOW_BEFORE=N: until setup's phase N a slow line, 3 MB/s, again after every restart: passt has no shaping,
+    # the installed system has no tc)
     if [[ -n ${FK_SLOW_BEFORE:-} && ( -z $ph || $ph -lt $FK_SLOW_BEFORE ) ]]; then
-      vm_ssh "$name" 'd=$(ip route show default | cut -d" " -f5 | head -n1); command -v tc >/dev/null && sudo tc qdisc replace dev "$d" root netem delay 100ms rate 20mbit' 2>/dev/null
+      vm_ssh "$name" 'sudo nft list table inet fkslow >/dev/null 2>&1 || { sudo nft add table inet fkslow && sudo nft "add chain inet fkslow in { type filter hook input priority -300; }" && sudo nft add rule inet fkslow in iifname "enp1s0" limit rate over 3 mbytes/second drop; }' 2>/dev/null
     fi
     # (FK_RESET_PHASE: the power pulled once, a minute into that phase: setup carries on by itself)
     if [[ ${FK_RESET_PHASE:-} == "$ph" ]] && ((SECONDS - since > 60)); then
@@ -387,6 +391,35 @@ do_over() {
   do_follow "$name"
 }
 
+# do_session NAME — at the keyboard of a finished install, with the desktop up: Super+Escape locks and the password
+# opens it, the power menu's "log out" (Super+Shift+E, two rows down) ends the session and the greeter takes it back
+do_session() {
+  local name=$1 i
+  R=$V/$name/run; [[ -n ${T0:-} ]] || T0=$SECONDS
+  mkdir -p "$R"
+  # wait_for NAME SECONDS CMD… — until the installed system says yes
+  wait_for() { local n=$1 end=$((SECONDS + $2)); shift 2; until vm_ssh "$n" "$*" >/dev/null 2>&1; do ((SECONDS > end)) && return 1; sleep 1; done; }
+  wait_for "$name" 60 "pgrep -u $TEST_USER -x waybar" || { stage "RED: no desktop to start from"; return 1; }
+  "${VIRSH[@]}" send-key "$name" KEY_LEFTMETA KEY_ESC >/dev/null
+  wait_for "$name" 15 "pgrep -u $TEST_USER -x gtklock" || { stage "RED: Super+Escape locked nothing"; do_shot "$name" "$R/no-lock.png"; return 1; }
+  sleep 2; do_shot "$name" "$R/locked.png"
+  # (the gate: shut, every key is nothing but the secret one, Tab; open, keys type)
+  do_keys "$name" "<tab>"; sleep 1.5; do_shot "$name" "$R/lock-open.png"
+  do_keys "$name" "$TEST_PASSWORD" "<enter>"
+  wait_for "$name" 20 "! pgrep -u $TEST_USER -x gtklock" || { stage "RED: the password did not open the lock"; do_shot "$name" "$R/still-locked.png"; return 1; }
+  sleep 2; do_shot "$name" "$R/unlocked.png"
+  stage "locked and unlocked with the password: $R/locked.png, $R/unlocked.png"
+  "${VIRSH[@]}" send-key "$name" KEY_LEFTMETA KEY_LEFTSHIFT KEY_E >/dev/null
+  sleep 3; do_shot "$name" "$R/power-menu.png"
+  do_keys "$name" "<down>" "<down>" "<enter>"
+  wait_for "$name" 30 "! pgrep -u $TEST_USER -x dwl" || { stage "RED: log out left the session up"; do_shot "$name" "$R/no-logout.png"; return 1; }
+  sleep 12; do_shot "$name" "$R/greeter.png"
+  do_keys "$name" "$TEST_PASSWORD" "<enter>"
+  wait_for "$name" 60 "pgrep -u $TEST_USER -x waybar" || { stage "RED: no desktop after logging in again"; do_shot "$name" "$R/no-login.png"; return 1; }
+  sleep 8; do_shot "$name" "$R/desktop-again.png"
+  stage "logged out and in again: $R/greeter.png, $R/desktop-again.png"
+}
+
 # do_path NAME CARRY — the rest of the owner's path on an installed VM (T54b 5), after its run: his things back
 # from the drive, the update button pressed, everything still green
 do_path() {
@@ -395,6 +428,8 @@ do_path() {
   do_carry_check "$name" "$img" >"$R/carry.log" 2>&1; rc=$?
   stage "his things back from the drive: exit $rc ($(tail -n1 "$R/carry.log" | cut -c1-80))"
   ((rc == 0)) || return 1
+  vm_ssh "$name" 'sudo dnf -q check-upgrade' >"$R/waiting-updates.txt" 2>&1
+  stage "waiting for the button: $(grep -cE '\.(x86_64|noarch|i686) ' "$R/waiting-updates.txt") packages"
   # (what Super+U's update runs, as root: the unit of its own, its output followed here)
   vm_ssh "$name" 'sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update' >"$R/update.log" 2>&1; rc=$?
   stage "the update button: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$R/update.log" | grep -E 'update|done|held|✔|✘' | tail -n1 | cut -c1-100)"
@@ -403,6 +438,17 @@ do_path() {
   vm_ssh "$name" 'sudo fedokawaii verify' >"$R/verify-after.log" 2>&1; rc=$?
   stage "verify after the update: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$R/verify-after.log" | grep -oE '[0-9]+ checks passed|[0-9]+ of [0-9]+ checks failed' | tail -n1)"
   return "$rc"
+}
+
+# do_whole NAME ISO CARRY [--…] — the owner's whole path: a fresh VM, the ISO, his things back from a drive, the
+# update button, at the keyboard, what is left: a line a stage in the run's log, RED where it stopped
+do_whole() {
+  local name=$1 iso=$2 img=$3; shift 3
+  do_run "$name" "$iso" --usb "$img" "$@" || { stage "RED: the run"; return 1; }
+  do_path "$name" "$img" || { stage "RED: the path"; return 1; }
+  do_session "$name" || return 1
+  do_facts "$name" >"$R/facts.txt" 2>&1
+  stage "GREEN: the whole path. the facts: $R/facts.txt"
 }
 
 # do_midway ISO DIR — the two ways an install is cut off before its first restart: the reset (the stick starts
@@ -444,6 +490,12 @@ do_midway() {
 # do_facts NAME — what a run leaves behind that a user would never look at, each read from the installed system
 do_facts() {
   vm_ssh "$1" 'set -u
+    printf "release: "; . /etc/os-release; echo "$PRETTY_NAME"
+    printf "kernels: "; rpm -q --qf "%{VERSION}-%{RELEASE} " kernel-core; echo
+    printf "newest kernel in the repositories: "; dnf -q repoquery --latest-limit=1 --qf "%{version}-%{release}\n" kernel-core 2>/dev/null | tail -n1
+    printf "repositories enabled: "; dnf -q repolist --enabled 2>/dev/null | sed 1d | cut -d" " -f1 | tr "\n" " "; echo
+    printf "testing, rawhide or copr among them: "; dnf -q repolist --enabled 2>/dev/null | grep -ciE "testing|rawhide|copr"
+    printf "packages with no fc45 in their name (each with its repository):\n"; dnf -q repoquery --installed --qf "%{name}-%{evr} %{from_repo}\n" 2>/dev/null | grep -v "fc45" | grep -v "^gpg-pubkey" | sed "s/^/  /"
     printf "secure boot: "; mokutil --sb-state 2>/dev/null || echo unknown
     printf "password hash in the logs: "; sudo sh -c "grep -l \"\\\$y\\\$\" /var/log/anaconda/* /root/*.cfg /var/log/fk-post.log /var/log/fedokawaii.log 2>/dev/null" | wc -l
     printf "the installer left behind: "; ls -d /etc/systemd/system/fedokawaii-resume.service* /var/lib/fedokawaii/first-boot 2>/dev/null | wc -l
@@ -471,8 +523,8 @@ do_matrix() {
     "${VIRSH[@]}" start "$n" >/dev/null || return 1
     if ((${#keys[@]})); then
       sleep 2
-      # (the firmware, then the kernel loaded before the menu shows: keys as soon as it does)
-      until do_shot "$n" "$V/$n/k.png" && python3 -I -c 'import sys; from PIL import Image; sys.exit(0 if Image.open(sys.argv[1]).convert("RGB").getpixel((5, 5)) == (24, 23, 21) else 1)' "$V/$n/k.png"; do sleep 1; ((SECONDS - t0 > 120)) && break; done
+      # (the firmware, then the kernel loaded before the menu shows: keys as soon as the plate's red edge is there)
+      until do_shot "$n" "$V/$n/k.png" && python3 -I -c 'import sys; from PIL import Image; sys.exit(0 if Image.open(sys.argv[1]).convert("RGB").getpixel((640, 700)) == tuple(int(sys.argv[2][i:i + 2], 16) for i in (0, 2, 4)) else 1)' "$V/$n/k.png" "$(sed -n "s/^ *3: '\(.*\)',.*/\1/p" "$V/.art/console/glyphs.py")"; do sleep 1; ((SECONDS - t0 > 120)) && break; done
       do_keys "$n" "${keys[@]}"
     fi
     if wait_words "$n" "$want" 180 2>/dev/null; then
@@ -514,7 +566,9 @@ case $cmd in
   midway) do_midway "$@" ;;
   again) name_ok "${1:-}"; do_again "$@" ;;
   over) name_ok "${1:-}"; do_over "$@" ;;
+  session) name_ok "${1:-}"; do_session "$1" ;;
   path) name_ok "${1:-}"; do_path "$@" ;;
+  whole) name_ok "${1:-}"; [[ $# -ge 3 ]] || exit 2; do_whole "$@" ;;
   facts) name_ok "${1:-}"; do_facts "$1" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
