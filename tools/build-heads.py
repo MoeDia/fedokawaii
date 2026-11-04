@@ -579,15 +579,15 @@ def sixel(im):
             cols = [sum(1 << k for k in range(min(6, h - y0)) if px[x, y0 + k][3] and px[x, y0 + k][:3] == c) for x in range(w)]
             if not any(cols):
                 continue
-            line, x = ["#%d" % i], 0
-            while x < w:
+            line, x, end = ["#%d" % i], 0, max(k for k in range(w) if cols[k]) + 1
+            while x < end:
                 n = 1
-                while x + n < w and cols[x + n] == cols[x]:
+                while x + n < end and cols[x + n] == cols[x]:
                     n += 1
                 ch = chr(63 + cols[x])
                 line.append("!%d%s" % (n, ch) if n > 3 else ch * n)
                 x += n
-            out.append("".join(line).rstrip("?") + "$")
+            out.append("".join(line) + "$")
         out.append("-")
     return "".join(out) + "\x1b\\"
 
