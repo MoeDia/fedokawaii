@@ -105,7 +105,7 @@ read through its API on 4 Nov 2026 (`gitlab.freedesktop.org/drm/amd`, issues and
   drvdata at the last `drm_dev_put`. If **any process still holds the DRM node at unbind** (a GPU monitor, a compositor),
   the late release wipes vfio-pci's drvdata; vfio then oopses on unbind or runtime PM, the oops holds the device lock,
   and "When libvirt is the caller (qemu hook), libvirtd deadlocks until reboot". **Still present in v7.2.13:**
-  `pci_set_drvdata(adev->pdev, NULL)` at `amdgpu_kms.c:1609`. This is the same crash as
+  `pci_set_drvdata(adev->pdev, NULL)` at `amdgpu_kms.c:1609`. It looks like the same crash as
   [the CachyOS RX 9070 report](https://discuss.cachyos.org/t/vfio-pci-core-sriov-configure-null-pointer-dereference-with-amd-radeon-rx-9070-navi-48-1002-7550-on-vfio-passthrough/28545)
   (7.0.1, NULL in `vfio_pci_core_sriov_configure`), which was cured by stopping the display manager that held amdgpu.
 - [#4366](https://gitlab.freedesktop.org/drm/amd/-/work_items/4366) (open, Jun 2025, 6.14/6.15): rebind fails after a VM, reboot needed.
@@ -163,7 +163,7 @@ answers it, and that test can hang the PC.
   standard MSR based discovery" (since 1.2.8); `<vendor_id>` since 1.3.3; `<hyperv mode='passthrough'>` since 8.0.0, `host-model` since 11.9.0.
 
 These three levers are different in kind. **`vendor_id` and `kvm hidden` change names; the CPUID hypervisor bit stays on and
-Windows still says "Virtual machine: Yes".** Clearing the bit (`-hypervisor`), spoofing SMBIOS, MAC OUI, ACPI ids or
+Windows should still say "Virtual machine: Yes" (the gist's check read the other way; T33 confirms it).** Clearing the bit (`-hypervisor`), spoofing SMBIOS, MAC OUI, ACPI ids or
 `ucode-rev` make Windows believe it is bare metal: that is what a cheat loader does, whatever the reason.
 
 ## 4. Large BARs and the firmware
@@ -217,7 +217,7 @@ mswhql(1)mccs_ver(2.0)asset_eep(32)mpu_ver(01))
 
 ### What others found [R unless marked]
 
-- [ddcutil man page](https://www.ddcutil.com/) [P]: `--i2c-source-addr` "has been found to enable access some control functions when using some displays, particularly from LG". rockowitz in [#163](https://github.com/rockowitz/ddcutil/issues/163): "Some monitors will respond to DDC requests only on the currently selected input, others are responsive on any input."
+- `man ddcutil` (3.0.2, this PC) [P]: `--i2c-source-addr` "has been found to enable access some control functions when using some displays, particularly from LG". rockowitz in [#163](https://github.com/rockowitz/ddcutil/issues/163): "Some monitors will respond to DDC requests only on the currently selected input, others are responsive on any input."
 - [ddcutil #100](https://github.com/rockowitz/ddcutil/issues/100), LG 29UM69G: `getvcp 60` always 0, `setvcp 60` just blinks; brightness works over a non-active input, "Input however does nothing".
 - [monitorinputwizzard](https://github.com/lunat1q/monitorinputwizzard): LG UltraGear panels (27GN800) "silently ignore VCP `0x60` entirely"; input lives on `0xF4` through source `0x50`: DP 0xD0, HDMI 0x90. Those are other controllers: this one is a Novatek "FALCON", so nothing carries over.
 - LG's [27GL650F-B manual](https://www.manualowl.com/m/LG/27GL650F-B/Manual/615320?page=27): "Auto Input Switch": "display will automatically switch to new input when connected" (another model). The 24G411A manual was not readable from here (two copies refused, `lg.com/us` 403).
@@ -237,7 +237,7 @@ mswhql(1)mccs_ver(2.0)asset_eep(32)mpu_ver(01))
 
 ## 8. Host needs on the iGPU [P: this PC]
 
-`vainfo` on renderD129: Mesa 26.2.5: H.264, HEVC Main10, VP9, AV1 decode; H.264 and HEVC encode. iGPU clock range 700–2200 MHz, 2 compute units. Holders of the dGPU today (`/proc/*/fd`): dwl (`card0`, `renderD128`), Xwayland, localsend, steam, steamwebhelper. `renderD128` and `renderD129` are mode 0666, `card*` 0660 root:video with an ACL. Owner's default sink is the board's analog output `15:00.6`, not the card's HDMI. SELinux enforcing. THP `madvise`. `~/.local/state/fedokawaii/for-you/` is empty since 28 Oct 22:11: **the T06 notice was cleared, the cables were not moved.**
+`vainfo` on renderD129: Mesa 26.2.5: H.264, HEVC Main10, VP9, AV1 decode; H.264 and HEVC encode. iGPU clock range 700–2200 MHz, `active_cu_number 2` (the card: 32, kernel log). Holders of the dGPU today (`/proc/*/fd`): dwl (`card0`, `renderD128`), Xwayland, localsend, steam, steamwebhelper. `renderD128` and `renderD129` are mode 0666, `card*` 0660 root:video with an ACL. Owner's default sink is the board's analog output `15:00.6`, not the card's HDMI. SELinux enforcing. THP `madvise`. `~/.local/state/fedokawaii/for-you/` is empty since 28 Oct 22:11: **the T06 notice was cleared, the cables were not moved.**
 
 ## 9. Asked, not found
 
