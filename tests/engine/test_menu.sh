@@ -109,7 +109,7 @@ for s in $SECS; do printf '%s: %s\n' "$s" "$(WAYLAND_DISPLAY=wayland-1 fedokawai
 eq "$(cat "$TMP/secs")" "system: status verify repair drift change theme settings remind log 
 update: update pull upgrade held 
 snapshots: snapshots file 
-backups: backup restore drive carry bring 
+backups: backup restore drive 
 learning: guide chess typing keys "
 out=$(WAYLAND_DISPLAY=wayland-1 allrows)
 (( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "a row wider than 38: $(plain "$out")"

@@ -1017,13 +1017,6 @@ explain() {
     drive)     pick 'running'; drive_rows
                say "the drive your backups go to. enter: another," \
                    "from the drives plugged in." ;;
-    carry)     say "all that is yours on a drive, read back and" \
-                   "checked, for the day this disk is erased: your" \
-                   "folders, keys, browser, progress. configs stay:" \
-                   "the new system writes its own." ;;
-    bring)     say "the carry-over from a drive, back in your home." \
-                   "at the first login of a new install it asks by" \
-                   "itself when the drive is plugged in." ;;
     chess)     soon "chess from the first move to 1800: games," \
                     "puzzles, lessons." ;;
     typing)    soon "touch typing, finger by finger, to 100 words" \
@@ -1072,7 +1065,7 @@ job_head() {
   local w n=$1
   on_console && return 0
   w=$(screen_width) || return 0
-  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; file) n="a file, back" ;; carry) n="before you wipe" ;; bring) n="after a wipe" ;; esac
+  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; file) n="a file, back" ;; esac
   printf '\n  %s\n\n' "$(screen_heading "$(icon_of "$1")" "$n" "$w")"
 }
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's

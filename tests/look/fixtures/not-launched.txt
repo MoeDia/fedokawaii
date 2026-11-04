@@ -187,7 +187,6 @@ steam-devices                   controllers' rules
 # ── release binaries' parts ──
 satty                           the screenshot's editor: it opens on a capture (Super+Print)
 # ── the desktop's own helpers ──
-kawa-carry                      Super+U → backups: before you wipe, after a wipe
 kawa-bar                        the bar's buttons
 kawa-brightness                 the brightness keys and slider
 kawa-calendar                   a menu: the bar's date (Super+C)
