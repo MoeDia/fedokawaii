@@ -45,3 +45,6 @@ Started 18:11, 4 Nov. Due 21:30. Branch `lane-browser`, worktree `~/repos/fk-bro
 - helium.computer; github.com/imputnet/helium (patches/helium/core/component-updates.patch, services-prefs.patch, onboarding-page.patch, ui/layout/settings.patch, ui/toolbar-button-prefs.patch, webrtc-default-handling-policy.patch; flags.gn); copr.fedorainfracloud.org/coprs/imput/helium
 - Chromium 156.0.8078.79: media/audio/pulse/pulse_loopback_manager.cc, audio_manager_pulse.cc, media/base/media_switches.cc, chrome/browser/media/webrtc/desktop_media_picker_controller.cc, chrome/browser/ui/views/desktop_capture/desktop_media_picker_views.cc, ui/gtk/gtk_color_mixers.cc
 - aus5.mozilla.org update.xml (Widevine's address and SHA-512); the module's own LICENSE
+
+## OWNER ANSWER 2026-11-04 19:27 — to your question «2026-11-04 19:19 — question from lane-browser»
+do any performance upgrades it opens super slow with the super b make sure its super solid

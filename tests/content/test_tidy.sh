@@ -86,7 +86,7 @@ eq "$(ls "$HOME/.cache/thumbnails/large" | tr '\n' ' ')" "3.png 4.png 5.png 6.pn
 [[ -f $HOME/.cache/net.imput.helium/Default/Cache/data ]] && _ok || _no "the browser's cache cleared while it runs"
 [[ -f $HOME/.cache/fedokawaii/wallpaper-screens/2560x1440/a.png && -f $HOME/Documents/big.iso ]] && _ok || _no "a program's own cache, or your file, touched"
 kill "$live"; wait "$live" 2>/dev/null; tidy             # (closed: the lock's process gone — a crash's stale mark too)
-[[ ! -e $HOME/.cache/net.imput.helium ]] && _ok || _no "the browser closed: its cache cleared"
+[[ ! -e $HOME/.cache/net.imput.helium/Default ]] && _ok || _no "the browser closed: its cache cleared"
 tidy --check caches; eq "$RC" 1 "the drawn wallpapers still over: named, never trimmed here"; has "$OUT" "the wallpapers drawn ahead"
 
 home

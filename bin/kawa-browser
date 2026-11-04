@@ -54,4 +54,13 @@ cdm=/usr/local/lib/fedokawaii-widevine hint=$conf/WidevineCdm/latest-component-u
 if [[ -r $cdm/manifest.json && ! -s $hint ]] && ! is_open; then
   mkdir -p -- "${hint%/*}" && printf '{"Path":"%s"}' "$cdm" >"$hint"
 fi
+# The desktop's small extension (~/.local/share/fedokawaii/browser: how big a download will be, for
+# the bar) and the program it tells (Chromium's native messaging: a file in the profile, kept as it
+# should be here: its path is this home's)
+ext=$HOME/.local/share/fedokawaii/browser host=$conf/NativeMessagingHosts/fedokawaii.downloads.json
+if [[ -r $ext/manifest.json ]]; then
+  args=("--load-extension=$ext" "${args[@]}")
+  j='{"name":"fedokawaii.downloads","description":"downloads, for the bar","path":"'$HOME'/.local/bin/kawa-downloads","type":"stdio","allowed_origins":["chrome-extension://mnilamabopllcgmiodochnjmpkiohpie/"]}'
+  if [[ $(cat "$host" 2>/dev/null) != "$j" ]]; then mkdir -p -- "${host%/*}" && printf '%s' "$j" >"$host"; fi
+fi
 exec "$b" "--enable-features=$feat" "--disable-features=$off" --password-store=basic --system-audio-capture-default_checked "${args[@]}"

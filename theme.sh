@@ -717,6 +717,8 @@ if [[ -r $BROWSER_SYS_DESKTOP ]]; then
   rm -f "$BT"
 fi
 retire .local/bin/brave-origin 'Brave Origin'
+# (the night the browser changed, stale names led to it until this ran: a link, nothing else)
+if [[ -L /usr/bin/brave-origin-stable ]]; then R rm -f /usr/bin/brave-origin-stable || true; fi
 retire .local/share/applications/brave-origin.desktop 'brave'
 retire .local/share/applications/com.brave.Origin.desktop 'brave'
 

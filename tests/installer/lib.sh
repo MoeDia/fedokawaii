@@ -382,6 +382,26 @@ pin_faces() {   # the fake machine's copies of the project: the terminal face's 
     done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}")
   done
 }
+# widevine_release VERSION DIR — what install_widevine fetches: update.xml (Mozilla's answer, its address on
+# Google's server, the SHA-512) and the package itself
+widevine_release() {
+  python3 -I - "$1" "$2" <<'WIDEVINE'
+import hashlib, io, json, sys, zipfile
+ver, d = sys.argv[1:3]
+b = io.BytesIO()
+with zipfile.ZipFile(b, "w") as z:
+    z.writestr("manifest.json", json.dumps({"version": ver}))
+    z.writestr("LICENSE", "Google's")
+    z.writestr("_platform_specific/linux_x64/libwidevinecdm.so", "cdm " + ver)
+    z.writestr("../outside", "never taken")
+crx = b"Cr24" + (3).to_bytes(4, "little") + (4).to_bytes(4, "little") + b"head" + b.getvalue()
+open(f"{d}/w-{ver}.crx3", "wb").write(crx)
+open(f"{d}/update.xml", "w").write(f"""<?xml version="1.0"?><updates><addons>
+<addon id="gmp-gmpopenh264" URL="https://ciscobinary.openh264.org/x.zip" hashFunction="sha512" hashValue="00" size="1" version="2.6.0"/>
+<addon id="gmp-widevinecdm" URL="https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/x/w-{ver}.crx3" hashFunction="sha512" hashValue="{hashlib.sha512(crx).hexdigest()}" size="{len(crx)}" version="{ver}"/>
+</addons></updates>""")
+WIDEVINE
+}
 releases() {
   local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
@@ -398,6 +418,8 @@ releases() {
   for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothicNF-$f.ttf"; done
   echo other >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothic35NF-Regular.ttf"   # (a variant the archive has too: not taken)
   echo '"compatibilitytools" { }' >"$r/ge/GE-Proton10-25/compatibilitytool.vdf"
+  # Widevine: Mozilla's answer and Google's package (a zip behind a CRX3 header)
+  widevine_release 4.10.1 "$FKH/dl"
   # LocalSend: its release folder (the app, its libraries, its data)
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
   echo lib >"$r/ls/lib/libapp.so"; echo png >"$r/ls/data/flutter_assets/assets/img/logo-512.png"
@@ -583,6 +605,8 @@ built() {
   mkdir -p "$U/.local/share/localsend/lib"; printf '#!/bin/sh\necho localsend\n' >"$U/.local/share/localsend/localsend_app"
   chmod 755 "$U/.local/share/localsend/localsend_app"; ln -sfn ../share/localsend/localsend_app "$U/.local/bin/localsend"
   ( . "$REPO/lib/upstream.sh"; echo "$LOCALSEND_TAG" ) >"$U/.local/share/fedokawaii/upstream/localsend"
+  mkdir -p "$W/usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64"; : >"$W/usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64/libwidevinecdm.so"
+  echo '{"version":"4.10.1"}' >"$W/usr/local/lib/fedokawaii-widevine/manifest.json"
   # ble.sh built from its pinned commit, the commit recorded
   ( . "$TI/stubs/_lib.sh"; fake_blesh_install "$U/.local/share/blesh" )
   ( . "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT" ) >"$U/.local/share/fedokawaii/upstream/blesh"
