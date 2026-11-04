@@ -123,16 +123,16 @@ def books_cover(a):
     return (int(cl - rule - 1), int(x1 - 1 - cr), int(top - y0 - 1), int(y1 - 1 - bot), int(cr - cl))
 
 
-l, r, t, b, w = books_cover(load("dark", "books"))
-l2, r2, t2, b2, w2 = books_cover(load("light", "books"))
+cl, cr, ct, cb, cw = books_cover(load("dark", "books"))
+cl2, cr2, ct2, cb2, cw2 = books_cover(load("light", "books"))
 sheet("books", "40", note=[
     "Super+R: the cover centred both ways, the words centred under it; \"new\" only beside a book begun; the cursor a thin bar, before the ghost's first letter.",
     "",
     "| measured (dark · light) | px |",
     "|---|---|",
-    f"| rule → cover · cover → hairline | {l} · {r} (light {l2} · {r2}) |",
-    f"| window's top → block · block → window's foot | {t} · {b} (light {t2} · {b2}) |",
-    f"| the cover's width | {w} (light {w2}) |",
+    f"| rule → cover · cover → hairline | {cl} · {cr} (light {cl2} · {cr2}) |",
+    f"| window's top → block · block → window's foot | {ct} · {cb} (light {ct2} · {cb2}) |",
+    f"| the cover's width | {cw} (light {cw2}) |",
     "",
     "Judge: is the cover where it should be? A row's value now stands as far in from the band's end as its icon from the start.",
 ], zoom=(0, 0, 380, 160))

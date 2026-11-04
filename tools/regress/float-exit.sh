@@ -91,7 +91,7 @@ print(was, seen, blank)
 EOF
 )
     [[ $r != none ]] || { no "$s: the window did not open"; continue; }
-    read -r was seen blank <<<"$r"
+    read -r _ seen blank <<<"$r"
     ((seen >= 3)) || { no "$s: only $seen frames of it closing: nothing to judge"; continue; }
     ((blank == 0)) || no "$s: $blank of $seen closing frames with the first text row blank — a page wiped before it went"
     rm -rf "$d" "$v"
