@@ -57,3 +57,26 @@ When the round is done he WIPES this PC and does one last brand-new install from
 4. Carry-over across the wipe: a "before you wipe" step (Super+U) that backs up his own data to a drive (~/Notes and the to-do, ~/blasphemous-save-backup-20261022, ~/.config/fedokawaii/secrets.sh, the browser profile, anything else that is his), and a restore step at the first boot of the fresh install. Prove the round trip in a VM.
 5. The final proof (T57) is exactly his path: build the ISO, install it in a VM, restore a test backup, press the update button, all green.
 6. Flatpak: allowed ONLY inside asobi (his answer 17:46); nothing Flatpak in his own account or on the desktop.
+
+## 2026-11-04 18:11 — in the plan: band reverted 18:24 (66e6751); T19s items to lane-pixels and lane-appsui; T31a, T31 to lane-browser
+OWNER 18:03: "SUPER DETAILED design work, focus on the pixels, smart usage of space, do things complex." Claude's per-page notes are in feedback.md (sent at his request; his verdicts win).
+OWNER 18:07 (angry): the bar must be FULLY FLOATING, no background band — revert the band from the 17:51 commit right now and show it reverted in the next pack. Art direction section 2 is withdrawn.
+New lanes, mark their tasks theirs: lane-pixels (menus and panels: 00b, 07, 10, 11, 13, 14, 15, 18, 19-23, the highlight RIGHT everywhere); lane-appsui (yazi incl. the patched source build, btop, calculator, books, wallpaper picker); lane-browser, sys (T31a and T31: a fresh install, nothing migrated from Brave (owner 18:09), system-sound sharing like Windows, the downloads progress in the bar icon). Main keeps the motion (00c-00e), the bar (02), the lock and saver (38-40), and the apply.
+
+## 2026-11-04 18:12 — in the plan: T19q 5–7 (motion v2)
+make sure the animations are all SUPER FLUID LIKE WATER CALM JAPANESE STYLE
+
+## 2026-11-04 18:14 — noted: F45 VM ≤ 4 GB, shut down after each check
+Memory: 26 of 31 GB used with 21 agents. Main: the Fedora 45 VM at most 4 GB and shut down after each check; never let the PC swap his session to death.
+
+## 2026-11-04 18:16 — question from lane-hardware
+RGB first light, please look at your PC now. I just set everything to one steady red. For each one, tell me what it shows (red, another colour, or no change): 1) the keyboard, 2) the Gigabyte logo on the graphics card, 3) the case fans, 4) the CPU cooler's fan, 5) the cooler's little display (what is on it right now: numbers? which?). One line is enough, e.g. "keyboard red, gpu red, fans rainbow, cooler red, display 42 blue".
+
+## 2026-11-04 18:18 — question from lane-hardware
+Monitor notice: from 18:21 for about 3 minutes I switch your LG's colour preset over DDC/CI, back and forth: "User 1" (today) and "sRGB". Your screen's colours change a little, nothing else happens. A notice in the corner says which one is showing. When it ends, tell me which you prefer: red calmer and right in sRGB, or today's richer one? If you say nothing it goes back to today's.
+
+## 2026-11-04 18:20 — question from lane-asobi
+ASOBI needs a real test on your screen: at about 18:50 your monitor switches to the play world (its own VT, gamescope and Steam) for about one minute, then comes back by itself. Your desktop and windows keep running behind it; sound cuts for that minute. No answer needed. If 18:50 is a bad moment (a call, a game), write "later" here and I will wait for your word.
+
+## 2026-11-04 18:22 — question from lane-hardware
+The cooler's little display: until 18:23 I send it the number 88, then 42 until 18:24, then nothing. Does it show 88 and then 42? What does it show when I stop? (Add it to your answer to my 18:16 question.)

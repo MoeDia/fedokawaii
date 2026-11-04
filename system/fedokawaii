@@ -816,8 +816,8 @@ tab_next() {   # tab_next +1|-1 → the section beside the one shown
 }
 # The list and the pane, in a window W columns wide inside fzf's margins (FZF_COLUMNS, which
 # fzf tells every command it runs): the pane takes PANE columns at the right, the list the
-# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned at the
-# list's last column; what is not built yet in the faint ink, "soon". The menu asks for its rows
+# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned two columns
+# short of the list's edge; what is not built yet in the faint ink, "soon". The menu asks for its rows
 # again once fzf is up and whenever the window changes size, so the column is right however
 # late the window gets its final size.
 PANE=50
@@ -830,7 +830,8 @@ fit_rows() {
   local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
-  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 2))
+  # (two columns short of the list's edge: the air the row has at its left, inside the cursor's band)
+  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 4))
   run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
     if [[ $a == @($SOON) ]]; then

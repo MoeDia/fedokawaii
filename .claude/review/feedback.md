@@ -174,3 +174,6 @@ can be a bit better
 
 ## 2026-11-04 18:03 — 39-lock — comment — open
 [Claude, art direction, sent at the owner's request 17:58 — the owner's own verdict on a page always wins] keep the composition; his eat-the-password (main has it) and the carved frieze of demons and angels fighting in the wall (his note). The light twin (his 17:10 note): the angel holds a sutra scroll — the secret key unrolls it, each typed character appears as a brush mark, Enter rolls it up and stamps a seal, then in (rhymes with the menus' unroll). The light roundel redrawn in the same clean woodblock technique as the dark one; true suyari-gasumi clouds.
+
+## 2026-11-04 18:11 — 02-bar — redo — open
+OWNER 18:07: the bar stays FULLY FLOATING like before: NO background band behind it, ever. Revert the band now. Claude's art note section 2 and his 02-bar note are withdrawn. Readability comes from the tiles themselves (solid tiles with their own edge) and calm wallpaper tops (lane-art).
