@@ -415,8 +415,8 @@ for c in qemu:///session qemu:///system; do for v in $(virsh -c $c list --name 2
 save(){ d=$1; br=$2; cd "$d" || return; git add -A >/dev/null 2>&1
   git diff --cached --name-only -z | while IFS= read -r -d '' f; do [ -f "$f" ] && [ $(stat -c%s "$f") -gt 40000000 ] && git reset -q -- "$f" && echo "too big, left out: $d/$f"; done
   git diff --cached --quiet && { echo "$br: nothing unsaved"; git push -q origin "HEAD:refs/heads/$br" 2>/dev/null; return; }
-  c=$(git commit-tree "$(git write-tree)" -p HEAD -m "wip: saved at the owner's stop, $(date '+%F %H:%M') (not reviewed)")
-  git reset -q; git push -q origin "$c:refs/heads/$br" && echo "$br: unsaved work pushed ($c)"; }
+  c=$(git -c user.name="Mohamed Eldoush" -c user.email="49558059+MoeDia@users.noreply.github.com" commit-tree "$(git write-tree)" -p HEAD -m "wip: saved at the owner's stop, $(date '+%F %H:%M') (not reviewed)")
+  git reset -q; [ -n "$c" ] && git push -q origin "$c:refs/heads/$br" && echo "$br: unsaved work pushed ($c)"; }
 save ~/repos/fedokawaii wip-main-$(date +%Y%m%d)
 for d in ~/repos/fk-*; do n=${d##*/fk-}; git -C "$d" push -q origin "HEAD:refs/heads/lane-$n" 2>/dev/null; save "$d" "wip-lane-$n-$(date +%Y%m%d)"; done
 printf '\n## %s — open\nOWNER STOP (%s): he stopped the round for tonight. Every agent, the conductor and the test VMs were stopped; unsaved changes were pushed to wip-* branches (main and each lane, not reviewed). Next round: start from your notes, review the wip branches first, keep to 12 lanes and one VM at a time.\n' "$(date '+%F %H:%M')" "$(date +%H:%M)" >> ~/repos/fedokawaii/.claude/inbox.md
