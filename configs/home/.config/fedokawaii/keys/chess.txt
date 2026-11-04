@@ -4,7 +4,7 @@
 Nf3 exd5 O-O            type a move: lower case and no x are fine
 Enter                   play what is typed, or what the cursor is on
 ↑ ↓ ← →                 the keyboard's place on the board
-a click                 pick up a piece, put it down
+a click, or a drag      pick up a piece, put it down
 ?                       a hint: the lantern on the piece, again the arrow
 t                       marks on your pieces in danger, on or off
 Esc                     let go of what is in hand; then the game's menu

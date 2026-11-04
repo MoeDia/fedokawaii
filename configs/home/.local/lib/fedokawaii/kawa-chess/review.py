@@ -473,7 +473,7 @@ class Review(Screen):
         word = {"found": "you found it.", "close": "close enough: that holds.", "gave": "the move:"}.get(self.result_word, "")
         best = pos.san(B.from_uci(m["best"])) if m["best"] else ""
         if self.result_word == "found":
-            lines.append([(icon("CHECK"), ACCENT_TEXT), "  ", word])
+            lines.append([" ", (icon("CHECK"), ACCENT_TEXT), "  ", word])
         else:
             lines.append([word + " ", (best, STRONG)])
         lines.append("")
@@ -498,16 +498,16 @@ class Review(Screen):
         s = self.summary
         c = s.get("classes", {})
         lines = [Row("USAGE", "accuracy", f"{s.get('accuracy', 0):.0f} %"),
-                 Row("CROSS", "blunders", c.get("blunder", 0)),
-                 Row("CROSS", "mistakes", c.get("mistake", 0)),
-                 Row("CROSS", "inaccuracies", c.get("inaccuracy", 0))]
+                 Row(None, "blunders", c.get("blunder", 0), mark="??"),
+                 Row(None, "mistakes", c.get("mistake", 0), mark="?"),
+                 Row(None, "inaccuracies", c.get("inaccuracy", 0), mark="?!")]
         goal = s.get("goal")
         if goal:
-            words = wrap(goal["text"], w - 3)
-            lines += ["", [(icon("CHECK" if goal["ok"] else "CROSS"), ACCENT_TEXT), "  ", words[0]]]
-            lines += [["   ", more] for more in words[1:]]
+            words = wrap(goal["text"], w - 4)
+            lines += ["", [" ", (icon("CHECK" if goal["ok"] else "CROSS"), ACCENT_TEXT), "  ", words[0]]]
+            lines += [["    ", more] for more in words[1:]]
         lines += ["", [("one thing to remember:", MUTED)], ""]
-        lines += [[(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  ", (self.take[-(w - 4):], STRONG), (" ", None, ACCENT)]]
+        lines += [[" ", (icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  ", (self.take[-(w - 5):], STRONG), (" ", None, ACCENT)]]
         return lines
 
     # ── keys ────────────────────────────────────────────────────────────────────────────────

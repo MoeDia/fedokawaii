@@ -28,13 +28,14 @@ class Item:
             return f"{m['minutes']} min" if m and m.get("minutes") else ""
         return ""
 
-    def details(self, pr):
-        """Words for the pane under the list."""
+    def details(self, pr, face=False):
+        """Words for the pane under the list; face: who you meet is drawn there already."""
         if self.kind == "game":
             spec = self.course.game_spec(self.ref, pr)
             side = "white" if spec["colour"] == B.WHITE else "black"
             tc = f"{spec['clock'][0]}+{spec['clock'][1]}" if spec.get("clock") else "no clock"
-            return [spec["goal"], f"you play {side} against {spec['opponent']}, level {spec['elo']}, {tc}."]
+            against = "" if face else f" against {spec['opponent']}, level {spec['elo']}"
+            return [spec["goal"], f"you play {side}{against}, {tc}."]
         if self.kind == "review":
             return ["three moments: you find the move, then you see why."]
         if self.kind == "vision":

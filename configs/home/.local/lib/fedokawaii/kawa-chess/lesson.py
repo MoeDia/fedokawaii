@@ -233,7 +233,7 @@ class Lesson(Screen):
                 self._drill(self._page())
             self.app.touch()
 
-        self.app.slide(parts, {p[1] for p in parts}, arrived, ms=260)
+        self.app.slide(parts, {p[1] for p in parts}, arrived, ms=260, took=m >> 6 & 63 if pos.is_capture(m) else None)
 
     def board(self):
         pg = self._page()
@@ -270,7 +270,7 @@ class Lesson(Screen):
         if self.hand.pos is not None:
             body.append(hand_line(self.hand, w))
         if self.find:
-            body += [[(icon("SEARCH"), ACCENT_TEXT), "  ", (self.find[0], STRONG), "  ", (self.typed, None)], ""]
+            body += [[" ", (icon("SEARCH"), ACCENT_TEXT), "  ", (self.find[0], STRONG), "  ", (self.typed, None)], ""]
         if self.note:
             body.append("")
             body += [[(s, MUTED)] for s in wrap(self.note, w)]
@@ -400,7 +400,7 @@ class Lesson(Screen):
                 self.note = ""
                 self.app.touch()
 
-            self.app.slide(parts, {p[1] for p in parts}, arrived)
+            self.app.slide(parts, {p[1] for p in parts}, arrived, took=m >> 6 & 63 if pos.is_capture(m) else None)
             return
         self.tried += 1
         self.hand.clear()

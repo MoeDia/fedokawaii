@@ -111,6 +111,57 @@ def main(argv):
             break
         if len(fails) > 3:
             break
+    # a man dragged: the pointer held and moved over other squares, let go on a square he can reach, on one he cannot, off the board
+    fixture(home, FENS[2])
+    t = open_app(env)
+    t.keep_pixels()
+    os.kill(t.pid, signal.SIGCONT)
+    t.pump(0.1)
+    t.settle(0.3, 5)
+
+    def at(name):
+        sq = B.sq_of(name)
+        return 8 + sq % 8 * 80 + 41, 8 + (7 - sq // 8) * 80 + 41
+
+    def drag(a, path, b):
+        x, y = at(a)
+        t.send(f"\x1b[<0;{x};{y}M")
+        t.pump(0.05)
+        for name in path:
+            x, y = at(name)
+            for k in range(3):
+                t.send(f"\x1b[<32;{x + 7 * k};{y - 5 * k}M")
+                t.pump(0.01)
+        x, y = b if isinstance(b, tuple) else at(b)
+        t.send(f"\x1b[<32;{x};{y}M")
+        t.pump(0.01)
+        t.send(f"\x1b[<0;{x};{y}m")
+        t.pump(0.3)
+
+    played = lambda: (current(home) or {"moves": []})["moves"]  # noqa: E731
+    drag("b1", ("b2", "b3", "c3"), "a6")                         # (no such move: he goes home)
+    why = compare(t)
+    if why or played():
+        fails.append(f"a drag let go on a square he cannot reach: {why}, {played()}")
+    drag("b1", ("c2", "d3"), (2000, 500))                        # (off the board)
+    why = compare(t)
+    if why or played():
+        fails.append(f"a drag let go off the board: {why}, {played()}")
+    t.send("\x1b")                                              # (nothing in hand; the menu shut again)
+    t.pump(0.1)
+    if t.find("back to the board"):
+        t.send("\x1b")
+        t.pump(0.1)
+    drag("g1", ("g2", "f2", "f3"), "f3")                         # (a move, by the pointer)
+    t.pump(0.5)
+    why = compare(t)
+    done += 3
+    if why or played()[:1] != ["g1f3"]:
+        fails.append(f"a drag let go on its square: {why}, {played()}")
+    t.close()
+    c = crash_text(home)
+    if c:
+        fails.append(c[-800:])
     print(f"{done} moves looked at, {len(fails)} left something behind")
     for f in fails[:5]:
         print(f)

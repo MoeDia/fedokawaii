@@ -226,6 +226,8 @@ class Session(Screen):
         self.showing = False       # (the solution played out, a key goes on)
         self.cursor = None
         self.d0 = None
+        self.won = None            # (solved: the last square lit and what it brought, until next_at)
+        self.next_at = None
 
     def bank(self):
         return self.app.bank
@@ -243,12 +245,15 @@ class Session(Screen):
             self.app.touch()
         if self.finished:
             return None
+        if self.next_at is not None and now >= self.next_at:
+            self._on_to_next()
+            return None
         if self.reply_at is not None and now >= self.reply_at:
             self.reply_at = None
             self._reply()
             return None
         if self.count_limit is not None:
-            return self.reply_at
+            return self.next_at or self.reply_at
         if not self.paused:
             dt = now - self.t_mark
             self.t_mark = now
@@ -333,7 +338,7 @@ class Session(Screen):
                 self.hand.reset(pos)
             self.app.touch()
 
-        self.app.slide(parts, {p[1] for p in parts}, arrived)
+        self.app.slide(parts, {p[1] for p in parts}, arrived, took=m >> 6 & 63 if pos.is_capture(m) else None)
 
     def _tried(self, m):
         want = self.line[self.at]
@@ -353,7 +358,7 @@ class Session(Screen):
                     self.reply_at = time.monotonic() + 0.4
                 self.app.touch()
 
-            self.app.slide(parts, {p[1] for p in parts}, arrived, ms=140)
+            self.app.slide(parts, {p[1] for p in parts}, arrived, ms=140, took=m >> 6 & 63 if pos.is_capture(m) else None)
             return
         if not self.failed_now:
             self.failed_now = True
@@ -373,17 +378,25 @@ class Session(Screen):
         pr.save()
 
     def _solved(self):
+        pr = self._state()
+        before = pr.puzzle["r"]
         if not self.failed_now:
             self._score(True)
             self.solved += 1
         self.tried += 1
         self.note = ""
-        pr = self._state()
         pr.save()
         if self.left <= 0:
             self._finish()
             return
         self.reply_at = None
+        # (a moment to see it: the square lit, what it brought; any key goes on at once)
+        self.won = (self.last >> 6 & 63 if self.last is not None else None, pr.puzzle["r"] - before)
+        self.next_at = time.monotonic() + 0.55
+        self.app.touch()
+
+    def _on_to_next(self):
+        self.won = self.next_at = None
         self.next_puzzle()
         self.app.touch()
 
@@ -412,6 +425,8 @@ class Session(Screen):
         if self.pos is None:
             return B.Position().b, {}, [], False
         marks = board_marks(self.pos, self.last)
+        if self.won is not None and self.won[0] is not None:
+            marks.setdefault(self.won[0], set()).add("good")
         if self.hand.pos is not None:
             for s, ms in self.hand.marks().items():
                 marks.setdefault(s, set()).update(ms)
@@ -434,7 +449,10 @@ class Session(Screen):
             d = pr.puzzle["r"] - (self.d0 or pr.puzzle["r"])
             out += [[(f"done: {d:+.0f} today", STRONG)], "", [("enter goes back", MUTED)]]
             return out
-        if self.item is not None:
+        if self.won is not None:
+            gain = f"  {self.won[1]:+.0f}" if abs(self.won[1]) >= 0.5 else ""
+            out += [[" ", (icon("CHECK"), ACCENT_TEXT), "  ", ("solved", STRONG), (gain, MUTED)]]
+        elif self.item is not None:
             side = "black" if self.flipped else "white"
             out += [[(f"{side} to move", MUTED)], ""]
             if self.hand.pos is not None:
@@ -453,6 +471,10 @@ class Session(Screen):
             if name in ("enter", "esc"):
                 self.app.pop()
             return
+        if self.won is not None:
+            self._on_to_next()
+            if name != "esc":
+                return
         if self.showing:
             if name in ("enter", "esc", "right"):
                 self.tried += 1
@@ -489,6 +511,8 @@ class Session(Screen):
             self.app.finish_anim()
 
     def text(self, chars):
+        if self.won is not None:
+            self._on_to_next()
         if self.finished or self.showing:
             return
         self._hurry()
@@ -499,6 +523,8 @@ class Session(Screen):
             self._tried(m)
 
     def click(self, sq):
+        if self.won is not None:
+            self._on_to_next()
         if self.finished or self.showing:
             return
         self._hurry()

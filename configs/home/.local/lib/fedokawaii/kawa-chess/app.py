@@ -77,8 +77,8 @@ class Screen:
 class Slide:
     """Men in motion: [(piece, from-square, to-square)] sliding together in whole art pixels."""
 
-    def __init__(self, view, parts, ms, done):
-        self.view, self.done_cb = view, done
+    def __init__(self, view, parts, ms, done, took=None):
+        self.view, self.done_cb, self.took = view, done, took
         self.parts = [(p, view.origin(a), view.origin(b)) for p, a, b in parts]
         self.t0 = time.monotonic()
         self.ms = ms / 1000
@@ -184,6 +184,18 @@ class Unroll:
         return y0, encode(rows, w, y1 - y0, palette)
 
 
+class Drag:
+    """A man held by the pointer: he leaves his square once it has moved, and is drawn under it on the board's own ground."""
+
+    def __init__(self, sq, piece):
+        self.sq = sq
+        self.parts = [(piece, sq, sq)]
+        self.started = False
+        self.ground = None
+        self.last = None             # (where the last frame drew him)
+        self.at = None               # (where the pointer last was, in the picture's pixels)
+
+
 class App:
     def __init__(self):
         self.term = Term()
@@ -205,6 +217,9 @@ class App:
         self.face_at = None          # the face in the panel: (name, row, column, mood)
         self.face_rows = set()
         self.paper = None            # (that picture, while it shows)
+        self.spark_at = None         # (a capture has landed here: its sparks fly when the board shows it)
+        self.drag = None             # (a man held by the pointer)
+        self.dropping = False        # (a move let go on its square: no slide to it, it is there)
         self.on_board = False        # (the board is what shows: a picture may open over it)
 
     # ── the screens ──────────────────────────────────────────────────────────────────────────
@@ -253,6 +268,7 @@ class App:
         self.pic_key = None
         self.paper = None
         self.on_board = False
+        self.drag = None
         self.face_at = None
         self.face_rows = set()
         if self.layout.small:
@@ -306,12 +322,13 @@ class App:
                     squares, marks, arrows, flipped = b
                     self.view.turn_over(flipped)
                     self.view.coords = not getattr(s, "plain", False)
-                    self.view.set(squares, marks, arrows)
+                    self.view.set(squares, marks, arrows, hide={self.drag.sq} if self.drag and self.drag.started else None)
                 if paper is not None:
                     self.view.repaint()
                     self.anim = Unroll(self.view, paper, True)
                 else:
                     self._send_board()
+                    self._drag_frame()
                 self.on_board = True
         self._draw_panel(s)
         t.flush()
@@ -387,12 +404,14 @@ class App:
             t.text(i, 0, [])
 
     # ── a man moving ─────────────────────────────────────────────────────────────────────────
-    def slide(self, parts, hide, done, ms=SLIDE_MS):
+    def slide(self, parts, hide, done, ms=SLIDE_MS, took=None):
         """parts: [(piece, from, to)] moved over the board as the screen shows it now, without what
-        is on the squares `hide`. done: called when they arrive (or at once, if a key comes)."""
+        is on the squares `hide`. done: called when they arrive (or at once, if a key comes).
+        took: the square of a capture, for its sparks."""
         self.finish_anim()
-        if self.view is None:
+        if self.view is None or self.dropping:
             done()
+            self.spark_at = took
             return
         b = self.screen.board()
         if b is not None:
@@ -400,7 +419,7 @@ class App:
             self.view.turn_over(flipped)
             self.view.set(squares, marks, arrows, hide=hide)
         self._send_board()
-        an = Slide(self.view, parts, ms, done)
+        an = Slide(self.view, parts, ms, done, took)
         an.ground = self.view.under()
         self.anim = an
         self.term.flush()
@@ -430,8 +449,10 @@ class App:
                     else:
                         self.term.picture(self.layout.row, self.layout.col, an.paper.sixel(self.palette()))
                         self.term.flush()
-                elif an.placed:      # (where the last frame left a man, late or stopped by a key: those cells again, once he has landed)
-                    self.view.dirty += [(x, y, self.view.S, self.view.S) for x, y in an.placed]
+                else:
+                    self.spark_at = an.took
+                    if an.placed:    # (where the last frame left a man, late or stopped by a key: those cells again, once he has landed)
+                        self.view.dirty += [(x, y, self.view.S, self.view.S) for x, y in an.placed]
             an.done_cb()
             self.touch()
 
@@ -480,6 +501,60 @@ class App:
             part.stamp(v.art.man(piece, v.s), x - fx0, y - fy0)
         return [(fx0, fy0, part.sixel(self.palette()))]
 
+    # ── a man held by the pointer ─────────────────────────────────────────────────────────────
+    def _drag_frame(self):
+        """The ground as it stands and the man on it, again: the board changed under him, or the pointer moved."""
+        d = self.drag
+        if d is None or not d.started or d.at is None or self.view is None:
+            return
+        v = self.view
+        d.ground = v.under()
+        x = min(max(0, d.at[0] - v.S // 2), v.size - v.S) // v.s * v.s
+        y = min(max(0, d.at[1] - v.S // 2), v.size - v.S) // v.s * v.s
+        if d.last is None:
+            d.last = [(x, y)]
+        for fx, fy, data in self._moving_frame(d, [(x, y)]):
+            self.term.picture(self.layout.row + fy // self.term.ch, self.layout.col + fx // self.term.cw, data)
+        d.last = [(x, y)]
+        self.term.flush()
+
+    def _drag_begin(self, s, sq):
+        hand = getattr(s, "hand", None)
+        self.drag = None
+        if hand is not None and hand.pos is not None and hand.picked == sq:
+            self.drag = Drag(sq, hand.pos.b[sq])
+
+    def _drag_stop(self):
+        """Let go of him where he is: his place comes back from the board at the next frame."""
+        d, self.drag = self.drag, None
+        if d is not None and d.started and d.last and self.view:
+            self.view.hide = set()
+            self.view.dirty += [(x, y, self.view.S, self.view.S) for x, y in d.last]
+            self.touch()
+        return d
+
+    def _drag_to(self, cx, cy):
+        d = self.drag
+        d.at = (cx, cy)
+        if not d.started:
+            if self.view.at(cx, cy) == d.sq:
+                return
+            d.started = True           # (out of his square: from here on he is in the hand, and the board redraws without him)
+            self.touch()
+            return
+        self._drag_frame()
+
+    def _drag_end(self, s, cx, cy):
+        d = self._drag_stop()
+        if d is None or not d.started:
+            return
+        sq = self.view.at(cx, cy)
+        if sq is not None and sq != d.sq:
+            self.dropping = True
+            s.click(sq)
+            self.dropping = False
+        self.touch()
+
     # ── events ───────────────────────────────────────────────────────────────────────────────
     def on_event(self, ev):
         s = self.screen
@@ -506,6 +581,7 @@ class App:
                 self.quit = True
         elif kind == "key":
             self.finish_anim()
+            self._drag_stop()
             if ev[1] == "ctrl-c":
                 self.quit = True
                 return
@@ -513,6 +589,7 @@ class App:
             self.touch()
         elif kind == "text":
             self.finish_anim()
+            self._drag_stop()
             s.text(ev[1])
             self.touch()
         elif kind == "paste":
@@ -531,11 +608,23 @@ class App:
                 s.wheel(-1 if btn == 0 else 1)
                 self.touch()
             return
+        cx, cy = px - lay.col * t.cw, py - lay.row * t.ch
+        if what == "up":
+            if self.drag is not None:
+                self._drag_end(s, cx, cy)
+            return
+        if what == "move" and self.drag is not None:
+            if btn == 0:
+                self._drag_to(cx, cy)
+                return
+            self._drag_stop()          # (the button let go somewhere it could not be heard)
         if what == "down" and btn == 0:
             self.finish_anim()
-            sq = self.view.at(px - lay.col * t.cw, py - lay.row * t.ch)
+            self._drag_stop()
+            sq = self.view.at(cx, cy)
             if sq is not None:
                 s.click(sq)
+                self._drag_begin(s, sq)
                 self.touch()
                 return
             row, col = py // t.ch, px // t.cw
@@ -574,6 +663,9 @@ class App:
                     due = self.screen.tick(now)
                 if self.dirty:
                     self.render()
+                if self.spark_at is not None and self.anim is None and not self.dirty:
+                    sq, self.spark_at = self.spark_at, None
+                    self.burst(sq)
                 if self.anim is not None:
                     wait = 0.006
                 elif due is not None:

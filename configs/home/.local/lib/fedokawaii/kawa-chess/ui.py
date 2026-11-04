@@ -65,11 +65,12 @@ def heading(ic, name, w, right=None):
 class Row:
     """A row of a list: its icon at column 1, name from column 4, value right-aligned; a cursor's
     lacquer from the cursor's column to one beyond the content. act: what choosing it does."""
-    __slots__ = ("ic", "name", "value", "act", "ink", "value_ink", "tag")
+    __slots__ = ("ic", "name", "value", "act", "ink", "value_ink", "tag", "mark")
 
-    def __init__(self, ic, name, value="", act=None, ink=None, value_ink=MUTED, tag=None):
+    def __init__(self, ic, name, value="", act=None, ink=None, value_ink=MUTED, tag=None, mark=None):
         self.ic, self.name, self.value, self.act = ic, name, value, act
         self.ink, self.value_ink, self.tag = ink, value_ink, tag
+        self.mark = mark          # (two characters in the icon's two cells: chess's own ?? and ?!, say)
 
     def spans(self, w, selected=False):
         v = "" if self.value is None or self.value == "" else str(self.value)
@@ -81,7 +82,10 @@ class Row:
         if selected:
             # (the cursor's column before and one beyond: the panel draws those two cells)
             return [(" " + (icon(self.ic) if self.ic else " ") + "  " + name + " " * pad + v, ON_SELECT, SELECT)]
-        out = [" ", (icon(self.ic) if self.ic else " ", self.icon_ink()), "  ", (name, self.ink)]
+        if self.mark:
+            out = [" ", (self.mark.ljust(2), ACCENT_TEXT), " ", (name, self.ink)]
+        else:
+            out = [" ", (icon(self.ic) if self.ic else " ", self.icon_ink()), "  ", (name, self.ink)]
         if v:
             out += [" " * pad, (v, self.value_ink)]
         return out

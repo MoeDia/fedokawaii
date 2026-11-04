@@ -57,12 +57,11 @@ def main(argv):
                 t.pump(0.28)
                 pos.push(good)
             if pg.drill:
-                t.pump(0.15)
-                if not t.find("to solve"):
+                if not t.wait("to solve", 15):      # (the bank read the first time: however long the machine takes)
                     bad.append(f"{lid} p{pn + 1}: no drill on the screen")
-                for _ in range(8):      # (Esc: the answer, then on, then out: until the lesson is back)
+                for _ in range(40):     # (Esc: the answer, then on, then out: until the lesson is back)
                     t.send("\x1b")
-                    t.pump(0.1)
+                    t.settle(0.1, 1.0)
                     if not t.find("to solve"):
                         break
             t.send("\r")

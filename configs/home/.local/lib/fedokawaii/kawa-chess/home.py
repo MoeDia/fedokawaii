@@ -305,14 +305,13 @@ class Home(Screen):
         act = rows[self.index].act or ()
         if act and act[0] == "item":
             it = act[1]
-            lines = it.details(self.pr)
             out = []
-            if it.kind == "game" and w >= 26 and not self.pr.is_done(self.pr.day, it.key):
-                # (who you are about to meet: the face, as across the board)
+            face = it.kind == "game" and w >= 26 and not self.pr.is_done(self.pr.day, it.key)
+            if face:      # (who you are about to meet: the face, as across the board)
                 spec = self.course.game_spec(it.ref, self.pr)
                 who = spec["opponent"]
                 out = [Face(who, [(who, STRONG)], [(f"level {spec['elo']}", MUTED)]), Face.BELOW, ""]
-            for ln in lines:
+            for ln in it.details(self.pr, face):
                 out += [[(s, MUTED)] for s in wrap(ln, w)]
             return out
         return []

@@ -299,7 +299,6 @@ class Game(Screen):
         self.shown = None
         self.landing = None          # (a move on its way: its squares lit from its first frame)
         self.begun = False
-        self.burst_on = None         # (the square of a capture just made: its sparks fly at the next frame)
         self.fallen = None           # (the beaten king's square, how far he has fallen)
         self.fall_at = 0
         if saved:
@@ -611,7 +610,6 @@ class Game(Screen):
         hide = {p[1] for p in parts}
 
         self.landing = m
-        took = pos.is_capture(m)
 
         def arrived():
             self.landing = None
@@ -623,10 +621,9 @@ class Game(Screen):
             self.save()
             if self.g.over():
                 self.finish(self.g.result, self.g.why)
-            self.burst_on = m >> 6 & 63 if took else None
             self.app.touch()
 
-        self.app.slide(parts, hide, arrived)
+        self.app.slide(parts, hide, arrived, took=m >> 6 & 63 if pos.is_capture(m) else None)
 
     def _engine_move(self):
         s = self.spec
@@ -653,9 +650,6 @@ class Game(Screen):
         self.app.touch()
 
     def tick(self, now):
-        if self.burst_on is not None:
-            sq, self.burst_on = self.burst_on, None
-            self.app.burst(sq)
         if self.ended:
             # (the beaten king topples, in three frames)
             if self.fallen is not None and self.fallen[1] < 3 and now >= self.fall_at:

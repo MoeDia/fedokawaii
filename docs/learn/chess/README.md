@@ -24,7 +24,7 @@ Lucena, the Philidor) are the same: the plan goes on when you have done them.
 ## On the board
 
 Type moves: `Nf3`, `exd5`, `O-O`; lower case and no `x` are fine (`nf3`, `ed5`, `oo`). A piece and the squares it can reach
-light up as you type. Or click, or use the arrows and Enter. `?` is a hint if the game allows one: the lantern on the
+light up as you type. Or click, or drag, or use the arrows and Enter. `?` is a hint if the game allows one: the lantern on the
 piece, again for the arrow. `t` turns the marks on your pieces in danger on or off. Esc lets go of what is in your hand;
 then it opens the game's menu: a hint, turn the board round, offer a draw, resign, leave and come back later.
 
