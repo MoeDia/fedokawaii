@@ -268,6 +268,16 @@ index 9600ddb..63497e6 100644
 -pub(crate) const NOTIFY_BORDER: u16 = 2;
 +pub(crate) const NOTIFY_BORDER: u16 = 6;
  pub(crate) const NOTIFY_SPACING: u16 = 1;
+diff --git a/yazi-core/src/tasks/mod.rs b/yazi-core/src/tasks/mod.rs
+index f0da52b..0cadf4e 100644
+--- a/yazi-core/src/tasks/mod.rs
++++ b/yazi-core/src/tasks/mod.rs
+@@ -2,4 +2,4 @@ yazi_macro::mod_flat!(file option prework tasks);
+ 
+ pub(crate) const TASKS_BORDER: u16 = 2;
+ pub(crate) const TASKS_PADDING: u16 = 2;
+-pub const TASKS_PERCENT: u16 = 80;
++pub const TASKS_PERCENT: u16 = 60;
 diff --git a/yazi-fm/src/cmp/cmp.rs b/yazi-fm/src/cmp/cmp.rs
 index 4971175..4d795ab 100644
 --- a/yazi-fm/src/cmp/cmp.rs
@@ -739,7 +749,7 @@ index a234040..888eabc 100644
  	}
  }
 diff --git a/yazi-fm/src/help/help.rs b/yazi-fm/src/help/help.rs
-index 221481a..2317181 100644
+index 221481a..526e685 100644
 --- a/yazi-fm/src/help/help.rs
 +++ b/yazi-fm/src/help/help.rs
 @@ -1,10 +1,9 @@
@@ -755,7 +765,7 @@ index 221481a..2317181 100644
  
  pub(crate) struct Help<'a> {
  	core: &'a Core,
-@@ -18,33 +17,31 @@ impl Widget for Help<'_> {
+@@ -18,33 +17,36 @@ impl Widget for Help<'_> {
  	fn render(self, _: Rect, buf: &mut Buffer) {
  		let help = &self.core.help;
  		let area = self.core.mgr.area(help.position);
@@ -788,13 +798,17 @@ index 221481a..2317181 100644
 -		Bindings::new(self.core)
 -			.render(chunks[2].padding(Padding { top: 0, bottom: 0, ..padding }), buf);
 +		let n = help.bindings.len();
++		let layer = match help.layer.to_string().as_str() {
++			"mgr" => "files".to_owned(),
++			other => other.to_owned(),
++		};
 +
 +		let inner = frame::frame(
 +			area,
 +			buf,
 +			THEME.help.border.get().into(),
 +			frame::I_KEYCAP,
-+			Line::from(vec![Span::raw("keys"), Span::styled(format!("  {}", help.layer), frame::MUTED)]),
++			Line::from(vec![Span::raw("keys"), Span::styled(format!("  {layer}"), frame::MUTED)]),
 +		);
 +
 +		// §7's search line: the chevron at the rows' icon column, what is typed — or its ghost, faint — at their
@@ -802,8 +816,9 @@ index 221481a..2317181 100644
 +		let line = frame::row(inner, 0);
 +		Line::styled(frame::I_CHEVRON, frame::ICON).render(Rect { x: line.x + 1, width: 3, ..line }, buf);
 +		let field = Rect { x: line.x + 4, width: line.width.saturating_sub(4 + 7), ..line };
++		// (a cell past the cursor, which stands before its first letter)
 +		if help.input.value().is_empty() {
-+			Line::styled("a key or a word", frame::FAINT).render(field, buf);
++			Line::styled("a key or a word", frame::FAINT).render(Rect { x: field.x + 1, ..field }, buf);
 +		}
 +		help.input.render(field, buf);
 +		Line::styled(n.to_string(), frame::MUTED).right_aligned().render(line, buf);

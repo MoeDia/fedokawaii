@@ -2,8 +2,8 @@
 # One ramp for what rises: asagi → gold → the seal's red, calm when idle, warm under load.
 theme[main_bg]="#e8e3c2"
 theme[main_fg]="#122625"
-theme[title]="#121b1b"
-theme[hi_fg]="#a84222"
+theme[title]="#586459"
+theme[hi_fg]="#8b917f"
 theme[selected_bg]="#82241f"
 theme[selected_fg]="#f8f3d8"
 theme[inactive_fg]="#8b917f"

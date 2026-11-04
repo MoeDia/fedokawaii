@@ -127,8 +127,8 @@ hovered = { bg = "24", fg = "25" }
 
 [help]
 border  = { fg = "31" }
-chord   = {}
-action  = { fg = "21" }
+chord   = { fg = "21" }
+action  = {}
 hovered = { bg = "24", fg = "25" }
 
 # file names by kind; folders in blue, like ls — each kind in its brighter slot (in light the

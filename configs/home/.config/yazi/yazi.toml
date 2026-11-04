@@ -20,10 +20,11 @@ prepend_previewers = [
 ]
 prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]
 
-# yazi's own list of previewers (yazi-default.toml, 26.9.1), its last word ours: what yazi has no picture of — a binary,
-# an empty file — is shown as a card of its facts (kawa-card), never an empty pane
+# yazi's own list of previewers (yazi-default.toml, 26.9.1), two of them ours: a folder's rows with the desktop's words for what
+# is not there yet (kawa-folder) and, for what yazi has no picture of — a binary, an empty file —, a card of its facts
+# (kawa-card): the pane always shows something
 previewers = [
-  { mime = "folder/*", run = "folder" },
+  { mime = "folder/*", run = "kawa-folder" },
   { mime = "text/*", run = "code" },
   { mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
   { mime = "application/{json,ndjson}", run = "json" },

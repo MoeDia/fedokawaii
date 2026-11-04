@@ -874,7 +874,9 @@ def qt_colors(m, p):
 def btop_theme(m, p):
     box = p["edge2"] if m == "dark" else p["edge"]
     t = {
-        "main_bg": p["ground"], "main_fg": p["text"], "title": p["strong"], "hi_fg": p["accent_text"],
+        # (title: btop's rules are full of its keys' words, "menu", "filter", "pause", each with a key letter in hi_fg: all
+        # of them stepping back, the numbers and the graphs in front; red only where it means something: the ramp's top)
+        "main_bg": p["ground"], "main_fg": p["text"], "title": p["muted"], "hi_fg": p["faint"],
         "selected_bg": p["select"], "selected_fg": p["text_on_select"],
         "inactive_fg": p["faint"], "graph_text": p["muted"], "meter_bg": p["edge"] if m == "dark" else p["ansi0"],
         "proc_misc": p["asagi"],

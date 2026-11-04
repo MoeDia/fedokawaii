@@ -98,7 +98,7 @@ end
 
 -- What is not there yet, said quietly where a row's name would stand (§1: faint; never centred, never
 -- "…"): an empty folder, one still being read, a filter that finds nothing, one that cannot be read —
--- in this folder's list and in a folder's preview alike
+-- in this folder's list (a folder's preview: plugins/kawa-folder.yazi says the same)
 local NAME_AT = "     "                        -- (the cursor's cell, column 0, the icon and its air)
 local function nothing(area, folder)
 	local s = "loading"
@@ -113,20 +113,6 @@ end
 function Current:empty()
 	return { nothing(self._area, self._folder), table.unpack(Dnd:new(self._area):redraw()) }
 end
-do -- (yazi's own folder previewer, its empty and loading states only)
-	local ok, folder = pcall(require, "folder")
-	if ok and type(folder) == "table" and folder.peek then
-		local peek = folder.peek
-		function folder:peek(job)
-			local f = cx.active.preview.folder
-			if not f or (f.cwd == job.file.url and #f.files == 0) then
-				return ya.preview_widget(job, nothing(job.area, f))
-			end
-			return peek(self, job)
-		end
-	end
-end
-
 -- The heading: the folder icon in accent_text, two columns, the path as a breadcrumb — the folders above in
 -- muted, the one you are in in strong, what narrows it (a filter, a search) muted after it — then, the file
 -- dialog's, NAME in strong and the folder it is in, muted — a space and the rule (─, edge2) to its end. A folder
@@ -330,6 +316,7 @@ local LIT, OFF = "\u{FE0BF}", "\u{FE0C0}" -- Sumi Icons: read, read-off (a meter
 function Tasks:layout() self._area = self._area end
 function Tasks:redraw()
 	local out, a = {}, self._area
+	if #cx.tasks.snaps == 0 then return { ui.Line(ui.Span(" none"):fg("22")):area(a { h = 1 }) } end
 	for i, snap in ipairs(cx.tasks.snaps) do
 		local y = a.y + (i - 1) * 3
 		if y + 1 >= a.bottom then break end
