@@ -87,6 +87,8 @@ For the main run: my fuzz's Ctrl+\\ left python core dumps in /var/lib/systemd/c
 
 ## Where this pass stopped, 20:20: forced reboot announced for 20:25
 
+**First look at `uptime -s`: if it still says 2026-11-04 15:46:21, the reboot has not come yet: main asked for no kit, no suite, no build, no GPU job and no systemctl until it has (PID 1 is stuck, swap full, results not to be trusted): read and edit only.**
+
 Committed and pushed. /dev/shm is lost in the reboot; the real engine is kept at ~/.cache/lane-chess/stockfish, with mont.sh and freeze.sh (delete that folder when this lane ends: nothing else uses it).
 
 **Next, in this order, after the boot:**
