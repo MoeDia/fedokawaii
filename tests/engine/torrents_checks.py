@@ -37,7 +37,7 @@ def calls(name):
     """What the stand-ins heard: lines of the harness's log for program NAME."""
     try:
         with open(LOG, encoding="utf-8") as f:
-            return [l.rstrip("\n") for l in f if l.startswith(name + " ")]
+            return [line.rstrip("\n") for line in f if line.startswith(name + " ")]
     except FileNotFoundError:
         return []
 
@@ -93,7 +93,7 @@ def magnet_to_done():
         t0 = time.monotonic()
         e = spawn_engine()
         c = e.client()
-        r = c.wait(lambda: c.rows.get(t.hash, {}).get("word") == "done" and c.rows[t.hash], 15, f"done at reopen {k}")
+        r = c.wait(lambda cl=c: cl.rows.get(t.hash, {}).get("word") == "done" and cl.rows[t.hash], 15, f"done at reopen {k}")
         took = time.monotonic() - t0
         assert took < 3, f"reopen {k} took {took:.2f} s: something was hashed or fetched again"
         eq(r["done"], t.total, "its bytes")
@@ -382,11 +382,11 @@ def url_links():
     b = c.ask({"op": "add", "kind": "url", "value": base + "/a.torrent", "name": "a file"})
     c.wait(lambda: srv.t2.hash in c.rows, 15, "the torrent in the file")
     eq(b["err"], "", "no trouble")
-    d = c.ask({"op": "add", "kind": "url", "value": base + "/slow", "name": "a site in trouble once"})
+    c.ask({"op": "add", "kind": "url", "value": base + "/slow", "name": "a site in trouble once"})
     c.wait(lambda: srv.t3.hash in c.rows, 20, "asked again by itself")
     for path, word in (("/gone", "refused"), ("/junk", "something else")):
         x = c.ask({"op": "add", "kind": "url", "value": base + path, "name": path})
-        err = c.wait(lambda: c.rows.get(x["id"], {}).get("err"), 15, f"{path} said")
+        err = c.wait(lambda i=x["id"]: c.rows.get(i, {}).get("err"), 15, f"{path} said")
         assert word in err, err
         eq(c.rows[x["id"]]["word"], "failed", "its row")
         assert "SECRETKEY" not in err, err
@@ -634,7 +634,7 @@ def mock(args=(), slow=0.5):
 def asked():
     try:
         with open(os.path.join(TMP, "mock.log"), encoding="utf-8") as f:
-            return [json.loads(l) for l in f]
+            return [json.loads(line) for line in f]
     except FileNotFoundError:
         return []
 

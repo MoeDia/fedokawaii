@@ -12,7 +12,7 @@ import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 files = [p for d in ("bin", "system", "configs") for p in (root / d).rglob("*") if p.is_file()]
 files = [p for p in files if p.name != "fedokawaii-report" and p.suffix not in (".png", ".ttf", ".otf", ".pdf")]
-APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices", "foryou"}
+APPS = {"desktop", "drives", "backup", "torrents", "downloads", "notices", "foryou"}
 NAMES = {"Steam", "Bluetooth", "Prowlarr"}
 ICON = re.compile(r'^"(\$ICON_[A-Z_]+|\$\{ICON_[A-Z_]+:-[^}]*\}|\$SEAL|\$ICON|\$\(\. [^)]*ICON_[A-Z_]+"?\))  ')
 bad = []
@@ -57,8 +57,8 @@ eq "$out" ""
 has "$(cat "$REPO/configs/home/.config/dwl/autostart.sh")" 'notify-send -a desktop -u critical -- "$ICON_CAMERA  a snapshot"' "the snapshot's notice: the camera (Super+U's snapshots), kept until dismissed"
 has "$(cat "$REPO/configs/home/.config/dwl/autostart.sh")" "ICON_CAMERA=\$(printf '$(. "$REPO/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CAMERA" | od -An -bv | tr -s ' ' '\\' | sed 's/\\$//')')" "…its bytes the camera's of icons.sh"
 
-case_ "the python notices (torrra's, the downloads') laid out the same: -a, --, the icon and two spaces"
-has "$(cat "$REPO/system/kawa-torrra")" '"notify-send", "-a", "torrra", "-u", urgency, "--", icon + "  torrra", msg'
+case_ "the python notices (Torrents', the downloads') laid out the same: -a, --, the icon and two spaces"
+has "$(cat "$REPO/configs/home/.local/lib/fedokawaii/kawa-torrents/cli.py")" '"notify-send", "-a", "torrents", "-u", urgency, "--", f"{icon}  torrents", words'
 has "$(cat "$REPO/bin/kawa-downloads")" '"notify-send", "-a", "downloads", "-A", "default=open", "--",
                         f"{ic['"'"'download'"'"']}  {name}", body]'
 

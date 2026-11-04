@@ -13,7 +13,7 @@ satty, lazygit, herdr, yt-dlp and udiskie — and yazi 26.9.1's own preset (what
 openers and previewers run: FIXTURES/yazi-builtin.txt).
 
 Each must be one of: bin/ or system/ (the desktop's own), lib/upstream.sh's table, built by
-setup.sh (dwl, the C helpers, torrra), or in FIXTURES/programs.txt — a package lib/manifest.sh
+setup.sh (dwl, the C helpers), or in FIXTURES/programs.txt — a package lib/manifest.sh
 installs (MANIFEST_PKGS lists them) or a package of a Fedora 44 Minimal Install.
 """
 import json

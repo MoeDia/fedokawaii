@@ -20,7 +20,7 @@ lib/               shared shell: common.sh (output, steps, locks) · manifest.sh
                    hygiene.sh (nothing doubled or fighting: packages, services, leftovers)
 system/            what setup installs: `fedokawaii` (the system's control and its menu, Super+U),
                    the session launcher (with its rescue screen), greeter, snapshots around dnf,
-                   the performance profile, torrra's key wrapper, and the Prowlarr container
+                   the performance profile, and the Prowlarr container
                    (→ ~/.config/containers/systemd)
 src/               what is compiled or patched here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
                    full window borders, centred dialogs, Arabic-proof keys, the layout for the bar,
@@ -260,7 +260,7 @@ glossary are appendices D and E.
 
 ## 4 · First login, once
 
-- **Prowlarr**: nothing to do — it is wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
+- **Prowlarr**: nothing to do — it is wired to Torrents (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
   it as a podman secret), its eight usual sites are in, and its page asks for no login (it answers on this computer only):
   `prowlarr` (or *Prowlarr* in the launcher) starts it on demand and opens <http://localhost:9696> (handbook §20.1).
 - **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a

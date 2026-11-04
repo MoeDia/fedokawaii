@@ -39,12 +39,11 @@ case_ "every program a person opens has a listed entry (fixtures/launched.txt); 
 FX=$REPO/tests/look/fixtures
 names() { grep -v '^#' "$1" | awk 'NF { print $1 }'; }
 # what the toolkit installs: the manifest (both GPUs, with Steam), the release binaries,
-# LocalSend and Syncplay (lib/upstream.sh), torrra (uv tool) and Prowlarr (a container), the helpers
+# LocalSend and Syncplay (lib/upstream.sh), Prowlarr (a container), the helpers
 installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STEAM=yes STATE_DIR=/nonexistent
   manifest_all amd; printf "%s\n" "${PKG_GPU_intel[@]}"; for u in "${UPSTREAM[@]}"; do echo "${u%%|*}"; done' _ "$REPO"
   grep -q '^LOCALSEND_TAG=' "$REPO/lib/upstream.sh" && echo localsend
   grep -q '^SYNCPLAY_TAG=' "$REPO/lib/upstream.sh" && echo syncplay
-  grep -q 'uv tool install .*torrra' "$REPO/setup.sh" && echo torrra
   [[ -f $REPO/system/prowlarr.container ]] && echo prowlarr
   for b in "$REPO"/bin/kawa-*; do echo "${b##*/}"; done)
 installed=$(LC_ALL=C sort -u <<<"$installed")

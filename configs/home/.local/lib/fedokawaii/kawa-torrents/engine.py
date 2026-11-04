@@ -893,9 +893,6 @@ class Engine:
         i, known, err = self.add(q["kind"], q["value"], q.get("name", ""), q.get("source", ""), q.get("also", ""))
         return {"id": i, "known": known, "err": err}
 
-    def op_add_many(self, c, q):
-        return {"added": [dict(zip(("id", "known", "err"), self.add(k, v))) for k, v in q["links"]]}
-
     def clear_trouble(self, h, i):
         if h.status(0).errc.value():
             h.clear_error()

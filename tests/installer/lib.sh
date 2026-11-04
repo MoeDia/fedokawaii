@@ -154,6 +154,8 @@ fake_pylibs() {
     mkdir -p "$FK_PYLIBS/${m%/*}"; : >"$FK_PYLIBS/$m.py"
   done
   printf 'def optionsForClientTLS(*a, **k):\n    pass\n' >"$FK_PYLIBS/twisted/internet/ssl.py"
+  # Fedora's rb_libtorrent-python3, as far as the program's own check asks
+  printf '__version__ = "2.0.11.0"\n' >"$FK_PYLIBS/libtorrent.py"
   # PyGObject and the typelibs the login screen and the panel ask for (lib/guard.sh: gi_sound);
   # $FKH/gi-broken: a namespace that no longer loads
   mkdir -p "$FK_PYLIBS/gi/repository"; : >"$FK_PYLIBS/gi/repository/__init__.py"
@@ -461,7 +463,7 @@ built() {
   mkdir -p "$W/var/lib/fedokawaii-greeter" "$W/etc/fonts/conf.d" "$W/usrshare/locale/fk/LC_MESSAGES"
   cp "$REPO/system/60-fedokawaii-pixel.conf" "$W/etc/fonts/conf.d/"; cp "$REPO/art/gtklock.mo" "$W/usrshare/locale/fk/LC_MESSAGES/gtklock.mo"   # (the fake /usr/share)
   mkdir -p "$W/etc/pam.d"; cp "$REPO/system/gtklock.pam" "$W/etc/pam.d/gtklock"   # (the lock's quick answer: lock_pam)
-  fake_cmd "$W/usrbin/agreety"; fake_cmd "$W/usr/local/bin/kawa-torrra"
+  fake_cmd "$W/usrbin/agreety"
   mkdir -p "$W/etc/greetd" "$W/etc/systemd/system/greetd.service.d" "$W/etc/profile.d" "$W/etc/NetworkManager/conf.d" "$W/etc/dnf/libdnf5.conf.d" \
     "$W/etc/yum.repos.d" "$W/usr/local/sbin" "$W/etc/dnf/libdnf5-plugins/actions.d" "$W/etc/mpv/scripts"
   printf '[default_session]\ncommand = "env $(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet fkuser"\n' >"$W/etc/greetd/fedokawaii.toml"
@@ -470,7 +472,7 @@ built() {
   mkdir -p "$W/etc/systemd/system/plymouth-quit.service.d"
   printf '[Service]\nExecStart=\nExecStart=-/usr/bin/plymouth quit --retain-splash\n' >"$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf"
   printf '[Service]\nType=oneshot\nTTYPath=/dev/tty1\nExecStart=/usr/bin/printf %s\n' "'The login screen could not start'" >"$W/etc/systemd/system/fedokawaii-login-failed.service"
-  printf 'export EDITOR=nvim\nexport VISUAL=nvim\n' >"$W/etc/profile.d/editor.sh"; : >"$W/etc/profile.d/kawa-torrra.sh"
+  printf 'export EDITOR=nvim\nexport VISUAL=nvim\n' >"$W/etc/profile.d/editor.sh"
   printf '%s\n' "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" >"$W/etc/profile.d/fedokawaii-console.sh"
   printf '#!/bin/sh\nexec nvim "$@"\n' >"$W/usr/local/bin/vi"; chmod 755 "$W/usr/local/bin/vi"; : >"$W/etc/NetworkManager/conf.d/90-fedokawaii.conf"
   # (the copy of this machine's /etc may hold it as a link to this machine's own library: replaced,
@@ -560,11 +562,11 @@ built() {
   printf '[%s]\n' "$(for d in nyaasi SubsPlease tokyotosho thepiratebay yts Knaben limetorrents torrentdownloads; do
     printf '{"enable": true, "definitionName": "%s"},' "$d"; done | sed 's/,$//')" >"$FKH/prowlarr-indexers"
   echo $'Scrub started:    Sat Oct  3 02:00:00 2026\nStatus:           finished\nError summary:    no errors found' >"$FKH/scrub-status"
-  # the user's home: tools at their pinned tags, fonts, GE-Proton, torrra, secrets, Prowlarr, nvim
+  # the user's home: tools at their pinned tags, fonts, GE-Proton, secrets, Prowlarr, nvim
   mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" \
     "$W/usr/local/share/fonts/fedokawaii" "$U/.local/share/Steam/compatibilitytools.d/GE-Proton10-25" \
-    "$U/.local/src/dwl/.git" "$U/.local/share/uv/tools/torrra/bin" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
-    "$U/.config/prowlarr" "$U/.config/nvim" "$U/.config/torrra" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
+    "$U/.local/src/dwl/.git" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
+    "$U/.config/prowlarr" "$U/.config/nvim" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
   local name tag bins b f
   while IFS='|' read -r name _ tag _ _ bins; do
     for b in $bins; do printf '#!/bin/sh\necho "%s %s"\n' "$b" "$tag" >"$U/.local/bin/$b"; chmod 755 "$U/.local/bin/$b"; done
@@ -594,10 +596,11 @@ built() {
   cp "$REPO"/system/fonts/{SumiUI.ttf,LICENSE} "$W/usr/local/share/fonts/fedokawaii/"   # (install_faces')
   for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$W/usr/local/share/fonts/fedokawaii/UDEVGothicNF-$f.ttf"; done   # (install_term_face's)
   pin_faces
-  printf '#!/bin/bash\nfor a; do [[ $a == - ]] && { cat >/dev/null; break; }; done\nexit 0\n' >"$U/.local/share/uv/tools/torrra/bin/python"; chmod 755 "$U/.local/share/uv/tools/torrra/bin/python"
+  mkdir -p "$U/.local/bin"; printf '#!/bin/bash
+exit 0
+' >"$U/.local/bin/kawa-torrents"; chmod 755 "$U/.local/bin/kawa-torrents"
   printf 'PROWLARR_API_KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90\n' >"$U/.config/fedokawaii/secrets.sh"; chmod 600 "$U/.config/fedokawaii/secrets.sh"
   cp "$REPO/system/prowlarr.container" "$U/.config/containers/systemd/prowlarr.container"
-  printf '[general]\ndefault = "prowlarr"\n' >"$U/.config/torrra/config.toml"; sed -i 's/^\[general\]/[indexers]/' "$U/.config/torrra/config.toml"
   echo '{}' >"$U/.config/nvim/lazy-lock.json"; echo 'x' >"$U/.config/nvim/init.lua"
   printf 'static const unsigned int gappx = 5;\nstatic float bordercolor[3][4];\n' >"$U/.local/src/dwl/config.h"
   echo "ref: refs/heads/main" >"$U/.local/src/dwl/.git/HEAD"              # (a repository git can read)

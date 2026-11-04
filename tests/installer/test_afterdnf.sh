@@ -20,14 +20,14 @@ reset_calls; tk --after-dnf
 # (every step of its own went through — verify's verdict on the rest of the machine is its own)
 lacks "$OUT" "not right yet"; [[ $RC == 0 || ( $RC == 3 && $OUT == *"verify finds something"* ) ]] && _ok || _no "exit $RC: $(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "after dnf · 2 package(s) changed"; has "$OUT" "the kernels' boot images"; has "$OUT" "foot's config"
-lacks "$OUT" "dwl does not start"; lacks "$OUT" "torrra"
+lacks "$OUT" "dwl does not start"; lacks "$OUT" "torrents"
 [[ -e $W/var/lib/fedokawaii/after-dnf ]] && _no "still noted" || _ok
 grep -qE '^[0-9]+ (ok|checks)$' "$W/var/lib/fedokawaii/last-after-dnf" && _ok || _no "recorded: $(cat "$W/var/lib/fedokawaii/last-after-dnf")"
 has "$(head -n1 "$W/var/lib/fedokawaii/needs")" "wlroots 0.20" "the guard's records written again"
 has "$(cat "$W/var/lib/fedokawaii/manifest")" greetd
-case_ "a new Python: torrra and Syncplay checked against it"
+case_ "a new Python: Torrents and Syncplay checked against it"
 back built; printf '%s\n' python3 >"$W/var/lib/fedokawaii/after-dnf"
-tk --after-dnf; has "$OUT" "torrra on its Python"; has "$OUT" "Syncplay on Fedora's Python"
+tk --after-dnf; has "$OUT" "torrents on Fedora's Python"; has "$OUT" "Syncplay on Fedora's Python"
 
 case_ "Fedora's rebuild for a new libinput (a soname bump): dwl's own wlroots misses libinput.so.10 — taken again from Fedora's wlroots 0.20"
 back built; echo libinput >"$W/var/lib/fedokawaii/after-dnf"

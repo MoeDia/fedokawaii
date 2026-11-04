@@ -18,7 +18,6 @@ import time
 
 import common
 import prowlarr
-import term
 from common import cells, cut, pad, reading, size, speed, duration
 from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, Term
 

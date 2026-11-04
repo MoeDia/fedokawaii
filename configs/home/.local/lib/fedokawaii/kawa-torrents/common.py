@@ -224,11 +224,9 @@ def cut(s, n):
     if cells(s) <= n:
         return s
     used, at = 0, 0
-    for at, c in enumerate(s):
-        w = width_of(c)
-        if used + w > n:
-            break
-        used += w
+    while at < len(s) and used + width_of(s[at]) <= n:
+        used += width_of(s[at])
+        at += 1
     head = s[:at]
     word = max(head.rfind(c) for c in " -_.,/")
     return head[:word].rstrip(" -_.,/") if word >= n // 2 else head
