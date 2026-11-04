@@ -312,3 +312,20 @@ mswhql(1)mccs_ver(2.0)asset_eep(32)mpu_ver(01))
 ### 10.12 Things that needed no change
 
 `cpu0` pairs with `cpu6`, `cpu1` with `cpu7`, `cpu5` with `cpu11` (sysfs): the pinning in the design holds. `libvirt-guests.service` is installed, disabled; its man page has `ON_SHUTDOWN=shutdown` with `SHUTDOWN_TIMEOUT`. Keyboards expose several event nodes: `usb-SEMICO_USB_Gaming_Keyboard-{event-kbd,event-if01,if01-event-kbd}`, `usb-BY_Tech_Gaming_Keyboard-{event-kbd,event-if01,if01-event-mouse}`.
+
+### 10.13 From the independent review, each re-read here before use [P]
+
+Libvirt v12.0.0, QEMU v11.1.0, kernel v7.2:
+
+- **libvirt reads a hook's pipes to EOF.** `src/util/vircommand.c`, `virCommandRun()` → `virCommandProcessIO()` polls stdout and stderr before it waits. A child that inherits them keeps the hook "running" even after the hook exits; `timeout(1)` waits for its child the same way.
+- **A reboot stops at the same lock.** `drivers/base/core.c`, `device_shutdown()`: `device_lock(dev)` for every device, without a timeout. A stuck unbind holds it, so `systemctl reboot` stalls until systemd's reboot watchdog, if it fires at all.
+- **`release end` runs after a refused start too.** `src/qemu/qemu_process.c`: a failed `VIR_HOOK_QEMU_OP_PREPARE` goes to `stop`, and the stop path calls `VIR_HOOK_QEMU_OP_RELEASE` ("we can't stop the operation even if the script raised an error").
+- **A guest's restart fires no hook.** QEMU `hw/vfio/pci.c:3765`, `vfio_pci_reset()`: a reset inside the running QEMU, here a bus reset (`vfio_pci_hot_reset_one`), because the card has no FLR. AMD's installer and Windows updates restart Windows.
+- **QMP does not show grab state.** `ui/input-linux.c:495–512`: the object's properties are `evdev`, `grab_all`, `repeat`, `grab-toggle`, nothing about whether it holds the grab now.
+- **The TPM does not fit a per-domain label.** `src/qemu/qemu_tpm.c:1062`: "QEMU user needs to be able to access the socket there", `virDirCreate(swtpmStateDir, 0770, qemu_user, swtpm_group)`, with `cfg->user` (`:1328`), not the domain's label. swtpm runs as `tss` (`qemu_conf.c:224`), and `/home/dia` is 0700. So QEMU as `dia` cannot reach the socket and swtpm as `tss` cannot reach `~/VM/games/tpm`, and files owned by `tss` would resist `rm -rf` and restic. libvirt 12.0.0 reads only `qemu.conf` (no `.d` in `qemu_conf.c`); `swtpm_user`, `swtpm_group`, `user`, `group` are its settings. `qemu.conf` itself is unreadable here, so its defaults are assumed.
+- **Fedora leaves `virtqemud_t` permissive.** `permissive virtqemud_t;` in Fedora's `virt.te`, line 405. A plain hook runs today partly because of that.
+
+This PC:
+
+- **`loginctl show-user dia -p Linger`: `Linger=yes`.** PipeWire and WirePlumber run with no session, and WirePlumber holds `/dev/snd/controlC0`, `C1`, `C2` now (`/proc/<pid>/fd`). `C0` is the card's HDA (`/proc/asound/cards`).
+- **The LG's deep standby drops its hot-plug line** "~3.5 min after it went dark" (ledger, around line 4354). HDMI reading "disconnected" says nothing about the wiring.

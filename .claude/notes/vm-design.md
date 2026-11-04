@@ -12,7 +12,7 @@ the PC: the seven tests in section 3 decide the open branches, and each says whi
 | Who owns the card when the VM is off | **amdgpu, with no process holding it.** vfio-pci only while the VM runs | What nearly every working report does (R§2); the AI fixer (T47) needs the card |
 | Host compositor | **Always on the iGPU**, whether the VM runs or not | wlroots picks its renderer for its whole life; moving means losing the session. If the frame budget fails on 2 compute units against 32 (test H), this design needs rethinking |
 | Hiding the VM | **The CPUID hypervisor bit stays on, always.** No SMBIOS spoof, no MAC, ACPI or `ucode-rev` tricks. `vendor_id` and `kvm hidden` only if test O shows the card's outputs need them, and then disclosed | Clearing the bit makes Windows believe it runs on bare metal: what a cheat loader does (R§3) |
-| CS2 | **Stays on the list only if a real VAC-secured match works, with that config, unchanged.** Otherwise off, said plainly | Valve's FAQ names hypervisors (R§1); it cannot be proven from here |
+| CS2 | **Tried only with nothing hidden (O0), by him, on a spare account.** If the card needs a lever, or a match disconnects: off, said plainly | Valve's FAQ names hypervisors (R§1), it cannot be proven from here, and a green result with names hidden cannot be told from concealment |
 | Input | evdev with `grabToggle='ctrl-ctrl'`, both Ctrl keys return the keyboard to the host even if Windows hangs | A passed-through USB controller has no way back when the guest hangs |
 | Audio | HDA (`ich9`) to the host's PipeWire | **virtio-win has no sound driver** (R§5); he listens on the board's analog output `15:00.6` (R§8) |
 | Drivers | virtio-win **ISO pinned by checksum, kept in the VM's folder** | Not a Fedora package; `gpgcheck=0` is refused by F45's enforced signatures (R§5) |
@@ -30,7 +30,9 @@ card's HDMI). **Only when H, R and O pass**, one notice, with one reason line, b
 > 2. Turn it on, press Delete, go to Settings > Advanced > Integrated Graphics Configuration, set Initiate Graphic Adapter to IGD, press F10.
 > 3. If the screen stays black after that, choose HDMI with the monitor's own button, once.
 
-He does this whenever he reads it, and may stop half way, so **`start-dwl --gpu` must already work in all three states before the notice goes out**: today's wiring; cables moved with the BIOS still on PEG; both done. It takes the iGPU when its HDMI answers, else the card. In every state he must still get a desktop.
+He does this whenever he reads it, and may stop half way, so **`start-dwl --gpu` must already work in all three states before the notice goes out**: today's wiring; cables moved with the BIOS still on PEG; both done. In every state he must still get a desktop.
+
+**It never reads absence as an answer**: the LG in deep standby reads "disconnected" on every port (R§10.13), and picking the card then would give dwl no output at all, with nothing notice step 3 can do. So: a connected HDMI on the iGPU means the iGPU, a connected one on the card means the card, and neither means the last one remembered (none yet: the card). T33 decides where that memory lives; the greeter's user must be able to read it.
 
 `video=DP-1:d video=DP-2:d` can be set beforehand: nothing is on those ports until the VM, and Windows does not read Linux's arguments. `fbcon=map:1` cannot: in today's wiring it would take tty1 off the only lit screen, so it comes only with branch B2. `boot_vga` tells which state he is in, whatever was dismissed.
 
@@ -65,11 +67,11 @@ Then, from the runner, with nothing on screen (the console is on the card too):
 
 1. amdgpu bound, `power/control=on` (R§2 #6076), BAR2 per test O, `driver_override` to vfio-pci for both functions.
 2. Stage 1's Windows + the card, driver initialised: `Get-PnpDevice` through guest-exec reports OK.
-3. Stop: three ways in turn: from inside Windows, `virsh shutdown`, `virsh destroy`.
+3. Stop: three ways in turn: from inside Windows, `virsh shutdown`, `virsh destroy`. And a **restart from inside Windows**, between them: QEMU does that itself with a bus reset and no hook fires (R§10.13), and AMD's installer and Windows updates do it all the time. After it, step 2 again in the same QEMU.
 4. Unbind vfio, clear the overrides, bind amdgpu; pass = "Initialized amdgpu" and `vulkaninfo` lists the card, and `current_link_speed` still 32 GT/s (#4951).
 5. 20 cycles. A journal oops, a watchdog reboot or the runner's timer ends the run.
 
-This run has no session, so PipeWire, the compositor on the iGPU and the I2C users are not in it. **T34's 20 loops run with the session up: they prove those** (R§10.3).
+Linger keeps PipeWire running with no session, and WirePlumber holds the card's `controlC0` today (R§10.13). So the `device.disabled` rule of section 4 goes in first, or the run stalls on sound and reads as R5. The compositor on the iGPU and the I2C users are not in this run: **T34's 20 loops run with the session up, and prove those.**
 
 | Result | Design |
 |---|---|
@@ -77,6 +79,7 @@ This run has no session, so PipeWire, the compositor on the iGPU and the I2C use
 | R2: rebind fails, a new guest starts | The card stays on vfio after the first VM until the next boot. The VM always works; the AI fixer needs a reboot, and `update` says so |
 | R3: a new guest also fails; `rtcwake -m mem -s 5` recovers (#L1T, Jul 2026) | Stop = short suspend, automatic, with a line on screen; needs its own test that the lock stays out of it |
 | R4: only a power-off recovers | **One VM session per boot**, said plainly by kawa-vm; `rtcwake -m off` offered as "restart for another session" |
+| A restart inside Windows fails, while a stop and a new start pass | `<on_reboot>destroy</on_reboot>`: a restart becomes a stop, the hook does its work, kawa-vm starts it again. The same under R3 and R4, whose recovery no in-process restart can reach |
 | R5: the host hangs even once | Retry with `vfio-pci.ids=1002:7590,1002:ab40` at boot, amdgpu never touching the card (reports split both ways, R§2). A "games mode" boot toggle, as the plan foresaw. Still hangs: no VM on this card, told plainly |
 
 The kernel's August fix (R§2 #5447) makes R1 more likely than any report suggests, and nobody has tested it on a Navi 44. Expect nothing.
@@ -90,10 +93,12 @@ Step up one lever at a time, and stop at the first that passes:
 
 - O0 nothing hidden. O1 `vendor_id` only. O2 `vendor_id` + `kvm hidden`.
 - Each with BAR2 at 256 MiB and then at 8 MiB (`resource2_resize` 8 and 3, R§4), BAR0 16 GiB. `Get-PnpDevice` decides.
+- Read R's result first. Unless it is R1, each try needs a fresh card, one per boot, with a power-off between them under R4: otherwise the Code 43 of a dead card (#5644) reads as the lever's fault.
+- At each lever, `systeminfo` through guest-exec: a lever that makes Windows report no hypervisor is off the design, whatever it would fix.
 
 | Result | Design |
 |---|---|
-| O0 or O1 or O2 gives LG at 144 Hz and VRR | Native. The levers used are written in the VM's XML, in the Learn piece and in kawa-vm's about line |
+| O0 or O1 or O2 gives LG at 144 Hz and VRR | Native. The levers used are written in the VM's XML, in the Learn piece and in kawa-vm's about line. At O1 or O2, CS2 is off by default: test C |
 | Only 60 Hz or a virtual display at O2 (reports say SMBIOS spoof was needed, R§3) | **No spoof.** Looking Glass (section 5), measured with PHOTON; if its latency is not acceptable for CS2, the VM runs with what it has and he is told what is missing |
 
 ### B. The boot path (needs his cables and BIOS line; read after his first restart)
@@ -115,15 +120,17 @@ The LG advertises only `60(01 03)`, and its real input codes are unknown; `f4` a
 3. If DDC cannot return: **the signal itself.** Blank the host's HDMI (`wlr-randr` or DPMS) when the VM starts and light it when the VM stops, and see whether the LG follows a dying input to the live one (its manual was unreadable; "Auto Input Switch" exists on other UltraGears, R§7).
 4. Neither: Looking Glass, or a monitor press on rare occasions, decided by what test O said.
 
-Pass: 20 cycles both ways. A killed QEMU returns the picture in < 3 s (T34's own bar). Also read while the LG is on DP: `card1-HDMI-A-2/status`. If the LG drops hotplug when it leaves HDMI, dwl loses its only output and T02's state by name must bring the workspace back: checked here. `DP-1`, `DP-2` depend on probe order, so the names are re-checked across boots.
+Pass: 20 cycles both ways, some of them resting over 4 minutes on DP, past the LG's hot-plug drop at ~3.5 (R§10.13). A killed QEMU returns the picture in < 3 s (T34's own bar). Also read while the LG is on DP: `card1-HDMI-A-2/status`. If the LG drops hotplug when it leaves HDMI, dwl loses its only output and T02's state by name must bring the workspace back: checked here. `DP-1`, `DP-2` depend on probe order, so the names are re-checked across boots.
 
 ### C. CS2 (needs his login; last)
 
-Valve's words: "Hypervisors … please disable it while playing", ending in a disconnect, not a ban; "System hardware configurations" do not trigger bans; a mistaken ban "will automatically be removed" (R§1). A KVM player, with a custom `vendor_id` like lever O1, was banned in Nov 2023 and unbanned 11 days later, with no reason given.
+Valve's words: "Hypervisors … please disable it while playing", ending in a disconnect, not a ban; "System hardware configurations" do not trigger bans; "VAC bans are permanent, non-negotiable, and cannot be removed by Steam Support", though one issued incorrectly "will automatically be removed" (R§1). A KVM player, with a custom `vendor_id` like lever O1, was banned in Nov 2023 and unbanned 11 days later, with no reason given.
+
+**Only at O0.** If the card needed `vendor_id` or `kvm hidden`, the guest hides its hypervisor's name from every program, VAC included, whatever the reason was. A green result there cannot be told from concealment, and lever O1 is the config of that 2023 ban. So at O1 or O2 **CS2 is off the list by default**, and he is told why. Trying it anyway is his decision alone, never the agent's.
 
 - The notice tells him this in three lines, and that a free spare Steam account tries it without risking his own.
 - He signs in himself and plays casual on a VAC-secured server, twice on different days.
-- Green: CS2 stays, "not promised by Valve, works today". Red ("Disconnected by VAC"): **CS2 is off the list. Nothing is changed to get past it.**
+- Green, at O0: CS2 stays, "not promised by Valve, works today". Red ("Disconnected by VAC"): **CS2 is off the list. Nothing is changed to get past it.**
 - Then the honest one-liner: the only documented ways to play CS2 on secure servers from this PC are no hypervisor at all: CS2's native Linux client on the host, or Windows booted directly. He has ruled the first out for now; neither is built.
 
 ## 4. The VM
@@ -138,7 +145,9 @@ Outside the folder, on purpose, and removed by `kawa-vm --remove`: the libvirt d
 
 ### Domain, in `qemu:///system`
 
-PCI passthrough cannot run in a session domain; the harness's session VMs stay as they are. Per-domain DAC label as `dia` instead of editing `qemu.conf`, so the home folder and PipeWire socket are reachable; SELinux is enforcing here, so T33 reads the AVCs first (the same Fedora setup needed a small module in [WindowsKVM](https://github.com/serialexperimentslainnnn/WindowsKVM)).
+PCI passthrough cannot run in a session domain; the harness's session VMs stay as they are. **`/etc/libvirt/qemu.conf` sets `user`, `group`, `swtpm_user`, `swtpm_group` to `dia`**, so the home folder and PipeWire socket are reachable and `rm -rf` works. A per-domain label cannot do it: libvirt makes the TPM's socket directory for `cfg->user`, and swtpm as `tss` cannot cross `/home/dia` (R§10.13). This is the only domain in `qemu:///system`, so nothing else is affected; the file is the installer's, and `update`'s checks cover it.
+
+SELinux is enforcing here, so T33 reads the AVCs first (the same Fedora setup needed a small module in [WindowsKVM](https://github.com/serialexperimentslainnnn/WindowsKVM)). Fedora leaves `virtqemud_t` permissive, which is partly why a plain hook runs (R§10.13): T33 gives it an explicit label if the AVCs ask for one, and verify starts a throw-away check of the hook, so that a policy update cannot silently stop it.
 
 ```xml
 <domain type='kvm'>
@@ -194,11 +203,13 @@ PCI passthrough cannot run in a session domain; the harness's session VMs stay a
 
 `prepare begin`:
 
-1. Refuses (non-zero: the guest does not start, libvirt logs why) when an update runs (shared lock with T45), or when anything holds the card, naming the holder: `card0`, `renderD128`, `/dev/kfd`, and the card's own `/dev/i2c-N` (those under its PCI path), because one open fd there blocks amdgpu's unbind with no timeout (R§10.3).
-2. `power/control=on` for both functions; unbind `snd_hda_intel` and amdgpu; sets BAR2; `driver_override=vfio-pci`, `drivers_probe`. **Each unbind runs in a child limited to 15 s.** Past that the hook exits non-zero with a plain line: no guest, libvirt not wedged. The child stays stuck until a restart, and kawa-vm says the card needs one.
+1. Refuses (non-zero: the guest does not start, libvirt logs why) when an update runs (shared lock with T45), or when anything holds the card, naming the holder: `card0`, `renderD128`, `/dev/kfd`, the ALSA nodes under `03:00.1`, and the card's own `/dev/i2c-N` (those under its PCI path), because one open fd on a bus or a sound node blocks the unbind with no timeout (R§10.3).
+2. `power/control=on` for both functions; unbind `snd_hda_intel` and amdgpu; sets BAR2; `driver_override=vfio-pci`, `drivers_probe`. **Each unbind runs in a detached child (`setsid`, all three fds on `/dev/null`), and the hook waits for it 15 s at most.** libvirt reads a hook's pipes to EOF, so an inherited fd, or `timeout(1)`, would hang libvirt with it (R§10.13). Past the limit the hook exits non-zero with a plain line: no guest, libvirt not wedged. The child stays stuck until a restart, and `systemctl reboot` would stop at the same device lock, so kawa-vm offers `sync` and sysrq `b`.
 3. `AllowedCPUs=0,6` on `user.slice`, `system.slice`, `init.scope` (R§5).
 
-`release end`: the reverse, always, whatever the reason, also after a killed QEMU, per test R's result; it first looks for a stuck child from `prepare` and, if there is one, touches nothing. Then the display back (it must not depend on the TUI being open). `reconnect begin` exits 0 so a daemon restart does not kill the VM.
+Last, `prepare` writes a marker in `/run/kawa-vm/`.
+
+`release end`: only if that marker is there, because libvirt also calls it after a refused start (R§10.13), and "always reverse" would then suspend the PC under R3 or spend the boot's one session under R4. **First the display back**, not dependent on the TUI being open: a hung bind must not leave the LG on a dead DP. Then the reverse, per test R's result, under the same limit, whatever the reason, also after a killed QEMU. With a stuck child from `prepare`, it touches nothing and says so. `reconnect begin` exits 0 so a daemon restart does not kill the VM.
 
 ### Keeping the host away from the card
 
@@ -234,6 +245,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 | Host would idle while he plays | His keys go to QEMU, so the host sees no input: saver, lock, 5 s screens off and the **suspend after 90 s would kill the VM**. `systemd-inhibit --what=idle:sleep` for the VM's life |
 | Host suspend asked | Refused with a line, while the VM runs |
 | Session restarted while VM runs | PipeWire is gone: sound dies. kawa-vm warns before it, T20r's refresh key keeps its hands off the card |
+| The host crashes or loses power with the LG on DP | Nothing else brings the input back. At each boot, before the greeter, if no VM runs: `kawa-vm --home`, by S's mechanism. If S found none: limit 6 |
 | Update while VM runs | Refused in phase 0 (T45 already plans it). VM start during update refused. The fixer needs the card |
 | Hook half-way fails | Reverse what it did, exit non-zero: the guest never starts |
 | Daemon restart while running | `reconnect` exits 0 |
@@ -241,7 +253,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 | Windows' update changes the driver | Blocked on Pro; snapshot before updates from kawa-vm (VM off, qcow2 internal) |
 | Fedora 45's QEMU 11 | The gist's refusal needs an unowned function on the reset bus; here both are passed (R§10.5). R runs on F45 if T46 lands first |
 | Host shutdown or reboot while the VM runs | `libvirt-guests` enabled with `URIS=qemu:///system`, `ON_SHUTDOWN=shutdown`, `SHUTDOWN_TIMEOUT=60`, `ON_BOOT=ignore`, otherwise Windows' disk takes a hard stop. kawa-power says it is stopping Windows first |
-| An unbind never returns, or a bus is held | Refused at the door, naming the holder; past the 15 s limit, no guest and a plain line that the card needs a restart |
+| An unbind never returns, or a bus is held | Refused at the door, naming the holder; past the 15 s limit, no guest and a plain line, and the restart offered is sysrq's (R§10.13) |
 | A CMOS reset or BIOS update puts PEG back | Firmware returns to the DP. kawa-vm reads `boot_vga` and says so in one line |
 | A controller plugged late | kawa-vm attaches by `vendor:product` (`virsh attach-device`), learnt from `lsusb`; none is plugged in today |
 
@@ -251,7 +263,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 2. **The card might work one session per boot.** That is the bad end of test R and it may be what he gets.
 3. **The desktop runs on a GPU with 2 compute units instead of 32**, always, whether he plays or not. It is enough for 1080p and video, the numbers from H will say by how much.
 4. **While he plays**, the desktop has one core, and downloads and torrents on the host run slowly. Near-native frame rates are a measurement to come, not a claim here.
-5. **The VM may need two driver-facing names changed** (`vendor_id`, `kvm hidden`): the guest still knows it is a VM.
+5. **The VM may need two driver-facing names changed** (`vendor_id`, `kvm hidden`): Windows should still report a hypervisor, and T33 checks it at each lever. Then CS2 is off by default (test C).
 6. **A rare crash, or the boot menu, may need a press on the monitor**, if tests S and B end at those branches.
 7. **Windows needs his own licence**, and he signs in to Steam himself.
 8. **The card's logo RGB (T36)** cannot be driven from Linux while the VM has the card: OpenRGB reaches it over `i2c-6`, amdgpu's bus.
@@ -260,8 +272,8 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 
 ## 8. What changes in the plan
 
-- **T33**: `virtio-sound` → HDA + PipeWire; "Fedora's `virtio-win` package" → the pinned ISO; `qemu:///system`; stage 1 without the card, reset and outputs tests before any cable; TPM state `source` in the folder; `autounattend` per section 4; virtiofs → `import.iso`; the guest agent and the virtio input devices in the XML; `libvirt-guests`; the Windows Update policy in stage 1; `backup-exclude` as in section 4.
-- **T34**: idle and sleep inhibited for the VM's life; display return lives in the hook, not the TUI; a hung-Windows path; the `grabToggle` state readable through QMP if the display should flip with it (decide in T34); **its 20 loops with the session up** (test R has none); the holder's name in the refusal line.
+- **T33**: `virtio-sound` → HDA + PipeWire; "Fedora's `virtio-win` package" → the pinned ISO; `qemu:///system` with `qemu.conf`'s four settings; stage 1 without the card, reset and outputs tests before any cable; TPM state `source` in the folder; `autounattend` per section 4; virtiofs → `import.iso`; the guest agent and the virtio input devices in the XML; `libvirt-guests`; the Windows Update policy in stage 1; `backup-exclude` as in section 4.
+- **T34**: idle and sleep inhibited for the VM's life; display return lives in the hook, not the TUI; a hung-Windows path; a host key that flips the display after `grabToggle` (QMP shows no grab state, R§10.13); **its 20 loops with the session up**, plus restarts from inside Windows; the holder's name in the refusal line; `kawa-vm --home` at boot; the restart through sysrq after a stuck unbind.
 - **T35**: unchanged, but only after C is answered: he might want CS2 on Linux after all. T35's title stands, though the question is his.
 - **T36**: the logo's RGB goes through amdgpu's I2C (`i2c-6`): only while the VM is off, and never with the bus left open.
 - **T38**: capabilities work with `--sleep-multiplier 2` (string in R§7); the input question moves to test S. Note `60(01 03)`. After the move, DDC is on the iGPU's bus: `kawa-display` must not assume `i2c-5`.
@@ -269,4 +281,4 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 - **T45/T47**: the shared lock; the fixer's unit in the card's group.
 - **T06**: re-issue once, with section 2's text.
 - **T50**: the Learn piece on rollback names the monitor's button if B ends at B3.
-- **Host today**: `start-dwl --gpu` picks by VRAM → by config, resolved from the PCI address (R§7), and passes all three states of section 2.
+- **Host today**: `start-dwl --gpu` picks by VRAM → by config, resolved from the PCI address (R§7), and passes all three states of section 2, never reading "disconnected" as an answer.
