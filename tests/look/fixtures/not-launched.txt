@@ -142,6 +142,7 @@ qpdf                            a command: PDF tools
 poppler-utils                   commands: PDF tools
 nss                             a library: FireAlpaca's web view (Sketch)
 ghostscript                     a command: PDF compression
+stockfish                       kawa-chess runs it, only while it is needed
 tesseract                       a command: text from scans
 tesseract-langpack-eng          tesseract's English
 tesseract-langpack-ara          tesseract's Arabic
@@ -236,3 +237,5 @@ kawa-warm                       the warm windows (notes, clipboard, system): the
 kawa-wash                       the theme switch's and a new wallpaper's transition: dwl draws it
 kawa-volume                     the volume keys
 kawa-weather                    a menu: the bar's weather
+kbd                             chvt: the screen back on the desktop when the play world ends
+xprop                           FreeSync held on in the play world's gamescope (kawa-asobi-world)

@@ -1051,7 +1051,7 @@ class LessonScreen(Screen):
             if got is None or got == c:
                 cell = self.letters.cell(shown, ink['faint'])
             else:
-                cell = self.letters.cell('·' if c == ' ' else shown, ink['text_on_select'], ink['select'])
+                cell = self.letters.cell('·' if c == ' ' else shown, ink['text_on_lacquer'], ink['lacquer'])
         elif i == self.pacer_cell:
             cell = self.letters.cell(shown, ink['text'], ink['edge2'])
         elif c == '\n':

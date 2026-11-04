@@ -324,8 +324,8 @@ setup; stub systemctl
 KAWA_LOCK_SLEEP=1 kawa-lock; /bin/sleep 1.5; not_called '^systemctl'
 case_ "the key and the power menu's lock ask for it (--sleep); the power menu's sleep and the Sleep key do not wait"
 grep -q 'XKB_KEY_Escape, *spawn, *SHCMD("kawa-lock --sleep")' "$REPO/src/dwl/config.h" && _ok || _no "Super+Escape"
-grep -q '1) exec kawa-lock --sleep ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu lock"
-grep -q '2) sleep_now ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu sleep"
+grep -q '0) exec kawa-lock --sleep ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu lock"
+grep -q '1) sleep_now ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu sleep"
 grep -q 'sleep) sleep_now; exit ;;' "$REPO/bin/kawa-power" && _ok || _no "the Sleep key (kawa-power sleep)"
 grep -q 'kawa-lock --now || ' "$REPO/bin/kawa-power" && _ok || _no "kawa-power sleeps only once kawa-lock has locked (on dark screens)"
 

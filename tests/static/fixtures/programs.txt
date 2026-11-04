@@ -55,6 +55,7 @@ sleep               minimal   coreutils
 sort                minimal   coreutils
 stat                minimal   coreutils
 stdbuf              minimal   coreutils
+stockfish           manifest  stockfish         # kawa-chess (lib engine.py): /usr/bin/stockfish, Fedora 44 updates
 stty                minimal   coreutils
 sync                minimal   coreutils
 tail                minimal   coreutils

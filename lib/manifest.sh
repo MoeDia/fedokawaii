@@ -125,6 +125,7 @@ PKG_LOOK=(
   terminus-fonts-console          # the text console's font (Terminus bold, theme.sh)
 )
 PKG_APPS=(
+  stockfish             # chess: the opponent and the reviewer of kawa-chess (Super+U → learning), its net inside the binary
   brave-origin claude-code                          # browser, AI (vendor repos)
   gh                                                # GitHub from the terminal: sign in once (gh auth login),
                                                     #   then clone, pull requests, issues, releases

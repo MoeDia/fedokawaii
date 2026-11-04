@@ -697,7 +697,6 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
   esac
 }
 # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
-SOON='chess|typing'         # (each its row only once its program is there: Super+U has no row that says "soon")
 PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
@@ -751,8 +750,8 @@ rows() {
   e backups   stick     "${ICON_USB:-·}"        "the installer"        ""
   e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
   e learning  learn     "${ICON_BOOK:-·}"       lessons                "$(learn_place)"
-  command -v kawa-chess >/dev/null && e learning chess "${ICON_KNIGHT:-·}" chess ""
-  command -v kawa-typing >/dev/null && e learning typing "${ICON_KEYBOARD:-·}" typing ""
+  [[ -n $desk ]] && e learning chess "${ICON_KNIGHT:-·}" chess ""
+  [[ -n $desk ]] && e learning typing "${ICON_KEYBOARD:-·}" typing ""   # (it draws in foot: not on a text console)
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
@@ -843,9 +842,7 @@ fit_rows() {
   num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 3))
   run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
-    if [[ $a == @($SOON) ]]; then
-      row=$(screen_row "${INK_FAINT:-}$g" "${INK_FAINT:-}$l${INK_OFF:-}" "${INK_FAINT:-}soon${INK_OFF:-}" "$W")
-    else row=$(screen_row "$g" "$l" "$m" "$W"); fi
+    row=$(screen_row "$g" "$l" "$m" "$W")
     fr=""
     for f in $HG_FRAMES; do
       if [[ $a == "${run:-}" ]]; then fr+=$'\t'$(screen_row "$f" "$l" "$m" "$W"); else fr+=$'\t'$row; fi
@@ -887,7 +884,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|held|verify|repair|snapshots|file|backup|restore|drive|carry|stick|bring|theme|drift|change|settings|remind|log|keys|learn|asobi|$SOON) ]] || return 0
+  [[ $a == @(status|update|held|verify|repair|snapshots|file|backup|restore|drive|carry|stick|bring|theme|drift|change|settings|remind|log|keys|learn|asobi|chess|typing) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -1038,10 +1035,13 @@ explain() {
     learn)     pick 'running'; learn_rows
                say "the book, in lessons you do one by one," \
                    "beside a terminal." ;;
-    chess)     soon "chess from the first move to 1800: games," \
-                    "puzzles, lessons." ;;
-    typing)    soon "touch typing, finger by finger, to 100 words" \
-                    "a minute." ;;
+    chess)     pick 'running'
+               say "chess from the first move to 1800: a lesson," \
+                   "two games with their reviews, ten minutes of" \
+                   "puzzles, day after day. enter: today's." ;;
+    typing)    say "touch typing, finger by finger, to 100 words" \
+                   "a minute." ""
+               while IFS= read -r l; do say "$l"; done < <(kawa-typing --status 2>/dev/null) ;;
   esac
 }
 
@@ -1141,6 +1141,8 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
     asobi)     setsid -f kawa-asobi --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own window)
     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
+    typing)    setsid -f kawa-term --float --once typing --dialog typing 79x38 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;
+    chess)     setsid -f kawa-chess --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (a window of its own)
     learn)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
                  local why; why=$(learn 2>&1) || notify-send -a desktop -u critical -- "${ICON_BOOK:-·}  lessons" "${why#  }"
                  return 0
@@ -1368,7 +1370,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     # (what opens a window of its own — the lessons, the key sheet, the settings — starts it
     # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
     # never a blank terminal first; the list starts afresh behind the scenes)
-    launch="learn|keys|change|asobi) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
+    launch="learn|keys|change|asobi|chess|typing) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
     rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
   fi
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
@@ -1404,7 +1406,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     --bind="click-header:execute-silent($self --tab click \$FZF_CLICK_HEADER_COLUMN \$FZF_CLICK_HEADER_LINE)+$go" \
     --bind="j:down,k:up,l:execute-silent($self --tab +1)+$go,h:execute-silent($self --tab -1)+$go,q:${away}abort" \
     --bind="esc,ctrl-c,ctrl-g,ctrl-q:${away}abort" \
-    --bind="enter:transform:case {1} in $PANE_ONLY|$SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+    --bind="enter:transform:case {1} in $PANE_ONLY) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys|chess${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
   local rc=$?; rm -f -- "$FK_TAB"; return "$rc"
 }
 
@@ -1414,7 +1416,7 @@ ascii() {   # for a text console whose font may lack them: plain stand-ins
 menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
   local acts=() names=() s a g l m i c
   while IFS=$'\t' read -r s a g l m; do
-    [[ $a == @($PANE_ONLY|$SOON) ]] && continue   # (what is not built yet, or only a pane: not offered)
+    [[ $a == @($PANE_ONLY) ]] && continue   # (only a pane: not offered)
     acts+=("$a"); names+=("$l")
   done < <(rows | sed 's/\x1b\[[0-9;]*m//g')
   while :; do

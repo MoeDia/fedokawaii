@@ -19,7 +19,7 @@ from PIL import Image, ImageDraw, ImageFont
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 OUT = os.path.join(ROOT, 'configs/home/.local/lib/fedokawaii/kawatype')
 TOKENS = ('ground', 'surface', 'key', 'edge', 'edge2', 'hi', 'lo', 'faint', 'muted', 'text', 'strong', 'accent', 'accent_hi',
-          'accent_lo', 'accent_text', 'text_on_accent', 'select', 'text_on_select', 'select_lo', 'lit', 'lit_text', 'asagi', 'flame',
+          'accent_lo', 'accent_text', 'text_on_accent', 'lacquer', 'text_on_lacquer', 'lit', 'lit_text', 'asagi', 'flame',
           'gold', 'yellow', 'teal', 'paper_mark', 'paper_folder', 'paper_git', 'paper_time')
 
 

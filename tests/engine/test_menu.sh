@@ -125,15 +125,9 @@ for a in update snapshots remind; do
 done
 has "$(row update)" "in 4 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 14 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; eq "$(row upgrade)" "" "the move is the update's: no row of its own"
-case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
-for a in chess typing; do
-  l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
-  has "$l" $'\e[38;5;22m' "$a: faint"; [[ $(plain "$l") == *" soon" ]] && _ok || _no "$a: no soon: $(plain "$l")"
-  has "$(plain "$(fedokawaii --explain "$a")")" "not yet" "$a: the pane says so"
-done
 case_ "rows: away from the desktop (a text console, ssh) — change, keys and the to-do are screens of the desktop"
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
-eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "learn chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
+eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "learn " "(the to-do is the notes' window: the desktop's, as change and keys)"
 case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
 eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update held "
 eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
@@ -213,13 +207,13 @@ case_ "…nor a way in by name: --run todo runs nothing, --explain todo is empty
 fresh; stub kawa-notes
 WAYLAND_DISPLAY=wayland-1 fedokawaii --run todo </dev/null; not_called 'kawa-notes'
 eq "$(fedokawaii --explain todo 2>&1)" ""
-has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY|\$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
+has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys|chess\${pop}) echo '\${away}become("
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the lessons, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; learn\\|keys\\|change\\|asobi\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
-called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|carry\|bring\|settings\|log\) echo .become\('
-reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
+called "enter:transform:case \\{1\\} in held\\|typing\\) ;; learn\\|keys\\|change\\|asobi\\|chess\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|chess\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|carry\|stick\|bring\|settings\|log\) echo .become\('
+reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\|chess\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
 case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
 reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null

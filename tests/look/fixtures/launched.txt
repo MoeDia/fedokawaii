@@ -44,6 +44,7 @@ kawa-asobi             kawa-asobi                              kawa-asobi
 kawa-torrents          kawa-torrents                           kawa-torrents
 kawa-backup            kawa-backup                             kawa-backup
 kawa-books             kawa-books                              kawa-books
+kawa-chess             kawa-chess                              kawa-chess
 kawa-clip              kawa-clip                               kawa-clip
 kawa-git               kawa-git                                kawa-git
 kawa-learn             kawa-learn                              kawa-learn

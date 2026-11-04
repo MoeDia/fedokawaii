@@ -58,6 +58,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Reading | zathura (+ mupdf, cb) | F | PDF, EPUB, CBZ; the books window's comic covers and page counts come from 7z (Files' 7zip; a RAR comic's from unrar) |
 | Drawing | FireAlpaca (Sketch) | official | the official Linux build from firealpaca.com, unpacked by you (lib/upstream.sh), dressed by src/kawa-firealpaca; brushes, layers, stabiliser, snaps, the pen's pressure |
 | Sketch's system part | nss | F | the one library FireAlpaca's bundle takes from the system that nothing else here brings (its web view) |
+| Chess | stockfish | F | the opponent and the reviewer of the chess course (`kawa-chess`, Super+U → learning): it runs only while it is needed |
 | PDF tools | qpdf · poppler-utils · ghostscript · xournalpp | F | merge, split, rotate, password · images and text out · compress · annotate and sign |
 | Text from pictures (OCR) | tesseract (+ English, Arabic) | F | scans and screenshots to text, and searchable PDFs |
 | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |

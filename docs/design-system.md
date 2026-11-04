@@ -177,7 +177,7 @@ word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under an
   (×2 is display only, so that step is a larger face, chosen and drawn, never a scaled one).
 - **Display size** — the one exception: Sumi UI at a whole multiple of 14 px, never smoothed:
   ×2 (28 px) for the boot splash, the boot menu (GRUB), the installer's screens and the calculator's
-  answer (§4). The lock's quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
+  answer (§4). The words typed in the typing app stand at ×2 beside its keyboard at ×2 and ×3, at ×1 beside it at ×1 (the letter on the screen is the letter on the key), its speed at ×3. The lock's quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
 - **Sumi Term** is UDEV Gothic NF installed as it comes (`lib/upstream.sh`, its files pinned by
   SHA-256; "UDEV Gothic" is its licence's reserved name) and named "Sumi Term" by fontconfig's
   alias (`system/60-fedokawaii-pixel.conf`), drawn smoothed in grey with light hinting. In
@@ -553,6 +553,18 @@ content, inside its margin of one cell:
   — then a space, `›` and a space. A narrow window gives up the time, the jobs, the branch, the folder above, then the
   folder's end (`tools/build-themes.py` writes the papers; `configs/home/.bashrc.d/` draws it).
 
+- **The typing app** (`kawa-typing`, sixel tiles in foot, §4's parts in pixels). One stage on every screen: one column, the keyboard
+  (his K617, 61 keys) and the hands (the demon's on the dark, the angel's on the light) at its foot, on the same pixels on home,
+  in a lesson and on its result; what the screen is about stands over them, a row of words between; the window 79 × 38. One
+  drawing, on a grid where a key is 20 × 20 — a row, the em on its rows 3–16, the capitals on 5–14 — shown whole at ×1, ×2 or ×3,
+  whichever the window has room for; a window too small loses the hands, then the keyboard. A finger's colour is its nail's and
+  the lit key's: Wada's four papers (§1: little `paper_mark`, ring `paper_folder`, middle `paper_git`, index `paper_time`, the
+  same on both hands), a thumb `gold`; on them the ink of the prompt's papers. Typed words `faint`; a wrong one on the lacquer
+  (`select`); the caret a vermilion block, its letter `text_on_accent`. A key held on the real keyboard goes down a pixel (× the
+  multiple) and loses its lip; a wrong key `accent` until let go. A heading's rule burns in `accent_text` as the lesson goes. A
+  clean run lifts embers from the demon's hands, petals from the angel's. Seals are stamped one after another 140 ms apart (§11's
+  stamp), a flame in them on the dark, a lotus on the light.
+
 ## 8. The bar
 
 紙 kami: no bar — tiles of washi floating along the top of the wallpaper (the owner, 4 Nov 18:07: fully floating, no band
@@ -784,9 +796,11 @@ numbers here against its files.
 | help | Super+/ | `bin/kawa-help` | T23 |
 | torrents | the launcher, a magnet link, the bar's mark | `bin/kawa-torrents` (`.local/lib/fedokawaii/kawa-torrents`) | T29 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
+| typing | Super+U, learning | `bin/kawa-typing` (`configs/home/.local/lib/fedokawaii/kawatype`) | T26b |
 | the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
 | the lessons | Super+U → learning, the launcher | `bin/kawa-learn`, cut by `tools/learn-pieces.py` | T27 |
 | Sketch (FireAlpaca): its menus, panels, lists, meters, tool strip, both moods | the launcher | `src/kawa-firealpaca` (loaded into it), `tools/firealpaca_skin.py` (its sheet, inks and pictures, in `themes/`), `art/firealpaca-icons.txt`, `art/firealpaca-parts.txt`, `configs/firealpaca/` | T28 |
+| chess: the board (sixels), its men, its panel | Super+U → learning, the launcher | `bin/kawa-chess`, `.local/lib/fedokawaii/kawa-chess`, `.local/share/fedokawaii/chess` (inks: `tools/build-chess-inks.py`) | T25b |
 
 ## 15. The grill list
 
