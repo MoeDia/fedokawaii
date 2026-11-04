@@ -1511,14 +1511,14 @@
  {
 -	Client *c;
 +	/* the latest focused of the windows shown on m — a full-screen one first: it covers
-+	 * the screen, so a window it hides (Steam's, on every workspace) never takes the keys
-+	 * from it on a return to its workspace */
++	 * the screen, so a window it hides never takes the keys from it on a return to its
++	 * workspace; but a popup opened over it keeps them (it floats above, or it would close) */
 +	Client *c, *top = NULL;
  	wl_list_for_each(c, &fstack, flink) {
 -		if (VISIBLEON(c, m))
 +		if (!VISIBLEON(c, m))
 +			continue;
-+		if (c->isfullscreen)
++		if (c->isfullscreen || (!top && ispopup(c)))
  			return c;
 +		if (!top)
 +			top = c;
@@ -1759,7 +1759,7 @@
  
  	c->foreign_toplevel_handle = wlr_ext_foreign_toplevel_handle_v1_create(
  			foreign_toplevel_list, &foreign_toplevel_state);
-@@ -1932,7 +2928,40 @@ mapnotify(struct wl_listener *listener,
+@@ -1932,12 +2928,45 @@ mapnotify(struct wl_listener *listener,
  	} else {
  		applyrules(c);
  	}
@@ -1800,6 +1800,12 @@
  
  unset_fullscreen:
  	m = c->mon ? c->mon : xytomon(c->geom.x, c->geom.y);
+ 	wl_list_for_each(w, &clients, link) {
+-		if (w != c && w != p && w->isfullscreen && m == w->mon && (w->tags & c->tags))
++		if (w != c && w != p && !ispopup(c) && w->isfullscreen && m == w->mon && (w->tags & c->tags))
+ 			setfullscreen(w, 0);
+ 	}
+ }
 @@ -1961,24 +2990,6 @@ maximizenotify(struct wl_listener *liste
  }
  
