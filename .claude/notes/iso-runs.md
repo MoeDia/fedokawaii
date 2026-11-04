@@ -19,3 +19,14 @@ Times from the clock of the PC, 4 Nov 2026. The PC is shared by about twenty age
 `fedokawaii verify` with the session up: **exit 0, 255 checks passed** (19:14:12, ~/VM/iso/vm/r27-iso/run/verify.log). `mokutil --sb-state`: SecureBoot enabled. `/etc/systemd/system/fedokawaii-resume.service*` and `/var/lib/fedokawaii/first-boot`: gone. No password hash in `/var/log/anaconda`, `/root` or `fk-post.log`.
 
 What it found, each fixed and re-proven in the later runs: see lane-iso.md.
+
+## The matrix: what ends before a disk is touched (tools/vm-iso-test.sh matrix; small VMs, one at a time; the words read from the screen exactly, by tools/iso-shot.py)
+
+| Case | Result | What the screen says |
+|---|---|---|
+| 20 GiB disk | green, 87 s | no disk large enough: "the largest disk inside this PC holds 21 GB. fedokawaii needs 60 GB." |
+| network cable out | green, 133 s | no network: "no cable: no wired network is connected. fedokawaii installs from the network, over a wire." |
+| BIOS firmware | green, 102 s | this PC started without UEFI: "turn on UEFI in the PC's firmware settings (CSM or legacy off)…" |
+| 3 GiB of memory | green, 143 s | not enough memory |
+
+Two builds of one commit: the same bytes (`cmp`, 18:43, sha256 ddb53165…). Kickstart with its answers: strict parse with pykickstart 3.78, `F45` handler, warnings as errors.
