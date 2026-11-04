@@ -168,4 +168,47 @@ rc 2 kawa-display --hotplugg
 rc 2 kawa-display 144
 eq "$(sets)" ""
 
+# ── the monitor's own menu ──────────────────────────────────────────────────
+# lg BUS — a monitor on a DRM connector with this EDID head (GSM, product 0x5CDD), and the conf
+lg() {
+  setup; export DDC=$TMP/ddc KAWA_SYSFS=$TMP/sys DDC_BUSES=$1; mkdir -p "$DDC"
+  stub ddcutil 'exec bash '"$SD"'/fake_ddcutil "$@"'; stub logger; stub kawa-brightness
+  local c=$TMP/sys/class/drm/card0-HDMI-A-1
+  mkdir -p "$c" "$TMP/sys/class/i2c-$1"; echo connected >"$c/status"; ln -s "../../i2c-$1" "$c/ddc"
+  printf '\0\377\377\377\377\377\377\0\036\155\335\134' >"$c/edid"
+  : >"$DDC/log"
+  cat >"$HOME/.config/fedokawaii/monitor.conf" <<'EOF'
+# a comment
+GSM5CDD 12 70
+GSM5CDD 14 x01 xde
+XXX0000 87 99
+EOF
+  echo 70 >"$DDC/c$1.12"; echo xde >"$DDC/c$1.14"; echo 50 >"$DDC/c$1.87"
+}
+sets_ddc() { grep -c ' setvcp ' "$DDC/log"; }
+case_ "--monitor: everything as it should be: read, not written, nothing in the journal; the level goes to the bar"
+lg 5; rc 0 kawa-display --monitor
+eq "$(sets_ddc)" 0; not_called '^logger'; called '^kawa-brightness --reread'
+case_ "--monitor: a value that differs is written, read back and said once"
+lg 5; echo 50 >"$DDC/c5.12"; rc 0 kawa-display --monitor
+eq "$(sets_ddc)" 1; eq "$(cat "$DDC/c5.12")" 70; called '^logger -t kawa-display -- monitor.s menu: GSM5CDD 12: 50 → 70$'
+case_ "--monitor: a preset that reads back as something else (the LG's sRGB: x01 reads xde): settled, then quiet"
+lg 5; echo x0b >"$DDC/c5.14"; echo 'x01 xde' >"$DDC/reads.14"; rc 0 kawa-display --monitor
+eq "$(sets_ddc)" 1; eq "$(cat "$DDC/c5.14")" xde; called 'GSM5CDD 14: x0b → xde$'
+: >"$DDC/log"; : >"$CALLS"; rc 0 kawa-display --monitor; eq "$(sets_ddc)" 0; not_called '^logger'
+case_ "--monitor: it does not take: said so, in the journal"
+lg 5; echo 50 >"$DDC/c5.12"; printf '70 50\n' >"$DDC/reads.12"; rc 0 kawa-display --monitor
+called 'GSM5CDD 12: 50 → 50, wanted 70$'
+case_ "--monitor: a code that does not answer: said, and the others still looked at"
+lg 5; rm "$DDC/c5.12"; echo x0b >"$DDC/c5.14"; echo 'x01 xde' >"$DDC/reads.14"; rc 0 kawa-display --monitor
+called 'GSM5CDD 12: no answer'; eq "$(cat "$DDC/c5.14")" xde
+case_ "--monitor: another model's lines never touch this one; another monitor: nothing written"
+lg 5; rc 0 kawa-display --monitor; eq "$(grep -c ' getvcp 87' "$DDC/log")" 0
+sed -i 's/^GSM5CDD/GSM0000/' "$HOME/.config/fedokawaii/monitor.conf"; : >"$DDC/log"; rc 0 kawa-display --monitor; eq "$(cat "$DDC/log")" ""
+case_ "--monitor: no conf: nothing; a disconnected connector: nothing asked"
+lg 5; rm "$HOME/.config/fedokawaii/monitor.conf"; rc 0 kawa-display --monitor; eq "$(cat "$DDC/log")" ""; not_called '^kawa-brightness'
+lg 5; echo disconnected >"$TMP/sys/class/drm/card0-HDMI-A-1/status"; rc 0 kawa-display --monitor; eq "$(cat "$DDC/log")" ""
+case_ "--monitor: the repo's conf: this LG's model, codes the monitor offers, and never a factory reset or a private code"
+bad=$(grep -vE '^(#|$)' "$REPO/configs/home/.config/fedokawaii/monitor.conf" | awk '$1 != "GSM5CDD" || $2 !~ /^(12|14|16|18|1A|6C|6E|70)$/')
+eq "$bad" ""
 done_

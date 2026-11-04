@@ -29,7 +29,6 @@ kawa-calc              kawa-calc                               kawa-calc
 btop                   btop                                    btop
 visidata               kawa-tables                             vd
 gdu                    kawa-disk                               gdu
-openrgb                pkg:org.openrgb.OpenRGB.desktop
 restic                 kawa-backup                             restic
 steam                  steam                                   steam
 # release binaries (lib/upstream.sh)

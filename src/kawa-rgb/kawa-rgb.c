@@ -71,6 +71,7 @@ static char *at(const char *fmt, ...)
 static const char *CONF = "/etc/fedokawaii/rgb.conf";
 static const char *MOOD = "/var/lib/fedokawaii-greeter/theme";
 static const char *STATUS = "/run/kawa-rgb/status";
+static const char *BASE_MARK = "/var/lib/fedokawaii/rgb-baseline";
 
 static int slurp(const char *path, char *out, size_t n)
 {
@@ -139,13 +140,15 @@ static bool regular(int fd)
     struct stat st;
     return fstat(fd, &st) == 0 && S_ISREG(st.st_mode);
 }
+static int appended(int fd, const uint8_t *buf, size_t n)
+{
+    lseek(fd, 0, SEEK_END);
+    return write(fd, buf, n) == (ssize_t)n ? 0 : -1;
+}
 static int feature_set(int fd, const uint8_t *buf, size_t n)
 {
-    if (regular(fd)) {
-        if (write(fd, buf, n) != (ssize_t)n)
-            return -1;
-        return 0;
-    }
+    if (regular(fd))
+        return appended(fd, buf, n);
     uint8_t tmp[1100];
     memcpy(tmp, buf, n);
     return ioctl(fd, HIDIOCSFEATURE(n), tmp) < 0 ? -1 : 0;
@@ -154,23 +157,20 @@ static int feature_get(int fd, uint8_t rid, uint8_t *buf, size_t n)
 {
     memset(buf, 0, n);
     buf[0] = rid;
-    if (regular(fd)) {
-        lseek(fd, 0, SEEK_SET);
-        ssize_t r = read(fd, buf, n);
-        lseek(fd, 0, SEEK_END);
-        return r > 0 ? (int)r : (int)n;
-    }
+    if (regular(fd))
+        return pread(fd, buf, n, 0) > 0 ? (int)n : -1;
     return ioctl(fd, HIDIOCGFEATURE(n), buf);
 }
 static int report_out(int fd, const uint8_t *buf, size_t n)
 {
+    if (regular(fd))
+        return appended(fd, buf, n);
     return write(fd, buf, n) == (ssize_t)n ? 0 : -1;
 }
 static int i2c_xfer(int fd, uint16_t addr, uint16_t flags, uint8_t *buf, uint16_t n)
 {
     if (regular(fd))
-        return flags & I2C_M_RD ? (memcpy(buf, "\x01\x01\x01\x01", n < 4 ? n : 4), 0)
-                                : (write(fd, buf, n) == n ? 0 : -1);
+        return flags & I2C_M_RD ? (memcpy(buf, "\x01\x01\x01\x01", n < 4 ? n : 4), 0) : appended(fd, buf, n);
     struct i2c_msg msg = {.addr = addr, .flags = flags, .len = n, .buf = buf};
     struct i2c_rdwr_ioctl_data rd = {.msgs = &msg, .nmsgs = 1};
     return ioctl(fd, I2C_RDWR, &rd) < 0 ? -1 : 0;
@@ -603,6 +603,176 @@ static int run(const char *trace_path)
     return 0;
 }
 
+/* ── the baseline: what each device does by itself, from power-on, until the service runs ──
+ * Red and breathing, in the hardware's own memory. Each is read first and written only when it
+ * differs: flash wears. The K617's blocks are read, patched and written back whole, never from a
+ * template: what they hold besides the effect is its own (fizzctl's frames carry someone else's) */
+#define K617_BLOCK 1032
+static const struct { const char *name; uint8_t select[6]; uint8_t head[5]; } K617_BLOCKS[] = {
+    {"mode",    {0x05, 0x88, 0xb8, 0, 0, 0}, {0x06, 0x08, 0xb8, 0x00, 0x40}},
+    {"canvas",  {0x05, 0x89, 0xbc, 0, 0, 0}, {0x06, 0x09, 0xbc, 0x00, 0x40}},
+    {"routing", {0x05, 0x89, 0xc0, 0, 0, 0}, {0x06, 0x09, 0xc0, 0x00, 0x40}},
+    {"exec",    {0x05, 0x83, 0xb6, 0, 0, 0}, {0x06, 0x03, 0xb6, 0x00, 0x00}},
+};
+#define K617_MODE 0
+#define K617_EXEC 3
+#define K617_RESPIRE 0x02
+static void ms(long n)
+{
+    struct timespec t = {n / 1000, (n % 1000) * 1000000L};
+    nanosleep(&t, NULL);
+}
+static int k617_read(int fd, uint8_t blocks[4][K617_BLOCK])
+{
+    for (int i = 0; i < 4; i++) {
+        uint8_t raw[K617_BLOCK];
+        if (feature_set(fd, K617_BLOCKS[i].select, 6))
+            return -1;
+        ms(60);
+        int n = feature_get(fd, 0x06, raw, sizeof raw);
+        if (n < 64)
+            return -1;
+        memset(blocks[i], 0, K617_BLOCK);
+        memcpy(blocks[i], raw, (size_t)n);
+        memcpy(blocks[i], K617_BLOCKS[i].head, 5);
+        ms(60);
+    }
+    return 0;
+}
+static int k617_baseline(const uint8_t rgb[3])
+{
+    char name[32];
+    int fd = hidraw_find(0x258A, 0x0049, 1, name, sizeof name);
+    if (fd < 0) {
+        puts("keyboard: not here");
+        return 0;
+    }
+    static uint8_t now[4][K617_BLOCK], want[4][K617_BLOCK];
+    if (k617_read(fd, now)) {
+        puts("keyboard: could not read its memory, left alone");
+        close(fd);
+        return 1;
+    }
+    memcpy(want, now, sizeof want);
+    uint8_t *mode = want[K617_MODE], *ex = want[K617_EXEC];
+    if (ex[14] != 0x5a || ex[15] != 0xa5) {      /* (its commit mark: anything else is not this firmware's block) */
+        puts("keyboard: its memory is not as expected, left alone");
+        close(fd);
+        return 1;
+    }
+    memcpy(mode + 218, rgb, 3);                  /* the single colour */
+    memcpy(mode + 29, rgb, 3);
+    ex[21] = K617_RESPIRE;
+    ex[38 + 2 * (K617_RESPIRE - 1)] = 0x00;      /* its "many colours" flag off */
+    ex[39] = 0x03;                               /* speed 1 (stored 0), brightness 3 of 4 */
+    ex[39 + 2 * (K617_RESPIRE - 1)] = 0x03;
+    if (!memcmp(now, want, sizeof want)) {
+        puts("keyboard: as it should be");
+        close(fd);
+        return 0;
+    }
+    uint8_t init[6];
+    memcpy(init, K617_BLOCKS[K617_EXEC].select, 6);
+    uint8_t scratch[K617_BLOCK];
+    int r = feature_set(fd, init, 6);
+    ms(60);
+    if (feature_get(fd, 0x06, scratch, sizeof scratch) < 0)       /* (without this read it ignores the burst) */
+        r = -1;
+    ms(60);
+    for (int i = 0; i < 4 && !r; i++) {
+        r = feature_set(fd, want[i], K617_BLOCK);
+        ms(60);
+    }
+    if (r) {
+        puts("keyboard: the write failed");
+        close(fd);
+        return 1;
+    }
+    ms(200);
+    bool same = k617_read(fd, now) == 0 && !memcmp(now[K617_EXEC], want[K617_EXEC], 64)
+                && !memcmp(now[K617_MODE] + 218, rgb, 3);
+    puts(same ? "keyboard: written, read back equal" : "keyboard: written, but it reads back differently");
+    close(fd);
+    return same ? 0 : 1;
+}
+static int msi_baseline(const uint8_t rgb[3])
+{
+    struct light l = {.fd = -1, .urbs = -1};
+    if (msi_open(&l)) {
+        puts("motherboard: not here");
+        return 0;
+    }
+    uint8_t want[185];
+    memcpy(want, l.tmpl, sizeof want);
+    msi_zones(want, rgb, 2, 10, 0);              /* breathing, slowest */
+    want[184] = 0;
+    if (!memcmp(want, l.tmpl, sizeof want)) {
+        puts("motherboard: as it should be");
+        close(l.fd);
+        return 0;
+    }
+    want[184] = 1;                               /* save_data: to its flash */
+    uint8_t old[185];
+    memcpy(old, l.tmpl, sizeof old);
+    old[184] = 1;
+    /* (as MSI's own software does: the old state, then the new) */
+    int r = feature_set(l.fd, old, sizeof old);
+    r |= feature_set(l.fd, want, sizeof want);
+    ms(100);
+    uint8_t back[185];
+    bool same = !r && feature_get(l.fd, 0x52, back, sizeof back) == (int)sizeof back && !memcmp(back + 1, want + 1, 183);
+    puts(same ? "motherboard: written, read back equal" : "motherboard: written, but it reads back differently");
+    close(l.fd);
+    return same ? 0 : 1;
+}
+static int gpu_baseline(const uint8_t rgb[3])
+{
+    struct light l = {.fd = -1, .urbs = -1};
+    if (gpu_open(&l)) {
+        puts("card: not here");
+        return 0;
+    }
+    /* it answers nothing about its colour: a mark says what it was last given */
+    char mark[32], was[32] = "";
+    snprintf(mark, sizeof mark, "%02x%02x%02x pulse\n", rgb[0], rgb[1], rgb[2]);
+    if (slurp(at("%s", BASE_MARK), was, sizeof was) >= 0 && !strcmp(was, mark)) {
+        puts("card: as it was last set");
+        close(l.fd);
+        return 0;
+    }
+    int r = 0;
+    for (uint8_t z = 0; z < 6 && !r; z++) {      /* (all six, as Gigabyte's own software does) */
+        uint8_t h[] = {0x12, 0x01, 0x02, 0x01, 0x0a, rgb[0], rgb[1], rgb[2], 0x00, z, 0x00};
+        r = gpu_write(l.fd, h, sizeof h);
+        ms(120);
+    }
+    uint8_t save[] = {0x13, 0x01};
+    r |= gpu_write(l.fd, save, sizeof save);
+    close(l.fd);
+    if (r) {
+        puts("card: the write failed");
+        return 1;
+    }
+    int fd = open(at("%s", BASE_MARK), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd >= 0) {
+        if (write(fd, mark, strlen(mark)) < 0)
+            puts("card: its mark could not be written");
+        close(fd);
+    }
+    puts("card: written (it answers nothing back)");
+    return 0;
+}
+static int baseline(void)
+{
+    conf_load();
+    uint8_t c[3];
+    ember(moods[0].rgb, moods[0].peak, c);
+    int r = msi_baseline(c);
+    r |= gpu_baseline(c);
+    r |= k617_baseline(c);
+    return r ? 1 : 0;
+}
+
 static int status(void)
 {
     char buf[512];
@@ -627,6 +797,8 @@ int main(int argc, char **argv)
     }
     if (argc == 2 && !strcmp(argv[1], "status"))
         return status();
+    if (argc == 2 && !strcmp(argv[1], "baseline"))
+        return baseline();
     fprintf(stderr, "usage: kawa-rgb run [--trace FILE] | baseline | status\n");
     return 2;
 }

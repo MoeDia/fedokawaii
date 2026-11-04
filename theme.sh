@@ -919,16 +919,26 @@ fi
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
 #   kawa-saver     the screensaver (and the lock behind it: away 15 minutes, kawa-idle)
 #   kawa-lockmod   the lock screen's keys and wake guard (a gtklock module, GTK 3's headers)
+#   kawa-rgb       every light, one ember: a service of the system's (root takes the built file)
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
-TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod)
-tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so" ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
+TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod kawa-rgb)
+tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so" ;; kawa-rgb) echo /usr/local/bin/kawa-rgb ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
 tool_sum() { local s x f=() d=$REPO_DIR/src/$1
   for x in "$d/Makefile" "$d"/*.c "$d"/*.h "$d"/*.xml; do [[ -f $x ]] && f+=("$x"); done
   s=$(cat "${f[@]}" | sha256sum); printf '%s' "${s%% *}"; }
 tool_current() { [[ -f $(tool_dest "$1") && $(cat "$STATE/$1.sha256" 2>/dev/null) == "$(tool_sum "$1")" ]]; }
 TOTAL=$((TOTAL + ${#TOOLS[@]}))
+# the ember's colours are the palette's accents; how it breathes, the mood's (src/kawa-rgb):
+# dark low and slow, light brighter and quicker. NAME ACCENT FLOOR% PEAK% RISE_S FALL_S
+RGB_TMP=$(mktemp)
+{ echo "# written by theme.sh from the palette; read by kawa-rgb at its start"
+  ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/dark/colors.sh" && echo "dark $C_ACCENT 12 55 3.5 5.5" )
+  ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/light/colors.sh" && echo "light $C_ACCENT 35 80 3 4" )
+} >"$RGB_TMP"
+place "$RGB_TMP" /etc/fedokawaii/rgb.conf root
+rm -f "$RGB_TMP"
 
 if ((CHECK)); then
   # the boot menu and console, the part the theme run carries on without (it says so): one it
@@ -986,7 +996,14 @@ for t in "${TOOLS[@]}"; do
   tar -C "$REPO_DIR/src/$t" -cf - . | U tar -C "$VB" -xf - --no-same-owner   # (unpacked by you)
   # (what root hands on goes through a pipe, never through a file in your folder)
   U make -s -C "$VB" O="$VB" >>"$LOG_FILE" 2>&1 || { U rm -rf "$VB"; die "$t failed to build from src/$t — see $LOG_FILE"; }
-  U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$(tool_dest "$t")"
+  if [[ $(tool_dest "$t") == /usr/local/bin/* ]]; then
+    # (a service of the system's: root takes the one file in, as it does dwl)
+    R env TARGET_USER="$TARGET_USER" TARGET_HOME="$TARGET_HOME" TARGET_UID="$TARGET_UID" \
+      bash -c '. "$1/lib/common.sh"; take_built "$2" "$3" 0755' _ "$REPO_DIR" "$VB/$t" "$(tool_dest "$t")" \
+      || die "$t failed to install — see $LOG_FILE"
+  else
+    U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$(tool_dest "$t")"
+  fi
   tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.sha256"
   CHANGED+=("$(tool_dest "$t") (built)")
   U rm -rf "$VB"
@@ -994,6 +1011,12 @@ done
 
 # ── 5. derived state ─────────────────────────────────────────────────────────
 if changed /etc/dconf/; then R dconf update; ok "dconf defaults compiled"; fi
+if changed kawa-rgb || changed /etc/fedokawaii/rgb.conf; then
+  R systemctl daemon-reload
+  R systemctl enable --quiet kawa-rgb.service
+  R systemctl restart kawa-rgb.service
+  ok "the lights: one ember (kawa-rgb)"
+fi
 # new rules or the icon font: its folder touched first — a font rewritten in place leaves the
 # folder's mtime as it was, and fontconfig would go on serving the cache of the old one
 if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts"; fi

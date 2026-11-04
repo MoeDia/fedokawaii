@@ -17,14 +17,20 @@
 #                            VRR_ENABLED is 1 (the refresh follows the frames this moment).
 #                            Read through the card node's ioctls (python: no root, no master);
 #                            exit 1 when no screen could be read
+#   kawa-display --monitor   the monitor's own menu, as ~/.config/fedokawaii/monitor.conf has it
+#                            for this model (login, wake, --hotplug): each code read first and
+#                            written only when it differs, then read back; one journal line for
+#                            what moved, none when nothing did. Then the level the monitor really
+#                            has goes to the bar (kawa-brightness --reread: its own buttons may
+#                            have moved it). Slow, so always in the background
 #
 # Parses wlr-randr's text output:   NAME "desc" / "  Enabled: yes" / "    2560x1440 px, 119.998001 Hz (preferred)"
 # Exit status: 0 done · 1 could not (no compositor to ask, or a mode refused) · 2 misuse.
 set -u
 case ${1:-} in
-  ""|--hotplug|--vrr) ;;
+  ""|--hotplug|--vrr|--monitor) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-display [--hotplug | --vrr] (kawa-display --help)" >&2; exit 2 ;;
+  *) echo "usage: kawa-display [--hotplug | --vrr | --monitor] (kawa-display --help)" >&2; exit 2 ;;
 esac
 if [[ ${1:-} == --vrr ]]; then
   exec python3 -I - "${KAWA_DRM_SYS:-/sys/class/drm}" <<'PY'
@@ -70,6 +76,52 @@ for e in entries:
     seen += 1
 sys.exit(0 if seen else 1)
 PY
+fi
+if [[ ${1:-} == --monitor ]]; then
+  conf=$HOME/.config/fedokawaii/monitor.conf sys=${KAWA_SYSFS:-/sys}
+  [[ -r $conf ]] || exit 0
+  # (one DDC/CI conversation at a time, as kawa-brightness has it; a step of its waits a moment)
+  exec 9>"${XDG_RUNTIME_DIR:?}/kawa-ddc.lock"
+  flock -w 20 9 || exit 1
+  # model CONNECTOR — "GSM5CDD": the maker's three letters and the product, from its EDID
+  model() {
+    local hi lo p0 p1 m L
+    read -r hi lo p0 p1 < <(od -An -tu1 -j8 -N4 "$1/edid" 2>/dev/null)
+    [[ -n ${p1:-} ]] || return 1
+    m=$((hi * 256 + lo)) L=ABCDEFGHIJKLMNOPQRSTUVWXYZ
+    printf '%s%s%s%02X%02X\n' "${L:$(((m >> 10 & 31) - 1)):1}" "${L:$(((m >> 5 & 31) - 1)):1}" "${L:$(((m & 31) - 1)):1}" "$p1" "$p0"
+  }
+  # value BUS CODE — what the monitor has now, from ddcutil's terse line: "x0b" or "70"
+  value() {
+    local line vcp code kind v
+    line=$(ddcutil --bus "$1" --skip-ddc-checks getvcp "$2" --terse 2>/dev/null) || return 1
+    read -r vcp code kind v _ <<<"$line"
+    [[ $vcp == VCP && ${code^^} == "${2^^}" && $kind == @(C|SNC) && -n $v ]] && echo "$v"
+  }
+  moved=()
+  for c in "$sys"/class/drm/card*-*; do
+    [[ -r $c/status && $(<"$c/status") == connected && -e $c/ddc ]] || continue
+    bus=$(readlink "$c/ddc"); bus=${bus##*i2c-}
+    [[ $bus =~ ^[0-9]+$ ]] || continue
+    id=$(model "$c") || continue
+    # MODEL CODE WRITE [READS] — READS: what it answers once it has it, when not what was written
+    while read -r m code want reads; do
+      [[ $m == "$id" && -n ${want:-} ]] || continue
+      reads=${reads:-$want} now=$(value "$bus" "$code") || { moved+=("$id $code: no answer"); continue; }
+      [[ ${now,,} == "${reads,,}" ]] && continue
+      ddcutil --bus "$bus" --skip-ddc-checks setvcp "$code" "$want" --noverify >/dev/null 2>&1
+      sleep 0.5
+      got=$(value "$bus" "$code")
+      moved+=("$id $code: $now → ${got:-no answer}$([[ ${got,,} == "${reads,,}" ]] || echo ", wanted $reads")")
+    done <"$conf"
+  done
+  exec 9>&-
+  if ((${#moved[@]})); then
+    printf -v line '%s · ' "${moved[@]}"
+    logger -t kawa-display -- "monitor's menu: ${line% · }"
+  fi
+  kawa-brightness --reread </dev/null >/dev/null 2>&1
+  exit 0
 fi
 MONITOR_HZ=144
 # shellcheck source=/dev/null
@@ -125,6 +177,7 @@ while [[ -e $mark ]]; do
     modes
     rm -f "$run/kawa-ddc-buses"                 # (brightness: the monitors asked again, this one too)
     kawa-wallpaper --restore </dev/null >/dev/null 2>&1 9>&-
+    setsid -f "$0" --monitor </dev/null >/dev/null 2>&1 9>&-
   done
   exec 9>&-
 done
