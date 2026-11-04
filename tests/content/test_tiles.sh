@@ -73,18 +73,18 @@ home
 # changes, exit 2, 4.2s, a job) at COLS, as it reads (I a pixel icon)
 lay() { fn "COLUMNS=$1; __kawa_place=fedokawaii __kawa_above=repos/ __g_branch=main __g_dirty='*' __kawa_ok=0 __kawa_rc=2 __kawa_took=4.2s __kawa_jobs='jobs 1'
   __kawa_layout; printf '%s' \"\$__kawa_line\"" | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g' | plain; }
-# (the blocks: the line's edge I, the mark's block " I  ", each block's stamp edge I and its words
-# between two spaces, the end's edge I, a space, the › I and its second half, a space)
+# (the blocks: the head I I, each block's stamp edge I and its words between two spaces, the end's
+# edge I, a space, the › I and its second half, a space)
 case_ "__kawa_layout: all of it while it fits a column short of the edge; then the time goes, the jobs, the branch, the folder above, then the folder's end — never an ellipsis"
-eq "$(lay 60)" "I I  I repos/fedokawaii I I  main* I 2 I 4.2s  jobs 1 I I  " "60 columns: everything (59 wide; the time and the jobs one block)"
-eq "$(lay 59)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  " "the time first"
-eq "$(lay 54)" "I I  I repos/fedokawaii I I  main* I 2 I jobs 1 I I  "
-eq "$(lay 53)" "I I  I repos/fedokawaii I I  main* I 2 I I  " "then the jobs"
-eq "$(lay 44)" "I I  I repos/fedokawaii I 2 I I  " "then the branch"
-eq "$(lay 33)" "I I  I fedokawaii I 2 I I  " "then the folder above"
-eq "$(lay 24)" "I I  I fedoka I 2 I I  " "then the folder's end"
-for c in 80 60 59 53 44 33 24 20; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
-lacks "$(lay 19)" "…"; [[ $(lay 19) == "I I  I "?*" I 2 I I  " ]] && _ok || _no "a letter of the folder kept at least: [$(lay 19)]"
+eq "$(lay 59)" "I I I repos/fedokawaii I I  main* I 2 I 4.2s  jobs 1 I I  " "59 columns: everything (58 wide; the time and the jobs one block)"
+eq "$(lay 58)" "I I I repos/fedokawaii I I  main* I 2 I jobs 1 I I  " "the time first"
+eq "$(lay 53)" "I I I repos/fedokawaii I I  main* I 2 I jobs 1 I I  "
+eq "$(lay 52)" "I I I repos/fedokawaii I I  main* I 2 I I  " "then the jobs"
+eq "$(lay 43)" "I I I repos/fedokawaii I 2 I I  " "then the branch"
+eq "$(lay 32)" "I I I fedokawaii I 2 I I  " "then the folder above"
+eq "$(lay 23)" "I I I fedoka I 2 I I  " "then the folder's end"
+for c in 80 59 58 52 43 32 23 20; do w=$(width "$(lay "$c")"); ((w <= c - 1)) && _ok || _no "$c columns: $w wide"; done
+lacks "$(lay 19)" "…"; [[ $(lay 19) == "I I I "?*" I 2 I I  " ]] && _ok || _no "a letter of the folder kept at least: [$(lay 19)]"
 
 # ── real prompts at every tile's width ────────────────────────────────────────
 for c in $WIDTHS; do
@@ -100,8 +100,8 @@ for c in $WIDTHS; do
   [[ $(sed -n 2p <<<"$H") == *'.config'* ]] && _ok || _no "the folder: [$(sed -n 2p <<<"$H")]"
 done
 case_ "deep in a repository: the folder and the one above it, the branch while there is room"
-eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I I  I home/.config I I  main* I I  exit"
-eq "$(headers 24 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p | tr -d '\r' | sed 's/ *$//')" "I I  I .config I I  exit" "24 columns (the typed word ends on the last column: the terminal's wrap mark taken off)"
+eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I I I home/.config I I  main* I I  exit"
+eq "$(headers 24 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p | tr -d '\r' | sed 's/ *$//')" "I I I .config I I  exit" "24 columns (the typed word ends on the last column: the terminal's wrap mark taken off)"
 
 # ── laid out anew when the width changes (ble.sh runs the prompt command again) ──
 case_ "a second run under the same prompt (ble.sh's line number unchanged) only lays the line out for the new width — its result and time kept, nothing printed"
@@ -209,10 +209,12 @@ want="188x47:all 115x47:all 92x47:all 69x47:2 60x47:2 44x47:5 69x28:2 69x17:5 41
 got=$(fn 'for s in '"$sizes"'; do __kawa_btop_preset ${s%x*} ${s#*x} 0; printf "%s:%s " $s "$__preset"; done')
 eq "$got" "$want "
 case_ "with or without the card's layouts: as btop.conf shows the card (theme.sh writes its box there only for a discrete AMD card)"
+sed -i 's/^shown_boxes = .*/shown_boxes = "cpu gpu0 mem net proc"/' "$HOME/.config/btop/btop.conf"
 eq "$(fn '__kawa_btop_preset 69 47; echo "$__preset"')" 1 "a gpu box shown: cpu over gpu over proc"
 sed -i 's/^shown_boxes = .*/shown_boxes = "cpu mem net proc"/' "$HOME/.config/btop/btop.conf"
 eq "$(fn '__kawa_btop_preset 69 47; echo "$__preset"')" 2 "none: cpu over proc"
 config .config/btop/btop.conf
+sed -i 's/^shown_boxes = .*/shown_boxes = "cpu gpu0 mem net proc"/' "$HOME/.config/btop/btop.conf"   # (the table's first row holds both: with a card's box and without)
 case_ "btop.conf's presets are the layouts the shell's table names, each needing what btop says it needs (btop_tools.cpp's get_min_size), with the card and without"
 python3 -I - "$HOME/.config/btop/btop.conf" "$(fn 'printf "%s\n" "${__kawa_btop_presets[@]}"')" <<'PY' && _ok || _no "the presets and the table disagree"
 import re, sys

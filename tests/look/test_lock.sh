@@ -276,7 +276,9 @@ EOF
 else echo "  (no cc or GTK 3 headers here: the rules' run skipped)"; fi
 case_ "kawa-lock --resumed notes the wake as \"resumed\" (the lock's 2 s after a sleep), --screens on as \"on\""
 setup
+stub kawa-dwlstatus
 kawa-lock --resumed; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" resumed
+called "^kawa-dwlstatus --wake"   # (the bar's clock waits a minute on a clock a sleep stopped)
 kawa-lock --screens on; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
 case_ "kawa-lockmod: an empty Enter is no try; every key, release and click passes the guard; theme.sh builds it"
 L=$REPO/src/kawa-lockmod/kawa-lockmod.c

@@ -123,9 +123,9 @@ for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed '
     && grep -Eq '^	\{ "kawa-dim", +180, +120, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
     && _ok || _no "layeranims"
 done
-case_ "a scroll's rod (a lacquer bar, ink caps) leads every unroll and roll-up, the panels' and the warm windows', gone with it"
+case_ "a scroll's rod (a lacquer bar, ink caps) leads every unroll and roll-up, the panels' and the warm windows', fading in and out, gone with it"
 grep -q 'rodshow(&c->dis, c->scene, 0, h - 3, w, smooth((1.0 - c->animp) / 0.3));' <(added applyframe) \
-  && grep -q 'rodshow(&g->dis, g->tree, 0, hv - 3, g->w, 1.0);' <(added ghostapply) \
+  && grep -q 'rodshow(&g->dis, g->tree, 0, hv - 3, g->w, smooth(t / 0.3));' <(added ghostapply) \
   && grep -q 'rodshow(&l->dis, l->scene->node.parent, k.box.x, k.box.y + hv - 4, k.box.width - 1, smooth((1.0 - p) / 0.3));' <(added layerdissolve) \
   && grep -q 'wlr_scene_node_destroy(&d->rod\[i\]->node);' <(added dissolveend) && _ok || _no "the rod"
 case_ "a layer surface comes in from the frame after it maps (its picture reaches the scene after dwl's listener), unrolling or cell by cell, the surface itself there at opacity 0; on unmap its last picture rolls up or dissolves away, from as far as it had come; its dissolve freed with it"
