@@ -17,7 +17,7 @@ world() {   # a fresh home and a stand-in world: run folder, drop folder, status
   echo tty1 >"$KAWA_ASOBI_TTY0"
   printf 'world\t2200000000\t14300000000\nsnap\tclean\t1793800000\t52000000\t6200000000\nsnap\t20261104-1830\t1793810000\t310000000\t14300000000\nfree\t764000000000\n' >"$KAWA_ASOBI_RUN/status"
   # (is-active: the world runs only when the test says so; everything else: logged, done)
-  stub systemctl 'case "$*" in *is-active*.timer) exit 0 ;; *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
+  stub systemctl 'case "$*" in *is-active*.timer) exit 0 ;; *"is-active --quiet kawa-asobi.service") [ -e "$TMP/running" ] || [ -e "$TMP/steam-open" ]; exit $? ;; *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
   stub busctl; stub notify-send; stub loginctl; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
   stub runuser; stub pgrep 'exit 1'; stub ionice 'shift 2; exec "$@"'
   stub btrfs '
@@ -85,8 +85,10 @@ reset_calls; rc 1 bash "$A" enter; called '^notify-send .*would not start'
 
 world
 case_ "bottles: its own unit (its Conflicts= closes Steam); already in front: the seat switched"
-reset_calls; rc 0 bash "$A" bottles; called '^systemctl start .*kawa-asobi-bottles.service'
-touch "$TMP/running"; reset_calls; rc 0 bash "$A" bottles; called '^busctl .*SwitchTo u 8'
+reset_calls; rc 0 bash "$A" bottles; called '^systemctl start .*kawa-asobi-bottles.service'; not_called '^notify-send'
+# (Steam's own close takes some 20 s: said, or nothing would show for them)
+touch "$TMP/steam-open"; reset_calls; rc 0 bash "$A" bottles; called '^notify-send .*Steam is closing'; called '^systemctl start .*kawa-asobi-bottles.service'; rm -f "$TMP/steam-open"
+touch "$TMP/running"; reset_calls; rc 0 bash "$A" bottles; called '^busctl .*SwitchTo u 8'; not_called '^notify-send'
 case_ "close: both faces stopped"
 reset_calls; rc 0 bash "$A" close; called '^systemctl stop .*kawa-asobi.service kawa-asobi-bottles.service'
 
@@ -174,6 +176,10 @@ case_ "the unit files: the world's user, its VT, its PAM file; the walls whole; 
 S=$REPO/system/asobi
 for l in User=asobi TTYPath=/dev/tty8 PAMName=kawa-asobi ExecStop=+/usr/local/sbin/kawa-asobi-root ExecStopPost=+/usr/local/sbin/kawa-asobi-root 'After=' kawa-asobi-bottles.service; do has "$(cat "$S/kawa-asobi.service")" "$l"; done
 for l in ProtectHome=tmpfs PrivateTmp=yes PrivateIPC=yes ProtectProc=invisible RestrictSUIDSGID=yes; do has "$(cat "$S/walls.conf")" "$l"; done
+case_ "a close that takes no longer than Steam's own: no order with the world's manager (poststop ends it and waits), gamescope never left to its SIGTERM"
+grep -q '^After=.*user@' "$S/kawa-asobi.service" && _no "the session ordered after the manager it ends: 10 s lost at each close" || _ok
+has "$(cat "$S/kawa-asobi-world.service")" 'KillSignal=SIGKILL'
+has "$(cat "$S/kawa-asobi-world.service")" 'TimeoutStopFailureMode=kill'; has "$(cat "$S/kawa-asobi.service")" 'TimeoutStopFailureMode=terminate'
 has "$(cat "$S/kawa-asobi.rules")" 'kawa-asobi-bottles.service'; has "$(cat "$S/kawa-asobi.rules")" 'polkit.Result.NO'
 lacks "$(grep -v '^#' "$S/kawa-asobi.pam")" 'auth' "the world's PAM file has no way to log in"
 case_ "Super+G comes back: the world's keyboard has the VT's key under Super, on its own rules, the desktop's untouched"

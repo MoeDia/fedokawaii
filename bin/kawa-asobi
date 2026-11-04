@@ -47,7 +47,12 @@ front() {
 }
 enter() { if [[ $(state) == off ]]; then start "$STEAM_UNIT"; else front; fi; }
 # (a unit's Conflicts= closes the other face, properly, before this one starts)
-bottles() { if systemctl is-active --quiet "$BOTTLES_UNIT"; then front; else start "$BOTTLES_UNIT"; fi; }
+bottles() {
+  if systemctl is-active --quiet "$BOTTLES_UNIT"; then front; return; fi
+  # (Steam takes some 20 s to close: nothing else would show for them)
+  systemctl is-active --quiet "$STEAM_UNIT" && notice "Steam is closing, Bottles comes next"
+  start "$BOTTLES_UNIT"
+}
 
 case ${1:-} in
   enter) # shellcheck source=/dev/null

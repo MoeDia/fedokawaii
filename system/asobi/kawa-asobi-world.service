@@ -9,6 +9,10 @@ After=pipewire.socket pipewire-pulse.socket wireplumber.service
 ExecStart=/usr/local/bin/kawa-asobi-world
 ExecStop=/usr/local/bin/kawa-asobi-world --stop
 TimeoutStopSec=40
+# (Steam closed by ExecStop, whatever is left dies at once: on a SIGTERM gamescope tears itself down as Xwayland
+# restarts under it, and hangs 25 s on logind with the screen frozen: 4 Nov 2026, journal of the world's closes)
+KillSignal=SIGKILL
+TimeoutStopFailureMode=kill
 Slice=app.slice
 LimitNOFILE=524288
 LimitCORE=0
