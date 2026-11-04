@@ -91,6 +91,7 @@ case ${1:-} in
   --screens) [[ ${2:-} == @(on|off) ]] || { echo "usage: kawa-lock --screens on|off" >&2; exit 2; }
              screens "$2"; exit ;;
   --resumed) screens on resumed
+             kawa-dwlstatus --wake 2>/dev/null   # (the bar: its clock waits a minute on a clock a sleep stopped)
              if keeping; then say "resumed — locked"; else say "resumed — not locked"; fi; exit 0 ;;
   --keep) shift; keep "$@" ;;
 esac
