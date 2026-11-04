@@ -6,8 +6,12 @@ case $1 in
          sudo -n rm -f /usr/local/bin/kawa-rgb-try
          sudo -n install -m 0755 /dev/shm/r27-lane-hardware/build/kawa-rgb /run/kawa-rgb-try
          sudo -n chcon -t bin_t /run/kawa-rgb-try 2>/dev/null
-         sed -e 's|^ExecStart=.*|ExecStart=/run/kawa-rgb-try run|' -e 's|^\[Unit\]|[Unit]\nConflicts=kawa-rgb.service|' /home/dia/repos/fk-hardware/configs/system/etc/systemd/system/kawa-rgb.service | sudo -n tee /run/systemd/system/r27-kawa-rgb.service >/dev/null
-         sudo -n systemctl daemon-reload
+         # (a daemon-reload only when the unit's text really changed: 4 Nov 19:51, memory no-reload-after-oops)
+         sed -e 's|^ExecStart=.*|ExecStart=/run/kawa-rgb-try run|' -e 's|^\[Unit\]|[Unit]\nConflicts=kawa-rgb.service|' /home/dia/repos/fk-hardware/configs/system/etc/systemd/system/kawa-rgb.service >/dev/shm/r27-lane-hardware/unit.new
+         if ! sudo -n cmp -s /dev/shm/r27-lane-hardware/unit.new /run/systemd/system/r27-kawa-rgb.service; then
+           sudo -n install -m 0644 /dev/shm/r27-lane-hardware/unit.new /run/systemd/system/r27-kawa-rgb.service
+           sudo -n systemctl daemon-reload
+         fi
          sudo -n systemctl start r27-kawa-rgb.service ;;
   stop) sudo -n systemctl stop r27-kawa-rgb.service ;;
   gone) sudo -n systemctl stop r27-kawa-rgb.service; sudo -n rm -f /run/systemd/system/r27-kawa-rgb.service /run/kawa-rgb-try /usr/local/bin/kawa-rgb-try; sudo -n systemctl daemon-reload ;;
