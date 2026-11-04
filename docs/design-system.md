@@ -410,13 +410,13 @@ content, inside its margin of one cell:
 
 ## 8. The bar
 
-紙 kami: tiles of washi set in a band of the mood's ground along the top of the screen, a 1 px hairline
-(`edge2`) under it (`style.css`; every picture drawn by `tools/build-themes.py`, per mood, exactly to its box): the
-wallpaper's art never runs behind the words. Each mood has its own paper (`tile`): ink-dyed on the dark, kinari on the
-light. A tile is the frame (§4) round the paper and a faint fibre in it — one frame, nothing inside it. Between
-tiles: 4 px inside a group, 12 between groups, whatever the group. The workspaces: one tile each; its numeral (一–九)
-faint while empty, the words' ink while it holds windows, `asagi` while it asks; the one you are on stamped with the
-red seal, its numeral black inside it. The clock shows the date, the day's kanji and the time to the minute.
+紙 kami: no bar — tiles of washi floating along the top of the wallpaper (the owner, 4 Nov 18:07: fully floating, no band
+behind them, ever; `style.css`; every picture drawn by `tools/build-themes.py`, per mood, exactly to its box). Each mood has
+its own paper (`tile`): ink-dyed on the dark, kinari on the light. A tile is the frame (§4) round the paper and a faint
+fibre in it — one frame, nothing inside it. Between tiles: 4 px inside a group, 12 between groups, whatever the group. The
+workspaces: one tile each; its numeral (一–九) faint while empty, the words' ink while it holds windows, `asagi` while it
+asks; the one you are on stamped with the red seal, its numeral black inside it. The clock shows the date, the day's kanji
+and the time to the minute.
 
 27 rows, every tile alike:
 
