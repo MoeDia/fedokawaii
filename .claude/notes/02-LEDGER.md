@@ -4666,7 +4666,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   test_yazi 136/0. Not in r27-f45's aeec3b8 (the next apply). LEFT of should-fix 2: §5's ✘ for "cannot be read"
   (kawa-rar, kawa-pdf's other errors), yazi's own "Empty file", 7-Zip's raw errors; preview entry names longer than
   the pane are still clipped by its edge (init.lua's cut() for them).
+- r27-19p (4 Nov 16:52–17:12): the owner set up his review on the remote page (CLAUDE.md DESIGN REVIEW), so T19p's PDF and notice gave way: tools/design-review.sh + .txt + -questions.md make the pack (40 pages, both moods, real kit renders; .claude/review/current/). He answered within minutes (17:00–17:02, feedback.md): nine items → T19q. Also this pass: inbox 16:29 → T25m; r27-inhibit and r27-f45 + its suite started again (his page's buttons stop all r27-* units: 16:50:19, memory remote-page-buttons), the frozen tree moved to 0de031e.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
+## (★★) .claude/review/feedback.md and T19q: his notes on the page come before everything below. Then each lane's note (T25m).
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or
 ##     /dev/shm/r27/fk-f45. A reboot wipes /dev/shm (the job and its worktree with it): then `git worktree prune` and
