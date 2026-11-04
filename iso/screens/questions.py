@@ -16,7 +16,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from console import (ACCENT, ACCENT_TEXT, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, TEXT, WIDTH, G, Screen,  # noqa: E402
+from console import (ACCENT, ACCENT_TEXT, FAINT, MUTED, ON_SELECT, SELECT, STRONG, TEXT, WIDTH, G, Screen,  # noqa: E402
                      message_page, power_off, restart, run, wrap)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
