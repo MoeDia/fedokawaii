@@ -1,7 +1,9 @@
 #!/usr/bin/env bash
-# kawa-power — Super+Shift+E (or "power" in quick settings): lock, sleep, log out,
-# restart, shut down. A small centred menu: the power icon and the uptime over a row a choice, each
-# with its own pixel icon. Esc cancels (--help: this text).
+# kawa-power — Super+Shift+E (or "power" in quick settings): lock, sleep, log out, restart,
+# shut down. A dialog of its own, the desktop dimmed behind it (docs/design-system.md §4): five seal
+# tiles in a row, the word under each, the one under the cursor inked; restart and shut down ask for a
+# second press, in the foot's place, never an accidental power-off. Its foot: how long the machine has
+# been up. Esc cancels (--help: this text).
 #   kawa-power         the menu
 #   kawa-power sleep   locked, then asleep, with no menu (a keyboard's Sleep key)
 # A choice the system refuses (another user logged in, something inhibiting it, no password
@@ -40,9 +42,8 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) echo "usage: kawa-power [sleep]" >&2; exit 2 ;;
 esac
-# the menu (kawa-menu, the panel's line format: docs/design-system.md): the power icon, how long the
-# machine has been up at the heading's end — "up 03h 07m", "up 04d 03h", "up 15w 02d" — then a
-# row a choice, its icon and its name; the cursor's first key lands on lock
+# the dialog (kawa-menu, the panel's line format: docs/design-system.md): a seal a choice, how long the
+# machine has been up in its foot — "up 03h 07m", "up 04d 03h", "up 15w 02d"; it opens on lock
 read -r up _ </proc/uptime; up=${up%.*}
 h=$((up / 3600)) d=$((up / 86400))
 if ((h < 24)); then printf -v t 'up %02dh %02dm' "$h" $((up / 60 % 60))
@@ -51,19 +52,19 @@ else w=$((d / 7)) r=$((d % 7)); ((w > 99)) && w=99 r=6        # (as far as it ca
      printf -v t 'up %02dw %02dd' "$w" "$r"; fi
 rows=()
 line() { local IFS=$'\t'; rows+=("$*"); }
-line part "$ICON_POWER" power "$t"
-line row "$ICON_LOCK" lock
-line row "$ICON_ZZZ" sleep
-line row "$ICON_DOOR" "log out"
-line row "$ICON_RESTART" restart
-line row "$ICON_POWER" "shut down"
+line seal @t-lock lock
+line seal @t-sleep sleep
+line seal @t-logout "log out"
+line seal @t-restart restart "press again to restart"
+line seal @t-off "shut down" "press again to shut down"
+line foot "$t"
 
-i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1) || exit 0
+i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --dim) || exit 0
 case $i in
-  1) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
-  2) sleep_now ;;
-  3) kawa-steam --quit logout                     # (Steam closed properly first: its saves to Steam
+  0) exec kawa-lock --sleep ;;                     # (still locked 90 s later: sleep)
+  1) sleep_now ;;
+  2) kawa-steam --quit logout                     # (Steam closed properly first: its saves to Steam
      exec pkill -xu "$UID" dwl ;;                 #  Cloud — it ends with the desktop otherwise)
-  4) act restart reboot ;;
-  5) act "shut down" poweroff ;;
+  3) act restart reboot ;;
+  4) act "shut down" poweroff ;;
 esac

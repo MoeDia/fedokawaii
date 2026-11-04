@@ -620,8 +620,8 @@ class Layout:
 #                                   pressed, it chooses the row)
 #     key   GLYPH  NAME             a key button; keys one after another share a row
 #     hint  KEY    NAME             the panel's footer (§4): KEY's cap and what it does in muted ink; hints one
-#                                   after another share a row. KEY (a key's name: t, Left) or a click chooses
-#                                   it; the cursor never lands there
+#                                   after another share a row. KEY (a key's name: t, Left, more apart by |:
+#                                   the first drawn) or a click chooses it; the cursor never lands there
 #     seal  PIC    NAME [ASK]       a dialog's tile (§4): the picture on a square seal, the word under it, a row of
 #                                   them; ASK: what the foot says at the first press, the second does it
 #     foot  TEXT                    the dialog's foot, centred, quiet (a seal's ASK takes its place)
@@ -738,7 +738,7 @@ def px_of(t):
 
 def hint_w(f):
     """A footer hint's width: its key's cap, a gap, its word."""
-    return chord_w(f[0]) + GAP + px_of(fld(f, 1))
+    return chord_w(f[0].split("|")[0]) + GAP + px_of(fld(f, 1))
 
 
 def title_parts(t):
@@ -1660,7 +1660,7 @@ class Panel:
             return
         if self.mode == "menu" and self.state.prompt is not None and self.typed(name, char):
             return
-        hit = next((i for i in self.items if i.accel and name == i.accel), None)
+        hit = next((i for i in self.items if i.accel and name in i.accel.split("|")), None)
         if hit:                                       # (a row's own key, a footer's: at once)
             self.activate(hit.key)
             return
@@ -3130,7 +3130,7 @@ def main(argv):
                 frame(cr, it.x, it.y, it.w, it.h, lk["frame"])
         ty = it.y + (ROW - LINE) // 2
         if it.kind == "hint":
-            w = caps(cr, it.x, it.y, it.accel, lk["glyph"])
+            w = caps(cr, it.x, it.y, it.accel.split("|")[0], lk["glyph"])
             text(cr, it.x + w + GAP, ty, it.name, lk["label"])
         elif it.kind == "seal":
             seal_tile(cr, it, focused)
@@ -3146,7 +3146,7 @@ def main(argv):
                 text(cr, right, ty, it.value, lk["value"], right=True)
             else:
                 pw = text(cr, right, ty, "%", "muted", right=True)
-                text(cr, right - pw, ty, str(pct), "strong", right=True)
+                text(cr, right - pw - 2, ty, str(pct), "strong", right=True)
             sx, sy = Panel.slider_x(it), it.y + ROW + (ROW - SEG_H) // 2 - 2
             segments(cr, it.muted, sx, sy, pct, BIG_SEGS)
             for i in range(0, BIG_SEGS + 1, BIG_SEGS // 4):     # (its scale: a tick each quarter, under the meter)
