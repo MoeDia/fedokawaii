@@ -2,10 +2,11 @@
 # tools/regress/typing.sh — never again: kawa-typing's screen measured, headless (tools/kit.sh, the real GPU, both moods),
 # at the three whole multiples its art is drawn at:
 #   · the text and the keyboard one column: their left edges one, on the cell grid; every key on its pitch (20 px × the
-#     multiple, the last column of each key air); the hands inside the keyboard's width
+#     multiple, a column of air after each but the row's last, which ends on the column's edge); the hands inside its width
 #   · the key lit and the finger that goes to it one paper (Wada's, the palette's)
 #   · the inks as the palette has them (a sixel's colours are whole percents: within 2 of 255)
 #   · typing at 120 wpm, recorded: no frame shows a tile blank (each change a whole frame, mode 2026)
+#   · the keyboard on the same pixels on home, in a lesson and on its result: one stage, whatever the screen is about
 #   · a theme switch repaints the pictures (foot's mode 2031)
 #   · a practice run's result has no seal: its speed stands alone (a seal was stamped over the number once)
 #   bash tools/regress/typing.sh [KIT OPTION…]   (e.g. --bin bin --repo-art before an apply)
@@ -19,10 +20,10 @@ cat >"$out/play.sh" <<PLAY
 export XDG_STATE_HOME=\$HOME/.local/state
 mkdir -p "\$XDG_STATE_HOME/fedokawaii/typing"
 echo '{"baseline":40}' >"\$XDG_STATE_HOME/fedokawaii/typing/progress.json"
-for size in 100x33 60x21 130x49; do
+for size in 79x38 60x21 130x49; do
   footclient -a float -T typing -W \$size -- kawa-typing "$out/text" >/dev/null 2>"\$KIT_OUT/err.log" &
   nap 1.2; shot rest-\$size
-  if [[ \$size == 100x33 ]]; then
+  if [[ \$size == 79x38 ]]; then
     wf-recorder -y -c ffv1 -f "$out/rec-\$(basename "\$KIT_OUT").mkv" >/dev/null 2>&1 & rec=\$!
     nap 0.6
     wtype -s 300 -d 100 -- "Tea began as a medicine and grew into a"
@@ -33,13 +34,20 @@ for size in 100x33 60x21 130x49; do
   key Escape; nap 0.4
 done
 printf '%s' 'tea began as a medicine and grew' >"$out/short"
-footclient -a float -T typing -W 100x33 -- kawa-typing "$out/short" >/dev/null 2>>"\$KIT_OUT/err.log" &
+footclient -a float -T typing -W 79x38 -- kawa-typing "$out/short" >/dev/null 2>>"\$KIT_OUT/err.log" &
 nap 1.2
 wtype -s 300 -d 40 -- 'tea began as a medicine and grew'
 nap 1.0
 shot practice-result
 key Escape; nap 0.3; key Escape; nap 0.4
-footclient -a float -T typing -W 100x33 -- kawa-typing "$out/text" >/dev/null 2>>"\$KIT_OUT/err.log" &
+# home, a lesson, its result: the same place
+footclient -a float -T typing -W 79x38 -- kawa-typing >/dev/null 2>>"\$KIT_OUT/err.log" &
+nap 1.2
+shot stage-home
+key Return; nap 1.0
+shot stage-lesson
+key Escape; nap 0.5; key Escape; nap 0.3; key Escape; nap 0.4
+footclient -a float -T typing -W 79x38 -- kawa-typing "$out/text" >/dev/null 2>>"\$KIT_OUT/err.log" &
 nap 1.2
 kawa-theme \$( [[ "\$KIT_OUT" == */dark ]] && echo light || echo dark ) >/dev/null 2>&1
 nap 1.6
@@ -74,22 +82,34 @@ def no(*a):
 def near(a, b, tol=2):
     return all(abs(x - y) <= tol for x, y in zip(a, b))
 
-for size, k in (('100x33', 2), ('60x21', 1), ('130x49', 3)):
+# the keyboard's corner: the left of its keys' fill, then the row where its first row of keys has that fill all along the pitch
+# (a list's meter or a letter can wear the same ink: only a whole row of keys answers this)
+def keyboard_at(name, k=2):
+    im = Image.open(f'{d}/{name}.png').convert('RGB')
+    W, H = im.size
+    px = im.load()
+    for x in range(W):
+        for y in range(40, H - 100 * k):
+            if near(px[x, y], inks['key'], 1) and sum(near(px[x + i * 20 * k + k, y], inks['key'], 1) for i in range(13) if x + i * 20 * k + k < W) >= 11:
+                return x, y
+    return None
+
+for size, k in (('79x38', 2), ('60x21', 1), ('130x49', 3)):
     im = Image.open(f'{d}/rest-{size}.png').convert('RGB')
     W, H = im.size
     px = im.load()
-    # the keyboard: the box of its keys' fill (none of the rest of the screen wears it)
-    pts = [(x, y) for y in range(40, H) for x in range(0, W, 1) if near(px[x, y], inks['key'], 1)]
-    if not pts:
+    # the keyboard: the corner of its keys' fill, then that fill's right end over its five rows of keys
+    at = keyboard_at(f'rest-{size}', k)
+    if not at:
         no(size, 'no key fill on the screen')
         continue
-    x0, x1 = min(p[0] for p in pts), max(p[0] for p in pts)
-    y0 = min(p[1] for p in pts)
+    x0, y0 = at
     y1 = y0 + 100 * k - 3 * k      # (its last row of keys: below it, the light mood's hands wear the same paper)
+    x1 = max(x for y in range(y0, y1) for x in range(x0, W) if near(px[x, y], inks['key'], 1))
     # (each key's frame is a pixel × k in from its cell; the fill's box is that much inside the keyboard's)
     kb_left = x0 - k
-    want_w = 300 * k - k          # (the last column of the last key is air)
-    if x1 + k + 1 - kb_left != want_w:
+    want_w = 300 * k              # (the last key of a row ends on the column's edge)
+    if x1 + k + 1 - kb_left != want_w:     # (its frame, k pixels past the fill)
         no(size, f'keyboard {x1 + k + 1 - kb_left} px wide, want {want_w}')
     # keys on their pitch: along the number row's face, a frame every 20 × k
     row = y0 + 8 * k
@@ -128,7 +148,8 @@ for size, k in (('100x33', 2), ('60x21', 1), ('130x49', 3)):
 im = Image.open(f'{d}/practice-result.png').convert('RGB')
 W, H = im.size
 # (the screen's middle, inside the window: its focused hairline is vermilion too)
-seal = sum(1 for y in range(H // 4, H * 3 // 4) for x in range(W // 4 + 100, W // 2) if near(im.getpixel((x, y)), inks['gold'], 2) or near(im.getpixel((x, y)), inks['accent'], 2))
+at = keyboard_at('practice-result')
+seal = 0 if not at else sum(1 for y in range(at[1] - 340, at[1] - 2) for x in range(at[0], at[0] + 600) if near(im.getpixel((x, y)), inks['gold'], 2) or near(im.getpixel((x, y)), inks['accent'], 2))
 if seal > 30:      # (the heading's check mark, a few pixels)
     no(f'a practice run\'s result wears a seal: {seal} px')
 
@@ -142,9 +163,18 @@ if any(near(v, inks['key'], 0) for v in have) and not near(inks['key'], other['k
     # (the desktop's own bar may wear the same token: only what counts inside the window)
     pass
 
+# one stage: the keyboard's box on home, in a lesson, on the rest shots of the same size
+places = {n: keyboard_at(n) for n in ('stage-home', 'stage-lesson', 'practice-result', 'rest-79x38')}
+if None in places.values() or len(set(places.values())) != 1:
+    no('the keyboard moves between the screens:', places)
+
 # every recorded frame: a tile blank for a frame is a square all ground, between two frames that have it inked
-W, H = 620, 400
-x, y = 650, 330
+# (the box: what the rest shot has over the keyboard, measured there, so a change of size cannot move it off the text)
+im = Image.open(f'{d}/rest-79x38.png').convert('RGB')
+pts = [(a, b) for b in range(40, im.size[1]) for a in range(im.size[0]) if near(im.getpixel((a, b)), inks['key'], 1)]
+x, y1 = min(q[0] for q in pts) - 2, min(q[1] for q in pts) - 4
+W, H = 600, 192
+y = y1 - H
 p = subprocess.Popen(['ffmpeg', '-v', 'error', '-i', rec, '-fps_mode', 'passthrough', '-vf', f'crop={W}:{H}:{x}:{y},format=rgb24', '-f', 'rawvideo', '-'], stdout=subprocess.PIPE)
 tw, th_ = 64, 60
 frames = []

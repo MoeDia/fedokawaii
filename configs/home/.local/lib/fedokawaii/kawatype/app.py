@@ -355,8 +355,10 @@ class Screen:
 
     # the grammar's parts ------------------------------------------------------
     def at(self, row, col, s=''):
-        """row and col from 0"""
-        self.t.write(f'\x1b[{row + 1};{col + 1}H{s}')
+        """row and col from 0; what lies past the window's edge is not written (a terminal would pile it up on its last row)"""
+        cols, rows = self.app.size[:2]
+        if 0 <= row < rows and 0 <= col < cols:
+            self.t.write(f'\x1b[{row + 1};{col + 1}H{s}')
 
     def heading(self, row, icon, name, x0, w, tail='', done=None):
         """a heading (§7): the icon, two columns, the name, the rule to the last column; done: how much of
@@ -374,6 +376,9 @@ class Screen:
         room = max(room, 0)
         burnt = 0 if done is None else round(room * max(min(done, 1), 0))
         s += fg(ACCENT_TEXT) + '─' * burnt + fg(EDGE2) + '─' * (room - burnt) + OFF
+        place = getattr(self, 'place', None)
+        if not tail and room and place and place.half_end and w == place.W:      # (the rule's end on the keyboard's edge)
+            s = s.removesuffix('─' + OFF) + '╴' + OFF
         if tail:
             s += ' ' + tail + OFF
         self.at(row, x0, s)
@@ -401,13 +406,15 @@ class Stage:
                 over_words = over
                 break
         self.pic_w = math.ceil(art.KEY_W * self.scale / self.cw)
-        self.W = max(self.pic_w, min(room, self.WIDEST))
+        self.W = self.pic_w or min(room, self.WIDEST)
         self.x = (cols - self.W) // 2
         self.pic_x = (cols - self.pic_w) // 2
         spare = rows - 1 - self.pic_rows - self.ABOVE
         self.pic_y = self.ABOVE + spare // 2 if spare > 0 else rows - 1 - self.pic_rows
         self.words_y = (self.pic_y - 2 if self.pic_y - 2 >= over_words else self.pic_y - 1) if self.scale else rows - 1
         self.key_rows = math.ceil(art.KEY_H * self.scale / self.ch)   # (the keyboard's alone: where the hands begin)
+        # (×1 and ×3 end half a cell into the column's last: a rule that ends with them ends there too)
+        self.half_end = bool(self.scale) and (self.pic_w * self.cw - art.KEY_W * self.scale) * 2 == self.cw
 
     def picture(self, hands=True):
         """the keyboard and the hands at rest, painted, not yet sent → (Picture, Keyboard, Hands or None)"""
@@ -1000,6 +1007,8 @@ class LessonScreen(Screen):
         self.notice_y = pl.words_y
         self.notice_w = self.W - (self.text_x - self.x0) - 3
         self.tp = canvas.Picture(max(self.tw_px, self.letters.w), self.lines_n * self.letters.h, (cw, ch))
+        # (a window that cannot hold one letter shows none: a sixel past the last row would scroll the screen)
+        self.text_fits = self.text_y + math.ceil(self.tp.h / ch) <= rows and self.text_x + math.ceil(self.tp.w / cw) <= cols
         self.spans = wrap(self.run.text, max(self.chars - 1, 1))     # (its last space or Enter has a whole letter's room)
         self.drawn_line = -1
         self.feed = None
@@ -1092,7 +1101,8 @@ class LessonScreen(Screen):
                 h = self.letters.h
                 tp.rows = [old[y + h - left] if y < left else final[y - left] for y in range(len(final))]
                 tp.touch_tiles()
-        self.t.write(tp.send(self.text_x + 1, self.text_y + 1, pal))
+        if self.text_fits:
+            self.t.write(tp.send(self.text_x + 1, self.text_y + 1, pal))
         if final is not None:
             tp.rows = final
 
@@ -1713,6 +1723,8 @@ class Result(Screen):
             if self.acc < 97:
                 return 'slower, then: 97 % opens the next one.' + (' ' + words + '.' if words else '')
             return f'held your accuracy; {max(les.low - self.wpm, 1):.0f} wpm more opens the next one.'
+        if les.kind == 'check':        # (the door at a stage's end: yours from here on)
+            return les.title.split(',')[0] + ': yours.'
         return words + '.' if words else ''
 
     def draw(self):
