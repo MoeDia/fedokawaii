@@ -4,7 +4,7 @@ title: practice
 part: desktop
 chapter: 8
 minutes: 12
-needs: [snapshots-report]
+needs: [the-fixer]
 optional: no
 ---
 
@@ -16,12 +16,12 @@ optional: no
 
 *Expected:* a list of checks ending in *passed*, or the few to fix with what to do.
 
-**8.3 ★★ A safe experiment.** Make a mark (`sudo snapper -c root create -p -d "before cowsay"`),
-install a toy (`sudo dnf install cowsay`), run `cowsay hi`, then put everything back to your mark
-(`sudo snapper -c root undochange NUMBER..0`, with the number the first command printed) and
-reboot.
+**8.3 ★★ A safe experiment.** Make a mark (`sudo snapper -c root create -p -d "before my test"`), then
+leave a trace in the system (`sudo touch /etc/my-test`). Go back to your mark: Super+U → snapshots →
+go back, the number the first command printed, then restart.
 
-*Expected:* after the reboot, `cowsay` answers `command not found`, and `verify` passes.
+*Expected:* `ls /etc/my-test` says *No such file*, a file you made in your home meanwhile is still
+there, and *old* in the same list would bring the trace back.
 
 **8.4 ★★ A lost file.** Make `~/Documents/test.txt`, wait for the next hourly snapshot (or
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.

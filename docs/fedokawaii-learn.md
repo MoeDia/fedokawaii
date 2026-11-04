@@ -812,9 +812,9 @@ terminal.
 
 > **In this chapter**
 >
-> - update the whole system in one step
+> - update the whole system in one step, a new Fedora too
 > - check its health, and repair what is wrong
-> - go back in time with snapshots
+> - go back in time with snapshots, keep a copy with backups
 >
 > **You need:** chapter 4.
 
@@ -825,7 +825,7 @@ it. Each entry shows its state beside it — when the update is due, whether ver
 the pane on the right tells more about the one under the cursor. What is still being built says
 *soon*.
 
-<!-- fig:system | Super+U: the status on the dark theme, the move to the next Fedora on the light. -->
+<!-- fig:system | Super+U: the status on the dark theme, the update on the light. -->
 
 ## 8.1 The entries you will use
 
@@ -834,10 +834,10 @@ the pane on the right tells more about the one under the cursor. What is still b
 | system | status | how things stand, on one page | when curious |
 | system | verify | every check; changes nothing | after something odd |
 | system | repair | verify, then put right what it found | when verify fails |
-| update | update | everything up to date: Fedora, Brave, Claude Code, the desktop's tools, neovim's plugins — with a snapshot first | each season, when it says *due* |
-| update | fedokawaii | the desktop itself, newest from GitHub | when you hear of a change |
-| update | Fedora N | the move to the next release | once it says *ready* |
-| snapshots | go back | the list of snapshots of the system, and one brought back | before and after a risky change |
+| update | update | everything up to date, from A to Z: section 8.4 | when it says *due* |
+| update | held | what the update holds back, and why | when its report names one |
+| snapshots | go back | the list of snapshots of the system, and one brought back: it becomes the system at the next start, your files stay | when something broke |
+| snapshots | a file, back | a file or folder of yours as it was: a copy lands in `~/Restored` | when something is lost |
 | backups | back up now | your home to the backup drive | weekly |
 | backups | restore | your files as a backup holds them: pick a file, a folder or several — a copy lands in `~/Restored`, never over what is there | when something is lost |
 | backups | the drive | which drive your backups go to, whether it is plugged in, how full, and the last backup; Enter picks another | once, then when it changes |
@@ -850,26 +850,26 @@ From a terminal: `update`, `verify`, `repair`, `snaps`, and `fedokawaii report` 
 > **Word — snapshot.** A frozen picture of every file at one moment. It costs almost no space
 > (it shares unchanged data with the live files) and lets you copy any file back as it was.
 
-Snapshots are taken by themselves: of your files (/home) every hour; of the system around every
-package install and before every update. Two everyday uses:
+Snapshots are taken by themselves: of your files (/home) every hour; of the system before every
+update. Old ones go by their own rules, and the one an update may need stays until a start has
+proven that update. To see them:
 
 ```text
 $ snaps
  # │ Type   │ Pre # │ Date                     │ Description
 ───┼────────┼───────┼──────────────────────────┼────────────────────────
 57 │ single │       │ Mon 20 Oct 2026 10:00:01 │ before update 2026-10-20
-58 │ pre    │       │ Mon 20 Oct 2026 10:12:40 │ dnf install htop
-59 │ post   │    58 │ Mon 20 Oct 2026 10:12:52 │ dnf install htop
+58 │ single │       │ Tue 21 Oct 2026 19:12:40 │ before my experiment
 ```
 
 *(for example; shortened)*
 
 | You want | Do |
 |---|---|
-| undo one package install | `sudo snapper -c root undochange 58..59`, then reboot and `verify` |
 | a file of yours as it was an hour ago | Super+U → snapshots → **a file, back**: pick the hour, then the file or folder (Space marks several, q takes the folder you are in) — a copy lands in `~/Restored`, beside what you have now; no password |
 | a mark before a risky change | `sudo snapper -c root create -p -d "before my experiment"` (prints its number) |
-| everything back to that mark | `sudo snapper -c root undochange NUMBER..0`, then reboot |
+| the whole system back to a snapshot | Super+U → snapshots → **go back**, its number: it becomes the system at the next start; your files stay as they are |
+| the system you went back from | the same list, **old**: going back can itself be undone |
 
 > **Careful.** `~/Downloads` is not in the snapshots: move what you keep out of it.
 
@@ -878,6 +878,130 @@ $ snaps
 When something is wrong and you want help, `fedokawaii report` writes
 `~/fedokawaii-report.txt`: hundreds of checks, each with an ID and a verdict. Search it for
 `FAIL` (in neovim: `/FAIL`). Give that file to whoever helps you — or to Claude Code.
+
+## 8.4 The update button, from A to Z
+
+**Super+U → update → update** is the one way anything on this machine gets updated. You never run
+dnf. Nothing updates by itself: a quiet notice comes when updates have waited two weeks, when a new
+Fedora has settled, and 90, 30 and 7 days before your Fedora's support ends. Press it and go on
+working; the window only shows the run, so closing it stops nothing.
+
+| Step | What happens | If it goes wrong |
+|---|---|---|
+| fedokawaii itself | its newest release from GitHub, checked in a fake machine first | that release stays out; the update goes on with the one you have |
+| may it start | no other package manager at work, room on the disk, rpm's own database whole; every check run, so that what is red already is not blamed on the update | it says why and stops: nothing has changed |
+| fetch | every package downloaded and resolved once | the network went: nothing has changed; press it again |
+| a copy first | a copy of the system receives those packages, and is checked | the package that broke it is found by trying halves of the set, and held back; the rest goes on, and your system never saw it |
+| snapshot | the system as it is now, kept until a start has proven the update | it stops: no change without a way back |
+| the transaction | that same set, on the running system; the power button waits | a power cut: at the next start it is finished if every package went in, else the system before it comes back |
+| the desktop | the desktop's own tools, neovim's plugins, the theme | each part on its own: the report names what failed, the next press tries again |
+| the checks | every check again, and the desktop started out of sight: the bar measured, the lock up | the set is held back, and the system before it comes back at the next start |
+| the report | one line in a notice; the whole in the update's pane and its log | |
+
+A held package is tried again at every press, and let go when a newer version passes. When a local
+model can mend what stopped it (a config option a new version renamed), it tries that in a copy
+first; what it cannot mend stays held, and said: section 8.7.
+
+The desktop's own steps are the one part the copy does not try: its new packages, firmware, the
+pinned tools and the theme go in after the transaction, on the running system. The checks after them
+judge them all the same, and a red undoes them with the update.
+
+An update you stop by hand leaves its unit *failed* in `systemctl --failed` until the next press
+clears it: expected, nothing to do.
+
+**A new kernel** is on trial at the next start: three starts to reach the desktop, and if it cannot,
+the kernel before it comes back by itself, and the new one is held until a newer one comes.
+
+**A new Fedora comes through the same button.** A press that ends with this Fedora up to date looks
+at the next one, seven days after its release. It is tried in a test VM first: a fresh Fedora with
+this whole desktop installed on it, about an hour in the background, your system untouched. Then the
+report says *press update again*, and never restarts without that. The next press tries the whole
+move in a copy of your system, takes a snapshot, downloads, tells you, and restarts into Fedora's own
+installation: 20 to 40 minutes on a text screen, leave it on. The start after that judges it before
+the login: the release, every package, the desktop rebuilt and started. Anything red and the system
+before it comes back, with one more restart, and *Fedora N waits* says why; it is tried again after
+a month, or with a newer fedokawaii.
+
+> **Honestly.** A new Fedora that changes something big (a new wlroots under dwl, say) may be beyond
+> what the test VM and the local model can get through. Then this machine stays on the Fedora that
+> works, and says so well before its support ends: time to have it ported.
+
+## 8.5 Snapshots and backups: two different things
+
+A **snapshot** is an undo on this disk. A **backup** is a copy on another drive. A snapshot is no
+help when the disk dies; a backup is what is left then.
+
+| What happened | Use |
+|---|---|
+| an update or a change broke the system | snapshots → go back |
+| you deleted or spoiled a file an hour ago | snapshots → a file, back |
+| the disk died, or the machine is gone | backups → restore, on the new one |
+
+**When the desktop will not start**, the login's console says so and names two commands:
+`fedokawaii repair` (finds what broke and fixes it) and `fedokawaii snapshots` (the same *go back*).
+
+**When nothing starts at all**, hold Shift at power-on for the boot menu: *snapshots* lists the
+latest ones. One started from there runs as it was, on a layer in memory, and nothing it does stays.
+If it works, Super+U → snapshots → go back makes it the system.
+
+Your files are never part of the system's snapshots: going back leaves `/home` as it is. Going back
+is itself undone with *old*.
+
+## 8.6 When a notice asks for you
+
+Almost never. These are the few that do:
+
+| The notice | What it means | What to do |
+|---|---|---|
+| *held: mesa 26.1* | that version broke something; you keep the one before | nothing: a newer one is tried at each press |
+| *a security fix waits among the held* | a version held back carries a security fix | press update again in a few days; a fixed version usually follows |
+| *the update broke something: the system before it comes back at the next start* | it was undone | restart when you like |
+| *the last update was cut off* | a power cut; it has been finished or undone | read the line; press update when you like |
+| *Fedora N waits: …* | the new Fedora failed a check; you stay | nothing, unless the end of support is near and it still waits: then have it looked at |
+| *only N free on /* | not enough room to update safely | delete what you can, then press update again |
+
+## 8.7 The local model: what it can and cannot do
+
+An update sometimes makes a program refuse a config file of ours: an option renamed, moved to another
+section, a value written differently. Before that package is held back, the update asks a language model
+on this PC's own graphics card. It reads the program's complaint and the new version's documentation and
+proposes a small edit. No internet, no account, no cost. The model is loaded for that minute and gone
+afterwards, from the card and from memory.
+
+It has no hands. Its answer is one short form, *in this file, this exact text becomes that text*, and plain
+code decides what happens to it:
+
+| the rule | what it stops |
+|---|---|
+| only the config files of the program at fault, never a secret | an answer touching anything else |
+| a new option must exist in the new version's documentation or in the program itself | an invented option |
+| a command, a download or a new path can only be carried over from what the old line said | a changelog steering it into running something |
+| the option the changelog names as the replacement, if it names one | a neighbour that also passes the check |
+| deleting a line only if the new version's changelog says the option is gone | silencing the error |
+| tried on a copy of the system; the program's own check and every check of the update must pass | a fix that breaks something else |
+| two wrong answers, then it stops | going round in circles |
+
+What passes is kept and named in the report (*mended: foot.ini*). A fix stays in force through every later
+update and is dropped by itself once fedokawaii has caught up. If the update is undone later, its fix leaves
+with it, each file as it was: the older version would refuse the new text.
+
+| it mends | it never touches: held and said at once, the model not even loaded |
+|---|---|
+| a renamed option, or section | a library that changed its name, a package conflict, a failing package script |
+| an option moved to another section | a kernel or boot image (the trial of a new kernel handles those) |
+| a value written differently | dwl and wlroots: that is C code, not a config |
+| a renamed CSS property, in both moods at once | our own programs, and everything fedokawaii pins |
+| several of these in one file | Neovim's config: it is code, and a check cannot see a meaning flipped |
+
+> **Honestly.** It only sees what a program complains about. A program that silently ignores an option it no
+> longer knows gives no complaint: yazi does, waybar's JSON keys are not checked at all. A fix can pass every
+> check and still be slightly worse than what it replaced; that is why each one is named in the report. It needs
+> the card's memory free: with a game holding the card, the package waits for the next press. And it works per
+> failure: a release that changes something big is beyond it, as section 8.4 says.
+
+*held: foot — the fixer: the docs do not say* in a report means nothing is broken and that package waits. The
+next press tries again, and a newer version often brings its own fix. A move to a new Fedora goes the same way:
+the fix is proven with the whole move in the copy, comes into force after the restart, and is said at the login.
 
 ### Exercises
 
@@ -889,12 +1013,12 @@ When something is wrong and you want help, `fedokawaii report` writes
 
 *Expected:* a list of checks ending in *passed*, or the few to fix with what to do.
 
-**8.3 ★★ A safe experiment.** Make a mark (`sudo snapper -c root create -p -d "before cowsay"`),
-install a toy (`sudo dnf install cowsay`), run `cowsay hi`, then put everything back to your mark
-(`sudo snapper -c root undochange NUMBER..0`, with the number the first command printed) and
-reboot.
+**8.3 ★★ A safe experiment.** Make a mark (`sudo snapper -c root create -p -d "before my test"`), then
+leave a trace in the system (`sudo touch /etc/my-test`). Go back to your mark: Super+U → snapshots →
+go back, the number the first command printed, then restart.
 
-*Expected:* after the reboot, `cowsay` answers `command not found`, and `verify` passes.
+*Expected:* `ls /etc/my-test` says *No such file*, a file you made in your home meanwhile is still
+there, and *old* in the same list would bring the trace back.
 
 **8.4 ★★ A lost file.** Make `~/Documents/test.txt`, wait for the next hourly snapshot (or
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.
