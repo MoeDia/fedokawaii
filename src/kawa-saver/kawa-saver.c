@@ -1,41 +1,34 @@
 /*
- * kawa-saver — the screensaver: sashiko, stitched across every screen.
+ * kawa-saver — the screensaver: the lock's own scene, asleep (the owner, 4 Nov: "an upgrade to match the
+ * new design").
  *
  *   kawa-saver         now (a look at it: any input ends it, nothing locks)
  *   kawa-saver --idle  away 15 minutes (kawa-idle, from swayidle: never while something
  *                      plays): the screensaver, with the lock under it — kawa-lock starts as
  *                      the saver shows, and dwl keeps the saver over the lock screen (its own
- *                      layer, for this program alone), so the first key or move only washes
- *                      the cloth away from over a lock already there: no wait, no frame held.
+ *                      layer, for this program alone), so the first key or move only lifts
+ *                      the sleep off a lock already there: no wait, no frame held.
  *                      A key pressed before the lock is up waits for it, so neither that key
  *                      nor any after it reaches a window. Already locked (a lock you asked
  *                      for, then away): the saver over it. Switched off in quick settings
  *                      (~/.local/state/fedokawaii/saver: on, or off): the lock at once.
  *                      Should it not be able to show, it locks all the same.
  *
- * On the theme's ground (dark or light: current/saver.conf), needles run along the lines of a
- * hitomezashi grid — one stitch over, one under, each line starting on its own side — and the
- * thread they leave slowly makes the pattern — a quiet sashiko thread, each dot of it with
- * its shadow a dot down and to the right — a vermilion dot at each needle's tip.
- * Seals are stamped on the cloth now and then (the night's own pictures — the moon, sleep, a
- * lantern, a cloud, mist, snow, a lullaby —, the seal's own red (accent) in a 2-dot frame) and lifted
- * again; a small patch, framed in running stitch, tells the time (the day's seal, as the bar's clock,
- * and "09:41 PM", the lock screen's
- * words) and moves every minute. When the cloth is
- * full it rests, then is washed (an ordered dither, block by block) and sewn anew. Everything
- * is drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at 1080p,
- * 4 at 1440p, 6 at 4K), in the design system's own letters (Sumi UI at 14 px: glyphs.h).
- * Nothing on the screen stays put: no burn-in.
+ * The mood's scene, dimmed, gate shut (saver-scene.ppm: tools/build-saver.py, from the lock's own
+ * pictures), drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at
+ * 1080p, 4 at 1440p, 6 at 4K). Alive, quietly: the torches' flames (the lock's own frames, 8 a
+ * second, the two out of step), embers rising from them on the dark, gold dust falling on the light;
+ * the time on a small patch (the day's seal, as the bar's clock, and "09:41 PM", in the design
+ * system's own letters: glyphs.h) in another corner every minute.
  *
  * Any key, click, scroll or move of the pointer ends it — and goes nowhere else: it holds the
  * keyboard while it shows (a layer on top of everything, the bar too), and it waits for the
  * key or button to be let go before it leaves, so neither press nor release reaches a window.
- * It answers at once: the cloth fades away (180 ms, eased, frame by frame) as it leaves.
+ * It answers at once: dwl fades it away (180 ms) as it leaves.
  * Without --idle it ends too when the desktop locks (kawa-lock); it stays one at a time.
  *
- * 8 to 17 MB a 1080p screen (one or two pictures of it), almost no CPU (12 steps a second, only the
- * dots that changed are drawn). Built by theme.sh (src/kawa-saver/Makefile). Exit: 0 · 1 it
- * could not show (said on stderr) · 2 wrong use.
+ * 8 MB a 1080p screen or so, almost no CPU (12 steps a second, only the dots that changed are drawn).
+ * Built by theme.sh (src/kawa-saver/Makefile). Exit: 0 · 1 it could not show (said on stderr) · 2 wrong use.
  */
 #define _GNU_SOURCE
 #include <errno.h>
@@ -66,13 +59,11 @@ static const char *colour_names[NCOL] = {
 };
 static uint32_t pal[NCOL];
 
-#define CELL 8          /* the sashiko grid, in dots */
 #define TILE 16         /* what is redrawn at once, in dots */
 #define SEAL 24         /* a seal, as the panels draw it: the kanji (14) with 4 of paper and 1 of frame round it */
 #define GAP GLYPH_COL   /* a gap, as the panels keep: a column of the letters */
-#define MAXSEALS 6
-#define NEEDLES 8
-#define SPEED 2         /* dots a needle moves a step */
+#define NSPARK 28       /* the embers, the gold dust */
+#define FLAME_MS 125    /* a flame's frame */
 
 struct buffer {
 	struct wl_buffer *wl;
@@ -83,8 +74,7 @@ struct buffer {
 };
 
 struct rect { int x, y, w, h; };
-struct seal { bool live; struct rect r; long until; int glyph; };
-struct needle { bool live; int line; int pos; int dir; };
+struct spark { bool live; float x, y, vx, vy; int age, life, px, py; };
 
 struct output {
 	struct wl_list link;
@@ -98,22 +88,24 @@ struct output {
 	/* the picture, and the grid of dots it shows */
 	int W, H, bs, cw, ch, tw, th;
 	struct buffer buf[2];
-	uint8_t *thread;    /* the cloth: what is sewn (a colour a dot) */
-	uint8_t *dots;      /* what shows: the cloth, the seals and the clock over it */
-	/* the sashiko */
-	int nh, nv;         /* horizontal lines (rows of the grid), vertical ones */
-	uint8_t *parity;    /* per line: which stitches are over */
-	int *order, next;   /* the lines in the order they are sewn, and the next to take */
-	struct needle needle[NEEDLES];
-	int phase;          /* SEW, REST, WASH */
-	long phase_at;
-	struct seal seals[MAXSEALS];
-	long next_seal;
+	uint32_t *under;    /* the scene on this screen's grid (a colour a dot) */
+	uint32_t *dots;     /* what shows: the scene, the flames, the sparks and the clock over it */
+	int ox, oy;         /* the scene's corner on the grid */
+	struct spark sparks[NSPARK];
 	struct rect clock;
-	int clock_min;
+	int clock_min, corner;
 	unsigned rng;
 };
-enum { SEW, REST, WASH };
+
+/* the mood's pictures (tools/build-saver.py) and lock-scene.txt's words */
+static struct {
+	int w, h;
+	unsigned char *rgb;
+	int fw, fh, frames, nflames, fx[4], fy[4];
+	unsigned char *flame;   /* its frames side by side, the key colour where nothing is */
+	bool dust;              /* the light mood: dust falling, not embers rising */
+	uint32_t spark[3];      /* a spark's ink as it lives: young, grown, old */
+} art;
 
 static struct wl_display *display;
 static struct wl_compositor *compositor;
@@ -135,13 +127,6 @@ static double leave_at;
 static bool moved_base;
 static double base_x, base_y;
 static volatile sig_atomic_t stop;
-
-static const uint8_t bayer[8][8] = {
-	{  0, 32,  8, 40,  2, 34, 10, 42 }, { 48, 16, 56, 24, 50, 18, 58, 26 },
-	{ 12, 44,  4, 36, 14, 46,  6, 38 }, { 60, 28, 52, 20, 62, 30, 54, 22 },
-	{  3, 35, 11, 43,  1, 33,  9, 41 }, { 51, 19, 59, 27, 49, 17, 57, 25 },
-	{ 15, 47,  7, 39, 13, 45,  5, 37 }, { 63, 31, 55, 23, 61, 29, 53, 21 },
-};
 
 static double now_ms(void)
 {
@@ -172,22 +157,7 @@ static void dirty(struct output *o, int x, int y, int w, int h)
 					o->buf[b].dirty[ty * o->tw + tx] = 1;
 }
 
-static bool in_rect(const struct rect *r, int x, int y)
-{
-	return x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
-}
-
-static bool covered(struct output *o, int x, int y)
-{
-	if (o->clock.w && in_rect(&o->clock, x, y))
-		return true;
-	for (int i = 0; i < MAXSEALS; i++)
-		if (o->seals[i].live && in_rect(&o->seals[i].r, x, y))
-			return true;
-	return false;
-}
-
-static void put(struct output *o, int x, int y, uint8_t c)
+static void put(struct output *o, int x, int y, uint32_t c)
 {
 	if (x < 0 || y < 0 || x >= o->cw || y >= o->ch)
 		return;
@@ -198,38 +168,22 @@ static void put(struct output *o, int x, int y, uint8_t c)
 	}
 }
 
-/* a dot of the cloth: kept, and shown unless a seal or the clock lies over it */
-static void sew(struct output *o, int x, int y, uint8_t c)
+static uint32_t under(struct output *o, int x, int y)
 {
-	if (x < 0 || y < 0 || x >= o->cw || y >= o->ch)
-		return;
-	o->thread[(size_t)y * (size_t)o->cw + (size_t)x] = c;
-	if (!covered(o, x, y))
-		put(o, x, y, c);
+	return o->under[(size_t)y * (size_t)o->cw + (size_t)x];
 }
 
-/* the cloth shown again where r was (a seal lifted, the clock moved) */
-static void uncover(struct output *o, struct rect r)
+static bool on_clock(struct output *o, int x, int y)
 {
-	for (int y = r.y; y < r.y + r.h; y++)
-		for (int x = r.x; x < r.x + r.w; x++)
-			if (x >= 0 && y >= 0 && x < o->cw && y < o->ch && !covered(o, x, y))
-				put(o, x, y, o->thread[(size_t)y * (size_t)o->cw + (size_t)x]);
+	struct rect *r = &o->clock;
+	return r->w && x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
 }
 
-static void fill(struct output *o, int x, int y, int w, int h, uint8_t c)
+static void fill(struct output *o, int x, int y, int w, int h, uint32_t c)
 {
 	for (int j = y; j < y + h; j++)
 		for (int i = x; i < x + w; i++)
 			put(o, i, j, c);
-}
-
-static void frame(struct output *o, int x, int y, int w, int h, int t, uint8_t c)
-{
-	fill(o, x, y, w, t, c);
-	fill(o, x, y + h - t, w, t, c);
-	fill(o, x, y, t, h, c);
-	fill(o, x + w - t, y, t, h, c);
 }
 
 static const struct glyph *glyph_of(const char *ch, size_t n)
@@ -240,7 +194,7 @@ static const struct glyph *glyph_of(const char *ch, size_t n)
 	return NULL;
 }
 
-static void draw_glyph(struct output *o, const struct glyph *g, int x, int y, uint8_t c)
+static void draw_glyph(struct output *o, const struct glyph *g, int x, int y, uint32_t c)
 {
 	for (int r = 0; r < GLYPH_H; r++)
 		for (int b = 0; b < g->w; b++)
@@ -248,7 +202,7 @@ static void draw_glyph(struct output *o, const struct glyph *g, int x, int y, ui
 				put(o, x + b, y + r, c);
 }
 
-/* the ink's box inside the glyph's cell (a seal centres its ink, as build-art.py does) */
+/* the ink's box inside the glyph's cell (a seal centres its ink) */
 static void ink(const struct glyph *g, int *x0, int *y0, int *x1, int *y1)
 {
 	*x0 = g->w, *y0 = GLYPH_H, *x1 = -1, *y1 = -1;
@@ -262,201 +216,91 @@ static void ink(const struct glyph *g, int *x0, int *y0, int *x1, int *y1)
 			}
 }
 
-/* a seal at x, y: SEAL × SEAL, the kanji's ink centred; stamped (the seal's red, accent: a 2-dot
- * frame, the kanji in it) or a heading's (1 dot of edge2, the kanji in accent_text: vermilion ink) */
-static void draw_seal(struct output *o, int x, int y, const struct glyph *g, bool stamped, uint8_t ground)
+/* ── the flames ─────────────────────────────────────────────────────────────────────── */
+static void flames_step(struct output *o)
 {
-	int x0, y0, x1, y1;
-	fill(o, x, y, SEAL, SEAL, ground);
-	frame(o, x, y, SEAL, SEAL, stamped ? 2 : 1, stamped ? ACCENT : EDGE2);
-	ink(g, &x0, &y0, &x1, &y1);
-	draw_glyph(o, g, x + (SEAL - (x1 - x0 + 1)) / 2 - x0, y + (SEAL - (y1 - y0 + 1)) / 2 - y0, stamped ? ACCENT : ACCENT_TEXT);
-}
-
-/* ── the sashiko ────────────────────────────────────────────────────────────────────── */
-/* line l: the first nh are horizontal (y = l·CELL), the rest vertical (x = (l-nh)·CELL);
- * its length in dots, and whether the dot at pos along it is a stitch over the cloth */
-static int line_len(struct output *o, int l) { return l < o->nh ? o->cw : o->ch; }
-static bool stitch(struct output *o, int l, int pos)
-{
-	int seg = pos / CELL, off = pos % CELL;
-	return off != 0 && (seg + o->parity[l]) % 2 == 0;
-}
-static void line_dot(struct output *o, int l, int pos, int *x, int *y)
-{
-	if (l < o->nh) *x = pos, *y = l * CELL;
-	else *x = (l - o->nh) * CELL, *y = pos;
-}
-
-static void new_cloth(struct output *o)
-{
-	int n = o->nh + o->nv;
-	for (int l = 0; l < n; l++) {
-		o->parity[l] = (uint8_t)rnd(o, 2);
-		o->order[l] = l;
-	}
-	for (int i = n - 1; i > 0; i--) {    /* the lines in a random order */
-		int j = (int)rnd(o, (unsigned)i + 1), t = o->order[i];
-		o->order[i] = o->order[j], o->order[j] = t;
-	}
-	o->next = 0;
-	for (int k = 0; k < NEEDLES; k++)
-		o->needle[k].live = false;
-	o->phase = SEW;
-	o->phase_at = tick;
-}
-
-static void sew_step(struct output *o)
-{
-	bool any = false;
-	for (int k = 0; k < NEEDLES; k++) {
-		struct needle *nd = &o->needle[k];
-		if (!nd->live && o->next < o->nh + o->nv) {
-			nd->live = true;
-			nd->line = o->order[o->next++];
-			nd->dir = rnd(o, 2) ? 1 : -1;
-			nd->pos = nd->dir > 0 ? 0 : line_len(o, nd->line) - 1;
-		}
-		if (!nd->live)
-			continue;
-		any = true;
-		int x, y, len = line_len(o, nd->line);
-		for (int s = 0; s < SPEED && nd->live; s++) {
-			line_dot(o, nd->line, nd->pos, &x, &y);
-			if (stitch(o, nd->line, nd->pos)) {
-				sew(o, x, y, THREAD);         /* the stitch, its shadow a dot down and right */
-				if (x + 1 < o->cw && y + 1 < o->ch &&
-				    o->thread[(size_t)(y + 1) * (size_t)o->cw + (size_t)(x + 1)] == GROUND)
-					sew(o, x + 1, y + 1, SHADE);
-			} else {
-				sew(o, x, y, o->thread[(size_t)y * (size_t)o->cw + (size_t)x]);
-			}
-			nd->pos += nd->dir;
-			if (nd->pos < 0 || nd->pos >= len)
-				nd->live = false;
-		}
-		for (int b = 0; nd->live && b < 3; b++) {   /* the needle: 3 dots of vermilion */
-			int p = nd->pos + b * nd->dir;          /* ahead, sewn over as it moves on */
-			if (p < 0 || p >= len)
-				break;
-			line_dot(o, nd->line, p, &x, &y);
-			if (!covered(o, x, y))
-				put(o, x, y, ACCENT);
-		}
-	}
-	if (!any) {
-		o->phase = REST;
-		o->phase_at = tick;
-	}
-}
-
-static void wash_step(struct output *o, int level)   /* level 0…64: dots at or under it go */
-{
-	for (int y = 0; y < o->ch; y++)
-		for (int x = 0; x < o->cw; x++) {
-			size_t i = (size_t)y * (size_t)o->cw + (size_t)x;
-			if (o->thread[i] != GROUND && bayer[(y / 2) & 7][(x / 2) & 7] < level)
-				sew(o, x, y, GROUND);
-		}
-}
-
-/* ── the seals and the clock ────────────────────────────────────────────────────────── */
-/* a free place on the grid for a w × h thing: inside the cells, a dot from the lines (a seal,
- * framed by the stitches round it), or over the lines, its edges on them (lines: the clock) */
-static bool place(struct output *o, int w, int h, bool lines, struct rect *r, const struct rect *skip)
-{
-	int cx = (w + 1 + CELL - 1) / CELL, cy = (h + 1 + CELL - 1) / CELL;
-	int gw = o->cw / CELL - cx, gh = o->ch / CELL - cy;
-	if (gw < 1 || gh < 1)
-		return false;
-	for (int tries = 0; tries < 40; tries++) {
-		int d = lines ? 0 : 1;
-		struct rect c = { (int)(rnd(o, (unsigned)gw) + 1) * CELL + d, (int)(rnd(o, (unsigned)gh) + 1) * CELL + d, w, h };
-		if (c.x + w >= o->cw - CELL || c.y + h >= o->ch - CELL)
-			continue;
-		bool clash = false;
-		struct rect pad = { c.x - CELL, c.y - CELL, w + 2 * CELL, h + 2 * CELL };
-		for (int i = 0; i < MAXSEALS && !clash; i++) {
-			const struct rect *s = &o->seals[i].r;
-			clash = o->seals[i].live && s != skip && s->x < pad.x + pad.w && pad.x < s->x + s->w &&
-				s->y < pad.y + pad.h && pad.y < s->y + s->h;
-		}
-		if (!clash && o->clock.w && &o->clock != skip)
-			clash = o->clock.x < pad.x + pad.w && pad.x < o->clock.x + o->clock.w &&
-				o->clock.y < pad.y + pad.h && pad.y < o->clock.y + o->clock.h;
-		if (!clash) {
-			*r = c;
-			return true;
-		}
-	}
-	return false;
-}
-
-static void seals_step(struct output *o)
-{
-	long per_s = 1000 / pace;
-	for (int i = 0; i < MAXSEALS; i++)
-		if (o->seals[i].live && tick >= o->seals[i].until) {
-			o->seals[i].live = false;
-			uncover(o, o->seals[i].r);
-		}
-	if (tick < o->next_seal)
-		return;
-	o->next_seal = tick + per_s * (5 + (long)rnd(o, 5));
-	for (int i = 0; i < MAXSEALS; i++) {
-		if (o->seals[i].live)
-			continue;
-		struct rect r;
-		if (!place(o, SEAL, SEAL, false, &r, NULL))
-			return;
-		/* (one of the night's pictures: saver_seals, art/icons.txt's) */
-		const char *k = saver_seals[rnd(o, (unsigned)(sizeof saver_seals / sizeof *saver_seals))];
-		const struct glyph *g = glyph_of(k, strlen(k));
-		if (!g)
-			return;
-		o->seals[i] = (struct seal){ true, r, tick + per_s * (30 + (long)rnd(o, 30)), (int)(g - glyphs) };
-		draw_seal(o, r.x, r.y, g, true, GROUND);
-		return;
-	}
-}
-
-/* a running stitch round w × h at x, y as the bar's patches have it: 3 dots on, 2 off, laid
- * from both corners so it is symmetric and every corner is sewn; each dot's shadow a dot down
- * and right (inside the box: the frame takes w-1 × h-1, the shadow the last column and row) */
-static bool run_on(int i, int n) { int d = i < n - 1 - i ? i : n - 1 - i; return d % 5 < 3; }
-static void stitch_frame(struct output *o, int x, int y, int w, int h)
-{
-	int fw = w - 1, fh = h - 1;
-	for (int pass = 0; pass < 2; pass++)  /* the shadows, then the thread over them */
-		for (int i = 0; i < fw; i++)
-			for (int j = 0; j < fh; j++) {
-				bool edge = i == 0 || j == 0 || i == fw - 1 || j == fh - 1;
-				if (!edge || !((j == 0 || j == fh - 1) ? run_on(i, fw) : run_on(j, fh)))
+	int frame = (int)(tick * pace / FLAME_MS);
+	for (int i = 0; i < art.nflames; i++) {
+		int f = (frame + 3 * i) % art.frames;
+		for (int y = 0; y < art.fh; y++)
+			for (int x = 0; x < art.fw; x++) {
+				int dx = o->ox + art.fx[i] + x, dy = o->oy + art.fy[i] + y;
+				if (dx < 0 || dy < 0 || dx >= o->cw || dy >= o->ch || on_clock(o, dx, dy))
 					continue;
-				if (pass == 0)
-					put(o, x + i + 1, y + j + 1, SHADE);
-				else
-					put(o, x + i, y + j, THREAD);
+				const unsigned char *p = art.flame + 3 * ((size_t)y * (size_t)art.fw * (size_t)art.frames
+						+ (size_t)f * (size_t)art.fw + (size_t)x);
+				bool none = p[0] == 255 && p[1] == 0 && p[2] == 255;
+				put(o, dx, dy, none ? under(o, dx, dy) : 0xff000000u | (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2]);
 			}
+	}
 }
 
-/* the clock: a patch over the grid's lines, its edges on them (the surface, framed in running
- * stitch as the bar's clock is) — its seal the day's (月 … 日, as the bar's clock) and the time in
- * text, centred in it; wday as localtime counts it (Sunday 0) */
+/* ── the sparks: embers rising from the torches, dust falling through the sky ─────────── */
+static void spark_new(struct output *o, struct spark *s)
+{
+	s->live = true, s->age = 0, s->px = s->py = -1;
+	if (art.dust) {
+		s->x = (float)rnd(o, (unsigned)o->cw), s->y = (float)rnd(o, (unsigned)o->ch / 2);
+		s->vx = ((float)rnd(o, 40) - 20) / 200.0f, s->vy = 0.12f + (float)rnd(o, 20) / 100.0f;
+		s->life = 90 + (int)rnd(o, 120);
+	} else {
+		int i = art.nflames ? (int)rnd(o, (unsigned)art.nflames) : 0;
+		s->x = (float)(o->ox + (art.nflames ? art.fx[i] + (int)rnd(o, (unsigned)art.fw) : (int)rnd(o, (unsigned)o->cw)));
+		s->y = (float)(o->oy + (art.nflames ? art.fy[i] + art.fh / 3 : o->ch - 1));
+		s->vx = ((float)rnd(o, 40) - 20) / 100.0f, s->vy = -0.35f - (float)rnd(o, 50) / 100.0f;
+		s->life = 40 + (int)rnd(o, 70);
+	}
+}
+
+static void sparks_step(struct output *o)
+{
+	for (int i = 0; i < NSPARK; i++) {
+		struct spark *s = &o->sparks[i];
+		if (!s->live) {
+			if (rnd(o, 40) == 0)
+				spark_new(o, s);
+			continue;
+		}
+		if (s->px >= 0 && !on_clock(o, s->px, s->py))
+			put(o, s->px, s->py, under(o, s->px, s->py));
+		if (++s->age > s->life) {
+			s->live = false;
+			continue;
+		}
+		s->vx += ((float)rnd(o, 21) - 10) / 400.0f;   /* (the air moves it) */
+		s->x += s->vx, s->y += s->vy;
+		s->px = (int)s->x, s->py = (int)s->y;
+		if (s->px < 0 || s->py < 0 || s->px >= o->cw || s->py >= o->ch) {
+			s->live = false;
+			continue;
+		}
+		if (!on_clock(o, s->px, s->py))
+			put(o, s->px, s->py, art.spark[3 * s->age / (s->life + 1)]);
+	}
+}
+
+/* the clock: a small patch — its seal the day's (月 … 日, as the bar's clock) and the time in text,
+ * centred in it; wday as localtime counts it (Sunday 0) */
 static void draw_clock(struct output *o, const char *t, int wday)
 {
 	struct rect r = o->clock;
-	fill(o, r.x, r.y, r.w, r.h, SURFACE);
-	stitch_frame(o, r.x, r.y, r.w, r.h);
+	fill(o, r.x, r.y, r.w, r.h, pal[SURFACE]);
+	fill(o, r.x, r.y, r.w, 1, pal[EDGE2]);
+	fill(o, r.x, r.y + r.h - 1, r.w, 1, pal[EDGE2]);
+	fill(o, r.x, r.y, 1, r.h, pal[EDGE2]);
+	fill(o, r.x + r.w - 1, r.y, 1, r.h, pal[EDGE2]);
 	const struct glyph *g = glyph_of(saver_days + 3 * (wday % 7), 3);
 	int cw = SEAL + GAP + GLYPH_COL * (int)strlen(t), x = r.x + (r.w - cw) / 2, y = r.y + (r.h - SEAL) / 2;
-	if (g)
-		draw_seal(o, x, y, g, false, SURFACE);
+	if (g) {
+		int x0, y0, x1, y1;
+		ink(g, &x0, &y0, &x1, &y1);
+		draw_glyph(o, g, x + (SEAL - (x1 - x0 + 1)) / 2 - x0, y + (SEAL - (y1 - y0 + 1)) / 2 - y0, pal[ACCENT_TEXT]);
+	}
 	x += SEAL + GAP, y += (SEAL - GLYPH_H) / 2 + 1;
 	for (const char *p = t; *p; p++) {
 		const struct glyph *c = glyph_of(p, 1);
 		if (c)
-			draw_glyph(o, c, x, y, TEXT);
+			draw_glyph(o, c, x, y, pal[TEXT]);
 		x += GLYPH_COL;
 	}
 }
@@ -470,40 +314,23 @@ static void clock_step(struct output *o)
 		return;
 	char t[16];
 	strftime(t, sizeof t, "%I:%M %p", &tm);
-	struct rect old = o->clock, r;
-	int w = 8 + SEAL + GAP + GLYPH_COL * (int)strlen(t) + 8, h = 8 + SEAL + 8;
-	w = (w + CELL - 2) / CELL * CELL + 1, h = (h + CELL - 2) / CELL * CELL + 1;   /* line to line */
-	if (!place(o, w, h, true, &r, &o->clock))
-		return;
+	struct rect old = o->clock;
+	int w = 8 + SEAL + GAP + GLYPH_COL * (int)strlen(t) + 8, h = SEAL + 8, m = 16;
+	o->corner = (o->corner + 1) % 4;      /* (another corner every minute) */
+	o->clock = (struct rect){ o->corner & 1 ? o->cw - w - m : m, o->corner & 2 ? o->ch - h - m : m, w, h };
 	o->clock_min = tm.tm_min;
-	o->clock = r;                         /* (moved every minute: nothing stays put) */
 	if (old.w)
-		uncover(o, old);
+		for (int y = old.y; y < old.y + old.h; y++)
+			for (int x = old.x; x < old.x + old.w; x++)
+				if (!on_clock(o, x, y))
+					put(o, x, y, under(o, x, y));
 	draw_clock(o, t, tm.tm_wday);
 }
 
 static void step(struct output *o)
 {
-	long per_s = 1000 / pace;
-	switch (o->phase) {
-	case SEW:
-		sew_step(o);
-		break;
-	case REST:                            /* the cloth full: a minute to look at it */
-		if (tick - o->phase_at > 60 * per_s) {
-			o->phase = WASH;
-			o->phase_at = tick;
-		}
-		break;
-	case WASH: {                          /* washed in 4 s, then sewn anew */
-		long t = tick - o->phase_at, len = 4 * per_s;
-		wash_step(o, (int)(65 * t / (len ? len : 1)));
-		if (t >= len)
-			new_cloth(o);
-		break;
-	}
-	}
-	seals_step(o);
+	flames_step(o);
+	sparks_step(o);
 	clock_step(o);
 }
 
@@ -571,7 +398,7 @@ static void flush(struct output *o)
 			int x0 = tx * TILE, y0 = ty * TILE;
 			for (int y = y0; y < y0 + TILE && y < o->ch; y++)
 				for (int x = x0; x < x0 + TILE && x < o->cw; x++) {
-					uint32_t c = pal[o->dots[(size_t)y * (size_t)o->cw + (size_t)x]];
+					uint32_t c = o->dots[(size_t)y * (size_t)o->cw + (size_t)x];
 					int px = x * o->bs, py = y * o->bs;
 					for (int j = py; j < py + o->bs && j < o->H; j++) {
 						uint32_t *row = b->px + (size_t)j * (size_t)o->W;
@@ -602,18 +429,25 @@ static bool setup(struct output *o)
 		o->bs = 2;
 	o->cw = (o->W + o->bs - 1) / o->bs, o->ch = (o->H + o->bs - 1) / o->bs;
 	o->tw = (o->cw + TILE - 1) / TILE, o->th = (o->ch + TILE - 1) / TILE;
-	o->nh = (o->ch - 1) / CELL + 1, o->nv = (o->cw - 1) / CELL + 1;
 	size_t n = (size_t)o->cw * (size_t)o->ch;
-	o->thread = calloc(n, 1);
-	o->dots = calloc(n, 1);
-	o->parity = calloc((size_t)(o->nh + o->nv), 1);
-	o->order = calloc((size_t)(o->nh + o->nv), sizeof *o->order);
-	if (!o->thread || !o->dots || !o->parity || !o->order)
+	o->under = calloc(n, sizeof *o->under);
+	o->dots = calloc(n, sizeof *o->dots);
+	if (!o->under || !o->dots)
 		return false;
 	o->rng = seed ^ (o->global * 2654435761u);
 	o->clock_min = -1;
-	new_cloth(o);
-	o->next_seal = tick + 2 * (1000 / pace);
+	/* the scene centred on the grid (a screen of another shape: cut, or the ground round it) */
+	o->ox = (o->cw - art.w) / 2, o->oy = (o->ch - art.h) / 2;
+	for (int y = 0; y < o->ch; y++)
+		for (int x = 0; x < o->cw; x++) {
+			int sx = x - o->ox, sy = y - o->oy;
+			uint32_t c = pal[SHADE];
+			if (sx >= 0 && sy >= 0 && sx < art.w && sy < art.h) {
+				const unsigned char *p = art.rgb + 3 * ((size_t)sy * (size_t)art.w + (size_t)sx);
+				c = 0xff000000u | (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
+			}
+			o->under[(size_t)y * (size_t)o->cw + (size_t)x] = o->dots[(size_t)y * (size_t)o->cw + (size_t)x] = c;
+		}
 	wl_surface_set_buffer_scale(o->surface, o->scale);
 	o->ready = true;
 	return true;
@@ -902,6 +736,66 @@ static bool read_palette(void)
 	return true;
 }
 
+/* a P6 picture (tools/build-saver.py writes them): its bytes, its size */
+static unsigned char *read_ppm(const char *path, int *w, int *h)
+{
+	FILE *f = fopen(path, "r");
+	int max = 0;
+	if (!f)
+		return NULL;
+	unsigned char *px = NULL;
+	if (fscanf(f, "P6 %d %d %d", w, h, &max) == 3 && max == 255 && *w > 0 && *h > 0 && fgetc(f) != EOF) {
+		size_t n = 3 * (size_t)*w * (size_t)*h;
+		px = malloc(n);
+		if (px && fread(px, 1, n, f) != n) {
+			free(px);
+			px = NULL;
+		}
+	}
+	fclose(f);
+	return px;
+}
+
+/* the mood's scene: its pictures, and lock-scene.txt's words for the flames */
+static bool read_art(void)
+{
+	char dir[PATH_MAX], cur[PATH_MAX], link[64], p[PATH_MAX + 32], line[256];
+	const char *home = getenv("HOME");
+	snprintf(cur, sizeof cur, "%s/.config/fedokawaii/current", home ? home : "");
+	ssize_t n = readlink(cur, link, sizeof link - 1);
+	if (n <= 0)
+		return false;
+	link[n] = 0;
+	const char *mood = strrchr(link, '/');
+	mood = mood ? mood + 1 : link;
+	art.dust = !strcmp(mood, "light");
+	snprintf(dir, sizeof dir, "%s/.local/share/fedokawaii/%s", home ? home : "", mood);
+	snprintf(p, sizeof p, "%s/saver-scene.ppm", dir);
+	if (!(art.rgb = read_ppm(p, &art.w, &art.h)))
+		return false;
+	snprintf(p, sizeof p, "%s/lock-scene.txt", dir);
+	FILE *f = fopen(p, "r");
+	if (!f)
+		return false;
+	int fw = 0, fh = 0, frames = 0;
+	while (fgets(line, sizeof line, f)) {
+		if (sscanf(line, "frames %d %d %d", &fw, &fh, &frames) == 3) ;
+		else if (art.nflames < 4 && sscanf(line, "flame %d %d", &art.fx[art.nflames], &art.fy[art.nflames]) == 2)
+			art.nflames++;
+	}
+	fclose(f);
+	int w = 0, h = 0;
+	snprintf(p, sizeof p, "%s/saver-flame.ppm", dir);
+	if (art.nflames && frames > 0 && (art.flame = read_ppm(p, &w, &h)) && w == fw * frames && h == fh)
+		art.fw = fw, art.fh = fh, art.frames = frames;
+	else
+		art.nflames = 0;
+	art.spark[0] = art.dust ? pal[ACCENT_TEXT] : pal[TEXT];
+	art.spark[1] = art.dust ? pal[THREAD] : pal[ACCENT_TEXT];
+	art.spark[2] = art.dust ? pal[EDGE2] : pal[ACCENT];
+	return true;
+}
+
 static void usage(void)
 {
 	fputs("usage: kawa-saver [--idle] [--seed N] [--pace MS]\n", stderr);
@@ -939,6 +833,8 @@ int main(int argc, char **argv)
 	}
 	if (!read_palette())
 		return fail("no colours (fedokawaii repair puts saver.conf back)");
+	if (!read_art())
+		return fail("no scene (fedokawaii repair puts saver-scene.ppm back)");
 	display = wl_display_connect(NULL);
 	if (!display)
 		return fail("no Wayland session to show it on");

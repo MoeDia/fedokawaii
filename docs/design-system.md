@@ -397,7 +397,7 @@ content, inside its margin of one cell:
   its footer names the keys of the moment.
 - **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
   ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
-  spill into one blank cell only): the demon in slot 1's red in the dark mood, the angel in the words' ink in the
+  spill into one blank cell only): the demon in the vermilion ink (`accent_text`, foot's slot 20) in the dark mood, the angel in the words' ink in the
   light; the demon roars, the angel looks up, when the last command failed; a switch of mood reaches an open terminal
   at its next prompt. The blocks: three papers of Wada's combination #300 (Cream Yellow, Turquoise Green, Calamine Blue:
   `tools/wada-palette.py`'s paper_* tokens, foot's colours 27–29, their ink 30, the same papers in both moods), words
