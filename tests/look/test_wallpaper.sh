@@ -524,8 +524,8 @@ lacks "$(rows)" red-fuji "the other theme's pictures are not offered"
 
 case_ "the rows (design system §7): a column in, the glyph, two columns, the name; the value right-aligned in muted"
 d=$(plain | head -n1)
-eq "$d" " $ICON_TORII  ink-ridges-night$(printf '%*s' $((76 - 4 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' at the last column"
-eq "$(plain | grep -F "$ICON_THEME" | while IFS= read -r l; do printf '%s\n' "$(LC_ALL=C.UTF-8 wc -L <<<"$l")"; done | sort -u)" 76 "the ◐ marks: at the last column (76)"
+eq "$d" " $ICON_TORII  ink-ridges-night$(printf '%*s' $((76 - 5 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' a column in from the last"
+eq "$(plain | grep -F "$ICON_THEME" | while IFS= read -r l; do printf '%s\n' "$(LC_ALL=C.UTF-8 wc -L <<<"$l")"; done | sort -u)" 75 "the ◐ marks: a column in from the last"
 eq "$(grep -cF "$ICON_THEME" "$TMP/rows")" 2 "quay-night and old-pier-at-night have a pair"
 has "$(pics | sed -n 1p)" $'\e[38;5;21mcurrent · default' "the value in muted (palette 21)"
 has "$(pics | sed -n 1p)" $'\e[38;5;21m'"$ICON_TORII" "the glyph in muted"
@@ -702,7 +702,7 @@ eq "$(cat "$PREVIEWS/geometry")" "12x26 78x17"
 case_ "the preview's own size: a whole fraction of the screen, centred across the pane and down to the window's hairline (as far as it lets: clear of its last line)"
 f=$PREVIEWS/1920x1080-12x26-$GD/$(key_of moon-road-ink).78x17.six
 [[ -s $f ]] && _ok || _no "not kept where the picker's command looks"
-eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;788;416' "640×360 (a third of 1080p) at 148,56 in a 936×442 pane"
+eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;788;390' "640×360 (a third of 1080p) at 148,56 in a 936×442 pane, the row of the pane's first line above the sixel"
 
 case_ "in the picker (a cache hit): the preview is a cat of its sixel — no kawa-wallpaper run, under 100 ms"
 setup; picker
@@ -716,7 +716,8 @@ kawa-wallpaper --cache >/dev/null 2>&1
 KAWA_CELL=12x24 kawa-wallpaper --preview pack:moon-road-ink >"$TMP/want"
 printf '#!/bin/sh\necho RAN\n' >"$TMP/kbin/kawa-wallpaper"
 s=$EPOCHREALTIME; out=$(pane pack:moon-road-ink); e=$EPOCHREALTIME
-pic=$out
+pic=${out#$'\n'}
+[[ ${out:0:1} == $'\n' ]] && _ok || _no "the pane's first line: an empty one at once (fzf's \"Loading ..\" never over it)"
 [[ $pic == $'\eP'* ]] && _ok || _no "no sixel: ${pic:0:40}"
 lacks "$out" RAN "kawa-wallpaper ran: not a hit"
 cmp -s <(printf '%s\n' "$pic") "$TMP/want" && _ok || _no "not the same picture as --preview draws"
@@ -724,7 +725,7 @@ has "$(args_of fzf "$(ncalls fzf)")" "--preview-window=down,17,border-none,noinf
 (( (${e/./} - ${s/./}) < 100000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
 case_ "in the picker (a miss): --preview draws it"
 rm -f "$PREVIEWS"/*/"$(key_of moon-road-ink)".*.six
-eq "$(pane pack:moon-road-ink)" "RAN"
+eq "$(pane pack:moon-road-ink | sed 1d)" "RAN" "(under the pane's first line)"
 case_ "your own picture not read yet: --preview (which reads it); once read, the next picker opens on a hit"
 cp "$REPO/bin/kawa-wallpaper" "$TMP/kbin/"; photo "$WP/mine.png"
 "$TMP/kbin/kawa-wallpaper" --tui "$TMP/out"

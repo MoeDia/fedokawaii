@@ -325,14 +325,14 @@ print("\n".join(lines))' "$title" "$W" 2>/dev/null)
       P=$(( (lines - tr - n) * ch + dsc - b ))
       gp=$(( tr * ch + cap - Hc - P ))
       ((gp < gap - ch / 2 || gp > gap + ch / 2)) && continue
-      ((b + P >= a && (lines - tr - n) * ch + dsc >= a)) || continue   # (never nearer the pane's top or foot than its sides)
+      ((b + P >= a && (lines - tr - n) * ch + dsc >= a && P >= lead * ch)) || continue   # (never nearer the pane's top or foot than its sides)
       best="$w $tr $Hc $P $W $ox" btl=("${tl[@]}"); break 3
     done
   done
   done
   [[ -n $best ]] || { rm -f "$tmp" "$png"; return 1; }
   read -r w tr Hc P W ox <<<"$best"
-  S=$(( tr * ch / 6 * 6 ))                      # whole sixel bands, ending in row tr-1
+  S=$(( (tr - lead) * ch / 6 * 6 ))             # whole sixel bands, ending in row tr-1
   if ((card)); then                             # no picture in the file: a card, its kind on it
     magick -size "${w}x${Hc}" "xc:#$C_EDGE" -fill none -stroke "#$C_MUTED" -strokewidth 2 \
       -draw "rectangle 1,1 $((w - 2)),$((Hc - 2))" +antialias -stroke none -fill "#$C_MUTED" \
@@ -341,7 +341,7 @@ print("\n".join(lines))' "$title" "$W" 2>/dev/null)
   else
     magick "${tmp}[0]" -resize "${w}x${Hc}^" -gravity center -extent "${w}x${Hc}" "PNG24:$png" 2>/dev/null
   fi
-  magick -size "$((ox + w))x$S" "xc:#$C_GROUND" "$png" -geometry "+$ox+$P" -composite \
+  magick -size "$((ox + w))x$S" "xc:#$C_GROUND" "$png" -geometry "+$ox+$((P - lead * ch))" -composite \
       png:- 2>/dev/null | kawa-sixel "$C_GROUND" >"$six.$$" \
     && { printf '%s %s %s\n' "$((ox + w / 2))" "$tr" "$W"; ((${#btl[@]} == 0)) || printf '%s\n' "${btl[@]}"; } >"$lay.$$" \
     && mv -f "$six.$$" "$six" && mv -f "$lay.$$" "$lay"
@@ -359,7 +359,10 @@ case ${1:-} in
     cell=${KAWA_CELL:?} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
     cw=${cell%x*} ch=${cell#*x}
     ((cw > 0 && ch > 0 && cols > 20 && lines > 8)) || exit 0
-    key=$(printf '%s\n' p12 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" "$CAP_TITLE" "$CAP_LINES" | sha1sum)
+    # (the pane's first line at once, an empty one: a cover being drawn takes its time, and over a pane that has said nothing
+    # for half a second fzf writes "Loading .." in a block of its own. The picture starts on the row under it)
+    lead=0; ((lines >= 16)) && { lead=1; printf '\n'; }
+    key=$(printf '%s\n' p13 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" "$CAP_TITLE" "$CAP_LINES" | sha1sum)
     key=${key%% *}; six=$CACHE/$key.six lay=$CACHE/$key.lay
     [[ -s $six && -s $lay ]] || draw_cover "$f" "$six" "$lay" || exit 0
     { read -r cx tr W; mapfile -t tl; } <"$lay"
@@ -427,7 +430,7 @@ head="$(screen_heading "$ICON_BOOK" books "$KAWA_BOOKS_W")"$'\n '
 if ((${#list[@]})); then ghost='~/Books'; else ghost='none in ~/Books yet — ctrl+a adds some'; fi
 self=$(printf '%q' "$0")
 # (the terminal's cursor a thin bar, not foot's block: it stands before the ghost's first letter, never over it)
-printf '\e[6 q' >/dev/tty 2>/dev/null
+{ printf '\e[6 q' >/dev/tty; } 2>/dev/null
 printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% \
   --delimiter=$'\t' --with-nth=2 --tiebreak=index --header="$head" --ghost="$ghost" \
   --info-command='printf "%s  " "$FZF_INFO"' \

@@ -253,7 +253,9 @@ for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do
   (( x1 <= cols * 9 )) && _ok || _no "$size: the cover passes the pane's edge"
   after=$(jrepr after <<<"$info")
   text=$(python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.argv[1]))' "$after" | plain)
-  n=$(wc -l <<<"$text"); tr=$(( (h + 20) / 21 ))
+  lead=0; ((lines >= 16)) && lead=1                      # (a tall pane: its first line at once, an empty one: never fzf's "Loading ..")
+  y0=$(( y0 + lead * 21 ))
+  n=$(wc -l <<<"$text"); tr=$(( (h + 20) / 21 + lead ))
   rows=$(( tr + n - 1 ))
   ((rows <= lines)) && _ok || _no "$size: $rows rows in a pane of $lines"
   # (above the cover as much paper as under the words; each line of them on the cover's middle, within half a cell)

@@ -53,10 +53,30 @@ index 3311c86..05267a4 100644
  		let help = &mut cx.help;
  		help.visible = true;
 diff --git a/yazi-binding/src/elements/border.rs b/yazi-binding/src/elements/border.rs
-index cbb76a2..34c5f83 100644
+index cbb76a2..36a78ea 100644
 --- a/yazi-binding/src/elements/border.rs
 +++ b/yazi-binding/src/elements/border.rs
-@@ -28,7 +28,7 @@ pub struct Border {
+@@ -5,6 +5,19 @@ use ratatui_widgets::borders::Borders;
+ use super::{Area, Edge};
+ use crate::elements::{Line, Spatial};
+ 
++/// The desktop's frame in whole terminal cells (fedokawaii, docs/design-system.md §7, Sumi Icons Term: tools/build-icons.py CELLS):
++/// §4's hairline on the cells' inner edges, its corners left out. Every frame a plugin or a pop-up draws.
++pub const RING: ratatui_core::symbols::border::Set = ratatui_core::symbols::border::Set {
++	top_left:          "\u{FF003}",
++	top_right:         "\u{FF005}",
++	bottom_left:       "\u{FF008}",
++	bottom_right:      "\u{FF00A}",
++	vertical_left:     "\u{FF006}",
++	vertical_right:    "\u{FF007}",
++	horizontal_top:    "\u{FF004}",
++	horizontal_bottom: "\u{FF009}",
++};
++
+ // Type
+ const PLAIN: u8 = 0;
+ const ROUNDED: u8 = 1;
+@@ -28,7 +41,7 @@ pub struct Border {
  impl Border {
  	pub fn compose(lua: &Lua) -> mlua::Result<Value> {
  		let new = lua.create_function(|_, (_, edge): (Table, Edge)| {
@@ -65,7 +85,17 @@ index cbb76a2..34c5f83 100644
  		})?;
  
  		let border = lua.create_table_from([
-@@ -96,7 +96,8 @@ impl UserData for Border {
+@@ -68,6 +81,9 @@ impl Widget for Border {
+ 			.border_type(self.r#type)
+ 			.border_style(self.style)
+ 			.merge_borders(self.merge);
++		if self.r#type == ratatui_widgets::borders::BorderType::Plain && self.edge.0 == Borders::ALL {
++			block = block.border_set(RING);
++		}
+ 
+ 		for title in self.titles {
+ 			block = match title {
+@@ -96,7 +112,8 @@ impl UserData for Border {
  
  		methods.add_function("type", |_, (ud, value): (AnyUserData, u8)| {
  			ud.borrow_mut::<Self>()?.r#type = match value {
@@ -551,17 +581,18 @@ index 5418ac9..2855017 100644
  		list.render(inner, buf);
 diff --git a/yazi-fm/src/frame.rs b/yazi-fm/src/frame.rs
 new file mode 100644
-index 0000000..9cd81e2
+index 0000000..7d562b3
 --- /dev/null
 +++ b/yazi-fm/src/frame.rs
-@@ -0,0 +1,134 @@
+@@ -0,0 +1,124 @@
 +// The desktop's pop-ups (fedokawaii, docs/design-system.md §4, §7): one frame for all of them, nothing in its
 +// rule. The ring is §4's hairline drawn in whole terminal cells of Sumi Icons Term (tools/build-icons.py, CELLS):
 +// square, its corners left out, 16 px clear of the content on every side. Inside it §7's heading — the icon in
 +// accent_text, two columns, the name in strong, a space, the rule in edge2 — and a row of paper.
 +// The inks are foot's slots past the sixteen (tools/build-themes.py), so a pop-up follows a theme switch.
-+use ratatui_core::{buffer::Buffer, layout::Rect, style::{Color, Style}, symbols::border::Set, text::{Line, Span}, widgets::Widget};
++use ratatui_core::{buffer::Buffer, layout::Rect, style::{Color, Style}, text::{Line, Span}, widgets::Widget};
 +use ratatui_widgets::block::Block;
++use yazi_binding::elements::RING;
 +use yazi_widgets::clear::Clear;
 +
 +const fn ink(slot: u8) -> Style { Style::new().fg(Color::Indexed(slot)) }
@@ -572,17 +603,6 @@ index 0000000..9cd81e2
 +pub(crate) const FAINT: Style = ink(22);
 +pub(crate) const STRONG: Style = ink(23);
 +pub(crate) const EDGE: Style = ink(16);
-+
-+const RING: Set = Set {
-+	top_left:          "\u{FF003}",
-+	top_right:         "\u{FF005}",
-+	bottom_left:       "\u{FF008}",
-+	bottom_right:      "\u{FF00A}",
-+	vertical_left:     "\u{FF006}",
-+	vertical_right:    "\u{FF007}",
-+	horizontal_top:    "\u{FF004}",
-+	horizontal_bottom: "\u{FF009}",
-+};
 +
 +// Sumi Icons, as icons.sh names them (an icon's place never moves: tools/build-icons.py)
 +pub(crate) const I_CHEVRON: &str = "\u{FE027}";

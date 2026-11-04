@@ -64,7 +64,7 @@ end
 local function amount(file, number, unit, nw, uw)
 	local n = string.format("%" .. nw .. "s", number)
 	local u = string.format("%-" .. uw .. "s", unit)
-	if file.is_hovered then return ui.Span(n .. " " .. u) end
+	if file.is_hovered then return ui.Span(n .. " " .. u):bold(true) end
 	-- (bold(true) takes a folder row's bold away: the list draws the row's style first, under this)
 	return ui.Line { ui.Span(n .. " "):fg("21"):bold(true), ui.Span(u):fg("22"):bold(true) }
 end

@@ -397,7 +397,8 @@ make_preview() {   # make_preview SCREEN CELL COLSxROWS → KEY's sixel there (f
   # scroll the window: fzf #2544)
   local s=$1 cell=$2 area=$3 w h aw ah bw bh n m pw ph lp tp screen out
   # (centred between what is above the pane and the window's hairline: the pane's own height, fzf's margin
-  # of a row and foot's 8 px under it)
+  # of a row and foot's 8 px under it. The pane's first line is an empty one, written at once — over a pane that has
+  # said nothing for half a second fzf writes "Loading .." in a block of its own —, the picture starts under it)
   w=${s%x*} h=${s#*x}
   aw=$(( ${area%x*} * ${cell%x*} )) ah=$(( ${area#*x} * ${cell#*x} ))   # the area
   bw=$aw bh=$((ah - ${cell#*x}))                                         # what the picture may fill
@@ -405,13 +406,13 @@ make_preview() {   # make_preview SCREEN CELL COLSxROWS → KEY's sixel there (f
   n=$(( (w + bw - 1) / bw )) m=$(( (h + bh - 1) / bh )); ((m > n)) && n=$m; ((n < 1)) && n=1
   pw=$((w / n)) ph=$((h / n))
   ((pw > 0 && ph > 0)) || return 1
-  lp=$(( (aw - pw) / 2 )) tp=$(( (ah + ${cell#*x} + 8 - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph))
+  lp=$(( (aw - pw) / 2 )) tp=$(( (ah + ${cell#*x} + 8 - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph)); ((tp < ${cell#*x})) && tp=${cell#*x}
   out=$(preview_path "$s" "$cell" "$area" "$C_GROUND")
   [[ -s $out && ! $SRC -nt $out ]] && { printf '%s' "$out"; return 0; }
   screen=$(cover "$s") || return 1
   mkdir -p "${out%/*}"
   { magick "$screen" -filter Lanczos -resize "${pw}x${ph}!" \
-      -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" ppm:- 2>/dev/null \
+      -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp - ${cell#*x} + ph))" ppm:- 2>/dev/null \
       | kawa-sixel "$C_GROUND" && printf '\n'; } >"$out.$BASHPID.tmp" && mv -f "$out.$BASHPID.tmp" "$out" \
     || { rm -f "$out.$BASHPID.tmp"; return 1; }
   printf '%s' "$out"
@@ -764,7 +765,7 @@ case ${1:-menu} in
     sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --no-input --height=100% --no-clear \
       --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading "$ICON_PICTURE" wallpaper "$W")"$'\n ' \
       --with-shell='bash -c' \
-      --preview="f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
+      --preview="printf '\n'; f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
       --preview-window='down,17,border-none,noinfo' \
       --footer="$(keys)" \
       --bind="r:execute-silent($self --rotate cycle)+transform-footer($self --keys)" \

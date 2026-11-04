@@ -62,7 +62,7 @@ D=$HOME/demo/fedokawaii; mkdir -p "$D"/{art/masters,bin,configs,docs,lib,src/dwl
   touch -d "3 days ago" README.md; touch -d "2 months ago" CLAUDE.md; touch -d "2 years ago" fedokawaii.conf; touch -d "5 hours ago" theme.sh; touch -d "20 minutes ago" setup.sh; touch -d "2 weeks ago" art lib bin )
 panel; nap 0.5
 chord logo r; nap 3.5; shot books; key Escape; nap 1
-chord logo w; nap 4; key Home; nap 1; key Down Down; nap 1.5; shot wall; key r; nap 0.4; key o; nap 0.4; key s; nap 0.8; shot wall-set; key Escape; nap 1
+chord logo w; nap 4; key Home; nap 1; key Down Down; nap 6; shot wall; key r; nap 0.4; key o; nap 0.4; key s; nap 0.8; shot wall-set; key Escape; nap 1
 setsid -f kawa-calc; nap 1; shot calc-empty
 text '5 ft to cm'; nap 1; shot calc-typed; key Return; nap 0.6; shot calc-copied
 text '15% of 2400'; nap 0.8; key Return; nap 0.4; text '120 usd to aed'; nap 1; key Return; nap 0.4; text '2^64'; nap 0.8; key Down; nap 0.3; shot calc-row; key Escape; nap 0.5
@@ -72,6 +72,7 @@ footclient -a float -T yazi -W 235x51 -- yazi "$D" >/dev/null 2>&1 &
 nap 2.5
 key j j; nap 1; shot y-folder
 key j j j j j j j j j j j; nap 0.8; shot y-card
+key K; nap 0.3; key g g; nap 0.3; key Tab; nap 1; shot y-spot; key Escape; nap 0.5
 key K; nap 0.3; key g g; nap 0.2; key j j j j j j j j j j j j; nap 0.3
 key r; nap 0.7; shot y-rename; key Escape; nap 0.3; key Escape; nap 0.5
 key space; nap 0.2; key space; nap 0.3; key d; nap 0.7; shot y-trash; key n; nap 0.5; key Escape; nap 0.3

@@ -1269,6 +1269,11 @@ class Calc(Launcher):
         Calc.done = ([(typed, answer)] + [d for d in Calc.done if d[0] != typed])[:CALC_ROWS]
 
 
+def calc_kind(typed):
+    """A sum's icon: a conversion's arrows, a sum's sign — each row says which it is, in the rows' icon column."""
+    return "convert" if re.search(r"\s(?:to|in)\s", typed) else "equals"
+
+
 def layout_calc(m):
     x0, w = BORDER + PAD, INNER
     y = x0
@@ -1280,10 +1285,10 @@ def layout_calc(m):
     y += CALC_ANSWER_H + GAP
     items = []
     for k, (typed, answer) in enumerate(Calc.done):
-        items.append(Item(f"d{k}", "row", x0, y + k * ROW, w, ROW, k, glyph="", name=typed, value=answer))
-    for k in range(len(Calc.done), CALC_ROWS):
-        hint = CALC_HINTS[k] if not Calc.done else ""
-        marks.append(("off", x0, y + k * ROW, w, "", hint, "", ""))
+        items.append(Item(f"d{k}", "row", x0, y + k * ROW, w, ROW, k, icon=calc_kind(typed), name=typed, value=answer))
+    if not Calc.done:
+        for k, hint in enumerate(CALC_HINTS):
+            marks.append(("hint", x0, y + k * ROW, calc_kind(hint), hint))
     y += CALC_ROWS * ROW + GAP
     marks.append(("keys", x0, y, w, (("ctrl+u", "clear"), ("ctrl+q", "qalc's own prompt"))))
     y += ROW
@@ -3025,6 +3030,10 @@ def main(argv):
             text(cr, x + NAME_X, y + (ROW - LINE) // 2, "none", "faint")
         elif k == "answer":
             calc_answer(cr, *m[1:])
+        elif k == "hint":
+            _, x, y, icon, words = m
+            row_icon(cr, x + GLYPH_X, y, ic[icon], "faint")
+            text(cr, x + NAME_X, y + (ROW - LINE) // 2, words, "faint")
         elif k == "keys":
             _, x, y, w, keys = m
             for key, words in keys:

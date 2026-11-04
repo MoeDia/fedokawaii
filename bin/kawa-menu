@@ -143,5 +143,5 @@ if ! alive; then
   for _ in {1..60}; do alive && break; sleep 0.05; done
   [[ -n $panel ]] || { echo "kawa-menu: no panel to show the launcher (is the session's kawa-panel running?)" >&2; exit 1; }
 fi
-ask "toggle $toggle" || exit 1
+if [[ $toggle == calc ]]; then ask "toggle calc" || exit 1; else ask "toggle launcher" || exit 1; fi
 exit 0

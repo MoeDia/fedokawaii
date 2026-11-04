@@ -72,8 +72,8 @@ chord logo w; nap 4; shot wallpaper-real; key Escape; nap 1
 chord logo r; nap 4; shot books-real; key Escape; nap 1
 kawa-term --app kawa-git Git sh -c "cd '$d' && exec kawa-git" >/dev/null 2>&1 &
 nap 3; shot git-real; chord logo q; nap 1
-kawa-term --app kawa-calc Calculator kawa-calc >/dev/null 2>&1 &
-nap 2; text '5 ft to cm'; nap 1.5; shot calculator-real; chord logo q; nap 1
+setsid -f kawa-calc
+nap 1; text '5 ft to cm'; nap 1.5; shot calculator-real; key Escape; nap 1
 chord logo Return; nap 1.5
 text "cd '$d' && git log --oneline"; key Return; nap 1
 text 'ls -a'; key Return; nap 1.5; shot terminal-real; chord logo q; nap 1

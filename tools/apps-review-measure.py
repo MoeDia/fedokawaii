@@ -3,7 +3,9 @@
 SHOTS/{dark,light}/NAME.png, dark | light at 1× (NN-name.png), a part at 4× (NN-name-4x.png), and what it measures beside them
 (NN-name.md: the note on his page). Every number is read from the pixels of the shot, the dark one's and the light one's; a line
 says ≠ if the two moods differ (a theme is inks, never geometry)."""
+import json
 import os
+import subprocess
 import sys
 
 import numpy as np
@@ -77,10 +79,28 @@ def sheet(name, nn, shot=None, note=(), zoom=None, box=None):
         f.write("\n".join(note) + "\n")
 
 
-def both(fn):
-    """fn(array) in each mood: its value, or both if they differ."""
-    d, l = fn(load("dark", both.shot)), fn(load("light", both.shot))
-    return f"{d}" if d == l else f"{d} ≠ {l} (light)"
+PX = os.path.join(os.path.dirname(os.path.abspath(__file__)), "px.py")
+
+
+def px(mood, shot, *args):
+    """tools/px.py on a shot, its JSON answer."""
+    out = subprocess.run([sys.executable, PX, args[0], os.path.join(shots, mood, shot + ".png"), *args[1:], "--json"],
+                         capture_output=True, text=True, check=True).stdout
+    return json.loads(out)
+
+
+def spans(shot, axis, region):
+    """The ink's spans along an axis of a region, as "from+len" in screen pixels: one mood's, or both if they differ."""
+    x, y, w, h = region
+    res = []
+    for mood in ("dark", "light"):
+        r = px(mood, shot, "gaps", axis, "--region", f"{x},{y},{w},{h}")
+        res.append(" · ".join(f"{a}+{n}" for a, n in r["spans"]))
+    return res[0] if res[0] == res[1] else f"{res[0]} ≠ light {res[1]}"
+
+
+def table(rows):
+    return ["", "| measured with tools/px.py (from+length, screen px) | |", "|---|---|"] + [f"| {a} | {b} |" for a, b in rows]
 
 
 # ── books ─────────────────────────────────────────────────────────────────────────────
@@ -103,7 +123,6 @@ def books_cover(a):
     return (int(cl - rule - 1), int(x1 - 1 - cr), int(top - y0 - 1), int(y1 - 1 - bot), int(cr - cl))
 
 
-both.shot = "books"
 l, r, t, b, w = books_cover(load("dark", "books"))
 l2, r2, t2, b2, w2 = books_cover(load("light", "books"))
 sheet("books", "40", note=[
@@ -125,7 +144,15 @@ sheet("wallpaper-picker", "41", shot="wall", note=[
     "change by itself: off · 1 h · 4 h · daily (a look every hour, the time running from the last change, a pick of yours too). order: in turn · shuffle. from: old masters · scenes · both.",
     "",
     "Judge: do the three rows read as options now?",
-], zoom=(10, 310, 680, 120))
+] + table([
+    ("heading's row, across", spans("wall", "x", (640, 203, 640, 20))),
+    ("a label's row, across (its rule, its count)", spans("wall", "x", (640, 243, 640, 20))),
+    ("a picture's row, across (icon, name, value)", spans("wall", "x", (640, 263, 640, 20))),
+    ("the settings, down (three rows on the 20 px pitch)", spans("wall", "y", (680, 500, 130, 62))),
+    ("the settings' first row, across (icon, label, dots and words, the tile)", spans("wall", "x", (640, 503, 640, 20))),
+    ("the settings' third row, across", spans("wall", "x", (640, 543, 640, 20))),
+    ("the picture, across · down", spans("wall", "x", (640, 700, 640, 20)) + " — " + spans("wall", "y", (900, 563, 20, 366))),
+]), zoom=(10, 310, 680, 120))
 sheet("wallpaper-picker-set", "42", shot="wall-set", note=["The same, each setting moved once: the dots stand one over the other, row to row."])
 
 # ── the calculator ────────────────────────────────────────────────────────────────────
@@ -133,7 +160,14 @@ for nn, n, t in (("43", "calc-empty", "As it opens: what it can do, faint, until
                  ("44", "calc-typed", "A sum typed: the answer at twice the size (§2's display size), its units small and muted on its baseline, what Enter does as a key."),
                  ("45", "calc-copied", "Enter: copied, said in place, no notice; the sum kept below, a clean line."),
                  ("46", "calc-row", "The cursor down on the session's sums: Enter copies one.")):
-    sheet(n, nn, note=["The calculator, a floating panel as the launcher (kawa-panel), never a whole screen. " + t],
+    extra = [] if n != "calc-typed" else table([
+        ("the panel, down (heading, line, answer, rows, keys)", spans(n, "y", (775, 410, 40, 260))),
+        ("heading's row, across", spans(n, "x", (760, 425, 400, 16))),
+        ("the answer's row, across (figures, unit, tile, word)", spans(n, "x", (760, 490, 400, 34))),
+        ("a hint's row, across", spans(n, "x", (760, 534, 400, 18))),
+        ("the keys' row, across", spans(n, "x", (760, 640, 400, 18))),
+    ])
+    sheet(n, nn, note=["The calculator, a floating panel as the launcher (kawa-panel), never a whole screen. " + t] + extra,
           zoom=(0, 0, 430, 150) if n == "calc-typed" else None)
 
 # ── btop ──────────────────────────────────────────────────────────────────────────────
@@ -147,7 +181,13 @@ sheet("btop", "47", note=[
 FULL = (0, 28, 1920, 1080)
 sheet("yazi", "48", shot="y-folder", box=FULL, note=[
     "Super+E: a breadcrumb (the folders above muted, the one you are in strong); size and age in columns, numbers muted, units faint; dotfiles muted; the preview always shows something (a folder's rows: it stood empty because of a bug); footer: size · changed · permissions · place.",
-], zoom=(260, 40, 700, 200))
+] + table([
+    ("the heading's row, across", spans("y-folder", "x", (20, 43, 1890, 20))),
+    ("the cursor's row, across the list (its edge, icon, name, size, age)", spans("y-folder", "x", (262, 122, 690, 20))),
+    ("a file's row, across the list", spans("y-folder", "x", (262, 402, 690, 20))),
+    ("the list, down (the 20 px pitch)", spans("y-folder", "y", (300, 80, 40, 240))),
+    ("the footer, across", spans("y-folder", "x", (20, 1043, 1890, 20))),
+]), zoom=(260, 40, 700, 200))
 sheet("yazi-card", "49", shot="y-card", box=FULL, note=["What has no picture: a card of its facts in the preview, never an empty pane."])
 for nn, n, sh, t in (("50", "yazi-rename", "y-rename", "Rename: the panel's own frame in the terminal's cells (no rounded corner, nothing in its rule), its heading; the field lies exactly over the name it renames."),
                      ("51", "yazi-trash", "y-trash", "Trash: the panel fits what it says, the folder once, the names, the choices as key tiles."),
@@ -156,7 +196,21 @@ for nn, n, sh, t in (("50", "yazi-rename", "y-rename", "Rename: the panel's own 
                      ("54", "yazi-which", "y-which", "A prefix key (g): the strip of what follows, each key its tile."),
                      ("55", "yazi-tasks", "y-tasks", "Tasks (w): the frame, its heading; none said quietly."),
                      ("56", "yazi-open", "y-pick", "Open with (o).")):
-    sheet(n, nn, shot=sh, box=FULL, note=[t])
+    extra = []
+    if n in ("yazi-trash", "yazi-rename"):
+        d = load("dark", sh)
+        ink = np.array((0x80, 0x73, 0x5b), dtype=np.int16)       # (foot's slot 33: the hairline of what floats, dark)
+        hit = np.abs(d - ink).sum(axis=2) < 6
+        rows = [y for y in range(30, 1070) if hit[y].sum() > 200]
+        cols = [x for x in range(10, 1910) if hit[:, x].sum() > 50]
+        if rows and cols:
+            x0, x1, y0, y1 = cols[0], cols[-1], rows[0], rows[-1]
+            ic = spans(sh, "x", (x0 + 1, y0 + 1, x1 - x0 - 1, 40))
+            dn = spans(sh, "y", (x0 + 1, y0 + 1, 60, y1 - y0 - 1))
+            extra = table([("the ring: left, right hairlines · top, bottom", f"x {x0}, {x1} · y {y0}, {y1}"),
+                           ("under the top hairline, across (the heading: icon, name, rule)", ic),
+                           ("inside the ring, down", dn)])
+    sheet(n, nn, shot=sh, box=FULL, note=[t] + extra)
 sheet("yazi-half", "57", shot="y-half", note=["Half a screen: the size stays, the age goes when the list is narrower than 52 columns."])
 sheet("yazi-third", "58", shot="y-third", note=["The spiral's third window: the list and the preview, nothing cut, the footer on one line."])
 print(f"apps-review: → {out}")

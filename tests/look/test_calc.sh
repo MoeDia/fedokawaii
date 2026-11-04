@@ -66,14 +66,14 @@ def ans(q, a):
 $1"; }
 case_ "kawa-calc: the panel's calculator, asked as the launcher is; nothing of a terminal left in it"
 stub kawa-menu 'echo "kawa-menu $*" >>"$FAKE_TMP/menu"'; rc 0 kawa-calc; eq "$(cat "$TMP/menu")" "kawa-menu --calc"
-has "$(cat "$REPO/bin/kawa-menu")" 'ask "toggle $toggle"'; has "$(cat "$REPO/configs/home/.local/share/applications/kawa-calc.desktop")" "Exec=@HOME@/.local/bin/kawa-calc"
+has "$(cat "$REPO/bin/kawa-menu")" 'ask "toggle calc"'; has "$(cat "$REPO/configs/home/.local/share/applications/kawa-calc.desktop")" "Exec=@HOME@/.local/bin/kawa-calc"
 lacks "$(cat "$REPO/bin/kawa-calc")" "stty"; lacks "$(cat "$REPO/configs/home/.local/share/applications/kawa-calc.desktop")" "kawa-term"
 case_ "a sum typed: asked of qalc as it is typed, the line and the answer in their marks, the size never moves"
 eq "$(pc 'typed("5 ft to cm"); print([c for c in u.calls if c.startswith("calc")][-1]); s0 = p.size; ans("5 ft to cm", "152.4 cm")
-print([m[5] for m in p.marks if m[0] == "answer"], [m[-1] for m in p.marks if m[0] == "input"], p.size == s0)')" \
+print([m[5] for m in p.marks if m[0] == "answer"], [m[6] for m in p.marks if m[0] == "input"], p.size == s0)')" \
   "$(printf '%s\n' 'calc 5 ft to cm' "['152.4 cm'] ['5 ft to cm'] True")"
 case_ "opens clean: no cursor on a row, what it can do in faint until there is a sum; the heading the calculator's icon (§13: no kanji)"
-eq "$(pc 'print(p.focus, [h[:2] for h in p.heads], [m[5] for m in p.marks if m[0] == "off"][:2])')" "None [('calc', 'calculator')] ['15% of 2400', '120 usd to aed']"
+eq "$(pc 'print(p.focus, [h[:2] for h in p.heads], [m[4] for m in p.marks if m[0] == "hint"][:2], [m[3] for m in p.marks if m[0] == "hint"][:2])')" "None [('calc', 'calculator')] ['15% of 2400', '120 usd to aed'] ['equals', 'convert']"
 case_ "Enter: the answer copied without a notice (the panel says it), kept below, the line clean, the panel still there"
 eq "$(pc 'typed("6*7"); ans("6*7", "42"); p.key("Return"); print(u.calls[-1], p.visible, repr(p.state.query), [(i.name, i.value) for i in p.items], [m[5:] for m in p.marks if m[0] == "answer"], p.focus)')" \
   "quiet 42 True '' [('6*7', '42')] [('42', '42')] None"

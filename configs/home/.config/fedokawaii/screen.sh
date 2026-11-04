@@ -49,8 +49,8 @@ screen_row() {
   [[ -n $v ]] && { pad=$(( $4 - 5 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2; }
   printf ' %s%s%s  %s%*s%s' "$INK_MUTED" "$1" "$INK_OFF" "$2" "$pad" '' "$v"
 }
-# screen_cap KEY — a key as a keycap in a text screen (docs/design-system.md §4, §7): screen_tile, below, in the words' ink
-screen_cap() { screen_tile "$1" $'\e[39m'; }
+# screen_cap KEY — a key as a keycap in a text screen (docs/design-system.md §4, §7): screen_tile, below
+screen_cap() { screen_tile "$1"; }
 # screen_keys KEY WHAT STATE … — a screen's own keys on its last line (docs/design-system.md §7), in
 # threes: the key a keycap, what it does in muted, its state ("" for none) in strong; two keys
 # three columns apart. "r" "change every 4 h" "on" → [r] change every 4 h  on
