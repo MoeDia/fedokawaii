@@ -107,14 +107,24 @@ def _cut(s, n):
 
 
 class Face:
-    """Two panel lines with a picture beside them: 40 × 40 px, five cells by two rows, on the content's first column;
-    the words of each line start one cell after it. The line after a Face is its second row (Face.BELOW)."""
-    __slots__ = ("name", "top", "bottom")
+    """Panel lines with a picture beside them, on the content's first column: 40 × 40 px, five cells by two rows; large
+    (a tall panel, the large board's): 80 × 80, ten cells by four. The words start one cell after it, their two lines in
+    the middle of its rows. The lines after a Face are its other rows (Face.BELOW): Face.lines gives them all."""
+    __slots__ = ("name", "top", "bottom", "large")
     BELOW = object()
     COLS = 6
+    LARGE_COLS = 11
 
-    def __init__(self, name, top, bottom):
-        self.name, self.top, self.bottom = name, top, bottom
+    def __init__(self, name, top, bottom, large=False):
+        self.name, self.top, self.bottom, self.large = name, top, bottom, large
+
+    @property
+    def cols(self):
+        return self.LARGE_COLS if self.large else self.COLS
+
+    @property
+    def lines(self):
+        return [self] + [self.BELOW] * (3 if self.large else 1)
 
 
 def keys_line(*pairs):

@@ -259,7 +259,8 @@ class Replay(Screen):
         rec = self.rec
         out = [heading("SHEET", f"game {self.label}", w, right=self.g.result), ""]
         word = {"win": "you won", "loss": "you lost", "draw": "a draw"}.get(rec.get("score"), "")
-        out += [[(s, MUTED)] for s in wrap(f"{word}: {rec.get('why', '')}", w)] + [""]
+        said = f"{word}: {rec['why']}" if rec.get("why") and word else word or rec.get("why", "")
+        out += [[(s, MUTED)] for s in wrap(said, w)] + [""]
         tail = []
         if rec.get("accuracy") is not None:
             tail.append(Row("USAGE", "accuracy", f"{rec['accuracy']:.0f} %"))

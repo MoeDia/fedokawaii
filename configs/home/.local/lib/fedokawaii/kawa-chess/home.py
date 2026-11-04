@@ -237,7 +237,7 @@ class Home(Screen):
         name = TABS[self.tab][0]
         out += getattr(self, "_head_" + name)(w)
         first = len(out)
-        foot = self._foot(w, rows)
+        foot = self._foot(w, rows, h)
         room = max(1, h - first - len(foot) - (1 if foot else 0))
         if rows:
             if self.index < self.top:
@@ -296,7 +296,7 @@ class Home(Screen):
             out += [[(s, MUTED)] for s in wrap(f, w)]
         return out
 
-    def _foot(self, w, rows):
+    def _foot(self, w, rows, h=0):
         """What the row under the cursor is: its goal, its opponent (the pane of §7)."""
         if self.message:
             return [[(s, MUTED)] for s in wrap(self.message, w)]
@@ -310,7 +310,7 @@ class Home(Screen):
             if face:      # (who you are about to meet: the face, as across the board)
                 spec = self.course.game_spec(it.ref, self.pr)
                 who = spec["opponent"]
-                out = [Face(who, [(who, STRONG)], [(f"level {spec['elo']}", MUTED)]), Face.BELOW, ""]
+                out = [*Face(who, [(who, STRONG)], [(f"level {spec['elo']}", MUTED)], h >= 40 and w >= 40).lines, ""]
             for ln in it.details(self.pr, face):
                 out += [[(s, MUTED)] for s in wrap(ln, w)]
             return out
@@ -352,12 +352,12 @@ class Home(Screen):
         self.top = 0
         if TABS[self.tab][0] == "today":
             n = self.next_open(self.day_items())
-            self.index = n if n is not None else 0
+            self.index = n if n is not None else max(0, len(self.rows()) - 1)
 
     def on_show(self):
         n = self.next_open(self.day_items())
         if TABS[self.tab][0] == "today":
-            self.index = n if n is not None else 0
+            self.index = n if n is not None else max(0, len(self.rows()) - 1)    # (all done: the row that goes on)
         if n is None and self.pr.stamped < self.pr.day:
             self.pr.stamped = self.pr.day
             self.pr.save()
@@ -767,7 +767,8 @@ def year_picture(view, pr, course, stamp=None):
     if stamp in ("high", "near"):
         size = seal * (5 if stamp == "high" else 3)
         off = (size - seal) // 2
-        stamped(gx - off, gy - off, size, ink["accent_hi"] if stamp == "high" else ink["accent"])
+        # (kept on the paper: what is drawn beyond it, in the see-through margin, no later picture would take away)
+        stamped(max(1, min(side - size - 1, gx - off)), max(rod + 1, gy - off), size, ink["accent_hi"] if stamp == "high" else ink["accent"])
     elif stamp == "down":
         stamped(gx, gy, seal, ink["accent"])
         for dx, dy in ((-2, -2), (seal + 1, -2), (-2, seal + 1), (seal + 1, seal + 1)):

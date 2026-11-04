@@ -347,6 +347,7 @@ class App:
         for row in self.face_rows - rows_now:
             t.forget(row, lay.pc - 1)
             t.forget(row, lay.pc + Face.COLS - 1)
+            t.forget(row, lay.pc + Face.LARGE_COLS - 1)
         self.face_rows = rows_now
         if not rows_now:
             self.face_at = None
@@ -380,20 +381,23 @@ class App:
         """A picture and the words beside it; the picture sent only when it or its place changes."""
         t, lay = self.term, self.layout
         col = lay.pc - 1
-        at = (face.name, row, col, self.mood)
+        rows = len(face.lines)
+        at = (face.name, row, col, self.mood, rows)
         if at != self.face_at:
             self.face_at = at
-            for r in (row, row + 1):
+            for r in range(row, row + rows):
                 t.forget(r, col)
                 t.text(r, col, [], lay.pw + 2)
                 t.forget(r, col)
                 t.forget(r, lay.pc + Face.COLS - 1)
+                t.forget(r, lay.pc + Face.LARGE_COLS - 1)
             cv = self.art.face(face.name)
             if cv is not None:
-                t.picture(row, lay.pc, cv.sixel(self.palette()))
-        w = lay.pw - Face.COLS + 1
-        t.text(row, lay.pc + Face.COLS - 1, face.top, w)
-        t.text(row + 1, lay.pc + Face.COLS - 1, face.bottom, w)
+                t.picture(row, lay.pc, cv.scale(2 if face.large else 1).sixel(self.palette()))
+        w = lay.pw - face.cols + 1
+        first = row + (rows - 2) // 2
+        t.text(first, lay.pc + face.cols - 1, face.top, w)
+        t.text(first + 1, lay.pc + face.cols - 1, face.bottom, w)
 
     def _too_small(self):
         t = self.term

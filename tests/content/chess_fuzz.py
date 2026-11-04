@@ -109,6 +109,7 @@ class Fuzz:
             self.tour()
         else:
             self.restart(self.rng.choice(("kill", "term", "ctrl-c", "hup")))
+            t = self.t          # (a new one: the old one's end is not the new one's)
         t.pump(self.rng.choice((0.0, 0.0, 0.01, 0.03, 0.1)))
         self.check()
         if not t.alive() and t.status not in (0,):

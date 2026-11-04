@@ -34,6 +34,8 @@ class Tty:
             if env is not None:
                 os.environ.clear()
                 os.environ.update(env)
+            # (a Ctrl+\\ of the fuzz in the instant before the tty is raw: never a core dump on the owner's disk, its helper holding the process)
+            signal.signal(signal.SIGQUIT, signal.SIG_IGN)
             try:
                 os.execvp(argv[0], argv)
             finally:
