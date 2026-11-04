@@ -1,0 +1,86 @@
+#!/usr/bin/env bash
+# kawa-refresh — the desktop drawn from scratch, nothing of yours lost (Super+Ctrl+R; the owner, 2
+# Nov: "a good refresh shortcut"). dwl has done its half before this runs (dwl.c refresh: what could
+# hold a stuck picture gone, every monitor arranged and drawn anew, the pointer and the colours read
+# again). Here, the desktop's own programs: the monitor's mode, the bar as a new bar (killed: autostart's
+# keep starts it; never SIGUSR2), the notices, quick settings while nothing of it is open, the idle
+# watch if it stopped. Never a window of yours, the terminal server or the sound.
+# Mashing it is safe: one at a time, and the programs at most once in 15 s (keep gives up at five
+# exits in a minute). What does not come back is named in a notice, with what to do.
+#   kawa-refresh
+# Exit: 0 all back · 1 something is not (said) · 2 misuse.
+set -u
+case ${1:-} in
+  "") ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  *) echo "usage: kawa-refresh" >&2; exit 2 ;;
+esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+RUN=${XDG_RUNTIME_DIR:?}
+exec 9>"$RUN/kawa-refresh.lock"
+flock -n 9 || exit 0
+LAST=$RUN/kawa-refresh.last
+was=0; [[ -r $LAST ]] && read -r was <"$LAST"
+[[ $was =~ ^[0-9]+$ ]] || was=0
+((EPOCHSECONDS - was >= 15)) || exit 0
+printf '%s\n' "$EPOCHSECONDS" >"$LAST"
+
+# mine NAME — this session's processes of that name (a kit's or a test's has its own runtime folder)
+mine() {
+  local p
+  for p in $(pgrep -xu "$UID" -- "$1"); do
+    grep -qzx "XDG_RUNTIME_DIR=$RUN" "/proc/$p/environ" 2>/dev/null && printf '%s\n' "$p"
+  done
+}
+# stopped PID — stopped or dead to signals, so it cannot answer (T in /proc's state)
+stopped() { [[ $(awk '{print $3}' "/proc/$1/stat" 2>/dev/null) == T ]]; }
+# anew NAME START… — its processes killed (keep starts it again a second later), and a new one
+# waited for; keep gone (it gives up on what keeps stopping): started here. 0 a new one is up
+anew() {
+  local name=$1 old p i; shift
+  old=" $(mine "$name" | tr '\n' ' ')"
+  for p in $old; do kill -KILL "$p" 2>/dev/null; done
+  for i in {1..60}; do
+    for p in $(mine "$name"); do [[ $old == *" $p "* ]] || return 0; done
+    ((i == 30)) && setsid -f "$@" 9>&- </dev/null >>"$HOME/.cache/$name.log" 2>&1   # (the lock stays here)
+    sleep 0.1
+  done
+  return 1
+}
+
+# (at once, side by side: the bar, the notices and quick settings are back together, a second after the key)
+notices() {
+  timeout 2 makoctl reload >/dev/null 2>&1 && return 0
+  local p i; for p in $(mine mako); do kill -KILL "$p" 2>/dev/null; done
+  timeout 3 systemctl --user start mako.service >/dev/null 2>&1
+  for i in {1..10}; do                         # (the bus may not have let go of its name yet)
+    [[ -n $(mine mako) ]] && return 0
+    setsid -f mako 9>&- </dev/null >/dev/null 2>&1
+    sleep 0.3
+  done
+  return 1
+}
+kawa-display </dev/null >/dev/null 2>&1
+out=()
+anew waybar waybar & bar=$!
+notices & note=$!
+panel=""
+stuck=""; for p in $(mine kawa-panel); do stopped "$p" && stuck=1; done
+if [[ -z $(mine kawa-panel) || -n $stuck || ! -e $RUN/kawa-panel.open ]]; then
+  anew kawa-panel kawa-panel & panel=$!
+fi
+wait "$bar" || out+=("the bar: run waybar in a terminal, it says why")
+kawa-dwlstatus --wake 2>/dev/null   # (what the old bar's modules still wait on: told, they find its pipe gone and leave)
+wait "$note" || out+=("the notices: run mako in a terminal, it says why")
+[[ -z $panel ]] || wait "$panel" || out+=("quick settings: run kawa-panel in a terminal, it says why")
+for p in $(mine swayidle); do stopped "$p" && kill -KILL "$p" 2>/dev/null; done
+[[ -n $(mine swayidle) ]] || sleep 1.2
+[[ -n $(mine swayidle) ]] || out+=("the idle watch: log out and in, the screen will not lock by itself until then")
+
+if ((${#out[@]})); then
+  notify-send -a desktop -u critical -- "$ICON_RESTART  not refreshed" "$(printf '%s\n' "${out[@]}")"
+  exit 1
+fi
+notify-send -a desktop -t 1500 -- "$ICON_RESTART  refreshed"
+exit 0
