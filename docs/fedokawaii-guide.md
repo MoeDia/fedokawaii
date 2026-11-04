@@ -17236,7 +17236,7 @@ What changed from Fedora 41 to 45, and what it means here:
 | 41 (October 2024) | DNF 5 became `dnf` | its settings live in `/etc/dnf/libdnf5.conf.d/` (§27.3); it does not show the old dnf's history |
 | 42 (April 2025) | `/usr/sbin` became a link to `bin`, and left `$PATH` | `ls -ld /usr/sbin` → `/usr/sbin -> bin`; call a command by its name, not its path |
 | 43 (October 2025) | GNOME's X11 session removed from Fedora; RPM 6.0, with enforced signatures put off | nothing for dwl, which is Wayland; Steam still runs through XWayland (§21.1) |
-| 44 (April 2026) | the `ntsync` module offered to Wine and Steam through a package recommendation | the driver GE-Proton uses (§21.1) |
+| 44 (April 2026) | the `ntsync` module offered to Wine and Steam through a package recommendation | the driver Proton uses in the play world (§21.1) |
 | 45 | **kmscon** draws the text consoles instead of the kernel | **Ctrl+Alt+F2…F6** keep their own colours and font (§6.1) |
 | 45 | RPM refuses an unsigned package by default | `rpm -i` refuses a downloaded `.rpm` without a valid signature (`--nosignature` overrides it for one command); `dnf install ./file.rpm` still takes it, as dnf does not check a local file's signature unless told to (`localpkg_gpgcheck`) |
 | 45 | `ptrace` restricted (`kernel.yama.ptrace_scope=1`) unless debugging tools are installed | `gdb -p PID` or `strace -p PID` on a running program needs `yama-ptrace-enable`, which Fedora's gdb and strace are meant to bring |
@@ -17296,7 +17296,7 @@ set to Simplified Chinese (GamingOnLinux, September 2026). Read the trend over a
 ## F.4 Gaming
 
 **Proton** 11.0 moved Valve's compatibility layer onto Wine 11.0 (11.0-1, 7 July 2026 †);
-11.0-2 (21 August 2026) is the current release. GE-Proton follows it (§21.1). **SteamOS 3.8**
+11.0-2 (21 August 2026) is the current release; the play world runs it (§21.1). **SteamOS 3.8**
 became the stable release in June 2026, with first support for the Steam Machine and wider
 support for other makers' handhelds †.
 

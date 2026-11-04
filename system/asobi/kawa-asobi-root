@@ -150,6 +150,7 @@ prestart() {
   mkdir -p "$RUN"; chmod 0755 "$RUN"
   recover
   btrfs subvolume show "$WORLD" >/dev/null 2>&1 || fail "$WORLD is not there: the world cannot start (fedokawaii repair puts it back)"
+  settled
   wall_up
   input_wall_up
   gamemode_card
@@ -214,16 +215,22 @@ recover() {   # a reset cut short (power, a crash): the exchange is atomic, so o
   [[ -e $ROOT/.old ]] && { btrfs subvolume delete "$ROOT/.old" >/dev/null 2>&1; }
   return 0
 }
-gone() {   # the world's processes all ended and logind done with the user (10 s), or say so
+gone() {   # the world's processes all ended (10 s), or say so
   local i
   loginctl terminate-user "$WHO" 2>/dev/null
-  # (logind forgets a user a moment after its last process: a manager started before that joins the old user on
-  # its way out, loses its session at once and hangs until its start times out: Bottles right after Steam, 4 Nov 2026)
-  for ((i = 0; i < 40; i++)); do
-    if ! pgrep -u "$WHO" >/dev/null 2>&1 && ! loginctl show-user "$WHO" >/dev/null 2>&1; then return 0; fi
+  for ((i = 0; i < 40; i++)); do pgrep -u "$WHO" >/dev/null 2>&1 || return 0; sleep 0.25; done
+  return 1
+}
+# logind keeps a user "closing" for UserStopDelaySec after its last session (man logind.conf: 10 s). A manager started in
+# that time joins the old user on its way out, loses its session at once and hangs until its start times out (Bottles right
+# after Steam, 4 Nov 2026). So a start waits for it; a close does not: nothing is waiting then
+settled() {
+  local i
+  for ((i = 0; i < 60; i++)); do
+    [[ $(loginctl show-user "$WHO" -p State --value 2>/dev/null) == closing ]] || return 0
     sleep 0.25
   done
-  return 1
+  say "logind still holds the world's user as closing: starting all the same"
 }
 named() { [[ $1 =~ ^[a-z0-9][a-z0-9-]{0,39}$ ]]; }
 snapshot() {   # snapshot NAME

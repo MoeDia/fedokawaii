@@ -55,10 +55,12 @@ hz=144
 # shellcheck source=/dev/null
 [[ -r /etc/fedokawaii/asobi.conf ]] && . /etc/fedokawaii/asobi.conf
 export XKB_DEFAULT_RULES=kawa-asobi XKB_DEFAULT_LAYOUT=us XKB_DEFAULT_OPTIONS=kawa:return
+# (Steam's face: Steam in charge of what is shown and how. Bottles': windows of any size, at a whole multiple and
+# crisp, never a blurred enlargement)
+face=(-e); [[ $FACE == steam ]] || face=(-S integer -F nearest)
 # (a proof's headless run has no card to take: tools/asobi-proof.sh)
-steam=(); [[ $FACE == steam ]] && steam=(-e)
 if [[ ${KAWA_ASOBI_BACKEND:-drm} == headless ]]; then
-  exec gamescope --backend headless -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" "${steam[@]}" -- "$0" --inside
+  exec gamescope --backend headless -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" "${face[@]}" -- "$0" --inside
 fi
 exec gamescope --backend drm -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" --adaptive-sync \
-  --prefer-output "$connector" --prefer-vk-device "$dev" "${steam[@]}" -- "$0" --inside
+  --prefer-output "$connector" --prefer-vk-device "$dev" "${face[@]}" -- "$0" --inside

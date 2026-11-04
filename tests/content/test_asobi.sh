@@ -18,7 +18,7 @@ world() {   # a fresh home and a stand-in world: run folder, drop folder, status
   printf 'world\t2200000000\t14300000000\nsnap\tclean\t1793800000\t52000000\t6200000000\nsnap\t20261104-1830\t1793810000\t310000000\t14300000000\nfree\t764000000000\n' >"$KAWA_ASOBI_RUN/status"
   # (is-active: the world runs only when the test says so; everything else: logged, done)
   stub systemctl 'case "$*" in *is-active*.timer) exit 0 ;; *"is-active --quiet kawa-asobi.service") [ -e "$TMP/running" ] || [ -e "$TMP/steam-open" ]; exit $? ;; *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
-  stub busctl; stub notify-send; stub loginctl 'case "$1" in show-user) [ -e "$TMP/logind-holds" ]; exit $? ;; esac; exit 0'; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
+  stub busctl; stub notify-send; stub loginctl 'case "$1" in show-user) exit 1 ;; esac; exit 0'; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
   stub runuser; stub pgrep 'exit 1'; stub ionice 'shift 2; exec "$@"'
   stub btrfs '
 case "$1 $2" in
@@ -153,11 +153,18 @@ echo tty8 >"$KAWA_ASOBI_TTY0"; reset_calls; root poststop; eq "$RC" 0 "$OUT"
 called '^chvt 1$'; called '^nft delete table inet kawa_asobi'; called '^loginctl terminate-user asobi'
 called '^systemctl start snapper-timeline.timer'; eq "$(cat "$KAWA_ASOBI_RUN/state")" off
 echo tty1 >"$KAWA_ASOBI_TTY0"; reset_calls; root poststop; not_called '^chvt'
-case_ "poststop waits until logind has forgotten the user: a manager started before that loses its session and hangs"
-touch "$TMP/logind-holds"; stub loginctl 'case "$1" in show-user) n=$(cat "$TMP/asked" 2>/dev/null); echo $((n + 1)) >"$TMP/asked"; [ "${n:-0}" -lt 2 ]; exit $? ;; esac; exit 0'
-reset_calls; root poststop; eq "$RC" 0 "$OUT"; eq "$(grep -c '^loginctl show-user asobi' "$CALLS")" 3 "asked until it was gone"
-case_ "a world dead before it got going, or at once: said; closed on purpose, or after a long life: nothing"
+case_ "a close never waits on logind (nothing is waiting then); a start does while it holds the user closing: a manager started then loses its session and hangs"
+stub loginctl 'case "$1" in show-user) n=$(cat "$TMP/asked" 2>/dev/null); echo $((n + 1)) >"$TMP/asked"; [ "${n:-0}" -lt 2 ] && echo closing || echo offline; exit 0 ;; esac; exit 0'
+reset_calls; root poststop; eq "$RC" 0 "$OUT"; not_called '^loginctl show-user'
+: >"$TMP/asked"; reset_calls; root prestart; eq "$RC" 0 "$OUT"; eq "$(grep -c '^loginctl show-user asobi' "$CALLS")" 3 "asked until it was no longer closing"
+[[ $(grep -n '^loginctl show-user' "$CALLS" | tail -1 | cut -d: -f1) -lt $(grep -n '^systemctl start user@' "$CALLS" | head -1 | cut -d: -f1) ]] && _ok || _no "the manager started before logind was done"
+root poststop
+case_ "a user logind knows and is not closing (a proof's, an old session), or does not know at all: no wait"
+stub loginctl 'case "$1" in show-user) echo online; exit 0 ;; esac; exit 0'
+reset_calls; root prestart; eq "$RC" 0 "$OUT"; eq "$(grep -c '^loginctl show-user asobi' "$CALLS")" 1; root poststop
 stub loginctl 'case "$1" in show-user) exit 1 ;; esac; exit 0'
+reset_calls; root prestart; eq "$RC" 0 "$OUT"; eq "$(grep -c '^loginctl show-user asobi' "$CALLS")" 1; root poststop
+case_ "a world dead before it got going, or at once: said; closed on purpose, or after a long life: nothing"
 rm -f "$KAWA_ASOBI_RUN/born" "$KAWA_ASOBI_RUN/closing"; reset_calls; root poststop; called 'notify-send .*would not start'
 date +%s >"$KAWA_ASOBI_RUN/born"; reset_calls; root poststop; called 'notify-send .*would not start'
 echo 1000 >"$KAWA_ASOBI_RUN/born"; reset_calls; root poststop; not_called 'notify-send'
