@@ -26,7 +26,7 @@ wtype -s 300 -M logo -k 2 -m logo -s 180 -M logo -k 1 -m logo; nap 1
 wtype -s 300 -M logo -k 2 -m logo -s 120 -M logo -k 3 -m logo -s 120 -M logo -k 4 -m logo -s 120 -M logo -k 5 -m logo; nap 1
 kill -INT "$rec"; wait "$rec" 2>/dev/null
 PLAY_END
-bash "$here/../kit.sh" --theme dark --time 60 "$@" --out "$out/kit" --play "$out/play.sh" play >"$out/kit.log" 2>&1 \
+bash "$here/../kit.sh" --theme dark --time 150 "$@" --out "$out/kit" --play "$out/play.sh" play >"$out/kit.log" 2>&1 \
   || { echo "rail: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
 [[ -s $out/kit/moves.nut ]] || { echo "rail: no recording" >&2; exit 2; }
 ffmpeg -v error -i "$out/kit/moves.nut" -fps_mode passthrough -vf "crop=1920:1:0:1050,format=rgb24" -f rawvideo "$out/row.rgb" \
@@ -35,9 +35,9 @@ python3 -I - "$out/row.rgb" <<'PY_END'
 import sys
 import numpy as np
 a = np.fromfile(sys.argv[1], np.uint8).reshape(-1, 1920, 3).astype(int)
-ACC = np.array([0xeb, 0x53, 0x24])
-def runs(row):
-    xs = np.flatnonzero(np.abs(row - ACC).sum(axis=1) < 8)
+ACC, LACQUER = np.array([0xeb, 0x53, 0x24]), np.array([0x82, 0x24, 0x1f])   # (the windows' hairline; the rail's wood)
+def runs(row, ink):
+    xs = np.flatnonzero(np.abs(row - ink).sum(axis=1) < 8)
     out = []
     for x in xs:
         if out and x == out[-1][1] + 1:
@@ -45,16 +45,15 @@ def runs(row):
         else:
             out.append([int(x), int(x)])
     return out
-RAIL = 6                                     # (a run wider than a window's hairline: the rail's lacquer)
+RAIL = 6                                     # (the rail's wood: three of the wallpapers' pixels, cut at the screen's edge)
 bad, moved, rails = [], 0, 0
 prev = None
 for i, row in enumerate(a):
-    r = runs(row)
     if prev is not None and (row != prev).any():
         moved += 1
     prev = row
-    wide = [q for q in r if q[1] - q[0] + 1 >= RAIL]
-    thin = [q[0] for q in r if q[1] - q[0] + 1 < RAIL]
+    wide = [q for q in runs(row, LACQUER) if q[1] - q[0] + 1 >= RAIL or q[0] == 0 or q[1] == 1919]
+    thin = [q[0] for q in runs(row, ACC)]
     rails = max(rails, len(wide))
     if len(wide) > 2:
         bad.append(f"frame {i}: {len(wide)} rails at once at {[q[0] for q in wide]}")
