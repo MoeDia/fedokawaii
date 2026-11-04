@@ -3,7 +3,9 @@
 -- pdftoppm, J/K turning the pages), but a PDF locked with a password says so in the desktop's
 -- words — the lock icon, locked, and that Enter opens it in the reader, which asks for the password —
 -- instead of pdftoppm's "Failed to convert PDF to image, stderr: Command Line Error: Incorrect
--- password". Any other PDF that cannot be drawn says why in one line. yazi.toml puts it before
+-- password" — said as kawa-rar says a locked archive and the lists say what is not there (§7: from
+-- the first row, the lock in the icon column, the words on the names' column; never centred).
+-- Any other PDF that cannot be drawn says why in one line. yazi.toml puts it before
 -- the preset (whose name a plugin of ours cannot take: yazi keeps its own).
 -- After yazi's preset pdf.lua (v26.9.1, MIT): kept in step with the yazi lib/upstream.sh pins.
 
@@ -13,11 +15,22 @@ local ICON_LOCK = "\243\190\128\160" -- Sumi Icons: lock (U+FE020), as in icons.
 -- (pdftoppm's words for a PDF that needs a password to be opened)
 local function locked(stderr) return stderr:find("Incorrect password", 1, true) ~= nil end
 
-local function say(job, lines)
-	local text = {}
-	for i, l in ipairs(lines) do text[i] = ui.Line(l) end
-	ya.preview_widget(job, ui.Text(text):area(job.area { y = job.area.y + 1, h = math.max(0, job.area.h - 1) })
-		:align(ui.Align.CENTER):wrap(ui.Wrap.YES))
+local NAME_AT = "  " -- (the cursor's cell and the icon's column, as the lists' rows)
+local function say(job, lines) ya.preview_widget(job, ui.Text(lines):area(job.area)) end
+-- words on the names' column, faint, wrapped at a word to the pane's width W (never cut inside one)
+local function hint(words, w)
+	local rows, line = {}, ""
+	local function put() rows[#rows + 1] = ui.Line(NAME_AT .. "   " .. line):fg("darkgray") end
+	for word in words:gmatch("%S+") do
+		if line ~= "" and ui.Line(line .. " " .. word):width() > w then
+			put()
+			line = word
+		else
+			line = line == "" and word or line .. " " .. word
+		end
+	end
+	if line ~= "" then put() end
+	return rows
 end
 
 function M:peek(job)
@@ -30,11 +43,11 @@ function M:peek(job)
 	if bound and bound > 0 then
 		return ya.emit("peek", { bound - 1, only_if = job.file.url, upper_bound = true })
 	elseif lock then
-		return say(job, {
-			{ ui.Span(ICON_LOCK):fg("red"), ui.Span("  locked") },
-			ui.Span("this PDF asks for its password"):fg("darkgray"),
-			ui.Span("Enter opens it: the reader asks"):fg("darkgray"),
-		})
+		local rows = { ui.Line { ui.Span(NAME_AT .. ICON_LOCK):fg("red"), ui.Span("  locked") } }
+		for _, r in ipairs(hint("Enter opens it: the reader asks the password", job.area.w - 5)) do
+			rows[#rows + 1] = r
+		end
+		return say(job, rows)
 	elseif not ok or err then
 		return ya.preview_widget(job, err)
 	end

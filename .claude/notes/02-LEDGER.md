@@ -4648,6 +4648,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   the kit both moods and in a clean VM install. Toolchain: Fedora's rust + cargo 1.99.1-2.fc44 (dnf, updates; not
   installed yet) — add to the manifest as build-only (packages.evidence etc.: memory manifest-addition-checklist);
   measure the build's time and the binary against the zip's (start-up, RAM) before switching.
+- r27-22-sf2a (4 Nov 16:20–16:25, the master's T22 should-fix 2, its locked-PDF part): kawa-pdf's locked message was
+  centred (ui.Align.CENTER) one row down — now kawa-rar's grammar, the lists' columns: from the first row the lock in
+  the icon column (red) and "locked" (text), the hint faint on the names' column, WRAPPED AT A WORD to the pane (a
+  small hint(): never cut inside a word — the first try, clipped by the area, showed "…asks the p" in the kit at
+  117 × 30). Rendered (tools/kit.sh tui, the repo's yazi files copied into the kit's home by the tui script — memory
+  kit-renders-installed-configs; a qpdf-locked PDF): both moods, 2 lines in a 40-cell preview. LEFT of should-fix 2:
+  "Empty file" (yazi's own words and place), 7-Zip's and poppler's raw errors (§5: a ✘ and words at the names'
+  column), and kawa-rar's hint has the same clipping risk ("Enter opens File tools: it asks the password": 44 + 5
+  cells) — the same hint() there. FOUND on the way: test_config's kawa-pdf case had been RED since d918023 (3 Nov:
+  the previewers' list became multi-line; the case matched the old single line) — it now reads yazi.toml as TOML
+  (kawa-pdf first among PDF previewers and preloaders). test_config 105/0, test_yazi 136/0.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or

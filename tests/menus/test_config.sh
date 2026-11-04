@@ -195,11 +195,13 @@ case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-config --help)" "change the desktop itself"; rc 0 kawa-config --help
 rc 2 kawa-config bar; eq "$(fz_n)" 0
 
-case_ "yazi: a PDF previewed through kawa-pdf (yazi's own, but a locked one says so — the lock icon, locked — and that Enter opens it — never pdftoppm's error), before yazi's rules for the page and its cache"
-y=$(cat "$REPO/configs/home/.config/yazi/yazi.toml")
-has "$y" 'prepend_previewers = [ { mime = "application/pdf", run = "kawa-pdf" } ]'
-has "$y" 'prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]'
+case_ "yazi: a PDF previewed through kawa-pdf (yazi's own, but a locked one says so — the lock icon, locked — and that Enter opens it — never pdftoppm's error; as kawa-rar says it: the lists' columns, never centred), before yazi's rules for the page and its cache"
+# (read as TOML: the previewers' list grew a line a rule with kawa-rar, d918023 — a line match went stale)
+python3 -I -c 'import sys, tomllib; p = tomllib.load(open(sys.argv[1], "rb"))["plugin"]
+sys.exit(not (p["prepend_previewers"][0] == p["prepend_preloaders"][0] == {"mime": "application/pdf", "run": "kawa-pdf"}))' \
+  "$REPO/configs/home/.config/yazi/yazi.toml" && _ok || _no "kawa-pdf is not the first previewer and preloader of PDFs"
 p=$(cat "$REPO/configs/home/.config/yazi/plugins/kawa-pdf.yazi/main.lua")
-has "$p" 'stderr:find("Incorrect password", 1, true)'; has "$p" '"this PDF asks for its password"'; lacks "$p" 'Err("Failed to convert'
-has "$p" 'ui.Span(ICON_LOCK):fg("red"), ui.Span("  locked")' "the lock icon, not a kanji (§13)"
+has "$p" 'stderr:find("Incorrect password", 1, true)'; has "$p" 'hint("Enter opens it: the reader asks the password", job.area.w - 5)'; lacks "$p" 'Err("Failed to convert'
+has "$p" 'ui.Span(NAME_AT .. ICON_LOCK):fg("red"), ui.Span("  locked")' "the lock icon, not a kanji (§13)"
+lacks "$p" 'ui.Align.CENTER' "never centred (§7; the master's T22 should-fix 2)"
 done_
