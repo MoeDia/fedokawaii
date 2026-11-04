@@ -497,9 +497,12 @@ replayed in parts); the previous EFI files kept (`EFI/fedora/*.prev`); /boot and
     config is rejected before it is tried (B6 #11).
 19. *The model file is huge and may be corrupt.* — Checksum-pinned; missing or wrong → the fixer
     is skipped, said; never downloaded during a run that needs it urgently.
-20. *GitHub serves a broken or hostile toolkit.* — Release tags only, signed; the public key ships
-    in the toolkit and the PC verifies the tag's signature (`git verify-tag`) before the re-exec,
-    then the new toolkit's selftest; anything red → the installed toolkit, said.
+20. *GitHub serves a broken or hostile toolkit.* — A broken one: only release tags, only forward, its
+    own checks in a fake machine before the re-exec, the system before it kept; anything red → the
+    installed toolkit, said (rows 28). A hostile one: as built (4 Nov) no signature — no signing key
+    exists to carry across his wipe, and a lost key would end the updates for good; the trust is
+    GitHub's TLS and his account, the same as the install's own clone (r24-41b's "at least the commit
+    pinned by the release tag"). A signed tag can be added later without changing the flow.
 21. *He presses update twice, or closes the window.* — One run (flock); the window is a view of
     the unit.
 22. *It takes long.* — Progress in the window and the pane; he can keep working; the GPU work

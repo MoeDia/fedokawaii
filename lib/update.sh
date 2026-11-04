@@ -403,7 +403,13 @@ up_power_hold() {
     --who=fedokawaii --why="an update is being installed: it says when it is done" --mode=block tail --pid=$$ -f /dev/null >/dev/null 2>&1 9>&- &
   UP_POWER=$!
 }
-up_power_free() { [[ -z $UP_POWER ]] || { pkill -P "$UP_POWER" 2>/dev/null; kill "$UP_POWER" 2>/dev/null; wait "$UP_POWER" 2>/dev/null; UP_POWER=""; }; return 0; }
+up_power_free() {
+  [[ -n $UP_POWER ]] || return 0
+  pkill -P "$UP_POWER" 2>/dev/null || true
+  kill "$UP_POWER" 2>/dev/null || true
+  wait "$UP_POWER" 2>/dev/null || true
+  UP_POWER=""
+}
 u_replay() {   # → 1 the transaction failed on the running system
   up_power_hold
   local h; h=$(up_hist) || h=""
