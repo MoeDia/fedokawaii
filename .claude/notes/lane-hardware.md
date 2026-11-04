@@ -1,12 +1,10 @@
 # lane-hardware: T36, T37, T38 (branch lane-hardware, worktree ~/repos/fk-hardware)
 
-**READ FIRST (main, 4 Nov 20:15, a forced reboot at about 20:25):** while `ps -o stat= -p 1` starts with D, or until the PC has rebooted (`uptime -s` later than 20:15 on 4 Nov), start nothing: no sudo, no systemctl, no daemon-reload, no tests, no builds, no questions to the owner. Wait. After the boot main runs a memory check and restarts the lanes; then follow "Next steps after the reboot" below.
-
 Source: lane-research2's digests (`~/repos/fk-research2/.claude/notes/research-T36-T37-rgb.md`, `research-T38-monitor.md`).
 Scratch: `/dev/shm/r27-lane-hardware` (scripts, device backups). Started 4 Nov 18:12.
 
-## State (20:10)
-Solid red, event-driven, as the owner decided at 18:45. Everything is built, tested and pushed. Tonight's temporary service on the PC is stopped (its restart hit the stuck PID 1 below); the lights hold their stored red, the cooler's display is out, until main's apply starts the real one.
+## State (21:55, after the reboot of 21:16)
+Solid red, event-driven, as the owner decided at 18:45. **The real units run on the PC since 21:46** (the owner's 21:41 "FIX FIRST": nothing had driven the cooler's display since the reboot, because tonight's temporary unit lived in /run and main's apply had not come yet; the display had been told "out" when that unit stopped). Installed by hand with exactly the files theme.sh writes: `/usr/local/bin/kawa-rgb` (restorecon: bin_t), `/etc/systemd/system/kawa-rgb{,-sleep}.service`, enabled, `multi-user.target`, nothing of a session in it. The udev rule stays for the apply (the ghost keyboard: not needed for the fix). Main's apply takes them over by itself: no sha256 mark yet, so it builds, installs and restarts once.
 
 | What | State | How it was verified |
 |---|---|---|
@@ -22,31 +20,28 @@ Solid red, event-driven, as the owner decided at 18:45. Everything is built, tes
 | FreeSync (T38) | proven, HDMI-A-1 | tools/vrr-proof.sh, ledger line below; setting "full screen", live since 19:20 |
 | LG off and on | state identical | D6 (tools/monitor-power-test.sh) and his own button (19:26): tag, layout, 144 Hz, sRGB and level kept; owner: "stays the same workspace" (19:02) |
 | LG's menu | sRGB preset, set | kawa-display --monitor, read back xde; owner left it to me (19:04), "this is fine its the best" (19:12) |
-| Tests | test_rgb 132/0 (10 of 10 mutations caught), test_display 104/0, test_autostart, test_lock, test_quick, test_brightness, static 14 files | a made-up machine |
+| The real unit (21:46, 21:52) | runs, restarts | `systemctl restart`: all four found in 3 s; 64 bytes a second to the display and nothing else (/proc/PID/io over 10 s: 640 bytes, 10 writes); Tctl 82 to 85 under the lanes' load; 2.5 MB. Lock → dim 121 ms, unlock → full 130 ms, `kawa-rgb sleep` → out 127 ms, wake → full 215 ms, read from its status; the sleep unit itself (started with no sleep) ran under enforcing SELinux, no AVC |
+| Tests | see "After the reboot" | a made-up machine |
 
 **The stuck PID 1 (since 19:51):** see the 20:00 and 20:07 findings in the inbox, and "About the 19:51 reload" below. A kernel Oops at 19:15:04 (`unlink_file_vma_batch_process` → `vma_interval_tree_remove`, a stray bit in a pointer) most likely left a file's i_mmap_rwsem held for ever: inference, /proc/1/stack could not be read. sudo and systemctl hang until a reboot. Suspect: RAM.
 
-## Next steps after the reboot (main's forced reboot, about 20:25; written 20:16)
-The work is committed and pushed. /dev/shm is gone after the reboot: the lab scripts and the evidence are in `.claude/notes/hardware/{lab,evidence}/`, the K617's stock blocks in `.claude/notes/hardware/`. Device state survives: the keyboard, board and card keep their stored red (178,0,0), the LG its sRGB preset.
-1. **No DONE yet.** Nothing run during the stuck PID 1 is final, on main's word. Re-run first, with nothing else of mine running: `tests/status/test_rgb.sh`, `test_display.sh`, `test_brightness.sh`, `tests/session/test_autostart.sh`, `tests/look/test_lock.sh`, `tests/menus/test_quick.sh`, `bash tests/run.sh static`, and `FK_WORLD_LOCKED=1` `tests/installer/test_theme_parts.sh`, `test_theme.sh`, `test_theme_users.sh`, `test_manifest.sh`, `tests/installer/test_report_rows.sh`.
-   - Last results (20:14): test_theme_parts 132/0, test_theme 141/0, test_theme_users 44/0, test_manifest 68/0, test_rgb 132/0 (also under AddressSanitizer), test_display 104/0, test_autostart 86/0, test_quick 375/0, test_brightness 151/0, test_report_rows 269/0, static all 14 files; 10 of 10 mutations of kawa-rgb caught.
-   - **test_lock failed 13 of 187 at 20:09**, on the rows that wait for a process to end (`pgrep` still finds a killed `dwl`): PID 1 stuck means orphans are not reaped, 16,000 zombies. I believe that is the cause; it passed 178/0 before my hook and that is not yet proven after it. **It must pass after the reboot.**
-2. **Merge main again**, push (test_theme's and test_autostart's rows count on autostart's lines).
-3. **The live service:** only one more `daemon-reload` if main has not applied yet (`lab/ember-unit.sh start`, after `make -C src/kawa-rgb O=/dev/shm/r27-lane-hardware/build`; it installs nothing permanent: unit and binary in /run, `Conflicts=kawa-rgb.service`). Never more than needed: see the reload line below. If main has applied, the real unit is there: test on it.
-4. **Two answers still open from the owner (19:41):** is the light going out with the monitor's button fast enough now, and is the lock's 30 % right? Main asked for no new questions before the reboot; ask once afterwards if the lanes are allowed to. 30 is `dim` in `configs/system/etc/fedokawaii/rgb.conf`. Not blocking: the code stands either way.
-5. Then write DONE at the end of this file. What only main can do stays in the list below.
+## After the reboot (written 21:55)
+- Main merged in (6268cd73). No Fedora 44 in this branch's diff (`git diff` greps clean; the owner's 21:41 "Fedora 45 only").
+- New rows: `verify.sh` asks that the service is enabled, not only running (tonight's failure: a service that was not there after a reboot); `tests/status/test_rgb.sh`: the unit is the system's, with nothing of a session in it. `tools/hl-dwl.sh` sets KAWA_RGB_ROOT: after the apply, the kit's and the regress checks' lock screens would have dimmed his real lights (`bin/kawa-lock` runs `kawa-rgb lock`, the mark's folder is his). Proven: `kawa-rgb lock` inside a headless desktop failed there, the real mark stayed absent, the real status stayed "full".
+- `tools/` and tests re-run on the healthy PID 1: results at the end of this section's list below.
+- test_lock's 13 failures of 20:09 were the stuck PID 1, as I thought: 185/0 now.
 
 **About the 19:51 reload:** PID 1's last action was my `daemon-reload` at 19:51:02 (main's finding, journal: "Reloading finished"). Reloads by me at 19:16, 19:29 and 19:37, after the Oops, had passed. Nothing shows the reload caused the hang, and nothing rules it out: it may be what first touched the file left locked at 19:15:04. So no more routine reloads: `lab/ember-unit.sh` had one on every start, and only needs one when the unit text changes.
 
 ## What main must do to merge and apply
 **Merge** `lane-hardware` (it has main merged in as of 19:25). Touches: `src/kawa-rgb/`, `configs/system/etc/{fedokawaii/rgb.conf,systemd/system/kawa-rgb*.service,udev/rules.d/60-fedokawaii-cooler.rules}`, `theme.sh` (one tool more, the step that enables it), `lib/manifest.sh` + `PACKAGES.md` + `tools/packages.evidence` + fixtures (OpenRGB retired), `bin/kawa-display`, `bin/kawa-brightness`, `bin/kawa-lock`, `bin/kawa-quick`, autostart, `configs/home/.config/fedokawaii/monitor.conf`, `verify.sh`, `system/fedokawaii`, `system/fedokawaii-report`, `tests/lib/harness.sh` (KAWA_RGB_ROOT: no test ever reaches his lights), `tools/{vrr-proof,monitor-power-test}.sh`, the docs.
 
-**Apply:** `fedokawaii apply` builds and installs `/usr/local/bin/kawa-rgb`, the units, and starts the service. Nothing by hand. Until then the lights hold their stored red and do not react to the lock.
+**Apply:** `fedokawaii apply` builds and installs `/usr/local/bin/kawa-rgb`, the units, the udev rule and the conf, and restarts the service (it is already running from the identical files, by hand since 21:46: the owner's "FIX FIRST"). Until the apply the lights and the display follow the screens and a sleep, but not the lock (the installed `kawa-lock` is the old one), and the bar's and quick settings' parts are not there. Should this branch not make tonight's apply: nothing breaks, the service stands alone.
 
 **The quick settings row** ("lights", on lane-pixels' `kawa-panel`) appears by itself once this is merged: `kawa-quick --state` reports `rgb`, `--do rgb` toggles.
 
 **Left for main, because this lane may not reboot or suspend the PC:**
-1. After the next reboot: `kawa-rgb status` says `lights full` and all four `ok`; the lights stay red through the greeter (watch for a dark moment before dwl lights the screen).
+1. **The real boot proof, the one thing this lane cannot do:** after the next reboot (the Fedora 45 upgrade's): `kawa-rgb status` says `lights full` and all four `ok`, `journalctl -u kawa-rgb -b` shows it started with the boot, and the cooler's display shows the CPU's number; the lights stay red through the greeter (watch for a dark moment before dwl lights the screen). Nothing proves that but a boot: enabled in `multi-user.target`, session-free, restarted for real.
 2. One `systemctl suspend` and wake when it is allowed (with the cold power-off test): the lights go out before the sleep and come back; `journalctl -u kawa-rgb -u kawa-rgb-sleep`.
 3. `dwl` takes `LIBINPUT_IGNORE_DEVICE` for the cooler (the ghost keyboard's rule, proven with `udevadm test`) at the next session.
 4. The Learn pieces: `.claude/notes/lane-hardware-learn.md` is their text, for the book's update on his word (`docs/learn/syllabus.txt`).

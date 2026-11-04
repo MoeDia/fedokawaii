@@ -16,7 +16,8 @@ They do not move, and while nothing changes they cost no CPU and no bus traffic.
 | you unlock, or the PC wakes | come back to full |
 | you press the lights' row in quick settings (Super+X) | go off or on, and stay that way across reboots |
 
-One program does it all, `kawa-rgb`, running as a system service (`systemctl status kawa-rgb`). It speaks to each
+One program does it all, `kawa-rgb`, a system service: it starts with the PC, login or no login
+(`systemctl status kawa-rgb`). It speaks to each
 device in that device's own small protocol: the motherboard's Mystic Light and the keyboard over USB, the card's
 logo over its I2C bus. The fans, the hub and the cooler's fan take their colour from the motherboard's header.
 

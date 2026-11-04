@@ -82,7 +82,7 @@ echo \$? >"$rt/status"
 kill \$PPID
 EOF
 chmod +x "$rt/inside.sh"
-env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless "${gpu[@]}" \
+env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" KAWA_RGB_ROOT="$rt/no-lights" WLR_BACKENDS=headless "${gpu[@]}" \
   WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
   DWL_FRAMELOG="$rt/frames.log" ASAN_OPTIONS="log_path=$rt/asan:detect_leaks=1" \
   timeout "$limit" "${fence[@]}" "$bin" -s "$rt/inside.sh" >"$rt/dwl.log" 2>&1
