@@ -248,7 +248,7 @@ PY
 }
 
 # ── the cover pane: the cover centred, the words under it ────────────────────────────────
-# The cover sits as far from the pane's rule as from the pane's right edge, and as far
+# The cover sits as far from the pane's rule as from the window's frame, and as far
 # below the top rule as the last line of words sits above the pane's foot — equal to the
 # pixel. Its left edge is a column's edge, so the words under it start exactly there. To get
 # all of that, the cover fills a box of whole columns and of a height that balances, which
@@ -332,7 +332,10 @@ print("\n".join(lines))' "$title" "$W" 2>/dev/null)
   [[ -n $best ]] || { rm -f "$tmp" "$png"; return 1; }
   read -r k tr Hc P W j <<<"$best"
   w=$(( cols * cw - 2 * k * cw - a ))
-  k=$j                                          # (from here on: the columns the cover stands in)
+  # (from here on: the columns the cover stands in — one more than it was sized for: past the pane's
+  # end the window's own 16 px of padding run to its frame, so a column over it has as much paper on
+  # its right, to the frame, as on its left, to the rule: 21 px each at 1080p)
+  k=$((j + 1))
   S=$(( tr * ch / 6 * 6 ))                      # whole sixel bands, ending in row tr-1
   if ((card)); then                             # no picture in the file: a card, its kind on it
     magick -size "${w}x${Hc}" "xc:#$C_EDGE" -fill none -stroke "#$C_MUTED" -strokewidth 2 \
@@ -360,7 +363,7 @@ case ${1:-} in
     cell=${KAWA_CELL:?} cols=${FZF_PREVIEW_COLUMNS:-36} lines=${FZF_PREVIEW_LINES:-26}
     cw=${cell%x*} ch=${cell#*x}
     ((cw > 0 && ch > 0 && cols > 20 && lines > 8)) || exit 0
-    key=$(printf '%s\n' p11 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" "$CAP_TITLE" "$CAP_LINES" | sha1sum)
+    key=$(printf '%s\n' p12 "$f" "$(stat -c '%s %Y' -- "$f")" "$cell" "$cols" "$lines" "$C_GROUND" "$CAP_TITLE" "$CAP_LINES" | sha1sum)
     key=${key%% *}; six=$CACHE/$key.six lay=$CACHE/$key.lay
     [[ -s $six && -s $lay ]] || draw_cover "$f" "$six" "$lay" || exit 0
     { read -r k tr W; mapfile -t tl; } <"$lay"
@@ -424,7 +427,7 @@ head="$(screen_heading "$ICON_BOOK" books "$KAWA_BOOKS_W")"$'\n '
 # shellcheck disable=SC2088  # (words on the screen, not a path)
 if ((${#list[@]})); then ghost='~/Books'; else ghost='none in ~/Books yet — ctrl+a adds some'; fi
 self=$(printf '%q' "$0")
-printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% \
+printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --no-clear --height=100% \
   --delimiter=$'\t' --with-nth=2 --tiebreak=index --header="$head" --ghost="$ghost" \
   --preview="$self --preview {1} {3} {4} {6}" --preview-window='right,36,border-left,noinfo,wrap' \
   --preview-wrap-sign=' ' \

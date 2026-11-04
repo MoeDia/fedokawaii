@@ -1,0 +1,153 @@
+#!/usr/bin/env bash
+# kawa-carry — your own things across a wipe of this computer (Super+U → backups): what is yours alone, and
+# nothing the installer makes again. Separate from your backups: this is one trip, to a drive, and back.
+#
+#   kawa-carry pack [FOLDER]   before you wipe: what goes (~/.config/fedokawaii/carry.list), its size; to a drive
+#                              you pick from those plugged in (or FOLDER), under a password you choose here, in a
+#                              folder fedokawaii-carry on it (restic: encrypted, checked after); "safe to wipe"
+#                              only once all of it has been read back
+#   kawa-carry back [FOLDER]   at the first boot of a fresh install: all of it back from the drive, the password
+#                              asked; only what is missing is put in place, nothing of the new system replaced,
+#                              but secrets.sh, which is yours
+#   kawa-carry list            what goes: SIZE<TAB>PATH a line
+#   kawa-carry hint            a notice, once, when a drive with your things is plugged in on a new system (at
+#                              login for one already there, by kawa-drives watch for one that comes)
+# Exit: 0 done · 1 it could not be done (said) · 2 misuse · 4 nothing to do (no drive plugged in, none picked).
+set -u
+export LC_ALL=C.UTF-8
+case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+LIST=$HOME/.config/fedokawaii/carry.list
+FOLDER=fedokawaii-carry
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
+DONE=$STATE/carried                       # "back" has run on this system
+SETTINGS=${KAWA_CARRY_SETTINGS:-/usr/local/lib/fedokawaii/fedokawaii.conf}   # (the toolkit's, outside your home)
+TAKEN=.config/fedokawaii/carried-settings.conf   # (its copy: goes in the trip, as carry.list says)
+say() { printf '  %s\n' "$*"; }
+die() { printf '  %s\n' "$*" >&2; exit 1; }
+
+# the carry list's paths that are there (relative to your home; a # a comment)
+paths() {
+  local l
+  [[ -s $LIST ]] || die "$LIST is missing — Super+U → theme, applied again"
+  while IFS= read -r l; do
+    l=${l%%#*}; l=${l%"${l##*[![:space:]]}"}
+    [[ -n $l && -e $HOME/$l ]] && printf '%s\n' "$l"
+  done <"$LIST"
+}
+list() {
+  local p
+  paths | while IFS= read -r p; do
+    printf '%s\t%s\n' "$(du -sh --exclude='fk-*' -- "$HOME/$p" 2>/dev/null | cut -f1)" "$p"
+  done
+}
+
+# a drive plugged in, opened: "MOUNT" (several: asked; none: status 4). ANY: only one holding the folder
+choose() {
+  local want=${1:-} dev label size folder rows=() mounts=() i ans
+  while IFS=$'\t' read -r dev _ label size _ folder; do
+    [[ -n $folder ]] || folder=$(kawa-drives open "$dev" 2>/dev/null) || continue
+    [[ -z $want || -d $folder/$FOLDER ]] || continue
+    rows+=("${label:-$dev} · $size"); mounts+=("$folder")
+  done < <(kawa-drives list 2>/dev/null)
+  ((${#mounts[@]})) || return 4
+  ((${#mounts[@]} == 1)) && { printf '%s\n' "${mounts[0]}"; return 0; }
+  for i in "${!rows[@]}"; do printf '   %d  %s\n' "$((i + 1))" "${rows[i]}" >&2; done
+  printf '  which drive? ' >&2; read -r ans
+  [[ $ans =~ ^[0-9]+$ ]] && ((ans >= 1 && ans <= ${#mounts[@]})) || return 4
+  printf '%s\n' "${mounts[ans - 1]}"
+}
+
+# the password: RESTIC_PASSWORD given (a test), or typed here, twice for a new one; never written down
+password() {
+  local new=$1 a b
+  [[ -n ${RESTIC_PASSWORD:-} ]] && return 0
+  [[ -t 0 ]] || die "no password: run it in a terminal"
+  while :; do
+    IFS= read -rs -p "  password for this trip: " a; echo
+    [[ -n $a ]] || continue
+    ((new)) || break
+    IFS= read -rs -p "  once more: " b; echo
+    [[ $a == "$b" ]] && break
+    say "not the same"
+  done
+  export RESTIC_PASSWORD=$a
+}
+
+pack() {
+  local dest=${1:-} p repo items=()
+  command -v restic >/dev/null || die "restic is not installed — fedokawaii repair puts it back"
+  [[ -r $SETTINGS ]] && cp -f -- "$SETTINGS" "$HOME/$TAKEN"
+  mapfile -t items < <(paths)
+  ((${#items[@]})) || die "nothing to carry: $LIST names nothing that is here"
+  say "what goes:"
+  list | while IFS=$'\t' read -r s p; do printf '   %6s  %s\n' "$s" "$p"; done
+  echo
+  if [[ -z $dest ]]; then
+    dest=$(choose) || { say "plug a drive in first, then again"; return 4; }
+  fi
+  repo=$dest/$FOLDER
+  say "to $dest"
+  if [[ -e $repo/config ]]; then
+    password 0
+  else
+    password 1
+    mkdir -p "$repo" || die "$repo cannot be made"
+    restic -r "$repo" init >/dev/null || die "the drive's folder could not be made ready"
+  fi
+  restic -r "$repo" backup --tag carry --tag "home:$HOME" --exclude 'repos/fk-*' --exclude '.cache' -- "${items[@]/#/$HOME/}" \
+    || die "it did not all go: nothing is safe yet — see above"
+  say "reading all of it back"
+  restic -r "$repo" check --read-data >/dev/null 2>&1 || die "the drive gave back something else: use another drive"
+  mkdir -p "$STATE" && date +%F >"$DONE.told"   # (this system took them: no notice to bring them back)
+  say "$ICON_CHECK  safe to wipe. your password is the only key to it."
+}
+
+back() {
+  local from=${1:-} repo root f old
+  command -v restic >/dev/null || die "restic is not installed — fedokawaii repair puts it back"
+  if [[ -z $from ]]; then
+    from=$(choose any) || { say "no drive with your things is plugged in: plug it in, then again"; return 4; }
+  fi
+  repo=$from/$FOLDER
+  [[ -e $repo/config ]] || die "$repo holds nothing of yours"
+  password 0
+  tmp=$(mktemp -d "$HOME/.carry.XXXXXX") || die "no room in your home"   # (not local: the trap runs at the very end)
+  trap 'rm -rf "$tmp"' EXIT
+  restic -r "$repo" restore latest --target "$tmp" || die "the password, or the drive: nothing was changed"
+  # (from the home it was taken from, whatever that home was called, into this one: only what is missing)
+  old=$(restic -r "$repo" snapshots --latest 1 --json | jq -r '[.[-1].tags[] | select(startswith("home:"))][0][5:]')
+  root=$tmp$old
+  [[ -n $old && -d $root ]] || die "the drive's copy has no home in it: nothing was changed"
+  cp -a --update=none -- "$root"/. "$HOME"/ || die "not all of it could be put back: nothing was removed"
+  # (secrets.sh: the fresh one is empty; yours wins)
+  f=.config/fedokawaii/secrets.sh
+  [[ -e $root/$f ]] && install -m 600 -- "$root/$f" "$HOME/$f"
+  mkdir -p "$STATE" && date +%F >"$DONE"
+  say "$ICON_CHECK  all of it is back"
+  [[ -e $HOME/$TAKEN ]] && say "your old settings: ~/$TAKEN — set them in Super+U → settings"
+  return 0
+}
+
+# (it only looks: udiskie opens what is plugged in, and a drive you closed stays closed; choose would
+# open every closed one, and ask for an encrypted one's passphrase unasked)
+hint() {
+  [[ -e $DONE ]] && return 0
+  local f
+  while IFS=$'\t' read -r _ _ _ _ _ f; do
+    [[ -n $f && -d $f/$FOLDER ]] || continue
+    mkdir -p "$STATE" && date +%F >"$DONE.told"
+    [[ $(<"$DONE.told") ]] && notify-send -a backup -- "$ICON_UNPACK  your things" "on the drive just plugged in: Super+U → backups → bring back"
+    return 0
+  done < <(kawa-drives list 2>/dev/null)
+}
+
+case ${1:-} in
+  pack) shift; pack "$@" ;;
+  back) shift; back "$@" ;;
+  list) list ;;
+  hint) [[ -e $DONE.told ]] || hint ;;
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
+  *) echo "usage: kawa-carry pack|back [FOLDER] · list · hint" >&2; exit 2 ;;
+esac
