@@ -306,12 +306,12 @@ class Hands:
 
 
 class Motes:
-    """What a clean run wakes on the strip of the hands, one more for every EVERY keys without a slip, MOST at a time: on the
-    dark embers rising from the demon's palms, on the light petals drifting down past the angel's. A slip and they are gone.
+    """What a clean run wakes around the hands, one more for every EVERY keys without a slip, MOST at a time: on the dark embers
+    rising off the demon's palms, past the fingers; on the light petals drifting down past the angel's. A slip and they are gone.
     Their own little loop, a dozen steps a second, on 1× grid pixels."""
     EVERY, MOST = 20, 8
     STEP = 0.08
-    INKS = {True: ('accent_hi', 'flame', 'accent', 'accent_lo'), False: ('gold', 'accent_hi', 'gold', 'edge2')}
+    INKS = {True: ('yellow', 'flame', 'accent', 'accent_lo'), False: ('paper_mark', 'paper_mark', 'accent_hi', 'gold')}
 
     def __init__(self, dark, rng):
         self.dark, self.rng = dark, rng
@@ -321,17 +321,17 @@ class Motes:
     def spawn(self):
         r = self.rng
         side = r.random() < 0.5
-        cx = (MIRROR - 90 if side else 90) + r.randint(-26, 26)
+        cx = (MIRROR - 84 if side else 84) + r.randint(-44, 44)
         if self.dark:
-            self.live.append([cx, 44 + r.randint(0, 10), 0, r.randint(7, 11), r.choice((-1, 0, 1))])
+            self.live.append([cx, 56 + r.randint(0, 14), 0, r.randint(12, 22), r.choice((-1, 0, 1))])
         else:
-            self.live.append([cx, r.randint(0, 6), 0, r.randint(9, 13), r.choice((-1, 1))])
+            self.live.append([cx, r.randint(0, 8), 0, r.randint(26, 40), r.choice((-1, 1))])
 
     def step(self):
         """a step of everyone's life; True if anything is there to draw"""
         for m in self.live:
             m[2] += 1
-            m[1] += -2 if self.dark else 2
+            m[1] += -2 if self.dark else 1
             if m[2] % 3 == 0:
                 m[0] += m[4]
         self.live = [m for m in self.live if m[2] < m[3] and 0 <= m[1] < HANDS_H]
@@ -342,13 +342,15 @@ class Motes:
     def paint(self, pic, k, ox, oy):
         inks = self.INKS[self.dark]
         for x, y, age, life, _ in self.live:
-            ink = INK[inks[min(age * len(inks) // life, len(inks) - 1)]]
-            if self.dark:
-                pic.fill(ox + x * k, oy + y * k, k, k, ink)
-            else:                # (a petal: two pixels, leaning)
-                lean = (age // 3) % 2
-                pic.fill(ox + (x + lean) * k, oy + y * k, k, k, ink)
-                pic.fill(ox + (x + 1 - lean) * k, oy + (y + 1) * k, k, k, ink)
+            at = min(age * len(inks) // life, len(inks) - 1)
+            ink, after = INK[inks[at]], INK[inks[min(at + 1, len(inks) - 1)]]
+            if self.dark:        # (an ember: two across, its tail a step cooler)
+                pic.fill(ox + x * k, oy + y * k, 2 * k, 2 * k, ink)
+                pic.fill(ox + (x + (age & 1)) * k, oy + (y + 2) * k, k, k, after)
+            else:                # (a petal: it turns as it falls)
+                lean = (age // 4) % 2
+                pic.fill(ox + (x + lean) * k, oy + y * k, 2 * k, k, ink)
+                pic.fill(ox + (x + 1 - lean) * k, oy + (y + 1) * k, 2 * k, k, after)
 
 
 # ── seals, the eye, numbers ──────────────────────────────────────────────────

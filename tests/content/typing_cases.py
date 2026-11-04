@@ -48,7 +48,11 @@ def fresh(baseline=40, lessons=None, day=None):
 def start(size=(100, 32), *args, env=None):
     argv = [sys.executable, '-IB', BIN, '--seed', '7', '--trace', trace(), *args]
     p = Pty(argv, size, env)
-    p.pump(0.4)
+    for _ in range(200):       # (its first frame: a key sent before raw mode is the line discipline's, and is flushed)
+        p.pump(0.05)
+        if b'\x1b[?2026l' in p.out or p.status is not None:
+            break
+    p.pump(0.05)
     return p
 
 
