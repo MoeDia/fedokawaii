@@ -116,8 +116,8 @@ PROGRAMS = {
     "nvim": {
         "packages": ["neovim", "nvim"], "says": r"\bnvim\b|\bneovim\b", "kind": "lua", "held_only": "its config is code",
         "files": ["~/.config/nvim/init.lua"],
-        "check": ["nvim", "--headless", "+qa"],
-        "red": r"\bE\d+:|Error in |Error detected|Unknown option",
+        "check": ["nvim", "--headless", "-n", "-i", "NONE", "+qa"],
+        "red": r"\bE\d+:|Error in |Error detected|Unknown option|stack traceback",
     },
     "greetd": {
         "packages": ["greetd"], "says": r"\bgreetd\b", "kind": "toml", "binary": "/usr/bin/greetd",

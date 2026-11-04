@@ -7,6 +7,7 @@
 # D-Bus; the server runs at low priority on the card and is stopped at the end.
 #   python3 -B -I tools/fixer-bench.py --model FILE [--sock SOCK] [--runs N] [--only a,b] [--work DIR]
 #                                      [--ctx N] [--server-args "…"] [--request JSON] [--out FILE.tsv]
+#                                      (--server-args: what the update starts it with, unless told otherwise)
 #   --list   the cases and what each must end in
 #   --self   no server kept across cases: each run starts the installed model itself and ends it, as the
 #            update does (the whole of it measured: the hash, the load, the answer, the card empty again)
@@ -367,7 +368,7 @@ def main():
     ap.add_argument("--level", type=int)
     ap.add_argument("--work", default=os.path.expanduser("~/.cache/r27-fixer/bench/work"))
     ap.add_argument("--ctx", type=int)
-    ap.add_argument("--server-args", default="")
+    ap.add_argument("--server-args", default=" ".join(KF.MODEL["server"]))   # (as the update starts it)
     ap.add_argument("--request", default="")
     ap.add_argument("--out")
     ap.add_argument("--list", action="store_true")

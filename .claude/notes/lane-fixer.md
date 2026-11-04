@@ -10,6 +10,9 @@ not in it (no amdgpu reset, no ring timeout in the log since 17:45). The next re
 cold-boot test: memtest or the BIOS's CPU/RAM profile if it comes back (T01's random restart may be the same family).
 
 ## Status (newest first)
+- 21:50 after the reboot (healthy machine, up since 21:17): lane-updates 23067f78 merged here (one conflict, lib/cand-check.sh: one list of config checks now, test_cand_check 23/0 with 2 new cases).
+  test_fixer 323/0, test_syntax 830/0; test_tools red only on lane-updates' release-move.sh:23 state_has (told them); test_update_fixer and test_update_flow waiting for the installer lock.
+  The first f7 run was stopped by me: the bench started the server without the fixer's --reasoning-budget 1500 (29/29 right that way, kept as f7-nobudget). Fixed (the bench's default is now the update's own), f7 again from 21:49.
 - 20:33 restarted by the conductor before the reboot came. Done on no-GPU work: lane-updates (5c1d32e9) merged into lane-fixer (the 4 conflicts: both sides kept), the move hooked
   (lib/move.sh move_fix; do_after_upgrade: fixes_commit, fixes_apply, fixes_settled; move_undo: fixes_undo; up_home_copy in do_move, dropped before the restart; said at the login),
   tests for it in test_update_fixer (7 new cases), .claude/notes/fixer-book-section.md is in docs/fedokawaii-learn.md as 8.7. Steps 4 below are done except the syllabus row (lane-learning not merged here).
