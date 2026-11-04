@@ -17,7 +17,9 @@ case_ "list: what goes, with its size; only what is here; never Downloads"
 out=$(kawa-carry list); has "$out" "Notes"; has "$out" ".ssh"; has "$out" ".config/fedokawaii/secrets.sh"; lacks "$out" "Downloads"; lacks "$out" "Music"
 
 case_ "pack: to the drive, encrypted, read back, then and only then safe to wipe"
+printf 'CITY="Cairo"\n' >"$TMP/settings.conf"; export KAWA_CARRY_SETTINGS=$TMP/settings.conf
 out=$(kawa-carry pack "$D" 2>&1); r=$?; eq "$r" 0 "exit: $out"; has "$out" "safe to wipe"
+[[ -e $HOME/.local/state/fedokawaii/carried.told ]] && _ok || _no "this system took them: its next login would say to bring them back"
 [[ -e $D/fedokawaii-carry/config ]] && _ok || _no "no repository on the drive"
 lacks "$(find "$D" -type f -exec cat {} + 2>/dev/null | tr -d '\0' | grep -a -c 'export KEY=old')" "1" "secrets.sh not readable on the drive"
 
@@ -32,6 +34,8 @@ eq "$(stat -c %a "$N/.ssh/id")" 600; eq "$(stat -c %a "$N/.config/fedokawaii/sec
 [[ -e $N/repos/fk-lane ]] && _no "a lane's worktree came along" || _ok
 [[ -e $N/Downloads ]] && _no "Downloads came along" || _ok
 [[ -e $N/.local/state/fedokawaii/carried ]] && _ok || _no "not marked as done"
+eq "$(cat "$N/.config/fedokawaii/carried-settings.conf")" 'CITY="Cairo"' "your settings, outside your home, came along"
+has "$(cat "$TMP/o")" "carried-settings.conf"
 eq "$(find "$N" -maxdepth 1 -name '.carry.*' | wc -l)" 0 "nothing left over in the home: $(ls -a "$N" | tr '\n' ' ')"
 
 case_ "a wrong password: said, nothing changed"

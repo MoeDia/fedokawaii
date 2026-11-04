@@ -247,9 +247,44 @@ EOF
       "none 0 0|dark long 1 1, again 0 0|just dark 0 1|lit 0 0|resumed 1|resumed 3 s ago 0|idle 6 s 2|just reset 0|under the saver 0|the saver gone 0|dark already 0|"
   else _no "kawa-lockmod.c does not build: $(head -n 3 "$TMP/cc.log")"; fi
 else echo "  (no cc or GTK 3 headers here: the rules' run skipped)"; fi
+case_ "markscale (a scene drawn pixel for pixel): a mark's every pixel M times the size, round the same point"
+if command -v cc >/dev/null && pkg-config --exists gtk+-3.0 2>/dev/null; then
+  cat >"$TMP/marks.c" <<'EOF'
+#include "kawa-lockmod.c"
+#include <stdio.h>
+static void row(cairo_surface_t *s, int y) {   /* x 10 to 22 of row y: arms, core, corner or nothing */
+	cairo_surface_flush(s);
+	unsigned char *d = cairo_image_surface_get_data(s);
+	for (int x = 10; x <= 22; x++) {
+		unsigned p = *(unsigned *)(d + y * cairo_image_surface_get_stride(s) + 4 * x) & 0xffffff;
+		putchar(p == 0xff0000 ? 'a' : p == 0x00ff00 ? 'c' : p == 0x0000ff ? 'k' : '.');
+	}
+	putchar('|');
+}
+int main(void) {
+	static const ink arms = { 1, 0, 0 }, core = { 0, 1, 0 }, corner = { 0, 0, 1 };
+	for (S.ms = 1; S.ms <= 3; S.ms += 2) {
+		cairo_surface_t *s = cairo_image_surface_create(CAIRO_FORMAT_RGB24, 32, 32);
+		cairo_t *cr = cairo_create(s);
+		mark(cr, 16, 16, &arms, &core, &corner);
+		cairo_destroy(cr);
+		row(s, 16 - S.ms);
+		row(s, 16);
+		cairo_surface_destroy(s);
+	}
+	return 0;
+}
+EOF
+  # shellcheck disable=SC2046  # (pkg-config's words)
+  if cc -std=gnu11 -I"$REPO/src/kawa-lockmod" $(pkg-config --cflags gtk+-3.0) -o "$TMP/marks" "$TMP/marks.c" $(pkg-config --libs gtk+-3.0) 2>"$TMP/cc.log"; then
+    eq "$("$TMP/marks")" ".....kak.....|.....aca.....|..kkkaaakkk..|..aaacccaaa..|"
+  else _no "kawa-lockmod.c does not build: $(head -n 3 "$TMP/cc.log")"; fi
+else echo "  (no cc or GTK 3 headers here: the rules' run skipped)"; fi
 case_ "kawa-lock --resumed notes the wake as \"resumed\" (the lock's 2 s after a sleep), --screens on as \"on\""
 setup
+stub kawa-dwlstatus
 kawa-lock --resumed; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" resumed
+called "^kawa-dwlstatus --wake"   # (the bar's clock waits a minute on a clock a sleep stopped)
 kawa-lock --screens on; eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
 case_ "kawa-lockmod: an empty Enter is no try; every key, release and click passes the guard; theme.sh builds it"
 L=$REPO/src/kawa-lockmod/kawa-lockmod.c
