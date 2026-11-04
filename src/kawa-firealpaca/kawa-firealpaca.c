@@ -31,6 +31,7 @@
  *   its keys      F2 to F7 show and hide the panels kept out of the way (PANEL_KEYS)
  *   its dialogs   Open and Save are the desktop's own (kawa-pick: yazi in a small terminal, as
  *                 every other program's), the program waiting meanwhile
+ *   its start     no page of news and advertising (the owner's choice: DialogAd never comes up)
  *   a file        the program takes none on its command line: KAWA_FA_OPEN=FILE at its start, or
  *                 the file named in $XDG_RUNTIME_DIR/kawa-firealpaca.open while it runs
  *                 (kawa-sketch writes both), goes through its own File → Open
@@ -105,6 +106,7 @@ static struct {
 	void (*key_new)(void *, const QString *, int);
 	void (*key_free)(void *);
 	void (*action_key)(void *, const void *);
+	void *(*widget_window)(void *);
 } qt;
 
 static bool
@@ -137,6 +139,7 @@ resolve(void)
 		S(layout_margins, "_ZN7QLayout18setContentsMarginsEiiii"),
 		S(key_new, "_ZN12QKeySequenceC1ERK7QStringNS_14SequenceFormatE"), S(key_free, "_ZN12QKeySequenceD1Ev"),
 		S(action_key, "_ZN7QAction11setShortcutERK12QKeySequence"),
+		S(widget_window, "_ZNK7QWidget6windowEv"),
 #undef S
 	};
 	for (size_t i = 0; i < sizeof t / sizeof *t; i++) {
@@ -1223,6 +1226,47 @@ place_children(void *parent, const char *cls)
 			}
 		}
 	}
+}
+
+/* ── its page of news and advertising at every start: the owner's choice (inbox 2026-11-04 19:31), told of
+ * its makers' terms: it does not come up. The rest of its web views (its Brush Store …) are untouched. ── */
+int
+_ZN7QDialog4execEv(void *self)
+{
+	static int (*real)(void *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN7QDialog4execEv");
+	if (on && !strcmp(qt.class_name(((const void *(*)(void *))(*(void ***)self)[0])(self)), "DialogAd"))
+		return 0;                                    /* QDialog::Rejected */
+	return real(self);
+}
+
+/* (and its page is not fetched either: the memory and the traffic of nothing shown) */
+static bool
+in_start_page(void *view)
+{
+	void *top = qt.widget_window(view);
+	return !strcmp(qt.class_name(((const void *(*)(void *))(*(void ***)top)[0])(top)), "DialogAd");
+}
+
+void
+_ZN14QWebEngineView4loadERK4QUrl(void *self, const void *url)
+{
+	static void (*real)(void *, const void *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN14QWebEngineView4loadERK4QUrl");
+	if (!on || !in_start_page(self))
+		real(self, url);
+}
+
+void
+_ZN14QWebEngineView4loadERK21QWebEngineHttpRequest(void *self, const void *request)
+{
+	static void (*real)(void *, const void *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN14QWebEngineView4loadERK21QWebEngineHttpRequest");
+	if (!on || !in_start_page(self))
+		real(self, request);
 }
 
 /* ── the watcher, and what the main thread does for it ────────────────────────── */

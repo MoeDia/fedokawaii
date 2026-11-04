@@ -1382,8 +1382,7 @@ with a password, and shrink it.
 ## 20.2 Drawing: Sketch
 
 **Sketch** in the launcher (**Super+Space**, type `sketch`) is FireAlpaca, a real painting program, on a new
-page the shape of the screen: `~/Pictures/Sketches/sketch DATE.mdp`. It opens with a page of its makers' news,
-which is how the free edition pays for itself: **Enter** closes it, and you are drawing.
+page the shape of the screen: `~/Pictures/Sketches/sketch DATE.mdp`, ready to draw on.
 
 **Your first drawing, in two minutes.** Put the pen near the pad: the circle on the page is the brush, its size
 the line at full pressure. Draw. Press harder for a thicker line, lift off gently for a point. The first brush, *Fude*

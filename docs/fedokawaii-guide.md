@@ -5471,8 +5471,10 @@ its fixed face, our 86 masks in place of its pictures (`art/firealpaca-icons.txt
 the grid, Open and Save through `kawa-pick`, and the mood followed while it runs. What is on the canvas, the files and
 the pen are never touched. `KAWA_FA_PLAIN=1 kawa-sketch` shows it as it comes. Once, `theme.sh` gives it its starting
 files (`configs/firealpaca/`: Wada's 159 colours, a few brushes, the panels, a white page 1920 × 1080); then they are
-its own. Its start page is its makers' news and advertising, the free edition's bargain (the ad-free edition has no
-Linux build): it stays, **Enter** closes it. *File → Export* makes a PNG or PSD, and Super+Z (§12.6) makes it small.
+its own. The free edition's page of news and advertising at every start does not come up and is not fetched: the
+owner's choice (4 Nov), told of its terms (they forbid "acts that bring detriment" to its makers; the ad-free edition
+has no Linux build); `KAWA_FA_PLAIN=1` brings it back with the rest. *File → Export* makes a PNG or PSD, and Super+Z
+(§12.6) makes it small.
 
 **The drawing tablet** — an XP-Pen Star G430S here, or any other — needs no driver: Fedora's kernel knows it, and it works
 the moment it is plugged in. dwl hands the pen to Xwayland as a tablet (tablet-v2), and Qt reads it as a stylus with

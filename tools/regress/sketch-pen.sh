@@ -27,12 +27,7 @@ grep -q 'also watches the mouse' "$w/dwl/dwl.c" && park="wlrctl pointer move -80
 inc=$(cat /usr/local/lib/fedokawaii-wlroots-0.20/cflags) l=/usr/local/lib/fedokawaii-wlroots-0.20/lib
 make -s -C "$w/dwl" WLR_INCS="$inc" WLR_LIBS="-Wl,-rpath,$l -L$l -lwlroots-0.20 -lpixman-1 -ldrm" \
   XWAYLAND=-DXWAYLAND XLIBS="xcb xcb-icccm pixman-1 glesv2" >"$w/make.log" 2>&1 || { echo "sketch-pen: the private dwl did not build ($(tail -n 1 "$w/make.log"))" >&2; exit 2; }
-# one keyboard that stays, as a real one does (Xwayland drops a keymap that comes and goes)
-# shellcheck disable=SC2046  # (pkg-config's words are meant to split)
-wayland-scanner client-header "$here/../protocols/virtual-keyboard-unstable-v1.xml" "$w/vk-protocol.h" &&
-  wayland-scanner private-code "$here/../protocols/virtual-keyboard-unstable-v1.xml" "$w/vk-protocol.c" &&
-  cc -O2 -o "$w/vkbd" "$here/../vkbd.c" "$w/vk-protocol.c" -I"$w" $(pkg-config --cflags --libs wayland-client xkbcommon) || exit 2
-mkfifo "$w/tablet" "$w/keys"
+mkfifo "$w/tablet"
 h=$w/home; mkdir -p "$h/.config/fedokawaii" "$h/.local/share/FireAlpaca/FireAlpaca"
 cp -a "$HOME/.config/fedokawaii/themes" "$h/.config/fedokawaii/"; ln -s "$(readlink "$HOME/.config/fedokawaii/current")" "$h/.config/fedokawaii/current"
 mkdir -p "$h/.local/share/fedokawaii" && ln -s "$HOME/.local/share/fedokawaii/firealpaca" "$h/.local/share/fedokawaii/firealpaca"
@@ -41,11 +36,8 @@ cp "$HOME/.local/share/fedokawaii/firealpaca/blank.mdp" "$w/page.mdp"
 cat >"$w/inside.sh" <<PLAY
 export HOME=$h XDG_CONFIG_HOME=$h/.config XDG_DATA_HOME=$h/.local/share XDG_CACHE_HOME=$h/.cache XDG_STATE_HOME=$h/.local/state
 cd "\$HOME" || exit 1
-"$w/vkbd" <"$w/keys" >/dev/null 2>&1 &
-exec 8>"$w/keys"
 ( ulimit -c 0; exec env -u QT_QPA_PLATFORMTHEME QT_QPA_PLATFORM=xcb KAWA_FA_OPEN="$w/page.mdp" LD_PRELOAD="$lib" "$app" ) >"$w/app.log" 2>&1 &
 sleep 12
-echo 'k Return' >&8; sleep 3
 $park
 pen() { printf '%s\n' "\$*" >"$w/tablet"; sleep 0.012; }
 for row in "300 0.10" "500 0.50" "700 1.00"; do
