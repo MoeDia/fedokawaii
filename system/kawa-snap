@@ -205,7 +205,15 @@ gone() { btrfs subvolume delete --commit-after "$1" >/dev/null 2>&1; }   # (neve
 # sets KAWA_SNAP_CUT and makes /run/kawa-snap.cut): the kernel restarts at once, nothing synced
 power_cut() { [[ ${KAWA_SNAP_CUT:-} == "$1" && -e /run/kawa-snap.cut ]] || return 0; echo b >/proc/sysrq-trigger; sleep 30; }
 # whole V — kernel V complete in /boot: the kernel, its boot image, its entry
-whole() { [[ -f /boot/vmlinuz-$1 && -s /boot/initramfs-$1.img ]] && compgen -G "/boot/loader/entries/*-$1.conf" >/dev/null; }
+# (a boot entry that lost root= or rootflags=: as good as none, made again — design §5 row 31)
+whole() {
+  [[ -f /boot/vmlinuz-$1 && -s /boot/initramfs-$1.img ]] || return 1
+  local e
+  for e in /boot/loader/entries/*-"$1".conf; do
+    [[ -f $e ]] && grep -Eq '^options .*root=' "$e" && grep -Eq '^options .*rootflags=subvol=' "$e" && return 0
+  done
+  return 1
+}
 newest() { local m; for m in "$1"/usr/lib/modules/*/vmlinuz; do [[ -f $m ]] && m=${m%/vmlinuz} && echo "${m##*/}"; done | sort -V | tail -n1; }
 start="restart now"   # (what the last line asks: the default could not be set → choose the kernel)
 default_to() {   # default_to V — kernel V's entry the default, written to disk
