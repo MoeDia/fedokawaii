@@ -105,12 +105,22 @@ def term_pairs(m):
             ("every menu (fzf)", "the letters matched, at rest", ink("hl", fg), bg, ICON)]
 
 
+def glass_pairs(m):
+    """A terminal's words through its glass (kawa-glass: foot's alpha, blended as stored): the ground over
+    the worst pixel any wallpaper can hold, white under the dark ground, black under the paper."""
+    alpha = float(re.search(r"^ON=([0-9.]+)", (ROOT / "bin/kawa-glass").read_text(), re.M).group(1))
+    pal, fg, bg = foot_colours(m)
+    worst = 255 if m == "dark" else 0
+    over = "".join(f"{round(alpha * int(bg[i:i + 2], 16) + (1 - alpha) * worst):02x}" for i in (0, 2, 4))
+    return [("the terminal", f"its words at alpha {alpha:g} over the worst wallpaper pixel", fg, over, WORDS)]
+
+
 def prompt_pairs(m):
     """The prompt: the mood's head on the ground (the demon in slot 1, the angel in the words' ink), its
     ink (30) on each paper (27–29: the folder, git, the time and jobs) and a failure's code, the cream
     (32) on the lacquer (31) — foot's slots."""
     pal, fg, bg = foot_colours(m)
-    return [("the prompt", "the mood's head on the ground", pal[1] if m == "dark" else fg, bg, ICON),
+    return [("the prompt", "the mood's head on the ground", pal[20] if m == "dark" else fg, bg, ICON),
             ("the prompt", "the folder's words on their paper", pal[30], pal[27], WORDS),
             ("the prompt", "git's words on their paper", pal[30], pal[28], WORDS),
             ("the prompt", "the time and the jobs on their paper", pal[30], pal[29], WORDS),
@@ -199,7 +209,7 @@ def app_pairs(m):
 def rows():
     out = []
     for m in ("dark", "light"):
-        for surface, state, fg, bg, need in (term_pairs(m) + prompt_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+        for surface, state, fg, bg, need in (term_pairs(m) + glass_pairs(m) + prompt_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
             out.append((m, surface, state, fg, bg, contrast(fg, bg), need))
     return out
 

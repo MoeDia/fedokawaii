@@ -34,7 +34,7 @@ grep -q 'glyph_of(saver_days + 3 \* (wday % 7), 3)' "$SRC/kawa-saver.c" && grep 
 if [[ -n $SAVER ]]; then
   saver() { env -u WAYLAND_DISPLAY -u WAYLAND_SOCKET "$SAVER" "$@"; }
   W=$HOME/.local/state/fedokawaii/saver
-  config .config/fedokawaii/themes
+  config .config/fedokawaii/themes .local/share/fedokawaii/dark
   ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
 
   stub kawa-lock                                    # (the lock behind it: a stand-in)
@@ -104,10 +104,15 @@ b=$(sed -n '/^static void lock_start(void)$/,/^}/p' "$SRC/kawa-saver.c")
 has "$b" 'execlp("kawa-lock", "kawa-lock", (char *)NULL);'; lacks "$b" "waitpid" "started, not waited for (the cloth stays up meanwhile)"
 has "$(sed -n '/^static bool lock_up(void)$/,/^}/p' "$SRC/kawa-saver.c")" "waitpid(lock_pid, NULL, WNOHANG)"
 lacks "$(cat "$SRC/kawa-saver.c")" "lock_now"
-case_ "the clock framed in running stitch, its shadow a dot down and right, as the bar's patches"
-has "$(sed -n '/^static void draw_clock/,/^}/p' "$SRC/kawa-saver.c")" "stitch_frame(o, r.x, r.y, r.w, r.h);"
-has "$(sed -n '/^static void stitch_frame/,/^}/p' "$SRC/kawa-saver.c")" "put(o, x + i + 1, y + j + 1, SHADE);"
-lacks "$(cat "$SRC/kawa-saver.c")" "MUTED)"
+case_ "the scene asleep (tools/build-saver.py): both moods' pictures there, the flames the lock's own; no sashiko left; the clock a patch with a solid hairline, another corner every minute"
+for t in dark light; do
+  for f in saver-scene saver-flame; do
+    [[ $(head -c 2 "$REPO/configs/home/.local/share/fedokawaii/$t/$f.ppm") == P6 ]] && _ok || _no "$t/$f.ppm"
+  done
+done
+lacks "$(cat "$SRC/kawa-saver.c")" "sew_step"; lacks "$(cat "$SRC/kawa-saver.c")" "stitch_frame"
+has "$(sed -n '/^static void clock_step/,/^}/p' "$SRC/kawa-saver.c")" "o->corner = (o->corner + 1) % 4;"
+has "$(sed -n '/^static void step/,/^}/p' "$SRC/kawa-saver.c")" "flames_step(o);"
 
 # ── kawa-idle: away 15 min the screensaver (and the lock), 30 min dark — never while playing ──
 look

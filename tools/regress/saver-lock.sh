@@ -25,6 +25,8 @@ printf '#!/bin/sh\nexit 0\n' >"$KIT_OUT/stub/logger"; chmod +x "$KIT_OUT/stub/lo
 PATH="$KIT_OUT/stub:$PATH" KAWA_LOCK_SLEEP=0 kawa-saver --idle >"$KIT_OUT/saver.log" 2>&1 &
 nap 3; shot saver
 key space; nap 1.2; shot woke
+# (a gate in the scene: the secret key opens it first, as a person does)
+grep -q '^gate ' "$HOME/.local/share/fedokawaii/dark/lock-scene.txt" && { key Tab; nap 0.7; }
 text "ab"; nap 0.3; shot typed
 PLAY
 sed -i "1i REAL=$src CALLER=$HOME" "$out/play.sh"
@@ -44,6 +46,7 @@ for line in open(f"{art}/lock-scene.txt"):
         kv.setdefault(w[0], []).append(w[1:])
 rx, ry, pitch, rn = map(int, kv["row"][0])
 core = tuple(int(kv["mark"][0][1][i:i + 2], 16) for i in (0, 2, 4))
+gate = [int(v) for v in kv["gate"][0]] if "gate" in kv else None
 def look(name):
     shot = np.asarray(Image.open(f"{out}/{name}.png").convert("RGB"))
     H, W = shot.shape[:2]
@@ -56,6 +59,8 @@ def look(name):
     for fx, fy in (map(int, f) for f in kv.get("flame", [])):
         keep[n * fy:n * (fy + fh), n * fx:n * (fx + fw)] = False
     keep[n * (ry - 3):n * (ry + 4), n * (rx - 2):n * (rx + pitch * rn + 3)] = False
+    if gate:                                  # (its frames over the scene: judged by lock-gate.sh)
+        keep[n * gate[1] - n:n * (gate[1] + gate[3] + 1), n * gate[0] - n:n * (gate[0] + gate[2] + 1)] = False
     same = (got == want).all(axis=2)[keep].mean()
     marks = sum(tuple(got[n * ry + n // 2, n * (rx + pitch * i) + n // 2]) == core for i in range(rn))
     return same, marks
