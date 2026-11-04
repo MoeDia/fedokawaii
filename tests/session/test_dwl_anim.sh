@@ -192,7 +192,7 @@ grep -q '^-	motionnotify(0, NULL, 0, 0, 0, 0);$' <(grep -B12 '^ 	wlr_scene_node_
 # ── beside the animations, in the same patch: full screen and X11 windows ──
 case_ "focustop: a visible full-screen window first (a window it hides never takes the keys on a return to its workspace), else the latest focused one shown"
 f=$(sed -n '/^ focustop(Monitor \*m)$/,/^ }$/p' "$P")
-grep -q '^+		if (c->isfullscreen)$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
+grep -q '^+		if (c->isfullscreen || (!top && ispopup(c)))$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
   && _ok || _no "focustop does not prefer the full-screen window"
 case_ "arrange: an X11 window shown again is told it is not minimised (a Wine game black on returning to its workspace)"
 grep -q '^+			if (VISIBLEON(c, m) && client_is_x11(c) && !client_is_unmanaged(c)$' "$P" \

@@ -34,6 +34,7 @@ start_session, cancel_session (man 7 greetd-ipc).
 """
 import json
 import os
+import random
 import socket
 import struct
 import sys
@@ -85,6 +86,12 @@ class Scene:
         self.flame = cairo.ImageSurface.create_from_png(f"{folder}/lock-flame.png") if self.flames else None
         self.gx, self.gy, self.gw, self.gh, self.gn = map(int, kv["gate"][0]) if "gate" in kv else (0, 0, 0, 0, 0)
         self.gate = cairo.ImageSurface.create_from_png(f"{folder}/lock-gate.png") if self.gn else None
+        # its life, kawa-lockmod's twin: looped strips with alpha, and sparks
+        self.anims = [dict(img=cairo.ImageSurface.create_from_png(f"{folder}/lock-{a[0]}.png"), x=int(a[1]), y=int(a[2]),
+                           w=int(a[3]), h=int(a[4]), n=int(a[5]), ms=int(a[6]), frame=0) for a in kv.get("anim", [])]
+        sp = kv.get("sparks", [[]])[0]
+        self.petals, self.nsparks = sp[:1] == ["petals"], min(int(sp[1]), 64) if sp else 0
+        self.young, self.old = (ink(sp[2]), ink(sp[3])) if sp else (None, None)
 
     def fit(self, w, h):
         """The scale (whole) and the corner of the scene on a W × H screen."""
@@ -163,6 +170,9 @@ class Greeter(Gtk.Window):
             Gdk.Keymap.get_for_display(Gdk.Display.get_default()).connect("state-changed", lambda *_: self.redraw_row())
             if self.scene.flames:
                 GLib.timeout_add(1000 // 8, self.flames_tick)
+            self.sparks = [{"live": False} for _ in range(self.scene.nsparks)]
+            if self.scene.anims or self.sparks:
+                GLib.timeout_add(40, self.life_tick)
             self.blink = GLib.timeout_add(500, self.caret_tick)
         layers.add_overlay(self.entry)
         layers.add_overlay(self.error)
@@ -229,10 +239,23 @@ class Greeter(Gtk.Window):
             cr.rectangle(fx, fy, s.fw, s.fh)
             cr.fill()
 
+        for a in s.anims:
+            cr.save()
+            cr.rectangle(a["x"], a["y"], a["w"], a["h"])
+            cr.clip()
+            cr.set_source_surface(a["img"], a["x"] - a["frame"] * a["w"], a["y"])
+            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.paint()
+            cr.restore()
+
         def dot(x, y, c):
             cr.set_source_rgb(*c)
             cr.rectangle(x, y, 1, 1)
             cr.fill()
+
+        for p in self.sparks:
+            if p["live"]:
+                dot(p["px"], p["py"], s.young if p["age"] * 2 < p["life"] else s.old)
 
         def mark(x, y, arms, core, corner):
             for ax, ay in ((1, 1), (1, -1), (-1, 1), (-1, -1)) if corner else ():
@@ -278,6 +301,42 @@ class Greeter(Gtk.Window):
         self.frame = (self.frame + 1) % s.frames
         for fx, fy in s.flames:
             self.redraw(fx, fy, s.fw, s.fh)
+        return True
+
+    def life_tick(self):
+        """The scene's life, 25 times a second: an anim's new frame, the sparks' new places (kawa-lockmod's twin)."""
+        s, ms = self.scene, int(time.monotonic() * 1000)
+        for a in s.anims:
+            f = ms // a["ms"] % a["n"]
+            if f != a["frame"]:
+                a["frame"] = f
+                self.redraw(a["x"], a["y"], a["w"], a["h"])
+        for p in self.sparks:
+            if not p["live"]:
+                if random.randrange(40):
+                    continue
+                if s.petals:
+                    p.update(live=True, age=0, x=random.randrange(s.w), y=random.randrange(s.h // 2), px=-1, py=-1,
+                             vx=(random.randrange(40) - 20) / 100, vy=.15 + random.randrange(30) / 100, life=120 + random.randrange(160))
+                else:
+                    fx, fy = random.choice(s.flames) if s.flames else (random.randrange(s.w), s.h - 1)
+                    p.update(live=True, age=0, x=fx + random.randrange(max(s.fw, 1)), y=fy + s.fh // 3, px=-1, py=-1,
+                             vx=(random.randrange(40) - 20) / 120, vy=-.3 - random.randrange(50) / 100, life=50 + random.randrange(90))
+                continue
+            if p["px"] >= 0:
+                self.redraw(p["px"], p["py"], 1, 1)
+            p["age"] += 1
+            if p["age"] > p["life"]:
+                p["live"] = False
+                continue
+            p["vx"] += (random.randrange(21) - 10) / 500
+            p["x"] += p["vx"]
+            p["y"] += p["vy"]
+            p["px"], p["py"] = int(p["x"]), int(p["y"])
+            if not (0 <= p["px"] < s.w and 0 <= p["py"] < s.h):
+                p["live"] = False
+            else:
+                self.redraw(p["px"], p["py"], 1, 1)
         return True
 
     def caret_tick(self):
