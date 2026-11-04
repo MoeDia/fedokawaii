@@ -8070,12 +8070,12 @@ tools installed with it:
 | `gamescope --mangoapp -f -- %command%` | gamescope with the overlay — inside gamescope, use `--mangoapp` rather than `mangohud` |
 
 **FreeSync.** On a monitor that can do it, quick settings' *freesync* tile (its seal 滑) goes
-round three settings: *in games* — the default: on while a window, a game or a video, is full
-screen on that monitor —, *always*, and *off*. dwl reads the choice from
+round three settings: *full screen* — the default: on while a window, a game or a video, is
+full screen on that monitor —, *always*, and *off*. dwl reads the choice from
 `~/.config/fedokawaii/vrr` and takes it up at the next change of window; a monitor that cannot
 do it is left alone. The tile shows what the graphics card does *this moment*, read from the
-card itself (DRM's `VRR_ENABLED`): *games · off* at the desktop, *games · on* in a full-screen
-game, *always · on*, its seal stamped only while it is on; *not offered* when the monitor
+card itself (DRM's `VRR_ENABLED`): *full screen · off* at the desktop, *full screen · on* with a
+window full screen, *always · on*, its seal stamped only while it is on; *not offered* when the monitor
 offers none. `fedokawaii freesync` says the same in a line a screen:
 
 ```sh
