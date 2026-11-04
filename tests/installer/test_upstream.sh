@@ -357,6 +357,32 @@ ge_release GE-Proton10-27; r=$TMP/two; mkdir -p "$r/GE-Proton10-27" "$r/GE-Proto
 tar -czf "$dl/GE-Proton10-27.tar.gz" -C "$r" .; (cd "$dl" && sha512sum GE-Proton10-27.tar.gz >GE-Proton10-27.sha512sum)
 up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "did not hold one GE-Proton folder"
 
+# ── FireAlpaca: an official AppImage, one address, unpacked by you ───────────────────────
+case_ "install_firealpaca: the pinned file, unpacked whole in its folder, yours; its version recorded; again: in place"
+back start; fav=$(. "$REPO/lib/upstream.sh"; echo "$FIREALPACA_VERSION")
+up "install_firealpaca"; eq "$RC" 0 "$OUT"
+has "$OUT" "verified: FireAlpaca.AppImage"
+fa=$H/.local/share/fedokawaii/firealpaca/app
+eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca $fav" "runs from its folder"
+eq "$(fk stat -c %U "$fa/usr/bin/FireAlpaca")" fkuser
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/firealpaca")" "$fav"
+[[ ! -e $W$fa.new ]] && _ok || _no "the unpacking folder left behind"
+reset_calls; up "install_firealpaca"; eq "$RC" 0; has "$OUT" "FireAlpaca $fav — in place"
+case_ "their page moved on (one address, the newest): a newer version is taken, and said; the file is checked by what it is"
+cp "$dl/linux" "$TMP/fa.pinned"; fake_firealpaca 99.0.0 >"$dl/linux"
+rm -f "$W$H/.local/share/fedokawaii/upstream/firealpaca"
+up "install_firealpaca"; eq "$RC" 0 "$OUT"; has "$OUT" "their page now serves 99.0.0"
+eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/firealpaca")" 99.0.0
+case_ "a different file of the same or an older version: refused, what works stays"
+fake_firealpaca "$fav" >"$dl/linux"; printf '# changed\n' >>"$dl/linux"
+rm -f "$W$H/.local/share/fedokawaii/upstream/firealpaca"
+up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
+eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0" "the working copy stays"
+[[ ! -e $W$fa.new ]] && _ok || _no "the unpacking folder left behind"
+fake_firealpaca 1.0.0 >"$dl/linux"; up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
+cp "$TMP/fa.pinned" "$dl/linux"
+
 # ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
 case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"
 back start; up "install_localsend"; eq "$RC" 0 "$OUT"

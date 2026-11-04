@@ -18,7 +18,7 @@ DOCKS = [("DockColor", "Color", "color"), ("DockColorHistory", "Color History", 
          ("DockNavi", "Navigator", "navi"), ("DockLayer", "Layer", "layer"),
          ("DockReference", "Reference", "reference"), ("DockBrushSize", "Brush Size", "size")]
 LETTER = 7           # Sumi UI: a letter's width
-HEADING_W = 640      # a heading's picture: wider than any panel gets
+HEADING_W = 272      # a heading's picture: from the panel's left edge to its content's right edge (a panel 280 wide)
 
 
 def rgb(h):
@@ -44,7 +44,7 @@ def art(path):
         if line.startswith("@"):
             cur = line[1:].split()[0]
             blocks[cur] = []
-        elif line and not line.startswith("#") and cur and set(line) <= {"#", "."}:
+        elif line and cur and set(line) <= {"#", "."}:
             blocks[cur].append(line)
     return blocks
 
@@ -73,8 +73,8 @@ def frame(png, m, p, kami, fill):
 
 
 def heading(png, rows, title, p):
-    """A panel's heading (§4): its 12 px icon in the icon column, room for the name from x 24, 8 px,
-    then the rule on the row's row 10 to the panel's edge: the words are Qt's, the rest this."""
+    """A panel's heading (§4): one cell in, its 12 px icon in the icon column, room for the name from x 32,
+    8 px, then the rule on the row's row 10 to the content's right edge: the words are Qt's, the rest this."""
     h = 20
     icon, rule = rgb(p["accent_text"]), rgb(p["edge2"])
     none = icon + (0,)
@@ -82,8 +82,8 @@ def heading(png, rows, title, p):
     for y, r in enumerate(rows):
         for x, c in enumerate(r):
             if c == "#":
-                px[y + 4][x + 2] = icon + (255,)
-    for x in range(24 + LETTER * len(title) + 8, HEADING_W):
+                px[y + 4][x + 10] = icon + (255,)
+    for x in range(32 + LETTER * len(title) + 8, HEADING_W):
         px[10][x] = rule + (255,)
     return png(HEADING_W, h, px)
 
@@ -156,7 +156,7 @@ QToolButton:checked, QToolButton:pressed {{ background: #{sel}; color: #{on_sel}
 QToolButton::menu-indicator {{ image: none; }}
 
 QDockWidget {{ color: #{strong}; titlebar-close-icon: none; titlebar-normal-icon: none; }}
-QDockWidget::title {{ background-color: #{g}; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 24px; }}
+QDockWidget::title {{ background-color: #{g}; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 32px; }}
 {heads}
 QDockWidget::close-button, QDockWidget::float-button {{ width: 0; height: 0; border: none; background: transparent; image: none; }}
 
@@ -201,14 +201,17 @@ QTabBar::tab:selected {{ background: #{sel}; color: #{on_sel}; }}
 QTabBar::tab:hover:!selected {{ color: #{text}; background: #{key}; }}
 QTabBar::close-button {{ image: none; width: 0; }}
 
-QMdiArea, QMdiSubWindow {{ background: #{g}; border: none; }}
+QMdiArea {{ background: #{g}; border: none; qproperty-background: #{g}; }}
+QMdiSubWindow {{ background: #{g}; border: none; }}
+QMdiArea QTabBar::tab, QMdiArea QTabBar::tab:selected, QMdiArea QTabBar::tab:hover {{ background: #{g}; color: #{muted}; padding: 3px 8px; }}
+QMdiArea QTabBar::tab:selected {{ color: #{strong}; }}
 QAbstractScrollArea {{ background: #{g}; border: none; }}
 QScrollBar:vertical {{ background: #{g}; width: 8px; margin: 0; }}
 QScrollBar:horizontal {{ background: #{g}; height: 8px; margin: 0; }}
 QScrollBar::handle {{ background: #{edge2}; }}
 QScrollBar::handle:hover {{ background: #{muted}; }}
-QScrollBar::handle:vertical {{ min-height: 20px; }}
-QScrollBar::handle:horizontal {{ min-width: 20px; }}
+QScrollBar::handle:vertical {{ min-height: 20px; margin: 0 0 0 16px; }}
+QScrollBar::handle:horizontal {{ min-width: 20px; margin: 16px 0 0 0; }}
 QScrollBar::add-line, QScrollBar::sub-line {{ background: transparent; height: 0; width: 0; }}
 QScrollBar::add-page, QScrollBar::sub-page {{ background: transparent; }}
 

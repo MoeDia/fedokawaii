@@ -25,6 +25,14 @@
  *   the moods     a thread waits on ~/.config/fedokawaii for the "current" link to change
  *                 (kawa-theme) and has the main thread load the new sheet and inks: FireAlpaca
  *                 changes with the desktop, a picture in work and all
+ *   its panels    placed by hand in its code for a narrower face: after a panel is laid out its
+ *                 children are put on the design's grid (the table PLACES); Qt's underlined
+ *                 mnemonics are off (in a pixel face F_ reads E)
+ *   its dialogs   Open and Save are the desktop's own (kawa-pick: yazi in a small terminal, as
+ *                 every other program's), the program waiting meanwhile
+ *   a file        the program takes none on its command line: KAWA_FA_OPEN=FILE at its start, or
+ *                 the file named in $XDG_RUNTIME_DIR/kawa-firealpaca.open while it runs
+ *                 (kawa-sketch writes both), goes through its own File → Open
  *
  * Nothing is written anywhere. KAWA_FA_PLAIN=1 leaves the program as it comes. A symbol missing
  * from a later Qt turns the whole of it off, never a crash; a class it does not know is left
@@ -45,6 +53,7 @@
 #include <string.h>
 #include <sys/inotify.h>
 #include <sys/stat.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 typedef struct { void *d; unsigned short *ptr; long size; } QString;   /* QArrayDataPointer<char16_t> */
@@ -98,6 +107,10 @@ static struct {
 	void (*event_new)(void *, int);
 	void *(*cxx_new)(unsigned long);
 	void **app;
+	void (*action_activate)(void *, int);
+	void (*process_events)(int);
+	void (*set_geometry)(void *, const void *);
+	void (*layout_margins)(void *, int, int, int, int);
 } qt;
 
 static bool
@@ -133,6 +146,10 @@ resolve(void)
 		S(all_widgets, "_ZN12QApplication10allWidgetsEv"), S(widget_update, "_ZN7QWidget6updateEv"),
 		S(post_event, "_ZN16QCoreApplication9postEventEP7QObjectP6QEventi"), S(event_new, "_ZN6QEventC1ENS_4TypeE"),
 		S(cxx_new, "_Znwm"), S(app, "_ZN16QCoreApplication4selfE"),
+		S(action_activate, "_ZN7QAction8activateENS_11ActionEventE"),
+		S(process_events, "_ZN16QCoreApplication13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEE"),
+		S(set_geometry, "_ZN7QWidget11setGeometryERK5QRect"),
+		S(layout_margins, "_ZN7QLayout18setContentsMarginsEiiii"),
 #undef S
 	};
 	for (size_t i = 0; i < sizeof t / sizeof *t; i++) {
@@ -206,6 +223,8 @@ list_pixel(uint32_t p)
 	switch (p & 0xffffff) {
 	case 0x808080: case 0x7f7f7f: case 0xf0f0f0:     /* a list's empty ground and its rules: no rules */
 		return ink.view;
+	case 0xf3f9fe:                                   /* the row under the pointer */
+		return ink.key;
 	case 0xd0d0d0:                                   /* a brush row's chip: light … */
 		return ink.edge2;
 	case 0x303030:                                   /* … and dark */
@@ -235,13 +254,13 @@ list_cached(uint32_t p)
 }
 
 /* ── what each class's image is ───────────────────────────────────────────────── */
-enum kind { PLAIN, LIST, LAYERS, METER, SURROUND, NAVI };
+enum kind { PLAIN, LIST, BRUSHES, LAYERS, METER, SURROUND, NAVI };
 
 static enum kind
 kind_of_class(const char *c)
 {
 	static const struct { const char *name; enum kind k; } t[] = {
-		{ "WidgetBrushList", LIST }, { "WidgetLayerList", LAYERS }, { "WidgetBrushSize", LIST },
+		{ "WidgetBrushList", BRUSHES }, { "WidgetLayerList", LAYERS }, { "WidgetBrushSize", LIST },
 		{ "WidgetGradList", LIST }, { "WidgetThumbList", LIST }, { "WidgetBrushPreview", LIST },
 		{ "WidgetBrushGamma", LIST }, { "WidgetBrushInputView", LIST },
 		{ "WidgetTrackbarSimple", METER }, { "WidgetTrackbarSimple2", METER }, { "WidgetTrackbarStep", METER },
@@ -295,23 +314,50 @@ scratch_for(size_t px)
 	return scratch;
 }
 
-/* A layer's thumbnail stays the picture's own: its frame (the mid greys, or the frame on the
- * lacquer) in column 30 marks the rows it covers. */
+/* A layer's row is 40 px between its dark rules: the eye's cell, then 10 px on the thumbnail,
+ * 37 × 27 with its frame. The thumbnail stays the picture's own; a folder's row (nothing there
+ * but the row's own fill) has none. Rows hang lower with each folder they are in: the eye's cell
+ * says where. */
 static void
-list_layer_thumbs(uint32_t *dst, const uint32_t *src, int h, long stride)
+layer_row(uint32_t *dst, const uint32_t *src, int w, int h, long stride, int top)
 {
-	int y0 = -1;
-	for (int y = 0; y <= h; y++) {
-		uint32_t p = y < h ? src[y * stride + 29] & 0xffffff : 0;
-		bool frame = p == 0x858e95 || p == 0x7f7f7f;
-		if (frame && y0 < 0)
-			y0 = y;
-		else if (!frame && y0 >= 0) {
-			for (int yy = y0; yy < y; yy++)
-				memcpy(dst + yy * stride + 29, src + yy * stride + 29, 37 * 4);
-			y0 = -1;
+	int probe = top + 2 >= 0 ? top + 2 : top + 42, first = -1, eye = -1;
+	int mid = top + 20;
+
+	if (probe >= h || mid < 0 || mid >= h)
+		return;
+	for (int x = 0; x < w / 2; x++)
+		if ((src[probe * stride + x] & 0xffffff) == 0x202020) {
+			if (first < 0) {
+				first = x;
+				continue;
+			}
+			eye = x;
+			break;
 		}
-	}
+	if (eye < 0 || eye + 47 > w)
+		return;
+	if (src[mid * stride + eye + 10] == src[mid * stride + eye + 5])
+		return;
+	for (int y = top + 7; y <= top + 33; y++)
+		if (y >= 0 && y < h)
+			memcpy(dst + y * stride + eye + 10, src + y * stride + eye + 10, 37 * 4);
+}
+
+static void
+layer_thumbs(uint32_t *dst, const uint32_t *src, int w, int h, long stride)
+{
+	int last = -1;
+
+	for (int y = 0; y < h; y++)
+		if ((src[y * stride + w - 3] & 0xffffff) == 0x202020 && (src[y * stride + w / 2] & 0xffffff) == 0x202020) {
+			if (last < 0 && y >= 40)
+				continue;
+			if (last < 0 && y > 0)
+				layer_row(dst, src, w, h, stride, y - 40);      /* (the row scrolled partly away) */
+			layer_row(dst, src, w, h, stride, y);
+			last = y;
+		}
 }
 
 /* The design's meter (§4) over a slider's width: 6 + 2 px segments, 10 rows, centred. The level
@@ -414,10 +460,16 @@ drawn_again(void *painter, const void *rect, const void *image, const void *sour
 	} else {
 		const uint32_t *src = (const uint32_t *)bits;
 		for (int y = 0; y < h; y++)
-			for (int x = 0; x < w; x++)
-				dst[y * stride + x] = list_cached(src[y * stride + x]);
-		if (k == LAYERS && w >= 66)
-			list_layer_thumbs(dst, src, h, stride);
+			for (int x = 0; x < w; x++) {
+				uint32_t p = src[y * stride + x];
+				dst[y * stride + x] = k == LAYERS && (p & 0xffffff) == 0x202020 ? ink.edge : list_cached(p);
+			}
+		if (k == LAYERS)
+			layer_thumbs(dst, src, w, h, stride);
+		if (k == BRUSHES && w > 18)                  /* the program's little colour chip by each name: its row's own ground */
+			for (int y = 0; y < h; y++)
+				for (int x = 2; x < 18; x++)
+					dst[y * stride + x] = dst[y * stride + 18];
 	}
 	qt.img_wrap(wrapper, (unsigned char *)dst, w, h, bpl, fmt, NULL, NULL);
 	qt.draw_image_r(painter, rect, wrapper, source, flags);
@@ -526,6 +578,12 @@ ours(const QString *path)
 		h = h * 33 + (unsigned char)name[i];
 	}
 	name[i] = 0;
+	if (!strcmp(name, "fa_128.png")) {                   /* (its logo on a document's tab: nothing there) */
+		strcpy(name, "firealpaca24.png");
+		h = 5381;
+		for (i = 0; name[i]; i++)
+			h = h * 33 + (unsigned char)name[i];
+	}
 	for (unsigned n = 0; n < 512; n++, h++) {
 		__typeof__(&memo[0]) e = &memo[h % 512];
 		if (!e->done) {
@@ -761,35 +819,387 @@ repaint_all(void)
 		qt.array_free(l.d, 8, 16);
 }
 
-/* Waits for kawa-theme to turn the "current" link; the main thread then does the work */
+/* ── a file to open, through the program's own File → Open ─────────────────────── */
+static void *action_open;        /* QAction action_FileOpen */
+static char *open_file;          /* what its next Open dialog answers, unasked */
+static bool wanted_mood, wanted_open;
+
+void
+_ZN7QObject13setObjectNameE14QAnyStringView(void *self, const void *data, size_t tagged)
+{
+	static void (*real)(void *, const void *, size_t);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN7QObject13setObjectNameE14QAnyStringView");
+	if (on && !(tagged >> 63) && (tagged & ~(3ul << 62)) == 15 && !memcmp(data, "action_FileOpen", 15))
+		action_open = self;
+	real(self, data, tagged);
+}
+
+static char *
+read_request(void)
+{
+	char path[PATH_MAX], *line = NULL, *rt = getenv("XDG_RUNTIME_DIR");
+	size_t cap = 0;
+	FILE *f;
+
+	if (!rt || snprintf(path, sizeof path, "%s/kawa-firealpaca.open", rt) >= (int)sizeof path || !(f = fopen(path, "re")))
+		return NULL;
+	if (getline(&line, &cap, f) > 0)
+		line[strcspn(line, "\n")] = 0;
+	fclose(f);
+	unlink(path);
+	return line;
+}
+
+/* ── the dialogs: the desktop's own ───────────────────────────────────────────── */
+static bool in_dialog;           /* input to the program is dropped while its dialog is out */
+
+static char *
+to_utf8(const QString *s)
+{
+	char *o = malloc((s->size > 0 ? (size_t)s->size : 0) * 3 + 1), *p = o;
+
+	if (!o)
+		return NULL;
+	for (long i = 0; i < s->size; i++) {
+		unsigned c = s->ptr[i];
+		if (c < 0x80)
+			*p++ = (char)c;
+		else if (c < 0x800) {
+			*p++ = (char)(0xc0 | c >> 6);
+			*p++ = (char)(0x80 | (c & 63));
+		} else {
+			*p++ = (char)(0xe0 | c >> 12);
+			*p++ = (char)(0x80 | (c >> 6 & 63));
+			*p++ = (char)(0x80 | (c & 63));
+		}
+	}
+	*p = 0;
+	return o;
+}
+
+static bool
+helper_exists(char *out, size_t n)
+{
+	return snprintf(out, n, "%s/.local/bin/kawa-pick", home) < (int)n && access(out, X_OK) == 0;
+}
+
+/* kawa-pick MULTIPLE 0 SAVE START OUT, the program's events going on meanwhile. The answer: the first
+ * line of OUT, or NULL (cancelled). For a save, kawa-pick wants the file there already: its stand-in. */
+static char *
+pick(const char *pickbin, bool save, const char *start)
+{
+	char out[PATH_MAX], line[PATH_MAX], *rt = getenv("XDG_RUNTIME_DIR"), *answer = NULL;
+	int fd, status = 0;
+	pid_t pid;
+	FILE *f;
+
+	if (snprintf(out, sizeof out, "%s/kawa-firealpaca.pick.XXXXXX", rt ? rt : "/tmp") >= (int)sizeof out || (fd = mkstemp(out)) < 0)
+		return NULL;
+	close(fd);
+	if (save && access(start, F_OK) != 0 && (f = fopen(start, "wxe"))) {
+		fputs("the file being saved\n", f);
+		fclose(f);
+	}
+	pid = fork();
+	if (pid == 0) {
+		execl(pickbin, pickbin, "0", "0", save ? "1" : "0", start, out, (char *)NULL);
+		_exit(127);
+	}
+	if (pid > 0) {
+		in_dialog = true;
+		while (waitpid(pid, &status, WNOHANG) == 0) {
+			qt.process_events(0);
+			usleep(16000);
+		}
+		in_dialog = false;
+		if ((f = fopen(out, "re"))) {
+			if (fgets(line, sizeof line, f)) {
+				line[strcspn(line, "\n")] = 0;
+				if (line[0])
+					answer = strdup(line);
+			}
+			fclose(f);
+		}
+	}
+	unlink(out);
+	return answer;
+}
+
+/* Where a dialog starts: the folder the program named, or home; for a save with the name it suggests
+ * (its filter's first extension), never over a file that is there. */
+static char *
+start_of(const QString *dir, const QString *filter, bool save)
+{
+	char *d = dir && dir->size > 0 ? to_utf8(dir) : strdup(home), *out = NULL, ext[16] = "mdp";
+	struct stat st;
+
+	if (!d)
+		return NULL;
+	if (!save) {
+		if (stat(d, &st) == 0 && S_ISDIR(st.st_mode))
+			return d;
+		char *cut = strrchr(d, '/');
+		if (cut && cut != d)
+			*cut = 0;
+		return d;
+	}
+	if (stat(d, &st) == 0 && S_ISDIR(st.st_mode)) {
+		char *f = filter ? to_utf8(filter) : NULL, *star = f ? strstr(f, "*.") : NULL;
+		if (star) {
+			size_t k = 0;
+			star += 2;
+			while (k + 1 < sizeof ext && star[k] && star[k] != ')' && star[k] != ' ' && star[k] != ';')
+				k++;
+			memcpy(ext, star, k);
+			ext[k] = 0;
+		}
+		free(f);
+		if (asprintf(&out, "%s/untitled.%s", d, ext) < 0)
+			out = NULL;
+		free(d);
+		d = out;
+	}
+	if (d && access(d, F_OK) == 0) {               /* a name of its own: "name (1).ext", as the desktop's */
+		char *dot = strrchr(d, '.'), *slash = strrchr(d, '/'), *free_name = NULL;
+		const char *tail = dot && slash && dot > slash ? dot : "";
+		size_t stem = strlen(d) - strlen(tail);
+		for (int n = 1; n < 1000; n++) {
+			if (asprintf(&free_name, "%.*s (%d)%s", (int)stem, d, n, tail) < 0)
+				break;
+			if (access(free_name, F_OK) != 0)
+				break;
+			free(free_name);
+			free_name = NULL;
+		}
+		if (free_name) {
+			free(d);
+			d = free_name;
+		}
+	}
+	return d;
+}
+
+void
+_ZN11QFileDialog15getOpenFileNameEP7QWidgetRK7QStringS4_S4_PS2_6QFlagsINS_6OptionEE(QString *ret, void *parent,
+		const QString *caption, const QString *dir, const QString *filter, QString *selected, int options)
+{
+	static void (*real)(QString *, void *, const QString *, const QString *, const QString *, QString *, int);
+	char pickbin[PATH_MAX];
+
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN11QFileDialog15getOpenFileNameEP7QWidgetRK7QStringS4_S4_PS2_6QFlagsINS_6OptionEE");
+	if (on && open_file) {
+		qt.string_utf8(ret, (long)strlen(open_file), open_file);
+		free(open_file);
+		open_file = NULL;
+		return;
+	}
+	if (on && helper_exists(pickbin, sizeof pickbin)) {
+		char *start = start_of(dir, filter, false), *got = start ? pick(pickbin, false, start) : NULL;
+		qt.string_utf8(ret, got ? (long)strlen(got) : 0, got ? got : "");
+		free(start);
+		free(got);
+		return;
+	}
+	real(ret, parent, caption, dir, filter, selected, options);
+}
+
+void
+_ZN11QFileDialog15getSaveFileNameEP7QWidgetRK7QStringS4_S4_PS2_6QFlagsINS_6OptionEE(QString *ret, void *parent,
+		const QString *caption, const QString *dir, const QString *filter, QString *selected, int options)
+{
+	static void (*real)(QString *, void *, const QString *, const QString *, const QString *, QString *, int);
+	char pickbin[PATH_MAX];
+
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN11QFileDialog15getSaveFileNameEP7QWidgetRK7QStringS4_S4_PS2_6QFlagsINS_6OptionEE");
+	if (on && helper_exists(pickbin, sizeof pickbin)) {
+		char *start = start_of(dir, filter, true), *got = start ? pick(pickbin, true, start) : NULL;
+		qt.string_utf8(ret, got ? (long)strlen(got) : 0, got ? got : "");
+		free(start);
+		free(got);
+		return;
+	}
+	real(ret, parent, caption, dir, filter, selected, options);
+}
+
+/* ── mnemonics hidden: an underline under F reads E in a pixel face; Alt+letter still works ── */
+void
+_ZN8QPainter8drawTextERK5QRectiRK7QStringPS0_(void *self, const void *rect, int flags, const QString *text, void *bound)
+{
+	static void (*real)(void *, const void *, int, const QString *, void *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN8QPainter8drawTextERK5QRectiRK7QStringPS0_");
+	if (on && flags & 0x0800)                            /* Qt::TextShowMnemonic → Qt::TextHideMnemonic */
+		flags = (flags & ~0x0800) | 0x8000;
+	real(self, rect, flags, text, bound);
+}
+
+void
+_ZN8QPainter8drawTextERK6QRectFiRK7QStringPS0_(void *self, const void *rect, int flags, const QString *text, void *bound)
+{
+	static void (*real)(void *, const void *, int, const QString *, void *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN8QPainter8drawTextERK6QRectFiRK7QStringPS0_");
+	if (on && flags & 0x0800)
+		flags = (flags & ~0x0800) | 0x8000;
+	real(self, rect, flags, text, bound);
+}
+
+/* ── words its hand-placed panels have no room for ────────────────────────────── */
+static const struct { const char *from, *to; } WORDS[] = {
+	{ "Show only Active Layer", "Active only" },
+	{ "Add Below", "Below" },
+};
+static QString word_to[sizeof WORDS / sizeof *WORDS];
+
+static const QString *
+worded(const QString *s)
+{
+	for (size_t i = 0; i < sizeof WORDS / sizeof *WORDS; i++)
+		if (string_is(s, WORDS[i].from)) {
+			if (!word_to[i].ptr)
+				qt.string_utf8(&word_to[i], (long)strlen(WORDS[i].to), WORDS[i].to);
+			return &word_to[i];
+		}
+	return s;
+}
+
+void
+_ZN15QAbstractButton7setTextERK7QString(void *self, const QString *text)
+{
+	static void (*real)(void *, const QString *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN15QAbstractButton7setTextERK7QString");
+	real(self, on ? worded(text) : text);
+}
+
+void
+_ZN9QCheckBoxC1ERK7QStringP7QWidget(void *self, const QString *text, void *parent)
+{
+	static void (*real)(void *, const QString *, void *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN9QCheckBoxC1ERK7QStringP7QWidget");
+	real(self, on ? worded(text) : text, parent);
+}
+
+/* ── the panels on the grid ───────────────────────────────────────────────────── */
+/* parent class, child class, which of that class among the parent's children, then x y w h. A w of
+ * 0 is "to the parent's width less x and 8"; negative x counts from the parent's right edge. */
+static const struct place {
+	const char *parent, *child;
+	int nth, x, y, w, h;
+} PLACES[] = {
+	{ "WidgetBrushControl", "WidgetTrackbarSimple2", 0, 8, 2, 214, 16 },
+	{ "WidgetBrushControl", "QLineEdit", 0, 230, 0, 42, 20 },
+	{ "WidgetBrushControl", "WidgetTrackbarSimple", 0, 8, 22, 214, 16 },
+	{ "WidgetBrushControl", "QLabel", 0, 230, 22, 42, 16 },
+	{ "WidgetBrushControl", "QLabel", 1, 8, 48, 96, 20 },
+	{ "WidgetBrushControl", "QComboBox", 0, 104, 48, 168, 20 },
+	{ "WidgetBrushControl", "QLabel", 2, 8, 76, 96, 20 },
+	{ "WidgetBrushControl", "QComboBox", 1, 104, 76, 168, 20 },
+	{ "WidgetLayerPanel", "QLabel", 0, 0, 2, 64, 16 },
+	{ "WidgetLayerPanel", "WidgetTrackbarSimple", 0, 64, 2, 150, 16 },
+	{ "WidgetLayerPanel", "MyLabel", 0, 222, 2, 42, 16 },
+	{ "WidgetLayerPanel", "QLabel", 1, 0, 22, 64, 20 },
+	{ "WidgetLayerPanel", "QComboBox", 0, 64, 22, 200, 20 },
+	{ "WidgetLayerPanel", "QCheckBox", 0, 0, 48, 116, 16 },
+	{ "WidgetLayerPanel", "QCheckBox", 1, 120, 48, 88, 16 },
+	{ "WidgetLayerPanel", "QCheckBox", 2, 208, 48, 56, 16 },
+	{ "WidgetLayerPanel", "QCheckBox", 3, 0, 68, 116, 16 },
+	{ "WidgetLayerPanel", "QCheckBox", 4, 120, 68, 88, 16 },
+	{ "WidgetLayerPanel", "QCheckBox", 5, 208, 68, 56, 16 },
+	{ "WidgetBrushTop", "QCheckBox", 0, 0, 5, 100, 16 },
+	{ "WidgetBrushTop", "QLineEdit", 0, 104, 3, 96, 20 },
+	{ "WidgetBrushTop", "QPushButton", 0, 208, 3, 56, 20 },
+	{ "WidgetColorInfo", "WidgetForeBG", 0, 0, 2, 30, 30 },
+	{ "WidgetColorInfo", "WidgetToumei", 0, 36, 2, 30, 30 },
+	{ "WidgetColorInfo", "WidgetRGBCode", 0, 0, 40, 66, 92 },
+};
+/* the panels that do have a layout: the content one cell in from the panel's edges */
+static const char *const CELL_IN[] = { "WidgetColor", "WidgetPalette", "WidgetBrush", "WidgetLayer", "WidgetNavi", "WidgetBrushSize", "WidgetReference" };
+
+static void
+place_children(void *parent, const char *cls)
+{
+	char *d = *(char **)((char *)parent + 8);        /* QObject: d_ptr → QObjectData */
+	void **kids = *(void ***)(d + 32);               /* its children: QList's data … */
+	long n = *(long *)(d + 40);                      /* … and size */
+
+	for (size_t t = 0; t < sizeof CELL_IN / sizeof *CELL_IN; t++) {
+		if (strcmp(CELL_IN[t], cls))
+			continue;
+		for (long i = 0; i < n; i++) {
+			const char *c = qt.class_name(((const void *(*)(void *))(*(void ***)kids[i])[0])(kids[i]));
+			if (strstr(c, "Layout"))
+				qt.layout_margins(kids[i], 8, 0, 8, 0);
+		}
+	}
+	for (size_t t = 0; t < sizeof PLACES / sizeof *PLACES; t++) {
+		const struct place *e = &PLACES[t];
+		int seen = 0;
+		if (strcmp(e->parent, cls))
+			continue;
+		for (long i = 0; i < n; i++) {
+			const void *meta = ((const void *(*)(void *))(*(void ***)kids[i])[0])(kids[i]);
+			if (strcmp(qt.class_name(meta), e->child))
+				continue;
+			if (seen++ == e->nth) {
+				int r[4] = { e->x, e->y, e->x + e->w - 1, e->y + e->h - 1 };
+				qt.set_geometry(kids[i], r);
+				break;
+			}
+		}
+	}
+}
+
+/* ── the watcher, and what the main thread does for it ────────────────────────── */
+static void
+post_to_main(void)
+{
+	void *ev;
+
+	if (!*qt.app)
+		return;
+	ev = qt.cxx_new(OBJECT_BYTES);
+	qt.event_new(ev, KAWA_EVENT);
+	qt.post_event(*qt.app, ev, 0);
+}
+
+/* Waits for kawa-theme to turn the "current" link, and for kawa-sketch's request */
 static void *
 watcher(void *unused)
 {
-	char dir[PATH_MAX], buf[4096];
+	char dir[PATH_MAX], buf[4096], *rt = getenv("XDG_RUNTIME_DIR");
 	int fd = inotify_init1(IN_CLOEXEC);
 
 	(void)unused;
 	if (fd < 0 || snprintf(dir, sizeof dir, "%s/.config/fedokawaii", home) >= (int)sizeof dir
 			|| inotify_add_watch(fd, dir, IN_MOVED_TO | IN_CREATE) < 0)
 		return NULL;
+	if (rt)
+		inotify_add_watch(fd, rt, IN_MOVED_TO);
 	for (;;) {
 		ssize_t n = read(fd, buf, sizeof buf);
-		bool ours_changed = false;
+		bool post = false;
 		if (n < 0 && errno == EINTR)
 			continue;
 		if (n <= 0)
 			return NULL;
 		for (char *p = buf; p < buf + n;) {
 			struct inotify_event *e = (struct inotify_event *)p;
-			if (e->len && !strcmp(e->name, "current"))
-				ours_changed = true;
+			if (e->len && !strcmp(e->name, "current")) {
+				__atomic_store_n(&wanted_mood, true, __ATOMIC_RELEASE);
+				post = true;
+			} else if (e->len && !strcmp(e->name, "kawa-firealpaca.open")) {
+				__atomic_store_n(&wanted_open, true, __ATOMIC_RELEASE);
+				post = true;
+			}
 			p += sizeof *e + e->len;
 		}
-		if (ours_changed && *qt.app) {
-			void *ev = qt.cxx_new(OBJECT_BYTES);
-			qt.event_new(ev, KAWA_EVENT);
-			qt.post_event(*qt.app, ev, 0);
-		}
+		if (post)
+			post_to_main();
 	}
 }
 
@@ -834,15 +1244,47 @@ bool
 _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *event)
 {
 	static bool (*real)(void *, void *, void *);
+	unsigned short type = *(unsigned short *)((char *)event + 8);
+	bool done;
 
 	if (!real)
 		real = dlsym(RTLD_NEXT, "_ZN12QApplication6notifyEP7QObjectP6QEvent");
-	if (on && *(unsigned short *)((char *)event + 8) == KAWA_EVENT && pthread_equal(pthread_self(), main_thread)) {
-		load_mood();
-		repaint_all();
+	if (!on || !pthread_equal(pthread_self(), main_thread))
+		return real(self, receiver, event);
+	if (type == KAWA_EVENT) {
+		if (__atomic_exchange_n(&wanted_mood, false, __ATOMIC_ACQ_REL)) {
+			load_mood();
+			repaint_all();
+		}
+		if (__atomic_exchange_n(&wanted_open, false, __ATOMIC_ACQ_REL)) {
+			char *req = read_request();
+			if (req) {
+				free(open_file);
+				open_file = req;
+			}
+		}
+		if (open_file && action_open)
+			qt.action_activate(action_open, 0);
 		return true;
 	}
-	return real(self, receiver, event);
+	if (in_dialog)
+		switch (type) {
+		case 2: case 3: case 4: case 5:              /* the mouse */
+		case 6: case 7:                              /* the keys */
+		case 31:                                     /* the wheel */
+		case 87: case 92: case 93:                   /* the pen */
+			return true;
+		}
+	done = real(self, receiver, event);
+	if (type == 14 || type == 17 || type == 76) {        /* Resize, Show, LayoutRequest: it has laid it out */
+		const void *meta = ((const void *(*)(void *))(*(void ***)receiver)[0])(receiver);
+		const char *cls = qt.class_name(meta);
+		if (type == 17 && open_file && !strcmp(cls, "MainWindow"))
+			post_to_main();                      /* its first window: the file asked for */
+		if (cls[0] == 'W')
+			place_children(receiver, cls);
+	}
+	return done;
 }
 
 __attribute__((constructor)) static void
@@ -867,5 +1309,9 @@ start(void)
 	if (!resolve())
 		return;
 	qt.string_utf8(&sumi, 7, "Sumi UI");
+	if (getenv("KAWA_FA_OPEN")) {
+		open_file = strdup(getenv("KAWA_FA_OPEN"));
+		unsetenv("KAWA_FA_OPEN");
+	}
 	on = true;
 }

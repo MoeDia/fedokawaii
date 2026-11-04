@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Root>
+    <Brushes>
+        <Brush type="pen" name="Fude" R="24" minR="0.04" alpha="1" pressWidth="true" pressTrans="false" iriNuki="true" pp="true" ppStylusMul="1" ppFingerMul="1" ppFadeInLen="0.25" ppFadeOutLen="0.6" ppFadeFunc="smooth" ppInkPoolInLen="0.15" ppInkPoolOutLen="0" ppInkPoolInAdd="0.25" ppInkPoolOutAdd="0" ppInkFunc="drop" />
+        <Brush type="pen" name="Pen" R="8" alpha="1" pressWidth="true" pressTrans="false" />
+        <Brush type="pen" name="Pencil" R="10" minR="0.3" alpha="1" pressWidth="true" pressTrans="true" />
+        <Brush type="air" name="Sketchbook" R="12" minR="0.1" alpha="0.75" pressWidth="true" pressTrans="true" texFile="preset_sketch.mdp" texOp="sub" texEffect="0.25" />
+        <Brush type="air" name="AirBrush" R="60" minR="0.8" alpha="0.2" pressWidth="true" pressTrans="true" />
+        <Brush type="wc" name="Watercolor" R="80" minR="0.5" alpha="0.7" pressWidth="true" pressTrans="true" softEdge="true" option0="70" option1="30" />
+        <Brush type="wc" name="Bleeding" R="80" minR="0.5" alpha="0.75" pressWidth="true" pressTrans="true" texFile="preset_noise.mdp" texOp="sub" texEffect="0.25" softEdge="true" option0="70" option1="30" />
+        <Brush type="bitmapwc" name="Flat" R="80" minR="0.8" alpha="1" pressWidth="true" pressTrans="true" file="bb_hirafude_rnd.png" option0="10" option1="1" option2="50" option3="0" option4="70" option5="30" option6="0" option7="0" />
+        <Brush type="finger" name="Smudge" R="50" minR="0.6" alpha="1" pressWidth="true" pressTrans="false" option0="50" />
+        <Brush type="mix" name="Mix" R="70" minR="0.7" alpha="0.2" pressWidth="true" pressTrans="true" softEdge="false" />
+        <Brush type="blur" name="Blur" R="80" minR="0.8" alpha="1" pressWidth="true" pressTrans="true" option0="40" />
+        <Brush type="program" name="Symmetry" R="10" alpha="1" pressWidth="true" pressTrans="true" file="symm_x.bs" option0="0" option1="0" />
+    </Brushes>
+    <Groups />
+    <Active index="0" scrollPos="0" />
+    <Version ver="1" />
+</Root>

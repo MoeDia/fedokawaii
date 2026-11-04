@@ -33,7 +33,7 @@ QToolButton:checked, QToolButton:pressed { background: #82241f; color: #f5ecc2; 
 QToolButton::menu-indicator { image: none; }
 
 QDockWidget { color: #f5ecc2; titlebar-close-icon: none; titlebar-normal-icon: none; }
-QDockWidget::title { background-color: #181715; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 24px; }
+QDockWidget::title { background-color: #181715; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 32px; }
 QDockWidget#DockColor::title { background-image: url(@THEME@/firealpaca-head-color.png); }
 QDockWidget#DockColorHistory::title { background-image: url(@THEME@/firealpaca-head-history.png); }
 QDockWidget#DockPalette::title { background-image: url(@THEME@/firealpaca-head-palette.png); }
@@ -87,14 +87,17 @@ QTabBar::tab:selected { background: #82241f; color: #f5ecc2; }
 QTabBar::tab:hover:!selected { color: #e7cfa1; background: #221e1a; }
 QTabBar::close-button { image: none; width: 0; }
 
-QMdiArea, QMdiSubWindow { background: #181715; border: none; }
+QMdiArea { background: #181715; border: none; qproperty-background: #181715; }
+QMdiSubWindow { background: #181715; border: none; }
+QMdiArea QTabBar::tab, QMdiArea QTabBar::tab:selected, QMdiArea QTabBar::tab:hover { background: #181715; color: #cab596; padding: 3px 8px; }
+QMdiArea QTabBar::tab:selected { color: #f5ecc2; }
 QAbstractScrollArea { background: #181715; border: none; }
 QScrollBar:vertical { background: #181715; width: 8px; margin: 0; }
 QScrollBar:horizontal { background: #181715; height: 8px; margin: 0; }
 QScrollBar::handle { background: #3c2f22; }
 QScrollBar::handle:hover { background: #cab596; }
-QScrollBar::handle:vertical { min-height: 20px; }
-QScrollBar::handle:horizontal { min-width: 20px; }
+QScrollBar::handle:vertical { min-height: 20px; margin: 0 0 0 16px; }
+QScrollBar::handle:horizontal { min-width: 20px; margin: 16px 0 0 0; }
 QScrollBar::add-line, QScrollBar::sub-line { background: transparent; height: 0; width: 0; }
 QScrollBar::add-page, QScrollBar::sub-page { background: transparent; }
 
