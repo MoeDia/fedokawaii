@@ -1,0 +1,270 @@
+# Installer ISO research — T55 (round 27): sources, each with what it taught
+
+The design (`.claude/notes/iso-design.md`) cites this file by section. Research lane, branch `lane-research`, 4 Nov 2026.
+Grades as in `vm-research.md`: **[P]** primary (upstream, or the object itself), **[R]** a first-hand report, **[C]** opinion.
+Nothing was booted: this lane may not touch a VM. What only a boot can answer is listed in the design as T56's first experiments.
+
+## 0. The real F45 netinst, read on 4 Nov 2026 [P]
+
+Downloaded from [releases.json](https://fedoraproject.org/releases.json)'s link, checked against its checksum, opened with `xorriso` and `7z`, nothing mounted.
+
+| Fact | Value |
+|---|---|
+| File | `Fedora-Server-netinst-x86_64-45-1.4.iso`, 1 272 281 088 bytes, SHA-256 `a1e916f139a05955b943cf183b020780cca9c399b02b8f5ec4354c9e5c1dff1a` (matches `releases.json`) |
+| Built with | `.buildstamp`: `Lorax=45.4-1`, `IsFinal=True`, `UUID=202610281944.x86_64`. `ModernizeBootISO` is F46, see §4 |
+| Volume id | `Fedora-S-dvd-x86_64-45` |
+| Files | `/EFI/BOOT/{BOOTX64,mmx64,grubx64}.efi` + ia32, `grub.cfg` = `BOOT.conf`; `/boot/grub2/grub.cfg`; `/images/eltorito.img`, `install.img` (945 MB), `pxeboot/initrd.img` (277 MB), `pxeboot/vmlinuz`. No `.treeinfo` |
+| Boot | El Torito: BIOS `eltorito.img`, UEFI = a hidden appended GPT partition 2 (13.6 MB FAT16, label `ANACONDA`; 0.5 MB free), **which holds its own `grub.cfg`** |
+| Menu | `set timeout=60`, Install / Test / Troubleshooting; `linux /images/pxeboot/vmlinuz inst.stage2=hd:LABEL=Fedora-S-dvd-x86_64-45 quiet` |
+| Kernel | 7.2.11-300.fc45, signed `Fedora Secure Boot Signer` |
+| `install.img` | squashfs, 32 511 files, direct root (no nested `rootfs.img`), Python 3.15 with `termios`, `_curses`, `gi`, `cairo`; no PIL |
+
+### What stage 2 has and lacks [P: its file list]
+
+- **Has:** `bash`, `python3`, `setfont`, `loadkeys`, `chvt`, `tmux`, `agetty`, `plymouth`, `plymouthd`, `gnome-kiosk`, `mutter`, `curl`, `nmcli`, `ip`, `ping`, `lsblk`, `blkid`, `parted`, `sfdisk`, `blockdev`, `mount`, `mkfs.btrfs`, `dnf5`, `rsync`, `tar`, `xz`, `zstd`, `openssl`, `localectl`, `timedatectl`, `hostnamectl`, `efibootmgr`, `mokutil`, `dbus-send`, `journalctl`, `fuser`, `flock`, `sshd`; `libcrypt.so.2`; terminfo `linux`; 249 console fonts in `/usr/lib/kbd/consolefonts`; 689 keymap files; `tzdata.zi`, `zone1970.tab`; Python's `termios`, `fcntl`, `_ctypes`, `_hashlib`.
+- **Lacks:** **`kmscon`**, `stty`, `tput`, `clear`, `dialog`, `whiptail`, `openvt`, `setsid`, `nohup`, `timeout`, `getent`, `sha512sum`, `git`, `dracut`, `findfs`, `fbset`.
+- Fonts: Noto, Noto Sans CJK, others; nothing of ours.
+- Plymouth: `details.so`, `text.so`, `tribar.so`. In the **initrd**: `details.so`, `text.so` only, no renderers, no `script.so`, no `libpng`, no `libdrm`, `plymouthd.defaults` `Theme=bgrt`: **the installer's early boot has no graphical splash at all**.
+
+Correction to `f45-changes.md` line 81 ("kmscon for the ISO's text screens"): kmscon is not in the installer's image. It is in F45's `@core` for installed systems (§7).
+
+## 1. Omarchy's ISO [P: [omacom/omarchy-iso](https://github.com/omacom/omarchy-iso), MIT, branch `quattro`, pushed 4 Nov 2026]
+
+What it does, from its README, `configs/` and `builder/`:
+
+- **Base:** archiso (Arch), with a *pre-built root image*: `omarchy-root.img.zst`, "a zstd-compressed btrfs partition image", written with its own `omarchy-image-write`, then given a fresh filesystem id and grown; the rest from a bundled offline mirror. Nothing fetched at install.
+- **Boot:** GRUB `timeout=0`, `timeout_style=hidden`: no menu shown; `plymouthd.conf`: `Theme=omarchy`, `ShowDelay=0`.
+- **Questions** ([`configurator`](https://github.com/omacom/omarchy-iso/blob/quattro/configs/airootfs/root/configurator), 1446 lines of bash with `gum`): language, keyboard, timezone, drive + encryption, user. On tty1 by autologin; `.automated_script.sh` exits unless `$(tty) == /dev/tty1`.
+- **Console craft:** a Linux console, not a compositor. `echo -en "\e]P01a1b26"…` sets the 16 colours; a patched Terminus (`console-font.py`); "gum's key hints … add nothing to prompts that already say what to do, so every widget leaves them off"; waits for a stable terminal size before drawing.
+- **Progress** ([`omarchy-install-dashboard`](https://github.com/omacom/omarchy-iso/blob/quattro/configs/airootfs/usr/local/bin/omarchy-install-dashboard)): "This process is the only owner of the visible install UI. It launches the actual installer as a non-interactive child, sends child output to the support log, renders progress while the child runs, then renders the final installed time + reboot prompt itself." Installer logs go to a file.
+- **Safety:** `omarchy-root-image-verify.service` hashes the image at boot: "A bad image makes the install halt before the disk is touched". Minimum 32 GiB.
+- **Secure Boot:** the README's only statement: "Turn off Secure Boot and/or TPM in the BIOS". **We can do better**: see §5.
+- **Hands-off installs for tests:** a drive labelled `cidata` with the answers skips the wizard. [`omarchy-iso-test`](https://github.com/omacom/omarchy-iso/blob/quattro/bin/omarchy-iso-test): QEMU + OVMF, screenshots collected for review, `--no-network`, fake hardware.
+- **Delivery:** `.sig` signature, nightly channel, `latest.json`.
+
+## 2. Anaconda [P: source, [`rhinstaller/anaconda`](https://github.com/rhinstaller/anaconda) branch `fedora-45`, and its `docs/user-guide/boot-options.rst`]
+
+- [`anaconda.py`](https://github.com/rhinstaller/anaconda/blob/fedora-45/anaconda.py): order at start: `find_kickstart` → **`run_pre_scripts(kspath)`** → `parse_kickstart` → `activate_keyboard` → … → `display.setup_display`. So `%pre` runs **before any UI exists**, and a file it writes can still be `%include`d.
+- [`scripts.py`](https://github.com/rhinstaller/anaconda/blob/fedora-45/pyanaconda/core/kickstart/scripts.py): `execWithRedirect(script.interp, …, stdout=fp, root=scriptRoot)`: stdout goes to a log; stdin is inherited. A screen in `%pre` must open its own VT.
+- Units: [`anaconda-tmux@`](https://github.com/rhinstaller/anaconda/blob/fedora-45/data/systemd/anaconda-tmux@.service) has `ConditionKernelCommandLine=!inst.notmux`; [`anaconda-direct`](https://github.com/rhinstaller/anaconda/blob/fedora-45/data/systemd/anaconda-direct.service) has `ConditionKernelCommandLine=|inst.notmux`, `StandardInput=tty`, `StandardOutput=journal+console`. [`anaconda.target`](https://github.com/rhinstaller/anaconda/blob/fedora-45/data/systemd/anaconda.target) wants `plymouth-quit` and `plymouth-quit-wait`: the splash dies as stage 2 reaches the target.
+- `anaconda-generator` (in the image): puts the tmux client on "the real tty for /dev/console" and a shell only on virtual consoles (`hvc0`…), not on tty2.
+- `vtActivate(1)` appears only on an early exception and on failed Wayland start or the remote WebUI (`anaconda.py`, `display.py`): in text mode nothing moves the VT away from us during a normal install.
+- Boot options: `inst.notmux` "Do not use tmux during install … really meant for non-interactive uses"; `inst.noninteractive`; `inst.noshell`; `inst.waitfornet=<seconds>` "Wait for network connectivity at the beginning of the second stage"; `inst.nosave` (`input_ks`, `output_ks`, `all_ks`, `logs`, `all`); `inst.geoloc=0`; `inst.updates`; `inst.stage2`; `inst.virtiolog`.
+- Initrd [`anaconda-lib.sh`, from the image]: `anaconda_auto_updates $repodir/images` unpacks `images/updates.img` and `images/product.img` over stage 2 ("so they'll end up in the location(s) that anaconda expects them"). **This is how our files get into stage 2.**
+- Older pattern, still the only documented one for screens in `%pre`: `chvt 6; exec </dev/tty6 >/dev/tty6 2>&1` ([Red Hat](https://access.redhat.com/node/685543), [kickstart-list](https://listman.redhat.com/archives/kickstart-list/2008-April/004434.html)) [R, dated; both links dead on re-check: §12.1]. `lane-iso` ended on the same idea, tty8, on its own boots: §12.8.
+
+## 3. Kickstart [P: [pykickstart docs](https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html)]
+
+- `%pre`: "immediately after the ks.cfg has been parsed and the lang, keyboard, and url options have been processed"; "not run in the chroot"; "If your script spawns a daemon process, you must make sure to close stdout and stderr… the installation will appear hung". Options `--erroronfail`, `--interpreter`, `--log`. Its example generates `/tmp/part-include` for `%include`.
+- `text --non-interactive`: "This mode will kill the installation when user interaction will be required."
+- `reboot --eject`; `ignoredisk --only-use`; `repo --metalink`; `rootpw --lock`; `user --iscrypted`.
+- Both metalinks answer today: `repo=fedora-45` and `repo=updates-released-f45`, HTTP 200 (`curl`, 4 Nov 2026).
+- Console font limits in kernel v7.2.13 `drivers/tty/vt/vt.c`: `max_font_width 64`, `max_font_height 128`, `max_font_glyphs 512`.
+- **The skeleton in the design parses strictly with pykickstart 3.77 (the version in F45, per `src.fedoraproject.org/rpms/pykickstart/raw/f45/f/sources`), handler `F45Handler`, warnings as errors**: run in scratch on 4 Nov 2026. `module` is gone from F45 (`f45-changes-3nov.md`).
+- `%post`: the harness's kickstart (`tools/vm-create.sh`) already proves the layout on the VM (`btrfs none --label=fedora` + `btrfs / --subvol --name=root`).
+
+## 4. Fedora's media tools
+
+- [mkksiso (lorax)](https://weldr.io/lorax/mkksiso.html) [P]: `--ks`, `--add`, `--cmdline`, `--rm-args`, `--replace`, `--updates`, `--volid`. "As of version 38.4 mkksiso needs to be run as root to create a fully bootable iso."; `--skip-mkefiboot` runs as a user but leaves the EFI image's config. Dependencies `xorriso`, `isomd5sum`.
+- [Its source](https://github.com/weldr/lorax/blob/master/src/bin/mkksiso) [P]: at heart `xorriso -indev IN -outdev OUT -boot_image any replay`, `-append_partition 2 <guid> efibootimg`, `-update` for configs, `-map` for files, `-alter_date_r b =EPOCH / --` with `SOURCE_DATE_EPOCH`. Root only because `mkefiboot` mounts a loop device.
+- [Modernize boot.iso](https://fedoraproject.org/wiki/Changes/ModernizeBootISO) [P]: lorax → image-builder, "Targeted release: Fedora Linux 46", category `ChangeAcceptedF46`, last updated 2026-08-20; "should not change in any functional way"; about 150–200 MiB bigger. Its page does not mention mkksiso; a tool bound to lorax's layout may need a look at F46.
+- [livemedia-creator](https://weldr.io/lorax/livemedia-creator.html) [P]: "make live isos, bootable (partitioned) disk images, tarfiles, and filesystem images", from a kickstart, with qemu or `--no-virt`; the page's own commands all start with `sudo`. `image-builder 87` (`f45-changes-3nov.md`). Both build whole media from package sets: no use when an official signed netinst already holds everything.
+
+### A build experiment on this PC, as `dia`, no root, no container (4 Nov 2026) [P]
+
+```
+SOURCE_DATE_EPOCH=$E xorriso -indev f45-netinst.iso -outdev out.iso -boot_image any replay \
+  -append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B esp.img \
+  -update grub.cfg /EFI/BOOT/grub.cfg -update grub.cfg /EFI/BOOT/BOOT.conf -map ks.cfg /ks.cfg \
+  -alter_date_r b =$E / --
+```
+
+- Two runs: **byte-identical** (`031664d2e21e…`, 1 272 315 904 bytes), 1.5 s each from RAM. El Torito BIOS + UEFI, both GPT partitions, volume id and `BOOTX64.EFI` (`351e131d3c4a…`) preserved.
+- **The EFI image edited without root:** `touch -d @$E grub.cfg; mcopy -o -m -i esp.img grub.cfg ::/EFI/BOOT/grub.cfg` (`mtools` is already on this PC): two runs two seconds apart, byte-identical (`c42dd885b2f5…`); the rebuilt ISO carries it on partition 2.
+- Not tested, by this lane's limit: that it boots. `isomd5sum` is not installed.
+
+## 5. Secure Boot [P]
+
+### The signatures, read from the ISO's files
+
+| File | Signed by | SBAT |
+|---|---|---|
+| `BOOTX64.EFI` (shim 16.1) | **two signatures: Microsoft Corporation UEFI CA 2011 and Microsoft UEFI CA 2023** | `shim,4`, `shim.fedora 16.1-1` |
+| `grubx64.efi` (2.12-81.fc45) | Fedora Secure Boot CA 2020 and 2025 | `grub,5`, `grub.rh,2` |
+| `vmlinuz` | Fedora Secure Boot Signer | |
+
+- [Fedora Magazine, 11 Jun 2026](https://fedoramagazine.org/expiration-of-microsoft-secure-boot-keys/): 2011 keys could sign only until end of June 2026; "signed by multiple keys for maximal compatibility"; machines "will continue to boot" unless revoked; edk2-ovmf ships both. [Fedora Discussion](https://discussion.fedoraproject.org/t/updating-the-shim-package-in-fedora-44-16-1-8/194569) [R]: F44's installed shim was 2011-only. So F45's dual signature boots on old and new firmware; a later one-signature shim may not ([fwupd](https://fwupd.github.io/libfwupdplugin/uefi-db.html)).
+- Editing `grub.cfg`, adding files or a second initrd breaks no signature: none of them is signed.
+
+### What Fedora's GRUB refuses, from [its source, branch `fedora-45`](https://github.com/rhboot/grub2/blob/fedora-45/grub-core/kern/efi/sb.c)
+
+`shim_lock_verifier_init`: "Files that do not affect secureboot state" skip verification: `LINUX_INITRD`, `PIXMAP`, `CONFIG`, `THEME`, `GRUB_MODULE_LIST`, `LOADENV`… Everything else: `prohibited by secure boot policy`. **`FONT` is not on the list** (commit "kern/efi/sb: Enforce verification of font files", 2022-11-14). So:
+
+- **With Secure Boot on, our `sumi-*.pf2` cannot load, from the ISO or from the installed system.** Only what is inside the signed image can: `grubx64.efi`'s `mods` section holds exactly one font: **"Unifont Regular 16"** (found by its header; `font.c` tries `(memdisk)/fonts/` first).
+- Built-in modules (strings in `mods`): `gfxmenu gfxterm png jpeg font all_video efi_gop linux loopback iso9660 fat part_gpt regexp search configfile test echo sleep`. **PNG and themes are allowed.**
+- This PC has Secure Boot **off**, which is why nobody has seen it. A theme that keeps its look under Secure Boot draws its words as PNG.
+- The initrd is loaded unverified, so a second one is allowed. Fedora's kernel enforces lockdown under Secure Boot, which T56 meets as: unsigned modules (none in `lib/manifest.sh`: no `akmod`, no `dkms`), debugfs (`system/fedokawaii-report` reads it, so that row must expect it), `/dev/port`.
+
+## 6. "The newest stable Fedora at install time"
+
+- [releases.json](https://fedoraproject.org/releases.json) [P]: machine-readable; highest version 45; **it holds "45 Beta" rows beside "45"**, so a parser must drop anything not purely numeric. Fields: version, variant, subvariant, link, sha256, size. Not signed; TLS only.
+- [T46's update system] already takes the PC across releases with a VM pre-flight, rollback and the fixer: the same button after install.
+- No Anaconda document found promises that an F45 installer can install F46 packages; nobody tests that. Metalink: `repo=fedora-$N` and `repo=updates-released-f$N` ([Fedora's mirror manager](https://mirrors.fedoraproject.org/)).
+
+## 7. What Fedora 45 changes under us [P: `f45-changes-3nov.md`, wiki]
+
+- [Use kmscon as default VT console](https://fedoraproject.org/wiki/Changes/UseKmsconVTConsole): `@core` gains kmscon on fresh installs; `setfont` and `loadkeys` stop working there; "It should be easy to revert, just not install kmscon, and fbcon with getty service will be the default"; "won't affect the installation". An upgraded PC keeps fbcon. **An ISO install would differ from his upgraded PC** unless `%packages` says `-kmscon`.
+- Enforced RPM signatures; `/usr/share/dnf5/repos.d`; PAM in `chpasswd`/`newusers` (`f45-changes.md`: "verify (T56)").
+- Fedora's [GeoIP](https://geoip.fedoraproject.org/city), Anaconda's own default provider: JSON with `time_zone`; answered `Asia/Dubai` here on 4 Nov 2026.
+
+## 8. Limits of GitHub
+
+[About releases](https://docs.github.com/en/repositories/releasing-projects-on-github/about-releases) [P]: "Each file included in a release must be under 2 GiB." Measured: the netinst 1.19 GiB + the repo as `git archive | xz` 46 MiB (of which `docs/Fedokawaii-Guide.pdf` is 39 MiB raw and leaves in T27). Omarchy's route, an offline root image, would not fit.
+
+## 9. Asked, not found
+
+- Whether `%pre` on a VT behaves on F45 as the source reads: only a boot says.
+- ~~How the text-mode progress can be read best~~ answered by `lane-iso` from a real run: Anaconda's own lines, as the journal hands them to `/tmp/syslog` (`iso/screens/progress.py`).
+- The exact path where stage 2 keeps the ISO mounted for `inst.stage2=hd:`: `anaconda-lib.sh` uses `/run/install/repo`; not relied on.
+
+## 10. Second pass, 4 Nov 2026 [P]
+
+- **Console fonts above 256 glyphs cost colours.** Kernel v7.2 `vt.c` `build_attr()`: "if (vc->vc_hi_font_mask == 0x100) a <<= 1;", on a `u8`, so the top background bit is lost; `fbcon.c:328–329` reads the foreground at bit 9 and the background at bit 13, against 8 and 12 for a 256-glyph font. A font above 256 glyphs leaves 16 foregrounds and 8 backgrounds.
+- **The cursor's colour is not in the boot palette.** `tools/build-themes.py:55`: the 16 console slots are `ansi0, red, green, yellow, blue, purple, teal, ansi7`, then the bright ones, and `select` (`82241f`, `docs/design-system.md` §4) is none of them. The console's own escape takes any colour into any slot: `ESC ] P n rr gg bb` (`vt.c`, `ESnonstd` → `ESpalette`).
+- **`--retain-splash` leaves graphics mode** (read at the wrong version: F45 ships Plymouth 26.134.222, `lane-iso`'s `iso/inputs.sh`; `lane-iso` has since stopped relying on it: §12.8). Plymouth 24.004.60, `src/main.c`, `quit_splash()`, [Debian's copy of the source](https://sources.debian.org/data/main/p/plymouth/24.004.60-5/src/main.c), the same upstream version as F44's package; freedesktop's GitLab refuses fetching: `ply_terminal_close()` runs only `if (!state->should_retain_splash)`. Fbcon draws nothing in `KD_GRAPHICS`, so the first thing `%pre` does on tty1 is `KDSETMODE KD_TEXT`. Not seen on a boot yet, read only.
+- **`VT_LOCKSWITCH` exists for this.** `drivers/tty/vt/vt_ioctl.c:927`: needs `CAP_SYS_TTY_CONFIG`, sets `vt_dont_switch`.
+- **tty2 is logind's.** From the F45 `install.img`: `usr/lib/systemd/logind.conf.d/anaconda-shell.conf` has `ReserveVT=2`; `autovt@.service` links to `anaconda-shell@.service`, which has `DefaultInstance=tty2`, `TTYVHangup=yes`, `TTYVTDisallocate=yes`, `ConditionKernelCommandLine=!inst.noshell`. `inst.noshell` keeps it out.
+- **`product.img` confirmed for this path.** The initrd's `usr/lib/anaconda-lib.sh`, `anaconda_live_root_dir()` calls `anaconda_auto_updates "$repodir/images"`, which unpacks `product.img` into `/updates`.
+- **Answers parse.** The skeleton with a filled-in `answers.ks` (`scripts` in scratch): `F45Handler`, warnings as errors, OK; `excludedList ['kmscon']`, environment `custom-environment`.
+- **Wired only is enough for this PC.** `ip -br link`: `enp8s0`, no wireless device in `/sys/class/net`.
+
+## 11. From the independent review, each re-read here before use [P unless marked]
+
+F45's `install.img` and initrd; Anaconda branch `fedora-45`; kernel v7.2.
+
+- **`inst.waitfornet` is too late for us.** `anaconda.py:401` runs `%pre`; `:468–470` waits for the network afterwards. `usr/bin/nm-online` is in the image, so `%pre` waits for itself.
+- **`console=` and `nomodeset` are copied to the installed system.** `etc/anaconda/anaconda.conf`, `[Bootloader] preserved_arguments` lists `nomodeset` and `console`; `pyanaconda/modules/storage/bootloader/base.py`, `_preserve_some_boot_args()`. So `console=tty3` would send emergency shells to a hidden VT for good.
+- **`inst.notmux` means two Anacondas in turn.** `anaconda.target` wants both `anaconda-direct.service` and `anaconda.service`; `anaconda.service` is `After=anaconda.target` and runs `tmux … start`, whose `tmux.conf:21` is `new-session -d -s anaconda -n main anaconda`. `anaconda-direct` is a oneshot, and a target orders itself after what it wants ([systemd.target(5)](https://www.freedesktop.org/software/systemd/man/latest/systemd.target.html), not re-read today). So when the direct one ends, the tmux one starts, and with the pidfile free it runs `%pre` again. Without `inst.notmux` the direct unit's condition fails and only the tmux one exists, as in a normal install. `anaconda-tmux@.service` is only the client that attaches on the console: mask it and nothing shows.
+- **`nomodeset` plus the simpledrm blacklist is no display.** Kernel parameters: "With nomodeset, DRM and fbdev drivers will not load if they could possibly displace the pre-initialized output. Only the system framebuffer will be available for use." `BOOT_ARGS` blacklists simpledrm (`lib/common.sh:448`), and sysfb gives it the only `simple-framebuffer`. The same emptiness awaits any machine whose native driver fails.
+- **The media check is invisible.** The initrd's `anaconda-diskroot`: `systemctl start checkisomd5@…`; failure ends in `sleep 43200`. `usr/bin/checkisomd5` is in stage 2, so `%pre` can run it on our screen.
+- **`%onerror` misses early deaths.** `pyanaconda/errors.py`: `if not self.ui: raise exn`. `pyanaconda/kickstart.py:325–331`: a parse error prints "The installer will now terminate.", sleeps 10 s, exits.
+- **The splash dies with Plymouth. [plausible, read not seen]** `drm_file.c:441`: the last close of a DRM master restores the fbdev client, so the picture ends at plymouthd's exit, not at our first draw. Plymouth's fd escrow is shutdown-only (`plymouth-main.c:2294`).
+- **`with-theme`.** `setup.sh:2121`: `[[ -f $STATE_DIR/with-theme ]] || { log "theme not requested …"; return 0; }`; only `fedokawaii.sh:245` writes it.
+- **Setup applies the conf's answers.** `setup.sh:607`, `:2906`, `:3502`: `timedatectl set-timezone "$TIMEZONE"`, the last one in `repair`. `fedokawaii.conf`: `TIMEZONE="Asia/Dubai"`, `KB_LAYOUTS="us,ara"` ("the first is also used for keybindings"). `setup.sh:611` keeps a hostname already set; `:125` takes the user from `state/user` first. This one was found checking the review, not in it.
+- **Fonts are 256 or 512.** `fbcon.c:2484`: `if (charcount != 256 && charcount != 512) return -EINVAL`.
+- **The kernel's xz takes CRC32 or none.** `Documentation/staging/xz.rst`: "use `--check=crc32` or `--check=none` to override the default `--check=crc64`".
+- **`vt.default_*` is not in `BOOT_ARGS`.** `theme.sh:372–374` builds `VT_ARGS` from `CONSOLE_PALETTE`.
+- **A read-only Btrfs mount writes.** `man 5 btrfs`: "the tree log is replayed even with a read-only mount! To disable that behaviour, mount also with nologreplay."
+- **`usr/share/systemd/kbd-model-map`** is in the image.
+- Checked, correct, by the reviewer: stage 1 tolerates the missing `%include`; `/updates` reaches stage 2; GRUB's allow-list; `%post` precedes `SetContextsTask`; `inst.nosave`'s gates. No hash leak found.
+
+## 12. Third pass, 4 Nov 2026 evening: the citations checked, Fedora 45's own issue list, his PC [P unless marked]
+
+Why a third pass: `plan.md` on main (T54b) now has the owner wiping this PC and installing from this ISO himself, while everything above and T57's matrix think of a VM and a wiped disk.
+
+### 12.1 The citations, machine-checked
+
+A script fetched every URL in the four notes and looked for each quoted phrase in the pages linked on its line. Every miss was then re-read by hand.
+
+- **128 URLs, 119 answered.** Two are dead: `access.redhat.com/node/685543` (404) and `listman.redhat.com` (no longer resolves from here). Five refuse fetching: FACEIT ×3, HP's forum, manualowl. One was a mirror host (`eus.prod.support.services.microsoft.com`) that now refuses connections: replaced by the canonical address, whose text is drawn by script. One was the script's own error, a URL with parentheses, which answers.
+- **48 quotes on lines with a link, 25 matched at once, 23 re-read:** 14 correct (PDFs, HTML tags, quotes from a source the sentence names); 2 script artefacts; **4 not word for word, now corrected** (Proxmox in `vm-research.md` §2, Looking Glass in §7, `mkksiso` and `livemedia-creator` in §4 here); 3 that cannot be re-checked from here, each marked at its line (Microsoft's gaming page, LG's manual copy, FACEIT).
+- **Limit:** this checks quoted words and that links answer. Paraphrases were not re-read, and a quote is only compared with the links on its own line.
+
+### 12.2 Fedora 45's own list: [Common Issues](https://fedoraproject.org/start/) ([its source](https://discussion.fedoraproject.org/tags/c/ask/common-issues/82/none/f45))
+
+The start page shows six; the tag itself, read through its JSON, holds twelve (4 Nov). Two touch this ISO. The others are live images, Atomic, Macs, Raspberry Pi, BitLocker, a KDE clipboard, and one driver: older NVIDIA cards. No AMD item. A search for F45 installer failures on this card's family found none, which is a search and not a proof. The proposed issues and the blocker list were not read beyond `f45-changes-3nov.md`'s Go/No-Go lines.
+
+**[Install media sometimes fail media check at 4.8%](https://discussion.fedoraproject.org/t/install-media-sometimes-fail-media-check-at-4-8/108478)**, tagged f40 to f45; [bug 2420697](https://bugzilla.redhat.com/show_bug.cgi?id=2420697): `isomd5sum`, version 45, NEW, filed 9 Dec 2025.
+
+- "it might be a false negative. The installation medium might be fine." "This problem might happen when creating the install media on any operating system using any tool".
+- The causes it lists: the backup GPT is not at the end of the stick and "Some operating systems/tools might decide to automatically correct it"; automatic mounts; and "Some UEFI firmware implementations touch the flash drive (possibly mounting the ESP partition read-write, or similar) before booting from it." "All of these have no adverse effect on performing the installation".
+- The bug names the fields that change: 0x210, 0x220, 0x230. Brian Lane: "In my opinion the check is doing its job." Neal Gompa: "The correct thing to do would be to only verify the embedded OS image file, instead of the whole ISO." No fix adopted.
+- **So `checkisomd5` can call a good stick damaged, on a firmware we have never tested, and upstream does not plan to change that.**
+- Checked and clear: [bug 2277398](https://bugzilla.redhat.com/show_bug.cgi?id=2277398), `implantisomd5` writing 57 characters for 60, was fixed in isomd5sum 1.2.4-2; F45 has 1.2.5-9.
+
+**[It's difficult to reformat a btrfs partition/subvolume in the installer](https://discussion.fedoraproject.org/t/its-difficult-to-reformat-a-btrfs-partition-subvolume-in-the-installer/89052)**, tagged f39 to f45: "sometimes difficult and sometimes impossible" in the GTK paths. It does not mention kickstart. Beside it, [a crash with nested subvolumes](https://discussion.fedoraproject.org/t/installer-crashes-when-btrfs-subvolume-gets-reformatted-while-having-nested-subvolumes/170252) in F43's webUI: "This is fixed in Fedora 44 installer." Both are about reformatting, not `clearpart`: §12.3 reads the path ours takes.
+
+[BtrfsWithFullSystemSnapshots](https://fedoraproject.org/wiki/Changes/BtrfsWithFullSystemSnapshots) still says Fedora 45 on its page; `f45-changes-3nov.md` line 102 has it never submitted to FESCo for F45. Nothing changes for us.
+
+### 12.3 What `clearpart` does to a real fedokawaii disk: blivet 3.14.2, from F45's `install.img`
+
+- The scan, `populator/helpers/btrfs.py:65–100`: every subvolume and snapshot on the volume becomes a device. A subvolume whose parent is not found raises `DeviceTreeError`, and `populator.py:368` only logs that, leaving the volume half known.
+- `clearpart` reaches `devicetree.py:247`, `recursive_remove`: leaf by leaf, an `ActionDestroyDevice` for each.
+- `devices/btrfs.py:671–682`, `BTRFSSubVolumeDevice._destroy`: for each one, a temporary mount of the volume and `delete_subvolume`.
+
+So on his disk Anaconda does not simply drop a partition. It walks every subvolume in turn: `root`, `home`, `snapshots`, `fk`, `log` (`findmnt`), `~/VM` and `~/Downloads` (inode 256, nested in `home`), and every snapper snapshot, before it repartitions. Nothing says this fails. Nothing has run it either: **T57 starts every run from a wiped disk, so the one disk the owner's real install meets is the one case it never tests.**
+
+`wipefs`, `sgdisk`, `udevadm` and `partprobe` are in the image (`7z l`). This disk's Btrfs label is `fedora_fedokawaii`, the harness's and the ISO's is `fedora`: `installed_disk()` in `lane-iso`'s `questions.py` finds nothing here and goes straight to the form, which is right for a wipe.
+
+### 12.4 His PC against the F45 netinst
+
+Read here without root (`lspci`, sysfs `ip_discovery`, `lsblk`, `efibootmgr`), against the initrd's file list:
+
+| Part | His PC | In the netinst's initrd |
+|---|---|---|
+| Card | `1002:7590`; GC 12.0.0, SDMA 7.0.0, PSP and SMU 14.0.2, VCN 5.0.0, DMCUB 4.x | `amdgpu.ko`; `gc_12_0_0_*`, `sdma_7_0_0`, `psp_14_0_2_*`, `smu_14_0_2`, `vcn_5_0_0`, `dcn_4_0_1_dmcub` |
+| iGPU | `1002:13c0`; GC 10.3.6, SDMA 5.2.6, DCN 3.1.5, PSP 13.0.5, VCN 3.1.2 | `gc_10_3_6_*`, `sdma_5_2_6`, `dcn_3_1_5_dmcub`, `psp_13_0_5_*`, `vcn_3_1_2` |
+| Network | `enp8s0`, RTL8125 `10ec:8125`, `r8169` | `r8169.ko`, `rtl_nic/rtl8125*` |
+| Disk | `nvme0n1`, Lexar NM610 PRO 1 TB, `TRAN=nvme`, `RM=0`, the only one | `nvme.ko`, `nvme-core.ko`: the form's one-disk default |
+| Stick | USB | `usb-storage.ko`, `uas.ko`, `isofs.ko`, `squashfs.ko`, `overlay.ko` |
+| Input | K617 `258a:0049`, Logitech receiver | `hid-logitech-dj.ko`; `usbhid`, `hid-generic`, `xhci-pci` built in (the initrd's `modules.builtin`, so are `btrfs` and `simpledrm`) |
+| Firmware | UEFI, Secure Boot off, `BootOrder: 0000`, Fedora alone. DEL for setup, F11 for the boot menu ([MSI's guide](https://download.msi.com/archive/mnu_exe/mb/AMDAM5BIOS.pdf)) | shim and GRUB unchanged |
+
+**Coverage is complete on paper.** This is what the file lists say, not a boot.
+
+**The first boot of the installed system** needs the same firmware on disk, and `BOOT_ARGS`' simpledrm blacklist leaves no picture without it. F45's metadata (`dnf5 repoquery` against `releases/45/Everything`): `kernel-core` Recommends `linux-firmware`, which Recommends `amd-gpu-firmware`, `realtek-firmware`, `amd-ucode-firmware` and others. No hard `Requires` reaches them, so they arrive only as weak dependencies, which the kickstart does not exclude. No VM can notice their absence: T57 gets a row.
+
+### 12.5 GRUB's `auto` [source: [`efi_gop.c`, branch `fedora-45`](https://github.com/rhboot/grub2/blob/fedora-45/grub-core/video/efi_gop.c)]
+
+`grub_video_gop_setup()`: with no size asked for, **"Keep current mode if possible"**: `auto` stays in whatever mode the firmware left. Only if there is none does it go through the modes, capped by the EDID's preferred one, or by 800 × 600 without an EDID. (Corrected: the first version of this note had `auto` falling to 800 × 600. The review doubted it, and the line above it settles it.) So `set gfxmode=auto` is 1080p only if the firmware is already there. The VM's is, set by its XML; MSI's is unknown. `theme.sh:583` writes `"$MODE,auto"` and this PC has `GRUB_GFXMODE="1920x1080,auto"`, which asks for the exact mode first. `lane-iso`'s `iso/grub.cfg` has since moved to the same.
+
+### 12.6 `console=` on later kernels: no defect
+
+Anaconda copies `console=` to the installed system (§11), and `lane-iso`'s `post.sh` removes it with `grubby --update-kernel=ALL --remove-args` and a `sed` on `/etc/default/grub`. The third place is `/etc/kernel/cmdline`, which `20-grub.install` reads for each new kernel (this PC's `grub2-common`, lines 109–114). `grubby` handles it: with `ALL` and an argument change it creates the file from the entries and writes the change there too (`/usr/sbin/grubby:535–547`). F44's copies read, not F45's; T57's row sees the result.
+
+### 12.7 The second Anaconda, re-read from the F45 image
+
+`anaconda.target`: `Wants=anaconda-direct.service anaconda.service`. `anaconda-direct.service`: `Type=oneshot`, `ConditionKernelCommandLine=|inst.notmux`, **`Requires=anaconda.service`**, no ordering on it. `anaconda.service`: `After=anaconda.target`, `Type=forking`, `tmux … start`, which starts Anaconda.
+
+- So under `inst.notmux` the second one really is there, and starts whenever the first ends without taking the machine down. An install that reboots or powers off inside Anaconda should never reach it.
+- **It cannot be masked:** the direct unit `Requires` it. Its `ExecStart` can be replaced by a drop-in, in `product.img` next to the masks that already work there.
+
+### 12.8 What `lane-iso`'s boots settled [its tree at `eadc7d2`, its screenshots and logs: its measurements, not this lane's]
+
+| Open here | Settled there |
+|---|---|
+| Which VT | Our screens on **tty8**, Anaconda direct on tty1 with `console=tty1 inst.notmux`. "Past 6, so logind starts no getty on it". The older pattern of §2, reached on its own |
+| The handover | "the console's font cannot be changed on the VT the splash holds in graphics mode": dress tty8 behind the splash, `plymouth quit` at the first page, `VT_ACTIVATE`, `KD_TEXT` on the old VT if it refuses to switch, `VT_LOCKSWITCH`, colours sent again after the switch. `printk` to 1 |
+| Masks | `plymouth-quit`, `plymouth-quit-wait`, and `systemd-vconsole-setup` ("Anaconda's keyboard step reloads it through localed") |
+| Second initrd | Works, and needs more than this lane listed: F45's Plymouth crashes without `label-freetype.so` and a font for it |
+| `product.img` | Arrives in stage 2 |
+| Progress | Anaconda's own lines from `/tmp/syslog`; a daemon from `%pre` survives into the install |
+| PNG theme | The menu under OVMF with Secure Boot on |
+| How far | An install through `%post`, a first start, setup's phases (`follow.log`, phase 3 at 18:34) |
+
+`--retain-splash` (§10) was read in Plymouth 24.004.60, F44's version; F45 ships 26.134.222. It no longer matters: the code above does not rely on it.
+
+Still unanswered by any boot, as far as its tree shows: what stage 1 shows on an unreadable stick. Its hooks: `initqueue/timeout/50-anaconda-error-reporting.sh` writes `warn` lines; `emergency/50-plymouth-emergency.sh` hides the splash. With `console=tty1` those lines at least reach the screen that is showing.
+
+### 12.9 What stage 1 does when it cannot find the stick [the F45 initrd, through `lsinitrd -f`]
+
+- `usr/bin/dracut-initqueue:14–16,75`: `RDRETRY` is `rd.retry`, default 180, doubled, against a loop that sleeps half a second: timeout hooks at two thirds (120 s), "Could not boot." at the end (180 s). `rd.retry` is the documented way to shorten that.
+- `usr/bin/dracut-emergency`: `plymouth quit`; with `rd.shell` (default on) `source_hook emergency`, then Dracut's report to every console in `/proc/consoles`, then `sulogin`.
+- So an unreadable stick shows the splash for three minutes, then Dracut's raw report on tty1 (`console=tty1` lists it) and a prompt for a locked root. Not silent, and not ours.
+- The hook runs before the report, and a second initrd can add one under `var/lib/dracut/hooks/emergency/`. The first emergency hook there is Plymouth's own, `50-plymouth-emergency.sh`.
+
+### 12.10 From an independent review of this pass, stopped early at the main run's request
+
+One fresh reader, nine findings. **Re-read here before use:** `anaconda.py:401` `%pre`, `:404` the parse; `modules/boss/installation.py:698–721`, storage then `%pre-install`; `efi_gop.c`'s "keep current" branch; `lane-iso`'s `clear_disk`, which ignores return codes; its menu's three lines; no `services` line in `iso/ks.cfg`. **The rest are that reader's readings of the F45 tree, not re-read here**, and the design marks them as read, not booted.
+
+- **The erase comes before all of Anaconda's checks.** `anaconda.py:401` `%pre`, `:404` parse, `:569` payload setup; spokes and the space check after that; storage only inside `InstallWithTasks` (`modules/boss/installation.py:698–709`). So a kickstart that cannot parse, an `updates` repo that is down or an unsolvable package set used to leave the disk intact, and now leave it blank. The first version of the design said "no retreat is lost": **wrong, and corrected**. `%pre-install` is no later hook: it runs after storage (`:711–721`).
+- **A hang has no exit.** `SummaryHub.setup`'s `while not all(spoke.ready …)` has no timeout, and any question would be on a VT nobody can see.
+- **The failure screen cannot say whether the disk was erased**, and `failed.py`'s `LOGS` omits `/tmp/fk-pre.log`.
+- **`%post` is not Anaconda's end:** `modules/boss/installation.py:622–646` runs `%post`, then "Copy installation logs", then "Set file contexts".
+- **`wipefs -f` leaves the re-read to the caller;** a partition held by `dm` makes `BLKRRPART` fail; stage 2 has `69-dm-lvm.rules` with no Anaconda gate in the part read. Not his disk: `lsblk` shows plain partitions.
+- **`payload_ok()` hashes only the toolkit, and the default path never checks the stick**, while stage 2 reads `install.img` lazily (assumed, `anaconda-diskroot` not re-read).
+- **The rehearsal overclaimed:** corrected in design section 10.
+
+Checked and found right by that reader: `%pre` before `reset_storage` (`anaconda.py:519–525`); no `systemd-gpt-auto-generator` in stage 2; the unit graph of §12.7; the `/tmp` word reachable (`anaconda.service` has no `PrivateTmp`); a raising `%pre` and a parse error exit before `atexit` is registered, so the drop-in starts; a stray `enter` cannot reach the erase without a name, a password and the confirm page.
+
+**Not reached before it was stopped:** `console.py`, `post.sh`, `progress.py`; `anaconda-diskroot`; whether the storage module scans at its startup (`anaconda.py:392`, so "untouched before `%pre`" is not proven for it); a second ISO9660 mount; blivet on stale partitions. These stay open, and the T57 rows are what would show them.
