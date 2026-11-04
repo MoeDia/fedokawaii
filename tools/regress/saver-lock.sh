@@ -27,11 +27,12 @@ nap 3; shot saver
 key space; nap 1.2; shot woke
 # (a gate in the scene: the secret key opens it first, as a person does)
 grep -q '^gate ' "$HOME/.local/share/fedokawaii/dark/lock-scene.txt" && { key Tab; nap 0.7; }
+shot open
 text "ab"; nap 0.3; shot typed
 PLAY
 sed -i "1i REAL=$src CALLER=$HOME" "$out/play.sh"
 bash "$here/../kit.sh" --theme dark "$@" --out "$out" --play "$out/play.sh" play >"$out/kit.log" 2>&1 || { echo "saver-lock: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
-for s in saver woke typed; do [[ -s $out/$s.png ]] || { echo "saver-lock: no shot ($s)" >&2; exit 2; }; done
+for s in saver woke open typed; do [[ -s $out/$s.png ]] || { echo "saver-lock: no shot ($s)" >&2; exit 2; }; done
 # (the still part of the scene against the shot, and the marks in its row: the scene's own words)
 verdict=$(python3 -I - "$out" "$art" "$src/.config/fedokawaii/themes/dark/saver.conf" <<'PY'
 import re
@@ -47,26 +48,27 @@ for line in open(f"{art}/lock-scene.txt"):
     if w:
         kv.setdefault(w[0], []).append(w[1:])
 rx, ry, pitch, rn = map(int, kv["row"][0])
-core = tuple(int(kv["mark"][0][1][i:i + 2], 16) for i in (0, 2, 4))
-gate = [int(v) for v in kv["gate"][0]] if "gate" in kv else None
+mw, mh = (int(v) for v in kv["marks"][0][:2])
+gate = [int(v) for v in kv["gate"][0]]
+want = np.asarray(img)
 def look(name):
-    shot = np.asarray(Image.open(f"{out}/{name}.png").convert("RGB"))
-    H, W = shot.shape[:2]
-    n = max(1, min(W // img.width, H // img.height))
-    ox, oy = (W - n * img.width) // 2, (H - n * img.height) // 2
-    want = np.asarray(img.resize((img.width * n, img.height * n), Image.NEAREST))
-    got = shot[oy:oy + want.shape[0], ox:ox + want.shape[1]]
+    got = np.asarray(Image.open(f"{out}/{name}.png").convert("RGB"))
+    # (what is still: all but the flames, the strips, the gate and the row)
     keep = np.ones(want.shape[:2], bool)
-    fw, fh = (int(v) for v in kv["frames"][0][:2]) if "flame" in kv else (0, 0)
+    fw, fh = (int(v) for v in kv["frames"][0][:2])
     for fx, fy in (map(int, f) for f in kv.get("flame", [])):
-        keep[n * fy:n * (fy + fh), n * fx:n * (fx + fw)] = False
-    keep[n * (ry - 3):n * (ry + 4), n * (rx - 2):n * (rx + pitch * rn + 3)] = False
-    if gate:                                  # (its frames over the scene: judged by lock-gate.sh)
-        keep[n * gate[1] - n:n * (gate[1] + gate[3] + 1), n * gate[0] - n:n * (gate[0] + gate[2] + 1)] = False
-    same = (got == want).all(axis=2)[keep].mean()
-    marks = sum(tuple(got[n * ry + n // 2, n * (rx + pitch * i) + n // 2]) == core for i in range(rn))
+        keep[fy:fy + fh, fx:fx + fw] = False
+    for a in kv.get("anim", []):
+        x, y, w, h = (int(v) for v in a[1:5])
+        keep[y:y + h, x:x + w] = False
+    keep[gate[1]:gate[1] + gate[3], gate[0]:gate[0] + gate[2]] = False
+    keep[ry - mh:ry + mh, rx - mw:rx + pitch * rn + mw] = False
+    same = (np.abs(got.astype(int) - want).sum(-1) < 12)[keep].mean()
+    # (a mark in a slot of the row: most of the slot not the open mouth it lies on; the thin caret is not one)
+    marks = sum((np.abs(got[ry - mh // 2:ry + mh // 2, rx + pitch * i - mw // 2:rx + pitch * i + mw // 2].astype(int)
+                        - want[ry - mh // 2:ry + mh // 2, rx + pitch * i - mw // 2:rx + pitch * i + mw // 2]).sum(-1) > 30).mean() > .15 for i in range(rn))
     return same, marks
-s0, _ = look("saver"); s1, m1 = look("woke"); s2, m2 = look("typed")
+s0, _ = look("saver"); s1, _ = look("woke"); _, m1 = look("open"); s2, m2 = look("typed")
 # (the seal: its red, an area as big as it, the digits cut out; a third of the frame: tests/look/test_saver.sh)
 ink = tuple(int(v, 16) for v in re.findall("..", re.search(r"^seal=(\w+)", conf, re.M).group(1)))
 shot = np.asarray(Image.open(f"{out}/saver.png").convert("RGB"), int)
