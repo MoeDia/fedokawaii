@@ -684,7 +684,7 @@ for m in ("dark", "light"):
     im = Image.open(f"{sys.argv[1]}/configs/home/.config/fedokawaii/themes/{m}/face-big.png").convert("RGBA"); w, h = im.size
     px = im.load(); a = [[px[x, y][3] > 0 for x in range(w)] for y in range(h)]
     print(m, w, h, all(px[x, y] == px[w - 1 - x, y] for y in range(h) for x in range(w)), len({px[x, y] for y in range(h) for x in range(w) if px[x, y][3]}))' "$REPO")" \
-  "$(printf '%s\n' 'dark 56 56 True 4' 'light 56 56 True 4')" "the middle's faces: 56 × 56, mirror images to the pixel, four inks each (tools/build-themes.py FACE_BIG)"
+  "$(printf '%s\n' 'dark 56 56 True 4' 'light 56 56 True 4')" "the middle's faces: 56 × 56, mirror images to the pixel, four inks each (art/heads.txt)"
 case_ "the middle's block is centred on the middle in every state, as itself (echo_parts: the picture or the level, then the rows that have words — its ink's top and foot equally far from the middle, the odd row above)"
 eq "$(py '
 def block(it):

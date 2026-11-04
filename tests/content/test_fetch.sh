@@ -110,8 +110,9 @@ def add(v):
 add(wp.palette())
 names = re.search(r"^NAMES=\(([^)]*)\)", src, re.M).group(1).split()
 arts = dict(re.findall(r"^ART_(\w+)=\(\n(.*?)\n\)", src, re.M | re.S))
-print("names", " ".join(sorted(names)) == " ".join(sorted(arts)))
-for n in names:
+heads = {"oni", "tennin"}   # (their pictures are sixels: tools/build-heads.py)
+print("names", " ".join(sorted(set(names) - heads)) == " ".join(sorted(arts)))
+for n in arts:
     rows = re.findall(r'"([^"]*)"', arts[n])
     pal = dict(kv.split("=") for kv in rows[0].split())
     grid = rows[1:]
@@ -119,10 +120,22 @@ for n in names:
     foreign = [v for v in pal.values() if v.lower() not in own]
     print(n, len(grid), {len(r) for r in grid} == {20}, not bad, foreign or "ok")
 EOF
-has "$(cat "$TMP/art.txt")" "names True" "NAMES and the ART_ arrays list the same twelve"
-eq "$(grep -cE '^[a-z]+ 16 True True ok$' "$TMP/art.txt")" 12 "$(grep -vE ' 16 True True ok$|^names' "$TMP/art.txt" | tr '\n' ' ')"
+has "$(cat "$TMP/art.txt")" "names True" "NAMES and the ART_ arrays list the same ten, and the two heads"
+eq "$(grep -cE '^[a-z]+ 16 True True ok$' "$TMP/art.txt")" 10 "$(grep -vE ' 16 True True ok$|^names' "$TMP/art.txt" | tr '\n' ' ')"
+case_ "the two heads: a sixel of 128 × 160, the room made before it, the cursor back, the eight facts by column beside it"
+mkdir -p "$HOME/.local/share/fedokawaii"
+cp -r "$REPO/configs/home/.local/share/fedokawaii/dark" "$REPO/configs/home/.local/share/fedokawaii/light" "$HOME/.local/share/fedokawaii/"
+for n in oni tennin; do
+  out=$(F "$n")
+  has "$out" $'\eP0;1;0q"1;1;128;160' "$n: the sixel, its size"
+  has "$out" $'\e[8A\e7\e[3G\eP' "$n: the room, the place saved, the picture from column 3"
+  has "$out" $'\e\\\e8\e[22G' "$n: back to the place, the first fact at column 22"
+  eq "$(grep -c $'\e\\[22G' <<<"$out")" 8 "$n: the eight facts"
+  lacks "$out" "38;2;" "$n: no half blocks"
+done
+eq "$(TERM=xterm F oni | grep -c $'\eP')" 0 "another terminal: the facts alone, no sixel"
 case_ "each picture drawn: 8 lines of 20 cells, two pixels per cell in 24-bit colour"
-for n in oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ramen; do
+for n in neko daruma torii pc fuji onigiri chochin cassette kitsune ramen; do
   out=$(F "$n")
   eq "$(grep -c $'\e\\[0;38;2;\\|\e\\[38;2;' <<<"$out")" 8 "$n"
   lacks "$out" "38;2;;" "$n: a colour missing"
@@ -132,7 +145,7 @@ eq "$(F)" "$(F oni)" "the dark theme: the oni"
 mkdir -p "$HOME/.config/fedokawaii/current" && printf 'THEME=light\n' >"$HOME/.config/fedokawaii/current/colors.sh"
 eq "$(F)" "$(F tennin)" "the light theme: the tennin"
 rm -f "$HOME/.config/fedokawaii/current/colors.sh"
-bad=0; for _ in {1..30}; do [[ $(F random | grep -c $'38;2;') == 8 ]] || bad=$((bad + 1)); done
+bad=0; for _ in {1..30}; do r=$(F random); [[ $(grep -c $'38;2;' <<<"$r") == 8 || $r == *$'\eP0;1;0q'* ]] || bad=$((bad + 1)); done
 eq "$bad" 0
 
 case_ "misuse and help"

@@ -2709,7 +2709,7 @@ def main(argv):
     faces = {}
 
     def face_pic():
-        """The mood's face (build-themes.py FACES) as the theme has it now: read again when the
+        """The mood's face (tools/build-heads.py) as the theme has it now: read again when the
         theme's picture changes (the wash to the other mood), else the one read; None: none there."""
         try:
             key = (os.path.realpath(FACE), os.stat(FACE).st_mtime_ns)
