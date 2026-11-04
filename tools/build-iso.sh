@@ -74,8 +74,9 @@ reproducible() {
 
 # ── the toolkit ──────────────────────────────────────────────────────────────
 say "the toolkit"
-# (what the system needs, not the round's own notes)
-git -C "$repo" archive --format=tar "$commit" -- . ':(exclude).claude' | xz -T1 -6 --check=crc32 >"$work/toolkit.tar.xz"
+# (what the system needs, not the round's own notes and tooling)
+git -C "$repo" archive --format=tar "$commit" -- . ':(exclude).claude' ':(exclude)CLAUDE.md' \
+  ':(exclude)tools/claude-loop.sh' ':(exclude)tools/start.sh' | xz -T1 -6 --check=crc32 >"$work/toolkit.tar.xz"
 
 # ── stage 2's files: images/product.img ─────────────────────────────────────
 say "images/product.img"
