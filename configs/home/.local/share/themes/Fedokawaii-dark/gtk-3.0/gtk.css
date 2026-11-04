@@ -46,6 +46,7 @@ treeview.view.cell.chromium:selected:focus { background-color: @accent_bg_color;
 tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }
 tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }
 headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }
+window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }
 
 /* The desktop's parts (docs/design-system.md), as far as GTK draws them. Square, as the
    rest of the desktop: dwl draws each window's border, so a window's rounded corners

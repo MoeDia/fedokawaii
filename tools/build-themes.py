@@ -779,7 +779,8 @@ def gtk3_theme(m, p):
             "treeview.view.cell.chromium:selected:focus { background-color: @accent_bg_color; color: @accent_fg_color; }",
             "tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }",
             "tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }",
-            "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }"]
+            "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }",
+            "window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }"]
     out += ["", *SQUARE_NOTE, *square_rules(3)]
     return "\n".join(out) + "\n"
 
