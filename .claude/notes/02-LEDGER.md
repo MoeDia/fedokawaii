@@ -4583,6 +4583,16 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   (dark: the mask's middle, bbox 307,140–350,172; light: Seiōbo's window, 192,76–429,321) — the masters pipeline's
   changes of r27-18-sf8/-sf69 reach disc_of/window_of. The committed pictures were kept (this commit: the words line
   only); for T18's review 2: rebuild the two lock scenes from the new pipeline and grill them, or pin their quantise.
+- r27-away (4 Nov 16:00–16:12): tools/away.sh — the round's heavy or visible work waits until he is away, then runs
+  (T46's VM proof: gigabytes of downloads beside his game or call; T02b's apply; T20 bug 1's long absence). Away = no
+  input for MIN minutes by dwl's own count (swayidle on his session's Wayland socket, read only: ext-idle-notify; a
+  playing video's idle inhibitor holds it back) AND at that moment no microphone running AND no game (pgrep -x reaper).
+  Found on the way: this PC has no pactl (PipeWire without pulseaudio-utils) — the mic check reads pw-dump with jq: a
+  node of media.class Audio/Source* in state "running" (the bar's visualizer captures a sink's monitor: the sink runs,
+  never a source). Proven live, read only: idle → "no mic"; pw-record from the analog input to /dev/null for 1.5 s →
+  "mic open"; after → "no mic" (that 1.5 s capture was the only touch: nothing kept — if his bar marks a mic in use, it
+  showed for 1.5 s at 16:09). swayidle 1-min probe started on his session (waybar 2812) at 16:10 — it waits while he
+  types. ShellCheck clean; test_pipefail held it (head → sed -n 1p); test_tools 24/0, test_syntax 802/0.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 01:30 by the 00:54 pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
