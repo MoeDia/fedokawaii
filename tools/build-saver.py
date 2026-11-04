@@ -20,8 +20,8 @@ REACH = {"dark": 560, "light": 620}        # how far a fire's pool reaches, in p
 SIZE = (1920, 1080)
 SLEEPER = {"dark": (440, 0, 1480, 1080), "light": (700, 0, 1600, 1010)}   # what of the sleeper's frame goes over the lock: the figure, its gate
 FIGURE = {"dark": (960, 565, 560), "light": (1002, 420, 620)}   # where the sleeper breathes: its middle (the wake starts there), the reach of its light
-SPOTS = {"dark": ((1330, 720), (560, 400), (590, 720), (1360, 400)),    # where the seal lands, in turn across the frame: its thirds, clear of the figure
-         "light": ((1370, 720), (560, 400), (560, 720), (1370, 400))}
+SPOTS = {"dark": ((1330, 720), (560, 400), (1360, 400), (590, 720)),    # where the seal lands, in turn, every move across the frame: its thirds, clear of the figure
+         "light": ((1370, 720), (560, 400), (1370, 400), (560, 720))}
 FLAME_MS = 125                             # a flame's frame, 8 a second as on the lock
 SEAL = (168, 228)                          # the time's seal, in pixels: two rows of two digits
 DIGIT = (68, 92)                           # a digit's cell in it
