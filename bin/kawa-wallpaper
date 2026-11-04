@@ -563,7 +563,7 @@ LABEL=§                                                     # (a section's labe
 section() {   # section WORDS COUNT — a section's label, as its own row: the words muted at the icons' column, the
   # rule on to the values' column, how many it holds; the cursor passes it by
   local n s
-  n=$(( W - 1 - $(screen_cols "$1") - 2 - ${#2} )); ((n < 2)) && n=2
+  n=$(( W - 2 - $(screen_cols "$1") - 2 - ${#2} )); ((n < 2)) && n=2
   printf -v s '%*s' "$n" ''
   printf '%s\t\t %s%s%s %s%s%s %s%s%s' "$LABEL" "$INK_MUTED" "$1" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF" "$INK_MUTED" "$2" "$INK_OFF"
 }
@@ -640,7 +640,7 @@ option() {
     # (each value in its column: the dots stand one over the other, row to row)
     printf -v w '%*s' $((cols[n] - 2 - ${#w})) ''; row+=$w; used=$((used + cols[n])); n=$((n + 1))
   done
-  pad=$(( W - 4 - 18 - used - 3 )); ((pad < 0)) && pad=0
+  pad=$(( W - 1 - 4 - 18 - used - 3 )); ((pad < 0)) && pad=0     # (its tile ends on the values' column, as the counts do)
   printf '%s%*s%s\n' "$row" "$pad" '' "$(screen_tile "$key" "$INK_MUTED")"
 }
 keys() {   # the settings' block, under the list (a blank row over it)

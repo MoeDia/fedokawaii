@@ -118,6 +118,26 @@ index cbb76a2..36a78ea 100644
  				DOUBLE => ratatui_widgets::borders::BorderType::Double,
  				THICK => ratatui_widgets::borders::BorderType::Thick,
  				QUADRANT_INSIDE => ratatui_widgets::borders::BorderType::QuadrantInside,
+diff --git a/yazi-binding/src/elements/table.rs b/yazi-binding/src/elements/table.rs
+index a1e1524..418fe8d 100644
+--- a/yazi-binding/src/elements/table.rs
++++ b/yazi-binding/src/elements/table.rs
+@@ -146,6 +146,15 @@ impl Widget for Table {
+ 		let mut state = self.state;
+ 		StatefulWidget::render(table, rect, buf, &mut state);
+ 		Self::render_overlays(rect, buf, &self.rows, &columns, state.offset());
++
++		// (fedokawaii, docs/design-system.md §1: the cursor's 2 px edge in the seal's slot, at the band's first cell)
++		if let Some(i) = state.selected() {
++			let above: u16 = self.rows[state.offset().min(i)..i].iter().map(|r| r.height_with_margin()).sum();
++			let y = rect.y.saturating_add(above);
++			if y < rect.bottom() && let Some(cell) = buf.cell_mut((rect.x, y)) {
++				cell.set_symbol("▎").set_fg(ratatui_core::style::Color::Indexed(16));
++			}
++		}
+ 	}
+ }
+ 
 diff --git a/yazi-config/src/popup/help.rs b/yazi-config/src/popup/help.rs
 index 4cfdc2f..91d771f 100644
 --- a/yazi-config/src/popup/help.rs
@@ -1153,13 +1173,13 @@ index 730a5ee..a921eef 100644
  	}
  }
 diff --git a/yazi-fm/src/tasks/tasks.rs b/yazi-fm/src/tasks/tasks.rs
-index 3b60adc..66646b6 100644
+index 3b60adc..f1878b4 100644
 --- a/yazi-fm/src/tasks/tasks.rs
 +++ b/yazi-fm/src/tasks/tasks.rs
 @@ -1,9 +1,8 @@
 -use ratatui_core::{buffer::Buffer, layout::{self, Alignment, Constraint, Rect}, text::Line, widgets::Widget};
 -use ratatui_widgets::{block::Block, borders::BorderType};
-+use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Rect}, text::Line, widgets::Widget};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::Line, widgets::Widget};
  use yazi_config::THEME;
  use yazi_core::{Core, tasks::TASKS_PERCENT};
  
@@ -1168,11 +1188,52 @@ index 3b60adc..66646b6 100644
  
  pub(crate) struct Tasks<'a> {
  	core: &'a mut Core,
-@@ -33,15 +32,14 @@ impl Widget for Tasks<'_> {
- 	fn render(self, area: Rect, buf: &mut Buffer) {
- 		let area = Self::area(area);
+@@ -12,36 +11,33 @@ pub(crate) struct Tasks<'a> {
+ impl<'a> Tasks<'a> {
+ 	pub(crate) fn new(core: &'a mut Core) -> Self { Self { core } }
  
+-	pub(super) fn area(area: Rect) -> Rect {
+-		let chunk = layout::Layout::vertical([
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-			Constraint::Percentage(TASKS_PERCENT),
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-		])
+-		.split(area)[1];
+-
+-		layout::Layout::horizontal([
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-			Constraint::Percentage(TASKS_PERCENT),
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-		])
+-		.split(chunk)[1]
++	/// (fedokawaii, docs/design-system.md §7: a pop-up fits what it says) the ring, the heading and its paper, then a task's three
++	/// rows, the last one's gap left out; "none" one row, in a panel of its own width.
++	pub(super) fn area(area: Rect, tasks: u16) -> Rect {
++		let most = (area.width.saturating_mul(TASKS_PERCENT) / 100, area.height.saturating_mul(TASKS_PERCENT) / 100);
++		let (width, rows) = if tasks == 0 { (40.min(most.0), 1) } else { (most.0, tasks.saturating_mul(3) - 1) };
++		let height = rows.saturating_add(4).min(most.1);
++		Rect {
++			x: area.x + (area.width - width) / 2,
++			y: area.y + (area.height - height) / 2,
++			width,
++			height,
++		}
+ 	}
+ }
+ 
+ impl Widget for Tasks<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+-		let area = Self::area(area);
+-
 -		yazi_widgets::clear::Clear::default().render(area, buf);
++		let area = Self::area(area, self.core.tasks.snaps.len() as u16);
+ 
+-		let block = Block::bordered()
+-			.title(Line::styled("Tasks", THEME.tasks.title.get()))
+-			.title_alignment(Alignment::Center)
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.tasks.border.get());
+-		(&block).render(area, buf);
 +		let inner = frame::frame(
 +			area,
 +			buf,
@@ -1181,13 +1242,6 @@ index 3b60adc..66646b6 100644
 +			Line::styled("tasks", THEME.tasks.title.get()),
 +		);
  
--		let block = Block::bordered()
--			.title(Line::styled("Tasks", THEME.tasks.title.get()))
--			.title_alignment(Alignment::Center)
--			.border_type(BorderType::Rounded)
--			.border_style(THEME.tasks.border.get());
--		(&block).render(area, buf);
--
 -		List::new(self.core).render(block.inner(area), buf);
 +		List::new(self.core).render(inner, buf);
  	}
@@ -1275,10 +1329,18 @@ index 456d2d8..64a05de 100644
  			use Constraint::*;
  			Layout::horizontal(match cols {
 diff --git a/yazi-plugin/src/utils/spot.rs b/yazi-plugin/src/utils/spot.rs
-index 085ea50..ed0597b 100644
+index 085ea50..eb16277 100644
 --- a/yazi-plugin/src/utils/spot.rs
 +++ b/yazi-plugin/src/utils/spot.rs
-@@ -21,13 +21,10 @@ impl Utils {
+@@ -14,20 +14,17 @@ impl Utils {
+ 			let mut table = yazi_binding::elements::Table::try_from(&table)?;
+ 
+ 			let area = table.area();
+-			table.set_area(area.padding(ratatui_widgets::block::Padding::uniform(1)));
++			table.set_area(area.padding(ratatui_widgets::block::Padding::new(3, 3, 1, 1))); // (§4's 16 px clear of the ring)
+ 
+ 			lock.data = vec![
+ 				Renderable::Clear(Default::default()).with_area(area),
  				Renderable::Border(yazi_binding::elements::Border {
  					area,
  					edge: Edge(ratatui_widgets::borders::Borders::ALL),

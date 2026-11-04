@@ -532,7 +532,7 @@ has "$(pics | sed -n 1p)" $'\e[38;5;21m'"$ICON_TORII" "the glyph in muted"
 case_ "the sections: each under a label of its own — its words muted at the icons' column, the rule, how many; the default's first, the old masters next; a label the cursor passes by, nothing picked from it"
 lab=$(grep -a '^§' "$TMP/rows" | cut -f3 | sed 's/\x1b\[[0-9;]*m//g')
 eq "$(sed 's/ ─* / /' <<<"$lab" | sed 's/ *$//' | head -n 2)" "$(printf '%s\n' ' ink and brush 2' ' woodblock prints by night 1')" "(the fetched ones' sections, counted)"
-eq "$(grep -a '^§' "$TMP/rows" | cut -f3 | head -n1 | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 76 "a label as wide as a row"
+eq "$(grep -a '^§' "$TMP/rows" | cut -f3 | head -n1 | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 75 "a label's count on the values' column"
 has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;21mink and brush' "muted"; has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;19m──' "the rule's ink"
 a=$(args_of fzf "$(ncalls fzf)")
 has "$a" 'down:down+transform:[[ {1} == § ]] && echo down'; has "$a" 'up:up+transform:[[ {1} == § ]] && echo up'; has "$a" 'focus:transform:[[ {1} == § ]] && echo down' "whatever moved the cursor there"
@@ -611,7 +611,7 @@ for v in off 1h 4h daily off; do
   rc 0 kawa-wallpaper --rotate cycle
 done
 eq "$(kawa-state get wallpaper-rotate)" off "round to off again"
-eq "$(foot | sed -n 2p | LC_ALL=C.UTF-8 wc -L)" 76 "a setting's row as wide as a picture's: its tile at the end"
+eq "$(foot | sed -n 2p | LC_ALL=C.UTF-8 wc -L)" 75 "a setting's tile ends on the values' column"
 kawa-state set wallpaper-rotate on; has "$(foot | sed -n 2p)" $'\U000FF00C 4 h' "an earlier version's on: every 4 hours"; kawa-state unset wallpaper-rotate
 has "$(foot | sed -n 3p)" $'\U000FF00C in turn'; rc 0 kawa-wallpaper --order cycle; has "$(foot | sed -n 3p)" $'\U000FF00C shuffle'; rc 0 kawa-wallpaper --order cycle; eq "$(kawa-state get wallpaper-order)" turn
 has "$(foot | sed -n 4p)" $'\U000FF00C both'; rc 0 kawa-wallpaper --from masters; has "$(foot | sed -n 4p)" $'\U000FF00C old masters'; rc 0 kawa-wallpaper --from cycle; has "$(foot | sed -n 4p)" $'\U000FF00C scenes'; rc 0 kawa-wallpaper --from both

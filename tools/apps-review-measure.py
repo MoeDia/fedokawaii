@@ -195,9 +195,10 @@ for nn, n, sh, t in (("50", "yazi-rename", "y-rename", "Rename: the panel's own 
                      ("53", "yazi-help", "y-help", "Help (~): keys as tiles, a search line with a ghost and a count, what they do in plain lower case."),
                      ("54", "yazi-which", "y-which", "A prefix key (g): the strip of what follows, each key its tile."),
                      ("55", "yazi-tasks", "y-tasks", "Tasks (w): the frame, its heading; none said quietly."),
-                     ("56", "yazi-open", "y-pick", "Open with (o).")):
+                     ("56", "yazi-open", "y-pick", "Open with (o)."),
+                     ("59", "yazi-tab-card", "y-spot", "Tab: a file's facts in the pop-ups' frame; the band a column clear of the ring, j and k move it, c c copies the value.")):
     extra = []
-    if n in ("yazi-trash", "yazi-rename"):
+    if n in ("yazi-trash", "yazi-rename", "yazi-tab-card"):
         d = load("dark", sh)
         ink = np.array((0x80, 0x73, 0x5b), dtype=np.int16)       # (foot's slot 33: the hairline of what floats, dark)
         hit = np.abs(d - ink).sum(axis=2) < 6
@@ -210,7 +211,7 @@ for nn, n, sh, t in (("50", "yazi-rename", "y-rename", "Rename: the panel's own 
             extra = table([("the ring: left, right hairlines · top, bottom", f"x {x0}, {x1} · y {y0}, {y1}"),
                            ("under the top hairline, across (the heading: icon, name, rule)", ic),
                            ("inside the ring, down", dn)])
-    sheet(n, nn, shot=sh, box=FULL, note=[t] + extra)
+    sheet(n, nn, shot=sh, box=FULL, note=[t] + extra, zoom=(700, 400, 520, 260) if n == "yazi-tab-card" else None)
 sheet("yazi-half", "57", shot="y-half", note=["Half a screen: the size stays, the age goes when the list is narrower than 52 columns."])
 sheet("yazi-third", "58", shot="y-third", note=["The spiral's third window: the list and the preview, nothing cut, the footer on one line."])
 print(f"apps-review: → {out}")

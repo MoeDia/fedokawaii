@@ -844,6 +844,112 @@ EOF
 )
 case_ "a folder's preview: its rows (the override of yazi's folder recursed and the pane stood empty: never again)"
 has "$out" "inner.txt" "sub dir's file in the preview"
+
+# Tab's pop-up: the card's facts in the pop-ups' frame (kawa-card's spot), never yazi's table of its own plugins
+if "$YAZI" --version 2>/dev/null | grep -q 'Patch  : fedokawaii'; then   # (the ring's cells, the band's edge: the patched build's)
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key <Tab>
+wait owner
+settle
+screen
+key j
+settle
+screen
+key <Tab>
+settle
+quit
+EOF
+)
+case_ "Tab on a folder: a card in the pop-ups' frame — the ring, the name's heading, its facts, none of yazi's plugin rows"
+has "$out" $'\U000FF003' "the ring's corner cell"; has "$out" "what     folder" "says folder, not folder/local"
+for w in size changed created rights owner; do has "$out" "$w" "the fact: $w"; done
+for w in Plugins Previewer Spotter Mimetype Base; do lacks "$out" "$w" "yazi's own rows gone: $w"; done
+lacks "$out" "…" "nothing cut with an ellipsis"
+case_ "the band starts on the first fact, j moves it down (the row's 2 px edge, §1)"
+has "$(grep -F 'what     folder' <<<"$out" | head -n1)" "▎" "the first drawing: on what"
+has "$(grep -E ' size  ' <<<"$out" | tail -n1)" "▎" "after j: on size"
+case_ "the frame's two sides stand in one column on every row of the card"
+python3 - "$out" <<'PY' && _ok || _no "a row of the card is wider than its ring"
+import sys, unicodedata
+L, R = "\U000FF006", "\U000FF007"
+def col(r, ch):
+    w = 0
+    for c in r:
+        if c == ch: return w
+        w += 2 if unicodedata.east_asian_width(c) in "WF" else 1
+    return None
+rows = [r for r in sys.argv[1].split("\n") if L in r and R in r]
+sys.exit(0 if len(rows) >= 7 and len({col(r, L) for r in rows}) == 1 and len({col(r, R) for r in rows}) == 1 else 1)
+PY
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key G
+settle
+key <Tab>
+wait owner
+settle
+screen
+key <Tab>
+settle
+quit
+EOF
+)
+case_ "Tab on a file: its name in the heading, what file(1) says, its size in the list's words"
+has "$out" "zz.bin ─" "the heading: the name, the rule"; has "$out" "what     data" "what it is"; has "$out" "2.9 KB" "its size, with its unit apart"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key <Space>
+settle
+key <Space>
+settle
+key <Tab>
+wait 2 marked ─
+settle
+screen
+key <Tab>
+settle
+quit
+EOF
+)
+case_ "Tab with marks: how many, of what, their size together"
+has "$out" "2 marked ─" "the heading"; has "$out" "2 folders" "what they are"; lacks "$out" "Count:" "yazi's own rows gone"
+out=$(y 50x25 <<'EOF'
+wait a.txt
+settle
+key <Tab>
+wait owner
+settle
+screen
+key <Tab>
+settle
+quit
+EOF
+)
+case_ "a window narrower than the card narrows it: the ring stays whole"
+has "$out" $'\U000FF003' "its left corner"; has "$out" $'\U000FF005' "its right corner"; has "$out" "owner" "its last fact"
+ln -s a.txt "$W/zzz-link"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key G
+settle
+key <Tab>
+wait owner
+settle
+screen
+key <Tab>
+settle
+quit
+EOF
+)
+rm -f "$W/zzz-link"
+case_ "Tab on a link: where it points, under what it is"
+has "$out" "points to" "the row"; has "$(grep -F 'points to' <<<"$out")" "a.txt" "its target"
+fi
 out=$(y 120x30 <<'EOF'
 wait a.txt
 settle
@@ -928,6 +1034,8 @@ EOF
   has "$out" "$(key_of h)" "g h"
   case_ "tasks: none, said quietly under its heading"
   has "$out" "tasks ─"; has "$out" " none"
+  case_ "tasks: the panel fits what it says — the heading, its paper, one row (never a big empty frame), inside its ring"
+  eq "$(sed -n '/tasks ─/,$p' <<<"$out" | grep -cF $'\U000FF006')" 3 "three rows between the ring's top and bottom"
 else echo "  (the installed yazi has not the desktop's patch yet: its pop-ups' cases skipped)"; fi
 
 flush; rm -f "$SF"
