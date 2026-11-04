@@ -5,7 +5,7 @@ picture as the screen shows it (tools/design-review.sh's pack takes them: NN-sho
     python3 tools/art-pack.py DIR         # (.claude/review/next: packs stay out of git)
 
 Reads what is committed, art/masters/out, and draws nothing itself.
-Needs Pillow and numpy.
+Needs Pillow.
 """
 import pathlib
 import sys

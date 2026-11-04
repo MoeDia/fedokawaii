@@ -228,13 +228,13 @@ rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
 
 LOGO=() LOGO_W=0 SIX=''
 HEAD_CELLS=18 HEAD_LINES=9 FACTS_AT=24   # (a head's cells and lines: 144 × 180; the facts' column: 2 + its cells + 3 + 1)
-head() {      # head dark|light — the head's sixel, as it comes; its lines left empty for the facts
+sixel_head() {      # sixel_head dark|light — the head's sixel, as it comes; its lines left empty for the facts
   [[ $TERM == foot* && -r $HOME/.local/share/fedokawaii/$1/head.six ]] || return 0
   SIX=$(<"$HOME/.local/share/fedokawaii/$1/head.six") LOGO_W=$HEAD_CELLS
   local i; for ((i = 0; i < HEAD_LINES; i++)); do LOGO+=(""); done
 }
 picture() {   # picture NAME — two pixel rows → one line of ▀ / ▄ cells (fg = upper, bg = lower)
-  case $1 in oni) head dark; return ;; tennin) head light; return ;; esac
+  case $1 in oni) sixel_head dark; return ;; tennin) sixel_head light; return ;; esac
   local -n art="ART_$1"
   local -A pal=()
   local kv y x top bot t b line
