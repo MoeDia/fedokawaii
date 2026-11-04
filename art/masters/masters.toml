@@ -50,6 +50,7 @@ sha256 = "539f9c52c7481370eceddc5dd8e143e4418dd386e801868243515e4f5ed3206b"
 crop   = [118, 60, 3317, 1866]
 tone   = "keep"
 clean = [[225, 136, 234, 170], [238, 130, 248, 156], [248, 138, 257, 170], [267, 133, 276, 157], [283, 158, 295, 184], [312, 162, 321, 184], [328, 174, 335, 197], [347, 174, 355, 197], [6, 282, 46, 360], [438, 282, 478, 346]]
+joins = [[1310, 1345], [2600, 2650]]
 
 [asajigahara-hag]
 theme  = "dark"
@@ -72,7 +73,7 @@ tone   = "keep"
 theme  = "dark"
 source = "yawata-beings.jpg"
 sha256 = "c6c8054e5b5def8a85f82211496e02034a9bbf2e5701e22a8c773e9e9210dfc4"
-crop = [290, 85, 1250, 703]
+crop = [250, 85, 1250, 703]
 tone   = "keep"
 
 [raijin-korin]
@@ -103,6 +104,7 @@ source = "benten-biwa.jpg"
 sha256 = "a21e0c47fd2f1a38da49fbecf022010ba084066715b23e3859cadd9785d761d0"
 crop = [88, 110, 2080, 1170]
 paper = 0.9
+clean = [[0, 14, 6, 360], [620, 14, 640, 40], [600, 225, 612, 240], [24, 122, 36, 136]]
 
 [white-kannon-kyosai]
 theme  = "light"
@@ -119,6 +121,7 @@ source = "white-kannon-cleveland.jpg"
 sha256 = "759b65901a21970fb158410d65f62731407d99627809132c99984178fc4c9eab"
 crop   = [38, 1185, 1844, 1037]
 paper = 0.85
+clean = [[560, 26, 572, 44], [540, 104, 556, 120]]
 
 [hagoromo-noh]
 theme  = "light"

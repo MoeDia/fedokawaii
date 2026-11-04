@@ -114,6 +114,12 @@ def hexes(h):
     return np.array([[int(x[i:i + 2], 16) for i in (0, 2, 4)] for x in h]) / 255
 
 
+def half(a):
+    """a plane at half its size, each new pixel the mean of the four under it (an odd last row or column left out)"""
+    hh, ww = a.shape[0] // 2 * 2, a.shape[1] // 2 * 2
+    return (a[:hh:2, :ww:2] + a[1:hh:2, :ww:2] + a[:hh:2, 1:ww:2] + a[1:hh:2, 1:ww:2]) / 4
+
+
 def heal(lab, hole):
     """HOLE (… × a mask) filled in from all round it, smoothly: push-pull, each scale filling what
     the finer one could not — a flat ground stays flat, a gradient goes on."""
@@ -123,9 +129,6 @@ def heal(lab, hole):
     levels = [(lab * weight[..., None], weight)]
     while levels[-1][1].shape[0] > 2 and levels[-1][1].shape[1] > 2 and (levels[-1][1] == 0).any():
         val, wt = levels[-1]
-        hh, ww = wt.shape[0] // 2 * 2, wt.shape[1] // 2 * 2
-        def half(a):
-            return (a[:hh:2, :ww:2] + a[1:hh:2, :ww:2] + a[:hh:2, 1:ww:2] + a[1:hh:2, 1:ww:2]) / 4
         levels.append((half(val), half(wt)))
     val, wt = levels[-1]
     cur = val / np.maximum(wt, 1e-9)[..., None]
@@ -324,7 +327,7 @@ def build(name, spec):
     idx[:TOP_FLAT] = (TOP_INK[spec["theme"]] % len(RAMP[spec["theme"]]))
     if "paper" in spec:                # (what is left of a stain on the bare paper: a few pixels, gone)
         bare = len(RAMP[spec["theme"]]) - 1
-        idx[specks(idx != bare, 10)] = bare
+        idx[specks(idx != bare, 16)] = bare
     out = Image.fromarray(idx.astype(np.uint8), "P")
     flat = (hexes(PALETTE[spec["theme"]]) * 255).round().astype(np.uint8).flatten().tolist()
     out.putpalette(flat + [0] * (768 - len(flat)))

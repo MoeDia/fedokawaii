@@ -1,9 +1,9 @@
 # The two heads: one character sheet
 
-The mood's head is the desktop's face: a samurai demon by night, a warrior goddess by day. Each is one
-character at every size. No size is a reduction of another: the small ones are pixels by hand
-(`art/heads.txt`), the large ones brush strokes drawn at their own size (`tools/build-heads.py`),
-because a line that is right at 144 px is wrong at 22.
+**Interim.** The owner's notes of 19:11 and 19:12 (4 Nov) drop the pixel art for the demon and the angel:
+every icon will be derived from lane-ink's lock painting, one character everywhere. This sheet only stands in
+until that lands: `face.png`, the prompt's glyphs and `head.six` come from it, and each is replaced the same
+way then. `sixel()` and the sixel path in `bin/fetch` go on being useful: fetch's new portrait is a sixel too.
 
 ![The demon at every size, teeth locked and roaring](heads-oni.png)
 

@@ -460,8 +460,9 @@ the tiles of a group, 12 px between groups.
   aligned with the title; progress: the meter (§4). Critical: the hairline `accent`.
 - **Level display** (kawa-osd): a panel of one row — the icon, the meter, the value — centred low
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
-- **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper; the settings by
-  `tools/build-lock.py`, the figures by lane-ink: flat tones, as old pixel art is; a shape has its tone,
+- **Lock** (the owner, 19:11: this pixel scene stands only until lane-ink's full-resolution painting
+  lands, which replaces all of it). (gtklock + kawa-lockmod; one scene per mood, never the wallpaper;
+  `tools/build-lock.py`: flat tones, as old pixel art is; a shape has its tone,
   its bevels face the nearer torch, the light raises the tones by whole steps). The camera is low (the
   owner, 18:45): the wall leans to a point high over the middle, near things large, the eaves seen from
   below; hard chiaroscuro, nothing calm or empty. Dark: a castle wall (ishigaki, joints `lo`) in stepped
@@ -583,7 +584,7 @@ another, a scroll is something opened and put away, a dissolve is a message pass
   between a triptych's sheets, no face cut by an edge, the subject in the middle where the print
   allows, and a calm top: the first 14 rows of the picture (42 px, the bar's) one ink, fading into the
   picture over the next 24, as the band a printer wiped across the top of the block (ichimonji-bokashi).
-  The two heads are one character sheet at every size (`docs/art/heads.md`).
+  The two heads stand in until lane-ink's painting gives their icons (`docs/art/heads.md`).
 
 ## 14. Surfaces and their owners
 
