@@ -391,7 +391,7 @@ eq "$(locks)" 1
 case_ "the machine awake again: swayidle's after-resume tells the journal (the health report reads it)"
 grep -qF "  after-resume 'kawa-lock --resumed' \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
 
-case_ "the scene (build-lock.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; gtklock's own line hidden only under the module"
+case_ "the scene (build-lock.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; the line of words' rows clear of every edge; gtklock's own line hidden only under the module"
 for t in dark light; do
   out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
 import sys
@@ -421,10 +421,21 @@ if "flame" in kv:
     for fx, fy in (map(int, f) for f in kv["flame"]):
         assert 0 <= fx and fx + fw <= w and 0 <= fy and fy + fh <= h, f"a flame at {fx},{fy} outside"
     print(len(kv["flame"]), "flames inside")
+# the line of words (what PAM says) is centred in its rows: on each, across the widest line (60
+# characters at most — max-width-chars — ≈ 140 of the picture's pixels), the field's own colour is
+# the commonest — no mortar, no cloud's edge, no rim runs through the words
+from collections import Counter
+wy0, wy1 = map(int, kv["words"][0])
+cx = w // 2
+assert 0 <= wy0 <= wy1 < h and wy1 - wy0 >= 4, f"words {wy0} {wy1}"
+field = Counter(px[x, y] for y in range(wy0, wy1 + 1) for x in range(cx - 70, cx + 70)).most_common(1)[0][0]
+edges = [y for y in range(wy0, wy1 + 1) if Counter(px[x, y] for x in range(cx - 70, cx + 70)).most_common(1)[0][0] != field]
+print("words clear" if not edges else f"words CROSSED on rows {edges}")
 PY
 )
   has "$out" "marks " "$t: $out"; lacks "$out" "UNDER" "$t"
   has "$out" "2 flames inside" "$t"
+  has "$out" "words clear" "$t: $out"
   css=$REPO/configs/home/.config/fedokawaii/themes/$t/gtklock.css
   grep -q '^window.kawa #input-field {' "$css" && _ok || _no "$t: gtklock's line not hidden under the module"
   grep -q '^#input-field {' "$css" && _ok || _no "$t: without the module the line has no look of its own"
@@ -434,4 +445,13 @@ m=$REPO/src/kawa-lockmod/kawa-lockmod.c
 grep -q 'gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");' "$m" && _ok || _no "the module does not mark its windows"
 grep -q 'gtk_widget_set_opacity(win->window_box, 0);' "$m" && _ok || _no "gtklock's line could show for frames before the stylesheet hides it (master T20/1)"
 grep -q '"notify::secondary-icon-name", G_CALLBACK(no_icon)' "$m" && _ok || _no "gtklock's eye drawn (and loaded) on the line"
+# (nit 5 of the master's T20 verdict 2) PAM's words — gtklock's info bars in its unseen box — the
+# scene's line of words: read from the box, placed in lock-scene.txt's rows, the newest try's only,
+# each its own line; and no signal of gtklock's widgets reaches the module's freed look
+grep -q 'g_signal_connect(win->message_box, "add", G_CALLBACK(on_bars), l);' "$m" && _ok || _no "PAM's words have no place on the scene"
+grep -q 'g_signal_connect(win->overlay, "get-child-position", G_CALLBACK(place_words), l);' "$m" && _ok || _no "the line of words not placed by the scene's rows"
+grep -q 'sscanf(line, "words %d %d", &S.wy0, &S.wy1)' "$m" && _ok || _no "lock-scene.txt's words not read"
+grep -q 'bars_read(l, n, NULL);' "$m" && _ok || _no "every try's words would pile up (gtklock keeps them all)"
+grep -q 's->len ? "\\n" : ""' "$m" && _ok || _no "the words not each on its own line"
+grep -q 'g_signal_handlers_disconnect_by_data(win->input_field, l);' "$m" && _ok || _no "a signal of a destroyed window could reach the freed look"
 done_

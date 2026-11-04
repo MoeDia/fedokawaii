@@ -11,8 +11,10 @@ is on; the caret a bar as tall as a mark, blinking once a second while the line 
 A wrong password: the marks scatter and fade, the face shakes a pixel of the scene twice (240 ms,
 five steps of 48), and the line is empty again; the right one starts the desktop
 (/usr/local/bin/start-dwl). No date, no time, no keys. Anything else the system says on the way
-(an expiring password, a session that will not start) is the one line of words, low on the
-screen. The check runs beside the screen, so the flames never stop while greetd answers.
+(an expiring password, a session that will not start) is the line of words low on the scene, each
+its own line, in the rows lock-scene.txt names for it (a stone course of the wall, the gold under
+the last cloud) — as on the lock. The check runs beside the screen, so the flames never stop while
+greetd answers.
 
 The key that wakes the computer only wakes it: from logind's word that the machine is going to
 sleep (PrepareForSleep) until 2 s after it is awake again, every key and click is swallowed —
@@ -72,6 +74,7 @@ class Scene:
         self.arms, self.core, self.corner = (ink(h) for h in kv["mark"][0])
         self.caps, self.caret = ink(kv["caps"][0][0]), ink(kv["caret"][0][0])
         self.cx, self.cy, self.cr = map(int, kv["plate"][0])
+        self.wy0, self.wy1 = map(int, kv["words"][0])
         self.img = cairo.ImageSurface.create_from_png(f"{folder}/lock-scene.png")
         self.flames = [tuple(map(int, f)) for f in kv.get("flame", [])]
         self.fw, self.fh, self.frames = map(int, kv["frames"][0]) if self.flames else (0, 0, 1)
@@ -135,8 +138,8 @@ class Greeter(Gtk.Window):
                                input_purpose=Gtk.InputPurpose.PASSWORD,
                                halign=Gtk.Align.CENTER, valign=Gtk.Align.CENTER)
         self.entry.connect("activate", self.login)
-        self.error = Gtk.Label(name="error-label", halign=Gtk.Align.CENTER, valign=Gtk.Align.END,
-                               margin_bottom=48, wrap=True, max_width_chars=60)   # (a long one from PAM: whole)
+        self.error = Gtk.Label(name="error-label", halign=Gtk.Align.CENTER, wrap=True,
+                               max_width_chars=60, justify=Gtk.Justification.CENTER)   # (a long one from PAM: whole)
         layers = Gtk.Overlay()
         if self.scene:
             self.get_style_context().add_class("kawa")
@@ -154,6 +157,11 @@ class Greeter(Gtk.Window):
         layers.add_overlay(self.entry)
         layers.add_overlay(self.error)
         layers.set_overlay_pass_through(self.error, True)
+        if self.scene:                     # (its place on the scene: kawa-lockmod's twin)
+            layers.connect("get-child-position", self.place_words)
+        else:                              # (the plain login: low on the theme's ground)
+            self.error.set_valign(Gtk.Align.END)
+            self.error.set_margin_bottom(48)
 
         # the wake guard: asleep (or about to be), and GUARD s after waking, input only wakes
         self.asleep, self.woke = False, 0.0
@@ -300,6 +308,19 @@ class Greeter(Gtk.Window):
         return (ev.type == Gdk.EventType.KEY_PRESS and ev.keyval in ENTER
                 and self.entry.has_focus() and not self.entry.get_text())
 
+    def place_words(self, layers, child, r):
+        """The line of words across the screen's middle, in the middle of the scene's rows for it
+        (lock-scene.txt's words: a stone course of the wall, the gold under the last cloud)."""
+        if child is not self.error:
+            return False
+        sw = layers.get_allocated_width()
+        n, _, oy = self.scene.fit(sw, layers.get_allocated_height())
+        r.width = min(child.get_preferred_width()[1], sw)
+        r.height = child.get_preferred_height_for_width(r.width)[1]
+        r.x = (sw - r.width) // 2
+        r.y = oy + n * self.scene.wy0 + (n * (self.scene.wy1 - self.scene.wy0 + 1) - r.height) // 2
+        return True
+
     def say(self, text):
         self.error.set_text(text)
 
@@ -329,7 +350,7 @@ class Greeter(Gtk.Window):
             notes.remove(WRONG)
             self.wrong = time.monotonic()
             self.area.add_tick_callback(self.wrong_tick)
-        self.say("  ".join(notes))
+        self.say("\n".join(notes))           # (each its own line: kawa-lockmod's twin)
         return False
 
     def run_pam(self, password, say):

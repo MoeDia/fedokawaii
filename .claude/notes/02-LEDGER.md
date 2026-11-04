@@ -4546,12 +4546,49 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 - r27-tidy-4nov (01:31): removed a stray /tmp/kit.UhAm3O (2 Nov 18:20: a kit run's throw-away home — fonts.conf, home,
   inside.sh, waybar.log; nothing held it: lsof empty, no process named it) and this pass's scratch binaries in /dev/shm.
   A kit run cut off by a pass's timeout leaves its folder: T42's stray check should look in /tmp for kit.* and hotplug.*.
+- r27-boot-4nov (15:46): the PC was switched off cleanly by him at 01:46:31 (logind "The system will power off now!",
+  kawa-steam quit Steam for the shutdown) and on again at 15:46:23 — not a crash (journalctl -b -1). The pass found the
+  greeter up, no session yet: he is at the PC — headless only this pass. Inbox: nothing open. Inhibitor started again.
+- r27-20-nit5 (4 Nov 15:49–16:06, the master's T20 verdict 2 nit 5): gtklock's PAM words get the scene's line. Source
+  first: gtklock 4.0.0 (Fedora gtklock-4.0.0-3.fc44; github.com/jovanlanik/gtklock v4.0.0 src/window.c, src/auth.c) —
+  PAM_ERROR_MSG / PAM_TEXT_INFO go into gtklock->errors / ->messages (kept for the whole lock, every try's appended),
+  window_setup_messages() makes one GtkInfoBar per word in #message-box (each bar added first, its label then) — under
+  the module that box is at opacity 0, so they had no place; gtklock calls only pam_authenticate + pam_setcred (no
+  acct_mgmt), and our /etc/pam.d/gtklock speaks almost never — but a changed stack (pam_faillock, fprintd) would.
+  BUILT: kawa-lockmod reads the bars (on #message-box's add/remove, once gtklock is done: an idle), shows the newest
+  try's words (gtklock's bars counted by kind at each try: errors first, then the rest), each once, each its own line,
+  in a label of the overlay named error-label (window.kawa #error-label: the strongest ink, as kawa-greet) — placed by
+  get-child-position in the middle of new rows of lock-scene.txt: `words Y0 Y1` (tools/build-lock.py: dark the stone
+  course at the middle of the wall under the plate, rows 336–346; light the gold under the last cloud's ochre line and
+  gilt edge, 338–359). The old place (kawa-greet's END + 48 px) ran the light's words through the cloud's notch edge
+  (seen in the shot: rows 1008–1013 on screen) — the greeter had that fault too: kawa-greet now places its line the
+  same way (PyGObject's get-child-position handler fills the rectangle in place — measured: (overlay, child, rect) →
+  True), the plain login (no scene) keeps END + 48; its notes joined by a new line, not two spaces (a wrap had cut the
+  second word in two). on_window_destroy now also disconnects every handler the look gave gtklock's widgets (gtklock
+  destroys a window's insides after the module's hook: a notify then would reach the freed look).
+  PROVEN headless (tools/hl-dwl.sh, the real gtklock 4.0.0 with the module and a scratch module that submits two tries,
+  a scratch libpam stand-in by LD_PRELOAD answering each try with an error + an info word): words [] → after the try
+  both, each once → the next try clears them → the same two again, not four; both moods, one and two lines. Measured
+  (grim, PIL): the capitals centred in the rows (design-system §2's rule, a descender hangs) — light 1042–1051 in
+  1014–1079: 28 above, 28 below; dark 1019–1028 in the course 1008–1040: 11 and 12 (an odd course: the best there is);
+  the line box centred across (ink 803–1113: 958.5, the advance box at 960 — box-centred as every label; the master
+  may weigh centring by ink). kawa-greet rendered the same way (its Greeter, fullscreen, the notes answered): 0 pixels
+  differ from the lock's in all four cases — the twins are one. Contrast: ink #121b1b on gold #e2b540, #f5ecc2 on the
+  wall — the gates' strong ink. Tests: test_lock 178/0 (the scene case: the words' rows clear of every edge — the
+  commonest colour of each row across the widest line, 60 characters ≈ 140 px of the picture, is the field's; proven
+  to fail on a band moved over the mortar (dark: rows 330–335) and the notch (light: 330, 336, 337)), test_greeter
+  48/0, ruff clean, ShellCheck clean, the module -Wall -Wextra -Werror. LIVE: at the next apply (theme.sh builds the
+  module; setup's greetd_config installs kawa-greet with the scene's files together).
+- r27-found-lockpng (16:00): tools/build-lock.py run today makes other pictures than the committed lock-scene.png
+  (dark: the mask's middle, bbox 307,140–350,172; light: Seiōbo's window, 192,76–429,321) — the masters pipeline's
+  changes of r27-18-sf8/-sf69 reach disc_of/window_of. The committed pictures were kept (this commit: the words line
+  only); for T18's review 2: rebuild the two lock scenes from the new pipeline and grill them, or pin their quantise.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 01:30 by the 00:54 pass — the lines above say what it did): the inbox first.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
 ##     Scratch runs that call kawa-lock stub logger (r27-02b-found: my PAM runs wrote into his journal).
-## (1) T20 — LIVE (r27-20-live), nits 1, 2, 3, 4, 6 done (r27-20-nits). LEFT: nit 5 (gtklock's PAM messages on the
-##     scene's low line, as kawa-greet does), bug 1's real
+## (1) T20 — LIVE (r27-20-live), nits 1–6 done (r27-20-nits; nit 5 r27-20-nit5, 4 Nov 16:06 — live at the next
+##     apply). LEFT: bug 1's real
 ##     35-min reproduction when he is away an hour+ (plan T20), Caps Lock's ink (his next lock), the greeter's first frame
 ##     in cage (his next login), the Learn piece, gtklock's two upstream faults, §11's lock-leaving motion (T21).
 ## (1a) T19p NEW (his inbox of 4 Nov 00:55): before the last design refinement, the review pack + one notice asking his

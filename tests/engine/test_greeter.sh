@@ -138,6 +138,11 @@ grep -q 'self.get_style_context().add_class("kawa")' "$g" && _ok || _no "its win
 grep -q 'threading.Thread(target=self.check' "$g" && _ok || _no "the check on the screen's own thread: the flames would stop while greetd answers"
 for v in 'STEP, STEPS = 0.048, 5' '(i * 7 + 3) % 5 - 2'; do grep -qF "$v" "$g" && _ok || _no "the wrong password's motion differs from the lock's ($v)"; done
 grep -qF '#define STEP_US (48 * 1000)' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && grep -qF '#define STEPS 5' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && _ok || _no "the lock's steps moved: the twins differ"
+# the line of words: the lock's place (lock-scene.txt's rows, by the overlay), each its own line
+grep -qF 'self.wy0, self.wy1 = map(int, kv["words"][0])' "$g" && grep -qF 'layers.connect("get-child-position", self.place_words)' "$g" \
+  && grep -qF 'r.y = oy + n * self.scene.wy0 + (n * (self.scene.wy1 - self.scene.wy0 + 1) - r.height) // 2' "$g" \
+  && grep -qF 'r->y = oy + n * S.wy0 + (n * (S.wy1 - S.wy0 + 1) - h) / 2;' "$REPO/src/kawa-lockmod/kawa-lockmod.c" && _ok || _no "the line of words not where the lock puts it"
+grep -qF 'self.say("\n".join(notes))' "$g" && _ok || _no "the words not each on its own line (the lock's)"
 
 case_ "kawa-theme notes the theme for it, where setup gave you a folder"
 grep -q '/var/lib/fedokawaii-greeter/theme' "$REPO/bin/kawa-theme" && _ok || _no "kawa-theme does not write the greeter's theme"

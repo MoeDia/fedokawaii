@@ -10,3 +10,4 @@ mark f68c50 f5ecc2 82241f   # a mark: its arms, its middle, its corners
 caps 82c1b4   # the arms while Caps Lock is on
 caret f68c50   # a bar as tall as a mark at the next place, once a second
 plate 320 189 138   # what shakes at a wrong password: its middle, its radius
+words 336 346   # the line of words (what PAM says): the rows it is centred in

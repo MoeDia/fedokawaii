@@ -14,7 +14,10 @@
  *  error line, never shown): the marks scatter and fade, the face (the plate) shakes a pixel of
  *  the scene twice — five steps of 48 ms. gtklock's own line stays for the keys, unseen from its
  *  first frame (its box at opacity 0; current/gtklock.css: window.kawa, no transitions), its
- *  words never shown. No date, no time, no keys: the scene is the lock.
+ *  words never shown. No date, no time, no keys: the scene is the lock. Anything the system
+ *  says on the way (PAM: an expiring password, a locked account, a finger to place) is the one
+ *  line of words low on the screen, as on the login screen (kawa-greet): the newest try's, each
+ *  once.
  *
  *  The screens. Nothing touched for 5 s while the lock shows — the screensaver not over it —,
  *  the screens go dark (kawa-lock --screens off); any key, click, scroll or move lights them
@@ -196,6 +199,7 @@ static struct {
 	int w, h, fw, fh, frames, nflames, fx[4], fy[4];
 	int rx, ry, pitch, rn;                /* the password's row: the first mark, the pitch, how many */
 	int cx, cy, cr;                       /* the plate */
+	int wy0, wy1;                         /* the rows the line of words is centred in */
 	ink ground, arms, core, corner, caps, caret;
 } S;
 
@@ -210,6 +214,9 @@ struct look {                             /* one window's */
 	gint64 wrong;                         /* its failure's moment (µs, monotonic), 0 none */
 	gint64 flare;                         /* the newest mark flares until then (µs, monotonic) */
 	guint tick, flare_src;
+	GtkWidget *words;                     /* the line of words */
+	int seen[2];                          /* gtklock's bars (errors, the rest) before the last try */
+	guint words_src;
 };
 #define FLARE_US (90 * 1000)
 static GList *looks;
@@ -245,9 +252,10 @@ static gboolean scene_load(const char *dir)
 		else if (sscanf(line, "caps %15s", a) == 1) hexink(a, &S.caps);
 		else if (sscanf(line, "caret %15s", a) == 1) hexink(a, &S.caret);
 		else if (sscanf(line, "plate %d %d %d", &S.cx, &S.cy, &S.cr) == 3) ok |= 16;
+		else if (sscanf(line, "words %d %d", &S.wy0, &S.wy1) == 2) ok |= 32;
 	}
 	fclose(f);
-	if (ok != 31 || S.w <= 0 || S.h <= 0 || S.rn <= 0)
+	if (ok != 63 || S.w <= 0 || S.h <= 0 || S.rn <= 0 || S.wy1 < S.wy0)
 		return FALSE;
 	g_snprintf(path, sizeof path, "%s/lock-scene.png", dir);
 	S.img = cairo_image_surface_create_from_png(path);
@@ -432,9 +440,76 @@ static void on_state(GObject *o, GParamSpec *p, gpointer data)   /* focus or bus
 	(void)o, (void)p;
 	redraw_row(data);
 }
+/* what PAM said: gtklock's info bars in its unseen box — every try's so far, errors first, each
+ * try's after the ones before it — counted into n; with s, the words of those past l->seen,
+ * each once */
+static void bars_read(struct look *l, int n[2], GString *s)
+{
+	GList *bars = gtk_container_get_children(GTK_CONTAINER(l->win->message_box));
+	n[0] = n[1] = 0;
+	for (GList *b = bars; b; b = b->next) {
+		if (!GTK_IS_INFO_BAR(b->data))
+			continue;
+		int k = gtk_info_bar_get_message_type(b->data) == GTK_MESSAGE_INFO;
+		if (n[k]++ < l->seen[k] || !s)
+			continue;
+		GList *ws = gtk_container_get_children(GTK_CONTAINER(gtk_info_bar_get_content_area(b->data)));
+		for (GList *w = ws; w; w = w->next) {
+			const char *t = GTK_IS_LABEL(w->data) ? gtk_label_get_text(w->data) : NULL;
+			if (t && *t && !strstr(s->str, t))
+				g_string_append_printf(s, "%s%s", s->len ? "\n" : "", t);   /* (each its own line) */
+		}
+		g_list_free(ws);
+	}
+	g_list_free(bars);
+}
+static gboolean words_show(gpointer data)
+{
+	struct look *l = data;
+	int n[2];
+	GString *s = g_string_new(NULL);
+	l->words_src = 0;
+	bars_read(l, n, s);
+	gtk_label_set_text(GTK_LABEL(l->words), s->str);
+	g_string_free(s, TRUE);
+	return G_SOURCE_REMOVE;
+}
+/* the line's place: across the screen's middle, in the middle of the scene's rows for it (a stone
+ * course of the wall, the gold under the last cloud) — clear of every edge of the picture */
+static gboolean place_words(GtkOverlay *o, GtkWidget *w, GdkRectangle *r, gpointer data)
+{
+	struct look *l = data;
+	int ox, oy, n, W, h;
+	if (w != l->words)
+		return FALSE;
+	n = fit(l->area, &ox, &oy);
+	W = gtk_widget_get_allocated_width(GTK_WIDGET(o));
+	gtk_widget_get_preferred_width(w, NULL, &r->width);
+	r->width = MIN(r->width, W);
+	gtk_widget_get_preferred_height_for_width(w, r->width, NULL, &h);
+	r->height = h;
+	r->x = (W - r->width) / 2;
+	r->y = oy + n * S.wy0 + (n * (S.wy1 - S.wy0 + 1) - h) / 2;
+	return TRUE;
+}
+/* gtklock makes its bars again for each new word (each bar first, its words then): read once it is done */
+static void on_bars(GtkContainer *box, GtkWidget *bar, gpointer data)
+{
+	struct look *l = data;
+	(void)box, (void)bar;
+	if (!l->words_src)
+		l->words_src = g_idle_add(words_show, l);
+}
 static void on_try(GtkEntry *e, gpointer data)   /* Enter: after gtklock's own handler */
 {
-	((struct look *)data)->tried = (int)gtk_entry_get_text_length(e);
+	struct look *l = data;
+	l->tried = (int)gtk_entry_get_text_length(e);
+	if (l->words) {                       /* (its words come after this: the thread just began) */
+		int n[2];
+		bars_read(l, n, NULL);
+		l->seen[0] = n[0], l->seen[1] = n[1];
+		gtk_label_set_text(GTK_LABEL(l->words), "");
+	}
 }
 static void on_error(GObject *o, GParamSpec *p, gpointer data)   /* gtklock's error line */
 {
@@ -497,6 +572,20 @@ void on_window_create(struct GtkLock *gtklock, struct Window *win)
 	gtk_container_add(GTK_CONTAINER(win->overlay), l->area);
 	gtk_overlay_add_overlay(GTK_OVERLAY(win->overlay), win->window_box);
 	g_object_unref(win->window_box);
+	if (win->message_box && GTK_IS_CONTAINER(win->message_box)) {
+		/* the line of words: kawa-greet's twin (its place: lock-scene.txt's words; its CSS name:
+		 * window.kawa #error-label) */
+		l->words = gtk_label_new(NULL);
+		gtk_widget_set_name(l->words, "error-label");
+		gtk_label_set_line_wrap(GTK_LABEL(l->words), TRUE);   /* (a long one from PAM: whole) */
+		gtk_label_set_max_width_chars(GTK_LABEL(l->words), 60);
+		gtk_label_set_justify(GTK_LABEL(l->words), GTK_JUSTIFY_CENTER);
+		gtk_overlay_add_overlay(GTK_OVERLAY(win->overlay), l->words);
+		gtk_overlay_set_overlay_pass_through(GTK_OVERLAY(win->overlay), l->words, TRUE);
+		g_signal_connect(win->overlay, "get-child-position", G_CALLBACK(place_words), l);
+		g_signal_connect(win->message_box, "add", G_CALLBACK(on_bars), l);
+		g_signal_connect(win->message_box, "remove", G_CALLBACK(on_bars), l);
+	}
 	gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");
 	gtk_widget_set_opacity(win->window_box, 0);   /* (its line unseen from the first frame, whatever the CSS does) */
 	g_signal_connect(win->input_field, "changed", G_CALLBACK(on_changed), l);
@@ -524,6 +613,16 @@ void on_window_destroy(struct GtkLock *gtklock, struct Window *win)
 	looks = g_list_remove(looks, l);
 	if (l->flare_src)
 		g_source_remove(l->flare_src);
+	if (l->words_src)
+		g_source_remove(l->words_src);
+	/* (gtklock destroys the window's insides after this: no signal of theirs may still reach l) */
+	g_signal_handlers_disconnect_by_data(win->input_field, l);
+	if (win->error_label)
+		g_signal_handlers_disconnect_by_data(win->error_label, l);
+	if (l->words) {
+		g_signal_handlers_disconnect_by_data(win->message_box, l);
+		g_signal_handlers_disconnect_by_data(win->overlay, l);
+	}
 	g_free(l);
 	win->module_data[self_id] = NULL;
 }

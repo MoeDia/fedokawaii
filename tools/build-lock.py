@@ -419,7 +419,7 @@ def rim_ink(img):
     return max(set(edge), key=edge.count)
 
 
-def placed(mood, row, P, plate, rim, fires=(), frame=(FW, FH)):
+def placed(mood, row, P, plate, rim, words, fires=(), frame=(FW, FH)):
     """lock-scene.txt: where the module draws on the scene, in the scene's own pixels."""
     marks = {"dark": (P["flame"], P["strong"], P["accent_lo"], P["asagi"], P["flame"]),
              "light": (P["yellow"], P["gold"], P["hi"], P["asagi"], P["yellow"])}[mood]
@@ -433,7 +433,8 @@ def placed(mood, row, P, plate, rim, fires=(), frame=(FW, FH)):
               "mark {} {} {}   # a mark: its arms, its middle, its corners".format(*map(hexof, marks[:3])),
               f"caps {hexof(marks[3])}   # the arms while Caps Lock is on",
               f"caret {hexof(marks[4])}   # a bar as tall as a mark at the next place, once a second",
-              "plate {} {} {}   # what shakes at a wrong password: its middle, its radius".format(*plate)]
+              "plate {} {} {}   # what shakes at a wrong password: its middle, its radius".format(*plate),
+              "words {} {}   # the line of words (what PAM says): the rows it is centred in".format(*words)]
     return "\n".join(lines) + "\n"
 
 
@@ -449,13 +450,20 @@ def main():
                     (D["strong"], 0.40, 0.55)], D["flame"])
     scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "dark/lock-scene.png", optimize=True)
     strip.save(OUT / "dark/lock-flame.png", optimize=True)
+    # the line of words: dark, in the stone course at the middle of the wall under the plate (a
+    # course is 11 rows between the mortar); light, in the gold under the last cloud's top (its
+    # ochre line and gilt edge) to the foot
+    course = (CY + RD + RIM + H) // 2 // 12 * 12
     (OUT / "dark/lock-scene.txt").write_text(placed("dark", row, D, (CX, CY, RD + RIM + 1), rim_ink(scene),
+                                                    (course, course + 10),
                                                     [(x - FW // 2, FLAME_TOP) for x in TORCH_X]))
     light, lrow, fires = light_scene()
     lstrip = flames([(L["accent"], 1.00, 0.00), (L["gold"], 0.70, 0.30), (L["hi"], 0.35, 0.60)], L["gold"], *LAMP_FLAME)
     light.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / "light/lock-scene.png", optimize=True)
     lstrip.save(OUT / "light/lock-flame.png", optimize=True)
-    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, L, (CX, CY, RD + RIM + 1), rim_ink(light), fires, LAMP_FLAME))
+    gold = min(c[2] for c in CLOUDS[-1] if c[0] <= CX <= c[1]) + 2
+    (OUT / "light/lock-scene.txt").write_text(placed("light", lrow, L, (CX, CY, RD + RIM + 1), rim_ink(light),
+                                                     (gold, H - 1), fires, LAMP_FLAME))
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
         prev = scene.copy()
