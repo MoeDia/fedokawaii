@@ -19,7 +19,14 @@
  *  the marks and only then tries the password; Esc shuts it, the line cleared; the screens going
  *  dark too. A wrong password (gtklock's error line, never shown): it opens again, the marks
  *  scattering and fading, the gate shaking a pixel of the scene twice — five steps of 48 ms. The
- *  right one: gtklock ends, dwl dissolves the lock off the desktop. gtklock's own line stays for the keys, unseen from its
+ *  right one: gtklock ends, dwl dissolves the lock off the desktop.
+ *
+ *  Its life (the owner, 4 Nov: "the torches really flickering, moving light on stone, smoke, the demon's
+ *  eyes, the halo turning, embers, petals", cheap): what lock-scene.txt lists, only what changed drawn —
+ *  `anim NAME X Y W H N MS`, a strip lock-NAME.png of N frames W × H with alpha, looped, a frame every
+ *  MS; `sparks embers|petals N INK INK`, N of them, young and old.
+ *
+ *  gtklock's own line stays for the keys, unseen from its
  *  first frame (its box at opacity 0; current/gtklock.css: window.kawa, no transitions), its
  *  words never shown. No date, no time, no keys: the scene is the lock. Anything the system
  *  says on the way (PAM: an expiring password, a locked account, a finger to place) is the one
@@ -207,10 +214,18 @@ static void no_icon(GObject *o, GParamSpec *p, gpointer data)
 
 /* ── the scene (lock-scene.txt: build-lock.py's words) ────────────────────────────────── */
 typedef struct { double r, g, b; } ink;
+#define MAX_ANIMS 12
+#define MAX_SPARKS 64
 static struct {
 	cairo_surface_t *img, *flame, *gate;
 	int w, h, fw, fh, frames, nflames, fx[4], fy[4];
 	int gx, gy, gw, gh, gn;               /* the gate: where its frames lie, each's size, how many */
+	struct anim { cairo_surface_t *img; int x, y, w, h, n, ms, frame; } anim[MAX_ANIMS];
+	int nanims;
+	struct spark { gboolean live; float x, y, vx, vy; int age, life, px, py; } spark[MAX_SPARKS];
+	int nsparks;
+	gboolean petals;
+	ink young, old;
 	int rx, ry, pitch, rn;                /* the password's row: the first mark, the pitch, how many */
 	int cx, cy, cr;                       /* the plate */
 	int wy0, wy1;                         /* the rows the line of words is centred in */
@@ -249,7 +264,7 @@ static gboolean hexink(const char *s, ink *c)
 
 static gboolean scene_load(const char *dir)
 {
-	char path[PATH_MAX], line[256], a[16], b[16], c[16];
+	char path[PATH_MAX], line[256], a[16], b[16], c[16], name[32];
 	int ok = 0;
 	g_snprintf(path, sizeof path, "%s/lock-scene.txt", dir);
 	FILE *f = fopen(path, "re");
@@ -261,6 +276,21 @@ static gboolean scene_load(const char *dir)
 		else if (sscanf(line, "frames %d %d %d", &S.fw, &S.fh, &S.frames) == 3) ;
 		else if (S.nflames < 4 && sscanf(line, "flame %d %d", &S.fx[S.nflames], &S.fy[S.nflames]) == 2) S.nflames++;
 		else if (sscanf(line, "gate %d %d %d %d %d", &S.gx, &S.gy, &S.gw, &S.gh, &S.gn) == 5) ;
+		else if (S.nanims < MAX_ANIMS && sscanf(line, "anim %31s %d %d %d %d %d %d", name, &S.anim[S.nanims].x,
+				&S.anim[S.nanims].y, &S.anim[S.nanims].w, &S.anim[S.nanims].h, &S.anim[S.nanims].n, &S.anim[S.nanims].ms) == 7) {
+			struct anim *an = &S.anim[S.nanims];
+			g_snprintf(path, sizeof path, "%s/lock-%s.png", dir, name);
+			an->img = cairo_image_surface_create_from_png(path);
+			if (cairo_surface_status(an->img) != CAIRO_STATUS_SUCCESS || an->n <= 0 || an->ms <= 0)
+				cairo_surface_destroy(an->img), an->img = NULL;
+			else
+				S.nanims++;
+		}
+		else if (sscanf(line, "sparks %15s %d %15s %15s", a, &S.nsparks, b, c) == 4) {
+			S.petals = !strcmp(a, "petals");
+			S.nsparks = MIN(S.nsparks, MAX_SPARKS);
+			hexink(b, &S.young), hexink(c, &S.old);
+		}
 		else if (sscanf(line, "row %d %d %d %d", &S.rx, &S.ry, &S.pitch, &S.rn) == 4) ok |= 4;
 		else if (sscanf(line, "mark %15s %15s %15s", a, b, c) == 3)
 			ok |= (hexink(a, &S.arms) && hexink(b, &S.core) && hexink(c, &S.corner)) << 3;
@@ -479,6 +509,21 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 		cairo_rectangle(cr, S.fx[i], S.fy[i], S.fw, S.fh);
 		cairo_fill(cr);
 	}
+	for (int i = 0; i < S.nanims; i++) {
+		struct anim *an = &S.anim[i];
+		cairo_save(cr);
+		cairo_rectangle(cr, an->x, an->y, an->w, an->h);
+		cairo_clip(cr);
+		cairo_set_source_surface(cr, an->img, an->x - an->frame * an->w, an->y);
+		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
+		cairo_paint(cr);
+		cairo_restore(cr);
+	}
+	for (int i = 0; i < S.nsparks; i++) {
+		struct spark *sp = &S.spark[i];
+		if (sp->live)
+			dot(cr, sp->px, sp->py, sp->age * 2 < sp->life ? &S.young : &S.old);
+	}
 	GtkWidget *e = win->input_field;
 	gboolean open = gate == GATE_OPEN;    /* (the marks in the mouth only while it is open) */
 	int len = e ? (int)gtk_entry_get_text_length(GTK_ENTRY(e)) : 0, shown = open ? MIN(len, S.rn) : 0;
@@ -515,6 +560,66 @@ static gboolean flames_tick(gpointer data)
 			redraw(((struct look *)g->data)->area, S.fx[i], S.fy[i], S.fw, S.fh);
 	return G_SOURCE_CONTINUE;
 }
+/* the scene's life, 25 times a second: an anim's new frame, the sparks' new places (only those drawn) */
+static void redraw_all(int x, int y, int w, int h)
+{
+	for (GList *g = looks; g; g = g->next)
+		redraw(((struct look *)g->data)->area, x, y, w, h);
+}
+static guint life_rng = 2463534242u;
+static int life_rnd(int n)
+{
+	life_rng ^= life_rng << 13, life_rng ^= life_rng >> 17, life_rng ^= life_rng << 5;
+	return n > 0 ? (int)(life_rng % (guint)n) : 0;
+}
+static gboolean life_tick(gpointer data)
+{
+	gint64 ms = g_get_monotonic_time() / 1000;
+	(void)data;
+	for (int i = 0; i < S.nanims; i++) {
+		struct anim *an = &S.anim[i];
+		int f = (int)(ms / an->ms % an->n);
+		if (f != an->frame) {
+			an->frame = f;
+			redraw_all(an->x, an->y, an->w, an->h);
+		}
+	}
+	for (int i = 0; i < S.nsparks; i++) {
+		struct spark *sp = &S.spark[i];
+		if (!sp->live) {
+			if (life_rnd(40))
+				continue;
+			sp->live = TRUE, sp->age = 0, sp->px = sp->py = -1;
+			if (S.petals) {
+				sp->x = (float)life_rnd(S.w), sp->y = (float)life_rnd(S.h / 2);
+				sp->vx = (float)(life_rnd(40) - 20) / 100.0f, sp->vy = 0.15f + (float)life_rnd(30) / 100.0f;
+				sp->life = 120 + life_rnd(160);
+			} else {
+				int t = S.nflames ? life_rnd(S.nflames) : 0;
+				sp->x = (float)(S.nflames ? S.fx[t] + life_rnd(MAX(S.fw, 1)) : life_rnd(S.w));
+				sp->y = (float)(S.nflames ? S.fy[t] + S.fh / 3 : S.h - 1);
+				sp->vx = (float)(life_rnd(40) - 20) / 120.0f, sp->vy = -0.3f - (float)life_rnd(50) / 100.0f;
+				sp->life = 50 + life_rnd(90);
+			}
+			continue;
+		}
+		if (sp->px >= 0)
+			redraw_all(sp->px, sp->py, 1, 1);
+		if (++sp->age > sp->life) {
+			sp->live = FALSE;
+			continue;
+		}
+		sp->vx += (float)(life_rnd(21) - 10) / 500.0f;   /* (the air moves it) */
+		sp->x += sp->vx, sp->y += sp->vy;
+		sp->px = (int)sp->x, sp->py = (int)sp->y;
+		if (sp->px < 0 || sp->py < 0 || sp->px >= S.w || sp->py >= S.h)
+			sp->live = FALSE;
+		else
+			redraw_all(sp->px, sp->py, 1, 1);
+	}
+	return G_SOURCE_CONTINUE;
+}
+
 static gboolean caret_tick(gpointer data)
 {
 	(void)data;
@@ -679,6 +784,8 @@ void on_activation(struct GtkLock *gtklock, int id)
 		gate = GATE_SHUT;
 	if (S.nflames)
 		flame_timer = g_timeout_add(1000 / 8, flames_tick, NULL);
+	if (S.nanims || S.nsparks)
+		g_timeout_add(40, life_tick, NULL);
 	caret_timer = g_timeout_add(500, caret_tick, NULL);
 }
 
