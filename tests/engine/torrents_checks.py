@@ -769,6 +769,16 @@ def check_screen(s, cols):
             assert fill == list(range(fill[0], fill[-1] + 1)), f"row {y}: its fill has a hole\n{s.dump()}"
 
 
+def state_words():
+    """On a narrow tile, what a torrent is doing is said whole, its name gives way."""
+    mock()
+    w = window(30, 44)
+    w.has("finished")
+    for word in ("asking the site", "looking for it", "no one sending", "no space left on device"):
+        assert w.screen.find(word), f"{word!r} not whole at 44 columns:\n{w.screen.dump()}"
+    check_screen(w.screen, 44)
+
+
 def every_size():
     """From a sliver to a wall of a screen, both tabs, with all the states on the list: no crash, nothing past the edge."""
     mock()

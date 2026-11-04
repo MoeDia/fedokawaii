@@ -742,7 +742,8 @@ class App:
             words = f"buffering {int(r['stream']['buffered'] * 100)}%"
         out = []
         if words:
-            words = cut(words, max(10, w // 2 if r["word"] == "failed" else w // 3))
+            # (what it is doing comes before its name: "asking the site" whole on a narrow tile, what stopped it too)
+            words = cut(words, min(w - 8, max(w // 2, 24) if r["word"] == "failed" else max(w // 3, 15)))
             room = sum({"pct": 4 + 2, "speed": 9 + 2, "eta": eta_w + 2}.get(k, 0) for k in b) - 2
             if "meter" in b and r["total"] and r["word"] != "failed" and cells(words) <= room:
                 out.append(("METER", frac))

@@ -48,6 +48,7 @@ scenario words            "what is a link, in any text; names from strangers; th
 
 # the window, on the mock engine
 scenario layout           "to the column: tabs, headings, rows, values ending together, the cursor's fill, a kanji's two cells, the meter"
+scenario state_words      "on a narrow tile what a torrent is doing is said whole, its name gives way"
 scenario every_size       "from 2 x 2 to 70 x 400, both tabs: no crash, nothing past the edge, no ellipsis"
 scenario keys_            "every key on the list, the filter, the add line, a paste, the mouse"
 scenario play_key         "v: with its files not asked for yet, it goes on by itself; many videos: the files' page"
