@@ -68,7 +68,7 @@ What it does, from its README, `configs/` and `builder/`:
 - [mkksiso (lorax)](https://weldr.io/lorax/mkksiso.html) [P]: `--ks`, `--add`, `--cmdline`, `--rm-args`, `--replace`, `--updates`, `--volid`. "Since 38.4, root is needed for a fully bootable ISO"; `--skip-mkefiboot` runs as a user but leaves the EFI image's config. Dependencies `xorriso`, `isomd5sum`.
 - [Its source](https://github.com/weldr/lorax/blob/master/src/bin/mkksiso) [P]: at heart `xorriso -indev IN -outdev OUT -boot_image any replay`, `-append_partition 2 <guid> efibootimg`, `-update` for configs, `-map` for files, `-alter_date_r b =EPOCH / --` with `SOURCE_DATE_EPOCH`. Root only because `mkefiboot` mounts a loop device.
 - [Modernize boot.iso](https://fedoraproject.org/wiki/Changes/ModernizeBootISO) [P]: lorax → image-builder, "Targeted release: Fedora Linux 46", category `ChangeAcceptedF46`, last updated 2026-08-20; "should not change in any functional way"; about 150–200 MiB bigger. Its page does not mention mkksiso; a tool bound to lorax's layout may need a look at F46.
-- `image-builder 87`, `livemedia-creator` (`f45-changes-3nov.md`): build whole media from package sets: no use when an official signed netinst already holds everything.
+- [livemedia-creator](https://weldr.io/lorax/livemedia-creator.html) [P]: "make live isos, bootable (partitioned) disk images, tarfiles, and filesystem images", from a kickstart, with qemu or `--no-virt`, "the examples all use `sudo`". `image-builder 87` (`f45-changes-3nov.md`). Both build whole media from package sets: no use when an official signed netinst already holds everything.
 
 ### A build experiment on this PC, as `dia`, no root, no container (4 Nov 2026) [P]
 

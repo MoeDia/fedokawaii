@@ -26,6 +26,9 @@ card's HDMI). **Only when H, R and O pass**, one notice, with one reason line, b
 > For the games VM: move the HDMI cable from the graphics card to the motherboard, and connect a DisplayPort cable from
 > the graphics card to the monitor. Then restart the PC.
 
+He does this whenever he reads it, so **`start-dwl --gpu` must already work with both wirings before the notice goes out**:
+the iGPU when its HDMI answers, else the card. If he restarts before the host is ready, he must still get a desktop.
+
 Open: whether he owns a DisplayPort cable (not checked, LG's box contents unread); whether the BIOS needs primary display
 = IGD (decided in test S, one more line then, never a second notice for the same thing). IOMMU and AMD-V need nothing:
 39 groups, the card alone in 14, its audio alone in 15, no `direct` reserved regions there (read 4 Nov), so the MSI X870 refusal of #5644 does not apply.
@@ -150,8 +153,10 @@ PCI passthrough cannot run in a session domain; the harness's session VMs stay a
   <clock offset='localtime'><timer name='hypervclock' present='yes'/><timer name='hpet' present='no'/></clock>
   <devices>
     <!-- virtio-blk with the iothread · hostdev 03:00.0 and 03:00.1, managed='no' · virtio-net on libvirt's NAT
-         input: two <input type='evdev'> on /dev/input/by-id (usb-BY_Tech_Gaming_Keyboard-event-kbd with grab='all'
-                repeat='on' grabToggle='ctrl-ctrl'; usb-Logitech_USB_Receiver-if02-event-mouse)
+         input: <input type='evdev'> on /dev/input/by-id, one for each keyboard in use (T36: which is the K617)
+                with grab='all' repeat='on' grabToggle='ctrl-ctrl'; usb-Logitech_USB_Receiver-if02-event-mouse
+                (the nodes are root:input 0660: T33 checks that libvirt relabels them for the dia label)
+         usb: qemu-xhci; a controller as <hostdev type='usb'> by vendor:product, attached live
          sound: <sound model='ich9'/> with <audio type='pipewire' runtimeDir='/run/user/1000'/>
          tpm-crb, emulator 2.0, <source type='dir' path='…/tpm'/> · <memballoon model='none'/> · no video after stage 1 -->
   </devices>
@@ -214,7 +219,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 5. **The VM may need two driver-facing names changed** (`vendor_id`, `kvm hidden`): the guest still knows it is a VM.
 6. **A rare crash may need a press on the monitor**, if test S ends at that branch.
 7. **Windows needs his own licence**, and he signs in to Steam himself.
-8. **The card's logo RGB (T36)**, if T36 reaches it through amdgpu's I2C, cannot be driven from Linux while the VM has the card.
+8. **The card's logo RGB (T36)** cannot be driven from Linux while the VM has the card: OpenRGB reaches it over `i2c-6`, amdgpu's bus.
 9. **`update` and the VM exclude each other.**
 
 ## 8. What changes in the plan
@@ -222,7 +227,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 - **T33**: `virtio-sound` → HDA + PipeWire; "Fedora's `virtio-win` package" → the pinned ISO; `qemu:///system`; stage 1 without the card, reset and outputs tests before any cable; TPM state `source` in the folder; `autounattend` per section 4.
 - **T34**: idle and sleep inhibited for the VM's life; display return lives in the hook, not the TUI; a hung-Windows path; the `grabToggle` state readable through QMP if the display should flip with it (decide in T34).
 - **T35**: unchanged, but only after C is answered: he might want CS2 on Linux after all. T35's title stands, though the question is his.
-- **T36**: if the logo's RGB goes through amdgpu's I2C, only while the VM is off.
+- **T36**: the logo's RGB goes through amdgpu's I2C (`i2c-6`): only while the VM is off.
 - **T38**: capabilities work with `--sleep-multiplier 2` (string in R§7); the input question moves to test S. Note `60(01 03)`.
 - **T45/T47**: the shared lock; the fixer's unit in the card's group.
 - **T06**: re-issue once, per section 2.
