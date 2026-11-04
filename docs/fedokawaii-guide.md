@@ -1741,7 +1741,7 @@ or music plays:
 
 | What you do | What happens |
 |---|---|
-| nothing, for 15 minutes | the screensaver: the lock's own painting asleep, its fires breathing, smoke and embers on the dark, gold dust and petals on the light, the time a small seal stamped somewhere else every minute. The lock comes up under it, so the first key or move of the mouse only wakes the world: the painting opens onto the lock, the figure in it, and the key itself goes nowhere |
+| nothing, for 15 minutes | the screensaver: the lock's own painting asleep, the figure's eyes shut and its dim light breathing, the fires alive, smoke and embers on the dark, gold dust and petals on the light, the time a red seal struck at another third of the frame every minute. The lock comes up under it, so the first key or move of the mouse only wakes the world: the painting opens onto the lock, the figure's eyes open, and the key itself goes nowhere |
 | nothing, for 30 minutes | the screens power off (windows stay where they were); the first key wakes them |
 | a video or music playing (the browser, mpv, any player), or a program holding off idleness | none of the two: they wait until it stops |
 | **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |

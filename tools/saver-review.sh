@@ -2,14 +2,17 @@
 # tools/saver-review.sh — the screensaver for the owner's design review, and what it costs: kawa-saver --idle in a
 # kit (tools/kit.sh: headless dwl on the real GPU, the real lock under it), both moods.
 #   bash tools/saver-review.sh OUTDIR [--measure S] [KIT OPTION…]
-#     OUTDIR/saver-MOOD.png            asleep, as the screen shows it
-#     OUTDIR/saver-MOOD-wake.png       a key: frames of the wake side by side, the last the lock
-#     OUTDIR/saver-MOOD.webp           a recording (animated WebP: his page plays it): asleep, then the key, the lock
+#     OUTDIR/saver-MOOD.png            asleep, as the screen shows it (the kit)
+#     OUTDIR/saver-MOOD-awake.png      a key, then: the real lock up, as the screen shows it (the kit)
+#     OUTDIR/saver-MOOD-wake.png       a key: frames of the wake side by side, the last the lock's painting (render.c's frames,
+#                                      every one at 144 a second whatever the load: a recorder under load drops them)
+#     OUTDIR/saver-MOOD.webp           a recording made of those frames (animated WebP: his page plays it): asleep, the wake in
+#                                      real time, the lock held, the wake again at a third of its speed
 #     --measure S                      asleep for S seconds, then one line a mood: kawa-saver's and dwl's CPU (% of a
 #                                      core), dwl's GPU time (% of the card, from its own fdinfo), kawa-saver's memory.
 #                                      No recording while measuring (it would perturb both)
 #   LOCK_HOME=DIR …   the lock's files before they are applied (as tools/regress/lock-start.sh)
-# A recording's pace is only for looking. Exit 0 · 1 a number over its limit (said) · 2 the kit could not run.
+# Exit 0 · 1 a number over its limit (said) · 2 the kit could not run.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 outdir=${1:?usage: saver-review.sh OUTDIR [--measure S] [KIT OPTION…]}; shift
@@ -46,15 +49,10 @@ T = t1 - t0
 print(f"saver {(c1 - c0) / T:.2f} % dwl {(d1 - d0) / T:.2f} % gpu {(g1 - g0) / 1e7 / T:.2f} % rss {rss / 1024:.0f} MB over {T:.0f} s")' \
     "$c0" "$c1" "$d0" "$d1" "$g0" "$g1" "$t0" "$t1" "$rss" >"$KIT_OUT/measure.txt" 2>>"$KIT_OUT/play.log"
 else
-  nap 2
-  wf-recorder -y -c ffv1 -f "$KIT_OUT/rec.mkv" >/dev/null 2>&1 & R=$!
-  nap 9
+  nap 11
   shot asleep
-  nap 1
-  key space; nap 1.4
+  key space; nap 1.8
   shot awake
-  nap 4                              # (the recorder's encoder catches up: stopped, it drops what waits)
-  kill -INT "$R"; wait "$R" 2>/dev/null
 fi
 PLAY
 sed -i "1i REAL=$src CALLER=$HOME MEASURE=$measure" "$W/play.sh"
@@ -70,10 +68,17 @@ for mood in dark light; do
     continue
   fi
   cp "$o/asleep.png" "$outdir/saver-$mood.png"
-  # (the frames by their own times: only the wake's, from the key on, for the sheet; all for the recording)
-  mkdir -p "$o/f"
-  ffmpeg -nostdin -v error -i "$o/rec.mkv" -fps_mode passthrough "$o/f/%05d.png" 2>/dev/null || { echo "saver-review: no frames ($mood)" >&2; exit 2; }
-  ffprobe -v error -select_streams v -show_entries frame=pts_time -of csv=p=0 "$o/rec.mkv" >"$o/rec.pts"
-  python3 -I "$here/saver-review.py" "$o/f" "$o/rec.pts" "$outdir/saver-$mood-wake.png" "$outdir/saver-$mood.webp" || exit 2
+  cp "$o/awake.png" "$outdir/saver-$mood-awake.png"
+  # (the world's own frames: the same code with no screen)
+  [[ -x $W/b/kawa-saver-render ]] || { mkdir -p "$W/b"; cp "$here/../src/kawa-saver/"* "$W/b/"; make -s -C "$W/b" O="$W/b" render >"$W/make.log" 2>&1 || { echo "saver-review: the renderer did not build: $(tail -n 2 "$W/make.log")" >&2; exit 2; }; }
+  h=$W/home-$mood r=$W/frames-$mood
+  mkdir -p "$h/.config/fedokawaii/themes/$mood" "$h/.local/share" "$r"
+  cp "$src/.config/fedokawaii/themes/$mood/saver.conf" "$h/.config/fedokawaii/themes/$mood/"
+  ln -s "themes/$mood" "$h/.config/fedokawaii/current"
+  ln -s "$src/.local/share/fedokawaii" "$h/.local/share/fedokawaii"
+  env -i HOME="$h" TZ="${TZ:-Asia/Dubai}" PATH=/usr/bin "$W/b/kawa-saver-render" "$r" --steps 120 --every 1 --wake --frames 1 --clock 09:41 \
+    --under "$src/.local/share/fedokawaii/$mood/lock-scene.png" >/dev/null || { echo "saver-review: the renderer failed ($mood)" >&2; exit 2; }
+  python3 -I "$here/saver-review.py" "$r" "$outdir/saver-$mood-wake.png" "$outdir/saver-$mood.webp" || exit 2
+  rm -rf "$r"
 done
 exit $rc

@@ -4,12 +4,12 @@
  * software for the tests and the renders. Every picture but the painting is small or mostly empty, and the compositor
  * scales and blends them on the GPU: a step costs next to nothing.
  *
- *   the painting   static, full size, the lock's own without the figure (saver-scene.txt: wall)
- *   the shade      1/8 size, scaled up smooth: the darkness over the painting, open round the fires, breathing with them
+ *   the painting   static, full size, the lock's own with its figure asleep: the lock's file and a patch over it (saver-scene.txt: wall, patch)
+ *   the shade      1/8 size, scaled up smooth: the darkness over the painting, open round the fires and breathing with them; the figure's own breath, slower
  *   the anims      the lock's own strips (flames, light on the stones), the same frames in the same places
- *   the haze       1/4 size: smoke off each flame, curling up to the beam and creeping along it (the dark mood)
+ *   the haze       1/4 size: smoke off each flame, curling up to the beam and creeping along it (the dark mood, unless the lock's strips carry smoke)
  *   the air        1/2 size: embers rising (dark), gold dust and petals falling (light)
- *   the seal       the time, stamped somewhere else in the middle every minute, its digits cut out of the red
+ *   the seal       the time, stamped at another third of the frame every minute, its digits cut out: the painting shows faintly through them
  */
 #include <math.h>
 #include <png.h>
@@ -25,6 +25,8 @@
 #define AIR_DIV 2
 #define MAXTORCH 4
 #define MAXANIM 8
+#define MAXPATCH 4
+#define MAXSPOT 4
 #define MAXRECT 256      /* what the air redraws in a step */
 #define NSPARK 64        /* embers, gold dust */
 #define NPETAL 24        /* petals, near and far */
@@ -32,6 +34,10 @@
 #define WAKE_MS 440      /* the world wakes (§11: 400–450) */
 #define FALL_MS 1200     /* it falls asleep (the wash's own time) */
 #define RAMP_PX 150      /* the soft edge of the opening, in pixels */
+#define BREATH_STEPS 86  /* the figure's breath: a little over 7 s, far slower than the fires' */
+#define SEAL_ASIDE 56    /* how far the seal lands from its spot, in pixels */
+#define SEAL_COOL 12     /* steps a seal takes to cool from the ink it is struck in */
+#define SEAL_THROUGH 190 /* the digits cut out: this much (of 256) their ink, the rest the painting showing through */
 
 /* ── the inks (current/saver.conf) ──────────────────────────────────────────────────── */
 enum { SPARK_HOT, SPARK, SPARK_COOL, SPARK_DIM, DRIFT, DRIFT_LO, SEAL_INK, SEAL_HOT, SEAL_CUT, SHADE_INK, NCOL };
@@ -45,9 +51,10 @@ static const struct mood {
 	float floor;      /* the shade where no fire reaches */
 	float edge;       /* how much of a pool's reach is already wholly lit */
 	float gamma;      /* the shade's fall towards the fire: above 1, harder */
+	float rest, deep; /* what the sleeping figure's own light gives at its middle: on the breath out, how much more on the breath in */
 } moods[2] = {
-	{ 0.86f, 0.62f, 1.25f },     /* the dark: hard, a dungeon carved out of black by its fire */
-	{ 0.18f, 0.70f, 1.0f },      /* the light: the gold hour in the sky, the lanterns warm against it */
+	{ 0.86f, 0.62f, 1.25f, 0.13f, 0.06f },     /* the dark: hard, a dungeon carved out of black by its fire, the mask a dim shape breathing in it */
+	{ 0.18f, 0.70f, 1.0f, 0.20f, 0.10f },      /* the light: the gold hour in the sky, the lanterns warm against it */
 };
 static const struct mood *M;
 
@@ -74,14 +81,18 @@ struct torch {
 static struct {
 	int w, h;                     /* the painting's size */
 	bool light;                   /* the light mood: dust and petals, not embers and smoke */
+	bool haze;                    /* smoke of our own */
 	char wall[64];                /* its file */
-	int cx, cy, cr;               /* the figure's place: where the world opens, the seal's ground */
+	int cx, cy;                   /* the figure's place: where the world opens */
 	int ceiling;                  /* the beam the smoke stops at */
-	int nt, na;
+	int nt, na, np, ns;
+	int spots[MAXSPOT][2];        /* where the seal lands: at the thirds of the frame, clear of the figure */
 	int seal_w, seal_h, digit_w, digit_h;   /* saver-seal.png: the seal, a digit's cell */
 	uint8_t *seal;                /* … its alpha: the seal, then the ten digits */
 	struct torch torches[MAXTORCH];
+	struct torch rest;            /* the figure's own light: a pool with no fire */
 	struct anim anims[MAXANIM];
+	struct { char file[64]; int x, y; } patches[MAXPATCH];   /* the figure asleep, over the lock's painting */
 	char dir[4096];
 } art;
 
@@ -224,6 +235,7 @@ static bool read_art(const char *home)
 	const char *mood = strrchr(link, '/');
 	mood = mood ? mood + 1 : link;
 	art.light = !strcmp(mood, "light");
+	art.haze = !art.light;
 	M = &moods[art.light];
 	snprintf(art.dir, sizeof art.dir, "%s/.local/share/fedokawaii/%s", home ? home : "", mood);
 	snprintf(p, sizeof p, "%s/saver-scene.txt", art.dir);
@@ -235,8 +247,14 @@ static bool read_art(const char *home)
 		struct anim *a = &art.anims[art.na];
 		if (sscanf(line, "size %d %d", &art.w, &art.h) == 2) ;
 		else if (sscanf(line, "wall %63s", art.wall) == 1) ;
-		else if (sscanf(line, "centre %d %d %d", &art.cx, &art.cy, &art.cr) == 3) ;
+		else if (art.np < MAXPATCH && sscanf(line, "patch %63s %d %d", art.patches[art.np].file, &art.patches[art.np].x, &art.patches[art.np].y) == 3)
+			art.np++;
+		else if (sscanf(line, "centre %d %d", &art.cx, &art.cy) == 2) ;
+		else if (sscanf(line, "rest %d", &art.rest.reach) == 1) ;
+		else if (art.ns < MAXSPOT && sscanf(line, "spot %d %d", &art.spots[art.ns][0], &art.spots[art.ns][1]) == 2)
+			art.ns++;
 		else if (sscanf(line, "ceiling %d", &art.ceiling) == 1) ;
+		else if (!strncmp(line, "haze off", 8)) art.haze = false;
 		else if (sscanf(line, "seal %d %d %d %d", &art.seal_w, &art.seal_h, &art.digit_w, &art.digit_h) == 4) ;
 		else if (art.nt < MAXTORCH && sscanf(line, "torch %d %d %d", &t->x, &t->y, &t->reach) == 3)
 			art.nt++;
@@ -244,8 +262,9 @@ static bool read_art(const char *home)
 			art.na++;
 	}
 	fclose(f);
-	if (art.w <= 0 || art.h <= 0 || !art.wall[0] || art.cr <= 0 || art.seal_w <= 0)
+	if (art.w <= 0 || art.h <= 0 || !art.wall[0] || art.cx <= 0 || art.rest.reach <= 0 || art.seal_w <= 0 || !art.ns)
 		return false;
+	art.rest.x = art.cx, art.rest.y = art.cy;
 	int sw = art.seal_w + 10 * art.digit_w, sh = art.seal_h;
 	snprintf(p, sizeof p, "%s/saver-seal.png", art.dir);
 	uint32_t *atlas = read_png(p, &sw, &sh, NULL);
@@ -267,28 +286,59 @@ static bool read_art(const char *home)
 	return true;
 }
 
+/* the painting into PX (art.w × art.h words): the lock's own file, the figure's sleep patched over it */
+static bool paint_read(uint32_t *px)
+{
+	char p[4200];
+	int w = art.w, h = art.h;
+	snprintf(p, sizeof p, "%s/%s", art.dir, art.wall);
+	if (!read_png(p, &w, &h, px))
+		return false;
+	for (int i = 0; i < art.np; i++) {
+		int pw = 0, ph = 0, x0 = art.patches[i].x, y0 = art.patches[i].y;
+		snprintf(p, sizeof p, "%s/%s", art.dir, art.patches[i].file);
+		uint32_t *patch = read_png(p, &pw, &ph, NULL);
+		if (!patch || x0 < 0 || y0 < 0 || x0 + pw > art.w || y0 + ph > art.h) {
+			free(patch);
+			return false;
+		}
+		for (int y = 0; y < ph; y++)
+			memcpy(px + (size_t)(y0 + y) * (size_t)art.w + (size_t)x0, patch + (size_t)y * (size_t)pw, (size_t)pw * 4);
+		free(patch);
+	}
+	return true;
+}
+
 /* ── the light ──────────────────────────────────────────────────────────────────────── */
+/* a pool's fall on the shade's grid, a texel round it spare */
+static uint8_t *pool_make(const struct torch *c)
+{
+	uint8_t *fall = malloc((size_t)(shade.w + 2) * (size_t)(shade.h + 2));
+	if (!fall)
+		return NULL;
+	for (int y = -1; y <= shade.h; y++)
+		for (int x = -1; x <= shade.w; x++) {
+			float d = hypotf((float)(x * SHADE_DIV + SHADE_DIV / 2 - c->x), (float)(y * SHADE_DIV + SHADE_DIV / 2 - c->y));
+			float v = 1 - d / (float)c->reach;
+			fall[(size_t)(y + 1) * (size_t)(shade.w + 2) + (size_t)(x + 1)] = (uint8_t)(v <= 0 ? 0 : v * 255);
+		}
+	return fall;
+}
+
 static bool world_setup(void)
 {
 	shade.w = art.w / SHADE_DIV, shade.h = art.h / SHADE_DIV;
 	haze.w = art.w / HAZE_DIV, haze.h = art.h / HAZE_DIV;
 	air.w = art.w / AIR_DIV, air.h = art.h / AIR_DIV;
 	sealp.w = art.seal_w, sealp.h = art.seal_h;
-	size_t n = (size_t)shade.w * (size_t)shade.h, fall = (size_t)(shade.w + 2) * (size_t)(shade.h + 2);
+	size_t n = (size_t)shade.w * (size_t)shade.h;
 	shade_dist = malloc(n * sizeof *shade_dist);
-	if (!shade_dist)
+	if (!shade_dist || !(art.rest.fall = pool_make(&art.rest)))
 		return false;
 	for (int t = 0; t < art.nt; t++) {
 		struct torch *c = &art.torches[t];
-		c->fall = malloc(fall);
-		if (!c->fall)
+		if (!(c->fall = pool_make(c)))
 			return false;
-		for (int y = -1; y <= shade.h; y++)
-			for (int x = -1; x <= shade.w; x++) {
-				float d = hypotf((float)(x * SHADE_DIV + SHADE_DIV / 2 - c->x), (float)(y * SHADE_DIV + SHADE_DIV / 2 - c->y));
-				float v = 1 - d / (float)c->reach;
-				c->fall[(size_t)(y + 1) * (size_t)(shade.w + 2) + (size_t)(x + 1)] = (uint8_t)(v <= 0 ? 0 : v * 255);
-			}
 		c->slow = (float)t * 2.1f, c->quick = (float)t * 0.9f;
 		c->k = 1;
 		c->gust = 140 + (int)rnd(240);
@@ -335,18 +385,28 @@ static void torch_step(struct torch *t)
 		t->sway_y = (int)rnd(3) - 1;
 }
 
-/* the shade: each texel the fires' light, through the table; while the world opens, less and less of it from the middle out */
+/* the figure's breath: in, a little quicker than out; 0 … 1 */
+static float breath(void)
+{
+	float ph = (float)(tick % BREATH_STEPS) / BREATH_STEPS * 2 * (float)M_PI;
+	return 0.5f + 0.5f * sinf(ph + 0.55f * sinf(ph));
+}
+
+/* the shade: each texel the fires' light and the figure's, through the table; while the world opens, less and less of it from the middle out */
 static void shade_step(float open_r)
 {
 	int sw = shade.w, sh = shade.h, nt = art.nt;
-	const uint8_t *fall[MAXTORCH];
-	int k[MAXTORCH];
+	const uint8_t *fall[MAXTORCH + 1];
+	int k[MAXTORCH + 1];
 	float boost = waking ? 1 + 3 * wake_p : 1;
 	for (int t = 0; t < nt; t++) {
 		const struct torch *c = &art.torches[t];
 		fall[t] = c->fall + (size_t)(1 + c->sway_y) * (size_t)(sw + 2) + (size_t)(1 + c->sway);
 		k[t] = (int)(c->k * boost * 256);
 	}
+	fall[nt] = art.rest.fall;
+	k[nt] = (int)((M->rest + M->deep * breath()) * boost * 256);
+	nt++;
 	uint32_t *px = shade.px;
 	for (int y = 0; y < sh; y++) {
 		for (int x = 0; x < sw; x++, px++) {
@@ -630,8 +690,16 @@ static void haze_step(void)
 	}
 }
 
-/* ── the time: a small seal, hakubun, the digits cut out of the red; another place in the middle every minute ── */
-/* changes the picture only at the minute, and the step after it (it is struck, in the hot ink); says so in seal_changed */
+/* ── the time: a seal, hakubun, its digits cut out of the red, the painting faintly through them; at another third of the frame every minute ── */
+/* a's share (0 … 256) of ink h, the rest of ink l */
+static uint32_t ink_mix(uint32_t h, uint32_t l, uint32_t a)
+{
+	uint32_t rb = (((h & 0x00ff00ffu) * a + (l & 0x00ff00ffu) * (256 - a)) >> 8) & 0x00ff00ffu;
+	uint32_t g = (((h & 0x0000ff00u) * a + (l & 0x0000ff00u) * (256 - a)) >> 8) & 0x0000ff00u;
+	return 0xff000000u | rb | g;
+}
+
+/* changes the picture only at the minute, and the steps after it, while the struck ink cools; says so in seal_changed */
 static void seal_step(void)
 {
 	seal_changed = false;
@@ -644,32 +712,34 @@ static void seal_step(void)
 		localtime_r(&now, &tm);
 		strftime(seal_digits, sizeof seal_digits, "%I%M", &tm);
 		seal_minute = minute;
-		/* a spiral through the middle (Vogel's: the golden angle), each minute far from the last */
-		int k = (int)(minute % 21);
-		float r = (float)art.cr * sqrtf(((float)k + 0.5f) / 21.0f), a = (float)k * 2.39996f;
-		seal_x = art.cx + (int)(r * cosf(a)) - sealp.w / 2;
-		seal_y = art.cy + (int)(r * sinf(a)) - sealp.h / 2;
-		seal_struck = 2;
+		/* the spots in turn, a little aside each time (Vogel's spiral, the golden angle): the same pixels only after hours */
+		const int *c = art.spots[minute % art.ns];
+		int k = (int)(minute % 23);
+		float r = SEAL_ASIDE * sqrtf(((float)k + 0.5f) / 23.0f), a = (float)k * 2.39996f;
+		seal_x = c[0] + (int)(r * cosf(a)) - sealp.w / 2;
+		seal_y = c[1] + (int)(r * sinf(a)) - sealp.h / 2;
+		seal_struck = SEAL_COOL;
 	}
 	if (!seal_struck)
 		return;
 	seal_changed = true;
-	uint32_t ink = pal[--seal_struck ? SEAL_HOT : SEAL_INK];
+	seal_struck--;
+	uint32_t ink = ink_mix(pal[SEAL_HOT], pal[SEAL_INK], (uint32_t)(seal_struck * seal_struck * 256 / (SEAL_COOL * SEAL_COOL)));
 	int atlas = art.seal_w + 10 * art.digit_w;
 	for (int y = 0; y < sealp.h; y++)
 		for (int x = 0; x < sealp.w; x++)
 			sealp.px[y * sealp.w + x] = ink_at(ink, art.seal[y * atlas + x]);
 	/* the digits cut out: two rows of two, centred */
-	int gap = 1, x0 = (sealp.w - 2 * art.digit_w - gap) / 2, y0 = (sealp.h - 2 * art.digit_h) / 2;
+	int x0 = (sealp.w - 2 * art.digit_w) / 2, y0 = (sealp.h - 2 * art.digit_h) / 2;
 	for (int d = 0; d < 4; d++) {
-		int gx = x0 + (d & 1) * (art.digit_w + gap), gy = y0 + (d >> 1) * art.digit_h;
+		int gx = x0 + (d & 1) * art.digit_w, gy = y0 + (d >> 1) * art.digit_h;
 		const uint8_t *g = art.seal + art.seal_w + (seal_digits[d] & 15) * art.digit_w;
 		for (int y = 0; y < art.digit_h; y++)
 			for (int x = 0; x < art.digit_w; x++) {
 				int m = g[y * atlas + x];
 				if (m) {
 					uint32_t *q = &sealp.px[(gy + y) * sealp.w + gx + x];
-					*q = over_px(ink_at(pal[SEAL_CUT], m), *q);
+					*q = ink_at(pal[SEAL_CUT], m * SEAL_THROUGH / 256) + scale_px(*q, (uint32_t)(256 - m));
 				}
 			}
 	}
@@ -693,7 +763,7 @@ static void world_step(double now, float open_r)
 	for (int t = 0; t < art.nt; t++)
 		torch_step(&art.torches[t]);
 	shade_step(open_r);
-	if (!art.light)
+	if (art.haze)
 		haze_step();
 	air_step();
 	anims_step(now);

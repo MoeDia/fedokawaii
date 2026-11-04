@@ -74,7 +74,7 @@ if [[ -n $SAVER ]]; then
   ln -sfn themes/dark "$HOME/.config/fedokawaii/current"
 fi
 
-case_ "the scene, both moods: its words built from the lock's art as it is now (tools/build-saver.py after any change to it); the painting the lock's own size, without the figure"
+case_ "the scene, both moods: its words built from the lock's art as it is now (tools/build-saver.py after any change to it); the painting the lock's own file, the figure asleep a patch over it"
 for t in dark light; do
   d=$REPO/configs/home/.local/share/fedokawaii/$t
   python3 -I - "$d" "$t" <<'PY' && _ok || _no "$t: run tools/build-saver.py"
@@ -91,8 +91,20 @@ for f in sorted(d.glob("lock-*")):
     sums.update(f.name.encode() + f.read_bytes())
 assert kv["lock"][0][0] == sums.hexdigest()[:16], "the lock's art changed since"
 W, H = map(int, kv["size"][0])
+assert kv["wall"][0][0] == "lock-scene.png", "the painting is not the lock's own"
 assert Image.open(d / kv["wall"][0][0]).size == (W, H), "the painting's size"
 assert len(kv["torch"]) >= 1, "no fire"
+assert len(kv["patch"]) == 1, "the sleeper: one patch"
+name, x, y = kv["patch"][0][0], int(kv["patch"][0][1]), int(kv["patch"][0][2])
+pw, ph = Image.open(d / name).size
+assert 0 <= x and 0 <= y and x + pw <= W and y + ph <= H and pw * ph < W * H / 3, f"{name}: outside the painting, or no patch at all ({pw} x {ph})"
+cx, cy = map(int, kv["centre"][0])
+assert x <= cx <= x + pw + W // 4 and y <= cy + H // 3, "the patch is not on the figure"
+assert 2 <= len(kv["spot"]) <= 4, "the seal's spots"
+sw, sh = int(kv["seal"][0][0]), int(kv["seal"][0][1])
+for sx, sy in ((int(a), int(b)) for a, b in kv["spot"]):
+    assert W * .25 < sx < W * .75 and H * .25 < sy < H * .75 and abs(sx - W / 2) > W * .15, f"a spot not near a third of the frame: {sx} {sy}"
+    assert 0 <= sx - sw // 2 - 56 and sx + sw // 2 + 56 <= W and 0 <= sy - sh // 2 - 56 and sy + sh // 2 + 56 <= H, f"the seal leaves the frame at {sx} {sy}"
 for a in kv.get("anim", []):
     assert not a[0].startswith("lock-fig-"), "a strip tied to the figure"
     w, h, n = int(a[3]), int(a[4]), int(a[5])
@@ -105,13 +117,13 @@ done
 if [[ -n $RENDER ]]; then
   mkdir -p "$HOME/.config/fedokawaii"
   for t in dark light; do
-    case_ "$t: the world with no screen: asleep the painting lies in the dark but round its fires, it breathes, its air moves, a seal holds the time; a step costs next to nothing"
+    case_ "$t: the world with no screen: asleep the painting lies in the dark but round its fires, the figure shut-eyed and breathing, its air moves, a seal holds the time; a step costs next to nothing"
     ln -sfn "themes/$t" "$HOME/.config/fedokawaii/current"
     o=$TMP/r-$t; mkdir -p "$o"
-    out=$("$RENDER" "$o" --steps 730 --every 365 --fall --wake --frames 60 --clock 09:41 --seed 3 2>&1); rc=$?
+    out=$("$RENDER" "$o" --steps 730 --every 43 --fall --wake --frames 60 --clock 09:41 --seed 3 2>&1); rc=$?
     eq "$rc" 0 "the renderer: $out"
-    py=$(python3 -I - "$o" "$REPO/configs/home/.local/share/fedokawaii/$t" "$t" <<'PY'
-import glob, sys
+    py=$(python3 -I - "$o" "$REPO/configs/home/.local/share/fedokawaii/$t" "$t" "$REPO/configs/home/.config/fedokawaii/themes/$t/saver.conf" <<'PY'
+import glob, re, sys
 import numpy as np
 from PIL import Image
 o, d, mood = sys.argv[1:4]
@@ -121,10 +133,10 @@ for line in open(f"{d}/saver-scene.txt", encoding="utf-8"):
     if w:
         kv.setdefault(w[0], []).append(w[1:])
 paint = np.asarray(Image.open(f"{d}/{kv['wall'][0][0]}").convert("RGB"), float)
-cx, cy, cr = map(int, kv["centre"][0])
+cx, cy = map(int, kv["centre"][0])
 H, W = paint.shape[:2]
-a = np.asarray(Image.open(f"{o}/step-000365.ppm").convert("RGB"), float)
-b = np.asarray(Image.open(f"{o}/step-000730.ppm").convert("RGB"), float)
+a = np.asarray(Image.open(f"{o}/step-000344.ppm").convert("RGB"), float)
+b = np.asarray(Image.open(f"{o}/step-000688.ppm").convert("RGB"), float)
 yy, xx = np.mgrid[0:H, 0:W]
 fires = np.zeros((H, W), bool)
 for t in kv["torch"]:
@@ -137,6 +149,20 @@ ratio_far = a[far].sum() / max(1, paint[far].sum())
 print(f"near {ratio_near:.2f} far {a[far].mean() if mood == 'dark' else ratio_far:.2f}")
 moved = (np.abs(a - b).sum(-1) > 12).mean()
 print(f"moved {moved:.4f}")
+# the sleeper: the patch on the frame, not the lock's eyes; its middle lit by its own breath, dim, never black
+pn, px, py = kv["patch"][0][0], int(kv["patch"][0][1]), int(kv["patch"][0][2])
+patch = np.asarray(Image.open(f"{d}/{pn}").convert("RGB"), float)
+lock_there = paint[py:py + patch.shape[0], px:px + patch.shape[1]]
+assert (np.abs(patch - lock_there).sum(-1) > 30).mean() > .01, "the patch is the lock's own picture"
+m = a[cy - 60:cy + 60, cx - 120:cx + 120].mean()
+print(f"sleeper {m / max(1, paint[cy - 60:cy + 60, cx - 120:cx + 120].mean()):.2f}")
+# the breath: the figure's light at the middle, over a breath
+bs = [np.asarray(Image.open(f).convert("RGB"), float)[cy - 60:cy + 60, cx - 120:cx + 120].mean() for f in sorted(glob.glob(f"{o}/step-*.ppm"))]
+print(f"breath {max(bs) - min(bs):.2f}")
+# the seal: its ink, and through its digits the painting
+ink = np.array([int(v, 16) for v in re.findall("..", re.search(r"^seal=(\w+)", open(sys.argv[4]).read(), re.M).group(1))], float)
+red = (np.abs(b - ink).sum(-1) < 40).mean() * W * H
+print(f"seal {red:.0f}")
 fall = sorted(glob.glob(f"{o}/fall-*.ppm"))
 wake = sorted(glob.glob(f"{o}/wake-*.ppm"))
 key = lambda f: (np.asarray(Image.open(f).convert("RGB")) == [255, 0, 255]).all(-1).mean()
@@ -156,21 +182,29 @@ PY
     python3 -I -c "import sys; a, b = float(sys.argv[1]), float(sys.argv[2]); sys.exit(0 if a > 0.95 and b < 0.01 else 1)" "$f0" "$f1" && _ok || _no "the fall: from nothing ($f0 clear) to the painting whole ($f1 clear)"
     read -r _ w0 w1 <<<"$(sed -n 's/^wake/wake/p' <<<"$py")"
     python3 -I -c "import sys; a, b = float(sys.argv[1]), float(sys.argv[2]); sys.exit(0 if a < 0.01 and b > 0.9 else 1)" "$w0" "$w1" && _ok || _no "the wake: from the painting whole ($w0 clear) to the lock all clear of it ($w1 clear)"
-    # the seal: a minute on, stamped elsewhere, far from the last, still in the middle
+    read -r _ sleeper <<<"$(sed -n 's/^sleeper/sleeper/p' <<<"$py")"
+    python3 -I -c "import sys; v = float(sys.argv[1]); sys.exit(0 if 0.15 < v < 0.75 else 1)" "$sleeper" && _ok || _no "the sleeper: its middle at $sleeper of the painting's light, not dim, or lost"
+    read -r _ breath <<<"$(sed -n 's/^breath/breath/p' <<<"$py")"
+    python3 -I -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.8 else 1)" "$breath" && _ok || _no "the sleeper does not breathe ($breath levels over a breath)"
+    read -r _ red <<<"$(sed -n 's/^seal/seal/p' <<<"$py")"
+    ((red > 10000)) && _ok || _no "no seal on the frame ($red pixels of its ink)"
+    # the seal: a minute on, stamped elsewhere, across the frame, each near a third of it
     seals=$(grep '^seal ' <<<"$out")
     eq "$(wc -l <<<"$seals")" 2 "730 steps from 09:41: two stamps ($seals)"
     has "$seals" "seal 0941 "; has "$seals" "seal 0942 "
-    python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t/saver-scene.txt" "$seals" <<'PY' && _ok || _no "the seal does not move far, or leaves the middle: $seals"
+    python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t/saver-scene.txt" "$seals" <<'PY' && _ok || _no "the seal does not move across the frame, or leaves its spots: $seals"
 import math, sys
-cx = cy = cr = None
+spots, sw, sh = [], 0, 0
 for line in open(sys.argv[1], encoding="utf-8"):
     w = line.split()
-    if w and w[0] == "centre":
-        cx, cy, cr = map(int, w[1:4])
+    if w and w[0] == "spot":
+        spots.append((int(w[1]), int(w[2])))
+    if w and w[0] == "seal":
+        sw, sh = int(w[1]), int(w[2])
 pts = [tuple(map(int, l.split()[2:4])) for l in sys.argv[2].splitlines()]
-assert math.dist(pts[0], pts[1]) > 40
+assert math.dist(pts[0], pts[1]) > 300
 for x, y in pts:
-    assert math.dist((x, y), (cx, cy)) < cr + 90
+    assert min(math.dist((x + sw // 2, y + sh // 2), s) for s in spots) < 58
 PY
     us=$(sed -n 's/^a step: \([0-9]*\) µs.*/\1/p' <<<"$out")
     ((us < 4000)) && _ok || _no "a step costs $us µs on average"
