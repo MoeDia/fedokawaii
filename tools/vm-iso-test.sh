@@ -324,7 +324,8 @@ do_carry_save() {
   sleep 5
   vm_ssh "$name" 'set -e
     d=$(lsblk -dnpo NAME,TRAN | awk "\$2 == \"usb\" { print \$1; exit }"); [ -n "$d" ]
-    sudo mkfs.ext4 -q -L FKCARRY "$d"; sudo udevadm settle; sleep 3
+    sudo mkfs.ext4 -q -L FKCARRY -E root_owner=$(id -u):$(id -g) "$d"; sudo udevadm settle
+    for i in 1 2 3 4 5 6 7 8 9 10; do lsblk -nro LABEL,MOUNTPOINT | grep -q "^FKCARRY /" && break; sleep 2; done
     cd ~; mkdir -p Notes Documents blasphemous-save-backup-20261022 .ssh .config/net.imput.helium/Default
     echo "- [ ] the list" >Notes/todo.md; echo "مرحبا 日本語" >"Documents/العربية 日本語.txt"
     head -c 5000000 /dev/urandom >Documents/big.bin; echo save >blasphemous-save-backup-20261022/savegame
