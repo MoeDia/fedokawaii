@@ -114,7 +114,10 @@ class Course:
         if "pos" in g:
             colour = SY.POS[g["pos"]][1]
         if "bank" in g:
-            fen, colour = self.bank_starts.setdefault(no, self._bank_start(g["bank"], no, pr))
+            # (once for a game: the row under the cursor asks at every frame, and the search goes through the whole bank)
+            if no not in self.bank_starts:
+                self.bank_starts[no] = self._bank_start(g["bank"], no, pr)
+            fen, colour = self.bank_starts[no]
             line = []
         light = g.get("light")
         clock = g.get("clock", (5, 5) if light and wk.no > 4 else wk_clock(wk.no))
