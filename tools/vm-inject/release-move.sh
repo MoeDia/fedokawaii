@@ -20,7 +20,6 @@ cases=("$@"); ((${#cases[@]})) || cases=(build green cut red)
 . "$(dirname "$0")/lib.sh"
 # shellcheck disable=SC2154  # (here, log, out: lib.sh's)
 bad=0
-state_has() { bash "$here/vm-snap.sh" "$vm" list | grep -qx "$1"; }
 U=/var/lib/fedokawaii/update
 
 build() {

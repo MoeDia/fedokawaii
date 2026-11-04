@@ -3,7 +3,8 @@
 # row starts the VM from the state "inject" (below), breaks one thing, presses the button as Super+U
 # presses it, restores nothing by hand, and holds only if the machine ends working and says what
 # happened. The rows' words are the system's own: the report's line, the notice kept for login.
-#   bash tools/vm-inject/run-all.sh VM TREE base        once: the state "inject" from "pressed" (an
+#   bash tools/vm-inject/run-all.sh VM TREE base        once: the state "inject" from "pressed", or
+#        from the state INJ_BASE names ("moved": kept after release-move.sh green, the next Fedora) (an
 #        up-to-date system with this desktop, the desktop at every start): the signing key of the
 #        test packages, fk-inject-a and -b 1.0 from a local repository, every other repository
 #        showing nothing newer (the network still used: includepkgs), the next Fedora far off
@@ -47,7 +48,7 @@ TOOL
 )
 base() {
   inj_init "$vm" "$src" base
-  inj_from pressed
+  inj_from "${INJ_BASE:-pressed}"
   run --apply "$src" >>"$log" 2>&1 || { row BROKEN "the toolkit could not go in"; return 1; }
   inj_desktop_always
   run 'sudo dnf install -y -q rpm-build rpm-sign createrepo_c' >>"$log" 2>&1 || { row BROKEN "the build tools"; return 1; }

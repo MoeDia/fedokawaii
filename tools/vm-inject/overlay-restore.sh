@@ -10,12 +10,12 @@
 # from home), kawa-snap list marks S booted; after `kawa-snap restore S` (no --with-home) and a
 # start: / the root subvolume again, still no mark, his files the same, the layout flat, the
 # one-time entry gone.
-#   bash tools/vm-inject/overlay-restore.sh [VM]   (VM f44)
+#   bash tools/vm-inject/overlay-restore.sh VM
 # Out: a summary on stdout, the log in /dev/shm/r27/overlay-restore.log. Exit 0 whole · 1 not · 2 the VM.
 # shellcheck disable=SC2015  # (A && yes || no: yes only prints, it never fails)
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
-vm=${1:-f44}
+vm=${1:?VM}
 log=/dev/shm/r27/overlay-restore.log; mkdir -p "${log%/*}"; : >"$log"
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 chk() { local o; o=$(run "$1" 2>&1); printf '$ %s\n%s\n' "$1" "$o" >>"$log"; printf '%s' "$o"; }

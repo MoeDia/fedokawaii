@@ -13,7 +13,7 @@ world built; releases
 U=$W/var/lib/fedokawaii/update
 fkh mounts /run/fedokawaii/top
 printf '#!/bin/sh\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"
-fkh pending "bash 5.3-1.fc44 5.3-2.fc44"
+fkh pending "bash 5.3-1.fc45 5.3-2.fc45"
 keep built
 
 case_ "no release on GitHub yet: this toolkit goes on, nothing asked of anyone"
