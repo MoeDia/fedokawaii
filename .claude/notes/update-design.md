@@ -403,7 +403,7 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 5 | the network drops | two retries, then stop: "nothing changed — try again later" | run-all network_kill |
 | 6 | a bad or unsigned package (F45 enforces signatures — B1) | dnf refuses before the candidate; the repository named | run-all pkg_unsigned |
 | 7 | the disk too full before | phase 0 refuses, says how much is needed and offers snapshot cleanup | run-all disk_full |
-| 8 | Btrfs metadata full (no unallocated space — B3 #14) | phase 0 reads `btrfs filesystem usage`; refuses with the balance it will run | run-all disk_unalloc |
+| 8 | Btrfs metadata full (no unallocated space — B3 #14) | phase 0 reads `btrfs filesystem usage`; runs the balance itself (`-dusage=50`); still too little: refused, says to delete old snapshots | run-all disk_unalloc |
 | 9 | /boot or the ESP full (B3 #5) | phase 0 checks; a kernel is pruned only outside a probation | run-all boot_full |
 | 10 | rpm's database damaged before the run | phase 0: `rpm -qa` and `rpm --verify -a` (B5); `rpmdb --rebuilddb` in the candidate first, the live one only after a green candidate | run-all rpmdb_damage |
 | 11 | a scriptlet fails | the candidate is red → bisect → held; the running system never saw it | run-all pkg_scriptlet |

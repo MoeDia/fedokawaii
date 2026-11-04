@@ -97,12 +97,24 @@ u_start() {
   # (the copy's container: without it every update would look red — said, never guessed)
   command -v systemd-nspawn >/dev/null || die "systemd-nspawn is missing (systemd-container) — fedokawaii repair puts it in; nothing changed"
   up_leftovers   # (before the space is measured: a stale copy is gigabytes)
+  # (little room: snapper's own cleanup rules run first — the pinned ones stay — before it is refused)
+  if (($(space_free /) < 15360 * 1024 ** 2)); then
+    log "little room on the disk: old snapshots go first, by their own rules"
+    snapper -c root cleanup number >/dev/null 2>&1 || true
+    snapper -c home cleanup number >/dev/null 2>&1 || true
+  fi
   preflight 15360
   if mountpoint -q /boot/efi; then need_space /boot/efi 50; fi
   # (Btrfs writes into unallocated chunks: free space alone can hide a disk that cannot take a write)
-  un=$(btrfs filesystem usage -b / 2>/dev/null | awk '/Device unallocated:/ { print $3; exit }') || un=""
+  un=$(up_unallocated)
   if [[ $un =~ ^[0-9]+$ ]] && ((un < 5 * 1024 ** 3)); then
-    die "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated — this needs 5GB: delete old snapshots (fedokawaii snapshots), then: sudo btrfs balance start -dusage=50 /"
+    # (half-empty chunks given back: no data moves away, a few minutes at most; he never has to run it)
+    log "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated: its half-empty chunks given back first (btrfs balance)"
+    btrfs balance start -dusage=50 / >/dev/null 2>&1 || true
+    un=$(up_unallocated)
+    if [[ $un =~ ^[0-9]+$ ]] && ((un < 5 * 1024 ** 3)); then
+      die "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated — this needs 5GB: delete old snapshots (fedokawaii snapshots), then press update again"
+    fi
   fi
   # (the checks' own tools first: an install from before they were in the manifest lacks them, and
   # an update that cannot check could never be the one that brings them)
@@ -118,6 +130,7 @@ u_start() {
   ((rc == 2)) && die "the desktop's start check could not run ($why) — nothing changed; press update again"
   [[ -z $why ]] || { log "red before the update: ${why//$'\n'/ · }"; printf '%s\n' "$why" >>"$UPD/baseline"; }
 }
+up_unallocated() { btrfs filesystem usage -b / 2>/dev/null | awk '/Device unallocated:/ { print $3; exit }' || true; }
 # rpm's database read whole (design §5 row 10). Damaged: rebuilt from what it can still read, its copy
 # kept until the rebuilt one shows as many packages as a snapshot's — else put back and said: a damaged
 # database never goes into a transaction

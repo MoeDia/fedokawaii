@@ -188,7 +188,7 @@ disk_unalloc() {
   # (chunks allocated, the space then freed: free is plenty, nothing unallocated — Btrfs's own trap)
   run 'f=$(($(sudo btrfs filesystem usage -b / | awk "/Device unallocated:/ { print \$3 }") - 2 * 1024 ** 3)); sudo fallocate -l "$f" /var/tmp/fill; sync; sudo rm /var/tmp/fill; sync; sudo btrfs filesystem usage -b / | grep -E "unallocated|Free .estimated"' >>"$log" 2>&1
   press
-  ok_if 'said "unallocated" && [[ $(v fk-inject-a) == 1.0 ]]' "free space but nothing unallocated: refused (exit $INJ_RC): $(grep -m1 unallocated <<<"$INJ_OUT")"
+  ok_if 'said "unallocated" && wait_desktop' "free space but nothing unallocated: exit $INJ_RC, a $(v fk-inject-a): $(grep -m1 unallocated <<<"$INJ_OUT")"
 }
 boot_full() {
   from boot-full || return 1; pk fk-inject-a 1.1
