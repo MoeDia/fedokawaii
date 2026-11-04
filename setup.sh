@@ -1948,7 +1948,7 @@ open_ports() {   # torrra's port and LocalSend's, open in the firewall (when fir
 
 # neovim's plugins at the commits of the desktop's own lazy-lock.json (configs/home/.config/nvim:
 # tested together, moved only with this toolkit): the missing cloned, the moved checked out, what
-# is no longer listed gone. Never `Lazy! sync` or `update`: those would float to today's newest
+# is no longer listed gone. Never anything that floats to a plugin's newest: only the lock moves them
 nvim_restore() {
   run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' +qa
 }

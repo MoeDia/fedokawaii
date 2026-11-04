@@ -317,5 +317,58 @@ setup_tbl=$(sed -n '/^require("lazy").setup({$/,/^})$/p' "$L")
 has "$setup_tbl" "  rocks = { enabled = false }," "rocks off, at the top of setup()"
 has "$setup_tbl" "  checker = { enabled = false },"
 eq "$(tr -cd '{' <<<"$setup_tbl" | wc -c)" "$(tr -cd '}' <<<"$setup_tbl" | wc -c)" "{ } balanced"
+has "$setup_tbl" "  change_detection = { enabled = false }," "no timer watching the config"
+case_ "neovim: nvim +Tutor stays possible (the Learn book's first exercise): tutor is never among the plugins taken off"
+line=$(grep 'disabled_plugins = ' "$L")
+has "$line" '"gzip"'; lacks "$line" '"tutor"'
+
+# ── neovim: lighter, and at the lock's commits (T30) ─────────────────────────
+NV=$REPO/configs/home/.config/nvim
+case_ "the lock is shipped, in lazy.nvim's own form: one plugin a line, sorted as it sorts them, 40-digit commits; the line nvim_off_lock reads"
+LOCK=$NV/lazy-lock.json
+out=$(python3 -I -B - "$LOCK" <<'PY'
+import json, re, sys
+text = open(sys.argv[1]).read()
+d = json.loads(text)
+names = list(d)
+print(names == sorted(names), all(re.fullmatch("[0-9a-f]{40}", v["commit"]) and v["branch"] for v in d.values()))
+want = "{\n" + ",\n".join(f'  "{n}": {{ "branch": "{v["branch"]}", "commit": "{v["commit"]}" }}' for n, v in d.items()) + "\n}\n"
+print(text == want, len(d))
+PY
+)
+has "$out" "True True"; has "$out" "True $(sed -n 's/^ *"\([^"]*\)": *{.*"commit": *"\([0-9a-f]*\)".*/\1 \2/p' "$LOCK" | wc -l)"
+case_ "what lean.lua takes off is not in the lock (a plugin off and pinned would be fetched for nothing)"
+off=$(sed -n 's/^ *{ "\([^"]*\)", enabled = false },.*/\1/p' "$NV/lua/plugins/lean.lua")
+[[ -n $off ]] && _ok || _no "lean.lua names none"
+for o in $off; do lacks "$(cat "$LOCK")" "\"${o##*/}\":"; done
+case_ "nothing floats: no starter fetched, no Lazy! sync or update; every plugin step is Lazy! restore"
+for f in setup.sh theme.sh; do
+  lacks "$(cat "$REPO/$f")" "LazyVim/starter"; lacks "$(cat "$REPO/$f")" "Lazy! sync"; lacks "$(cat "$REPO/$f")" "Lazy! update"; lacks "$(cat "$REPO/$f")" "Lazy! install"
+  has "$(cat "$REPO/$f")" "'+Lazy! restore' '+Lazy! clean'"
+done
+case_ "Mason: setup installs what verify asks for (LazyVim's own ensure_installed no longer runs)"
+tools=$(sed -n 's/^MASON_TOOLS="\(.*\)"$/\1/p' "$REPO/setup.sh")
+[[ -n $tools ]] && _ok || _no "no MASON_TOOLS in setup.sh"
+has "$(cat "$REPO/verify.sh")" "for b in $tools; do test -x ~/.local/share/nvim/mason/bin/"
+case_ "the status line: nothing cut with an ellipsis, and every group it names is the colourscheme's"
+SL=$NV/lua/config/statusline.lua
+lacks "$(cat "$SL")" "…"
+missing=""
+for g in $(grep -o 'KawaSt[A-Z][A-Za-z]*' "$SL" | sort -u); do
+  n=${g#KawaSt}
+  grep -q "\"$n\"" "$NV/lua/plugins/colorscheme.lua" || missing="$missing $n"
+done
+for n in Normal Insert Visual Replace Command Terminal Error Warn Info Hint; do
+  case $n in
+    Error|Warn|Info|Hint) grep -q "$n = \"#" "$NV/lua/plugins/colorscheme.lua" || missing="$missing $n" ;;
+    *) grep -q "tile(\"$n\"" "$NV/lua/plugins/colorscheme.lua" || missing="$missing $n" ;;
+  esac
+done
+eq "$missing" ""
+case_ "the parsers: setup's step reads lean.lua's list, one list; the languages taught are in it"
+parsers=$(sed -n '/opts.ensure_installed = {/,/}/p' "$NV/lua/plugins/lean.lua")
+for l in python rust bash lua markdown markdown_inline json toml; do has "$parsers" "\"$l\""; done
+for l in tsx typescript javascript html xml; do lacks "$parsers" "\"$l\""; done
+has "$(cat "$REPO/setup.sh")" "require(\"config.parsers\").sync()"
 
 done_

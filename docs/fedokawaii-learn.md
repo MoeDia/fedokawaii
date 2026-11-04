@@ -776,7 +776,7 @@ the pane on the right tells more about the one under the cursor. What is still b
 | system | status | how things stand, on one page | when curious |
 | system | verify | every check; changes nothing | after something odd |
 | system | repair | verify, then put right what it found | when verify fails |
-| update | update | everything up to date: Fedora, Brave, Claude Code, the desktop's tools, neovim's plugins — with a snapshot first | each season, when it says *due* |
+| update | update | everything up to date: Fedora, Brave, Claude Code, the desktop's tools, neovim's plugins at the versions tested together — with a snapshot first | each season, when it says *due* |
 | update | fedokawaii | the desktop itself, newest from GitHub | when you hear of a change |
 | update | Fedora N | the move to the next release | once it says *ready* |
 | snapshots | go back | the list of snapshots of the system, and one brought back | before and after a risky change |
@@ -1080,6 +1080,7 @@ runs **LazyVim**, a ready-made setup: a file finder, language servers, lazygit i
 | save · save and quit · quit without saving | `:w` · `:wq` · `:q!` (or **Ctrl+S** to save) |
 | undo · redo | `u` · **Ctrl+R** |
 | *recording @q* at the bottom | press `q` once |
+| a message went by too fast | `g<` shows the last ones again |
 
 > **Word — mode.** In *Normal* mode, keys are commands; in *Insert* mode (`i`), keys type text.
 > **Esc** always goes back to Normal.

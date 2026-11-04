@@ -2,6 +2,16 @@
 -- .claude/notes/lane-nvim.md). Off: what costs more than it gives here. Later: what the first
 -- screen does not need waits for its key, its file or the frame after. The keys stay LazyVim's.
 
+-- LazyVim compiled a language's indent, fold and text-object queries just to learn that they exist
+-- (6–25 ms each, at every first file of a language): their files say that, and each query compiles
+-- when it is first used. (M.have reads this through its table; a LazyVim without it: no harm done)
+local TS = LazyVim.treesitter
+function TS.have_query(lang, query)
+  local key = lang .. ":" .. query
+  if TS._queries[key] == nil then TS._queries[key] = #vim.treesitter.query.get_files(lang, query) > 0 end
+  return TS._queries[key]
+end
+
 -- after the first frame when a file was named on the command line; else with the first file
 local AFTER_FIRST_FRAME = vim.fn.argc(-1) > 0 and "VeryLazy" or "LazyFile"
 
@@ -47,21 +57,6 @@ return {
     cmd = { "LspInfo", "LspLog", "LspRestart", "LspStart", "LspStop" },
   },
 
-  -- ] f, [ c and the like compile their language's queries (13–25 ms) when they are first
-  -- pressed, not for every code file opened
-  {
-    "nvim-treesitter/nvim-treesitter-textobjects",
-    event = function() return {} end,
-    keys = {
-      { "]f", mode = { "n", "x", "o" } }, { "[f", mode = { "n", "x", "o" } },
-      { "]F", mode = { "n", "x", "o" } }, { "[F", mode = { "n", "x", "o" } },
-      { "]c", mode = { "n", "x", "o" } }, { "[c", mode = { "n", "x", "o" } },
-      { "]C", mode = { "n", "x", "o" } }, { "[C", mode = { "n", "x", "o" } },
-      { "]a", mode = { "n", "x", "o" } }, { "[a", mode = { "n", "x", "o" } },
-      { "]A", mode = { "n", "x", "o" } }, { "[A", mode = { "n", "x", "o" } },
-    },
-  },
-
   -- the signs come a moment after the text, as they always did: git answers later anyway
   {
     "lewis6991/gitsigns.nvim",
@@ -73,8 +68,12 @@ return {
   },
 
   -- Ctrl+D and Ctrl+U land at once: the animated scroll took 460 ms to settle and wrote 60 KB of
-  -- screen per press
-  { "folke/snacks.nvim", opts = { scroll = { enabled = false } } },
+  -- screen per press. And the scope's line is there with the key's own frame, not drawn out over
+  -- 16 more (20 ms a step, every time the cursor crosses into another block)
+  {
+    "folke/snacks.nvim",
+    opts = { scroll = { enabled = false }, indent = { animate = { enabled = false } } },
+  },
 
   -- the parsers for what is written here; the others are never compiled by setup
   {

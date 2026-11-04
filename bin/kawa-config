@@ -130,7 +130,7 @@ yours_menu() {
 # syncthing serve --no-browser &" ;;
     3) yours "neovim plugins" "neovim reads it at its next start" "$HOME/.config/nvim/lua/plugins/local.lua" \
 "-- ~/.config/nvim/lua/plugins/local.lua — yours: LazyVim reads every file in lua/plugins/
--- (the theme writes only colorscheme.lua there). Each plugin, or a change to one, is a table:
+-- (the theme never writes this one). Each plugin, or a change to one, is a table:
 -- https://www.lazyvim.org/configuration/plugins
 return {
   -- { \"folke/zen-mode.nvim\", cmd = \"ZenMode\" },

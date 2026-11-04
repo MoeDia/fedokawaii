@@ -15,7 +15,7 @@
 #   typing    80 characters into a terminal, 40 ms apart: key → glass (dwl's part: wtype's
 #             virtual keyboard has no kernel time)
 #   menus     Super+U, Super+N, Super+V (warm), Super+Space, Super+/ , Super+C, Super+E: press → glass
-#   nvim      nvim --startuptime, 5 runs: total ms
+#   nvim      to the first frame and the full screen, in a pty that answers as foot does (tools/nvim-bench.py)
 # Writes OUTDIR/report.txt (and the raw logs). Exit 0 · 2 no session to drive.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -120,12 +120,12 @@ super 1
 for ph in terminal switch typing menus; do echo "$ph ${from[$ph]} ${to[$ph]}"; done >"$out/phases.txt"
 phases "$out" >>"$rep"
 
-# ── nvim
-say ""; say "── nvim --startuptime (5 runs, ms)"
-for i in 1 2 3 4 5; do
-  nvim --headless --startuptime "$out/nvim$i.log" +qa >/dev/null 2>&1
-  grep 'NVIM STARTED' "$out/nvim$i.log" | tail -1 | awk '{printf "%s ", $1 + 0}' >>"$out/nvim.txt"
-done
-say "  $(cat "$out/nvim.txt")"
+# ── nvim (a headless --startuptime says 10 ms and never draws; a silent pty adds its own 100 ms)
+say ""; say "── nvim: to the first frame, the full screen, its exit (10 runs, ms)"
+sb=$(mktemp -d "${TMPDIR:-/tmp}/perf-nvim.XXXXXX")
+python3 -B "$here/nvim-bench.py" sandbox "$sb" --link --config this="$HOME/.config/nvim" \
+  && python3 -B "$here/nvim-bench.py" start "$sb" --variants this --scenarios dash,txt,py --runs 10 >"$out/nvim.txt" 2>&1
+while IFS= read -r line; do say "  $line"; done <"$out/nvim.txt"
+rm -rf "$sb"
 cat "$rep"
 echo "perf: $rep"

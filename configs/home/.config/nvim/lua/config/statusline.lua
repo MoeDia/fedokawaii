@@ -20,6 +20,8 @@ local MODES = {
   ["!"] = { "SHELL", "Terminal" }, t = { "TERMINAL", "Terminal" }, nt = { "NORMAL", "Normal" },
 }
 local UNKNOWN = { "NORMAL", "Normal" }
+local LOCK = "\243\190\128\160"     -- Sumi Icons: lock (U+FE020), as in icons.sh
+local FOLDER = "\243\190\128\177"   -- Sumi Icons: folder (U+FE031), as in icons.sh
 
 -- (a word in the line: a % in it is a %)
 local function text(s) return (s:gsub("%%", "%%%%")) end
@@ -39,23 +41,24 @@ local function path()
   local parts = vim.split(name, "/", { plain = true })
   local dir = #parts > 1 and table.concat(parts, "/", math.max(1, #parts - 2), #parts - 1) .. "/" or ""
   local file = vim.bo.modified and "%#KawaStChanged#" or "%#KawaStFile#"
-  return "%#KawaStQuiet#" .. text(dir) .. file .. text(parts[#parts]) .. (vim.bo.readonly and " 󰌾 " or "")
+  return "%#KawaStQuiet#" .. text(dir) .. file .. text(parts[#parts]) .. (vim.bo.readonly and " " .. LOCK or "")
 end
 
 -- the project's name, when it is not the folder neovim was started in
 local function root()
   local r, cwd = LazyVim.root.get({ normalize = true }), LazyVim.root.cwd()
   if r == cwd then return "" end
-  return "%#KawaStRoot# 󱉭  " .. text(vim.fs.basename(r))
+  return "%#KawaStRoot# " .. FOLDER .. " " .. text(vim.fs.basename(r))
 end
 
-local DIAG = { { "ERROR", "Error", " " }, { "WARN", "Warn", " " }, { "INFO", "Info", " " }, { "HINT", "Hint", " " } }
+local SEVERITY = { { "ERROR", "Error" }, { "WARN", "Warn" }, { "INFO", "Info" }, { "HINT", "Hint" } }
 local function diagnostics()
   local counts = vim.diagnostic.count(0)
+  local icons = LazyVim.config.icons.diagnostics
   local out = ""
-  for _, d in ipairs(DIAG) do
+  for _, d in ipairs(SEVERITY) do
     local n = counts[vim.diagnostic.severity[d[1]]]
-    if n then out = out .. "%#KawaSt" .. d[2] .. "#" .. d[3] .. n .. " " end
+    if n then out = out .. "%#KawaSt" .. d[2] .. "#" .. icons[d[2]] .. n .. " " end
   end
   return out == "" and "" or " " .. out
 end
@@ -64,11 +67,19 @@ end
 local function changes()
   local g = vim.b.gitsigns_status_dict
   if not g then return "" end
+  local icons = LazyVim.config.icons.git
   local out = ""
-  if (g.added or 0) > 0 then out = out .. "%#KawaStAdded# " .. g.added .. " " end
-  if (g.changed or 0) > 0 then out = out .. "%#KawaStModified# " .. g.changed .. " " end
-  if (g.removed or 0) > 0 then out = out .. "%#KawaStRemoved# " .. g.removed .. " " end
+  if (g.added or 0) > 0 then out = out .. "%#KawaStAdded#" .. icons.added .. g.added .. " " end
+  if (g.changed or 0) > 0 then out = out .. "%#KawaStModified#" .. icons.modified .. g.changed .. " " end
+  if (g.removed or 0) > 0 then out = out .. "%#KawaStRemoved#" .. icons.removed .. g.removed .. " " end
   return out
+end
+
+-- where the cursor is, in the file's symbols (Trouble's, from the first server that has them)
+local symbols
+local function here()
+  if not (symbols and vim.b.trouble_lualine ~= false and symbols.has()) then return "" end
+  return " " .. symbols.get()
 end
 
 function M.render()
@@ -79,11 +90,10 @@ function M.render()
   local left = "%#KawaSt" .. mode[2] .. "# " .. mode[1] .. " "
     .. (head ~= "" and "%#KawaStKey# " .. text(head) .. " " or "")
     .. root() .. diagnostics() .. "%#KawaStQuiet#"
-    .. (vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "") .. " " .. path()
+    .. (vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "") .. " " .. path() .. "%#KawaStQuiet#" .. here()
   local rec = vim.fn.reg_recording()
   local dap = package.loaded["dap"] and require("dap").status() or ""
-  local right = "%#KawaStQuiet#%S "
-    .. (rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "")
+  local right = (rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "")
     .. (dap ~= "" and "%#KawaStDebug# " .. text(dap) .. " " or "")
     .. changes()
   -- the place: Top, Bot or its percent, the line, the column
@@ -93,7 +103,9 @@ function M.render()
 end
 
 function M.setup()
-  vim.o.showcmdloc = "statusline"   -- (the keys of a command being typed: %S, there and not over the text)
+  -- (no 'showcmd': it has no row here, and in this line it flashed LazyVim's "gj" at every j — a
+  -- frame of its own before the key's; which-key shows what a pending key can become)
+  vim.o.showcmd = false
   vim.o.statusline = "%!v:lua.require'config.statusline'.render()"
   local group = vim.api.nvim_create_augroup("kawa_statusline", { clear = true })
   -- what the line says and neovim does not know it says: drawn again when that changes
@@ -102,6 +114,17 @@ function M.setup()
   })
   vim.api.nvim_create_autocmd("User", {
     group = group, pattern = { "GitSignsUpdate", "DapProgressUpdate" }, callback = function() vim.cmd.redrawstatus() end,
+  })
+  vim.api.nvim_create_autocmd("LspAttach", {
+    group = group,
+    callback = function(ev)
+      local client = vim.lsp.get_client_by_id(ev.data.client_id)
+      if symbols or not (client and client:supports_method("textDocument/documentSymbol")) then return end
+      symbols = require("trouble").statusline({
+        mode = "symbols", groups = {}, title = false, filter = { range = true },
+        format = "{kind_icon}{symbol.name:Normal}", hl_group = "KawaStQuiet",
+      })
+    end,
   })
   -- the command line opens on this line's own row: the same rows are left for the text, so nothing
   -- above moves, and no row stays empty the rest of the time. Both options in one step, in the same

@@ -7,10 +7,12 @@ A pty that answers nothing is not a terminal: nvim waits 100 ms for the answer t
 (DSR, vim/_core/defaults.lua: E1568), and 1 s at its exit for DA1, so a silent one measures its
 own silence. `--silent` shows how much.
 
-  python3 -B tools/nvim-bench.py sandbox DIR --config NAME=PATH… [--data PATH]
+  python3 -B tools/nvim-bench.py sandbox DIR --config NAME=PATH… [--data PATH] [--link]
   python3 -B tools/nvim-bench.py start DIR --variants V… [--scenarios S,…] [--runs N] [--json F]
   python3 -B tools/nvim-bench.py keys  DIR --variants V… [--scenarios S,…] [--runs N] [--json F]
   python3 -B tools/nvim-bench.py first DIR --variants V… [--runs N] [--json F]
+  python3 -B tools/nvim-bench.py check DIR --variants V     never again: what must hold, said line
+                                                           by line (tools/regress/nvim-start.sh)
 
 A sandbox holds a whole home: DIR/data is a reflink copy of nvim's data (the plugins, Mason's
 tools, the parsers: read, and maybe written, by what runs here; never the real one), each config
@@ -68,6 +70,7 @@ DECRQM = re.compile(rb"\x1b\[\?(\d+)\$p")
 XTGETTCAP = re.compile(rb"\x1bP\+q([0-9a-fA-F;]+)\x1b\\")
 TCAP_YES = {b"Tc": b"", b"RGB": b"8", b"setrgbf": b"\x1b[38:2::%p1%d:%p2%d:%p3%dm",
             b"setrgbb": b"\x1b[48:2::%p1%d:%p2%d:%p3%dm"}
+SYNC_END = b"\x1b[?2026l"
 # what is not drawing: the terminal's own sequences, spaces (a query or a mode set is no redraw)
 CONTROL = re.compile(rb"\x1b\[[0-9;:?<>= $]*[a-zA-Z~]|\x1b\][^\x07\x1b]*(?:\x07|\x1b\\)|\x1bP[^\x1b]*\x1b\\|\x1b[=>()][0-9A-Z]?|[\s\x08]+")
 
@@ -107,6 +110,7 @@ class Term:
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", size[1], size[0], 0, 0))
         self.reads = []  # (ns since t0, bytes)
         self.draws = []  # ns since t0 of the reads that put text on the screen
+        self.frames = 0  # flushes that drew text: nvim wraps each in a synchronized update, one frame on foot
         self.eof = False
         self.cpu_ms = None
 
@@ -126,6 +130,9 @@ class Term:
             return False
         now = time.monotonic_ns() - self.t0
         self.reads.append((now, len(data)))
+        for flush in data.split(SYNC_END)[:-1]:   # (a flush with text in it: one that only set the cursor's shape draws nothing)
+            if CONTROL.sub(b"", flush):
+                self.frames += 1
         if CONTROL.sub(b"", data):
             self.draws.append(now)
         if self.marker and self.painted is None and self.marker in data:
@@ -236,7 +243,7 @@ local function dump()
 end
 local function very_lazy()
   mark("VeryLazy")
-  vim.schedule(function() mark("VeryLazyDone"); vim.defer_fn(dump, 250) end)
+  vim.schedule(function() mark("VeryLazyDone"); vim.defer_fn(dump, tonumber(os.getenv("KAWA_BENCH_DUMP_MS") or 250)) end)
 end
 vim.api.nvim_create_autocmd("User", { pattern = "VeryLazy", once = true, callback = very_lazy })
 """
@@ -387,7 +394,10 @@ def cmd_sandbox(args):
     if not os.path.isdir(data):
         os.makedirs(root + "/data", exist_ok=True)
         src = args.get("data") or REAL_HOME + "/.local/share/nvim"
-        subprocess.run(["cp", "-a", "--reflink=always", src, data], check=True)
+        if "link" in args:   # (the never-again check: read, never written — a config at the lock's commits installs nothing)
+            os.symlink(src, data)
+        else:
+            subprocess.run(["cp", "-a", "--reflink=always", src, data], check=True)
     with open(root + "/hook.lua", "w") as f:
         f.write(HOOK)
     build_samples(root)
@@ -407,7 +417,7 @@ def environ(root, config, off):
         "PATH": f"{REAL_HOME}/.local/bin:{REAL_HOME}/.local/share/cargo/bin:/usr/local/bin:/usr/bin",
         "CARGO_HOME": f"{REAL_HOME}/.local/share/cargo", "RUSTUP_HOME": f"{REAL_HOME}/.local/share/rustup",
         "TERM": "foot", "COLORTERM": "truecolor", "LANG": os.environ.get("LANG", "C.UTF-8"),
-        "KAWA_BENCH_OFF": off, "KAWA_BENCH_OUT": f"{root}/run/out.json",
+        "KAWA_BENCH_OFF": off, "KAWA_BENCH_OUT": f"{root}/run/out-{os.getppid()}-{os.getpid()}.json",
     }
 
 
@@ -426,15 +436,16 @@ def scenario(root, s):
     return {
         "dash": ([], w, b"editor"), "py": (["sample.py"], w, b"arithmetic"), "md": (["sample.md"], w, b"prose"),
         "txt": (["notes.txt"], w, b"prose"), "sh": (["sample.sh"], w, b"pipefail"), "lua": (["sample.lua"], w, b"ipairs"),
-        "commit": (["COMMIT_EDITMSG"], w, b"ignored"), "rs": (["src/main.rs"], root + "/work-rs", b"println"),
+        "commit": (["COMMIT_EDITMSG"], w, b"ignored"), "rs": (["src/main.rs"], root + "/work-rs", b"total"),
         "big": (["big.py"], w, b"arithmetic"),
     }[s]
 
 
 # ── start ─────────────────────────────────────────────────────────────────────────────────────
-def one_start(root, variant, s, silent=False, timeout=15.0, raw=None):
+def one_start(root, variant, s, silent=False, timeout=15.0, raw=None, dump_ms=250):
     config, off = parse_variant(variant)
     env = environ(root, config, off)
+    env["KAWA_BENCH_DUMP_MS"] = str(dump_ms)
     out = env["KAWA_BENCH_OUT"]
     if os.path.exists(out):
         os.remove(out)
@@ -532,11 +543,11 @@ def cmd_start(args):
                 "ready": med(r.get("ready_ms") for r in rs), "quit": med(r.get("quit_ms") for r in rs),
                 "pss_mb": round((med(r["pss_kb"] for r in rs) or 0) / 1024, 1), "modules": med(r["modules"] for r in rs),
             }
-    for k, row in table.items():
-        print(f"{k:<44} UIEnter {row['ui']:>6} · paint {row['paint']:>6} · VeryLazy {row['vl']:>6} · done {row['vl_done']:>6} · ready {row['ready']:>6} · quit {row['quit']:>6} · CPU {row['cpu']:>6} · PSS {row['pss_mb']:>6} MB · mods {row['modules']}")
     if "json" in args:
         with open(args["json"], "w") as f:
             json.dump({"table": table, "runs": res}, f)
+    for k, row in table.items():
+        print(f"{k:<28} paint {row['paint']!s:>6} · UIEnter {row['ui']!s:>6} · VeryLazy {row['vl']!s:>6} · done {row['vl_done']!s:>6} · ready {row['ready']!s:>6} · quit {row['quit']!s:>6} · CPU {row['cpu']!s:>6} · PSS {row['pss_mb']!s:>6} MB · mods {row['modules']}")
     return rc
 
 
@@ -561,6 +572,7 @@ def press(t, keys, quiet_ms, gap_ms, cap_ms=500):
     at = t.send(keys)
     first = last = None
     n = 0
+    frames = t.frames
     while True:
         now = t.now()
         wait = cap_ms / 1000 - (now - at) / 1e9
@@ -591,7 +603,7 @@ def press(t, keys, quiet_ms, gap_ms, cap_ms=500):
             n += b
     return {"first": None if first is None else (first - at) / 1e6,
             "last": None if last is None else (last - at) / 1e6,
-            "tail": None if last_any is None else (last_any - at) / 1e6, "bytes": n}
+            "tail": None if last_any is None else (last_any - at) / 1e6, "bytes": n, "frames": t.frames - frames}
 
 
 def wait_ready(t, env, timeout=20.0, extra_ms=0):
@@ -618,11 +630,13 @@ def keys_script(s):
         out.append(("j", b"j", 6, 33))
     for _ in range(50):
         out.append(("k", b"k", 6, 33))
+    for _ in range(10):
+        out += [("i (insert)", b"i", 8, 150), ("Esc from insert", ESC, 8, 150)]
     out += [(None, b"G", 10, 60), (None, b"o", 10, 60)]
     text = PROSE if s == "md" else TYPED
     what = "type prose" if s == "md" else "type code"
     out += [(what, (b"\r" if c == "\n" else c.encode()), 6, 90) for c in text]
-    out += [("Esc from insert", ESC, 8, 200), (None, b"gg", 10, 60)]
+    out += [(None, ESC, 8, 200), (None, b"gg", 10, 60)]
     for _ in range(10):
         out += [(": opens", b":", 8, 120), ("Esc from :", ESC, 8, 120)]
     if s != "md":
@@ -672,10 +686,11 @@ def cmd_keys(args):
                     "last_p95": pct(last, 0.95), "last_max": max(last) if last else None,
                     "tail_share": round(sum(1 for p in ps if p["tail"] is not None) / len(ps), 2),
                     "tail_p50": pct([p["tail"] for p in ps if p["tail"] is not None], 0.5),
-                    "bytes_p50": pct([p["bytes"] for p in ps], 0.5), "n": len(ps), "drawn": len(last),
+                    "bytes_p50": pct([p["bytes"] for p in ps], 0.5), "frames_p50": pct([p["frames"] for p in ps], 0.5),
+                    "frames_max": max(p["frames"] for p in ps), "n": len(ps), "drawn": len(last),
                 }
     for k, row in table.items():
-        print(f"{k:<46} first p50 {row['first_p50']:>7} p95 {row['first_p95']:>7} · last p50 {row['last_p50']:>7} p95 {row['last_p95']:>7} max {round(row['last_max'] or 0, 1):>7} · late {row['tail_share']:>4} at {row['tail_p50']} · bytes {row['bytes_p50']:>7}")
+        print(f"{k:<46} first p50 {row['first_p50']:>7} p95 {row['first_p95']:>7} · last p50 {row['last_p50']:>7} p95 {row['last_p95']:>7} max {round(row['last_max'] or 0, 1):>7} · late {row['tail_share']:>4} at {row['tail_p50']} · bytes {row['bytes_p50']:>7} · frames {row['frames_p50']} (max {row['frames_max']})")
     if "json" in args:
         with open(args["json"], "w") as f:
             json.dump({"table": table}, f)
@@ -722,8 +737,74 @@ def cmd_first(args):
     return 0
 
 
+# ── never again ───────────────────────────────────────────────────────────────────────────────
+def frames_of(raw):
+    """What each flush drew: the output cut at the synchronized updates' ends."""
+    return b"".join(d for _, d in raw).split(SYNC_END)
+
+
+def cmd_check(args):
+    root, variant = args["dir"], args["variants"][0]
+    bad = []
+
+    def say(ok, words):
+        print(("✔ " if ok else "✘ ") + words)
+        if not ok:
+            bad.append(words)
+
+    one_start(root, variant, "dash")   # (the bytecode cache and the state settled)
+    raw = []
+    r = one_start(root, variant, "dash", raw=raw)
+    n = sum(1 for f in frames_of(raw) if b"editor" in f)
+    say(n == 1, f"the first screen is drawn once, not again when the plugins come ({n})")
+    say(r["messages"] == "", f"a start says nothing: {r['messages'][:60]!r}")
+    say(not any(r["plugins"].get(p) for p in ("nvim-lspconfig", "mason.nvim", "gitsigns.nvim")),
+        "the first screen loads no server, no Mason, no git")
+    raw = []
+    r = one_start(root, variant, "txt", raw=raw)
+    fr = frames_of(raw)
+    text = next((i for i, f in enumerate(fr) if b"prose" in f), -1)
+    line = next((i for i, f in enumerate(fr) if b"NORMAL" in f), -2)
+    say(text == line, f"a file's first frame has its status line ({text}, {line})")
+    say(not any(r["plugins"].get(p) for p in ("nvim-lspconfig", "mason.nvim")),
+        "a text file loads no server and no Mason")
+    r = one_start(root, variant, "py", dump_ms=4000)
+    say(sorted(r["clients"]) == ["basedpyright", "ruff"], f"a Python file has its servers ({r['clients']})")
+    # the keys
+    config, off = parse_variant(variant)
+    env = environ(root, config, off)
+    if os.path.exists(env["KAWA_BENCH_OUT"]):
+        os.remove(env["KAWA_BENCH_OUT"])
+    t = Term(nvim_argv(root, ["sample.py"]), env, cwd=root + "/work")
+    wait_ready(t, env, extra_ms=1500)
+    moves = [press(t, b"j", 6, 60) for _ in range(30)]
+    late = sum(1 for m in moves if m["frames"] > 1)
+    say(late <= 10, f"a key's frame is its only one: no second draw on a timer ({late} of 30 keys had one, crossing into a block)")
+    p = press(t, CTRL_D, 50, 600)
+    say(p["frames"] <= 4 and (p["last"] or 0) < 150, f"Ctrl+D lands at once: {p['frames']} frames, {round(p['last'] or 0)} ms")
+    p = press(t, b":", 8, 200)
+    say(p["bytes"] < 2000, f"the command line opens on its row, the text above not drawn again ({p['bytes']} bytes)")
+    press(t, ESC, 8, 200)
+    t.close()
+    # the Learn book's first exercise
+    env = environ(root, config, off)
+    if os.path.exists(env["KAWA_BENCH_OUT"]):
+        os.remove(env["KAWA_BENCH_OUT"])
+    t = Term(nvim_argv(root, ["+Tutor"]), env, cwd=root + "/work")
+    wait_ready(t, env, extra_ms=100)
+    t.close()
+    try:
+        with open(env["KAWA_BENCH_OUT"]) as f:
+            ft = json.load(f).get("ft")
+    except (OSError, ValueError):
+        ft = None
+    say(ft == "tutor", f"nvim +Tutor opens the tutor ({ft})")
+    print(f"nvim: {'all held' if not bad else str(len(bad)) + ' broken'}")
+    return 1 if bad else 0
+
+
 def main(argv):
-    if len(argv) < 3 or argv[1] not in ("sandbox", "start", "keys", "first"):
+    if len(argv) < 3 or argv[1] not in ("sandbox", "start", "keys", "first", "check"):
         print(__doc__.strip())
         return 0 if len(argv) > 1 and argv[1] in ("-h", "--help") else 2
     if not os.environ.get("NVIM_BENCH_FENCED"):
@@ -744,8 +825,8 @@ def main(argv):
             while i < len(argv) and not argv[i].startswith("--"):
                 args[multi[a]].append(argv[i])
                 i += 1
-        elif a == "--silent":
-            args["silent"] = True
+        elif a in ("--silent", "--link"):
+            args[a[2:]] = True
             i += 1
         elif a == "--scenarios":
             args["scenarios"] = argv[i + 1].split(",")
@@ -756,7 +837,7 @@ def main(argv):
         else:
             print(f"unknown: {a}", file=sys.stderr)
             return 2
-    return {"sandbox": cmd_sandbox, "start": cmd_start, "keys": cmd_keys, "first": cmd_first}[argv[1]](args)
+    return {"sandbox": cmd_sandbox, "start": cmd_start, "keys": cmd_keys, "first": cmd_first, "check": cmd_check}[argv[1]](args)
 
 
 if __name__ == "__main__":

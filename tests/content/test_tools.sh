@@ -8,13 +8,12 @@
 # or a key's widget, not a tool's first window, not :checkhealth lazy.
 # The real programs are the caller's (found on its PATH before the sandbox narrows it):
 #   FEDOKAWAII_BLESH     a ble.sh built at the pinned commit (else ~/.local/share/blesh)
-#   FEDOKAWAII_LAZYVIM   LazyVim's starter (else ~/.config/nvim, when it holds LazyVim)
-#   FEDOKAWAII_NVIM_DATA its plugins (~/.local/share/nvim's layout: lazy/, site/…)
+#   FEDOKAWAII_NVIM_DATA neovim's plugins (~/.local/share/nvim's layout: lazy/, site/…)
 # A part whose program is not at hand is skipped, and says so.
 . "$(dirname "$0")/lib.sh"
 BLESH_DIR=${FEDOKAWAII_BLESH:-$HOME/.local/share/blesh}
 BLESH_PIN=$(sed -n 's/^BLESH_COMMIT=//p' "$REPO/lib/upstream.sh")
-LAZYVIM=${FEDOKAWAII_LAZYVIM:-$HOME/.config/nvim} NVIM_DATA=${FEDOKAWAII_NVIM_DATA:-$HOME/.local/share/nvim}
+NVIM_DATA=${FEDOKAWAII_NVIM_DATA:-$HOME/.local/share/nvim}
 declare -A REAL=()
 for t in eza fd zoxide fzf lazygit nvim yazi git; do REAL[$t]=$(command -v "$t" 2>/dev/null); done
 blesh_ok() { [[ -r $BLESH_DIR/ble.sh ]] && [[ $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+${BLESH_PIN:0:7}" ]]; }
@@ -114,10 +113,9 @@ if [[ -n ${REAL[yazi]} ]]; then
 else skip "no yazi on PATH"; fi
 
 case_ "neovim (LazyVim): :checkhealth lazy has no WARNING or ERROR; a first file opens with no message"
-if [[ -n ${REAL[nvim]} && -f $LAZYVIM/lua/config/lazy.lua && -d $NVIM_DATA/lazy ]]; then
+if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   home; mkdir -p "$HOME/.config/nvim" "$HOME/.local/share"
-  cp -r "$LAZYVIM/." "$HOME/.config/nvim/"; rm -rf "$HOME/.config/nvim/.git"
-  cp -r "$REPO/configs/home/.config/nvim/." "$HOME/.config/nvim/"   # (the desktop's, over the starter: as setup)
+  cp -r "$REPO/configs/home/.config/nvim/." "$HOME/.config/nvim/"   # (the desktop's: as setup)
   ln -s "$NVIM_DATA" "$HOME/.local/share/nvim"
   (cd "$HOME/repos/demo" && timeout 120 nvim --headless '+checkhealth lazy' "+w! $TMP/health" +qa >"$TMP/nvim.out" 2>&1)
   eq "$(grep -E 'WARNING|ERROR' "$TMP/health")" "" "checkhealth lazy"
@@ -126,6 +124,8 @@ if [[ -n ${REAL[nvim]} && -f $LAZYVIM/lua/config/lazy.lua && -d $NVIM_DATA/lazy 
       local f = io.open('$TMP/msgs', 'w'); f:write(vim.api.nvim_exec2('messages', { output = true }).output)
       f:close(); vim.cmd('qa!') end, 3000)" >"$TMP/nvim.out" 2>&1)
   eq "$(cat "$TMP/msgs" "$TMP/nvim.out")" "" "messages at the first file"
-else skip "no nvim, or no LazyVim at $LAZYVIM with plugins at $NVIM_DATA (FEDOKAWAII_LAZYVIM, FEDOKAWAII_NVIM_DATA)"; fi
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless +Tutor "+lua io.open('$TMP/tutor', 'w'):write(vim.bo.filetype)" +qa >"$TMP/nvim.out" 2>&1)
+  eq "$(cat "$TMP/tutor" 2>/dev/null)" tutor "nvim +Tutor: the Learn book's first exercise ($(cut -c1-80 "$TMP/nvim.out"))"
+else skip "no nvim, or no plugins at $NVIM_DATA (FEDOKAWAII_NVIM_DATA)"; fi
 
 done_
