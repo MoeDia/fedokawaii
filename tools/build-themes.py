@@ -279,109 +279,6 @@ def lock_scroll(m, fill, rule, s=2):
     return png(w * s, h * s, _scaled(c, s))
 
 
-# the mood's head on the bar's end tile (quick settings' own: a demon by night, an angel by day), a
-# woodblock's crest (the owner, 4 Nov: "less colours, more conventional, more RED; monotone, classic
-# Japanese"): 22 × 20, the tile's paper rows whole — R the seal's red, K the black ink, W the
-# cream of the demon's eyes and teeth; N the angel's nimbus in the red, '.' the paper shows through.
-# Each drawn as its left half, mirrored when built (a mask is symmetric to the pixel). Dark: an oni,
-# roaring while quick settings is open; light: a Kannon, opening her eyes and smiling.
-FACES = {
-    "dark": ("""
-.R.........
-.RR........
-.RRR.......
-..RRR...RRR
-...RRRRRRRR
-...RRRRRRRK
-...RKKRRRRK
-..RRRRKKKRR
-..RRWWRKKKK
-..RRWKKRRRR
-..RRRRRRRRK
-...RRRRRRKK
-...RRRRRRRR
-..RRKKKKKKK
-..RRKWKKKKK
-..RRKWWKKKK
-..RRKKKKKWK
-...RRKKKWWK
-...RRRRRRRR
-.....RRRRRR
-""", """
-.R.........
-.RR........
-.RRR.......
-..RRR...RRR
-...RRRRRRRR
-...RRRRRRRK
-...RKKRRRRK
-..RRRRKKKRR
-..RWWWWKKKK
-..RRWWKRRRR
-..RRRRRRRRK
-...RRRRRRKK
-..RRKKKKKKK
-..RRKWKKKKK
-..RRKWWKKKK
-..RRKWKKKKK
-..RRKKKKKKK
-..RRKKKKKWK
-...RRKKKWWK
-....RRRRRRR
-"""),
-    "light": ("""
-.......NNNN
-.....NN...K
-....N....KK
-...N.....KK
-..N....KKKK
-..N..KKKKKK
-.N..KKKKKK.
-.N..KKKK...
-.N.KKKK...R
-.N.KKK.....
-N..KK..KKK.
-N..KK......
-.N.KK......
-.N.KK......
-..NKK....RR
-...KKK.....
-NN.KKKK....
-.NKKKKKK...
-N.KKKKKKKKK
-NNKKKKKKKKK
-""", """
-.......NNNN
-.....NN...K
-....N....KK
-...N.....KK
-..N....KKKK
-..N..KKKKKK
-.N..KKKKKK.
-.N..KKKK...
-.N.KKKK...R
-.N.KKK.....
-N..KK..K.K.
-N..KK..KKK.
-.N.KK......
-.N.KK......
-..NKK...R..
-...KKK...RR
-NN.KKKK....
-.NKKKKKK...
-N.KKKKKKKKK
-NNKKKKKKKKK
-"""),
-}
-
-
-def head(m, p, half):
-    """The bar's head as a PNG: its half mirrored, in its inks, the tile's paper through the rest."""
-    ink = {"R": p["accent"], "N": p["accent"], "K": p["lo"] if m == "dark" else p["strong"], "W": p["strong"]}
-    rows = [r + r[::-1] for r in half.strip("\n").split("\n")]
-    return png(len(rows[0]), len(rows), [[_rgb(ink[c]) if c != "." else (0, 0, 0, 0) for c in r] for r in rows])
-
-
 # the weather on the bar (kawa-weather --bar's class sky-NAME): its sky drawn, 14 × 14, laid on the
 # weather tile's paper (rows 3–16, as a 14 px line's em; 8 px from the paper's edge, the value 8
 # after) — a few inks of the palette, as the weather's pictures may have (design-system §13): S the
@@ -562,8 +459,6 @@ def ornaments(m, p):
         "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
         "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
-        "face.png": head(m, p, FACES[m][0]),
-        "face-open.png": head(m, p, FACES[m][1]),
         **{f"sky-{n}.png": sky(m, p, a) for n, a in SKY.items()},
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew

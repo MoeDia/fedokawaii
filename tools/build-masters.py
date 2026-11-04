@@ -10,7 +10,8 @@ Reads art/masters/masters.toml — one table a picture:
     theme   = "dark" | "light"
     source  = "FILE"             in ~/.cache/r27-art (fetched by the source hunt; never in the repo)
     sha256  = "…"                the file as fetched: anything else is refused
-    crop    = [x, y, w, h]       in the source's pixels, 16:9 (the part that becomes the screen)
+    crop    = [x, y, w, h]       in the source's pixels, 16:9 (the part that becomes the screen);
+                                 past the source's edge its ground is carried on
     tone    = "keep" | "lacquer" the dark mood's two ways with a print on light paper: kept (a
                                  night print already dark) or as maki-e — the paper black
                                  lacquer, the lines and colours light, as gold on lacquer
@@ -18,6 +19,15 @@ Reads art/masters/masters.toml — one table a picture:
     gain    = 1.0                contrast around the middle before the palette
     joins   = [[x0, x1], …]      the source's columns where two sheets of a print meet (a pale
                                  seam down the picture): filled across from either side
+    clean   = [[x0, y0, x1, y1], …]  in the picture's pixels: what is not the picture (a cartouche,
+                                 a seal, a poem card) made ground, filled in from all round it
+    fields  = [[[ax, ay], [x, y], …], …]  a large thing to take out, its outline in the picture's
+                                 pixels: one colour, the print's own at ax, ay
+    fade    = [[x0, x1], …]      in the picture's columns: into the top's ink, the picture whole at
+                                 x0 and gone at x1 (a screen painting's own edge, carried on)
+    paper   = 0.9                lightness (0 … 1 of the picture's) from which it is the bare paper:
+                                 a stain or a ghost of old print goes, a light print's ground lies flat
+    smooth  = 2                  passes of the smoothing
 writes art/masters/out/NAME.png: 640 × 360 pixels, every one a colour of its mood's palette
 (an indexed PNG: a few dozen kilobytes) — the screen shows each as 3 × 3 (1920 × 1080; 2 × 2 on
 1280 × 720, 4 × 4 on 2560 × 1440, 6 × 6 on 4K: always whole pixels, never smoothed).
@@ -33,6 +43,11 @@ covers, no darkening at edges), its tones set as the table asks, then each pixel
 nearest colour of the palette in OKLab (lightness counted twice: shapes read by their
 values), an ordered dither (Bayer 4 × 4) choosing between the two nearest where a colour falls
 between them — the texture of old pixel art, stable from frame to frame, never noise.
+
+Three inks, as a print has (art direction §4): a ramp of the mood's ink to its paper, the seal's
+red, and in the light mood gold. And a calm top: its first TOP_FLAT rows (the 40 px under the bar)
+a single ink, fading into the picture over the next TOP_FADE — ichimonji-bokashi, the band a
+printer wiped across the top of the block. --check holds both.
 Needs Pillow and numpy.
 """
 import argparse
@@ -43,7 +58,7 @@ import sys
 import tomllib
 
 import numpy as np
-from PIL import Image
+from PIL import Image, ImageDraw
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC = ROOT / "art/masters/masters.toml"
@@ -62,12 +77,14 @@ _spec.loader.exec_module(_wada)
 _P = _wada.palette()[0]
 RAMP = {
     "dark": [_P["dark"][k] for k in ("lo", "ground", "edge", "edge2", "hi", "art_umber", "art_olive", "gold", "art_kinari", "strong")],
-    "light": [_P["light"][k] for k in ("strong", "text", "muted", "lo", "faint", "edge2", "edge", "ground", "key")],
+    "light": [_P["light"][k] for k in ("strong", "art_ink", "art_umber", "lo", "art_olive", "edge2", "edge", "ground", "key")],
 }
 ACCENT = {
-    "dark": [_P["dark"][k] for k in ("accent_lo", "accent", "flame", "asagi")],
-    "light": [_P["light"][k] for k in ("accent_lo", "accent", "accent_hi", "asagi", "green", "blue", "gold")],
+    "dark": [_P["dark"][k] for k in ("accent_lo", "accent", "flame")],
+    "light": [_P["light"][k] for k in ("accent_lo", "accent", "gold")],
 }
+TOP_INK = {"dark": 1, "light": -1}       # the calm top's step of the ramp: the ground, the paper
+TOP_FLAT, TOP_FADE = 14, 24              # its rows (at ×3 on 1080p: 42, the bar's 27 and its air)
 PALETTE = {m: RAMP[m] + ACCENT[m] for m in RAMP}
 BAYER = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]]) / 16 - 0.5
 
@@ -97,9 +114,41 @@ def hexes(h):
     return np.array([[int(x[i:i + 2], 16) for i in (0, 2, 4)] for x in h]) / 255
 
 
+def heal(lab, hole):
+    """HOLE (… × a mask) filled in from all round it, smoothly: push-pull, each scale filling what
+    the finer one could not — a flat ground stays flat, a gradient goes on."""
+    if not hole.any():
+        return lab
+    weight = (~hole).astype(np.float64)
+    levels = [(lab * weight[..., None], weight)]
+    while levels[-1][1].shape[0] > 2 and levels[-1][1].shape[1] > 2 and (levels[-1][1] == 0).any():
+        val, wt = levels[-1]
+        hh, ww = wt.shape[0] // 2 * 2, wt.shape[1] // 2 * 2
+        def half(a):
+            return (a[:hh:2, :ww:2] + a[1:hh:2, :ww:2] + a[:hh:2, 1:ww:2] + a[1:hh:2, 1:ww:2]) / 4
+        levels.append((half(val), half(wt)))
+    val, wt = levels[-1]
+    cur = val / np.maximum(wt, 1e-9)[..., None]
+    if (wt == 0).any():                # (the rows ran out first: what is left, the mean of the rest)
+        cur[wt == 0] = val.sum((0, 1)) / wt.sum()
+    for val, wt in reversed(levels[:-1]):
+        up = np.repeat(np.repeat(cur, 2, 0), 2, 1)
+        up = np.pad(up, ((0, wt.shape[0] - up.shape[0]), (0, wt.shape[1] - up.shape[1]), (0, 0)), mode="edge")
+        # (a soft step, so the coarse scale's blocks do not show)
+        for axis in (0, 1):
+            up = (np.roll(up, 1, axis) + 2 * up + np.roll(up, -1, axis)) / 4
+        k = np.clip(wt, 0, 1)[..., None]
+        cur = val + (1 - k) * up
+    return np.where(hole[..., None], cur, lab)
+
+
 def reduce(img, crop, joins=()):
+    """→ the crop at 640 × 360 in linear light, and the mask of what lies past the source's edge"""
     x, y, w, h = crop
-    a = np.asarray(img.convert("RGB").crop((x, y, x + w, y + h)), dtype=np.float64) / 255
+    src = img.convert("RGB")
+    a = np.asarray(src.crop((x, y, x + w, y + h)), dtype=np.float64) / 255
+    outside = np.ones((h, w), bool)
+    outside[max(-y, 0):max(src.height - y, 0), max(-x, 0):max(src.width - x, 0)] = False
     for x0, x1 in joins:              # (each seam filled across, column by column, from its sides)
         lo, hi = x0 - x - 1, x1 - x + 1   # (the last column before it, the first after)
         if 0 <= lo and hi < w:
@@ -109,7 +158,8 @@ def reduce(img, crop, joins=()):
     # (Pillow resizes 8-bit or float images: each channel as a float plane, in linear light)
     planes = [Image.fromarray(lin[..., i].astype(np.float32), "F").resize((W, H), Image.LANCZOS)
               for i in range(3)]
-    return np.clip(np.stack([np.asarray(p, dtype=np.float64) for p in planes], -1), 0, 1)
+    past = np.asarray(Image.fromarray((outside * 255).astype(np.uint8)).resize((W, H), Image.BILINEAR)) > 0
+    return np.clip(np.stack([np.asarray(p, dtype=np.float64) for p in planes], -1), 0, 1), past
 
 
 def smooth(lab, passes=2, sigma_l=0.06):
@@ -129,20 +179,36 @@ def smooth(lab, passes=2, sigma_l=0.06):
     return lab
 
 
-def tones(lab, spec, mood):
-    """The picture's lightness stretched over its mood's ramp (1st to 99th percentile: a stray
-    speck neither black nor white sets nothing), lacquered (inverted) where the table says, its
-    contrast and lift as given; colour kept as it was (the accents read it)."""
+def tones(lab, spec, mood, known):
+    """The picture's lightness stretched over its mood's ramp (1st to 99th percentile of what is
+    the print's own, KNOWN: a stray speck neither black nor white sets nothing, nor does a filled
+    hole), lacquered (inverted) where the table says, its contrast and lift as given; colour kept
+    as it was (the accents read it)."""
     L = lab[..., 0]
-    lo, hi = np.percentile(L, 1), np.percentile(L, 99)
+    lo, hi = np.percentile(L[known], 1), np.percentile(L[known], 99)
     n = np.clip((L - lo) / max(hi - lo, 1e-6), 0, 1)
     if spec.get("tone", "keep") == "lacquer":
         n = 1 - n                                                         # the paper black lacquer
     n = np.clip((n - 0.5) * spec.get("gain", 1.0) + 0.5 + spec.get("lift", 0.0), 0, 1)
+    if "paper" in spec:
+        n = np.where(n >= spec["paper"], 1.0, n)
     ramp = oklab(srgb_to_linear(hexes(RAMP[mood])))
     out = lab.copy()
     out[..., 0] = ramp[0, 0] + n * (ramp[-1, 0] - ramp[0, 0])
     return out
+
+
+def calm_top(lab, mood, fades=()):
+    """ichimonji-bokashi: the first rows one ink, fading into the picture; the same ink over FADES
+    (x0 x1: the picture whole at x0, gone at x1), where a painting's own edge would show."""
+    ink = oklab(srgb_to_linear(hexes([RAMP[mood][TOP_INK[mood]]])))[0]
+    t = np.clip((np.arange(H) - TOP_FLAT) / TOP_FADE, 0, 1)
+    t = (t * t * (3 - 2 * t))[:, None, None]
+    keep = np.tile(t, (1, W, 1))
+    for x0, x1 in fades:
+        f = np.clip((np.arange(W) - x0) / (x1 - x0), 0, 1)
+        keep = keep * (1 - f * f * (3 - 2 * f))[None, :, None]
+    return lab * keep + ink * (1 - keep)
 
 
 def quantise(lab, mood, chroma=0.07, hue_deg=40, margin=0.1):
@@ -210,9 +276,12 @@ EDGE_BAND, EDGE_IN, EDGE_STEP, EDGE_FLAT, EDGE_LINE = 4, 20, 0.08, 0.03, 0.05
 
 
 def edges(L):
-    """L: the picture's lightness (OKLab), H × W. What is wrong at its edges, a phrase each."""
+    """L: the picture's lightness (OKLab), H × W. What is wrong at its edges, a phrase each. Its top
+    is the calm band's: one ink."""
     found = []
-    for side, a in (("top", L), ("bottom", L[::-1]), ("left", L.T), ("right", L.T[::-1])):
+    if L[:TOP_FLAT].std() > 1e-6:
+        found.append(f"top: its {TOP_FLAT} rows are not one ink (lightness spread {L[:TOP_FLAT].std():.3f})")
+    for side, a in (("bottom", L[::-1]), ("left", L.T), ("right", L.T[::-1])):
         what = "row" if side in ("top", "bottom") else "column"
         k = 0
         while k < 40 and a[k].std() < EDGE_FLAT:
@@ -240,9 +309,22 @@ def build(name, spec):
     if hashlib.sha256(data).hexdigest() != spec["sha256"]:
         sys.exit(f"build-masters: {name}: {src} is not the file SOURCES.md names (sha256)")
     img = Image.open(src)
-    lin = reduce(img, spec["crop"], spec.get("joins", ()))
-    lab = tones(smooth(oklab(lin)), spec, spec["theme"])
+    lin, past = reduce(img, spec["crop"], spec.get("joins", ()))
+    lab = oklab(lin)
+    for x0, y0, x1, y1 in spec.get("clean", ()):
+        past[y0:y1, x0:x1] = True
+    for (ax, ay), *poly in spec.get("fields", ()):
+        mask = Image.new("1", (W, H), 0)
+        ImageDraw.Draw(mask).polygon([tuple(q) for q in poly], fill=1)
+        lab[np.asarray(mask, bool)] = lab[ay - 2:ay + 3, ax - 2:ax + 3].mean((0, 1))
+    # (the holes filled before the smoothing and after it: its edge-keeping never sees what was there)
+    lab = smooth(heal(lab, past), passes=spec.get("smooth", 2))
+    lab = calm_top(tones(heal(lab, past), spec, spec["theme"], ~past), spec["theme"], spec.get("fade", ()))
     idx = quantise(lab, spec["theme"], spec.get("chroma", 0.07), spec.get("hue", 40))
+    idx[:TOP_FLAT] = (TOP_INK[spec["theme"]] % len(RAMP[spec["theme"]]))
+    if "paper" in spec:                # (what is left of a stain on the bare paper: a few pixels, gone)
+        bare = len(RAMP[spec["theme"]]) - 1
+        idx[specks(idx != bare, 10)] = bare
     out = Image.fromarray(idx.astype(np.uint8), "P")
     flat = (hexes(PALETTE[spec["theme"]]) * 255).round().astype(np.uint8).flatten().tolist()
     out.putpalette(flat + [0] * (768 - len(flat)))
