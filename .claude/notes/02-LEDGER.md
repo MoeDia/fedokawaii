@@ -4595,8 +4595,9 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   types. ShellCheck clean; test_pipefail held it (head → sed -n 1p); test_tools 24/0, test_syntax 802/0.
 - r27-f45-job (4 Nov 16:11): a transient user unit r27-f45 (systemd-run --user --collect, nice 19, I/O idle) runs
   `tools/away.sh --min 30 --hours 22 -- bash /dev/shm/r27/t46-run/job.sh` from the frozen worktree /dev/shm/r27/fk-f45
-  (94840bd). Once he is away: (a) T02b must-fix 1 — `sudo -n env FEDOKAWAII_COPY=… fedokawaii apply` of that tree, ONLY
-  if its full suite (started 16:11 beside it, nice 19: ~/.cache/r27-f45-run/suite.log, suite.ok) is green; /usr/local/
+  (94840bd at 16:11; RESTARTED 16:25 on aeec3b8 — the first suite would have been red on test_config's stale case, see
+  r27-22-sf2a: suite and unit stopped (my own session/pgids), worktree made again, both started again). Once he is away: (a) T02b must-fix 1 — `sudo -n env FEDOKAWAII_COPY=… fedokawaii apply` of that tree, ONLY
+  if its full suite (started 16:25 beside it, nice 19: ~/.cache/r27-f45-run/suite.log, suite.ok) is green; /usr/local/
   bin/dwl before: 516480 B, 3 Nov 02:29 (the T02b build is ~/.local/src/dwl/dwl 519824 B, 4 Nov 01:00; that tree = the
   patch, checked by tools/dwl-patch.sh: nothing unsaved); (b) T46 — the f45 harness VM destroyed (its 1 Nov evidence
   copied to ~/.cache/r27-f45-run/branched-1nov/) and made again from the RELEASED tree (releases/45 answered 200 at
@@ -4666,6 +4667,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     start it again the same way (job.sh's copy: ~/.cache/r27-f45-run/job.sh; tools/away.sh gates it).
 ##     Its results: T02b — the dwl installed? (then his next login brings it; the live check after); T46 — the F45
 ##     install green or the failing stage, f45-checks' reds → fixes; then T46's pre-flight marker and T46b's builds.
+##     If the suite is red, the apply was skipped (summary.txt says so): fix the red on main, then a new worktree, suite
+##     and r27-f45 as in r27-f45-job (stop the old unit first; kill only the suite's own session's process groups).
 ## (0′) tools/away.sh (r27-away) is the gate for everything heavy or visible (VM proofs, applies, session restarts,
 ##     T20 bug 1's 35-min absence): use it instead of guessing presence.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
