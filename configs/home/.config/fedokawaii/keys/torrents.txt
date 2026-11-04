@@ -2,7 +2,7 @@
 # command: kawa-torrents --check
 # source: configs/home/.local/lib/fedokawaii/kawa-torrents/app.py (key_list, key_files, key_find, key_adding)
 ── torrents: anywhere ─────────────────────────────────────────────
-Tab                     downloads or find (Left / Right too)
+Tab                     downloads or find (Left / Right too; a click)
 Ctrl+Q                  close the window: what downloads goes on
 Paste                   a magnet link, a link or a .torrent: added at once
 Ctrl+V                  the same, from the clipboard

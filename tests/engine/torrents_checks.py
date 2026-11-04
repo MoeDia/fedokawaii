@@ -293,6 +293,20 @@ def stream():
     s.close()
 
 
+def play_key():
+    """v on the list: with one video, the player handed it; with its files not asked for yet (a narrow window), it goes on by itself."""
+    mock()
+    w = window(30, 60)
+    w.has("finished")
+    w.keys("j", "j")
+    w.keys("v")
+    w.settle(0.3)
+    # (the mock's film has three videos: the choice is the files' page)
+    assert w.screen.find("pieces"), "many videos: its files\n" + w.screen.dump()
+    w.keys("\x1b")
+    eq(w.close(), 0, "ends clean")
+
+
 def real_player():
     """mpv itself, no window, on a film not yet here: plays from its start, and jumps past what has come."""
     for prog in ("mpv", "ffmpeg"):
@@ -558,6 +572,33 @@ def inherit():
     s.close()
     r = subprocess.run([sys.executable, os.path.join(REPO, "bin/kawa-torrents"), "inherit", os.path.join(TMP, "none.db")], capture_output=True, text=True, check=False)
     eq((r.returncode, r.stdout), (0, ""), "nothing to take over: nothing said")
+
+
+def socket_started():
+    """As systemd starts it (its own socket-activate: LISTEN_FDS): nothing runs until something connects; it ends by itself when
+    nothing is wanted, the socket stays; the next connection starts it again, its torrents back."""
+    s = swarm_()
+    t = s.torrent("by.socket", {"a": 1 << 16})
+    sock = os.path.join(os.environ["XDG_RUNTIME_DIR"], "kawa-torrents.sock")
+    env = dict(os.environ, KAWA_TORRENTS_NET="local", KAWA_TORRENTS_IDLE="1")
+    # (--inetd off, one accept loop of the engine's own; -E hands it the environment)
+    p = subprocess.Popen(["systemd-socket-activate", "-l", sock, *[f"-E{k}={env[k]}" for k in ("KAWA_TORRENTS_NET", "KAWA_TORRENTS_IDLE", "KAWA_TORRENTS_LIB", "HOME", "XDG_RUNTIME_DIR", "XDG_STATE_HOME", "XDG_CACHE_HOME", "PATH", "CALLS", *[n for n in ("PYTHONPATH", "LD_LIBRARY_PATH") if n in env])],
+                          sys.executable, os.path.join(REPO, "bin/kawa-torrents"), "engine"], env=env, stderr=subprocess.DEVNULL)
+    atexit.register(p.kill)
+    end = time.monotonic() + 8
+    while not os.path.exists(sock):
+        assert time.monotonic() < end, "no socket"
+        time.sleep(0.02)
+    from torrents_swarm import Client
+    c = Client(sock)
+    c.ask({"op": "add", "kind": "magnet", "value": t.magnet})
+    c.wait(lambda: c.rows.get(t.hash, {}).get("word") == "done", 40, "done")
+    c.close()
+    time.sleep(3)                                  # (the idle second, then saved and gone)
+    assert os.path.isfile(os.path.join(STATE, t.hash + ".resume")), "saved"
+    p.kill()
+    p.wait(5)
+    s.close()
 
 
 # ── links, names, numbers ───────────────────────────────────────────────────────────────────

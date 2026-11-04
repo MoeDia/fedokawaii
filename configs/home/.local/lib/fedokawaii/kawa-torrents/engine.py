@@ -922,8 +922,8 @@ class Engine:
 
     def op_pause_all(self, c, q):
         """All paused, or, when all are, all going on."""
-        hs = [h for h in self.handles.values() if h.is_valid()]
-        down = [h for h in hs if not h.status(0).flags & PAUSED]
+        hs = [h for h in self.handles.values() if h.is_valid() and not h.status(0).is_finished]
+        down = [h for h in hs if not h.status(0).flags & PAUSED or h.status(0).flags & AUTO]
         for h in down:
             h.unset_flags(AUTO)
             h.pause()

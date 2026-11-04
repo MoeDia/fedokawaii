@@ -38,6 +38,7 @@ scenario url_links        "a link of Prowlarr's: a row at once, the torrent afte
 scenario idle_and_marks   "ends by itself, saved, when nothing is wanted; never while downloading; the bar's list and the login's mark"
 scenario crash_midway     "killed halfway: the next start goes on, the file right, one notice"
 scenario many             "two hundred torrents: quick to add, quick to come back"
+scenario socket_started   "as systemd starts it: on the first connection, by its socket; it ends by itself, saved"
 scenario disk_full        "a really full disk: the row says so, one critical notice, p goes on once there is room"
 scenario inherit          "torrra's list taken over: chosen files, pauses, those it had told of stay told"
 
@@ -48,6 +49,7 @@ scenario words            "what is a link, in any text; names from strangers; th
 scenario layout           "to the column: tabs, headings, rows, values ending together, the cursor's fill, a kanji's two cells, the meter"
 scenario every_size       "from 2 x 2 to 70 x 400, both tabs: no crash, nothing past the edge, no ellipsis"
 scenario keys_            "every key on the list, the filter, the add line, a paste, the mouse"
+scenario play_key         "v: with its files not asked for yet, it goes on by itself; many videos: the files' page"
 scenario details          "the details beside the list, their own page when narrow; files kept and skipped; a video played"
 scenario find             "sites one by one, a slow one holding up nothing; sorted; copied; added from the hash, no site, no key"
 scenario no_key_no_prowlarr "what stops a search is said where its results would be"

@@ -26,6 +26,7 @@ OFFER_FILE_AGE = 86400                             # a .torrent that came in the
 _ICON = re.compile(r"^ICON_([A-Z0-9_]+)=\$'((?:\\x[0-9a-f]{2})+)'", re.M)
 CATEGORY = ((2000, "TV_0"), (5000, "TV_0"), (3000, "MUSIC"), (7000, "BOOK"), (1000, "GAMEPAD"), (4000, "CODE"))
 SORTS = ("seeds", "size", "newest", "name")
+SPARK = 16                                         # columns of the speed's picture
 
 
 def load_icons():
@@ -139,7 +140,11 @@ class App:
         self.detail = {}
         self.file_cursor = 0
         self.file_top = 0
+        self.speeds = []                           # what came in, a second each: the columns at the tabs' right end
+        self.speed_at = 0.0
         self.wants_play = None                     # a stream asked for, waiting for its head
+        self.wants_files = None                    # v on a row whose files have not come yet
+        self.synced = False                        # the engine has said what it has
         self.offers = []                           # what could be added: the clipboard's, the Downloads folder's
         self.declined = set()
         self.frame_n = 0
@@ -235,6 +240,7 @@ class App:
             self.version += 1
             if m.get("all"):
                 self.rows = {}
+                self.synced = True
                 self.turtle = m.get("turtle", False)
                 if self.first_view and not m["rows"] and self.tab == "downloads":
                     self.switch_tab()              # (nothing here yet: what you came for is the search)
@@ -250,6 +256,10 @@ class App:
                 self.cursor_id = m["to"]
         elif ev == "files":
             self.files[m["id"]] = m["files"]
+            if self.wants_files == m["id"]:        # (v, its files asked for: they are here)
+                self.wants_files = None
+                if self.rows.get(m["id"]):
+                    self.play_row(self.rows[m["id"]])
         elif ev == "detail":
             old = self.detail.get(m["id"])
             if old and "trackers" not in m and "trackers" in old:
@@ -581,7 +591,7 @@ class App:
             first = False
             items += [{"kind": "head", "icon": icon, "word": word}, {"kind": "gap"}]
             items += [{"kind": "row", "id": r["id"], "row": r} for r in rows]
-        if not any(i["kind"] == "row" for i in items) and not any(i["kind"] == "offer" for i in items):
+        if self.synced and not any(i["kind"] == "row" for i in items) and not any(i["kind"] == "offer" for i in items):
             items.append({"kind": "note", "word": "nothing matches" if self.filter is not None else "nothing yet"})
         return items
 
@@ -747,7 +757,7 @@ class App:
         r = item["row"]
         vals = []
         if w >= 104:
-            vals.append((pad(cut(r["site"], 14), 14), MUTED))
+            vals.append((pad(cut(r["site"], 17), 17), MUTED))
         if w >= 76:
             vals.append((f"{age_words(r['age']):>9}", MUTED))
         if w >= 40:
@@ -820,9 +830,12 @@ class App:
             return []
         down = sum(r["down"] for r in self.rows.values() if r["word"] != "done")
         up = sum(r["up"] for r in self.rows.values())
+        self.remember_speed(down)
         parts = []
         if self.turtle:
             parts.append(("slow", STRONG))
+        if down >= 1000 and room >= 26 + SPARK and max(self.speeds, default=0):
+            parts.append(self.spark())
         if down >= 1000:
             parts.append(("↓ " + speed(down), MUTED))
         if up >= 1000 and room >= 26:
@@ -833,6 +846,18 @@ class App:
                 out.append("   ")
             out.append(p)
         return out
+
+    def remember_speed(self, down):
+        now = time.monotonic()
+        if now - self.speed_at >= 1:
+            self.speed_at = now
+            self.speeds = (self.speeds + [down])[-SPARK:]
+
+    def spark(self):
+        """The last seconds of what came in, the music's wings' columns (design-system §8): the newest at the right, the tallest the most seen."""
+        top = max(self.speeds)
+        cols = [self.icon(f"EQ_{int(9 * v / top)}") for v in self.speeds]
+        return ("".join([self.icon("EQ_0")] * (SPARK - len(cols)) + cols), ACCENT)
 
     def draw(self):
         t = self.t
@@ -951,7 +976,7 @@ class App:
         elif self.search_id and self.results:
             count = f"{len(self.results)} found"
         room = w - 4 - (cells(count) + 2 if count else 0)
-        mark = self.icon(f"HG_{self.frame_n // 2 % 5}") if self.pending_sites else self.icon("CHEVRON")
+        mark = self.icon(f"HG_{self.frame_n // 2 % 5}") if self.pending_sites else self.icon("CHEVRON_RIGHT")
         spans = [" ", " ", (mark, ACCENT_TEXT), "  "]
         if self.query.text or self.line_focus:
             text, at = self.query.view(room)
@@ -990,7 +1015,7 @@ class App:
         y = 3
         room = w - 4
         text, at = self.filter.view(room)
-        spans = ["  ", (self.icon("CHEVRON"), ACCENT_TEXT), "  "]
+        spans = ["  ", (self.icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
         spans.append(text if self.filter.text else ("only those that contain", FAINT))
         frame[y] = spans
         self.t.cursor = (y, 1 + 4 + at)
@@ -1181,9 +1206,8 @@ class App:
             self.quit = True
             return
         if k == "ctrl-v":
-            if self.adding is not None or self.tab != "find" or not self.line_focus:
-                self.paste_clipboard()
-                return
+            self.paste_clipboard()
+            return
         if self.adding is not None:
             self.key_adding(k)
         elif self.tab == "find":
@@ -1245,7 +1269,7 @@ class App:
             self.jump(False)
         elif k in ("G", "end"):
             self.jump(True)
-        elif k in ("tab", "shift-tab", "left", "right", "h", "l") and not (k in ("h", "l", "right") and self.tab == "downloads" and self.selected_row()):
+        elif k in ("tab", "shift-tab", "left", "right"):
             self.switch_tab()
         else:
             return False
@@ -1276,7 +1300,7 @@ class App:
             if k in ("esc", "h", "left", "backspace", "q"):
                 self.page = False
                 return
-            if k in ("enter", "l", "right", "tab"):
+            if k in ("enter", "l"):
                 self.pane_focus = bool(self.selected_row() and self.files.get(self.cursor_id))
                 return
         o = self.selected_offer()
@@ -1308,7 +1332,7 @@ class App:
             self.send({"op": "pause_all"})
         elif not r:
             return
-        elif k in ("enter", "l", "right", "space"):
+        elif k in ("enter", "l", "space"):
             self.open_row(r)
         elif k == "p":
             if r["id"].startswith("url-"):
@@ -1675,7 +1699,7 @@ def pad_to(spans, n):
 def age_words(hours):
     h = int(hours or 0)
     if h < 24:
-        return f"{h} h" if h else "new"
+        return f"{h} h" if h else ""               # (a site that gives no date says "now": nothing is said)
     d = h // 24
     if d < 60:
         return f"{d} days" if d > 1 else "1 day"

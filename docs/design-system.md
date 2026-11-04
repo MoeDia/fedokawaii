@@ -362,10 +362,25 @@ content, inside its margin of one cell:
   column (1), what is typed — or the ghost words saying what the list holds, `faint` — at their
   names' (4); the count right-aligned to the last column, `muted`. A short list has none (Super+U,
   Super+W): its letters are free for its own keys.
-- **Meter** (a quantity in a row: Super+R's reading): ten segments, a cell each (Sumi Icons' `read`
-  and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in characters) — done
-  solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the cursor's row
-  strips the inks, the shapes still say it. Nothing yet: no meter at all.
+- **Meter** (a quantity in a row: Super+R's reading, a torrent's progress): ten segments, a cell each
+  (Sumi Icons' `read` and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in
+  characters) — done solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the
+  segment part-way (`read-1` … `read-7`) keeps `read-off`'s frame and comes in by the Bayer matrix of
+  every dissolve (§11), a seventh more with each; the cursor's row strips the inks, the shapes still
+  say it. Nothing yet: no meter at all.
+- **Torrents** (`kawa-torrents`, its two tabs): the list in parts (downloading, paused, finished: a
+  heading each), newest first; each row its state's icon (§5: it moves while bytes come; the
+  antenna television while it plays; the hourglass while it is looked for, asked of a site or
+  checked; ✘ with what stopped it, in words), its name as words (a torrent's dots read as spaces, never "…"), then
+  right-aligned, two columns apart: the meter, the percent, the speed, the time left, the size —
+  the size last on every row, one column down the list. A finished row keeps only what it sends and its size.
+  Fewer columns as the window narrows: the size goes first (under 104 columns), then the time left (84), the meter
+  (62), the speed (44); the percent stays. From 132 columns its details stand beside the list (a
+  rail, a free column, 60 wide; the keyboard in them leaves a band of `edge` on the list's row, as
+  Files does); narrower, they fill the window. What could be added stands over the list in the
+  magnet's icon (the clipboard's link, a .torrent just downloaded). Find: the Search line, then a
+  row a result: its kind's icon, its name, then as they fit the site, its age and its size, last the
+  seedling (`sprout`) and how many share it; none: `faint`, last.
 - **Cursor**: the row's cells filled `select` (the lacquer, §4) from the cursor's column to the
   one beyond the content, its inks `text_on_select` — every ink, the row's own colours stripped
   (fzf's `bg+ 24`, `fg+ 25`, `:strip`).
@@ -624,6 +639,7 @@ numbers here against its files.
 | notes and the to-do list | Super+N | `bin/kawa-notes` | T21 |
 | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
 | help | Super+/ | `bin/kawa-help` | T23 |
+| torrents | the launcher, a magnet link, the bar's mark | `bin/kawa-torrents` (`.local/lib/fedokawaii/kawa-torrents`) | T29 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
 
 ## 15. The grill list
