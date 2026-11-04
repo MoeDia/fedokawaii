@@ -443,7 +443,7 @@ alias dwl-log='less +G ~/.cache/dwl.log'
 # Asked for with -p, a preset is yours.
 #   layout  boxes                       needs (columns × rows, btop's own minimums)
 #                                       with the card's box · on a machine without one
-#   all     cpu  gpu  mem  net  proc    80 × 35             80 × 24
+#   all     cpu  gpu  mem  proc         80 × 35             80 × 24
 #   0       cpu  mem  net  proc         80 × 24             80 × 24
 #   1       cpu over gpu over proc      66 × 35             —
 #   2       cpu over proc               60 × 24             60 × 24

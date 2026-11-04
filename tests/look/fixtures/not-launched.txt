@@ -46,6 +46,8 @@ inih-devel                      the build
 systemd-container               the update's copy of the system runs in it (systemd-nspawn): no window
 systemd-devel                   the build
 cairo-devel                     the build (the desktop's mako)
+rust                            the build (the desktop's yazi)
+cargo                           the build (the desktop's yazi)
 pango-devel                     the build (the desktop's mako)
 gdk-pixbuf2-devel               the build (the desktop's mako)
 greetd                          the login manager

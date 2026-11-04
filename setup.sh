@@ -1622,6 +1622,57 @@ s_mako() {
   ((CONTAINED_RC == 0)) || log "notices still Fedora's mako: the desktop's did not build (why: above, or $LOG_FILE) — its config needs it; update or repair build it"
 }
 
+# ── the files: yazi, built here (the pinned tag, src/yazi/yazi.patch) ─────────────────
+# yazi draws its pop-ups in Rust: rounded, their titles in the rule; its theme reaches their colours and no more. The patch makes
+# each of them §4's panel with §7's heading (docs/design-system.md). Built as you with Fedora's cargo, from the tag that must
+# resolve to the pinned commit, its crates as Cargo.lock has them; thin LTO and as many jobs as memory holds (a clean install in a
+# small machine must come through); then ~/.local/bin/yazi, the record of what it was built from, and the checkout, its crates and
+# its objects gone (some 2 GB: made again from the pins if the patch ever changes). If it fails nothing is installed, verify says
+# so as a failure, and update and repair build it again.
+YAZI_REPO=https://github.com/sxyazi/yazi.git
+yazi_bin() { printf '%s' "$TARGET_HOME/.local/bin/yazi"; }
+yazi_record() { printf '%s' "$TARGET_HOME/.local/share/fedokawaii/upstream/yazi.built"; }
+yazi_sum() {   # what the build was made from: the pins and the patch
+  { printf '%s\n' "${YAZI_TAG:-}" "${YAZI_COMMIT:-}"; cat "$REPO_DIR/src/yazi/yazi.patch"; } | sha256sum | cut -d' ' -f1
+}
+yazi_current() {   # built at YAZI_TAG with the patch, and runs
+  [[ -x $(yazi_bin) && $(cat "$(yazi_record)" 2>/dev/null) == "$(yazi_sum)" ]] || return 1
+  [[ $(as_user "$(yazi_bin)" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]]
+}
+build_yazi() {
+  local src=$TARGET_HOME/.local/src/yazi built jobs mem
+  [[ ${YAZI_TAG:-} =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ && ${YAZI_COMMIT:-} =~ ^[0-9a-f]{40}$ ]] \
+    || die "fedokawaii.conf: YAZI_TAG must look like v26.9.1, YAZI_COMMIT be its 40-character commit"
+  command -v cargo >/dev/null || die "cargo is missing (lib/manifest.sh, PKG_BUILD) — update installs it"
+  as_user mkdir -p "$TARGET_HOME/.local/src"
+  as_user rm -rf -- "$src"                       # (what a stopped run left: this build keeps no checkout)
+  retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet --depth 1 --branch "$YAZI_TAG" "$YAZI_REPO" "$src" || die "could not clone $YAZI_REPO"
+  [[ $(as_user git -C "$src" rev-parse "$YAZI_TAG^{commit}") == "$YAZI_COMMIT" ]] \
+    || die "yazi's tag $YAZI_TAG does not point at the pinned commit $YAZI_COMMIT — refusing to build"
+  as_user git -C "$src" apply - <"$REPO_DIR/src/yazi/yazi.patch" || die "src/yazi/yazi.patch does not apply to yazi $YAZI_TAG"
+  jobs=$(nproc 2>/dev/null) || jobs=1
+  mem=$(awk '/^MemAvailable:/ { print int($2 / 1024 / 1536) }' /proc/meminfo 2>/dev/null)   # (1.5 GB a job, at worst)
+  [[ $mem =~ ^[0-9]+$ ]] && ((mem < jobs)) && jobs=$mem
+  ((jobs < 1)) && jobs=1
+  # shellcheck disable=SC2016  # (the inner shell's words)
+  as_user env CARGO_HOME="$src/.cargo" CARGO_PROFILE_RELEASE_LTO=thin CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
+    bash -c 'cd "$1" && cargo build --release --locked -p yazi-fm -j "$2"' _ "$src" "$jobs" >>"$LOG_FILE" 2>&1 \
+    || die "the yazi build failed (the last lines of $LOG_FILE say why)"
+  built=$src/target/release/yazi
+  [[ -f $built && ! -L $built ]] || die "the yazi build did not make its binary"
+  [[ $(as_user "$built" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]] || die "the yazi just built does not run, or lacks the desktop's patch"
+  as_user mkdir -p "$TARGET_HOME/.local/bin" "$(dirname "$(yazi_record)")"
+  user_put 0755 "$(yazi_bin)" <"$built" || die "could not write ~/.local/bin/yazi (is the disk full?)"
+  yazi_sum | user_put 0644 "$(yazi_record)" || die "could not record the yazi build"
+  as_user rm -rf -- "$src"
+  yazi_current || die "yazi $YAZI_TAG is not in place after installing it"
+  ok "files: yazi $YAZI_TAG with the desktop's pop-ups (src/yazi/yazi.patch)"
+}
+s_yazi() {
+  contained build_yazi
+  ((CONTAINED_RC == 0)) || log "yazi did not build (why: above, or $LOG_FILE): no file manager until update or repair builds it"
+}
+
 # ── torrents: Prowlarr (a rootless container) finds them, torrra downloads them ──
 # One API key between the two. Its master copy is ~/.config/fedokawaii/secrets.sh (yours,
 # 600): Prowlarr gets it as a podman secret (podman keeps that copy in its own store, yours
@@ -2549,6 +2600,7 @@ phase3() {
   step "3.07 upstream binaries (checksummed)"          s_upstream
   step "3.07b file dialog: yazi (termfilechooser ${TFC_TAG:-})" s_filechooser
   step "3.07b2 notices: mako ${MAKO_TAG:-} (pinned, the desktop's frame)" s_mako
+  step "3.07b3 files: yazi ${YAZI_TAG:-} (pinned, the desktop's pop-ups)" s_yazi
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
@@ -2927,6 +2979,7 @@ update_steps() {
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
   # (before the theme: its notices' config is written for this mako — an older one would not start)
   if ! mako_current; then step_on "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" build_mako; fi
+  if ! yazi_current; then step_on "yazi (${YAZI_TAG:-}, the desktop's pop-ups)" build_yazi; fi
   # torrra: libtorrent (the part that talks to the network) and certifi to their newest —
   # uv tool upgrade keeps the install's own pins (torrra==TORRRA_VERSION, the constraints: the
   # interface libraries torrra was written for stay put); then checked by torrra_up, which
@@ -3470,6 +3523,7 @@ r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: up
 }
 r_filechooser() { tfc_current || build_filechooser; }   # the yazi file dialog, built if missing or not TFC_TAG
 r_mako() { mako_current || build_mako; }                # the notices' mako, built if missing, not MAKO_TAG or its patch changed
+r_yazi() { yazi_current || build_yazi; }                # yazi, built if missing, not YAZI_TAG or its patch changed
 r_theme() {      # every config back as the repo has it, dwl and the C helpers rebuilt if needed —
   # only where the theme was chosen: a "Setup only" machine keeps its own configs
   if [[ ! -f $TARGET_HOME/.local/state/fedokawaii/theme-applied ]]; then
@@ -3506,6 +3560,7 @@ heal_all() {
   ((net)) && heal "release binaries, fonts, Syncplay, ble.sh and GE-Proton" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" r_mako
+  ((net)) && heal "yazi (${YAZI_TAG:-}, the desktop's pop-ups)" r_yazi
   ((net)) && heal "torrra" torrra_up
   ((net)) && heal "neovim's plugins (any missing)" r_nvim
   ((net)) && heal "Python and Rust (uv's CPython, rustup's stable, Mason's tools)" r_dev

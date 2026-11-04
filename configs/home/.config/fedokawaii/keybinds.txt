@@ -7,7 +7,7 @@ Super+X                 quick settings (also the face at the bar's right end)
 Super+A                 sound panel (also click the volume)
 Super+C                 calendar (also click the date)
 Super+/                 this help
-Super+W                 wallpaper picker (in it, r: change every 4 h)
+Super+W                 wallpaper picker (in it, r, o, s: its settings)
 Super+Shift+W           dark / light theme (also in quick settings)
 Super+V                 clipboard history: text and pictures (again: away)
 Super+Z                 shrink or convert what you copied

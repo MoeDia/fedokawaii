@@ -176,8 +176,8 @@ word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under an
   Term or stays at 14 px; and a desk farther than 55 cm calls for the next whole step of Sumi UI
   (×2 is display only, so that step is a larger face, chosen and drawn, never a scaled one).
 - **Display size** — the one exception: Sumi UI at a whole multiple of 14 px, never smoothed:
-  ×2 (28 px) for the boot splash, the boot menu (GRUB) and the installer's screens. The lock's
-  quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
+  ×2 (28 px) for the boot splash, the boot menu (GRUB), the installer's screens and the calculator's
+  answer (§4). The lock's quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
 - **Sumi Term** is UDEV Gothic NF installed as it comes (`lib/upstream.sh`, its files pinned by
   SHA-256; "UDEV Gothic" is its licence's reserved name) and named "Sumi Term" by fontconfig's
   alias (`system/60-fedokawaii-pixel.conf`), drawn smoothed in grey with light hinting. In
@@ -322,6 +322,12 @@ screen and the bar's paper share one rhythm.
   never jumps while you type): the line you type on, then the entries — each an app's own 16 px
   icon, or ours for what has none (a terminal program, a page, a helper); a sum or a conversion
   is answered live in the first row and copied by Enter.
+- **The calculator** ("Calculator" in the launcher: `kawa-calc`, the panel's `Calc`): hung as the launcher, 47 cells wide, its
+  size fixed: a heading, 8 px, the line you type on, 8 px, the answer's row (40 px, the display size: its figures 28 px in
+  `strong`, its capitals on the row's rows 10–29, what is not a figure — a unit, a currency — 14 px in `muted` on their baseline;
+  nothing yet: a `faint` 0), at its right what Enter does as a key tile (or `copied`, `strong`, once done), 8 px, five rows — the
+  session's sums, the newest first, their answers as values (the cursor goes down to them, Enter copies one), what it can do in
+  `faint` until there are any —, 8 px, its own keys on the last row.
 - **A menu typed into** (Super+/, a size, an order) keeps the size it opened with, and its details'
   column where it stood: what is found fills it from the top, cut under its last whole row.
   Super+/ finds by letters in order too ("lck": the lock screen), the best first, each under
@@ -394,21 +400,48 @@ content, inside its margin of one cell:
 - **Cursor**: the row's cells tinted `select` (§4) from the cursor's column to the one beyond the content; that column
   holds its edge, a glyph of Sumi Icons Term (`band-edge`: 2 px of the cell's 8, the line's 20 rows, in `accent`: fzf's
   pointer); the words `text_on_select`, every other ink its own (fzf's `bg+ 24`, `fg+ 25`, `pointer 16`, no `:strip`).
-- **Files** (yazi, Super+E, and the file dialog): the heading — the folder icon, the folder's
-  path in `strong` (the dialog: its name in `strong`, then the folder `muted`), the rule — and a
-  blank row; then the panes, each its own column of rows on this grid, one free column after
-  each rail (`edge2`). The cursor's row as above; a place in another folder — the one you are
-  in, in the parent column, and where you would land, in the preview's — a band of `edge`, its
-  words `strong`. At rest a row keeps its kind's colour (folders `ansi4`, bold). The footer: the
-  hovered file's facts, `muted` — its size, its permissions — from column 0, its place in the
-  list at the right, ending where the heading's rule does; the mode's word only when it is not
-  the usual one; a narrow window drops the permissions, then the size. The dialog's last line
-  is its own keys instead. What is not there yet — an empty folder, one still being read, a
+- **Files** (yazi, Super+E, and the file dialog): the heading — the folder icon, the path as a
+  breadcrumb, the folders above `muted`, the one you are in `strong` (the dialog: its name in `strong`,
+  then the folder `muted`), the rule to its end, where what is marked or waiting to be pasted stands
+  as a `muted` fact ("3 marked", "2 to move") — and a blank row; then the panes, each its own column
+  of rows on this grid, one free column after each rail (`edge2`). In the list two columns at the
+  row's end: how big, how old (min, h, d, w, mo, y), numbers tabular and right-aligned in `muted`, their units `faint`
+  (a folder: how many it holds, once read; a list under 52 columns gives up the age, under 36 the
+  size); a name too long for its room is cut at a word's end. The cursor's row as above, with a 2 px edge in `accent` at its first column; a place in
+  another folder — the one you are in, in the parent column, and where you would land, in the
+  preview's — a band of `edge`, its words `strong`. At rest a row keeps its kind's colour (folders
+  `ansi4`, bold; what starts with a dot `muted`). A mark is half a cell of its ink on the rail's
+  column. The preview is never empty: a folder's rows, a text, a picture; what has no picture — a
+  binary, an empty file — a card of its facts on the names' column (the name `strong`, then
+  **Facts**: what, size, changed, rights). The footer: the hovered file's facts, `muted`, `faint` dots
+  between them — its size (a folder: how many items), when it changed, its permissions — from
+  column 0, its place in the list at the right, ending where the heading's rule does; a task
+  running as a `muted` fact before it ("42 %  ·  3 left"); the mode's word only when it is not the
+  usual one; a narrow window drops the permissions, then the date, then the size. The dialog's
+  last line is its own keys instead. What is not there yet — an empty folder, one still being read, a
   filter that finds nothing — one word in `faint` where a row's name would stand ("empty",
   "loading", "nothing matches"), in the list and in a folder's preview; never centred. Two
   folders or more open (yazi's tabs): the tabs under the heading as **Tabs** above — each the
   folder icon and its folder's name, the shown one `strong` with `▔` under its name, the others
   `muted` — then a row of paper.
+- **Pop-ups in a text screen** (yazi's: rename and the other inputs, a confirm, help, which, open with, tasks, a notice;
+  `src/yazi/yazi.patch`, `yazi-fm/src/frame.rs`): §4's panel in whole cells of Sumi Icons Term (`tools/build-icons.py` CELLS, at
+  fixed places): a ring of foot's slot 33 (the hairline of what floats) on the cells' inner edges — x 7 of its left column, x 0
+  of its right, y 3 of its top row, y 16 of its bottom — its corners left out, the content 16 px clear of it on every side; inside
+  it the heading (§7, the name `strong`, nothing in the rule) and its row of paper, then the rows on this grid. It fits what it
+  says. An input's field is a row: what is typed at the names' column, the icon of what it will be at the icons'; rename's lies
+  exactly over the name it renames. A confirm says the folder once (`muted`), then the names; its choices are two **Keys**, the
+  first the heading's first word ("y trash", "n keep"). No shadow: a cell has one ink, a terminal one ground.
+- **Keys** (wherever a key is named on a text screen: `screen_tile`, the patched yazi): a tile of whole cells, U+FF001, then
+  U+FF000 + each letter's ASCII code, then U+FF002 — its frame, corners left out, its lip under it and its letters from Sumi UI, all
+  one ink (`muted`), no fill, 18 px tall on the cell's rows 1–18: on rows running, tiles stand 2 px apart; on any ground, a cursor's
+  too. A letter's tile is 16 px wide, 4 px of air either side; a word after it starts a column on.
+- **Options** (a setting among a few: the wallpaper picker's): a row with every value in sight — its icon at column 1, its label at
+  column 4, the values from a column of their own, each in its place so the dots stand one over the other from row to row: the
+  chosen one's dot (U+FF00C, 6 px round, `accent_text`) and its words `strong`, the others' ring (U+FF00D, `faint`) and their words
+  `muted`; its key a tile at the row's end. The key cycles; a click on the row does too.
+- **Sections** of a long list (the wallpaper picker's sets): a row of their own the cursor passes by — the words `muted` at the
+  icons' column, the rule on to the values' column, how many it holds `muted`.
 - **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
   heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
   shown, a row of paper. The tab shown: its icon (16 × 16: a pagoda, a shoot, a camera on its legs, the storehouse,
@@ -417,9 +450,14 @@ content, inside its margin of one cell:
   between any two tabs. Tab / Shift+Tab, ← / → and a click change it. A pane beside the list
   starts its heading level with the tabs and its first line level with the list's first row.
 - **Footer**: a fixed screen with room to spare (Super+U) ends in its keys; any screen with a key of its own shows that
-  one on its last line — the key a keycap (` key ` in `strong` on `edge`), what it does in `muted`, its state in `strong`
-  (Super+U: `enter open  tab next  esc close`; Super+W: `r change every 4 h  on`). The rest of the app's keys are in Super+/
+  one on its last line — the key a tile (**Keys**), what it does in `muted`, its state in `strong`
+  (Super+U: `enter open  tab next  esc close`). The rest of the app's keys are in Super+/
   (it knows the app).
+- **A picture in a screen** (Super+R's cover, Super+W's preview): centred to the pixel, both ways, between what is above and
+  beside it and the window's own hairline (the pane's end, fzf's margin, foot's padding counted). Super+R: as far from the pane's
+  rule as from the hairline, as far under the pane's top as the last line of words over its foot; the words under it each centred
+  on it, within half a cell. The terminal's cursor a thin bar where a list has a search line: it stands before a ghost's first
+  letter, never on it.
 - Ground: `ground` at kawa-glass's 0.96 — the wallpaper faintly through, the words never. No blur.
 - Window padding: foot's 8 px; the screen keeps one cell of margin, then the cursor's column
   (fzf's pointer; two spaces where no fzf draws): the cursor's fill starts 16 px inside the
@@ -666,7 +704,9 @@ numbers here against its files.
 | motion | — | `src/dwl/`, the private wlroots, `src/kawa-saver` | T19 |
 | lock, login, screensaver | idle, Super+Escape, boot | `bin/kawa-lock`, `src/kawa-lockmod`, `system/kawa-greet`, `src/kawa-saver` | T20 |
 | notes and the to-do list | Super+N | `bin/kawa-notes` | T21 |
-| files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
+| files | Super+E | yazi, built with `src/yazi/yazi.patch` (`configs/home/.config/yazi/`) | T22 |
+| the calculator | the launcher's Calculator | `bin/kawa-panel` (`Calc`), `bin/kawa-calc` | T19s |
+| the system monitor | the bar's memory, the launcher | btop (`configs/home/.config/btop/btop.conf`, its theme from `tools/build-themes.py`) | T19s |
 | help | Super+/ | `bin/kawa-help` | T23 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
 

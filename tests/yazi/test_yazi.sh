@@ -370,9 +370,9 @@ EOF
 )
 case_ "M lists the drives: label, size, file system, open or closed — and the keys"
 has "$out" "drives"
-has "$out" "KINGSTON                          28.9G  vfat   open"
-has "$out" "WD Elements                      431.5G  ntfs   closed"
-has "$out" "e  eject"; lacks "$out" "esc close" "its own key alone (§7)"
+has "$out" "KINGSTON                           28.9G  vfat   open"
+has "$out" "WD Elements                       431.5G  ntfs   closed"
+has "$out" ' eject'; lacks "$out" "esc close" "its own key alone (§7)"
 called '^kawa-drives list$'
 case_ "the list starts on the first drive; j and k (↓ ↑) move, and not past either end"
 lit() { sed -n "$((30 * $1 + 31)),$((30 * $1 + 60))p" <<<"$out" | grep -oE 'KINGSTON|WD Elements'; }
@@ -433,7 +433,7 @@ gone  eject
 quit
 EOF
 )
-called '^kawa-drives open /dev/sdb1$'; has "$out" "e  eject"
+called '^kawa-drives open /dev/sdb1$'; has "$out" ' eject'
 eq "$(grep -c '^kawa-drives list' "$CALLS")" 2 "listed again after the failure"
 eq "$(last_dir)" "$W"
 
@@ -543,18 +543,19 @@ called '^kawa-drives open /dev/sdd1$' "opening passes the drive's device, never 
 # every row of the frame ends in its border at the same column (wide characters counted right)
 python3 - "$out" <<'EOF' && _ok || _no "the frame's right border is not straight"
 import sys, unicodedata
-rows = [r for r in sys.argv[1].split("\n") if r.count("│") >= 3 and any(w in r for w in ("1.9T", "64G", "8G", "e  eject"))]
+BAR = "│\U000FF006\U000FF007"                          # (a rail, or the frame's sides: the patched yazi's ring of cells)
+rows = [r for r in sys.argv[1].split("\n") if sum(r.count(b) for b in BAR) >= 2 and any(w in r for w in ("1.9T", "64G", "8G", " eject"))]
 def last_bar(r):
     w, at = 0, None
     for ch in r:
-        if ch == "│": at = w
+        if ch in BAR: at = w
         w += 2 if unicodedata.east_asian_width(ch) in "WF" else 1
     return at
 sys.exit(0 if len(rows) == 4 and len({last_bar(r) for r in rows}) == 1 else 1)
 EOF
 case_ "a narrow window (50 columns): the list fits, cut to the window"
 out=$(drives_screen 50x20)
-has "$out" "e  eject"; has "$out" "exfat"
+has "$out" ' eject'; has "$out" "exfat"
 
 # ── g d ──────────────────────────────────────────────────────────────────────────────────
 case_ "g d goes to ~/Drives, where each open drive is a folder by its name (kawa-drives keeps it)"
@@ -576,17 +577,17 @@ out=$(y 120x40 <<'EOF'
 wait a.txt
 settle
 key ~
-wait Into the folder
+wait into the folder
 settle
 screen
 key <Esc>
 key <Esc>
-gone Into the folder
+gone into the folder
 quit
 EOF
 )
-has "$out" "Into the folder, or open the file(s)"; has "$out" "Drives: open or eject one"
-has "$out" "Go to your drives (~/Drives: one per open drive)"
+has "$out" "into the folder, or open the file(s)"; has "$out" "drives: open or eject one"
+has "$out" "go to your drives (~/Drives: one per open drive)"
 
 # ── a film: W watches it together ──────────────────────────────────────────────────────
 case_ "W on a film: Syncplay in a terminal window of its own (kawa-term kawa-together FILE)"
@@ -608,16 +609,16 @@ out=$(CWD=$TMP/films y 120x40 <<'EOF'
 wait night.mkv
 settle
 key ~
-wait Watch it together
+wait watch it together
 settle
 screen
 key <Esc>
 key <Esc>
-gone Watch it together
+gone watch it together
 quit
 EOF
 )
-has "$out" "Watch it together (Syncplay)"
+has "$out" "watch it together (Syncplay)"
 # ── the file dialog (kawa-pick): its own yazi, Enter and Esc, its title ─────────────────
 # (the dialog's yazi as kawa-pick runs it inside its window; the answer lands in $TMP/pk)
 pick() {   # pick MODE DIR [SIZE] — driven by the steps on stdin
@@ -690,7 +691,7 @@ out = " ".join(rails)
 if st: out += (" " if out else "") + "stitch %d-%d" % (len(st[0]) - len(st[0].lstrip()), len(st[0].rstrip()) - 1)
 print(out or "none")'; }
 setup
-for e in "156x40:20 77" "95x40:17 58" "77x40:17 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
+for e in "156x40:20 77" "95x40:20 58" "77x40:20 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
   s=${e%%:*} want=${e#*:}
   case_ "yazi at ${s}: $(case $want in *stitch*) echo "the list above the preview, the stitch between them (one free column each end)" ;; none) echo "the list alone" ;;
     *\ *) echo "parent, list and preview" ;; *) echo "the list and the preview side by side" ;; esac)"
@@ -779,6 +780,139 @@ EOF
   called "^kawa-file $R/comic\.rar$" "Enter: File tools on the archive"
   not_called '^7z'
 else echo "  (no unrar here: the RAR case skipped)"; fi
+
+# ── the desktop's yazi: the list's columns, the breadcrumb, the cards, the pop-ups ─────────
+setup
+# (zz.bin: the same bytes each run: urandom can look like something to file(1))
+touch -d "3 days ago" "$W/a.txt"; touch -d "5 hours ago" "$W/b.txt"; : >"$W/nothing.bin"; python3 -Ic 'import random, sys; open(sys.argv[1], "wb").write(random.Random(7).randbytes(3000))' "$W/zz.bin"; echo x >"$W/.hidden"; echo x >"$W/sub dir/inner.txt"
+mkdir -p "$W/deep/er"
+out=$(CWD=$W/deep/er y 120x30 <<'EOF'
+wait empty
+settle
+screen
+quit
+EOF
+)
+case_ "the heading a breadcrumb: the folders above, the one you are in — nothing cut, no \"…\"; an empty folder says so"
+# shellcheck disable=SC2088  # (the ~ yazi shows)
+has "$out" "~/work/deep/er ─" "the whole path, then the rule"
+out=$(y 180x30 <<'EOF'
+wait a.txt
+settle
+screen
+quit
+EOF
+)
+case_ "the list's columns: a file's size and age, right-aligned, their units after them"
+has "$(grep -F a.txt <<<"$out" | head -n1)" "6 B     3 d" "a.txt's size and age"
+has "$(grep -F b.txt <<<"$out" | head -n1)" "6 B     5 h" "b.txt's size and age"
+out=$(y 160x30 <<'EOF'
+wait a.txt
+settle
+key G
+settle
+screen
+quit
+EOF
+)
+case_ "what has no picture: a card of its facts — its name, what it is, its size, when it changed, its rights"
+has "$out" "rights" "the card's last fact"; has "$out" "what     data" "the card's first"; lacks "$out" "File Type Classification" "yazi's own words gone"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key <Down><Down><Down>
+wait inner.txt
+screen
+quit
+EOF
+)
+case_ "a folder's preview: its rows (the override of yazi's folder recursed and the pane stood empty: never again)"
+has "$out" "inner.txt" "sub dir's file in the preview"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key <Space>
+settle
+key <Space>
+settle
+screen
+quit
+EOF
+)
+case_ "marks: a muted fact at the rule's end, no block of colour"
+has "$(sed -n 1p <<<"$out")" "2 marked" "the count at the rule's end"
+if "$YAZI" --version 2>/dev/null | grep -q 'Patch  : fedokawaii'; then
+  RING_TL=$(printf '\363\277\200\203') RING_T=$(printf '\363\277\200\204') KEY_L=$(printf '\363\277\200\201') KEY_R=$(printf '\363\277\200\202')
+  key_of() { local i o=$KEY_L c n; for ((i = 0; i < ${#1}; i++)); do printf -v n %d "'${1:i:1}"; printf -v c '\\363\\277\\%03o\\%03o' $((0x80 + (n >> 6))) $((0x80 + (n & 63))); printf -v c '%b' "$c"; o+=$c; done; printf '%s%s' "$o" "$KEY_R"; }
+  out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key r
+wait rename
+settle
+screen
+key <Esc>
+settle
+key <Esc>
+settle
+key d
+wait trash
+settle
+screen
+key n
+settle
+key a
+wait new file
+settle
+key plan.pdf
+settle
+screen
+key <Esc>
+settle
+key <Esc>
+settle
+key ~
+wait a key or a word
+settle
+screen
+key <Esc>
+settle
+key <Esc>
+settle
+key g
+settle
+screen
+key <Esc>
+settle
+key w
+wait tasks
+settle
+screen
+key <Esc>
+settle
+quit
+EOF
+  )
+  case_ "the pop-ups: the ring of cells, never rounded, nothing in its rule, a heading inside"
+  has "$out" "$RING_TL$RING_T" "the ring's corner and top"
+  for c in ╭ ╮ ╰ ╯; do lacks "$out" "$c" "no rounded corner"; done
+  has "$out" "  rename ─" "rename's heading: its name, the rule"
+  lacks "$out" "Rename:" "yazi's own word gone"; lacks "$out" "[Y]es" "yazi's button gone"
+  case_ "trash: the folder said once, the name, the choices as keys; n keeps it"
+  has "$out" "  trash 1 file? ─"; has "$out" "$(key_of y) trash"; has "$out" "$(key_of n) keep"
+  [[ -e $W/a.txt ]] && _ok || _no "n: the file kept"
+  # shellcheck disable=SC2088  # (the ~ yazi shows)
+  has "$out" "~/work" "the folder"
+  case_ "create: what is typed on the row's columns, its heading"
+  has "$out" "plan.pdf"; has "$out" "new file ─"
+  case_ "help: keys as tiles, what they do lower case, a search line with its ghost and its count; its layer in plain words"
+  has "$out" "keys  files ─"; has "$out" "a key or a word"; has "$out" "$(key_of enter)" "a key's tile"; lacks "$out" "mgr.help"
+  has "$out" "into the folder" "what it does, lower case"
+  case_ "which (g): the same ring, each key its tile"
+  has "$out" "$(key_of h)" "g h"
+  case_ "tasks: none, said quietly under its heading"
+  has "$out" "tasks ─"; has "$out" " none"
+else echo "  (the installed yazi has not the desktop's patch yet: its pop-ups' cases skipped)"; fi
 
 flush; rm -f "$SF"
 done_

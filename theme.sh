@@ -125,7 +125,7 @@ BAND_EDGE=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s
 
 # btop's box for the discrete AMD card: its number in ROCm SMI's order (lib/hardware.sh,
 # hw_btop_gpu) — and no card's box at all without one
-BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu mem net proc"   # (the graphics card inside the cpu box: show_gpu_info)
+BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu ${BTOP_GPU:+$BTOP_GPU }mem proc"
 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \

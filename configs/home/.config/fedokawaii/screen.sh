@@ -49,9 +49,8 @@ screen_row() {
   [[ -n $v ]] && { pad=$(( $4 - 5 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2; }
   printf ' %s%s%s  %s%*s%s' "$INK_MUTED" "$1" "$INK_OFF" "$2" "$pad" '' "$v"
 }
-# screen_cap KEY — a key as a keycap in a text screen (docs/design-system.md §4, §7): a tile of its own on the
-# edge's fill, the strongest ink, a column of paper either side
-screen_cap() { printf '\e[48;5;18m%s %s %s' "$INK_STRONG" "$1" "$INK_OFF"; }
+# screen_cap KEY — a key as a keycap in a text screen (docs/design-system.md §4, §7): screen_tile, below
+screen_cap() { screen_tile "$1"; }
 # screen_keys KEY WHAT STATE … — a screen's own keys on its last line (docs/design-system.md §7), in
 # threes: the key a keycap, what it does in muted, its state ("" for none) in strong; two keys
 # three columns apart. "r" "change every 4 h" "on" → [r] change every 4 h  on
@@ -63,6 +62,19 @@ screen_keys() {
     shift 3
   done
   printf '%s' "$out"
+}
+# screen_tile KEY [INK] — a key as a tile of whole cells (Sumi Icons Term, tools/build-icons.py CELLS; docs/design-system.md
+# §7): its frame, corners left out, its lip and its letters in one ink, on any ground; 2 px of air under and over it,
+# so tiles on rows running never touch. Three columns for a letter, a column more for each letter after it
+screen_tile() {
+  local k=$1 out=$'\xf3\xbf\x80\x81' n i b
+  for ((i = 0; i < ${#k}; i++)); do
+    printf -v n '%d' "'${k:i:1}"
+    printf -v b '\\xf3\\xbf\\x%02x\\x%02x' $((0x80 + (n >> 6))) $((0x80 + (n & 63)))
+    printf -v b '%b' "$b"
+    out+=$b
+  done
+  printf '%s%s\xf3\xbf\x80\x82%s' "${2:-$INK_MUTED}" "$out" "$INK_OFF"
 }
 # screen_width — the width a screen's lines have: the terminal's, less two columns of paper each
 # side (in fzf: its margin of one and its pointer's column; outside fzf, two spaces). Fails

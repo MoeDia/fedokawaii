@@ -109,9 +109,9 @@ while IFS= read -r line; do
 done <"$HOME/.config/btop/btop.conf"
 case_ "btop.conf: kept as written (btop rewrites a config whose first line lacks its version unless told not to)"
 has "$(cat "$HOME/.config/btop/btop.conf")" "save_config_on_exit = False"
-case_ "btop.conf: four boxes, easy to read (the owner, 4 Nov: \"better spaced, easier to understand\"): the graphics card inside the CPU box, no box of its own (the guide's §26.5)"
-has "$(cat "$HOME/.config/btop/btop.conf")" 'shown_boxes = "cpu mem net proc"'
-has "$(cat "$HOME/.config/btop/btop.conf")" 'show_gpu_info = "On"'
+case_ "btop.conf: four boxes, easy to read (the owner, 4 Nov: \"better spaced, easier to understand\"): processor, card, memory, processes, the network a key away (the guide's §26.5)"
+has "$(cat "$HOME/.config/btop/btop.conf")" 'shown_boxes = "cpu gpu0 mem proc"'
+has "$(cat "$HOME/.config/btop/btop.conf")" 'show_gpu_info = "Off"'
 case_ "btop's theme, both: a file of that name for color_theme, every key btop's, every value a colour"
 name=$(sed -n 's/^color_theme = "\(.*\)"/\1/p' "$HOME/.config/btop/btop.conf"); eq "$name" fedokawaii
 BKEYS=" main_bg main_fg title hi_fg selected_bg selected_fg inactive_fg graph_text meter_bg proc_misc

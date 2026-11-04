@@ -6,7 +6,7 @@
 -- Modelled on yazi-rs/plugins' mount.yazi (MIT), dressed like the desktop's pop-ups.
 
 local ICON_DRIVE = "\243\190\129\132" -- Sumi Icons: drive (U+FE044), as in icons.sh
-local WIDTH = 60 -- columns, borders included
+local WIDTH = 66 -- columns, the ring included
 
 local toggle_ui = ya.sync(function(self)
 	if self.children then
@@ -110,7 +110,7 @@ end
 function M:layout(area)
 	local n = math.max(1, #(self.rows or {}))
 	local w = math.min(WIDTH, area.w)
-	local h = math.min(n + 6, area.h) -- border, a free row, the rows, a free row, the keys, border
+	local h = math.min(n + 6, area.h) -- the ring, the heading, a free row, the rows, a free row, the keys, the ring
 	self._area = ui.Rect {
 		x = area.x + math.floor((area.w - w) / 2),
 		y = area.y + math.floor((area.h - h) / 2),
@@ -132,55 +132,57 @@ local function cut(s, max)
 	return table.concat(keep)
 end
 
+-- A drive as §7's row: its picture at column 1 (accent_text while open), the label at column 4, its size, file system and
+-- state at the row's end, a column in, the inks of a value (muted, faint; open in strong)
 local function row_line(r, width)
 	local state = r.dir ~= "" and "open" or "closed"
-	local label = cut(r.label, math.max(1, width - 26))
-	local left = ICON_DRIVE .. " " .. label
-	local right = string.format("%7s  %-6s %-6s", r.size, r.fs:sub(1, 6), state)
-	local gap = math.max(1, width - ui.Line(left):width() - ui.Line(right):width())
-	return ui.Line {
-		ui.Span(ICON_DRIVE):fg(r.dir ~= "" and "lightred" or "gray"),
-		ui.Span(" " .. label .. string.rep(" ", gap)),
-		ui.Span(string.format("%7s  ", r.size)),
-		ui.Span(string.format("%-6s ", r.fs:sub(1, 6))):fg("darkgray"),
-		ui.Span(string.format("%-6s", state)):fg(r.dir ~= "" and "white" or "darkgray"),
+	local label = cut(r.label, math.max(1, width - 31))
+	local tail = string.format("%7s  %-6s %-6s ", r.size, r.fs:sub(1, 6), state)
+	local gap = math.max(1, width - 4 - ui.Line(label):width() - ui.Line(tail):width())
+	return {
+		ui.Span(" "),
+		ui.Span(ICON_DRIVE):fg(r.dir ~= "" and "20" or "21"),
+		ui.Span("  " .. label .. string.rep(" ", gap)),
+		ui.Span(string.format("%7s  ", r.size)):fg("21"),
+		ui.Span(string.format("%-6s ", r.fs:sub(1, 6))):fg("22"),
+		ui.Span(string.format("%-6s ", state)):fg(r.dir ~= "" and "23" or "22"),
 	}
 end
 
 function M:reflow() return { self } end
 
+-- The pop-up as every other (the patched yazi's frame.rs, §7): the ring — ui.Border's plain one —, the heading inside it (the
+-- icon in accent_text, two columns, the name in strong, the rule), a row of paper, the rows, a row of paper, its key
 function M:redraw()
 	local a = self._area
-	local inner = a:pad(ui.Pad(1, 2, 1, 2))
-	local lines = { ui.Line("") }
+	local inner = a:pad(ui.Pad(1, 3, 1, 3))
+	local out = {
+		ui.Clear(a),
+		ui.Border(ui.Edge.ALL):area(a):type(ui.Border.PLAIN):style(th.pick.border),
+	}
+	local function row(y, line) out[#out + 1] = line:area(inner { y = inner.y + y, h = 1 }) end
+	local rule = string.rep("─", math.max(0, inner.w - 3 - 6 - 1))
+	row(0, ui.Line { ui.Span(ICON_DRIVE):fg("20"), ui.Span("  "), ui.Span("drives"):fg("23"), ui.Span(" "), ui.Span(rule):fg("19") })
 	local rows = self.rows or {}
 	if #rows == 0 then
-		lines[#lines + 1] = ui.Line(self.busy or "nothing plugged in"):fg("darkgray")
+		row(2, ui.Line(ui.Span("    " .. (self.busy or "nothing plugged in")):fg("22")))
 	end
 	for i, r in ipairs(rows) do
-		local l = row_line(r, inner.w)
 		if i - 1 == self.cursor then
-			l = l:style(th.cmp.active)
+			-- (the cursor's fill a cell past the content each side, its edge in the seal's red, every ink its own)
+			local spans = row_line(r, inner.w)
+			table.insert(spans, 1, ui.Span("▎"):fg("16"))
+			spans[#spans + 1] = ui.Span(" ")
+			out[#out + 1] = ui.Line(spans):style(th.cmp.active):area(inner { x = inner.x - 1, w = inner.w + 2, y = inner.y + 1 + i, h = 1 })
+		else
+			row(1 + i, ui.Line(row_line(r, inner.w)))
 		end
-		lines[#lines + 1] = l
 	end
-	lines[#lines + 1] = ui.Line("")
-	-- (its own key alone, §7: the key in the words' ink, what it does muted)
-	lines[#lines + 1] = self.busy and ui.Line(self.busy):fg("darkgray")
-		or ui.Line { ui.Span("e"), ui.Span("  eject"):fg("darkgray") }
-	return {
-		ui.Clear(a),
-		ui.Border(ui.Edge.ALL)
-			:area(a)
-			:type(ui.Border.PLAIN)
-			:style(th.pick.border)
-			:title(ui.Line {
-				ui.Span(" "),
-				ui.Span(ICON_DRIVE):fg("lightred"),
-				ui.Span(" drives "):fg("white"),
-			}),
-		ui.Text(lines):area(inner),
-	}
+	-- (its own key alone, §7: the tile of cells U+FF001, U+FF000 + its letter, U+FF002; what it does muted)
+	local foot = inner.y + 2 + math.max(1, #rows) + 1
+	out[#out + 1] = (self.busy and ui.Line(ui.Span(self.busy):fg("22"))
+		or ui.Line { ui.Span("\u{FF001}\u{FF065}\u{FF002}"):fg("21"), ui.Span(" eject"):fg("21") }):area(inner { y = foot, h = 1 })
+	return out
 end
 
 function M:entry(job)

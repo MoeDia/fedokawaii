@@ -1131,6 +1131,8 @@ def layout_brightness(s):
 
 
 def layout(s, mode="quick"):
+    if mode == "menu" and isinstance(s, Calc):
+        return layout_calc(s)
     if mode == "menu" and isinstance(s, Launcher):
         return layout_launcher(s)
     return {"quick": layout_quick, "sound": layout_sound, "brightness": layout_brightness,
@@ -1246,6 +1248,62 @@ def layout_launcher(m):
     lay = Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + view_h + PAD + BORDER), heads,
                  [], marks, (top, view_h, max(height, view_h)) if height > view_h else (top, view_h, view_h))
     lay.fixed = True                         # (its size kept while typing: never trimmed to its ink)
+    return lay
+
+
+# ── the calculator ("Calculator" in the launcher: kawa-calc) ──────────────────────────────
+# The launcher's sums with a panel of their own, as the launcher hangs, its size fixed: its heading, the line you type on, the
+# answer at twice the size (§2's display size) — its figures in strong, its units small and muted, on one baseline; what Enter
+# does as a tile beside it —, the session's sums under it, the newest first (the cursor goes down to them, Enter copies one), what
+# it can do in faint until there are any; its own keys on the last line. One qalc for the panel, as the launcher's.
+CALC_ROWS = 5
+CALC_ANSWER_H = 2 * ROW              # the answer's row: 28 px letters, their capitals on its rows 10–29
+CALC_HINTS = ("15% of 2400", "120 usd to aed", "5 ft to cm", "sqrt(2)", "255 to hex")
+
+
+class Calc(Launcher):
+    """The calculator's menu: a Launcher of no entries; the session's sums (kept while the panel lives) as (typed, answer)."""
+    done = []
+
+    def __init__(self):
+        Menu.__init__(self, [], prompt="")
+        self.apps, self.counts, self.found = [], {}, []
+        self.calc = self.pending = None
+        self.copied = None                   # (what Enter just copied, until the next key: said beside it)
+        self.enter = None                    # (Enter pressed before its answer came: done when it comes)
+
+    def refind(self):
+        pass
+
+    def keep(self, typed, answer):
+        Calc.done = ([(typed, answer)] + [d for d in Calc.done if d[0] != typed])[:CALC_ROWS]
+
+
+def calc_kind(typed):
+    """A sum's icon: a conversion's arrows, a sum's sign — each row says which it is, in the rows' icon column."""
+    return "convert" if re.search(r"\s(?:to|in)\s", typed) else "equals"
+
+
+def layout_calc(m):
+    x0, w = BORDER + PAD, INNER
+    y = x0
+    heads = [("calc", "calculator", x0, y)]
+    y += HEAD_H
+    marks = [("input", x0, y, w, KEY_H, "", m.query, "a sum, a percentage, a conversion")]
+    y += KEY_H + GAP
+    marks.append(("answer", x0, y, w, CALC_ANSWER_H, m.answer_now() or (m.copied or ""), m.copied))
+    y += CALC_ANSWER_H + GAP
+    items = []
+    for k, (typed, answer) in enumerate(Calc.done):
+        items.append(Item(f"d{k}", "row", x0, y + k * ROW, w, ROW, k, icon=calc_kind(typed), name=typed, value=answer))
+    if not Calc.done:
+        for k, hint in enumerate(CALC_HINTS):
+            marks.append(("hint", x0, y + k * ROW, calc_kind(hint), hint))
+    y += CALC_ROWS * ROW + GAP
+    marks.append(("keys", x0, y, w, (("ctrl+u", "clear"), ("ctrl+q", "qalc's own prompt"))))
+    y += ROW
+    lay = Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), y + PAD + BORDER), heads, [], marks)
+    lay.fixed = True                         # (its size kept: never trimmed to its ink)
     return lay
 
 
@@ -1551,7 +1609,88 @@ class Panel:
     def item(self, key):
         return next((i for i in self.items if i.key == key), None)
 
+    def calc_enter(self, m):
+        """Enter on the calculator's line: its answer copied and kept among the session's, a clean line for the next — asked now
+        if it is still being worked out, done when it comes."""
+        if m.pending == m.query and m.query:
+            m.enter = m.query
+            self.ui.calc_now_(m, m.query)
+            return
+        ans = m.answer_now()
+        if not ans:
+            return
+        self.ui.copy_quiet(ans)
+        m.keep(m.query, ans)
+        m.query, m.copied, m.calc, m.pending = "", ans, None, None
+        self.relayout()
+        self.focus = None
+        self.rehot()
+        self.ui.redraw()
+
+    def calc_key(self, name, char):
+        """A key on the calculator; whether it was its own. The line has the keys unless the cursor is down on the session's
+        sums: Down goes to them, Up from the first comes back; Up on the line takes back the last sum."""
+        m, cur = self.state, self.item(self.focus)
+        if name in ("Return", "KP_Enter"):
+            if cur:
+                self.ui.copy_quiet(cur.value)
+                m.copied = cur.value
+                self.focus = None
+                self.relayout()
+                self.ui.redraw()
+            else:
+                self.calc_enter(m)
+            return True
+        if name == "q" and not char:                  # (ctrl+q: qalc's own prompt, a window of its own)
+            self.close("chosen")
+            self.ui.launch(["setsid", "-f", "--", "kawa-term", "--float", "--once", "qalc", "qalc", "80x24", "--", "qalc", "-s", "upxrates 7"])
+            return True
+        if name == "Down":
+            keys = [i.key for i in self.items]
+            if keys:
+                self.move(keys[min(keys.index(self.focus) + 1, len(keys) - 1)] if self.focus in keys else keys[0])
+            return True
+        if name == "Up":
+            keys = [i.key for i in self.items]
+            if self.focus in keys:
+                k = keys.index(self.focus)
+                self.move(keys[k - 1]) if k else self.leave_rows()
+            elif Calc.done:
+                m.query = Calc.done[0][0]
+                self.calc_typed(m)
+            return True
+        if name == "u" and not char:                  # (ctrl+u: the line cleared)
+            m.query = ""
+        elif name == "BackSpace":
+            m.query = m.query[:-1]
+        elif char and char.isprintable():
+            m.query += char
+        else:
+            return True
+        self.calc_typed(m)
+        return True
+
+    def leave_rows(self):
+        old, self.focus = self.item(self.focus), None
+        self.ui.redraw(*([old] if old else []))
+
+    def calc_typed(self, m):
+        m.copied = m.enter = None
+        self.ui.calc(m)
+        self.focus = None
+        self.relayout()
+        self.rehot()
+        self.ui.redraw()
+
     def activate(self, key):
+        if self.mode == "menu" and isinstance(self.state, Calc):
+            it = self.item(key)                       # (a click on one of the session's sums)
+            if it:
+                self.ui.copy_quiet(it.value)
+                self.state.copied = it.value
+                self.relayout()
+                self.ui.redraw()
+            return
         if self.mode == "menu" and isinstance(self.state, Launcher):
             it = self.item(key)
             if it is None:
@@ -1683,6 +1822,8 @@ class Panel:
         if name == "Escape":
             self.close("chosen")
             return
+        if self.mode == "menu" and isinstance(self.state, Calc) and self.calc_key(name, char):
+            return
         if self.mode == "menu" and self.state.prompt is not None and self.typed(name, char):
             return
         hit = next((i for i in self.items if i.accel and name in i.accel.split("|")), None)
@@ -1777,6 +1918,17 @@ class Panel:
     def answered(self, m):
         """A sum's answer came (ui.calc): shown, when the launcher is still on screen with it."""
         if not (self.visible and self.mode == "menu" and self.state is m):
+            return
+        if isinstance(m, Calc):
+            if m.enter == m.query and m.pending != m.query:   # (Enter was waiting for it)
+                m.enter = None
+                self.calc_enter(m)
+                return
+            keep = self.focus
+            self.relayout()
+            self.focus = keep
+            self.rehot()
+            self.ui.redraw()
             return
         first = self.focus == (self.items[0].key if self.items else None)
         self.relayout()
@@ -2416,6 +2568,13 @@ def main(argv):
                          '  notify-send -a desktop -- "$ICON_CLIPBOARD  copied" "$1"\n'
                          'else notify-send -a desktop -- "$ICON_CLIPBOARD  not copied" "$1 · no clipboard"; fi', "_", text])
 
+        def copy_quiet(self, text):
+            """The calculator's: it stays on screen and says so itself, no notice."""
+            self.launch(["bash", "-c", '. "$HOME/.config/fedokawaii/files.sh"; printf %s "$1" | clip_put "text/plain;charset=utf-8"', "_", text])
+
+        def calc_now_(self, m, q):
+            calc_now(m, q)
+
         def command(self, text):
             try:
                 argv = shlex.split(text)
@@ -2663,6 +2822,8 @@ def main(argv):
     fo.set_hint_metrics(cairo.HINT_METRICS_ON)
     font = Pango.FontDescription.from_string("Sumi UI, Sumi Icons")
     font.set_absolute_size(LINE * Pango.SCALE)
+    font2 = font.copy()                           # (§2's display size: the same pixels, each a 2 × 2 block)
+    font2.set_absolute_size(2 * LINE * Pango.SCALE)
 
     def col(cr, name):
         v = pal[name]
@@ -2883,6 +3044,18 @@ def main(argv):
         elif k == "none":
             _, x, y = m
             text(cr, x + NAME_X, y + (ROW - LINE) // 2, "none", "faint")
+        elif k == "answer":
+            calc_answer(cr, *m[1:])
+        elif k == "hint":
+            _, x, y, icon, words = m
+            row_icon(cr, x + GLYPH_X, y, ic[icon], "faint")
+            text(cr, x + NAME_X, y + (ROW - LINE) // 2, words, "faint")
+        elif k == "keys":
+            _, x, y, w, keys = m
+            for key, words in keys:
+                x += caps(cr, x, y, key) + 4
+                x += text(cr, x, y + (ROW - LINE) // 2, words, "muted") + 2 * CELL
+
         elif k == "label":                        # (a section's label, the rule after it)
             _, x, y, w, t = m
             lw = text(cr, x, y + (ROW - LINE) // 2, t, "muted")
@@ -2926,6 +3099,47 @@ def main(argv):
             row_icon(cr, x + GLYPH_X, y, "@stopwatch", "accent_text")
             text(cr, x + NAME_X, ty, "stopwatch", "text")
             text(cr, x + w - RIGHT_IN, ty, clock_words(max(0, int(time.time()) - int(start))) if start.isdigit() else "", "strong", right=True)
+
+    def big_layout(cr, s):
+        lay = PangoCairo.create_layout(cr)
+        PangoCairo.context_set_font_options(lay.get_context(), fo)
+        lay.set_font_description(font2)
+        lay.set_text(s, -1)
+        return lay
+
+    def calc_answer(cr, x, y, w, h, ans, copied):
+        """The calculator's answer, at twice the size: its figures strong, what is not a figure (a unit, a currency) small and
+        muted on their baseline; nothing yet, a faint 0. At its right what Enter does, or that it was done. Too long for its room:
+        all of it small, then its end goes (never an "…")."""
+        room = w
+        if ans:
+            hint = "copied" if copied else "copy"
+            hw = text_layout(cr, hint).get_pixel_extents()[1].width
+            ty = y + (h - ROW) // 2
+            if copied:
+                text(cr, x + w, ty + (ROW - LINE) // 2, hint, "strong", right=True)
+                room -= hw + 2 * CELL
+            else:
+                tw = chord_w("enter")
+                text(cr, x + w, ty + (ROW - LINE) // 2, hint, "muted", right=True)
+                caps(cr, x + w - hw - 4 - tw, ty, "enter")
+                room -= hw + 4 + tw + 2 * CELL
+        parts = re.findall(r"[-+]?[0-9][0-9.,]*(?:[eE][-+]?[0-9]+)?|0x[0-9A-Fa-f]+|[^0-9]+", ans) if ans else ["0"]
+        figure = [bool(re.match(r"[-+]?[0-9]", p)) for p in parts]
+        wide = sum(2 * px_of(p) if f else px_of(p) for p, f in zip(parts, figure, strict=True))
+        base = y + 30                             # (the capitals' last row is the row's 29: an em of 28 stands on it)
+        if wide > room:
+            text(cr, x, y + (h - LINE) // 2, ans, "strong", width=room)
+            return
+        for p, f in zip(parts, figure, strict=True):
+            if f:
+                lay = big_layout(cr, p)
+                col(cr, "strong" if ans else "faint")
+                cr.move_to(x, base - lay.get_baseline() // Pango.SCALE)
+                PangoCairo.show_layout(cr, lay)
+                x += lay.get_pixel_extents()[1].width
+            else:
+                x += text(cr, x, base - baseline(cr), p, "muted")
 
     detail_x = [0]
     value_r = [0]           # (a menu's values' right edge; 0: each row's own right edge)
@@ -3392,6 +3606,8 @@ def main(argv):
                 panel.request(f[1])
             elif f == ["toggle", "launcher"]:
                 panel.request("launcher", Launcher(apps.list(), apps.counts()), None)
+            elif f == ["toggle", "calc"]:
+                panel.request("calc", Calc(), None)
             elif len(f) == 2 and f[0] == "menu" and f[1].isdigit():
                 menu_from(int(f[1]))
             elif len(f) == 2 and f[0] == "done":

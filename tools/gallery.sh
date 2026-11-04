@@ -48,7 +48,7 @@ SURFACES=(
   "wallpaper|chord logo w|key Escape|3"
   "books|chord logo r|key Escape|3"
   "files|setsid -f kawa-file --choose|key Escape|2.5"
-  "calculator|kawa-term --app kawa-calc Calculator kawa-calc >/dev/null 2>&1 & nap 2; text '5 ft to cm'|chord logo q|1.5"
+  "calculator|setsid -f kawa-calc; nap 1; text '5 ft to cm'|key Escape|1.5"
   "git|kawa-term --app kawa-git Git kawa-git >/dev/null 2>&1 &|chord logo q|2.5"
   "terminal|chord logo Return|chord logo q|1.5"
   "yazi|chord logo e|chord logo q|2.5"

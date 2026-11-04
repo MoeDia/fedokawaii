@@ -15,7 +15,8 @@
 #          name             repo                     tag        file in the release                                   sha-256                                                            binaries → ~/.local/bin
 UPSTREAM=(
   "satty|gabm/Satty|v0.22.0|satty-x86_64-unknown-linux-gnu.tar.gz|eb7a028c4a5ce331c2f355add8e2b807a7d697fe4495f7e1965786a4f6bcd5b8|satty"
-  "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|yazi ya"
+  # (ya, yazi's helper, from its release; yazi itself is built here with the desktop's patch: setup.sh, build_yazi)
+  "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|ya"
   # (Bluetooth pairing in a terminal; its release file is the binary itself, static — measured 2026-10-16)
   "bluetui|pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|b476ee473cb4f7a48cd75d440e991bedc835ff5ac704aac1f1992f8e826222fd|bluetui"
   # (0.66.2, 2026-10-16: fixes only — measured 2026-10-21, the same as the release's checksums.txt)
