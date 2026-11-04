@@ -4593,7 +4593,24 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   "mic open"; after → "no mic" (that 1.5 s capture was the only touch: nothing kept — if his bar marks a mic in use, it
   showed for 1.5 s at 16:09). swayidle 1-min probe started on his session (waybar 2812) at 16:10 — it waits while he
   types. ShellCheck clean; test_pipefail held it (head → sed -n 1p); test_tools 24/0, test_syntax 802/0.
-## >>> NEXT PASS STARTS HERE (4 Nov, written 01:30 by the 00:54 pass — the lines above say what it did): the inbox first.
+- r27-f45-job (4 Nov 16:11): a transient user unit r27-f45 (systemd-run --user --collect, nice 19, I/O idle) runs
+  `tools/away.sh --min 30 --hours 22 -- bash /dev/shm/r27/t46-run/job.sh` from the frozen worktree /dev/shm/r27/fk-f45
+  (94840bd). Once he is away: (a) T02b must-fix 1 — `sudo -n env FEDOKAWAII_COPY=… fedokawaii apply` of that tree, ONLY
+  if its full suite (started 16:11 beside it, nice 19: ~/.cache/r27-f45-run/suite.log, suite.ok) is green; /usr/local/
+  bin/dwl before: 516480 B, 3 Nov 02:29 (the T02b build is ~/.local/src/dwl/dwl 519824 B, 4 Nov 01:00; that tree = the
+  patch, checked by tools/dwl-patch.sh: nothing unsaved); (b) T46 — the f45 harness VM destroyed (its 1 Nov evidence
+  copied to ~/.cache/r27-f45-run/branched-1nov/) and made again from the RELEASED tree (releases/45 answered 200 at
+  16:05; vm-create --release 45 --port 2224), vm-smoke f45 --timeout 300, tools/vm-inject/f45-checks.sh f45; the
+  worktree removed at the end. Every step's line in ~/.cache/r27-f45-run/summary.txt (on disk: survives a reboot).
+## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
+## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
+##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or
+##     /dev/shm/r27/fk-f45. A reboot wipes /dev/shm (the job and its worktree with it): then `git worktree prune` and
+##     start it again the same way (job.sh's copy: ~/.cache/r27-f45-run/job.sh; tools/away.sh gates it).
+##     Its results: T02b — the dwl installed? (then his next login brings it; the live check after); T46 — the F45
+##     install green or the failing stage, f45-checks' reds → fixes; then T46's pre-flight marker and T46b's builds.
+## (0′) tools/away.sh (r27-away) is the gate for everything heavy or visible (VM proofs, applies, session restarts,
+##     T20 bug 1's 35-min absence): use it instead of guessing presence.
 ## (0) PRESENCE before anything he could see or hear (memories presence-not-just-input-idle, probes-cut-off-session,
 ##     never-kill-a-computed-list): every kit/headless run through tools/hl-dwl.sh or tools/kit.sh; never a kill by a list.
 ##     Scratch runs that call kawa-lock stub logger (r27-02b-found: my PAM runs wrote into his journal).
@@ -4619,7 +4636,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
 ##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
-## (3) T18 — the master's review 1 FAILED (r27-18-master-1): ALL FOUR must-fixes DONE (r27-18-mf1 the edge check and
+## (3) T18 (+ r27-found-lockpng: build-lock.py's pictures now differ from the committed lock scenes) — the master's review 1 FAILED (r27-18-master-1): ALL FOUR must-fixes DONE (r27-18-mf1 the edge check and
 ##     seven crops, 8bf8d1c, r27-18-mf3, r27-18-mf4a + mf4b the sheet and in-place shots from the committed files);
 ##     should-fixes 6, 8, 9 DONE (r27-18-sf69, -sf8); LEFT 5 (the sheets composed edge to edge with a tone each — the
 ##     hag's right sheet prints lighter), 7 (calmer fields, margin ≈ 0.3), 10 (the weakest named), the master's review 2.
