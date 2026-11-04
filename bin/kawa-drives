@@ -371,7 +371,9 @@ watch() {   # udisks' own events → the bar and ~/Drives, within a moment of ea
     case $line in
       *Added*|*Removed*|*"Properties Changed"*)
         while IFS= read -r -t 0.3 _; do :; done          # (a burst of changes: one redraw)
-        links; kawa-dwlstatus --poke 13 2>/dev/null ;;
+        links; kawa-dwlstatus --poke 13 2>/dev/null
+        # (on a fresh system, the drive with your things plugged in after login)
+        [[ $line != *Added* ]] || { kawa-carry hint </dev/null >/dev/null 2>&1 & } ;;
     esac
   done < <(udisksctl monitor 2>/dev/null)
 }
