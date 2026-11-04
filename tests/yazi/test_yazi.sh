@@ -370,8 +370,8 @@ EOF
 )
 case_ "M lists the drives: label, size, file system, open or closed — and the keys"
 has "$out" "drives"
-has "$out" "KINGSTON                          28.9G  vfat   open"
-has "$out" "WD Elements                      431.5G  ntfs   closed"
+has "$out" "KINGSTON                           28.9G  vfat   open"
+has "$out" "WD Elements                       431.5G  ntfs   closed"
 has "$out" ' eject'; lacks "$out" "esc close" "its own key alone (§7)"
 called '^kawa-drives list$'
 case_ "the list starts on the first drive; j and k (↓ ↑) move, and not past either end"
@@ -544,7 +544,7 @@ called '^kawa-drives open /dev/sdd1$' "opening passes the drive's device, never 
 python3 - "$out" <<'EOF' && _ok || _no "the frame's right border is not straight"
 import sys, unicodedata
 BAR = "│\U000FF006\U000FF007"                          # (a rail, or the frame's sides: the patched yazi's ring of cells)
-rows = [r for r in sys.argv[1].split("\n") if sum(r.count(b) for b in BAR) >= 3 and any(w in r for w in ("1.9T", "64G", "8G", " eject"))]
+rows = [r for r in sys.argv[1].split("\n") if sum(r.count(b) for b in BAR) >= 2 and any(w in r for w in ("1.9T", "64G", "8G", " eject"))]
 def last_bar(r):
     w, at = 0, None
     for ch in r:
@@ -783,7 +783,8 @@ else echo "  (no unrar here: the RAR case skipped)"; fi
 
 # ── the desktop's yazi: the list's columns, the breadcrumb, the cards, the pop-ups ─────────
 setup
-touch -d "3 days ago" "$W/a.txt"; touch -d "5 hours ago" "$W/b.txt"; : >"$W/nothing.bin"; head -c 3000 /dev/urandom >"$W/zz.bin"; echo x >"$W/.hidden"; echo x >"$W/sub dir/inner.txt"
+# (zz.bin: the same bytes each run: urandom can look like something to file(1))
+touch -d "3 days ago" "$W/a.txt"; touch -d "5 hours ago" "$W/b.txt"; : >"$W/nothing.bin"; python3 -Ic 'import random, sys; open(sys.argv[1], "wb").write(random.Random(7).randbytes(3000))' "$W/zz.bin"; echo x >"$W/.hidden"; echo x >"$W/sub dir/inner.txt"
 mkdir -p "$W/deep/er"
 out=$(CWD=$W/deep/er y 120x30 <<'EOF'
 wait empty
@@ -820,7 +821,7 @@ out=$(y 120x30 <<'EOF'
 wait a.txt
 settle
 key <Down><Down><Down>
-settle
+wait inner.txt
 screen
 quit
 EOF
