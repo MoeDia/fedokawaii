@@ -32,6 +32,12 @@ LEGACY = [b'\x1b[A', b'\x1b[B', b'\x1b[C', b'\x1b[D', b'\x1b[H', b'\x1b[F', b'\x
           b'\x1b[99;5:1u', b'\x03'[:0], b'\x7f', b'\r', b'\t', b'\x1b', b'\x1b\x1b', b'\x1b[', b'\x1b[?', b'\x1b]0;x\x07', b'\x1bP', b'\x1b\\', b'\x1b[997n', b'\x1b[?997;1n', b'\x1b[?997;2n',
           b'\x1b[?31u', b'\x1b[6;20;8t', b'\x1b[I', b'\x1b[O', b'\x1b[200~', b'\x1b[201~', b'\x1b[<0;5;5M', b'\x1b[<0;5;5m', b'\x1b[<64;5;5M', b'\x1b[<65;5;5M', b'\x1b[<35;9;9M', b'\x1b[<2;1;1M',
           b'\x1b[<0;999;999M', b'\x1b[;;;u', b'\x1b[:::;:::;:::u', b'\x1b[1;2;3;4;5;6;7;8;9u', b'\x1b[99999999999;9999:9999;1114112u']
+# the keys that go from screen to screen, as foot sends them
+NAVIGATE = [b'\x1b[9;1:1u\x1b[9;1:3u', b'\x1b[9;2:1u\x1b[9;2:3u', b'\x1b[13;1:1u\x1b[13;1:3u', b'\x1b[27;1:1u\x1b[27;1:3u', b'\x1b[1;1:1A', b'\x1b[1;1:1B', b'\x1b[1;1:2B', b'\x1b[1;1:1C',
+            b'\x1b[1;1:1D', b'\x1b[5;1:1~', b'\x1b[6;1:1~', b'\x1b[1;1:1H', b'\x1b[1;1:1F', b'\x1b[106;1:1;106u', b'\x1b[107;1:1;107u', b'\x1b[114;1:1;114u', b'\x1b[113;1:1;113u',
+            b'\x1b[107;5:1u', b'\x1b[<35;10;8M', b'\x1b[<35;10;12M', b'\x1b[<0;10;8M', b'\x1b[<0;10;8m', b'\x1b[<0;20;2M', b'\x1b[<65;10;8M', b'\x1b[?31u']
+LESSONS = ['home.fj.meet', 'home.anchor.j', 'top.anchor.f', 'bottom.travel.0', 'sent.1', 'sent.pat.1', 'caps.FDSA.words', 'num.47.drill', 'sym.$&.words', 'sign.`{.meet', 'speed.30.pacer',
+           'speed.30.check', 'speed.110.passage.1', 'code.python.1', 'code.c.2', 'sign.check']
 ARABIC = ['\x1b[1588::97;1:1;1588u', '\x1b[1587::115;1:1;1587u', '\x1b[1740::100;1:1;1740u', '\x1b[1608:1606:102;2:1;1606u']
 
 
@@ -110,46 +116,53 @@ def damage(rng):
                 f.write(b)
 
 
-def round_(seed, events):
-    rng = random.Random(seed)
-    size = rng.choice(((rng.randint(1, 300), rng.randint(1, 90)), (100, 32), (60, 20), (84, 31), (130, 48)))
+def start(rng, seed, size):
     argv = [sys.executable, '-IB', BIN, '--seed', str(seed)]
-    if rng.random() < 0.1:
+    r = rng.random()
+    if r < 0.1:
         argv.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'typing_cases.py'))
-    p = Pty(argv, size)
+    elif r < 0.4:
+        argv += ['--eye', '1', '--lesson', rng.choice(LESSONS)]
+    p = Pty(argv, size, cell=rng.choice(((8, 20), (8, 20), (8, 20), (9, 22), (10, 25), (16, 40), (7, 15), (1, 1))))
+    p.pump(0.2)
+    return p
+
+
+def round_(seed, events):
+    """a program played for that many events; one that ended by itself (Esc on the tabs) is started again"""
+    rng = random.Random(seed)
+    size = rng.choice(((rng.randint(1, 300), rng.randint(1, 90)), (100, 33), (60, 20), (84, 31), (130, 48)))
+    p = start(rng, seed, size)
     plain_mode = rng.random() < 0.2
-    p.pump(0.25)
-    if p.status is not None:
-        return f'seed {seed}: did not start: {p.status}: {bytes(p.out[-800:])!r}'
-    for i in range(events):
-        event(rng, p, plain_mode)
-        if rng.random() < 0.08:
-            typist(rng, p)
-        if rng.random() < 0.1:
-            p.send(key('\n'))
-            p.send(key('\n', False, 3))
-        if not p.pump(rng.choice((0, 0, 0.002, 0.01))):
-            break
+    for _ in range(events):
         if p.status is not None:
-            break
-        # (Esc or q on the tabs ends it, as it should: start again in the same round)
-        if i % 40 == 39 and b'Traceback' in p.out:
-            break
+            err = check(seed, p)
+            if err:
+                return err
+            p = start(rng, seed, size)
+        r = rng.random()
+        if r < 0.72:
+            event(rng, p, plain_mode)
+        elif r < 0.8:
+            typist(rng, p)
+        else:
+            p.send(rng.choice(NAVIGATE))
+        if not p.pump(rng.choice((0, 0, 0.002, 0.01))):
+            continue
     how = rng.random()
     if p.status is None and how < 0.25:
         os.kill(p.pid, signal.SIGKILL)
         p.wait(1)
         return check(seed, p, killed=True)
     if p.status is None:
-        p.send(b'\x1b[?2026l')
         t0 = time.monotonic()
         p.send(b'\x1b[99;5:1u')
-        while p.status is None and time.monotonic() - t0 < 5:
+        while p.status is None and time.monotonic() - t0 < 10:
             p.pump(0.02)
             p.wait(0.01)
         if p.status is None:
             p.kill()
-            return f'seed {seed}: no answer to Ctrl+C in 5 s: {bytes(p.out[-400:])!r}'
+            return f'seed {seed}: no answer to Ctrl+C in 10 s: {bytes(p.out[-400:])!r}'
     return check(seed, p)
 
 

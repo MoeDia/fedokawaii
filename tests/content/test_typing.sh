@@ -21,11 +21,9 @@ case_ "the course: as many lessons as its document says, stage by stage"
 table=$(kawa-typing --course)
 total=$(grep -oE '\*\*[0-9]+\*\*' "$DOC" | tr -d '*' | head -n1)
 eq "$(wc -l <<<"$table")" "$total" "the lessons against curriculum.md's total"
-while IFS='|' read -r _ n name _ count _; do
-  [[ $n =~ ^\ ?[0-9]+\ ?$ ]] || continue
-  name=$(xargs <<<"$name") count=$(tr -dc 0-9 <<<"$count")
+while IFS=$'\t' read -r name count; do
   eq "$(grep -cE "^ *[0-9]+  $name {2,}[a-z]" <<<"$table")" "$count" "stage $name: curriculum.md says $count"
-done < <(sed -n '/^## The stages/,/^## A key/p' "$DOC")
+done < <(sed -n '/^## The stages/,/^## A key/p' "$DOC" | sed -En 's/^\| [0-9]+ \| ([^|]+) \|.*\| ([0-9]+) \| [^|]+ \| [^|]+ \|$/\1\t\2/p')
 
 case_ "the course: a lesson's goal is never under its minimum; a meet has none; every id once"
 python3 -IB - "$REPO/configs/home/.local/lib/fedokawaii" <<'PY' >"$TMP/course.out" 2>&1
@@ -64,6 +62,12 @@ for line in open(repo + '/configs/home/.local/lib/fedokawaii/kawatype/inks.txt')
 print('fine')
 PY
 eq "$(cat "$TMP/inks.out")" "fine"
+
+case_ "the art as its tool makes it: inks, Sumi UI's letters, the hands (tools/build-typing-art.py)"
+mkdir -p "$TMP/art"
+if python3 -IB "$REPO/tools/build-typing-art.py" --out "$TMP/art" 2>/dev/null; then
+  for f in inks.txt glyphs.txt hands.txt; do cmp -s "$TMP/art/$f" "$KW/$f" && _ok || _no "$f differs: run tools/build-typing-art.py"; done
+else skip "no Pillow here"; fi
 
 case_ "the terminal's colours it names are the ones screen.sh names"
 grep -q 'ACCENT, ON_ACCENT, EDGE, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = 16, 17, 18, 19, 20, 21, 22, 23, 24, 25' "$KW/app.py" && _ok || _no "app.py's numbers moved"

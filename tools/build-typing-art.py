@@ -5,7 +5,7 @@
     glyphs.txt  Sumi UI's letters as bitmaps (7 × 14): a key's legend is the desktop's own face
     hands.txt   the two pairs of hands: the demon's (dark) and the angel's (light), fingers and palm apart
 
-    python3 -I tools/build-typing-art.py
+    python3 -I tools/build-typing-art.py [--out DIR]
 
 The hands are drawn once, on the app's 1× grid (a key is 20 px): every finger a sprite of ink letters upright
 (the app leans and stretches it, so that a finger can reach), and the palm with its sleeve. Needs Pillow.
@@ -271,6 +271,9 @@ def palm(mood):
 
 
 def main():
+    global OUT
+    if '--out' in sys.argv:
+        OUT = sys.argv[sys.argv.index('--out') + 1]
     write_inks()
     write_glyphs()
     with open(os.path.join(OUT, 'hands.txt'), 'w') as f:

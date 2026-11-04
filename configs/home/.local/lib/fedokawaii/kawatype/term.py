@@ -260,8 +260,8 @@ class Term:
             if params == '201':
                 events.append(Pasted())
             return
-        if self.pasting:
-            return
+        # (while pasting, only plain text is the paste: foot takes every escape out of what it pastes, so a sequence is
+        # a real key — a paste that never ends can never lock the keyboard out)
         fields = params.split(';') if params else ['']
         first = fields[0].split(':')
         mods, event = 0, 1

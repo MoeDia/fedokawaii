@@ -32,6 +32,7 @@ class Run:
         self.slips = {}            # expected char → wrong presses on it
         self.shift_slips = 0       # capitals made with the shift of the same hand
         self.counted = (0, 0)      # (standing()'s memo: up to which position, how many stood correct)
+        self.auto = set()          # (the indents the editor would have typed: no press, so no speed)
 
     # ── the clock ────────────────────────────────────────────────────────────
     def _tick(self, t):
@@ -105,6 +106,7 @@ class Run:
                and (self.pos == 0 or self.text[self.pos - 1] == '\n')) or (
                moved and self.pos < len(self.text) and self.text[self.pos] == ' '):
             self.got[self.pos] = ' '
+            self.auto.add(self.pos)
             self.pos += 1
             moved += 1
         return moved
@@ -143,7 +145,8 @@ class Run:
 
     def net(self, now=None):
         m = self.minutes(now)
-        return max(self.standing() - 1, 0) / 5 / m if m > 0 else 0.0
+        typed = self.standing() - sum(1 for a in self.auto if a < self.pos)
+        return max(typed - 1, 0) / 5 / m if m > 0 else 0.0
 
     def raw(self, now=None):
         m = self.minutes(now)
@@ -177,7 +180,7 @@ class Run:
         return {'text': self.text, 'flow': self.flow, 'limit': self.limit, 'pos': self.pos,
                 'got': [self.got.get(i, '') for i in range(self.pos)], 'correct': self.correct, 'wrong': self.wrong,
                 'secs': self.active(), 'rolled': self.rolled, 'releases': self.releases, 'stamps': self.stamps[-4000:],
-                'slips': self.slips, 'shift': self.shift_slips}
+                'slips': self.slips, 'shift': self.shift_slips, 'auto': sorted(self.auto)}
 
     @classmethod
     def restored(cls, d):
@@ -192,6 +195,7 @@ class Run:
         r.stamps = [float(s) for s in d.get('stamps', [])]
         r.slips = {str(k): int(v) for k, v in d.get('slips', {}).items()}
         r.shift_slips = int(d.get('shift', 0))
+        r.auto = {int(a) for a in d.get('auto', [])}
         secs = float(d.get('secs', 0))
         if secs > 0:                         # (the clock goes on from where it stood at the next key)
             r.first, r.last, r.hold = 0.0, secs, True

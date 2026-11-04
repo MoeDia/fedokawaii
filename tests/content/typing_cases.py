@@ -15,7 +15,7 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from typing_pty import Pty, SHIFT_DOWN, SHIFT_UP, key, state_dir, wrong_for   # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-BIN = os.path.join(HERE, '..', '..', 'bin', 'kawa-typing')
+BIN = os.environ.get('TYPING_BIN') or os.path.join(HERE, '..', '..', 'bin', 'kawa-typing')
 TEXT = ('the quiet river runs past the old stone bridge and the small bird sits on the bell above it while snow '
         'comes down on the hill and the lantern burns low in the hall before the sun comes up over the valley again ' * 3).strip()
 FAILS = []
@@ -655,6 +655,23 @@ def case_landmark():
     with open(os.path.join(state_dir(), 'progress.json')) as f:
         st = json.load(f)
     report('passing the old way is kept, and the mark', st.get('crossed') is True and st.get('mark') == 50, str((st.get('crossed'), st.get('mark'))))
+
+
+def case_indent():
+    """code: a line's indent is the editor's work: not typed, and no speed from it"""
+    fresh()
+    body = 'def add(a, b):\n    return a + b\n\nprint(add(1, 2))'
+    path = text_file(body)
+    p = start((100, 32), path)
+    d = wait_resume(p)
+    report('the file as typed text', d['run']['text'] == body, repr(d['run']['text'][:40]))
+    typed = ''.join(body.split('    '))     # (no indent)
+    n, _, _ = type_at(p, typed, 60)
+    p.pump(0.4)
+    finish(p)
+    h = history()
+    report('...every line ends with Enter, the indent is skipped, all of it right', h and h[-1]['a'] == 100.0 and n == len(typed), str(h and h[-1]))
+    report('...and 60 wpm typed measures 60, not more for the indent', h and abs(h[-1]['w'] - 60) <= 1.5, str(h and h[-1]))
 
 
 def case_long_file():

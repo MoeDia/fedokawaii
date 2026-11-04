@@ -22,6 +22,7 @@ TABS = ('course', 'practice', 'progress')
 TAB_ICONS = {'course': 'MORTARBOARD', 'practice': 'BRUSH', 'progress': 'USAGE'}
 STAGE_ICONS = ('KEYBOARD', 'KEYBOARD', 'KEYBOARD', 'NOTE', 'PEN', 'CALC', 'EQUALS', 'CODE', 'LANTERN')
 MILESTONES = (50, 75, 90, 100, 120)
+MODIFIERS = ('lshift', 'rshift', 'lctrl', 'rctrl', 'lalt', 'ralt', 'lsuper', 'rsuper')
 MILESTONE_WORDS = {50: 'past 50: the average typist, of 168,000 measured.', 75: 'past 75: a trained typist of the old studies.',
                    90: 'past 90: the fast group\'s average.', 100: 'past 100. that was the goal.', 120: 'past 120: the fastest of that study.'}
 
@@ -835,6 +836,10 @@ class LessonScreen(Screen):
         self.caret_on = True
         self.blink_at = 0.0
         self.last_key = 0.0
+        self.stale = False         # (something changed since the last frame: tick draws it, once, however many keys came)
+        self.touched = set()       # (the letters to paint again)
+        self.want_save = False
+        self.painted_wrong = set()
         self.save_resume()
 
     @classmethod
@@ -927,6 +932,7 @@ class LessonScreen(Screen):
             self.kb = art.Keyboard(self.app.dark)
             self.hands = art.Hands(self.app.dark) if self.show_hands else None
             self.kb.paint(self.pic, s)
+            self.painted_wrong = set()
             self.apply_keys(send=False)
 
     def line_of(self, pos):
@@ -989,8 +995,23 @@ class LessonScreen(Screen):
     def send_text(self):
         self.t.write(self.tp.send(self.text_x + 1, self.text_y + 1, art.PALETTE[self.app.dark]))
 
-    def caret(self):
-        """every frame of a lesson ends here: the letters that changed go out"""
+    def render(self, now):
+        """what the keys since the last frame changed, drawn once: a burst of keys is one frame, never a queue of them"""
+        if not self.stale:
+            return
+        self.stale = False
+        r = self.run
+        self.draw_text()
+        for i in self.touched:
+            if i < len(r.text):
+                self.paint_letter(i)
+        self.touched.clear()
+        if not r.done:
+            self.paint_letter(r.pos)
+        self.apply_keys()
+        self.draw_heading(now)
+        if not self.notice and (not self.pic or r.correct + r.wrong <= 1):
+            self.draw_notice()
         self.send_text()
 
     # ── the keyboard and the hands ───────────────────────────────────────────
@@ -1025,12 +1046,13 @@ class LessonScreen(Screen):
         changed = set(lit) ^ set(kb.lit) | {k for k in lit if kb.lit.get(k) != lit[k]}
         new_down = {k for k in self.held if k in keys.PLACE}
         changed |= new_down ^ kb.down
-        new_wrong = kb.wrong
+        changed |= kb.wrong ^ self.painted_wrong
+        self.painted_wrong = set(kb.wrong)
         if shift != kb.shift:
             kb.shift = shift
             changed |= {name for name, p in keys.PLACE.items() if p[4] != p[5]}
         kb.lit, kb.down = lit, new_down
-        for name in changed | new_wrong:
+        for name in changed:
             kb.paint_key(self.pic, name, self.scale)
         if hands:
             pose = {}
@@ -1137,35 +1159,38 @@ class LessonScreen(Screen):
         if self.notice and now >= self.notice_until:
             self.notice = ''
             self.draw_notice()
-            self.caret()
         if self.wrong_until and now >= self.wrong_until:
             self.wrong_until = 0.0
             if self.kb and self.kb.wrong:
-                wrong, self.kb.wrong = self.kb.wrong, set()
-                for name in wrong:
-                    self.held.pop(name, None) if not self.app.releases else None
-                self.apply_after(wrong)
+                if not self.app.releases:      # (no release will ever come for it)
+                    for name in self.kb.wrong:
+                        self.held.pop(name, None)
+                self.kb.wrong = set()
+                self.stale = True
         r = self.run
         if r.limit and r.first is not None:
-            self.draw_heading(now)
             if r.expired(now):
                 self.finish(now)
                 return
+            self.stale = True
         if self.app.focused and now - self.last_key > 0.6 and now >= self.blink_at and not self.dimmed:
             self.blink_at = now + 0.5
             self.caret_on = not self.caret_on
-            if not r.done:
-                self.paint_letter(r.pos)
-                self.caret()
+            self.stale = True
         if self.lesson.kind == 'pacer' and r.first is not None:
             self.draw_pacer(now)
         if r.first is not None and not r.done:
             stopped = r.hold or now - r.last > metrics.PAUSE
             if stopped != self.paused_shown:
                 self.paused_shown = stopped
-                self.draw_heading(now)
+                self.stale = True
         if self.watched:
             self.tick_eye(now)
+        self.render(now)
+        if self.want_save:
+            self.want_save = False
+            self.t.flush()           # (the key's frame first: the disk never holds it up)
+            self.save_resume(now)
 
     def tick_eye(self, now):
         """Yechiam 2003's signal: open at random; answered by its key within 2 s, or the text waits, dimmed"""
@@ -1176,7 +1201,7 @@ class LessonScreen(Screen):
         if not self.eye_open and now >= self.eye_next and not self.paused_shown and self.notice_y < self.rows_n:
             self.eye_open = now
             self.draw_eye()
-            self.apply_keys()
+            self.stale = True
         elif self.eye_open and not self.dimmed and now - self.eye_open > 2:
             self.dimmed = True
             self.run.pause()
@@ -1213,14 +1238,6 @@ class LessonScreen(Screen):
                                       self.letters.cell('↵' if c == '\n' else c, art.INK['edge2']))
         self.send_text()
 
-    def apply_after(self, names):
-        if self.pic:
-            for name in names:
-                if name in keys.PLACE:
-                    self.kb.paint_key(self.pic, name, self.scale)
-            self.apply_keys()
-            self.caret()
-
     def draw_pacer(self, now):
         goal = self.lesson.goal or 40
         at = min(int(goal * 5 / 60 * self.run.active(now)), len(self.run.text) - 1)
@@ -1228,9 +1245,9 @@ class LessonScreen(Screen):
             return
         old, self.pacer_cell = self.pacer_cell, at
         if old is not None:
-            self.paint_letter(old)
-        self.paint_letter(at)
-        self.caret()
+            self.touched.add(old)
+        self.touched.add(at)
+        self.stale = True
 
     def focus(self, on):
         if not on:
@@ -1238,12 +1255,9 @@ class LessonScreen(Screen):
             self.held.clear()
             if self.kb:
                 self.kb.wrong = set()
-            self.apply_keys()
-            self.save_resume()
-        if not self.run.done:
-            self.caret_on = True
-            self.paint_letter(self.run.pos)
-        self.caret()
+            self.want_save = True
+        self.caret_on = True
+        self.stale = True
 
     # ── input ────────────────────────────────────────────────────────────────
     def key(self, ev):
@@ -1251,41 +1265,35 @@ class LessonScreen(Screen):
         name = ev.name
         if bool(ev.mods & term.CAPS) != self.caps and name != 'caps':
             self.caps = bool(ev.mods & term.CAPS)
-            self.apply_keys()
+            self.stale = True
         if ev.kind == 'release':
             self.held.pop(name, None)
             self.app.releases = True
             self.run.releases = True
-            if self.kb and name in self.kb.wrong:
+            if self.kb:
                 self.kb.wrong.discard(name)
-                self.apply_after({name})
-            elif self.pic:
-                self.apply_keys()
-                self.caret()
+            self.stale = True
             return
-        if ev.mods & (term.CTRL | term.ALT | term.SUPER) and name not in ('lctrl', 'rctrl', 'lalt', 'ralt', 'lsuper', 'rsuper'):
+        if ev.mods & (term.CTRL | term.ALT | term.SUPER) and name not in MODIFIERS:
             if ev.mods & term.CTRL and name == 'c':
                 self.leave()
                 self.app.quit()
             elif ev.mods & term.CTRL and name == 'k' and ev.kind == 'press':
                 p = self.app.store.progress
                 p['quiet'] = not p['quiet']
-                self.apply_keys()
-                self.caret()
+                self.stale = True
             return
         if name == 'escape':
             self.leave()
             self.app.go(Home(self.app))
             return
         if ev.kind == 'repeat':
-            if name == 'backspace' and self.run.flow:
+            if name == 'backspace':
                 self.erase()
             return
-        if name in ('lshift', 'rshift', 'lctrl', 'rctrl', 'lalt', 'ralt', 'lsuper', 'rsuper', 'caps'):
+        if name in MODIFIERS or name == 'caps':
             self.held[name] = now
-            if self.pic:
-                self.apply_keys()
-                self.caret()
+            self.stale = True
             return
         if name in ('up', 'down', 'left', 'right', 'home', 'end', 'pageup', 'pagedown', 'insert', 'delete', 'other'):
             return
@@ -1300,8 +1308,7 @@ class LessonScreen(Screen):
                 if self.dimmed:
                     self.dimmed = False
                     self.dim(False)
-                self.apply_keys()
-                self.caret()
+                self.stale = True
             return
         if self.dimmed:
             return
@@ -1309,35 +1316,29 @@ class LessonScreen(Screen):
         if anchor:
             if name == anchor:
                 self.held[name] = now
-                self.apply_keys()
-                self.caret()
+                self.stale = True
                 return
             if anchor not in self.held:
                 self.say(f'hold {anchor} down with the other hand', now)
-                self.caret()
                 return
         ch = '\n' if name == 'enter' else ev.text
         if not ch:
             return
-        if len(ch) > 1:
-            ch = ch[0]
         if ev.mods & term.CAPS:
             self.say('caps lock is on', now)
-            self.caret()
             return
-        if not ch.isascii():
+        if not ch[0].isascii():
             self.say('the keyboard is not in english: alt + shift', now)
-            self.caret()
             return
-        self.typed(ch, name, now, ev)
+        self.typed(ch[0], name, now)
 
-    def typed(self, ch, name, now, ev):
+    def typed(self, ch, name, now):
         r = self.run
         if r.expired(now):       # (past the clock: the test is over, this key is not part of it)
             self.finish(now)
             return
+        self.touched.add(r.pos)
         rolled = bool(self.prev_key) and self.prev_key in self.held
-        before = r.pos
         self.last_key = now
         self.caret_on = True
         ok = r.press(ch, now, rolled)
@@ -1347,53 +1348,31 @@ class LessonScreen(Screen):
         if ok and want_shift and want_shift not in self.held and any(s in self.held for s in ('lshift', 'rshift')):
             r.shift_slips += 1
             self.say(f'the {"right" if want_shift == "rshift" else "left"} shift for that one', now)
-        if ok:
-            f = keys.PLACE[name][3] if name in keys.PLACE else None
-            if f is not None and f != 5:
-                self.thumb = 5 if f < 5 else 4
-        if ok is False and self.kb is not None and name in keys.PLACE:
-            self.kb.wrong = self.kb.wrong | {name}
+        if ok and name in keys.PLACE and keys.PLACE[name][3] != 5:
+            self.thumb = 5 if keys.PLACE[name][3] < 5 else 4
+        if not ok and self.kb is not None and name in keys.PLACE:
+            self.kb.wrong.add(name)
             self.wrong_until = now + 0.18
         if not self.app.releases:
             self.held.pop(name, None)
-        if not self.run.limit:
-            self.draw_heading(now)
-        elif not ok:
-            self.draw_heading(now)
-        if r.flow and not r.done and r.pos < len(r.text) and r.text[r.pos - 1:r.pos] == '\n':
+        if r.flow and not r.done and r.text[r.pos - 1] == '\n':
             r.skip_indent()
-        if r.done or (r.limit and r.expired(now)):
+        if r.done:
             self.finish(now)
             return
-        self.draw_text()
-        if not r.done:
-            self.paint_letter(before)
-            self.paint_letter(r.pos)
-        if self.pic:
-            self.apply_keys()
-        if not self.notice and (not self.pic or r.correct + r.wrong == 1):
-            self.draw_notice()
-        self.caret()
-        if now - self.saved_at > 2.0 or (r.pos and r.text[r.pos - 1] == ' '):
-            self.t.flush()           # (the key's frame first: the disk never holds it up)
-            self.save_resume(now)
+        self.stale = True
+        if now - self.saved_at > 2.0 or r.text[r.pos - 1] == ' ':
+            self.want_save = True
 
     def erase(self):
         r = self.run
         at = r.pos
         if r.backspace():
-            self.draw_text()
-            if at < len(r.text):
-                self.paint_letter(at)
-            self.paint_letter(r.pos)
-            if self.pic:
-                self.apply_keys()
-            self.caret()
+            self.touched.add(at)
+            self.stale = True
 
     def pasted(self):
-        now = time.monotonic()
-        self.say('pasted text is not typed', now)
-        self.caret()
+        self.say('pasted text is not typed', time.monotonic())
 
     # ── kept, finished, left ─────────────────────────────────────────────────
     def landmark(self, wpm, acc):
@@ -1485,6 +1464,7 @@ class Result(Screen):
         self.top_pic = self.kb_pic = None
         self.began = None
         self.stamped = 0
+        self.opened = time.monotonic()
 
     def layout(self):
         cols, rows, cw, ch = self.app.size
@@ -1617,6 +1597,8 @@ class Result(Screen):
         n = ev.name
         if ev.mods & term.CTRL and n == 'c':
             self.app.quit()
+        elif ev.t - self.opened < 0.35:     # (the fingers still going, a key past the end: it asks for nothing)
+            return
         elif n == 'enter':
             self.next()
         elif n == 'r' and not ev.mods & (term.CTRL | term.ALT | term.SUPER):
