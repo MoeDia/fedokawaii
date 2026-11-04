@@ -9,7 +9,7 @@
 # the module is lit meanwhile — kawa-bar):
 #   +12 the mode tile (do not disturb's bell and its dropdown — kawa-quick —, the screen-share
 #       portal's monitor) · +13 the drive mark (kawa-drives) · +14 the brightness
-#   (kawa-brightness, its slider) · +15 the cat (quick settings) · +16 the volume (the sound
+#   (kawa-brightness, its slider) · +15 the head (quick settings) · +16 the volume (the sound
 #   panel; a fifo wake) · +18 the weather · +19 the date and its day
 #   (the calendar) · +20 the torii (the launcher) — the menus' through kawa-menu
 # Exit status: 0 the stream ended (dwl is gone) or poked · 1 no runtime folder · 2 misuse.
