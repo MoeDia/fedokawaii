@@ -28,3 +28,6 @@ also create a shortcut that refreshed the window manager and the gpu and etcc.. 
 
 ## 2026-11-04 00:55 — in the plan: T19p (the design review: the pack and a notice before the last refinement; T19m passes 2–3 wait for your answers)
 before you finish everything related to the design i want you to stop and ask me my opinion and what to change before you get to the phase of refining and cleaning up and optimizing the full last design yea
+
+## 2026-11-04 16:29 — in the plan: T25m (each lane reviewed and merged when it reports done; their tasks marked as theirs)
+Owner: three parallel lanes run for 6 h on branches lane-chess (T25), lane-typing (T26), lane-research (T32 + T55 digests), each in ~/repos/fk-<lane>. Review and merge each lane into main when it reports done in .claude/notes/lane-<name>.md; never redo their work.

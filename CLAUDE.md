@@ -605,3 +605,11 @@ done; paths there refer to the old cloud sandbox — use this file's procedures 
   `~/.local/share/fedokawaii/remote` + `fk-remote.service` (port 8737, LAN only, token in
   ~/.config/fedokawaii/remote-token) are the owner's remote page: keep them working through
   every change; you may bring them into the repo's structure and design, never remove them.
+- DESIGN REVIEW (remote, owner 2026-11-04): the owner reviews design on his remote page. To ask
+  him (T19p, and whenever a design decision is his): put a pack in `.claude/review/current/`:
+  one PNG per surface/state named `NN-short-name.png` (both moods, real renders), an optional
+  `NN-short-name.md` beside it (what changed, what to judge), and `questions.md` (the questions,
+  numbered). Replace the pack each time (move the old one to `.claude/review/YYYY-MM-DD/`).
+  His answers arrive in `.claude/review/feedback.md` as "## time — item — love|ok|change|redo|comment — open":
+  read them at the start of EVERY pass, turn each into plan work (redo = start that surface
+  over), then mark the heading "— done: <commit>". Never finalise a design he marked change/redo.
