@@ -242,6 +242,7 @@ def grub(out):
     torii = xpm(ROOT / "art/grub/torii.xpm")
     torii.resize((torii.width * 8, torii.height * 8), Image.NEAREST).save(out / "torii.png", optimize=True)
     hem(out / "hem.png")
+    solid(out / "ground.png", 8, 8, P["ground"])
     solid(out / "menu_c.png", 1, 1, P["surface"])
     for part in ("n", "s", "e", "w", "nw", "ne", "sw", "se"):
         solid(out / f"menu_{part}.png", 1, 1, P["edge"])
@@ -272,6 +273,10 @@ def grub(out):
 desktop-color: "#{P['ground']}"
 title-text: ""
 terminal-box: "term_*.png"
+terminal-left: "50%-{bw // 2}"
+terminal-top: "50%-{bh // 2}"
+terminal-width: "{bw}"
+terminal-height: "{bh}"
 
 + image {{
     left = 0 top = 100%-240

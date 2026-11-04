@@ -26,6 +26,18 @@ TEST_USER=fk
 TEST_PASSWORD=${FK_TEST_PASSWORD:-kawaii-test}
 
 die() { echo "vm-iso-test: $*" >&2; exit 1; }
+# (the PC is shared: a VM starts only with room for it and 3 GiB to spare; a global OOM killed every VM on 4 Nov 18:15)
+mem_guard() {
+  local name=$1 want have
+  want=$(sed -n "s|.*<memory unit='MiB'>\([0-9]*\)<.*|\1|p" "$V/$name/domain.xml")
+  for _ in $(seq 180); do
+    have=$(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
+    ((have >= want + 3072)) && return 0
+    echo "vm-iso-test: waiting for memory (${have} MiB free, $want + 3072 wanted)" >&2
+    sleep 20
+  done
+  die "no memory for $name: $have MiB free"
+}
 name_ok() { [[ ${1:-} =~ ^r27-iso[a-z0-9-]*$ ]] || { echo "vm-iso-test: only VMs named r27-iso… are mine (got '${1:-}')" >&2; exit 2; }; }
 
 credential() {   # credential NAME TEXT — an SMBIOS type 11 string systemd imports as a credential
@@ -34,7 +46,7 @@ credential() {   # credential NAME TEXT — an SMBIOS type 11 string systemd imp
 
 do_create() {
   local name=$1 iso=$2; shift 2
-  local disk=80 ram=8192 cpus=6 port="" sb=yes fw=efi link=up cdfirst=0
+  local disk=80 ram=6144 cpus=6 port="" sb=yes fw=efi link=up cdfirst=0
   while (($#)); do
     case $1 in
       --disk) disk=$2; shift 2 ;;
@@ -215,6 +227,7 @@ do_run() {
   local r=$V/$name/run t0=$SECONDS last="" ph
   mkdir -p "$r"
   stage() { printf '%s %6d s  %s\n' "$(date +%T)" "$((SECONDS - t0))" "$*" | tee -a "$r/log"; }
+  mem_guard "$name"
   "${VIRSH[@]}" start "$name" >/dev/null || return 1
   stage "started: $(sha256sum "$iso" | cut -c1-16)"
   setsid -f bash "$0" watch "$name" "$r/screens" 3 >/dev/null 2>&1 </dev/null
@@ -260,7 +273,7 @@ do_run() {
 cmd=${1:-}; [[ -n $cmd ]] && shift
 case $cmd in
   create) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_create "$@" ;;
-  start) name_ok "${1:-}"; "${VIRSH[@]}" start "$1" ;;
+  start) name_ok "${1:-}"; mem_guard "$1"; "${VIRSH[@]}" start "$1" ;;
   stop) name_ok "${1:-}"; "${VIRSH[@]}" destroy "$1" ;;
   destroy) name_ok "${1:-}"; "${VIRSH[@]}" destroy "$1" >/dev/null 2>&1; "${VIRSH[@]}" undefine "$1" --nvram >/dev/null 2>&1; rm -rf "${V:?}/$1" ;;
   state) name_ok "${1:-}"; "${VIRSH[@]}" domstate "$1" ;;
