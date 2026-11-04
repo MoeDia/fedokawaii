@@ -4,11 +4,26 @@ Branch `lane-network`, worktree `~/repos/fk-network`. Sudo + own VM (`fk-r27-net
 
 lane-research2 had written nothing for T39 when this began ("T39 network: not started" in its notes), so the audit is this lane's own, from the installed programs, their man pages and measurements. Its digest came at 19:10 (`research-T39-network.md`, read here): it reached the same findings and withdrew its objection to DROP. One thing taken from it: `net_firewall_wrong` also checks firewalld's `allow-host-ipv6`, the policy IPv6 rests on under DROP.
 
-## State (4 Nov 20:08)
-Built and pushed; final scan on the live PC at 19:36 and the live proof at 19:33 clean (Evidence below). Not finished yet:
-- PID 1 has been stuck since 19:51 (lane-hardware's finding in the inbox: the kernel Oops of 19:15, RAM suspected), so `sudo` hangs for every lane. Nothing of this lane's did it: netlink, new namespaces and mountinfo all answer. Only a reset clears it.
-- Two tests in `test_update_flow` failed on this branch ("the next press: the held version"); being compared against b9ecd44 now. `test_report_rows`' SLP-10 fails only while a gtklock runs on the machine.
-- If this lane is restarted after a reset: a reboot is itself the proof to read. Run `sudo bash tools/net-proof.sh`, check `net.ipv4.conf.enp8s0.rp_filter = 1` and verify's network section, then `bash tools/vm-snap.sh r27-net destroy`, `git worktree remove --force ~/.cache/t39-base`, `rm -rf ~/.cache/t39-tmp*`. The temporary nft table `t39_watch` and `/dev/shm/t39` die with the reboot (without a reboot: `sudo nft delete table inet t39_watch`, its log rule writes every plain DNS packet to the journal).
+## State (4 Nov 20:15, before main's forced reboot at about 20:25)
+Built and pushed. The final scan on the live PC (19:36) and the live proof (19:33) were clean: see Evidence. PID 1 has been stuck since 19:51 (lane-hardware's finding: the kernel Oops of 19:15, RAM suspected), so nothing needing root can run until the reboot. Nothing of this lane's caused it: netlink, new namespaces and mountinfo all answered while it was stuck. Main asked for no sudo, no systemctl and no new runs until then.
+
+**Tests so far.** Run while the PC was in that state, so main calls none of it trustworthy until the reboot.
+- Installer area on the 19:09 tree: 23 of 27 files clean. The four failing:
+  - `test_report_rows`: SLP-10 only, because a gtklock was running on the machine. Not this lane's.
+  - `test_update_flow`: 2 failures that did not repeat. Re-run on this branch and on b9ecd44: both 354 of 354.
+  - `test_verify`: 1 failure, which I attribute to my private `/tmp` being on Btrfs (verify's "/home's snapshots" line, `verify.sh:519`). Not yet confirmed: the re-run on the normal tmpfs `/tmp` was stopped for the reboot.
+  - `test_upkeep`: no result line, so it was cut off or hung. Unknown; must be re-run.
+- Final tree: `test_net` 195 of 195, `test_setup` 234 of 234, `test_report` 118 of 118. The rest of that pass was stopped for the reboot.
+- Static area: four files fail at the commit this lane started from too, or in files it does not touch (`test_bargaps`, `test_contrast`, `test_design_doc`, `test_generated`). I re-ran `test_bargaps` and `test_design_doc` on b9ecd44: both fail there.
+
+**Next, after the boot** (the evidence and my helper scripts are in `~/.cache/t39-keep/`; `/dev/shm/t39` is gone):
+1. Read the proof the reboot gives: verify's section "the network" (or `sudo bash ~/.cache/t39-keep/vm-check.sh ~/repos/fk-network dia`), `sysctl net.ipv4.conf.enp8s0.rp_filter` (must be 1), `sudo firewall-cmd --get-active-zones`, `systemctl is-enabled sshd` (disabled), `resolvectl status` (DNSOverTLS=opportunistic). Check first that no apply from a tree without this branch has run since: if so, re-apply with `sudo bash ~/.cache/t39-keep/vm-apply2.sh ~/repos/fk-network dia`.
+2. `sudo bash tools/net-proof.sh`, on the final tree, swarm included.
+3. On the normal `/tmp`: `tests/installer/test_upkeep.sh`, `test_verify.sh`, `test_report_rows.sh`, `tests/engine/test_configs.sh`, `tests/static/test_pipefail.sh`, `test_syntax.sh`. They wait on the installer-test lock when other lanes run; run them with `nice -n 10`.
+4. Clean up: `bash tools/vm-snap.sh r27-net destroy`, `git worktree remove --force ~/.cache/t39-base`, `rm -rf ~/.cache/t39-tmp* ~/.cache/t39-keep`. The temporary nft table `t39_watch` dies with the reboot.
+5. End this note with the finishing word only when all of that is clean.
+
+**What this boot tests.** Everything changed live is in files and survives: `/etc/firewalld/zones/{public,kawa-lan}.xml`, `/etc/firewalld/policies/kawa-no-upnp.xml`, `/etc/sysctl.d/60-fedokawaii-net.conf`, `/etc/NetworkManager/conf.d/91-fedokawaii-net.conf`, `/etc/NetworkManager/dispatcher.d/60-fedokawaii-names`, `/etc/systemd/resolved.conf.d/90-fedokawaii.conf`, sshd disabled, `/etc/ssh/sshd_config.d/40-fedokawaii.conf`. A VM reboot proved the set; this is the first on the PC. What does not survive, on purpose: the `t39_watch` table (a temporary counter, with a log rule that writes plain DNS packets to the journal: gone at the boot). The two applies queued behind the stuck sudo (`fedokawaii apply` from main's tree) die with the reboot; run from a tree without this branch, an apply would reopen ssh and 53317 to the world and put DNS back in plain, so **merge first**.
 
 ## What was wrong (audit, 4 Nov 17:45, `ss -tulpn`, `firewall-cmd --list-all`)
 - The PC has a public IPv6 address (2001:8f8:…). Zone `public` opened ssh, mdns, 6881 and 53317 to all of it, so LocalSend and sshd were reachable from the whole internet over IPv6.
