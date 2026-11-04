@@ -45,6 +45,9 @@ QDockWidget#DockLayer::title { background-image: url(@THEME@/firealpaca-head-lay
 QDockWidget#DockReference::title { background-image: url(@THEME@/firealpaca-head-reference.png); }
 QDockWidget#DockBrushSize::title { background-image: url(@THEME@/firealpaca-head-size.png); }
 QDockWidget::close-button, QDockWidget::float-button { width: 0; height: 0; border: none; background: transparent; image: none; }
+QDockWidget#DockColor { min-height: 220px; max-height: 220px; }
+QDockWidget#DockPalette { min-height: 281px; max-height: 281px; }
+QDockWidget#DockBrushControl { min-height: 124px; max-height: 124px; }
 
 QPushButton { background: #f8f3d8; color: #122625; border: 1px solid #dfcc9c; padding: 0 8px; min-height: 18px; dialogbuttonbox-buttons-have-icons: 0; }
 QPushButton:hover { background: #82241f; border-color: #82241f; color: #f8f3d8; }

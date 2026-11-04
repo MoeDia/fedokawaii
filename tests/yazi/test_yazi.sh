@@ -213,7 +213,7 @@ reset_calls
 y <<'EOF'
 wait a.txt
 settle
-key jjjj
+key jjjjj
 settle
 key <Enter>
 waitfile $TMP/hit.kawa-sketch

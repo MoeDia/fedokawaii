@@ -60,12 +60,15 @@ typedef struct { void *d; unsigned short *ptr; long size; } QString;   /* QArray
 typedef struct { void *d; void **ptr; long size; } QPtrList;           /* QList<T*> */
 enum { RGB32 = 4, ARGB32 = 5 };
 enum { MODE_NORMAL, MODE_DISABLED, MODE_ACTIVE, MODE_SELECTED };
+enum { STATE_ON, STATE_OFF };
 enum { KAWA_EVENT = 1731 };                                            /* QEvent::User + 731 */
 #define OBJECT_BYTES 64                                                /* room for a QImage or QPixmap (32) */
 
 static bool on;                  /* FireAlpaca itself, every symbol found, not asked to stay plain */
 static pthread_t main_thread;
 static char home[PATH_MAX - 128];
+
+struct qpointf { double x, y; };
 
 /* ── Qt's functions ───────────────────────────────────────────────────────────── */
 static struct {
@@ -111,6 +114,11 @@ static struct {
 	void (*process_events)(int);
 	void (*set_geometry)(void *, const void *);
 	void (*layout_margins)(void *, int, int, int, int);
+	void (*mouse_new)(void *, int, const void *, const void *, int, int, int, const void *);
+	void (*mouse_free)(void *);
+	const void *(*primary_device)(const void *);
+	void *(*event_point)(void *, long);
+	struct qpointf (*point_position)(const void *);
 } qt;
 
 static bool
@@ -150,6 +158,10 @@ resolve(void)
 		S(process_events, "_ZN16QCoreApplication13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEE"),
 		S(set_geometry, "_ZN7QWidget11setGeometryERK5QRect"),
 		S(layout_margins, "_ZN7QLayout18setContentsMarginsEiiii"),
+		S(mouse_new, "_ZN11QMouseEventC1EN6QEvent4TypeERK7QPointFS4_N2Qt11MouseButtonE6QFlagsIS6_ES7_INS5_16KeyboardModifierEEPK15QPointingDevice"),
+		S(mouse_free, "_ZN11QMouseEventD1Ev"),
+		S(primary_device, "_ZN15QPointingDevice21primaryPointingDeviceERK7QString"),
+		S(event_point, "_ZN13QPointerEvent5pointEx"), S(point_position, "_ZNK11QEventPoint8positionEv"),
 #undef S
 	};
 	for (size_t i = 0; i < sizeof t / sizeof *t; i++) {
@@ -460,9 +472,14 @@ drawn_again(void *painter, const void *rect, const void *image, const void *sour
 	} else {
 		const uint32_t *src = (const uint32_t *)bits;
 		for (int y = 0; y < h; y++)
-			for (int x = 0; x < w; x++) {
+			for (int x = 0, lacquer = 0; x < w; x++) {
 				uint32_t p = src[y * stride + x];
-				dst[y * stride + x] = k == LAYERS && (p & 0xffffff) == 0x202020 ? ink.edge : list_cached(p);
+				if ((p & 0xffffff) == 0x9dd1f8)
+					lacquer = x + 1;
+				/* (a row of the selection: its black words and marks in the lacquer's ink. The row's
+				 * pixels left of its first blue are looked at again below) */
+				dst[y * stride + x] = k == LAYERS && (p & 0xffffff) == 0x202020 ? ink.edge
+					: lacquer && (p & 0xc0c0c0) == 0 ? ink.on_select : list_cached(p);
 			}
 		if (k == LAYERS)
 			layer_thumbs(dst, src, w, h, stride);
@@ -673,7 +690,7 @@ inked(void *ret, const void *icon, int mode, int state)
 
 	if (!mask_has(key))
 		return;
-	c = mode == MODE_DISABLED ? ink.faint : state == 0 && mode != MODE_SELECTED ? ink.text : ink.on_select;
+	c = mode == MODE_DISABLED ? ink.faint : state == STATE_OFF && mode != MODE_SELECTED ? ink.text : ink.on_select;
 	w = qt.pixmap_w(ret);
 	h = qt.pixmap_h(ret);
 	if (w <= 0 || h <= 0)
@@ -821,8 +838,17 @@ repaint_all(void)
 
 /* ── a file to open, through the program's own File → Open ─────────────────────── */
 static void *action_open;        /* QAction action_FileOpen */
+static void *action_fit;         /* QAction FIT_NAME: the page, whole, in its window */
+#define FIT_NAME "action_ViewZoomAdjust"
+#define FIT_NAME_LEN 21
 static char *open_file;          /* what its next Open dialog answers, unasked */
 static bool wanted_mood, wanted_open;
+static int fit_left;             /* a file just opened: its page fitted again as its window settles */
+/* FireAlpaca takes something of a first stroke from the last mouse moves it has seen, and a brush with a
+ * fade redrawn at the pen's lift gets a long tail to there if there have not been two (a mouse resting on
+ * the bar while Sketch opens by keyboard, and the pen first: dwl keeps the mouse out while a pen is over a
+ * window that reads pens). So its window is told of two more as the pen first comes near; no pointer moves. */
+static bool pen_seen;
 
 void
 _ZN7QObject13setObjectNameE14QAnyStringView(void *self, const void *data, size_t tagged)
@@ -832,6 +858,8 @@ _ZN7QObject13setObjectNameE14QAnyStringView(void *self, const void *data, size_t
 		real = dlsym(RTLD_NEXT, "_ZN7QObject13setObjectNameE14QAnyStringView");
 	if (on && !(tagged >> 63) && (tagged & ~(3ul << 62)) == 15 && !memcmp(data, "action_FileOpen", 15))
 		action_open = self;
+	if (on && !(tagged >> 63) && (tagged & ~(3ul << 62)) == FIT_NAME_LEN && !memcmp(data, FIT_NAME, FIT_NAME_LEN))
+		action_fit = self;
 	real(self, data, tagged);
 }
 
@@ -1263,9 +1291,29 @@ _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *eve
 				open_file = req;
 			}
 		}
-		if (open_file && action_open)
+		if (open_file && action_open) {
 			qt.action_activate(action_open, 0);
+			fit_left = 4;
+		} else if (fit_left && action_fit) {
+			fit_left--;
+			qt.action_activate(action_fit, 0);
+		}
 		return true;
+	}
+	if (!pen_seen && type == 87) {
+		const void *meta = ((const void *(*)(void *))(*(void ***)receiver)[0])(receiver);
+		if (!strcmp(qt.class_name(meta), "QWidgetWindow")) {
+			struct qpointf at = qt.point_position(qt.event_point(event, 0));
+			unsigned char ev[256];
+			QString none = { 0 };
+			const void *mouse = qt.primary_device(&none);
+			pen_seen = true;
+			for (int i = 0; i < 2; i++) {
+				qt.mouse_new(ev, 5 /* MouseMove */, &at, &at, 0, 0, 0, mouse);
+				real(self, receiver, ev);
+				qt.mouse_free(ev);
+			}
+		}
 	}
 	if (in_dialog)
 		switch (type) {
@@ -1281,6 +1329,8 @@ _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *eve
 		const char *cls = qt.class_name(meta);
 		if (type == 17 && open_file && !strcmp(cls, "MainWindow"))
 			post_to_main();                      /* its first window: the file asked for */
+		if (fit_left && type == 14 && !strcmp(cls, "WidgetCanvas"))
+			post_to_main();
 		if (cls[0] == 'W')
 			place_children(receiver, cls);
 	}

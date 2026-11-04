@@ -159,6 +159,9 @@ QDockWidget {{ color: #{strong}; titlebar-close-icon: none; titlebar-normal-icon
 QDockWidget::title {{ background-color: #{g}; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 32px; }}
 {heads}
 QDockWidget::close-button, QDockWidget::float-button {{ width: 0; height: 0; border: none; background: transparent; image: none; }}
+QDockWidget#DockColor {{ min-height: 220px; max-height: 220px; }}
+QDockWidget#DockPalette {{ min-height: 281px; max-height: 281px; }}
+QDockWidget#DockBrushControl {{ min-height: 124px; max-height: 124px; }}
 
 QPushButton {{ background: #{key}; color: #{text}; border: 1px solid #{edge}; padding: 0 8px; min-height: 18px; dialogbuttonbox-buttons-have-icons: 0; }}
 QPushButton:hover {{ background: #{sel}; border-color: #{sel}; color: #{on_sel}; }}
