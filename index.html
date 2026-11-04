@@ -81,7 +81,7 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 <section class="card"><h2>Lanes <span class="sub">what every agent is doing; pause one if memory gets tight</span></h2><div id="lanes" class="sub">–</div></section>
 <section class="card"><h2>Control</h2><div class="row">
 <button data-a="nonstop">main: non-stop until done</button><button data-a="daily">main: 1 h a day</button><button data-a="bulk" data-h="6">main: bulk 6 h</button>
-<button data-a="newpass">restart main's pass</button><button data-a="conductor">start the conductor</button><button data-a="selfupdate">update this page</button><button data-a="stop" class="red">stop everything</button></div>
+<button data-a="newpass">restart main's pass</button><button data-a="conductor">start the conductor</button><button data-a="freshpass">fresh pass for every agent</button><button data-a="selfupdate">update this page</button><button data-a="stop" class="red">stop everything</button></div>
 <div class="row" style="margin-top:10px"><span class="sub">lanes at once:</span><b id="maxl">–</b><button class="sm" onclick="setMax(-2)">− 2</button><button class="sm" onclick="setMax(2)">+ 2</button><span class="sub">(the conductor still waits while the PC is overloaded or low on memory)</span></div>
 <div class="msg" id="cmsg"></div><div class="sub" id="cond"></div></section>
 </div>
@@ -209,7 +209,7 @@ async function tick(){if(!T)return login();if(busy)return;busy=true;try{const s=
   $("banner").style.display="block";$("banner").textContent="The PC is not answering ("+e.message+")"+(lastOk?" · last good update "+Math.round((Date.now()-lastOk)/1000)+" s ago":"")+". Retrying every 5 s — after a reboot it comes back by itself."}
  finally{busy=false}}
 async function post(b,ok){try{await api("/api/action",b);$("cmsg").textContent=ok;for(const k in keys)delete keys[k];tick();return true}catch(e){const m='<span class="err">'+esc(e.message)+"</span>";$("cmsg").innerHTML=m;$("tmsg").innerHTML=m;return false}}
-document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the main run, every lane and the conductor?"))return;post({action:a,hours:b.dataset.h},a=="selfupdate"?"updating the page — it reloads in about 10 s":"done: "+b.textContent).then(ok=>{if(ok&&a=="selfupdate")setTimeout(()=>location.reload(),10000)})});
+document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the main run, every lane and the conductor?"))return;if(a=="freshpass"&&!confirm("Every agent stops its current pass and starts a fresh one (they re-read their notes and the inbox; unsaved work since their last commit is lost). The conductor brings them back within a few minutes. Go?"))return;post({action:a,hours:b.dataset.h},a=="selfupdate"?"updating the page — it reloads in about 10 s":"done: "+b.textContent).then(ok=>{if(ok&&a=="selfupdate")setTimeout(()=>location.reload(),10000)})});
 $("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;if(await post({action:"task",text:v},"sent")){$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass"}};
 async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)){if(el)el.value="";setTimeout(()=>{if(LB>=0)lbOpen(LB);drawGal()},1200)}}
 async function ans(key,el){const v=el.value.trim();if(!v)return el.focus();if(await post({action:"answer",key,text:v},"answer sent: the lane and the main run both have it"))el.value=""}

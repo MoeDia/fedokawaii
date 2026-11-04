@@ -387,6 +387,12 @@ def act(d):
             rest = [l for l in lines if l not in mine and not l.startswith("# ") and l.strip()]
             tmp = REG.with_suffix(".tmp"); tmp.write_text("\n".join(head + mine + rest) + "\n"); os.replace(tmp, REG)
         _cache.clear()
+    elif a == "freshpass":                           # every agent starts a fresh pass (re-reads its notes and the inbox)
+        for x in units():
+            u = x["unit"]
+            if (u.startswith("r27-lane-") and not u.startswith("r27-lane-conductor")) or u.startswith("r27-nonstop-"):
+                sh("systemctl", "--user", "stop", u)
+        sh("pkill", "-f", "^claude -p")
     elif a == "conductor":
         sh("systemctl", "--user", "enable", "--now", "r27-lane-conductor.service")
     elif a == "feedback":
