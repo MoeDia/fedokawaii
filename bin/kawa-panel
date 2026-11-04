@@ -1029,6 +1029,9 @@ def layout_menu(m):
                 view_h = height
     for it in items:
         it.scrolls = it.kind != "hint"
+    if not any(ln[1] in ROW_KINDS or ln[1] == "plain" for ln in m.lines):
+        # (no rows, so no name column to stand on: a dialog's words, a password's title start where its keys and field do)
+        marks = [("lead",) + q[1:] if q[0] == "note" and not title_parts(q[4])[0] else q for q in marks]
     return Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + box_h + PAD + BORDER), heads,
                   [], marks, (top, view_h, height) if view_h < height else None)
 
@@ -2843,6 +2846,9 @@ def main(argv):
             if mark:
                 glyph(cr, x + GLYPH_X, ty, mark, "accent_text")
             text(cr, x + NAME_X, ty, words, "text" if mark else "muted", width=w - NAME_X)
+        elif k == "lead":
+            _, x, y, w, t = m
+            text(cr, x, y + (ROW - LINE) // 2, t, "muted", width=w)
         elif k in SHOWN_KINDS:            # (a row not to choose: off faint, info in a row's inks)
             _, x, y, w, g, name, detail, value = m
             off = k == "off"

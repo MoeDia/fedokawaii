@@ -229,6 +229,11 @@ eq "$(t '' power)" "@power | power |  | None | Super+Shift+E | quiet"
 for k in $(py 'fresh(); print(*{i.keys for i in p.items if len(i.keys) > 1})'); do
   grep -q "^$k " "$REPO/configs/home/.config/fedokawaii/keybinds.txt" && _ok || _no "$k is no key of keybinds.txt"
 done
+case_ "a menu with no rows (a dialog, a password's field): its words start where its keys and field do; with rows, or a failure's mark, on the name column"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu(["note\tthe disk is nearly full", "key\t\tgo on", "key\t\tnot now"])).marks])')" "['lead']"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu([], title="report.pdf · password", prompt="")).marks][:1])')" "['lead']"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu([], title="!\twrong password", prompt="")).marks][:1])')" "['note']" "(a wrong password: its mark in the icon column)"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu(["note\tpick one", "row\tI\tfive"])).marks])')" "['note']"
 case_ "every other row its own letter (the owner, 18:49: every action row shows its key): all different, none the cursor's h j k l; pressed, it does the row"
 RGB_SHARE='STATE + "rgb\ton\nsharesound\toff\n"'
 eq "$(py "fresh($RGB_SHARE); ks = [i.accel for i in p.items if i.accel]; print(sorted(ks), len(ks) == len(set(ks)), set(ks) & set('hjkl'))")" "['a', 'b', 'd', 'e', 'f', 'g', 'n', 'o', 'r', 's', 'u', 'v'] True set()"
