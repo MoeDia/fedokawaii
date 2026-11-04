@@ -1985,7 +1985,7 @@ dev_mason() {   # neovim's tools (Mason loaded first — LazyVim loads it on dem
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
   run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" timeout 900 \
     nvim --headless '+Lazy! load mason.nvim' "+MasonInstall $MASON_TOOLS" \
-      '+Lazy! load nvim-treesitter' '+lua require("config.parsers").sync()' +qa
+      '+Lazy! load nvim-treesitter' '+lua require("config.prefetch").sync()' +qa
 }
 dev_update() {   # update: the CPython uv installed to its newest release, Rust's stable, Mason's tools
   local rc=0
@@ -2883,10 +2883,11 @@ after_dnf_done() {
   record last-after-dnf "$(date +%s) $( ((${#UPDATE_STEPS_FAILED[@]} + ${#STILL[@]})) && echo partial || echo ok)" || true
 }
 # neovim's plugins: at the commits of the lock this toolkit brings (nvim_restore: they move when
-# the toolkit's lock moves, never on their own), the parsers as its list says, and each one checked
+# the toolkit's lock moves, never on their own), what they fetch at first use (config/prefetch.lua),
+# and each one checked
 nvim_plugins() {
   nvim_restore || return 1
-  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! load nvim-treesitter' '+lua require("config.parsers").sync()' +qa || return 1
+  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! load nvim-treesitter' '+lua require("config.prefetch").sync()' +qa || return 1
   as_user rm -rf "$TARGET_HOME/.local/state/fedokawaii/lazy-lock"   # (where an older update kept the versions it replaced)
   nvim_at_lock || { log "neovim's plugins not at their lock's commits: $(nvim_off_lock | tr '\n' ' ')"; return 1; }
 }

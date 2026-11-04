@@ -6534,7 +6534,7 @@ manages only those:
 | `lua/config/lazy.lua` | LazyVim's starter file, with the background check for new versions and the watching of these files switched off, and the plugins to import |
 | `lua/config/options.lua` · `clipboard.lua` | the window's title; the desktop's clipboard and the editor's, each in its place (§17.8) |
 | `lua/config/statusline.lua` | the bottom line, without a plugin: there in the first frame, drawn with the key that changed it |
-| `lua/config/parsers.lua` | treesitter's parsers as `lean.lua` lists them: the step setup and `update` run |
+| `lua/config/prefetch.lua` | what plugins would fetch at their first use, fetched by setup and `update` instead: the parsers `lean.lua` lists, blink.cmp's library |
 | `lua/plugins/lean.lua` | what LazyVim brings and this desktop leaves off or loads later, each with its reason |
 | `lua/plugins/colorscheme.lua` | the remapped gruvbox, which follows the dark and light theme by itself (§40.2) |
 | `lua/plugins/look.lua` | the start screen as a text screen of the desktop's: 編 *editor*, the actions in lower case |

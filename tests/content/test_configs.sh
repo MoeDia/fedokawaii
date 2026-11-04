@@ -369,6 +369,6 @@ case_ "the parsers: setup's step reads lean.lua's list, one list; the languages 
 parsers=$(sed -n '/opts.ensure_installed = {/,/}/p' "$NV/lua/plugins/lean.lua")
 for l in python rust bash lua markdown markdown_inline json toml; do has "$parsers" "\"$l\""; done
 for l in tsx typescript javascript html xml; do lacks "$parsers" "\"$l\""; done
-has "$(cat "$REPO/setup.sh")" "require(\"config.parsers\").sync()"
+has "$(cat "$REPO/setup.sh")" "require(\"config.prefetch\").sync()"
 
 done_
