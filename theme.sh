@@ -1009,7 +1009,6 @@ if changed kawa-rgb || changed /etc/fedokawaii/rgb.conf || ! R systemctl is-enab
   R systemctl restart kawa-rgb.service
   ok "the lights: one steady red (kawa-rgb)"
 fi
-if changed 60-fedokawaii-cooler.rules; then R udevadm control --reload; fi
 # new rules or the icon font: its folder touched first — a font rewritten in place leaves the
 # folder's mtime as it was, and fontconfig would go on serving the cache of the old one
 if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts"; fi
