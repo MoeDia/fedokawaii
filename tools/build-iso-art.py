@@ -213,7 +213,7 @@ def words(text, colour):
     return im
 
 
-MENU_W = 14 * 34                 # the longest entry's letters and a little air, whole letters
+MENU_W = 14 * 31                 # the longest entry's letters and one more, whole letters
 
 
 def solid(path, w, h, colour):
@@ -272,7 +272,9 @@ def grub(out):
     for part in ("c", "n", "s", "e", "w", "nw", "ne", "sw", "se"):
         Image.new("RGBA", (1, 1), (0, 0, 0, 0)).save(out / f"term_{part}.png", optimize=True)
     item_h, pad = 24 * gs, 8 * gs
-    bw, bh = MENU_W + 2 * pad + 4 * gs * 2, len(MENU) * item_h + 2 * pad
+    # (GRUB's list is never narrower than its icon column, its padding, the selection's ends, the frame and
+    # the width of "Typical OS" in the only font it has: 132 px around the icons, measured, or it is not centred)
+    bw, bh = MENU_W + 132, len(MENU) * item_h + 2 * pad
     # (the torii where the splash has it, so that it stays still from the menu on; GRUB's terminal, which
     # paints over everything under it as an entry starts, covers the menu and the hem and leaves the torii)
     (out / "theme.txt").write_text(f"""# the boot menu of the fedokawaii installer (tools/build-iso-art.py): PNG words, no font
