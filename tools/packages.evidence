@@ -101,6 +101,7 @@ NetworkManager-tui|fedora|https://packages.fedoraproject.org/search?query=Networ
 nodejs24|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/|2026-10-20|F44 (nodejs24 by its own name; nodejs is 22)
 nodejs24-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-bin/|2026-10-20|F44
 nodejs24-npm-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-npm-bin/fedora-44.html|2026-10-20|F44
+nss|fedora|https://packages.fedoraproject.org/search?query=nss|2026-11-04|manifest 2026-11-04 (rpm -q on F44: nss, Fedora Project)
 ntfs-3g|fedora|https://packages.fedoraproject.org/search?query=ntfs-3g|2026-10-14|manifest 2026-10-14
 ntsync-autoload|fedora|https://packages.fedoraproject.org/pkgs/wine/ntsync-autoload/fedora-44.html|2026-10-20|F44
 openrgb|fedora|https://packages.fedoraproject.org/search?query=openrgb|2026-10-14|manifest 2026-10-14

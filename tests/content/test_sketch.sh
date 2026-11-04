@@ -64,6 +64,9 @@ for m in dark light; do
     [[ -s $REPO/configs/home/.config/fedokawaii/themes/$m/${u#KAWATHEME/} ]] && _ok || _no "$m: $u not there"
   done
 done
+case_ "Super+/: the program in front is FireAlpaca, its sheet comes first"
+has "$(cat "$REPO/bin/kawa-help")" 'FireAlpaca) s=sketch ;;'
+[[ -s $REPO/configs/home/.config/fedokawaii/keys/sketch.txt ]] && _ok || _no "no sheet"
 case_ "the seeds: Wada's 159 by name, no path of the machine it was made on, no id of its"
 s=$REPO/configs/firealpaca
 eq "$(grep -c '^name=' "$s/Palette.ini")" 159

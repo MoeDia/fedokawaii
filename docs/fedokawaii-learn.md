@@ -1405,6 +1405,7 @@ the line at full pressure. Draw. Press harder for a thicker line, lift off gentl
 | **Ctrl+Alt**, drag | brush size | **Ctrl++** · **Ctrl+-** | zoom |
 | **I** | eyedropper | **G** · **N** | bucket · fill |
 | **Tab** | every panel away, and back | **Ctrl+Shift+N** | a new layer |
+| **F2** · **F3** · **F4** | the navigator · brush sizes · brush preview | **F5** · **F6** · **F7** | colour history · a reference picture · the status line |
 
 **Colours.** The palette holds all 159 colours of Sanzo Wada's *A Dictionary of Color Combinations*, in the book's
 order; pick one and its name shows under the palette. **Layers** are on the right: each is a sheet of glass. Draw
@@ -1421,7 +1422,7 @@ drawing wants more: brushes that behave like ink, pencil and watercolour, layers
 for shaky lines, rulers that snap (parallel, radial, perspective), symmetry, filters, even frame-by-frame animation.
 
 **When something looks wrong.** The colours and panels follow the desktop, dark or light, even while it is open.
-A panel gone? *Window* in the menu. The pen draws without pressure? It is the brush: click its small gear, then
+A panel gone? **Tab**, or *Window* in the menu. All of this is in **Super+/** while you draw. The pen draws without pressure? It is the brush: click its small gear, then
 tick *Size by Pressure*. Everything in a mess: delete `~/.local/share/FireAlpaca` and `~/.local/state/fedokawaii/firealpaca-seed`,
 then run `fedokawaii theme`: you are back at the start, with your drawings untouched.
 

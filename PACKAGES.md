@@ -57,6 +57,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Office | LibreOffice Writer · Calc · Impress + libreoffice-gtk3 · hunspell-en · hunspell-ar | F | open and edit Word, Excel and PowerPoint files (and OpenDocument), the defaults for them (a `.csv` stays VisiData's); drawn by GTK 3, so it follows the theme; English and Arabic spelling — Arabic is its right-to-left language here (`/etc/dconf`, Theme). Only these three: no Base, Draw or Math; Java and the offline help are never taken as weak dependencies |
 | Reading | zathura (+ mupdf, cb) | F | PDF, EPUB, CBZ; the books window's comic covers and page counts come from 7z (Files' 7zip; a RAR comic's from unrar) |
 | Drawing | FireAlpaca (Sketch) | official | the official Linux build from firealpaca.com, unpacked by you (lib/upstream.sh), dressed by src/kawa-firealpaca; brushes, layers, stabiliser, snaps, the pen's pressure |
+| Sketch's system part | nss | F | the one library FireAlpaca's bundle takes from the system that nothing else here brings (its web view) |
 | PDF tools | qpdf · poppler-utils · ghostscript · xournalpp | F | merge, split, rotate, password · images and text out · compress · annotate and sign |
 | Text from pictures (OCR) | tesseract (+ English, Arabic) | F | scans and screenshots to text, and searchable PDFs |
 | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |

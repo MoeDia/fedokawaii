@@ -232,6 +232,8 @@ list_pixel(uint32_t p)
 		return ink.view;
 	case 0xf3f9fe:                                   /* the row under the pointer */
 		return ink.key;
+	case 0xff0000:                                   /* a brush's size changed from its own */
+		return ink.accent;
 	case 0xd0d0d0:                                   /* a brush row's chip: light … */
 		return ink.edge2;
 	case 0x303030:                                   /* … and dark */
@@ -512,7 +514,7 @@ drawn_again(void *painter, const void *rect, const void *image, const void *sour
 				/* (a row of the selection: its black words and marks in the lacquer's ink. The row's
 				 * pixels left of its first blue are looked at again below) */
 				dst[y * stride + x] = k == LAYERS && (p & 0xffffff) == 0x202020 ? ink.edge
-					: lacquer && (p & 0xc0c0c0) == 0 ? ink.on_select : list_cached(p);
+					: lacquer && ((p & 0xc0c0c0) == 0 || (p & 0xffffff) == 0xff0000) ? ink.on_select : list_cached(p);
 			}
 		if (k == LAYERS)
 			layer_thumbs(dst, src, w, h, stride);
