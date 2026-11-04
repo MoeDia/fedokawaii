@@ -21,7 +21,7 @@
 #   fedokawaii log         the last run's log
 #   fedokawaii settings    fedokawaii.conf (keyboard, refresh rate, city…), applied by update
 #   fedokawaii remind [every DAYS | wait DAYS | on | off | check]
-#                          the reminder of the update season (default: every 90 days) — and
+#                          the reminder of the update season (default: every 14 days) — and
 #                          of a backup older than BACKUP_REMIND_DAYS (fedokawaii.conf)
 #   fedokawaii guide       the learning guide (the PDF; on a text console, its text)
 #   fedokawaii freesync    whether FreeSync works, now: a line a screen, from the card itself
@@ -79,7 +79,7 @@ fi
 [[ $BACKUP_REMIND_DAYS =~ ^[0-9]{1,3}$ ]] || BACKUP_REMIND_DAYS=7   # (fedokawaii.conf edited by hand into no number)
 
 # ── settings: how often, and how long to let a new Fedora settle ───────────────────────
-EVERY=90 WAIT=7 REMIND=yes
+EVERY=14 WAIT=7 REMIND=yes
 load_conf() {
   local k v
   [[ -r $CONF ]] || return 0
@@ -1089,7 +1089,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;
-    remind)    case $REMIND:$EVERY in yes:60) EVERY=90 ;; yes:90) EVERY=120 ;; yes:120) REMIND=no ;; *) REMIND=yes EVERY=60 ;; esac
+    remind)    case $REMIND:$EVERY in yes:14) EVERY=30 ;; yes:30) EVERY=60 ;; yes:60) REMIND=no ;; *) REMIND=yes EVERY=14 ;; esac
                save_conf; return 0 ;;
     log)       log_view; return 0 ;;   # (as `fedokawaii log`)
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)

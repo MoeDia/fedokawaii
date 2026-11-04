@@ -3015,7 +3015,7 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   newest=$(rpm -q --last kernel-core); newest=${newest%%$'\n'*}; newest=${newest%% *}; newest=${newest#kernel-core-}
   running=$(uname -r)
   [[ $newest == "$running" ]] || hdr "kernel $newest installed — restart to use it (the one before stays, to fall back to)"
-  every=$(upkeep EVERY 90)
+  every=$(upkeep EVERY 14)
   clone_done || true                                # (the very last: the folder this update was run from)
   u_report
   hdr "update done ($result): $UP_LINE — the next one in $every days"

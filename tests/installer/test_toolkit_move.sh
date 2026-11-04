@@ -36,7 +36,9 @@ back built; fkh release-tags v2026.11.20; fkh toolkit-syntax 1; press; eq "$RC" 
 case_ "a new tag, green: the snapshot first (no second one), the toolkit replaced, the run from it, the report names it; settings kept"
 back built; fkh release-tags v2026.11.20 v2026.10.01
 sed -i 's/^TIMEZONE=.*/TIMEZONE="Asia\/Dubai"/' "$W/usr/local/lib/fedokawaii/fedokawaii.conf"
+mkdir -p "$W/home/fkuser/.config/fedokawaii"; printf 'RESTIC_PASSWORD="his"\n' >"$W/home/fkuser/.config/fedokawaii/secrets.sh"
 press; eq "$RC" 0 "$(tail -n2 <<<"$OUT")"
+eq "$(cat "$W/home/fkuser/.config/fedokawaii/secrets.sh")" 'RESTIC_PASSWORD="his"' "his secrets untouched"
 [[ -e $W/usr/local/lib/fedokawaii/FROM-RELEASE ]] && _ok || _no "not replaced"
 [[ ! -e $W/usr/local/lib/fedokawaii/.git ]] && _ok || _no ".git came along"
 has "$(cat "$W/usr/local/lib/fedokawaii/fedokawaii.conf")" 'TIMEZONE="Asia/Dubai"'

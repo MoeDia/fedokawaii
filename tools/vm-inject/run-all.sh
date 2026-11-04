@@ -300,6 +300,26 @@ toolkit_bad() {
   press_words; run "sudo cat $U/toolkit-red" >"$out/toolkit-red" 2>&1
   ok_if '[[ $(cat "$out/toolkit-red") == v2099.1.1 ]] && [[ $(v fk-inject-a) == 1.1 ]] && run "bash -n /usr/local/lib/fedokawaii/lib/update.sh"' "a release that does not parse: refused, the update went on with the toolkit it had: $(report)"
 }
+toolkit_good() {   # (its real torture suite in the VM's fake machine; the run then from the new toolkit)
+  from toolkit-good || return 1; pk fk-inject-a 1.1
+  run 'set -e; sudo rm -f /var/lib/fedokawaii/toolkit-from-copy; cd ~/fedokawaii; git init -q -b main . 2>/dev/null; echo mark >RELEASE-MARK; git add -A >/dev/null; git -c user.name=t -c user.email=t@t commit -q -m t >/dev/null
+    git tag v2099.1.2; git clone -q --bare . /tmp/fk-origin.git; chmod -R a+rX /tmp/fk-origin.git' >>"$log" 2>&1 || { end_row BROKEN "the fake GitHub"; return 1; }
+  local a=(systemd-run --quiet --wait --collect --unit=fk-inject-press -p SELinuxContext=system_u:system_r:unconfined_service_t:s0 --setenv=FEDOKAWAII_ORIGIN=file:///tmp/fk-origin.git --setenv=FK_TERM=dumb /usr/bin/bash /usr/local/lib/fedokawaii/setup.sh --update)
+  local s=$SECONDS; run "sudo ${a[*]} >/tmp/press.out 2>&1; echo \$? >/tmp/press.rc" >>"$log" 2>&1
+  press_words
+  ok_if 'run "test -e /usr/local/lib/fedokawaii/RELEASE-MARK" && [[ $(run "sudo cat /var/lib/fedokawaii/toolkit-release") == v2099.1.2 && $(v fk-inject-a) == 1.1 && $(report) == *"fedokawaii v2099.1.2"* ]]' "a good release: checked, installed, the run from it in $((SECONDS - s)) s: $(report)"
+}
+# ── a held package with a security advisory (row 34) ─────────────────────────────────────────
+advisory() {
+  from advisory || return 1; pk fk-inject-a 1.1 pre='exit 1'
+  # shellcheck disable=SC2016
+  run 'cat >/tmp/updateinfo.xml <<X
+<updates><update from="fk" status="stable" type="security" version="1"><id>FK-2026-1</id><title>a test</title><issued date="2026-11-01 00:00:00"/><severity>Important</severity><description>a test</description><pkglist><collection short="fk"><name>fk</name><package name="fk-inject-a" version="1.1" release="1" epoch="0" arch="noarch"><filename>fk-inject-a-1.1-1.noarch.rpm</filename></package></collection></pkglist></update></updates>
+X
+sudo modifyrepo_c --mdtype=updateinfo /tmp/updateinfo.xml /var/lib/fk-inject/repo/repodata' >>"$log" 2>&1
+  press
+  ok_if '[[ $(report) == *"a security fix waits among the held: 1"* ]]' "a held package with a security fix: said: $(report)"
+}
 # ── backups: a drive plugged in, a backup, a file lost, the file back (T48) ──────────────────
 backup_drive() {
   from backup-drive || return 1
@@ -327,7 +347,7 @@ backup_drive() {
 }
 ALL=(cut_download cut_candidate cut_transaction cut_post network_kill thirdparty_lag clock pkg_unsigned pkg_scriptlet pkg_conflict pkg_tampered
      disk_full disk_unalloc boot_full snapper_broken rpmdb_damage broken_lib broken_session broken_mesa bls_broken verify_broken roundtrip
-     lock_held stale_offline close_window inhibit toolkit_bad backup_drive)
+     lock_held stale_offline close_window inhibit toolkit_bad toolkit_good advisory backup_drive)
 if [[ ${1:-} == base ]]; then base; exit $?; fi
 rows=("$@"); ((${#rows[@]})) || rows=("${ALL[@]}")
 bad=0

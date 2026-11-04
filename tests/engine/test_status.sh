@@ -16,7 +16,7 @@ eq "$r" 0
 has "$(line release "$out")" "Fedora 44"
 has "$(line updated "$out")" "none since setup"
 has "$(line verified "$out")" "not yet"
-has "$(line due "$out")" "in 60 days" "the season counts from setup (30 days ago, every 90)"
+has "$(line due "$out")" "now" "the season counts from setup (30 days ago, every 14)"
 has "$(line kernel "$out")" "6.17.1-300.fc44.x86_64"
 has "$(line disk "$out")" "641 GB free of 2.0 TB"
 has "$(line backup "$out")" "no drive · quick settings → backup"; lacks "$(line backup "$out")" "BACKUP_TARGET" "(no setting's name on the screen)"
@@ -30,11 +30,11 @@ out=$(fedokawaii status 2>&1); r=$?
 eq "$r" 0; has "$out" "none since setup"; lacks "$out" "No such file"
 
 # ── updates recorded ─────────────────────────────────────────────────────────
-case_ "an update 10 days ago: its day, and the next one in 80 days"
+case_ "an update 10 days ago: its day, and the next one in 4 days"
 fresh; rec last-update "$(ago_s 10) ok"; rec last-update-done "$(ago_s 10)"
 out=$(fedokawaii status)
 has "$(line updated "$out")" "$(date -d "@$(ago_s 10)" '+%-d %b %Y') · 10 days ago"
-has "$(line due "$out")" "in 80 days"
+has "$(line due "$out")" "in 4 days"
 case_ "an update with parts left, one whose checks failed: said under it"
 rec last-update "$(ago_s 1) partial"; has "$(fedokawaii status)" "some parts left for the next one"
 rec last-update "$(ago_s 1) checks"; has "$(fedokawaii status)" "verify found problems: repair"
@@ -108,7 +108,7 @@ for bad in "garbage here" "" "17" $'\x01\x02\xff\xfe' "$(ago_s 3)"; do
 done
 case_ "a record from a clock that ran ahead never puts the season off"
 fresh; rec last-update-done $(( $(date +%s) + 400 * DAY ))
-has "$(line due "$(fedokawaii status)")" "in 90 days"
+has "$(line due "$(fedokawaii status)")" "in 14 days"
 
 # ── verify's outcome ─────────────────────────────────────────────────────────
 case_ "verify's outcome: passed, passed with warnings, things to fix"
@@ -227,7 +227,7 @@ eq "$r" 0; has "$out" "release"
 # ── reminders ────────────────────────────────────────────────────────────────
 case_ "remind check: nothing due"
 fresh; rec last-update-done "$(ago_s 10)"; rec last-update "$(ago_s 10) ok"
-has "$(fedokawaii remind check)" "nothing due — the next update in 80 days"
+has "$(fedokawaii remind check)" "nothing due — the next update in 4 days"
 eq "$(fedokawaii remind)" "$(fedokawaii remind check)" "check is the default"
 case_ "remind check: due — how long since the last update"
 rec last-update-done "$(ago_s 95)"; has "$(fedokawaii remind check)" "the update season is here: 95 days since the last update"
@@ -340,7 +340,7 @@ has "$(fedokawaii remind check 2>&1)" "the update season is here: 40 days" "EVER
 rec last-update-done "$(ago_s 40)"; reset_calls; fedokawaii remind quiet; not_called 'notify-send' "REMIND=no on the last line, without a newline"
 case_ "upkeep.conf garbage or out of range: the defaults"
 printf 'EVERY=3\nWAIT=999\nREMIND=maybe\n$(touch x)\n' >"$HOME/.config/fedokawaii/upkeep.conf"
-rec last-update-done "$(ago_s 40)"; has "$(fedokawaii remind check)" "nothing due — the next update in 50 days"
+rec last-update-done "$(ago_s 10)"; has "$(fedokawaii remind check)" "nothing due — the next update in 4 days"
 
 # ── the look outside: whether the next Fedora is out (once a day, never waited on) ──
 wait_for() { local _; for _ in $(seq 1 50); do [[ -e $1 ]] && return 0; sleep 0.05; done; return 1; }

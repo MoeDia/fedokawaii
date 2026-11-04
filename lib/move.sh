@@ -92,12 +92,11 @@ move_tryvm() {   # move_tryvm N → 0 green · 1 not: said. The test VM, unless 
 # up_move_step [--now] — after a press whose system is current: said, tried, or moved. --now is
 # fedokawaii upgrade: no settling, no "press again" (asked in so many words)
 up_move_step() {
-  local n=$((FEDORA_VER + 1)) flag=${1:-} why told=""
+  local n=$((FEDORA_VER + 1)) flag=${1:-} why told="" rc=0
   [[ $UP_END == @(ok|current|held) ]] || return 0
   move_gates "$n" "$flag" || return 0
-  why=$(move_verdict "$UPD/move-red-$n") || {
-    (($? == 1)) && { move_waits "$n" "$why"; return 0; }
-  }
+  why=$(move_verdict "$UPD/move-red-$n") || rc=$?
+  if ((rc == 1)); then move_waits "$n" "$why"; return 0; fi
   move_tryvm "$n" || return 0
   told=$(cat "$MOVE_TOLD" 2>/dev/null) || told=""
   if [[ $told != "$n" && $flag != --now ]]; then

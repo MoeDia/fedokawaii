@@ -123,7 +123,7 @@ for a in update snapshots remind; do
   [[ $l == *$'\e[38;5;21m'*[!\ ]$'\e[0m' ]] && _ok || _no "$a: the value muted, at the end: $l"
   eq "$(widest "$l")" 38 "$a: the value's last letter in the list's last column"
 done
-has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
+has "$(row update)" "in 4 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 14 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; eq "$(row upgrade)" "" "the move is the update's: no row of its own"
 case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
 for a in chess typing; do
@@ -555,9 +555,9 @@ fresh; echo ext4 >"$R/fstype"
 out=$(tty_free fedokawaii --run snapshots </dev/null 2>&1); has "$out" "/ is ext4"; has "$out" "Btrfs"; not_called '^sudo'
 out=$(fedokawaii snapshots 2>&1); eq "$?" 1; has "$out" "/ is ext4"
 
-case_ "reminders: each Enter the next step — 60, 90, 120 days, off, back to 60"
+case_ "reminders: each Enter the next step — 14, 30, 60 days, off, back to 14"
 fresh
-for want in "EVERY=120" "REMIND=no" "EVERY=60" "EVERY=90"; do
+for want in "EVERY=30" "EVERY=60" "REMIND=no" "EVERY=14"; do
   tty_free fedokawaii --run remind </dev/null >/dev/null 2>&1
   has "$(cat "$HOME/.config/fedokawaii/upkeep.conf")" "$want"
 done
