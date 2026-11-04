@@ -16,3 +16,36 @@ the demon and the angel are still ugly icons i want them more detailed more bada
 
 ## 2026-11-04 17:17 — general — comment — in the plan: T19q 5
 and for the animation change also the window closing as well
+
+## 2026-11-04 17:48 — 00c-new-window-open-close — redo — open
+more movement more dynamic animation this is super shit
+
+## 2026-11-04 17:48 — 00b-new-quick-settings — change — open
+wayy too simple improve
+
+## 2026-11-04 17:48 — 00a-new-prompt-and-fetch — redo — open
+super shit icons
+
+## 2026-11-04 17:49 — 00d-new-workspace-move — ok — open
+could be better
+
+## 2026-11-04 17:49 — 00e-new-menus-unroll — love — open
+improve it a bit more
+
+## 2026-11-04 17:49 — 01-desktop — ok — open
+
+
+## 2026-11-04 17:50 — 03-launcher — love — open
+
+
+## 2026-11-04 17:50 — 04-launcher-sum — love — open
+
+
+## 2026-11-04 17:50 — 04-launcher-sum — love — open
+
+
+## 2026-11-04 17:50 — 05-quick — redo — open
+
+
+## 2026-11-04 17:51 — 14-power — redo — open
+
