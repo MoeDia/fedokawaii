@@ -435,15 +435,16 @@ class Item:
 
 def vrr_shown(s):
     """FreeSync's hour: the setting and what the card does this moment (vrrnow, DRM's
-    VRR_ENABLED) — "games · off" at the desktop, "games · on" in a full-screen game, "always ·
-    on"; stamped while it is on. "not offered": no screen offers it (the monitor's own menu)."""
-    want, now = s.get("vrr", "in games"), s.get("vrrnow")
+    VRR_ENABLED) — "full screen · off" at the desktop, "full screen · on" with a window full
+    screen, "always · on"; stamped while it is on. "not offered": no screen offers it (the
+    monitor's own menu)."""
+    want, now = s.get("vrr", "full screen"), s.get("vrrnow")
     if want == "off":
         return "off", False
     if now == "none":
         return "not offered", False
     if now in ("on", "off"):
-        return ("games" if want == "in games" else want) + " · " + now, now == "on"
+        return want + " · " + now, now == "on"
     return want, True                      # (unread: the setting alone, as it was asked)
 
 

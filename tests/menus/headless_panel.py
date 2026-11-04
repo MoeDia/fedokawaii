@@ -21,7 +21,7 @@ spec = importlib.util.spec_from_loader("kawa_panel", loader)
 kp = importlib.util.module_from_spec(spec)
 loader.exec_module(kp)
 
-STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
+STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tfull screen\nwallpaper\tmishima-mist\nsound\t62%\n"
          "nettype\twifi\nnetwork\tHome Net\nbluetooth\ton\ndevices\tnone\ndrives\tnone\n"
          "backup\t3 days ago\ndnd\toff\n")
 SOUND = "sound\t62%\nmuted\toff\nmic\ton\n"

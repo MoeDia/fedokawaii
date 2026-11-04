@@ -60,7 +60,7 @@ class UI:
     def later(self, ms, fn): self.calls.append(f"later {ms}"); self.timers.append(fn)
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
-STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
+STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tfull screen\nwallpaper\tmishima-mist\nsound\t62%\n"
          "nettype\twifi\nnetwork\tHome Net 5G\nbluetooth\ton\ndevices\tnone\ndrives\tKINGSTON 58G\n"
          "backup\t3 days ago\ndnd\toff\n")
 u = UI(); p = kp.Panel(u)
@@ -184,14 +184,14 @@ eq "$(t 'STATE.replace("night\ton","night\t3500K")' night)" "tile_lantern | nigh
 eq "$(t '' saver)" "tile_saver | screensaver | off | quiet" "(no saver line: off)"
 eq "$(t 'STATE + "saver\t15 min\n"' saver)" "tile_saver | screensaver | 15 min | lit"
 eq "$(t 'STATE + "saver\toff\n"' saver)" "tile_saver | screensaver | off | quiet"
-eq "$(t '' vrr)" "tile_wave | freesync | in games | lit"
-eq "$(t 'STATE.replace("vrr\tin games","vrr\toff")' vrr)" "tile_wave | freesync | off | quiet"
+eq "$(t '' vrr)" "tile_wave | freesync | full screen | lit"
+eq "$(t 'STATE.replace("vrr\tfull screen","vrr\toff")' vrr)" "tile_wave | freesync | off | quiet"
 case_ "FreeSync's row: the setting and the card's own state this moment (vrrnow), lit only while on"
-eq "$(t 'STATE + "vrrnow\toff\n"' vrr)" "tile_wave | freesync | games · off | quiet"
-eq "$(t 'STATE + "vrrnow\ton\n"' vrr)" "tile_wave | freesync | games · on | lit"
-eq "$(t 'STATE.replace("vrr\tin games","vrr\talways") + "vrrnow\ton\n"' vrr)" "tile_wave | freesync | always · on | lit"
+eq "$(t 'STATE + "vrrnow\toff\n"' vrr)" "tile_wave | freesync | full screen · off | quiet"
+eq "$(t 'STATE + "vrrnow\ton\n"' vrr)" "tile_wave | freesync | full screen · on | lit"
+eq "$(t 'STATE.replace("vrr\tfull screen","vrr\talways") + "vrrnow\ton\n"' vrr)" "tile_wave | freesync | always · on | lit"
 eq "$(t 'STATE + "vrrnow\tnone\n"' vrr)" "tile_wave | freesync | not offered | quiet"
-eq "$(t 'STATE.replace("vrr\tin games","vrr\toff") + "vrrnow\toff\n"' vrr)" "tile_wave | freesync | off | quiet"
+eq "$(t 'STATE.replace("vrr\tfull screen","vrr\toff") + "vrrnow\toff\n"' vrr)" "tile_wave | freesync | off | quiet"
 case_ "the network row's picture follows the kind of link: wired, Wi-Fi, none"
 eq "$(t '' network)" "tile_wifi | network | Home Net 5G | lit"
 eq "$(t 'STATE.replace("nettype\twifi","nettype\tethernet").replace("Home Net 5G","wired")' network)" "tile_ethernet | network | wired | lit"
