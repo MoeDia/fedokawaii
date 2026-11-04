@@ -1,7 +1,8 @@
 # The installer ISO — written design (T55)
 
-Written 4 Nov 2026 by the research lane. Sources: `iso-research.md`, cited as (I§n). Nothing here has been booted (this
-lane may not touch a VM): what only a boot can answer is section 8's first list, to run before anything else in T56.
+Written 4 Nov 2026 by the research lane. Sources: `iso-research.md`, cited as (I§n). This lane boots nothing and may not
+touch a VM. `lane-iso` builds T56 from an earlier version of this file: **where its boots and this file differ, its boots win**, and
+what they settled is folded in here (I§12.8). Section 10 is new: the owner's real PC and real disk, which no VM run shows.
 
 ## 1. Decisions
 
@@ -10,11 +11,13 @@ lane may not touch a VM): what only a boot can answer is section 8's first list,
 | Base | **The official Fedora Server netinst, its signed files untouched** | Secure Boot works as it comes; only files nobody signs change (I§5) |
 | Build | **`xorriso … replay` + `mtools`, as a normal user, no root, no container, no `mkksiso`** | Proven here: byte-identical twice, 1.5 s (I§4). `mkksiso` needs root only for a loop mount we do not need |
 | Install engine | **Anaconda from a kickstart, silent, behind our screens** | It knows UEFI, GPT, Btrfs, SELinux, dracut, efibootmgr; the harness already proves that exact layout. Omarchy's root image would not fit GitHub's 2 GiB, would be stale on day one, and leaves all that to us (I§1, I§8) |
-| Questions | **Our own screen in `%pre`, on tty1, in Python 3.15 with `termios`** | `%pre` runs before any UI and may write what `%include` reads (I§2); no `dialog` or `stty` in the image, but Python is always there |
+| Questions | **Our own screen in `%pre`, on a VT of its own, in Python 3.15 with `termios`** | `%pre` runs before any UI and may write what `%include` reads (I§2); no `dialog` or `stty` in the image, but Python is always there |
 | Text | **The Linux console with our own PSF2 font: Sumi UI ×2, a 14 × 28 cell, plus our icons and seal as tiles, exactly 256 glyphs** | Sumi UI's letters are a fixed 7 px wide, so ×2 is exactly the design system's "installer's screens" (§2, §9) with no renderer to write. No GPU assumptions; kmscon is not in the image (I§0). 137 × 38 cells at 1080p. The kernel takes 256 or 512, and 512 leaves only 8 background colours (I§10, I§11) |
 | Colours | **`questions.py` sets the 16 slots itself with `ESC ] P`** | The lacquer of the cursor (`select`, `82241f`) is not among the console's 16 boot colours, `theme.sh`'s `VT_ARGS` (I§10). Omarchy sets its palette the same way (I§1) |
-| Who owns the screen | **One owner, as Omarchy: Anaconda runs in its normal tmux session, and nobody attaches** | `anaconda-tmux@.service`, the client on the console, is masked in `product.img`, so its text reaches no VT and our screens have tty1. **No `inst.notmux` and no `console=`:** the first starts a second Anaconda after the first ends, and the second is copied to the installed system and hides stage 1's failures (I§11). `VT_LOCKSWITCH` once our first screen is up, so that Alt+F2 cannot show anything else |
-| Boot menu | **Themed, words as PNG; default after 5 s; two lines, no "basic graphics"** | Secure Boot refuses our `.pf2` files, PNG is allowed (I§5). Works identically with it on or off. `nomodeset` could not run this desktop anyway, which needs KMS: zero fallbacks |
+| Who owns the screen | **One owner, as Omarchy: our screens on tty8. Anaconda runs direct on tty1 behind them, `inst.notmux console=tty1`, and nothing shows tty1** | Settled by `lane-iso`'s boots (I§12.8), replacing this file's first idea of masking the tmux client. Its two costs are met: `%post` takes `console=` out of everything the installed system reads (I§12.6), and the second Anaconda that `inst.notmux` brings becomes our failure screen (section 6). `VT_LOCKSWITCH` once our first screen is up, so that Alt+F2 cannot show anything else |
+| Boot menu | **Themed, words as PNG; default after 5 s; two lines, no "basic graphics"; `gfxmode=1920x1080,auto`** | Secure Boot refuses our `.pf2` files, PNG is allowed (I§5). Works identically with it on or off. `nomodeset` could not run this desktop anyway, which needs KMS: zero fallbacks. Plain `auto` falls to 800 × 600 on a firmware that hides the EDID from GRUB; `theme.sh` already asks for the exact mode first (I§12.5) |
+| Stick check | **Our own: SHA-256 of the ISO's files, read through ISO9660. No `checkisomd5`, no `implantisomd5`** | `checkisomd5` hashes sectors, and firmware or an automount may rewrite GPT fields on a good stick: Fedora's own F45 issue, unfixed (I§12.2). Saying "damaged" and powering off on a false reading is the worst thing this screen could do. Files are what the install reads, which is upstream's own suggestion in that bug |
+| Erase | **In `%pre`, right after the confirmation: `wipefs -a -f`, partitions then disk, re-read, settle. Anaconda finds an empty disk** | So his real disk becomes the wiped disk every T57 run proves, and blivet never walks his subvolumes and snapshots one by one (I§12.3). `clearpart` stays, on nothing. No retreat is lost: `clearpart` would destroy the same disk moments later |
 | Splash | **Our `sumi` Plymouth theme through a second initrd** | The installer's initrd has no graphical Plymouth at all (I§0); a second initrd is unverified and allowed |
 | Secure Boot | **Works on.** The owner's PC has it off and nothing requires a change | Dual-signed shim, no kernel modules of ours (I§5) |
 | "Newest stable" | **The ISO is built from the newest stable and proven release; a newer one arrives through `update`, T46's path** | See below |
@@ -36,9 +39,9 @@ The ISO's first screen never asks about any of it.
 |---|---|---|
 | 1 | Themed GRUB menu, torii, two lines ("install", "check this stick, then install"), the first chosen after 5 s | shim → GRUB (signed, unchanged) → our `grub.cfg` on partition 2 and the theme on the ISO9660 side |
 | 2 | Plymouth `sumi`, torii on sumi ink | kernel (signed) + `initrd.img` + `fedokawaii-boot.img` (second initrd: `script.so`, `libply-splash-graphics.so.5`, renderers, `libpng`, `libdrm`, theme, `plymouthd.conf`). `rhgb quiet` + `theme.sh`'s `VT_ARGS`. Not the simpledrm blacklist of `BOOT_ARGS`: with it, a native driver that fails leaves no picture at all (I§11) |
-| 3 | The splash stays | stage 2: `install.img` + `images/product.img` (our `questions.py`, `progress.py`, `failed.py`, font; `anaconda-tmux@`, `plymouth-quit` and `plymouth-quit-wait` masked, or `anaconda.target` would end the splash before our first draw and race it). `questions.py` does the handover itself, in this order: `plymouth quit --retain-splash`, `KDSETMODE KD_TEXT`, `VT_LOCKSWITCH`, first draw (I§10, I§11) |
-| 4 | Stick check if asked; refusal, or questions | `%pre`: with `fk.check` on the line, `checkisomd5` in our screen with its progress (`rd.live.check` would run hidden and end in `sleep 43200`, I§11); checks; questions (section 3); writes `/tmp/answers.ks` atomically; verifies the payload's hash **before the disk is touched** (Omarchy's lesson) |
-| 5 | Progress: base system, n of N packages | `%pre` left `progress.py` as a daemon with closed fds (the docs' warning, I§3). It also watches Anaconda's pid: gone without `%post`'s word, it shows `failed.py` (section 6). Anaconda silent in its tmux |
+| 3 | The splash stays | stage 2: `install.img` + `images/product.img` (our `questions.py`, `progress.py`, `failed.py`, font; `plymouth-quit`, `plymouth-quit-wait` and `systemd-vconsole-setup` masked, `anaconda.service` replaced, section 6). The handover, as `lane-iso` proved it (I§12.8): dress tty8 behind the splash, then at the first page `plymouth quit`, `VT_ACTIVATE`, `VT_LOCKSWITCH`, colours again, draw |
+| 4 | Stick check if asked; refusal, or questions | `%pre`: with `fk.check` on the line, the file check in our screen with its progress (section 5; `rd.live.check` would run hidden and end in `sleep 43200`, I§11); checks; questions (section 3); verifies the payload's hash **before the disk is touched** (Omarchy's lesson); erases; writes `/tmp/answers.ks` atomically |
+| 5 | Progress: base system, n of N packages | `%pre` left `progress.py` as a daemon with closed fds (the docs' warning, I§3); it reads Anaconda's own lines from `/tmp/syslog` (I§12.8). Anaconda behind it on tty1 |
 | 6 | "restarting" | `%post`: payload to `/usr/local/lib/fedokawaii`, `state/user`, `state/with-theme` (without it setup skips the theme, I§11), `TIMEZONE`, `KB_LAYOUTS` and `USERNAME` into that `fedokawaii.conf` (else setup and repair put the default zone back, I§11), phase 1, resume unit enabled, first-boot dress (below), and **last of all** the marker of section 3. `reboot --eject` |
 | 7 | Splash, then setup's progress | three phases of `setup.sh --resume` on tty1, through their reboots. This exists and is proven in the harness |
 | 8 | **ready**: the login screen | greetd, the last reboot |
@@ -71,6 +74,8 @@ Screens, in the design system's text grammar (§7, in Sumi UI ×2):
 - The keyboard's key, `F2`, works on every page, so a wrong layout can be fixed before a password is typed.
 - Words lower case, no hints a good design makes obvious; never "…"; the seal; dark mood.
 - A typed password is confirmed by typing it again: that is the check, not a second question. Nothing else repeats.
+
+**The erase happens at the confirmation.** Once `enter` is pressed on that page and the payload's hash is good, `%pre` runs `wipefs -a -f` on each partition of the chosen disk, deepest first, then on the disk itself, then `blockdev --rereadpt` and `udevadm settle`. Nothing before that page writes to any disk. It only ever names the disk in `/tmp/answers.ks`, and it runs before Anaconda scans anything (I§2), so blivet sees a blank disk: the case T57 proves, whatever was there. A `wipefs` that fails stops the install with our failure screen and says which device.
 
 A reset during Anaconda's stage restarts the ISO and asks again: no marker yet, and it is a new install. **This is the one place the owner's "nothing asks twice" does not hold**, and it stays so on purpose: before the marker there is nowhere to keep a password hash but the stick or the firmware's NVRAM, and neither is acceptable. After step 6 nothing asks.
 
@@ -136,9 +141,13 @@ Inputs, each pinned, in a small file next to the tool:
 
 Steps, none needing root:
 
-1. Verify the netinst. 2. Build `product.img` and `fedokawaii-boot.img` (`cpio --reproducible`, sorted, `xz --check=crc32`, the only check the kernel's decompressor takes). 3. PSF2 font, padded to exactly 256 glyphs. 4. Rewrite `grub.cfg`: entries, theme, one `initrd` line with two files. 5. `mcopy -o -m` it into the EFI partition image and `xorriso -update` it on the ISO9660 side (`/EFI/BOOT/grub.cfg`, `BOOT.conf`, `boot/grub2/grub.cfg`), all the same file. 6. `xorriso … replay`, `-map` the rest. 7. `implantisomd5` (build-only `isomd5sum`), so that the media test still passes. 8. `.sha256`.
+1. Verify the netinst. 2. Build `product.img` and `fedokawaii-boot.img` (`cpio --reproducible`, sorted, `xz --check=crc32`, the only check the kernel's decompressor takes). 3. PSF2 font, padded to exactly 256 glyphs. 4. Rewrite `grub.cfg`: entries, theme, one `initrd` line with two files. 5. `mcopy -o -m` it into the EFI partition image and `xorriso -update` it on the ISO9660 side (`/EFI/BOOT/grub.cfg`, `BOOT.conf`, `boot/grub2/grub.cfg`), all the same file. 6. `xorriso … replay`, `-map` the rest. 7. `fk-sums` beside `ks.cfg` at the ISO's root: SHA-256 of every file on the ISO9660 side, from the same tree `xorriso` is given. It lists `images/product.img`, so it cannot sit inside it. 8. `.sha256`.
 
-Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 2, 3, 7 to be proven in T56. Volume id stays Fedora's: `inst.stage2` and the GRUB `search` depend on it, and nothing else needs ours. The EFI partition has 0.5 MB free: nothing but `grub.cfg` goes there.
+**The stick check.** The second menu line puts `fk.check` on the kernel's line. `%pre` mounts the ISO's device read-only a second time, hashes each file in `fk-sums` with Python's `hashlib`, and shows bytes read on our meter. A file that differs is "this stick is damaged", and then it is true. What firmware does to the GPT or to the EFI partition is not read at all (I§12.2); the signed files are on the ISO9660 side too, so a damaged `BOOTX64.EFI` is still caught there, and a damaged copy in the EFI partition could not have booted this far.
+
+The stick's bytes are worth comparing once: right after it is written, before any firmware has seen it, by whatever writes it (section 9).
+
+Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 2, 3 to be proven in T56. Volume id stays Fedora's: `inst.stage2` and the GRUB `search` depend on it, and nothing else needs ours. The EFI partition has 0.5 MB free: nothing but `grub.cfg` goes there.
 
 **GRUB under Secure Boot:** `theme.txt` draws everything with `image` components and the entries through `--class` icons (`icons/<class>.png`) with an empty title: the words are PNG in Sumi UI ×2, no `loadfont`, no text. `tools/build-art.py` renders them. Unifont (the signed image's only font) is what any GRUB error message will use, and that cannot be helped.
 
@@ -149,7 +158,9 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 | A skeptic says | Answer |
 |---|---|
 | The stick stays in; the firmware boots it again | Marker check, section 3; `reboot --eject` for optical; Anaconda should put Fedora first in the boot order: T57's row sees whether it does |
-| Anaconda crashes, or dies early | `%onerror` shows it in our screen with the log's path. A `%pre` that raises or a parse error reaches no `%onerror` (I§11), and the VT is locked with no shell: `questions.py` catches its own failures, and `progress.py` watches the pid. Tested with a bad repo URL and with a raising `%pre` |
+| Anaconda crashes, or dies early | `%onerror` shows it in our screen with the log's path. A `%pre` that raises or a parse error reaches no `%onerror` (I§11), the VT is locked with no shell, and `anaconda.service` starts next: a second Anaconda, a second `%pre`, the form back as if nothing had happened (I§12.7). **A drop-in in `product.img` turns that unit into the answer:** `Type=oneshot`, `ExecStart=` emptied, then `failed.py`. It can only start when Anaconda has ended without taking the machine down, so every early death lands on one screen, with no watcher to write. `%post` leaves a word in `/tmp`, and with that word there the unit does nothing, so a slow reboot can never flash it. Masking is no option: `anaconda-direct` `Requires` it. Read, not booted: tested with a bad repo URL, a raising `%pre` and a kickstart that cannot parse |
+| "This stick is damaged", on a good stick | Fedora's check can say that (I§12.2). Ours reads files, not sectors (section 5). T57 proves both directions: a copy with the three GPT fields changed passes, a copy with one flipped byte in `install.img` fails |
+| The disk is not empty, and it is not simple | His has subvolumes, snapshots, nested ones. The erase in `%pre` leaves nothing to walk (section 3). T57: a second install over a finished one |
 | Mirrors fail mid-way | Anaconda's own retries; a final failure → `%onerror`. Slow-network run in T57 |
 | Mirror content changed between `%pre`'s check and install | Nothing to do: `%onerror`; no half-state matters on a disk that was going to be erased |
 | Reset during `setup.sh` | The resume unit, proven by the harness; T57's reset in phase 2 |
@@ -172,7 +183,7 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 - No disk encryption: the layout has none, the owner never asked; a question less.
 - No dual boot, no keeping other partitions: `clearpart --all` on the chosen disk.
 - Keyboard: one layout plus the desktop's Arabic second (`KB_LAYOUTS`, four at most); the bar's tile names what it finds.
-- Hardware: tested in the VM only. The owner's rule is never to run it on his real disk.
+- Hardware: **the agents test it in the VM only, and never run it on his real disk.** He does, at the end of the round (T54b): section 10 is what stands between those two facts.
 
 ## 8. Tests
 
@@ -180,15 +191,16 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 
 | Experiment | Decides |
 |---|---|
-| Boot the replayed ISO with a stub `%pre` that opens tty1, quits Plymouth, sets `KD_TEXT`, locks switching, draws, reads a line, with `anaconda-tmux@` and both quit units masked | The VT plan and the handover: frame by frame, is there a black blink between the splash and our first draw (`drm_file.c:441`, I§11)? If Anaconda or a getty fights for tty1, use tty8 and `chvt` (the documented older pattern) |
-| `setfont` a 14 × 28 PSF2 of 256 glyphs on `drm` fbcon (the kernel allows up to 64 × 128 and 512 glyphs, `vt.c`), `ESC ] P` for the lacquer, then a screenshot | The font and the colours, down to the pixel with `tools/px.py` |
-| Second initrd with `script.so` + `sumi`, screenshot at 2 s and at switch-root | The splash; no black gap |
-| PNG-only theme with **OVMF secure-boot, enrolled keys** | The menu under Secure Boot; `mokutil --sb-state` in the guest proves it was on |
-| `images/product.img` overlay is present in stage 2 | Our files arrive; otherwise embed them in `%pre` |
-| Parse packaging progress from a real run | `progress.py`'s source |
-| `%pre`'s daemon survives into the installation | Otherwise start it from `%pre-install`; a VT must keep showing it |
-| `-kmscon` with `@^custom-environment` on F45 | Excluded cleanly; greetd and resume unit as on the harness |
-| A damaged `install.img` on a test ISO | What stage 1 shows under the splash. Silence is a defect: T56 decides how the failure reaches the screen |
+| Boot the replayed ISO with a stub `%pre` that opens tty1, quits Plymouth, sets `KD_TEXT`, locks switching, draws, reads a line, with `anaconda-tmux@` and both quit units masked | **Done by `lane-iso`:** tty8 won (I§12.8) |
+| `setfont` a 14 × 28 PSF2 of 256 glyphs on `drm` fbcon (the kernel allows up to 64 × 128 and 512 glyphs, `vt.c`), `ESC ] P` for the lacquer, then a screenshot | **Done by `lane-iso`:** on a hidden VT, colours sent again after the switch |
+| Second initrd with `script.so` + `sumi`, screenshot at 2 s and at switch-root | **Done by `lane-iso`:** needs `label-freetype.so` too on F45 |
+| PNG-only theme with **OVMF secure-boot, enrolled keys** | **Done by `lane-iso`.** T57 keeps `mokutil --sb-state` in the guest |
+| `images/product.img` overlay is present in stage 2 | **Done by `lane-iso`** |
+| Parse packaging progress from a real run | **Done by `lane-iso`:** `/tmp/syslog` |
+| `%pre`'s daemon survives into the installation | **Done by `lane-iso`** |
+| `-kmscon` with `@^custom-environment` on F45 | Runs in `lane-iso`'s install; T57 confirms `rpm -q kmscon` says no |
+| A damaged `install.img` on a test ISO | **Open.** What stage 1 shows under the splash. Silence is a defect: T56 decides how the failure reaches the screen (I§12.8 lists the hooks) |
+| A drop-in that replaces `anaconda.service` | **New.** Does a raising `%pre` land on `failed.py`, and does a normal install still reboot with no flash of it? (I§12.7) |
 
 ### T57's matrix, each from a wiped disk (`tools/vm-iso-test.sh`, `virsh send-key` and `virsh screenshot`; the real screens, no answer file)
 
@@ -210,6 +222,11 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 | `de` chosen, a password with z and y | a real login at the login screen, Asia/Tokyo and `de` still there after setup and after `repair` |
 | A raising `%pre`, a kickstart that cannot parse | our failure screen, never a frozen one |
 | "check this stick" with a corrupted ISO | says so in our screen, disk untouched |
+| "check this stick" on a copy with GPT fields 0x210, 0x220, 0x230 changed | passes: Fedora's own false alarm does not reach us (I§12.2) |
+| **A second install over a finished one:** setup done, `home` split, snapper snapshots, `~/Downloads` and a nested subvolume, then `i` | installs; no old subvolume survives; time recorded. **His exact path** (I§12.3). Every other run starts wiped |
+| Right after `%post`, before phase 1 | `rpm -q amd-gpu-firmware realtek-firmware amd-ucode-firmware` all there (I§12.4): no VM needs them, his PC does |
+| After the update button brings a new kernel | its entry and `/etc/kernel/cmdline` hold no `console=` (I§12.6) |
+| A VM with no EDID at GRUB, if QEMU allows it | the menu in 1080p from `1920x1080,auto`, not 800 × 600 (I§12.5) |
 | Mirror unreachable at package step | `%onerror`'s screen with the log's path |
 | Two builds | `sha256sum` equal |
 | The whole installed disk | no password hash outside `/etc/shadow` |
@@ -218,8 +235,31 @@ Screens saved as PNG at menu, each question, progress, restarting, login; both m
 
 ## 9. What changes in the plan
 
-- **T56**: `%post` seeds `with-theme` and `fedokawaii.conf`; `product.img` masks three units; drop `lorax`/`mkksiso` from the build-only list (`xorriso`, `mtools` and `isomd5sum` remain); no container or VM needed to build. "Terminus/our console font" → our PSF2. Question TUI in Python, not bash (no `stty`, `tput`, `clear`). `theme.sh` gets PNG words for Secure Boot.
+- **T56**: `%post` seeds `with-theme` and `fedokawaii.conf`; `product.img` masks three units and replaces `anaconda.service` (section 6); the erase in `%pre` (section 3); the stick check by files, `fk-sums` (section 5); drop `lorax`/`mkksiso` and `isomd5sum` from the build-only list (`xorriso` and `mtools` remain); no container or VM needed to build. "Terminus/our console font" → our PSF2. Question TUI in Python, not bash (no `stty`, `tput`, `clear`). `theme.sh` gets PNG words for Secure Boot.
 - **`f45-changes.md` line 81**: kmscon is not in the installer's image. `-kmscon` in the kickstart, and the VM harness's kickstart should match when T46 moves it to F45, otherwise harness and product differ.
 - **T57**: as section 8; add the rows that are new here.
 - **T42/T45**: a marker for "installed", written last by `%post`. If a rollback ever loses it, the only cost is that a booted stick asks again; the erase page still stands in the way.
-- **T50**: the Learn piece "installing from the ISO", once T57 has its screens.
+- **T50**: the Learn piece "installing from the ISO", once T57 has its screens: F11 at power-on on his board, the stick's UEFI line (I§12.4).
+- **T54b, a step nobody has yet:** something must write the ISO to a stick. `kawa-carry` backs up and restores, and writes no stick. It belongs in the same "before you wipe" flow: pick a USB disk that is not the backup drive, name its model and size, confirm, write, **compare the bytes at once** (the one moment a sector check means something, I§12.2), and keep `udiskie` off that disk from start to finish: it runs in his session (`configs/home/.config/udiskie/config.yml`), and an automount is one of the causes Fedora lists. He never types `dd`. Also the rehearsal of section 10.
+
+## 10. His PC, his disk
+
+T54b has him wipe this PC and install from this ISO. T57 proves the ISO in VMs. These are the differences that decide whether that is enough.
+
+**Read and fine (I§12.4):** the netinst carries drivers and firmware for his card, iGPU, network chip, NVMe disk and stick. One internal disk, so the form's default is right; a USB backup drive is never offered. His label `fedora_fedokawaii` skips the "already installed" page and goes to the form, whose erase page names the Lexar. Secure Boot off changes nothing. `BootOrder` has only Fedora, so he reaches the stick with F11, and with it left in the machine still boots the installed system.
+
+**What no VM shows:**
+
+| Only on his PC | Why it can differ | Who sees it, and when |
+|---|---|---|
+| The menu's mode | MSI's firmware may hide the EDID from GRUB (I§12.5) | The rehearsal below |
+| Whether MSI's firmware touches the stick | Fedora's check would fail; ours is built not to care (I§12.2) | Not needed any more |
+| The splash and first page on amdgpu | Real KMS, two cards, a monitor that re-syncs when 60 Hz becomes 144 Hz: a blank of a second or two is likely, and the first frame after it may differ from `virtio` | The rehearsal |
+| The console's cell count | 137 × 38 on 1080p, read at run time, measured only on `virtio` | The rehearsal |
+| A card that fails to initialise | `gpu_problem()` reads `/sys/class/drm`, so it would refuse "no graphics" and power off. Reading PCI class 0x03 from `/sys/bus/pci/devices` says the true thing, independent of the driver | Suggested to `lane-iso` |
+| The network chip's link | 2.8 s from bring-up to link in this boot's journal, at 1 Gbps; the check waits 30 s. Nothing expected | The rehearsal |
+| A wrong clock | A reset CMOS makes `curl` fail on TLS, read as "no answer from Fedora" | Rare; the words could say so once |
+
+**The rehearsal, before the wipe.** Nothing above needs the install to run. The form writes to no disk until its last page; `installed_disk()` mounts only `ro,rescue=nologreplay`, and on this PC does not even match. So: write the stick, boot it once with F11, look at the menu, the splash and the form, press `F2`, then hold the power button. Two minutes, the disk untouched, and it replaces every "read, not seen" in this section with a fact while there is still time to fix one. **This is the one thing this design asks of him**: main's next review pack can carry it, when the ISO is built from the final tree. Agents still never run it on his disk: this is him, and it stops at the form.
+
+If his session must be back afterwards, nothing has changed: the next boot is his desktop.

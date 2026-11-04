@@ -1,7 +1,9 @@
 # The games VM — written design (T32)
 
 Written 4 Nov 2026 by the research lane. Sources and grades: `vm-research.md`, cited as (R§n). Nothing here has run on
-the PC: the seven tests in section 3 decide the open branches, and each says which result leads where.
+the PC: the tests in section 3 decide the open branches, and each says which result leads where.
+
+**Status:** `plan.md` on main (b9ecd44, 4 Nov 17:42) replaces the gaming VM with ASOBI, no VM at all. T32 stayed in this lane's brief, so this was finished as a complete answer. If that decision stands it is a record; if the VM ever comes back, it starts here (R§11.3).
 
 ## 1. Decisions
 
@@ -21,8 +23,8 @@ the PC: the seven tests in section 3 decide the open branches, and each says whi
 
 ## 2. What the owner has to do
 
-Revised from T06. Nothing yet: tests H, V and R need no change of cables, and O needs none either (the LG stays on the
-card's HDMI). **Only when H, R and O pass**, one notice, with one reason line, because the T06 file was cleared on 28 Oct
+Revised from T06. Nothing yet: tests H, V and R need no change of cables, and neither do O (the LG stays on the
+card's HDMI) or S0. **Only when H, R, O and S0 pass**, one notice, with one reason line, because the T06 file was cleared on 28 Oct
 22:11 while sysfs still shows the cables unmoved (R§8):
 
 > For the games VM, once, whenever it suits you:
@@ -111,12 +113,25 @@ Read without him: `boot_vga` of `15:00.0` and `03:00.0`, the journal's "fbcon: �
 | B2: the card is still primary (the line not done, or ignored as in R§10.1) | `fbcon=map:1`, now that the cables are known to be in, so tty1 is on the iGPU. Firmware and GRUB stay on the DP and the desktop on HDMI. Works if the LG follows a dying input (S, step 3). The line stays in `for-you` until `boot_vga` changes |
 | B3: B2, and the LG does not follow | The boot menu is on an input he is not looking at: the monitor's button shows it. Limit 6, and the Learn piece on rollback (T44, T50) says so |
 
+### S0. The deciding question, before anyone moves a cable (needs him within reach)
+
+Whether the HDMI's DDC still obeys when HDMI is not the input showing decides the whole display design, and rockowitz warns it may not: "Some monitors will respond to DDC requests only on the currently selected input". **That needs no second cable.** With the LG on the card's HDMI as it is today:
+
+`setvcp xF4 xD0 --i2c-source-addr=x50 --noverify`, DP, where nothing is plugged in. Read `ae`. A few seconds later, from the same HDMI, now the inactive input: `setvcp xF4 x90 --i2c-source-addr=x50 --noverify`. One attempt, no looping through values (R§11.2).
+
+| Result | Design |
+|---|---|
+| It goes, and comes back on the write | DDC works from the inactive input. Native holds; the notice may go out |
+| It goes, and returns by itself | The LG follows the live signal: step 3's mechanism, which S then proves |
+| It goes, and stays dark | **DDC cannot return.** Only the monitor's joystick brings it back, which is why he must be within reach. Looking Glass, or a press on rare occasions, and no cable was asked for in vain |
+| Nothing happens | Not `F4` on this controller. The same test with `60 03`, `60 01`, then `60 0f`, `60 11`, each once: `60` lists only `01` and `03`, and reads `01` on HDMI (R§7) |
+
 ### S. The switch (needs the cables; T38)
 
-The LG advertises only `60(01 03)`, and its real input codes are unknown; `f4` answers but is undocumented; another LG, another controller, proves nothing (R§7). Find it in this order, with him away, with read-back from `ae` (0 or changed = no signal):
+The LG advertises only `60(01 03)`, and its real input codes are unknown; `f4` answers, and ddcutil's wiki gives values for other LGs; another LG, another controller, proves nothing (R§7, R§11.2). Find it in this order, with him away, with read-back from `ae` (0 or changed = no signal):
 
-1. `setvcp 60 0x0f` and `0x11`, normal source and `--i2c-source-addr x50`, then `f4` with the same address.
-2. **From the inactive input:** whether the HDMI's DDC still accepts the write that brings it back. This is the question that decides everything; rockowitz: "Some monitors will respond to DDC requests only on the currently selected input".
+1. What S0 found. Otherwise `f4` through `--i2c-source-addr x50` first, then `60` with this monitor's own `01`, `03`, then `0x0f`, `0x11`.
+2. **From the inactive input:** S0's question again, now with a real signal on both sides.
 3. If DDC cannot return: **the signal itself.** Blank the host's HDMI (`wlr-randr` or DPMS) when the VM starts and light it when the VM stops, and see whether the LG follows a dying input to the live one (its manual was unreadable; "Auto Input Switch" exists on other UltraGears, R§7).
 4. Neither: Looking Glass, or a monitor press on rare occasions, decided by what test O said.
 
@@ -183,7 +198,7 @@ SELinux is enforcing here, so T33 reads the AVCs first (the same Fedora setup ne
   </cpu>
   <clock offset='localtime'><timer name='hypervclock' present='yes'/><timer name='hpet' present='no'/></clock>
   <devices>
-    <!-- virtio-blk with the iothread, discard='unmap' · hostdev 03:00.0 and 03:00.1, managed='no' · virtio-net on libvirt's NAT
+    <!-- virtio-blk with the iothread, discard='unmap' · hostdev 03:00.0 and 03:00.1, managed='no' · virtio-net on libvirt's NAT, in a firewall zone of its own (below)
          input: <input type='evdev'> on /dev/input/by-id, one per event node of each keyboard in use (T36: which is the K617):
                 a keyboard has up to three (R§10.12) and one left out leaks keys to the host;
                 grab='all' repeat='on' grabToggle='ctrl-ctrl' on the first; usb-Logitech_USB_Receiver-if02-event-mouse;
@@ -197,12 +212,15 @@ SELinux is enforcing here, so T33 reads the AVCs first (the same Fedora setup ne
 </domain>
 ```
 
-`svm` off: Windows then cannot start its own hypervisor for Memory Integrity, the cost Microsoft itself names for gaming (R§6). Host keeps one core plus its SMT sibling: LG's docs ask for two cores only for their own client. Measured in T33; five cores for the guest is the first try, not a promise. 16 GiB of 30: THP first (VFIO allocates up front, R§5); 1 GiB pages only if PresentMon's 1 % lows show a gain; the dynamic route is disputed in Arch's own wiki.
+The guest's network gets its own firewalld zone, `dhcp` and `dns` only, through `<bridge zone='…'/>`: the stock `libvirt` zone also admits `ssh`, and a Windows guest is the least trusted thing on this machine (R§11.2). A running libvirt network turns `ip_forward` on, so T39's sysctls and scan run again with it up.
+
+`svm` off: Windows then cannot start its own hypervisor for Memory Integrity, the cost Microsoft itself names for gaming (R§6, a quote not re-checkable: R§11.1). Host keeps one core plus its SMT sibling: LG's docs ask for two cores only for their own client. Measured in T33; five cores for the guest is the first try, not a promise. 16 GiB of 30: THP first (VFIO allocates up front, R§5); 1 GiB pages only if PresentMon's 1 % lows show a gain; the dynamic route is disputed in Arch's own wiki.
 
 ### The hook: `/etc/libvirt/hooks/qemu.d/kawa-vm`, root, never calls libvirt
 
 `prepare begin`:
 
+0. `kawa-rgb gpu-handoff`: the red Pulse stored on the card, the bus closed, so that the logo keeps breathing on its own (R§11.2).
 1. Refuses (non-zero: the guest does not start, libvirt logs why) when an update runs (shared lock with T45), or when anything holds the card, naming the holder: `card0`, `renderD128`, `/dev/kfd`, the ALSA nodes under `03:00.1`, and the card's own `/dev/i2c-N` (those under its PCI path), because one open fd on a bus or a sound node blocks the unbind with no timeout (R§10.3).
 2. `power/control=on` for both functions; unbind `snd_hda_intel` and amdgpu; sets BAR2; `driver_override=vfio-pci`, `drivers_probe`. **Each unbind runs in a detached child (`setsid`, all three fds on `/dev/null`), and the hook waits for it 15 s at most.** libvirt reads a hook's pipes to EOF, so an inherited fd, or `timeout(1)`, would hang libvirt with it (R§10.13). Past the limit the hook exits non-zero with a plain line: no guest, libvirt not wedged. The child stays stuck until a restart, and `systemctl reboot` would stop at the same device lock, so kawa-vm offers `sync` and sysrq `b`.
 3. `AllowedCPUs=0,6` on `user.slice`, `system.slice`, `init.scope` (R§5).
@@ -266,7 +284,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 5. **The VM may need two driver-facing names changed** (`vendor_id`, `kvm hidden`): Windows should still report a hypervisor, and T33 checks it at each lever. Then CS2 is off by default (test C).
 6. **A rare crash, or the boot menu, may need a press on the monitor**, if tests S and B end at those branches.
 7. **Windows needs his own licence**, and he signs in to Steam himself.
-8. **The card's logo RGB (T36)** cannot be driven from Linux while the VM has the card: OpenRGB reaches it over `i2c-6`, amdgpu's bus.
+8. **The card's logo RGB (T36)** cannot be driven from Linux while the VM has the card: its bus is amdgpu's. It keeps breathing what was stored on it before the unbind (R§11.2), out of sync with the other lights.
 9. **`update` and the VM exclude each other.**
 10. **144 Hz on the board's HDMI is on paper until a cable is in** (R§10.2). 120 Hz is the floor the EDID gives.
 
@@ -275,9 +293,10 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 - **T33**: `virtio-sound` → HDA + PipeWire; "Fedora's `virtio-win` package" → the pinned ISO; `qemu:///system` with `qemu.conf`'s four settings; stage 1 without the card, reset and outputs tests before any cable; TPM state `source` in the folder; `autounattend` per section 4; virtiofs → `import.iso`; the guest agent and the virtio input devices in the XML; `libvirt-guests`; the Windows Update policy in stage 1; `backup-exclude` as in section 4.
 - **T34**: idle and sleep inhibited for the VM's life; display return lives in the hook, not the TUI; a hung-Windows path; a host key that flips the display after `grabToggle` (QMP shows no grab state, R§10.13); **its 20 loops with the session up**, plus restarts from inside Windows; the holder's name in the refusal line; `kawa-vm --home` at boot; the restart through sysrq after a stuck unbind.
 - **T35**: unchanged, but only after C is answered: he might want CS2 on Linux after all. T35's title stands, though the question is his.
-- **T36**: the logo's RGB goes through amdgpu's I2C (`i2c-6`): only while the VM is off, and never with the bus left open.
-- **T38**: capabilities work with `--sleep-multiplier 2` (string in R§7); the input question moves to test S. Note `60(01 03)`. After the move, DDC is on the iGPU's bus: `kawa-display` must not assume `i2c-5`.
+- **T36**: the logo's RGB goes through amdgpu's I2C, whose number is not fixed (`i2c-6` on 27 Oct): only while the VM is off, never with the bus left open, and `kawa-rgb gpu-handoff` for the hook.
+- **T38**: capabilities work with `--sleep-multiplier 2` (string in R§7); the input question moves to tests S0 and S. Note `60(01 03)`. After the move, DDC is on the iGPU's bus: `kawa-display` must not assume `i2c-5`.
 - **T40**: what it preloads must stay droppable page cache, not locked memory: the VM pins 16 GiB of 30 when it starts.
+- **T39**: the VM's own firewall zone; the scan and sysctls repeated with the VM up.
 - **T45/T47**: the shared lock; the fixer's unit in the card's group.
 - **T06**: re-issue once, with section 2's text.
 - **T50**: the Learn piece on rollback names the monitor's button if B ends at B3.

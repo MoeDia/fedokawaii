@@ -51,7 +51,7 @@ What it does, from its README, `configs/` and `builder/`:
 - `vtActivate(1)` appears only on an early exception and on failed Wayland start or the remote WebUI (`anaconda.py`, `display.py`): in text mode nothing moves the VT away from us during a normal install.
 - Boot options: `inst.notmux` "Do not use tmux during install … really meant for non-interactive uses"; `inst.noninteractive`; `inst.noshell`; `inst.waitfornet=<seconds>` "Wait for network connectivity at the beginning of the second stage"; `inst.nosave` (`input_ks`, `output_ks`, `all_ks`, `logs`, `all`); `inst.geoloc=0`; `inst.updates`; `inst.stage2`; `inst.virtiolog`.
 - Initrd [`anaconda-lib.sh`, from the image]: `anaconda_auto_updates $repodir/images` unpacks `images/updates.img` and `images/product.img` over stage 2 ("so they'll end up in the location(s) that anaconda expects them"). **This is how our files get into stage 2.**
-- Older pattern, still the only documented one for screens in `%pre`: `chvt 6; exec </dev/tty6 >/dev/tty6 2>&1` ([Red Hat](https://access.redhat.com/node/685543), [kickstart-list](https://listman.redhat.com/archives/kickstart-list/2008-April/004434.html)) [R, dated].
+- Older pattern, still the only documented one for screens in `%pre`: `chvt 6; exec </dev/tty6 >/dev/tty6 2>&1` ([Red Hat](https://access.redhat.com/node/685543), [kickstart-list](https://listman.redhat.com/archives/kickstart-list/2008-April/004434.html)) [R, dated; both links dead on re-check: §12.1]. `lane-iso` ended on the same idea, tty8, on its own boots: §12.8.
 
 ## 3. Kickstart [P: [pykickstart docs](https://pykickstart.readthedocs.io/en/latest/kickstart-docs.html)]
 
@@ -65,10 +65,10 @@ What it does, from its README, `configs/` and `builder/`:
 
 ## 4. Fedora's media tools
 
-- [mkksiso (lorax)](https://weldr.io/lorax/mkksiso.html) [P]: `--ks`, `--add`, `--cmdline`, `--rm-args`, `--replace`, `--updates`, `--volid`. "Since 38.4, root is needed for a fully bootable ISO"; `--skip-mkefiboot` runs as a user but leaves the EFI image's config. Dependencies `xorriso`, `isomd5sum`.
+- [mkksiso (lorax)](https://weldr.io/lorax/mkksiso.html) [P]: `--ks`, `--add`, `--cmdline`, `--rm-args`, `--replace`, `--updates`, `--volid`. "As of version 38.4 mkksiso needs to be run as root to create a fully bootable iso."; `--skip-mkefiboot` runs as a user but leaves the EFI image's config. Dependencies `xorriso`, `isomd5sum`.
 - [Its source](https://github.com/weldr/lorax/blob/master/src/bin/mkksiso) [P]: at heart `xorriso -indev IN -outdev OUT -boot_image any replay`, `-append_partition 2 <guid> efibootimg`, `-update` for configs, `-map` for files, `-alter_date_r b =EPOCH / --` with `SOURCE_DATE_EPOCH`. Root only because `mkefiboot` mounts a loop device.
 - [Modernize boot.iso](https://fedoraproject.org/wiki/Changes/ModernizeBootISO) [P]: lorax → image-builder, "Targeted release: Fedora Linux 46", category `ChangeAcceptedF46`, last updated 2026-08-20; "should not change in any functional way"; about 150–200 MiB bigger. Its page does not mention mkksiso; a tool bound to lorax's layout may need a look at F46.
-- [livemedia-creator](https://weldr.io/lorax/livemedia-creator.html) [P]: "make live isos, bootable (partitioned) disk images, tarfiles, and filesystem images", from a kickstart, with qemu or `--no-virt`, "the examples all use `sudo`". `image-builder 87` (`f45-changes-3nov.md`). Both build whole media from package sets: no use when an official signed netinst already holds everything.
+- [livemedia-creator](https://weldr.io/lorax/livemedia-creator.html) [P]: "make live isos, bootable (partitioned) disk images, tarfiles, and filesystem images", from a kickstart, with qemu or `--no-virt`; the page's own commands all start with `sudo`. `image-builder 87` (`f45-changes-3nov.md`). Both build whole media from package sets: no use when an official signed netinst already holds everything.
 
 ### A build experiment on this PC, as `dia`, no root, no container (4 Nov 2026) [P]
 
@@ -124,14 +124,14 @@ SOURCE_DATE_EPOCH=$E xorriso -indev f45-netinst.iso -outdev out.iso -boot_image 
 ## 9. Asked, not found
 
 - Whether `%pre` on a VT behaves on F45 as the source reads: only a boot says.
-- How the text-mode progress can be read best (`/tmp/packaging.log`, Anaconda's D-Bus): read it at T56 from a real run.
+- ~~How the text-mode progress can be read best~~ answered by `lane-iso` from a real run: Anaconda's own lines, as the journal hands them to `/tmp/syslog` (`iso/screens/progress.py`).
 - The exact path where stage 2 keeps the ISO mounted for `inst.stage2=hd:`: `anaconda-lib.sh` uses `/run/install/repo`; not relied on.
 
 ## 10. Second pass, 4 Nov 2026 [P]
 
 - **Console fonts above 256 glyphs cost colours.** Kernel v7.2 `vt.c` `build_attr()`: "if (vc->vc_hi_font_mask == 0x100) a <<= 1;", on a `u8`, so the top background bit is lost; `fbcon.c:328–329` reads the foreground at bit 9 and the background at bit 13, against 8 and 12 for a 256-glyph font. A font above 256 glyphs leaves 16 foregrounds and 8 backgrounds.
 - **The cursor's colour is not in the boot palette.** `tools/build-themes.py:55`: the 16 console slots are `ansi0, red, green, yellow, blue, purple, teal, ansi7`, then the bright ones, and `select` (`82241f`, `docs/design-system.md` §4) is none of them. The console's own escape takes any colour into any slot: `ESC ] P n rr gg bb` (`vt.c`, `ESnonstd` → `ESpalette`).
-- **`--retain-splash` leaves graphics mode.** Plymouth 24.004.60, `src/main.c`, `quit_splash()`, [Debian's copy of the source](https://sources.debian.org/data/main/p/plymouth/24.004.60-5/src/main.c), the same upstream version as F44's package; freedesktop's GitLab refuses fetching: `ply_terminal_close()` runs only `if (!state->should_retain_splash)`. Fbcon draws nothing in `KD_GRAPHICS`, so the first thing `%pre` does on tty1 is `KDSETMODE KD_TEXT`. Not seen on a boot yet, read only.
+- **`--retain-splash` leaves graphics mode** (read at the wrong version: F45 ships Plymouth 26.134.222, `lane-iso`'s `iso/inputs.sh`; `lane-iso` has since stopped relying on it: §12.8). Plymouth 24.004.60, `src/main.c`, `quit_splash()`, [Debian's copy of the source](https://sources.debian.org/data/main/p/plymouth/24.004.60-5/src/main.c), the same upstream version as F44's package; freedesktop's GitLab refuses fetching: `ply_terminal_close()` runs only `if (!state->should_retain_splash)`. Fbcon draws nothing in `KD_GRAPHICS`, so the first thing `%pre` does on tty1 is `KDSETMODE KD_TEXT`. Not seen on a boot yet, read only.
 - **`VT_LOCKSWITCH` exists for this.** `drivers/tty/vt/vt_ioctl.c:927`: needs `CAP_SYS_TTY_CONFIG`, sets `vt_dont_switch`.
 - **tty2 is logind's.** From the F45 `install.img`: `usr/lib/systemd/logind.conf.d/anaconda-shell.conf` has `ReserveVT=2`; `autovt@.service` links to `anaconda-shell@.service`, which has `DefaultInstance=tty2`, `TTYVHangup=yes`, `TTYVTDisallocate=yes`, `ConditionKernelCommandLine=!inst.noshell`. `inst.noshell` keeps it out.
 - **`product.img` confirmed for this path.** The initrd's `usr/lib/anaconda-lib.sh`, `anaconda_live_root_dir()` calls `anaconda_auto_updates "$repodir/images"`, which unpacks `product.img` into `/updates`.
@@ -157,3 +157,91 @@ F45's `install.img` and initrd; Anaconda branch `fedora-45`; kernel v7.2.
 - **A read-only Btrfs mount writes.** `man 5 btrfs`: "the tree log is replayed even with a read-only mount! To disable that behaviour, mount also with nologreplay."
 - **`usr/share/systemd/kbd-model-map`** is in the image.
 - Checked, correct, by the reviewer: stage 1 tolerates the missing `%include`; `/updates` reaches stage 2; GRUB's allow-list; `%post` precedes `SetContextsTask`; `inst.nosave`'s gates. No hash leak found.
+
+## 12. Third pass, 4 Nov 2026 evening: the citations checked, Fedora 45's own issue list, his PC [P unless marked]
+
+Why a third pass: `plan.md` on main (T54b) now has the owner wiping this PC and installing from this ISO himself, while everything above and T57's matrix think of a VM and a wiped disk.
+
+### 12.1 The citations, machine-checked
+
+A script fetched every URL in the four notes and looked for each quoted phrase in the pages linked on its line. Every miss was then re-read by hand.
+
+- **128 URLs, 119 answered.** Two are dead: `access.redhat.com/node/685543` (404) and `listman.redhat.com` (no longer resolves from here). Five refuse fetching: FACEIT ×3, HP's forum, manualowl. One was a mirror host (`eus.prod.support.services.microsoft.com`) that now refuses connections: replaced by the canonical address, whose text is drawn by script. One was the script's own error, a URL with parentheses, which answers.
+- **48 quotes on lines with a link, 25 matched at once, 23 re-read:** 14 correct (PDFs, HTML tags, quotes from a source the sentence names); 2 script artefacts; **4 not word for word, now corrected** (Proxmox in `vm-research.md` §2, Looking Glass in §7, `mkksiso` and `livemedia-creator` in §4 here); 3 that cannot be re-checked from here, each marked at its line (Microsoft's gaming page, LG's manual copy, FACEIT).
+- **Limit:** this checks quoted words and that links answer. Paraphrases were not re-read, and a quote is only compared with the links on its own line.
+
+### 12.2 Fedora 45's own list: [Common Issues](https://fedoraproject.org/start/) ([its source](https://discussion.fedoraproject.org/tags/c/ask/common-issues/82/none/f45))
+
+Six items. Two touch the ISO. None names the kernel, AMD or graphics.
+
+**[Install media sometimes fail media check at 4.8%](https://discussion.fedoraproject.org/t/install-media-sometimes-fail-media-check-at-4-8/108478)**, tagged f40 to f45; [bug 2420697](https://bugzilla.redhat.com/show_bug.cgi?id=2420697): `isomd5sum`, version 45, NEW, filed 9 Dec 2025.
+
+- "it might be a false negative. The installation medium might be fine." "This problem might happen when creating the install media on any operating system using any tool".
+- The causes it lists: the backup GPT is not at the end of the stick and "Some operating systems/tools might decide to automatically correct it"; automatic mounts; and "Some UEFI firmware implementations touch the flash drive (possibly mounting the ESP partition read-write, or similar) before booting from it." "All of these have no adverse effect on performing the installation".
+- The bug names the fields that change: 0x210, 0x220, 0x230. Brian Lane: "In my opinion the check is doing its job." Neal Gompa: "The correct thing to do would be to only verify the embedded OS image file, instead of the whole ISO." No fix adopted.
+- **So `checkisomd5` can call a good stick damaged, on a firmware we have never tested, and upstream does not plan to change that.**
+- Checked and clear: [bug 2277398](https://bugzilla.redhat.com/show_bug.cgi?id=2277398), `implantisomd5` writing 57 characters for 60, was fixed in isomd5sum 1.2.4-2; F45 has 1.2.5-9.
+
+**[It's difficult to reformat a btrfs partition/subvolume in the installer](https://discussion.fedoraproject.org/t/its-difficult-to-reformat-a-btrfs-partition-subvolume-in-the-installer/89052)**, tagged f39 to f45: "sometimes difficult and sometimes impossible" in the GTK paths. It does not mention kickstart. Beside it, [a crash with nested subvolumes](https://discussion.fedoraproject.org/t/installer-crashes-when-btrfs-subvolume-gets-reformatted-while-having-nested-subvolumes/170252) in F43's webUI: "This is fixed in Fedora 44 installer." Both are about reformatting, not `clearpart`: §12.3 reads the path ours takes.
+
+[BtrfsWithFullSystemSnapshots](https://fedoraproject.org/wiki/Changes/BtrfsWithFullSystemSnapshots) still says Fedora 45 on its page; `f45-changes-3nov.md` line 102 has it never submitted to FESCo for F45. Nothing changes for us.
+
+### 12.3 What `clearpart` does to a real fedokawaii disk: blivet 3.14.2, from F45's `install.img`
+
+- The scan, `populator/helpers/btrfs.py:65–100`: every subvolume and snapshot on the volume becomes a device. A subvolume whose parent is not found raises `DeviceTreeError`, and `populator.py:368` only logs that, leaving the volume half known.
+- `clearpart` reaches `devicetree.py:247`, `recursive_remove`: leaf by leaf, an `ActionDestroyDevice` for each.
+- `devices/btrfs.py:671–682`, `BTRFSSubVolumeDevice._destroy`: for each one, a temporary mount of the volume and `delete_subvolume`.
+
+So on his disk Anaconda does not simply drop a partition. It walks every subvolume in turn: `root`, `home`, `snapshots`, `fk`, `log` (`findmnt`), `~/VM` and `~/Downloads` (inode 256, nested in `home`), and every snapper snapshot, before it repartitions. Nothing says this fails. Nothing has run it either: **T57 starts every run from a wiped disk, so the one disk the owner's real install meets is the one case it never tests.**
+
+`wipefs`, `sgdisk`, `udevadm` and `partprobe` are in the image (`7z l`). This disk's Btrfs label is `fedora_fedokawaii`, the harness's and the ISO's is `fedora`: `installed_disk()` in `lane-iso`'s `questions.py` finds nothing here and goes straight to the form, which is right for a wipe.
+
+### 12.4 His PC against the F45 netinst
+
+Read here without root (`lspci`, sysfs `ip_discovery`, `lsblk`, `efibootmgr`), against the initrd's file list:
+
+| Part | His PC | In the netinst's initrd |
+|---|---|---|
+| Card | `1002:7590`; GC 12.0.0, SDMA 7.0.0, PSP and SMU 14.0.2, VCN 5.0.0, DMCUB 4.x | `amdgpu.ko`; `gc_12_0_0_*`, `sdma_7_0_0`, `psp_14_0_2_*`, `smu_14_0_2`, `vcn_5_0_0`, `dcn_4_0_1_dmcub` |
+| iGPU | `1002:13c0`; GC 10.3.6, SDMA 5.2.6, DCN 3.1.5, PSP 13.0.5, VCN 3.1.2 | `gc_10_3_6_*`, `sdma_5_2_6`, `dcn_3_1_5_dmcub`, `psp_13_0_5_*`, `vcn_3_1_2` |
+| Network | `enp8s0`, RTL8125 `10ec:8125`, `r8169` | `r8169.ko`, `rtl_nic/rtl8125*` |
+| Disk | `nvme0n1`, Lexar NM610 PRO 1 TB, `TRAN=nvme`, `RM=0`, the only one | `nvme.ko`, `nvme-core.ko`: the form's one-disk default |
+| Stick | USB | `usb-storage.ko`, `uas.ko`, `isofs.ko`, `squashfs.ko`, `overlay.ko` |
+| Input | K617 `258a:0049`, Logitech receiver | `hid-logitech-dj.ko`; `usbhid`, `hid-generic`, `xhci-pci` built in (the initrd's `modules.builtin`, so are `btrfs` and `simpledrm`) |
+| Firmware | UEFI, Secure Boot off, `BootOrder: 0000`, Fedora alone. DEL for setup, F11 for the boot menu ([MSI's guide](https://download.msi.com/archive/mnu_exe/mb/AMDAM5BIOS.pdf)) | shim and GRUB unchanged |
+
+**Coverage is complete on paper.** This is what the file lists say, not a boot.
+
+**The first boot of the installed system** needs the same firmware on disk, and `BOOT_ARGS`' simpledrm blacklist leaves no picture without it. F45's metadata (`dnf5 repoquery` against `releases/45/Everything`): `kernel-core` Recommends `linux-firmware`, which Recommends `amd-gpu-firmware`, `realtek-firmware`, `amd-ucode-firmware` and others. No hard `Requires` reaches them, so they arrive only as weak dependencies, which the kickstart does not exclude. No VM can notice their absence: T57 gets a row.
+
+### 12.5 GRUB's `auto` [source: [`efi_gop.c`, branch `fedora-45`](https://github.com/rhboot/grub2/blob/fedora-45/grub-core/video/efi_gop.c)]
+
+`grub_video_gop_setup()`: with no size asked for, it takes the preferred mode from the firmware's EDID protocols; "if (err || preferred_width >= 4096 …)" it falls to 800 × 600, and modes above the preferred one are skipped. So `set gfxmode=auto` is 1080p only if the firmware reports the monitor's EDID to GRUB. The VM's does; MSI's is unknown. `theme.sh:583` writes `"$MODE,auto"` and this PC has `GRUB_GFXMODE="1920x1080,auto"`, which asks for the exact mode first. `lane-iso`'s `iso/grub.cfg` has plain `auto`.
+
+### 12.6 `console=` on later kernels: no defect
+
+Anaconda copies `console=` to the installed system (§11), and `lane-iso`'s `post.sh` removes it with `grubby --update-kernel=ALL --remove-args` and a `sed` on `/etc/default/grub`. The third place is `/etc/kernel/cmdline`, which `20-grub.install` reads for each new kernel (this PC's `grub2-common`, lines 109–114). `grubby` handles it: with `ALL` and an argument change it creates the file from the entries and writes the change there too (`/usr/sbin/grubby:535–547`). F44's copies read, not F45's; T57's row sees the result.
+
+### 12.7 The second Anaconda, re-read from the F45 image
+
+`anaconda.target`: `Wants=anaconda-direct.service anaconda.service`. `anaconda-direct.service`: `Type=oneshot`, `ConditionKernelCommandLine=|inst.notmux`, **`Requires=anaconda.service`**, no ordering on it. `anaconda.service`: `After=anaconda.target`, `Type=forking`, `tmux … start`, which starts Anaconda.
+
+- So under `inst.notmux` the second one really is there, and starts whenever the first ends without taking the machine down. An install that reboots or powers off inside Anaconda should never reach it.
+- **It cannot be masked:** the direct unit `Requires` it. Its `ExecStart` can be replaced by a drop-in, in `product.img` next to the masks that already work there.
+
+### 12.8 What `lane-iso`'s boots settled [its tree at `eadc7d2`, its screenshots and logs: its measurements, not this lane's]
+
+| Open here | Settled there |
+|---|---|
+| Which VT | Our screens on **tty8**, Anaconda direct on tty1 with `console=tty1 inst.notmux`. "Past 6, so logind starts no getty on it". The older pattern of §2, reached on its own |
+| The handover | "the console's font cannot be changed on the VT the splash holds in graphics mode": dress tty8 behind the splash, `plymouth quit` at the first page, `VT_ACTIVATE`, `KD_TEXT` on the old VT if it refuses to switch, `VT_LOCKSWITCH`, colours sent again after the switch. `printk` to 1 |
+| Masks | `plymouth-quit`, `plymouth-quit-wait`, and `systemd-vconsole-setup` ("Anaconda's keyboard step reloads it through localed") |
+| Second initrd | Works, and needs more than this lane listed: F45's Plymouth crashes without `label-freetype.so` and a font for it |
+| `product.img` | Arrives in stage 2 |
+| Progress | Anaconda's own lines from `/tmp/syslog`; a daemon from `%pre` survives into the install |
+| PNG theme | The menu under OVMF with Secure Boot on |
+| How far | An install through `%post`, a first start, setup's phases (`follow.log`, phase 3 at 18:34) |
+
+`--retain-splash` (§10) was read in Plymouth 24.004.60, F44's version; F45 ships 26.134.222. It no longer matters: the code above does not rely on it.
+
+Still unanswered by any boot, as far as its tree shows: what stage 1 shows on an unreadable stick. Its hooks: `initqueue/timeout/50-anaconda-error-reporting.sh` writes `warn` lines; `emergency/50-plymouth-emergency.sh` hides the splash. With `console=tty1` those lines at least reach the screen that is showing.
