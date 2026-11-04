@@ -883,6 +883,28 @@ EOF
 )
 case_ "Tab on a file: its name in the heading, what file(1) says, its size in the list's words"
 has "$out" "zz.bin ─" "the heading: the name, the rule"; has "$out" "what     data" "what it is"; has "$out" "2.9 KB" "its size, with its unit apart"
+printf '#!/bin/sh\ncat >"%s/copied"\n' "$TMP" >"$STUBS/wl-copy"; chmod +x "$STUBS/wl-copy"
+export COPIED=$TMP/copied
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key G
+settle
+key <Tab>
+wait owner
+settle
+key j
+wait ▎ size
+key cc
+waitfile $COPIED
+key <Tab>
+settle
+quit
+EOF
+)
+rm -f "$STUBS/wl-copy"
+case_ "c c on the card: the value the band is on, on the clipboard"
+eq "$(cat "$TMP/copied" 2>/dev/null)" "2.9 KB" "the size's words"
 out=$(y 120x30 <<'EOF'
 wait a.txt
 settle

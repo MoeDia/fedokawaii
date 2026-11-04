@@ -2,7 +2,7 @@
 Started 18:12, 4 Nov. Branch lane-appsui (merged origin/lane-pixels, which holds main, at 18:58: one grammar for keycaps and the highlight).
 
 ## Done (built, tested here, rendered both moods into .claude/review/next/ by tools/apps-review.sh)
-- **yazi from source with square pop-ups** — src/yazi/yazi.patch (30 files, yazi-fm/src/frame.rs the heart), setup.sh build_yazi, `ya` still from the
+- **yazi from source with square pop-ups** — src/yazi/yazi.patch (33 files, yazi-fm/src/frame.rs the heart), setup.sh build_yazi, `ya` still from the
   release zip, fedokawaii.conf YAZI_TAG/YAZI_COMMIT, Fedora's rust + cargo in PKG_BUILD (packages.evidence, PACKAGES.md, not-launched.txt), verify's row, update and repair
   rows, stubs/cargo. Rename, the inputs, confirm, help, which, pick, cmp, tasks, notices: §4's frame in cells of Sumi Icons Term (fixed code points, U+FF003–A), §7's heading inside,
   key tiles (U+FF001, U+FF000 + ASCII, U+FF002); a confirm fits what it says, names under their folder; rename's field exactly over the name. `yazi --version` says "Patch  : fedokawaii".
@@ -34,6 +34,14 @@ Started 18:12, 4 Nov. Branch lane-appsui (merged origin/lane-pixels, which holds
 | yazi Tab card | ring → band · band → ring (both sides) | 8 · 8 |
 | yazi Tab card | band's left → words · ring → heading's rule end | 16 · 16 |
 | wallpaper | right edges: value, count · key tile (ink; its cell on the values' column) | 1256 · 1252 |
+
+## Verified, 4 Nov ~22:00–22:20 (the PC at load 50+ from the other lanes)
+PENDING: being filled in as the last runs end (see below when this line is gone).
+
+## The master's review (lane-integrate, 22:00, ~/.cache/r27-integrate/master-appsui-1.md): what became of it
+- MUST FIX fedokawaii.sh: done (a3768f9c): `src/yazi/*` is built by setup, so a copy whose only change is the patch runs repair; tests/engine/test_front.sh covers the three patches.
+- build_yazi: `retry 3 10 … cargo fetch --locked` before the build; a failure leaves no checkout (yazi_fail); tests in test_upkeep (a dropped fetch tried again, a failed build said, its checkout gone, the old yazi kept, the next update builds it; crates that cannot be fetched). stubs/cargo: fail-cargo-build.
+- test_git, test_clip: the gate's fixed versions taken as they are (9248fd8b), so the merge meets the same lines.
 
 ## What main (or lane-integrate) must do
 1. Merge lane-appsui. Conflict-prone generated files: run `python3 tools/build-icons.py` and `python3 tools/build-themes.py` after the merge (the fonts are binary; every cell of mine has a
