@@ -142,6 +142,16 @@ PACKAGES.md        what is installed, from where, and why
   the GRUB menu is sumi ink with a hem of seigaiha waves fading upwards in a dither, at your
   monitor's native resolution; Terminus and the dark theme's 16 colours on the login console.
 
+## From the ISO: the whole of it in one go
+
+`fedokawaii-DATE.iso` from the [releases](https://github.com/MoeDia/fedokawaii/releases), written to a stick
+(`sudo dd if=fedokawaii-DATE.iso of=/dev/sdX bs=4M oflag=direct status=progress`; `lsblk` shows which sdX). Start
+from it: a menu, one page of questions (who, the disk, where), a confirmation that names the disk, and nothing
+asks again until the login screen. It needs UEFI, 4 GB of memory, a disk of 60 GB inside the PC, a wired network,
+AMD or Intel graphics, and says so on one screen if one is missing. Secure Boot may stay on. It is Fedora's own
+netinst with our screens over it: `bash tools/build-iso.sh` makes the same bytes again (`iso/inputs.sh` pins what
+goes in). The sections below are the same install by hand.
+
 ## 1 · Fedora Server installer — the settings that matter
 
 Boot the Fedora 44 Server USB → **Install Fedora 44**:
