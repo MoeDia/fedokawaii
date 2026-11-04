@@ -95,9 +95,7 @@ local function colours()
   vim.api.nvim_set_hl(0, "WinBarNC", { bg = g })
 end
 
--- the bottom line, as every text screen's footer: the file and the keys, muted, two columns
--- in (the editor's own statusline — lualine — is for code; here it is put away, also after
--- it loads, and after a theme switch sets it up again)
+-- the bottom line, as every text screen's footer: the file and the keys, muted, two columns in
 local function footer_of(name) return "  " .. name .. "  ·  saved as you go  ·  super+n puts it away" end
 local function todo_footer(name, typing)   -- (the keys of the moment: an item typed, or the list)
   return "  " .. name .. (typing and "  ·  esc: the list" or "  ·  space ticks") .. "  ·  tab: the notes"
@@ -126,7 +124,6 @@ local function foot_rows(text)
 end
 local foot_text = footer_of(where)
 local function page_footer()
-  pcall(function() require("lualine").hide({ place = { "statusline" }, unhide = false }) end)
   vim.o.laststatus = 0
   vim.o.cmdheight = 0
   vim.o.scrolloff = ROOM

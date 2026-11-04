@@ -11,7 +11,7 @@
 @HOME@/.cache
 @HOME@/.local/share/Trash
 # uv's Pythons (setup and update make them), neovim's plugins and language servers (update
-# fetches them; ~/.config/nvim/lazy-lock.json, which is backed up, holds their versions)
+# fetches them, at the versions of ~/.config/nvim/lazy-lock.json, which is the desktop's own)
 @HOME@/.local/share/uv
 @HOME@/.local/share/nvim/lazy
 @HOME@/.local/share/nvim/mason

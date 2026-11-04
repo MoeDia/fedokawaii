@@ -1099,6 +1099,30 @@ return {{
             vim.api.nvim_set_hl(0, "DiagnosticFloating" .. k, {{ fg = t.text }})
             vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, {{ sp = c, underline = true }})
           end
+          -- the status line (lua/config/statusline.lua): a tile in the mode's ink, the branch and
+          -- the place on the key's ground, the words between in the muted ink on the line's own
+          local p = ({{
+{statusline_palettes()}
+          }})[vim.o.background == "light" and "light" or "dark"]
+          local function set(name, spec) vim.api.nvim_set_hl(0, "KawaSt" .. name, spec) end
+          local function tile(name, ink)
+            set(name, {{ bg = ink, fg = ink == p.accent and p.on_accent or p.ground, bold = true }})
+          end
+          tile("Normal", p.accent); tile("Insert", p.teal); tile("Visual", p.yellow)
+          tile("Replace", p.red); tile("Command", p.blue); tile("Terminal", p.teal)
+          vim.api.nvim_set_hl(0, "StatusLine", {{ bg = p.line, fg = p.muted }})
+          vim.api.nvim_set_hl(0, "StatusLineNC", {{ bg = p.line, fg = p.muted }})
+          set("Key", {{ bg = p.key, fg = p.text }})
+          set("Quiet", {{ bg = p.line, fg = p.muted }})
+          set("File", {{ bg = p.line, fg = p.muted }})
+          set("Changed", {{ bg = p.line, fg = p.text, bold = true }})
+          set("Root", {{ bg = p.line, fg = p.teal }})
+          set("Recording", {{ bg = p.line, fg = p.accent, bold = true }})
+          set("Debug", {{ bg = p.line, fg = p.yellow }})
+          set("Added", {{ bg = p.line, fg = p.teal }})
+          set("Modified", {{ bg = p.line, fg = p.yellow }})
+          set("Removed", {{ bg = p.line, fg = p.accent }})
+          for k, c in pairs(d) do set(k, {{ bg = p.line, fg = c }}) end
         end,
       }})
     end,
@@ -1109,47 +1133,6 @@ return {{
     }},
   }},
   {{ "LazyVim/LazyVim", opts = {{ colorscheme = "gruvbox" }} }},
-  -- the statusline in the same colours (lualine's own "gruvbox" theme has gruvbox's stock
-  -- ones): made from the palette for the ground Neovim has, and again when that changes
-  {{
-    "nvim-lualine/lualine.nvim",
-    opts = function(_, opts)
-      local P = {{
-{lualine_palettes()}
-      }}
-      local function theme()
-        local p = P[vim.o.background] or P.dark
-        local function mode(c)
-          return {{ a = {{ bg = c, fg = c == p.accent and p.on_accent or p.ground, gui = "bold" }}, b = {{ bg = p.key, fg = p.text }},
-                   c = {{ bg = "NONE", fg = p.muted }} }}
-        end
-        -- (the line's middle on the terminal's own see-through ground, as the text above it)
-        local quiet = {{ bg = "NONE", fg = p.muted }}
-        return {{ normal = mode(p.accent), insert = mode(p.teal), visual = mode(p.yellow),
-                 replace = mode(p.red), command = mode(p.blue), terminal = mode(p.teal),
-                 inactive = {{ a = quiet, b = quiet, c = quiet }} }}
-      end
-      opts.options = opts.options or {{}}
-      opts.options.theme = theme()
-      -- plain: no powerline separators (the pixel font has other glyphs at their code points)
-      -- and no icons (the Nerd Font's would stand among the pixel ones); no clock (the bar's)
-      opts.options.section_separators = {{ left = "", right = "" }}
-      opts.options.component_separators = {{ left = "", right = "" }}
-      opts.options.icons_enabled = false
-      opts.sections = opts.sections or {{}}
-      opts.sections.lualine_z = {{}}
-      vim.api.nvim_create_autocmd("ColorScheme", {{
-        group = vim.api.nvim_create_augroup("kawa_lualine", {{ clear = true }}),
-        callback = function()
-          local ok, lualine = pcall(require, "lualine")
-          if ok then
-            opts.options.theme = theme()
-            lualine.setup(opts)
-          end
-        end,
-      }})
-    end,
-  }},
 }}
 """
 
@@ -1173,14 +1156,16 @@ def lua_table(rows, indent):
                      for r in rows)
 
 
-def lualine_palettes():
+def statusline_palettes():
     out = []
     for m, p in P.items():
         blue = p["bblue"] if m == "dark" else p["blue"]
-        vals = [("ground", p["ground"]), ("bar", p["surface"]), ("key", p["key"]), ("text", p["text"]),
+        # (the line's ground: gruvbox's bg2 slot of each mood, what its StatusLine always showed)
+        line = p["key"] if m == "dark" else p["edge"]
+        vals = [("ground", p["ground"]), ("line", line), ("key", p["key"]), ("text", p["text"]),
                 ("muted", p["muted"]), ("accent", p["accent"]), ("teal", p["asagi"]), ("yellow", p["yellow"]),
                 ("blue", blue), ("red", p["red"]), ("on_accent", p["text_on_accent"])]
-        out.append(f"        {m} = {{ " + ", ".join(f'{k} = "#{v}"' for k, v in vals) + " },")
+        out.append(f"            {m} = {{ " + ", ".join(f'{k} = "#{v}"' for k, v in vals) + " },")
     return "\n".join(out)
 
 

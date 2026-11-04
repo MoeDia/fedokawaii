@@ -7,6 +7,8 @@
 local WIDTH = 60 -- snacks' own: the rows' width, and so the heading's
 
 return {
+  -- a file's whole name in its tab: nothing here is cut with an ellipsis
+  { "akinsho/bufferline.nvim", opts = { options = { truncate_names = false } } },
   {
     "folke/snacks.nvim",
     opts = function(_, opts)

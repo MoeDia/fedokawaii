@@ -1215,6 +1215,7 @@ runs **LazyVim**, a ready-made setup: a file finder, language servers, lazygit i
 | save · save and quit · quit without saving | `:w` · `:wq` · `:q!` (or **Ctrl+S** to save) |
 | undo · redo | `u` · **Ctrl+R** |
 | *recording @q* at the bottom | press `q` once |
+| a message went by too fast | `g<` shows the last ones again |
 
 > **Word — mode.** In *Normal* mode, keys are commands; in *Insert* mode (`i`), keys type text.
 > **Esc** always goes back to Normal.

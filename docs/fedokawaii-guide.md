@@ -5842,8 +5842,8 @@ status line, each in a colour of its own. Esc leaves every other mode for Normal
 | Replace | REPLACE, red | typing over the existing text | `R` |
 | Terminal | TERMINAL, teal | in a shell inside neovim; Esc Esc, quickly, stops typing into it | Ctrl+/ (again to hide it) |
 
-`:` opens a small box near the top of the window with suggestions under it (Tab completes); a
-search with `/` stays at the bottom.
+`:` opens the command line on the last row, in the status line's place, with suggestions above it
+(Tab completes); a search with `/` does the same.
 
 **Try this.** Type the practice file. In a terminal:
 
@@ -6529,12 +6529,18 @@ tools only, `g?` help.
 ## 17.19 How LazyVim is set up here
 
 **LazyVim** is a ready-made configuration for neovim: a collection of plugins and settings,
-installed and updated by lazy.nvim. Setup copied LazyVim's *starter* into `~/.config/nvim`.
-The repository adds five files to it, and Theme manages only those:
+installed by lazy.nvim. The desktop ships its own files for it in `~/.config/nvim`, and Theme
+manages only those:
 
 | File | Does |
 |---|---|
-| `lua/config/lazy.lua` | the starter's own, with the background check for new plugin versions switched off, so plugins move only with `update` |
+| `init.lua` | starts lazy.nvim, and with it LazyVim |
+| `lazy-lock.json` | every plugin's exact commit, tested together; it moves only with the desktop itself |
+| `lua/config/lazy.lua` | LazyVim's starter file, with the background check for new versions and the watching of these files switched off, and the plugins to import |
+| `lua/config/options.lua` · `clipboard.lua` | the window's title; the desktop's clipboard and the editor's, each in its place (§17.8) |
+| `lua/config/statusline.lua` | the bottom line, without a plugin: there in the first frame, drawn with the key that changed it |
+| `lua/config/prefetch.lua` | what plugins would fetch at their first use, fetched by setup and `update` instead: the parsers `lean.lua` lists, blink.cmp's library |
+| `lua/plugins/lean.lua` | what LazyVim brings and this desktop leaves off or loads later, each with its reason |
 | `lua/plugins/colorscheme.lua` | the remapped gruvbox, which follows the dark and light theme by itself (§40.2) |
 | `lua/plugins/look.lua` | the start screen as a text screen of the desktop's: 編 *editor*, the actions in lower case |
 | `lua/plugins/dev.lua` | Python and Rust: running a file, the REPL, tests and the debugger (§43) |
@@ -6545,11 +6551,12 @@ Everything else in the folder is yours: your own plugins and settings go beside 
 
 ## 17.20 Keeping it updated and healthy
 
-`update` already runs `Lazy! sync`, which brings every
-plugin to its newest version and records the versions in `~/.config/nvim/lazy-lock.json`.
-Inside neovim, `:Lazy` (Space l) shows them: `U` update, `S` sync, `R` restore the versions in
-the lock file — the way back when an update breaks something. Mason's tools are **not** part of
-`update`: open `:Mason` and press `U` now and then. Space L shows LazyVim's changelog.
+`update` puts every plugin at the commit `~/.config/nvim/lazy-lock.json` names (`Lazy! restore`,
+then `Lazy! clean` for what is no longer listed) and checks each one. That file is the desktop's:
+the plugins were tested together at those commits, and they move when the desktop itself brings a
+new one, never on their own. Inside neovim, `:Lazy` (Space l) shows them; `R` restores the versions
+in the lock file. `U` and `S` there would move them past it, until the next `update` or apply puts
+them back. `update` also brings Mason's tools to their newest. Space L shows LazyVim's changelog.
 `:checkhealth` explains anything that does not work: every plugin and tool reports OK, WARNING
 or ERROR, with advice. `:LazyHealth` loads every plugin first, so none is skipped. (lazy.nvim's
 *luarocks* support is off — `rocks = { enabled = false }` in `lua/config/lazy.lua`: no plugin
@@ -8430,8 +8437,8 @@ The whole picture, place by place, with who writes there and what may go:
 | `~/.config` | every program's settings | Theme owns the files listed in §42.2; the rest are yours | no — but a managed file edited here is replaced at the next Theme run |
 | `~/.config/fedokawaii/` | `env`, `themes/`, `current`, `icons.sh`, `width.sh`, `files.sh`, `backup-exclude`, `secrets.sh` | Theme (`env` is written from `fedokawaii.conf`); `secrets.sh` is yours | no |
 | `~/.local/bin` | `kawa-*` helpers, `fetch`, `brave-origin`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `lazygit`, `bluetui`) | Theme and `update` | no. Your own scripts may live here too, under names the desktop does not use there |
-| `~/.local/share` | program data: uv's Pythons and torrra, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
-| `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update), `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 10 |
+| `~/.local/share` | program data: uv's Pythons, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
+| `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 10 |
 | `~/.cache` | logs, previews, the scaled wallpapers, the clipboard history, launcher counts | the programs | yes, piece by piece; every program rebuilds its part (§38.2) |
 | `~/Downloads` | what Brave, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
 | `~/Pictures/Screenshots` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | the screenshot tools | yes, whenever you like |
@@ -12818,7 +12825,7 @@ every 60, 90 or 120 days, then off.
 | nothing doubled or fighting | packages left twice removed; what `dnf check` finds brought in line; services that fight the desktop's own switched off; the login made greetd's again; dependencies nothing needs removed; what a stopped run left cleared. Configuration files an update could not merge are listed in `/var/lib/fedokawaii/rpmnew`, never touched | each on its own |
 | the desktop's own parts | dwl's wlroots, the pinned tools and fonts (§27.7), the file dialog | each on its own: one that fails — GitHub down, say — is reported, the rest goes on, and the next update tries it again |
 | torrra · Prowlarr | libtorrent to its newest under torrra; Prowlarr's newest image, then started and checked | |
-| neovim's plugins | your current versions kept first (`~/.local/state/fedokawaii/lazy-lock/`, the last six), then `Lazy! sync` | |
+| neovim's plugins | each at the commit of the lock this toolkit brings (`Lazy! restore`), what is off the list gone (`Lazy! clean`), the parsers as `lean.lua` lists them, then each plugin checked against the lock | one that is not: reported, the update goes on |
 | verify | every check, the outcome recorded for the menu | |
 
 Every later package change of the update — the manifest's installs, a swap, a removal,
@@ -12905,14 +12912,10 @@ their own when they ask — each command touches that one program only:
 
 ### If an update breaks neovim
 
-An update keeps the plugin versions you had in `~/.local/state/fedokawaii/lazy-lock/` (the
-last six), as *lockfiles*: lists of every plugin and the exact version it was at. To go back:
-
-1. Find the newest — the versions from just before the last update:
-   `ls -t ~/.local/state/fedokawaii/lazy-lock/ | head -n 1`
-2. Copy it over neovim's own lockfile, for example
-   `cp ~/.local/state/fedokawaii/lazy-lock/lazy-lock.20261015-0852.json ~/.config/nvim/lazy-lock.json`
-3. Open neovim and run `:Lazy restore`: every plugin goes back to the version in the file.
+neovim's plugins do not move on their own: each stays at the commit in
+`~/.config/nvim/lazy-lock.json`, the list they were tested together at, and that file changes only
+with the desktop. If `:Lazy` moved one by hand, `:Lazy restore` puts them all back (`fedokawaii
+verify` says when one is off the list).
 
 Anything else an update changed, snapper undoes (§37.2): every `dnf` run is wrapped in a
 pre/post pair, and the update itself starts from a snapshot.
@@ -16493,7 +16496,7 @@ $ xdg-user-dir DOWNLOAD
 | foot and bash | `~/.config/foot/foot.ini` · `~/.bashrc.d/fedokawaii.sh` · `~/.config/readline/inputrc` | `~/.local/state/bash/history` · zoxide's folders: `~/.local/share/zoxide/` | `~/.cache/fedokawaii/` (fzf's and zoxide's shell code) |
 | the clipboard | — | `~/.cache/cliphist/db` (the history) | |
 | books and notes | — | `~/Books/` · `~/Notes/` | `~/.cache/kawa-books/` (covers, page counts) |
-| neovim | `~/.config/nvim/` (`lua/config/lazy.lua`, `lua/plugins/colorscheme.lua` from Theme; the rest is LazyVim's starter, yours) | `~/.local/share/nvim/` (plugins in `lazy/`, Mason's tools in `mason/`) · `~/.config/nvim/lazy-lock.json` (plugin versions) | `~/.local/state/nvim/` (undo history, swap files, logs) |
+| neovim | `~/.config/nvim/` (`init.lua`, `lazy-lock.json`, `lua/config/`, `lua/plugins/` from Theme, §17.19; yours beside them: `lua/plugins/local.lua`) | `~/.local/share/nvim/` (plugins in `lazy/`, Mason's tools in `mason/`) | `~/.local/state/nvim/` (undo history, swap files, logs) |
 | lazygit | `~/.config/lazygit/config.yml` | — | `~/.local/state/lazygit/` |
 | yazi (files and dialogs) | `~/.config/yazi/theme.toml`, `init.lua`, `keymap.toml`, `plugins/drives.yazi/`, `plugins/smart-enter.yazi/` · the dialog's keys: `~/.config/fedokawaii/yazi-pick/` · `~/.config/xdg-desktop-portal-termfilechooser/config` | the trash: `~/.local/share/Trash/` | `~/.local/state/yazi/` |
 | drives (udiskie, kawa-drives) | `~/.config/udiskie/config.yml` | — | which drives are open: `$XDG_RUNTIME_DIR/kawa-drives/` (cleared at each login) |

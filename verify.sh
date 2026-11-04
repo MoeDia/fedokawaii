@@ -661,7 +661,7 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
 }
 # (its config and its launcher entry come with the theme)
 ((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
-check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
+check "neovim's plugins at the commits of their lock (lazy-lock.json)" nvim_at_lock
 check "Torrents whole, on Fedora's python3 and libtorrent" U "$TARGET_HOME/.local/bin/kawa-torrents" --check
 check "Torrents' engine is started by its socket" U systemctl --user cat kawa-torrents.socket
 if [[ -e $TARGET_HOME/.local/share/torrra || -e $TARGET_HOME/.local/share/uv/tools/torrra || -e /usr/local/bin/kawa-torrra ]]; then
@@ -675,7 +675,7 @@ check "qalc runs"                                      U qalc -t 1+1
 # Python and Rust to learn with (setup.sh s_dev): uv's CPython, rustup's stable, neovim's servers
 check "Python: uv's CPython"                           U uv python find --managed-python
 check "Rust: cargo, rust-analyzer, clippy, rustfmt (rustup)" U bash -c 'for b in cargo rust-analyzer cargo-clippy rustfmt; do test -x ~/.local/share/cargo/bin/$b || exit 1; done'
-check "neovim's Python and Rust servers (basedpyright, ruff, codelldb)" U bash -c 'for b in basedpyright ruff codelldb; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
+check "neovim's servers and formatters (Mason: Python, Rust's debugger, Lua, TOML, shell)" U bash -c 'for b in basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
 check "restic runs (backups to another disk: kawa-backup)" U restic version
 # ── the play world (lib/asobi.sh): a user that can touch nothing of yours, its walls, its programs
 section "the play world"

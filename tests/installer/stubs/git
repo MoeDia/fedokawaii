@@ -30,8 +30,7 @@ case $1 in
            [[ -e $FKH/toolkit-syntax ]] && echo 'if' >>"$d/lib/update.sh"
            exit 0
          fi
-         if [[ " $* " == *LazyVim/starter* ]]; then echo 'require("config.lazy")' >"$d/init.lua"
-         elif [[ " $* " == *Syncplay/syncplay* ]]; then fake_syncplay_source "$d"
+         if [[ " $* " == *Syncplay/syncplay* ]]; then fake_syncplay_source "$d"
          else printf 'static const unsigned int gappx = 5;\nstatic float bordercolor[3][4];\n' >"$d/config.def.h"; fi
          exit 0 ;;
   fetch) net_on || { echo "fatal: unable to access 'https://codeberg.org/dwl/dwl.git/'" >&2; exit 128; }
@@ -47,7 +46,8 @@ case $1 in
            "v1.7.6^{commit}") cat "$FKH/tag-v1.7.6" 2>/dev/null || echo 993232ab095bb810593459bc705b3e6fc64ad161 ;;
            "v1.11.0^{commit}") cat "$FKH/tag-v1.11.0" 2>/dev/null || echo 91c6b799855762ad1eb8b4498967c270a339be0c ;;
            "v26.9.1^{commit}") cat "$FKH/tag-v26.9.1" 2>/dev/null || echo 8dd895c695a5950330c2623eb43debf323b60654 ;;
-           HEAD) cat "$FKH/dwl-head" 2>/dev/null || echo 98bea2c27f99c549023fb394bfd983a439d8ccb9 ;;
+           HEAD) if [[ -f $dir/.git/fk-commit ]]; then cat "$dir/.git/fk-commit"   # (a neovim plugin's: the stub nvim's)
+                 else cat "$FKH/dwl-head" 2>/dev/null || echo 98bea2c27f99c549023fb394bfd983a439d8ccb9; fi ;;
            *) echo "$2" ;;
          esac; exit 0 ;;
   branch) [[ " $* " == *" -r --contains "* ]] && echo "  origin/main"; exit 0 ;;

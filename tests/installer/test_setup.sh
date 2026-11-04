@@ -140,8 +140,14 @@ called "uv\] python install"
 eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "the torrents' port and LocalSend's"
 case_ "the gate's second tries: the yazi file dialog and LazyVim's plugins, each put in place there"
 has "$OUT" "no file dialog yet: termfilechooser did not build"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
-called "nvim\] --headless \+Lazy! install"
+called "nvim\] --headless \+Lazy! restore \+Lazy! clean \+qa"
 [[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
+case_ "neovim: the desktop's own config and lock in place before the plugins, each plugin at the lock's commit; no starter fetched, nothing floats"
+cmp -s "$REPO/configs/home/.config/nvim/lazy-lock.json" "$W/home/fkuser/.config/nvim/lazy-lock.json" && _ok || _no "the lock is not the shipped one"
+[[ -f $W/home/fkuser/.config/nvim/init.lua && ! -e $W/home/fkuser/.config/nvim/.neoconf.json ]] && _ok || _no "the shipped config is not what is there"
+eq "$(cat "$W/home/fkuser/.local/share/nvim/lazy/lazy.nvim/.git/fk-commit")" \
+   "$(sed -n 's/.*"lazy.nvim".*"commit": "\([0-9a-f]*\)".*/\1/p' "$REPO/configs/home/.config/nvim/lazy-lock.json")" "lazy.nvim at the lock's commit"
+not_called 'LazyVim/starter'; not_called 'Lazy! sync'; not_called 'Lazy! update'
 case_ "after the build: verify passes (exit 0), and setup run again only says so"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  verified"
 reset_calls; fkrun bash "$TK/setup.sh"; eq "$RC" 0; has "$OUT" "already built"      # (the clone is gone: the toolkit's)
