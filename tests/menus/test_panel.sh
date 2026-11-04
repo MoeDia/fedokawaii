@@ -668,7 +668,7 @@ eq "$(py 'i = kp.Item("k", "key", 0, 0, 10, 10, 0, name="x"); a, b = kp.look(i, 
 eq "$(py 'i = kp.Item("k", "hint", 0, 0, 10, 10, -1, name="x"); a, b = kp.look(i, False, False), kp.look(i, True, False); print(a["fill"], a["glyph"], a["label"], "|", b["fill"], b["glyph"], b["label"])')" "None muted muted | None strong strong" "a footer's hint: muted, the strong ink under the pointer; never a band"
 case_ "draw() takes every colour from look(): the cursor (the pointer moves it), nothing else decides"
 src=$(sed -n '/    def draw(widget, cr):/,/^    def on_key/p' "$REPO/bin/kawa-panel")
-has "$src" 'lk = look(it, focused, it.key == panel.hot)'
+has "$src" 'lk = look(it, focused, it.key == panel.hot, it.key == panel.pressed)'
 lacks "$src" 'text_on_select" if on else "text'
 case_ "no GTK widget with a hover look: the window holds one drawing area, painted whole; no transitions"
 has "$(cat "$REPO/bin/kawa-panel")" '* { transition: none; animation: none; }'
