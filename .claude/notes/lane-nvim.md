@@ -10,7 +10,7 @@ Branch `lane-nvim`, worktree `~/repos/fk-nvim`, base 306a69c. Nothing applied, n
 
 ## The finding that changes T04
 
-T04's "148 ms to VeryLazy" was the probe. nvim sends its colour query with a DSR and waits up to 100 ms for the answer (`vim/_core/defaults.lua`, E1568); `tools/ptytime.py` never answered. With a pty that answers as foot does, VeryLazy is about 17–30 ms on the first screen, and a real foot in a headless dwl agreed within 10 % (`dash` 39, `txt` 102, `py` 217 under load). `tools/ptytime.py` now answers DSR and `perf-before.md` says so. The real cost was never the first screen: it was opening a file, and a few keys.
+T04's "148 ms to VeryLazy" was the probe. nvim sends its colour query with a DSR and waits up to 100 ms for the answer (`vim/_core/defaults.lua`, E1568); `tools/ptytime.py` never answered. With a pty that answers as foot does, VeryLazy is about 17–30 ms on the first screen. A real foot in a headless dwl, same load, same config: `nvim` 39, text 102, Python 217 ms; the pty's 29, 91, 200. `tools/ptytime.py` now answers DSR and `perf-before.md` says so. The real cost was never the first screen: it was opening a file, and a few keys.
 
 ## Numbers
 
@@ -38,10 +38,10 @@ The first screen is also drawn once now: the old one was drawn twice (lualine ch
 | typing in 20,000 lines | 17.1 | 16.1 | 1 | same |
 | `:` opens | 17.6, 4 frames | 15.5, 1 frame | 4 → 1 | 3749 → 288 |
 | `/` opens | 21.2 | 12.8 | 2 → 1 | 677 → 239 |
-| Esc from `:` | 9.6, then 28 ms late on half the keys | 16.4, nothing late | | |
+| Esc from `:` | 9.6, then a draw at 28 ms on half the keys | 16.4, then a draw at 56 ms on 13 % | 2 → 3 | |
 | Ctrl+D | 455 | 36 | 39 → 2 | 60.7 KB → 10.9 KB |
 
-Honest limits: `:` in the 20,000-line file measured 17 → 26 ms in the loaded run (8.5 against 16 at load 6–10): the row-sharing below redraws the screen. Esc from `:` has its first draw later than before, and its whole redraw earlier. No key got slower at its median in a way a person could see; the worst tails are from the load and appear on both sides.
+**One thing got slower:** the command line lends the status line's row, which redraws the screen. Leaving `:` measured 9.6 → 16.4 ms in Python and leaving `/` in the 20,000-line file 9 → 27 in this loaded run (7–8 against 5–6 at load 6–10); opening `:` there 17 → 26 (8.5 against 16 at load 6–10). The rest got better or stayed: `j`'s median did not move, its second draw went. A fixed row for the command line would cost those few ms nothing and one text row always: the owner's call, in the veto list.
 
 ## What each plugin costs now, and why it stays (ms, lazy.nvim's own load time, lower quartile)
 
@@ -60,7 +60,7 @@ Honest limits: `:` in the 20,000-line file measured 17 → 26 ms in the loaded r
 | flash, mini.ai, which-key, snacks, gruvbox, todo-comments, persistence, text objects | ≤1.3 each | ≤1.2 | ≤1.2 | ≤1.0 | `s`, text objects, the Space menu, picker and tree, the palette, TODO marks, the session, `]f` |
 | blink, pairs, conform, bufferline, crates, lazydev, grug-far, iron, neotest, dap, mini.icons | 0 | 0 | 0 | 0 | load at their first key, file or insert |
 
-**Off, with the reason in `lua/plugins/lean.lua`:** catppuccin, tokyonight (nothing loads them), nvim-lint (configured for fish alone, woke on every Esc), nvim-ts-autotag (HTML and JSX, loaded for every file), ts-comments (nvim's own `gc` does Python, Rust, shell, Lua, Markdown), noice + nui (`:` 3× slower, every key's first draw 2 ms later, exit 15–45 ms slower; nvim's ui2 replaces it), lualine (10 ms, redrew the first screen, a second draw on a timer for every key; `lua/config/statusline.lua` replaces it, 11 µs a draw, pixel-identical stripes in both themes), mason-lspconfig (read Mason's whole registry per first file), mason-nvim-dap (empty config). **Also off:** animated scroll and scope (`Space u S` turns the scroll back on for a session), treesitter and LSP folds (indent folds instead), `showcmd` (flashed LazyVim's `gj` at every `j`). **Parsers:** 28 → 19; tsx, typescript, javascript, jsdoc, html, xml, dtd, ninja, rst gone.
+**Off, with the reason in `lua/plugins/lean.lua`:** catppuccin, tokyonight (nothing loads them), nvim-lint (configured for fish alone, woke on every Esc), nvim-ts-autotag (HTML and JSX, loaded for every file), ts-comments (nvim's own `gc` does Python, Rust, shell, Lua, Markdown), noice + nui (`:` 3× slower, every key's first draw 2 ms later, exit 15–45 ms slower; nvim's ui2 replaces it), lualine (10 ms, redrew the first screen, a second draw on a timer for most keys; `lua/config/statusline.lua` replaces it, 11 µs a draw, pixel-identical stripes in both themes), mason-lspconfig (read Mason's whole registry at each session's first file), mason-nvim-dap (empty config). **Also off:** animated scroll and scope (`Space u S` turns the scroll back on for a session), treesitter and LSP folds (indent folds instead), `showcmd` (flashed LazyVim's `gj` at every `j`). **Parsers:** 28 → 19; tsx, typescript, javascript, jsdoc, html, xml, dtd, ninja, rst gone.
 
 Keys: dumped from the real session on Python, Rust and the first screen (`nvim_get_keymap`), before against after. Gone: `Space s n *`, `<S-CR>` in the command line and the float scrolling on `<C-f>`/`<C-b>` (noice's own, in no doc; `<C-f>`/`<C-b>` are nvim's page keys again), `>` in Rust (autotag's). Nothing the Learn book or `keys/nvim.txt` teaches.
 
@@ -87,7 +87,7 @@ Keys: dumped from the real session on Python, Rust and the first screen (`nvim_g
 
 ## For the owner's veto (r27-extra)
 
-Each of these is a look or feel he did not ask for: the command line opening on the status line's own row instead of noice's float near the top; messages at the right above the line instead of toasts at the top right; no animated scroll or scope line (`Space u S` brings the scroll back for a session); a code fence in a Markdown file is a blank row instead of no row; a changed file's name yellow in the line; a server's name and percent in the line while it works, instead of noice's corner messages.
+Each of these is a look or feel he did not ask for: the command line opening on the status line's own row instead of noice's float near the top (`cmdheight=1` would make `:` cheaper and give up a row); messages at the right above the line instead of toasts at the top right; no animated scroll or scope line (`Space u S` brings the scroll back for a session); a code fence in a Markdown file is a blank row instead of no row; a changed file's name bold in the text's ink in the line; a server's name and percent in the line while it works, instead of noice's corner messages.
 
 ## Left, not this lane's
 

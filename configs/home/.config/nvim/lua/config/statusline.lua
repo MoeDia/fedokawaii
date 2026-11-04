@@ -1,7 +1,7 @@
 -- ~/.config/nvim/lua/config/statusline.lua — the editor's bottom line, without a plugin: there in
 -- the first frame (lualine came 10–40 ms after the text, and redrew the first screen when it
 -- came), and drawn in the same frame as the key that changed it (lualine's own timer: up to 16 ms
--- later, a second draw for every key). Its colours are colorscheme.lua's (KawaSt*): they follow
+-- later, a second draw for most keys). Its colours are colorscheme.lua's (KawaSt*): they follow
 -- the theme. The first screen has no line at all, and no row is given up or taken back for that.
 local M = {}
 

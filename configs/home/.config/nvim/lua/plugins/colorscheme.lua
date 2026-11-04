@@ -112,7 +112,7 @@ return {
           set("Key", { bg = p.key, fg = p.text })
           set("Quiet", { bg = p.line, fg = p.muted })
           set("File", { bg = p.line, fg = p.muted })
-          set("Changed", { bg = p.line, fg = p.yellow, bold = true })
+          set("Changed", { bg = p.line, fg = p.text, bold = true })
           set("Root", { bg = p.line, fg = p.teal })
           set("Recording", { bg = p.line, fg = p.accent, bold = true })
           set("Debug", { bg = p.line, fg = p.yellow })
