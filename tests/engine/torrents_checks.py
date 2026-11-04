@@ -769,6 +769,16 @@ def check_screen(s, cols):
             assert fill == list(range(fill[0], fill[-1] + 1)), f"row {y}: its fill has a hole\n{s.dump()}"
 
 
+def state_words():
+    """On a narrow tile, what a torrent is doing is said whole, its name gives way."""
+    mock()
+    w = window(30, 44)
+    w.has("finished")
+    for word in ("asking the site", "looking for it", "no one sending", "no space left on device"):
+        assert w.screen.find(word), f"{word!r} not whole at 44 columns:\n{w.screen.dump()}"
+    check_screen(w.screen, 44)
+
+
 def every_size():
     """From a sliver to a wall of a screen, both tabs, with all the states on the list: no crash, nothing past the edge."""
     mock()
@@ -815,6 +825,7 @@ def layout():
     eq([s.cells[first][x][2] for x in (0, 57, 115)], [24, 24, 24], "the whole row, to the window's edge")
     eq(s.cells[first][0][:2], ("▎", 16), "its edge: 2 px of the cell's 8, the seal's red")
     eq(s.cells[first][5][1], 25, "its words the strongest ink")
+    eq({s.cells[first][x][1] for x in range(100, 115) if (s.cells[first][x][0] or " ") != " "}, {None}, "a value in the text's ink, not muted: words on what is selected are ≥ 7 : 1")
     # every number column to one edge, so the digits stack: a meter, a speed, a time, a size, words where numbers would be
     text = lambda name: "".join(c[0] or " " for c in s.cells[row_of(w, name)])
     motion = [text(n) for n in ("Night of the Living", "debian-13.1.0", "全十五編")]

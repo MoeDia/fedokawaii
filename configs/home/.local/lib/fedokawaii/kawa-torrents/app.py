@@ -742,7 +742,8 @@ class App:
             words = f"buffering {int(r['stream']['buffered'] * 100)}%"
         out = []
         if words:
-            words = cut(words, max(10, w // 2 if r["word"] == "failed" else w // 3))
+            # (what it is doing comes before its name: "asking the site" whole on a narrow tile, what stopped it too)
+            words = cut(words, min(w - 8, max(w // 2, 24) if r["word"] == "failed" else max(w // 3, 15)))
             room = sum({"pct": 4 + 2, "speed": 9 + 2, "eta": eta_w + 2}.get(k, 0) for k in b) - 2
             if "meter" in b and r["total"] and r["word"] != "failed" and cells(words) <= room:
                 out.append(("METER", frac))
@@ -984,11 +985,12 @@ class App:
                 self.mouse_map[y] = it
 
     def laid(self, spans, selected):
-        """A row laid on the window, from the cursor's column to the one beyond the content. Under the cursor (§7) that
-        column holds its edge, every cell the tint, words with no ink of their own the strongest, every other ink its own."""
+        """A row laid on the window, from the cursor's column to the one beyond the content. Under the cursor (§4, §7) that
+        column holds its edge, every cell the tint, words with no ink of their own the strongest, a value `text` (muted
+        is 4.1 : 1 on the light tint, words on what is selected ≥ 7), every other ink its own."""
         if selected:
-            return [(CURSOR_EDGE, ACCENT, SELECT), *[(s, ON_SELECT, SELECT) if isinstance(s, str) else (s[0], s[1] or ON_SELECT, SELECT) for s in spans],
-                    (" ", ON_SELECT, SELECT)]
+            on_tint = lambda s: (s, ON_SELECT, SELECT) if isinstance(s, str) else (s[0], None if s[1] == MUTED else s[1] or ON_SELECT, SELECT)
+            return [(CURSOR_EDGE, ACCENT, SELECT), *map(on_tint, spans), (" ", ON_SELECT, SELECT)]
         return [" ", *spans]
 
     def draw_find_line(self, frame, w):
