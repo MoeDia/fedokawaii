@@ -37,7 +37,7 @@ press_wait() {   # press_wait [S] → 0 ended · 1 not within S seconds (3600)
   press_words; return 1
 }
 press_words() { INJ_OUT=$(run 'sed "s/\x1b\[[0-9;]*[a-zA-Z]//g" /tmp/press.out' 2>/dev/null); printf '%s\n' "$INJ_OUT" >"$out/press.out"; }
-press() { run 'rm -f /tmp/press.rc /tmp/press.out' >>"$log" 2>&1; press_bg "$@"; press_wait; }
+press() { run 'sudo rm -f /tmp/press.rc /tmp/press.out' >>"$log" 2>&1; press_bg "$@"; press_wait; }
 phase_is() {   # phase_is WORD [S]
   local end=$((SECONDS + ${2:-900}))
   while ((SECONDS < end)); do

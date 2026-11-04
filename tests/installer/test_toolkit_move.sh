@@ -51,12 +51,11 @@ back moved; fkh release-tags v2026.10.01; reset_calls; press; eq "$RC" 0; not_ca
 case_ "fetched, then cut (no network for the clone): this toolkit goes on"
 back built; fkh release-tags v2026.11.20; fkh fail-git-clone 5; press; eq "$RC" 0; has "$OUT" "could not be fetched"; [[ ! -e $W/usr/local/lib/fedokawaii/FROM-RELEASE ]] && _ok || _no "replaced"
 
-case_ "a red after it (the desktop's start): the system before it back, that tag refused, no package held"
-back built; fkh release-tags v2026.11.20; fkh session-red "not running: waybar"
-# (red only after the update's own checks before it: the baseline's check green, then red)
-cat >"$W/usr/local/bin/mountpoint.real" 2>/dev/null </dev/null || true
-fkh session-red-after 1
+case_ "a red after it (what only the running system shows): the system before it back, that tag refused, no package held"
+back built; fkh release-tags v2026.11.20; fkh mounts /run/fedokawaii/top /home; fkh replay-breaks-dwl
 press; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(cat "$U/toolkit-red" 2>/dev/null)" v2026.11.20; [[ ! -s $U/holds ]] && _ok || _no "packages held for fedokawaii's red: $(cat "$U/holds")"
 called 'kawa-snap\] restore [0-9]+'; [[ ! -e $U/toolkit-moved ]] && _ok || _no "toolkit-moved left"
-finish
+has "$OUT" "fedokawaii v2026.11.20 goes back with the rest, and is not tried again"
+
+done_

@@ -198,7 +198,7 @@ eq "$(head -n1 <<<"$out")" "running   an update or a repair, now" "(the keys' co
 has "$(grep -m1 '^update' <<<"$(plain "$(fedokawaii --rows update)")")" "running"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 case_ "a run that names itself in the lock (setup.sh's mode): the words say which, its own row shows it"
-for m in repair:repair:'a repair' after-dnf:update:'an update' after-upgrade:upgrade:'an upgrade'; do
+for m in repair:repair:'a repair' after-dnf:update:'an update' after-upgrade:update:'an update'; do
   IFS=: read -r mode row words <<<"$m"
   fresh; printf '%s\n' "$mode" >"$R/state/lock"
   ( exec 9<"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!

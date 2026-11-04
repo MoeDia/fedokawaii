@@ -30,7 +30,7 @@ build() {
   press update
   if ! grep -q "Fedora $n is ready: press update again" <<<"$INJ_OUT"; then row BROKEN "the first press never said ready ($(tail -n1 <<<"$INJ_OUT"))"; return 1; fi
   local told; told=$(run "sudo cat $U/move-told"); [[ $told == "$n" ]] || { row BROKEN "move-told: $told"; return 1; }
-  run 'rm -f /tmp/press.rc /tmp/press.out; rm -f ~/.config/fedokawaii/upkeep.conf'
+  run 'sudo rm -f /tmp/press.rc /tmp/press.out; rm -f ~/.config/fedokawaii/upkeep.conf'
   local s=$SECONDS
   press_bg upgrade --now
   # (the restart arranged: stopped right there — everything armed, kept as the state each case starts from)

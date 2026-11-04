@@ -141,10 +141,10 @@ running_job() {   # → the menu's entry whose run holds the lock (setup.sh writ
   # once it holds it), empty for a run that names none; status 1: nothing runs
   busy || return 1
   local j=""; read -r j <"$STATE/lock" 2>/dev/null
-  case $j in update|after-dnf) echo update ;; repair) echo repair ;; upgrade|after-upgrade) echo upgrade ;; *) echo "" ;; esac
+  case $j in update|after-dnf|upgrade|after-upgrade) echo update ;; repair) echo repair ;; *) echo "" ;; esac
 }
 running_words() {   # running_words JOB → what runs, as the status says it
-  case $1 in update) echo 'an update' ;; repair) echo 'a repair' ;; upgrade) echo 'an upgrade' ;; *) echo 'an update or a repair' ;; esac
+  case $1 in update) echo 'an update' ;; repair) echo 'a repair' ;; *) echo 'an update or a repair' ;; esac
 }
 
 # Fedora's releases. Yours: its end of support is in os-release (SUPPORT_END, kept current
