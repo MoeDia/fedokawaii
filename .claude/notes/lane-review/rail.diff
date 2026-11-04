@@ -1,0 +1,215 @@
+--- a/dwl.c
++++ b/dwl.c
+@@ -221,7 +221,7 @@
+ 	 * is lost to a frame never shown), animlast the frame it was last drawn for, animp how far it
+ 	 * is (0 … 1, before easing); dis: its picture meanwhile, while it hops */
+ 	int anim, slidex, slidey, tagx0, tagx1;
+-	double animt0, animlast, animp, tagwave;
++	double animt0, animlast, animp, tagwave, tagv;
+ 	Dissolve dis;
+ 	struct Ghost *rolling;
+ } Client;
+@@ -241,6 +241,9 @@
+ 	double t0, last;          /* (as a window's animt0, animlast) */
+ 	int dir;
+ 	struct wl_list link;
++	uint32_t tags, from;         /* the workspace it leads in; the one it left */
++	int x0, x1;                  /* px off that workspace's place, from and to, as its windows */
++	double v, wave, p;           /* the speed it set out with; its wave's place; how far */
+ } Rail;
+ 
+ typedef struct Ghost {
+@@ -5012,6 +5015,19 @@
+ 	return k * exp(-z * w * p) * (cos(d * p) + z * w / d * sin(d * p));
+ }
+ 
++/* …and what a speed v (px for the whole of p) at p = 0 adds, px per unit of v: nothing stops dead when a
++ * new move takes over from one under way */
++static double
++springv(double p, double w, double z)
++{
++	double d, k;
++	if (p <= 0.0 || p >= 1.0)
++		return 0.0;
++	k = p > 0.9 ? 1.0 - (p - 0.9) * 10.0 : 1.0;
++	d = w * sqrt(1.0 - z * z);
++	return k * exp(-z * w * p) * sin(d * p) / d;
++}
++
+ /* (gentle at both ends) */
+ static double
+ smooth(double q)
+@@ -5071,13 +5087,6 @@
+  * the last). The bar and the wallpaper stay; a window on both stays; never with a full-screen window ── */
+ #define RAIL_CELLS 5      /* the rail's width: an ink cell, three of lacquer, an ink cell */
+ 
+-/* how far along */
+-static double
+-tagease(double p)
+-{
+-	return 1.0 - spring(p, TAG_W, TAG_Z);
+-}
+-
+ /* the strip's length on m: the screen and the rail */
+ static int
+ stripw(Monitor *m)
+@@ -5085,61 +5094,102 @@
+ 	return m->m.width + RAIL_CELLS * moncell(m);
+ }
+ 
++/* where a move stands at p, and its speed there (px for the whole of p) */
++static double
++tagat(int x0, int x1, double v, double p)
++{
++	return x1 + (x0 - x1) * spring(p, TAG_W, TAG_Z) + v * springv(p, TAG_W, TAG_Z);
++}
++
++static double
++tagspeed(int x0, int x1, double v, double p)
++{
++	return (tagat(x0, x1, v, p + 0.005) - tagat(x0, x1, v, p - 0.005)) / 0.01;
++}
++
+ /* px off its place now */
+ static int
+ tagdx(Client *c)
+ {
+-	return c->tagx0 + (int)lround((c->tagx1 - c->tagx0) * tagease(c->animp));
++	return (int)lround(tagat(c->tagx0, c->tagx1, c->tagv, c->animp));
+ }
+ 
+-/* a window's move begun from where it stands, wave ms late */
++/* a window's move begun from where it stands, at the speed it has, wave ms late */
+ static void
+-tagmove(Client *c, int kind, int from, int to, double wave)
++tagmove(Client *c, int kind, int to, double wave)
+ {
++	int moving = c->anim == AnimIn || c->anim == AnimOut, x = moving ? tagdx(c) : 0;
++	c->tagv = moving ? tagspeed(c->tagx0, c->tagx1, c->tagv, c->animp) : 0.0;
++	c->tagx0 = x;
+ 	c->anim = kind;
+-	c->tagx0 = from, c->tagx1 = to;
++	c->tagx1 = to;
+ 	c->tagwave = wave;
+ 	c->animt0 = c->animlast = nowms();
+ 	c->animp = 0;
+ }
+ 
+-/* its place in the wave of a move in direction dir: the ones nearest the way out first */
++/* its place in the wave of a move in direction dir: half the wave for the windows leaving, then the
++ * rail, then the other half for those coming, each half from the way out on: the last to leave is
++ * ahead of the rail, the first to come behind it, so the rail stands between them in every frame */
+ static double
+-tagwave(Client *c, int dir)
++tagwave(Client *c, int dir, int in)
+ {
+ 	double n = (c->geom.x + c->geom.width / 2.0 - c->mon->m.x) / c->mon->m.width;
+ 	n = n < 0 ? 0 : n > 1 ? 1 : n;
+-	return anim_tag_wave * (dir > 0 ? n : 1.0 - n);
++	return anim_tag_wave * 0.5 * (in + (dir > 0 ? n : 1.0 - n));
+ }
+ 
+-/* the rail of one move: dir as the move's; it goes with the windows coming in, just behind them */
++/* the rail of one move: the seam of the strip, on the side of the workspace it leads in, off that
++ * workspace's place by as much as its windows */
+ static void
+-railplace(Rail *r, double p)
++railplace(Rail *r)
+ {
+ 	Monitor *m = r->mon;
+-	int cell = moncell(m), s = stripw(m);
+-	int dx = r->dir * (s - (int)lround(s * tagease(p)));
++	int cell = moncell(m);
++	int dx = (int)lround(tagat(r->x0, r->x1, r->v, r->p));
+ 	int x = m->m.x + (r->dir > 0 ? dx - RAIL_CELLS * cell : dx + m->m.width);
+ 	wlr_scene_node_set_position(&r->part[0]->node, x, m->m.y);
+ 	wlr_scene_node_set_position(&r->part[1]->node, x + cell, m->m.y);
+ 	wlr_scene_node_set_position(&r->part[2]->node, x + (RAIL_CELLS - 1) * cell, m->m.y);
+ }
+ 
++/* a move from was to now on m: the rails under way go on as the windows do — from where they stand, at
++ * their speed, to where the workspace they lead in is going — and a new one comes, unless this is a
++ * move back: the seam it needs is the last move's rail, there already */
+ static void
+-railstart(Monitor *m, int dir)
++railstart(Monitor *m, int dir, uint32_t was, uint32_t now)
+ {
+-	Rail *r = ecalloc(1, sizeof(*r));
++	Rail *r;
+ 	const float ink[4] = { washink[0], washink[1], washink[2], 1.0f };
+-	int cell = moncell(m), i;
++	int cell = moncell(m), i, back = 0;
++	double dx;
+ 
++	wl_list_for_each(r, &rails, link) {
++		if (r->mon != m)
++			continue;
++		back |= r->tags == was && r->from == now;
++		dx = tagat(r->x0, r->x1, r->v, r->p);
++		r->v = tagspeed(r->x0, r->x1, r->v, r->p);
++		r->x0 = (int)lround(dx);
++		r->x1 = r->tags & now ? 0 : -dir * stripw(m);
++		r->wave = 0;                 /* (as the windows under way) */
++		r->t0 = r->last = nowms();
++		r->p = 0;
++	}
++	if (back)
++		return;
++	r = ecalloc(1, sizeof(*r));
+ 	r->mon = m;
+ 	r->dir = dir;
++	r->tags = now, r->from = was;
++	r->x0 = dir * stripw(m);
++	r->wave = anim_tag_wave * 0.5;
+ 	r->t0 = r->last = nowms();
+ 	r->tree = wlr_scene_tree_create(layers[LyrFloat]);
+ 	for (i = 0; i < 3; i++)
+ 		r->part[i] = wlr_scene_rect_create(r->tree, i == 1 ? (RAIL_CELLS - 2) * cell : cell, m->m.height,
+ 				i == 1 ? focuscolor[0] : ink);
+-	railplace(r, 0);
++	railplace(r);
+ 	wl_list_insert(&rails, &r->link);
+ }
+ 
+@@ -5433,8 +5483,10 @@
+ 	}
+ 	if (kind != AnimOpen && c->dis.node)
+ 		animdrop(c);
+-	tagmove(c, kind, kind == AnimIn ? dir * stripw(c->mon) : 0, kind == AnimOut ? -dir * stripw(c->mon) : 0,
+-			kind == AnimIn || kind == AnimOut ? tagwave(c, dir) : 0);
++	c->anim = AnimNone;              /* (a move of its own, from rest) */
++	tagmove(c, kind, kind == AnimOut ? -dir * stripw(c->mon) : 0,
++			kind == AnimIn || kind == AnimOut ? tagwave(c, dir, kind == AnimIn) : 0);
++	c->tagx0 = kind == AnimIn ? dir * stripw(c->mon) : 0;
+ 	applyframe(c);
+ 	clientdissolve(c);
+ 	wlr_output_schedule_frame(c->mon->wlr_output);
+@@ -5611,7 +5663,9 @@
+ 		if (now - r->t0 >= anim_tag_ms) {
+ 			railfree(r);
+ 		} else {
+-			railplace(r, (now - r->t0) / anim_tag_ms);
++			r->p = (now - r->t0 - r->wave) / (anim_tag_ms - anim_tag_wave);
++			r->p = r->p < 0 ? 0 : r->p > 1 ? 1 : r->p;
++			railplace(r);
+ 			left = 1;
+ 		}
+ 	}
+@@ -6856,7 +6910,7 @@
+ 	focusclient(focustop(m), 1);
+ 	arrange(m);
+ 	if (slide) {
+-		railstart(m, dir);
++		railstart(m, dir, was, now);
+ 		wl_list_for_each(c, &clients, link) {
+ 			int before, after;
+ 			if (c->mon != m || c->awaitmap || !animok(c))
+@@ -6867,7 +6921,7 @@
+ 				/* (a switch during the last one's move: what is on its way goes on from where it
+ 				 * stands, where this move wants it; on neither workspace, it goes on leaving) */
+ 				if (before != after)
+-					tagmove(c, after ? AnimIn : AnimOut, tagdx(c), after ? 0 : -dir * stripw(m), 0);
++					tagmove(c, after ? AnimIn : AnimOut, after ? 0 : -dir * stripw(m), 0);
+ 				else if (before)
+ 					animstop(c);
+ 				wlr_scene_node_set_enabled(&c->scene->node, 1);
