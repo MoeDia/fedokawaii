@@ -5,7 +5,7 @@
 # docs/design-system.md §7, to the pixel:
 #   · the cursor's lacquer: 20 px on the row grid, from the cursor's column to the window's last, its colour the token's
 #   · the tab's vermilion line under its name alone, flush with the letters
-#   · a heading's rule on the cell's tenth pixel row, to the last content column, no further
+#   · a heading's rule on the cell's tenth pixel row, and how much the part holds ending in the last content column
 #   · a row's icon in its column, the right margin free of ink but for the cursor
 #   · the meter: ten segments, 6 px wide on an 8 px pitch, 10 tall; part-way a dissolve's pixels, never a smear
 #   · the details' rail whole from the top to the keys' line, on the list's far side (whole-screen only)
@@ -79,8 +79,13 @@ rule = near("EDGE2", 6)[row(3) + 9]
 xs = np.nonzero(rule[X0:X0 + 8 * (list_w + 1)])[0]
 if not len(xs):
     no("no rule on the heading's tenth pixel row")
-elif xs.max() != 8 * (list_w + 1) - 1:
-    no(f"the rule ends at {xs.max()} px, not {8 * (list_w + 1) - 1}")
+elif xs.max() - xs.min() < 8 * 8:
+    no(f"the rule is only {xs.max() - xs.min()} px long")
+# (then how much the part holds, its ink ending inside the last content column)
+head = np.abs(a[row(3) + 2:row(3) + 18, X0:X0 + 8 * (list_w + 2)] - a[Ye - 1, Xe - 1]).sum(axis=2) > 30
+ends = np.nonzero(head.sum(axis=0))[0]
+if not len(ends) or not 8 * list_w <= ends.max() <= 8 * (list_w + 1):
+    no(f"the heading's row ends at {ends.max() if len(ends) else None} px, not in column {list_w}")
 # nothing but the lacquer in the right margin column (the whole-screen one: the same at the pane's end; a letter's own
 # overhang of a pixel, as % has, is the font's)
 ground = a[Ye - 1, Xe - 1]

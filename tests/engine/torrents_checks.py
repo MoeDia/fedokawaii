@@ -796,8 +796,10 @@ def layout():
     y = row_of(w, "downloading")
     eq(s.line(y)[1], w_icon("DOWNLOAD"), "a heading at the content's first column")
     assert s.line(y)[4:15] == "downloading" and s.line(y)[16] == "─", s.line(y)
-    eq(s.line(y)[114], "─", "its rule to the last column")
+    assert s.line(y).rstrip().endswith("to come") and len(s.line(y).rstrip()) == 115, f"its rule, then how much, to the last column: {s.line(y)!r}"
     eq(s.line(y)[115], " ", "and no further")
+    y2 = row_of(w, "finished")
+    assert s.line(y2).rstrip().endswith("2.8 GB"), s.line(y2)
     eq(s.line(y + 1).strip(), "", "a blank under a heading")
     y = row_of(w, "paused")
     assert s.line(y - 1).strip() == "" and s.line(y - 2).strip() == "", "two blank lines over a heading"

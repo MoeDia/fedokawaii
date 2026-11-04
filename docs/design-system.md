@@ -339,7 +339,7 @@ content, inside its margin of one cell:
   every dissolve (§11), a seventh more with each; the cursor's row strips the inks, the shapes still
   say it. Nothing yet: no meter at all.
 - **Torrents** (`kawa-torrents`, its two tabs): the list in parts (downloading, paused, finished: a
-  heading each), newest first; each row its state's icon (§5: it moves while bytes come; the
+  heading each, how many and how much at the end of its rule), newest first; each row its state's icon (§5: it moves while bytes come; the
   antenna television while it plays; the hourglass while it is looked for, asked of a site or
   checked; ✘ with what stopped it, in words), its name as words (a torrent's dots read as spaces, never "…"), then
   right-aligned, two columns apart: the meter, the percent, the speed, the time left, the size —
@@ -347,7 +347,8 @@ content, inside its margin of one cell:
   Fewer columns as the window narrows: the size goes first (under 104 columns), then the time left (84), the meter
   (62), the speed (44); the percent stays. From 132 columns its details stand beside the list (a
   rail, a free column, 60 wide; the keyboard in them leaves a band of `edge` on the list's row, as
-  Files does); narrower, they fill the window. What could be added stands over the list in the
+  Files does); narrower, they fill the window. Its pieces a cloth of meter segments, three lines on a
+  tall window, one on a small. What could be added stands over the list in the
   magnet's icon (the clipboard's link, a .torrent just downloaded). Find: the Search line, then a
   row a result: its kind's icon, its name, then as they fit the site, its age and its size, last the
   seedling (`sprout`) and how many share it; none: `faint`, last.

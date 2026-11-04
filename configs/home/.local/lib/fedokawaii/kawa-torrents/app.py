@@ -597,11 +597,19 @@ class App:
             if not first:
                 items += [{"kind": "gap"}, {"kind": "gap"}]
             first = False
-            items += [{"kind": "head", "icon": icon, "word": word}, {"kind": "gap"}]
+            items += [{"kind": "head", "icon": icon, "word": word, "right": self.part_sum(rows, word)}, {"kind": "gap"}]
             items += [{"kind": "row", "id": r["id"], "row": r} for r in rows]
         if self.synced and not any(i["kind"] == "row" for i in items) and not any(i["kind"] == "offer" for i in items):
             items.append({"kind": "note", "word": "nothing matches" if self.filter is not None else "nothing yet"})
         return items
+
+    def part_sum(self, rows, word):
+        """At a part's rule, how many and how much: what is left to come, or what is here."""
+        n = len(rows)
+        if word == "finished":
+            return f"{n} · {size(sum(r['total'] for r in rows))}"
+        left = sum(r["total"] - r["done"] for r in rows)
+        return f"{n} · {size(left)} to come" if left > 0 else str(n)
 
     def find_items(self):
         items = [{"kind": "result", "id": r["id"], "row": r} for r in self.sorted_results()]
@@ -951,7 +959,7 @@ class App:
             selected = here and not self.pane_focus and self.adding is None
             kind = it["kind"]
             if kind == "head":
-                frame[y] = [" "] + self.heading(it["icon"], it["word"], w)
+                frame[y] = [" "] + self.heading(it["icon"], it["word"], w, it["right"])
             elif kind == "note":
                 frame[y] = ["     ", (it["word"], FAINT)]
             elif kind == "failure":
@@ -1082,7 +1090,7 @@ class App:
         det = self.detail.get(r["id"])
         if det and det.get("pieces"):
             lines += [[], [], self.heading("PIECES", "pieces", w), []]
-            lines.append(self.piece_line(det["pieces"], w))
+            lines += self.piece_lines(det["pieces"], w)
         files = self.files.get(r["id"])
         if files:
             lines += [[], [], self.heading("FILE", "files", w), []]
@@ -1134,19 +1142,22 @@ class App:
             out.append(("trackers", f"{ok} of {len(tr)} answer"))
         return out
 
-    def piece_line(self, levels, w):
-        """A torrent's pieces, a segment a cell, each by how much of it is here, 0 … 8; what plays or came first, solid from the left."""
-        spans, run, now = [], [], None
-        for level in levels[:max(1, w - 3)]:
-            ink_ = EDGE2 if level == 0 else ACCENT_TEXT
-            if ink_ != now and run:
-                spans.append(("".join(run), now))
-                run = []
-            run.append(self.segment(level))
-            now = ink_
-        if run:
+    def piece_lines(self, levels, w):
+        """A torrent's pieces: a cloth woven as they come, a segment a cell, each by how much of it is here (0 … 8), left to right, line by line."""
+        across = max(1, w - 3)
+        out = []
+        for at in range(0, len(levels), across):
+            spans, run, now = [], [], None
+            for level in levels[at:at + across]:
+                ink_ = EDGE2 if level == 0 else ACCENT_TEXT
+                if ink_ != now and run:
+                    spans.append(("".join(run), now))
+                    run = []
+                run.append(self.segment(level))
+                now = ink_
             spans.append(("".join(run), now))
-        return ["   ", *spans]
+            out.append(["   ", *spans])
+        return out
 
     def file_line(self, r, files, k, prefix, w, selected, det):
         path, sz = files[k]
@@ -1167,9 +1178,12 @@ class App:
         return [" ", (self.icon(icon), MUTED if on else FAINT), "  ", (n, ink_), " " * filler, "  ", (value, MUTED if on else FAINT)]
 
     def want_watch(self, i, w):
-        if i != self.watched:
-            self.watched = i
-            self.send({"op": "watch", "id": i, "cells": max(1, w - 3)})
+        """The engine tells of one torrent: the pieces in as many cells as the cloth here holds (three lines on a tall window, one on a small)."""
+        lines = 3 if self.t.rows >= 30 else 1
+        want = (i, max(1, w - 3) * lines)
+        if want != self.watched:
+            self.watched = want
+            self.send({"op": "watch", "id": i, "cells": want[1]})
 
     def last_line(self, frame, rows, w, cols):
         """A screen's own keys, on its last line: the key in text, what it does muted, its state strong. A word
