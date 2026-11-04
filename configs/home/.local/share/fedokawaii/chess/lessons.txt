@@ -709,9 +709,9 @@ kings face each other, one square between, and it is his move: he must give way.
 @try Kf7 | past him on the side he left: your pawn walks home.
 he stepped aside. go past him on the other side.
 ---
-@fen 8/8/4k3/8/4K3/4P3/8/8 w - - 0 1
-@try Kd4 Kf4 | keep your king in front of the pawn. a waiting move with the pawn is a tempo you can spend later.
-with the move in hand you can spend a pawn step to take the opposition back. first bring the king beside him.
+@fen 8/8/4k3/8/4K3/8/4P3/8 w - - 0 1
+@try e3 | a pawn step costs nothing and gives him the move.
+a pawn further back holds a spare move. spend it, and he has to give way.
 
 === the-square
 title: the square of the pawn

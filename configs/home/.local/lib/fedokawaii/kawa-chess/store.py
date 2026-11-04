@@ -47,8 +47,11 @@ class Store:
                 json.dump(value, f, separators=(",", ":"))
                 f.flush()
                 os.fsync(f.fileno())
+            # (the old one linked to .bak, not moved: the file is there at every instant)
             if os.path.exists(p):
-                os.replace(p, p + ".bak")
+                keep = f"{p}.{os.getpid()}.keep"
+                os.link(p, keep)
+                os.replace(keep, p + ".bak")
             os.replace(tmp, p)
             return True
         except OSError:

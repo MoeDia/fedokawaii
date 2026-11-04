@@ -227,6 +227,9 @@ class Game(Screen):
         self.rng = random.Random()
         self.thinking_since = None
         self.shown = None
+        self.landing = None          # (a move on its way: its squares lit from its first frame)
+        self.fallen = None           # (the beaten king's square, how far he has fallen)
+        self.fall_at = 0
         if saved:
             self._restore(saved)
         self.hand.reset(self.g.pos)
@@ -263,8 +266,8 @@ class Game(Screen):
     # ── the board ────────────────────────────────────────────────────────────────────────────
     def board(self):
         pos = self.g.pos
-        last = self.g.moves[-1] if self.g.moves else None
-        hanging = pos.hanging(self.me) if self.show_threats and not self.g.over() else ()
+        last = self.landing if self.landing is not None else self.g.moves[-1] if self.g.moves else None
+        hanging = pos.hanging(self.me) if self.show_threats and not self.g.over() and self.landing is None else ()
         marks = board_marks(pos, last, hanging)
         for s, ms in self.hand.marks().items():
             marks.setdefault(s, set()).update(ms)
@@ -274,6 +277,8 @@ class Game(Screen):
             marks.setdefault(m & 63, set()).add("hint")
             if stage > 1:
                 arrows.append((m & 63, m >> 6 & 63, "asagi"))
+        if self.ended and self.fallen is not None:
+            marks.setdefault(self.fallen[0], set()).add(f"fall{self.fallen[1]}")
         return pos.b, marks, arrows, self.flipped
 
     # ── the panel ────────────────────────────────────────────────────────────────────────────
@@ -284,6 +289,8 @@ class Game(Screen):
         goal = wrap(spec.get("goal") or "", w) if spec.get("goal") and h >= 24 else []
         if goal:
             top += [[(line, MUTED)] for line in goal] + [""]
+        if spec.get("card") and h >= 28 and w >= 30:     # (the Steps Method's three questions, the first months)
+            top += [[("material? mate? danger?", FAINT)], ""]
         opp_turn = self.g.pos.turn != self.me and not self.g.over()
         hg = f"HG_{int(now * 6) % 5}" if opp_turn and not self.paused else None
         opp = self._side_row(spec.get("opponent", "stockfish"), 1 - self.me, hg)
@@ -299,14 +306,20 @@ class Game(Screen):
     def menu_lines(self, w, room):
         return list(self.menu)
 
+    def _ahead(self, side):
+        """How much material a side is ahead, in pawns: "+3", or nothing."""
+        d = sum(B.VALUE[p & 7] * (1 if p >> 3 & 1 == side else -1) for p in self.g.pos.b if p and p & 7 != B.KING)
+        return f"  +{d}" if d > 0 else ""
+
     def _side_row(self, name, side, hg):
+        name += self._ahead(side)
         clock = fmt_clock(self.clock[side]) if self.clock else ""
         turn = self.g.pos.turn == side and not self.g.over()
         ink = STRONG if turn else None
         vink = STRONG if turn else MUTED
         if self.clock and self.clock[side] < 30:
             vink = ACCENT_TEXT
-        ic = hg or "USER" if name == "you" else (hg or "ONI")
+        ic = hg or ("USER" if side == self.me else "ONI")
         return Row(ic, name, clock, ink=ink, value_ink=vink)
 
     def _moves(self, w, room):
@@ -318,31 +331,27 @@ class Game(Screen):
         wide = w >= 22
         rows = []
         i = 0
+        last = len(g.sans) - 1
         if wide:
             while i < len(g.sans):
                 a = "..." if first_black and i == 0 else g.sans[i]
                 k = 0 if first_black and i == 0 else 1
                 b = g.sans[i + k] if i + k < len(g.sans) else ""
-                rows.append((full, a, b, i if k else None, i + k))
+                ink_a = STRONG if i == last and k else None
+                ink_b = STRONG if i + k == last else None
+                rows.append([" ", (f"{full}.".ljust(5), MUTED), (a.ljust(9), ink_a), (b, ink_b)])
                 i += 1 + k
                 full += 1
         else:
+            # (a narrow panel: each move its line, the number with White's)
+            black = first_black
             for j, s in enumerate(g.sans):
-                rows.append((full, s, "", j, None))
-                if (p.turn == B.WHITE) == (j % 2 == 1):
+                num = "" if black else f"{full}."
+                rows.append([" ", (num.ljust(4), MUTED), (s, STRONG if j == last else None)])
+                if black:
                     full += 1
-        shown = rows[-max(0, room):] if room > 0 else []
-        out = []
-        last = len(g.sans) - 1
-        for no, a, b, ia, ib in shown:
-            ink_a = STRONG if ia == last else None
-            ink_b = STRONG if ib == last else None
-            num = f"{no}."
-            if wide:
-                out.append([" ", (f"{num:<4}", MUTED), (f"{a:<9}", ink_a), (b, ink_b)])
-            else:
-                out.append([" ", (f"{num:<4}", MUTED), (a, ink_a)])
-        return out
+                black = not black
+        return rows[-max(0, room):] if room > 0 else []
 
     def _input_lines(self, w):
         if self.g.over():
@@ -394,19 +403,19 @@ class Game(Screen):
 
     def text(self, chars):
         self.note = ""
-        if self.menu or self.g.over():
-            return
-        if chars[0] == "?":
-            self._ask_hint()
-            return
-        if self.g.pos.turn != self.me:
-            return
-        if chars[0] == "t" and not self.hand.typed:
-            self.show_threats = not self.show_threats
-            return
-        m = self.hand.text(chars)
-        if m is not None:
-            self.play_mine(m)
+        for ch in chars:
+            if self.menu or self.g.over():
+                return
+            if ch == "?":
+                self._ask_hint()
+            elif self.g.pos.turn != self.me or self.app.anim is not None:
+                return
+            elif ch == "t" and not self.hand.typed:
+                self.show_threats = not self.show_threats
+            else:
+                m = self.hand.text(ch)
+                if m is not None:
+                    self.play_mine(m)
 
     def click(self, sq):
         if self.menu or self.g.over() or self.g.pos.turn != self.me:
@@ -535,7 +544,10 @@ class Game(Screen):
         self.app.engine.cancel_all()
         hide = {p[1] for p in parts}
 
+        self.landing = m
+
         def arrived():
+            self.landing = None
             self.g.play(m)
             if self.clock and self.spec["clock"][1]:
                 self.clock[1 - self.g.pos.turn] += self.spec["clock"][1]
@@ -574,7 +586,12 @@ class Game(Screen):
 
     def tick(self, now):
         if self.ended:
-            return None
+            # (the beaten king topples, in three frames)
+            if self.fallen is not None and self.fallen[1] < 3 and now >= self.fall_at:
+                self.fallen = (self.fallen[0], self.fallen[1] + 1)
+                self.fall_at = now + 0.09
+                self.app.touch()
+            return self.fall_at if self.fallen is not None and self.fallen[1] < 3 else None
         g = self.g
         if self.clock and not self.paused:
             turn = g.pos.turn
@@ -624,6 +641,10 @@ class Game(Screen):
         self.note = f"{word}: {why}"
         self.hand.clear()
         self.outcome = {"result": result, "why": why, "won": won, "draw": result == "1/2-1/2"}
+        if result != "1/2-1/2":
+            loser = B.BLACK if result == "1-0" else B.WHITE
+            self.fallen = (self.g.pos.kings[loser], 0)
+            self.fall_at = time.monotonic() + 0.25
         self.app.store.delete("current.json")
         if self.done_cb:
             self.done_cb(self)

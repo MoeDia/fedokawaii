@@ -6,15 +6,15 @@ import re
 import time
 
 import board as B
-from app import DATA, Screen
+from app import DATA, MARGIN, Screen
 from canvas import Canvas
 from course import Course
 from lesson import Lesson, Library
 from play import Game
 from progress import Progress, today_ordinal
 from puzzles import SESSION, Bank, Session
-from review import Review
-from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG
+from review import Review, goal_met
+from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
 from ui import Row, heading, icon, wrap
 
 TABS = (("today", "KNIGHT"), ("lessons", "BOOK"), ("puzzles", "STORM"), ("games", "SHEET"), ("progress", "USAGE"))
@@ -38,6 +38,7 @@ class Home(Screen):
         self.lib = app.library = Library(os.path.join(DATA, "lessons.txt"))
         self.course = app.course = Course(self.lib, app.bank)
         self.ready = True
+        self.on_show()
         saved = app.store.load("current.json", {})
         if saved.get("spec") and saved.get("moves") is not None:
             self._resume(saved)
@@ -117,6 +118,15 @@ class Home(Screen):
 
     def _rows_progress(self):
         return []
+
+    def picture(self, view):
+        """The progress tab draws the year in the board's place."""
+        if not self.ready or TABS[self.tab][0] != "progress":
+            return None
+        key = (self.pr.day, len(self.pr.items), self.app.mood, view.size, round(self.pr.game["r"]), round(self.pr.puzzle["r"]))
+        if key == self.app.pic_key:
+            return key, None
+        return key, year_picture(view, self.pr, self.course)
 
     # ── the board ─────────────────────────────────────────────────────────────────────────────
     def board(self):
@@ -238,15 +248,18 @@ class Home(Screen):
         draws = sum(1 for r in pr.played.values() if r.get("score") == "draw")
         losses = sum(1 for r in pr.played.values() if r.get("score") == "loss")
         out = [heading("USAGE", "progress", w, right=f"day {pr.day}"), ""]
-        out += [Row("KNIGHT", "your level", f"{pr.game['r']:.0f}"),
-                Row("STORM", "puzzle rating", f"{pr.puzzle['r']:.0f}"),
+        out += [Row("KNIGHT", "your level", f"{pr.game['r']:.0f}", value_ink=ACCENT_TEXT),
+                Row("STORM", "puzzle rating", f"{pr.puzzle['r']:.0f}", value_ink=TEAL),
                 Row("CHECK", "days in a row", pr.streak),
-                Row("SHEET", "games", f"{wins} {draws} {losses}"),
+                Row("SHEET", "won, drawn, lost", f"{wins} {draws} {losses}"),
                 Row("BOOK", "lessons", sum(1 for v in pr.lessons.values() if v == "done")),
                 ""]
         m = self.course.milestone(pr.day, pr)
         if m:
-            out += [[(s, MUTED)] for s in wrap(m, w)]
+            out += [[(s, MUTED)] for s in wrap(m, w)] + [""]
+        f = self.course.forecast(pr)
+        if f:
+            out += [[(s, MUTED)] for s in wrap(f, w)]
         return out
 
     def _foot(self, w, rows):
@@ -422,10 +435,16 @@ class Home(Screen):
         if counted:
             pr.game_result(0.5 if o["draw"] else 1.0 if o["won"] else 0.0, spec["elo"])
         pr.played[label] = {"score": score, "elo": spec["elo"], "t": time.time(), "why": o["why"], "goal": spec.get("goal", ""),
-                            "check": spec.get("check"), "me": game.me, "times": game.times, "hints": game.hints_used, "accuracy": None}
+                            "check": spec.get("check"), "me": game.me, "times": game.times, "hints": game.hints_used, "accuracy": None,
+                            "skip": game.n_line}
         pr.active()
         if no:
-            pr.mark_done(pr.day, f"game{no}")
+            met = goal_met(spec.get("check"), game.g, game.me, [], game.times, score) if spec.get("gate") else True
+            if met is False:
+                pr.save()
+                self.message = "not yet: this one is played again until it is done."
+            else:
+                pr.mark_done(pr.day, f"game{no}")
         else:
             pr.save()
 
@@ -543,7 +562,8 @@ class Report(Screen):
         losses = sum(1 for r in recs if r.get("score") == "loss")
         acc = [r["accuracy"] for r in recs if r.get("accuracy") is not None]
         out = [heading("USAGE", f"week {self.week.no}", w), ""]
-        out += [Row("SHEET", "games", f"{wins} {draws} {losses}"),
+        out += [Row("SHEET", "won, drawn, lost", f"{wins} {draws} {losses}"),
+                Row("CROSS", "blunders a hundred moves", self._blunder_rate(recs)),
                 Row("USAGE", "accuracy", f"{sum(acc) / len(acc):.0f} %" if acc else ""),
                 Row("KNIGHT", "your level", f"{pr.game['r']:.0f}"),
                 Row("STORM", "puzzle rating", f"{pr.puzzle['r']:.0f}"), ""]
@@ -559,11 +579,109 @@ class Report(Screen):
                     out.append([(s, MUTED)])
         return out[:h]
 
+    @staticmethod
+    def _blunder_rate(recs):
+        """Blunders per hundred of your moves: the one number that says if the habit is forming."""
+        moves = sum(len(r.get("times") or ()) for r in recs if r.get("classes") is not None)
+        blunders = sum((r.get("classes") or {}).get("blunder", 0) for r in recs)
+        return f"{100 * blunders / moves:.1f}" if moves else ""
+
     def key(self, name):
         if name in ("enter", "esc"):
             self.app.pop()
             if name == "enter":
                 self.done_cb()
+
+
+def year_picture(view, pr, course):
+    """The year on a hanging scroll, in the board's place and its frame: two lacquered rods, fifty-two weeks of
+    seven days, a red seal for each done, the day you are on in gold, a gold tick at each four weeks' mark; and
+    under them your level (vermilion) and your puzzles (teal) against the plan's dotted line."""
+    s = view.s
+    ink = view.art.index
+    cv = Canvas(view.size, view.size)
+    cv.px[:] = view.cv.px                       # (the frame, as the board's)
+    x0 = y0 = MARGIN
+    n = 8 * view.S
+    cv.fill(x0, y0, n, n, ink["sq_l"])
+    # fibres in the paper, the same every time
+    r = 7
+    for y in range(0, n, 2 * s):
+        r = (r * 1103515245 + 12345) & 0x7fffffff
+        if r >> 16 & 3 == 0:
+            cv.fill(x0 + (r >> 3) % (n - 12 * s), y0 + y, (2 + (r >> 9) % 7) * s, s, ink["sq_l2"] if r >> 20 & 1 else ink["sq_l3"])
+    # the rods
+    rod = 4 * s
+    for y in (y0, y0 + n - rod):
+        cv.fill(x0, y, n, rod, ink["b_f"])
+        cv.fill(x0, y, n, s, ink["b_l"])
+        cv.fill(x0, y, 3 * s, rod, ink["gold"])
+        cv.fill(x0 + n - 3 * s, y, 3 * s, rod, ink["gold"])
+    inner = n - 12 * s
+    cell = inner // 52
+    left = x0 + (n - cell * 52) // 2
+    top = y0 + rod + 4 * s
+    done = {}
+    for k in pr.items:
+        day = k.split("/", 1)[0]
+        if day.isdigit():
+            done[int(day)] = done.get(int(day), 0) + 1
+    size = cell - max(1, s)
+    for d in range(1, 365):
+        col, row = (d - 1) // 7, (d - 1) % 7
+        x, y = left + col * cell, top + row * cell
+        if d == pr.day:
+            _seal(cv, x, y, size, ink["gold"])
+        elif d in done and d < pr.day:
+            _seal(cv, x, y, size, ink["accent"])
+        else:
+            _seal(cv, x, y, size, ink["sq_l2"])
+    base = top + 7 * cell + s
+    for wk in course.weeks:
+        if wk.milestone:
+            cv.fill(left + (wk.no - 1) * cell, base, size, s, ink["gold"])
+    c_top = base + 6 * s
+    c_bot = y0 + n - rod - 6 * s
+    c_h = max(1, c_bot - c_top)
+    lo, hi = 200, 2200
+
+    def ypos(rating):
+        return c_bot - int((min(hi, max(lo, rating)) - lo) * c_h / (hi - lo))
+
+    def xpos(day):
+        return left + int((day - 1) * (cell * 52) / 365)
+
+    for level in (500, 1000, 1500, 2000):
+        cv.fill(left, ypos(level), cell * 52, 1, ink["sq_l2"])
+    pts = [(1, 350)] + [(wk.no * 7, wk.milestone["level"]) for wk in course.weeks if wk.milestone]
+    for (d0, r0), (d1, r1) in zip(pts, pts[1:], strict=False):
+        for d in range(d0, d1, 3):
+            cv.fill(xpos(d), ypos(r0 + (r1 - r0) * (d - d0) / (d1 - d0)), s, s, ink["dot_l"])
+    last = {1: None, 2: None}
+    for line in pr.history:
+        if not (isinstance(line, list) and len(line) == 3):
+            continue
+        d = max(1, min(365, line[0] - pr.started + 1))
+        for i, name in ((2, "asagi"), (1, "accent")):
+            p = (xpos(d), ypos(line[i]))
+            if last[i]:
+                _line(cv, last[i], p, 2 * s, ink[name])
+            else:
+                cv.fill(p[0], p[1], 2 * s, 2 * s, ink[name])
+            last[i] = p
+    return cv
+
+
+def _seal(cv, x, y, size, ink):
+    """A day's stamp: a square with its corners off."""
+    cv.fill(x + 1, y, size - 2, size, ink)
+    cv.fill(x, y + 1, size, size - 2, ink)
+
+
+def _line(cv, a, b, w, ink):
+    n = max(abs(b[0] - a[0]), abs(b[1] - a[1]), 1)
+    for k in range(n + 1):
+        cv.fill(a[0] + (b[0] - a[0]) * k // n, a[1] + (b[1] - a[1]) * k // n, w, w, ink)
 
 
 def _clean_spec(spec):

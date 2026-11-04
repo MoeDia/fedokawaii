@@ -155,6 +155,8 @@ class Session(Screen):
             self.reply_at = None
             self._reply()
             return None
+        if self.count_limit is not None:
+            return self.reply_at
         if not self.paused:
             dt = now - self.t_mark
             self.t_mark = now
@@ -211,6 +213,7 @@ class Session(Screen):
         self.hand.reset(self.pos)
         self.hand.pos = None
         self.note = ""
+        self.app.trace("puzzle", item[0], item[1], item[2], item[3])
 
     def _reply(self):
         """The line's next move by the other side."""
@@ -323,10 +326,13 @@ class Session(Screen):
 
     def panel(self, w, h):
         pr = self._state()
-        sec = max(0, int(self.left + 0.999))
-        out = [heading("STORM", self.title, w, right=f"{sec // 60}:{sec % 60:02d}"), ""]
-        out.append(meter(self.left / SESSION, min(20, w)))
-        out.append("")
+        sec = max(0, int(min(self.left, 1e6) + 0.999))
+        if self.count_limit is not None:
+            out = [heading("STORM", self.title, w, right=f"{min(self.tried + 1, self.count_limit)} of {self.count_limit}"), ""]
+        else:
+            out = [heading("STORM", self.title, w, right=f"{sec // 60}:{sec % 60:02d}"), ""]
+            out.append(meter(self.left / SESSION, min(20, w)))
+            out.append("")
         out.append(Row("USAGE", "your rating", f"{pr.puzzle['r']:.0f}"))
         if self.d0 is not None:
             out.append(Row("CHECK", "solved", f"{self.solved} of {self.tried}"))

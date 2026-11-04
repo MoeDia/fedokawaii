@@ -2,6 +2,7 @@
 a game, its review, ten minutes of puzzles, a game, its review; the week's last day adds a report.
 The weeks themselves are in syllabus.py; docs/learn/chess/curriculum.md is written from them.
 """
+import datetime
 import random
 
 import board as B
@@ -33,7 +34,7 @@ class Item:
             spec = self.course.game_spec(self.ref, pr)
             side = "white" if spec["colour"] == B.WHITE else "black"
             tc = f"{spec['clock'][0]}+{spec['clock'][1]}" if spec.get("clock") else "no clock"
-            return [spec["goal"], f"you play {side}, {spec['opponent']} about {spec['elo']}, {tc}"]
+            return [spec["goal"], f"you play {side} against {spec['opponent']}, level {spec['elo']}, {tc}."]
         if self.kind == "review":
             return ["three moments: you find the move, then you see why."]
         if self.kind == "lesson":
@@ -67,6 +68,7 @@ class Course:
     def __init__(self, library, bank=None):
         self.lib = library
         self.bank_ref = bank
+        self.bank_starts = {}
         self.weeks = [Week(i + 1, d) for i, d in enumerate(SY.WEEKS)]
 
     def week(self, day):
@@ -109,13 +111,13 @@ class Course:
         if "pos" in g:
             colour = SY.POS[g["pos"]][1]
         if "bank" in g:
-            fen, colour = self._bank_start(g["bank"], no, pr)
+            fen, colour = self.bank_starts.setdefault(no, self._bank_start(g["bank"], no, pr))
             line = []
         light = g.get("light")
         clock = g.get("clock", (5, 5) if light and wk.no > 4 else wk_clock(wk.no))
         return {"title": f"game {no} of 730", "goal": goal, "fen": fen, "line": line, "colour": colour, "elo": elo,
                 "clock": clock, "hints": g.get("hints", wk_hints(wk.no)), "threats": g.get("threats", wk.no <= 8),
-                "opponent": SY.opponent(elo), "no": no, "check": g.get("check"), "gate": bool(g.get("gate"))}
+                "opponent": SY.opponent(elo), "no": no, "check": g.get("check"), "gate": bool(g.get("gate")), "card": wk.no <= 12}
 
     def _bank_start(self, theme, no, pr):
         """A position with this theme's tactic in it: the same one for the same game, near your level."""
@@ -149,6 +151,25 @@ class Course:
                 return (f"by week {wk.no}: level {m['level']}, puzzles {m['puzzle']}. "
                         f"now {pr.game['r']:.0f} and {pr.puzzle['r']:.0f}.")
         return ""
+
+    def forecast(self, pr):
+        """Where the line of your own last month points: an honest date, or nothing while there is too little."""
+        h = [x for x in pr.history if isinstance(x, list) and len(x) == 3][-28:]
+        if len(h) < 14:
+            return ""
+        n = len(h)
+        xs = [x[0] for x in h]
+        ys = [x[1] for x in h]
+        mx, my = sum(xs) / n, sum(ys) / n
+        den = sum((x - mx) ** 2 for x in xs)
+        slope = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / den if den else 0
+        if slope <= 0.05:
+            return "your level has not risen this month. the plan holds; look at your reviews."
+        days = (1800 - ys[-1]) / slope
+        if days <= 0:
+            return "you are past the line."
+        when = datetime.date.fromordinal(int(xs[-1] + days))
+        return f"at this month's pace: 1800 around {when.strftime('%b %Y').lower()}."
 
 
 def wk_clock(no):

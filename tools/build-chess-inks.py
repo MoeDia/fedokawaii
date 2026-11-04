@@ -32,7 +32,7 @@ def inks(p, mood):
     # the board: old kaya wood — ink-stained in the dungeon, honey by daylight
     if dark:
         o["sq_l"] = mix("Ecru", "Light Brownish Olive", 0.35)
-        o["sq_d"] = mix("Pale Raw Umber", "Black", 0.42)
+        o["sq_d"] = mix("Pale Raw Umber", "Black", 0.22)
     else:
         o["sq_l"] = mix("Ivory Buff", "Sulpher Yellow", 0.45)
         o["sq_d"] = mix("Maple", "Pale Raw Umber", 0.38)

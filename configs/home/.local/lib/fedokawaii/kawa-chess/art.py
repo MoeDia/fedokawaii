@@ -4,6 +4,7 @@ One set of men drawn on a 40 × 40 grid (pieces.txt), at whole multiples only: a
 120 px is 5 × 2, 10 × 4 or 15 × 6 cells of the terminal's 8 × 20, so every square lies on the cell
 grid and the wallpapers' 3 px pixel is the largest board's. Inks: inks.txt, by name, both moods.
 """
+import math
 import pathlib
 
 from board import BLACK, WHITE, KING
@@ -65,6 +66,17 @@ class Art:
             sp = self._men[key] = Sprite(self.drawings[KINDS[piece & 7]], inks).scaled(s)
         return sp
 
+    def fallen(self, piece, step, s):
+        """The king toppling: his drawing turned 30° a step about his foot, nearest pixel, whole art pixels."""
+        key = (piece, s, "fall", step)
+        sp = self._men.get(key)
+        if sp is None:
+            side = "b" if piece & 8 else "w"
+            inks = {c: self.index[f"{side}_{c}"] for c in "ofldt"}
+            lines = _turned(self.drawings[KINDS[piece & 7]], step * 30)
+            sp = self._men[key] = Sprite(lines, inks).scaled(s)
+        return sp
+
     def texture(self, seed, tone, s):
         """A square of wood at scale s: tone 'sq_l' 'sq_d' (or the last move's 'ls_l' 'ls_d'), its
         grain its own for each seed; list of rows (bytes), to lay on the canvas quickly."""
@@ -73,6 +85,25 @@ class Art:
         if tx is None:
             tx = self._tex[key] = _wood(self, seed, tone, s)
         return tx
+
+
+def _turned(lines, degrees):
+    """A 40 × 40 drawing turned to the right about its middle, and lowered as it turns so that he comes to lie on
+    the square's floor; whole pixels, the nearest one."""
+    a = math.radians(degrees)
+    ca, sa = math.cos(a), math.sin(a)
+    cx, cy = 20.0, 19.0
+    drop = 9 * degrees / 90
+    out = []
+    for y in range(GRID):
+        row = []
+        for x in range(GRID):
+            dx, dy = x + 0.5 - cx, y + 0.5 - cy - drop
+            sx, sy = dx * ca + dy * sa + cx, -dx * sa + dy * ca + cy
+            ix, iy = int(math.floor(sx)), int(math.floor(sy))
+            row.append(lines[iy][ix] if 0 <= iy < len(lines) and 0 <= ix < len(lines[iy]) else ".")
+        out.append("".join(row))
+    return out
 
 
 def _read_blocks(path):
@@ -269,7 +300,10 @@ class BoardView:
         p = 0 if sq in self.hide else self.board[sq]
         if "dot" in marks and not p:
             self._dot(x, y, i["dot_l"] if light else i["dot_d"], 10)
-        if p:
+        fall = next((int(m[4:]) for m in marks if m.startswith("fall")), 0)
+        if p and fall:
+            cv.stamp(art.fallen(p, fall, s), x, y)
+        elif p:
             cv.stamp(art.man(p, s), x, y)
         for name in ("take", "sel", "cur", "hint", "warn", "good", "bad"):
             if name in marks:

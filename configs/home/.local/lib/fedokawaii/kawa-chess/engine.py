@@ -283,19 +283,24 @@ class Engine:
 
 
 # ── playing weakly ───────────────────────────────────────────────────────────────────────────
-# Below Stockfish's own floor (UCI_Elo 1320) a move is drawn from a shallow search's root moves by
-# how good they are — the lower the level, the flatter the draw and the more often any legal move at
-# all — so a weak opponent hangs men and misses mates, as a beginner does. From 1320 up: Stockfish's
-# own limit (https://github.com/official-stockfish/Stockfish: search.cpp, UCI_Elo → skill level).
-# The table's values were measured against one another: tools/chess-ladder.py.
-_WEAK = (              # elo, temperature in cp, chance of any legal move
-    (250, 700.0, 0.55),
-    (400, 450.0, 0.35),
-    (600, 240.0, 0.20),
-    (800, 130.0, 0.11),
-    (1000, 70.0, 0.05),
-    (1200, 30.0, 0.02),
-    (1320, 12.0, 0.00),
+# Below Stockfish's own floor (UCI_Elo 1320) a move is drawn from a depth-1 search's root moves by how
+# good they are: the lower the level, the flatter the draw and the more often any legal move at all, so
+# a weak opponent hangs pieces and misses mates, as a beginner does. From 1320 up: Stockfish's own limit
+# (Skill Level through UCI_Elo: src/search.h). The levels are one scale measured by tools/chess-ladder.py,
+# engine against engine, anchored at Stockfish's 1320 (docs/learn/chess/ladder.md): an engine pool's
+# numbers, not chess.com's (Stockfish's own FAQ: no human scale can be claimed).
+_WEAK = (              # level, temperature in cp, chance of any legal move (measured: 200 games a pair)
+    (290, 1e5, 1.00),
+    (317, 1500.0, 0.30),
+    (350, 800.0, 0.20),
+    (400, 500.0, 0.15),
+    (445, 350.0, 0.10),
+    (515, 250.0, 0.07),
+    (615, 180.0, 0.05),
+    (760, 130.0, 0.03),
+    (930, 90.0, 0.02),
+    (1140, 60.0, 0.01),
+    (1320, 40.0, 0.00),
 )
 
 
@@ -336,8 +341,7 @@ def play_request(fen, moves, elo, done, tag=None):
     choice is made by choose_weak afterwards). From 1320: its own UCI_Elo over a node budget (never the
     clock's mercy: the same strength whatever else this machine is doing)."""
     if elo < 1320:
-        depth = 1 if elo < 500 else 3 if elo < 800 else 5
-        return Search(fen, moves, f"depth {depth}", done, multipv=40, budget=3.0, tag=tag,
+        return Search(fen, moves, "depth 1", done, multipv=60, budget=3.0, tag=tag,
                       options={"UCI_LimitStrength": "false", "Skill Level": 20})
     nodes = 30000 if elo < 2200 else 200000 if elo < 2600 else 1000000
     return Search(fen, moves, f"nodes {nodes}", done, budget=6.0, tag=tag,

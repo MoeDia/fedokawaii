@@ -75,13 +75,14 @@ class Analysis:
         self.app.touch()
 
 
-def scored_moves(entries, moves, me, start_fen):
-    """Each of `me`'s moves: ply, loss in expected points, its class, the win% drop."""
+def scored_moves(entries, moves, me, start_fen, skip=0):
+    """Each of `me`'s moves (past the `skip` already on the board): ply, loss in expected points, its
+    class, the win% drop."""
     pos = B.Position(start_fen)
     out = []
     for i, m in enumerate(moves):
         side = pos.turn
-        if side == me and entries[i] and entries[i + 1]:
+        if side == me and i >= skip and entries[i] and entries[i + 1]:
             before = entries[i]["ep"]
             after = 1.0 - entries[i + 1]["ep"]
             loss = max(0.0, before - after)
@@ -262,7 +263,7 @@ class Review(Screen):
         self.summary = saved
         self.flipped = me == B.BLACK
         self.cursor = None
-        self.t_frame = 0
+        self.judged = ""
         if saved:
             self.phase = "summary"
 
@@ -274,16 +275,31 @@ class Review(Screen):
         return None
 
     def _read(self):
-        self.scored = scored_moves(self.an.entries, self.g.moves, self.me, self.g.start)
+        self.scored = scored_moves(self.an.entries, self.g.moves, self.me, self.g.start, self.spec.get("skip", 0))
         self.moments = pick_moments(self.scored)
         self.app.engine.stop_process()
         self.mi = 0
         if self.moments:
-            self.phase = "moment"
-            self._enter_moment()
+            # (first your own judgement, then the engine's: what you have to recall, you keep)
+            self.phase = "judge"
+            self.judge_plies = [x["ply"] for x in self.scored]
+            self.judge_i = len(self.judge_plies) - 1
         else:
             self._to_summary()
         self.app.touch()
+
+    def _judged(self, ply):
+        chosen = next((x for x in self.scored if x["ply"] == ply), None)
+        saw = chosen is not None and chosen in self.moments
+        worst = max(self.moments, key=lambda m: m["loss"])
+        if chosen is worst:
+            self.judged = "you saw it: that was the worst."
+        elif saw:
+            self.judged = "you saw that one. there is worse."
+        else:
+            self.judged = "that one held. the engine would take back others."
+        self.phase = "moment"
+        self._enter_moment()
 
     def _moment(self):
         return self.moments[self.mi]
@@ -330,6 +346,10 @@ class Review(Screen):
 
     # ── the board ───────────────────────────────────────────────────────────────────────────
     def board(self):
+        if self.phase == "judge":
+            ply = self.judge_plies[self.judge_i]
+            pos = self.g.replay(ply + 1)
+            return pos.b, board_marks(pos, self.g.moves[ply]), [], self.flipped
         if self.phase == "moment":
             if self.step == "shown":
                 pos = self.pos.copy()
@@ -363,6 +383,15 @@ class Review(Screen):
             frac = self.an.fraction() if self.an else 0.0
             out.append(meter(frac, min(20, w)))
             return out
+        if self.phase == "judge":
+            ply = self.judge_plies[self.judge_i]
+            pos = self.g.replay(ply)
+            san = pos.san(self.g.moves[ply])
+            no = f"{pos.full}." if pos.turn == B.WHITE else f"{pos.full}..."
+            out += [[(s, None)] for s in wrap("before the engine speaks: which of your moves would you take back?", w)]
+            out += ["", [(no + " ", MUTED), (san, STRONG)], ""]
+            out += [[(s, MUTED)] for s in wrap("left and right walk the game, enter chooses, esc skips.", w)]
+            return out
         if self.phase == "moment":
             return out + self._moment_lines(w, h - 2)
         return out + self._summary_lines(w, h - 2)
@@ -374,6 +403,8 @@ class Review(Screen):
         dots = "." if pos.turn == B.WHITE else "..."
         played = pos.san(B.from_uci(m["uci"]))
         lines = [[(f"moment {self.mi + 1} of {len(self.moments)}", MUTED)], ""]
+        if self.judged and self.mi == 0:
+            lines += [[(s, MUTED)] for s in wrap(self.judged, w)] + [""]
         lines += [[f"{no}{dots} you played ", (played, STRONG), f": a {m['class']}."]] if len(f"{no}{dots} you played {played}: a {m['class']}.") <= w else [[(s, None)] for s in wrap(f"{no}{dots} you played {played}: a {m['class']}.", w)]
         lines.append("")
         if self.step == "find":
@@ -437,6 +468,17 @@ class Review(Screen):
         if self.phase == "reading":
             if name == "esc":
                 self._leave()
+            return
+        if self.phase == "judge":
+            if name in ("left", "up"):
+                self.judge_i = max(0, self.judge_i - 1)
+            elif name in ("right", "down"):
+                self.judge_i = min(len(self.judge_plies) - 1, self.judge_i + 1)
+            elif name == "enter":
+                self._judged(self.judge_plies[self.judge_i])
+            elif name == "esc":
+                self.phase = "moment"
+                self._enter_moment()
             return
         if self.phase == "moment":
             self._moment_key(name)

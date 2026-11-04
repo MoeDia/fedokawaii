@@ -57,7 +57,7 @@ class Term:
         new[6][termios.VMIN], new[6][termios.VTIME] = 1, 0
         termios.tcsetattr(self.fd_in, termios.TCSANOW, new)
         os.set_blocking(self.fd_in, False)
-        self.raw(b"\x1b[?1049h\x1b[?25l\x1b[2J\x1b[?1003h\x1b[?1006h\x1b[?1016h\x1b[?1004h\x1b[?2004h\x1b[?2031h\x1b[?996n")
+        self.raw(b"\x1b[?1049h\x1b[?25l\x1b[2J\x1b[?1003h\x1b[?1006h\x1b[?1016h\x1b[?1004h\x1b[?2004h\x1b[?2031h\x1b[?996n\x1b]2;chess\x1b\\")
         self.measure()
 
     def leave(self):

@@ -113,6 +113,8 @@ class App:
         self.quit = False
         self.focused = True
         self.rows_at = {}            # panel row on the screen → index in the screen's panel lines
+        self.pic_key = None          # the picture shown in the board's place, if any
+        self.pic_mood = None
 
     # ── the screens ──────────────────────────────────────────────────────────────────────────
     @property
@@ -129,6 +131,10 @@ class App:
         s.leave()
         if not self.stack:
             self.quit = True
+        else:
+            shown = getattr(self.stack[-1], "on_show", None)
+            if shown:
+                shown()
         self.touch()
 
     def replace(self, screen):
@@ -141,11 +147,19 @@ class App:
     def touch(self):
         self.dirty = True
 
+    def trace(self, *words):
+        """For the tests' scripted player: what is on the board, in words (KAWA_CHESS_TRACE=FILE)."""
+        path = os.environ.get("KAWA_CHESS_TRACE")
+        if path:
+            with open(path, "a", encoding="utf-8") as f:
+                f.write("\t".join(str(w) for w in words) + "\n")
+
     # ── drawing ──────────────────────────────────────────────────────────────────────────────
     def relayout(self):
         t = self.term
         self.layout = Layout(t.cols, t.rows, t.cw, t.ch)
         flipped = self.view.flipped if self.view else False
+        self.pic_key = None
         if self.layout.small:
             self.view = None
         else:
@@ -174,12 +188,22 @@ class App:
         if s is None:
             return
         if self.anim is None:
-            b = s.board()
-            if b is not None:
-                squares, marks, arrows, flipped = b
-                self.view.turn_over(flipped)
-                self.view.set(squares, marks, arrows)
-            self._send_board()
+            pic = s.picture(self.view) if hasattr(s, "picture") else None
+            if pic is not None:
+                key, canvas = pic
+                if key != self.pic_key:
+                    self.pic_key = key
+                    t.picture(lay.row, lay.col, canvas.sixel(self.palette()))
+            else:
+                if self.pic_key is not None:
+                    self.pic_key = None
+                    self.view.redraw_all()
+                b = s.board()
+                if b is not None:
+                    squares, marks, arrows, flipped = b
+                    self.view.turn_over(flipped)
+                    self.view.set(squares, marks, arrows)
+                self._send_board()
         self._draw_panel(s)
         t.flush()
 
@@ -287,6 +311,7 @@ class App:
         elif kind == "mood":
             if ev[1] != self.mood:
                 self.mood = ev[1]
+                self.pic_key = None
                 if self.view:
                     self.view.redraw_all()
                 self.touch()

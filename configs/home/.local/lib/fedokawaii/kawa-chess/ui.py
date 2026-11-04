@@ -50,7 +50,7 @@ def wrap(text, width):
 def heading(ic, name, w, right=None):
     """Its icon at column 0, its name from column 3, a space, the rule to the last column; a value
     (muted) may stand at the rule's end."""
-    name = name[:max(0, w - 3)]
+    name = _cut(name, max(0, w - 3))
     used = 3 + len(name)
     spans = [(icon(ic), ACCENT_TEXT), "  ", (name, STRONG)]
     room = w - used
@@ -72,7 +72,7 @@ class Row:
         self.ink, self.value_ink, self.tag = ink, value_ink, tag
 
     def spans(self, w, selected=False):
-        v = str(self.value) if self.value else ""
+        v = "" if self.value is None or self.value == "" else str(self.value)
         room = w - 4 - (len(v) + 2 if v else 0)
         name = self.name
         if len(name) > room:
@@ -149,14 +149,25 @@ class Layout:
             bc, br = -(-px // cw), -(-px // ch)
             # beside it: the panel from the second cell after the picture to one cell before the edge
             w = cols - bc - 3
-            if br <= rows and w >= (34 if scale > 1 else 15):
+            if br <= rows and w >= 30:
                 self.scale, self.side = scale, True
                 self.pc, self.pr, self.pw, self.ph = bc + 2, 0, w, rows
                 return
-            # under it: the width of the board, what is left of the height
-            if bc + 1 <= cols and rows - br >= (10 if scale > 1 else 2):
+            # under it: as wide as the board, on what is left of the height
+            if bc + 1 <= cols and rows - br >= 10:
                 self.scale, self.side = scale, False
                 self.col = (cols - bc) // 2
-                self.pc, self.pr, self.pw, self.ph = max(2, self.col + 1), br, min(cols - 3, bc - 2), rows - br
+                self.pc, self.pr, self.pw, self.ph = self.col + 2, br, bc - 4, rows - br
                 return
-        self.small = True
+        # the smallest board and whatever room is left beside it
+        bc, br = -(-336 // cw), -(-336 // ch)
+        w = cols - bc - 3
+        if br <= rows and w >= 15:
+            self.scale, self.side = 1, True
+            self.pc, self.pr, self.pw, self.ph = bc + 2, 0, w, rows
+        elif bc <= cols and rows - br >= 2:
+            self.scale, self.side = 1, False
+            self.col = (cols - bc) // 2
+            self.pc, self.pr, self.pw, self.ph = self.col + 2, br, bc - 4, rows - br
+        else:
+            self.small = True

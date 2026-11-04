@@ -163,7 +163,7 @@ SAFE = "before each move: what does it leave unguarded, what does their last mov
 CARD = "the three questions, every move: can I win material, can I mate, is a piece of mine in danger?"
 WEEKS = [
     # ── the first month: the men, the rules, what they are worth, mate (Steps 1, Silman part one) ──
-    dict(title="the men and how they move", band=(250, 300), themes=["hangingPiece"],
+    dict(title="the pieces and how they move", band=(250, 300), themes=["hangingPiece"],
          lessons=["the-board", "the-rook", "the-bishop", "the-queen", "the-king", "the-knight", "the-pawn"],
          games=G(2, "a rook against three pawns: take them all before one reaches the far side.", pos="rook-v-pawns", hints=5, elo=250)
          + G(2, "a bishop against three pawns: take what stands on your colour, hold the rest back.", pos="bishop-v-pawns", hints=5, elo=250)
@@ -178,7 +178,7 @@ WEEKS = [
          + G(4, "they have no queen: win, and castle on the way.", odds="q", check="castle:15")
          + G(4, "they have no rook: win. every capture you can make safely, make.", odds="r", check="win")
          + G(2, "a whole game, level: nothing to prove but legal moves and one mate.", check="finish")),
-    dict(title="what the men are worth", band=(250, 400), themes=["hangingPiece", "mateIn1"],
+    dict(title="what the pieces are worth", band=(250, 400), themes=["hangingPiece", "mateIn1"],
          lessons=["what-they-are-worth", "free-pieces", "attack-and-defence", "counting", "good-and-bad-trades", "when-not-to-take", "the-simplest-plan"],
          games=G(4, "they have no knight: take every piece left unguarded, leave none of yours.", odds="n", check="free")
          + G(6, "a whole game: take every free piece. count before every capture.", check="free")
@@ -197,7 +197,7 @@ WEEKS = [
          games=pair(G(4, "not one piece given away. " + SAFE, check="safe")
                     + G(3, "the marks on your pieces are off now: see them yourself.", threats=False, check="safe"),
                     B7("hangingPiece", 7, "someone left a piece hanging here: take it, keep it, win."))),
-    dict(title="the opening: centre, men out, king home", band=(400, 600), themes=["opening", "hangingPiece"],
+    dict(title="the opening: centre, pieces out, king home", band=(400, 600), themes=["opening", "hangingPiece"],
          lessons=["the-centre", "pieces-out", "king-home", "opening-sins"],
          games=pair(G(7, "knights and bishops out and castled by move ten; the queen stays home for now.", check="develop:10"),
                     L7(4, "you are White in the Italian: finish your development first, then think.", line="italian", you=0, check="castle:10")
@@ -206,7 +206,7 @@ WEEKS = [
          games=pair(G(7, "win something with a fork, or make one possible. look at their knights too.", check="safe"), B7("fork"))),
     dict(title="the pin", band=(500, 700), themes=["pin", "pin", "fork"], lessons=["the-pin", "pinned-to-the-queen", "using-a-pin"],
          milestone=dict(level=650, puzzle=950), exam=dict(themes=["fork", "pin", "hangingPiece", "mateIn1"], rating=750),
-         games=pair(G(5, "pin something and pile up on it; a pinned man is a guard that does not guard.", check="safe")
+         games=pair(G(5, "pin something and pile up on it; a pinned piece is a guard that does not guard.", check="safe")
                     + G(2, "test games, a level above you: what you have, you use.", off=150, check="finish"),
                     B7("pin", 5) + L7(1, "White in the Two Knights: watch for Bg5 and ...Bg4.", line="two-knights", you=0, check="safe")
                     + L7(1, "Black against d4: d5, e6, Nf6: no piece pinned for free.", line="qgd", you=1, check="safe"))),
@@ -241,7 +241,7 @@ WEEKS = [
          games=pair(G(4, "use the clock: every move, two candidates and their best answers before you touch.", check="think:15")
                     + G(3, "every move, their answer first: what do they do if you play it?", threats=False, check="think:15"),
                     B7("discoveredAttack", 3) + B7("fork", 2) + B7("pin", 2))),
-    dict(title="the guard removed, the overworked man", band=(800, 1050), themes=["capturingDefender", "deflection", "attraction", "fork"],
+    dict(title="the guard removed, the overworked piece", band=(800, 1050), themes=["capturingDefender", "deflection", "attraction", "fork"],
          lessons=["remove-the-guard", "the-overworked-man", "deflection-and-attraction"],
          games=pair(G(7, "ask of their every guard: can I take it, chase it, or give it two jobs?", check="safe"),
                     B7("capturingDefender", 3) + B7("deflection", 2) + B7("attraction", 2))),
@@ -338,7 +338,7 @@ WEEKS = [
          exam=dict(themes=["bishopEndgame", "knightEndgame", "pawnEndgame", "quietMove", "trappedPiece"], rating=1500),
          games=pair(G(5, "whole games: choose your ending.", check="safe")
                     + G(2, "test games, a level up.", off=150, check="finish"),
-                    L7(3, "your bishop is good, theirs is not: press.", pos="bishop-good", elo=1800, check="win")
+                    L7(3, "your bishop is good, theirs is not: press, and do not lose.", pos="bishop-good", elo=1800, check="draw+")
                     + L7(2, "bishop against knight with pawns on both sides: use the long range.", pos="bishop-v-knight", elo=1800, check="draw+")
                     + B7("bishopEndgame", 2))),
     dict(title="rook endings, once more", band=(1550, 1800), themes=["rookEndgame", "rookEndgame", "defensiveMove"],
