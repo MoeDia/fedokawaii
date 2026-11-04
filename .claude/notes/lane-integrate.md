@@ -62,3 +62,11 @@ OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii pro
 4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
 5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
 6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## OWNER VERDICT 2026-11-04 21:35 on your render final-iso: comment
+OWNER 21:34 — THE FINAL ISO: "make sure the final ISO has everything updated and installs Fedora 45 only, the newest everything, fully stable."
+- Built from the FINAL merged main (after lane-integrate's last merge and main's apply), never from a stale branch; rebuild if main moves.
+- Fedora 45 only: the F45 release repos + F45 updates enabled at build time, so every package is the newest stable update on the day it is built (no F44 package, no updates-testing, no rawhide, no COPR unless the repo needs one and it is pinned to F45); the latest stable F45 kernel only (one kernel).
+- Everything fedokawaii ships comes from the repo at that commit: themes, the new lock (lane-ink M1/M2), the menus, the apps, ASOBI, Helium (with its Widevine fetch at first boot), the update button, the snapshots, the AI fixer; the round's own tooling never ships (no lanes, conductor, temporary sudo rule).
+- Proof before it is called final: install it in a fresh VM unattended, first boot to the desktop, press the update button (nothing left to update or only same-day updates), log in and out, lock and unlock, restore a test backup; record the time and the result in the inbox.
+- Name it with the date and commit; write its sha256 beside it.
