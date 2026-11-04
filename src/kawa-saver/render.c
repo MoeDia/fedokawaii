@@ -178,7 +178,7 @@ int main(int argc, char **argv)
 	float front = front_max(), was = front;
 	if (fall) {
 		for (double t = 0; t < FALL_MS; t += frame) {
-			front = (float)((1 - spring(t / FALL_MS)) * front_max()) - RAMP_PX;
+			front = (float)((1 - spring(t / FALL_MS)) * front_max());
 			paint_open(paint, opened, tiles, front, was);
 			was = front;
 			clock_ms = t;
@@ -198,7 +198,7 @@ int main(int argc, char **argv)
 		clock_ms += pace;
 		tick++;
 		double t0 = wall_ms();
-		world_step(clock_ms, -1e9f);
+		world_step(clock_ms, 0);
 		double took = wall_ms() - t0;
 		if (s > 12) {
 			spent += took;
@@ -216,14 +216,14 @@ int main(int argc, char **argv)
 		memcpy(opened, paint, n * 4);
 		waking = true;
 		next = clock_ms;
-		front = was = -RAMP_PX;
+		front = was = 0;
 		double t0 = clock_ms;
 		long steps_ms = 0;
 		frame_no = 0;
 		for (double t = 0; t <= WAKE_MS + frame; t += frame) {
 			double f = t / WAKE_MS;
 			wake_p = f >= 1 ? 1.0f : (float)spring(f);
-			front = wake_p * front_max() - RAMP_PX;
+			front = wake_p * front_max();
 			double t1 = wall_ms();
 			paint_open(paint, opened, tiles, front, was);
 			was = front;

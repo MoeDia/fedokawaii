@@ -22,14 +22,15 @@ fi
 printf '#!/bin/sh\nexit 0\n' >"$KIT_OUT/stub/logger"; chmod +x "$KIT_OUT/stub/logger"
 cpu() { local s; read -r s <"/proc/$1/stat"; s=${s##*) }; set -- $s; echo $((${12} + ${13})); }
 PATH="$KIT_OUT/stub:$PATH" KAWA_LOCK_SLEEP=0 kawa-saver --idle >"$KIT_OUT/saver.log" 2>&1 & S=$!
-nap 3; shot asleep
+nap 3
+for _ in {1..50}; do [[ -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && break; nap 0.2; done
+shot asleep
 wlopm --off '*'; nap 2.5
 a=$(cpu "$S"); nap 6; b=$(cpu "$S")
 say "ticks in the dark: $((b - a)) in 6 s"
-wlopm --on '*' >/dev/null 2>&1 &
-key space; nap 0.5; shot held
-nap 1.8; shot woke
-kill -0 "$S" 2>/dev/null && say "still running" || say "gone"
+key space; nap 0.4; shot held     # (the key itself lights them: dwl, saverinput)
+nap 2; shot woke
+st=$(cat "/proc/$S/stat" 2>/dev/null); st=${st##*) }; [[ -z $st || ${st%% *} == Z ]] && say "gone" || say "still running"   # (bash has it reaped, or not yet)
 PLAY
 sed -i "1i REAL=$src CALLER=$HOME" "$out/play.sh"
 bash "$here/../kit.sh" --theme dark --time 60 "$@" --out "$out" --play "$out/play.sh" play >"$out/kit.log" 2>&1 || { echo "saver-dark: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }

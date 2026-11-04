@@ -359,10 +359,10 @@ static void shade_step(float open_r)
 		for (int t = 0; t < nt; t++)
 			fall[t] += 2;
 	}
-	if (open_r > -RAMP_PX) {
+	if (open_r > 0) {
 		size_t n = (size_t)sw * (size_t)sh;
 		for (size_t i = 0; i < n; i++) {
-			float m = ((float)shade_dist[i] - open_r) / RAMP_PX;
+			float m = ((float)shade_dist[i] - (open_r - RAMP_PX)) / RAMP_PX;
 			if (m >= 1)
 				continue;
 			shade.px[i] = m <= 0 ? 0 : scale_px(shade.px[i], (uint32_t)(m * 256));
@@ -687,7 +687,7 @@ static void anims_step(double now)
 	}
 }
 
-/* one step of the world; open_r: the opening's front, pixels from the figure's place (below -RAMP_PX: shut) */
+/* one step of the world; open_r: how far from the figure's place it has opened, in pixels: wholly, up to RAMP_PX less (0: shut) */
 static void world_step(double now, float open_r)
 {
 	for (int t = 0; t < art.nt; t++)
@@ -700,8 +700,8 @@ static void world_step(double now, float open_r)
 	seal_step();
 }
 
-/* the painting, opening: dst = paint times the shade of the opening's edge, on the rows and spans between where its soft
- * edge was and where it is (a ring: all that changed). r: the front now, was: the front at the last call; TILES marks what
+/* the painting, opening: dst = paint, clear up to r - RAMP_PX from the figure's place, whole beyond r, on the rows and spans
+ * between where that soft edge was and where it is (a ring: all that changed). was: r at the last call; TILES marks what
  * changed, TILE × TILE pixels */
 #define TILE 64
 static long open_changed;

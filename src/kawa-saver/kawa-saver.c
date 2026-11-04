@@ -47,7 +47,7 @@
 #include "world.h"
 
 #define DARK_MS 1000     /* a frame asked for and not given for so long: the screens are dark */
-#define WOKEN_MS 1200    /* screens lit by the key: the monitor finds its signal, then the world wakes */
+#define WOKEN_MS 1000    /* screens lit by the key: the monitor finds its signal, then the world wakes (with WAKE_MS, inside dwl's SAVER_GUARD_MS, whatever lit them) */
 
 struct shm_picture {
 	struct wl_buffer *wl;
@@ -93,7 +93,7 @@ static pid_t lock_pid;                    /* kawa-lock, started as it covers the
 static bool lock_started;
 static bool falling = true;               /* it comes over the screen */
 static double fall_at, wake_at, wake_from;   /* when they began; the time no wake begins before */
-static float front = 1e9f;                /* the opening's front, pixels from the figure's place */
+static float front;                       /* how far from the figure's place it has opened, in pixels */
 static int held;                          /* keys and buttons down */
 static double leave_at;
 static bool moved_base;
@@ -104,6 +104,7 @@ static struct shm_picture pic_paint, pic_open, pic_shade, pic_haze, pic_air, pic
 static struct shm_picture *pic_frames[MAXANIM];
 static float front_was;
 static uint8_t *open_tiles;
+static bool seal_waits;
 
 static double now_ms(void)
 {
@@ -285,7 +286,7 @@ static void show_step(double t)
 		for (int k = 0; k < nair_now; k++)
 			wl_surface_damage_buffer(o->air.surface, air_now[k].x, air_now[k].y, air_now[k].w, air_now[k].h);
 		wl_surface_commit(o->air.surface);
-		if (seal_changed) {
+		if (seal_changed || seal_waits) {
 			wl_subsurface_set_position(o->seal.subsurface, seal_x * o->lw / art.w, seal_y * o->lh / art.h);
 			sub_show(&o->seal, pic_seal.wl, 0, 0, sealp.w, sealp.h);
 			wl_surface_commit(o->surface);    /* (the seal's new place is its parent's to take) */
@@ -304,9 +305,13 @@ clock:
 static void take_a_step(double t)
 {
 	tick++;
-	world_step(t, waking || falling ? front : -1e9f);
+	world_step(t, waking || falling ? front : 0);
 	pic_shade.busy = pic_haze.busy = pic_air.busy = false;
+	if (seal_changed && falling)
+		seal_waits = true;                /* (stamped as the painting comes: shown once it has) */
 	show_step(t);
+	if (!falling)
+		seal_waits = false;
 }
 
 /* the painting at the front's place: the changed tiles only, the buffer the other one (the painting itself stays whole) */
@@ -341,14 +346,14 @@ static void show_open(void)
 static float front_max(void)
 {
 	float w = fmaxf((float)art.cx, (float)(art.w - art.cx)), h = fmaxf((float)art.cy, (float)(art.h - art.cy));
-	return hypotf(w, h) + RAMP_PX + 2;
+	return hypotf(w, h) + RAMP_PX + 2;   /* (wholly open at the far corner) */
 }
 
 static void wake_begin(double t)
 {
 	waking = true;
 	wake_at = t;
-	front = front_was = -RAMP_PX;
+	front = front_was = 0;
 	if (!pic_open.map) {                      /* (all of the painting, once: from here it opens) */
 		shm_make(&pic_open, art.w, art.h);
 		memcpy(pic_open.map, pic_paint.map, pic_open.size);
@@ -738,7 +743,7 @@ int main(int argc, char **argv)
 			double f = (t - fall_at) / FALL_MS;
 			if (f >= 1 || leaving) {
 				falling = false;
-				front = -1e9f;
+				front = 0;
 				/* (the painting itself under it all now, the same pixels: nothing to send; the other's memory back) */
 				wl_list_for_each(o, &outputs, link)
 					if (o->ready && !o->closed) {
@@ -752,7 +757,7 @@ int main(int argc, char **argv)
 				opaque(true);
 				lock_due = t + 40;        /* (a frame or two shown first) */
 			} else {
-				front = (float)((1 - spring(f)) * front_max()) - RAMP_PX;
+				front = (float)((1 - spring(f)) * front_max());
 				show_open();
 			}
 		}
@@ -776,7 +781,7 @@ int main(int argc, char **argv)
 			} else {
 				double f = (t - wake_at) / WAKE_MS;
 				wake_p = f >= 1 ? 1.0f : (float)spring(f);
-				front = wake_p * front_max() - RAMP_PX;
+				front = wake_p * front_max();
 				show_open();
 				/* (the shade opens with it, every frame) */
 				shade_step(front);
