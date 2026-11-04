@@ -430,7 +430,7 @@ class App:
         term.enter()
         self.relayout()
         try:
-            while not self.quit and self.stack:
+            while not self.quit and self.stack and not term.gone:
                 if (self.engine.fileno(), self.engine.generation) != (engine_fd, engine_gen):
                     if engine_fd is not None:
                         sel.unregister(engine_fd)

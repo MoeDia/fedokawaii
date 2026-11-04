@@ -7,6 +7,7 @@ a theme switch by themselves (docs/design-system.md §7). Only foot is spoken to
 import fcntl
 import os
 import re
+import select
 import signal
 import struct
 import sys
@@ -47,6 +48,7 @@ class Term:
         self.frame = []                # what the next flush writes, in order
         self.shown = {}                # (row, col) → the row's text as drawn
         self.buf = b""
+        self.gone = False
         self.pasting = False
         self.paste_since = 0.0
         self.buf_since = 0.0
@@ -64,10 +66,7 @@ class Term:
         self.measure()
 
     def leave(self):
-        try:
-            self.raw(b"\x1b[?2031l\x1b[?2004l\x1b[?1004l\x1b[?1016l\x1b[?1006l\x1b[?1003l\x1b[0m\x1b[?25h\x1b[?1049l")
-        except OSError:
-            pass                       # (the window is gone: nothing to put back)
+        self.raw(b"\x1b[?2031l\x1b[?2004l\x1b[?1004l\x1b[?1016l\x1b[?1006l\x1b[?1003l\x1b[0m\x1b[?25h\x1b[?1049l")
         if self.saved is not None:
             try:
                 termios.tcsetattr(self.fd_in, termios.TCSANOW, self.saved)
@@ -77,19 +76,25 @@ class Term:
             self.saved = None
 
     def raw(self, data):
-        """Written whole, now: a tty that is full is waited for, a tty that is gone raises OSError."""
+        """Written whole, now: a tty that is full is waited for; a tty that is gone (its window closed) ends
+        the program in its own time: `gone`, and everything written after that is nothing."""
         view = memoryview(data)
-        while view:
+        while view and not self.gone:
             try:
                 n = os.write(self.fd_out, view)
                 view = view[n:]
             except BlockingIOError:
-                import select
                 select.select([], [self.fd_out], [], 1)
+            except OSError:
+                self.gone = True
 
     def measure(self):
         """The window's size in cells and the cell's in pixels. True if either changed."""
-        size = fcntl.ioctl(self.fd_out, termios.TIOCGWINSZ, b"\0" * 8)
+        try:
+            size = fcntl.ioctl(self.fd_out, termios.TIOCGWINSZ, b"\0" * 8)
+        except OSError:
+            self.gone = True
+            return False
         rows, cols, xp, yp = struct.unpack("HHHH", size)
         cw = xp // cols if cols and xp else 8
         ch = yp // rows if rows and yp else 20

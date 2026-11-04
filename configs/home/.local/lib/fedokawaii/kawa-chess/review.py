@@ -132,15 +132,21 @@ def _fork_targets(pos, sq, side):
     return hits
 
 
+def standing(ep):
+    """Expected points in a word."""
+    return "winning" if ep > 0.85 else "better" if ep > 0.6 else "about even" if ep >= 0.4 else "worse" if ep >= 0.15 else "lost"
+
+
 def explain(entries, ply, fen_before, played_uci, me):
-    """Plain words for a moment: what your move allowed, what was there instead."""
+    """Plain words for a moment: where it stood before and after, what your move allowed, what was there instead."""
     e0, e1 = entries[ply], entries[ply + 1]
     best = e0["best"]
-    out = []
     pos = B.Position(fen_before)
     mine = B.from_uci(played_uci)
     pos2 = pos.copy()
     pos2.push(mine)
+    before, after = standing(e0["ep"]), standing(1 - e1["ep"]) if e1 else "lost"
+    out = [f"you were {before}; after this, {after}." if before != after else f"you stay {after}, but it costs you."]
     # what your move allowed
     if e1 and e1.get("pv"):
         sans, end = _line_after(pos2.fen(), e1["pv"][:5])
@@ -150,8 +156,6 @@ def explain(entries, ply, fen_before, played_uci, me):
             lost = _material(pos2, me) - _material(end, me) - (_material(pos2, 1 - me) - _material(end, 1 - me))
             if lost >= 1:
                 out.append(f"it loses {_worth(lost)}: {' '.join(sans[:3])}.")
-            elif sans:
-                out.append(f"the answer is {sans[0]}.")
     # what was there
     if best and best != played_uci:
         m = B.from_uci(best)
@@ -172,8 +176,6 @@ def explain(entries, ply, fen_before, played_uci, me):
                 out.append(f"{san} forks the {names}.")
             elif q.in_check():
                 out.append(f"{san} is a check that keeps the initiative.")
-            else:
-                out.append(f"{san} was the move.")
     return " ".join(out)
 
 
