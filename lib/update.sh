@@ -154,6 +154,7 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
                    # "offered" report named as the way back stays pinned (UPD/offered) until an
                    # update is kept: its probation then releases it with its own
   local n o=""
+  rm -rf -- "$UP_FIXNEW"   # (a fix proven by a run that ended before its package went in: asked anew)
   # (a move cut before its restart: its armed restart, if it got that far, undone by the same word)
   if [[ -s $MOVE && ! -e /system-update ]]; then log "a move that never restarted is forgotten"; move_disarm; fi
   n=$(cat "$UPD/snap" 2>/dev/null) || n=""
@@ -163,8 +164,8 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
     else snapper -c root modify -c number "$n" >/dev/null 2>&1 || log "snapshot $n could not be released to the cleanup (snapper)"; fi
     rm -f -- "$UPD/snap"
   fi
-  btrfs subvolume list / 2>/dev/null | awk '$NF == "root.cand" { f = 1 } END { exit !f }' || return 0
-  up_top; cand_drop
+  btrfs subvolume list / 2>/dev/null | awk '$NF == "root.cand" || $NF == "home.cand" { f = 1 } END { exit !f }' || return 0
+  up_top; cand_drop; up_home_drop
 }
 # desk_reds VERDICT — the desktop check's verdict ("session-start (dark): not running: waybar ·
 # nothing drawn: …", "bar-geometry (light): the clock's gaps: …"), a line an item, the item in the
@@ -252,6 +253,9 @@ cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of 
                # the boot image starting this machine now read-only at /run/fk-ref.img
   local tx=$1 ref=(); shift
   [[ -s /boot/initramfs-$(uname -r).img ]] && ref=(--bind-ro="/boot/initramfs-$(uname -r).img:/run/fk-ref.img")
+  # (the home's copy: the config checks read real configs — lib/fixer.sh; what was red before the packages)
+  [[ -d $UP_HOME ]] && ref+=(--bind="$UP_HOME:/home")
+  [[ -s $UPD/cand-before ]] && ref+=(--bind-ro="$UPD/cand-before:/run/fk-before")
   systemd-nspawn --quiet --register=no --private-network --link-journal=no -D "$UP_CAND" \
     --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" "${ref[@]}" \
     --setenv=FK_USER="$TARGET_USER" --setenv=FK_MOVE="${FK_MOVE:-}" -- "$@"
@@ -266,18 +270,25 @@ cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A conta
   if ! cand_run "$1" /usr/bin/true >"$UPD/cand.log" 2>&1; then
     cand_drop; die "the copy's container would not start ($(grep -v '^$' "$UPD/cand.log" | tail -n1)) — nothing changed"
   fi
+  # (the programs' own checks before the packages too: what a container makes red by itself is no verdict)
+  rm -f -- "$UPD/cand-before"
+  cand_run "$1" /usr/bin/bash /run/fk-check --before >"$UPD/cand-before.new" 2>/dev/null || true
+  mv -f -- "$UPD/cand-before.new" "$UPD/cand-before"
   # (the actions plugin off: in there its kawa-snap and guard would act on the copy for nothing)
   if ! cand_run "$1" dnf5 --disable-plugin=actions -y -C replay /tx >>"$UPD/cand.log" 2>&1; then
     printf 'the transaction does not go through: %s\n' "$(grep -v '^$' "$UPD/cand.log" | tail -n2 | tr '\n' ' ')" >"$UPD/why"; rc=1
-  elif ! cand_run "$1" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
-    sed -n 's/^red: //p' "$UPD/cand.log" >"$UPD/why"; rc=1
+  else
+    fixes_cand   # (a fix the fixer has kept goes over what the packages brought)
+    if ! cand_run "$1" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
+      sed -n 's/^red: //p' "$UPD/cand.log" >"$UPD/why"; rc=1
+    fi
   fi
   cand_drop; rm -rf -- "$UPD/cand-boot"
   return "$rc"
 }
 u_candidate() {   # the stored transaction proven in a copy first; red → culprits held, the rest again
   up_phase candidate
-  up_top
+  up_top; up_home_copy
   local n=0
   log "the update, tried first in a copy of the system"
   until cand_try "$UPD/tx"; do
@@ -316,7 +327,8 @@ up_bisect() {
     break
   done
   mapfile -t s < <(bins_of "${s[@]}")
-  up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
+  # (the local AI fixer first: a config of ours the new version refuses may be mended: lib/fixer.sh)
+  up_fix "$UPD/why" "${s[@]}" || up_hold "$(head -n1 "$UPD/why")" "${s[@]}"
   rm -rf -- "$UPD/tx"
   dnf -q -y upgrade --store="$UPD/tx" >/dev/null 2>&1 || true   # (the rest: the holds keep the culprits out)
   if [[ -s $UPD/tx/transaction.json ]]; then up_set "$UPD/tx" >"$UPD/set"; else : >"$UPD/set"; fi
@@ -472,6 +484,7 @@ u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
 # a restore would take his files back in time too, so it is offered
 u_undo() {
   local n s=() tk; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  fixes_undo     # (the old version would refuse what the fixer wrote for the new one)
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
   # (fedokawaii itself moved this press: that tag refused, no package blamed — the next press tries them again on the old one)
   tk=$(cat "$UPD/toolkit-moved" 2>/dev/null) || tk=""
@@ -503,7 +516,7 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   desk=$(sed -n '/^the desktop does not start/p' "$UPD/baseline" 2>/dev/null) || desk=""
   [[ $UP_END == @(ok|current|held) ]] || desk=""
   case $UP_END in
-    ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
+    ok)       line="updated · $n package$( ((n == 1)) || echo s)${UP_MENDED:+ · mended: $UP_MENDED}${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
     held)     line="held: $held — the rest was up to date" ;;
     restored) line="the update broke something: the system before it comes back at the next start${held:+ — held: $held}" ;;
@@ -528,6 +541,7 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   rm -rf -- "$UPD/tx" "$UPD/try" "$UPD/sources"; dnf -q clean packages >/dev/null 2>&1 || true
   # (no command that can fail inside these pipes: setup.sh's ERR trap would print from them)
   why=$(cat "$UPD/why" 2>/dev/null) || why=""
+  ((${#UP_FIX_LINES[@]} == 0)) || why+=${why:+$'\n'}$(printf '%s\n' "${UP_FIX_LINES[@]}")
   [[ -z $desk ]] || why+=${why:+$'\n'}"its desktop items red before it were not judged:"$'\n'$(up_labels <<<"$desk")
   printf '%s %s\n%s\n%s' "$(date +%s)" "$UP_END" "$line" "${why:+$why$'\n'}" | write_file "$UPD/report" 0644 2>/dev/null || true
   log=$(tail -c +"$((RUN_LOG_FROM + 1))" "$LOG_FILE" 2>/dev/null) || log=""
@@ -565,6 +579,7 @@ up_boot() {
   else
     date +%s | write_file "$UPD/restored-once" 0644
     echo "the last update was cut off half-way" >"$UPD/why"
+    fixes_undo
     if /usr/local/sbin/kawa-snap restore "$n"; then
       UP_END=restored; u_report
       up_tell "the last update was cut off half-way" "the system before it (snapshot $n) was put back — press update again when you like"
@@ -655,7 +670,7 @@ up_exit() {   # (a run that stops anywhere: the candidate gone, the top unmounte
               # quietly: the run's own error has been said, and its status stands — and what
               # make_tmp's own exit did, which this one replaces: the run's temp folder, dnf's follower)
   trap - ERR; set +e
-  cand_drop
+  cand_drop; up_home_drop
   if mountpoint -q "$UP_TOP" 2>/dev/null; then umount "$UP_TOP" 2>/dev/null || true; fi
   rmdir "$UP_TOP" 2>/dev/null || true
   if [[ -z $UP_END && -d $UPD ]]; then UP_END=stopped; u_report; fi

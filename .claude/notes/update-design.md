@@ -378,19 +378,31 @@ then verify and the desktop's start against the press's baseline. Red anywhere: 
 one restart, "Fedora N waits". No answer in three hours: the login comes up, the unit tries again next
 start (MOVE stays). GRUB's counting armed at 4 (the offline start counts).
 
-### 4.5 The AI fixer (T47; B6)
+### 4.5 The AI fixer (T47; B6) — as built, 4 Nov (system/kawa-fixer, lib/fixer.sh; choice and numbers: .claude/notes/fixer-bench.md; limits: fixer-limits.md)
 
-Only for what bisection held: llama.cpp's `llama-server` (Vulkan, a pinned tag, the dGPU chosen
-explicitly), one model chosen by measurement on this card (gpt-oss-20b, Qwen3.x-27B at 3 bits,
-Devstral Small 2: B6 #4–6), loaded only during the run. Its input: the failing check and its
-output, the package's changelog and the new man page / `--help`, our config file, the allowed
-actions; its output: JSON (verdict fix | cannot_fix) with SEARCH/REPLACE edits on one of our
-config files; any key not in the new docs is rejected mechanically (B6 #11). It edits a candidate
-with the held package in; the failing check must turn green and the full candidate checks pass;
-two attempts at most; then the fix is applied to the running system with the package (phase 5–6)
-as a `*.local` override (never the theme-owned file, which the next theme run rewrites), recorded
-in `fk` for the next toolkit update to reconcile. Everything else ends "held +
-told". If it cannot beat "hold and wait" on the graded breakage set (T47), the class is held-only.
+For what bisection found, before it is held, and only when the failure names a config of ours (kawa-fixer's table:
+foot, mako, mpv, greetd, yazi, the bar's and the lock's CSS; Neovim's is code: held-only) and that program's own check is red;
+anything else (a library, a kernel, a transaction, a check that is green) is held at once, no copy made, no model
+loaded. llama.cpp's `llama-server` (its Vulkan release build at a pinned tag and checksum, no ROCm stack), one model
+(checksum-pinned, in ~/.local), loaded only for that run: no network (its own namespace, a UNIX socket), low priority,
+dead with its parent, the file's pages dropped from RAM once on the card. Its input: the program's own complaint, the
+file (comments left out), the documented names closest to the refused one, the diff of the docs between the running
+system and the candidate, the new version's man page, defaults and changelog around those names — all quoted as data.
+Its output: JSON forced by a grammar (`response_format`): verdict fix | cannot_fix, a reason, exact search/replace
+edits with an optional section to move a line to; the file names an enum. The rails, before anything is tried: the
+file is one of the program's (never a secret, also through a link); the search occurs exactly once; a key not in the
+new docs or the program's own bytes is invented; a command, a download, a new path may only be carried over from what
+a removed line said, and a key that runs something keeps its value word for word; a deletion or comment-out only with
+the new version's own news saying the option went; the old value's letters stay or the docs show the new one; at most
+16 lines. Then it edits the candidate (the set in, a writable snapshot of `home`), the program's own check must turn
+green (a palette: in both moods), then all the candidate's checks. Two wrong answers end it; each answer that moves
+the check on to its next complaint is kept. Proven, it waits in UPD/fixes.new; the package replayed on the running
+system, it comes into force in UPD/fixes: laid over what theme.sh renders (place → fix_kept, so "in sync" stays true
+and no theme run undoes it — the design's `*.local` override cannot remove a key from a theme-owned file, so a rename
+could never be mended that way), and over /etc's files (fixes_apply), dropped by itself once the toolkit has caught up
+(its old text gone). The running system's checks red: the update is undone, its fix out with it (each file as it was:
+the old version would refuse the new text). Everything else ends "held + told", in the report's lines. A class it
+cannot beat "hold and wait" on is held-only: fixer-limits.md.
 
 ## 5. Failure modes → answer → the T49 test that proves it (tools/vm-inject/: run-all.sh ROW, or the script named)
 
@@ -408,7 +420,7 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 10 | rpm's database damaged before the run | phase 0: `rpm -qa` and `rpm --verify -a` (B5); `rpmdb --rebuilddb` in the candidate first, the live one only after a green candidate | run-all rpmdb_damage |
 | 11 | a scriptlet fails | the candidate is red → bisect → held; the running system never saw it | run-all pkg_scriptlet |
 | 12 | a library our builds load changes its soname (wlroots deps, libdisplay-info — B3 #17) | the candidate rebuilds dwl and the helpers against it; still red → held | run-all broken_lib |
-| 13 | an option of a config we own renamed or dropped | the candidate's config check red → bisect → held → the fixer (T47) | T47 bench |
+| 13 | an option of a config we own renamed or dropped | the candidate's config check red → bisect → the fixer (T47) → kept, or held | tools/fixer-bench.py (the real model), tests/installer/test_update_fixer.sh, tools/vm-inject/fixer-candidate.sh (the real container) |
 | 14 | Mesa breaks the desktop | the candidate's smoke test runs with the real render node bound into the container (Mesa from the candidate, the running kernel) → red → held | run-all broken_mesa |
 | 15 | a new kernel or initramfs does not start (B3 #6, #16) | probation: two failed starts → the previous kernel (grub boot counting); the kernel held; said at login | probation.sh fail |
 | 16 | a boot argument breaks the start | as 15 | probation.sh fail (the same counting) |
@@ -416,8 +428,8 @@ told". If it cannot beat "hold and wait" on the graded breakage set (T47), the c
 | 18 | SELinux: an older root under a newer policy | no blanket relabel (it relabels every writable Btrfs mount, snapshots too, permissive, for a long time — B5 #11): the restored root is label-consistent (labels and policy travel together); `restorecon -R -n -v` on /home, /var/log and /boot, relabelling only the differences | run-all roundtrip |
 | 19 | a third-party repository lags or 404s (RPM Fusion has no 45 yet — B3 #15) | left out of this run, its packages wait, said | run-all thirdparty_lag |
 | 20 | a third-party package conflicts with Fedora's (freeworld Mesa) | candidate red → bisect → held | run-all pkg_conflict |
-| 21 | the fixer makes it worse | it only edits a candidate; the checks decide; two attempts; then held + told | T47 bench |
-| 22 | the fixer hangs or the GPU resets (B6 #14) | a wall-clock budget; the unit killed; held + told | T47 bench |
+| 21 | the fixer makes it worse | it only edits a candidate; the checks decide; two attempts; then held + told | tests/installer/test_fixer.sh, test_update_fixer.sh |
+| 22 | the fixer hangs or the GPU resets (B6 #14) | a stall limit and a wall-clock budget; the server dies with its parent; held + told | tests/installer/test_fixer.sh |
 | 23 | the restored system is worse | `kawa-snap restore old` swaps back (rollback of a rollback) | run-all roundtrip |
 | 24 | a restore takes his files back | /home is its own subvolume, never in a snapshot of root (§3) | run-all roundtrip |
 | 25 | a restore erases the updater's memory | holds and history in `fk`; phase 0 writes the holds back into dnf's versionlock file | run-all roundtrip |
@@ -465,8 +477,8 @@ replayed in parts); the previous EFI files kept (`EFI/fedora/*.prev`); /boot and
    `rpmkeys --checksig` of every stored package against the system's keys before any replay
    (row 42).
 6. *The candidate has no /home after the split, so the config checks and the fixer find nothing.*
-   — A writable snapshot of `home` is bound in; an accepted fix lands in the `*.local` override
-   (T42/T45), never in a theme-owned file the next theme run would rewrite.
+   — A writable snapshot of `home` is bound into every candidate (lib/fixer.sh up_home_copy), so
+   the config checks read real configs; an accepted fix is laid over what theme renders (§4.5).
 7. *Copy-on-write candidates eat the disk.* — Only what the transaction writes (1–3 GB typical),
    counted in phase 0's floor; the candidate deleted at the end of the run.
 8. *Bisection assumes one culprit.* — ddmin finds a smallest failing subset; two interacting

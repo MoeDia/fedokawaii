@@ -19,6 +19,7 @@
 MOVE=$UPD/move                # FROM TO SNAPSHOT TIME — armed before the restart, until it is judged
 MOVE_TOLD=$UPD/move-told      # N: "ready" was said; the next press moves
 MOVE_SET=$UPD/move-set        # NAME OLD NEW of the move's transaction, as up_set writes them
+MOVE_MENDED=$UPD/move-mended  # what the local AI fixer mended for it: said at the login after it
 MOVE_LAST=$UPD/last-upgrade   # TIME FROM TO ok|partial|checks|failed: the status, the login's notice
 MOVE_AFTER=/etc/systemd/system/fedokawaii-after-upgrade.service
 MOVE_OFFLINE=/usr/lib/sysimage/libdnf5/offline   # (dnf5's: its stored transaction, in the same form as --store's)
@@ -121,7 +122,7 @@ do_move() {   # do_move N — every gate green and he knows: tried in a copy, sn
   fi
   repos_lenient
   hdr "the move to Fedora $n, tried first in a copy of this system"
-  up_top; rm -rf -- "$UPD/tx"
+  up_top; up_home_copy; rm -rf -- "$UPD/tx"
   if ! dnf_detached -y --setopt=keepcache=True --releasever="$n" distro-sync --store="$UPD/tx" "${MOVE_SKIP[@]}"; then
     # (what stands in its way may go: what the desktop needs comes back after the move if the new
     # release has it — the test VM has just shown that it does)
@@ -132,13 +133,14 @@ do_move() {   # do_move N — every gate green and he knows: tried in a copy, sn
   fi
   up_set "$UPD/tx" >"$MOVE_SET"
   log "$(wc -l <"$MOVE_SET") packages to move"
-  if ! FK_MOVE=1 cand_try "$UPD/tx"; then
+  if ! FK_MOVE=1 cand_try "$UPD/tx" && ! move_fix; then
+    ((${#UP_FIX_LINES[@]} == 0)) || printf '%s\n' "${UP_FIX_LINES[@]}" >>"$UPD/why"   # (what the fixer said, beside the reasons)
     move_write "$UPD/move-red-$n" red "$(cat "$UPD/why" 2>/dev/null)"
     rm -rf -- "$UPD/tx"; dnf -q clean packages >/dev/null 2>&1 || true
     move_waits "$n" "$(head -n1 "$UPD/why" 2>/dev/null)"; return 0
   fi
   ok "green in the copy: Fedora $n"
-  rm -rf -- "$UPD/tx"
+  rm -rf -- "$UPD/tx"; up_home_drop
   # the system before it: first, so the download and what arms the restart are not part of it
   snapshot_before "Fedora $n" important
   snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
@@ -159,6 +161,18 @@ do_move() {   # do_move N — every gate green and he knows: tried in a copy, sn
     dnf system-upgrade clean >/dev/null 2>&1 || true
     die "dnf could not arrange the restart into Fedora $n — nothing changed"
   fi
+}
+# move_fix — the copy is red for a config of ours the new release's program refuses: the local AI
+# fixer, as for an update's culprit (lib/fixer.sh), on the whole move's transaction; then the copy
+# again, whole. Its edit waits in UP_FIXNEW for the start after the move (fixes_commit). → 0 green
+move_fix() {
+  local names pk=()
+  [[ -x $FIXER ]] || return 1
+  names=$("$FIXER" names --why-file "$UPD/why" 2>/dev/null) || return 1
+  IFS=' ' read -r -a pk <<<"$names"
+  FK_MOVE=1 UP_FIX_TX=$UPD/tx UP_FIX_SET=$MOVE_SET up_fix "$UPD/why" "${pk[@]}" || return 1
+  FK_MOVE=1 cand_try "$UPD/tx" || return 1
+  printf '%s\n' "${UP_FIX_LINES[@]}" | write_file "$MOVE_MENDED" 0644
 }
 move_arm() {   # move_arm FROM TO — what the next starts need, written after the snapshot: a restore takes it all back
   local kc=/etc/kernel/cmdline
@@ -227,6 +241,7 @@ do_after_upgrade() {
   [[ -z $why ]] || { move_undo "$from" "$to" "$snap" "$why"; exit 0; }
   hdr "Fedora $to is in: the desktop rebuilt for it, then checked (a few minutes)"
   UPDATE_STEPS_FAILED=()
+  fixes_commit   # (what the local AI fixer proved in the copy comes into force with the packages: before the theme)
   WAIT_STEP=5 wait_until 300 online || { net=0; UPDATE_STEPS_FAILED+=("no network: what needs it is left for the next update"); log "no network yet — the steps that need it are left for the next update"; }
   if ((net)); then step_on "third-party repositories" repos_lenient; fi
   step_on "duplicates" tidy_duplicates
@@ -245,8 +260,10 @@ do_after_upgrade() {
   step_on "the lock's quick answer (its PAM file: gtklock's new package writes its own)" lock_pam
   step_on "dnf's guard and what it knows (the new release's libraries)" guard_hooks
   step_on "Prowlarr (Podman may have moved its store)" prowlarr_up
+  fixes_apply
   ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
   if ! u_check; then move_undo "$from" "$to" "$snap" "$(cat "$UPD/why" 2>/dev/null)"; exit 0; fi
+  fixes_settled
   # kept. Its snapshot, the kernel before it and its trial stay until a start has reached the
   # desktop: the probation closes them (lib/update.sh up_probation_close)
   newest=$(rpm -q --qf '%{VERSION}-%{RELEASE}.%{ARCH}\n' kernel-core 2>/dev/null | sort -V | tail -n1) || newest=-
@@ -262,8 +279,9 @@ do_after_upgrade() {
   record last-update "$(date +%s) $result"
   record last-update-done "$(date +%s)"
   record_snapshots
+  [[ ! -s $MOVE_MENDED ]] || up_tell "the move to Fedora $to mended a config of ours" "$(head -n1 "$MOVE_MENDED")"
   printf '%s %s %s %s\n' "$(date +%s)" "$from" "$to" "$result" | write_file "$MOVE_LAST" 0644
-  rm -f -- "$MOVE" "$MOVE_TOLD" "$MOVE_SET" "$UPD/preflight-$to" "$UPD/move-red-$to" "$UPD/move-said" "$UPD/snap"
+  rm -f -- "$MOVE" "$MOVE_TOLD" "$MOVE_SET" "$MOVE_MENDED" "$UPD/preflight-$to" "$UPD/move-red-$to" "$UPD/move-said" "$UPD/snap"
   up_phase end || true
   move_unit_off
   ok "Fedora $to is in place ($result)"
@@ -276,6 +294,8 @@ move_whole() {   # every package of the move's set at its new version, nothing t
 move_undo() {   # move_undo FROM TO SNAPSHOT WHY — the system before the move, at one restart; said
   local from=$1 to=$2 snap=$3 why=$4
   log "the move to Fedora $to is undone: ${why//$'\n'/ · }"
+  fixes_undo     # (Fedora $from's programs would refuse what the fixer wrote for the new ones)
+  rm -f -- "$MOVE_MENDED"
   move_write "$UPD/move-red-$to" red "$why"
   printf '%s %s %s failed\n' "$(date +%s)" "$from" "$to" | write_file "$MOVE_LAST" 0644
   grub2-editenv - unset boot_counter >/dev/null 2>&1 || true

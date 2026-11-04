@@ -13,6 +13,7 @@ done
 [[ -f $FKH/nspawn-broken ]] && { echo "Failed to set up namespace: Operation not permitted" >&2; exit 1; }
 case " ${cmd[*]} " in
   " /usr/bin/true ") exit 0 ;;
+  " /usr/bin/bash /run/fk-check --before ") exit 0 ;;
   " dnf5 --disable-plugin=actions -y -C replay /tx ") [[ -f $FKH/cand-replay-fail ]] && { echo "Transaction failed: a scriptlet failed in the copy" >&2; exit 1; }; exit 0 ;;
   " /usr/bin/bash /run/fk-check ")
     names=$(jq -r '.rpms[] | select(.action != "Replaced") | .nevra' "$tx/transaction.json" | sed -E 's/-[^-]+-[^-]+$//')
@@ -21,7 +22,7 @@ case " ${cmd[*]} " in
       [[ -n $r ]] || continue
       all=1; IFS=+ read -ra parts <<<"$r"
       for p in "${parts[@]}"; do grep -qxF -- "$p" <<<"$names" || all=0; done
-      ((all)) && { echo "red: dwl does not start with $r"; red=1; }
+      ((all)) && { echo "red: $(cat "$FKH/cand-red-why" 2>/dev/null || echo "dwl does not start with $r")"; red=1; }
     done < <(cat "$FKH/cand-red" 2>/dev/null)
     exit "$red" ;;
   *) echo "systemd-nspawn stub: not what the update runs: ${cmd[*]}" >&2; exit 1 ;;

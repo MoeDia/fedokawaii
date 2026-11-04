@@ -19,7 +19,7 @@ fresh() {
   G=$TMP/greetd.toml
   printf '%s\n' '[terminal]' 'vt = 1' '[default_session]' 'command = "bash -c greeter"' 'user = "greeter"' >"$G"
 }
-chk() { FK_USER=t FK_GREETD=$G bash "$REPO/lib/cand-check.sh" 2>/dev/null; rc=$?; }
+chk() { FK_FIXER=/nonexistent FK_USER=t FK_GREETD=$G bash "$REPO/lib/cand-check.sh" 2>/dev/null; rc=$?; }
 
 case_ "every config taken: not one word about them"
 fresh; w=$(chk); lacks "$w" foot; lacks "$w" nvim; lacks "$w" yazi; lacks "$w" greetd
@@ -45,6 +45,16 @@ fresh; printf '[terminal]\nvt = 1\n' >"$G"; w=$(chk); has "$w" "red: greetd cann
 fresh; printf '[default_session]\ncommand = "bash"\n' >"$G"; w=$(chk); has "$w" "red: greetd cannot read greetd.toml"
 case_ "greetd: the greeter's program gone: red, named"
 fresh; printf '[terminal]\nvt = 1\n[default_session]\ncommand = "/nothing/here --x"\n' >"$G"; w=$(chk); has "$w" "red: greetd's greeter is not there: /nothing/here"
+case_ "the copy's own reds, from before its packages (--before), are not this update's: another's still is"
+fresh; : >"$S/foot-bad"
+B=$TMP/before; FK_FIXER=/nonexistent FK_USER=t FK_GREETD=$G bash "$REPO/lib/cand-check.sh" --before >"$B" 2>/dev/null
+has "$(cat "$B")" "foot does not take its config"; lacks "$(cat "$B")" "red:"
+w=$(FK_BEFORE=$B FK_FIXER=/nonexistent FK_USER=t FK_GREETD=$G bash "$REPO/lib/cand-check.sh" 2>/dev/null); lacks "$w" foot
+: >"$S/yazi-bad"; w=$(FK_BEFORE=$B FK_FIXER=/nonexistent FK_USER=t FK_GREETD=$G bash "$REPO/lib/cand-check.sh" 2>/dev/null); lacks "$w" foot; has "$w" "red: yazi does not take its config"
+case_ "the fixer there: its table's reds, in its words, beside yazi's and greetd's"
+fresh; F=$TMP/fixer; : >"$F"; chmod +x "$F"
+printf 'import sys\nprint("red: mako does not take its config — Failed to parse")\nsys.exit(1)\n' >"$F"
+w=$(FK_FIXER=$F FK_USER=t FK_GREETD=$G bash "$REPO/lib/cand-check.sh" 2>/dev/null); has "$w" "red: mako does not take its config — Failed to parse"; lacks "$w" foot
 case_ "any red: the exit says so"
 fresh; : >"$S/foot-bad"; chk >/dev/null; eq "$rc" 1
 

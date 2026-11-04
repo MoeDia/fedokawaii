@@ -65,6 +65,7 @@ source "$REPO_DIR/lib/hardware.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
 source "$REPO_DIR/lib/update.sh"
+source "$REPO_DIR/lib/fixer.sh"
 source "$REPO_DIR/lib/move.sh"
 source "$REPO_DIR/lib/asobi.sh"
 load_conf "$REPO_DIR"
@@ -1439,6 +1440,18 @@ s_upstream() {
   install_faces
   s_localsend
   s_firealpaca
+  s_fixer
+}
+# The local AI fixer (system/kawa-fixer, lib/fixer.sh): its program, and, on a machine with the card
+# for it, its runtime and model in the user's ~/.local, checksum-pinned. A big download: never a
+# reason to stop — without it a broken config is only held and told; update and repair try again
+install_fixer() {
+  install -m 0755 "$REPO_DIR/system/kawa-fixer" "$FIXER"
+  as_user "$FIXER" install --home "$TARGET_HOME"
+}
+s_fixer() {
+  contained install_fixer
+  ((CONTAINED_RC == 0)) || log "the local AI fixer is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
 }
 # LocalSend (lib/upstream.sh): never a reason to stop — the gate, update and repair try again
 s_localsend() {
@@ -2092,6 +2105,7 @@ s_gate() {
   localsend_current || s_localsend
   firealpaca_current || s_firealpaca
   blesh_current || s_blesh
+  [[ -x $FIXER ]] && as_user "$FIXER" status --home "$TARGET_HOME" >/dev/null 2>&1 || s_fixer
   # (and neovim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
   # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
   if ! nvim_at_lock; then
@@ -2889,6 +2903,7 @@ update_steps() {
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
   step_on "FireAlpaca" install_firealpaca
+  step_on "the local AI fixer" install_fixer
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
   step_on "the play world (its Flatpaks at their newest)" s_asobi
@@ -2956,11 +2971,14 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   fi
   up_power_hold
   up_phase steps
+  fixes_commit   # (what the local AI fixer has proven comes into force with its package: lib/fixer.sh)
   update_steps
+  fixes_apply
   after_dnf_done
   if ! u_check; then
     u_undo; record last-update "$(date +%s) stopped"; u_report; return 0
   fi
+  fixes_settled
   if [[ -s $UPD/set ]]; then UP_END=ok; elif ((UP_HELD)); then UP_END=held; else UP_END=current; fi
   up_probation
   # (no "checks" here: what verify finds red was red before — a new red would have undone it)
@@ -3224,6 +3242,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   retire_upstream || rc=1
   install_term_face || rc=1
   install_faces || rc=1
+  install_fixer || rc=1
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
