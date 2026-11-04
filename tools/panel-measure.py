@@ -66,9 +66,13 @@ def quick(a, table, th, ground, cursor=None):
     fw = 410
     want(table, s, "right hairline x", fx + fw - 1, 1911)
     x0 = fx + X0
-    rows = {"theme": 173, "night": 193, "dnd": 213, "saver": 233, "vrr": 253, "wallpaper": 273, "network": 321, "bluetooth": 341,
-            "devices": 361, "drives": 381, "backup": 401, "screenshot": 449, "record": 469, "ocr": 489}
-    # the rgb row shifts the session's; capture and above stand
+    # (tools/panel-review.sh's machine: the five sections, share sound and the lights among them)
+    rows = {"theme": 173, "night": 193, "dnd": 213, "saver": 233, "vrr": 253, "wallpaper": 273, "sharesound": 321, "network": 369,
+            "bluetooth": 389, "devices": 409, "drives": 429, "backup": 449, "screenshot": 497, "record": 517, "ocr": 537, "rgb": 585,
+            "screenoff": 605, "power": 625}
+    labels = (153, 301, 349, 477, 565)
+    if cursor is not None:                 # (a row with the cursor stands on the tint: the band's own checks, band())
+        rows = {k: v for k, v in rows.items() if v != cursor}
     left, names, right, cys = [], [], [], []
     for k, ry in rows.items():
         y = fy + ry
@@ -85,7 +89,7 @@ def quick(a, table, th, ground, cursor=None):
         right.append(x0 + 376 - 1 - sp[-1][1])
     want(table, s, "rows: a picture's ink from the band's left, least", min(left), 8)
     want(table, s, "rows: a picture's ink within the 16 px column", max(left) <= 16, True)
-    want(table, s, "rows: the words' first column (ink, x0 +)", sorted({int(n) for n in names if n is not None}) in ([32], [33], [32, 33]), True)
+    want(table, s, "rows: the words' first ink, x0 + (one column; a letter's own bearing, 32–34)", set(int(n) for n in names if n is not None) <= {32, 33, 34}, True)
     want(table, s, "rows: the marks' or value's end, from the band's right", min(right), 8)
     want(table, s, "rows: a picture's ink centred on the row, ±1 of 9.5", all(abs(c - 9.5) <= 1 for c in cys), True)
     # the instrument's ink
@@ -99,12 +103,30 @@ def quick(a, table, th, ground, cursor=None):
     want(table, s, "the meter's last ink, from the band's right", x0 + 376 - 1 - run[-1], 8)
     xs, _ = ink(a, x0 + 48, y, 60, 20, [ground])
     want(table, s, "the name's first ink, x0 + (over the meter's first segment)", int(xs.min()) - x0, 50)
-    # the masthead's picture
-    xs, ys = ink(a, x0, fy + X0, 44, 40, [ground])
-    if len(xs):
-        want(table, s, "the head: within x0 + 8 … + 39", (bool(int(xs.min()) >= x0 + 8), bool(int(xs.max()) <= x0 + 39)), (True, True))
+    # the masthead: the plate, the head on it (a head of 32; a smooth head of 48 stands proud of it), the words
+    py = fy + X0
+    plate = colour(a, x0 + 44, py + 3)
+    ex, ey = ink(a, x0 - 2, py - 4, 380, 48, [ground])
+    want(table, s, "the plate's box, x0 +", (int(ex.min()) - x0, int(ex.max()) - x0 + 1), (0, 376))
+    want(table, s, "the plate's rows and its lip", int(ey.max()) - int(ey.min()) + 1, 41)
+    xs, ys = ink(a, x0 + 2, py + 2, 44, 36, [plate])
+    want(table, s, "the head: within x0 + 8 … + 39", (bool(int(xs.min()) >= x0 + 8), bool(int(xs.max()) <= x0 + 39)), (True, True))
+    xs, _ = ink(a, x0 + 46, py + 2, 100, 18, [plate])
+    want(table, s, "the name's first ink on the plate, x0 + (over the meter's)", int(xs.min()) - x0, 50)
+    # the marks: every row's last cap ends on the same column, every seal against it, 2 px apart (the two rows that have both)
+    if cursor is None:
+        fill = {}
+        for k in ("night", "saver"):
+            y = fy + rows[k]
+            xs, _ = ink(a, x0 + 300, y, 76, 20, [ground])
+            sp = spans(xs, gap=1)
+            fill[k] = (sp[-2][1] - sp[-2][0] + 1, sp[-1][0] - sp[-2][1] - 1, x0 + 376 - 1 - sp[-1][1])
+        for k, got in fill.items():
+            want(table, s, f"{k}: the seal's width, its gap to the key, the key's end from the band's right", got, (16, 2, 8))
+        ends = sorted({x0 + 376 - 1 - spans(ink(a, x0 + 300, fy + rows[k], 76, 20, [ground])[0], gap=1)[-1][1] for k in rows})
+        want(table, s, "every row's key ends on one column, from the band's right", ends, [8])
     # labels: the rule ends on the band's end
-    for y in (153, 301, 429, 517):
+    for y in labels:
         rule_y = fy + y + 10
         rx = [x for x in range(x0, x0 + 376) if colour(a, x, rule_y) != ground]
         want(table, s, f"the label at {y}: the rule's end, x0 +", rx[-1] - x0 + 1, 376)

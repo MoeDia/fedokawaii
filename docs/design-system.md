@@ -218,7 +218,7 @@ screen and the bar's paper share one rhythm.
 | content | 376 | 47 | a panel's inner width: the sound panel, a notice, the launcher (410 with pad and hairlines) |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | keycap | 16 + 1 high | — | a key named (§4): rows 2–17 of its row, a lip on 18; 14 wide (a letter, a picture), a word its letters and 4 either side; 2 apart in a chord, 4 between two |
-| seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset |
+| seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset, or against the row's key, 2 px apart |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, 40 segments on the second row, from x 50 of the content to its right inset |
 | masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
@@ -280,9 +280,10 @@ screen and the bar's paper share one rhythm.
   screensaver, freesync, wallpaper), sound (share sound, while kawa-quick reports it), connect (network, Bluetooth, devices
   while it is on, drives, backup), capture (screenshot, record, read text), power (the lights while kawa-quick reports them,
   screen off, power). Each row its own
-  picture, hand-drawn on the 16 px grid; its value in one column (x 331, right-aligned), its marks in another: a seal, or
-  the key that does it anywhere — the menu teaches them. Red only for on: a seal inked, a recording's dot. Enter or a
-  click switches it in place or opens its own menu.
+  picture, hand-drawn on the 16 px grid; its value in one column (x 331, right-aligned), its marks in another: every row its key at the
+  right inset, the chord that does it anywhere, else a letter of its own here (never h j k l, the cursor's), its last cap in one
+  column; a switch's seal against it, 2 px apart, every seal in one column. The menu teaches them. Red only for on: a seal inked, a recording's dot. Enter, its
+  key or a click switches it in place or opens its own menu.
 - **Instrument** (a level, where it is the point: quick settings, the sound panel, the brightness): two rows, one choice. Its
   picture alive in the first columns — a chōchin whose glow (`flame`) rises rib by rib with the brightness, a temple bell
   (bonshō) whose ripples spread with the sound, stilled and struck through while muted —; its name, and its number
