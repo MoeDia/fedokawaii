@@ -34,6 +34,7 @@ scenario keep_and_remove  "a pause across a restart; a removal leaves the files 
 scenario choose_files     "only what is kept comes; choosing more makes it a download again, and tells of it again"
 scenario stream           "a file over HTTP while it comes: ranges, its tail first, every byte right; a wrong token; the rush undone after"
 scenario real_player      "mpv itself plays a film not yet here, and jumps past what has come"
+scenario stream_from_search "a magnet pasted from a page's source, v at once: played the moment its files are known"
 scenario url_links        "a link of Prowlarr's: a row at once, the torrent after; a site's trouble asked again, said in words; no key on disk"
 scenario idle_and_marks   "ends by itself, saved, when nothing is wanted; never while downloading; the bar's list and the login's mark"
 scenario crash_midway     "killed halfway: the next start goes on, the file right, one notice"

@@ -33,6 +33,7 @@ Enter                   play it now, while it comes
 Esc                     back to the list
 ── torrents: find ─────────────────────────────────────────────────
 Enter                   search; on a result, download it
+v                       download it and play it at once
 /                       back to the line
 y                       copy its magnet link
 s                       sort: seeds, size, newest, name

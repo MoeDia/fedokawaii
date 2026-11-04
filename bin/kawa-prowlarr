@@ -46,7 +46,7 @@ idle() {   # asleep in IDLE_MIN minutes (also one still starting: a window close
 
 case ${1:-} in
   "")      start || exit 1
-           kawa-torrents tend >/dev/null 2>&1
+           timeout 20 kawa-torrents tend >/dev/null 2>&1   # (a site that does not answer: not waited for long)
            xdg-open "$URL" >/dev/null 2>&1 &
            idle ;;                                   # (the page open: asleep 30 minutes from now)
   stop)    calm; systemctl --user stop prowlarr.service ;;

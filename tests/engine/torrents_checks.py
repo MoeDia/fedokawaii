@@ -325,6 +325,37 @@ def play_key():
     eq(w.close(), 0, "ends clean")
 
 
+def stream_from_search():
+    """v on a result with its files not known: added, and played the moment they are, with nothing more pressed (a real engine,
+    a real swarm; the player a stand-in that heard the URL)."""
+    s = swarm_()
+    s.ses.set_local_upload_rate_limit(4 << 20)
+    t = s.torrent("one.film", {"film.mkv": 12 << 20})
+    e = spawn_engine()
+    w = window(30, 116)
+    w.settle(0.5)
+    m = t.magnet.replace("&", "&amp;")
+    w.paste(f'<a href="{m}">the film</a>')
+    c = e.client()
+    c.wait(lambda: t.hash in c.rows, 10, "added from a page's source")
+    w.keys("v")
+    end = time.monotonic() + 40
+    while not calls("kawa-play") and time.monotonic() < end:
+        w.pump(0.1)
+        c.pump(0.05)
+    assert calls("kawa-play"), f"the player was not called: {w.screen.dump()}"
+    url = calls("kawa-play")[-1].split()[-1]
+    assert url.startswith("http://127.0.0.1:") and url.endswith("/film.mkv"), url
+    with open(os.path.join(t.where, t.name, "film.mkv"), "rb") as f:
+        want = f.read(1000)
+    got = urllib.request.urlopen(urllib.request.Request(url, headers={"Range": "bytes=0-999"}), timeout=30).read()
+    assert got == want, "the first bytes through the player's URL"
+    eq(w.close(), 0, "ends clean")
+    c.close()
+    e.stop()
+    s.close()
+
+
 def real_player():
     """mpv itself, no window, on a film not yet here: plays from its start, and jumps past what has come."""
     for prog in ("mpv", "ffmpeg"):

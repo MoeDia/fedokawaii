@@ -145,6 +145,7 @@ class App:
         self.wants_play = None                     # a stream asked for, waiting for its head
         self.wants_files = None                    # v on a row whose files have not come yet
         self.into_files = None                     # Enter on a row whose files have not come yet
+        self.play_added = False                    # v on a result: play what is being added
         self.synced = False                        # the engine has said what it has
         self.offers = []                           # what could be added: the clipboard's, the Downloads folder's
         self.declined = set()
@@ -293,6 +294,9 @@ class App:
             self.cursor_id, self.coming, self.pane_focus, self.page = m["id"], m["id"], False, False
             if m.get("known"):
                 self.tell("already here")
+            if self.play_added:                    # (v on a search's result)
+                self.play_added = False
+                self.play_row(self.rows.get(m["id"]) or {"id": m["id"], "meta": False})
 
     def go_downloads(self):
         self.tab = "downloads"
@@ -533,7 +537,8 @@ class App:
             return common.make_magnet(r["hash"], r["name"])
         return ""
 
-    def add_result(self, r):
+    def add_result(self, r, play=False):
+        self.play_added = play
         link = self.result_link(r)
         also = r["magnet"] if r["magnet"].lower().startswith("http") else ""
         if link:
@@ -1184,7 +1189,7 @@ class App:
             frame[y] = [" "] + keys_spans((("ctrl+o", "pick a file", ""),), w)
             return
         if self.tab == "find":
-            keys = (("y", "copy magnet", ""), ("s", "sort", SORTS[self.sort])) if not self.line_focus else ()
+            keys = (("v", "play", ""), ("y", "copy magnet", ""), ("s", "sort", SORTS[self.sort])) if not self.line_focus else ()
         elif self.pane_focus:
             keys = (("space", "keep or skip", ""), ("a", "all", ""), ("n", "none", ""), ("enter", "play", ""))
         else:
@@ -1391,11 +1396,13 @@ class App:
         """The one video, or the biggest not yet watched; with many, the choice is the files' list."""
         files = self.files.get(r["id"])
         if files is None:
-            if not r["meta"]:
-                self.tell("its files are not known yet")
+            if r["id"].startswith("url-"):
+                self.tell("its site is still being asked")
                 return
+            self.wants_files = r["id"]             # (it plays the moment its files are known)
             self.want_watch(r["id"], 40)
-            self.wants_files = r["id"]
+            if not r["meta"]:
+                self.tell("it plays as soon as its files are known")
             return
         can = [k for k, f in enumerate(files) if f and common.playable(f[0])]
         if not can:
@@ -1569,6 +1576,8 @@ class App:
             return
         elif k in ("enter", "space"):
             self.add_result(r)
+        elif k == "v":
+            self.add_result(r, play=True)
         elif k == "y":
             self.copy_result(r)
 
