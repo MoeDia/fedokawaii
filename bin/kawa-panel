@@ -153,10 +153,11 @@ SEGS, SEG_W, SEG_H = 20, 6, 10       # a meter: 20 segments 6 × 10 px, one a ce
 SPAN = SEGS * CELL                   # 160: the segments' run
 BIG_SEGS = 40                        # an instrument's meter (§4): the same segments, 40 of them: 2.5 % each
 BIG_H = 2 * ROW                      # an instrument: its name and number, then its meter
-PIC_W = 32                           # an instrument's picture, the masthead's head: 32 wide (x0 + 8 to x0 + 40)
+PIC_W = 32                           # an instrument's picture: 32 wide (x0 + 8 to x0 + 40)
 WORD_X = 6 * CELL + 2                # … its words, on its meter's first segment (the meter's run ends on the right inset)
-HEAD_PIC_H = 2 * ROW                 # the masthead: its plate, two rows (a lip under it, in the 8 px after)
-HEAD_CX = GLYPH_X + PIC_W // 2       # … the head's middle: the instruments' pictures' (a head of 48 reaches x0, 2 px short of the words)
+HEAD_PIC_H = 2 * ROW                 # the masthead: two rows of the column, its words …
+PLATE_OUT, PLATE_H = 10, 52          # … on a title plate 10 px out of the content on three sides (6 from the panel's frame), a head of 48, 1 px of air and the frame high; its lip and 5 px of air under it
+PLATE_HEAD = (PLATE_H - 48) // 2     # … the head of 48 from the plate's corner: on the axis of the rows' icons, its right end the pictures' (x0 - 8 to x0 + 40)
 EDGE_W = 2                           # the cursor's edge: 2 px of the seal's red at the band's left
 RIGHT_IN = CELL                      # a row's right inset: its value's ink ends this far inside the band —
                                      # the same as its icon's left inset (§4: the row is symmetric in its band)
@@ -1061,7 +1062,7 @@ def layout_quick(s):
     as instruments, then each section under its label: rows of 20 px, half a row of air above a label."""
     x0 = y = BORDER + PAD
     items, r = [], 0
-    marks = [("masthead", x0, y, INNER, TITLE["quick"], s.get("uptime", ""), "plate-light" if s.get("theme") == "light" else "plate-dark")]
+    marks = [("masthead", x0 - PLATE_OUT, y - PLATE_OUT, INNER + 2 * PLATE_OUT, TITLE["quick"], s.get("uptime", ""), "plate-light" if s.get("theme") == "light" else "plate-dark")]
     y += HEAD_PIC_H + GAP
     items.append(instrument("brightness", x0, y, r, "@lantern", "brightness", s))
     y += BIG_H
@@ -2905,22 +2906,23 @@ def main(argv):
             _, x, y, w, t = m
             lw = text(cr, x, y + (ROW - LINE) // 2, t, "muted")
             box(cr, x + lw + GAP, y + 10, w - lw - GAP, 1, "edge2")
-        elif k == "masthead":                     # (quick settings' title plate: the head on it, the name, the time up)
+        elif k == "masthead":                     # (quick settings' title plate: the head in it, the name, the time up)
             _, x, y, w, t, sub, plate = m
-            box(cr, x + 1, y + 1, w - 2, HEAD_PIC_H - 2, "key")
-            frame(cr, x, y, w, HEAD_PIC_H, "edge2", cut=True)
-            box(cr, x + 1, y + HEAD_PIC_H, w - 2, 1, "edge2")          # (its lip, as a keycap's)
+            box(cr, x + 1, y + 1, w - 2, PLATE_H - 2, "key")
+            frame(cr, x, y, w, PLATE_H, "edge2", cut=True)
+            box(cr, x + 1, y + PLATE_H, w - 2, 1, "edge2")             # (its lip, as a keycap's)
             art = pic_surface(plate, "edge2")
             if art is not None:                   # (its pattern, flush with its right end, dissolving toward the words)
                 pic(cr, plate, x + w - 1 - art.get_width(), y + 1, "edge2")
             face = heads.get("open" if panel.woke else "shut") or heads.get("shut")
-            if face is not None:                  # (centred on the column every picture stands in: a head of 48 stands proud of the plate)
-                cr.set_source_surface(face, x + HEAD_CX - face.get_width() // 2, y + (HEAD_PIC_H - face.get_height()) // 2)
+            if face is not None:
+                cr.set_source_surface(face, x + PLATE_HEAD + (48 - face.get_width()) // 2, y + (PLATE_H - face.get_height()) // 2)
                 cr.paint()
-            ty = y + (ROW - LINE) // 2
-            text(cr, x + WORD_X, ty, t, "strong")
+            wx = x + PLATE_OUT + WORD_X
+            ty = y + (PLATE_H - 2 * ROW) // 2 + (ROW - LINE) // 2
+            text(cr, wx, ty, t, "strong")
             if sub:
-                text(cr, x + WORD_X, ty + ROW, sub, "muted")
+                text(cr, wx, ty + ROW, sub, "muted")
         elif k == "foot":                         # (the dialog's foot; a seal's first press: what it asks)
             _, x, y, w, t = m
             it = panel.item(panel.armed) if panel.armed else None

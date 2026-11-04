@@ -103,15 +103,18 @@ def quick(a, table, th, ground, cursor=None):
     want(table, s, "the meter's last ink, from the band's right", x0 + 376 - 1 - run[-1], 8)
     xs, _ = ink(a, x0 + 48, y, 60, 20, [ground])
     want(table, s, "the name's first ink, x0 + (over the meter's first segment)", int(xs.min()) - x0, 50)
-    # the masthead: the plate, the head on it (a head of 32; a smooth head of 48 stands proud of it), the words
-    py = fy + X0
-    plate = colour(a, x0 + 44, py + 3)
-    ex, ey = ink(a, x0 - 2, py - 4, 380, 48, [ground])
-    want(table, s, "the plate's box, x0 +", (int(ex.min()) - x0, int(ex.max()) - x0 + 1), (0, 376))
-    want(table, s, "the plate's rows and its lip", int(ey.max()) - int(ey.min()) + 1, 41)
-    xs, ys = ink(a, x0 + 2, py + 2, 44, 36, [plate])
-    want(table, s, "the head: within x0 + 8 … + 39", (bool(int(xs.min()) >= x0 + 8), bool(int(xs.max()) <= x0 + 39)), (True, True))
-    xs, _ = ink(a, x0 + 46, py + 2, 100, 18, [plate])
+    # the masthead: the plate 10 px out of the content, the head in it, the words on the meter's first segment
+    px, py = x0 - 10, fy + X0 - 10
+    plate = colour(a, px + 62, py + 3)
+    ex, ey = ink(a, px - 3, py - 3, 402, 60, [ground])
+    want(table, s, "the plate's box, x0 +", (int(ex.min()) - x0, int(ex.max()) - x0 + 1), (-10, 386))
+    want(table, s, "the plate's rows and its lip", int(ey.max()) - int(ey.min()) + 1, 53)
+    want(table, s, "the air over the plate, under the panel's frame", int(ey.min()) - fy - 1, 6)
+    want(table, s, "the air left of the plate, inside the panel's frame", int(ex.min()) - (x0 - 17) - 1, 6)
+    want(table, s, "the air right of the plate, inside the panel's frame", (x0 - 17 + 409) - int(ex.max()) - 1, 6)
+    xs, ys = ink(a, px + 1, py + 1, 57, 50, [plate])
+    want(table, s, "the head: inside x0 - 8 … + 39, y inside the plate's frame", (bool(int(xs.min()) >= x0 - 8), bool(int(xs.max()) <= x0 + 39)), (True, True))
+    xs, _ = ink(a, px + 58, py + 2, 100, 26, [plate])
     want(table, s, "the name's first ink on the plate, x0 + (over the meter's)", int(xs.min()) - x0, 50)
     # the marks: every row's last cap ends on the same column, every seal against it, 2 px apart (the two rows that have both)
     if cursor is None:

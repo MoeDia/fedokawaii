@@ -221,7 +221,7 @@ screen and the bar's paper share one rhythm.
 | seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset, or against the row's key, 2 px apart |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, 40 segments on the second row, from x 50 of the content to its right inset |
-| masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
+| masthead | 2 rows | — | quick settings' title plate: 52 px high, 10 px out of the content on three sides (6 px of air from the panel's frame, all round), `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head of 48 in it with 1 px of air, on the rows' icon axis (x 16), its right end on the pictures' (x 40); the name and a quiet line at x 50, on the meters' first segment, the two rows centred on the plate; its right end the mood's pattern, 224 × 50, dissolving toward the words; 5 px of air under the lip (the instrument's words stand 3 px down their row: 8 to the eye) |
 | seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
 | app icon | 16 × 16 | — | the launcher's: an app's own icon at its native 16 px, centred in the row |

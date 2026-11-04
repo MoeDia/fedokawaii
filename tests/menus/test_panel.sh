@@ -126,7 +126,7 @@ eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y},{i.w},{i.h}" for i in p.
   "brightness:17,65,376,40 sound:17,105,376,40 theme:17,173,376,20 night:17,193,376,20 dnd:17,213,376,20 saver:17,233,376,20 vrr:17,253,376,20 wallpaper:17,273,376,20 network:17,321,376,20 bluetooth:17,341,376,20 devices:17,361,376,20 drives:17,381,376,20 backup:17,401,376,20 screenshot:17,449,376,20 record:17,469,376,20 ocr:17,489,376,20 screenoff:17,537,376,20 power:17,557,376,20"
 eq "$(py 'fresh(); print({(i.x, i.w, i.h) for i in p.items if i.kind == "row"}, {(i.x, i.w, i.h, i.big) for i in p.items if i.kind == "meter"})')" "{(17, 376, 20)} {(17, 376, 40, True)}" "every row alike but its y; the levels too"
 eq "$(py 'fresh(); ys = [i.y for i in p.items]; print([b - a for a, b in zip(ys, ys[1:])])')" "[40, 68, 20, 20, 20, 20, 20, 48, 20, 20, 20, 20, 48, 20, 20, 48, 20]" "a level 40, a row 20; a section starts 28 further down: 8 of air, a label's row"
-eq "$(py 'fresh(); print([(m[0], m[2], m[4]) for m in p.marks])')" "[('masthead', 17, 'quick settings'), ('label', 153, 'screen'), ('label', 301, 'connect'), ('label', 429, 'capture'), ('label', 517, 'power')]" "the masthead at the content's corner, a label above each section"
+eq "$(py 'fresh(); print([(m[0], m[2], m[4]) for m in p.marks])')" "[('masthead', 7, 'quick settings'), ('label', 153, 'screen'), ('label', 301, 'connect'), ('label', 429, 'capture'), ('label', 517, 'power')]" "the masthead 10 px out of the content's corner, a label above each section"
 eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     fresh(st); labels = [m[2] for m in p.marks if m[0] == "label"]
@@ -268,7 +268,7 @@ eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n", "")):
     fresh(st); pics = [i.glyph or i.icon for i in p.items]; out.append((len(pics), len(set(pics))))
 print(out)')" "[(18, 18), (16, 16)]"
-case_ "the pictures (panel-art.txt): a row's at most 16 × 16, a level's 32 wide, a seal tile's 40 × 40, a key's at most 12 × 12 in its cap, a title plate's pattern 224 × 38; every row of a picture one width; only the file's inks; the twelve months, the five seals, all there"
+case_ "the pictures (panel-art.txt): a row's at most 16 × 16, a level's 32 wide, a seal tile's 40 × 40, a key's at most 12 × 12 in its cap, a title plate's pattern 224 × 50; every row of a picture one width; only the file's inks; the twelve months, the five seals, all there"
 eq "$(python3 -I -B - "$PICS" <<'PY'
 import re, sys
 bad, names = [], {}
@@ -290,7 +290,7 @@ for n, rows in names.items():
     if n.startswith("t-"): limit = (40, 40)
     elif n.startswith(("bonsho", "lantern")): limit = (32, 36)
     elif n.startswith("key-"): limit = (12, 12)
-    elif n.startswith("plate-"): limit = (224, 38)
+    elif n.startswith("plate-"): limit = (224, 50)
     else: limit = (16, 16)
     if w > limit[0] or h > limit[1]: bad.append(("size", n, w, h))
 want = [f"month-{m:02d}" for m in range(1, 13)] + ["t-lock", "t-sleep", "t-logout", "t-restart", "t-off", "seal-on", "seal-off", "key-super", "key-shift"]
@@ -527,7 +527,7 @@ eq "$(py 'fresh(); p.request(); p.focus = "drives"; u.answer(STATE.replace("blue
 # ── the mouse ─────────────────────────────────────────────────────────────────────────
 # (quick settings, the default state: every row x 17–392, 20 px high — night's y 193–212, its middle
 # (205, 203); brightness's two rows y 65–104, its meter from x 67 on its second row, sound's y 105–144;
-# the air and the labels between the sections, the masthead (y 17–56) and the frame at (5, 5) hold nothing)
+# the air and the labels between the sections, the masthead (y 7–59) and the frame at (5, 5) hold nothing)
 case_ "one light: the pointer over an item moves the cursor there (it is hot and the cursor at once), and the cursor stays where the pointer left it"
 eq "$(py 'opened("quick", STATE); p.hover(*mid("night")); print(p.hot, p.focus)')" "night night"
 eq "$(py 'opened("quick", STATE); p.hover(*mid("night")); p.hover(*air("sound")); print(p.hot, p.focus)')" "None night" "over the air between two groups: nothing hot, the cursor where the pointer left it"
