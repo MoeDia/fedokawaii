@@ -26,10 +26,11 @@ local FOLDER = "\243\190\128\177"   -- Sumi Icons: folder (U+FE031), as in icons
 -- (a word in the line: a % in it is a %)
 local function text(s) return (s:gsub("%%", "%%%%")) end
 
--- the file's path from the working folder (or the project's root), its last three parts
+-- the file's path from the working folder (or the project's root), its last three parts: its
+-- folders, and its name
 local function path()
   local full = vim.api.nvim_buf_get_name(0)
-  if full == "" then return "" end
+  if full == "" then return "", "" end
   local name = full
   local cwd = vim.uv.cwd() or ""
   if full:sub(1, #cwd + 1) == cwd .. "/" then
@@ -41,7 +42,7 @@ local function path()
   local parts = vim.split(name, "/", { plain = true })
   local dir = #parts > 1 and table.concat(parts, "/", math.max(1, #parts - 2), #parts - 1) .. "/" or ""
   local file = vim.bo.modified and "%#KawaStChanged#" or "%#KawaStFile#"
-  return "%#KawaStQuiet#" .. text(dir) .. file .. text(parts[#parts]) .. (vim.bo.readonly and " " .. LOCK or "")
+  return "%#KawaStQuiet#" .. text(dir), file .. text(parts[#parts]) .. (vim.bo.readonly and " " .. LOCK or "")
 end
 
 -- the project's name, when it is not the folder neovim was started in
@@ -95,25 +96,56 @@ local function here()
   return " " .. symbols.get()
 end
 
+-- A window too narrow for the whole line loses whole pieces, the least needed first, and never one
+-- cut in its middle (neovim's own cut, %<, left "kawa.py<op   1:1" at 80 columns, no place at 60)
+local GIVE_WAY = { "here", "busy", "root", "dap", "kind", "dir", "changes", "branch", "where", "diagnostics", "rec", "name", "place" }
+
+-- the cells a piece takes: colours, the fill and a %'s escape take none
+local function cells(s)
+  return vim.api.nvim_strwidth((s:gsub("%%#[^#]*#", ""):gsub("%%[*=]", ""):gsub("%%%%", "%%")))
+end
+
+local function join(p)
+  return p.tile .. p.branch .. p.root .. p.diagnostics .. "%#KawaStQuiet#" .. p.kind .. " " .. p.dir .. p.name
+    .. "%#KawaStQuiet#" .. p.here .. "%=" .. p.busy .. p.rec .. p.dap .. p.changes .. p.where .. p.place
+end
+
 function M.render()
   -- (the first screen: the terminal's own ground, as the rest of it)
   if vim.bo.filetype == "snacks_dashboard" then return "%#Normal#" end
   local mode = MODES[vim.api.nvim_get_mode().mode] or UNKNOWN
   local head = vim.b.gitsigns_head or vim.g.gitsigns_head or ""
-  local left = "%#KawaSt" .. mode[2] .. "# " .. mode[1] .. " "
-    .. (head ~= "" and "%#KawaStKey# " .. text(head) .. " " or "")
-    .. root() .. diagnostics() .. "%#KawaStQuiet#"
-    .. (vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "") .. " " .. path() .. "%#KawaStQuiet#" .. here()
+  local dir, name = path()
   local rec = vim.fn.reg_recording()
   local dap = package.loaded["dap"] and require("dap").status() or ""
-  local right = (busy ~= "" and "%#KawaStQuiet#" .. text(busy) .. " " or "")
-    .. (rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "")
-    .. (dap ~= "" and "%#KawaStDebug# " .. text(dap) .. " " or "")
-    .. changes()
   -- the place: Top, Bot or its percent, the line, the column
   local line, last = vim.fn.line("."), vim.fn.line("$")
   local where = line == 1 and "Top" or line == last and "Bot" or string.format("%2d%%%%", math.floor(line / last * 100))
-  return left .. "%<%=" .. right .. "%#KawaStKey# " .. where .. string.format(" %3d:%-2d ", line, vim.fn.charcol("."))
+  local p = {
+    tile = "%#KawaSt" .. mode[2] .. "# " .. mode[1] .. " ",
+    branch = head ~= "" and "%#KawaStKey# " .. text(head) .. " " or "",
+    root = root(),
+    diagnostics = diagnostics(),
+    kind = vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "",
+    dir = dir,
+    name = name,
+    here = here(),
+    busy = busy ~= "" and "%#KawaStQuiet#" .. text(busy) .. " " or "",
+    rec = rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "",
+    dap = dap ~= "" and "%#KawaStDebug# " .. text(dap) .. " " or "",
+    changes = changes(),
+    where = "%#KawaStKey# " .. where,
+    place = "%#KawaStKey#" .. string.format(" %3d:%-2d ", line, vim.fn.charcol(".")),
+  }
+  local whole = join(p)
+  local over = cells(whole) - vim.o.columns
+  if over <= 0 then return whole end
+  for _, piece in ipairs(GIVE_WAY) do
+    over = over - cells(p[piece])
+    p[piece] = ""
+    if over <= 0 then break end
+  end
+  return join(p)
 end
 
 function M.setup()

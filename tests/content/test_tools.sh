@@ -150,6 +150,29 @@ if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   eq "$(sed -n 1p "$TMP/line" 2>/dev/null)" "%!v:lua.require'config.statusline'.render()" "the option ($(cut -c1-120 "$TMP/nvim.out"))"
   has "$line" "%#KawaStNormal# NORMAL "; has "$line" "c/d/"; lacks "$line" "b/c"; has "$line" "100%%.txt"; has "$line" "Top"; lacks "$line" "…"
   eq "$(sed -n 3p "$TMP/line" 2>/dev/null)" "%#Normal#" "the first screen: no line"
+  case_ "neovim's status line in a narrow window: whole pieces go, the least needed first; never one cut in its middle (at 80 columns neovim's own cut left \"long.py<op 1:1\", at 60 no place at all)"
+  : >"$HOME/repos/demo/a/b/c/d/a-rather-long-file-name.txt"
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless 'a/b/c/d/a-rather-long-file-name.txt' "+lua vim.defer_fn(function()
+      vim.b.gitsigns_head = 'a-branch'
+      vim.b.gitsigns_status_dict = { added = 12, changed = 3, removed = 7 }
+      local f = io.open('$TMP/widths', 'w')
+      for _, w in ipairs({ 200, 100, 80, 70, 60, 50, 40, 30, 20, 17 }) do
+        vim.o.columns = w
+        local e = vim.api.nvim_eval_statusline(vim.o.statusline, { maxwidth = w })
+        f:write(w, ' ', e.width, ' ', e.str, '\n')
+      end
+      f:close(); vim.cmd('qa!') end, 1000)" >"$TMP/nvim.out" 2>&1)
+  eq "$(wc -l <"$TMP/widths" 2>/dev/null)" 10 "all ten widths ($(cut -c1-120 "$TMP/nvim.out"))"
+  while read -r w drawn rest; do
+    eq "$drawn" "$w" "$w columns: the line fills them exactly"
+    has "$rest" "NORMAL"; has "$rest" "1:1"; lacks "$rest" "<"; lacks "$rest" ">"; lacks "$rest" "…"
+    for piece in a-rather-long-file-name.txt a-branch; do   # each whole, or not there at all
+      case "$rest" in *"${piece:0:5}"*) has "$rest" "$piece" ;; esac
+    done
+  done <"$TMP/widths"
+  wide=$(sed -n 1p "$TMP/widths"); has "$wide" "a-branch"; has "$wide" "c/d/a-rather-long-file-name.txt"; has "$wide" "12"; has "$wide" "Top"
+  has "$(sed -n 5p "$TMP/widths")" "a-rather-long-file-name.txt"
+  lacks "$(sed -n 9p "$TMP/widths")" "a-rather"
 else skip "no nvim, or no plugins at $NVIM_DATA (FEDOKAWAII_NVIM_DATA)"; fi
 
 done_

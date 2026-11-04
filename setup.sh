@@ -1981,7 +1981,7 @@ s_dev() {
 # network, in the background; lua/plugins/lean.lua: no longer)
 MASON_TOOLS="basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo"
 dev_mason() {   # neovim's tools (Mason loaded first — LazyVim loads it on demand — then :MasonInstall,
-                # which waits when headless), and the parsers (config/parsers.lua: as its list says)
+                # which waits when headless), and the parsers (config/prefetch.lua: as lean.lua lists them)
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
   run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" timeout 900 \
     nvim --headless '+Lazy! load mason.nvim' "+MasonInstall $MASON_TOOLS" \
