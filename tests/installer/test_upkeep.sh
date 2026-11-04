@@ -84,6 +84,23 @@ tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '
 m=$(grep -n "notices' mako" <<<"$OUT" | head -n1 | cut -d: -f1); t=$(grep -n 'update: the theme' <<<"$OUT" | head -n1 | cut -d: -f1)
 [[ -n $m && -n $t ]] && ((m < t)) && _ok || _no "mako at line ${m:-none}, the theme at ${t:-none}"
 eq "$(cat "$W/usr/local/bin/mako.built")" "$( { printf '%s\n' "$(conf_val MAKO_TAG)" "$(conf_val MAKO_COMMIT)"; cat "$REPO/src/mako/mako.patch"; } | sha256sum | cut -d' ' -f1)" "the record of the build"
+case_ "yazi off its pin (a toolkit with a new patch): the update fetches its crates, a network that drops tried again, and builds it; in place: left alone"
+YREC=$W/home/fkuser/.local/share/fedokawaii/upstream/yazi.built
+back built; reset_calls; tk --update; eq "$RC" 0; not_called 'git\] .*clone .*yazi'
+back built; echo stale >"$YREC"; fkh fail-cargo 1; reset_calls
+tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"; called 'git\] .*clone .*yazi'
+eq "$(grep -c 'cargo\] fetch --locked' "$CALLS")" 2 "the fetch tried again"; called 'cargo\] build --release --locked -p yazi-fm'
+eq "$(cat "$YREC")" "$( { printf '%s\n' "$(conf_val YAZI_TAG)" "$(conf_val YAZI_COMMIT)"; cat "$REPO/src/yazi/yazi.patch"; } | sha256sum | cut -d' ' -f1)"
+case_ "…a build that fails: said, its checkout gone, the yazi there stays, the update's other steps go on; the next update builds it"
+back built; echo stale >"$YREC"; fkh fail-cargo-build 1; reset_calls
+tk --update; has "$OUT" "the yazi build failed"; has "$OUT" "update: the theme"
+[[ ! -e $W/home/fkuser/.local/src/yazi ]] && _ok || _no "the checkout left behind"
+[[ -x $W/home/fkuser/.local/bin/yazi ]] && _ok || _no "the yazi there was taken away"; eq "$(cat "$YREC")" stale "not recorded as built"
+reset_calls; tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"; called 'cargo\] build --release --locked -p yazi-fm'; [[ $(cat "$YREC") != stale ]] && _ok || _no "the second update did not build it"
+case_ "…crates that cannot be fetched: three tries, said, no build, its checkout gone"
+back built; echo stale >"$YREC"; fkh fail-cargo 3; reset_calls
+tk --update; has "$OUT" "could not fetch yazi's crates"; eq "$(grep -c 'cargo\] fetch --locked' "$CALLS")" 3 "three tries"; not_called 'cargo\] build'
+[[ ! -e $W/home/fkuser/.local/src/yazi ]] && _ok || _no "the checkout left behind"
 case_ "a machine where lpf built Spotify's app: verify says so; the update hands lpf, the recipe and the app to dnf's clean-up, then takes lpf's account and folder"
 back built; fk bash -c '. /usr/local/bin/_lib.sh; fake_lpf_era'
 fkrun bash "$TK/verify.sh"; has "$OUT" "lpf and Spotify's old app are still installed"

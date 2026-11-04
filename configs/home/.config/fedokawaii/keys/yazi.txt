@@ -20,6 +20,7 @@ Alt+Enter               play a film in a new mpv window
 O                       open with a program you choose
 W                       watch a film together (Syncplay)
 M                       drives: open or eject a USB stick or disk
+Tab                     a file's facts: what it is, its size, its rights
 g d                     your drives folder (~/Drives)
 Alt+S                   shrink or convert pictures and PDFs
 Alt+F                   archives and PDFs: unpack, pack, merge, sign

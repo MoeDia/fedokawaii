@@ -839,7 +839,7 @@ wait owner
 settle
 screen
 key j
-settle
+wait ▎ size
 screen
 key <Tab>
 settle
@@ -921,6 +921,7 @@ wait a.txt
 settle
 key G
 settle
+screen
 key <Tab>
 wait owner
 settle
@@ -931,8 +932,28 @@ quit
 EOF
 )
 rm -f "$W/zzz-link"
-case_ "Tab on a link: where it points, under what it is"
+case_ "Tab on a link: where it points, under what it is; the list says it after an arrow"
 has "$out" "points to" "the row"; has "$(grep -F 'points to' <<<"$out")" "a.txt" "its target"
+has "$out" "zzz-link → a.txt" "the list's row"; lacks "$out" " -> " "yazi's own arrow gone"
+long=zzzz$(printf '日本語%.0s' {1..24})
+: >"$W/$long"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key G
+settle
+key <Tab>
+wait owner
+settle
+screen
+key <Tab>
+settle
+quit
+EOF
+)
+rm -f "$W/$long"
+case_ "Tab on a very long Japanese name: cut by whole characters to its column, the rule's end still there, never a broken byte"
+has "$out" "zzzz日本語" "the name's start"; lacks "$out" "�" "no broken character"; has "$out" "owner" "the card whole"
 fi
 out=$(y 120x30 <<'EOF'
 wait a.txt
