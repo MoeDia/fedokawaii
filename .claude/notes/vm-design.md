@@ -1,7 +1,7 @@
 # The games VM — written design (T32)
 
 Written 4 Nov 2026 by the research lane. Sources and grades: `vm-research.md`, cited as (R§n). Nothing here has run on
-the PC: the five tests in section 3 decide the open branches, and each says which result leads where.
+the PC: the six tests in section 3 decide the open branches, and each says which result leads where.
 
 ## 1. Decisions
 
@@ -71,7 +71,7 @@ The kernel's August fix (R§2 #5447) makes R1 more likely than any report sugges
 ### O. The outputs (needs him away; same run as R)
 
 No cable change: Windows drives the LG on the card's HDMI, which is where it is plugged today. Read through guest-exec:
-`WmiMonitorID` (does "LG ULTRAGEAR" appear, or "AMD Vdisplay"), `Win32_VideoController.CurrentRefreshRate`, the Radeon driver's FreeSync state, `Get-PnpDevice` for Code 43.
+`WmiMonitorID` (does "LG ULTRAGEAR" appear, or "AMD Vdisplay"), `Win32_VideoController.CurrentRefreshRate`, the Radeon driver's FreeSync state, `Get-PnpDevice` for Code 43. Once both cables are in, VRR gets an outside proof: `getvcp ae` from the host while a game runs at 100 fps, if the LG answers on the inactive input (test S).
 
 Step up one lever at a time, and stop at the first that passes:
 
@@ -96,7 +96,7 @@ Pass: 20 cycles both ways. A killed QEMU returns the picture in < 3 s (T34's own
 
 ### C. CS2 (needs his login; last)
 
-Valve's words: "Hypervisors … please disable it while playing", ending in a disconnect, not a ban; "System hardware configurations" do not trigger bans; a mistaken ban "will automatically be removed" (R§1). A KVM player was banned in Nov 2023 and unbanned 11 days later.
+Valve's words: "Hypervisors … please disable it while playing", ending in a disconnect, not a ban; "System hardware configurations" do not trigger bans; a mistaken ban "will automatically be removed" (R§1). A KVM player, with a custom `vendor_id` like lever O1, was banned in Nov 2023 and unbanned 11 days later, with no reason given.
 
 - The notice tells him this in three lines, and that a free spare Steam account tries it without risking his own.
 - He signs in himself and plays casual on a VAC-secured server, twice on different days.
@@ -158,7 +158,7 @@ PCI passthrough cannot run in a session domain; the harness's session VMs stay a
 </domain>
 ```
 
-`svm` off: Windows then cannot start its own hypervisor for Memory Integrity, the cost Microsoft itself names for gaming (R§6), and there is no nested Hyper-V under the anti-cheat. Host keeps one core plus its SMT sibling: LG's docs ask for two cores only for their own client. Measured in T33; five cores for the guest is the first try, not a promise. 16 GiB of 30: THP first (VFIO allocates up front, R§5); 1 GiB pages only if PresentMon's 1 % lows show a gain; the dynamic route is disputed in Arch's own wiki.
+`svm` off: Windows then cannot start its own hypervisor for Memory Integrity, the cost Microsoft itself names for gaming (R§6). Host keeps one core plus its SMT sibling: LG's docs ask for two cores only for their own client. Measured in T33; five cores for the guest is the first try, not a promise. 16 GiB of 30: THP first (VFIO allocates up front, R§5); 1 GiB pages only if PresentMon's 1 % lows show a gain; the dynamic route is disputed in Arch's own wiki.
 
 ### The hook: `/etc/libvirt/hooks/qemu.d/kawa-vm`, root, never calls libvirt
 
@@ -172,7 +172,7 @@ PCI passthrough cannot run in a session domain; the harness's session VMs stay a
 
 ### Keeping the host away from the card
 
-`amdgpu_kms.c:1609` in our kernel still has the race of #5446: any open fd at unbind can oops and deadlock libvirt until reboot (R§2). So the rule is not "be careful" but "no one can open it": a udev rule after 70-uaccess for the card's nodes, removing `uaccess`, `renderD128` to 0660 and a group of its own. The fixer's unit gets that group; the desktop falls to `renderD129` by itself. Every app the PC runs today is re-checked with that rule: Xwayland, localsend, the browser (T31a), mpv's VA-API.
+`amdgpu_kms.c:1609` in our kernel still has the race of #5446: any open fd at unbind can oops and deadlock libvirt until reboot (R§2). So the rule is not "be careful" but "no one can open it": a udev rule after 70-uaccess for the card's two nodes, removing `uaccess`, mode 0660 and a group of their own (today `renderD128` is 0666 and he is in `video` and `render`, so the ACL alone would not do). The fixer's unit gets that group; the desktop should fall to `renderD129` by itself, which T33 proves. Every app the PC runs today is re-checked with that rule: Xwayland, localsend, the browser (T31a), mpv's VA-API.
 
 ### Windows
 
@@ -214,7 +214,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 5. **The VM may need two driver-facing names changed** (`vendor_id`, `kvm hidden`): the guest still knows it is a VM.
 6. **A rare crash may need a press on the monitor**, if test S ends at that branch.
 7. **Windows needs his own licence**, and he signs in to Steam himself.
-8. **The card's logo RGB (T36)** cannot be driven from Linux while the VM has the card, which is amdgpu's I2C. It keeps its last state, or Windows drives it.
+8. **The card's logo RGB (T36)**, if T36 reaches it through amdgpu's I2C, cannot be driven from Linux while the VM has the card.
 9. **`update` and the VM exclude each other.**
 
 ## 8. What changes in the plan
@@ -222,7 +222,7 @@ Needed only if O or S fails. What it costs: an out-of-tree `kvmfr` built on ever
 - **T33**: `virtio-sound` → HDA + PipeWire; "Fedora's `virtio-win` package" → the pinned ISO; `qemu:///system`; stage 1 without the card, reset and outputs tests before any cable; TPM state `source` in the folder; `autounattend` per section 4.
 - **T34**: idle and sleep inhibited for the VM's life; display return lives in the hook, not the TUI; a hung-Windows path; the `grabToggle` state readable through QMP if the display should flip with it (decide in T34).
 - **T35**: unchanged, but only after C is answered: he might want CS2 on Linux after all. T35's title stands, though the question is his.
-- **T36**: the logo's RGB depends on amdgpu's I2C: only while the VM is off.
+- **T36**: if the logo's RGB goes through amdgpu's I2C, only while the VM is off.
 - **T38**: capabilities work with `--sleep-multiplier 2` (string in R§7); the input question moves to test S. Note `60(01 03)`.
 - **T45/T47**: the shared lock; the fixer's unit in the card's group.
 - **T06**: re-issue once, per section 2.
