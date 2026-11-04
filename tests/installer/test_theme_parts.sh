@@ -188,6 +188,14 @@ eq "$(stat -c %a "$pf")" 600 "private, as Chromium keeps it"
 jq '.helium.browser.layout = 2 | .extensions.theme.system_theme = 0' "$pf" >"$pf.n" && cat "$pf.n" >"$pf" && rm "$pf.n"
 theme; eq "$(jq -c '[.helium.browser.layout,.extensions.theme.system_theme]' "$pf")" '[2,0]' "your choice kept"
 
+case_ "old windows never come back: a start opens one new window; a profile that brought them back (T31a, one evening) moves once; your choice afterwards stays"
+back plain; pf=$W$H/.config/net.imput.helium/Default/Preferences; rm -rf "$W$H/.config/net.imput.helium"; theme
+eq "$(jq -c .session.restore_on_startup "$pf")" 5 "a new profile"
+jq '.session.restore_on_startup = 1' "$pf" >"$pf.n" && cat "$pf.n" >"$pf" && rm "$pf.n"
+theme; eq "$(jq -c .session.restore_on_startup "$pf")" 1 "set in Helium after the mark: yours"
+find "$W" -type f -name 'browser-*' -delete
+theme; eq "$(jq -c .session.restore_on_startup "$pf")" 5 "this evening's profile, its mark older than this list: moved, once"
+
 case_ "the key that shows the hidden boot menu (and its snapshots): verify fails when 12_menu_auto_hide is gone or GRUB_TIMEOUT_STYLE is set"
 fkrun bash "$TK/verify.sh"; has "$OUT" "✔  Shift (Esc/F8) at power-on shows the boot menu"; has "$OUT" "✔  nothing takes that key away"
 cp "$W/etc/default/grub" "$TMP/grub.keep"; echo 'GRUB_TIMEOUT_STYLE=hidden' >>"$W/etc/default/grub"

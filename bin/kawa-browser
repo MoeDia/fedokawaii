@@ -44,6 +44,11 @@ conf=${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium
 # kawa-tidy ask it; its colours and Widevine below too
 is_open() { local o; o=$(readlink -- "$conf/SingletonLock" 2>/dev/null) && kill -0 "${o##*-}" 2>/dev/null; }
 [[ ${1:-} == --is-open ]] && { is_open; exit; }
+# The warm start, read here before anything is added to the arguments, never reaches the press
+# below: a press starts a warm browser, so a warm start arriving there would start itself without
+# end (4 Nov: --load-extension came to stand first, --warm was missed, and each login ran a chain
+# of these, thousands a second, each ending in a window).
+warm=""; [[ ${1:-} == --warm ]] && { warm=1; shift; }
 feat=PulseaudioLoopbackForScreenShare,AcceleratedVideoEncoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL args=() rest=""
 off=WebRtcAllowInputVolumeAdjustment
 for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
@@ -70,13 +75,14 @@ if [[ -r $ext/manifest.json ]]; then
   j='{"name":"fedokawaii.downloads","description":"downloads, for the bar","path":"'$HOME'/.local/bin/kawa-downloads","type":"stdio","allowed_origins":["chrome-extension://mnilamabopllcgmiodochnjmpkiohpie/"]}'
   if [[ $(cat "$host" 2>/dev/null) != "$j" ]]; then mkdir -p -- "${host%/*}" && printf '%s' "$j" >"$host"; fi
 fi
-flags=("--enable-features=$feat" "--disable-features=$off" --password-store=basic --system-audio-capture-default_checked --disk-cache-size=1073741824)
-if [[ ${args[0]:-} == --warm ]]; then
+# (--hide-crash-restore-bubble: a browser that died never asks to bring old windows back)
+flags=("--enable-features=$feat" "--disable-features=$off" --password-store=basic --system-audio-capture-default_checked --disk-cache-size=1073741824 --hide-crash-restore-bubble)
+if [[ -n $warm ]]; then
   is_open && exit 0
   run=${XDG_RUNTIME_DIR:-/tmp}/kawa-browser.pipe.$$
   mkfifo -m 600 -- "$run" && exec 3<>"$run" 4>/dev/null || exit 1
   rm -f -- "$run"
-  exec "$b" "${flags[@]}" --remote-debugging-pipe --no-startup-window "${args[@]:1}"
+  exec "$b" "${flags[@]}" --remote-debugging-pipe --no-startup-window "${args[@]}"
 fi
 # word ARG… — the running browser told as a second start of it would (Chromium's process singleton:
 # START, the folder, the command line): the window at once, no 300 MB program loaded to say it
@@ -93,6 +99,9 @@ for a in "${args[@]}"; do
   case $a in --user-data-dir*|--headless*|--remote-debugging*|--version|--help|-h|--dump-dom*|--print-to-pdf*|--screenshot*|--no-startup-window) plain="" ;; esac
 done
 if [[ -n $plain ]]; then
+  # (no display, no window: a shell on a text console, or a test or a tool kept away from the
+  # desktop, must not reach the browser in the session through its socket)
+  [[ -n ${WAYLAND_DISPLAY:-}${DISPLAY:-} ]] || { echo "kawa-browser: no display here, no window opened" >&2; exit 1; }
   if ! is_open; then
     setsid "$0" --warm </dev/null >/dev/null 2>&1 & p=$!
     for _ in {1..200}; do { is_open && [[ -S $conf/SingletonSocket ]]; } && break; kill -0 "$p" 2>/dev/null || break; sleep 0.05; done
