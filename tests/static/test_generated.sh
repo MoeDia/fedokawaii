@@ -160,7 +160,7 @@ for t in @HOME@ @UID@ @MONITOR_HZ@; do has "$fills" "$t" "render() does not fill
 while IFS=: read -r f n tok; do
   [[ $tok == @DEFAULT_AUDIO_SINK@ || $tok == @DEFAULT_AUDIO_SOURCE@ || $tok == @DEFAULT_SINK@ || $tok == @DEFAULT_SOURCE@ ]] && continue
   grep -qxF -- "$tok" <<<"$fills" && _ok || _no "${f#"$REPO"/}:$n: $tok is never filled in"
-done < <(grep -rnoE '@[A-Z][A-Z0-9_]*@' "$REPO/configs/home" --exclude='*.ttf' --exclude='*.png')
+done < <(grep -rnoE '@[A-Z][A-Z0-9_]*@' "$REPO/configs/home" --exclude='*.ttf' --exclude='*.png' --exclude='*.six')
 case_ "@MPV_SCALING@ stands on a line of its own (render() replaces only a whole line)"
 while IFS=: read -r f n line; do
   [[ $line == @MPV_SCALING@ ]] && _ok || _no "${f#"$REPO"/}:$n: $line"

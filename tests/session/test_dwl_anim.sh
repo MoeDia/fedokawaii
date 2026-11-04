@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # tests/session/test_dwl_anim.sh — dwl's animations (src/dwl/dwl.patch, config.h; docs/design-system.md
-# §11): a new window dissolves in — cells of the wallpapers' pixel on the screen's grid, wholly
-# there or not, in a 4 × 4 Bayer matrix's order — rising its last anim_rise px; a closed one
-# dissolves out sinking as far; a workspace switch dissolves the windows out drifting anim_drift
-# px one way (its first anim_tag_each_ms) and the next ones in from the other (its last) — every
-# frame the screen shows, drawn for the moment that frame reaches the screen, the movement eased
-# out, the cells on a smoothstep, nothing ever cut by a moving edge or half-transparent, never a
-# full-screen window, never one not yet drawn at its size; tearing flips only with FreeSync on.
+# §11; the owner: "more movement, fluid like water, calm"): springs — a new window rises from well below
+# its place, growing, and settles; a closed one sinks away, fading; a workspace switch moves both
+# workspaces on one strip, a lacquer rail between them, a wave through the windows; every popup
+# (panels' menus, warm windows, "float" ones) unrolls and rolls up behind its rod — every frame the screen
+# shows, drawn for the moment that frame reaches the screen, never a full-screen window, never one
+# not yet drawn at its size; tearing flips only with FreeSync on.
 # The dissolve: each frame the picture composed by wlroots' render pass into a buffer of its own,
 # the cells not there yet cleared by one quad of a GLES 2 shader in the same pass, the scene
 # showing that buffer while the window itself stays where it is at opacity 0 (pointer, keys and
@@ -19,13 +18,14 @@
 P=$REPO/src/dwl/dwl.patch CH=$REPO/src/dwl/config.h
 added() { sed -n "/^+$1(/,/^+}/p" "$P"; }
 
-case_ "config.h and config.def.h: on, opening 420 ms, closing 400, a switch 420 (each side 280), the lock leaving 420, a 9 px rise, a 24 px drift"
+case_ "config.h and config.def.h: on, opening 450 ms, closing 400, a move 450 with its wave, the lock leaving 420; how far a window rises and sinks"
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -q '^static const int animations *= 1;' <<<"$c" && grep -q '^static const unsigned int anim_open_ms *= 420;' <<<"$c" \
-    && grep -q '^static const unsigned int anim_close_ms *= 400;' <<<"$c" && grep -q '^static const unsigned int anim_tag_ms *= 420;' <<<"$c" \
-    && grep -q '^static const unsigned int anim_tag_each_ms *= 280;' <<<"$c" && grep -q '^static const unsigned int anim_unlock_ms *= 420;' <<<"$c" \
-    && grep -q '^static const int anim_rise *= 9;' <<<"$c" && grep -q '^static const int anim_drift *= 24;' <<<"$c" \
-    && ! grep -q 'anim_steps\|anim_ms \|double anim_drift' <<<"$c" && _ok || _no "animations, anim_*_ms, anim_rise, anim_drift"
+  grep -q '^static const int animations *= 1;' <<<"$c" && grep -q '^static const unsigned int anim_open_ms *= 450;' <<<"$c" \
+    && grep -q '^static const unsigned int anim_close_ms *= 400;' <<<"$c" && grep -q '^static const unsigned int anim_tag_ms *= 450;' <<<"$c" \
+    && grep -q '^static const unsigned int anim_unlock_ms *= 420;' <<<"$c" \
+    && grep -q '^static const int anim_hop_low *= 120;' <<<"$c" && grep -q '^static const int anim_fall *= 64;' <<<"$c" \
+    && grep -q '^static const unsigned int anim_tag_wave *= 48;' <<<"$c" \
+    && ! grep -q 'anim_rise\|anim_drift\|anim_tag_each_ms\|anim_hop_over\|anim_tag_back' <<<"$c" && _ok || _no "animations, anim_*_ms, the rise, the sink, the wave"
 done
 
 case_ "driven by the screen's frames: each frame drawn for the moment it reaches the screen (the last one shown + the refresh: presentmon), the next asked only while one runs (no timer)"
@@ -35,20 +35,24 @@ grep -q '^+			animframe(m, at, held);' "$P" && grep -q 'm->shown_ms + m->refresh
   && grep -q 'return 1.0 - (1.0 - p) \* (1.0 - p) \* (1.0 - p);' <(added animease) \
   && _ok || _no "animations not frame-driven"
 
-case_ "a new window dissolves in only once it has drawn itself at its size (showclient from the commit that acks it)"
+case_ "a new window hops in only once it has drawn itself at its size (showclient from the commit that acks it)"
 grep -q '^+		showclient(c, 1);' "$P" && grep -q '^+	showclient(data, 0);' "$P" \
   && grep -q '^+		animstart(c, AnimOpen, 0);' <(added showclient) && _ok || _no "open animation not tied to the acked first frame"
 
-case_ "opening: the window rises anim_rise px to its place in whole pixels, at its current place (a relayout mid-animation is followed) — no fade left anywhere"
+case_ "opening: the window rises to its place in whole pixels, at its current place (a relayout mid-animation is followed): a spring from no speed, past its place a little, its picture smaller at first, clear within its first frames"
 f=$(added applyframe)
-grep -q 'dy = (int)lround(anim_rise \* (1.0 - e));' <<<"$f" && ! grep -q 'alpha\|clientfade\|fadeease' <<<"$f" \
+grep -q 'dy = (int)lround(hoppos(c->animp));' <<<"$f" && ! grep -q 'alpha\|clientfade\|fadeease' <<<"$f" \
   && ! grep -q '^+.*\(clientfade\|fadeease\|c->faded\)' "$P" && ! grep -q 'h \* e' <<<"$f" \
   && grep -q '^+	applyframe(c);$' <(sed -n '/^ resize(Client \*c/,/^ }/p;/^+resize(/,/^+}/p' "$P"; grep -A2 'the scene: the window at its place' "$P") \
-  && _ok || _no "applyframe: not a rise, or a fade left"
+  && grep -q 'return anim_hop_low \* spring(p, HOP_W, HOP_Z);' <(sed -n '/^+hoppos(double p)$/,/^+}/p' "$P") \
+  && grep -q 'return exp\|return k \* exp(-z \* w \* p)' <(sed -n '/^+spring(double p, double w, double z)$/,/^+}/p' "$P") \
+  && grep -q 'wlr_scene_buffer_set_opacity(c->dis.node, hopalpha(c->animp));' <(added clientdissolve) \
+  && grep -q 'wlr_scene_buffer_set_dest_size(c->dis.node, dw, dh);' <(added clientdissolve) \
+  && _ok || _no "applyframe: not a hop"
 
-case_ "the cells: a smoothstep (gentle at both ends, every one of the sixteen steps seen), shown = 16 × s(p) in, 16 − that out"
+case_ "the cells (a notice, the level display, the lock): a smoothstep (gentle at both ends, every one of the sixteen steps seen), shown = 16 × s(p) in, 16 − that out"
 grep -q 'return p \* p \* (3 - 2 \* p);' <(added cellease) \
-  && grep -q 'double shown = 16.0 \* cellease(c->animp);' <(added clientdissolve) && grep -q 'shown = 16.0 - shown;' <(added clientdissolve) \
+  && grep -q 'moncell(l->mon), 16.0 \* cellease(p));' <(added layerdissolve) \
   && grep -q 'moncell(g->mon), 16.0 \* (1.0 - cellease(t)));' <(added ghostapply) && _ok || _no "the curve"
 
 case_ "the punch: one quad of a GLES 2 shader inside the pass — a cell's rank 4·m(low bits) + m(next bits), m = [[0 2] [3 1]] (build-masters.py's Bayer matrix), cells of moncell px on the screen's grid (origin = the buffer's corner on the screen), cleared to nothing where the rank is not yet reached"
@@ -98,38 +102,50 @@ grep -q 'uint64_t linear = DRM_FORMAT_MOD_LINEAR;' <<<"$f" && grep -q '.format =
   && grep -q '"XLIBS=xcb xcb-icccm pixman-1 glesv2"' "$REPO/lib/manifest.sh" && grep -q 'XLIBS="xcb xcb-icccm pixman-1 glesv2"' "$REPO/tools/hl-dwl.sh" \
   && _ok || _no "the buffer's life"
 
-case_ "a workspace switch: the old windows dissolve out drifting anim_drift px one way (0 – anim_tag_each_ms), the new ones in from the other side (from anim_tag_ms − anim_tag_each_ms to the end) — never a full-width slide"
+case_ "a workspace move: both on one strip, the screen and a rail long, the old windows out and the new in over anim_tag_ms on a spring, a wave split round the rail; the rail of three pieces between them; freed with its monitor; all of the strip one body: a switch during a move goes on from where each stands, at the strip's speed, by the same way, a move back on the rail already there"
 f=$(added applyframe)
-grep -q 'dx = c->animdir \* (int)lround(anim_drift \* (1.0 - e));' <<<"$f" \
-  && grep -q 'dx = -c->animdir \* (int)lround(anim_drift \* e);' <<<"$f" \
-  && grep -q 'double p = kind == AnimIn ? (t - (anim_tag_ms - anim_tag_each_ms)) / anim_tag_each_ms' "$P" \
-  && grep -q 'return kind == AnimOpen ? anim_open_ms : kind == AnimIn ? anim_tag_ms' "$P" \
-  && grep -q ': kind == AnimUnroll ? anim_unroll_ms : kind == AnimSlide ? anim_slide_ms' "$P" \
-  && _ok || _no "the switch's drift and timing"
+grep -q 'dx = tagdx(c);' <<<"$f" \
+  && grep -q 'return x1 + (x0 - x1) \* spring(p, TAG_W, TAG_Z) + v \* springv(p, TAG_W, TAG_Z);' <(sed -n '/^+tagat(int x0, int x1, double v, double p)$/,/^+}/p' "$P") \
+  && grep -q 'anim_tag_wave \* 0.5 \* (in + (dir > 0 ? n : 1.0 - n));' <(sed -n '/^+tagwave(Client \*c, int dir, int in)$/,/^+}/p' "$P") \
+  && grep -q 'return m->m.width + RAIL_CELLS \* moncell(m);' <(sed -n '/^+stripw(Monitor \*m)$/,/^+}/p' "$P") \
+  && grep -q ': kind == AnimSlide ? anim_slide_ms : anim_tag_ms;' "$P" && grep -q '^+		railstart(m, dir, was, now);' "$P" \
+  && grep -q 'tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : (int)lround((double)(x + m->stripd) / w) \* w,' "$P" \
+  && grep -q 'm->stripx0 = (int)lround(X) + dir \* stripw(m);' <(sed -n '/^+stripstart(Monitor \*m, int dir, uint32_t was)$/,/^+}/p' "$P") \
+  && grep -q 'r->x1 = r->x0 + m->stripd;' "$P" \
+  && grep -q 'back |= r->tags == was && r->from == now;' "$P" \
+  && grep -q 'railfree(r);' <(added cleanupmon; sed -n '/^ cleanupmon(/,/^ }/p' "$P"; grep -A3 'wl_list_for_each_safe(r, rtmp, &rails, link)' "$P") \
+  && ! grep -q 'animturn\|animrev\|anim_drift' "$P" \
+  && _ok || _no "the strip"
 
-case_ "layer surfaces by namespace (config.h layeranims): the panels' menus in 200 ms dropping 4 px and out 160, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
+case_ "layer surfaces by namespace (config.h layeranims): the panels' menus unroll over 300 ms and roll up over 240, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -Eq '^	\{ "kawa-panel", +200, +160, +4 \},' <<<"$c" && grep -Eq '^	\{ "notifications", +240, +200, +0 \},' <<<"$c" \
-    && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
+  grep -Eq '^	\{ "kawa-panel", +300, +240, +1 \},' <<<"$c" && grep -Eq '^	\{ "notifications", +240, +200, +0 \},' <<<"$c" \
+    && grep -Eq '^	\{ "kawa-dim", +180, +120, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
     && _ok || _no "layeranims"
 done
-case_ "a layer surface dissolves in from the frame after it maps (its picture reaches the scene after dwl's listener), dropping la->drop px into place, the surface itself there at opacity 0; on unmap its last picture dissolves away — from as far as it had come in — over what it covered (ghosttree, above it in its own layer); the saver even over the lock"
+case_ "a scroll's rod (a lacquer bar, ink caps) leads every unroll and roll-up, the panels' and the warm windows', fading in and out, gone with it"
+grep -q 'rodshow(&c->dis, c->scene, 0, h - 3, w, smooth((1.0 - c->animp) / 0.3));' <(added applyframe) \
+  && grep -q 'rodshow(&g->dis, g->tree, 0, hv - 3, g->w, smooth(t / 0.3));' <(added ghostapply) \
+  && grep -q 'rodshow(&l->dis, l->scene->node.parent, k.box.x, k.box.y + hv - 4, k.box.width - 1, smooth((1.0 - p) / 0.3));' <(added layerdissolve) \
+  && grep -q 'wlr_scene_node_destroy(&d->rod\[i\]->node);' <(added dissolveend) && _ok || _no "the rod"
+case_ "a layer surface comes in from the frame after it maps (its picture reaches the scene after dwl's listener), unrolling or cell by cell, the surface itself there at opacity 0; on unmap its last picture rolls up or dissolves away, from as far as it had come; its dissolve freed with it"
 f=$(sed -n '/^ commitlayersurfacenotify(/,/^ }/p;/^+commitlayersurfacenotify(/,/^+}/p' "$P")
 grep -q 'if (!l->mapped && layer_surface->surface->mapped && l->la && l->la->in_ms && layerok(l)) {' "$P" \
-  && grep -q 'dy = -(int)lround(l->la->drop \* (1.0 - animease(p)));' <(added layerdissolve) \
+  && grep -q 'rollshow(&l->dis, k.box.x, k.box.y, k.box.width, k.box.height,' <(added layerdissolve) \
   && grep -q 'wlr_scene_node_for_each_buffer(&l->scene->node, fadebuffer, &zero);' <(added layerdissolve) \
   && grep -q 'ghosttree(l->mon, l->scene, l->scene->node.parent, l->la->out_ms, from < 0 ? 0 : from);' "$P" \
+  && grep -q 'ghostrollup(l->mon, l->scene, l->scene->node.parent, l->la->out_ms,' "$P" \
   && grep -q 'return animations && dissolveok() && (l->saver || !locked) && l->mon;' <(added layerok) \
   && grep -A4 '^@@ .* destroylayersurfacenotify(' "$P" | grep -q '^+	dissolveend(&l->dis);$' \
   && grep -q 'ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],' "$P" \
-  && _ok || _no "the layer surfaces' dissolves"
+  && _ok || _no "the layer surfaces' animations"
 
-case_ "tiled windows making room (a neighbour gone, the master swapped, its share changed) slide from where they are drawn to their places over anim_slide_ms, eased out; a new place mid-slide goes on from where it is, the same place again changes nothing (no restart, no jolt)"
-grep -q '^static const unsigned int anim_slide_ms    = 240;' "$CH" \
+case_ "tiled windows making room (a neighbour gone, the master swapped, its share changed) flow from where they are drawn to their places over anim_slide_ms, on a spring; a new place mid-slide goes on from where it is, the same place again changes nothing (no restart, no jolt)"
+grep -q '^static const unsigned int anim_slide_ms    = 300;' "$CH" \
   && grep -q 'if (!interact && slideok(c) && (wasx != c->geom.x || wasy != c->geom.y)' "$P" \
   && grep -q '&& (fromx != c->geom.x || fromy != c->geom.y)) {' "$P" \
   && grep -q 'c->slidex = fromx - c->geom.x, c->slidey = fromy - c->geom.y;' "$P" \
-  && grep -q 'dx = (int)lround(c->slidex \* (1.0 - e));' <(added applyframe) \
+  && grep -q 'dx = (int)lround(c->slidex \* spring(c->animp, SLIDE_W, 1.0));' <(added applyframe) \
   && grep -q '&& (c->anim == AnimNone || c->anim == AnimSlide)' <(added slideok) \
   && grep -q '!c->isfloating && !c->isfullscreen && !iswarm(c)' <(added slideok) && _ok || _no "the slide"
 
@@ -138,12 +154,13 @@ grep -q '^+	if (m->vrr == 1 && (c = focustop(m)) && c->isfullscreen && client_su
 case_ "an empty cut hides the picture (wlroots takes an empty clip for none)"
 grep -q 'wlr_scene_node_set_enabled(&c->scene_surface->node, 0);' <(added applyframe) && _ok || _no "empty clip not handled"
 
-case_ "a closed window's ghost dissolves out and sinks anim_rise px (its own rise and time: anim_close_ms), from as many cells as it showed (one closed while it dissolved in), its parts kept out of sight in a box of their own"
+case_ "a closed window's ghost sinks anim_fall px, fading (its own time: anim_close_ms), its parts kept out of sight in a box of their own; one closed while it hopped in: as clear as it was"
 f=$(added ghostapply)
-grep -q 'wlr_scene_node_set_position(&g->tree->node, g->x, g->y + (int)lround(g->rise \* animease(t)));' <<<"$f" \
+grep -q 'wlr_scene_node_set_position(&g->tree->node, g->x, g->y + (int)lround(fallpos(t)));' <<<"$f" \
+  && grep -q 'wlr_scene_buffer_set_opacity(g->dis.node, g->alpha \* fallalpha(t));' <<<"$f" \
   && grep -q 'dissolvepart(pass, g->parts\[i\].node, g->parts\[i\].node->x - g->box.x,' <<<"$f" \
-  && grep -q '^+	g->ms = anim_close_ms, g->rise = anim_rise;' "$P" && grep -q '^+		if ((now - g->t0) >= g->ms) {' "$P" \
-  && grep -q 'g->t0 = g->last = nowms() - (1.0 - p) \* g->ms;' <(added ghostclient) \
+  && grep -q '^+	g->ms = anim_close_ms, g->fall = 1;' "$P" && grep -q '^+		if ((now - g->t0) >= g->ms) {' "$P" \
+  && grep -q 'g->alpha = c->anim == AnimOpen ? hopalpha(c->animp) : 1.0f;' <(added ghostclient) \
   && grep -q 'wlr_scene_node_set_enabled(node, 0);' <(sed -n '/^+ghostadd(/,/^+}/p' "$P") \
   && grep -q '^+	float color\[4\];' "$P" && grep -q '^+	int x, y; ' "$P" && _ok || _no "ghostapply / GhostPart / Ghost"
 case_ "a closed window leaves a ghost of its own buffers that never takes the pointer, freed (its dissolve with it) with its monitor and at exit"
@@ -165,7 +182,7 @@ grep -q '!locked && c && c->mon && !c->isfullscreen' <(added animok) && grep -q 
   && grep -q 'if (c->mon == m && c->isfullscreen && (c->tags & (was | now)))' "$P" && _ok || _no "an exclusion is missing"
 
 case_ "an animation waits while its monitor is held for a window to draw its new size (its clock moved on: nothing lost to an unshown frame)"
-grep -q '^+		held = pending && m->holding && !m->holdover;' "$P" && [[ $(grep -c 't0 += now - .*last;' <(added animframe)) == 3 ]] \
+grep -q '^+		held = pending && m->holding && !m->holdover;' "$P" && [[ $(grep -c 't0 += now - .*last;' <(added animframe)) == 5 ]] \
   && ! sed -n '/if (held)/,/continue;/p' <(added animframe) | grep -q 'left = 1' \
   && _ok || _no "animframe ignores holdmon, or asks for frames while held (a held screen answering its own frames: dwl ran out of memory)"
 
@@ -178,7 +195,7 @@ grep -q '^-	motionnotify(0, NULL, 0, 0, 0, 0);$' <(grep -B12 '^ 	wlr_scene_node_
 # ── beside the animations, in the same patch: full screen and X11 windows ──
 case_ "focustop: a visible full-screen window first (a window it hides never takes the keys on a return to its workspace), else the latest focused one shown"
 f=$(sed -n '/^ focustop(Monitor \*m)$/,/^ }$/p' "$P")
-grep -q '^+		if (c->isfullscreen)$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
+grep -q '^+		if (c->isfullscreen || (!top && ispopup(c)))$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
   && _ok || _no "focustop does not prefer the full-screen window"
 case_ "arrange: an X11 window shown again is told it is not minimised (a Wine game black on returning to its workspace)"
 grep -q '^+			if (VISIBLEON(c, m) && client_is_x11(c) && !client_is_unmanaged(c)$' "$P" \
@@ -195,7 +212,7 @@ case_ "unlocked: the lock screen dissolves off the desktop (anim_unlock_ms, a gh
 grep -q '^static const unsigned int anim_unlock_ms   = 420;' "$REPO/src/dwl/config.h" && grep -q '^+	if (animations && dissolveok()) {$' "$P" \
   && _ok || _no "anim_unlock_ms"
 f=$(added ghosttree)
-grep -q 'g->tree = wlr_scene_tree_create(parent);' <<<"$f" && grep -q 'g->ms = ms, g->rise = 0;' <<<"$f" \
+grep -q 'g->tree = wlr_scene_tree_create(parent);' <<<"$f" && grep -q 'g->ms = ms;' <<<"$f" \
   && grep -q '^+				ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],$' "$P" \
   && grep -q '^+						anim_unlock_ms, 0);$' "$P" && _ok || _no "ghosttree for the lock"
 case_ "the screensaver over the lock: its own scene layer above the lock's, for the user's own kawa-saver alone (/proc/PID/exe); the lock holds no frame under it; a saver that does not go is taken off within SAVER_GUARD_MS"
@@ -213,12 +230,12 @@ grep -q '^static const unsigned int anim_unroll_ms   = 300;' "$CH" && grep -q '^
   && grep -q 'int w = c->geom.width, h = drawnheight(c), o = c->bw ? 1 : 0, j, dx = 0, dy = 0;' <(added applyframe) \
   && grep -q 'framelayout(w, h, o, r);' <(added applyframe) \
   && grep -q 'animstart(c, AnimUnroll, 0);' <(sed -n '/^+warmshow(Client \*c)$/,/^+}/p;/^ warmshow(Client \*c)$/,/^ }/p' "$P") \
-  && grep -q 'animstart(c, AnimUnroll, 0);   /\* (a warm window its key started: it unrolls) \*/' <(added showclient) \
+  && grep -q 'animstart(c, AnimUnroll, 0);   /\* (a warm window its key started, a popup: it unrolls) \*/' <(added showclient) \
   && grep -q 'return animations && !locked && c && c->mon;' <(added warmanimok) && _ok || _no "the unroll"
 case_ "put away: a ghost of it rolls up into its top edge over anim_rollup_ms — its picture frozen as it stood (composed once: whatever the window draws once away is never seen), its frame laid out where the scroll ends; from as far as it had unrolled; shown again meanwhile: it unrolls from there"
 f=$(added warmhide)
 grep -q 'ghostscroll(c, f);' <<<"$f" && grep -q 'wlr_scene_node_set_enabled(&c->scene->node, 0);' <<<"$f" && grep -q 'animdrop(c);' <<<"$f" \
-  && grep -q 'dissolveshow(&g->dis, pass, 0, 0, 1, 16.0);' <(added ghostscroll) && grep -q 'g->ms = anim_rollup_ms, g->rise = 0;' <(added ghostscroll) \
+  && grep -q 'dissolveshow(&g->dis, pass, 0, 0, 1, 16.0);' <(added ghostscroll) && grep -q 'g->ms = anim_rollup_ms;' <(added ghostscroll) \
   && grep -q 'g->t0 = g->last = nowms() - (1.0 - cbrt(f < 0 ? 0 : f > 1 ? 1 : f)) \* g->ms;' <(added ghostscroll) \
   && grep -q 'int hv = (int)lround(g->h \* (1.0 - animease(t))), ih = MAX(hv - 2 \* g->o, 0);' <(added ghostapply) \
   && grep -q 'wlr_scene_buffer_set_source_box(g->dis.node, &(struct wlr_fbox){ 0, 0,' <(added ghostapply) \

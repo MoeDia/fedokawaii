@@ -378,7 +378,7 @@ for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
 sys.exit(bad)
 EOF
 
-case_ "the mood's head: drawn (build-themes FACES, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
+case_ "the mood's head: drawn (art/heads.txt, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
 for th in dark light; do
   for f in face face-open; do
     eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "22 20 6" "$th/$f.png: 22 × 20 with alpha"

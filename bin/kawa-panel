@@ -34,22 +34,16 @@ is another click, however fast it comes. Every key's request counts, however fas
 repeats no held key that opens something (one press), so presses as fast as you like end open
 after an odd number, closed after an even one.
 
-Quick settings is a dial (和時計, a wadokei — docs/design-system.md §4), a square with no words
-at rest (the day, the time, the weather and the volume's number are the bar's, right above it):
-    the hours     the switches' 28 px pictures on a circle, the theme at twelve, then clockwise
-                  night light · freesync · screensaver · dnd · network · bluetooth · devices
-                  (those two only with a Bluetooth adapter: else ten, spaced evenly) · drives ·
-                  backup · record · read text — vermilion on, muted off; Enter (or a click)
-                  switches one in place, or opens its own menu (network, devices, drives,
-                  backup, record, read text: the panel goes)
-    the meters    brightness up the left, sound up the right: twenty beads each on a circle
-                  inside the hours, lit from the bottom to the level, reddening as they rise,
-                  hollow while muted; a click on a bead sets that level, a drag follows round,
-                  the wheel ±5, ↑ ↓ on one under the cursor ±5; Enter on sound: the sound panel
-    the corners   screenshot · wallpaper · screen off · power
-    the middle    the item under the cursor: its picture twice as large, its name and state (a
-                  meter: its level in display size); at rest, the mood's face
-The arrows go to the nearest item that way, Tab to every item in turn.
+Quick settings is a plain menu (the owner, 4 Nov: "over-engineered, break it down, a simpler way"):
+a heading, then rows, a row a thing, in four groups:
+    the meters    brightness and sound, the panels' own meter; ← → or a click or a drag set them, the
+                  wheel ±5; Enter on sound: the sound panel
+    in place      theme · night light · do not disturb · screensaver · freesync: Enter or a click
+                  switches it, the panel stays (the wheel on the night light: its warmth)
+    connections   network · bluetooth · devices (those two only with a Bluetooth adapter; devices
+                  while it is on) · drives · backup: their own menus, the panel goes
+    the screen    wallpaper · screenshot · record · read text · screen off · power: the same
+The icon lights in vermilion, and the state beside it in the strong ink, while a thing is on.
 The sound panel, three parts under their headings: sound — the volume's meter (hollow while
 muted; its icon the bar's) and two keys, mute and mixer (wiremix) · output and input — every
 device (not "Share"), the one in use ticked: a click makes another the default, playing audio
@@ -57,8 +51,8 @@ moves to it · the input's foot: two keys side by side, as mute and mixer above 
 microphone and test mic (5 s recorded, played back: kawa-quick --do mictest).
 The brightness slider: the brightness meter alone.
 Everything on docs/design-system.md's grid (§3–§4): rows of 20 px, a heading's icon, name and
-rule, keys one row high, the dial's square, the frame's hairline (its corners left out) and the
-bar's shadow — sized in whole cells.
+rule, keys one row high, the frame's hairline (its corners left out) and the bar's shadow — sized
+in whole cells.
 Opened by a click on the bar, each hangs right under the pointer (dwl's dwl-pointer, written
 as it clicks), kept 8 px inside its output; opened by its key, under its own module: quick
 settings at the right end, the others under the volume and the brightness (fixed margins,
@@ -70,21 +64,19 @@ moves it from there. It is not there until a key or the pointer asks for it: the
 Tab or Enter puts it on the first item, every open starts without it (nothing remembered from
 the last time). A click does what is under the pointer.
 
-Keys: arrows or h j k l move (on the dial: to the nearest item that way) · on a meter ← → (h l)
-change it by 5 (the slider's from the first press: it is all there is; the dial's beads rise,
-so there ↑ ↓) · Enter or Space does it · Tab goes round · Esc closes.
+Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 (the slider's from the first
+press: it is all there is) · Enter or Space does it · Tab goes round · Esc closes.
 The mouse: a click does it; on a meter a click or a drag sets the level there, the wheel (or a
 touchpad) moves it by 5. A click outside closes it, as with every menu. Switches (theme, night light,
 freesync, bluetooth, dnd, screensaver; mute, an output, an input) stay open and show the new state; the
 rest close it and open their own menu or window. Everything is done by kawa-quick (--state,
 --do), which knows the machine; this only draws it and listens.
 
-While open each says so to the bar: a marker holding its pid, kawa-panel.open (the face),
+While open each says so to the bar: a marker holding its pid, kawa-panel.open (the head),
 kawa-panel-sound.open and kawa-panel-brightness.open, and a poke (SIGRTMIN+15, +16, +14).
 Its colours are the theme's (~/.config/fedokawaii/current/panel.conf): a theme switch
 restyles it at once. Exit: 0 · 2 wrong use.
 """
-import math
 import os
 import re
 import shlex
@@ -138,39 +130,16 @@ HAIR, PAD = 1, 16                    # the frame's hairline; the paper from it t
 BORDER = HAIR                        # (the content starts BORDER + PAD from the frame's outer edge)
 SHADOW_R, SHADOW_B = 1, 2            # the frame's shadow: a column at its right, two rows under it
 GAP = 8                              # the air between two keys, two groups' halves (§3)
-STAMP_MS = 60                        # a seal stamped (§11): a pixel larger in accent_hi this long
-BEAD_MS = 12                         # a meter changing on the dial (§11): its beads light or go out one after another, at least this apart (on the frame clock)
-REEL_MS = 167                        # the record hour while it records: its reels turn (§5 busy; §13: a moving picture 6 frames a second)
 INNER = 47 * CELL                    # 376: the content (quick settings, the sound panel, the launcher)
-# quick settings, the dial (§4, 和時計 a wadokei): a square; the switches' pictures on its hours
-# (the theme at twelve, then clockwise), the two meters as beads on a circle inside them
-# (brightness rising up the left, sound up the right), the four actions in its corners, and
-# in its middle the face at rest — or the item the cursor is on, larger, with its name and state
-DIAL = 38 * CELL                     # 304: the square (the grid's one stated exception, §3)
-DIAL_R = 128                         # an hour's picture: its centre this far from the dial's
-HOUR = 36                            # an hour's place: 36 × 36 round its 28 px picture (the cursor's lacquer)
-BEAD_R, BEAD = 88, 6                 # the meters' beads: on this circle, each 6 px round
-BEAD_FROM, BEAD_RUN = 22, 136        # the first bead this many degrees up from the bottom, the 20th this many more
-BAND = 10                            # a meter under the cursor: its beads on a lacquer band this wide
-HOURS = ("theme", "night", "vrr", "saver", "dnd", "network", "bluetooth", "devices", "drives",
-         "backup", "record", "ocr")  # twelve o'clock, then clockwise (no adapter: ten, spaced evenly)
-CORNERS = (("screenshot", "camera", "screenshot"), ("wallpaper", "picture", "wallpaper"),
-           ("screenoff", "screen_off", "screen off"), ("power", "power", "power"))   # top left, top right, bottom left, bottom right
 COL = 7                             # a column of Sumi UI: a letter (a kanji or kana: two)
 LINE = 14                            # Sumi UI's em: in a row, on its rows 3–16 (capitals 5–14)
 METER_H, METER_GAP = ROW, 0          # a row, and the rows' air between them: none (theirs is inside)
 GLYPH_COL = 2 * CELL                 # the icon column: 16 px, an icon centred in it (2 px either side)
 GLYPH_X, NAME_X = CELL, 4 * CELL     # a row's icon column (cell 1: the icon on x 10–21) · its name (cell 4)
 HEAD_X = 3 * CELL                    # a heading's name (cell 3: its icon in the column at cell 0)
-FACE = os.path.join(HOME, ".config/fedokawaii/current/face-big.png")   # the dial's middle at rest: the mood's face, 56 × 56 at 1 px (open: the panel is)
-# an hour's picture (art/crests.txt → tools/build-icons.py): a mask CREST_PIC px square, its
-# name the item's icon less "tile_" (tile_bell_off → bell-off.png), painted in the state's ink;
-# in the dial's middle twice as large (ECHO)
-CRESTS = os.path.join(HOME, ".local/share/fedokawaii/crests")
-CREST_PIC = 28
-ECHO = 2
-ECHO_W = 16 * CELL                   # its words at most 128 px (between the beads)
 HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
+QUICK_GAP = ROW // 2                 # quick settings: the air between its groups (half a row: they stay one list)
+QUICK_VALUE = 24 * CELL              # … a state's words at most this wide
 SECTION = ROW                        # the air above a heading (none at a panel's top)
 KEY_H = ROW                          # a key: one row high, its 1 px frame inside the row
 SEGS, SEG_W, SEG_H = 20, 6, 10       # a meter: 20 segments 6 × 10 px, one a cell (2 px of air) — 5 % each
@@ -204,14 +173,14 @@ def icons(path=ICONS_SH):
 
 def glass():
     """The terminal's ground's alpha (kawa-glass: Super+U → transparency), which the panels
-    take too — on as it is made (0.92), a file without an alpha line: opaque."""
+    take too — on as it is made (0.96), a file without an alpha line: opaque."""
     try:
         with open(GLASS, encoding="utf-8") as f:
             for line in f:
                 if line.startswith("alpha="):
                     return max(0.0, min(1.0, float(line[6:])))
     except (OSError, ValueError):
-        return 0.92
+        return 0.96
     return 1.0
 
 
@@ -453,7 +422,7 @@ class Item:
     def __init__(self, key, kind, x, y, w, h, row, **kw):
         self.key, self.kind, self.x, self.y, self.w, self.h, self.row = key, kind, x, y, w, h, row
         self.kanji = self.icon = self.glyph = None
-        self.lit = self.muted = self.scrolls = False
+        self.lit = self.muted = self.scrolls = self.on = False
         self.name = self.value = self.tip = self.detail = ""
         self.__dict__.update(kw)
 
@@ -478,97 +447,37 @@ def vrr_shown(s):
     return want, True                      # (unread: the setting alone, as it was asked)
 
 
-def tiles_of(s):
-    """(key, picture, name, value, on) for each switch of the dial — a lookup: HOURS orders the
-    dial —, each its own 28 px picture (art/crests.txt, by its icon less "tile_"), the theme's
-    the mood it is in — the moon at night, the sun rising."""
+def quick_rows(s):
+    """Quick settings' rows after the meters, in their groups: (key, icon, name, value, on), each with
+    its own picture, the theme's the mood it is in. On: its icon lit, its state strong."""
     dark = s.get("theme", "dark") != "light"
     net = s.get("nettype", "offline")
     dnd = s.get("dnd") == "on"
-    t = [("theme", "tile_moon" if dark else "tile_sun", "theme", "dark" if dark else "light", True),
-         ("night", "tile_lantern", "night light", s.get("night", "off"), s.get("night", "off") != "off"),
-         ("vrr", "tile_wave", "freesync") + vrr_shown(s),
-         ("network", {"ethernet": "tile_ethernet", "wifi": "tile_wifi"}.get(net, "tile_offline"), "network",
-          s.get("network", "offline"), net in ("ethernet", "wifi") or s.get("network", "offline") != "offline")]
+    night = s.get("night", "off")
+    saver = s.get("saver", "off")
+    place = [("theme", "tile_moon" if dark else "tile_sun", "theme", "dark" if dark else "light", False),
+             ("night", "tile_lantern", "night light", night, night != "off"),
+             ("dnd", "tile_bell_off" if dnd else "tile_bell", "do not disturb", s.get("dnd", "off"), dnd),
+             ("saver", "tile_saver", "screensaver", saver, saver != "off"),
+             ("vrr", "tile_wave", "freesync") + vrr_shown(s)]
+    links = [("network", {"ethernet": "tile_ethernet", "wifi": "tile_wifi"}.get(net, "tile_offline"), "network",
+              s.get("network", "offline"), net in ("ethernet", "wifi") or s.get("network", "offline") != "offline")]
     if "bluetooth" in s:
-        dev = s.get("devices", "off")
-        t += [("bluetooth", "tile_bluetooth", "bluetooth", s["bluetooth"], s["bluetooth"] == "on"),
-              ("devices", "tile_devices", "devices", dev, dev not in ("none", "off"))]
-    b = s.get("backup", "not set up")
-    t += [("drives", "tile_drive", "drives", s.get("drives", "none"), s.get("drives", "none") != "none"),
-          ("backup", "tile_backup", "backup", b, b not in ("never", "not set up")),
-          ("dnd", "tile_bell_off" if dnd else "tile_bell", "dnd", s.get("dnd", "off"), dnd),
-          ("saver", "tile_saver", "screensaver", s.get("saver", "off"), s.get("saver", "off") != "off"),
-          # the screen's two captures beside the foot's screenshot: a recording (its menu —
-          # whole or a region, sound or none —, or stopped while one runs: on then) and a
-          # region's words read onto the clipboard (kawa-screenshot text)
-          ("record", "tile_record", "record", "recording" if s.get("record") == "on" else "off", s.get("record") == "on"),
-          ("ocr", "tile_read", "read text", "a region", False)]
-    # (each state as much as the dial's middle shows between the beads: ECHO_W px of words —
-    # "KINGSTON 58G" whole)
-    return [(k, i, n, fit(v, ECHO_W), on) for k, i, n, v, on in t]
-
-
-class Arc(Item):
-    """A meter on the dial: twenty beads on a circle round (cx, cy), up the left side (side −1:
-    brightness) or the right (1: sound) from the bottom; the pointer is on it as on_arc() says."""
-
-    def inside(self, x, y):
-        return on_arc(*arc_polar(self, x, y))
-
-    def centre(self):
-        return self.cx + self.side * BEAD_R
-
-
-def arc_polar(it, x, y):
-    """Where a point (the pointer's, as GTK gives it; a pixel's: its centre, x + ½) is on an
-    arc's side of the dial: its angle up from the bottom (degrees: 0 at six o'clock, 180 at
-    twelve; None on the other side) and its distance from the middle — the point cx, cy between
-    the four middle pixels (the dial is an even number of pixels across: every picture and bead
-    is centred on cx ± dx, cy ± dy)."""
-    dx, dy = (x - it.cx) * it.side, (y - it.cy)
-    if dx <= 0:
-        return None, 0.0
-    return math.degrees(math.atan2(dx, dy)), math.hypot(dx, dy)
-
-
-def on_arc(u, r):
-    """A polar place (arc_polar's) on an arc: within a bead's spacing of its run and HOUR / 3 of its circle."""
-    step = BEAD_RUN / (SEGS - 1)
-    return u is not None and abs(r - BEAD_R) <= HOUR // 3 and BEAD_FROM - step <= u <= BEAD_FROM + BEAD_RUN + step
-
-
-def lit_beads(value):
-    """How many of a dial meter's twenty beads a level lights (5 % each; no level: none)."""
-    pct = percent(value)
-    return 0 if pct is None else pct // 5
-
-
-def arc_level(it, x, y, held=False):
-    """The level a pointer at x, y on an arc means: the bead it is on (5 % each, the first one
-    5 %), a bead's spacing below the first 0; held (a drag): anywhere on its side, past an end
-    that end. None: not there."""
-    u, r = arc_polar(it, x, y)
-    if u is None:
-        return (0 if y >= it.cy else 100) if held else None
-    if not held and not on_arc(u, r):
-        return None
-    j = (u - BEAD_FROM) / (BEAD_RUN / (SEGS - 1))   # (0: on the first bead's centre)
-    return max(0, min(100, 5 * (math.floor(j + .5) + 1)))
-
-
-def on_circle(cx, cy, r, deg):
-    """The pixel at deg (clockwise from twelve) on a circle of radius r round the dial's middle,
-    the same both sides of its upright (each half rounded once, the other its mirror)."""
-    a = math.radians(deg)
-    dx, dy = round(r * abs(math.sin(a))), round(r * abs(math.cos(a)))
-    return cx + (dx if math.sin(a) > 1e-9 else -dx if math.sin(a) < -1e-9 else 0), \
-        cy + (-dy if math.cos(a) > 1e-9 else dy if math.cos(a) < -1e-9 else 0)
-
-
-def bead_at(it, j):
-    """The centre pixel of an arc's bead j (0: the lowest)."""
-    return on_circle(it.cx, it.cy, BEAD_R, it.side * (180 - (BEAD_FROM + j * BEAD_RUN / (SEGS - 1))))
+        links.append(("bluetooth", "tile_bluetooth", "bluetooth", s["bluetooth"], s["bluetooth"] == "on"))
+        if s["bluetooth"] == "on":
+            dev = s.get("devices", "none")
+            links.append(("devices", "tile_devices", "devices", dev, dev not in ("none", "off")))
+    drv, bak = s.get("drives", "none"), s.get("backup", "not set up")
+    links += [("drives", "tile_drive", "drives", drv, drv != "none"),
+              ("backup", "tile_backup", "backup", bak, bak not in ("never", "not set up"))]
+    rec = s.get("record") == "on"
+    screen = [("wallpaper", "picture", "wallpaper", s.get("wallpaper", ""), False),
+              ("screenshot", "camera", "screenshot", "", False),
+              ("record", "tile_record", "record", "recording" if rec else "", rec),
+              ("ocr", "tile_read", "read text", "", False),
+              ("screenoff", "screen_off", "screen off", "", False),
+              ("power", "power", "power", "", False)]
+    return place, links, screen
 
 
 class Layout:
@@ -581,7 +490,6 @@ class Layout:
     def __init__(self, items, head, rules, size, heads=(), nones=(), marks=(), view=None):
         self.items, self.head, self.rules, self.size = items, head, rules, size
         self.heads, self.nones, self.marks, self.view = list(heads), list(nones), list(marks), view
-        self.centre = None       # (the dial's: its middle, drawn from the cursor's item)
 
 
 # ── a menu (kawa-panel --menu, kawa-menu's): a list read from its caller ──────────────────
@@ -927,42 +835,26 @@ def bri_icon(pct):
 
 
 def layout_quick(s):
-    """Quick settings, the dial (docs/design-system.md §4): a square DIAL px — the switches'
-    pictures on its hours (HOURS: twelve o'clock first, then clockwise; spaced evenly whatever
-    their number), the two meters as beads inside them, the four actions in its corners. No
-    heading: the face at its middle says whose it is. Its middle (the echo) is drawn by the
-    drawing from the cursor's item — Layout.centre is its place."""
-    x0 = y0 = BORDER + PAD
-    cx, cy = x0 + DIAL // 2, y0 + DIAL // 2         # (the middle pixel's right-hand, lower neighbour)
-    t = {k: (ic, n, v, on) for k, ic, n, v, on in tiles_of(s)}
-    hours = [k for k in HOURS if k in t]
-    items = []
-    for i, key in enumerate(hours):
-        px, py = on_circle(cx, cy, DIAL_R, 360 * i / len(hours))
-        ic, name, value, lit = t[key]
-        items.append(Item(key, "hour", px - HOUR // 2, py - HOUR // 2, HOUR, HOUR, 0, icon=ic, name=name,
-                          value=value, lit=lit, order=i, pic=(px - CREST_PIC // 2, py - CREST_PIC // 2)))
-    for side, key in ((-1, "brightness"), (1, "sound")):
+    """Quick settings: its heading, the two meters, then each group of rows, a gap between groups."""
+    x0 = y = BORDER + PAD
+    items, r = [], 0
+    heads = [("sliders", TITLE["quick"], x0, y)]
+    y += HEAD_H
+    for key in METERS:
         pct = percent(s.get(key, ""))
-        icon = bri_icon(pct) if key == "brightness" else vol_icon(pct, s.get("muted") == "on")
-        # (its box: the beads' and the cursor's band round them — what a redraw of it covers)
-        lo = cx - BEAD_R - BAND if side < 0 else cx + round(BEAD_R * math.sin(math.radians(BEAD_FROM))) - BAND
-        w = BEAD_R + 2 * BAND - round(BEAD_R * math.sin(math.radians(BEAD_FROM)))
-        items.append(Arc(key, "arc", lo, cy - BEAD_R - BAND, w, 2 * (BEAD_R + BAND), 0, icon=icon, name=key,
-                         value=s.get(key, ""), muted=key == "sound" and s.get("muted") == "on",
-                         side=side, cx=cx, cy=cy))
-    for (key, ic, name), (ax, ay) in zip(CORNERS, ((0, 0), (1, 0), (0, 1), (1, 1)), strict=True):
-        ix, iy, iw, ih = pic_ink(ic)
-        # (its place flush with the corner, 4 px into the pad — the four mirror images —, the
-        # picture's ink centred in it, its odd pixel of air right and below)
-        x = x0 - (HOUR - CREST_PIC) // 2 + ax * (DIAL - CREST_PIC)
-        y = y0 - (HOUR - CREST_PIC) // 2 + ay * (DIAL - CREST_PIC)
-        items.append(Item(key, "corner", x, y, HOUR, HOUR, 0, pic=(x + (HOUR - iw) // 2 - ix, y + (HOUR - ih) // 2 - iy),
-                          icon=ic, name=name, value=fit(s.get("wallpaper", ""), ECHO_W) if key == "wallpaper" else ""))
-    side = DIAL + 2 * (PAD + BORDER)
-    lay = Layout(items, (x0, y0), [], (side, side))
-    lay.centre = Item("centre", "centre", cx - BEAD_R + BAND, cy - BEAD_R + BAND, 2 * (BEAD_R - BAND), 2 * (BEAD_R - BAND), 0)
-    return lay
+        muted = key == "sound" and s.get("muted") == "on"
+        items.append(Item(key, "meter", x0, y, INNER, ROW, r, icon=bri_icon(pct) if key == "brightness" else vol_icon(pct, muted),
+                          name=key, value=s.get(key, ""), muted=muted))
+        y += ROW
+        r += 1
+    for group in quick_rows(s):
+        y += QUICK_GAP
+        for key, icon, name, value, on in group:
+            items.append(Item(key, "row", x0, y, INNER, ROW, r, icon=icon, name=name, value=fit(value, QUICK_VALUE), on=on))
+            y += ROW
+            r += 1
+    y += PAD + BORDER
+    return Layout(items, (x0, x0), [], (INNER + 2 * (PAD + BORDER), y), heads)
 
 
 def layout_sound(s):
@@ -1147,99 +1039,20 @@ def look(it, focused, hot):
     on_fill (drawn on the cursor's lacquer: a meter's segments in its inks).
     The cursor — the keyboard's place, and the pointer's: one light, never two — fills the item
     with the lacquer (select), its inks text_on_select. At rest: a row's icon muted, its name text (the one
-    in use strong); a key on its own fill in a 1 px frame; on the dial, an hour's picture accent
-    on, muted off, an action's muted (its name and state are the dial's middle's, drawn there)."""
-    if it.kind in ("hour", "corner", "arc"):
-        if focused:
-            ink = "text_on_select"
-            return {"fill": "select", "frame": None, "glyph": ink, "label": ink, "value": ink,
-                    "on_fill": True, "detail": ink}
-        return {"fill": None, "frame": None, "glyph": "accent" if it.lit else "muted", "label": "text",
-                "value": "muted", "on_fill": False, "detail": "text"}
+    in use strong; a switch that is on, quick settings': its icon accent, its state strong); a key
+    on its own fill in a 1 px frame."""
     if focused:
         ink = "text_on_select"
         return {"fill": "select", "frame": None, "glyph": ink, "label": ink,
                 "value": ink, "on_fill": True, "detail": ink}
     bare = it.kind in ("meter", "row", "app")
     return {"fill": None if bare else "key", "frame": None if bare else "edge",
-            "glyph": "strong" if it.lit else ("muted" if bare else "text"),
-            "label": "strong" if it.lit else "text", "value": "muted", "on_fill": False, "detail": "text"}
-
-
-CAPS = 10                            # Sumi UI's capitals: 10 rows (the em's rows 2–11; a row's 5–14)
-ECHO_GAP = 2 * CELL                  # the middle: a picture's (or a level's) ink to the first row's capitals
-_INKS = {}
-
-
-def pic_ink(name):
-    """A picture's ink in its square (x, y, w, h — crests/ink.txt, written by build-icons.py),
-    by its item's icon; the whole square when it is not known."""
-    if not _INKS:
-        _INKS[None] = (0, 0, CREST_PIC, CREST_PIC)
-        try:
-            with open(os.path.join(CRESTS, "ink.txt"), encoding="utf-8") as f:
-                for line in f:
-                    v = line.split()
-                    if len(v) == 5 and not line.startswith("#"):
-                        _INKS[v[0]] = tuple(int(n) for n in v[1:])
-        except (OSError, ValueError):
-            pass
-    return _INKS.get(name.removeprefix("tile_").replace("_", "-"), _INKS[None])
-
-
-def echo_parts(it):
-    """What the dial's middle shows for an item (§4), top to bottom: [(kind, what, ink, top)] —
-    "pic" an hour's or an action's picture twice as large (its ink, pic_ink()), "num" a meter's level
-    in display size (its capitals, 20 px), "words" a row (its capitals, CAPS px); each top from
-    the middle (the point between the dial's middle pixels), the whole block's ink centred on it,
-    its odd row above (the odd pixel of air below, as everywhere). Rows with nothing in them are
-    left out, so every state is centred as itself."""
-    if it.kind == "arc":
-        pct = percent(it.value)
-        head = [("num", str(pct), "strong", 2 * CAPS)] if pct is not None else []
-        words = [(it.name, "strong"), ("muted" if it.muted else "" if pct is not None else it.value, "muted")]
-    else:
-        head = [("pic", it.icon, "accent" if it.lit else "text", ECHO * pic_ink(it.icon)[3])]
-        words = [(it.name, "strong"), (it.value, "strong" if it.lit else "muted")]
-    words = [w for w in words if w[0]]
-    h = sum(x[3] for x in head) + (ECHO_GAP if head and words else 0) + (CAPS + ROW * (len(words) - 1) if words else 0)
-    y = -((h + 1) // 2)
-    out = []
-    for kind, what, ink, hh in head:
-        out.append((kind, what, ink, y))
-        y += hh + ECHO_GAP
-    for i, (w, ink) in enumerate(words):
-        out.append(("words", w, ink, y + i * ROW))
-    return out
-
-
-def toward(items, cur, name):
-    """The item an arrow key goes to on the dial: the nearest whose middle lies that way, within
-    a cone either side of the arrow (no farther aside than twice as far ahead), the nearer and
-    the less aside the better — so the keys walk round the hours as the eye does. None: nothing."""
-    ux, uy = {"Left": (-1, 0), "h": (-1, 0), "Right": (1, 0), "l": (1, 0),
-              "Up": (0, -1), "k": (0, -1), "Down": (0, 1), "j": (0, 1)}[name]
-    ax, ay = cur.centre(), mid_y(cur)
-    best = None
-    for it in items:
-        if it is cur:
-            continue
-        dx, dy = it.centre() - ax, mid_y(it) - ay
-        ahead, aside = dx * ux + dy * uy, abs(dx * uy - dy * ux)
-        if ahead <= 0 or aside > 2 * ahead:
-            continue
-        score = (ahead + 2 * aside, it.order if hasattr(it, "order") else 99)
-        if best is None or score < best[0]:
-            best = (score, it)
-    return best[1] if best else None
-
-
-def mid_y(it):
-    return it.cy if it.kind == "arc" else it.y + it.h / 2
+            "glyph": "accent" if it.on else "strong" if it.lit else ("muted" if bare else "text"),
+            "label": "strong" if it.lit else "text", "value": "strong" if it.on else "muted", "on_fill": False, "detail": "text"}
 
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
-WHEELED = {"night": ("warmer", "cooler")}   # an hour the wheel changes: the night light's warmth
+WHEELED = {"night": ("warmer", "cooler")}   # a row the wheel changes: the night light's warmth
 OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
@@ -1252,12 +1065,6 @@ class Panel:
 
     def __init__(self, ui):
         self.ui = ui
-        self.stamps = {}         # hour → when it was stamped (turned on: stamping())
-        self.shown = {}          # a dial meter → how many beads are lit on screen (they glide to its level: glide())
-        self.gliding = False
-        self.glided = None       # the frame time of the glide's last step
-        self.turn = 0            # the record hour's frame while it records (0, 1: its reels turned an eighth — reel())
-        self.reeling = False
         self.mode = "quick"      # the panel open (or the last one open)
         self.states = {m: {} for m in MODES}
         self.states["menu"] = Menu([])
@@ -1296,7 +1103,6 @@ class Panel:
         lay = layout(self.state, self.mode)
         self.items, self.head, self.rules, self.size = lay.items, lay.head, lay.rules, lay.size
         self.heads, self.nones, self.marks, self.view = lay.heads, lay.nones, lay.marks, lay.view
-        self.centre = lay.centre
         if self.view:
             self.scroll = max((y for y in self.stops() if y <= self.scroll), default=0)
         else:
@@ -1320,60 +1126,6 @@ class Panel:
         self.ui.run(["kawa-quick", "--state"] + ([] if mode == "quick" else [mode]),
                     lambda rc, out: self.got_state(mode, rc, out))
 
-    def glide(self):
-        """The dial's beads follow their meters' levels one at a time (§11: a meter changing —
-        never at an open, never while closed), on the frame clock: a bead on the first frame
-        BEAD_MS or more after the last (at 144 Hz every second frame, 13.9 ms; at 60 Hz every
-        frame) — each step exactly frames apart, that arc alone redrawn."""
-        if self.gliding or not self.visible or all(
-                self.shown.get(i.key, lit_beads(i.value)) == lit_beads(i.value) for i in self.items if i.kind == "arc"):
-            return                                    # (nothing to move: no frames asked for)
-        self.gliding, self.glided = True, None
-        self.ui.frames(self._glide)
-
-    def _glide(self, t):
-        """A frame (its time t, seconds): a bead's step when BEAD_MS have passed; whether to go on."""
-        if self.glided is not None and t - self.glided < BEAD_MS / 1000 - 1e-4:
-            return self.visible
-        self.glided = t
-        busy = False
-        for it in self.items if self.visible else ():
-            if it.kind == "arc":
-                want = lit_beads(it.value)
-                have = self.shown.setdefault(it.key, want)
-                if have != want:
-                    have += 1 if want > have else -1
-                    self.shown[it.key] = have
-                    self.ui.redraw(it)
-                    busy = busy or have != want
-        self.gliding = busy
-        return busy
-
-    def recording(self):
-        it = self.item("record")
-        return it if self.visible and self.mode == "quick" and it is not None and it.lit else None
-
-    def reel(self):
-        """While a recording runs and quick settings shows, the record hour's reels turn (§5: a
-        busy thing's picture moves) — REEL_MS a frame, that hour (and the middle) redrawn."""
-        if not self.reeling and self.recording():
-            self.reeling = True
-            self.ui.later(REEL_MS, self._reel)
-
-    def _reel(self):
-        it = self.recording()
-        was, self.turn = self.turn, (self.turn ^ 1) if it else 0
-        self.reeling = it is not None
-        if it is not None:
-            self.ui.redraw(it)
-            self.ui.later(REEL_MS, self._reel)
-        elif was and self.visible and self.item("record"):
-            self.ui.redraw(self.item("record"))      # (stopped while it shows: at rest, the first frame)
-
-    def stamping(self, key):
-        """An hour being stamped now (§11: turned on, STAMP_MS in accent_hi)."""
-        t = self.stamps.get(key)
-        return t is not None and self.ui.now() - t < STAMP_MS / 1000
 
     def setting(self, key):
         """Dragged, or a level of it being set or waiting to be."""
@@ -1391,14 +1143,6 @@ class Panel:
         if rc == 0:
             new = parse_sound(out) if mode == "sound" else parse_state(out)
             old = self.states[mode]
-            # an hour turned on while quick settings shows: stamped (a choice made — §11;
-            # never at an open: the old state must be there to change from)
-            if mode == "quick" and old and self.visible and self.mode == "quick":
-                was = {t[0] for t in tiles_of(old) if t[4]}
-                for t in tiles_of(new):
-                    if t[4] and t[0] not in was:
-                        self.stamps[t[0]] = self.ui.now()
-                        self.ui.later(STAMP_MS, lambda k=t[0]: self.ui.redraw(*[i for i in self.items if i.key == k]))
             for k in METERS:
                 if k in old and self.held(k, mode):
                     new[k] = old[k]
@@ -1412,8 +1156,6 @@ class Panel:
                     self.focus = None
                 self.rehot()
                 self.ui.redraw()
-                self.glide()                          # (a level changed elsewhere — its keys: the beads follow)
-                self.reel()                           # (a recording started: its reels turn)
         if mode in self.again:
             self.again.discard(mode)
             self.refresh(mode)
@@ -1480,14 +1222,12 @@ class Panel:
         # (it says at once if it is over the panel: enter-notify), no drag
         self.focus = self.hot = self.pointer = self.dragging = None
         self.scrolled = (None, 0.0)
-        self.shown = {}                               # (the beads stand at their levels: no glide at an open)
         self.relayout()
         self.place = where(self.ui.clicked(), self.size[0])   # (under the click, or its key's place)
         self.at_place()
         self.ui.show()
         self.ui.light(mode, True)
         self.refresh()
-        self.reel()
 
     def open_menu(self, menu, reply, what="menu"):
         """A menu asked for (kawa-menu): shown at once in place of whatever panel or menu is on
@@ -1631,7 +1371,6 @@ class Panel:
         if it:
             it.value, it.muted = self.state[key], False
         self.ui.redraw(*([it] if it else []))
-        self.glide()
         # the bar's module the same moment, before the level is sent (that takes a process):
         # the bar, the meter and the level display agree at every step
         self.ui.push("volume" if key == "sound" else key, f"volume {pct} 0" if key == "sound" else str(pct))
@@ -1668,9 +1407,7 @@ class Panel:
     def meter_at(self, item, x, held=False, y=0):
         """The level a pointer at x on a meter means: on its segments (or a cell's air before
         them, meaning 0 — or after them, 100); held (a drag): anywhere, past an end that end.
-        None: not there (its name: what the name does). The dial's: arc_level()."""
-        if item.kind == "arc":
-            return arc_level(item, x, y, held)
+        None: not there (its name: what the name does)."""
         off = x - self.slider_x(item)
         if not held and not (-CELL <= off < SPAN + CELL):
             return None
@@ -1704,13 +1441,6 @@ class Panel:
             return
         if name in ENTER:
             self.activate(cur.key)
-        elif self.mode == "quick" and name in MOVES[:8]:
-            if cur.kind == "arc" and name in ("Up", "k", "Down", "j") and percent(self.state.get(cur.key, "")) is not None:
-                self.step(cur.key, 5 if name in ("Up", "k") else -5)   # (its beads rise: up is more)
-            else:
-                to = toward(self.items, cur, name)
-                if to is not None:
-                    self.move(to.key)
         elif name in ("Left", "h", "Right", "l") and cur.kind == "meter":
             self.step(cur.key, -5 if name in ("Left", "h") else 5)
         elif name in ("Left", "h", "Right", "l"):
@@ -1854,19 +1584,15 @@ class Panel:
     def press(self, x, y):
         """A click does what is under it, there and then (the pointer's item is hot whether
         or not a motion said so). The keyboard's cursor, if a key has shown it, moves there;
-        none is shown for a click. On the dial, a click on its middle does what the middle
-        shows (the sound's level: the sound panel, as Enter on it)."""
+        none is shown for a click."""
         self.pointer = (x, y)
         it = self.at(x, y)
         self.set_hot(it.key if it else None)
         if not it:
-            c = self.centre
-            if c is not None and self.focus is not None and math.hypot(x - (c.x + c.w // 2), y - (c.y + c.h // 2)) < BEAD_R - BAND:
-                self.activate(self.focus)
             return
         if self.focus is not None:
             self.move(it.key)
-        if it.kind in ("meter", "arc"):
+        if it.kind == "meter":
             v = self.meter_at(it, x, y=y)
             if v is not None:
                 self.dragging = it.key
@@ -1897,7 +1623,7 @@ class Panel:
             self.scroll_list((-3 if up else 3) * (METER_H + METER_GAP))
             return
         it = self.at(x, y)
-        if it and (it.kind in ("meter", "arc") or it.key in WHEELED):
+        if it and (it.kind == "meter" or it.key in WHEELED):
             self.nudge(it.key, up)
 
     def nudge(self, key, up):
@@ -1920,7 +1646,7 @@ class Panel:
     def drawn_h(self):
         """How much of a menu's list view shows at its scroll: down to the foot of its last whole
         line (rows, rows only read, headings) — the paper under it; a line is never cut at the foot
-        either (the top is stops()' part). (Not `shown`: the dial's lit beads have that name.)"""
+        either (the top is stops()' part)."""
         top, h, _ = self.view
         feet = {it.y + it.h - top for it in self.items} | {mk[2] + ROW - top for mk in self.marks if mk[0] in SHOWN_KINDS} \
             | {hd[3] + ROW - top for hd in self.heads}
@@ -1953,7 +1679,7 @@ class Panel:
             self.scrolled = ("list", acc)
             return
         it = self.at(x, y)
-        if not it or (it.kind not in ("meter", "arc") and it.key not in WHEELED):
+        if not it or (it.kind != "meter" and it.key not in WHEELED):
             self.scrolled = (None, 0.0)
             return
         key, acc = self.scrolled
@@ -2310,9 +2036,10 @@ def main(argv):
             if not a:
                 return
             if items and view.get("size") == panel.win and not panel.view:
-                # (the dial's middle shows the cursor's item: it follows every change of one)
-                for it in items + ((panel.centre,) if panel.centre is not None else ()):
-                    a.queue_draw_area(it.x + panel.ox, it.y - panel.dy, it.w, it.h)
+                for it in items:
+                    # (a row's cursor reaches a cell beyond the content either side: item_)
+                    out = CELL if it.kind in ("row", "app", "meter") else 0
+                    a.queue_draw_area(it.x - out + panel.ox, it.y - panel.dy, it.w + 2 * out, it.h)
                 return
             if view.get("size") != panel.win:
                 view["size"] = panel.win
@@ -2706,139 +2433,6 @@ def main(argv):
         cr.move_to(gx, gy)
         PangoCairo.show_layout(cr, lay)
 
-    faces = {}
-
-    def face_pic():
-        """The mood's face (build-themes.py FACES) as the theme has it now: read again when the
-        theme's picture changes (the wash to the other mood), else the one read; None: none there."""
-        try:
-            key = (os.path.realpath(FACE), os.stat(FACE).st_mtime_ns)
-        except OSError:
-            return None
-        if key not in faces:
-            faces.clear()
-            try:
-                faces[key] = cairo.ImageSurface.create_from_png(FACE)
-            except (cairo.Error, OSError):
-                faces[key] = None
-        return faces[key]
-
-    crests = {}
-
-    def turned(icon):
-        """A picture's frame now: the record hour's reels turned while it records (reel())."""
-        return icon + "_2" if icon == "tile_record" and panel.turn else icon
-
-    def crest_pic(icon):
-        """A picture of the dial (a mask) by its item's icon, read once; None: none there."""
-        name = icon.removeprefix("tile_").replace("_", "-")
-        if name not in crests:
-            try:
-                crests[name] = cairo.ImageSurface.create_from_png(os.path.join(CRESTS, name + ".png"))
-            except (cairo.Error, OSError):
-                crests[name] = None
-        return crests[name]
-
-    bigs = {}
-
-    def big(s_):
-        """s_ (words) set at 1× on a LINE px line, as a mask: (it, its ink's x, its ink's width)
-        — drawn whole times as large by scaled(), each pixel k × k (display size, §2)."""
-        if s_ not in bigs:
-            probe = cairo.Context(cairo.ImageSurface(cairo.FORMAT_A8, 1, 1))
-            lay = text_layout(probe, s_)
-            ink, log = lay.get_pixel_extents()
-            surf = cairo.ImageSurface(cairo.FORMAT_A8, max(1, log.x + log.width), LINE)
-            c_ = cairo.Context(surf)
-            lay = text_layout(c_, s_)
-            c_.move_to(0, on_line(c_, lay, 0))
-            PangoCairo.show_layout(c_, lay)
-            bigs[s_] = (surf, ink.x, ink.width)
-        return bigs[s_]
-
-    def scaled(cr, surf, x, y, k, name=None):
-        """A picture (or, with an ink's name, a mask painted in it) k times as large at x, y."""
-        cr.save()
-        cr.translate(x, y)
-        cr.scale(k, k)
-        pat = cairo.SurfacePattern(surf)
-        pat.set_filter(cairo.FILTER_NEAREST)
-        if name:
-            col(cr, name)
-            cr.mask(pat)
-        else:
-            cr.set_source(pat)
-            cr.paint()
-        cr.restore()
-
-    bands = {}
-
-    def beads(cr, it, on):
-        """A meter on the dial (§4): its twenty beads, BEAD px round (their corner pixels left
-        out), lit up to its level from the bottom — asagi, the 17th–18th flame, the 19th–20th
-        accent (it reddens as it rises) —, unlit edge2; muted, the lit ones hollow; with no level
-        (no DDC/CI) all unlit. Under the cursor: on a lacquer band BAND px wide along the circle,
-        lit text_on_select, unlit select_lo."""
-        if on:
-            if it.side not in bands:              # (the band: the pixels within BAND/2 of the circle, over the beads' run)
-                step = BEAD_RUN / (SEGS - 1)
-                runs = []
-                for y in range(it.y, it.y + it.h):
-                    run = None
-                    for x in range(it.x, it.x + it.w + 1):
-                        u, r = arc_polar(it, x + .5, y + .5) if x < it.x + it.w else (None, 0)
-                        inside = u is not None and abs(r - BEAD_R) <= BAND / 2 and \
-                            BEAD_FROM - step / 2 <= u <= BEAD_FROM + BEAD_RUN + step / 2
-                        if inside and run is None:
-                            run = x
-                        elif not inside and run is not None:
-                            runs.append((y, run, x - run))
-                            run = None
-                bands[it.side] = runs
-            for y, x, w in bands[it.side]:
-                box(cr, x, y, w, 1, "select")
-        lit = panel.shown.setdefault(it.key, lit_beads(it.value))   # (as they stand: glide() moves them to the level)
-        for j in range(SEGS):
-            bx, by = bead_at(it, j)
-            x, y = bx - BEAD // 2, by - BEAD // 2
-            ink = ("text_on_select" if on else seg_ink(j)) if j < lit else ("select_lo" if on else "edge2")
-            if j < lit and it.muted:              # (hollow: its outline, the ground showing through)
-                box(cr, x + 1, y, BEAD - 2, 1, ink)
-                box(cr, x + 1, y + BEAD - 1, BEAD - 2, 1, ink)
-                box(cr, x, y + 1, 1, BEAD - 2, ink)
-                box(cr, x + BEAD - 1, y + 1, 1, BEAD - 2, ink)
-            else:
-                box(cr, x + 1, y, BEAD - 2, BEAD, ink)
-                box(cr, x, y + 1, BEAD, BEAD - 2, ink)
-
-    def echo(cr):
-        """The dial's middle (§4): the item the cursor is on — an hour's or an action's picture
-        twice as large (accent on, text off), a meter's level in display size (Sumi UI twice as
-        large) — with its name (strong) and its state (strong on, muted off; an action's:
-        the wallpaper's name, or nothing) a row each under it (echo_parts: the block centred on
-        the middle both ways, each part by its ink, the odd pixel right and below); at rest the
-        mood's face (open), drawn for the middle: 56 × 56 at 1 px."""
-        c = panel.centre
-        cx, cy = c.x + c.w // 2, c.y + c.h // 2
-        it = panel.item(panel.focus) if panel.focus else None
-        if it is None:                            # (at rest: the face, drawn for the middle at 1 px, centred)
-            pic_ = face_pic()
-            if pic_ is not None:
-                cr.set_source_surface(pic_, cx - pic_.get_width() // 2, cy - pic_.get_height() // 2)
-                cr.paint()
-            return
-        for kind, what, ink, top in echo_parts(it):
-            if kind == "pic":                     # (its ink centred: the square placed by what is drawn in it)
-                mask = crest_pic(turned(what))
-                ix, iy, iw, _ = pic_ink(what)
-                if mask is not None:
-                    scaled(cr, mask, cx - iw - ECHO * ix, cy + top - ECHO * iy, ECHO, ink)
-            elif kind == "num":                   # (Sumi UI twice as large: its capitals on the em's rows 2–11, so 4 down its box)
-                surf, ix, iw = big(what)
-                scaled(cr, surf, cx - (2 * iw + 1) // 2 - 2 * ix, cy + top - 4, 2, ink)
-            else:                                 # (a row's em starts 2 rows above its capitals)
-                iw = text_layout(cr, what).get_pixel_extents()[0]
-                text(cr, cx - (iw.width + 1) // 2 - iw.x, cy + top - 2, what, ink, width=ECHO_W)
 
     def heading(cr, icon, name, x, y, value=""):
         """A part of a panel or a menu (§4): its icon (12 px, accent_text) in the icon column at
@@ -2981,8 +2575,6 @@ def main(argv):
             listed(m[2], lambda m=m: mark_(cr, m))
         for it in panel.items:
             listed(it.y if it.scrolls else 0, lambda it=it: item_(cr, it))
-        if panel.centre is not None:
-            echo(cr)
         return True
 
     def dot(cr, x, y, name):
@@ -3101,7 +2693,7 @@ def main(argv):
         if it.kind in ("row", "app", "meter"):
             if lk["fill"]:                        # (the cursor: a cell beyond the content either side)
                 box(cr, it.x - CELL, it.y, it.w + 2 * CELL, it.h, lk["fill"])
-        elif it.kind not in ("hour", "corner", "arc"):   # (the dial's: their own shapes, below)
+        else:
             if lk["fill"]:
                 box(cr, it.x, it.y, it.w, it.h, lk["fill"])
             if lk["frame"]:
@@ -3117,20 +2709,6 @@ def main(argv):
                 text(cr, it.x + it.w, ty, it.value, lk["value"], right=True)
                 return
             segments(cr, it, Panel.slider_x(it), it.y + (ROW - SEG_H) // 2, pct, on)
-        elif it.kind in ("hour", "corner"):
-            # an hour of the dial (§4), or a corner's action: its picture (28 px, a mask: its own
-            # drawing) on its place's centre — an hour accent on, muted off, the moment it is
-            # turned on accent_hi (§11's stamp); an action muted; under the cursor, the place
-            # (36 × 36) in the lacquer, its corner pixels left out
-            if lk["fill"]:
-                box(cr, it.x + 1, it.y, it.w - 2, it.h, lk["fill"])
-                box(cr, it.x, it.y + 1, it.w, it.h - 2, lk["fill"])
-            mask = crest_pic(turned(it.icon))
-            if mask is not None:
-                col(cr, "accent_hi" if not on and panel.stamping(it.key) else lk["glyph"])
-                cr.mask_surface(mask, *it.pic)
-        elif it.kind == "arc":
-            beads(cr, it, on)
         elif it.kind == "app":                   # (the launcher's: its icon, its name, the answer's "copy")
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
             pic_ = ic["calc"] if it.app is None else it.app.pic

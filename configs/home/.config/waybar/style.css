@@ -6,7 +6,8 @@
    under it (two rows, a pixel further right each) and a column at its right — with the paper
    and its faint fibre inside: one frame, nothing inside it. tools/build-themes.py draws the
    pictures, per theme, exactly to their box —
-     the torii and the face  vermilion tiles at the two ends (lit: the brighter vermilion)
+     the torii               a vermilion tile at the left end (lit: the brighter vermilion)
+     the head                the mood's on the paper of the right end's tile
      the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
                              ink while it holds windows, asagi while it asks for you; the one
                              you are on stamped with the round vermilion seal (16 px), its
@@ -78,7 +79,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 }
 #custom-torii { margin-left: 8px; padding-right: 8px; }   /* (the torii's ink fills its 16 columns) */
 #custom-menu  { margin-left: 11px; margin-right: 7px; }   /* (its right hairline on x 1911) */
-/* the mood's head, a woodblock's crest (tools/build-themes.py FACES: 22 × 20, the paper's rows whole),
+/* the mood's head (tools/build-heads.py, art/heads.txt: 22 × 20, the paper's rows whole),
    on the tile's own paper over its fibre: across its 29 px box leaves an odd pixel — to the right, as
    every word's. The emblem's glyph keeps the tile's width, unseen */
 #custom-menu {
@@ -246,3 +247,7 @@ tooltip box, tooltip * { padding: 0; margin: 0; min-height: 0; min-width: 0; }
    padding is what is left of the design's: 8 of pad and the row's 3 above the line, one row and
    one column of it in the picture) */
 tooltip label { color: @text; padding: 6px 3px 8px 3px; margin: 0; }
+
+/* (a window title or what plays in a fallback face, Arabic, emoji, Thai, taller than ours: the bar keeps
+   its 27 rows, the words on their rows) */
+#custom-title, #custom-nowplaying { padding-top: 0; padding-bottom: 0; min-height: 20px; }

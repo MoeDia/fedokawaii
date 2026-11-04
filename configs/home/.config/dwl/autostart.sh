@@ -127,6 +127,7 @@ keep udiskie </dev/null &                          # drives: open when plugged i
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
+kawa-carry hint </dev/null &                       # a fresh install, the drive with your things plugged in: said once
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
 
 # away 15 minutes: the screensaver, the lock behind it (the first key or move ends the one

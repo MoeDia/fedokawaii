@@ -13,13 +13,15 @@
 # The pictures are real pixel art: two pixels per character cell, drawn with half
 # blocks in 24-bit colour, which foot renders gap-free. Every colour in them is one of
 # the desktop's own (tools/build-themes.py), and each has an ink outline or its own
-# background, so it reads on the dark and the light theme alike. The icons are the
-# desktop's own (Sumi Icons); the text uses the terminal's 16 colours.
+# background, so it reads on the dark and the light theme alike. The two heads have more to
+# say than that: foot draws them pixel for pixel, a sixel of 144 × 180 (tools/build-heads.py),
+# 18 cells × 9 lines beside the eight facts. The icons are the desktop's own (Sumi Icons); the
+# text uses the terminal's 16 colours.
 # Pure bash reading /proc and /etc: nothing to install, prints in a few milliseconds.
 set -u
 
-# ── the pictures: 20 × 16 pixels (the two heads, the bar's crests: 22 × 20), one letter per pixel ('.' = transparent); the first
-#    entry of each is its palette, letter=colour ─────────────────────────────────────
+# ── the pictures: 20 × 16 pixels, one letter per pixel ('.' = transparent); the first entry of
+#    each is its palette, letter=colour ─────────────────────────────────────
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_neko=(
   "O=2d251e W=f5ecc2 w=d4bf9a P=f47b58 R=eb5324 Y=fbe6a0 y=e2b540 K=2d251e"
@@ -220,60 +222,19 @@ ART_ramen=(
   ".....OOrrrrrrOO....."
   ".....OOOOOOOOOO....."
 )
-# shellcheck disable=SC2034  # read through the nameref in picture()
-ART_oni=(
-  "R=eb5324 K=181715 W=f5ecc2"
-  ".R..................R."
-  ".RR................RR."
-  ".RRR..............RRR."
-  "..RRR...RRRRRR...RRR.."
-  "...RRRRRRRRRRRRRRRR..."
-  "...RRRRRRRKKRRRRRRR..."
-  "...RKKRRRRKKRRRRKKR..."
-  "..RRRRKKKRRRRKKKRRRR.."
-  "..RRWWRKKKKKKKKRWWRR.."
-  "..RRWKKRRRRRRRRKKWRR.."
-  "..RRRRRRRRKKRRRRRRRR.."
-  "...RRRRRRKKKKRRRRRR..."
-  "...RRRRRRRRRRRRRRRR..."
-  "..RRKKKKKKKKKKKKKKRR.."
-  "..RRKWKKKKKKKKKKWKRR.."
-  "..RRKWWKKKKKKKKWWKRR.."
-  "..RRKKKKKWKKWKKKKKRR.."
-  "...RRKKKWWKKWWKKKRR..."
-  "...RRRRRRRRRRRRRRRR..."
-  ".....RRRRRRRRRRRR....."
-)
-# shellcheck disable=SC2034  # read through the nameref in picture()
-ART_tennin=(
-  "K=121b1b N=a84222 R=a84222"
-  ".......NNNNNNNN......."
-  ".....NN...KK...NN....."
-  "....N....KKKK....N...."
-  "...N.....KKKK.....N..."
-  "..N....KKKKKKKK....N.."
-  "..N..KKKKKKKKKKKK..N.."
-  ".N..KKKKKK..KKKKKK..N."
-  ".N..KKKK......KKKK..N."
-  ".N.KKKK...RR...KKKK.N."
-  ".N.KKK..........KKK.N."
-  "N..KK..KKK..KKK..KK..N"
-  "N..KK............KK..N"
-  ".N.KK............KK.N."
-  ".N.KK............KK.N."
-  "..NKK....RRRR....KKN.."
-  "...KKK..........KKK..."
-  "NN.KKKK........KKKK.NN"
-  ".NKKKKKK......KKKKKKN."
-  "N.KKKKKKKKKKKKKKKKKK.N"
-  "NNKKKKKKKKKKKKKKKKKKNN"
-)
 NAMES=(oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
 
 rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
 
-LOGO=() LOGO_W=0
+LOGO=() LOGO_W=0 SIX=''
+HEAD_CELLS=18 HEAD_LINES=9 FACTS_AT=24   # (a head's cells and lines: 144 × 180; the facts' column: 2 + its cells + 3 + 1)
+sixel_head() {      # sixel_head dark|light — the head's sixel, as it comes; its lines left empty for the facts
+  [[ $TERM == foot* && -r $HOME/.local/share/fedokawaii/$1/head.six ]] || return 0
+  SIX=$(<"$HOME/.local/share/fedokawaii/$1/head.six") LOGO_W=$HEAD_CELLS
+  local i; for ((i = 0; i < HEAD_LINES; i++)); do LOGO+=(""); done
+}
 picture() {   # picture NAME — two pixel rows → one line of ▀ / ▄ cells (fg = upper, bg = lower)
+  case $1 in oni) sixel_head dark; return ;; tennin) sixel_head light; return ;; esac
   local -n art="ART_$1"
   local -A pal=()
   local kv y x top bot t b line
@@ -353,7 +314,14 @@ if ((${#LOGO[@]})) && [[ -t 1 ]]; then
   ((${COLUMNS:-0} > 0 && LOGO_W + 5 + w > COLUMNS)) && LOGO=()
 fi
 echo
-if ((${#LOGO[@]})); then
+if ((${#LOGO[@]})) && [[ -n $SIX ]]; then
+  # the room first (the screen may scroll now, never while the picture is drawn), the picture from
+  # the saved place, back to it: spaces over a sixel would cut it, so the facts are placed by column
+  printf '\n%.0s' "${LOGO[@]}"
+  printf '\e[%dA\e7\e[3G%s\e8' "$HEAD_LINES" "$SIX"
+  for f in "${INFO[@]}"; do printf '\e[%dG%s\n' "$FACTS_AT" "$f"; done
+  printf '\n%.0s' "${LOGO[@]:${#INFO[@]}}"     # (below the picture's last line)
+elif ((${#LOGO[@]})); then
   top=$(((${#LOGO[@]} - ${#INFO[@]}) / 2))   # (a taller picture: the facts in the middle of it)
   for i in "${!LOGO[@]}"; do
     f=''; ((i >= top)) && f=${INFO[i - top]:-}
