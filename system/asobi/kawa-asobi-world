@@ -33,7 +33,8 @@ case ${1:-} in
     # (portals and the D-Bus services draw on gamescope's own display)
     dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP GAMESCOPE_WAYLAND_DISPLAY 2>/dev/null
     gamemoded -r >/dev/null 2>&1 &
-    /usr/local/bin/kawa-asobi-splash >/dev/null 2>&1 &
+    # (Steam's: Steam names its own apps and takes the focus from it; Bottles, in a gamescope with no Steam, could not)
+    [[ $FACE == steam ]] && { /usr/local/bin/kawa-asobi-splash >/dev/null 2>&1 & }
     # (GTK on gamescope's X server: its Wayland socket has no windows to offer)
     [[ $FACE == bottles ]] && exec setpriv --no-new-privs flatpak run --nosocket=wayland --env=GDK_BACKEND=x11 "$BOTTLES"
     # (FreeSync: Steam writes this switch from its own display setting, off by default outside a Deck,
