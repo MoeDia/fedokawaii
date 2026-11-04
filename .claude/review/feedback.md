@@ -1,0 +1,9 @@
+
+## 2026-11-04 17:00 — general — comment — open
+i dont like the normal app opening animation change it i want something smoother and more natural feeling like the window jumping in in like a retro japanese style. also regarding the super x menu it is super over-engineered break it down redesign it a more simpler way forget this current design circle its ugly. i want the demon icon to have less colors and more coneventional and more 'RED' and for the angel icon to also have less colors and more conventional and for the workspaces changing transition animation make it distinct sepeate design it on its own some kind of nice movement retro style from left to right depending on whcih workspace am mkoving from. regarding the lock screen the demon should be facing me and then i would press a secret key that opens his mouth and then i will type in the password and then the demon will close its mouth like it ate the password and then log me in and the torch dungeon background needs to be more detailed more complex and fuller make it super dense and detailed and have it like it has details in the wall like some ancient carvings with demons and angels fighting each other and stuff all custom very nice pixel art. the birghtness icon on the top bar is super ugly create something unique else. the terminal prompt could use more level make it instead of having a terminal icon on the prompt itself to have either the demon icon when its in dark theme or the angel icon when its in light theme design smartly and contrasty. the super u and super n opening menu animations is super nice all menus of that kind should open like this
+
+## 2026-11-04 17:01 — general — comment — open
+the screen saver needs an upgrade to match the new design better
+
+## 2026-11-04 17:02 — general — comment — open
+and like i said the demon and angel icon on the top bar needs to look unique and more monotone and classic japanese style feeling
