@@ -123,6 +123,7 @@ class App:
         self.focused = True
         self.cursor_id = None                      # the row the cursor is on, whatever moves around it
         self.coming = None                         # a row added a moment ago, not told of yet
+        self.touched = False                       # a key or the pointer has been here
         self.find_moved = False
         self.top = 0
         self.items = []                            # the list shown: dicts, with "id" when it can be chosen
@@ -342,6 +343,7 @@ class App:
             pass
         self.offers = offers
         self.version += 1
+        self.offer_cursor()
 
     def on_clipboard(self, text):
         self.version += 1
@@ -359,6 +361,13 @@ class App:
             many = "\n".join(v for _, v in found)
             if many not in self.declined:
                 self.offers.insert(0, {"from": "clipboard", "kind": "many", "value": many, "name": f"{len(found)} links", "hash": None})
+        self.offer_cursor()
+
+    def offer_cursor(self):
+        """What can be added stands first: it has the cursor, unless you have already moved it (a clipboard can answer late)."""
+        now = self.offers_now()
+        if now and not self.touched and self.tab == "downloads":
+            self.cursor_id = "o:" + now[0]["value"]
 
     def offers_now(self):
         return [o for o in self.offers if not o["hash"] or o["hash"] not in self.rows]
@@ -1243,6 +1252,7 @@ class App:
                     self.look_for_offers()
 
     def on_key(self, k):
+        self.touched = True
         self.say_until = 0.0
         if self.ask:
             action, self.ask = self.ask[1], None
@@ -1603,6 +1613,7 @@ class App:
             self.copy_result(r)
 
     def on_mouse(self, kind, x, y):
+        self.touched = True
         if self.ask:
             return
         if kind == "release":

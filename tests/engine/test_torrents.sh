@@ -80,7 +80,7 @@ case_ "the engine's unit: socket-started, walled in, your keys out of its sight"
 u=$(cat "$REPO/configs/home/.config/systemd/user/kawa-torrents.service")
 has "$u" 'ProtectSystem=strict' "read-only but what it needs"
 has "$u" 'ProtectHome=tmpfs' "of your home, only what it names"
-lacks "$u" '.config' "your settings and keys out of its sight"
+lacks "$(grep -v '^#' <<<"$u")" '.config' "your settings and keys out of its sight"
 [[ -x $REPO/bin/kawa-torrents ]] && _ok || _no "the program is not executable: its unit could not start it"
 has "$(cat "$REPO/configs/home/.config/systemd/user/kawa-torrents.socket")" 'ListenStream=%t/kawa-torrents.sock' "the socket the window asks at"
 has "$(cat "$REPO/configs/home/.config/dwl/autostart.sh")" 'systemctl --user start kawa-torrents.socket' "with the session"

@@ -296,7 +296,7 @@ class Engine:
         self.streams = {}                          # id → Stream
         self.saving = 0
         self.said = 0
-        self.woken = set()                         # ids to be added anew once their resume data is written
+        self.woken = {}                            # id → its files' choice: added anew once its resume data is written
         self.dirty = False
         self.stopping = False
         self.last_status = self.last_save = self.last_update = 0.0
@@ -649,22 +649,25 @@ class Engine:
             if i in self.handles:
                 write_file(os.path.join(STATE, i + ".resume"), lt.write_resume_data_buf(a.params))
             if i in self.woken:                    # (below)
-                self.woken.discard(i)
+                prios = self.woken.pop(i)
                 self.ses.remove_torrent(a.handle)
                 a.params.flags |= lt.torrent_flags.update_subscribe   # (a live torrent's flags leave out this default)
                 h = self.handles[i] = self.ses.add_torrent(a.params)
+                if prios:                          # (this alert may be of a save asked before the choice was made)
+                    h.prioritize_files(prios)
                 st = self.streams.get(i)
                 if st is not None:
                     st.h = h
                     st.rush()
+                self.save_resume(h)
         except (OSError, RuntimeError) as e:
             say(f"resume data could not be written: {e}")
 
-    def wake(self, h, i):
+    def wake(self, h, i, prios=None):
         """A finished torrent wanted again (more of its files chosen, one played): libtorrent 2.0.11 lets its seeds go when
         it finishes and never again counts them as worth connecting to, not when asked, not at a tracker's word (measured:
         none in 130 s). Added anew from its resume data, nothing is lost and it connects at once (0.1 s)."""
-        self.woken.add(i)
+        self.woken[i] = prios
         self.save_resume(h)
 
     def on_file_error(self, a):
@@ -983,7 +986,7 @@ class Engine:
             self.dirty = True
             self.save_state()
         if finished:
-            self.wake(h, i)
+            self.wake(h, i, prios)
         else:
             self.save_resume(h)
         self.idle_since = time.monotonic()
