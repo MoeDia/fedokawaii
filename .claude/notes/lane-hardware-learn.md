@@ -7,12 +7,12 @@ cut (`docs/learn/syllabus.txt`, `tools/learn-pieces.py`), and the book's update 
 ## The lights
 
 Every light in your PC is one steady red: the Gigabyte logo, the fans and the hub, the cooler, the keyboard.
-Nothing runs for them while nothing changes, so they cost no CPU and no USB traffic. They change on four events:
+They do not move, and while nothing changes they cost no CPU and no bus traffic. They change on four events:
 
 | When | They |
 |---|---|
 | the lock screen comes up | fade to about 30 % |
-| the screens go off, or the PC sleeps | go out |
+| the screens go off (also the monitor's own button), or the PC sleeps | go out, the cooler's display too |
 | you unlock, or the PC wakes | come back to full |
 | you press the lights' row in quick settings (Super+X) | go off or on, and stay that way across reboots |
 
@@ -33,7 +33,7 @@ out, so the service reads first and writes only when something differs.
 
 **The cooler's little display** shows the CPU's temperature, averaged over a few seconds. It is a USB device that
 calls itself a keyboard and has no keys; the service sends it the number, in the report the maker's own software
-uses. It stops being told when the lights go out.
+uses, once a second. It goes out with the lights: sent digits it does not know, it shows none.
 
 To see what the service found: `kawa-rgb status`.
 

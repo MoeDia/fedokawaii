@@ -8184,7 +8184,8 @@ card's logo and the keyboard, each with its own value in `/etc/fedokawaii/rgb.co
 `kawa-rgb` is a system service with no capabilities and no network; while nothing changes it sends nothing to anything.
 The lock screen fades them to about 30 %, screens off or a sleep puts them out, unlocking or waking brings them back,
 and the switch in quick settings (`kawa-rgb on`, `off`, `toggle`) turns them all off or on, kept across reboots and in
-the devices' own memory, so off is off from power-on. It also sends the cooler's display the CPU's temperature.
+the devices' own memory, so off is off from power-on. It also sends the cooler's display the CPU's temperature, and puts
+that display out with the lights.
 The protocols: Mystic Light's feature report and the card's 64-byte I2C write from OpenRGB's sources, the keyboard's
 from three public drivers, the display's from its maker's software. OpenRGB itself is not installed: it scans every
 bus on each start, and its rule gave your session every I2C bus, the RAM's included.
