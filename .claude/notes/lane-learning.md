@@ -105,8 +105,8 @@ finished: PID 1 was stuck, memory was short and the machine was overloaded, so *
 | look | test_lock 8, test_theme 1, test_units 1, test_wallpaper (count not in the log) failed | gtklock restarts, timing, swaybg: this lane touched none of them, but that is not proof either |
 | installer, session, status, drives, yazi | not run | |
 
-`test_learn` and `tools/regress/learn-grid.sh` were not part of what stopped: learn-grid held on the merged tree. test_learn last
-passed (139/139) before the merge; the content area above ran it on the merged tree and did not list it as failed.
+On the merged tree `tests/content/test_learn.sh` passed 140/140 (in the content area above) and `tools/regress/learn-grid.sh` held in
+both moods; both ran before the machine got worst, and both are to be run again after the boot.
 
 ### Next step, after the boot (this lane)
 
