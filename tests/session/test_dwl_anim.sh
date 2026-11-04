@@ -137,12 +137,12 @@ grep -q 'if (!l->mapped && layer_surface->surface->mapped && l->la && l->la->in_
   && grep -q 'ghosttree(m, m->lock_surface->surface->data, layers\[LyrBlock\],' "$P" \
   && _ok || _no "the layer surfaces' animations"
 
-case_ "tiled windows making room (a neighbour gone, the master swapped, its share changed) slide from where they are drawn to their places over anim_slide_ms, eased out; a new place mid-slide goes on from where it is, the same place again changes nothing (no restart, no jolt)"
-grep -q '^static const unsigned int anim_slide_ms    = 240;' "$CH" \
+case_ "tiled windows making room (a neighbour gone, the master swapped, its share changed) flow from where they are drawn to their places over anim_slide_ms, on a spring; a new place mid-slide goes on from where it is, the same place again changes nothing (no restart, no jolt)"
+grep -q '^static const unsigned int anim_slide_ms    = 300;' "$CH" \
   && grep -q 'if (!interact && slideok(c) && (wasx != c->geom.x || wasy != c->geom.y)' "$P" \
   && grep -q '&& (fromx != c->geom.x || fromy != c->geom.y)) {' "$P" \
   && grep -q 'c->slidex = fromx - c->geom.x, c->slidey = fromy - c->geom.y;' "$P" \
-  && grep -q 'dx = (int)lround(c->slidex \* (1.0 - e));' <(added applyframe) \
+  && grep -q 'dx = (int)lround(c->slidex \* spring(c->animp, SLIDE_W, 1.0));' <(added applyframe) \
   && grep -q '&& (c->anim == AnimNone || c->anim == AnimSlide)' <(added slideok) \
   && grep -q '!c->isfloating && !c->isfullscreen && !iswarm(c)' <(added slideok) && _ok || _no "the slide"
 
