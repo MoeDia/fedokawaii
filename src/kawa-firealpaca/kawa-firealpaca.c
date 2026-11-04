@@ -15,8 +15,8 @@
  *                 its selection's blues become the mood's ramps (white → view, black → text;
  *                 9dd1f8 → the lacquer, black → the ink on it), a slider is drawn again as the
  *                 design's meter (§4: 6 + 2 px segments, flame and vermilion at the top), the
- *                 grey round the canvas becomes the ground. A layer's thumbnail, a swatch, the
- *                 picture itself: left as they are
+ *                 grey round the canvas becomes the ground, the palette's rules the list's. A
+ *                 layer's thumbnail, a swatch, the picture itself: left as they are
  *   its face      QFont: "MS UI Gothic" at its 10–13 px becomes Sumi UI at 14, never bold
  *   its pictures  QIcon(":/images/x.png"), QPixmap(":/images/x.png"): our own drawing of the
  *                 same name when ~/.local/share/fedokawaii/firealpaca/icons/ has one. They are
@@ -255,13 +255,13 @@ list_cached(uint32_t p)
 }
 
 /* ── what each class's image is ───────────────────────────────────────────────── */
-enum kind { PLAIN, LIST, BRUSHES, LAYERS, METER, SURROUND, NAVI };
+enum kind { PLAIN, LIST, BRUSHES, LAYERS, PALETTE, METER, SURROUND, NAVI };
 
 static enum kind
 kind_of_class(const char *c)
 {
 	static const struct { const char *name; enum kind k; } t[] = {
-		{ "WidgetBrushList", BRUSHES }, { "WidgetLayerList", LAYERS }, { "WidgetBrushSize", LIST },
+		{ "WidgetBrushList", BRUSHES }, { "WidgetLayerList", LAYERS }, { "WidgetPaletteList", PALETTE }, { "WidgetBrushSize", LIST },
 		{ "WidgetGradList", LIST }, { "WidgetThumbList", LIST }, { "WidgetBrushPreview", LIST },
 		{ "WidgetBrushGamma", LIST }, { "WidgetBrushInputView", LIST },
 		{ "WidgetTrackbarSimple", METER }, { "WidgetTrackbarSimple2", METER }, { "WidgetTrackbarStep", METER },
@@ -315,15 +315,17 @@ scratch_for(size_t px)
 	return scratch;
 }
 
-/* A layer's row is 40 px between its dark rules: the eye's cell, then 10 px on the thumbnail,
- * 37 × 27 with its frame. The thumbnail stays the picture's own; a folder's row (nothing there
- * but the row's own fill) has none. Rows hang lower with each folder they are in: the eye's cell
- * says where. */
+/* A layer's row is 40 px between its dark rules: the eye's cell, then the thumbnail, its shape the
+ * picture's, in the 50 px after it (the name starts past them). The thumbnail stays the picture's
+ * own; a folder's row (black on the row's fill: our mask) has none. Rows hang lower with each folder
+ * they are in: the eye's cell says where. */
 static void
 layer_row(uint32_t *dst, const uint32_t *src, int w, int h, long stride, int top)
 {
 	int probe = top + 2 >= 0 ? top + 2 : top + 42, first = -1, eye = -1;
-	int mid = top + 20;
+	int mid = top + 20, x0 = w, x1 = -1, y0 = h, y1 = -1;
+	bool picture = false;
+	uint32_t fill;
 
 	if (probe >= h || mid < 0 || mid >= h)
 		return;
@@ -336,13 +338,25 @@ layer_row(uint32_t *dst, const uint32_t *src, int w, int h, long stride, int top
 			eye = x;
 			break;
 		}
-	if (eye < 0 || eye + 47 > w)
+	if (eye < 0 || eye + 51 > w)
 		return;
-	if (src[mid * stride + eye + 10] == src[mid * stride + eye + 5])
+	fill = src[mid * stride + eye + 3];
+	for (int y = top + 2 > 0 ? top + 2 : 0; y < top + 38 && y < h; y++)
+		for (int x = eye + 3; x < eye + 51; x++) {
+			uint32_t p = src[y * stride + x];
+			if (p == fill)
+				continue;
+			x0 = x < x0 ? x : x0;
+			x1 = x > x1 ? x : x1;
+			y0 = y < y0 ? y : y0;
+			y1 = y > y1 ? y : y1;
+			if (p & 0xffffff)
+				picture = true;
+		}
+	if (!picture)
 		return;
-	for (int y = top + 7; y <= top + 33; y++)
-		if (y >= 0 && y < h)
-			memcpy(dst + y * stride + eye + 10, src + y * stride + eye + 10, 37 * 4);
+	for (int y = y0; y <= y1; y++)
+		memcpy(dst + y * stride + x0, src + y * stride + x0, (size_t)(x1 - x0 + 1) * 4);
 }
 
 static void
@@ -358,6 +372,28 @@ layer_thumbs(uint32_t *dst, const uint32_t *src, int w, int h, long stride)
 				layer_row(dst, src, w, h, stride, y - 40);      /* (the row scrolled partly away) */
 			layer_row(dst, src, w, h, stride, y);
 			last = y;
+		}
+}
+
+/* The palette: its cells keep their colours (a swatch may be any colour); the rules between them
+ * (e7e7e7) and the checks of the empty places (e8e8e8 and white, in fours) are the list's ground, the
+ * picked cell's frame the words' ink round the ground's, seen on any colour. */
+static void
+palette_pixels(uint32_t *dst, const uint32_t *src, int w, int h, long stride)
+{
+	for (int y = 0; y < h; y++)
+		for (int x = 0; x < w; x++) {
+			uint32_t p = src[y * stride + x], q = p & 0xffffff;
+			if (q == 0xe7e7e7 || q == 0xe8e8e8)
+				p = ink.view;
+			else if (q == 0xffffff && ((x + 4 < w && (src[y * stride + x + 4] & 0xffffff) == 0xe8e8e8)
+						|| (x >= 4 && (src[y * stride + x - 4] & 0xffffff) == 0xe8e8e8)))
+				p = ink.view;
+			else if (q == 0xf93535)
+				p = ink.strong;
+			else if (q == 0xc40000)
+				p = ink.ground;
+			dst[y * stride + x] = p | 0xff000000u;
 		}
 }
 
@@ -458,6 +494,8 @@ drawn_again(void *painter, const void *rect, const void *image, const void *sour
 				dst[i] = ink.accent;
 	} else if (k == METER) {
 		draw_meter(dst, (const uint32_t *)bits, w, h, stride);
+	} else if (k == PALETTE) {
+		palette_pixels(dst, (const uint32_t *)bits, w, h, stride);
 	} else {
 		const uint32_t *src = (const uint32_t *)bits;
 		for (int y = 0; y < h; y++)
@@ -1110,7 +1148,7 @@ static const struct place {
 	{ "WidgetBrushControl", "WidgetTrackbarSimple2", 0, 8, 2, 214, 16 },
 	{ "WidgetBrushControl", "QLineEdit", 0, 230, 0, 42, 20 },
 	{ "WidgetBrushControl", "WidgetTrackbarSimple", 0, 8, 22, 214, 16 },
-	{ "WidgetBrushControl", "QLabel", 0, 230, 22, 42, 16 },
+	{ "WidgetBrushControl", "QLabel", 0, 234, 22, 38, 16 },
 	{ "WidgetBrushControl", "QLabel", 1, 8, 48, 96, 20 },
 	{ "WidgetBrushControl", "QComboBox", 0, 104, 48, 168, 20 },
 	{ "WidgetBrushControl", "QLabel", 2, 8, 76, 96, 20 },
