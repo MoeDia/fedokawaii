@@ -168,6 +168,25 @@ def scroll(plate, cx, cy, r, sign=1, w=12, start=0.0, tail=None, turns=2.3, squa
         plate.cut(stroke_poly(c2, w, 1.5, 1.0))
 
 
+def flame(plate, p0, p1, bow=0.2, width=100, lines=3, w=9, waves=1.5):
+    """flame lines cut across a form: from one root to fanned tips, each an S that swells and tapers, a lit bevel beside it"""
+    p0, p1 = np.array(p0, float), np.array(p1, float)
+    d = p1 - p0
+    L = math.hypot(*d)
+    nrm = np.array([-d[1], d[0]]) / max(L, 1)
+    for k in range(lines):
+        q = k / max(lines - 1, 1) - .5
+        pts = []
+        for t in np.linspace(0, 1, 9):
+            off = bow * L * math.sin(t * math.pi) + q * width * t \
+                + .05 * L * math.sin(t * math.pi * 2 * waves + k * 1.3) * t
+            pts.append(p0 + d * t * (1 - abs(q) * .12) + nrm * off)
+        c = spline(pts, 12)
+        side = 1 if bow >= 0 else -1
+        plate.clear(stroke_poly(c + normals(c) * w * .8 * side, w * .55, 1, 1.0))
+        plate.cut(stroke_poly(c, w, 1.5, .8))
+
+
 def seigaiha(plate, poly, cell=64, w=4):
     """waves of the blue sea cut across a shape: the kimono's brocade"""
     s, m = plate.box(poly)

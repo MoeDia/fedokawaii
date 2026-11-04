@@ -124,9 +124,9 @@ def face_ink(a, m, scale=1.0):
     grey = a[..., 0] * .75 + lum * .25      # the red paint reads as form, not as darkness
     g = np.asarray(Image.fromarray((np.clip(grey, 0, 1) * 255).astype(np.uint8)).resize((nw, nh), Image.LANCZOS), dtype=np.float32) / 255
     mm = np.asarray(Image.fromarray((m * 255).astype(np.uint8)).resize((nw, nh), Image.BILINEAR), dtype=np.float32) / 255 > .5
-    t = ie.blur(g, 1.0)
+    t = ie.blur(ndi.median_filter(g, size=5), 1.2)   # (the lacquer's craze stays, the photograph's grain goes)
     wide = ie.blur(t, 110 * scale / .9)
-    t2 = np.clip(.78 + (t - wide) * 1.75 + (wide - .62) * .42, 0, 1)
+    t2 = np.clip(.72 + (t - wide) * 1.85 + (wide - .62) * .42, 0, 1)
     # the torches stand either side and above: temples and cheeks catch them, the middle falls away
     yy, xx = np.mgrid[0:nh, 0:nw].astype(np.float32)
     side = np.abs(xx - AXIS * scale) / (640 * scale)
@@ -177,13 +177,13 @@ def demon_back():
     rng = np.random.default_rng(7)
     CX, CY = U(1536, 0)[0], U(0, 1480)[1]
     for side in (-1, 1):
-        for j in range(46):
-            q = j / 45
+        for j in range(52):
+            q = j / 51
             th = -math.pi / 2 + side * (.25 + q * 2.3)      # from the crown round to the shoulder
             x = CX + 640 * K * math.cos(th)
             y = CY + 700 * K * math.sin(th)
             out = th + side * rng.uniform(.05, .55)
-            length = rng.uniform(620, 1250) * (.85 + .4 * q) * K
+            length = rng.uniform(620, 1300) * (.85 + .4 * q) * K
             dr.lock(P, rng, x, y, out, length, rng.integers(4, 8), rng.uniform(40, 110) * K, rng.uniform(14, 30) * K,
                     side * rng.uniform(.6, 1.6), side * rng.uniform(.3, 1.1) * rng.choice((-1, 1)))
     # the crown: locks rising between the horns, all the way up
@@ -193,7 +193,21 @@ def demon_back():
         x, y = CX + 520 * K * math.cos(th), CY + 700 * K * math.sin(th)
         dr.lock(P, rng, x, y, th + rng.uniform(-.25, .25), rng.uniform(420, 1000) * K, rng.integers(4, 7), rng.uniform(40, 90) * K,
                 rng.uniform(12, 26) * K, rng.choice((-1, 1)) * rng.uniform(.5, 1.2), rng.choice((-1, 1)) * rng.uniform(.3, 1.2))
-    # the robe: shoulders falling from the neck, folds in them, behind the horns' roots
+    # the torches catch single strands: fine lines of light through the black, the mane's life on a dark wall
+    lit = np.random.default_rng(41)
+    for side in (-1, 1):
+        for j in range(120):
+            th = -math.pi / 2 + side * (.15 + j / 119 * 2.25)
+            x = CX + 660 * K * math.cos(th)
+            y = CY + 720 * K * math.sin(th)
+            n, a, p_ = 22, th + side * lit.uniform(.0, .6), np.array([x, y], float)
+            L, turn, pts = lit.uniform(480, 1250) * K, side * lit.uniform(.3, 1.4), []
+            for i in range(n):
+                a += turn * math.sin(i / n * math.pi * 1.6) * .08
+                p_ = p_ + (L / n) * np.array([math.cos(a), math.sin(a)])
+                pts.append(p_.copy())
+            P.clear(dr.stroke_poly(dr.spline(pts[::2], 5), lit.uniform(3.4, 6.4), .8, ease=.8))
+    # the robe: shoulders falling from the neck, folds in them
     robe = dr.spline([U(*q) for q in ((-500, 3500), (-120, 3060), (480, 2790), (980, 2640), (1536, 2600), (2092, 2640),
                                       (2592, 2790), (3192, 3060), (3572, 3500))], 16)
     P.fill(robe, .66)
@@ -201,33 +215,43 @@ def demon_back():
     for x0, x1, bow in ((180, 620, 90), (420, 860, 60), (2892, 2452, -90), (2652, 2212, -60)):
         c = [U(x0, 2800 + abs(x0 - 1536) * .22), U((x0 + x1) / 2 + bow, 3000), U(x1, 3320)]
         P.stroke(c, 16 * K, 2, ease=.9)
-    # the throat, then the collar: a V to the frame's foot, a white band along each lapel's inner edge, the left over the right
-    P.fill(UP([(1100, 2250), (1972, 2250), (2100, 2750), (1536, 3420), (972, 2750)]), .10)
-    def lapel(sgn):
-        at = lambda y: 1536 + sgn * (230 - (y - 2300) * 240 / 760)
-        band = UP([(at(2200), 2200), (at(2200) + sgn * 76, 2200), (at(3420) + sgn * 76, 3420), (at(3420), 3420)])
-        black = UP([(at(2200) + sgn * 76, 2200), (at(2200) + sgn * 330, 2200), (at(3420) + sgn * 330, 3420), (at(3420) + sgn * 76, 3420)])
-        return band, black
+    # the collar: a V under the chin, closing at the frame's foot: the throat black, a white band along each lapel's
+    # inner edge, a black one outside it, a line of light down each
+    def at(y, sgn):
+        return 1536 + sgn * 300 * (3220 - y) / 500
+    P.fill(UP([(at(2420, -1), 2420), (at(2420, 1), 2420), (at(3220, 1), 3220), (at(3220, -1), 3220)]), .10)
     for sgn in (1, -1):
-        band, black = lapel(sgn)
+        y0, y1 = 2420, 3220
+        band = UP([(at(y0, sgn), y0), (at(y0, sgn) + sgn * 82, y0), (at(y1, sgn) + sgn * 82, y1), (at(y1, sgn), y1)])
+        black = UP([(at(y0, sgn) + sgn * 82, y0), (at(y0, sgn) + sgn * 300, y0), (at(y1, sgn) + sgn * 300, y1), (at(y1, sgn) + sgn * 82, y1)])
+        P.fill(black, .14)
         P.fill(band, .96)
-        P.cut(dr.outline(band, 8))
-        P.fill(black, .16)
-        P.cut(dr.outline(black, 9))
-    # the horns: long, thick, ringed, over the mane
+        for q, w in ((.12, 5), (.9, 5)):
+            c = [U(at(y0, sgn) + sgn * 82 * q, y0), U(at(y1, sgn) + sgn * 82 * q, y1)]
+            P.cut(dr.stroke_poly(np.array(c), w * K, w * K))
+        c = [U(at(y0, sgn) + sgn * 210, y0), U(at(y1, sgn) + sgn * 210, y1)]
+        P.clear(dr.stroke_poly(np.array(c), 5 * K, 5 * K))
+        P.cut(dr.outline(black, 8))
+    # hair falling in front of the shoulders, from behind the jaw, the join hidden
     for sgn in (-1, 1):
-        c = [U(1536 + sgn * x, y) for x, y in ((430, 1010), (730, 740), (985, 520), (1190, 250), (1290, -120))]
-        dr.tube(P, c, 262 * K, 16 * K, light=-.36 * sgn, base=.80, ring_every=.04, ring_depth=.52)
+        for j in range(26):
+            x, y = U(1536 + sgn * rng.uniform(430, 760), rng.uniform(1900, 2500))
+            dr.lock(P, rng, x, y, math.pi / 2 - sgn * rng.uniform(.0, .55), rng.uniform(520, 1080) * K, rng.integers(3, 7), rng.uniform(30, 80) * K,
+                    rng.uniform(12, 26) * K, sgn * rng.uniform(.4, 1.1), sgn * rng.uniform(.2, .9) * rng.choice((-1, 1)))
+    # the horns: long, thick, ringed, over the mane, their tips inside the frame
+    for sgn in (-1, 1):
+        c = [U(1536 + sgn * x, y) for x, y in ((430, 1010), (700, 800), (960, 620), (1200, 420), (1393, 209))]
+        dr.tube(P, c, 262 * K, 14 * K, light=-.36 * sgn, base=.78, ring_every=.036, ring_depth=.54)
     tone = np.where(P.mask, P.tone, 1.0)
     ink = ie.engrave(tone, pitch=14, ride=30, mirror_x=DX, key_s=2.0)
     ink = np.where(P.mask, ink, 0)
-    ink = np.maximum(ink, P.ink)
-    alpha = np.maximum(P.mask.astype(np.float32), P.ink)
+    ink = np.maximum(ink, P.ink) * (1 - P.lit)
+    alpha = np.maximum(np.maximum(P.mask.astype(np.float32), P.ink), P.lit)
     return ie.reduce3(ink), ie.reduce3(alpha)
 
 
 def demon_front(fbox):
-    """what lies on the mask: scrolls and flames cut into brow and cheeks, strands over the temples:
+    """what lies on the mask, M1's own: scrolls and flames cut into brow and cheeks, strands over the temples:
     (ink, cleared) at final size"""
     W, H = SW * 3, SH * 3
     P = dr.Plate(W, H)
@@ -235,6 +259,18 @@ def demon_front(fbox):
     fx0, fx1, fy0, fy1 = fbox
     fw, fh = fx1 - fx0, fy1 - fy0
     CX = DX
+    for sgn in (-1, 1):
+        st = lambda a: a if sgn > 0 else math.pi - a
+        # the brow: cloud scrolls climbing from the knot between the eyes to the hairline
+        dr.flame(P, (CX + sgn * .02 * fw, fy0 + .44 * fh), (CX + sgn * .23 * fw, fy0 + .10 * fh), bow=.20 * sgn, width=130 * K, lines=3, w=9 * K)
+        dr.flame(P, (CX + sgn * .09 * fw, fy0 + .40 * fh), (CX + sgn * .38 * fw, fy0 + .25 * fh), bow=-.12 * sgn, width=70 * K, lines=2, w=8 * K)
+        dr.scroll(P, CX + sgn * .30 * fw, fy0 + .255 * fh, 118 * K, sign=sgn, w=20 * K, start=st(1.0),
+                  tail=[(CX + sgn * .20 * fw, fy0 + .325 * fh), (CX + sgn * .07 * fw, fy0 + .36 * fh)], squash=.8, tilt=sgn * .3)
+        dr.scroll(P, CX + sgn * .385 * fw, fy0 + .13 * fh, 62 * K, sign=-sgn, w=14 * K, start=st(.4), tail=[(CX + sgn * .36 * fw, fy0 + .20 * fh)], squash=.85)
+        # the cheeks: a large scroll under each eye, its tail along the fold, a flame licking up to the temple
+        dr.scroll(P, CX + sgn * .345 * fw, fy0 + .625 * fh, 92 * K, sign=-sgn, w=16 * K, start=st(.1),
+                  tail=[(CX + sgn * .42 * fw, fy0 + .72 * fh), (CX + sgn * .375 * fw, fy0 + .83 * fh)], squash=.9)
+        dr.flame(P, (CX + sgn * .215 * fw, fy0 + .60 * fh), (CX + sgn * .47 * fw, fy0 + .44 * fh), bow=-.16 * sgn, width=64 * K, lines=2, w=8 * K)
     for sgn in (-1, 1):
         for j in range(12):
             x, y = CX + sgn * (.40 + .06 * j / 11) * fw, fy0 + (.06 + .19 * j / 11) * fh
@@ -313,9 +349,9 @@ def wall_dark(name="wd-1003"):
     w, h = im.size
     plate = np.asarray(im.crop((0, 4, w, h - 4)), dtype=np.float32) / 255
     g = np.asarray(Image.fromarray((plate * 255).astype(np.uint8)).resize((SW * 3, SH * 3), Image.LANCZOS), dtype=np.float32) / 255
-    t = ie.blur(g, 2.0)
-    t = np.clip((t - .035) / .46, 0, 1) ** .74 * .96     # the relief first: deep black in its cuts, open where lit
-    ink = ie.engrave(t, pitch=12, ride=34, angle=38, key_s=2.2, t2=.40, t3=.16)
+    t = ie.blur(ndi.median_filter(g, size=3), 1.6)
+    t = np.clip((t - .03) / .72, 0, 1) ** .82            # the relief first: deep black in its cuts, open where lit
+    ink = ie.engrave(t, pitch=11, ride=26, angle=38, key_s=2.8, t2=.42, t3=.18)
     fire = np.zeros((SH, SW), bool)
     for x0, x1 in ((78, 150), (1752, 1826)):
         part = plate[108:272, x0:x1] > .80
@@ -342,8 +378,8 @@ def compose_dark(wall_ink, wall_tone, fire, plate, fig_ink, fig_alpha):
     light = torch_light()
     yy, xx = np.mgrid[0:SH, 0:SW].astype(np.float32)
     fill = .46 * np.exp(-((xx - 960) / 760) ** 2 - ((yy - 400) / 560) ** 2)
-    g = ramp(np.clip(.05 + light * .80 + fill, 0, 1), NIGHT)
-    wall = g * (1 - wall_ink[..., None]) + SUMI * wall_ink[..., None]
+    g = ramp(np.clip(.05 + light * .80 + fill, 0, 1), NIGHT) * (.42 + .58 * wall_tone)[..., None]
+    wall = g * (1 - wall_ink[..., None] * .96) + SUMI * wall_ink[..., None] * .96
     # the glow of the fire on the air
     glow = np.zeros((SH, SW), np.float32)
     for tx, ty in TORCHES:
@@ -352,8 +388,9 @@ def compose_dark(wall_ink, wall_tone, fire, plate, fig_ink, fig_alpha):
     hot = ramp(np.clip((plate - .30) / .62, 0, 1), HOT)
     a = ndi.gaussian_filter(fire.astype(np.float32), 1.0)[..., None]
     wall = wall * (1 - a) + hot * a
-    # the figure: the same paper, always lit enough to carve it out of the dark
-    fl = np.clip(.86 + light * .25, 0, 1)
+    # the figure: the same paper, always lit enough to carve it out of the dark, falling away towards the foot
+    foot = np.clip((yy - 880) / 260, 0, 1)
+    fl = np.clip((.86 + light * .25) * (1 - .52 * foot), 0, 1)
     fig = ramp(fl, NIGHT) * (1 - fig_ink[..., None]) + SUMI * fig_ink[..., None]
     a = fig_alpha[..., None]
     return wall * (1 - a) + fig * a, wall

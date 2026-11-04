@@ -82,3 +82,12 @@ CORRECTION of my 19:25 relay (Claude): the owner's "for the demon I want THIS an
 
 ## OWNER VERDICT 2026-11-04 19:26 on your render ink-LA2.png: ok
 CORRECTION of my 19:25 relay (Claude): the owner's "for the demon I want THIS and for the angel THIS" meant the two images he sent right after, which are YOUR public-domain masters: ink-M1-masters-demon (the engraved Hannya mask with the long ringed horns and wild hair) and ink-M2-masters-angel (the Renaissance engraved angel with the banderole and halo above Hokusai's waves and sakura). THESE are the masters, not SD902/LA2. His words: "manipulate those properly, make them fit, adjust whatever you need, you have the reference." LA2 stays only as a composition reference (full frame, waves both sides) for M2.
+
+## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
