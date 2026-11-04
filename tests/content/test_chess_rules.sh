@@ -4,7 +4,7 @@
 . "$(dirname "$0")/lib.sh"
 sandbox
 LIB=$REPO/configs/home/.local/lib/fedokawaii/kawa-chess
-run() { python3 -I -B - "$LIB" "$@"; }
+run() { python3 -I -B - "$LIB"; }
 
 case_ "perft: the six positions of the chess programming wiki, to the node"
 eq "$(run <<'PY'

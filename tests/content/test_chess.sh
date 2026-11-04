@@ -8,7 +8,7 @@ export CHESS_TMP=$TMP/chess
 mkdir -p "$CHESS_TMP"
 REAL_SF=${KAWA_TEST_STOCKFISH:-$(command -v stockfish 2>/dev/null)}
 export REAL_SF
-py() { python3 -I -B - "$C" "$CHESS_TMP" "$@"; }
+py() { python3 -I -B - "$C" "$CHESS_TMP"; }
 
 case_ "it opens on today's plan; every tab; Esc leaves; no traceback"
 eq "$(py <<'PY'

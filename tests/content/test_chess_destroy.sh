@@ -7,7 +7,7 @@ sandbox
 export CHESS_TMP=$TMP/chess
 mkdir -p "$CHESS_TMP"
 REAL_SF=${KAWA_TEST_STOCKFISH:-$(command -v stockfish 2>/dev/null)}
-py() { python3 -I -B - "$C" "$CHESS_TMP" "$@"; }
+py() { python3 -I -B - "$C" "$CHESS_TMP"; }
 
 case_ "every lesson of the year walked by keyboard: squares found, moves found, drills entered, each marked done"
 out=$(python3 -I -B "$C/chess_walk.py" "$CHESS_TMP/w" 2>&1) && _ok || _no "$(tail -c 800 <<<"$out")"
