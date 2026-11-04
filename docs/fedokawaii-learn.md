@@ -1006,6 +1006,33 @@ with it, each file as it was: the older version would refuse the new text.
 next press tries again, and a newer version often brings its own fix. A move to a new Fedora goes the same way:
 the fix is proven with the whole move in the copy, comes into force after the restart, and is said at the login.
 
+## 8.8 The doors: who can reach this machine
+
+> **Word — port.** A numbered door on a computer, from 1 to 65535: a program *listens* at a port,
+> and others connect to it.
+
+Your PC has an address the whole internet can reach (its public IPv6 address), so what stands
+between it and the world is the firewall. Nothing is open by accident here: every door is one line
+of one file (`system/net-allow.list`), the firewall is made from that file, and `verify` fails if
+the two ever differ.
+
+| Who knocks | What they meet |
+|---|---|
+| the internet | silence, not even an answer to a ping. One door: torrents (6881), so that other peers can reach you while you download |
+| your home network (private addresses: your phone, your other computer) | torrents, LocalSend (53317), the remote page (8737, with its token); anything else is refused at once |
+| this computer | what it runs for itself: names (53), Prowlarr (9696), the update's local fixer (11434). These listen on this machine alone |
+
+**SSH is off** while no key is in `~/.ssh/authorized_keys`: passwords are never accepted, so with no
+key nobody could log in, and nothing listens. Put a key there and run `fedokawaii repair`: it comes
+on, for your home network only.
+
+**The router.** Programs like to ask a router to open a port for them (UPnP, NAT-PMP). Here the
+firewall stops that request on its way out: nothing opens a door behind your back.
+
+**Names.** Turning `fedoraproject.org` into an address goes encrypted (TLS) to Cloudflare, or to
+Quad9 when Cloudflare cannot answer, so your provider cannot read which sites you look up. A network
+that blocks this costs the privacy, never the names: they still resolve.
+
 ### Exercises
 
 **8.1 ★ Status.** Open **Super+U**, read *status*.
@@ -1027,6 +1054,12 @@ there, and *old* in the same list would bring the trace back.
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.
 
 *Expected:* `cat ~/Documents/test.txt` shows it again.
+
+**8.5 ★★ Be a stranger.** Run `sudo bash /usr/local/lib/fedokawaii/tools/portscan.sh` (five minutes).
+It scans every port of this machine from the far end of a cable, once as a neighbour and once as a
+stranger on the internet.
+
+*Expected:* a table, ending in `✔ exactly the list's doors`.
 
 # Part III — The programs
 

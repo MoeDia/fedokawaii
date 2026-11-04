@@ -522,7 +522,6 @@ built() {
   echo 'options snd_hda_intel power_save=0' >"$W/etc/modprobe.d/fedokawaii-audio.conf"
   printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
   mkdir -p "$W/etc/systemd/sleep.conf.d"; printf '[Sleep]\nAllowHibernation=no\nAllowHybridSleep=no\nAllowSuspendThenHibernate=no\n' >"$W/etc/systemd/sleep.conf.d/90-fedokawaii.conf"
-  mkdir -p "$W/etc/systemd/resolved.conf.d"; printf '[Resolve]\nLLMNR=no\n' >"$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf"
   printf '[zram0]\nzram-size = min(ram / 2, 16384)\ncompression-algorithm = zstd\n' >"$W/etc/systemd/zram-generator.conf"
   # the pace of a start and a shut down, a clean system and home (s_pace, s_clean)
   mkdir -p "$W/etc/systemd/system.conf.d" "$W/etc/systemd/user.conf.d" "$W/etc/systemd/journald.conf.d" "$W/etc/systemd/coredump.conf.d"
@@ -589,9 +588,17 @@ built() {
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
   mkdir -p "$W/etc/snapper/configs"; for c in root home; do echo 'SUBVOLUME="/"' >"$W/etc/snapper/configs/$c"; done
   sed -i 's/^static dnf5-makecache.timer$/masked dnf5-makecache.timer/' "$FKH/units"; echo 'masked dnf-makecache.timer' >>"$FKH/units"   # (both masked, dnf4's ahead of any package)
-  echo fedokawaii >"$FKH/tuned-profile"; printf '%s\n' dhcpv6-client ssh >"$FKH/fw-services"; printf '%s\n' 'enabled sshd.service' 'active sshd.service' >>"$FKH/units"
-  mkdir -p "$W/etc/ssh/sshd_config.d"; printf '%s\n' PasswordAuthentication\ no >"$W/etc/ssh/sshd_config.d/40-fedokawaii.conf"   # (SSH_SERVER=yes, as shipped)
-  printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp >"$FKH/fw-ports"
+  echo fedokawaii >"$FKH/tuned-profile"
+  mkdir -p "$W/etc/ssh/sshd_config.d"; printf '%s\n' PasswordAuthentication\ no >"$W/etc/ssh/sshd_config.d/40-fedokawaii.conf"   # (no key: sshd off, its rules in place)
+  # (the firewall, the kernel's network settings and the names, as setup's s_network leaves them)
+  # shellcheck disable=SC2034  # (lib/net.sh reads them)
+  ( REPO_DIR=$REPO TARGET_HOME=$W/home/fkuser SSH_SERVER=yes; . "$REPO/lib/net.sh"
+    mkdir -p "$W/etc/firewalld/zones" "$W/etc/firewalld/policies" "$W/etc/sysctl.d" "$W/etc/systemd/resolved.conf.d"
+    rm -f "$W"/etc/firewalld/zones/* "$W"/etc/firewalld/policies/*
+    while IFS= read -r f; do net_fw_file "$f" >"$W/etc/firewalld/$f"; done < <(_net_fw_files)
+    _net_dns_conf >"$W$NET_DNS_FILE"; cp "$REPO/system/sysctl-net.conf" "$W$NET_SYSCTL_FILE"; cp "$REPO/system/sysctl-net.conf" "$FKH/sysctl-now"; mkdir -p "$W/etc/NetworkManager/conf.d"; _net_nm_conf >"$W$NET_NM_FILE"
+    mkdir -p "$W/etc/NetworkManager/dispatcher.d"; cp "$REPO/system/kawa-names" "$W$NET_NAMES_FILE"; chmod 755 "$W$NET_NAMES_FILE" )
+  rm -rf "$FKH/fw-run"; mkdir -p "$FKH/fw-run"; cp -r "$W/etc/firewalld/zones" "$W/etc/firewalld/policies" "$FKH/fw-run/"; echo public >"$FKH/fw-default"
   echo menu_auto_hide=2 >"$FKH/grubenv"
   local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb initcall_blacklist=simpledrm_platform_driver_init split_lock_detect=off"
   printf '%s\n' "ro rootflags=subvol=root $q amdgpu.ppfeaturemask=0xfff7ffff" \

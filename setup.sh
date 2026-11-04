@@ -62,6 +62,7 @@ source "$REPO_DIR/lib/manifest.sh"
 source "$REPO_DIR/lib/upstream.sh"
 source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
+source "$REPO_DIR/lib/net.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
 source "$REPO_DIR/lib/update.sh"
@@ -728,17 +729,6 @@ s_tuning() {   # an always-plugged desktop: the CPU at full speed, Wi-Fi and Blu
 wifi.powersave = 2
 EOF
   nmcli general reload conf >/dev/null 2>&1 || true
-  # names on the home network: mDNS (avahi, NAME.local) only — LLMNR, Windows' older way,
-  # answers anyone on the network who asks for a name on every address (port 5355) and is
-  # the classic spoofing target; nothing here uses it
-  local rc='# Fedokawaii — no LLMNR (port 5355 on every address; a spoofing target): names on the home
-# network go by mDNS (avahi: NAME.local)
-[Resolve]
-LLMNR=no'
-  if [[ $(cat /etc/systemd/resolved.conf.d/90-fedokawaii.conf 2>/dev/null) != "$rc" ]]; then
-    printf '%s\n' "$rc" | write_file /etc/systemd/resolved.conf.d/90-fedokawaii.conf
-    systemctl try-reload-or-restart systemd-resolved.service 2>/dev/null || true
-  fi
   # zram, the swap in compressed memory: half the RAM (16 GB at most) and zstd — about 3:1,
   # where Fedora's default (8 GB, lzo-rle) keeps less in the same room. From the next start
   write_file /etc/systemd/zram-generator.conf <<'EOF'
@@ -849,6 +839,7 @@ phase1() {
   step "1.6 remove nano, vim, rescue kernel"       s_trim
   step "1.6b a quiet boot: kernel arguments, blank console" s_quiet_boot
   step "1.7 inbound SSH ($SSH_SERVER)"               s_ssh
+  step "1.7b the firewall, the kernel's network settings, names over TLS" s_network
   reboot_to 2
 }
 
@@ -1858,7 +1849,6 @@ s_torrents() {
   downloads_subvolume
   torrents_up
   prowlarr_up
-  open_ports
 }
 user_stop() {   # with linger your own systemd runs until shutdown: then it never holds the machine long
   write_file /etc/systemd/system/user@.service.d/fedokawaii.conf <<'EOF'
@@ -1972,19 +1962,6 @@ user_dirs() {
   done
   run as_user xdg-user-dirs-update
 }
-OPEN_PORTS=(6881/tcp 6881/udp "$LOCALSEND_PORT/tcp" "$LOCALSEND_PORT/udp")
-open_ports() {   # the torrents' port and LocalSend's, open in the firewall (when firewalld runs: otherwise said)
-  local p
-  firewall-cmd -q --state 2>/dev/null || { log "firewalld is not running — the ports of torrents (6881) and LocalSend ($LOCALSEND_PORT) are left as they are"; return 0; }
-  # asked first, then added where missing — saved and running alike — so a repair changes
-  # nothing when it is open already, and never reloads firewalld (a reload drops what other
-  # programs added while it runs: Docker's rules, should you install it)
-  for p in "${OPEN_PORTS[@]}"; do
-    firewall-cmd -q --permanent --query-port="$p" || firewall-cmd -q --permanent --add-port="$p"
-    firewall-cmd -q --query-port="$p" || firewall-cmd -q --add-port="$p"
-  done
-}
-
 # neovim's plugins at the commits of the desktop's own lazy-lock.json (configs/home/.config/nvim:
 # tested together, moved only with this toolkit): the missing cloned, the moved checked out, what
 # is no longer listed gone. Never anything that floats to a plugin's newest: only the lock moves them
@@ -2051,47 +2028,24 @@ input_group_out() {
 }
 
 SSHD_DROPIN=/etc/ssh/sshd_config.d/40-fedokawaii.conf
-# s_ssh — inbound SSH as SSH_SERVER says: yes — sshd on at every boot, keys only (never a
-# password, never root), the firewall's ssh open; no — sshd off, ssh closed. Cockpit (a
-# server's browser console, Fedora Server's) is closed either way: nothing here uses it
+# s_ssh — inbound SSH only where it can be used (lib/net.sh, ssh_wanted): SSH_SERVER=yes and a key
+# in authorized_keys. Then on at every boot, keys only (never a password, never root), reachable
+# from the LAN alone (the firewall's list); no key, or SSH_SERVER=no: off. The rules stay either
+# way: an sshd someone starts by hand asks for keys too
 s_ssh() {
-  local z
-  if [[ $SSH_SERVER == no ]]; then
-    systemctl disable --now sshd.service 2>/dev/null || true
-    rm -f "$SSHD_DROPIN"
-  else
-    # with it on: keys only, never a password, never root — a machine on a shared network
-    # answers nobody who guesses; sshd checks its whole configuration first (-t), and is
-    # enabled for every boot and running now, the firewall's ssh open saved and running alike
-    printf '%s\n' "# $SSHD_DROPIN — fedokawaii (SSH_SERVER=yes): keys only" \
-      "PasswordAuthentication no" "KbdInteractiveAuthentication no" "PermitRootLogin no" \
-      | write_file "$SSHD_DROPIN" 0600
-    sshd -t || { rm -f "$SSHD_DROPIN"; die "sshd refuses its configuration (sshd -t, above) — $SSHD_DROPIN taken out"; }
+  command -v sshd >/dev/null || { log "no sshd on this machine: nothing to set"; return 0; }
+  printf '%s\n' "# $SSHD_DROPIN — fedokawaii: keys only" \
+    "PasswordAuthentication no" "KbdInteractiveAuthentication no" "PermitRootLogin no" "X11Forwarding no" \
+    | write_file "$SSHD_DROPIN" 0600
+  sshd -t || { rm -f "$SSHD_DROPIN"; die "sshd refuses its configuration (sshd -t, above) — $SSHD_DROPIN taken out"; }
+  if ssh_wanted; then
     systemctl enable sshd.service && { systemctl reload-or-restart sshd.service; }
-  fi
-  # the firewall's ports to match — firewalld is Fedora Server's, and running; if it is not,
-  # sshd's state above is what counts, and that is said rather than stopping the run
-  z=$(firewall-cmd --get-default-zone 2>/dev/null) \
-    || { log "firewalld is not running — its ssh and cockpit services are left as they are"; return 0; }
-  # asked first, then changed where needed — saved and running alike — so nothing is reloaded:
-  # a reload drops what other programs added while firewalld runs (Docker's rules, should you
-  # install it), and a repair that finds the ports right changes nothing
-  fw_service "$z" cockpit off
-  if [[ $SSH_SERVER == no ]]; then fw_service "$z" ssh off; else fw_service "$z" ssh on; fi
-}
-
-# fw_service ZONE SERVICE on|off — a firewalld service open or closed, saved and running alike;
-# asked first, changed only where it differs
-fw_service() {
-  local q=--add-service=$2; [[ $3 == on ]] || q=--remove-service=$2
-  if [[ $3 == on ]]; then
-    firewall-cmd -q --permanent --zone="$1" --query-service="$2" || firewall-cmd -q --permanent --zone="$1" "$q"
-    firewall-cmd -q --zone="$1" --query-service="$2" || firewall-cmd -q --zone="$1" "$q"
   else
-    if firewall-cmd -q --permanent --zone="$1" --query-service="$2"; then firewall-cmd -q --permanent --zone="$1" "$q"; fi
-    if firewall-cmd -q --zone="$1" --query-service="$2"; then firewall-cmd -q --zone="$1" "$q"; fi
+    systemctl disable --now sshd.service 2>/dev/null || true
   fi
 }
+# s_network — every door as system/net-allow.list says, and the settings around them (lib/net.sh)
+s_network() { net_firewall; net_sysctl; net_dns; }
 
 s_theme() {
   [[ -f $STATE_DIR/with-theme ]] || { log "theme not requested (menu → Theme, any time)"; return 0; }
@@ -2892,6 +2846,7 @@ update_steps() {
   step_on "the time zone" timedatectl set-timezone "$TIMEZONE"
   step_on "the session launcher (keyboard)" install_start_dwl
   step_on "inbound SSH ($SSH_SERVER)" s_ssh
+  step_on "the firewall, the kernel's network settings, names over TLS" s_network
   step_on "the performance profile" s_tuning
   step_on "a quiet boot (the boot's arguments, a blank console)" s_quiet_boot
   step_on "the lock's quick answer (its PAM file)" lock_pam
@@ -3190,7 +3145,7 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   s_report                         # (the first-start report's unit: an install that lost it runs it next start)
   s_tuning
 }
-r_ports() { s_ssh; open_ports; }   # SSH as SSH_SERVER says; the torrents' and LocalSend's ports open
+r_ports() { s_ssh; s_network; }   # SSH as SSH_SERVER says; the firewall as the list says
 r_boot() {       # the boot: its menu and success timer (s_boot), no rescue image, AMD's kernel
                  # argument, a quiet boot (its arguments, the consoles' cursor at login), every
                  # kernel's image; neovim the editor
@@ -3353,7 +3308,7 @@ heal_all() {
   heal "services (Bluetooth, TRIM, the GPU tool, i2c-dev)" r_services
   heal "dnf's settings" s_dnf
   heal "the time zone ($TIMEZONE)" timedatectl set-timezone "$TIMEZONE"
-  heal "inbound SSH ($SSH_SERVER) and the torrent port" r_ports
+  heal "inbound SSH ($SSH_SERVER), the firewall, the network's settings" r_ports
   heal "your session (linger, groups, fonts, secrets.sh mode)" r_user
   heal "the play world (its user, its walls, its units)" asobi_base
   ((net)) && heal "the play world's programs (Steam, Bottles)" asobi_programs

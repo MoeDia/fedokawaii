@@ -2,7 +2,7 @@
 # tests/installer/test_verify.sh — verify.sh on a finished install (the fake machine): every check
 # passes on a sound system (exit 0); warnings never fail it (exit 0, counted); each failure is
 # named and makes exit 3; --pre-finalize (setup's gate) leaves out what comes after it; misuse
-# is exit 2. Then the recent ones by name: the firewall (a warning when firewalld is off), the
+# is exit 2. Then the recent ones by name: the firewall (tests/installer/test_net.sh has the rest), the
 # render node of the card the desktop is built for (Intel's graphics first, AMD's second),
 # the boot checks skipped while the theme could not make the boot menu, a laptop's backlight
 # as brightness control, a dual boot's menu, the user units Fedora's presets enable, the ROCm
@@ -25,9 +25,9 @@ read -r t p f w <"$W/var/lib/fedokawaii/last-verify"
 has "$OUT" "✔  all " ; has "$OUT" "manifest packages installed"
 has "$OUT" "✔  no lpf, nothing it left (Spotify is its web player)"
 has "$OUT" "✔  user unit wireplumber.service enabled"; has "$OUT" "✔  hardware decode: H264High"
-has "$OUT" "✔  torrent port 6881 open"; has "$OUT" "✔  firewall: ssh open, no cockpit"; has "$OUT" "✔  sshd: keys only, no root (SSH_SERVER=yes)"
+has "$OUT" "✔  the firewall: only the list's doors"; has "$OUT" "✔  sshd: keys only, no root"
 has "$OUT" "✔  ROCm SMI library for btop (librocm_smi64.so.1.0)"
-fkh sshd-camel; V; has "$OUT" "✔  sshd: keys only, no root (SSH_SERVER=yes)" "OpenSSH 10.5 (Fedora 45) prints PermitRootLogin as written"; rm -f "$FKH/sshd-camel"
+fkh sshd-camel; V; has "$OUT" "✔  sshd: keys only, no root" "OpenSSH 10.5 (Fedora 45) prints PermitRootLogin as written"; rm -f "$FKH/sshd-camel"
 has "$OUT" "✔  restic runs (backups to another disk: kawa-backup)"   # (the exclude list is the theme's: test_theme.sh)
 has "$OUT" "✔  Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔  syncplay runs without a window"
 has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
@@ -64,19 +64,17 @@ fkh prowlarr-auth forms; V; eq "$RC" 3
 has "$OUT" "✘  Prowlarr's page opens with no login — authentication: forms, its page answered 302"; rm -f "$FKH/prowlarr-auth"
 
 # ── warnings: never a failure ────────────────────────────────────────────────
-case_ "warnings only (no firewall running, no AV1 decoding, Syncplay and ble.sh not yet, a driver package missing): exit 0"
+case_ "warnings only (no AV1 decoding, Syncplay and ble.sh not yet, a driver package missing): exit 0"
 back built
-fkh firewalld-down
 printf '      VAProfileH264High   : VAEntrypointVLD\n      VAProfileHEVCMain   : VAEntrypointVLD\n' >"$FKH/vainfo-renderD128"
 rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh"
 fkh kmsg '[ 3.1] iwlwifi 0000:00:14.3: Direct firmware load for iwlwifi-so-a0-gf-a0-89.ucode failed with error -2'
 fkh fwfiles "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "!  no firewall running (firewalld)"; lacks "$OUT" "torrent port 6881"; lacks "$OUT" "firewall: no ssh"
 has "$OUT" "!  no AV1 hardware decode"
 has "$OUT" "!  driver packages this machine needs — iwlwifi-mvm-firmware"
 has "$OUT" "!  Syncplay not installed yet"; has "$OUT" "!  ble.sh not installed yet"
-has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 5)) && _ok || _no "$w warnings recorded"
+has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 4)) && _ok || _no "$w warnings recorded"
 case_ "the yazi file dialog not built: a failure — apps could not open or save a file"
 back built
 rm -f "$W/usr/local/libexec/xdg-desktop-portal-termfilechooser"
@@ -94,7 +92,7 @@ fkh_del installed grubby man-db                                           # the 
 fkh_add installed nano; fkh_add userinstalled "htop User"; fkh_add installed htop   # forbidden; extra
 fkh_add installed systemd-import-keys; fkh_add userinstalled "systemd-import-keys User"; echo "systemd-import-keys systemd-container" >"$FKH/obsoletes"   # (split off a manifest package: not his, as on Fedora 45)
 fkh_del units "global-enabled wireplumber.service"                         # Fedora's preset undone
-fkh fw-services dhcpv6-client ssh cockpit                                  # cockpit open (closed whatever SSH_SERVER says)
+fkh firewalld-down                                                         # no firewall running
 fkh kernels "6.18.1-200.fc44.x86_64" "6.18.2-200.fc44.x86_64" "6.18.44-fc-v114"
 rm -f "$FKH/vainfo-renderD128"                                             # no VA-API driver
 fkh scrub-status $'Scrub started: x\nError summary:    csum=3\n  Corrected:      0\n  Uncorrectable:  3'
@@ -112,7 +110,7 @@ has "$OUT" "✘  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘  sh
 has "$OUT" "✘  the sound card never naps (no click at a volume change) — /etc/modprobe.d/fedokawaii-audio.conf missing"
 has "$OUT" "✘  installed outside the manifest — htop"; lacks "$(line "✘  installed outside the manifest")" systemd-import-keys
 has "$OUT" "✘  user unit wireplumber.service enabled"
-has "$OUT" "✘  firewall: ssh open, no cockpit"
+has "$OUT" "✘  the firewall: firewalld is not running"
 has "$OUT" "✘  one kernel (two at most while a new one settles in)"
 has "$OUT" "✘  hardware decode — vainfo found no VA-API driver on /dev/dri/renderD128"
 has "$OUT" "✘  the last scrub found errors"

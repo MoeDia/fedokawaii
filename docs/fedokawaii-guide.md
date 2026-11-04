@@ -1116,7 +1116,7 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 |---|---|---|
 | `USERNAME` | empty | the desktop user; empty = whoever ran `sudo` |
 | `GPU` | `auto` | `auto`, `amd` or `intel` — drivers, video decoding, and mpv's scaling. Set it when the kernel does not drive the card yet (too new): setup installs its drivers. NVIDIA alone and virtual machines are not supported; the check says so before anything is installed |
-| `SSH_SERVER` | `yes` | `yes` runs sshd at every boot, opens ssh in the firewall, and lets in keys only (no password, no root) — every update keeps it so; `no` disables sshd and closes ssh/cockpit in the firewall |
+| `SSH_SERVER` | `yes` | `yes` runs sshd once a key is in `~/.ssh/authorized_keys` (no key, nobody could log in: no sshd), at every boot, keys only (no password, no root), reachable from the home network only — every update keeps it so; `no` keeps it off whatever keys there are |
 | `MONITOR_HZ` | `144` | the highest refresh rate at or below this is used (30–540) |
 | `KB_LAYOUTS` | `us,ara` | keyboard layouts by their XKB names; the first one is always used for shortcuts. `localectl list-x11-keymap-layouts` lists the names |
 | `KB_TOGGLE` | `grp:alt_shift_toggle` | Alt+Shift switches layout; the bar shows US / AR. `localectl list-x11-keymap-options` lists the others (the switches start with `grp:`) |
@@ -4100,7 +4100,7 @@ another computer on the same network — the same Wi-Fi or cable — with no acc
 cloud: like AirDrop, between any of them. Install the LocalSend app on the phone (App Store,
 Google Play or F-Droid), open it on both, and the devices find each other; pick the files and
 the device. What arrives here goes to `~/Downloads` (its settings can change that). The
-firewall lets it through (port 53317), and nothing leaves your network.
+firewall lets it through from the home network only (port 53317), and nothing leaves your network.
 
 ## 12.8 Archives and PDFs: Super+D
 
@@ -7909,9 +7909,10 @@ torrra config set seeding.default_max_time 3d   # or after 3 days (also 12h, 90m
 `torrra config set speed_limit.download_limit 5M` sets one (`500K`, `2M`; `unlimited` turns
 one off), and `speed_limit.upload_limit` the other.
 
-**Ports.** libtorrent listens on **6881** (TCP and UDP, opened in the firewall by setup) and
-asks your router to forward it (UPnP / NAT-PMP). If 6881 is busy, it quietly uses a random
-port the firewall does not open, and fewer peers can reach you.
+**Ports.** libtorrent listens on **6881** (TCP and UDP, opened in the firewall by setup: the
+one port the whole internet can reach). It cannot ask your router to forward it: the firewall
+stops UPnP and NAT-PMP on their way out (§33.3). If 6881 is busy, it quietly uses a random port
+the firewall does not open, and fewer peers can reach you.
 
 **One torrra at a time** — a second window would share the same downloads, so it says
 torrra is already open.
@@ -12107,12 +12108,21 @@ Link 2 (enp5s0)
 *(for example)* `resolvectl query NAME` looks a name up through it, and `resolvectl flush-caches`
 empties the cache.
 
-One of resolved's extras is off here: **LLMNR**, Windows' older way of finding names on the
-home network, which listens on every address (port 5355) and answers anyone who asks — the
-classic target for a machine on the same network pretending to be another
-(`/etc/systemd/resolved.conf.d/90-fedokawaii.conf`: `LLMNR=no`). Names on the home network
-(`printer.local`) are *mDNS*'s, answered by avahi; the report's NET-09 and NET-20 check
-both.
+Here the names do not go to your router. resolved asks **Cloudflare, then Quad9** when it cannot
+answer, over **TLS** (`DNSOverTLS=opportunistic`, port 853), so neither the network nor your
+provider reads which sites you look up, and `Domains=~.` keeps every name away from the router's
+DNS. Measured from this PC (ledger r27-43): the same speed for a name not yet known, and the
+router's DNS lost names now and then (a 5 s wait) where these answered. *Opportunistic* means a
+network that blocks port 853 costs the privacy, never the names. A network that lets no outside
+DNS through at all (a hotel, a portal before its login) gets its own DNS back:
+`/etc/NetworkManager/dispatcher.d/60-fedokawaii-names` asks at every change of the network whether
+either provider can be reached, and switches both ways; verify says while it is so.
+
+Two of resolved's extras are off (`/etc/systemd/resolved.conf.d/90-fedokawaii.conf`): **LLMNR**,
+Windows' older way of finding names on the home network, which listens on every address (port
+5355) and answers anyone who asks — the classic target for a machine on the same network
+pretending to be another; and **mDNS**, the newer one (`printer.local`): nothing here needs it.
+The report's NET-20 and NET-21 check them.
 
 ## 33.3 The firewall: firewalld
 
@@ -12128,22 +12138,38 @@ firewalld sorts networks into zones, and a network card belongs to one zone.
 > assigned to it. Like Windows' *Public* and *Private* network profiles: the same machine can
 > be open at home and closed in a café.
 
-On Fedora Server the default zone is normally `FedoraServer`. Setup takes `cockpit` out of it,
-keeps `ssh` for the keys-only SSH server (`SSH_SERVER="yes"`, the default — `"no"` takes `ssh`
-out too) and opens torrra's port:
+Every door of this machine is one line of one file, `system/net-allow.list`; setup makes the
+firewall from it (`lib/net.sh`), and verify and the report hold the machine against it. Two zones:
+
+| Zone | Who | What gets in |
+|---|---|---|
+| `public` | the network card: the whole internet (over IPv6 this machine has a public address, reachable from anywhere) | torrents (6881). All else gets silence: not even a ping is answered |
+| `kawa-lan` | private addresses (`10/8`, `172.16/12`, `192.168/16`, `169.254/16`, `fc00::/7`, `fe80::/10`): a zone with sources comes before the card's | also LocalSend (53317), the remote page (8737) and SSH (22) when each is there, and the router's DHCPv6 answers (546). All else is refused out loud, a ping answered |
 
 ```text
-$ sudo firewall-cmd --get-default-zone
-FedoraServer
-$ sudo firewall-cmd --list-services
-dhcpv6-client ssh
-$ sudo firewall-cmd --list-ports
+$ sudo firewall-cmd --get-active-zones
+kawa-lan
+  sources: 10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 fc00::/7 fe80::/10
+public (default)
+  interfaces: enp8s0
+$ sudo firewall-cmd --zone=public --list-ports
 6881/tcp 6881/udp
 ```
 
-*(for example)* Port 6881 is open on purpose, so other peers can reach torrra while it
-downloads. Prowlarr listens on this machine only (`127.0.0.1:9696`), out of the network's
-reach whatever the firewall says. `ss -tln` shows everything that listens, and where.
+*(for example)* A third piece, the policy `kawa-no-upnp`, stops UPnP and NAT-PMP on their way out:
+no program here can ask the router to open a port. What programs bind for themselves stays
+theirs: Prowlarr, Ollama and the rest listen on this machine only (`127.0.0.1`), out of the
+network's reach whatever the firewall says; Steam's 27036 listens on every address and the
+firewall keeps it shut. `ss -tuln` shows everything that listens, and where; verify says if
+anything others could reach is not on the list.
+
+The kernel's side is `/etc/sysctl.d/60-fedokawaii-net.conf`: no redirects, no source routing, a
+packet must arrive where its answer would leave (`rp_filter`, strict), for IPv4 and IPv6.
+
+To see the machine as a stranger does, `sudo bash tools/portscan.sh` scans all 65535 TCP and UDP
+ports from the far end of a cable, from a private and from a public address, over IPv4 and IPv6,
+and compares what the firewall lets through with the list; `sudo bash tools/net-proof.sh` proves
+what the doors are for still works (names, updates, Syncplay, a real torrent swarm).
 
 *Read more:* [nmcli(1)](https://networkmanager.dev/docs/api/latest/nmcli.html) ·
 [systemd-resolved(8)](https://www.freedesktop.org/software/systemd/man/latest/systemd-resolved.service.html) ·

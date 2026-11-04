@@ -55,10 +55,12 @@ for b in rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.
 done
 eq "$(grep -v '^#' "$W/etc/profile.d/fedokawaii-console.sh" 2>/dev/null)" "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" \
   "a login on a text console shows the cursor the boot hides"
-has "$(cat "$FKH/fw-services")" "ssh" "SSH_SERVER=yes (as shipped) opens ssh in the firewall"; lacks "$(cat "$FKH/fw-services")" "cockpit" "cockpit closed, whatever SSH_SERVER says"
-not_called 'firewall-cmd\] .*--reload' "the firewall is changed in place, never reloaded (a reload drops other programs' rules)"
-grep -qx 'enabled sshd.service' "$FKH/units" && _ok || _no "sshd not enabled (SSH_SERVER=yes)"
+case_ "phase 1: inbound SSH and the firewall (lib/net.sh, tests/installer/test_net.sh): no key in authorized_keys, so no sshd; rules for keys only; every door as the list says"
+grep -qx 'enabled sshd.service' "$FKH/units" && _no "sshd enabled with no key" || _ok
 has "$(cat "$W/etc/ssh/sshd_config.d/40-fedokawaii.conf" 2>/dev/null)" "PasswordAuthentication no" "keys only"
+lacks "$(cat "$W/etc/firewalld/zones/kawa-lan.xml" 2>/dev/null)" 'port="22"' "no sshd, no door"
+has "$(cat "$W/etc/firewalld/zones/public.xml" 2>/dev/null)" 'target="DROP"'; eq "$(cat "$FKH/fw-default")" public
+has "$(cat "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf" 2>/dev/null)" "LLMNR=no"
 reboot_world; keep phase2
 
 case_ "phase 2 (resumed by the unit after the restart): repositories, the GPU's drivers, media"
@@ -137,7 +139,6 @@ case_ "Rust preinstalled for you (3.09b): rustup-init as you, stable with rust-a
 called "^fkuser\[rustup-init\] -y --no-modify-path --default-toolchain stable --profile minimal -c rust-analyzer,clippy,rustfmt$"
 [[ -x $W/home/fkuser/.local/share/cargo/bin/rust-analyzer && -d $W/home/fkuser/.local/share/rustup/toolchains ]] && _ok || _no "not in ~/.local/share/cargo and ~/.local/share/rustup"
 called "uv\] python install"
-eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "the torrents' port and LocalSend's"
 case_ "the gate's second tries: the yazi file dialog and LazyVim's plugins, each put in place there"
 has "$OUT" "no file dialog yet: termfilechooser did not build"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
 called "nvim\] --headless \+Lazy! restore \+Lazy! clean \+qa"

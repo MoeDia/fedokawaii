@@ -23,6 +23,11 @@ Tmpfs=/run:U,exec
 NoNewPrivileges=true
 Timezone=local
 PublishPort=127.0.0.1:9696:9696
+# names through this machine's resolver, over TLS like all of them (lib/net.sh): pasta's forwarder as the
+# only nameserver (Podman's default adds the servers themselves behind it: plain DNS, seen by a sniff);
+# its address pinned, not left to Podman's default
+Network=pasta:--dns-forward,169.254.1.1
+DNS=169.254.1.1
 Volume=%h/.config/prowlarr:/config:Z
 Secret=prowlarr-api-key,type=env,target=PROWLARR__AUTH__APIKEY
 Environment=PROWLARR__AUTH__METHOD=External PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses PROWLARR__LOG__ANALYTICSENABLED=False

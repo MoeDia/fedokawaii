@@ -19,7 +19,8 @@ row() {
   rest=${rest% | *}; printf '%s' "${rest% | *}"
 }
 # run NAME — the row run as the report runs it (its variables), its output in OUT, status in RC
-mkdir -p "$TMP/tk" "$TMP/state"; cp "$REPO/fedokawaii.conf" "$TMP/tk/"
+mkdir -p "$TMP/tk/lib" "$TMP/tk/system" "$TMP/state"; cp "$REPO/fedokawaii.conf" "$TMP/tk/"
+cp "$REPO/lib/net.sh" "$TMP/tk/lib/"; cp "$REPO/system/net-allow.list" "$REPO/system/sysctl-net.conf" "$TMP/tk/system/"
 run() {
   OUT=$(TK=$TMP/tk STATE=$TMP/state U=$USER UH=$HOME UIDN=$UID DWL=${DWL:-} WB=${WB:-} QUICK=0 RT=$XDG_RUNTIME_DIR \
         timeout 20 bash -c "$(row "$1")" 2>&1 </dev/null); RC=$?
@@ -68,25 +69,32 @@ stub ps "cat <<'EOF'
 EOF"
 run "BRV-02 Brave draws with the GPU"; eq "$RC" 0 "$OUT"
 
-case_ "NET-07: the ports as firewalld lists them (the first one too); NET-09: mDNS is no stranger, LLMNR is (it is off)"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "dhcpv6-client mdns ssh" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 0 "$OUT"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "ssh mdns cockpit" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "closed: 6881/tcp"; has "$OUT" "cockpit open"
+case_ "NET-07: the firewall against the list, its difference named (lib/net.sh: test_net.sh has the rest)"
+stub firewall-cmd 'exit 252'
+run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "firewalld is not running"
+case_ "the network's rows read as shell (a stray quote would make a row say nothing)"
+for n in "NET-07 the firewall" "NET-08 sshd only where it can be used" "NET-09 what listens" "NET-20 no LLMNR" "NET-21 names go over TLS" "NET-25 mDNS" "NET-26 the kernel's network settings"; do
+  bash -n -c "$(row "$n")" 2>/dev/null && _ok || _no "$n does not parse"
+done
+has "$(row "LS-01 LocalSend and its port")" "--zone=kawa-lan --query-port=53317/udp" "LocalSend's door is the LAN's"
+case_ "NET-09: only what the list names; a stranger on every address is a finding (5355, LLMNR: off on this desktop), loopback never"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=13))
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
 udp UNCONN 0 0 0.0.0.0:5353 0.0.0.0:* users:((\"avahi-daemon\",pid=880,fd=12))
 udp UNCONN 0 0 [::]:5355 [::]:* users:((\"systemd-resolve\",pid=666,fd=14))
 EOF"
-run "NET-09 what listens"; eq "$RC" 1 "LLMNR is off on this desktop: 5355 on every address is a finding"
+run "NET-09 what listens"; eq "$RC" 1 "LLMNR is off on this desktop: 5355 on every address is a finding"; has "$OUT" "5355/tcp systemd-resolve"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
-udp UNCONN 0 0 0.0.0.0:5353 0.0.0.0:* users:((\"avahi-daemon\",pid=880,fd=12))
+tcp LISTEN 0 4096 127.0.0.1:43587 0.0.0.0:* users:((\"steam\",pid=2370,fd=46))
+tcp LISTEN 0 128 0.0.0.0:27036 0.0.0.0:* users:((\"steam\",pid=2370,fd=134))
+udp UNCONN 0 0 *:27036 *:* users:((\"steam\",pid=2370,fd=132))
+udp UNCONN 0 0 224.0.0.251:5353 0.0.0.0:* users:((\"steamwebhelper\",pid=880,fd=12))
+udp UNCONN 0 0 [fe80::1]%enp8s0:546 [::]:* users:((\"NetworkManager\",pid=883,fd=28))
+tcp LISTEN 0 5 0.0.0.0:8737 0.0.0.0:* users:((\"python3\",pid=883,fd=3))
 EOF"
 run "NET-09 what listens"; eq "$RC" 0 "$OUT"
-stub ss "echo 'tcp LISTEN 0 128 0.0.0.0:27036 0.0.0.0:* users:((\"nc\",pid=9,fd=3))'"
-run "NET-09 what listens"; eq "$RC" 1 "27036 (Remote Play's port) is no one's exception: a stranger on every address is a finding"
 run "NET-20 no LLMNR"; eq "$RC" 0 "$OUT"
 stub ss "echo 'udp UNCONN 0 0 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=12))'"
 run "NET-20 no LLMNR"; eq "$RC" 1
