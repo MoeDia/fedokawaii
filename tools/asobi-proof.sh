@@ -430,6 +430,7 @@ windows_proof() {
   KAWA_ASOBI_TEST_PATH=$stub:$PATH /usr/local/sbin/kawa-asobi-root poststop
   rm -rf "$stub"
   [[ -d $bottles/$bottle ]] || return
+  [[ -n ${ASOBI_PROOF_PREP_ONLY:-} ]] && return    # (the bottle alone: the screen another time)
   echo "it comes through the drop folder"
   runuser -u "$DESK" -- install -m 0644 "$exe" "$DROP/$name"
   bar_shown bar-before || return

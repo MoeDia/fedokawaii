@@ -55,6 +55,8 @@ asobi_drop() {
 
 asobi_system() {
   local s="$REPO_DIR/system/asobi" u; u=$(id -u "$ASOBI_USER")
+  # (an empty number makes the walls' path below the one for every user@, the desktop's own manager included: refused, nothing written)
+  [[ $u =~ ^[1-9][0-9]*$ && $u != "$TARGET_UID" ]] || die "the play world's user has no number of its own (\"$u\"): its walls would land on your manager"
   install -m 0755 "$s/kawa-asobi-root" /usr/local/sbin/kawa-asobi-root
   install -m 0755 "$s/kawa-asobi-session" /usr/local/bin/kawa-asobi-session
   install -m 0755 "$s/kawa-asobi-world" /usr/local/bin/kawa-asobi-world
