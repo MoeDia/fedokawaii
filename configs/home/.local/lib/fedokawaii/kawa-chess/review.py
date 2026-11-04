@@ -270,7 +270,7 @@ class Replay(Screen):
         room = h - len(out) - len(tail) - 1
         out += moves_rows(self.g, w, room, self.at - 1)
         out += [""] * max(0, h - 2 - len(out) - len(tail))
-        return footed(out + tail, h, keys_line(w, ("← →", "walk"), ("enter", "review"), ("esc", "back")))
+        return footed(out + tail, h, keys_line(w, ("< >", "walk"), ("enter", "review"), ("esc", "back")))
 
     def key(self, name):
         if name in ("left", "up"):
@@ -447,13 +447,13 @@ class Review(Screen):
             no = f"{pos.full}." if pos.turn == B.WHITE else f"{pos.full}..."
             out += [[(s, None)] for s in wrap("before the engine speaks: which of your moves would you take back?", w)]
             out += ["", [(no + " ", MUTED), (san, STRONG)], ""]
-            return footed(out, h, keys_line(w, ("← →", "walk"), ("enter", "this one"), ("esc", "skip")))
+            return footed(out, h, keys_line(w, ("< >", "walk"), ("enter", "this one"), ("esc", "skip")))
         if self.phase == "moment":
             body = self._moment_lines(w, h - 4)
             if self.step == "find":
                 keys = [("esc", "show me")]
             else:
-                keys = [("← →", "the line"), ("enter", "next")] if self.line else [("enter", "next")]
+                keys = [("< >", "the line"), ("enter", "next")] if self.line else [("enter", "next")]
         else:
             body = self._summary_lines(w, h - 4)
             keys = [("enter", "keep it"), ("esc", "skip")]

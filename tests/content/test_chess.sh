@@ -386,9 +386,11 @@ keys = U.keys_line(16, ("enter", "open"), ("tab", "next"))
 tile = keys[0] == (" enter ", T.STRONG, T.EDGE) and U.span_len(keys) <= 16 and U.span_len(U.keys_line(40, ("enter", "open"), ("tab", "next"))) == 24
 foot = U.footed(["a", "b", "c", "d", "e"], 5, keys)
 last = foot[-1] is keys and foot[:3] == ["a", "b", "c"] and foot[3] == "" and len(foot) == 5
-print(tinted, repr(words), own, tile, last)
+head = U.heading("BOOK", "the rook", 30, right="week 1")
+stack = U.span_len(head) == 30 and head[-1] == " " and head[-2] == ("week 1", T.MUTED)
+print(tinted, repr(words), own, tile, last, stack)
 PY
-)" "True ' b  the rook   5 min' True True True"
+)" "True ' b  the rook  5 min ' True True True True"
 
 if [[ -n $REAL_SF ]]; then
   case_ "against the real Stockfish, levels from the first to the strong: legal games, PGNs Stockfish replays to the same position"

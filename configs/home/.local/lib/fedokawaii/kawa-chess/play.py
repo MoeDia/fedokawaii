@@ -396,12 +396,12 @@ class Game(Screen):
         large = h >= 40 and w >= 40
         room = w - (Face.LARGE_COLS if large else Face.COLS) + 1
         title = name + self._ahead(side)
-        pad = room - len(title) - len(clock)
+        pad = room - 1 - len(title) - len(clock)     # (a column in from the content's last, as a row's value: §7)
         low = f"level {self.spec['elo']}"
         top = [(title, STRONG if turn else None), " " * max(1, pad), (clock, ACCENT_TEXT if left is not None and left < 30 else STRONG if turn else MUTED)]
         bottom = [(low, MUTED)]
         if hg:
-            bottom += [" " * max(1, room - len(low) - 2), (icon(hg), MUTED)]
+            bottom += [" " * max(1, room - 1 - len(low) - 2), (icon(hg), MUTED)]
         return [*Face(name, top, bottom, large).lines, ""]
 
     def _ahead(self, side):

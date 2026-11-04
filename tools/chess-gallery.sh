@@ -79,6 +79,9 @@ python3 -I -c 'import json,sys
 items={f"7/{k}":"x" for k in ("lesson-the-first-whole-game","game13","review13","puzzles7","game14","review14")}
 json.dump(dict(day=7,items=items,played={str(n):dict(score="win" if n%3 else "loss",elo=500,t=n,me=0,times=[8]*20,accuracy=60.0+n,classes=dict(blunder=2),takeaway="") for n in range(1,15)},takeaways=[["13","look at f7 before anything else"],["14","a pawn takes towards the middle, not away from it: the whole game turned on that one"]]),open(sys.argv[1]+"/progress.json","w"))' "$ST"
 win 126x33; grim "$KIT_OUT/38-today-report.png"; key Return; sleep 0.4; grim "$KIT_OUT/38-report.png"; key Return; sleep 1.2; grim "$KIT_OUT/39-stamp.png"; sleep 3.5; grim "$KIT_OUT/39-after-stamp.png"; quit
+python3 -I -c 'import json,sys
+json.dump(dict(day=28),open(sys.argv[1]+"/progress.json","w"))' "$ST"
+win 126x33; key Return; sleep 1.2; grim "$KIT_OUT/34-exam.png"; quit
 rm -f "$ST/progress.json"* "$ST/current.json"*
 # ── sizes ──
 for size in 60x20 64x24 86x24 100x33 60x45 118x50 236x51; do

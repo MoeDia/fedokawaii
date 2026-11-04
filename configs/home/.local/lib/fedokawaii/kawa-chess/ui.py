@@ -54,17 +54,18 @@ def heading(ic, name, w, right=None):
     used = 3 + len(name)
     spans = [(icon(ic), ACCENT_TEXT), "  ", (name, STRONG)]
     room = w - used
-    if right and room >= len(right) + 4:
-        rule = room - len(right) - 2
-        spans += [" ", ("─" * rule, EDGE2), " ", (right, MUTED)]
+    if right and room >= len(right) + 5:      # (a column in from the content's last: over the rows' values, §7)
+        rule = room - len(right) - 3
+        spans += [" ", ("─" * rule, EDGE2), " ", (right, MUTED), " "]
     elif room >= 2:
         spans += [" ", ("─" * (room - 1), EDGE2)]
     return spans
 
 
 class Row:
-    """A row of a list: its icon at column 1, name from column 4, value right-aligned; the cursor's
-    tint from the cursor's column to one beyond the content. act: what choosing it does."""
+    """A row of a list: its icon at column 1, name from column 4, value right-aligned a column in from the content's
+    last: two columns from the end of the cursor's tint, as the icon from its start (§7). The tint from the cursor's
+    column to one beyond the content. act: what choosing it does."""
     __slots__ = ("ic", "name", "value", "act", "ink", "value_ink", "tag", "mark")
 
     def __init__(self, ic, name, value="", act=None, ink=None, value_ink=MUTED, tag=None, mark=None):
@@ -74,16 +75,16 @@ class Row:
 
     def spans(self, w, selected=False):
         v = "" if self.value is None or self.value == "" else str(self.value)
-        room = w - 4 - (len(v) + 2 if v else 0)
+        room = w - 4 - (len(v) + 3 if v else 0)
         name = self.name
         if len(name) > room:
             name = _cut(name, room)
-        pad = w - 4 - len(name) - len(v)
+        pad = w - 4 - len(name) - (len(v) + 1 if v else 0)
         if selected:
             # (the name and its picture text_on_select, every other ink its own, §7; the cursor's column before and one
             # beyond: the panel draws those two cells, the edge in the first)
             pic = [(self.mark.ljust(2), ACCENT_TEXT, SELECT), (" ", ON_SELECT, SELECT)] if self.mark else [((icon(self.ic) if self.ic else " ") + "  ", ON_SELECT, SELECT)]
-            return [(" ", ON_SELECT, SELECT), *pic, (name + " " * pad, ON_SELECT, SELECT), (v, self.value_ink, SELECT)]
+            return [(" ", ON_SELECT, SELECT), *pic, (name + " " * pad, ON_SELECT, SELECT), *([(v, self.value_ink, SELECT), (" ", ON_SELECT, SELECT)] if v else [])]
         if self.mark:
             out = [" ", (self.mark.ljust(2), ACCENT_TEXT), " ", (name, self.ink)]
         else:
@@ -129,9 +130,14 @@ class Face:
         return [self] + [self.BELOW] * (3 if self.large else 1)
 
 
+def tile(key):
+    """A key on a text screen (§7): a cell-high tile, its letters and a cell either side."""
+    return (f" {key} ", STRONG, EDGE)
+
+
 def keys_line(w, *pairs):
-    """A screen's own keys on its last line (§7): the key a cell-high tile (` key ` in strong on edge), what it does
-    muted, its state strong, two cells between them; as many of them, the first ones, as the panel has room for."""
+    """A screen's own keys on its last line (§7): the key a tile, what it does muted, its state strong, two cells
+    between them; as many of them, the first ones, as the panel has room for."""
     out, used = [], 0
     for p in pairs:
         need = len(p[0]) + 3 + len(p[1]) + (2 + len(p[2]) if len(p) > 2 else 0) + (2 if out else 0)
@@ -139,7 +145,7 @@ def keys_line(w, *pairs):
             break
         if out:
             out.append("  ")
-        out += [(f" {p[0]} ", STRONG, EDGE), " ", (p[1], MUTED)]
+        out += [tile(p[0]), " ", (p[1], MUTED)]
         if len(p) > 2:
             out += ["  ", (p[2], STRONG)]
         used += need

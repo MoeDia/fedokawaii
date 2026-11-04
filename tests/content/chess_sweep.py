@@ -13,7 +13,7 @@ KEYS = ["\r", "\x1b", "\t", "\x1b[Z", "\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\
 SCREENS = {        # name → the keys that reach it from the first screen, what state it needs
     "today": "", "lessons": "\t", "puzzles": "\t\t", "games": "\t\t\t", "progress": "\t\t\t\t",
     "free": "\t\t\t\r", "lesson-find": "\r\r", "squares": "\t\t\x1b[B\r", "game": "\t\t\t\r\x1b[B\x1b[B\r", "game-menu": "\t\t\t\r\x1b[B\x1b[B\r\x1b", "session": "\t\t\r",
-    "review": "@review", "report": "@report", "resume": "@resume", "replay": "@replay",
+    "review": "@review", "report": "@report", "exam": "@exam", "resume": "@resume", "replay": "@replay",
 }
 SIZES = ((60, 20), (126, 33), (236, 51))
 
@@ -28,6 +28,8 @@ def prepare(home, name):
     elif name == "@report":
         items = {f"7/{k}": "x" for k in ("lesson-the-pawn", "game13", "review13", "puzzles7", "game14", "review14")}
         (st / "progress.json").write_text(json.dumps({"day": 7, "items": items}))
+    elif name == "@exam":
+        (st / "progress.json").write_text(json.dumps({"day": 28}))
     elif name == "@resume":
         spec = dict(title="x", goal="a goal", fen=B.START, line=[], colour=1, elo=500, clock=[1, 0], hints=2, threats=True, opponent="x", no=None)
         (st / "current.json").write_text(json.dumps(dict(spec=spec, moves=["e2e4"], clock=[50.0, 50.0], times=[], hints_used=0)))
@@ -70,7 +72,7 @@ def main(argv):
 
 def enter(t, path):
     """The keys that reach a screen."""
-    if path in ("@review", "@report"):
+    if path in ("@review", "@report", "@exam"):
         t.send("\r")
         t.pump(0.5)
     elif path == "@replay":

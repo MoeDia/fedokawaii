@@ -575,7 +575,7 @@ class FreeSetup(Screen):
         if w < 26:
             out = [heading("KNIGHT", "a free game", w), "", "", "", ""] + rows
         self.cursor = 5 + self.i
-        return footed(out, h, keys_line(w, ("← →", "change"), ("esc", "back")))
+        return footed(out, h, keys_line(w, ("< >", "change"), ("esc", "back")))
 
     def key(self, name):
         if name == "esc":
