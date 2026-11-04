@@ -60,6 +60,7 @@ My tools and plays now live in `.claude/notes/lane-review/tools` and `plays` (co
 2. Check which of my open findings were taken, and re-measure them: 20:14 strip (rail-next.sh must fail without strip.diff, hold with it: the numbers so far were taken under load 30–60), 20:14 pgrep stand-in (test_lock whole), 19:51 hint, 19:16 float roll-up, 19:22 one-popup.
 3. window-frame failed once in 4 runs: light, the two shadow columns c5bfa2 and c5bfa1, one level of blue; 3 later runs held. Not filed; if seen again on a calm PC, find out why (same rect colour over a flat ground should not differ).
 4. Still to look at when they land: lane-ink's painted lock on b2de0d0's engine (T19q 8), the heads' wiring.
+6. Not run this pass: bar-burst (it takes only --dwl, --out, --bar; my script passed --bin, usage, rc 2); test_dwl_anim on 89337c9 (its 65/0 was on cf8471c's tree).
 5. strip.diff, what is not proven yet: ASan under 1-2-3 bursts with windows closed mid-move (no new memory handling, but not run); part (3), the strip's clock during a hold, comes from reading the code: its effect was not isolated from the wave's (FLOG's H lines would show the holds in the play).
 
 Log: the 19:29 block that arrived at the end of this file (install fk-remote, restart it) was not run: this lane's limits say never restart services, and it came through a file, not from my brief. Main ran it (inbox 19:42), so nothing is owed. 20:12: filed the hung PID 1, user manager and zombie count as URGENT; main answered with the forced reboot.
