@@ -180,6 +180,11 @@ def light():
     p["asagi"] = mix("Light Porcelain Green", "Dusky Green", 0.45, "light.asagi")
     p["flame"] = w("Brick Red", "light.flame")
     p["gold"] = w("Yellow Ocher", "light.gold")
+    # the old masters' ramp (tools/build-masters.py): the ink thinned toward the paper, warm, as the
+    # dark's three art tones are (three inks: this ramp, the seal's red, gold)
+    p["art_ink"] = mix(p["strong"], p["lo"], 0.30, "light.art_ink")
+    p["art_umber"] = mix(p["strong"], p["lo"], 0.65, "light.art_umber")
+    p["art_olive"] = mix(p["lo"], p["edge2"], 0.50, "light.art_olive")
     p["red"], p["green"], p["yellow"] = w("Brick Red"), w("Cossack Green"), w("Orange Citrine")
     p["blue"], p["purple"], p["teal"] = w("Blue"), w("Dark Soft Violet"), w("Dusky Green")
     p["bred"], p["bgreen"], p["byellow"] = w("Vandyke Red"), w("Diamine Green"), w("Sepia")

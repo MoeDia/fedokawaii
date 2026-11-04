@@ -154,8 +154,8 @@ __kawa_head() {
   local _ mood=''
   { IFS= read -r _; IFS= read -r _; IFS= read -r mood; } 2>/dev/null <"$HOME/.config/fedokawaii/current/colors.sh"
   if [[ $mood == THEME=light ]]; then
-    __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_KANNON $ICON_HEAD_KANNON_2"
-    ((__kawa_ok)) || __i_head="$ICON_HEAD_KANNON_OPEN $ICON_HEAD_KANNON_OPEN_2"
+    __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_ANGEL $ICON_HEAD_ANGEL_2"
+    ((__kawa_ok)) || __i_head="$ICON_HEAD_ANGEL_OPEN $ICON_HEAD_ANGEL_OPEN_2"
   else
     __c_head=$__c_mark __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
     ((__kawa_ok)) || __i_head="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
