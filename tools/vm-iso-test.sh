@@ -88,7 +88,7 @@ do_create() {
       <firmware><feature enabled='$sb' name='secure-boot'/><feature enabled='$sb' name='enrolled-keys'/></firmware>
       <smbios mode='sysinfo'/></os>"
   else
-    os="<os firmware='bios'><type arch='x86_64' machine='q35'>hvm</type><smbios mode='sysinfo'/></os>"
+    os="<os><type arch='x86_64' machine='q35'>hvm</type><smbios mode='sysinfo'/></os>"
   fi
   local tmp sudoers pub
   pub=$(cat "$KEY.pub")
@@ -465,8 +465,8 @@ do_matrix() {
     cp "$V/$n/say.png" "$dir/$c.png" 2>/dev/null
     "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
   }
-  one disk-20g "no disk large enough" -- --disk 20
-  one no-network "no network" -- --no-net
+  [[ -n ${FK_MATRIX_FROM:-} ]] || one disk-20g "no disk large enough" -- --disk 20
+  [[ -n ${FK_MATRIX_FROM:-} ]] || one no-network "no network" -- --no-net
   one bios "without UEFI" -- --bios
   one ram-3g "not enough memory" -- --ram 3000
   one stick-check "a new home" "<down>" "<enter>" --
