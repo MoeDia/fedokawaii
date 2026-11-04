@@ -17,6 +17,7 @@
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
+#   bash tools/vm-iso-test.sh midway ISO DIR           an install cut off: the reset, the mirrors gone
 #   bash tools/vm-iso-test.sh again NAME ISO           the same VM and disk, started from a stick again
 #   bash tools/vm-iso-test.sh over NAME ISO            a whole run over a finished install (`i` on that page)
 #   bash tools/vm-iso-test.sh path NAME QCOW2          after a run: his things back, the update button, verify
@@ -380,6 +381,42 @@ do_path() {
   return "$rc"
 }
 
+# do_midway ISO DIR — the two ways an install is cut off before its first restart: the reset (the stick starts
+# over and asks again: the one place something is asked twice, and nothing is on the disk yet that could keep an
+# answer) and the mirrors gone at the package step (our failure page, its words read)
+do_midway() {
+  local iso=$1 dir=$2 n=r27-iso-m t0=$SECONDS mac
+  mkdir -p "$dir"
+  do_create "$n" "$iso" --cpus 4 --port 2242 >/dev/null || return 1
+  mem_guard "$n"
+  "${VIRSH[@]}" start "$n" >/dev/null || return 1
+  do_install "$n" || return 1
+  wait_words "$n" "the packages" 300 || return 1
+  "${VIRSH[@]}" reset "$n" >/dev/null
+  if wait_words "$n" "a new home" 300; then
+    printf 'green %4d s  reset during the packages: the form again, the disk given up\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  else
+    printf 'RED   %4d s  reset during the packages: no form\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  fi
+  do_say "$n" >"$dir/reset.txt"; cp "$V/$n/say.png" "$dir/reset.png"
+  t0=$SECONDS
+  do_keys "$n" "$TEST_USER" "<enter>" "$TEST_PASSWORD" "<enter>" "$TEST_PASSWORD" "<enter>" "<down>" "<down>" "<down>" "<down>" "<enter>" || return 1
+  wait_words "$n" "will be erased" 20 || return 1
+  do_keys "$n" "<enter>"
+  wait_words "$n" "the packages" 300 || return 1
+  mac=$("${VIRSH[@]}" domiflist "$n" | awk 'NR > 2 && NF { print $5; exit }')
+  "${VIRSH[@]}" domif-setlink "$n" "$mac" down >/dev/null
+  if wait_words "$n" "the install failed" 1500; then
+    printf 'green %4d s  mirrors gone at the packages: our failure page\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  else
+    printf 'RED   %4d s  mirrors gone at the packages: no failure page\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  fi
+  do_say "$n" >"$dir/mirrors.txt"; cp "$V/$n/say.png" "$dir/mirrors.png"
+  "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
+  "${VIRSH[@]}" undefine "$n" --nvram >/dev/null 2>&1
+  rm -rf "${V:?}/$n"
+}
+
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
 # the screen says, read exactly, and a PNG of it in DIR
 do_matrix() {
@@ -434,6 +471,7 @@ case $cmd in
   run) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_run "$@" ;;
   follow) name_ok "${1:-}"; do_follow "$1" ;;
   matrix) do_matrix "$@" ;;
+  midway) do_midway "$@" ;;
   again) name_ok "${1:-}"; do_again "$@" ;;
   over) name_ok "${1:-}"; do_over "$@" ;;
   path) name_ok "${1:-}"; do_path "$@" ;;
