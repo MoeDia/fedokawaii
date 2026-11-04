@@ -45,7 +45,7 @@ case $act in
     fi ;;
   nice)
     p=$(cat "$HOME/.cache/libvirt/qemu/run/$dom.pid" 2>/dev/null) || exit 1
-    for t in /proc/"$p"/task/*; do renice -n "${st:-10}" -p "${t##*/}" >/dev/null 2>&1; done ;;
+    for t in /proc/"$p"/task/*; do renice -n "${st:-10}" -p "${t##*/}" >/dev/null 2>&1 || true; done; exit 0 ;;   # (a thread may end meanwhile)
   list) for f in "$D"/state-*.qcow2; do [[ -f $f ]] && { f=${f##*/state-}; echo "${f%.qcow2}"; }; done; exit 0 ;;
   destroy)
     "${V[@]}" destroy "$dom" >/dev/null 2>&1
