@@ -1,0 +1,11 @@
+save_data set on live frames: caught (test_rgb: 131 passed, 1 failed)
+memory rewritten though equal: caught (test_rgb: 131 passed, 1 failed)
+no wait after the keyboard's last frame: caught (test_rgb: 131 passed, 1 failed)
+the lock not read: caught (test_rgb: 125 passed, 7 failed)
+a stale lock believed: caught (test_rgb: 131 passed, 1 failed)
+the display not put out: caught (test_rgb: 128 passed, 4 failed)
+going out slowly: caught (test_rgb: 130 passed, 2 failed)
+the switch not read: caught (test_rgb: 128 passed, 4 failed)
+the card repeats the logo zone: caught (test_rgb: 130 passed, 2 failed)
+a gone device not noticed: caught (test_rgb: 129 passed, 3 failed)
+FINISHED

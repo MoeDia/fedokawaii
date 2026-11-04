@@ -1,0 +1,31 @@
+18:46:00  status=connected dpms=On enabled=enabled
+sent D6 04 (0)
+18:46:01  status=connected dpms=On enabled=enabled
+18:46:02  status=connected dpms=On enabled=enabled
+18:46:03  status=connected dpms=On enabled=enabled
+18:46:04  status=connected dpms=On enabled=enabled
+18:46:05  status=connected dpms=On enabled=enabled
+18:46:06  status=connected dpms=On enabled=enabled
+18:46:07  status=connected dpms=On enabled=enabled
+18:46:08  status=connected dpms=On enabled=enabled
+18:46:09  status=connected dpms=On enabled=enabled
+18:46:10  status=connected dpms=On enabled=enabled
+18:46:11  status=connected dpms=On enabled=enabled
+18:46:12  status=disconnected dpms=Off enabled=disabled
+No monitor detected on bus /dev/i2c-5
+sent D6 01 (1)
+18:46:14  status=connected dpms=On enabled=enabled
+state identical:
+appid.json {"text":"footclient"}
+layout.json {"text":"󾁌","class":"spiral"}
+tag1.json {"text":"󾂟","class":["tag","selected"]}
+tag2.json {"text":"󾂠","class":["tag","empty"]}
+tag3.json {"text":"󾂡","class":["tag","empty"]}
+tag4.json {"text":""}
+tag5.json {"text":""}
+tag6.json {"text":""}
+tag7.json {"text":""}
+tag8.json {"text":""}
+tag9.json {"text":""}
+title.json {"text":"<span line_height='14336'>~</span>","class":["l0","r1"]}
+mode 1920x1080 143.981003
