@@ -11,7 +11,8 @@
 - The memory rule (owner 18:15, below): VMs 4 GiB, one at a time, enforced by `mem_guard`. My first run was already going at 6 GiB when I read it; it was left to finish its last minutes, every later VM is 4 GiB.
 - `bin/kawa-carry` is main's (T54b 4): I had written another before seeing it, and removed mine.
 
-## Where this lane stands (20:09; if restarted, go on from here)
+## Where this lane stands (20:20; if restarted, go on from here)
+**Main reboots the PC about 20:25 (PID 1 stuck since 19:51, a kernel oops at 19:15, checksum errors): every ISO built before that reboot is suspect: rebuild before trusting one.** Run 2's VM dies with the reboot: its disk is of no use, so after it start over with `run` (a wiped disk) or, for the install over a finished disk, after a finished run. /dev/shm is gone: matrix frames and the pack picker are in ~/VM/iso/proof/.
 Run 1 green (`iso-runs.md`). The refusals green; the stick's check found its own bug (fixed: `images/eltorito.img`), to be re-run: `bash tools/vm-iso-test.sh matrix ISO DIR`. Run 2 (`over`: a whole run over the finished disk of run 1, the reset in phase 2, a slow line in phase 1; tools frozen in ~/VM/iso/frozen/run2, ISO ~/VM/iso/run2) started 19:43; PID 1 froze at 19:51 (inbox 20:07) and took virsh with it. Next, in order: Run 2 (or again if the PC restarted: `FK_RESET_PHASE=2 FK_SLOW_BEFORE=2 bash <frozen>/tools/vm-iso-test.sh over r27-iso ISO`), `facts`, `carry-save r27-iso ~/VM/iso/carry.qcow2`; then the final build from main + lane-integrate, `run … --no-sb --usb ~/VM/iso/carry.qcow2`, `path`, `midway`, `gh release`. Always run the proofs from a frozen copy (`git archive`): bash reads a running script from disk. Review pack: `.claude/review/next/` (60-… frames; /dev/shm/r27-iso/pack.py picks them).
 
 ## What main must do to merge
