@@ -8,7 +8,8 @@
 #                            slept and dropped off the cable): dwl starts it at its preferred
 #                            mode, often 60 Hz, and the wallpaper is not drawn for its size —
 #                            so the modes as above, then the wallpaper again, and the
-#                            brightness keys reach it too
+#                            brightness keys reach it too — and a bar stuck tearing down the one
+#                            before it ended, so that a new one comes for this monitor
 #   kawa-display --vrr       FreeSync as the graphics card has it now, from DRM itself (not
 #                            dwl's word, not wlr-randr's): a line a connected screen —
 #                            NAME<tab>CAPABLE<tab>NOW — CAPABLE yes when the connector's
@@ -110,6 +111,28 @@ modes() {   # every output to its mode; fails when wlr-randr cannot be asked, or
 }
 
 if [[ ${1:-} != --hotplug ]]; then modes; exit; fi
+
+# A monitor gone (its button, or every VT switch: wlroots destroys the outputs of a paused session) makes
+# waybar end that bar: it cancels and joins each module's thread (0.15: SleeperThread::stop, pthread_cancel),
+# and now and then a thread being cancelled never gets the allocator's lock back, and the join never returns:
+# one output cycle in about twenty-five here, more on a busy desktop (tools/regress/bar-cycles.sh; a stack of it
+# in the ledger). The process lives on, deaf, and the monitor that came has no bar. Its main thread waiting
+# on a lock this long is that, nothing else (it lives in poll): ended, and the session's keep starts it anew.
+PROC=${KAWA_PROC:-/proc}
+bar_unstuck() {
+  local b i
+  for b in $(pgrep -xu "$UID" waybar); do
+    grep -qzx "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-}" "$PROC/$b/environ" 2>/dev/null || continue   # (ours: a test's has its own)
+    for i in 1 2 3; do
+      [[ $(<"$PROC/$b/wchan") == futex* ]] 2>/dev/null || continue 2
+      ((i < 3)) && sleep 0.3
+    done
+    logger -t kawa-display -- "the bar was stuck ending a monitor's modules: started anew" 2>/dev/null
+    kill -KILL "$b" 2>/dev/null
+  done
+  return 0
+}
+bar_unstuck
 
 # --hotplug: monitors come back together (two screens waking) and each one calls this. The
 # first to take the lock does the work, a second after it settles; one that arrives while it
