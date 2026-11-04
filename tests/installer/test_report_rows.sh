@@ -72,6 +72,10 @@ run "BRV-02 Brave draws with the GPU"; eq "$RC" 0 "$OUT"
 case_ "NET-07: the firewall against the list, its difference named (lib/net.sh: test_net.sh has the rest)"
 stub firewall-cmd 'exit 252'
 run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "firewalld is not running"
+case_ "the network's rows read as shell (a stray quote would make a row say nothing)"
+for n in "NET-07 the firewall" "NET-08 sshd only where it can be used" "NET-09 what listens" "NET-20 no LLMNR" "NET-21 names go over TLS" "NET-25 mDNS" "NET-26 the kernel's network settings"; do
+  bash -n -c "$(row "$n")" 2>/dev/null && _ok || _no "$n does not parse"
+done
 case_ "NET-09: only what the list names; a stranger on every address is a finding (5355, LLMNR: off on this desktop), loopback never"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=13))

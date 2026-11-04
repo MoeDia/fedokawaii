@@ -15,7 +15,7 @@ val() { units "$Q" | sed -n "s/^$1=//p"; }
 case_ "prowlarr.container: four sections, no [Install] (it runs only when wanted)"
 eq "$(grep -o '^\[[A-Za-z]*\]' "$Q" | tr '\n' ' ')" "[Unit] [Container] [Quadlet] [Service] "
 case_ "every key is one Podman 5's quadlet knows, in its section"
-known=" Image ContainerName UserNS User Group Tmpfs NoNewPrivileges Timezone PublishPort Volume Secret Environment "
+known=" Image ContainerName UserNS User Group Tmpfs NoNewPrivileges Timezone PublishPort Network DNS Volume Secret Environment "
 known+="HealthCmd HealthInterval HealthRetries HealthTimeout HealthOnFailure HealthStartupCmd HealthStartupInterval HealthStartupRetries Notify "
 while IFS= read -r l; do
   k=${l%%=*}
@@ -55,6 +55,8 @@ case_ "a web page that asks for no login (it answers on 127.0.0.1 only: External
 has "$(val Container.Environment)" "PROWLARR__AUTH__METHOD=External"; has "$(val Container.Environment)" "PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses"
 lacks "$(val Container.Environment)" "Forms"
 eq "$(val Container.PublishPort)" "127.0.0.1:9696:9696" "this computer only — what makes no login safe"
+eq "$(val Container.DNS)" "169.254.1.1" "one nameserver, this machine's resolver: names over TLS (a second would be asked in plain)"
+eq "$(val Container.Network)" "pasta:--dns-forward,169.254.1.1" "the forwarder's address pinned"
 has "$(val Container.Environment)" "PROWLARR__LOG__ANALYTICSENABLED=False"
 
 case_ "tuned.conf: read as tuned reads it (INI), the parent profile, the desktop's values"
