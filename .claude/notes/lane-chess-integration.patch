@@ -1,5 +1,5 @@
 diff --git a/PACKAGES.md b/PACKAGES.md
-index 644d96a..dd4fc37 100644
+index 644d96af..dd4fc37a 100644
 --- a/PACKAGES.md
 +++ b/PACKAGES.md
 @@ -56,6 +56,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
@@ -11,10 +11,10 @@ index 644d96a..dd4fc37 100644
  | Text from pictures (OCR) | tesseract (+ English, Arabic) | F | scans and screenshots to text, and searchable PDFs |
  | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |
 diff --git a/docs/design-system.md b/docs/design-system.md
-index a4b9aad..483917a 100644
+index fc86224b..e7722b8a 100644
 --- a/docs/design-system.md
 +++ b/docs/design-system.md
-@@ -625,6 +625,7 @@ numbers here against its files.
+@@ -590,6 +590,7 @@ numbers here against its files.
  | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
  | help | Super+/ | `bin/kawa-help` | T23 |
  | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
@@ -23,7 +23,7 @@ index a4b9aad..483917a 100644
  ## 15. The grill list
  
 diff --git a/lib/manifest.sh b/lib/manifest.sh
-index 0331702..49d90dd 100755
+index b91d5745..6a0e39a1 100755
 --- a/lib/manifest.sh
 +++ b/lib/manifest.sh
 @@ -123,6 +123,7 @@ PKG_LOOK=(
@@ -35,7 +35,7 @@ index 0331702..49d90dd 100755
    gh                                                # GitHub from the terminal: sign in once (gh auth login),
                                                      #   then clone, pull requests, issues, releases
 diff --git a/system/fedokawaii b/system/fedokawaii
-index adf7b7a..06dce56 100755
+index 2eacdc8e..cb65c96c 100755
 --- a/system/fedokawaii
 +++ b/system/fedokawaii
 @@ -690,7 +690,7 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
@@ -47,25 +47,25 @@ index adf7b7a..06dce56 100755
  PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
  # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
  # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
-@@ -750,7 +750,7 @@ rows() {
-   e backups   restore   "${ICON_UNPACK:-·}"     restore                ""
-   e backups   drive     "${ICON_USB:-·}"        "the drive"            "$dv"
+@@ -752,7 +752,7 @@ rows() {
+   e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
+   e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
    e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
 -  e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
 +  [[ -n $desk ]] && e learning chess "${ICON_KNIGHT:-·}" chess ""
    e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
    [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
    return 0
-@@ -877,7 +877,7 @@ tick() {
+@@ -880,7 +880,7 @@ tick() {
  explain() {
    local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
    # (nothing, or something unknown: nothing to explain)
--  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
-+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|chess|$SOON) ]] || return 0
+-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
++  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|chess|$SOON) ]] || return 0
    printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
    # (the whole status only for the entries that show more than whether a run is going on:
    # the pane follows the cursor, so the others stay instant)
-@@ -1007,8 +1007,10 @@ explain() {
+@@ -1017,8 +1017,10 @@ explain() {
      drive)     pick 'running'; drive_rows
                 say "the drive your backups go to. enter: another," \
                     "from the drives plugged in." ;;
@@ -78,7 +78,7 @@ index adf7b7a..06dce56 100755
      typing)    soon "touch typing, finger by finger, to 100 words" \
                      "a minute." ;;
    esac
-@@ -1108,6 +1110,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
+@@ -1120,6 +1122,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
      log)       log_view; return 0 ;;   # (as `fedokawaii log`)
      change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
      keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
@@ -86,7 +86,7 @@ index adf7b7a..06dce56 100755
      guide)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
                   local why; why=$(guide 2>&1) || notify-send -a desktop -u critical -- "${ICON_TORII:-·}  learn" "${why#  }"
                   return 0
-@@ -1336,7 +1339,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
+@@ -1348,7 +1351,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
      # (what opens a window of its own — the guide, the key sheet, the settings — starts it
      # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
      # never a blank terminal first; the list starts afresh behind the scenes)
@@ -95,7 +95,7 @@ index adf7b7a..06dce56 100755
      rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
    fi
    export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
-@@ -1372,7 +1375,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
+@@ -1384,7 +1387,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
      --bind="click-header:execute-silent($self --tab click \$FZF_CLICK_HEADER_COLUMN \$FZF_CLICK_HEADER_LINE)+$go" \
      --bind="j:down,k:up,l:execute-silent($self --tab +1)+$go,h:execute-silent($self --tab -1)+$go,q:${away}abort" \
      --bind="esc,ctrl-c,ctrl-g,ctrl-q:${away}abort" \
@@ -105,7 +105,7 @@ index adf7b7a..06dce56 100755
  }
  
 diff --git a/tests/engine/test_menu.sh b/tests/engine/test_menu.sh
-index fe0f386..e82c5c6 100755
+index 661b0c5c..4129462c 100755
 --- a/tests/engine/test_menu.sh
 +++ b/tests/engine/test_menu.sh
 @@ -126,14 +126,14 @@ done
@@ -144,7 +144,7 @@ index fe0f386..e82c5c6 100755
  case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
  reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null
 diff --git a/tests/look/fixtures/launched.txt b/tests/look/fixtures/launched.txt
-index b4656f2..694fcc3 100644
+index b4656f2a..694fcc3f 100644
 --- a/tests/look/fixtures/launched.txt
 +++ b/tests/look/fixtures/launched.txt
 @@ -45,6 +45,7 @@ prowlarr               kawa-prowlarr                           prowlarr
@@ -156,7 +156,7 @@ index b4656f2..694fcc3 100644
  kawa-git               kawa-git                                kawa-git
  kawa-notes             kawa-notes                              kawa-notes
 diff --git a/tests/look/fixtures/not-launched.txt b/tests/look/fixtures/not-launched.txt
-index eb04561..329e017 100644
+index ad5c5e5a..06edf93b 100644
 --- a/tests/look/fixtures/not-launched.txt
 +++ b/tests/look/fixtures/not-launched.txt
 @@ -138,6 +138,7 @@ zathura-cb                      zathura's comics part
@@ -168,7 +168,7 @@ index eb04561..329e017 100644
  tesseract-langpack-eng          tesseract's English
  tesseract-langpack-ara          tesseract's Arabic
 diff --git a/tests/look/test_launcher.sh b/tests/look/test_launcher.sh
-index 54d04d5..f7183a5 100644
+index 54d04d5b..f7183a57 100644
 --- a/tests/look/test_launcher.sh
 +++ b/tests/look/test_launcher.sh
 @@ -100,7 +100,7 @@ eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords
@@ -181,7 +181,7 @@ index 54d04d5..f7183a5 100644
    kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
    kawa-prowlarr:search spotify:music whatsapp:speech"
 diff --git a/tests/static/fixtures/programs.txt b/tests/static/fixtures/programs.txt
-index eed66e0..15ad056 100644
+index eed66e0e..15ad056d 100644
 --- a/tests/static/fixtures/programs.txt
 +++ b/tests/static/fixtures/programs.txt
 @@ -54,6 +54,7 @@ sleep               minimal   coreutils
@@ -193,7 +193,7 @@ index eed66e0..15ad056 100644
  sync                minimal   coreutils
  tail                minimal   coreutils
 diff --git a/tools/packages.evidence b/tools/packages.evidence
-index 6449cb9..6cacbd7 100644
+index 6449cb93..6cacbd7d 100644
 --- a/tools/packages.evidence
 +++ b/tools/packages.evidence
 @@ -122,6 +122,7 @@ python3-pem|fedora|https://packages.fedoraproject.org/search?query=python3-pem|2
