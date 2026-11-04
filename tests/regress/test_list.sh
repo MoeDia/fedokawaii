@@ -11,6 +11,7 @@ case_ "the list is whole: every item a row, every row's check there"
 out=$(python3 -I -B "$I" check "$REPO" 2>&1); r=$?
 eq "$r" 0 "$out"
 item "r27-never-1" "${out#the list is whole — }"
+[[ -f $REPO/.claude/notes/02-LEDGER.md ]] || { item r27-never-1 "no ledger in this copy: the rows' checks alone"; done_; exit $?; }
 
 # a copy of what it reads, to spoil
 copy() {
@@ -54,6 +55,10 @@ copy; for i in 1 2 3 4 5; do printf '| r27-rule-%d | x | manual: a step |\n' $((
 has "$(holder)" "rows done by hand"
 copy; sed -i 's/^| r25-4 .*/| r25-4 | the bar without boxes | gone T14: |/' "$C/$R"
 has "$(holder)" "gone with no reason"
+
+case_ "a copy without the round's notes: the rows' checks still held, the rest not asked"
+copy; rm -rf "$C/.claude"; o=$(holder); eq "$?" 0 "$o"
+rm "$C/tests/look/test_saver.sh"; has "$(holder)" "tests/look/test_saver.sh is not there"
 
 case_ "blame: a run's ✘ lines say which of his items they break"
 copy

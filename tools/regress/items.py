@@ -4,6 +4,7 @@
   items.py check [REPO]   every ledger item and every row of the master's trace has a row; every
                           row's check is there (the test file, and the case it names, word for
                           word); every check here has a row. Exit 1, each fault on a line.
+                          (a copy without .claude/: the rows' checks alone)
   items.py count [REPO]   how many items: with a check, gone, a record, open, by hand.
   items.py blame LOG      what the owner reported that a run's log broke: for each "✘ CASE — why"
                           line (tests/run.sh) and "✘ NAME …" line (tools/regress/run.sh), the items
@@ -59,7 +60,10 @@ def ledger_items(repo):
     """Every id in the ledger: - rNN… lines, the r24 list's numbers, the r26 follow-ups by place."""
     want, seen_r24, fu = set(), [], 0
     section = ""
-    with open(os.path.join(repo, ".claude/notes/02-LEDGER.md"), encoding="utf8") as f:
+    path = os.path.join(repo, ".claude/notes/02-LEDGER.md")
+    if not os.path.exists(path):
+        return set()
+    with open(path, encoding="utf8") as f:
         for line in f:
             if line.startswith("## "):
                 section = line
@@ -77,7 +81,10 @@ def ledger_items(repo):
 
 def trace_items(repo):
     """Every row of the master's trace: the owner's requests by id."""
-    with open(os.path.join(repo, ".claude/notes/master-trace.md"), encoding="utf8") as f:
+    path = os.path.join(repo, ".claude/notes/master-trace.md")
+    if not os.path.exists(path):
+        return set()
+    with open(path, encoding="utf8") as f:
         return {m.group(1) for m in (re.match(r"\| (r2[4-7]-[\w-]+) \|", ln) for ln in f) if m}
 
 
@@ -95,7 +102,10 @@ def case_lines(path):
 def plan_done(repo):
     """Tasks the plan marks done: their heading's own bracket says so."""
     done = set()
-    with open(os.path.join(repo, ".claude/plan.md"), encoding="utf8") as f:
+    path = os.path.join(repo, ".claude/plan.md")
+    if not os.path.exists(path):
+        return done
+    with open(path, encoding="utf8") as f:
         for line in f:
             m = re.match(r"### (T[\w-]+) .*\[(done|DONE)\b", line)
             if m:
@@ -147,8 +157,9 @@ def check(repo):
     for i in sorted(want - set(listed)):
         if not RECORD.search(i):
             faults.append(f"no row for {i}: add | {i} | what must hold | its check | to tools/regress/README.md")
-    for i in sorted(set(listed) - want):
-        faults.append(f"line {listed[i]}: {i} is in neither the ledger nor the trace")
+    if want:      # (a toolkit's copy has neither the ledger nor the trace: its rows hold what it can)
+        for i in sorted(set(listed) - want):
+            faults.append(f"line {listed[i]}: {i} is in neither the ledger nor the trace")
     for d in ("tools/regress", "tests/regress"):
         for f in sorted(os.listdir(os.path.join(repo, d))):
             p = f"{d}/{f}"

@@ -252,11 +252,11 @@ def tv(icons, folder, label):
     # in order: each new picture the next one round (a slow shot of grim's may miss one: only
     # when the time between the two shots is long enough for that)
     changes = [(times[k], seq[k - 1], seq[k]) for k in range(1, len(seq)) if seq[k] != seq[k - 1]]
-    for (t1, a, b), prev in zip(changes, [times[0]] + [c[0] for c in changes]):
+    for (t1, a, b), prev in zip(changes, [times[0]] + [c[0] for c in changes], strict=False):
         step = (b - a) % 4
         if step != 1 and t1 - prev < 150 * step * 0.8:
             faults.append(f"tv-frames ({label}): picture {a} then {b}, {t1 - prev:.0f} ms after the last change: out of order")
-    dwell = sorted(b[0] - a[0] for a, b in zip(changes, changes[1:]))
+    dwell = sorted(b[0] - a[0] for a, b in zip(changes, changes[1:], strict=False))
     med = dwell[len(dwell) // 2] if dwell else 0
     if not 120 <= med <= 220:
         faults.append(f"tv-frames ({label}): a frame lasts {med:.0f} ms (six a second is 167)")

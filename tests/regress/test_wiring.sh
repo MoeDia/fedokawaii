@@ -55,4 +55,37 @@ case_ "selftest runs the checks: --sandbox, as the desktop's user, the stand-ins
 s=$(sed -n '/^if ((SANDBOX)); then/,/^fi/p' "$REPO/tools/selftest.sh")
 has "$s" 'tests/run.sh regress'; has "$s" 'tools/regress/run.sh --dwl /usr/local/bin/dwl'; has "$s" 'runuser -u "$U"'; has "$s" 'renderD'
 item r27-never-3 "fedokawaii selftest --sandbox: tests/regress, tools/regress on the installed dwl"
+
+# the section itself, as selftest runs it: its words stand-ins, runuser a plain call, the clone a folder
+section_run() {   # section_run HOME → the verdicts it said, a line each
+  (
+    h=$1 U=me; said() { printf '%s %s\n' "$1" "$2"; }
+    section() { :; }; pass() { said pass "$1"; }; fail() { said fail "$1"; }; warn() { said warn "$1"; }; info() { said info "$1"; }
+    stub runuser 'while [ "$1" != -- ]; do shift; done; shift; exec "$@"'
+    # shellcheck disable=SC2030,SC2031  # (the section's own variables)
+    eval "$(sed -n '/section "never again/,/fedokawaii copy makes one"; fi$/p' "$REPO/tools/selftest.sh")"
+  )
+}
+fake_clone() {   # fake_clone SUITE_RC HEADLESS_RC → a home with a clone that ends so
+  local d=$TMP/home2; rm -rf "$d"; mkdir -p "$d/repos/fedokawaii/tests" "$d/repos/fedokawaii/tools/regress"
+  printf '#!/bin/bash\necho "suite $*" >>"$RAN"; echo last line; exit %s\n' "$1" >"$d/repos/fedokawaii/tests/run.sh"
+  printf '#!/bin/bash\necho "headless $*" >>"$RAN"; echo "✔ one"; echo "regress: said"; exit %s\n' "$2" >"$d/repos/fedokawaii/tools/regress/run.sh"
+  printf '%s' "$d"
+}
+gpu=0; compgen -G '/dev/dri/renderD*' >/dev/null && gpu=1
+
+case_ "selftest's section: the stand-ins and the headless set hold: said so; the desktop's user runs them from the clone"
+: >"$RAN"; o=$(section_run "$(fake_clone 0 0)"); has "$o" "pass the stand-in checks hold"
+has "$(cat "$RAN")" "suite regress"
+if ((gpu)); then has "$o" "pass the headless checks hold"; has "$(cat "$RAN")" "headless --dwl /usr/local/bin/dwl"; else has "$o" "no GPU here"; fi
+
+case_ "selftest's section: a red stand-in or headless check is a failure; a check that could not run a warning"
+: >"$RAN"; has "$(section_run "$(fake_clone 1 0)")" "fail the stand-in checks"
+if ((gpu)); then
+  has "$(section_run "$(fake_clone 0 1)")" "fail the headless checks"
+  has "$(section_run "$(fake_clone 0 2)")" "warn a headless check could not run"
+fi
+
+case_ "selftest's section: no clone: a warning that says how to make one, nothing run"
+: >"$RAN"; d=$TMP/home3; mkdir -p "$d"; has "$(section_run "$d")" "warn no clone with the checks"; eq "$(cat "$RAN")" ""
 done_

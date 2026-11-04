@@ -12,8 +12,8 @@
 # with the owner's items it breaks (tools/regress/items.py blame).
 # Exit 0 all held · 1 broken · 2 misuse or nothing to run.
 set -u
-top=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "prepush: not in a clone" >&2; exit 2; }
-common=$(git rev-parse --git-common-dir); [[ $common == /* ]] || common=$PWD/$common
+common=$(git rev-parse --git-common-dir 2>/dev/null) || { echo "prepush: not in a clone" >&2; exit 2; }
+[[ $common == /* ]] || common=$PWD/$common
 mark=$common/fedokawaii-prepush-ok
 
 run_all() {   # run_all COMMIT
