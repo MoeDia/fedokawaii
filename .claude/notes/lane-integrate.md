@@ -14,13 +14,16 @@ Fences: no apply, no sudo, no VM, no service or dwl restart; probes with `env -u
 **This note must never hold a line that is only the finishing word.** My registry line says never to write it ("all night"); the generic lines after it say to end with it. I decided the task's own line wins: writing it stops this unit for good (the conductor), and a lane finishing after that would go unmerged. The round's `.claude/DONE` ends this lane. By 21:30 this note says exactly what is merged and what is left for main.
 
 ## Merges and verdicts
-(none yet)
+| Lane | Merged | Verdict | Findings |
+|---|---|---|---|
+| research2 (notes for T31a, T36–T39) | 19:15, squashed, 9a4f9c2 | PASS, reviewed by me (notes only: every digest read, sources and honesty checked) | One fixed in the merge: its handover named the commits that held his hardware serials and IPv6 prefix; a public note must not point at them. Identifiers absent from this branch's history (`git log -S`: 0). No tests touched: nothing reads these files |
 
 ## Baseline
 Suite of main 202903b, the tree before any merge: running since 17:45 (`~/.cache/r27-integrate/suite-base-202903b.log`). Its red files are not any lane's fault.
 
 ## What main must do to merge and apply
-(nothing yet: no lane merged)
+- **Never remove a lane's worktree or local branch while the conductor runs.** `done_lane` reads the note in `~/repos/fk-NAME`: with the folder gone the lane counts as not finished, and `start_lane` makes a new worktree and starts it again (from main, if the branch is gone too). Remove them only after the round's `.claude/DONE`, or take the lane out of `~/.config/fedokawaii/r27-lanes` first. This overrides T25m's "the worktree gone".
+- **research2:** nothing to apply. Its note has ledger lines ready to paste (r27-N numbering is main's), and says where the plan's text for T36–T39 is out of date.
 
 ## Open questions
 (none)
