@@ -1165,17 +1165,17 @@ static const struct place {
 	const char *parent, *child;
 	int nth, x, y, w, h;
 } PLACES[] = {
-	{ "WidgetBrushControl", "WidgetTrackbarSimple2", 0, 8, 2, 214, 16 },
-	{ "WidgetBrushControl", "QLineEdit", 0, 230, 0, 42, 20 },
-	{ "WidgetBrushControl", "WidgetTrackbarSimple", 0, 8, 22, 214, 16 },
-	{ "WidgetBrushControl", "QLabel", 0, 234, 22, 38, 16 },
+	{ "WidgetBrushControl", "WidgetTrackbarSimple2", 0, 8, 2, 222, 16 },
+	{ "WidgetBrushControl", "QLineEdit", 0, 237, 0, 35, 20 },
+	{ "WidgetBrushControl", "WidgetTrackbarSimple", 0, 8, 22, 222, 16 },
+	{ "WidgetBrushControl", "QLabel", 0, 237, 22, 35, 16 },
 	{ "WidgetBrushControl", "QLabel", 1, 8, 48, 96, 20 },
 	{ "WidgetBrushControl", "QComboBox", 0, 104, 48, 168, 20 },
 	{ "WidgetBrushControl", "QLabel", 2, 8, 76, 96, 20 },
 	{ "WidgetBrushControl", "QComboBox", 1, 104, 76, 168, 20 },
 	{ "WidgetLayerPanel", "QLabel", 0, 0, 2, 64, 16 },
-	{ "WidgetLayerPanel", "WidgetTrackbarSimple", 0, 64, 2, 150, 16 },
-	{ "WidgetLayerPanel", "MyLabel", 0, 222, 2, 42, 16 },
+	{ "WidgetLayerPanel", "WidgetTrackbarSimple", 0, 64, 2, 158, 16 },
+	{ "WidgetLayerPanel", "MyLabel", 0, 229, 2, 35, 16 },
 	{ "WidgetLayerPanel", "QLabel", 1, 0, 22, 64, 20 },
 	{ "WidgetLayerPanel", "QComboBox", 0, 64, 22, 200, 20 },
 	{ "WidgetLayerPanel", "QCheckBox", 0, 0, 48, 116, 16 },

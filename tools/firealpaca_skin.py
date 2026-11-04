@@ -154,6 +154,9 @@ QToolButton {{ background: transparent; border: none; padding: 2px; }}
 QToolButton:hover {{ background: #{key}; }}
 QToolButton:checked, QToolButton:pressed {{ background: #{sel}; color: #{on_sel}; }}
 QToolButton::menu-indicator {{ image: none; }}
+QDockWidget QToolBar {{ spacing: 8px; }}
+QDockWidget QToolButton {{ padding: 0; min-width: 20px; max-width: 20px; min-height: 20px; max-height: 20px; }}
+QDockWidget QToolBar::separator:horizontal {{ width: 1px; margin: 3px 0; }}
 
 QDockWidget {{ color: #{strong}; titlebar-close-icon: none; titlebar-normal-icon: none; }}
 QDockWidget::title {{ background-color: #{g}; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 32px; }}
