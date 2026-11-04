@@ -412,6 +412,9 @@ releases() {
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
   echo lib >"$r/ls/lib/libapp.so"; echo png >"$r/ls/data/flutter_assets/assets/img/logo-512.png"
   name=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET"); tar -czf "$FKH/dl/$name" -C "$r/ls" .
+  # FireAlpaca: an AppImage is a program that unpacks itself; the page's address ends in "linux"
+  fv=$(. "$REPO/lib/upstream.sh"; echo "$FIREALPACA_VERSION")
+  fake_firealpaca "$fv" >"$FKH/dl/linux"
   tar -czf "$FKH/dl/satty-x86_64-unknown-linux-gnu.tar.gz" -C "$r/satty" .
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
   tar -czf "$FKH/dl/$lgfile" -C "$r/lg" LICENSE README.md lazygit
@@ -428,9 +431,23 @@ releases() {
     sed -i "s/$old/$sum/" "$f"
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
+    old=$(. "$REPO/lib/upstream.sh"; echo "$FIREALPACA_SHA256"); sum=$(sha256sum "$FKH/dl/linux" | cut -d' ' -f1)
+    sed -i "s/$old/$sum/" "$f"
   done
   pin_faces
   chmod -R a+rwX "$FKH"
+}
+
+# fake_firealpaca VERSION — a stand-in for the AppImage: unpacks what the real one holds
+fake_firealpaca() {
+  cat <<FAKE
+#!/bin/sh
+[ "\$1" = --appimage-extract ] || exit 2
+mkdir -p squashfs-root/usr/bin
+printf '[Desktop Entry]\\nName=FireAlpaca\\nX-AppImage-Version=$1\\n' >squashfs-root/FireAlpaca.desktop
+printf '#!/bin/sh\\necho firealpaca $1\\n' >squashfs-root/usr/bin/FireAlpaca
+chmod 755 squashfs-root/usr/bin/FireAlpaca
+FAKE
 }
 
 # ── a finished install (setup done; with --themed, the theme applied too) ──────────
@@ -607,6 +624,10 @@ built() {
   mkdir -p "$U/.local/share/localsend/lib"; printf '#!/bin/sh\necho localsend\n' >"$U/.local/share/localsend/localsend_app"
   chmod 755 "$U/.local/share/localsend/localsend_app"; ln -sfn ../share/localsend/localsend_app "$U/.local/bin/localsend"
   ( . "$REPO/lib/upstream.sh"; echo "$LOCALSEND_TAG" ) >"$U/.local/share/fedokawaii/upstream/localsend"
+  # FireAlpaca's folder, the version recorded
+  mkdir -p "$U/.local/share/fedokawaii/firealpaca/app/usr/bin"; printf '#!/bin/sh\necho firealpaca\n' >"$U/.local/share/fedokawaii/firealpaca/app/usr/bin/FireAlpaca"
+  chmod 755 "$U/.local/share/fedokawaii/firealpaca/app/usr/bin/FireAlpaca"
+  ( . "$REPO/lib/upstream.sh"; echo "$FIREALPACA_VERSION" ) >"$U/.local/share/fedokawaii/upstream/firealpaca"
   # ble.sh built from its pinned commit, the commit recorded
   ( . "$TI/stubs/_lib.sh"; fake_blesh_install "$U/.local/share/blesh" )
   ( . "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT" ) >"$U/.local/share/fedokawaii/upstream/blesh"

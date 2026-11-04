@@ -1438,11 +1438,17 @@ s_upstream() {
   install_term_face
   install_faces
   s_localsend
+  s_firealpaca
 }
 # LocalSend (lib/upstream.sh): never a reason to stop — the gate, update and repair try again
 s_localsend() {
   contained install_localsend
   ((CONTAINED_RC == 0)) || log "LocalSend is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
+}
+# FireAlpaca (lib/upstream.sh): never a reason to stop — the gate, update and repair try again
+s_firealpaca() {
+  contained install_firealpaca
+  ((CONTAINED_RC == 0)) || log "FireAlpaca is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
 }
 # Syncplay (lib/upstream.sh): never a reason to stop — update and repair try again
 s_syncplay() {
@@ -2078,6 +2084,7 @@ s_gate() {
   tfc_current || s_filechooser
   syncplay_current || s_syncplay
   localsend_current || s_localsend
+  firealpaca_current || s_firealpaca
   blesh_current || s_blesh
   # (and LazyVim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
   # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
@@ -2877,6 +2884,7 @@ update_steps() {
   step_on "the desktop's face (Sumi UI)" install_faces
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
+  step_on "FireAlpaca" install_firealpaca
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
   step_on "the play world (its Flatpaks at their newest)" s_asobi
@@ -3215,6 +3223,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
+  install_firealpaca || rc=1
   return "$rc"
 }
 # dwl itself: its own wlroots, the libraries under both, and the binary — built again from the

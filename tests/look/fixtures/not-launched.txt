@@ -140,6 +140,7 @@ zathura-pdf-mupdf               zathura's PDF part: PDFs open in it (Books, File
 zathura-cb                      zathura's comics part
 qpdf                            a command: PDF tools
 poppler-utils                   commands: PDF tools
+nss                             a library: FireAlpaca's web view (Sketch)
 ghostscript                     a command: PDF compression
 tesseract                       a command: text from scans
 tesseract-langpack-eng          tesseract's English

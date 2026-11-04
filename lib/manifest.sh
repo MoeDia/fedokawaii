@@ -138,6 +138,8 @@ PKG_APPS=(
   zathura zathura-pdf-mupdf zathura-cb              # PDF / EPUB / comic book reader (the books window's
                                                     #   covers and page counts: 7z, below)
   qpdf poppler-utils xournalpp                      # PDF tools, annotation and signing
+  nss                                               # what FireAlpaca's own bundle takes from the system (its web view;
+                                                    #   the program itself: lib/upstream.sh, Sketch)
   ghostscript                                       #   PDF compression (`gs`)
   tesseract tesseract-langpack-eng tesseract-langpack-ara   # text from scans and pictures (OCR)
   imv ImageMagick ImageMagick-heic qalculate        # images, conversions (phone HEIC photos too), `qalc`

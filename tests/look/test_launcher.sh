@@ -102,7 +102,7 @@ OURS="kawa-asobi:koma kawa-typing:keyboard footclient:terminal kawa-edit:code ka
   kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-learn:mortarboard kawa-wallpaper:picture kawa-backup:archive
   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
-  kawa-prowlarr:search spotify:music whatsapp:speech"
+  kawa-prowlarr:search spotify:music whatsapp:speech kawa-sketch:brush"
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Icon) n=${f##*/}
@@ -116,7 +116,6 @@ for s in $OURS; do
   eq "$(key "$A/${s%%:*}.desktop" X-Fedokawaii-Icon)" "${s#*:}" "${s%%:*}: its icon"
 done
 eq "$(grep -l '^X-Fedokawaii-Kanji=' "$A"/*.desktop 2>/dev/null)" "" "no kanji seal left (§13)"
-eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
 case_ "the pictures: an app's own icon at its native 16 px (design-system §3), forced to it; a terminal program's pixel icon (a name icons.sh defines and the icon font draws, no two entries alike) in the icon column in accent_text, no box round it"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 out=$(python3 -I - "$REPO" $OURS <<'PY'

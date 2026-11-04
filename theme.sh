@@ -920,15 +920,36 @@ else
   esac
 fi
 
+# ── 4f. FireAlpaca (Sketch): what it starts from ─────────────────────────────
+# Once (state: firealpaca-seed), into the folder it keeps its own files in: Wada's palette, the few
+# brushes, the panels laid out, its settings (no Alpaca and pixiv buttons on the canvas, a new canvas
+# the screen's shape on white paper). It writes all of them again as you work: after this they are
+# yours, and a file already there (FireAlpaca started before) is left as it is.
+FA_SEED=$REPO_DIR/configs/firealpaca
+FA_HOME=$TARGET_HOME/.local/share/FireAlpaca/FireAlpaca
+FA_DONE=$TARGET_HOME/.local/state/fedokawaii/firealpaca-seed
+TOTAL=$((TOTAL + 1))
+if [[ ! -e $FA_DONE ]]; then
+  if ((CHECK)); then DRIFT+=("$FA_HOME (FireAlpaca's starting files not there yet)")
+  else
+    for f in "$FA_SEED"/*; do
+      [[ -e $FA_HOME/${f##*/} ]] || U cat -- "$f" | uinstall 0644 /dev/stdin "$FA_HOME/${f##*/}"
+    done
+    U bash -c 'mkdir -p "${1%/*}" && : >"$1"' _ "$FA_DONE"
+    CHANGED+=("$FA_HOME (Wada's palette, the brushes, the panels: FireAlpaca's starting files)")
+  fi
+fi
+
 # ── 4b. the desktop's own C helpers (src/, built with the tools that build dwl) ──
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
 #   kawa-saver     the screensaver (and the lock behind it: away 15 minutes, kawa-idle)
 #   kawa-lockmod   the lock screen's keys and wake guard (a gtklock module, GTK 3's headers)
+#   kawa-firealpaca  FireAlpaca dressed as the desktop (loaded into it by kawa-sketch; no Qt headers)
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
-TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod)
-tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so" ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
+TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod kawa-firealpaca)
+tool_dest() { case $1 in kawa-lockmod|kawa-firealpaca) echo "$TARGET_HOME/.local/lib/fedokawaii/$1.so" ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
 tool_sum() { local s x f=() d=$REPO_DIR/src/$1
   for x in "$d/Makefile" "$d"/*.c "$d"/*.h "$d"/*.xml; do [[ -f $x ]] && f+=("$x"); done
   s=$(cat "${f[@]}" | sha256sum); printf '%s' "${s%% *}"; }

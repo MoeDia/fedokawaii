@@ -1,12 +1,13 @@
 [Desktop Entry]
-# A blank page to draw on (kawa-sketch): Xournal++ on a new sketch in ~/Pictures/Sketches,
-# landscape, plain paper — for the drawing tablet's pen, or the mouse.
+# Draw (kawa-sketch): FireAlpaca on a new sketch in ~/Pictures/Sketches, dressed as the desktop, for
+# the drawing tablet's pen or the mouse. Its icon: our brush (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Sketch
 GenericName=Drawing
-Comment=A blank page to draw on, with the pen or the mouse (Xournal++)
-Icon=com.github.xournalpp.xournalpp
-Exec=@HOME@/.local/bin/kawa-sketch
+Comment=Draw and paint, with the pen or the mouse (FireAlpaca)
+X-Fedokawaii-Icon=brush
+Exec=@HOME@/.local/bin/kawa-sketch %f
 Terminal=false
-Categories=Graphics;2DGraphics;
-Keywords=draw;drawing;sketch;paint;pen;tablet;doodle;
+Categories=Graphics;2DGraphics;RasterGraphics;
+Keywords=draw;drawing;sketch;paint;pen;tablet;doodle;firealpaca;illustration;
+StartupWMClass=FireAlpaca

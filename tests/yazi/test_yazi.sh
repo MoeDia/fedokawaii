@@ -45,7 +45,7 @@ setup() {   # setup — a home with the desktop's yazi config, a folder of files
   open) [ -s "$KD/open" ] || exit 1; cat "$KD/open" ;;
 esac'
   # the others leave a mark when called, so a step can wait for it ($TMP/hit.NAME)
-  for s in setsid xdg-open xournalpp editor; do stub "$s" ': >"$TMP/hit.'"$s"'"'; done
+  for s in setsid xdg-open xournalpp kawa-sketch editor; do stub "$s" ': >"$TMP/hit.'"$s"'"'; done
   export EDITOR=$STUBS/editor
 }
 y() {   # y [SIZE] — yazi in $W (or $CWD), driven by the steps on stdin; its last folder in $TMP/cwd
@@ -206,6 +206,22 @@ EOF
 called "^xournalpp $W/my note's \(1\)\.xopp$"
 not_called '^xdg-open'; not_called '^editor'
 eq "$(listed)" "LOUD.XOPP|a.txt|b.txt|empty|my note's (1).xopp|notes.xopp|p.png|sub dir|" "nothing unpacked"
+
+case_ "a sketch (.mdp) opens in FireAlpaca (kawa-sketch), its name's case no matter"
+reset_calls
+: >"$W/drawn.MDP"
+y <<'EOF'
+wait a.txt
+settle
+key jjjjj
+settle
+key <Enter>
+waitfile $TMP/hit.kawa-sketch
+settle
+quit
+EOF
+called "^kawa-sketch $W/drawn\.MDP$"; not_called '^xdg-open'; not_called '^editor'; not_called '^xournalpp'
+rm -f "$W/drawn.MDP" "$TMP/hit.kawa-sketch"
 
 case_ "… LOUD.XOPP too (the name's case does not matter)"
 reset_calls

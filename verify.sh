@@ -586,6 +586,16 @@ case $(up_tag localsend) in
     check "localsend starts it (~/.local/bin/localsend)" test "$(readlink -f "$TARGET_HOME/.local/bin/localsend")" = "$(localsend_dir)/localsend_app" ;;
   *) fail "LocalSend is not the pinned $LOCALSEND_TAG" "update and repair put it in" ;;
 esac
+# FireAlpaca, the official build (setup carries on without it: update and repair fetch it)
+firealpaca_libs_ok() {   # (ldd runs as you, on your file)
+  U test -x "$(firealpaca_dir)/usr/bin/FireAlpaca" && [[ -z $(missing_libs "$(firealpaca_dir)/usr/bin/FireAlpaca") ]]
+}
+case $(up_tag firealpaca) in
+  "") warn "FireAlpaca not installed yet" "update and repair fetch it (Sketch waits till then)" ;;
+  *) check "FireAlpaca $(up_tag firealpaca) finds every library it needs" firealpaca_libs_ok
+     check "Sketch is dressed for the desktop (kawa-firealpaca, the mood's sheet)" \
+       test -s "$TARGET_HOME/.local/lib/fedokawaii/kawa-firealpaca.so" -a -s "$TARGET_HOME/.config/fedokawaii/current/firealpaca.qss" ;;
+esac
 # ble.sh, from its pinned source (setup carries on without it: the shell is plain bash meanwhile)
 case $(up_tag blesh) in
   "") warn "ble.sh not installed yet" "update and repair fetch it (till then the shell types without colours or suggestions)" ;;

@@ -613,7 +613,7 @@ annotate() {   # annotate TAIL WHAT
 draw_signature() {
   local x=$work/signature.xopp w h
   need_xpp
-  # a page of 400 × 150 points, plain: Xournal++'s own format (gzipped XML, as kawa-sketch writes it)
+  # a page of 400 × 150 points, plain: Xournal++'s own format (gzipped XML)
   printf '%s\n' '<?xml version="1.0" standalone="no"?>' '<xournal creator="fedokawaii kawa-file" fileversion="4">' \
     '<title>Xournal++ document - see https://xournalpp.github.io/</title>' \
     '<page width="400.00" height="150.00"><background type="solid" color="#ffffffff" style="plain"/><layer/></page>' \
