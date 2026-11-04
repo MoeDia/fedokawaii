@@ -276,6 +276,10 @@ do_follow() {
     ph=$(vm_ssh "$name" 'sudo head -n1 /var/lib/fedokawaii/phase 2>/dev/null') || continue
     if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; since=$SECONDS; fi
     [[ $ph == "done" ]] && break
+    # (FK_SLOW_BEFORE=N: until setup's phase N a slow, far line, again after every restart: passt has no shaping)
+    if [[ -n ${FK_SLOW_BEFORE:-} && ( -z $ph || $ph -lt $FK_SLOW_BEFORE ) ]]; then
+      vm_ssh "$name" 'd=$(ip route show default | cut -d" " -f5 | head -n1); command -v tc >/dev/null && sudo tc qdisc replace dev "$d" root netem delay 100ms rate 20mbit' 2>/dev/null
+    fi
     # (FK_RESET_PHASE: the power pulled once, a minute into that phase: setup carries on by itself)
     if [[ ${FK_RESET_PHASE:-} == "$ph" ]] && ((SECONDS - since > 60)); then
       stage "the reset, in phase $ph"
