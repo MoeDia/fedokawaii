@@ -187,7 +187,8 @@ def console(out):
 
 
 MENU = (("fkinstall", "install fedokawaii"),
-        ("fkcheck", "check this stick, then install"))
+        ("fkcheck", "check this stick, then install"),
+        ("fkoff", "turn the PC off"))        # (three lines: GRUB's list is never shorter than three rows)
 
 
 def words(text, colour):

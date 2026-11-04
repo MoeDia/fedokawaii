@@ -21,16 +21,15 @@ case_ "the inputs: every one pinned by its sha256; the release is a number"
   for r in "${ISO_RPMS[@]}"; do [[ $r =~ ^[a-zA-Z0-9._+-]+\.rpm\ [0-9a-f]{64}$ ]] || exit 1; done
 ) && _ok || _no "an input is not pinned"
 
-case_ "the menu: two lines, the same args but for the check; no nomodeset, which would reach the installed system"
+case_ "the menu: three lines (GRUB's list is never shorter), the same args but for the check; no nomodeset, which would reach the installed system"
 g=$REPO/iso/grub.cfg
-eq "$(grep -c '^menuentry' "$g")" 2
+eq "$(grep -c '^menuentry' "$g")" 3
 lacks "$(cat "$g")" nomodeset
 lacks "$(cat "$g")" rd.live.check "the check runs on our screen: %pre"
-has "$(grep -c 'initrd /images/pxeboot/initrd.img /images/pxeboot/fedokawaii-boot.img' "$g")" 2
+has "$(grep -c 'initrd /images/pxeboot/initrd.img /images/pxeboot/fedokawaii-boot.img' "$g")" 2 "loaded before the menu, once again for the check"
 has "$(cat "$REPO/tools/build-iso.sh")" "console=tty1" "any other console forces Plymouth's details (and the status lines)"
 has "$(cat "$REPO/tools/build-iso.sh")" "':(exclude).claude'" "the round's notes never ship"
-for c in fkinstall fkcheck; do [[ -s $A/grub/icons/$c.png ]] && _ok || _no "no words for $c"; done
-[[ ! -e $A/grub/icons/fkbasic.png ]] && _ok || _no "a third line's words"
+for c in fkinstall fkcheck fkoff; do [[ -s $A/grub/icons/$c.png ]] && _ok || _no "no words for $c"; done
 
 case_ "the console font: 256 glyphs, ASCII on its own numbers, the blank where the console erases"
 python3 -I -B - "$A/console/sumi-console.psf" <<'PY' && _ok || _no "the font"

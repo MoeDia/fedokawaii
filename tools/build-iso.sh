@@ -128,6 +128,9 @@ cp "$work/src/system/fonts/SumiUI.ttf" "$b/usr/share/fonts/Plymouth-monospace.tt
 cp "$work/art/plymouth/"* "$b/usr/share/plymouth/themes/sumi/"
 printf '%s\n' '[Daemon]' 'Theme=sumi' 'ShowDelay=0' 'DeviceTimeout=8' >"$b/etc/plymouth/plymouthd.conf"
 ln -s sumi/sumi.plymouth "$b/usr/share/plymouth/themes/default.plymouth"
+# (a module Anaconda's first stage asks for by name, whose absence it writes across the first seconds)
+mkdir -p "$b/etc/modprobe.d"
+printf 'install edd :\n' >"$b/etc/modprobe.d/fedokawaii.conf"
 reproducible "$b" "$work/boot.cpio"
 xz -T1 --check=crc32 -6 <"$work/boot.cpio" >"$work/fedokawaii-boot.img"
 
