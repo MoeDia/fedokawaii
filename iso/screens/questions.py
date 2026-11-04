@@ -17,7 +17,7 @@ import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from console import (ACCENT, ACCENT_TEXT, FAINT, MUTED, ON_SELECT, SELECT, STRONG, TEXT, WIDTH, G, Screen,  # noqa: E402
-                     message_page, power_off, restart, run, wrap)
+                     message_page, power_off, restart, run, stop_progress, wrap)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 MIN_DISK_GB = 60
@@ -30,6 +30,7 @@ SYSTEM_NAMES = {"root", "bin", "daemon", "adm", "lp", "sync", "shutdown", "halt"
 
 
 def refuse(s, icon, title, text):
+    stop_progress()
     lines = wrap(text) + ["", "any key turns the PC off"]
     message_page(s, icon, title, lines)
     while s.key(None) is None:
@@ -689,15 +690,14 @@ def main():
     form = Form(s, ds, geo())
     form.run()
     write_answers(form)
-    before_the_disk(s)
-    s.clear()
-    clear_disk(s, form.disk)
-    s.close()
     # the one owner of the screen from here on (Omarchy's lesson): a daemon, its files closed
     # (pykickstart's warning: otherwise the installation appears hung)
     subprocess.Popen([sys.executable, os.path.join(HERE, "progress.py")],  # noqa: S603
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      close_fds=True, start_new_session=True)
+    before_the_disk(s)
+    clear_disk(s, form.disk)
+    s.close()
 
 
 if __name__ == "__main__":

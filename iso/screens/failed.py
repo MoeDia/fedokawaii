@@ -3,11 +3,10 @@
 screen, its own words."""
 import os
 import re
-import signal
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from console import Screen, message_page, power_off, wrap  # noqa: E402
+from console import Screen, message_page, power_off, stop_progress, wrap  # noqa: E402
 
 LOGS = ("/tmp/fk-pre.log", "/tmp/anaconda.log", "/tmp/packaging.log", "/tmp/storage.log", "/tmp/program.log")
 ERASED = "/tmp/fk-disk-erased"     # (questions.py: the disk it erased)
@@ -25,18 +24,6 @@ def reason():
         except OSError:
             pass
     return found[-3:]
-
-
-def stop_progress():
-    """The progress page's own process (stage 2 has no pkill)."""
-    for pid in os.listdir("/proc"):
-        if pid.isdigit():
-            try:
-                with open(f"/proc/{pid}/cmdline", "rb") as f:
-                    if b"progress.py" in f.read():
-                        os.kill(int(pid), signal.SIGTERM)
-            except OSError:
-                pass
 
 
 def main():

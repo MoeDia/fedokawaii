@@ -11,6 +11,7 @@ import fcntl
 import glob
 import os
 import select
+import signal
 import struct
 import subprocess
 import termios
@@ -243,6 +244,18 @@ def wrap(text, width=WIDTH):
     if line:
         out.append(line)
     return out
+
+
+def stop_progress():
+    """The progress page's own process (stage 2 has no pkill)."""
+    for pid in os.listdir("/proc"):
+        if pid.isdigit():
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    if b"progress.py" in f.read():
+                        os.kill(int(pid), signal.SIGTERM)
+            except OSError:
+                pass
 
 
 def run(*cmd, timeout=None):
