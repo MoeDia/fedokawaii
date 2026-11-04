@@ -16,7 +16,7 @@
 #                               wallpaper, sound, nettype, network, bluetooth and devices (only
 #                               with a Bluetooth adapter), drives, backup, dnd, saver (the
 #                               screensaver after 15 min away: "15 min", or "off"), vrrnow (FreeSync on
-#                               the card this moment: on, off, none, unread)
+#                               the card this moment: on, off, none, unread), uptime ("up 03h 07m")
 #   kawa-quick --state sound    the sound panel's: sound (the output's level, also while
 #                               muted), muted (on|off), mic (on|muted|none), then each output
 #                               and input (not "Share"): "output|input<TAB>ID<TAB>1 (the
@@ -94,6 +94,14 @@ state_bt()    {
 }
 state_theme() { [[ $(readlink "$HOME/.config/fedokawaii/current" 2>/dev/null) == */light ]] && echo light || echo dark; }
 state_night() { kawa-night; }                     # ("off", or its warmth: kawa-night keeps it)
+state_up() {   # how long the machine has been up, as the power dialog says it: up 03h 07m · up 04d 03h · up 15w 02d
+  local up h d w r
+  read -r up _ </proc/uptime; up=${up%.*}
+  h=$((up / 3600)) d=$((up / 86400))
+  if ((h < 24)); then printf 'up %02dh %02dm' "$h" $((up / 60 % 60))
+  elif ((d < 100)); then printf 'up %02dd %02dh' "$d" $((h % 24))
+  else w=$((d / 7)) r=$((d % 7)); ((w > 99)) && w=99 r=6; printf 'up %02dw %02dd' "$w" "$r"; fi
+}
 SAVER=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/saver
 state_record() {   # a screen recording running (kawa-record's "PID START FILE", its wf-recorder alive): on · off
   local p a=()
@@ -339,7 +347,7 @@ state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become s
     bt=$(state_bt); kv bluetooth "$bt"; kv devices "$(state_paired "$bt")"
   fi
   kv drives "$(state_drives)"; kv backup "$(state_backup)"; kv dnd "$(state_dnd)"
-  kv saver "$(state_saver)"; kv record "$(state_record)"; kv vrrnow "$(state_vrrnow)"
+  kv saver "$(state_saver)"; kv record "$(state_record)"; kv vrrnow "$(state_vrrnow)"; kv uptime "$(state_up)"
 }
 
 act() {   # act ACTION [N] — the panel's choices

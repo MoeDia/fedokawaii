@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-help — Super+/ : every keybinding, type to filter (Esc closes). A menu of the panel's
+# kawa-help — Super+/ : every keybinding, its keys drawn as keycaps, type to filter (Esc closes). A menu of the panel's
 # (kawa-menu; docs/design-system.md): the keys of the program you are in first — its sheet,
 # ~/.config/fedokawaii/keys/NAME.txt —, then the desktop's (keybinds.txt), then every other
 # program's; each part under its icon and name (what its heading says after a colon or in
@@ -115,4 +115,4 @@ here
   for k in "$keys"/*.txt; do
     [[ -r $k && $k != "$keys/$HERE.txt" ]] && sheet "$k"
   done
-} | kawa-menu --prompt "" --fuzzy --lines 24 >/dev/null || true
+} | kawa-menu --prompt "" --ghost "a key or a word" --fuzzy --caps --lines 24 >/dev/null || true
