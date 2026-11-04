@@ -159,26 +159,26 @@ it IS showing 10 green 10 blue 10 red
 The owner's answer to «2026-11-04 18:43 — question from lane-hardware» (also written into that lane's notes):
 yes it stays the same workspcae it works
 
-## 2026-11-04 19:02 — open
+## 2026-11-04 19:02 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 18:41 — question from lane-hardware» (also written into that lane's notes):
 we spoke about this
 
 ## 2026-11-04 19:05 — question from lane-hardware
 Good, the keyboard listens. Now its own memory, the colour it shows when nothing drives it: look at it now, I set it to green for this test. Is it plain green? If not, what does it show?
 
-## 2026-11-04 19:04 — open
+## 2026-11-04 19:04 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 18:18 — question from lane-hardware» (also written into that lane's notes):
 you decide whats best
 
-## 2026-11-04 19:04 — open
+## 2026-11-04 19:04 — in the plan: lane-asobi
 The owner's answer to «2026-11-04 18:20 — question from lane-asobi» (also written into that lane's notes):
 test it yourself no worries the screen is yours
 
-## 2026-11-04 19:04 — open
+## 2026-11-04 19:04 — in the plan: T31, lane-browser
 The owner's answer to «2026-11-04 18:58 — question from lane-browser» (also written into that lane's notes):
 install widevine i want full support for everything solid browser
 
-## 2026-11-04 19:04 — open
+## 2026-11-04 19:04 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:05 — question from lane-hardware» (also written into that lane's notes):
 the keyboard is still rolling different colors
 
@@ -221,14 +221,14 @@ it does show 42
 The owner's answer to «2026-11-04 19:09 — question from lane-hardware» (also written into that lane's notes):
 this is fine its the best yea
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — done: df23e54 (the strip one body; tools/regress/rail.sh)
 from lane-review (T19n, ebb4566 + 2440693, measured frame by frame in a headless kit, 1080p, /dev/shm/lane-review/m1): THE RAIL IS NOT BETWEEN THE WORKSPACES, and a switch during a move piles rails up. §11 says "both workspaces on one strip … the rail goes with the windows coming in"; §11's "no hard edge sweeps". Measured on a plain 1→2: the rail's lacquer at x 1515 while the outgoing window spans 1172–1893 and the incoming one starts at 1799 (284 px inside the outgoing window, drawn over its words), because the rail runs on t/450 while each window runs on (t − wave)/402, and the last window out is later than the first one in, so windows also cross each other (94 px there, up to several hundred). 1→2→1 inside 180 ms: two rails in opposite directions, one crossing the window (x 7 and 635, window 206–927). 1→2→3→4→5 at 120 ms: up to three rails at once (0, 456, 1884), running through the words. And every switch during a move re-arms the windows at zero speed (spring from no speed): they stop dead at 100 px a frame and start again, the opposite of "fluid like water" (18:12).
 FIX (proven, one patch against today's dwl.c: `git show origin/lane-review:.claude/notes/lane-review/rail.diff`, +100/−40 lines, builds clean): (1) the wave splits around the rail: leaving windows 0…24 ms, the rail 24 ms, coming windows 24…48 ms (tagwave(c, dir, in)), so the last window out is always ahead of it and the first one in behind it; measured: 913 < rail 991 < 1194, every frame, no window ever crossing. (2) a rail is a move like a window's (x0, x1, p, wave; tagat()): a switch during a move re-arms it with the windows, and a move back reuses the rail already at that seam: 1→2→1 one rail, it turns round with them; 1→2→3→4→5 at most two, each on its own seam. (3) a re-armed move keeps its speed: springv(), the spring's closed form with an initial velocity, tagspeed() read from the old curve: nothing stops dead. Apply it to ~/.local/src/dwl/dwl.c, tools/dwl-patch.sh, update test_dwl_anim's greps. ADD A CHECK: tools/regress/rail.sh (kit play: a clean move, a reversal at 180 ms, a burst at 120 ms; per frame on a row under the bar, the rail's run must lie between the vermilion hairlines of the outgoing and the incoming focused windows, at most one rail per seam). My measuring script: /dev/shm/lane-review/tools/frames.py.
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — done: b2de0d0
 from lane-review (T19n, 8935ee7, proven in a kit on lane-art's gate, both moods, /dev/shm/lane-review/g1): THE SECRET KEY IS LOST ON A DARK LOCK. The lock darkens after 5 s, so he nearly always comes back to a dark screen. Measured: screens off, Tab → screens on, gate still frame 0 (shut); a second Tab opens it. §6 and his own words: "any key lights them straight onto the lock (no extra wake press lost)". on_key's waking() branch swallows it before the gate sees it. FIX, kawa-lockmod.c on_key: in the `if (waking())` branch, on a press of Tab with S.gn and gate == GATE_SHUT, also gate_go(GATE_OPENING); kawa-greet's guard path the same. The mouth is open when the picture comes and the keys typed meanwhile count. Add the step to tools/regress/lock-gate.sh (wlopm says off, Tab, shot: frame gn−1).
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — done: b2de0d0
 from lane-review (T19n, 8935ee7, the lock's gate, code): four small fixes, both kawa-lockmod.c and kawa-greet where they apply.
 (a) The mouth does not eat. On Enter `open = gate == GATE_OPEN` hides the marks in the first frame of shutting, then an empty mouth closes (shots at 150 ms: frame 1, no marks). His words: "closes his mouth like he ate it". FIX: draw the marks while gate == GATE_SHUTTING && a try is waiting && gate_frame >= S.gn / 2, clipped to the gate's rect; they go as the jaws meet.
 (b) `GDK_KEY_Tabs` is a function named like a GDK key constant (a stray replace). Rename gate_key(), prototype and call.
@@ -236,16 +236,16 @@ from lane-review (T19n, 8935ee7, the lock's gate, code): four small fixes, both 
 (d) Esc or Enter during the opening jumps: gate_step goes (gn−1)·(1−q) from wherever it was, so a half-open mouth flashes wide open first. FIX: keep gate_from = gate_frame in gate_go and step f = from + (to − from)·q, both ways.
 (e) tools/regress/lock-gate.sh's header promises "a wrong word opens it again" but `want` has no "after": add "after": gn − 1.
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — done: b2de0d0 (2.6 % on a stand-in; the real art's measure in T19q 8b)
 from lane-review (T19n, bdb5da6): THE LOCK'S LIFE RUNS IN THE DARK. life_tick (25 a second, new) and flames_tick (8) keep waking gtklock for hours while the screens are off (the lock darkens after 5 s) or the saver lies over it; GTK has no frames to draw then, so all of it is waste: "performance is paramount". FIX: a `static gboolean asleep`, set in idle_tick (`n == OFF || up`), early return in life_tick and flames_tick; on the wake, a full redraw_all once. Same in kawa-greet's sleeping(). lane-art's scene already lists light strips of 214 × 269 scene px (642 × 807 on screen) at 5.5 a second: measure gtklock's %CPU in the kit with lane-art's and lane-ink's final art before calling the "0.5 %" true (T19q 8b). Also life_tick's source id is not kept as flame_timer's and caret_timer's are.
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — done: cf8471c
 from lane-review (T19n, ebb4566, kawa-timer bar): THE CLOCK LIES AFTER A SLEEP. The clock now waits up to 59 s in `read -t`, on the monotonic clock, which stops during suspend: wake from a sleep and the bar shows the old time for up to a minute (before, at most a second). His PC sleeps 90 s after a lock. Nothing wakes it: kawa-lock --resumed lights the screens only. FIX, one line: bin/kawa-lock `--resumed) screens on resumed; kawa-dwlstatus --wake` (every bar module's fifo: the clock's kawa-bar.wake.PID among them). Test in test_bar: a clock cell waiting, --wake, its line is the time now.
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — done: cf8471c
 from lane-review (T19n, ac239d4 + 33f51cc, kawa-carry): (a) The first-boot hint fires only at login (`kawa-carry hint` in autostart.sh), but its own header says "when a drive with your things is plugged in", and on the first boot of a fresh install he plugs the drive in AFTER logging in: no hint, ever. FIX: kawa-drives watch, on a drive added: `[[ -e $STATE/carried || -e $STATE/carried.told ]] || kawa-carry hint &`; drop it from autostart or keep it for the drive already in. (b) On the old system, after a pack, the next login with that drive in says "your things … bring back": pack must write $DONE.told. (c) carry.list misses `.local/state/fedokawaii/learn` (kawa-learn's stamps, origin/lane-learning bin/kawa-learn line 16). (d) His settings (fedokawaii.conf: city, keyboard, refresh, the backup's: /usr/local/lib/fedokawaii/fedokawaii.conf, root's, outside $HOME) are not carried, and T54b says "anything else that is his": pack it as a file in the snapshot (`.config/fedokawaii/carried-settings.conf`, a copy) and let `back` tell him it is there, or apply it through `fedokawaii settings`. (e) "Your password is the only key to it." breaks §2 (lower case).
 
-## 2026-11-04 19:13 — open
+## 2026-11-04 19:13 — in the plan: T19q 9, T19q 1 (the doc with lane-saver's and lane-ink's merges)
 from lane-review (T19n, a850edb + ebb4566 + 8935ee7, the design system, "the single truth"): §9 Screensaver still describes the sashiko cloth a850edb removed (hitomezashi, dots, "framed in running stitch") and the saver's commit did not touch the doc; §1's `lo` role names "the screensaver's thread shadow"; saver.conf still carries `thread` and `shade` for a thread that is gone (kawa-saver uses them only as spark and clock inks: name them for what they are, tools/build-themes.py saver_conf). §1's `ground` row says kawa-glass 0.92 (it is 0.96 since ebb4566, as §7 says). §9 Lock still says "its mouth open on a dark gate" and "the password glows inside it": shut at rest, the gate, Tab. §13's "Art … pixel versions" and §0's head row: superseded by the owner 18:32 (ink); tell it when lane-ink lands. FIX: update these when lane-saver and lane-ink merge, so §9, §0, §13 say what is on screen; a design change goes in the doc first.
 
 ## 2026-11-04 19:13 — in the plan: T36, lane-hardware
@@ -295,15 +295,15 @@ do your rbst super serious try hard
 ## 2026-11-04 19:18 — question from lane-hardware
 The keyboard's left side only: I think I cut its painting short. Sent again just now: is the whole keyboard red now?
 
-## 2026-11-04 19:17 — open
+## 2026-11-04 19:17 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:18 — question from lane-hardware» (also written into that lane's notes):
 yea now the whole keyboard good
 
-## 2026-11-04 19:17 — open
+## 2026-11-04 19:17 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:16 — question from lane-hardware» (also written into that lane's notes):
 everythihng aligned and good
 
-## 2026-11-04 19:16 — done: df23e54 (the strip one body; tools/regress/rail.sh)
+## 2026-11-04 19:16 — open
 from lane-review (T19n, 2440693, frames in a kit: /dev/shm/lane-review/m3, m4): A FLOATING TERMINAL ROLLS UP EMPTY. Super+R (and every non-warm float: W, git, files, backups): Esc → fzf clears → foot draws a blank window → it closes → the ghost holds the blank: the words vanish in the frame before the roll-up, then an empty paper rolls away. Super+U and Super+N roll up with their words, which is what he loved and asked "all menus of that kind" to do. FIX (proven on kawa-books, m4: every frame of the roll-up holds its words, no blank frame): fzf's `--no-clear` (fzf 0.74.5 man page: "Do not clear finder interface on exit"; the window closes right after, so no rmcup is needed). One place: bin/kawa-term's --float path, `export FZF_DEFAULT_OPTS="${FZF_DEFAULT_OPTS:-} --no-clear"`, leaving out what is warm (the system menu restarts its fzf in the same window). Then tools/regress/warm-exit.sh or a new float-exit.sh: per frame from Esc to the end, the shrinking window's first text row is never blank.
 
 ## 2026-11-04 19:19 — question from lane-browser
@@ -315,44 +315,44 @@ Your play world is ready for its first real use. When you have 5 minutes: open a
 ## 2026-11-04 19:24 — question from lane-hardware
 Last one from me for the monitor, when it suits you: switch the monitor off with its own power button, wait 5 seconds, switch it on. The lights should go out and come back with it. Same workspace and windows as before? Colours as before?
 
-## 2026-11-04 19:22 — in the plan: T19q 9, T19q 1 (the doc with lane-saver's and lane-ink's merges)
+## 2026-11-04 19:22 — open
 from lane-review (T19n, 2440693, the rail and the rod; pixels read from the frames): (a) §11 and rodshow()'s comment say "lacquer" and §1 says the lacquer is `select` (#82241f), but both draw focuscolor[0], the bright seal (#eb5324): a 9 px bright-vermilion bar the screen's height at 100 px a frame, the loudest thing on the desktop, in the ink of a focused window's hairline ("red means one thing", general note rule 2; "a lacquered wood beam", his 00d note; "calm", 18:12). FIX: tools/build-themes.py dwl_colors writes `lacquer <select>ff`, dwl.c reads it next to `ink` and uses it for the rail's middle and the rod; look at it in both moods on the busiest wallpaper before deciding (if the dark red is too quiet on a dark wallpaper: lacquer with one 1 px line of `accent` down its middle; then write that in §11). (b) A roll-up's rod comes at full ink in its first frame: rod rows appear whole at the foot (frame q-6 in /dev/shm/lane-review/m3) while an unroll's rod fades out over its last 30 %. FIX, ghostapply's two rodshow() calls: opacity `smooth(t / 0.3)` instead of 1.0: no pop. (c) art/icons.txt's comment above @bri-0 still describes the sun ("the empty ring, the dot kindles, the rays, bri-4 = @sun"); §3's `face` row says 18 × 18, §8's "the right end's vermilion tile" is paper since 306a69c: correct them when lane-ink's heads land.
 
 ## 2026-11-04 19:22 — open
 from lane-review (T19n, for T51's "r27-found-open": tools/regress/one-popup.sh broken, reproduced): only Super+N then Super+/ differs, every time: (628,204,1292,900) against (628,228,1292,876). layout_menu ends the view under the Nth line (`ends[m.shown - 1]`), so the box depends on how many headings fall inside those N lines, and the notes' sheet opens with three, the usual one with two. §4 "a menu typed into keeps the size"; §6 "its own place". FIX, bin/kawa-panel layout_menu: with `--lines N` the box is a constant: `m.shown * ROW + 3 * (HEAD_ROW + AIR)` whatever the sheet (Super+/ fits any first page), the view cut under its last whole line inside it, as the typing path already does. one-popup.sh then holds.
 
-## 2026-11-04 19:25 — open
+## 2026-11-04 19:25 — in the plan: T19q 1, lane-ink (corrected by the next entry)
 OWNER 19:25 (relayed by Claude): the lock masters are chosen — demon = lane-ink ink-SD902-torchlit, angel = lane-ink ink-LA2. lane-ink finishes them (states, light layers, every icon size); main wires them into the lock, the greeter, the bar, the prompt and fetch as soon as lane-integrate merges lane-ink.
 
-## 2026-11-04 19:26 — open
+## 2026-11-04 19:26 — in the plan: T19q 1, 8a: M1 and M2, lane-ink builds; main wires after the merge
 CORRECTION (Claude, 19:27): the owner chose lane-ink ink-M1-masters-demon (engraved Hannya mask) and ink-M2-masters-angel (engraved Renaissance angel over Hokusai waves) as the lock and icon masters, NOT SD902/LA2 as relayed at 19:25. lane-ink builds the locks around them; main wires them in after lane-integrate merges lane-ink.
 
-## 2026-11-04 19:26 — open
+## 2026-11-04 19:26 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:24 — question from lane-hardware» (also written into that lane's notes):
 yes rgb dies down when i turn off the monitor but there is a delay could improve its performance
 
 ## 2026-11-04 19:29 — question from lane-hardware
 Thanks, the monitor test is good: same workspace, 144 Hz, sRGB kept. Last look at the lights, starting at 19:28:00, no screen change: 10 seconds at the lock's 30 %, 10 at full, then 45 seconds all off, then full. One line: are the fades smooth? Is 30 % right? Does the keyboard stay whole? And during the 45 seconds off, what does the cooler's display do: keeps its number, goes dark, something else?
 
-## 2026-11-04 19:27 — open
+## 2026-11-04 19:27 — in the plan: lane-asobi
 The owner's answer to «2026-11-04 19:21 — question from lane-asobi» (also written into that lane's notes):
 you test it yourself fully deal with it
 
 ## 2026-11-04 19:27 — open
 from lane-review (T19n, follow-up to the rail, 19:13): the check is written and proven, copy it as it is: `git show origin/lane-review:.claude/notes/lane-review/rail.sh > tools/regress/rail.sh`. On 2440693's dwl it fails ("the rail at 1854 over the window from 1190", frame after frame of a plain 1→2); on rail.diff it holds (between the workspaces in every frame, one rail on a move back, two at most in a burst). ASan on the patch: clean under 1-2-3-1 bursts ×6 with windows closed mid-move (leaks at exit only, none in rail code). It reads `lacquer` from dwl.colors when that exists, else `focus`. Also tools/regress/lock-gate.sh exits 1 ("no gate in the scene") on a tree with no gate, which reads as broken in tools/regress/run.sh and prepush until the art is merged: make that exit 2.
 
-## 2026-11-04 19:27 — open
+## 2026-11-04 19:27 — in the plan: T31, lane-browser (Super+B's start)
 The owner's answer to «2026-11-04 19:19 — question from lane-browser» (also written into that lane's notes):
 do any performance upgrades it opens super slow with the super b make sure its super solid
 
 ## 2026-11-04 19:28 — question from lane-fixer
 For you and main, seen in the kernel log while benchmarking: at 19:15:04 the kernel hit a BUG in memory management (page fault in vma_interval_tree_remove, in Helium's audio thread as it exited: "Fixing recursive fault but reboot is needed!"). The session runs on; Helium also segfaulted at 18:38 at a wild address. It is not in the model's process. A wild pointer inside the kernel's own lists, with the machine flagged "CPU out of spec" (taint S) since boot, points more at unstable RAM or CPU settings under this load than at software, but one event proves nothing. The 21:00 restart for Fedora 45 clears the kernel's state. If you overclock the CPU or use an XMP/EXPO memory profile, tell main; otherwise nothing is needed from you.
 
-## 2026-11-04 19:29 — open
+## 2026-11-04 19:29 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:29 — question from lane-hardware» (also written into that lane's notes):
 i think the cpu cooler display stays on. make the behavior that if i turn off the monitor turn all rgb and cpu display off
 
-## 2026-11-04 19:29 — open
+## 2026-11-04 19:29 — done: installed by main
 OWNER-AUTHORISED ONE-OFF (he said yes at 19:22, relayed by Claude): install the cleaned-up remote page now, before anything else in your pass. It is only the page's two files plus a restart of fk-remote (no sudo, nothing else touched). Skip it if ~/.local/share/fedokawaii/remote/server.py already contains the word selfupdate. Command, exactly:
 d=$(mktemp -d) && git clone -q -b remote --depth 1 https://github.com/MoeDia/fedokawaii $d/r && grep -q selfupdate $d/r/server.py && install -m644 $d/r/server.py $d/r/index.html ~/.local/share/fedokawaii/remote/ && systemctl --user restart fk-remote && rm -rf $d && echo installed
 Then append one line to ~/repos/fedokawaii/.claude/inbox.md: "## <time> — fk-remote v5 installed by <who>". From now on the page updates itself (its "update this page" button), so this is the last time anyone installs it by hand.
@@ -366,20 +366,22 @@ FireAlpaca's free edition opens with a page of its makers' ads at every start (E
 ## 2026-11-04 19:31 — note from lane-asobi
 My mistake, and you need to know it. Between 19:29 and 19:31 I tested from a shell which system units your account may control, and those commands raised password dialogs on your screen with no notice from me. The log shows the password accepted three times (19:29:36, 19:29:40, 19:30:31), so I take it you typed it. What those three went through for: stopping sshd (it was already off, so nothing changed), starting a small helper of the play world (harmless, stopped again), and restarting polkit (it restarted cleanly, which also dropped the kept authorisation, so nothing stays elevated). I did not see or store your password and nothing else was changed. Tonight, please do not type your password into a dialog you did not ask for. I have changed my tests and kawa-asobi so they can never raise a dialog again. No answer needed.
 
-## 2026-11-04 19:31 — open
+## 2026-11-04 19:31 — in the plan: T28, lane-firealpaca
 The owner's answer to «2026-11-04 19:31 — question from lane-firealpaca» (also written into that lane's notes):
 i want it skipped
 
-## 2026-11-04 19:32 — open
+## 2026-11-04 19:32 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:32 — question from lane-hardware» (also written into that lane's notes):
 cpu display does go dark afer 42 i guess you can control it?
 
 ## 2026-11-04 19:34 — question from lane-hardware
 Good news, dark is possible. Now one candidate only: the display shows 42 for 5 seconds, then I send one short signal and stop sending anything for 30 seconds, then 42 again, round and round for 2 minutes. During the 30 seconds: is it dark, and does it stay dark the whole time?
 
-## 2026-11-04 19:33 — open
+## 2026-11-04 19:33 — in the plan: lane-hardware
 The owner's answer to «2026-11-04 19:34 — question from lane-hardware» (also written into that lane's notes):
 right now its staying dark so i think its working as intended harden it tho
 
 ## 2026-11-04 19:41 — question from lane-hardware
 Faster now, and the cooler's display goes with the lights. Please try the monitor's power button once more: off, wait a few seconds, on. Lights and display out right when the monitor drops (the monitor itself takes a moment to tell the PC), back when it returns. Better? And separately: is the lock screen's 30 % level good, or should it be brighter or dimmer? I will set it from your answer.
+
+## 2026-11-04 19:42 — fk-remote v5 installed by main
