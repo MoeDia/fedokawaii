@@ -127,7 +127,8 @@ for size, k in (('100x33', 2), ('60x21', 1), ('130x49', 3)):
 # a practice run's result: no seal (no vermilion, nor gold) anywhere on it, whatever stands beside its number
 im = Image.open(f'{d}/practice-result.png').convert('RGB')
 W, H = im.size
-seal = sum(1 for y in range(H // 4, H * 3 // 4) for x in range(W // 4, W // 2) if near(im.getpixel((x, y)), inks['gold'], 2) or near(im.getpixel((x, y)), inks['accent'], 2))
+# (the screen's middle, inside the window: its focused hairline is vermilion too)
+seal = sum(1 for y in range(H // 4, H * 3 // 4) for x in range(W // 4 + 100, W // 2) if near(im.getpixel((x, y)), inks['gold'], 2) or near(im.getpixel((x, y)), inks['accent'], 2))
 if seal > 30:      # (the heading's check mark, a few pixels)
     no(f'a practice run\'s result wears a seal: {seal} px')
 
