@@ -1283,6 +1283,7 @@ class Panel:
         self.queued = []         # keys pressed meanwhile: each one done on the page as it comes
         self.scroll = 0          # how far a menu's list is scrolled (px)
         self.ox = 0              # the frame's air in its window (a middle menu: a column, §4)
+        self.oy = 0              # … above it (a menu in the middle of the screen: as many rows as its shadow's under it)
         self.woke = False        # quick settings' head: awake (it wakes as the panel lands)
         self.armed = None        # a seal's first press taken: its key (the foot asks for the second)
         self.armed_at = 0.0
@@ -1327,7 +1328,7 @@ class Panel:
         # before it (a menu from the bar's middle: a column as wide as the shadow's, so dwl,
         # centring the window, centres the frame to the pixel)
         self.dy = 0
-        self.win = (self.ox + self.size[0] + SHADOW_R, self.size[1] + SHADOW_B)
+        self.win = (self.ox + self.size[0] + SHADOW_R, self.oy + self.size[1] + SHADOW_B)
 
     # the state
     def refresh(self, mode=None):
@@ -1495,11 +1496,13 @@ class Panel:
             self.ui.later(1000, lambda: self.tick(n, menu))
 
     def at_place(self):
-        """The frame's air in the window for where it hangs (a middle one: a column before it)."""
+        """The frame's air in the window for where it hangs: so dwl, centring the window, centres the frame
+        to the pixel (a middle one: a column before it; in the middle of the screen: two rows above it too)."""
         ox = SHADOW_R if self.place[0] == "middle" else 0
-        if ox != self.ox:
-            self.ox = ox
-            self.win = (self.ox + self.size[0] + SHADOW_R, self.size[1] + SHADOW_B)
+        oy = SHADOW_B if self.place[0] == "centre" else 0
+        if (ox, oy) != (self.ox, self.oy):
+            self.ox, self.oy = ox, oy
+            self.win = (self.ox + self.size[0] + SHADOW_R, self.oy + self.size[1] + SHADOW_B)
 
     def answer(self, rc, text=""):
         """The menu's caller told, once."""
@@ -2314,7 +2317,7 @@ def main(argv):
                 return
             if items and view.get("size") == panel.win and not panel.view:
                 for it in items:
-                    a.queue_draw_area(it.x + panel.ox, it.y - panel.dy, it.w, it.h)
+                    a.queue_draw_area(it.x + panel.ox, it.y + panel.oy - panel.dy, it.w, it.h)
                 return
             if view.get("size") != panel.win:
                 view["size"] = panel.win
@@ -2914,7 +2917,7 @@ def main(argv):
         cr.set_operator(cairo.OPERATOR_SOURCE)
         cr.set_source_rgba(0, 0, 0, 0)
         cr.paint()
-        cr.translate(panel.ox, 0)                 # (the frame's own place in the window)
+        cr.translate(panel.ox, panel.oy)          # (the frame's own place in the window)
         # the ground: the terminal's own, at its alpha (kawa-glass) — the same see-through cloth
         # as every text screen; everything on it drawn opaque, as the terminal's text
         cr.set_source_rgba(*pal["ground"], see[0])
@@ -3262,11 +3265,11 @@ def main(argv):
         return True
 
     def on_motion(w, ev):
-        panel.hover(ev.x - panel.ox, ev.y + panel.dy, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
+        panel.hover(ev.x - panel.ox, ev.y - panel.oy + panel.dy, dragging=bool(ev.state & Gdk.ModifierType.BUTTON1_MASK))
         return True
 
     def on_enter(w, ev):
-        panel.enter(ev.x - panel.ox, ev.y + panel.dy)
+        panel.enter(ev.x - panel.ox, ev.y - panel.oy + panel.dy)
         return False
 
     def on_leave(w, ev):
@@ -3278,11 +3281,11 @@ def main(argv):
 
     def on_press(w, ev):
         if ev.button == 1 and ev.type == Gdk.EventType.BUTTON_PRESS:
-            panel.press(ev.x - panel.ox, ev.y + panel.dy)
+            panel.press(ev.x - panel.ox, ev.y - panel.oy + panel.dy)
         return True
 
     def on_release(w, ev):
-        panel.release(ev.x - panel.ox, ev.y + panel.dy)
+        panel.release(ev.x - panel.ox, ev.y - panel.oy + panel.dy)
         return True
 
     def on_scroll(w, ev):
@@ -3290,13 +3293,13 @@ def main(argv):
         mouse = dev is not None and dev.get_source() == Gdk.InputSource.MOUSE
         if ev.direction == Gdk.ScrollDirection.SMOOTH:
             _, dx, dy = ev.get_scroll_deltas()
-            panel.scroll_event(ev.x - panel.ox, ev.y + panel.dy, dy=dy, mouse=mouse)
+            panel.scroll_event(ev.x - panel.ox, ev.y - panel.oy + panel.dy, dy=dy, mouse=mouse)
         elif ev.direction in (Gdk.ScrollDirection.UP, Gdk.ScrollDirection.DOWN):
-            panel.scroll_event(ev.x - panel.ox, ev.y + panel.dy, up=ev.direction == Gdk.ScrollDirection.UP)
+            panel.scroll_event(ev.x - panel.ox, ev.y - panel.oy + panel.dy, up=ev.direction == Gdk.ScrollDirection.UP)
         return True
 
     def on_tip(w, x, y, kb, tip):
-        it = panel.at(x - panel.ox, y + panel.dy)
+        it = panel.at(x - panel.ox, y - panel.oy + panel.dy)
         if it and it.tip:
             tip.set_text(it.tip)
             return True

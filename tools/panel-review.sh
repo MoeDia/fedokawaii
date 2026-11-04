@@ -25,6 +25,8 @@ mkdir "$W/bin"
 for f in "$repo"/bin/*; do ln -s "$f" "$W/bin/"; done
 [[ -n $mako ]] && ln -s "$mako" "$W/bin/mako"
 ln -s "$repo/system/fedokawaii" "$W/bin/fedokawaii"
+# (nothing the shots press may reach the machine: the power dialog's second press stands in here; the PC is shared)
+for c in systemctl loginctl reboot poweroff shutdown; do printf '#!/bin/sh\nexit 0\n' >"$W/bin/$c"; chmod +x "$W/bin/$c"; done
 rm "$W/bin/kawa-quick"
 cat >"$W/bin/kawa-quick" <<STUB
 #!/usr/bin/env bash
@@ -67,6 +69,10 @@ SURFACES=(
   "help|chord logo slash|:|key Escape"
   "help-find|chord logo slash|text 'lock'|key Escape"
   "launcher|chord logo space|:|key Escape"
+  "launcher-sum|chord logo space|text '15% of 2400'; nap 0.9|key Escape"
+  "dialog-keys|printf 'note\\tthe disk is nearly full: go on?\\nkey\\t\\tgo on\\nkey\\t\\tnot now\\n' \| setsid -f kawa-menu|key Right|key Escape"
+  "password|setsid -f sh -c 'kawa-menu --prompt \"\" --password --title \"report.pdf · password\" </dev/null'|text 'abc'|key Escape"
+  "downloads-busy|mkdir -p \$XDG_RUNTIME_DIR/kawa-downloads; (sleep 30 \& echo \$! >/tmp/rv.sleep); printf 'ubuntu-26.04-desktop-amd64.iso\\t2147483648\\t5368709120\\t/tmp/x\\nDune Part Two 2160p.mkv\\t10737418240\\t21474836480\\t/tmp/y\\n' >\$XDG_RUNTIME_DIR/kawa-downloads/torrra.\$(cat /tmp/rv.sleep); setsid -f kawa-downloads|:|key Escape; rm -f \$XDG_RUNTIME_DIR/kawa-downloads/torrra.*"
   "dnd|setsid -f kawa-quick dnd|:|key Escape"
   "drives|setsid -f kawa-drives|:|key Escape"
   "weather|setsid -f kawa-weather|:|key Escape"

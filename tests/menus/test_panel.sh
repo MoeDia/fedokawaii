@@ -371,7 +371,7 @@ eq "$(py 'fresh(); out = []
 for i in range(7): p.request("launcher", kp.Launcher([], {}), None); out.append(p.visible); u.t += 0.03
 print(out)')" "[True, False, True, False, True, False, True]"
 eq "$(py 'import os; print(os.path.basename(kp.MARKS["launcher"]), kp.POKE["launcher"])')" "kawa-launcher.open 20" "lit by its marker, the torii's module poked with SIGRTMIN+20"
-eq "$(py 'fresh(); p.request("launcher", kp.Launcher([], {}), None); print(p.heads, p.size, p.win, p.rules)')" "[('torii_small', 'launcher', 17, 17)] (410, 302) (411, 304) []" "its heading the small torii; always ten rows tall: 17 + 28 + the line typed on (20) + 20 + 200 + 17 = 302"
+eq "$(py 'fresh(); p.request("launcher", kp.Launcher([], {}), None); print(p.heads, p.size, p.win, p.rules)')" "[('torii_small', 'launcher', 17, 17)] (410, 302) (411, 306) []" "its heading the small torii; always ten rows tall: 17 + 28 + the line typed on (20) + 20 + 200 + 17 = 302"
 eq "$(py 'fresh(); u.cid = "c1"; p.request("launcher", kp.Launcher([], {}), None); u.cid = "c2"; p.close("lost"); u.t += 0.01; p.request("launcher", kp.Launcher([], {}), None); print(p.visible)')" False \
   "the torii clicked while it is open: that click closed it — its own call does not reopen it"
 eq "$(py 'fresh(); u.cid = "c1"; p.request("launcher", kp.Launcher([], {}), None); u.cid = "c2"; p.close("lost"); p.request("launcher", kp.Launcher([], {}), None); u.t += 0.1; u.cid = "c3"; p.request("launcher", kp.Launcher([], {}), None); print(p.visible)')" True \
@@ -671,7 +671,7 @@ has "$d" 'box(cr, x + c, y, w - 2 * c, t, name)'; has "$d" 'box(cr, x + c, y + h
 has "$d" 'box(cr, x, y + t, t, h - 2 * t, name)'; has "$d" 'box(cr, x + w - t, y + t, t, h - 2 * t, name)'
 has "$d" 'frame(cr, 0, 0, W, H, "hair", cut=True)'
 has "$d" 'box(cr, HAIR, H, W - HAIR, 1, "shadow1")'; has "$d" 'box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")'; has "$d" 'box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")'
-has "$d" 'cr.translate(panel.ox, 0)' "the frame's own place in the window"
+has "$d" 'cr.translate(panel.ox, panel.oy)' "the frame's own place in the window"
 has "$d" 'box(cr, it.x, it.y, it.w, it.h, lk["fill"])' "the cursor: the row's place, the heading's own width"
 has "$d" 'box(cr, it.x, it.y, EDGE_W, it.h, lk["edge"])' "…its 2 px edge at the left"
 case_ "a heading's pixels: its icon (accent_text) in the icon column, its name (strong) from cell 3, the rule — 1 px edge2, solid, on the row's row 10 — to the content's edge (8 px before a value, muted, at its end)"
@@ -1014,7 +1014,7 @@ eq "$(py 'fresh(); u.at = (880, 0, 1920); p.request("menu kawa-calendar", kp.Men
   "('middle', 0, 0) 1 (194, 74) (196, 76) True"
 eq "$(py 'fresh(); p.request("menu kawa-calendar", kp.Menu(["a", "b"], drop=True, middle=True), lambda rc, t: 0); print(p.place, p.ox, p.win)')" "('middle', 0, None) 1 (196, 76)" "by a key: dwl's output"
 eq "$(py 'fresh(); p.request("menu kawa-drives", kp.Menu(["a", "b"], drop=True), lambda rc, t: 0); print(p.place, p.ox, p.win); p.request("menu kawa-power", kp.Menu(["a", "b"]), lambda rc, t: 0); print(p.place, p.ox, p.win)')" \
-  "$(printf '%s\n' "('right', 7, None) 0 (195, 76)" "('centre', 0, None) 0 (195, 76)")" "a dropdown from the right, a menu in the middle of the screen: the box and the shadow, no air before"
+  "$(printf '%s\n' "('right', 7, None) 0 (195, 76)" "('centre', 0, None) 0 (195, 78)")" "a dropdown from the right: the box and the shadow, no air before; a menu in the middle of the screen: two rows above it, as its shadow's under it — the frame centred to the pixel"
 eq "$(py 'fresh(); p.request("menu kawa-calendar", kp.Menu(["a", "b"], drop=True, middle=True), lambda rc, t: 0); p.close("chosen"); p.request("sound"); print(p.ox, p.win == (p.size[0] + 1, p.size[1] + 2))')" "0 True" "the next panel opens without it"
 case_ "opened by a click on the bar: centred under the pointer, on that output, kept 8 px inside its edges"
 eq "$(py 'print(kp.hang(1563, 0, 1920, 410), kp.hang(1616, 0, 1920, 312), kp.hang(1900, 0, 1920, 410), kp.hang(30, 0, 1920, 410), kp.hang(960, 0, 1920, 410))')" "1358 1460 1502 8 755" \
