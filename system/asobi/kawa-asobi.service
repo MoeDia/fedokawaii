@@ -8,7 +8,6 @@
 Description=ASOBI: the play world
 Conflicts=getty@tty8.service kawa-asobi-bottles.service
 After=getty@tty8.service systemd-user-sessions.service user@ASOBI_UID.service
-Wants=kawa-asobi-watch.service
 StartLimitIntervalSec=0
 
 [Service]
@@ -16,11 +15,10 @@ Type=simple
 User=asobi
 WorkingDirectory=/home/asobi
 PAMName=kawa-asobi
+# (the VT for PAM and logind alone: nothing here holds the terminal, gamescope's session takes it through
+# logind, and systemd's TTY resets would hang up the leader at every command of the unit)
 TTYPath=/dev/tty8
-TTYReset=yes
-TTYVHangup=yes
-TTYVTDisallocate=yes
-StandardInput=tty-fail
+StandardInput=null
 StandardOutput=journal
 StandardError=journal
 SyslogIdentifier=kawa-asobi
@@ -29,7 +27,6 @@ UtmpMode=user
 Environment=KAWA_ASOBI_FACE=steam
 ExecStartPre=+/usr/local/sbin/kawa-asobi-root prestart
 ExecStart=/usr/local/bin/kawa-asobi-session
-ExecStartPost=+/usr/bin/chvt 8
 ExecStop=+/usr/local/sbin/kawa-asobi-root thaw
 ExecStop=/usr/local/bin/kawa-asobi-session --stop
 ExecStopPost=+/usr/local/sbin/kawa-asobi-root poststop

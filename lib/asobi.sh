@@ -71,6 +71,7 @@ asobi_system() {
   write_file /etc/systemd/user/kawa-asobi-world.service <"$s/kawa-asobi-world.service"
   printf 'hz=%s\n' "${MONITOR_HZ:-144}" | write_file /etc/fedokawaii/asobi.conf
   systemctl mask --quiet flatpak-add-fedora-repos.service   # (the package's own: no system-wide remote, ever)
+  systemctl disable --quiet --now accounts-daemon.service 2>/dev/null || true   # (flatpak's dependency; D-Bus starts it if it is ever asked)
   restorecon -R /etc/systemd/system/kawa-asobi* "/etc/systemd/system/user@$u.service.d" /etc/pam.d/kawa-asobi \
     /etc/polkit-1/rules.d/60-kawa-asobi.rules /etc/xkb /etc/gamemode.ini /etc/fedokawaii/asobi.conf /etc/xdg-desktop-portal/gamescope-portals.conf \
     /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session /usr/local/bin/kawa-asobi-world \

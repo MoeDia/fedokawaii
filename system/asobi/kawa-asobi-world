@@ -35,6 +35,12 @@ case ${1:-} in
     gamemoded -r >/dev/null 2>&1 &
     # (GTK on gamescope's X server: its Wayland socket has no windows to offer)
     [[ $FACE == bottles ]] && exec setpriv --no-new-privs flatpak run --nosocket=wayland --env=GDK_BACKEND=x11 "$BOTTLES"
+    # (FreeSync: Steam writes this switch from its own display setting, off by default outside a Deck,
+    # over gamescope's --adaptive-sync; held on, its setting never matters)
+    [[ $FACE == steam ]] && { xprop -root -f GAMESCOPE_VRR_ENABLED 32c -set GAMESCOPE_VRR_ENABLED 1
+      xprop -root -spy GAMESCOPE_VRR_ENABLED | while read -r l; do
+        [[ $l == *"= 0" ]] && xprop -root -f GAMESCOPE_VRR_ENABLED 32c -set GAMESCOPE_VRR_ENABLED 1
+      done & }
     # (a proof's headless run is no seat: no /dev/uinput, so no warning about it from Steam's wrapper)
     [[ ${KAWA_ASOBI_BACKEND:-drm} == headless ]] && exec setpriv --no-new-privs flatpak run --nodevice=all --device=dri "$STEAM" -gamepadui
     exec setpriv --no-new-privs flatpak run "$STEAM" -gamepadui ;;

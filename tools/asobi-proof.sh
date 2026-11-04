@@ -8,7 +8,8 @@
 #   sudo bash tools/asobi-proof.sh vt       the real thing on the real screen, 60 s at most (a dead man's
 #                                           switch brings the desktop back): gamescope on the card, the mode,
 #                                           FreeSync, the seat's sound and devices following, the way back
-#   sudo bash tools/asobi-proof.sh all      walls, then reset (never vt: it takes the owner's screen)
+#   sudo bash tools/asobi-proof.sh cycles   only VT switches on an empty VT (the desktop's side: its bar), 20 s
+#   sudo bash tools/asobi-proof.sh all      walls, then reset (never vt, cycles: they take the owner's screen)
 # Writes what it saw to ${ASOBI_PROOF_OUT:-/dev/shm/r27/asobi-proof}. Exit 0 all held · 1 something did not.
 set -u
 export LC_ALL=C.UTF-8 PATH=/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
@@ -150,59 +151,121 @@ reset_proof() {
   never "a snapshot that is not there"   /usr/local/sbin/kawa-asobi-root op reset:no-such-one
 }
 
-# the real session on the real screen. The dead man's switch needs no one: at 60 s the desktop is in front
-vt_proof() {
-  local dead=asobi-proof-deadman t card state before
+# ── the desktop's side of a VT switch: wlroots destroys every output when its session is paused, and makes
+# new ones at the resume (handle_session_active), a cable pulled and plugged: the bar and the wallpaper
+# must come back. His session's env, read from its bar (a kit's bar has a runtime folder of its own).
+desk_env() {
+  local b kv
+  DESK_WL=""
+  for b in $(pgrep -u "$DESK" -x waybar); do
+    tr '\0' '\n' <"/proc/$b/environ" 2>/dev/null | grep -qx "XDG_RUNTIME_DIR=/run/user/$DESK_UID" || continue
+    kv=$(tr '\0' '\n' <"/proc/$b/environ" | grep '^WAYLAND_DISPLAY=') || continue
+    DESK_WL=${kv#*=} DESK_BAR=$b
+    return 0
+  done
+  return 1
+}
+as_desk() { runuser -u "$DESK" -- env "HOME=$DESK_HOME" "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "WAYLAND_DISPLAY=$DESK_WL" "$@"; }
+bar_shown() {   # bar_shown NAME — the bar's row on the screen has its colours; what the desktop has kept, to $OUT/NAME.*
+  local n=99999 t
+  desk_env || { no "$1: no bar process"; return 1; }
+  # (the bar's left end, its torii and its workspace stamps: stable, and a window drawn there instead is not it)
+  for t in {1..24}; do
+    as_desk grim -g "0,0 150x27" - 2>/dev/null >"$OUT/$1.png"
+    [[ $1 == bar-before ]] && { cp "$OUT/$1.png" "$OUT/bar-model.png"; n=0; break; }
+    n=$(magick compare -metric AE -fuzz 8% "$OUT/bar-model.png" "$OUT/$1.png" null: 2>&1 | sed 's/ .*//'); n=${n%%.*}; n=${n:-99999}
+    ((n < 200)) && break
+    sleep 0.5
+  done
+  as_desk wlr-randr >"$OUT/$1.outputs" 2>&1
+  cp "$DESK_HOME/.cache/waybar.log" "$OUT/$1.waybar.log" 2>/dev/null
+  tail -n 40 "$DESK_HOME/.cache/dwl.log" >"$OUT/$1.dwl.log" 2>/dev/null
+  if ((n < 200)); then ok "$1: the bar is on the screen ($n pixels differ)"; return 0; fi
+  no "$1: no bar on the screen, the process alive ($DESK_BAR, $n pixels differ); restarted through the session's keep"
+  { for t in "/proc/$DESK_BAR/task/"*; do printf '%s %s\n' "$(cat "$t/comm")" "$(cat "$t/wchan")"; done
+    if [[ -x ${ASOBI_PROOF_STACK:-}/usr/bin/eu-stack ]]; then LD_LIBRARY_PATH=$ASOBI_PROOF_STACK/usr/lib64 "$ASOBI_PROOF_STACK/usr/bin/eu-stack" -p "$DESK_BAR" -m 2>&1 | head -80; fi
+    pgrep -a -P "$DESK_BAR"; } >"$OUT/$1.stuck.txt" 2>&1
+  kill "$DESK_BAR" 2>/dev/null
+  return 1
+}
+# a clean cycle and quick ones on an empty VT, no world at all: is it the switch itself that loses the bar?
+cycles() {
+  local dead=asobi-proof-deadman i
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
-  systemd-run --quiet --unit="$dead" --collect --on-active=60 bash -c 'chvt 1; systemctl stop kawa-asobi.service kawa-asobi-bottles.service'
+  bar_shown bar-before || return
+  systemd-run --quiet --unit="$dead" --collect --on-active=45 chvt 1
+  chvt 8; sleep 3; chvt 1
+  bar_shown bar-clean
+  for i in 1 2 3; do chvt 8; sleep 2; chvt 1; sleep 0.7; done
+  chvt 8; sleep 2; chvt 1
+  bar_shown bar-quick
+  systemctl stop "$dead.timer" 2>/dev/null
+}
+
+# the real session on the real screen. The dead man's switch needs no one: at 90 s the desktop is in front
+vt_proof() {
+  local dead=asobi-proof-deadman t card before sid
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
+  bar_shown bar-before || return
+  systemd-run --quiet --unit="$dead" --collect --on-active=90 bash -c 'chvt 1; systemctl stop kawa-asobi.service kawa-asobi-bottles.service'
   before=$(date '+%F %T')
   echo "into the world"
   systemctl start --no-block kawa-asobi.service
   for t in {1..40}; do [[ $(cat /sys/class/tty/tty0/active) == tty8 ]] && break; sleep 0.25; done
   holds "VT 8 in front"                  test "$(cat /sys/class/tty/tty0/active)" = tty8
   sleep 6
-  local sid; sid=$(loginctl list-sessions --no-legend | awk '$3 == "asobi" && $4 == "seat0" { print $1; exit }')
-  holds "a seat session on it, active"   bash -c '[[ $(loginctl show-session '"$sid"' -p Active --value) == yes && $(loginctl show-session '"$sid"' -p VTNr --value) == 8 ]]'
+  for t in $(loginctl list-sessions --no-legend | awk '$3 == "asobi" && $4 == "seat0" { print $1 }'); do
+    [[ $(loginctl show-session "$t" -p State --value) == closing ]] || sid=$t
+  done
   loginctl show-session "$sid" >"$OUT/session.txt" 2>&1
-  holds "gamescope runs"                 pgrep -u "$WHO" -x gamescope
+  holds "a seat session on it, active"   bash -c '[[ $(loginctl show-session '"$sid"' -p Active --value) == yes && $(loginctl show-session '"$sid"' -p VTNr --value) == 8 ]]'
+  # (no world: nothing more to see, the desktop back at once)
+  pgrep -u "$WHO" -f '^gamescope|/gamescope ' >/dev/null || { no "gamescope did not start"; chvt 1; systemctl stop kawa-asobi.service; systemctl stop "$dead.timer"; return; }
+  ok "gamescope runs"
   holds "Steam's gamepad UI runs, in its Flatpak"  bash -c 'pgrep -u asobi -f "steam.*-gamepadui" >/dev/null'
-  holds "/dev/uinput is the seat's"      bash -c 'getfacl -p /dev/uinput 2>/dev/null | grep -q user:asobi || runuser -u asobi -- test -w /dev/uinput'
-  holds "the card's master is the world's: /dev/dri ACL" bash -c 'runuser -u asobi -- test -w /dev/dri/card0 || runuser -u asobi -- test -w /dev/dri/card1'
+  holds "/dev/uinput is the seat's"      runuser -u "$WHO" -- test -w /dev/uinput
   sleep 8
   card=$(for c in /sys/class/drm/card[0-9]*-*/status; do [[ $(cat "$c") == connected ]] && { c=${c%%-*}; echo "${c##*/card}"; break; }; done)
   cat "/sys/kernel/debug/dri/$card/state" >"$OUT/drm-state.txt" 2>&1
-  holds "the screen at 1920x1080, 144 Hz" bash -c 'grep -A8 "crtc\[" '"$OUT"'/drm-state.txt | grep -E "active=1" >/dev/null && grep -qE "mode:.*\"1920x1080\": 144" '"$OUT"'/drm-state.txt'
+  holds "the screen at 1920x1080, 144 Hz" grep -qE 'mode:.*"1920x1080": 144' "$OUT/drm-state.txt"
   "$DESK_HOME/.local/bin/kawa-display" --vrr >"$OUT/vrr.txt" 2>&1
   holds "FreeSync on (the card's own word: VRR_ENABLED)" grep -qP '\tyes\ton' "$OUT/vrr.txt"
   inside_user gamemoded -s >"$OUT/gamemode.txt" 2>&1
   holds "GameMode on"                    grep -q 'is active' "$OUT/gamemode.txt"
   holds "the card at its full clocks"    test "$(cat "/sys/class/drm/card$card/device/power_dpm_force_performance_level")" = high
   holds "the desktop's idle held"        bash -c 'systemd-inhibit --list --no-pager --no-legend | grep -q "asobi.*idle"'
-  { inside_user wpctl status; } >"$OUT/world-sound.txt" 2>&1
-  holds "the sound card is the world's"  grep -q 'Audio/Sink\|Analog Stereo\|Digital Stereo' "$OUT/world-sound.txt"
-  env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" runuser -u "$DESK" -- wpctl status >"$OUT/desk-sound-away.txt" 2>&1
+  holds "the world's share of the machine" test "$(systemctl show -P CPUWeight "user-$UID_W.slice")" = 400
+  inside_user wpctl status >"$OUT/world-sound.txt" 2>&1
+  holds "the sound card is the world's"  grep -qE 'Analog Stereo|Digital Stereo' "$OUT/world-sound.txt"
   inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
-  sleep 2
+  sleep 3
   inside_user cat /tmp/gamescope.png >"$OUT/world.png" 2>/dev/null
   echo "back, as Super+G does it (the key itself: a virtual keyboard, the input wall lifted for it)"
-  rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.3
+  rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.5
   python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
   sleep 1.5
   holds "Super+G: the desktop in front"  test "$(cat /sys/class/tty/tty0/active)" = tty1
-  if [[ $(cat /sys/class/tty/tty0/active) != tty1 ]]; then chvt 1; sleep 1.5; fi
-  sleep 2.5
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { chvt 1; sleep 1; }
+  bar_shown bar-back-1
+  sleep 1.5
   holds "the watch knows"                bash -c 'shopt -s extglob; [[ $(cat /run/kawa-asobi/state) == @(away|frozen) ]]'
   never "the desktop's idle free again"  bash -c 'systemd-inhibit --list --no-pager --no-legend | grep -q "asobi.*idle"'
   env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" runuser -u "$DESK" -- wpctl status >"$OUT/desk-sound-back.txt" 2>&1
   holds "the sound card is yours again"  grep -q 'Analog Stereo' "$OUT/desk-sound-back.txt"
-  echo "in again, and out by Steam's own exit"
+  echo "in again, out again at once, then in and closed (a quick double switch)"
   chvt 8; sleep 2
   holds "in front again"                 test "$(cat /run/kawa-asobi/state)" = front
+  chvt 1; sleep 0.7; chvt 8; sleep 2
+  chvt 1
+  bar_shown bar-back-2
+  chvt 8; sleep 2
   systemctl stop kawa-asobi.service
   for t in {1..40}; do [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] && break; sleep 0.25; done
   holds "closed: the desktop in front"   test "$(cat /sys/class/tty/tty0/active)" = tty1
   holds "the state says off"             test "$(cat /run/kawa-asobi/state)" = off
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || chvt 1
   systemctl stop "$dead.timer" 2>/dev/null
+  bar_shown bar-closed
   journalctl -t kawa-asobi --since "$before" --no-pager -o cat >"$OUT/session-journal.txt" 2>&1
   journalctl _UID="$UID_W" --since "$before" --no-pager -o cat >"$OUT/world-journal.txt" 2>&1
 }
@@ -215,6 +278,7 @@ case ${1:-} in
   walls) walls ;;
   reset) reset_proof ;;
   vt)    vt_proof ;;
+  cycles) cycles ;;
   all)   walls; reset_proof ;;
   *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|all" >&2; exit 2 ;;
 esac

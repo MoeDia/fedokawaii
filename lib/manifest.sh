@@ -179,8 +179,8 @@ PKG_VIRT=(              # virtual machines: the games VM (Windows with the graph
   libvirt-daemon-kvm virt-install edk2-ovmf passt swtpm swtpm-tools qemu-img
 )
 PKG_ASOBI=(flatpak                # the world's programs, per user, in its own home: Steam, Bottles (lib/asobi.sh)
-           xdg-desktop-portal-gtk # file dialogs on the world's own display
            kbd                    # chvt: the screen back on the desktop when the world ends
+           xprop                  # FreeSync held on in gamescope (GAMESCOPE_VRR_ENABLED, kawa-asobi-world)
            gamescope gamemode     # its compositor, on the card itself; the card at full clocks while it plays
            ntsync-autoload        # /dev/ntsync at boot: Proton's faster Windows synchronisation
            steam-devices)         # Valve's own rules for controllers (ValveSoftware/steam-devices, Fedora's

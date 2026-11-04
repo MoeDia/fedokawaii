@@ -11,7 +11,7 @@
 #                                  a game running, the world is frozen (no CPU, no card, the game
 #                                  exactly where it was); back in front, thawed. Steam alone goes
 #                                  on working behind the desktop: a download finishes
-#   kawa-asobi-root thaw           the world thawed (asked before it is closed or entered)
+#   kawa-asobi-root thaw           the world thawed, being closed (the unit's ExecStop)
 #   kawa-asobi-root drop-fix       what either side dropped made readable by the other
 #   kawa-asobi-root op VERB[:NAME] one job for the app, its outcome in /run/kawa-asobi/last
 #       snapshot[:NAME]            the world as it is now, kept read-only (default name: the time)
@@ -38,7 +38,8 @@ state() { mkdir -p "$RUN"; printf '%s\n' "$1" >"$RUN/state.$$" && mv -f "$RUN/st
 
 uid() { id -u "$WHO"; }
 front_vt() { local a; a=$(cat "$TTY0" 2>/dev/null); printf '%s\n' "${a#tty}"; }
-user_ctl() { systemctl --machine="$WHO@.host" --user --quiet "$@"; }
+# (the world's own manager, as its user: systemctl --machine would open a logind session each time)
+user_ctl() { local u; u=$(uid); runuser -u "$WHO" -- env "XDG_RUNTIME_DIR=/run/user/$u" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$u/bus" systemctl --user --quiet "$@"; }
 
 # ── the network's wall ───────────────────────────────────────────────────────────────────────
 # The world reaches the Internet and nothing of this house: not the desktop's services on this
@@ -151,9 +152,19 @@ prestart() {
   drop_fix
   systemctl stop "${HELD[@]}" 2>/dev/null
   state starting
+  date +%s >"$RUN/born"
+  systemctl start --no-block kawa-asobi-watch.service
+  # (the screen last of all, and before the session: a session that dies at once finds it here, poststop
+  # puts it back; after the session, a quick death could leave it on a VT nobody holds)
+  chvt "$WORLD_VT"
 }
 poststop() {
   thaw
+  # (dead within seconds of its start, not asked to close: said, never a silent black screen)
+  local born=0; read -r born 2>/dev/null <"$RUN/born"
+  [[ -e $RUN/closing || $(($(date +%s) - ${born:-0})) -ge 20 ]] \
+    || as_desk notify-send -a asobi -u critical -- "asobi" "the world would not start: journalctl -t kawa-asobi" 2>/dev/null
+  rm -f "$RUN/closing" "$RUN/born"
   # (the screen first, as the world's last act: the desktop back at once, the rest behind it)
   [[ $(front_vt) == "$WORLD_VT" ]] && chvt "$DESK_VT"
   loginctl terminate-user "$WHO" 2>/dev/null
@@ -261,7 +272,7 @@ case ${1:-} in
   prestart) prestart ;;
   poststop) poststop ;;
   watch)    watch ;;
-  thaw)     thaw ;;
+  thaw)     : >"$RUN/closing"; thaw ;;   # (the unit's ExecStop: a close that was asked for)
   drop-fix) drop_fix ;;
   op)       [[ $# -eq 2 ]] || { echo "usage: kawa-asobi-root op VERB[:NAME]" >&2; exit 2; }; op "$2" ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0" ;;
