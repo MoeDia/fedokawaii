@@ -1313,13 +1313,13 @@ def panel_conf(m, p):
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
     keys = ("ground", "surface", "key", "edge", "edge2", "lo", "faint", "muted", "text", "strong", "accent",
             "accent_text", "accent_hi", "accent_lo", "text_on_accent", "select", "select_edge", "text_on_select",
-            "asagi", "flame", "gold", "blue")
+            "asagi", "flame", "gold")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1], "dim": (0x11, 0x13, 0x14, 0x66)}
-    # (sand: a running timer's bar; the dim: Wada's Black at 40 %, a dialog's, in either mood)
+    # (sand: a running timer's bar; ai: a Saturday's indigo; the dim: Wada's Black at 40 %, a dialog's, in either mood)
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
             + "".join(f"{k}={p[k]}\n" for k in keys)
-            + f"sand={p['gold'] if m == 'dark' else p['yellow']}\n"
+            + f"sand={p['gold'] if m == 'dark' else p['yellow']}\nai={p['blue'] if m == 'dark' else p['bblue']}\n"
             + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
 
 

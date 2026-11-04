@@ -426,7 +426,7 @@ CAP_WORDS = {"super": "@key-super", "shift": "@key-shift", "ctrl": "ctrl", "alt"
              "escape": "esc", "enter": "enter", "return": "enter", "space": "space", "print": "print",
              "backspace": "bksp", "delete": "del", "left": "←", "right": "→", "up": "↑", "down": "↓", "end": "end", "home": "home"}
 CAP_JOIN = ("/", "or", "to", "then", "·")
-CAP_ONE = re.compile(r"(?:\S|[A-Za-z]?\d+…[A-Za-z]?\d+|F\d+)$")
+CAP_ONE = re.compile(r"(?:\S|[A-Za-z]?\d+\u2026[A-Za-z]?\d+|F\d+)$")
 
 
 def cap_of(word):
@@ -2847,8 +2847,8 @@ def main(argv):
                 box(cr, sx + 1, y, h - 2, h, "accent")
                 box(cr, sx, y + 1, h, h - 2, "accent")
             lw = text_layout(cr, t).get_pixel_extents()[0]
-            name = {"today": "text_on_accent", "dim": "faint", "head": "muted", "sun": "accent_text", "sat": "blue",
-                    "head-sun": "accent_text", "head-sat": "blue"}.get(state, "text")
+            name = {"today": "text_on_accent", "dim": "faint", "head": "muted", "sun": "accent_text", "sat": "ai",
+                    "head-sun": "accent_text", "head-sat": "ai"}.get(state, "text")
             text(cr, x + (w - lw.width) // 2 - lw.x, y + (h - LINE) // 2, t, name)
         elif k == "input":
             _, x, y, w, h, prompt, query, ghost = m

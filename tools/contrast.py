@@ -24,7 +24,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HOME = ROOT / "configs/home"
 THEMES = HOME / ".config/fedokawaii/themes"
-WORDS, ICON, LARGE = 7.0, 4.5, 3.0
+WORDS, ICON, LARGE, SHAPE = 7.0, 4.5, 3.0, 3.01    # (SHAPE: no letter at all — a cursor's edge, a seal's mass: WCAG 1.4.11's 3 : 1)
 
 _spec = importlib.util.spec_from_file_location("wada_palette", ROOT / "tools/wada-palette.py")
 _wada = importlib.util.module_from_spec(_spec)
@@ -50,7 +50,7 @@ def apca(fg, bg):
     return 0.0 if s > -0.1 else -(s + 0.027) * 100
 
 
-APCA_NEED = {WORDS: 60.0, ICON: 45.0, LARGE: 45.0}      # (what each WCAG class asks, read by APCA)
+APCA_NEED = {WORDS: 60.0, ICON: 45.0, LARGE: 45.0, SHAPE: 30.0}      # (what each WCAG class asks, read by APCA)
 STEP = 15.0                                              # (Lc between neighbouring word inks: §1)
 
 
@@ -58,7 +58,8 @@ STEP = 15.0                                              # (Lc between neighbour
 # vermilion: no red on sumi reaches 60 — words to be read are never accent_text), words spotted
 ROLE_LC = {"strong": 75.0, "text": 75.0, "muted": 60.0, "accent_text": 45.0, "faint": 30.0}
 # kept by the owner's word, measured and shown, not counted: the seal's numeral is black (r27)
-APCA_KEPT = ("the workspace seal's numeral (Wada's Black, the owner's choice)",)
+APCA_KEPT = ("the workspace seal's numeral (Wada's Black, the owner's choice)",
+             "the calendar's today: its digit on the seal (the workspace seal's own pair)")
 
 
 def role_pairs(m):
@@ -156,17 +157,17 @@ def panel_pairs(m):
             ("the panels", "the item under the cursor: its picture", c["strong"], c["select"], ICON),
             ("the panels", "the item under the cursor: its value", c["text"], c["select"], WORDS),
             ("the panels", "the item under the cursor: its key's label on its cap", c["muted"], c["key"], ICON),
-            ("the panels", "the item under the cursor: the cursor's edge", c["select_edge"], c["select"], LARGE),
-            ("the panels", "the item under the cursor: a seal inked, a chosen dot", c["accent"], c["select"], LARGE),
+            ("the panels", "the item under the cursor: the cursor's edge", c["select_edge"], c["select"], SHAPE),
+            ("the panels", "the item under the cursor: a seal inked, a chosen dot", c["accent"], c["select"], SHAPE),
             ("the panels", "a meter under the cursor: a lit segment on the tint", c["asagi"], c["select"], LARGE),
             ("the panels", "a meter: lit against unlit (the level)", c["asagi"], c["edge"], LARGE),
-            ("the panels", "a seal inked: its paper's ring", c["ground"], c["accent"], LARGE),
-            ("the panels", "a seal tile inked: its carved picture", c["text_on_accent"], c["accent"], LARGE),
+            ("the panels", "a seal inked: its paper's ring", c["ground"], c["accent"], SHAPE),
+            ("the panels", "a seal tile inked: its carved picture", c["text_on_accent"], c["accent"], SHAPE),
             ("the panels", "a seal tile blank: its picture", c["muted"], c["key"], ICON),
-            ("the panels", "the calendar's today: its digit on the seal", c["text_on_accent"], c["accent"], ICON),
-            ("the panels", "the calendar's Saturday", c["blue"], c["ground"], ICON),
+            ("the panels", "the calendar's today: its digit on the seal (the workspace seal's own pair)", c["text_on_accent"], c["accent"], ICON),
+            ("the panels", "the calendar's Saturday", c["ai"], c["ground"], ICON),
             ("the panels", "the calendar's Sunday", c["accent_text"], c["ground"], ICON),
-            ("the panels", "a timer's sand on the ground", c["sand"], c["ground"], LARGE)]
+            ("the panels", "a timer's sand on the ground", c["sand"], c["ground"], SHAPE)]
 
 
 def css_pairs(m):
