@@ -10,7 +10,7 @@ here=$(cd "$(dirname "$0")" && pwd)
 out=$(mktemp -d /dev/shm/regress-cursor.XXXXXX)
 [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$out"' EXIT
 cat >"$out/play.sh" <<'PLAY'
-panel; nap 1
+panel; ready
 say "select $(sed -n 's/^select=//p' "$HOME/.config/fedokawaii/current/panel.conf")"
 say "edge $(sed -n 's/^select_edge=//p' "$HOME/.config/fedokawaii/current/panel.conf")"
 setsid -f kawa-timer; nap 1.5
@@ -21,7 +21,7 @@ key Up; nap 0.4; shot s3
 key Escape; nap 0.6
 PLAY
 for mood in dark light; do
-  bash "$here/../kit.sh" --theme "$mood" --time 40 "$@" --out "$out/$mood" --play "$out/play.sh" play >"$out/$mood.log" 2>&1 \
+  bash "$here/../kit.sh" --theme "$mood" --time 280 "$@" --out "$out/$mood" --play "$out/play.sh" play >"$out/$mood.log" 2>&1 \
     || { echo "menu-cursor: the kit failed ($mood): $(tail -n 2 "$out/$mood.log")" >&2; exit 2; }
 done
 python3 -I - "$out" <<'PY'

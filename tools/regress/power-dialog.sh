@@ -13,7 +13,7 @@ cat >"$out/play.sh" <<'PLAY'
 mkdir -p "$KIT_OUT/stub"; printf '#!/bin/sh\necho "$*" >>"%s/asked"\n' "$KIT_OUT" >"$KIT_OUT/stub/systemctl"; chmod +x "$KIT_OUT/stub/systemctl"
 export PATH=$KIT_OUT/stub:$PATH
 : >"$KIT_OUT/asked"
-panel; nap 1
+panel; ready
 shot rest
 setsid -f kawa-power; nap 1.2; shot open
 key Right Right Right Right; nap 0.3; shot on-off
@@ -26,7 +26,7 @@ say "after the second press: $(cat "$KIT_OUT/asked")"
 shot done
 PLAY
 for mood in dark light; do
-  bash "$here/../kit.sh" --theme "$mood" --time 40 "$@" --out "$out/$mood" --play "$out/play.sh" play >"$out/$mood.log" 2>&1 \
+  bash "$here/../kit.sh" --theme "$mood" --time 280 "$@" --out "$out/$mood" --play "$out/play.sh" play >"$out/$mood.log" 2>&1 \
     || { echo "power-dialog: the kit failed ($mood): $(tail -n 2 "$out/$mood.log")" >&2; exit 2; }
   grep -q '^after the first press: $' "$out/$mood/play.log" || { echo "power-dialog: the first press did something ($mood): $(cat "$out/$mood/play.log")" >&2; exit 1; }
   grep -q '^after the second press: poweroff$' "$out/$mood/play.log" || { echo "power-dialog: the second press ($mood): $(grep second "$out/$mood/play.log")" >&2; exit 1; }

@@ -20,7 +20,7 @@ while (($#)); do
 done
 export PATH=$HOME/.local/bin:$PATH
 mkdir -p "$out/raw"
-W=$(mktemp -d /tmp/panel-review.XXXXXX); trap 'rm -rf "$W"' EXIT
+W=$(mktemp -d /tmp/panel-review.XXXXXX); [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$W"' EXIT; [[ ${KEEP:-} == 1 ]] && echo "panel-review: kept $W"
 mkdir "$W/bin"
 for f in "$repo"/bin/*; do ln -s "$f" "$W/bin/"; done
 [[ -n $mako ]] && ln -s "$mako" "$W/bin/mako"
@@ -70,9 +70,9 @@ SURFACES=(
   "help-find|chord logo slash|text 'lock'|key Escape"
   "launcher|chord logo space|:|key Escape"
   "launcher-sum|chord logo space|text '15% of 2400'; nap 0.9|key Escape"
-  "dialog-keys|printf 'note\\tthe disk is nearly full: go on?\\nkey\\t\\tgo on\\nkey\\t\\tnot now\\n' \| setsid -f kawa-menu|key Right|key Escape"
-  "password|setsid -f sh -c 'kawa-menu --prompt \"\" --password --title \"report.pdf · password\" </dev/null'|text 'abc'|key Escape"
-  "downloads-busy|mkdir -p \$XDG_RUNTIME_DIR/kawa-downloads; (sleep 30 \& echo \$! >/tmp/rv.sleep); printf 'ubuntu-26.04-desktop-amd64.iso\\t2147483648\\t5368709120\\t/tmp/x\\nDune Part Two 2160p.mkv\\t10737418240\\t21474836480\\t/tmp/y\\n' >\$XDG_RUNTIME_DIR/kawa-downloads/torrra.\$(cat /tmp/rv.sleep); setsid -f kawa-downloads|:|key Escape; rm -f \$XDG_RUNTIME_DIR/kawa-downloads/torrra.*"
+  "dialog-keys|rv_dialog|key Right|key Escape"
+  "password|rv_password|text 'abc'|key Escape"
+  "downloads-busy|rv_downloads|:|key Escape; rv_downloads_end"
   "dnd|setsid -f kawa-quick dnd|:|key Escape"
   "drives|setsid -f kawa-drives|:|key Escape"
   "weather|setsid -f kawa-weather|:|key Escape"
@@ -85,7 +85,17 @@ SURFACES=(
 )
 {
   echo '. "$HOME/.config/fedokawaii/icons.sh"'
-  echo 'panel; warm; nap 1.5'
+  cat <<'WORDS'
+rv_dialog() { printf 'note\tthe disk is nearly full: go on?\nkey\t\tgo on\nkey\t\tnot now\n' | kawa-menu >/dev/null & }
+rv_password() { kawa-menu --prompt "" --password --title "report.pdf · password" </dev/null >/dev/null & }
+rv_downloads() {
+  mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"; sleep 40 & RV_SLEEP=$!
+  printf 'ubuntu-26.04-desktop-amd64.iso\t2147483648\t5368709120\t/tmp/x\nDune Part Two 2160p.mkv\t10737418240\t21474836480\t/tmp/y\n' >"$XDG_RUNTIME_DIR/kawa-downloads/torrra.$RV_SLEEP"
+  setsid -f kawa-downloads
+}
+rv_downloads_end() { kill "$RV_SLEEP" 2>/dev/null; rm -f "$XDG_RUNTIME_DIR"/kawa-downloads/torrra.*; }
+WORDS
+  echo 'panel; ready; warm; nap 1.5'
   for s in "${SURFACES[@]}"; do
     IFS='|' read -r name open keys close <<<"$s"
     [[ -z $only || ,$only, == *",$name,"* ]] || continue
