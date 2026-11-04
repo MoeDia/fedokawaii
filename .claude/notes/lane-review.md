@@ -70,3 +70,15 @@ Nothing to merge but this log. Findings are in the inbox; `.claude/notes/lane-re
 
 ## Open questions
 None.
+
+## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## OWNER VERDICT 2026-11-04 21:41 on your render fedora-45-only: comment
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
