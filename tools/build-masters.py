@@ -27,8 +27,8 @@ Reads art/masters/masters.toml — one table a picture:
     fields  = [[[ax, ay], [x, y], …], …]  a large thing to take out, its outline in the picture's
                                  pixels: one colour, the print's own at ax, ay
     even    = [[x, reach], …]    two sheets of a print inked apart: the step in lightness across the
-                                 picture's column x taken out of the right-hand sheet, row by row,
-                                 less and less over REACH columns
+                                 picture's column x shared out between them, row by row, less and
+                                 less over REACH columns each way
     dodge   = [[x0, y0, x1, y1, lift, gain], …]  a dark face lost in its ground: inside the box's
                                  ellipse its lightness raised by LIFT, its lines × GAIN
     fade    = [[x0, x1], …]      in the picture's columns: into the top's ink, the picture whole at
@@ -202,16 +202,17 @@ def dark_marks(L, below=0.035):
 
 def even(lab, x, reach, wide=6, sigma=12, most=0.1):
     """The step in lightness across column X (WIDE columns each side, row by row, softened down the
-    column so a figure crossing it sets nothing, and at most MOST) taken out on its right, less
-    and less over REACH columns."""
+    column so a figure crossing it sets nothing, and at most MOST) shared out: half off the lighter
+    side, half onto the darker, less and less over REACH columns each way (taken from one side
+    alone it leaves a dark line down the seam)."""
     L = lab[..., 0]
     step = L[:, x + 1:x + 1 + wide].mean(1) - L[:, x - wide:x].mean(1)
     k = np.exp(-(np.arange(-3 * sigma, 3 * sigma + 1) ** 2) / (2 * sigma ** 2))
     step = np.convolve(np.pad(step, 3 * sigma, mode="edge"), k / k.sum(), mode="valid")
-    t = np.clip(1 - (np.arange(W) - x) / reach, 0, 1)
-    t[:x] = 0
+    cols = np.arange(W)
+    t = np.clip(1 - np.abs(cols - x) / reach, 0, 1) * np.where(cols > x, -0.5, 0.5)
     out = lab.copy()
-    out[..., 0] = L - np.clip(step, -most, most)[:, None] * t[None, :]
+    out[..., 0] = L + np.clip(step, -most, most)[:, None] * t[None, :]
     return out
 
 

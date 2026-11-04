@@ -33,6 +33,7 @@ source = "oiwa-lantern.jpg"
 sha256 = "a318aea6cc9e96aae4ad3787f8820dcb26d6b136b1acdb2dfbaf09515d40ed61"
 crop = [42, 700, 1602, 901]
 tone   = "keep"
+chroma = 0.1
 
 [fudo-flames]
 theme  = "dark"
@@ -42,8 +43,8 @@ crop   = [330, 152, 3253, 1830]
 tone   = "keep"
 joins = [[1375, 1425], [2650, 2675]]
 clean = [[630, 30, 640, 48]]
-even = [[462, 60]]
-dodge = [[345, 70, 405, 134, 0.08, 2.5]]
+even = [[462, 80]]
+dodge = [[345, 70, 405, 134, 0.1, 3.0]]
 
 [taira-ghosts-bay]
 theme  = "dark"
@@ -87,17 +88,17 @@ crop = [100, 261, 3648, 2052]
 tone   = "lacquer"
 hue    = 20
 joins = [[1907, 1922]]
-clean = [[0, 53, 6, 69], [0, 76, 6, 84], [0, 351, 20, 360], [626, 34, 640, 52], [633, 196, 640, 214], [633, 268, 640, 289], [633, 338, 640, 351]]
+clean = [[0, 53, 6, 69], [0, 76, 6, 84], [0, 351, 20, 360], [626, 34, 640, 52], [633, 196, 640, 214], [633, 268, 640, 289], [633, 338, 640, 351], [632, 355, 640, 360]]
 
 [fujin-korin]
 theme  = "dark"
 source = "fujin-korin.jpg"
 sha256 = "dc4e4d7f9bdebd3ed5e5b6dbe91a061081186a9610d027be3c4deaab84119a09"
-crop = [140, 263, 3648, 2052]
+crop = [230, 290, 3520, 1980]
 tone   = "lacquer"
 hue    = 20
 joins = [[1923, 1936]]
-clean = [[0, 186, 16, 258], [0, 326, 44, 360]]
+clean = [[0, 333, 30, 360]]
 
 [benten-biwa]
 theme  = "light"
