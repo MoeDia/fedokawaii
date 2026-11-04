@@ -249,6 +249,8 @@ they break.
 | r27-rule-2 | his remote page keeps working through every change | manual: after an apply, open http://THE-PC:8737 with his token (fk-remote.service is his own, outside the repo) |
 | r27-19q | his first design review: the prompt's head, the lantern, the plain Super+X, the hop, the strip, the lock's gate | tools/regress/lock-gate.sh · tests/content/test_shell.sh "foot: a new window's prompt" · tests/menus/test_panel.sh "the items, in order: the two meters" · open T19q: pack 2 with him |
 | r27-19q-6-rail | the workspace move's rail, and rapid switching clean | tools/regress/rail.sh · tools/regress/bar-burst.sh |
+| r27-19q-6-lacquer | the rail and the rod in lacquer; a switch takes each window's place at that moment | tools/regress/rail.sh |
+| r27-kernel-oops | a kernel oops on the PC, its cause not established | record: an event of the PC's, RAM or memory pressure under the lanes' load |
 | r27-19r | the clock to the minute; the band behind the bar gone again ("fully floating, no band, ever") | tests/session/test_glass.sh "on: " · tools/regress/bar-geometry.sh |
 | r27-19r-2 | terminal words through the glass over the worst wallpaper pixel | tests/static/test_contrast.sh "tools/contrast.py: every pair" |
 | r27-found-menu-cursor | a row's cursor whole, nothing left on the row it left | tools/regress/menu-cursor.sh |
