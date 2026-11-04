@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-quick — quick settings: the panel under the bar's right end (its cat, or Super+X), and
+# kawa-quick — quick settings: the panel under the bar's right end (its head, or Super+X), and
 # what it and its two siblings (the sound panel, the brightness slider) show and do. The panels
 # themselves are kawa-panel (it draws; this knows the machine).
 #
@@ -45,7 +45,7 @@ case ${1:-} in
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   *) usage ;;
 esac
-# a panel's key or button (Super+X or the cat, Super+A or the volume, the brightness): the
+# a panel's key or button (Super+X or the head, Super+A or the volume, the brightness): the
 # panel told at once, before anything else is read — no process started on the way (its pid
 # file, that pid's command line, its fifo: bash's own); none running: started, open
 toggle() {

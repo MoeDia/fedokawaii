@@ -121,7 +121,7 @@ def bar(f, fibre):
         else:
             x += 1
     def paper_of(a, b, ink_set):
-        return [(c, y) for c in range(a, b + 1) for y in range(5, 23)
+        return [(c, y) for c in range(a, b + 1) for y in range(4, 24)
                 if tuple(int(v) for v in im[y, c]) not in ink_set]
     for a, b in tiles:
         scroll = (b - a) > 150                       # (the clock: rods 4 px, no shadow column)

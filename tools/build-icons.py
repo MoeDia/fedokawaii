@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/build-icons.py — build the desktop's pixel icon font from art/icons.txt.
 
-    python3 tools/build-icons.py            # writes the font, icons.sh and the crests
+    python3 tools/build-icons.py            # writes the font and icons.sh
     python3 tools/build-icons.py --preview out.png   # also draws every icon, 8x, centred
 
 Outputs (all committed, so a normal install needs neither Python nor fontTools):
@@ -12,9 +12,6 @@ Outputs (all committed, so a normal install needs neither Python nor fontTools):
         two: foot draws it from its cell's left edge, into the space after it) and its middle
         on the capitals' middle (11.6 px tall: a 12 px icon from the baseline up)
     configs/home/.config/fedokawaii/icons.sh
-    configs/home/.local/share/fedokawaii/crests/NAME.png   quick settings' crest pictures
-        (art/crests.txt, 28 × 28): white, the drawing in the alpha — a mask kawa-panel paints
-        in the state's ink
 
 The font copies Sumi UI's grid: 1400 units per em, 100 units per pixel, so at 14 px (or 28,
 42…) every pixel of the drawing lands on exactly one screen pixel.
@@ -39,10 +36,6 @@ TERM_RAISE = 1                    # pixels: Sumi Term's capitals stand 11.6 px o
 TERM_CELL = 8                     # Sumi Term's cell: each drawing centred in whole cells
 TERM_UPM, TERM_ASC, TERM_DESC = 1600, 1600, -400  # Sumi Term's em and foot's line: 16 up, 4 down
 SH = ROOT / "configs/home/.config/fedokawaii/icons.sh"
-CRESTS_SRC = ROOT / "art" / "crests.txt"
-CRESTS_DIR = ROOT / "configs/home/.local/share/fedokawaii/crests"
-CREST = 28                        # a crest's picture, square; its ink within CREST / 2 - 1 of the middle
-
 UPM, PX = 1400, 100               # Sumi UI's grid: a 14 px em, 100 units per pixel
 ASC, DESC = 1200, -200            # its line: 12 up, 2 down — mixing the fonts keeps the line
 FIRST = 0xFE000                   # Supplementary Private Use Area A: each icon at FIRST + its place
@@ -267,41 +260,6 @@ def preview(icons, path, scale=8):
     img.save(path)
 
 
-def crests(src=CRESTS_SRC, out=CRESTS_DIR):
-    """quick settings' pictures (art/crests.txt: the dial's hours and corners) as masks: white,
-    the drawing in the alpha, one PNG each by its name; a picture no longer drawn, gone"""
-    from PIL import Image
-    pics = parse(src.read_text(), src.name)
-    out.mkdir(parents=True, exist_ok=True)
-    for ic in pics:
-        if (ic["w"], ic["h"]) != (CREST, CREST):
-            sys.exit(f"{src.name}:{ic['line']}: {ic['name']} is {ic['w']} × {ic['h']}; a crest is {CREST} × {CREST}")
-        im = Image.new("LA", (CREST, CREST), (255, 0))
-        for y, r in enumerate(ic["rows"]):
-            for x, v in enumerate(r):
-                if v != "#":
-                    continue
-                if not (0 < x < CREST - 1 and 0 < y < CREST - 1):
-                    sys.exit(f"{src.name}:{ic['line']}: {ic['name']}'s pixel {x},{y} is on the square's edge "
-                             f"(a pixel of air all round: the cursor's lacquer frames it)")
-                im.putpixel((x, y), (255, 255))
-        im.save(out / f"{ic['name']}.png")
-    # each picture's ink box in its square (x y w h): kawa-panel places the corners and the
-    # dial's middle by what is drawn, not by the square (a picture's own air differs)
-    lines = []
-    for ic in pics:
-        xs = [x for r in ic["rows"] for x, v in enumerate(r) if v == "#"]
-        ys = [y for y, r in enumerate(ic["rows"]) if "#" in r]
-        lines.append(f"{ic['name']} {min(xs)} {min(ys)} {max(xs) - min(xs) + 1} {max(ys) - min(ys) + 1}")
-    (out / "ink.txt").write_text("# name x y w h — each picture's ink in its 28 px square (tools/build-icons.py)\n"
-                                 + "\n".join(lines) + "\n")
-    names = {ic["name"] for ic in pics}
-    for f in out.glob("*.png"):
-        if f.stem not in names:
-            f.unlink()
-    return pics
-
-
 def left_air(ic):
     return ic["x"] + min(r.index("#") for r in ic["rows"] if "#" in r)
 
@@ -336,7 +294,6 @@ def main():
     build(icons, TERM_TTF, "Sumi Icons Term", TERM_RAISE, TERM_CELL, TERM_UPM, TERM_ASC, TERM_DESC)
     write_sh(icons)
     print(f"{len(icons)} icons → {TTF.relative_to(ROOT)}, {TERM_TTF.relative_to(ROOT)}, {SH.relative_to(ROOT)}")
-    print(f"{len(crests())} crests → {CRESTS_DIR.relative_to(ROOT)}/")
     if a.preview:
         preview(icons, a.preview)
 
