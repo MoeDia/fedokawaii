@@ -13,7 +13,7 @@ for t in "$here"/*.sh; do
   n=$(basename "$t" .sh)
   a=(); grep -q 'KIT OPTION' "$t" && a=("$@")     # (the kit's options only for the checks that take them)
   out=$(timeout "${KAWA_REGRESS_LIMIT:-2600}" bash "$t" "${a[@]}" 2>&1); rc=$?
-  case $rc in 0) mark=✔ ;; 2|124) mark=? ;; *) mark=✘ ;; esac    # (?: it could not run, or could not judge: no verdict)
+  case $rc in 0) mark=✔ ;; 2|124) mark='?' ;; *) mark=✘ ;; esac    # (?: it could not run, or could not judge: no verdict)
   printf '%s %-18s %s\n' "$mark" "$n" "$(grep . <<<"$out" | tail -n 1)"
   ((rc == 0)) || printf '    guards: %s\n' "$(python3 -I -B "$here/items.py" of "$n" | cut -c1-160)"
   ((rc == 0)) || { ((rc == 2 || rc == 124)) && blind+=("$n") || broken+=("$n"); }
