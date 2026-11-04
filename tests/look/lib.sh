@@ -24,7 +24,8 @@ look() {   # look — a fresh sandbox for the look helpers (call again for a cle
   # (-l: "PID NAME"; NAME may be names joined by |, as kawa-theme asks for them all at once)
   stub pgrep 'l=""; for a; do n=$a; case $a in -l*|-*l*) [ "${a#-}" != "$a" ] && case $a in *l*) l=1 ;; esac ;; esac; done; r=1
 mine() { { tr "\0" " " <"/proc/$1/cmdline"; } 2>/dev/null | grep -qF "$FAKE_TMP"; }   # (it may end meanwhile)
-is() { printf "%s\n" "$n" | tr "|" "\n" | sed "s/\\\\//g" | grep -qxF -- "$1"; }
+names="|$(printf "%s" "$n" | sed "s/\\\\//g")|"   # (one spawn a call, not four an entry of /proc: a busy PC outlasted waitfor)
+is() { case "$names" in *"|$1|"*) return 0 ;; esac; return 1; }
 say() { if [ -n "$l" ]; then echo "$1 $2"; else echo "$1"; fi; }
 for d in /proc/[0-9]*; do
   c=""; { read -r c <"$d/comm"; } 2>/dev/null
