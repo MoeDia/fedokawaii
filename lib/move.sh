@@ -156,7 +156,9 @@ do_move() {   # do_move N — every gate green and he knows: tried in a copy, sn
   hdr "ready: restarting into the installation of Fedora $n in 30 seconds (20–40 minutes; leave it on)"
   as_user notify-send -a update -u critical -- update "restarting in 30 seconds: the move to Fedora $n (20–40 minutes; leave it on)" 2>/dev/null || true
   sleep "${MOVE_PAUSE:-30}"
+  trap 'exit 0' TERM                        # (the shutdown's own TERM is no interruption: he was told, as up_restart)
   if ! dnf -y system-upgrade reboot; then   # (should it not restart: nothing armed is left behind)
+    trap 'on_signal 143' TERM
     move_disarm
     dnf system-upgrade clean >/dev/null 2>&1 || true
     die "dnf could not arrange the restart into Fedora $n — nothing changed"
@@ -294,15 +296,20 @@ move_whole() {   # every package of the move's set at its new version, nothing t
 move_undo() {   # move_undo FROM TO SNAPSHOT WHY — the system before the move, at one restart; said
   local from=$1 to=$2 snap=$3 why=$4
   log "the move to Fedora $to is undone: ${why//$'\n'/ · }"
-  fixes_undo     # (Fedora $from's programs would refuse what the fixer wrote for the new ones)
-  rm -f -- "$MOVE_MENDED"
-  move_write "$UPD/move-red-$to" red "$why"
-  printf '%s %s %s failed\n' "$(date +%s)" "$from" "$to" | write_file "$MOVE_LAST" 0644
+  # (a full disk may refuse these: never a reason to stay on what was judged red — under set -e one
+  # refusal here would end the unit before the restore, at every start)
+  fixes_undo || true     # (Fedora $from's programs would refuse what the fixer wrote for the new ones)
+  rm -f -- "$MOVE_MENDED" || true
+  move_write "$UPD/move-red-$to" red "$why" || true
+  printf '%s %s %s failed\n' "$(date +%s)" "$from" "$to" | write_file "$MOVE_LAST" 0644 || true
   grub2-editenv - unset boot_counter >/dev/null 2>&1 || true
   # (its pin goes with the next good start, as an update's)
-  [[ -z $snap ]] || printf '%s - %s\n' "$snap" "$(date +%F)" >>"$UPD/probation"
+  if [[ -n $snap ]]; then printf '%s - %s\n' "$snap" "$(date +%F)" 2>/dev/null >>"$UPD/probation" || true; fi
   if [[ -z $snap ]] || ! /usr/local/sbin/kawa-snap restore "$snap"; then
-    rm -f -- "$MOVE"; move_unit_off
+    # (this system stays for now, and may never reach the desktop that closes a trial: no watchdog,
+    # no trial arguments for good, in the file or in its boot entries)
+    move_disarm
+    grubby --update-kernel=ALL --remove-args="$UP_TRIAL" >/dev/null 2>&1 || log "the trial's arguments could not be removed from the boot entries (grubby)"
     up_tell "the move to Fedora $to went wrong: $(head -n1 <<<"$why")" "snapshot ${snap:-?} is the system before it, and could not be put back by itself: Super+U → snapshots"
     return 0
   fi

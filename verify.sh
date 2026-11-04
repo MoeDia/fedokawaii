@@ -151,7 +151,7 @@ if [[ -n $ui ]]; then
            rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u)
   extras=""
   while IFS= read -r p; do
-    rpm -q --qf '[%{OBSOLETENAME}\n]' "$p" 2>/dev/null | grep -qxF -- "$ours" || extras+="$p "
+    grep -qxF -- "$ours" < <(rpm -q --qf '[%{OBSOLETENAME}\n]' "$p" 2>/dev/null) || extras+="$p "
   done < <(comm -23 <(sort -u <<<"$ui") <(echo "$ours") | grep -v '^kernel')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
 else fail "nothing user-installed beyond the manifest" "dnf repoquery failed"; fi

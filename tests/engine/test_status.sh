@@ -94,8 +94,8 @@ out=$(fedokawaii status); has "$out" "snapshot 41 undoes it"; lacks "$out" "stop
 printf '%s restored\nthe update broke something\n' "$(ago_s 0)" >"$R/state/update/report"
 out=$(fedokawaii status); has "$out" "undone at restart"; (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
 case_ "an old install (no last-update-done record): a finished last-update counts"
-fresh; rec last-update "$(ago_s 20) ok"
-has "$(line due "$(fedokawaii status)")" "in 70 days"
+fresh; rec last-update "$(ago_s 10) ok"
+has "$(line due "$(fedokawaii status)")" "in 4 days"
 
 case_ "corrupt records: garbage, empty, a cut-off line, binary — read as none, quietly"
 for bad in "garbage here" "" "17" $'\x01\x02\xff\xfe' "$(ago_s 3)"; do
@@ -272,7 +272,7 @@ has "$(line backup "$(fedokawaii status)")" "none yet"; [[ -d $TMP/pwned ]] && _
 case_ "remind check: no backup for 7 days (BACKUP_REMIND_DAYS) — said, after the season's line, naming the drive"
 fresh; setting BACKUP_TARGET KINGSTON; backed_up 7
 out=$(fedokawaii remind check)
-eq "$(grep -c . <<<"$out")" 2; has "$(head -n1 <<<"$out")" "nothing due"
+eq "$(grep -c . <<<"$out")" 2; has "$(head -n1 <<<"$out")" "the update season is here"
 has "$(tail -n1 <<<"$out")" "the last backup was 7 days ago — plug in KINGSTON, then quick settings → backup"
 backed_up 6; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1 "6 days: not yet"
 rm -f "$HOME/.local/state/fedokawaii/last-backup"; has "$(fedokawaii remind check)" "no backup yet — plug in KINGSTON"
