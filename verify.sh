@@ -822,6 +822,8 @@ else
   check "clipboard and wallpaper windows (fzf ≥ 0.68)" bash -c 'v=$(fzf --version 2>/dev/null) || exit 1; IFS=. read -r a b _ <<<"${v%% *}"; ((a > 0 || b >= 68))'
   check "wallpaper previews (ImageMagick draws sixels)" bash -c 'magick -size 2x2 xc:black sixel:- | grep -q "^.P"'
   art=$TARGET_HOME/.local/share/fedokawaii
+  check "the screensaver's scene, both themes (saver-scene.txt, its painting, its seal)" \
+    bash -c 'for t in dark light; do [[ -s $1/$t/saver-scene.txt && -s $1/$t/saver-seal.png ]] || exit 1; w=$(sed -n "s/^wall \([^ ]*\).*/\1/p" "$1/$t/saver-scene.txt"); [[ -s $1/$t/$w ]] || exit 1; done' _ "$art"
   check "the lock screen's scenes, both themes (lock-scene.png and .txt, the flames)" \
     bash -c 'for t in dark light; do for f in lock-scene.png lock-scene.txt lock-flame.png; do [[ -s $1/$t/$f ]] || exit 1; done; done' _ "$art"
   if [[ $WALLPAPER_PACK == yes ]]; then

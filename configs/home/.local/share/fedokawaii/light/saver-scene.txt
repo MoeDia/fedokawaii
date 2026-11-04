@@ -1,0 +1,11 @@
+# saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.
+size 1920 1080
+wall saver-wall.png   # the painting, the figure's place empty
+centre 960 528 216   # the figure's place: where the world opens, and how far the seal wanders from it
+torch 318 264 620   # a fire: its middle, how far its pool reaches
+torch 1602 264 620   # a fire: its middle, how far its pool reaches
+anim saver-flame.png 306 243 24 36 8 125   # a strip: file, place, a frame's size, frames, ms a frame
+anim saver-flame.png 1590 243 24 36 8 125   # a strip: file, place, a frame's size, frames, ms a frame
+ceiling 73   # what stops the smoke
+seal 62 84 25 34   # saver-seal.png, its alpha: the seal, then the ten digits
+lock 98e802d0a9d9a7fc   # the lock's art it was built from (tests/look/test_saver.sh)
