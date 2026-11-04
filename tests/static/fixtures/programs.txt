@@ -256,6 +256,7 @@ herdr               upstream  -                 # (its release: Claude Code sess
 localsend           built     install_localsend # lib/upstream.sh: its release, a folder (~/.local/share/localsend), linked from ~/.local/bin
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
 kawa-saver          built     kawa-saver        # theme.sh, from src/kawa-saver (swayidle starts it)
+kawa-rgb            built     kawa-rgb          # theme.sh, from src/kawa-rgb (a service of the system's)
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
 vi                  built     /usr/local/bin/vi # setup.sh: a script that runs nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin

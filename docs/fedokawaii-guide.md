@@ -4487,13 +4487,13 @@ remember it.
   | Agents · Torrents · Syncplay | herdr · torrra · Syncplay (ch. 20, §15.7) | `claude` · `torrent` · `together` |
 
   The rest — Brave, LibreOffice, Xournal++ (and Sketch), Easy Effects, LocalSend, Steam,
-  OpenRGB, LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
+  LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
   `tests/look/fixtures/not-launched.txt` in the toolkit says why for each.
 * A window program shows its **own icon**, as its package ships it, at 22 × 22 — no icon
   pack: Brave, LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend,
-  Syncplay, OpenRGB, LACT. Every other entry — the terminal programs, and the pages in Brave —
+  Syncplay, LACT. Every other entry — the terminal programs, and the pages in Brave —
   shows one of the desktop's **pixel icons** (art/icons.txt, the Sumi Icons font), in the
   icon column in the theme's accent ink (switching the theme switches it):
 
@@ -8168,7 +8168,7 @@ not Bluetooth. It needs `xone`, a driver built outside Fedora's kernel, which Se
 refuses to load unless you enrol a signing key of your own. Pair the controller over Bluetooth
 instead.
 
-## 21.2 Hardware — OpenRGB and LACT
+## 21.2 Hardware — the lights and LACT
 
 Two programs, each for one kind of device: the lights, and the graphics card. A mouse or
 keyboard on a USB receiver needs neither: it works as soon as the receiver is plugged in.
@@ -8177,18 +8177,17 @@ keyboard on a USB receiver needs neither: it works as soon as the receiver is pl
 
 1. **Super+Space**, `lact`, Enter (AMD graphics cards only): LACT shows the card's clocks,
    temperatures and power. Read them, change nothing, and close it with **Super+Q**.
-2. **Super+Space**, `openrgb`, Enter: OpenRGB lists the lights it can reach. An empty list means
-   your lights hang on something it cannot drive — a hub with its own button or remote.
+2. In a terminal, `kawa-rgb status`: what the lights' service has found, and what they are doing now.
 
-**OpenRGB** (launcher) sets the lighting of RGB devices from one window: find the devices,
-choose colours and effects, save a *profile*. Nothing starts it at login, so the lighting
-falls back to the devices' own defaults after a power cut; `openrgb --profile NAME` applies a
-saved profile, and that command can go in `~/.config/dwl/autostart.local.sh` (§42.1) as
-`openrgb --profile NAME &`, one line a program. Memory and motherboard
-lighting is reached over *SMBus*, a small bus on the motherboard that chips such as the RAM's
-lighting controllers hang on; if those devices do not appear, see OpenRGB's own SMBus notes —
-this desktop sets up nothing beyond loading `i2c-dev` (for monitor brightness, which uses the
-same kind of bus). Its window takes the Qt palette, so it follows the theme.
+**The lights** are one steady red on every device: the motherboard's headers (the fans, the hub, the cooler's fan), the
+card's logo and the keyboard, each with its own value in `/etc/fedokawaii/rgb.conf` so that they look the same.
+`kawa-rgb` is a system service with no capabilities and no network; while nothing changes it sends nothing to anything.
+The lock screen fades them to about 30 %, screens off or a sleep puts them out, unlocking or waking brings them back,
+and the switch in quick settings (`kawa-rgb on`, `off`, `toggle`) turns them all off or on, kept across reboots and in
+the devices' own memory, so off is off from power-on. It also sends the cooler's display the CPU's temperature.
+The protocols: Mystic Light's feature report and the card's 64-byte I2C write from OpenRGB's sources, the keyboard's
+from three public drivers, the display's from its maker's software. OpenRGB itself is not installed: it scans every
+bus on each start, and its rule gave your session every I2C bus, the RAM's included.
 
 **Fan speeds** are not a program's job here. The case fans and the CPU cooler's fan plug into
 the motherboard, and its start-up settings (§3.6) set their speed by temperature: look for
@@ -8224,17 +8223,17 @@ programs, one layer at a time, from the files on the disk to the network.
 **What you learnt**
 
 - Steam starts warm in the background; the launcher's *Steam* or the bar's gamepad brings its window up where you are. Proton runs Windows games, GE-Proton when a game needs it.
-- FreeSync follows a game's frame rate: *in games* by default, in quick settings.
+- FreeSync follows a full-screen window's frame rate: *full screen* by default, in quick settings.
 - Game mode comes with every Steam game by itself (`kawa-game`); a game's launch options take `gamescope` before `%command%`.
 - **Right Shift+F12** shows or hides the overlay, in every Steam game.
-- OpenRGB sets the lights and LACT the graphics card; only LACT re-applies its settings at boot
-  by itself. Fan speeds belong to the motherboard's start-up settings.
+- `kawa-rgb` keeps the lights one steady red, LACT sets the graphics card; both come back at boot
+  by themselves. Fan speeds belong to the motherboard's start-up settings.
 
 **Check yourself**
 
 1. You closed Steam's window. Is Steam still running, and how do you get it back? → *yes, its gamepad is in the bar: click it (or the launcher's Steam); right-click → quit Steam ends it*
 2. How do you show the overlay in a Steam game? → ***Right Shift+F12**: it is in every game, hidden until asked*
-3. Your RGB lights forget their colours after a power cut. Why? → *nothing starts OpenRGB at login: add `openrgb --profile NAME &` to `autostart.local.sh`*
+3. Your lights go out when the screens do. Is something wrong? → *no: `kawa-rgb` puts them out with the screens and brings them back with them*
 
 # Part IV — Understanding Linux
 

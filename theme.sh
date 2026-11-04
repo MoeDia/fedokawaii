@@ -1001,7 +1001,8 @@ done
 
 # ── 5. derived state ─────────────────────────────────────────────────────────
 if changed /etc/dconf/; then R dconf update; ok "dconf defaults compiled"; fi
-if changed kawa-rgb; then         # (the tool, its units, its colours; `changed` matches them all)
+# the lights: the tool, its units, its colours changed, or the service not enabled (it was, once)
+if changed kawa-rgb || changed /etc/fedokawaii/rgb.conf || ! R systemctl is-enabled --quiet kawa-rgb.service; then
   R systemctl daemon-reload
   R systemctl enable --quiet kawa-rgb.service kawa-rgb-sleep.service
   R systemctl restart kawa-rgb.service

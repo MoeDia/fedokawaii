@@ -3,8 +3,21 @@
 Source: lane-research2's digests (`~/repos/fk-research2/.claude/notes/research-T36-T37-rgb.md`, `research-T38-monitor.md`).
 Scratch: `/dev/shm/r27-lane-hardware` (scripts, device backups). Started 4 Nov 18:12.
 
-## State
-- 18:15 first light, volatile only: red frame sent to GPU (zones 0-3, reg 0x12 static), MSI (0x52 save_data=0), K617 (08 0a 7a 01). All accepted. Asked the owner what he sees.
+## State (19:20)
+Solid red, event-driven, as the owner decided at 18:45. Running on the PC as a temporary unit (`r27-kawa-rgb.service` in /run, binary `/usr/local/bin/kawa-rgb-try`), to be removed when this lane ends; `/etc/fedokawaii/rgb.conf` is in place, the same as the repo's.
+
+| What | State | How it was verified |
+|---|---|---|
+| K617: live frames | works | owner's eyes: green/blue/red cycle (19:01); one frame holds (static blue, 19:13) |
+| K617: its memory | works | owner's eyes: plain red (19:08, 19:17); read back; keymap block unchanged (`.claude/notes/hardware/`: the stock blocks) |
+| Board, fans, hub, cooler's fan | one red | owner's eyes (19:06, 19:17) |
+| Card's logo | one red, static | owner's eyes; it parses only 64-byte writes (shorter ones get no answer), each 9 ms of kernel busy wait: why nothing is streamed |
+| Per-device match | all 178,0,0 | owner: "everything aligned and good" (19:17) |
+| Cooler's display (T37) | our number | owner: shows 42 when sent 42 (19:12), else the CPU's temperature |
+| FreeSync (T38) | proven, HDMI-A-1 | tools/vrr-proof.sh, below |
+| LG off and on over DDC | state identical | tools/monitor-power-test.sh; owner: "stays the same workspace" (19:02) |
+| LG's menu | sRGB preset, set | kawa-display --monitor, read back xde; owner left it to me (19:04), then "this is fine its the best" (19:12) |
+| Tests | test_rgb 122/0, test_display 99/0 | a made-up machine; see "Tests" |
 
 ## OWNER 18:45 — RGB: SOLID, NOT BREATHING
 The GPU's RGB cannot stay in sync, so no breathing or any animation across devices. Instead:

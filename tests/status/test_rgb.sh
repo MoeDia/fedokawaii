@@ -164,6 +164,26 @@ K wake; secs 2; stop; eq "$(now_of keyboard)" 255,0,0; eq "$(state)" "lights ful
 case_ "…with no service: the sleep's unit does not hang"
 machine; a=$(date +%s); K sleep; rc 0 K wake; b=$(date +%s); ((b - a <= 3)) && _ok || _no "$((b - a)) s"
 
+case_ "never a word to the keyboard while it paints: a second after its last frame, before its memory is asked (the left half, 19:15)"
+machine; start; secs 2
+gap=$(K off; python3 -I - "$M/dev/hidraw1" <<'PY'
+import os, sys, time
+f = sys.argv[1]; size = os.path.getsize(f); last_frame = None; t0 = time.time()
+while time.time() - t0 < 5:
+    n = os.path.getsize(f)
+    if n != size:
+        d = n - size; size = n
+        if d >= 382 and d % 382 == 0:
+            last_frame = time.time()
+        elif d < 382 and last_frame:
+            print(int((time.time() - last_frame) * 1000)); sys.exit(0)
+    time.sleep(0.01)
+print(0)
+PY
+)
+stop; ((gap >= 900)) && _ok || _no "its memory asked $gap ms after its last frame"
+K on
+
 case_ "the switch: off for everything, in the hardware's memory too, and kept"
 machine; eq "$(K state)" on "untouched: on"; start; secs 2
 k=$(size hidraw1); K off; eq "$(K state)" off; eq "$(cat "$M/var/lib/fedokawaii-greeter/rgb")" off "in a file"; secs 5
