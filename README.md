@@ -144,8 +144,8 @@ PACKAGES.md        what is installed, from where, and why
 
 ## From the ISO: the whole of it in one go
 
-`fedokawaii-DATE.iso` from the [releases](https://github.com/MoeDia/fedokawaii/releases), written to a stick
-(`sudo dd if=fedokawaii-DATE.iso of=/dev/sdX bs=4M oflag=direct status=progress`; `lsblk` shows which sdX). Start
+`fedokawaii-DATE-COMMIT.iso` from the [releases](https://github.com/MoeDia/fedokawaii/releases), written to a stick
+(`sudo dd if=fedokawaii-DATE-COMMIT.iso of=/dev/sdX bs=4M oflag=direct status=progress`; `lsblk` shows which sdX). Start
 from it: a menu, one page of questions (who, the disk, where), a confirmation that names the disk, and nothing
 asks again until the login screen. It needs UEFI, 4 GB of memory, a disk of 60 GB inside the PC, a wired network,
 AMD or Intel graphics, and says so on one screen if one is missing. Secure Boot may stay on. It is Fedora's own

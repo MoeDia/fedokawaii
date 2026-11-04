@@ -109,7 +109,7 @@ if case == "disks":
     assert ds[0][3] == "btrfs, vfat" and ds[1][3] == "empty", ds
 elif case == "form":
     class S:
-        rows, cols = 38, 137
+        rows, cols, head = 38, 137, 11
     f = q.Form(S(), q.disks(), {"time_zone": "Asia/Dubai"})
     assert f.disk == "", "a default among several: " + f.disk
     assert q.validate(f.fields["disk"], f.fields) == "choose the disk"
@@ -144,7 +144,7 @@ elif case == "clear":
 elif case == "answers":
     os.chdir(sys.argv[4])
     class S:
-        rows, cols = 38, 137
+        rows, cols, head = 38, 137, 11
     f = q.Form(S(), q.disks(), {"time_zone": "Asia/Dubai", "city": "O'Fallon", "latitude": 1.5, "longitude": 2})
     f.disk = "nvme0n1"
     f.fields["name"].value, f.fields["password"].value, f.fields["again"].value = "dia", "secret word", "secret word"

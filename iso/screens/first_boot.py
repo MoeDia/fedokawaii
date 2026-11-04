@@ -65,12 +65,13 @@ def main():
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     s = Screen(keys=False)
     total = total_steps()
-    top = max(1, (s.rows - 12) // 2)
+    top = max(1, (s.rows - s.head - 4) // 2)
+    head = top + s.head
 
     def page():
         s.clear()
-        s.torii(top)
-        s.heading(top + 6, "download", "installing the desktop")
+        s.crest(top)
+        s.heading(head, "download", "installing the desktop")
 
     page()
     env = dict(os.environ, TERM="dumb")
@@ -113,15 +114,15 @@ def main():
         state = (word, done)
         if state != drawn:
             drawn = state
-            s.clear_row(top + 8, s.left - 1, WIDTH + 2)
+            s.clear_row(head + 2, s.left - 1, WIDTH + 2)
             shown = wrap(word, WIDTH - 12)[0] if word else ""
-            s.at(top + 8, s.left, shown, TEXT)
+            s.at(head + 2, s.left, shown, TEXT)
             count = f"{done} of {total}"
-            s.at(top + 8, s.left + WIDTH - len(count), count, MUTED)
-            s.meter(top + 10, s.left, done, total)
+            s.at(head + 2, s.left + WIDTH - len(count), count, MUTED)
+            s.meter(head + 4, s.left, done, total)
         if time.monotonic() >= next_frame:
             next_frame = time.monotonic() + 0.6
-            s.at(top + 6, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
+            s.at(head, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
             frame += 1
     rc = p.wait()
     if rc == 0:

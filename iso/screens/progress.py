@@ -77,7 +77,8 @@ class State:
 
 def main():
     s = Screen(keys=False)
-    top = max(1, (s.rows - 12) // 2)
+    top = max(1, (s.rows - s.head - 6) // 2)
+    head = top + s.head
     state = State()
     pos = 0
     drawn = None
@@ -87,8 +88,8 @@ def main():
 
     def page():
         s.clear()
-        s.torii(top)
-        s.heading(top + 6, "download", "installing the base system")
+        s.crest(top)
+        s.heading(head, "download", "installing the base system")
 
     page()
     while True:
@@ -102,19 +103,19 @@ def main():
             moved = time.monotonic()
             if said:
                 said = False
-                s.clear_row(top + 12, s.left - 1, WIDTH + 2)
+                s.clear_row(head + 6, s.left - 1, WIDTH + 2)
         elif not said and time.monotonic() - moved > STUCK:
             said = True
-            s.at(top + 12, s.left, "nothing moved for 15 minutes. hold the power button, then start again.", MUTED)
+            s.at(head + 6, s.left, "nothing moved for 15 minutes. hold the power button, then start again.", MUTED)
         now = (state.word, state.count, int(state.percent))
         if now != drawn:
             drawn = now
-            s.clear_row(top + 8, s.left - 1, WIDTH + 2)
-            s.at(top + 8, s.left, state.word, TEXT)
+            s.clear_row(head + 2, s.left - 1, WIDTH + 2)
+            s.at(head + 2, s.left, state.word, TEXT)
             if state.count:
-                s.at(top + 8, s.left + WIDTH - len(state.count), state.count, MUTED)
-            s.meter(top + 10, s.left, int(state.percent), 100)
-        s.at(top + 6, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
+                s.at(head + 2, s.left + WIDTH - len(state.count), state.count, MUTED)
+            s.meter(head + 4, s.left, int(state.percent), 100)
+        s.at(head, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
         frame += 1
         time.sleep(0.6)
 

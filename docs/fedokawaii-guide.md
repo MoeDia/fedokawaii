@@ -11075,9 +11075,9 @@ apply the theme again (**Super+U** → *theme, applied again*) so it matches the
 
 After the menu comes the **boot splash**: Plymouth, the program that draws the screen while
 the system starts (the `rhgb` argument below asks for it), with this desktop's own theme,
-**sumi** (`system/plymouth/sumi`). It is the same ink and the same vermilion torii, with
-**starting Fedora** under it, quiet, and three small squares lighting
-in turn. It starts as soon as the graphics card's own driver (amdgpu) loads — early: the
+**sumi** (`system/plymouth/sumi`). It is the same ink, with the lock's demon alone in the dark
+where the lock has it, **fedokawaii** under it, and a slim line: red as far as the boot has come,
+a coal running on along the rest. It starts as soon as the graphics card's own driver (amdgpu) loads — early: the
 driver is in the boot image — and stays on it, so the screen changes mode only once (starting
 it first on the firmware's screen and moving it to amdgpu after was one change more: a black
 flick before the login); `ShowDelay=0` in `/etc/plymouth/plymouthd.conf` shows it without a

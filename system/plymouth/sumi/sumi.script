@@ -1,7 +1,7 @@
-# /usr/share/plymouth/themes/sumi/sumi.script — the boot splash, after the boot menu: the
-# same sumi ink and the same vermilion torii, "starting Fedora" under it, quiet, and three
-# small squares lighting in turn while the system starts. At a power-off or a restart the
-# same splash comes back with its own words: "shutting down", "restarting"
+# /usr/share/plymouth/themes/sumi/sumi.script — the boot splash, after the boot menu: the demon of
+# the lock, where the lock has it, alone in the sumi ink with the hall still dark; "fedokawaii" under
+# it, and one slim line: red as far as the boot has come, a coal running on along the rest. At a
+# power-off or a restart the same splash comes back with its own words: "shutting down", "restarting"
 # (Plymouth.GetMode: plymouth-poweroff/-reboot.service start plymouthd in those modes).
 # A disk that asks for its password gets the lock screen's box: "the disk's password", and a vermilion ◆ for each character typed.
 # Everything sits on whole pixels around the screen's middle (Math.Int: no half pixels).
@@ -11,44 +11,63 @@ Window.SetBackgroundBottomColor(0.0942, 0.0903, 0.0824);
 
 cx = Math.Int(Window.GetWidth() / 2);
 cy = Math.Int(Window.GetHeight() / 2);
+k = 1;                                                  # (the picture is for 1080 rows: less than that, it shrinks)
+if (Window.GetHeight() < 1080) k = Window.GetHeight() / 1080;
 
-torii.image = Image("torii.png");                        # 88 × 88
-torii.sprite = Sprite(torii.image);
-torii.sprite.SetPosition(cx - Math.Int(torii.image.GetWidth() / 2), cy - torii.image.GetHeight() - 20, 1);
+mask.image = Image("mask.png");                         # 1120 × 960, the painting's own top
+if (k < 1) mask.image = mask.image.Scale(Math.Int(mask.image.GetWidth() * k), Math.Int(mask.image.GetHeight() * k));
+mask.sprite = Sprite(mask.image);
+mask.sprite.SetPosition(cx - Math.Int(mask.image.GetWidth() / 2), cy - Math.Int(540 * k), 0);
 
 mode = Plymouth.GetMode();
 if (mode == "shutdown") words.image = Image("stopping.png");
 else if (mode == "reboot") words.image = Image("restarting.png");
 else words.image = Image("starting.png");
 words.sprite = Sprite(words.image);
-words.sprite.SetPosition(cx - Math.Int(words.image.GetWidth() / 2), cy + 8, 1);
+words.sprite.SetPosition(cx - Math.Int(words.image.GetWidth() / 2), cy + Math.Int(404 * k), 1);
 
-# the three squares: 6 px, 12 px apart (centre to centre 18), the middle one on the centre line
-dot_on = Image("dot-on.png");
-dot_off = Image("dot-off.png");
-for (i = 0; i < 3; i++) {
-  dots[i] = Sprite(dot_off);
-  dots[i].SetPosition(cx - 3 + (i - 1) * 18, cy + 52, 1);
-}
+# the line: 320 × 2, under the word
+line_x = cx - 160;
+line_y = cy + Math.Int(466 * k);
+track = Sprite(Image("line-off.png"));
+track.SetPosition(line_x, line_y, 1);
+filled.image = Image("line-on.png");
+filled.sprite = Sprite();
+filled.sprite.SetPosition(line_x, line_y, 2);
+ember.image = Image("ember.png");
+ember.sprite = Sprite(ember.image);
+ember.sprite.SetPosition(line_x, line_y, 3);
+
+progress = 0;
+drawn = 0;
 frame = 0;
+fun boot_progress_callback (duration, value) {
+  progress = value;
+}
+Plymouth.SetBootProgressFunction(boot_progress_callback);
+
 fun refresh_callback () {
   frame++;
-  lit = Math.Int(frame / 15) % 3;                      # (50 frames a second: a step every 0.3 s)
-  for (i = 0; i < 3; i++) {
-    if (i == lit) dots[i].SetImage(dot_on);
-    else dots[i].SetImage(dot_off);
+  n = Math.Int(progress * 320);
+  if (n > 320) n = 320;
+  if (n > drawn) {
+    filled.sprite.SetImage(filled.image.Scale(n, 2));
+    drawn = n;
   }
+  room = 320 - drawn - 48;                              # (a walk of 2 s, 50 frames a second, from where the red ends)
+  if (room < 0) room = 0;
+  ember.sprite.SetX(line_x + drawn + Math.Int(room * ((frame % 100) / 100)));
 }
 Plymouth.SetRefreshFunction(refresh_callback);
 
-# ── a disk's password (an encrypted disk): the lock screen's box ────────────────────
+# ── a disk's password (an encrypted disk): the lock screen's box, in the word's and the line's place ──
 ask.image = Image("password.png");
 ask.sprite = Sprite(ask.image);
-ask.sprite.SetPosition(cx - Math.Int(ask.image.GetWidth() / 2), cy + 52, 2);
+ask.sprite.SetPosition(cx - Math.Int(ask.image.GetWidth() / 2), cy + Math.Int(404 * k), 2);
 ask.sprite.SetOpacity(0);
 box.image = Image("box.png");                            # 288 × 44
 box.sprite = Sprite(box.image);
-box.sprite.SetPosition(cx - 144, cy + 88, 2);
+box.sprite.SetPosition(cx - 144, cy + Math.Int(432 * k), 2);
 box.sprite.SetOpacity(0);
 diamond = Image("diamond.png");                          # 22 × 22, set 24 apart as the lock's are
 for (i = 0; i < 10; i++) {
@@ -56,8 +75,15 @@ for (i = 0; i < 10; i++) {
   marks[i].SetOpacity(0);
 }
 
+fun line_opacity (o) {
+  words.sprite.SetOpacity(o);
+  track.SetOpacity(o);
+  filled.sprite.SetOpacity(o);
+  ember.sprite.SetOpacity(o);
+}
+
 fun display_password_callback (prompt, bullets) {
-  for (i = 0; i < 3; i++) dots[i].SetOpacity(0);
+  line_opacity(0);
   ask.sprite.SetOpacity(1);
   box.sprite.SetOpacity(1);
   shown = bullets;
@@ -65,7 +91,7 @@ fun display_password_callback (prompt, bullets) {
   left = cx - Math.Int((shown * 24 - 2) / 2);
   for (i = 0; i < 10; i++) {
     if (i < shown) {
-      marks[i].SetPosition(left + i * 24, cy + 99, 3);    # (the box's middle: 88 + 22 − 11)
+      marks[i].SetPosition(left + i * 24, cy + Math.Int(432 * k) + 11, 3);    # (the box's middle: 22 − 11)
       marks[i].SetOpacity(1);
     }
     else marks[i].SetOpacity(0);
@@ -77,6 +103,6 @@ fun display_normal_callback () {
   ask.sprite.SetOpacity(0);
   box.sprite.SetOpacity(0);
   for (i = 0; i < 10; i++) marks[i].SetOpacity(0);
-  for (i = 0; i < 3; i++) dots[i].SetOpacity(1);
+  line_opacity(1);
 }
 Plymouth.SetDisplayNormalFunction(display_normal_callback);

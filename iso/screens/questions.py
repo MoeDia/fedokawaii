@@ -145,10 +145,11 @@ def check_stick(s):
     os.makedirs(mnt, exist_ok=True)
     if not dev or run("mount", "-o", "ro", dev, mnt).returncode != 0:
         damaged("it cannot be read.")
-    top = max(1, (s.rows - 12) // 2)
+    top = max(1, (s.rows - s.head - 2) // 2)
+    head = top + s.head
     s.clear()
-    s.torii(top)
-    s.heading(top + 6, "hg-0", "checking this stick")
+    s.crest(top)
+    s.heading(head, "hg-0", "checking this stick")
     try:
         with open(f"{mnt}/fk-sums", encoding="utf-8") as f:
             files = [line.rstrip("\n").split("  ", 1) for line in f]
@@ -163,7 +164,7 @@ def check_stick(s):
                 for chunk in iter(lambda: f.read(1 << 22), b""):
                     h.update(chunk)
                     done += len(chunk)
-                    s.meter(top + 8, s.left, done * 100 // total, 100)
+                    s.meter(head + 2, s.left, done * 100 // total, 100)
         except OSError:
             damaged(f"{name.removeprefix('./')} cannot be read.")
         if h.hexdigest() != want:
@@ -357,7 +358,7 @@ class Form:
         for f in rows:
             self.fields[f.key] = f
         self.cur = 0
-        self.top = max(0, (s.rows - 7 - 2 - len(rows) - 3) // 2)
+        self.top = max(0, (s.rows - s.head - 2 - len(rows) - 4) // 2)
         self.msg = ""
 
     @staticmethod
@@ -371,7 +372,7 @@ class Form:
         return base
 
     def row_of(self, i):
-        return self.top + 8 + i
+        return self.top + self.s.head + 2 + i
 
     def draw_row(self, i, on=False):
         s, f = self.s, self.rows[i]
@@ -407,8 +408,8 @@ class Form:
     def draw(self):
         s = self.s
         s.clear()
-        s.torii(self.top)
-        s.heading(self.top + 6, "torii-small", "a new home")
+        s.crest(self.top)
+        s.heading(self.top + s.head, "torii-small", "a new home")
         for i in range(len(self.rows)):
             self.draw_row(i, i == self.cur)
         self.draw_go(self.cur == len(self.rows))
