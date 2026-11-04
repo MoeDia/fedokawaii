@@ -485,6 +485,14 @@ the tiles of a group, 12 px between groups.
   as it starts: any input dissolves it off the lock screen at once.
 - **Boot**: GRUB's menu and the boot splash (plymouth) in Sumi UI ×2 on the mood's ground, the
   vermilion seal and the same frame; the installer's screens likewise.
+- **The installer** (`iso/`, always the dark mood: nobody has chosen one yet): the boot menu's torii exactly
+  where the splash has it, so it stays still from the menu on; its words PNG (Secure Boot loads no font), three
+  lines, a 2 px bar counting down under a panel of the same width. Then the Linux console on a VT of its
+  own: Sumi UI ×2 as a font, a 14 × 28 cell, §7's grammar in those cells on a page 72 columns wide, centred:
+  torii (7 × 4 cells) and name, a heading with its rule, rows one column in, the lacquer on the row with the
+  cursor, reaching one column beyond the page each side; what must be read at once in `text`, what is not
+  there yet in `faint`. One page for all the questions, one for the disk, one for each refusal; progress is a
+  word, a count at the right edge and a meter of cells, and the heading's icon is the hourglass, turning.
 
 ## 10. The books and the Learn pieces
 
