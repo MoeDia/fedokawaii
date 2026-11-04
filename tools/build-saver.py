@@ -1,12 +1,11 @@
 #!/usr/bin/env python3
-"""tools/build-saver.py — the screensaver's pictures, from the lock's own art (tools/build-lock.py): the
-same painting, the same pixels, with no figure in it; kawa-saver lays the sleeping light over it, and when
-a key comes opens it dot by dot onto the lock under it. Plain P6 files it reads with no library:
-    python3 tools/build-saver.py     writes configs/home/.local/share/fedokawaii/{dark,light}/
-      saver-scene.ppm    the painting, lit as the lock shows it, without the figure
-      saver-flame.ppm    the lock's flames, side by side, on a key colour
-      saver-scene.txt    the halo round the figure's place: its middle, its radii, its inks
-Run it after tools/build-lock.py (tests/look/test_saver.sh says when it was forgotten). Needs python3-pillow."""
+"""tools/build-saver.py — what kawa-saver needs from the lock's own art, per mood, in saver-scene.txt: the painting
+with no figure (lock-bare.png, the painter's; a scene of whole pixels, tools/build-lock.py's, its own bare scene
+scaled up: saver-wall.png), the fires and the lock's strips but those tied to the figure (fig-…), in the painting's
+pixels. The saver opens onto the real lock when a key comes: it never holds the figure.
+    python3 tools/build-saver.py [--art DIR]     DIR: the folder of dark/ and light/ (default the repository's)
+Run it after any change to the lock's art (tests/look/test_saver.sh says when it was forgotten). Needs python3-pillow."""
+import argparse
 import hashlib
 import importlib.util
 import pathlib
@@ -15,64 +14,86 @@ import sys
 from PIL import Image
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-sys.path.insert(0, str(ROOT / "tools"))
-sys.dont_write_bytecode = True
-_spec = importlib.util.spec_from_file_location("build_lock", ROOT / "tools/build-lock.py")
-bl = importlib.util.module_from_spec(_spec)
-_spec.loader.exec_module(bl)
-KEY = (255, 0, 255)                        # where a flame has nothing
+KEY = (255, 0, 255)                        # (a picture of whole pixels: where a flame has nothing)
+REACH = {"dark": 700, "light": 620}        # how far a fire's pool reaches, in pixels at 1920 × 1080
+SIZE = (1920, 1080)
 
 
-def ppm(im, path):
-    with open(path, "wb") as f:
-        f.write(b"P6 %d %d 255\n" % im.size)
-        f.write(im.tobytes())
+def words_of(path):
+    kv = {}
+    for line in open(path, encoding="utf-8"):
+        w = line.split("#")[0].split()
+        if w:
+            kv.setdefault(w[0], []).append(w[1:])
+    return kv
 
 
-def hexes(*names, inks=None):
-    return [inks[n].lstrip("#") if isinstance(inks[n], str) else "%02x%02x%02x" % inks[n] for n in names]
-
-
-def bare(mood):
-    """the painting with no figure, what the lock's scene is drawn on (build-lock.py), and the ring of flames
-    round the figure's place, as build-lock.py drew it: its middle, and how far its flames start and end"""
-    ring = []
-    drawn = bl.mandorla
-
-    def seen(r, cx, cy, base=92, short=30, long_=56, **kw):
-        ring.append((cx, cy, base, long_))
-        return drawn(r, cx, cy, base, short, long_, **kw)
-
-    bl.mandorla = seen
+def pixel_scene(mood):
+    """the bare scene of tools/build-lock.py, a picture of whole pixels"""
+    sys.path.insert(0, str(ROOT / "tools"))
+    sys.dont_write_bytecode = True
+    spec = importlib.util.spec_from_file_location("build_lock", ROOT / "tools/build-lock.py")
+    bl = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(bl)
     if mood == "dark":
-        scene = bl.dark_scene().convert("RGB")
-    else:
-        ground, front, _ = bl.light_scene()
-        ground = ground.convert("RGBA")
-        ground.paste(front, (0, 0), front)
-        scene = ground.convert("RGB")
-    bl.mandorla = drawn
-    return scene, ring[0]
+        return bl.dark_scene().convert("RGB")
+    ground, front, _ = bl.light_scene()
+    ground = ground.convert("RGBA")
+    ground.paste(front, (0, 0), front)
+    return ground.convert("RGB")
 
 
-INKS = {"dark": ("accent", "accent_lo"), "light": ("gold",)}
-RING_IN = 16                               # (the ring's inner edge lies this far inside the circle its flames start from)
-
-for mood in ("dark", "light"):
-    d = ROOT / "configs/home/.local/share/fedokawaii" / mood
-    scene, (cx, cy, base, reach) = bare(mood)
-    ppm(scene, d / "saver-scene.ppm")
-    flame = Image.open(d / "lock-flame.png").convert("RGBA")
-    out = Image.new("RGB", flame.size, KEY)
-    out.paste(flame.convert("RGB"), (0, 0), flame.getchannel("A").point(lambda a: 255 if a >= 128 else 0))
-    ppm(out, d / "saver-flame.ppm")
-    pal = bl.D if mood == "dark" else bl.L
-    inks = hexes(*INKS[mood], inks=pal)
-    r0, r1 = base - RING_IN, base + reach
-    lock = hashlib.sha256((d / "lock-scene.png").read_bytes() + (d / "lock-flame.png").read_bytes()).hexdigest()[:16]
+def build(d, mood):
+    kv = words_of(d / "lock-scene.txt")
+    out = []
+    bare = d / "lock-bare.png"
+    w, h = (int(v) for v in kv["size"][0])
+    if bare.exists():
+        k = 1
+        if Image.open(bare).size != SIZE:
+            raise SystemExit(f"{bare}: {Image.open(bare).size}, not {SIZE}")
+        wall = bare.name
+    else:                                  # (a scene of whole pixels: as the lock shows it, whole)
+        k = SIZE[0] // w
+        pixel_scene(mood).resize(SIZE, Image.NEAREST).save(d / "saver-wall.png", optimize=True)
+        wall = "saver-wall.png"
+    out.append(f"size {SIZE[0]} {SIZE[1]}")
+    out.append(f"wall {wall}   # the painting, the figure's place empty")
+    plate = kv.get("centre", kv.get("plate", [[SIZE[0] // 2 // k, SIZE[1] * 46 // 100 // k, SIZE[1] // 5 // k]]))[0]
+    cx, cy, cr = (int(v) * k for v in plate[:3])
+    out.append(f"centre {cx} {cy} {min(cr, SIZE[1] // 5)}   # the figure's place: where the world opens, and how far the seal wanders from it")
+    torches = [(int(a) * k, int(b) * k) for a, b in kv.get("torch", [])]
+    anims = []
+    for a in kv.get("anim", []):
+        name, *vals = a
+        if not name.startswith("fig-"):
+            anims.append([f"lock-{name}.png", *(int(v) * k for v in vals[:4]), int(vals[4]), int(vals[5])])
+    if not anims and "flame" in kv:        # (a scene of whole pixels: its flames, the lock's frames scaled up)
+        fw, fh, n = (int(v) for v in kv["frames"][0])
+        strip = Image.open(d / "lock-flame.png").convert("RGBA")
+        strip.resize((strip.width * k, strip.height * k), Image.NEAREST).save(d / "saver-flame.png", optimize=True)
+        for x, y in kv["flame"]:
+            anims.append(["saver-flame.png", int(x) * k, int(y) * k, fw * k, fh * k, n, 1000 // 8])
+            if "torch" not in kv:
+                torches.append((int(x) * k + fw * k // 2, int(y) * k + fh * k * 3 // 5))
+    for x, y in torches:
+        out.append(f"torch {x} {y} {REACH[mood]}   # a fire: its middle, how far its pool reaches")
+    for a in anims:
+        out.append("anim " + " ".join(str(v) for v in a) + "   # a strip: file, place, a frame's size, frames, ms a frame")
+    top = min((a[2] for a in anims), default=min(y for _, y in torches) - 200)
+    out.append(f"ceiling {int(kv['ceiling'][0][0]) * k if 'ceiling' in kv else max(40, top - 170)}   # what stops the smoke")
+    sums = hashlib.sha256()
+    for f in sorted(d.glob("lock-*")):
+        sums.update(f.name.encode() + f.read_bytes())
+    out.append(f"lock {sums.hexdigest()[:16]}   # the lock's art it was built from (tests/look/test_saver.sh)")
     (d / "saver-scene.txt").write_text(
-        "# saver-scene.txt — tools/build-saver.py wrote it; for kawa-saver, beside lock-scene.txt.\n"
-        f"halo {cx} {cy} {r0} {r1} {' '.join(inks)}   # the ring round the figure's place: its middle, its radii, its inks\n"
-        f"lock {lock}   # the lock's art it was drawn from (tests/look/test_saver.sh)\n")
-    print(f"{mood}: halo {cx} {cy} {r0} {r1}")
-print("saver-scene.ppm, saver-flame.ppm, saver-scene.txt: both moods")
+        "# saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.\n"
+        + "\n".join(out) + "\n", encoding="utf-8")
+    print(f"{mood}: {wall}, {len(torches)} fires, {len(anims)} strips, the middle {cx} {cy}")
+
+
+ap = argparse.ArgumentParser(description="the screensaver's words, from the lock's art")
+ap.add_argument("--art", type=pathlib.Path, default=ROOT / "configs/home/.local/share/fedokawaii")
+args = ap.parse_args()
+for m in ("dark", "light"):
+    build(args.art / m, m)

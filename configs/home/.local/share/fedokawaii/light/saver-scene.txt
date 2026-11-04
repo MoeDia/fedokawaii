@@ -1,3 +1,10 @@
-# saver-scene.txt — tools/build-saver.py wrote it; for kawa-saver, beside lock-scene.txt.
-halo 320 176 88 148 e2b540   # the ring round the figure's place: its middle, its radii, its inks
-lock 22d33acbaf5f21c1   # the lock's art it was drawn from (tests/look/test_saver.sh)
+# saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.
+size 1920 1080
+wall saver-wall.png   # the painting, the figure's place empty
+centre 960 528 216   # the figure's place: where the world opens, and how far the seal wanders from it
+torch 318 264 620   # a fire: its middle, how far its pool reaches
+torch 1602 264 620   # a fire: its middle, how far its pool reaches
+anim saver-flame.png 306 243 24 36 8 125   # a strip: file, place, a frame's size, frames, ms a frame
+anim saver-flame.png 1590 243 24 36 8 125   # a strip: file, place, a frame's size, frames, ms a frame
+ceiling 73   # what stops the smoke
+lock 98e802d0a9d9a7fc   # the lock's art it was built from (tests/look/test_saver.sh)
