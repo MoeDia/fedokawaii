@@ -17,7 +17,7 @@ monkey-patched at nine points by kawa-torrra. A patch would have been larger tha
 | the window: start to first frame | 665 ms | 204 ms (load 30) |
 | the window's memory | 63.5 MB (38.2 own) | 22.3 MB (14.3 own) at 500 rows |
 | the engine's memory, 50 torrents | (in the window) | 41 MB (20 own); the real network, a real ISO: 37.7 (16.7 own) |
-| a key to its frame at 500 rows, p50 · p95 · worst | | 6 · 12 · 24 ms (the bar: < 50) |
+| a key to its frame at 500 rows, p50 · p95 · worst | | 6 · 12 · 24 ms; 4 Nov 21:58, load 52, every lane at work: 10 · 18 · 37 ms (the bar: < 50) |
 | its CPU, moving icons on, 500 rows · the engine idle | | 2.2 % → 1 ms a frame after the caches · 0.2 % |
 | a reopen with 50 torrents | re-hash of everything, metadata again | 100 ms, nothing hashed |
 | first results of a search | the slowest site: YTS 39.6 s, LimeTorrents 18.9 s | the quickest site: 0.3 s (each site on its own) |
@@ -43,7 +43,11 @@ monkey-patched at nine points by kawa-torrra. A patch would have been larger tha
 The last 16 seconds of speed in the music's columns at the tabs' right end. Downloads go on with the window closed (the bar's mark shows them; at a login the engine comes back only if something was left unfinished). The add line says what it understood. `v` on a search's result. Results merged across sites by hash.
 
 ## What main (lane-integrate) must do
-**Merge**: `git merge lane-torrents`. It was merged with main at bad3e35; expected conflicts only in the two icon fonts (binary) and maybe `bin/kawa-downloads` (lane-pixels' foot row, lane-browser): after any font conflict, `python3 tools/build-icons.py` and commit (the new icons are at the end of art/icons.txt, nothing renumbered). The row "torrents" in the downloads dropdown (his note: a normal row, not a slab) is lane-pixels'; it must call `kawa-torrents --open`.
+**Merge**: `git merge lane-torrents`, after lane-pixels (its palette's tint is what the cursor's row is drawn for). Tried on a throw-away merge with lane-pixels at 4 Nov 21:53: six files conflict, all simple:
+- `art/icons.txt`: both sides (the new icons at the end, nothing renumbered). `configs/home/.config/fedokawaii/icons.sh` and the two fonts: either side, then `python3 tools/build-icons.py` (it writes all three: 506 icons).
+- `bin/kawa-downloads`: `if not torrents_open():` (this lane's name) with `rows.append("row\t@magnet\ttorrents\t\t\tt")` (lane-pixels' row). Its action stays `kawa-torrents --open`.
+- `docs/design-system.md`: this lane's Meter and Torrents paragraphs, lane-pixels' Cursor paragraph.
+On that merge: `tools/regress/torrents.sh` held (both moods, 3 sizes, the real tint), test_panel 766 of 766, test_file 295 of 295.
 
 **Apply, in this order**:
 1. `sudo fedokawaii repair` or the update (the manifest installs `rb_libtorrent-python3`; `torrents_up` then hands his five torrents over to `inherited.json` and takes torrra out: uv's tool, its Python 3.13, `/usr/local/bin/kawa-torrra`, `/etc/profile.d/kawa-torrra.sh`, `~/.config/torrra`, `~/.cache/torrra`, `~/.local/share/torrra`). `prowlarr_up` restarts Prowlarr with the new container file and retires Tokyo Toshokan.
@@ -73,15 +77,14 @@ Close the window: what downloads goes on (the bar's arrow shows it), and when no
 ## OWNER VERDICT 2026-11-04 20:00 on your render torrents-2-list-light.png: comment
 [Claude, art direction while the owner is away; his verdicts win] Very good: the magnet line, the meters, plain-word states ("asking the site", "no space left on device"). One inconsistency: the LIGHT theme still uses the full red band for the selected row while dark uses the 2 px edge + tint. The owner's highlight is the edge + tint everywhere (00f RIGHT): fix light. Also right-align every number column to one edge (speed, time, size) so the digits stack.
 
-## Where this stands, and the next steps (written 4 Nov, before the forced reboot of about 20:25)
-All of T29 and the 17:04 note is built and committed on lane-torrents. NOT DONE yet: two checks are left, nothing else.
-1. Scratch for the tests, gone with /dev/shm (only if rb_libtorrent-python3 is not installed by then: `rpm -q rb_libtorrent-python3`): `mkdir -p /dev/shm/r27/torrents/rpm /dev/shm/r27/torrents/try /dev/shm/r27/torrents/shots; cd /dev/shm/r27/torrents/rpm; dnf download --quiet --arch x86_64 rb_libtorrent-python3 boost-python3 boost-graph; for f in *.rpm; do rpm2cpio "$f" | cpio -idm --quiet --no-absolute-filenames; done`, then `cp ~/.cache/lane-torrents/* /dev/shm/r27/torrents/try/ && mv /dev/shm/r27/torrents/try/env.sh /dev/shm/r27/torrents/` (env.sh sets PYTHONPATH and LD_LIBRARY_PATH to it; one.sh SCENARIO… runs scenarios alone; shot.sh + crop.py make a kit shot and crop it to the window).
-2. Run from a frozen copy (`git archive HEAD | tar -x -C DIR`: a test run reads the tree, an edit mid-run broke one): `bash tests/engine/test_torrents.sh` (last whole run: 43 of 44; the one, choose_files' second notice, was fixed after it: 8 of 8 alone), then `tests/installer/test_setup.sh`, `test_verify.sh`, `test_afterdnf.sh`. These three have NOT passed yet. test_setup's one run so far was on an older commit: its gate failed on verify's row "Torrents whole", then `U kawa-torrents --check`, since changed to the whole path; if the gate still fails, read which row in the fake world (tests/installer/lib.sh: fake_pylibs has the libtorrent stand-in, $U/.local/bin/kawa-torrents a stand-in). They wait on the shared lock /tmp/kawa-installer-tests.lock: other lanes hold it for long.
-3. A reviewer's read of the new code was asked for just before the reboot; if its findings are lost, ask again (engine.py, app.py, cli.py: correctness only).
-4. Merge main once more (conflicts: the two icon fonts: `python3 tools/build-icons.py`), run `bash tools/regress/torrents.sh --bin bin --repo-art` and test_torrents again, then the last line below becomes DONE.
-Failures seen in other files, not this lane's: tests/look/test_units.sh ("theme.sh no longer makes the glass file so") fails on main too; test_theme's timing, test_wallpaper's 15 restores and test_weather's cache case fail or pass with the load.
+## Where this stands (4 Nov 21:52)
+All of T29 and the 17:04 note is built and committed. The verdict of 20:00 is done (edge + tint in both moods, every number column to one edge).
+Test runs of tonight, from frozen copies: test_torrents 44 scenarios of 44 (then state_words added, alone: passes); test_verify 186 + its machine guard, which fired on an outside `sudo usermod -aG libvirt dia` on tty4 at 21:44:01, no test of mine (journal); regress/torrents.sh held, both moods, three sizes.
+Left: test_setup, test_afterdnf, a reviewer's read, the merge with whatever lane-integrate holds by then.
 
-STATUS: not done, the steps above left.
+The window's tokens: colour 24 is `select`. On main that is still the lacquer (82241f); lane-pixels makes it the tint (2e1f19 / e2d0ae) and 25 the strong ink. **Merge lane-pixels before or with this lane**: the row's values are drawn for the tint (`text`, 10.4 : 1 on it in both moods); on the lacquer the light mood's `text` is 1.67 : 1. The renders in .claude/review/next/ use lane-pixels' two values (kit `--edit`).
+
+Failures seen in other files, not this lane's: tests/look/test_units.sh ("theme.sh no longer makes the glass file so") fails on main too; test_theme's timing, test_wallpaper's 15 restores and test_weather's cache case fail or pass with the load.
 
 ## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
 OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
