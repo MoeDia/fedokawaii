@@ -416,7 +416,7 @@ its own paper (`tile`): ink-dyed on the dark, kinari on the light. A tile is the
 fibre in it — one frame, nothing inside it. Between tiles: 4 px inside a group, 12 between groups, whatever the group. The
 workspaces: one tile each; its numeral (一–九) faint while empty, the words' ink while it holds windows, `asagi` while it
 asks; the one you are on stamped with the red seal, its numeral black inside it. The clock shows the date, the day's kanji
-and the time to the minute.
+and the time to the second (the owner, 4 Nov 21:46).
 
 27 rows, every tile alike:
 
@@ -514,9 +514,9 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 |---|---|---|
 | a window opens | rises from 120 px below its place on a spring (7.5 rad, damping 0.72), past it by a few px, and settles; 82 % of its size at first, whole with the same spring; clear within its first 18 % | 450 |
 | a window closes | sinks 64 px, gathering speed, 11 % smaller at the end, fading | 400 |
-| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; a spring (8 rad, damping 0.84), past its place a little; a wave split round the rail (leaving windows, the rail, coming windows, 48 ms in all); the rail (5 of the wallpapers' pixels wide: ink, lacquer, ink, the screen's whole height, under the bar) between them in every frame; the bar's stamp lifts and stamps down on the new numeral; the wallpaper stays; all of the strip one body: a switch during a move goes on from where it stands at the strip's speed, by the same way, a move back on the rail already at that seam | 450 |
+| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; a spring (8 rad, damping 0.84), past its place a little; a wave split round the rail (leaving windows, the rail, coming windows, 48 ms in all); a switch during a move lays the next workspace beyond the last of the front one's windows, and what the wave left behind closes up on the way; the rail (5 of the wallpapers' pixels wide: ink, lacquer, ink, the screen's whole height, under the bar) between them in every frame; the bar's stamp lifts and stamps down on the new numeral; the wallpaper stays; all of the strip one body: a switch during a move goes on from where it stands at the strip's speed, by the same way, a move back on the rail already at that seam | 450 |
 | tiled windows making room | flow to their new places on a spring, no overshoot | 300 |
-| a menu, panel or popup, a warm window (Super+U, N, V), a floating terminal (Super+R, W …) shown · put away | unrolls from its top edge down, behind a rod (a lacquer bar 4 px high, 2 px wider than the scroll either side, ink caps; it fades in the last 30 %) on its frame's foot · rolls up into its top edge | 300 · 240 |
+| a menu, panel or popup, a warm window (Super+U, N, V), a floating terminal (Super+R, W …) shown · put away | unrolls from its top edge down, behind a rod (a lacquer bar 4 px high, 2 px wider than the scroll either side, ink caps; it fades out over an unroll's last 30 %, in over a roll-up's first 30 %) on its frame's foot · rolls up into its top edge | 300 · 240 |
 | a notice | its frame at once, its words dissolving in; dissolves away | 240 · 200 |
 | the level display | at once with the key; dissolves away | 0 · 300 |
 | the lock comes | at once | 0 |

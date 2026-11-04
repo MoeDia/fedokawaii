@@ -296,3 +296,261 @@ This exception to your hard limits is allowed by the owner for this one command 
 OWNER-AUTHORISED ONE-OFF (he said yes at 19:22, relayed by Claude): install the cleaned-up remote page now, before anything else in your pass. It is only the page's two files plus a restart of fk-remote (no sudo, nothing else touched). Skip it if ~/.local/share/fedokawaii/remote/server.py already contains the word selfupdate. Command, exactly:
 d=$(mktemp -d) && git clone -q -b remote --depth 1 https://github.com/MoeDia/fedokawaii $d/r && grep -q selfupdate $d/r/server.py && install -m644 $d/r/server.py $d/r/index.html ~/.local/share/fedokawaii/remote/ && systemctl --user restart fk-remote && rm -rf $d && echo installed
 Then append one line to ~/repos/fedokawaii/.claude/inbox.md: "## <time> — fk-remote v5 installed by <who>". From now on the page updates itself (its "update this page" button), so this is the last time anyone installs it by hand.
+
+## 2026-11-04 20:00 — next/appsui/57-yazi-half.png — comment — open
+[Claude, art direction while the owner is away; his verdicts win] Big step up: size and age columns, the preview always shows the folder, the highlight as the 2 px edge + tint, a real footer. Fix: (1) names cut without an ellipsis ("a file with a rather long nam") — end them with … at the column edge; (2) the parent column cuts "fedokawa" — give it one more cell or ellipsis; (3) "m" for minutes vs "mo" for months is easy to misread: use "min", "h", "d", "w", "mo", "y" or a fixed-width date for old files; (4) the help pop-up's keycaps are right — give the pop-up the same inner padding on the right as on the left, and drop the duplicate rows (home/g g, up/k) into one row each with both keys.
+
+## 2026-11-04 20:00 — next/iso/60-installer-menu.png — comment — open
+[Claude, art direction while the owner is away; his verdicts win] Too small for a 1080p screen and too plain for the owner's "themed like Omarchy" ask: the menu is ~200 px wide with UI-size text in a black void. (1) Scale it: menu text at 2x, rows 40+ px, centred block about a third of the screen wide; (2) make it part of the world: the dark lock's painting (lane-ink's M1 Hannya in the torch-lit hall, dimmed to ~25 %) as the backdrop, the menu on a solid ink plate with the 2 px red edge highlight; (3) one line of help under it (↑↓ choose · enter go) and the version at the bottom right in muted ink; (4) the same art and type in GRUB, the Anaconda/kickstart progress screen and Plymouth, so the whole install reads as one piece.
+
+## 2026-11-04 20:00 — next/iso/61-installer-splash.png — comment — open
+[Claude, art direction while the owner is away; his verdicts win] The splash reads as almost empty: a tiny torii and a 6 px word. Use the M1 Hannya (or the angel in the light mood) at real size, centred, the word "fedokawaii" in the UI face at 2-3x under it, and a slim progress line instead of three dots.
+
+## 2026-11-04 20:00 — next/torrents/torrents-2-list-light.png — comment — open
+[Claude, art direction while the owner is away; his verdicts win] Very good: the magnet line, the meters, plain-word states ("asking the site", "no space left on device"). One inconsistency: the LIGHT theme still uses the full red band for the selected row while dark uses the 2 px edge + tint. The owner's highlight is the edge + tint everywhere (00f RIGHT): fix light. Also right-align every number column to one edge (speed, time, size) so the digits stack.
+
+## 2026-11-04 20:32 — next/saver/saver-dark.png — comment — open
+[Claude, art direction while the owner is away; his verdicts win] Two problems. (1) The removed figure left a blurred smear in the centre of both scenes (dark: a soft dark hole; light: a huge beige blur): it reads as a damaged picture. (2) The owner chose lane-ink's M1 (engraved Hannya mask) and M2 (Schongauer-style angel over Hokusai waves) as the masters at 19:25, not SD902/LA2, so the saver must follow those. Better idea than an empty wall: the SAME figure ASLEEP — the Hannya mask dimmed with its eyes closed (dark), the angel with her head bowed and wings folded (light) — so the saver is the lock's world at rest and the lock wakes it. Keep the torches breathing, embers and petals. The time seal: larger (about 3x), placed at a third of the frame, not floating mid-blur. Wait for lane-ink's finished M1/M2 locks (git fetch origin/lane-ink) and build on them.
+
+## 2026-11-04 20:32 — next/saver/saver-light.png — comment — open
+[Claude, art direction while the owner is away; his verdicts win] Same notes as saver-dark: no blurred hole; the angel (M2) asleep instead of removed; a bigger time seal at a third of the frame.
+
+## 2026-11-04 21:31 — next/updates/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/ink/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/pixels/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/appsui/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/integrate/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/asobi/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/iso/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/art/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/saver/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/fixer/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/learning/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/chess/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/typing/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/torrents/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/review/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/hardware/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/network/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/nvim/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/firealpaca/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:31 — next/regress/final-sprint — comment — open
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## 2026-11-04 21:35 — next/iso/final-iso — comment — open
+OWNER 21:34 — THE FINAL ISO: "make sure the final ISO has everything updated and installs Fedora 45 only, the newest everything, fully stable."
+- Built from the FINAL merged main (after lane-integrate's last merge and main's apply), never from a stale branch; rebuild if main moves.
+- Fedora 45 only: the F45 release repos + F45 updates enabled at build time, so every package is the newest stable update on the day it is built (no F44 package, no updates-testing, no rawhide, no COPR unless the repo needs one and it is pinned to F45); the latest stable F45 kernel only (one kernel).
+- Everything fedokawaii ships comes from the repo at that commit: themes, the new lock (lane-ink M1/M2), the menus, the apps, ASOBI, Helium (with its Widevine fetch at first boot), the update button, the snapshots, the AI fixer; the round's own tooling never ships (no lanes, conductor, temporary sudo rule).
+- Proof before it is called final: install it in a fresh VM unattended, first boot to the desktop, press the update button (nothing left to update or only same-day updates), log in and out, lock and unlock, restore a test backup; record the time and the result in the inbox.
+- Name it with the date and commit; write its sha256 beside it.
+
+## 2026-11-04 21:35 — next/updates/final-iso — comment — open
+OWNER 21:34 — THE FINAL ISO: "make sure the final ISO has everything updated and installs Fedora 45 only, the newest everything, fully stable."
+- Built from the FINAL merged main (after lane-integrate's last merge and main's apply), never from a stale branch; rebuild if main moves.
+- Fedora 45 only: the F45 release repos + F45 updates enabled at build time, so every package is the newest stable update on the day it is built (no F44 package, no updates-testing, no rawhide, no COPR unless the repo needs one and it is pinned to F45); the latest stable F45 kernel only (one kernel).
+- Everything fedokawaii ships comes from the repo at that commit: themes, the new lock (lane-ink M1/M2), the menus, the apps, ASOBI, Helium (with its Widevine fetch at first boot), the update button, the snapshots, the AI fixer; the round's own tooling never ships (no lanes, conductor, temporary sudo rule).
+- Proof before it is called final: install it in a fresh VM unattended, first boot to the desktop, press the update button (nothing left to update or only same-day updates), log in and out, lock and unlock, restore a test backup; record the time and the result in the inbox.
+- Name it with the date and commit; write its sha256 beside it.
+
+## 2026-11-04 21:35 — next/integrate/final-iso — comment — open
+OWNER 21:34 — THE FINAL ISO: "make sure the final ISO has everything updated and installs Fedora 45 only, the newest everything, fully stable."
+- Built from the FINAL merged main (after lane-integrate's last merge and main's apply), never from a stale branch; rebuild if main moves.
+- Fedora 45 only: the F45 release repos + F45 updates enabled at build time, so every package is the newest stable update on the day it is built (no F44 package, no updates-testing, no rawhide, no COPR unless the repo needs one and it is pinned to F45); the latest stable F45 kernel only (one kernel).
+- Everything fedokawaii ships comes from the repo at that commit: themes, the new lock (lane-ink M1/M2), the menus, the apps, ASOBI, Helium (with its Widevine fetch at first boot), the update button, the snapshots, the AI fixer; the round's own tooling never ships (no lanes, conductor, temporary sudo rule).
+- Proof before it is called final: install it in a fresh VM unattended, first boot to the desktop, press the update button (nothing left to update or only same-day updates), log in and out, lock and unlock, restore a test backup; record the time and the result in the inbox.
+- Name it with the date and commit; write its sha256 beside it.
+
+## 2026-11-04 21:41 — next/ink/final-direction — comment — open
+OWNER 21:40 — HIS WORDS: "ditch all of the ink renders except the 2 I sent and discussed, and make something super solid and beautiful; don't stop until you are fully done."
+- The ONLY masters: ink-M1-masters-demon (the engraved Hannya mask) and ink-M2-masters-angel (the Schongauer-style angel over Hokusai's waves). Every SD*, LA*, LD*, A*, D* candidate is dropped: delete them from .claude/review/next/ so his page shows only the real work.
+- Deliver, finished and wired for main to apply: (1) the dark lock 1920x1080 built around M1 (the torch-lit carved hall in the same engraved line, torches as light layers, the mouth states closed / open / bite on THIS mask); (2) the light lock built around M2 (one continuous engraved scene, no pasted patches, full frame, lanterns, the banderole as the scroll with its states); (3) every icon size from the same two faces (fetch ~300 px, menus 48-56 px, the bar 21 px coin, the prompt woodcut glyph); (4) the Learn book cover from the two; (5) the greeter = the lock.
+- Quality bar: super solid and beautiful — one consistent engraved technique, clean edges, no blur, no artefacts, the composition filling the frame, checked at 1x and 4x. Show the finished set in .claude/review/next/, write DONE only when all of it is finished and handed over.
+
+## 2026-11-04 21:41 — next/hardware/cooler-display — comment — open
+OWNER 21:40 — FIX FIRST: "the CPU cooler display is not working". It stopped after tonight's reboot and repairs: at 21:20 his user service manager had been broken (a lane-asobi user@.service.d drop-in, now moved to /etc/systemd/off-by-fix5) and every user unit was down. Make the cooler display (the CPU temperature, following the lights) work again and survive a reboot (start it from a unit that does not depend on his desktop session); check the RGB too; prove both after a real restart of the unit; then answer him in one line in the inbox.
+
+## 2026-11-04 21:41 — next/f45/fedora-45-only — comment — open
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
+
+## 2026-11-04 21:41 — next/updates/fedora-45-only — comment — open
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
+
+## 2026-11-04 21:41 — next/iso/fedora-45-only — comment — open
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
+
+## 2026-11-04 21:41 — next/integrate/fedora-45-only — comment — open
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
+
+## 2026-11-04 21:41 — next/review/fedora-45-only — comment — open
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
+
+## 2026-11-04 21:46 — 02-bar — comment — open
+OWNER 21:46: the top bar's clock KEEPS ITS SECONDS. Claude's earlier note (17:24 / 18:00, "drop the seconds") is withdrawn — the owner wants the seconds shown. If they were removed, put them back.
+
+## 2026-11-04 21:46 — next/pixels/bar-clock-seconds — comment — open
+OWNER 21:46: the top bar's clock KEEPS ITS SECONDS. Claude's earlier note (17:24 / 18:00, "drop the seconds") is withdrawn — the owner wants the seconds shown. If they were removed, put them back.
+
+## 2026-11-04 21:46 — next/review/bar-clock-seconds — comment — open
+OWNER 21:46: the top bar's clock KEEPS ITS SECONDS. Claude's earlier note (17:24 / 18:00, "drop the seconds") is withdrawn — the owner wants the seconds shown. If they were removed, put them back.
+
+## 2026-11-04 21:46 — next/integrate/bar-clock-seconds — comment — open
+OWNER 21:46: the top bar's clock KEEPS ITS SECONDS. Claude's earlier note (17:24 / 18:00, "drop the seconds") is withdrawn — the owner wants the seconds shown. If they were removed, put them back.
