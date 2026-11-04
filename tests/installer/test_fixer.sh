@@ -269,6 +269,11 @@ for why in 'the transaction does not go through: x conflicts with y' 'dwl misses
   eq "$RC" 3 "$why"; eq "$(j .class)" not-config "$why"; eq "$(requests)" 0
 done
 
+case_ "foot missing a library is no config of ours, though its name is in the line: no model, whatever its check says"
+serve_stub; fresh 'foot misses libutf8proc.so.3'; SOCK=/nonexistent fixer; eq "$RC" 3; eq "$(j .class)" not-config; eq "$(requests)" 0
+case_ "a config red and a library red together: the config is tried; the whole candidate will say the rest"
+serve_stub; fresh 'x'; jq '.why = ["dwl misses libwlroots-0.21.so", "foot does not take its config"]' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer; eq "$RC" 0
+
 case_ "a desktop red that names a program with no config at fault: held, the model not asked"
 serve_stub; fresh 'the desktop does not start: not running: waybar'; jq '.packages = [{name: "libfoo"}]' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"; SOCK=/nonexistent fixer
 eq "$RC" 3; eq "$(requests)" 0
@@ -392,7 +397,8 @@ if unshare --user --map-current-user --net true 2>/dev/null; then
   mv "$RT/llama-server" "$RT/x"; OUT=$(pinned status --home "$UH"); eq "$?" 3; has "$OUT" "runtime"; mv "$RT/x" "$RT/llama-server"
 
   case_ "a damaged model: held, said, nothing started"
-  printf 'tiny mod3l' >"$MFILE"; run_server; eq "$RC" 3; eq "$(j .class)" absent; has "$OUT" "checksum"; printf 'tiny model' >"$MFILE"
+  printf 'tiny mod3l' >"$MFILE"; run_server; eq "$RC" 3; eq "$(j .class)" absent; has "$OUT" "checksum"; has "$OUT" "the next update fetches it"
+  [[ ! -e $MFILE ]] && _ok || _no "the damaged file stayed"; printf 'tiny model' >"$MFILE"
   OUT=$(pinned status --full --home "$UH"); eq "$?" 0
 
   case_ "the card given to a machine, or its memory in use: held, said"

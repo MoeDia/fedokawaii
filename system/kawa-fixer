@@ -53,12 +53,12 @@ RUNTIME = {
     "sha": "a5d741940956ec62e8783aee7e5a4c7c761af867d6f027c3277a51e1a3ac59b0",
 }
 MODEL = {
-    "file": "Qwen3.5-9B-Q8_0.gguf",
-    "url": "https://huggingface.co/unsloth/Qwen3.5-9B-GGUF/resolve/main/Qwen3.5-9B-Q8_0.gguf",
-    "sha": "809626574d0cb43d4becfa56169980da2bb448f2299270f7be443cb89d0a6ae4",
-    "size": 9527502592,
+    "file": "gpt-oss-20b-MXFP4.gguf",    # OpenAI's own open weights, Apache-2.0, as ggml-org converted them
+    "url": "https://huggingface.co/ggml-org/gpt-oss-20b-GGUF/resolve/15dcfc7e7c608c6161507211ed43c5b590801b4b/gpt-oss-20b-MXFP4.gguf",
+    "sha": "27cd6c432c7672cb812a92f611cf3ba7bbc35928262bb1e1253ff4ee6ae35901",
+    "size": 12109566624,
     "ctx": 16384,
-    "vram_mib": 11500,   # what the loaded model takes on the card, measured; the run needs it free
+    "vram_mib": 11500,   # what the loaded model takes on the card, measured
     "server": ["--reasoning-budget", "1500"],
     "request": {"temperature": 0.15, "top_p": 0.9},
 }
@@ -143,8 +143,7 @@ PROGRAMS = {
     },
 }
 # (a failure no config edit can mend: told at once, the card left alone)
-NOT_CONFIG = re.compile(r"misses |boot image|boot entry|no root=|does not go through|transaction|conflict|signature|"
-                        r"not signed|kernel|initramfs|does not start|nothing drawn|not running", re.I)
+NOT_CONFIG = re.compile(r"\bmisses\b|boot image|boot entry|no root=|does not go through|conflict|signature|not signed|initramfs", re.I)
 # files never read and never written, whatever a table or an answer says (CLAUDE.md: secrets)
 NEVER = re.compile(r"secrets|token|password|credential|\.ssh|\.gnupg|\.pki|keyring|/shadow|sudoers")
 COMMENT = {"ini": ("#", ";"), "toml": ("#",), "css": ("/*", "*"), "lua": ("--",), "jsonc": ("//",)}
@@ -249,7 +248,7 @@ def missing(home, full=False):
     if not os.path.isfile(p["model"]) or os.path.getsize(p["model"]) != MODEL["size"]:
         return "its model is not installed"
     if full and sha256_file(p["model"]) != MODEL["sha"]:
-        return "its model file is damaged (its checksum differs)"
+        return "its model file is damaged (its checksum differs); the next update fetches it again"
     return ""
 
 
@@ -289,7 +288,9 @@ def install(home):
     # (a backup leaves it out: restic --exclude-caches; it comes back with the next install)
     with open(f"{p['models']}/CACHEDIR.TAG", "w") as f:
         f.write("Signature: 8a477f597d28d172789f06886806bc55\n# the fixer's model: downloaded again by the installer\n")
-    if not os.path.isfile(p["model"]) or sha256_file(p["model"]) != MODEL["sha"]:
+    # (by its size: each press of update comes here, and each run of the fixer checks its hash — a
+    # damaged file found there is removed, so the next press fetches it again)
+    if not os.path.isfile(p["model"]) or os.path.getsize(p["model"]) != MODEL["size"]:
         print(f"the fixer: downloading its model, {MODEL['size'] / 1e9:.0f} GB", flush=True)
         fetch(MODEL["url"], MODEL["sha"], p["model"])
     for old in glob.glob(f"{p['models']}/*.gguf"):
@@ -962,14 +963,11 @@ def own_check(prog, case, place):
     return (bool(re.search(red, out)) if red else r.returncode != 0), out
 
 
-def implicated(case):
+def implicated(why, pkgs):
     """which of our programs this failure names: by the checks' words, then by the held packages"""
-    why = "\n".join(case.get("why", []))
-    names = {p["name"] for p in case.get("packages", [])}
-    hits = [n for n, p in PROGRAMS.items() if re.search(p["says"], why, re.I)]
-    if not hits:
-        hits = [n for n, p in PROGRAMS.items() if names & set(p["packages"])]
-    return hits
+    text = "\n".join(why)
+    hits = [n for n, p in PROGRAMS.items() if re.search(p["says"], text, re.I)]
+    return hits or [n for n, p in PROGRAMS.items() if set(pkgs) & set(p["packages"])]
 
 
 def fix_one(name, case, place, sock, seed0, report, logdir):
@@ -1103,10 +1101,10 @@ def first_line(s):
 
 def triage(why, pkgs):
     """which programs of ours this failure can be about → their names (raises Held when none)"""
-    names = implicated({"why": why, "packages": [{"name": p} for p in pkgs]})
-    text = "\n".join(why)
-    if not names or (NOT_CONFIG.search(text) and not any(re.search(PROGRAMS[n]["says"], text, re.I) for n in names)):
-        raise Held("not-config", f"not a config of ours: {first_line(text) or 'no failure named'}")
+    lines = [x for x in why if not NOT_CONFIG.search(x)]
+    names = implicated(lines, pkgs) if lines else []
+    if not names:
+        raise Held("not-config", f"not a config of ours: {first_line(chr(10).join(why)) or 'no failure named'}")
     return names
 
 
@@ -1151,6 +1149,8 @@ def run_case(case, sock, out_path, logdir, server_args):
         if not sock:
             gone = missing(case.get("user_home", place.home), full=True)
             if gone:
+                if "damaged" in gone:
+                    os.unlink(paths(case.get("user_home", place.home))["model"])
                 raise Held("absent", f"the fixer cannot run: {gone}")
             server = Server(case.get("user_home", place.home), case.get("user"), f"{logdir}/server.log" if logdir else None,
                             extra=server_args)

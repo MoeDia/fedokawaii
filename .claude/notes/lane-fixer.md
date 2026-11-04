@@ -10,6 +10,11 @@ not in it (no amdgpu reset, no ring timeout in the log since 17:45). The next re
 cold-boot test: memtest or the BIOS's CPU/RAM profile if it comes back (T01's random restart may be the same family).
 
 ## Status (newest first)
+- 19:50 pinned: gpt-oss-20b MXFP4 on llama.cpp b12110 Vulkan, really installed in ~/.local by `kawa-fixer install` (status --full: ready).
+  test_fixer 323/0, test_update_fixer 79/0 (the real program as root in the fake machine: server as the desktop's user, its own
+  network namespace, a home's file written as its owner), test_verify 186/0, test_theme 141/0. Final three seeds running.
+  Real proof for tonight: Fedora 45's own foot 1.28 (the one configured program that changes in F45: f45-installed-version-changes.tsv)
+  takes our config as it stands: rc 0, measured with the RPM's binary.
 - 19:20 the harness (system/kawa-fixer), the updater's side (lib/fixer.sh + hooks in lib/update.sh, lib/cand-check.sh,
   setup.sh, theme.sh, verify.sh), tests (test_fixer, test_update_fixer) committed and pushed. The finalists (gpt-oss-20b,
   Qwen3.5-9B) running three seeds each on the frozen harness; after that: the pin, the real install in ~/.local, one whole
