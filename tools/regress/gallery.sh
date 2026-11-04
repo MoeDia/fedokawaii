@@ -11,5 +11,6 @@ out=$(mktemp -d /dev/shm/regress-gallery.XXXXXX)
 [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$out"' EXIT
 rc=0; bash "$here/../gallery.sh" --check --out "$out/shots" "$@" >"$out/log" 2>&1 || rc=$?
 ((rc == 0)) && { echo "gallery: held — $(grep -c . "$here/gallery-expect.json") numbers, every surface the same box in both themes and as recorded"; exit 0; }
-tail -n 12 "$out/log" | sed 's/^/gallery: /' >&2
+grep -E ' — the reference | ≠ ' "$out/log" >&2 || tail -n 4 "$out/log" >&2
+((rc == 1)) && echo "gallery: $(grep -cE ' — the reference | ≠ ' "$out/log") differ from the record (redesigned on purpose: bash tools/gallery.sh --record, the same options)"
 exit "$rc"
