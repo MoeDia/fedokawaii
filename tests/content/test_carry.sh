@@ -71,10 +71,10 @@ export KAWA_CARRY_PART=1048576
 out=$(kawa-carry save --to "$DRIVE" --downloads --yes 2>&1); eq "$?" 0 "save: $out"
 n=$(compgen -G "$DRIVE/fedokawaii-carry/carry.part.*" | wc -l); ((n >= 3)) && _ok || _no "$n parts"
 cat "$DRIVE"/fedokawaii-carry/carry.part.* | tar -tf - | grep -q Downloads/huge.iso && _ok || _no "Downloads did not go"
-mkdir "$W/x"; HOME_WAS=$HOME; mv "$HOME/Books" "$W/x/Books"
+mkdir "$W/x"; mv "$HOME/Books" "$W/x/Books"
 kawa-carry restore --from "$DRIVE/fedokawaii-carry" --yes >/dev/null 2>&1
 cmp "$HOME/Books/big.pdf" "$W/x/Books/big.pdf" && _ok || _no "the file across the parts differs"
-unset KAWA_CARRY_PART HOME_WAS
+unset KAWA_CARRY_PART
 
 case_ "a failing drive is told: a byte different comes back as a failure, not as success"
 p=$DRIVE/fedokawaii-carry/carry.part.0000

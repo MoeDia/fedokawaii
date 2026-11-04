@@ -135,7 +135,7 @@ xz -T1 --check=crc32 -6 <"$work/boot.cpio" >"$work/fedokawaii-boot.img"
 say "the menu and the kickstart"
 args="inst.stage2=hd:LABEL=$ISO_VOLID inst.ks=hd:LABEL=$ISO_VOLID:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.nosave=input_ks,output_ks console=tty1 rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 $pal"
 if ((dev)); then args+=" inst.sshd plymouth.debug"; fi
-sed -e "s|@VOLID@|$ISO_VOLID|g" -e "s|@ARGS@|$args|g" "$work/src/iso/grub.cfg" >"$work/grub.cfg"
+sed -e "s|@VOLID@|$ISO_VOLID|g" -e "s|@ARGS@|$args|g" -e "s|@GROUND@|$(cat "$work/art/ground")|g" "$work/src/iso/grub.cfg" >"$work/grub.cfg"
 sed -e "s|@RELEASE@|$ISO_RELEASE|g" "$work/src/iso/ks.cfg" >"$work/ks.cfg"
 if ((dev)); then sed -i '1i sshpw --username=root --plaintext fk' "$work/ks.cfg"; fi
 touch -d "@$SOURCE_DATE_EPOCH" "$work/grub.cfg"
@@ -161,6 +161,7 @@ xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \
   -map "$work/product.img" /images/product.img \
   -map "$work/fedokawaii-boot.img" /images/pxeboot/fedokawaii-boot.img \
   -map "$work/art/grub" /boot/grub2/themes/fedokawaii \
+  -map "$work/rpm/usr/lib/grub/x86_64-efi/gfxterm_background.mod" /boot/grub2/x86_64-efi/gfxterm_background.mod \
   -alter_date_r b "=$SOURCE_DATE_EPOCH" / -- \
   >"$work/xorriso.log" 2>&1 || { tail -n 20 "$work/xorriso.log" >&2; exit 1; }
 "$work/rpm/usr/bin/implantisomd5" --force --supported-iso "$iso" >/dev/null

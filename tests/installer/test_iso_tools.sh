@@ -4,7 +4,7 @@
 # (the blank where the console erases with it), the screen reader reading its own font, the disks an
 # install is offered (never a USB drive, no default among several), the answers the kickstart gets, the
 # kickstart strictly parsed, what the VM tool refuses.
-FK_PURE=1
+export FK_PURE=1
 . "$(dirname "$0")/lib.sh"
 
 skip() { printf '  - skipped: %s\n' "$*"; }

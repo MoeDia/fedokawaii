@@ -12,6 +12,7 @@ Writes (tools/build-iso.sh calls it, with SOURCE_DATE_EPOCH set; nothing here re
         Fedora's GRUB refuses any font but the Unifont inside its signed image: iso-research.md §5)
     OUTDIR/plymouth/…                 the boot splash of the first stage: system/plymouth/sumi with
         our name in place of "starting Fedora"
+    OUTDIR/ground                     the ground's colour, for iso/grub.cfg
 Needs: Pillow. Colours from tools/build-themes.py's dark palette: the boot is always ink.
 """
 import importlib.util
@@ -271,6 +272,10 @@ def grub(out):
 desktop-color: "#{P['ground']}"
 title-text: ""
 terminal-box: "term_*.png"
+terminal-left: "50%-490"
+terminal-top: "100%-770"
+terminal-width: "980"
+terminal-height: "530"
 
 + image {{
     left = 0 top = 100%-240
@@ -315,6 +320,8 @@ def main():
     if len(sys.argv) != 2:
         sys.exit(__doc__)
     out = pathlib.Path(sys.argv[1])
+    out.mkdir(parents=True, exist_ok=True)
+    (out / "ground").write_text(P["ground"], encoding="ascii")
     n = console(out / "console")
     grub(out / "grub")
     plymouth(out / "plymouth")

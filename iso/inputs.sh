@@ -25,4 +25,5 @@ ISO_RPMS=(
   "freetype-2.14.3-2.fc45.x86_64.rpm f78539a886319f7d6c01c353fa517f84a77c75e75fe74c90fc4981071680cd04"
   "harfbuzz-14.5.0-1.fc45.x86_64.rpm 9ee65bffa2bda682f7565463ba24c4f40d92faa9f0b3d52549c9c75fadda9cc1"
   "graphite2-1.3.14-22.fc45.x86_64.rpm 08cd675bdea4dab2021ee29f8d5a25407b5a94cec78cfa98d889c1b43a32ae6f"
+  "grub2-efi-x64-modules-2.12-81.fc45.noarch.rpm 6ffca581b29b112ff5e5d5d145810da694ba50a9d5245bfd9fc1f723a9c7f1a4"
 )
