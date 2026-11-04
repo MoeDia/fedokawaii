@@ -257,7 +257,7 @@ for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do
   rows=$(( tr + n - 1 ))
   ((rows <= lines)) && _ok || _no "$size: $rows rows in a pane of $lines"
   # (above the cover as much paper as under the words; each line of them on the cover's middle, within half a cell)
-  below=$(( (lines - tr - n + 1) * 21 + 2 ))
+  below=$(( (lines - tr - n + 1) * 21 + 1 ))
   (( y0 == below )) && _ok || _no "$size: the paper above the cover ($y0 px) and under the words ($below px)"
   while IFS= read -r l; do
     [[ -n $l ]] || continue

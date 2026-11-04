@@ -268,7 +268,7 @@ draw_cover() {   # draw_cover PATH SIX LAY — the picture (sixel) and its layou
   a=$(( 2 * cw - (cw - t) / 2 - t ))            # the rule's right edge → the first column
   r=$(( cw + 8 ))                               # the last column → the hairline: fzf's margin, foot's padding
   b=0
-  cap=$(( (4 * ch + 10) / 21 )) dsc=$(( (2 * ch + 10) / 21 ))
+  cap=$(( (4 * ch + 10) / 21 )) dsc=$(( (ch + 10) / 21 ))
   gap=$(( (2 * ch + 1) / 3 ))                   # cover → the title's letters (14 px)
   title=$CAP_TITLE                              # (empty: the list shows it whole)
   tmp=$(mktemp "$CACHE/cover.XXXXXX") && mv -f "$tmp" "$tmp.png" && tmp+=.png || return 1

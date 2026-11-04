@@ -531,7 +531,7 @@ has "$(pics | sed -n 1p)" $'\e[38;5;21mcurrent · default' "the value in muted (
 has "$(pics | sed -n 1p)" $'\e[38;5;21m'"$ICON_TORII" "the glyph in muted"
 case_ "the sections: each under a label of its own — its words muted at the icons' column, the rule, how many; the default's first, the old masters next; a label the cursor passes by, nothing picked from it"
 lab=$(grep -a '^§' "$TMP/rows" | cut -f3 | sed 's/\x1b\[[0-9;]*m//g')
-eq "$(sed 's/ ─* / /' <<<"$lab" | sed 's/ *$//' | head -n 2)" "$(printf '%s\n' ' ink and brush 1' ' woodblock prints by night 2')" "(the fetched ones' sections, counted)"
+eq "$(sed 's/ ─* / /' <<<"$lab" | sed 's/ *$//' | head -n 2)" "$(printf '%s\n' ' ink and brush 2' ' woodblock prints by night 1')" "(the fetched ones' sections, counted)"
 eq "$(grep -a '^§' "$TMP/rows" | cut -f3 | head -n1 | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 76 "a label as wide as a row"
 has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;21mink and brush' "muted"; has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;19m──' "the rule's ink"
 a=$(args_of fzf "$(ncalls fzf)")

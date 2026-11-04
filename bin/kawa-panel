@@ -1264,7 +1264,7 @@ def layout_calc(m):
     y = x0
     heads = [("calc", "calculator", x0, y)]
     y += HEAD_H
-    marks = [("input", x0, y, w, KEY_H, "", m.query)]
+    marks = [("input", x0, y, w, KEY_H, "", m.query, "a sum, a percentage, a conversion")]
     y += KEY_H + GAP
     marks.append(("answer", x0, y, w, CALC_ANSWER_H, m.answer_now() or (m.copied or ""), m.copied))
     y += CALC_ANSWER_H + GAP
