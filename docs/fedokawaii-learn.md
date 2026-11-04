@@ -1222,7 +1222,7 @@ doing, and which program is to blame. Click the bar's memory, or run `btop`.
 | **m** · **o** | menu · options |
 
 On AMD it shows the graphics card's load, memory, heat and watts: watch it while a game or a
-training run (chapter 28) works.
+training run (chapter 44) works.
 
 ### Exercises
 
@@ -6889,7 +6889,7 @@ source (`docs/fedokawaii-learn.md` in the toolkit).
 >
 > **You need:** level 5 (chapters 37–39).
 
-Level 6 turns everything you know toward data and, from chapter 42, machine learning. Before any
+Level 6 turns everything you know toward data and, from chapter 43, machine learning. Before any
 library, do the whole job once by hand: it is the only way to understand what pandas or NumPy
 then do for you, and many small jobs need nothing more.
 
@@ -14604,6 +14604,8 @@ other language: the Python expense tracker in Rust (exercise 59.7) teaches both 
 Part VI fits beside any week from week 3 on: one chapter a week, its exercises on that week's
 project — by week 9 you are building with an agent the way chapter 72 describes, and every
 checkpoint after that is a chance to practise it.
+
+<!-- cut -->
 
 ### Where to go next
 

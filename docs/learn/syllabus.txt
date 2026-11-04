@@ -1,0 +1,418 @@
+# docs/learn/syllabus.txt — the lessons, in the order that teaches best: the one place that order
+# is written. tools/learn-pieces.py cuts docs/fedokawaii-learn.md by it into pieces/NNN-ID.md; a
+# section of the book in no lesson, or in two, stops it. Progress (kawa-learn) is kept by a
+# lesson's ID: reorder and rename at will, but keep an ID once it is out.
+#
+#   part ID | NAME | ICON                  a tab of the lessons window
+#   chapter N ID | NAME | ICON [| needs N N …]   a heading; needs: what the book's "You need" does
+#                                           not say (the programs' chapters have none)
+#   ID | TITLE | WHAT… [| ~MINUTES]         a lesson of that chapter (~: when the words and the code
+#                                           do not say how long it takes: a checkpoint project)
+#   x | y                                   the chapter's exercises: x its ★ and ★★ (a lesson called
+#                                           practice), y its ★★★ and ★★★★ (projects — optional:
+#                                           when you have the time, never counted, never "next")
+#
+# WHAT: 0 the chapter's opening · 1 2 … its ## N.1 N.2 … · x y as above · 0/2 the second part of a
+# section the book cuts with <!-- cut --> · PI … PVI a part's opening · how the book's first
+# pages · 66.0/1 any other chapter's section, in full.
+#
+# The order is the book's but for: the plan first (nobody reads a plan last); the files before the
+# shell, moving before finding; the programs' daily ones first; working with AI after Python
+# (chapter 69 needs chapter 47, 67 is better after 45) and before Rust, so Rust is learnt with
+# what it teaches.
+
+part zero | from zero | sprout
+chapter 0 start | start here | torii-small | needs
+how-to-read | how this works | how
+the-plan | twenty-six weeks | 66.0/1
+glossary | the words, all of them | A | ?
+chapter 1 pieces | what the pieces are | file
+what-pieces | files, paths, programs, variables | PI 0 1 2 3 4 5 x
+chapter 2 first-ten | your first ten minutes in the terminal | terminal
+open-it | open it: five commands | 0 1 2
+time-savers | the keys that save the most time, and help | 3 4 x
+chapter 3 errors | reading errors | cross
+read-errors | last line first, and the ten you will meet | 0 1 2 3 x
+
+part desktop | the desktop | window
+chapter 4 keys | keys, windows and layouts | keycap
+ten-keys | the ten keys, and how windows arrange | PII 0 1 2
+desks-session | workspaces and the session | 3 4 x
+y
+chapter 5 bar | the bar, menus and notices | sliders
+the-bar | the bar, left to right | 0 1
+menus-notices | menus and notices | 2 3 x
+chapter 6 capture | clipboard, screenshots and recordings | camera
+clipboard-shots | clipboard, screenshots, recordings | 0 1 2 3
+shrink-archives | smaller files, archives and PDFs | 4 5
+x
+chapter 7 start-things | starting things: launcher, calculator, downloads | search
+launcher-calc | launcher, calculator, downloads | 0 1 2 3 x
+chapter 8 upkeep | looking after it: Super+U | kit
+super-u | the entries you will use | 0 1
+snapshots-report | snapshots and the health report | 2 3
+x
+
+part programs | the programs | tools
+chapter 12 yazi | yazi: the files | folder | needs 4
+yazi-moves | yazi's moves | PIII 0 1 2 x
+chapter 9 bash | bash and ble.sh: the shell | prompt
+bash-moves | the shell's moves | 0 1 2 x
+y
+chapter 11 moving | moving and reading: zoxide, eza, bat, tldr | read
+moving-moves | moving and reading | 0 1 x
+chapter 10 finding | finding anything: fzf, fd, ripgrep | search
+finding-moves | finding anything | 0 1 2 x
+y
+chapter 13 nvim | neovim: the editor | pen
+nvim-moves | never stuck, and neovim's moves | 0 1 2 3 x
+y
+chapter 14 git | git, lazygit and GitHub | branch
+git-moves | git, lazygit and gh | 0 1 2 3 4 x
+y
+chapter 15 btop | btop: the machine | cpu | needs 4
+btop-moves | btop | 0 x
+chapter 20 small-tools | notes, books and the small tools | note | needs 4
+notes-pdfs | notes, books, PDFs | 0 1
+x
+chapter 16 mpv | mpv, yt-dlp and Syncplay: video and sound | tv-0 | needs 4
+mpv-moves | video and sound | 0 x
+chapter 17 brave | Brave: the web | globe | needs 4
+brave-moves | the web | 0 x
+chapter 18 steam | Steam: games | gamepad | needs 4
+steam-moves | games | 0 x
+chapter 19 torrra | torrra: torrents | download | needs 4
+torrra-moves | torrents | 0 x
+chapter 22 podman | podman: containers | box-on | needs 2
+podman-moves | containers | 0 x
+chapter 21 agents | Claude Code and herdr: AI agents | agents | needs 14
+agents-moves | agents, a quick start | 0 x
+
+part python | Python | python
+chapter 23 why | why Python and Rust | speech
+why-python-rust | why Python and Rust | PIV 0
+chapter 24 loop | the daily development loop | restart
+loop-project | the tools, and a new project | 0 1 2
+loop-edit | edit, test, debug | 3 4 5
+loop-commit | commit, and the whole loop | 6 7 x
+chapter 25 py-numbers | numbers, variables, print | calc
+py-two-ways | two ways to run Python | 0 1
+py-arithmetic | numbers and arithmetic | 2
+py-variables | variables and types | 3 4
+py-print-input | print and input | 5 6
+py-numbers-mistakes | common mistakes | 7
+x
+y
+chapter 26 py-text | text | note
+py-strings | making strings, indexing, slicing | 0 1 2
+py-methods | what a string can do | 3
+py-immutable | strings never change; text and numbers | 4 5
+py-text-mistakes | common mistakes | 6
+x
+y
+chapter 27 py-flow | decisions and loops | branch
+py-if | True, False, if | 0 1 2
+py-while-for | while and for | 3 4
+py-break | break, continue, common mistakes | 5 6
+py-guessing | checkpoint: a guessing game | 7 | ~30
+x
+y
+chapter 28 py-functions | functions | code
+py-function | what a function is; parameters | 0 1 2
+py-return | return, defaults, keyword arguments | 3 4
+py-scope | scope, docstrings and assert | 5 6
+py-calling | functions calling functions | 7
+py-functions-mistakes | common mistakes | 8
+x
+y
+chapter 29 py-lists | lists and tuples | order
+py-list | a list, and changing it | 0 1 2
+py-sorting | sorting, looping over lists | 3 4
+py-nested | lists of lists, tuples | 5 6
+py-aliases | two names, one list; common mistakes | 7 8
+x
+y
+chapter 30 py-dicts | dictionaries and sets | sheet
+py-dict | a dictionary, safely | 0 1 2 3
+py-dict-loop | looping, counting and grouping | 4 5
+py-sets | nested data, sets | 6 7
+py-dicts-mistakes | common mistakes | 8
+py-contacts | checkpoint: a contacts book | 9 | ~30
+x
+y
+chapter 31 py-files | files | file
+py-pathlib | paths, whole files | 0 1 2
+py-lines | line by line, folders | 3 4
+py-csv | CSV: tables in text | 5
+py-json | JSON, and common mistakes | 6 7
+x
+y
+chapter 32 py-errors | errors and exceptions | cross
+py-exception | what an exception is | 0 1
+py-try | try, except, else, finally | 2 3
+py-raise | raising your own | 4
+py-catch | when to catch; common mistakes | 5 6
+x
+y
+chapter 33 py-modules | modules, venv and uv | archive
+py-import | import, and your own module | 0 1 2
+py-main | __name__, PyPI, a project with uv | 3 4 5
+py-modules-mistakes | common mistakes | 6
+py-expenses | checkpoint: an expense tracker | 7 | ~40
+x
+y
+chapter 34 py-classes | classes and objects | kit
+py-why-classes | why classes; self | 0 1 2
+py-account | a useful class: a bank account | 3
+py-special | special methods | 4
+py-dataclasses | dataclasses | 5
+py-inheritance | inheritance, briefly | 6
+py-classes-mistakes | common mistakes | 7
+x
+y
+chapter 35 py-tests | testing with pytest | check
+py-first-test | the first test | 0 1 2
+py-failure | reading a failure, testing errors | 3 4
+py-many-cases | many cases, files in tests | 5 6
+py-tdd | test first, what to test | 7 8 9
+x
+y
+chapter 36 py-types | type hints | keycap
+py-hint | what a type hint is, and checking | 0 1 2
+py-common-types | the common types | 3
+py-optional | optional values; your own types | 4 5
+py-generic | generic functions, how much to type | 6 7 8
+py-library | checkpoint: a tested, typed library | 9 | ~40
+x
+y
+chapter 37 py-generators | comprehensions, iterators and generators | spiral
+py-comprehensions | comprehensions | 0 1 2
+py-for-really | what for really does | 3
+py-generators | generators | 4
+py-tools | generator expressions, zip and friends | 5 6
+py-functools | functools | 7 8
+x
+y
+chapter 38 py-async | async basics | hourglass
+py-waiting | waiting, not working: async and await | 0 1 2
+py-switching | seeing the switching; tasks | 3 4
+py-timeouts | timeouts, limiting | 5 6
+py-real-async | real use, when it helps, mistakes | 7 8 9
+x
+y
+chapter 39 py-cli | command-line tools and packaging | terminal
+py-argparse | arguments and argparse | 0 1 2
+py-exit-pipes | exit codes, the error stream, pipes | 3 4
+py-package | a package, installed as your own command | 5 6 7
+py-notes | checkpoint: notes, from the command line | 8 | ~40
+x
+y
+chapter 40 py-data | data with the standard library | sheet
+py-load | the data: load and clean | 0 1 2
+py-summaries | summaries: statistics | 3
+py-group | group by | 4
+py-dates | dates, a chart in the terminal | 5 6
+py-results | writing results; common mistakes | 7 8
+x
+y
+chapter 41 py-numpy | NumPy | memory
+py-arrays | arrays | 0 1
+py-shape | shape and dtype | 2
+py-slicing | indexing, masks | 3 4
+py-broadcast | broadcasting, dot products | 5 6
+py-random | random numbers, speed, mistakes | 7 8
+x
+y
+chapter 42 py-fun | small fun projects | music
+py-chart | your writing, as a chart | 0 1
+py-flashcards | flashcards | 2
+py-weather | the weather; the Game of Life | 3 4
+x
+y
+chapter 43 py-network | a neural network from scratch, in NumPy | spiral
+py-compute | what a network computes | 0 1 2
+py-40-lines | the whole network, in 40 lines | 3
+py-calculus | check the calculus; handwritten digits | 4 5
+x
+y
+chapter 44 py-torch | PyTorch on your graphics card | monitor
+py-torch-install | where things stand; install | 0 1 2
+py-card | is the card there? | 3
+py-torch-digits | the digits network, in PyTorch | 4
+x
+y
+chapter 45 py-transformer | a tiny transformer that writes | pages
+py-transformer | the ideas, and the model | 0 1 2
+x
+y
+chapter 46 py-tune | fine-tuning a small model on your own data | sliders
+py-tune-code | the data, and the code | 0 1 2
+x
+y
+chapter 47 py-agent | an agent with the Claude API | agents
+py-agent-setup | set up, one question | 0 1 2
+py-agent-loop | the agent | 3
+x
+y
+
+part ai | working with AI | speech
+chapter 67 model | what a language model is | speech
+tokens | tokens and next-token prediction | PVI 0 1 2
+training | training, the context window | 3 4
+hallucination | reasoning, hallucination, choosing a model | 5 6 7
+x
+y
+chapter 68 asking | asking well | note
+five-parts | the five parts of a good request | 0 1 2
+ask-iterate | ask it to ask you; iterate | 3 4 5 x
+y
+chapter 69 agents-idea | agents: a model with tools | agents
+agent-loop | the loop, and what goes wrong | 0 1 2
+injection | prompt injection; agency is a dial | 3 4 x
+y
+chapter 70 claude-loop | Claude Code: the daily loop | restart
+claude-starting | starting, permission modes | 0 1 2
+claude-steps | the four steps, steering a session | 3 4
+claude-md | CLAUDE.md | 5 x
+y
+chapter 71 claude-tools | Claude Code: your own tools | tools
+claude-hooks | settings and hooks | 0 1 2
+claude-skills | skills and subagents | 3 4
+claude-more | MCP, claude -p, many at once | 5 6 7
+x
+y
+chapter 72 pro | working like a professional | hat
+own-every-line | you own every line; specs; review | 0 1 2 3
+keep-learning | keep learning; a card for the wall | 4 5 6 x
+y
+
+part rust | Rust | rust
+chapter 48 rs-start | Rust from zero: cargo and the loop | tools
+rs-project | a project | PV 0 1
+rs-neovim | in neovim; reading the compiler | 2 3 4 x
+chapter 49 rs-basics | variables, types and functions | calc
+rs-let | let, and shadowing | 0 1 2
+rs-numbers | number types | 3
+rs-tuples | bool, char, text, tuples, arrays | 4 5
+rs-expressions | functions, the missing semicolon | 6 7
+rs-basics-mistakes | common mistakes | 8
+x
+y
+chapter 50 rs-flow | control flow | branch
+rs-if | if and else | 0 1
+rs-loops | loop, while, for and ranges | 2 3
+rs-labels | continue, labels, a first match | 4 5
+rs-flow-mistakes | common mistakes | 6
+rs-guessing | checkpoint: a number-guessing machine | 7 | ~30
+x
+y
+chapter 51 rs-own | ownership | lock
+rs-scope | why ownership; scope | 0 1 2
+rs-moving | moving, copying, cloning | 3 4 5
+rs-own-functions | ownership and functions | 6
+rs-own-loops | moves in loops and collections | 7
+rs-partial | a partial move; common mistakes | 8 9
+x
+y
+chapter 52 rs-borrow | borrowing and slices | link
+rs-references | references: borrowing to look | 0 1
+rs-mut | mutable references | 2
+rs-rule | the rule: many readers, or one writer | 3
+rs-last-use | a borrow ends at its last use | 4
+rs-dangling | no dangling references | 5
+rs-slices | slices; common mistakes | 6 7
+x
+y
+chapter 53 rs-structs | structs and methods | box-on
+rs-struct | a struct, printed | 0 1 2
+rs-methods | methods with impl | 3
+rs-new | associated functions: new | 4
+rs-tuple-structs | tuple structs and unit structs | 5
+rs-derive | deriving more; common mistakes | 6 7
+x
+y
+chapter 54 rs-enums | enums and match | order
+rs-enum | an enum, variants with data | 0 1 2
+rs-match | match must cover everything; patterns | 3 4
+rs-option | Option: maybe a value | 5
+rs-option-work | working with Option; methods on enums | 6 7 8
+rs-bank | checkpoint: a bank with commands | 9 | ~40
+x
+y
+chapter 55 rs-collections | collections | archive
+rs-vec | Vec: a growing list | 0 1
+rs-vec-structs | Vec of structs, sorting | 2
+rs-string | String in depth | 3
+rs-hashmap | HashMap: look up by key | 4
+rs-maps-sets | BTreeMap, HashSet, VecDeque | 5 6 7 8
+x
+y
+chapter 56 rs-errors | errors: panic, Result and ? | cross
+rs-result | two kinds of failure; Result | 0 1 2
+rs-question | shortcuts, the ? operator | 3 4
+rs-box-dyn | errors of different kinds | 5
+rs-own-error | your own error type | 6
+rs-map-err | map_err; common mistakes | 7 8
+rs-counter | checkpoint: a word counter that never panics | 9 | ~40
+x
+y
+chapter 57 rs-traits | traits and generics | keycap
+rs-trait | a trait | 0 1
+rs-trait-params | traits as parameters | 2
+rs-std-traits | standard traits you implement | 3
+rs-generics | generics | 4
+rs-dyn | generic structs; dyn Trait | 5 6 7
+x
+y
+chapter 58 rs-lifetimes | lifetimes, gently | hourglass
+rs-lifetime | what a lifetime is | 0 1
+rs-write-one | when you must write one | 2
+rs-no-need | when you do not; structs that hold references | 3 4
+rs-static | 'static; when in doubt, own it | 5 6
+rs-statistics | checkpoint: a generic statistics library | 7 | ~40
+x
+y
+chapter 59 rs-modules | modules, crates and tests | pages
+rs-rooms | modules: rooms in a program | 0 1
+rs-module-files | modules in files | 2
+rs-lib-bin | a library and a binary | 3
+rs-tests | tests | 4
+rs-more-tests | more kinds of test | 5
+rs-crates | crates from crates.io; common mistakes | 6 7
+x
+y
+chapter 60 rs-iter | iterators and closures | spiral
+rs-closures | closures | 0 1
+rs-take-closures | functions that take closures; iterators | 2 3
+rs-into-iter | iter, iter_mut, into_iter; laziness | 4 5
+rs-chain | collect, and a real chain | 6 7
+rs-own-iter | your own iterator; common mistakes | 8 9
+x
+y
+chapter 61 rs-threads | concurrency basics | together
+rs-threads-start | threads | 0 1
+rs-why-move | why move | 2
+rs-arc | Arc and Mutex | 3
+rs-races | data races are compile errors | 4
+rs-channels | channels; how much faster? | 5 6 7
+rs-scanner | checkpoint: a parallel file scanner | 8 | ~40
+x
+y
+chapter 62 rs-cli | a real command-line tool | terminal
+rs-wordfreq | wordfreq | 0
+x
+y
+chapter 63 rs-autograd | a tiny autograd, in Rust | spiral
+rs-tinygrad | tinygrad | 0
+x
+y
+chapter 64 rs-models | running models in Rust: candle and burn | monitor
+rs-candle | candle and burn | 0 1 2
+x
+y
+chapter 65 rs-pyo3 | Rust inside Python: PyO3 | link
+rs-pyo3-module | a Python module written in Rust | 0
+x
+y
+chapter 66 rs-next | where to go next | globe | needs
+where-next | where to go next | 66.0/2
