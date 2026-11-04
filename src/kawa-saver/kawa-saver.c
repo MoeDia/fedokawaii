@@ -192,15 +192,24 @@ static void frame_done(void *data, struct wl_callback *cb, uint32_t t)
 }
 static const struct wl_callback_listener frame_listener = { .done = frame_done };
 
-/* a subsurface over the painting: sized to the screen (a small picture scaled up smooth), input passing through it */
+/* the painting on this screen, scaled to cover it: the scale, and where its corner lies (of another shape: its middle) */
+static double cover(const struct output *o, double *ox, double *oy)
+{
+	double k = fmax((double)o->lw / art.w, (double)o->lh / art.h);
+	*ox = (o->lw - k * art.w) / 2, *oy = (o->lh - k * art.h) / 2;
+	return k;
+}
+
+/* a subsurface over the painting, X Y W H of it in the painting's pixels (a small picture scaled up smooth), input passing through it */
 static void sub_make(struct output *o, struct sub *s, int x, int y, int w, int h)
 {
+	double ox, oy, k = cover(o, &ox, &oy);
 	s->surface = wl_compositor_create_surface(compositor);
 	s->subsurface = wl_subcompositor_get_subsurface(subcompositor, s->surface, o->surface);
 	s->viewport = wp_viewporter_get_viewport(viewporter, s->surface);
 	wl_subsurface_set_desync(s->subsurface);
-	wl_subsurface_set_position(s->subsurface, x * o->lw / art.w, y * o->lh / art.h);
-	wp_viewport_set_destination(s->viewport, w * o->lw / art.w, h * o->lh / art.h);
+	wl_subsurface_set_position(s->subsurface, (int)(ox + x * k), (int)(oy + y * k));
+	wp_viewport_set_destination(s->viewport, (int)(w * k), (int)(h * k));
 	struct wl_region *none = wl_compositor_create_region(compositor);
 	wl_surface_set_input_region(s->surface, none);
 	wl_region_destroy(none);
@@ -223,7 +232,11 @@ static void output_setup(struct output *o)
 		sub_make(o, &o->haze, 0, 0, art.w, art.h);
 	sub_make(o, &o->air, 0, 0, art.w, art.h);
 	sub_make(o, &o->seal, 0, 0, sealp.w, sealp.h);
+	/* (the painting: its part that fits this screen's shape, on all of it) */
+	double ox, oy, k = cover(o, &ox, &oy);
 	o->viewport = wp_viewporter_get_viewport(viewporter, o->surface);
+	wp_viewport_set_source(o->viewport, wl_fixed_from_double(-ox / k), wl_fixed_from_double(-oy / k),
+			wl_fixed_from_double(o->lw / k), wl_fixed_from_double(o->lh / k));
 	wp_viewport_set_destination(o->viewport, o->lw, o->lh);
 	o->ready = true;
 }
@@ -287,7 +300,8 @@ static void show_step(double t)
 			wl_surface_damage_buffer(o->air.surface, air_now[k].x, air_now[k].y, air_now[k].w, air_now[k].h);
 		wl_surface_commit(o->air.surface);
 		if (seal_changed || seal_waits) {
-			wl_subsurface_set_position(o->seal.subsurface, seal_x * o->lw / art.w, seal_y * o->lh / art.h);
+			double ox, oy, k = cover(o, &ox, &oy);
+			wl_subsurface_set_position(o->seal.subsurface, (int)(ox + seal_x * k), (int)(oy + seal_y * k));
 			sub_show(&o->seal, pic_seal.wl, 0, 0, sealp.w, sealp.h);
 			wl_surface_commit(o->surface);    /* (the seal's new place is its parent's to take) */
 		}
@@ -306,7 +320,6 @@ static void take_a_step(double t)
 {
 	tick++;
 	world_step(t, waking || falling ? front : 0);
-	pic_shade.busy = pic_haze.busy = pic_air.busy = false;
 	if (seal_changed && falling)
 		seal_waits = true;                /* (stamped as the painting comes: shown once it has) */
 	show_step(t);
@@ -739,6 +752,14 @@ int main(int argc, char **argv)
 	while (!stop) {
 		double t = now_ms();
 		bool dark = screens_dark(t);
+		bool any = false;
+		wl_list_for_each(o, &outputs, link)
+			any |= o->ready && !o->closed;
+		if (!any) {                       /* (every screen gone, the monitor off its cable: it has nowhere to be; the lock comes all the same) */
+			if (idle_mode)
+				lock_start();
+			break;
+		}
 		if (falling) {                    /* (the painting closes over the screen, the middle last) */
 			double f = (t - fall_at) / FALL_MS;
 			if (f >= 1 || leaving) {

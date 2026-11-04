@@ -47,7 +47,7 @@ static const struct mood {
 	float gamma;      /* the shade's fall towards the fire: above 1, harder */
 } moods[2] = {
 	{ 0.86f, 0.62f, 1.25f },     /* the dark: hard, a dungeon carved out of black by its fire */
-	{ 0.24f, 0.70f, 1.0f },      /* the light: the gold hour in the sky, the lanterns warm against it */
+	{ 0.18f, 0.70f, 1.0f },      /* the light: the gold hour in the sky, the lanterns warm against it */
 };
 static const struct mood *M;
 

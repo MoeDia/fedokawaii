@@ -1743,7 +1743,7 @@ or music plays:
 
 | What you do | What happens |
 |---|---|
-| nothing, for 15 minutes | the screensaver: sashiko stitched across the screens in a quiet thread, seals stamped on it, the time on a stitched patch. The lock comes up under it as it starts, so the first key or move of the mouse only washes the cloth off a lock already there — that key goes nowhere else. With the *screensaver* tile in quick settings off, the lock alone |
+| nothing, for 15 minutes | the screensaver: the lock's own painting asleep, its fires breathing, smoke and embers on the dark, gold dust and petals on the light, the time a small seal stamped somewhere else every minute. The lock comes up under it, so the first key or move of the mouse only wakes the world: the painting opens onto the lock, the figure in it, and the key itself goes nowhere |
 | nothing, for 30 minutes | the screens power off (windows stay where they were); the first key wakes them |
 | a video or music playing (the browser, mpv, any player), or a program holding off idleness | none of the two: they wait until it stops |
 | **Super+Escape** (or *lock* in the power menu) | the screen locks; still locked 90 seconds later, the computer sleeps. Unlock before then and it stays awake |

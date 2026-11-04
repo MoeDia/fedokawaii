@@ -53,6 +53,7 @@ else
   nap 1
   key space; nap 1.4
   shot awake
+  nap 4                              # (the recorder's encoder catches up: stopped, it drops what waits)
   kill -INT "$R"; wait "$R" 2>/dev/null
 fi
 PLAY
@@ -71,7 +72,8 @@ for mood in dark light; do
   cp "$o/asleep.png" "$outdir/saver-$mood.png"
   # (the frames by their own times: only the wake's, from the key on, for the sheet; all for the recording)
   mkdir -p "$o/f"
-  ffmpeg -nostdin -loglevel error -i "$o/rec.mkv" -fps_mode passthrough "$o/f/%05d.png" || { echo "saver-review: no frames ($mood)" >&2; exit 2; }
-  python3 -I "$here/saver-review.py" "$o/f" "$outdir/saver-$mood-wake.png" "$outdir/saver-$mood.webp" || exit 2
+  ffmpeg -nostdin -v error -i "$o/rec.mkv" -fps_mode passthrough "$o/f/%05d.png" 2>/dev/null || { echo "saver-review: no frames ($mood)" >&2; exit 2; }
+  ffprobe -v error -select_streams v -show_entries frame=pts_time -of csv=p=0 "$o/rec.mkv" >"$o/rec.pts"
+  python3 -I "$here/saver-review.py" "$o/f" "$o/rec.pts" "$outdir/saver-$mood-wake.png" "$outdir/saver-$mood.webp" || exit 2
 done
 exit $rc

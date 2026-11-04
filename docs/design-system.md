@@ -44,7 +44,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `edge` | `2d251e` Black → Pale Raw Umber 0.32 | `dfcc9c` Sulpher Yellow → Isabella Color 0.45 | a tile's or key's 1 px frame at rest; an unlit meter segment; the terminal's black |
 | `edge2` | `3c2f22` Black → Pale Raw Umber 0.48 | `d7bc8c` Sulpher Yellow → Maple 0.62 | a heading's rule (§4, §7) |
 | `hi` | `4a3826` Black → Pale Raw Umber 0.62 | `ffffff` White | pixel art's light ink (stone, paper, the files' and drives' pictures) |
-| `lo` | `111314` Black | `96865e` Isabella Color → Deep Slate Green 0.25 | pixel art's shadow ink; the screensaver's thread shadow (dark) |
+| `lo` | `111314` Black | `96865e` Isabella Color → Deep Slate Green 0.25 | pixel art's shadow ink; the screensaver's dark (dark) |
 | `faint` | `907e5d` Light Brownish Olive → Ecru 0.25 | `8b917f` text → ground 0.6 | what is not there yet ("none"), an empty workspace's numeral |
 | `muted` | `cab596` Ecru → Ivory Buff 0.2 | `586459` text → ground 0.36 | secondary words: values, a key's action, the layout's mark |
 | `text` | `e7cfa1` Ecru → Ivory Buff 0.9 | `122625` Deep Slate Green → Black 0.3 | names, rows, body |
@@ -485,11 +485,14 @@ the tiles of a group, 12 px between groups.
   scatter, the head shakes 3 px twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
-- **Screensaver** (kawa-saver): a cloth the screen's size on the mood's ground — hitomezashi sewn
-  line by line in a quiet thread (`muted` on the dark, `blue` on the light, each dot's shadow a dot
-  down and right), on a grid of dots as big as a pixel of the wallpapers; the time on a `surface`
-  patch framed in running stitch. Away (`--idle`) it lies over the lock, which comes up under it
-  as it starts: any input dissolves it off the lock screen at once.
+- **Screensaver** (kawa-saver): the lock's own painting, asleep: the same pixels, the figure's place empty (`lock-bare.png`;
+  `saver-scene.txt`: tools/build-saver.py). The dark lies over it, deep on the dark mood, the gold hour on the light, open round the
+  fires and breathing with them; the lock's own flames burn in it; on the dark, smoke curls off each flame up to the beam and embers
+  rise, cooling; on the light, gold dust hangs in the air and petals fall. Twelve steps a second, each thing a layer of its own, the
+  small ones scaled up smooth by the compositor. The time is a small seal, 62 × 84 px, cut from worn stone in `accent`, its digits
+  (12-hour, two rows of two) cut out of the red, stamped somewhere else in the figure's place every minute. Away (`--idle`) the
+  lock comes up under it once the painting covers the screen; the first key or move wakes the world (§11), no key reaches anything.
+  The screens dark: no step, no frame, no CPU.
 - **Boot**: GRUB's menu and the boot splash (plymouth) in Sumi UI ×2 on the mood's ground, the
   vermilion seal and the same frame; the installer's screens likewise.
 
@@ -523,7 +526,9 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 | a wrong password | the gate opens again, the embers (motes) scatter and fade, the gate shakes 3 px twice | 240 |
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
-| the screensaver leaves | dissolves off | 180 |
+| the screensaver comes | the painting closes over the desktop from the edges to the figure's place, a soft edge 150 px wide, on a spring | 1200 |
+| a key wakes the world | the seal lifts, the fires leap, the dark lifts and the painting opens from the figure's place outwards, soft-edged, on a spring, onto the lock already under it: the figure is there; screens lit by that key, 1000 first while the monitor finds its signal | 440 |
+| the screensaver leaves (no lock under it, the last of its air over one) | dissolves off | 180 |
 | a screen back (switched on at its button, or woken after it dropped off the cable asleep) | its first picture is the whole desktop: black (the monitor is finding the signal) until its wallpaper and its bar are back and done drawing — 100 ms without a new frame of theirs — never seen being built | 1000 at most |
 | a stamp (the workspace seal) | down: the seal 1 px larger all round in `accent_hi`; then as it was, in `accent` | 60 |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
