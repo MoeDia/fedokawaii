@@ -2,12 +2,12 @@
 """/usr/local/bin/kawa-greet USER — the login screen. greetd runs it in cage (a kiosk
 compositor: one full-screen window) on tty1, as its own user (greetd).
 
-It is the lock screen's twin — the first lock of the day: the mood's scene (lock-scene.png and
-lock-scene.txt, tools/build-lock.py — the same pictures kawa-lockmod draws on the lock) at whole
-pixels, centred, its edges' own colour round it; the torches' flames, 8 frames a second; your
-password as marks in the scene's row, in the gate (the demon's mouth, the Kannon's lotus: shut at rest, Tab
-opens it, Enter shuts it on the marks and only then tries),
-the newest ones while more are typed than the row holds, the arms in the Caps Lock ink while it
+It is the lock screen's twin — the first lock of the day: the mood's painting (lock-scene.png and
+lock-scene.txt — the same pictures kawa-lockmod draws on the lock), all of it on the screen, pixel
+for pixel at its own size, smooth otherwise, centred, its edges' own colour round it; its life, as
+the lock's; your password as marks in the scene's row (lock-marks.png's, or a cross), in the gate
+(the demon's mouth, the angel's scroll: shut at rest, Tab opens it, Enter shuts it on the marks and only
+then tries), the newest ones while more are typed than the row holds, in the Caps Lock ink while it
 is on; the caret a bar as tall as a mark, blinking once a second while the line has the keyboard.
 A wrong password: the marks scatter and fade, the face shakes a pixel of the scene twice (240 ms,
 five steps of 48), and the line is empty again; the right one starts the desktop
@@ -34,6 +34,7 @@ start_session, cancel_session (man 7 greetd-ipc).
 """
 import json
 import os
+import random
 import socket
 import struct
 import sys
@@ -75,9 +76,13 @@ class Scene:
         self.w, self.h = map(int, kv["size"][0])
         self.ground = ink(kv["ground"][0][0])
         self.rx, self.ry, self.pitch, self.rn = map(int, kv["row"][0])
-        self.arms, self.core, self.corner = (ink(h) for h in kv["mark"][0])
+        self.ms = max(int(kv.get("markscale", [[1]])[0][0]), 1)   # (the marks' pixel, in the scene's)
+        self.mw, self.mh, self.mn = map(int, kv["marks"][0]) if "marks" in kv else (0, 0, 0)
+        self.marks = cairo.ImageSurface.create_from_png(f"{folder}/lock-marks.png") if self.mn else None
+        # (the cross's inks only without drawn marks, the plate only without a gate)
+        self.arms, self.core, self.corner = (ink(h) for h in kv["mark"][0]) if "mark" in kv else (None, None, None)
         self.caps, self.caret = ink(kv["caps"][0][0]), ink(kv["caret"][0][0])
-        self.cx, self.cy, self.cr = map(int, kv["plate"][0])
+        self.cx, self.cy, self.cr = map(int, kv["plate"][0]) if "plate" in kv else (0, 0, 0)
         self.wy0, self.wy1 = map(int, kv["words"][0])
         self.img = cairo.ImageSurface.create_from_png(f"{folder}/lock-scene.png")
         self.flames = [tuple(map(int, f)) for f in kv.get("flame", [])]
@@ -85,11 +90,26 @@ class Scene:
         self.flame = cairo.ImageSurface.create_from_png(f"{folder}/lock-flame.png") if self.flames else None
         self.gx, self.gy, self.gw, self.gh, self.gn = map(int, kv["gate"][0]) if "gate" in kv else (0, 0, 0, 0, 0)
         self.gate = cairo.ImageSurface.create_from_png(f"{folder}/lock-gate.png") if self.gn else None
+        # its life, kawa-lockmod's twin: looped strips with alpha, and sparks
+        # (the strips read once the first picture is up: life_load)
+        self.folder = folder
+        self.anims = [dict(name=a[0], img=None, x=int(a[1]), y=int(a[2]),
+                           w=int(a[3]), h=int(a[4]), n=int(a[5]), ms=int(a[6]), frame=0) for a in kv.get("anim", [])]
+        self.spawn = [tuple(map(int, b)) for b in kv.get("spawn", [])[:4]]
+        sp = kv.get("sparks", [[]])[0]
+        self.petals, self.nsparks = sp[:1] == ["petals"], min(int(sp[1]), 64) if sp else 0
+        self.young, self.old = (ink(sp[2]), ink(sp[3])) if sp else (None, None)
 
     def fit(self, w, h):
-        """The scale (whole) and the corner of the scene on a W × H screen."""
-        n = max(1, min(w // self.w, h // self.h))
-        return n, (w - n * self.w) // 2, (h - n * self.h) // 2
+        """The scale and the corner of the scene on a W × H screen: all of it, the most the screen holds."""
+        n = min(w / self.w, h / self.h)
+        return n, int((w - n * self.w) / 2), int((h - n * self.h) / 2)
+
+    def mark_w(self):                        # a mark's size in the scene
+        return self.mw if self.marks else 3 * self.ms
+
+    def mark_h(self):
+        return self.mh if self.marks else 3 * self.ms
 
 
 class Greetd:
@@ -140,7 +160,7 @@ class Greeter(Gtk.Window):
         # the gate, kawa-lockmod's twin: shut at rest, Tab opens it, Enter shuts it on the marks and
         # only then tries; no frames: always open
         self.gate = GATE_SHUT if self.scene and self.scene.gn else GATE_OPEN
-        self.gate_frame, self.gate_t0, self.gate_src, self.gate_try = 0, 0.0, 0, False
+        self.gate_frame, self.gate_from, self.gate_t0, self.gate_src, self.gate_try = 0, 0, 0.0, 0, False
 
         # the password's line (gtklock.css hides it under .kawa: the scene draws what is typed)
         self.entry = Gtk.Entry(name="input-field", xalign=0.5, visibility=False,
@@ -163,6 +183,8 @@ class Greeter(Gtk.Window):
             Gdk.Keymap.get_for_display(Gdk.Display.get_default()).connect("state-changed", lambda *_: self.redraw_row())
             if self.scene.flames:
                 GLib.timeout_add(1000 // 8, self.flames_tick)
+            self.sparks = [{"live": False} for _ in range(self.scene.nsparks)]
+            self.life_loaded = False
             self.blink = GLib.timeout_add(500, self.caret_tick)
         layers.add_overlay(self.entry)
         layers.add_overlay(self.error)
@@ -193,6 +215,10 @@ class Greeter(Gtk.Window):
     def draw_scene(self, area, cr):
         s = self.scene
         n, ox, oy = s.fit(area.get_allocated_width(), area.get_allocated_height())
+        filt = cairo.FILTER_NEAREST if n == int(n) else cairo.FILTER_GOOD
+        if not self.life_loaded:               # (the first picture is up: now the strips)
+            self.life_loaded = True
+            GLib.timeout_add(30, self.life_load)
         cr.set_source_rgb(*s.ground)
         cr.paint()
         cr.translate(ox, oy)
@@ -200,20 +226,20 @@ class Greeter(Gtk.Window):
 
         def picture(dx):
             cr.set_source_surface(s.img, dx, 0)
-            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.get_source().set_filter(filt)
             cr.rectangle(dx, 0, s.w, s.h)
             cr.fill()
 
         picture(0)
         step = int((time.monotonic() - self.wrong) / STEP) if self.wrong else -1
         step = step if step < STEPS else -1
-        dx = (1 if step in (0, 2) else -1 if step in (1, 3) else 0) if step >= 0 else 0
+        dx = s.ms * (1 if step in (0, 2) else -1 if step in (1, 3) else 0) if step >= 0 else 0
         if s.gate:
             cr.save()
             cr.rectangle(s.gx + dx, s.gy, s.gw, s.gh)
             cr.clip()
             cr.set_source_surface(s.gate, s.gx + dx - self.gate_frame * s.gw, s.gy)
-            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.get_source().set_filter(filt)
             cr.paint()
             cr.restore()
         elif dx:
@@ -225,59 +251,159 @@ class Greeter(Gtk.Window):
         for i, (fx, fy) in enumerate(s.flames):
             f = (self.frame + 3 * i) % s.frames      # (the two out of step)
             cr.set_source_surface(s.flame, fx - f * s.fw, fy)
-            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.get_source().set_filter(filt)
             cr.rectangle(fx, fy, s.fw, s.fh)
             cr.fill()
 
+        for a in s.anims:
+            if not a["img"]:
+                continue
+            cr.save()
+            cr.rectangle(a["x"], a["y"], a["w"], a["h"])
+            cr.clip()
+            cr.set_source_surface(a["img"], a["x"] - a["frame"] * a["w"], a["y"])
+            cr.get_source().set_filter(filt)
+            cr.paint()
+            cr.restore()
+
         def dot(x, y, c):
             cr.set_source_rgb(*c)
-            cr.rectangle(x, y, 1, 1)
+            cr.rectangle(x - s.ms // 2, y - s.ms // 2, s.ms, s.ms)
             cr.fill()
+
+        def drawn(f, x, y, zoom, alpha, flat):   # a drawn mark: its strip's frame f, its middle on (x, y)
+            cr.save()
+            cr.translate(x, y)
+            cr.scale(zoom, zoom)
+            cr.rectangle(-s.mw // 2, -s.mh // 2, s.mw, s.mh)
+            cr.clip()
+            if flat:                             # (Caps Lock: its shape in that ink)
+                cr.set_source_rgba(*flat, alpha)
+                cr.mask_surface(s.marks, -s.mw // 2 - f * s.mw, -s.mh // 2)
+            else:
+                cr.set_source_surface(s.marks, -s.mw // 2 - f * s.mw, -s.mh // 2)
+                cr.paint_with_alpha(alpha)
+            cr.restore()
+
+        for p in self.sparks:
+            if p["live"]:
+                dot(p["px"], p["py"], s.young if p["age"] * 2 < p["life"] else s.old)
 
         def mark(x, y, arms, core, corner):
             for ax, ay in ((1, 1), (1, -1), (-1, 1), (-1, -1)) if corner else ():
-                dot(x + ax, y + ay, corner)
+                dot(x + s.ms * ax, y + s.ms * ay, corner)
             for ax, ay in ((1, 0), (-1, 0), (0, 1), (0, -1)):
-                dot(x + ax, y + ay, arms)
+                dot(x + s.ms * ax, y + s.ms * ay, arms)
             if core:
                 dot(x, y, core)
 
         caps = Gdk.Keymap.get_for_display(Gdk.Display.get_default()).get_caps_lock_state()
         arms = s.caps if caps else s.arms
-        opened = self.gate == GATE_OPEN           # (the marks in the mouth only while it is open)
-        shown = min(len(self.entry.get_text()), s.rn) if opened else 0
+        flat = s.caps if caps else None
+        opened = self.gate == GATE_OPEN           # the marks in the mouth while it is open…
+        eating = self.gate == GATE_SHUTTING and self.gate_try and self.gate_frame >= s.gn // 2   # …until the jaws meet
+        shown = min(len(self.entry.get_text()), s.rn) if opened or eating else 0
+        if eating:
+            cr.save()
+            cr.rectangle(s.gx, s.gy, s.gw, s.gh)
+            cr.clip()
         if step >= 0:                            # the tried ones scatter, dimming, then go
             for i in range(min(self.tried, s.rn)):
                 vx, vy = (i * 7 + 3) % 5 - 2, (-1 - (i % 3 > 0)) if i % 2 else (1 + (i % 4 == 0))
-                x, y = s.rx + s.pitch * i + dx + vx * step, s.ry + vy * step
-                if step < 2:
+                x, y = s.rx + s.pitch * i + dx + s.ms * vx * step, s.ry + s.ms * vy * step
+                if s.marks:
+                    if step < 4:
+                        drawn(i % s.mn, x, y, 1, 1 if step < 2 else .5, flat)
+                elif step < 2:
                     mark(x, y, arms, s.core, s.corner)
                 elif step < 4:
                     mark(x, y, s.corner, arms, None)
         else:
-            flaring = shown and time.monotonic() < self.flare    # (the newest: its corners in the arms' ink)
+            flaring = shown and time.monotonic() < self.flare    # (the newest: larger, or its corners in the arms' ink)
             for i in range(shown):
-                mark(s.rx + s.pitch * i, s.ry, arms, s.core, arms if flaring and i == shown - 1 else s.corner)
+                f = flaring and i == shown - 1
+                if s.marks:
+                    drawn(i % s.mn, s.rx + s.pitch * i, s.ry, 1.25 if f else 1, 1, flat)
+                else:
+                    mark(s.rx + s.pitch * i, s.ry, arms, s.core, arms if f else s.corner)
+        if eating:
+            cr.restore()
         if self.caret_on and opened and step < 0 and self.entry.has_focus() and self.entry.is_sensitive():
             cr.set_source_rgb(*s.caret)
-            cr.rectangle(s.rx + s.pitch * shown, s.ry - 1, 1, 3)   # (a mark's height)
+            cr.rectangle(s.rx + s.pitch * shown - s.ms // 2, s.ry - s.mark_h() // 2, s.ms, s.mark_h())   # (a mark's height)
             cr.fill()
         return False
 
     def redraw(self, x, y, w, h):               # a part, in the scene's pixels
         a = self.area
         n, ox, oy = self.scene.fit(a.get_allocated_width(), a.get_allocated_height())
-        a.queue_draw_area(ox + n * x, oy + n * y, n * w, n * h)
+        if n == int(n):
+            n = int(n)
+            a.queue_draw_area(ox + n * x, oy + n * y, n * w, n * h)
+        else:                                  # (smooth: a pixel's edge reaches its neighbours)
+            a.queue_draw_area(ox + int(n * x) - 1, oy + int(n * y) - 1, int(n * w) + 3, int(n * h) + 3)
 
     def redraw_row(self):
+        s = self.scene                         # (a mark's flare fits in the margin)
+        self.redraw(s.rx - s.mark_w(), s.ry - s.mark_h(), s.pitch * s.rn + 2 * s.mark_w(), 2 * s.mark_h())
+
+    def life_load(self):
+        """The strips, read once the first picture is up; then the scene's life starts."""
         s = self.scene
-        self.redraw(s.rx - 2, s.ry - 3, s.pitch * s.rn + 4, 7)
+        for a in s.anims:
+            a["img"] = cairo.ImageSurface.create_from_png(f"{s.folder}/lock-{a['name']}.png")
+        if s.anims or self.sparks:
+            GLib.timeout_add(40, self.life_tick)
+        return False
 
     def flames_tick(self):
+        if self.asleep:                        # (no frames wanted: a whole new picture at the wake)
+            return True
         s = self.scene
         self.frame = (self.frame + 1) % s.frames
         for fx, fy in s.flames:
             self.redraw(fx, fy, s.fw, s.fh)
+        return True
+
+    def life_tick(self):
+        """The scene's life, 25 times a second: an anim's new frame, the sparks' new places (kawa-lockmod's twin)."""
+        s, ms = self.scene, int(time.monotonic() * 1000)
+        if self.asleep:
+            return True
+        for a in s.anims:
+            f = ms // a["ms"] % a["n"]
+            if f != a["frame"]:
+                a["frame"] = f
+                self.redraw(a["x"], a["y"], a["w"], a["h"])
+        for p in self.sparks:
+            if not p["live"]:
+                if random.randrange(40):
+                    continue
+                if s.petals:
+                    p.update(live=True, age=0, x=random.randrange(s.w), y=random.randrange(s.h // 2), px=-1, py=-1,
+                             vx=(random.randrange(40) - 20) / 100, vy=.15 + random.randrange(30) / 100, life=120 + random.randrange(160))
+                else:
+                    fx, fy = random.choice(s.flames) if s.flames else (random.randrange(s.w), s.h - 1)
+                    p.update(live=True, age=0, x=fx + random.randrange(max(s.fw, 1)), y=fy + s.fh // 3, px=-1, py=-1,
+                             vx=(random.randrange(40) - 20) / 120, vy=-.3 - random.randrange(50) / 100, life=50 + random.randrange(90))
+                if s.spawn:
+                    bx, by, bw, bh = random.choice(s.spawn)
+                    p.update(x=bx + random.randrange(max(bw, 1)), y=by + random.randrange(max(bh, 1)))
+                continue
+            if p["px"] >= 0:
+                self.redraw(p["px"] - s.ms // 2, p["py"] - s.ms // 2, s.ms, s.ms)
+            p["age"] += 1
+            if p["age"] > p["life"]:
+                p["live"] = False
+                continue
+            p["vx"] += (random.randrange(21) - 10) / 500
+            p["x"] += s.ms * p["vx"]
+            p["y"] += s.ms * p["vy"]
+            p["px"], p["py"] = int(p["x"]), int(p["y"])
+            if not (0 <= p["px"] < s.w and 0 <= p["py"] < s.h):
+                p["live"] = False
+            else:
+                self.redraw(p["px"] - s.ms // 2, p["py"] - s.ms // 2, s.ms, s.ms)
         return True
 
     def caret_tick(self):
@@ -306,9 +432,9 @@ class Greeter(Gtk.Window):
     def wrong_tick(self, _area, _clock):
         s = self.scene
         if s.gn:
-            self.redraw(s.gx - 2, s.gy - 2, s.gw + 4, s.gh + 4)
+            self.redraw(s.gx - 2 * s.ms, s.gy - 2 * s.ms, s.gw + 4 * s.ms, s.gh + 4 * s.ms)
         else:
-            self.redraw(s.cx - s.cr - 4, s.cy - s.cr - 4, 2 * s.cr + 8, 2 * s.cr + 8)
+            self.redraw(s.cx - s.cr - 4 * s.ms, s.cy - s.cr - 4 * s.ms, 2 * s.cr + 8 * s.ms, 2 * s.cr + 8 * s.ms)
         if time.monotonic() - self.wrong < STEPS * STEP:
             return True
         self.wrong = 0.0
@@ -317,11 +443,11 @@ class Greeter(Gtk.Window):
     # ── the gate ──────────────────────────────────────────────────────────────────────
     def gate_redraw(self):
         s = self.scene
-        self.redraw(s.gx - 2, s.gy - 2, s.gw + 4, s.gh + 4)
+        self.redraw(s.gx - 2 * s.ms, s.gy - 2 * s.ms, s.gw + 4 * s.ms, s.gh + 4 * s.ms)
         self.redraw_row()
 
     def gate_go(self, to):
-        self.gate, self.gate_t0 = to, time.monotonic()
+        self.gate, self.gate_from, self.gate_t0 = to, self.gate_frame, time.monotonic()   # (from wherever it was)
         if not self.gate_src:
             self.gate_src = GLib.timeout_add(7, self.gate_step)
         self.gate_redraw()
@@ -330,7 +456,7 @@ class Greeter(Gtk.Window):
         s = self.scene
         q = min(1.0, (time.monotonic() - self.gate_t0) / GATE_S)
         q = q * q * (3 - 2 * q)                # (gentle at both ends)
-        f = int((s.gn - 1) * (q if self.gate == GATE_OPENING else 1 - q) + .5)
+        f = int(self.gate_from + ((s.gn - 1 if self.gate == GATE_OPENING else 0) - self.gate_from) * q + .5)
         if f != self.gate_frame:
             self.gate_frame = f
             self.gate_redraw()
@@ -347,15 +473,19 @@ class Greeter(Gtk.Window):
                 self.login(self.entry)
         return False
 
+    def gate_wake_key(self, ev):
+        """The secret key, shut and no try waiting for its word."""
+        if self.scene and self.scene.gn and ev.keyval == GATE_KEY and self.gate == GATE_SHUT and self.entry.is_sensitive():
+            self.gate_go(GATE_OPENING)
+
     def gate_keys(self, ev):
         """A key: what the gate makes of it; True: it goes no further."""
         if not self.scene or not self.scene.gn:
             return False
         press = ev.type == Gdk.EventType.KEY_PRESS
         if ev.keyval == GATE_KEY or self.gate in (GATE_SHUT, GATE_SHUTTING):
-            # (shut, every key is nothing; the secret one opens it, unless a try waits for its word)
-            if press and ev.keyval == GATE_KEY and self.gate == GATE_SHUT and self.entry.is_sensitive():
-                self.gate_go(GATE_OPENING)
+            if press:                          # (shut, every key is nothing but the secret one)
+                self.gate_wake_key(ev)
             return True
         if not press:
             return False
@@ -374,12 +504,16 @@ class Greeter(Gtk.Window):
         self.asleep = params.unpack()[0]
         if not self.asleep:
             self.woke = time.monotonic()
+            if self.scene:                     # (a whole new picture)
+                self.redraw(0, 0, self.scene.w, self.scene.h)
 
     def guarded(self):
         return self.asleep or time.monotonic() - self.woke < GUARD
 
     def input(self, _win, ev):
         if self.guarded():
+            if ev.type == Gdk.EventType.KEY_PRESS:   # (the key that woke it: the secret one still opens)
+                self.gate_wake_key(ev)
             return True
         if ev.type in (Gdk.EventType.KEY_PRESS, Gdk.EventType.KEY_RELEASE) and self.gate_keys(ev):
             return True
@@ -397,7 +531,7 @@ class Greeter(Gtk.Window):
         r.width = min(child.get_preferred_width()[1], sw)
         r.height = child.get_preferred_height_for_width(r.width)[1]
         r.x = (sw - r.width) // 2
-        r.y = oy + n * self.scene.wy0 + (n * (self.scene.wy1 - self.scene.wy0 + 1) - r.height) // 2
+        r.y = oy + int(n * self.scene.wy0) + (int(n * (self.scene.wy1 - self.scene.wy0 + 1)) - r.height) // 2
         return True
 
     def say(self, text):

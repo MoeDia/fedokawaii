@@ -1,0 +1,25 @@
+# ~/.config/fedokawaii/carry.list — what is yours alone (kawa-carry: Super+U → backups → before you wipe), a path from
+# your home a line. Everything else the installer makes again. Downloads and ~/VM are left behind: too big, made again.
+Notes
+Documents
+Books
+Pictures
+Music
+Videos
+Sync
+work
+repos
+blasphemous-save-backup-20261022
+.ssh
+.gnupg
+.config/fedokawaii/secrets.sh
+.config/net.imput.helium
+.config/gh
+.config/git
+.claude
+.claude.json
+.local/state/fedokawaii/chess
+.local/state/fedokawaii/typing
+.local/state/fedokawaii/learn
+.config/fedokawaii/carried-settings.conf
+.local/state/asobi

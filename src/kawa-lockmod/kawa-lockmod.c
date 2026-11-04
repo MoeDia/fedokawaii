@@ -2,24 +2,36 @@
  * kawa-lockmod — the lock screen's own part of gtklock (a gtklock 4 module; kawa-lock loads it
  * with -m ~/.local/lib/fedokawaii/kawa-lockmod.so). On every screen:
  *
- *  The scene. The mood's picture (KAWA_LOCK_ART/lock-scene.png, tools/build-lock.py: 640 × 360)
- *  drawn under gtklock's layout at whole pixels — N × N each, N the most the screen holds (3 on
- *  1080p), centred, the ground of lock-scene.txt round it — and on it, from lock-scene.txt: the
- *  torches' flames (lock-flame.png's frames, 8 a second, the two out of step), the password as
- *  marks in the mood's row (the demon's mouth: an ember for each character; the sky by Seiōbo's
- *  peach: a mote) — the newest ones while more are typed than the row holds —, the arms in the
- *  Caps Lock ink while it is on, and the caret: a bar as tall as a mark at the next place, once a
- *  second, there while the line has the keyboard; every key flares the newest mark for a moment
- *  (an answer too past the seventh, when the row no longer grows).
+ *  The scene (the owner, 4 Nov 19:11: a painting, 1920 × 1080). The mood's picture (KAWA_LOCK_ART/
+ *  lock-scene.png) drawn under gtklock's layout at the most the screen holds whole — pixel for pixel
+ *  at its own size or a whole number of times it, smooth otherwise —, centred, the ground of
+ *  lock-scene.txt round it — and on it, from lock-scene.txt: the password as marks in the mood's
+ *  row — `marks W H N`, a strip lock-marks.png of N drawn marks with alpha, mark i the strip's i % N,
+ *  its middle on the row (or, with no such line, `mark`'s three inks: a cross) —, the newest ones
+ *  while more are typed than the row holds, in the Caps Lock ink while it is on, and the caret: a
+ *  bar as tall as a mark at the next place, once a second, there while the line has the keyboard;
+ *  every key flares the newest mark for a moment (an answer too past the row's end).
  *
  *  The gate (the owner, 4 Nov: "he faces me; a secret key opens his mouth; I type; he closes his mouth
  *  like he ate it; then he logs me in"; the same for the angel). lock-gate.png's frames, shut first,
  *  drawn over the scene at lock-scene.txt's gate: shut at rest and every key does nothing but the
  *  secret one (Tab), which opens it; open, keys type; Enter shuts it on
  *  the marks and only then tries the password; Esc shuts it, the line cleared; the screens going
- *  dark too. A wrong password (gtklock's error line, never shown): it opens again, the marks
- *  scattering and fading, the gate shaking a pixel of the scene twice — five steps of 48 ms. The
- *  right one: gtklock ends, dwl dissolves the lock off the desktop. gtklock's own line stays for the keys, unseen from its
+ *  dark too. The secret key lights dark screens onto an opening gate. On Enter the marks stay in
+ *  the mouth until the jaws meet. A wrong password (gtklock's error line, never shown): it opens
+ *  again, the marks scattering and fading, the gate shaking a pixel of the scene twice — five steps
+ *  of 48 ms. The right one: gtklock ends, dwl dissolves the lock off the desktop.
+ *
+ *  Its life (the owner, 4 Nov: "the torches really flickering, moving light on stone, smoke, the demon's
+ *  eyes, the halo turning, embers, petals", cheap): what lock-scene.txt lists, only what changed drawn —
+ *  `anim NAME X Y W H N MS`, a strip lock-NAME.png of N frames W × H with alpha, looped, a frame every
+ *  MS, read once the first picture is up (a lock that shows at once); `sparks embers|petals N INK INK`,
+ *  N of them, young and old, born in the `spawn X Y W H` boxes (up to four; none: flames, or the
+ *  foot / the upper half). All of it asleep while the screens are dark or the saver lies over it.
+ *  `markscale M` (default 1), for a scene drawn pixel for pixel: the caret, the sparks, a cross, the
+ *  scatter's steps and the shake drawn M times the size round their points, the sparks M times as fast.
+ *
+ *  gtklock's own line stays for the keys, unseen from its
  *  first frame (its box at opacity 0; current/gtklock.css: window.kawa, no transitions), its
  *  words never shown. No date, no time, no keys: the scene is the lock. Anything the system
  *  says on the way (PAM: an expiring password, a locked account, a finger to place) is the one
@@ -123,7 +135,9 @@ static gboolean saver_up(void)
 }
 
 static void gate_rest(void);
-static gboolean GDK_KEY_Tabs(struct Window *win, GdkEventKey *ev);
+static gboolean gate_keys(struct Window *win, GdkEventKey *ev);
+static void gate_wake_key(struct Window *win, GdkEventKey *ev);
+static void scene_sleep(gboolean sleep);
 
 /* every input on the lock, before the lock sees it: the 5 s clock set again; dark screens lit.
  * True when the input only wakes (above) — then it goes no further */
@@ -135,6 +149,7 @@ static gboolean waking(void)
 	if (n == OFF && mt != woken) {
 		woken = mt;
 		screens_set("on");
+		scene_sleep(FALSE);
 		return now - mt > GUARD_US;
 	}
 	return n == RESUMED && now >= mt && now - mt < GUARD_US;
@@ -149,6 +164,7 @@ static gboolean idle_tick(gpointer data)
 	if (saver_was_up && !up)
 		touched_at = now;                 /* (the saver washed off: the lock seen from now) */
 	saver_was_up = up;
+	scene_sleep((n == OFF && mt != woken) || up);   /* (asked to light: alive as the picture comes) */
 	if (n == OFF || up)
 		return G_SOURCE_CONTINUE;
 	if (now - MAX(touched_at, mt) >= DARK_AFTER_US) {
@@ -169,11 +185,13 @@ static gboolean on_key(GtkWidget *w, GdkEventKey *ev, gpointer data)
 		return TRUE;
 	}
 	if (waking()) {
-		if (ev->type == GDK_KEY_PRESS)
+		if (ev->type == GDK_KEY_PRESS) {
 			waking_key = ev->hardware_keycode;
+			gate_wake_key(win, ev);
+		}
 		return TRUE;
 	}
-	if (GDK_KEY_Tabs(win, ev))
+	if (gate_keys(win, ev))
 		return TRUE;
 	if (ev->type == GDK_KEY_PRESS && win->input_field && gtk_widget_has_focus(win->input_field) &&
 			(ev->keyval == GDK_KEY_Return || ev->keyval == GDK_KEY_KP_Enter ||
@@ -207,10 +225,22 @@ static void no_icon(GObject *o, GParamSpec *p, gpointer data)
 
 /* ── the scene (lock-scene.txt: build-lock.py's words) ────────────────────────────────── */
 typedef struct { double r, g, b; } ink;
+#define MAX_ANIMS 12
+#define MAX_SPARKS 64
 static struct {
-	cairo_surface_t *img, *flame, *gate;
+	cairo_surface_t *img, *flame, *gate, *marks;
 	int w, h, fw, fh, frames, nflames, fx[4], fy[4];
 	int gx, gy, gw, gh, gn;               /* the gate: where its frames lie, each's size, how many */
+	int mw, mh, mn;                       /* the drawn marks: each's size, how many */
+	struct anim { cairo_surface_t *img; char name[32]; int x, y, w, h, n, ms, frame; } anim[MAX_ANIMS];
+	int nanims;
+	struct spark { gboolean live; float x, y, vx, vy; int age, life, px, py; } spark[MAX_SPARKS];
+	int nsparks;
+	struct { int x, y, w, h; } spawn[4];  /* where sparks are born */
+	int nspawn;
+	int ms;                               /* markscale: the marks' pixel, in the scene's */
+	gboolean petals;
+	ink young, old;
 	int rx, ry, pitch, rn;                /* the password's row: the first mark, the pitch, how many */
 	int cx, cy, cr;                       /* the plate */
 	int wy0, wy1;                         /* the rows the line of words is centred in */
@@ -236,7 +266,10 @@ struct look {                             /* one window's */
 static GList *looks;
 static int frame;                         /* the flames' (8 a second) */
 static gboolean caret_on = TRUE;
-static guint flame_timer, caret_timer;
+static guint flame_timer, life_timer, caret_timer;
+static gboolean asleep, life_loaded;      /* no frames wanted; the strips read */
+static char scene_dir[PATH_MAX];
+static cairo_filter_t filter = CAIRO_FILTER_NEAREST;   /* whole times the scene's pixels; smooth otherwise */
 
 static gboolean hexink(const char *s, ink *c)
 {
@@ -249,8 +282,9 @@ static gboolean hexink(const char *s, ink *c)
 
 static gboolean scene_load(const char *dir)
 {
-	char path[PATH_MAX], line[256], a[16], b[16], c[16];
+	char path[PATH_MAX], line[256], a[16], b[16], c[16], name[32];
 	int ok = 0;
+	g_strlcpy(scene_dir, dir, sizeof scene_dir);
 	g_snprintf(path, sizeof path, "%s/lock-scene.txt", dir);
 	FILE *f = fopen(path, "re");
 	if (!f)
@@ -261,6 +295,22 @@ static gboolean scene_load(const char *dir)
 		else if (sscanf(line, "frames %d %d %d", &S.fw, &S.fh, &S.frames) == 3) ;
 		else if (S.nflames < 4 && sscanf(line, "flame %d %d", &S.fx[S.nflames], &S.fy[S.nflames]) == 2) S.nflames++;
 		else if (sscanf(line, "gate %d %d %d %d %d", &S.gx, &S.gy, &S.gw, &S.gh, &S.gn) == 5) ;
+		else if (S.nanims < MAX_ANIMS && sscanf(line, "anim %31s %d %d %d %d %d %d", name, &S.anim[S.nanims].x,
+				&S.anim[S.nanims].y, &S.anim[S.nanims].w, &S.anim[S.nanims].h, &S.anim[S.nanims].n, &S.anim[S.nanims].ms) == 7) {
+			struct anim *an = &S.anim[S.nanims];
+			g_strlcpy(an->name, name, sizeof an->name);
+			if (an->n > 0 && an->ms > 0)
+				S.nanims++;
+		}
+		else if (sscanf(line, "markscale %d", &S.ms) == 1) ;
+		else if (sscanf(line, "marks %d %d %d", &S.mw, &S.mh, &S.mn) == 3) ;
+		else if (S.nspawn < 4 && sscanf(line, "spawn %d %d %d %d", &S.spawn[S.nspawn].x, &S.spawn[S.nspawn].y,
+				&S.spawn[S.nspawn].w, &S.spawn[S.nspawn].h) == 4) S.nspawn++;
+		else if (sscanf(line, "sparks %15s %d %15s %15s", a, &S.nsparks, b, c) == 4) {
+			S.petals = !strcmp(a, "petals");
+			S.nsparks = MIN(S.nsparks, MAX_SPARKS);
+			hexink(b, &S.young), hexink(c, &S.old);
+		}
 		else if (sscanf(line, "row %d %d %d %d", &S.rx, &S.ry, &S.pitch, &S.rn) == 4) ok |= 4;
 		else if (sscanf(line, "mark %15s %15s %15s", a, b, c) == 3)
 			ok |= (hexink(a, &S.arms) && hexink(b, &S.core) && hexink(c, &S.corner)) << 3;
@@ -270,7 +320,9 @@ static gboolean scene_load(const char *dir)
 		else if (sscanf(line, "words %d %d", &S.wy0, &S.wy1) == 2) ok |= 32;
 	}
 	fclose(f);
-	if (ok != 63 || S.w <= 0 || S.h <= 0 || S.rn <= 0 || S.wy1 < S.wy0)
+	S.ms = MAX(S.ms, 1);
+	/* (the cross's inks only without drawn marks, the plate only without a gate) */
+	if ((ok & 39) != 39 || (!S.mn && !(ok & 8)) || (!S.gn && !(ok & 16)) || S.w <= 0 || S.h <= 0 || S.rn <= 0 || S.wy1 < S.wy0)
 		return FALSE;
 	g_snprintf(path, sizeof path, "%s/lock-scene.png", dir);
 	S.img = cairo_image_surface_create_from_png(path);
@@ -299,47 +351,80 @@ static gboolean scene_load(const char *dir)
 	}
 	if (!S.gate)
 		S.gn = 0;                         /* (no frames: the scene's own open gate, as it is drawn) */
+	if (S.mn > 0 && S.mw > 0 && S.mh > 0) {
+		g_snprintf(path, sizeof path, "%s/lock-marks.png", dir);
+		S.marks = cairo_image_surface_create_from_png(path);
+		if (cairo_surface_status(S.marks) != CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(S.marks);
+			S.marks = NULL;
+			return FALSE;
+		}
+	}
 	return TRUE;
 }
 
-/* the scene's scale and corner on a widget W × H */
-static int fit(GtkWidget *a, int *ox, int *oy)
+/* the scene's scale and corner on a widget W × H: all of it, the most the screen holds */
+static double fit(GtkWidget *a, int *ox, int *oy)
 {
 	int W = gtk_widget_get_allocated_width(a), H = gtk_widget_get_allocated_height(a);
-	int n = MAX(1, MIN(W / S.w, H / S.h));
-	*ox = (W - n * S.w) / 2, *oy = (H - n * S.h) / 2;
+	double n = MIN((double)W / S.w, (double)H / S.h);
+	*ox = (int)((W - n * S.w) / 2), *oy = (int)((H - n * S.h) / 2);
 	return n;
 }
 static void redraw(GtkWidget *a, int x, int y, int w, int h)   /* a part, in the scene's pixels */
 {
-	int ox, oy, n = fit(a, &ox, &oy);
-	gtk_widget_queue_draw_area(a, ox + n * x, oy + n * y, n * w, n * h);
+	int ox, oy;
+	double n = fit(a, &ox, &oy);
+	if (n == (int)n)
+		gtk_widget_queue_draw_area(a, ox + (int)n * x, oy + (int)n * y, (int)n * w, (int)n * h);
+	else                                  /* (smooth: a pixel's edge reaches its neighbours) */
+		gtk_widget_queue_draw_area(a, ox + (int)(n * x) - 1, oy + (int)(n * y) - 1, (int)(n * w) + 3, (int)(n * h) + 3);
 }
-static void redraw_row(struct look *l)
+/* a mark's size in the scene */
+static int mark_w(void) { return S.marks ? S.mw : 3 * S.ms; }
+static int mark_h(void) { return S.marks ? S.mh : 3 * S.ms; }
+static void redraw_row(struct look *l)    /* (a mark's flare fits in the margin) */
 {
-	redraw(l->area, S.rx - 2, S.ry - 3, S.pitch * S.rn + 4, 7);
+	redraw(l->area, S.rx - mark_w(), S.ry - mark_h(), S.pitch * S.rn + 2 * mark_w(), 2 * mark_h());
 }
 
 static void dot(cairo_t *cr, int x, int y, const ink *c)
 {
 	cairo_set_source_rgb(cr, c->r, c->g, c->b);
-	cairo_rectangle(cr, x, y, 1, 1);
+	cairo_rectangle(cr, x - S.ms / 2, y - S.ms / 2, S.ms, S.ms);
 	cairo_fill(cr);
 }
 static void mark(cairo_t *cr, int x, int y, const ink *arms, const ink *core, const ink *corner)
 {
 	if (corner)
 		for (int i = 0; i < 4; i++)
-			dot(cr, x + (i & 1 ? 1 : -1), y + (i & 2 ? 1 : -1), corner);
+			dot(cr, x + S.ms * (i & 1 ? 1 : -1), y + S.ms * (i & 2 ? 1 : -1), corner);
 	for (int i = 0; i < 4; i++)
-		dot(cr, x + (i == 0) - (i == 1), y + (i == 2) - (i == 3), arms);
+		dot(cr, x + S.ms * ((i == 0) - (i == 1)), y + S.ms * ((i == 2) - (i == 3)), arms);
 	if (core)
 		dot(cr, x, y, core);
+}
+/* a drawn mark: its strip's frame f, its middle on (x, y); Caps Lock: its shape in that ink */
+static void drawn(cairo_t *cr, int f, int x, int y, double zoom, double alpha, const ink *flat)
+{
+	cairo_save(cr);
+	cairo_translate(cr, x, y);
+	cairo_scale(cr, zoom, zoom);
+	cairo_rectangle(cr, -S.mw / 2, -S.mh / 2, S.mw, S.mh);
+	cairo_clip(cr);
+	if (flat) {
+		cairo_set_source_rgba(cr, flat->r, flat->g, flat->b, alpha);
+		cairo_mask_surface(cr, S.marks, -S.mw / 2 - f * S.mw, -S.mh / 2);
+	} else {
+		cairo_set_source_surface(cr, S.marks, -S.mw / 2 - f * S.mw, -S.mh / 2);
+		cairo_paint_with_alpha(cr, alpha);
+	}
+	cairo_restore(cr);
 }
 static void paint_scene(cairo_t *cr, int dx)
 {
 	cairo_set_source_surface(cr, S.img, dx, 0);
-	cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
+	cairo_pattern_set_filter(cairo_get_source(cr), filter);
 	cairo_rectangle(cr, dx, 0, S.w, S.h);
 	cairo_fill(cr);
 }
@@ -347,16 +432,15 @@ static void paint_scene(cairo_t *cr, int dx)
 /* ── the gate ─────────────────────────────────────────────────────────────────────────── */
 #define GATE_US (340 * 1000)              /* opening, shutting: all its frames */
 enum { GATE_SHUT, GATE_OPENING, GATE_OPEN, GATE_SHUTTING };
-static int gate = GATE_OPEN, gate_frame;  /* (no frames: always open) */
+static int gate = GATE_OPEN, gate_frame, gate_from;   /* (no frames: always open) */
 static gint64 gate_t0;
 static guint gate_src;
 static struct Window *gate_try;           /* the window whose password goes in once it is shut */
-static gboolean gate_trying;              /* tried: waiting for PAM's word */
 
 static void gate_redraw(void)
 {
 	for (GList *g = looks; g; g = g->next) {
-		redraw(((struct look *)g->data)->area, S.gx - 2, S.gy - 2, S.gw + 4, S.gh + 4);
+		redraw(((struct look *)g->data)->area, S.gx - 2 * S.ms, S.gy - 2 * S.ms, S.gw + 4 * S.ms, S.gh + 4 * S.ms);
 		redraw_row(g->data);
 	}
 }
@@ -366,7 +450,7 @@ static gboolean gate_step(gpointer data)
 	(void)data;
 	q = q > 1 ? 1 : q;
 	q = q * q * (3 - 2 * q);              /* (gentle at both ends) */
-	int f = (int)((S.gn - 1) * (gate == GATE_OPENING ? q : 1 - q) + .5);
+	int f = (int)(gate_from + ((gate == GATE_OPENING ? S.gn - 1 : 0) - gate_from) * q + .5);
 	if (f != gate_frame) {
 		gate_frame = f;
 		gate_redraw();
@@ -382,7 +466,6 @@ static gboolean gate_step(gpointer data)
 		if (gate_try) {                   /* (eaten: now the password is tried) */
 			struct Window *w = gate_try;
 			gate_try = NULL;
-			gate_trying = TRUE;
 			gtk_widget_activate(w->input_field);
 		}
 	}
@@ -391,6 +474,7 @@ static gboolean gate_step(gpointer data)
 static void gate_go(int to)
 {
 	gate = to;
+	gate_from = gate_frame;               /* (from wherever it was: no jump) */
 	gate_t0 = g_get_monotonic_time();
 	if (!gate_src)
 		gate_src = g_timeout_add(7, gate_step, NULL);   /* (a frame of the screen's, near enough) */
@@ -410,16 +494,22 @@ static void gate_rest(void)
 	}
 	gate_redraw();
 }
+/* the secret key, shut and no try waiting for its word (gtklock's line is insensitive while PAM runs) */
+static void gate_wake_key(struct Window *win, GdkEventKey *ev)
+{
+	if (S.gn && ev->keyval == GDK_KEY_Tab && gate == GATE_SHUT && gtk_widget_is_sensitive(win->input_field))
+		gate_go(GATE_OPENING);
+}
 /* a key, once the screens are lit: what the gate makes of it; TRUE: it goes no further */
-static gboolean GDK_KEY_Tabs(struct Window *win, GdkEventKey *ev)
+static gboolean gate_keys(struct Window *win, GdkEventKey *ev)
 {
 	gboolean enter = ev->keyval == GDK_KEY_Return || ev->keyval == GDK_KEY_KP_Enter || ev->keyval == GDK_KEY_ISO_Enter;
 	if (!S.gn)
 		return FALSE;
 	if (ev->keyval == GDK_KEY_Tab || gate == GATE_SHUT || gate == GATE_SHUTTING) {
-		/* (shut, every key is nothing; the secret one opens it, unless a try is waiting for its word) */
-		if (ev->type == GDK_KEY_PRESS && ev->keyval == GDK_KEY_Tab && gate == GATE_SHUT && !gate_trying)
-			gate_go(GATE_OPENING);
+		/* (shut, every key is nothing but the secret one) */
+		if (ev->type == GDK_KEY_PRESS)
+			gate_wake_key(win, ev);
 		return TRUE;
 	}
 	if (ev->type != GDK_KEY_PRESS)
@@ -437,11 +527,19 @@ static gboolean GDK_KEY_Tabs(struct Window *win, GdkEventKey *ev)
 	return FALSE;
 }
 
+static gboolean life_load(gpointer data);
+
 static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 {
 	struct look *l = data;
 	struct Window *win = l->win;
-	int ox, oy, n = fit(a, &ox, &oy);
+	int ox, oy;
+	double n = fit(a, &ox, &oy);
+	filter = n == (int)n ? CAIRO_FILTER_NEAREST : CAIRO_FILTER_GOOD;
+	if (!life_loaded) {                   /* (the first picture is up: now the strips) */
+		life_loaded = TRUE;
+		g_timeout_add(30, life_load, NULL);
+	}
 	cairo_set_source_rgb(cr, S.ground.r, S.ground.g, S.ground.b);
 	cairo_paint(cr);
 	cairo_translate(cr, ox, oy);
@@ -454,14 +552,14 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 		if (step >= STEPS)
 			step = -1;
 		else
-			dx = step == 0 || step == 2 ? 1 : step == 1 || step == 3 ? -1 : 0;
+			dx = S.ms * (step == 0 || step == 2 ? 1 : step == 1 || step == 3 ? -1 : 0);
 	}
 	if (S.gate) {
 		cairo_save(cr);
 		cairo_rectangle(cr, S.gx + dx, S.gy, S.gw, S.gh);
 		cairo_clip(cr);
 		cairo_set_source_surface(cr, S.gate, S.gx + dx - gate_frame * S.gw, S.gy);
-		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
+		cairo_pattern_set_filter(cairo_get_source(cr), filter);
 		cairo_paint(cr);
 		cairo_restore(cr);
 	} else if (dx) {
@@ -475,32 +573,66 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 	for (int i = 0; S.flame && i < S.nflames; i++) {
 		int f = (frame + 3 * i) % S.frames;   /* (the two out of step) */
 		cairo_set_source_surface(cr, S.flame, S.fx[i] - f * S.fw, S.fy[i]);
-		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
+		cairo_pattern_set_filter(cairo_get_source(cr), filter);
 		cairo_rectangle(cr, S.fx[i], S.fy[i], S.fw, S.fh);
 		cairo_fill(cr);
 	}
+	for (int i = 0; i < S.nanims; i++) {
+		struct anim *an = &S.anim[i];
+		if (!an->img)
+			continue;
+		cairo_save(cr);
+		cairo_rectangle(cr, an->x, an->y, an->w, an->h);
+		cairo_clip(cr);
+		cairo_set_source_surface(cr, an->img, an->x - an->frame * an->w, an->y);
+		cairo_pattern_set_filter(cairo_get_source(cr), filter);
+		cairo_paint(cr);
+		cairo_restore(cr);
+	}
+	for (int i = 0; i < S.nsparks; i++) {
+		struct spark *sp = &S.spark[i];
+		if (sp->live)
+			dot(cr, sp->px, sp->py, sp->age * 2 < sp->life ? &S.young : &S.old);
+	}
 	GtkWidget *e = win->input_field;
-	gboolean open = gate == GATE_OPEN;    /* (the marks in the mouth only while it is open) */
-	int len = e ? (int)gtk_entry_get_text_length(GTK_ENTRY(e)) : 0, shown = open ? MIN(len, S.rn) : 0;
+	gboolean open = gate == GATE_OPEN;    /* the marks in the mouth while it is open… */
+	gboolean eating = gate == GATE_SHUTTING && gate_try && gate_frame >= S.gn / 2;   /* …until the jaws meet */
+	int len = e ? (int)gtk_entry_get_text_length(GTK_ENTRY(e)) : 0, shown = open || eating ? MIN(len, S.rn) : 0;
 	GdkKeymap *km = gdk_keymap_get_for_display(gtk_widget_get_display(a));
-	const ink *arms = gdk_keymap_get_caps_lock_state(km) ? &S.caps : &S.arms;
+	gboolean caps = gdk_keymap_get_caps_lock_state(km);
+	const ink *arms = caps ? &S.caps : &S.arms;
+	if (eating) {
+		cairo_save(cr);
+		cairo_rectangle(cr, S.gx, S.gy, S.gw, S.gh);
+		cairo_clip(cr);
+	}
 	if (step >= 0) {                      /* the tried ones scatter, dimming, then go */
 		for (int i = 0; i < MIN(l->tried, S.rn); i++) {
 			int vx = (int)((i * 7 + 3) % 5) - 2, vy = i % 2 ? -1 - (i % 3 > 0) : 1 + (i % 4 == 0);
-			int x = S.rx + S.pitch * i + dx + vx * step, y = S.ry + vy * step;
-			if (step < 2)
+			int x = S.rx + S.pitch * i + dx + S.ms * vx * step, y = S.ry + S.ms * vy * step;
+			if (S.marks) {
+				if (step < 4)
+					drawn(cr, i % S.mn, x, y, 1, step < 2 ? 1 : .5, caps ? &S.caps : NULL);
+			} else if (step < 2)
 				mark(cr, x, y, arms, &S.core, &S.corner);
 			else if (step < 4)
 				mark(cr, x, y, &S.corner, arms, NULL);
 		}
 	} else {
 		gboolean flaring = shown && g_get_monotonic_time() < l->flare;
-		for (int i = 0; i < shown; i++)       /* (the newest flaring: its corners in the arms' ink) */
-			mark(cr, S.rx + S.pitch * i, S.ry, arms, &S.core, flaring && i == shown - 1 ? arms : &S.corner);
+		for (int i = 0; i < shown; i++) {     /* (the newest flaring: larger, or its corners in the arms' ink) */
+			gboolean f = flaring && i == shown - 1;
+			if (S.marks)
+				drawn(cr, i % S.mn, S.rx + S.pitch * i, S.ry, f ? 1.25 : 1, 1, caps ? &S.caps : NULL);
+			else
+				mark(cr, S.rx + S.pitch * i, S.ry, arms, &S.core, f ? arms : &S.corner);
+		}
 	}
+	if (eating)
+		cairo_restore(cr);
 	if (caret_on && open && step < 0 && e && gtk_widget_has_focus(e) && gtk_widget_is_sensitive(e)) {
 		cairo_set_source_rgb(cr, S.caret.r, S.caret.g, S.caret.b);
-		cairo_rectangle(cr, S.rx + S.pitch * shown, S.ry - 1, 1, 3);   /* (a mark's height) */
+		cairo_rectangle(cr, S.rx + S.pitch * shown - S.ms / 2, S.ry - mark_h() / 2, S.ms, mark_h());   /* (a mark's height) */
 		cairo_fill(cr);
 	}
 	return FALSE;
@@ -515,6 +647,71 @@ static gboolean flames_tick(gpointer data)
 			redraw(((struct look *)g->data)->area, S.fx[i], S.fy[i], S.fw, S.fh);
 	return G_SOURCE_CONTINUE;
 }
+/* the scene's life, 25 times a second: an anim's new frame, the sparks' new places (only those drawn) */
+static void redraw_all(int x, int y, int w, int h)
+{
+	for (GList *g = looks; g; g = g->next)
+		redraw(((struct look *)g->data)->area, x, y, w, h);
+}
+static guint life_rng = 2463534242u;
+static int life_rnd(int n)
+{
+	life_rng ^= life_rng << 13, life_rng ^= life_rng >> 17, life_rng ^= life_rng << 5;
+	return n > 0 ? (int)(life_rng % (guint)n) : 0;
+}
+static gboolean life_tick(gpointer data)
+{
+	gint64 ms = g_get_monotonic_time() / 1000;
+	(void)data;
+	for (int i = 0; i < S.nanims; i++) {
+		struct anim *an = &S.anim[i];
+		int f = (int)(ms / an->ms % an->n);
+		if (an->img && f != an->frame) {
+			an->frame = f;
+			redraw_all(an->x, an->y, an->w, an->h);
+		}
+	}
+	for (int i = 0; i < S.nsparks; i++) {
+		struct spark *sp = &S.spark[i];
+		if (!sp->live) {
+			if (life_rnd(40))
+				continue;
+			sp->live = TRUE, sp->age = 0, sp->px = sp->py = -1;
+			if (S.petals) {
+				sp->x = (float)life_rnd(S.w), sp->y = (float)life_rnd(S.h / 2);
+				sp->vx = (float)(life_rnd(40) - 20) / 100.0f, sp->vy = 0.15f + (float)life_rnd(30) / 100.0f;
+				sp->life = 120 + life_rnd(160);
+			} else {
+				int t = S.nflames ? life_rnd(S.nflames) : 0;
+				sp->x = (float)(S.nflames ? S.fx[t] + life_rnd(MAX(S.fw, 1)) : life_rnd(S.w));
+				sp->y = (float)(S.nflames ? S.fy[t] + S.fh / 3 : S.h - 1);
+				sp->vx = (float)(life_rnd(40) - 20) / 120.0f, sp->vy = -0.3f - (float)life_rnd(50) / 100.0f;
+				sp->life = 50 + life_rnd(90);
+			}
+			if (S.nspawn) {
+				int t = life_rnd(S.nspawn);
+				sp->x = (float)(S.spawn[t].x + life_rnd(MAX(S.spawn[t].w, 1)));
+				sp->y = (float)(S.spawn[t].y + life_rnd(MAX(S.spawn[t].h, 1)));
+			}
+			continue;
+		}
+		if (sp->px >= 0)
+			redraw_all(sp->px - S.ms / 2, sp->py - S.ms / 2, S.ms, S.ms);
+		if (++sp->age > sp->life) {
+			sp->live = FALSE;
+			continue;
+		}
+		sp->vx += (float)(life_rnd(21) - 10) / 500.0f;   /* (the air moves it) */
+		sp->x += S.ms * sp->vx, sp->y += S.ms * sp->vy;
+		sp->px = (int)sp->x, sp->py = (int)sp->y;
+		if (sp->px < 0 || sp->py < 0 || sp->px >= S.w || sp->py >= S.h)
+			sp->live = FALSE;
+		else
+			redraw_all(sp->px - S.ms / 2, sp->py - S.ms / 2, S.ms, S.ms);
+	}
+	return G_SOURCE_CONTINUE;
+}
+
 static gboolean caret_tick(gpointer data)
 {
 	(void)data;
@@ -528,7 +725,46 @@ static void caret_restart(void)           /* (solid while typing: the blink star
 	caret_on = TRUE;
 	if (caret_timer)
 		g_source_remove(caret_timer);
+	caret_timer = asleep ? 0 : g_timeout_add(500, caret_tick, NULL);
+}
+/* the strips, read once the first picture is up; then the scene's life starts */
+static gboolean life_load(gpointer data)
+{
+	char path[PATH_MAX];
+	(void)data;
+	for (int i = 0; i < S.nanims; i++) {
+		struct anim *an = &S.anim[i];
+		g_snprintf(path, sizeof path, "%s/lock-%s.png", scene_dir, an->name);
+		an->img = cairo_image_surface_create_from_png(path);
+		if (cairo_surface_status(an->img) != CAIRO_STATUS_SUCCESS)
+			cairo_surface_destroy(an->img), an->img = NULL;
+	}
+	if ((S.nanims || S.nsparks) && !asleep)
+		life_timer = g_timeout_add(40, life_tick, NULL);
+	return G_SOURCE_REMOVE;
+}
+/* no frames wanted (the screens dark, the saver over it): no timer wakes this process; back, a whole new picture */
+static void scene_sleep(gboolean sleep)
+{
+	if (sleep == asleep || !S.img)
+		return;
+	asleep = sleep;
+	if (sleep) {
+		if (flame_timer)
+			g_source_remove(flame_timer);
+		if (life_timer)
+			g_source_remove(life_timer);
+		if (caret_timer)
+			g_source_remove(caret_timer);
+		flame_timer = life_timer = caret_timer = 0;
+		return;
+	}
+	if (S.nflames)
+		flame_timer = g_timeout_add(1000 / 8, flames_tick, NULL);
+	if (life_loaded && (S.nanims || S.nsparks))
+		life_timer = g_timeout_add(40, life_tick, NULL);
 	caret_timer = g_timeout_add(500, caret_tick, NULL);
+	redraw_all(0, 0, S.w, S.h);
 }
 
 static gboolean wrong_tick(GtkWidget *a, GdkFrameClock *clock, gpointer data)
@@ -536,9 +772,9 @@ static gboolean wrong_tick(GtkWidget *a, GdkFrameClock *clock, gpointer data)
 	struct look *l = data;
 	(void)clock;
 	if (S.gn)
-		redraw(a, S.gx - 2, S.gy - 2, S.gw + 4, S.gh + 4);
+		redraw(a, S.gx - 2 * S.ms, S.gy - 2 * S.ms, S.gw + 4 * S.ms, S.gh + 4 * S.ms);
 	else
-		redraw(a, S.cx - S.cr - 4, S.cy - S.cr - 4, 2 * S.cr + 8, 2 * S.cr + 8);
+		redraw(a, S.cx - S.cr - 4 * S.ms, S.cy - S.cr - 4 * S.ms, 2 * S.cr + 8 * S.ms, 2 * S.cr + 8 * S.ms);
 	if (g_get_monotonic_time() - l->wrong < STEPS * STEP_US)
 		return G_SOURCE_CONTINUE;
 	l->wrong = 0, l->tick = 0;
@@ -609,7 +845,8 @@ static gboolean words_show(gpointer data)
 static gboolean place_words(GtkOverlay *o, GtkWidget *w, GdkRectangle *r, gpointer data)
 {
 	struct look *l = data;
-	int ox, oy, n, W, h;
+	int ox, oy, W, h;
+	double n;
 	if (w != l->words)
 		return FALSE;
 	n = fit(l->area, &ox, &oy);
@@ -619,7 +856,7 @@ static gboolean place_words(GtkOverlay *o, GtkWidget *w, GdkRectangle *r, gpoint
 	gtk_widget_get_preferred_height_for_width(w, r->width, NULL, &h);
 	r->height = h;
 	r->x = (W - r->width) / 2;
-	r->y = oy + n * S.wy0 + (n * (S.wy1 - S.wy0 + 1) - h) / 2;
+	r->y = oy + (int)(n * S.wy0) + ((int)(n * (S.wy1 - S.wy0 + 1)) - h) / 2;
 	return TRUE;
 }
 /* gtklock makes its bars again for each new word (each bar first, its words then): read once it is done */
@@ -651,10 +888,8 @@ static void on_error(GObject *o, GParamSpec *p, gpointer data)   /* gtklock's er
 	l->wrong = g_get_monotonic_time();
 	if (!l->tick)
 		l->tick = gtk_widget_add_tick_callback(l->area, wrong_tick, l, NULL);
-	if (S.gn) {                           /* (spat out: open again, the line empty) */
-		gate_trying = FALSE;
+	if (S.gn)                             /* (spat out: open again, the line empty) */
 		gate_go(GATE_OPENING);
-	}
 }
 static void on_caps(GdkKeymap *k, gpointer data)
 {
