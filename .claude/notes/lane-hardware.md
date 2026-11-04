@@ -3,8 +3,8 @@
 Source: lane-research2's digests (`~/repos/fk-research2/.claude/notes/research-T36-T37-rgb.md`, `research-T38-monitor.md`).
 Scratch: `/dev/shm/r27-lane-hardware` (scripts, device backups). Started 4 Nov 18:12.
 
-## State (19:20)
-Solid red, event-driven, as the owner decided at 18:45. Running on the PC as a temporary unit (`r27-kawa-rgb.service` in /run, binary `/usr/local/bin/kawa-rgb-try`), to be removed when this lane ends; `/etc/fedokawaii/rgb.conf` is in place, the same as the repo's.
+## State (20:10)
+Solid red, event-driven, as the owner decided at 18:45. Everything is built, tested and pushed. Tonight's temporary service on the PC is stopped (its restart hit the stuck PID 1 below); the lights hold their stored red, the cooler's display is out, until main's apply starts the real one.
 
 | What | State | How it was verified |
 |---|---|---|
@@ -13,11 +13,16 @@ Solid red, event-driven, as the owner decided at 18:45. Running on the PC as a t
 | Board, fans, hub, cooler's fan | one red | owner's eyes (19:06, 19:17) |
 | Card's logo | one red, static | owner's eyes; it parses only 64-byte writes (shorter ones get no answer), each 9 ms of kernel busy wait: why nothing is streamed |
 | Per-device match | all 178,0,0 | owner: "everything aligned and good" (19:17) |
-| Cooler's display (T37) | our number | owner: shows 42 when sent 42 (19:12), else the CPU's temperature |
-| FreeSync (T38) | proven, HDMI-A-1 | tools/vrr-proof.sh, below |
-| LG off and on over DDC | state identical | tools/monitor-power-test.sh; owner: "stays the same workspace" (19:02) |
-| LG's menu | sRGB preset, set | kawa-display --monitor, read back xde; owner left it to me (19:04), then "this is fine its the best" (19:12) |
-| Tests | test_rgb 122/0, test_display 99/0 | a made-up machine; see "Tests" |
+| Lock 30 %, switch, screens off | runs on the PC | shows at 19:19 and 19:28, status lines read; dpms=Off seen with wlopm, disconnected with the button (19:26); owner on the fades: no complaint, not yet a yes (asked 19:41) |
+| Out faster with the monitor | built | a look ten times a second, three steps out: 250 ms from what DRM says; the monitor's own delay stays. Owner asked 19:41; 0.066 % of a core, 2.5 MB steady |
+| Cooler's display (T37) | our number, and off | owner: 42 when sent 42 (19:12), else the CPU's temperature (19:06); dark with digits 0x0a, stays dark 30 s unsent (19:33); told again every 10 s, and when the service stops |
+| USB replug | recovers | rebind of the board and the cooler: missing, then ok within 4 s |
+| FreeSync (T38) | proven, HDMI-A-1 | tools/vrr-proof.sh, ledger line below; setting "full screen", live since 19:20 |
+| LG off and on | state identical | D6 (tools/monitor-power-test.sh) and his own button (19:26): tag, layout, 144 Hz, sRGB and level kept; owner: "stays the same workspace" (19:02) |
+| LG's menu | sRGB preset, set | kawa-display --monitor, read back xde; owner left it to me (19:04), "this is fine its the best" (19:12) |
+| Tests | test_rgb 132/0 (10 of 10 mutations caught), test_display 104/0, test_autostart, test_lock, test_quick, test_brightness, static 14 files | a made-up machine |
+
+**The stuck PID 1 (since 19:51, not from this lane's code as far as the evidence goes):** see the 20:00 and 20:07 findings in the inbox. A kernel Oops at 19:15:04 (`unlink_file_vma_batch_process` → `vma_interval_tree_remove`, a stray bit in a pointer) most likely left a file's i_mmap_rwsem held for ever. sudo and systemctl hang until a reboot. Suspect: RAM.
 
 ## What main must do to merge and apply
 **Merge** `lane-hardware` (it has main merged in as of 19:25). Touches: `src/kawa-rgb/`, `configs/system/etc/{fedokawaii/rgb.conf,systemd/system/kawa-rgb*.service,udev/rules.d/60-fedokawaii-cooler.rules}`, `theme.sh` (one tool more, the step that enables it), `lib/manifest.sh` + `PACKAGES.md` + `tools/packages.evidence` + fixtures (OpenRGB retired), `bin/kawa-display`, `bin/kawa-brightness`, `bin/kawa-lock`, `bin/kawa-quick`, autostart, `configs/home/.config/fedokawaii/monitor.conf`, `verify.sh`, `system/fedokawaii`, `system/fedokawaii-report`, `tests/lib/harness.sh` (KAWA_RGB_ROOT: no test ever reaches his lights), `tools/{vrr-proof,monitor-power-test}.sh`, the docs.
