@@ -145,7 +145,7 @@ HEAD_X = 3 * CELL                    # a heading's name (cell 3: its icon in the
 HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
 QUICK_GAP = ROW // 2                 # quick settings: the air between its groups (half a row: they stay one list)
 QUICK_VALUE = 20 * CELL              # … a state's words at most this wide
-QUICK_MARKS = 46                     # … its marks' column: a seal, or a chord of three keys (14 + 2 + 14 + 2 + 14)
+QUICK_MARKS = 46                     # … its marks' column: a seal and its letter (16 + 2 + 14), or a chord of three keys (14 + 2 + 14 + 2 + 14)
 ABSENT = ("none", "offline", "not set up", "never", "not offered")   # … a state that is nothing there (§5: faint)
 SECTION = ROW                        # the air above a heading (none at a panel's top)
 KEY_H = ROW                          # a key: one row high, its 1 px frame inside the row
@@ -565,38 +565,39 @@ def vrr_shown(s):
 def quick_rows(s):
     """Quick settings' rows after the meters, in their sections (§4): [(label, [(key, picture, name,
     value, on, seal, keys)])]. Seal: a switch's state, inked on, blank off (None: no switch, its words say
-    it); keys: the key that does it anywhere (what the row teaches)."""
+    it); keys: what the row teaches: the chord that does it anywhere, else its own letter here (never h j k l,
+    the cursor's)."""
     dark = s.get("theme", "dark") != "light"
     net = s.get("nettype", "offline")
     dnd, night, saver = s.get("dnd", "off"), s.get("night", "off"), s.get("saver", "off")
     vrr, vrr_on = vrr_shown(s)
     screen = [("theme", "@moon" if dark else "@sun", "theme", "dark" if dark else "light", False, None, "Super+Shift+W"),
               ("night", "@andon" if night == "off" else "@andon-on", "night light", "" if night == "off" else night,
-               night != "off", night != "off", ""),
+               night != "off", night != "off", "n"),
               ("dnd", "@bell-off" if dnd != "off" else "@bell", "do not disturb", "" if dnd in ("on", "off") else dnd,
-               dnd != "off", dnd != "off", ""),
-              ("saver", "@saver", "screensaver", "" if saver == "off" else saver, saver != "off", saver != "off", ""),
-              ("vrr", "@wave", "freesync", "" if vrr == "off" else vrr, vrr_on, vrr_on, ""),
+               dnd != "off", dnd != "off", "d"),
+              ("saver", "@saver", "screensaver", "" if saver == "off" else saver, saver != "off", saver != "off", "s"),
+              ("vrr", "@wave", "freesync", "" if vrr == "off" else vrr, vrr_on, vrr_on, "f"),
               ("wallpaper", "@fuji", "wallpaper", s.get("wallpaper", ""), False, None, "Super+W")]
     links = [("network", {"ethernet": "@ethernet", "wifi": "@wifi"}.get(net, "@offline"), "network",
-              s.get("network", "offline"), False, None, "")]
+              s.get("network", "offline"), False, None, "e")]
     if "bluetooth" in s:
-        links.append(("bluetooth", "@bluetooth", "bluetooth", "", s["bluetooth"] == "on", s["bluetooth"] == "on", ""))
+        links.append(("bluetooth", "@bluetooth", "bluetooth", "", s["bluetooth"] == "on", s["bluetooth"] == "on", "b"))
         if s["bluetooth"] == "on":
-            links.append(("devices", "@devices", "devices", s.get("devices", "none"), False, None, ""))
-    links += [("drives", "@drive", "drives", s.get("drives", "none"), False, None, ""),
-              ("backup", "@kura", "backup", s.get("backup", "not set up"), False, None, "")]
+            links.append(("devices", "@devices", "devices", s.get("devices", "none"), False, None, "v"))
+    links += [("drives", "@drive", "drives", s.get("drives", "none"), False, None, "r"),
+              ("backup", "@kura", "backup", s.get("backup", "not set up"), False, None, "u")]
     rec = s.get("record") == "on"
     capture = [("screenshot", "@camera", "screenshot", "", False, None, "Print"),
                ("record", "@record-on" if rec else "@record", "record", "recording" if rec else "", rec, None, "Super+Shift+R"),
                ("ocr", "@scroll", "read text", "", False, None, "Super+Shift+X")]
     # (the lights — the case's, the cooler's, the keyboard's: a switch of kawa-rgb's, once kawa-quick reports it)
-    power = [("rgb", "@ember", "lights", "", s["rgb"] == "on", s["rgb"] == "on", "")] if "rgb" in s else []
-    power += [("screenoff", "@screen-off", "screen off", "", False, None, ""),
+    power = [("rgb", "@ember", "lights", "", s["rgb"] == "on", s["rgb"] == "on", "g")] if "rgb" in s else []
+    power += [("screenoff", "@screen-off", "screen off", "", False, None, "o"),
              ("power", "@power", "power", "", False, None, "Super+Shift+E")]
     # (sharing the sound: its own menu, kawa-sharesound's, once kawa-quick reports it; a section with no row: no label)
     share = s.get("sharesound", "off")
-    sound = [("sharesound", "@share-sound", "share sound", "" if share == "off" else share, share != "off", share != "off", "")] if "sharesound" in s else []
+    sound = [("sharesound", "@share-sound", "share sound", "" if share == "off" else share, share != "off", share != "off", "a")] if "sharesound" in s else []
     return [sec for sec in (("screen", screen), ("sound", sound), ("connect", links), ("capture", capture), ("power", power)) if sec[1]]
 
 
@@ -1028,6 +1029,9 @@ def layout_menu(m):
                 view_h = height
     for it in items:
         it.scrolls = it.kind != "hint"
+    if not any(ln[1] in ROW_KINDS or ln[1] == "plain" for ln in m.lines):
+        # (no rows, so no name column to stand on: a dialog's words, a password's title start where its keys and field do)
+        marks = [("lead",) + q[1:] if q[0] == "note" and not title_parts(q[4])[0] else q for q in marks]
     return Layout(items, (x0, x0), [], (w + 2 * (PAD + BORDER), top + box_h + PAD + BORDER), heads,
                   [], marks, (top, view_h, height) if view_h < height else None)
 
@@ -1071,7 +1075,7 @@ def layout_quick(s):
         y += ROW
         for key, pic, name, value, on, seal, keys in rows:
             items.append(Item(key, "row", x0, y, INNER, ROW, r, glyph=pic, name=name, on=on, seal=seal, keys=keys,
-                              value=fit(value, QUICK_VALUE), vcol=x0 + INNER - RIGHT_IN - QUICK_MARKS - GAP,
+                              accel=keys if len(keys) == 1 else "", value=fit(value, QUICK_VALUE), vcol=x0 + INNER - RIGHT_IN - QUICK_MARKS - GAP,
                               absent=value in ABSENT))
             y += ROW
             r += 1
@@ -3003,6 +3007,9 @@ def main(argv):
             if mark:
                 glyph(cr, x + GLYPH_X, ty, mark, "accent_text")
             text(cr, x + NAME_X, ty, words, "text" if mark else "muted", width=w - NAME_X)
+        elif k == "lead":
+            _, x, y, w, t = m
+            text(cr, x, y + (ROW - LINE) // 2, t, "muted", width=w)
         elif k in SHOWN_KINDS:            # (a row not to choose: off faint, info in a row's inks)
             _, x, y, w, g, name, detail, value = m
             off = k == "off"
@@ -3430,9 +3437,11 @@ def main(argv):
             if it.keys:
                 w = chord_w(it.keys)
                 caps(cr, right - w, it.y, it.keys)
+                if it.seal is not None:           # (its seal against its key: every key's last cap in one column, every seal in one)
+                    seal_mark(cr, right - w - CAP_GAP - SEAL_W, it.y, it.seal)
                 right -= w + 2 * CELL
-            if it.seal is not None:
-                seal_mark(cr, it.x + it.w - RIGHT_IN - SEAL_W, it.y, it.seal)
+            elif it.seal is not None:
+                seal_mark(cr, right - SEAL_W, it.y, it.seal)
                 right -= SEAL_W + 2 * CELL
             if value_r[0]:
                 right = min(right, value_r[0])
