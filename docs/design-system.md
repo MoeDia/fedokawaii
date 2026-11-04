@@ -511,8 +511,9 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 | a notice | its frame at once, its words dissolving in; dissolves away | 240 · 200 |
 | the level display | at once with the key; dissolves away | 0 · 300 |
 | the lock comes | at once | 0 |
-| the lock goes (the right password) | PLANNED (not built yet, T19/T20): the mouth (the window) closes in three frames of art, then the scene dissolves off the desktop; today dwl's own unlock dissolve | 600 |
-| a wrong password | the embers (motes) scatter and fade, the face shakes 3 px twice | 240 |
+| the gate opens (the secret key: Tab) · shuts (Enter, on the marks; Esc, the line cleared) | the mouth, the lotus: its five frames, gentle at both ends; shut at rest, and every other key is nothing | 340 |
+| the lock goes (the right password) | shut, a beat while PAM answers, then dwl dissolves the scene off the desktop | 420 |
+| a wrong password | the gate opens again, the embers (motes) scatter and fade, the gate shakes 3 px twice | 240 |
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
