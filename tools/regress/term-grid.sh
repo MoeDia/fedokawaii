@@ -2,8 +2,8 @@
 # tools/regress/term-grid.sh — never again text out of its grid (owner inbox 2 Nov 18:22: "make sure terminal
 # text alignment and spacing and everything is tested in an insane wide range of situations"): the desktop's
 # text screens and the programs he uses in a real foot, on the real GPU, both themes, at the sizes the
-# layouts give (halves, thirds, quarters, master and stack) and from 20 × 5 to the whole screen, odd counts
-# too; zoomed in and out; in its scrollback; after a theme switch; with long and wide names; the split
+# layouts give (halves, thirds, quarters, master and stack), tiled for real in each layout, and from 20 × 5
+# to the whole screen, odd counts too; zoomed in and out; in its scrollback; after a theme switch; with long and wide names; the split
 # moved under a window that streams. Each screen's words as foot
 # holds them (its own pipe-visible) and its picture:
 #   · no line wider than the window (foot joins a wrapped line back: a wrap is a line too long)
@@ -77,6 +77,22 @@ for p in $PROGRAMS; do for s in $SIZES; do
   open "$p" "$s"; nap 1.5; grab "$p-$s"; shut
   # (under load a window may need longer than that, or its program its terminal's answer: one more try)
   [ -f "$KIT_OUT/$p-$s.txt" ] || { open "$p" "$s"; nap 3; grab "$p-$s"; shut; }
+done; done
+# tiled for real: two, three and four windows, in the spiral (Super+S), in columns (Super+T) and floating
+# (Super+Y): each window's words, the focus walked over them
+for p in yazi lazygit; do for n in 2 3 4; do
+  pids=""; c=()
+  while IFS= read -r -d '' a; do c+=("$a"); done < <(cmd "$p")
+  for _ in $(seq "$n"); do
+    foot -o "key-bindings.pipe-visible=[$HOME/dump] Control+Shift+F9" "${c[@]}" >/dev/null 2>&1 & pids="$pids $!"; nap 0.7
+  done
+  for l in s t y; do
+    chord logo "$l"; nap 1
+    for i in $(seq "$n"); do grab "$p-tile$n-$l-$i"; chord logo j; nap 0.3; done
+  done
+  chord logo s; nap 0.3
+  # shellcheck disable=SC2086  # (each pid a word)
+  kill $pids 2>/dev/null; wait $pids 2>/dev/null; nap 0.5
 done; done
 # zoomed: the same window, foot's font a step or two up and down (Ctrl+plus, Ctrl+minus): the program
 # follows; the name says the steps

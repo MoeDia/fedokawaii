@@ -39,16 +39,16 @@ def load(p):
     return np.asarray(Image.open(p).convert("RGB"), dtype=np.int16)
 
 
-def window_box(a, base):
-    """The window's outer box: the first and last rows and columns that are not the empty screen."""
-    moved = np.any(a[27:] != base[27:], axis=-1)
+def window_box(a):
+    """The window's outer box: the first and last rows and columns under the bar that are not the ground."""
+    moved = np.any(a[27:] != a[-1, 1], axis=-1)      # (the screen's lowest left corner: the ground, under no window)
     ys, xs = np.nonzero(moved)
     if not len(ys):
         return None
     return int(xs.min()), int(ys.min()) + 27, int(xs.max()), int(ys.max()) + 27
 
 
-def judge(name, a, base, text):
+def judge(name, a, text):
     """A screen's findings. NAME is PROGRAM-COLSxROWS, or a scene's own name."""
     out = []
     prog = name.split("-")[0].split(":")[-1]      # (prompt-80x24 → prompt, zoom+2:yazi → yazi)
@@ -73,12 +73,12 @@ def judge(name, a, base, text):
         out.append(f"the heading cut: no \"{head}\" whole")
     # the right edge: the heading's rule, the counter and the footer's end on one column (§7)
     rows_ = [ln.rstrip() for ln in text.split("\n") if ln.strip()]
-    if prog in ("git", "clip", "wide", "yazi") and cols and rows_ and cols >= 30:
+    if prog in ("git", "clip", "wide", "yazi") and rows_ and (cols is None or cols >= 30):
         rule = next((ln for ln in rows_ if ln.endswith("─")), None)
         count = next((ln for ln in rows_ if re.search(r"\d+/\d+$", ln)), None)
         if rule and count and width(rule) != width(count):
             out.append(f"the right edges differ: the rule ends at {width(rule)}, the count at {width(count)}")
-    box = window_box(a, base)
+    box = window_box(a)
     if box is None:
         out.append("no window on the screen")
         return out
@@ -92,6 +92,8 @@ def judge(name, a, base, text):
         # its pad: 8 px inside the hairline, one colour all round: nothing in it
         ix0, iy0, ix1, iy1 = x0 + 1, y0 + 1, x0 + 1 + 2 * PAD + cols * CELL_W - 1, y0 + 1 + 2 * PAD + rows * CELL_H - 1
         strips = [a[iy0:iy0 + PAD, ix0:ix1 + 1], a[iy1 - PAD + 1:iy1 + 1, ix0:ix1 + 1], a[iy0:iy1 + 1, ix0:ix0 + PAD], a[iy0:iy1 + 1, ix1 - PAD + 1:ix1 + 1]]
+        if prog == "scroll":      # (foot's scrollback indicator lives at the right edge: its own, by design)
+            strips.pop()
         ground = a[iy0 + 2, ix0 + 2]
         drawn = sum(int(np.any(s != ground, axis=-1).sum()) for s in strips)
         if drawn:
@@ -114,7 +116,6 @@ def main(argv):
     new, seen, screens = [], {}, 0
     for th in themes:
         d = os.path.join(out, th)
-        base = load(os.path.join(d, "base.png"))
         for png in sorted(glob.glob(os.path.join(d, "*.png"))):
             name = os.path.basename(png)[:-4]
             if name in ("base", "stream"):
@@ -123,7 +124,7 @@ def main(argv):
             a = load(png)
             txt = png[:-4] + ".txt"
             text = open(txt, encoding="utf8", errors="replace").read() if os.path.exists(txt) else None
-            for f in judge(name, a, base, text):
+            for f in judge(name, a, text):
                 line = f"{th} {name}: {f}"
                 hit = next((k for k in known if fnmatch.fnmatchcase(line, k[0])), None)
                 if hit:
