@@ -10,6 +10,24 @@ not in it (no amdgpu reset, no ring timeout in the log since 17:45). The next re
 cold-boot test: memtest or the BIOS's CPU/RAM profile if it comes back (T01's random restart may be the same family).
 
 ## Status (newest first)
+- 20:14 STOPPED by main's order (forced reboot about 20:25: the 19:15 oops, PID 1 stuck since 19:51). llama-server and my bench and test jobs stopped by me,
+  all committed and pushed. NOT DONE. Next, in order, after the reboot and main's memory check, once the lanes restart:
+  1. `python3 -B -I system/kawa-fixer status --full` (the model and runtime stay in ~/.local; candidates in ~/.cache/r27-fixer/models; scripts copied to
+     ~/.cache/r27-fixer/scripts because /dev/shm is gone; `mkdir -p /tmp/r27-fixer` if isolating tests).
+  2. Read lane-integrate's note on "the installer tests' one lock" BEFORE running installer tests: I bypassed the lock (TMPDIR=/tmp/r27-fixer FK_WORLD_LOCKED=1)
+     from 19:27 to save queueing; do not assume that is allowed, it adds load. Rerun on the current tree, nothing here counts until then: test_fixer, test_update_fixer,
+     test_update_flow (my last full run of it, 18:37, predates the fix lifecycle; the 20:11 rerun was stopped), static test_syntax + test_tools.
+     Last results: test_fixer 323/0 (20:03), test_update_fixer 79/0 (19:40, before the last edits), test_verify 186/0, test_theme 141/0, test_setup 234/0, test_upkeep 283/0.
+  3. The real model on the final harness: freeze a copy (tools/ and system/ under ~/.cache/r27-fixer/bench/f7), gpt-oss 3 seeds, then Qwen3.5-9B 3 seeds on the
+     same copy (it was 22/22 must-fix right when stopped, gpt 52/54 on v6): if Qwen is clearly more accurate, weigh that over speed, a fix is rare and 40 s is nothing;
+     the pin is then Qwen, vram_mib from its row. Then `--self` on 3 cases (hash, load, answer, card empty: the whole run from nothing, not yet done),
+     `bash tools/fixer-frames.sh MODEL --reasoning-budget 1500` (the desktop's frames while it generates, not yet done). Fill fixer-bench.md, fix its "chosen" paragraph.
+  4. Merge: lane-updates' branch conflicts with mine in 4 places, all adjacent lines, keep both (lib/cand-check.sh: my checks() + their FK_MOVE line; lib/update.sh
+     up_leftovers and u_undo; setup.sh's two source lines; update-design.md). If lane-updates is merged by then: merge it into lane-fixer, hook the move
+     (lib/move.sh: on a red `FK_MOVE=1 cand_try`, `UP_FIX_TX=$UPD/tx up_fix "$UPD/why" && FK_MOVE=1 cand_try "$UPD/tx"`; do_after_upgrade: fixes_commit before its steps,
+     fixes_apply after, fixes_settled when green; move_undo: fixes_undo), and put .claude/notes/fixer-book-section.md into docs/fedokawaii-learn.md as 8.7 (the syllabus row for lane-learning).
+  5. Ledger lines for main in this note; clean: ~/.cache/r27-fixer (rm its contents, then rmdir: a subvolume of its own), /tmp/r27-fixer; end with the final line.
+  The VM row tools/vm-inject/fixer-candidate.sh has never been run: the real nspawn path of up_fix is proven by nobody yet (say so, whatever else is green).
 - 19:50 pinned: gpt-oss-20b MXFP4 on llama.cpp b12110 Vulkan, really installed in ~/.local by `kawa-fixer install` (status --full: ready).
   test_fixer 323/0, test_update_fixer 79/0 (the real program as root in the fake machine: server as the desktop's user, its own
   network namespace, a home's file written as its owner), test_verify 186/0, test_theme 141/0. Final three seeds running.
