@@ -21,7 +21,7 @@ case_ "a USB drive big enough is named, and written only after enter: read back,
 setup
 out=$(printf '\n' | kawa-stick 2>&1); eq "$?" 0 "$out"
 has "$out" "SanDisk"; lacks "$out" "Lexar"; lacks "$out" "tiny"; has "$out" "safe to unplug"
-cmp -s "$HOME/Downloads/fedokawaii-20261104.iso" "$WORLD/stick" && _ok || _no "the stick differs"
+/usr/bin/cmp -s "$HOME/Downloads/fedokawaii-20261104.iso" "$WORLD/stick" && _ok || _no "the stick differs"
 called "udisksctl power-off -b /dev/sdb"; called "udisksctl unmount -b /dev/sdb1"
 
 case_ "any other key leaves it alone: nothing written"
