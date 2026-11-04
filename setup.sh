@@ -2150,7 +2150,12 @@ s_gate() {
   local gate_want; mapfile -t gate_want < <(manifest_all "$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)")
   manifest_mark "${gate_want[@]}"
   dnf_unneeded_out || log "dnf could not take out what nothing needs any more — verify names it"
-  r_hygiene || true         # (a service a package switched on by itself, iscsid.socket on Fedora 45: the check should find nothing)
+  # (a service a package switched on by itself, iscsid.socket on Fedora 45: the check should find nothing)
+  local fights why
+  while IFS='|' read -r fights why; do
+    [[ -n $fights ]] || continue
+    log "$fights fights $why — switched off"; systemctl disable --now "$fights" >>"$LOG_FILE" 2>&1 || true
+  done < <(hy_services)
   # the last check: what it finds is repaired here and now — the same fixes as fedokawaii
   # repair — and checked again; only what is still wrong after that stops setup
   if ! run bash "$REPO_DIR/verify.sh" --pre-finalize; then
@@ -2571,10 +2576,10 @@ phase3() {
   hdr "Fedokawaii is built — rebooting into the login screen in 15 s"
   (( NO_REBOOT )) && { unit_file_out; exit 0; }
   sleep 15
-  rm -f "/etc/systemd/system/$RESUME_UNIT"   # (switched off already; no reload: the reboot reads it)
   # (setup's starts never reached a desktop to mark them good: Fedora 45's GRUB shows its menu for a start after
   # such a one, menu_auto_hide or not. This start into the login screen is no failure's)
   grub2-editenv - set boot_success=1 >/dev/null 2>&1 || true
+  rm -f "/etc/systemd/system/$RESUME_UNIT"   # (switched off already; no reload: the reboot reads it)
   systemctl reboot
 }
 
