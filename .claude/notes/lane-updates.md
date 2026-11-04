@@ -13,6 +13,8 @@ The PC's move, after the merged apply: (1) the test VM's verdict: `bash tools/vm
 
 For the final ISO (T56/T54b): tag the commit it is built from `vYYYY.MM.DD` and push the tag: that is what every later press of the button adopts (only v… tags, only forward; no tag yet: the toolkit stays, nothing asked). build-iso.sh should put the tag in a file `RELEASE` in the toolkit's tar (one line): setup records it, so the first press does not fetch the same release again; without it, only a harmless re-fetch. A machine set up from the ISO (MODE build) follows the releases; `fedokawaii apply` or `pull` marks it as following its copy (/var/lib/fedokawaii/toolkit-from-copy).
 
+The Learn book (T50, chapter 8 rewritten from what is built; sections 8.4, 8.5, 8.6 are new): after merging lane-learning, add to docs/learn/syllabus.txt under `chapter 8 upkeep`, after `snapshots-report | … | 2 3`: `update-button | the update button, from A to Z | 4` and `undo-and-copies | snapshots, backups and the notices | 5 6`, then `python3 tools/learn-pieces.py` (a section in no lesson stops the cut). docs/build/render/apps.sh line 822 captures `system-upgrade`, a row that is gone (T63, the PDF).
+
 ## Open questions
 none
 
