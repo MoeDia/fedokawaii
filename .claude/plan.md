@@ -814,6 +814,7 @@ deps: T62  · model: main  · ledger: r27-67
 files: docs/fedokawaii-learn.md, docs/build/learn.py, docs/Fedokawaii-Learn.pdf, docs/learn/pieces/*, tools/learn-pieces.py
 approach: every change of the round already corrected its pieces (standing rule, each task); what waits for his word: the full pass over `docs/fedokawaii-learn.md` (code snippets with the new terminal face, every screenshot retaken with the final design, the new chapters: lights, monitor, network, games VM, update system, structure, chess, typing, drawing), `docs/build/learn.py` rebuilt → `Fedokawaii-Learn.pdf`, and the pieces regenerated (tools/learn-pieces.py).
 accept: (when asked) the PDF rebuilt with real shots, the pieces regenerated, kawa-learn progress preserved across the regeneration (ids stable).
+- (T22's master nits, 4 Nov) chapter 12 (yazi, docs/fedokawaii-learn.md ~1004–1040): hidden files always shown (`.` hides them for the moment), the footer's facts, tabs (`t`), the dialog's keys, its figure; and the locked-file flow said as it is: kawa-file writes `NAME.unlocked.pdf` and a notice whose click opens it (the reader is not opened by itself).
 
 ## Coverage — brief item → task
 | brief item | task |
