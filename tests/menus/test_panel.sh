@@ -167,7 +167,8 @@ case_ "the levels (§4): an instrument — its picture, its name, its number ove
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.icon}:{i.name}:{i.value}:{i.muted}:{p.slider_x(i)}" for i in p.items if i.kind == "meter"))')" \
   "brightness:@lantern:brightness:70%:False:67 sound:@bonsho-2:sound:62%:False:67"
 eq "$(py 'fresh(STATE + "muted\ton\n"); print(p.item("sound").icon, p.item("sound").muted, p.item("brightness").muted)')" "@bonsho-mute True False" "muted: the bell stilled and struck through, its segments hollow; the brightness does not follow"
-eq "$(py 'fresh(STATE.replace("62%", "muted")); print(p.item("sound").icon, p.item("sound").value)')" "@bonsho-mute muted" "as kawa-quick --state says it"
+eq "$(py 'fresh(STATE + "muted\ton\n"); print(p.item("sound").value, p.item("sound").muted)')" "62% True" "as kawa-quick --state says it: its level kept, hollow"
+eq "$(py 'fresh(STATE + "muted\ton\n"); p.set_level("sound", 40); print(p.states["quick"]["muted"], p.item("sound").muted)')" "off False" "a level set unmutes here too"
 eq "$(py 'out = []
 for v in (0, 1, 33, 34, 66, 67, 100):
     fresh(STATE.replace("62%", f"{v}%")); out.append(p.item("sound").icon)
@@ -1123,6 +1124,13 @@ lay = kp.layout_menu(m); cells = [mk for mk in lay.marks if mk[0] == "cell"]
 print(lay.size, len(cells), [(c[1], c[2]) for c in cells[:8]], sorted({c[2] for c in cells}))
 print([c[3:5] for c in cells][:1], [c[1:7] for c in cells if c[6] == "today"], [(it.x, it.y, it.w, it.h) for it in lay.items])')" \
   "$(printf '%s\n' "(362, 230) 49 [(17, 45), (65, 45), (113, 45), (161, 45), (209, 45), (257, 45), (305, 45), (17, 65)] [45, 65, 85, 105, 125, 145, 165]" "[(40, 20)] [(65, 105, 40, 20, '16', 'today')] [(17, 193, 104, 20), (129, 193, 104, 20), (241, 193, 104, 20)]")"
+case_ "--lines N on a list typed into (Super+/): one size whatever the sheet — how many headings fall in its first lines changes nothing: the same box, the same place, every time (§4)"
+eq "$(py 'def sheet(parts):
+    L = []
+    for n in range(parts): L += ["part\tI\tp%d" % n] + ["info\t\tk%d\td" % i for i in range(60 // parts)]
+    return kp.layout_menu(kp.Menu(L, prompt="", fuzzy=True, caps=True, lines_shown=24))
+print({sheet(n).size[1] for n in (1, 2, 3, 6, 12)}, sheet(3).view[1], 24 * kp.ROW + 3 * (kp.HEAD_H + kp.SECTION))')" "{698} 624 624"
+eq "$(py 'print(kp.layout_menu(kp.Menu(["part\tI\tp", "info\t\tk\td"], prompt="", fuzzy=True, caps=True, lines_shown=24)).size[1])')" 122 "a sheet shorter than that: its own size (a pad, the field, a row of air, a heading and a row, a pad)"
 case_ "--lines N: N lines of choices whole, their headings above them not counted"
 eq "$(py 'print(kp.layout_menu(kp.Menu(["part\t共\tshare", "row\tx\ta", "row\tx\tb", "row\tx\tc"], lines_shown=3)).view)')" None "a heading and three rows, three asked: all of it, no scrolling"
 eq "$(py 'm = kp.Menu(["part\t起\tone"] + ["row\t\tk\td"] * 5 + ["part\t写\ttwo"] + ["row\t\tk\td"] * 5, lines_shown=6)

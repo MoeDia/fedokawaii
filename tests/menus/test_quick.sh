@@ -75,8 +75,8 @@ case_ "--state: every key, in order, one KEY<TAB>VALUE a line"
 out=$(state); rc 0 quick --state
 keys=$(cut -f1 <<<"$out" | tr '\n' ',')
 if ((NS)); then
-  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,uptime,"
-else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,"; fi
+  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,muted,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,uptime,"
+else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,muted,nettype,network,"; fi
 eq "$(grep -vc $'^[a-z]*\t' <<<"$out")" 0 "every line a key, a tab, a value"
 eq "$(st theme)" dark; eq "$(st nettype)" ethernet; eq "$(st network)" wired
 eq "$(st brightness)" 70%; eq "$(st sound)" 62%; eq "$(st wallpaper)" default; eq "$(st vrr)" "in games"
@@ -98,7 +98,7 @@ printf '/dev/sdb1\t/dev/sdb\tSANDISK EXTREME PRO\t58G\texfat\t\n' >"$W/drives"; 
 case_ "the sound muted, no output at all; no DDC/CI monitor; a picture of your own on the wallpaper"
 setup; echo 'Volume: 0.40 [MUTED]' >"$W/vol"; : >"$W/bright"; mkdir -p "$HOME/.local/state/fedokawaii"
 echo "$HOME/Pictures/Wallpapers/my beach photo, from the long summer.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
-eq "$(st sound)" muted; eq "$(st brightness)" "no DDC/CI"; eq "$(st wallpaper)" "my beach photo, from the long summer"
+eq "$(st sound)" 40%; eq "$(st muted)" on "its level kept, muted beside it"; eq "$(st brightness)" "no DDC/CI"; eq "$(st wallpaper)" "my beach photo, from the long summer"
 echo pack:mishima-mist >"$HOME/.local/state/fedokawaii/wallpaper-dark"; eq "$(st wallpaper)" mishima-mist
 stub wpctl 'exit 1'; eq "$(st sound)" "no output"
 case_ "a name with a tab or a line break in it: one line still"

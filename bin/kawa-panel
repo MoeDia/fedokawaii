@@ -533,7 +533,7 @@ def real_leave(mode, detail):
 class Item:
     def __init__(self, key, kind, x, y, w, h, row, **kw):
         self.key, self.kind, self.x, self.y, self.w, self.h, self.row = key, kind, x, y, w, h, row
-        self.kanji = self.icon = self.glyph = self.seal = self.vcol = None
+        self.icon = self.glyph = self.seal = self.vcol = None
         self.lit = self.muted = self.scrolls = self.on = self.big = self.absent = False
         self.name = self.value = self.tip = self.detail = self.keys = self.accel = self.confirm = ""
         self.__dict__.update(kw)
@@ -596,7 +596,7 @@ def quick_rows(s):
 
 class Layout:
     """Every item's place (in the panel's own pixels), the content's top left, the rules'
-    heights, the headings (kanji, name, x, y[, value]) and the empty lists' "none" (x, y), the
+    heights, the headings (icon, name, x, y[, value]) and the empty lists' "none" (x, y), the
     size; a menu's too: what is drawn but not chosen (marks: its title, a disabled row, a
     grid's cells, the filter's line) and the part of it that scrolls (view: its top and
     height, and how tall what scrolls in it is — None: nothing scrolls)."""
@@ -1001,7 +1001,11 @@ def layout_menu(m):
     view_h = min(height, MENU_MAX_H - top - PAD - BORDER)
     # (each line's foot — a choice's, or a row only read: keys share one)
     ends = sorted({it.y + it.h for it in items} | {mk[2] + ROW for mk in marks if mk[0] in SHOWN_KINDS})
-    if m.shown and len(ends) > m.shown:          # (at most N lines of choices, whole: the view
+    if m.shown and m.prompt is not None and not m.password:
+        # (a list typed into — Super+/: one size whatever the sheet holds, N lines and three headings' room,
+        # never its parts' count: the same place every time, §4; cut under its last whole line: drawn_h())
+        view_h = min(view_h, m.shown * ROW + 3 * (HEAD_H + SECTION))
+    elif m.shown and len(ends) > m.shown:        # (at most N lines of choices, whole: the view
         view_h = min(view_h, ends[m.shown - 1] - top)   # ends under the Nth, its parts above it)
     box_h = view_h
     # a list typed into keeps the size it opened with, as the launcher does (the window never
@@ -1031,7 +1035,7 @@ def instrument(key, x0, y, r, pic, name, s, muted=False):
 def speaker_pic(s):
     """The sound's picture: the temple bell with as many ripples as the level holds, stilled while muted."""
     pct = percent(s.get("sound", ""))
-    return "@bonsho-mute" if s.get("muted") == "on" or s.get("sound") == "muted" else f"@bonsho-{0 if not pct else min(3, (pct + 32) // 33)}"
+    return "@bonsho-mute" if s.get("muted") == "on" else f"@bonsho-{0 if not pct else min(3, (pct + 32) // 33)}"
 
 
 def device_pic(pre, label):
@@ -1617,8 +1621,9 @@ class Panel:
         for st in (self.states[m] for m in MODES):    # (every panel shows it: the same level)
             if key in st:
                 st[key] = f"{pct}%"
-        if key == "sound" and "muted" in self.states["sound"]:
-            self.states["sound"]["muted"] = "off"     # (kawa-quick --do volume unmutes)
+        for st in (self.states["sound"], self.states["quick"]) if key == "sound" else ():
+            if "muted" in st:
+                st["muted"] = "off"                   # (kawa-quick --do volume unmutes)
         it = self.item(key)
         if it:
             it.value, it.muted = self.state[key], False
@@ -2339,13 +2344,6 @@ def main(argv):
                 dim_win[0] = dim_window()
             if dim_win[0] is not None:
                 dim_win[0].show_all() if on else dim_win[0].hide()
-
-        def frames(self, fn):
-            """fn(t) on every frame the panel's window draws (its frame clock, t in seconds) for as
-            long as it returns true — motion counted in frames, never a timer between them."""
-            a = view["area"]
-            if a is not None:
-                a.add_tick_callback(lambda w, clock: bool(fn(clock.get_frame_time() / 1e6)))
 
         def now(self):
             return time.monotonic()

@@ -20,7 +20,8 @@ key Right Right Right Right; nap 0.3; shot on-off
 key Return; nap 0.15; shot asked
 say "after the first press: $(cat "$KIT_OUT/asked")"
 key Left; nap 0.5; shot away
-key Right; nap 0.5; key Return; nap 0.6; key Return; nap 0.8
+key Right; nap 0.5; key Return; nap 0.8; key Return
+for _ in $(seq 40); do [[ -s $KIT_OUT/asked ]] && break; nap 0.1; done
 say "after the second press: $(cat "$KIT_OUT/asked")"
 shot done
 PLAY
@@ -48,7 +49,8 @@ for mood in ("dark", "light"):
     diff = (op != d).any(axis=2)
     diff[:40] = False
     ys, xs = np.nonzero(diff)
-    left, right, top, foot = int(xs.min()), 1920 - int(xs.max()) - 2, int(ys.min()), 1080 - int(ys.max()) - 3   # (the shadow's column and rows)
+    # (what differs ends on the shadow's column and its second row: the frame's right hairline a column in, its foot two rows up)
+    left, right, top, foot = int(xs.min()), 1920 - (int(xs.max()) - 1) - 1, int(ys.min()), 1080 - (int(ys.max()) - 2) - 1
     if left != right or top != foot:
         bad.append(f"{mood}: the frame's margins {left} {right} · {top} {foot}")
     if not (asked != away).any():
