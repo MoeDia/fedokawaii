@@ -49,12 +49,15 @@ return {
   },
 
   -- the servers only for the kinds of file that have one: a text file or a commit message never
-  -- pays for them (if a local.lua adds a server, its filetype goes here too)
+  -- pays for them (if a local.lua adds a server, its filetype goes here too). And folds by indent
+  -- (LazyVim's own 'foldmethod'; z c, z o and the rest as ever): asking the server, or treesitter,
+  -- walked the whole file at the first frame (30 ms in 1,600 lines, 100 in 20,000) and again as it changed
   {
     "neovim/nvim-lspconfig",
     event = function() return {} end,
     ft = { "python", "rust", "lua", "toml" },
     cmd = { "LspInfo", "LspLog", "LspRestart", "LspStart", "LspStop" },
+    opts = { folds = { enabled = false } },
   },
 
   -- parsers and their text objects with the first file: the first screen has none to read
@@ -100,6 +103,7 @@ return {
   {
     "nvim-treesitter/nvim-treesitter",
     opts = function(_, opts)
+      opts.folds = { enable = false }
       opts.ensure_installed = {
         "bash", "c", "diff", "json", "lua", "luadoc", "luap", "markdown", "markdown_inline", "printf",
         "python", "query", "regex", "ron", "rust", "toml", "vim", "vimdoc", "yaml",

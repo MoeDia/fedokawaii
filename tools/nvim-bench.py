@@ -699,15 +699,17 @@ def cmd_keys(args):
 
 # ── first use: what a lazy load makes the first press pay ─────────────────────────────────────
 FIRST = (
-    ("Space Space (files)", [], b"  ", 80),
-    ("Space / (grep)", [], b" /", 80),
-    ("Space e (tree)", [], b" e", 80),
-    ("s (flash)", ["sample.py"], b"s", 60),
-    ("Space (which-key)", ["sample.py"], b" ", 500),
-    (": (cmdline)", ["sample.py"], b":", 60),
-    ("i (insert, completion)", ["sample.py"], b"i", 60),
-    ("g c c (comment)", ["sample.py"], b"gcc", 60),
-    ("H (buffer)", ["sample.py", "sample.md"], b"L", 60),
+    ("Space Space (files)", [], b"  "),
+    ("Space / (grep)", [], b" /"),
+    ("Space e (tree)", [], b" e"),
+    ("s (flash)", ["sample.py"], b"sco"),
+    ("Space, its menu (which-key)", ["sample.py"], b" "),
+    (": (cmdline)", ["sample.py"], b":"),
+    ("i, then a letter (completion)", ["sample.py"], b"Gosu"),
+    ("g c c (comment)", ["sample.py"], b"ggjgcc"),
+    ("L (the next file)", ["sample.py", "sample.md"], b"L"),
+    ("] f (next function)", ["sample.py"], b"]f"),
+    ("( (the closing one)", ["sample.py"], b"Go("),
 )
 
 
@@ -717,14 +719,14 @@ def cmd_first(args):
     res = {}
     for _ in range(runs):
         for v in random.sample(variants, len(variants)):
-            for label, files, keys, quiet in FIRST:
+            for label, files, keys in FIRST:
                 config, off = parse_variant(v)
                 env = environ(root, config, off)
                 if os.path.exists(env["KAWA_BENCH_OUT"]):
                     os.remove(env["KAWA_BENCH_OUT"])
                 t = Term(nvim_argv(root, files), env, cwd=root + "/work")
-                wait_ready(t, env, extra_ms=200)
-                r = press(t, keys, quiet, 0, cap_ms=1500)
+                wait_ready(t, env, extra_ms=1200)   # (a person's first key, not one racing the start)
+                r = press(t, keys, 300, 0, cap_ms=1500)
                 res.setdefault(f"{v}|{label}", []).append(r)
                 t.close()
     table = {}

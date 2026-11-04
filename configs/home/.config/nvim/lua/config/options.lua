@@ -11,6 +11,14 @@ if pcall(function() require("vim._core.ui2").enable({ msg = { target = "msg" } }
 -- The status line, from the first frame on (config/statusline.lua)
 require("config.statusline").setup()
 
+-- Typing in a Markdown file (config/markdown.lua), set up with the first such file, before snacks'
+-- quickfile starts treesitter for the first frame
+vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+  pattern = { "*.md", "*.markdown" },
+  once = true,
+  callback = function() require("config.markdown").setup() end,
+})
+
 -- The window's title names the program in front, for Super+/ (kawa-help shows its keys first):
 -- "nvim", or what runs in the terminal buffer in front (lazygit from Space g g). nvim puts the
 -- title it found back as it ends (foot's title stack), so yazi or lazygit that started it is
