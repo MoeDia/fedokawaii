@@ -9,17 +9,22 @@ The owner, 4 Nov: "the demon facing me; a secret key opens his mouth; I type; he
 like he ate it; the dungeon far denser, ancient carvings of demons and angels fighting" — "the same
 for the angel, be smart".
 
-dark: a castle wall (ishigaki) under a stone beam, the war marching along it, the thunder key, the
-quote gilded on its lintel (口は禍の門, the mouth is the gate of misfortune), a shimenawa rope with its
-paper, two torches lighting three stepped pools stone by stone, flames carved behind the head, two
-panels of carved battle — oni against tennin — and the sea's waves on the step; before it all the
-samurai demon of tools/build-heads.py. His mouth is the gate: it opens, the password glows in it,
-ember by ember; it shuts.
-light: the same story in the sky of an old screen: paper, gold mist (suyari-gasumi) between the
-scenes of the same battle in sumi, shu and gold, two hanging lanterns in three stepped pools of
-paler paper, gold flames, and Marishiten, eyes closed, a sealed sutra in her hands. The sutra is the
-gate: it unrolls, her eyes open, the password is brushed on it mark by mark; it rolls up, sealed
-(言わぬが花, better left unsaid).
+The settings only: all figure art is lane-ink's from the owner's 18:32 note; the figures here stand in until
+it lands (oni_frames, angel_frames). His 18:45: "low camera angles, hard chiaroscuro, the torches throwing
+moving light on stone and carvings, embers, smoke, density everywhere". So a low camera: the wall leans to a
+point high over the middle (KEYSTONE), near things large, the eaves seen from below.
+
+dark: a castle wall (ishigaki) under temple eaves — rafters' ends, a stone beam with the thunder key and the
+war marching along it, brackets (kumimono) under it —, the quote gilded on its lintel (口は禍の門, the mouth is
+the gate of misfortune), a shimenawa rope with its paper, two torches lighting hard stepped pools stone by
+stone, the rest all but black, flames cut dark behind the figure in ember-red lines, two panels of carved
+battle in deep relief — oni against tennin —, the sea's waves on the step, chains and rocks and the dead black
+in the foreground. The figure's mouth is the gate: it opens, the password glows in it, ember by ember; it shuts.
+light: the same story in the sky of an old screen, seen from below: vermilion eaves, gold mist (suyari-gasumi)
+between the tiers of the same battle in sumi, shu and gold, heaven's host small and high, the oni large at your
+feet, fine rays on the paper, two hanging lanterns in stepped pools of paler paper, gold flames behind the
+figure. The sutra in her hands is the gate: it unrolls, the password is brushed on it mark by mark; it rolls up,
+sealed (言わぬが花, better left unsaid).
 
 Each scene is flat tones, as old pixel art is: a shape has its tone, its bevels face the nearer
 torch, the light raises the tones by whole steps, nothing is smoothed.
@@ -30,6 +35,7 @@ Writes, for theme.sh to install, configs/home/.local/share/fedokawaii/MOOD/:
     lock-scene.txt   where the module draws on it (the gate's frames, the flames, the password's row,
                      their inks), the file kawa-lockmod and kawa-greet read
     lock-flame.png   8 frames of flame side by side, transparent around it
+    lock-NAME.png    its moving light and smoke, looped strips with alpha (`anim` in lock-scene.txt)
 --preview DIR: each scene at 3 × 3, shut and open, with its flames and six marks; the gate's frames.
 Needs Pillow, numpy and scipy.
 """
@@ -53,10 +59,13 @@ D, L = bh.D_, bh.L_
 
 W, H = 640, 360
 QUOTES = {"dark": "口は禍の門", "light": "言わぬが花"}       # (design-system §0: proverbs about keeping words in)
-TORCH_X, FLAME_Y = (106, 534), 106                     # the fires' middles
+TORCH_X, FLAME_Y = (106, 534), 114                     # the fires' middles
+KEYSTONE = 0.72                                        # a low camera: at the top of the wall, how much narrower it is than at its foot
 LINTEL = (266, 373, 12, 40)                            # x0 x1 y0 y1: the plaque of the quote, between the horns
 FW, FH, FRAMES = 26, 44, 8                             # a flame's frame
-FLAME_TOP = 76                                         # its frame's top (the flame stands on the haft's head)
+FLAME_TOP = 84                                         # its frame's top (the flame stands on the haft's head)
+FLICKER = (1.0, 0.93, 1.07, 0.97, 1.11, 0.90)          # the torches' reach, frame by frame (the light on the stones)
+FLICKER_MS = 180
 GATE_FRAMES = (0.0, 0.25, 0.5, 0.75, 1.0)              # the gate's frames, shut … open
 GATE_PITCH, GATE_N = 7, 8                              # marks 7 px apart, the newest 8 in sight (the caret the 9th)
 ONI_AT = (200, 36)                                     # the oni's canvas on the scene (240 × 324, f 0.8)
@@ -274,47 +283,64 @@ ANGEL = {
 }
 
 
-def battle_left(r, k=1.0):
-    """they fall on the oni out of the sky (the left panel; KEEP the feet at y 312 and over)"""
-    cloud(r, 40, 228, 0.85)
-    angel_fig(r, Place(42, 226, 0.8), ANGEL["dive"])
-    cloud(r, 104, 218, 0.75)
-    angel_fig(r, Place(104, 216, 0.66), ANGEL["bless"])
-    cloud(r, 156, 226, 0.85, flip=True)
-    angel_fig(r, Place(158, 224, 0.78, flip=True), ANGEL["bow"])
-    bolt(r, (104, 224), (96, 262), 3)
-    oni_fig(r, Place(40, 312, 0.82), ONI["brace"])
-    oni_fig(r, Place(100, 312, 0.74), ONI["throw"])
-    oni_fig(r, Place(158, 312, 0.86, flip=True), ONI["swing"])
-    fire(r, 72, 314, 15, 0.8, 1)
-    fire(r, 128, 314, 15, 0.8, 2)
-    skull(r, 20, 307)
-    skull(r, 178, 307)
+def wall_at(x, y):
+    """the wall as a low camera sees it: its verticals lean to a point high over the middle"""
+    k = KEYSTONE + (1 - KEYSTONE) * y / H
+    return 320 + (x - 320) * k, y, k
+
+
+def on_wall(x, y, s=1.0, flip=False, rot=0.0):
+    """a figure's place on the wall: its size by how near it stands, leaning with the wall"""
+    qx, qy, k = wall_at(x, y)
+    return Place(qx, qy, s * k, rot=rot + (x - 320) * (1 - KEYSTONE) / H * (-1 if flip else 1), flip=flip)
+
+
+def battle_left(r):
+    """they fall on the oni out of the sky (the left panel): the far ones small, up the wall"""
+    cloud(r, 34, 232, 0.6)
+    angel_fig(r, on_wall(-22, 232, 0.62), ANGEL["dive"])
+    cloud(r, 86, 218, 0.52)
+    angel_fig(r, on_wall(48, 218, 0.5), ANGEL["bless"])
+    cloud(r, 140, 232, 0.6, flip=True)
+    angel_fig(r, on_wall(120, 232, 0.62, flip=True), ANGEL["bow"])
+    cloud(r, 178, 214, 0.42, flip=True)
+    angel_fig(r, on_wall(174, 214, 0.42, flip=True), ANGEL["sword"])
+    bolt(r, (86, 224), (92, 262), 3)
+    oni_fig(r, on_wall(-26, 316, 0.84), ONI["brace"])
+    oni_fig(r, on_wall(44, 316, 0.76), ONI["throw"])
+    oni_fig(r, on_wall(124, 316, 0.86, flip=True), ONI["swing"])
+    fire(r, 64, 318, 16, 0.8, 1)
+    fire(r, 128, 318, 14, 0.7, 2)
+    skull(r, 16, 310, 1.2)
+    skull(r, 168, 310, 1.2)
 
 
 def battle_right(r):
     """a guardian's sword, an oni falling, one climbing (the right panel)"""
-    cloud(r, 486, 222, 0.85)
-    angel_fig(r, Place(486, 220, 0.76), ANGEL["sword"])
-    cloud(r, 546, 216, 0.75, flip=True)
-    angel_fig(r, Place(546, 214, 0.68, flip=True), ANGEL["dive"])
-    cloud(r, 602, 226, 0.85, flip=True)
-    angel_fig(r, Place(602, 224, 0.72, flip=True), ANGEL["bless"])
-    bolt(r, (602, 232), (612, 268), 7)
-    oni_fig(r, Place(492, 312, 0.84), ONI["lunge"])
-    oni_fig(r, Place(548, 306, 0.72, rot=0.45, flip=True), ONI["fall"])
-    oni_fig(r, Place(604, 312, 0.78, flip=True), ONI["brace"])
-    fire(r, 566, 314, 15, 0.8, 5)
-    skull(r, 462, 307)
-    skull(r, 624, 308)
+    cloud(r, 468, 214, 0.42)
+    angel_fig(r, on_wall(466, 214, 0.42), ANGEL["bless"])
+    cloud(r, 508, 232, 0.6)
+    angel_fig(r, on_wall(526, 232, 0.62), ANGEL["sword"])
+    cloud(r, 560, 218, 0.52, flip=True)
+    angel_fig(r, on_wall(596, 218, 0.5, flip=True), ANGEL["dive"])
+    cloud(r, 608, 232, 0.6, flip=True)
+    angel_fig(r, on_wall(662, 232, 0.62, flip=True), ANGEL["bless"])
+    bolt(r, (560, 224), (552, 262), 11)
+    oni_fig(r, on_wall(512, 316, 0.86), ONI["lunge"])
+    oni_fig(r, on_wall(590, 306, 0.72, flip=True, rot=0.45), ONI["fall"])
+    oni_fig(r, on_wall(668, 316, 0.84, flip=True), ONI["brace"])
+    fire(r, 574, 318, 14, 0.7, 5)
+    skull(r, 470, 310, 1.2)
+    skull(r, 624, 310, 1.2)
 
 
 # ── the dark: the dungeon ────────────────────────────────────────────────────────────────────
 
-def pools(xx, yy, a=64, b=114, c=172):
-    """the light's three steps, by the nearer torch: 3 in the first … 0 outside the last"""
-    r = np.minimum(np.hypot(xx - TORCH_X[0], (yy - FLAME_Y) * 1.12), np.hypot(xx - TORCH_X[1], (yy - FLAME_Y) * 1.12))
-    return np.where(r < a, 3, np.where(r < b, 2, np.where(r < c, 1, 0)))
+def pools(xx, yy, reach=1.0):
+    """the light's steps, by the nearer torch, hard, as stones catch it: 4 by the fire, 3, 2, 0 outside
+    the last: chiaroscuro, the rest of the wall all but black. REACH: this moment's flicker"""
+    r = np.minimum(np.hypot(xx - TORCH_X[0], (yy - FLAME_Y) * 1.08), np.hypot(xx - TORCH_X[1], (yy - FLAME_Y) * 1.08)) / reach
+    return np.where(r < 46, 4, np.where(r < 84, 3, np.where(r < 128, 2, np.where(r < 168, 1, 0))))
 
 
 def toward(xx, yy):
@@ -346,14 +372,17 @@ def stones(rng):
     warped so no joint runs straight; small wedge stones where a gap has room. → labels (-1: the
     joints), how many"""
     yy, xx = np.mgrid[0:H, 0:W]
-    u = xx + 0.5 + ndi.gaussian_filter(rng.normal(0, 1, (H, W)), 9) * 27
-    v = yy + 0.5 + ndi.gaussian_filter(rng.normal(0, 1, (H, W)), 9) * 18
+    k = KEYSTONE + (1 - KEYSTONE) * (yy + 0.5) / H
+    # (the wall's own coordinates: a stone up the wall small on the screen, the courses closing as they rise)
+    wx, wy = 320 + (xx + 0.5 - 320) / k, H / (1 - KEYSTONE) * np.log(k / KEYSTONE)
+    u = wx + ndi.gaussian_filter(rng.normal(0, 1, (H, W)), 9) * 27
+    v = wy + ndi.gaussian_filter(rng.normal(0, 1, (H, W)), 9) * 18
     lab = np.full((H, W), -1, int)
     n, y = 0, -14.0
-    while y < H + 14:
+    while y < v.max() + 14:
         h = float(rng.integers(17, 31))
-        x = -float(rng.integers(0, 40))
-        while x < W + 40:
+        x = -float(rng.integers(60, 200))
+        while x < W + 200:
             w = float(rng.integers(26, 72))
             cx, cy = x + w / 2, y + h / 2 + rng.normal(0, 1.4)
             hw, hh, p = w / 2 - 0.9, h / 2 - 0.9 + rng.normal(0, 0.8), float(rng.uniform(3.2, 5.5))
@@ -422,20 +451,20 @@ def rel_line(pts):
     return Canvas(W, H).stroke_mask(pts, 1.0)
 
 
-def frieze(heaven=False):
+def frieze(heaven=False, y=41):
     """the beam's carving: small fighters marching on the middle, clouds and fire between them —
     the oni on the dungeon's, the tennin on the temple's"""
     fz = Relief()
     for x, sgn in ((36, False), (604, True), (166, False), (474, True)):
-        cloud(fz, x, 35, 0.5, sgn)
+        cloud(fz, x, y - 4, 0.36, sgn)
     for x in (98, 542, 232, 408):
-        fire(fz, x, 41, 13, 0.55, x)
+        fire(fz, x, y, 9, 0.4, x)
     if heaven:
         for x, kind, flip in ((64, "dive", False), (576, "dive", True), (134, "sword", False), (506, "sword", True), (198, "bow", False), (442, "bow", True)):
-            angel_fig(fz, Place(x, 35, 0.4, flip=flip), ANGEL[kind])
+            angel_fig(fz, Place(x, y - 4, 0.25, flip=flip), ANGEL[kind])
     else:
         for x, kind, flip in ((64, "lunge", False), (576, "lunge", True), (134, "swing", False), (506, "swing", True), (198, "brace", False), (442, "brace", True)):
-            oni_fig(fz, Place(x, 41, 0.42, flip=flip), ONI[kind])
+            oni_fig(fz, Place(x, y, 0.26, flip=flip), ONI[kind])
     return fz
 
 
@@ -463,8 +492,77 @@ def lettered(quote):
     return text.crop(text.getbbox())
 
 
-def dark_ground():
-    """The dungeon without its head and flames: an image of the ramp's tones."""
+def deep(t, m, lines, base, li, inside=None):
+    """carved stone: the shape raised on its ground, two steps of bevel toward the light and two away,
+    a shadow of two pixels thrown behind it, its lines cut deep with a lit lip on their far side"""
+    sh = li.behind(m) | li.behind(li.behind(m) | m)
+    t[(sh & inside) if inside is not None else sh] = 0
+    t[m] = base
+    lit, dark = li.bevel(m)
+    rest = m & ~lit & ~dark
+    lit2, dark2 = li.bevel(rest)
+    t[lit2] = base + 1
+    t[dark2] = max(base - 1, 1)
+    t[lit] = base + 3
+    t[dark] = max(base - 2, 1)
+    cut = m & lines
+    lip = cut[np.clip(li.yy + li.sy, 0, H - 1), np.clip(li.xx + li.sx, 0, W - 1)] & m & ~cut
+    t[lip] = base + 2
+    t[cut] = 0
+
+
+def eaves(t, li):
+    """seen from below, what the beam carries: the rafters' ends in a row over it, closing toward the
+    middle of the wall as it rises; under it the brackets (kumimono), a block on an arm on a block"""
+    t[:15] = 1
+    for i in range(-30, 31):
+        x = 320 + i * 11.5 + (i * abs(i) * 0.04)       # (their spacing: a row seen from below)
+        x0, x1 = int(x - 4), int(x + 4)
+        if x1 < 0 or x0 >= W:
+            continue
+        t[1:12, max(x0, 0):min(x1, W)] = 3
+        t[1:2, max(x0, 0):min(x1, W)] = 5
+        t[11:12, max(x0, 0):min(x1, W)] = 1
+    m = np.zeros((H, W), bool)
+    for x in range(-20, W + 40, 44):
+        for dy, hw, h in ((46, 16, 4), (50, 11, 4), (54, 6, 4)):    # the arm, the block, the block under it
+            m[dy:dy + h, max(x - hw, 0):max(min(x + hw, W), 0)] = True
+    t[46:60][~m[46:60]] = 0
+    deep(t, m, np.zeros((H, W), bool), 3, li)
+
+
+def foreground(t, li, rng):
+    """nearest the camera, black, the torch only catching their edges: chains from the dark above, rocks
+    and the dead at the foot, framing it all"""
+    m = np.zeros((H, W), bool)
+    for x0 in (12, 626):           # the chains: big links, side-on and face-on
+        for i, y in enumerate(range(-6, 150, 15)):
+            if i % 2:
+                m[y + 1:y + 16, x0 - 1:x0 + 2] = True
+            else:
+                yy, xx = np.mgrid[0:H, 0:W]
+                d = (((xx + 0.5 - x0) / 7.0) ** 2 + ((yy + 0.5 - (y + 8)) / 9.5) ** 2)
+                m |= (d <= 1) & (d >= 0.42)
+    rocks = np.zeros((H, W), bool)
+    yy, xx = np.mgrid[0:H, 0:W]
+    for x0, y0, rx, ry in ((28, 352, 58, 34), (92, 362, 46, 22), (612, 352, 58, 34), (548, 362, 46, 22), (0, 330, 26, 40), (640, 330, 26, 40)):
+        rocks |= (((xx + 0.5 - x0) / rx) ** 2 + ((yy + 0.5 - y0) / ry) ** 2) <= 1 + 0.16 * ndi.gaussian_filter(rng.normal(0, 1, (H, W)), 3) * 6
+    r = Relief()
+    for x, y, k in ((40, 322, 1.7), (20, 332, 1.5), (66, 334, 1.5), (600, 322, 1.7), (620, 332, 1.5), (574, 334, 1.5)):
+        skull(r, x, y, k)
+    t[rocks | m] = 1
+    lit, _ = li.bevel(rocks | m)
+    t[lit & (yy < 200)] = 5
+    t[lit & (yy >= 200)] = 3
+    t[r.M] = 3
+    lit, dark = li.bevel(r.M)
+    t[lit] = 7
+    t[dark] = 1
+    t[r.M & r.L] = 0
+
+
+def dark_ground(reach=1.0):
+    """The dungeon without its head and flames: an image of the ramp's tones. REACH: the torches' now."""
     rng = np.random.default_rng(11)
     li = Light()
     xx, yy = li.xx, li.yy
@@ -476,20 +574,19 @@ def dark_ground():
     ids = np.arange(1, nst + 2)
     with np.errstate(invalid="ignore"):
         mx, my = ndi.mean(xx + 0.5, labels=lab + 1, index=ids), ndi.mean(yy + 0.5, labels=lab + 1, index=ids)
-    kst = pools(np.nan_to_num(mx), np.nan_to_num(my))
+    kst = pools(np.nan_to_num(mx), np.nan_to_num(my), reach)
     stone = ~joint
-    t[stone] = base[lab[stone]] + kst[lab[stone]]
+    t[stone] = np.where(kst[lab[stone]] > 0, base[lab[stone]] + kst[lab[stone]], np.minimum(base[lab[stone]], 2))
     lit, dark = li.bevel(stone)
     t[lit] += 2
     t[dark] -= 1
     lit2, _ = li.bevel(stone & ~lit & ~dark)
     t[lit2] += 1
-    # the stone's grain: chips, not speckle
     grain = ndi.gaussian_filter(rng.normal(0, 1, (H, W)), 1.1)
     t[stone & (grain > 0.34)] -= 1
     t[joint] = 0
 
-    # carved flames behind the head
+    # flames cut dark in the wall behind the figure
     r = Relief()
     mandorla(r, 320, 170)
     keep = np.zeros((H, W), bool)
@@ -497,50 +594,16 @@ def dark_ground():
     fl = r.M & keep
     t[li.behind(fl)] = 0
     t[fl] = 1
-    # (the flames cut dark in the wall, their lines and the edge the torch takes in the old paint's red)
+    # (their lines and the edge the torch takes in the old paint's red)
     paint = np.zeros((H, W), "<U1")
     lit, dark = li.bevel(fl)
     paint[(fl & r.L) | lit] = "D"
     paint[lit & (np.hypot(xx + 0.5 - 320, yy + 0.5 - 170) > 128)] = "R"
     t[dark] = 0
 
-    # the steps at the foot, the waves on the first
-    t[318:] = 2
-    t[318:320] = 4
-    wave = seigaiha(322, 337)
-    t[320:337] = 2
-    t[wave] = 4
-    t[337] = 0
-    t[338] = 4
-    t[339] = 3
-    t[340:] = 2
-
-    # the beam over all: the thunder key along it, the cornice
-    t[:46] = 2
-    t[0:2] = 3
-    t[raimon(0, W, 3)] = 1
-    t[13] = 1
-    t[14] = 4
-    t[42] = 1
-    t[43:45] = 4
-    t[45] = 5
-    t[46:49] = 0
-
-    # the frieze in the beam: the same war marching toward the middle, small
-    fz = frieze()
-    band = np.zeros((H, W), bool)
-    band[16:42] = True
-    fm = fz.M & band
-    t[li.behind(fm) & band] = 0
-    t[fm] = 4
-    lit, dark = li.bevel(fm)
-    t[lit] = 6
-    t[dark] = 2
-    t[fm & fz.L] = 1
-
     # on the stones in the light: crests cut long ago (mitsudomoe), cracks
     crests = Relief()
-    for x, y in ((40, 112), (178, 96), (462, 96), (600, 112)):
+    for x, y in ((46, 120), (176, 104), (464, 104), (594, 120)):
         tomoe(crests, x, y)
     cm = crests.M & stone
     t[li.behind(cm) & stone] = np.maximum(t[li.behind(cm) & stone] - 1, 0)
@@ -548,53 +611,71 @@ def dark_ground():
     lit, _ = li.bevel(cm)
     t[lit] += 1
     t[cm & crests.L] = 1
-    for _ in range(46):            # the cracks: a line that wanders across a stone or two
-        x, y = rng.uniform(0, W), rng.uniform(49, 168)
+    for _ in range(60):            # the cracks: a line that wanders across a stone or two
+        x, y = rng.uniform(0, W), rng.uniform(60, 176)
         pts = [(x, y)]
         for _ in range(int(rng.integers(2, 5))):
             pts.append((pts[-1][0] + rng.uniform(-10, 10), pts[-1][1] + rng.uniform(2, 8)))
         t[rel_line(pts) & stone] = 0
 
-    # the panels: carved battles
+    # the steps at the foot, the waves on the first
+    t[318:] = 1
+    t[318:320] = 3
+    wave = seigaiha(322, 337)
+    t[320:337] = 1
+    t[wave] = 3
+    t[337] = 0
+    t[338] = 3
+    t[339] = 2
+    t[340:] = 1
+
+    # the beam over all: the rafters' ends above it, the thunder key along it, its cornice
+    t[15:46] = 2
+    t[15] = 0
+    t[raimon(0, W, 16)] = 1
+    t[26] = 1
+    t[27] = 4
+    t[43] = 1
+    t[44:46] = 4
+    eaves(t, li)
+
+    # the frieze in the beam: the same war marching toward the middle, small
+    fz = frieze(y=42)
+    band = (yy >= 28) & (yy < 43)
+    deep(t, fz.M & band, fz.L, 3, li, band)
+
+    # the panels: carved battles, trapezoids on the leaning wall
     rel = Relief()
     battle_left(rel)
     battle_right(rel)
-    panels = ((8, 168, 192, 316), (448, 168, 632, 316))
-    for x0, y0, x1, y1 in panels:
-        out = np.zeros((H, W), bool)
-        out[y0:y1, x0:x1] = True
-        inside = np.zeros((H, W), bool)
-        inside[y0 + 4:y1 - 4, x0 + 4:x1 - 4] = True
+    canvas = Canvas(W, H)
+    panels = []
+    for x0, y0, x1, y1 in ((-30, 176, 196, 318), (444, 176, 670, 318)):
+        (ax, ay, _), (bx, by, _), (cx, cy, _), (dx, dy, _) = (wall_at(x0, y0), wall_at(x1, y0), wall_at(x1, y1), wall_at(x0, y1))
+        panels.append(canvas.poly_mask([(ax, ay), (bx, by), (cx, cy), (dx, dy)]))
+    for out in panels:
+        inside = erode(erode(erode(erode(out))))
         t[out] = 4
         lit, dark = li.bevel(out)
         t[lit] = 7
-        t[dark] = 2
+        t[dark] = 1
         t[inside] = 1
         lit, dark = li.bevel(inside)
-        t[dark & inside] = 3            # the sunk ground's far edge catches the light
+        t[dark & inside] = 2            # the sunk ground's far edge catches the light
         t[lit & inside] = 0
-        for _ in range(34):             # the wind on the ground: faint cuts
-            x, y = rng.uniform(x0 + 8, x1 - 8), rng.uniform(y0 + 8, y1 - 8)
+        for _ in range(40):             # the wind on the ground: faint cuts
+            x, y = rng.uniform(0, W), rng.uniform(176, 316)
             a, ln = rng.uniform(-0.4, 0.4), rng.uniform(6, 16)
             t[rel.stroke([(x - ln * math.cos(a), y - ln * math.sin(a)), (x, y + rng.uniform(-3, 3)), (x + ln * math.cos(a), y + ln * math.sin(a))]) & inside] = 2
-        mr = rel.M & inside
-        t[li.behind(mr) & inside] = 0
-        t[mr] = 5
-        lit, dark = li.bevel(mr)
-        t[lit] = 7
-        t[dark] = 3
-        t[mr & rel.L] = 1
-    # the light on what is carved: by the pixel, a step of dither at its edges
-    carved = (yy < 49) | (yy >= 318)
-    for x0, y0, x1, y1 in panels:
-        carved[y0:y1, x0:x1] = True
+        deep(t, rel.M & inside, rel.L, 3, li, inside)
+    # the light on what is carved: by the pixel, hard, a step of dither at its edges
+    carved = (yy < 60) | (yy >= 318) | panels[0] | panels[1]
     bay = np.array([[0, 2], [3, 1]])[yy % 2, xx % 2]
-    rr = np.minimum(np.hypot(xx - TORCH_X[0], (yy - FLAME_Y) * 1.12), np.hypot(xx - TORCH_X[1], (yy - FLAME_Y) * 1.12)) + bay * 2.5
-    k = np.where(rr < 80, 3, np.where(rr < 130, 2, np.where(rr < 190, 1, 0)))
-    for x0, y0, x1, y1 in panels:      # (the panels' figures hold their tone: the light never burns them out)
-        k[y0:y1, x0:x1] = np.minimum(k[y0:y1, x0:x1], 1)
+    rr = (np.minimum(np.hypot(xx - TORCH_X[0], (yy - FLAME_Y) * 1.08), np.hypot(xx - TORCH_X[1], (yy - FLAME_Y) * 1.08)) + bay * 2.5) / reach
+    k = np.where(rr < 90, 3, np.where(rr < 140, 2, np.where(rr < 196, 1, 0)))
     add = carved & (t > 0)
     t[add] += k[add]
+    foreground(t, li, np.random.default_rng(5))
     return np.clip(t, 0, len(RAMP["dark"]) - 1), paint
 
 
@@ -610,32 +691,32 @@ def sconce(img, tx):
     px = img.load()
     iron, iron_hi, wood, wood_hi = rgb(D["edge2"]), rgb(D["art_umber"]), rgb(D["art_umber"]), rgb(D["art_olive"])
     lo, edge = rgb(D["lo"]), rgb(D["edge"])
-    d.rectangle([tx - 9, 132, tx + 8, 162], fill=lo)            # the plate, its rivets, curls either side
-    d.rectangle([tx - 8, 133, tx + 7, 161], fill=iron)
-    d.line([(tx - 8, 133), (tx + 7, 133)], fill=iron_hi)
-    d.line([(tx - 8, 133), (tx - 8, 161)], fill=iron_hi)
-    for y in (135, 159):
+    d.rectangle([tx - 9, 140, tx + 8, 170], fill=lo)            # the plate, its rivets, curls either side
+    d.rectangle([tx - 8, 141, tx + 7, 169], fill=iron)
+    d.line([(tx - 8, 141), (tx + 7, 141)], fill=iron_hi)
+    d.line([(tx - 8, 141), (tx - 8, 169)], fill=iron_hi)
+    for y in (143, 167):
         for x in (tx - 6, tx + 5):
             px[x, y] = lo
             px[x - 1, y - 1] = iron_hi
     for sgn in (-1, 1):
-        for i, (x, y) in enumerate(((10, 146), (13, 145), (14, 143), (13, 141), (11, 141), (11, 143))):
+        for i, (x, y) in enumerate(((10, 154), (13, 153), (14, 151), (13, 149), (11, 149), (11, 151))):
             xx_ = tx + sgn * x - (sgn < 0)
             d.rectangle([xx_, y, xx_ + 1, y + 1], fill=iron_hi if i < 4 else lo)
-    d.rectangle([tx - 4, 114, tx + 3, 152], fill=lo)            # the haft
-    d.rectangle([tx - 3, 114, tx + 2, 151], fill=wood)
-    d.line([(tx - 3, 114), (tx - 3, 151)], fill=wood_hi)
-    for yy_ in (124, 136, 146):
+    d.rectangle([tx - 4, 122, tx + 3, 160], fill=lo)            # the haft
+    d.rectangle([tx - 3, 122, tx + 2, 159], fill=wood)
+    d.line([(tx - 3, 122), (tx - 3, 159)], fill=wood_hi)
+    for yy_ in (132, 144, 154):
         d.line([(tx - 3, yy_), (tx + 2, yy_)], fill=edge)
-    d.rectangle([tx - 6, 128, tx + 5, 133], fill=lo)            # the ring
-    d.rectangle([tx - 5, 129, tx + 4, 132], fill=iron)
-    d.line([(tx - 5, 129), (tx + 4, 129)], fill=iron_hi)
-    d.rectangle([tx - 6, 110, tx + 5, 118], fill=lo)            # its wrapped head
-    d.rectangle([tx - 5, 111, tx + 4, 117], fill=edge)
-    d.line([(tx - 5, 111), (tx + 4, 111)], fill=rgb(D["accent_lo"]))
+    d.rectangle([tx - 6, 136, tx + 5, 141], fill=lo)            # the ring
+    d.rectangle([tx - 5, 137, tx + 4, 140], fill=iron)
+    d.line([(tx - 5, 137), (tx + 4, 137)], fill=iron_hi)
+    d.rectangle([tx - 6, 118, tx + 5, 126], fill=lo)            # its wrapped head
+    d.rectangle([tx - 5, 119, tx + 4, 125], fill=edge)
+    d.line([(tx - 5, 119), (tx + 4, 119)], fill=rgb(D["accent_lo"]))
     for x in range(tx - 4, tx + 4, 2):
-        px[x, 113] = lo
-        px[x + 1, 115] = lo
+        px[x, 121] = lo
+        px[x + 1, 123] = lo
 
 
 def rope(img, x0, x1, y0, sag):
@@ -699,14 +780,14 @@ def oni_frames():
     return [bh.oni(o, w=240, h=324, f=0.8, top=64, horn=0.72).image("oni") for o in GATE_FRAMES]
 
 
-def dark_scene():
-    t, paint = dark_ground()
+def dark_scene(reach=1.0):
+    t, paint = dark_ground(reach)
     img = tones_image(t, RAMP["dark"])
     px = img.load()
     for y, x in zip(*np.nonzero(paint), strict=True):
         px[int(x), int(y)] = rgb(D["accent_lo"] if paint[y, x] == "D" else D["accent"])
-    rope(img, -6, 214, 52, 16)
-    rope(img, 426, 646, 52, 16)
+    rope(img, -6, 214, 60, 14)
+    rope(img, 426, 646, 60, 14)
     gilded(img, (rgb(D["hi"]), rgb(D["edge"]), rgb(D["edge2"]), rgb(D["lo"])))
     for tx in TORCH_X:
         sconce(img, tx)
@@ -796,34 +877,36 @@ def gold_mist(mist, xx, yy):
 
 
 def scene_figures(a, b):
-    """the battle in the sky, its tiers between the mist: A the tennin, B the oni (two carvings, one ink each)."""
-    # the upper sky, by the lanterns
-    cloud(a, 42, 120, 0.7)
-    angel_fig(a, Place(42, 118, 0.6), ANGEL["bless"])
-    cloud(a, 168, 128, 0.7, flip=True)
-    angel_fig(a, Place(168, 126, 0.62, flip=True), ANGEL["dive"])
-    cloud(a, 474, 128, 0.7)
-    angel_fig(a, Place(474, 126, 0.62), ANGEL["bow"])
-    cloud(a, 598, 120, 0.7, flip=True)
-    angel_fig(a, Place(598, 118, 0.6, flip=True), ANGEL["sword"])
+    """the battle in the sky, its tiers between the mist, near ones large: A the tennin, B the oni (two
+    carvings, one ink each). A low camera: heaven's host small and high, the oni at your feet"""
+    # the far sky, by the lanterns
+    for x, y, k, kind, flip in ((26, 122, 0.46, "bless", False), (72, 108, 0.36, "sword", False), (156, 112, 0.4, "dive", True), (194, 124, 0.46, "bow", True),
+                                (446, 124, 0.46, "bow", False), (484, 112, 0.4, "dive", False), (568, 108, 0.36, "sword", True), (614, 122, 0.46, "bless", True)):
+        cloud(a, x, y + 2, k * 1.1, flip)
+        angel_fig(a, Place(x, y, k, flip=flip), ANGEL[kind])
     # the middle: they meet
-    cloud(a, 54, 214, 0.75)
-    angel_fig(a, Place(54, 212, 0.68), ANGEL["sword"])
-    oni_fig(b, Place(136, 236, 0.66, flip=True), ONI["lunge"])
-    cloud(a, 586, 214, 0.75, flip=True)
-    angel_fig(a, Place(586, 212, 0.68, flip=True), ANGEL["dive"])
-    oni_fig(b, Place(504, 236, 0.66), ONI["swing"])
-    # below: the oni's ground, their fire
-    oni_fig(b, Place(38, 328, 0.74), ONI["brace"])
-    oni_fig(b, Place(104, 328, 0.7), ONI["throw"])
-    oni_fig(b, Place(168, 328, 0.72, flip=True), ONI["swing"])
-    fire(b, 72, 330, 15, 0.8, 1)
-    fire(b, 138, 330, 15, 0.8, 2)
-    oni_fig(b, Place(476, 328, 0.74), ONI["lunge"])
-    oni_fig(b, Place(540, 322, 0.66, rot=0.45, flip=True), ONI["fall"])
-    oni_fig(b, Place(604, 328, 0.74, flip=True), ONI["brace"])
-    fire(b, 510, 330, 15, 0.8, 5)
-    fire(b, 570, 330, 15, 0.8, 6)
+    cloud(a, 40, 224, 0.72)
+    angel_fig(a, Place(40, 222, 0.66), ANGEL["sword"])
+    oni_fig(b, Place(98, 236, 0.58), ONI["fall"])
+    oni_fig(b, Place(160, 238, 0.64, flip=True), ONI["lunge"])
+    cloud(a, 600, 224, 0.72, flip=True)
+    angel_fig(a, Place(600, 222, 0.66, flip=True), ANGEL["dive"])
+    oni_fig(b, Place(540, 236, 0.58, flip=True), ONI["brace"])
+    oni_fig(b, Place(482, 238, 0.64), ONI["swing"])
+    # at your feet: the oni's ground, their fire, the dead
+    oni_fig(b, Place(30, 330, 0.98), ONI["brace"])
+    oni_fig(b, Place(104, 330, 0.9), ONI["throw"])
+    oni_fig(b, Place(176, 330, 0.94, flip=True), ONI["swing"])
+    fire(b, 68, 332, 18, 0.9, 1)
+    fire(b, 140, 332, 18, 0.9, 2)
+    oni_fig(b, Place(466, 330, 0.94), ONI["lunge"])
+    oni_fig(b, Place(540, 322, 0.84, rot=0.45, flip=True), ONI["fall"])
+    oni_fig(b, Place(612, 330, 0.98, flip=True), ONI["brace"])
+    fire(b, 502, 332, 18, 0.9, 5)
+    fire(b, 578, 332, 18, 0.9, 6)
+    # small clouds between them, nothing left empty
+    for x, y, k, flip in ((60, 64, 0.34, False), (160, 74, 0.34, True), (480, 74, 0.34, False), (586, 64, 0.34, True), (120, 196, 0.36, True), (524, 196, 0.36, False)):
+        cloud(a, x, y, k, flip)
 
 
 def angel_frames():
@@ -850,31 +933,45 @@ def plaque_light(img):
     d.rectangle([sx + 2, gy + text.height - 5, sx + 4, gy + text.height - 3], outline=rgb(L["key"]))
 
 
-def light_scene():
-    """→ the ground (what is behind her), the front (what is before her: the mist, the beam, the lanterns), the fires' places"""
+def rays(xx, yy, cx, cy, step=2.25, rmin=120):
+    """rays out of the head behind everything, fine: every STEP degrees a line, on the paper's next tone"""
+    a = np.degrees(np.arctan2(yy + 0.5 - cy, xx + 0.5 - cx))
+    r = np.hypot(xx + 0.5 - cx, yy + 0.5 - cy)
+    near = np.abs(((a + step / 2) % step) - step / 2) * np.pi / 180 * r
+    return (near < 0.5) & (r > rmin)
+
+
+def light_sky(reach=1.0):
+    """the sky alone: paper, stepped pools of paler paper round the lanterns, a step of dither between,
+    the head's fine rays over it"""
     yy, xx = np.mgrid[0:H, 0:W]
-    # the sky: paper, three stepped pools of paler paper round the lanterns, a step of dither between
-    sky = np.array([rgb(L["ground"]), rgb(L["surface"]), rgb(L["view"]), rgb(L["key"])], np.uint8)
-    rr = np.minimum(np.hypot(xx - LAMP_X[0], (yy - LAMP_FIRE) * 1.1), np.hypot(xx - LAMP_X[1], (yy - LAMP_FIRE) * 1.1))
+    sky = np.array([rgb(L["edge"]), rgb(L["ground"]), rgb(L["surface"]), rgb(L["view"]), rgb(L["key"])], np.uint8)
+    rr = np.minimum(np.hypot(xx - LAMP_X[0], (yy - LAMP_FIRE) * 1.1), np.hypot(xx - LAMP_X[1], (yy - LAMP_FIRE) * 1.1)) / reach
     bay = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])[yy % 4, xx % 4] * 0.7
-    img = Image.fromarray(sky[np.where(rr + bay < 56, 3, np.where(rr + bay < 116, 2, np.where(rr + bay < 186, 1, 0)))], "RGB")
+    k = np.where(rr + bay < 48, 4, np.where(rr + bay < 96, 3, np.where(rr + bay < 150, 2, np.where(rr + bay < 214, 1, 0))))
+    # (a ray on the paper: a step darker, so the sky is never empty)
+    k = np.where(rays(xx, yy, 320, 176), np.maximum(k - 1, 0), k)
+    return Image.fromarray(sky[k], "RGB")
+
+
+def light_ground():
+    """what is behind her, but the sky: the gold flames, the battle: RGBA"""
+    yy, xx = np.mgrid[0:H, 0:W]
+    img = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     px = img.load()
-    inks = {k_: rgb(v) for k_, v in bh.INKS["angel"].items()}
-    inks.update(y=rgb(L["yellow"]), G=rgb(L["gold"]), g=rgb(L["yellow"]))     # (gold is the world's here, not hers)
+    inks = {k_: rgb(v) + (255,) for k_, v in bh.INKS["angel"].items()}
+    inks.update(y=rgb(L["yellow"]) + (255,), G=rgb(L["gold"]) + (255,))     # (gold is the world's here, not hers)
 
-    def put(mask, ink, on=px):
-        c = inks[ink] if on is px else inks[ink] + (255,)
+    def put(mask, ink):
         for y, x in zip(*np.nonzero(mask), strict=True):
-            on[int(x), int(y)] = c
+            px[int(x), int(y)] = inks[ink]
 
-    # the mandorla: gold flames behind her, the mist's own leaf
     r = Relief()
     mandorla(r, 320, 176, base=104, short=26, long_=44, seed=9)
-    below = yy >= 46
+    below = yy >= 60
     m = r.M & below
     put(m, "G")
     put(dilate(m) & ~m & below, "y")
-    # the battle, its tiers: the oni in shu, the tennin in gofun, sumi's line round both
     fa, fb = Relief(), Relief()
     scene_figures(fa, fb)
     for rel, fill, acc in ((fb, "R", "G"), (fa, "P", "R")):
@@ -883,9 +980,21 @@ def light_scene():
         put(mm, fill)
         put(mm & rel.A, acc)
         put(mm & rel.L, "K")
-    # what is before her
+    return img
+
+
+def light_front():
+    """what is before her: the mist, the beam and its eaves, the lanterns. → RGBA, the fires' places"""
+    yy, xx = np.mgrid[0:H, 0:W]
     front = Image.new("RGBA", (W, H), (0, 0, 0, 0))
     fp = front.load()
+    inks = {k_: rgb(v) + (255,) for k_, v in bh.INKS["angel"].items()}
+    inks.update(y=rgb(L["yellow"]) + (255,), G=rgb(L["gold"]) + (255,), g=rgb(L["yellow"]) + (255,), b=rgb(L["byellow"]) + (255,))
+
+    def put(mask, ink):
+        for y, x in zip(*np.nonzero(mask), strict=True):
+            fp[int(x), int(y)] = inks[ink]
+
     bands = (((-40, 176, 130, 140), (-40, 208, 138, 149), (-40, 152, 147, 156)),                  # upper left
              ((470, 680, 128, 138), (432, 680, 136, 147), (500, 680, 145, 154)),                  # upper right
              ((-40, 150, 236, 245), (-40, 196, 243, 254), (-40, 120, 252, 260)),                  # lower left
@@ -896,23 +1005,33 @@ def light_scene():
         if i == len(bands) - 1:                 # (the words' field stays plain gold)
             paint[(yy >= 342) & (yy < 356) & (xx >= 230) & (xx < 410)] = "G"
         for ink in ("G", "g", "y"):
-            put(paint == ink, ink, fp)
-    # the beam: vermilion lacquer, the thunder key in gold, clouds and fire along it, its cornice
-    beam = yy < 46
-    put(beam, "R", fp)
-    put(yy < 2, "r", fp)
-    put(raimon(0, W, 3), "G", fp)
-    put((yy == 13) | (yy == 42), "r", fp)
-    put(yy == 14, "G", fp)
-    put((yy >= 43) & (yy < 45), "G", fp)
-    put(yy == 45, "K", fp)
-    fz = frieze(heaven=True)
-    band = (yy >= 16) & (yy < 42)
-    put(fz.M & band, "G", fp)
-    put(fz.M & fz.L & band, "r", fp)
+            put(paint == ink, ink)
+    # the beam: vermilion lacquer, seen from below: rafters' ends, the thunder key in gold, the war in gold, brackets
+    put(yy < 46, "R")
+    put(yy < 15, "r")
+    for i in range(-30, 31):
+        x = 320 + i * 11.5 + (i * abs(i) * 0.04)
+        x0, x1 = int(x - 4), int(x + 4)
+        if x1 >= 0 and x0 < W:
+            put((yy >= 1) & (yy < 12) & (xx >= x0) & (xx < x1), "R")
+            put((yy == 1) & (xx >= x0) & (xx < x1), "G")
+    put(raimon(0, W, 16), "G")
+    put((yy == 26) | (yy == 43), "r")
+    put(yy == 27, "G")
+    put((yy >= 44) & (yy < 46), "G")
+    fz = frieze(heaven=True, y=42)
+    band = (yy >= 28) & (yy < 43)
+    put(fz.M & band, "G")
+    put(fz.M & fz.L & band, "r")
+    br = np.zeros((H, W), bool)
+    for x in range(-20, W + 40, 44):
+        for dy, hw, h in ((46, 16, 4), (50, 11, 4), (54, 6, 4)):
+            br[dy:dy + h, max(x - hw, 0):max(min(x + hw, W), 0)] = True
+    put(br, "R")
+    put(dilate(br) & ~br & (yy >= 46), "K")
+    put(br & ~erode(br) & (yy < 60), "b")
     plaque_light(front)
-    fires = [lantern(front, lx) for lx in LAMP_X]
-    return img, front, fires
+    return front, [lantern(front, lx) for lx in LAMP_X]
 
 
 def gate_strip(ground, frames, at, front=None):
@@ -968,6 +1087,44 @@ def flames(layers, ember, fw=FW, fh=FH, lick=0.0):
     return strip
 
 
+def smoke(fw=26, fh=56, n=8):
+    """a torch's smoke: puffs of stippled grey rising and thinning, a loop of N frames: RGBA"""
+    strip = Image.new("RGBA", (fw * n, fh), (0, 0, 0, 0))
+    px = strip.load()
+    inks = [rgb(D["hi"]), rgb(D["art_umber"])]
+    for f in range(n):
+        for k in range(4):
+            t = (f / n + k / 4) % 1                     # 0 at the flame's tip, 1 where it is gone
+            cy = (fh - 1) * (1 - t)
+            cx = fw / 2 + 5 * math.sin(t * 7 + k * 2) * t
+            rad = 2 + 7 * t
+            for y in range(fh):
+                for x in range(fw):
+                    if (x + 0.5 - cx) ** 2 + (y + 0.5 - cy) ** 2 <= rad * rad and ((x * 3 + y * 5 + f + k) % (2 + int(t * 5))) == 0:
+                        px[f * fw + x, y] = inks[k % 2] + (255,)
+    return strip
+
+
+def flicker_strip(frames, base, box, keep_off):
+    """the moving light: each frame as what differs from the base scene, alpha elsewhere, cut to what
+    changes within BOX (x0 y0 x1 y1). KEEP_OFF (a mask): pixels never drawn: the flames', the figure's.
+    → the strip, the box it fills"""
+    bx0, by0, bx1, by1 = box
+    b = np.asarray(base.convert("RGB"), dtype=np.uint8)
+    cuts = [(np.asarray(fr.convert("RGB"), dtype=np.uint8), (np.asarray(fr.convert("RGB"), dtype=np.uint8) != b).any(-1) & ~keep_off) for fr in frames]
+    union = np.zeros((H, W), bool)
+    union[by0:by1, bx0:bx1] = True
+    union &= np.any([c for _, c in cuts], axis=0)
+    ys, xs = np.nonzero(union)
+    x0, x1, y0, y1 = int(xs.min()), int(xs.max()) + 1, int(ys.min()), int(ys.max()) + 1
+    w, h = x1 - x0, y1 - y0
+    strip = Image.new("RGBA", (w * len(frames), h), (0, 0, 0, 0))
+    for i, (a, changed) in enumerate(cuts):
+        rgba = np.dstack([a, np.where(changed, 255, 0).astype(np.uint8)])[y0:y1, x0:x1]
+        strip.paste(Image.fromarray(rgba, "RGBA"), (i * w, 0))
+    return strip, (x0, y0, x1, y1)
+
+
 def hexof(c):
     return "%02x%02x%02x" % c
 
@@ -980,7 +1137,7 @@ def rim_ink(img):
     return max(set(edge), key=edge.count)
 
 
-def placed(row, marks, plate, rim, words, gate, fires, frame):
+def placed(row, marks, plate, rim, words, gate, fires, frame, anims=(), sparks=None):
     """lock-scene.txt: where the module draws on the scene, in the scene's own pixels."""
     lines = ["# lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown",
              "# N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.",
@@ -995,6 +1152,9 @@ def placed(row, marks, plate, rim, words, gate, fires, frame):
               f"caret {hexof(marks[4])}   # a bar as tall as a mark at the next place, once a second",
               "plate {} {} {}   # what shakes at a wrong password: its middle, its radius".format(*plate),
               "words {} {}   # the line of words (what PAM says): the rows it is centred in".format(*words)]
+    lines += ["anim {} {} {} {} {} {} {}   # lock-NAME.png: a looped strip with alpha, a frame every MS".format(*a) for a in anims]
+    if sparks:
+        lines.append("sparks {} {} {} {}   # particles: how many, their young ink and their old".format(sparks[0], sparks[1], hexof(sparks[2]), hexof(sparks[3])))
     return "\n".join(lines) + "\n"
 
 
@@ -1010,10 +1170,23 @@ def marks_on(img, row, marks, n=6):
         pp[x, y] = core
 
 
-def write(mood, scene, strip, fire_, words):
+def figure_mask(frames, at):
+    """where the figure is, in any of its frames: what the moving light never draws over"""
+    m = np.zeros((H, W), bool)
+    for f in frames:
+        a = np.asarray(f)[..., 3] > 0
+        x, y = at
+        y1, x1 = min(y + a.shape[0], H), min(x + a.shape[1], W)
+        m[y:y1, x:x1] |= a[:y1 - y, :x1 - x]
+    return m
+
+
+def write(mood, scene, strip, fire_, words, anims):
     scene.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / mood / "lock-scene.png", optimize=True)
     strip.convert("P", palette=Image.ADAPTIVE, colors=64).save(OUT / mood / "lock-gate.png", optimize=True)
     fire_.save(OUT / mood / "lock-flame.png", optimize=True)
+    for name, im in anims.items():
+        im.save(OUT / mood / f"lock-{name}.png", optimize=True)
     (OUT / mood / "lock-scene.txt").write_text(words)
 
 
@@ -1025,22 +1198,62 @@ def main():
         (OUT / mood).mkdir(parents=True, exist_ok=True)
     first = 320 - (GATE_PITCH * (GATE_N - 1) + 1) // 2         # (the row's middle on the screen's)
     # dark
-    gate, strip, full = gate_strip(dark_scene(), oni_frames(), ONI_AT)
+    frames = oni_frames()
+    ground = dark_scene()
+    gate, strip, full = gate_strip(ground, frames, ONI_AT)
     dstrip = flames([(rgb(D["accent_lo"]), 1.00, 0.00), (rgb(D["accent"]), 0.80, 0.08), (rgb(D["flame"]), 0.60, 0.30), (rgb(D["strong"]), 0.36, 0.55)], rgb(D["flame"]), lick=1.1)
     row = (first, round((220 + 64) * 0.8) + ONI_AT[1])
     marks = (rgb(D["flame"]), rgb(D["strong"]), rgb(D["accent_lo"]), rgb(D["asagi"]), rgb(D["flame"]))
-    write("dark", full[-1], strip, dstrip, placed(row, marks, (320, 180, 120), rim_ink(full[-1]), (344, 354), gate, [(x - FW // 2, FLAME_TOP) for x in TORCH_X], (FW, FH)))
+    fires = [(x - FW // 2, FLAME_TOP) for x in TORCH_X]
+    # the light moving on the stones: the same ground by another reach of the torches, what differs
+    off = figure_mask(frames, ONI_AT)
+    for fx, fy in fires:
+        off[fy:fy + FH, fx:fx + FW] = True
+    grounds = [dark_scene(r) for r in FLICKER]
+    anims, strips = [], {}
+    for name, box, order in (("light-l", (0, 46, 214, 336), FLICKER), ("light-r", (426, 46, 640, 336), FLICKER[3:] + FLICKER[:3])):
+        pick = [grounds[FLICKER.index(r)] for r in order]
+        strips[name], (x0, y0, x1, y1) = flicker_strip(pick, full[-1], box, off)
+        anims.append((name, x0, y0, x1 - x0, y1 - y0, len(pick), FLICKER_MS))
+    smoke_strip = smoke()
+    for name, fx in (("smoke-l", fires[0][0]), ("smoke-r", fires[1][0])):
+        strips[name] = smoke_strip
+        anims.append((name, fx, FLAME_TOP - 40, 26, 56, 8, 170 if name.endswith("l") else 190))
+    write("dark", full[-1], strip, dstrip, placed(row, marks, (320, 180, 120), rim_ink(full[-1]), (344, 354), gate, fires, (FW, FH), anims,
+                                                  ("embers", 26, rgb(D["flame"]), rgb(D["accent_lo"]))), strips)
     # light
-    ground, front, fires = light_scene()
-    lgate, lstrip, lfull = gate_strip(ground, angel_frames(), ANGEL_AT, front)
+    lframes = angel_frames()
+    behind, front, lfires = light_ground(), *light_front()
+    def light_base(reach):
+        im = light_sky(reach).convert("RGBA")
+        im.alpha_composite(behind)
+        return im.convert("RGB")
+    lgate, lstrip, lfull = gate_strip(light_base(1.0), lframes, ANGEL_AT, front)
     fstrip = flames([(rgb(L["accent"]), 1.00, 0.00), (rgb(L["gold"]), 0.70, 0.30), (rgb(L["hi"]), 0.35, 0.60)], rgb(L["gold"]), *LAMP_FLAME)
     lrow = (first, round((288 + bh.TOP_ANGEL) * 0.82) + ANGEL_AT[1])
     lmarks = (rgb(L["strong"]), rgb(L["strong"]), rgb(L["lo"]), rgb(L["asagi"]), rgb(L["accent"]))
-    write("light", lfull[-1], lstrip, fstrip, placed(lrow, lmarks, (320, 176, 104), rim_ink(lfull[-1]), (344, 354), lgate, fires, LAMP_FLAME))
+    # the lanterns' light moving on the paper
+    loff = figure_mask(lframes, ANGEL_AT)
+    for fx, fy in lfires:
+        loff[fy:fy + LAMP_FLAME[1], fx:fx + LAMP_FLAME[0]] = True
+    fa = np.asarray(front)[..., 3] > 0
+    loff |= fa
+    lgrounds = []
+    for r in FLICKER:
+        im = light_base(r).convert("RGBA")
+        im.alpha_composite(front)
+        lgrounds.append(im.convert("RGB"))
+    lanims, lstrips = [], {}
+    for name, box, order in (("light-l", (0, 46, 214, 336), FLICKER), ("light-r", (426, 46, 640, 336), FLICKER[2:] + FLICKER[:2])):
+        pick = [lgrounds[FLICKER.index(r)] for r in order]
+        lstrips[name], (x0, y0, x1, y1) = flicker_strip(pick, lfull[-1], box, loff)
+        lanims.append((name, x0, y0, x1 - x0, y1 - y0, len(pick), FLICKER_MS + 40))
+    write("light", lfull[-1], lstrip, fstrip, placed(lrow, lmarks, (320, 176, 104), rim_ink(lfull[-1]), (344, 354), lgate, lfires, LAMP_FLAME, lanims,
+                                                     ("petals", 30, rgb(L["accent_hi"]), rgb(L["accent"]))), lstrips)
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
-        for mood, frames, st, r_, m_, spots, size in (("dark", full, dstrip, row, marks, [(x - FW // 2, FLAME_TOP) for x in TORCH_X], (FW, FH)),
-                                                      ("light", lfull, fstrip, lrow, lmarks, fires, LAMP_FLAME)):
+        for mood, frames, st, r_, m_, spots, size in (("dark", full, dstrip, row, marks, fires, (FW, FH)),
+                                                      ("light", lfull, fstrip, lrow, lmarks, lfires, LAMP_FLAME)):
             one = st.crop((0, 0, *size))
             shut, opened = frames[0].convert("RGBA"), frames[-1].convert("RGBA")
             for im in (shut, opened):

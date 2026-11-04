@@ -12,3 +12,6 @@ caps 00726a   # the arms while Caps Lock is on
 caret a84222   # a bar as tall as a mark at the next place, once a second
 plate 320 176 104   # what shakes at a wrong password: its middle, its radius
 words 344 354   # the line of words (what PAM says): the rows it is centred in
+anim light-l 0 46 214 255 6 220   # lock-NAME.png: a looped strip with alpha, a frame every MS
+anim light-r 426 46 214 255 6 220   # lock-NAME.png: a looped strip with alpha, a frame every MS
+sparks petals 30 cb6336 a84222   # particles: how many, their young ink and their old
