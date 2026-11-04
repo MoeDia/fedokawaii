@@ -117,10 +117,10 @@ def registry():
 def lane_git(name):
     d = HOME / "repos" / f"fk-{name}"
     def f():
-        last = sh("git", "-C", str(d), "log", "-1", "--format=%ad\t%s", "--date=format:%H:%M").strip()
-        ahead = sh("git", "-C", str(d), "rev-list", "--count", "main..HEAD").strip()
+        last = sh("git", "-C", str(d), "log", "-1", "--format=%ad\t%s", "--date=format:%H:%M", timeout=4).strip()
+        ahead = sh("git", "-C", str(d), "rev-list", "--count", "main..HEAD", timeout=4).strip()
         return {"last": last, "ahead": int(ahead) if ahead.isdigit() else 0}
-    return cached("git:" + name, 30, f)
+    return cached("git:" + name, 90, f)
 
 def lanes(units_now, agents_now):
     active = {u["unit"].removesuffix(".service") for u in units_now if u["active"] == "active"}
@@ -325,6 +325,24 @@ def state():
         "load": read("/proc/loadavg").split()[:3], "mem": memory(), "gpu": gpu(),
     }
 
+SNAP = {"data": None, "t": 0.0}
+def refresher():
+    while True:
+        t0 = time.time()
+        try:
+            SNAP["data"] = state(); SNAP["t"] = time.time()
+        except Exception as e:
+            SNAP["err"] = str(e)
+        time.sleep(max(3.0, 8.0 - (time.time() - t0)))
+threading.Thread(target=refresher, daemon=True).start()
+
+def snapshot():
+    for _ in range(40):                      # first request after a start: wait up to ~20 s for the first snapshot
+        if SNAP["data"] is not None:
+            d = dict(SNAP["data"]); d["age"] = round(time.time() - SNAP["t"], 1); return d
+        time.sleep(0.5)
+    raise RuntimeError(SNAP.get("err", "the PC is busy; the first snapshot is not ready yet"))
+
 # ---------------------------------------------------------------- actions
 def stop_all(lanes_too=False):
     for x in units():
@@ -459,7 +477,7 @@ class H(BaseHTTPRequestHandler):
             if not self.authed():
                 return self.send(401, {"error": "token"})
             try:
-                return self.send(200, state())
+                return self.send(200, snapshot())
             except Exception as e:                            # never a dead page: say what broke
                 return self.send(500, {"error": f"state: {e}"})
         self.send(404, {"error": "no"})

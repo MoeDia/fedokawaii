@@ -63,6 +63,7 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 </style></head><body>
 <div id="login" class="card" hidden><h2>Fedokawaii remote</h2><p class="sub">The token is in <b>~/.config/fedokawaii/remote-token</b> on the PC.</p>
 <input id="tok" type="password" placeholder="token"><div class="row" style="margin-top:8px"><button class="red" id="go">open</button></div><div class="msg" id="lmsg"></div></div>
+<div id="boot" class="card" style="max-width:520px;margin:15vh auto"><h2>Fedokawaii remote</h2><div id="bootmsg" class="sub">connecting to the PC…</div></div>
 <main id="app" hidden>
 <header><div class="top"><div class="seal">鬼</div><div><h1>FEDOKAWAII · REMOTE</h1><div class="sub" id="upd">…</div></div><span class="pill" id="conn">…</span><div class="grow"></div><button id="out" class="sm">forget token</button></div>
 <div class="tabs" id="tabs"><button data-t="ov">overview<span class="badge" id="b-ov"></span></button><button data-t="ds">design<span class="badge" id="b-ds"></span></button><button data-t="ib">inbox &amp; tasks</button><button data-t="lg">logs</button><button data-t="pl">plan</button></div></header>
@@ -124,7 +125,7 @@ async function api(p,b){const ctl=new AbortController();const to=setTimeout(()=>
  try{const r=await fetch(p,{method:b?"POST":"GET",headers:{"X-Token":T,"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined,cache:"no-store",signal:ctl.signal});
  if(r.status==401)throw new Error("token");const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||("HTTP "+r.status));return j}
  catch(e){throw e.name=="AbortError"?new Error("timed out"):e}finally{clearTimeout(to)}}
-function login(m){$("app").hidden=true;$("login").hidden=false;$("lmsg").textContent=m||""}
+function login(m){$("app").hidden=true;$("boot").hidden=true;$("login").hidden=false;$("lmsg").textContent=m||""}
 $("go").onclick=()=>{T=$("tok").value.trim();ls.set("fkr_tok",T);$("login").hidden=true;tick()};
 $("out").onclick=()=>{try{localStorage.removeItem("fkr_tok")}catch{}T="";login()};
 function tab(t){document.querySelectorAll(".tabs button").forEach(b=>b.classList.toggle("on",b.dataset.t==t));document.querySelectorAll(".pane").forEach(p=>p.classList.toggle("on",p.id=="p-"+t));ls.set("fkr_tab",t);
@@ -205,8 +206,8 @@ let LB=-1;function lbOpen(i){LB=i;const g=GAL.flat[i];if(!g)return;const item="n
 $("lbx").onclick=()=>{$("lb").hidden=true;LB=-1};$("lbp").onclick=()=>lbOpen(Math.max(0,LB-1));$("lbn").onclick=()=>lbOpen(Math.min(GAL.flat.length-1,LB+1));
 document.addEventListener("keydown",e=>{if(LB<0||e.target.tagName=="TEXTAREA")return;if(e.key=="Escape")$("lbx").onclick();if(e.key=="ArrowLeft")$("lbp").onclick();if(e.key=="ArrowRight")$("lbn").onclick()});
 async function tick(){if(!T)return login();if(busy)return;busy=true;try{const s=await api("/api/state");S=s;lastOk=Date.now();
-  $("banner").style.display="none";$("conn").className="pill ok";$("conn").textContent="live";$("login").hidden=true;$("app").hidden=false;render(s)}
- catch(e){if(e.message=="token"){busy=false;return login("wrong token")}$("conn").className="pill bad";$("conn").textContent="reconnecting";$("app").hidden=!S;
+  $("banner").style.display="none";$("boot").hidden=true;$("conn").className="pill ok";$("conn").textContent=s.age>30?"live · "+Math.round(s.age)+" s old":"live";$("login").hidden=true;$("app").hidden=false;render(s)}
+ catch(e){if(e.message=="token"){busy=false;return login("wrong token")}$("conn").className="pill bad";$("conn").textContent="reconnecting";$("app").hidden=!S;$("boot").hidden=!!S;$("bootmsg").textContent="The PC is not answering ("+e.message+"). Retrying every 8 s — while it is very busy or rebooting this can take a minute.";
   $("banner").style.display="block";$("banner").textContent="The PC is not answering ("+e.message+")"+(lastOk?" · last good update "+Math.round((Date.now()-lastOk)/1000)+" s ago":"")+". Retrying every 5 s — after a reboot it comes back by itself."}
  finally{busy=false}}
 async function post(b,ok){try{await api("/api/action",b);$("cmsg").textContent=ok;for(const k in keys)delete keys[k];tick();return true}catch(e){const m='<span class="err">'+esc(e.message)+"</span>";$("cmsg").innerHTML=m;$("tmsg").innerHTML=m;return false}}
