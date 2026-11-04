@@ -113,7 +113,11 @@ net_firewall_wrong() {
       [[ $have == "$want" ]] || echo "zone $z holds sources [$have], should be [$want]"
     fi
   done
-  [[ $(firewall-cmd --info-policy="$NET_POLICY" 2>/dev/null) == *"(active)"* ]] || echo "policy $NET_POLICY is not running"
+  # (allow-host-ipv6, firewalld's own: under a DROP target it alone lets neighbour discovery in, so
+  # IPv6 rests on it, and an update that renamed it would stop IPv6 with no error at all)
+  for z in "$NET_POLICY" allow-host-ipv6; do
+    [[ $(firewall-cmd --info-policy="$z" 2>/dev/null) == *"(active)"* ]] || echo "policy $z is not running"
+  done
   # (the card with the default route: a connection tied to another zone would skip all of it)
   while IFS= read -r i; do
     have=$(firewall-cmd --get-zone-of-interface="$i" 2>/dev/null) || have=none

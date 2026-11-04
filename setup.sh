@@ -2057,6 +2057,7 @@ SSHD_DROPIN=/etc/ssh/sshd_config.d/40-fedokawaii.conf
 # from the LAN alone (the firewall's list); no key, or SSH_SERVER=no: off. The rules stay either
 # way: an sshd someone starts by hand asks for keys too
 s_ssh() {
+  command -v sshd >/dev/null || { log "no sshd on this machine: nothing to set"; return 0; }
   printf '%s\n' "# $SSHD_DROPIN — fedokawaii: keys only" \
     "PasswordAuthentication no" "KbdInteractiveAuthentication no" "PermitRootLogin no" "X11Forwarding no" \
     | write_file "$SSHD_DROPIN" 0600

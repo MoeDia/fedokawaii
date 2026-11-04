@@ -2,7 +2,7 @@
 
 Branch `lane-network`, worktree `~/repos/fk-network`. Sudo + own VM (`fk-r27-net`, port 2295) allowed; no apply, no dwl restart, no reboot of the PC.
 
-lane-research2 had written nothing for T39 when this began ("T39 network: not started" in its notes), so the audit is this lane's own, from the installed programs, their man pages and measurements.
+lane-research2 had written nothing for T39 when this began ("T39 network: not started" in its notes), so the audit is this lane's own, from the installed programs, their man pages and measurements. Its digest came at 19:10 (`research-T39-network.md`, read here): it reached the same findings and withdrew its objection to DROP. One thing taken from it: `net_firewall_wrong` also checks firewalld's `allow-host-ipv6`, the policy IPv6 rests on under DROP.
 
 ## What was wrong (audit, 4 Nov 17:45, `ss -tulpn`, `firewall-cmd --list-all`)
 - The PC has a public IPv6 address (2001:8f8:…). Zone `public` opened ssh, mdns, 6881 and 53317 to all of it, so LocalSend and sshd were reachable from the whole internet over IPv6.

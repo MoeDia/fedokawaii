@@ -28,7 +28,10 @@ case " $* " in
   *" --get-default-zone "*) default ;;
   *" --set-default-zone="*) arg set-default-zone >"$FKH/fw-default" ;;
   *" --get-zone-of-interface="*) default ;;
-  *" --info-policy="*) p=$(arg info-policy); [[ -f $R/policies/$p.xml ]] || { echo "Error: INVALID_POLICY: $p" >&2; exit 154; }; echo "$p (active)" ;;
+  # (allow-host-ipv6: firewalld's own, there unless $FKH/no-allow-host-ipv6)
+  *" --info-policy="*) p=$(arg info-policy)
+    if [[ $p == allow-host-ipv6 && ! -f $FKH/no-allow-host-ipv6 ]] || [[ -f $R/policies/$p.xml ]]; then echo "$p (active)"
+    else echo "Error: INVALID_POLICY: $p" >&2; exit 154; fi ;;
   *" --list-all "*) list_all "$(arg zone || default)" ;;
 esac
 exit 0

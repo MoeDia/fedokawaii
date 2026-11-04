@@ -543,10 +543,11 @@ else warn "listening, not on the list: $(paste -sd' ' - <<<"$netw")" "the firewa
 if ssh_wanted; then
   check "sshd on (a key in authorized_keys), at every boot" bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
 else
-  check "sshd off (SSH_SERVER=$SSH_SERVER, $(grep -cE '^[^#[:space:]]' "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true) keys)" bash -c '! systemctl is-enabled --quiet sshd.service && ! systemctl is-active --quiet sshd.service'
+  check "sshd off (no key in authorized_keys, or SSH_SERVER=no)" bash -c '! systemctl is-enabled --quiet sshd.service && ! systemctl is-active --quiet sshd.service'
 fi
 # (any case: OpenSSH 10.5 — Fedora 45 — prints its keywords as written, "PermitRootLogin no")
-check "sshd: keys only, no root"                       bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
+command -v sshd >/dev/null \
+  && check "sshd: keys only, no root"                  bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
 
 # ── upstream binaries ────────────────────────────────────────────────────────
 section "upstream binaries (lib/upstream.sh)"

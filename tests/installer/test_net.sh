@@ -149,6 +149,8 @@ back built; sed -i '/10.0.0.0/d' "$FKH/fw-run/zones/kawa-lan.xml"
 V; eq "$RC" 3; has "$OUT" "✘  the firewall: zone kawa-lan holds sources"
 back built; rm -f "$FKH/fw-run/policies/kawa-no-upnp.xml"
 V; eq "$RC" 3; has "$OUT" "✘  the firewall: policy kawa-no-upnp is not running"
+back built; fkh no-allow-host-ipv6
+V; eq "$RC" 3; has "$OUT" "✘  the firewall: policy allow-host-ipv6 is not running"
 back built; echo FedoraServer >"$FKH/fw-default"
 V; eq "$RC" 3; has "$OUT" "✘  the firewall: the default zone is FedoraServer, not public"
 back built; sed -i 's/^LLMNR=no/LLMNR=yes/' "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf"
