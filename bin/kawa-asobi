@@ -37,12 +37,12 @@ state() {
 }
 notice() { notify-send -a asobi -- "${ICON_KOMA:-·}  asobi" "$1" 2>/dev/null; }
 # (a job of root's: the unit waited for, its outcome in $RUN/last — ok|fail TAB when TAB what)
-job() { systemctl start --quiet "kawa-asobi-op@$1.service" 2>/dev/null; }
+job() { systemctl start --no-ask-password --quiet "kawa-asobi-op@$1.service" 2>/dev/null; }
 start() {   # start UNIT
-  systemctl start --quiet --no-block "$1" || { notice "the world would not start: journalctl -t kawa-asobi"; return 1; }
+  systemctl start --no-ask-password --quiet --no-block "$1" || { notice "the world would not start: journalctl -t kawa-asobi"; return 1; }
 }
 front() {
-  busctl call --quiet org.freedesktop.login1 /org/freedesktop/login1/seat/seat0 \
+  busctl call --quiet --allow-interactive-authorization=no org.freedesktop.login1 /org/freedesktop/login1/seat/seat0 \
     org.freedesktop.login1.Seat SwitchTo u "$WORLD_VT" || { notice "the world would not come to the front"; return 1; }
 }
 enter() { if [[ $(state) == off ]]; then start "$STEAM_UNIT"; else front; fi; }
@@ -54,7 +54,7 @@ case ${1:-} in
          . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; enter; exit ;;
   bottles) # shellcheck source=/dev/null
          . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; bottles; exit ;;
-  close) systemctl stop --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; exit ;;
+  close) systemctl stop --no-ask-password --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; exit ;;
   state) state; exit 0 ;;
   --window) exec kawa-term --float --once asobi asobi 66x12 -- "$0" ;;
 esac
@@ -140,7 +140,7 @@ work() {   # work WORDS JOB
 snaps() {
   local out key name choice
   while :; do
-    systemctl start --quiet --no-block kawa-asobi-op@status.service 2>/dev/null
+    systemctl start --no-ask-password --quiet --no-block kawa-asobi-op@status.service 2>/dev/null
     out=$(pick snaps --expect=d --footer="$(screen_keys d delete "")") || return 0
     key=${out%%$'\n'*}; name=${out#*$'\n'}; name=${name%%$'\t'*}
     [[ -n $name ]] || continue
@@ -159,13 +159,13 @@ snaps() {
 }
 
 # How the world stands, asked in the background: the screen opens at once on the last count
-systemctl start --quiet --no-block kawa-asobi-op@status.service 2>/dev/null
+systemctl start --no-ask-password --quiet --no-block kawa-asobi-op@status.service 2>/dev/null
 while :; do
   out=$(pick main) || exit 0
   case ${out%%$'\t'*} in
     enter)    enter; exit ;;
     bottles)  bottles; exit ;;
-    close)    work "closing the world" status; systemctl stop --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; : >"$SAID" ;;
+    close)    work "closing the world" status; systemctl stop --no-ask-password --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; : >"$SAID" ;;
     snapshot) work "taking a snapshot" snapshot ;;
     reset)    : >"$SAID"; snaps; : >"$SAID" ;;
     disk)     work "counting" status; : >"$SAID" ;;

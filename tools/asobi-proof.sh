@@ -52,6 +52,11 @@ walls() {
   never "sudo, even outside the walls" runuser -u "$WHO" -- sudo -n true
   never "/home/$DESK, even outside the walls" runuser -u "$WHO" -- ls "$DESK_HOME"
   never "/etc/shadow"                  runuser -u "$WHO" -- cat /etc/shadow
+  echo "what the desktop's user may ask of root, and nothing more (no dialog can come: --no-ask-password)"
+  holds "a job of the world's"         runuser -u "$DESK" -- systemctl --no-ask-password start kawa-asobi-op@status.service
+  never "another unit: the watch"      runuser -u "$DESK" -- systemctl --no-ask-password start kawa-asobi-watch.service
+  never "another unit: polkit"         runuser -u "$DESK" -- systemctl --no-ask-password restart polkit.service
+  never "a job with a name of its own making" runuser -u "$DESK" -- systemctl --no-ask-password start 'kawa-asobi-op@reset:UP.service'
   world_up || return
   # what the desktop's user leaves where anyone could read it: world-readable, on purpose
   runuser -u "$DESK" -- bash -c "umask 022; echo secret >/tmp/$marker; echo secret >/dev/shm/$marker; echo secret >/var/tmp/$marker"
