@@ -151,7 +151,9 @@ prestart() {
   input_wall_up
   gamemode_card
   drop_fix
-  systemctl stop "${HELD[@]}" 2>/dev/null
+  # (those that run, and only those come back: one you switched off stays off)
+  local t; : >"$RUN/held"
+  for t in "${HELD[@]}"; do systemctl is-active --quiet "$t" && { printf '%s\n' "$t" >>"$RUN/held"; systemctl stop "$t" 2>/dev/null; }; done
   state starting
   date +%s >"$RUN/born"
   systemctl start --no-block kawa-asobi-watch.service
@@ -177,12 +179,12 @@ poststop() {
   # (the screen first, as the world's last act: the desktop back at once, the rest behind it)
   [[ $(front_vt) == "$WORLD_VT" ]] && chvt "$DESK_VT"
   gone || say "the world's processes would not end"   # (all of them, now: Bottles may start at once after Steam)
-  weight 100
   wall_down
   input_wall_down
   as_desk kawa-hush off game 2>/dev/null
   drop_fix
-  systemctl start "${HELD[@]}" 2>/dev/null
+  local t; while IFS= read -r t; do systemctl start "$t" 2>/dev/null; done 2>/dev/null <"$RUN/held"
+  rm -f "$RUN/held"
   state off
   systemctl stop --no-block kawa-asobi-watch.service
 }

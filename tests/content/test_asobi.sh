@@ -17,7 +17,7 @@ world() {   # a fresh home and a stand-in world: run folder, drop folder, status
   echo tty1 >"$KAWA_ASOBI_TTY0"
   printf 'world\t2200000000\t14300000000\nsnap\tclean\t1793800000\t52000000\t6200000000\nsnap\t20261104-1830\t1793810000\t310000000\t14300000000\nfree\t764000000000\n' >"$KAWA_ASOBI_RUN/status"
   # (is-active: the world runs only when the test says so; everything else: logged, done)
-  stub systemctl 'case "$*" in *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
+  stub systemctl 'case "$*" in *is-active*.timer) exit 0 ;; *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
   stub busctl; stub notify-send; stub loginctl; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
   stub runuser; stub pgrep 'exit 1'; stub ionice 'shift 2; exec "$@"'
   stub btrfs '
@@ -133,6 +133,9 @@ has "$n" 'socket cgroupv2 level 2 != "user.slice/user-'; has "$n" 'th dport 53 a
 has "$n" '10.0.0.0/8'; has "$n" '192.168.0.0/16'; has "$n" 'fc00::/7'
 called '^systemctl start user@'; called '^systemctl stop snapper-timeline.timer'
 eq "$(cat "$KAWA_ASOBI_RUN/state")" starting
+case_ "prestart: a timer you switched off is not touched, and does not come back"
+stub systemctl 'case "$*" in *is-active*fstrim*) exit 1 ;; *is-active*.timer) exit 0 ;; *is-active*) exit 1 ;; esac; exit 0'
+reset_calls; root prestart; not_called '^systemctl stop fstrim'; has "$(cat "$KAWA_ASOBI_RUN/held")" snapper-timeline; lacks "$(cat "$KAWA_ASOBI_RUN/held")" fstrim
 case_ "prestart: the wall will not load: the world stays closed, and says why"
 stub nft 'exit 1'; root prestart; eq "$RC" 1; has "$(cat "$KAWA_ASOBI_RUN/last")" "stays closed"
 case_ "prestart: no world (a subvolume missing): no start"
@@ -143,6 +146,7 @@ case_ "close: thawed, then closed from the world's own manager, as its user"
 echo 1 >"$APP/cgroup.freeze"; reset_calls; root close; eq "$RC" 0 "$OUT"
 eq "$(cat "$APP/cgroup.freeze")" 0 "thawed first"; called '^runuser -u asobi .*systemctl --user stop kawa-asobi-world.service'
 case_ "poststop: the screen back only when the world had it; walls down; every process gone; jobs back; off"
+echo snapper-timeline.timer >"$KAWA_ASOBI_RUN/held"
 echo tty8 >"$KAWA_ASOBI_TTY0"; reset_calls; root poststop; eq "$RC" 0 "$OUT"
 called '^chvt 1$'; called '^nft delete table inet kawa_asobi'; called '^loginctl terminate-user asobi'
 called '^systemctl start snapper-timeline.timer'; eq "$(cat "$KAWA_ASOBI_RUN/state")" off
