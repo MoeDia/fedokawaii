@@ -44,7 +44,7 @@ ss -ltn "sport = :$port" 2>/dev/null | grep -q LISTEN && cannot "port $port is t
 
 copy=""
 if ! git -C "$root" rev-parse --is-inside-work-tree >/dev/null 2>&1; then
-  copy=$(mktemp -d) || cannot "no room for a copy of the toolkit"
+  mkdir -p "$HOME/.cache"; copy=$(mktemp -d -p "$HOME/.cache") || cannot "no room for a copy of the toolkit"
   cp -a "$root/." "$copy/" && git -C "$copy" init -q && git -C "$copy" add -A || cannot "the copy of the toolkit could not be made"
   root=$copy here=$copy/tools
 fi
@@ -75,7 +75,7 @@ if ((rc != 0)); then
   red "${why[@]:-the install stopped, with no reason written}"
 fi
 say "Fedora $n: what a new Fedora brings, checked"
-mapfile -t why < <(FK_CHECKS_OUT=$(mktemp -d) bash "$here/vm-inject/f45-checks.sh" "$name" "$root" 2>&1 | sed -n 's/^red *//p')
+co=$(mktemp -d); mapfile -t why < <(FK_CHECKS_OUT=$co bash "$here/vm-inject/f45-checks.sh" "$name" "$root" 2>&1 | sed -n 's/^red *//p'); rm -rf -- "$co"
 ((${#why[@]} == 0)) || red "${why[@]}"
 say "Fedora $n: green"
 exit 0

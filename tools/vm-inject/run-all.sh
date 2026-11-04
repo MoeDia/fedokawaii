@@ -206,7 +206,7 @@ snapper_broken() {
 rpmdb_damage() {
   from rpmdb-damage || return 1; pk fk-inject-a 1.1
   # (a page of rpm's database overwritten, as a bad sector or a crash in the wrong place leaves it)
-  run 'sudo sh -c "dd if=/dev/urandom of=/var/lib/rpm/rpmdb.sqlite bs=4096 seek=200 count=8 conv=notrunc 2>/dev/null; rm -f /var/lib/rpm/rpmdb.sqlite-wal /var/lib/rpm/rpmdb.sqlite-shm"; sync' >>"$log" 2>&1
+  run 'sudo sh -c "dd if=/dev/urandom of=/usr/lib/sysimage/rpm/rpmdb.sqlite bs=4096 seek=200 count=8 conv=notrunc 2>/dev/null; rm -f /usr/lib/sysimage/rpm/rpmdb.sqlite-wal /usr/lib/sysimage/rpm/rpmdb.sqlite-shm"; sync' >>"$log" 2>&1
   press
   ok_if 'said "rpm" && rpm -qa >/dev/null' "rpm's database damaged: exit $INJ_RC: $(grep -m1 "rpm's database" <<<"$INJ_OUT"): $(report)"
 }

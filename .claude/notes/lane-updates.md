@@ -15,6 +15,8 @@ For the final ISO (T56/T54b): tag the commit it is built from `vYYYY.MM.DD` and 
 
 The Learn book (T50, chapter 8 rewritten from what is built; sections 8.4, 8.5, 8.6 are new): after merging lane-learning, add to docs/learn/syllabus.txt under `chapter 8 upkeep`, after `snapshots-report | … | 2 3`: `update-button | the update button, from A to Z | 4` and `undo-and-copies | snapshots, backups and the notices | 5 6`, then `python3 tools/learn-pieces.py` (a section in no lesson stops the cut). docs/build/render/apps.sh line 822 captures `system-upgrade`, a row that is gone (T63, the PDF).
 
+T62 (round tooling never ships): the button uses tools/vm-preflight.sh, vm-create.sh, vm-smoke.sh, vm-run.sh, vm-snap.sh and vm-inject/f45-checks.sh, and PKG_VIRT in the manifest (virt-install, libvirt, passt, edk2-ovmf …), on the installed machine, for every new Fedora: they stay in the product, whatever else of tools/ goes; lib/guard's fedokawaii-update-resume and the toolkit's tests/installer (the button's check of a new release) too.
+
 ## Open questions
 none
 
