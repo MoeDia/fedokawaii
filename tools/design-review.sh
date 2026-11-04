@@ -194,3 +194,16 @@ print(f"design-review: {n - len(missing)} pages → {cur}")
 sys.exit(1 if missing else 0)
 PY
 cp "$here/design-review-questions.md" "$cur/questions.md"
+# the motion (a kit recording each, the slowest part: only with --fresh or when none is there), the lanes' pages
+[[ -s $W/motion/00-windows.webp ]] || bash "$here/motion-review.sh" "$W/motion" 00 "${kit[@]}" || exit 2
+for m in windows workspaces menus; do cp "$W/motion/00-$m.webp" "$cur/00-motion-$m.webp"; done
+cat >"$cur/00-motion-windows.md" <<'EOF'
+Motion. Real speed, then a third of it. A window rises from 120 px below its place on a spring, growing, and settles; closing, it sinks away, fading. Windows making room flow to their places.
+EOF
+cat >"$cur/00-motion-workspaces.md" <<'EOF'
+Motion. Real speed, then a third of it. Both workspaces flow on one strip, the lacquer rail between them, a wave through the windows: left to a higher workspace, right to a lower one.
+EOF
+cat >"$cur/00-motion-menus.md" <<'EOF'
+Motion. Real speed, then a third of it. Every menu and popup unrolls behind a scroll's rod, as Super+U and Super+N do, and rolls up closing.
+EOF
+bash "$here/review-gather.sh"
