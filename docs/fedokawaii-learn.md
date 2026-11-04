@@ -697,11 +697,11 @@ the clipboard in turn.
 
 ## 7.1 The launcher
 
-**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `ste` for Steam, `syn` for
+**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `as` for ASOBI, `syn` for
 Syncplay — and **Enter**. The programs you start most rise to the top. **Shift+Delete** makes one
 forget its rank.
 
-Each entry has its icon: a window program shows its own (Brave, Steam, LibreOffice); every other
+Each entry has its icon: a window program shows its own (Brave, LibreOffice); every other
 entry — the terminal programs, the pages in Brave — one of the desktop's own **pixel icons**, in
 the theme's red: a terminal for Terminal, a pair of brackets for the Editor, a folder for Files,
 a branch for Git, a page for Notes, a clipboard, a calculator, a wrench for the file tools, a
@@ -727,7 +727,7 @@ before, **Ctrl+U** clears, **Esc** closes.
 
 ## 7.3 The downloads centre
 
-Anything that downloads — Brave, Steam, a torrent — shows in the bar's download mark as one
+Anything that downloads — Brave, a torrent — shows in the bar's download mark as one
 percent. Click it for the list: each download with its source, size and progress; a click opens
 where it lands. A notice says when each one finishes.
 
@@ -1290,25 +1290,48 @@ every request a page makes — the fastest way to learn how a website talks to i
 **17.2 ★★ Look inside.** On any page, **F12** → *Network*, reload: which request is the
 largest?
 
-# 18. Steam: games
+# 18. ASOBI: the play world
 
-**Best at:** Windows games on Linux through Proton. The gamepad in the bar shows Steam is on;
-right-click it for its menu.
+**Best at:** playing, with nothing of yours in reach. ASOBI (遊び, *play*) is a second user on this
+machine, `asobi`, on a screen of its own. Every game lives there: Steam, Proton, your saves, and
+Bottles for other Windows programs, each in its Flatpak sandbox on top. It cannot read your home, it
+cannot use `sudo`, it reaches the Internet and nothing of this house.
 
-| Launch option (right-click a game → Properties) | Does |
+**Super+G** goes in. The world starts on demand: gamescope takes the card, at your monitor's 1080p and
+144 Hz with FreeSync, and shows Steam's gamepad UI; your controller and your sound follow you there.
+**Super+G** in there comes back, and your desktop never stopped. Behind the desktop a game is frozen
+exactly where it was and costs nothing but its memory; Steam alone goes on working, so a download
+finishes. Steam's own **Exit to desktop** ends the world. The first time, Steam asks you to sign in:
+yours to do, nothing here stores it.
+
+Everything else is one small window: Super+U → system → **asobi**.
+
+| Row | Does |
 |---|---|
-| `gamemoderun %command%` | the processor tuned for the game |
-| `mangohud %command%` | the overlay: frames per second, temperatures (**Right Shift+F12**) |
-| `gamescope -W 2560 -H 1440 -r 144 -f -- %command%` | the game in its own compositor, fixed size and rate |
+| enter | the same as Super+G |
+| bottles | the world with Bottles in front instead of Steam (one at a time: Steam closes first) |
+| close | the world ended: Steam closes properly, its saves go to its cloud |
+| snapshot now | the world as it is, kept: it costs no room until the world changes |
+| reset to a snapshot | the world exactly as it was then; what it replaced stays as `before-reset` |
+| disk use | what the world holds, and what is free |
+| drop folder | `~/Drop`: the one folder you share. Put a file there, the world finds it there |
 
-If a game will not start: Properties → Compatibility → force a Proton version (GE-Proton is
-installed). ProtonDB (`protondb.com`) lists what others did for each game.
+The snapshot called **clean** is the world as it was installed, and it never goes: whatever a Windows
+program did in there, a reset ends it. These are not your system's snapshots (Super+U → snapshots) and
+not your backups: the world's home is left out of both, games come again from Steam.
+
+If a game will not start: in Steam's game page, the gear → Properties → Compatibility → force a Proton
+version. ProtonDB (`protondb.com`) lists what others did for each game.
 
 ### Exercises
 
-**18.1 ★ The overlay.** Add `mangohud %command%` to a game and find its frame rate.
+**18.1 ★ In and out.** Press Super+G, wait for Steam, press it again. Run `kawa-asobi state` on the
+desktop: what does it say, and what does it say with a game running?
 
-**18.2 ★★ Compare.** Play a minute with and without `gamemoderun` and compare the frame rate.
+**18.2 ★★ The one door.** Put a text file in `~/Drop`. In Bottles, open it with Notepad. Now try
+to find your home from there.
+
+**18.3 ★★ Undo a world.** Take a snapshot, install something small in Bottles, then reset. Is it gone?
 
 # 19. torrra: torrents
 

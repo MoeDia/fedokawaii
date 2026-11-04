@@ -56,7 +56,7 @@ case ${1:-} in
          . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; bottles; exit ;;
   close) systemctl stop --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; exit ;;
   state) state; exit 0 ;;
-  --window) exec kawa-term --float --once asobi asobi 66x14 -- "$0" ;;
+  --window) exec kawa-term --float --once asobi asobi 66x12 -- "$0" ;;
 esac
 
 # shellcheck source=/dev/null
@@ -65,7 +65,7 @@ esac
 . "$HOME/.config/fedokawaii/screen.sh"
 SAID=${XDG_RUNTIME_DIR:-/tmp}/kawa-asobi.said    # what the last job came to, under the heading
 
-size() { [[ ${1:-} =~ ^[0-9]+$ ]] && numfmt --to=si --suffix=B --format=%.0f "$1" | sed -E 's/([0-9])([kKMGT]?B)$/\1 \2/' || printf 'counting'; }
+size() { [[ ${1:-} =~ ^[0-9]+$ ]] && numfmt --to=si --suffix=B --round=nearest --format=%.0f "$1" | sed -E 's/([0-9])([kKMGT]?B)$/\1 \2/' || printf 'counting'; }
 # the status root's job wrote: world EXCL TOTAL · snap NAME BORN EXCL TOTAL · free BYTES
 status_lines() { cat -- "$RUN/status" 2>/dev/null; }
 snaps_count() { local n=0 k _; while IFS=$'\t' read -r k _; do [[ $k == snap ]] && ((n++)); done < <(status_lines); echo "$n"; }
@@ -87,7 +87,7 @@ rows() {   # rows main|snaps W — WHAT<TAB>ROW a line
   if [[ $1 == main ]]; then
     s=$(state)
     printf '%s\t%s\n' enter "$(screen_row "$ICON_TORII_SMALL" enter "$(state_word "$s")" "$w")"
-    printf '%s\t%s\n' bottles "$(screen_row "$ICON_UNPACK" bottles "" "$w")"
+    printf '%s\t%s\n' bottles "$(screen_row "$ICON_TOKKURI" bottles "" "$w")"
     [[ $s != off ]] && printf '%s\t%s\n' close "$(screen_row "$ICON_DOOR" close "" "$w")"
     printf '%s\t%s\n' snapshot "$(screen_row "$ICON_CAMERA" "snapshot now" "" "$w")"
     printf '%s\t%s\n' reset "$(screen_row "$ICON_UNDO" "reset to a snapshot" "$(snaps_count)" "$w")"

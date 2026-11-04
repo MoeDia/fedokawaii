@@ -21,11 +21,12 @@
 #       status                     how the world stands, /run/kawa-asobi/status for the app
 # Exit status: 0 done · 1 could not (the reason in the journal and in `last`) · 2 misuse.
 set -u
-export LC_ALL=C.UTF-8 PATH=/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
+export LC_ALL=C.UTF-8 PATH=${KAWA_ASOBI_TEST_PATH:-/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin}   # (the tests' stand-ins)
 WORLD=${KAWA_ASOBI_WORLD:-/home/asobi}        # its home: a Btrfs subvolume of its own
 ROOT=${KAWA_ASOBI_ROOT:-/home/.asobi}         # beside it: snapshots/ (root's) and drop/ (shared)
 SNAPS=$ROOT/snapshots DROP=$ROOT/drop
 RUN=${KAWA_ASOBI_RUN:-/run/kawa-asobi}
+TTY0=${KAWA_ASOBI_TTY0:-/sys/class/tty/tty0/active}
 WHO=asobi DESK_VT=1 WORLD_VT=8 UNITS=(kawa-asobi.service kawa-asobi-bottles.service)
 # the background jobs that wait while a world runs (as game mode always had them)
 HELD=(snapper-timeline.timer snapper-cleanup.timer fedokawaii-scrub.timer fstrim.timer fedokawaii-kernels.timer)
@@ -36,7 +37,7 @@ fail() { say "$*"; done_as fail "$*"; exit 1; }
 state() { mkdir -p "$RUN"; printf '%s\n' "$1" >"$RUN/state.$$" && mv -f "$RUN/state.$$" "$RUN/state"; chmod 0644 "$RUN/state"; }
 
 uid() { id -u "$WHO"; }
-front_vt() { local a; a=$(cat /sys/class/tty/tty0/active 2>/dev/null); printf '%s\n' "${a#tty}"; }
+front_vt() { local a; a=$(cat "$TTY0" 2>/dev/null); printf '%s\n' "${a#tty}"; }
 user_ctl() { systemctl --machine="$WHO@.host" --user --quiet "$@"; }
 
 # ── the network's wall ───────────────────────────────────────────────────────────────────────
@@ -89,7 +90,7 @@ as_desk() {
     "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$u/bus" "PATH=$(getent passwd "$d" | cut -d: -f6)/.local/bin:/usr/local/bin:/usr/bin" "$@"
 }
 in_front() {
-  [[ -n $INHIBIT ]] || { systemd-inhibit --what=idle --who=asobi --why="the play world is in front" sleep infinity & INHIBIT=$!; }
+  [[ -n $INHIBIT ]] || { systemd-inhibit --what=idle --who=asobi --why="the play world is in front" sleep infinity >/dev/null 2>&1 & INHIBIT=$!; }
   as_desk kawa-hush on game 2>/dev/null
 }
 behind() {
@@ -164,10 +165,10 @@ poststop() {
 watch() {   # the VT in front: read at each change (the kernel's poll on tty0's active)
   python3 -I -c '
 import select, sys
-f = open("/sys/class/tty/tty0/active"); p = select.poll(); p.register(f, select.POLLPRI | select.POLLERR)
+f = open(sys.argv[1]); p = select.poll(); p.register(f, select.POLLPRI | select.POLLERR)
 while True:
     f.seek(0); print(f.read().strip(), flush=True); p.poll()
-' | while read -r t; do
+' "$TTY0" | while read -r t; do
     if [[ $t == "tty$WORLD_VT" ]]; then
       thaw; state front; in_front
     else

@@ -66,12 +66,13 @@ asobi_system() {
   write_file /etc/xkb/symbols/kawa-asobi <"$s/xkb-symbols"
   write_file /etc/xkb/types/kawa-asobi <"$s/xkb-types"
   write_file /etc/gamemode.ini <"$s/gamemode.ini"
+  write_file /etc/xdg-desktop-portal/gamescope-portals.conf <"$s/portals.conf"
   sed "s/ASOBI_UID/$u/g" "$s/walls.conf" | write_file "/etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf"
   write_file /etc/systemd/user/kawa-asobi-world.service <"$s/kawa-asobi-world.service"
   printf 'hz=%s\n' "${MONITOR_HZ:-144}" | write_file /etc/fedokawaii/asobi.conf
   systemctl mask --quiet flatpak-add-fedora-repos.service   # (the package's own: no system-wide remote, ever)
   restorecon -R /etc/systemd/system/kawa-asobi* "/etc/systemd/system/user@$u.service.d" /etc/pam.d/kawa-asobi \
-    /etc/polkit-1/rules.d/60-kawa-asobi.rules /etc/xkb /etc/gamemode.ini /etc/fedokawaii/asobi.conf \
+    /etc/polkit-1/rules.d/60-kawa-asobi.rules /etc/xkb /etc/gamemode.ini /etc/fedokawaii/asobi.conf /etc/xdg-desktop-portal/gamescope-portals.conf \
     /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session /usr/local/bin/kawa-asobi-world \
     /etc/systemd/user/kawa-asobi-world.service 2>/dev/null || true
   systemctl daemon-reload
