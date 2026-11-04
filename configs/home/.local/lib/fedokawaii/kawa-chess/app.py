@@ -1,4 +1,5 @@
 """kawa-chess: the loop. One thread, nothing polled: keys, the engine's lines and timers wake it."""
+import fcntl
 import os
 import re
 import selectors
@@ -11,7 +12,7 @@ from art import Art, BoardView, MARGIN
 from engine import Engine
 from store import Store
 from term import MUTED, ON_SELECT, SELECT, Term, Wakeups
-from ui import Face, Layout, load_icons, wrap
+from ui import Face, Layout, load_icons, span_len, wrap
 
 HOME = os.path.expanduser("~")
 DATA = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local/share"), "fedokawaii/chess")
@@ -145,6 +146,7 @@ class App:
         self.quit = False
         self.focused = True
         self.rows_at = {}            # panel row on the screen → index in the screen's panel lines
+        self.tracing = bool(os.environ.get("KAWA_CHESS_TRACE"))
         self.pic_key = None          # the picture shown in the board's place, if any
         self.face_at = None          # the face in the panel: (name, row, column, mood)
         self.face_rows = set()
@@ -281,6 +283,8 @@ class App:
                         spans = [" ", *spans, " "]
                     t.text(row, lay.pc - 1, spans, lay.pw + 2)
                     continue
+                if self.tracing and span_len(ln) > lay.pw:
+                    self.trace("cut", type(s).__name__, lay.pw, "".join(x if isinstance(x, str) else x[0] for x in ln))
                 t.text(row, lay.pc - 1, [" ", *ln], lay.pw + 2)
             else:
                 t.text(row, lay.pc - 1, [], lay.pw + 2)
@@ -547,6 +551,14 @@ def main(argv):
     if not (os.isatty(0) and os.isatty(1)):
         print("kawa-chess: run it in a terminal (or with --window)", file=sys.stderr)
         return 2
+    os.makedirs(STATE, exist_ok=True)
+    lock = os.open(os.path.join(STATE, "lock"), os.O_CREAT | os.O_RDWR, 0o600)
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except OSError:                  # (one sitting at a time: two would write over each other's progress)
+        print("\n  chess is already open in another window")
+        time.sleep(2)
+        return 0
     load_icons(os.path.join(CONFIG, "icons.sh"))
     app = App()
     from home import Home

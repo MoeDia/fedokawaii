@@ -112,7 +112,8 @@ class Fuzz:
         t.pump(self.rng.choice((0.0, 0.0, 0.01, 0.03, 0.1)))
         self.check()
         if not t.alive() and t.status not in (0,):
-            if t.status not in (-9, -15, -2, -1, 137, 143):   # (killed by the fuzz; or its Ctrl+C just before or after the raw screen)
+            # (killed by the fuzz; or a control key of its own in the instant before the tty is raw: Ctrl+C, Ctrl+\\)
+            if t.status not in (-9, -15, -3, -2, -1, 137, 143):
                 self.fail.append(f"died by itself: status {t.status}\n" + t.screen()[:400])
             self.start_app()
         elif not t.alive():
@@ -133,6 +134,10 @@ class Fuzz:
 
     def restart(self, how):
         t = self.t
+        try:
+            os.kill(t.pid, signal.SIGCONT)   # (stopped by a Ctrl+Z of the fuzz before the tty was raw)
+        except ProcessLookupError:
+            pass
         if how == "kill":
             os.kill(t.pid, signal.SIGKILL)
         elif how == "term":

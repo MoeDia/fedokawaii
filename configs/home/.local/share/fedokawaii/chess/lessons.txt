@@ -420,6 +420,7 @@ a rook cannot make a small box alone: your king helps all the way. cut him off w
 kings face each other with one square between: that is the moment to check.
 ---
 @fen 3k4/8/4K3/8/8/8/8/7R w - - 0 1
+@any
 @try Rg1 Rf1 Rh2 Rh3 Rh4 Rh5 | not a check yet: he would step out. a quiet rook move along the file, staying far away.
 not opposite yet. a waiting move with the rook: he must move, and whichever way he goes, you are closer.
 ---

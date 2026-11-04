@@ -8,8 +8,8 @@ import board as B
 from app import Screen
 from engine import analysis_request
 from play import MoveInput, board_marks, hand_line, moves_rows
-from term import ACCENT_TEXT, MUTED, STRONG
-from ui import Row, heading, icon, meter, wrap
+from term import ACCENT, ACCENT_TEXT, MUTED, STRONG
+from ui import Row, heading, icon, meter, window, wrap
 
 # Expected-points loss → a word, the steps of chess.com's own classification
 CLASSES = ((0.20, "blunder"), (0.10, "mistake"), (0.05, "inaccuracy"), (0.02, "good"), (0.0, "excellent"))
@@ -316,6 +316,7 @@ class Review(Screen):
         self.flipped = me == B.BLACK
         self.cursor = None
         self.judged = ""
+        self.top = 0
         if saved:
             self.phase = "summary"
 
@@ -358,6 +359,7 @@ class Review(Screen):
 
     def _enter_moment(self):
         m = self._moment()
+        self.top = 0
         self.step = "find"
         self.tries = 0
         self.note = ""
@@ -380,6 +382,7 @@ class Review(Screen):
 
     def _to_summary(self):
         self.phase = "summary"
+        self.top = 0
         s = self.scored
         counts = {}
         for x in s:
@@ -444,9 +447,9 @@ class Review(Screen):
             out += ["", [(no + " ", MUTED), (san, STRONG)], ""]
             out += [[(s, MUTED)] for s in wrap("left and right walk the game, enter chooses, esc skips.", w)]
             return out
-        if self.phase == "moment":
-            return out + self._moment_lines(w, h - 2)
-        return out + self._summary_lines(w, h - 2)
+        body = self._moment_lines(w, h - 2) if self.phase == "moment" else self._summary_lines(w, h - 2)
+        shown, self.top = window(body, self.top, h - 2)
+        return out + shown
 
     def _moment_lines(self, w, h):
         m = self._moment()
@@ -457,7 +460,8 @@ class Review(Screen):
         lines = [[(f"moment {self.mi + 1} of {len(self.moments)}", MUTED)], ""]
         if self.judged and self.mi == 0:
             lines += [[(s, MUTED)] for s in wrap(self.judged, w)] + [""]
-        lines += [[f"{no}{dots} you played ", (played, STRONG), f": a {m['class']}."]] if len(f"{no}{dots} you played {played}: a {m['class']}.") <= w else [[(s, None)] for s in wrap(f"{no}{dots} you played {played}: a {m['class']}.", w)]
+        said = f"{no}{dots} you played {played}: a {m['class']}."
+        lines += [[f"{no}{dots} you played ", (played, STRONG), f": a {m['class']}."]] if len(said) <= w else [[(s, None)] for s in wrap(said, w)]
         lines.append("")
         if self.step == "find":
             lines += [[(s, None)] for s in wrap("find a better move.", w)]
@@ -471,7 +475,7 @@ class Review(Screen):
         if self.result_word == "found":
             lines.append([(icon("CHECK"), ACCENT_TEXT), "  ", word])
         else:
-            lines.append([word + " ", (best, STRONG)] if self.result_word != "close" else [word])
+            lines.append([word + " ", (best, STRONG)])
         lines.append("")
         lines += [[(s, None)] for s in wrap(self.expl, w)]
         lines.append("")
@@ -499,13 +503,21 @@ class Review(Screen):
                  Row("CROSS", "inaccuracies", c.get("inaccuracy", 0))]
         goal = s.get("goal")
         if goal:
-            lines += ["", [(icon("CHECK" if goal["ok"] else "CROSS"), ACCENT_TEXT), "  ", *[(t, None) for t in wrap(goal["text"], w - 3)[:1]]]]
+            words = wrap(goal["text"], w - 3)
+            lines += ["", [(icon("CHECK" if goal["ok"] else "CROSS"), ACCENT_TEXT), "  ", words[0]]]
+            lines += [["   ", more] for more in words[1:]]
         lines += ["", [("one thing to remember:", MUTED)], ""]
-        lines += [[(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  ", (self.take[-(w - 3):], STRONG)]]
+        lines += [[(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  ", (self.take[-(w - 4):], STRONG), (" ", None, ACCENT)]]
         return lines
 
     # ── keys ────────────────────────────────────────────────────────────────────────────────
+    def wheel(self, d):
+        self.top = max(0, self.top + d)
+
     def key(self, name):
+        if name in ("pageup", "pagedown"):
+            self.top = max(0, self.top + (5 if name == "pagedown" else -5))
+            return
         if self.phase == "reading":
             if name == "esc":
                 self.done_cb = None     # (nothing has been reviewed: it stays on the plan)

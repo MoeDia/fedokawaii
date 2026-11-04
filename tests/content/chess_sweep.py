@@ -59,7 +59,12 @@ def main(argv):
                         t = open_app(env, cols, rows, mood=mood)
                         enter(t, path)
                 t.close()
-    print(f"{n} keys, no crash")
+    trace = root / "trace"
+    cut = sorted({ln for ln in (trace.read_text().splitlines() if trace.exists() else []) if ln.startswith("cut\t")})
+    if cut:
+        print("words cut at the panel's edge:\n" + "\n".join(cut[:30]))
+        return 1
+    print(f"{n} keys, no crash, nothing cut")
     return 0
 
 

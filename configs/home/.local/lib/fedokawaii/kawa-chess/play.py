@@ -9,7 +9,7 @@ import time
 import board as B
 from app import Screen
 from engine import analysis_request, choose_weak, play_request
-from term import ACCENT_TEXT, FAINT, MUTED, STRONG
+from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG
 from ui import Face, Row, heading, icon, wrap
 
 ALLOWED = set("abcdefghABCDEFGHxXNRQKnrqkO0o-=+#12345678")
@@ -66,6 +66,9 @@ class MoveInput:
                 continue
             self.cursor = None
             self.picked = None
+            if self.bad:            # (what follows a wrong key stays wrong until it is taken back: Kf3 is never f3)
+                self.bad += ch
+                continue
             found, _ = B.matching(self.pos, self.typed + ch, self.names)
             if found:
                 self.typed += ch
@@ -87,6 +90,8 @@ class MoveInput:
                 if m >> 12 == B.QUEEN:
                     self.clear()
                     return m
+            return None
+        if self.bad:                # (the line says "no such move": Enter plays nothing the eye does not see)
             return None
         if self.typed:
             found, exact = B.matching(self.pos, self.typed, self.names)
@@ -205,17 +210,19 @@ def moves_rows(g, w, room, mark):
     return rows[top:top + room]
 
 
-def hand_line(hand, idle=""):
-    """The input line: the chevron, then what is typed, or why it is no move, or what is asked."""
+def hand_line(hand, caret=True):
+    """The input line: the chevron, then what is typed, or why it is no move, or what is asked. The caret, a block of
+    the seal's ink as foot's own cursor is, says whose move it is."""
     line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
     if hand.promo:
         line.append(("queen, rook, bishop or knight: q r b n", MUTED))
     elif hand.bad:
         line += [(icon("CROSS"), ACCENT_TEXT), "  ", hand.bad, "  ", ("no such move", MUTED)]
-    elif hand.typed:
-        line.append((hand.typed, STRONG))
-    elif idle:
-        line.append((idle, FAINT))
+    else:
+        if hand.typed:
+            line.append((hand.typed, STRONG))
+        if caret:
+            line.append((" ", None, ACCENT))
     return line
 
 
@@ -414,7 +421,7 @@ class Game(Screen):
     def _input_lines(self, w):
         if self.g.over():
             return [[(self.note or " ", MUTED)], [""]]
-        line = hand_line(self.hand, "your move" if self.g.pos.turn == self.me else "")
+        line = hand_line(self.hand, self.g.pos.turn == self.me)
         return [line, [(self.note, MUTED)] if self.note else ""]
 
     # ── keys ─────────────────────────────────────────────────────────────────────────────────

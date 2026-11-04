@@ -14,7 +14,7 @@ from puzzles import SESSION, Bank, Session, Vision
 from review import Replay, Review, goal_met
 from syllabus import opponent
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
-from ui import Face, Row, heading, icon, wrap
+from ui import Face, Row, heading, icon, window, wrap
 
 TABS = (("today", "KNIGHT"), ("lessons", "BOOK"), ("puzzles", "STORM"), ("games", "SHEET"), ("progress", "USAGE"))
 
@@ -594,6 +594,7 @@ class Report(Screen):
     def __init__(self, course, pr, week, done):
         self.course, self.pr, self.week, self.done_cb = course, pr, week, done
         self.cursor = None
+        self.top = 0
 
     def board(self):
         return B.Position().b, {}, [], False
@@ -620,10 +621,13 @@ class Report(Screen):
         if notes:
             out.append(heading("NOTE", "what you wrote down", w))
             out.append("")
-            for t in notes[-max(0, h - len(out)):]:
-                for s in wrap(t, w)[:2]:
-                    out.append([(s, MUTED)])
-        return out[:h]
+            for t in notes:
+                out += [[(s, MUTED)] for s in wrap(t, w)]
+        shown, self.top = window(out, self.top, h)
+        return shown
+
+    def wheel(self, d):
+        self.top = max(0, self.top + d)
 
     @staticmethod
     def _blunder_rate(recs):
@@ -633,7 +637,9 @@ class Report(Screen):
         return f"{100 * blunders / moves:.1f}" if moves else ""
 
     def key(self, name):
-        if name in ("enter", "esc"):
+        if name in ("up", "down"):
+            self.wheel(1 if name == "down" else -1)
+        elif name in ("enter", "esc"):
             self.app.pop()
             if name == "enter":
                 self.done_cb()

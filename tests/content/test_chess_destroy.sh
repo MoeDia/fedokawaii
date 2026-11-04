@@ -26,13 +26,13 @@ def fixture(fen, colour=0, moves=(), clock=None, elo=500):
 out = []
 last = lambda: (current(home) or {"moves": ["(over)"]})["moves"][:1]
 # promotion: typed with the piece
-fixture("8/P7/8/8/8/8/7k/K7 w - - 0 1")
+fixture("7k/P7/8/8/8/8/7P/K7 w - - 0 1")
 t = open_app(env); t.send("a8=N"); t.pump(0.05); t.send("\r"); t.pump(0.4); out.append(last() ); t.close()
 # typed without it: asked; a letter
-fixture("8/P7/8/8/8/8/7k/K7 w - - 0 1")
+fixture("7k/P7/8/8/8/8/7P/K7 w - - 0 1")
 t = open_app(env); t.send("a8"); t.pump(0.05); t.send("\r"); t.pump(0.1); a = t.find("q r b n"); t.send("r"); t.pump(0.4); out += [a, last()]; t.close()
 # by the arrows: asked; Enter is the queen
-fixture("8/P7/8/8/8/8/7k/K7 w - - 0 1")
+fixture("7k/P7/8/8/8/8/7P/K7 w - - 0 1")
 t = open_app(env)
 t.send("\x1b[A"); t.pump(0.03)       # (the cursor starts at e2: walk to a7)
 for _ in range(5):
@@ -49,15 +49,12 @@ t = open_app(env); t.send("Qg2"); t.pump(0.03); t.send("\r"); t.pump(0.5); out.a
 # stalemate by your own hand
 fixture("7k/8/6K1/8/8/8/5Q2/8 w - - 0 1")
 t = open_app(env); t.send("Qf7"); t.pump(0.03); t.send("\r"); t.pump(0.5); out.append(t.find("stalemate")); t.close()
-# three times: the stand-in shuffles back and forth
-(st / "current.json").unlink(missing_ok=True)
-fixture("8/8/8/8/8/5k2/8/K5Q1 w - - 0 1", moves=[])
+# three times: the last king move, yours, brings the position back the third time
 g = B.Game("7k/8/8/8/8/8/8/K5Q1 w - - 0 1")
-for s in "Qg2 Kh7 Qg1 Kh8 Qg2 Kh7 Qg1".split():
-    g.play(g.pos.parse_san(s))
-fixture(g.start, moves=[B.uci(m) for m in g.moves], elo=500)
-(st / "current.json").write_text((st / "current.json").read_text())
-t = open_app(env); t.pump(2.5); out.append(t.find("threefold repetition") or t.find("your move")); t.close()
+for mv in "Qg2 Kh7 Qg1 Kh8 Qg2 Kh7 Qg1".split():
+    g.play(g.pos.parse_san(mv))
+fixture(g.start, colour=1, moves=[B.uci(m) for m in g.moves])
+t = open_app(env); t.send("Kh8"); t.pump(0.03); t.send("\r"); t.pump(0.5); out.append(t.find("threefold repetition")); t.close()
 # the flag: on time with something left; with nothing left to mate, a draw
 fixture("7k/7p/8/8/8/8/P7/K7 w - - 0 1", clock=(0, 0))
 t = open_app(env); t.pump(0.4); out.append(t.find("on time")); t.close()

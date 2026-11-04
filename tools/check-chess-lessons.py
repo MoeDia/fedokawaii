@@ -164,6 +164,8 @@ def main(argv):
                     if engine and ms:
                         best, bm = engine.score(pos.fen(), [], nodes)
                         for san, m in zip(good, ms, strict=False):
+                            if B.uci(m) == bm:
+                                continue
                             after, _ = engine.score(pos.fen(), [B.uci(m)], nodes)
                             loss = E.win_chance(best) - E.win_chance(-after)
                             if loss > 0.10 and not page_allows_any(page):

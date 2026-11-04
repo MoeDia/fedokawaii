@@ -92,6 +92,32 @@ t.close()
 PY
 )" "True True True True 1 True True ''"
 
+case_ "a wrong key stays wrong: Kf3 with no king move is never f3; Enter plays nothing while the line says no such move"
+eq "$(py <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from chess_lib import *
+home, env = make_home(sys.argv[2] + "/c2")
+t = open_app(env)
+start_free_game(t)
+played = lambda: (current(home) or {"moves": []})["moves"]
+t.send("Kf3"); t.pump(0.2)
+a = t.find("Kf3") and t.find("no such move")
+t.send("\r"); t.pump(0.5)
+b = not played()
+t.send("\x7f"); t.pump(0.2)
+c = not t.find("no such move")
+t.send("Nf"); t.pump(0.1); t.send("4"); t.pump(0.2)
+d = t.find("Nf4") and t.find("no such move")
+t.send("\r"); t.pump(0.5)
+e = not played()
+t.send("\x7f"); t.pump(0.1); t.send("3"); t.pump(0.1); t.send("\r"); t.pump(0.8)
+f = played()[:1] == ["g1f3"]
+print(a, b, c, d, e, f, repr(crash_text(home)))
+t.close()
+PY
+)" "True True True True True True ''"
+
 case_ "the review: the game read, your own judgement first, a move to find, the summary, what you wrote kept"
 eq "$(py <<'PY'
 import sys, json

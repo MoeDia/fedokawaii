@@ -130,6 +130,16 @@ def meter(fraction, cells=20):
     return [(icon("READ") * done, ACCENT_TEXT), (icon("READ_OFF") * (cells - done), EDGE2)]
 
 
+def window(lines, top, room):
+    """What fits of lines from `top`: a scrolling pane; when there is more below, its last line says so. Returns
+    (the lines to show, the top as it could be kept)."""
+    top = max(0, min(top, max(0, len(lines) - room)))
+    shown = lines[top:top + room]
+    if top + room < len(lines) and room > 0:
+        shown = shown[:-1] + [[("↓", MUTED)]]
+    return shown, top
+
+
 def span_len(spans):
     n = 0
     for s in spans:

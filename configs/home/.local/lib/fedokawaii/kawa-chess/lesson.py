@@ -19,7 +19,7 @@ from app import Screen
 from play import MoveInput, board_marks, hand_line, moved_parts
 from puzzles import Session
 from term import ACCENT_TEXT, MUTED, STRONG
-from ui import heading, icon, wrap
+from ui import heading, icon, window, wrap
 
 
 class Page:
@@ -268,16 +268,14 @@ class Lesson(Screen):
                 body.append([line])
             body.append("")
         if self.hand.pos is not None:
-            body.append(hand_line(self.hand, "your move"))
+            body.append(hand_line(self.hand))
         if self.find:
             body += [[(icon("SEARCH"), ACCENT_TEXT), "  ", (self.find[0], STRONG), "  ", (self.typed, None)], ""]
         if self.note:
             body.append("")
             body += [[(s, MUTED)] for s in wrap(self.note, w)]
-        room = h - 2
-        self.scroll = max(0, min(self.scroll, max(0, len(body) - room)))
-        out += body[self.scroll:self.scroll + room]
-        return out
+        shown, self.scroll = window(body, self.scroll, h - 2)
+        return out + shown
 
     def _advance(self):
         if self.at + 1 < len(self.pages):
