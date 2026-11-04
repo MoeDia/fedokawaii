@@ -11,8 +11,9 @@ lane may not touch a VM): what only a boot can answer is section 8's first list,
 | Build | **`xorriso … replay` + `mtools`, as a normal user, no root, no container, no `mkksiso`** | Proven here: byte-identical twice, 1.5 s (I§4). `mkksiso` needs root only for a loop mount we do not need |
 | Install engine | **Anaconda from a kickstart, silent, behind our screens** | It knows UEFI, GPT, Btrfs, SELinux, dracut, efibootmgr; the harness already proves that exact layout. Omarchy's root image would not fit GitHub's 2 GiB, would be stale on day one, and leaves all that to us (I§1, I§8) |
 | Questions | **Our own screen in `%pre`, on tty1, in Python 3.15 with `termios`** | `%pre` runs before any UI and may write what `%include` reads (I§2); no `dialog` or `stty` in the image, but Python is always there |
-| Text | **The Linux console with our own PSF2 font: Sumi UI ×2, a 14 × 28 cell, plus our icons and seal as tiles** | Sumi UI's letters are a fixed 7 px wide, so ×2 is exactly the design system's "installer's screens" (§2, §9) with no renderer to write. No GPU assumptions; kmscon is not in the image (I§0). 137 × 38 cells at 1080p |
-| Who owns the screen | **One owner, as Omarchy: the installer's noise goes elsewhere** | `inst.notmux` + `console=tty2`: Anaconda's text lands on an unseen VT, our screens have tty1 |
+| Text | **The Linux console with our own PSF2 font: Sumi UI ×2, a 14 × 28 cell, plus our icons and seal as tiles, 256 glyphs at most** | Sumi UI's letters are a fixed 7 px wide, so ×2 is exactly the design system's "installer's screens" (§2, §9) with no renderer to write. No GPU assumptions; kmscon is not in the image (I§0). 137 × 38 cells at 1080p. Above 256 glyphs only 8 background colours remain (I§10) |
+| Colours | **`questions.py` sets the 16 slots itself with `ESC ] P`** | The lacquer of the cursor (`select`, `82241f`) is not among the console's 16 colours in `BOOT_ARGS` (I§10). Omarchy sets its palette the same way (I§1) |
+| Who owns the screen | **One owner, as Omarchy: the installer's noise goes elsewhere** | `inst.notmux` + `console=tty3`: Anaconda's text lands on an unseen VT, our screens have tty1. Not tty2: logind reserves it for Anaconda's shell, whose unit hangs up its tty (I§10). `VT_LOCKSWITCH` once our first screen is up, so that Alt+F2 cannot show the noise |
 | Boot menu | **Themed, words as PNG; default after 5 s** | Secure Boot refuses our `.pf2` files, PNG is allowed (I§5). Works identically with it on or off |
 | Splash | **Our `sumi` Plymouth theme through a second initrd** | The installer's initrd has no graphical Plymouth at all (I§0); a second initrd is unverified and allowed |
 | Secure Boot | **Works on.** The owner's PC has it off and nothing requires a change | Dual-signed shim, no kernel modules of ours (I§5) |
@@ -35,10 +36,10 @@ The ISO's first screen never asks about any of it.
 |---|---|---|
 | 1 | Themed GRUB menu, torii, three lines ("install", "check this stick, then install", "install with basic graphics"), first chosen after 5 s | shim → GRUB (signed, unchanged) → our `grub.cfg` on partition 2 and the theme on the ISO9660 side |
 | 2 | Plymouth `sumi`, torii on sumi ink | kernel (signed) + `initrd.img` + `fedokawaii-boot.img` (second initrd: `script.so`, renderers, `libpng`, `libdrm`, theme, `plymouthd.conf`). `rhgb quiet` + the palette's `vt.default_*` from `lib/common.sh` |
-| 3 | The splash stays | stage 2: `install.img` + `images/product.img` (our `questions.py`, `progress.py`, `failed.py`, font, and a `plymouth-quit` override: `anaconda.target` wants it, and `--retain-splash` must hold the picture until our first draw) |
+| 3 | The splash stays | stage 2: `install.img` + `images/product.img` (our `questions.py`, `progress.py`, `failed.py`, font, and a `plymouth-quit` override: `anaconda.target` wants it, and `--retain-splash` must hold the picture until our first draw). `--retain-splash` also leaves the VT in graphics mode, so the first draw starts with `KDSETMODE KD_TEXT` (I§10) |
 | 4 | Refusal, or questions | `%pre`: checks, then the questions (section 3); writes `/tmp/answers.ks`; verifies the payload's hash **before the disk is touched** (Omarchy's lesson) |
-| 5 | Progress: base system, n of N packages | `%pre` left `progress.py` as a daemon with closed fds (the docs' warning, I§3). Anaconda silent on tty2 |
-| 6 | "restarting" | `%post`: payload to `/usr/local/lib/fedokawaii`, `state/user`, phase 1, resume unit enabled, first-boot dress (below). `reboot --eject` |
+| 5 | Progress: base system, n of N packages | `%pre` left `progress.py` as a daemon with closed fds (the docs' warning, I§3). Anaconda silent on tty3 |
+| 6 | "restarting" | `%post`: payload to `/usr/local/lib/fedokawaii`, `state/user`, phase 1, resume unit enabled, the marker of section 3, first-boot dress (below). `reboot --eject` |
 | 7 | Splash, then setup's progress | three phases of `setup.sh --resume` on tty1, through their reboots. This exists and is proven in the harness |
 | 8 | **ready**: the login screen | greetd, the last reboot |
 
@@ -50,7 +51,7 @@ No part of it asks after step 4. `setup.sh` has no prompts (`grep` of `read -` s
 
 Before any question, in this order, each a full screen with the reason and **any key powers off**, no retry loop: (a) booted without UEFI (`/sys/firmware/efi` absent); (b) less than 4 GiB of RAM (T57 checks that number); (c) no disk ≥ 60 GiB (the size the harness proves; the ISO's own device excluded); (d) no network (`inst.waitfornet=30`, then `curl` of the metalink: names the cause: "no cable", "no address", "no answer from Fedora"). Wired only; Wi-Fi is out of scope, and the message says so.
 
-If a finished install is found on a disk (its marker in the Btrfs `root` subvolume, mounted read-only), the ISO says "fedokawaii is installed on this disk, remove the USB" instead of asking again: a firmware that boots the stick twice must not look like a fresh start.
+If an install is found on a disk (its marker in the Btrfs `root` subvolume, mounted read-only), the ISO says "fedokawaii is installed on this disk, remove the USB and restart" instead of asking again: a firmware that boots the stick twice must not look like a fresh start. **`%post` writes the marker, not the end of setup**: the stick stays in through every reboot of setup's three phases, and a boot back into the ISO half way must not offer to erase a disk that is still being finished.
 
 | # | Asked | Default | Rule |
 |---|---|---|---|
@@ -69,7 +70,7 @@ Screens, in the design system's text grammar (§7, in Sumi UI ×2):
 - Words lower case, no hints a good design makes obvious; never "…"; the seal; dark mood.
 - A typed password is confirmed by typing it again: that is the check, not a second question. Nothing else repeats.
 
-A reset during Anaconda's stage restarts the ISO and asks again: the disk has nothing yet, and it is a new install. After step 6 nothing asks.
+A reset during Anaconda's stage restarts the ISO and asks again: no marker yet, and it is a new install. **This is the one place the owner's "nothing asks twice" does not hold**, and it stays so on purpose: before the disk has a filesystem there is nowhere to keep a password hash but the stick or the firmware's NVRAM, and neither is acceptable. After step 6 nothing asks.
 
 ## 4. The kickstart
 
@@ -114,7 +115,9 @@ plymouth-plugin-script
 %end
 ```
 
-Boot line: `inst.stage2=hd:LABEL=<volid> inst.ks=hd:LABEL=<volid>:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.waitfornet=30 inst.nosave=input_ks,output_ks console=tty2 rhgb quiet …BOOT_ARGS…`.
+Boot line: `inst.stage2=hd:LABEL=<volid> inst.ks=hd:LABEL=<volid>:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.waitfornet=30 inst.nosave=input_ks,output_ks console=tty3 rhgb quiet …BOOT_ARGS…`.
+
+The skeleton with `/tmp/answers.ks` filled in (`keyboard --vckeymap=us --xlayouts=us`, `timezone Asia/Dubai --utc`, `network --hostname=…`, `user --name=… --groups=wheel --iscrypted --password=…`, `ignoredisk --only-use=…`) parses strictly under `F45Handler` too (I§10).
 
 `sshd` is off and the harness's `NOPASSWD` line stays in the harness only: no back door in the product. `inst.nosave` keeps the hash out of `/root/anaconda-ks.cfg`. T56's test greps `/var/log/anaconda/` for it.
 
@@ -174,9 +177,9 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 
 | Experiment | Decides |
 |---|---|
-| Boot the replayed ISO with a stub `%pre` that opens tty1, draws, reads a line, under `inst.notmux console=tty2` | The VT plan; if Anaconda or a getty fights for tty1, use tty8 and `chvt` (the documented older pattern) |
-| `setfont` a 14 × 28 PSF2 on `drm` fbcon (the kernel allows up to 64 × 128 and 512 glyphs, `vt.c`), then a screenshot | The font plan, down to the pixel with `tools/px.py` |
-| Second initrd with `script.so` + `sumi`, screenshot at 2 s and at switch-root, under `console=tty2` | The splash; no black gap; whether Plymouth follows `console=` to tty2 (then `%pre` does `chvt 1`) |
+| Boot the replayed ISO with a stub `%pre` that opens tty1, sets `KD_TEXT`, locks switching, draws, reads a line, under `inst.notmux console=tty3` | The VT plan; if Anaconda or a getty fights for tty1, use tty8 and `chvt` (the documented older pattern) |
+| `setfont` a 14 × 28 PSF2 of 256 glyphs on `drm` fbcon (the kernel allows up to 64 × 128 and 512 glyphs, `vt.c`), `ESC ] P` for the lacquer, then a screenshot | The font and the colours, down to the pixel with `tools/px.py` |
+| Second initrd with `script.so` + `sumi`, screenshot at 2 s and at switch-root, under `console=tty3` | The splash; no black gap; whether Plymouth follows `console=` to tty3 (then `%pre` activates tty1 itself) |
 | PNG-only theme with **OVMF secure-boot, enrolled keys** | The menu under Secure Boot; `mokutil --sb-state` in the guest proves it was on |
 | `images/product.img` overlay is present in stage 2 | Our files arrive; otherwise embed them in `%pre` |
 | Parse packaging progress from a real run | `progress.py`'s source |
@@ -196,7 +199,8 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 | Slow network (`tc netem`) | converges |
 | Reset during Anaconda | ISO starts over, asks, installs |
 | Reset during `setup.sh` phase 2 | resumes, converges, asks nothing |
-| ISO left in, boot order ISO first | "installed on this disk" |
+| ISO left in, boot order ISO first, once after `%post` and once after setup's end | "installed on this disk", both times; the disk untouched |
+| Alt+F2 on every screen | nothing moves |
 | Wrong keyboard chosen, `F2` | password typed right |
 | Mirror unreachable at package step | `%onerror`'s screen with the log's path |
 | Two builds | `sha256sum` equal |
@@ -209,5 +213,5 @@ Screens saved as PNG at menu, each question, progress, restarting, login; both m
 - **T56**: drop `lorax`/`mkksiso` from the build-only list (`xorriso`, `mtools` and `isomd5sum` remain); no container or VM needed to build. "Terminus/our console font" → our PSF2. Question TUI in Python, not bash (no `stty`, `tput`, `clear`). `theme.sh` gets PNG words for Secure Boot.
 - **`f45-changes.md` line 81**: kmscon is not in the installer's image. `-kmscon` in the kickstart, and the VM harness's kickstart should match when T46 moves it to F45, otherwise harness and product differ.
 - **T57**: as section 8; add the rows that are new here.
-- **T42/T45**: a marker for "finished install". If a rollback ever loses it, the only cost is that a booted stick asks again; the erase page still stands in the way.
+- **T42/T45**: a marker for "installed", written by `%post`. If a rollback ever loses it, the only cost is that a booted stick asks again; the erase page still stands in the way.
 - **T50**: the Learn piece "installing from the ISO", once T57 has its screens.

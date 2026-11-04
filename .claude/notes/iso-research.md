@@ -126,3 +126,14 @@ SOURCE_DATE_EPOCH=$E xorriso -indev f45-netinst.iso -outdev out.iso -boot_image 
 - Whether `%pre` on a VT behaves on F45 as the source reads: only a boot says.
 - How the text-mode progress can be read best (`/tmp/packaging.log`, Anaconda's D-Bus): read it at T56 from a real run.
 - The exact path where stage 2 keeps the ISO mounted for `inst.stage2=hd:`: `anaconda-lib.sh` uses `/run/install/repo`; not relied on.
+
+## 10. Second pass, 4 Nov 2026 [P]
+
+- **Console fonts above 256 glyphs cost colours.** Kernel v7.2 `vt.c` `build_attr()`: "if (vc->vc_hi_font_mask == 0x100) a <<= 1;", on a `u8`, so the top background bit is lost; `fbcon.c:328–329` reads the foreground at bit 9 and the background at bit 13, against 8 and 12 for a 256-glyph font. A font above 256 glyphs leaves 16 foregrounds and 8 backgrounds.
+- **The cursor's colour is not in the boot palette.** `tools/build-themes.py:55`: the 16 console slots are `ansi0, red, green, yellow, blue, purple, teal, ansi7`, then the bright ones, and `select` (`82241f`, `docs/design-system.md` §4) is none of them. The console's own escape takes any colour into any slot: `ESC ] P n rr gg bb` (`vt.c`, `ESnonstd` → `ESpalette`).
+- **`--retain-splash` leaves graphics mode.** Plymouth 24.004.60, `src/main.c`, `quit_splash()`, [Debian's copy of the source](https://sources.debian.org/data/main/p/plymouth/24.004.60-5/src/main.c), the same upstream version as F44's package; freedesktop's GitLab refuses fetching: `ply_terminal_close()` runs only `if (!state->should_retain_splash)`. Fbcon draws nothing in `KD_GRAPHICS`, so the first thing `%pre` does on tty1 is `KDSETMODE KD_TEXT`. Not seen on a boot yet, read only.
+- **`VT_LOCKSWITCH` exists for this.** `drivers/tty/vt/vt_ioctl.c:927`: needs `CAP_SYS_TTY_CONFIG`, sets `vt_dont_switch`.
+- **tty2 is taken, in effect.** From the F45 `install.img`: `usr/lib/systemd/logind.conf.d/anaconda-shell.conf` has `ReserveVT=2`; `autovt@.service` links to `anaconda-shell@.service`, which has `DefaultInstance=tty2`, `TTYVHangup=yes`, `TTYVTDisallocate=yes`, `ConditionKernelCommandLine=!inst.noshell`. `inst.noshell` keeps it out, but any debug boot without that argument would hang up the tty Anaconda writes to under `console=tty2`. tty3 has no such neighbour.
+- **`product.img` confirmed for this path.** The initrd's `usr/lib/anaconda-lib.sh`, `anaconda_live_root_dir()` calls `anaconda_auto_updates "$repodir/images"`, which unpacks `product.img` into `/updates`.
+- **Answers parse.** The skeleton with a filled-in `answers.ks` (`scripts` in scratch): `F45Handler`, warnings as errors, OK; `excludedList ['kmscon']`, environment `custom-environment`.
+- **Wired only is enough for this PC.** `ip -br link`: `enp8s0`, no wireless device in `/sys/class/net`.
