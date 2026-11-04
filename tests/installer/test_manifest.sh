@@ -2,12 +2,12 @@
 # tests/installer/test_manifest.sh — lib/manifest.sh, the single source of truth: no package
 # both wanted and forbidden, none listed twice, the base tools a Minimal Install lacks listed
 # (tar, grubby, diffutils, man-db — and what the scripts call: python3, glib2, fontconfig),
-# retired ones out of the lists, systemd-oomd's rules kept out, Steam's only with STEAM=yes,
+# retired ones out of the lists, systemd-oomd's rules kept out, the play world's always in,
 # the GPU's by GPU, what upstream and the hardware recorded counted in, the user units verify
 # checks. Pure: no fake machine.
 FK_PURE=1 . "$(dirname "$0")/lib.sh"
 sandbox
-m() { ( STATE_DIR=$TMP/state; STEAM=${STEAM:-yes}; . "$REPO/lib/manifest.sh"; eval "$1" ); }
+m() { ( STATE_DIR=$TMP/state; . "$REPO/lib/manifest.sh"; eval "$1" ); }
 all() { m "manifest_all ${1:-amd}"; }
 
 case_ "every list parses; the manifest for AMD and for Intel"
@@ -65,12 +65,12 @@ case_ "Syncplay's own needs are listed (Fedora's Twisted with TLS, pyOpenSSL, ce
 for p in python3-twisted python3-twisted+tls python3-pyOpenSSL python3-certifi python3-pem; do grep -qxF "$p" <<<"$a" || _no "$p not in the manifest"; done; _ok
 lacks "$(all amd)" $'\nsyncplay\n'; lacks "$(all amd)" pyside
 
-case_ "STEAM=no: Steam's packages out; yes: in"
-STEAM=no; has "$(all amd)" mpv; lacks "$(all amd)" steam; lacks "$(all amd)" ntsync-autoload
-STEAM=yes; has "$(all amd)" steam; has "$(all amd)" ntsync-autoload
-case_ "a game controller: Steam's rules for it (steam-devices) listed with Steam, never assumed to come along"
-grep -qx steam-devices <<<"$(all amd)" && _ok || _no "steam-devices not in the manifest"
-STEAM=no; grep -qx steam-devices <<<"$(all amd)" && _no "steam-devices without Steam" || _ok; STEAM=yes
+case_ "the play world's packages — Flatpak, gamescope, GameMode, ntsync, the controllers' rules (steam-devices) — are always in, listed, never assumed to come along; Steam and MangoHud are retired, never listed"
+a=$(all amd); has "$a" mpv
+for p in flatpak gamescope gamemode ntsync-autoload steam-devices; do grep -qx "$p" <<<"$a" || _no "$p not in the manifest"; done; _ok
+r=$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')
+for p in steam mangohud; do grep -qx "$p" <<<"$r" && _ok || _no "$p not retired"; grep -qx "$p" <<<"$a" && _no "$p in the manifest" || _ok; done
+grep -qx flatpak <<<"$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"')" && _no "flatpak forbidden (the play world's user has its own)" || _ok
 
 case_ "what lib/upstream.sh and lib/hardware.sh recorded belongs to the manifest"
 mkdir -p "$TMP/state"; echo openssl3-libs >"$TMP/state/upstream-libs"; printf '%s\n' iwlwifi-mvm-firmware amd-ucode-firmware >"$TMP/state/hardware-pkgs"

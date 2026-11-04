@@ -27,7 +27,7 @@ lacks "$out" "算" "no kanji (§13)"
 case_ "Enter: the answer copied, the line kept above, said on the last line"
 out=$(plain "$(typed '6*7' '\r')"); eq "$(cat "$TMP/clip" 2>/dev/null)" 42; has "$out" "6*7 = 42"; has "$out" "copied: 42"
 case_ "a word alone, or one of qalc's commands: no answer (never sent: exit would end qalc)"
-setup; out=$(plain "$(typed 'steam' '\x15exit 5' '\x152+2')"); lacks "$out" "$ICON_EQUALS  0"; has "$out" "$ICON_EQUALS  4"
+setup; out=$(plain "$(typed 'hello' '\x15exit 5' '\x152+2')"); lacks "$out" "$ICON_EQUALS  0"; has "$out" "$ICON_EQUALS  4"
 case_ "Backspace takes a letter back; the answer follows"
 out=$(plain "$(typed '2*30' '\x7f')"); has "$out" "$ICON_EQUALS  6"
 case_ "each key one frame (a synchronised update), never cleared first; the last line its own key alone (§7), the answer's copy at its right"
@@ -39,7 +39,7 @@ case_ "a shorter answer over a longer one: the rest of its line erased before th
 raw=$(typed '5 ft to c' 'm'); has "$raw" "152.4 cm"$'\e[0m\e[K\e[' "(the answer, its ink's end, the erase, then the jump to copy)"
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
-rc 1 kawa-calc --answer steam
+rc 1 kawa-calc --answer hello
 # the launcher (kawa-panel's): its Panel driven with a stand-in ui that notes what it is asked
 lp() {
   local G=$TMP/gi; mkdir -p "$G/gi/repository"

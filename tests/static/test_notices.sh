@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # tests/static/test_notices.sh — every notice of the desktop is laid out alike: the app
-# (-a desktop · drives · backup · torrra · notices, the names mako's sections go by), the icon (a Sumi
+# (-a desktop · drives · backup · torrra · asobi · notices, the names mako's sections go by), the icon (a Sumi
 # Icons glyph — never a kanji (design-system §13) —, two spaces, then the title — or the picture itself with -i), a title in lower
-# case (a name stays as it is spelled: Steam, Bluetooth, Prowlarr), "--" before it, so a
+# case (a name stays as it is spelled: Bluetooth, Prowlarr), "--" before it, so a
 # title can never be read as an option; something missing that repair puts back is critical.
 # And mako: a click takes a card away at once, the whole card.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -12,8 +12,8 @@ import re, sys, pathlib
 root = pathlib.Path(sys.argv[1])
 files = [p for d in ("bin", "system", "configs") for p in (root / d).rglob("*") if p.is_file()]
 files = [p for p in files if p.name != "fedokawaii-report" and p.suffix not in (".png", ".ttf", ".otf", ".pdf")]
-APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices", "foryou"}
-NAMES = {"Steam", "Bluetooth", "Prowlarr"}
+APPS = {"desktop", "drives", "backup", "torrra", "downloads", "notices", "foryou", "asobi"}
+NAMES = {"Bluetooth", "Prowlarr"}
 ICON = re.compile(r'^"(\$ICON_[A-Z_]+|\$\{ICON_[A-Z_]+:-[^}]*\}|\$SEAL|\$ICON|\$\(\. [^)]*ICON_[A-Z_]+"?\))  ')
 bad = []
 for p in files:

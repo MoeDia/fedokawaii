@@ -74,8 +74,8 @@ kawa-quick --do saver; kawa-quick --do vrr
 kawa-glass off >/dev/null 2>&1
 kawa-quick --do theme
 printf '%s\n' pack:sakura-07 >"$ST/wallpaper-light"
-kawa-state set gamemode on                               # (a key of another helper's own)
-eq "$(kawa-state list | sort | tr '\n' ' ')" "bluetooth=off brightness=40 dnd=on gamemode=on "
+kawa-state set wallpaper-rotate on                        # (a key of another helper's own: kawa-wallpaper's)
+eq "$(kawa-state list | sort | tr '\n' ' ')" "bluetooth=off brightness=40 dnd=on wallpaper-rotate=on "
 eq "$(cat "$ST/night")" "on 3500"; eq "$(cat "$ST/saver")" off; eq "$(cat "$HOME/.config/fedokawaii/vrr")" always
 has "$(cat "$ST/foot-glass.ini")" "alpha=1"; eq "$(readlink "$HOME/.config/fedokawaii/current")" themes/light
 before=$(cd "$HOME" && find .local/state/fedokawaii .config/fedokawaii/vrr -maxdepth 1 \( -type f -o -type l \) ! -name '*.lock' -print0 | sort -z | xargs -0 sha256sum; readlink .config/fedokawaii/current)
@@ -93,7 +93,7 @@ eq "$(head -n1 "$ST/restored")" "boot boot-2" "noted for this boot"
 eq "$(rec dnd)" $'ok\ton'; eq "$(cat "$W/modes")" $'default\ndo-not-disturb' "do not disturb, once mako answered"
 eq "$(rec bluetooth)" $'ok\toff'; eq "$(cat "$W/bt")" 'b false' "the adapter off again"
 eq "$(rec brightness)" $'ok\t40'; eq "$(cat "$W/bright")" 40 "the monitors at 40 again"
-eq "$(rec gamemode)" $'kept\ton' "another helper's key: noted, left to it"
+eq "$(rec wallpaper-rotate)" $'kept\ton' "another helper's key: noted, left to it"
 kawa-night restore; eq "$(kawa-night)" 3500K "the night light on, as warm"
 called 'kawa-dwlstatus --poke 12'
 case_ "…and what the programs read themselves stands as left"
@@ -133,7 +133,7 @@ case_ "restore with nothing set: the record says this boot, nothing else"
 setup; rc 0 kawa-state restore; eq "$(cat "$ST/restored")" "boot boot-1"
 
 case_ "the theme ships no file where your settings live (apply copies configs/home as it is)"
-for p in .local/state .config/fedokawaii/vrr .config/fedokawaii/current .config/fedokawaii/steam-warm; do
+for p in .local/state .config/fedokawaii/vrr .config/fedokawaii/current; do
   [[ -e $REPO/configs/home/$p ]] && _no "configs/home/$p would be written over yours" || _ok
 done
 case_ "autostart puts it back before the bar draws"

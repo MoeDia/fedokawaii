@@ -2,7 +2,7 @@
 
 *Fedora + kawaii (かわいい, "cute").* A reproducible dwl desktop on Fedora 44/45 from a
 minimal Server install: dark and retro, a little Japanese, drawn pixel by pixel. One tool
-per job, no Flatpak, every package verified, and a verifier that proves it. The helpers are
+per job, no Flatpak outside the play world, every package verified, and a verifier that proves it. The helpers are
 the `kawa-*` commands (川, *kawa*, river).
 
 ```
@@ -11,7 +11,7 @@ check.sh           is this machine ready for setup? read-only (setup runs it fir
 setup.sh           software: repos, drivers, dwl, apps (3 phases, resumes itself after reboots)
 theme.sh           every config, colour, keybinding, the boot menu (re-run any time; --check finds drift)
 verify.sh          proves the machine matches the manifest: nothing missing, nothing extra
-fedokawaii.conf    your settings (GPU, Steam, refresh rate, keyboard, city, theme…); anything
+fedokawaii.conf    your settings (GPU, refresh rate, keyboard, city, theme…); anything
                    else you change in a working copy and apply — see "Changing it" below
 
 lib/               shared shell: common.sh (output, steps, locks) · manifest.sh (every package,
@@ -81,8 +81,7 @@ PACKAGES.md        what is installed, from where, and why
   screen's centre line and the time to the second — and while music plays, its spectrum
   spreads either side of it inside the scroll like wings. On the right a tile each: what is
   playing (a cassette whose reels turn, the title, the artist quieter), a timer, a kanji while
-  do-not-disturb (静) or screen sharing (共有) is on, a drive mark, downloads, Steam's gamepad
-  while it runs, the keyboard layout (US / AR), memory, volume, the monitor's brightness (when
+  do-not-disturb (静) or screen sharing (共有) is on, a drive mark, downloads, the keyboard layout (US / AR), memory, volume, the monitor's brightness (when
   it answers over DDC/CI), the weather — and the cat on the other corner's vermilion tile:
   quick settings.
   No tray.
@@ -219,11 +218,11 @@ a month before yours ends.
 
 | Command | Does |
 |---|---|
-| `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
+| `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, the play world's Flatpaks, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
 | `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the repository is public: no sign-in, no token |
 | `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
-| `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 700 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
+| `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 680 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
 | `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |
 | `fedokawaii theme` · `fedokawaii drift` | apply the configs again (dwl rebuilt only if needed) · list files that differ |
 | `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands (the last backup's day among it) · the snapshots · the last log · `fedokawaii.conf` · the season |

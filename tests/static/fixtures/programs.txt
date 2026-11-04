@@ -101,7 +101,7 @@ systemd-nspawn      manifest  systemd-container
 wf-recorder         manifest  wf-recorder
 losetup             minimal   util-linux-core   # f44
 renice              minimal   util-linux-core   # f44
-tuned-adm           manifest  tuned              # kawa-game: the game's profile and back
+tuned-adm           manifest  tuned              # setup: the fedokawaii profile; verify and the report ask which is active
 ionice              minimal   util-linux        # @core (kawa-wallpaper: its background drawing at idle priority)
 setsid              minimal   util-linux-core   # f44
 lsblk               minimal   util-linux        # @core (not in -core, f44)
@@ -241,7 +241,7 @@ rg                  manifest  ripgrep
 # ── there through a dependency of a manifest package ─────────────────────────────────────
 gio                 dep       glib2 NetworkManager   # libnm; gtk4 and waybar too
 gsettings           dep       glib2 NetworkManager
-gdbus               dep       glib2 NetworkManager   # kawa-steam --guard: logind's warning before a shutdown
+gdbus               dep       glib2 NetworkManager   # the report: the file dialog's end-to-end row (FC-04)
 fc-match            dep       fontconfig foot   # libfontconfig; waybar, mako too
 fc-list             dep       fontconfig foot   # the report: the Arabic fonts
 python3             dep       python3 tuned     # tuned is a python program (firewalld, @core, too)
@@ -285,5 +285,4 @@ wayland-info        manifest  wayland-utils      # wayland-utils: the report lis
                                                  # with it where it is installed (guarded)
 desktop-file-validate optional -                 # desktop-file-utils: the report validates the launcher's
                                                  # entries with it where it is installed (guarded)
-steam               optional  -                  # with STEAM=yes only (PKG_GAMING, RPM Fusion nonfree): every call is guarded
 tesseract           manifest  tesseract          # Super+Shift+Print: a region's text (kawa-screenshot text)

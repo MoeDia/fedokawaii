@@ -3,7 +3,7 @@
 # The busy watch that stayed on the wallpaper after login (the tracker's SLP-04): dwl 0.9's motionnotify looked up
 # the surface under the cursor before moving it, so every motion was judged at the place the
 # pointer had just left. A flick ending on another surface in one event (off a loading window
-# — Steam's splash, a browser restoring its tabs — onto the wallpaper or the bar) left the old
+# — an app's splash, a browser restoring its tabs — onto the wallpaper or the bar) left the old
 # window the pointer's focus and its image until the mouse moved again. src/dwl/dwl.patch
 # looks again once the cursor has moved (undercursor()).
 # (Shown on a headless dwl: an X11 window with the watch cursor, the pointer jumped onto the

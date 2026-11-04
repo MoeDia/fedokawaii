@@ -23,16 +23,20 @@ eq "$(value GPU "$CONF")" auto; eq "$(value MONITOR_HZ "$CONF")" 144; eq "$(valu
 eq "$(value DWL_COMMIT "$CONF")" "$DWL_COMMIT"
 
 case_ "single quotes, no quotes, a comment straight after, spaces and tabs around: all the same value"
-variant -e "s/^GPU=.*/GPU='amd'/" -e 's/^STEAM=.*/STEAM=no/' -e 's/^THEME=.*/   THEME="light"#mine/' -e 's/^SSH_SERVER=.*/SSH_SERVER="yes"	  	/'
+variant -e "s/^GPU=.*/GPU='amd'/" -e 's/^WALLPAPER_PACK=.*/WALLPAPER_PACK=no/' -e 's/^THEME=.*/   THEME="light"#mine/' -e 's/^SSH_SERVER=.*/SSH_SERVER="yes"	  	/'
 eq "$(problems)" ""
-eq "$(value GPU)" amd; eq "$(value STEAM)" no; eq "$(value THEME)" light; eq "$(value SSH_SERVER)" yes
+eq "$(value GPU)" amd; eq "$(value WALLPAPER_PACK)" no; eq "$(value THEME)" light; eq "$(value SSH_SERVER)" yes
 
 case_ "a setting an earlier version had (SPOTIFY: Spotify's app, built here; its web player now): read past, no problem"
-variant -e 's/^STEAM=.*/&\nSPOTIFY="yes"                     # yes | no — Spotify'"'"'s own app/'
+variant -e 's/^GPU=.*/&\nSPOTIFY="yes"                     # yes | no — Spotify'"'"'s own app/'
 grep -q '^SPOTIFY="yes"' "$TMP/c.conf" && _ok || _no "the variant has no SPOTIFY line"
-eq "$(problems)" ""; eq "$(value STEAM)" yes
+eq "$(problems)" ""; eq "$(value GPU)" auto
+case_ "…STEAM too (gaming moved into the play world; the toolkit's file keeps the line until update's merge takes it out): read past, no problem"
+variant -e 's/^GPU=.*/&\nSTEAM="yes"                       # yes | no — Steam, gamescope, MangoHud, GE-Proton, game mode/'
+grep -q '^STEAM="yes"' "$TMP/c.conf" && _ok || _no "the variant has no STEAM line"
+eq "$(problems)" ""; eq "$(value GPU)" auto
 case_ "…a name nobody ever had: still a problem"
-variant -e 's/^STEAM=.*/&\nSPOTIFYY="yes"/'; has "$(problems)" "SPOTIFYY is not a setting of fedokawaii.conf"
+variant -e 's/^GPU=.*/&\nSPOTIFYY="yes"/'; has "$(problems)" "SPOTIFYY is not a setting of fedokawaii.conf"
 
 case_ "a city with spaces, an apostrophe or in Arabic or Japanese script: valid"
 for c in "New York" "N'Djamena" "St. John's" "الشارقة" "東京" "São Paulo"; do
@@ -191,11 +195,11 @@ has "$p" 'not a setting'; has "$p" 'this line is just text'
 lacks "$p" 'while reading it' "a long line is cut"
 
 case_ "load_conf: stops with every problem listed, indented, on stderr (exit 1)"
-variant -e 's/^GPU=.*/GPU="nvidia"/' -e 's/^STEAM=.*/STEAM="maybe"/'
+variant -e 's/^GPU=.*/GPU="nvidia"/' -e 's/^WALLPAPER_PACK=.*/WALLPAPER_PACK="maybe"/'
 mkdir -p "$TMP/r"; cp "$TMP/c.conf" "$TMP/r/fedokawaii.conf"
 out=$( ( LOG_FILE=/dev/null; . "$REPO/lib/common.sh"; load_conf "$TMP/r" ) 2>&1 >/dev/null ); r=$?
 eq "$r" 1
-has "$out" "fedokawaii.conf:"; has "$out" "    GPU must be auto, amd or intel (is 'nvidia')"; has "$out" "    STEAM must be yes or no"
+has "$out" "fedokawaii.conf:"; has "$out" "    GPU must be auto, amd or intel (is 'nvidia')"; has "$out" "    WALLPAPER_PACK must be yes or no"
 
 case_ "USERNAME with a leading digit (Fedora's installer allows it): judged by whether the user exists, not refused by its shape"
 variant -e 's|^USERNAME=.*|USERNAME="1fluvia"|'; has "$(problems)" "USERNAME '1fluvia' does not exist"

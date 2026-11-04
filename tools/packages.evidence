@@ -29,11 +29,13 @@ eza|fedora|https://packages.fedoraproject.org/pkgs/rust-eza/eza/fedora-44-update
 fd-find|fedora|https://packages.fedoraproject.org/search?query=fd-find|2026-10-14|manifest 2026-10-14
 ffmpeg|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14
 file|fedora|https://packages.fedoraproject.org/search?query=file|2026-10-14|manifest 2026-10-14
+flatpak|fedora|https://packages.fedoraproject.org/pkgs/flatpak/flatpak/fedora-44-updates.html|2026-11-04|flatpak-1.18.4 in Fedora 44 updates (dnf repoquery); the play world's, per user — no system-wide remote
 fontconfig|fedora|https://packages.fedoraproject.org/search?query=fontconfig|2026-10-14|manifest 2026-10-14
 foot|fedora|https://packages.fedoraproject.org/search?query=foot|2026-10-14|manifest 2026-10-14
 fuse3|fedora|https://packages.fedoraproject.org/pkgs/fuse3/fuse3/|2026-11-01|F44 3.18.3-1.fc44, F45 3.18.3-1.fc45 (/usr/bin/fusermount3: rpm -qf here) — restic mount, Super+U → restore
 fwupd|fedora|https://packages.fedoraproject.org/search?query=fwupd|2026-10-14|manifest 2026-10-14
 fzf|fedora|https://packages.fedoraproject.org/search?query=fzf|2026-10-14|manifest 2026-10-14
+gamemode|fedora|https://packages.fedoraproject.org/pkgs/gamemode/gamemode/fedora-44.html|2026-11-04|gamemode-1.8.2 in Fedora 44 (dnf repoquery); the play world's: the card at full clocks while it plays
 gamescope|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gamescope-3.16.22 in Fedora 44 Everything (official mirror)
 gammastep|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gammastep-2.0.11 in Fedora 44 Everything (official mirror)
 gcc|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gcc-16.0.1 in Fedora 44 Everything (official mirror)
@@ -67,6 +69,7 @@ imv|fedora|https://packages.fedoraproject.org/search?query=imv|2026-10-14|manife
 inih-devel|fedora|https://packages.fedoraproject.org/search?query=inih-devel|2026-10-14|manifest 2026-10-14
 intel-media-driver|rpmfusion-nonfree|https://admin.rpmfusion.org/pkgdb/package/nonfree/intel-media-driver/|2026-10-14|manifest 2026-10-14
 jq|fedora|https://packages.fedoraproject.org/search?query=jq|2026-10-14|manifest 2026-10-14
+kbd|fedora|https://packages.fedoraproject.org/pkgs/kbd/kbd/fedora-44.html|2026-11-04|kbd-2.9.0 in Fedora 44 updates (dnf repoquery); chvt: the screen back on the desktop when the play world ends
 lact|copr:ilyaz/LACT|https://copr.fedorainfracloud.org/coprs/ilyaz/LACT/|2026-10-20|lact-0.10.1-1 in the fedora-44-x86_64 chroot
 libadwaita|fedora|https://packages.fedoraproject.org/search?query=libadwaita|2026-10-14|manifest 2026-10-14
 libasan|updates|https://packages.fedoraproject.org/pkgs/gcc/libasan/|2026-10-27|libasan-16.2.1-2.fc44 (from gcc), dnf info on this PC: the Address Sanitizer runtime (tools/hl-dwl.sh --asan)
@@ -88,7 +91,6 @@ lxqt-policykit|fedora|https://packages.fedoraproject.org/search?query=lxqt-polic
 make|fedora|https://packages.fedoraproject.org/search?query=make|2026-10-14|manifest 2026-10-14
 mako|fedora|https://packages.fedoraproject.org/search?query=mako|2026-10-14|manifest 2026-10-14
 man-db|fedora|https://packages.fedoraproject.org/search?query=man-db|2026-10-14|manifest 2026-10-14
-mangohud|fedora|https://packages.fedoraproject.org/search?query=mangohud|2026-10-14|manifest 2026-10-14
 mesa-dri-drivers|fedora|https://packages.fedoraproject.org/search?query=mesa-dri-drivers|2026-10-14|manifest 2026-10-14
 mesa-va-drivers-freeworld|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14
 mesa-vulkan-drivers|fedora|https://packages.fedoraproject.org/search?query=mesa-vulkan-drivers|2026-10-14|manifest 2026-10-14
@@ -139,7 +141,6 @@ rustup|fedora|https://packages.fedoraproject.org/search?query=rustup|2026-10-14|
 ShellCheck|fedora|https://packages.fedoraproject.org/search?query=ShellCheck|2026-10-14|manifest 2026-10-14
 slurp|fedora|https://packages.fedoraproject.org/search?query=slurp|2026-10-14|manifest 2026-10-14
 snapper|fedora|https://packages.fedoraproject.org/search?query=snapper|2026-10-14|manifest 2026-10-14
-steam|rpmfusion-nonfree|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14
 steam-devices|fedora|https://packages.fedoraproject.org/search?query=steam-devices|2026-10-14|manifest 2026-10-14
 sudo|fedora|https://packages.fedoraproject.org/search?query=sudo|2026-10-14|manifest 2026-10-14
 swaybg|fedora|https://packages.fedoraproject.org/search?query=swaybg|2026-10-14|manifest 2026-10-14
@@ -159,7 +160,6 @@ unrar|rpmfusion-nonfree|https://download1.rpmfusion.org/nonfree/fedora/releases/
 upstream:ble.sh|github:akinomyoga/ble.sh|https://github.com/akinomyoga/ble.sh/commit/d81fd54feb0d996fdff20dca27eaf0201f7015cc|2026-10-14|a commit fetched by its hash is its own pin
 upstream:bluetui|github:pythops/bluetui|https://github.com/pythops/bluetui/releases/download/v0.8.2/bluetui-x86_64-linux-musl|2026-10-21|sha256 b476ee473cb4… matches the pin (downloaded and measured; the newest release)
 upstream:dwl|codeberg:dwl/dwl|https://codeberg.org/dwl/dwl/releases/tag/v0.9|2026-10-21|v0.9 (2026-09-20) is the newest release, for wlroots 0.20 — setup itself refuses a tag that does not resolve to DWL_COMMIT
-upstream:ge-proton|github:GloriousEggroll/proton-ge-custom|https://github.com/GloriousEggroll/proton-ge-custom/releases|2026-10-14|follows the newest release, checked against its own .sha512sum
 upstream:herdr|github:herdrdev/herdr|https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64|2026-10-21|sha256 14d9e8bc8b4a… matches the pin (downloaded and measured; the newest release)
 upstream:lazygit|github:jesseduffield/lazygit|https://github.com/jesseduffield/lazygit/releases/download/v0.66.2/lazygit_0.66.2_linux_x86_64.tar.gz|2026-10-21|sha256 158efc9ddfa1… matches the pin (downloaded and measured, and the release's checksums.txt; the newest release)
 upstream:localsend|github:localsend/localsend|https://github.com/localsend/localsend/releases/download/v1.18.2/LocalSend-1.18.2-linux-x86-64.tar.gz|2026-10-21|sha256 287690a9a8eb… matches the pin (downloaded and measured; the newest release, its files as 1.18.0's)

@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # tests/status/test_downloads.sh — kawa-downloads, the downloads centre: what it finds of each
-# source (Torrents' list, Brave's .crdownload files and its History, Steam's appmanifests),
+# source (Torrents' list, Brave's .crdownload files and its History),
 # the bar's mark, the menu and what a click on it opens, the one notice of a finished
 # download, and the watcher: woken by the kernel as a download starts or ends, quiet between.
 . "$(dirname "$0")/lib.sh"
-D=$HOME/Downloads B=$HOME/.config/BraveSoftware/Brave-Origin/Default L=$HOME/.local/share/Steam/steamapps
+D=$HOME/Downloads B=$HOME/.config/BraveSoftware/Brave-Origin/Default
 world() {
   sandbox
-  D=$HOME/Downloads B=$HOME/.config/BraveSoftware/Brave-Origin/Default L=$HOME/.local/share/Steam/steamapps
-  mkdir -p "$D" "$B" "$L"
+  D=$HOME/Downloads B=$HOME/.config/BraveSoftware/Brave-Origin/Default
+  mkdir -p "$D" "$B"
   stub kawa-term; stub xdg-open; stub kawa-menu
 }
 brave_db() {   # brave_db CURRENT TARGET TOTAL… — Brave's History: downloads under way (state 0)
@@ -22,11 +22,16 @@ for i in range(0, len(a), 3):
 db.commit()
 EOF
 }
-steam_game() {   # steam_game ID NAME DONE TOTAL — a game in Steam's library, downloading
-  printf '"libraryfolders"\n{\n\t"0"\n\t{\n\t\t"path"\t\t"%s"\n\t}\n}\n' "$HOME/.local/share/Steam" >"$L/libraryfolders.vdf"
-  mkdir -p "$L/downloading/$1"
-  printf '"AppState"\n{\n\t"appid"\t\t"%s"\n\t"name"\t\t"%s"\n\t"StateFlags"\t\t"1026"\n\t"BytesToDownload"\t\t"%s"\n\t"BytesDownloaded"\t\t"%s"\n}\n' \
-    "$1" "$2" "$4" "$3" >"$L/appmanifest_$1.acf"
+dl() {   # dl NAME DONE TOTAL — a Brave download under way: DONE bytes of TOTAL (the mark and the menu take every source alike)
+  head -c "$2" /dev/zero >"$D/$1.crdownload"
+  python3 -I - "$B/History" "$D/$1.crdownload" "$D/$1" "$3" <<'EOF'
+import sqlite3, sys
+db = sqlite3.connect(sys.argv[1])
+db.execute("CREATE TABLE IF NOT EXISTS downloads (current_path TEXT, target_path TEXT, received_bytes INTEGER, total_bytes INTEGER, state INTEGER)")
+db.execute("DELETE FROM downloads WHERE current_path = ?", (sys.argv[2],))
+db.execute("INSERT INTO downloads VALUES (?, ?, 0, ?, 0)", (sys.argv[2], sys.argv[3], int(sys.argv[4])))
+db.commit()
+EOF
 }
 torrra_list() {   # torrra_list PID LINE… — Torrents' list, as kawa-torrra writes it
   mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"; local p=$1; shift
@@ -56,14 +61,9 @@ case_ "…Brave's own download folder when you set one (its settings)"
 mkdir -p "$TMP/elsewhere"; printf '{"download": {"default_directory": "%s"}}' "$TMP/elsewhere" >"$B/Preferences"
 : >"$TMP/elsewhere/x.iso.crdownload"; eq "$(kawa-downloads list | cut -f2)" "x.iso"
 
-case_ "Steam: a game in downloading/, how far from its appmanifest; one complete is not listed"
-world; steam_game 774361 Blasphemous 400 1600
-eq "$(kawa-downloads list)" $'Steam\tBlasphemous\t400\t1600\t774361'
-steam_game 774361 Blasphemous 1600 1600; eq "$(kawa-downloads list)" ""
-
 # ── the mark ─────────────────────────────────────────────────────────────────────────────
 case_ "the mark: the percent of all, bytes over bytes (no count, no sizes); the mark alone while no total is known; a job of any name counts"
-world; steam_game 1 Hades 400 1600
+world; dl Hades 400 1600
 I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DL_0")   # (at rest: the arrow's first frame)
 F=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_DL_FILL_5")   # (25 %: five steps of the tray's fill)
 T=$(sed -n 's/^C_TEAL=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
@@ -87,22 +87,22 @@ t = json.loads(sys.stdin.read())["text"]; m = re.match(r"<span color=.#([0-9a-f]
 print(f"{m.group(1)} {ord(m.group(2)):X}" if m else "none")'; }
 code() { (. "$HOME/.config/fedokawaii/icons.sh"; v=ICON_DL_FILL_$1; printf '%X' "'${!v}"); }
 S=$(sed -n 's/^C_STRONG=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
-world; steam_game 1 Hades 40 1600; eq "$(mark | fill)" none "2 %: no fill yet"
-world; steam_game 1 Hades 80 1600; eq "$(mark | fill)" "$T $(code 1)" "5 %: the first step (the first column's bottom pixel)"
-world; steam_game 1 Hades 1000 1600; eq "$(mark | fill)" "$T $(code 12)" "62 %: twelve steps"
-world; steam_game 1 Hades 1599 1600; eq "$(mark | fill)" "$T $(code 19)" "99 %: one short of full"
-world; steam_game 1 Hades 1600 1600
+world; dl Hades 40 1600; eq "$(mark | fill)" none "2 %: no fill yet"
+world; dl Hades 80 1600; eq "$(mark | fill)" "$T $(code 1)" "5 %: the first step (the first column's bottom pixel)"
+world; dl Hades 1000 1600; eq "$(mark | fill)" "$T $(code 12)" "62 %: twelve steps"
+world; dl Hades 1599 1600; eq "$(mark | fill)" "$T $(code 19)" "99 %: one short of full"
+world
 sleep 600 & job2=$!; on_exit "kill $job2 2>/dev/null"; mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"
 printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$job2"; eq "$(mark | fill)" "$T $(code 20)" "100 %: all twenty"
 rm -f "$XDG_RUNTIME_DIR/kawa-downloads/pack.$job2"
-world; steam_game 1 Hades 1000 1600; sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"
+world; dl Hades 1000 1600; sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"
 printf '%s kawa-downloads\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"; eq "$(mark | fill)" "$S $(code 12)" "lit (its icon teal): the fill strong"
 rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
-world; steam_game 1 Hades 1000 1600; rm -f "$HOME/.config/fedokawaii/current/colors.sh"; eq "$(mark | fill)" none "no theme at hand: the mark alone, as before"
+world; dl Hades 1000 1600; rm -f "$HOME/.config/fedokawaii/current/colors.sh"; eq "$(mark | fill)" none "no theme at hand: the mark alone, as before"
 has "$(cat "$REPO/art/icons.txt")" "@dl-fill-20 adv=0 x=0" "drawn with no advance (art/icons.txt)"
 
 case_ "bar --follow (what the bar runs): while anything downloads the arrow drops into its tray — six frames, 8 a second, each its own glyph; the percent beside it"
-world; steam_game 1 Hades 400 1600
+world; dl Hades 400 1600
 . "$HOME/.config/fedokawaii/icons.sh"
 kawa-downloads bar --follow >"$TMP/follow" & f=$!; on_exit "kill $f 2>/dev/null"
 sleep 1.2
@@ -112,16 +112,16 @@ for l in open(sys.argv[1]): print(re.sub(r"^<span [^>]*>.</span>", "", json.load
 eq "$frames" 6 "all six frames shown (the arrow after the tray's fill)"
 has "$(head -n1 "$TMP/follow")" "$ICON_BAR_DL_0""25<span" "the first at rest, then the percent"
 case_ "…the files looked at every 2 s while moving (not 8 times a second): the percent follows"
-steam_game 1 Hades 800 1600; sleep 2.4
+dl Hades 800 1600; sleep 2.4
 has "$(tail -n1 "$TMP/follow")" '50<span' "the new percent within 2 s"
 case_ "…idle: hidden, and asleep — not a line more, nothing done (a select on its fifo)"
-rm -rf "$L/downloading/1" "$L/appmanifest_1.acf"; sleep 2.4
+rm -f "$D/Hades.crdownload"; sleep 2.4
 eq "$(tail -n1 "$TMP/follow")" '{"text":""}' "hidden"
 c1=$(grep -c . "$TMP/follow"); sleep 1.5; eq "$(grep -c . "$TMP/follow")" "$c1" "no line while idle"
 eq "$(awk '{print $3}' "/proc/$f/stat")" S "asleep (S)"
 case_ "…woken by kawa-dwlstatus (the watcher's poke, a menu's wake): a download that starts shows at once"
 w=$(ls "$XDG_RUNTIME_DIR"/kawa-bar.wake.* 2>/dev/null); eq "$w" "$XDG_RUNTIME_DIR/kawa-bar.wake.$f" "its fifo, named by its pid"
-steam_game 2 Celeste 100 400; printf '\n' 1<>"$w"; sleep 0.4
+dl Celeste 100 400; printf '\n' 1<>"$w"; sleep 0.4
 has "$(tail -n1 "$TMP/follow")" '25<span' "shown within 0.4 s of the word"
 case_ "…lit as its menu opens (woken: kawa-panel wakes the bar's long-running modules)"
 sleep 600 & m=$!; on_exit "kill $m 2>/dev/null"; printf '%s kawa-downloads\n' "$m" >"$XDG_RUNTIME_DIR/kawa-drop.open"; printf '\n' 1<>"$w"; sleep 0.4
@@ -135,19 +135,19 @@ case_ "the menu: downloads under its arrow, a row each — its glyph, its name (
 world; . "$HOME/.config/fedokawaii/icons.sh"
 sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
 torrra_list "$live" $'Big.Buck.Bunny.2008.1080p\t2500000000\t5000000000\t'"$D/Big.Buck.Bunny.2008.1080p"
-steam_game 2 Celeste 0 1200000000
+dl Celeste 0 1200000000
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 1'
 kawa-downloads; rows=$(cat "$TMP/menu.in")
 eq "$rows" "part	$ICON_DOWNLOAD	downloads
 row	$ICON_DOWNLOAD	Big Buck Bunny 2008 1080p	2.5 GB of 5.0 GB	50%
-row	$ICON_GAMEPAD	Celeste	0 B of 1.2 GB	0%
+row	$ICON_LINK	Celeste	0 B of 1.2 GB	0%
 key	$ICON_DOWNLOAD	torrents"
 called '^kawa-menu --drop --index --select 1$'
 case_ "…a click on a torrent: its folder in yazi (the file under the cursor once it is there)"
 called "^kawa-term yazi $D\$"
 : >"$D/Big.Buck.Bunny.2008.1080p"; reset_calls; kawa-downloads; called "^kawa-term yazi $D/Big.Buck.Bunny.2008.1080p\$"
-case_ "…on a Steam game: Steam's downloads page"
-stub kawa-menu 'cat >/dev/null; echo 2'; kawa-downloads; called '^xdg-open steam://open/downloads$'
+case_ "…on a Brave download: where it lands (its folder, until the file has its own name)"
+reset_calls; stub kawa-menu 'cat >/dev/null; echo 2'; kawa-downloads; called "^kawa-term yazi $D\$"; not_called '^xdg-open'
 case_ "…the foot's torrents: the search, in a window of its own"
 stub kawa-menu 'cat >/dev/null; echo 3'; kawa-downloads; called '^kawa-term kawa-torrra --open$'
 case_ "…no torrents key while that window is open (it holds kawa-torrra's lock)"
@@ -174,8 +174,8 @@ kawa-downloads notice Brave film.mkv 1500000000 "$D/film.mkv"
 called "^notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  film.mkv Brave · 1.5 GB · click to open it$"
 called "^kawa-term yazi $D/film.mkv\$"
 case_ "…closed unclicked: nothing opens"
-world; stub notify-send; kawa-downloads notice Steam Celeste 0 2; not_called '^xdg-open'
-called "^notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  Celeste Steam · click to open it$"
+world; stub notify-send; kawa-downloads notice Brave Celeste 0 2; not_called '^xdg-open'
+called "^notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  Celeste Brave · click to open it$"
 
 # ── the watcher ──────────────────────────────────────────────────────────────────────────
 waitfor() { local i; for ((i = 0; i < 50; i++)); do eval "$1" && return 0; sleep 0.1; done; return 1; }
@@ -194,12 +194,6 @@ case_ "…cancelled (its file gone): no notice"
 waitfor 'grep -q "^kawa-dwlstatus --poke 21$" "$CALLS"' && _ok || _no "not poked"; sleep 0.5; not_called '^notify-send'
 case_ "…idle, it sleeps: nothing done for seconds on end"
 : >"$CALLS"; sleep 2.5; eq "$(cat "$CALLS")" ""
-case_ "…a Steam game whose download finishes: its notice"
-kill "$w"; wait "$w" 2>/dev/null; world; stub notify-send; steam_game 9 Hades 10 100
-kawa-downloads watch & w=$!; on_exit "kill $w 2>/dev/null"; sleep 0.8
-steam_game 9 Hades 100 100; rm -rf "$L/downloading/9"
-waitfor 'grep -q "^notify-send -a downloads .* Hades Steam · 100 B" "$CALLS"' && _ok || _no "no notice: $(cat "$CALLS")"
-kill "$w"; wait "$w" 2>/dev/null
 
 case_ "--help, and wrong use: 2"
 world; kawa-downloads --help | grep -q 'kawa-downloads watch' && _ok || _no "no help"

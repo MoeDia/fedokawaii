@@ -10,7 +10,7 @@ The formats: JSON and waybar's JSONC, TOML (tomllib), YAML (PyYAML when it is th
 (read strictly: a line is a comment, a [section] or key=value; no key twice in a section,
 except where the program means it — systemd's units), desktop entries (the spec's rules, or
 desktop-file-validate when installed), XML, Lua, and the key=value / option-list files of
-mpv, MangoHud, swaylock, btop, zathura, bat, yt-dlp and fzf.
+mpv, swaylock, btop, zathura, bat, yt-dlp and fzf.
 """
 import ctypes
 import ctypes.util
@@ -165,7 +165,7 @@ def check_mimeapps(text):
 
 
 def check_keyvalue(text, sections=False, sep="="):
-    """key=value lines and bare flags (mpv, MangoHud, swaylock): nothing else."""
+    """key=value lines and bare flags (mpv, swaylock): nothing else."""
     for n, raw in enumerate(text.splitlines(), 1):
         ln = raw.split("#", 1)[0].strip() if not re.search(r'"[^"]*#', raw) else raw.strip()
         if not ln or ln.startswith("#"):
@@ -256,7 +256,7 @@ def kind_of(rel):
         return "ini"
     if name == "mpv.conf":
         return "mpv"
-    if name in ("MangoHud.conf", "swaylock"):
+    if name == "swaylock":
         return "keyvalue"
     if name == "btop.conf":
         return "btop"

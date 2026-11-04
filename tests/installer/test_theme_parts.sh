@@ -3,7 +3,7 @@
 # kawa-clipkeep and kawa-saver (built like dwl: one that does not build stops the run), and the
 # boot menu and console, the one part that runs contained — when it cannot be made the run goes
 # on and says so, and --check counts it as optional (exit 4) until what it failed on changes
-# (exit 3); once made, the mark goes. Then mpv's scaling on an APU and Steam's overlay with STEAM=no.
+# (exit 3); once made, the mark goes. Then mpv's scaling on an APU, and no game overlay or Steam entry.
 . "$(dirname "$0")/lib.sh"
 H=/home/fkuser
 TK=/usr/local/lib/fedokawaii
@@ -140,12 +140,12 @@ case_ "BOOT_MENU_SECONDS=0: Fedora's hidden menu back"
 theme
 has "$(cat "$FKH/grubenv")" "menu_auto_hide=2"
 
-case_ "an APU (512 MB of shared memory) and STEAM=no: mpv's own scaling, no game overlay config"
-back plain; hw_apu; tconf 's/^STEAM=.*/STEAM="no"/'
+case_ "an APU (512 MB of shared memory): mpv's own scaling; no game overlay config, no Steam entry (gaming is the play world's)"
+back plain; hw_apu
 theme; eq "$RC" 0
 lacks "$(grep '^profile=' "$W$H/.config/mpv/mpv.conf")" "high-quality"
 has "$(cat "$W$H/.config/mpv/mpv.conf")" "# scaling: mpv's own defaults"
-[[ ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok || _no "MangoHud config or Steam's entry installed with STEAM=no"
+[[ ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok || _no "MangoHud config or Steam's entry installed"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"'
 
 

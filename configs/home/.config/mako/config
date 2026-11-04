@@ -111,7 +111,7 @@ group-by=none
 [mode=sharing urgency=critical]
 invisible=0
 
-# while a game runs (game mode: kawa-game): the same rules
+# while the play world is in front (kawa-hush on game, from kawa-asobi-root): the same rules
 [mode=game]
 invisible=1
 group-by=none

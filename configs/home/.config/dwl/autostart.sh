@@ -93,7 +93,6 @@ kawa-theme apply </dev/null                        # dark or light: GTK/Qt setti
 kawa-state restore </dev/null                      # what you set, as you left it, before the bar draws
                                                    #   (do not disturb, Bluetooth, brightness; kawa-state)
 kawa-night restore </dev/null                      # night light: as you last left it (on or off, its warmth)
-kawa-game restore </dev/null &                     # a session ended mid-game: the desktop's tuned profile back
 kawa-glass ensure </dev/null                       # the terminal's glass file, there before foot starts (foot.ini
                                                    #   includes it: foot refuses its config without it)
 keep waybar </dev/null >"$HOME/.cache/waybar.log" 2>&1 &

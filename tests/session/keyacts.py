@@ -42,6 +42,7 @@ ROWS = {
     "Super+Shift+N":           ("dismiss notifications", ["spawn:makoctl dismiss -a"]),
     "Super+U":                 ("the system: update, new Fedora, repair", ['warm:"system"']),
     "Super+Shift+U":           ("change the desktop", ["spawn:kawa-config"]),
+    "Super+G":                 ("the play world", ["spawn:kawa-asobi enter"]),
     "Super+Escape":            ("lock screen (then sleep after 90 s)", ["spawn:kawa-lock --sleep"]),
     "Super+Shift+E":           ("power menu", ["spawn:kawa-power"]),
     "Print":                   ("region", ["spawn:kawa-screenshot region"]),
@@ -83,12 +84,11 @@ ROWS = {
     "Super+] / Super+[":       ("monitor brightness up / down", ["spawnheld:kawa-brightness +10", "spawnheld:kawa-brightness -10"]),
     "Brightness keys":         ("the same", ["spawnheld:kawa-brightness +10", "spawnheld:kawa-brightness -10"]),
     "Sleep key":               ("locked first, then asleep", ["spawn:kawa-power sleep", "spawn:kawa-power sleep"]),
-    "Super+Ctrl+Shift+Q":      ("log out, no menu (Steam closed properly first)",
-                                [r'spawn:kawa-steam --quit logout; exec pkill -xu \"$(id -u)\" dwl']),
+    "Super+Ctrl+Shift+Q":      ("log out, no menu", [r'spawn:exec pkill -xu \"$(id -u)\" dwl']),
     "Ctrl+Alt+F2…F6":          ("text consoles", [f"chvt:({n})" for n in range(2, 7)]),
     "Ctrl+Alt+F1":             ("back here", ["chvt:(1)"]),
 }
-NOT_DWL = {"Alt+Shift", "Right Shift+F12"}     # XKB's and MangoHud's own (tests/static checks where)
+NOT_DWL = {"Alt+Shift"}                        # XKB's own (tests/static checks where)
 KEYS = {"Return": "Return", "Space": "space", "/": "slash", "Escape": "Escape", "Print": "Print",
         "Tab": "Tab", ",": "comma", ".": "period", "]": "bracketright", "[": "bracketleft"}
 MEDIA = {"Volume": ["XF86AudioRaiseVolume", "XF86AudioLowerVolume"], "Mute": ["XF86AudioMute"],

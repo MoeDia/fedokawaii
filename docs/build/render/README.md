@@ -43,7 +43,7 @@ Debugging: `SHOOT_SWAY_DEBUG=1` (sway -d into the sway log), `SHOOT_FOOT_DEBUG=1
 | `menu-brightness.png` | the brightness slider (`kawa-panel --brightness`, the bar's brightness) |
 | `menu-weather.png` | the week (`kawa-weather --menu`, the bar's weather), from `stubs/curl`'s forecast |
 | `menu-weather-offline.png` | the same three hours later, offline: its age, quiet, above the days |
-| `menu-power.png` `menu-calendar.png` `menu-timer.png` `menu-drives.png` `menu-steam.png` `menu-shrink.png` `menu-file.png` `menu-share.png` `menu-help.png` `menu-change.png` | the dropdowns and centred menus: `kawa-menu`, drawn by the session's panel (`kawa-panel --menu`, started for them; closed with SIGUSR2 between shots) |
+| `menu-power.png` `menu-calendar.png` `menu-timer.png` `menu-drives.png` `menu-shrink.png` `menu-file.png` `menu-share.png` `menu-help.png` `menu-change.png` | the dropdowns and centred menus: `kawa-menu`, drawn by the session's panel (`kawa-panel --menu`, started for them; closed with SIGUSR2 between shots) |
 | `menu-calendar-next.png` `menu-timer-running.png` `menu-help-filter.png` `menu-shrink-size.png` `menu-file-level.png` | the same after keys (paged to next month), with a timer running, filtered by typing (`volume`), a size of one's own typed (`750 KB`), and zip's compression after Down, Enter on a folder's pack — `menu_keys`: wtype's keyboard made before the menu opens (sway sends a leave to the focused surface when a keyboard is added) |
 | `launcher.png` `launcher-find.png` `launcher-calc.png` | the launcher (`kawa-menu --launcher`, Super+Space), drawn by the session's panel: as it opens, after typing `ste`, and with a sum typed (`15% of 2400`: its answer live in the first row) |
 | `notify-normal.png` | `kawa-screenshot`'s notice (`-a desktop`, the picture as icon) |
@@ -82,7 +82,6 @@ Stand-ins (`stubs/`, first in PATH; `xdg/`; `lib/`):
 | `nmcli`, `bluetoothctl` | wired network up; one powered controller. `/sys/class/bluetooth/hci0` exists only for the `menu-quick` process (a private mount) |
 | `ddcutil` | one DDC/CI monitor, brightness kept in a state file |
 | `curl` (Open-Meteo only) | a week of Sharjah's October in Open-Meteo's JSON (33° and clear now; sun, cloud, fog, rain), its days from today; any other URL goes to the real curl |
-| `steam` | installed (kawa-steam --menu asks `command -v steam`); asked anything, nothing |
 | `cliphist` | a clipboard history with a URL, an image entry, Japanese and Arabic |
 | `gammastep` | a process of that name (night light on, as autostart leaves it) |
 | `wlr-randr` | `/tmp/veiltest/fakebin/wlr-randr`: sway's outputs in wlr-randr's format |
