@@ -99,3 +99,9 @@ yes rgb dies down when i turn off the monitor but there is a delay could improve
 
 ## OWNER ANSWER 2026-11-04 19:29 — to your question «2026-11-04 19:29 — question from lane-hardware»
 i think the cpu cooler display stays on. make the behavior that if i turn off the monitor turn all rgb and cpu display off
+
+## OWNER ANSWER 2026-11-04 19:32 — to your question «2026-11-04 19:32 — question from lane-hardware»
+cpu display does go dark afer 42 i guess you can control it?
+
+## OWNER ANSWER 2026-11-04 19:33 — to your question «2026-11-04 19:34 — question from lane-hardware»
+right now its staying dark so i think its working as intended harden it tho

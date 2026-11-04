@@ -27,7 +27,8 @@
  * away is closed and looked for again, so a replug and a resume just work.
  *
  * The cooler's display (1a2c:4184, the "SEMICO keyboard", no keys of its own) shows the CPU's
- * temperature: the report its vendor's software sends (07 ff ff, then the digits).
+ * temperature: the report its vendor's software sends (07 ff ff, then the digits), once a second,
+ * the one thing sent while nothing else changes. Off with the lights: digits it does not know.
  *
  * Protocol facts, none of their code: OpenRGB (the MSI and Gigabyte controllers), fizzctl (K617),
  * JL DGT 1.0.0 (the display). KAWA_RGB_ROOT prefixes every path, and regular files take the
@@ -457,7 +458,9 @@ static void conf_load(void)
 }
 
 /* ── the cooler's display: the CPU's temperature, its own report, once a second ──── */
+#define DISP_NONE 0x0a
 static int disp_fd = -1, temp_fd = -1, disp_shown = -1;
+static double disp_look, disp_again;     /* when it is next looked for; next told it is out */
 static double temp_avg = -1000;
 static void temp_find(void)
 {
@@ -473,16 +476,31 @@ static void temp_find(void)
     }
     closedir(d);
 }
-static void disp_tick(void)
+static bool disp_open(double now)
 {
-    char buf[32];
     if (disp_fd >= 0 && !alive(disp_fd)) {
         close(disp_fd);
         disp_fd = -1;
+        disp_again = 0;
     }
-    if (disp_fd < 0)
+    if (disp_fd < 0 && now >= disp_look) {
+        disp_look = now + 2;
         disp_fd = hidraw_find(0x1A2C, 0x4184, 1);
-    if (disp_fd < 0)
+    }
+    return disp_fd >= 0;
+}
+static void disp_send(uint8_t a, uint8_t b, uint8_t c)
+{
+    uint8_t rep[64] = {0x07, 0xff, 0xff, a, b, c};
+    if (report_out(disp_fd, rep, sizeof rep)) {
+        close(disp_fd);
+        disp_fd = -1;
+    }
+}
+static void disp_tick(double now)
+{
+    char buf[32];
+    if (!disp_open(now))
         return;
     if (temp_fd < 0)
         temp_find();
@@ -497,10 +515,16 @@ static void disp_tick(void)
     int v = (int)lround(temp_avg);
     v = v < 0 ? 0 : v > 999 ? 999 : v;
     disp_shown = v;
-    uint8_t rep[64] = {0x07, 0xff, 0xff, (uint8_t)(v / 100), (uint8_t)(v / 10 % 10), (uint8_t)(v % 10)};
-    if (report_out(disp_fd, rep, sizeof rep)) {
-        close(disp_fd);
-        disp_fd = -1;
+    disp_again = 0;
+    disp_send((uint8_t)(v / 100), (uint8_t)(v / 10 % 10), (uint8_t)(v % 10));
+}
+/* out with the lights: no digit it knows, so no digit lit, and it stays so; told again now and then,
+ * should it ever be reset meanwhile (a write that fails, a replug: at once) */
+static void disp_out(double now)
+{
+    if (disp_open(now) && now >= disp_again) {
+        disp_send(DISP_NONE, DISP_NONE, DISP_NONE);
+        disp_again = disp_fd >= 0 ? now + 10 : 0;
     }
 }
 
@@ -603,7 +627,7 @@ static void status_write(const char *word)
 }
 
 /* ── the service ─────────────────────────────────────────────────────────────────── */
-static volatile sig_atomic_t stopping;
+static volatile sig_atomic_t stopping;   /* (the service stopped: the display out, it would hold its number) */
 static void on_term(int s) { (void)s; stopping = 1; }
 
 static void let_go(struct light *l)
@@ -645,6 +669,7 @@ static int run(const char *trace_path)
             if (disp_fd >= 0)
                 close(disp_fd);
             disp_fd = -1;
+            disp_look = disp_again = 0;
             next_scan = 0;
         }
         slept = away;
@@ -721,10 +746,11 @@ static int run(const char *trace_path)
                 }
             }
         }
-        if (now >= next_display) {
+        if (target == 0)
+            disp_out(now);
+        else if (now >= next_display || disp_again > 0) {
             next_display = now + 1;
-            if (target > 0)
-                disp_tick();
+            disp_tick(now);
         }
         status_write(word);
         if (trace) {
@@ -736,6 +762,8 @@ static int run(const char *trace_path)
         }
         ms(level != target || card_todo > 0 ? FADE_MS : IDLE_MS);
     }
+    if (disp_fd >= 0)
+        disp_send(DISP_NONE, DISP_NONE, DISP_NONE);
     if (trace)
         fclose(trace);
     return 0;

@@ -107,9 +107,15 @@ eq "$(cat "$M/var/lib/kawa-rgb/card")" f00014 "its mark: it answers nothing back
 
 case_ "the cooler's display: the CPU's temperature, its vendor's report"
 n=$(size hidraw6); ((n >= 64 && n % 64 == 0)) && _ok || _no "the display got $n bytes"
-eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff000601 "07 ff ff 0 6 1 (61 °C)"
+eq "$(head -c 6 "$M/dev/hidraw6" | od -An -tx1 | tr -d ' \n')" 07ffff000601 "07 ff ff 0 6 1 (61 °C)"
 machine; echo 100500 >"$M/sys/class/hwmon/hwmon4/temp1_input"; start; secs 1.2; stop
 eq "$(head -c 6 "$M/dev/hidraw6" | od -An -tx1 | tr -d ' \n')" 07ffff010001 "three digits: 101"
+eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff0a0a0a "the service stopped: out (it would hold its number)"
+case_ "the display failing (a write error) or replugged: found, told again"
+machine; start; secs 1.2; rm "$M/dev/hidraw6"; : >"$M/dev/hidraw6"; secs 3.5
+n=$(size hidraw6); ((n >= 64)) && _ok || _no "not told after a replug"
+K off; secs 4; stop; K on
+has "$(tail -c 128 "$M/dev/hidraw6" | od -An -tx1 | tr -d ' \n')" 07ffff0a0a0a "out after the replug too"
 
 case_ "the memories read first: already so, nothing is written, the service only sends its frame"
 machine; blocks "$M/dev/hidraw1" 1 255 0 0
@@ -148,10 +154,13 @@ eq "$(now_of keyboard)" 255,0,0
 case_ "screens off: off, then nothing sent; back: a fade up; locked meanwhile: back to the lock's level"
 machine; start; secs 2; echo Off >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; secs 2.5
 eq "$(now_of keyboard)" 0,0,0; eq "$(now_of motherboard)" 0,0,0; eq "$(now_of card)" 0,0,0; eq "$(state)" "lights off, screens off"
-a=$(sizes); d=$(size hidraw6); secs 1.5; eq "$(sizes)" "$a" "off: nothing sent"; eq "$(size hidraw6)" "$d" "the display left alone"
+a=$(sizes); d=$(size hidraw6); secs 1.5; eq "$(sizes)" "$a" "off: nothing sent"; eq "$(size hidraw6)" "$d" "the display told once"
+eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff0a0a0a "the display out: digits it does not know"
 eq "$(tail -c 64 "$M/dev/i2c-6" | od -An -tx1 -j 2 -N 1 | tr -d ' \n')" 00 "the card's own off mode"
 eq "$(tail -c 185 "$M/dev/hidraw4" | od -An -tx1 -j 1 -N 1 | tr -d ' \n')" 00 "the board's own off effect"
+secs 9; eq "$(($(size hidraw6) - d))" 64 "told again every ten seconds, no more"
 K lock; echo On >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; secs 2; eq "$(now_of keyboard)" 18,0,0 "lit on the lock: dim"
+eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff000601 "the display back at once, on the lock too"
 K unlock; echo disconnected >"$M/sys/class/drm/card0-HDMI-A-1/status"; secs 2.5; eq "$(now_of keyboard)" 0,0,0 "the monitor gone from the cable: off"
 stop
 
@@ -165,6 +174,7 @@ case_ "a sleep: out at once and the unit waits for it; awake: back"
 machine; start; secs 1.5; a=$(date +%s%N); K sleep; b=$(date +%s%N)
 ((b - a < 1600000000)) && _ok || _no "the sleep's unit waited $(((b - a) / 1000000)) ms"
 eq "$(state)" "lights off, asleep"; secs 0.8; eq "$(now_of keyboard)" 0,0,0
+eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff0a0a0a "the display out before the sleep"
 eq "$(col keyboard | tail -n 3 | sort -u | wc -l)" 1 "no fade: it goes at once"
 K wake; secs 2; stop; eq "$(now_of keyboard)" 255,0,0; eq "$(state)" "lights full"
 case_ "…with no service: the sleep's unit does not hang"
@@ -194,6 +204,7 @@ case_ "the switch: off for everything, in the hardware's memory too, and kept"
 machine; eq "$(K state)" on "untouched: on"; start; secs 2
 k=$(size hidraw1); K off; eq "$(K state)" off; eq "$(cat "$M/var/lib/fedokawaii-greeter/rgb")" off "in a file"; secs 5
 eq "$(now_of keyboard)" 0,0,0; eq "$(state)" "lights switched off"
+eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff0a0a0a "the display out with them"
 # (the keyboard's stored effect: off; in this test's file, its reads stay what they were)
 t=$(od -An -tx1 -v -j "$k" "$M/dev/hidraw1" | tr -d ' \n'); has "$t" "0603b60000" "the burst came"
 ex=$(python3 -I -c 'import sys
