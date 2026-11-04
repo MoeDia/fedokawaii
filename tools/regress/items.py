@@ -6,6 +6,7 @@
                           word); every check here has a row. Exit 1, each fault on a line.
                           (a copy without .claude/: the rows' checks alone)
   items.py count [REPO]   how many items: with a check, gone, a record, open, by hand.
+  items.py of NAME        the items a headless check guards (tools/regress/NAME.sh): its run's line.
   items.py blame LOG      what the owner reported that a run's log broke: for each "✘ CASE — why"
                           line (tests/run.sh) and "✘ NAME …" line (tools/regress/run.sh), the items
                           whose row names that case or that check.
@@ -182,6 +183,15 @@ def count(repo):
             f"{tally['record'] + records} records, {tally['open']} open in their tasks, {tally['manual']} by hand")
 
 
+def of(repo, name):
+    """The items whose row names the check tools/regress/NAME.sh."""
+    hits = []
+    for _, items, _, checks in rows(repo):
+        if f"tools/regress/{name}.sh" in checks:
+            hits += items
+    return " ".join(hits)
+
+
 def blame(repo, log):
     the_rows = rows(repo)
     said = set()
@@ -206,10 +216,13 @@ def blame(repo, log):
 
 
 def main(argv):
-    if len(argv) < 2 or argv[1] not in ("check", "count", "blame"):
+    if len(argv) < 2 or argv[1] not in ("check", "count", "blame", "of"):
         print(__doc__)
         return 2
     default = os.path.dirname(os.path.dirname(HERE))
+    if argv[1] == "of":
+        print(of(default, argv[2]) if len(argv) == 3 else "")
+        return 0
     if argv[1] == "blame":
         if len(argv) != 3:
             print("usage: items.py blame LOG", file=sys.stderr)

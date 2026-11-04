@@ -69,4 +69,5 @@ cat >"$TMP/run.log" <<'LOG_END'
 LOG_END
 b=$(python3 -I -B "$I" blame "$TMP/run.log")
 has "$b" "r24-45"; has "$b" "r24-7"; has "$b" "r26-fu-8"
+has "$(python3 -I -B "$I" of bar-burst)" "r27-1919-3" "items.py of: a headless check's items"
 done_

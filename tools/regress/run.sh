@@ -14,6 +14,7 @@ for t in "$here"/*.sh; do
   a=(); grep -q 'KIT OPTION' "$t" && a=("$@")     # (the kit's options only for the checks that take them)
   out=$(timeout "${KAWA_REGRESS_LIMIT:-1500}" bash "$t" "${a[@]}" 2>&1); rc=$?
   printf '%s %-18s %s\n' "$( ((rc == 0)) && echo ✔ || echo ✘)" "$n" "$(tail -n 1 <<<"$out")"
+  ((rc == 0)) || printf '    guards: %s\n' "$(python3 -I -B "$here/items.py" of "$n" | cut -c1-160)"
   ((rc == 0)) || { ((rc == 2 || rc == 124)) && blind+=("$n") || broken+=("$n"); }
 done
 ((${#broken[@]})) && { echo "regress: broken — ${broken[*]}"; exit 1; }
