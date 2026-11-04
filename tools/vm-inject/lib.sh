@@ -49,7 +49,7 @@ phase_is() {   # phase_is WORD [S]
   done
   return 1
 }
-cut_power() { virsh -q -c qemu:///session destroy "fk-$vm" >>"$log" 2>&1; }
+cut_power() { timeout 60 virsh -q -c qemu:///session destroy "fk-$vm" >>"$log" 2>&1; }   # (a jammed libvirt must not hang a row)
 restart_vm() { bash "$here/vm-snap.sh" "$vm" start >>"$log" 2>&1 && bash "$here/vm-snap.sh" "$vm" nice 10 >>"$log" 2>&1; }
 facts() {
   run 'U=/var/lib/fedokawaii/update
