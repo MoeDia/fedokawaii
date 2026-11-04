@@ -12268,7 +12268,10 @@ answer, over **TLS** (`DNSOverTLS=opportunistic`, port 853), so neither the netw
 provider reads which sites you look up, and `Domains=~.` keeps every name away from the router's
 DNS. Measured from this PC (ledger r27-43): the same speed for a name not yet known, and the
 router's DNS lost names now and then (a 5 s wait) where these answered. *Opportunistic* means a
-network that blocks port 853 costs the privacy, never the names.
+network that blocks port 853 costs the privacy, never the names. A network that lets no outside
+DNS through at all (a hotel, a portal before its login) gets its own DNS back:
+`/etc/NetworkManager/dispatcher.d/60-fedokawaii-names` asks at every change of the network whether
+either provider can be reached, and switches both ways; verify says while it is so.
 
 Two of resolved's extras are off (`/etc/systemd/resolved.conf.d/90-fedokawaii.conf`): **LLMNR**,
 Windows' older way of finding names on the home network, which listens on every address (port

@@ -105,7 +105,31 @@ has "$(cat "$W/etc/NetworkManager/conf.d/91-fedokawaii-net.conf")" "connection.m
 : >"$CALLS"; step net_dns; eq "$RC" 0 "$OUT"; called 'systemctl\] try-reload-or-restart systemd-resolved.service'
 d=$(cat "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf")
 for l in 'DNSOverTLS=opportunistic' 'Domains=~.' 'LLMNR=no' 'MulticastDNS=no' 'cloudflare-dns.com' 'dns.quad9.net' '2606:4700:4700::1111'; do has "$d" "$l"; done
+cmp -s "$REPO/system/kawa-names" "$W/etc/NetworkManager/dispatcher.d/60-fedokawaii-names" && [[ -x $W/etc/NetworkManager/dispatcher.d/60-fedokawaii-names ]] && _ok || _no "the dispatcher's script"
 : >"$CALLS"; step net_dns; eq "$RC" 0; not_called 'try-reload-or-restart'
+
+case_ "a network that lets no outside DNS through (system/kawa-names): the network's own DNS takes over, its domains kept, and gives the names back the moment a provider can be reached"
+back built
+# (the fake machine's sleep returns at once: a provider's port is waited for by connecting to it)
+LISTEN='p=$(python3 -I -c "import socket; s=socket.socket(); s.bind((\"127.0.0.1\",0)); print(s.getsockname()[1])")
+    listen() { python3 -I -c "import socket,sys,time; s=socket.socket(); s.setsockopt(socket.SOL_SOCKET,socket.SO_REUSEADDR,1); s.bind((\"127.0.0.1\",int(sys.argv[1]))); s.listen(5); time.sleep(4)" "$p" & until (exec 3<>"/dev/tcp/127.0.0.1/$p") 2>/dev/null; do :; done; }
+    D=/etc/NetworkManager/dispatcher.d/60-fedokawaii-names'
+names() {     # names EVENT [listen]: the dispatcher's script, the providers a port on this machine (open with "listen")
+  fkrun bash -c "$LISTEN"'
+    [[ $2 == listen ]] && listen
+    KAWA_NAMES_ADDRS=127.0.0.1 KAWA_NAMES_PORTS=$p $D enp5s0 "$1"; echo "rc=$?"; if [[ -f /run/fedokawaii-names-local ]]; then cat /run/fedokawaii-names-local >/var/lib/fkh/mark; else rm -f /var/lib/fkh/mark; fi' _ "$@"
+}
+# (/run is new at each call here: its mark is copied out to $FKH/mark to look at)
+names up listen; has "$OUT" "rc=0"; not_called 'resolvectl\] domain enp5s0 .*~'; [[ ! -e $FKH/mark ]] && _ok || _no "a provider answers: nothing changes"
+echo lan >"$FKH/resolv-domains"
+: >"$CALLS"; names connectivity-change; called 'resolvectl\] domain enp5s0 lan ~\.'; eq "$(cat "$FKH/resolv-domains")" 'lan ~.'; eq "$(cat "$FKH/mark")" lan "the card's own domains, kept"
+: >"$CALLS"; names dhcp4-change; not_called 'resolvectl\] domain enp5s0 .* ~\.$' "already its own: asked once"
+: >"$CALLS"; fkrun bash -c "$LISTEN"'
+    listen; echo lan >/run/fedokawaii-names-local; KAWA_NAMES_ADDRS=127.0.0.1 KAWA_NAMES_PORTS=$p $D enp5s0 up; [[ ! -e /run/fedokawaii-names-local ]] && echo gone'
+has "$OUT" gone; eq "$(cat "$FKH/resolv-domains")" "lan" "back to the card's own"
+names pre-up; not_called 'resolvectl\] domain enp5s0 .* ~\.$' "other events are nobody's business"
+fkrun bash -c '/etc/NetworkManager/dispatcher.d/60-fedokawaii-names lo up; echo "rc=$?"'; eq "$OUT" "rc=0"
+rm -f "$FKH/mark" "$FKH/resolv-domains"
 
 case_ "verify: a sound machine passes; each difference named, and it fails"
 back built
@@ -129,6 +153,8 @@ back built; echo FedoraServer >"$FKH/fw-default"
 V; eq "$RC" 3; has "$OUT" "✘  the firewall: the default zone is FedoraServer, not public"
 back built; sed -i 's/^LLMNR=no/LLMNR=yes/' "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf"
 V; eq "$RC" 3; has "$OUT" "✘  names: /etc/systemd/resolved.conf.d/90-fedokawaii.conf is not the project's"
+back built; rm -f "$W/etc/NetworkManager/dispatcher.d/60-fedokawaii-names"
+V; eq "$RC" 3; has "$OUT" "✘  names: /etc/NetworkManager/dispatcher.d/60-fedokawaii-names is not the project's"
 back built; mkdir -p "$FKH/sysctl-now.d"; echo 1 >"$FKH/sysctl-now.d/net.ipv4.conf.all.accept_redirects"; echo 2 >"$FKH/sysctl-now.d/net.ipv4.conf.enp5s0.rp_filter"
 V; eq "$RC" 3; has "$OUT" "✘  the kernel's network settings: net.ipv4.conf.all.accept_redirects = 1, should be 0"; has "$OUT" "net.ipv4.conf.enp5s0.rp_filter = 2, should be 1"
 back built; fkh_add units "active sshd.service"

@@ -18,11 +18,15 @@ NET_LAN_SOURCES=(10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 fc00::/7
 # DNS over TLS: Cloudflare, then Quad9 when it cannot answer; measured from this PC against the
 # router's plain DNS (ledger r27-43): as fast at p50, and the router lost names these answer.
 # Opportunistic: encrypted wherever the network allows it, and a network that blocks port 853
-# costs privacy, not the internet. (Domains=~. keeps every name away from the router's DNS.)
+# costs privacy, not the internet. (Domains=~. keeps every name away from the router's DNS; one
+# that lets no outside DNS through at all gets its own back: system/kawa-names.)
 NET_DNS="1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com 9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net"
 NET_DNS_FILE=/etc/systemd/resolved.conf.d/90-fedokawaii.conf
 NET_SYSCTL_FILE=/etc/sysctl.d/60-fedokawaii-net.conf
 NET_NM_FILE=/etc/NetworkManager/conf.d/91-fedokawaii-net.conf
+NET_NAMES_FILE=/etc/NetworkManager/dispatcher.d/60-fedokawaii-names
+# shellcheck disable=SC2034  # (verify reads it)
+NET_NAMES_LOCAL=/run/fedokawaii-names-local
 
 # ssh_wanted — sshd runs only where it can be used: SSH_SERVER=yes and a key to log in with
 ssh_wanted() { [[ $SSH_SERVER == yes ]] && grep -qsE '^[^#[:space:]]' "$TARGET_HOME/.ssh/authorized_keys"; }
@@ -187,9 +191,13 @@ _net_dns_conf() {
 }
 net_dns_wrong() {
   [[ -f $NET_DNS_FILE && $(<"$NET_DNS_FILE") == "$(_net_dns_conf)" ]] || echo "$NET_DNS_FILE is not the project's"
+  { cmp -s "$REPO_DIR/system/kawa-names" "$NET_NAMES_FILE" && [[ -x $NET_NAMES_FILE ]]; } || echo "$NET_NAMES_FILE is not the project's"
 }
 net_dns() {
-  [[ -z $(net_dns_wrong) ]] && return 0
+  if ! { cmp -s "$REPO_DIR/system/kawa-names" "$NET_NAMES_FILE" && [[ -x $NET_NAMES_FILE ]]; }; then
+    write_file "$NET_NAMES_FILE" 0755 <"$REPO_DIR/system/kawa-names"; restorecon "$NET_NAMES_FILE" 2>/dev/null || true
+  fi
+  [[ -f $NET_DNS_FILE && $(<"$NET_DNS_FILE") == "$(_net_dns_conf)" ]] && return 0
   _net_dns_conf | write_file "$NET_DNS_FILE" 0644
   restorecon "$NET_DNS_FILE" 2>/dev/null || true
   systemctl try-reload-or-restart systemd-resolved.service 2>/dev/null || true

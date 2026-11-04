@@ -531,7 +531,8 @@ if [[ -z $netw ]]; then pass "the kernel's network settings in force (no redirec
 else while IFS= read -r l; do fail "the kernel's network settings: $l" "repair puts them back"; done <<<"$netw"; fi
 netw=$(net_dns_wrong)
 if [[ -z $netw ]]; then pass "names go over TLS; no LLMNR, no mDNS"
-else fail "names: $netw" "repair puts it back"; fi
+else while IFS= read -r l; do fail "names: $l" "repair puts it back"; done <<<"$netw"; fi
+[[ ! -f $NET_NAMES_LOCAL ]] || warn "names: this network lets no outside DNS through, so its own answers, in plain" "back over TLS by itself, the moment Cloudflare or Quad9 can be reached"
 # (a stray socket is behind the firewall all the same: said, never a failure — any program may open one)
 netw=$(net_strays)
 if [[ -z $netw ]]; then pass "what listens: only the list's doors"

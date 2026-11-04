@@ -1,0 +1,41 @@
+#!/bin/bash
+# /etc/NetworkManager/dispatcher.d/60-fedokawaii-names — names on a network that lets no outside
+# DNS through (a hotel, an office, a portal before its login, a provider's block). Names here go
+# over TLS to Cloudflare, then Quad9, never to the network's own DNS (lib/net.sh); with neither
+# reachable, every lookup would hang for minutes. So at every change of the network: neither
+# provider answers a connection → the network's own DNS takes over; one answers again → back.
+# NetworkManager runs it as root, the event in $2. The state lives until the next boot at most.
+export LC_ALL=C.UTF-8
+[[ ${1:-} == lo ]] && exit 0
+case ${2:-} in up|reapply|connectivity-change|dhcp4-change|dhcp6-change) ;; *) exit 0 ;; esac
+ADDRS=${KAWA_NAMES_ADDRS:-1.1.1.1 9.9.9.9 2606:4700:4700::1111 2620:fe::fe}
+PORTS=${KAWA_NAMES_PORTS:-853 53}
+MARK=${KAWA_NAMES_MARK:-/run/fedokawaii-names-local}
+dev=$(ip route show default 2>/dev/null | sed -n 's/.* dev \([^ ]*\).*/\1/p' | sed -n 1p)
+[[ -n $dev ]] || exit 0
+reachable() {   # a connection, not a name: the resolver's own state must not decide this
+  local a p
+  for a in $ADDRS; do
+    for p in $PORTS; do
+      timeout 1 bash -c 'exec 3<>"/dev/tcp/$0/$1"' "$a" "$p" 2>/dev/null && return 0
+    done
+  done
+  return 1
+}
+domains() { resolvectl domain "$dev" 2>/dev/null | sed 's/^[^:]*:[[:space:]]*//'; }
+say() { logger -t fedokawaii-names "$1" 2>/dev/null || true; }
+if reachable; then
+  [[ -f $MARK ]] || exit 0
+  # shellcheck disable=SC2046  # (the card's own domains, as they were: words)
+  resolvectl domain "$dev" $(cat "$MARK") ""
+  rm -f "$MARK"
+  say "a provider answers again: names over TLS"
+else
+  have=$(domains)
+  [[ " $have " == *" ~. "* ]] && exit 0
+  [[ -f $MARK ]] || printf '%s\n' "$have" >"$MARK"
+  # shellcheck disable=SC2086  # (words)
+  resolvectl domain "$dev" $have '~.'
+  say "no outside DNS on this network: its own answers, in plain"
+fi
+exit 0
