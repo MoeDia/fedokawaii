@@ -23,7 +23,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
 | the lock | a dungeon wall, two torches, the Hannya's open mouth | a temple in clouds — golden mist on a paper sky —, two hanging bronze lanterns, Seiōbo through a round window |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
-| quick settings' face | the hannya (after Hokusai's Warai Hannya): gold horns, parted black hair, slanted gold eyes, a fanged lacquer grin (roaring while its panel is open: the mouth deeper, the eyes all gold) | the tennin: a gold nimbus, a pinned bun, the urna, eyes closed (open while its panel is open: gold irises, a smile) |
+| the head (quick settings' tile on the bar, the prompt, fetch) | a woodblock's crest (owner, 4 Nov: "more RED, monotone, classic Japanese"): an oni in the seal's red, black features, cream eyes and teeth; it roars while its panel is open and in the prompt when a command failed | a Kannon in sumi, a red nimbus, red lips and urna; she opens her eyes and smiles while the panel is open, and looks up in the prompt when a command failed |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
 typed (sources: kotobank — デジタル大辞泉, 精選版 日本国語大辞典; the earliest uses 1252 and 1729).
@@ -62,8 +62,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
 | `lit` | `e7cfa1` | `122625` | an inverted chip's fill: the editor's selection, a TUI's marked items |
 | `lit_text` | `181715` | `f8f3d8` | ink on `lit` |
-| `paper_mark` | `f48067` Grenadine Pink | `f48067` Grenadine Pink | the prompt's first block, the terminal's mark on it (Wada's combination #300 — the same four papers in both moods; foot's 26–29, their ink 30: §7) |
-| `paper_folder` | `fdbf68` Cream Yellow | `fdbf68` Cream Yellow | the prompt's folder block |
+| `paper_folder` | `fdbf68` Cream Yellow | `fdbf68` Cream Yellow | the prompt's folder block (from Wada's combination #300 — the same papers in both moods; foot's 27–29, their ink 30: §7) |
 | `paper_git` | `b5decc` Turquoise Green | `b5decc` Turquoise Green | the prompt's git block |
 | `paper_time` | `78cdd0` Calamine Blue | `78cdd0` Calamine Blue | the prompt's block of the time and the jobs |
 | `tile` | `25201a` | `f9f5de` | the bar's paper (§8) |
@@ -426,17 +425,18 @@ content, inside its margin of one cell:
   end (the first key is a word, never a command), the pen's room kept as the notes' however
   long the list; esc gives the list, where space ticks, and an item left with no words goes;
   its footer names the keys of the moment.
-- **The prompt**: one short line of paper blocks, a strip of stamps — Wada's combination #300
-  (Grenadine Pink, Cream Yellow, Turquoise Green, Calamine Blue: `tools/wada-palette.py`'s paper_*
-  tokens, foot's colours 26–29, their ink 30, the same papers in both moods) in ink — the mark's icon at 6.8 : 1, words at 9.5 : 1
-  and more (APCA Lc 68 and more): the terminal's mark, the
-  folder (the one above it too), the branch and its changes, the time of a long command and the
-  background jobs (one block); a failure's code a block of its own on the lacquer, cream words (7.9 : 1). Between two blocks and at
-  both ends the stamp edge — a cell of its own, the left paper reaching into the next in round
-  tongues every 5 rows (`art/icons.txt` cap-stamp, cap-stamp-start: 8 × 20, the terminal's cell
-  exactly) — then a space, `›` and a space. A narrow window gives up the time, the jobs, the
-  branch, the folder above, then the folder's end (`tools/build-themes.py` writes the papers;
-  `configs/home/.bashrc.d/` draws it).
+- **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
+  ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
+  spill into one blank cell only): the demon in slot 1's red in the dark mood, the angel in the words' ink in the
+  light; the demon roars, the angel looks up, when the last command failed; a switch of mood reaches an open terminal
+  at its next prompt. The blocks: three papers of Wada's combination #300 (Cream Yellow, Turquoise Green, Calamine Blue:
+  `tools/wada-palette.py`'s paper_* tokens, foot's colours 27–29, their ink 30, the same papers in both moods), words
+  at 9.5 : 1 and more (APCA Lc 68 and more): the folder (the one above it too), the branch and its changes, the time of a
+  long command and the background jobs (one block); a failure's code a block of its own on the lacquer, cream words
+  (7.9 : 1). Between two blocks and at both ends the stamp edge — a cell of its own, the left paper reaching into the
+  next in round tongues every 5 rows (`art/icons.txt` cap-stamp, cap-stamp-start: 8 × 20, the terminal's cell exactly)
+  — then a space, `›` and a space. A narrow window gives up the time, the jobs, the branch, the folder above, then the
+  folder's end (`tools/build-themes.py` writes the papers; `configs/home/.bashrc.d/` draws it).
 
 ## 8. The bar
 

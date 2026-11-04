@@ -31,3 +31,6 @@ before you finish everything related to the design i want you to stop and ask me
 
 ## 2026-11-04 16:29 — in the plan: T25m (each lane reviewed and merged when it reports done; their tasks marked as theirs)
 Owner: three parallel lanes run for 6 h on branches lane-chess (T25), lane-typing (T26), lane-research (T32 + T55 digests), each in ~/repos/fk-<lane>. Review and merge each lane into main when it reports done in .claude/notes/lane-<name>.md; never redo their work.
+
+## 2026-11-04 17:04 — in the plan: T29 (magnet links: add and copy, easily)
+and yea regarding the torrents app i want a proper way to add and extract magnet links super easily properly nicely

@@ -77,31 +77,33 @@ H=$(headers)
 P() { local l=$1; l=${l%%"$ICON_CHEVRON_RIGHT"*}; plain "$l"; }
 # (the blocks: S the line's edge, C the stamp edge between two blocks — the left one's paper over
 # the right one's —, B N INK the words of a block on paper N (foot's 26–29, the vermilion 16))
-S=$'\e[38;5;26;49m'"$ICON_CAP_STAMP_START"
+S=$'\e[38;5;27;49m'"$ICON_CAP_STAMP_START"
 C() { printf '\e[38;5;%s;48;5;%sm%s' "$1" "$2" "$ICON_CAP_STAMP"; }
 B() { printf '\e[38;5;%s;48;5;%sm %s ' "$2" "$1" "$3"; }
 END() { printf '\e[38;5;%s;49m%s\e[0m \e[38;5;20m%s \e[0m ' "$1" "$ICON_CAP_STAMP" "$ICON_CHEVRON_RIGHT"; }
-MARK="$S$(B 26 30 "$ICON_TERMINAL ")"
-case_ "foot: a new window's prompt — a strip of stamps: the line's edge, the terminal's mark on its paper (26), the folder on its own (27), the stamp edge between and at the end, the › in vermilion and its second half, a space"
+# (the mood's head: the demon in the dark, red; it roars when the last command failed)
+HEAD="$ICON_HEAD_ONI $ICON_HEAD_ONI_2" ROAR="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
+MARK=$'\e[31m'"$HEAD"$'\e[0m '"$S"
+case_ "foot: a new window's prompt — the mood's head, then a strip of stamps: the line's edge, the folder on its paper (27), the stamp edge between and at the end, the › in vermilion and its second half, a space"
 eq "$(wc -l <<<"$H")" 7 "seven prompts: $(plain "$H")"
-eq "$(plain "$(nth 1)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP $ICON_CHEVRON_RIGHT  true"
-has "$(nth 1)" "$MARK$(C 26 27)$(B 27 30 '~')$(END 27)"
+eq "$(plain "$(nth 1)")" "$HEAD $ICON_CAP_STAMP_START ~ $ICON_CAP_STAMP $ICON_CHEVRON_RIGHT  true"
+has "$(nth 1)" "$MARK$(B 27 30 '~')$(END 27)"
 case_ "foot: after a success the same; no ✓, no code"
-eq "$(P "$(nth 2)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP "; lacks "$(cat "$TMP/out")" "$ICON_CHECK"
+eq "$(P "$(nth 2)")" "$HEAD $ICON_CAP_STAMP_START ~ $ICON_CAP_STAMP "; lacks "$(cat "$TMP/out")" "$ICON_CHECK"
 case_ "foot: after a failure the code, a block of its own on the lacquer (24) in its cream (25: 7.9 : 1 and more); foot told the status (OSC 133;D)"
-eq "$(P "$(nth 3)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP 3 $ICON_CAP_STAMP "
+eq "$(P "$(nth 3)")" "$ROAR $ICON_CAP_STAMP_START ~ $ICON_CAP_STAMP 3 $ICON_CAP_STAMP "
 has "$(nth 3)" "$(B 27 30 '~')$(C 27 24)$(B 24 25 3)$(END 24)"
 has "$(cat "$TMP/out")" $'\e]133;D;3\e\\'
 case_ "foot: Enter on an empty line ran nothing: the result before it stands"
-eq "$(P "$(nth 4)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP 3 $ICON_CAP_STAMP "
+eq "$(P "$(nth 4)")" "$ROAR $ICON_CAP_STAMP_START ~ $ICON_CAP_STAMP 3 $ICON_CAP_STAMP "
 case_ "foot: a command of 3 s or more: the time it took, on its paper (29); 10 s or more: a notice too"
-eq "$(P "$(nth 5)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP 4.2s $ICON_CAP_STAMP "
+eq "$(P "$(nth 5)")" "$HEAD $ICON_CAP_STAMP_START ~ $ICON_CAP_STAMP 4.2s $ICON_CAP_STAMP "
 has "$(nth 5)" "$(C 27 29)$(B 29 30 4.2s)$(END 29)"
 has "$(nth 6)" "$(B 29 30 2m05s)"
 has "$(cat "$TMP/out")" $'\e]777;notify;done in 2m05s;'
 lacks "$(cat "$TMP/out")" "done in 4.2s"
 case_ "foot: a quick command: no time"
-eq "$(P "$(nth 7)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP ~ $ICON_CAP_STAMP "
+eq "$(P "$(nth 7)")" "$HEAD $ICON_CAP_STAMP_START ~ $ICON_CAP_STAMP "
 case_ "foot: one short line — no heading over it, nothing padded, no clock, no rule"
 eq "$(grep -c $'\e]133;A' "$TMP/out")" 7 "one mark a prompt"
 for i in 1 2 3 4 5 6 7; do h=$(P "$(nth "$i")"); (($(width "$h") < 24)) && _ok || _no "prompt $i: [$h]"; done
@@ -114,11 +116,11 @@ home; mkdir -p "$HOME/repo/sub" "$HOME/日本語のフォルダ"
 git -C "$HOME/repo" init -q -b main; echo a >"$HOME/repo/a"; git -C "$HOME/repo" add a
 session foot 'cd ~/repo' 'echo b >b' 'cd sub' 'cd ~/日本語のフォルダ'
 H=$(headers)
-eq "$(P "$(nth 2)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP repo $ICON_CAP_STAMP $ICON_BRANCH  main* $ICON_CAP_STAMP " "a file staged: changes"
+eq "$(P "$(nth 2)")" "$HEAD $ICON_CAP_STAMP_START repo $ICON_CAP_STAMP $ICON_BRANCH  main* $ICON_CAP_STAMP " "a file staged: changes"
 has "$(nth 2)" "$(B 27 30 repo)$(C 27 28)$(B 28 30 "$ICON_BRANCH  main*")$(END 28)"
-eq "$(P "$(nth 4)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP repo/sub $ICON_CAP_STAMP $ICON_BRANCH  main* $ICON_CAP_STAMP " "the folder and the one above it"
+eq "$(P "$(nth 4)")" "$HEAD $ICON_CAP_STAMP_START repo/sub $ICON_CAP_STAMP $ICON_BRANCH  main* $ICON_CAP_STAMP " "the folder and the one above it"
 has "$(nth 4)" "$(B 27 30 repo/sub)"
-eq "$(P "$(nth 5)")" "$ICON_CAP_STAMP_START $ICON_TERMINAL  $ICON_CAP_STAMP 日本語のフォルダ $ICON_CAP_STAMP "
+eq "$(P "$(nth 5)")" "$HEAD $ICON_CAP_STAMP_START 日本語のフォルダ $ICON_CAP_STAMP "
 
 # ── the prompt on the text consoles ──────────────────────────────────────────
 case_ "a text console (TERM=linux): plain marks — # for the torii, > for the › — in the 16 colours"

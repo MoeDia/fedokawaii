@@ -378,14 +378,14 @@ for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
 sys.exit(bad)
 EOF
 
-case_ "the mood's face: drawn (build-themes FACES, 18 × 18) for both themes, its open frame while quick settings is open, a pixel of paper above and below it"
+case_ "the mood's head: drawn (build-themes FACES, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
 for th in dark light; do
   for f in face face-open; do
-    eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "18 18 6" "$th/$f.png: 18 × 18 with alpha"
+    eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "22 20 6" "$th/$f.png: 22 × 20 with alpha"
   done
 done
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" 'url("../fedokawaii/current/face.png")'
-has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 5px 1px;" "(29 px of box, 20 of paper: the odd pixel right, 1 above and below)"
+has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 3px 0, 0 0;" "(29 px of box, 20 of paper: the odd pixel right)"
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "color: transparent;" "the emblem's glyph keeps the width, unseen"
 has "$(grep -E '^#custom-menu\.active \{' "$S_")" 'url("../fedokawaii/current/face-open.png")'
 done_

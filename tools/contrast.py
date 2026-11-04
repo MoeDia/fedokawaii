@@ -106,10 +106,11 @@ def term_pairs(m):
 
 
 def prompt_pairs(m):
-    """The prompt's blocks (T24): its ink (30) on each paper (26–29: the terminal's mark, the folder,
-    git, the time and jobs) and a failure's code, the cream (25) on the lacquer (24) — foot's slots."""
-    pal, _, _ = foot_colours(m)
-    return [("the prompt", "the terminal's mark on its paper", pal[30], pal[26], ICON),
+    """The prompt: the mood's head on the ground (the demon in slot 1, the angel in the words' ink), its
+    ink (30) on each paper (27–29: the folder, git, the time and jobs) and a failure's code, the cream
+    (25) on the lacquer (24) — foot's slots."""
+    pal, fg, bg = foot_colours(m)
+    return [("the prompt", "the mood's head on the ground", pal[1] if m == "dark" else fg, bg, ICON),
             ("the prompt", "the folder's words on their paper", pal[30], pal[27], WORDS),
             ("the prompt", "git's words on their paper", pal[30], pal[28], WORDS),
             ("the prompt", "the time and the jobs on their paper", pal[30], pal[29], WORDS),

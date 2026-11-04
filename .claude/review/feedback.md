@@ -7,3 +7,6 @@ the screen saver needs an upgrade to match the new design better
 
 ## 2026-11-04 17:02 — general — comment — in the plan: T19q 1
 and like i said the demon and angel icon on the top bar needs to look unique and more monotone and classic japanese style feeling
+
+## 2026-11-04 17:10 — general — comment — in the plan: T19q 8
+and yea the stuff i said about the lock screen for the demon the same idealogy applies for the angel lockscreen as well be smart
