@@ -363,7 +363,8 @@ class Form:
     def disk_words(d, room=WIDTH - 19):
         """Its name and size always; what it holds, then its model, as far as they fit (never cut)."""
         base = f"{d[0]}  {size_words(d[2])}"
-        for words in (f"{base}  {d[1]}  · {d[3]}", f"{base}  · {d[3]}", f"{base}  {d[1]}", base):
+        model = f"  {d[1]}" if d[1] else ""
+        for words in (f"{base}{model}  · {d[3]}", f"{base}  · {d[3]}", f"{base}{model}", base):
             if len(words) <= room:
                 return words
         return base
