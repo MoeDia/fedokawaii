@@ -324,6 +324,7 @@ class Engine:
             say(f"state.json could not be read ({e}): starting from its defaults")
             meta = {}
         meta.setdefault("told", {})
+        meta.setdefault("got", {})                 # id → all it had downloaded when last told
         meta.setdefault("source", {})
         meta.setdefault("turtle", False)
         return meta
@@ -583,7 +584,7 @@ class Engine:
                 pass
             except OSError as e:
                 say(f"could not remove {i}{tail}: {e}")
-        for kept in ("told", "source", "errors", "gone"):
+        for kept in ("told", "got", "source", "errors", "gone"):
             self.meta.get(kept, {}).pop(i, None)
         self.dirty = True
         self.save_state()
@@ -688,10 +689,12 @@ class Engine:
         self.save_resume(h)
         if self.meta["told"].get(i):
             return
-        self.meta["told"][i] = 1
+        # this start's count; or, added anew moments ago (wake), the count kept over its starts (which lags a second behind)
+        came = s.total_payload_download > 0 or s.all_time_download > self.meta["got"].get(i, 0)
+        self.meta["told"][i], self.meta["got"][i] = 1, s.all_time_download
         self.dirty = True
         self.save_state()
-        if s.total_payload_download > 0 and s.total_wanted > 0:
+        if came and s.total_wanted > 0:
             where = os.path.join(s.save_path, s.name) if s.name else s.save_path
             self.say_to_desktop("finished", common.reading(s.name) or "a torrent", str(s.total_wanted), where)
 

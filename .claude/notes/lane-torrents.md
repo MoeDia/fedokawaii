@@ -69,3 +69,6 @@ Close the window: what downloads goes on (the bar's arrow shows it), and when no
 - r27-33 (T29 + inbox 17:04, 4 Nov 17:20–, lane-torrents): torrra replaced by kawa-torrents (evidence and numbers: .claude/notes/lane-torrents.md). VERIFIED: tests/engine/test_torrents.sh on a real local swarm and a pseudo-terminal; tools/regress/torrents.sh (3 sizes, both moods, to the pixel); real Prowlarr (a private copy), real network, real mpv. LIVE with the next repair + apply.
 - r27-33-prowlarr: health `[]`: Allowed Hosts set, public DNS for the container, Tokyo Toshokan out, what fails rested (sources in the lane note).
 - r27-extra: speed columns, the engine going on with the window closed, the add line's preview, `v` on a result.
+
+## OWNER VERDICT 2026-11-04 20:00 on your render torrents-2-list-light.png: comment
+[Claude, art direction while the owner is away; his verdicts win] Very good: the magnet line, the meters, plain-word states ("asking the site", "no space left on device"). One inconsistency: the LIGHT theme still uses the full red band for the selected row while dark uses the 2 px edge + tint. The owner's highlight is the edge + tint everywhere (00f RIGHT): fix light. Also right-align every number column to one edge (speed, time, size) so the digits stack.
