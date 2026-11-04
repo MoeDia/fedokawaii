@@ -5,11 +5,10 @@
     glyphs.txt  Sumi UI's letters as bitmaps (7 × 14): a key's legend is the desktop's own face
     hands.txt   the two pairs of hands: the demon's (dark) and the angel's (light), fingers and palm apart
 
-    python3 -I tools/build-typing-art.py [--preview DIR]
+    python3 -I tools/build-typing-art.py
 
 The hands are drawn once, on the app's 1× grid (a key is 20 px): every finger a sprite of ink letters upright
-(the app leans and stretches it, so that a finger can reach), and the palm with its sleeve. --preview also
-writes PNGs of them at 1×, ×2 and ×3 in both moods. Needs Pillow.
+(the app leans and stretches it, so that a finger can reach), and the palm with its sleeve. Needs Pillow.
 """
 import importlib.util
 import os
@@ -183,11 +182,11 @@ def build_hands():
             '# where each finger stands: "place NAME tipx tipy basex basey" (left hand; mirrored round x = 135)\n']
     for f, (tx, ty, bx, by) in LEFT.items():
         text.append(f'place {f} {tx} {ty + OFFSET} {bx} {by + OFFSET}\n')
-    for f, (tx, ty, bx, by) in LEFT.items():
+    for f, (_, ty, _, by) in LEFT.items():
         rows = by - ty - 1
         base, tip = {'little': (11, 8), 'ring': (13, 9), 'middle': (14, 10), 'index': (14, 10), 'thumb': (16, 11)}[f]
         text.append(to_text('oni.' + f, oni_finger(rows, base, tip, (0.34, 0.68) if f != 'thumb' else (0.5,))))
-    for f, (tx, ty, bx, by) in LEFT.items():
+    for f, (_, ty, _, by) in LEFT.items():
         rows = by - ty + 2
         base, tip = {'little': (9, 5), 'ring': (10, 6), 'middle': (10, 6), 'index': (10, 6), 'thumb': (11, 7)}[f]
         text.append(to_text('tennin.' + f, tennin_finger(rows, base, tip, ring=f == 'ring')))
@@ -265,20 +264,13 @@ def palm(mood):
     return to_text(mood + '.palm', g)
 
 
-def preview(where, text):
-    sys.path.insert(0, os.path.dirname(OUT))
-    os.makedirs(where, exist_ok=True)
-
-
-def main(argv):
+def main():
     write_inks()
     write_glyphs()
     with open(os.path.join(OUT, 'hands.txt'), 'w') as f:
         f.write(build_hands())
-    if '--preview' in argv:
-        preview(argv[argv.index('--preview') + 1], None)
     return 0
 
 
 if __name__ == '__main__':
-    sys.exit(main(sys.argv[1:]))
+    sys.exit(main())

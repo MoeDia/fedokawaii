@@ -11,12 +11,10 @@ import time
 import traceback
 
 from . import art, canvas, course, keys, metrics, store, term
-from .term import Focus, Key, Mood, Mouse, Pasted, Resize
+from .term import Flags, Focus, Key, Mood, Mouse, Pasted, Resize
 
 # the palette's numbers (screen.sh): foot holds them for both moods
 ACCENT, ON_ACCENT, EDGE, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
-PAPERS = (26, 27, 28, 29)
-PAPER_INK = 30
 OFF = '\x1b[0m'
 DAY_MINUTES = 20
 SEAL_ON, SEAL_OFF = '●', '○'
@@ -99,7 +97,7 @@ def fit_power(tests):
     den = sum((x - mx) ** 2 for x in xs)
     if not den:
         return None
-    b = sum((x - mx) * (y - my) for x, y in zip(xs, ys)) / den
+    b = sum((x - mx) * (y - my) for x, y in zip(xs, ys, strict=True)) / den
     if b <= 0.01:
         return None
     a = my - b * mx
@@ -121,10 +119,10 @@ def plan(app):
     if st.minutes_today() >= DAY_MINUTES and not day['test']:
         return 'test', 'the day\'s test, one minute', None
     have = st.progress['lessons']
-    for i, l in enumerate(course.LESSONS):
-        got = have.get(l.id)
-        if not got or (l.goal and got['seals'] < 1):
-            return 'lesson', l.title, i
+    for i, les in enumerate(course.LESSONS):
+        got = have.get(les.id)
+        if not got or (les.goal and got['seals'] < 1):
+            return 'lesson', les.title, i
     return 'practice', 'your weakest keys', None
 
 
@@ -258,6 +256,8 @@ class App:
             self.screen.mouse(ev)
         elif isinstance(ev, Pasted):
             self.screen.pasted()
+        elif isinstance(ev, Flags):
+            self.releases = bool(ev.value & 2)
 
     def quit(self):
         self.alive = False
@@ -307,6 +307,8 @@ class Screen:
     def heading(self, row, icon, name, x0, w, tail='', done=None):
         """a heading (§7): the icon, two columns, the name, the rule to the last column; done: how much of
         the rule is burnt, 0–1 (a lesson's progress); tail: words at the rule's right end"""
+        if len(name) > w - 4:        # (never an ellipsis: cut at a word, or the name's end goes)
+            name = name[:max(w - 3, 0)].rsplit(' ', 1)[0][:max(w - 4, 0)]
         s = fg(ACCENT_TEXT) + icon + OFF + '  ' + fg(STRONG) + name + OFF + ' '
         used = width(s)
         room = w - used
@@ -325,7 +327,7 @@ class Screen:
 
 # ── the tabs ─────────────────────────────────────────────────────────────────
 class Row:
-    __slots__ = ('icon', 'name', 'value', 'act', 'tell', 'plainvalue')
+    __slots__ = ('icon', 'name', 'value', 'act', 'tell')
 
     def __init__(self, icon, name, value='', act=None, tell=None):
         self.icon, self.name, self.value, self.act, self.tell = icon, name, value, act, tell
@@ -351,7 +353,9 @@ class Home(Screen):
         self.drum_i = -1
 
     def wait(self):
-        return 0.07 if self.pic and self.hands and self.app.focused else None
+        if self.pic and self.hands and self.app.focused:
+            return max(self.drum_at - time.monotonic(), 0.005)
+        return None
 
     def tick(self, now):
         """a finger lifted at a time, little to index, on both hands, every few seconds"""
@@ -381,7 +385,7 @@ class Home(Screen):
 
     def lessons_done(self, stage=None):
         have = self.app.store.progress['lessons']
-        return sum(1 for l in course.LESSONS if (stage is None or l.stage == stage) and l.id in have and (have[l.id]['seals'] >= 1 or not l.goal))
+        return sum(1 for les in course.LESSONS if (stage is None or les.stage == stage) and les.id in have and (have[les.id]['seals'] >= 1 or not les.goal))
 
     def course_rows(self):
         a = self.app
@@ -401,14 +405,14 @@ class Home(Screen):
         have = self.app.store.progress['lessons']
         out = []
         icons = {'check': 'HOURGLASS', 'passage': 'BOOK', 'pacer': 'LANTERN', 'code': 'CODE', 'sentences': 'NOTE', 'patterns': 'SPIRAL'}
-        for i, l in enumerate(course.LESSONS):
-            if l.stage == self.stage:
-                d = have.get(l.id)
-                if not l.goal:
+        for i, les in enumerate(course.LESSONS):
+            if les.stage == self.stage:
+                d = have.get(les.id)
+                if not les.goal:
                     v = fg(ACCENT_TEXT) + '✓' + OFF if d else ''
                 else:
                     v = seals_text(d['seals']) if d else fg(EDGE2) + SEAL_OFF * 5 + OFF
-                out.append(Row(self.app.icon(icons.get(l.kind, 'KEYBOARD')), l.title, v, lambda i=i: self.app.go(LessonScreen(self.app, i)), ('lesson', l)))
+                out.append(Row(self.app.icon(icons.get(les.kind, 'KEYBOARD')), les.title, v, lambda i=i: self.app.go(LessonScreen(self.app, i)), ('lesson', les)))
         return out
 
     def practice_rows(self):
@@ -429,8 +433,8 @@ class Home(Screen):
         self.stage = s
         self.cursor = self.top = 0
         have = self.app.store.progress['lessons']
-        for i, l in enumerate(x for x in course.LESSONS if x.stage == s):
-            if l.id not in have:
+        for i, les in enumerate(x for x in course.LESSONS if x.stage == s):
+            if les.id not in have:
                 self.cursor = i
                 break
         self.t.write('\x1b[2J')
@@ -534,23 +538,23 @@ class Home(Screen):
         self.heading(1, self.app.icon('LANTERN'), 'today', x, w, self.today_words())
         kind = tell[0] if tell else ''
         if kind in ('next', 'lesson'):
-            l = tell[1]
-            if l.goal:
-                lines.append(fg(MUTED) + 'goal ' + OFF + f'{l.goal} wpm' + fg(MUTED) + ', 97 % or more' + OFF)
+            les = tell[1]
+            if les.goal:
+                lines.append(fg(MUTED) + 'goal ' + OFF + f'{les.goal} wpm' + fg(MUTED) + ', 97 % or more' + OFF)
             else:
                 lines.append(fg(MUTED) + 'no score: only the fingers' + OFF)
-            d = st.progress['lessons'].get(l.id)
-            if d and l.goal and d['best']:
+            d = st.progress['lessons'].get(les.id)
+            if d and les.goal and d['best']:
                 lines.append(fg(MUTED) + 'best ' + OFF + f'{d["best"]:.0f} wpm')
-            for c in l.keys or '':
+            for c in les.keys or '':
                 for name, f in keys.needs(c):
                     lit[name] = f
         elif kind == 'stage':
             s = tell[1]
             lines.append(fg(MUTED) + f'{self.lessons_done(s)} of {course.stage_counts()[s]} lessons' + OFF)
-            for l in course.LESSONS:
-                if l.stage == s:
-                    for c in l.keys or '':
+            for les in course.LESSONS:
+                if les.stage == s:
+                    for c in les.keys or '':
                         for name, f in keys.needs(c):
                             lit.setdefault(name, f)
         elif kind == 'plan':
@@ -796,23 +800,21 @@ class LessonScreen(Screen):
         self.day_test = day_test
         self.index = index
         self.lesson = lesson if lesson is not None else course.LESSONS[index]
-        l = self.lesson
+        les = self.lesson
         st = app.store
         if resume is not None:
             self.run = resume
         else:
-            body = text if text is not None else course.text_for(l, app.rng(), st.keys['keys'])
-            self.run = metrics.Run(body, l.flow, l.limit)
+            body = text if text is not None else course.text_for(les, app.rng(), st.keys['keys'])
+            self.run = metrics.Run(body, les.flow, les.limit)
         self.held = {}             # keys down now → when
         self.prev_key = None
         self.notice = ''
         self.notice_until = 0.0
         self.wrong_until = 0.0
-        self.thumb = 5
-        self.last_finger = 3
+        self.thumb = 5             # (the space bar's, this time: the other hand's than the last letter)
         self.saved_at = 0.0
         self.finished = False
-        self.saved_text = False
         self.pacer_cell = None
         self.watched = self.lesson.kind in ('sentences', 'passage') and not self.lesson.limit
         self.eye_next = 0.0        # (when the eye opens next: at random, every 40–60 s of a text)
@@ -839,7 +841,7 @@ class LessonScreen(Screen):
         if what == 'weak':
             text = ' '.join(course.pick_words(known, rng, '', 60, course.weakness(st.keys['keys'])))
         elif what == 'warmup':
-            done = [l for l in course.LESSONS if l.id in st.progress['lessons']]
+            done = [les for les in course.LESSONS if les.id in st.progress['lessons']]
             known = ''.join(c for c in (done[-1].known if done else known) if c.isalpha() and c.islower()) or known
             text = ' '.join(course.pick_words(known, rng, '', 45, course.weakness(st.keys['keys'])))
         elif what == 'words':
@@ -885,7 +887,6 @@ class LessonScreen(Screen):
                 self.scale, self.show_hands = s, hands
                 break
         t = min(self.scale, 2) or 1
-        self.t_scale = t
         self.letters = art.Letters(t)
         # (the text and the keyboard one column, one left edge; with no keyboard, up to 76 letters)
         self.tw_px = art.KEY_W * self.scale if self.scale else min(px_w, 76 * 7 * t)
@@ -980,9 +981,6 @@ class LessonScreen(Screen):
     def send_text(self):
         self.t.write(self.tp.send(self.text_x + 1, self.text_y + 1, art.PALETTE[self.app.dark]))
 
-    def redraw_cell(self, i):
-        self.paint_letter(i)
-
     def caret(self):
         """every frame of a lesson ends here: the letters that changed go out"""
         self.send_text()
@@ -1049,7 +1047,7 @@ class LessonScreen(Screen):
     # ── drawing ──────────────────────────────────────────────────────────────
     def stats(self, now=None):
         r = self.run
-        if r.correct + r.wrong == 0 or not (self.lesson.goal or self.lesson.limit or self.lesson.kind):
+        if r.correct + r.wrong == 0:
             return ''
         wpm, acc = r.net(now), r.accuracy()
         s = fg(MUTED) + f'{wpm:.0f} wpm  {acc:.0f} %' + OFF
@@ -1127,7 +1125,7 @@ class LessonScreen(Screen):
             if r.expired(now):
                 self.finish(now)
                 return
-        if self.app.focused and now - self.last_key > 0.6 and now >= self.blink_at:
+        if self.app.focused and now - self.last_key > 0.6 and now >= self.blink_at and not self.dimmed:
             self.blink_at = now + 0.5
             self.caret_on = not self.caret_on
             if not r.done:
@@ -1147,9 +1145,9 @@ class LessonScreen(Screen):
         """Yechiam 2003's signal: open at random; answered by its key within 2 s, or the text waits, dimmed"""
         if not self.eye_next:
             if self.run.first is not None:
-                self.eye_next = now + self.app.rng().uniform(40, 60)
+                self.eye_next = now + self.eye_gap()
             return
-        if not self.eye_open and now >= self.eye_next and not self.paused_shown:
+        if not self.eye_open and now >= self.eye_next and not self.paused_shown and self.notice_y < self.rows_n:
             self.eye_open = now
             self.draw_eye()
             self.apply_keys()
@@ -1158,6 +1156,9 @@ class LessonScreen(Screen):
             self.run.pause()
             self.dim(True)
 
+    def eye_gap(self):
+        return self.app.args.get('eye') or self.app.rng().uniform(40, 60)
+
     def draw_eye(self):
         """on the row between the text and the keyboard, where looking down at the keys misses it"""
         cols, rows, cw, ch = self.app.size
@@ -1165,7 +1166,7 @@ class LessonScreen(Screen):
         if self.eye_open:
             art.paint_eye(pic, 0, max((ch - 16) // 2, 0), 2, self.app.dark)
             self.t.write(pic.send(self.text_x + 1, self.notice_y + 1, art.PALETTE[self.app.dark]))
-            self.at(self.notice_y, self.text_x + 6, 'tab')
+            self.at(self.notice_y, self.text_x + 6, fg(STRONG) + 'tab' + OFF)
         else:
             self.t.write(f'\x1b[{self.notice_y + 1};{self.text_x + 1}H\x1b[10X')
 
@@ -1265,7 +1266,7 @@ class LessonScreen(Screen):
         if name == 'tab':
             if self.eye_open:
                 self.eye_open = 0.0
-                self.eye_next = now + self.app.rng().uniform(40, 60)
+                self.eye_next = now + self.eye_gap()
                 self.draw_eye()
                 if self.dimmed:
                     self.dimmed = False
@@ -1303,6 +1304,9 @@ class LessonScreen(Screen):
 
     def typed(self, ch, name, now, ev):
         r = self.run
+        if r.expired(now):       # (past the clock: the test is over, this key is not part of it)
+            self.finish(now)
+            return
         rolled = bool(self.prev_key) and self.prev_key in self.held
         before = r.pos
         self.last_key = now
@@ -1317,7 +1321,6 @@ class LessonScreen(Screen):
         if ok:
             f = keys.PLACE[name][3] if name in keys.PLACE else None
             if f is not None and f != 5:
-                self.last_finger = f
                 self.thumb = 5 if f < 5 else 4
         if ok is False and self.kb is not None and name in keys.PLACE:
             self.kb.wrong = self.kb.wrong | {name}
@@ -1341,6 +1344,7 @@ class LessonScreen(Screen):
             self.apply_keys()
         self.caret()
         if now - self.saved_at > 2.0 or (r.pos and r.text[r.pos - 1] == ' '):
+            self.t.flush()           # (the key's frame first: the disk never holds it up)
             self.save_resume(now)
 
     def erase(self):
@@ -1377,29 +1381,29 @@ class LessonScreen(Screen):
         self.finished = True
         st = self.app.store
         r = self.run
-        l = self.lesson
+        les = self.lesson
         wpm, raw, acc = r.net(now), r.raw(now), r.accuracy()
         secs = r.minutes(now) * 60
         st.learn(r.samples)
         st.add_time(secs)
-        seals = seals_for(wpm, acc, l.low, l.goal) if l.goal else 1
+        seals = seals_for(wpm, acc, les.low, les.goal) if les.goal else 1
         best = 0
         if self.index is not None:
-            d = st.progress['lessons'].setdefault(l.id, {'seals': 0, 'best': 0.0, 'tries': 0})
+            d = st.progress['lessons'].setdefault(les.id, {'seals': 0, 'best': 0.0, 'tries': 0})
             d['tries'] += 1
             best = d['best']
-            d['seals'] = max(d['seals'], seals if l.goal else 0)
+            d['seals'] = max(d['seals'], seals if les.goal else 0)
             d['best'] = max(d['best'], wpm)
         day = st.day()
-        if l.kind == 'baseline':
+        if les.kind == 'baseline':
             st.progress['baseline'] = round(wpm, 1)
-        elif l.kind == 'warmup':
+        elif les.kind == 'warmup':
             day['warm'] = True
         elif self.day_test:
             day['test'] = True
         cons = r.consistency()
         roll = r.rollover()
-        rec = {'d': int(time.time()), 'l': l.id, 'k': l.kind, 'w': round(wpm, 2), 'r': round(raw, 2), 'a': round(acc, 2), 's': round(secs, 2)}
+        rec = {'d': int(time.time()), 'l': les.id, 'k': les.kind, 'w': round(wpm, 2), 'r': round(raw, 2), 'a': round(acc, 2), 's': round(secs, 2)}
         if cons is not None:
             rec['c'] = round(cons, 1)
         if roll is not None:
@@ -1407,7 +1411,7 @@ class LessonScreen(Screen):
         st.append_history(rec)
         st.clear_resume()
         st.save()
-        if l.kind == 'meet' and self.index is not None:   # (no score: on to its drill, without a stop)
+        if les.kind == 'meet' and self.index is not None:   # (no score: on to its drill, without a stop)
             self.app.go(start(self.app, plan(self.app)))
             return
         self.app.go(Result(self.app, self, wpm, raw, acc, secs, cons, roll, seals, best))
@@ -1421,12 +1425,12 @@ class Result(Screen):
     def __init__(self, app, lesson_screen, wpm, raw, acc, secs, cons, roll, seals, best):
         super().__init__(app)
         self.ls = lesson_screen
-        self.l = lesson_screen.lesson
+        self.les = lesson_screen.lesson
         self.index = lesson_screen.index
         self.wpm, self.raw, self.acc, self.secs, self.cons, self.roll = wpm, raw, acc, secs, cons, roll
         self.seals = seals
         self.best = best
-        self.passed = not self.l.goal or seals > 0
+        self.passed = not self.les.goal or seals > 0
         self.top_pic = self.kb_pic = None
         self.began = None
         self.stamped = 0
@@ -1449,23 +1453,23 @@ class Result(Screen):
         if not p:
             return
         ink = art.INK
-        if self.l.goal:
+        if self.les.goal:
             for i in range(5):
                 art.paint_seal(p, i * 40 + 2, 2, 32, self.app.dark, self.seal_state(i))
-        y = 44 if self.l.goal else 4
+        y = 44 if self.les.goal else 4
         word = f'{self.wpm:.0f}'
         art.paint_word(p, 0, y, word, ink['strong'], 3)
         art.paint_word(p, (len(word) * 7 + 2) * 3, y + 20, 'wpm', ink['muted'], 1)
 
     def facts(self):
-        l, r = self.l, self.ls.run
-        out = [('accuracy', f'{self.acc:.1f} %' + (', 97 at least' if l.goal else ''))]
-        if l.goal:
-            out.append(('goal', f'{l.goal} wpm'))
+        les, r = self.les, self.ls.run
+        out = [('accuracy', f'{self.acc:.1f} %' + (', 97 at least' if les.goal else ''))]
+        if les.goal:
+            out.append(('goal', f'{les.goal} wpm'))
         out.append(('time', clock(self.secs)))
         if self.cons is not None:
             out.append(('consistency', f'{self.cons:.0f} %'))
-        if self.roll is not None and (l.stage >= 8):
+        if self.roll is not None and (les.stage >= 8):
             out.append(('rollover', f'{self.roll:.0f} %'))
         if r.shift_slips:
             out.append(('wrong shift', str(r.shift_slips)))
@@ -1473,38 +1477,38 @@ class Result(Screen):
 
     def verdict(self):
         """one line: what to do about it"""
-        l, r = self.l, self.ls.run
+        les, r = self.les, self.ls.run
         slips = sorted(r.slips.items(), key=lambda kv: -kv[1])
         words = ''
         if slips:
             named = [('space' if c == ' ' else 'enter' if c == '\n' else c) for c, _ in slips[:3]]
             words = 'slipped on ' + ', '.join(named)
-        if self.l.kind == 'baseline':
+        if self.les.kind == 'baseline':
             return 'that is your old way. touch typing will pass it.'
         if not self.passed:
             if self.acc < 97:
                 return 'slower, then: 97 % opens the next one.' + (' ' + words + '.' if words else '')
-            return f'held your accuracy; {max(l.low - self.wpm, 1):.0f} wpm more opens the next one.'
+            return f'held your accuracy; {max(les.low - self.wpm, 1):.0f} wpm more opens the next one.'
         return words + '.' if words else ''
 
     def draw(self):
         a = self.app
-        l = self.l
+        les = self.les
         cols, rows, cw, ch = a.size
         self.t.write('\x1b[?25l')
         place = ''
         if self.index is not None:
             place = fg(MUTED) + f'{self.index + 1} of {len(course.LESSONS)}' + OFF
-        self.heading(1, fg(ACCENT_TEXT) + a.icon('CHECK' if self.passed else 'CROSS'), l.title, self.x0, self.W, place)
+        self.heading(1, a.icon('CHECK' if self.passed else 'CROSS'), les.title, self.x0, self.W, place)
         pal = art.PALETTE[a.dark]
         row = 3
         if self.top_pic:
             self.paint_top()
             self.top_pic.touch_all()
             self.t.write(self.top_pic.send(self.x0 + 1, row + 1, pal))
-            row += 5 if l.goal else 4
+            row += 5 if les.goal else 4
         else:
-            self.at(row, self.x0, seals_text(self.seals) + '  ' + f'{self.wpm:.0f} wpm' if l.goal else f'{self.wpm:.0f} wpm')
+            self.at(row, self.x0, seals_text(self.seals) + '  ' + f'{self.wpm:.0f} wpm' if les.goal else f'{self.wpm:.0f} wpm')
             row += 2
         facts = self.facts()
         pad = max(len(k) for k, _ in facts)
@@ -1572,7 +1576,7 @@ class Result(Screen):
     def next(self):
         if not self.passed:
             self.again()
-        elif self.index is None and self.l.kind not in ('baseline', 'warmup', 'test'):
+        elif self.index is None and self.les.kind not in ('baseline', 'warmup', 'test'):
             self.app.go(Home(self.app, 'practice'))
         else:
             self.app.go(start(self.app, plan(self.app)))
@@ -1582,6 +1586,17 @@ class Result(Screen):
             self.app.go(Home(self.app, 'practice'))
         else:
             self.app.go(LessonScreen(self.app, self.index))
+
+
+def status_lines():
+    st = store.Store()
+    have = st.progress['lessons']
+    done = sum(1 for les in course.LESSONS if les.id in have and (have[les.id]['seals'] >= 1 or not les.goal))
+    out = [f'lesson {done + 1} of {len(course.LESSONS)}' if done < len(course.LESSONS) else 'the course is done']
+    tests = [r for r in st.history() if r.get('k') in ('test', 'check')]
+    if tests:
+        out.append(f'last test {tests[-1]["w"]:.0f} wpm, {tests[-1]["a"]:.0f} %')
+    return out
 
 
 HELP = """kawa-typing — touch typing, finger by finger, to 100 words a minute and past it: a terminal program, the keyboard
@@ -1604,15 +1619,25 @@ def main(argv):
         if a in ('-h', '--help'):
             print(HELP)
             return 0
-        if a == '--course':
-            for i, l in enumerate(course.LESSONS):
-                print(f'{i + 1:3}  {course.STAGE_NAMES[l.stage]:16} {l.kind:10} {l.low:3} {l.goal:3}  {l.title}')
+        if a == '--status':       # (for Super+U's pane: where you are, in a line or two)
+            for line in status_lines():
+                print(line)
             return 0
-        if a == '--seed':
+        if a == '--course':
+            for i, les in enumerate(course.LESSONS):
+                print(f'{i + 1:3}  {course.STAGE_NAMES[les.stage]:16} {les.kind:10} {les.low:3} {les.goal:3}  {les.title}')
+            return 0
+        if a == '--seed' or a == '--eye':     # (for its tests: the words drawn; the eye's first opening, in seconds)
             try:
-                args['seed'] = int(next(it))
+                args[a[2:]] = int(next(it))
             except (StopIteration, ValueError):
-                print('kawa-typing: --seed N', file=sys.stderr)
+                print(f'kawa-typing: {a} N', file=sys.stderr)
+                return 2
+        elif a == '--lesson':
+            try:
+                args['lesson'] = course.BY_ID[next(it)]
+            except (StopIteration, KeyError):
+                print('kawa-typing: --lesson ID (kawa-typing --course lists them, ids in course.py)', file=sys.stderr)
                 return 2
         elif a.startswith('-'):
             print(f'kawa-typing: no option {a}', file=sys.stderr)
@@ -1621,6 +1646,9 @@ def main(argv):
             path = a
     if not sys.stdin.isatty() or not sys.stdout.isatty():
         print('kawa-typing: a terminal program: run it in one', file=sys.stderr)
+        return 1
+    if not os.environ.get('TERM', '').startswith('foot'):
+        print('kawa-typing: it draws in the desktop\'s terminal (foot): the keyboard and the words are pictures', file=sys.stderr)
         return 1
     tty = term.Term()
     app = App(tty, args)
@@ -1648,7 +1676,12 @@ def main(argv):
         return 1
     rc = 0
     try:
-        first = LessonScreen.free(app, os.path.basename(path), text) if path else Home(app)
+        if path:
+            first = LessonScreen.free(app, os.path.basename(path), text)
+        elif 'lesson' in args:
+            first = LessonScreen(app, args['lesson'])
+        else:
+            first = Home(app)
         app.run(first)
         app.store.save()
     except EOFError:

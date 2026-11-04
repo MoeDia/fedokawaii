@@ -50,6 +50,7 @@ kawa-git               kawa-git                                kawa-git
 kawa-notes             kawa-notes                              kawa-notes
 kawa-prowlarr          kawa-prowlarr                           kawa-prowlarr
 kawa-sketch            kawa-sketch                             kawa-sketch
+kawa-typing            kawa-typing                             kawa-typing
 kawa-file              kawa-file                               kawa-file
 kawa-steam             steam                                   kawa-steam
 kawa-together          syncplay                                kawa-together

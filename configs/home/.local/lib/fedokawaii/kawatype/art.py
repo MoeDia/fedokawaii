@@ -23,9 +23,9 @@ def load_inks():
         for line in f:
             if line.startswith('#'):
                 continue
-            t, d, l = line.split()
+            t, d, lt = line.split()
             names.append(t)
-            dark[t], light[t] = d, l
+            dark[t], light[t] = d, lt
     ink = {t: i + 1 for i, t in enumerate(names)}
 
     def pct(h):
@@ -260,7 +260,6 @@ class Hands:
         n = max(len(rows) + up, 8)
         cap = min(8, len(rows) // 2)         # (the tip and its claw keep their shape; the length is the shaft's)
         table = (self._bad_table() if finger in self.wrong else self._lit_table(finger) if finger in self.lit else self._rest_table(finger))
-        out = []
         for i in range(n):
             src = i if i < cap else cap + (i - cap) * (len(rows) - cap) // max(n - cap, 1)
             row = rows[min(src, len(rows) - 1)]
@@ -298,7 +297,7 @@ class Hands:
                 continue
             half = MIRROR // 2 * k
             pic.clear(ox + (half if right else 0), oy, KEY_W * k - half if right else half, HANDS_H * k)
-            for f, name in zip(fingers, ORDER):
+            for f, name in zip(fingers, ORDER, strict=True):
                 self._finger(pic, name, f, k, ox, oy)
             self._palm(pic, right, k, ox, oy)
             self._finger(pic, 'thumb', 5 if right else 4, k, ox, oy)

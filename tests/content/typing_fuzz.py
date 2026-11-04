@@ -35,7 +35,7 @@ LEGACY = [b'\x1b[A', b'\x1b[B', b'\x1b[C', b'\x1b[D', b'\x1b[H', b'\x1b[F', b'\x
 ARABIC = ['\x1b[1588::97;1:1;1588u', '\x1b[1587::115;1:1;1587u', '\x1b[1740::100;1:1;1740u', '\x1b[1608:1606:102;2:1;1606u']
 
 
-def event(rng, p, text_pos, plain_mode):
+def event(rng, p, plain_mode=False):
     """one thing that can happen"""
     r = rng.random()
     if r < 0.45:
@@ -122,7 +122,7 @@ def round_(seed, events):
     if p.status is not None:
         return f'seed {seed}: did not start: {p.status}: {bytes(p.out[-800:])!r}'
     for i in range(events):
-        event(rng, p, 0, plain_mode)
+        event(rng, p, plain_mode)
         if rng.random() < 0.08:
             typist(rng, p)
         if rng.random() < 0.1:

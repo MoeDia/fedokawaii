@@ -27,6 +27,7 @@ Mood = namedtuple('Mood', 'dark')
 Mouse = namedtuple('Mouse', 'kind col row button')  # kind press · release · move · wheel (button -1 up, +1 down)
 Resize = namedtuple('Resize', '')
 Pasted = namedtuple('Pasted', '')
+Flags = namedtuple('Flags', 'value')               # the keyboard protocol's flags the terminal took
 
 SHIFT, ALT, CTRL, SUPER, CAPS = 1, 2, 4, 8, 64
 # (keys by their protocol numbers)
@@ -43,7 +44,7 @@ CSI = re.compile(r'\x1b\[([<?>=]?)([0-9;:]*)([ -/]*)([@-~])')
 
 ENTER = ('\x1b[?1049h'  # the screen of its own
          '\x1b[?2031h\x1b[?1004h\x1b[?2004h'  # theme changes, focus, pasted text marked
-         '\x1b[>31u'  # real presses and releases
+         '\x1b[>31u\x1b[?u'  # real presses and releases, and whether it heard that
          '\x1b[?996n'  # the theme now
          '\x1b[?7l'  # no wrap at the right edge
          '\x1b[2J')
@@ -239,6 +240,8 @@ class Term:
         if lead == '?':
             if final == 'n' and params.startswith('997;'):
                 events.append(Mood(params.endswith('1')))
+            elif final == 'u':
+                events.append(Flags(_int(params, 0)))
             return
         if lead == '<':
             self._mouse(params, final, events)

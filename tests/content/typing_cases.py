@@ -506,6 +506,122 @@ def case_restore():
     report('SIGHUP: the progress saved, no traceback', p.status is not None and b'Traceback' not in bytes(p.out), str(p.status))
 
 
+def case_anchor():
+    """the hand that holds f or j really holds it: foot tells the key is down"""
+    fresh()
+    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--lesson', 'home.anchor.j'], (100, 32))
+    p.pump(0.4)
+    d = wait_resume(p)
+    text = d['run']['text']
+    p.send(b'\x1b[?31u')                # (the terminal says it took the flags: releases will come)
+    p.pump(0.1)
+    p.send(key(text[0]))
+    p.send(key(text[0], False, 3))
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    d = resume()['run'] if os.path.exists(os.path.join(state_dir(), 'resume.json')) else {'correct': 0, 'wrong': 0, 'pos': 0}
+    report('an anchor lesson: nothing counts until j is held', d['correct'] + d['wrong'] == 0, str(d['correct']))
+    finish(p)
+    fresh()
+    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--lesson', 'home.anchor.j'], (100, 32))
+    p.pump(0.4)
+    d = wait_resume(p)
+    text = d['run']['text']
+    p.send(b'\x1b[?31u')
+    p.send(key('j'))                     # (down, and stays down)
+    for ch in text[:6]:
+        p.send(key(ch))
+        p.send(key(ch, False, 3))
+        p.pump(0.02)
+    p.pump(0.2)
+    p.send(key('j', False, 3))           # (let go)
+    ch = text[6]
+    p.send(key(ch))
+    p.send(key(ch, False, 3))
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    d = resume()['run']
+    report('...with j held, the left hand types; let go, the text waits', d['pos'] == 6 and d['wrong'] == 0, str((d['pos'], d['wrong'])))
+    finish(p)
+
+
+def case_eye():
+    """open: Tab shuts it; left open 2 s: the text waits, the clock with it"""
+    fresh()
+    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--eye', '1', '--lesson', 'sent.1'], (100, 32))
+    p.pump(0.4)
+    d = wait_resume(p)
+    text = d['run']['text']
+    p.send(key(text[0]))
+    p.send(key(text[0], False, 3))
+    p.pump(0.4)        # (a tick starts its clock; 1 s later it opens)
+    p.pump(1.2)
+    before = bytes(p.out)
+    press(p, TAB)      # (answered in time)
+    p.pump(0.3)
+    report('the eye opens: drawn, and Tab shuts it', len(p.out) > len(before), '')
+    p.pump(1.4)        # (open again)
+    p.pump(2.3)        # (not answered)
+    for ch in text[1:4]:
+        p.send(key(ch))
+        p.send(key(ch, False, 3))
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    d = resume()['run']
+    report('...not answered: keys wait, nothing counted', d['pos'] == 1 and d['correct'] == 1, str((d['pos'], d['correct'])))
+    finish(p)
+    fresh()
+    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--eye', '1', '--lesson', 'sent.1'], (100, 32))
+    p.pump(0.4)
+    d = wait_resume(p)
+    text = d['run']['text']
+    p.send(key(text[0]))
+    p.send(key(text[0], False, 3))
+    p.pump(3.8)        # (open, and left)
+    press(p, TAB)
+    p.pump(0.2)
+    for ch in text[1:4]:
+        p.send(key(ch))
+        p.send(key(ch, False, 3))
+        p.pump(0.02)
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    d = resume()['run']
+    report('...Tab, and the text goes on', d['pos'] == 4, str(d['pos']))
+    finish(p)
+
+
+def case_course_plan():
+    """the first row knows: the first minute, then the lessons in order, a warm-up on a new day, the day's test"""
+    fresh(baseline=None)
+    p = start()
+    press(p, ENTER)
+    d = wait_resume(p)
+    report('a first start: the first row is the first minute', d['lesson'] == 'free.baseline' and d['run']['limit'] == 60, str(d['lesson']))
+    finish(p)
+    fresh()
+    p = start()
+    press(p, ENTER)
+    d = wait_resume(p)
+    report('with it measured: the first lesson', d['lesson'] == 'home.fj.meet', str(d['lesson']))
+    type_at(p, d['run']['text'], 200)
+    p.pump(0.5)
+    d = wait_resume(p)
+    report('a meet flows straight on to its drill', d['lesson'] == 'home.fj.drill', str(d['lesson']))
+    finish(p)
+    day = {'date': time.strftime('%Y-%m-%d'), 'seconds': 1300.0, 'warm': True, 'test': False}
+    fresh(day=day)
+    p = start()
+    press(p, ENTER)
+    d = wait_resume(p)
+    report('twenty minutes done: the day\'s test', d['lesson'] == 'free.test' and d['run']['limit'] == 60, str(d['lesson']))
+    finish(p)
+
+
 def case_ram():
     fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
     p = start((236, 52))

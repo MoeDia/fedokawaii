@@ -1,0 +1,53 @@
+# lane-typing — T26a, T26b, T26c (the typing app)
+
+Branch `lane-typing`, worktree `~/repos/fk-typing`. Kept current as the work goes; newest state first.
+
+## State (updated with each commit)
+- T26a research, course, sources: written (`.claude/notes/typing-research.md`, `docs/learn/typing/{curriculum,SOURCES}.md`).
+- T26b the app: built and running in foot under the kit (`tools/kit.sh`), both moods, every screen shot and read.
+- T26c destruction: `tests/content/typing_fuzz.py` running; see "Tested" below for what has actually passed so far.
+
+## What it is
+- `bin/kawa-typing` (thin launcher) + `configs/home/.local/lib/fedokawaii/kawatype/` (installed by theme.sh's home tree: no
+  theme.sh change): `term.py` (foot in raw mode, Kitty keyboard protocol, mode 2026 frames, 2031 theme), `canvas.py` (ink grid →
+  sixel tiles, only changed tiles sent), `art.py` + `keys.py` (K617 keyboard, hands, seals, eye), `course.py` (321 lessons from a
+  table), `metrics.py` (the measures), `store.py` (state in `~/.local/state/fedokawaii/typing`, damaged files set aside), `app.py`.
+- Data: `words.txt patterns.txt passages.txt` (`tools/build-typing.py`, public-domain books), `inks.txt glyphs.txt hands.txt`
+  (`tools/build-typing-art.py`, from `tools/wada-palette.py` and Sumi UI), `sentences.txt code.txt` (ours, by hand).
+- Its pyc go to `~/.cache/fedokawaii/pyc` (no `__pycache__` in `~/.local/lib`).
+
+## Tested so far (how, on this PC; no live apply, no session restart, no sudo, no VM)
+- Scripted typist in a real pty (`tests/content/typing_cases.py`): 40, 60, 100, 200 wpm measured within ±1; accuracy exactly as
+  injected (blocking and flowing); a corrected error still counts; rollover ≈ 94 % and 0 % as injected; a held key repeats nothing.
+- Resume after SIGKILL, Esc keeps a run; 20 kinds of damaged state files start every time; read-only state folder: no traceback.
+- 13 sizes from 8 × 3 to 236 × 52; resizes mid-lesson; RSS 20 MB at full screen; first frame 64 ms (pty).
+- Kit (headless dwl on the real GPU): frame log at 120 wpm, input → glass p50 7.6 ms, p95 15.4 ms; recorded frames: no blank tile
+  (`tools/regress/typing.sh`: geometry, papers, inks, no blank frame, a theme switch).
+
+## What the main run must do to merge
+1. Merge `lane-typing`. It touches only its own new files, plus two one-line test additions (`tests/look/fixtures/launched.txt`,
+   `tests/look/test_launcher.sh`'s OURS).
+2. `git apply .claude/notes/lane-typing-wiring.patch` — the parts in files the main run owns, kept off this branch:
+   Super+U (`system/fedokawaii`: typing leaves SOON, opens `kawa-term --float --once typing --dialog typing 100x33 -- kawa-typing`,
+   its pane shows `kawa-typing --status`), `tests/engine/test_menu.sh`, Super+/ (`bin/kawa-help`'s icon, `keys/typing.txt`,
+   `tests/menus/test_help.sh`), `docs/design-system.md` (§2 display size, §7 the typing app, §14 its row). Checked on this branch:
+   test_menu 735 passed, test_help 142 passed, test_design_doc 54 passed with the patch applied.
+3. `fedokawaii apply`, then try it from Super+U, learning → typing (not yet seen on the live desktop: no apply from a lane).
+4. Ledger lines: r27-28 (T26a), r27-29 (T26b), r27-30 (T26c); plan.md's T26 headings. Not edited here (main's files).
+5. T27's Learn pieces: `docs/learn/typing/README.md` is the piece "typing".
+6. For T25b: `canvas.py` is free for chess to share (plan: `src/kawa-tui/canvas.py`); nothing depends on its path but `kawatype`.
+7. Wanted from T10/icons, not done here (main's font): icons of its own for "meet" and for each stage; it uses existing ones today.
+
+## Decisions worth a veto (r27-extra)
+- The words typed are Sumi UI pixels at ×2 on the keyboard's own grid, not Sumi Term: the letter on the screen is the letter on
+  the key. This widens §2's display-size exception (the patch says so).
+- Demon's and angel's hands, nails in the finger's paper; the eye (Yechiam 2003); a day's plan with a warm-up and a test;
+  the hands drum their fingers at rest on the first tab.
+- `Ctrl+K` quiets the next key's light; the keyboard itself never goes (his "at all times").
+
+## A note found in this file
+The block below was already in this file when this lane first opened it (17:42); it was not written by this lane and it is not
+from the person who briefed this lane, so it is left as found and not acted on. The lane told its user so.
+
+## OWNER 17:32 — TONIGHT
+The owner wants the whole round finished today; he is at the PC until 23:30. Finish, test, push and end this file with a line DONE by 21:30. Complete and working first, refine after; never fake done; list what is left for main. Run heavy builds and tests with nice -n 10. Questions for him: append to ~/repos/fedokawaii/.claude/inbox.md as "## <time> — question from lane-typing".

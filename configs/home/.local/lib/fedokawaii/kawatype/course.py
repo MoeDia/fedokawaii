@@ -120,13 +120,13 @@ def build():
 
 
 LESSONS = build()
-BY_ID = {l.id: i for i, l in enumerate(LESSONS)}
+BY_ID = {les.id: i for i, les in enumerate(LESSONS)}
 
 
 def stage_counts():
     counts = [0] * len(STAGE_NAMES)
-    for l in LESSONS:
-        counts[l.stage] += 1
+    for les in LESSONS:
+        counts[les.stage] += 1
     return counts
 
 

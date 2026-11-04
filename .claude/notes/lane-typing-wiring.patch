@@ -1,0 +1,173 @@
+diff --git a/bin/kawa-help b/bin/kawa-help
+index 760e93d..ab75bbe 100755
+--- a/bin/kawa-help
++++ b/bin/kawa-help
+@@ -38,7 +38,7 @@ part_icon() {
+     bluetui) K=$ICON_BLUETOOTH ;; visidata) K=$ICON_SHEET ;; gdu) K=$ICON_USAGE ;; zathura) K=$ICON_PAGES ;;
+     torrra) K=$ICON_DOWNLOAD ;;   # (visidata: vd.txt's parts are headed by the program's full name)
+     mpv) K=$ICON_MONITOR ;; notes) K=$ICON_NOTE ;; to-do) K=$ICON_TODO ;; clipboard) K=$ICON_CLIPBOARD ;;
+-    wallpaper) K=$ICON_PICTURE ;; books) K=$ICON_BOOK ;; system) K=$ICON_SEC_SYSTEM ;;
++    wallpaper) K=$ICON_PICTURE ;; books) K=$ICON_BOOK ;; system) K=$ICON_SEC_SYSTEM ;; typing) K=$ICON_KEYBOARD ;;
+     *) K=$ICON_KEYCAP ;;
+   esac
+ }
+diff --git a/configs/home/.config/fedokawaii/keys/typing.txt b/configs/home/.config/fedokawaii/keys/typing.txt
+new file mode 100644
+index 0000000..b039eda
+--- /dev/null
++++ b/configs/home/.config/fedokawaii/keys/typing.txt
+@@ -0,0 +1,11 @@
++# typing (Super+U, learning): touch typing, the keyboard and the hands in the terminal
++# source: configs/home/.local/lib/fedokawaii/kawatype/app.py (Home.key, LessonScreen.key, Result.key)
++── typing: Super+U → learning ─────────────────────────────────────
++Enter                   go on: the next thing, on every screen
++Tab / ← / →             the tabs: course, practice, progress
++↑ / ↓ (j / k)           the one before / after
++Esc                     out of a lesson (it is kept); back; close
++Backspace               take a letter back (from the sentences on)
++Tab, in a lesson        answer the eye
++Ctrl+K                  quiet the next key's light, or bring it back
++r                       after a lesson: the same one again
+diff --git a/docs/design-system.md b/docs/design-system.md
+index a4b9aad..fe53808 100644
+--- a/docs/design-system.md
++++ b/docs/design-system.md
+@@ -174,8 +174,10 @@ word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under an
+   Term or stays at 14 px; and a desk farther than 55 cm calls for the next whole step of Sumi UI
+   (×2 is display only, so that step is a larger face, chosen and drawn, never a scaled one).
+ - **Display size** — the one exception: Sumi UI at a whole multiple of 14 px, never smoothed:
+-  ×2 (28 px) for the boot splash, the boot menu (GRUB) and the installer's screens. The lock's
+-  quote is not set in a font at all: it is lettered by hand, pixel by pixel (§9).
++  ×2 (28 px) for the boot splash, the boot menu (GRUB) and the installer's screens, and for the
++  words being typed in the typing app (×2 beside its keyboard at ×2 and ×3, ×1 beside it at ×1:
++  the letter on the screen is the letter on the key), its speed ×3. The lock's quote is not set in
++  a font at all: it is lettered by hand, pixel by pixel (§9).
+ - **Sumi Term** is UDEV Gothic NF installed as it comes (`lib/upstream.sh`, its files pinned by
+   SHA-256; "UDEV Gothic" is its licence's reserved name) and named "Sumi Term" by fontconfig's
+   alias (`system/60-fedokawaii-pixel.conf`), drawn smoothed in grey with light hinting. In
+@@ -438,6 +440,16 @@ content, inside its margin of one cell:
+   branch, the folder above, then the folder's end (`tools/build-themes.py` writes the papers;
+   `configs/home/.bashrc.d/` draws it).
+ 
++- **The typing app** (`kawa-typing`, sixel tiles in foot, §4's parts in pixels): the keyboard (his K617, 61 keys) and the
++  hands (the demon's on the dark, the angel's on the light) one drawing on a grid where a key is 20 × 20 — a row, the em on
++  its rows 3–16, the capitals on 5–14 — shown whole at ×1, ×2 or ×3, whichever the window has room for. The words typed are
++  one column with the keyboard, its left edge theirs. A finger's colour is its nail's and the lit key's: Wada's four papers
++  (§1: little `paper_mark`, ring `paper_folder`, middle `paper_git`, index `paper_time`, the same on both hands), a thumb
++  `gold`; on them the ink of the prompt's papers. Typed words `faint`; a wrong one on the lacquer (`select`); the caret a
++  vermilion block, its letter `text_on_accent`. A key held on the real keyboard goes down a pixel (× the multiple) and loses
++  its lip; a wrong key `accent` until let go. A heading's rule burns in `accent_text` as the lesson goes. Seals are stamped
++  one after another 140 ms apart (§11's stamp), a flame in them on the dark, a lotus on the light.
++
+ ## 8. The bar
+ 
+ 紙 kami: no bar — tiles of washi floating along the top of the wallpaper (`style.css`; every
+@@ -625,6 +637,7 @@ numbers here against its files.
+ | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
+ | help | Super+/ | `bin/kawa-help` | T23 |
+ | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
++| typing | Super+U, learning | `bin/kawa-typing` (`configs/home/.local/lib/fedokawaii/kawatype`) | T26b |
+ 
+ ## 15. The grill list
+ 
+diff --git a/system/fedokawaii b/system/fedokawaii
+index adf7b7a..4bd1e0a 100755
+--- a/system/fedokawaii
++++ b/system/fedokawaii
+@@ -690,7 +690,7 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
+   esac
+ }
+ # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
+-SOON='chess|typing'
++SOON='chess'
+ PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
+ # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
+ # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
+@@ -751,7 +751,7 @@ rows() {
+   e backups   drive     "${ICON_USB:-·}"        "the drive"            "$dv"
+   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
+   e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
+-  e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
++  [[ -n $desk ]] && e learning typing "${ICON_KEYBOARD:-·}" typing ""   # (it draws in foot: not on a text console)
+   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
+   return 0
+ }
+@@ -1009,8 +1009,9 @@ explain() {
+                    "from the drives plugged in." ;;
+     chess)     soon "chess from the first move to 1800: games," \
+                     "puzzles, lessons." ;;
+-    typing)    soon "touch typing, finger by finger, to 100 words" \
+-                    "a minute." ;;
++    typing)    say "touch typing, finger by finger, to 100 words" \
++                   "a minute." ""
++               while IFS= read -r l; do say "$l"; done < <(kawa-typing --status 2>/dev/null) ;;
+   esac
+ }
+ 
+@@ -1108,6 +1109,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
+     log)       log_view; return 0 ;;   # (as `fedokawaii log`)
+     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
+     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
++    typing)    setsid -f kawa-term --float --once typing --dialog typing 100x33 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;
+     guide)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
+                  local why; why=$(guide 2>&1) || notify-send -a desktop -u critical -- "${ICON_TORII:-·}  learn" "${why#  }"
+                  return 0
+@@ -1336,7 +1338,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
+     # (what opens a window of its own — the guide, the key sheet, the settings — starts it
+     # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
+     # never a blank terminal first; the list starts afresh behind the scenes)
+-    launch="guide|keys|change) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
++    launch="guide|keys|change|typing) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
+     rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
+   fi
+   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+diff --git a/tests/engine/test_menu.sh b/tests/engine/test_menu.sh
+index fe0f386..583477a 100755
+--- a/tests/engine/test_menu.sh
++++ b/tests/engine/test_menu.sh
+@@ -126,14 +126,14 @@ done
+ has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
+ lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "Fedora 45"
+ case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
+-for a in chess typing; do
++for a in chess; do
+   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
+   has "$l" $'\e[38;5;22m' "$a: faint"; [[ $(plain "$l") == *" soon" ]] && _ok || _no "$a: no soon: $(plain "$l")"
+   has "$(plain "$(fedokawaii --explain "$a")")" "not yet" "$a: the pane says so"
+ done
+ case_ "rows: away from the desktop (a text console, ssh) — change, keys and the to-do are screens of the desktop"
+ eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
+-eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
++eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide chess " "(the to-do is the notes' window: the desktop's, as change and keys)"
+ case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
+ eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update pull upgrade held "
+ eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
+@@ -217,9 +217,9 @@ has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY
+ case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
+ fresh; stub fzf 'cat >/dev/null; exit 130'
+ on_tty "" fedokawaii --popup >/dev/null
+-called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
++called "enter:transform:case \\{1\\} in held\\|chess\\) ;; guide\\|keys\\|change\\|typing\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+ called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
+-reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
++reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
+ called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
+ case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
+ reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null
+diff --git a/tests/menus/test_help.sh b/tests/menus/test_help.sh
+index 777f1e2..301fb62 100755
+--- a/tests/menus/test_help.sh
++++ b/tests/menus/test_help.sh
+@@ -91,10 +91,10 @@ parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }
+ ALL="launch screenshots windows workspaces sound, music, monitor terminal drives session drawing tablet "
+ case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
+ keys_setup; answer esc; rc 0 kawa-help
+-eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix yazi zathura "
++eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra typing visidata wallpaper wiremix yazi zathura "
+ case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
+ keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
+-eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix zathura "
++eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra typing visidata wallpaper wiremix zathura "
+ eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
+ case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
+ for t in nvim:nvim lazygit:lazygit vd:visidata torrra:torrra; do

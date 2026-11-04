@@ -42,7 +42,7 @@ def key(ch, plain=False, event=1):
     return f'\x1b[{code}{alt};{mods}:{event};{ord(ch)}u'.encode()
 
 
-UNSHIFT = dict(zip('~!@#$%^&*()_+{}|:"<>?', r"`1234567890-=[]\;',./"))
+UNSHIFT = dict(zip('~!@#$%^&*()_+{}|:"<>?', r"`1234567890-=[]\;',./", strict=True))
 SHIFT_DOWN, SHIFT_UP = b'\x1b[57447;2:1u', b'\x1b[57447;1:3u'
 
 
@@ -60,6 +60,7 @@ class Pty:
             os.execv(argv[0], argv)
         cols, rows = size
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * 8, rows * 20))
+        os.set_blocking(self.fd, False)   # (as foot's: both ways full is never a deadlock)
         self.out = bytearray()
         self.status = None
 
@@ -72,12 +73,15 @@ class Pty:
             if r:
                 try:
                     b = os.read(self.fd, 1 << 20)
+                except BlockingIOError:
+                    b = None
                 except OSError:
                     b = b''
-                if not b:
+                if b == b'':
                     self.wait(1)
                     return False
-                self.out += b
+                if b:
+                    self.out += b
             elif left <= 0:
                 return True
             if left <= 0:
@@ -96,6 +100,8 @@ class Pty:
                     self.out += data
                 if w:
                     b = b[os.write(self.fd, b[:4096]):]
+            except BlockingIOError:
+                continue
             except OSError:
                 return
 
