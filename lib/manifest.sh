@@ -21,7 +21,7 @@ PKG_BASE=(
                         #   the menus answer a hover and a click from their first frame)
   diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
                         #   the change menu opens (both usually there; listed, never assumed)
-  tar grubby            # tar: the release archives, GE-Proton, the C helpers' builds · grubby:
+  tar grubby            # tar: the release archives, the C helpers' builds · grubby:
                         #   kernel arguments (amdgpu, the console palette). Neither is in a
                         #   Minimal Install's @core: tar is @standard's, and the installer
                         #   adds grubby only for a UEFI boot — a BIOS install has none
@@ -53,11 +53,11 @@ PKG_MEDIA=(
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
   unrar                 # RAR archives and .cbr comics (nonfree): Fedora's 7-Zip reads no RAR (kawa-file, kawa-books)
 )
-# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64- and 32-bit. RPM Fusion's
+# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64-bit (the play world's games bring their
+# own, 32-bit too, in their Flatpak runtime). RPM Fusion's
 # freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
 # and Brave decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
-# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2): installing Steam's 32-bit one
-# took the 64-bit one out again
+# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2)
 PKG_GPU_COMMON=(mesa-dri-drivers mesa-vulkan-drivers vulkan-loader linux-firmware)
 PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
              rocm-smi)   # the ROCm SMI library: btop reads the card through it (load, memory, heat, watts)
@@ -80,7 +80,7 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
                                               #   drawn with cairo and Pango, its icons through
                                               #   gdk-pixbuf; Wayland and sd-bus as above
 )
-# dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
+# dwl's config.mk ships XWayland commented out; X11 apps need it on
 # (and pixman: dwl.patch damages a window capture's output itself — capturesession; GLES 2:
 # its dissolve, a shader of its own — the headers come with wlroots-devel's own requirement)
 DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1 glesv2")
@@ -88,8 +88,8 @@ PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manag
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
   plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)
 PKG_DESKTOP=(
-  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave and Steam; ALSA for
-                                                          #   programs that open it directly: games)
+  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave; ALSA for programs
+                                                          #   that open it directly)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
                                                           #   (sound processing, an equaliser: PipeWire's own modules — no package)
