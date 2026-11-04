@@ -41,7 +41,7 @@ Started 18:11, 4 Nov. Due 21:30. Branch `lane-browser`, worktree `~/repos/fk-bro
 - [x] Brave Origin removed from the PC (with brave-keyring, its unused wget2, its repo file and its keys; ~/.config/BraveSoftware left alone as he said)
 - [x] T31 code: the fill in a meter's inks, the browser's total, tools; test_downloads
 - [x] docs: Learn 17, README, PACKAGES, the Guide's sharing section
-- [ ] the clipboard's small paste (above)
+- [ ] the clipboard's small paste (above). Lead (20:25, from reading, not run yet): the play selected the paragraph, and `focus()` on the already focused textarea leaves the frame's selection there, so Ctrl+V had nothing editable: my test, not the browser. `plays/clip.play` now clears the selection and blurs first; run it in the kit.
 - [ ] his real Meet test (asked on his page 19:19, not answered yet)
 - [ ] the NTP: still Helium's, a pencil in its corner; own page by the extension was only an idea
 - [ ] his call on the pixel face in the chrome (renders kept, not asked yet): Chromium has one UI font, shared with pages' `system-ui`, so a pixel face would reach every Tailwind site. Default: Noto Sans.
@@ -67,6 +67,7 @@ Proof scripts and renders: `~/.cache/lane-browser/` (plays/, review/). /dev/shm 
 (not ready: see Next. So far: an apply on this branch retires the old starter, so Super+B needs the new dwl: log in again right after it. lane-learning's docs/learn pieces still say Brave, 17 lines incl. `034-brave-moves.md`: rename at the merge.)
 
 ## Noted, not mine to settle
+Fedora 45: Helium's COPR already has fedora-45-x86_64 (copr api_3, helium-bin 0.20.3.1-1 built there), so main's upgrade keeps the browser.
 Main reports a kernel oops at 19:15 in Helium's ThreadPoolAudio thread as it exited, a bad pointer that looks like one flipped bit, and is not treating Helium as the cause; it runs a memory check after the reboot. My kits ran Helium around then. If the oops comes back in Helium after the memory check, it is mine to look at.
 
 ## Open questions for the owner
