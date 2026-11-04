@@ -13,6 +13,10 @@
 #   sudo bash tools/asobi-proof.sh cycles   only VT switches on an empty VT (the desktop's side: its bar), 20 s
 #   sudo bash tools/asobi-proof.sh manager  the desktop's own manager has none of the world's walls, and any other
 #                                           user's starts: a throw-away user's, for real, then gone (his is not restarted)
+#   sudo ASOBI_PROOF_EXE=F bash tools/asobi-proof.sh windows
+#                                           F, a Windows program, through the drop folder into a bottle, on the real screen
+#   sudo ASOBI_PROOF_GAME=G bash tools/asobi-proof.sh proton
+#                                           G, a Windows game in the library, through Proton on the real screen, no sign-in
 #   sudo bash tools/asobi-proof.sh all      walls, reset, manager (never vt, cycles: they take the owner's screen)
 # Writes what it saw to ${ASOBI_PROOF_OUT:-/dev/shm/r27/asobi-proof}. Exit 0 all held · 1 something did not.
 set -u
@@ -58,8 +62,13 @@ walls() {
   never "/etc/shadow"                  runuser -u "$WHO" -- cat /etc/shadow
   echo "what the desktop's user may ask of root, and nothing more (no dialog can come: --no-ask-password)"
   holds "a job of the world's"         runuser -u "$DESK" -- systemctl --no-ask-password start kawa-asobi-op@status.service
-  never "another unit: the watch"      runuser -u "$DESK" -- systemctl --no-ask-password start kawa-asobi-watch.service
-  never "another unit: polkit"         runuser -u "$DESK" -- systemctl --no-ask-password restart polkit.service
+  # (the round's own rule lets the desktop's user do anything: gone at its end, and the two lines mean nothing until then)
+  if [[ -e /etc/polkit-1/rules.d/00-fedokawaii-round.rules ]]; then
+    echo "  --    another unit: not judged, the round's own polkit rule is in place"
+  else
+    never "another unit: the watch"    runuser -u "$DESK" -- systemctl --no-ask-password start kawa-asobi-watch.service
+    never "another unit: polkit"       runuser -u "$DESK" -- systemctl --no-ask-password restart polkit.service
+  fi
   never "a job with a name of its own making" runuser -u "$DESK" -- systemctl --no-ask-password start 'kawa-asobi-op@reset:UP.service'
   world_up || return
   # what the desktop's user leaves where anyone could read it: world-readable, on purpose
@@ -198,11 +207,14 @@ as_desk() { runuser -u "$DESK" -- env "HOME=$DESK_HOME" "XDG_RUNTIME_DIR=/run/us
 bar_shown() {   # bar_shown NAME — the bar's row on the screen has its colours; what the desktop has kept, to $OUT/NAME.*
   local n=99999 t
   desk_env || { no "$1: no bar process"; return 1; }
+  # (a compositor without its socket, its runtime folder remade under it: nothing can look at the screen)
+  [[ -S /run/user/$DESK_UID/$DESK_WL ]] || { printf '  --    %s: not looked at, the desktop has no Wayland socket\n' "$1"; return 0; }
   # (the bar's left end, its torii and its workspace stamps: stable, and a window drawn there instead is not it)
   for t in {1..24}; do
     as_desk grim -g "0,0 150x27" - 2>/dev/null >"$OUT/$1.png"
     [[ $1 == bar-before ]] && { cp "$OUT/$1.png" "$OUT/bar-model.png"; n=0; break; }
-    n=$(magick compare -metric AE -fuzz 8% "$OUT/bar-model.png" "$OUT/$1.png" null: 2>&1 | sed 's/ .*//'); n=${n%%.*}; n=${n:-99999}
+    n=$(magick compare -metric AE -fuzz 8% "$OUT/bar-model.png" "$OUT/$1.png" null: 2>&1 | sed 's/ .*//'); n=${n%%.*}
+    [[ $n =~ ^[0-9]+$ ]] || n=99999   # (an empty picture: the desktop's screen is not back yet)
     ((n < 200)) && break
     sleep 0.5
   done
@@ -231,12 +243,20 @@ cycles() {
   systemctl stop "$dead.timer" 2>/dev/null
 }
 
+# The key itself, through a virtual keyboard: the input wall ignores those (each face's start puts it up), so lifted for it
+super_g() {
+  rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.5
+  python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
+}
+# (however a proof on the real screen ends, even a bug in it: the desktop in front, the world closed)
+screen_back() { chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service; systemctl stop asobi-proof-deadman.timer; } 2>/dev/null
 # the real session on the real screen. The dead man's switch needs no one: at 90 s the desktop is in front
 vt_proof() {
+  trap screen_back EXIT
   local dead=asobi-proof-deadman t card before sid
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
   bar_shown bar-before || return
-  systemd-run --quiet --unit="$dead" --collect --on-active=90 bash -c 'chvt 1; systemctl stop kawa-asobi.service kawa-asobi-bottles.service'
+  systemd-run --quiet --unit="$dead" --collect --on-active=90 bash -c 'chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service'
   before=$(date '+%F %T')
   echo "into the world"
   systemctl start --no-block kawa-asobi.service
@@ -255,7 +275,7 @@ vt_proof() {
   holds "/dev/uinput is the seat's"      runuser -u "$WHO" -- test -w /dev/uinput
   # how long the screen stays black: a picture of the screen until it holds more than a few colours
   for t in {1..30}; do
-    inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1 2>/dev/null
+    gs_env xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1 2>/dev/null
     sleep 1
     inside_user cat /tmp/gamescope.png >"$OUT/world.png" 2>/dev/null
     [[ $(magick "$OUT/world.png" -format '%k' info: 2>/dev/null || echo 0) -gt 50 ]] && break
@@ -273,10 +293,9 @@ vt_proof() {
   holds "the world's share of the machine" test "$(systemctl show -P CPUWeight "user-$UID_W.slice")" = 400
   inside_user wpctl status >"$OUT/world-sound.txt" 2>&1
   holds "the sound card is the world's"  grep -qE 'Analog Stereo|Digital Stereo' "$OUT/world-sound.txt"
-  inside_user env DISPLAY=:0 xprop -root GAMESCOPE_VRR_ENABLED GAMESCOPE_VRR_CAPABLE GAMESCOPE_VRR_FEEDBACK >"$OUT/vrr-atoms.txt" 2>&1
+  gs_env xprop -root GAMESCOPE_VRR_ENABLED GAMESCOPE_VRR_CAPABLE GAMESCOPE_VRR_FEEDBACK >"$OUT/vrr-atoms.txt" 2>&1
   echo "back, as Super+G does it (the key itself: a virtual keyboard, the input wall lifted for it)"
-  rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.5
-  python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
+  super_g
   sleep 1.5
   holds "Super+G: the desktop in front"  test "$(cat /sys/class/tty/tty0/active)" = tty1
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { chvt 1; sleep 1; }
@@ -293,7 +312,9 @@ vt_proof() {
   chvt 1
   bar_shown bar-back-2
   chvt 8; sleep 2
+  t=$(date +%s%N)
   systemctl stop kawa-asobi.service
+  ok "closed in $(( ($(date +%s%N) - t) / 1000000 )) ms"
   for t in {1..40}; do [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] && break; sleep 0.25; done
   holds "closed: the desktop in front"   test "$(cat /sys/class/tty/tty0/active)" = tty1
   holds "the state says off"             test "$(cat /run/kawa-asobi/state)" = off
@@ -306,9 +327,10 @@ vt_proof() {
 # frozen with a game behind the desktop, thawed in front; Steam closed for Bottles: both as the desktop's user asks
 vt2_proof() {
   local dead=asobi-proof-deadman t uid_slice ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
+  trap screen_back EXIT
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
   bar_shown bar-before || return
-  systemd-run --quiet --unit="$dead" --collect --on-active=120 bash -c 'chvt 1; systemctl stop kawa-asobi.service kawa-asobi-bottles.service'
+  systemd-run --quiet --unit="$dead" --collect --on-active=120 bash -c 'chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service'
   echo "in, as the desktop's user asks"
   holds "kawa-asobi enter"               "${ask[@]}" enter
   for t in {1..40}; do [[ $(cat /sys/class/tty/tty0/active) == tty8 ]] && break; sleep 0.25; done
@@ -318,8 +340,7 @@ vt2_proof() {
   echo "a game in the world (its stand-in: a wineserver), Super+G"
   inside_user systemd-run --user --quiet --unit=asobi-proof-game --slice=app.slice bash -c 'exec -a wineserver sleep 300'
   sleep 0.5
-  rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.5
-  python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
+  super_g
   sleep 3
   holds "the desktop in front"           test "$(cat /sys/class/tty/tty0/active)" = tty1
   holds "the world says frozen"          test "$(cat /run/kawa-asobi/state)" = frozen
@@ -338,28 +359,32 @@ vt2_proof() {
   holds "app.slice thawed"               grep -qx 'frozen 0' "$uid_slice/cgroup.events"
   sleep 2
   inside_user rm -f /tmp/gamescope.png
-  inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+  gs_env xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
   sleep 2
   inside_user cat /tmp/gamescope.png >"$OUT/world-after-thaw.png" 2>/dev/null
   holds "gamescope draws again"          test -s "$OUT/world-after-thaw.png"
   inside_user systemctl --user stop asobi-proof-game
   echo "Bottles, Steam closing first"
+  t=$(date +%s%N)
   holds "kawa-asobi bottles"             "${ask[@]}" bottles
-  for t in {1..80}; do systemctl is-active --quiet kawa-asobi-bottles.service && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && ! pgrep -u "$WHO" -x steam >/dev/null && break; sleep 0.5; done
+  for _ in {1..120}; do systemctl is-active --quiet kawa-asobi-bottles.service && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && ! pgrep -u "$WHO" -x steam >/dev/null && break; sleep 0.5; done
+  ok "Bottles up, Steam gone, $(( ($(date +%s%N) - t) / 1000000 )) ms after asking"
   holds "Steam closed"                   bash -c '! pgrep -u asobi -x steam'
   holds "Bottles running"                systemctl is-active --quiet kawa-asobi-bottles.service
   sleep 8
   holds "VT 8 in front"                  test "$(cat /sys/class/tty/tty0/active)" = tty8
   inside_user rm -f /tmp/gamescope.png
-  inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+  gs_env xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
   sleep 2
   inside_user cat /tmp/gamescope.png >"$OUT/world-bottles.png" 2>/dev/null
-  python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
+  super_g
   sleep 2
   holds "Super+G: the desktop in front"  test "$(cat /sys/class/tty/tty0/active)" = tty1
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { chvt 1; sleep 1; }
   bar_shown bar-back
+  t=$(date +%s%N)
   holds "kawa-asobi close"               "${ask[@]}" close
+  ok "closed in $(( ($(date +%s%N) - t) / 1000000 )) ms"
   holds "closed"                         test "$(cat /run/kawa-asobi/state)" = off
   holds "the desktop still in front"     test "$(cat /sys/class/tty/tty0/active)" = tty1
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || chvt 1
@@ -370,6 +395,138 @@ inside_user() {
   nsenter -t "$(systemctl show -P MainPID "user@$UID_W.service")" -m \
     setpriv --reuid="$WHO" --regid="$WHO" --init-groups env "HOME=$W" "XDG_RUNTIME_DIR=/run/user/$UID_W" "$@"
 }
+# (gamescope's X server, the only one in the world's own /tmp: its number depends on who else has one on this machine)
+gs_env() {
+  local s=/tmp/.X11-unix/X0
+  s=$(inside_user bash -c 'for s in /tmp/.X11-unix/X*; do echo "$s"; break; done')
+  inside_user env "DISPLAY=:${s##*/X}" "$@"
+}
+# A Windows program, the way the desktop's user would run one: dropped in ~/Drop, in a bottle Bottles makes from its
+# own CLI inside the walls (its first run downloads a runner: minutes, the screen untouched), then on the real screen
+# in the world's own gamescope; behind the desktop it is frozen like a game, in front it goes on. 2 min of the screen.
+#   sudo ASOBI_PROOF_EXE=/path/to/program.exe bash tools/asobi-proof.sh windows
+windows_proof() {
+  local dead=asobi-proof-deadman t name exe=${ASOBI_PROOF_EXE:-} bottle=asobi-proof stub cli
+  local ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
+  local bottles=$W/.var/app/com.usebottles.bottles/data/bottles/bottles
+  [[ -s $exe ]] || { no "ASOBI_PROOF_EXE names no program"; return; }
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
+  name=${exe##*/}
+  echo "a bottle, inside the walls, the screen untouched"
+  stub=$(mktemp -d /run/asobi-proof.XXXXXX); printf '#!/bin/sh\nexit 0\n' >"$stub/chvt"; chmod 0755 "$stub/chvt"
+  KAWA_ASOBI_TEST_PATH=$stub:$PATH /usr/local/sbin/kawa-asobi-root prestart || { no "the world's walls would not go up"; rm -rf "$stub"; return; }
+  systemd-run --quiet --unit="$HOLDER" --collect -p User="$WHO" -p PAMName=kawa-asobi sleep 900
+  sleep 3
+  cli=(nsenter -t "$(systemctl show -P MainPID "user@$UID_W.service")" -m setpriv --reuid="$WHO" --regid="$WHO" --init-groups
+    env -i HOME="$W" USER="$WHO" LOGNAME="$WHO" LANG=C.UTF-8 PATH=/usr/bin:/bin "XDG_RUNTIME_DIR=/run/user/$UID_W" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID_W/bus"
+    flatpak run --nosocket=wayland --command=bottles-cli com.usebottles.bottles)
+  if [[ -d $bottles/$bottle ]]; then ok "the bottle is there from an earlier run"
+  else timeout 900 "${cli[@]}" new --bottle-name "$bottle" --environment application >"$OUT/bottle-new.txt" 2>&1
+    holds "Bottles made it (first run: its runner downloaded through the walls)" test -d "$bottles/$bottle"
+  fi
+  timeout 180 "${cli[@]}" shell -b "$bottle" -i 'cmd /c ver' >"$OUT/bottle-ver.txt" 2>&1
+  holds "wine answers in it"             grep -q Version "$OUT/bottle-ver.txt"
+  systemctl stop "$HOLDER" 2>/dev/null
+  KAWA_ASOBI_TEST_PATH=$stub:$PATH /usr/local/sbin/kawa-asobi-root poststop
+  rm -rf "$stub"
+  [[ -d $bottles/$bottle ]] || return
+  echo "it comes through the drop folder"
+  runuser -u "$DESK" -- install -m 0644 "$exe" "$DROP/$name"
+  bar_shown bar-before || return
+  trap screen_back EXIT
+  systemd-run --quiet --unit="$dead" --collect --on-active=150 bash -c 'chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service'
+  echo "Bottles' face, on the real screen"
+  holds "kawa-asobi bottles"             "${ask[@]}" bottles
+  for t in {1..80}; do [[ $(cat /run/kawa-asobi/state 2>/dev/null) == front ]] && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && break; sleep 0.5; done
+  holds "in front"                       test "$(cat /run/kawa-asobi/state)" = front
+  sleep 10
+  (gs_env "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID_W/bus" flatpak run --nosocket=wayland --env=GDK_BACKEND=x11 --command=bottles-cli com.usebottles.bottles \
+    run -b "$bottle" -e "$DROP/$name" >"$OUT/program.txt" 2>&1 &)
+  for t in {1..60}; do pgrep -u "$WHO" -f "$name" >/dev/null && break; sleep 0.5; done
+  holds "the program runs, from the drop folder" pgrep -u "$WHO" -f "$name"
+  holds "under wine, in the Flatpak's sandbox" bash -c "pgrep -u $WHO -x wineserver >/dev/null || pgrep -u $WHO -f wineserver >/dev/null"
+  sleep 8
+  inside_user rm -f /tmp/gamescope.png
+  gs_env xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+  sleep 2
+  inside_user cat /tmp/gamescope.png >"$OUT/program.png" 2>/dev/null
+  holds "a picture of it (program.png)"  test -s "$OUT/program.png"
+  echo "Super+G: behind the desktop it is frozen; in front again it goes on"
+  super_g
+  sleep 3
+  holds "the desktop in front"           test "$(cat /sys/class/tty/tty0/active)" = tty1
+  holds "the world says frozen"          test "$(cat /run/kawa-asobi/state)" = frozen
+  holds "kawa-asobi bottles, again"      "${ask[@]}" bottles
+  for t in {1..40}; do [[ $(cat /run/kawa-asobi/state) == front ]] && break; sleep 0.1; done
+  holds "in front, thawed"               grep -qx 'frozen 0' "/sys/fs/cgroup/user.slice/user-$UID_W.slice/user@$UID_W.service/app.slice/cgroup.events"
+  sleep 2
+  holds "the program still there"        pgrep -u "$WHO" -f "$name"
+  chvt 1
+  holds "kawa-asobi close"               "${ask[@]}" close
+  never "nothing of it left"             pgrep -u "$WHO"
+  holds "the desktop in front"           test "$(cat /sys/class/tty/tty0/active)" = tty1
+  systemctl stop "$dead.timer" 2>/dev/null
+  bar_shown bar-closed
+  rm -f "$DROP/$name"
+}
+# A Windows game of the world's own library through Proton, in Steam's Flatpak, as Steam would run it (its runtime, a
+# prefix of its own, thrown away after; no sign-in, so a game that needs Steam itself will refuse): in Bottles' gamescope,
+# which follows any window. DXVK's counter in the picture says how fast. 2 min of the screen.
+#   sudo ASOBI_PROOF_GAME=Blasphemous/Blasphemous.exe bash tools/asobi-proof.sh proton
+proton_proof() {
+  local dead=asobi-proof-deadman t game=${ASOBI_PROOF_GAME:-} pfx=asobi-proof-pfx
+  local ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
+  [[ -n $game ]] || { no "ASOBI_PROOF_GAME names no game"; return; }
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
+  bar_shown bar-before || return
+  trap screen_back EXIT
+  systemd-run --quiet --unit="$dead" --collect --on-active=170 bash -c 'chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service'
+  holds "kawa-asobi bottles"             "${ask[@]}" bottles
+  for t in {1..80}; do [[ $(cat /run/kawa-asobi/state 2>/dev/null) == front ]] && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && break; sleep 0.5; done
+  holds "in front"                       test "$(cat /run/kawa-asobi/state)" = front
+  sleep 8
+  (gs_env "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID_W/bus" flatpak run --nosocket=wayland --command=bash com.valvesoftware.Steam -c '
+    S=$HOME/.local/share/Steam P=$HOME/.cache/'"$pfx"'
+    mkdir -p "$P"
+    export STEAM_COMPAT_CLIENT_INSTALL_PATH=$S STEAM_COMPAT_DATA_PATH=$P DXVK_HUD=fps,devinfo PROTON_LOG=0
+    exec "$S/steamapps/common/SteamLinuxRuntime_4/_v2-entry-point" --verb=waitforexitandrun -- \
+      "$S/steamapps/common/Proton 11.0/proton" waitforexitandrun "$S/steamapps/common/'"$game"'"' >"$OUT/game.txt" 2>&1 &)
+  for t in {1..120}; do pgrep -u "$WHO" -f "${game##*/}" >/dev/null && pgrep -u "$WHO" -f wineserver >/dev/null && break; sleep 0.5; done
+  holds "the game runs, under Proton's wine" pgrep -u "$WHO" -f "${game##*/}"
+  ok "and it took $t half-seconds"
+  for t in 1 2 3; do
+    sleep 12
+    inside_user rm -f /tmp/gamescope.png
+    gs_env xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+    sleep 2
+    inside_user cat /tmp/gamescope.png >"$OUT/game-$t.png" 2>/dev/null
+  done
+  holds "pictures of it (game-*.png)"    test -s "$OUT/game-3.png"
+  "$DESK_HOME/.local/bin/kawa-display" --vrr >"$OUT/vrr.txt" 2>&1
+  holds "FreeSync on with it"            grep -qP '\tyes\ton' "$OUT/vrr.txt"
+  holds "still running"                  pgrep -u "$WHO" -f "${game##*/}"
+  echo "Super+G: frozen behind the desktop; in front again, on it goes"
+  super_g
+  sleep 3
+  holds "the desktop in front"           test "$(cat /sys/class/tty/tty0/active)" = tty1
+  holds "the world says frozen"          test "$(cat /run/kawa-asobi/state)" = frozen
+  holds "in again"                       "${ask[@]}" bottles
+  for t in {1..40}; do [[ $(cat /run/kawa-asobi/state) == front ]] && break; sleep 0.1; done
+  sleep 5
+  inside_user rm -f /tmp/gamescope.png
+  gs_env xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+  sleep 2
+  inside_user cat /tmp/gamescope.png >"$OUT/game-thawed.png" 2>/dev/null
+  holds "after the thaw, still running"  pgrep -u "$WHO" -f "${game##*/}"
+  chvt 1
+  t=$(date +%s%N)
+  holds "kawa-asobi close"               "${ask[@]}" close
+  ok "closed in $(( ($(date +%s%N) - t) / 1000000 )) ms"
+  never "nothing of it left"             pgrep -u "$WHO"
+  systemctl stop "$dead.timer" 2>/dev/null
+  rm -rf "$W/.var/app/com.valvesoftware.Steam/.cache/$pfx"
+  bar_shown bar-closed
+}
 
 case ${1:-} in
   walls) walls ;;
@@ -378,8 +535,10 @@ case ${1:-} in
   cycles) cycles ;;
   vt2)   vt2_proof ;;
   manager) manager ;;
+  windows) windows_proof ;;
+  proton) proton_proof ;;
   all)   walls; reset_proof; manager ;;
-  *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|vt2|cycles|manager|all" >&2; exit 2 ;;
+  *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|vt2|cycles|manager|windows|proton|all" >&2; exit 2 ;;
 esac
 echo
 if ((fails)); then echo "$fails did not hold"; exit 1; fi

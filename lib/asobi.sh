@@ -60,7 +60,9 @@ asobi_system() {
   install -m 0755 "$s/kawa-asobi-world" /usr/local/bin/kawa-asobi-world
   install -m 0755 "$s/kawa-asobi-splash" /usr/local/bin/kawa-asobi-splash
   sed "s/ASOBI_UID/$u/g" "$s/kawa-asobi.service" | write_file /etc/systemd/system/kawa-asobi.service
-  sed -e "s/ASOBI_UID/$u/g" -e 's/kawa-asobi-bottles\.service/kawa-asobi.service/' \
+  # (the order between the two faces in one direction only: a stop is ordered before a start either way, man
+  # systemd.unit; in both directions, stopping the two together is a cycle systemd refuses)
+  sed -e "s/ASOBI_UID/$u/g" -e '/^After=/s/ kawa-asobi-bottles\.service//' -e 's/kawa-asobi-bottles\.service/kawa-asobi.service/' \
       -e 's/^Description=ASOBI: the play world/Description=ASOBI: the play world, Bottles in front/' -e 's/^Environment=KAWA_ASOBI_FACE=steam/Environment=KAWA_ASOBI_FACE=bottles/' \
       "$s/kawa-asobi.service" | write_file /etc/systemd/system/kawa-asobi-bottles.service
   write_file /etc/systemd/system/kawa-asobi-watch.service <"$s/kawa-asobi-watch.service"

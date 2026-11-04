@@ -38,8 +38,8 @@ case_ "Bottles' unit is Steam's, mirrored: each conflicts with the other, the st
 b=$(cat "$W/etc/systemd/system/kawa-asobi-bottles.service"); s=$(cat "$W/etc/systemd/system/kawa-asobi.service")
 has "$b" 'KAWA_ASOBI_FACE=bottles'; has "$s" 'KAWA_ASOBI_FACE=steam'
 has "$b" 'Conflicts=getty@tty8.service kawa-asobi.service'; has "$s" 'Conflicts=getty@tty8.service kawa-asobi-bottles.service'
-grep -q '^After=.*kawa-asobi\.service' <<<"$b" && _ok || _no "Bottles not ordered after Steam"
-grep -q '^After=.*kawa-asobi-bottles\.service' <<<"$s" && _ok || _no "Steam not ordered after Bottles"
+grep -q '^After=.*kawa-asobi-bottles\.service' <<<"$s" && _ok || _no "the faces in no order: one would start before the other stopped"
+grep -q '^After=.*kawa-asobi\.service' <<<"$b" && _no "the faces ordered both ways: stopping the two is a cycle" || _ok
 case_ "the Flatpaks: per user, from Flathub, both, kept off what is not theirs; no system-wide remote"
 called '^asobi\[flatpak\] --user remote-add --if-not-exists flathub https://dl.flathub.org/'
 called '^asobi\[flatpak\] --user install .*com.valvesoftware.Steam com.usebottles.bottles'

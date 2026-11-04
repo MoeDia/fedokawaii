@@ -6,9 +6,12 @@
 # one set of walls (user@ASOBI_UID.service.d/50-kawa-asobi.conf, written from system/asobi/walls.conf).
 [Unit]
 Description=ASOBI: the play world
-# (Conflicts= alone would stop the one and start the other at once: the order has the stop go first)
+# (Conflicts= alone would stop the one and start the other at once: an order, whichever way, has the stop go
+# first. Only here: lib/asobi.sh leaves it out of Bottles' copy, both ways would be a cycle for a stop of both.
+# No order with the world's user@: kawa-asobi-root poststop ends that manager and waits, and an After= would have
+# it wait in turn for this unit, 10 s lost at each close)
 Conflicts=getty@tty8.service kawa-asobi-bottles.service
-After=getty@tty8.service systemd-user-sessions.service user@ASOBI_UID.service kawa-asobi-bottles.service
+After=getty@tty8.service systemd-user-sessions.service kawa-asobi-bottles.service
 StartLimitIntervalSec=0
 
 [Service]
@@ -31,4 +34,6 @@ ExecStart=/usr/local/bin/kawa-asobi-session
 ExecStop=+/usr/local/sbin/kawa-asobi-root close
 ExecStopPost=+/usr/local/sbin/kawa-asobi-root poststop
 TimeoutStopSec=45
+# (Fedora's default for a stop too slow is abort: a core dump of each helper, written to disk for nothing)
+TimeoutStopFailureMode=terminate
 Restart=no
