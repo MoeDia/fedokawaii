@@ -2828,7 +2828,7 @@ the one the terminal uses in ch. 11.
 
 **1.** Press **Super+E**. yazi opens in your home.
 
-**2.** Make a folder: press **a**, type `practice/` and press **Enter**. A box titled *Create:*
+**2.** Make a folder: press **a**, type `practice/` and press **Enter**. A box headed *new file*
 takes the name; the `/` at its end makes a folder rather than a file. `practice` appears in the
 list. Move onto it with **j** / **k** and press **l** to go in: it is empty.
 
@@ -2837,11 +2837,11 @@ files. Move to `.bashrc` — your shell's settings — and press **y** (copy). M
 `practice`, go in (**l**) and press **p** (paste). A copy of `.bashrc` is there now; the
 original is untouched.
 
-**4.** Rename the copy: press **r**. A box titled *Rename:* holds the name. **Ctrl+E**, then
+**4.** Rename the copy: press **r**. A box headed *rename* holds the name, right over the row. **Ctrl+E**, then
 **Ctrl+U** empties it; type `bashrc.txt` and press **Enter**. Without its leading dot the file is
 no longer hidden.
 
-**5.** Send it to the trash: press **d**. yazi asks *Trash 1 selected file?*; press **y**. The
+**5.** Send it to the trash: press **d**. yazi asks *trash 1 file?*; press **y**. The
 file is gone from the list.
 
 **6.** Bring it back: **g t** opens the trash. Move to `bashrc.txt`, press **O** and choose

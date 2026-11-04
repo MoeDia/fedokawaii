@@ -320,7 +320,8 @@ fi
 if [[ -r $TOOLKIT/lib/upstream.sh ]]; then
   # (the UPSTREAM array's rows only: their last field names the binaries — the icons' rows
   # below it end in a checksum, which is no program)
-  checks "27. applications" < <(sed -nE '/^UPSTREAM=\(/,/^\)/s/^\s*"[^"|]+\|[^"]*\|([^"|]*)"\s*$/\1/p' "$TOOLKIT/lib/upstream.sh" |
+  # (and yazi, built here with the desktop's patch, ya from its release: setup.sh's build_yazi)
+  checks "27. applications" < <({ echo yazi; sed -nE '/^UPSTREAM=\(/,/^\)/s/^\s*"[^"|]+\|[^"]*\|([^"|]*)"\s*$/\1/p' "$TOOLKIT/lib/upstream.sh"; } |
     while IFS= read -r b; do
       printf '%s | user | fail | ~/.local/bin/%s | %s --version | prints its version | run: fedokawaii update\n' "$b" "$b" "$b"
     done)
