@@ -749,6 +749,8 @@ rows() {
   e backups   backup    "${ICON_ARCHIVE:-·}"    "back up now"          "$bk"
   e backups   restore   "${ICON_UNPACK:-·}"     restore                ""
   e backups   drive     "${ICON_USB:-·}"        "the drive"            "$dv"
+  e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
+  e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
   e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
   e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
@@ -816,8 +818,8 @@ tab_next() {   # tab_next +1|-1 → the section beside the one shown
 }
 # The list and the pane, in a window W columns wide inside fzf's margins (FZF_COLUMNS, which
 # fzf tells every command it runs): the pane takes PANE columns at the right, the list the
-# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned at the
-# list's last column; what is not built yet in the faint ink, "soon". The menu asks for its rows
+# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned two columns
+# short of the list's edge; what is not built yet in the faint ink, "soon". The menu asks for its rows
 # again once fzf is up and whenever the window changes size, so the column is right however
 # late the window gets its final size.
 PANE=50
@@ -830,7 +832,8 @@ fit_rows() {
   local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
-  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 2))
+  # (two columns short of the list's edge: the air the row has at its left, inside the cursor's band)
+  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 4))
   run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
     if [[ $a == @($SOON) ]]; then
@@ -877,7 +880,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -960,6 +963,13 @@ explain() {
     backup)    pick 'running|backup'
                say "your home, to the drive you chose." \
                    "plug it in first." ;;
+    carry)     pick 'running'
+               say "what is yours alone, to a drive, under a" \
+                   "password you choose, read back after: then" \
+                   "you can wipe this computer." ;;
+    bring)     pick 'running'
+               say "after a fresh install: all of it back from" \
+                   "that drive. nothing new is replaced." ;;
     theme)     pick 'running'
                say "every config as the toolkit has it; yours" \
                    "kept first." ;;
@@ -1061,7 +1071,7 @@ job_head() {
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|settings|log'
+JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|carry|bring|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
@@ -1100,6 +1110,8 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     backup)    backup_now; rc=$? ;;
     restore)   backup_back; rc=$? ;;
     drive)     backup_drive; rc=$? ;;
+    carry)     kawa-carry pack; rc=$? ;;
+    bring)     kawa-carry back; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;

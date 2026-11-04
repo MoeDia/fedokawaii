@@ -78,8 +78,7 @@ def waybar_css(m, p):
     # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
     # tiles (紙 kami) — their paper, the vermilion of the torii's, and the seal's,
     # the words on the seal
-    rows = [("band", p["ground"]), ("band-rule", p["edge2"]),
-            ("surface", p["surface"]),                               # (a tooltip's solid ground)
+    rows = [("surface", p["surface"]),                               # (a tooltip's solid ground)
             ("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
             ("strong", p["strong"]), ("accent-text", p["accent_text"]), ("strong-on-accent", p["text_on_accent"]),
             ("asagi", p["asagi"]), ("blue", p["blue"]),                  # (blue: the keyboard's AR)

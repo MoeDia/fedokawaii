@@ -52,31 +52,28 @@ static float focuscolor[3][4]              = { PCOLOR(SHU), PCOLOR(SHADOW1), PCO
 static float urgentcolor[3][4]             = { PCOLOR(ASAGI), PCOLOR(SHADOW1), PCOLOR(SHADOW2) };
 static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
 
-/* animations (dwl.patch; docs/design-system.md §11): a new window hops in — up from below its
- * place, a little past it, down onto it, one small bounce; a closed one lifts a little and
- * drops away, fading — gravity's parabolas, whole pixels. A workspace switch moves both
- * workspaces on one strip, a fusuma's rail between them, from the side the next one lies on,
- * gathering speed, striking its post and coming back a little. Every frame the screen shows is
- * drawn for the moment that frame reaches the screen; never a full-screen window; unlocked, the
- * lock screen dissolves off the desktop (locking: at once). 0: everything at once */
+/* animations (dwl.patch; docs/design-system.md §11; the owner: "more movement, fluid like water, calm,
+ * Japanese"): springs, no bezier and no parabola — a new window rises from well below its place,
+ * growing, and settles; a closed one sinks away, fading; a workspace switch moves both workspaces on
+ * one strip, a fusuma's rail between them, a wave through the windows; tiled windows making room flow
+ * to their places. Every frame the screen shows is drawn for the moment that frame reaches the
+ * screen; never a full-screen window; unlocked, the lock screen dissolves off the desktop (locking: at
+ * once). 0: everything at once */
 static const int animations                = 1;
-static const unsigned int anim_open_ms     = 420;  /* a window opening */
-static const int anim_hop_low              = 44;   /* px below its place it starts */
-static const int anim_hop_over             = 10;   /* px past its place, at the top of the arc */
-static const int anim_hop_bounce           = 2;    /* px of the bounce */
-static const double anim_hop_small         = 0.05; /* how much smaller it starts (and ends, closing) */
+static const unsigned int anim_open_ms     = 450;  /* a window opening */
+static const int anim_hop_low              = 120;  /* px below its place it starts */
+static const double anim_hop_small         = 0.18; /* how much smaller it starts */
 static const unsigned int anim_close_ms    = 400;  /* …closing */
-static const int anim_fall                 = 36;   /* px it drops */
-static const int anim_fall_lift            = 6;    /* px it lifts first */
-static const unsigned int anim_tag_ms      = 420;  /* a workspace move, all of it */
-static const int anim_tag_back             = 20;   /* px it comes back from its post */
+static const int anim_fall                 = 64;   /* px it sinks */
+static const unsigned int anim_tag_ms      = 450;  /* a workspace move, all of it */
+static const unsigned int anim_tag_wave    = 48;   /* …ms between the first window's start and the last's */
 static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving off the
                                                     * desktop once the password is right */
 static const unsigned int anim_unroll_ms   = 300;  /* a warm window shown (Super+U, N, V):
                                                     * it unrolls from its top edge, its rod
                                                     * (the frame's foot) travelling down */
 static const unsigned int anim_rollup_ms   = 240;  /* …put away: rolls up into its top edge */
-static const unsigned int anim_slide_ms    = 240;  /* tiled windows making room: each slides
+static const unsigned int anim_slide_ms    = 300;  /* tiled windows making room: each slides
                                                     * from where it was to its new place */
 static const unsigned int anim_wash_ms     = 1200; /* a theme switch, a new wallpaper: the
                                                     * ink bleeding the old picture away */

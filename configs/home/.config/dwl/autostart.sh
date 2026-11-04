@@ -130,6 +130,7 @@ keep udiskie </dev/null &                          # drives: open when plugged i
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
+kawa-carry hint </dev/null &                       # a fresh install, the drive with your things plugged in: said once
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
 kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
 keep kawa-steam --watch </dev/null &              # game mode while a Steam game runs (until gaming moves into its VM: T35)
