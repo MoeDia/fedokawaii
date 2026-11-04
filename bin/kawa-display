@@ -107,7 +107,12 @@ if [[ ${1:-} == --monitor ]]; then
     # MODEL CODE WRITE [READS] — READS: what it answers once it has it, when not what was written
     while read -r m code want reads; do
       [[ $m == "$id" && -n ${want:-} ]] || continue
-      reads=${reads:-$want} now=$(value "$bus" "$code") || { moved+=("$id $code: no answer"); continue; }
+      reads=${reads:-$want} now=""
+      for _ in 1 2 3 4; do               # (a monitor just woken answers after a moment)
+        now=$(value "$bus" "$code") && break
+        sleep 1
+      done
+      [[ -n $now ]] || { moved+=("$id $code: no answer"); continue; }
       [[ ${now,,} == "${reads,,}" ]] && continue
       ddcutil --bus "$bus" --skip-ddc-checks setvcp "$code" "$want" --noverify >/dev/null 2>&1
       sleep 0.5
