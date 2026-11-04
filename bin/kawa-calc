@@ -28,7 +28,7 @@ QALC=(qalc -s 'upxrates 7')                         # (currency rates refreshed 
 SENT=7777777.25                                     # (the line after each sum: its answer ends one)
 
 # ── qalc, asked line by line ─────────────────────────────────────────────────────────────
-start() { coproc { "${QALC[@]}" -t -s 'color 0' -s 'unicode 0' 2>&1; }; }
+start() { coproc { "${QALC[@]}" -t -s 'color 0' -s 'unicode 0' -s 'exp off' 2>&1; }; }   # (every figure: 2^64 as it is, not 1.844674407E19)
 start
 # answer EXPR → qalc's answer on stdout (nothing: no answer — not a sum, or qalc says no)
 answer() {

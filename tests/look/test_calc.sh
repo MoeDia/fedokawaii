@@ -14,6 +14,8 @@ setup
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
 rc 1 kawa-calc --answer steam
+case_ "every figure, never qalc's power of ten: 2^64 as it is"
+eq "$(kawa-calc --answer '2^64')" 18446744073709551616
 # the launcher (kawa-panel's): its Panel driven with a stand-in ui that notes what it is asked
 lp() {
   local G=$TMP/gi; mkdir -p "$G/gi/repository"
@@ -72,6 +74,10 @@ case_ "a sum typed: asked of qalc as it is typed, the line and the answer in the
 eq "$(pc 'typed("5 ft to cm"); print([c for c in u.calls if c.startswith("calc")][-1]); s0 = p.size; ans("5 ft to cm", "152.4 cm")
 print([m[5] for m in p.marks if m[0] == "answer"], [m[6] for m in p.marks if m[0] == "input"], p.size == s0)')" \
   "$(printf '%s\n' 'calc 5 ft to cm' "['152.4 cm'] ['5 ft to cm'] True")"
+case_ "an answer's figures: all of them while the row holds them (2^64's twenty), past that the power of ten, a unit kept, never a number cut; the panel's qalc asked for every figure"
+eq "$(pc 'for a in ("18446744073709551616", "152.4 cm", "AED 440.70", "0xFF", "2/3", "1000000000000000000000000000000000 g", "-2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376", "0.00000000003333333333"): print(kp.figures(a))')" \
+  "$(printf '%s\n' 18446744073709551616 '152.4 cm' 'AED 440.70' 0xFF 2/3 '1E33 g' -2.037035976E90 3.333333333E-11)"
+has "$(cat "$REPO/bin/kawa-panel")" '"-s", "exp off"]'
 case_ "opens clean: no cursor on a row, what it can do in faint until there is a sum; the heading the calculator's icon (§13: no kanji)"
 eq "$(pc 'print(p.focus, [h[:2] for h in p.heads], [m[4] for m in p.marks if m[0] == "hint"][:2], [m[3] for m in p.marks if m[0] == "hint"][:2])')" "None [('calc', 'calculator')] ['15% of 2400', '120 usd to aed'] ['equals', 'convert']"
 case_ "Enter: the answer copied without a notice (the panel says it), kept below, the line clean, the panel still there"
@@ -113,7 +119,7 @@ eq "$(lp 'typed("5 ft"); m = p.state; m.calc = ("5 ft", "1.524 m"); m.pending = 
 src=$(sed -n '/    def calc_ask(m):/,/    def calc_start():/p' "$REPO/bin/kawa-panel")
 has "$src" 'qc["settle"] = GLib.timeout_add(SETTLE, settled, m, q)' "asked when the typing settles"
 has "$(sed -n '/^    SETTLE = /p' "$REPO/bin/kawa-panel")" "SETTLE = 250"
-has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" 'panel.ui.copy_answer(money(a))' "Enter's answer copied when it comes"
+has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" 'panel.ui.copy_answer(figures(money(a)))' "Enter's answer copied when it comes"
 setup; argv notify-send; rm -f "$TMP/clip"
 src=$(sed -n '/        def copy_answer(self, text):/,/^$/p' "$REPO/bin/kawa-panel" | python3 -c 'import sys, re; t = sys.stdin.read(); print(re.search(r"\"bash\", \"-c\", (.*?), \"_\", text\]", t, re.S).group(1))')
 script=$(python3 -c 'import ast, sys; print("".join(ast.literal_eval("(" + sys.argv[1] + ")")))' "$src")
