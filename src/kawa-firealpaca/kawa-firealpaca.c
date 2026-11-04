@@ -28,6 +28,7 @@
  *   its panels    placed by hand in its code for a narrower face: after a panel is laid out its
  *                 children are put on the design's grid (the table PLACES); Qt's underlined
  *                 mnemonics are off (in a pixel face F_ reads E)
+ *   its keys      F2 to F7 show and hide the panels kept out of the way (PANEL_KEYS)
  *   its dialogs   Open and Save are the desktop's own (kawa-pick: yazi in a small terminal, as
  *                 every other program's), the program waiting meanwhile
  *   a file        the program takes none on its command line: KAWA_FA_OPEN=FILE at its start, or
@@ -112,6 +113,9 @@ static struct {
 	void (*process_events)(int);
 	void (*set_geometry)(void *, const void *);
 	void (*layout_margins)(void *, int, int, int, int);
+	void (*key_new)(void *, const QString *, int);
+	void (*key_free)(void *);
+	void (*action_key)(void *, const void *);
 } qt;
 
 static bool
@@ -151,6 +155,8 @@ resolve(void)
 		S(process_events, "_ZN16QCoreApplication13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEE"),
 		S(set_geometry, "_ZN7QWidget11setGeometryERK5QRect"),
 		S(layout_margins, "_ZN7QLayout18setContentsMarginsEiiii"),
+		S(key_new, "_ZN12QKeySequenceC1ERK7QStringNS_14SequenceFormatE"), S(key_free, "_ZN12QKeySequenceD1Ev"),
+		S(action_key, "_ZN7QAction11setShortcutERK12QKeySequence"),
 #undef S
 	};
 	for (size_t i = 0; i < sizeof t / sizeof *t; i++) {
@@ -869,6 +875,13 @@ static void *action_fit;         /* QAction FIT_NAME: the page, whole, in its wi
 #define FIT_NAME "action_ViewZoomAdjust"
 #define FIT_NAME_LEN 21
 static char *open_file;          /* what its next Open dialog answers, unasked */
+/* The panels kept out of the way, one key each (its own shortcut settings cannot reach these; Tab, all of them) */
+static struct { const char *action, *key; void *ptr; } PANEL_KEYS[] = {
+	{ "action_WindowNavigator", "F2", NULL }, { "action_WindowBrushSize", "F3", NULL },
+	{ "action_WindowBrushPreview", "F4", NULL }, { "action_WindowColorHistory", "F5", NULL },
+	{ "action_WindowReference", "F6", NULL }, { "action_WindowStatus", "F7", NULL },
+};
+static bool panel_keys_set;
 static bool wanted_mood, wanted_open;
 static int fit_left;             /* a file just opened: its page fitted again as its window settles */
 
@@ -882,6 +895,10 @@ _ZN7QObject13setObjectNameE14QAnyStringView(void *self, const void *data, size_t
 		action_open = self;
 	if (on && !(tagged >> 63) && (tagged & ~(3ul << 62)) == FIT_NAME_LEN && !memcmp(data, FIT_NAME, FIT_NAME_LEN))
 		action_fit = self;
+	if (on && !(tagged >> 63))
+		for (size_t i = 0; i < sizeof PANEL_KEYS / sizeof *PANEL_KEYS; i++)
+			if ((tagged & ~(3ul << 62)) == strlen(PANEL_KEYS[i].action) && !memcmp(data, PANEL_KEYS[i].action, tagged & ~(3ul << 62)))
+				PANEL_KEYS[i].ptr = self;
 	real(self, data, tagged);
 }
 
@@ -1306,6 +1323,20 @@ _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *eve
 	if (!on || !pthread_equal(pthread_self(), main_thread))
 		return real(self, receiver, event);
 	if (type == KAWA_EVENT) {
+		if (!panel_keys_set) {
+			panel_keys_set = true;
+			for (size_t i = 0; i < sizeof PANEL_KEYS / sizeof *PANEL_KEYS; i++) {
+				unsigned char seq[OBJECT_BYTES];
+				QString k = { 0 };
+				if (!PANEL_KEYS[i].ptr)
+					continue;
+				qt.string_utf8(&k, (long)strlen(PANEL_KEYS[i].key), PANEL_KEYS[i].key);
+				qt.key_new(seq, &k, 1);              /* QKeySequence::PortableText */
+				qt.action_key(PANEL_KEYS[i].ptr, seq);
+				qt.key_free(seq);
+				string_drop(&k);
+			}
+		}
 		if (__atomic_exchange_n(&wanted_mood, false, __ATOMIC_ACQ_REL)) {
 			load_mood();
 			repaint_all();
@@ -1338,8 +1369,8 @@ _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *eve
 	if (type == 14 || type == 17 || type == 76) {        /* Resize, Show, LayoutRequest: it has laid it out */
 		const void *meta = ((const void *(*)(void *))(*(void ***)receiver)[0])(receiver);
 		const char *cls = qt.class_name(meta);
-		if (type == 17 && open_file && !strcmp(cls, "MainWindow"))
-			post_to_main();                      /* its first window: the file asked for */
+		if (type == 17 && (open_file || !panel_keys_set) && !strcmp(cls, "MainWindow"))
+			post_to_main();                      /* its first window: the keys, the file asked for */
 		if (fit_left && type == 14 && !strcmp(cls, "WidgetCanvas"))
 			post_to_main();
 		if (cls[0] == 'W')

@@ -91,10 +91,10 @@ parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }
 ALL="launch screenshots windows workspaces sound, music, monitor terminal drives session drawing tablet "
 case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
 keys_setup; answer esc; rc 0 kawa-help
-eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix yazi zathura "
+eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim sketch system torrra visidata wallpaper wiremix yazi zathura "
 case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
 keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
-eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix zathura "
+eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim sketch system torrra visidata wallpaper wiremix zathura "
 eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
 case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
 for t in nvim:nvim lazygit:lazygit vd:visidata torrra:torrra; do
