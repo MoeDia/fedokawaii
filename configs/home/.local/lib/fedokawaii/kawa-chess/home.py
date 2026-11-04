@@ -115,7 +115,7 @@ class Home(Screen):
             done = pr.is_done(pr.day, it.key)
             out.append(Row(it.icon, it.label, "done" if done else it.value(pr), act=("item", it), ink=FAINT if done else None))
         if self.next_open(items) is None and pr.day < 365:
-            out.append(Row("CHEVRON_RIGHT", f"go on to day {pr.day + 1}", "tomorrow's", act=("next",)))
+            out.append(Row("CHEVRON_RIGHT", f"go on to day {pr.day + 1}", act=("next",)))
         return out
 
     def _rows_lessons(self):

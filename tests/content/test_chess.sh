@@ -130,26 +130,32 @@ pgn = '[Event "x"]\n[White "you"]\n[Black "opp"]\n[Result "0-1"]\n\n1. e4 e5 2. 
 (st / "games/1.pgn").write_text(pgn)
 (st / "progress.json").write_text(json.dumps({"day": 1, "items": {"1/lesson-the-board": "x", "1/game1": "x"}, "played": {"1": {"score": "loss", "elo": 500, "t": 1, "me": 0, "times": [3, 3, 3, 3], "check": "safe", "goal": "be safe", "accuracy": None}}}))
 t = open_app(env)
-t.send("\r"); t.pump(2.5)
-judge = t.find("take back")
-t.send("\r"); t.pump(0.3)
-moment = t.find("moment 1")
-t.send("\x1b"); t.pump(0.2)                 # (Esc: shown at once)
-shown = t.find("the move:")
+t.send("\r")
+judge = t.wait("take back", 90)              # (a real engine reads the game: on a busy PC, a while)
+t.send("\r")
+moment = t.wait("moment 1", 10)
+t.send("\x1b")                               # (Esc: shown at once)
+shown = t.wait("the move:", 10)
+bad_word = t.find(": a inaccuracy")
 for _ in range(6):
+    t.send("\r")
+    for _wait in range(200):
+        if t.find("find a better move") or t.find("one thing to remember"):
+            break
+        t.pump(0.05)
     if t.find("one thing to remember"):
         break
-    t.send("\r"); t.pump(0.2)
-    if t.find("find a better move"):
-        t.send("\x1b"); t.pump(0.2)
+    bad_word = bad_word or t.find(": a inaccuracy")
+    t.send("\x1b"); t.wait("the move:", 10)
+    bad_word = bad_word or t.find(": a inaccuracy")
 sumry = t.find("accuracy") and t.find("blunders")
 t.send("look at what the queen can reach"); t.pump(0.1); t.send("\r"); t.pump(0.4)
 p = json.loads((st / "progress.json").read_text())
 rec = p["played"]["1"]
-print(judge, moment, shown, sumry, rec["accuracy"] is not None, rec["takeaway"], p["items"].get("1/review1") is not None, repr(crash_text(home)))
+print(judge, moment, shown, sumry, not bad_word, rec["accuracy"] is not None, rec["takeaway"], p["items"].get("1/review1") is not None, repr(crash_text(home)))
 t.close()
 PY
-)" "True True True True True look at what the queen can reach True ''"
+)" "True True True True True True look at what the queen can reach True ''"
 
 case_ "puzzles by script, right and wrong by turns: the rating moves, what was missed is due, nothing repeats early (test_chess_destroy: 200)"
 eq "$(py <<'PY'

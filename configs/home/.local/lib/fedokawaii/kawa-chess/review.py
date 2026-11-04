@@ -13,6 +13,7 @@ from ui import Row, footed, heading, icon, keys_line, meter, window, wrap
 
 # Expected-points loss → a word, the steps of chess.com's own classification
 CLASSES = ((0.20, "blunder"), (0.10, "mistake"), (0.05, "inaccuracy"), (0.02, "good"), (0.0, "excellent"))
+SAID = {"blunder": "a blunder", "mistake": "a mistake", "inaccuracy": "an inaccuracy", "good": "good", "excellent": "excellent"}
 NODES = 150000
 
 
@@ -468,8 +469,9 @@ class Review(Screen):
         lines = [[(f"moment {self.mi + 1} of {len(self.moments)}", MUTED)], ""]
         if self.judged and self.mi == 0:
             lines += [[(s, MUTED)] for s in wrap(self.judged, w)] + [""]
-        said = f"{no}{dots} you played {played}: a {m['class']}."
-        lines += [[f"{no}{dots} you played ", (played, STRONG), f": a {m['class']}."]] if len(said) <= w else [[(s, None)] for s in wrap(said, w)]
+        verdict = SAID[m["class"]]
+        said = f"{no}{dots} you played {played}: {verdict}."
+        lines += [[f"{no}{dots} you played ", (played, STRONG), f": {verdict}."]] if len(said) <= w else [[(s, None)] for s in wrap(said, w)]
         lines.append("")
         if self.step == "find":
             lines += [[(s, None)] for s in wrap("find a better move.", w)]
