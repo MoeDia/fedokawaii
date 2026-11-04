@@ -432,7 +432,7 @@ eq "$(locks)" 1
 case_ "the machine awake again: swayidle's after-resume tells the journal (the health report reads it)"
 grep -qF "  after-resume 'kawa-lock --resumed' \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
 
-case_ "the scene (build-lock.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; the line of words' rows clear of every edge; gtklock's own line hidden only under the module"
+case_ "the scene (build-ink.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; the line of words' rows on the painting, its own halo; gtklock's own line hidden only under the module"
 for t in dark light; do
   out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
 import sys
@@ -462,16 +462,13 @@ if "flame" in kv:
     for fx, fy in (map(int, f) for f in kv["flame"]):
         assert 0 <= fx and fx + fw <= w and 0 <= fy and fy + fh <= h, f"a flame at {fx},{fy} outside"
     print(len(kv["flame"]), "flames inside")
-# the line of words (what PAM says) is centred in its rows: on each, across the widest line (60
-# characters at most — max-width-chars — ≈ 140 of the picture's pixels), the field's own colour is
-# the commonest — no mortar, no cloud's edge, no rim runs through the words
-from collections import Counter
+# the line of words (what PAM says) is centred in its rows, low on the painting: a painting has no flat
+# field, so the words carry their own halo (gtklock.css: window.kawa #error-label, text-shadow)
 wy0, wy1 = map(int, kv["words"][0])
-cx = w // 2
 assert 0 <= wy0 <= wy1 < h and wy1 - wy0 >= 4, f"words {wy0} {wy1}"
-field = Counter(px[x, y] for y in range(wy0, wy1 + 1) for x in range(cx - 70, cx + 70)).most_common(1)[0][0]
-edges = [y for y in range(wy0, wy1 + 1) if Counter(px[x, y] for x in range(cx - 70, cx + 70)).most_common(1)[0][0] != field]
-print("words clear" if not edges else f"words CROSSED on rows {edges}")
+css = open(f"{d}/../../../.config/fedokawaii/themes/{d.rstrip('/').rsplit('/', 1)[1]}/gtklock.css").read()
+rule = [l for l in css.splitlines() if l.startswith("window.kawa #error-label")]
+print("words clear" if rule and "text-shadow" in rule[0] else "words CROSSED: no halo in gtklock.css")
 PY
 )
   has "$out" "marks " "$t: $out"; lacks "$out" "UNDER" "$t"
@@ -482,7 +479,7 @@ PY
   grep -q '^#input-field {' "$css" && _ok || _no "$t: without the module the line has no look of its own"
   grep -q 'transition: none;' "$css" && _ok || _no "$t: a transition could ease gtklock's line in for frames"
 done
-case_ "the gate (tools/build-lock.py): its frames side by side, shut first, each different, the last the scene's own; the row of marks inside it, on the gate's own dark"
+case_ "the gate (tools/build-ink.py): its frames side by side, shut first, each different, the last the scene's own; the row of marks inside it, on the gate's own dark"
 for t in dark light; do
   out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
 import sys

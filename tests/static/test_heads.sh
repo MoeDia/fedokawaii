@@ -1,84 +1,81 @@
 #!/usr/bin/env bash
-# tests/static/test_heads.sh — the two heads, one character sheet (tools/build-heads.py, art/heads.txt,
-# docs/art/heads.md): every size and state there, symmetric to the pixel, its air where the design
-# wants it, its inks counted — and everything made from the sheet is what the sheet makes.
+# tests/static/test_heads.sh — the two heads, cut in ink at every size (tools/ink_heads.py, docs/art/heads.md; the
+# owner, 4 Nov 19:12: no pixel art for the heads): each file its size and alpha, smooth, its ink inside its air, its
+# states apart; the prompt's glyphs one ink and what the tool holds; fetch's sixels read back, the room fetch makes.
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 
-case_ "the sheet: every size and state of both heads, the ink inside its air, few inks"
+case_ "the pictures: size, alpha, ink inside its air, smooth (never pixel art), the two states apart"
 out=$(python3 -I -B - "$REPO" <<'PY'
-import importlib.util, sys
-repo = sys.argv[1]
-sp = importlib.util.spec_from_file_location("bh", f"{repo}/tools/build-heads.py")
-bh = importlib.util.module_from_spec(sp); sp.loader.exec_module(bh)
-s = bh.sheet()
-AIR = {"prompt": (1, 18), "bar": (2, 17)}   # the rows the ink may take
-INKS = {"prompt": 1, "bar": 3, "32": 4}
-for kind, states in (("oni", ("un", "a")), ("angel", ("closed", "open"))):
-    for size, (w, h) in (("prompt", (24, 20)), ("bar", (22, 20)), ("32", (32, 32))):
-        for st in states:
-            n = f"{kind}.{size}.{st}"
-            if n not in s:
-                print("MISSING", n); continue
-            ww, hh, rows = s[n]
-            if (ww, hh) != (w, h):
-                print("SIZE", n, ww, hh)
-            used = sorted({c for r in rows for c in r} - {"."})
-            if len(used) > INKS[size]:
-                print("INKS", n, used)
-            ink = [y for y, r in enumerate(rows) if set(r) - {"."}]
-            if size in AIR and (ink[0] < AIR[size][0] or ink[-1] > AIR[size][1]):
-                print("AIR", n, ink[0], ink[-1])
-            if any(r != r[::-1] for r in rows):
-                print("MIRROR", n)
-print("sheet done")
+import sys
+import numpy as np
+from PIL import Image
+themes = f"{sys.argv[1]}/configs/home/.config/fedokawaii/themes"
+for mood in ("dark", "light"):
+    for name, size, floor in (("face", (22, 20), 40), ("head-48", (48, 48), 150), ("head-56", (56, 56), 200)):
+        states = []
+        for suffix in ("", "-open"):
+            n = f"{mood}/{name}{suffix}.png"
+            im = Image.open(f"{themes}/{n}")
+            if im.mode != "RGBA" or im.size != size:
+                print("SIZE", n, im.mode, im.size); continue
+            a = np.asarray(im)
+            states.append(a)
+            rows = np.nonzero(a[..., 3].max(1) > 32)[0]
+            if name == "face" and (rows[0] < 1 or rows[-1] > 18):
+                print("AIR", n, rows[0], rows[-1])
+            inks = len({tuple(p) for p in a.reshape(-1, 4)})
+            if inks < floor:
+                print("FLAT", n, inks)
+            if not (a[..., 3] == 0).any() or not (a[..., 3] == 255).any():
+                print("ALPHA", n)
+        if len(states) == 2 and (states[0] == states[1]).all():
+            print("SAME", mood, name)
+print("pictures done")
 PY
 )
-eq "$out" "sheet done"
+eq "$out" "pictures done"
 
-case_ "what the sheet makes: the prompt's glyphs, the bar's and the panel's pictures, fetch's sixels, byte for byte; the glyphs in the fonts' source"
-G=$TMP/gen; mkdir -p "$G"; cp -r "$REPO"/{tools,art,configs} "$G/"
-(cd "$G" && python3 -I -B tools/build-heads.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 3 "$TMP/log" | tr '\n' ' ')"
-d=$(diff -rq "$REPO/configs" "$G/configs" 2>&1; diff -q "$REPO/art/icons.txt" "$G/art/icons.txt" 2>&1)
+case_ "the prompt's glyphs: one ink, 24 × 20, a row of air above and below, the demon symmetric, in the fonts' source as the tool holds them"
+G=$TMP/gen; mkdir -p "$G"; cp -r "$REPO"/{tools,art} "$G/"
+out=$(cd "$G" && python3 -I -B - <<'PY'
+import importlib.util, pathlib
+sp = importlib.util.spec_from_file_location("ih", "tools/ink_heads.py")
+ih = importlib.util.module_from_spec(sp); sp.loader.exec_module(ih)
+for name, rows in ih.GLYPHS.items():
+    if len(rows) != 20 or {len(r) for r in rows} != {24} or set("".join(rows)) - set(".#"):
+        print("SHAPE", name)
+    ink = [y for y, r in enumerate(rows) if "#" in r]
+    if ink[0] < 1 or ink[-1] > 18:
+        print("AIR", name, ink[0], ink[-1])
+    if "oni" in name and any(r != r[::-1] for r in rows):
+        print("MIRROR", name)
+for a, b in (("head-oni", "head-oni-roar"), ("head-angel", "head-angel-open")):
+    if ih.GLYPHS[a] == ih.GLYPHS[b]:
+        print("SAME", a)
+ih.write_glyphs()
+print("glyphs done")
+PY
+)
+eq "$out" "glyphs done"
+d=$(diff -q "$REPO/art/icons.txt" "$G/art/icons.txt" 2>&1)
 [[ -z $d ]] && _ok || _no "$d"
 
-case_ "fetch's sixels: 144 × 180, read back pixel for pixel: the drawing, the terminal's own ground through the rest"
+case_ "fetch's sixels: 288 × 300, read back: few inks, the figure opaque, the terminal's own ground through the rest, the angel's gold kept; fetch's room for them"
 out=$(python3 -I -B - "$REPO" <<'PY'
-import importlib.util, re, sys
-from PIL import Image
-repo = sys.argv[1]
-sp = importlib.util.spec_from_file_location("bh", f"{repo}/tools/build-heads.py")
-bh = importlib.util.module_from_spec(sp); sp.loader.exec_module(bh)
-for mood, kind, st in (("dark", "oni", "un"), ("light", "angel", "closed")):
-    six = open(f"{repo}/configs/home/.local/share/fedokawaii/{mood}/head.six", encoding="ascii").read()
-    m = re.fullmatch(r'\x1bP0;1;0q"1;1;(\d+);(\d+)(.*)\x1b\\', six, re.S)
-    w, h = int(m[1]), int(m[2])
-    im = Image.new("RGBA", (w, h), (0, 0, 0, 0))
-    regs, x, y, reg = {}, 0, 0, 0
-    for tok in re.finditer(r"#(\d+);2;(\d+);(\d+);(\d+)|#(\d+)|!(\d+)(.)|(\$)|(-)|([?-~])", m[3]):
-        if tok[1]:
-            regs[int(tok[1])] = tuple(round(int(tok[i]) * 255 / 100) for i in (2, 3, 4))
-        elif tok[5]:
-            reg = int(tok[5])
-        elif tok[8]:
-            x = 0
-        elif tok[9]:
-            x, y = 0, y + 6
-        else:
-            n, ch = (int(tok[6]), tok[7]) if tok[6] else (1, tok[10])
-            bits = ord(ch) - 63
-            for dx in range(n):
-                for k in range(6):
-                    if bits >> k & 1:
-                        im.putpixel((x + dx, y + k), (*regs[reg], 255))
-            x += n
-    want = bh.fetch_size(kind, st)
-    same = (w, h) == want.size and all(
-        (im.getpixel((px, py))[3] == 255) == (want.getpixel((px, py))[3] == 255)
-        and (not im.getpixel((px, py))[3] or all(abs(a - b) <= 2 for a, b in zip(im.getpixel((px, py)), want.getpixel((px, py)))))
-        for py in range(h) for px in range(w))
-    print(mood, w, h, same)
+import importlib.util, pathlib, sys
+import numpy as np
+repo = pathlib.Path(sys.argv[1])
+sp = importlib.util.spec_from_file_location("ih", repo / "tools/ink_heads.py")
+ih = importlib.util.module_from_spec(sp); sp.loader.exec_module(ih)
+for mood in ("dark", "light"):
+    im = ih.portrait_of(repo / f"configs/home/.local/share/fedokawaii/{mood}/head.six")
+    a = np.asarray(im)
+    inks = {tuple(p[:3]) for p in a.reshape(-1, 4) if p[3]}
+    warm = any(int(r) - int(b) > 60 for r, g, b in inks)
+    print(mood, im.size, len(inks) <= 32, 0.2 < (a[..., 3] > 0).mean() < 0.95, warm == (mood == "light"))
 PY
 )
-eq "$out" "$(printf '%s\n' 'dark 144 180 True' 'light 144 180 True')"
+eq "$out" "$(printf '%s\n' 'dark (288, 300) True True True' 'light (288, 300) True True True')"
+eq "$(sed -n 's/^HEAD_CELLS=\([0-9]*\) HEAD_LINES=\([0-9]*\) FACTS_AT=\([0-9]*\).*/\1 \2 \3/p' "$REPO/bin/fetch")" "36 15 42" "bin/fetch: 36 × 8 = 288, 15 × 20 = 300, the facts at 2 + 36 + 3 + 1"
 done_

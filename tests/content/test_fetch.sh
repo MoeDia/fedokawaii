@@ -110,7 +110,7 @@ def add(v):
 add(wp.palette())
 names = re.search(r"^NAMES=\(([^)]*)\)", src, re.M).group(1).split()
 arts = dict(re.findall(r"^ART_(\w+)=\(\n(.*?)\n\)", src, re.M | re.S))
-heads = {"oni", "tennin"}   # (their pictures are sixels: tools/build-heads.py)
+heads = {"oni", "tennin"}   # (their pictures are sixels: tools/ink_heads.py)
 print("names", " ".join(sorted(set(names) - heads)) == " ".join(sorted(arts)))
 for n in arts:
     rows = re.findall(r'"([^"]*)"', arts[n])
@@ -122,15 +122,15 @@ for n in arts:
 EOF
 has "$(cat "$TMP/art.txt")" "names True" "NAMES and the ART_ arrays list the same ten, and the two heads"
 eq "$(grep -cE '^[a-z]+ 16 True True ok$' "$TMP/art.txt")" 10 "$(grep -vE ' 16 True True ok$|^names' "$TMP/art.txt" | tr '\n' ' ')"
-case_ "the two heads: a sixel of 144 × 180, the room made before it, the cursor back, the eight facts by column beside it"
+case_ "the two heads: a sixel of 288 × 300, the room made before it, the cursor back, the eight facts by column beside it, in its middle"
 mkdir -p "$HOME/.local/share/fedokawaii"
 cp -r "$REPO/configs/home/.local/share/fedokawaii/dark" "$REPO/configs/home/.local/share/fedokawaii/light" "$HOME/.local/share/fedokawaii/"
 for n in oni tennin; do
   out=$(F "$n")
-  has "$out" $'\eP0;1;0q"1;1;144;180' "$n: the sixel, its size"
-  has "$out" $'\e[9A\e7\e[3G\eP' "$n: the room, the place saved, the picture from column 3"
-  has "$out" $'\e\\\e8\e[24G' "$n: back to the place, the first fact at column 24"
-  eq "$(grep -c $'\e\\[24G' <<<"$out")" 8 "$n: the eight facts"
+  has "$out" $'\eP0;1;0q"1;1;288;300' "$n: the sixel, its size"
+  has "$out" $'\e[15A\e7\e[3G\eP' "$n: the room, the place saved, the picture from column 3"
+  has "$out" $'\e\\\e8\n\n\n\e[42G' "$n: back to the place, three lines down, the first fact at column 42"
+  eq "$(grep -c $'\e\\[42G' <<<"$out")" 8 "$n: the eight facts"
   lacks "$out" "38;2;" "$n: no half blocks"
 done
 eq "$(TERM=xterm F oni | grep -c $'\eP')" 0 "another terminal: the facts alone, no sixel"

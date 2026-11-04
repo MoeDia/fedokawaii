@@ -14,8 +14,8 @@
 # blocks in 24-bit colour, which foot renders gap-free. Every colour in them is one of
 # the desktop's own (tools/build-themes.py), and each has an ink outline or its own
 # background, so it reads on the dark and the light theme alike. The two heads have more to
-# say than that: foot draws them pixel for pixel, a sixel of 144 × 180 (tools/build-heads.py),
-# 18 cells × 9 lines beside the eight facts. The icons are the desktop's own (Sumi Icons); the
+# say than that: engraved portraits (tools/ink_heads.py), foot draws them pixel for pixel, a sixel of
+# 288 × 300, 36 cells × 15 lines, the eight facts beside them, in their middle. The icons are the desktop's own (Sumi Icons); the
 # text uses the terminal's 16 colours.
 # Pure bash reading /proc and /etc: nothing to install, prints in a few milliseconds.
 set -u
@@ -227,7 +227,7 @@ NAMES=(oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ram
 rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
 
 LOGO=() LOGO_W=0 SIX=''
-HEAD_CELLS=18 HEAD_LINES=9 FACTS_AT=24   # (a head's cells and lines: 144 × 180; the facts' column: 2 + its cells + 3 + 1)
+HEAD_CELLS=36 HEAD_LINES=15 FACTS_AT=42   # (a head's cells and lines: 288 × 300; the facts' column: 2 + its cells + 3 + 1)
 sixel_head() {      # sixel_head dark|light — the head's sixel, as it comes; its lines left empty for the facts
   [[ $TERM == foot* && -r $HOME/.local/share/fedokawaii/$1/head.six ]] || return 0
   SIX=$(<"$HOME/.local/share/fedokawaii/$1/head.six") LOGO_W=$HEAD_CELLS
@@ -319,8 +319,10 @@ if ((${#LOGO[@]})) && [[ -n $SIX ]]; then
   # the saved place, back to it: spaces over a sixel would cut it, so the facts are placed by column
   printf '\n%.0s' "${LOGO[@]}"
   printf '\e[%dA\e7\e[3G%s\e8' "$HEAD_LINES" "$SIX"
+  top=$(((HEAD_LINES - ${#INFO[@]}) / 2))       # (the facts in the middle of the portrait)
+  printf '\n%.0s' "${LOGO[@]:0:top}"
   for f in "${INFO[@]}"; do printf '\e[%dG%s\n' "$FACTS_AT" "$f"; done
-  printf '\n%.0s' "${LOGO[@]:${#INFO[@]}}"     # (below the picture's last line)
+  printf '\n%.0s' "${LOGO[@]:top + ${#INFO[@]}}"   # (below the picture's last line)
 elif ((${#LOGO[@]})); then
   top=$(((${#LOGO[@]} - ${#INFO[@]}) / 2))   # (a taller picture: the facts in the middle of it)
   for i in "${!LOGO[@]}"; do
