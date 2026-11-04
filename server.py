@@ -161,7 +161,8 @@ def lane_notes(text):
 def conductor(units_now):
     on = any(u["unit"].startswith("r27-lane-conductor") and u["active"] == "active" for u in units_now)
     m = re.search(r"MAXL=(\d+)", read(CONDUCTOR))
-    return {"active": on, "maxl": int(m.group(1)) if m else None, "log": read(CLOG, 4000).splitlines()[-10:]}
+    return {"active": on, "maxl": int(m.group(1)) if m else None, "log": read(CLOG, 4000).splitlines()[-10:],
+            "wrapup": read(HOME / ".cache/fk-wrapup.log", 3000).splitlines()[-14:]}
 
 # ---------------------------------------------------------------- questions and answers
 def entries(text):
@@ -405,6 +406,23 @@ def act(d):
             rest = [l for l in lines if l not in mine and not l.startswith("# ") and l.strip()]
             tmp = REG.with_suffix(".tmp"); tmp.write_text("\n".join(head + mine + rest) + "\n"); os.replace(tmp, REG)
         _cache.clear()
+    elif a == "wrapup":                              # stop everything, save every unsaved change to GitHub, shut the test VMs
+        script = r"""
+exec >> ~/.cache/fk-wrapup.log 2>&1; echo "=== wrap-up $(date '+%F %T')"
+systemctl --user stop r27-lane-conductor; for u in $(systemctl --user list-units --plain --no-legend 'r27-*' 'claude-r27*' | awk '{print $1}'); do systemctl --user stop "$u"; done
+pkill -f '^claude -p'; sleep 3
+for c in qemu:///session qemu:///system; do for v in $(virsh -c $c list --name 2>/dev/null | grep -E '^r27|fk|fedokawaii'); do virsh -c $c destroy "$v" && echo "vm stopped: $v"; done; done
+save(){ d=$1; br=$2; cd "$d" || return; git add -A >/dev/null 2>&1
+  git diff --cached --name-only -z | while IFS= read -r -d '' f; do [ -f "$f" ] && [ $(stat -c%s "$f") -gt 40000000 ] && git reset -q -- "$f" && echo "too big, left out: $d/$f"; done
+  git diff --cached --quiet && { echo "$br: nothing unsaved"; git push -q origin "HEAD:refs/heads/$br" 2>/dev/null; return; }
+  c=$(git commit-tree "$(git write-tree)" -p HEAD -m "wip: saved at the owner's stop, $(date '+%F %H:%M') (not reviewed)")
+  git reset -q; git push -q origin "$c:refs/heads/$br" && echo "$br: unsaved work pushed ($c)"; }
+save ~/repos/fedokawaii wip-main-$(date +%Y%m%d)
+for d in ~/repos/fk-*; do n=${d##*/fk-}; git -C "$d" push -q origin "HEAD:refs/heads/lane-$n" 2>/dev/null; save "$d" "wip-lane-$n-$(date +%Y%m%d)"; done
+printf '\n## %s — open\nOWNER STOP (%s): he stopped the round for tonight. Every agent, the conductor and the test VMs were stopped; unsaved changes were pushed to wip-* branches (main and each lane, not reviewed). Next round: start from your notes, review the wip branches first, keep to 12 lanes and one VM at a time.\n' "$(date '+%F %H:%M')" "$(date +%H:%M)" >> ~/repos/fedokawaii/.claude/inbox.md
+echo "=== wrap-up done $(date +%T)"
+"""
+        sh("systemd-run", "--user", f"--unit=fk-wrapup-{int(time.time())}", "bash", "-c", script)
     elif a == "sprint":                              # one click: 16 lanes, every agent on a fresh pass (re-reads its notes and the inbox)
         with LOCK:
             t = read(CONDUCTOR)

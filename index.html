@@ -78,6 +78,7 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 </div>
 <div style="margin-top:14px;border-top:1px solid var(--faint);padding-top:10px"><span class="sub">main run, last saved step:</span> <span id="mlast">–</span>
 <details data-k="mrep" style="margin-top:4px"><summary class="sub">main's last report</summary><pre id="mrep" class="notes"></pre></details></div></section>
+<section class="card hot"><div class="row"><button class="red" id="wrap" style="font-size:16px;padding:10px 18px">■ wrap up and stop for tonight</button><span class="sub">stops every agent and the test VMs, saves every unsaved change to GitHub (wip branches), and leaves the run off until you start it again</span></div><pre id="wraplog" class="notes" style="margin-top:8px"></pre></section>
 <section class="card hot" id="sprintc"><div class="row"><button class="red" id="sprint" style="font-size:16px;padding:10px 18px">▶ final sprint — one click</button><span class="sub">16 lanes at once, and every agent starts a fresh pass that reads tonight's plan (finish by 23:30, merge, apply, Fedora 45, the final ISO). The conductor brings them all back within a few minutes.</span></div><div class="msg" id="smsg"></div></section>
 <section class="card" id="qs"><h2>Questions for you <span class="badge" id="qn"></span><span class="sub">answers go straight to the lane that asked, and to the main run</span></h2><div id="qlist" class="sub">none right now</div></section>
 <section class="card"><h2>Lanes <span class="sub">what every agent is doing; pause one if memory gets tight</span></h2><div id="lanes" class="sub">–</div></section>
@@ -163,7 +164,7 @@ function render(s){
   (l.last?'<span class="sub">'+esc(l.last.split("\t")[0])+'</span> '+esc(l.last.split("\t")[1]||""):'<span class="sub">nothing saved yet</span>')+
   '<details data-k="'+esc(l.name)+'"><summary class="sub">report, notes, task</summary>'+(l.report?'<div class="notes" style="color:var(--ink)">'+esc(l.report)+'</div>':'')+'<div class="notes">'+esc(l.notes.join("\n"))+'</div><div class="sub" style="margin-top:4px">task: '+esc(l.task)+'</div></details></td><td>'+
   ((l.state=="waiting"||l.state=="queued")&&!l.paused?'<button class="sm" title="start this one next" onclick="lane(\'first\',\''+esc(l.name)+'\')">↑ next</button> ':'')+(l.state=="done"?"":l.paused?'<button class="sm" onclick="lane(\'resume\',\''+esc(l.name)+'\')">resume</button>':'<button class="sm" onclick="lane(\'pause\',\''+esc(l.name)+'\')">pause</button>')+'</td></tr>').join("")+'</table>');
- const C=s.conductor||{};$("maxl").textContent=C.maxl||"–";$("cond").innerHTML="conductor: <b>"+(C.active?"running":"off")+"</b>"+(C.maxl?" · up to "+C.maxl+" lanes at once":"")+" · starts lanes only while 5 GB RAM is free";
+ const C=s.conductor||{};$("maxl").textContent=C.maxl||"–";$("wraplog").textContent=(C.wrapup||[]).join("\n");$("cond").innerHTML="conductor: <b>"+(C.active?"running":"off")+"</b>"+(C.maxl?" · up to "+C.maxl+" lanes at once":"")+" · starts lanes only while 5 GB RAM is free";
  $("clog").textContent=(C.log||[]).join("\n")||"–";
  /* design: grouped by lane; while you are looking at it, new renders wait behind a bar */
  const G=s.gallery||[],fresh=G.filter(g=>g.v>seen).length;if(!$("p-ds").classList.contains("on"))$("b-ds").textContent=fresh||"";
@@ -215,6 +216,7 @@ document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.datase
 $("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;if(await post({action:"task",text:v},"sent")){$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass"}};
 async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)){if(el)el.value="";setTimeout(()=>{if(LB>=0)lbOpen(LB);drawGal()},1200)}}
 async function ans(key,el){const v=el.value.trim();if(!v)return el.focus();if(await post({action:"answer",key,text:v},"answer sent: the lane and the main run both have it"))el.value=""}
+$("wrap").onclick=async()=>{if(!confirm("Stop everything for tonight and save all unsaved work to GitHub?"))return;post({action:"wrapup"},"wrap-up started — the log appears below in a minute")};
 $("sprint").onclick=async()=>{if(!confirm("Start the final sprint? Every agent restarts its pass now (work since its last commit is lost) and up to 16 lanes run."))return;$("smsg").textContent="starting…";
  if(await post({action:"sprint"},"final sprint started")){$("smsg").textContent="started at "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+" — agents come back over the next few minutes";ls.set("fkr_sprint",Date.now())}};
 if(+ls.get("fkr_sprint","0")>Date.now()-6*3600e3){$("smsg").textContent="already started tonight — no need to press again"}
