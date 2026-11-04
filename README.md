@@ -213,15 +213,15 @@ tidy (`kawa-tidy`) — its settings, `~/.config/scriptorium`, kept in
 
 **Super+U** opens the system's own control (`fedokawaii` in a terminal; a numbered menu on a
 text console): how it stands, and every piece of upkeep, each with what is due beside it.
-It reminds you — from what it already knows, never from the network — when the update season
-comes round (every 90 days), when a new Fedora has settled (60 days after its release), and
-a month before yours ends.
+It reminds you — from what it already knows, never from the network — when updates have waited
+two weeks, when a new Fedora has settled (7 days after its release), and 90, 30 and 7 days before
+yours ends.
 
 | Command | Does |
 |---|---|
-| `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
-| `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the repository is public: no sign-in, no token |
-| `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
+| `fedokawaii update` (Super+U → update) | the one button, everything from A to Z: fedokawaii itself from GitHub's newest release, Fedora's packages, the desktop's pinned tools, torrra, Prowlarr, neovim's plugins, firmware listed. Stored once, proven in a copy of the system, a pinned snapshot, the same transaction on the running one, verify and the desktop's start; red in the copy: the culprit found by halves and held; red on the running system: the system before it back at the next start. A new Fedora comes through it too: a test VM first, then told, then the next press moves (one restart); red anywhere, Fedora stays as it was and says why |
+| `fedokawaii upgrade [--now]` | the same run without the "press again" (`--now`: without waiting for the new Fedora to settle) |
+| `fedokawaii pull` (change → update fedokawaii) | a working copy's way: the one clone, `~/repos/fedokawaii`, fast-forwarded from GitHub, then the update run from it, repair if verify still finds something. From then on that machine follows its copy, not the releases; the repository is public: no sign-in, no token |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
 | `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 700 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
 | `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |

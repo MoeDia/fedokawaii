@@ -53,3 +53,5 @@ Clouds: true suyari-gasumi (gold mist bands, rounded ends, an inner line, sparin
 
 ## 9. Method
 Every surface: render at 1x, inspect at 1x and 3-4x, beside its reference plate; a measurements table per surface; three looks before showing him.
+
+## WITHDRAWN 18:07 (owner): section 2 — the bar stays fully floating, NO background band.

@@ -421,5 +421,21 @@ case_ "…a stored package without a signature this system trusts: stopped befor
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh rpm-badsig
 up; eq "$RC" 1; has "$OUT" "a package is not signed by a key this system trusts — nothing changed"
 not_called 'snapper\] -c root create .*before update'; not_called 'dnf\] -y -C replay'
+case_ "the power button while the running system changes: held from the transaction to the report"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+called 'systemd-inhibit\] --what=shutdown:sleep:handle-power-key'; i=$(grep -n 'systemd-inhibit' "$CALLS" | head -n1 | cut -d: -f1); r=$(grep -n 'dnf\] -y -C replay' "$CALLS" | head -n1 | cut -d: -f1); ((i < r)) && _ok || _no "inhibitor $i, replay $r"
+case_ "…rpm's database damaged, and it can be rebuilt: rebuilt first, then the update goes on, whole"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh rpmdb-damaged
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; called 'rpmdb\] --rebuilddb'; has "$OUT" "rpm's database is damaged: rebuilt"; eq "$(report)" ok
+case_ "…rpm's database damaged past rebuilding: the copy put back, nothing changed, the way back said"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh rpmdb-damaged; fkh rpmdb-norebuild
+up; eq "$RC" 1; has "$OUT" "rpm's database is damaged and could not be rebuilt — nothing changed"
+not_called 'snapper\] -c root create .*before update'; not_called 'dnf\] -y -C replay'; eq "$(report)" stopped
+case_ "verify that cannot run before the update: no baseline, nothing changed"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; printf '#!/bin/bash\nexit 1\n' >"$W/usr/local/lib/fedokawaii/verify.sh"
+up; eq "$RC" 1; has "$OUT" "the checks themselves could not run (verify: exit 1) — nothing changed"; not_called 'dnf\] -y -C replay'
+case_ "a held package with a security advisory: the report and its notice say so"
+back built; reset_calls; printf 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa did not start\n' >"$U/holds"; fkh advisories FEDORA-2026-abc
+up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$(sed -n 2p "$U/report")" "a security fix waits among the held: 1"; called 'dnf\] -q advisory list --security --updates --contains-pkgs=mesa --json'
 
 done_

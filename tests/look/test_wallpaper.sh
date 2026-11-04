@@ -542,7 +542,7 @@ a=$(args_of fzf "$(ncalls fzf)")
 has "$a" $'\e[38;5;20m'"$ICON_PICTURE"; has "$a" "wallpaper"$'\e[0m \e[38;5;19m──'
 lacks "$a" "╌"; lacks "$a" "壁" "no kanji (§13)"
 lacks "$a" "--pointer"; lacks "$a" "--border-label"
-has "$a" "--footer="$'\n'"r  "$'\e[38;5;21m'"change every 4 h"$'\e[0m  \e[38;5;23m'"off"$'\e[0m' "the key in the words' ink, what it does muted, its state strong"
+has "$a" "--footer="$'\n'" "$'\e[38;5;21m\e[38;5;21m'"$ICON_BOX_OFF"$'\e[0m'"  change every 4 h" "the switch as a row: its box, lit while on, its words, its key at the right"
 lacks "$a" "enter set"; lacks "$a" "esc close"
 has "$a" "--no-input" "nothing to type: r is the key's"
 has "$a" "--with-nth=3.."
@@ -589,9 +589,9 @@ a=$(args_of fzf "$(ncalls fzf)")
 has "$a" "r:execute-silent($(printf '%q' "$(command -v kawa-wallpaper)") --rotate toggle)+transform-footer("
 has "$a" 'click-footer:transform:[ "$FZF_CLICK_FOOTER_LINE" = 2 ]' "a click on the key's line (the line under the blank one), nowhere else"
 rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" on
-eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g")" $'\nr  change every 4 h  on'
+eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g; s/  */ /g")" $'\n '"$ICON_BOX_ON change every 4 h r"
 rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" off
-eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g")" $'\nr  change every 4 h  off'
+eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g; s/  */ /g")" $'\n '"$ICON_BOX_OFF change every 4 h r"
 rc 2 kawa-wallpaper --rotate maybe
 
 case_ "--next (its timer, every 4 hours): nothing while off; on, the pack's next picture after the one shown, round again at the end"

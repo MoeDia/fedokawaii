@@ -124,7 +124,7 @@ CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' 
 
 # btop's box for the discrete AMD card: its number in ROCm SMI's order (lib/hardware.sh,
 # hw_btop_gpu) — and no card's box at all without one
-BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu ${BTOP_GPU:+$BTOP_GPU }mem net proc"
+BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu mem net proc"   # (the graphics card inside the cpu box: show_gpu_info)
 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
@@ -1023,7 +1023,7 @@ fi
 GLASS=$STATE/foot-glass.ini
 [[ -f $GLASS ]] || uinstall 0644 <(printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini — the terminal's see-through ground (kawa-glass;" \
   "# Super+U → transparency). 1 is opaque. Read by foot.ini's last include." \
-  "[colors-dark]" "alpha=0.92" "[colors-light]" "alpha=0.92") "$GLASS"
+  "[colors-dark]" "alpha=0.96" "[colors-light]" "alpha=0.96") "$GLASS"
 # (~/repos: where your projects go — and where Agents, herdr, opens: its launcher entry
 # starts there, and a window cannot start in a folder that is not)
 U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii" \

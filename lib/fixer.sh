@@ -63,7 +63,8 @@ fixes_apply() {
 }
 # up_fix WHYFILE NAME… — NAME… make the candidate red for what WHYFILE says. → 0 mended: kept, and
 # nothing to hold · 1 no fix: hold them (UP_FIX_LINES says why, if the fixer got that far). The
-# transaction: NAME… stored on their own — or UP_FIX_TX, one stored already (a move to a new Fedora)
+# transaction: NAME… stored on their own — or UP_FIX_TX, one stored already (a move to a new Fedora,
+# its versions in UP_FIX_SET)
 up_fix() {
   local why=$1 rc=0 dir=$UPD/fix line tx=${UP_FIX_TX:-$UPD/try}; shift
   [[ -x $FIXER ]] || return 1
@@ -109,7 +110,7 @@ up_fix() {
 # (from UPD/set: old and new versions), the two systems. No value of ours in a shell string: all by jq
 up_fix_case() {
   local why=$1 dir=$2 n; shift 2
-  for n; do awk -v n="$n" '$1 == n { printf "%s %s %s\n", $1, $2, $3 }' "$UPD/set"; done \
+  for n; do awk -v n="$n" '$1 == n { printf "%s %s %s\n", $1, $2, $3 }' "${UP_FIX_SET:-$UPD/set}"; done \
     | jq -Rn '[inputs | split(" ") | {name: .[0], old: .[1], new: .[2]}]' >"$dir/packages.json"
   jq -n --rawfile why "$why" --slurpfile pk "$dir/packages.json" --arg run "$dir/run" \
      --arg home "$UP_HOME${TARGET_HOME#/home}" --arg home_in "$TARGET_HOME" --arg root "$UP_CAND" \

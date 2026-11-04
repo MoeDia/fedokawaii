@@ -260,7 +260,7 @@ back built; mkdir -p "$W/home/fkuser/.config/fedokawaii"
 printf 'EVERY="30"     # days\nWAIT=\x2745\x27\n' >"$W/home/fkuser/.config/fedokawaii/upkeep.conf"; fk chown -R fkuser:fkuser /home/fkuser/.config
 tk --update; has "$OUT" "the next one in 30 days"
 printf 'EVERY=400\n' >"$W/home/fkuser/.config/fedokawaii/upkeep.conf"
-tk --update; has "$OUT" "the next one in 90 days" "out of bounds: the default"
+tk --update; has "$OUT" "the next one in 14 days" "out of bounds: the default"
 
 case_ "repair: dnf's metadata timer on again (static, as Fedora 44 ships it) — masked again, never a bare disable"
 back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/' "$FKH/units"

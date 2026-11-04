@@ -26,6 +26,53 @@ up_phase() {   # (not written: a full disk — fatal only once the running syste
 up_was() { local p=end; [[ -s $UPD/phase ]] && IFS=" " read -r p _ <"$UPD/phase"; echo "$p"; }
 up_labels() { sed 's/ — .*//' | sort -u; }   # (a check's label: its detail after the dash may vary)
 
+# ── the toolkit first (design §4 phase 1, §5 row 28): fedokawaii itself from GitHub, at its newest
+# release tag (v…; the ISOs are built from them, never a moving branch), over HTTPS. Its own checks in
+# a fake machine before it replaces anything; the system before it kept as this run's snapshot, so a
+# red after it takes it back with the rest, and that tag is never tried again. A toolkit applied from
+# your copy (fedokawaii apply, pull) stays yours: toolkit-from-copy, written by install_toolkit
+UP_ORIGIN=${FEDOKAWAII_ORIGIN:-https://github.com/MoeDia/fedokawaii.git}
+up_git() { as_user env GIT_TERMINAL_PROMPT=0 timeout 600 git -c credential.helper= -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 "$@"; }
+up_toolkit() {   # → back here: this toolkit goes on · else it is replaced and the run starts again from it
+  [[ $REPO_DIR == "$TOOLKIT" ]] && on_the_system || return 0
+  [[ $(up_was) != @(replay|steps|check) ]] || return 0   # (a run cut half-way is finished by the toolkit that began it)
+  if [[ -e $STATE_DIR/toolkit-from-copy ]]; then
+    log "fedokawaii itself stays as your copy made it (fedokawaii apply; fedokawaii pull brings GitHub's)"; return 0
+  fi
+  local t tag cur d f bad=0
+  t=$(up_git ls-remote --tags --refs --sort=-version:refname "$UP_ORIGIN" 'v*' 2>/dev/null) || { log "GitHub does not answer: fedokawaii itself stays as it is this time"; return 0; }
+  tag=$(sed -n '1s|.*refs/tags/||p' <<<"$t")
+  cur=$(cat "$STATE_DIR/toolkit-release" 2>/dev/null) || cur=""
+  [[ -n $tag && $tag != "$cur" ]] || return 0
+  [[ $(printf '%s\n' "$tag" "$cur" | sort -V | sed -n '$p') == "$tag" ]] || return 0   # (never back: a tag taken away)
+  if grep -qxF -- "$tag" "$UPD/toolkit-red" 2>/dev/null; then log "fedokawaii $tag was refused before: this one stays until a newer one"; return 0; fi
+  log "fedokawaii $tag is out: fetched, then checked in a fake machine (a few minutes; nothing changes yet)"
+  d=$(as_user mktemp -d) || die "no room for a file of yours in /tmp — nothing changed"
+  if ! up_git clone --quiet --depth 1 --branch "$tag" "$UP_ORIGIN" "$d/t" >/dev/null 2>&1; then
+    rm -rf -- "$d"; log "fedokawaii $tag could not be fetched: this one stays this time"; return 0
+  fi
+  : >"$UPD/toolkit-check.log"
+  for f in "$d"/t/{setup.sh,theme.sh,verify.sh,fedokawaii.sh,system/fedokawaii} "$d"/t/lib/*.sh; do
+    bash -n "$f" >>"$UPD/toolkit-check.log" 2>&1 || bad=1
+  done
+  if ((bad)) || ! as_user bash "$d/t/tests/installer/test_torture.sh" >>"$UPD/toolkit-check.log" 2>&1; then
+    rm -rf -- "$d"; echo "$tag" >>"$UPD/toolkit-red"
+    UPDATE_STEPS_FAILED+=("fedokawaii $tag failed its own checks and stays out ($UPD/toolkit-check.log)")
+    log "fedokawaii $tag failed its own checks: this one stays"; return 0
+  fi
+  if [[ ! -s $UPD/snap-first ]]; then
+    snapshot_before "fedokawaii $tag" important
+    snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+    echo "$SNAP_N" | write_file "$UPD/snap-first" 0644
+  fi
+  t=$REPO_DIR; REPO_DIR=$d/t; UP_TK=1 install_toolkit; REPO_DIR=$t
+  record toolkit-release "$tag"; echo "$tag" | write_file "$UPD/toolkit-moved" 0644
+  hdr "fedokawaii $tag: the rest of this update from it"
+  trap - EXIT; rm -rf -- "$d" "$KAWA_TMP"
+  if [[ $MODE == upgrade ]]; then exec /usr/bin/bash "$TOOLKIT/setup.sh" --upgrade ${UPGRADE_FLAG:+"$UPGRADE_FLAG"}; fi
+  exec /usr/bin/bash "$TOOLKIT/setup.sh" --update
+}
+
 # ── start ────────────────────────────────────────────────────────────────────────────────────
 u_start() {
   up_phase start
@@ -50,22 +97,56 @@ u_start() {
   # (the copy's container: without it every update would look red — said, never guessed)
   command -v systemd-nspawn >/dev/null || die "systemd-nspawn is missing (systemd-container) — fedokawaii repair puts it in; nothing changed"
   up_leftovers   # (before the space is measured: a stale copy is gigabytes)
+  # (little room: snapper's own cleanup rules run first — the pinned ones stay — before it is refused)
+  if (($(space_free /) < 15360 * 1024 ** 2)); then
+    log "little room on the disk: old snapshots go first, by their own rules"
+    snapper -c root cleanup number >/dev/null 2>&1 || true
+    snapper -c home cleanup number >/dev/null 2>&1 || true
+  fi
   preflight 15360
   if mountpoint -q /boot/efi; then need_space /boot/efi 50; fi
   # (Btrfs writes into unallocated chunks: free space alone can hide a disk that cannot take a write)
-  un=$(btrfs filesystem usage -b / 2>/dev/null | awk '/Device unallocated:/ { print $3; exit }') || un=""
+  un=$(up_unallocated)
   if [[ $un =~ ^[0-9]+$ ]] && ((un < 5 * 1024 ** 3)); then
-    die "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated — this needs 5GB: delete old snapshots (fedokawaii snapshots), then: sudo btrfs balance start -dusage=50 /"
+    # (half-empty chunks given back: no data moves away, a few minutes at most; he never has to run it)
+    log "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated: its half-empty chunks given back first (btrfs balance)"
+    btrfs balance start -dusage=50 / >/dev/null 2>&1 || true
+    un=$(up_unallocated)
+    if [[ $un =~ ^[0-9]+$ ]] && ((un < 5 * 1024 ** 3)); then
+      die "only $(numfmt --to=iec --suffix=B "$un") of the disk is unallocated — this needs 5GB: delete old snapshots (fedokawaii snapshots), then press update again"
+    fi
   fi
   # (the checks' own tools first: an install from before they were in the manifest lacks them, and
   # an update that cannot check could never be the one that brings them)
   rpm -q python3-pillow >/dev/null 2>&1 || dnf_install python3-pillow || die "the checks' own tool could not be installed (python3-pillow) — nothing changed"
+  up_rpmdb
   log "the checks before it (what is red now does not count against the update)"
-  bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || true
+  # (3: it ran, and something is red · anything else: the checks themselves did not run — no baseline)
+  rc=0; bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || rc=$?
+  ((rc == 0 || rc == 3)) || die "the checks themselves could not run (verify: exit $rc) — nothing changed: fedokawaii repair"
+  rc=0
   cp -- "$STATE_DIR/last-verify-fails" "$UPD/baseline" 2>/dev/null || : >"$UPD/baseline"
   why=$(up_more) || rc=$?
   ((rc == 2)) && die "the desktop's start check could not run ($why) — nothing changed; press update again"
   [[ -z $why ]] || { log "red before the update: ${why//$'\n'/ · }"; printf '%s\n' "$why" >>"$UPD/baseline"; }
+}
+up_unallocated() { btrfs filesystem usage -b / 2>/dev/null | awk '/Device unallocated:/ { print $3; exit }' || true; }
+# rpm's database read whole (design §5 row 10). Damaged: rebuilt from what it can still read, its copy
+# kept until the rebuilt one shows as many packages as a snapshot's — else put back and said: a damaged
+# database never goes into a transaction
+up_rpmdb() {
+  local d=/usr/lib/sysimage/rpm b=/usr/lib/sysimage/rpm.before was now
+  rpm -qa >/dev/null 2>&1 && rpmdb --verifydb >/dev/null 2>&1 && return 0
+  log "rpm's database is damaged: rebuilt from what it can still read (its copy kept until that has proven itself)"
+  rm -rf -- "$b"; cp -a --reflink=auto -- "$d" "$b" || die "rpm's database is damaged, and no copy of it could be made — nothing changed"
+  was=$(find /.snapshots -mindepth 2 -maxdepth 2 -name snapshot 2>/dev/null | sort -t/ -k3 -n | sed -n '$p') || was=""
+  was=$(rpm -qa --root="${was:-/nowhere}" 2>/dev/null | wc -l) || was=0
+  if rpmdb --rebuilddb >/dev/null 2>&1 && rpm -qa >/dev/null 2>&1 && rpmdb --verifydb >/dev/null 2>&1; then
+    now=$(rpm -qa 2>/dev/null | wc -l) || now=0
+    if ((now > 0 && now * 10 >= was * 9)); then rm -rf -- "$b"; ok "rpm's database rebuilt: $now packages"; return 0; fi
+  fi
+  rm -rf -- "$d"; mv -T -- "$b" "$d"
+  die "rpm's database is damaged and could not be rebuilt — nothing changed: Super+U → snapshots → the last one (your files stay)"
 }
 up_leftovers() {   # what a run cut before its end left (a power cut: no exit trap ran) — its copy
                    # of the system, dropped; its pinned snapshot, if no probation took it over
@@ -74,6 +155,8 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
                    # update is kept: its probation then releases it with its own
   local n o=""
   rm -rf -- "$UP_FIXNEW"   # (a fix proven by a run that ended before its package went in: asked anew)
+  # (a move cut before its restart: its armed restart, if it got that far, undone by the same word)
+  if [[ -s $MOVE && ! -e /system-update ]]; then log "a move that never restarted is forgotten"; move_disarm; fi
   n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if [[ $n =~ ^[0-9]+$ ]] && ! grep -q "^$n " "$UPD/probation" 2>/dev/null; then
     [[ -s $UPD/report ]] && IFS=' ' read -r _ o _ <"$UPD/report"   # (TIME OUTCOME; setup.sh's IFS is newline and tab)
@@ -175,7 +258,7 @@ cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of 
   [[ -s $UPD/cand-before ]] && ref+=(--bind-ro="$UPD/cand-before:/run/fk-before")
   systemd-nspawn --quiet --register=no --private-network --link-journal=no -D "$UP_CAND" \
     --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" "${ref[@]}" \
-    --setenv=FK_USER="$TARGET_USER" -- "$@"
+    --setenv=FK_USER="$TARGET_USER" --setenv=FK_MOVE="${FK_MOVE:-}" -- "$@"
 }
 cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A container that does not even
                # start is no verdict on the packages: the run stops there, nothing changed
@@ -313,13 +396,34 @@ u_snapshot() {
   fi
   # (rpm's database needs nothing first: a snapshot is one instant, and SQLite takes its
   # write-ahead log from it as after a power cut — no transaction runs while this one holds the lock)
-  snapshot_before "update $(date +%F)" important
-  # pinned: no cleanup algorithm, so snapper never removes it before the next start has proven
-  # the update (update-design.md §4.3)
-  snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+  if [[ -s $UPD/snap-first ]]; then   # (the toolkit's move began this press: the system before all of it)
+    SNAP_N=$(cat "$UPD/snap-first"); rm -f -- "$UPD/snap-first"
+  else
+    snapshot_before "update $(date +%F)" important
+    # pinned: no cleanup algorithm, so snapper never removes it before the next start has proven
+    # the update (update-design.md §4.3)
+    snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+  fi
   printf '%s\n' "$SNAP_N" | write_file "$UPD/snap" 0644
 }
+# while the running system changes: no shutdown, no sleep, the power button and the lid do nothing, and
+# logind says why (design §5 row 30). Root can still force it; the resume at the next start answers that
+UP_POWER=""
+up_power_hold() {
+  [[ -z $UP_POWER ]] || return 0
+  systemd-inhibit --what=shutdown:sleep:handle-power-key:handle-suspend-key:handle-hibernate-key:handle-lid-switch \
+    --who=fedokawaii --why="an update is being installed: it says when it is done" --mode=block tail --pid=$$ -f /dev/null >/dev/null 2>&1 9>&- &
+  UP_POWER=$!
+}
+up_power_free() {
+  [[ -n $UP_POWER ]] || return 0
+  pkill -P "$UP_POWER" 2>/dev/null || true
+  kill "$UP_POWER" 2>/dev/null || true
+  wait "$UP_POWER" 2>/dev/null || true
+  UP_POWER=""
+}
 u_replay() {   # → 1 the transaction failed on the running system
+  up_power_hold
   local h; h=$(up_hist) || h=""
   printf '%s\n' "$h" | write_file "$UPD/hist" 0644 2>/dev/null || rm -f -- "$UPD/hist"
   up_phase replay
@@ -347,21 +451,25 @@ up_never_began() {
   now=$(up_hist) || return 1
   [[ $now == "$was" ]]
 }
-up_complete() {   # every package of the stored set at its new version, nothing twice, dnf's check clean
+up_complete() {   # up_complete [SET [nocheck]] — every package of the stored set at its new version,
+                  # nothing twice, dnf's check clean (nocheck: the move's — lib/move.sh move_whole)
   local n v
   while IFS=" " read -r n _ v; do
     [[ -n $n && $v != - ]] || continue
     rpm -q "$n-${v#*:}" >/dev/null 2>&1 || return 1
-  done <"$UPD/set"
-  [[ -z $(dnf -q repoquery --duplicates 2>/dev/null) ]] && dnf -q check >/dev/null 2>&1
+  done <"${1:-$UPD/set}"
+  [[ -z $(dnf -q repoquery --duplicates 2>/dev/null) ]] || return 1
+  [[ ${2:-} == nocheck ]] || dnf -q check >/dev/null 2>&1
 }
 
 # ── check, end ───────────────────────────────────────────────────────────────────────────────
 u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
   up_phase check
-  local new after more rc=0
-  bash "$REPO_DIR/verify.sh" || true
+  local new after more rc=0 vr=0
+  bash "$REPO_DIR/verify.sh" || vr=$?
   after=$(cat "$STATE_DIR/last-verify-fails" 2>/dev/null) || after=""
+  # (a verify that did not run is red, never its last list read as green: design §5 row 40)
+  ((vr == 0 || vr == 3)) || after+=${after:+$'\n'}"verify could not run (exit $vr)"
   more=$(up_more) || rc=$?
   # (a check that did not happen undoes nothing: stopped here, the phase kept — the next press
   # runs the checks again, against the baseline from before the update)
@@ -375,17 +483,27 @@ u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
 # the system before it back. Only once /home is its own subvolume is that done by itself — before,
 # a restore would take his files back in time too, so it is offered
 u_undo() {
-  local n s=(); n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  local n s=() tk; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   fixes_undo     # (the old version would refuse what the fixer wrote for the new one)
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
-  ((${#s[@]})) && { up_sources; up_hold "$(head -n1 "$UPD/why")" "${s[@]}"; }
+  # (fedokawaii itself moved this press: that tag refused, no package blamed — the next press tries them again on the old one)
+  tk=$(cat "$UPD/toolkit-moved" 2>/dev/null) || tk=""
+  if [[ -n $tk ]]; then echo "$tk" >>"$UPD/toolkit-red"; rm -f -- "$UPD/toolkit-moved"; log "fedokawaii $tk goes back with the rest, and is not tried again"
+  elif ((${#s[@]})); then up_sources; up_hold "$(head -n1 "$UPD/why")" "${s[@]}"; fi
   UP_TOGETHER=${#s[@]}   # (the whole set: red only on the running system, so never told apart)
   if [[ -z $n ]]; then UP_END=checks
   elif mountpoint -q /home && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
   else UP_END=offered; fi
 }
+# up_advisory → the security advisories for what is held, a line each (design §5 row 34)
+up_advisory() {
+  [[ -s $UPD/holds ]] || return 0
+  local j; j=$(dnf -q advisory list --security --updates --contains-pkgs="$(awk '{ print $1 }' "$UPD/holds" | sort -u | paste -sd,)" --json 2>/dev/null) || return 0
+  jq -r '.[]? | .name? // empty' <<<"$j" 2>/dev/null | sort -u
+}
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" fam=() line why log n desk keep
+  local held="" fam=() line why log n desk keep sec
+  up_power_free
   # (the holds by family, as the pane names them — two at most, then how many more: a notice is
   # a line, and a whole set held at once is hundreds of names)
   [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
@@ -408,6 +526,9 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   esac
   # (a fixed short form, so the status's row fits it; which items, in the report's lines below)
   [[ -z $desk ]] || line+=" · desktop red before: not judged"
+  sec=$(up_advisory | wc -l) || sec=0
+  ((sec == 0)) || line+=" · a security fix waits among the held: $sec"
+  if [[ -s $UPD/toolkit-moved && $UP_END == @(ok|current|held) ]]; then line+=" · fedokawaii $(cat "$UPD/toolkit-moved")"; rm -f -- "$UPD/toolkit-moved"; fi
   # (a run stopped once the running system began to change keeps its phase: the next start
   # (replay) or press finishes it — never a new update over one not yet whole, or not judged;
   # a replay whose transaction never began changed nothing, and ends)
@@ -436,6 +557,15 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
 # whole: the system before it put back and started, once (only once /home is its own subvolume —
 # before, offered); each said at login ─────────────────────────────────────────────────────────
 up_boot() {
+  # (a move whose undoing was cut right after its restore: back on the release it left, nothing left
+  # to judge it — the restored root has no unit for it — so said here)
+  if [[ -s $MOVE && ! -e $MOVE_AFTER && ! -e /system-update ]]; then
+    local from to s _t; IFS=' ' read -r from to s _t <"$MOVE"
+    if [[ $FEDORA_VER == "$from" ]]; then
+      rm -f -- "$MOVE" "$MOVE_TOLD" "$MOVE_SET" "$UPD/snap"
+      up_tell "the move to Fedora $to was undone" "back on Fedora $from as it was (snapshot $s)"
+    fi
+  fi
   [[ $(up_was) == replay ]] || return 0
   local n; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if up_never_began; then

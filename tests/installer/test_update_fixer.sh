@@ -130,6 +130,51 @@ fkh_add subvolumes /run/fedokawaii/top/root.cand; mkdir -p "$W/run/fedokawaii/to
 pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash
 up; eq "$RC" 0; grep -qx /run/fedokawaii/top/home.cand "$FKH/subvolumes" && _no "left behind" || _ok
 
+# ── the move to the next Fedora: the same fixer, on the whole move's transaction in the copy ──────
+tk() { fkrun bash "$TK/setup.sh" "$@"; }
+osr() { sed -i "s/^VERSION_ID=.*/VERSION_ID=$1/" "$W/etc/os-release"; sed -i "s/^PRETTY_NAME=.*/PRETTY_NAME=\"Fedora Linux $1 (Server Edition)\"/" "$W/etc/os-release"; }
+move_set() { back built; reset_calls; stand_in; fkh fixer-says "$1"
+  mkdir -p "$W/home/fkuser/.local/bin"
+  printf '#!/bin/sh\necho "$*" >>"$HOME/.foryou"\n' >"$W/home/fkuser/.local/bin/kawa-foryou"; chmod 755 "$W/home/fkuser/.local/bin/kawa-foryou"
+  printf '#!/bin/sh\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"
+  printf '#!/bin/sh\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$W/usr/local/bin/notify-send"; chmod 755 "$W/usr/local/bin/notify-send"
+  printf 'root=UUID=1 ro rootflags=subvol=root\n' >"$W/etc/kernel/cmdline"
+  echo '<repomd/>' >"$FKH/dl/repomd.xml"; echo $(( $(date +%s) - 30 * 86400 )) >"$W/var/lib/fedokawaii/release-45"
+  fkh pending-move "foot 1.24-1.fc44 1.25-1.fc45" "fedora-release-common 44-1 45-1"
+  fkh_add installed foot; fkh cand-red foot; fkh cand-red-why "$FOOTRED"; rm -f "$FKH/fixer-case"; }
+whole() { osr 45; { echo "foot 1.25-1.fc45"; echo "fedora-release-common 45-1"; } >>"$FKH/evr"; fkh_add installed fedora-release-common; }
+
+case_ "the move red in the copy for a config of ours: the fixer on the whole move's transaction, the copy again, then the move goes on"
+move_set fixed; tk --upgrade --now; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
+called 'kawa-fixer\] names --why-file /var/lib/fedokawaii/update/why$'
+called 'kawa-fixer\] run /var/lib/fedokawaii/update/fix/case.json --out /var/lib/fedokawaii/update/fix/out.json'
+called 'kawa-fixer\] keep /var/lib/fedokawaii/update/fix/out.json --fixes /var/lib/fedokawaii/update/fixes.new'
+eq "$(jq -c '.packages[0]' "$FKH/fixer-case")" '{"name":"foot","old":"1.24-1.fc44","new":"1.25-1.fc45"}'
+eq "$(grep -c 'systemd-nspawn\] .*--setenv=FK_MOVE=1 .* /run/fk-check$' "$CALLS")" 3 "the checks as for a move: red, the fix's whole copy, green"
+called 'dnf\] -y system-upgrade reboot'
+case_ "…its edit waits for the start after the move: not in force before it; the home's copy gone before the restart"
+[[ -s $U/fixes.new/fix-1.json && ! -e $U/fixes/fix-1.json ]] && _ok || _no "not waiting: $(ls "$U")"
+has "$(cat "$U/move-mended")" "fixed foot.ini in 1 try"
+d=$(grep -n 'btrfs\] subvolume delete .*home.cand' "$CALLS" | tail -n1 | cut -d: -f1); r=$(grep -n 'system-upgrade reboot' "$CALLS" | head -n1 | cut -d: -f1)
+((d < r)) && _ok || _no "the home's copy still there at the restart ($d, $r)"
+keep moved
+case_ "…after the restart, on Fedora 45: in force before the theme, on the system after it, said at the login"
+whole; reset_calls; tk --after-upgrade; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+[[ -s $U/fixes/fix-1.json && ! -e $U/fixes.new && ! -e $U/fix-new && ! -e $U/move-mended && ! -e $U/move ]] && _ok || _no "not settled: $(ls "$U")"
+called 'kawa-fixer\] reapply --fixes /var/lib/fedokawaii/update/fixes --home /home/fkuser --root /'
+not_called 'kawa-snap\] restore'; has "$(cat "$W/home/fkuser/.foryou")" "mended a config of ours"
+case_ "…whole, but the desktop does not start on it: the fix out again with the move"
+back moved; whole; fkh session-red "not running: waybar"; reset_calls; tk --after-upgrade
+called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'
+called 'kawa-snap\] restore'; [[ ! -e $U/fixes/fix-1.json && ! -e $U/fix-new && ! -e $U/move-mended ]] && _ok || _no "the fix stayed: $(ls "$U")"
+case_ "no fix for the move: Fedora 45 waits, its reasons say what the fixer said, nothing armed"
+move_set held; tk --upgrade --now; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
+has "$OUT" "Fedora 45 waits: foot does not take its config"; has "$(cat "$U/move-red-45")" "the fixer: held: foot: the docs do not say"
+not_called 'system-upgrade'; [[ ! -e $U/move && ! -e $U/move-mended ]] && _ok || _no "armed all the same"
+case_ "its fix passes its own check, not the whole move: Fedora 45 waits, said, nothing kept"
+move_set fixed-red; tk --upgrade --now; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
+has "$(cat "$U/move-red-45")" "passed its own check, not the whole system"; not_called 'kawa-fixer\] keep'; not_called 'system-upgrade'
+
 case_ "the real program as root: its server runs as the desktop's user with no network, a home's file written as its owner"
 back built
 HH=$W/home/fkuser; RT=$HH/.local/lib/fedokawaii/llama-b12110; MD=$HH/.local/share/fedokawaii/models

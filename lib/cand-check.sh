@@ -11,8 +11,9 @@ user=${FK_USER:?}; home=$(getent passwd "$user" | cut -d: -f6)
 # every program's own check of the configs we own (system/kawa-fixer's table), a line for each red
 checks() { python3 -I /usr/local/sbin/kawa-fixer checks --user "$user" 2>&1 | sed -n 's/^red: //p'; }
 if [[ ${1:-} == --before ]]; then [[ ! -x /usr/local/sbin/kawa-fixer ]] || checks; exit 0; fi
-# our own builds find every library they link
-for f in /usr/local/bin/dwl /usr/local/bin/mako /usr/local/lib/fedokawaii-wlroots-*/lib/*.so* \
+# our own builds find every library they link (a move to a new Fedora: not asked — they are rebuilt
+# after it, and the test VM has shown that they build there: lib/move.sh)
+[[ -z ${FK_MOVE:-} ]] && for f in /usr/local/bin/dwl /usr/local/bin/mako /usr/local/lib/fedokawaii-wlroots-*/lib/*.so* \
          /usr/local/libexec/xdg-desktop-portal-termfilechooser \
          "$home"/.local/bin/{kawa-clipkeep,kawa-saver,satty,yazi,ya,lazygit} "$home"/.local/lib/fedokawaii/kawa-lockmod.so; do
   [[ -f $f && ! -L $f ]] || continue
