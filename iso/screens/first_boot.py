@@ -64,12 +64,23 @@ def words_of(heading):
 def main():
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
     run("plymouth", "quit", "--retain-splash")
+    # (nothing else writes on this screen: systemd's status lines, the kernel's below an emergency)
+    os.kill(1, signal.SIGRTMIN + 21)
+    try:
+        with open("/proc/sys/kernel/printk", "w", encoding="ascii") as f:
+            f.write("1")
+    except OSError:
+        pass
     s = Screen(keys=False)
     total = total_steps()
     top = max(1, (s.rows - 12) // 2)
-    s.clear()
-    s.torii(top)
-    s.heading(top + 6, "download", "installing the desktop")
+
+    def page():
+        s.clear()
+        s.torii(top)
+        s.heading(top + 6, "download", "installing the desktop")
+
+    page()
     env = dict(os.environ, TERM="dumb")
     p = subprocess.Popen(["/usr/bin/bash", f"{TOOLKIT}/setup.sh", "--resume"], stdin=subprocess.DEVNULL,  # noqa: S603
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
@@ -80,6 +91,7 @@ def main():
     tail = []
     drawn = None
     next_frame = 0
+    next_page = time.monotonic() + 20
     while True:
         r, _, _ = select.select([p.stdout], [], [], 0.25)
         if r:
@@ -101,6 +113,10 @@ def main():
                         clean_up()
                     elif "rebooting" in line:
                         word = "restarting; it carries on by itself"
+        if s.undressed() or time.monotonic() >= next_page:     # (the page whole again, whatever was written over it)
+            next_page = time.monotonic() + 20
+            page()
+            drawn = None
         done = steps_done()
         state = (word, done)
         if state != drawn:

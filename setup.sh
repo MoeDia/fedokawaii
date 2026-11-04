@@ -1026,7 +1026,8 @@ rpmfusion_signed() {
   want=RPMFUSION_${r^^}_FPR; want=${!want}
   d=$(mktemp -d "$KAWA_TMP/rpmfusion-key.XXXXXX") || return 1
   rpm2archive - <"$f" 2>/dev/null | tar -xzf - -C "$d" --no-same-owner 2>/dev/null || true
-  for k in "$d"/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-"$r"-*; do
+  # (Fedora 45's release packages keep it under /usr/share/pki, the earlier ones under /etc/pki)
+  for k in "$d"/usr/share/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-"$r"-* "$d"/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-"$r"-*; do
     [[ -f $k && ! -L $k ]] || continue
     n=$(gpg --show-keys --with-colons "$k" 2>/dev/null | grep -c '^pub:') || n=0
     fpr=$(gpg --show-keys --with-colons "$k" 2>/dev/null | awk -F: '/^pub:/ { w = 1; next } w && /^fpr:/ { print $10; exit }') || fpr=""

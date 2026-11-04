@@ -15,6 +15,7 @@
 #   bash tools/vm-iso-test.sh install NAME [PASSWORD]  the questions answered through the screens
 #   bash tools/vm-iso-test.sh watch NAME DIR [SECONDS] the display as PNGs, one each time it changes, until stopped
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
+#   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
 # Exit: 0 as asked · 1 failed · 2 misuse.
 set -u
@@ -221,52 +222,62 @@ do_watch() {   # the display as PNGs, one each time it changes
 }
 
 # one whole run, through the real screens: the times are from the first boot to the login screen
+stage() { printf '%s %6d s  %s\n' "$(date +%T)" "$((SECONDS - T0))" "$*" | tee -a "$R/log"; }
 do_run() {
   local name=$1 iso=$2; shift 2
   do_create "$name" "$iso" "$@" || return 1
-  local r=$V/$name/run t0=$SECONDS last="" ph
-  mkdir -p "$r"
-  stage() { printf '%s %6d s  %s\n' "$(date +%T)" "$((SECONDS - t0))" "$*" | tee -a "$r/log"; }
+  R=$V/$name/run T0=$SECONDS
+  mkdir -p "$R"
   mem_guard "$name"
   "${VIRSH[@]}" start "$name" >/dev/null || return 1
   stage "started: $(sha256sum "$iso" | cut -c1-16)"
-  setsid -f bash "$0" watch "$name" "$r/screens" 3 >/dev/null 2>&1 </dev/null
+  setsid -f bash "$0" watch "$name" "$R/screens" 3 >/dev/null 2>&1 </dev/null
   do_install "$name" || { stage "RED: the questions"; return 1; }
   stage "questions answered"
+  do_follow "$name"
+}
+
+# do_follow NAME — from the installer's end to the desktop: the first start, setup's phases, the login,
+# verify. A setup that stopped shows it on its own screen: RED with its reason, and `follow` carries on
+# after a fix (a key restarts the VM). Timed from the run's start, or this follow's.
+do_follow() {
+  local name=$1 last="" ph
+  R=$V/$name/run; mkdir -p "$R"
+  ((${T0:-0})) || T0=$SECONDS
   until vm_ssh "$name" true 2>/dev/null; do
-    ((SECONDS - t0 > 3600)) && { stage "RED: the installed system never answered"; return 1; }
+    ((SECONDS - T0 > 3600)) && { stage "RED: the installed system never answered"; return 1; }
     "${VIRSH[@]}" domstate "$name" | grep -q running || "${VIRSH[@]}" start "$name" >/dev/null 2>&1
     sleep 5
   done
-  stage "base system installed: the first start answers"
+  stage "the installed system answers"
   while :; do
-    ((SECONDS - t0 > 21600)) && { stage "RED: setup not done after 6 h (phase $last)"; return 1; }
+    ((SECONDS - T0 > 21600)) && { stage "RED: setup not done after 6 h (phase $last)"; return 1; }
     sleep 20
     ph=$(vm_ssh "$name" 'sudo head -n1 /var/lib/fedokawaii/phase 2>/dev/null') || continue
     if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; fi
     [[ $ph == "done" ]] && break
-    if ! vm_ssh "$name" 'systemctl is-active -q fedokawaii-resume.service || systemctl is-activating -q fedokawaii-resume.service' 2>/dev/null \
-       && vm_ssh "$name" 'sudo grep -q "✘" /var/log/fedokawaii.log' 2>/dev/null; then
-      vm_ssh "$name" 'sudo tail -n 60 /var/log/fedokawaii.log' >"$r/setup-tail.log" 2>&1
-      stage "RED: setup stopped in phase ${ph:-?}: $r/setup-tail.log"
+    if do_say "$name" "setup stopped" 2>/dev/null; then
+      do_say "$name" >"$R/stopped.txt" 2>/dev/null
+      vm_ssh "$name" 'sudo tail -n 60 /var/log/fedokawaii.log' >"$R/setup-tail.log" 2>&1
+      stage "RED: setup stopped in phase ${ph:-?}: $R/stopped.txt, $R/setup-tail.log"
       return 1
     fi
   done
   stage "setup done"
   until vm_ssh "$name" 'systemctl is-active -q greetd' 2>/dev/null; do
-    ((SECONDS - t0 > 25200)) && { stage "RED: no login screen"; return 1; }
+    ((SECONDS - T0 > 25200)) && { stage "RED: no login screen"; return 1; }
     sleep 5
   done
-  sleep 5
-  do_shot "$name" "$r/login.png"
-  stage "the login screen: $r/login.png"
-  vm_ssh "$name" 'sudo cat /var/log/fedokawaii.log' >"$r/setup.log" 2>&1
+  sleep 8
+  do_shot "$name" "$R/login.png"
+  stage "the login screen: $R/login.png"
+  vm_ssh "$name" 'sudo cat /var/log/fedokawaii.log' >"$R/setup.log" 2>&1
   do_keys "$name" "$TEST_PASSWORD" "<enter>"
   sleep 25
-  do_shot "$name" "$r/desktop.png"
-  vm_ssh "$name" 'sudo fedokawaii verify' >"$r/verify.log" 2>&1
+  do_shot "$name" "$R/desktop.png"
+  vm_ssh "$name" 'sudo fedokawaii verify' >"$R/verify.log" 2>&1
   local rc=$?
-  stage "verify: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$r/verify.log" | grep -oE '[0-9]+ checks passed|[0-9]+ of [0-9]+ checks failed' | tail -n1), the failing lines: grep ✘ $r/verify.log"
+  stage "verify: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$R/verify.log" | grep -oE '[0-9]+ checks passed|[0-9]+ of [0-9]+ checks failed' | tail -n1), the failing lines: grep ✘ $R/verify.log"
   return "$rc"
 }
 
@@ -285,5 +296,6 @@ case $cmd in
   install) name_ok "${1:-}"; do_install "$@" ;;
   watch) name_ok "${1:-}"; do_watch "$@" ;;
   run) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_run "$@" ;;
+  follow) name_ok "${1:-}"; do_follow "$1" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
 esac

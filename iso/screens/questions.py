@@ -49,8 +49,10 @@ def own_disk():
 
 
 def disks():
-    """Every whole disk but this ISO's: (name, model, bytes). Largest first."""
-    r = run("lsblk", "-dbnJ", "-o", "NAME,MODEL,SIZE,TYPE,RO")
+    """The disks an install can go on: inside this PC, never a stick or a USB drive (a backup drive
+    larger than the system disk must not even be offered), never this ISO's. (name, model, bytes,
+    what it holds now), largest first."""
+    r = run("lsblk", "-bnJ", "-o", "NAME,MODEL,SIZE,TYPE,RO,RM,TRAN,FSTYPE")
     try:
         found = json.loads(r.stdout)["blockdevices"]
     except (ValueError, KeyError):
@@ -58,10 +60,26 @@ def disks():
     own = own_disk()
     out = []
     for d in found:
-        if d.get("type") != "disk" or d.get("ro") or d["name"] == own or d["name"].startswith(("zram", "loop")):
+        if d.get("type") != "disk" or d.get("ro") or d.get("rm") or d.get("tran") == "usb":
             continue
-        out.append((d["name"], (d.get("model") or "").strip(), int(d.get("size") or 0)))
+        if d["name"] == own or d["name"].startswith(("zram", "loop")):
+            continue
+        out.append((d["name"], (d.get("model") or "").strip(), int(d.get("size") or 0), holds(d)))
     return sorted(out, key=lambda x: -x[2])
+
+
+def holds(d):
+    """What is on a disk now, in a few words: its file systems, or that it is empty."""
+    kinds = set()
+
+    def walk(n):
+        if n.get("fstype"):
+            kinds.add(n["fstype"])
+        for c in n.get("children") or ():
+            walk(c)
+
+    walk(d)
+    return ", ".join(sorted(kinds)) if kinds else "empty"
 
 
 def gib(n):
@@ -114,12 +132,32 @@ def network_reason(wait=30):
     return "no answer: this PC has a network, but Fedora's servers do not answer it."
 
 
+def check_stick(s):
+    """The media test, asked for in the boot menu: on this screen, its own numbers."""
+    dev = run("blkid", "-L", VOLID).stdout.strip()
+    if not dev:
+        refuse(s, "cross", "this stick is damaged", "it cannot be read.")
+    top = max(1, (s.rows - 12) // 2)
+    s.clear()
+    s.torii(top)
+    s.heading(top + 6, "hg-0", "checking this stick")
+    # (--gauge: a percent a line, what dialog would read)
+    p = subprocess.Popen(["checkisomd5", "--gauge", dev], stdout=subprocess.PIPE,  # noqa: S603
+                         stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, text=True)
+    for line in p.stdout:
+        if line.strip().isdigit():
+            s.meter(top + 8, s.left, int(line), 100)
+    if p.wait() != 0:
+        refuse(s, "cross", "this stick is damaged", "its files are not as they were written. write it again.")
+
+
 def installed_disk():
     """A finished install on some disk: the Btrfs layout we make, and fedokawaii's record of it."""
     r = run("blkid", "-t", "LABEL=fedora", "-o", "device")
     for dev in r.stdout.split():
         os.makedirs("/tmp/fk-look", exist_ok=True)
-        if run("mount", "-o", "ro,subvolid=5", dev, "/tmp/fk-look").returncode != 0:
+        # (nologreplay: ro alone still replays the tree log, and this must write nothing)
+        if run("mount", "-o", "ro,rescue=nologreplay,subvolid=5", dev, "/tmp/fk-look").returncode != 0:
             continue
         try:
             for sub in ("root", "@", "."):
@@ -262,6 +300,9 @@ def validate(f, fields):
     elif f.key == "again":
         if v != fields["password"].value:
             return "not the same"
+    elif f.key == "disk":
+        if not v:
+            return "choose the disk"
     elif f.key == "host":
         if not HOST_RE.match(v):
             return "small letters, digits and hyphens"
@@ -273,8 +314,9 @@ class Form:
 
     def __init__(self, s, ds, geoip):
         self.s, self.ds = s, ds
-        d = ds[0]
-        self.disk = d[0]
+        # (the one that fits, if there is only one; among several the choice is yours, never a default)
+        fit = [d for d in ds if gib(d[2]) >= MIN_DISK_GIB]
+        self.disk = fit[0][0] if len(fit) == 1 else ""
         tz = geoip.get("time_zone") or "UTC"
         if tz not in zones():
             tz = "UTC"
@@ -283,7 +325,7 @@ class Form:
         rows = [Field("name", "user", "your name"),
                 Field("password", "lock", "password", secret=True),
                 Field("again", "lock", "again", secret=True),
-                Field("disk", "drive", "disk", self.disk_words(d), picker=self.pick_disk),
+                Field("disk", "drive", "disk", self.disk_words(fit[0]) if self.disk else "", picker=self.pick_disk),
                 Field("zone", "globe", "time zone", tz, picker=self.pick_zone),
                 Field("keys", "keyboard", "keyboard", "us", picker=self.pick_keys),
                 Field("host", "monitor", "this PC", "fedokawaii")]
@@ -297,7 +339,9 @@ class Form:
     @staticmethod
     def disk_words(d):
         words = f"{d[0]}  {size_words(d[2])}"
-        return f"{words}  {d[1]}" if d[1] else words
+        if d[1]:
+            words += f"  {d[1]}"
+        return f"{words}  · {d[3]}"
 
     def row_of(self, i):
         return self.top + 8 + i
@@ -516,6 +560,7 @@ def write_answers(form):
           f"network --bootproto=dhcp --device=link --activate --hostname={f['host'].value}",
           f"user --name={f['name'].value} --groups=wheel --iscrypted --password={hashed}",
           f"ignoredisk --only-use={form.disk}",
+          f"clearpart --all --initlabel --disklabel=gpt --drives={form.disk}",
           f"bootloader --boot-drive={form.disk} --timeout=0 --append=\"@APPEND@\"", ""]
     fd = os.open("/tmp/answers.ks", os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600)
     with os.fdopen(fd, "w", encoding="ascii") as w:
@@ -551,6 +596,9 @@ def main():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     run("plymouth", "quit", "--retain-splash")
     s = Screen()
+    with open("/proc/cmdline", encoding="utf-8") as f:
+        if "fk.check" in f.read().split():
+            check_stick(s)
     ds = checks(s)
     if not payload_ok():
         refuse(s, "cross", "this stick is damaged",

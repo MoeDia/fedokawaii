@@ -112,6 +112,7 @@ pipewire-utils|fedora|https://packages.fedoraproject.org/search?query=pipewire-u
 pixman-devel|fedora|https://packages.fedoraproject.org/search?query=pixman-devel|2026-10-14|manifest 2026-10-14
 pkgconf-pkg-config|fedora|https://packages.fedoraproject.org/search?query=pkgconf-pkg-config|2026-10-14|manifest 2026-10-14
 playerctl|fedora|https://packages.fedoraproject.org/search?query=playerctl|2026-10-14|manifest 2026-10-14
+plymouth-plugin-label|fedora|https://packages.fedoraproject.org/pkgs/plymouth/plymouth-plugin-label/|2026-11-04|the crash its absence causes on F45: coredump in the VM, 4 Nov
 plymouth-plugin-script|fedora|https://packages.fedoraproject.org/search?query=plymouth-plugin-script|2026-10-14|manifest 2026-10-14
 podman|fedora|https://packages.fedoraproject.org/search?query=podman|2026-10-14|manifest 2026-10-14
 poppler-utils|fedora|https://packages.fedoraproject.org/search?query=poppler-utils|2026-10-14|manifest 2026-10-14

@@ -55,7 +55,7 @@ fetch "$ISO_NETINST_URL" "$netinst" "$ISO_NETINST_SHA256"
 mkdir "$work/rpm"
 for r in "${ISO_RPMS[@]}"; do
   n=${r% *}
-  case $n in lib*) sub=l ;; p*) sub=p ;; i*) sub=i ;; *) echo "build-iso: where is $n?" >&2; exit 1 ;; esac
+  sub=$(printf '%.1s' "$n")
   fetch "$ISO_RPM_URL/$sub/$n" "$cache/rpm/$n" "${r#* }"
   rpm2cpio "$cache/rpm/$n" | (cd "$work/rpm" && cpio -idm --quiet)
 done
@@ -117,7 +117,12 @@ b=$work/boot
 mkdir -p "$b/usr/lib64/plymouth/renderers" "$b/usr/share/plymouth/themes/sumi" "$b/etc/plymouth"
 cp -a "$work/rpm/usr/lib64/plymouth/script.so" "$b/usr/lib64/plymouth/"
 cp -a "$work/rpm/usr/lib64/plymouth/renderers/"*.so "$b/usr/lib64/plymouth/renderers/"
-cp -a "$work/rpm/usr/lib64/"libply-splash-graphics.so* "$work/rpm/usr/lib64/"libpng16.so* "$work/rpm/usr/lib64/"libdrm.so* "$b/usr/lib64/"
+cp -a "$work/rpm/usr/lib64/plymouth/label-freetype.so" "$b/usr/lib64/plymouth/"
+for l in libply-splash-graphics libpng16 libdrm libfreetype libharfbuzz libgraphite2; do cp -a "$work/rpm/usr/lib64/$l".so* "$b/usr/lib64/"; done
+# (where the freetype label looks for its font: no text is ever drawn with it, the viewer just has to exist)
+mkdir -p "$b/usr/share/fonts"
+cp "$work/src/system/fonts/SumiUI.ttf" "$b/usr/share/fonts/Plymouth.ttf"
+cp "$work/src/system/fonts/SumiUI.ttf" "$b/usr/share/fonts/Plymouth-monospace.ttf"
 cp "$work/art/plymouth/"* "$b/usr/share/plymouth/themes/sumi/"
 printf '%s\n' '[Daemon]' 'Theme=sumi' 'ShowDelay=0' 'DeviceTimeout=8' >"$b/etc/plymouth/plymouthd.conf"
 ln -s sumi/sumi.plymouth "$b/usr/share/plymouth/themes/default.plymouth"

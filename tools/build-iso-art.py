@@ -186,8 +186,7 @@ def console(out):
 
 
 MENU = (("fkinstall", "install fedokawaii"),
-        ("fkcheck", "check this stick, then install"),
-        ("fkbasic", "install with basic graphics"))
+        ("fkcheck", "check this stick, then install"))
 
 
 def words(text, colour):

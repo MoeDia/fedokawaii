@@ -56,6 +56,7 @@ python3-gobject                 a library (the login screen, the panels)
 gtk3                            a library
 gtk4                            a library (satty)
 libadwaita                      a library (satty)
+plymouth-plugin-label           the boot splash (a script theme needs it on F45)
 plymouth-plugin-script          the boot splash
 # ── media, graphics, drivers ──
 ffmpeg                          a command (ffprobe too)
