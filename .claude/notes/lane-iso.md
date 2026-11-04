@@ -11,6 +11,9 @@
 - The memory rule (owner 18:15, below): VMs 4 GiB, one at a time, enforced by `mem_guard`. My first run was already going at 6 GiB when I read it; it was left to finish its last minutes, every later VM is 4 GiB.
 - `bin/kawa-carry` is main's (T54b 4): I had written another before seeing it, and removed mine.
 
+## Where this lane stands (20:09; if restarted, go on from here)
+Run 1 green (`iso-runs.md`). The refusals green; the stick's check found its own bug (fixed: `images/eltorito.img`), to be re-run: `bash tools/vm-iso-test.sh matrix ISO DIR`. Run 2 (`over`: a whole run over the finished disk of run 1, the reset in phase 2, a slow line in phase 1; tools frozen in ~/VM/iso/frozen/run2, ISO ~/VM/iso/run2) started 19:43; PID 1 froze at 19:51 (inbox 20:07) and took virsh with it. Next, in order: Run 2 (or again if the PC restarted: `FK_RESET_PHASE=2 FK_SLOW_BEFORE=2 bash <frozen>/tools/vm-iso-test.sh over r27-iso ISO`), `facts`, `carry-save r27-iso ~/VM/iso/carry.qcow2`; then the final build from main + lane-integrate, `run … --no-sb --usb ~/VM/iso/carry.qcow2`, `path`, `midway`, `gh release`. Always run the proofs from a frozen copy (`git archive`): bash reads a running script from disk. Review pack: `.claude/review/next/` (60-… frames; /dev/shm/r27-iso/pack.py picks them).
+
 ## What main must do to merge
 Merge lane-iso (new: `iso/`, `tools/build-iso.sh`, `tools/build-iso-art.py`, `tools/iso-shot.py`, `tools/vm-iso-test.sh`, `bin/kawa-stick`, tests; touches `setup.sh`, `lib/manifest.sh`, `lib/common.sh` PROJECT_TOP, `system/fedokawaii` (one row, backups → the installer), `system/plymouth/sumi/sumi.script`, packages.evidence, PACKAGES.md, README, fixtures). **Before the PC's first boot on F45: `plymouth-plugin-label` must be installed** (apply or update after the merge), or that boot is a text boot with a backtrace on screen.
 
@@ -38,3 +41,9 @@ When the round is done he WIPES this PC and does one last brand-new install from
 
 ## OWNER 18:15 — memory
 The PC is at 26 of 31 GB RAM with 21 agents. Your VMs: at most 4 GB RAM each, shut them down as soon as a test ends, never two of yours at once.
+
+## OWNER VERDICT 2026-11-04 20:00 on your render 60-installer-menu.png: comment
+[Claude, art direction while the owner is away; his verdicts win] Too small for a 1080p screen and too plain for the owner's "themed like Omarchy" ask: the menu is ~200 px wide with UI-size text in a black void. (1) Scale it: menu text at 2x, rows 40+ px, centred block about a third of the screen wide; (2) make it part of the world: the dark lock's painting (lane-ink's M1 Hannya in the torch-lit hall, dimmed to ~25 %) as the backdrop, the menu on a solid ink plate with the 2 px red edge highlight; (3) one line of help under it (↑↓ choose · enter go) and the version at the bottom right in muted ink; (4) the same art and type in GRUB, the Anaconda/kickstart progress screen and Plymouth, so the whole install reads as one piece.
+
+## OWNER VERDICT 2026-11-04 20:00 on your render 61-installer-splash.png: comment
+[Claude, art direction while the owner is away; his verdicts win] The splash reads as almost empty: a tiny torii and a 6 px word. Use the M1 Hannya (or the angel in the light mood) at real size, centred, the word "fedokawaii" in the UI face at 2-3x under it, and a slim progress line instead of three dots.
