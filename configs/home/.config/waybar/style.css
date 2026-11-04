@@ -1,12 +1,13 @@
-/* ~/.config/waybar/style.css — 紙 kami: no bar, but washi tiles floating along the top of the
-   screen, each part of the desktop on a tile of its own (docs/design-system.md §8). On the ink
+/* ~/.config/waybar/style.css — 紙 kami: washi tiles set in a band of the mood's ground along the top
+   of the screen, each part of the desktop on a tile of its own (docs/design-system.md §8). On the ink
    theme the paper is dyed in ink (墨染め sumizome) and the words pale; on the paper theme it is
    the paper as it comes (生成り kinari) and the words sumi. Every tile is the frame everything
    that floats has (§4) — a hairline round the paper, its corner pixels left out, and the shadow
    under it (two rows, a pixel further right each) and a column at its right — with the paper
    and its faint fibre inside: one frame, nothing inside it. tools/build-themes.py draws the
    pictures, per theme, exactly to their box —
-     the torii and the face  vermilion tiles at the two ends (lit: the brighter vermilion)
+     the torii               a vermilion tile at the left end (lit: the brighter vermilion)
+     the head                the mood's on the paper of the right end's tile
      the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
                              ink while it holds windows, asagi while it asks for you; the one
                              you are on stamped with the round vermilion seal (16 px), its
@@ -45,7 +46,8 @@
   text-shadow: none;
 }
 
-window#waybar { background: transparent; color: @text; }
+/* (the band: every row, its last the hairline under it) */
+window#waybar { background-color: @band; box-shadow: inset 0 -1px 0 0 @band-rule; color: @text; }
 /* GTK's own button look, should a module ever draw one: never a fill, a ring or a bevel */
 button, button:hover, button:active, button:checked { background: none; box-shadow: none; border: none; }
 

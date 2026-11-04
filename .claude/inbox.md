@@ -40,3 +40,20 @@ Owner: five more lanes run for 6 h: lane-torrents (T29 + the 17:04 magnet note),
 
 ## 2026-11-04 17:24 — in the plan: T19r (§2, 3, 6, 7), T25m (lane-art: §1, 4, 8)
 Owner asked Claude (chat) for a deep art direction: .claude/notes/art-direction-claude.md. lane-art owns its sections 1, 4, 8 (the heads character sheet, the wallpapers, the lock art) — do not redo those; main takes sections 2, 3, 5, 6 (bar ground and gaps, opaque windows, quick settings geometry and caption, Super+U) inside T19q/T19m, and section 7 as two drawn options for the owner. The owner's verdicts on his page override all of it. Show every change in the next review pack.
+
+## 2026-11-04 17:42 — in the plan: TONIGHT at its top, T32–T35 (ASOBI), T25m (lane-integrate), the lanes' tasks marked
+OWNER, LIVE UNTIL 23:30 — FINISH THE WHOLE ROUND TODAY. His answers (17:32, 17:38):
+1. The away gate is OFF tonight: apply, live checks on his screen, dwl re-logins and reboots any time; post a one-line notice on his page (top of .claude/review/current/questions.md) 2 minutes before each.
+2. Priorities: (1) Fedora 45 on the PC + the update system (T45–T50), (2) design pass 2 (his review notes, T19q, the art direction) and the apps, (3) the installer ISO proven (T56–T57).
+3. THE GAMING VM IS DROPPED (17:38). T32–T35 are replaced by ASOBI 遊び, a sandboxed play world without a VM: a locked-down user asobi on its own Btrfs subvolume (snapshot/reset), Flatpak Steam + Bottles inside, its own gamescope session on its own VT (1080p 144 Hz, FreeSync), Super+G in and one key back, one shared drop folder, kawa-play TUI. lane-asobi builds it; rewrite T32–T35 in the plan to match and mark them theirs. No cable change is needed.
+4. Tonight he answers within minutes: ask on his page what only he can see or do (RGB colours, the monitor's menu, design verdicts, the browser pick, the Steam sign-in, the cold power-off test). Everything else: decide and continue.
+Machinery: r27-lane-conductor keeps main and every lane in ~/.config/fedokawaii/r27-lanes running, across reboots, starting lanes only while the load allows. Lanes end with a line DONE; lane-integrate (master gate) merges DONE lanes, so main merges lane-integrate only (replaces the per-lane merge in T25m). Sys lanes (sudo + own VM): updates, asobi, iso, network, hardware. Main: the apply now; the PC's Fedora 45 upgrade by the update button around 21:00 once lane-updates is merged and the VM pre-flight is green; then T40–T42, T51, T53, T54, the final ISO from everything, T58–T61 with him before 23:30, the cold power-off test with him last.
+
+## OWNER 17:46 — THE FINAL FRESH INSTALL (shapes the end of the round) — in the plan: T54b
+When the round is done he WIPES this PC and does one last brand-new install from our ISO. Nothing may be tied to this install.
+1. The ISO (T56–T57) is the real deliverable: install → a complete, coherent fedokawaii desktop with zero manual steps after; everything the round built must come from the repo/ISO, nothing from this PC's state.
+2. Round tooling never ships: no ~/repos worktrees, lanes, r27-conductor, r27 units or the temporary sudo rule in the installed system (T62); include fk-remote only if it belongs in the product.
+3. Self-contained and self-sustaining: the ONE Super+U update button updates everything (packages, Fedora releases, fedokawaii itself), with snapshots/rollback and the local AI fixer; where fedokawaii's own updates come from follows the decision already in CLAUDE.md.
+4. Carry-over across the wipe: a "before you wipe" step (Super+U) that backs up his own data to a drive (~/Notes and the to-do, ~/blasphemous-save-backup-20261022, ~/.config/fedokawaii/secrets.sh, the browser profile, anything else that is his), and a restore step at the first boot of the fresh install. Prove the round trip in a VM.
+5. The final proof (T57) is exactly his path: build the ISO, install it in a VM, restore a test backup, press the update button, all green.
+6. Flatpak: allowed ONLY inside asobi (his answer 17:46); nothing Flatpak in his own account or on the desktop.
