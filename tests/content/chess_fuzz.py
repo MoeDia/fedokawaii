@@ -140,9 +140,11 @@ class Fuzz:
         elif how == "hup":
             os.kill(t.pid, signal.SIGHUP)
         else:
+            t.send("\x1b[201~")    # (a paste left open by the fuzz ends first: foot's always end)
+            t.pump(0.05)
             t.send("\x03")
         t.pump(0.3)
-        end = time.time() + 3
+        end = time.time() + 4
         while t.alive() and time.time() < end:
             t.pump(0.05)
         self.check()

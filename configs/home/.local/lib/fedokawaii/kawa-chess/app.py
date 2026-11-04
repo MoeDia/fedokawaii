@@ -96,6 +96,39 @@ class Slide:
         return out, t >= 1.0
 
 
+class Burst:
+    """A capture: a few sparks leave the square, 150 ms, drawn over the board and gone: no state of their own."""
+    MS = 0.15
+    DIRS = ((-1.0, -0.8), (1.0, -0.9), (-0.7, 0.6), (0.8, 0.7), (0.1, -1.0), (-1.0, 0.1), (1.0, 0.15), (-0.2, 1.0))
+
+    def __init__(self, view, sq, inks):
+        self.view, self.inks = view, inks
+        self.x, self.y = view.origin(sq)
+        self.t0 = time.monotonic()
+        self.step = -1
+        self.ground = None
+        self.done_cb = lambda: None
+
+    def frames(self, now, palette):
+        """The picture of this moment, once per art-pixel step; None when nothing new; "end" when over."""
+        t = (now - self.t0) / self.MS
+        if t >= 1:
+            return "end"
+        step = int(t * 14)
+        if step == self.step:
+            return None
+        self.step = step
+        v, s, S = self.view, self.view.s, self.view.S
+        part = v.cv.crop(self.x, self.y, S, S)
+        reach = ease_out(t) * (S // 2 - 2 * s)
+        for i, (dx, dy) in enumerate(self.DIRS):
+            size = (2 if t < 0.6 else 1) * s
+            px = S // 2 + int(dx * reach) // s * s
+            py = S // 2 + int(dy * reach) // s * s
+            part.fill(px, py, size, size, self.inks[i % len(self.inks)])
+        return self.x, self.y, part.sixel(palette)
+
+
 class App:
     def __init__(self):
         self.term = Term()
@@ -261,17 +294,38 @@ class App:
         self.anim = an
         self.term.flush()
 
+    def burst(self, sq):
+        """Sparks from a square where something was just taken."""
+        if self.view is None:
+            return
+        i = self.art.index
+        self.finish_anim()
+        self._send_board()
+        self.anim = Burst(self.view, sq, (i["flame"], i["accent_hi"], i["gold"]))
+
     def finish_anim(self):
         an = self.anim
         if an is not None:
             self.anim = None
             if self.view:
                 self.view.hide = set()
+                if isinstance(an, Burst):
+                    x, y, data = self.view.cut(self.palette(), an.x, an.y, self.view.S, self.view.S)
+                    self.term.picture(self.layout.row + y // self.term.ch, self.layout.col + x // self.term.cw, data)
+                    self.term.flush()
             an.done_cb()
             self.touch()
 
     def _anim_frame(self, now):
         an = self.anim
+        if isinstance(an, Burst):
+            f = an.frames(now, self.palette())
+            if f == "end":
+                self.finish_anim()
+            elif f is not None:
+                self.term.picture(self.layout.row + f[1] // self.term.ch, self.layout.col + f[0] // self.term.cw, f[2])
+                self.term.flush()
+            return
         places, finished = an.positions(now)
         if finished:
             self.finish_anim()
@@ -396,6 +450,8 @@ class App:
                     wait = max(0.0, min(wait, due - now))
                 if not self.engine.idle():
                     wait = min(wait, 1.0)
+                if term.buf:
+                    wait = min(wait, 0.3)
                 for key, _ in sel.select(wait):
                     what = key.data
                     if what == "term":
@@ -412,6 +468,9 @@ class App:
                         self.engine.on_input()
                 now = time.monotonic()
                 self.engine.tick(now)
+                if term.buf:
+                    for ev in term.stale():
+                        self.on_event(ev)
                 if self.anim is not None:
                     self._anim_frame(now)
         finally:

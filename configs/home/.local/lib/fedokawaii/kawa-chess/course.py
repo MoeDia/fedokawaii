@@ -37,9 +37,6 @@ class Item:
             return [spec["goal"], f"you play {side} against {spec['opponent']}, level {spec['elo']}, {tc}."]
         if self.kind == "review":
             return ["three moments: you find the move, then you see why."]
-        if self.kind == "lesson":
-            m = self.course.lib.by_id.get(self.ref)
-            return [m["source"]] if m and m.get("source") else []
         if self.kind == "puzzles":
             return ["what you missed comes back first"]
         if self.kind == "exam":

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tests/content/test_chess_destroy.sh — kawa-chess tested to destruction: every lesson walked by keyboard; every odd rule through
 # the real input path (promotion typed, cursor, click; en passant; threefold, fifty moves, stalemate, flag fall with nothing
-# left); a game left by a kill and found again; then the fuzz (chess_fuzz.py). KAWA_CHESS_LONG=1: 200 puzzles and 30 minutes of fuzz.
+# left); every key on every screen; then the fuzz (chess_fuzz.py). KAWA_CHESS_LONG=1: 30 minutes of fuzz; chess_puzzles200.py: the 200 puzzles.
 . "$(dirname "$0")/lib.sh"
 sandbox
 export CHESS_TMP=$TMP/chess
@@ -83,6 +83,10 @@ go_to_tab(t, "games"); t.send("\x1b[B\r"); t.pump(0.3); t.send("\x1b"); t.pump(0
 print(a, b, repr(crash_text(home)))
 PY
 )" "True True ''"
+
+case_ "every key on every screen, at three sizes, in both moods"
+out=$(python3 -I -B "$C/chess_sweep.py" "$CHESS_TMP/s" 2>&1) && _ok || _no "$(tail -c 1200 <<<"$out")"
+printf '    (%s)\n' "$(tail -1 <<<"$out" | cut -c1-120)"
 
 secs=${KAWA_CHESS_FUZZ:-25}
 if [[ ${KAWA_CHESS_LONG:-} == 1 ]]; then secs=1800; fi

@@ -64,7 +64,7 @@ start_free_game(t)
 t.send("Ke9"); t.pump(0.15)
 illegal = t.find("no such move")
 t.send("\x7f\x7f\x7f"); t.pump(0.1)
-t.send("\x1b"); t.pump(0.1); t.send("\x1b"); t.pump(0.1)
+t.send("\x1b"); t.pump(0.1)
 t.send("e4"); t.pump(0.1); t.send("\r"); t.pump(1.8)
 moved = current(home)
 two = moved and len(moved["moves"]) >= 1
@@ -83,7 +83,7 @@ for _ in range(12):
         continue
     t.send(B.uci(pos.legal()[-1])); t.pump(0.02); t.send("\r"); t.pump(0.3)
 t.pump(1.6)
-t.send("\x1b"); t.pump(0.1); t.send("\x1b"); t.pump(0.1)
+t.send("\x1b"); t.pump(0.1)
 t.send("\x1b[B\x1b[B\x1b[B\x1b[B"); t.pump(0.1); t.send("\r"); t.pump(0.3)
 over = current(home) is None
 pgn = sorted(state(home).glob("games/*.pgn"))

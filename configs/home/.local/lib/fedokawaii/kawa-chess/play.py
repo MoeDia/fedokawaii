@@ -167,6 +167,20 @@ class MoveInput:
         return out
 
 
+def hand_line(hand, idle=""):
+    """The input line: the chevron, then what is typed, or why it is no move, or what is asked."""
+    line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
+    if hand.promo:
+        line.append(("queen, rook, bishop or knight: q r b n", MUTED))
+    elif hand.bad:
+        line += [(icon("CROSS"), ACCENT_TEXT), "  ", hand.bad, "  ", ("no such move", MUTED)]
+    elif hand.typed:
+        line.append((hand.typed, STRONG))
+    elif idle:
+        line.append((idle, FAINT))
+    return line
+
+
 def board_marks(pos, last, hanging=(), extra=None):
     """The marks of the game itself: the last move's squares, a king in check, men in danger."""
     out = {}
@@ -232,6 +246,7 @@ class Game(Screen):
         self.shown = None
         self.landing = None          # (a move on its way: its squares lit from its first frame)
         self.begun = False
+        self.burst_on = None         # (the square of a capture just made: its sparks fly at the next frame)
         self.fallen = None           # (the beaten king's square, how far he has fallen)
         self.fall_at = 0
         if saved:
@@ -320,11 +335,16 @@ class Game(Screen):
 
     def _side_row(self, name, side, hg):
         name += self._ahead(side)
-        clock = fmt_clock(self.clock[side]) if self.clock else ""
         turn = self.g.pos.turn == side and not self.g.over()
+        left = None
+        if self.clock:
+            left = self.clock[side]
+            if turn and not self.paused:
+                left -= time.monotonic() - self.t_mark
+        clock = fmt_clock(left)
         ink = STRONG if turn else None
         vink = STRONG if turn else MUTED
-        if self.clock and self.clock[side] < 30:
+        if left is not None and left < 30:
             vink = ACCENT_TEXT
         ic = hg or ("USER" if side == self.me else "ONI")
         return Row(ic, name, clock, ink=ink, value_ink=vink)
@@ -363,16 +383,7 @@ class Game(Screen):
     def _input_lines(self, w):
         if self.g.over():
             return [[(self.note or " ", MUTED)], [""]]
-        hand = self.hand
-        line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
-        if hand.promo:
-            line += [("queen, rook, bishop or knight: q r b n", MUTED)]
-        elif hand.bad:
-            line += [(icon("CROSS"), ACCENT_TEXT), " ", (hand.bad, None), "  ", ("no such move", MUTED)]
-        elif hand.typed:
-            line += [(hand.typed, STRONG)]
-        elif self.g.pos.turn == self.me:
-            line += [("your move", FAINT)]
+        line = hand_line(self.hand, "your move" if self.g.pos.turn == self.me else "")
         return [line, [(self.note, MUTED)] if self.note else ""]
 
     # ── keys ─────────────────────────────────────────────────────────────────────────────────
@@ -552,6 +563,7 @@ class Game(Screen):
         hide = {p[1] for p in parts}
 
         self.landing = m
+        took = pos.is_capture(m)
 
         def arrived():
             self.landing = None
@@ -563,6 +575,7 @@ class Game(Screen):
             self.save()
             if self.g.over():
                 self.finish(self.g.result, self.g.why)
+            self.burst_on = m >> 6 & 63 if took else None
             self.app.touch()
 
         self.app.slide(parts, hide, arrived)
@@ -592,6 +605,9 @@ class Game(Screen):
         self.app.touch()
 
     def tick(self, now):
+        if self.burst_on is not None:
+            sq, self.burst_on = self.burst_on, None
+            self.app.burst(sq)
         if self.ended:
             # (the beaten king topples, in three frames)
             if self.fallen is not None and self.fallen[1] < 3 and now >= self.fall_at:
@@ -665,5 +681,6 @@ class Game(Screen):
         self.app.pop()
 
     def leave(self):
-        if not self.ended and self.g.moves:
+        if not self.ended and self.begun:
+            self._charge(time.monotonic())
             self.save()

@@ -34,6 +34,7 @@ class Progress:
         self.solved_by_theme = _dict(d.get("themes"))   # theme → [solved, tried]
         self.first_try = _int(d.get("first_try"), 0, 0, 10**9)
         self.tries = _int(d.get("tries"), 0, 0, 10**9)
+        self.stamped = _int(d.get("stamped"), 0, 0, 366)   # (the last day whose seal has come down)
 
     def save(self):
         return self.store.save("progress.json", {
@@ -41,7 +42,7 @@ class Progress:
             "seen": sorted(self.seen), "due": self.due, "played": self.played, "history": self.history[-800:],
             "streak": self.streak, "last_active": self.last_active, "puzzle_left": self.puzzle_left,
             "free_games": self.free_games, "takeaways": self.takeaways[-800:], "started": self.started,
-            "themes": self.solved_by_theme, "first_try": self.first_try, "tries": self.tries})
+            "themes": self.solved_by_theme, "first_try": self.first_try, "tries": self.tries, "stamped": self.stamped})
 
     # ── days ─────────────────────────────────────────────────────────────────────────────────
     def active(self):

@@ -139,6 +139,16 @@ class Term:
         self.frame.clear()
         self.raw(data)
 
+    def stale(self):
+        """A sequence begun and never ended, old enough to give up on: what lay after it, as events."""
+        if self.buf and time.monotonic() - self.buf_since > 0.25:
+            self.buf = self.buf[1:]
+            out = self._parse()
+            if self.buf:
+                self.buf_since = time.monotonic()
+            return out
+        return []
+
     def read(self):
         """What has come in → events: ('key', name) · ('text', chars) · ('paste', text)
         · ('mouse', kind, button, x_px, y_px) · ('focus', bool) · ('mood', 'dark'|'light') ·
@@ -151,13 +161,11 @@ class Term:
             return [("eof",)]
         if not data:
             return [("eof",)]
-        # (a sequence begun and never ended, older than any real one: its ESC goes, what follows is keys)
         now = time.monotonic()
-        if self.buf and now - self.buf_since > 0.25:
-            self.buf = self.buf[1:]
+        fresh = not self.buf
         self.buf += data
         out = self._parse()
-        if self.buf:
+        if self.buf and fresh:
             self.buf_since = now
         return out
 

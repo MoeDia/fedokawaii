@@ -16,9 +16,9 @@ import time
 
 import board as B
 from app import Screen
-from play import MoveInput, board_marks, moved_parts
+from play import MoveInput, board_marks, hand_line, moved_parts
 from puzzles import Session
-from term import ACCENT_TEXT, FAINT, MUTED, STRONG
+from term import ACCENT_TEXT, MUTED, STRONG
 from ui import heading, icon, wrap
 
 
@@ -268,16 +268,7 @@ class Lesson(Screen):
                 body.append([line])
             body.append("")
         if self.hand.pos is not None:
-            line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
-            if self.hand.promo:
-                line.append(("q r b n", MUTED))
-            elif self.hand.bad:
-                line += [(icon("CROSS"), ACCENT_TEXT), " ", self.hand.bad]
-            elif self.hand.typed:
-                line.append((self.hand.typed, STRONG))
-            else:
-                line.append(("your move", FAINT))
-            body.append(line)
+            body.append(hand_line(self.hand, "your move"))
         if self.find:
             body += [[(icon("SEARCH"), ACCENT_TEXT), "  ", (self.find[0], STRONG), "  ", (self.typed, None)], ""]
         if self.note:

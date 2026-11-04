@@ -7,9 +7,9 @@ import time
 
 import board as B
 from app import Screen
-from play import MoveInput, board_marks, moved_parts
-from term import ACCENT_TEXT, MUTED, STRONG
-from ui import Row, heading, icon, meter, wrap
+from play import MoveInput, board_marks, hand_line, moved_parts
+from term import MUTED, STRONG
+from ui import Row, heading, meter, wrap
 
 SESSION = 600.0                    # ten minutes
 REPEAT_DAYS = (1, 3, 7, 21)        # after a miss: again on these days
@@ -344,15 +344,8 @@ class Session(Screen):
         if self.item is not None:
             side = "black" if self.flipped else "white"
             out += [[(f"{side} to move", MUTED)], ""]
-            if self.hand.pos is not None or self.note:
-                line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
-                if self.hand.promo:
-                    line.append(("q r b n", MUTED))
-                elif self.hand.bad:
-                    line += [(icon("CROSS"), ACCENT_TEXT), " ", self.hand.bad]
-                elif self.hand.typed:
-                    line.append((self.hand.typed, STRONG))
-                out.append(line)
+            if self.hand.pos is not None:
+                out.append(hand_line(self.hand))
             if self.note:
                 out += [[(s, MUTED)] for s in wrap(self.note, w)]
         return out

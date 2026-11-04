@@ -26,6 +26,8 @@ class Home(Screen):
         self.top = 0
         self.ready = False
         self.message = ""
+        self.stamp_t = None
+        self.stamp_phase = 2
 
     # ── the first frame: everything read, a game left open taken up again ─────────────────────
     def prepare(self):
@@ -57,6 +59,17 @@ class Home(Screen):
         if not self.ready:
             self.prepare()
             self.app.touch()
+        if self.stamp_t is not None:
+            # (a day done: its seal comes down on the year, then the board again)
+            t = now - self.stamp_t
+            phase = 0 if t < 0.12 else 1 if t < 2.2 else 2
+            if phase != self.stamp_phase:
+                self.stamp_phase = phase
+                self.app.touch()
+            if phase == 2:
+                self.stamp_t = None
+                return None
+            return self.stamp_t + (0.12 if phase == 0 else 2.2)
         return None
 
     # ── the day ───────────────────────────────────────────────────────────────────────────────
@@ -118,13 +131,14 @@ class Home(Screen):
         return []
 
     def picture(self, view):
-        """The progress tab draws the year in the board's place."""
-        if not self.ready or TABS[self.tab][0] != "progress":
+        """The progress tab draws the year in the board's place; so does a day just finished, for a moment."""
+        stamping = self.stamp_t is not None and self.stamp_phase < 2
+        if not self.ready or (TABS[self.tab][0] != "progress" and not stamping):
             return None
-        key = (self.pr.day, len(self.pr.items), self.app.mood, view.size, round(self.pr.game["r"]), round(self.pr.puzzle["r"]))
+        key = (self.pr.day, len(self.pr.items), self.app.mood, view.size, round(self.pr.game["r"]), round(self.pr.puzzle["r"]), self.stamp_phase if stamping else None)
         if key == self.app.pic_key:
             return key, None
-        return key, year_picture(view, self.pr, self.course)
+        return key, year_picture(view, self.pr, self.course, self.stamp_phase if stamping else None)
 
     # ── the board ─────────────────────────────────────────────────────────────────────────────
     def board(self):
@@ -316,6 +330,11 @@ class Home(Screen):
         n = self.next_open(self.day_items())
         if TABS[self.tab][0] == "today":
             self.index = n if n is not None else 0
+        if n is None and self.pr.stamped < self.pr.day:
+            self.pr.stamped = self.pr.day
+            self.pr.save()
+            self.stamp_t = time.monotonic()
+            self.stamp_phase = 0
 
     def click_row(self, i):
         lines = self.panel(self.app.layout.pw, self.app.layout.ph)
@@ -591,7 +610,7 @@ class Report(Screen):
                 self.done_cb()
 
 
-def year_picture(view, pr, course):
+def year_picture(view, pr, course, stamp=None):
     """The year on a hanging scroll, in the board's place and its frame: two lacquered rods, fifty-two weeks of
     seven days, a red seal for each done, the day you are on in gold, a gold tick at each four weeks' mark; and
     under them your level (vermilion) and your puzzles (teal) against the plan's dotted line."""
@@ -628,7 +647,11 @@ def year_picture(view, pr, course):
     for d in range(1, 365):
         col, row = (d - 1) // 7, (d - 1) % 7
         x, y = left + col * cell, top + row * cell
-        if d == pr.day:
+        if d == pr.day and stamp == 0:        # (the seal coming down: larger, lit)
+            _seal(cv, x - s, y - s, size + 2 * s, ink["accent_hi"])
+        elif d == pr.day and stamp == 1:
+            _seal(cv, x, y, size, ink["accent"])
+        elif d == pr.day:
             _seal(cv, x, y, size, ink["gold"])
         elif d in done and d < pr.day:
             _seal(cv, x, y, size, ink["accent"])

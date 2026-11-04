@@ -7,7 +7,7 @@ import math
 import board as B
 from app import Screen
 from engine import analysis_request
-from play import MoveInput, board_marks
+from play import MoveInput, board_marks, hand_line
 from term import ACCENT_TEXT, MUTED, STRONG
 from ui import Row, heading, icon, meter, wrap
 
@@ -410,7 +410,7 @@ class Review(Screen):
         if self.step == "find":
             lines += [[(s, None)] for s in wrap("find a better move.", w)]
             lines.append("")
-            lines.append(self._hand_line())
+            lines.append(hand_line(self.hand))
             if self.note:
                 lines += [[(s, MUTED)] for s in wrap(self.note, w)]
             return lines
@@ -438,17 +438,6 @@ class Review(Screen):
             lines.append(text_line)
         return lines
 
-    def _hand_line(self):
-        hand = self.hand
-        line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
-        if hand.promo:
-            line += [("q r b n", MUTED)]
-        elif hand.bad:
-            line += [(icon("CROSS"), ACCENT_TEXT), " ", hand.bad]
-        elif hand.typed:
-            line += [(hand.typed, STRONG)]
-        return line
-
     def _summary_lines(self, w, h):
         s = self.summary
         c = s.get("classes", {})
@@ -467,7 +456,8 @@ class Review(Screen):
     def key(self, name):
         if self.phase == "reading":
             if name == "esc":
-                self._leave()
+                self.done_cb = None     # (nothing has been reviewed: it stays on the plan)
+                self.app.pop()
             return
         if self.phase == "judge":
             if name in ("left", "up"):
