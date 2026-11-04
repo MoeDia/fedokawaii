@@ -5,7 +5,7 @@
 # and logged: its exit and last lines, the report, the phase, the holds, the pinned snapshot, that
 # the copy (root.cand) is gone, the candidate's log, the packages left to update, SELinux's denials
 # in the run (none, or it is not green).
-#   bash tools/vm-inject/update-green.sh [VM] [REPO]   (VM f44; REPO this repository)
+#   bash tools/vm-inject/update-green.sh VM [REPO]   (REPO this repository)
 # (The reload storm it once had — STORM=1, a daemon-reload loop from a second ssh during the replay —
 # is retired: every storm crashed PID 1 in systemd's own method_reload assert (a Reload while a
 # scriptlet's reload reply is pending; 259.10, and the same asserts in 262: ledger r27-49-storm3), so
@@ -15,7 +15,7 @@
 # update with a green report · 1 it did not · 2 the VM could not run.
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
-vm=${1:-f44} src=${2:-$(cd "$here/.." && pwd)}
+vm=${1:?VM} src=${2:-$(cd "$here/.." && pwd)}
 out=/dev/shm/r27/update-green; rm -rf "$out"; mkdir -p "$out"; log=$out/run.log
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 { bash "$here/vm-snap.sh" "$vm" revert built && bash "$here/vm-snap.sh" "$vm" start && run --wait 600; } >>"$log" 2>&1 \

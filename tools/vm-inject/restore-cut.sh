@@ -13,13 +13,13 @@
 # restored root is put right by setup.sh's kernel_match: the default back to A, one more start);
 # then a restore run again finishes a cut one; at the end A is the default, whole in /boot, no
 # root.new, root.old kept, kawa-snap list answers. Last: `restore old` back to the marked system.
-#   bash tools/vm-inject/restore-cut.sh [VM] [STEP…]   (VM f44; STEPs: copied kernels exchanged
+#   bash tools/vm-inject/restore-cut.sh VM [STEP…]   (STEPs: copied kernels exchanged
 #                                                       defaulted moved renamed adding, then old)
 # Out: a table on stdout, every check's output in /dev/shm/r27/restore-cut/STEP.log.
 # Exit 0 every step ended in a whole system · 1 one did not · 2 the VM could not run.
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
-vm=${1:-f44}; shift 2>/dev/null || true
+vm=${1:?VM}; shift
 steps=("$@"); ((${#steps[@]})) || steps=(copied kernels exchanged defaulted moved renamed adding old)
 out=/dev/shm/r27/restore-cut; mkdir -p "$out"
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }

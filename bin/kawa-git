@@ -83,7 +83,7 @@ self=$(printf '%q' "$0")
 # the picker: KIND's rows and heading, laid out again at every resize (fzf asks this script)
 pick() {
   local kind=$1; shift
-  fzf --ansi --no-sort --height=100% --delimiter=$'\t' --with-nth=2 --with-shell='bash -c' \
+  fzf --ansi --no-sort --no-clear --height=100% --delimiter=$'\t' --with-nth=2 --with-shell='bash -c' \
     --bind="start,resize:reload-sync[$self --rows $kind]+transform-header[$self --heading $kind]" \
     "$@" </dev/null
 }

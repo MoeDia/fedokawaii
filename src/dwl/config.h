@@ -218,6 +218,7 @@ static const Key keys[] = {
 	{ MODKEY|SHIFT,    XKB_KEY_a,                 spawn,            SHCMD("kawa-screenshot edit") },
 	{ MODKEY|SHIFT,    XKB_KEY_x,                 spawn,            SHCMD("kawa-screenshot text") },
 	{ MODKEY|SHIFT,    XKB_KEY_r,                 spawn,            SHCMD("kawa-record") },   /* again: stop */
+	{ MODKEY|CTRL,     XKB_KEY_r,                 refresh,          SHCMD("kawa-refresh") },
 	{ MODKEY|SHIFT,    XKB_KEY_p,                 spawn,            SHCMD("kawa-record pause") },   /* again: 3-2-1, on */
 	/* ── media keys, and monitor brightness over DDC/CI ──
 	 * spawnheld: a held key goes on repeating it (the volume, the brightness, step by step).

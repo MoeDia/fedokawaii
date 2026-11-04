@@ -212,7 +212,8 @@ case "$a" in
         [[ $p == kernel-core-[0-9]* && -f $FKH/kernels ]] && sed -i "/^${p#kernel-core-}\$/d" "$FKH/kernels"   # (a kernel's version gone)
       done; exit 0;;
   *" system-upgrade download "*) net_on || exit 1; [[ $a == *--assumeno* ]] && { echo "would remove: foo"; exit 1; }; exit "$(rcfor sysup 0)";;
-  *" system-upgrade reboot "*) exit "$(rcfor reboot 0)";;
+  # ($FKH/reboot-terms: as a real shutdown does, the service that asked gets its TERM)
+  *" system-upgrade reboot "*) [[ -f $FKH/reboot-terms ]] && { kill -TERM "$PPID"; sleep 0.2; }; exit "$(rcfor reboot 0)";;
   *" upgrade "*)
       net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       # $FKH/fail-dnf-upgrade = N: cut off half-way N times, each leaving packages twice — on
