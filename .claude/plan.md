@@ -417,7 +417,7 @@ accept: shots both themes (art, caret visible at 0.0 s and 0.5 s, torches' frame
   it like dwl's wlroots (lib/upstream.sh), proven with the ASan run of r27-20-wire (a screen off mid-check, the only
   screen off and on).
 
-### T20r — the refresh key: Super+Ctrl+R redraws the whole desktop from scratch, nothing of his lost (owner inbox 2026-11-02 18:26)  [todo]
+### T20r — the refresh key: Super+Ctrl+R redraws the whole desktop from scratch, nothing of his lost (owner inbox 2026-11-02 18:26)  [wip 4 Nov 22:03 — built: dwl refresh(), bin/kawa-refresh, tools/regress/refresh.sh; live after the apply]
 The owner's words: "create a shortcut that refreshed the window manager and the gpu and etcc.. a good refresh shortcut". Decided: Super+Ctrl+R (his K617 Fizz is a 60 % board — an F5 would be Fn+5; Super+Shift+R is the recording, Super+R the books).
 deps: T03  · model: main  · ledger: r27-20r
 files: src/dwl (dwl.patch: a `refresh` action — every output re-committed with its mode, adaptive sync and gamma; scene nodes whose surface is gone dropped (the "recording ×4" picture that outlived its notice, r27-stuck-notice); every client re-configured, every monitor re-arranged and fully damaged; the cursor theme re-read and the pointer re-asked; the keymap and the tablet mapping re-applied), src/dwl/config.h (MODKEY|CTRL, XKB_KEY_r), bin/kawa-refresh (the desktop's own processes: waybar as a new bar, never SIGUSR2 (memory live-bar-reload); mako (makoctl reload, restarted if it does not answer); kawa-panel (SIGKILL when nothing is open, memory live-panel-restart); the wallpaper layer; swayidle; the portals when no share runs; the RGB/DDC state once T36/T38 exist — never pipewire while sound plays, never a window of his), configs/home/.config/fedokawaii/keys/dwl.txt (Super+/), tests for the script against stand-ins, tools/regress/refresh.sh
@@ -765,7 +765,7 @@ approach:
 - Wiring: tests/run.sh's new area, selftest's section (GPU-dependent checks skipped with a line when no GPU), tools/prepush.sh installed by `fedokawaii copy`; the loop's commit step runs prepush.
 accept: every r24–r27 ledger item has a check or a written reason it cannot be automated (≤ 5 such, each with the manual step); tools/prepush.sh green; selftest runs them; the loop's passes use prepush before every push.
 
-### T53a — the bar's hang in waybar itself (lane-asobi 19:19): Custom::~Custom joins a thread a pthread_cancel left stuck, the bar deaf on any monitor drop (his monitor's power button too). lane-asobi's bar_unstuck restarts a stuck bar; the owner's rule is to patch what limits us  [todo]
+### T53a — the bar's hang in waybar itself (lane-asobi 19:19): Custom::~Custom joins a thread a pthread_cancel left stuck, the bar deaf on any monitor drop (his monitor's power button too). lane-asobi's bar_unstuck restarts a stuck bar; the owner's rule is to patch what limits us  [todo — tonight the watchdog stands (bar_unstuck in kawa-display; Super+Ctrl+R too); a patched waybar waits for the next round, on Fedora 45's waybar]
 deps: lane-asobi merged  · model: main  · ledger: r27-53a
 Build waybar from a pinned source with that cancel-and-join gone (only if a clean patch is small; check upstream's issue tracker first), or keep the watchdog and say why. accept: tools/regress/bar-cycles.sh 100 cycles, no restart needed.
 
