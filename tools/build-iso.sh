@@ -177,7 +177,8 @@ cp "$work/grub.cfg" "$mine/EFI/BOOT/BOOT.conf"
 cp "$work/grub.cfg" "$mine/boot/grub2/grub.cfg"
 cp "$work/rpm/usr/lib/grub/x86_64-efi/gfxterm_background.mod" "$mine/boot/grub2/x86_64-efi/"
 cp -r "$work/art/grub" "$mine/boot/grub2/themes/fedokawaii"
-{ grep -vE '  \./(EFI/BOOT/(grub\.cfg|BOOT\.conf)|boot/grub2/grub\.cfg)$' "$sums"
+# (not the three files we replace, nor the BIOS boot image: xorriso writes its boot table into that one)
+{ grep -vE '  \./(EFI/BOOT/(grub\.cfg|BOOT\.conf)|boot/grub2/grub\.cfg|images/eltorito\.img)$' "$sums"
   (cd "$mine" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum); } | LC_ALL=C sort -k2 >"$work/fk-sums"
 
 # ── the ISO ─────────────────────────────────────────────────────────────────
@@ -197,5 +198,10 @@ xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \
   -map "$work/rpm/usr/lib/grub/x86_64-efi/gfxterm_background.mod" /boot/grub2/x86_64-efi/gfxterm_background.mod \
   -alter_date_r b "=$SOURCE_DATE_EPOCH" / -- \
   >"$work/xorriso.log" 2>&1 || { tail -n 20 "$work/xorriso.log" >&2; exit 1; }
+# (what the drive gives back is what was meant to go in: the check a stick gets, here first)
+xorriso -no_rc -osirrox on -indev "$iso" -extract / "$work/back" >/dev/null 2>&1
+(cd "$work/back" && sha256sum --quiet --strict -c "$work/fk-sums") >&2 \
+  || { echo "build-iso: the ISO does not read back as written" >&2; rm -f "$iso"; exit 1; }
+chmod -R u+w "$work/back"; rm -rf "$work/back"
 (cd "$out" && sha256sum "${iso##*/}") >"$iso.sha256"
 say "built: $(cut -c1-16 "$iso.sha256") $(stat -c %s "$iso") bytes"
