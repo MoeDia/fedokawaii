@@ -77,7 +77,7 @@ called 'kawa-fixer\] reapply --fixes /var/lib/fedokawaii/update/fixes --home /ho
 a=$(grep -n 'dnf\] -y -C replay' "$CALLS" | head -n1 | cut -d: -f1); b=$(grep -n 'kawa-fixer\] reapply .* --root /$' "$CALLS" | tail -n1 | cut -d: -f1)
 ((a < b)) && _ok || _no "the fix on the system before its packages ($a, $b)"
 case_ "…the kept fix on later candidates too, before their checks"
-called 'kawa-fixer\] reapply --fixes /var/lib/fedokawaii/update/fixes --home /run/fedokawaii/top/home.cand/fkuser --root /run/fedokawaii/top/root.cand'
+called 'kawa-fixer\] reapply --fixes /var/lib/fedokawaii/update/fixes(\.new)? --home /run/fedokawaii/top/home.cand/fkuser --root /run/fedokawaii/top/root.cand'
 case_ "…the next press: the kept fix in force, nothing asked of the model"
 reset_calls; up; eq "$RC" 0; not_called 'kawa-fixer\] run'; called 'kawa-fixer\] reapply'
 
@@ -118,7 +118,7 @@ EOS
 up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
 called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'
 [[ ! -e $U/fixes/fix-1.json && ! -e $U/fix-new ]] && _ok || _no "the fix stayed after the update was undone: $(find "$U/fixes" -type f 2>/dev/null | tr '\n' ' ')"
-called 'versionlock exclude foot-1.25-1.fc44'
+called 'versionlock exclude .*foot-1.25-1.fc44'
 
 case_ "a fix proven by a run that ended before its package went in: never in force, asked anew"
 fixer_set fixed; mkdir -p "$U/fixes.new"; echo '{}' >"$U/fixes.new/stale.json"; pending "bash 5.2-1.fc44 5.3-1.fc44"; rm -f "$FKH/cand-red"
@@ -133,7 +133,7 @@ up; eq "$RC" 0; grep -qx /run/fedokawaii/top/home.cand "$FKH/subvolumes" && _no 
 case_ "the real program as root: its server runs as the desktop's user with no network, a home's file written as its owner"
 back built
 HH=$W/home/fkuser; RT=$HH/.local/lib/fedokawaii/llama-b12110; MD=$HH/.local/share/fedokawaii/models
-mkdir -p "$RT/answers" "$MD" "$HH/.config/foot" "$W/tmp/fxcase/root" "$W/tmp/fxcase/log"
+mkdir -p "$RT/answers" "$MD" "$HH/.config/foot" "$W/var/tmp/fxcase/root" "$W/var/tmp/fxcase/log"
 cp "$REPO/tests/installer/fixer-stub-server.py" "$RT/llama-server"; chmod 755 "$RT/llama-server"
 printf 'tiny model' >"$MD/tiny.gguf"; SUM=$(sha256sum "$MD/tiny.gguf" | cut -d' ' -f1)
 printf '[main]\nutempter=none\n' >"$HH/.config/foot/foot.ini"
@@ -142,15 +142,15 @@ cat >"$W/usr/local/bin/foot" <<'FOOTEOF'
 if grep -q ^utempter "$HOME/.config/foot/foot.ini"; then echo " err: $HOME/.config/foot/foot.ini:2: [main].utempter: not a valid option: utempter" >&2; exit 230; fi
 FOOTEOF
 chmod 755 "$W/usr/local/bin/foot"
-printf 'stuff utmp-helper more' >"$W/tmp/fxcase/root/foot.bin"
+printf 'stuff utmp-helper more' >"$W/var/tmp/fxcase/root/foot.bin"
 printf '{"verdict":"fix","reason":"renamed","edits":[{"file":"~/.config/foot/foot.ini","search":"utempter=none","replace":"utmp-helper=none"}]}' >"$RT/answers/1"
-mkdir -p "$W/tmp/fxsys/card0/device"; echo 17095983104 >"$W/tmp/fxsys/card0/device/mem_info_vram_total"; echo 500000000 >"$W/tmp/fxsys/card0/device/mem_info_vram_used"; echo 0x1002 >"$W/tmp/fxsys/card0/device/vendor"; echo 0x7590 >"$W/tmp/fxsys/card0/device/device"
-printf '#!/bin/sh\nexec runuser -u fkuser -- env HOME=/home/fkuser PATH=/usr/local/bin:/usr/bin:/bin "$@"\n' >"$W/tmp/fxcase/runner"; chmod 755 "$W/tmp/fxcase/runner"
-jq -n '{why: ["foot does not take its config"], packages: [{name: "foot", old: "1", new: "2"}], runner: ["/tmp/fxcase/runner"], home: "/home/fkuser", home_in: "/home/fkuser", root: "/tmp/fxcase/root", root_in: "/tmp/fxcase/root", old_root: "/tmp/fxcase/root", user: "fkuser", user_home: "/home/fkuser", budget_s: 60, stall_s: 5}' >"$W/tmp/fxcase/case.json"
-cat >"$W/tmp/fxcase/pinned" <<PINEOF
+mkdir -p "$W/var/tmp/fxsys/card0/device"; echo 17095983104 >"$W/var/tmp/fxsys/card0/device/mem_info_vram_total"; echo 500000000 >"$W/var/tmp/fxsys/card0/device/mem_info_vram_used"; echo 0x1002 >"$W/var/tmp/fxsys/card0/device/vendor"; echo 0x7590 >"$W/var/tmp/fxsys/card0/device/device"
+printf '#!/bin/sh\nexec runuser -u fkuser -- env HOME=/home/fkuser PATH=/usr/local/bin:/usr/bin:/bin "$@"\n' >"$W/var/tmp/fxcase/runner"; chmod 755 "$W/var/tmp/fxcase/runner"
+jq -n '{why: ["foot does not take its config"], packages: [{name: "foot", old: "1", new: "2"}], runner: ["/var/tmp/fxcase/runner"], home: "/home/fkuser", home_in: "/home/fkuser", root: "/var/tmp/fxcase/root", root_in: "/var/tmp/fxcase/root", old_root: "/var/tmp/fxcase/root", user: "fkuser", user_home: "/home/fkuser", budget_s: 60, stall_s: 5}' >"$W/var/tmp/fxcase/case.json"
+cat >"$W/var/tmp/fxcase/pinned" <<PINEOF
 import importlib.machinery, importlib.util, sys
 sys.dont_write_bytecode = True
-s = importlib.util.spec_from_loader("kf", importlib.machinery.SourceFileLoader("kf", "/tmp/fxcase/kawa-fixer"))
+s = importlib.util.spec_from_loader("kf", importlib.machinery.SourceFileLoader("kf", "/var/tmp/fxcase/kawa-fixer"))
 m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
 m.MODEL.update({"file": "tiny.gguf", "sha": "$SUM", "size": 10, "vram_mib": 100, "ctx": 4096})
 m.PROGRAMS["foot"]["binary"] = "/foot.bin"
@@ -158,10 +158,10 @@ m.LOAD_S = 10
 sys.argv = ["kawa-fixer"] + sys.argv[1:]
 sys.exit(m.main())
 PINEOF
-cp "$REPO/system/kawa-fixer" "$W/tmp/fxcase/kawa-fixer"
+cp "$REPO/system/kawa-fixer" "$W/var/tmp/fxcase/kawa-fixer"
 fk chown -R fkuser:fkuser /home/fkuser/.local /home/fkuser/.config
-fkrun env KAWA_FIXER_SYSFS=/tmp/fxsys python3 -B -I /tmp/fxcase/pinned run /tmp/fxcase/case.json --out /tmp/fxcase/out.json --log /tmp/fxcase/log
-eq "$RC" 0 "$OUT"; eq "$(jq -r .verdict "$W/tmp/fxcase/out.json")" fixed "$(jq -r .reason "$W/tmp/fxcase/out.json")"
+fkrun env KAWA_FIXER_SYSFS=/var/tmp/fxsys python3 -B -I /var/tmp/fxcase/pinned run /var/tmp/fxcase/case.json --out /var/tmp/fxcase/out.json --log /var/tmp/fxcase/log
+eq "$RC" 0 "$OUT"; eq "$(jq -r .verdict "$W/var/tmp/fxcase/out.json")" fixed "$(jq -r .reason "$W/var/tmp/fxcase/out.json")"
 fkrun stat -c '%U' /home/fkuser/.config/foot/foot.ini; has "$OUT" fkuser "its owner kept"
 has "$(cat "$HH/.config/foot/foot.ini")" utmp-helper=none
 eq "$(grep -c : "$RT/netdev")" 1 "its loopback alone"; has "$(cat "$RT/netdev")" "lo:"

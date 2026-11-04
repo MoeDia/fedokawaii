@@ -67,7 +67,8 @@ ROUNDS = 5           # edits kept while each still moves the check on to the nex
 MAX_TOKENS = 4000    # one answer, thinking included
 STALL_S = 300        # no word from the server for this long: it hangs
 LOAD_S = 300         # the model's load
-MAX_LINES = 16       # lines an answer may change, added and removed together
+MAX_LINES = 10       # lines an answer may change, added and removed together
+MAX_TEXT = 2000      # characters of one edit's text
 EVIDENCE = {"check": 2500, "config": 9000, "diff": 5000, "docs": 9000, "news": 3000}
 
 # ── the programs it may touch, each with its own check. A program not here, or a failure of another
@@ -111,7 +112,7 @@ PROGRAMS = {
     "nvim": {
         "packages": ["neovim", "nvim"], "says": r"\bnvim\b|\bneovim\b", "kind": "lua", "binary": "/usr/bin/nvim",
         "files": ["~/.config/nvim/init.lua", "~/.config/nvim/lua/**/*.lua"],
-        "check": ["nvim", "--headless", "--cmd", "let g:fk_fixer_check=1", "+qa"],
+        "check": ["nvim", "--headless", "+qa"],
         "red": r"\bE\d+:|Error in |Error detected|Unknown option",
         "man": ["man1/nvim.1"], "news": ["/usr/share/nvim/runtime/doc/news.txt", "/usr/share/nvim/runtime/doc/deprecated.txt"],
         "docs": ["/usr/share/nvim/runtime/doc/options.txt"],
@@ -609,8 +610,9 @@ def docs_diff(old, new, names, near, cap):
         cur.append(line)
     if cur:
         hunks.append(cur)
-    hit = [h for h in hunks if any(n in x for x in h for n in [*names, *near])]
-    return trim("\n".join(x for h in (hit or hunks[:3]) for x in h), cap)
+    named = [h for h in hunks if any(n in x for x in h for n in names)]
+    close = [h for h in hunks if h not in named and any(n in x for x in h for n in near)]
+    return trim("\n".join(x for h in (named + close or hunks[:3]) for x in h), cap)
 
 
 def binary_words(prog, place):
@@ -657,7 +659,7 @@ def pack(prog, place, check_out, target_files, feedback=""):
     dd, news, dr = [], [], EVIDENCE["docs"]
     for name, (_, new) in docs.items():
         if name in prog.get("news", []):
-            hits = excerpts(new, names, near, EVIDENCE["news"] // max(1, len(prog["news"])))
+            hits = excerpts(new, names, near, EVIDENCE["news"] // max(1, len(prog["news"])), before=1, after=6)
             if hits:
                 news.append(f"--- {name}\n{hits}")
             continue
@@ -796,9 +798,12 @@ def kind_of(path, default="ini"):
     return default
 
 
-def plan_edits(answer, allowed, place, kind="ini"):
+def plan_edits(answer, allowed, place, kind="ini", complaint=""):
     """the answer as {real path: new text}, with the problems found → (plan, problems)"""
-    problems, plan = [], {}
+    problems, plan, done = [], {}, set()
+    def fold(t):
+        return t.lower().replace("_", "-")
+    named = [fold(n) for n in refused_names(complaint)]
     shown = {place.shown(f): f for f in allowed}
     for e in answer.get("edits", []):
         # (the docs' section.option written as a key, the models' one common slip in an INI file: it means this)
@@ -815,16 +820,26 @@ def plan_edits(answer, allowed, place, kind="ini"):
         if search == replace and not e.get("section"):
             problems.append(f"{name}: an edit that changes nothing")
             continue
+        if len(search) + len(replace) > MAX_TEXT:
+            problems.append(f"{name}: an edit too long for a fix")
+            continue
         if e.get("section") and (kind not in ("ini", "toml") or not re.fullmatch(r"\[?[\w:=.-]+\]?", e["section"])):
             problems.append(f"{name}: {e['section']!r} is no section of this kind of file")
             continue
         if kind in ("ini", "toml") and len(headers(replace)) > len(headers(search)):
             problems.append(f"{name}: a [header] in the middle of a file takes the lines after it away from their section: give it in \"section\" instead")
             continue
+        # (each edit is about what the program complains of: no second change slipped in beside the fix)
+        if named and not any(n in fold(search + replace) for n in named):
+            problems.append(f"{name}: this edit does not touch what the program complains of ({', '.join(named[:4])}): {search[:80]!r}")
+            continue
         if re.search(r"[\x00-\x08\x0b-\x1f\x7f]", search + replace):
             problems.append(f"{name}: an edit with control characters")
             continue
         for f in moods_of(shown[name]):
+            if (f, search) in done:    # (an answer naming both moods: the first edit reached both)
+                continue
+            done.add((f, search))
             text = plan.get(f, read_text(f))
             n = len(find_span(text, search, kind))
             if n != 1:
@@ -834,7 +849,17 @@ def plan_edits(answer, allowed, place, kind="ini"):
     return plan, problems
 
 
-def validate(prog, plan, corpus, binary):
+def changelog_names(news, key):
+    """what the changelog names around each mention of KEY, in its `marks`: where it says what replaced it"""
+    lines = news.splitlines()
+    out = set()
+    for i, line in enumerate(lines):
+        if re.search(rf"`[^`]*(?<![\w-]){re.escape(key)}(?![\w-])[^`]*`", line):
+            out.update(re.findall(r"`([^`]+)`", "\n".join(lines[max(0, i - 6):i + 7])))
+    return {n for n in out if key not in n or n != key}
+
+
+def validate(prog, plan, corpus, binary, news=""):
     """every rule an edit must pass (B6 #11–15): the problems found, in words the model can act on"""
     kind = prog["kind"]
     problems = []
@@ -874,6 +899,13 @@ def validate(prog, plan, corpus, binary):
                 p = m.group(1)
                 if p not in old and len(p) > 1:
                     problems.append(f"the path {p!r} may not be brought in by a fix")
+        # the changelog says what replaced it: then that is what replaces it, not a neighbour that also passes
+        gone = {k for x in real_rem for k in keys_in(x, kind)}
+        came = {k for x in real_add for k in keys_in(x, kind)} - gone
+        for k in gone - {k for x in real_add for k in keys_in(x, kind)}:
+            said = changelog_names(news, k)
+            if said and came and not any(c in n for c in came for n in said):
+                problems.append(f"the changelog names what replaced {k!r}, and {', '.join(sorted(came))} is not among them: {', '.join(sorted(said))}")
         # a deletion is not a fix — unless the new version's own news says the option went
         if real_rem and not real_add:
             for x in real_rem:
@@ -948,6 +980,7 @@ def fix_one(name, case, place, sock, seed0, report, logdir):
         raise Held("no-file", f"{name}: none of its config files is here")
     corpus_docs = docs_of(prog, place)
     corpus = "\n".join(v[1] for v in corpus_docs.values())
+    news = "\n".join(v[1] for k, v in corpus_docs.items() if k in prog.get("news", []))
     binary = binary_words(prog, place)
     red, out = own_check(prog, case, place)
     if not red:
@@ -990,8 +1023,8 @@ def fix_one(name, case, place, sock, seed0, report, logdir):
         elif not answer.get("edits"):
             problems = ["verdict fix with no edits"]
         else:
-            plan, problems = plan_edits(answer, allowed, place, prog["kind"])
-            problems += validate(prog, plan, corpus, binary) if plan else []
+            plan, problems = plan_edits(answer, allowed, place, prog["kind"], out)
+            problems += validate(prog, plan, corpus, binary, news) if plan else []
         if not problems:
             backup = {f: read_text(f) for f in plan}
             for f, t in plan.items():

@@ -139,6 +139,12 @@ CASES = [
          why="the boot image of 7.3.1-200.fc45.x86_64 has no btrfs, and 7.3.1-200.fc45.x86_64 has it not built in", pkgs=["kernel-core"]),
     dict(name="hold-green-check", level=3, prog="foot", file=None, expect="hold", cls="green",
          why="foot does not take its config (foot --check-config)", pkgs=["foot"]),
+    dict(name="foot-theme-value", level=2, prog="foot", file=".config/foot/foot.ini", rpm=F45_FOOT,
+         breaks=after("main", "initial-color-theme=1"), gold=[r"(?m)^initial-color-theme=dark$"], never=[r"(?m)^initial-color-theme=1"]),
+    dict(name="mako-anchor-word", level=2, prog="mako", file=".config/mako/config",
+         breaks=append("anchor=top-centre"), gold=[r"(?m)^anchor=top-center$"], never=[r"top-centre"]),
+    dict(name="hold-mako-unknown", level=3, prog="mako", file=".config/mako/config",
+         breaks=append("quantum-flux-level=9"), expect="hold", never=[r"(?m)^#\s*quantum"]),
     # ── the real thing: Fedora 45's own foot 1.28 (this PC's next update), its real complaint, its real docs against 1.27's:
     #    1.28's changelog: "[colors] and [colors2] config sections, and the corresponding color-theme-switch-1 and -2 key
     #    bindings" removed, replaced by [colors-dark], [colors-light], color-theme-switch-dark and -light ──

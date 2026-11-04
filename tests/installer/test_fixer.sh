@@ -98,7 +98,7 @@ serve_stub; fresh; before=$(conf); answer 'nope'; answer 'nope again'; answer "$
 eq "$RC" 3; eq "$(j .class)" wrong; eq "$(conf)" "$before"; eq "$(requests)" 2
 
 case_ "a search not in the file, or there twice: refused before anything is written"
-serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'nothing like this' 'x=1')"; answer "$(edit "$FOOT" 'e' 'x=1')"; fixer
+serve_stub; fresh; printf '[main]\nutempter=none\n# utempter is old\n' >"$H/.config/foot/foot.ini"; before=$(conf); answer "$(edit "$FOOT" 'utempter=nothing' 'utempter=x')"; answer "$(edit "$FOOT" 'utempter' 'utmp-helper')"; fixer
 eq "$RC" 3; eq "$(conf)" "$before"; has "$(j '.refused | flatten | join(" ")')" "occurs 0 times"; has "$(j '.refused | flatten | join(" ")')" "must occur exactly once"
 
 case_ "another file, however asked: refused, never read, never written"
@@ -113,7 +113,7 @@ eq "$RC" 3; eq "$(conf)" "$before"; has "$(j '.refused | flatten | join(" ")')" 
 has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" "utmp-invented"
 
 case_ "a key the program's own bytes hold counts as documented (no docs needed)"
-serve_stub; fresh; printf 'stuff\0utmp-frombinary\0more' >"$R/usr/bin/foot"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-frombinary=none')"; fixer
+serve_stub; fresh; printf '# nothing here\n' >"$R/usr/share/doc/foot/CHANGELOG.md"; printf 'stuff\0utmp-frombinary\0more' >"$R/usr/bin/foot"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-frombinary=none')"; fixer
 eq "$RC" 0
 
 case_ "a command, a download, a new path brought in by an answer: refused, whatever a changelog says"
@@ -165,6 +165,22 @@ case_ "the old value gone with nothing in the docs showing the new one: refused"
 serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=somethingelse')"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
 eq "$RC" 0; eq "$(j .tries)" 2; has "$(j '.refused | flatten | join(" ")')" "keeps none of the old value"
 
+case_ "the changelog says what replaced it: a neighbour that also passes the check is refused, told which"
+serve_stub; fresh; before=$(conf); printf '\n\n\n\n\n\n\n\n* `other-name` is an option\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"
+answer "$(edit "$FOOT" 'utempter=none' 'other-name=none')"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
+eq "$RC" 0; eq "$(j .tries)" 2; has "$(conf)" utmp-helper=none; lacks "$(conf)" other-name; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" "the changelog names what replaced"
+case_ "no mention in the changelog: the rule has nothing to say"
+serve_stub; fresh; printf '# nothing here\n' >"$R/usr/share/doc/foot/CHANGELOG.md"; printf 'stuff new-name stuff' >"$R/usr/bin/foot"; answer "$(edit "$FOOT" 'utempter=none' 'new-name=none')"; fixer; eq "$RC" 0
+
+case_ "a second change slipped in beside the fix: refused, nothing written"
+serve_stub; fresh; before=$(conf); printf '* the font option is documented\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"
+answer '{"verdict":"fix","reason":"r","edits":[{"file":"~/.config/foot/foot.ini","search":"utempter=none","replace":"utmp-helper=none"},{"file":"~/.config/foot/foot.ini","search":"font=Sumi Term:pixelsize=16","replace":"font=Comic:pixelsize=30"}]}'
+answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
+eq "$RC" 3; eq "$(conf)" "$before"; has "$(j '.refused | flatten | join(" ")')" "does not touch what the program complains of"
+case_ "an edit too long for a fix: refused"
+serve_stub; fresh; before=$(conf); big=$(printf 'x%.0s' $(seq 2100)); answer "$(edit "$FOOT" 'utempter=none' "utmp-helper=$big")"; answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
+eq "$RC" 3; eq "$(conf)" "$before"
+
 case_ "a value's form may change: the old value's letters stay"
 serve_stub; fresh; printf '[main]\nutempter=20pixels\n' >"$H/.config/foot/foot.ini"; answer "$(edit "$FOOT" 'utempter=20pixels' 'utmp-helper=20px')"; fixer
 eq "$RC" 0; has "$(conf)" utmp-helper=20px
@@ -210,9 +226,10 @@ serve_stub; fresh; before=$(conf); answer '{"verdict":"fix","reason":"r","edits"
 eq "$RC" 3; eq "$(conf)" "$before"
 
 case_ "the program still refuses it: put back, the second try is told what it said"
-serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'font=Sumi Term:pixelsize=16' 'font=Sumi Term:pixelsize=14')"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
+serve_stub; fresh; before=$(conf); printf '* `utmp-other` exists too\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"; answer "$(edit "$FOOT" 'font=Sumi Term:pixelsize=16' $'font=Sumi Term:pixelsize=16\nutmp-other=none')"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"
+sed -i 's/utmp-other/utempter-other/g' "$FK_STUB/answers/1" "$R/usr/share/doc/foot/CHANGELOG.md"; fixer
 eq "$RC" 0; eq "$(j .tries)" 2; has "$(conf)" pixelsize=16; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" "still refuses"
-eq "$(j '.edits | length')" 1
+eq "$(j '.edits | length')" 1; lacks "$(conf)" utempter-other
 
 case_ "a program stops at its first complaint: each edit that moves it on is kept, the wrong count untouched"
 serve_stub; fresh; printf '[main]\nutempter=none\nsecond_bad=1\n' >"$H/.config/foot/foot.ini"; printf '* `second_good` replaces second_bad\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"
@@ -231,6 +248,13 @@ printf '* `old_color` renamed to `new_color`\n' >>"$R/usr/share/doc/foot/CHANGEL
 answer "$(edit '~/.config/fedokawaii/themes/dark/foot.ini' 'old_color=111' 'new_color=111')"; fixer
 eq "$RC" 0; has "$(cat "$H/.config/fedokawaii/themes/dark/foot.ini")" new_color=111; has "$(cat "$H/.config/fedokawaii/themes/light/foot.ini")" new_color=111
 eq "$(readlink "$H/.config/fedokawaii/current")" themes/dark
+
+case_ "an answer that names both moods itself: the same edit, once in each"
+serve_stub; fresh; mkdir -p "$H/.config/fedokawaii/themes/dark" "$H/.config/fedokawaii/themes/light"; ln -s themes/dark "$H/.config/fedokawaii/current"
+printf '[main]\n' >"$H/.config/foot/foot.ini"; printf 'old_color=111\n' >"$H/.config/fedokawaii/themes/dark/foot.ini"; printf 'old_color=111\n' >"$H/.config/fedokawaii/themes/light/foot.ini"
+printf '* `old_color` renamed to `new_color`\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"
+answer '{"verdict":"fix","reason":"r","edits":[{"file":"~/.config/fedokawaii/themes/dark/foot.ini","search":"old_color=111","replace":"new_color=111"},{"file":"~/.config/fedokawaii/themes/light/foot.ini","search":"old_color=111","replace":"new_color=111"}]}'; fixer
+eq "$RC" 0 "$OUT"; eq "$(cat "$H/.config/fedokawaii/themes/dark/foot.ini")" new_color=111; eq "$(cat "$H/.config/fedokawaii/themes/light/foot.ini")" new_color=111
 
 case_ "an edit that fits one mood only: refused, neither touched"
 serve_stub; fresh; mkdir -p "$H/.config/fedokawaii/themes/dark" "$H/.config/fedokawaii/themes/light"; ln -s themes/dark "$H/.config/fedokawaii/current"
