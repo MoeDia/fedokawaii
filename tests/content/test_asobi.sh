@@ -56,11 +56,11 @@ eq "$(cut -f1 <<<"$OUT" | tr '\n' ' ')" "enter bottles close snapshot reset disk
 has "$(grep -P '^enter\t' <<<"$OUT")" asleep
 echo away >"$KAWA_ASOBI_RUN/state"; has "$(rows main | grep -P '^enter\t')" running
 
-case_ "every row is as wide as the screen: value right-aligned on the last column, at any width"
+case_ "every row as wide as the screen, less the column screen_row leaves free: value right-aligned, at any width"
 . "$HOME/.config/fedokawaii/screen.sh"
 for w in 40 60 90; do
   while IFS=$'\t' read -r k r; do
-    [[ $k == @(reset|disk|drop) ]] && eq "$(screen_cols "$r")" "$w" "row of width $(screen_cols "$r") at $w: $r"
+    [[ $k == @(reset|disk|drop) ]] && eq "$(screen_cols "$r")" "$((w - 1))" "row of width $(screen_cols "$r") at $w: $r"
   done < <(bash "$A" --rows main "$w")
 done
 
