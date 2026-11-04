@@ -918,6 +918,26 @@ explain() {
     return 0
   }
   say() { local l; for l; do printf '   %s%s%s\n' "$G" "$l" "$O"; done; }   # (muted, three columns in)
+  learn_cover() {   # the book's cover (tools/build-cover.py) over the words: as tall as they leave room for, never
+    # the pane's last row (a picture touching it scrolls the window: fzf #2544), its left edge on the words' column.
+    # Drawn once for a cell, a room and a mood's ground, then kept: the pane follows the cursor
+    local pic=$TK/docs/learn/cover-thumb.png cell=${KAWA_CELL:-} room=$(( ${FZF_PREVIEW_LINES:-0} - 3 - 5 )) cw ch h w six C_GROUND=""
+    [[ $cell =~ ^[1-9][0-9]*x[1-9][0-9]*$ && -r $pic ]] && ((room >= 6)) || return 0
+    # shellcheck source=/dev/null
+    . "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
+    cw=${cell%x*} ch=${cell#*x}
+    h=$(( room * ch / 6 * 6 )) w=$(( h * 336 / 475 ))
+    six=$CACHE/learn-cover.$cell.$room.$C_GROUND.$(stat -c %Y -- "$pic").six
+    if [[ ! -s $six ]]; then
+      mkdir -p -- "$CACHE" 2>/dev/null
+      rm -f -- "$CACHE"/learn-cover.*.six 2>/dev/null                   # (another size's, another mood's: one kept)
+      LC_ALL=C magick -size "$(( 3 * cw + w ))x$h" "xc:#$C_GROUND" \( "$pic" -resize "${w}x${h}!" \) -geometry "+$(( 3 * cw ))+0" -composite png:- 2>/dev/null \
+        | kawa-sixel "$C_GROUND" >"$six.$$" && mv -f -- "$six.$$" "$six"
+      rm -f -- "$six.$$"
+    fi
+    [[ -s $six ]] || return 0
+    cat -- "$six"; printf '\n\n'                                         # (the picture leaves the cursor on its last row)
+  }
   learn_rows() {   # the lessons: how far, the next (its name in pieces at its words, never cut), how long is left
     local d="" t="" nx="" m="" lf="" h l
     IFS=$'\t' read -r d t nx m lf 2>/dev/null <"$LEARN_PLACE"
@@ -1035,9 +1055,7 @@ explain() {
     drive)     pick 'running'; drive_rows
                say "the drive your backups go to. enter: another," \
                    "from the drives plugged in." ;;
-    learn)     pick 'running'; learn_rows
-               say "the book, in lessons you do one by one," \
-                   "beside a terminal." ;;
+    learn)     pick 'running'; learn_cover; learn_rows ;;
     chess)     soon "chess from the first move to 1800: games," \
                     "puzzles, lessons." ;;
     typing)    soon "touch typing, finger by finger, to 100 words" \
@@ -1360,6 +1378,8 @@ learn() {   # the lessons: a window of their own on the desktop, tiled — what 
 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
   local self pop="" listen=() launch=""
+  # (the cell's size in pixels, for the lessons' cover: fzf tells a preview its columns, never its pixels)
+  [[ -n ${KAWA_CELL:-} ]] || { KAWA_CELL=$(kawa-cell 2>/dev/null) && export KAWA_CELL; }
   self=$(printf '%q' "$0")
   # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own; the
   # popup is warm — kawa-warm reads its list again through fzf's socket as it shows)

@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # kawa-books — Super+R: your books in a small floating terminal. Every PDF, EPUB, MOBI,
-# FB2, XPS and comic book (CBZ, CBR, CB7) in ~/Books, the ones you are reading first:
+# FB2, XPS and comic book (CBZ, CBR, CB7) in ~/Books, and the desktop's own Learn book, the
+# ones you are reading first:
 # each with how far in you are — the page zathura remembered when you last closed it,
 # a bar, and the page count where the file has one (EPUBs flow their pages to the window,
 # so for those it is the page alone). The cover of the one under the cursor shows beside.
@@ -21,6 +22,7 @@ set -u
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
 BOOKS=${KAWA_BOOKS:-$HOME/Books}
+LEARN_BOOK=${KAWA_LEARN_BOOK:-/usr/local/lib/fedokawaii/docs/Fedokawaii-Learn.pdf}   # (the toolkit's: on the shelf, never in ~/Books)
 CACHE=${XDG_CACHE_HOME:-$HOME/.cache}/kawa-books
 # every list of the desktop looks alike: one options file (rules, colours, the chevron)
 export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
@@ -40,6 +42,7 @@ read -r -d '' ROWS <<'PY' || true
 import calendar, json, os, sqlite3, subprocess, sys, time, unicodedata, urllib.parse
 from concurrent.futures import ThreadPoolExecutor
 books, cache, db, width = sys.argv[1], sys.argv[2], sys.argv[3], int(sys.argv[4])
+learn = os.environ.get("LEARN_BOOK", "")
 # a name that is not UTF-8 (an old zip's) goes out as the bytes it is, as the path to open
 sys.stdout.reconfigure(errors="surrogateescape")
 exts = {e: e for e in sys.argv[5:]}; exts["oxps"] = "xps"
@@ -90,6 +93,8 @@ for root, dirs, files in os.walk(books):
         kind = exts.get(f.rsplit(".", 1)[-1].lower()) if "." in f else None
         if kind and not f.startswith(".") and "\t" not in f and "\n" not in f:
             found.append((os.path.join(root, f), kind))
+if os.path.isfile(learn):          # (the desktop's own book: its cover is the first thing on the shelf to look at)
+    found.append((learn, "pdf"))
 
 try:
     known = json.load(open(os.path.join(cache, "pages.json")))
@@ -159,7 +164,7 @@ for path, kind in found:
         continue
     sz, mt, pages = fresh[path]
     seen = read.get(os.path.realpath(path)) or by_name.get(os.path.basename(path))
-    title = os.path.splitext(os.path.basename(path))[0].replace("_", " ")
+    title = "fedokawaii — learn" if path == learn else os.path.splitext(os.path.basename(path))[0].replace("_", " ")
     tw = width - 4 - 2 - 10 - 2 - 9            # (the row: glyph 4 · title · 2 · meter 10 · 2 · mark 9)
     if seen:
         page = seen[0] + 1
@@ -196,7 +201,7 @@ PY
 rows() {
   local w=${KAWA_BOOKS_W:-61}   # (the 104-column window)
   [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 41))   # (the cursor's fill a column past the text each side)
-  ICON_BOOK=$ICON_BOOK ICON_READ=$ICON_READ ICON_READ_OFF=$ICON_READ_OFF \
+  ICON_BOOK=$ICON_BOOK ICON_READ=$ICON_READ ICON_READ_OFF=$ICON_READ_OFF LEARN_BOOK=$LEARN_BOOK \
     python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
 }
 
@@ -383,6 +388,7 @@ case ${1:-} in
     exit 0 ;;
   --remove)
     [[ -f ${2:-} ]] || exit 0
+    [[ $2 == "$LEARN_BOOK" ]] && { notify-send -a desktop -- "$ICON_BOOK  books" "the learn book stays: it is part of the desktop" 2>/dev/null; exit 0; }
     gio trash -- "$2" 2>/dev/null || notify-send -a desktop -- "$ICON_BOOK  books" "could not move ${2##*/} to the trash"
     exit 0 ;;
   --add)        # books elsewhere in your home → ~/Books (moved; a name taken gets " (2)")

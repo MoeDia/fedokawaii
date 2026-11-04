@@ -55,10 +55,10 @@ os.makedirs(IMG, exist_ok=True)
 # the desktop's own faces: Sumi UI (the toolkit's, system/fonts) for headings and labels —
 # in print at 12 px, three quarters of its grid: its letters 6 px a column, the panels' units
 # below unchanged; its pixels are squares of the outline, sharp at any zoom — and the
-# toolkit's Sumi Icons; the cover is the dark theme's default wallpaper, ink-ridges-night
+# toolkit's Sumi Icons; the cover is tools/build-cover.py's engraving, full bleed
 PIXEL = os.environ.get("FEDOKAWAII_PIXEL_FONT", f"{REPO}/system/fonts/SumiUI.ttf")
 SUMI = f"{REPO}/configs/home/.local/share/fonts/SumiIcons.ttf"
-COVER = os.environ.get("FEDOKAWAII_COVER", "/home/kawau/.local/share/fedokawaii/wallpapers/dark/ink-ridges-night.src")
+COVER = f"{REPO}/docs/learn/cover.jpg"
 for need in (PIXEL, SUMI, COVER):
     if not os.path.exists(need):
         sys.exit(f"handbook.py: {need} is missing")
@@ -443,13 +443,11 @@ CSS = "\n".join([
     ff("Sym", "/usr/share/fonts/truetype/dejavu/DejaVuSans-Bold.ttf", "700")[:-1] + ";unicode-range:U+2190-23FF,U+25A0-27BF}",
     ff("JBM", f"{S}/mock/fonts/jbm/JetBrainsMonoNerdFont-Regular.ttf"),
 ]) + "\n:root{" + "".join(f"--{k.replace('_', '-')}:#{v};" for k, v in LT.items() if re.fullmatch(r"[0-9a-f]{6}", str(v))) \
-   + "".join(f"--d-{k.replace('_', '-')}:#{v};" for k, v in DK.items() if re.fullmatch(r"[0-9a-f]{6}", str(v))) + "}\n" + f"""
+   + "}\n" + f"""
 @page {{ size: A4; margin: 16mm 0 18mm; background: #{LT['ground']};
   @bottom-center {{ content: counter(page); font-family: DM; font-size: 12px; color: #{LT['muted']}; }} }}
 @page :first {{ margin: 0; background: #{DK['ground']}; @bottom-center {{ content: none; }} }}
-.cover .shade {{ background: linear-gradient(#{DK['ground']}00 0, #{DK['ground']}99 50%, #{DK['ground']}e6 100%); }}
-:root {{ --stitch: {stitch(LT['edge2'], 3, 5, 1)}; --stitch2: {stitch(LT['edge2'], 6, 10, 2)};
-  --d-stitch2: {stitch(DK['edge2'], 6, 10, 2)}; }}
+:root {{ --stitch: {stitch(LT['edge2'], 3, 5, 1)}; --stitch2: {stitch(LT['edge2'], 6, 10, 2)}; }}
 """ + """
 /* ── the system in print ──────────────────────────────────────────────────────────────────
    The panel's units at 1 px = 1 CSS px (a 12 px line of Sumi UI is 9 pt on paper): gap 6,
@@ -564,16 +562,9 @@ h1.part + p { margin-top: var(--u18); }
 .toc li.l1 a { padding-left: calc(18px + 4ch); text-indent: -4ch; } .toc li.l1 .ld { left: 18px; bottom: 5px; }
 .toc li.l2 a { padding-left: calc(18px + 2.3em); text-indent: -2.3em; } .toc li.l2 .ld { left: 18px; }
 
-/* the cover: the dark theme's ink, the moon left clear above the words */
-.cover { height: 297mm; width: 210mm; background: var(--d-ground); color: var(--d-text); position: relative; overflow: hidden; break-after: page; }
+/* the cover: the picture, to the page's edge */
+.cover { height: 297mm; width: 210mm; position: relative; overflow: hidden; break-after: page; }
 .cover img.bg { position: absolute; left: 0; top: 0; width: 100%; height: 100%; }
-.cover .shade { position: absolute; left: 0; bottom: 0; width: 100%; height: 55%; }
-.cover .t { position: absolute; left: 18mm; right: 18mm; bottom: 30mm; }
-.cover .torii { font: 400 48px/48px SUMI; color: var(--d-accent-text); display: block; margin-bottom: var(--u18); }
-.cover h1 { font: 400 48px/56px DM; color: var(--d-strong); margin: 0; letter-spacing: 0; }
-.cover .cst { height: 2px; margin: var(--u18) 0; background: var(--d-stitch2) 0 0 / 10px 2px repeat-x; }
-.cover p.sub { font: 400 24px/30px DM; color: var(--d-text); max-width: 150mm; margin: 0 0 var(--u12); }
-.cover p.date { font: 400 12px/12px DM; color: var(--d-muted); margin: 0; }
 """
 # a table of contents from the headings
 nocode = re.sub(r"^```.*?^```", "", body, flags=re.M | re.S)   # (a "# comment" in a code block is no heading)
@@ -588,19 +579,8 @@ toc = f"<section class='toc'><h1>{heading(KANJI['Contents'], 'Contents')}</h1><o
     f"<li class='{c}'><a href='#t{i}'>{mk}"
     f"<span class='tt'>{markdown.markdown(re.sub(r'^(\d+)\. ', r'\1\\. ', t))[3:-4]}</span><span class='ld'></span><span class='pn'>000</span></a></li>"
     for i, (h, t) in enumerate(heads, 1) for c, mk in [toc_mark(h, t)]) + "</ol></section>"
-# ink-ridges-night, cut to the page (210 × 297): the moon and the ridges under it, from the
-# right of the picture, the moon high in the sky; the title on the dark ridges, shaded under the words
-_c = Image.open(COVER).convert("RGB")
-_h = _c.height
-_w = round(_h * 210 / 297)
-_x = round(_c.width * 0.473)
-cover_bg = f"{IMG}/cover.jpg"
-_c.crop((_x, 0, _x + _w, _h)).save(cover_bg, quality=92)
-torii = chr(0xFE000)
 doc = (f"<!doctype html><html><head><meta charset='utf-8'><title>{H.escape(meta['title'])}</title><style>{CSS}</style></head><body>"
-       f"<section class='cover'><img class='bg' src='file://{cover_bg}'><div class='shade'></div><div class='t'>"
-       f"<span class='torii'>{torii}</span><h1>{'\u00a0'.join(meta['title'].rsplit(' ', 1))}</h1><div class='cst'></div>"
-       f"<p class='sub'>{meta['subtitle']}</p><p class='date'>{meta['date']}</p></div></section>"
+       f"<section class='cover'><img class='bg' src='file://{COVER}'></section>"
        f"<main>{toc}{html}</main></body></html>")
 open(f"{OUT}/guide2.html", "w", encoding="utf-8").write(doc)
 if missing:

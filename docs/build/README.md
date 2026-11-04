@@ -39,8 +39,8 @@ FEDOKAWAII_REPO=/path/to/fedokawaii FEDOKAWAII_SCRATCH=/path/to/work \
 `FEDOKAWAII_OUT` points it at another output folder (a preview). The book is set in the desktop's own faces: Sumi UI (system/fonts, or
 `FEDOKAWAII_PIXEL_FONT`) for headings and labels, the toolkit's Sumi Icons, JetBrains Mono for
 code, Noto Serif and Sans from `@fontsource` for the text; from the system it takes Noto
-Serif/Sans CJK JP for kanji and kana, and DejaVu Sans for arrows and symbols. The cover is the
-dark theme's default wallpaper, ink-ridges-night, as the theme fetched it (`FEDOKAWAII_COVER`); a
+Serif/Sans CJK JP for kanji and kana, and DejaVu Sans for arrows and symbols. The cover is
+`docs/learn/cover.jpg` (`tools/build-cover.py`, its sources in `art/cover/SOURCES.md`); a
 missing font or cover stops the build. It prints twice: the second pass writes the contents' page
 numbers, read from the first.
 
