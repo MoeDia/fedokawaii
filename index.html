@@ -77,6 +77,7 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 </div>
 <div style="margin-top:14px;border-top:1px solid var(--faint);padding-top:10px"><span class="sub">main run, last saved step:</span> <span id="mlast">–</span>
 <details data-k="mrep" style="margin-top:4px"><summary class="sub">main's last report</summary><pre id="mrep" class="notes"></pre></details></div></section>
+<section class="card hot" id="sprintc"><div class="row"><button class="red" id="sprint" style="font-size:16px;padding:10px 18px">▶ final sprint — one click</button><span class="sub">16 lanes at once, and every agent starts a fresh pass that reads tonight's plan (finish by 23:30, merge, apply, Fedora 45, the final ISO). The conductor brings them all back within a few minutes.</span></div><div class="msg" id="smsg"></div></section>
 <section class="card" id="qs"><h2>Questions for you <span class="badge" id="qn"></span><span class="sub">answers go straight to the lane that asked, and to the main run</span></h2><div id="qlist" class="sub">none right now</div></section>
 <section class="card"><h2>Lanes <span class="sub">what every agent is doing; pause one if memory gets tight</span></h2><div id="lanes" class="sub">–</div></section>
 <section class="card"><h2>Control</h2><div class="row">
@@ -213,6 +214,9 @@ document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.datase
 $("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;if(await post({action:"task",text:v},"sent")){$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass"}};
 async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)){if(el)el.value="";setTimeout(()=>{if(LB>=0)lbOpen(LB);drawGal()},1200)}}
 async function ans(key,el){const v=el.value.trim();if(!v)return el.focus();if(await post({action:"answer",key,text:v},"answer sent: the lane and the main run both have it"))el.value=""}
+$("sprint").onclick=async()=>{if(!confirm("Start the final sprint? Every agent restarts its pass now (work since its last commit is lost) and up to 16 lanes run."))return;$("smsg").textContent="starting…";
+ if(await post({action:"sprint"},"final sprint started")){$("smsg").textContent="started at "+new Date().toLocaleTimeString([],{hour:"2-digit",minute:"2-digit"})+" — agents come back over the next few minutes";ls.set("fkr_sprint",Date.now())}};
+if(+ls.get("fkr_sprint","0")>Date.now()-6*3600e3){$("smsg").textContent="already started tonight — no need to press again"}
 function setMax(d){const n=Math.max(4,Math.min(24,((S&&S.conductor.maxl)||14)+d));post({action:"maxl",n},"lanes at once: "+n)}
 function lane(a,n){if(a=="pause"&&!confirm("Pause lane "+n+"? Its saved work stays; resume any time."))return;post({action:a,lane:n},a=="first"?n+" starts next":a+"d: "+n)}
 tick();setInterval(tick,8000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});

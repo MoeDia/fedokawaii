@@ -387,6 +387,17 @@ def act(d):
             rest = [l for l in lines if l not in mine and not l.startswith("# ") and l.strip()]
             tmp = REG.with_suffix(".tmp"); tmp.write_text("\n".join(head + mine + rest) + "\n"); os.replace(tmp, REG)
         _cache.clear()
+    elif a == "sprint":                              # one click: 16 lanes, every agent on a fresh pass (re-reads its notes and the inbox)
+        with LOCK:
+            t = read(CONDUCTOR)
+            if "MAXL=" in t:
+                CONDUCTOR.write_text(re.sub(r"MAXL=\d+", "MAXL=16", t, count=1))
+        for x in units():
+            u = x["unit"]
+            if (u.startswith("r27-lane-") and not u.startswith("r27-lane-conductor")) or u.startswith("r27-nonstop-"):
+                sh("systemctl", "--user", "stop", u)
+        sh("pkill", "-f", "^claude -p")
+        sh("systemctl", "--user", "restart", "r27-lane-conductor.service")
     elif a == "freshpass":                           # every agent starts a fresh pass (re-reads its notes and the inbox)
         for x in units():
             u = x["unit"]
