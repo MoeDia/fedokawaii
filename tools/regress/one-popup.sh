@@ -32,6 +32,8 @@ for f in shots:
     else:
         by_second[name.split("-then-")[1]][b[0]] += 1
 for second, boxes in by_second.items():
+    if second == "slash":         # (Super+/ knows the app you are in: its height follows that app's keys, its middle stays)
+        boxes = collections.Counter({(b[0] + b[2], b[1] + b[3]): n for b, n in boxes.items()})
     if len(boxes) > 1:
         bad.append(f"…-then-{second}: not always at its own place ({dict(boxes)})")
 if len(shots) != 90:
