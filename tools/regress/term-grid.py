@@ -51,7 +51,7 @@ def window_box(a, base):
 def judge(name, a, base, text):
     """A screen's findings. NAME is PROGRAM-COLSxROWS, or a scene's own name."""
     out = []
-    prog = name.split("-")[0].split(":")[-1]
+    prog = name.split("-")[0].split(":")[-1]      # (prompt-80x24 → prompt, zoom+2:yazi → yazi)
     m = re.search(r"-(\d+)x(\d+)$", name)
     cols, rows = (int(m.group(1)), int(m.group(2))) if m else (None, None)
     if text is None:

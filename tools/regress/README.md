@@ -118,7 +118,7 @@ they break.
 | r24-34 r26-26 | a game shown again after a switch: told it is not minimised | tests/session/test_dwl_anim.sh "arrange: an X11 window shown again" |
 | r27-1 r27-rep-1 r27-rep-2 r27-rep-3b | the random restart: dwl with no monitor, NULL-safe | tests/session/test_hotplug.sh "an X11 window asking for a size while no monitor" · tests/session/test_hotplug.sh "the other paths that run with no monitor" · tools/hotplug-test.sh |
 | r27-rep-3a r27-crashnote-pid | a crash says so once, only his session's | tests/session/test_crashnote.sh "his session's dwl crashed" · tests/session/test_crashnote.sh "a dwl of his own under another pid crashed" |
-| r27-2 r27-rep-4a r27-rep-4b r27-02b r27-02b-fixes r27-02b-sf6 | monitor on: back on the workspace it was, by name, with its layout and focus | tests/session/test_hotplug.sh "kept under its name as it goes" · tests/session/test_hotplug.sh "back as it was (createmon)" · tests/session/test_hotplug.sh "back after it dropped off" · tools/hotplug-test.sh |
+| r27-2 r27-rep-4a r27-rep-4b r27-02b r27-02b-fixes r27-02b-sf6 | monitor on: back on the workspace it was, by name, with its layout and focus | tools/regress/monitor-state.sh · tests/session/test_hotplug.sh "kept under its name as it goes" · tests/session/test_hotplug.sh "back as it was (createmon)" · tests/session/test_hotplug.sh "back after it dropped off" · tools/hotplug-test.sh |
 | r27-stuck-notice r27-stuck-notice-fix | no picture outlives its surface | tools/regress/notice-unplug.sh · tests/session/test_hotplug.sh "its ghosts go with it, last" |
 | r27-dwl-noxwayland | dwl with no XWayland: exits clean | tools/regress/no-xwayland-exit.sh |
 | r27-dwl-termburst | a burst of new terminals never crashes dwl | tools/regress/term-burst.sh |
@@ -158,7 +158,7 @@ they break.
 | r24-14 | the mixer's mark has air | tests/static/test_syntax.sh "the mixer's marks" |
 | r27-dec-2b r27-fonts-2 r27-fonts-3 r27-11 | the terminal's face: UDEV Gothic NF, 16 px, 8 × 20 | tests/installer/test_upstream.sh "the terminal's face (UDEV Gothic NF)" · tests/static/test_syntax.sh "Sumi Term (UDEV Gothic NF" |
 | r27-dec-3b | kanji only on stamps, the lock's quote and the day's seal | tests/regress/test_gone.sh "kanji only where he allows" · tests/static/test_notices.sh "every notify-send" |
-| r27-inbox-1822b | terminal text aligned in an insane range of situations | open T59: tools/regress/term-grid.sh |
+| r27-inbox-1822b | terminal text aligned in an insane range of situations | tools/regress/term-grid.sh |
 | r27-9b | the suite never runs less than it says | tests/regress/test_suite.sh "every test file is run, once" · tests/regress/test_suite.sh "no test leans on a tool" · tests/installer/test_common.sh "the harness's guard" |
 | r26-fu-1 r27-fonts-1 r27-dec-2a r27-10a | the UI face: every letter, digit and sign keeps its air, no pair touches | tests/regress/test_fonts.sh "no two letters touch" · tests/static/test_generated.sh "width.sh's cols counts as the faces draw" |
 | r26-fu-2 | the % drawn by hand | tests/regress/test_fonts.sh "the percent sign is ours" |

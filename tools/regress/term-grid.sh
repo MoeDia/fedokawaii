@@ -3,7 +3,8 @@
 # text alignment and spacing and everything is tested in an insane wide range of situations"): the desktop's
 # text screens and the programs he uses in a real foot, on the real GPU, both themes, at the sizes the
 # layouts give (halves, thirds, quarters, master and stack) and from 20 × 5 to the whole screen, odd counts
-# too; zoomed in and out; after a theme switch; with long and wide names. Each screen's words as foot
+# too; zoomed in and out; in its scrollback; after a theme switch; with long and wide names; the split
+# moved under a window that streams. Each screen's words as foot
 # holds them (its own pipe-visible) and its picture:
 #   · no line wider than the window (foot joins a wrapped line back: a wrap is a line too long)
 #   · no "…", no shell or Python error on the screen, not blank
@@ -55,7 +56,13 @@ cmd() {
   printf '%s\0' "$@"
 }
 grab() {   # grab NAME — the screen's words and its picture
-  rm -f "$KIT_OUT/dump.txt"; wtype -s 150 -M ctrl -M shift -k F9 -m shift -m ctrl; nap 0.25
+  local _
+  rm -f "$KIT_OUT/dump.txt"
+  for _ in 1 2 3; do   # (a loaded machine: the virtual keyboard or the window not ready for the first)
+    wtype -s 150 -M ctrl -M shift -k F9 -m shift -m ctrl; nap 0.3
+    [ -f "$KIT_OUT/dump.txt" ] && break
+    nap 0.5
+  done
   [ -f "$KIT_OUT/dump.txt" ] && mv "$KIT_OUT/dump.txt" "$KIT_OUT/$1.txt"
   shot "$1"
 }
@@ -68,6 +75,8 @@ shut() { kill "$w" 2>/dev/null; wait "$w" 2>/dev/null; nap 0.25; }
 shot base
 for p in $PROGRAMS; do for s in $SIZES; do
   open "$p" "$s"; nap 1.5; grab "$p-$s"; shut
+  # (under load a window may need longer than that, or its program its terminal's answer: one more try)
+  [ -f "$KIT_OUT/$p-$s.txt" ] || { open "$p" "$s"; nap 3; grab "$p-$s"; shut; }
 done; done
 # zoomed: the same window, foot's font a step or two up and down (Ctrl+plus, Ctrl+minus): the program
 # follows; the name says the steps
@@ -81,6 +90,8 @@ done
 for s in 47x11 80x24 116x25; do
   open wide "$s"; nap 1.5; grab "wide-$s"; shut
 done
+# scrollback: a long output, then a page back: the text still on its grid
+open prompt 80x24; nap 1.5; wtype -s 150 -- 'seq 1 400 | sed "s/$/ — a line of output/"'; wtype -k Return; nap 1; wtype -s 100 -M shift -k Prior -k Prior -m shift; nap 0.5; grab "scroll-80x24"; shut
 # a theme switch with it open
 open yazi 80x24; nap 1.5; grab "before-switch"; kawa-theme toggle >/dev/null 2>&1; nap 2.2; grab "after-switch"; kawa-theme toggle >/dev/null 2>&1; nap 1.5; shut
 # a live resize while output streams: two tiled, the split moved under it; still running, the grid whole

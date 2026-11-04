@@ -1,1 +1,8 @@
-# tools/regress/term-grid-known.txt — findings of term-grid.sh known and not yet fixed: fnmatch PATTERN # why (owner, or for whom)
+# tools/regress/term-grid-known.txt — what tools/regress/term-grid.sh knows of and is not yet fixed: each line
+# "PATTERN # why" (fnmatch over "THEME NAME: finding"). All below are sizes a popup only reaches when resized
+# by hand: each opens at its own size, which holds. For main (lane-regress's notes), or his word.
+* books-*: the heading cut:* # Super+R's window is 104 × 29; kawa-books' list takes 70 columns or says nothing narrower
+* calc-*x*: a line * wide in a window of * # the calculator's rule and footer are as wide as its 80 columns; narrower they wrap
+* calc-*x*: the heading cut:* # the same wrap
+* clip-*: the right edges differ:* # Super+V's window is 80 × 27, where they meet; narrower the rule one column past the count, wider it stays 78
+* btop-*: a line * wide in a window of * # btop's own "terminal size too small" words, not ours
