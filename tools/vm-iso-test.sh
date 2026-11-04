@@ -369,7 +369,6 @@ do_over() {
   do_say "$name" >"$R/installed.txt"; cp "$V/$name/say.png" "$R/installed.png"
   stage "the stick says it is installed"
   do_keys "$name" i
-  do_keys "$name" i
   do_install "$name" || { stage "RED: the questions"; return 1; }
   stage "questions answered"
   # (the stick stays in and first in the boot order, through the installer's own restart: it must say the disk
@@ -384,7 +383,8 @@ do_over() {
   do_keys "$name" "<enter>"
   do_follow "$name"
 }
- NAME CARRY — the rest of the owner's path on an installed VM (T54b 5), after its run: his things back
+
+# do_path NAME CARRY — the rest of the owner's path on an installed VM (T54b 5), after its run: his things back
 # from the drive, the update button pressed, everything still green
 do_path() {
   local name=$1 img=$2 rc
