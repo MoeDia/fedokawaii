@@ -36,6 +36,7 @@ SOURCE_DATE_EPOCH=$(git -C "$repo" log -1 --format=%ct "$commit")
 stamp=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y%m%d)
 work=$(mktemp -d "$HOME/VM/iso/build.XXXXXX")
 trap 'rm -rf "$work"' EXIT
+trap 'echo "build-iso: stopped at line $LINENO" >&2' ERR
 say() { printf '%s %s\n' "$(date +%T)" "$*"; }
 
 # ── the inputs, each by its checksum ─────────────────────────────────────────
@@ -133,7 +134,7 @@ touch -d "@$SOURCE_DATE_EPOCH" "$work/grub.cfg"
 # ── the EFI partition: only its grub.cfg changes (nothing signed) ───────────
 # (where the netinst keeps it: GPT partition 2, read from the image itself)
 read -r esp_lba esp_n < <(xorriso -indev "$netinst" -report_system_area plain 2>/dev/null \
-  | awk '$1 == "GPT" && $2 == "start" && $5 == "2" { print $6, $7 }')
+  | awk '$1 == "GPT" && $2 == "start" && $6 == "2" { print $7, $8 }')
 dd if="$netinst" of="$work/esp.img" bs=512 skip="$esp_lba" count="$esp_n" status=none
 mcopy -o -m -i "$work/esp.img" "$work/grub.cfg" ::/EFI/BOOT/grub.cfg
 mcopy -o -m -i "$work/esp.img" "$work/grub.cfg" ::/EFI/BOOT/BOOT.conf
