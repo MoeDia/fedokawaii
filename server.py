@@ -139,11 +139,24 @@ def lanes(units_now, agents_now):
         on = f"r27-lane-{n}" in active
         done = bool(DONE.search(notes))
         st = "done" if done else "paused" if r["paused"] else "working" if ag else "running" if on else "waiting" if d.exists() else "queued"
-        tail = [l for l in notes.splitlines() if l.strip()][-8:]
-        log = [l for l in read(HOME / ".cache" / f"claude-lane-{n}.log", 6000).splitlines() if l.strip()][-5:]
+        lg = HOME / ".cache" / f"claude-lane-{n}.log"
         res.append({**r, "state": st, "seconds": ag["seconds"] if ag else None, **(lane_git(n) if d.exists() else {"last": "", "ahead": 0}),
-                    "notes": tail, "log": log})
+                    "notes": lane_notes(notes), "report": cached("rep:" + n, 20, lambda: last_report(lg, "lane pass"))})
     return res
+
+def last_report(path, marker):
+    """the text an agent printed at the end of its last finished pass (the newest non-empty one)"""
+    chunks = re.split(rf"^=== {marker}.*$", read(path, 60000), flags=re.M)
+    for c in reversed(chunks):
+        c = c.strip()
+        if c and not c.startswith("Background tasks still running"):
+            return c[-2500:]
+    return ""
+
+def lane_notes(text):
+    """a lane's own notes without the owner's blocks appended to them, newest lines last"""
+    keep = [s for s in re.split(r"\n(?=## )", text) if not re.match(r"## (OWNER|WITHDRAWN)", s)]
+    return [l for l in "\n".join(keep).splitlines() if l.strip()][-10:]
 
 def conductor(units_now):
     on = any(u["unit"].startswith("r27-lane-conductor") and u["active"] == "active" for u in units_now)
@@ -301,6 +314,7 @@ def state():
         "lanes": lanes(u, a), "conductor": conductor(u),
         "questions": questions(), "gallery": gallery(), "verdicts": verdicts(),
         "last_pass": passes[-1] if passes else "", "log": log[-40:],
+        "main_report": cached("rep:main", 20, lambda: last_report(LOG, "(?:nonstop|bulk|daily)? ?pass")),
         "commits": cached("commits", 10, lambda: sh("git", "-C", str(REPO), "log", "-25", "--format=%ad\t%s", "--date=format:%a %H:%M").splitlines()),
         "dirty": len(cached("dirty", 10, lambda: sh("git", "-C", str(REPO), "status", "--short")).splitlines()),
         "plan": cached("plan", 10, plan),
