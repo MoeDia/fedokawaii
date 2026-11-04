@@ -2718,7 +2718,7 @@ preflight() {   # preflight ROOT_MiB — space, clock, dnf's own state, nothing 
   # first. One only stored — a download a stopped move left — is cleared: never installed
   # by surprise at some later restart
   if [[ -e /system-update || -L /system-update ]]; then
-    die "an earlier update is waiting to be installed at the next restart — restart first (or: sudo dnf offline clean)"
+    die "an earlier update is waiting to be installed at the next restart — restart first, then press update again"
   fi
   dnf offline clean >/dev/null 2>&1 || true
   if [[ -n $(dnf -q repoquery --duplicates 2>/dev/null) ]]; then

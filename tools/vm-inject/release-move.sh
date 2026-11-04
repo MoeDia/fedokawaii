@@ -16,7 +16,9 @@
 set -u
 vm=${1:?} src=${2:?} n=${3:?}; shift 3
 cases=("$@"); ((${#cases[@]})) || cases=(build green cut red)
+# shellcheck source=tools/vm-inject/lib.sh
 . "$(dirname "$0")/lib.sh"
+# shellcheck disable=SC2154  # (here, log, out: lib.sh's)
 bad=0
 state_has() { bash "$here/vm-snap.sh" "$vm" list | grep -qx "$1"; }
 U=/var/lib/fedokawaii/update

@@ -106,12 +106,32 @@ u_start() {
   # (the checks' own tools first: an install from before they were in the manifest lacks them, and
   # an update that cannot check could never be the one that brings them)
   rpm -q python3-pillow >/dev/null 2>&1 || dnf_install python3-pillow || die "the checks' own tool could not be installed (python3-pillow) — nothing changed"
+  up_rpmdb
   log "the checks before it (what is red now does not count against the update)"
-  bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || true
+  # (3: it ran, and something is red · anything else: the checks themselves did not run — no baseline)
+  rc=0; bash "$REPO_DIR/verify.sh" >/dev/null 2>&1 || rc=$?
+  ((rc == 0 || rc == 3)) || die "the checks themselves could not run (verify: exit $rc) — nothing changed: fedokawaii repair"
+  rc=0
   cp -- "$STATE_DIR/last-verify-fails" "$UPD/baseline" 2>/dev/null || : >"$UPD/baseline"
   why=$(up_more) || rc=$?
   ((rc == 2)) && die "the desktop's start check could not run ($why) — nothing changed; press update again"
   [[ -z $why ]] || { log "red before the update: ${why//$'\n'/ · }"; printf '%s\n' "$why" >>"$UPD/baseline"; }
+}
+# rpm's database read whole (design §5 row 10). Damaged: rebuilt from what it can still read, its copy
+# kept until the rebuilt one shows as many packages as a snapshot's — else put back and said: a damaged
+# database never goes into a transaction
+up_rpmdb() {
+  local d=/usr/lib/sysimage/rpm b=/usr/lib/sysimage/rpm.before was now
+  rpm -qa >/dev/null 2>&1 && rpmdb --verifydb >/dev/null 2>&1 && return 0
+  log "rpm's database is damaged: rebuilt from what it can still read (its copy kept until that has proven itself)"
+  rm -rf -- "$b"; cp -a --reflink=auto -- "$d" "$b" || die "rpm's database is damaged, and no copy of it could be made — nothing changed"
+  was=$(rpm -qa --root="$(ls -d /.snapshots/*/snapshot 2>/dev/null | sort -t/ -k3 -n | sed -n '$p')" 2>/dev/null | wc -l) || was=0
+  if rpmdb --rebuilddb >/dev/null 2>&1 && rpm -qa >/dev/null 2>&1 && rpmdb --verifydb >/dev/null 2>&1; then
+    now=$(rpm -qa 2>/dev/null | wc -l) || now=0
+    if ((now > 0 && now * 10 >= was * 9)); then rm -rf -- "$b"; ok "rpm's database rebuilt: $now packages"; return 0; fi
+  fi
+  rm -rf -- "$d"; mv -T -- "$b" "$d"
+  die "rpm's database is damaged and could not be rebuilt — nothing changed: Super+U → snapshots → the last one (your files stay)"
 }
 up_leftovers() {   # what a run cut before its end left (a power cut: no exit trap ran) — its copy
                    # of the system, dropped; its pinned snapshot, if no probation took it over
@@ -401,9 +421,11 @@ up_complete() {   # up_complete [SET [nocheck]] — every package of the stored 
 # ── check, end ───────────────────────────────────────────────────────────────────────────────
 u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
   up_phase check
-  local new after more rc=0
-  bash "$REPO_DIR/verify.sh" || true
+  local new after more rc=0 vr=0
+  bash "$REPO_DIR/verify.sh" || vr=$?
   after=$(cat "$STATE_DIR/last-verify-fails" 2>/dev/null) || after=""
+  # (a verify that did not run is red, never its last list read as green: design §5 row 40)
+  ((vr == 0 || vr == 3)) || after+=${after:+$'\n'}"verify could not run (exit $vr)"
   more=$(up_more) || rc=$?
   # (a check that did not happen undoes nothing: stopped here, the phase kept — the next press
   # runs the checks again, against the baseline from before the update)
@@ -428,8 +450,14 @@ u_undo() {
   elif mountpoint -q /home && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
   else UP_END=offered; fi
 }
+# up_advisory → the security advisories for what is held, a line each (design §5 row 34)
+up_advisory() {
+  [[ -s $UPD/holds ]] || return 0
+  local j; j=$(dnf -q advisory list --security --updates --contains-pkgs="$(awk '{ print $1 }' "$UPD/holds" | sort -u | paste -sd,)" --json 2>/dev/null) || return 0
+  jq -r '.[]? | .name? // empty' <<<"$j" 2>/dev/null | sort -u
+}
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
-  local held="" fam=() line why log n desk keep
+  local held="" fam=() line why log n desk keep sec
   # (the holds by family, as the pane names them — two at most, then how many more: a notice is
   # a line, and a whole set held at once is hundreds of names)
   [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
@@ -452,6 +480,8 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   esac
   # (a fixed short form, so the status's row fits it; which items, in the report's lines below)
   [[ -z $desk ]] || line+=" · desktop red before: not judged"
+  sec=$(up_advisory | wc -l) || sec=0
+  ((sec == 0)) || line+=" · a security fix waits among the held: $sec"
   if [[ -s $UPD/toolkit-moved && $UP_END == @(ok|current|held) ]]; then line+=" · fedokawaii $(cat "$UPD/toolkit-moved")"; rm -f -- "$UPD/toolkit-moved"; fi
   # (a run stopped once the running system began to change keeps its phase: the next start
   # (replay) or press finishes it — never a new update over one not yet whole, or not judged;
