@@ -133,22 +133,40 @@ def network_reason(wait=30):
 
 
 def check_stick(s):
-    """The media test, asked for in the boot menu: on this screen, its own numbers."""
+    """The check asked for in the boot menu, on this screen: every file of the ISO's tree against the sum
+    made at the build (fk-sums; a sum over sectors can fail a good stick: tools/build-iso.sh)."""
+    def damaged(why):
+        refuse(s, "cross", "this stick is damaged", why + " write it again.")
+
     dev = run("blkid", "-L", VOLID).stdout.strip()
-    if not dev:
-        refuse(s, "cross", "this stick is damaged", "it cannot be read.")
+    mnt = "/tmp/fk-stick"
+    os.makedirs(mnt, exist_ok=True)
+    if not dev or run("mount", "-o", "ro", dev, mnt).returncode != 0:
+        damaged("it cannot be read.")
     top = max(1, (s.rows - 12) // 2)
     s.clear()
     s.torii(top)
     s.heading(top + 6, "hg-0", "checking this stick")
-    # (--gauge: a percent a line, what dialog would read)
-    p = subprocess.Popen(["checkisomd5", "--gauge", dev], stdout=subprocess.PIPE,  # noqa: S603
-                         stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, text=True)
-    for line in p.stdout:
-        if line.strip().isdigit():
-            s.meter(top + 8, s.left, int(line), 100)
-    if p.wait() != 0:
-        refuse(s, "cross", "this stick is damaged", "its files are not as they were written. write it again.")
+    try:
+        with open(f"{mnt}/fk-sums", encoding="utf-8") as f:
+            files = [line.rstrip("\n").split("  ", 1) for line in f]
+        total = sum(os.path.getsize(f"{mnt}/{name}") for _, name in files) or 1
+    except (OSError, ValueError):
+        damaged("its list of files cannot be read.")
+    done = 0
+    for want, name in files:
+        h = hashlib.sha256()
+        try:
+            with open(f"{mnt}/{name}", "rb") as f:
+                for chunk in iter(lambda: f.read(1 << 22), b""):
+                    h.update(chunk)
+                    done += len(chunk)
+                    s.meter(top + 8, s.left, done * 100 // total, 100)
+        except OSError:
+            damaged(f"{name.removeprefix('./')} cannot be read.")
+        if h.hexdigest() != want:
+            damaged(f"{name.removeprefix('./')} is not as it was written.")
+    run("umount", mnt)
 
 
 def installed_disk():
@@ -173,9 +191,13 @@ def gpu_problem():
     AMD's and Intel's open drivers. (A test VM brings systemd's credentials in its firmware's
     OEM strings: tools/vm-iso-test.sh; a real PC has none.)"""
     vendors = set()
-    for d in glob.glob("/sys/class/drm/card[0-9]*/device/vendor"):
+    # (the PCI bus, not /sys/class/drm: a card its driver has not taken yet is still that card)
+    for d in glob.glob("/sys/bus/pci/devices/*"):
         try:
-            with open(d, encoding="ascii") as f:
+            with open(f"{d}/class", encoding="ascii") as f:
+                if not f.read().startswith("0x03"):
+                    continue
+            with open(f"{d}/vendor", encoding="ascii") as f:
                 vendors.add(f.read().strip())
         except OSError:
             pass
@@ -580,6 +602,18 @@ def shell_quote(v):
     return "'" + v.replace("'", "'\\''") + "'"
 
 
+def clear_disk(name):
+    """The chosen disk blank, after its last confirmation: Anaconda then has nothing to walk. On a disk
+    with years of Btrfs subvolumes and snapshots it would destroy each in turn (blivet, its clearpart),
+    a path nothing proves; a wiped disk is the one it is proven on."""
+    disk = f"/dev/{name}"
+    parts = run("lsblk", "-nrpo", "NAME", disk).stdout.split()
+    for dev in reversed(parts):             # (the deepest first; the disk itself is the list's first)
+        run("wipefs", "-a", "-f", dev)
+    run("blockdev", "--rereadpt", disk)
+    run("udevadm", "settle", "--timeout=30")
+
+
 def payload_ok():
     """The toolkit as it was built: checked before the disk is touched."""
     try:
@@ -608,6 +642,7 @@ def main():
     form.run()
     write_answers(form)
     s.clear()
+    clear_disk(form.disk)
     s.close()
     # the one owner of the screen from here on (Omarchy's lesson): a daemon, its files closed
     # (pykickstart's warning: otherwise the installation appears hung)

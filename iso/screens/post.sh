@@ -81,3 +81,4 @@ ExecStart=/usr/bin/python3 /var/lib/fedokawaii/first-boot/first_boot.py
 EOF
 chroot "$R" systemctl enable fedokawaii-resume.service
 chroot "$R" restorecon -RF /usr/local/lib/fedokawaii /var/lib/fedokawaii /etc/systemd/system/fedokawaii-resume.service /etc/systemd/system/fedokawaii-resume.service.d /usr/share/plymouth/themes/sumi
+: >/tmp/fk-post-done      # (failed.py: the reboot is on its way, nothing went wrong)

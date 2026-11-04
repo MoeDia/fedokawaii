@@ -1,7 +1,9 @@
-"""iso/screens/failed.py — the kickstart's %onerror: what failed, in our screen, its own words."""
+"""iso/screens/failed.py — the kickstart's %onerror, and what runs in place of Anaconda's second copy
+(--if-unfinished: nothing, when %post has finished and the reboot is on its way): what failed, in our
+screen, its own words."""
 import os
 import re
-import subprocess
+import signal
 import sys
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -24,8 +26,22 @@ def reason():
     return found[-3:]
 
 
+def stop_progress():
+    """The progress page's own process (stage 2 has no pkill)."""
+    for pid in os.listdir("/proc"):
+        if pid.isdigit():
+            try:
+                with open(f"/proc/{pid}/cmdline", "rb") as f:
+                    if b"progress.py" in f.read():
+                        os.kill(int(pid), signal.SIGTERM)
+            except OSError:
+                pass
+
+
 def main():
-    subprocess.run(["pkill", "-f", "progress.py"], check=False)
+    if "--if-unfinished" in sys.argv and os.path.exists("/tmp/fk-post-done"):
+        return
+    stop_progress()
     s = Screen()
     lines = wrap("the installation stopped. the disk may hold a part of it; nothing else on this PC was changed.")
     why = []

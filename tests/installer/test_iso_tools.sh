@@ -127,6 +127,17 @@ elif case == "names":
     good = [("name", "dia"), ("name", "_x"), ("password", "x"), ("again", "x"), ("host", "fedokawaii"), ("host", "a-1")]
     for key, v in good:
         assert not q.validate(F(key=key, value=v), fields), (key, v)
+elif case == "clear":
+    calls = []
+    def rec_run(*cmd, timeout=None):
+        calls.append(cmd)
+        out = "/dev/nvme0n1\n/dev/nvme0n1p1\n/dev/nvme0n1p2\n" if cmd[0] == "lsblk" else ""
+        return types.SimpleNamespace(stdout=out, returncode=0)
+    q.run = rec_run
+    q.clear_disk("nvme0n1")
+    wiped = [c[-1] for c in calls if c[0] == "wipefs"]
+    assert wiped == ["/dev/nvme0n1p2", "/dev/nvme0n1p1", "/dev/nvme0n1"], wiped
+    assert ("blockdev", "--rereadpt", "/dev/nvme0n1") in calls, calls
 elif case == "answers":
     os.chdir(sys.argv[4])
     class S:
@@ -175,6 +186,9 @@ PY
 else skip "pykickstart is not here"; fi
 lacks "$(cat "$REPO/iso/ks.cfg")" sshpw "no back door in the product"
 
+case_ "what happens to the chosen disk: every partition blank, the deepest first, the disk last; nothing else"
+python3 -I -B "$TMP/q.py" "$A" "$REPO" clear && _ok || _no "the wipe"
+
 case_ "the first start: nothing of the installer stays, and no console=tty1 on the installed system"
 p=$(cat "$REPO/iso/screens/post.sh")
 has "$p" 'remove-args="console=tty1"'
@@ -190,5 +204,7 @@ lacks "$(grep -n 'source file\|source dev' "$REPO/tools/vm-iso-test.sh")" "/dev/
 
 case_ "the builder: a file that is not the pinned one is refused"
 has "$(cat "$REPO/tools/build-iso.sh")" 'is not the pinned file'
+has "$(cat "$REPO/tools/build-iso.sh")" 'anaconda.service.d' "Anaconda's second copy never asks again"
+has "$(cat "$REPO/iso/grub.cfg")" 'gfxmode=1920x1080,auto' "no EDID from a firmware: 800x600 otherwise"
 
 done_

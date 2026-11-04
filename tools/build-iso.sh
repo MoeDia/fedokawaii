@@ -81,6 +81,11 @@ git -C "$repo" archive --format=tar "$commit" -- . ':(exclude).claude' | xz -T1 
 say "images/product.img"
 p=$work/product/usr/share/fedokawaii-iso
 mkdir -p "$p" "$work/product/etc/systemd/system"
+# (Anaconda ends without a reboot, an early crash: its second copy, under tmux, would run %pre again and
+# ask everything again. It cannot be masked, anaconda-direct requires it: in its place, the failure's page)
+mkdir -p "$work/product/etc/systemd/system/anaconda.service.d"
+printf '%s\n' '[Service]' 'Type=oneshot' 'ExecStart=' 'ExecStart=/usr/bin/python3 /usr/share/fedokawaii-iso/failed.py --if-unfinished' \
+  >"$work/product/etc/systemd/system/anaconda.service.d/fedokawaii.conf"
 # (the console's font is ours from the first screen: Anaconda's keyboard step reloads it through localed)
 ln -s /dev/null "$work/product/etc/systemd/system/systemd-vconsole-setup.service"
 cp "$work/src/iso/screens/"* "$p/"
@@ -151,6 +156,29 @@ dd if="$netinst" of="$work/esp.img" bs=512 skip="$esp_lba" count="$esp_n" status
 mcopy -o -m -i "$work/esp.img" "$work/grub.cfg" ::/EFI/BOOT/grub.cfg
 mcopy -o -m -i "$work/esp.img" "$work/grub.cfg" ::/EFI/BOOT/BOOT.conf
 
+# ── the stick's check: a sum for every file of the ISO's own tree ───────────
+# (not Fedora's checkisomd5: it sums sectors, and firmware or an automount rewrites a few on a good
+# stick, Fedora's own "media check fails at 4.8 %", bug 2420697. Read per file, %pre's meter on it)
+sums=$cache/$ISO_NETINST.sums
+if [[ ! -s $sums ]]; then
+  say "the sums of the netinst's files, once"
+  xorriso -no_rc -osirrox on -indev "$netinst" -extract / "$work/tree" >/dev/null 2>&1
+  (cd "$work/tree" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum) >"$sums"
+  chmod -R u+w "$work/tree"; rm -rf "$work/tree"
+fi
+mine=$work/mine
+mkdir -p "$mine/EFI/BOOT" "$mine/boot/grub2/x86_64-efi" "$mine/boot/grub2/themes" "$mine/images/pxeboot"
+cp "$work/ks.cfg" "$mine/ks.cfg"
+cp "$work/product.img" "$mine/images/product.img"
+cp "$work/fedokawaii-boot.img" "$mine/images/pxeboot/fedokawaii-boot.img"
+cp "$work/grub.cfg" "$mine/EFI/BOOT/grub.cfg"
+cp "$work/grub.cfg" "$mine/EFI/BOOT/BOOT.conf"
+cp "$work/grub.cfg" "$mine/boot/grub2/grub.cfg"
+cp "$work/rpm/usr/lib/grub/x86_64-efi/gfxterm_background.mod" "$mine/boot/grub2/x86_64-efi/"
+cp -r "$work/art/grub" "$mine/boot/grub2/themes/fedokawaii"
+{ grep -vE '  \./(EFI/BOOT/(grub\.cfg|BOOT\.conf)|boot/grub2/grub\.cfg)$' "$sums"
+  (cd "$mine" && find . -type f -print0 | LC_ALL=C sort -z | xargs -0 sha256sum); } | LC_ALL=C sort -k2 >"$work/fk-sums"
+
 # ── the ISO ─────────────────────────────────────────────────────────────────
 iso=$out/fedokawaii-$stamp.iso
 say "the ISO: $iso"
@@ -160,6 +188,7 @@ xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \
   -update "$work/grub.cfg" /EFI/BOOT/grub.cfg \
   -update "$work/grub.cfg" /EFI/BOOT/BOOT.conf \
   -update "$work/grub.cfg" /boot/grub2/grub.cfg \
+  -map "$work/fk-sums" /fk-sums \
   -map "$work/ks.cfg" /ks.cfg \
   -map "$work/product.img" /images/product.img \
   -map "$work/fedokawaii-boot.img" /images/pxeboot/fedokawaii-boot.img \
@@ -167,9 +196,5 @@ xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \
   -map "$work/rpm/usr/lib/grub/x86_64-efi/gfxterm_background.mod" /boot/grub2/x86_64-efi/gfxterm_background.mod \
   -alter_date_r b "=$SOURCE_DATE_EPOCH" / -- \
   >"$work/xorriso.log" 2>&1 || { tail -n 20 "$work/xorriso.log" >&2; exit 1; }
-"$work/rpm/usr/bin/implantisomd5" --force --supported-iso "$iso" >/dev/null
-# (what the drive gives back is what was written: the same test a stick gets at its boot)
-"$work/rpm/usr/bin/checkisomd5" --md5sumonly "$iso" >/dev/null || "$work/rpm/usr/bin/checkisomd5" "$iso" >/dev/null \
-  || { echo "build-iso: the ISO does not read back as written" >&2; exit 1; }
 (cd "$out" && sha256sum "${iso##*/}") >"$iso.sha256"
 say "built: $(cut -c1-16 "$iso.sha256") $(stat -c %s "$iso") bytes"
