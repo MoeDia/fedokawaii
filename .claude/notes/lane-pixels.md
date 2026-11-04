@@ -90,3 +90,6 @@ OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii pro
 4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
 5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
 6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## OWNER VERDICT 2026-11-04 21:46 on your render bar-clock-seconds: comment
+OWNER 21:46: the top bar's clock KEEPS ITS SECONDS. Claude's earlier note (17:24 / 18:00, "drop the seconds") is withdrawn — the owner wants the seconds shown. If they were removed, put them back.

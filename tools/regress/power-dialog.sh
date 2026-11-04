@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/regress/power-dialog.sh — never an accidental power-off (the owner's page 14, §4): the power dialog in the kit, its
 # systemctl a stand-in that only writes down what it was asked. Shut down's first press does nothing but ask, in the foot's
-# place; a second at once (a held key's repeat) is no press; moving away takes it back; the second press after the hold
+# place; a second at once is no press, nor is any repeat of a key held down; moving away takes it back; the second press after the hold
 # does it, once. The dialog centred on the screen to the pixel over the desktop dimmed 40 %.
 #   bash tools/regress/power-dialog.sh [KIT OPTION…]
 # Exit 0 held · 1 broken (said) · 2 the kit could not run
@@ -17,6 +17,10 @@ panel; ready
 shot rest
 setsid -f kawa-power; nap 1.2; shot open
 key Right Right Right Right; nap 0.3; shot on-off
+# (Enter held 1.5 s: dwl's repeat, from 300 ms on every 29 ms; the first press asks, not one repeat is a second)
+wtype -s 300 -P Return -s 1500 -p Return; nap 0.3
+say "after a held key: $(cat "$KIT_OUT/asked")"
+key Left; nap 0.5; key Right; nap 0.5
 key Return; nap 0.15; shot asked
 say "after the first press: $(cat "$KIT_OUT/asked")"
 key Left; nap 0.5; shot away
@@ -28,6 +32,7 @@ PLAY
 for mood in dark light; do
   bash "$here/../kit.sh" --theme "$mood" --time 280 "$@" --out "$out/$mood" --play "$out/play.sh" play >"$out/$mood.log" 2>&1 \
     || { echo "power-dialog: the kit failed ($mood): $(tail -n 2 "$out/$mood.log")" >&2; exit 2; }
+  grep -q '^after a held key: $' "$out/$mood/play.log" || { echo "power-dialog: Enter held did it ($mood): $(cat "$out/$mood/play.log")" >&2; exit 1; }
   grep -q '^after the first press: $' "$out/$mood/play.log" || { echo "power-dialog: the first press did something ($mood): $(cat "$out/$mood/play.log")" >&2; exit 1; }
   grep -q '^after the second press: poweroff$' "$out/$mood/play.log" || { echo "power-dialog: the second press ($mood): $(grep second "$out/$mood/play.log")" >&2; exit 1; }
 done
@@ -55,6 +60,6 @@ for mood in ("dark", "light"):
         bad.append(f"{mood}: the frame's margins {left} {right} · {top} {foot}")
     if not (asked != away).any():
         bad.append(f"{mood}: the first press changed nothing to see, or moving away took nothing back")
-print("power-dialog: " + ("; ".join(bad) if bad else "held: the first press asks, the second does it once; centred to the pixel on the dimmed desktop"))
+print("power-dialog: " + ("; ".join(bad) if bad else "held: the first press asks, a key held down never does it, the second press does it once; centred to the pixel on the dimmed desktop"))
 sys.exit(1 if bad else 0)
 PY
