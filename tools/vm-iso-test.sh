@@ -337,6 +337,8 @@ do_follow() {
   do_shot "$name" "$R/login.png"
   stage "the login screen: $R/login.png"
   vm_ssh "$name" 'sudo cat /var/log/fedokawaii.log' >"$R/setup.log" 2>&1
+  # (the greeter is the lock's twin: its gate too, shut until Tab)
+  do_keys "$name" "<tab>"; sleep 1.5
   do_keys "$name" "$TEST_PASSWORD" "<enter>"
   sleep 25
   do_shot "$name" "$R/desktop.png"
@@ -465,6 +467,7 @@ do_session() {
   do_keys "$name" "<down>" "<down>" "<enter>"
   wait_for "$name" 30 "! pgrep -u $TEST_USER -x dwl" || { stage "RED: log out left the session up"; do_shot "$name" "$R/no-logout.png"; return 1; }
   sleep 12; do_shot "$name" "$R/greeter.png"
+  do_keys "$name" "<tab>"; sleep 1.5
   do_keys "$name" "$TEST_PASSWORD" "<enter>"
   wait_for "$name" 60 "pgrep -u $TEST_USER -x waybar" || { stage "RED: no desktop after logging in again"; do_shot "$name" "$R/no-login.png"; return 1; }
   sleep 8; do_shot "$name" "$R/desktop-again.png"
@@ -563,7 +566,18 @@ do_facts() {
     printf "kernel, initramfs: "; ls -s --block-size=M /boot/initramfs-*.img | tr "\n" " "; echo
     printf "fonts in it: "; sudo lsinitrd 2>/dev/null | grep -E "\.(ttf|otf)$" | sed "s/.* //" | tr "\n" " "; echo
     printf "ssh enabled: "; systemctl is-enabled sshd 2>/dev/null
-    printf "disk: "; findmnt -no SOURCE / | cut -c1-40; sudo btrfs subvolume list / | wc -l'
+    printf "disk: "; findmnt -no SOURCE / | cut -c1-40; sudo btrfs subvolume list / | wc -l
+    printf "the release in the toolkit: "; cat /var/lib/fedokawaii/toolkit-release 2>/dev/null; echo
+    printf "round tooling: units %s, sudo rule %s, polkit rule %s, worktrees %s\n" "$(systemctl --user list-unit-files 2>/dev/null | grep -c "^r27-")" \
+      "$(ls /etc/sudoers.d/90-claude-temp 2>/dev/null | wc -l)" "$(ls /etc/polkit-1/rules.d/00-fedokawaii-round.rules 2>/dev/null | wc -l)" "$(ls -d ~/repos/fk-* 2>/dev/null | wc -l)"
+    printf "in user@.service.d (his, all users): "; ls /etc/systemd/system/user@.service.d/ 2>/dev/null | tr "\n" " "; echo
+    printf "the browser: "; rpm -q helium-bin; printf "its Widevine: "; jq -r .version /usr/local/lib/fedokawaii-widevine/manifest.json 2>/dev/null || echo none
+    printf "the play world: "; id asobi 2>/dev/null | cut -d" " -f1; sudo flatpak --system list --columns=application 2>/dev/null | tr "\n" " "; echo
+    printf "Flatpaks in this account: "; flatpak --user list 2>/dev/null | wc -l
+    printf "snapshots: "; sudo snapper list-configs 2>/dev/null | sed 1,2d | cut -d" " -f1 | tr "\n" " "; rpm -q grub-btrfs
+    printf "the fixer: "; ls /usr/local/sbin/kawa-fixer 2>/dev/null || echo none
+    printf "the apps: "; for a in kawa-chess kawa-typing kawa-torrents kawa-panel kawa-carry kawa-stick; do command -v "$a" >/dev/null 2>&1 || PATH=$HOME/.local/bin:$PATH command -v "$a" >/dev/null 2>&1 && printf "%s " "$a" || printf "%s:MISSING " "$a"; done; echo
+    printf "the lock: "; ls /usr/local/lib/fedokawaii/configs/home/.local/share/fedokawaii/dark/lock-scene.png ~/.local/share/fedokawaii/dark/lock-scene.png 2>/dev/null | wc -l'
 }
 
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
