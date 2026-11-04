@@ -7,6 +7,7 @@
 #   · the inks as the palette has them (a sixel's colours are whole percents: within 2 of 255)
 #   · typing at 120 wpm, recorded: no frame shows a tile blank (each change a whole frame, mode 2026)
 #   · a theme switch repaints the pictures (foot's mode 2031)
+#   · a practice run's result has no seal: its speed stands alone (a seal was stamped over the number once)
 #   bash tools/regress/typing.sh [KIT OPTION…]   (e.g. --bin bin --repo-art before an apply)
 # Exit 0 held · 1 broken (said) · 2 the kit could not run
 set -u
@@ -31,6 +32,13 @@ for size in 100x33 60x21 130x49; do
   key Escape; nap 0.3
   key Escape; nap 0.4
 done
+printf '%s' 'tea began as a medicine and grew' >"$out/short"
+footclient -a float -T typing -W 100x33 -- kawa-typing "$out/short" >/dev/null 2>>"\$KIT_OUT/err.log" &
+nap 1.2
+wtype -s 300 -d 40 -- 'tea began as a medicine and grew'
+nap 1.0
+shot practice-result
+key Escape; nap 0.3; key Escape; nap 0.4
 footclient -a float -T typing -W 100x33 -- kawa-typing "$out/text" >/dev/null 2>>"\$KIT_OUT/err.log" &
 nap 1.2
 kawa-theme \$( [[ "\$KIT_OUT" == */dark ]] && echo light || echo dark ) >/dev/null 2>&1
@@ -115,6 +123,13 @@ for size, k in (('100x33', 2), ('60x21', 1), ('130x49', 3)):
             no(size, f'{token}: no key lit')
         if not n_h:
             no(size, f'{token}: no finger lit')
+
+# a practice run's result: no seal (no vermilion, nor gold) anywhere on it, whatever stands beside its number
+im = Image.open(f'{d}/practice-result.png').convert('RGB')
+W, H = im.size
+seal = sum(1 for y in range(H // 4, H * 3 // 4) for x in range(W // 4, W // 2) if near(im.getpixel((x, y)), inks['gold'], 2) or near(im.getpixel((x, y)), inks['accent'], 2))
+if seal > 30:      # (the heading's check mark, a few pixels)
+    no(f'a practice run\'s result wears a seal: {seal} px')
 
 # a theme switch repaints the pictures
 im = Image.open(f'{d}/switched.png').convert('RGB')

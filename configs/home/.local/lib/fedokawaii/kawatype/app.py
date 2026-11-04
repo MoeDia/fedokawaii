@@ -1422,7 +1422,7 @@ class LessonScreen(Screen):
         secs = r.minutes(now) * 60
         st.learn(r.samples)
         st.add_time(secs)
-        seals = seals_for(wpm, acc, les.low, les.goal) if les.goal else 1
+        seals = seals_for(wpm, acc, les.low, les.goal) if les.goal else 0
         best = 0
         if self.index is not None:
             d = st.progress['lessons'].setdefault(les.id, {'seals': 0, 'best': 0.0, 'tries': 0})
@@ -1456,6 +1456,24 @@ class LessonScreen(Screen):
 
 
 # ── a result ─────────────────────────────────────────────────────────────────
+def key_word(c):
+    return {' ': 'space', '\n': 'enter'}.get(c, c)
+
+
+def slow_keys(run):
+    """the keys this run took clearly longer over than the rest of it: at most three, each pressed three times or more"""
+    times = {}
+    for c, ms, ok in run.samples:
+        if ms is not None and ok and c in keys.CHARS:
+            times.setdefault(c, []).append(ms)
+    every = [m for v in times.values() for m in v]
+    if not every:
+        return []
+    mean = sum(every) / len(every)
+    slow = {c: sum(v) / len(v) for c, v in times.items() if len(v) >= 3 and sum(v) / len(v) > 1.4 * mean}
+    return sorted(slow, key=slow.get, reverse=True)[:3]
+
+
 class Result(Screen):
     """the seals stamped one after another (§11), the speed in display size, the facts, the keyboard with what
     slipped on it; Enter goes on, r again"""
@@ -1473,6 +1491,7 @@ class Result(Screen):
         self.began = None
         self.stamped = 0
         self.opened = time.monotonic()
+        self.slow = slow_keys(lesson_screen.run)
 
     def layout(self):
         cols, rows, cw, ch = self.app.size
@@ -1520,8 +1539,9 @@ class Result(Screen):
         slips = sorted(r.slips.items(), key=lambda kv: -kv[1])
         words = ''
         if slips:
-            named = [('space' if c == ' ' else 'enter' if c == '\n' else c) for c, _ in slips[:3]]
-            words = 'slipped on ' + ', '.join(named)
+            words = 'slipped on ' + ', '.join(key_word(c) for c, _ in slips[:3])
+        elif self.slow:
+            words = 'slowest on ' + ', '.join(key_word(c) for c in self.slow)
         if self.les.kind == 'baseline':
             return 'that is your old way. touch typing will pass it.'
         if self.ls.news:
@@ -1566,7 +1586,9 @@ class Result(Screen):
             row += 1
         if self.kb_pic:
             kb = art.Keyboard(a.dark)
-            for c, _ in self.ls.run.slips.items():
+            for c in self.slow:
+                kb.heat[keys.needs(c)[0][0]] = art.INK['flame']
+            for c in self.ls.run.slips:
                 n = keys.needs(c)
                 if n:
                     kb.wrong.add(n[0][0])

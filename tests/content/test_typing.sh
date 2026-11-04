@@ -17,6 +17,13 @@ out=$(TERM=foot tty_run 80 kawa-typing "$TMP/nothing" 2>&1); has "$out" "No such
 printf '\n\n  \n' >"$TMP/empty"; out=$(TERM=foot tty_run 80 kawa-typing "$TMP/empty" 2>&1); has "$out" "nothing in it to type"
 out=$(TERM=linux tty_run 80 kawa-typing 2>&1); has "$out" "foot"
 
+case_ "--status, for Super+U's pane: where you are, in a line or two"
+mkdir -p "$XDG_STATE_HOME/fedokawaii/typing"
+echo '{"lessons":{"home.fj.meet":{"seals":0,"best":0,"tries":1},"home.fj.drill":{"seals":3,"best":20,"tries":1}}}' >"$XDG_STATE_HOME/fedokawaii/typing/progress.json"
+echo '{"d":1793800000,"l":"free.test","k":"test","w":41.2,"r":43,"a":98.1,"s":60}' >"$XDG_STATE_HOME/fedokawaii/typing/history.jsonl"
+eq "$(kawa-typing --status)" $'lesson 3 of '"$(kawa-typing --course | wc -l)"$'\nlast test 41 wpm, 98 %'
+rm -rf "$XDG_STATE_HOME/fedokawaii"
+
 case_ "the course: as many lessons as its document says, stage by stage"
 table=$(kawa-typing --course)
 total=$(grep -oE '\*\*[0-9]+\*\*' "$DOC" | tr -d '*' | head -n1)

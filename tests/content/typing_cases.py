@@ -968,6 +968,41 @@ def case_tables():
     report('96.97 % reads 96.9, under the bar it missed', percent(64 / 66 * 100) == '96.9' and percent(100) == '100.0', percent(64 / 66 * 100))
 
 
+def case_quiet():
+    """Ctrl+K: the next key's light off, remembered; the keyboard itself stays"""
+    fresh()
+    p = start((100, 33), '--lesson', 'home.fj.drill')
+    p.pump(0.2)
+    n = len(p.out)
+    p.send(b'\x1b[107;5:1u')
+    p.pump(0.2)
+    report('Ctrl+K repaints the keyboard', len(p.out) > n, '')
+    st = finish(p)
+    with open(os.path.join(state_dir(), 'progress.json')) as f:
+        report('...and is remembered', json.load(f)['quiet'] is True and st == 0, str(st))
+
+
+def case_mouse():
+    """the pointer on the tabs and the rows (§5: hover is the cursor, a click is Enter)"""
+    fresh()
+    p = start((100, 33))
+    n = len(p.out)
+    p.send(b'\x1b[<35;10;7M')        # (over the third row)
+    p.pump(0.1)
+    report('hover moves the cursor', len(p.out) > n, '')
+    p.send(b'\x1b[<0;10;5M\x1b[<0;10;5m')   # (a click on the first row: the first lesson)
+    d = wait_resume(p)
+    report('a click on a row goes', d['lesson'] == 'home.fj.meet', str(d['lesson']))
+    st = finish(p)
+    fresh()
+    p = start((100, 33))
+    n = len(p.out)
+    p.send(b'\x1b[<0;15;2M\x1b[<0;15;2m')   # (a click on the next tab's icon: the course tab takes columns 2–10, then a gap of 3)
+    p.pump(0.2)
+    report('a click on a tab changes it', b'practice' in bytes(p.out[n:]), '')
+    report('...no traceback', finish(p) == 0 and st == 0, '')
+
+
 def case_long_file():
     """a long file: the last key as quick as the first (standing() counts on from where it stood)"""
     fresh()
