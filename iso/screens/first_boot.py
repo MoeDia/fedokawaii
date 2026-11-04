@@ -58,7 +58,7 @@ def clean_up():
 
 def words_of(heading):
     """"3.05 fonts, icons, toolkit themes" → "fonts, icons, toolkit themes"."""
-    return re.sub(r"^[0-9T][0-9.]*[a-z0-9]*\s+", "", heading).strip()
+    return re.sub(r"\s*\(.*\)$", "", re.sub(r"^[0-9T][0-9.]*[a-z0-9]*\s+", "", heading)).strip()
 
 
 def main():

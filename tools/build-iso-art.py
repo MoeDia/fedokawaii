@@ -7,7 +7,7 @@ Writes (tools/build-iso.sh calls it, with SOURCE_DATE_EPOCH set; nothing here re
     OUTDIR/console/sumi-console.psf   Sumi UI ×2 (design system §2: the installer's screens) as a
         Linux console font, a 14 × 28 cell, with our icons, the torii and the screens' own tiles in
         the Private Use Area
-    OUTDIR/console/glyphs.py          the names of those tiles, for iso/screens/
+    OUTDIR/console/glyphs.py          the names of those tiles, the palette's roles, for iso/screens/
     OUTDIR/grub/…                     the boot menu's theme: PNG only, words too (under Secure Boot
         Fedora's GRUB refuses any font but the Unifont inside its signed image: iso-research.md §5)
     OUTDIR/plymouth/…                 the boot splash of the first stage: system/plymouth/sumi with
@@ -179,8 +179,12 @@ def console(out):
     ImageDraw.Draw(dot).rectangle([4, 11, 9, 16], fill=1)
     add("dot", [dot])
     (out / "sumi-console.psf").write_bytes(psf(glyphs))
-    lines = ['"""the console font\'s tiles (written by tools/build-iso-art.py)."""', "G = {"]
+    lines = ['"""the console font\'s tiles and the palette\'s roles (written by tools/build-iso-art.py)."""', "G = {"]
     lines += [f"    {k!r}: {v!r}," for k, v in sorted(names.items())]
+    lines += ["}", "COLOURS = {"]
+    roles = ("ground", "select", "surface", "accent", "edge2", "edge", "edge", "text",       # (0–7: inks and grounds)
+             "faint", "muted", "text", "strong", "accent_text", "asagi", "gold", "text_on_select")
+    lines += [f"    {i}: {P[r]!r},  # {r}" for i, r in enumerate(roles)]
     lines += ["}", ""]
     (out / "glyphs.py").write_text("\n".join(lines), encoding="utf-8")
     return len(glyphs)

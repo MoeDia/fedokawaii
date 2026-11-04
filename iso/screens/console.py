@@ -15,19 +15,16 @@ import subprocess
 import termios
 import time
 
-from glyphs import G
+from glyphs import COLOURS, G
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 TTY = "/dev/tty8"
 FONT = os.path.join(HERE, "sumi-console.psf")
 
-# ANSI number → role. Grounds must sit in 0–7 (SGR 40–47 reaches no others).
+# ANSI number → role, in the order glyphs.py's COLOURS has them (tools/build-iso-art.py, from the palette).
+# Grounds must sit in 0–7 (SGR 40–47 reaches no others).
 GROUND, SELECT, SURFACE, ACCENT, EDGE2, _5, _6, _7 = range(8)
 FAINT, MUTED, TEXT, STRONG, ACCENT_TEXT, ASAGI, _14, ON_SELECT = range(8, 16)
-PALETTE = {GROUND: "181715", SELECT: "82241f", SURFACE: "1c1916", ACCENT: "eb5324", EDGE2: "3c2f22",
-           _5: "2d251e", _6: "2d251e", _7: "e7cfa1",
-           FAINT: "907e5d", MUTED: "cab596", TEXT: "e7cfa1", STRONG: "f5ecc2", ACCENT_TEXT: "f47b58",
-           ASAGI: "82c1b4", _14: "e2b540", ON_SELECT: "f5ecc2"}
 
 KDSETMODE, KD_TEXT = 0x4B3A, 0
 KDSKBMODE, K_UNICODE = 0x4B45, 3
@@ -108,7 +105,7 @@ class Screen:
 
     @staticmethod
     def palette():
-        return "".join(f"\033]P{n:X}{c}" for n, c in PALETTE.items())
+        return "".join(f"\033]P{n:X}{c}" for n, c in COLOURS.items())
 
     def undressed(self):
         """Something reloaded the console's font (a size other than ours): dress again. True: redraw."""
