@@ -1,0 +1,186 @@
+# The sentences of the course, ours: "STAGE<TAB>TEXT". Plain letters only in plain; capitals and quotes in
+# capitals; figures in numbers; signs in symbols and signs. Lessons draw a few at random up to their length.
+plain	the old lantern burns low in the quiet hall.
+plain	a red seal marks the last page of the book.
+plain	the demon laughs and the torches shake on the wall.
+plain	soft rain falls on the temple roof all night.
+plain	the angel folds her wings and looks at the moon.
+plain	the quick fox jumps over a lazy dog.
+plain	six jugs of quince jam lay by the frozen well.
+plain	we walk up the hill before the sun comes out.
+plain	he drew one wave and the whole sea was there.
+plain	the monk swept the yard, then swept it again.
+plain	a small bird sat on the bell and would not leave.
+plain	her brush was old, but her hand was sure.
+plain	the river runs under the bridge and out to the sea.
+plain	an empty cup holds more than a full one.
+plain	the snow came early and stayed until the spring.
+plain	they lit a fire and told old stories until dawn.
+plain	the door was open, so the wind came in.
+plain	black ink dries slowly on thick paper.
+plain	the cat slept on the warm stones by the kitchen door.
+plain	he read the letter twice, then burned it.
+plain	a long road is short with a good friend.
+plain	the mountain does not move for the clouds.
+plain	she keeps the keys in a box under the stairs.
+plain	we found a narrow path behind the waterfall.
+plain	the blacksmith works late when the moon is full.
+plain	a jar of honey sat on the shelf for ten years.
+plain	the zebra and the ox drank at the quiet pool.
+plain	every morning the baker opens his door at five.
+plain	the fisherman mended his net and said nothing.
+plain	strong tea and a cold wind will wake anyone.
+plain	the king gave back the jewel and kept the box.
+plain	a thin crack ran across the face of the mask.
+plain	the crew pulled the boat over the wet sand.
+plain	two old friends argued about the shape of the moon.
+plain	she painted the same pine tree for thirty years.
+plain	the bells rang out over the frozen lake.
+plain	do not trust a bridge you have not walked on.
+plain	the wall was built by hands no one remembers.
+plain	sparks flew up and vanished into the dark.
+plain	the teacher said nothing, and that was the lesson.
+plain	a quiet mind can hear the snow fall.
+plain	the climb was hard, but the view was worth it.
+plain	he fixed the broken gate with a piece of rope.
+plain	the garden looks best the day after the rain.
+plain	we carried water up from the well each morning.
+plain	an owl watched us from the top of the gate.
+plain	the sword stayed in its case for many years.
+plain	old books smell of dust and smoke and time.
+plain	the stars were out by the time we reached the inn.
+plain	she folded the paper into a crane and let it go.
+plain	a sudden wind blew out every candle in the room.
+plain	the guard fell asleep, and the thief walked in.
+plain	they crossed the valley with a mule and a map.
+plain	he practiced each morning, and slowly it became easy.
+plain	never say the work is done until the tools are clean.
+plain	the fog lifted and the harbor was full of ships.
+plain	a good question is worth a hundred quick answers.
+plain	the clock in the square has been wrong for years.
+plain	she tied the boat to a post and walked into town.
+plain	all the leaves came down in a single night.
+plain	the giant wave lifted the boats like toys.
+plain	the farmer looked at the sky and said it would rain.
+plain	hard work and a little luck built this house.
+plain	the mirror was cracked, but it still told the truth.
+plain	a single candle lit the whole of the small room.
+plain	they say the oni lives beyond the third mountain.
+plain	he was the last one to leave and the first to return.
+plain	the road turned to mud, so we went on foot.
+plain	a hungry ghost waits by the door of the old inn.
+plain	the kettle sang while the snow piled up outside.
+plain	she knew the answer, but she waited for the question.
+plain	the painter mixed his blue with a little black.
+plain	we heard the drums long before we saw the fires.
+plain	an old map showed a village that was no longer there.
+plain	the bridge is closed, so take the ferry over.
+plain	small steps taken every day will cross any country.
+plain	the moon lay on the water like a silver coin.
+plain	a heavy box of quartz and zinc sat by the door.
+plain	the jazz band played until the windows shook.
+plain	he quickly picked six jars of wax from the shelf.
+plain	the vexed judge asked for a quiet room.
+plain	exactly five boxes were frozen in the ice.
+plain	the lazy jester quit his job and went back to sleep.
+plain	each key has its own finger, and each finger its home.
+plain	look at the words, not at your hands.
+plain	slow is smooth, and smooth becomes fast.
+plain	the fingers learn what the eyes forget.
+plain	press each key once, then go back home.
+plain	a mistake made slowly is a lesson learned quickly.
+plain	today you type better than you did yesterday.
+capitals	Hokusai drew the great wave when he was over seventy.
+capitals	Kuniyoshi painted warriors, cats and sea monsters.
+capitals	Mount Fuji stands alone above the clouds.
+capitals	The Book of Tea was written by Okakura Kakuzo.
+capitals	Sanzo Wada wrote a dictionary of colour combinations.
+capitals	Lafcadio Hearn lived in Matsue and wrote about ghosts.
+capitals	Kyoto was the old capital; Tokyo was once called Edo.
+capitals	"Who goes there?" asked the guard at the gate.
+capitals	"Nothing," she said, "and that is the whole answer."
+capitals	Don't look down; your fingers know the way.
+capitals	It's late, but we can't leave the fire burning.
+capitals	The sign said "closed", but the door wasn't locked.
+capitals	Tuesday comes after Monday, and Friday before Saturday.
+capitals	January is cold in Hokkaido; July is hot in Osaka.
+capitals	Is this the road to Nara? Yes, keep going north.
+capitals	What did you see in the river? Only the sky.
+capitals	The Red Seal Inn is near the Old East Gate.
+capitals	Ask Mina if the well-known painter is still in town.
+capitals	Fedora is a Linux system; Wayland draws its windows.
+capitals	Claude and Mohamed wrote this program together.
+capitals	Python, Rust and C are all worth learning.
+capitals	My keyboard has sixty-one keys and no number pad.
+capitals	A self-made man still needs a well-made tool.
+capitals	The Great Wave is a woodblock print from the Edo period.
+capitals	Buddhist temples often hold paintings of angels and demons.
+capitals	"Stop," he said. "Read it again, and read it slowly."
+capitals	She's right; they're wrong; and it doesn't matter now.
+capitals	We'll meet at the Golden Pavilion on Thursday.
+capitals	I said "maybe", and you heard "yes". Who's to blame?
+capitals	Japan is an island country in East Asia.
+capitals	The Sea of Japan lies between Korea and Honshu.
+capitals	Dr. Tanaka is in; Mr. Sato has gone to Kobe.
+capitals	Never let a good day end without one line of practice.
+capitals	Accuracy comes first; speed follows on its own.
+capitals	Your hands remember what your head has forgotten.
+capitals	Red, white, blue and gold: the colours of old prints.
+capitals	Dark or light? The demon or the angel? You choose.
+numbers	Hokusai drew 36 views of Mount Fuji, then 10 more.
+numbers	Hokusai lived from 1760 to 1849.
+numbers	Kuniyoshi was born in 1797 and died in 1861.
+numbers	Mount Fuji is 3776 metres high.
+numbers	The Book of Tea came out in 1906.
+numbers	A year has 365 days, 52 weeks and 12 months.
+numbers	The train leaves at 7:45 from platform 12.
+numbers	We need 3 eggs, 250 grams of flour and 2 cups of milk.
+numbers	My keyboard has 61 keys in 5 rows.
+numbers	Page 108 says the bell rings 108 times.
+numbers	Room 407 is on the 4th floor, near stairs 2 and 3.
+numbers	He paid 20 for the book and 5 for the tea.
+numbers	The meeting moved from 9:30 to 10:15 on May 21.
+numbers	At 60 words a minute you type 300 characters.
+numbers	At 100 words a minute a key takes 120 milliseconds.
+numbers	She counted 1, 2, 3 and then 5, 8, 13, 21, 34.
+numbers	The bus takes 45 minutes and the train takes 28.
+numbers	In 2026 this desktop runs on 1 monitor at 144 Hz.
+numbers	Call 0800 555 0199 between 8 and 17 on weekdays.
+numbers	Your order 40721 ships in 3 to 5 days.
+numbers	The screen is 1920 by 1080, with 8 pixels between windows.
+numbers	Turn left after 200 metres, then right after 750.
+numbers	Sanzo Wada lived from 1883 to 1967.
+numbers	Add 15 to 27 and you get 42; double it and you get 84.
+numbers	The castle was built in 1609 and has 83 rooms.
+numbers	Version 3.14 came out on the 7th of October.
+symbols	The tea costs $4 & the book costs $12.
+symbols	Send it to mina@example.org by Friday!
+symbols	Sales rose 15% (from $200 to $230) in May.
+symbols	Rock & roll; salt & pepper; ink & paper.
+symbols	Item #7 is out of stock (back in June).
+symbols	5 * 4 makes 20, and 2^8 makes 256 (not 16).
+symbols	Is it 100% done? Almost! Just 2% to go.
+symbols	Write to info@example.com for a price (in $).
+symbols	Issue #42 was closed by @mina at 9:15!
+symbols	Save 25% today & pay only $75 (was $100).
+symbols	Password rules: at least 1 of !@#$%^&* and 12 letters.
+symbols	The bill came to $58 (tax 8%), so we left $70.
+symbols	Tom & Mina paid $9 each (#3 on the menu).
+symbols	Regex: ^fedora$ matches exactly one word (no more).
+symbols	Rated 4* out of 5*: "good, but pricey!"
+signs	x = (a + b) * [c - d] / 2
+signs	if a < b and b > c: print(a)
+signs	path = ~/repos/fedokawaii/bin/
+signs	foo_bar = {"key": "value", "n": 3}
+signs	cat notes.md | grep -v "^#" > out.txt
+signs	git log --oneline -n 20 | less
+signs	C:\Users\mina\Documents is not a path here.
+signs	a[0] = b[1] + c[2]; d = {e: f};
+signs	`ls -l` prints each file on its own line.
+signs	~/.config/foot/foot.ini holds the font=size line.
+signs	if (x >= 0 && y <= 9) { z += 1; }
+signs	my_var_name = other_var + 1
+signs	<div class="main">hello</div>
+signs	a | b | c means the first's output feeds the next.
+signs	<a href="https://example.org/~mina/">home</a>
+signs	vec[i] += step_size * (target - vec[i]);
