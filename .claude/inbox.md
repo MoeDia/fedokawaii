@@ -80,3 +80,18 @@ ASOBI needs a real test on your screen: at about 18:50 your monitor switches to 
 
 ## 2026-11-04 18:22 — question from lane-hardware
 The cooler's little display: until 18:23 I send it the number 88, then 42 until 18:24, then nothing. Does it show 88 and then 42? What does it show when I stop? (Add it to your answer to my 18:16 question.)
+
+## 2026-11-04 18:31 — question from lane-hardware
+Notice, no answer needed: at 18:34, for about 1 minute, a full-screen test picture appears 4 times (it proves FreeSync: the monitor's own refresh is measured). It takes the keyboard while it shows, so don't type then. Your windows stay as they are.
+
+## 2026-11-04 18:35 — in the plan: T19q 1 (figure art: lane-ink; lane-art keeps walls, friezes, clouds, wallpapers)
+OWNER 18:32: the demon and the angel become EPIC detailed ink illustrations (engraved / irezumi style, Renaissance-meets-Japanese), not pixel art, at every size: icon, prompt, fetch, quick settings, lock. New lane-ink owns all figure art (mark the heads theirs; the Marishiten/menpo note is superseded). lane-art keeps the lock backgrounds (walls, friezes, clouds) and the wallpapers. The rest of the UI stays pixel.
+
+## 2026-11-04 18:58 — question from lane-browser
+The new browser is Helium (Chromium 156, native Wayland, hardware video on your card, uBlock built in, its own Fedora repo). One thing only you can decide: Helium ships no Widevine, which Spotify's web player needs. Helium can load Google's Widevine module if the installer fetches it from Google's own server (the same file Brave and Firefox use, checked by hash, never stored in our repo or ISO). It works here. But the module's LICENSE says "You may not use … the Software without a separate license agreement with Google" (Brave and Firefox have such agreements, Helium does not, which is why Helium does not ship it). I am building it as: fetched at install and update for this PC only, so Spotify keeps working. Tell me if you would rather NOT use it: then Spotify would need another way (its own Linux app). If you say nothing, it stays as built.
+
+## 2026-11-04 18:41 — question from lane-hardware
+RGB, please look inside your PC now, it is all running. Everything should breathe slowly in dim red. One line, as you see it: keyboard? Gigabyte logo? case fans? CPU cooler's fan? And the cooler's little display: it should show your CPU temperature (about 80 today), does it? Last: with a stopwatch, how many seconds is one breath of the Gigabyte logo, dark to dark? (Forget my 18:16 and 18:22 questions, this one replaces them.)
+
+## 2026-11-04 18:43 — question from lane-hardware
+Notice: at 18:46 your monitor switches itself off for about 15 seconds and comes back, a test that your workspace and windows stay exactly as they were. If it stays dark after 40 seconds, press the monitor's own power button once and tell me here. Nothing else to do.

@@ -177,3 +177,6 @@ can be a bit better
 
 ## 2026-11-04 18:11 — 02-bar — redo — open
 OWNER 18:07: the bar stays FULLY FLOATING like before: NO background band behind it, ever. Revert the band now. Claude's art note section 2 and his 02-bar note are withdrawn. Readability comes from the tiles themselves (solid tiles with their own edge) and calm wallpaper tops (lane-art).
+
+## 2026-11-04 18:35 — 00a-new-prompt-and-fetch — redo — in the plan: T19q 1, lane-ink
+OWNER 18:32 (new direction for the demon and the angel everywhere: icon, fetch, lock): not pixel art — EPIC detailed ink illustrations, "a Renaissance Japanese style painting, go wild, make it your own". Demon: a Hannya in fine engraved / irezumi ink, hatching, scrollwork on the face, horns, wild hair. Angel: a Renaissance winged angel in Japanese tattoo / ukiyo-e ink with Hokusai waves, sakura and clouds, indigo wash. lane-ink owns it (see its task); Claude's Marishiten / menpo idea is superseded by this.
