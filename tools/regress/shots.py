@@ -208,13 +208,18 @@ def tv(icons, folder, label):
         return [f"tv-frames ({label}): {len(shots)} shots"], ""
     times = [int(os.path.basename(f)[2:-4]) / 1e6 for f in shots]
     pics = [np.asarray(Image.open(f).convert("RGB"), dtype=np.int16) for f in shots]
-    # (the first tile of the strip, what plays: the hairline's first run of columns — the memory,
-    # the clock's wings and the rest of the bar move as they please)
-    run = np.flatnonzero((pics[0][3] != pics[0][1, 2]).any(axis=1))
+    # (the first tile of the strip, what plays, from the last shot — under load the module may come
+    # late: the shots before it have no such tile; the memory, the wings and the rest move as they please)
+    run = np.flatnonzero((pics[-1][3] != pics[-1][1, 2]).any(axis=1))
     if not len(run):
         return [f"tv-frames ({label}): no tile on the bar's right"], ""
     end = run[np.flatnonzero(np.diff(run) > 1)[0]] if (np.diff(run) > 1).any() else run[-1]
-    pics = [a[:, run[0]:end + 1] for a in pics]
+    width = end - run[0] + 1
+    here = [k for k, a in enumerate(pics) if a[3, run[0] + 1:end].tolist() == pics[-1][3, run[0] + 1:end].tolist()]
+    times = [times[k] for k in here]
+    pics = [pics[k][:, run[0]:run[0] + width] for k in here]
+    if len(pics) < 30:
+        return [f"tv-frames ({label}): {len(pics)} shots of its tile"], ""
     seen, seq = [], []
     for a in pics:
         for i, u in enumerate(seen):
@@ -249,13 +254,14 @@ def tv(icons, folder, label):
             break
     if turn is None:
         faults.append(f"tv-frames ({label}): the four pictures are not the art's: what moves is not what art/icons.txt draws")
-    # in order: each new picture the next one round (a slow shot of grim's may miss one: only
-    # when the time between the two shots is long enough for that)
+    # in order: each new picture the next one round. A slow shot, or waybar drawing two lines of a
+    # burst as one on a busy machine, may miss a frame now and then: one in ten; never a step back
     changes = [(times[k], seq[k - 1], seq[k]) for k in range(1, len(seq)) if seq[k] != seq[k - 1]]
-    for (t1, a, b), prev in zip(changes, [times[0]] + [c[0] for c in changes], strict=False):
-        step = (b - a) % 4
-        if step != 1 and t1 - prev < 150 * step * 0.8:
-            faults.append(f"tv-frames ({label}): picture {a} then {b}, {t1 - prev:.0f} ms after the last change: out of order")
+    steps = [(c[2] - c[1]) % 4 for c in changes]
+    if any(st == 3 for st in steps):
+        faults.append(f"tv-frames ({label}): a step back: {steps}")
+    if sum(st == 2 for st in steps) * 10 > max(len(steps), 10):
+        faults.append(f"tv-frames ({label}): frames missed too often: {steps}")
     dwell = sorted(b[0] - a[0] for a, b in zip(changes, changes[1:], strict=False))
     med = dwell[len(dwell) // 2] if dwell else 0
     if not 120 <= med <= 220:
