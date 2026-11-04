@@ -18,6 +18,7 @@
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
 #   bash tools/vm-iso-test.sh again NAME ISO           the same VM and disk, started from a stick again
+#   bash tools/vm-iso-test.sh over NAME ISO            a whole run over a finished install (`i` on that page)
 #   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
 #   bash tools/vm-iso-test.sh carry-check NAME QCOW2   brought back from it (a VM made with --usb QCOW2), compared
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
@@ -253,7 +254,7 @@ do_run() {
 do_follow() {
   local name=$1 last="" ph since=$SECONDS
   R=$V/$name/run; mkdir -p "$R"
-  ((${T0:-0})) || T0=$SECONDS
+  [[ -n ${T0:-} ]] || T0=$SECONDS
   until vm_ssh "$name" true 2>/dev/null; do
     ((SECONDS - T0 > 3600)) && { stage "RED: the installed system never answered"; return 1; }
     "${VIRSH[@]}" domstate "$name" | grep -q running || "${VIRSH[@]}" start "$name" >/dev/null 2>&1
@@ -342,6 +343,24 @@ do_again() {
   "${VIRSH[@]}" start "$name" >/dev/null
 }
 
+# do_over NAME ISO — an install over a finished one: the stick boots again on the disk of the last run (it says
+# fedokawaii is installed), `i`, the questions, and from there a whole run on a disk with real history
+do_over() {
+  local name=$1 iso=$2
+  do_again "$name" "$iso" || return 1
+  R=$V/$name/run T0=$SECONDS
+  mkdir -p "$R"
+  stage "started on a finished disk: $(sha256sum "$iso" | cut -c1-16)"
+  setsid -f bash "$0" watch "$name" "$R/screens" 3 >/dev/null 2>&1 </dev/null
+  wait_words "$name" "fedokawaii is installed" 300 || { stage "RED: the stick did not say so"; return 1; }
+  do_say "$name" >"$R/installed.txt"; cp "$V/$name/say.png" "$R/installed.png"
+  stage "the stick says it is installed"
+  do_keys "$name" i
+  do_install "$name" || { stage "RED: the questions"; return 1; }
+  stage "questions answered"
+  do_follow "$name"
+}
+
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
 # the screen says, read exactly, and a PNG of it in DIR
 do_matrix() {
@@ -397,6 +416,7 @@ case $cmd in
   follow) name_ok "${1:-}"; do_follow "$1" ;;
   matrix) do_matrix "$@" ;;
   again) name_ok "${1:-}"; do_again "$@" ;;
+  over) name_ok "${1:-}"; do_over "$@" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
