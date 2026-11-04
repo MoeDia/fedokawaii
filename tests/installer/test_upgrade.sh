@@ -42,6 +42,9 @@ back out; fkh unreachable download1.rpmfusion.org
 tk --upgrade --now; eq "$RC" 0; has "$OUT" "RPM Fusion has no Fedora 45 yet"; not_called 'vm-preflight'; not_called 'system-upgrade'
 back out; echo $(( $(date +%s) - 30 * 86400 )) >"$W/var/lib/fedokawaii/release-45"; keep settled
 
+case_ "fedokawaii upgrade (asked in so many words): settled, it moves in this one run; no second press"
+back settled; tk --upgrade; eq "$RC" 0 "$(tail -n2 <<<"$OUT")"; called 'vm-preflight'; called 'system-upgrade reboot'; lacks "$OUT" "press update again"
+back settled
 case_ "the first press with every gate open: the test VM runs, green is kept, it is said — no move, no restart"
 press; eq "$RC" 0 "$(tail -n2 <<<"$OUT")"
 called '^fkuser\[vm-preflight\.sh\] 45 --out'; eq "$(cut -d' ' -f1 "$U/preflight-45")" green

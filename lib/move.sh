@@ -90,8 +90,8 @@ move_tryvm() {   # move_tryvm N → 0 green · 1 not: said. The test VM, unless 
 }
 
 # ── the press's end ──────────────────────────────────────────────────────────────────────────
-# up_move_step [--now] — after a press whose system is current: said, tried, or moved. --now is
-# fedokawaii upgrade: no settling, no "press again" (asked in so many words)
+# up_move_step [--asked|--now] — after a press whose system is current: said, tried, or moved.
+# fedokawaii upgrade: no "press again" (asked in so many words); --now: no settling either
 up_move_step() {
   local n=$((FEDORA_VER + 1)) flag=${1:-} why told="" rc=0
   [[ $UP_END == @(ok|current|held) ]] || return 0
@@ -100,7 +100,7 @@ up_move_step() {
   if ((rc == 1)); then move_waits "$n" "$why"; return 0; fi
   move_tryvm "$n" || return 0
   told=$(cat "$MOVE_TOLD" 2>/dev/null) || told=""
-  if [[ $told != "$n" && $flag != --now ]]; then
+  if [[ $told != "$n" && -z $flag ]]; then
     echo "$n" | write_file "$MOVE_TOLD" 0644
     hdr "Fedora $n is ready: press update again to move to it (a restart, 20–40 minutes)"
     move_say normal "Fedora $n is ready: press update again to move to it (a restart, 20–40 minutes)"
