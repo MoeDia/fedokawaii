@@ -101,7 +101,7 @@ provided_by() {   # provided_by CAP NAME… — one of these incoming packages p
   ((${#files[@]})) || return 2                       # (not found on disk: cannot tell)
   rpm -qp --provides -- "${files[@]}" 2>/dev/null | sed 's/ .*//' | grep -qxF -- "$cap"
 }
-if [[ -s $STATE/needs ]]; then
+if [[ -s $STATE/needs && ! -s $STATE/update/move ]]; then   # (a move's: libs_ready and the test VM asked already)
   wlr=$(awk '$1 == "wlroots" && NF == 2 { print $2; exit }' "$STATE/needs")
   wlr_rebuilt=0
   if [[ -n $wlr ]]; then

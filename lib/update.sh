@@ -73,6 +73,8 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
                    # "offered" report named as the way back stays pinned (UPD/offered) until an
                    # update is kept: its probation then releases it with its own
   local n o=""
+  # (a move cut before its restart: its armed restart, if it got that far, undone by the same word)
+  if [[ -s $MOVE && ! -e /system-update ]]; then log "a move that never restarted is forgotten"; move_disarm; fi
   n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if [[ $n =~ ^[0-9]+$ ]] && ! grep -q "^$n " "$UPD/probation" 2>/dev/null; then
     [[ -s $UPD/report ]] && IFS=' ' read -r _ o _ <"$UPD/report"   # (TIME OUTCOME; setup.sh's IFS is newline and tab)
@@ -171,7 +173,7 @@ cand_run() {   # cand_run TXDIR CMD… — CMD in the candidate, a container of 
   [[ -s /boot/initramfs-$(uname -r).img ]] && ref=(--bind-ro="/boot/initramfs-$(uname -r).img:/run/fk-ref.img")
   systemd-nspawn --quiet --register=no --private-network --link-journal=no -D "$UP_CAND" \
     --bind-ro="$tx:/tx" --bind="$UPD/cand-boot:/boot" --bind-ro="$REPO_DIR/lib/cand-check.sh:/run/fk-check" "${ref[@]}" \
-    --setenv=FK_USER="$TARGET_USER" -- "$@"
+    --setenv=FK_USER="$TARGET_USER" --setenv=FK_MOVE="${FK_MOVE:-}" -- "$@"
 }
 cand_try() {   # cand_try TXDIR → 0 green · 1 red (UPD/why says why). A container that does not even
                # start is no verdict on the packages: the run stops there, nothing changed
@@ -335,13 +337,15 @@ up_never_began() {
   now=$(up_hist) || return 1
   [[ $now == "$was" ]]
 }
-up_complete() {   # every package of the stored set at its new version, nothing twice, dnf's check clean
+up_complete() {   # up_complete [SET [nocheck]] — every package of the stored set at its new version,
+                  # nothing twice, dnf's check clean (nocheck: the move's — lib/move.sh move_whole)
   local n v
   while IFS=" " read -r n _ v; do
     [[ -n $n && $v != - ]] || continue
     rpm -q "$n-${v#*:}" >/dev/null 2>&1 || return 1
-  done <"$UPD/set"
-  [[ -z $(dnf -q repoquery --duplicates 2>/dev/null) ]] && dnf -q check >/dev/null 2>&1
+  done <"${1:-$UPD/set}"
+  [[ -z $(dnf -q repoquery --duplicates 2>/dev/null) ]] || return 1
+  [[ ${2:-} == nocheck ]] || dnf -q check >/dev/null 2>&1
 }
 
 # ── check, end ───────────────────────────────────────────────────────────────────────────────
@@ -422,6 +426,15 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
 # whole: the system before it put back and started, once (only once /home is its own subvolume —
 # before, offered); each said at login ─────────────────────────────────────────────────────────
 up_boot() {
+  # (a move whose undoing was cut right after its restore: back on the release it left, nothing left
+  # to judge it — the restored root has no unit for it — so said here)
+  if [[ -s $MOVE && ! -e $MOVE_AFTER && ! -e /system-update ]]; then
+    local from to s _t; IFS=' ' read -r from to s _t <"$MOVE"
+    if [[ $FEDORA_VER == "$from" ]]; then
+      rm -f -- "$MOVE" "$MOVE_TOLD" "$MOVE_SET" "$UPD/snap"
+      up_tell "the move to Fedora $to was undone" "back on Fedora $from as it was (snapshot $s)"
+    fi
+  fi
   [[ $(up_was) == replay ]] || return 0
   local n; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if up_never_began; then

@@ -65,6 +65,7 @@ source "$REPO_DIR/lib/hardware.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
 source "$REPO_DIR/lib/update.sh"
+source "$REPO_DIR/lib/move.sh"
 load_conf "$REPO_DIR"
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
@@ -3010,30 +3011,17 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   newest=$(rpm -q --last kernel-core); newest=${newest%%$'\n'*}; newest=${newest%% *}; newest=${newest#kernel-core-}
   running=$(uname -r)
   [[ $newest == "$running" ]] || hdr "kernel $newest installed — restart to use it (the one before stays, to fall back to)"
-  # whether the next Fedora is out, recorded for the menu (which never has to ask)
-  if released $((FEDORA_VER + 1)) >/dev/null; then log "Fedora $((FEDORA_VER + 1)) is out — the menu shows when the move to it is offered"; fi
   every=$(upkeep EVERY 90)
   clone_done || true                                # (the very last: the folder this update was run from)
   u_report
   hdr "update done ($result): $UP_LINE — the next one in $every days"
+  up_move_step "${MOVE_ASKED:-}"                    # (lib/move.sh: the next Fedora, once it is proven)
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
 #  --upgrade — the next Fedora release (fedokawaii upgrade)
 # ═════════════════════════════════════════════════════════════════════════════
-# Fedora's own way (dnf system-upgrade: everything downloaded first, installed after a
-# restart, before anything else runs), with what a toolkit that is never edited needs:
-#   · only a released Fedora (its release tree is published: staged ones are not readable),
-#     and only once it has settled — WAIT days (upkeep.conf, 60) after its release day,
-#     sooner only when yours ends within 60 days, or when asked (--now)
-#   · RPM Fusion must already have it (ffmpeg, the freeworld drivers come from there);
-#     a COPR that has not built for it yet is left out of the move (and skipped by dnf
-#     until it has: repos_lenient)
-#   · every library the desktop's own programs need must be in the new release: one dwl
-#     (or its own wlroots) needs stops the move; one another of them needs is reported
-#   · the system up to date first, room enough, a snapshot of / (marked important)
-#   · after the restart, one run of the rest (fedokawaii-after-upgrade.service): the
-#     manifest again, duplicates, torrra for the new Python, the theme, the checks, a report
+# Through the update button: lib/move.sh (the gates, the test VM, the restart, the facts after it).
 upkeep() {   # upkeep KEY DEFAULT → a number from your upkeep.conf (fedokawaii remind), or DEFAULT
   local v                # — within the same bounds the menu keeps (EVERY 7–365, WAIT 0–180);
   # read as you (it is your file), and none at all — never written until `fedokawaii remind`
@@ -3100,80 +3088,6 @@ libs_ready() {   # libs_ready N [--disablerepo=…] — the libraries our own bu
   ((${#missing[@]} == 0)) && return 0
   printf -v list '%s · ' "${missing[@]}"; log "not in Fedora $1: ${list% · }"
   ((hard == 0))
-}
-do_upgrade() {
-  [[ $(phase) == 'done' ]] || die "finish the build first"
-  local now_flag=${1:-} to=$((FEDORA_VER + 1)) out wait t r ok_rf=1 c skip=() end ans
-  wait_for_network
-  wait=$(upkeep WAIT 60)
-  hdr "Fedora $FEDORA_VER → $to"
-  out=$(released "$to") || die "Fedora $to is not released yet — nothing changed"
-  # settled? WAIT days from its release day — sooner only when yours ends within 60 days
-  end=$(support_end || echo 0)
-  t=$(( (out + wait * 86400 - $(date +%s) + 86399) / 86400 ))
-  if ((t > 0)) && [[ $now_flag != --now ]] && ! (( end > 0 && end - $(date +%s) < 60 * 86400 )); then
-    die "Fedora $to is out; it settles $wait days — offered in $t day(s) (or now: fedokawaii upgrade --now)"
-  fi
-  # (its release tree, not its release package: that one is published months ahead)
-  for r in free nonfree; do
-    retry 2 10 "${CURL[@]}" -o /dev/null --head \
-      "https://download1.rpmfusion.org/$r/fedora/releases/$to/Everything/x86_64/os/repodata/repomd.xml" || ok_rf=0
-  done
-  ((ok_rf)) || die "RPM Fusion has no Fedora $to yet — wait a little; nothing changed"
-  # COPRs not built for it yet: left out of this move (their packages stay as they are)
-  for c in "${COPRS[@]}"; do
-    "${CURL[@]}" --max-time 15 "https://copr.fedorainfracloud.org/api_3/project?ownername=${c%%/*}&projectname=${c#*/}" 2>/dev/null \
-      | jq -e --arg ch "fedora-$to-x86_64" '.chroot_repos | has($ch)' >/dev/null 2>&1 \
-      || { skip+=("--disablerepo=copr:copr.fedorainfracloud.org:${c/\//:}"); log "COPR $c has nothing for Fedora $to yet — left out; its packages stay as they are"; }
-  done
-  preflight 20480
-  wlr_keep || die "dwl's own wlroots is missing and cannot be kept from this Fedora — moving on would leave dwl unable to start; fedokawaii repair first"
-  libs_ready "$to" "${skip[@]}" && r=0 || r=$?
-  ((r != 2)) || die "Fedora $to's repositories could not be asked which libraries they have — nothing changed; try again later"
-  ((r == 0)) || die "a library dwl needs is not in Fedora $to (above) — staying on Fedora $FEDORA_VER, which is safe until its support ends"
-  if [[ $(as_user podman info --format '{{.Host.DatabaseBackend}}' 2>/dev/null) != sqlite ]]; then
-    run as_user podman system migrate --migrate-db || log "podman's database not migrated — Prowlarr may need: podman system migrate --migrate-db"
-  fi
-  repos_lenient
-  log "bringing Fedora $FEDORA_VER fully up to date first"
-  dnf_upgrade || die "the update before the move failed — nothing else changed"
-  snapshot_before "Fedora $to" important
-  log "downloading Fedora $to (this takes a while; nothing is installed yet)"
-  if ! retry 2 30 dnf_detached -y system-upgrade download --releasever="$to" "${skip[@]}"; then
-    log "the download stopped. If dnf says packages conflict, it can remove the ones that hold the move back — here they are:"
-    dnf_detached system-upgrade download --releasever="$to" "${skip[@]}" --allowerasing --assumeno || true
-    read -rp "  remove those (any the desktop needs come back afterwards, if Fedora $to has them) and go on? [y/N] " ans </dev/tty || ans=n
-    [[ $ans == [yY] ]] || { dnf system-upgrade clean >/dev/null 2>&1; die "nothing changed — Fedora $FEDORA_VER stays as it is"; }
-    retry 2 30 dnf_detached -y system-upgrade download --releasever="$to" "${skip[@]}" --allowerasing \
-      || { dnf system-upgrade clean >/dev/null 2>&1; die "the download failed — nothing changed"; }
-  fi
-  # the rest, after the restart: once, by itself, logged
-  write_file /etc/systemd/system/fedokawaii-after-upgrade.service <<EOF
-[Unit]
-Description=Fedokawaii — the rest of the move to Fedora $to
-After=network-online.target
-Wants=network-online.target
-ConditionPathExists=$STATE_DIR/upgrade-pending
-
-[Service]
-Type=oneshot
-ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --after-upgrade
-TimeoutStartSec=0
-
-[Install]
-WantedBy=multi-user.target
-EOF
-  systemctl daemon-reload; systemctl enable fedokawaii-after-upgrade.service >/dev/null 2>&1
-  record upgrade-pending "$(date +%s) $FEDORA_VER $to"
-  hdr "ready: restarting into the installation of Fedora $to (20–40 minutes; leave it on)"
-  sleep 5
-  if ! dnf -y system-upgrade reboot; then   # (should it not restart: nothing armed is left behind)
-    rm -f "$STATE_DIR/upgrade-pending"
-    systemctl disable fedokawaii-after-upgrade.service >/dev/null 2>&1 || true
-    rm -f /etc/systemd/system/fedokawaii-after-upgrade.service; systemctl daemon-reload || true
-    dnf system-upgrade clean >/dev/null 2>&1 || true
-    die "dnf could not arrange the restart into Fedora $to — nothing changed"
-  fi
 }
 tidy_duplicates() {   # packages left twice by an interrupted transaction: the older go
   if [[ -n $(dnf -q repoquery --duplicates 2>/dev/null) ]]; then dnf_detached -y remove --duplicates; fi
@@ -3250,55 +3164,6 @@ new_baseline() {   # new_baseline N — after a move: the old baselines age out 
     snapper -c root modify -c number "$n" || true
   done
   snapper -c root create -d "fedokawaii baseline (Fedora $1)"
-}
-# Once, after the move, by itself (fedokawaii-after-upgrade.service): every part on its own —
-# one that fails is reported, the rest goes on — and the outcome always recorded, whatever
-# happens (the reminder tells you at your next login: nobody is logged in at this boot)
-do_after_upgrade() {
-  [[ -f $STATE_DIR/upgrade-pending ]] || exit 0
-  local from="" to="" _ result=ok n
-  IFS=' ' read -r _ from to <"$STATE_DIR/upgrade-pending" || true
-  if ! [[ $to =~ ^[0-9]+$ ]]; then
-    log "the move's record is unreadable — nothing to finish"
-  elif [[ $FEDORA_VER != "$to" ]]; then   # the installation failed: the old release is back
-    record last-upgrade "$(date +%s) $from $to failed"
-    dnf system-upgrade clean >/dev/null 2>&1 || true      # (its download: never installed by surprise later)
-  else
-    UPDATE_STEPS_FAILED=()
-    local net=1
-    WAIT_STEP=5 wait_until 300 online || { net=0; UPDATE_STEPS_FAILED+=("no network: what needs it is left for the next update"); log "no network yet — the steps that need it are left for the next update"; }
-    if ((net)); then step_on "third-party repositories" repos_lenient; fi
-    step_on "duplicates" tidy_duplicates
-    # your own systemd, which lingering starts beside this unit at boot, is asked from here on
-    # (services that fight, the theme, Prowlarr): given a minute to come up
-    for n in {1..30}; do [[ -S /run/user/$TARGET_UID/bus ]] && break; sleep 2; done
-    if ((net)); then
-      step_on "the manifest" manifest_sync
-      step_on "this machine's drivers and firmware (the new kernel's)" s_hardware
-      step_on "nothing doubled or fighting" r_hygiene
-      step_on "dwl and the libraries under it" r_dwl
-      step_on "the desktop's own tools and their libraries" r_upstream
-      step_on "torrra for the new Python" torrra_up
-    fi
-    step_on "the theme (dwl rebuilt if needed)" r_theme
-    step_on "dnf's guard and what it knows (the new release's libraries)" guard_hooks
-    step_on "Prowlarr (Podman may have moved its store)" prowlarr_up
-    step_on "a new baseline snapshot" new_baseline "$to"
-    ((${#UPDATE_STEPS_FAILED[@]} == 0)) || result=partial
-    if ! bash "$REPO_DIR/verify.sh" >>"$LOG_FILE" 2>&1 && [[ $result == ok ]]; then result=checks; fi
-    # for you to look at, never changed by itself: configuration files the upgrade could not
-    # merge (.rpmnew beside yours), and packages no longer in any repository
-    n=$(find /etc \( -name '*.rpmnew' -o -name '*.rpmsave' \) 2>/dev/null | tee "$STATE_DIR/rpmnew" | wc -l) || n=0
-    ((n == 0)) || log "$n configuration file(s) to compare (list: $STATE_DIR/rpmnew)"
-    dnf -q repoquery --installed --extras --exclude='kernel*,gpg-pubkey' --qf '%{name}\n' 2>/dev/null >"$STATE_DIR/extras" || true
-    record last-update "$(date +%s) $result"
-    record last-update-done "$(date +%s)"
-    record_snapshots
-    record last-upgrade "$(date +%s) $from $to $result"
-  fi
-  rm -f "$STATE_DIR/upgrade-pending"
-  systemctl disable fedokawaii-after-upgrade.service >/dev/null 2>&1 || true
-  rm -f /etc/systemd/system/fedokawaii-after-upgrade.service; systemctl daemon-reload || true
 }
 
 # ═════════════════════════════════════════════════════════════════════════════
@@ -3604,7 +3469,7 @@ case $MODE in
   reset)  rm -f "$STATE_DIR"/done.* "$STATE_DIR"/phase "$STATE_DIR"/with-theme "$STATE_DIR"/gate-reached; remove_resume_unit
           echo "progress forgotten (the user and baseline records are kept)"; exit 0 ;;
   update) do_update; exit 0 ;;
-  upgrade) do_upgrade "${UPGRADE_FLAG:-}"; exit 0 ;;
+  upgrade) MOVE_ASKED=${UPGRADE_FLAG:---asked}; do_update; exit 0 ;;   # (as a press; the move without "press again")
   after-upgrade) do_after_upgrade; exit 0 ;;
   after-dnf) do_after_dnf && exit 0; exit 3 ;;
   repair) do_repair; exit 0 ;;

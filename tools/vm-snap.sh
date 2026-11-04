@@ -7,6 +7,7 @@
 #   bash tools/vm-snap.sh NAME save STATE            the VM stopped and its state kept as STATE
 #   bash tools/vm-snap.sh NAME revert fresh|STATE    back to the fresh install, or to STATE (stopped)
 #   bash tools/vm-snap.sh NAME list                  the saved states
+#   bash tools/vm-snap.sh NAME nice [N]              its threads at priority N (10): the PC comes first
 #   bash tools/vm-snap.sh NAME destroy               the VM and every file of it gone
 # Exit 0 · 1 it could not · 2 misuse.
 set -u
@@ -42,6 +43,9 @@ case $act in
       [[ -f $D/state-$st.qcow2 ]] || { echo "vm-snap: no state $st (vm-snap.sh $name list)" >&2; exit 1; }
       cp --reflink=auto "$D/state-$st.qcow2" "$D/disk.qcow2" && cp --reflink=auto "$D/state-$st.fd" "$(nvram)" || exit 1
     fi ;;
+  nice)
+    p=$(cat "$HOME/.cache/libvirt/qemu/run/$dom.pid" 2>/dev/null) || exit 1
+    for t in /proc/"$p"/task/*; do renice -n "${st:-10}" -p "${t##*/}" >/dev/null 2>&1; done ;;
   list) for f in "$D"/state-*.qcow2; do [[ -f $f ]] && { f=${f##*/state-}; echo "${f%.qcow2}"; }; done; exit 0 ;;
   destroy)
     "${V[@]}" destroy "$dom" >/dev/null 2>&1

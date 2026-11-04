@@ -107,7 +107,7 @@ case_ "rows: five sections, each its entries in order, each fitting the 38-colum
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
 for s in $SECS; do printf '%s: %s\n' "$s" "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --rows "$s" | cut -f1 | tr '\n' ' ')"; done >"$TMP/secs"
 eq "$(cat "$TMP/secs")" "system: status verify repair drift change theme settings remind log 
-update: update pull upgrade held 
+update: update pull held 
 snapshots: snapshots file 
 backups: backup restore drive 
 learning: guide chess typing keys "
@@ -124,7 +124,7 @@ for a in update snapshots remind; do
   eq "$(widest "$l")" 38 "$a: the value's last letter in the list's last column"
 done
 has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
-lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "Fedora 45"
+lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; eq "$(row upgrade)" "" "the move is the update's: no row of its own"
 case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
 for a in chess typing; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
@@ -135,7 +135,7 @@ case_ "rows: away from the desktop (a text console, ssh) — change, keys and th
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
 case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
-eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update pull upgrade held "
+eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update pull held "
 eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
 case_ "the tab bar, a heading over the list (a cell further out): the section shown — its icon in the accent's ink, its name strong, a vermilion line under the name alone; the others their icon alone, muted; every icon two columns, every gap three; a row of paper"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"   # (the icons the menu draws, by name)
@@ -235,12 +235,12 @@ case_ "rows at their widest: a release that settles in 180 days, an update in a 
 fedokawaii remind wait 180 >/dev/null; fedokawaii remind every 365 >/dev/null
 rec release-45 "$(ago_s 0)"; rec last-update-done "$(ago_s 0)"
 out=$(allrows)
-has "$(row upgrade)" "in 180 days"; has "$(row update)" "in 365 days"
+has "$(row update)" "in 365 days"
 (( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "too wide: $(plain "$out")"
 case_ "rows: due, ready (the kanji's vermilion: they need you), reminders off"
 fresh; rec last-update-done "$(ago_s 200)"; rec release-45 "$(ago_s 100)"
 out=$(allrows)
-has "$(grep '^update' <<<"$out")" $'\e[38;5;20mdue'; has "$(grep '^upgrade' <<<"$out")" $'\e[38;5;20mready'
+has "$(grep '^update' <<<"$out")" $'\e[38;5;20mdue'
 fedokawaii remind off >/dev/null; has "$(row remind)" "off"
 case_ "rows: a garbage snapshot count is not shown (nor makes the row too wide)"
 fresh; rec snapshots "$(printf 'x%.0s' {1..80})"
@@ -279,12 +279,12 @@ case_ "the pane, for every entry, with every record at its longest: its heading 
 fresh
 ( exec 9>"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
-rec last-upgrade "$(ago_s 3) 43 44 partial"; rec last-update "$(ago_s 0) stopped"; rec last-update-done "$(ago_s 100)"
+mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 43 44 partial"; rec last-update "$(ago_s 0) stopped"; rec last-update-done "$(ago_s 100)"
 rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc44.x86_64 >"$R/newest-kernel"
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
-for a in status update pull upgrade verify repair snapshots backup theme drift change settings remind log keys guide; do
+for a in status update pull verify repair snapshots backup theme drift change settings remind log keys guide; do
   out=$(FZF_PREVIEW_LINES=16 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")
   (( $(wc -l <<<"$out") <= 16 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   heading_ok "$(sed -n 1p <<<"$out")" 49 "$a: the pane's heading (level with the tab bar)"
@@ -309,13 +309,15 @@ case_ "status, routine: its room fits every line, nothing made way"
 fresh; rec last-update-done "$(ago_s 10)"; rec last-verify "$(ago_s 1) 257 0 0"
 out=$(plain "$(FZF_PREVIEW_LINES=16 fedokawaii --explain status)")
 for k in release support updated due verified backup kernel disk; do has "$out" "   $k " "status: $k"; done
-case_ "the pane never repeats the list beside it: no next Fedora (the upgrade's row), the due day without its 'in N days' (update's)"
+case_ "the pane never repeats the list beside it: the due day without its 'in N days' (update's row); the next Fedora in update's pane alone"
 fresh; rec last-update-done "$(ago_s 10)"
-for a in status update upgrade; do
+for a in status update; do
   out=$(plain "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")")
-  lacks "$out" "next " "$a: no next line"; lacks "$(grep '^ *due ' <<<"$out")" " · in " "$a: the due day without 'in N days'"
+  lacks "$(grep '^ *due ' <<<"$out")" " · in " "$a: the due day without 'in N days'"
 done
+lacks "$(plain "$(fedokawaii --explain status)")" "next "
 has "$(plain "$(fedokawaii --explain update)")" "due " "update: its due day all the same"
+has "$(plain "$(fedokawaii --explain update)")" "next " "update: the next Fedora, what the press will do with it"
 case_ "the pane for nothing, or for something unknown: empty, no error"
 eq "$(fedokawaii --explain 2>&1)" ""; eq "$(fedokawaii --explain bogus 2>&1)" ""; eq "$(fedokawaii --explain - 2>&1)" "" "a heading"
 
@@ -325,7 +327,7 @@ case_ "status: shown, then finished"
 fresh; out=$(tty_free fedokawaii --run status </dev/null 2>&1)
 has "$out" $'\e[H\e[2J'; has "$out" "release   Fedora 44"; has "$out" "finished"; has "$out" "any key goes back to the menu"
 case_ "the outcome line says what each exit status means"
-for a in update upgrade verify repair theme drift; do
+for a in update verify repair theme drift; do
   echo 0 >"$R/rc-$a"; has "$(outcome "$a")" "finished" "$a 0"
   echo 1 >"$R/rc-$a"; has "$(outcome "$a")" "it ended with an error (1)" "$a 1"
 done
@@ -649,7 +651,7 @@ stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0;
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"
 fresh; stub kawa-warm; fedokawaii --window; called "^kawa-warm system$"
 case_ "Super+U's popup: a job is handed to a window of its own (a click outside, or Super+U again, never kills it) and the menu ends"
-for a in update upgrade verify repair theme drift snapshots file backup settings log; do
+for a in update verify repair theme drift snapshots file backup settings log; do
   reset_calls; FEDOKAWAII_POPUP=yes tty_free fedokawaii --run "$a" </dev/null >/dev/null 2>&1; eq "$?" 0 "$a"
   called "^setsid -f .*fedokawaii --job $a$"; eq "$(front_calls)" "" "$a: not run in the popup"; not_called '^sudo'
 done

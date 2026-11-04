@@ -10,7 +10,7 @@
 #   fedokawaii pull        fedokawaii itself from GitHub: your clone (~/repos/fedokawaii)
 #                          brought to GitHub's newest, then the update from it, and repair if
 #                          anything is left (the repository is public: no sign-in, no token)
-#   fedokawaii upgrade     move to the next Fedora release, once it has settled
+#   fedokawaii upgrade     the update, then the move to the next Fedora (the update's second press)
 #   fedokawaii upgrade --now   the same, without waiting for it to settle
 #   fedokawaii verify      prove everything is installed right (changes nothing)
 #   fedokawaii repair      find what broke and put it right (offline too, as far as it can)
@@ -79,7 +79,7 @@ fi
 [[ $BACKUP_REMIND_DAYS =~ ^[0-9]{1,3}$ ]] || BACKUP_REMIND_DAYS=7   # (fedokawaii.conf edited by hand into no number)
 
 # ── settings: how often, and how long to let a new Fedora settle ───────────────────────
-EVERY=90 WAIT=60 REMIND=yes
+EVERY=90 WAIT=7 REMIND=yes
 load_conf() {
   local k v
   [[ -r $CONF ]] || return 0
@@ -211,7 +211,11 @@ v_next() {
     soon)     printf 'Fedora %s · due about %s' "$n" "$(date -d "@$r" '+%b %Y')" ;;
     unknown)  printf 'Fedora %s · may be out by now' "$n" ;;
     settling) printf 'Fedora %s · offered %s' "$n" "$(inn "$from")" ;;
-    ready)    printf 'Fedora %s · ready to move to' "$n" ;;
+    ready)    # (what the update knows of it: lib/move.sh's verdicts, in the update's own folder)
+              if [[ -s $STATE/update/move-red-$n ]] || [[ $(head -c3 "$STATE/update/preflight-$n" 2>/dev/null) == red ]]; then printf 'Fedora %s · waits: it failed a check' "$n"
+              elif [[ $(cat "$STATE/update/move-told" 2>/dev/null) == "$n" ]]; then printf 'Fedora %s · this press moves to it' "$n"
+              elif [[ -s $STATE/update/preflight-$n ]]; then printf 'Fedora %s · green in the test VM' "$n"
+              else printf 'Fedora %s · the next press tries it' "$n"; fi ;;
   esac
 }
 last_done() {   # the last update that reached its end — a run that stopped (a power cut, a
@@ -250,7 +254,7 @@ status_kv() {
     printf 'next\037%s\n' "$(v_next)"
   else printf 'release\037%s\n' 'unknown: /etc/os-release unreadable'; fi
   # the last move between releases, for the two months after it
-  if read -r t from to res < <(read_rec last-upgrade) && num "$t" && ((now - t < 60 * DAY)); then
+  if read -r t from to res < <(read_rec update/last-upgrade) && num "$t" && ((now - t < 60 * DAY)); then
     case $res in
       failed) printf 'moved\037to Fedora %s failed · %s\n' "$to" "$(day "$t")" ;;
       ok)     printf 'moved\037Fedora %s → %s · %s\n' "$from" "$to" "$(day "$t")" ;;
@@ -612,18 +616,19 @@ pull() {   # git pull, then the update from the clone, repair if verify still fi
 
 told_move() {   # the outcome of a move to a new Fedora, told once (at the first login after it)
   local t from to res told
-  read -r t from to res < <(read_rec last-upgrade) || return 0
+  read -r t from to res < <(read_rec update/last-upgrade) || return 0
   num "$t" || return 0
   ((now - t < 60 * DAY)) || return 0               # (a lost cache never re-tells an old move)
   told=$(cat "$CACHE/move-told" 2>/dev/null)
   [[ $told == "$t" ]] && return 0
   case $res in
-    failed) notify-send -a desktop -u critical -- "${ICON_RESTART:-·}  upkeep" "the move to Fedora $to did not complete — Fedora $from is as it was (what happened: sudo dnf system-upgrade log)" ;;
+    failed) notify-send -a desktop -u critical -- "${ICON_RESTART:-·}  upkeep" "the move to Fedora $to did not complete — Fedora $from is as it was (Super+U → update tells why)" ;;
     ok)     notify-send -a desktop -- "${ICON_RESTART:-·}  upkeep" "Fedora $to is in place — the move finished" ;;
     *)      notify-send -a desktop -- "${ICON_RESTART:-·}  upkeep" "Fedora $to is in place — some parts need a look: Super+U → status" ;;
   esac 2>/dev/null && { mkdir -p "$CACHE"; printf '%s\n' "$t" >"$CACHE/move-told"; }
   return 0
 }
+eol_tier() { local d=$(( ($1 - now) / DAY )); if ((d < 7)); then echo 7; elif ((d < 30)); then echo 30; else echo 90; fi; }   # (told at 90, 30 and 7 days before the end: design §5 row 33)
 remind() {   # remind [check] — once a day at most: an update due, a release ready or ending
   local d st n r from e how msg="" seen
   # (one look at a time: the session's timer and the look at login may meet — one notice)
@@ -635,8 +640,10 @@ remind() {   # remind [check] — once a day at most: an update due, a release r
   seen=$(cat "$NOTICE" 2>/dev/null)
   if [[ ${1:-} == check || $seen != "$(date +%F)" ]]; then   # (the backup's reminder below keeps its own day)
     d=$(due_at); read -r st n r from < <(next_state); read -r e how < <(eol_of "$(ver)")
-    if [[ $how == exact ]] && ((e < now + 30 * DAY)); then msg="Fedora $(ver)'s support ends $(day "$e") — move to Fedora $n (Super+U)"
-    elif [[ $st == ready ]]; then msg="Fedora $n has settled — the move to it is ready (Super+U)"
+    if [[ $how == exact ]] && ((e < now + 90 * DAY)) && [[ $(eol_tier "$e") != "$(cat "$CACHE/eol-told" 2>/dev/null)" ]]; then
+      msg="Fedora $(ver)'s support ends $(day "$e") — press update (Super+U) to move to Fedora $n"
+      [[ ${1:-} == check ]] || { mkdir -p "$CACHE"; eol_tier "$e" >"$CACHE/eol-told"; }
+    elif [[ $st == ready ]]; then msg="Fedora $n has settled — press update (Super+U): it is tried in a test VM, then moved to"
     elif ((d <= now)); then msg="the update season is here: $(( (now - d) / DAY + EVERY )) days since the last update (Super+U)"
     fi
     if [[ -n $msg ]]; then
@@ -696,15 +703,9 @@ PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
 # section's, rows: all of them
 rows() {
-  local only=${1:-} d st n r from l t p f w R=${INK_ACCENT_TEXT:-} O=${INK_OFF:-} upd up ver_ snap bk nxt
-  d=$(due_at); read -r st n r from < <(next_state)
+  local only=${1:-} d l t p f w R=${INK_ACCENT_TEXT:-} O=${INK_OFF:-} upd ver_ snap bk
+  d=$(due_at)
   if ((d <= now)); then upd="${R}due$O"; else upd=$(inn "$d"); fi
-  case $st in
-    ready)    up="${R}ready$O" ;;
-    settling) up=$(inn "$from") ;;
-    soon)     up=$(date -d "@$r" '+%b %Y') ;;
-    *)        up="may be out" ;;   # (as status says it: its day passed, not seen out yet)
-  esac
   ver_=""
   if l=$(read_rec last-verify); then
     read -r t p f w <<<"$l"
@@ -723,8 +724,6 @@ rows() {
   # (fedokawaii itself: when the clone was last pulled from GitHub)
   local pl="" pt pr
   if read -r pt pr _ 2>/dev/null <"$PULL_REC" && num "$pt"; then pl=$(ago "$pt"); [[ $pr == ok ]] || pl="$R$pl$O"; fi
-  # (a release that cannot be read is not guessed at: no Fedora 0, no move to Fedora 1)
-  if (($(ver))); then nxt="Fedora $n"; else nxt="the next Fedora"; fi
   # (change and keys open screens of their own: only on the desktop, not on a text console)
   local desk=""; [[ -n ${WAYLAND_DISPLAY:-} ]] && desk=1
   # (the row of the run going on: the hourglass in place of its icon, "running" in vermilion)
@@ -742,7 +741,6 @@ rows() {
   e system    log       "${ICON_NOTE:-·}"       log                    ""
   e update    update    "${ICON_DOWNLOAD:-·}"   update                 "$upd"
   e update    pull      "${ICON_TORII_SMALL:-·}" fedokawaii            "$pl"
-  e update    upgrade   "${ICON_UPGRADE:-·}"    "$nxt"                 "$up"
   e update    held      "${ICON_LOCK:-·}"       held                   "$(held_count)"
   e snapshots snapshots "${ICON_UNDO:-·}"       "go back"              "$snap"
   e snapshots file      "${ICON_FILE:-·}"       "a file, back"         ""
@@ -877,16 +875,16 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
   case $a in
-    status|update|upgrade|verify|repair|remind) kv=$(status_kv) ;;
+    status|update|verify|repair|remind) kv=$(status_kv) ;;
     *) kv=$(j=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$j")") ;;
   esac
   pick() {   # pick 'KEY|KEY…' [ROOM] → those lines of the status (with their continuations), less
-    # what the list beside it says already (next: the upgrade's row; due's "in N days": update's).
+    # what the list beside it says already (due's "in N days": update's).
     # More than ROOM lines (the rare ones all at once): the routine ones make way — the kernel
     # unless a restart waits for it, the disk unless it runs low, the release, its support —
     # never one that asks something of you: the pane never scrolls
@@ -936,17 +934,14 @@ explain() {
   case $a in
     status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' \
                     $(( ${FZF_PREVIEW_LINES:-0} - 3 )) ;;   # (the room under the heading)
-    update)    pick 'running|updated|due'
-               say "a snapshot first, then everything: Fedora's" \
-                   "packages, the desktop's own tools, the" \
-                   "checks. nothing updates by itself." ;;
+    update)    pick 'running|next|moved|updated|due'
+               say "everything, proven in a copy first: Fedora's" \
+                   "packages, the desktop's own tools — and a new" \
+                   "Fedora, once a test VM has shown it works." \
+                   "nothing updates by itself." ;;
     pull)      pick 'running'
                say "fedokawaii itself, from GitHub — then the" \
                    "update from it. your changes are kept." ;;
-    upgrade)   pick 'running|release|support|moved'
-               say "the move to a new Fedora, once it has" \
-                   "settled ($WAIT days): a snapshot, the" \
-                   "download, a restart — 20 to 40 minutes." ;;
     verify)    pick 'running|verified'
                say "everything checked against the toolkit." \
                    "changes nothing." ;;
@@ -1061,7 +1056,7 @@ job_head() {
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|settings|log'
+JOBS='update|pull|verify|repair|theme|drift|snapshots|file|backup|restore|drive|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
@@ -1092,7 +1087,6 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     status)    status_rows; rc=0 ;;
     update)    as_root update; rc=$? ;;
     pull)      pull; rc=$? ;;
-    upgrade)   as_root upgrade; rc=$? ;;
     verify)    as_root verify; rc=$? ;;
     repair)    as_root repair; rc=$? ;;
     snapshots) snapshots; rc=$? ;;

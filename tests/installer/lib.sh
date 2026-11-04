@@ -252,6 +252,12 @@ world() {   # world fresh|built [--themed]
     '[[ -s $FKH/session-red ]] && { echo "session-start (dark): $(cat "$FKH/session-red")" >&2; exit 1; }' \
     '/usr/local/bin/dwl -s true >/dev/null 2>&1 || { echo "session-start (dark): dwl does not start: the stand-in exits 1" >&2; exit 1; }' \
     'echo "session-start (dark): up"' >"$W/home/fkuser/fedokawaii/tools/regress/session-start.sh"
+  # the release's test VM (lib/move.sh): $FKH/preflight-red "REASON" red · $FKH/preflight-cannot "REASON"
+  # no verdict · else green
+  printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"; o=/dev/null; [[ ${2:-} == --out ]] && o=$3' \
+    '[[ -s $FKH/preflight-red ]] && { cat "$FKH/preflight-red" >"$o"; exit 1; }' \
+    '[[ -s $FKH/preflight-cannot ]] && { cat "$FKH/preflight-cannot" >"$o"; exit 2; }' \
+    'exit 0' >"$W/home/fkuser/fedokawaii/tools/vm-preflight.sh"
   printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "$*"' \
     '[[ -s $FKH/bar-red ]] && { while IFS= read -r l; do [[ $l == @(dark|light):* ]] || l="dark: $l"; echo "bar-geometry (${l%%:*}):${l#*:}" >&2; done <"$FKH/bar-red"; exit 1; }' 'exit 0' \
     >"$W/home/fkuser/fedokawaii/tools/regress/bar-geometry.sh"
