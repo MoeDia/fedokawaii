@@ -130,8 +130,8 @@ grep -qF '"PrepareForSleep"' "$REPO/system/kawa-greet" && _ok || _no "the greete
 
 case_ "the lock's twin: the same scene (lock-scene.txt and its pictures, both moods) at whole pixels, centred — no date, no time, no keys"
 eq "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" scene "$REPO/configs/home/.local/share/fedokawaii")" \
-  "dark 640 360 7 2 640 (3, 0, 0) (2, 43, 24) (2, 0, 40)
-light 640 360 7 2 640 (3, 0, 0) (2, 43, 24) (2, 0, 40)"
+  "dark 640 360 8 2 640 (3, 0, 0) (2, 43, 24) (2, 0, 40)
+light 640 360 8 2 640 (3, 0, 0) (2, 43, 24) (2, 0, 40)"
 g=$REPO/system/kawa-greet
 lacks "$(cat "$g")" 'Gtk.Button(' "no keys"; lacks "$(cat "$g")" 'strftime' "no date or time"
 grep -q 'self.get_style_context().add_class("kawa")' "$g" && _ok || _no "its window not marked: gtklock.css would show the line"

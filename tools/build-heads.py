@@ -404,11 +404,11 @@ def petal(c, P, bx, by, ang, ln, wd):
 
     def at(u, v):
         return (bx + u * sa + v * ca, by - u * ca + v * sa)
-    side = spline([at(0, 0), at(ln * 0.2, wd * 0.34), at(ln * 0.5, wd * 0.5), at(ln * 0.8, wd * 0.26), at(ln, 0)], per=8)
-    back = spline([at(ln, 0), at(ln * 0.8, -wd * 0.26), at(ln * 0.5, -wd * 0.5), at(ln * 0.2, -wd * 0.34), at(0, 0)], per=8)
+    side = spline([at(0, 0), at(ln * 0.22, wd * 0.36), at(ln * 0.52, wd * 0.5), at(ln * 0.82, wd * 0.2), at(ln, 0)], per=8)
+    back = spline([at(ln, 0), at(ln * 0.82, -wd * 0.2), at(ln * 0.52, -wd * 0.5), at(ln * 0.22, -wd * 0.36), at(0, 0)], per=8)
     m = c.poly_mask(P([tuple(p) for p in side] + [tuple(p) for p in back[1:]]))
     c.fill(m, "P")
-    u0 = ln * 0.5
+    u0 = ln * 0.64
     bowl = spline([at(u0 + ln * 0.12, wd * 0.6), at(u0, 0), at(u0 + ln * 0.12, -wd * 0.6)], per=8)
     tm = c.poly_mask(P([tuple(p) for p in bowl] + [at(ln * 1.1, -wd * 0.6), at(ln * 1.1, wd * 0.6)])) & m
     c.fill(tm, "R")
@@ -419,24 +419,28 @@ def petal(c, P, bx, by, ang, ln, wd):
 
 
 def lotus(c, P, o, f, top, by):
-    """the flower by how far it is open (O: 0 the bud … 1): back petals, the heart, the front ones"""
+    """the flower by how far it is open (O: 0 the bud … 1): seen from a little above, a rosette round
+    its heart, the far petals behind the heart, the near ones before it; shut, all of them upright,
+    the near ones wrapping the far."""
     e, deg = o * o * (3 - 2 * o), math.pi / 180
+    yc, hw, hh = by - 34 * e, 46 * e, 9 * e
 
-    def row(items):
-        for a0, a1, l0, l1, w0, w1, seen in items:
-            if o >= seen:
-                a, ln, wd = (a0 + (a1 - a0) * e) * deg, l0 + (l1 - l0) * e, w0 + (w1 - w0) * e
-                for s in (1, -1) if a1 else (1,):
-                    petal(c, P, 0, by, s * a, ln, wd)
-    row([(8, 80, 58, 66, 22, 36, 0.2), (8, 53, 68, 74, 26, 40, 0.0), (6, 27, 80, 80, 28, 42, 0.0), (0, 0, 88, 84, 30, 42, 0.0)])
+    def ring(angles, l1, w1, in_=0.9):
+        for th in angles:
+            sn, cs = math.sin(th * deg), math.cos(th * deg)
+            bx, by_ = sn * 6 * (1 - e) + sn * hw * in_ * e, by * (1 - e) + (yc - cs * hh * in_) * e
+            tx, ty = sn * 5 * (1 - e) + (sn * hw * in_ + sn * l1) * e, (by - 88 + abs(th) / 180 * 16) * (1 - e) + (yc - cs * hh * in_ - cs * l1 * 0.62) * e
+            ln = math.hypot(tx - bx, ty - by_)
+            petal(c, P, bx, by_, math.atan2(tx - bx, by_ - ty), ln, 30 * (1 - e) + w1 * e)
+    # the far petals, the sides (shut, only those that show)
+    ring((0, 24, -24) if e < 0.02 else (0, 24, -24, 48, -48, 72, -72, 96, -96), 54, 30)
     if e > 0.2:     # the heart: lacquer in a gold rim, where the password lies
-        k = min((e - 0.2) / 0.8, 1)
-        hw, hh, hy = 12 + 24 * k, 2 + 10 * k, by - 22 - 26 * k
-        c.ell(c.cx, (hy + top) * f, (hw + 2) * f, (hh + 2) * f, "G")
-        c.ell(c.cx, (hy + top) * f, hw * f, hh * f, "r")
+        c.ell(c.cx, (yc + top) * f, (hw + 2) * f, (hh + 2) * f, "G")
+        c.ell(c.cx, (yc + top) * f, hw * f, hh * f, "r")
         a, b = hw + 2.5, hh + 2.5
-        c.outline(c.poly_mask(P(round_([(a, hy), (a * 0.72, hy - b * 0.72), (0, hy - b), (-a * 0.72, hy - b * 0.72), (-a, hy), (-a * 0.72, hy + b * 0.72), (0, hy + b), (a * 0.72, hy + b * 0.72)], 8))), "K")
-    row([(10, 92, 62, 58, 26, 34, 0.0), (6, 60, 70, 50, 30, 36, 0.0), (0.01, 25, 76, 42, 34, 34, 0.0)])
+        c.outline(c.poly_mask(P(round_([(a, yc), (a * 0.72, yc - b * 0.72), (0, yc - b), (-a * 0.72, yc - b * 0.72), (-a, yc), (-a * 0.72, yc + b * 0.72), (0, yc + b), (a * 0.72, yc + b * 0.72)], 8))), "K")
+    # the near ones
+    ring((150, -150, 180) if e < 0.02 else (122, -122, 150, -150, 180), 44, 30, 1.04)
 
 
 def kannon(open_=0.0, eyes=False, w=216, h=352, f=1.0, top=6, bust=True):
@@ -479,6 +483,16 @@ def kannon(open_=0.0, eyes=False, w=216, h=352, f=1.0, top=6, bust=True):
     c.stroke(P([(0, 261), (21, 239), (42, 221), (62, 212)]), "K", 1.0)
     for pts in ([(62, 226), (84, 250), (96, 292), (94, 340)], [(46, 240), (66, 270), (76, 306), (72, 340)], [(92, 240), (108, 276), (112, 320)]):
         c.stroke(P(pts), "K", 2.4 * f, prof=swell)
+    if bust:      # kirikane on the robe: cut gold flowers on a slanted lattice; the necklace, its jewels
+        yy, xx = np.mgrid[0:h, 0:w]
+        on = robe & (c.a == "P")
+        lat = 9
+        grid = ((xx // lat) + (yy // lat)) % 2 == 0
+        dot = (np.abs(xx % lat - lat // 2) + np.abs(yy % lat - lat // 2) <= 1) & grid
+        c.fill(dot & on, "G")
+        c.stroke(P([(0, 236), (16, 228), (32, 216), (44, 208)]), "G", 2.6 * f)
+        for x0, y0 in ((0, 236), (14, 229), (28, 219), (40, 211)):
+            c.ell(c.cx - x0 * f, (y0 + top) * f, 2.2 * f, 2.2 * f, "R")
     # the face: full, a soft oval
     fo = [(0, 62), (26, 64), (48, 78), (58, 108), (57, 138), (48, 166), (28, 186), (0, 192)]
     face = c.poly_mask(P(round_(fo + [(-x, y) for x, y in reversed(fo[1:-1])], 8)))
@@ -523,12 +537,11 @@ def kannon(open_=0.0, eyes=False, w=216, h=352, f=1.0, top=6, bust=True):
         c.stroke(P([(13, 130), (28, 137), (50, 127)]), "K", 2.8 * f, prof=lambda t: 0.4 + 0.8 * math.sin(math.pi * t))
     c.stroke(P([(12, 153), (7, 156), (0, 155)]), "K", 1.4 * f, prof=swell)
     # the lips: small, a smile in the corners
-    c.poly(S([(0, 167), (5, 165), (11, 168), (16, 170), (9, 171), (0, 170.5)]), "R")
-    c.poly(S([(0, 170.5), (9, 171), (13, 170.5), (7, 175), (0, 176)]), "r")
-    c.stroke(P([(0, 170.5), (9, 170.5), (17, 169)]), "K", 1.0)
-    c.stroke(P([(0, 182), (8, 181.5)]), "K", 1.0)
+    c.poly(S([(0, 168), (4, 166.5), (8, 168.5), (12, 170), (7, 170.5), (0, 170)]), "R")
+    c.poly(S([(0, 170), (7, 170.5), (10, 170), (5, 173.5), (0, 174)]), "r")
+    c.stroke(P([(0, 170), (7, 170), (13, 169)]), "K", 1.0)
+    c.stroke(P([(0, 180), (7, 179.5)]), "K", 1.0)
     if bust:
-        lotus(c, P, open_, f, top, 314)
         # the hands (dhyāna): palms up, fingers across, the thumbs touching under the flower
         hand = c.poly_mask(S([(0, 316), (14, 312), (38, 311), (52, 317), (57, 328), (46, 338), (22, 342), (0, 340)]))
         c.fill(hand, "P")
@@ -541,6 +554,7 @@ def kannon(open_=0.0, eyes=False, w=216, h=352, f=1.0, top=6, bust=True):
         c.stroke(P([(60, 304), (54, 322), (58, 344)]), "G", 4 * f)
         c.stroke(P([(62, 304), (56, 322), (60, 344)]), "K", 1.0)
         c.stroke(P([(57.5, 304), (51.5, 322), (55.5, 344)]), "K", 1.0)
+        lotus(c, P, open_, f, top, 314)
     return c.mirrored()
 
 

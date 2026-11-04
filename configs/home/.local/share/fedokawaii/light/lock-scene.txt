@@ -1,13 +1,14 @@
 # lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown
 # N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.
 size 640 360
-ground f7f1d1   # round the scene: its edges' commonest colour
+ground e2b540   # round the scene: its edges' commonest colour
+gate 243 146 154 157 5   # lock-gate.png: its frames side by side, shut first: where they lie, each's size, how many
 frames 8 12 8   # lock-flame.png: the frames side by side, 8 a second
 flame 102 81   # a flame's frame, its top-left
 flame 530 81   # a flame's frame, its top-left
-row 366 114 5 7   # the password: the first mark's middle, the pitch, how many in sight
-mark 986f2d e2b540 ffffff   # a mark: its arms, its middle, its corners
-caps 00726a   # the arms while Caps Lock is on
-caret 986f2d   # a bar as tall as a mark at the next place, once a second
-plate 320 189 138   # what shakes at a wrong password: its middle, its radius
-words 338 359   # the line of words (what PAM says): the rows it is centred in
+row 295 273 7 8   # the password: the first mark's middle, the pitch, how many in sight
+mark e2b540 f8f3d8 953321   # a mark: its arms, its middle, its corners
+caps 82c1b4   # the arms while Caps Lock is on
+caret e2b540   # a bar as tall as a mark at the next place, once a second
+plate 320 142 104   # what shakes at a wrong password: its middle, its radius
+words 344 354   # the line of words (what PAM says): the rows it is centred in
