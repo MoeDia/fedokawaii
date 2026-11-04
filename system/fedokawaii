@@ -696,7 +696,6 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
     learning) printf '%s' "${ICON_TAB_LEARNING:-·}" ;;
   esac
 }
-# what is not built yet: a row in the faint ink that says "soon", its pane what it will be
 PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
@@ -825,7 +824,7 @@ tab_next() {   # tab_next +1|-1 → the section beside the one shown
 # The list and the pane, in a window W columns wide inside fzf's margins (FZF_COLUMNS, which
 # fzf tells every command it runs): the pane takes PANE columns at the right, the list the
 # rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned two columns
-# short of the list's edge; what is not built yet in the faint ink, "soon". The menu asks for its rows
+# short of the list's edge. The menu asks for its rows
 # again once fzf is up and whenever the window changes size, so the column is right however
 # late the window gets its final size.
 PANE=50
@@ -952,7 +951,6 @@ explain() {
     if t=$(last_backup); then v="$(day "$t") · $(ago "$t")"; else v="none yet"; fi
     printf '   %s%-9s%s %s\n\n' "$G" backup "$O" "$v"
   }
-  soon() { local l; printf '   %snot yet%s\n\n' "$F" "$O"; for l; do printf '   %s%s%s\n' "$F" "$l" "$O"; done; }
   case $a in
     status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' \
                     $(( ${FZF_PREVIEW_LINES:-0} - 3 )) ;;   # (the room under the heading)
