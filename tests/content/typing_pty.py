@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""typing_pty.py — kawa-typing in a pseudo-terminal of its own, played by a script: a typist at a known speed, a
+fuzzer, or a screen read back. Keys go in as foot sends them (the Kitty keyboard protocol) or as plain bytes.
+
+    python3 -I typing_pty.py [--size COLSxROWS] [--plain] [--seed N] [--wpm W] [--wrong EVERY] [--chars N] [--file F]
+                             [--roll MS] [--repeat N] [--dump FILE] [--keys "SECONDS:KEYS"]… [--end S] -- ARG…
+
+    --wpm W --chars N    types N characters of the text under way at W wpm (the text is read from resume.json)
+    --wrong EVERY        every EVERY-th press is wrong (the right one follows, as a person's would)
+    --roll MS            each key held MS past the next one's press (rollover), else released at once
+    --keys S:KEYS        at S seconds, KEYS: Python escapes, as bytes; \\e is ESC
+    --dump FILE          everything the program wrote, raw
+Ends when the program does, or at --end seconds (it is then asked to leave, Ctrl+C as foot sends it). Prints one
+JSON object: the exit status and what the terminal saw (bad escape sequences, mode 2026 balance, bytes).
+"""
+import argparse
+import fcntl
+import json
+import os
+import pty
+import select
+import signal
+import struct
+import sys
+import termios
+import time
+
+
+def key(ch, plain=False, event=1):
+    """a character as foot sends it: CSI code:shifted ; mods:event ; text u (or as itself, --plain)"""
+    if plain:
+        return ch.encode() if event == 1 else b''
+    if ch == '\n':
+        return f'\x1b[13;1:{event}u'.encode()
+    low = ch.lower() if ch.isalpha() else UNSHIFT.get(ch, ch)
+    shifted = ch != low
+    mods = 2 if shifted else 1
+    code = ord(low)
+    if event == 3:
+        return f'\x1b[{code};{mods}:3u'.encode()
+    alt = f':{ord(ch)}' if shifted else ''
+    return f'\x1b[{code}{alt};{mods}:{event};{ord(ch)}u'.encode()
+
+
+UNSHIFT = dict(zip('~!@#$%^&*()_+{}|:"<>?', "`1234567890-=[]\;',./"))
+SHIFT_DOWN, SHIFT_UP = b'\x1b[57447;2:1u', b'\x1b[57447;1:3u'
+
+
+def wrong_for(ch):
+    return 'x' if ch != 'x' else 'z'
+
+
+class Pty:
+    def __init__(self, argv, size, env=None):
+        self.pid, self.fd = pty.fork()
+        if self.pid == 0:
+            if env:
+                os.environ.update(env)
+            os.environ['TERM'] = 'foot'
+            os.execv(argv[0], argv)
+        cols, rows = size
+        fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * 8, rows * 20))
+        self.out = bytearray()
+        self.status = None
+
+    def pump(self, seconds=0.0):
+        """everything the program has written, for a while"""
+        end = time.monotonic() + seconds
+        while True:
+            left = end - time.monotonic()
+            r, _, _ = select.select([self.fd], [], [], max(left, 0))
+            if r:
+                try:
+                    b = os.read(self.fd, 1 << 20)
+                except OSError:
+                    b = b''
+                if not b:
+                    self.wait(1)
+                    return False
+                self.out += b
+            elif left <= 0:
+                return True
+            if left <= 0:
+                return True
+
+    def send(self, b):
+        try:
+            os.write(self.fd, b)
+        except OSError:
+            pass
+
+    def resize(self, cols, rows):
+        fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * 8, rows * 20))
+        try:
+            os.kill(self.pid, signal.SIGWINCH)
+        except OSError:
+            pass
+
+    def wait(self, seconds):
+        end = time.monotonic() + seconds
+        while self.status is None and time.monotonic() < end:
+            p, st = os.waitpid(self.pid, os.WNOHANG)
+            if p:
+                self.status = os.waitstatus_to_exitcode(st)
+                return self.status
+            time.sleep(0.01)
+        return self.status
+
+    def kill(self):
+        if self.status is None:
+            try:
+                os.kill(self.pid, signal.SIGKILL)
+            except OSError:
+                pass
+            self.wait(2)
+
+
+def state_dir():
+    base = os.environ.get('XDG_STATE_HOME') or os.path.expanduser('~/.local/state')
+    return os.path.join(base, 'fedokawaii', 'typing')
+
+
+def run_text(p, wait=5.0):
+    """the text under way, as the program keeps it"""
+    path = os.path.join(state_dir(), 'resume.json')
+    end = time.monotonic() + wait
+    while time.monotonic() < end:
+        p.pump(0.02)
+        try:
+            with open(path) as f:
+                return json.load(f)['run']
+        except (OSError, ValueError, KeyError):
+            continue
+    raise SystemExit('no text under way')
+
+
+def typist(p, a):
+    """a steady typist: a press every interval, on the exact clock; the key released at once, or later (rollover)"""
+    d = run_text(p)
+    text, pos = d['text'], d['pos']
+    interval = 12.0 / a.wpm       # (60 / (wpm × 5))
+    start = time.monotonic()
+    n = presses = wrongs = 0
+    held = None
+    last = None
+    while pos < len(text) and n < a.chars:
+        due = start + n * interval
+        while True:
+            left = due - time.monotonic()
+            if left <= 0:
+                break
+            if left > 0.002:
+                p.pump(min(left - 0.001, 0.05))
+        ch = text[pos]
+        if a.wrong and presses and presses % a.wrong == 0:
+            p.send(key(wrong_for(ch), a.plain))
+            if not a.plain:
+                p.send(key(wrong_for(ch), False, 3))
+            wrongs += 1
+            presses += 1
+            n += 1
+            continue
+        if a.roll and held is not None and not a.plain:
+            p.send(key(ch))
+            time.sleep(a.roll / 1000)
+            p.send(key(held, False, 3))
+            held = ch
+        else:
+            p.send(key(ch, a.plain))
+            if a.roll and not a.plain:
+                held = ch
+            elif not a.plain:
+                p.send(key(ch, False, 3))
+        presses += 1
+        pos += 1
+        n += 1
+        while pos < len(text) and text[pos] == ' ' and pos and text[pos - 1] == '\n':
+            pos += 1
+        last = time.monotonic()
+    if held and not a.plain:
+        p.send(key(held, False, 3))
+    return {'typed': presses, 'wrong': wrongs, 'seconds': None if last is None else last - start}
+
+
+def check_stream(raw):
+    """what a terminal would object to: frames left open, sixels never closed"""
+    s = bytes(raw)
+    return {'bytes': len(s), 'sync_open': s.count(b'\x1b[?2026h'), 'sync_close': s.count(b'\x1b[?2026l'),
+            'sixels_open': s.count(b'\x1bP'), 'sixels_close': s.count(b'\x1b\\'), 'left_screen': s.count(b'\x1b[?1049l')}
+
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument('--size', default='84x31')
+    ap.add_argument('--plain', action='store_true')
+    ap.add_argument('--seed', type=int)
+    ap.add_argument('--wpm', type=float)
+    ap.add_argument('--wrong', type=int, default=0)
+    ap.add_argument('--chars', type=int, default=10 ** 9)
+    ap.add_argument('--roll', type=float, default=0)
+    ap.add_argument('--keys', action='append', default=[])
+    ap.add_argument('--end', type=float, default=30)
+    ap.add_argument('--dump')
+    ap.add_argument('--bin', default=os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bin', 'kawa-typing'))
+    ap.add_argument('args', nargs='*')
+    a = ap.parse_args()
+    cols, rows = map(int, a.size.split('x'))
+    argv = [sys.executable, '-IB', a.bin] + (['--seed', str(a.seed)] if a.seed is not None else []) + a.args
+    p = Pty(argv, (cols, rows))
+    t0 = time.monotonic()
+    out = {}
+    p.pump(0.2)
+    scripted = sorted(((float(s.split(':', 1)[0]), s.split(':', 1)[1].encode().decode('unicode_escape').encode('latin1')) for s in a.keys))
+    for at, data in scripted:
+        while time.monotonic() - t0 < at and p.status is None:
+            p.pump(0.02)
+        p.send(data.replace(b'\\e', b'\x1b'))
+    if a.wpm:
+        out['typist'] = typist(p, a)
+    end = t0 + a.end
+    while time.monotonic() < end and p.status is None:
+        if not p.pump(0.05):
+            break
+    if p.status is None:
+        p.send(b'\x1b[99;5:1u' if not a.plain else b'\x03')
+        p.pump(0.5)
+        p.wait(1)
+    if p.status is None:
+        p.kill()
+        out['killed'] = True
+    out['status'] = p.status
+    out.update(check_stream(p.out))
+    if a.dump:
+        with open(a.dump, 'wb') as f:
+            f.write(p.out)
+    print(json.dumps(out))
+    return 0
+
+
+if __name__ == '__main__':
+    sys.exit(main())

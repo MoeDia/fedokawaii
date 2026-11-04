@@ -73,7 +73,7 @@ class Store:
     @staticmethod
     def _progress(d):
         """what was read, every value of the kind it must be"""
-        out = {'lessons': {}, 'baseline': None, 'quiet': False, 'day': {'date': '', 'seconds': 0.0}, 'done_today': False}
+        out = {'lessons': {}, 'baseline': None, 'quiet': False, 'day': {'date': '', 'seconds': 0.0, 'warm': False, 'test': False}}
         for k, v in (d.get('lessons') or {}).items() if isinstance(d.get('lessons'), dict) else ():
             if isinstance(k, str) and isinstance(v, dict):
                 out['lessons'][k] = {'seals': int(_number(v.get('seals'))) % 7, 'best': _number(v.get('best')),
@@ -83,7 +83,7 @@ class Store:
         out['quiet'] = d.get('quiet') is True
         day = d.get('day')
         if isinstance(day, dict) and isinstance(day.get('date'), str):
-            out['day'] = {'date': day['date'], 'seconds': _number(day.get('seconds'))}
+            out['day'] = {'date': day['date'], 'seconds': _number(day.get('seconds')), 'warm': day.get('warm') is True, 'test': day.get('test') is True}
         return out
 
     @staticmethod
@@ -179,13 +179,15 @@ class Store:
     def today(self):
         return time.strftime('%Y-%m-%d')
 
-    def add_time(self, seconds):
+    def day(self):
+        """today's minutes and what is done of its plan; a new day starts afresh"""
         day = self.progress['day']
-        today = self.today()
-        if day.get('date') != today:
-            day.update(date=today, seconds=0.0)
-        day['seconds'] += max(seconds, 0.0)
+        if day.get('date') != self.today():
+            day.update(date=self.today(), seconds=0.0, warm=False, test=False)
+        return day
+
+    def add_time(self, seconds):
+        self.day()['seconds'] += max(seconds, 0.0)
 
     def minutes_today(self):
-        day = self.progress['day']
-        return day['seconds'] / 60 if day.get('date') == self.today() else 0.0
+        return self.day()['seconds'] / 60

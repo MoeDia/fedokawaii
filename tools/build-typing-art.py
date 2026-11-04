@@ -44,103 +44,128 @@ def write_glyphs():
     font = ImageFont.truetype(os.path.join(ROOT, 'system/fonts/SumiUI.ttf'), 14)
     with open(os.path.join(OUT, 'glyphs.txt'), 'w') as f:
         f.write('# written by tools/build-typing-art.py: Sumi UI at 14 px, ASCII; the code, then 14 rows of 7 bits in hex\n')
-        for c in range(33, 127):
+        for c in [*range(33, 127), ord('·'), ord('↵')]:
             im = Image.new('1', (7, 14), 0)
             ImageDraw.Draw(im).text((0, 0), chr(c), fill=1, font=font)
             f.write(f'{c} ' + ''.join(f'{sum(im.getpixel((x, y)) << (6 - x) for x in range(7)):02x}' for y in range(14)) + '\n')
 
 
 # ── the hands ────────────────────────────────────────────────────────────────
-# A finger: its half width down its length, from the tip; drawn outward from the middle.
-def finger(rows, width, knuckles, tip_round=3):
-    """half widths (float) per row, tip first: rounded at the tip, swelling at the knuckles"""
+# Each finger a sprite upright, tip first, in ink letters; the app leans it from its base to its tip.
+#   o outline   h the lit side   s skin   d the shaded side   b a lit knuckle   k a crease   n nail or claw (the finger's paper)
+#   N the claw's dark side       g gold   i iron               y the tiger's pelt   r the robe   e the robe's dark side
+# Light falls from the upper left on both hands (docs/design-system.md §4: the bar's shadow): when the app mirrors
+# the right hand it swaps h and d.
+def profile(rows, base_w, tip_w, knuckles=(), bulge=0.8, round_rows=4):
+    """half widths down a finger, tip first"""
     out = []
     for y in range(rows):
         t = y / max(rows - 1, 1)
-        w = width / 2 * (0.86 + 0.14 * t)
-        if y < tip_round:
-            w *= (0.55 + 0.45 * y / tip_round)
+        w = (tip_w + (base_w - tip_w) * t) / 2
+        if y < round_rows:
+            w *= (0.5 + 0.5 * (y + 0.5) / round_rows) ** 0.8
         for k in knuckles:
             d = abs(t - k)
-            if d < 0.07:
-                w += 0.55 * (1 - d / 0.07)
+            if d < 0.09:
+                w += bulge * (1 - d / 0.09)
         out.append(w)
     return out
 
 
-def paint_finger(prof, shape):
-    """letters from a profile. The ink letters: o outline, h light side, s skin, d dark side"""
-    w = int(max(prof) * 2 + 3)
-    if w % 2 == 0:
-        w += 1
+def shape(prof):
+    """the skin's cells from half widths, on a grid wide enough, odd, its middle the finger's axis"""
+    w = int(max(prof) * 2 + 3) | 1
     mid = w // 2
     g = [['.'] * w for _ in prof]
     for y, hw in enumerate(prof):
-        a, b = mid - int(round(hw)), mid + int(round(hw))
-        for x in range(a, b + 1):
+        a, b = mid - round(hw), mid + round(hw)
+        for x in range(max(a, 0), min(b + 1, w)):
             g[y][x] = 's'
-    # outline: skin touching no skin
-    def at(x, y):
-        return 0 <= y < len(g) and 0 <= x < w and g[y][x] != '.'
-    o = [row[:] for row in g]
-    for y in range(len(g)):
+    return g
+
+
+def outlined(g, open_below=True):
+    """the outermost skin becomes the outline; open at the foot, where the palm covers it"""
+    h, w = len(g), len(g[0])
+    def on(x, y):
+        return 0 <= y < h and 0 <= x < w and g[y][x] != '.' or (open_below and y >= h)
+    o = [r[:] for r in g]
+    for y in range(h):
         for x in range(w):
-            if g[y][x] == 's' and not (at(x - 1, y) and at(x + 1, y) and at(x, y - 1) and (at(x, y + 1) or y == len(g) - 1)):
+            if g[y][x] != '.' and not (on(x - 1, y) and on(x + 1, y) and on(x, y - 1) and on(x, y + 1)):
                 o[y][x] = 'o'
-    # light from the upper left: the inner edge lit, the other shaded
-    for y in range(len(o)):
-        xs = [x for x in range(w) if o[y][x] == 's']
-        if not xs:
-            continue
-        o[y][xs[0]] = 'h'
-        if len(xs) > 3:
-            o[y][xs[1]] = 'h' if shape.get('broad') else 's'
-        o[y][xs[-1]] = 'd'
-        if len(xs) > 5 and shape.get('broad'):
-            o[y][xs[-2]] = 'd'
     return o
 
 
-def crease(g, y, shape):
-    """a knuckle's crease: two short lines across"""
-    if not 0 <= y < len(g):
-        return
-    xs = [x for x, c in enumerate(g[y]) if c in 'shd']
-    if len(xs) > 2:
-        for x in xs[1:-1]:
+def shaded(g, lit=1, dark=1):
+    for row in g:
+        xs = [x for x, c in enumerate(row) if c == 's']
+        if len(xs) > lit + dark:
+            for x in xs[:lit]:
+                row[x] = 'h'
+            for x in xs[len(xs) - dark:]:
+                row[x] = 'd'
+    return g
+
+
+def crease(g, y, inset=1, length=None):
+    if 0 <= y < len(g):
+        xs = [x for x, c in enumerate(g[y]) if c in 'shd']
+        xs = xs[inset:len(xs) - inset] if len(xs) > 2 * inset else xs
+        for x in xs[:length]:
             g[y][x] = 'k'
 
 
-def claw(g, width):
-    """the demon's: a curved hook of horn over the fingertip, rows above it added"""
+def oni_claw(g):
+    """a hooked claw of horn grown out of the fingertip"""
     w = len(g[0])
     mid = w // 2
     top = []
-    for y, hw in enumerate((0, 0.6, 1.1, 1.7, 2.2, 2.7)):
+    widths = (0.0, 0.5, 1.0, 1.5, 1.9, 2.3, 2.7)
+    for y, hw in enumerate(widths):
         row = ['.'] * w
-        off = int(round((5 - y) * 0.35))        # (leaning in, as a hook)
-        a, b = mid - int(round(hw)) + off, mid + int(round(hw)) + off
-        for x in range(a, b + 1):
-            if 0 <= x < w:
-                row[x] = 'n'
-        if b - a >= 2:
-            row[a] = 'N'
+        lean = (len(widths) - 1 - y) * 0.45                # (hooked inward at its point)
+        a, b = mid - round(hw) + round(lean), mid + round(hw) + round(lean)
+        for x in range(max(a, 0), min(b + 1, w)):
+            row[x] = 'n'
+        if b - a >= 1 and b < w:
+            row[b] = 'N'
         top.append(row)
     return top + g
 
 
-def nail(g):
-    """the angel's: a small pale almond on the fingertip"""
-    for y in range(1, 5):
+def oni_finger(rows, base_w, tip_w, knuckles):
+    g = outlined(shape(profile(rows, base_w, tip_w, knuckles, bulge=0.9)))
+    g = shaded(g, lit=2, dark=2)
+    for k in knuckles:
+        y = int(k * (rows - 1))
+        crease(g, y - 1, 2)
+        crease(g, y + 1, 2)
+        # (the knuckle catches the torch)
         xs = [x for x, c in enumerate(g[y]) if c in 'shd']
-        if len(xs) > 2:
-            trim = 1 if y in (1, 4) else 0
-            for x in xs[trim:len(xs) - trim]:
+        for x in xs[2:len(xs) // 2 + 1]:
+            g[y][x] = 'b'
+    return oni_claw(g)
+
+
+def tennin_finger(rows, base_w, tip_w, ring=False):
+    g = outlined(shape(profile(rows, base_w, tip_w, (), round_rows=5)))
+    g = shaded(g, lit=0, dark=1)
+    # the nail: an almond of the finger's paper
+    for y, inset in ((1, 2), (2, 1), (3, 1), (4, 1), (5, 2)):
+        xs = [x for x, c in enumerate(g[y]) if c in 'shd']
+        for x in xs[inset - 1:len(xs) - inset + 1]:
+            if 0 < x < len(g[y]) - 1:
                 g[y][x] = 'n'
-
-
-def mirror(g):
-    return [row[::-1] for row in g]
+    for k in (0.42, 0.68):
+        crease(g, int(k * (rows - 1)), 2, 3)
+    if ring:
+        y = int(0.8 * (rows - 1))
+        for yy in (y, y + 1):
+            xs = [x for x, c in enumerate(g[yy]) if c in 'shd']
+            for x in xs:
+                g[yy][x] = 'g'
+    return g
 
 
 def to_text(name, g):
@@ -148,101 +173,95 @@ def to_text(name, g):
 
 
 # where each finger stands on the 1× strip, left hand (the right is its mirror round x = 135):
-# tip x, tip y, base x, base y, as the home row's a s d f (their middles: 45 65 85 105)
-LEFT = {'little': (45, 15, 53, 42), 'ring': (65, 6, 66, 40), 'middle': (85, 2, 79, 40), 'index': (105, 7, 92, 42), 'thumb': (122, 33, 104, 54)}
+# tip x, tip y, base x, base y; the tips over the home row's a s d f (their middles: 45 65 85 105)
+OFFSET = 12            # (the headroom above the hands: a finger reaches up into it)
+LEFT = {'little': (45, 16, 54, 44), 'ring': (65, 6, 66, 42), 'middle': (85, 2, 79, 42), 'index': (105, 7, 92, 44), 'thumb': (123, 34, 103, 58)}
 
 
 def build_hands():
-    text = ['# written by tools/build-typing-art.py: @name width rows, then ink letters upright, tip first\n']
-    text.append('# where each finger stands: "place NAME tipx tipy basex basey" (left hand; mirrored round x = 135)\n')
-    for f, v in LEFT.items():
-        text.append(f'place {f} ' + ' '.join(map(str, v)) + '\n')
-    # the demon's: broad, knuckled, clawed
+    text = ['# written by tools/build-typing-art.py: @name width rows, then ink letters upright, tip first\n',
+            '# where each finger stands: "place NAME tipx tipy basex basey" (left hand; mirrored round x = 135)\n']
     for f, (tx, ty, bx, by) in LEFT.items():
-        rows = by - ty
-        width = {'little': 9, 'ring': 10, 'middle': 11, 'index': 11, 'thumb': 12}[f]
-        prof = finger(rows, width, (0.42, 0.72) if f != 'thumb' else (0.55,))
-        g = paint_finger(prof, {'broad': True})
-        for k in ((0.42, 0.72) if f != 'thumb' else (0.55,)):
-            crease(g, int(k * rows), {})
-            crease(g, int(k * rows) + 2, {})
-        g = claw(g, width)
-        text.append(to_text('oni.' + f, g))
-    # the angel's: slender, smooth, nails like almonds
+        text.append(f'place {f} {tx} {ty + OFFSET} {bx} {by + OFFSET}\n')
     for f, (tx, ty, bx, by) in LEFT.items():
-        rows = by - ty + 3
-        width = {'little': 7, 'ring': 8, 'middle': 8, 'index': 8, 'thumb': 9}[f]
-        prof = finger(rows, width, ())
-        g = paint_finger(prof, {})
-        crease(g, int(0.68 * rows), {})
-        nail(g)
-        text.append(to_text('tennin.' + f, g))
+        rows = by - ty - 1
+        base, tip = {'little': (11, 8), 'ring': (13, 9), 'middle': (14, 10), 'index': (14, 10), 'thumb': (16, 11)}[f]
+        text.append(to_text('oni.' + f, oni_finger(rows, base, tip, (0.34, 0.68) if f != 'thumb' else (0.5,))))
+    for f, (tx, ty, bx, by) in LEFT.items():
+        rows = by - ty + 2
+        base, tip = {'little': (9, 5), 'ring': (10, 6), 'middle': (10, 6), 'index': (10, 6), 'thumb': (11, 7)}[f]
+        text.append(to_text('tennin.' + f, tennin_finger(rows, base, tip, ring=f == 'ring')))
     text.append(palm('oni'))
     text.append(palm('tennin'))
     return ''.join(text)
 
 
+PALM_W, PALM_H, PALM_X = 92, 72, 38     # (its grid: on the strip from x = PALM_X, y = OFFSET)
+
+
 def palm(mood):
-    """the back of the hand and what the arm wears: 72 rows of the strip from x = 40, left hand"""
-    im = Image.new('L', (90, 72), 0)
+    """the back of the hand and what the arm wears, left hand"""
+    W, H = PALM_W, PALM_H
+    im = Image.new('L', (W, H), 0)
     d = ImageDraw.Draw(im)
     if mood == 'oni':
-        d.polygon([(8, 40), (60, 38), (65, 48), (64, 56), (54, 62), (22, 62), (10, 52)], fill=255)   # the back of the hand
+        d.polygon([(12, 39), (26, 36), (46, 36), (60, 38), (69, 46), (68, 54), (58, 60), (56, 66), (24, 66), (20, 58), (12, 50)], fill=255)
     else:
-        d.polygon([(10, 42), (58, 40), (63, 49), (60, 56), (51, 62), (24, 62), (12, 53)], fill=255)
+        d.polygon([(15, 41), (28, 38), (46, 38), (58, 40), (65, 48), (62, 56), (54, 61), (52, 66), (28, 66), (24, 59), (15, 51)], fill=255)
     px = im.load()
-    g = [['.'] * 90 for _ in range(72)]
-    for y in range(72):
-        for x in range(90):
-            if px[x, y]:
-                g[y][x] = 's'
-    def on(x, y):
-        return 0 <= x < 90 and 0 <= y < 72 and g[y][x] != '.'
-    o = [r[:] for r in g]
-    for y in range(72):
-        for x in range(90):
-            if g[y][x] == 's' and not (on(x - 1, y) and on(x + 1, y) and on(x, y - 1) and on(x, y + 1)):
-                o[y][x] = 'o'
-    g = o
-    # shading along the sides; knuckles as a row of creases
-    for y in range(72):
-        xs = [x for x in range(90) if g[y][x] == 's']
-        if xs:
-            g[y][xs[0]] = 'h'
-            g[y][xs[-1]] = 'd'
-            if mood == 'oni' and len(xs) > 8:
-                g[y][xs[1]] = 'h'
-                g[y][xs[-2]] = 'd'
-    # the wrist and the sleeve
-    x0, x1 = (22, 54) if mood == 'oni' else (24, 52)
-    for y in range(60, 72):
-        for x in range(x0, x1):
-            if g[y][x] == '.':
-                g[y][x] = 's'
-        g[y][x0], g[y][x1 - 1] = 'h', 'd'
+    g = [['s' if px[x, y] else '.' for x in range(W)] for y in range(H)]
+    g = outlined(g, open_below=False)
     if mood == 'oni':
-        # an iron cuff, studded, then the tiger's pelt
-        for y in range(61, 66):
-            for x in range(x0 - 3, x1 + 3):
-                g[y][x] = 'i' if y not in (61, 65) else 'o'
-            for x in range(x0 + 1, x1, 7):
-                g[y][x] = 'g' if y in (62, 63, 64) else g[y][x]
-        for y in range(66, 72):
-            for x in range(x0 - 6, x1 + 6):
-                g[y][x] = 'y' if (x + y // 2) % 7 > 1 else 'o'
+        g = shaded(g, lit=2, dark=3)
+        # four knuckles along its top, each lit from the left; a vein or two
+        for kx in (17, 30, 42, 54):
+            for y, x0, x1 in ((39, kx, kx + 6), (40, kx - 1, kx + 7), (41, kx - 1, kx + 7), (42, kx, kx + 6)):
+                for x in range(x0, x1):
+                    if g[y][x] in 'shd':
+                        g[y][x] = 'b' if x < kx + 3 else 's'
+            for y in (44,):
+                for x in range(kx + 1, kx + 6):
+                    if g[y][x] in 'shd':
+                        g[y][x] = 'k'
+        for (x, y) in ((31, 49), (32, 50), (33, 51), (34, 52), (35, 53), (47, 48), (46, 49), (45, 50), (44, 51), (43, 52), (43, 53)):
+            if g[y][x] == 's':
+                g[y][x] = 'k'
     else:
-        # a gold bangle, then the sleeve of the feather robe with its gold edge
-        for y in range(61, 64):
-            for x in range(x0 - 1, x1 + 1):
-                g[y][x] = 'g' if y == 62 else 'o'
-        for y in range(64, 72):
-            slope = (y - 64)
-            for x in range(x0 - 5 - slope, x1 + 5 + slope):
-                if 0 <= x < 90:
-                    g[y][x] = 'r'
-            for x in range(x0 - 5 - slope, x1 + 5 + slope):
-                if 0 <= x < 90 and y == 64:
-                    g[y][x] = 'g'
+        g = shaded(g, lit=0, dark=2)
+        for kx in (21, 33, 44):
+            for x in range(kx, kx + 3):
+                if g[43][x] in 'shd':
+                    g[43][x] = 'k'
+    if mood == 'oni':
+        # an iron cuff with gold studs, then the tiger's pelt, torn at the edge
+        x0, x1 = 19, 62
+        for y in range(59, 65):
+            for x in range(x0, x1):
+                g[y][x] = 'o' if y in (59, 64) or x in (x0, x1 - 1) else 'i'
+        for x in range(x0 + 3, x1 - 3, 6):
+            g[61][x] = g[62][x] = g[61][x + 1] = g[62][x + 1] = 'g'
+        for y in range(65, 72):
+            a, b = x0 - 2 - (y - 65) // 2, x1 + 1 + (y - 65) // 2
+            for x in range(a, b):
+                stripe = (x + (y // 2)) % 8
+                g[y][x] = 'o' if stripe < 2 else 'y'
+    else:
+        # three gold bangles, then the sleeve of the feather robe, opening as it falls, gold at its hem
+        x0, x1 = 24, 54
+        for y in range(60, 65):
+            for x in range(x0 - (1 if y % 2 else 0), x1 + (1 if y % 2 else 0)):
+                g[y][x] = 'g' if y % 2 else 'o'
+        for y in range(65, 72):
+            a, b = x0 - 3 - (y - 65) * 2, x1 + 3 + (y - 65) * 2
+            for x in range(max(a, 0), min(b, W)):
+                g[y][x] = 'r'
+            if a >= 0:
+                g[y][a] = g[y][a + 1] = 'g'
+            if b <= W:
+                g[y][b - 1] = g[y][b - 2] = 'g'
+            for x in range(a + 5, b - 5, 11):      # (a crease of the silk)
+                if 0 <= x < W and g[y][x] == 'r':
+                    g[y][x] = 'e'
     return to_text(mood + '.palm', g)
 
 

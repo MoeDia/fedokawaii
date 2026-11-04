@@ -11,7 +11,8 @@ from . import canvas, keys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 KEY_W, KEY_H = 300, 100          # the keyboard, 15 × 5 keys of 20 px
-HANDS_H = 72                     # the strip the hands stand in, under it
+HANDS_H = 84                     # the strip the hands stand in, under it: 12 of headroom, for a finger reaching
+PALM_X, PALM_Y = 38, 12          # (where the palm's grid lies on the strip)
 MIRROR = 270                     # the hands' mirror (twice the home row's middle: a–; on x 45 and 225)
 ORDER = ('little', 'ring', 'middle', 'index')
 
@@ -34,8 +35,9 @@ def load_inks():
 
 
 INK, PALETTE = load_inks()
-FINGER_INK = tuple(INK[t] for t in ('paper_mark', 'paper_folder', 'paper_git', 'paper_time', 'lit',
-                                    'lit', 'paper_time', 'paper_git', 'paper_folder', 'paper_mark'))
+FINGER_TOKEN = ('paper_mark', 'paper_folder', 'paper_git', 'paper_time', 'gold',
+                'gold', 'paper_time', 'paper_git', 'paper_folder', 'paper_mark')
+FINGER_INK = tuple(INK[t] for t in FINGER_TOKEN)
 
 
 def load_glyphs():
@@ -73,6 +75,33 @@ def word_rows(word):
     return rows, last + 1
 
 
+class Letters:
+    """The typed text in Sumi UI, on the keys' own grid: a letter's cell is 7 × 20 at 1× (its em on rows 3–16, as a
+    row's words, §3), and its ground, when it has one, rows 2–17."""
+
+    def __init__(self, k):
+        self.k = k
+        self.w, self.h = 7 * k, 20 * k
+        self.cache = {}
+
+    def cell(self, c, ink, ground=0):
+        v = self.cache.get((c, ink, ground))
+        if v is None:
+            g = GLYPHS.get(c)
+            rows = []
+            for y in range(20):
+                back = ground if 2 <= y <= 17 else 0
+                line = bytearray([back]) * 7
+                if g and 3 <= y <= 16:
+                    bits = g[0][y - 3]
+                    for x in range(7):
+                        if bits >> (6 - x) & 1:
+                            line[x] = ink
+                rows += [[(0, canvas.scale_row(line, self.k))]] * self.k
+            v = self.cache[(c, ink, ground)] = rows
+        return v
+
+
 class Look:
     """the inks of a key, by what is happening to it"""
     __slots__ = ('face', 'frame', 'lip', 'word')
@@ -101,7 +130,7 @@ class Keyboard:
             return self.bad
         f = self.lit.get(name)
         if f is not None:
-            return Look(FINGER_INK[f], INK['paper_ink'], INK['paper_ink'], INK['paper_ink'] if f not in (4, 5) else INK['lit_text'])
+            return Look(FINGER_INK[f], INK['paper_ink'], INK['paper_ink'], INK['paper_ink'])
         h = self.heat.get(name)
         if h is not None:
             return Look(h, INK['edge'], INK['edge2'], INK['ground'])
@@ -138,7 +167,7 @@ class Keyboard:
                 for col in g[y]:
                     rows[y + 3 + top][gx + col] = look.word
         if name in ('f', 'j'):               # (the bumps: the fingers' way home)
-            rows[15 + top][face_w // 2 - 2:face_w // 2 + 3] = bytes([look.word]) * 5
+            rows[17 + top][face_w // 2 - 3:face_w // 2 + 4] = bytes([look.word]) * 7
         return rows
 
     def paint_key(self, pic, name, k, ox=0, oy=0):
@@ -186,8 +215,8 @@ def _table(mapping):
 
 
 SKIN = {
-    True: {'o': 'lo', 'h': 'accent', 's': 'accent_lo', 'd': 'edge2', 'k': 'lo', 'n': 'gold', 'N': 'strong', 'i': 'edge2', 'g': 'gold', 'y': 'yellow'},
-    False: {'o': 'muted', 'h': 'key', 's': 'key', 'd': 'edge', 'k': 'edge2', 'n': 'hi', 'N': 'hi', 'g': 'gold', 'r': 'asagi', 'i': 'gold'},
+    True: {'o': 'lo', 'h': 'accent', 'b': 'accent', 's': 'accent_lo', 'd': 'edge2', 'k': 'lo', 'n': 'gold', 'N': 'edge2', 'i': 'edge2', 'g': 'gold', 'y': 'yellow'},
+    False: {'o': 'muted', 'h': 'hi', 'b': 'hi', 's': 'key', 'd': 'edge', 'k': 'edge2', 'n': 'edge', 'N': 'edge', 'g': 'gold', 'r': 'asagi', 'e': 'teal', 'i': 'gold'},
 }
 SWAP = str.maketrans('hd', 'dh')
 
@@ -206,12 +235,15 @@ class Hands:
         self.wrong = set()
 
     def _lit_table(self, finger):
-        ink = FINGER_INK[finger]
-        token = {v: k for k, v in INK.items()}[ink]
-        return _table({'o': 'paper_ink', 'k': 'paper_ink', 'h': token, 's': token, 'd': token, 'n': 'paper_ink', 'N': 'paper_ink'})
+        token = FINGER_TOKEN[finger]
+        return _table({'o': 'paper_ink', 'k': 'paper_ink', 'h': token, 'b': token, 's': token, 'd': token, 'n': 'paper_ink', 'N': 'paper_ink', 'g': 'paper_ink'})
 
     def _bad_table(self):
-        return _table({'o': 'accent_lo', 'k': 'accent_lo', 'h': 'accent', 's': 'accent', 'd': 'accent', 'n': 'text_on_accent', 'N': 'text_on_accent'})
+        return _table({'o': 'accent_lo', 'k': 'accent_lo', 'h': 'accent', 'b': 'accent', 's': 'accent', 'd': 'accent', 'n': 'text_on_accent', 'N': 'text_on_accent', 'g': 'text_on_accent'})
+
+    def _rest_table(self, finger):
+        """at rest: the nail or claw wears the finger's paper, so the colours are learned before they are needed"""
+        return _table({**SKIN[self.dark], 'n': FINGER_TOKEN[finger], 'N': FINGER_TOKEN[finger]})
 
     def _finger(self, pic, name, finger, k, ox, oy):
         right = finger >= 5
@@ -226,7 +258,7 @@ class Hands:
         tx += dx
         n = max(len(rows) + up, 8)
         cap = min(8, len(rows) // 2)         # (the tip and its claw keep their shape; the length is the shaft's)
-        table = (self._bad_table() if finger in self.wrong else self._lit_table(finger) if finger in self.lit else self.table)
+        table = (self._bad_table() if finger in self.wrong else self._lit_table(finger) if finger in self.lit else self._rest_table(finger))
         out = []
         for i in range(n):
             src = i if i < cap else cap + (i - cap) * (len(rows) - cap) // max(n - cap, 1)
@@ -239,24 +271,24 @@ class Hands:
             t = (n - 1 - i) / max(n - 1, 1)
             cx = bx + (tx - bx) * t
             x = round(cx) - len(row) // 2 + a
-            spans = [[((x * k), canvas.scale_row(ink, k))]] * k
-            pic.spans(ox, oy + (by - n + i) * k, spans)
+            y = by - n + i
+            if y >= 0:                       # (a long reach stays in its strip: never onto the keys)
+                pic.spans(ox, oy + y * k, [[(x * k, canvas.scale_row(ink, k))]] * k)
 
     def _palm(self, pic, right, k, ox, oy):
         rows = SPRITES[f'{self.mood}.palm']
-        x0 = 40
         for i, row in enumerate(rows):
             if right:
                 row = row[::-1].translate(SWAP)
-                base = MIRROR - x0 - len(row) + 1
+                base = MIRROR - PALM_X - len(row) + 1
             else:
-                base = x0
+                base = PALM_X
             a = len(row) - len(row.lstrip('.'))
             b = len(row.rstrip('.'))
             if a >= b:
                 continue
             ink = row[a:b].encode().translate(self.table)
-            pic.spans(ox, oy + i * k, [[((base + a) * k, canvas.scale_row(ink, k))]] * k)
+            pic.spans(ox, oy + (i + PALM_Y) * k, [[((base + a) * k, canvas.scale_row(ink, k))]] * k)
 
     def paint(self, pic, k, ox=0, oy=0, only=None):
         """only: 'left' or 'right', when the other hand has not changed"""
@@ -269,3 +301,86 @@ class Hands:
                 self._finger(pic, name, f, k, ox, oy)
             self._palm(pic, right, k, ox, oy)
             self._finger(pic, 'thumb', 5 if right else 4, k, ox, oy)
+
+
+# ── seals, the eye, numbers ──────────────────────────────────────────────────
+def disc(r):
+    """the rows of a filled circle r across: [(offset, length)]"""
+    out = []
+    c = (r - 1) / 2
+    for y in range(r):
+        dy = y - c
+        half = (c * c + c * 0.9 - dy * dy) ** 0.5 if c * c + c * 0.9 >= dy * dy else 0
+        a = round(c - half)
+        out.append((a, r - 2 * a))
+    return out
+
+
+# the mark knocked out of an earned seal: the mood's own, on a 16 × 16 grid (a flame on the dark, a lotus on the light)
+SEAL_MARK = {
+    True: ('................', '................', '.......#........', '.......##.......', '......###.......', '......####......',
+           '.....#####......', '....#######.....', '....########....', '...#########....', '...###.##.###...', '...###.#..###...',
+           '....##....##....', '.....##..##.....', '................', '................'),
+    False: ('................', '................', '.......##.......', '.......##.......', '......####......', '...#..####..#...',
+            '...##.####.##...', '...###.##.###...', '.#..###..###..#.', '.###.######.###.', '..###.####.###..', '...##########...',
+            '.....######.....', '................', '................', '................'),
+}
+
+
+def paint_seal(pic, x, y, size, dark, state):
+    """a seal, size px across: state 'off' a hollow ring, 'on' vermilion with its mark knocked out, 'down' the thump of
+    the stamp (a pixel larger all round, lit: docs/design-system.md §11), 'gold' the gold seal"""
+    ink = INK['edge2'] if state == 'off' else INK['accent_hi'] if state == 'down' else INK['gold'] if state == 'gold' else INK['accent']
+    grow = 1 if state == 'down' else 0
+    d = disc(size + 2 * grow)
+    pic.clear(x - 2, y - 2, size + 4, size + 4)
+    for i, (off, n) in enumerate(d):
+        yy = y - grow + i
+        if state == 'off':
+            pic.fill(x - grow + off, yy, n, 1, ink)
+            inner = disc(size - 2)
+            if 1 <= i < size - 1:
+                a, m = inner[i - 1]
+                pic.fill(x + 1 + a, yy, m, 1, 0)
+        else:
+            pic.fill(x - grow + off, yy, n, 1, ink)
+    if state != 'off':
+        mark = SEAL_MARK[dark]
+        k = max(size // 16, 1)
+        ox, oy = x + (size - 16 * k) // 2, y + (size - 16 * k) // 2
+        hole = INK['text_on_accent'] if state != 'gold' else INK['paper_ink']
+        for j, row in enumerate(mark):
+            for i, c in enumerate(row):
+                if c == '#':
+                    pic.fill(ox + i * k, oy + j * k, k, k, hole)
+
+
+EYE = {
+    True: ('......########......', '...###........###...', '.##...oooooooo...##.', '#....oo..##..oo....#', '#....oo..##..oo....#',
+           '.##...oooooooo...##.', '...###........###...', '......########......'),
+    False: ('....................', '......########......', '...###........###...', '.##...oooooooo...##.', '#....oo.####.oo....#',
+            '.##...oooooooo...##.', '...###........###...', '......########......'),
+}
+
+
+def paint_eye(pic, x, y, k, dark):
+    """the eye that opens above the text (Yechiam 2003's signal): the demon's slit in gold, the angel's calm"""
+    rows = EYE[dark]
+    for j, row in enumerate(rows):
+        for i, c in enumerate(row):
+            if c != '.':
+                ink = INK['accent_text'] if c == '#' else INK['gold']
+                pic.fill(x + i * k, y + j * k, k, k, ink)
+
+
+def paint_word(pic, x, y, word, ink, k):
+    """a word in Sumi UI at k× (display size: a whole multiple, never smoothed)"""
+    for n, c in enumerate(word):
+        g = GLYPHS.get(c)
+        if not g:
+            continue
+        for yy in range(14):
+            bits = g[0][yy]
+            for xx in range(7):
+                if bits >> (6 - xx) & 1:
+                    pic.fill(x + (n * 7 + xx) * k, y + yy * k, k, k, ink)

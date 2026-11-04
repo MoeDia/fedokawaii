@@ -1,5 +1,5 @@
-"""keys.py — the keyboard as drawn and taught: his Redragon K617 Fizz, 61 keys, US layout (K617's row of
-modifiers and all); each key's place, width and finger.
+"""keys.py — the keyboard as drawn and taught: his Redragon K617 Fizz, 61 keys, US layout; each key's place, width
+and finger. (Its top-left key is Esc: with Fn the backtick, with Fn and Shift the tilde.)
 
 Widths are in quarters of a key. Fingers: 0–3 the left hand's little, ring, middle and index, 4 its thumb;
 5 the right thumb, 6–9 the right hand's index, middle, ring and little.
@@ -53,6 +53,8 @@ def needs(ch, thumb=5):
     name, shift = k
     finger = thumb if name == 'space' else PLACE[name][3]
     out = [(name, finger)]
+    if name == '`':                     # (on the K617, Esc's key: Fn makes it the backtick)
+        out.append(('fn', 5))
     if shift:
         out.append(('rshift', 9) if finger < 5 else ('lshift', 0))
     return out

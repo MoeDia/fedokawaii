@@ -65,10 +65,12 @@ class Picture:
         self.cols = math.ceil(w / self.tile_w)
         self.tiles_y = math.ceil(h / self.tile_h)
         self.dirty = set()
+        self.sent = {}             # (a tile as last sent: one painted again with the same pixels is not sent)
         self.touch_all()
 
     def touch_all(self):
         self.dirty = {(i, j) for i in range(self.cols) for j in range(self.tiles_y)}
+        self.sent.clear()
 
     def _touch(self, x0, y0, x1, y1):
         tw, th = self.tile_w, self.tile_h
@@ -126,9 +128,12 @@ class Picture:
             x0, x1 = i * tw, min((i + 1) * tw, self.w)
             y0, y1 = j * th, min((j + 1) * th, self.h)
             r0, c0 = row + j * lines, col + i * cells
+            tile = [bytes(r[x0:x1]) for r in self.rows[y0:y1]]
+            if self.sent.get((i, j)) == tile:
+                continue
+            self.sent[(i, j)] = tile
             for k in range(lines):
                 out.append(b'\x1b[%d;%dH\x1b[%dX' % (r0 + k, c0, cells))
-            tile = [bytes(r[x0:x1]) for r in self.rows[y0:y1]]
             if any(any(t) for t in tile):
                 out.append(b'\x1b[%d;%dH' % (r0, c0))
                 out.append(sixel(tile, palette))
