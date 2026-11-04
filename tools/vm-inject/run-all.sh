@@ -11,6 +11,7 @@
 # Out: a line a row, the same in /dev/shm/r27/inject/table.txt, each row's evidence (its press, its
 # facts) in /dev/shm/r27/inject/ROW/. The toolkit comes from TREE (frozen: a proof reads it through).
 # Exit 0 every row held · 1 one did not · 2 the VM could not run.
+# shellcheck disable=SC2034  # (a row's locals are read by ok_if's eval)
 # Rows proven by their own scripts: restore-cut.sh (41), split-cut.sh (43), overlay-restore.sh (the
 # boot menu's read-only start), probation.sh (15: a kernel that does not start), update-button.sh (29),
 # release-move.sh (32: the move cut and red). The fixer's own (21, 22): the fixer's bench. Stubs, a
