@@ -256,7 +256,7 @@ eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n", "")):
     fresh(st); pics = [i.glyph or i.icon for i in p.items]; out.append((len(pics), len(set(pics))))
 print(out)')" "[(18, 18), (16, 16)]"
-case_ "the pictures (panel-art.txt): a row's at most 16 × 16, a level's 32 wide, a seal tile's 40 × 40, a key's at most 12 × 12 in its cap; every row of a picture one width; only the file's inks; the twelve months, the five seals, all there"
+case_ "the pictures (panel-art.txt): a row's at most 16 × 16, a level's 32 wide, a seal tile's 40 × 40, a key's at most 12 × 12 in its cap, a title plate's pattern 224 × 38; every row of a picture one width; only the file's inks; the twelve months, the five seals, all there"
 eq "$(python3 -I -B - "$PICS" <<'PY'
 import re, sys
 bad, names = [], {}
@@ -278,6 +278,7 @@ for n, rows in names.items():
     if n.startswith("t-"): limit = (40, 40)
     elif n.startswith(("bonsho", "lantern")): limit = (32, 36)
     elif n.startswith("key-"): limit = (12, 12)
+    elif n.startswith("plate-"): limit = (224, 38)
     else: limit = (16, 16)
     if w > limit[0] or h > limit[1]: bad.append(("size", n, w, h))
 want = [f"month-{m:02d}" for m in range(1, 13)] + ["t-lock", "t-sleep", "t-logout", "t-restart", "t-off", "seal-on", "seal-off", "key-super", "key-shift"]
