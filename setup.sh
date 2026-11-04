@@ -2150,6 +2150,7 @@ s_gate() {
   syncplay_current || s_syncplay
   localsend_current || s_localsend
   blesh_current || s_blesh
+  [[ -x $FIXER ]] && as_user "$FIXER" status --home "$TARGET_HOME" >/dev/null 2>&1 || s_fixer
   # (and LazyVim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
   # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
   if [[ ! -d $TARGET_HOME/.local/share/nvim/lazy/LazyVim ]]; then

@@ -669,9 +669,10 @@ if ((PRE == 0)); then
   if [[ $(snapper -c root list 2>/dev/null) == *"fedokawaii baseline"* ]]; then pass "baseline snapshot exists"
   else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawaii baseline\""; fi
   # (the local AI fixer: on a machine with its card, its runtime and model whole — hashes at each run, sizes here)
-  if fx=$(/usr/local/sbin/kawa-fixer status --home "$TARGET_HOME" 2>&1); then pass "the local AI fixer ($fx)"
+  if [[ ! -x /usr/local/sbin/kawa-fixer ]]; then warn "the local AI fixer: its program is missing" "fedokawaii repair puts it in"
+  elif fx=$(/usr/local/sbin/kawa-fixer status --home "$TARGET_HOME" 2>&1); then pass "the local AI fixer ($fx)"
   elif [[ $fx == *"no graphics card"* ]]; then info "the local AI fixer: $fx"
-  else warn "the local AI fixer: ${fx:-its program is missing}" "fedokawaii repair puts it in"; fi
+  else warn "the local AI fixer: $fx" "fedokawaii repair puts it in"; fi
   check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions
   # (grub-btrfs comes from a COPR: while that has no build for this Fedora, warned above; its list
   # names each snapshot by its place on the disk — one no longer there cannot start)

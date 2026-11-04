@@ -150,7 +150,7 @@ COMMENT = {"ini": ("#", ";"), "toml": ("#",), "css": ("/*", "*"), "lua": ("--",)
 # what no fix ever brings in by itself: only a line that already says it may carry it over
 SHELLY = re.compile(r"\$\(|`|/dev/tcp|https?://|authorized_keys|\b(?:curl|wget|nc|ncat|socat|scp|ssh|sudo|su|pkexec|doas|"
                     r"systemctl|dnf|rpm|chmod|chown|mkfs|dd|rm|mv|python3?|perl|ruby|base64|eval|bash|sh|exec|include|"
-                    r"import|dofile|loadfile|loadstring|load|require|source|os\.execute|io\.popen|vim\.system|vim\.fn\.system|jobstart)\b")
+                    r"import|dofile|loadfile|loadstring|load|require|source|os\.execute|io\.popen|vim\.system|vim\.fn\.system|vim\.cmd|nvim_command|nvim_exec\w*|jobstart)\b")
 # a key that runs something: its value only ever carried over word for word (a changelog cannot steer one in)
 COMMANDY = re.compile(r"^(?:shell|command|exec|run|launch|on-[\w-]+|script[\w-]*|input-conf|lock-command|unlock-command|"
                       r"[\w-]*-command|command-[\w-]+|[\w-]*-exec)$")
@@ -166,7 +166,7 @@ Rules:
 - Use only option names and syntax that the NEW documentation or changelog below shows. Never invent an option.
 - Keep every value as it is, unless the new documentation requires another form.
 - In documentation `section.option` or `[section].option` means the line option=value under a [section] header.
-- An option that moved to another section: search is its old line, replace is its new line, and "section" names the section it goes to. The old line is taken out and the new one is put under that header, which is made if missing. Never write a [header] in replace to do that: a header in the middle of a file takes every line after it away from its own section.
+- An option that moved to another section: search is its old line, replace is its new line, and "section" names the section it goes to. The old line is taken out and the new one is put under that header, which is made if missing. Example: the old line old=1, documented now as `sec.new`, is {"search": "old=1", "replace": "new=1", "section": "sec"}. Never write a [header] in replace to do that: a header in the middle of a file takes every line after it away from its own section.
 - Do not delete or comment out a setting to silence the error, unless the changelog says it was removed with no replacement.
 - Each "search" must be copied exactly from the file, as few whole lines as do the job, and must occur exactly once in it.
 - If the evidence does not show a safe fix, answer verdict "cannot_fix" with no edits. That is a good answer: the package simply waits.
@@ -326,8 +326,10 @@ class Server:
             raise Held("no-card", "no graphics card with 12 GB of its own")
         if card["driver"] == "vfio-pci":
             raise Held("card-busy", "the card is passed to a virtual machine")
+        # (2 GiB less than it takes: the driver moves what others left idle to main memory for that
+        # minute — measured with 6 GiB of others on the card; past that the desktop would suffer)
         free = (card["total"] - card["used"]) >> 20
-        need = MODEL["vram_mib"] if need_mib is None else need_mib
+        need = MODEL["vram_mib"] - 2048 if need_mib is None else need_mib
         if free < need:
             raise Held("card-busy", f"the card has {free} MiB free and the model needs {need}: other programs hold it")
         base = "/run/fedokawaii" if os.geteuid() == 0 else os.environ.get("XDG_RUNTIME_DIR", tempfile.gettempdir())
@@ -798,7 +800,7 @@ def plan_edits(answer, allowed, place, kind="ini"):
     for e in answer.get("edits", []):
         # (the docs' section.option written as a key, the models' one common slip in an INI file: it means this)
         dotted = re.fullmatch(r"\s*([A-Za-z][\w-]*)\.([\w-]+)\s*=(.*)", e.get("replace", ""))
-        if dotted and kind == "ini" and not e.get("section"):
+        if dotted and kind == "ini" and e.get("section", dotted.group(1)).strip("[]") == dotted.group(1):
             e["section"], e["replace"] = dotted.group(1), f"{dotted.group(2)}={dotted.group(3)}"
         name, search, replace = e.get("file", ""), e.get("search", ""), e.get("replace", "")
         if name not in shown or NEVER.search(name):
@@ -813,7 +815,7 @@ def plan_edits(answer, allowed, place, kind="ini"):
         if e.get("section") and (kind not in ("ini", "toml") or not re.fullmatch(r"\[?[\w:=.-]+\]?", e["section"])):
             problems.append(f"{name}: {e['section']!r} is no section of this kind of file")
             continue
-        if kind in ("ini", "toml") and headers(replace) - headers(search) and not headers(search):
+        if kind in ("ini", "toml") and len(headers(replace)) > len(headers(search)):
             problems.append(f"{name}: a [header] in the middle of a file takes the lines after it away from their section: give it in \"section\" instead")
             continue
         if re.search(r"[\x00-\x08\x0b-\x1f\x7f]", search + replace):
@@ -981,7 +983,7 @@ def fix_one(name, case, place, sock, seed0, report, logdir):
         if not isinstance(answer, dict):
             problems = ["the answer was not the JSON asked for"]
         elif answer.get("verdict") == "cannot_fix":
-            raise Held("refused", f"{name}: {answer.get('reason') or 'the model sees no safe fix'}")
+            raise Held("refused", f"{name}: {at_word(answer.get('reason') or 'the model sees no safe fix', 240)}")
         elif not answer.get("edits"):
             problems = ["verdict fix with no edits"]
         else:
@@ -1048,10 +1050,18 @@ def moved_on(before, after, edits):
     return bool(after.strip()) and bool(a - b) and not any(n in wrote for n in b)
 
 
+def at_word(s, n=200):
+    """one clean line of at most N characters, cut at a word (no text here is ever dotted)"""
+    s = re.sub(r"[\x00-\x1f\x7f]+", " ", str(s)).strip()
+    if len(s) <= n:
+        return s
+    return s[:n + 1].rsplit(" ", 1)[0].rstrip(" ,;:")
+
+
 def first_line(s):
     for line in str(s).splitlines():
         if line.strip():
-            return line.strip()[:200]
+            return at_word(line)
     return ""
 
 
@@ -1118,7 +1128,7 @@ def run_case(case, sock, out_path, logdir, server_args):
         report["verdict"], report["class"] = "fixed", "fixed"
         # (each edited file as it was: an update undone later takes the fix back with it)
         report["before"] = {place.shown(f): t for f, t in backups.items() if read_text(f) != t}
-        report["reason"] = "; ".join(r for r in report["reasons"] if r)[:400]
+        report["reason"] = at_word("; ".join(r for r in report["reasons"] if r), 240)
     except Exception as e:   # (a bug of this program too ends held and told, never half-way)
         h = e if isinstance(e, Held) else Held("internal", f"the fixer failed: {type(e).__name__}: {e}")
         report["class"], report["reason"] = h.cls, h.reason

@@ -8,6 +8,8 @@
 #   python3 -B -I tools/fixer-bench.py --model FILE [--sock SOCK] [--runs N] [--only a,b] [--work DIR]
 #                                      [--ctx N] [--server-args "…"] [--request JSON] [--out FILE.tsv]
 #   --list   the cases and what each must end in
+#   --self   no server kept across cases: each run starts the installed model itself and ends it, as the
+#            update does (the whole of it measured: the hash, the load, the answer, the card empty again)
 # A row: case, level, expected, seed, outcome, tries, seconds, tokens per second, class, the reason.
 # Outcomes: right (fixed, and the file says what it must) · wrong (the check is green, the file does
 # not: a fake fix — the one thing that may never happen) · held (safe, nothing changed) · bad (a held
@@ -329,6 +331,7 @@ def main():
     ap.add_argument("--request", default="")
     ap.add_argument("--out")
     ap.add_argument("--list", action="store_true")
+    ap.add_argument("--self", dest="own", action="store_true")
     a = ap.parse_args()
     cases = [c for c in CASES if (not a.only or c["name"] in a.only.split(",")) and c["name"] not in a.skip.split(",")
              and (not a.level or c["level"] == a.level)]
@@ -367,8 +370,12 @@ def main():
                 cpath = f"{d}/case.json"
                 json.dump(spec, open(cpath, "w"))
                 t0 = time.time()
-                subprocess.run([sys.executable, "-B", "-I", FIXER, "run", cpath, "--out", f"{d}/out.json", "--sock", sock or "/nonexistent", "--log", f"{d}/log"],
-                                   capture_output=True, text=True, timeout=1500)
+                if a.own:
+                    spec["user_home"] = os.path.expanduser("~")
+                    json.dump(spec, open(cpath, "w"))
+                subprocess.run([sys.executable, "-B", "-I", FIXER, "run", cpath, "--out", f"{d}/out.json", "--log", f"{d}/log",
+                                *([] if a.own else ["--sock", sock or "/nonexistent"])],
+                               capture_output=True, text=True, timeout=1500)
                 rep = json.load(open(f"{d}/out.json"))
                 g = grade(c, target, rep)
                 speeds = [x.get("predicted_per_s") or 0 for x in rep["runs"]]

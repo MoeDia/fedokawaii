@@ -84,6 +84,10 @@ serve_stub; fresh; before=$(conf); answer '{"verdict":"cannot_fix","reason":"the
 eq "$RC" 3; eq "$(j .verdict)" held; eq "$(j .class)" refused; eq "$(conf)" "$before"; eq "$(j .tries)" 1; has "$OUT" "held: foot: the docs do not say"
 eq "$(j '.edits | length')" 0
 
+case_ "a long reason, with a newline in it: one line, cut at a word, never dotted"
+serve_stub; fresh; long=$(printf 'word%.0s ' $(seq 90)); answer "$(jq -cn --arg r "first"$'\n'"$long" '{verdict: "cannot_fix", reason: $r, edits: []}')"; fixer
+lacks "$OUT" "…"; [[ $OUT != *$'\n'* ]] && _ok || _no "two lines"; [[ $OUT == *word ]] && _ok || _no "not cut at a word: ${OUT: -30}"; ((${#OUT} < 300)) && _ok || _no "${#OUT} long"
+
 case_ "not JSON, then right: the second try gets the refusal in hand"
 serve_stub; fresh; answer 'this is not json'; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
 eq "$RC" 0; eq "$(j .tries)" 2; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" "was refused"
@@ -130,6 +134,14 @@ case_ "a bug of this program ends held too, the file put back"
 serve_stub; fresh; before=$(conf); jq '.packages = "not a list"' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
 eq "$RC" 3; eq "$(j .class)" internal; eq "$(conf)" "$before"; has "$OUT" "the fixer failed"
 
+case_ "the rails on a program whose config is code: nvim's Lua brings in nothing that runs things"
+stub nvim 'if grep -q "old_thing" "$HOME/.config/nvim/init.lua"; then echo "Error in init.lua: E5113: attempt to call field old_thing"; fi; exit 0'
+for bad in 'vim.fn.system("id")' 'os.execute("id")' 'vim.cmd("!id")' 'require("evil")' 'vim.system({"id"})'; do
+  serve_stub; fresh 'nvim does not take its config'; mkdir -p "$H/.config/nvim"; printf 'vim.old_thing()\n' >"$H/.config/nvim/init.lua"; jq '.packages = [{name: "neovim"}]' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"
+  answer "$(edit '~/.config/nvim/init.lua' 'vim.old_thing()' "$bad")"; answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
+  eq "$RC" 3 "$bad went through"; has "$(cat "$H/.config/nvim/init.lua")" 'vim.old_thing()'
+done
+
 case_ "a command a line already says may be carried over, as it stands"
 serve_stub; fresh; printf '[main]\nutempter=/usr/bin/run-thing --flag\n' >"$H/.config/foot/foot.ini"
 answer "$(edit "$FOOT" 'utempter=/usr/bin/run-thing --flag' 'utmp-helper=/usr/bin/run-thing --flag')"; fixer
@@ -167,8 +179,13 @@ case_ "section.option written as a key in an INI file means that section: mended
 serve_stub; fresh; printf '* `desktop.utmp-helper` is where it went\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"; answer "$(edit "$FOOT" 'utempter=none' 'desktop.utmp-helper=none')"; fixer
 eq "$RC" 0; has "$(conf)" $'[desktop]\nutmp-helper=none'; eq "$(j '.edits[0].section')" desktop; eq "$(j '.edits[0].replace')" utmp-helper=none
 
+serve_stub; fresh; printf '* `desktop.utmp-helper` is where it went\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"; answer '{"verdict":"fix","reason":"moved","edits":[{"file":"~/.config/foot/foot.ini","search":"utempter=none","replace":"desktop.utmp-helper=none","section":"desktop"}]}'; fixer
+eq "$RC" 0; has "$(conf)" $'[desktop]\nutmp-helper=none'
+
 case_ "a [header] written in the middle of a file would take the lines after it away: refused, told how"
 serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' $'[desktop]\nutmp-helper=none')"; answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
+eq "$RC" 3; eq "$(conf)" "$before"; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" 'give it in "section"'
+serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" '[scrollback]' $'[scrollback]\n\n[desktop]\nutmp-helper=none')"; answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
 eq "$RC" 3; eq "$(conf)" "$before"; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" 'give it in "section"'
 case_ "a section renamed, its header in the search too: taken"
 serve_stub; fresh; printf '* `newmain` replaces the main section\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"; answer "$(edit "$FOOT" $'[main]\nutempter=none' $'[newmain]\nutmp-helper=none')"; fixer
@@ -335,7 +352,7 @@ if unshare --user --map-current-user --net true 2>/dev/null; then
   RT=$UH/.local/lib/fedokawaii/llama-b12110; mkdir -p "$RT" "$UH/.local/share/fedokawaii/models"; cp "$TMP/stub-server" "$RT/llama-server"
   MFILE=$UH/.local/share/fedokawaii/models/tiny.gguf; printf 'tiny model' >"$MFILE"
   SUM=$(sha256sum "$MFILE" | cut -d' ' -f1)
-  export PIN_MODEL; PIN_MODEL=$(jq -cn --arg s "$SUM" '{file: "tiny.gguf", sha: $s, size: 10, vram_mib: 100, ctx: 4096}')
+  export PIN_MODEL; PIN_MODEL=$(jq -cn --arg s "$SUM" '{file: "tiny.gguf", sha: $s, size: 10, vram_mib: 3000, ctx: 4096}')
   jq --arg h "$UH" '. + {user_home: $h}' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"
   export FK_STUB=$RT   # (the stand-in's env is the server's own, cleaned: it finds its folder by itself)
   run_server() { OUT=$(pinned run "$C/case.json" --out "$C/out.json" --log "$C/log" 2>&1); RC=$?; }
