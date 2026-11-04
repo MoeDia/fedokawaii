@@ -369,12 +369,22 @@ do_over() {
   do_say "$name" >"$R/installed.txt"; cp "$V/$name/say.png" "$R/installed.png"
   stage "the stick says it is installed"
   do_keys "$name" i
+  do_keys "$name" i
   do_install "$name" || { stage "RED: the questions"; return 1; }
   stage "questions answered"
+  # (the stick stays in and first in the boot order, through the installer's own restart: it must say the disk
+  # is taken, not ask again. Then it is taken out, as the page says, and enter restarts)
+  until do_say "$name" "fedokawaii is installed" 2>/dev/null; do
+    ((SECONDS - T0 > 3600)) && { stage "RED: the stick never said it, after the base system"; return 1; }
+    sleep 3
+  done
+  do_say "$name" >"$R/installed-2.txt"; cp "$V/$name/say.png" "$R/installed-2.png"
+  stage "base system in; the stick, still in, says the disk is taken"
+  "${VIRSH[@]}" change-media "$name" sda --eject --force >/dev/null
+  do_keys "$name" "<enter>"
   do_follow "$name"
 }
-
-# do_path NAME CARRY — the rest of the owner's path on an installed VM (T54b 5), after its run: his things back
+ NAME CARRY — the rest of the owner's path on an installed VM (T54b 5), after its run: his things back
 # from the drive, the update button pressed, everything still green
 do_path() {
   local name=$1 img=$2 rc
