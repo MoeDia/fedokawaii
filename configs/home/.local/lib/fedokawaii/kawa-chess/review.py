@@ -9,7 +9,7 @@ from app import Screen
 from engine import analysis_request
 from play import MoveInput, board_marks, hand_line, moves_rows
 from term import ACCENT, ACCENT_TEXT, MUTED, STRONG
-from ui import Row, heading, icon, meter, window, wrap
+from ui import Row, footed, heading, icon, keys_line, meter, window, wrap
 
 # Expected-points loss → a word, the steps of chess.com's own classification
 CLASSES = ((0.20, "blunder"), (0.10, "mistake"), (0.05, "inaccuracy"), (0.02, "good"), (0.0, "excellent"))
@@ -268,8 +268,8 @@ class Replay(Screen):
             tail += [""] + [[(s, None)] for s in wrap(rec["takeaway"], w)]
         room = h - len(out) - len(tail) - 1
         out += moves_rows(self.g, w, room, self.at - 1)
-        out += [""] * max(0, h - len(out) - len(tail))
-        return (out + tail)[:h]
+        out += [""] * max(0, h - 2 - len(out) - len(tail))
+        return footed(out + tail, h, keys_line(w, ("← →", "walk"), ("enter", "review"), ("esc", "back")))
 
     def key(self, name):
         if name in ("left", "up"):
@@ -438,7 +438,7 @@ class Review(Screen):
             out += [[("reading" if w < 16 else "reading the game", MUTED)], ""]
             frac = self.an.fraction() if self.an else 0.0
             out.append(meter(frac, min(20, w)))
-            return out
+            return footed(out, h, keys_line(w, ("esc", "later")))
         if self.phase == "judge":
             ply = self.judge_plies[self.judge_i]
             pos = self.g.replay(ply)
@@ -446,11 +446,18 @@ class Review(Screen):
             no = f"{pos.full}." if pos.turn == B.WHITE else f"{pos.full}..."
             out += [[(s, None)] for s in wrap("before the engine speaks: which of your moves would you take back?", w)]
             out += ["", [(no + " ", MUTED), (san, STRONG)], ""]
-            out += [[(s, MUTED)] for s in wrap("left and right walk the game, enter chooses, esc skips.", w)]
-            return out
-        body = self._moment_lines(w, h - 2) if self.phase == "moment" else self._summary_lines(w, h - 2)
-        shown, self.top = window(body, self.top, h - 2)
-        return out + shown
+            return footed(out, h, keys_line(w, ("← →", "walk"), ("enter", "this one"), ("esc", "skip")))
+        if self.phase == "moment":
+            body = self._moment_lines(w, h - 4)
+            if self.step == "find":
+                keys = [("esc", "show me")]
+            else:
+                keys = [("← →", "the line"), ("enter", "next")] if self.line else [("enter", "next")]
+        else:
+            body = self._summary_lines(w, h - 4)
+            keys = [("enter", "keep it"), ("esc", "skip")]
+        shown, self.top = window(body, self.top, h - 4)
+        return footed(out + shown, h, keys_line(w, *keys))
 
     def _moment_lines(self, w, h):
         m = self._moment()

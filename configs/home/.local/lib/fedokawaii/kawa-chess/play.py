@@ -10,7 +10,7 @@ import board as B
 from app import Screen
 from engine import analysis_request, choose_weak, play_request
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG
-from ui import Face, Row, heading, icon, wrap
+from ui import Face, Row, heading, icon, keys_line, wrap
 
 ALLOWED = set("abcdefghABCDEFGHxXNRQKnrqkO0o-=+#12345678")
 
@@ -371,7 +371,7 @@ class Game(Screen):
         hg = f"HG_{int(now * 6) % 5}" if opp_turn and not self.paused else None
         me = self._side_row("you", self.me, None)
         foot = self._input_lines(w)
-        lower = [me, ""] + foot
+        lower = [me, ""] + foot[:1] + ([""] if h >= 24 else []) + foot[1:]
         opp = self._opponent(w, h, hg)
         room = h - len(top) - len(opp) - len(lower) - (1 if h > 12 else 0)
         middle = self.menu_lines(w, room) if self.menu else self._moves(w, room)
@@ -430,9 +430,15 @@ class Game(Screen):
 
     def _input_lines(self, w):
         if self.g.over():
-            return [[(self.note or " ", MUTED)], [""]]
+            return [[(self.note or " ", MUTED)], keys_line(w, ("enter", "go on"))]
         line = hand_line(self.hand, w, self.g.pos.turn == self.me)
-        return [line, [(self.note, MUTED)] if self.note else ""]
+        if self.note:
+            return [line, [(self.note, MUTED)]]
+        if self.menu:
+            return [line, keys_line(w, ("enter", "choose"), ("esc", "back"))]
+        left = max(0, int(self.spec.get("hints") or 0) - self.hints_used)
+        hint = (("?", "hint", str(left)),) if left else ()
+        return [line, keys_line(w, *hint, ("esc", "menu"))]
 
     # ── keys ─────────────────────────────────────────────────────────────────────────────────
     def key(self, name):

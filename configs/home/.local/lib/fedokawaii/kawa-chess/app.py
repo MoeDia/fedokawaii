@@ -12,8 +12,8 @@ from art import Art, BoardView, MARGIN
 from canvas import encode
 from engine import Engine
 from store import Store
-from term import MUTED, ON_SELECT, SELECT, Term, Wakeups
-from ui import Face, Layout, load_icons, span_len, wrap
+from term import ACCENT, MUTED, ON_SELECT, SELECT, Term, Wakeups
+from ui import Face, Layout, icon, load_icons, span_len, wrap
 
 HOME = os.path.expanduser("~")
 DATA = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local/share"), "fedokawaii/chess")
@@ -363,10 +363,10 @@ class App:
                 if hasattr(ln, "spans"):
                     self.rows_at[row] = i
                     sel = cur == i
-                    # (the cursor's column before the content, and one beyond it: the lacquer's)
+                    # (the cursor's column before the content, its edge there, and one beyond it: §7)
                     spans = ln.spans(lay.pw, sel)
                     if sel:
-                        spans = [(" ", ON_SELECT, SELECT), *spans, (" ", ON_SELECT, SELECT)]
+                        spans = [(icon("BAND_EDGE"), ACCENT, SELECT), *spans, (" ", ON_SELECT, SELECT)]
                     else:
                         spans = [" ", *spans, " "]
                     t.text(row, lay.pc - 1, spans, lay.pw + 2)

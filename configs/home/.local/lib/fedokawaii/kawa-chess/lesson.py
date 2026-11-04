@@ -19,7 +19,7 @@ from app import Screen
 from play import MoveInput, board_marks, hand_line, moved_parts
 from puzzles import Session
 from term import ACCENT_TEXT, MUTED, STRONG
-from ui import heading, icon, window, wrap
+from ui import footed, heading, icon, keys_line, window, wrap
 
 
 class Page:
@@ -274,8 +274,9 @@ class Lesson(Screen):
         if self.note:
             body.append("")
             body += [[(s, MUTED)] for s in wrap(self.note, w)]
-        shown, self.scroll = window(body, self.scroll, h - 2)
-        return out + shown
+        shown, self.scroll = window(body, self.scroll, h - 4)
+        keys = ("esc", "back") if self.hand.pos is not None or self.find else ("enter", "go on")
+        return footed(out + shown, h, keys_line(w, keys))
 
     def _advance(self):
         if self.at + 1 < len(self.pages):

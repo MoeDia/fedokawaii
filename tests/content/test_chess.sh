@@ -362,6 +362,28 @@ t.close()
 PY
 )" "True True True True ''"
 
+case_ "the grammar: the cursor's row tinted, its name in the ink on it, a value its own; a key a tile; the footer on the last line, what does not fit left out"
+eq "$(py <<'PY'
+import sys
+sys.path.insert(0, sys.argv[1])
+from chess_lib import LIB
+sys.path.insert(0, str(LIB))
+import term as T
+import ui as U
+U.ICONS.update(BOOK="b")
+row = U.Row("BOOK", "the rook", "5 min").spans(20, True)
+tinted = all(s[2] == T.SELECT for s in row)
+words = "".join(s[0] for s in row)
+inks = {s[0].strip(): s[1] for s in row if s[0].strip()}
+own = inks["5 min"] == T.MUTED and inks["the rook"] == T.ON_SELECT and inks["b"] == T.ON_SELECT
+keys = U.keys_line(16, ("enter", "open"), ("tab", "next"))
+tile = keys[0] == (" enter ", T.STRONG, T.EDGE) and U.span_len(keys) <= 16 and U.span_len(U.keys_line(40, ("enter", "open"), ("tab", "next"))) == 24
+foot = U.footed(["a", "b", "c", "d", "e"], 5, keys)
+last = foot[-1] is keys and foot[:3] == ["a", "b", "c"] and foot[3] == "" and len(foot) == 5
+print(tinted, repr(words), own, tile, last)
+PY
+)" "True ' b  the rook   5 min' True True True"
+
 if [[ -n $REAL_SF ]]; then
   case_ "against the real Stockfish, levels from the first to the strong: legal games, PGNs Stockfish replays to the same position"
   eq "$(python3 -I -B "$C/chess_games.py" "$CHESS_TMP/k" "$REAL_SF" 5 2>&1 | tail -1)" "games 5 replayed 5 crash ''"

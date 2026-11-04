@@ -15,7 +15,7 @@ from puzzles import SESSION, Bank, Session, Vision
 from review import Replay, Review, goal_met
 from syllabus import opponent
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
-from ui import Face, Row, heading, icon, window, wrap
+from ui import Face, Row, footed, heading, icon, keys_line, window, wrap
 
 TABS = (("today", "KNIGHT"), ("lessons", "BOOK"), ("puzzles", "STORM"), ("games", "SHEET"), ("progress", "USAGE"))
 # a day done, on the year: the scroll opens, the seal comes down from high to near to its place, then the board again
@@ -124,7 +124,7 @@ class Home(Screen):
             m = self.lib.by_id[lid]
             state = self.pr.lessons.get(lid)
             done = state == "done"
-            out.append(Row("CHECK" if done else "BOOK", m["title"], "done" if done else f"{i + 1}", act=("lesson", lid), ink=FAINT if done else None))
+            out.append(Row("CHECK" if done else None, m["title"], "done" if done else f"{i + 1}", act=("lesson", lid), ink=FAINT if done else None))
         return out
 
     def _rows_puzzles(self):
@@ -134,7 +134,7 @@ class Home(Screen):
         for key, name in self.course.theme_names():
             s = pr.solved_by_theme.get(key)
             v = f"{s[0]}/{s[1]}" if s else ""
-            out.append(Row("STORM", name, v, act=("puzzles", key)))
+            out.append(Row(None, name, v, act=("puzzles", key)))
         return out
 
     def _rows_games(self):
@@ -144,7 +144,7 @@ class Home(Screen):
             rec = played[no]
             word = {"win": "won", "loss": "lost", "draw": "drawn"}.get(rec.get("score"), "")
             ac = rec.get("accuracy")
-            out.append(Row("SHEET", f"game {no}", f"{word}  {ac:.0f} %" if ac is not None else word, act=("replay", no)))
+            out.append(Row(None, f"game {no}", f"{word}  {ac:.0f} %" if ac is not None else word, act=("replay", no)))
         return out
 
     def _rows_progress(self):
@@ -238,6 +238,9 @@ class Home(Screen):
         out += getattr(self, "_head_" + name)(w)
         first = len(out)
         foot = self._foot(w, rows, h)
+        if h >= 24:      # (§7: a fixed screen with room to spare ends in its keys; a very small one keeps its rows)
+            keys = (("enter", "open"), ("tab", "next"), ("esc", "close")) if rows else (("tab", "next"), ("esc", "close"))
+            foot = [*foot, "", keys_line(w, *keys)] if foot else [keys_line(w, *keys)]
         room = max(1, h - first - len(foot) - (1 if foot else 0))
         if rows:
             if self.index < self.top:
@@ -572,7 +575,7 @@ class FreeSetup(Screen):
         if w < 26:
             out = [heading("KNIGHT", "a free game", w), "", "", "", ""] + rows
         self.cursor = 5 + self.i
-        return out
+        return footed(out, h, keys_line(w, ("← →", "change"), ("esc", "back")))
 
     def key(self, name):
         if name == "esc":
@@ -629,7 +632,7 @@ class Report(Screen):
         acc = [r["accuracy"] for r in recs if r.get("accuracy") is not None]
         out = [heading("USAGE", f"week {self.week.no}", w), ""]
         out += [Row("SHEET", "won, drawn, lost", f"{wins} {draws} {losses}"),
-                Row("CROSS", "blunders a hundred moves", self._blunder_rate(recs)),
+                Row("CROSS", "blunders per 100 moves", self._blunder_rate(recs)),
                 Row("USAGE", "accuracy", f"{sum(acc) / len(acc):.0f} %" if acc else ""),
                 Row("KNIGHT", "your level", f"{pr.game['r']:.0f}"),
                 Row("STORM", "puzzle rating", f"{pr.puzzle['r']:.0f}"), ""]
@@ -642,8 +645,8 @@ class Report(Screen):
             out.append("")
             for t in notes:
                 out += [[(s, MUTED)] for s in wrap(t, w)]
-        shown, self.top = window(out, self.top, h)
-        return shown
+        shown, self.top = window(out, self.top, h - 2)
+        return footed(shown, h, keys_line(w, ("enter", "go on")))
 
     def wheel(self, d):
         self.top = max(0, self.top + d)

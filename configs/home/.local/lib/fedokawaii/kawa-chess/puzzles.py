@@ -9,7 +9,7 @@ import board as B
 from app import Screen
 from play import MoveInput, board_marks, hand_line, moved_parts
 from term import ACCENT_TEXT, MUTED, STRONG
-from ui import Row, heading, icon, meter, wrap
+from ui import Row, footed, heading, icon, keys_line, meter, wrap
 
 SESSION = 600.0                    # ten minutes
 REPEAT_DAYS = (1, 3, 7, 21)        # after a miss: again on these days
@@ -165,12 +165,12 @@ class Vision(Screen):
         out = [heading("SEARCH", "the squares", w, right=f"{sec // 60}:{sec % 60:02d}"), ""]
         if self.finished:
             out += [[(f"{self.right} found", STRONG), (f", {self.wrong} missed.", None)], "",
-                    [(f"your best: {self.app.progress.vision_best}", MUTED)], "", [("enter goes back", MUTED)]]
-            return out
+                    [(f"your best: {self.app.progress.vision_best}", MUTED)]]
+            return footed(out, h, keys_line(w, ("enter", "back")))
         name = B.sq_name(self.want)
         out += [["find  ", (name, STRONG), "   ", (self.typed, MUTED)], "",
                 Row("CHECK", "found", self.right), Row("CROSS", "missed", self.wrong)]
-        return out
+        return footed(out, h, keys_line(w, ("esc", "stop")))
 
     def key(self, name):
         if self.finished:
@@ -407,7 +407,7 @@ class Session(Screen):
             self._score(False)
         self.showing = True
         self.hand.pos = None
-        self.note = "the answer. enter goes on."
+        self.note = "the answer."
         self.reply_at = time.monotonic() + 0.2
         self.app.touch()
 
@@ -447,8 +447,8 @@ class Session(Screen):
         out.append("")
         if self.finished:
             d = pr.puzzle["r"] - (self.d0 or pr.puzzle["r"])
-            out += [[(f"done: {d:+.0f} today", STRONG)], "", [("enter goes back", MUTED)]]
-            return out
+            out += [[(f"done: {d:+.0f} today", STRONG)]]
+            return footed(out, h, keys_line(w, ("enter", "back")))
         if self.won is not None:
             gain = f"  {self.won[1]:+.0f}" if abs(self.won[1]) >= 0.5 else ""
             out += [[" ", (icon("CHECK"), ACCENT_TEXT), "  ", ("solved", STRONG), (gain, MUTED)]]
@@ -459,6 +459,7 @@ class Session(Screen):
                 out.append(hand_line(self.hand, w))
             if self.note:
                 out += [[(s, MUTED)] for s in wrap(self.note, w)]
+            return footed(out, h, keys_line(w, ("enter", "go on") if self.showing else ("esc", "show me")))
         return out
 
     def leave(self):

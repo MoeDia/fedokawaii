@@ -5,7 +5,7 @@ Lines are lists of spans; a Row carries what a click or Enter on it means.
 """
 import re
 
-from term import ACCENT, ACCENT_TEXT, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG
+from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG
 
 PIECE_MIN_ROWS = 18        # 320 px + the frame: the smallest board
 _ICON = re.compile(r"^ICON_([A-Z0-9_]+)=\$'((?:\\x[0-9a-f]{2})+)'", re.M)
@@ -63,8 +63,8 @@ def heading(ic, name, w, right=None):
 
 
 class Row:
-    """A row of a list: its icon at column 1, name from column 4, value right-aligned; a cursor's
-    lacquer from the cursor's column to one beyond the content. act: what choosing it does."""
+    """A row of a list: its icon at column 1, name from column 4, value right-aligned; the cursor's
+    tint from the cursor's column to one beyond the content. act: what choosing it does."""
     __slots__ = ("ic", "name", "value", "act", "ink", "value_ink", "tag", "mark")
 
     def __init__(self, ic, name, value="", act=None, ink=None, value_ink=MUTED, tag=None, mark=None):
@@ -80,8 +80,10 @@ class Row:
             name = _cut(name, room)
         pad = w - 4 - len(name) - len(v)
         if selected:
-            # (the cursor's column before and one beyond: the panel draws those two cells)
-            return [(" " + (icon(self.ic) if self.ic else " ") + "  " + name + " " * pad + v, ON_SELECT, SELECT)]
+            # (the name and its picture text_on_select, every other ink its own, §7; the cursor's column before and one
+            # beyond: the panel draws those two cells, the edge in the first)
+            pic = [(self.mark.ljust(2), ACCENT_TEXT, SELECT), (" ", ON_SELECT, SELECT)] if self.mark else [((icon(self.ic) if self.ic else " ") + "  ", ON_SELECT, SELECT)]
+            return [(" ", ON_SELECT, SELECT), *pic, (name + " " * pad, ON_SELECT, SELECT), (v, self.value_ink, SELECT)]
         if self.mark:
             out = [" ", (self.mark.ljust(2), ACCENT_TEXT), " ", (name, self.ink)]
         else:
@@ -127,16 +129,29 @@ class Face:
         return [self] + [self.BELOW] * (3 if self.large else 1)
 
 
-def keys_line(*pairs):
-    """A screen's own keys on its last line: the key in text, what it does muted, its state strong."""
-    out = []
-    for i, p in enumerate(pairs):
-        if i:
-            out.append("   ")
-        out += [p[0], "  ", (p[1], MUTED)]
+def keys_line(w, *pairs):
+    """A screen's own keys on its last line (§7): the key a cell-high tile (` key ` in strong on edge), what it does
+    muted, its state strong, two cells between them; as many of them, the first ones, as the panel has room for."""
+    out, used = [], 0
+    for p in pairs:
+        need = len(p[0]) + 3 + len(p[1]) + (2 + len(p[2]) if len(p) > 2 else 0) + (2 if out else 0)
+        if used + need > w:
+            break
+        if out:
+            out.append("  ")
+        out += [(f" {p[0]} ", STRONG, EDGE), " ", (p[1], MUTED)]
         if len(p) > 2:
             out += ["  ", (p[2], STRONG)]
+        used += need
     return out
+
+
+def footed(lines, h, keys):
+    """A panel's lines and, on its last line, its keys; what does not fit gives way to them."""
+    if not keys:
+        return lines[:h]
+    lines = lines[:max(0, h - 2)]
+    return lines + [""] * (h - 1 - len(lines)) + [keys]
 
 
 def meter(fraction, cells=20):
