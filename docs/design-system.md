@@ -211,10 +211,6 @@ screen and the bar's paper share one rhythm.
 | heading, GUI | 20 + 8 | — | its row, then 8 px of air; 20 px above it (none at the top of a panel) |
 | heading, TUI | 1 + 1 lines | — | its line, then a blank line; two blank lines above it (none at the top) |
 | content | 376 | 47 | a panel's inner width: the sound panel, a notice, the launcher (410 with pad and hairlines) |
-| dial | 304 × 304 | 38 | quick settings (§4): a square — the grid's one stated exception (a circle has no rows) — 338 × 338 with pad and hairlines |
-| face, the middle | 56 × 56 | — | the dial's middle at rest: the mood's face drawn for it at 1 px, in the faces' four inks, its halves mirrored (§4) |
-| hour | 36 × 36 | — | a dial's place: its 28 px picture on a circle of radius 128 round the dial's middle (the cursor's lacquer, its corners left out) |
-| bead | 6 Ø | — | a dial's meter: 20 beads on a circle of radius 88, from 22° up from the bottom to 158°, 5 % each |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
@@ -233,13 +229,13 @@ screen and the bar's paper share one rhythm.
   Black at 67 % then 31 %; light — umber at 43 % then 19 % (`KAMI` in `tools/wada-palette.py`).
   Never rounded, never a second frame inside (no inner rule, no bevel).
 - **Panel**: `ground` at the terminals' see-through (kawa-glass, the owner's transparency: what
-  lies under it — the wallpaper, a window and its words — shows faintly, at 8 %; everything the
+  lies under it — the wallpaper, a window and its words — shows faintly, at 4 %; everything the
   panel draws is opaque), the frame, 16 px of pad, content on the grid. Sized to its content in
   whole cells.
 - **Heading**: its icon (12 px) in `accent_text` in the icon column at the content's first cell,
   its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — 1 px `edge2`, solid, on the
   row's row 10 (the minus's), to the content's right edge. Air: §3. Every part of a panel opens
-  with one; a panel of one part may have none (quick settings, the dial: its face says whose it is).
+  with one.
 - **Row**: 20 px; its icon in the icon column at cell 1 (x 8–23, the icon on x 10–21), its name in
   `text` from cell 4 (x 32); a value in `muted`, right-aligned to the content's edge, two cells or
   more after the widest name. A row that only shows (a week of weather, a help line) is never a
@@ -249,38 +245,12 @@ screen and the bar's paper share one rhythm.
 - **Key**: one row high, `key` fill, 1 px `edge` frame inside the row; its icon and name centred
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
-- **Dial** (quick settings, 和時計 — a wadokei, the old Japanese clock): a square of 304 px, no
-  heading and no words at rest. On its **hours** — a circle of radius 128 round its middle —
-  the switches' pictures (28 px, each its own drawing: art/crests.txt, §13), the theme at twelve,
-  then clockwise night light, freesync, screensaver, do not disturb, network, Bluetooth, devices,
-  drives, backup, record, read text (no Bluetooth adapter: ten, spaced evenly): `accent` on,
-  `muted` off — the theme's hour is never off: it is the mood (the moon at night, the rising sun
-  by day), always `accent`, the crown of the dial. Its **meters** are beads (§3) on a circle of radius 88 inside the hours —
-  brightness rising up the left, sound up the right, from the bottom: lit `asagi`, the 17th–18th
-  `flame`, the 19th–20th `accent` (they redden as they rise), unlit `edge2`, muted hollow (their
-  outline), no level all unlit; a click on a bead sets its level (5 % each, a bead's spacing
-  below the first 0), a drag follows round the circle, the wheel ±5. Its **corners** hold the four
-  actions (screenshot top left, wallpaper top right, screen off bottom left, power bottom right),
-  each a 28 px picture in `muted`, its ink centred (crests/ink.txt, written by build-icons.py)
-  in a place of 36 × 36 flush with the content's corner, 4 px into the pad — the four places
-  mirror images (the three framed pictures' ink lands 2 px from the sides and 4 from top or foot;
-  the round power sign's 3 and 3). Its **middle** shows the
-  item the cursor is on — an hour's or an action's picture twice as large (`accent` on, `text`
-  off), a meter's level in display size (Sumi UI twice as large, `strong`) —, then 16 px, its
-  name (`strong`) and its state (`strong` on, `muted` off) a row each, rows with nothing in them
-  left out; the block centred on the middle both ways by the pictures' ink and the rows'
-  capitals (a descender hangs below), each part by its ink; a click on it does what it shows;
-  at rest, the mood's face (open) drawn for the middle — 56 × 56 at 1 px, its halves mirrored
-  (tools/build-themes.py FACE_BIG): the hannya roaring, the tennin serene in her nimbus. Under the
-  cursor an hour or a corner is
-  its place (36 × 36) in the lacquer, its corner pixels left out, the picture `text_on_select`;
-  a meter is a lacquer band 10 px wide along its beads (lit `text_on_select`, unlit
-  `select_lo`). Keys: an arrow goes to the nearest item that way (no farther aside than twice as
-  far ahead), ↑ ↓ on a meter change it by 5, Tab walks every item, Enter acts. Everything is
-  symmetric round the dial's middle (it lies between pixels: 304 is even), each half rounded
-  once and the other its mirror. Turned on, an hour is stamped (§11: `accent_hi` for 60 ms); a
-  level changing lights its beads one after another (§11: 12 ms a bead — never at an open); while
-  a recording runs, the record hour's reels turn (two frames, 6 a second: §5 busy, §13).
+- **Quick settings** (Super+X, the head on the bar — the owner, 4 Nov: "over-engineered, break it down, a simpler way;
+  forget this circle"): a plain menu, the panels' own parts and nothing else. A heading, the two meters (brightness,
+  sound), then rows in three groups, half a row of air between groups: in place (theme, night light, do not disturb,
+  screensaver, freesync), connections (network, Bluetooth, devices while it is on, drives, backup), the screen
+  (wallpaper, screenshot, record, read text, screen off, power). Each row its own picture and its state at the right; a
+  thing that is on: its icon `accent`, its state `strong`. Enter or a click switches it in place or opens its own menu.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
   Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
   as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
@@ -311,7 +281,7 @@ screen and the bar's paper share one rhythm.
 | hover (the pointer) | the cursor goes to the row under it — one light, never two | the same (a mouse click acts as Enter) | the tile lit: icon and words `asagi`; a vermilion tile's fill `accent_hi` |
 | cursor (the keyboard) | the row filled `select` (the lacquer), every ink on it `text_on_select`; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, `:strip`) | — |
 | chosen | the vermilion dot (§4) | `●` in `accent_text`, in the value column | — |
-| on · off | §4 dial (an hour `accent` on, `muted` off); a row's value `strong` "on" · `faint` "off" | the same words, the same inks | — |
+| on · off | §4 quick settings (a row's icon `accent` on, `muted` off); a row's value `strong` "on" · `faint` "off" | the same words, the same inks | — |
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |
 | busy | its icon moves (§13) | the same icon's frames | its icon moves |
 | asking for you | — | — | the workspace's numeral `asagi`; the window's hairline `asagi` |
@@ -395,7 +365,7 @@ content, inside its margin of one cell:
   Super+/ (it knows the app). A screen with a key of its own shows that one on its last line —
   the key in `text`, what it does in `muted`, its state in `strong` (Super+W: `r  change every
   4 h  on`).
-- Ground: `ground` at kawa-glass's 0.92 — the wallpaper faintly through, the words never. No blur.
+- Ground: `ground` at kawa-glass's 0.96 — the wallpaper faintly through, the words never. No blur.
 - Window padding: foot's 8 px; the screen keeps one cell of margin, then the cursor's column
   (fzf's pointer; two spaces where no fzf draws): the cursor's fill starts 16 px inside the
   window's hairline (x 17), column 0 one cell further (x 25), rows' icons at x 33 — a panel's pad,
@@ -440,10 +410,13 @@ content, inside its margin of one cell:
 
 ## 8. The bar
 
-紙 kami: no bar — tiles of washi floating along the top of the wallpaper (`style.css`; every
-picture drawn by `tools/build-themes.py`, per mood, exactly to its box). Each mood has its own
-paper (`tile`): ink-dyed on the dark, kinari on the light. A tile is the frame (§4) round the
-paper and a faint fibre in it — one frame, nothing inside it.
+紙 kami: no bar — tiles of washi floating along the top of the wallpaper (the owner, 4 Nov 18:07: fully floating, no band
+behind them, ever; `style.css`; every picture drawn by `tools/build-themes.py`, per mood, exactly to its box). Each mood has
+its own paper (`tile`): ink-dyed on the dark, kinari on the light. A tile is the frame (§4) round the paper and a faint
+fibre in it — one frame, nothing inside it. Between tiles: 4 px inside a group, 12 between groups, whatever the group. The
+workspaces: one tile each; its numeral (一–九) faint while empty, the words' ink while it holds windows, `asagi` while it
+asks; the one you are on stamped with the red seal, its numeral black inside it. The clock shows the date, the day's kanji
+and the time to the minute.
 
 27 rows, every tile alike:
 
@@ -522,38 +495,38 @@ done ✓).
 
 ## 11. Motion
 
-Playful pixel: things **dissolve** (an ordered dither at the wallpapers' 3 px pixel — every pixel
-fully on or off, never half-transparent), are **stamped** (pressed down like a hanko), and
-**unroll** like a hanging scroll. Each kind means one thing: a dissolve is coming and going, a
-stamp is a choice made, a scroll is something long opening.
+Fluid like water, calm, Japanese, with movement in it (the owner, 4 Nov 17:48, 18:12): **springs**, never a bezier: a thing
+starts at no speed, flows, passes its rest a little and settles. A window **rises**, a workspace **moves** like a fusuma on its
+track, a menu **unrolls** like a hanging scroll behind its rod, a quiet thing **dissolves** (an ordered dither at the wallpapers'
+3 px pixel), a choice is **stamped**. Each kind means one thing: a rise is a window arriving, the strip is a place left for
+another, a scroll is something opened and put away, a dissolve is a message passing.
 
 | what | how | ms |
 |---|---|---|
-| a window opens | dissolves in while it rises its last 9 px (three of the wallpapers' pixels) to its place | 420 |
-| a window closes | dissolves out while it sinks 9 px | 400 |
-| a workspace switch | the leaving windows dissolve out drifting 24 px away; the coming ones dissolve in from 24 px the other side, overlapping (out 0–280, in 140–420); the bar's stamp lifts and stamps down on the new numeral | 420 |
-| tiled windows making room | slide to their new places, eased out | 240 |
-| a menu, panel or popup | dissolves in while it drops 4 px into place; out: dissolves | 200 · 160 |
-| a warm window (Super+U, N, V) shown · put away | unrolls from its top edge down, the rod (its bottom hairline and shadow) travelling · rolls up into its top edge | 300 · 240 |
+| a window opens | rises from 120 px below its place on a spring (7.5 rad, damping 0.72), past it by a few px, and settles; 82 % of its size at first, whole with the same spring; clear within its first 18 % | 450 |
+| a window closes | sinks 64 px, gathering speed, 11 % smaller at the end, fading | 400 |
+| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; a spring (8 rad, damping 0.84), past its place a little; a wave through the windows, the ones nearest the way out first (48 ms between the first and the last); the rail (5 of the wallpapers' pixels wide: ink, lacquer, ink, the screen's whole height, under the bar) goes with the windows coming in; the bar's stamp lifts and stamps down on the new numeral; the wallpaper stays; a switch during a move goes on from where each window stands | 450 |
+| tiled windows making room | flow to their new places on a spring, no overshoot | 300 |
+| a menu, panel or popup, a warm window (Super+U, N, V), a floating terminal (Super+R, W …) shown · put away | unrolls from its top edge down, behind a rod (a lacquer bar 4 px high, 2 px wider than the scroll either side, ink caps; it fades in the last 30 %) on its frame's foot · rolls up into its top edge | 300 · 240 |
 | a notice | its frame at once, its words dissolving in; dissolves away | 240 · 200 |
 | the level display | at once with the key; dissolves away | 0 · 300 |
 | the lock comes | at once | 0 |
-| the lock goes (the right password) | PLANNED (not built yet, T19/T20): the mouth (the window) closes in three frames of art, then the scene dissolves off the desktop; today dwl's own unlock dissolve | 600 |
-| a wrong password | the embers (motes) scatter and fade, the face shakes 3 px twice | 240 |
+| the gate opens (the secret key: Tab) · shuts (Enter, on the marks; Esc, the line cleared) | the mouth, the lotus: its five frames, gentle at both ends; shut at rest, and every other key is nothing | 340 |
+| the lock goes (the right password) | shut, a beat while PAM answers, then dwl dissolves the scene off the desktop | 420 |
+| a wrong password | the gate opens again, the embers (motes) scatter and fade, the gate shakes 3 px twice | 240 |
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
 | a screen back (switched on at its button, or woken after it dropped off the cable asleep) | its first picture is the whole desktop: black (the monitor is finding the signal) until its wallpaper and its bar are back and done drawing — 100 ms without a new frame of theirs — never seen being built | 1000 at most |
-| a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
-| a meter changing — the dial's beads | they light or go out one after another on the frame clock — a bead on the first frame 12 ms or more after the last: at 144 Hz every second frame (a meter of segments: at once) | 12 a bead (13.9 at 144 Hz) |
+| a stamp (the workspace seal) | down: the seal 1 px larger all round in `accent_hi`; then as it was, in `accent` | 60 |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
 - Every frame is drawn at every refresh of the screen (144 a second here) for the moment it
   reaches the glass (the last frame's presentation time and the refresh), so each step is
-  exactly a refresh apart. Movement eases out (fast, then settling) in whole pixels; a dissolve's
-  threshold follows a smoothstep (no pop at either end).
-- Nothing ever sweeps a hard edge across the screen — a moving cut reads as a tear. (An
-  unrolling scroll's edge is its rod: an object, drawn.)
+  exactly a refresh apart. Movement is in whole pixels; a dissolve's threshold follows a smoothstep
+  (no pop at either end).
+- No hard edge sweeps across the screen without an object drawn on it — a moving cut reads as a tear: an
+  unrolling scroll's edge is its rod, a moving workspace's its rail.
 - Nothing holds input (§6). Only what changed is drawn again each frame.
 - The dissolve is a threshold against a 4 × 4 Bayer matrix in 3 px blocks, done in the private
   wlroots' GLES2 texture shader (a flag on the scene node), so any window, panel or layer can
@@ -574,16 +547,8 @@ stamp is a choice made, a scroll is something long opening.
 
 - Every icon is ours, drawn in `art/icons.txt` on Sumi UI's grid in its weight: 1 px strokes both
   ways. **12 × 12** beside words, on the em's rows 1–12, centred on the capitals (§2);
-  **14 × 14** alone; the bar's two emblems **16 × 16** (its face is a picture, §3). Sumi Icons Term draws the same pixels,
+  **14 × 14** alone; the torii **16 × 16**; the mood's head is a picture on the bar's end tile, 20 rows. Sumi Icons Term draws the same pixels,
   centred in two terminal cells.
-- **Pictures** (quick settings' dial, §4): **28 × 28** in `art/crests.txt` — one ink, strokes
-  2 px both ways, a 45° stroke a run of 3 on the stair (as heavy as a straight 2), details
-  knocked out 1 px wide (a band inside a silhouette stops a pixel short of its edge: the outline
-  stays whole), masses solid; a pixel of air all round; centred, the odd pixel of air right and
-  below. Drawn first as crests (kamon), the hours' ink stays inside a circle 26 across. A line
-  across a picture means "off" (the bell struck through) — no other picture has one. Built to
-  masks (`tools/build-icons.py` → `.local/share/fedokawaii/crests/`), painted in the state's ink;
-  in the dial's middle twice as large.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
   from the palette only.
@@ -600,7 +565,7 @@ stamp is a choice made, a scroll is something long opening.
 - **Art** — pixel versions of public-domain old masters, drawn in the palette's inks at the
   wallpapers' 3 px pixel: demons and warriors after Kuniyoshi and Hokusai (dark), tennin after
   Buddhist painting (light) — about ten wallpapers each, the lock's scenes, quick settings' face
-  (demon head / angel face: 18 × 18 on the bar's end tile, §3), the fetch art.
+  (the heads, §0: on the bar's end tile, in the prompt, the fetch art).
 
 ## 14. Surfaces and their owners
 

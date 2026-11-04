@@ -5,7 +5,8 @@ compositor: one full-screen window) on tty1, as its own user (greetd).
 It is the lock screen's twin — the first lock of the day: the mood's scene (lock-scene.png and
 lock-scene.txt, tools/build-lock.py — the same pictures kawa-lockmod draws on the lock) at whole
 pixels, centred, its edges' own colour round it; the torches' flames, 8 frames a second; your
-password as marks in the scene's row (an ember in the demon's mouth, a mote in Seiōbo's sky),
+password as marks in the scene's row, in the gate (the demon's mouth, the Kannon's lotus: shut at rest, Tab
+opens it, Enter shuts it on the marks and only then tries),
 the newest ones while more are typed than the row holds, the arms in the Caps Lock ink while it
 is on; the caret a bar as tall as a mark, blinking once a second while the line has the keyboard.
 A wrong password: the marks scatter and fade, the face shakes a pixel of the scene twice (240 ms,
@@ -51,6 +52,9 @@ SHARE = "/usr/local/share/fedokawaii/greeter"
 THEME_FILE = "/var/lib/fedokawaii-greeter/theme"
 GUARD = 2.0                                # seconds after a wake that keys and clicks only wake
 ENTER = (Gdk.KEY_Return, Gdk.KEY_KP_Enter, Gdk.KEY_ISO_Enter)
+GATE_KEY = Gdk.KEY_Tab                     # the secret key: the gate opens
+GATE_S = 0.34                              # opening, shutting: all its frames
+GATE_SHUT, GATE_OPENING, GATE_OPEN, GATE_SHUTTING = range(4)
 WRONG = "wrong password"                    # (said by the scene: the marks scatter, the face shakes)
 STEP, STEPS = 0.048, 5                      # the wrong password's steps (s), as kawa-lockmod's
 FLARE = 0.090                               # a key's answer: the newest mark flares (s), as kawa-lockmod's
@@ -79,6 +83,8 @@ class Scene:
         self.flames = [tuple(map(int, f)) for f in kv.get("flame", [])]
         self.fw, self.fh, self.frames = map(int, kv["frames"][0]) if self.flames else (0, 0, 1)
         self.flame = cairo.ImageSurface.create_from_png(f"{folder}/lock-flame.png") if self.flames else None
+        self.gx, self.gy, self.gw, self.gh, self.gn = map(int, kv["gate"][0]) if "gate" in kv else (0, 0, 0, 0, 0)
+        self.gate = cairo.ImageSurface.create_from_png(f"{folder}/lock-gate.png") if self.gn else None
 
     def fit(self, w, h):
         """The scale (whole) and the corner of the scene on a W × H screen."""
@@ -131,6 +137,10 @@ class Greeter(Gtk.Window):
             self.scene = None
         self.frame, self.caret_on, self.wrong, self.tried = 0, True, 0.0, 0
         self.length, self.flare, self.flare_src = 0, 0.0, 0
+        # the gate, kawa-lockmod's twin: shut at rest, Tab opens it, Enter shuts it on the marks and
+        # only then tries; no frames: always open
+        self.gate = GATE_SHUT if self.scene and self.scene.gn else GATE_OPEN
+        self.gate_frame, self.gate_t0, self.gate_src, self.gate_try = 0, 0.0, 0, False
 
         # the password's line (gtklock.css hides it under .kawa: the scene draws what is typed)
         self.entry = Gtk.Entry(name="input-field", xalign=0.5, visibility=False,
@@ -198,7 +208,15 @@ class Greeter(Gtk.Window):
         step = int((time.monotonic() - self.wrong) / STEP) if self.wrong else -1
         step = step if step < STEPS else -1
         dx = (1 if step in (0, 2) else -1 if step in (1, 3) else 0) if step >= 0 else 0
-        if dx:
+        if s.gate:
+            cr.save()
+            cr.rectangle(s.gx + dx, s.gy, s.gw, s.gh)
+            cr.clip()
+            cr.set_source_surface(s.gate, s.gx + dx - self.gate_frame * s.gw, s.gy)
+            cr.get_source().set_filter(cairo.FILTER_NEAREST)
+            cr.paint()
+            cr.restore()
+        elif dx:
             cr.save()
             cr.arc(s.cx + dx, s.cy, s.cr, 0, 6.2832)
             cr.clip()
@@ -226,7 +244,8 @@ class Greeter(Gtk.Window):
 
         caps = Gdk.Keymap.get_for_display(Gdk.Display.get_default()).get_caps_lock_state()
         arms = s.caps if caps else s.arms
-        shown = min(len(self.entry.get_text()), s.rn)
+        opened = self.gate == GATE_OPEN           # (the marks in the mouth only while it is open)
+        shown = min(len(self.entry.get_text()), s.rn) if opened else 0
         if step >= 0:                            # the tried ones scatter, dimming, then go
             for i in range(min(self.tried, s.rn)):
                 vx, vy = (i * 7 + 3) % 5 - 2, (-1 - (i % 3 > 0)) if i % 2 else (1 + (i % 4 == 0))
@@ -239,7 +258,7 @@ class Greeter(Gtk.Window):
             flaring = shown and time.monotonic() < self.flare    # (the newest: its corners in the arms' ink)
             for i in range(shown):
                 mark(s.rx + s.pitch * i, s.ry, arms, s.core, arms if flaring and i == shown - 1 else s.corner)
-        if self.caret_on and step < 0 and self.entry.has_focus() and self.entry.is_sensitive():
+        if self.caret_on and opened and step < 0 and self.entry.has_focus() and self.entry.is_sensitive():
             cr.set_source_rgb(*s.caret)
             cr.rectangle(s.rx + s.pitch * shown, s.ry - 1, 1, 3)   # (a mark's height)
             cr.fill()
@@ -286,10 +305,68 @@ class Greeter(Gtk.Window):
 
     def wrong_tick(self, _area, _clock):
         s = self.scene
-        self.redraw(s.cx - s.cr - 4, s.cy - s.cr - 4, 2 * s.cr + 8, 2 * s.cr + 8)
+        if s.gn:
+            self.redraw(s.gx - 2, s.gy - 2, s.gw + 4, s.gh + 4)
+        else:
+            self.redraw(s.cx - s.cr - 4, s.cy - s.cr - 4, 2 * s.cr + 8, 2 * s.cr + 8)
         if time.monotonic() - self.wrong < STEPS * STEP:
             return True
         self.wrong = 0.0
+        return False
+
+    # ── the gate ──────────────────────────────────────────────────────────────────────
+    def gate_redraw(self):
+        s = self.scene
+        self.redraw(s.gx - 2, s.gy - 2, s.gw + 4, s.gh + 4)
+        self.redraw_row()
+
+    def gate_go(self, to):
+        self.gate, self.gate_t0 = to, time.monotonic()
+        if not self.gate_src:
+            self.gate_src = GLib.timeout_add(7, self.gate_step)
+        self.gate_redraw()
+
+    def gate_step(self):
+        s = self.scene
+        q = min(1.0, (time.monotonic() - self.gate_t0) / GATE_S)
+        q = q * q * (3 - 2 * q)                # (gentle at both ends)
+        f = int((s.gn - 1) * (q if self.gate == GATE_OPENING else 1 - q) + .5)
+        if f != self.gate_frame:
+            self.gate_frame = f
+            self.gate_redraw()
+        if q < 1:
+            return True
+        self.gate_src = 0
+        if self.gate == GATE_OPENING:
+            self.gate = GATE_OPEN
+            self.gate_redraw()
+        else:
+            self.gate = GATE_SHUT
+            if self.gate_try:                  # (eaten: now the password is tried)
+                self.gate_try = False
+                self.login(self.entry)
+        return False
+
+    def gate_keys(self, ev):
+        """A key: what the gate makes of it; True: it goes no further."""
+        if not self.scene or not self.scene.gn:
+            return False
+        press = ev.type == Gdk.EventType.KEY_PRESS
+        if ev.keyval == GATE_KEY or self.gate in (GATE_SHUT, GATE_SHUTTING):
+            # (shut, every key is nothing; the secret one opens it, unless a try waits for its word)
+            if press and ev.keyval == GATE_KEY and self.gate == GATE_SHUT and self.entry.is_sensitive():
+                self.gate_go(GATE_OPENING)
+            return True
+        if not press:
+            return False
+        if ev.keyval == Gdk.KEY_Escape:
+            self.entry.set_text("")
+            self.gate_go(GATE_SHUTTING)
+            return True
+        if ev.keyval in ENTER and self.entry.get_text():
+            self.gate_try = True
+            self.gate_go(GATE_SHUTTING)
+            return True
         return False
 
     # ── input and the login ───────────────────────────────────────────────────────────
@@ -303,6 +380,8 @@ class Greeter(Gtk.Window):
 
     def input(self, _win, ev):
         if self.guarded():
+            return True
+        if ev.type in (Gdk.EventType.KEY_PRESS, Gdk.EventType.KEY_RELEASE) and self.gate_keys(ev):
             return True
         # an Enter in an empty field: nothing to try
         return (ev.type == Gdk.EventType.KEY_PRESS and ev.keyval in ENTER
@@ -350,6 +429,8 @@ class Greeter(Gtk.Window):
             notes.remove(WRONG)
             self.wrong = time.monotonic()
             self.area.add_tick_callback(self.wrong_tick)
+        if self.scene and self.scene.gn:       # (spat out: open again, the line empty)
+            self.gate_go(GATE_OPENING)
         self.say("\n".join(notes))           # (each its own line: kawa-lockmod's twin)
         return False
 

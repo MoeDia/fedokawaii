@@ -10,9 +10,16 @@
  *  peach: a mote) — the newest ones while more are typed than the row holds —, the arms in the
  *  Caps Lock ink while it is on, and the caret: a bar as tall as a mark at the next place, once a
  *  second, there while the line has the keyboard; every key flares the newest mark for a moment
- *  (an answer too past the seventh, when the row no longer grows). A wrong password (gtklock's
- *  error line, never shown): the marks scatter and fade, the face (the plate) shakes a pixel of
- *  the scene twice — five steps of 48 ms. gtklock's own line stays for the keys, unseen from its
+ *  (an answer too past the seventh, when the row no longer grows).
+ *
+ *  The gate (the owner, 4 Nov: "he faces me; a secret key opens his mouth; I type; he closes his mouth
+ *  like he ate it; then he logs me in"; the same for the angel). lock-gate.png's frames, shut first,
+ *  drawn over the scene at lock-scene.txt's gate: shut at rest and every key does nothing but the
+ *  secret one (Tab), which opens it; open, keys type; Enter shuts it on
+ *  the marks and only then tries the password; Esc shuts it, the line cleared; the screens going
+ *  dark too. A wrong password (gtklock's error line, never shown): it opens again, the marks
+ *  scattering and fading, the gate shaking a pixel of the scene twice — five steps of 48 ms. The
+ *  right one: gtklock ends, dwl dissolves the lock off the desktop. gtklock's own line stays for the keys, unseen from its
  *  first frame (its box at opacity 0; current/gtklock.css: window.kawa, no transitions), its
  *  words never shown. No date, no time, no keys: the scene is the lock. Anything the system
  *  says on the way (PAM: an expiring password, a locked account, a finger to place) is the one
@@ -115,6 +122,9 @@ static gboolean saver_up(void)
 	return up;
 }
 
+static void gate_rest(void);
+static gboolean GDK_KEY_Tabs(struct Window *win, GdkEventKey *ev);
+
 /* every input on the lock, before the lock sees it: the 5 s clock set again; dark screens lit.
  * True when the input only wakes (above) — then it goes no further */
 static gboolean waking(void)
@@ -144,6 +154,7 @@ static gboolean idle_tick(gpointer data)
 	if (now - MAX(touched_at, mt) >= DARK_AFTER_US) {
 		touched_at = now;
 		screens_set("off");
+		gate_rest();
 	}
 	return G_SOURCE_CONTINUE;
 }
@@ -162,6 +173,8 @@ static gboolean on_key(GtkWidget *w, GdkEventKey *ev, gpointer data)
 			waking_key = ev->hardware_keycode;
 		return TRUE;
 	}
+	if (GDK_KEY_Tabs(win, ev))
+		return TRUE;
 	if (ev->type == GDK_KEY_PRESS && win->input_field && gtk_widget_has_focus(win->input_field) &&
 			(ev->keyval == GDK_KEY_Return || ev->keyval == GDK_KEY_KP_Enter ||
 			 ev->keyval == GDK_KEY_ISO_Enter) &&
@@ -195,8 +208,9 @@ static void no_icon(GObject *o, GParamSpec *p, gpointer data)
 /* ── the scene (lock-scene.txt: build-lock.py's words) ────────────────────────────────── */
 typedef struct { double r, g, b; } ink;
 static struct {
-	cairo_surface_t *img, *flame;
+	cairo_surface_t *img, *flame, *gate;
 	int w, h, fw, fh, frames, nflames, fx[4], fy[4];
+	int gx, gy, gw, gh, gn;               /* the gate: where its frames lie, each's size, how many */
 	int rx, ry, pitch, rn;                /* the password's row: the first mark, the pitch, how many */
 	int cx, cy, cr;                       /* the plate */
 	int wy0, wy1;                         /* the rows the line of words is centred in */
@@ -246,6 +260,7 @@ static gboolean scene_load(const char *dir)
 		else if (sscanf(line, "ground %15s", a) == 1) ok |= hexink(a, &S.ground) << 1;
 		else if (sscanf(line, "frames %d %d %d", &S.fw, &S.fh, &S.frames) == 3) ;
 		else if (S.nflames < 4 && sscanf(line, "flame %d %d", &S.fx[S.nflames], &S.fy[S.nflames]) == 2) S.nflames++;
+		else if (sscanf(line, "gate %d %d %d %d %d", &S.gx, &S.gy, &S.gw, &S.gh, &S.gn) == 5) ;
 		else if (sscanf(line, "row %d %d %d %d", &S.rx, &S.ry, &S.pitch, &S.rn) == 4) ok |= 4;
 		else if (sscanf(line, "mark %15s %15s %15s", a, b, c) == 3)
 			ok |= (hexink(a, &S.arms) && hexink(b, &S.core) && hexink(c, &S.corner)) << 3;
@@ -274,6 +289,16 @@ static gboolean scene_load(const char *dir)
 	}
 	if (!S.flame)
 		S.nflames = 0;                    /* (no frames to draw: no flames, no timer for them) */
+	if (S.gn > 1 && S.gw > 0 && S.gh > 0) {
+		g_snprintf(path, sizeof path, "%s/lock-gate.png", dir);
+		S.gate = cairo_image_surface_create_from_png(path);
+		if (cairo_surface_status(S.gate) != CAIRO_STATUS_SUCCESS) {
+			cairo_surface_destroy(S.gate);
+			S.gate = NULL;
+		}
+	}
+	if (!S.gate)
+		S.gn = 0;                         /* (no frames: the scene's own open gate, as it is drawn) */
 	return TRUE;
 }
 
@@ -319,6 +344,99 @@ static void paint_scene(cairo_t *cr, int dx)
 	cairo_fill(cr);
 }
 
+/* ── the gate ─────────────────────────────────────────────────────────────────────────── */
+#define GATE_US (340 * 1000)              /* opening, shutting: all its frames */
+enum { GATE_SHUT, GATE_OPENING, GATE_OPEN, GATE_SHUTTING };
+static int gate = GATE_OPEN, gate_frame;  /* (no frames: always open) */
+static gint64 gate_t0;
+static guint gate_src;
+static struct Window *gate_try;           /* the window whose password goes in once it is shut */
+static gboolean gate_trying;              /* tried: waiting for PAM's word */
+
+static void gate_redraw(void)
+{
+	for (GList *g = looks; g; g = g->next) {
+		redraw(((struct look *)g->data)->area, S.gx - 2, S.gy - 2, S.gw + 4, S.gh + 4);
+		redraw_row(g->data);
+	}
+}
+static gboolean gate_step(gpointer data)
+{
+	double q = (double)(g_get_monotonic_time() - gate_t0) / GATE_US;
+	(void)data;
+	q = q > 1 ? 1 : q;
+	q = q * q * (3 - 2 * q);              /* (gentle at both ends) */
+	int f = (int)((S.gn - 1) * (gate == GATE_OPENING ? q : 1 - q) + .5);
+	if (f != gate_frame) {
+		gate_frame = f;
+		gate_redraw();
+	}
+	if (q < 1)
+		return G_SOURCE_CONTINUE;
+	gate_src = 0;
+	if (gate == GATE_OPENING) {
+		gate = GATE_OPEN;
+		gate_redraw();
+	} else {
+		gate = GATE_SHUT;
+		if (gate_try) {                   /* (eaten: now the password is tried) */
+			struct Window *w = gate_try;
+			gate_try = NULL;
+			gate_trying = TRUE;
+			gtk_widget_activate(w->input_field);
+		}
+	}
+	return G_SOURCE_REMOVE;
+}
+static void gate_go(int to)
+{
+	gate = to;
+	gate_t0 = g_get_monotonic_time();
+	if (!gate_src)
+		gate_src = g_timeout_add(7, gate_step, NULL);   /* (a frame of the screen's, near enough) */
+	gate_redraw();
+}
+/* the gate at rest, shut, nothing typed */
+static void gate_rest(void)
+{
+	if (!S.gn)
+		return;
+	if (gate_src)
+		g_source_remove(gate_src);
+	gate_src = 0, gate_frame = 0, gate = GATE_SHUT, gate_try = NULL;
+	for (GList *g = looks; g; g = g->next) {
+		struct look *l = g->data;
+		gtk_entry_set_text(GTK_ENTRY(l->win->input_field), "");
+	}
+	gate_redraw();
+}
+/* a key, once the screens are lit: what the gate makes of it; TRUE: it goes no further */
+static gboolean GDK_KEY_Tabs(struct Window *win, GdkEventKey *ev)
+{
+	gboolean enter = ev->keyval == GDK_KEY_Return || ev->keyval == GDK_KEY_KP_Enter || ev->keyval == GDK_KEY_ISO_Enter;
+	if (!S.gn)
+		return FALSE;
+	if (ev->keyval == GDK_KEY_Tab || gate == GATE_SHUT || gate == GATE_SHUTTING) {
+		/* (shut, every key is nothing; the secret one opens it, unless a try is waiting for its word) */
+		if (ev->type == GDK_KEY_PRESS && ev->keyval == GDK_KEY_Tab && gate == GATE_SHUT && !gate_trying)
+			gate_go(GATE_OPENING);
+		return TRUE;
+	}
+	if (ev->type != GDK_KEY_PRESS)
+		return FALSE;
+	if (ev->keyval == GDK_KEY_Escape) {
+		gtk_entry_set_text(GTK_ENTRY(win->input_field), "");
+		gate_go(GATE_SHUTTING);
+		return TRUE;
+	}
+	if (enter && gtk_entry_get_text_length(GTK_ENTRY(win->input_field)) > 0) {
+		gate_try = win;
+		gate_go(GATE_SHUTTING);
+		return TRUE;
+	}
+	return FALSE;
+}
+
 static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 {
 	struct look *l = data;
@@ -329,7 +447,7 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 	cairo_translate(cr, ox, oy);
 	cairo_scale(cr, n, n);
 	paint_scene(cr, 0);
-	/* a wrong password: its step (0 … STEPS-1), the plate a pixel aside on the odd ones */
+	/* a wrong password: its step (0 … STEPS-1), the gate (or the plate) a pixel aside on the odd ones */
 	int step = -1, dx = 0;
 	if (l->wrong) {
 		step = (int)((g_get_monotonic_time() - l->wrong) / STEP_US);
@@ -338,7 +456,15 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 		else
 			dx = step == 0 || step == 2 ? 1 : step == 1 || step == 3 ? -1 : 0;
 	}
-	if (dx) {
+	if (S.gate) {
+		cairo_save(cr);
+		cairo_rectangle(cr, S.gx + dx, S.gy, S.gw, S.gh);
+		cairo_clip(cr);
+		cairo_set_source_surface(cr, S.gate, S.gx + dx - gate_frame * S.gw, S.gy);
+		cairo_pattern_set_filter(cairo_get_source(cr), CAIRO_FILTER_NEAREST);
+		cairo_paint(cr);
+		cairo_restore(cr);
+	} else if (dx) {
 		cairo_save(cr);
 		cairo_set_antialias(cr, CAIRO_ANTIALIAS_NONE);   /* (the rim in whole pixels: no blended ink) */
 		cairo_arc(cr, S.cx + dx, S.cy, S.cr, 0, 2 * G_PI);
@@ -354,7 +480,8 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 		cairo_fill(cr);
 	}
 	GtkWidget *e = win->input_field;
-	int len = e ? (int)gtk_entry_get_text_length(GTK_ENTRY(e)) : 0, shown = MIN(len, S.rn);
+	gboolean open = gate == GATE_OPEN;    /* (the marks in the mouth only while it is open) */
+	int len = e ? (int)gtk_entry_get_text_length(GTK_ENTRY(e)) : 0, shown = open ? MIN(len, S.rn) : 0;
 	GdkKeymap *km = gdk_keymap_get_for_display(gtk_widget_get_display(a));
 	const ink *arms = gdk_keymap_get_caps_lock_state(km) ? &S.caps : &S.arms;
 	if (step >= 0) {                      /* the tried ones scatter, dimming, then go */
@@ -371,7 +498,7 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 		for (int i = 0; i < shown; i++)       /* (the newest flaring: its corners in the arms' ink) */
 			mark(cr, S.rx + S.pitch * i, S.ry, arms, &S.core, flaring && i == shown - 1 ? arms : &S.corner);
 	}
-	if (caret_on && step < 0 && e && gtk_widget_has_focus(e) && gtk_widget_is_sensitive(e)) {
+	if (caret_on && open && step < 0 && e && gtk_widget_has_focus(e) && gtk_widget_is_sensitive(e)) {
 		cairo_set_source_rgb(cr, S.caret.r, S.caret.g, S.caret.b);
 		cairo_rectangle(cr, S.rx + S.pitch * shown, S.ry - 1, 1, 3);   /* (a mark's height) */
 		cairo_fill(cr);
@@ -408,7 +535,10 @@ static gboolean wrong_tick(GtkWidget *a, GdkFrameClock *clock, gpointer data)
 {
 	struct look *l = data;
 	(void)clock;
-	redraw(a, S.cx - S.cr - 4, S.cy - S.cr - 4, 2 * S.cr + 8, 2 * S.cr + 8);
+	if (S.gn)
+		redraw(a, S.gx - 2, S.gy - 2, S.gw + 4, S.gh + 4);
+	else
+		redraw(a, S.cx - S.cr - 4, S.cy - S.cr - 4, 2 * S.cr + 8, 2 * S.cr + 8);
 	if (g_get_monotonic_time() - l->wrong < STEPS * STEP_US)
 		return G_SOURCE_CONTINUE;
 	l->wrong = 0, l->tick = 0;
@@ -521,6 +651,10 @@ static void on_error(GObject *o, GParamSpec *p, gpointer data)   /* gtklock's er
 	l->wrong = g_get_monotonic_time();
 	if (!l->tick)
 		l->tick = gtk_widget_add_tick_callback(l->area, wrong_tick, l, NULL);
+	if (S.gn) {                           /* (spat out: open again, the line empty) */
+		gate_trying = FALSE;
+		gate_go(GATE_OPENING);
+	}
 }
 static void on_caps(GdkKeymap *k, gpointer data)
 {
@@ -541,6 +675,8 @@ void on_activation(struct GtkLock *gtklock, int id)
 	g_timeout_add(250, idle_tick, NULL);   /* (dark 5.0–5.25 s after the last input) */
 	if (!art || !*art || !scene_load(art))
 		return;
+	if (S.gn)
+		gate = GATE_SHUT;
 	if (S.nflames)
 		flame_timer = g_timeout_add(1000 / 8, flames_tick, NULL);
 	caret_timer = g_timeout_add(500, caret_tick, NULL);
@@ -615,6 +751,8 @@ void on_window_destroy(struct GtkLock *gtklock, struct Window *win)
 		g_source_remove(l->flare_src);
 	if (l->words_src)
 		g_source_remove(l->words_src);
+	if (gate_try == win)
+		gate_try = NULL;
 	/* (gtklock destroys the window's insides after this: no signal of theirs may still reach l) */
 	g_signal_handlers_disconnect_by_data(win->input_field, l);
 	if (win->error_label)
