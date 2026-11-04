@@ -1,0 +1,1203 @@
+src/yazi/yazi.patch — the desktop's yazi (setup.sh: build_yazi), against YAZI_TAG/YAZI_COMMIT (fedokawaii.conf).
+yazi 26.9.1 draws its pop-ups in Rust: rounded, their titles in the rule, theme.toml reaching only their colours. Here every
+one of them (rename and the other inputs, trash and the other confirms, help, which, open with, completion, tasks, notices) is
+§4's panel drawn in whole cells of Sumi Icons Term (yazi-fm/src/frame.rs), with §7's heading inside, its keys as tiles; never a
+rounded frame, from Lua either; a confirm fits what it says; its files named under their folder. `yazi --version`: Patch.
+Regenerate: tools/yazi-patch.sh.
+
+diff --git a/yazi-actor/src/confirm/arrow.rs b/yazi-actor/src/confirm/arrow.rs
+index bc75ccb..e0a61be 100644
+--- a/yazi-actor/src/confirm/arrow.rs
++++ b/yazi-actor/src/confirm/arrow.rs
+@@ -16,10 +16,14 @@ impl Actor for Arrow {
+ 		let confirm = &mut cx.core.confirm;
+ 
+ 		let area = cx.core.mgr.area(confirm.position);
+-		let len = confirm.list.line_count(area.width);
++		let width = area.width.saturating_sub(8);
++		let len = confirm.list.line_count(width);
++		// (the rows the list has: the panel less its ring, heading, words and keys — yazi-fm's Confirm)
++		let body = confirm.body.line_count(area.width.saturating_sub(6)) as u16;
++		let rows = area.height.saturating_sub(2 + 2 + if body > 0 { body + 1 } else { 0 } + 2);
+ 
+ 		let old = confirm.offset;
+-		confirm.offset = form.step.add(confirm.offset, len, area.height as _, 0, 0);
++		confirm.offset = form.step.add(confirm.offset, len, rows as _, 0, 0);
+ 
+ 		succ!(render!(old != confirm.offset));
+ 	}
+diff --git a/yazi-actor/src/help/toggle.rs b/yazi-actor/src/help/toggle.rs
+index 3311c86..05267a4 100644
+--- a/yazi-actor/src/help/toggle.rs
++++ b/yazi-actor/src/help/toggle.rs
+@@ -1,5 +1,5 @@
+ use anyhow::Result;
+-use ratatui_core::layout::Margin;
++use ratatui_core::layout::Rect;
+ use yazi_config::popup::Help;
+ use yazi_macro::{render, succ};
+ use yazi_parser::help::ToggleForm;
+@@ -18,7 +18,13 @@ impl Actor for Toggle {
+ 	fn act(cx: &mut Ctx, form: Self::Form) -> Result<Data> {
+ 		let position = Help::position();
+ 		let area = cx.mgr.area(position);
+-		let input_area = area.inner(Margin::new(1, 1));
++		// (the search line of yazi-fm's Help: the panel's content at its names' column, the count's room left)
++		let input_area = Rect {
++			x:      area.x + 3 + 4,
++			y:      area.y + 3,
++			width:  area.width.saturating_sub(6 + 4 + 7),
++			height: 1,
++		};
+ 
+ 		let help = &mut cx.help;
+ 		help.visible = true;
+diff --git a/yazi-binding/src/elements/border.rs b/yazi-binding/src/elements/border.rs
+index cbb76a2..34c5f83 100644
+--- a/yazi-binding/src/elements/border.rs
++++ b/yazi-binding/src/elements/border.rs
+@@ -28,7 +28,7 @@ pub struct Border {
+ impl Border {
+ 	pub fn compose(lua: &Lua) -> mlua::Result<Value> {
+ 		let new = lua.create_function(|_, (_, edge): (Table, Edge)| {
+-			Ok(Self { edge, r#type: ratatui_widgets::borders::BorderType::Rounded, ..Default::default() })
++			Ok(Self { edge, r#type: ratatui_widgets::borders::BorderType::Plain, ..Default::default() })
+ 		})?;
+ 
+ 		let border = lua.create_table_from([
+@@ -96,7 +96,8 @@ impl UserData for Border {
+ 
+ 		methods.add_function("type", |_, (ud, value): (AnyUserData, u8)| {
+ 			ud.borrow_mut::<Self>()?.r#type = match value {
+-				ROUNDED => ratatui_widgets::borders::BorderType::Rounded,
++				// (never rounded, §4: a plugin's asking gets the square one)
++				ROUNDED => ratatui_widgets::borders::BorderType::Plain,
+ 				DOUBLE => ratatui_widgets::borders::BorderType::Double,
+ 				THICK => ratatui_widgets::borders::BorderType::Thick,
+ 				QUADRANT_INSIDE => ratatui_widgets::borders::BorderType::QuadrantInside,
+diff --git a/yazi-config/src/popup/help.rs b/yazi-config/src/popup/help.rs
+index 4cfdc2f..2867d9b 100644
+--- a/yazi-config/src/popup/help.rs
++++ b/yazi-config/src/popup/help.rs
+@@ -4,6 +4,6 @@ pub struct Help;
+ 
+ impl Help {
+ 	pub fn position() -> Position {
+-		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 80, height: 25 })
++		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 86, height: 31 })
+ 	}
+ }
+diff --git a/yazi-config/src/popup/options.rs b/yazi-config/src/popup/options.rs
+index 7b2587b..37e7a9c 100644
+--- a/yazi-config/src/popup/options.rs
++++ b/yazi-config/src/popup/options.rs
+@@ -49,7 +49,7 @@ impl ConfirmCfg {
+ 		Self::new(
+ 			Self::replace_number(&YAZI.confirm.trash_title, files.len()),
+ 			YAZI.confirm.trash_position(),
+-			None,
++			Self::folder_of(files),
+ 			Self::truncate_files(files, 100),
+ 		)
+ 	}
+@@ -58,7 +58,7 @@ impl ConfirmCfg {
+ 		Self::new(
+ 			Self::replace_number(&YAZI.confirm.delete_title, files.len()),
+ 			YAZI.confirm.delete_position(),
+-			None,
++			Self::folder_of(files),
+ 			Self::truncate_files(files, 100),
+ 		)
+ 	}
+@@ -93,7 +93,7 @@ impl ConfirmCfg {
+ 		let mut lines = Vec::with_capacity(len.min(max + 1));
+ 		for (i, s) in it.into_iter().enumerate() {
+ 			if i >= max {
+-				lines.push(format!("... and {} more", len - max));
++				lines.push(format!("and {} more", len - max));
+ 				break;
+ 			}
+ 			lines.push(s.to_strand().into_string_lossy());
+@@ -105,7 +105,7 @@ impl ConfirmCfg {
+ 		let mut lines = Vec::with_capacity(files.len().min(max + 1));
+ 		for (i, f) in files.iter().enumerate() {
+ 			if i >= max {
+-				lines.push(Line::raw(format!("... and {} more", files.len() - max)));
++				lines.push(Line::raw(format!("and {} more", files.len() - max)));
+ 				break;
+ 			}
+ 
+@@ -114,8 +114,35 @@ impl ConfirmCfg {
+ 				lines[i].push_span(Span::styled(icon.text, icon.style));
+ 				lines[i].push_span(" ");
+ 			}
+-			lines[i].push_span(f.url.to_strand().into_string_lossy());
++			// (their folder is said once above them, when they share one: the names alone)
++			let path = f.url.to_strand().into_string_lossy();
++			let name = Self::same_folder(files).then(|| path.rsplit('/').next()).flatten();
++			lines[i].push_span(name.map(str::to_owned).unwrap_or_else(|| Self::home_as_tilde(&path)));
+ 		}
+ 		Some(lines.into())
+ 	}
++
++	fn home_as_tilde(path: &str) -> String {
++		match std::env::var("HOME").ok().and_then(|h| path.strip_prefix(&h).map(str::to_owned)) {
++			Some(rest) if rest.is_empty() || rest.starts_with('/') => format!("~{rest}"),
++			_ => path.to_owned(),
++		}
++	}
++
++	fn parent(f: &File) -> Option<String> {
++		f.url.to_strand().into_string_lossy().rsplit_once('/').map(|(dir, _)| dir.to_owned())
++	}
++
++	fn same_folder(files: &[File]) -> bool {
++		let first = files.first().and_then(Self::parent);
++		first.is_some() && files.iter().all(|f| Self::parent(f) == first)
++	}
++
++	fn folder_of(files: &[File]) -> Option<Text<'static>> {
++		if !Self::same_folder(files) {
++			return None;
++		}
++		let dir = files.first().and_then(Self::parent)?;
++		Some(Text::raw(if dir.is_empty() { "/".to_owned() } else { Self::home_as_tilde(&dir) }))
++	}
+ }
+diff --git a/yazi-config/src/popup/pick.rs b/yazi-config/src/popup/pick.rs
+index ed32d5d..9d65ed9 100644
+--- a/yazi-config/src/popup/pick.rs
++++ b/yazi-config/src/popup/pick.rs
+@@ -13,7 +13,7 @@ pub struct Pick {
+ }
+ 
+ impl Pick {
+-	pub const BORDER: u16 = 2;
++	pub const BORDER: u16 = 4; // (the ring's two rows, the heading and its row of paper)
+ 
+ 	fn max_height(&self, len: usize) -> u16 {
+ 		self.open_offset.height.min(Self::BORDER.saturating_add(len as u16))
+diff --git a/yazi-core/src/help/help.rs b/yazi-core/src/help/help.rs
+index 93193eb..db57bf2 100644
+--- a/yazi-core/src/help/help.rs
++++ b/yazi-core/src/help/help.rs
+@@ -76,7 +76,8 @@ impl Help {
+ }
+ 
+ impl Help {
+-	pub fn padding(&self) -> Padding { Padding::new(1, 1, 1, 1) }
++	// (the search line of yazi-fm's Help, as Input's field)
++	pub fn padding(&self) -> Padding { Padding::new(7, 3, 3, 1) }
+ 
+ 	// --- Bindings
+ 	pub fn window(&self) -> &[ChordArc] {
+@@ -98,8 +99,8 @@ impl Scrollable for Help {
+ 	fn total(&self) -> usize { self.bindings.len() }
+ 
+ 	fn limit(&self) -> usize {
+-		let p = self.padding();
+-		self.height.saturating_sub(p.top + /* input */ 1 + /* divider */ 1 + p.bottom) as usize
++		// (the ring's two rows, the heading and its paper, the search line and its paper)
++		self.height.saturating_sub(2 + 2 + 2) as usize
+ 	}
+ 
+ 	fn cursor_mut(&mut self) -> &mut usize { &mut self.cursor }
+diff --git a/yazi-core/src/input/input.rs b/yazi-core/src/input/input.rs
+index ae0071c..6a09e62 100644
+--- a/yazi-core/src/input/input.rs
++++ b/yazi-core/src/input/input.rs
+@@ -16,7 +16,9 @@ pub struct Input {
+ impl Input {
+ 	pub(crate) fn focus(&self) -> bool { self.main.visible || self.alt.is_some() }
+ 
+-	pub fn padding(&self) -> Padding { Padding::new(1, 1, 1, 1) }
++	// (the field of yazi-fm's Input: the ring and its paper, three columns, the row's icon, four more; under the
++	// ring, the heading and its paper, three rows)
++	pub fn padding(&self) -> Padding { Padding::new(7, 3, 3, 1) }
+ 
+ 	pub(crate) fn position(&self) -> Option<Position> {
+ 		if self.main.visible {
+diff --git a/yazi-core/src/notify/level.rs b/yazi-core/src/notify/level.rs
+index 168b7cf..a2b58c6 100644
+--- a/yazi-core/src/notify/level.rs
++++ b/yazi-core/src/notify/level.rs
+@@ -17,8 +17,8 @@ impl MessageLevel {
+ 	pub fn icon(self) -> Arc<String> {
+ 		match self {
+ 			Self::Info => THEME.notify.icon_info.load_full(),
+-			Self::Warn => THEME.notify.icon_info.load_full(),
+-			Self::Error => THEME.notify.icon_info.load_full(),
++			Self::Warn => THEME.notify.icon_warn.load_full(),
++			Self::Error => THEME.notify.icon_error.load_full(),
+ 		}
+ 	}
+ 
+diff --git a/yazi-core/src/notify/message.rs b/yazi-core/src/notify/message.rs
+index be887e6..5f6907d 100644
+--- a/yazi-core/src/notify/message.rs
++++ b/yazi-core/src/notify/message.rs
+@@ -46,9 +46,10 @@ impl PartialEq for Message {
+ 
+ impl Message {
+ 	pub fn width(&self) -> usize {
+-		let icon_width = self.level.icon().width() + /* Space */ 1;
++		// (the ring and its paper, two columns a side; the heading's icon, its air, a stretch of rule)
++		let heading = /* Icon */ 2 + /* Air */ 2 + self.title_width + /* Rule */ 4;
+ 
+-		self.content_width.max(self.title_width + icon_width) + NOTIFY_BORDER as usize
++		self.content_width.max(heading) + NOTIFY_BORDER as usize
+ 	}
+ 
+ 	pub fn height(&self, width: u16) -> usize {
+@@ -56,6 +57,7 @@ impl Message {
+ 			.wrap(ratatui_widgets::paragraph::Wrap { trim: false })
+ 			.line_count(width.saturating_sub(NOTIFY_BORDER));
+ 
+-		lines + NOTIFY_BORDER as usize
++		// (the ring's two rows, the heading and its row of paper)
++		lines + 4
+ 	}
+ }
+diff --git a/yazi-core/src/notify/mod.rs b/yazi-core/src/notify/mod.rs
+index 9600ddb..63497e6 100644
+--- a/yazi-core/src/notify/mod.rs
++++ b/yazi-core/src/notify/mod.rs
+@@ -1,4 +1,4 @@
+ yazi_macro::mod_flat!(level message notify option);
+ 
+-pub(crate) const NOTIFY_BORDER: u16 = 2;
++pub(crate) const NOTIFY_BORDER: u16 = 6;
+ pub(crate) const NOTIFY_SPACING: u16 = 1;
+diff --git a/yazi-fm/src/cmp/cmp.rs b/yazi-fm/src/cmp/cmp.rs
+index 4971175..4d795ab 100644
+--- a/yazi-fm/src/cmp/cmp.rs
++++ b/yazi-fm/src/cmp/cmp.rs
+@@ -1,13 +1,15 @@
+ use std::path::MAIN_SEPARATOR_STR;
+ 
+ use ratatui_core::{buffer::Buffer, layout::Rect, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType, list::{List, ListItem}};
++use ratatui_widgets::list::{List, ListItem};
+ use yazi_binding::position::{Offset, Position};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ use yazi_shared::strand::StrandLike;
+ use yazi_term::TERM;
+ 
++use crate::frame;
++
+ pub(crate) struct Cmp<'a> {
+ 	core: &'a Core,
+ }
+@@ -55,11 +57,7 @@ impl Widget for Cmp<'_> {
+ 			area.height = rect.height.saturating_sub(area.y).min(area.height);
+ 		}
+ 
+-		yazi_widgets::clear::Clear::default().render(area, buf);
+-		List::new(items)
+-			.block(
+-				Block::bordered().border_type(BorderType::Rounded).border_style(THEME.cmp.border.get()),
+-			)
+-			.render(area, buf);
++		let inner = frame::ring(area, buf, THEME.cmp.border.get().into());
++		List::new(items).render(inner, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/body.rs b/yazi-fm/src/confirm/body.rs
+index a8afeb1..5574b1d 100644
+--- a/yazi-fm/src/confirm/body.rs
++++ b/yazi-fm/src/confirm/body.rs
+@@ -1,37 +1,25 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, style::Styled, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::Borders};
++use ratatui_core::{buffer::Buffer, layout::{Alignment, Rect}, style::Styled, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
+ pub(crate) struct Body<'a> {
+-	core:   &'a Core,
+-	border: bool,
++	core: &'a Core,
+ }
+ 
+ impl<'a> Body<'a> {
+-	pub(crate) fn new(core: &'a Core, border: bool) -> Self { Self { core, border } }
++	pub(crate) fn new(core: &'a Core) -> Self { Self { core } }
+ }
+ 
+ impl Widget for Body<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let confirm = &self.core.confirm;
+ 
+-		// Inner area
+-		let inner = area.inner(Margin::new(1, 0));
+-
+-		// Border
+-		let block = if self.border {
+-			Block::new().borders(Borders::BOTTOM).border_style(THEME.confirm.border.get())
+-		} else {
+-			Block::new()
+-		};
+-
++		// A paragraph at the heading's column (§7), never centred
+ 		confirm
+ 			.body
+ 			.clone()
+-			.alignment(ratatui_core::layout::Alignment::Center)
+-			.block(block)
++			.alignment(Alignment::Left)
+ 			.style(THEME.confirm.body.get().derive(Styled::style(&confirm.body)))
+-			.render(inner, buf);
++			.render(area, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/buttons.rs b/yazi-fm/src/confirm/buttons.rs
+index 9049d5b..95639a2 100644
+--- a/yazi-fm/src/confirm/buttons.rs
++++ b/yazi-fm/src/confirm/buttons.rs
+@@ -1,21 +1,15 @@
+-use ratatui_core::{buffer::Buffer, layout::{Constraint, Rect}, text::Span, widgets::Widget};
+-use ratatui_widgets::paragraph::Paragraph;
+-use yazi_config::THEME;
++use ratatui_core::{buffer::Buffer, layout::Rect, widgets::Widget};
+ 
+-pub(crate) struct Buttons;
++use crate::frame;
+ 
+-impl Widget for Buttons {
+-	fn render(self, area: Rect, buf: &mut Buffer) {
+-		let chunks =
+-			ratatui_core::layout::Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+-				.split(area);
+-		let labels = THEME.confirm.btn_labels.load();
++/// The choice as two of §7's keys, at the heading's column: "[y]  trash    [n]  keep".
++pub(crate) struct Buttons<'a> {
++	pub(crate) yes: &'a str,
++}
+ 
+-		Paragraph::new(Span::raw(&labels[0]).style(THEME.confirm.btn_yes.get()))
+-			.centered()
+-			.render(chunks[0], buf);
+-		Paragraph::new(Span::raw(&labels[1]).style(THEME.confirm.btn_no.get()))
+-			.centered()
+-			.render(chunks[1], buf);
++impl Widget for Buttons<'_> {
++	fn render(self, area: Rect, buf: &mut Buffer) {
++		let no = if self.yes == "quit" { "stay" } else { "keep" };
++		frame::keys_line(&[("y", self.yes.trim_end_matches('?')), ("n", no)]).render(area, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/confirm.rs b/yazi-fm/src/confirm/confirm.rs
+index 3ff88e8..4368f6c 100644
+--- a/yazi-fm/src/confirm/confirm.rs
++++ b/yazi-fm/src/confirm/confirm.rs
+@@ -1,8 +1,9 @@
+-use ratatui_core::{buffer::Buffer, layout::{Alignment, Constraint, Layout, Margin, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::Line, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
++use crate::frame;
++
+ pub(crate) struct Confirm<'a> {
+ 	core: &'a Core,
+ }
+@@ -14,33 +15,34 @@ impl<'a> Confirm<'a> {
+ impl Widget for Confirm<'_> {
+ 	fn render(self, _: Rect, buf: &mut Buffer) {
+ 		let confirm = &self.core.confirm;
+-		let area = self.core.mgr.area(confirm.position);
+-
+-		yazi_widgets::clear::Clear::default().render(area, buf);
+-
+-		Block::bordered()
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.confirm.border.get())
+-			.title(confirm.title.clone().style(THEME.confirm.title.get().derive(confirm.title.style)))
+-			.title_alignment(Alignment::Center)
+-			.render(area, buf);
+-
+-		let body_border = confirm.list.line_count(area.width) != 0;
+-		let body_height = confirm.body.line_count(area.width) as u16;
+-
+-		let chunks = Layout::vertical([
+-			Constraint::Length(if body_height == 0 {
+-				0
+-			} else {
+-				body_height.saturating_add(body_border as u16)
+-			}),
+-			Constraint::Fill(1),
+-			Constraint::Length(1),
+-		])
+-		.split(area.inner(Margin::new(0, 1)));
+-
+-		super::Body::new(self.core, body_border).render(chunks[0], buf);
+-		super::List::new(self.core).render(chunks[1], buf);
+-		super::Buttons.render(chunks[2], buf);
++		let room = self.core.mgr.area(confirm.position);
++
++		// The panel fits what it says (§4): the ring, the heading and its paper, the words, the list, the keys
++		let width = room.width.saturating_sub(6);
++		let body = confirm.body.line_count(width) as u16;
++		let list = confirm.list.line_count(width.saturating_sub(2)) as u16;
++		let chrome = 2 + 2 + if body > 0 { body + 1 } else { 0 } + if list > 0 { 1 } else { 0 } + 1;
++		let shown = list.min(room.height.saturating_sub(chrome));
++		let height = (chrome + shown).min(room.height);
++		let area = Rect { y: room.y + (room.height - height) / 2, height, ..room };
++
++		let title = confirm.title.clone().style(THEME.confirm.title.get().derive(confirm.title.style));
++		let word = title.spans.first().and_then(|s| s.content.split_whitespace().next()).unwrap_or("").to_owned();
++		let icon = match word.as_str() {
++			"overwrite" => frame::I_FILE,
++			"quit" => frame::I_DOOR,
++			_ => frame::I_TRASH,
++		};
++		let inner = frame::frame(area, buf, THEME.confirm.border.get().into(), icon, Line::from(title.spans));
++
++		let mut y = inner.y;
++		if body > 0 {
++			super::Body::new(self.core).render(Rect { y, height: body, ..inner }, buf);
++			y += body + 1;
++		}
++		if shown > 0 {
++			super::List::new(self.core).render(Rect { y, height: shown, ..inner }, buf);
++		}
++		super::Buttons { yes: &word }.render(Rect { y: inner.bottom().saturating_sub(1), height: 1, ..inner }, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/list.rs b/yazi-fm/src/confirm/list.rs
+index 5418ac9..621cc0a 100644
+--- a/yazi-fm/src/confirm/list.rs
++++ b/yazi-fm/src/confirm/list.rs
+@@ -1,8 +1,10 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::{StatefulWidget, Widget}};
+-use ratatui_widgets::{block::Block, borders::Borders, paragraph::Wrap, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
++use ratatui_core::{buffer::Buffer, layout::Rect, widgets::{StatefulWidget, Widget}};
++use ratatui_widgets::{paragraph::Wrap, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
++use crate::frame;
++
+ pub(crate) struct List<'a> {
+ 	core: &'a Core,
+ }
+@@ -12,13 +14,9 @@ impl<'a> List<'a> {
+ }
+ 
+ impl Widget for List<'_> {
+-	fn render(self, mut area: Rect, buf: &mut Buffer) {
+-		// List content area
+-		let inner = area.inner(Margin::new(2, 0));
+-
+-		// Bottom border
+-		let block = Block::new().borders(Borders::BOTTOM).border_style(THEME.confirm.border.get());
+-		block.clone().render(area.inner(Margin::new(1, 0)), buf);
++	fn render(self, area: Rect, buf: &mut Buffer) {
++		// Rows at their column (§7: icon at 1, name at 4); the place in a long list a hairline at the content's end
++		let inner = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area };
+ 
+ 		let list = self
+ 			.core
+@@ -26,19 +24,18 @@ impl Widget for List<'_> {
+ 			.list
+ 			.clone()
+ 			.scroll((self.core.confirm.offset as u16, 0))
+-			.block(block)
+ 			.style(THEME.confirm.list.get())
+ 			.wrap(Wrap { trim: false });
+ 
+-		// Vertical scrollbar
+ 		let lines = list.line_count(inner.width);
+-		if lines >= inner.height as usize {
+-			area.height = area.height.saturating_sub(1);
+-			Scrollbar::new(ScrollbarOrientation::VerticalRight).render(
+-				area,
+-				buf,
+-				&mut ScrollbarState::new(lines).position(self.core.confirm.offset),
+-			);
++		if lines > area.height as usize {
++			Scrollbar::new(ScrollbarOrientation::VerticalRight)
++				.begin_symbol(None)
++				.end_symbol(None)
++				.track_symbol(None)
++				.thumb_symbol("▕")
++				.thumb_style(frame::MUTED)
++				.render(area, buf, &mut ScrollbarState::new(lines).position(self.core.confirm.offset));
+ 		}
+ 
+ 		list.render(inner, buf);
+diff --git a/yazi-fm/src/frame.rs b/yazi-fm/src/frame.rs
+new file mode 100644
+index 0000000..9cd81e2
+--- /dev/null
++++ b/yazi-fm/src/frame.rs
+@@ -0,0 +1,134 @@
++// The desktop's pop-ups (fedokawaii, docs/design-system.md §4, §7): one frame for all of them, nothing in its
++// rule. The ring is §4's hairline drawn in whole terminal cells of Sumi Icons Term (tools/build-icons.py, CELLS):
++// square, its corners left out, 16 px clear of the content on every side. Inside it §7's heading — the icon in
++// accent_text, two columns, the name in strong, a space, the rule in edge2 — and a row of paper.
++// The inks are foot's slots past the sixteen (tools/build-themes.py), so a pop-up follows a theme switch.
++use ratatui_core::{buffer::Buffer, layout::Rect, style::{Color, Style}, symbols::border::Set, text::{Line, Span}, widgets::Widget};
++use ratatui_widgets::block::Block;
++use yazi_widgets::clear::Clear;
++
++const fn ink(slot: u8) -> Style { Style::new().fg(Color::Indexed(slot)) }
++
++pub(crate) const RULE: Style = ink(19);
++pub(crate) const ICON: Style = ink(20);
++pub(crate) const MUTED: Style = ink(21);
++pub(crate) const FAINT: Style = ink(22);
++pub(crate) const STRONG: Style = ink(23);
++pub(crate) const EDGE: Style = ink(16);
++
++const RING: Set = Set {
++	top_left:          "\u{FF003}",
++	top_right:         "\u{FF005}",
++	bottom_left:       "\u{FF008}",
++	bottom_right:      "\u{FF00A}",
++	vertical_left:     "\u{FF006}",
++	vertical_right:    "\u{FF007}",
++	horizontal_top:    "\u{FF004}",
++	horizontal_bottom: "\u{FF009}",
++};
++
++// Sumi Icons, as icons.sh names them (an icon's place never moves: tools/build-icons.py)
++pub(crate) const I_CHEVRON: &str = "\u{FE027}";
++pub(crate) const I_WINDOW: &str = "\u{FE02E}";
++pub(crate) const I_TERMINAL: &str = "\u{FE02F}";
++pub(crate) const I_HOURGLASS: &str = "\u{FE030}";
++pub(crate) const I_FOLDER: &str = "\u{FE031}";
++pub(crate) const I_FILE: &str = "\u{FE03D}";
++pub(crate) const I_DOOR: &str = "\u{FE021}";
++pub(crate) const I_KEYCAP: &str = "\u{FE084}";
++pub(crate) const I_PEN: &str = "\u{FE098}";
++pub(crate) const I_SEARCH: &str = "\u{FE0BA}";
++pub(crate) const I_TRASH: &str = "\u{FF00B}";
++
++/// The ring only: its inside, one row in and three columns in.
++pub(crate) fn ring(area: Rect, buf: &mut Buffer, style: Style) -> Rect {
++	Clear::default().render(area, buf);
++	Block::bordered().border_set(RING).border_style(style).render(area, buf);
++	Rect {
++		x:      area.x.saturating_add(3),
++		y:      area.y.saturating_add(1),
++		width:  area.width.saturating_sub(6),
++		height: area.height.saturating_sub(2),
++	}
++}
++
++/// The ring and the heading: the area under the heading and its row of paper.
++pub(crate) fn frame<'a>(area: Rect, buf: &mut Buffer, style: Style, icon: &'a str, name: Line<'a>) -> Rect {
++	let inner = ring(area, buf, style);
++	heading(inner, buf, icon, name);
++	Rect {
++		y: inner.y.saturating_add(2),
++		height: inner.height.saturating_sub(2),
++		..inner
++	}
++}
++
++fn heading<'a>(area: Rect, buf: &mut Buffer, icon: &'a str, name: Line<'a>) {
++	if area.height == 0 {
++		return;
++	}
++	let used = 3 + name.width() + 1;
++	let rule = (area.width as usize).saturating_sub(used);
++	let mut spans = vec![Span::styled(icon, ICON), Span::raw("  ")];
++	spans.extend(name.spans.into_iter().map(|s| Span::styled(s.content, STRONG.patch(s.style))));
++	spans.push(Span::raw(" "));
++	spans.push(Span::styled("─".repeat(rule), RULE));
++	Line::from(spans).render(Rect { height: 1, ..area }, buf);
++}
++
++/// A row of the content, the keys' row, cut to the content's own width (never into the ring).
++pub(crate) fn row(area: Rect, y: u16) -> Rect { Rect { y: area.y.saturating_add(y), height: 1, ..area } }
++
++/// A key as §7 draws it: a tile of whole cells (U+FF000 + its ASCII code, its two ends) in the ink it is given.
++pub(crate) fn keycap(word: &str) -> String {
++	let mut s = String::with_capacity(word.len() * 4 + 8);
++	s.push('\u{FF001}');
++	for c in word.chars() {
++		s.push(if c.is_ascii() && !c.is_ascii_control() { char::from_u32(0xFF000 + c as u32).unwrap_or(c) } else { c });
++	}
++	s.push('\u{FF002}');
++	s
++}
++
++/// What yazi calls a key ("<C-q>", "<Enter>", "<S-Tab>", "g") in the desktop's words ("ctrl+q", "enter", "shift+tab", "g").
++pub(crate) fn key_word(key: &str) -> String {
++	let Some(mut rest) = key.strip_prefix('<').and_then(|s| s.strip_suffix('>')) else {
++		return key.to_owned();
++	};
++	let mut out = String::new();
++	loop {
++		let (word, tail) = match rest.split_at_checked(2) {
++			Some(("C-", t)) => ("ctrl+", t),
++			Some(("A-", t)) => ("alt+", t),
++			Some(("S-", t)) => ("shift+", t),
++			Some(("D-", t)) => ("super+", t),
++			_ => break,
++		};
++		out.push_str(word);
++		rest = tail;
++	}
++	out.push_str(&rest.to_lowercase());
++	out
++}
++
++/// A word to be read starts lower case (§2), a name of two capitals stays as it is ("Open" → "open", "PDF" → "PDF").
++pub(crate) fn lower_first(s: &str) -> String {
++	let mut it = s.chars();
++	match (it.next(), it.next()) {
++		(Some(a), Some(b)) if a.is_uppercase() && !b.is_uppercase() => a.to_lowercase().chain([b]).chain(it).collect(),
++		_ => s.to_owned(),
++	}
++}
++
++/// The keys of a choice: "[y]  trash    [n]  keep".
++pub(crate) fn keys_line(pairs: &[(&str, &str)]) -> Line<'static> {
++	let mut spans = Vec::with_capacity(pairs.len() * 3);
++	for (i, (key, what)) in pairs.iter().enumerate() {
++		if i > 0 {
++			spans.push(Span::raw("    "));
++		}
++		spans.push(Span::raw(keycap(key)));
++		spans.push(Span::styled(format!(" {what}"), MUTED));
++	}
++	Line::from(spans)
++}
+diff --git a/yazi-fm/src/help/bindings.rs b/yazi-fm/src/help/bindings.rs
+index a234040..888eabc 100644
+--- a/yazi-fm/src/help/bindings.rs
++++ b/yazi-fm/src/help/bindings.rs
+@@ -1,8 +1,10 @@
+-use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Rect}, widgets::Widget};
++use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Rect}, text::{Line, Span}, widgets::Widget};
+ use ratatui_widgets::list::{List, ListItem};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
++use crate::frame;
++
+ pub(super) struct Bindings<'a> {
+ 	core: &'a Core,
+ }
+@@ -18,26 +20,43 @@ impl Widget for Bindings<'_> {
+ 			return;
+ 		}
+ 
+-		// Chord
+-		let col1: Vec<_> =
+-			bindings.iter().map(|c| ListItem::new(c.on()).style(THEME.help.chord.get())).collect();
++		// Chord: each key its tile (§7), at the rows' icon column
++		let col1: Vec<_> = bindings
++			.iter()
++			.map(|c| {
++				let keys: String =
++					c.on.iter().map(|k| frame::keycap(&frame::key_word(&k.to_string()))).collect();
++				ListItem::new(Line::from(Span::raw(keys))).style(THEME.help.chord.get())
++			})
++			.collect();
+ 
+ 		// Action
+ 		let col2: Vec<_> = bindings
+ 			.iter()
+-			.map(|c| ListItem::new(c.desc_or_run()).style(THEME.help.action.get()))
++			.map(|c| ListItem::new(frame::lower_first(&c.desc_or_run())).style(THEME.help.action.get()))
+ 			.collect();
+ 
+-		let chunks =
+-			layout::Layout::horizontal([Constraint::Length(20), Constraint::Fill(1)]).split(area);
++		let chunks = layout::Layout::horizontal([Constraint::Length(24), Constraint::Fill(1)]).split(Rect {
++			x: area.x + 1,
++			width: area.width.saturating_sub(1),
++			..area
++		});
+ 
++		// The cursor's fill: a cell past the content each side (§4), its edge in the seal's red
+ 		let cursor = self.core.help.rel_cursor() as u16;
+-		buf.set_style(
+-			Rect { x: area.x, y: area.y + cursor, width: area.width, height: 1 },
+-			THEME.help.hovered.get(),
+-		);
++		let band = Rect {
++			x:      area.x.saturating_sub(1),
++			y:      area.y + cursor,
++			width:  area.width.saturating_add(2),
++			height: 1,
++		};
++		buf.set_style(band, THEME.help.hovered.get());
+ 
+ 		List::new(col1).render(chunks[0], buf);
+ 		List::new(col2).render(chunks[1], buf);
++		buf.set_style(band, THEME.help.hovered.get());
++		if let Some(cell) = buf.cell_mut((band.x, band.y)) {
++			cell.set_symbol("▎").set_fg(frame::EDGE.fg.unwrap_or_default());
++		}
+ 	}
+ }
+diff --git a/yazi-fm/src/help/help.rs b/yazi-fm/src/help/help.rs
+index 221481a..2317181 100644
+--- a/yazi-fm/src/help/help.rs
++++ b/yazi-fm/src/help/help.rs
+@@ -1,10 +1,9 @@
+-use ratatui_core::{buffer::Buffer, layout::{Alignment, Constraint, Layout, Rect}, symbols::merge::MergeStrategy, widgets::Widget};
+-use ratatui_widgets::{block::{Block, Padding}, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::{Line, Span}, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+-use yazi_shim::ratatui::Padable;
+ 
+ use super::Bindings;
++use crate::frame;
+ 
+ pub(crate) struct Help<'a> {
+ 	core: &'a Core,
+@@ -18,33 +17,31 @@ impl Widget for Help<'_> {
+ 	fn render(self, _: Rect, buf: &mut Buffer) {
+ 		let help = &self.core.help;
+ 		let area = self.core.mgr.area(help.position);
+-		let padding = help.padding();
+-
+-		yazi_widgets::clear::Clear::default().render(area, buf);
+-
+-		Block::bordered()
+-			.title(format!("{}.help", help.layer))
+-			.title_alignment(Alignment::Center)
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.help.border.get())
+-			.render(area, buf);
+-
+-		let chunks =
+-			Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Fill(1)])
+-				.split(area.padding(Padding { left: 0, right: 0, ..padding }));
+-
+-		// Input
+-		help.input.render(chunks[0].padding(Padding { top: 0, bottom: 0, ..padding }), buf);
+-
+-		// Divider
+-		Block::bordered()
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.help.border.get())
+-			.merge_borders(MergeStrategy::Fuzzy)
+-			.render(chunks[1], buf);
+-
+-		// Bindings
+-		Bindings::new(self.core)
+-			.render(chunks[2].padding(Padding { top: 0, bottom: 0, ..padding }), buf);
++		let n = help.bindings.len();
++
++		let inner = frame::frame(
++			area,
++			buf,
++			THEME.help.border.get().into(),
++			frame::I_KEYCAP,
++			Line::from(vec![Span::raw("keys"), Span::styled(format!("  {}", help.layer), frame::MUTED)]),
++		);
++
++		// §7's search line: the chevron at the rows' icon column, what is typed — or its ghost, faint — at their
++		// names', the count at the last column
++		let line = frame::row(inner, 0);
++		Line::styled(frame::I_CHEVRON, frame::ICON).render(Rect { x: line.x + 1, width: 3, ..line }, buf);
++		let field = Rect { x: line.x + 4, width: line.width.saturating_sub(4 + 7), ..line };
++		if help.input.value().is_empty() {
++			Line::styled("a key or a word", frame::FAINT).render(field, buf);
++		}
++		help.input.render(field, buf);
++		Line::styled(n.to_string(), frame::MUTED).right_aligned().render(line, buf);
++
++		// Bindings: under a row of paper
++		Bindings::new(self.core).render(
++			Rect { y: inner.y + 2, height: inner.height.saturating_sub(2), ..inner },
++			buf,
++		);
+ 	}
+ }
+diff --git a/yazi-fm/src/input/input.rs b/yazi-fm/src/input/input.rs
+index 6a0b211..a1cd60b 100644
+--- a/yazi-fm/src/input/input.rs
++++ b/yazi-fm/src/input/input.rs
+@@ -1,12 +1,13 @@
+ use std::path::Path;
+ 
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, text::Line, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::{Line, Span}, widgets::Widget};
+ use yazi_config::{Icon, THEME};
+ use yazi_core::Core;
+ use yazi_fs::{cha::{Cha, ChaKind}, file::File};
+ use yazi_shim::path::CROSS_SEPARATOR;
+ 
++use crate::frame;
++
+ pub(crate) struct Input<'a> {
+ 	core: &'a mut Core,
+ }
+@@ -44,20 +45,31 @@ impl<'a> Input<'a> {
+ impl Widget for Input<'_> {
+ 	fn render(self, _: Rect, buf: &mut Buffer) {
+ 		let outer = self.core.mgr.area(self.core.input.main.position);
+-		yazi_widgets::clear::Clear::default().render(outer, buf);
+ 
+-		let mut block = Block::bordered()
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.input.border.get())
+-			.title(Line::styled(&self.core.input.main.title, THEME.input.title.get()));
++		let heading = match self.core.input.main.name.as_str() {
++			"cd" => frame::I_FOLDER,
++			"shell" => frame::I_TERMINAL,
++			"filter" | "find" | "search" => frame::I_SEARCH,
++			_ => frame::I_PEN,
++		};
++		let title = self.core.input.main.title.clone();
++		let inner = frame::frame(
++			outer,
++			buf,
++			THEME.input.border.get().into(),
++			heading,
++			Line::from(Span::styled(title, THEME.input.title.get())),
++		);
+ 
+-		if let Some(i) = self.icon() {
+-			block = block.title_bottom(Line::raw(format!("{} ", i.text)).style(i.style).right_aligned());
++		// The field a row of §7: the icon of what is typed at column 1, the words at column 4
++		let field = Rect { x: inner.x.saturating_add(4), width: inner.width.saturating_sub(4), height: 1, ..inner };
++		match self.icon() {
++			Some(i) => Line::raw(i.text.clone()).style(i.style),
++			None => Line::styled(frame::I_CHEVRON, frame::ICON),
+ 		}
+-		block.render(outer, buf);
++		.render(Rect { x: inner.x.saturating_add(1), width: 3, height: 1, ..inner }, buf);
+ 
+-		let inner = outer.inner(Margin::new(1, 1));
+-		self.core.input.main.repos(inner);
+-		self.core.input.main.render(inner, buf);
++		self.core.input.main.repos(field);
++		self.core.input.main.render(field, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/main.rs b/yazi-fm/src/main.rs
+index 31afc1b..c30a7bf 100644
+--- a/yazi-fm/src/main.rs
++++ b/yazi-fm/src/main.rs
+@@ -6,7 +6,7 @@ extern crate self as yazi_fm;
+ 
+ yazi_macro::mod_pub!(app cmp confirm help input mgr notify pick spot tasks which);
+ 
+-yazi_macro::mod_flat!(dispatcher executor logs panic renderer root router signals);
++yazi_macro::mod_flat!(dispatcher executor frame logs panic renderer root router signals);
+ 
+ #[tokio::main]
+ async fn main() -> anyhow::Result<()> {
+diff --git a/yazi-fm/src/notify/notify.rs b/yazi-fm/src/notify/notify.rs
+index 8e25037..9404b22 100644
+--- a/yazi-fm/src/notify/notify.rs
++++ b/yazi-fm/src/notify/notify.rs
+@@ -1,7 +1,9 @@
+ use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Offset, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType, paragraph::{Paragraph, Wrap}};
++use ratatui_widgets::paragraph::{Paragraph, Wrap};
+ use yazi_core::{Core, notify::Message};
+ 
++use crate::frame;
++
+ pub(crate) struct Notify<'a> {
+ 	core: &'a Core,
+ }
+@@ -44,17 +46,15 @@ impl Widget for Notify<'_> {
+ 				tiles[i].offset(Offset { x: (100 - m.percent) as i32 * tiles[i].width as i32 / 100, y: 0 });
+ 			rect.width -= rect.x - tiles[i].x;
+ 
+-			yazi_widgets::clear::Clear::default().render(rect, buf);
+-			Paragraph::new(m.content.as_str())
+-				.wrap(Wrap { trim: false })
+-				.block(
+-					Block::bordered()
+-						.border_type(BorderType::Rounded)
+-						.title(format!("{} {}", m.level.icon(), m.title))
+-						.title_style(m.level.style())
+-						.border_style(m.level.style()),
+-				)
+-				.render(rect, buf);
++			let icon = m.level.icon();
++			let inner = frame::frame(
++				rect,
++				buf,
++				m.level.style().into(),
++				icon.as_str(),
++				ratatui_core::text::Line::raw(frame::lower_first(&m.title)),
++			);
++			Paragraph::new(m.content.as_str()).wrap(Wrap { trim: false }).render(inner, buf);
+ 		}
+ 	}
+ }
+diff --git a/yazi-fm/src/pick/list.rs b/yazi-fm/src/pick/list.rs
+index 6704d2a..836aaa8 100644
+--- a/yazi-fm/src/pick/list.rs
++++ b/yazi-fm/src/pick/list.rs
+@@ -1,9 +1,11 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::{StatefulWidget, Widget}};
++use ratatui_core::{buffer::Buffer, layout::Rect, widgets::{StatefulWidget, Widget}};
+ use ratatui_widgets::{list::ListItem, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ use yazi_widgets::Scrollable;
+ 
++use crate::frame;
++
+ pub(crate) struct List<'a> {
+ 	core: &'a Core,
+ }
+@@ -16,24 +18,42 @@ impl Widget for List<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let pick = &self.core.pick;
+ 
+-		// Vertical scrollbar
++		// The place in a long list: a hairline at the content's end
+ 		if pick.total() > pick.limit() {
+-			Scrollbar::new(ScrollbarOrientation::VerticalRight).render(
+-				area,
+-				buf,
+-				&mut ScrollbarState::new(pick.total()).position(pick.cursor),
+-			);
++			Scrollbar::new(ScrollbarOrientation::VerticalRight)
++				.begin_symbol(None)
++				.end_symbol(None)
++				.track_symbol(None)
++				.thumb_symbol("▕")
++				.thumb_style(frame::MUTED)
++				.render(area, buf, &mut ScrollbarState::new(pick.total()).position(pick.cursor));
+ 		}
+ 
+-		// List content
+-		let inner = area.inner(Margin::new(1, 0));
+-		let items = pick.window().map(|(i, v)| {
+-			if i == pick.cursor {
+-				ListItem::new(format!(" {v}")).style(THEME.pick.active.get())
+-			} else {
+-				ListItem::new(format!("  {v}")).style(THEME.pick.inactive.get())
++		// Rows at §7's names' column; the cursor's fill a cell past the content each side, its edge in the seal's red
++		let mut band = None;
++		let items = pick
++			.window()
++			.map(|(i, v)| {
++				let v = frame::lower_first(v);
++				if i == pick.cursor {
++					band = Some(Rect {
++						x:      area.x.saturating_sub(1),
++						y:      area.y + (i - pick.offset) as u16,
++						width:  area.width + 2,
++						height: 1,
++					});
++					ListItem::new(format!(" {v}")).style(THEME.pick.active.get())
++				} else {
++					ListItem::new(format!(" {v}")).style(THEME.pick.inactive.get())
++				}
++			})
++			.collect::<Vec<_>>();
++		Widget::render(ratatui_widgets::list::List::new(items), area, buf);
++		if let Some(band) = band {
++			buf.set_style(band, THEME.pick.active.get());
++			if let Some(cell) = buf.cell_mut((band.x, band.y)) {
++				cell.set_symbol("▎").set_fg(frame::EDGE.fg.unwrap_or_default());
+ 			}
+-		});
+-		Widget::render(ratatui_widgets::list::List::new(items), inner, buf);
++		}
+ 	}
+ }
+diff --git a/yazi-fm/src/pick/pick.rs b/yazi-fm/src/pick/pick.rs
+index 730a5ee..a921eef 100644
+--- a/yazi-fm/src/pick/pick.rs
++++ b/yazi-fm/src/pick/pick.rs
+@@ -1,9 +1,8 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::Line, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
+-use crate::pick::List;
++use crate::{frame, pick::List};
+ 
+ pub(crate) struct Pick<'a> {
+ 	core: &'a Core,
+@@ -18,14 +17,14 @@ impl Widget for Pick<'_> {
+ 		let pick = &self.core.pick;
+ 		let area = self.core.mgr.area(pick.position);
+ 
+-		yazi_widgets::clear::Clear::default().render(area, buf);
++		let inner = frame::frame(
++			area,
++			buf,
++			THEME.pick.border.get().into(),
++			frame::I_WINDOW,
++			Line::raw(pick.title().to_owned()),
++		);
+ 
+-		Block::bordered()
+-			.title(pick.title())
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.pick.border.get())
+-			.render(area, buf);
+-
+-		List::new(self.core).render(area.inner(Margin::new(0, 1)), buf);
++		List::new(self.core).render(inner, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/tasks/tasks.rs b/yazi-fm/src/tasks/tasks.rs
+index 3b60adc..66646b6 100644
+--- a/yazi-fm/src/tasks/tasks.rs
++++ b/yazi-fm/src/tasks/tasks.rs
+@@ -1,9 +1,8 @@
+-use ratatui_core::{buffer::Buffer, layout::{self, Alignment, Constraint, Rect}, text::Line, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Rect}, text::Line, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::{Core, tasks::TASKS_PERCENT};
+ 
+-use crate::tasks::List;
++use crate::{frame, tasks::List};
+ 
+ pub(crate) struct Tasks<'a> {
+ 	core: &'a mut Core,
+@@ -33,15 +32,14 @@ impl Widget for Tasks<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let area = Self::area(area);
+ 
+-		yazi_widgets::clear::Clear::default().render(area, buf);
++		let inner = frame::frame(
++			area,
++			buf,
++			THEME.tasks.border.get().into(),
++			frame::I_HOURGLASS,
++			Line::styled("tasks", THEME.tasks.title.get()),
++		);
+ 
+-		let block = Block::bordered()
+-			.title(Line::styled("Tasks", THEME.tasks.title.get()))
+-			.title_alignment(Alignment::Center)
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.tasks.border.get());
+-		(&block).render(area, buf);
+-
+-		List::new(self.core).render(block.inner(area), buf);
++		List::new(self.core).render(inner, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/which/cand.rs b/yazi-fm/src/which/cand.rs
+index f6db60c..bc06a82 100644
+--- a/yazi-fm/src/which/cand.rs
++++ b/yazi-fm/src/which/cand.rs
+@@ -1,6 +1,8 @@
+ use ratatui_core::{buffer::Buffer, layout::Rect, text::{Line, Span}, widgets::Widget};
+ use yazi_config::{THEME, keymap::Chord};
+ 
++use crate::frame;
++
+ pub(super) struct Cand<'a> {
+ 	cand:  &'a Chord,
+ 	times: usize,
+@@ -17,23 +19,17 @@ impl<'a> Cand<'a> {
+ impl Widget for Cand<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let keys = self.keys();
+-		let mut spans = Vec::with_capacity(10);
+-		let separator = &**THEME.which.separator.load();
+-
+-		// Padding
+-		spans.push(Span::raw(" ".repeat(10usize.saturating_sub(keys.join("").len()))));
++		let mut spans = Vec::with_capacity(4);
+ 
+-		// First key
+-		spans.push(Span::styled(keys[0].clone(), THEME.which.cand.get()));
++		// Each key its tile (§7), what it does muted two columns on
++		for (i, k) in keys.iter().enumerate() {
++			let style = if i == 0 { THEME.which.cand.get() } else { THEME.which.rest.get() };
++			spans.push(Span::styled(frame::keycap(&frame::key_word(k)), style));
++		}
+ 
+-		// Rest keys
+-		spans.extend(keys.iter().skip(1).map(|k| Span::styled(k, THEME.which.rest.get())));
+-
+-		// Separator
++		let separator = &**THEME.which.separator.load();
+ 		spans.push(Span::styled(separator, THEME.which.separator_style.get()));
+-
+-		// Description
+-		spans.push(Span::styled(self.cand.desc_or_run(), THEME.which.desc.get()));
++		spans.push(Span::styled(frame::lower_first(&self.cand.desc_or_run()), THEME.which.desc.get()));
+ 
+ 		Line::from(spans).render(area, buf);
+ 	}
+diff --git a/yazi-fm/src/which/which.rs b/yazi-fm/src/which/which.rs
+index 456d2d8..64a05de 100644
+--- a/yazi-fm/src/which/which.rs
++++ b/yazi-fm/src/which/which.rs
+@@ -1,12 +1,11 @@
+-use ratatui_core::{buffer::Buffer, layout::{Constraint, Layout, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::{Constraint, Layout, Rect}, style::Style, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+-use yazi_widgets::clear::Clear;
+ 
+ use super::Cand;
++use crate::frame;
+ 
+-const PADDING_X: u16 = 1;
++const PADDING_X: u16 = 0;
+ const PADDING_Y: u16 = 1;
+ 
+ pub(crate) struct Which<'a> {
+@@ -38,14 +37,8 @@ impl Widget for Which<'_> {
+ 			return;
+ 		}
+ 
+-		Clear::default().render(area, buf);
+-		let block = Block::bordered()
+-			.style(THEME.which.mask.get())
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.which.border.get());
+-		block.as_ref().render(area, buf);
+-
+-		let inner = block.inner(area);
++		let border: Style = THEME.which.border.get().into();
++		let inner = frame::ring(area, buf, border);
+ 		let chunks = {
+ 			use Constraint::*;
+ 			Layout::horizontal(match cols {
+diff --git a/yazi-plugin/src/utils/spot.rs b/yazi-plugin/src/utils/spot.rs
+index 085ea50..ed0597b 100644
+--- a/yazi-plugin/src/utils/spot.rs
++++ b/yazi-plugin/src/utils/spot.rs
+@@ -21,13 +21,10 @@ impl Utils {
+ 				Renderable::Border(yazi_binding::elements::Border {
+ 					area,
+ 					edge: Edge(ratatui_widgets::borders::Borders::ALL),
+-					r#type: ratatui_widgets::borders::BorderType::Rounded,
++					r#type: ratatui_widgets::borders::BorderType::Plain,
+ 					style: THEME.spot.border.get().into(),
+ 					merge: Default::default(),
+-					titles: vec![(
+-						ratatui_widgets::block::TitlePosition::Top,
+-						ratatui_core::text::Line::raw("Spot").centered().style(THEME.spot.title.get()),
+-					)],
++					titles: vec![],
+ 				}),
+ 				Renderable::Table(Box::new(table)),
+ 			];
+diff --git a/yazi-version/src/lib.rs b/yazi-version/src/lib.rs
+index 3473a31..c9444dd 100644
+--- a/yazi-version/src/lib.rs
++++ b/yazi-version/src/lib.rs
+@@ -17,6 +17,7 @@ pub fn version_full() -> String {
+ 	let mut s = String::new();
+ 
+ 	writeln!(s, "    Version: {}", version_long()).ok();
++	writeln!(s, "    Patch  : fedokawaii").ok();
+ 	writeln!(s, "    Debug  : {}", cfg!(debug_assertions)).ok();
+ 	#[rustfmt::skip]
+ 	writeln!(s, "    Triple : {} ({OS}-{ARCH})", env!("VERGEN_RUSTC_HOST_TRIPLE")).ok();
