@@ -18,6 +18,7 @@ from scipy import ndimage as ndi
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REACH = {"dark": 560, "light": 620}        # how far a fire's pool reaches, in pixels at 1920 × 1080
 SIZE = (1920, 1080)
+SLEEPER = {"dark": (440, 0, 1480, 1080), "light": (700, 0, 1600, 1010)}   # what of the sleeper's frame goes over the lock: the figure, its gate
 FIGURE = {"dark": (960, 565, 560), "light": (1002, 420, 620)}   # where the sleeper breathes: its middle (the wake starts there), the reach of its light
 SPOTS = {"dark": ((1330, 720), (560, 400), (590, 720), (1360, 400)),    # where the seal lands, in turn across the frame: its thirds, clear of the figure
          "light": ((1370, 720), (560, 400), (560, 720), (1370, 400))}
@@ -205,29 +206,27 @@ def bowed(a):
     return out
 
 
-def asleep_light(L=None):
-    """the lock's own frame with the scroll rolled and sealed: her eyes shut, her head bowed, the halo gone down to a trace, no rays"""
+def asleep_light():
+    """the lock's own frame with the scroll rolled and sealed: her eyes shut, her head bowed, the halo down to a trace, no rays"""
     bi = ink_tool()
-    L = dict(L or bi.light_layers())
-    ink, wash = L["ink"], L["wash"]
-    ring = bi.paste_box(bi.halo_ring(), (bi.HEAD[0] - 200, bi.HEAD[1] - 200), (bi.SH, bi.SW))
-    base = wash * (1 - ink[..., None] * .96) + bi.SUMI_L * ink[..., None] * .96
-    L["base"] = base * (1 - ring[..., None] * .16) + bi.GOLD * ring[..., None] * .16
+    ring = bi.halo_ring
+    bi.halo_ring = lambda: ring() * .16                    # (all her layers as the lock's but this)
+    L = dict(bi.light_layers())
     fi = bowed(angel_eyes_shut(L["fig_i"]))
     L["fig_a"], L["body"] = bowed(L["fig_a"]), bowed(L["body"])
-    return to_image(bi.light_frame(L, 0, flames=False, a_ink=fi))
+    return to_image(bi.light_frame(L, 0, a_ink=fi))
 
 
 ASLEEP = {"dark": asleep_dark, "light": asleep_light}
 
 
-def patch_of(lock, sleeping, path):
-    """what differs between the lock and its sleeper, as one patch: (x, y) of it"""
+def patch_of(lock, sleeping, box, path):
+    """what differs between the lock and its sleeper in BOX, as one patch: (x, y) of it"""
     a, b = np.asarray(lock.convert("RGB"), np.int16), np.asarray(sleeping.convert("RGB"), np.int16)
-    ys, xs = np.nonzero(np.abs(a - b).max(-1) > 1)
+    ys, xs = np.nonzero(np.abs(a - b)[box[1]:box[3], box[0]:box[2]].max(-1) > 1)
     if not len(xs):
         raise SystemExit(f"{path}: the sleeper is the lock")
-    x0, x1, y0, y1 = int(xs.min()), int(xs.max()) + 1, int(ys.min()), int(ys.max()) + 1
+    x0, x1, y0, y1 = int(xs.min()) + box[0], int(xs.max()) + box[0] + 1, int(ys.min()) + box[1], int(ys.max()) + box[1] + 1
     sleeping.convert("RGB").crop((x0, y0, x1, y1)).save(path, optimize=True)
     return x0, y0
 
@@ -239,7 +238,7 @@ def build(d, mood, sleeping=None):
     if lock.size != SIZE:
         raise SystemExit(f"{d / 'lock-scene.png'}: {lock.size}, not {SIZE}")
     sleeping = sleeping or ASLEEP[mood]()
-    px, py = patch_of(lock, sleeping, d / "saver-lids.png")
+    px, py = patch_of(lock, sleeping, SLEEPER[mood], d / "saver-lids.png")
     out.append(f"size {SIZE[0]} {SIZE[1]}")
     out.append("wall lock-scene.png   # the lock's own painting")
     out.append(f"patch saver-lids.png {px} {py}   # over it, the figure asleep")

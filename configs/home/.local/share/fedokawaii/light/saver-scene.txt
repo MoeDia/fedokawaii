@@ -1,11 +1,17 @@
 # saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.
 size 1920 1080
-wall saver-wall.png   # the painting, the figure's place empty
-centre 960 528 216   # the figure's place: where the world opens, and how far the seal wanders from it
-torch 318 264 620   # a fire: its middle, how far its pool reaches
-torch 1602 264 620   # a fire: its middle, how far its pool reaches
-anim saver-flame.png 306 243 24 36 8 125   # a strip: file, place, a frame's size, frames, ms a frame
-anim saver-flame.png 1590 243 24 36 8 125   # a strip: file, place, a frame's size, frames, ms a frame
-ceiling 73   # what stops the smoke
-seal 62 84 25 34   # saver-seal.png, its alpha: the seal, then the ten digits
-lock 98e802d0a9d9a7fc   # the lock's art it was built from (tests/look/test_saver.sh)
+wall lock-scene.png   # the lock's own painting
+patch saver-lids.png 700 0   # over it, the figure asleep
+centre 1002 420   # the figure's place: where the world opens
+rest 620   # how far the sleeper's own light reaches
+spot 1370 720   # where the seal lands
+spot 560 400   # where the seal lands
+spot 560 720   # where the seal lands
+spot 1370 400   # where the seal lands
+anim lock-flame.png 308 61 165 196 8 125   # a strip: file, place, a frame's size, frames, ms a frame
+anim lock-flame.png 1456 63 165 196 8 138   # a strip: file, place, a frame's size, frames, ms a frame
+torch 390 159 620   # a fire: its middle, how far its pool reaches
+torch 1538 161 620   # a fire: its middle, how far its pool reaches
+ceiling 40   # what stops the smoke
+seal 168 228 68 92   # saver-seal.png, its alpha: the seal, then the ten digits
+lock ae1127400963d080   # the lock's art it was built from (tests/look/test_saver.sh)
