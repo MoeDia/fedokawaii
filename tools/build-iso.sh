@@ -126,7 +126,7 @@ xz -T1 --check=crc32 -6 <"$work/boot.cpio" >"$work/fedokawaii-boot.img"
 
 # ── the menu and the kickstart ──────────────────────────────────────────────
 say "the menu and the kickstart"
-args="inst.stage2=hd:LABEL=$ISO_VOLID inst.ks=hd:LABEL=$ISO_VOLID:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.nosave=input_ks,output_ks console=tty3 rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 $pal"
+args="inst.stage2=hd:LABEL=$ISO_VOLID inst.ks=hd:LABEL=$ISO_VOLID:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.nosave=input_ks,output_ks console=tty3 plymouth.ignore-serial-consoles rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 $pal"
 if ((dev)); then args+=" inst.sshd plymouth.debug"; fi
 sed -e "s|@VOLID@|$ISO_VOLID|g" -e "s|@ARGS@|$args|g" "$work/src/iso/grub.cfg" >"$work/grub.cfg"
 sed -e "s|@RELEASE@|$ISO_RELEASE|g" "$work/src/iso/ks.cfg" >"$work/ks.cfg"
