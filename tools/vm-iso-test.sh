@@ -16,6 +16,7 @@
 #   bash tools/vm-iso-test.sh watch NAME DIR [SECONDS] the display as PNGs, one each time it changes, until stopped
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
+#   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
 # Exit: 0 as asked · 1 failed · 2 misuse.
 set -u
@@ -283,6 +284,43 @@ do_follow() {
   return "$rc"
 }
 
+# the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
+# the screen says, read exactly, and a PNG of it in DIR
+do_matrix() {
+  local iso=$1 dir=$2 n=r27-iso-m; shift 2
+  mkdir -p "$dir"
+  one() {   # one CASE WORDS KEYS… -- CREATE-OPTIONS…
+    local c=$1 want=$2 keys=() t0=$SECONDS; shift 2
+    while (($#)) && [[ $1 != -- ]]; do keys+=("$1"); shift; done
+    [[ ${1:-} == -- ]] && shift
+    do_create "$n" "$iso" --cpus 2 --port 2242 "$@" >/dev/null || return 1
+    mem_guard "$n"
+    "${VIRSH[@]}" start "$n" >/dev/null || return 1
+    if ((${#keys[@]})); then
+      sleep 2
+      # (the firmware, then the kernel loaded before the menu shows: keys as soon as it does)
+      until do_shot "$n" "$V/$n/k.png" && python3 -I -c 'import sys; from PIL import Image; sys.exit(0 if Image.open(sys.argv[1]).convert("RGB").getpixel((5, 5)) == (24, 23, 21) else 1)' "$V/$n/k.png"; do sleep 1; ((SECONDS - t0 > 120)) && break; done
+      do_keys "$n" "${keys[@]}"
+    fi
+    if wait_words "$n" "$want" 180 2>/dev/null; then
+      printf 'green %4d s  %s: "%s"\n' "$((SECONDS - t0))" "$c" "$want" | tee -a "$dir/matrix.txt"
+    else
+      printf 'RED   %4d s  %s: no "%s"\n' "$((SECONDS - t0))" "$c" "$want" | tee -a "$dir/matrix.txt"
+    fi
+    do_say "$n" >"$dir/$c.txt" 2>/dev/null
+    cp "$V/$n/say.png" "$dir/$c.png" 2>/dev/null
+    "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
+  }
+  one disk-20g "no disk large enough" -- --disk 20 --ram 4000
+  one no-network "no network" -- --ram 4000 --no-net
+  one bios "without UEFI" -- --ram 4000 --bios
+  one ram-3g "not enough memory" -- --ram 3000
+  one stick-check "a new home" "<down>" "<enter>" -- --ram 4000
+  "${VIRSH[@]}" undefine "$n" --nvram >/dev/null 2>&1
+  rm -rf "${V:?}/$n"
+  grep -c green "$dir/matrix.txt"
+}
+
 cmd=${1:-}; [[ -n $cmd ]] && shift
 case $cmd in
   create) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_create "$@" ;;
@@ -299,5 +337,6 @@ case $cmd in
   watch) name_ok "${1:-}"; do_watch "$@" ;;
   run) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_run "$@" ;;
   follow) name_ok "${1:-}"; do_follow "$1" ;;
+  matrix) do_matrix "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
 esac
