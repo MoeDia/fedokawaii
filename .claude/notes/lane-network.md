@@ -4,6 +4,12 @@ Branch `lane-network`, worktree `~/repos/fk-network`. Sudo + own VM (`fk-r27-net
 
 lane-research2 had written nothing for T39 when this began ("T39 network: not started" in its notes), so the audit is this lane's own, from the installed programs, their man pages and measurements. Its digest came at 19:10 (`research-T39-network.md`, read here): it reached the same findings and withdrew its objection to DROP. One thing taken from it: `net_firewall_wrong` also checks firewalld's `allow-host-ipv6`, the policy IPv6 rests on under DROP.
 
+## State (4 Nov 20:08)
+Built and pushed; final scan on the live PC at 19:36 and the live proof at 19:33 clean (Evidence below). Not finished yet:
+- PID 1 has been stuck since 19:51 (lane-hardware's finding in the inbox: the kernel Oops of 19:15, RAM suspected), so `sudo` hangs for every lane. Nothing of this lane's did it: netlink, new namespaces and mountinfo all answer. Only a reset clears it.
+- Two tests in `test_update_flow` failed on this branch ("the next press: the held version"); being compared against b9ecd44 now. `test_report_rows`' SLP-10 fails only while a gtklock runs on the machine.
+- If this lane is restarted after a reset: a reboot is itself the proof to read. Run `sudo bash tools/net-proof.sh`, check `net.ipv4.conf.enp8s0.rp_filter = 1` and verify's network section, then `bash tools/vm-snap.sh r27-net destroy`, `git worktree remove --force ~/.cache/t39-base`, `rm -rf ~/.cache/t39-tmp*`. The temporary nft table `t39_watch` and `/dev/shm/t39` die with the reboot (without a reboot: `sudo nft delete table inet t39_watch`, its log rule writes every plain DNS packet to the journal).
+
 ## What was wrong (audit, 4 Nov 17:45, `ss -tulpn`, `firewall-cmd --list-all`)
 - The PC has a public IPv6 address (2001:8f8:…). Zone `public` opened ssh, mdns, 6881 and 53317 to all of it, so LocalSend and sshd were reachable from the whole internet over IPv6.
 - sshd listened on every address with an empty `authorized_keys` and no login in 60 days of journal: nobody could use it.
