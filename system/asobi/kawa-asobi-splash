@@ -1,0 +1,163 @@
+#!/usr/bin/env python3
+"""/usr/local/bin/kawa-asobi-splash — the wait before Steam's first picture (about ten seconds): the koma, the
+play world's spinning top, turning on the world's ground in the desktop's mood, instead of a black screen.
+A window gamescope shows as an app of its own (STEAM_GAME 1) until Steam names its own apps: then Steam's first
+window has the focus and this one goes (or after a minute). Drawn with X11's rectangles: no toolkit, no file.
+Exit: 0 · 1 no display."""
+import ctypes as c
+import sys
+import time
+
+GROUND = {"dark": 0x181715, "light": 0xe8e3c2}
+INK = {"dark": 0xe9542b, "light": 0xb0301c}
+SHADE = {"dark": 0x2a2522, "light": 0xd2cba6}
+SCALE, TICK = 10, 0.1
+# the top, turning: its body's band runs round, its handle and its point stay on the axis
+FRAMES = (
+    (".....##.....",
+     ".....##.....",
+     ".....##.....",
+     "...######...",
+     ".##########.",
+     "############",
+     ".#.##.##.##.",
+     "..########..",
+     "....####....",
+     ".....##.....",
+     ".....##.....",
+     "............"),
+    (".....##.....",
+     ".....##.....",
+     ".....##.....",
+     "...######...",
+     ".##########.",
+     "############",
+     ".##.##.##.#.",
+     "..########..",
+     "....####....",
+     ".....##.....",
+     ".....##.....",
+     "............"),
+    (".....##.....",
+     ".....##.....",
+     ".....##.....",
+     "...######...",
+     ".##########.",
+     "############",
+     ".###.##.##..",
+     "..########..",
+     "....####....",
+     ".....##.....",
+     ".....##.....",
+     "............"),
+)
+
+
+class Rect(c.Structure):
+    _fields_ = [("x", c.c_short), ("y", c.c_short), ("w", c.c_ushort), ("h", c.c_ushort)]
+
+
+class Attrs(c.Structure):
+    _fields_ = [("background_pixmap", c.c_ulong), ("background_pixel", c.c_ulong), ("border_pixmap", c.c_ulong),
+                ("border_pixel", c.c_ulong), ("bit_gravity", c.c_int), ("win_gravity", c.c_int),
+                ("backing_store", c.c_int), ("backing_planes", c.c_ulong), ("backing_pixel", c.c_ulong),
+                ("save_under", c.c_int), ("event_mask", c.c_long), ("do_not_propagate_mask", c.c_long),
+                ("override_redirect", c.c_int), ("colormap", c.c_ulong), ("cursor", c.c_ulong)]
+
+
+def mood():
+    try:
+        with open("/var/lib/fedokawaii-greeter/theme", encoding="utf-8") as f:
+            m = f.read().strip()
+            return m if m in GROUND else "dark"
+    except OSError:
+        return "dark"
+
+
+def main():
+    x = c.CDLL("libX11.so.6")
+    for fn, res, args in (
+        ("XOpenDisplay", c.c_void_p, [c.c_char_p]),
+        ("XDefaultRootWindow", c.c_ulong, [c.c_void_p]),
+        ("XDefaultScreen", c.c_int, [c.c_void_p]),
+        ("XDisplayWidth", c.c_int, [c.c_void_p, c.c_int]),
+        ("XDisplayHeight", c.c_int, [c.c_void_p, c.c_int]),
+        ("XDefaultDepth", c.c_int, [c.c_void_p, c.c_int]),
+        ("XCreateWindow", c.c_ulong, [c.c_void_p, c.c_ulong, c.c_int, c.c_int, c.c_uint, c.c_uint, c.c_uint, c.c_int,
+                                      c.c_uint, c.c_void_p, c.c_ulong, c.POINTER(Attrs)]),
+        ("XCreatePixmap", c.c_ulong, [c.c_void_p, c.c_ulong, c.c_uint, c.c_uint, c.c_uint]),
+        ("XCreateGC", c.c_void_p, [c.c_void_p, c.c_ulong, c.c_ulong, c.c_void_p]),
+        ("XSetForeground", c.c_int, [c.c_void_p, c.c_void_p, c.c_ulong]),
+        ("XFillRectangle", c.c_int, [c.c_void_p, c.c_ulong, c.c_void_p, c.c_int, c.c_int, c.c_uint, c.c_uint]),
+        ("XFillRectangles", c.c_int, [c.c_void_p, c.c_ulong, c.c_void_p, c.POINTER(Rect), c.c_int]),
+        ("XCopyArea", c.c_int, [c.c_void_p, c.c_ulong, c.c_ulong, c.c_void_p, c.c_int, c.c_int, c.c_uint, c.c_uint,
+                                c.c_int, c.c_int]),
+        ("XInternAtom", c.c_ulong, [c.c_void_p, c.c_char_p, c.c_int]),
+        ("XChangeProperty", c.c_int, [c.c_void_p, c.c_ulong, c.c_ulong, c.c_ulong, c.c_int, c.c_int, c.c_void_p, c.c_int]),
+        ("XGetWindowProperty", c.c_int, [c.c_void_p, c.c_ulong, c.c_ulong, c.c_long, c.c_long, c.c_int, c.c_ulong,
+                                         c.POINTER(c.c_ulong), c.POINTER(c.c_int), c.POINTER(c.c_ulong),
+                                         c.POINTER(c.c_ulong), c.POINTER(c.c_void_p)]),
+        ("XFree", c.c_int, [c.c_void_p]),
+        ("XMapRaised", c.c_int, [c.c_void_p, c.c_ulong]),
+        ("XSync", c.c_int, [c.c_void_p, c.c_int]),
+        ("XDestroyWindow", c.c_int, [c.c_void_p, c.c_ulong]),
+        ("XCloseDisplay", c.c_int, [c.c_void_p]),
+    ):
+        getattr(x, fn).restype = res
+        getattr(x, fn).argtypes = args
+    d = x.XOpenDisplay(None)
+    if not d:
+        print("kawa-asobi-splash: no display", file=sys.stderr)
+        return 1
+    root, s = x.XDefaultRootWindow(d), x.XDefaultScreen(d)
+    w, h, depth = x.XDisplayWidth(d, s), x.XDisplayHeight(d, s), x.XDefaultDepth(d, s)
+    m = mood()
+    a = Attrs(background_pixel=GROUND[m])
+    win = x.XCreateWindow(d, root, 0, 0, w, h, 0, depth, 1, None, 1 << 1, c.byref(a))  # CWBackPixel
+    atom = x.XInternAtom(d, b"STEAM_GAME", 0)
+    one = c.c_ulong(1)
+    x.XChangeProperty(d, win, atom, 6, 32, 0, c.byref(one), 1)   # XA_CARDINAL, PropModeReplace
+    # (gamescope focuses only the apps its base layer names: Steam writes its own list over this as it comes up)
+    x.XChangeProperty(d, root, x.XInternAtom(d, b"GAMESCOPECTRL_BASELAYER_APPID", 0), 6, 32, 0, c.byref(one), 1)
+    x.XMapRaised(d, win)
+    focused = x.XInternAtom(d, b"GAMESCOPE_FOCUSED_WINDOW", 0)
+    gc = x.XCreateGC(d, win, 0, None)
+    side = 12 * SCALE
+    pix = x.XCreatePixmap(d, win, side, side + 3 * SCALE, depth)
+    left, top = (w - side) // 2, (h - side) // 2 - SCALE
+    x.XSetForeground(d, gc, GROUND[m])
+    x.XFillRectangle(d, win, gc, 0, 0, w, h)
+    rects = []
+    for f in FRAMES:
+        px = [Rect(col * SCALE, row * SCALE, SCALE, SCALE) for row, line in enumerate(f) for col, ch in enumerate(line) if ch == "#"]
+        rects.append(((Rect * len(px))(*px), len(px)))
+    end, i = time.monotonic() + 60, 0
+    while time.monotonic() < end:
+        x.XSetForeground(d, gc, GROUND[m])
+        x.XFillRectangle(d, pix, gc, 0, 0, side, side + 3 * SCALE)
+        # its shadow on the ground, breathing as it turns
+        spread = (0, 1, 2, 1)[i % 4]
+        x.XSetForeground(d, gc, SHADE[m])
+        x.XFillRectangle(d, pix, gc, (3 - spread) * SCALE, 11 * SCALE + SCALE // 2, (6 + 2 * spread) * SCALE, SCALE)
+        x.XSetForeground(d, gc, INK[m])
+        r, n = rects[i % len(rects)]
+        x.XFillRectangles(d, pix, gc, r, n)
+        x.XCopyArea(d, pix, win, gc, 0, 0, side, side + 3 * SCALE, left, top)
+        x.XSync(d, 0)
+        i += 1
+        time.sleep(TICK)
+        # something else has the focus (Steam's first window; Bottles' window): the wait is over
+        t, fmt, nitems, after, data = c.c_ulong(), c.c_int(), c.c_ulong(), c.c_ulong(), c.c_void_p()
+        if x.XGetWindowProperty(d, root, focused, 0, 1, 0, 6, c.byref(t), c.byref(fmt), c.byref(nitems), c.byref(after), c.byref(data)) == 0 and data:
+            v = c.cast(data, c.POINTER(c.c_ulong))[0] if nitems.value else 0
+            x.XFree(data)
+            if v and v != win:
+                break
+    x.XDestroyWindow(d, win)
+    x.XSync(d, 0)
+    x.XCloseDisplay(d)
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

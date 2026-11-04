@@ -54,6 +54,7 @@ asobi_system() {
   install -m 0755 "$s/kawa-asobi-root" /usr/local/sbin/kawa-asobi-root
   install -m 0755 "$s/kawa-asobi-session" /usr/local/bin/kawa-asobi-session
   install -m 0755 "$s/kawa-asobi-world" /usr/local/bin/kawa-asobi-world
+  install -m 0755 "$s/kawa-asobi-splash" /usr/local/bin/kawa-asobi-splash
   sed "s/ASOBI_UID/$u/g" "$s/kawa-asobi.service" | write_file /etc/systemd/system/kawa-asobi.service
   sed -e "s/ASOBI_UID/$u/g" -e 's/^Conflicts=getty@tty8.service kawa-asobi-bottles.service/Conflicts=getty@tty8.service kawa-asobi.service/' \
       -e 's/^Description=ASOBI: the play world/Description=ASOBI: the play world, Bottles in front/' -e 's/^Environment=KAWA_ASOBI_FACE=steam/Environment=KAWA_ASOBI_FACE=bottles/' \
@@ -74,7 +75,7 @@ asobi_system() {
   systemctl disable --quiet --now accounts-daemon.service 2>/dev/null || true   # (flatpak's dependency; D-Bus starts it if it is ever asked)
   restorecon -R /etc/systemd/system/kawa-asobi* "/etc/systemd/system/user@$u.service.d" /etc/pam.d/kawa-asobi \
     /etc/polkit-1/rules.d/60-kawa-asobi.rules /etc/xkb /etc/gamemode.ini /etc/fedokawaii/asobi.conf /etc/xdg-desktop-portal/gamescope-portals.conf \
-    /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session /usr/local/bin/kawa-asobi-world \
+    /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session /usr/local/bin/kawa-asobi-world /usr/local/bin/kawa-asobi-splash \
     /etc/systemd/user/kawa-asobi-world.service 2>/dev/null || true
   systemctl daemon-reload
 }
