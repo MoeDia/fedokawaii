@@ -6,7 +6,7 @@
 #   · the outer tiles' hairlines on x 8 and x 1911; 4 px hairline to hairline within a group,
 #     12 between groups (the shadow's column in the gap)
 #   · 8 px from the paper's edge to the ink, both sides, in every tile; words on the capitals'
-#     rows (9–18), an icon alone on 7–20, the emblems on 6–21, quick settings' face (a picture) on 5–22
+#     rows (9–18), an icon alone on 7–20, the emblems on 6–21, quick settings' head (a picture) on 4–23
 #   · the workspace you are on: its seal 16 px across, rows 6–21, centred on its numeral
 #   · the clock: 15 px from the left rod to the date (8 and the 7 the time is longer), 14 px
 #     to the kanji and 14 to the time, 8 (9 from 10 to 12 o'clock) to the right rod
@@ -40,9 +40,8 @@ for th in dark light; do
       ((l == 5 && r == 5 && r0 == 6 && r1 == 21)) || no "the seal at $a: $l/$r px from the paper, rows $r0–$r1"
       continue
     fi
-    if ((r1 - r0 == 17)); then                      # (quick settings' face: a picture 18 × 18 — a pixel of paper above and below, 6 | 7 either side: its odd pixel of air right, §3 face, §8)
-      # (its 18 px square at 6 | 7; the hannya's ink is 16 wide, the tennin's 18: the odd pixel right either way)
-      ((l >= 6 && r == l + 1 && r0 == 5 && r1 == 22)) || no "the face at $a: $l/$r px from the paper, rows $r0–$r1 (want ≥ 6 with the odd pixel right, rows 5–22)"
+    if ((r1 - r0 == 19)); then                      # (quick settings' head: a picture 22 × 20, the paper's rows whole; the kannon's nimbus fills its 22 columns, the oni's horns 20: the odd pixel right either way)
+      ((l >= 4 && r == l + 1 && r0 == 4 && r1 == 23)) || no "the head at $a: $l/$r px from the paper, rows $r0–$r1 (want ≥ 4 with the odd pixel right, rows 4–23)"
       continue
     fi
     ((l == 8 && r == 8)) || no "the tile at $a: $l px paper→ink, $r px ink→paper (want 8, 8)"

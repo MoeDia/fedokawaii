@@ -76,7 +76,7 @@ def colors_sh(m, p):
 
 def waybar_css(m, p):
     # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
-    # tiles (紙 kami) — their paper, the vermilion of the torii's, the cat's and the seal's,
+    # tiles (紙 kami) — their paper, the vermilion of the torii's, and the seal's,
     # the words on the seal
     rows = [("surface", p["surface"]),                               # (a tooltip's solid ground)
             ("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
@@ -279,225 +279,106 @@ def lock_scroll(m, fill, rule, s=2):
     return png(w * s, h * s, _scaled(c, s))
 
 
-# the mood's face on the bar's end tile (quick settings' own: a demon by night, an angel by day),
-# 18 × 18 in four inks — K Wada's Black, W ivory, G gold, D the lacquer; '.' the tile shows
-# through. Dark: the hannya (after Hokusai's Warai Hannya, art/masters/SOURCES.md), roaring while
-# quick settings is open; light: the tennin, a nimbus behind, opening its eyes and smiling.
+# the mood's head on the bar's end tile (quick settings' own: a demon by night, an angel by day), a
+# woodblock's crest (the owner, 4 Nov: "less colours, more conventional, more RED; monotone, classic
+# Japanese"): 22 × 20, the tile's paper rows whole — R the seal's red, K the black ink, W the
+# cream of the demon's eyes and teeth; N the angel's nimbus in the red, '.' the paper shows through.
+# Each drawn as its left half, mirrored when built (a mask is symmetric to the pixel). Dark: an oni,
+# roaring while quick settings is open; light: a Kannon, opening her eyes and smiling.
 FACES = {
     "dark": ("""
-..G............G..
-.GG............GG.
-.GG...KKKKKK...GG.
-.GGGKKKKKKKKKKGGG.
-..GGKKKKWWKKKKGG..
-..KKKKKWWWWKKKKK..
-..KWKKWWWWWWKKWK..
-..KWWWKKWWKKWWWK..
-..KWGGGWWWWGGGWK..
-..KWWGKWWWWKGWWK..
-..KKWWWKWWKWWWKK..
-..KWKKKKKKKKKKWK..
-..KWKWDDDDDDWKWK..
-..KWKDWDDDDWDKWK..
-..KWKKKKKKKKKKWK..
-...KWWWWWWWWWWK...
-....KWWWWWWWWK....
-.....KKKKKKKK.....
+.R.........
+.RR........
+.RRR.......
+..RRR...RRR
+...RRRRRRRR
+...RRRRRRRK
+...RKKRRRRK
+..RRRRKKKRR
+..RRWWRKKKK
+..RRWKKRRRR
+..RRRRRRRRK
+...RRRRRRKK
+...RRRRRRRR
+..RRKKKKKKK
+..RRKWKKKKK
+..RRKWWKKKK
+..RRKKKKKWK
+...RRKKKWWK
+...RRRRRRRR
+.....RRRRRR
 """, """
-..G............G..
-.GG............GG.
-.GG...KKKKKK...GG.
-.GGGKKKKKKKKKKGGG.
-..GGKKKKWWKKKKGG..
-..KKKKKWWWWKKKKK..
-..KWKKWWWWWWKKWK..
-..KWWWKKWWKKWWWK..
-..KWGGGWWWWGGGWK..
-..KWWGGWWWWGGWWK..
-..KKWWWKWWKWWWKK..
-..KWKKKKKKKKKKWK..
-..KWKWDDDDDDWKWK..
-..KWKDDDDDDDDKWK..
-..KWKDWDDDDWDKWK..
-...KKKKKKKKKKKK...
-....KWWWWWWWWK....
-.....KKKKKKKK.....
+.R.........
+.RR........
+.RRR.......
+..RRR...RRR
+...RRRRRRRR
+...RRRRRRRK
+...RKKRRRRK
+..RRRRKKKRR
+..RWWWWKKKK
+..RRWWKRRRR
+..RRRRRRRRK
+...RRRRRRKK
+..RRKKKKKKK
+..RRKWKKKKK
+..RRKWWKKKK
+..RRKWKKKKK
+..RRKKKKKKK
+..RRKKKKKWK
+...RRKKKWWK
+....RRRRRRR
 """),
     "light": ("""
-......GGGGGG......
-....GG..KK..GG....
-...G...KGGK...G...
-..G...KKKKKK...G..
-.G...KKKKKKKK...G.
-.G..KKKKKKKKKK..G.
-G..KKKKWWWWKKKK..G
-G..KKWWWWWWWWKK..G
-G..KKWWWDDWWWKK..G
-G..KWWWWWWWWWWK..G
-.G.KWKKKWWKKKWK.G.
-.G.KWWWWWWWWWWK.G.
-..GKWWWWWWWWWWKG..
-...KWWWWWWWWWWK...
-...KKWWWDDWWWKK...
-...KKWWWWWWWWKK...
-...KK.KWWWWK.KK...
-...KK..KKKK..KK...
+.......NNNN
+.....NN...K
+....N....KK
+...N.....KK
+..N....KKKK
+..N..KKKKKK
+.N..KKKKKK.
+.N..KKKK...
+.N.KKKK...R
+.N.KKK.....
+N..KK..KKK.
+N..KK......
+.N.KK......
+.N.KK......
+..NKK....RR
+...KKK.....
+NN.KKKK....
+.NKKKKKK...
+N.KKKKKKKKK
+NNKKKKKKKKK
 """, """
-......GGGGGG......
-....GG..KK..GG....
-...G...KGGK...G...
-..G...KKKKKK...G..
-.G...KKKKKKKK...G.
-.G..KKKKKKKKKK..G.
-G..KKKKWWWWKKKK..G
-G..KKWWWWWWWWKK..G
-G..KKWWWDDWWWKK..G
-G..KWWWWWWWWWWK..G
-.G.KWKGKWWKGKWK.G.
-.G.KWWWWWWWWWWK.G.
-..GKWWWWWWWWWWKG..
-...KWWWWWWWWWWK...
-...KKWWDWWDWWKK...
-...KKWWWDDWWWKK...
-...KK.KWWWWK.KK...
-...KK..KKKK..KK...
+.......NNNN
+.....NN...K
+....N....KK
+...N.....KK
+..N....KKKK
+..N..KKKKKK
+.N..KKKKKK.
+.N..KKKK...
+.N.KKKK...R
+.N.KKK.....
+N..KK..K.K.
+N..KK..KKK.
+.N.KK......
+.N.KK......
+..NKK...R..
+...KKK...RR
+NN.KKKK....
+.NKKKKKK...
+N.KKKKKKKKK
+NNKKKKKKKKK
 """),
 }
 
 
-# the dial's middle at rest (kawa-panel, quick settings): the mood's face drawn for it, 56 × 56 at
-# 1 px — its left half here, mirrored when built (a face is symmetric to the pixel); the open face
-# (the panel is open): the hannya roaring after Hokusai's Warai Hannya — ringed gold horns, the
-# brows sloping up in anguish, glaring gold eyes, a fanged grin in lacquer —, the tennin serene in
-# a gold nimbus — a pinned bun, long hair, the urna, gold irises, a small smile, a gold-edged collar
-FACE_BIG = {
-    "dark": """
-........KK..................
-.......KGGK.................
-.......KGGGKK...............
-........KGGKKK..............
-........KKKGGGK.............
-........KGGGGGGK............
-.........KGGGGKKK...........
-.........KGGKKGGGK..........
-..........KKGGGGGK......KKKK
-.........KGGGGGGGGK.KKKKWWWW
-..........KGGGGGKKKKWWWWWKKW
-..........KGGGKKKGGWWWWWKKWW
-..........KGKKKGGWWWWWKKKWKW
-...........KGGGGWWWWWKKWKKWW
-............KGGWWWWKKKWKKKWW
-.............KKWWWKKWWKKKKKW
-.............KKKKKKWKKKKKKKW
-............KKKWWWWWKKKKKKWW
-...........KKKKWWWWKKKKKKWWW
-..........KKKKWWWKKKKKKWWWWW
-.........KWKKKWWKKKKKWWWWWWW
-.........KWKKWKKKKKKWWWWWWWW
-.........KKKKKKKKKWWWWWWWWWW
-........KWKKKKKKWWWWWWWWWWWW
-........KWKKKKWKKKKKKKKWWWWW
-........KWKKWWKKGGGGGGKKWWWW
-........KWWWWKKGGGGGGGGKKWKW
-........KWWWKKGGGGGGGGGGGKWW
-.......KWWWWWGGGGGGGGGGGWKWW
-.......KWWWWWWGGGGGGGGGWWKWW
-.......KWWWWWWKKKKKKKKKWKKWW
-.......KWWWWWWWWWWWWWWWKKKWW
-.......KWWWWWWWWWWKKKWKKKKKW
-.......KWWWWWWWWWKKWWKKKKKKW
-........KWWWWWWKKWWWWWKKKWWW
-........KWWWWWKKWWWWWWWWWWWW
-........KWWWKGGGGGGGGGGGGGGG
-........KWWGGGDDWWWWWWWWWWWW
-.........KGGWWWDWWWWWWWWWWWW
-..........DDWWWDDDDDDDDDDDDD
-.........KWDWWWDDDDDDDDDDDDD
-..........KDWWWDDDDDDDDDDDDD
-...........DDWDDDDDDDDDDDDDD
-............DWDDDWDDDDDDDDDD
-...........KGWDDDWWDDDDDDDDD
-............KGDDDWWDDDDDDDDD
-.............KGDDWWDDDDDDDDD
-..............KGDWWWDDDDDDDD
-...............KGWWWWWDDDDDD
-................KGGGGGGGGGGG
-.................KKWWWWWWWWW
-...................KKWWWWWWW
-.....................KKKKKKK
-.......................KWWWW
-........................KKWW
-..........................KK
-""",
-    "light": """
-.......................GGGGG
-...................GGGGGGGGG
-.................GGGGGG.GGGG
-...............GGGGG..GGKKKK
-.............GGGG.....GKKKKK
-............GGG.......KKKKKK
-...........GGG........KKKKKK
-.........GGGG.........KKKKKK
-........GGG...........KKKKKK
-........GG.............KKKKK
-.......GGG..............KKKK
-......GGG..........KKKKKKKKK
-.....GGG..........KKKKKKKKKK
-.....GG..........KKKKKKKKKKK
-....GGG.........KKKKKKKKKKWW
-....GG.........KKKKKKKKWWWWW
-....GG.........KKKKKKKWWWWWW
-...GG.........KKKKKKKWWWWWWW
-...GG.........KKKKKKWWWWWWWW
-...GG.........KKKKKWWWWWWWWW
-..GGG........KKKKKWWWWWWWWWD
-..GG.........KKKKKWWWWWWWWWD
-..GG.........KKKKKKKKKKKKWWW
-..GG........KKKKKKWWWWWWWWWW
-..GG........KKKKKWWWKKKKKWWW
-..GG........KKKKKWWWKWWWWKWW
-..GG........KKKKKWKKWWGGWWKW
-..GG........KKKKKWWWWWGKWWWW
-..GG........KKKKKWWWKKKKKWWW
-..GGG......KKKKKKWWWWWWWWWWW
-...GG......KKKKKKWWWWWWWWWWW
-...GG......KKKKKKWWWWWWWWWWW
-...GG......KKKKKKKWWWWWWWWWW
-....GG.....KKKKKKKWWWWWWWWWW
-....GG.....KKKKKKKWWWWWWWWKW
-....GGG....KKKKKKKWWWWWWWWWW
-.....GG....KKKKKK.KWWWWWWWWW
-.....GGG...KKKKKK.KWWWWWWWWW
-......GGG..KKKKKK..KWWDDDDDD
-.......GGG..KKKKK..KWWWWWWWW
-........GG..KKKKK...KWWWDDDD
-........GGG.KKKKK...KWWWWWWW
-.........GGGKKKKKK...KWWWWWW
-...........GKKKKKK....KWWWWW
-............KKKKKK.....KWWWW
-.............KKKKK.....KWWWW
-.............KKKKKGG...KWWWW
-..............KKKKKGGGGWWWWW
-..............KKKKKGGGGWWWWW
-...............KKKK.DGGDDWWW
-.................DDDDDGGGDDD
-..............DDDDDDDDDDGGGD
-............DDDDDDDDDDDDDDGG
-...........DDDDDDDDDDDDDDDDD
-..........DDDDDDDDDDDDDDDDDD
-............................
-""",
-}
-
-
-def face_big(m, p, half):
-    """The middle's face as a PNG: its half mirrored, in the faces' four inks (face())."""
-    return face(m, p, "\n".join(r + r[::-1] for r in half.strip("\n").split("\n")))
-
-def face(m, p, art):
-    """The face as a PNG, its own pixels only (the tile's paper shows through the rest)."""
-    ink = {"K": P["dark"]["lo"], "W": p["text_on_select"], "G": P["dark"]["yellow"], "D": p["select"]}
-    rows = art.strip("\n").split("\n")
+def head(m, p, half):
+    """The bar's head as a PNG: its half mirrored, in its inks, the tile's paper through the rest."""
+    ink = {"R": p["accent"], "N": p["accent"], "K": p["lo"] if m == "dark" else p["strong"], "W": p["strong"]}
+    rows = [r + r[::-1] for r in half.strip("\n").split("\n")]
     return png(len(rows[0]), len(rows), [[_rgb(ink[c]) if c != "." else (0, 0, 0, 0) for c in r] for r in rows])
 
 
@@ -681,9 +562,8 @@ def ornaments(m, p):
         "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
         "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
-        "face.png": face(m, p, FACES[m][0]),
-        "face-open.png": face(m, p, FACES[m][1]),
-        "face-big.png": face_big(m, p, FACE_BIG[m]),
+        "face.png": head(m, p, FACES[m][0]),
+        "face-open.png": head(m, p, FACES[m][1]),
         **{f"sky-{n}.png": sky(m, p, a) for n, a in SKY.items()},
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
@@ -733,9 +613,9 @@ def foot_block():
         out += [f"16={p['accent']}", f"17={p['text_on_accent']}", f"18={p['edge']}", f"19={p['edge2']}",
                 f"20={p['accent_text']}", f"21={p['muted']}", f"22={p['faint']}", f"23={p['strong']}",
                 f"24={p['select']}", f"25={p['text_on_select']}"]
-        # the prompt's four papers (26–29: the terminal's mark, the folder, git, the time and jobs —
-        # tools/wada-palette.py's paper_* tokens) and the ink its words take on them (30)
-        out += [f"{26 + i}={p['paper_' + k]}" for i, k in enumerate(("mark", "folder", "git", "time"))]
+        # the prompt's three papers (27–29: the folder, git, the time and jobs — tools/wada-palette.py's
+        # paper_* tokens) and the ink its words take on them (30)
+        out += [f"{27 + i}={p['paper_' + k]}" for i, k in enumerate(("folder", "git", "time"))]
         out += [f"30={p['lo'] if m == 'dark' else p['strong']}"]
     out.append("# <<< colours")
     return "\n".join(out)
@@ -1461,7 +1341,7 @@ def dwl_colors(m, p):
     ink = min(inks, key=lambda c: sum(int(c[i:i + 2], 16) for i in (0, 2, 4)))
     return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
             f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
-            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\n")
+            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['select']}ff\n")
 
 
 FILES = {

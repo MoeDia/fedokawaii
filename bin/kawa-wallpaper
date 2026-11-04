@@ -576,10 +576,11 @@ rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the pre
     done
 }
 
-keys() {   # the picker's last line (a blank one over it): r, the switch "change every 4 h", its state
-  local s=off
-  [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] && s=on
-  printf '\n%s' "$(screen_keys r 'change every 4 h' "$s")"
+keys() {   # the picker's last line (a blank one over it): the switch "change every 4 h" as a row: its box
+  # (lit while on), its words, its key at the right
+  local box=$ICON_BOX_OFF ink=$INK_MUTED
+  [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] && box=$ICON_BOX_ON ink=$INK_ACCENT_TEXT
+  printf '\n%s' "$(screen_row "$ink$box" 'change every 4 h' "${INK_MUTED}r$INK_OFF" "$W")"
 }
 
 case ${1:-menu} in

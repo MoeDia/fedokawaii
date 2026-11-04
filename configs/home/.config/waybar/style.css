@@ -6,7 +6,8 @@
    under it (two rows, a pixel further right each) and a column at its right — with the paper
    and its faint fibre inside: one frame, nothing inside it. tools/build-themes.py draws the
    pictures, per theme, exactly to their box —
-     the torii and the face  vermilion tiles at the two ends (lit: the brighter vermilion)
+     the torii               a vermilion tile at the left end (lit: the brighter vermilion)
+     the head                the mood's on the paper of the right end's tile
      the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
                              ink while it holds windows, asagi while it asks for you; the one
                              you are on stamped with the round vermilion seal (16 px), its
@@ -69,8 +70,8 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   padding: 3px 7px 3px 7px;
   margin: 0 0 0 3px;
 }
-/* the two ends' vermilion tiles: the torii and the mood's face (a demon, an angel), their emblems in the ground's ink */
-#custom-torii, #custom-menu {
+/* the left end's vermilion tile: the torii, its emblem in the ground's ink */
+#custom-torii {
   border-image: url("../fedokawaii/current/kami-red.png") 4 2 3 2 stretch;
   background-color: @kami-red;
   background-image: none;
@@ -78,17 +79,16 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 }
 #custom-torii { margin-left: 8px; padding-right: 8px; }   /* (the torii's ink fills its 16 columns) */
 #custom-menu  { margin-left: 11px; margin-right: 7px; }   /* (its right hairline on x 1911) */
-/* the mood's face, drawn (tools/build-themes.py FACES: 18 × 18, four inks), laid on the tile's
-   paper: a pixel of it above and below; across, its 29 px box leaves an odd pixel — to the right,
-   as every word's (paper either side of the hannya's ink 7 | 8, the tennin's 6 | 7). The
-   emblem's glyph keeps the tile's width, unseen */
+/* the mood's head, a woodblock's crest (tools/build-themes.py FACES: 22 × 20, the paper's rows whole),
+   on the tile's own paper over its fibre: across its 29 px box leaves an odd pixel — to the right, as
+   every word's. The emblem's glyph keeps the tile's width, unseen */
 #custom-menu {
-  background-image: url("../fedokawaii/current/face.png");
-  background-repeat: no-repeat;
-  background-position: 5px 1px;
+  background-image: url("../fedokawaii/current/face.png"), url("../fedokawaii/current/kami-fibre.png");
+  background-repeat: no-repeat, repeat;
+  background-position: 3px 0, 0 0;
   color: transparent;
 }
-#custom-menu.active { background-image: url("../fedokawaii/current/face-open.png"); }
+#custom-menu.active { background-image: url("../fedokawaii/current/face-open.png"), url("../fedokawaii/current/kami-fibre.png"); }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
 .tag { color: @faint; padding-right: 8px; }   /* (the numerals: 10 × 10, no air of their own) */
@@ -247,3 +247,7 @@ tooltip box, tooltip * { padding: 0; margin: 0; min-height: 0; min-width: 0; }
    padding is what is left of the design's: 8 of pad and the row's 3 above the line, one row and
    one column of it in the picture) */
 tooltip label { color: @text; padding: 6px 3px 8px 3px; margin: 0; }
+
+/* (a window title or what plays in a fallback face, Arabic, emoji, Thai, taller than ours: the bar keeps
+   its 27 rows, the words on their rows) */
+#custom-title, #custom-nowplaying { padding-top: 0; padding-bottom: 0; min-height: 20px; }

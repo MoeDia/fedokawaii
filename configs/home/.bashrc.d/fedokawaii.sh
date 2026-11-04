@@ -78,13 +78,15 @@ __kawa_glass() {
 unset -f __kawa_glass
 
 # ── prompt ──────────────────────────────────────────────────────────────────
-# One short line of paper blocks, a strip of stamps — the stamp edge of each reaching into the
-# next — and only a block's colour tells what it is:
+# The mood's head, then one short line of paper blocks, a strip of stamps — the stamp edge of each
+# reaching into the next — and only a block's colour tells what it is:
 #
-#   [>_ | repos/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
-#   [>_ | repos/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
+#   oni [repos/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
+#   oni [repos/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
 #
-#   >_       the terminal's mark, on Grenadine Pink: where a command line starts
+#   head     the demon in the vermilion ink in the dark mood, the angel in sumi in the light one (the bar's crest
+#            in one ink, three cells, the line's whole height): where a command line starts;
+#            the demon roars, the angel looks up, when the last command failed
 #   folder   the one you are in, after the one above it (~ at home, / at the root), on Cream
 #            Yellow — the whole path is the window's title, in the bar
 #   branch   in git, on Turquoise Green: its mark, the branch, * when anything is not committed
@@ -92,8 +94,8 @@ unset -f __kawa_glass
 #   the time when it took 3 s or more, and "jobs 1" while a program waits in the background,
 #            one block on Calamine Blue
 #   ›        the desktop's pixel chevron, in the vermilion ink every list's search line has
-# The papers are Wada's combination #300 (tools/wada-palette.py's paper_* tokens: foot's colours
-# 26–29, their ink 30, both moods); a block is its words with a space either side, the stamp edge a
+# The papers are from Wada's combination #300 (tools/wada-palette.py's paper_* tokens: foot's colours
+# 27–29, their ink 30, both moods); a block is its words with a space either side, the stamp edge a
 # cell of its own (art/icons.txt cap-stamp: the block before's paper over the next one's). A
 # narrow window gives up the time, then the jobs, then the branch, then the folder above, then
 # the folder's end. The line is the same once its command has run, so the history above reads as a column
@@ -130,7 +132,7 @@ __kawa_git() {
 if [[ $TERM == foot* ]]; then
   # shellcheck source=/dev/null
   . ~/.config/fedokawaii/icons.sh
-  __kawa_blocks=1 __i_torii="$ICON_TERMINAL " __i_mark="$ICON_CHEVRON_RIGHT " __i_branch="$ICON_BRANCH  " __i_w=2 __i_bw=3
+  __kawa_blocks=1 __i_mark="$ICON_CHEVRON_RIGHT " __i_branch="$ICON_BRANCH  " __i_w=2 __i_bw=3
   __i_cap=$ICON_CAP_STAMP __i_cap0=$ICON_CAP_STAMP_START
   __c_mark=$'\001\e[38;5;20m\002'
 else
@@ -145,6 +147,20 @@ __kawa_ok=1 __kawa_rc=0 __kawa_took='' __kawa_jobs='' __kawa_place='' __kawa_abo
 # __kawa_t0: when the command being run started (PS0 stamps it; 0: no command since the
 # last prompt — a new window, or Enter on an empty line)
 __kawa_t0=0
+
+# __kawa_head → the prompt's head for the mood of this moment (a theme switch reaches an open terminal
+# at its next prompt; the third line of colors.sh names it: read, not a fork) and the last result
+__kawa_head() {
+  local _ mood=''
+  { IFS= read -r _; IFS= read -r _; IFS= read -r mood; } 2>/dev/null <"$HOME/.config/fedokawaii/current/colors.sh"
+  if [[ $mood == THEME=light ]]; then
+    __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_KANNON $ICON_HEAD_KANNON_2"
+    ((__kawa_ok)) || __i_head="$ICON_HEAD_KANNON_OPEN $ICON_HEAD_KANNON_OPEN_2"
+  else
+    __c_head=$__c_mark __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
+    ((__kawa_ok)) || __i_head="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
+  fi
+}
 
 # __kawa_w TEXT → __w: the columns TEXT takes in foot — Japanese, Chinese and Korean
 # letters and emoji take two, so a folder or a branch named in them counts twice
@@ -184,12 +200,11 @@ __kawa_layout() {
   __kawa_w "$place"; pw=$__w; __kawa_w "$above"; aw=$__w; __kawa_w "$git"; gw=$__w
   ((gw)) && gw=$((gw + __i_bw))
   cw=${#code} tw=${#took} jw=${#jobs}
-  # the fixed part — foot: the mark's block (the line's edge, a space, the mark, a space), the
-  # folder's frame (its edge, a space either side) and the end (its edge, a space, the ›, a
-  # space); each other block its edge and a space either side. The console: the mark and its
-  # space, the two spaces and the › and its space
+  # the fixed part — foot: the head (three cells) and a space, the folder's frame (its edge, a
+  # space either side) and the end (its edge, a space, the ›, a space); each other block its edge
+  # and a space either side. The console: the mark and its space, the two spaces and the › and its space
   local fixed=$((2 * __i_w + 4)) gap=2
-  ((__kawa_blocks)) && fixed=$((2 * __i_w + 9)) gap=3
+  ((__kawa_blocks)) && fixed=$((__i_w + 10)) gap=3
   # (the time and the jobs: one block on its paper in foot — two blocks on one paper would lose
   # the edge between them —, two parts on the console)
   local extra=$(( (gw ? gw + gap : 0) + (cw ? cw + gap : 0) )) sw
@@ -200,8 +215,8 @@ __kawa_layout() {
   ((fixed + aw + pw + extra + sw > c)) && above='' aw=0
   while ((fixed + pw + extra + sw > c && ${#place} > 1)); do place=${place:0:-1}; __kawa_w "$place"; pw=$__w; done
   if ((__kawa_blocks)); then
-    __kawa_line='' __kawa_prev=''
-    __kawa_blk 26 30 "$__i_torii"
+    __kawa_head
+    __kawa_line="$__c_head$__i_head$__c_off " __kawa_prev=''
     __kawa_blk 27 30 "$above$place"
     [[ -n $git ]] && __kawa_blk 28 30 "$__i_branch$git"
     [[ -n $code ]] && __kawa_blk 24 25 "$code"                 # (the lacquer and its cream: 7.9 : 1 and more)

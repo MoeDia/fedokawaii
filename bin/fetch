@@ -18,7 +18,7 @@
 # Pure bash reading /proc and /etc: nothing to install, prints in a few milliseconds.
 set -u
 
-# ── the pictures: 20 × 16 pixels, one letter per pixel ('.' = transparent); the first
+# ── the pictures: 20 × 16 pixels (the two heads, the bar's crests: 22 × 20), one letter per pixel ('.' = transparent); the first
 #    entry of each is its palette, letter=colour ─────────────────────────────────────
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_neko=(
@@ -222,53 +222,62 @@ ART_ramen=(
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_oni=(
-  "O=2d251e R=eb5324 r=82241f Y=e2b540 W=f5ecc2 w=d4bf9a K=111314"
-  "..O..............O.."
-  ".OWO............OWO."
-  ".OwWO..........OWwO."
-  "..OwWOOOOOOOOOOWwO.."
-  "...ORRRRRRRRRRRRO..."
-  "..ORRRRRRRRRRRRRRO.."
-  ".ORRrrRRRRRRRRrrRRO."
-  ".ORRRrrRRRRRRrrRRRO."
-  ".ORRYYKRRRRRRKYYRRO."
-  ".ORRRYYRRRRRRYYRRRO."
-  ".ORRRRRRrrrrRRRRRRO."
-  ".ORRKKKKKKKKKKKKRRO."
-  ".ORRKWKKKKKKKKWKRRO."
-  "..ORRKKKKKKKKKKRRO.."
-  "...ORRRRRRRRRRRRO..."
-  "....OOOOOOOOOOOO...."
+  "R=eb5324 K=181715 W=f5ecc2"
+  ".R..................R."
+  ".RR................RR."
+  ".RRR..............RRR."
+  "..RRR...RRRRRR...RRR.."
+  "...RRRRRRRRRRRRRRRR..."
+  "...RRRRRRRKKRRRRRRR..."
+  "...RKKRRRRKKRRRRKKR..."
+  "..RRRRKKKRRRRKKKRRRR.."
+  "..RRWWRKKKKKKKKRWWRR.."
+  "..RRWKKRRRRRRRRKKWRR.."
+  "..RRRRRRRRKKRRRRRRRR.."
+  "...RRRRRRKKKKRRRRRR..."
+  "...RRRRRRRRRRRRRRRR..."
+  "..RRKKKKKKKKKKKKKKRR.."
+  "..RRKWKKKKKKKKKKWKRR.."
+  "..RRKWWKKKKKKKKWWKRR.."
+  "..RRKKKKKWKKWKKKKKRR.."
+  "...RRKKKWWKKWWKKKRR..."
+  "...RRRRRRRRRRRRRRRR..."
+  ".....RRRRRRRRRRRR....."
 )
 # shellcheck disable=SC2034  # read through the nameref in picture()
 ART_tennin=(
-  "O=2d251e Y=e2b540 K=121b1b W=f5ecc2 w=d4bf9a R=eb5324 A=82c1b4 a=00978d"
-  ".....YYYYYYYYYY....."
-  "...YY..........YY..."
-  "..Y....KKKKKK....Y.."
-  ".Y...KKKKKKKKKK...Y."
-  ".Y..KKKKKKKKKKKK..Y."
-  "Y..KKKOOOOOOOOKKK..Y"
-  "Y..KKOWWWWWWWWOKK..Y"
-  "Y..KOWKKWWWWKKWOK..Y"
-  ".Y.KOWWWWWWWWWWOK.Y."
-  ".Y..OWWWWwwWWWWO..Y."
-  "..Y.OWWWWRRWWWWO.Y.."
-  "...YYOWWWWWWWWOYY..."
-  "....AAOOWWWWOOAA...."
-  "..AAa..OOOOOO..aAA.."
-  ".Aa..............aA."
-  "A..................A"
+  "K=121b1b N=a84222 R=a84222"
+  ".......NNNNNNNN......."
+  ".....NN...KK...NN....."
+  "....N....KKKK....N...."
+  "...N.....KKKK.....N..."
+  "..N....KKKKKKKK....N.."
+  "..N..KKKKKKKKKKKK..N.."
+  ".N..KKKKKK..KKKKKK..N."
+  ".N..KKKK......KKKK..N."
+  ".N.KKKK...RR...KKKK.N."
+  ".N.KKK..........KKK.N."
+  "N..KK..KKK..KKK..KK..N"
+  "N..KK............KK..N"
+  ".N.KK............KK.N."
+  ".N.KK............KK.N."
+  "..NKK....RRRR....KKN.."
+  "...KKK..........KKK..."
+  "NN.KKKK........KKKK.NN"
+  ".NKKKKKK......KKKKKKN."
+  "N.KKKKKKKKKKKKKKKKKK.N"
+  "NNKKKKKKKKKKKKKKKKKKNN"
 )
 NAMES=(oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
 
 rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
 
-LOGO=()
+LOGO=() LOGO_W=0
 picture() {   # picture NAME — two pixel rows → one line of ▀ / ▄ cells (fg = upper, bg = lower)
   local -n art="ART_$1"
   local -A pal=()
   local kv y x top bot t b line
+  LOGO_W=${#art[1]}
   for kv in ${art[0]}; do pal[${kv%%=*}]=${kv#*=}; done
   for ((y = 1; y < ${#art[@]}; y += 2)); do
     line=""
@@ -331,7 +340,7 @@ if (($#)); then pick=$1; elif [[ $THEME == light ]]; then pick=tennin; else pick
 [[ $pick == random ]] && pick=${NAMES[RANDOM % ${#NAMES[@]}]}
 [[ " ${NAMES[*]} " == *" $pick "* && $# -le 1 ]] || { echo "fetch: pictures are: ${NAMES[*]}" >&2; exit 2; }
 [[ $TERM == foot* || ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]] && picture "$pick"
-# the picture only where its lines fit (2 + 20 + 3 columns before the facts): in a narrower
+# the picture only where its lines fit (2 + its width + 3 columns before the facts): in a narrower
 # terminal the facts would wrap into the picture's next row — so then the facts alone.
 # The width: bash looks it up (on stderr's terminal) after a child process ends —
 # checkwinsize, here a subshell; not known (stderr elsewhere), the picture stays
@@ -341,10 +350,15 @@ if ((${#LOGO[@]})) && [[ -t 1 ]]; then
   for i in "${INFO[@]}"; do
     i=${i//$'\e'\[*([0-9;])m/}; ((${#i} + 1 > w)) && w=$((${#i} + 1))   # (+1: the icon is two wide)
   done
-  ((${COLUMNS:-0} > 0 && 25 + w > COLUMNS)) && LOGO=()
+  ((${COLUMNS:-0} > 0 && LOGO_W + 5 + w > COLUMNS)) && LOGO=()
 fi
 echo
-for i in "${!INFO[@]}"; do
-  if ((${#LOGO[@]})); then printf '  %s   %s\n' "${LOGO[i]}" "${INFO[i]}"
-  else printf '  %s\n' "${INFO[i]}"; fi
-done
+if ((${#LOGO[@]})); then
+  top=$(((${#LOGO[@]} - ${#INFO[@]}) / 2))   # (a taller picture: the facts in the middle of it)
+  for i in "${!LOGO[@]}"; do
+    f=''; ((i >= top)) && f=${INFO[i - top]:-}
+    printf '  %s   %s\n' "${LOGO[i]}" "$f"
+  done
+else
+  for i in "${!INFO[@]}"; do printf '  %s\n' "${INFO[i]}"; done
+fi

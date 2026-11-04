@@ -25,7 +25,7 @@
 #     --repo-art the repository's drawn files in place of the installed ones: icons.sh, the icon
 #                fonts, the theme folders (what build-icons.py and build-themes.py just wrote),
 #                Sumi UI (build-fonts.py's), waybar's and mako's configs, the text screens'
-#                grammar (screen.sh, fzf.opts)
+#                grammar (screen.sh, fzf.opts), the shell's prompt
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
@@ -75,7 +75,12 @@ find "$HOME/.local/state/fedokawaii" -maxdepth 1 -type f -size -4k ! -name '*.lo
 rm -rf "$h/.local/state/fedokawaii/for-you"
 cp -a "$HOME/.bashrc" "$h/" 2>/dev/null
 [[ -d $HOME/.bashrc.d ]] && cp -a "$HOME/.bashrc.d" "$h/"
-ln -s "$HOME/.local/bin" "$h/.local/bin"
+if [[ -n $bin ]]; then   # (--bin: first for a login shell too: ~/.bashrc puts ~/.local/bin first; never writes through to the real one)
+  mkdir -p "$h/.local/bin"
+  for f in "$HOME"/.local/bin/* "$bin"/*; do ln -sf "$f" "$h/.local/bin/"; done
+else
+  ln -s "$HOME/.local/bin" "$h/.local/bin"
+fi
 # (the launcher's entries as the session has them — the theme's overrides hide Foot, Foot Server
 # and the rest: without them the kit's launcher listed what the live one never shows)
 [[ -d $HOME/.local/share/applications ]] && cp -a "$HOME/.local/share/applications" "$h/.local/share/"
@@ -91,18 +96,15 @@ if ((repo_art)); then
   cp "$repo"/configs/home/.local/share/fonts/SumiIcons*.ttf "$h/.local/share/fonts/"
   cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
   cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$h/.config/fedokawaii/"
+  mkdir -p "$h/.bashrc.d" && cp "$repo/configs/home/.bashrc.d/fedokawaii.sh" "$h/.bashrc.d/"
   # (fzf.opts as theme.sh writes it: its prompt's chevron filled in)
   sed "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
     "$repo/configs/home/.config/fedokawaii/fzf.opts" >"$h/.config/fedokawaii/fzf.opts"
   cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
   rm -rf "$h/.config/waybar" "$h/.config/mako"
   cp -a "$repo/configs/home/.config/waybar" "$repo/configs/home/.config/mako" "$h/.config/"
-  # (quick settings' crest pictures: the repository's masks)
-  mkdir -p "$h/.local/share/fedokawaii" && cp -a "$repo/configs/home/.local/share/fedokawaii/crests" "$h/.local/share/fedokawaii/"
 else
   ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
-  [[ -d $HOME/.local/share/fedokawaii/crests ]] &&
-    mkdir -p "$h/.local/share/fedokawaii" && cp -a "$HOME/.local/share/fedokawaii/crests" "$h/.local/share/fedokawaii/"
 fi
 if [[ -n $themes ]]; then
   [[ -d $themes/.config/fedokawaii/themes ]] || { echo "kit: --themes: no build-themes tree at $themes" >&2; exit 2; }

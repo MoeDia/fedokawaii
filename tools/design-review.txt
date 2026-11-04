@@ -1,0 +1,42 @@
+# The pages of the owner's design review (tools/design-review.sh), in the order a day meets them:
+# NAME | SHOT | HOW | NOTE (what it is, its key, what to judge). HOW: ink · bar · full · masters MOOD.
+desktop | desktop | full | The whole desktop: the mood's wallpaper, the bar, three tiled windows (fetch and the prompt, Neovim, yazi), the window frames. Judge the whole first: is this one world, both moods? Open a picture for its real size.
+bar | desktop | bar | The bar at 27 px, fully floating, 1×, in three strips: dark, then light, then the live one on your PC now (the kit has no sound, weather or keyboard tiles). The clock to the minute, the lantern for brightness. The head is being redrawn in ink.
+launcher | launcher | ink | Super+Space: the launcher. Judge the rows, the mark column, the highlight.
+launcher-sum | launcher-sum | ink | The launcher reckoning (15% of 2400): the answer as its first row.
+quick | quick | ink | Quick settings (the head on the bar, Super+X): the plain menu as it stands; lane-pixels is making it the small masterpiece of your 18:49 note.
+quick-over-desk | desktop-quick | full | Quick settings over the desktop: its place and weight against real windows.
+sound | sound-real | ink | Sound (from the bar's speaker): outputs and the meter.
+brightness | brightness | ink | Brightness (the bar's sun): the slider, turning red when high.
+dnd | dnd | ink | Do not disturb, its one small menu.
+calendar | calendar | ink | Super+C: the calendar, under the date.
+timer | timer | ink | The timer, from the bar's clock.
+drives | drives | ink | Drives, from the bar.
+downloads | downloads | ink | Downloads, from the bar. The progress drawn inside the bar's icon comes with the new browser.
+power | power | ink | Power, from the bar.
+help | help | ink | Super+/: every key, fuzzy, the focused app's keys first.
+level | level | ink | The level display (volume keys and brightness keys).
+notice | notice | ink | A notice.
+notice-critical | notice-critical | ink | A notice that matters: the stronger ink, stays until dismissed.
+system-0 | system-0 | ink | Super+U, first tab.
+system-1 | system-1 | ink | Super+U, second tab.
+system-2 | system-2 | ink | Super+U, third tab.
+system-3 | system-3 | ink | Super+U, fourth tab.
+system-4 | system-4 | ink | Super+U, fifth tab.
+clipboard | clipboard | ink | Super+V: the clipboard.
+wallpaper-picker | wallpaper-real | ink | Super+W: the wallpapers, the four-hour key at the bottom.
+books | books-real | ink | Super+R: the books.
+files-dialog | files | ink | The file dialog (yazi inside): what a browser's "open" shows.
+calculator | calculator-real | ink | The calculator (kawa-calc).
+git | git-real | ink | The git screen (kawa-git).
+terminal | terminal-real | ink | A terminal: foot, UDEV Gothic, the prompt with the mood's head (the ink head comes with lane-ink), Wada's papers.
+yazi | yazi | ink | Super+E: yazi rebuilt on its engine. Its pop-ups (rename, delete, help) are still yazi's rounded ones in this pack: a patched yazi from source is the next build.
+btop | btop | ink | btop, themed.
+notes | notes-typed | ink | Super+N: the lined notebook, the vermilion margin rule. Judge the page, its margins, the head and the foot.
+todo | todo | ink | Tab in Super+N: the to-do page, a box to tick, struck through when done.
+pdf | pdf | ink | The Learn book in zathura.
+wallpapers-dark | - | masters dark | The old masters as 640 × 360 pixel art, dark (demons, Kuniyoshi, Hokusai, Korin ...), each shown ×3 on your screen. Say which to drop by name. Art is still being tuned (tones, a few crops).
+wallpapers-light | - | masters light | The old masters, light (tennin, Kannon, raigo ...). Same questions.
+saver | saver | full | The saver: the lock's scene asleep, flames, embers or gold dust, the time in another corner every minute. With today's lock art until the new one is merged; lane-saver goes on from here.
+lock | lock | full | The lock as on your PC today, until lane-art's and lane-ink's art is merged: then the gate (see the art pages at the top). The greeter is its twin.
+lock-typed | lock-typed | ink | Typing on the lock: the marks in the mouth (dark) and before the angel (light).
