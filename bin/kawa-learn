@@ -1172,7 +1172,8 @@ class App:
                 self.move(-1 if b & 1 == 0 else 1)
             return
         hit = None
-        if 4 <= y < 4 + self.list_height():
+        x0, lw, _ = self.shape()
+        if 4 <= y < 4 + self.list_height() and x0 - 1 <= x <= x0 + lw:     # (the list's rows, not the pane beside them)
             at = self.top + y - 4
             if at < len(self.rows_shown) and self.rows_shown[at][0] == "lesson":
                 hit = self.rows_shown[at][1]

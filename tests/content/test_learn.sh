@@ -176,6 +176,7 @@ case_ "the mouse in the list: the pointer's row lit, one click opens it, the whe
 s=$(pty 118x30 '\x1b[<35;20;7M' '!dump' '\x1b[<0;20;7M' '!dump' | screens); has "$s" "lesson"
 out=$(pty 118x30 '\x1b[<64;20;7M' '\x1b[<65;20;7M' '\x1b[<0;18;2M' '\x1b[<0;18;2m' '!dump' | screens); has "$out" "the desktop"
 grep -c '1000;1003;1006l' "$REPO/bin/kawa-learn" >/dev/null && _ok || _no "a page must take the mouse off"
+s=$(pty 118x30 '\x1b[<0;100;8M' '\x1b[<0;100;8m' '!dump' | screens); has "$s" "takes" "a click on the pane opened a lesson"
 case_ "b: the whole book, on its own"
 stub setsid
 pty 118x30 b >/dev/null; called "^setsid -f zathura $KAWA_LEARN/../Fedokawaii-Learn.pdf$|^setsid -f zathura .*Fedokawaii-Learn.pdf$"
