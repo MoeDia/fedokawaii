@@ -110,7 +110,7 @@ ring() {
 
 # ── the bar ─────────────────────────────────────────────────────────────────────
 bar() {
-  local cell=${1:-time} w=$RUN/kawa-bar.wake.$$ fd k a b c s t now line last="" us frac cls tm left
+  local cell=${1:-time} w=$RUN/kawa-bar.wake.$$ fd k a b c s t now line last="" us frac cls tm
   # shellcheck source=kawa-bar
   . "${BASH_SOURCE[0]%/*}/kawa-bar"                 # bar_lit (bash alone)
   trap 'exit 0' TERM HUP INT PIPE                 # (waybar closing it: its fifo goes too)
@@ -120,7 +120,7 @@ bar() {
   mkfifo -m 600 -- "$w" && exec {fd}<>"$w" || return 1
   trap 'rm -f -- "$w"' EXIT
   while :; do
-    printf -v now '%(%I:%M %p)T' -1
+    printf -v now '%(%I:%M:%S %p)T' -1
     tm="" cls=""
     # (the colours are style.css's: vermilion left, asagi gone by — the classes say which)
     if [[ $cell == timer ]] && read -r k a b c 2>/dev/null <"$STATE" && [[ $a =~ ^[0-9]+$ ]]; then
@@ -144,11 +144,9 @@ bar() {
     # the timer's cell with none running: nothing ticks — it waits for a wake (every start,
     # stopwatch and cancel wakes all the bars), not once a second
     if [[ $cell == timer && -z $tm ]]; then read -r -u "$fd" _; continue; fi
-    # to the next whole second (a timer running) or minute (the clock: no seconds, nothing ticks
-    # at the eye), with no process started: a read that times out (or a wake)
+    # to the next whole second, with no process started: a read that times out (or a wake)
     us=${EPOCHREALTIME#*.}; us=$((1000000 - 10#$us)); printf -v frac '%06d' $((us % 1000000))
-    left=0; [[ $cell == timer ]] || left=$((59 - EPOCHSECONDS % 60))
-    read -r -t "$((us / 1000000 + left)).$frac" -u "$fd" _
+    read -r -t "$((us / 1000000)).$frac" -u "$fd" _
   done
 }
 
