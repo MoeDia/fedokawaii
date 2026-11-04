@@ -10,3 +10,9 @@ and like i said the demon and angel icon on the top bar needs to look unique and
 
 ## 2026-11-04 17:10 — general — comment — in the plan: T19q 8
 and yea the stuff i said about the lock screen for the demon the same idealogy applies for the angel lockscreen as well be smart
+
+## 2026-11-04 17:16 — general — comment — in the plan: T19q 1, lane-art
+the demon and the angel are still ugly icons i want them more detailed more badass samurai style EPIC and also the same for their fetch icons as well
+
+## 2026-11-04 17:17 — general — comment — in the plan: T19q 5
+and for the animation change also the window closing as well

@@ -34,3 +34,9 @@ Owner: three parallel lanes run for 6 h on branches lane-chess (T25), lane-typin
 
 ## 2026-11-04 17:04 — in the plan: T29 (magnet links: add and copy, easily)
 and yea regarding the torrents app i want a proper way to add and extract magnet links super easily properly nicely
+
+## 2026-11-04 17:17 — in the plan: T25m (T29, T30, T28, T27, notes for T31a and T36–T39 marked theirs)
+Owner: five more lanes run for 6 h: lane-torrents (T29 + the 17:04 magnet note), lane-nvim (T30), lane-firealpaca (T28), lane-learning (T27), lane-research2 (notes for T31a, T36, T37, T38, T39). Mark those tasks as theirs, review and merge each when its .claude/notes/lane-<name>.md says DONE (T25m), never redo their work.
+
+## 2026-11-04 17:24 — in the plan: T19r (§2, 3, 6, 7), T25m (lane-art: §1, 4, 8)
+Owner asked Claude (chat) for a deep art direction: .claude/notes/art-direction-claude.md. lane-art owns its sections 1, 4, 8 (the heads character sheet, the wallpapers, the lock art) — do not redo those; main takes sections 2, 3, 5, 6 (bar ground and gaps, opaque windows, quick settings geometry and caption, Super+U) inside T19q/T19m, and section 7 as two drawn options for the owner. The owner's verdicts on his page override all of it. Show every change in the next review pack.
