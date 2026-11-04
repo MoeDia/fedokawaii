@@ -15,6 +15,8 @@
 #   bash tools/vm-iso-test.sh install NAME [PASSWORD]  the questions answered through the screens
 #   bash tools/vm-iso-test.sh watch NAME DIR [SECONDS] the display as PNGs, one each time it changes, until stopped
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
+#   bash tools/vm-iso-test.sh whole NAME ISO QCOW2 [--…] the owner's path, the final proof: a run with a drive of his
+#                                                      things in, then the update button, the lock, the log out, the facts
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
 #   bash tools/vm-iso-test.sh midway ISO DIR           an install cut off: the reset, the mirrors gone
@@ -278,9 +280,10 @@ do_follow() {
     ph=$(vm_ssh "$name" 'sudo head -n1 /var/lib/fedokawaii/phase 2>/dev/null') || continue
     if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; since=$SECONDS; fi
     [[ $ph == "done" ]] && break
-    # (FK_SLOW_BEFORE=N: until setup's phase N a slow, far line, again after every restart: passt has no shaping)
+    # (FK_SLOW_BEFORE=N: until setup's phase N a slow line, 3 MB/s, again after every restart: passt has no shaping,
+    # the installed system has no tc)
     if [[ -n ${FK_SLOW_BEFORE:-} && ( -z $ph || $ph -lt $FK_SLOW_BEFORE ) ]]; then
-      vm_ssh "$name" 'd=$(ip route show default | cut -d" " -f5 | head -n1); command -v tc >/dev/null && sudo tc qdisc replace dev "$d" root netem delay 100ms rate 20mbit' 2>/dev/null
+      vm_ssh "$name" 'sudo nft list table inet fkslow >/dev/null 2>&1 || { sudo nft add table inet fkslow && sudo nft "add chain inet fkslow in { type filter hook input priority -300; }" && sudo nft add rule inet fkslow in iifname "enp1s0" limit rate over 3 mbytes/second drop; }' 2>/dev/null
     fi
     # (FK_RESET_PHASE: the power pulled once, a minute into that phase: setup carries on by itself)
     if [[ ${FK_RESET_PHASE:-} == "$ph" ]] && ((SECONDS - since > 60)); then
@@ -435,6 +438,17 @@ do_path() {
   return "$rc"
 }
 
+# do_whole NAME ISO CARRY [--…] — the owner's whole path: a fresh VM, the ISO, his things back from a drive, the
+# update button, at the keyboard, what is left: a line a stage in the run's log, RED where it stopped
+do_whole() {
+  local name=$1 iso=$2 img=$3; shift 3
+  do_run "$name" "$iso" --usb "$img" "$@" || { stage "RED: the run"; return 1; }
+  do_path "$name" "$img" || { stage "RED: the path"; return 1; }
+  do_session "$name" || return 1
+  do_facts "$name" >"$R/facts.txt" 2>&1
+  stage "GREEN: the whole path. the facts: $R/facts.txt"
+}
+
 # do_midway ISO DIR — the two ways an install is cut off before its first restart: the reset (the stick starts
 # over and asks again: the one place something is asked twice, and nothing is on the disk yet that could keep an
 # answer) and the mirrors gone at the package step (our failure page, its words read)
@@ -507,8 +521,8 @@ do_matrix() {
     "${VIRSH[@]}" start "$n" >/dev/null || return 1
     if ((${#keys[@]})); then
       sleep 2
-      # (the firmware, then the kernel loaded before the menu shows: keys as soon as it does)
-      until do_shot "$n" "$V/$n/k.png" && python3 -I -c 'import sys; from PIL import Image; sys.exit(0 if Image.open(sys.argv[1]).convert("RGB").getpixel((5, 5)) == (24, 23, 21) else 1)' "$V/$n/k.png"; do sleep 1; ((SECONDS - t0 > 120)) && break; done
+      # (the firmware, then the kernel loaded before the menu shows: keys as soon as the plate's red edge is there)
+      until do_shot "$n" "$V/$n/k.png" && python3 -I -c 'import sys; from PIL import Image; sys.exit(0 if Image.open(sys.argv[1]).convert("RGB").getpixel((640, 700)) == tuple(int(sys.argv[2][i:i + 2], 16) for i in (0, 2, 4)) else 1)' "$V/$n/k.png" "$(sed -n "s/^ *3: '\(.*\)',.*/\1/p" "$V/.art/console/glyphs.py")"; do sleep 1; ((SECONDS - t0 > 120)) && break; done
       do_keys "$n" "${keys[@]}"
     fi
     if wait_words "$n" "$want" 180 2>/dev/null; then
@@ -552,6 +566,7 @@ case $cmd in
   over) name_ok "${1:-}"; do_over "$@" ;;
   session) name_ok "${1:-}"; do_session "$1" ;;
   path) name_ok "${1:-}"; do_path "$@" ;;
+  whole) name_ok "${1:-}"; [[ $# -ge 3 ]] || exit 2; do_whole "$@" ;;
   facts) name_ok "${1:-}"; do_facts "$1" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
