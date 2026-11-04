@@ -131,7 +131,9 @@ elif case == "clear":
     calls = []
     def rec_run(*cmd, timeout=None):
         calls.append(cmd)
-        out = "/dev/nvme0n1\n/dev/nvme0n1p1\n/dev/nvme0n1p2\n" if cmd[0] == "lsblk" else ""
+        out = ""
+        if cmd[0] == "lsblk":
+            out = "/dev/nvme0n1\n" if ("blockdev", "--rereadpt", "/dev/nvme0n1") in calls else "/dev/nvme0n1\n/dev/nvme0n1p1\n/dev/nvme0n1p2\n"
         return types.SimpleNamespace(stdout=out, returncode=0)
     q.run = rec_run
     q.ERASED = sys.argv[4] + "/erased"
