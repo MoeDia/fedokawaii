@@ -1003,7 +1003,7 @@ class LessonScreen(Screen):
         self.spans = wrap(self.run.text, max(self.chars - 1, 1))     # (its last space or Enter has a whole letter's room)
         self.drawn_line = -1
         self.feed = None
-        self.pic = self.kb = self.hands = None
+        self.pic = self.kb = self.hands = self.motes = None
         self.hand_state = None
         if self.scale:
             self.pic, self.kb, self.hands = pl.picture()
