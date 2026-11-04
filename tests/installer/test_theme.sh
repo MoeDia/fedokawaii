@@ -126,6 +126,17 @@ grep -q 'name="stylus"><attribute name="tool" type="string" value="eraser"' "$xp
 grep -q 'name="stylus2"><attribute name="tool" type="string" value="hand"' "$xpp" && _ok || _no "button 2: $(cat "$xpp" 2>/dev/null)"
 eq "$(fk stat -c %U "$H/.config/xournalpp/settings.xml")" fkuser
 
+case_ "FireAlpaca (Sketch): its skin built, its starting files there, yours, once"
+[[ -f $W$H/.local/lib/fedokawaii/kawa-firealpaca.so ]] && _ok || _no "kawa-firealpaca.so not built"
+fa=$W$H/.local/share/FireAlpaca/FireAlpaca
+for f in Palette.ini BrushNew.xml EraserNew.xml Config.ini Initialize.ini Language.ini; do
+  cmp -s "$fa/$f" "$REPO/configs/firealpaca/$f" && _ok || _no "$f is not the repo's"
+done
+eq "$(fk stat -c %U "$H/.local/share/FireAlpaca/FireAlpaca/Palette.ini")" fkuser
+[[ -e $W$H/.local/state/fedokawaii/firealpaca-seed ]] && _ok || _no "not recorded as done"
+[[ -s $W$H/.local/share/fedokawaii/firealpaca/blank.mdp && -s $W$H/.local/share/fedokawaii/firealpaca/icons/tool_brush.png ]] && _ok || _no "the blank page or the masks are not there"
+echo "my palette" >"$fa/Palette.ini"       # (it writes them itself from here on: the second run leaves them)
+
 # ── the second run, and --check ──────────────────────────────────────────────
 case_ "a second run: nothing changes, it says so, no new backup folder — and your theme switch stays"
 ln -sfn themes/dark "$W$H/.config/fedokawaii/current"        # (kawa-theme: you switched to dark,

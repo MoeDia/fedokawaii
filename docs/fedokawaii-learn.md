@@ -1381,8 +1381,6 @@ with a password, and shrink it.
 
 ## 20.2 Drawing: Sketch
 
-<!-- fig:sketch | Sketch (FireAlpaca) in the desktop's dress: the tool strip, Wada's colours, the brushes and the layers. -->
-
 **Sketch** in the launcher (**Super+Space**, type `sketch`) is FireAlpaca, a real painting program, on a new
 page the shape of the screen: `~/Pictures/Sketches/sketch DATE.mdp`. It opens with a page of its makers' news,
 which is how the free edition pays for itself: **Enter** closes it, and you are drawing.
@@ -1418,8 +1416,8 @@ as everywhere. FireAlpaca also saves as you work, into its own backup folder: *F
 Folder*.
 
 **Why this and not Xournal++?** Xournal++ is for writing on pages and PDFs (it still signs your PDFs, **Super+D**). A
-drawing wants more: brushes that behave like ink, pencil and watercolour, layers with blend modes, a stabiliser
-for shaky lines, rulers that snap (parallel, radial, perspective), symmetry, filters, even frame-by-frame animation.
+drawing wants more: brushes that behave like ink, pencil and watercolour, layers with blend modes and clipping,
+rulers that snap (parallel, radial, perspective), symmetry, filters, even frame-by-frame animation.
 
 **When something looks wrong.** The colours and panels follow the desktop, dark or light, even while it is open.
 A panel gone? **Tab**, or *Window* in the menu. All of this is in **Super+/** while you draw. The pen draws without pressure? It is the brush: click its small gear, then

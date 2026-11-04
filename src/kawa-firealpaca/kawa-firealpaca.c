@@ -60,8 +60,8 @@
 typedef struct { void *d; unsigned short *ptr; long size; } QString;   /* QArrayDataPointer<char16_t> */
 typedef struct { void *d; void **ptr; long size; } QPtrList;           /* QList<T*> */
 enum { RGB32 = 4, ARGB32 = 5 };
-enum { MODE_NORMAL, MODE_DISABLED, MODE_ACTIVE, MODE_SELECTED };
-enum { STATE_ON, STATE_OFF };
+enum { MODE_DISABLED = 1, MODE_SELECTED = 3 };                         /* QIcon::Mode */
+enum { STATE_OFF = 1 };                                                /* QIcon::State: On is 0 */
 enum { KAWA_EVENT = 1731 };                                            /* QEvent::User + 731 */
 #define OBJECT_BYTES 64                                                /* room for a QImage or QPixmap (32) */
 
@@ -72,7 +72,6 @@ static char home[PATH_MAX - 128];
 /* ── Qt's functions ───────────────────────────────────────────────────────────── */
 static struct {
 	void (*draw_image_r)(void *, const void *, const void *, const void *, int);
-	void (*draw_image_p)(void *, const void *, const void *);
 	void *(*device)(void *);
 	const char *(*class_name)(const void *);
 	int (*img_w)(const void *), (*img_h)(const void *), (*img_fmt)(const void *);
@@ -82,26 +81,16 @@ static struct {
 	void (*img_wrap)(void *, unsigned char *, int, int, long, int, void *, void *);
 	void (*img_free)(void *);
 	void (*img_convert)(void *, const void *, int, int);
-	void (*icon_new)(void *, const QString *);
-	void (*pixmap_new)(void *, const QString *, const char *, int);
-	void (*pixmap_copy)(void *, const void *);
 	void (*pixmap_assign)(void *, const void *);
 	void (*pixmap_free)(void *);
 	void (*pixmap_image)(void *, const void *);
 	void (*pixmap_from)(void *, const void *, int);
 	int (*pixmap_w)(const void *), (*pixmap_h)(const void *);
 	long (*icon_key)(const void *);
-	void (*icon_pixmap)(void *, const void *, const void *, double, int, int);
-	void (*icon_pixmap2)(void *, const void *, const void *, int, int);
-	void (*icon_pixmap3)(void *, const void *, void *, const void *, int, int);
-	void (*font_new)(void *, const QString *, int, int, bool);
 	void (*font_family)(QString *, const void *);
 	void (*font_pixels)(void *, int);
-	void (*font_points)(void *, int);
-	void (*font_weight)(void *, int);
 	void (*string_utf8)(QString *, long, const char *);
 	void (*array_free)(void *, long, long);
-	bool (*notify)(void *, void *, void *);
 	void (*set_sheet)(void *, const QString *);
 	void (*all_widgets)(QPtrList *);
 	void (*widget_update)(void *);
@@ -124,29 +113,20 @@ resolve(void)
 	struct { void *slot; const char *name; } t[] = {
 #define S(field, sym) { &qt.field, sym }
 		S(draw_image_r, "_ZN8QPainter9drawImageERK6QRectFRK6QImageS2_6QFlagsIN2Qt19ImageConversionFlagEE"),
-		S(draw_image_p, "_ZN8QPainter9drawImageERK7QPointFRK6QImage"),
 		S(device, "_ZNK8QPainter6deviceEv"),
 		S(class_name, "_ZNK11QMetaObject9classNameEv"),
 		S(img_w, "_ZNK6QImage5widthEv"), S(img_h, "_ZNK6QImage6heightEv"), S(img_fmt, "_ZNK6QImage6formatEv"),
 		S(img_cbits, "_ZNK6QImage4bitsEv"), S(img_bits, "_ZN6QImage4bitsEv"), S(img_bpl, "_ZNK6QImage12bytesPerLineEv"),
 		S(img_wrap, "_ZN6QImageC1EPhiixNS_6FormatEPFvPvES2_"), S(img_free, "_ZN6QImageD1Ev"),
 		S(img_convert, "_ZNK6QImage22convertToFormat_helperENS_6FormatE6QFlagsIN2Qt19ImageConversionFlagEE"),
-		S(icon_new, "_ZN5QIconC1ERK7QString"),
-		S(pixmap_new, "_ZN7QPixmapC1ERK7QStringPKc6QFlagsIN2Qt19ImageConversionFlagEE"),
-		S(pixmap_copy, "_ZN7QPixmapC1ERKS_"), S(pixmap_assign, "_ZN7QPixmapaSERKS_"), S(pixmap_free, "_ZN7QPixmapD1Ev"),
+		S(pixmap_assign, "_ZN7QPixmapaSERKS_"), S(pixmap_free, "_ZN7QPixmapD1Ev"),
 		S(pixmap_image, "_ZNK7QPixmap7toImageEv"),
 		S(pixmap_from, "_ZN7QPixmap9fromImageERK6QImage6QFlagsIN2Qt19ImageConversionFlagEE"),
 		S(pixmap_w, "_ZNK7QPixmap5widthEv"), S(pixmap_h, "_ZNK7QPixmap6heightEv"),
 		S(icon_key, "_ZNK5QIcon8cacheKeyEv"),
-		S(icon_pixmap, "_ZNK5QIcon6pixmapERK5QSizedNS_4ModeENS_5StateE"),
-		S(icon_pixmap2, "_ZNK5QIcon6pixmapERK5QSizeNS_4ModeENS_5StateE"),
-		S(icon_pixmap3, "_ZNK5QIcon6pixmapEP7QWindowRK5QSizeNS_4ModeENS_5StateE"),
-		S(font_new, "_ZN5QFontC1ERK7QStringiib"), S(font_family, "_ZNK5QFont6familyEv"),
-		S(font_pixels, "_ZN5QFont12setPixelSizeEi"), S(font_points, "_ZN5QFont12setPointSizeEi"),
-		S(font_weight, "_ZN5QFont9setWeightENS_6WeightE"),
+		S(font_family, "_ZNK5QFont6familyEv"), S(font_pixels, "_ZN5QFont12setPixelSizeEi"),
 		S(string_utf8, "_ZN7QString8fromUtf8E14QByteArrayView"),
 		S(array_free, "_ZN10QArrayData10deallocateEPS_xx"),
-		S(notify, "_ZN12QApplication6notifyEP7QObjectP6QEvent"),
 		S(set_sheet, "_ZN12QApplication13setStyleSheetERK7QString"),
 		S(all_widgets, "_ZN12QApplication10allWidgetsEv"), S(widget_update, "_ZN7QWidget6updateEv"),
 		S(post_event, "_ZN16QCoreApplication9postEventEP7QObjectP6QEventi"), S(event_new, "_ZN6QEventC1ENS_4TypeE"),
@@ -324,44 +304,49 @@ scratch_for(size_t px)
 }
 
 /* A layer's row is 40 px between its dark rules: the eye's cell, then the thumbnail, its shape the
- * picture's, in the 50 px after it (the name starts past them). The thumbnail stays the picture's
- * own; a folder's row (black on the row's fill: our mask) has none. Rows hang lower with each folder
- * they are in: the eye's cell says where. */
+ * picture's, in the 50 px after it (the name starts past them). The thumbnail, a framed rectangle
+ * (all four corners drawn), stays the picture's own; a folder's mask has corners of the row's fill.
+ * Rows hang lower with each folder they are in: the eye's cell says where. */
 static void
 layer_row(uint32_t *dst, const uint32_t *src, int w, int h, long stride, int top)
 {
-	int probe = top + 2 >= 0 ? top + 2 : top + 42, first = -1, eye = -1;
-	int mid = top + 20, x0 = w, x1 = -1, y0 = h, y1 = -1;
-	bool picture = false;
+	int probe = top + 2 >= 0 ? top + 2 : top + 42, eye = -1;
+	int x0 = -1, x1 = -1, y0 = -1, y1 = -1;
+	int ya = top + 2 > 0 ? top + 2 : 0, yb = top + 38 < h ? top + 38 : h;
 	uint32_t fill;
 
-	if (probe >= h || mid < 0 || mid >= h)
+	if (probe >= h || ya >= yb)
 		return;
-	for (int x = 0; x < w / 2; x++)
-		if ((src[probe * stride + x] & 0xffffff) == 0x202020) {
-			if (first < 0) {
-				first = x;
-				continue;
-			}
+	for (int x = 0; x < w / 2; x++)                      /* the last rule before the name: the eye's cell ends there */
+		if ((src[probe * stride + x] & 0xffffff) == 0x202020)
 			eye = x;
-			break;
-		}
-	if (eye < 0 || eye + 51 > w)
+	if (eye < 0 || eye + 53 > w)
 		return;
-	fill = src[mid * stride + eye + 3];
-	for (int y = top + 2 > 0 ? top + 2 : 0; y < top + 38 && y < h; y++)
-		for (int x = eye + 3; x < eye + 51; x++) {
-			uint32_t p = src[y * stride + x];
-			if (p == fill)
-				continue;
-			x0 = x < x0 ? x : x0;
-			x1 = x > x1 ? x : x1;
-			y0 = y < y0 ? y : y0;
-			y1 = y > y1 ? y : y1;
-			if (p & 0xffffff)
-				picture = true;
+	fill = src[probe * stride + eye + 52];
+	/* the frame's sides: the outermost columns drawn for 12 rows and more */
+	for (int x = eye + 3; x < eye + 52; x++) {
+		int drawn = 0;
+		for (int y = ya; y < yb; y++)
+			drawn += src[y * stride + x] != fill;
+		if (drawn >= 12) {
+			x0 = x0 < 0 ? x : x0;
+			x1 = x;
 		}
-	if (!picture)
+	}
+	if (x0 < 0 || x1 - x0 < 8)
+		return;
+	/* its top and foot: the outermost rows drawn from side to side (a checked thumbnail's inside is not) */
+	for (int y = ya; y < yb; y++) {
+		int drawn = 0;
+		for (int x = x0; x <= x1; x++)
+			drawn += src[y * stride + x] != fill;
+		if (drawn * 10 >= (x1 - x0 + 1) * 9) {
+			y0 = y0 < 0 ? y : y0;
+			y1 = y;
+		}
+	}
+	/* a frame is a mid grey over the picture's edge; our folder's mask, drawn the same shape, pure black */
+	if (y0 < 0 || y1 - y0 < 8 || !(src[y0 * stride + (x0 + x1) / 2] & 0xffffff))
 		return;
 	for (int y = y0; y <= y1; y++)
 		memcpy(dst + y * stride + x0, src + y * stride + x0, (size_t)(x1 - x0 + 1) * 4);
@@ -514,7 +499,9 @@ drawn_again(void *painter, const void *rect, const void *image, const void *sour
 				/* (a row of the selection: its black words and marks in the lacquer's ink. The row's
 				 * pixels left of its first blue are looked at again below) */
 				dst[y * stride + x] = k == LAYERS && (p & 0xffffff) == 0x202020 ? ink.edge
-					: lacquer && ((p & 0xc0c0c0) == 0 || (p & 0xffffff) == 0xff0000) ? ink.on_select : list_cached(p);
+					: lacquer && ((p & 0xc0c0c0) == 0 || (p & 0xffffff) == 0xff0000) ? ink.on_select
+					: lacquer && (p & 0xffffff) == 0x808080 ? mix(ink.on_select, ink.select, 128)    /* the gear, at rest */
+					: list_cached(p);
 			}
 		if (k == LAYERS)
 			layer_thumbs(dst, src, w, h, stride);
@@ -1124,6 +1111,7 @@ _ZN8QPainter8drawTextERK6QRectFiRK7QStringPS0_(void *self, const void *rect, int
 static const struct { const char *from, *to; } WORDS[] = {
 	{ "Show only Active Layer", "Active only" },
 	{ "Add Below", "Below" },
+	{ "FireAlpaca (64bit)", "FireAlpaca" },
 };
 static QString word_to[sizeof WORDS / sizeof *WORDS];
 
@@ -1146,6 +1134,16 @@ _ZN15QAbstractButton7setTextERK7QString(void *self, const QString *text)
 	if (!real)
 		real = dlsym(RTLD_NEXT, "_ZN15QAbstractButton7setTextERK7QString");
 	real(self, on ? worded(text) : text);
+}
+
+/* (the bar shows a window's title: it has no use for "(64bit)") */
+void
+_ZN7QWidget14setWindowTitleERK7QString(void *self, const QString *title)
+{
+	static void (*real)(void *, const QString *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN7QWidget14setWindowTitleERK7QString");
+	real(self, on ? worded(title) : title);
 }
 
 void
