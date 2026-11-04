@@ -3,8 +3,8 @@
 # (r26-7: "misalignment when many terminals open quickly" — foot's clear pushed the screen into
 # its scrollback, so a window retiled under a prompt showed the heading twice): eight real foot
 # windows 50 ms apart, each a bash with your prompt (~/.bashrc.d/fedokawaii.sh) and ble.sh, three
-# times; every window must show exactly one prompt line — counted by the mark block's top edge
-# (paper_mark, the same in both moods). Headless (tools/kit.sh, the real GPU).
+# times; every window must show exactly one prompt line — counted by the folder block's top edge
+# (paper_folder, the same in both moods). Headless (tools/kit.sh, the real GPU).
 #   bash tools/regress/prompt-burst.sh [KIT OPTION…]
 # Exit 0 held · 1 a burst showed more or fewer prompts than windows (said) · 2 the kit could not run
 set -u
@@ -25,13 +25,13 @@ done
 PLAY
 sed -i "1i REAL=$HOME" "$out/play.sh"
 bash "$here/../kit.sh" --theme dark "$@" --out "$out" --play "$out/play.sh" --time 120 play >"$out/kit.log" 2>&1 || { echo "prompt-burst: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
-# (each prompt's mark block: a row of paper_mark at least 24 px long with none above it)
+# (each prompt's folder block: a row of paper_folder at least 24 px long with none above it)
 count() { python3 -I -c '
 import sys
 import numpy as np
 from PIL import Image
 a = np.asarray(Image.open(sys.argv[1]).convert("RGB"))
-m = np.all(a == (0xf4, 0x80, 0x67), axis=2)
+m = np.all(a == (0xfd, 0xbf, 0x68), axis=2)
 n = 0
 for y in range(41, m.shape[0]):
     row, above, x = m[y], m[y - 1], 0

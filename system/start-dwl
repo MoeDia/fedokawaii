@@ -68,7 +68,11 @@ LOG="$HOME/.cache/dwl.log"
 # one desktop at a time: a second dwl (start-dwl typed in a terminal, or on another console)
 # would share this one's runtime folder — the bar's files, the session's services — and
 # stop them when it ends
-pid=$(pgrep -xu "$(id -u)" dwl 2>/dev/null | head -n1)
+# (a test's dwl, off-screen with a runtime folder of its own, is no desktop: only one in this session's)
+pid=""
+for p in $(pgrep -xu "$(id -u)" dwl 2>/dev/null); do
+  { tr '\0' '\n' <"/proc/$p/environ"; } 2>/dev/null | grep -qx "XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}" && { pid=$p; break; }
+done
 if [ -n "$pid" ]; then
   printf 'start-dwl: the desktop is already running (dwl, process %s): one at a time.\n' "$pid" >&2
   exit 1
