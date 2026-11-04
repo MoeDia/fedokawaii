@@ -167,14 +167,17 @@ tiles = ["#custom-torii", "#custom-menu", "#focused"] + [f"#custom-tag{k}" for k
          "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather"]
 for sel in tiles:
     p_, m_, b_, o = box(sel)
-    kind = "kami-red.png" if sel in ("#custom-torii", "#custom-menu") else "kami-tile.png"
+    kind = "kami-red.png" if sel == "#custom-torii" else "kami-tile.png"
     bi = o.get("border-image", "")
     if kind not in bi or not bi.split(")")[1].strip().startswith("4 2 3 2"): bad.append(f"{sel}: border-image {bi}")
     want(f"{sel}: its border (the picture's slices)", b_, [4, 2, 3, 2])
     inner = sel == "#focused"
-    if not inner: want(f"{sel}: the 14 px line on the paper's rows 3–16", (p_[0], p_[2]), (3, 3))
+    # (what plays, whatever face draws it: a height, not padding round a line a fallback face makes taller)
+    if sel == "#custom-nowplaying": want(f"{sel}: the line's 20 rows, the 14 px line in their middle", (p_[0], p_[2], box(sel)[3].get("min-height")), (0, 0, "20px"))
+    elif not inner: want(f"{sel}: the 14 px line on the paper's rows 3–16", (p_[0], p_[2]), (3, 3))
+want("#custom-layout (inside one tile): its line", (box("#custom-layout")[0][0], box("#custom-layout")[0][2]), (3, 3))
+want("#custom-title (inside one tile): its line's 20 rows", (box("#custom-title")[0][0], box("#custom-title")[0][2], box("#custom-title")[3].get("min-height")), (0, 0, "20px"))
 for sel in ("#custom-layout", "#custom-title"):
-    want(f"{sel} (inside one tile): its line", (box(sel)[0][0], box(sel)[0][2]), (3, 3))
     want(f"{sel} (inside one tile): no frame of its own", box(sel)[2], [0, 0, 0, 0])
 # 8 px from the paper's edge to the ink: the paper's first column is in the picture (the left
 # slice: the hairline and one column), so the padding is 7 less the first glyph's air; on the
