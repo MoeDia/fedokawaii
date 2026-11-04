@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""tools/regress/term-grid.py KNOWN COLS_DIR OUT THEME… — what tools/regress/term-grid.sh's shots show.
+"""tools/regress/term-grid.py KNOWN OUT THEME… — what tools/regress/term-grid.sh's shots show.
 
 For each OUT/THEME/NAME.txt and NAME.png: no line wider than the window, no "…" on a screen of ours, no
 error on the screen, not blank; its heading whole; its right edges on one column; the window its size,
@@ -102,7 +102,7 @@ def judge(name, a, text):
 
 
 def main(argv):
-    if len(argv) < 5:
+    if len(argv) < 4:
         print(__doc__)
         return 2
     known = []
@@ -112,7 +112,7 @@ def main(argv):
             if line and not line.startswith("#"):
                 pat, _, why = line.partition(" # ")
                 known.append((pat.strip(), why.strip()))
-    out, themes = argv[3], argv[4:]
+    out, themes = argv[2], argv[3:]
     new, seen, screens = [], {}, 0
     for th in themes:
         d = os.path.join(out, th)

@@ -12,7 +12,7 @@ out=$(mktemp -d /dev/shm/regress-popf.XXXXXX)
 keys=(v u n x slash c w a r space)
 {
   echo 'panel; warm; nap 1'
-  echo 'foot sh -c "printf \"a fullscreen window\\n\"; exec sleep 300" & nap 1.2'
+  echo 'foot sh -c "echo a fullscreen window; exec sleep 300" & nap 1.2'
   echo 'chord logo f; nap 1; at 300 700; nap 0.3; shot base'
   # (the notes' Esc only leaves typing: their own key puts the page away)
   for k in "${keys[@]}"; do

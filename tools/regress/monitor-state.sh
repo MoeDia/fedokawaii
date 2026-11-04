@@ -23,10 +23,8 @@ wtype -s 300 -k space; nap 2; shot after-power
 wlr-randr --output "$o" --off; nap 1.5
 wlr-randr --output "$o" --on --custom-mode 1920x1080@144Hz; nap 3; shot after-output
 PLAY_END
-for th in dark; do
-  bash "$here/../kit.sh" --theme "$th" "$@" --time 60 --out "$out/$th" --play "$out/play.sh" play >"$out/kit-$th.log" 2>&1 \
-    || { echo "monitor-state: the kit failed: $(tail -n 2 "$out/kit-$th.log")" >&2; exit 2; }
-done
+bash "$here/../kit.sh" --theme dark "$@" --time 60 --out "$out/dark" --play "$out/play.sh" play >"$out/kit.log" 2>&1 \
+  || { echo "monitor-state: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
 python3 -I - "$out/dark" <<'PY_END'
 import os, sys
 import numpy as np

@@ -122,9 +122,10 @@ kill -0 "$s1" 2>/dev/null && say "stream alive" || say "stream dead"
 kill "$s1" "$s2" 2>/dev/null
 PLAY_END
 rc=0
-for th in $themes; do
+read -ra each <<<"$themes"
+for th in "${each[@]}"; do
   bash "$here/../kit.sh" --theme "$th" "$@" --time 1200 --out "$out/$th" --play "$out/play.sh" play >"$out/kit-$th.log" 2>&1 \
     || { echo "term-grid: the kit failed: $(tail -n 2 "$out/kit-$th.log")" >&2; exit 2; }
 done
-python3 -I -B "$here/term-grid.py" "$here/term-grid-known.txt" "$here/../../tests/menus" "$out" $themes || rc=$?
+python3 -I -B "$here/term-grid.py" "$here/term-grid-known.txt" "$out" "${each[@]}" || rc=$?
 exit "$rc"

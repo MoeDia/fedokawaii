@@ -59,6 +59,7 @@ item r27-never-3 "fedokawaii selftest --sandbox: tests/regress, tools/regress on
 # the section itself, as selftest runs it: its words stand-ins, runuser a plain call, the toolkit a folder
 section_run() {   # section_run TOOLKIT → the verdicts it said, a line each
   (
+    # shellcheck disable=SC2034  # (the section's words read them)
     TK=$1 h=$TMP U=me; said() { printf '%s %s\n' "$1" "$2"; }
     section() { :; }; pass() { said pass "$1"; }; fail() { said fail "$1"; }; warn() { said warn "$1"; }; info() { said info "$1"; }
     stub runuser 'while [ "$1" != -- ]; do shift; done; shift; exec "$@"'
