@@ -6,8 +6,9 @@
 # one set of walls (user@ASOBI_UID.service.d/50-kawa-asobi.conf, written from system/asobi/walls.conf).
 [Unit]
 Description=ASOBI: the play world
+# (Conflicts= alone would stop the one and start the other at once: the order has the stop go first)
 Conflicts=getty@tty8.service kawa-asobi-bottles.service
-After=getty@tty8.service systemd-user-sessions.service user@ASOBI_UID.service
+After=getty@tty8.service systemd-user-sessions.service user@ASOBI_UID.service kawa-asobi-bottles.service
 StartLimitIntervalSec=0
 
 [Service]
@@ -27,8 +28,7 @@ UtmpMode=user
 Environment=KAWA_ASOBI_FACE=steam
 ExecStartPre=+/usr/local/sbin/kawa-asobi-root prestart
 ExecStart=/usr/local/bin/kawa-asobi-session
-ExecStop=+/usr/local/sbin/kawa-asobi-root thaw
-ExecStop=/usr/local/bin/kawa-asobi-session --stop
+ExecStop=+/usr/local/sbin/kawa-asobi-root close
 ExecStopPost=+/usr/local/sbin/kawa-asobi-root poststop
 TimeoutStopSec=45
 Restart=no

@@ -7957,9 +7957,8 @@ and the [magnet link format](https://bittorrent.org/beps/bep_0009.html).
 
 > **In this chapter**
 >
-> - install and play Windows games through Steam and Proton
-> - what game mode does by itself, and the performance overlay
-> - pair a game controller for Steam
+> - the play world, ASOBI: a user and a screen of its own for every game
+> - its walls, its snapshots, the one folder it shares with you
 > - control RGB lighting, Logitech devices, coolers and an AMD graphics card
 >
 > **You need:** §14.1 (the launcher) and §7.3 (workspaces).
@@ -7967,206 +7966,44 @@ and the [magnet link format](https://bittorrent.org/beps/bep_0009.html).
 The last chapter of Part III is for play, and for the hardware that likes to be tuned: the
 lights, the mouse, the cooler and the graphics card.
 
-## 21.1 Steam — games
+## 21.1 ASOBI — the play world
 
-Start **Steam** from the launcher. Its entry there is the desktop's own (`kawa-steam`, in
-place of Steam's entry of the same name): when Steam already runs in the background its window
-comes up at once; when it does not, Steam starts, with a notice — *starting Steam…*, or
-*updating itself* on its very first start — that goes once its window is there. `steam://`
-links (a game's page, an *Install* button on the web) go the same way. Unlike Steam's own
-entry, it carries no hint to start on "the other GPU": with the processor's graphics left on,
-that would be the processor's, not the card the screen is on. The library window
-tiles on the workspace you are on, like any window; Steam's small windows (sign in, settings,
-friends, news) float, centred. Games open where you are too. Steam runs through XWayland, and
-its own interface ignores the desktop's themes (§39.2).
+Games do not live in your account. **ASOBI** (遊び, *play*) is a user of its own, `asobi`, on a VT of its own.
+**Super+G** starts it on demand (`kawa-asobi enter`): gamescope takes the card, at the screen's own mode with
+FreeSync, and shows Steam's gamepad UI. **Super+G** in there comes back; the desktop never stopped.
 
-**A warm start.** A minute after you log in, the desktop starts Steam quietly in the
-background, at low priority, so its window is there at once when you want it and the first
-minutes of the session are not slowed. Closing the window leaves Steam running — downloads go
-on — and the bar's **gamepad** shows it: dim while it starts, lit once it is ready, filled
-vermilion during a game. A click brings the window up; a right-click opens Steam's menu:
-*Library · Downloads · Friends · Settings*, *start with the desktop* (on or off: off ends the
-warm start), and *quit Steam*.
+| What | Where | Why |
+|---|---|---|
+| its home | `/home/asobi`, a Btrfs subvolume | out of `/home`'s snapshots and of your backups; snapshot and reset whole |
+| its snapshots | `/home/.asobi/snapshots` (root's) | `clean` is the world as installed; `before-reset-…` the way back from a reset |
+| the one shared folder | `/home/.asobi/drop`, `~/Drop` for you | group `asobi-drop`, the two of you; whatever either side drops, the other can read |
+| its session | `kawa-asobi.service` (VT 8, PAM file `kawa-asobi`) | a real seat session: card, keyboard, sound and controller follow the VT in front (logind) |
+| everything it runs | its user manager, `user@UID.service` | one set of walls: `/etc/systemd/system/user@UID.service.d/50-kawa-asobi.conf` |
+| what only root may do | `kawa-asobi-root`, by `kawa-asobi-op@JOB.service` | polkit lets your user start those units and nothing more |
+| its programs | Steam, Bottles: Flatpaks of its own user, from Flathub | each in its sandbox as well; no Flatpak anywhere else on this machine |
 
-**Steam Cloud: Steam always closes properly.** As Steam closes, it sends your games' saves to
-Steam Cloud — but only when it is *asked* to close, as its own *Exit* asks. Killed, it sends
-nothing, and the next start (here or on Windows) can find the cloud older than your last
-session, or ask which copy to keep. Steam draws through XWayland, which ends with the desktop,
-so the desktop asks first, every time:
+**The walls**, all proved by `sudo bash tools/asobi-proof.sh walls`: no password, no shell, no wheel, no sudo. Inside
+its namespaces `/home` holds only itself; `/tmp`, `/var/tmp`, `/dev/shm` and System V memory are its own;
+`/proc` shows only its own processes. polkit says no to everything an active seat user may usually do, but the VT
+switch, realtime sound and GameMode's helpers. While it runs, `nft` table `kawa_asobi` lets it reach the
+Internet and nothing of this house: no service of yours on the loopback, no machine on your network. And no
+device it makes through `/dev/uinput` reaches your desktop (`LIBINPUT_IGNORE_DEVICE`, for as long as it runs).
 
-| When | What closes Steam |
-|---|---|
-| *quit Steam* in the gamepad's menu | `kawa-steam --quit` — Steam's own close (`steam -shutdown`), waited for |
-| the power menu's *log out*, or **Super+Ctrl+Shift+Q** | the same, before the desktop ends; a notice says *closing — your saves go to Steam Cloud first* |
-| restart or shut down — the power menu, the power button, `systemctl reboot`, an update's restart | `kawa-steam --guard`, which the session starts: logind warns it before the computer stops (a *delay lock*, waited for up to 25 s), and it closes Steam the same way while the desktop still runs |
+**Behind the desktop**, a world with a game in it is frozen by the kernel's cgroup freezer (`app.slice`): no CPU,
+no card, the game exactly where it was. Steam alone goes on working, at a small share of the CPU, so a download
+finishes. In front, the world has the larger share, GameMode holds the card at its full clocks, the
+desktop's idle timers wait, and its notices are held back and told at your return.
 
-Each close goes to the journal with how long it took: `journalctl -t kawa-steam` —
-*asked Steam to quit (logout), done in 3.2 s* — and each upload Steam made as it closed:
-*cloud: Blasphemous (774361) upload OK*, or its failure.
+**Windows games** run through Proton, as Steam ships it: a game page → the gear → Properties → Compatibility.
+ProtonDB (`protondb.com`) lists what others did for each game. **Bottles** is the world's other face, for other
+Windows programs: `kawa-asobi bottles`, or Super+U → system → asobi → bottles (one face at a time: Steam closes first).
 
-**A game whose cloud saves were made on Windows.** Some games have a Linux build that keeps
-its saves in Linux's folders (`~/.config/unity3d/…`), apart from the Windows build's
-(`AppData`). Played here as its Linux build, such a game never sees the saves you made on
-Windows — Steam's own log says *Skipping download of file … to our platform* — and its uploads
-can fail (*I/O Operation Failed*) on files of the Windows folders. `kawa-steam --cloud` lists
-every game's last upload and any such game; each time Steam closes, `kawa-steam` sets such a
-game to run with GE-Proton (its *Properties → Compatibility*), so it uses the Windows saves in
-the cloud, and starts its sync state afresh (Steam compares with the cloud at the next start,
-and asks if both changed). Once a game: set back by hand, it stays as you set it.
+**Controllers:** Valve's own rules (`steam-devices`, Fedora's package) open them to whoever holds the seat; a
+controller paired or plugged in on the desktop works in the world as soon as it is in front.
 
-```sh
-kawa-steam --cloud      # Blasphemous (774361): last upload …: OK · its cloud saves are Windows' — it runs with GE-Proton…
-```
-
-> **On Windows.** It is the same Steam, signed in to the same account, with the same library.
-> A Windows game runs here through Proton, which answers its Windows calls with Linux ones.
-
-**Try this.** Start Steam, play a game, and look at the overlay.
-
-1. **Super+9**, then **Super+Space**, type `steam`, Enter. Steam's library opens there — at
-   once if the warm start has already run.
-2. Start a game. Game mode comes on by itself within three seconds (below): `kawa-game`
-   in a terminal says *on (steam …)*.
-3. **Right Shift+F12** shows or hides the overlay in its corner: frames per second, the CPU's
-   and the GPU's load and temperature. It is in every game Steam starts, hidden until asked.
-4. Quit the game: the library window is back, and game mode ends. Closing the window leaves
-   Steam running, and the gamepad stays in the bar; *quit Steam* in its right-click menu ends it.
-
-| Term | In one line |
-|---|---|
-| XWayland | the bridge that lets an older X11 program, such as Steam, show on a Wayland desktop |
-| Proton | Valve's compatibility layer, built on Wine: it runs Windows games on Linux |
-| GE-Proton | a community build of Proton that carries fixes and media patches ahead of Valve's |
-| `%command%` | in launch options, the place where Steam puts the game's own command line |
-| FreeSync | AMD's name for *adaptive sync*: the monitor follows the game's own frame rate instead of a fixed one — no tearing, no stutter when frames come unevenly |
-
-**Game mode.** While a Steam game runs — a Windows one through Proton too, with no launch
-option — the desktop gives the computer to it, and takes it all back when the game ends:
-
-| While a game runs | Why |
-|---|---|
-| tuned's game profile: the graphics card at its full clocks | no ramping up and down between scenes |
-| the game ahead of your other programs (nice −5, first for the disk) | a download or a build in the background does not take its frames |
-| notices held back (critical ones and the level display still show) | nothing pops over the game; at its end one notice says *3 notices while you played* — click it for the list |
-| the night light off, your setting kept | the game's own colours |
-| no screensaver or lock | a game played with a controller moves no mouse |
-| the background jobs held: hourly snapshots, the monthly Btrfs scrub, weekly TRIM, the kernel check, the health report | no disk or CPU work behind the game; a job that came due runs when the game ends |
-| every frame at the refresh; *vsync off* honoured only with FreeSync on | nothing on the screen ever tears: the desktop and every window flip at the refresh. Only while FreeSync is on (the *in games* setting, a game full screen) does a game whose own *vsync* is off get its frames at once — whole under the monitor's top rate, torn only above it. With FreeSync off, such a game waits for the refresh as everything else |
-
-The processor and the card have one owner, tuned (§30.4): game mode switches its profile from
-*fedokawaii* to *fedokawaii-game* and back — the processor is at full performance in both, the
-card at its full clocks only in the game's. All of it is **`kawa-game`**: the bar's Steam watch
-(the gamepad) sees a game start and end, and `journalctl -t kawa-game` shows each. A game
-started outside Steam gets it with `kawa-game run GAME` (in Lutris or Heroic: as the game's
-command prefix). `kawa-game auto off` stops it for Steam's games, `kawa-game auto on` brings it
-back (kept across logins).
-
-Each game's **launch options** (in Steam: the game's *Properties* → *General*) take the other
-tools installed with it:
-
-| Launch options | Does |
-|---|---|
-| `gamescope -W 2560 -H 1440 -r 120 -f -- %command%` | the game inside its own small compositor at a fixed size and refresh rate; add `-w 1920 -h 1080 -F fsr` to render lower and upscale |
-| `gamescope --mangoapp -f -- %command%` | gamescope with the overlay — inside gamescope, use `--mangoapp` rather than `mangohud` |
-
-**FreeSync.** On a monitor that can do it, quick settings' *freesync* tile (its seal 滑) goes
-round three settings: *in games* — the default: on while a window, a game or a video, is full
-screen on that monitor —, *always*, and *off*. dwl reads the choice from
-`~/.config/fedokawaii/vrr` and takes it up at the next change of window; a monitor that cannot
-do it is left alone. The tile shows what the graphics card does *this moment*, read from the
-card itself (DRM's `VRR_ENABLED`): *games · off* at the desktop, *games · on* in a full-screen
-game, *always · on*, its seal stamped only while it is on; *not offered* when the monitor
-offers none. `fedokawaii freesync` says the same in a line a screen:
-
-```sh
-fedokawaii freesync     # FreeSync: HDMI-A-1 — ON now: the refresh follows the frames · setting: …
-kawa-display --vrr      # the raw state: NAME, vrr_capable (yes/no), VRR_ENABLED (on/off)
-```
-
-*not offered* means the monitor's own menu has it off (an LG UltraGear: the joystick → *Game
-Adjust* → *Adaptive-Sync* or *FreeSync*: *On*, or *Extended* for the widest range), or the
-cable or port cannot carry it — nothing on the computer can switch it on then. To watch it
-work, play a game below the monitor's top rate: quick settings (**Super+X**) reads *games ·
-on*, and a monitor whose menu shows the incoming refresh rate shows the game's frame rate
-there, not 144.
-
-### GE-Proton
-
-Setup installs the newest GE-Proton, and `update` adds new releases, keeping the
-newest two so a game pinned to the older one still starts. Restart Steam to see a new one.
-Choose it per game in *Properties → Compatibility* (*Force the use of a specific Steam Play
-compatibility tool*), or for every game in Steam's *Settings → Compatibility*. GE-Proton uses
-the kernel's `ntsync` driver (loaded at boot) by itself: the waiting and signalling between a
-Windows game's threads is done by the kernel instead of being imitated, which is faster.
-
-```sh
-ls -l /dev/ntsync      # the device is there: the driver is loaded
-```
-
-Should one game misbehave with it, the launch option `PROTON_NO_NTSYNC=1 %command%` runs that
-game without it.
-
-### Windows games
-
-Most Windows games just run: Steam picks Proton for them by itself. When one does not:
-
-1. Look it up on [ProtonDB](https://www.protondb.com): players' reports say which Proton
-   works and which launch options it needs.
-2. In Steam, the game's *Properties → Compatibility*: tick *Force the use of a specific Steam
-   Play compatibility tool* and choose — *Proton Experimental* (Valve's newest), a numbered
-   Proton, or *GE-Proton* (videos in cut-scenes, newer fixes). One game at a time: the others
-   keep Steam's choice.
-3. Still wrong: `gamescope -f -- %command%` in its launch options (a game that cannot cope
-   with the desktop's windows or sizes), or `PROTON_NO_NTSYNC=1 %command%`.
-
-What is already done for you: GE-Proton installed and kept current by `update` (the newest
-two), `ntsync` loaded, Mesa's RADV for Vulkan, the 32-bit libraries Steam needs, Steam's
-shader pre-caching on (its default: *Settings → Downloads*), and Fedora's limits for Proton
-(`vm.max_map_count` and open files, checked by the health report). **Right Shift+F12** shows
-the overlay; game mode does the rest by itself.
-
-**Pitfalls.** Outside gamescope the overlay is in every Steam game, hidden until
-**Right Shift+F12**; inside gamescope, use `--mangoapp`. MangoHud's settings are a managed
-file: change them in the repository's `MangoHud.conf`. `update` keeps only the newest two
-GE-Proton builds, so a game forced to an older one needs a new choice under *Compatibility*.
-
-**Read more:** the READMEs of [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom#readme)
-(its launch options), [gamescope](https://github.com/ValveSoftware/gamescope#readme) and
-[MangoHud](https://github.com/flightlessmango/MangoHud#readme).
-
-### Controllers
-
-A game controller on Bluetooth pairs the way headphones do (§8.3):
-
-1. Put the controller into pairing mode. On an Xbox controller, hold the small pair button on
-   its top edge until the Xbox button flashes fast; on a PlayStation one, hold **Share** (or
-   **Create**) and the **PS** button together until the light bar flashes.
-2. **Super+X** → *devices*; in bluetui, **s** scans, **Tab** moves to *Scanning*, **j**/**k**
-   to the controller, **Enter** pairs it — trusted and connected by itself.
-3. Start Steam: *Settings → Controller* lists it, and every game sees it.
-
-No driver needs adding. Fedora's kernel drives the common ones itself — Xbox (`hid-microsoft`),
-PlayStation (`hid-playstation`), Switch Pro and 8BitDo in Switch mode (`hid-nintendo`) — and
-Steam reaches them through `steam-devices`, rules that let your user open a controller.
-
-The Bluetooth dongle never sleeps. A controller on a dongle that naps between packets lags or
-drops, so setup switches the dongle's power saving off, from the next start on
-(`options btusb enable_autosuspend=0` in `/etc/modprobe.d/fedokawaii-btusb.conf`).
-
-**A controller no game sees.** One that pairs but that no game sees may need the `input`
-group, which opens every input device to your programs directly. Setup leaves you out of it,
-because while you are in it any program you run can read every key you press. To try it:
-
-```sh
-sudo usermod -aG input $USER    # then log out and in again
-```
-
-Update and repair leave you in it; `sudo gpasswd -d $USER input` takes you out again.
-
-**Pitfall.** Microsoft's own USB receiver for Xbox controllers, the *Xbox Wireless Adapter*, is
-not Bluetooth. It needs `xone`, a driver built outside Fedora's kernel, which Secure Boot
-refuses to load unless you enrol a signing key of your own. Pair the controller over Bluetooth
-instead.
+**Why a user and not a VM:** a game gets the card natively, at no cost in frames, and nothing here is a virtual
+machine. A user is a lesser wall than a VM against an attacker with a kernel exploit, and that is the one thing it
+does not stop; the snapshot `clean` undoes everything short of that.
 
 ## 21.2 Hardware — OpenRGB and LACT
 
@@ -8223,17 +8060,15 @@ programs, one layer at a time, from the files on the disk to the network.
 
 **What you learnt**
 
-- Steam starts warm in the background; the launcher's *Steam* or the bar's gamepad brings its window up where you are. Proton runs Windows games, GE-Proton when a game needs it.
 - FreeSync follows a game's frame rate: *in games* by default, in quick settings.
-- Game mode comes with every Steam game by itself (`kawa-game`); a game's launch options take `gamescope` before `%command%`.
-- **Right Shift+F12** shows or hides the overlay, in every Steam game.
+- A game behind the desktop is frozen, costing no CPU and no card; Steam alone goes on working.
 - OpenRGB sets the lights and LACT the graphics card; only LACT re-applies its settings at boot
   by itself. Fan speeds belong to the motherboard's start-up settings.
 
 **Check yourself**
 
-1. You closed Steam's window. Is Steam still running, and how do you get it back? → *yes, its gamepad is in the bar: click it (or the launcher's Steam); right-click → quit Steam ends it*
-2. How do you show the overlay in a Steam game? → ***Right Shift+F12**: it is in every game, hidden until asked*
+1. A Windows program did something strange in the world. How do you undo it? → *Super+U → system → asobi → reset to a snapshot: `clean` is the world as installed*
+2. What can the world reach of yours? → *the drop folder, and nothing else*
 3. Your RGB lights forget their colours after a power cut. Why? → *nothing starts OpenRGB at login: add `openrgb --profile NAME &` to `autostart.local.sh`*
 
 # Part IV — Understanding Linux

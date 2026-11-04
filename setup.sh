@@ -3150,7 +3150,6 @@ r_hygiene() {
   fi
   lpf_leftovers_out || rc=1                        # (what lpf's removal leaves: its account and folder)
   easyeffects_note                                 # (EasyEffects retired: your presets said where they stay)
-  asobi_host_out || rc=1                           # (gaming left this account for the play world)
   while IFS= read -r u; do
     [[ -n $u ]] || continue
     rm -rf -- "$u" && log "removed what a stopped run left: $u"
@@ -3422,7 +3421,8 @@ heal_all() {
   heal "inbound SSH ($SSH_SERVER) and the torrent port" r_ports
   heal "your session (linger, groups, fonts, secrets.sh mode)" r_user
   heal "the play world (its user, its walls, its units)" asobi_base
-  ((net)) && heal "the play world's programs (Steam, Bottles)" asobi_flatpaks
+  ((net)) && heal "the play world's programs (Steam, Bottles)" asobi_programs
+  heal "gaming out of your account, into the play world" asobi_host_out
   ((net)) && heal "dwl (its wlroots, libraries, binary)" r_dwl
   ((net)) && heal "release binaries, fonts, Syncplay, ble.sh" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser

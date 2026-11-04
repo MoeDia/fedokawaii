@@ -5,14 +5,8 @@
 # portals, and kawa-asobi-world.service, this session's gamescope and Steam. When that ends, so does
 # this, the unit, and the world; the desktop comes back (kawa-asobi-root poststop).
 #
-#   kawa-asobi-session          the session
-#   kawa-asobi-session --stop   Steam closed as its own menu closes it, waited for (the unit's ExecStop)
+# Closed from outside by kawa-asobi-root close (the unit's ExecStop).
 set -u
-case ${1:-} in
-  --stop) exec systemctl --user stop kawa-asobi-world.service ;;
-  "") ;;
-  *) echo "usage: kawa-asobi-session [--stop]" >&2; exit 2 ;;
-esac
 systemctl --user set-environment "XDG_SESSION_ID=${XDG_SESSION_ID:-}" "XDG_SEAT=${XDG_SEAT:-seat0}" \
   "XDG_VTNR=${XDG_VTNR:-8}" XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=gamescope \
   "KAWA_ASOBI_FACE=${KAWA_ASOBI_FACE:-steam}" || exit 1

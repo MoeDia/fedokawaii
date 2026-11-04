@@ -19,7 +19,7 @@ world() {   # a fresh home and a stand-in world: run folder, drop folder, status
   # (is-active: the world runs only when the test says so; everything else: logged, done)
   stub systemctl 'case "$*" in *is-active*) [ -e "$TMP/running" ]; exit $? ;; esac; exit 0'
   stub busctl; stub notify-send; stub loginctl; stub nft 'cat >"$TMP/nft.in"'; stub udevadm; stub chvt; stub logger
-  stub runuser; stub ionice 'shift 2; exec "$@"'
+  stub runuser; stub pgrep 'exit 1'; stub ionice 'shift 2; exec "$@"'
   stub btrfs '
 case "$1 $2" in
   "subvolume show") [ -d "$3" ]; exit $? ;;
@@ -139,6 +139,9 @@ case_ "prestart: no world (a subvolume missing): no start"
 rm -rf "$KAWA_ASOBI_WORLD"; root prestart; eq "$RC" 1; has "$(cat "$KAWA_ASOBI_RUN/last")" "not there"
 
 world
+case_ "close: thawed, then closed from the world's own manager, as its user"
+echo 1 >"$APP/cgroup.freeze"; reset_calls; root close; eq "$RC" 0 "$OUT"
+eq "$(cat "$APP/cgroup.freeze")" 0 "thawed first"; called '^runuser -u asobi .*systemctl --user stop kawa-asobi-world.service'
 case_ "poststop: the screen back only when the world had it; walls down; every process gone; jobs back; off"
 echo tty8 >"$KAWA_ASOBI_TTY0"; reset_calls; root poststop; eq "$RC" 0 "$OUT"
 called '^chvt 1$'; called '^nft delete table inet kawa_asobi'; called '^loginctl terminate-user asobi'
@@ -165,7 +168,7 @@ eq "$(cat "$KAWA_ASOBI_RUN/state")" away
 
 case_ "the unit files: the world's user, its VT, its PAM file; the walls whole; polkit's rule the two units"
 S=$REPO/system/asobi
-for l in User=asobi TTYPath=/dev/tty8 PAMName=kawa-asobi ExecStopPost=+/usr/local/sbin/kawa-asobi-root; do has "$(cat "$S/kawa-asobi.service")" "$l"; done
+for l in User=asobi TTYPath=/dev/tty8 PAMName=kawa-asobi ExecStop=+/usr/local/sbin/kawa-asobi-root ExecStopPost=+/usr/local/sbin/kawa-asobi-root 'After=' kawa-asobi-bottles.service; do has "$(cat "$S/kawa-asobi.service")" "$l"; done
 for l in ProtectHome=tmpfs PrivateTmp=yes PrivateIPC=yes ProtectProc=invisible RestrictSUIDSGID=yes; do has "$(cat "$S/walls.conf")" "$l"; done
 has "$(cat "$S/kawa-asobi.rules")" 'kawa-asobi-bottles.service'; has "$(cat "$S/kawa-asobi.rules")" 'polkit.Result.NO'
 lacks "$(grep -v '^#' "$S/kawa-asobi.pam")" 'auth' "the world's PAM file has no way to log in"
