@@ -252,15 +252,12 @@ static int msi_remember(struct light *l, const uint8_t rgb[3])
  * reads (the fd is only ever ioctl'd) */
 #define K617_BLOCK 1032
 #define K617_MODE 0
-#define K617_EXEC 3
+#define K617_EXEC 1
 #define K617_FIXED 0x01
 #define K617_OFF 0x16
-static const struct { uint8_t select[6]; uint8_t head[5]; } K617_BLOCKS[] = {
-    {{0x05, 0x88, 0xb8, 0, 0, 0}, {0x06, 0x08, 0xb8, 0x00, 0x40}},      /* mode */
-    {{0x05, 0x89, 0xbc, 0, 0, 0}, {0x06, 0x09, 0xbc, 0x00, 0x40}},      /* canvas */
-    {{0x05, 0x89, 0xc0, 0, 0, 0}, {0x06, 0x09, 0xc0, 0x00, 0x40}},      /* routing */
-    {{0x05, 0x83, 0xb6, 0, 0, 0}, {0x06, 0x03, 0xb6, 0x00, 0x00}},      /* exec */
-};
+/* (report 5 is also the way into its bootloader: only these selects are ever sent) */
+static const uint8_t K617_SELECTS[2][6] = {{0x05, 0x88, 0xb8, 0, 0, 0}, {0x05, 0x83, 0xb6, 0, 0, 0}};
+static const uint8_t K617_HEADS[2][5] = {{0x06, 0x08, 0xb8, 0x00, 0x40}, {0x06, 0x03, 0xb6, 0x00, 0x00}};
 static int k617_open(struct light *l)
 {
     l->fd = hidraw_find(0x258A, 0x0049, 1);
@@ -275,11 +272,11 @@ static int k617_send(struct light *l, const uint8_t rgb[3])
         memcpy(f + 4 + i * 3, rgb, 3);
     return feature_set(l->fd, f, sizeof f);
 }
-static int k617_read(int fd, uint8_t blocks[4][K617_BLOCK])
+static int k617_read(int fd, uint8_t blocks[2][K617_BLOCK])
 {
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 2; i++) {
         uint8_t raw[K617_BLOCK];
-        if (feature_set(fd, K617_BLOCKS[i].select, 6))
+        if (feature_set(fd, K617_SELECTS[i], 6))
             return -1;
         ms(60);
         int n = feature_get(fd, 0x06, raw, sizeof raw);
@@ -287,39 +284,38 @@ static int k617_read(int fd, uint8_t blocks[4][K617_BLOCK])
             return -1;
         memset(blocks[i], 0, K617_BLOCK);
         memcpy(blocks[i], raw, (size_t)n);
-        memcpy(blocks[i], K617_BLOCKS[i].head, 5);
+        memcpy(blocks[i], K617_HEADS[i], 5);
         ms(60);
     }
     return 0;
 }
 static int k617_remember(struct light *l, const uint8_t rgb[3])
 {
-    static uint8_t now[4][K617_BLOCK], want[4][K617_BLOCK];
+    static uint8_t now[2][K617_BLOCK], want[2][K617_BLOCK];
     bool lit = rgb[0] || rgb[1] || rgb[2];
     if (k617_read(l->fd, now))
         return -1;
     memcpy(want, now, sizeof want);
     uint8_t *mode = want[K617_MODE], *ex = want[K617_EXEC];
-    if (ex[14] != 0x5a || ex[15] != 0xa5)        /* (its commit mark: anything else is not a block we know) */
+    if (memcmp(ex + 14, "\x5a\xa5", 2) || memcmp(ex + 137, "\x5a\xa5", 2))  /* (its commit marks: else no block we know) */
         return -1;
-    uint8_t effect = lit ? K617_FIXED : K617_OFF;
+    ex[21] = lit ? K617_FIXED : K617_OFF;
     if (lit) {
-        memcpy(mode + 29, rgb, 3);               /* fixed-on's colour */
-        ex[38] = 0x00;                           /* its "many colours" flag off */
-        ex[39] = 0x04;                           /* speed 1, brightness 4 of 4: the colour is the level */
+        memcpy(mode + 29, rgb, 3);               /* fixed-on's colour, the first of its palette */
+        ex[38] = 0x00;                           /* its palette's first, not "random" (7) */
+        ex[39] = 0x34;                           /* speed, and brightness 4 of 4: the colour is the level */
     }
-    ex[21] = effect;
     if (!memcmp(now, want, sizeof want))
         return 0;
     uint8_t scratch[K617_BLOCK];
-    int r = feature_set(l->fd, K617_BLOCKS[K617_EXEC].select, 6);
+    int r = feature_set(l->fd, K617_SELECTS[K617_EXEC], 6);
     ms(60);
-    if (feature_get(l->fd, 0x06, scratch, sizeof scratch) < 0)    /* (without this read it ignores the burst) */
+    if (feature_get(l->fd, 0x06, scratch, sizeof scratch) < 0)    /* (without this read it ignores the write) */
         r = -1;
     ms(60);
-    for (int i = 0; i < 4 && !r; i++) {
+    for (int i = 0; i < 2 && !r; i++) {
         r = feature_set(l->fd, want[i], K617_BLOCK);
-        ms(60);
+        ms(100);
     }
     return r ? -1 : 1;
 }

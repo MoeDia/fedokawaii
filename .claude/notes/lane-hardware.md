@@ -38,3 +38,6 @@ right now its showing between 85 and 89 c i think its working make sure
 
 ## OWNER ANSWER 2026-11-04 19:06 — to your question «2026-11-04 18:16 — question from lane-hardware»
 all good except the keyboard still
+
+## OWNER ANSWER 2026-11-04 19:08 — to your question «2026-11-04 19:07 — question from lane-hardware»
+now the keyboard is all good perfect
