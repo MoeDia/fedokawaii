@@ -57,6 +57,8 @@ DefaultDependencies=false
 # at a shut down: podman's own 10 s for Prowlarr to close its database, then the container's
 # removal — within 20 s (a service of yours has 10: user.conf.d)
 TimeoutStopSec=20
+# (a search still out when it is told to stop: podman ends it after its 10 s, 137: that is a stop, no failure on the list)
+SuccessExitStatus=137
 Restart=on-failure
 RestartSec=10
 TimeoutStartSec=600

@@ -22,7 +22,7 @@ while IFS= read -r l; do
   case $k in
     Container.*) [[ $known == *" ${k#Container.}"[[:space:]]* ]] && _ok || _no "not a [Container] key: $k" ;;
     Quadlet.DefaultDependencies) _ok ;;
-    Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec|Service.TimeoutStopSec) _ok ;;  # [Service] goes to systemd as is
+    Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec|Service.TimeoutStopSec|Service.SuccessExitStatus) _ok ;;  # [Service] goes to systemd as is
     *) _no "unexpected key: $k" ;;
   esac
 done < <(units "$Q")
