@@ -466,7 +466,7 @@ check "no Desktop, Public or Templates made for nothing (xdg-user-dirs)" \
   bash -c 'for k in DESKTOP PUBLICSHARE TEMPLATES; do grep -qxE "XDG_${k}_DIR=\"(\\\$HOME/?|${1//./\\.}/?)\"" "$1/.config/user-dirs.dirs" || exit 1; done' _ "$TARGET_HOME"
 check "nothing of an older version in your home, no program's folder in its old place" U bash "$REPO_DIR/bin/kawa-tidy" --check leftovers
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
-# torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
+# torrents: one key, in secrets.sh only; Prowlarr takes it, kawa-torrents reads it there
 # shellcheck disable=SC2016  # expanded by the user's bash, after sourcing the file
 pkey=$(U bash -c '. "$1" >/dev/null 2>&1; printf %s "${PROWLARR_API_KEY:-}"' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" 2>/dev/null) || pkey=""
 prowlarr_get() {   # prowlarr_get PATH — the key goes to curl on stdin, never as an argument
@@ -504,7 +504,7 @@ else fail "Prowlarr's page opens with no login" "authentication: ${pauth:-?}, it
 check "Prowlarr's files are yours (~/.config/prowlarr)" bash -c '[[ -d $1 && -z $(find "$1" ! -user "$2" -print -quit) ]]' _ "$TARGET_HOME/.config/prowlarr" "$TARGET_USER"
 # the usual public indexers setup adds (system/prowlarr-indexers.py): each there, by its
 # definition (switched off by you counts: yours to decide)
-ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/system/prowlarr-indexers.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr '[:upper:]' '[:lower:]' | sort)
+ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr '[:upper:]' '[:lower:]' | sort)
 ix_have=$(prowlarr_get indexer 2>/dev/null | jq -r '.[].definitionName // empty' 2>/dev/null | tr '[:upper:]' '[:lower:]' | sort)
 ix_miss=$(comm -23 <(printf '%s\n' "$ix_want") <(printf '%s\n' "$ix_have") | paste -sd ' ')
 nidx=$(prowlarr_get indexer 2>/dev/null | jq '[.[] | select(.enable)] | length' 2>/dev/null) || nidx=0
@@ -529,7 +529,7 @@ if ((fw)); then
   check "torrent port 6881 open (tcp + udp)"           bash -c "grep -q 6881/tcp <<<'$ports' && grep -q 6881/udp <<<'$ports'"
   check "LocalSend's port $LOCALSEND_PORT open (tcp + udp)" bash -c "grep -q $LOCALSEND_PORT/tcp <<<'$ports' && grep -q $LOCALSEND_PORT/udp <<<'$ports'"
 else
-  warn "no firewall running (firewalld)" "nothing filters connections from outside; the ports of torrra (6881) and LocalSend ($LOCALSEND_PORT) are open anyway"
+  warn "no firewall running (firewalld)" "nothing filters connections from outside; the ports of torrents (6881) and LocalSend ($LOCALSEND_PORT) are open anyway"
 fi
 if [[ $SSH_SERVER == no ]]; then
   check "sshd off (SSH_SERVER=no)"                     bash -c '! systemctl is-enabled --quiet sshd.service'
@@ -646,9 +646,11 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
 # (its config and its launcher entry come with the theme)
 ((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
 check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
-check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/uv/tools/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
-check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version </dev/null'
-check "torrra uses Prowlarr, and no key in its config" bash -c 'grep -qx "default = \"prowlarr\"" "$1" && ! grep -q api_key "$1"' _ "$TARGET_HOME/.config/torrra/config.toml"
+check "Torrents whole, on Fedora's python3 and libtorrent" U kawa-torrents --check
+check "Torrents' engine is started by its socket" U systemctl --user cat kawa-torrents.socket
+if [[ -e $TARGET_HOME/.local/share/torrra || -e $TARGET_HOME/.local/share/uv/tools/torrra || -e /usr/local/bin/kawa-torrra ]]; then
+  fail "torrra is gone" "an older setup's files are left — fedokawaii repair takes them out"
+else pass "torrra is gone (nothing an older setup left)"; fi
 check "mpv in the bar and on the media keys (mpv-mpris)" test -f /etc/mpv/scripts/mpris.so
 check "yt-dlp can answer YouTube's challenges (Node.js ≥ 20)" bash -c 'v=$(node --version 2>/dev/null) || exit 1; v=${v#v}; ((${v%%.*} >= 20))'
 check "lazygit runs"                                   U lazygit --version
@@ -761,7 +763,7 @@ else
        "$TARGET_HOME/.config/BraveSoftware/Brave-Origin/Default/Preferences" >/dev/null 2>&1; then
     pass "Brave in the desktop's colours (GTK mode, ground-coloured new tab)"
   else warn "Brave not in the desktop's colours" "your choice in Brave — or Settings → Appearance → Theme → GTK"; fi
-  check "magnet links and .torrent files open in torrra" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
+  check "magnet links and .torrent files open in Torrents" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
   check "GTK 3 themes find adw-gtk3"                   bash -c 'for t in "" -dark; do f=$(sed -n "s|.*url(\"file://\([^\"]*\)\").*|\1|p" "$1/Fedokawaii$t/gtk-3.0/gtk.css"); [[ -r $f ]] || exit 1; done' _ "$TARGET_HOME/.local/share/themes"
   check "monospace and Sumi Term → UDEV Gothic NF"      U bash -c '[[ $(fc-match monospace) == *"UDEV Gothic NF"* && $(fc-match "Sumi Term") == *"UDEV Gothic NF"* ]]'
   check "Arabic → Noto Naskh Arabic"                   grep -q Naskh <<<"$(U fc-match 'sans-serif:lang=ar' 2>&1)"

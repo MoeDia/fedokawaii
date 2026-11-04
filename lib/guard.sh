@@ -18,8 +18,8 @@
 #                  once after each transaction (gi_sound); a login screen that still cannot
 #                  start says so on tty1 (fedokawaii-login-failed), a desktop that cannot
 #                  start opens the rescue screen (start-dwl) — never a black screen
-#   Python         a new minor version (3.14 → 3.15): torrra (its own Python 3.13, through
-#                  uv tool) and Syncplay (Fedora's python3) checked, reinstalled if they no longer load
+#   Python         a new minor version (3.14 → 3.15): torrents (Fedora's python3 and its libtorrent)
+#                  and Syncplay (Fedora's python3) checked, reinstalled if they no longer load
 #   kernels        the standing rule (setup.sh: installonly_limit=2, the one before kept until
 #                  the newest has reached the desktop): a bad new kernel is skipped in the boot
 #                  menu; after a kernel transaction every boot image made (dracut), the boot's
@@ -265,7 +265,7 @@ do_after_dnf() {
   step_on "the release tools find their libraries" r_upstream_libs
   step_on "the login screen and panel load GTK" gi_sound
   if grep -qE '^python3(\.[0-9]+)?$' "$ch"; then
-    step_on "torrra on its Python" torrra_up
+    step_on "torrents on Fedora's Python" torrents_up
     step_on "Syncplay on Fedora's Python" install_syncplay
   fi
   if grep -qE '^kernel(-core)?$' "$ch"; then

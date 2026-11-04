@@ -29,13 +29,15 @@ class Screen:
         self.y = self.x = 0
         self.modes = set()
         self.buf = b""
-        self.cursor_on = True
+        self.overflow = False
+        self.resizing = False
         self.updates = 0
 
     def resize(self, rows, cols):
         self.rows, self.cols = rows, cols
         self.cells = [[(" ", None, None) for _ in range(cols)] for _ in range(rows)]
         self.y = self.x = 0
+        self.resizing = True
 
     def feed(self, data):
         b = self.buf + data
@@ -56,13 +58,15 @@ class Screen:
                 j = i
                 while j < len(b) and b[j] != 0x1b and b[j] >= 0x20:
                     j += 1
-                try:
-                    text = b[i:j].decode("utf-8")
-                except UnicodeDecodeError:
-                    if j == len(b) and j - i < 4:
-                        break
-                    text = b[i:j].decode("utf-8", "replace")
-                self.text(text)
+                if j == len(b):                    # (a letter cut in two by the read: the rest comes next)
+                    k = j - 1
+                    while k >= i and j - k <= 4 and b[k] & 0xc0 == 0x80:
+                        k -= 1
+                    if k >= i and b[k] >= 0xc0 and j - k < {0xc: 2, 0xd: 2, 0xe: 3, 0xf: 4}[b[k] >> 4]:
+                        j = k
+                        if j == i:
+                            break
+                self.text(b[i:j].decode("utf-8", "replace"))
                 i = j
         self.buf = b[i:]
 
@@ -71,10 +75,10 @@ class Screen:
             w = width(c)
             if not w:
                 continue
-            if self.x + w > self.cols:             # (a row that would wrap: never allowed)
-                self.overflow = True
+            if self.x + w > self.cols:             # (a row that would wrap: never allowed — but the frame that was on its way
+                self.overflow = self.overflow or not self.resizing   # as the window changed was drawn for its old size)
                 continue
-            if self.y < self.rows:
+            if 0 <= self.y < self.rows:
                 self.cells[self.y][self.x] = (c, self.fg, self.bg)
                 if w == 2:
                     self.cells[self.y][self.x + 1] = ("", self.fg, self.bg)
@@ -88,8 +92,9 @@ class Screen:
         elif final == b"m":
             self.sgr(params)
         elif final == b"K":
-            for x in range(self.x, self.cols):
-                self.cells[self.y][x] = (" ", None, None)
+            if 0 <= self.y < self.rows:
+                for x in range(self.x, self.cols):
+                    self.cells[self.y][x] = (" ", None, None)
         elif final == b"J":
             self.cells = [[(" ", None, None) for _ in range(self.cols)] for _ in range(self.rows)]
         elif final in (b"h", b"l") and lead == b"?":
@@ -97,6 +102,7 @@ class Screen:
                 (self.modes.add if final == b"h" else self.modes.discard)(int(n))
             if params == "2026" and final == b"l":
                 self.updates += 1
+                self.resizing = False
 
     def sgr(self, params):
         p = [int(x or 0) for x in params.split(";")] if params else [0]
@@ -143,6 +149,7 @@ class Window:
             os.execvp(cmd[0], cmd)
         fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack("HHHH", rows, cols, 0, 0))
         self.dead = False
+        self.tail = b""
 
     def pump(self, wait=0.05):
         r, _, _ = select.select([self.fd], [], [], wait)
@@ -155,22 +162,27 @@ class Window:
             if not data:
                 self.dead = True
                 return False
+            self.tail = (self.tail + data)[-4000:]
             self.screen.feed(data)
             return True
         return False
 
     def settle(self, seconds=0.25):
-        """What comes until the screen has been quiet for SECONDS."""
+        """What comes until the screen has been quiet for SECONDS, or five times that (a moving icon is never quiet)."""
         end = time.monotonic() + seconds
-        while time.monotonic() < end:
+        limit = end + 4 * seconds
+        while time.monotonic() < min(end, limit) or 2026 in self.screen.modes:
             if self.pump(0.02):
                 end = time.monotonic() + seconds
+            if time.monotonic() > limit + 2:
+                break
 
     def until(self, cond, seconds=15, what="it"):
         end = time.monotonic() + seconds
         while time.monotonic() < end:
             self.pump(0.05)
-            if cond(self.screen):
+            if 2026 not in self.screen.modes and cond(self.screen):   # (whole frames only)
+                self.settle(0.05)
                 return True
         raise TimeoutError(f"waited {seconds} s for {what}\n{self.screen.dump()}")
 

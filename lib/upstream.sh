@@ -52,10 +52,6 @@ FACES_OLD=/usr/local/share/fonts/fusion-pixel
 # (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
 # GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
 GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
-# torrra (from PyPI, with uv tool) is held at this version: kawa-torrra hands it the Prowlarr
-# key by replacing three methods of its settings class, so a newer torrra is taken only
-# after that has been checked against it.
-TORRRA_VERSION=2.5.1
 # Syncplay (watching together: kawa-together starts it) runs from its own source, held at the
 # v1.7.6 tag's commit as the file dialog's is: Fedora's package would bring PySide6 and 27 Qt
 # modules for a window the terminal way never opens. It is pure Python, so its syncplay/

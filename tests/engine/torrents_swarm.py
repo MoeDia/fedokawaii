@@ -162,7 +162,7 @@ class Client:
             v = cond()
             if v:
                 return v
-        raise TimeoutError(f"waited {seconds} s for {what}; rows: {json.dumps(list(self.rows.values()))[:1200]}")
+        raise TimeoutError(f"waited {seconds} s for {what}; rows: {json.dumps(list(self.rows.values()))[:1600]}")
 
     def event(self, ev, seconds=20, **want):
         return self.wait(lambda: next((m for m in self.events if m.get("ev") == ev and all(m.get(k) == v for k, v in want.items())), None),

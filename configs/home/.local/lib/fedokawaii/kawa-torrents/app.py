@@ -327,7 +327,7 @@ class App:
         for kind, value in found[:1] if len(found) == 1 else []:
             if value in self.declined:
                 continue
-            name = common.magnet_name(value) if kind == "magnet" else reading(os.path.basename(value))
+            name = reading(common.magnet_name(value) if kind == "magnet" else os.path.basename(value))
             self.offers.insert(0, {"from": "clipboard", "kind": kind, "value": value, "name": name,
                                    "hash": common.magnet_hash(value) if kind == "magnet" else None})
         if len(found) > 1:
@@ -834,7 +834,7 @@ class App:
             t.draw([])
             return
         w = cols - 2                               # the content, from screen column 1 (the cursor's fill is 0 … cols-1)
-        frame = [[] for _ in range(rows)]
+        frame = [[] for _ in range(max(rows, 8))]  # (a window of a few rows: what does not fit is not sent)
         pane = self.pane_shown(cols)
         if self.page and self.tab == "downloads" and not pane and self.page_row():
             self.draw_page(frame, cols, rows, w)
@@ -1111,7 +1111,7 @@ class App:
     def last_line(self, frame, rows, w, cols):
         """A screen's own keys, on its last line: the key in text, what it does muted, its state strong. A word
         said a moment replaces them; a question waits for its answer."""
-        y = rows - 1
+        y = max(0, rows - 1)
         if self.ask:
             words = cut(self.ask[0], w - 2)
             frame[y] = [" ", (words, STRONG)]

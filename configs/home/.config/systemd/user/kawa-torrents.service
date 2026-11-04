@@ -1,0 +1,32 @@
+# ~/.config/systemd/user/kawa-torrents.service — Torrents' engine (libtorrent): downloads go on with the window
+# closed; it ends by itself, everything saved, 30 s after there is no window and nothing left to download.
+# It reads what strangers on the network send, so it sees as little as it needs: everything read-only but the
+# downloads, its own state and its cache; your keys not at all.
+[Unit]
+Description=Torrents' engine (libtorrent)
+Requires=kawa-torrents.socket
+After=kawa-torrents.socket
+
+[Service]
+ExecStart=%h/.local/bin/kawa-torrents engine
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+Restart=on-failure
+RestartSec=2
+TimeoutStopSec=10
+Nice=5
+IOSchedulingClass=best-effort
+IOSchedulingPriority=6
+OOMScoreAdjust=200
+NoNewPrivileges=yes
+PrivateTmp=yes
+ProtectSystem=strict
+ProtectHome=read-only
+# (+: this one line outside the walls below, so that they find what they name)
+ExecStartPre=+/usr/bin/mkdir -p %h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
+ReadWritePaths=%h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
+InaccessiblePaths=-%h/.ssh -%h/.gnupg -%h/.config/fedokawaii/secrets.sh -%h/.config/BraveSoftware
+RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
+LockPersonality=yes
+RestrictRealtime=yes
+RestrictNamespaces=yes
+SystemCallArchitectures=native

@@ -1,4 +1,3 @@
-#!/usr/bin/python3 -I
 """Prowlarr, as this program asks it: a search site by site, so what a quick site finds shows at once and
 a slow one holds up nothing (measured 4 Nov: Knaben 0.6 s, YTS 39.6 s — one whole search waits for the slowest);
 the usual sites added (setup.sh: `prowlarr.py add`, key on stdin); and those that fail rested, so that Prowlarr's

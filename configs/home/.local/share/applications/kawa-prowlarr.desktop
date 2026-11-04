@@ -5,9 +5,9 @@
 Type=Application
 Name=Prowlarr
 GenericName=Torrent indexers
-Comment=The sites torrra searches through
+Comment=The sites Torrents searches through
 X-Fedokawaii-Icon=search
 Exec=@HOME@/.local/bin/kawa-prowlarr
 Terminal=false
 Categories=Network;P2P;
-Keywords=prowlarr;indexers;torrents;torrra;
+Keywords=prowlarr;indexers;torrents;

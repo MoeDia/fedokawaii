@@ -154,7 +154,7 @@ application/x-bzip2=kawa-files.desktop
 application/x-bzip2-compressed-tar=kawa-files.desktop
 application/x-rar=kawa-files.desktop
 application/vnd.rar=kawa-files.desktop
-# torrents: magnet links and .torrent files download in torrra (Torrents)
+# torrents: magnet links and .torrent files go to Torrents (kawa-torrents)
 x-scheme-handler/magnet=kawa-torrents.desktop
 application/x-bittorrent=kawa-torrents.desktop
 

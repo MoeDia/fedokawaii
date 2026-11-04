@@ -55,6 +55,7 @@ TRACKERS = ["udp://open.stealth.si:80/announce", "udp://tracker.torrent.eu.org:4
             "udp://tracker.opentrackr.org:1337/announce"]
 ROUTERS = "dht.libtorrent.org:25401,router.bittorrent.com:6881,router.utorrent.com:6881,dht.transmissionbt.com:6881"
 PAUSED, AUTO, SEQUENTIAL = lt.torrent_flags.paused, lt.torrent_flags.auto_managed, lt.torrent_flags.sequential_download
+UPLOAD_ONLY = lt.torrent_flags.upload_mode        # (where libtorrent puts a torrent that met a full disk: no error on it, 20 minutes)
 PAD = lt.file_storage.flag_pad_file
 ST = lt.torrent_status
 SAVE_FLAGS = lt.torrent_handle.save_info_dict | lt.torrent_handle.flush_disk_cache
@@ -127,10 +128,14 @@ class Stream:
         head = range(self.first, min(self.last, self.piece_at(min(STREAM_HEAD, self.size - 1))) + 1)
         tail = range(max(self.first, self.piece_at(max(0, self.size - STREAM_TAIL))), self.last + 1)
         self.need = sorted(set(head) | set(tail))
+        self.rush()
+
+    def rush(self):
+        h = self.h
         h.unset_flags(AUTO)
         h.resume()
         h.set_flags(SEQUENTIAL)
-        h.file_priority(index, 7)
+        h.file_priority(self.index, 7)
         for k, p in enumerate(self.need):
             h.set_piece_deadline(p, 400 + 150 * k)
 
@@ -295,8 +300,8 @@ class Engine:
         self.pend = {}                             # id → Pending
         self.streams = {}                          # id → Stream
         self.saving = 0
+        self.woken = set()                         # ids to be added anew once their resume data is written
         self.dirty = False
-        self.done = threading.Event()
         self.stopping = False
         self.last_status = self.last_save = self.last_update = 0.0
         self.idle_since = time.monotonic()
@@ -649,14 +654,30 @@ class Engine:
             i = tid(a.handle)
             if i in self.handles:
                 write_file(os.path.join(STATE, i + ".resume"), lt.write_resume_data_buf(a.params))
+            if i in self.woken:                    # (below)
+                self.woken.discard(i)
+                self.ses.remove_torrent(a.handle)
+                a.params.flags |= lt.torrent_flags.update_subscribe   # (a live torrent's flags leave out this default)
+                h = self.handles[i] = self.ses.add_torrent(a.params)
+                st = self.streams.get(i)
+                if st is not None:
+                    st.h = h
+                    st.rush()
         except (OSError, RuntimeError) as e:
             say(f"resume data could not be written: {e}")
 
+    def wake(self, h, i):
+        """A finished torrent wanted again (more of its files chosen, one played): libtorrent 2.0.11 lets its seeds go when
+        it finishes and never again counts them as worth connecting to, not when asked, not at a tracker's word (measured:
+        none in 130 s). Added anew from its resume data, nothing is lost and it connects at once (0.1 s)."""
+        self.woken.add(i)
+        self.save_resume(h)
+
     def on_file_error(self, a):
-        i, what = tid(a.handle), a.error.message()
-        say(f"{i}: {what}")
+        i, what = tid(a.handle), a.error.message().lower()
         told = self.meta.setdefault("errors", {})
         if told.get(i) != what:                    # (once for each thing that went wrong)
+            say(f"{i}: {what}")
             told[i] = what
             self.dirty = True
             name = common.reading(a.handle.status(QUERY_NAME).name)
@@ -678,8 +699,18 @@ class Engine:
             detached(["kawa-downloads", "notice", "torrent", common.reading(s.name) or "a torrent", str(s.total_wanted), where])
 
     # ── rows ────────────────────────────────────────────────────────────────────────────────
+    def trouble(self, s, i):
+        """What stopped it, in words: libtorrent's own error; a full disk (it only stops writing); its files gone."""
+        if s.errc.value():
+            return s.errc.message().lower()
+        if s.flags & UPLOAD_ONLY and i in self.meta.get("errors", ()):
+            return self.meta["errors"][i]
+        if i in self.meta.get("gone", ()):
+            return "its files are gone"
+        return ""
+
     def word(self, s, i):
-        if s.errc.value() or i in self.meta.get("gone", ()):
+        if self.trouble(s, i):
             return "failed"
         st = s.state
         if st == ST.checking_files:
@@ -705,8 +736,7 @@ class Engine:
                "peers": s.num_peers, "seeds": s.num_seeds, "known": max(s.list_peers, s.num_incomplete + s.num_complete, 0),
                "added": s.added_time, "at": s.completed_time, "progress": s.progress_ppm,
                "folder": s.save_path, "source": self.meta["source"].get(i, ""),
-               "err": s.errc.message() if s.errc.value() else "its files are gone" if i in self.meta.get("gone", ()) else "",
-               "meta": s.has_metadata,
+               "err": self.trouble(s, i), "meta": s.has_metadata,
                "ratio": round(s.all_time_upload / s.all_time_download, 2) if s.all_time_download else 0}
         st = self.streams.get(i)
         if st is not None:
@@ -835,13 +865,14 @@ class Engine:
             self.on_line(c, line)
 
     def on_line(self, c, line):
+        n = None
         try:
             q = json.loads(line)
             n = q.get("n")
             answer = getattr(self, "op_" + q["op"])(c, q) or {}
         except (ValueError, KeyError, AttributeError, TypeError) as e:
             say(f"a request that made no sense: {e!r}")
-            n, answer = (q.get("n") if isinstance(q, dict) else None), {"err": "not understood"}
+            answer = {"err": "not understood"}
         except RuntimeError as e:                  # (libtorrent: a torrent removed under the request)
             answer = {"err": str(e)}
         if n is not None:
@@ -865,6 +896,13 @@ class Engine:
     def op_add_many(self, c, q):
         return {"added": [dict(zip(("id", "known", "err"), self.add(k, v))) for k, v in q["links"]]}
 
+    def clear_trouble(self, h, i):
+        if h.status(0).errc.value():
+            h.clear_error()
+        h.unset_flags(UPLOAD_ONLY)
+        if self.meta.get("errors", {}).pop(i, None):
+            self.dirty = True
+
     def op_pause(self, c, q):
         h = self.handle(q)
         h.unset_flags(AUTO)
@@ -874,9 +912,7 @@ class Engine:
 
     def op_resume(self, c, q):
         h = self.handle(q)
-        if h.status(0).errc.value():
-            h.clear_error()
-            self.meta.get("errors", {}).pop(q["id"], None)
+        self.clear_trouble(h, q["id"])
         if self.meta.get("gone", {}).pop(q["id"], None):
             self.meta["told"].pop(q["id"], None)
             self.dirty = True
@@ -905,9 +941,7 @@ class Engine:
             self.push_rows()
             return None
         h = self.handle(q)
-        if h.status(0).errc.value():
-            h.clear_error()
-            self.meta.get("errors", {}).pop(q["id"], None)
+        self.clear_trouble(h, q["id"])
         h.force_reannounce()
         h.force_dht_announce()
         self.update_now()
@@ -937,11 +971,15 @@ class Engine:
         st = self.streams.get(i)
         if st is not None and prios[st.index] != 0:
             prios[st.index] = 7
+        finished = h.status(0).is_finished
         h.prioritize_files(prios)
         if self.meta["told"].pop(i, None):
             self.dirty = True
             self.save_state()
-        self.save_resume(h)
+        if finished:
+            self.wake(h, i)
+        else:
+            self.save_resume(h)
         self.idle_since = time.monotonic()
         self.update_now()
 
@@ -972,7 +1010,10 @@ class Engine:
             if old.ready:
                 return {"url": self.stream_url(old)}
             return {"waiting": True}
+        finished = h.status(0).is_finished
         st = self.streams[i] = Stream(self, h, index)
+        if finished:
+            self.wake(h, i)
         self.start_http()
         self.update_now()
         self.check_streams()
