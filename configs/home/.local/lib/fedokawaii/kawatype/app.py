@@ -5,8 +5,10 @@ are pictures (canvas.py) repainted as the theme changes. docs/design-system.md �
 import math
 import os
 import re
+import signal
 import sys
 import time
+import traceback
 
 from . import art, canvas, course, keys, metrics, store, term
 from .term import Focus, Key, Mood, Mouse, Pasted, Resize
@@ -259,7 +261,6 @@ class App:
 
     def quit(self):
         self.alive = False
-        self.store.save()
 
 
 class Screen:
@@ -472,7 +473,7 @@ class Home(Screen):
         value, vw = r.value, width(r.value)
         room = max(w - 4 - (vw + 2 if vw else 0), 0)
         name = r.name
-        if len(name) > room:           # (never "…": cut at a word, or the name's end goes)
+        if len(name) > room:           # (never an ellipsis: cut at a word, or the name's end goes)
             name = name[:room + 1].rsplit(' ', 1)[0] if ' ' in name[:room + 1] else name[:room]
             name = name[:room]
         pad = ' ' * max(w - 4 - len(name) - vw, 0)
@@ -1560,13 +1561,25 @@ class Result(Screen):
             self.app.go(LessonScreen(self.app, self.index))
 
 
+HELP = """kawa-typing — touch typing, finger by finger, to 100 words a minute and past it: a terminal program, the keyboard
+and the hands drawn in the terminal itself (Super+U, learning → typing).
+
+    kawa-typing            the course: it goes on where you stopped
+    kawa-typing FILE       types a file of your own (code, notes, anything)
+    kawa-typing --course   the lessons, as a table
+
+In a lesson: Esc leaves it (it is kept), Ctrl+K quiets the next key's light, Backspace corrects (from the sentences on).
+On the tabs: Tab or the arrows change tab, Enter goes, Esc goes back or closes.
+Everything it keeps: ~/.local/state/fedokawaii/typing. The method and its sources: docs/learn/typing/."""
+
+
 def main(argv):
     args = {}
     path = None
     it = iter(argv)
     for a in it:
         if a in ('-h', '--help'):
-            print(__doc__)
+            print(HELP)
             return 0
         if a == '--course':
             for i, l in enumerate(course.LESSONS):
@@ -1588,6 +1601,12 @@ def main(argv):
         return 1
     tty = term.Term()
     app = App(tty, args)
+
+    def leave(*_):     # (the window closed, or asked to end: what is kept is kept)
+        app.alive = False
+        tty.poke()
+    signal.signal(signal.SIGTERM, leave)
+    signal.signal(signal.SIGHUP, leave)
     text = None
     if path:
         try:
@@ -1604,11 +1623,22 @@ def main(argv):
         print('kawa-typing: it is open in another window', file=sys.stderr)
         time.sleep(2)      # (long enough to be read, in a window of its own)
         return 1
+    rc = 0
     try:
         first = LessonScreen.free(app, os.path.basename(path), text) if path else Home(app)
         app.run(first)
+        app.store.save()
     except EOFError:
-        pass
+        app.store.save()
+    except Exception:   # (the terminal goes back as it was, whatever happened; what happened goes to a file)
+        tty.stop()
+        try:
+            with open(os.path.join(app.store.dir, 'crash.log'), 'a') as f:
+                f.write(time.strftime('%F %T\n') + traceback.format_exc() + '\n')
+        except OSError:
+            pass
+        print('kawa-typing: it broke: the details are in ' + os.path.join(app.store.dir, 'crash.log'), file=sys.stderr)
+        rc = 1
     finally:
         tty.stop()
-    return 0
+    return rc

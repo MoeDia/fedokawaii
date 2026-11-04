@@ -15,7 +15,6 @@ import re
 import select
 import signal
 import struct
-import sys
 import termios
 import time
 import tty
@@ -66,11 +65,12 @@ class Term:
         os.set_blocking(self.pipe_r, False)
         os.set_blocking(self.pipe_w, False)
         self.mouse = False
+        self.resized = False
 
     def start(self):
         self.saved = termios.tcgetattr(self.fd)
         tty.setraw(self.fd)
-        signal.signal(signal.SIGWINCH, lambda *_: self._poke())
+        signal.signal(signal.SIGWINCH, lambda *_: self._resized())
         self.write_now(ENTER)
 
     def stop(self):
@@ -82,11 +82,16 @@ class Term:
                 pass
             self.saved = None
 
-    def _poke(self):
+    def poke(self):
+        """read() returns now"""
         try:
-            os.write(self.pipe_w, b'w')
+            os.write(self.pipe_w, b'.')
         except OSError:
             pass
+
+    def _resized(self):
+        self.resized = True
+        self.poke()
 
     def size(self):
         """columns, rows, a cell's width and height in pixels (8 × 20 where the terminal does not say)"""
@@ -142,7 +147,9 @@ class Term:
                 os.read(self.pipe_r, 512)
             except OSError:
                 pass
-            events.append(Resize())
+            if self.resized:
+                self.resized = False
+                events.append(Resize())
         if self.fd in ready:
             try:
                 data = os.read(self.fd, 65536)
@@ -306,12 +313,3 @@ def _int(s, default):
         return int(s) if s else default
     except ValueError:
         return default
-
-
-def die_quietly():
-    """the terminal is gone: leave without a word"""
-    try:
-        sys.stdout.close()
-    except OSError:
-        pass
-    os._exit(0)

@@ -43,9 +43,11 @@ class Store:
         try:
             self.lock = open(os.path.join(self.dir, 'lock'), 'w')
             fcntl.flock(self.lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-            return True
-        except OSError:
-            return self.failed      # (a read-only home: nothing to protect)
+        except BlockingIOError:
+            return False
+        except OSError:             # (a home that takes nothing: nothing to protect)
+            pass
+        return True
 
     # ── reading ──────────────────────────────────────────────────────────────
     def _path(self, name):
@@ -149,7 +151,12 @@ class Store:
                         r = json.loads(line)
                     except ValueError:
                         continue
-                    if isinstance(r, dict) and all(isinstance(r.get(k), (int, float)) for k in ('d', 'w', 'a')) and isinstance(r.get('k'), str):
+                    if (isinstance(r, dict) and isinstance(r.get('k'), str)
+                            and all(isinstance(r.get(k), (int, float)) and math.isfinite(r[k]) for k in ('d', 'w', 'a'))
+                            and 0 <= r['w'] < 1000 and 0 < r['d'] < 1e11):
+                        for k in ('s', 'o'):
+                            if not (isinstance(r.get(k), (int, float)) and math.isfinite(r[k])):
+                                r.pop(k, None)
                         out.append(r)
         except (OSError, UnicodeDecodeError):
             pass

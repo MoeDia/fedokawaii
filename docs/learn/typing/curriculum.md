@@ -33,9 +33,9 @@ A key's first lesson has no score. Failing costs nothing: the same lesson again,
 
 ## How it flows
 
-**Today** is 20 minutes: `Enter` on the home screen goes on where you stopped. Warm up on the keys you own,
-a lesson or more, the day's weakest keys, and a one-minute test at the end of the day's minutes. Then the
-meter is full and it says so (you may go on). Short and daily beats long and rare (Baddeley & Longman 1978).
+**Today** is 20 minutes: `Enter` on the first row goes on where you stopped. A warm-up on your weakest keys, then
+lessons, then, when the minutes are up, a one-minute test: the line you watch rise. Then it says so, and you may go
+on. Short and daily beats long and rare (Baddeley & Longman 1978).
 
 **The crossover**: the first thing the app asks for is one minute of plain words typed the way you type now.
 That number stays on the progress page, until touch typing passes it. Before that day the old way feels
@@ -44,8 +44,8 @@ faster, and most people go back to it there (Yechiam 2003). Past that day it sto
 **Block or flow.** Stages 1–3 and every key's lessons block: a wrong key does not move on. From the first
 sentences on, the text flows: a wrong letter stands in red, Backspace corrects, the error still counts.
 
-**Eyes up.** In stages 4 and 9 an eye opens above the text every 40–60 s: press its key within 2 s, or the
-screen dims till you do. Looking at your hands is how you miss it (Yechiam 2003). Never in a check or a test.
+**Eyes up.** In sentences and passages an eye opens under the text every 40–60 s: press Tab within 2 s, or the text
+dims and waits till you do. Looking at your hands is how you miss it (Yechiam 2003). Never in a check or a test.
 
 ## The stages
 
@@ -59,8 +59,7 @@ screen dims till you do. Looking at your hands is how you miss it (Yechiam 2003)
 | 6 | numbers | `4 7` · `3 8` · `2 9` · `1 0` · `5 6` | 21 | 5 → 20 | block, then flow |
 | 7 | symbols | `$ &` · `# *` · `@ (` · `) !` · `% ^` | 18 | 5 → 18 | block, then flow |
 | 8 | more symbols | `[ ]` · `\ \|` · `_ +` · `= <` · `> ~` · `` ` { `` · `}` | 24 | 5 → 18 | block, then flow |
-| 9 | speed | passages, patterns, a pacer, a check, each 5 wpm from 30 to 110 | 102 | goal − 10 → goal | flow |
-| 10 | code | bash · git · python · rust · c, after the speed bands of 40 · 50 · 60 · 70 · 80 | 30 | goal 0.8 × the band | flow |
+| 9 | speed | passages, patterns, a pacer, a check, each 5 wpm from 30 to 110; real code after the bands of 40 · 50 · 60 · 70 · 80 | 132 | goal − 10 → goal | flow |
 | | | **total** | **321** | | |
 
 ## A key's lessons (stages 1–3)
@@ -74,8 +73,8 @@ screen dims till you do. Looking at your hands is how you miss it (Yechiam 2003)
 
 Each stage ends with: **anchor** (one hand holds `f` or `j` down, the other types: lifting it stops the
 text; home row and top row, one per hand) or **travel** (a column at a time, up and down through its home
-key: top and bottom row), **review** (the stage's keys, the weakest most), and a **check** (one minute,
-words of the stage, its goal).
+key: bottom row), **review** ×2 (the stage's keys, the weakest most), and a **check** (one minute, words of
+the stage, its goal).
 
 ## Capitals, numbers and symbols
 
@@ -88,7 +87,8 @@ shows it); pressing the wrong one is said, and counted apart: not an accuracy er
 17 bands, 30 to 110 wpm. A band's six lessons: **passage** ×3 (Okakura, Hearn, Nitobe, as printed: longer and
 harder as the bands rise, 200–500 characters) · **patterns** (the commonest pairs and triples, alone, then
 in the words that hold them: the chunks of a fast typist) · **pacer** (a passage with a second caret running
-at the goal; beat it to the end) · **check** (one minute, plain words, the band's goal at 97 %).
+at the goal; beat it to the end) · **check** (one minute, plain words, the band's goal at 97 %). After the bands
+of 40, 50, 60, 70 and 80: six lessons of real code (bash · git · python · rust · c), goal 0.8 × the band.
 
 Rollover is shown from here on, with its number from the fast typists of Dhakal 2018 (about half of the
 presses). It is not taught: it comes.

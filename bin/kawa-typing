@@ -1,16 +1,14 @@
-#!/usr/bin/python3 -IB
-"""kawa-typing — touch typing, finger by finger, to 100 words a minute and past it: a terminal program, the
-keyboard and the hands drawn in the terminal itself (Super+U, learning → typing).
-
-    kawa-typing            the course: goes on where you stopped
-    kawa-typing FILE       types a file of your own (code, notes, anything)
-    kawa-typing --course   the lessons, as a table
-
-Everything it keeps: ~/.local/state/fedokawaii/typing. The method and its sources: docs/learn/typing/.
-"""
+#!/usr/bin/python3 -I
+"""kawa-typing — touch typing in the terminal (Super+U, learning → typing). kawa-typing --help says how; the program is
+~/.local/lib/fedokawaii/kawatype."""
 import os
 import sys
 
+# (its compiled code kept with the caches, never beside its sources: nothing stray in ~/.local/lib)
+if os.environ.get('PYTHONDONTWRITEBYTECODE'):
+    sys.dont_write_bytecode = True
+else:
+    sys.pycache_prefix = os.path.join(os.environ.get('XDG_CACHE_HOME') or os.path.expanduser('~/.cache'), 'fedokawaii', 'pyc')
 sys.path.insert(0, os.path.expanduser('~/.local/lib/fedokawaii'))
 here = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
 sys.path.insert(0, os.path.join(here, 'configs/home/.local/lib/fedokawaii'))      # (from the repository: tests, the kit)

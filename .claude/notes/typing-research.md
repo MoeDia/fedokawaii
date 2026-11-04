@@ -166,14 +166,13 @@ rises in steps of 5 wpm, with a pacer one step ahead. A lesson with 97 % but und
 without its top seals; under 97 % never passes, however fast.
 
 **Block on error, or flow?** Blocking gives each key its correct response at once; real typing needs
-noticing and Backspace. Answer: lessons up to the first sentences **block** (a wrong key does not move
-on, it costs accuracy). From sentences on, **flow**: wrong letters stand, Backspace corrects, errors
-count anyway. Timed tests flow, like Monkeytype's.
+noticing and Backspace. Answer: a key's own lessons **block** (a wrong key does not move on, it costs accuracy). From sentences on,
+**flow**: wrong letters stand, Backspace corrects, errors count anyway. Timed tests flow, like Monkeytype's.
 
 **The keyboard at all times against the guidance hypothesis.** He asked for it at all times, and EdClub
 itself says the guides "can be disabled" late. A key lit ten times a second is a crutch and a flicker.
 Answer: it is drawn at all times, always right, as he asked; the app never hides it, checks included.
-One key (`k`) quietens the next key's light for the one who wants it (the keys stay, the held keys still
+One key (`Ctrl+K`) quietens the next key's light for the one who wants it (the keys stay, the held keys still
 move), remembered until pressed again: his choice, never the app's. The transfer is carried by the
 watching eye and measured by the crossover. Revisit with his data.
 
@@ -189,13 +188,13 @@ evidence but a fit; the meter fills and says so; he can go on.
 120. Nobody published hours-to-100. So the app shows no promise: after two weeks it fits his own curve
 (power law of practice) and draws its line toward 100.
 
-**Is the course too long?** 309 lessons against EdClub's 684. Tricky words are left out (spelling is not
+**Is the course too long?** 321 lessons against EdClub's 684. Tricky words are left out (spelling is not
 the goal), games too, the videos become a line or two. Nothing that moves speed is left out; the
 adaptive practice replaces what the repetition of 684 lessons does.
 
 **The watching eye.** Yechiam's blue square: cheap, supported by one small study, and it fits the world:
-at random, every 40–60 s in the sentences stage, the demon's (or angel's) eye opens above the text: press
-the key it names within 2 s, or the screen dims till you do. Off in checks and speed-measured runs.
+at random, every 40–60 s of a sentence or passage lesson, the demon's (or angel's) eye opens under the text: press
+Tab within 2 s, or the text dims and waits till you do. Off in checks and speed-measured runs.
 
 ## 6. What this desktop adds that no web course can
 
