@@ -13,7 +13,7 @@ from canvas import encode
 from engine import Engine
 from store import Store
 from term import ACCENT, MUTED, ON_SELECT, SELECT, Term, Wakeups
-from ui import Face, Layout, icon, load_icons, span_len, wrap
+from ui import Face, Hits, Layout, icon, load_icons, span_len, wrap
 
 HOME = os.path.expanduser("~")
 DATA = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local/share"), "fedokawaii/chess")
@@ -212,6 +212,7 @@ class App:
         self.quit = False
         self.focused = True
         self.rows_at = {}            # panel row on the screen → index in the screen's panel lines
+        self.hits_at = {}            # panel row on the screen → what a click on its keys or tabs is (ui.Hits)
         self.tracing = bool(os.environ.get("KAWA_CHESS_TRACE"))
         self.pic_key = None          # the picture shown in the board's place, if any
         self.face_at = None          # the face in the panel: (name, row, column, mood)
@@ -341,6 +342,7 @@ class App:
         lay, t = self.layout, self.term
         lines = s.panel(lay.pw, lay.ph)
         self.rows_at = {}
+        self.hits_at = {}
         cur = getattr(s, "cursor", None)
         # (rows that held a picture and hold none now: their words were never drawn over it)
         rows_now = {lay.pr + i for i, ln in enumerate(lines[:lay.ph]) if isinstance(ln, Face) or ln is Face.BELOW}
@@ -371,6 +373,8 @@ class App:
                         spans = [" ", *spans, " "]
                     t.text(row, lay.pc - 1, spans, lay.pw + 2)
                     continue
+                if isinstance(ln, Hits):
+                    self.hits_at[row] = ln.hits
                 if self.tracing and span_len(ln) > lay.pw:
                     self.trace("cut", type(s).__name__, lay.pw, "".join(x if isinstance(x, str) else x[0] for x in ln))
                 t.text(row, lay.pc - 1, [" ", *ln], lay.pw + 2)
@@ -599,6 +603,9 @@ class App:
         elif kind == "paste":
             s.paste(ev[1])
             self.touch()
+        elif kind == "tab" and hasattr(s, "go_tab"):     # (a click from a line just replaced: nothing)
+            s.go_tab(ev[1])
+            self.touch()
         elif kind == "mouse":
             self._mouse(s, ev)
 
@@ -636,6 +643,11 @@ class App:
             if i is not None and lay.pc - 1 <= col <= lay.pc + lay.pw:
                 s.click_row(i)
                 self.touch()
+                return
+            for first, end, event in self.hits_at.get(row, ()):
+                if first <= col - lay.pc < end:
+                    self.on_event(event)
+                    return
         elif what == "move" and hasattr(s, "hover"):
             row, col = py // t.ch, px // t.cw
             i = self.rows_at.get(row)

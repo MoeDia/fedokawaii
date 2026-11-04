@@ -368,6 +368,53 @@ t.close()
 PY
 )" "True True True True ''"
 
+case_ "a click (§7): on a tab goes there; on a key's tile or its words is that key; on the paper beside them, nothing"
+eq "$(py <<'PY'
+import json, sys, pathlib
+sys.path.insert(0, sys.argv[1])
+from chess_lib import *
+root = pathlib.Path(sys.argv[2]) / "k"
+home, env = make_home(root)
+t = open_app(env)
+def where(word):
+    for r, row in enumerate(t.grid):
+        s = "".join(row)
+        if word in s:
+            return r, s.index(word)
+    return None
+def key(k):
+    return "".join(chr(0xff000 + ord(c)) for c in k)
+def click(r, c):
+    x, y = c * t.cw + t.cw // 2 + 1, r * t.ch + t.ch // 2 + 1
+    t.send(f"\x1b[<0;{x};{y}M\x1b[<0;{x};{y}m"); t.pump(0.3)
+r, c = where("today")
+click(r, c - 3 + 8 + 3)                  # (the second tab's picture: today's picture, name and gap before it)
+lessons = t.find("of 154")
+r, c = where(key("tab"))
+click(r, c)
+puzzles = t.find("ten minutes, mixed")
+r, c = where(" next")
+click(r, c + 2)                          # (its words too)
+games = t.find("a free game")
+r, c = where(key("esc"))
+click(r, c + 30)
+kept = t.alive() and t.find("a free game")
+click(r, c)
+t.ended()
+gone = not t.alive()
+t.close()
+st = state(home)
+spec = dict(title="x", goal="", fen="r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3", line=[], colour=0, elo=500, clock=None, hints=3, threats=False, opponent="x", no=None)
+(st / "current.json").write_text(json.dumps(dict(spec=spec, moves=[], clock=None, times=[], hints_used=0)))
+t = open_app(env)
+r, c = where(key("?"))
+click(r, c)
+hint = t.wait("hint  2", 5)
+print(lessons, puzzles, games, kept, gone, hint, repr(crash_text(home)))
+t.close()
+PY
+)" "True True True True True True ''"
+
 case_ "the grammar: the cursor's row tinted, its name in the ink on it, a value its own; a key a tile; the footer on the last line, what does not fit left out"
 eq "$(py <<'PY'
 import sys
