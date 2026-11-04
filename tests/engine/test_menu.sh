@@ -107,7 +107,7 @@ case_ "rows: five sections, each its entries in order, each fitting the 38-colum
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
 for s in $SECS; do printf '%s: %s\n' "$s" "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --rows "$s" | cut -f1 | tr '\n' ' ')"; done >"$TMP/secs"
 eq "$(cat "$TMP/secs")" "system: status verify repair drift change theme settings remind log 
-update: update pull held 
+update: update held 
 snapshots: snapshots file 
 backups: backup restore drive 
 learning: guide chess typing keys "
@@ -135,7 +135,7 @@ case_ "rows: away from the desktop (a text console, ssh) — change, keys and th
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
 case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
-eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update pull held "
+eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update held "
 eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
 case_ "the tab bar, a heading over the list (a cell further out): the section shown — its icon in the accent's ink, its name strong, a vermilion line under the name alone; the others their icon alone, muted; every icon two columns, every gap three; a row of paper"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"   # (the icons the menu draws, by name)
@@ -218,7 +218,7 @@ case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
 called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
-called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
+called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
 case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
@@ -284,7 +284,7 @@ rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc44.x86_64 >"$R/new
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
-for a in status update pull verify repair snapshots backup theme drift change settings remind log keys guide; do
+for a in status update verify repair snapshots backup theme drift change settings remind log keys guide; do
   out=$(FZF_PREVIEW_LINES=16 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")
   (( $(wc -l <<<"$out") <= 16 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   heading_ok "$(sed -n 1p <<<"$out")" 49 "$a: the pane's heading (level with the tab bar)"

@@ -168,6 +168,9 @@ install_toolkit() {
     esac
   fi
   if [[ $REPO_DIR != "$TOOLKIT" ]]; then
+    # (from now on the button leaves fedokawaii itself alone: lib/update.sh up_toolkit; a build and
+    # the button's own move are not your copy)
+    [[ $MODE == build || -n ${UP_TK:-} ]] || record toolkit-from-copy "$(date +%s)"
     toolkit_back
     rm -rf "$TOOLKIT.new" "$TOOLKIT.old"
     mkdir -p "${TOOLKIT%/*}"
@@ -2967,6 +2970,7 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   local newest running result=ok e every was
   hdr "Fedokawaii update · Fedora $FEDORA_VER"
   toolkit_first
+  up_toolkit
   # a run cut once the running system began to change: finished — or, its transaction not
   # whole, undone — before anything new is tried
   was=$(up_was)

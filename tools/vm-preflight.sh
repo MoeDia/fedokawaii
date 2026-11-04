@@ -58,11 +58,7 @@ trap gone EXIT
 [[ -d $HOME/VM/harness/$name ]] && { bash "$here/vm-snap.sh" "$name" destroy >/dev/null 2>&1 || cannot "the old VM $name could not be removed"; }
 # (the VM's threads at the lowest priority: libvirt's daemon starts them, not this shell — and new
 # ones come at each start)
-pidf=$HOME/.cache/libvirt/qemu/run/fk-$name.pid
-( while sleep 20; do
-    p=$(cat "$pidf" 2>/dev/null) || continue
-    for t in /proc/"$p"/task/*; do renice -n 19 -p "${t##*/}" >/dev/null 2>&1; done
-  done ) & watcher=$!
+( while sleep 20; do bash "$here/vm-snap.sh" "$name" nice 19 >/dev/null 2>&1; done ) & watcher=$!
 
 say "Fedora $n: installing it in a test VM ($name)"
 bash "$here/vm-create.sh" "$name" --release "$n" --port "$port" --ram "$ram" >&2 \

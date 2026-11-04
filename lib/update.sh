@@ -26,6 +26,52 @@ up_phase() {   # (not written: a full disk — fatal only once the running syste
 up_was() { local p=end; [[ -s $UPD/phase ]] && IFS=" " read -r p _ <"$UPD/phase"; echo "$p"; }
 up_labels() { sed 's/ — .*//' | sort -u; }   # (a check's label: its detail after the dash may vary)
 
+# ── the toolkit first (design §4 phase 1, §5 row 28): fedokawaii itself from GitHub, at its newest
+# release tag (v…; the ISOs are built from them, never a moving branch), over HTTPS. Its own checks in
+# a fake machine before it replaces anything; the system before it kept as this run's snapshot, so a
+# red after it takes it back with the rest, and that tag is never tried again. A toolkit applied from
+# your copy (fedokawaii apply, pull) stays yours: toolkit-from-copy, written by install_toolkit
+UP_ORIGIN=${FEDOKAWAII_ORIGIN:-https://github.com/MoeDia/fedokawaii.git}
+up_git() { as_user env GIT_TERMINAL_PROMPT=0 timeout 600 git -c credential.helper= -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 "$@"; }
+up_toolkit() {   # → back here: this toolkit goes on · else it is replaced and the run starts again from it
+  [[ $REPO_DIR == "$TOOLKIT" ]] && on_the_system || return 0
+  if [[ -e $STATE_DIR/toolkit-from-copy ]]; then
+    log "fedokawaii itself stays as your copy made it (fedokawaii apply; fedokawaii pull brings GitHub's)"; return 0
+  fi
+  local t tag cur d f bad=0
+  t=$(up_git ls-remote --tags --refs --sort=-version:refname "$UP_ORIGIN" 'v*' 2>/dev/null) || { log "GitHub does not answer: fedokawaii itself stays as it is this time"; return 0; }
+  tag=$(sed -n '1s|.*refs/tags/||p' <<<"$t")
+  cur=$(cat "$STATE_DIR/toolkit-release" 2>/dev/null) || cur=""
+  [[ -n $tag && $tag != "$cur" ]] || return 0
+  [[ $(printf '%s\n' "$tag" "$cur" | sort -V | sed -n '$p') == "$tag" ]] || return 0   # (never back: a tag taken away)
+  if grep -qxF -- "$tag" "$UPD/toolkit-red" 2>/dev/null; then log "fedokawaii $tag was refused before: this one stays until a newer one"; return 0; fi
+  log "fedokawaii $tag is out: fetched, then checked in a fake machine (a few minutes; nothing changes yet)"
+  d=$(as_user mktemp -d) || die "no room for a file of yours in /tmp — nothing changed"
+  if ! up_git clone --quiet --depth 1 --branch "$tag" "$UP_ORIGIN" "$d/t" >/dev/null 2>&1; then
+    rm -rf -- "$d"; log "fedokawaii $tag could not be fetched: this one stays this time"; return 0
+  fi
+  : >"$UPD/toolkit-check.log"
+  for f in "$d"/t/{setup.sh,theme.sh,verify.sh,fedokawaii.sh,system/fedokawaii} "$d"/t/lib/*.sh; do
+    bash -n "$f" >>"$UPD/toolkit-check.log" 2>&1 || bad=1
+  done
+  if ((bad)) || ! as_user bash "$d/t/tests/installer/test_torture.sh" >>"$UPD/toolkit-check.log" 2>&1; then
+    rm -rf -- "$d"; echo "$tag" >>"$UPD/toolkit-red"
+    UPDATE_STEPS_FAILED+=("fedokawaii $tag failed its own checks and stays out ($UPD/toolkit-check.log)")
+    log "fedokawaii $tag failed its own checks: this one stays"; return 0
+  fi
+  if [[ ! -s $UPD/snap-first ]]; then
+    snapshot_before "fedokawaii $tag" important
+    snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+    echo "$SNAP_N" | write_file "$UPD/snap-first" 0644
+  fi
+  t=$REPO_DIR; REPO_DIR=$d/t; UP_TK=1 install_toolkit; REPO_DIR=$t
+  record toolkit-release "$tag"; echo "$tag" | write_file "$UPD/toolkit-moved" 0644
+  hdr "fedokawaii $tag: the rest of this update from it"
+  trap - EXIT; rm -rf -- "$d" "$KAWA_TMP"
+  if [[ $MODE == upgrade ]]; then exec /usr/bin/bash "$TOOLKIT/setup.sh" --upgrade ${UPGRADE_FLAG:+"$UPGRADE_FLAG"}; fi
+  exec /usr/bin/bash "$TOOLKIT/setup.sh" --update
+}
+
 # ── start ────────────────────────────────────────────────────────────────────────────────────
 u_start() {
   up_phase start
@@ -303,10 +349,14 @@ u_snapshot() {
   fi
   # (rpm's database needs nothing first: a snapshot is one instant, and SQLite takes its
   # write-ahead log from it as after a power cut — no transaction runs while this one holds the lock)
-  snapshot_before "update $(date +%F)" important
-  # pinned: no cleanup algorithm, so snapper never removes it before the next start has proven
-  # the update (update-design.md §4.3)
-  snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+  if [[ -s $UPD/snap-first ]]; then   # (the toolkit's move began this press: the system before all of it)
+    SNAP_N=$(cat "$UPD/snap-first"); rm -f -- "$UPD/snap-first"
+  else
+    snapshot_before "update $(date +%F)" important
+    # pinned: no cleanup algorithm, so snapper never removes it before the next start has proven
+    # the update (update-design.md §4.3)
+    snapper -c root modify -c '' "$SNAP_N" >/dev/null 2>&1 || log "snapshot $SNAP_N could not be pinned — it is kept as an important one"
+  fi
   printf '%s\n' "$SNAP_N" | write_file "$UPD/snap" 0644
 }
 u_replay() {   # → 1 the transaction failed on the running system
@@ -367,9 +417,12 @@ u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
 # the system before it back. Only once /home is its own subvolume is that done by itself — before,
 # a restore would take his files back in time too, so it is offered
 u_undo() {
-  local n s=(); n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  local n s=() tk; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
-  ((${#s[@]})) && { up_sources; up_hold "$(head -n1 "$UPD/why")" "${s[@]}"; }
+  # (fedokawaii itself moved this press: that tag refused, no package blamed — the next press tries them again on the old one)
+  tk=$(cat "$UPD/toolkit-moved" 2>/dev/null) || tk=""
+  if [[ -n $tk ]]; then echo "$tk" >>"$UPD/toolkit-red"; rm -f -- "$UPD/toolkit-moved"; log "fedokawaii $tk goes back with the rest, and is not tried again"
+  elif ((${#s[@]})); then up_sources; up_hold "$(head -n1 "$UPD/why")" "${s[@]}"; fi
   UP_TOGETHER=${#s[@]}   # (the whole set: red only on the running system, so never told apart)
   if [[ -z $n ]]; then UP_END=checks
   elif mountpoint -q /home && /usr/local/sbin/kawa-snap restore "$n"; then UP_END=restored
@@ -399,6 +452,7 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   esac
   # (a fixed short form, so the status's row fits it; which items, in the report's lines below)
   [[ -z $desk ]] || line+=" · desktop red before: not judged"
+  if [[ -s $UPD/toolkit-moved && $UP_END == @(ok|current|held) ]]; then line+=" · fedokawaii $(cat "$UPD/toolkit-moved")"; rm -f -- "$UPD/toolkit-moved"; fi
   # (a run stopped once the running system began to change keeps its phase: the next start
   # (replay) or press finishes it — never a new update over one not yet whole, or not judged;
   # a replay whose transaction never began changed nothing, and ends)

@@ -44,7 +44,7 @@ case $act in
       cp --reflink=auto "$D/state-$st.qcow2" "$D/disk.qcow2" && cp --reflink=auto "$D/state-$st.fd" "$(nvram)" || exit 1
     fi ;;
   nice)
-    p=$(cat "$HOME/.cache/libvirt/qemu/run/$dom.pid" 2>/dev/null) || exit 1
+    p=$(cat "${XDG_RUNTIME_DIR:-/run/user/$UID}/libvirt/qemu/run/$dom.pid" 2>/dev/null) || exit 1
     for t in /proc/"$p"/task/*; do renice -n "${st:-10}" -p "${t##*/}" >/dev/null 2>&1 || true; done; exit 0 ;;   # (a thread may end meanwhile)
   list) for f in "$D"/state-*.qcow2; do [[ -f $f ]] && { f=${f##*/state-}; echo "${f%.qcow2}"; }; done; exit 0 ;;
   destroy)
