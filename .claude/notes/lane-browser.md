@@ -2,6 +2,8 @@
 
 Started 18:11, 4 Nov. Due 21:30. Branch `lane-browser`, worktree `~/repos/fk-browser`.
 
+**If you read this before main's forced reboot (planned ~20:25; `uptime` still shows the boot of about 15:46): start nothing: no kit, suite, VM, build, GPU job, no sudo or systemctl (main's order, 20:14). After the boot: see "Next".**
+
 ## Decisions (each from the source, see "Sources")
 - **Helium** (0.20.3.1 = Chromium 156.0.8078.79), from its official COPR `imput/helium`, package `helium-bin`,
   profile `~/.config/net.imput.helium`. Digest: `git show origin/lane-research2:.claude/notes/research-T31a-browser.md`.
