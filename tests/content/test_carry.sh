@@ -43,6 +43,28 @@ M=$TMP/third; mkdir -p "$M/.config/fedokawaii"; cp -a "$H1/.config/fedokawaii/ic
 RESTIC_PASSWORD=wrong HOME=$M XDG_STATE_HOME=$M/.local/state kawa-carry back "$D" >"$TMP/o" 2>&1; eq "$?" 1 "exit"
 has "$(cat "$TMP/o")" "nothing was changed"; [[ -e $M/Notes ]] && _no "something came back" || _ok
 
+case_ "hint: only looks. A closed drive stays closed, even with nothing else plugged in; an open one with your things: the notice, once; without them: nothing"
+rm -f "$HOME/.local/state/fedokawaii/carried" "$HOME/.local/state/fedokawaii/carried.told"
+LOG=$TMP/hint.log; : >"$LOG"; mkdir -p "$TMP/hintbin"
+cat >"$TMP/hintbin/kawa-drives" <<'STUB'
+#!/usr/bin/env bash
+echo "kawa-drives $*" >>"$KAWA_HINT_LOG"
+[[ $1 == list ]] && cat "$KAWA_HINT_LIST"
+exit 0
+STUB
+printf '#!/usr/bin/env bash\necho "notify-send $*" >>"$KAWA_HINT_LOG"\n' >"$TMP/hintbin/notify-send"
+chmod +x "$TMP/hintbin/kawa-drives" "$TMP/hintbin/notify-send"
+export KAWA_HINT_LOG=$LOG KAWA_HINT_LIST=$TMP/hint.list
+printf '/dev/sdc1\t/dev/sdc\tSHUT\t8G\tclosed\t\n' >"$KAWA_HINT_LIST"
+PATH=$TMP/hintbin:$PATH kawa-carry hint; eq "$?" 0 "exit"
+lacks "$(cat "$LOG")" "kawa-drives open"; lacks "$(cat "$LOG")" "notify-send"
+[[ -e $HOME/.local/state/fedokawaii/carried.told ]] && _no "told with only a closed drive" || _ok
+mkdir -p "$TMP/open-plain"; printf '/dev/sdd1\t/dev/sdd\tPLAIN\t8G\topen\t%s\n' "$TMP/open-plain" >"$KAWA_HINT_LIST"; : >"$LOG"
+PATH=$TMP/hintbin:$PATH kawa-carry hint; lacks "$(cat "$LOG")" "notify-send"
+printf '/dev/sde1\t/dev/sde\tTRIP\t8G\topen\t%s\n' "$D" >"$KAWA_HINT_LIST"; : >"$LOG"
+PATH=$TMP/hintbin:$PATH kawa-carry hint; has "$(cat "$LOG")" "notify-send"
+: >"$LOG"; PATH=$TMP/hintbin:$PATH kawa-carry hint; lacks "$(cat "$LOG")" "notify-send"
+
 case_ "misuse: exit 2"
 rc 2 kawa-carry bogus; rc 2 kawa-carry
 
