@@ -105,7 +105,8 @@ rescue() {
     XDG_SESSION_DESKTOP XDG_SESSION_TYPE 2>/dev/null
   printf '\n  The desktop could not start: %s.\n\n' "$1"
   printf '  This console works as usual. To put things right:\n\n'
-  printf '      fedokawaii repair      finds what broke and fixes it (or: fedokawaii, the menu)\n\n'
+  printf '      fedokawaii repair      finds what broke and fixes it\n'
+  printf '      fedokawaii snapshots   the whole system as it was before an update (your files stay)\n\n'
   printf '  What dwl said: %s · Ctrl+D logs out.\n\n' "$LOG"
   # (handed over by kmscon: back to the shell you started from, once kmscon shows it again —
   # a new one now would wait unseen, while kmscon still keeps the screen dark)

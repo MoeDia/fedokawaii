@@ -1,0 +1,6 @@
+#!/bin/bash
+# systemd-inhibit of the fake Fedora: logged, the command run with no inhibitor
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+while [[ ${1:-} == --* ]]; do shift; done
+exec "$@"

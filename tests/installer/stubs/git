@@ -16,9 +16,20 @@ case $1 in
   submodule) net_on || { echo "fatal: unable to access 'https://github.com/akinomyoga/blesh-contrib.git/'" >&2; exit 128; }
          countdown git-submodule && { echo "fatal: unable to access: timed out" >&2; exit 128; }
          mkdir -p "$dir/contrib"; exit 0 ;;
+  ls-remote)   # (fedokawaii's release tags, newest first: $FKH/release-tags, a tag a line)
+         net_on || { echo "fatal: unable to access" >&2; exit 128; }
+         [[ -f $FKH/fail-git-ls-remote ]] && exit 128
+         while read -r t; do printf '%040d\trefs/tags/%s\n' 1 "$t"; done < <(cat "$FKH/release-tags" 2>/dev/null); exit 0 ;;
   clone) net_on || { echo "fatal: unable to access" >&2; exit 128; }
          countdown git-clone && { echo "fatal: unable to access: timed out" >&2; exit 128; }
          d=${*: -1}; mkdir -p "$d/.git"; echo "ref: refs/heads/main" >"$d/.git/HEAD"
+         if [[ " $* " == *MoeDia/fedokawaii* ]]; then   # (the release: the toolkit as it is, marked; its checks' stand-in)
+           cp -a /usr/local/lib/fedokawaii/. "$d/"; mkdir -p "$d/.git"; echo "ref: refs/heads/main" >"$d/.git/HEAD"; echo "$*" >"$d/FROM-RELEASE"
+           mkdir -p "$d/tests/installer"
+           printf '%s\n' '#!/bin/bash' '. /usr/local/bin/_lib.sh; fkh_log "torture $*"; [[ ! -e $FKH/toolkit-red ]]' >"$d/tests/installer/test_torture.sh"
+           [[ -e $FKH/toolkit-syntax ]] && echo 'if' >>"$d/lib/update.sh"
+           exit 0
+         fi
          if [[ " $* " == *LazyVim/starter* ]]; then echo 'require("config.lazy")' >"$d/init.lua"
          elif [[ " $* " == *Syncplay/syncplay* ]]; then fake_syncplay_source "$d"
          else printf 'static const unsigned int gappx = 5;\nstatic float bordercolor[3][4];\n' >"$d/config.def.h"; fi

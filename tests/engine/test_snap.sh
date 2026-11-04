@@ -255,7 +255,7 @@ eq "$(cat "$T/root/etc/mark")" now; [[ ! -e $T/root.new && ! -e $T/root.old ]] &
 not_called '^grubby'
 case_ "a restore cut after its exchange (the restored system runs, the snapshots still in root.new): finished — its default, the moves — never deleted, nothing else done"
 disk; mv -T "$T/root" "$T/root.new"; cp -a "$T/root.new/.snapshots/41/snapshot" "$T/root"
-: >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\n' >"$B/loader/entries/abc-6.17.1.conf"
+: >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\noptions root=UUID=1 ro rootflags=subvol=root\n' >"$B/loader/entries/abc-6.17.1.conf"
 out=$(kawa-snap restore 41 --with-home 2>&1); eq "$?" 0 "$out"; has "$out" "a restore cut short after its exchange is finished"
 called "^grubby --set-default $B/vmlinuz-6.17.1\$"; not_called '^btrfs subvolume snapshot'
 
@@ -296,7 +296,7 @@ disk; stub grubby 'exit 1'; out=$(kawa-snap restore 41 --with-home 2>&1); eq "$?
 has "$out" "at the next start, choose kernel 6.17.1 in the boot menu"; lacks "$out" "restart now"
 case_ "finish: a restore cut after its exchange — the snapshots back, its default; list says so until then"
 disk; mv -T "$T/root" "$T/root.new"; cp -a "$T/root.new/.snapshots/41/snapshot" "$T/root"
-: >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\n' >"$B/loader/entries/abc-6.17.1.conf"
+: >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\noptions root=UUID=1 ro rootflags=subvol=root\n' >"$B/loader/entries/abc-6.17.1.conf"
 out=$(kawa-snap list 2>&1 >/dev/null); has "$out" "a restore was cut short after its exchange"
 out=$(kawa-snap finish 2>&1); eq "$?" 0 "$out"; has "$out" "a restore cut short after its exchange is finished"
 [[ -f $T/root/.snapshots/41/info.xml && ! -e $T/root.new ]] && _ok || _no "not finished"; called "^grubby --set-default $B/vmlinuz-6.17.1\$"
@@ -311,8 +311,11 @@ case_ "a kernel with only its vmlinuz in /boot (no image, no entry): put back wh
 disk; : >"$B/vmlinuz-6.17.1"; kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0
 called '^chroot .*/top/root.new kernel-install add 6.17.1 '
 case_ "a kernel whole in /boot: left as it is"
-disk; : >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\n' >"$B/loader/entries/abc-6.17.1.conf"
+disk; : >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\noptions root=UUID=1 ro rootflags=subvol=root\n' >"$B/loader/entries/abc-6.17.1.conf"
 kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0; not_called 'kernel-install add'
+case_ "a boot entry that lost root=: as good as none — the kernel put back by its own kernel-install"
+disk; : >"$B/vmlinuz-6.17.1"; echo img >"$B/initramfs-6.17.1.img"; printf 'version 6.17.1\noptions ro\n' >"$B/loader/entries/abc-6.17.1.conf"
+kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0; called '^chroot .*/top/root.new kernel-install add 6.17.1 '
 case_ "a kernel that cannot go in: the ones this run added taken out again, the copy's UPDATEDEFAULT back, nothing changed"
 disk; FK_ADD=1 kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 1
 called '^chroot .*/top/root.new kernel-install remove 6.17.1$'; eq "$(cat "$T/root/etc/mark")" now
