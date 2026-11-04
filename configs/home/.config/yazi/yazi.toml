@@ -47,6 +47,14 @@ previewers = [
   { url = "*", run = "kawa-card" },
 ]
 
+# Tab's pop-up: the card's facts in the pop-ups' frame, for all but what only yazi can sum: a virtual file system's, the trash's
+spotters = [
+  { mime = "vfs/*", run = "vfs" },
+  { mime = "trash/**", run = "trash" },
+  { url = "*", run = "kawa-card" },
+  { url = "*/", run = "kawa-card" },
+]
+
 [opener]
 # File tools (Super+D's): unpack, list, test — unrar inside, a password asked in place
 file-tools = [ { run = 'kawa-file %s', orphan = true, desc = "File tools" } ]

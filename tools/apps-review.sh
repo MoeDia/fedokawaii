@@ -72,7 +72,7 @@ footclient -a float -T yazi -W 235x51 -- yazi "$D" >/dev/null 2>&1 &
 nap 2.5
 key j j; nap 1; shot y-folder
 key j j j j j j j j j j j; nap 0.8; shot y-card
-key K; nap 0.3; key g g; nap 0.3; key Tab; nap 1; shot y-spot; key Escape; nap 0.5
+key K; nap 0.3; key g g; nap 0.3; key j j j j j j j j j j j j j j j j j j; nap 0.4; key Tab; nap 1; key j; nap 0.3; shot y-spot; key Escape; nap 0.5
 key K; nap 0.3; key g g; nap 0.2; key j j j j j j j j j j j j; nap 0.3
 key r; nap 0.7; shot y-rename; key Escape; nap 0.3; key Escape; nap 0.5
 key space; nap 0.2; key space; nap 0.3; key d; nap 0.7; shot y-trash; key n; nap 0.5; key Escape; nap 0.3

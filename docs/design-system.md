@@ -428,6 +428,10 @@ content, inside its margin of one cell:
   says. An input's field is a row: what is typed at the names' column, the icon of what it will be at the icons'; rename's lies
   exactly over the name it renames. A confirm says the folder once (`muted`), then the names; its choices are two **Keys**, the
   first the heading's first word ("y trash", "n keep"). No shadow: a cell has one ink, a terminal one ground.
+  **Tab's card** (`plugins/kawa-card.yazi`, `M:spot`, yazi's table inside): the same frame and heading, then **Facts** — what, points
+  to, size, changed, created, rights, owner — as tall as they are, 56 columns wide (a narrower window narrows it). The cursor's band
+  starts a column clear of the ring (8 px, both sides), its edge in the first cell, the words 16 px inside it: j and k move it, c c
+  copies the value it is on. Marks: "2 marked", what they are, their size together. None of yazi's rows about its own plugins.
 - **Keys** (wherever a key is named on a text screen: `screen_tile`, the patched yazi): a tile of whole cells, U+FF001, then
   U+FF000 + each letter's ASCII code, then U+FF002 — its frame, corners left out, its lip under it and its letters from Sumi UI, all
   one ink (`muted`), no fill, 18 px tall on the cell's rows 1–18: on rows running, tiles stand 2 px apart; on any ground, a cursor's
