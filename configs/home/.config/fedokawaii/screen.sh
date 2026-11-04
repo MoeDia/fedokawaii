@@ -5,12 +5,13 @@
 # shellcheck shell=bash disable=SC2034
 #
 #   󾂁  system ──────────────────────────────    a heading: its icon (the accent's ink), two
-#    󾀼  verify                       passed    columns, the name (strong), a space, the rule
-#    󾀜  update                   in 44 days    (edge2) to the edge — solid, never dashed
+#    󾀼  verify                     passed      columns, the name (strong), a space, the rule
+#    󾀜  update                 in 44 days      (edge2) to the edge — solid, never dashed
 #                                              a row: a column in, its icon, two columns, the
-#                                              name (text); its value right-aligned (muted)
-#   r  change every 4 h  on                    a screen's own key, on its last line (never
-#                                              the obvious: Enter, Esc, the arrows)
+#                                              name (text); its value right-aligned (muted), its
+#                                              last letter as far in from the cursor's right end
+#                                              as its icon from the left (§4: two columns)
+#    r  change every 4 h  on                   a screen's own key, on its last line: a keycap
 #
 # The inks are foot's palette past the sixteen (tools/build-themes.py writes them for both
 # themes), so a screen follows a theme switch as every other line in the terminal does; the
@@ -38,24 +39,27 @@ screen_heading() {
   printf -v s '%*s' "$n" ''
   printf '%s%s%s  %s%s%s %s%s%s' "$INK_ACCENT_TEXT" "$1" "$INK_OFF" "$INK_STRONG" "$2" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF"
 }
-# screen_row GLYPH NAME VALUE W — a row, W columns wide: VALUE right-aligned at the last
-# column, in muted unless it carries an ink of its own (a value that needs you: INK_ACCENT_TEXT)
+# screen_row GLYPH NAME VALUE W — a row, W columns wide: VALUE right-aligned a column in from the
+# last (the cursor's band reaches a column past W: the value as far from its end as the icon from
+# its start), in muted unless it carries an ink of its own (a value that needs you: INK_ACCENT_TEXT)
 screen_row() {
   local v=$3 pad=0
   [[ -n $v && $v != $'\e'* ]] && v=$INK_MUTED$v$INK_OFF
   # (no value: nothing to align — and no columns to count, for a long list's sake)
-  [[ -n $v ]] && { pad=$(( $4 - 4 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2; }
+  [[ -n $v ]] && { pad=$(( $4 - 5 - $(screen_cols "$2") - $(screen_cols "$v") )); ((pad < 2)) && pad=2; }
   printf ' %s%s%s  %s%*s%s' "$INK_MUTED" "$1" "$INK_OFF" "$2" "$pad" '' "$v"
 }
-# screen_keys KEY WHAT STATE … — a screen's own keys on its last line (docs/design-system.md §7:
-# never the obvious ones — Enter, Esc, the arrows: Super+/ has every key), in threes: the key in
-# the words' own ink (text), what it does in muted, its state ("" for none) in strong; two keys
-# four columns apart. "r" "change every 4 h" "on" → r  change every 4 h  on
+# screen_cap KEY — a key as a keycap in a text screen (docs/design-system.md §4, §7): a tile of its own on the
+# edge's fill, the strongest ink, a column of paper either side
+screen_cap() { printf '\e[48;5;18m%s %s %s' "$INK_STRONG" "$1" "$INK_OFF"; }
+# screen_keys KEY WHAT STATE … — a screen's own keys on its last line (docs/design-system.md §7), in
+# threes: the key a keycap, what it does in muted, its state ("" for none) in strong; two keys
+# three columns apart. "r" "change every 4 h" "on" → [r] change every 4 h  on
 # (in fzf: --footer — fzf.opts gives the footer the words' ink, -1, as the rest of a screen)
 screen_keys() {
   local out=""
   while (($# >= 3)); do
-    out+=${out:+"    "}$1"  $INK_MUTED$2$INK_OFF"${3:+"  $INK_STRONG$3$INK_OFF"}
+    out+=${out:+"   "}$(screen_cap "$1")" $INK_MUTED$2$INK_OFF"${3:+"  $INK_STRONG$3$INK_OFF"}
     shift 3
   done
   printf '%s' "$out"

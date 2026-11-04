@@ -39,27 +39,28 @@ within() {   # within MS FILE TEXT — TEXT shows in a line of FILE within MS mi
 case_ "the clock's menu: a heading, 5 · 10 · 25 · 45 · 60 min and a stopwatch, under the bar; no cancel while none runs"
 setup; answer esc; rc 0 kawa-timer
 rows=$(fz_rows)
-eq "$(sed -n 1p <<<"$rows")" "part	$ICON_HOURGLASS	timer	" "the heading: the hourglass and timer, nothing running at its end"
-eq "$(sed -n '2,6p' <<<"$rows" | tr '\n' '|')" "row	$ICON_HOURGLASS	 5 min|row	$ICON_HOURGLASS	10 min|row	$ICON_HOURGLASS	25 min|row	$ICON_HOURGLASS	45 min|row	$ICON_HOURGLASS	60 min|" "a row a length, the figures right-aligned"
-eq "$(sed -n 7p <<<"$rows")" "row	$ICON_HOURGLASS	stopwatch"
+eq "$(sed -n 1p <<<"$rows")" "part	@hourglass	timer" "the heading: the hourglass and timer"
+U=$'\x1f'
+eq "$(sed -n '2,6p' <<<"$rows" | tr '\n' '|')" "row		 5$U min			1|row		10$U min			2|row		25$U min			3|row		45$U min			4|row		60$U min			5|" "a row a length, aligned: no icon (the hourglass is the heading's), the figures right-aligned, the unit muted, its key at the end"
+eq "$(sed -n 7p <<<"$rows")" "row	@stopwatch	stopwatch			s" "the stopwatch its own picture"
 lacks "$rows" cancel; eq "$(wc -l <<<"$rows")" 7
-eq "$(fz_arg drop)" set "a dropdown, as the calendar"; eq "$(fz_arg middle)" set "from the bar's middle, as the calendar"; eq "$(fz_arg select)" 1 "on 5 min, not the heading"
+eq "$(fz_arg drop)" set "a dropdown, as the calendar"; eq "$(fz_arg middle)" set "from the bar's middle, as the calendar"; eq "$(fz_arg select)" "" "(the panel's cursor on its first choice: 5 min)"
 eq "$(fz_arg width)" "" "sized to its content"
 fits
 case_ "Esc, a click outside: nothing set"
 for a in esc lost; do setup; answer "$a"; rc 0 kawa-timer; eq "$(st)" ""; done
 
 case_ "25 min picked: the state says when it ends, one waiter left behind, and the menu offers cancel"
-setup; answer "pick 25 min"; t0=$EPOCHSECONDS; kawa-timer
+setup; answer "pick 25$U"; t0=$EPOCHSECONDS; kawa-timer
 read -r k end m set <<<"$(st)"
 eq "$k" timer; eq "$m" 25
 (( end - t0 >= 1500 && end - t0 <= 1501 )) && _ok || _no "ends $((end - t0)) s from now, not 1500"
 [[ $set =~ ^[01][0-9]:[0-5][0-9]\ [AP]M$ ]] && _ok || _no "set at [$set], not as the bar's clock writes it"
 eq "$(rings)" 1 "one waiter"
-answer esc; kawa-timer; has "$(fz_rows)" "row	$ICON_CROSS	cancel the timer"
-T=$'\t'; [[ $(fz_rows | sed -n 1p) =~ ^part${T}"$ICON_HOURGLASS"${T}timer${T}2[45]:[0-5][0-9]\ left$ ]] && _ok || _no "the running timer at the heading's end: $(fz_rows | sed -n 1p)"
+answer esc; kawa-timer; has "$(fz_rows)" "row	@cross	cancel the timer			c"
+T=$'\t'; [[ $(fz_rows | sed -n 2p) =~ ^sand${T}${end}${T}1500$ ]] && _ok || _no "the running timer, its sand bar under the heading: $(fz_rows | sed -n 2p)"
 case_ "another timer takes the first one's place (one waiter, the new end)"
-answer "pick 5 min"; kawa-timer
+answer "pick  5$U"; kawa-timer
 eq "$(rings)" 1; read -r _ end2 m _ <<<"$(st)"; eq "$m" 5; ((end2 < end)) && _ok || _no "the 25 min one still stands"
 case_ "cancel from the menu: the state and the waiter gone, quietly (a timer has nothing to tell)"
 answer "pick cancel"; kawa-timer
@@ -97,8 +98,8 @@ printf 'stopwatch %s\n' $((EPOCHSECONDS - 3723)) >"$XDG_RUNTIME_DIR/kawa-timer"
 for w in "$XDG_RUNTIME_DIR"/kawa-bar.wake.*; do printf '\n' 1<>"$w"; done   # (as kawa-timer does after each change)
 within 1500 "$TMP/bar.3" "${ICON_BAR_HOURGLASS}1:02:0" && _ok || _no "$(last 3)"
 answer esc; kawa-timer
-T=$'\t'; [[ $(fz_rows | sed -n 1p) =~ ^part${T}"$ICON_HOURGLASS"${T}timer${T}stopwatch\ 1:02:0[0-9]$ ]] && _ok || _no "the stopwatch at the menu's heading: $(fz_rows | sed -n 1p)"
-has "$(fz_rows)" "row	$ICON_CROSS	cancel the stopwatch"
+T=$'\t'; [[ $(fz_rows | sed -n 2p) =~ ^watch${T}[0-9]+$ ]] && _ok || _no "the stopwatch, ticking under the heading: $(fz_rows | sed -n 2p)"
+has "$(fz_rows)" "row	@cross	cancel the stopwatch			c"
 bars_down
 rc 2 kawa-timer bar clock; rc 2 kawa-timer bar timer x
 

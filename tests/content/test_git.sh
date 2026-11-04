@@ -56,7 +56,7 @@ eq "$(cut -f1 "$TMP/fzf.in.1" | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/repos/new ~
 case_ "laid out at the width fzf asks for (a tiled window resized): the heading and each row's branch at the last column"
 for w in 40 120; do
   heading_ok "$(kawa-git --heading list "$w" | head -n1)" "$w"
-  eq "$(kawa-git --rows list "$w" | head -n1 | cut -f2 | plain | python3 -I -c 'import sys,unicodedata; t=sys.stdin.read().rstrip("\n"); print(sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in t))')" "$w" "[$w] the row's width"
+  eq "$(kawa-git --rows list "$w" | head -n1 | cut -f2 | plain | python3 -I -c 'import sys,unicodedata; t=sys.stdin.read().rstrip("\n"); print(sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in t))')" "$((w - 1))" "[$w] the row's width: the value a column inside the band, as the icon is"
 done
 
 case_ "Esc: closed, nothing opened (exit 0)"
@@ -69,7 +69,7 @@ run >/dev/null
 args=$(cat "$TMP/fzf.args.1")
 heading_ok "$(hdr none)" 76
 has "$(kawa-git --heading none 76)" "no repositories yet"
-has "$args" "--footer="$'\n'"c  "$'\e[38;5;21m'"clone"$'\e[0m'"    n  "$'\e[38;5;21m'"new"$'\e[0m' "its two keys (§7: the key, what it does muted, four columns apart)"
+has "$args" "--footer="$'\n\e[48;5;18m\e[38;5;23m c \e[0m \e[38;5;21mclone\e[0m   \e[48;5;18m\e[38;5;23m n \e[0m \e[38;5;21mnew\e[0m' "its two keys (§7: the key a keycap, what it does muted, three columns apart)"
 has "$args" "--bind=c:pos(1)+accept,n:pos(2)+accept"
 has "$(plain <"$TMP/fzf.in.1")" "clone one"; has "$(plain <"$TMP/fzf.in.1")" "start a new one"
 

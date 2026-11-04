@@ -23,7 +23,7 @@ for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
 case_ "the sheet: every line but the blank ones, a field to filter in (bare, as the launcher's: no prompt of its own), sized to its content, 24 lines, no cursor (info rows are only read)"
 setup; answer esc; rc 0 kawa-help
 eq "$(fz_rows | grep -c .)" "$(grep -cv '^[[:space:]]*$' "$K")"
-has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --fuzzy --lines 24' "a field, bare"
+has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --ghost "a key or a word" --fuzzy --caps --lines 24' "a field, bare but for its ghost; the keys keycaps"
 eq "$(fz_arg prompt)" ""; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" ""
 eq "$(fz_arg fuzzy)" set "what is typed finds by its letters in order too (\"wpa\": the wallpaper picker)"
 eq "$(fz_rows | sed -n 2p)" "info		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"

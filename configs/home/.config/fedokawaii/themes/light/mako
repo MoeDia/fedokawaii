@@ -19,9 +19,14 @@ summary-icon-color=#a84222
 progress-color=over #00726a40
 format=<span foreground="#121b1b" line_height="20480">%s</span>\n<span line_height="20480">%b</span>
 
-# critical: the hairline in vermilion (the main config keeps these on screen until dismissed)
+# critical: what needs you (the main config keeps these on screen until dismissed) — the hairline in vermilion, a
+# 3 px bar of it inside the left one, the title's icon in a filled seal, and the key that takes it away
 [urgency=critical]
 border-color=#a84222
+left-edge=3 #a84222
+summary-icon-seal=#a84222
+summary-icon-color=#f8f3d8
+format=<span foreground="#121b1b" line_height="20480">%s</span>\n<span line_height="20480">%b</span>\n<span line_height="20480"><span background="#dfcc9c" foreground="#121b1b"> super </span> <span background="#dfcc9c" foreground="#121b1b"> shift </span> <span background="#dfcc9c" foreground="#121b1b"> n </span><span foreground="#586459"> dismiss</span></span>
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]

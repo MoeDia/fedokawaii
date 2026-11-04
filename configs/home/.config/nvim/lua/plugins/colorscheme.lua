@@ -57,11 +57,11 @@ return {
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", { link = "Comment" })
-          -- what is selected (the completion menu's row, the wild menu's): the desktop's lacquer
-          -- with the strongest cream on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
+          -- what is selected (the completion menu's row, the wild menu's): the seal's tint with the
+          -- strongest ink on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
           local sel = vim.o.background == "light"
-            and { bg = "#82241f", fg = "#f8f3d8" }
-            or { bg = "#82241f", fg = "#f5ecc2" }
+            and { bg = "#e2d0ae", fg = "#121b1b" }
+            or { bg = "#2e1f19", fg = "#f5ecc2" }
           vim.api.nvim_set_hl(0, "PmenuSel", sel)
           vim.api.nvim_set_hl(0, "WildMenu", sel)
           -- the first screen (look.lua) as a text screen: the heading's icon vermilion, its

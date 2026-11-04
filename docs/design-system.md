@@ -54,9 +54,12 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `accent_lo` | `82241f` Vandyke Red | `953321` Brick Red → Vandyke Red 0.5 | dim vermilion: an unlit segment on a vermilion fill |
 | `accent_text` | `f47b58` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
-| `select` | `82241f` Vandyke Red | `82241f` Vandyke Red | what is selected — the keyboard's cursor on a row, a key or a place of the dial; GTK's and Qt's selection, a default button: the lacquer (漆), one in both moods |
-| `text_on_select` | `f5ecc2` | `f8f3d8` | every ink on the lacquer: words, icons, a lit segment |
-| `select_lo` | `a8614d` Vandyke Red → f5ecc2 0.3 | `a96353` Vandyke Red → f8f3d8 0.3 | an unlit segment on the lacquer |
+| `select` | `2e1f19` 181715 → Jasper Red 0.12 | `e2d0ae` e8e3c2 → Brick Red 0.12 | what is selected: the keyboard's cursor on a row (§4) — a 12 % tint of the seal's own red, every ink on it its own |
+| `select_hi` | `46271d` 181715 → Jasper Red 0.24 | `dcbd9b` e8e3c2 → Brick Red 0.24 | … held down by the pointer: 24 % |
+| `select_edge` | `eb5324` | `a84222` | … its 2 px edge at the row's left: the seal's red |
+| `text_on_select` | `f5ecc2` | `121b1b` | … the name and the picture on it: the strongest ink (13 : 1) |
+| `lacquer` | `82241f` Vandyke Red | `82241f` Vandyke Red | the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there) and a failed command's code in the prompt: the lacquer (漆), one in both moods |
+| `text_on_lacquer` | `f5ecc2` | `f8f3d8` | every ink on the lacquer |
 | `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
 | `flame` | `f68c50` Apricot Orange | `a84222` Brick Red | fire: the torches and lanterns, a meter's segments over 80 % |
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
@@ -126,10 +129,10 @@ Lc · ratio:
 | light `tile` | 53 · 3.0 | 75 · 5.7 | 96 · 14.4 | 98 · 16.0 | 73 · 5.5 | 72 · 5.3 |
 
 Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light — a mark's (the bar's seal), never
-a row's. What is selected is the lacquer, its words ≥ 7 : 1 (`text_on_select` on `select`: 8.0 dark,
-8.5 light): `tools/contrast.py` measures every selected and highlighted state of every surface from
+a row's. What is selected is the seal's tint, its words ≥ 7 : 1 (`text_on_select` on `select`: 13 dark,
+12 light; the lacquer's, in the toolkits: 8.0, 8.5): `tools/contrast.py` measures every selected and highlighted state of every surface from
 the files the desktop ships (words ≥ 7, icons and matched letters ≥ 4.5, a large glyph or a
-meter's level ≥ 3) — and by APCA (`--apca`: the roles above, the selected states at Lc 60 for
+meter's level or a shape ≥ 3) — and by APCA (`--apca`: the roles above, the selected states at Lc 60 for
 words and 45 for marks; the workspace seal's black numeral is measured and kept by the owner's
 word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under any of them.
 
@@ -206,13 +209,20 @@ screen and the bar's paper share one rhythm.
 | icon alone | 14 × 14 | — | where no words follow: the layouts, an icon-only key |
 | emblem | 16 × 16 | — | the bar's torii and workspace stamp (glyphs) |
 | face | 18 × 18 | — | quick settings' face on the bar's end tile: a picture in four inks (sumi, ivory, gold, lacquer — tools/build-themes.py FACES), a pixel of paper above and below, the odd pixel of air right |
-| icon column | 16 | 2 | an icon centred in it (2 px either side) |
+| icon column | 16 | 2 | a row's picture (16 × 16 at most), centred in it by its ink |
+| right inset | 8 | 1 | a row's value, keycap, seal or dot ends this far inside the cursor's band: as its icon starts (§4) |
+| edge | 2 | — | the cursor's: the seal's red at the band's left |
 | indent | 8 | 1 | a heading's rows start one cell further in than the heading |
 | heading, GUI | 20 + 8 | — | its row, then 8 px of air; 20 px above it (none at the top of a panel) |
 | heading, TUI | 1 + 1 lines | — | its line, then a blank line; two blank lines above it (none at the top) |
 | content | 376 | 47 | a panel's inner width: the sound panel, a notice, the launcher (410 with pad and hairlines) |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
+| keycap | 16 + 1 high | — | a key named (§4): rows 2–17 of its row, a lip on 18; 14 wide (a letter, a picture), a word its letters and 4 either side; 2 apart in a chord, 4 between two |
+| seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
+| instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, 40 segments on the second row, from x 50 of the content to its right inset |
+| masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
+| seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
 | app icon | 16 × 16 | — | the launcher's: an app's own icon at its native 16 px, centred in the row |
 | bar | 27 | — | 3 air, hairline, 20 paper, hairline, 2 shadow (§8) |
@@ -236,28 +246,72 @@ screen and the bar's paper share one rhythm.
   its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — 1 px `edge2`, solid, on the
   row's row 10 (the minus's), to the content's right edge. Air: §3. Every part of a panel opens
   with one.
-- **Row**: 20 px; its icon in the icon column at cell 1 (x 8–23, the icon on x 10–21), its name in
-  `text` from cell 4 (x 32); a value in `muted`, right-aligned to the content's edge, two cells or
-  more after the widest name. A row that only shows (a week of weather, a help line) is never a
-  choice: the cursor and the pointer pass it by.
-- **Cursor** (the keyboard's place): the row filled `select` (the lacquer), one cell beyond the content
-  either side (into the pad), its inks `text_on_select`.
+- **Row** — one grammar everywhere: its picture in the icon column at cell 1 (x 8–23, centred by its ink), its name
+  in `text` from cell 4 (x 32); at the right end, ending on the right inset (8 px in from the content's edge — a row is
+  symmetric in its band), its marks (a keycap or a seal), before them a value in `muted`, right-aligned, two cells or
+  more after the widest name; nothing there (§5) `faint`. A row that only shows (a week of weather, a help line) is
+  never a choice: the cursor and the pointer pass it by. Pictures only where they differ: an icon repeated on every
+  row is noise (the timer's lengths have none).
+- **Cursor** (the keyboard's place; the owner's page, 00f RIGHT): the row's place — the content's width, the heading's
+  own, so band and rule end on one line — tinted `select`, its first 2 px `select_edge`; the name and the picture
+  `text_on_select`; everything else keeps its own ink, so a thing that is on stays so and red never fights a band. Held
+  down by the pointer the tint is twice as deep (`select_hi`).
+- **Keycap** (wherever a key is named): a small tile, `key` paper in a 1 px `edge2` frame with its corners left out, a
+  lip of `edge2` under it, its label in `muted` centred by its ink. Super is the torii, Shift its arrow, 10 × 8 and 8 × 8,
+  pictures of `panel-art.txt`; a letter as the sheet writes it (case is meaning); the other keys a short word (enter, tab,
+  print). A row's own key stands at its right end and does the row; a menu with the sheet's words as names draws them so
+  (`kawa-menu --caps`). In a text screen a key is a cell-high tile: ` key ` in `strong` on `edge`, foot's slots (§7).
+- **Hints** (a panel's footer, the keys of a fixed panel): a row of keycaps and what each does in `muted`, from the rows'
+  inset, two cells apart, 8 px under the content. Each is its key or a click; the cursor never lands there; the
+  pointer makes it `strong`.
+- **Section label**: a word in `muted` at the content's first column, 8 px of air, the rule to the content's edge — lighter
+  than a heading: no icon. 8 px of air above it, none under: it belongs to the rows it heads.
+- **Seal** (a switch's state, instead of the words on and off): a hanko 16 × 16. On: inked in `accent`, a ring carved out —
+  maru, yes —, its rim chipped by one hand. Off: blank, its outline `faint`, the same chips. A word beside it only where it
+  says more ("15 min", "4000K", "games · off").
 - **Key**: one row high, `key` fill, 1 px `edge` frame inside the row; its icon and name centred
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
-- **Quick settings** (Super+X, the head on the bar — the owner, 4 Nov: "over-engineered, break it down, a simpler way;
-  forget this circle"): a plain menu, the panels' own parts and nothing else. A heading, the two meters (brightness,
-  sound), then rows in three groups, half a row of air between groups: in place (theme, night light, do not disturb,
-  screensaver, freesync), connections (network, Bluetooth, devices while it is on, drives, backup), the screen
-  (wallpaper, screenshot, record, read text, screen off, power). Each row its own picture and its state at the right; a
-  thing that is on: its icon `accent`, its state `strong`. Enter or a click switches it in place or opens its own menu.
+- **Quick settings** (Super+X, the head on the bar — the owner, 4 Nov: "over-engineered, a simpler way; forget this
+  circle", then "way too simple, improve"): a list with presence. The masthead (§3), a title plate as on a printed book's cover: the mood's head, shut until
+  its scroll lands, then awake (the demon's mouth, the angel's eyes); its name; how long the machine has been up; and at
+  its right end the mood's pattern, two moods, not a recolour: the demon's uroko, the triangle scales the Noh Hannya wears, the angel's seigaiha, the
+  waves she stands over, each dissolving through an ordered dither toward the words. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
+  screensaver, freesync, wallpaper), sound (share sound, while kawa-quick reports it), connect (network, Bluetooth, devices
+  while it is on, drives, backup), capture (screenshot, record, read text), power (the lights while kawa-quick reports them,
+  screen off, power). Each row its own
+  picture, hand-drawn on the 16 px grid; its value in one column (x 331, right-aligned), its marks in another: a seal, or
+  the key that does it anywhere — the menu teaches them. Red only for on: a seal inked, a recording's dot. Enter or a
+  click switches it in place or opens its own menu.
+- **Instrument** (a level, where it is the point: quick settings, the sound panel, the brightness): two rows, one choice. Its
+  picture alive in the first columns — a chōchin whose glow (`flame`) rises rib by rib with the brightness, a temple bell
+  (bonshō) whose ripples spread with the sound, stilled and struck through while muted —; its name, and its number
+  right-aligned at the top (`strong`, the unit `muted`); under them the meter, forty segments of the same 6 × 10, a tick
+  (`faint`) under each quarter. A click or a drag on the meter sets the level, the wheel anywhere on it ±5; a click on its
+  words does what Enter does.
 - **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
-  Lit segments `asagi`; over 80 % the 17th–18th `flame` and the 19th–20th `accent` (it reddens
-  as it rises); unlit `edge`. A level between two segments lights the last one partly, from the
-  bottom, two rows a percent: every level has its own pixels. Muted: the lit segments hollow
-  (their 1 px outline). On the cursor's lacquer: lit `text_on_select`, unlit `select_lo`.
-  A click or a drag anywhere on it sets the level. The level display (kawa-osd) draws the same
-  segments to the pixel.
+  Lit segments `asagi`; from 80 % `flame`, from 90 % `accent` (it reddens as it rises); unlit `edge`. A level between
+  two segments lights the last one partly, from the bottom: every level has its own pixels. Muted: the lit segments
+  hollow (their 1 px outline). The cursor's tint changes no ink of it. A click or a drag anywhere on it sets the level. The
+  level display (kawa-osd) draws the same segments to the pixel.
+- **The sound panel**: sound — the level as quick settings has it, mute and the mixer as rows with their keys (m, x) ·
+  output and input — a row a device under its own short name and picture (a screen, a jack, headphones, a microphone),
+  the one in use with the hanko's dot · at the input's foot mute microphone and test mic (n, t).
+- **Dialog** (the power menu, Super+Shift+E): centred on the screen, the desktop dimmed 40 % behind it (Wada's Black, a window
+  of its own, no key, no click). Five seal tiles in a row (lock, sleep, log out, restart, shut down), their pictures carved
+  at 40 × 40 in 2 px strokes, the word under each. Under the cursor a tile is inked (`accent`, its picture carved out in
+  `text_on_accent`); blank else (`key` paper in a 2 px `edge2` rim, its corners stepped, its picture `muted`); both chipped
+  by one hand. Its foot: how long the machine has been up, `muted`, centred. What cannot be undone asks twice: the first
+  press lights the seal (`accent_hi`) and says "press again to shut down" in the foot's place, `strong`; moving away takes
+  it back; a held key's repeat or a double click (under 350 ms) is no second press.
+- **The calendar**: the month's flower in the heading (the twelve of the hanafuda: pine, plum, cherry, wisteria, iris,
+  peony, bush clover, pampas under the moon, chrysanthemum, maple, willow, paulownia), the week it is at the heading's
+  end. Sunday in `accent_text`, Saturday in `ai` (indigo), as a Japanese calendar has them; today a filled seal, the row's
+  height square, its corners left out, its digit `text_on_accent`; the days of the months either side `faint`. Hints in
+  its footer: ← previous, → next, t today.
+- **The timer**: the hourglass in the heading alone. While one runs, under it, alive, each second: a timer's sand bar (`sand`,
+  running out) and its time, a stopwatch's picture and its time. Then the lengths, aligned, no icons, the unit `muted`, each
+  with its key (1–5); the stopwatch with its own picture (s); cancel while one runs (c).
 - **Stamp** (the bar's workspace seal): a round vermilion seal 16 px across, clean-edged, its
   numeral (一 to 九, drawn 10 × 10 for it) in Black, wholly inside the circle.
 - **Chosen** (one of several: an output, a mode): a vermilion dot, 6 px round, in the row's
@@ -279,9 +333,9 @@ screen and the bar's paper share one rhythm.
 |---|---|---|---|
 | rest | §4 | §7 | §8 |
 | hover (the pointer) | the cursor goes to the row under it — one light, never two | the same (a mouse click acts as Enter) | the tile lit: icon and words `asagi`; a vermilion tile's fill `accent_hi` |
-| cursor (the keyboard) | the row filled `select` (the lacquer), every ink on it `text_on_select`; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, `:strip`) | — |
+| cursor (the keyboard) | the row tinted `select`, its 2 px edge `select_edge`, its name and picture `text_on_select`, every other ink its own; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, the pointer a 2 px glyph in 16) | — |
 | chosen | the vermilion dot (§4) | `●` in `accent_text`, in the value column | — |
-| on · off | §4 quick settings (a row's icon `accent` on, `muted` off); a row's value `strong` "on" · `faint` "off" | the same words, the same inks | — |
+| on · off | §4's seal, inked or blank; a row's icon `strong` on, `muted` off | the words `strong` "on" · `faint` "off" | — |
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |
 | busy | its icon moves (§13) | the same icon's frames | its icon moves |
 | asking for you | — | — | the workspace's numeral `asagi`; the window's hairline `asagi` |
@@ -321,8 +375,9 @@ content, inside its margin of one cell:
 - **Heading**: its icon (Sumi Icons Term, two cells) at column 0 in `accent_text`, its name from
   column 3 in `strong`, a space, then `─` in `edge2` to the content's last column. A blank line
   under it; two blank lines above it (none at the top of a pane). No dashed rule anywhere.
-- **Row**: its icon at column 1, its name from column 4 in `text`; a value right-aligned to the
-  content's last column, `muted`.
+- **Row**: its icon at column 1, its name from column 4 in `text`; a value right-aligned a column in from the
+  content's last (the cursor's band reaches a column past it: two columns from the band's end, as the icon from its
+  start), `muted`.
 - **Text** under a heading (a statement, a question, a message) is a paragraph: at the heading's
   column (0). What it lists — the files it copied, the outcome's row (`✓ finished`) — is a list:
   one cell in (column 1), as rows; the key that closes or goes back, at column 0 again.
@@ -336,9 +391,9 @@ content, inside its margin of one cell:
   and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in characters) — done
   solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the cursor's row
   strips the inks, the shapes still say it. Nothing yet: no meter at all.
-- **Cursor**: the row's cells filled `select` (the lacquer, §4) from the cursor's column to the
-  one beyond the content, its inks `text_on_select` — every ink, the row's own colours stripped
-  (fzf's `bg+ 24`, `fg+ 25`, `:strip`).
+- **Cursor**: the row's cells tinted `select` (§4) from the cursor's column to the one beyond the content; that column
+  holds its edge, a glyph of Sumi Icons Term (`band-edge`: 2 px of the cell's 8, the line's 20 rows, in `accent`: fzf's
+  pointer); the words `text_on_select`, every other ink its own (fzf's `bg+ 24`, `fg+ 25`, `pointer 16`, no `:strip`).
 - **Files** (yazi, Super+E, and the file dialog): the heading — the folder icon, the folder's
   path in `strong` (the dialog: its name in `strong`, then the folder `muted`), the rule — and a
   blank row; then the panes, each its own column of rows on this grid, one free column after
@@ -356,15 +411,15 @@ content, inside its margin of one cell:
   `muted` — then a row of paper.
 - **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
   heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
-  shown, a row of paper. The tab shown: its icon in `accent_text`, two columns, its name in
-  `strong`, and under the name alone `▔` in `accent`, its ends flush with the letters'; the
-  others their icon alone in `muted`. Every icon two columns, every gap three: 26–28 px of air
+  shown, a row of paper. The tab shown: its icon (16 × 16: a pagoda, a shoot, a camera on its legs, the storehouse,
+  an open book) in `accent_text`, two columns, its name in `strong`, and under the name alone `▔` in `accent`, its
+  ends flush with the letters'; the others their icon alone in `muted`. Every icon two columns, every gap three: 24 px of air
   between any two tabs. Tab / Shift+Tab, ← / → and a click change it. A pane beside the list
   starts its heading level with the tabs and its first line level with the list's first row.
-- **No footer** of the obvious (Enter, Esc, arrows): the keys of the app in front are in
-  Super+/ (it knows the app). A screen with a key of its own shows that one on its last line —
-  the key in `text`, what it does in `muted`, its state in `strong` (Super+W: `r  change every
-  4 h  on`).
+- **Footer**: a fixed screen with room to spare (Super+U) ends in its keys; any screen with a key of its own shows that
+  one on its last line — the key a keycap (` key ` in `strong` on `edge`), what it does in `muted`, its state in `strong`
+  (Super+U: `enter open  tab next  esc close`; Super+W: `r change every 4 h  on`). The rest of the app's keys are in Super+/
+  (it knows the app).
 - Ground: `ground` at kawa-glass's 0.96 — the wallpaper faintly through, the words never. No blur.
 - Window padding: foot's 8 px; the screen keeps one cell of margin, then the cursor's column
   (fzf's pointer; two spaces where no fzf draws): the cursor's fill starts 16 px inside the
@@ -457,7 +512,10 @@ the tiles of a group, 12 px between groups.
 - **Notice** (mako): a panel 47 cells wide (410 px), at the top right — its right hairline on
   x 1911, its top on y 33 — the next one 8 below; solid `surface`; its first row the app's icon
   (12 px, `accent_text`) and the title in `strong`, then the body in `text` on 20 px lines,
-  aligned with the title; progress: the meter (§4). Critical: the hairline `accent`.
+  aligned with the title; progress: the meter (§4). Critical — it stays until dismissed: the hairline `accent`, a 3 px bar
+  of it inside the left one, the title's icon `text_on_accent` in a filled seal (18 px square on the title's row, its corners
+  left out), the title `strong`, and a last line with the key that takes it away: its keycaps, ` dismiss` `muted`
+  (`src/mako/mako.patch`: left-edge, summary-icon-seal).
 - **Level display** (kawa-osd): a panel of one row — the icon, the meter, the value — centred low
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
 - **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper; the settings by
@@ -561,8 +619,11 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 
 - Every icon is ours, drawn in `art/icons.txt` on Sumi UI's grid in its weight: 1 px strokes both
   ways. **12 × 12** beside words, on the em's rows 1–12, centred on the capitals (§2);
-  **14 × 14** alone; the torii **16 × 16**; the mood's head is a picture on the bar's end tile, 20 rows. Sumi Icons Term draws the same pixels,
-  centred in two terminal cells.
+  **14 × 14** alone; the torii and Super+U's tabs **16 × 16**; the mood's head is a picture on the bar's end tile, 20 rows. Sumi Icons Term draws the same pixels,
+  centred in two terminal cells. The panels' own pictures (`configs/home/.config/fedokawaii/panel-art.txt`: quick settings' rows on the
+  **16 px** grid, in 1 px strokes, an instrument's 32 wide, a seal tile's 40 × 40, the seals, the keys' pictures, the months' flowers) are
+  drawn by kawa-panel pixel for pixel in the theme's inks: `#` the row's ink (`muted` at rest, `strong` on or under the
+  cursor), `%` a level's (lit from below), one letter a role for a second ink. Every one centred by its ink.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
   from the palette only.
@@ -597,7 +658,7 @@ numbers here against its files.
 | Sumi UI, Sumi Icons, the signs, the width tables | — | `tools/build-fonts.py`, `tools/build-icons.py` | T10 |
 | Sumi Term, foot, the TUIs' columns | Super+Enter | `configs/home/.config/foot/foot.ini`, `bin/kawa-term` | T11 |
 | the system menu | Super+U | `system/fedokawaii` in `bin/kawa-warm` | T12 |
-| quick settings, sound, the bar's dropdowns | the right end, Super+X, Super+A | `bin/kawa-panel` (state: `bin/kawa-quick`) | T13 |
+| quick settings, sound, the bar's dropdowns, the power dialog | the right end, Super+X, Super+A, Super+Shift+E | `bin/kawa-panel` + `panel-art.txt` (state: `bin/kawa-quick`) | T13, lane-pixels |
 | the bar | — | `configs/home/.config/waybar/`, `bin/kawa-bar` | T14 |
 | windows' frames; notices; the level display; tooltips | — | `src/dwl/`; `src/mako/mako.patch` (the desktop's mako: the frame, the title's icon ink, the hanging indent, no "…") + mako's `config`; `bin/kawa-osd` | T15 |
 | books, wallpapers, clipboard, the launcher | Super+R, W, V, Space | `bin/kawa-books`, `bin/kawa-wallpaper`, `bin/kawa-clip`, `bin/kawa-menu` | T16 |
