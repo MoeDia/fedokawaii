@@ -81,6 +81,7 @@ case $verb in
               fi; exit 0 ;;
   reset-failed) for u in "${units[@]}"; do sed -i "/^ended ${u//./\\.} /d" "$FKH/units"; done; exit 0 ;;
   set-default) echo "${units[0]:-}" >"$FKH/default-target"; exit 0 ;;
-  reboot)     date +%s >>"$FKH/rebooted"; exit 0 ;;
+  # ($FKH/reboot-terms: as a real shutdown does, the service that asked gets its TERM)
+  reboot)     date +%s >>"$FKH/rebooted"; [[ -f $FKH/reboot-terms ]] && { kill -TERM "$PPID"; sleep 0.2; }; exit 0 ;;
 esac
 exit 0

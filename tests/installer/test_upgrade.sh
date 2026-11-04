@@ -126,7 +126,8 @@ back armed; rm -f "$W/system-update"; reset_calls; press; has "$OUT" "a move tha
 # ── the start after it ───────────────────────────────────────────────────────────────────────
 whole() { osr 45; { echo "bash 5.3-2.fc45"; echo "fedora-release-common 45-1"; } >>"$FKH/evr"; fkh_add installed bash fedora-release-common; }
 case_ "after the restart, on Fedora 45, whole: the rest of the move, the checks; kept: recorded, its unit gone, the trial on, the login free"
-back armed; whole; n_=$(cut -d' ' -f3 "$U/move"); reset_calls; tk --after-upgrade; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+back armed; whole; n_=$(cut -d' ' -f3 "$U/move"); echo "gtklock's own, from its new package" >"$W/etc/pam.d/gtklock"; reset_calls; tk --after-upgrade; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+cmp -s "$REPO/system/gtklock.pam" "$W/etc/pam.d/gtklock" && _ok || _no "the lock's PAM file stays the new package's: a wrong password takes 2 s again"
 read -r _ from to res <"$U/last-upgrade"; eq "$from $to" "44 45"; [[ $res =~ ^(ok|partial)$ ]] && _ok || _no "the outcome: [$res]"
 [[ ! -e $unit && ! -e $U/move ]] && _ok || _no "the unit or the record left behind"
 not_called 'kawa-snap\] restore'; not_called 'systemctl\] reboot'
@@ -149,11 +150,17 @@ case_ "whole, but the desktop does not start on it: undone, the check named"
 back armed; whole; fkh session-red "not running: waybar"; reset_calls; tk --after-upgrade
 called "kawa-snap\] restore"; called 'systemctl\] reboot'; has "$(cat "$U/move-red-45")" "the desktop does not start: not running: waybar"
 eq "$(cut -d' ' -f4 "$U/last-upgrade")" failed
+case_ "…the restart's own TERM reaches the run: no \"interrupted\" on the screen, status 0"
+back armed; whole; fkh session-red "not running: waybar"; touch "$FKH/reboot-terms"; reset_calls; tk --after-upgrade; rm -f "$FKH/reboot-terms"
+eq "$RC" 0; called 'systemctl\] reboot'; lacks "$OUT" "interrupted"
 case_ "the snapshot cannot be put back: never a loop — the record gone, the way back said, no restart"
 back armed; printf '#!/bin/sh\nexit 1\n' >"$W/usr/local/sbin/kawa-snap"; rm -f "$W/home/fkuser/.foryou"; reset_calls; tk --after-upgrade
 not_called 'systemctl\] reboot'; [[ ! -e $U/move && ! -e $unit ]] && _ok || _no "it would run again"; has "$(foryou)" "could not be put back by itself: Super+U → snapshots"
 case_ "a restart cut between the restore and its record: back on 44, no unit: the next start says so, once"
 back armed; rm -f "$unit" "$W/home/fkuser/.foryou"; reset_calls; tk --update-resume; eq "$RC" 0
 has "$(foryou)" "the move to Fedora 45 was undone"; [[ ! -e $U/move ]] && _ok || _no "the record stays"
+
+case_ "monospace on Fedora 45's fontconfig: the alias binds as the family does (a weak one loses to Liberation Mono: fc-match, 4 Nov)"
+has "$(grep '<family>monospace</family>' "$REPO/configs/home/.config/fontconfig/fonts.conf")" 'binding="same"'
 
 done_
