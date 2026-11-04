@@ -4632,6 +4632,22 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   26.9.1's Entity orders it sits between (padding 1000 < 1500 < icon 2000 …: github.com/sxyazi/yazi v26.9.1
   yazi-plugin/preset/components/entity.lua) — test_yazi 136/0; (4) "right one opens" and (5) the Learn chapter 12
   additions: at the book pass (T63), noted there.
+- r27-22-mf3-found (4 Nov 16:19–16:23, read only): the master's T22 must-fix 3 assumed yazi's modals are Lua components
+  "overridable like Tabs/Root/Status" — they are NOT in 26.9.1. Source (github.com/sxyazi/yazi v26.9.1, our pin in
+  lib/upstream.sh): yazi-plugin/preset/components/ holds app, backdrop, current, dnd, entity, header, linemode, marker,
+  markers, modal (an empty container for plugins' modals), parent, preview, progress, rail, rails, root, status, tab,
+  tabs, tasks; Confirm, Input, Help, Which, Pick, Cmp (and Tasks' frame) are Rust: yazi-fm/src/{confirm/confirm.rs:21–25,
+  input/input.rs:49–55, help/help.rs:25–43, which/which.rs:42, pick/pick.rs:23–26, cmp/cmp.rs:61, tasks/tasks.rs:38–42}
+  — each `Block::bordered().border_type(BorderType::Rounded)`, the title in the top rule (Input's mark in the bottom
+  one); theme.toml reaches only their colours. DECIDED (CLAUDE.md: "patch open-source software when it limits us
+  (dwl, gtklock, yazi …)"): yazi built from source at v26.9.1 with our patch — src/yazi/yazi.patch: Plain borders in
+  edge2, no title in any rule, §7's heading row inside (icon accent_text, name strong, the rule), Input's field a row,
+  Confirm's choices two §7 keys ("y  trash" · "n  keep"), Help and Tasks as rows (key text, words muted), Which the
+  same family — built by setup.sh like dwl (pinned tag + Cargo.lock, `cargo build --release --locked`, the musl zip
+  dropped from lib/upstream.sh), its tests in test_yazi (the pty's frame characters: no ╭ ╮ ╰ ╯ anywhere), proven in
+  the kit both moods and in a clean VM install. Toolchain: Fedora's rust + cargo 1.99.1-2.fc44 (dnf, updates; not
+  installed yet) — add to the manifest as build-only (packages.evidence etc.: memory manifest-addition-checklist);
+  measure the build's time and the binary against the zip's (start-up, RAM) before switching.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or
@@ -4664,7 +4680,8 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     window with an endless CSS animation opened on a headless dwl, its commits counted before W (a log line in a
 ##     scratch build only).
 ## (2) T22 — the master's review 1 FAILED (r27-22-master-1): must-fixes 1 (.rar in yazi) and 2 ("…") DONE on main;
-##     LEFT must-fix 3 — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
+##     should-fixes 3, 7 + the nits DONE 4 Nov; LEFT must-fix 3 — NOT Lua in 26.9.1: a patched yazi from source
+##     (r27-22-mf3-found: the decision, the files, the toolchain) — yazi's modals (rename/create Input, the trash Confirm, Help, Tasks, Which): square frames, §7's
 ##     heading row inside, choices as §7 keys, nothing in the border — rendered both moods, then the should-fixes, review 2.
 ## (3) T18 (+ r27-found-lockpng: build-lock.py's pictures now differ from the committed lock scenes) — the master's review 1 FAILED (r27-18-master-1): ALL FOUR must-fixes DONE (r27-18-mf1 the edge check and
 ##     seven crops, 8bf8d1c, r27-18-mf3, r27-18-mf4a + mf4b the sheet and in-place shots from the committed files);
