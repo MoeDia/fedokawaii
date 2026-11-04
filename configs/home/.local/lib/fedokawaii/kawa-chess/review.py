@@ -434,7 +434,7 @@ class Review(Screen):
     def panel(self, w, h):
         out = [heading("SEARCH", self.title, w), ""]
         if self.phase == "reading":
-            out += [[("reading the game", MUTED)], ""]
+            out += [[("reading" if w < 16 else "reading the game", MUTED)], ""]
             frac = self.an.fraction() if self.an else 0.0
             out.append(meter(frac, min(20, w)))
             return out
@@ -466,7 +466,7 @@ class Review(Screen):
         if self.step == "find":
             lines += [[(s, None)] for s in wrap("find a better move.", w)]
             lines.append("")
-            lines.append(hand_line(self.hand))
+            lines.append(hand_line(self.hand, w))
             if self.note:
                 lines += [[(s, MUTED)] for s in wrap(self.note, w)]
             return lines

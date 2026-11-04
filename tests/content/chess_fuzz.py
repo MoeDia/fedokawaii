@@ -149,7 +149,7 @@ class Fuzz:
             t.pump(0.05)
             t.send("\x03")
         t.pump(0.3)
-        end = time.time() + 4
+        end = time.time() + 25          # (a niced process on a machine under load can take its time; a hung one never ends)
         while t.alive() and time.time() < end:
             t.pump(0.05)
         self.check()

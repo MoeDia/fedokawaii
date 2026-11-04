@@ -81,6 +81,9 @@ print(a, b, repr(crash_text(home)))
 PY
 )" "True True ''"
 
+case_ "nothing left behind: a key at any moment of a move's flight, sparks, a castling: the screen is what a whole redraw gives, pixel for pixel"
+out=$(python3 -I -B "$C/chess_ghost.py" "$CHESS_TMP/gh" 6 2>&1) && _ok || _no "$(tail -c 800 <<<"$out")"
+
 case_ "every key on every screen, at three sizes, in both moods"
 out=$(python3 -I -B "$C/chess_sweep.py" "$CHESS_TMP/s" 2>&1) && _ok || _no "$(tail -c 1200 <<<"$out")"
 printf '    (%s)\n' "$(tail -1 <<<"$out" | cut -c1-120)"

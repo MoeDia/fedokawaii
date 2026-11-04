@@ -5,7 +5,8 @@ import time
 
 import board as B
 from app import DATA, MARGIN, Screen
-from canvas import Canvas
+from art import glyph
+from canvas import Canvas, Sprite
 from course import Course
 from lesson import Lesson, Library
 from play import Game
@@ -17,6 +18,19 @@ from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
 from ui import Face, Row, heading, icon, window, wrap
 
 TABS = (("today", "KNIGHT"), ("lessons", "BOOK"), ("puzzles", "STORM"), ("games", "SHEET"), ("progress", "USAGE"))
+# a day done, on the year: the scroll opens, the seal comes down from high to near to its place, then the board again
+STAMP = ((0.47, "open"), (0.55, "high"), (0.63, "near"), (2.9, "down"))
+# the gate at the end of the year's path
+TORII = ("##...........##",
+         "###############",
+         ".#############.",
+         "...##.....##...",
+         ".#############.",
+         "...##.....##...",
+         "...##.....##...",
+         "...##.....##...",
+         "...##.....##...",
+         "...##.....##...")
 
 
 class Home(Screen):
@@ -28,7 +42,7 @@ class Home(Screen):
         self.ready = False
         self.message = ""
         self.stamp_t = None
-        self.stamp_phase = 2
+        self.stamp_phase = None
 
     # ── the first frame: everything read, a game left open taken up again ─────────────────────
     def prepare(self):
@@ -66,16 +80,15 @@ class Home(Screen):
             self.prepare()
             self.app.touch()
         if self.stamp_t is not None:
-            # (a day done: its seal comes down on the year, then the board again)
             t = now - self.stamp_t
-            phase = 0 if t < 0.12 else 1 if t < 2.2 else 2
-            if phase != self.stamp_phase:
-                self.stamp_phase = phase
-                self.app.touch()
-            if phase == 2:
-                self.stamp_t = None
-                return None
-            return self.stamp_t + (0.12 if phase == 0 else 2.2)
+            for until, phase in STAMP:
+                if t < until:
+                    if phase != self.stamp_phase:
+                        self.stamp_phase = phase
+                        self.app.touch()
+                    return self.stamp_t + until
+            self.stamp_t = self.stamp_phase = None
+            self.app.touch()
         return None
 
     # ── the day ───────────────────────────────────────────────────────────────────────────────
@@ -139,13 +152,13 @@ class Home(Screen):
 
     def picture(self, view):
         """The progress tab draws the year in the board's place; so does a day just finished, for a moment."""
-        stamping = self.stamp_t is not None and self.stamp_phase < 2
-        if not self.ready or (TABS[self.tab][0] != "progress" and not stamping):
+        stamp = self.stamp_phase if self.stamp_t is not None else None
+        if not self.ready or (TABS[self.tab][0] != "progress" and stamp is None):
             return None
-        key = (self.pr.day, len(self.pr.items), self.app.mood, view.size, round(self.pr.game["r"]), round(self.pr.puzzle["r"]), self.stamp_phase if stamping else None)
+        key = (self.pr.day, len(self.pr.items), self.app.mood, view.size, round(self.pr.game["r"]), round(self.pr.puzzle["r"]), stamp)
         if key == self.app.pic_key:
             return key, None
-        return key, year_picture(view, self.pr, self.course, self.stamp_phase if stamping else None)
+        return key, year_picture(view, self.pr, self.course, stamp)
 
     # ── the board ─────────────────────────────────────────────────────────────────────────────
     def board(self):
@@ -291,8 +304,14 @@ class Home(Screen):
             return []
         act = rows[self.index].act or ()
         if act and act[0] == "item":
-            lines = act[1].details(self.pr)
+            it = act[1]
+            lines = it.details(self.pr)
             out = []
+            if it.kind == "game" and w >= 26 and not self.pr.is_done(self.pr.day, it.key):
+                # (who you are about to meet: the face, as across the board)
+                spec = self.course.game_spec(it.ref, self.pr)
+                who = spec["opponent"]
+                out = [Face(who, [(who, STRONG)], [(f"level {spec['elo']}", MUTED)]), Face.BELOW, ""]
             for ln in lines:
                 out += [[(s, MUTED)] for s in wrap(ln, w)]
             return out
@@ -305,6 +324,7 @@ class Home(Screen):
                 self.app.pop()
             return
         self.message = ""
+        self.stamp_t = self.stamp_phase = None    # (a key is not kept waiting by the ceremony)
         rows = self.rows()
         if name == "esc":
             self.app.pop()
@@ -343,7 +363,7 @@ class Home(Screen):
             self.pr.stamped = self.pr.day
             self.pr.save()
             self.stamp_t = time.monotonic()
-            self.stamp_phase = 0
+            self.stamp_phase = STAMP[0][1]
 
     def click_row(self, i):
         lines = self.panel(self.app.layout.pw, self.app.layout.ph)
@@ -646,98 +666,123 @@ class Report(Screen):
 
 
 def year_picture(view, pr, course, stamp=None):
-    """The year on a hanging scroll, in the board's place and its frame: two lacquered rods, fifty-two weeks of
-    seven days, a red seal for each done, the day you are on in gold, a gold tick at each four weeks' mark; and
-    under them your level (vermilion) and your puzzles (teal) against the plan's dotted line."""
+    """The year on a hanging scroll, in the board's place and its frame, every length a whole number of the art's pixels:
+    two lacquered rods with gold ends; fifty-two weeks of seven days, a red seal for each done, the day you are on in gold, a
+    gold tick at each four weeks' mark; under them the path of the plan, dashed, up to the gate at 1800, and your level
+    (vermilion) and your puzzles (teal) on it. A day just finished: stamp says where its seal is on its way down."""
     s = view.s
     ink = view.art.index
     cv = Canvas(view.size, view.size)
     cv.px[:] = view.cv.px                       # (the frame, as the board's)
     x0 = y0 = MARGIN
     n = 8 * view.S
-    cv.fill(x0, y0, n, n, ink["sq_l"])
+    side = n // s                               # (320 art pixels: all below counted in them)
+
+    def box(gx, gy, w, h, colour):
+        cv.fill(x0 + gx * s, y0 + gy * s, w * s, h * s, colour)
+
+    box(0, 0, side, side, ink["sq_l"])
     # fibres in the paper, the same every time
     r = 7
-    for y in range(0, n, 2 * s):
+    for gy in range(0, side, 2):
         r = (r * 1103515245 + 12345) & 0x7fffffff
         if r >> 16 & 3 == 0:
-            cv.fill(x0 + (r >> 3) % (n - 12 * s), y0 + y, (2 + (r >> 9) % 7) * s, s, ink["sq_l2"] if r >> 20 & 1 else ink["sq_l3"])
-    # the rods
-    rod = 4 * s
-    for y in (y0, y0 + n - rod):
-        cv.fill(x0, y, n, rod, ink["b_f"])
-        cv.fill(x0, y, n, s, ink["b_l"])
-        cv.fill(x0, y, 3 * s, rod, ink["gold"])
-        cv.fill(x0 + n - 3 * s, y, 3 * s, rod, ink["gold"])
-    inner = n - 12 * s
-    cell = inner // 52
-    left = x0 + (n - cell * 52) // 2
-    top = y0 + rod + 4 * s
+            box((r >> 3) % (side - 12), gy, 2 + (r >> 9) % 7, 1, ink["sq_l2"] if r >> 20 & 1 else ink["sq_l3"])
+    # the rods: a line of light, the lacquer, its dark, gold at the ends; the upper one's shadow on the paper
+    rod = 5
+    for gy in (0, side - rod):
+        box(0, gy, side, rod, ink["b_f"])
+        box(0, gy, side, 1, ink["b_l"])
+        box(0, gy + rod - 1, side, 1, ink["b_o"])
+        for gx in (0, side - 4):
+            box(gx, gy, 4, rod, ink["gold"])
+            box(gx, gy + rod - 1, 4, 1, ink["b_t"])
+    box(0, rod, side, 1, ink["sq_l2"])
+    # the days: a seal of five with its corners off, on a pitch of six: 312 across, four to spare on each side
+    cell, seal, left, top = 6, 5, 4, rod + 5
     done = {}
     for k in pr.items:
         day = k.split("/", 1)[0]
         if day.isdigit():
             done[int(day)] = done.get(int(day), 0) + 1
-    size = cell - max(1, s)
+
+    def stamped(gx, gy, size, colour):
+        box(gx + 1, gy, size - 2, size, colour)
+        box(gx, gy + 1, size, size - 2, colour)
+
     for d in range(1, 365):
         col, row = (d - 1) // 7, (d - 1) % 7
-        x, y = left + col * cell, top + row * cell
-        if d == pr.day and stamp == 0:        # (the seal coming down: larger, lit)
-            _seal(cv, x - s, y - s, size + 2 * s, ink["accent_hi"])
-        elif d == pr.day and stamp == 1:
-            _seal(cv, x, y, size, ink["accent"])
-        elif d == pr.day:
-            _seal(cv, x, y, size, ink["gold"])
-        elif d in done and d < pr.day:
-            _seal(cv, x, y, size, ink["accent"])
-        else:
-            _seal(cv, x, y, size, ink["sq_l2"])
-    base = top + 7 * cell + s
+        gx, gy = left + col * cell, top + row * cell
+        if d == pr.day:
+            continue
+        stamped(gx, gy, seal, ink["accent"] if d in done and d < pr.day else ink["sq_l2"])
+    base = top + 7 * cell
     for wk in course.weeks:
         if wk.milestone:
-            cv.fill(left + (wk.no - 1) * cell, base, size, s, ink["gold"])
-    c_top = base + 6 * s
-    c_bot = y0 + n - rod - 6 * s
-    c_h = max(1, c_bot - c_top)
+            box(left + (wk.no - 1) * cell, base, seal, 1, ink["gold"])
+    # the chart
+    c_top, c_bot = base + 8, side - rod - 8
     lo, hi = 200, 2200
 
     def ypos(rating):
-        return c_bot - int((min(hi, max(lo, rating)) - lo) * c_h / (hi - lo))
+        return c_bot - int((min(hi, max(lo, rating)) - lo) * (c_bot - c_top) / (hi - lo))
 
     def xpos(day):
-        return left + int((day - 1) * (cell * 52) / 365)
+        return left + (max(1, min(365, day)) - 1) * (cell * 52 - 1) // 364
 
     for level in (500, 1000, 1500, 2000):
-        cv.fill(left, ypos(level), cell * 52, 1, ink["sq_l2"])
+        gy = ypos(level)
+        box(left, gy, cell * 52, 1, ink["sq_l2"])
+        label = str(level)
+        for i, ch in enumerate(label):      # (at the right: the year's path starts at the left)
+            glyph(cv, ch, x0 + (left + cell * 52 - len(label) * 6 + 1 + i * 6) * s, y0 + (gy - 8) * s, s, ink["co_l"])
     pts = [(1, 450)] + [(wk.no * 7, wk.milestone["level"]) for wk in course.weeks if wk.milestone]
-    for (d0, r0), (d1, r1) in zip(pts, pts[1:], strict=False):
-        for d in range(d0, d1, 3):
-            cv.fill(xpos(d), ypos(r0 + (r1 - r0) * (d - d0) / (d1 - d0)), s, s, ink["dot_l"])
-    last = {1: None, 2: None}
+    plan = [(xpos(d), ypos(r)) for d, r in pts]
+    for (ax, ay), (bx, by) in zip(plan, plan[1:], strict=False):
+        for gx in range(ax, bx):
+            if gx % 6 < 4:
+                box(gx, ay + (by - ay) * (gx - ax) // max(1, bx - ax), 1, 1, ink["co_l"])
+    # the gate where the path ends
+    gate = Sprite(TORII, {"#": ink["accent"]}).scaled(s)
+    end_x, end_y = plan[-1]
+    cv.stamp(gate, x0 + (min(end_x, left + cell * 52 - 15)) * s, y0 + (end_y - len(TORII) + 1) * s)
+    # your own two lines; where each stands now, a seal of its ink
+    last = {}
     for line in pr.history:
         if not (isinstance(line, list) and len(line) == 3):
             continue
-        d = max(1, min(365, line[0] - pr.started + 1))
+        d = line[0] - pr.started + 1
         for i, name in ((2, "asagi"), (1, "accent")):
             p = (xpos(d), ypos(line[i]))
-            if last[i]:
-                _line(cv, last[i], p, 2 * s, ink[name])
-            else:
-                cv.fill(p[0], p[1], 2 * s, 2 * s, ink[name])
+            if i in last:
+                _line(box, last[i], p, ink[name])
             last[i] = p
+    now = xpos(pr.day)
+    for i, name, rating in ((2, "asagi", pr.puzzle["r"]), (1, "accent", pr.game["r"])):
+        gx, gy = last.get(i, (now, ypos(rating)))
+        stamped(gx - 2, gy - 2, 5, ink["b_o"])
+        box(gx - 1, gy - 1, 3, 3, ink[name])
+    # the day you are on: gold; or its seal coming down
+    col, row = (pr.day - 1) // 7, (pr.day - 1) % 7
+    gx, gy = left + col * cell, top + row * cell
+    if stamp in ("high", "near"):
+        size = seal * (5 if stamp == "high" else 3)
+        off = (size - seal) // 2
+        stamped(gx - off, gy - off, size, ink["accent_hi"] if stamp == "high" else ink["accent"])
+    elif stamp == "down":
+        stamped(gx, gy, seal, ink["accent"])
+        for dx, dy in ((-2, -2), (seal + 1, -2), (-2, seal + 1), (seal + 1, seal + 1)):
+            box(gx + dx, gy + dy, 1, 1, ink["gold"])
+    elif pr.day <= 364:
+        stamped(gx, gy, seal, ink["gold"])
     return cv
 
 
-def _seal(cv, x, y, size, ink):
-    """A day's stamp: a square with its corners off."""
-    cv.fill(x + 1, y, size - 2, size, ink)
-    cv.fill(x, y + 1, size, size - 2, ink)
-
-
-def _line(cv, a, b, w, ink):
+def _line(box, a, b, colour):
+    """Two art pixels thick, a to b."""
     n = max(abs(b[0] - a[0]), abs(b[1] - a[1]), 1)
     for k in range(n + 1):
-        cv.fill(a[0] + (b[0] - a[0]) * k // n, a[1] + (b[1] - a[1]) * k // n, w, w, ink)
+        box(a[0] + (b[0] - a[0]) * k // n, a[1] + (b[1] - a[1]) * k // n, 2, 2, colour)
 
 
 def _clean_spec(spec):

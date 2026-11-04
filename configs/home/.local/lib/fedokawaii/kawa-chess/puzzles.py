@@ -438,7 +438,7 @@ class Session(Screen):
             side = "black" if self.flipped else "white"
             out += [[(f"{side} to move", MUTED)], ""]
             if self.hand.pos is not None:
-                out.append(hand_line(self.hand))
+                out.append(hand_line(self.hand, w))
             if self.note:
                 out += [[(s, MUTED)] for s in wrap(self.note, w)]
         return out

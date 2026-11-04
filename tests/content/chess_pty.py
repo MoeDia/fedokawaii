@@ -13,7 +13,8 @@ import termios
 import time
 
 _SEQ = re.compile(rb"\x1b\[([?]?)([0-9;:]*)([ -/]*)([@-~])")
-_DCS = re.compile(rb"\x1bP[^\x1b]*\x1b\\", re.S)
+_RASTER = re.compile(rb'"(\d+);(\d+);(\d+);(\d+)')
+_SIX = re.compile(rb"#(\d+)(?:;2;\d+;\d+;\d+)?|!(\d+)([?-~])|([?-~])|(\$)|(-)")
 
 
 class Tty:
@@ -26,6 +27,7 @@ class Tty:
         self.sgr = None
         self.sixels = 0
         self.six_bytes = 0
+        self.fb = None
         self.pending = b""
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
@@ -92,6 +94,27 @@ class Tty:
                     self.log += data
                 self.feed(data)
 
+    def settle(self, quiet=0.4, limit=12.0):
+        """Pump until something came and nothing more has for `quiet` seconds: a program up and drawn, however loaded the machine."""
+        end = time.monotonic() + limit
+        seen = 0.0
+        while time.monotonic() < end:
+            r, _, _ = select.select([self.fd], [], [], quiet)
+            if not r:
+                if seen:
+                    return
+                continue
+            try:
+                data = os.read(self.fd, 1 << 20)
+            except OSError:
+                return
+            if not data:
+                return
+            seen = time.monotonic()
+            if self.keep_log:
+                self.log += data
+            self.feed(data)
+
     def wait(self, text, seconds=10.0):
         """Pump until text is on the grid; True if it came."""
         end = time.monotonic() + seconds
@@ -140,6 +163,8 @@ class Tty:
                         return
                     self.sixels += 1
                     self.six_bytes += e - i
+                    if self.fb is not None:
+                        self._lay_sixel(buf[i:e])
                     i = e + 2
                     continue
                 i += 2
@@ -175,6 +200,46 @@ class Tty:
             if self.pending:
                 return
             i = e
+
+    def keep_pixels(self):
+        """From now on every sixel is laid on a picture of the window as a terminal would, by its inks' numbers: self.fb."""
+        self.fb_w, self.fb_h = self.cols * self.cw, self.rows * self.ch
+        self.fb = bytearray(self.fb_w * self.fb_h)
+
+    def _lay_sixel(self, dcs):
+        y0, x0 = self.cur[0] * self.ch, self.cur[1] * self.cw
+        W, H, fb = self.fb_w, self.fb_h, self.fb
+        body = dcs[dcs.index(b"q") + 1:]
+        limit_w = limit_h = None
+        raster = _RASTER.match(body)
+        if raster:
+            limit_w, limit_h = int(raster[3]), int(raster[4])
+            body = body[raster.end():]
+        x = y = ink = 0
+        for tok in _SIX.finditer(body):
+            if tok[1] is not None:
+                ink = int(tok[1])
+            elif tok[2] is not None or tok[4] is not None:
+                n, code = (int(tok[2]), tok[3][0]) if tok[2] is not None else (1, tok[4][0])
+                bits = code - 63
+                for b in range(6):
+                    if bits >> b & 1 and (limit_h is None or y + b < limit_h):
+                        py = y0 + y + b
+                        if 0 <= py < H:
+                            for k in range(n):
+                                px = x0 + x + k
+                                if 0 <= px < W and (limit_w is None or x + k < limit_w):
+                                    fb[py * W + px] = ink
+                x += n
+            elif tok[5] is not None:
+                x = 0
+            elif tok[6] is not None:
+                x = 0
+                y += 6
+
+    def pixels(self, x, y, w, h):
+        """A part of self.fb, row by row."""
+        return [bytes(self.fb[r * self.fb_w + x:r * self.fb_w + x + w]) for r in range(y, y + h)]
 
     def _csi(self, lead, params, final):
         p = [int(x or 0) for x in params.split(b";")] if params and b":" not in params else []

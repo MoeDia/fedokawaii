@@ -210,14 +210,22 @@ def moves_rows(g, w, room, mark):
     return rows[top:top + room]
 
 
-def hand_line(hand, caret=True):
-    """The input line: the chevron, then what is typed, or why it is no move, or what is asked. The caret, a block of
-    the seal's ink as foot's own cursor is, says whose move it is."""
-    line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
+def hand_line(hand, w, caret=True):
+    """The input line, as §7's search line: the chevron at the rows' icon column, then what is typed, or why it is no
+    move, or what is asked, at their names' (a narrow panel drops the words, the mark says it). The caret, a block of the
+    seal's ink as foot's own cursor is, says whose move it is."""
+    line = [" ", (icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
+    room = w - 4
     if hand.promo:
-        line.append(("queen, rook, bishop or knight: q r b n", MUTED))
+        for said in ("queen, rook, bishop or knight: q r b n", "which man: q r b n", "q r b n"):
+            if len(said) <= room:
+                line.append((said, MUTED))
+                break
     elif hand.bad:
-        line += [(icon("CROSS"), ACCENT_TEXT), "  ", hand.bad, "  ", ("no such move", MUTED)]
+        typed = hand.bad[-max(1, room - 3):]
+        line += [(icon("CROSS"), ACCENT_TEXT), "  ", typed]
+        if room - 3 - len(typed) >= 14:
+            line += ["  ", ("no such move", MUTED)]
     else:
         if hand.typed:
             line.append((hand.typed, STRONG))
@@ -352,7 +360,9 @@ class Game(Screen):
     def panel(self, w, h):
         spec = self.spec
         now = time.monotonic()
-        top = [heading("KNIGHT", spec["title"], w), ""] if h > 8 else []
+        # (a narrow panel: "game 57", no dangling "of")
+        title = spec["title"] if len(spec["title"]) <= w - 3 else spec["title"].split(" of ")[0]
+        top = [heading("KNIGHT", title, w), ""] if h > 8 else []
         goal = wrap(spec.get("goal") or "", w) if spec.get("goal") and h >= 24 else []
         if goal:
             top += [[(line, MUTED)] for line in goal] + [""]
@@ -421,7 +431,7 @@ class Game(Screen):
     def _input_lines(self, w):
         if self.g.over():
             return [[(self.note or " ", MUTED)], [""]]
-        line = hand_line(self.hand, self.g.pos.turn == self.me)
+        line = hand_line(self.hand, w, self.g.pos.turn == self.me)
         return [line, [(self.note, MUTED)] if self.note else ""]
 
     # ── keys ─────────────────────────────────────────────────────────────────────────────────

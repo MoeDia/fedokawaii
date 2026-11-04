@@ -268,7 +268,7 @@ class Lesson(Screen):
                 body.append([line])
             body.append("")
         if self.hand.pos is not None:
-            body.append(hand_line(self.hand))
+            body.append(hand_line(self.hand, w))
         if self.find:
             body += [[(icon("SEARCH"), ACCENT_TEXT), "  ", (self.find[0], STRONG), "  ", (self.typed, None)], ""]
         if self.note:

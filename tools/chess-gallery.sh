@@ -42,10 +42,11 @@ json.dump(dict(spec=spec,moves=moves,clock=[1124.0,1187.0],times=[],hints_used=0
 START="rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"
 # ── the first screens ──
 win 126x33; grim "$KIT_OUT/01-today.png"
+key Down; sleep 0.25; grim "$KIT_OUT/01b-today-game.png"; key Up; sleep 0.1
 key Tab; sleep 0.25; grim "$KIT_OUT/02-lessons.png"
 key Tab; sleep 0.25; grim "$KIT_OUT/03-puzzles.png"
 key Tab; sleep 0.25; grim "$KIT_OUT/04-games.png"
-key Tab; sleep 0.4; grim "$KIT_OUT/05-progress.png"; quit
+key Tab; sleep 0.7; grim "$KIT_OUT/05-progress.png"; quit
 # ── a game: what the hand shows ──
 game "$START" 0 e2e4 e7e5 g1f3 b8c6 f1c4 f8c5 c2c3 g8f6 d2d4 e5d4 c3d4 c5b4 b1c3 f6e4 e1g1 e4c3 b2c3 b4c3 a1b1 c3d4
 win 126x33; grim "$KIT_OUT/10-game.png"
@@ -64,7 +65,8 @@ printf '%s\n' '[Event "x"]' '[White "you"]' '[Black "tengu"]' '[Result "0-1"]' '
 python3 -I -c 'import json,sys
 json.dump(dict(day=29,items={"29/lesson-is-it-safe":"x","29/game57":"x"},played={"57":dict(score="loss",elo=1100,t=1,me=0,times=[8]*11,check="safe",goal="not one piece given away.",accuracy=None)}),open(sys.argv[1]+"/progress.json","w"))' "$ST"
 win 126x33; key Return; sleep 25; grim "$KIT_OUT/40-review-judge.png"; key Return; sleep 0.4; grim "$KIT_OUT/41-review-moment.png"; key Escape; sleep 0.3; grim "$KIT_OUT/42-review-shown.png"
-key Return; sleep 0.2; key Escape; sleep 0.2; key Return; sleep 0.2; key Escape; sleep 0.2; key Return; sleep 0.3; text "look at f7 before anything else"; sleep 0.2; grim "$KIT_OUT/43-review-summary.png"; key Return; sleep 0.3; grim "$KIT_OUT/44-after-review.png"; quit
+# (as many moments as the engine found: Enter on the answer, Esc on the next question, until the summary asks for its line; the kit's terminal cannot be read from here, so the moments are counted: one in this game)
+key Return; sleep 0.3; text "look at f7 before anything else"; sleep 0.2; grim "$KIT_OUT/43-review-summary.png"; key Return; sleep 0.3; grim "$KIT_OUT/44-after-review.png"; quit
 rm -f "$ST/progress.json"* "$ST/current.json"*
 # ── sizes ──
 for size in 60x20 64x24 86x24 100x33 60x45 118x50 236x51; do

@@ -91,14 +91,15 @@ class Row:
 
 
 def _cut(s, n):
-    """At a word's end if one fits, else at the line: nothing added (§2)."""
+    """What fits, at a word's end: nothing added, no word in half (§2); a first word too long for the room: nothing."""
     if n <= 0:
         return ""
     if len(s) <= n:
         return s
-    cut = s[:n]
-    sp = cut.rfind(" ")
-    return cut[:sp] if sp > n // 2 else cut
+    if s[n] == " ":
+        return s[:n]
+    sp = s.rfind(" ", 0, n)
+    return s[:sp].rstrip() if sp > 0 else ""
 
 
 class Face:
@@ -150,8 +151,11 @@ def span_len(spans):
 class Layout:
     """Where the board and the panel go in a window of cols × rows. A board is 8 squares of 40, 80 or
     120 px with a pixel's frame round them: the largest that leaves the panel its room; the panel
-    beside it or, in a tall narrow window, under it. Too small for the smallest board: `small`."""
+    beside it or, in a tall narrow window, under it. In a window larger than they need the two stay
+    together, one block in its middle, the panel as tall as the board and no wider than a line reads.
+    Too small for the smallest board: `small`."""
     MIN_W, MIN_H = 60, 20
+    PANEL_MAX = 60
     __slots__ = ("scale", "col", "row", "pc", "pr", "pw", "ph", "side", "small", "cols", "rows")
 
     def __init__(self, cols, rows, cw, ch):
@@ -172,7 +176,14 @@ class Layout:
             w = cols - bc - 3
             if br <= rows and w >= 30:
                 self.scale, self.side = scale, True
-                self.pc, self.pr, self.pw, self.ph = bc + 2, 0, w, rows
+                pw = min(w, self.PANEL_MAX)
+                self.col = (cols - bc - 3 - pw) // 2
+                if scale > 1:
+                    self.row = (rows - br) // 2
+                    self.pc, self.pr, self.pw, self.ph = self.col + bc + 2, self.row, pw, br
+                else:                  # (the smallest board: every row is the panel's, and the board in the middle of them if there are many)
+                    self.row = (rows - br) // 2 if rows - br >= 6 else 0
+                    self.pc, self.pr, self.pw, self.ph = self.col + bc + 2, 0, pw, rows
                 return
             # under it: as wide as the board, on what is left of the height
             if bc + 1 <= cols and rows - br >= 10:

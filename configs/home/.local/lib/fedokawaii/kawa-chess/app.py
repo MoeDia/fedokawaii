@@ -9,6 +9,7 @@ import time
 import traceback
 
 from art import Art, BoardView, MARGIN
+from canvas import encode
 from engine import Engine
 from store import Store
 from term import MUTED, ON_SELECT, SELECT, Term, Wakeups
@@ -120,14 +121,67 @@ class Burst:
             return None
         self.step = step
         v, s, S = self.view, self.view.s, self.view.S
-        part = v.cv.crop(self.x, self.y, S, S)
+        # (a picture starts on a cell: the square's whole cells, the sparks at their place in them)
+        x0, y0 = self.x // v.cw * v.cw, self.y // v.ch * v.ch
+        part = v.cv.crop(x0, y0, min(v.size, -(-(self.x + S) // v.cw) * v.cw) - x0, min(v.size, -(-(self.y + S) // v.ch) * v.ch) - y0)
         reach = ease_out(t) * (S // 2 - 2 * s)
         for i, (dx, dy) in enumerate(self.DIRS):
             size = (2 if t < 0.6 else 1) * s
-            px = S // 2 + int(dx * reach) // s * s
-            py = S // 2 + int(dy * reach) // s * s
+            px = self.x - x0 + S // 2 + int(dx * reach) // s * s
+            py = self.y - y0 + S // 2 + int(dy * reach) // s * s
             part.fill(px, py, size, size, self.inks[i % len(self.inks)])
-        return self.x, self.y, part.sixel(palette)
+        return x0, y0, part.sixel(palette)
+
+
+class Unroll:
+    """The year's scroll opening over the board, or rolling up off it (§11, a scroll unrolling): the upper rod hangs where
+    it is, the lower one travels in whole art pixels with its shadow on what is below; paper above it, the board under it."""
+    MS = 0.42
+    ROD = 5                # (the scroll's rods, in art pixels; year_picture draws them)
+    SHADOW = 2
+
+    def __init__(self, view, paper, closing):
+        self.view, self.paper, self.closing = view, paper, closing
+        self.t0 = time.monotonic()
+        self.rod = self.ROD * view.s
+        self.top, self.bottom = MARGIN + self.rod, MARGIN + 8 * view.S
+        self.y = self.bottom if closing else self.top
+        self.done_cb = lambda: None
+
+    def frame(self, now, palette, shade):
+        """(cell-aligned y, sixel) when the rod has moved, None when it has not, "end" at its place."""
+        t = (now - self.t0) / self.MS
+        if t >= 1:
+            return "end"
+        v = self.view
+        span = self.bottom - self.top
+        e = ease_out(t) if not self.closing else 1 - t * t * t
+        y = self.top + round(span * e / v.s) * v.s
+        if y == self.y:
+            return None
+        a, b = min(y, self.y), max(y, self.y)
+        y0 = (a - self.rod) // v.ch * v.ch
+        y1 = min(v.size, -(-(b + self.SHADOW * v.s) // v.ch) * v.ch)
+        self.y = y
+        w = v.size
+        paper, board = self.paper.px, v.cv.px
+        rows = []
+        rod_at = self.bottom - self.rod - (y - self.rod)   # (the lower rod's rows, as drawn on the paper at its end)
+        for r in range(y0, y1):
+            if r < y - self.rod:
+                rows.append(bytes(paper[r * w:(r + 1) * w]))
+            elif r < y:
+                rows.append(bytes(paper[(r + rod_at) * w:(r + rod_at + 1) * w]))
+            elif r < y + self.SHADOW * v.s:
+                line = bytearray(board[r * w:(r + 1) * w])
+                gy = (r - y) // v.s
+                for gx in range(self.view.size // v.s):
+                    if (gx + gy) % 2 == 0 and MARGIN <= gx * v.s < MARGIN + 8 * v.S:
+                        line[gx * v.s:(gx + 1) * v.s] = bytes([shade]) * v.s
+                rows.append(bytes(line))
+            else:
+                rows.append(bytes(board[r * w:(r + 1) * w]))
+        return y0, encode(rows, w, y1 - y0, palette)
 
 
 class App:
@@ -150,7 +204,8 @@ class App:
         self.pic_key = None          # the picture shown in the board's place, if any
         self.face_at = None          # the face in the panel: (name, row, column, mood)
         self.face_rows = set()
-        self.pic_mood = None
+        self.paper = None            # (that picture, while it shows)
+        self.on_board = False        # (the board is what shows: a picture may open over it)
 
     # ── the screens ──────────────────────────────────────────────────────────────────────────
     @property
@@ -196,6 +251,8 @@ class App:
         self.layout = Layout(t.cols, t.rows, t.cw, t.ch)
         flipped = self.view.flipped if self.view else False
         self.pic_key = None
+        self.paper = None
+        self.on_board = False
         self.face_at = None
         self.face_rows = set()
         if self.layout.small:
@@ -231,10 +288,18 @@ class App:
                 key, canvas = pic
                 if key != self.pic_key:
                     self.pic_key = key
-                    t.picture(lay.row, lay.col, canvas.sixel(self.palette()))
+                    self.paper = canvas
+                    if self.on_board:
+                        self.view.repaint()
+                        self.anim = Unroll(self.view, canvas, False)
+                    else:
+                        t.picture(lay.row, lay.col, canvas.sixel(self.palette()))
+                self.on_board = False
             else:
+                paper = self.paper if self.pic_key is not None else None
                 if self.pic_key is not None:
                     self.pic_key = None
+                    self.paper = None
                     self.view.redraw_all()
                 b = s.board()
                 if b is not None:
@@ -242,7 +307,12 @@ class App:
                     self.view.turn_over(flipped)
                     self.view.coords = not getattr(s, "plain", False)
                     self.view.set(squares, marks, arrows)
-                self._send_board()
+                if paper is not None:
+                    self.view.repaint()
+                    self.anim = Unroll(self.view, paper, True)
+                else:
+                    self._send_board()
+                self.on_board = True
         self._draw_panel(s)
         t.flush()
 
@@ -354,11 +424,27 @@ class App:
                     x, y, data = self.view.cut(self.palette(), an.x, an.y, self.view.S, self.view.S)
                     self.term.picture(self.layout.row + y // self.term.ch, self.layout.col + x // self.term.cw, data)
                     self.term.flush()
+                elif isinstance(an, Unroll):
+                    if an.closing:
+                        self.view.redraw_all()
+                    else:
+                        self.term.picture(self.layout.row, self.layout.col, an.paper.sixel(self.palette()))
+                        self.term.flush()
+                elif an.placed:      # (where the last frame left a man, late or stopped by a key: those cells again, once he has landed)
+                    self.view.dirty += [(x, y, self.view.S, self.view.S) for x, y in an.placed]
             an.done_cb()
             self.touch()
 
     def _anim_frame(self, now):
         an = self.anim
+        if isinstance(an, Unroll):
+            f = an.frame(now, self.palette(), self.art.index["sh1"])
+            if f == "end":
+                self.finish_anim()
+            elif f is not None:
+                self.term.picture(self.layout.row + f[0] // self.term.ch, self.layout.col, f[1])
+                self.term.flush()
+            return
         if isinstance(an, Burst):
             f = an.frames(now, self.palette())
             if f == "end":
@@ -402,8 +488,10 @@ class App:
             self.quit = True
         elif kind == "mood":
             if ev[1] != self.mood:
+                self.finish_anim()
                 self.mood = ev[1]
                 self.pic_key = None
+                self.on_board = False
                 self.face_at = None
                 if self.view:
                     self.view.redraw_all()
@@ -464,7 +552,7 @@ class App:
 
     def run(self):
         term = self.term
-        wake = Wakeups()
+        wake = Wakeups(term)
         sel = selectors.DefaultSelector()
         sel.register(term.fd_in, selectors.EVENT_READ, "term")
         sel.register(wake.r, selectors.EVENT_READ, "wake")

@@ -12,6 +12,7 @@ from canvas import Canvas, Sprite, encode, hex_percent
 GRID = 40            # the men's drawing grid (a square of art pixels)
 KINDS = " pnbrqk"
 MARGIN = 8           # the canvas beyond the squares: hairline and shadow (§4), on the left and top a pixel's air
+ARROW_OFF, ARROW_HEAD, ARROW_HALF = 9, 11, 7.5   # an arrow's art: where it starts from the man's middle, its head's length and half width
 
 # coordinates: the same 5 × 7 stroke as the bar's digits, at the art's pixel
 _GLYPHS = {
@@ -23,6 +24,7 @@ _GLYPHS = {
     "f": "..##.|.#..#|.#...|###..|.#...|.#...|.#...",
     "g": ".....|.####|#...#|#...#|.####|....#|.###.",
     "h": "#....|#....|####.|#...#|#...#|#...#|#...#",
+    "0": ".###.|#...#|#...#|#...#|#...#|#...#|.###.",
     "1": "..#..|.##..|..#..|..#..|..#..|..#..|.###.",
     "2": ".###.|#...#|....#|...#.|..#..|.#...|#####",
     "3": ".###.|#...#|....#|..##.|....#|#...#|.###.",
@@ -156,6 +158,49 @@ def _wood(art, seed, tone, s):
     return wide
 
 
+def glyph(cv, ch, x, y, s, ink):
+    """A letter or digit of the board's 5 × 7, every pixel s × s."""
+    for dy, line in enumerate(_GLYPHS[ch].split("|")):
+        for dx, c in enumerate(line):
+            if c == "#":
+                cv.fill(x + dx * s, y + dy * s, s, s, ink)
+
+
+def arrow_pixels(points):
+    """The art pixels of an arrow through points, its tip at the last: a shaft two pixels wide leaving the man's middle by
+    ARROW_OFF, a head ARROW_HEAD long and twice ARROW_HALF across; (the arrow, the pixels round it)."""
+    inside = set()
+    last = len(points) - 2
+    for k in range(len(points) - 1):
+        (ax, ay), (bx, by) = points[k], points[k + 1]
+        length = math.hypot(bx - ax, by - ay)
+        ux, uy = (bx - ax) / length, (by - ay) / length
+        head = ARROW_HEAD if k == last else 0
+        begin = ARROW_OFF if k == 0 else -1.0
+        steps = int(2 * length) + 2
+        for i in range(steps):
+            t = i / 2
+            half = ARROW_HALF * (length - t) / ARROW_HEAD if head and t > length - head else 1.0
+            reach = int(half) + 2
+            for j in range(-2 * reach, 2 * reach + 1):
+                # (pixels near this point of the line, each tested once by its middle)
+                px = math.floor(ax + ux * t - uy * j / 2)
+                py = math.floor(ay + uy * t + ux * j / 2)
+                cx, cy = px + 0.5 - ax, py + 0.5 - ay
+                along, across = cx * ux + cy * uy, abs(-cx * uy + cy * ux)
+                if along < begin or along > length:
+                    continue
+                room = ARROW_HALF * (length - along) / ARROW_HEAD if head and along > length - head else 1.0
+                if across < room:
+                    inside.add((px, py))
+    edge = set()
+    for x, y in inside:
+        for n in ((x - 1, y), (x + 1, y), (x, y - 1), (x, y + 1)):
+            if n not in inside:
+                edge.add(n)
+    return inside, edge
+
+
 def _dot_rows(n):
     """A round dot n × n: (dy, dx, width) spans."""
     out = []
@@ -258,8 +303,8 @@ class BoardView:
         y0, y1 = min(f[1], t[1]), max(f[1], t[1]) + S
         return x0 <= x < x1 and y0 <= y < y1
 
-    def pictures(self, palette):
-        """[(px x, px y, sixel)] for what changed since the last call (x, y on the cell grid)."""
+    def repaint(self):
+        """The canvas brought up to what should show: the squares that changed."""
         changed = []
         for sq in range(64):
             k = self._key(sq)
@@ -270,6 +315,11 @@ class BoardView:
         if self.arrows and changed:
             for a in self.arrows:
                 self._arrow(a)
+        return changed
+
+    def pictures(self, palette):
+        """[(px x, px y, sixel)] for what changed since the last call (x, y on the cell grid)."""
+        changed = self.repaint()
         if self.full or len(changed) > 20:
             self.full = False
             self.dirty.clear()
@@ -340,11 +390,7 @@ class BoardView:
             self._glyph("abcdefgh"[f], x + self.S - 7 * s, y + self.S - 9 * s, ink)
 
     def _glyph(self, ch, x, y, ink):
-        s, cv = self.s, self.cv
-        for dy, line in enumerate(_GLYPHS[ch].split("|")):
-            for dx, c in enumerate(line):
-                if c == "#":
-                    cv.fill(x + dx * s, y + dy * s, s, s, ink)
+        glyph(self.cv, ch, x, y, self.s, ink)
 
     def _dot(self, x, y, ink, n):
         s, cv = self.s, self.cv
@@ -407,52 +453,25 @@ class BoardView:
         cv.fill(x + S - 4 * s, y + 5 * s, s, s, i["on_select"])
 
     def _arrow(self, arrow):
-        """An arrow from middle to middle, dithered so that what lies under it still shows; a
-        knight's goes round its corner."""
+        """An arrow from a man to a square, on the art's own pixels: one ink, the men's dark round it, so that it reads on
+        any square and over any man; a knight's goes round its corner, along the longer side first."""
         f, t, ink = arrow
-        S = self.S
-        ax, ay = self.origin(f)
-        bx, by = self.origin(t)
-        ax, ay, bx, by = ax + S // 2, ay + S // 2, bx + S // 2, by + S // 2
-        ink_i = self.art.index[ink]
-        dfx, dfy = abs(ax - bx) // S, abs(ay - by) // S
-        if sorted((dfx, dfy)) == [1, 2]:      # the knight's: first along the longer side
-            if dfy == 2:
-                self._shaft(ax, ay, ax, by, ink_i, False)
-                ax, ay = ax, by
-            else:
-                self._shaft(ax, ay, bx, ay, ink_i, False)
-                ax, ay = bx, ay
-        self._shaft(ax, ay, bx, by, ink_i, True)
+        s = self.s
 
-    def _shaft(self, ax, ay, bx, by, ink, head):
-        s, cv = self.s, self.cv
-        n = max(abs(bx - ax), abs(by - ay)) // s
-        if n == 0:
-            return
-        ux, uy = (bx - ax) / (n * s), (by - ay) / (n * s)
-        w = 2
-        stop = n - (9 if head else 0)
-        for i in range(stop + 1):
-            cx, cy = ax + ux * i * s, ay + uy * i * s
-            gx, gy = int(cx) // s * s, int(cy) // s * s
-            for k in range(-w, w):
-                for j in range(-w, w):
-                    if abs(ux) >= abs(uy) and j not in (0, -1) and abs(uy) < 0.01:
-                        continue
-                    if abs(uy) >= abs(ux) and k not in (0, -1) and abs(ux) < 0.01:
-                        continue
-                    px, py = gx + k * s, gy + j * s
-                    if (px // s + py // s) % 2 == 0 or abs(k) + abs(j) <= 1:
-                        cv.fill(px, py, s, s, ink)
-        if head:
-            ex, ey = ax + ux * n * s, ay + uy * n * s
-            for i in range(10):
-                half = (10 - i)
-                cx, cy = ex - ux * (10 - i) * s, ey - uy * (10 - i) * s
-                for k in range(-half, half + 1):
-                    px, py = cx + -uy * k * s, cy + ux * k * s
-                    cv.fill(int(px) // s * s, int(py) // s * s, s, s, ink)
+        def middle(sq):
+            x, y = self.origin(sq)
+            return (x - MARGIN) // s + GRID // 2, (y - MARGIN) // s + GRID // 2
+
+        a, b = middle(f), middle(t)
+        dx, dy = abs(a[0] - b[0]) // GRID, abs(a[1] - b[1]) // GRID
+        points = [a, b]
+        if sorted((dx, dy)) == [1, 2]:
+            points = [a, (a[0], b[1]) if dy == 2 else (b[0], a[1]), b]
+        inside, edge = arrow_pixels(points)
+        i, cv = self.art.index, self.cv
+        for ps, colour in ((edge, i["b_o"]), (inside, i[ink])):
+            for gx, gy in ps:
+                cv.fill(MARGIN + gx * s, MARGIN + gy * s, s, s, colour)
 
     # ── a man in motion ───────────────────────────────────────────────────────────────────────
     def under(self):

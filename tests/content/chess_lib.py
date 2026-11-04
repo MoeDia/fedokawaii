@@ -50,7 +50,7 @@ def make_home(root, mood="dark", real_engine=None, fake=True, extra=None):
 
 def open_app(env, cols=126, rows=33, mood="dark"):
     t = Tty(["python3", "-I", "-B", str(REPO / "bin/kawa-chess")], cols=cols, rows=rows, env=env, mood=mood)
-    t.pump(0.6)
+    t.settle()
     return t
 
 

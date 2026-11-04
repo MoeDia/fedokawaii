@@ -49,6 +49,7 @@ class Term:
         self.shown = {}                # (row, col) → the row's text as drawn
         self.buf = b""
         self.gone = False
+        self.stopping = False          # (asked to stop: a terminal that will not read is no longer waited for)
         self.pasting = False
         self.paste_since = 0.0
         self.buf_since = 0.0
@@ -85,6 +86,8 @@ class Term:
                 view = view[n:]
             except BlockingIOError:
                 select.select([], [self.fd_out], [], 1)
+                if self.stopping:
+                    self.gone = True
             except OSError:
                 self.gone = True
 
@@ -294,7 +297,8 @@ class Term:
 class Wakeups:
     """Signals (the window resized, a request to stop) as a byte on a pipe the loop selects on."""
 
-    def __init__(self):
+    def __init__(self, term):
+        self.term = term
         self.r, self.w = os.pipe()
         os.set_blocking(self.r, False)
         os.set_blocking(self.w, False)
@@ -305,6 +309,8 @@ class Wakeups:
 
     def _note(self, sig, _frame):
         self.caught.append(sig)
+        if sig in (signal.SIGTERM, signal.SIGHUP):
+            self.term.stopping = True
 
     def take(self):
         try:
