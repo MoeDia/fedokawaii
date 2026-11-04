@@ -8,6 +8,8 @@
 #   sudo bash tools/asobi-proof.sh vt       the real thing on the real screen, 60 s at most (a dead man's
 #                                           switch brings the desktop back): gamescope on the card, the mode,
 #                                           FreeSync, the seat's sound and devices following, the way back
+#   sudo bash tools/asobi-proof.sh vt2      as the desktop's user asks, on the real screen, 2 min at most: a game frozen
+#                                           behind the desktop and thawed, Steam closed for Bottles, Bottles and back
 #   sudo bash tools/asobi-proof.sh cycles   only VT switches on an empty VT (the desktop's side: its bar), 20 s
 #   sudo bash tools/asobi-proof.sh all      walls, then reset (never vt, cycles: they take the owner's screen)
 # Writes what it saw to ${ASOBI_PROOF_OUT:-/dev/shm/r27/asobi-proof}. Exit 0 all held · 1 something did not.
@@ -279,6 +281,69 @@ vt_proof() {
   journalctl -t kawa-asobi --since "$before" --no-pager -o cat >"$OUT/session-journal.txt" 2>&1
   journalctl _UID="$UID_W" --since "$before" --no-pager -o cat >"$OUT/world-journal.txt" 2>&1
 }
+# frozen with a game behind the desktop, thawed in front; Steam closed for Bottles: both as the desktop's user asks
+vt2_proof() {
+  local dead=asobi-proof-deadman t uid_slice ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
+  bar_shown bar-before || return
+  systemd-run --quiet --unit="$dead" --collect --on-active=120 bash -c 'chvt 1; systemctl stop kawa-asobi.service kawa-asobi-bottles.service'
+  echo "in, as the desktop's user asks"
+  holds "kawa-asobi enter"               "${ask[@]}" enter
+  for t in {1..40}; do [[ $(cat /sys/class/tty/tty0/active) == tty8 ]] && break; sleep 0.25; done
+  for t in {1..60}; do [[ $(cat /run/kawa-asobi/state 2>/dev/null) == front ]] && pgrep -u "$WHO" -f 'steam.*-gamepadui' >/dev/null && break; sleep 0.5; done
+  holds "in front"                       test "$(cat /run/kawa-asobi/state)" = front
+  sleep 12
+  echo "a game in the world (its stand-in: a wineserver), Super+G"
+  inside_user systemd-run --user --quiet --unit=asobi-proof-game --slice=app.slice bash -c 'exec -a wineserver sleep 300'
+  sleep 0.5
+  rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.5
+  python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
+  sleep 3
+  holds "the desktop in front"           test "$(cat /sys/class/tty/tty0/active)" = tty1
+  holds "the world says frozen"          test "$(cat /run/kawa-asobi/state)" = frozen
+  uid_slice=/sys/fs/cgroup/user.slice/user-$UID_W.slice/user@$UID_W.service/app.slice
+  holds "its app.slice is frozen (the kernel's word)" grep -qx 'frozen 1' "$uid_slice/cgroup.events"
+  local c0 c1; c0=$(awk '/^usage_usec/{print $2}' "$uid_slice/cpu.stat"); sleep 2; c1=$(awk '/^usage_usec/{print $2}' "$uid_slice/cpu.stat")
+  holds "no CPU in 2 s ($(( (c1 - c0) / 1000 )) ms)" test $((c1 - c0)) -lt 20000
+  bar_shown bar-frozen
+  holds "its sound and portals still answer" inside_user wpctl status
+  echo "in again, as Super+G asks"
+  t=$(date +%s%N)
+  holds "kawa-asobi enter"               "${ask[@]}" enter
+  for i in {1..40}; do [[ $(cat /run/kawa-asobi/state) == front ]] && break; sleep 0.1; done
+  ok "thawed $(( ($(date +%s%N) - t) / 1000000 )) ms after the key"
+  holds "VT 8 in front"                  test "$(cat /sys/class/tty/tty0/active)" = tty8
+  holds "app.slice thawed"               grep -qx 'frozen 0' "$uid_slice/cgroup.events"
+  sleep 2
+  inside_user rm -f /tmp/gamescope.png
+  inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+  sleep 2
+  inside_user cat /tmp/gamescope.png >"$OUT/world-after-thaw.png" 2>/dev/null
+  holds "gamescope draws again"          test -s "$OUT/world-after-thaw.png"
+  inside_user systemctl --user stop asobi-proof-game
+  echo "Bottles, Steam closing first"
+  holds "kawa-asobi bottles"             "${ask[@]}" bottles
+  for t in {1..80}; do systemctl is-active --quiet kawa-asobi-bottles.service && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && ! pgrep -u "$WHO" -x steam >/dev/null && break; sleep 0.5; done
+  holds "Steam closed"                   bash -c '! pgrep -u asobi -x steam'
+  holds "Bottles running"                systemctl is-active --quiet kawa-asobi-bottles.service
+  sleep 8
+  holds "VT 8 in front"                  test "$(cat /sys/class/tty/tty0/active)" = tty8
+  inside_user rm -f /tmp/gamescope.png
+  inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
+  sleep 2
+  inside_user cat /tmp/gamescope.png >"$OUT/world-bottles.png" 2>/dev/null
+  python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G
+  sleep 2
+  holds "Super+G: the desktop in front"  test "$(cat /sys/class/tty/tty0/active)" = tty1
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { chvt 1; sleep 1; }
+  bar_shown bar-back
+  holds "kawa-asobi close"               "${ask[@]}" close
+  holds "closed"                         test "$(cat /run/kawa-asobi/state)" = off
+  holds "the desktop still in front"     test "$(cat /sys/class/tty/tty0/active)" = tty1
+  [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || chvt 1
+  systemctl stop "$dead.timer" 2>/dev/null
+  bar_shown bar-closed
+}
 inside_user() {
   nsenter -t "$(systemctl show -P MainPID "user@$UID_W.service")" -m \
     setpriv --reuid="$WHO" --regid="$WHO" --init-groups env "HOME=$W" "XDG_RUNTIME_DIR=/run/user/$UID_W" "$@"
@@ -289,8 +354,9 @@ case ${1:-} in
   reset) reset_proof ;;
   vt)    vt_proof ;;
   cycles) cycles ;;
+  vt2)   vt2_proof ;;
   all)   walls; reset_proof ;;
-  *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|all" >&2; exit 2 ;;
+  *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|vt2|cycles|all" >&2; exit 2 ;;
 esac
 echo
 if ((fails)); then echo "$fails did not hold"; exit 1; fi

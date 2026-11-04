@@ -4,6 +4,7 @@
 // no packages), but switch the VT back to the desktop, ask for realtime sound, and GameMode's own.
 polkit.addRule(function (action, subject) {
   if (subject.user == "DESK_USER") {
+    if (action.id == "org.freedesktop.login1.chvt") return polkit.Result.YES;   // (the world to the front: kawa-asobi enter)
     if (action.id != "org.freedesktop.systemd1.manage-units") return polkit.Result.NOT_HANDLED;
     var unit = action.lookup("unit"), verb = action.lookup("verb");
     if ((unit == "kawa-asobi.service" || unit == "kawa-asobi-bottles.service") &&

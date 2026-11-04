@@ -38,8 +38,6 @@ state() { mkdir -p "$RUN"; printf '%s\n' "$1" >"$RUN/state.$$" && mv -f "$RUN/st
 
 uid() { id -u "$WHO"; }
 front_vt() { local a; a=$(cat "$TTY0" 2>/dev/null); printf '%s\n' "${a#tty}"; }
-# (the world's own manager, as its user: systemctl --machine would open a logind session each time)
-user_ctl() { local u; u=$(uid); runuser -u "$WHO" -- env "XDG_RUNTIME_DIR=/run/user/$u" "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$u/bus" systemctl --user --quiet "$@"; }
 
 # ── the network's wall ───────────────────────────────────────────────────────────────────────
 # The world reaches the Internet and nothing of this house: not the desktop's services on this
@@ -90,7 +88,7 @@ as_desk() {
   runuser -u "$d" -- env "HOME=$(getent passwd "$d" | cut -d: -f6)" "XDG_RUNTIME_DIR=/run/user/$u" \
     "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$u/bus" "PATH=$(getent passwd "$d" | cut -d: -f6)/.local/bin:/usr/local/bin:/usr/bin" "$@"
 }
-weight() { systemctl set-property --runtime "user-$(uid).slice" "CPUWeight=$1" "IOWeight=$1" 2>/dev/null; }
+weight() { systemctl set-property --runtime "user-$(uid).slice" "CPUWeight=$1" 2>/dev/null; }
 in_front() {
   weight 400            # (the world's share of the machine, ahead of whatever the desktop left running)
   [[ -n $INHIBIT ]] || { systemd-inhibit --what=idle --who=asobi --why="the play world is in front" sleep infinity >/dev/null 2>&1 & INHIBIT=$!; }
@@ -113,8 +111,10 @@ game_running() {   # a Steam game (its reaper) or a Windows program (Bottles' wi
 }
 # (what runs in the world's app.slice: gamescope, Steam, the games. Its sound and its portals, in
 # session.slice, go on: PipeWire must let go of the sound card when the seat changes)
-freeze() { user_ctl freeze app.slice 2>/dev/null; state frozen; }
-thaw() { user_ctl thaw app.slice 2>/dev/null; return 0; }
+# (the kernel's own freezer, on the slice's cgroup: systemctl freeze takes services and scopes, not slices)
+app_slice() { local u; u=$(uid); printf '%s\n' "${KAWA_ASOBI_CGROUP:-/sys/fs/cgroup}/user.slice/user-$u.slice/user@$u.service/app.slice"; }
+freeze() { echo 1 >"$(app_slice)/cgroup.freeze" && state frozen; }
+thaw() { [[ -e $(app_slice)/cgroup.freeze ]] && echo 0 >"$(app_slice)/cgroup.freeze"; return 0; }
 
 # ── a file either side dropped must be readable by the other, whatever mode it came with ───
 # (each side's own files, run as that side: never root's hand in a folder the world can write)

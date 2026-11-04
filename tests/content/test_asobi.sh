@@ -10,7 +10,9 @@ A=$REPO/bin/kawa-asobi R=$REPO/system/asobi/kawa-asobi-root
 world() {   # a fresh home and a stand-in world: run folder, drop folder, status as root's job writes it
   sandbox
   export KAWA_ASOBI_RUN=$TMP/krun KAWA_ASOBI_DROP=$TMP/drop KAWA_ASOBI_WORLD=$TMP/world KAWA_ASOBI_ROOT=$TMP/aroot
-  export KAWA_ASOBI_TTY0=$TMP/tty0 KAWA_ASOBI_TEST_PATH=$PATH
+  export KAWA_ASOBI_TTY0=$TMP/tty0 KAWA_ASOBI_TEST_PATH=$PATH KAWA_ASOBI_CGROUP=$TMP/cg
+  APP=$TMP/cg/user.slice/user-$(id -u asobi 2>/dev/null).slice/user@$(id -u asobi 2>/dev/null).service/app.slice
+  mkdir -p "$APP"; : >"$APP/cgroup.freeze"
   mkdir -p "$KAWA_ASOBI_RUN" "$KAWA_ASOBI_DROP" "$KAWA_ASOBI_WORLD" "$KAWA_ASOBI_ROOT/snapshots"
   echo tty1 >"$KAWA_ASOBI_TTY0"
   printf 'world\t2200000000\t14300000000\nsnap\tclean\t1793800000\t52000000\t6200000000\nsnap\t20261104-1830\t1793810000\t310000000\t14300000000\nfree\t764000000000\n' >"$KAWA_ASOBI_RUN/status"
@@ -151,12 +153,14 @@ bash -c 'exec -a "reaper SteamLaunch AppId=7" sleep 30' & g=$!
 stub pgrep "echo $g"
 reset_calls; root watch; eq "$RC" 0 "$OUT"
 kill "$g" 2>/dev/null; wait "$g" 2>/dev/null
-called 'thaw app.slice'; called '^systemd-inhibit --what=idle'; called 'freeze app.slice'
+eq "$(cat "$APP/cgroup.freeze")" 1 "the world's slice frozen"
+called '^systemd-inhibit --what=idle'
 called 'set-property --runtime user-[0-9]*.slice CPUWeight=400'; called 'set-property --runtime user-[0-9]*.slice CPUWeight=50'
 eq "$(cat "$KAWA_ASOBI_RUN/state")" frozen
 case_ "the watch: behind with Steam alone: it goes on working (a download)"
 stub pgrep 'echo 1'
-reset_calls; root watch; eq "$RC" 0 "$OUT"; not_called 'freeze app.slice'
+echo 1 >"$APP/cgroup.freeze"
+reset_calls; root watch; eq "$RC" 0 "$OUT"; eq "$(cat "$APP/cgroup.freeze")" 0 "thawed in front, and left so behind"
 eq "$(cat "$KAWA_ASOBI_RUN/state")" away
 
 case_ "the unit files: the world's user, its VT, its PAM file; the walls whole; polkit's rule the two units"
