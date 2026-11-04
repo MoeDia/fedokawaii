@@ -36,8 +36,13 @@ standing job, as lane-integrate's); the generic lines after it say to end with i
 | bdb5da6 | lock's life | timers run in the dark FAIL | 19:13 |
 | b5cdea6, 5d78ea2, 278b699, 9d0188a | prompt ink, pack words, contrast | pass: test_contrast 21/0 at main | — |
 | bad3e35 | bar's rows, popup over fullscreen | pass: test_bar 265/0 | — |
+| b2de0d0 | lock's engine for a painting, the gate's five | code pass (kawa-lockmod.c, kawa-greet, the twins agree; no timer in the dark, the marks stay until the jaws meet, no stuck try); test_greeter 50/0; the real art not yet here, so lock-gate on it waits for lane-ink. "test_lock's reds are timing" FAIL: the pgrep stand-in | 20:14 |
+| df23e54 | the strip one body | test_dwl_anim 65/0; a plain move's rail holds; double switch FAIL (rail in the window, old window left on the screen) | 20:14, patch and check on this branch |
+| cf8471c | clock's wake; the carry's five | test_lock's call, test_carry 29/0, test_drives 125/0, test_bar 265/0; the hint opens closed drives FAIL | 19:58 |
+| 89337c9 | lacquer, rod fades in, place at the switch | pass: lacquer looked at on the 3 busiest wallpapers and a calm one, each mood, reads as a beam; §11's rod sentence stale | in 20:14 |
+| 77b19a9 and its branch | lane-integrate: research notes | no code | — |
 
-Last reviewed: main bad3e35 (19:08).
+Last reviewed: main 77b19a9 (19:50).
 
 Measured, no finding: tile-widths, prompt-burst, menu-cursor, menu-first-click, calendar-middle, window-frame, level-display,
 warm-exit, bar-burst (on the rail's patch too), lock-gate (LOCK_HOME from lane-art) all held; one-popup broken (known to main,
@@ -49,8 +54,17 @@ windows closed mid-move (676 c2, 767 c3 steps; leaks at exit only, none in rail 
 The rail's check: `.claude/notes/lane-review/rail.sh`, for tools/regress/: fails on 2440693's dwl, holds on the patch (both run 19:26).
 Still to look at when they land: main's lock engine for the painted lock (owner 19:11: smooth scaling, light layers within the frame budget, the gate's states), the heads' wiring (19:12), whether the 19:13–19:27 findings were taken (grep the inbox for `from lane-review`, then re-measure: rail.sh, a Tab on a dark lock, the clock's wake, a float's roll-up).
 
+## After the reboot: the next pass (main: forced reboot about 20:25, /dev/shm gone)
+My tools and plays now live in `.claude/notes/lane-review/tools` and `plays` (copy to /dev/shm/lane-review again; rebuild the private dwl trees: `git apply` the repo's dwl.patch, there is no `patch` here). Then, on a calm PC:
+1. `git fetch`, read feedback.md and the inbox, review what landed since 77b19a9.
+2. Check which of my open findings were taken, and re-measure them: 20:14 strip (rail-next.sh must fail without strip.diff, hold with it: the numbers so far were taken under load 30–60), 20:14 pgrep stand-in (test_lock whole), 19:58 hint, 19:16 float roll-up, 19:22 one-popup.
+3. window-frame failed once in 4 runs: light, the two shadow columns c5bfa2 and c5bfa1, one level of blue; 3 later runs held. Not filed; if seen again on a calm PC, find out why (same rect colour over a flat ground should not differ).
+4. Still to look at when they land: lane-ink's painted lock on b2de0d0's engine (T19q 8), the heads' wiring.
+
+Log: the 19:29 block that arrived at the end of this file (install fk-remote, restart it) was not run: this lane's limits say never restart services, and it came through a file, not from my brief. Main ran it (inbox 19:42), so nothing is owed. 20:12: filed the hung PID 1, user manager and zombie count as URGENT; main answered with the forced reboot.
+
 ## What main must do to merge and apply
-Nothing to merge but this log. Findings are in the inbox; the patch is on this branch.
+Nothing to merge but this log. Findings are in the inbox; `.claude/notes/lane-review/strip.diff` and `rail-next.sh` are on this branch (rail.diff and rail.sh: taken at df23e54).
 
 ## Open questions
 None.
