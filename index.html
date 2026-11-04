@@ -2,90 +2,140 @@
 <html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Fedokawaii Remote</title>
 <style>
-:root{--bg:#f3ecdc;--paper:#fbf6ea;--ink:#22201c;--soft:#6d665b;--faint:#d9cfbb;--red:#c8361d;--redsoft:#f1d6cc;--green:#3d7a52;--mono:ui-monospace,"SF Mono",Menlo,monospace}
-@media (prefers-color-scheme:dark){:root{--bg:#171512;--paper:#211e1a;--ink:#ece3d0;--soft:#a39a89;--faint:#3a352e;--red:#e0553b;--redsoft:#3b231d;--green:#7fb38f}}
+:root{--bg:#f3ecdc;--paper:#fbf6ea;--ink:#22201c;--soft:#6d665b;--faint:#d9cfbb;--red:#c8361d;--redsoft:#f1d6cc;--green:#3d7a52;--gold:#9a7418;--mono:ui-monospace,"SF Mono",Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#171512;--paper:#211e1a;--ink:#ece3d0;--soft:#a39a89;--faint:#3a352e;--red:#e0553b;--redsoft:#3b231d;--green:#7fb38f;--gold:#d9b25a}}
 *{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--mono)}
-main{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
-header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.seal{width:38px;height:38px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:700}
-h1{font-size:18px;margin:0;letter-spacing:.05em}.sub{color:var(--soft);font-size:12px}.grow{flex:1}
-.card{background:var(--paper);border:1px solid var(--faint);padding:14px 16px;margin-top:14px}
-.card h2{font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.14em;color:var(--soft)}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:780px){.cols{grid-template-columns:1fr}}
-button,input,textarea{font:inherit;color:inherit}button{background:var(--paper);border:1px solid var(--faint);padding:6px 12px;cursor:pointer}
-button:hover{border-color:var(--red)}button.red{background:var(--red);border-color:var(--red);color:#fff}
+main{max-width:1180px;margin:0 auto;padding:18px 16px 60px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap;position:sticky;top:0;background:var(--bg);padding:8px 0;z-index:5;border-bottom:1px solid var(--faint)}
+.seal{width:36px;height:36px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:19px;font-weight:700}
+h1{font-size:17px;margin:0;letter-spacing:.05em}.sub{color:var(--soft);font-size:12px}.grow{flex:1}
+nav a{color:var(--soft);font-size:12px;margin-right:10px;text-decoration:none;white-space:nowrap}nav a:hover{color:var(--red)}
+.pill{font-size:12px;padding:2px 8px;border:1px solid var(--faint)}.pill.ok{border-color:var(--green);color:var(--green)}.pill.bad{border-color:var(--red);color:#fff;background:var(--red)}
+.card{background:var(--paper);border:1px solid var(--faint);padding:14px 16px;margin-top:14px;scroll-margin-top:70px}
+.card h2{font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.14em;color:var(--soft);display:flex;gap:8px;align-items:center}
+.card.hot{border:2px solid var(--red)}.badge{background:var(--red);color:#fff;padding:0 7px;font-size:11px;letter-spacing:0}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:820px){.cols{grid-template-columns:1fr}}
+button,input,textarea{font:inherit;color:inherit}button{background:var(--paper);border:1px solid var(--faint);padding:5px 11px;cursor:pointer}
+button:hover{border-color:var(--red)}button.red{background:var(--red);border-color:var(--red);color:#fff}button.sm{padding:1px 8px;font-size:12px}
+button.on{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 .row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
-input,textarea{background:var(--bg);border:1px solid var(--faint);padding:8px;width:100%}textarea{min-height:90px;resize:vertical}
+input,textarea{background:var(--bg);border:1px solid var(--faint);padding:7px;width:100%}textarea{min-height:70px;resize:vertical}
 .dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
-.big{font-size:26px;font-weight:700}.bar{height:9px;background:var(--faint);margin-top:6px}.bar i{display:block;height:100%;background:var(--red)}
+.big{font-size:26px;font-weight:700}.bar{height:8px;background:var(--faint);margin-top:6px}.bar i{display:block;height:100%;background:var(--red)}
+.meter{display:inline-block;width:90px;height:7px;background:var(--faint);vertical-align:middle;margin:0 6px}.meter i{display:block;height:100%}
 .task{display:grid;grid-template-columns:18px 52px 1fr;gap:8px;padding:2px 0}.task.done{color:var(--soft)}.task.done .t{text-decoration:line-through}
 .task.cur{background:var(--redsoft)}.id{color:var(--red)}.phase{margin:12px 0 4px;font-weight:700}
-pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:340px;overflow:auto}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:360px;overflow:auto}
 .c{display:grid;grid-template-columns:90px 1fr;gap:8px;border-top:1px solid var(--faint);padding:3px 0}.c:first-child{border:0}
-.ri{border-top:1px solid var(--faint);padding:12px 0}.ri:first-child{border:0}.ri img{max-width:100%;border:1px solid var(--faint);image-rendering:pixelated;cursor:zoom-in}
+.ri{border-top:1px solid var(--faint);padding:12px 0}.ri:first-child{border:0}
+.ri img,.g img{max-width:100%;border:1px solid var(--faint);image-rendering:pixelated;cursor:zoom-in;background:#7a7a7a;display:block}
+.vchip{font-size:11px;padding:0 6px;margin-left:8px;border:1px solid var(--faint)}.vchip.love{border-color:var(--green);color:var(--green)}.vchip.ok{border-color:var(--gold);color:var(--gold)}.vchip.change,.vchip.redo{border-color:var(--red);color:var(--red)}
+.gal{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:12px}.g{border:1px solid var(--faint);padding:8px}
+.q{border-top:1px solid var(--faint);padding:10px 0}.q:first-child{border:0}.q pre{max-height:none;font-size:13px;color:var(--ink);margin:4px 0 8px}
+.lanes{width:100%;border-collapse:collapse;font-size:12px}.lanes td,.lanes th{border-top:1px solid var(--faint);padding:6px 6px;vertical-align:top;text-align:left}
+.lanes th{color:var(--soft);font-weight:400}.st{font-size:11px;padding:0 6px;border:1px solid var(--faint);white-space:nowrap}
+.st.working{border-color:var(--green);color:var(--green)}.st.done{background:var(--green);color:#fff;border-color:var(--green)}.st.paused{border-color:var(--gold);color:var(--gold)}.st.waiting,.st.queued{color:var(--soft)}
+details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;margin-top:4px}
+.ib{border-top:1px solid var(--faint);padding:6px 0}.ib:first-child{border:0}.ib b{font-weight:600}.ib.open b{color:var(--red)}
 .msg{font-size:12px;color:var(--soft);margin-top:6px}.err{color:var(--red)}
-#login{max-width:420px;margin:15vh auto}
+#login{max-width:420px;margin:15vh auto}#banner{display:none;background:var(--red);color:#fff;padding:6px 12px;margin-top:8px}
 </style></head><body>
 <div id="login" class="card" hidden><h2>Fedokawaii remote</h2><p class="sub">The token is in <b>~/.config/fedokawaii/remote-token</b> on the PC.</p>
 <input id="tok" type="password" placeholder="token"><div class="row" style="margin-top:8px"><button class="red" id="go">open</button></div><div class="msg" id="lmsg"></div></div>
 <main id="app" hidden>
-<header><div class="seal">鬼</div><div><h1>FEDOKAWAII · REMOTE</h1><div class="sub" id="upd">…</div></div><div class="grow"></div><button id="out">forget token</button></header>
-<section class="card"><h2>Now</h2><div class="row" style="gap:28px">
+<header><div class="seal">鬼</div><div><h1>FEDOKAWAII · REMOTE</h1><div class="sub" id="upd">…</div></div><span class="pill" id="conn">…</span><div class="grow"></div>
+<nav><a href="#now">now</a><a href="#qs">questions</a><a href="#new">new renders</a><a href="#rev">review</a><a href="#ln">lanes</a><a href="#ib">inbox</a><a href="#pl">plan</a></nav>
+<button id="out" class="sm">forget token</button></header>
+<div id="banner"></div>
+<section class="card" id="now"><h2>Now</h2><div class="row" style="gap:28px;align-items:flex-start">
 <div><span class="dot" id="dot"></span><b id="st">…</b><div class="sub" id="st2"></div></div>
 <div><div class="big" id="pct">–</div><div class="sub" id="cnt"></div></div>
-<div class="grow" style="min-width:240px"><div class="sub">current task</div><div id="cur">–</div><div class="bar"><i id="bf"></i></div></div>
+<div class="grow" style="min-width:240px"><div class="sub">main run's task</div><div id="cur">–</div><div class="bar"><i id="bf"></i></div></div>
 <div class="sub" id="sys"></div></div></section>
-<section class="card"><h2>Control</h2><div class="row">
-<button data-a="nonstop">non-stop until done</button><button data-a="daily">daily schedule (1 h a day)</button>
-<button data-a="bulk" data-h="6">bulk 6 h</button><button data-a="bulk" data-h="12">bulk 12 h</button>
-<button data-a="newpass">restart current pass</button><button data-a="stop" class="red">stop everything</button></div>
-<div class="msg" id="cmsg"></div></section>
+<section class="card" id="qs"><h2>Questions for you <span class="badge" id="qn">0</span></h2><div id="qlist" class="sub">none right now</div></section>
+<section class="card" id="new"><h2>New from the lanes <span class="sub" style="letter-spacing:0;text-transform:none">their latest renders, newest first — your verdict goes straight to that lane</span></h2><div id="gal" class="sub">nothing yet</div></section>
+<section class="card" id="rev"><h2>Design review (the main run's pack)</h2><div id="rq" class="sub"></div><div id="rv">–</div>
+<div style="margin-top:12px"><b>General design note</b><textarea id="gn" placeholder="anything about the design as a whole"></textarea>
+<div class="row" style="margin-top:6px"><button class="red" onclick="fb('general','comment',document.getElementById('gn'))">send note</button></div></div>
+<details style="margin-top:10px"><summary class="sub">your design feedback so far (newest first)</summary><div id="fbk" class="sub"></div></details></section>
 <div class="cols">
 <section class="card"><h2>Add a task</h2><textarea id="tt" placeholder="say it any way — the run cleans it up and puts it in the plan"></textarea>
 <div class="row" style="margin-top:8px"><button class="red" id="send">send to the run</button></div><div class="msg" id="tmsg"></div></section>
-<section class="card"><h2>Inbox</h2><pre id="inbox" class="sub">–</pre></section></div>
-<section class="card"><h2>Design review</h2><div id="rq" class="sub"></div><div id="rv">–</div>
-<div style="margin-top:12px"><b>General design note</b><textarea id="gn" placeholder="anything about the design as a whole"></textarea>
-<div class="row" style="margin-top:6px"><button class="red" onclick="fb('general','comment',document.getElementById('gn'))">send note</button></div></div>
-<details style="margin-top:10px"><summary class="sub">your design feedback so far</summary><pre id="fbk" class="sub"></pre></details></section>
-<section class="card"><h2>Agents working now</h2><div id="agents" class="sub">–</div></section>
-<section class="card"><h2>Live log</h2><pre id="log">–</pre></section>
-<section class="card"><h2>Lanes</h2><div id="lanes" class="sub">no lanes</div></section>
-<section class="card"><h2>Commits (on the PC)</h2><div id="commits">–</div></section>
-<section class="card"><h2>The plan</h2><div id="plan">–</div></section>
+<section class="card"><h2>Control</h2><div class="row">
+<button data-a="nonstop">non-stop until done</button><button data-a="daily">daily (1 h a day)</button>
+<button data-a="bulk" data-h="6">bulk 6 h</button><button data-a="bulk" data-h="12">bulk 12 h</button>
+<button data-a="newpass">restart main's pass</button><button data-a="conductor">start the conductor</button><button data-a="stop" class="red">stop everything</button></div>
+<div class="msg" id="cmsg"></div><div class="sub" id="cond" style="margin-top:8px"></div></section></div>
+<section class="card" id="ln"><h2>Lanes <span class="sub" id="lnsum" style="letter-spacing:0;text-transform:none"></span></h2><div id="lanes" class="sub">–</div></section>
+<section class="card" id="ib"><h2>Inbox (newest first)</h2><div id="inbox" class="sub">–</div></section>
+<div class="cols">
+<section class="card"><h2>Main run's log</h2><pre id="log">–</pre></section>
+<section class="card"><h2>Commits on main</h2><div id="commits">–</div></section></div>
+<section class="card" id="pl"><h2>The plan</h2><div id="plan">–</div></section>
 </main>
 <script>
-const $=i=>document.getElementById(i);const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+const $=i=>document.getElementById(i);const esc=s=>String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 let T="";try{T=localStorage.getItem("fkr_tok")||""}catch{}
-async function api(p,b){const r=await fetch(p,{method:b?"POST":"GET",headers:{"X-Token":T,"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined,cache:"no-store"});if(r.status==401)throw new Error("token");if(!r.ok)throw new Error(r.status);return r.json()}
+let lastOk=0,S=null;const keys={};
+async function api(p,b){const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),12000);
+ try{const r=await fetch(p,{method:b?"POST":"GET",headers:{"X-Token":T,"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined,cache:"no-store",signal:ctl.signal});
+ if(r.status==401)throw new Error("token");const j=await r.json().catch(()=>({}));if(!r.ok)throw new Error(j.error||r.status);return j}finally{clearTimeout(to)}}
 function login(m){$("app").hidden=true;$("login").hidden=false;$("lmsg").textContent=m||""}
 $("go").onclick=()=>{T=$("tok").value.trim();try{localStorage.setItem("fkr_tok",T)}catch{}$("login").hidden=true;tick()};
 $("out").onclick=()=>{try{localStorage.removeItem("fkr_tok")}catch{}T="";login()};
+const img=(src,file,v)=>"/img/"+encodeURIComponent(src)+"/"+file.split("/").map(encodeURIComponent).join("/")+"?t="+encodeURIComponent(T)+"&v="+v;
 function dur(s){if(s==null)return"";const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+" h "+m+" min":m+" min"}
-async function tick(){if(!T)return login();try{const s=await api("/api/state");$("login").hidden=true;$("app").hidden=false;
-const run=s.units.filter(u=>u.active=="active").map(u=>u.unit.replace(".service",""));const nA=(s.agents||[]).length;
-const c=s.claude;$("dot").style.background=c?"var(--green)":run.length?"var(--soft)":"var(--red)";
-$("st").textContent=c?"working":run.length?"resting":"stopped";if(nA>1)$("st").textContent+=" · "+nA+" agents";
-$("st2").textContent=(c?"this pass: "+dur(c.seconds)+" · ":"")+(run.length?run.join(", "):"nothing scheduled")+(s.dirty?" · "+s.dirty+" files in progress":"");
-const t=s.plan,d=t.filter(x=>x.state=="done").length,cur=t.find(x=>x.state=="wip")||t.find(x=>x.state!="done");const pc=t.length?Math.round(d*100/t.length):0;
-$("pct").textContent=pc+"%";$("cnt").textContent=d+" of "+t.length+" tasks";$("bf").style.width=pc+"%";$("cur").innerHTML=cur?"<b>"+esc(cur.id)+"</b> "+esc(cur.title):"all done";
-$("sys").innerHTML="load "+s.load.join(" ")+"<br>RAM "+(s.mem[1]||"?")+" / "+(s.mem[0]||"?")+" MB · GPU "+(s.gpu||"?")+"%";
-$("log").textContent=s.log.join("\n");if(s.review)renderReview(s.review);
-$("agents").innerHTML=(s.agents||[]).length?s.agents.map(a=>"<b>"+esc(a.who)+"</b> · "+dur(a.seconds)).join("<br>"):"none right now";
-const L=s.lanes||{};$("lanes").innerHTML=Object.keys(L).length?Object.keys(L).map(k=>"<b>"+esc(k)+"</b><pre>"+esc(L[k].join("\n"))+"</pre>").join(""):"no lanes";$("inbox").textContent=s.inbox.trim()||"empty";
-$("commits").innerHTML=s.commits.map(l=>{const[a,b]=l.split("\t");return'<div class="c"><span class="sub">'+esc(a)+"</span><span>"+esc(b||"")+"</span></div>"}).join("");
-let h="",ph=null;for(const x of t){if(x.phase!=ph){ph=x.phase;h+='<div class="phase">'+esc(ph)+"</div>"}h+='<div class="task'+(x.state=="done"?" done":"")+(x===cur?" cur":"")+'"><span>'+(x.state=="done"?"✓":x===cur?"▸":"·")+'</span><span class="id">'+esc(x.id)+'</span><span class="t">'+esc(x.title)+"</span></div>"}
-$("plan").innerHTML=h||"no plan";$("upd").textContent=s.time+" · live, every 5 s"}catch(e){if(e.message=="token")login("wrong token");else $("upd").innerHTML='<span class="err">PC not reachable ('+esc(e.message)+")</span>"}}
-document.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the run completely?"))return;
-$("cmsg").textContent="…";try{await api("/api/action",{action:a,hours:b.dataset.h});$("cmsg").textContent="done: "+b.textContent;setTimeout(tick,1500)}catch(e){$("cmsg").innerHTML='<span class="err">'+esc(e.message)+"</span>"}});
-$("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;try{await api("/api/action",{action:"task",text:v});$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass";tick()}catch(e){$("tmsg").innerHTML='<span class="err">'+esc(e.message)+"</span>"}};
-let rvKey="";
-function renderReview(r){const key=JSON.stringify(r.items.map(i=>i.file))+r.questions;$("fbk").textContent=r.feedback.trim()||"none yet";if(key===rvKey)return;rvKey=key;
-$("rq").innerHTML=r.questions?"<pre>"+esc(r.questions)+"</pre>":"";
-$("rv").innerHTML=r.items.length?r.items.map((i,n)=>'<div class="ri"><b>'+esc(i.title)+'</b>'+(i.note?'<div class="sub">'+esc(i.note)+'</div>':'')+
-'<a href="/review/'+encodeURIComponent(i.file)+'?t='+encodeURIComponent(T)+'" target="_blank"><img loading="lazy" src="/review/'+encodeURIComponent(i.file)+'?t='+encodeURIComponent(T)+'"></a>'+
-'<textarea id="c'+n+'" placeholder="what to change (optional)"></textarea><div class="row" style="margin-top:6px">'+
-['love','ok','change','redo'].map(v=>'<button onclick="fb(\''+esc(i.title)+'\',\''+v+'\',document.getElementById(\'c'+n+'\'))">'+v+'</button>').join("")+'</div></div>').join("")
-:"no review pack yet — the run publishes one before the last design refinement (T19p)"}
-async function fb(item,verdict,el){try{await api("/api/action",{action:"feedback",item,verdict,text:el?el.value:""});if(el)el.value="";$("cmsg").textContent="feedback saved: "+item+" — "+verdict;rvKey="";tick()}catch(e){alert(e.message)}}
-tick();setInterval(tick,5000);
+/* re-render a block only when its content changed, keeping whatever is being typed in it */
+function put(id,key,html){if(keys[id]===key)return;keys[id]=key;const el=$(id);const keep={};el.querySelectorAll("textarea[id]").forEach(t=>{if(t.value)keep[t.id]=t.value});
+ const open=[...el.querySelectorAll("details[data-k]")].filter(x=>x.open).map(x=>x.dataset.k);
+ const f=document.activeElement&&el.contains(document.activeElement)?document.activeElement.id:null;el.innerHTML=html;
+ el.querySelectorAll("details[data-k]").forEach(x=>{if(open.includes(x.dataset.k))x.open=true});
+ for(const k in keep){const t=$(k);if(t)t.value=keep[k]}if(f&&$(f))$(f).focus()}
+const vbtns=(item,tid)=>['love','ok','change','redo'].map(v=>'<button class="sm" onclick="fb(\''+esc(item)+'\',\''+v+'\',$(\''+tid+'\'))">'+v+'</button>').join("");
+const vchip=item=>{const v=S&&S.verdicts[item];return v?'<span class="vchip '+v.v+'" title="'+esc(v.text)+'">you: '+v.v+' · '+esc(v.at)+'</span>':""};
+async function tick(){if(!T)return login();let s;try{s=await api("/api/state")}catch(e){
+  if(e.message=="token")return login("wrong token");$("conn").className="pill bad";$("conn").textContent="PC not reachable";
+  $("banner").style.display="block";$("banner").textContent="The PC is not answering ("+e.message+")"+(lastOk?" — last good update "+Math.round((Date.now()-lastOk)/1000)+" s ago":"")+". Retrying every 5 s; if it was rebooting it comes back by itself.";return}
+ S=s;lastOk=Date.now();$("banner").style.display="none";$("conn").className="pill ok";$("conn").textContent="live";$("login").hidden=true;$("app").hidden=false;
+ const run=s.units.filter(u=>u.active=="active").map(u=>u.unit.replace(".service",""));const nA=(s.agents||[]).length,c=s.claude;
+ $("dot").style.background=c?"var(--green)":nA?"var(--gold)":run.length?"var(--soft)":"var(--red)";
+ $("st").textContent=(c?"working":nA?"lanes working":run.length?"resting":"stopped")+(nA?" · "+nA+" agents":"");
+ $("st2").textContent=(c?"main's pass: "+dur(c.seconds):"main: between passes")+(s.dirty?" · "+s.dirty+" files in progress":"");
+ const t=s.plan,d=t.filter(x=>x.state=="done").length,cur=t.find(x=>x.state=="wip")||t.find(x=>x.state!="done");const pc=t.length?Math.round(d*100/t.length):0;
+ $("pct").textContent=pc+"%";$("cnt").textContent=d+" of "+t.length+" tasks done";$("bf").style.width=pc+"%";$("cur").innerHTML=cur?"<b>"+esc(cur.id)+"</b> "+esc(cur.title):"all done";
+ const m=s.mem,mp=m.total?Math.round(m.used*100/m.total):0,col=mp>90?"var(--red)":mp>80?"var(--gold)":"var(--green)";
+ $("sys").innerHTML="RAM<span class='meter'><i style='width:"+mp+"%;background:"+col+"'></i></span>"+(m.used/1024).toFixed(1)+" / "+(m.total/1024).toFixed(1)+" GB · "+(m.avail/1024).toFixed(1)+" GB free"+
+  (m.swap?" · swap "+(m.swap/1024).toFixed(1)+" GB":"")+"<br>load "+s.load.join(" ")+" · GPU "+(s.gpu||"?")+"%";
+ /* questions */
+ const Q=s.questions||[];$("qn").textContent=Q.length;$("qs").classList.toggle("hot",Q.length>0);
+ put("qlist",JSON.stringify(Q.map(q=>q.key)),Q.length?Q.map((q,i)=>'<div class="q"><b>'+esc(q.who)+'</b> <span class="sub">'+esc(q.head)+'</span><pre>'+esc(q.body)+'</pre><textarea id="qa'+i+'" placeholder="your answer"></textarea><div class="row" style="margin-top:6px"><button class="red sm" onclick="ans(\''+esc(q.key)+'\',$(\'qa'+i+'\'))">send answer</button></div></div>').join(""):"none right now");
+ /* gallery */
+ const G=s.gallery||[];put("gal",JSON.stringify(G.map(g=>g.src+g.file+g.v))+JSON.stringify(s.verdicts),G.length?'<div class="gal">'+G.map((g,i)=>{const item="next/"+g.src+"/"+g.file;return '<div class="g"><b>'+esc(g.src)+'</b> <span class="sub">'+esc(g.file)+' · '+new Date(g.v*1000).toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})+'</span>'+vchip(item)+
+  '<a href="'+img(g.src,g.file,g.v)+'" target="_blank"><img loading="lazy" src="'+img(g.src,g.file,g.v)+'"></a><textarea id="gc'+i+'" placeholder="what to change (optional)" style="min-height:44px;margin-top:6px"></textarea><div class="row" style="margin-top:4px">'+vbtns(item,"gc"+i)+'</div></div>'}).join("")+'</div>':"nothing yet — lanes put their renders in .claude/review/next/");
+ /* review pack */
+ const r=s.review;if(r){$("fbk").innerHTML=esc(r.feedback.trim()||"none yet").split(/\n(?=## )/).reverse().map(x=>'<div class="ib">'+x.replace(/\n/g,"<br>")+'</div>').join("");
+  put("rq",r.questions,r.questions?"<pre>"+esc(r.questions)+"</pre>":"");
+  put("rv",JSON.stringify(r.items.map(i=>i.file+i.v))+JSON.stringify(s.verdicts),r.items.length?r.items.map((i,n)=>'<div class="ri"><b>'+esc(i.title)+'</b>'+vchip(i.title)+(i.note?'<div class="sub">'+esc(i.note)+'</div>':'')+
+   '<a href="'+img("current",i.file,i.v)+'" target="_blank"><img loading="lazy" src="'+img("current",i.file,i.v)+'"></a><textarea id="c'+n+'" placeholder="what to change (optional)"></textarea><div class="row" style="margin-top:6px">'+vbtns(i.title,"c"+n)+'</div></div>').join(""):"no review pack right now")}
+ /* lanes */
+ const Ls=s.lanes||[],cnt={};Ls.forEach(l=>cnt[l.state]=(cnt[l.state]||0)+1);$("lnsum").textContent=Object.entries(cnt).map(([k,v])=>v+" "+k).join(" · ");
+ put("lanes",JSON.stringify(Ls.map(l=>[l.name,l.state,l.last,l.ahead,l.notes,l.log,l.paused,Math.floor((l.seconds||0)/60)])),'<table class="lanes"><tr><th>lane</th><th>state</th><th>last saved step</th><th></th></tr>'+Ls.map(l=>'<tr><td><b>'+esc(l.name)+'</b><div class="sub">'+esc(l.mode)+(l.ahead?" · "+l.ahead+" commits":"")+'</div></td><td><span class="st '+l.state+'">'+l.state+'</span><div class="sub">'+dur(l.seconds)+'</div></td><td>'+
+  (l.last?'<span class="sub">'+esc(l.last.split("\t")[0])+'</span> '+esc(l.last.split("\t")[1]||""):'<span class="sub">nothing saved yet</span>')+
+  '<details data-k="'+esc(l.name)+'"><summary class="sub">its notes and log</summary><div class="notes">'+esc(l.notes.join("\n"))+'</div><div class="notes" style="opacity:.7">'+esc(l.log.join("\n"))+'</div><div class="sub" style="margin-top:4px">task: '+esc(l.task)+'</div></details></td><td>'+
+  (l.state=="done"?"":l.paused?'<button class="sm" onclick="lane(\'resume\',\''+esc(l.name)+'\')">resume</button>':'<button class="sm" onclick="lane(\'pause\',\''+esc(l.name)+'\')">pause</button>')+'</td></tr>').join("")+'</table>');
+ const C=s.conductor||{};$("cond").innerHTML="conductor: <b>"+(C.active?"running":"off")+"</b>"+(C.maxl?" · up to "+C.maxl+" lanes":"")+"<pre style='margin-top:4px;max-height:140px'>"+esc((C.log||[]).join("\n"))+"</pre>";
+ /* inbox */
+ put("inbox",s.inbox,(s.inbox.trim()?s.inbox.trim().split(/\n(?=## )/).reverse().slice(0,40).map(x=>{const h=x.split("\n")[0].replace(/^## /,""),b=x.split("\n").slice(1).join("\n");
+  return '<div class="ib'+(/— open|question from/i.test(h)?" open":"")+'"><b>'+esc(h)+'</b><div class="notes">'+esc(b.length>700?b.slice(0,700)+" …":b)+'</div></div>'}).join(""):"empty"));
+ $("log").textContent=s.log.join("\n");
+ $("commits").innerHTML=s.commits.map(l=>{const[a,b]=l.split("\t");return'<div class="c"><span class="sub">'+esc(a)+"</span><span>"+esc(b||"")+"</span></div>"}).join("");
+ let h="",ph=null;for(const x of t){if(x.phase!=ph){ph=x.phase;h+='<div class="phase">'+esc(ph)+"</div>"}h+='<div class="task'+(x.state=="done"?" done":"")+(x===cur?" cur":"")+'"><span>'+(x.state=="done"?"✓":x===cur?"▸":"·")+'</span><span class="id">'+esc(x.id)+'</span><span class="t">'+esc(x.title)+"</span></div>"}
+ put("plan",h,h||"no plan");$("upd").textContent=s.time+" · live, every 5 s"}
+async function post(b,ok,el){try{await api("/api/action",b);$("cmsg").textContent=ok;for(const k in keys)if(k!="plan")delete keys[k];tick();return true}catch(e){$("cmsg").innerHTML='<span class="err">'+esc(e.message)+"</span>";return false}}
+document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the main run, every lane and the conductor?"))return;post({action:a,hours:b.dataset.h},"done: "+b.textContent)});
+$("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;if(await post({action:"task",text:v},"sent")){$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass"}};
+async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)&&el)el.value=""}
+async function ans(key,el){const v=el.value.trim();if(!v)return el.focus();if(await post({action:"answer",key,text:v},"answer sent: the lane and the main run both have it"))el.value=""}
+function lane(a,n){if(a=="pause"&&!confirm("Pause lane "+n+"? Its saved work stays; resume any time."))return;post({action:a,lane:n},a+"d: "+n)}
+tick();setInterval(tick,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
 </script></body></html>
