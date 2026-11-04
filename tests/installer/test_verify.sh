@@ -172,7 +172,7 @@ case_ "--pre-finalize (setup's gate): the login and snapshots not yet looked at;
 back built; rm -f "$W/etc/systemd/system/display-manager.service" "$W/var/lib/fedokawaii/last-verify"
 fkh_del units "enabled greetd.service" "enabled snapper-timeline.timer" "enabled snapper-cleanup.timer"
 V --pre-finalize; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapper config for /" "the snapshots' section left out (the play world's own snapshots are another check)"
+has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapper config for /" "the snapshots' section left out (the play world's own snapshots are another check)"; lacks "$OUT" "baseline snapshot"   # (not the word alone: a home on Btrfs has a line on ~/Downloads and snapshots)
 [[ ! -e $W/var/lib/fedokawaii/last-verify ]] && _ok || _no "the gate's run was recorded for the menu"
 V; eq "$RC" 3 "without --pre-finalize those are failures"; has "$OUT" "✘  the login is no login manager at all"
 case_ "misuse: an unknown option, not root, setup not started (exit 2); --help (0)"
