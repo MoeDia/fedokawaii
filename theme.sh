@@ -923,7 +923,8 @@ fi
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
-TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod kawa-rgb)
+TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod)
+((DWL_MINE == 0)) || TOOLS+=(kawa-rgb)        # (the system's own, as dwl: the desktop user's to build)
 tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so" ;; kawa-rgb) echo /usr/local/bin/kawa-rgb ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
 tool_sum() { local s x f=() d=$REPO_DIR/src/$1
   for x in "$d/Makefile" "$d"/*.c "$d"/*.h "$d"/*.xml; do [[ -f $x ]] && f+=("$x"); done

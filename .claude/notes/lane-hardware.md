@@ -32,6 +32,8 @@ Solid red, event-driven, as the owner decided at 18:45. Running on the PC as a t
 3. `dwl` takes `LIBINPUT_IGNORE_DEVICE` for the cooler (the ghost keyboard's rule, proven with `udevadm test`) at the next session.
 4. The Learn pieces: `.claude/notes/lane-hardware-learn.md` is their text, for the book's update on his word (`docs/learn/syllabus.txt`).
 5. Fold into `.claude/plan.md`: T36 and T37 as below (the plan's ember, OpenRGB and VM capture no longer apply); T38's iGPU re-run falls away with the gaming VM.
+6. For T42's layout (what lives where): `/usr/local/bin/kawa-rgb`, `/etc/systemd/system/kawa-rgb{,-sleep}.service` (and their enable links), `/etc/fedokawaii/rgb.conf`, `/etc/udev/rules.d/60-fedokawaii-cooler.rules`, `/var/lib/kawa-rgb/card` (the service's), `/var/lib/fedokawaii-greeter/rgb` and `rgb-locked` (yours), `/run/kawa-rgb/`, `~/.config/fedokawaii/monitor.conf`. Gone with OpenRGB: `~/.config/OpenRGB/` (a stray once it leaves; it holds only its logs).
+7. At the cold power-off test, ask him: does anything stay lit after the PC is off? USB may keep power (the keyboard, the cooler's display), which depends on the board's setting. The display is put out when the service stops; the keyboard and the board keep their last frame until the power goes.
 
 ## Ledger lines, ready to paste
 ```
