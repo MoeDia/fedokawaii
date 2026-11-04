@@ -42,7 +42,7 @@ SURFACES=(
   "help|chord logo slash|key Escape|1.5"
   "level|kawa-osd \"\$ICON_VOL_2\" volume 47|:|0.4"
   "notice|notify-send -a desktop -- \"\$ICON_PICTURE  wallpaper\" 'a new one every four hours: on'|:|0.8"
-  "notice-critical|notify-send -a desktop -u critical -- \"\$ICON_DRIVE  backup\" 'the drive is full — nothing was backed up'|makoctl dismiss -a|0.8"
+  "notice-critical|makoctl dismiss -a; notify-send -a desktop -u critical -- \"\$ICON_DRIVE  backup\" 'the drive is full — nothing was backed up'|makoctl dismiss -a|0.8"
   "system|chord logo u|key Escape|2.5"
   "clipboard|chord logo v|key Escape|2.5"
   "wallpaper|chord logo w|key Escape|3"

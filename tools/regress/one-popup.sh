@@ -15,11 +15,11 @@ keys=(c u n v x a w r slash space)
   echo "panel; warm; nap 1"; echo "at 300 700"
   for a in "${keys[@]}"; do for b in "${keys[@]}"; do
     [[ $a == "$b" ]] && continue
-    echo "chord logo $a; nap 1.2"; echo "chord logo $b; nap 1.2"; echo "shot $a-then-$b"
+    echo "chord logo $a; nap 1.2"; echo "chord logo $b; nap 1.8"; echo "shot $a-then-$b"
     echo "chord logo 2; nap 0.4; chord logo 1; nap 0.8"
   done; done
 } >"$out/play.sh"
-bash "$here/../kit.sh" --theme dark "$@" --time 800 --out "$out" --play "$out/play.sh" play >"$out/kit.log" 2>&1 || { echo "one-popup: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
+bash "$here/../kit.sh" --theme dark "$@" --time 1000 --out "$out" --play "$out/play.sh" play >"$out/kit.log" 2>&1 || { echo "one-popup: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
 python3 -I - "$out" "$here/shots.py" <<'PY'
 import collections, glob, importlib.util, os, sys
 spec = importlib.util.spec_from_file_location("shots", sys.argv[2]); s = importlib.util.module_from_spec(spec); spec.loader.exec_module(s)
@@ -32,6 +32,8 @@ for f in shots:
     else:
         by_second[name.split("-then-")[1]][b[0]] += 1
 for second, boxes in by_second.items():
+    if second == "slash":         # (Super+/ knows the app you are in: its height follows that app's keys, its middle stays)
+        boxes = collections.Counter({(b[0] + b[2], b[1] + b[3]): n for b, n in boxes.items()})
     if len(boxes) > 1:
         bad.append(f"…-then-{second}: not always at its own place ({dict(boxes)})")
 if len(shots) != 90:

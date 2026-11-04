@@ -11,7 +11,10 @@
 #     second run would change nothing (dnf --assumeno, from the cache: no download)
 #   · configs: what theme would replace (theme.sh --check)
 #   --sandbox  also the installer's torture suite, in a fake machine of its own (the clone's
-#              tests/installer/test_torture.sh, run as you: nothing of this machine is touched)
+#              tests/installer/test_torture.sh, run as you: nothing of this machine is touched),
+#              and never again: every issue the owner reported, the toolkit's own checks, in
+#              stand-ins (tests/regress) and on the real GPU when there is one (tools/regress, a
+#              headless desktop of its own)
 # Exit: 0 all clean · 3 something needs you (each ✘ and ! says what) · 2 misuse.
 set -uo pipefail
 export LC_ALL=C.UTF-8
@@ -100,6 +103,20 @@ if ((SANDBOX)); then
     tail -n 3 <<<"$o" | while IFS= read -r l; do info "$l"; done
     ((r == 0)) && pass "the torture suite passed" || fail "the torture suite" "its lines above; the whole: bash $t"
   else warn "no clone with the tests at ~/repos/fedokawaii" "fedokawaii copy makes one"; fi
+  section "never again (every issue the owner reported: tools/regress/README.md)"
+  if [[ -f $TK/tests/run.sh && -f $TK/tools/regress/run.sh ]]; then
+    o=$(cd "$TK" && runuser -u "$U" -- env HOME="$h" bash tests/run.sh regress 2>&1); r=$?
+    tail -n 1 <<<"$o" | while IFS= read -r l; do info "$l"; done
+    ((r == 0)) && pass "the stand-in checks hold" || { fail "the stand-in checks" "$(grep -m3 '✘' <<<"$o" | tr '\n' ' ') — bash $TK/tests/run.sh regress"; }
+    if compgen -G '/dev/dri/renderD*' >/dev/null; then
+      o=$(cd "$TK" && runuser -u "$U" -- env HOME="$h" PATH="$h/.local/bin:$PATH" bash tools/regress/run.sh --dwl /usr/local/bin/dwl 2>&1); r=$?
+      case $r in
+        0) pass "the headless checks hold (tools/regress, $(grep -c '^✔' <<<"$o") of them)" ;;
+        2) warn "a headless check could not run" "$(tail -n 1 <<<"$o")" ;;
+        *) fail "the headless checks" "$(tail -n 1 <<<"$o") — bash $TK/tools/regress/run.sh" ;;
+      esac
+    else info "no GPU here: the headless checks not run"; fi
+  else warn "the toolkit has no checks" "fedokawaii repair puts them back"; fi
 fi
 
 section "result · $(took "$T0")"
