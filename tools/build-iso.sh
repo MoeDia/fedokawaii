@@ -36,7 +36,7 @@ SOURCE_DATE_EPOCH=$(git -C "$repo" log -1 --format=%ct "$commit")
 stamp=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y%m%d)
 work=$(mktemp -d "$HOME/VM/iso/build.XXXXXX")
 trap 'rm -rf "$work"' EXIT
-trap 'echo "build-iso: stopped at line $LINENO" >&2' ERR
+trap 'echo "build-iso: stopped at line $LINENO: $BASH_COMMAND (status ${PIPESTATUS[*]})" >&2' ERR
 say() { printf '%s %s\n' "$(date +%T)" "$*"; }
 
 # ── the inputs, each by its checksum ─────────────────────────────────────────
@@ -164,5 +164,8 @@ xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \
   -alter_date_r b "=$SOURCE_DATE_EPOCH" / -- \
   >"$work/xorriso.log" 2>&1 || { tail -n 20 "$work/xorriso.log" >&2; exit 1; }
 "$work/rpm/usr/bin/implantisomd5" --force --supported-iso "$iso" >/dev/null
+# (what the drive gives back is what was written: the same test a stick gets at its boot)
+"$work/rpm/usr/bin/checkisomd5" --md5sumonly "$iso" >/dev/null || "$work/rpm/usr/bin/checkisomd5" "$iso" >/dev/null \
+  || { echo "build-iso: the ISO does not read back as written" >&2; exit 1; }
 (cd "$out" && sha256sum "${iso##*/}") >"$iso.sha256"
 say "built: $(cut -c1-16 "$iso.sha256") $(stat -c %s "$iso") bytes"

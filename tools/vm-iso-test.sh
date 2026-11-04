@@ -5,7 +5,7 @@
 # virsh send-key, the setup, the login. No answer file, nothing of the harness in the ISO: the VM's
 # test marker, ssh and sudo reach the installed system through SMBIOS (systemd credentials), which a
 # real PC never has.
-#   bash tools/vm-iso-test.sh create NAME ISO [--disk GB] [--ram MIB] [--cpus N] [--port P] [--no-sb] [--bios] [--no-net] [--cd-first]
+#   bash tools/vm-iso-test.sh create NAME ISO [--disk GB] [--ram MIB] [--cpus N] [--port P] [--no-sb] [--bios] [--no-net] [--cd-first] [--usb QCOW2]
 #   bash tools/vm-iso-test.sh start|stop|destroy|state NAME
 #   bash tools/vm-iso-test.sh shot NAME OUT.png        the display, as it is
 #   bash tools/vm-iso-test.sh keys NAME TEXT…          letters typed; words in <> are keys: <enter> <tab> <down>
@@ -47,7 +47,7 @@ credential() {   # credential NAME TEXT — an SMBIOS type 11 string systemd imp
 
 do_create() {
   local name=$1 iso=$2; shift 2
-  local disk=80 ram=6144 cpus=6 port="" sb=yes fw=efi link=up cdfirst=0
+  local disk=80 ram=6144 cpus=6 port="" sb=yes fw=efi link=up cdfirst=0 usb=""
   while (($#)); do
     case $1 in
       --disk) disk=$2; shift 2 ;;
@@ -58,6 +58,7 @@ do_create() {
       --bios) fw=bios; shift ;;
       --no-net) link=down; shift ;;
       --cd-first) cdfirst=1; shift ;;
+      --usb) usb=$2; shift 2 ;;
       *) echo "vm-iso-test: create: unknown option $1" >&2; exit 2 ;;
     esac
   done
@@ -112,6 +113,7 @@ f+ /etc/sudoers.d/90-iso-test 0440 root root - $sudoers"
       <source file='$d/disk.qcow2'/><target dev='vda' bus='virtio'/></disk>
     <disk type='file' device='cdrom'><driver name='qemu' type='raw'/><source file='$iso'/>
       <target dev='sda' bus='sata'/><readonly/>$boot</disk>
+    ${usb:+<disk type='file' device='disk'><driver name='qemu' type='qcow2' cache='unsafe'/><source file='$usb'/><target dev='sdb' bus='usb'/></disk>}
     <interface type='user'><backend type='passt'/><model type='virtio'/><link state='$link'/>
       <portForward proto='tcp' address='127.0.0.1'><range start='$port' to='22'/></portForward></interface>
     <video><model type='virtio' heads='1' primary='yes'><resolution x='1920' y='1080'/></model></video>
