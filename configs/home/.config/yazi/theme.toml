@@ -11,7 +11,7 @@
 cwd            = { fg = "23" }
 find_keyword   = { fg = "lightred", bold = true, underline = true }
 find_position  = { fg = "lightcyan", bg = "reset", bold = true }
-symlink_target = { fg = "darkgray", italic = true }
+symlink_target = { fg = "21" }
 # a mark: half a cell of its ink against the row, on the rail's column (copied, cut, marked, selected)
 marker_copied   = { fg = "green" }
 marker_cut      = { fg = "red" }

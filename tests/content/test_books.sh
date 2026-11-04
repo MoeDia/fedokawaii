@@ -372,7 +372,7 @@ called "^kawa-term --float --once books books 104x29 -- $REPO/bin/kawa-books --t
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"
-has "$(cat "$FZF_ARGS")" "--ghost=~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
+has "$(cat "$FZF_ARGS")" "--ghost= ~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
 has "$(cat "$FZF_ARGS")" "--bind=enter:become($REPO/bin/kawa-books --open {1} {5})"
 case_ "inside, no books yet: the title says how to add some"
 setup; kawa-books --tui; has "$(cat "$FZF_ARGS")" "none in ~/Books yet — ctrl+a adds some"

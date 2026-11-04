@@ -1664,6 +1664,7 @@ yazi_current() {   # built at YAZI_TAG with the patch, and runs
   [[ -x $(yazi_bin) && $(cat "$(yazi_record)" 2>/dev/null) == "$(yazi_sum)" ]] || return 1
   [[ $(as_user "$(yazi_bin)" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]]
 }
+yazi_fail() { as_user rm -rf -- "$1"; die "$2"; }   # yazi_fail CHECKOUT WORDS — said, and no checkout left behind (with its target, up to 2 GB)
 build_yazi() {
   local src=$TARGET_HOME/.local/src/yazi built jobs mem
   [[ ${YAZI_TAG:-} =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ && ${YAZI_COMMIT:-} =~ ^[0-9a-f]{40}$ ]] \
@@ -1671,10 +1672,14 @@ build_yazi() {
   command -v cargo >/dev/null || die "cargo is missing (lib/manifest.sh, PKG_BUILD) — update installs it"
   as_user mkdir -p "$TARGET_HOME/.local/src"
   as_user rm -rf -- "$src"                       # (what a stopped run left: this build keeps no checkout)
-  retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet --depth 1 --branch "$YAZI_TAG" "$YAZI_REPO" "$src" || die "could not clone $YAZI_REPO"
+  retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet --depth 1 --branch "$YAZI_TAG" "$YAZI_REPO" "$src" || yazi_fail "$src" "could not clone $YAZI_REPO"
   [[ $(as_user git -C "$src" rev-parse "$YAZI_TAG^{commit}") == "$YAZI_COMMIT" ]] \
-    || die "yazi's tag $YAZI_TAG does not point at the pinned commit $YAZI_COMMIT — refusing to build"
-  as_user git -C "$src" apply - <"$REPO_DIR/src/yazi/yazi.patch" || die "src/yazi/yazi.patch does not apply to yazi $YAZI_TAG"
+    || yazi_fail "$src" "yazi's tag $YAZI_TAG does not point at the pinned commit $YAZI_COMMIT — refusing to build"
+  as_user git -C "$src" apply - <"$REPO_DIR/src/yazi/yazi.patch" || yazi_fail "$src" "src/yazi/yazi.patch does not apply to yazi $YAZI_TAG"
+  # (crates.io, as the clone: a network that drops is tried again, not a failed build)
+  # shellcheck disable=SC2016  # (the inner shell's words)
+  retry 3 10 as_user env CARGO_HOME="$src/.cargo" bash -c 'cd "$1" && cargo fetch --locked' _ "$src" >>"$LOG_FILE" 2>&1 \
+    || yazi_fail "$src" "could not fetch yazi's crates (the last lines of $LOG_FILE say why)"
   jobs=$(nproc 2>/dev/null) || jobs=1
   mem=$(awk '/^MemAvailable:/ { print int($2 / 1024 / 1536) }' /proc/meminfo 2>/dev/null)   # (1.5 GB a job, at worst)
   [[ $mem =~ ^[0-9]+$ ]] && ((mem < jobs)) && jobs=$mem
@@ -1682,12 +1687,12 @@ build_yazi() {
   # shellcheck disable=SC2016  # (the inner shell's words)
   as_user env CARGO_HOME="$src/.cargo" CARGO_PROFILE_RELEASE_LTO=thin CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 \
     bash -c 'cd "$1" && cargo build --release --locked -p yazi-fm -j "$2"' _ "$src" "$jobs" >>"$LOG_FILE" 2>&1 \
-    || die "the yazi build failed (the last lines of $LOG_FILE say why)"
+    || yazi_fail "$src" "the yazi build failed (the last lines of $LOG_FILE say why)"
   built=$src/target/release/yazi
-  [[ -f $built && ! -L $built ]] || die "the yazi build did not make its binary"
-  [[ $(as_user "$built" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]] || die "the yazi just built does not run, or lacks the desktop's patch"
+  [[ -f $built && ! -L $built ]] || yazi_fail "$src" "the yazi build did not make its binary"
+  [[ $(as_user "$built" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]] || yazi_fail "$src" "the yazi just built does not run, or lacks the desktop's patch"
   as_user mkdir -p "$TARGET_HOME/.local/bin" "$(dirname "$(yazi_record)")"
-  user_put 0755 "$(yazi_bin)" <"$built" || die "could not write ~/.local/bin/yazi (is the disk full?)"
+  user_put 0755 "$(yazi_bin)" <"$built" || yazi_fail "$src" "could not write ~/.local/bin/yazi (is the disk full?)"
   yazi_sum | user_put 0644 "$(yazi_record)" || die "could not record the yazi build"
   as_user rm -rf -- "$src"
   yazi_current || die "yazi $YAZI_TAG is not in place after installing it"

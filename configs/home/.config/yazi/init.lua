@@ -68,6 +68,11 @@ function Parent:redraw()
 	Entity._room = self._area.w - 5 - 1
 	return parent_redraw(self)
 end
+-- Where a link points: muted after an arrow (yazi's own: " -> ", in italics, a face the desktop's fonts do not draw)
+function Entity:symlink()
+	local to = self._file.link_to
+	return rt.mgr.show_symlink and to and ui.Span(" → " .. tostring(to)):style(th.mgr.symlink_target) or ""
+end
 -- A name too long for its room is cut at a word's end (the desktop's rule: never "…"): a space, a - or _ between words, if one is
 -- in the room's second half; a name of one long word loses its end
 local entity_highlights = Entity.highlights

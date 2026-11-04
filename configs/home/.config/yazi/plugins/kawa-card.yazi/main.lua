@@ -31,7 +31,7 @@ local function wrap(s, w)
 		while ui.width(word) > w do
 			if cur ~= "" then lines[#lines + 1], cur = cur, "" end
 			local part, used = "", 0                        -- (by characters and their columns: a name may be Japanese)
-			for ch in word:gmatch("[%z\1-\127\194-\244][\128-\191]*") do
+			for ch in word:gmatch("[\1-\127\194-\244][\128-\191]*") do
 				if used + ui.width(ch) > w then break end
 				part, used = part .. ch, used + ui.width(ch)
 			end
@@ -114,7 +114,8 @@ end
 
 -- urls' sizes summed as they come, each sum handed on (a tenth of a second apart, and the last); the folders' stay with yazi
 local function count(urls, each)
-	local sum, last, sizes = 0, 0, {}
+	local sum, last, sizes = 0, ya.time(), {}
+	each(sum, false)                                     -- (the card at once, a slow disk's first answer or not)
 	for _, url in ipairs(urls) do
 		local it, size = fs.calc_size(url), 0
 		while it do
@@ -144,7 +145,10 @@ local selected = ya.sync(function()
 	return urls
 end)
 
-local function so_far(sum, done) return done and amount(sum) or (amount(sum) .. " so far") end
+local function so_far(sum, done)
+	if done then return amount(sum) end
+	return sum > 0 and (amount(sum) .. " so far") or "counting"
+end
 
 function M:spot(job)
 	if job.mime and job.mime:find("^multi/") then
