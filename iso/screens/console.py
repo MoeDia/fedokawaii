@@ -99,7 +99,7 @@ class Screen:
         # (the splash's own VT shows for a blink as it goes: nothing on it to see)
         with contextlib.suppress(OSError), open("/dev/tty1", "w", encoding="ascii") as f:
             f.write("\033[2J\033[?25l")
-        subprocess.run(["plymouth", "quit"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        run("plymouth", "quit", timeout=10)
         with contextlib.suppress(OSError), open("/proc/sys/kernel/printk", "w", encoding="ascii") as f:
             f.write("1")         # (the kernel writes on whichever VT shows: only an emergency, here)
         n = int(self.tty.rsplit("tty", 1)[1])
@@ -127,8 +127,7 @@ class Screen:
 
     def dress(self):
         """Our font and our colours on this VT, and how many cells that makes."""
-        subprocess.run(["setfont", "-C", self.tty, FONT], check=False, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
+        run("setfont", "-C", self.tty, FONT, timeout=10)
         self._rows, self._cols = self.size()
         self.write(self.palette())
 
