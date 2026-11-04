@@ -58,7 +58,7 @@ called 'kawa-fixer\] keep /var/lib/fedokawaii/update/fix/out.json --fixes /var/l
 [[ -s $U/fixes/fix-1.json && ! -e $U/fixes.new && ! -e $U/fix-new ]] && _ok || _no "the fix not in force, settled: $(ls "$U")"
 not_called 'versionlock exclude foot'; [[ -s $U/holds ]] && _no "a hold was recorded: $(cat "$U/holds")" || _ok
 grep -q '^foot 1.25-1.fc44$' "$FKH/evr" && _ok || _no "foot did not go in: $(cat "$FKH/evr")"
-has "$(cat "$U/report")" "fixed foot.ini in 1 try"
+has "$(cat "$U/report")" "fixed foot.ini in 1 try"; has "$(sed -n 2p "$U/report")" "mended: foot.ini"
 has "$OUT" "the local AI fixer tries: $FOOTRED"
 case_ "…what it was given: the failure, the versions, the copy's paths, the desktop's user"
 C=$FKH/fixer-case

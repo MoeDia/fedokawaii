@@ -3,6 +3,12 @@
 Branch lane-fixer, worktree ~/repos/fk-fixer. Scratch: ~/.cache/r27-fixer (a subvolume of its own, out of /home's
 snapshots; deleted at the end). Everything GPU at nice 15 + ionice idle, the server on its own network namespace.
 
+## For main, not about the fixer
+Kernel log, 19:15:04: BUG in vma_interval_tree_remove (exit_mmap of Helium's ThreadPoolAudio, UID 1000), "Fixing recursive fault but
+reboot is needed!"; tainted 132 (D + S: S = CPU out of spec, from boot). Helium segfaulted at a wild address at 18:38. The model's process is
+not in it (no amdgpu reset, no ring timeout in the log since 17:45). The next restart clears it; said in the inbox. Worth a look at the
+cold-boot test: memtest or the BIOS's CPU/RAM profile if it comes back (T01's random restart may be the same family).
+
 ## Status (newest first)
 - 19:20 the harness (system/kawa-fixer), the updater's side (lib/fixer.sh + hooks in lib/update.sh, lib/cand-check.sh,
   setup.sh, theme.sh, verify.sh), tests (test_fixer, test_update_fixer) committed and pushed. The finalists (gpt-oss-20b,

@@ -532,8 +532,8 @@ def refused_names(out):
     s = re.sub(r"(?:~|\.{0,2}/)[\w.@%+~/-]+(?::\d+)*", " ", out)    # (its paths)
     s = re.sub(r"\b[\w-]+\.(?:c|cc|cpp|rs|lua|py):\d+", " ", s)     # (the program's own source lines)
     names = []
-    for pat in (r"'([^'\s=]+)(?:=[^']*)?'", r"`([^`\s]+)`", r"\[([\w:-]+)\]\.([\w.-]+)", r"\boption:?\s+([\w.-]+)",
-                r"\bfield\s+`?([\w.-]+)", r"\bproperty\s+'?([-\w]+)"):
+    for pat in (r"'([^'\s=]+)(?:=[^']*)?'", r"`([^`\s]+)`", r"\[([\w:-]+)\]\.([\w.-]+)", r"\[([\w:-]+)\]", r"\boption:?\s+([\w.-]+)",
+                r"\bfield\s+`?([\w.-]+)", r"\bproperty\s+'?([-\w]+)", r"\bname:\s+([\w.-]+)"):
         for m in re.findall(pat, s):
             names += [m] if isinstance(m, str) else list(m)
     names += re.findall(r"[A-Za-z_][\w.-]*[-_.][\w.-]*[A-Za-z0-9_]", s)
@@ -565,17 +565,20 @@ def neighbours(names, corpus):
 
 
 def excerpts(text, names, near, cap, before=2, after=3):
-    """the lines around each mention of a name, the exact ones first, in the text's own order, within CAP"""
+    """the lines around each mention of a name — the exact ones first, the rarest of those first (a
+    section's name is everywhere, a refused option's in one line) — in the text's own order, within CAP"""
     lines = text.splitlines()
     def word(ws):
         return re.compile("|".join(rf"(?<![\w])(?<!\w-){re.escape(w)}(?![\w-])" for w in ws)) if ws else None
     exact, close = word(names), word(near)
+    rare = {w: sum(1 for x in exact.findall(text) if x == w) for w in names} if exact else {}
     spans = []
     for i, line in enumerate(lines):
-        if exact and exact.search(line):
-            spans.append((0, i))
+        hit = exact.findall(line) if exact else []
+        if hit:
+            spans.append((min(rare.get(w, 1 << 20) for w in hit), i))
         elif close and close.search(line):
-            spans.append((1, i))
+            spans.append((1 << 21, i))
     keep, size = set(), 0
     for _, i in sorted(spans):
         new = [j for j in range(max(0, i - before), min(len(lines), i + after + 1)) if j not in keep]

@@ -398,7 +398,7 @@ u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside
   desk=$(sed -n '/^the desktop does not start/p' "$UPD/baseline" 2>/dev/null) || desk=""
   [[ $UP_END == @(ok|current|held) ]] || desk=""
   case $UP_END in
-    ok)       line="updated · $n package$( ((n == 1)) || echo s)${held:+ · held: $held}" ;;
+    ok)       line="updated · $n package$( ((n == 1)) || echo s)${UP_MENDED:+ · mended: $UP_MENDED}${held:+ · held: $held}" ;;
     current)  line="up to date${held:+ · held: $held}" ;;
     held)     line="held: $held — the rest was up to date" ;;
     restored) line="the update broke something: the system before it comes back at the next start${held:+ — held: $held}" ;;

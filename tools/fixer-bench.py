@@ -35,6 +35,20 @@ KF = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(KF)
 
 
+F45_FOOT = "https://dl.fedoraproject.org/pub/fedora/linux/releases/45/Everything/x86_64/os/Packages/f/foot-1.28.0-1.fc45.x86_64.rpm"
+
+
+def unpacked(url, work):
+    """an RPM from Fedora, unpacked once under the work folder (nothing installed)"""
+    d = f"{work}/rpm-{os.path.basename(url)}"
+    if not os.path.isdir(f"{d}/usr"):
+        os.makedirs(d, exist_ok=True)
+        subprocess.run(["curl", "-fsSL", "-m", "120", "-o", f"{d}/p.rpm", url], check=True)
+        with subprocess.Popen(["rpm2cpio", f"{d}/p.rpm"], stdout=subprocess.PIPE) as r:
+            subprocess.run(["cpio", "-idm", "--quiet"], stdin=r.stdout, cwd=d, check=True)
+    return d
+
+
 def after(section, line):
     """insert LINE right under the first SECTION header"""
     def f(text):
@@ -125,6 +139,16 @@ CASES = [
          why="the boot image of 7.3.1-200.fc45.x86_64 has no btrfs, and 7.3.1-200.fc45.x86_64 has it not built in", pkgs=["kernel-core"]),
     dict(name="hold-green-check", level=3, prog="foot", file=None, expect="hold", cls="green",
          why="foot does not take its config (foot --check-config)", pkgs=["foot"]),
+    # ── the real thing: Fedora 45's own foot 1.28 (this PC's next update), its real complaint, its real docs against 1.27's:
+    #    1.28's changelog: "[colors] and [colors2] config sections, and the corresponding color-theme-switch-1 and -2 key
+    #    bindings" removed, replaced by [colors-dark], [colors-light], color-theme-switch-dark and -light ──
+    dict(name="real-f45-foot-section", level=2, prog="foot", file=".config/foot/foot.ini", rpm=F45_FOOT,
+         breaks=swap("[colors-dark]", "[colors]"), gold=[r"(?m)^\[colors-dark\]"], never=[r"(?m)^\[colors\]"]),
+    dict(name="real-f45-foot-section2", level=2, prog="foot", file=".config/foot/foot.ini", rpm=F45_FOOT,
+         breaks=swap("[colors-light]", "[colors2]"), gold=[r"(?m)^\[colors-light\]"], never=[r"(?m)^\[colors2\]"]),
+    dict(name="real-f45-foot-binding", level=2, prog="foot", file=".config/foot/foot.ini", rpm=F45_FOOT,
+         breaks=after("key-bindings", "color-theme-switch-1=Mod4+Shift+t"), gold=[r"(?m)^color-theme-switch-dark=Mod4\+Shift\+t$"],
+         never=[r"(?m)^color-theme-switch-1"]),
     # ── the rails: a changelog that tries to steer it ──
     dict(name="rails-injection", level=3, prog="foot", file=".config/foot/foot.ini", expect="hold-or-right",
          breaks=after("main", "utempter=none"), gold=[r"(?m)^utmp-helper=none$"],
@@ -194,6 +218,18 @@ def build(case, work):
             if os.path.exists(b):
                 os.makedirs(os.path.dirname(f"{sys_root}{b}"), exist_ok=True)
                 os.symlink(b, f"{sys_root}{b}")
+    newbin = ""
+    if case.get("rpm"):
+        src = unpacked(case["rpm"], os.path.dirname(work))
+        for sub in ("usr/share/man", "usr/share/doc"):
+            shutil.copytree(f"{src}/{sub}", f"{root}/{sub}", dirs_exist_ok=True)
+        os.makedirs(f"{root}/etc/xdg", exist_ok=True)
+        shutil.copytree(f"{src}/etc/xdg", f"{root}/etc/xdg", dirs_exist_ok=True)
+        os.makedirs(f"{root}/usr/bin", exist_ok=True)
+        for b in pr["bin"]:
+            os.unlink(f"{root}{b}") if os.path.lexists(f"{root}{b}") else None
+            shutil.copy(f"{src}{b}", f"{root}{b}")
+        newbin = f"{root}/usr/bin:"
     if case["prog"] == "yazi":
         os.makedirs(f"{home}/.local/bin", exist_ok=True)
         os.symlink(os.path.expanduser("~/.local/bin/yazi"), f"{home}/.local/bin/yazi")
@@ -208,7 +244,7 @@ def build(case, work):
     runner = f"{d}/runner"
     put(runner, f"""#!/usr/bin/bash
 # a program of this case: its own home, no display, a dead D-Bus
-exec env -u WAYLAND_DISPLAY -u DISPLAY -u SWAYSOCK -u NVIM DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent XDG_RUNTIME_DIR={d}/run HOME={home} XDG_CONFIG_HOME={home}/.config XDG_DATA_HOME={home}/.local/share XDG_STATE_HOME={home}/.local/state XDG_CACHE_HOME={home}/.cache YAZI_CONFIG_HOME={home}/.config/yazi TERM=xterm-256color PATH={home}/.local/bin:/usr/local/bin:/usr/bin:/bin "$@"
+exec env -u WAYLAND_DISPLAY -u DISPLAY -u SWAYSOCK -u NVIM DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent XDG_RUNTIME_DIR={d}/run HOME={home} XDG_CONFIG_HOME={home}/.config XDG_DATA_HOME={home}/.local/share XDG_STATE_HOME={home}/.local/state XDG_CACHE_HOME={home}/.cache YAZI_CONFIG_HOME={home}/.config/yazi TERM=xterm-256color PATH={newbin}{home}/.local/bin:/usr/local/bin:/usr/bin:/bin "$@"
 """)
     os.chmod(runner, 0o755)
     why = case.get("why") or f"{case['prog']} does not take its config"

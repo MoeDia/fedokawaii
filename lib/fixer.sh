@@ -12,7 +12,8 @@ FIXER=/usr/local/sbin/kawa-fixer
 UP_FIXES=$UPD/fixes            # in force
 UP_FIXNEW=$UPD/fixes.new       # proven in a copy, its package not in yet
 UP_HOME=$UP_TOP/home.cand      # a writable copy of /home while candidates exist: their config checks read it
-UP_FIX_LINES=()                # (what the fixer did this run, for the report)
+UP_FIX_LINES=()                # (what the fixer did this run, for the report's lines)
+UP_MENDED=""                   # (the files it mended, for the report's own line and the notice)
 
 # up_home_copy — /home is its own subvolume (the split): its copy costs nothing and is dropped with
 # the candidate's top. Without it the candidate's programs would check no config at all
@@ -78,6 +79,7 @@ up_fix() {
   if ! cand_run "$UPD/try" dnf5 --disable-plugin=actions -y -C replay /tx >>"$UPD/cand.log" 2>&1; then
     cand_drop; UP_FIX_LINES+=("the fixer could not run: the transaction does not go through"); return 1
   fi
+  fixes_cand     # (what an earlier round of this run has already mended)
   # the runner: a program as the desktop's user, in the candidate, no network, no display
   printf '#!/usr/bin/bash\nexec systemd-nspawn --quiet --register=no --private-network --link-journal=no --console=pipe -D %q --bind=%q:/home --user=%q --chdir=%q --setenv=HOME=%q -- "$@"\n' \
     "$UP_CAND" "$UP_HOME" "$TARGET_USER" "$TARGET_HOME" "$TARGET_HOME" >"$dir/run"
@@ -88,6 +90,7 @@ up_fix() {
   if ((rc == 0)) && cand_run "$UPD/try" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
     "$FIXER" keep "$dir/out.json" --fixes "$UP_FIXNEW" >/dev/null
     UP_FIX_LINES+=("$line")
+    UP_MENDED+=${UP_MENDED:+, }$(sed -E 's/^fixed (.*) in [0-9]+ tr.*/\1/' <<<"$line")
     cand_drop; rm -rf -- "$UPD/try" "$UPD/cand-boot"
     return 0
   fi
