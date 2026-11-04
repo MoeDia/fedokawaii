@@ -2,6 +2,30 @@
 
 Branch `lane-typing`, worktree `~/repos/fk-typing`. Kept current as the work goes; newest state first.
 
+## Where this lane stands (4 Nov 20:20, before main's forced reboot at about 20:25)
+Done on `4365aed`, "one stage": every screen one column, 79 × 38, the keyboard and hands in one place, list / text / result
+over them. Paper feed, result bars, hands answering, sureness keyboard, days calendar, the 600 wpm guard.
+- Tested before that commit: `test_typing.sh` 123 passed, 0 failed. Renders read (dark and light): home, stage, practice,
+  progress, lesson, result, 60x21, 130x49, 150x30. A line feed read frame by frame: clean. Python's cost per frame: key p50
+  5.2 ms, feed p50 2.9 ms, max 13 ms; first frame 27 ms (taken at load 16–40, so read them as rough).
+- The 30-minute fuzz passed on `e96ad66` only (seed 27000, 0 failed): the code **before** the stage. T26c's bar still has to be
+  met on the final code.
+
+**Committed but never run: `art.Motes`** (embers on the dark, petals on the light, for a run with no slip). Written just before
+the reboot notice; its render was stopped, so it has not been seen, measured or put through the tests. Treat it as a draft.
+
+**Next, in order** (scratch scripts kept in `.claude/notes/lane-typing-tools/`; they name `/dev/shm/lane-typing/`, which a boot
+empties: copy them back to the folders they name):
+1. Motes: render `g2/play4.sh` in both moods (`g2/shots.sh`), `new/bench.py`, then `test_typing.sh`. Fix them, or take them out.
+2. `tools/regress/typing.sh` still measures the old screen (100x33, a fixed crop box): move it to 79x38, and add the new
+   promise: the keyboard on the same pixels on home, lesson and result.
+3. A geometry sweep in `test_typing.sh`: for every size and cell, the column and the pictures inside the window.
+4. The wiring patch is **stale**: it opens `100x33` (now 79x38), §7's text does not describe the stage, and it was made against
+   `5d78ea2`. Regenerate it against the newest main (`make-wiring.sh`, `wiring.py`); README's "What you see" too.
+5. README says one hour a day "beat four": check it against Baddeley & Longman 1978 (hour for hour? in calendar time four
+   hours got there sooner). Say a passed check's stage is yours, in the verdict.
+6. Last: the 30-minute fuzz from a frozen copy of the final code, `test_typing.sh`, the regress in both moods, push, this file.
+
 ## State (updated with each commit)
 - T26a research, course, sources: written (`.claude/notes/typing-research.md`, `docs/learn/typing/{curriculum,SOURCES}.md`).
 - T26b the app: built and running in foot under the kit (`tools/kit.sh`), both moods, every screen shot and read.

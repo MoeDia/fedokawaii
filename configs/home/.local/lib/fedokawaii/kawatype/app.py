@@ -937,6 +937,9 @@ class LessonScreen(Screen):
         self.want_save = False
         self.painted_wrong = set()
         self.news = ''             # (a mark passed for the first time: the result says it)
+        self.clean = 0             # (keys since the last slip)
+        self.motes = None
+        self.motes_at = 0.0
         self.save_resume()
 
     @classmethod
@@ -1006,6 +1009,7 @@ class LessonScreen(Screen):
             self.pic, self.kb, self.hands = pl.picture()
             self.pic_x, self.pic_y = pl.pic_x, pl.pic_y
             self.painted_wrong = set()
+            self.motes = art.Motes(self.app.dark, course.fresh(self.app.seed)) if self.hands else None
             self.apply_keys(send=False)
 
     def line_of(self, pos):
@@ -1166,10 +1170,12 @@ class LessonScreen(Screen):
             pressed = {keys.PLACE[k][3] if k != 'space' else self.thumb for k in new_down if k in keys.PLACE}
             wrong_f = {keys.PLACE[k][3] for k in kb.wrong if k in keys.PLACE}
             state = (pose, lit_f, pressed, wrong_f)
-            if state != self.hand_state:
+            if state != self.hand_state or (self.motes and self.motes.live):
                 self.hand_state = state
                 hands.pose, hands.lit, hands.pressed, hands.wrong = pose, lit_f, pressed, wrong_f
                 hands.paint(self.pic, self.scale, 0, art.KEY_H * self.scale)
+                if self.motes:
+                    self.motes.paint(self.pic, self.scale, 0, art.KEY_H * self.scale)
         if send:
             self.t.write(self.pic.send(self.pic_x + 1, self.pic_y + 1, art.PALETTE[self.app.dark]))
 
@@ -1243,6 +1249,8 @@ class LessonScreen(Screen):
     def wait(self):
         if self.feed:
             return 0.012
+        if self.motes and (self.motes.live or self.motes.wanted) and self.app.focused:
+            return min(art.Motes.STEP, 0.08)
         if self.notice or self.wrong_until or self.lesson.kind == 'pacer' and self.run.first is not None:
             return 0.08
         if self.run.limit and self.run.first is not None:
@@ -1284,6 +1292,13 @@ class LessonScreen(Screen):
             self.tick_eye(now)
         if self.feed:
             self.stale = True
+        if self.motes and now >= self.motes_at and self.app.focused and (self.motes.live or self.motes.wanted):
+            self.motes_at = now + art.Motes.STEP
+            self.motes.wanted = 0 if r.done or now - self.last_key > 2 else min(self.clean // art.Motes.EVERY, art.Motes.MOST)
+            was = bool(self.motes.live)
+            if self.motes.step() or was:
+                self.hand_state = None       # (the strip is painted again, with them on it)
+                self.stale = True
         self.render(now)
         if self.want_save:
             self.want_save = False
@@ -1430,6 +1445,12 @@ class LessonScreen(Screen):
         ok = r.press(ch, now, rolled)
         self.prev_key = name
         self.held[name] = now
+        self.clean = self.clean + 1 if ok else 0
+        if self.motes:
+            self.motes.wanted = min(self.clean // art.Motes.EVERY, art.Motes.MOST)
+            if not ok and self.motes.live:   # (a slip: they are gone)
+                self.motes.live.clear()
+                self.hand_state = None
         want_shift = next((k for k, _ in keys.needs(ch) if k in ('lshift', 'rshift')), None)
         if ok and want_shift and want_shift not in self.held and any(s in self.held for s in ('lshift', 'rshift')):
             r.shift_slips += 1

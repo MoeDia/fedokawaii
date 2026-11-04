@@ -305,6 +305,52 @@ class Hands:
             self._finger(pic, 'thumb', 5 if right else 4, k, ox, oy)
 
 
+class Motes:
+    """What a clean run wakes on the strip of the hands, one more for every EVERY keys without a slip, MOST at a time: on the
+    dark embers rising from the demon's palms, on the light petals drifting down past the angel's. A slip and they are gone.
+    Their own little loop, a dozen steps a second, on 1× grid pixels."""
+    EVERY, MOST = 20, 8
+    STEP = 0.08
+    INKS = {True: ('accent_hi', 'flame', 'accent', 'accent_lo'), False: ('gold', 'accent_hi', 'gold', 'edge2')}
+
+    def __init__(self, dark, rng):
+        self.dark, self.rng = dark, rng
+        self.live = []          # [x, y, age, life, sway]
+        self.wanted = 0
+
+    def spawn(self):
+        r = self.rng
+        side = r.random() < 0.5
+        cx = (MIRROR - 90 if side else 90) + r.randint(-26, 26)
+        if self.dark:
+            self.live.append([cx, 44 + r.randint(0, 10), 0, r.randint(7, 11), r.choice((-1, 0, 1))])
+        else:
+            self.live.append([cx, r.randint(0, 6), 0, r.randint(9, 13), r.choice((-1, 1))])
+
+    def step(self):
+        """a step of everyone's life; True if anything is there to draw"""
+        for m in self.live:
+            m[2] += 1
+            m[1] += -2 if self.dark else 2
+            if m[2] % 3 == 0:
+                m[0] += m[4]
+        self.live = [m for m in self.live if m[2] < m[3] and 0 <= m[1] < HANDS_H]
+        if len(self.live) < self.wanted and self.rng.random() < 0.5:
+            self.spawn()
+        return bool(self.live)
+
+    def paint(self, pic, k, ox, oy):
+        inks = self.INKS[self.dark]
+        for x, y, age, life, _ in self.live:
+            ink = INK[inks[min(age * len(inks) // life, len(inks) - 1)]]
+            if self.dark:
+                pic.fill(ox + x * k, oy + y * k, k, k, ink)
+            else:                # (a petal: two pixels, leaning)
+                lean = (age // 3) % 2
+                pic.fill(ox + (x + lean) * k, oy + y * k, k, k, ink)
+                pic.fill(ox + (x + 1 - lean) * k, oy + (y + 1) * k, k, k, ink)
+
+
 # ── seals, the eye, numbers ──────────────────────────────────────────────────
 def disc(r):
     """the rows of a filled circle r across: [(offset, length)]"""
