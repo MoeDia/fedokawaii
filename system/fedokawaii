@@ -881,7 +881,7 @@ tick() {
 # 45 characters a line, two columns in from the heading (as rows are), and 15 lines: nothing ever
 # wraps or scrolls away
 explain() {
-  local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
+  local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
   [[ $a == @(status|update|held|verify|repair|snapshots|file|backup|restore|drive|carry|stick|bring|theme|drift|change|settings|remind|log|keys|learn|asobi|chess|typing) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)

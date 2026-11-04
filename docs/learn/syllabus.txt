@@ -55,6 +55,7 @@ update-button | the update button, from A to Z | 4
 undo-and-copies | snapshots and backups: two different things | 5
 notices | when a notice asks for you | 6
 the-fixer | the local model: what it can and cannot do | 7
+doors | the doors: who can reach this machine | 8
 x
 
 part programs | the programs | tools

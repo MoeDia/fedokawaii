@@ -237,7 +237,7 @@ cycles() {
   systemd-run --quiet --unit="$dead" --collect --on-active=45 chvt 1
   chvt 8; sleep 3; chvt 1
   bar_shown bar-clean
-  for i in 1 2 3; do chvt 8; sleep 2; chvt 1; sleep 0.7; done
+  for _ in 1 2 3; do chvt 8; sleep 2; chvt 1; sleep 0.7; done
   chvt 8; sleep 2; chvt 1
   bar_shown bar-quick
   systemctl stop "$dead.timer" 2>/dev/null

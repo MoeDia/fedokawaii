@@ -10,7 +10,7 @@ optional: no
 
 **6.1 ★ Annotate.** **Super+Print**, drag over this window, put an arrow (**z**) and a number
 marker (**m**), **Enter**. Paste it into a note (**Super+N** cannot hold pictures — paste it into
-a Brave chat or email instead).
+a chat in the browser or email instead).
 
 *Expected:* the marked-up picture appears where you paste.
 

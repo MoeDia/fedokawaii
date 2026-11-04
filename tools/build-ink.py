@@ -10,7 +10,6 @@ lock's painting and its layers (configs/home/.local/share/fedokawaii/MOOD/lock-*
 Needs Pillow, numpy and scipy.
 """
 import argparse
-import hashlib
 import importlib.util
 import math
 import pathlib

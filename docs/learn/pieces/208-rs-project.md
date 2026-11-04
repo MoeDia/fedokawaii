@@ -59,4 +59,4 @@ Hello, world!
 | `cargo clippy` | advice: simpler, more idiomatic ways to write what you wrote |
 | `cargo fmt` | format the code (neovim does it on save) |
 | `cargo add NAME` | add a crate from crates.io |
-| `cargo doc --open` | the documentation of your project and every crate it uses, in Brave |
+| `cargo doc --open` | the documentation of your project and every crate it uses, in Helium |

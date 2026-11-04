@@ -199,7 +199,7 @@ else skipped "the terminal's face is not installed here — fedokawaii repair pu
 case_ "the clean mic is gone: no script, config, library, report or handbook names it — but theme.sh's retirement and kawa-state's RETIRED list"
 GONE='clean.?mic|clean_mic|60-clean-mic'
 left=$(cd "$REPO" && grep -rIniE "$GONE" bin system configs lib setup.sh verify.sh docs/*.md PACKAGES.md 2>/dev/null \
-       | grep -v '^bin/kawa-state:[0-9]*:RETIRED=(cleanmic)' || true)
+       | grep -v '^bin/kawa-state:[0-9]*:RETIRED=(cleanmic ' || true)
 eq "$left" "" "still named in: ${left:0:300}"
 left=$(sed -e '/^# ── 6b\./,/^run_boot/d' -e '/60-clean-mic\.conf/d' "$REPO/theme.sh" | grep -niE "$GONE" || true)
 eq "$left" "" "theme.sh names it outside its retirement: ${left:0:300}"

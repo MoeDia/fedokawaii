@@ -9,4 +9,4 @@ optional: yes
 ---
 
 **14.4 ★★★ On GitHub.** Create the repository on GitHub with `gh repo create`, push, and open
-it in Brave (`gh repo view --web`).
+it in Helium (`gh repo view --web`).

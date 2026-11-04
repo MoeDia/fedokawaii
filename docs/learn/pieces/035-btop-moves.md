@@ -16,7 +16,7 @@ doing, and which program is to blame. Click the bar's memory, or run `btop`.
 | Keys | Does |
 |---|---|
 | **1** · **2** · **3** · **4** | the processor, memory, network, process boxes on / off |
-| **f** | filter the processes: type `brave` |
+| **f** | filter the processes: type `helium` |
 | **e** | show processes as a tree |
 | **↑** **↓** then **t** · **k** | end a process politely · kill it at once |
 | **p** | cycle layout presets |

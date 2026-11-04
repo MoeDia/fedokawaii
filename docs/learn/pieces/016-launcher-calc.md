@@ -18,12 +18,12 @@ optional: no
 
 ## 7.1 the launcher
 
-**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `as` for ASOBI, `syn` for
+**Super+Space** (or the torii). Type a few letters — `hel` for Helium, `as` for ASOBI, `syn` for
 Syncplay — and **Enter**. The programs you start most rise to the top. **Shift+Delete** makes one
 forget its rank.
 
-Each entry has its icon: a window program shows its own (Brave, LibreOffice); every other
-entry — the terminal programs, the pages in Brave — one of the desktop's own **pixel icons**, in
+Each entry has its icon: a window program shows its own (Helium, LibreOffice); every other
+entry — the terminal programs, the pages in Helium — one of the desktop's own **pixel icons**, in
 the theme's red: a terminal for Terminal, a pair of brackets for the Editor, a folder for Files,
 a branch for Git, a page for Notes, a clipboard, a calculator, a wrench for the file tools, a
 picture for the wallpapers, a chip for the system monitor — after a week you find them by their
@@ -49,13 +49,13 @@ it and keeps the sum below. **↑** brings back the sum before, **↓** goes dow
 
 ## 7.3 the downloads centre
 
-Anything that downloads — Brave, a torrent — shows in the bar's download mark as one
+Anything that downloads — the browser, a torrent, curl or yt-dlp in a terminal — shows in the bar's download mark as one
 percent. Click it for the list: each download with its source, size and progress; a click opens
 where it lands. A notice says when each one finishes.
 
 ### exercises
 
-**7.1 ★ No mouse.** Start Brave, yazi and btop from the launcher alone.
+**7.1 ★ No mouse.** Start Helium, yazi and btop from the launcher alone.
 
 **7.2 ★ Quick sums.** In the calculator: how many seconds in a week (`1 week to s`)?
 
@@ -66,7 +66,7 @@ terminal.
 
 *Expected:* the notice *15% of 2400 = 360 · copied*, and `360` pasted.
 
-**7.3 ★★ Watch it arrive.** Download a Fedora image's checksum file in Brave
+**7.3 ★★ Watch it arrive.** Download a Fedora image's checksum file in Helium
 (`https://fedoraproject.org`) and watch the bar's mark, then click the finished notice.
 
 *Expected:* the mark appears while it downloads and goes when it is done; the notice opens

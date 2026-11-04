@@ -3,8 +3,8 @@ id: upkeep-practice
 title: practice
 part: desktop
 chapter: 8
-minutes: 12
-needs: [the-fixer]
+minutes: 17
+needs: [doors]
 optional: no
 ---
 
@@ -27,3 +27,9 @@ there, and *old* in the same list would bring the trace back.
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.
 
 *Expected:* `cat ~/Documents/test.txt` shows it again.
+
+**8.5 ★★ Be a stranger.** Run `sudo bash /usr/local/lib/fedokawaii/tools/portscan.sh` (five minutes).
+It scans every port of this machine from the far end of a cable, once as a neighbour and once as a
+stranger on the internet.
+
+*Expected:* a table, ending in `✔ exactly the list's doors`.

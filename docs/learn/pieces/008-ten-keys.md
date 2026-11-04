@@ -28,7 +28,7 @@ everything else is faster once your hands know them.
 |---|---|
 | **Super+Return** | a terminal |
 | **Super+Space** | the launcher: type a program's name, Enter |
-| **Super+B** · **Super+E** | the browser (Brave) · the files (yazi) |
+| **Super+B** · **Super+E** | the browser (Helium) · the files (yazi) |
 | **Super+Q** | close the window |
 | **Super+J** · **Super+K** | focus the next · previous window |
 | **Super+Shift+Return** | move this window to the first, largest place |
