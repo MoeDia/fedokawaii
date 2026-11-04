@@ -62,6 +62,11 @@ facts() {
     echo "== copy left"; sudo btrfs subvolume list / | grep -c "root.cand"
     echo "== desktop"; pgrep -x dwl >/dev/null && echo "dwl up"; pgrep -x waybar >/dev/null && echo "bar up"' 2>&1 | tee "$out/facts.txt"
 }
+# the desktop at every start, as him and with no password (greetd's initial session; theme rewrites
+# greetd's file, so it is put back before each start of greetd), or GRUB's trial never sees a desktop
+inj_desktop_always() {
+  run 'sudo mkdir -p /etc/systemd/system/greetd.service.d; printf "%s\n" "[Service]" "ExecStartPre=/bin/sh -c '"'"'grep -q initial_session /etc/greetd/fedokawaii.toml || printf \"\\n[initial_session]\\ncommand = \\\"/usr/local/bin/start-dwl\\\"\\nuser = \\\"dia\\\"\\n\" >>/etc/greetd/fedokawaii.toml'"'"'" | sudo tee /etc/systemd/system/greetd.service.d/fk-inject.conf >/dev/null; sudo systemctl daemon-reload' >>"$log" 2>&1
+}
 row() {
   printf '%-22s %-7s %s\n' "$name" "$1" "$2" | tee -a "$out/row"
   # shellcheck disable=SC2034

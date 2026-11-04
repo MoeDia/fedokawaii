@@ -35,6 +35,7 @@ UP_ORIGIN=${FEDOKAWAII_ORIGIN:-https://github.com/MoeDia/fedokawaii.git}
 up_git() { as_user env GIT_TERMINAL_PROMPT=0 timeout 600 git -c credential.helper= -c http.lowSpeedLimit=1000 -c http.lowSpeedTime=60 "$@"; }
 up_toolkit() {   # → back here: this toolkit goes on · else it is replaced and the run starts again from it
   [[ $REPO_DIR == "$TOOLKIT" ]] && on_the_system || return 0
+  [[ $(up_was) != @(replay|steps|check) ]] || return 0   # (a run cut half-way is finished by the toolkit that began it)
   if [[ -e $STATE_DIR/toolkit-from-copy ]]; then
     log "fedokawaii itself stays as your copy made it (fedokawaii apply; fedokawaii pull brings GitHub's)"; return 0
   fi

@@ -392,52 +392,52 @@ as a `*.local` override (never the theme-owned file, which the next theme run re
 in `fk` for the next toolkit update to reconcile. Everything else ends "held +
 told". If it cannot beat "hold and wait" on the graded breakage set (T47), the class is held-only.
 
-## 5. Failure modes → answer → the T49 test that proves it (tools/vm-inject/)
+## 5. Failure modes → answer → the T49 test that proves it (tools/vm-inject/: run-all.sh ROW, or the script named)
 
 | # | failure | answer | test |
 |---|---|---|---|
-| 1 | power cut while downloading | nothing changed; the next press goes on from dnf's cache | power-cut.sh @download |
-| 2 | power cut while the candidate is built or checked | the running root untouched; the leftover `root.cand` removed by the next run's phase 0 | power-cut.sh @candidate |
-| 3 | power cut in the live transaction | the in-flight marker → `fedokawaii-resume` before greetd: rpm's set complete and verify green → finished; else the pinned snapshot restored + one restart; a notice at login either way | power-cut.sh @transaction |
-| 4 | power cut in the follow-ups (relink, theme) | marker at phase "post" → the follow-ups run again (idempotent), then the checks | power-cut.sh @post |
-| 5 | the network drops | two retries, then stop: "nothing changed — try again later" | network-kill.sh |
-| 6 | a bad or unsigned package (F45 enforces signatures — B1) | dnf refuses before the candidate; the repository named | broken-pkg.sh --unsigned |
-| 7 | the disk too full before | phase 0 refuses, says how much is needed and offers snapshot cleanup | disk-full.sh |
-| 8 | Btrfs metadata full (no unallocated space — B3 #14) | phase 0 reads `btrfs filesystem usage`; refuses with the balance it will run | disk-full.sh --metadata |
-| 9 | /boot or the ESP full (B3 #5) | phase 0 checks; a kernel is pruned only outside a probation | boot-full.sh |
-| 10 | rpm's database damaged before the run | phase 0: `rpm -qa` and `rpm --verify -a` (B5); `rpmdb --rebuilddb` in the candidate first, the live one only after a green candidate | rpmdb-damage.sh |
-| 11 | a scriptlet fails | the candidate is red → bisect → held; the running system never saw it | broken-pkg.sh --scriptlet |
-| 12 | a library our builds load changes its soname (wlroots deps, libdisplay-info — B3 #17) | the candidate rebuilds dwl and the helpers against it; still red → held | broken-lib.sh |
-| 13 | an option of a config we own renamed or dropped | the candidate's config check red → bisect → held → the fixer (T47) | fixer-bench.sh |
-| 14 | Mesa breaks the desktop | the candidate's smoke test runs with the real render node bound into the container (Mesa from the candidate, the running kernel) → red → held | broken-mesa.sh (a stub libEGL that aborts) |
-| 15 | a new kernel or initramfs does not start (B3 #6, #16) | probation: two failed starts → the previous kernel (grub boot counting); the kernel held; said at login | broken-boot.sh --initramfs |
-| 16 | a boot argument breaks the start | as 15 | broken-boot.sh --arg |
-| 17 | the session does not start on the real machine though the candidate passed | the live smoke test red → the pinned snapshot restored at the next start; the rescue screen offers it too | broken-session.sh |
-| 18 | SELinux: an older root under a newer policy | no blanket relabel (it relabels every writable Btrfs mount, snapshots too, permissive, for a long time — B5 #11): the restored root is label-consistent (labels and policy travel together); `restorecon -R -n -v` on /home, /var/log and /boot, relabelling only the differences | selinux-relabel.sh |
-| 19 | a third-party repository lags or 404s (RPM Fusion has no 45 yet — B3 #15) | left out of this run, its packages wait, said | thirdparty-lag.sh |
-| 20 | a third-party package conflicts with Fedora's (freeworld Mesa) | candidate red → bisect → held | broken-pkg.sh --conflict |
-| 21 | the fixer makes it worse | it only edits a candidate; the checks decide; two attempts; then held + told | fixer-worse.sh |
-| 22 | the fixer hangs or the GPU resets (B6 #14) | a wall-clock budget; the unit killed; held + told | fixer-hang.sh |
-| 23 | the restored system is worse | `kawa-snap restore old` swaps back (rollback of a rollback) | rollback-of-rollback.sh |
-| 24 | a restore takes his files back | /home is its own subvolume, never in a snapshot of root (§3) | home-survives.sh |
-| 25 | a restore erases the updater's memory | holds and history in `fk`; phase 0 writes the holds back into dnf's versionlock file | holds-survive.sh |
-| 26 | another package manager holds rpm's lock | phase 0 waits 60 s, then says who holds it | lock-held.sh |
-| 27 | stale offline or system-upgrade state (B3 #4) | phase 0 cleans it when no upgrade is pending | stale-offline.sh |
-| 28 | the toolkit from GitHub is bad | only a release tag; the new toolkit's own selftest before the re-exec; red → the installed one | toolkit-bad.sh |
-| 29 | the window is closed or Ctrl+C mid-run | the run is a systemd unit; the window only shows it; reopening shows the progress | close-window.sh |
-| 30 | the power button pressed mid-transaction | rpm's inhibitor and the run's own block shutdown; logind shows why | inhibit.sh |
-| 31 | the boot menu's snapshot list or a BLS entry broken by a kernel install (B3 #7, B4 #13) | phase 6 checks root=/rootflags and the submenu; grubby and kawa-snap boot mend them | bls-broken.sh |
-| 32 | a release upgrade returns to the old release silently (B3 #1) | judged by os-release and rpm's set after it, never dnf's status; red → restore + "Fedora N waits" | upgrade-fail.sh |
-| 33 | the release nears its end and the upgrade stays red | notices 90, 30, 7 days before SUPPORT_END, with the failing checks; the PC stays on the working release | eol.sh |
-| 34 | a held package gets a security advisory | said plainly in every report and once as a notice | advisory.sh |
-| 35 | updates waited two weeks or more | one quiet notice (no background updates: his decision) | remind.sh |
-| 36 | the clock is wrong (TLS fails) | phase 0 checks time sync | clock.sh |
-| 37 | a snapshot cannot be taken | the run stops before any change (B3 #12) | snapper-broken.sh |
-| 38 | snapshots fill the disk over months | cleanup by count (no qgroups — B3 #11), a space floor checked before each snapshot, the pinned ones kept | space.sh |
-| 39 | a duplicate or mixed set after a cut | phase 6: `dnf5 repoquery --duplicates`, `dnf5 check`, `rpm -V` of the set | power-cut.sh (all points) |
-| 40 | verify itself broken by the update | verify runs from the toolkit; a verify that cannot run is red, never green | verify-broken.sh |
+| 1 | power cut while downloading | nothing changed; the next press goes on from dnf's cache | run-all cut_download |
+| 2 | power cut while the candidate is built or checked | the running root untouched; the leftover `root.cand` removed by the next run's phase 0 | run-all cut_candidate |
+| 3 | power cut in the live transaction | the in-flight marker → `fedokawaii-resume` before greetd: rpm's set complete and verify green → finished; else the pinned snapshot restored + one restart; a notice at login either way | run-all cut_transaction |
+| 4 | power cut in the follow-ups (relink, theme) | marker at phase "post" → the follow-ups run again (idempotent), then the checks | run-all cut_post |
+| 5 | the network drops | two retries, then stop: "nothing changed — try again later" | run-all network_kill |
+| 6 | a bad or unsigned package (F45 enforces signatures — B1) | dnf refuses before the candidate; the repository named | run-all pkg_unsigned |
+| 7 | the disk too full before | phase 0 refuses, says how much is needed and offers snapshot cleanup | run-all disk_full |
+| 8 | Btrfs metadata full (no unallocated space — B3 #14) | phase 0 reads `btrfs filesystem usage`; refuses with the balance it will run | run-all disk_unalloc |
+| 9 | /boot or the ESP full (B3 #5) | phase 0 checks; a kernel is pruned only outside a probation | run-all boot_full |
+| 10 | rpm's database damaged before the run | phase 0: `rpm -qa` and `rpm --verify -a` (B5); `rpmdb --rebuilddb` in the candidate first, the live one only after a green candidate | run-all rpmdb_damage |
+| 11 | a scriptlet fails | the candidate is red → bisect → held; the running system never saw it | run-all pkg_scriptlet |
+| 12 | a library our builds load changes its soname (wlroots deps, libdisplay-info — B3 #17) | the candidate rebuilds dwl and the helpers against it; still red → held | run-all broken_lib |
+| 13 | an option of a config we own renamed or dropped | the candidate's config check red → bisect → held → the fixer (T47) | T47 bench |
+| 14 | Mesa breaks the desktop | the candidate's smoke test runs with the real render node bound into the container (Mesa from the candidate, the running kernel) → red → held | run-all broken_mesa |
+| 15 | a new kernel or initramfs does not start (B3 #6, #16) | probation: two failed starts → the previous kernel (grub boot counting); the kernel held; said at login | probation.sh fail |
+| 16 | a boot argument breaks the start | as 15 | probation.sh fail (the same counting) |
+| 17 | the session does not start on the real machine though the candidate passed | the live smoke test red → the pinned snapshot restored at the next start; the rescue screen offers it too | run-all broken_session |
+| 18 | SELinux: an older root under a newer policy | no blanket relabel (it relabels every writable Btrfs mount, snapshots too, permissive, for a long time — B5 #11): the restored root is label-consistent (labels and policy travel together); `restorecon -R -n -v` on /home, /var/log and /boot, relabelling only the differences | run-all roundtrip |
+| 19 | a third-party repository lags or 404s (RPM Fusion has no 45 yet — B3 #15) | left out of this run, its packages wait, said | run-all thirdparty_lag |
+| 20 | a third-party package conflicts with Fedora's (freeworld Mesa) | candidate red → bisect → held | run-all pkg_conflict |
+| 21 | the fixer makes it worse | it only edits a candidate; the checks decide; two attempts; then held + told | T47 bench |
+| 22 | the fixer hangs or the GPU resets (B6 #14) | a wall-clock budget; the unit killed; held + told | T47 bench |
+| 23 | the restored system is worse | `kawa-snap restore old` swaps back (rollback of a rollback) | run-all roundtrip |
+| 24 | a restore takes his files back | /home is its own subvolume, never in a snapshot of root (§3) | run-all roundtrip |
+| 25 | a restore erases the updater's memory | holds and history in `fk`; phase 0 writes the holds back into dnf's versionlock file | run-all roundtrip |
+| 26 | another package manager holds rpm's lock | phase 0 says who holds it, and stops (the next press goes on; no waiting: he pressed, he reads the line) | run-all lock_held |
+| 27 | stale offline or system-upgrade state (B3 #4) | phase 0: one armed: "restart first" (the start clears it); one only stored: cleaned | run-all stale_offline |
+| 28 | the toolkit from GitHub is bad | only a release tag; the new toolkit's own selftest before the re-exec; red → the installed one | run-all toolkit_bad, toolkit_good |
+| 29 | the window is closed or Ctrl+C mid-run | the run is a systemd unit; the window only shows it; reopening shows the progress | run-all close_window; update-button.sh |
+| 30 | the power button pressed mid-transaction | rpm's inhibitor and the run's own block shutdown; logind shows why | run-all inhibit |
+| 31 | the boot menu's snapshot list or a BLS entry broken by a kernel install (B3 #7, B4 #13) | phase 6 checks root=/rootflags and the submenu; grubby and kawa-snap boot mend them | run-all bls_broken |
+| 32 | a release upgrade returns to the old release silently (B3 #1) | judged by os-release and rpm's set after it, never dnf's status; red → restore + "Fedora N waits" | release-move.sh cut, red |
+| 33 | the release nears its end and the upgrade stays red | notices 90, 30, 7 days before SUPPORT_END, with the failing checks; the PC stays on the working release | test_status (stub) |
+| 34 | a held package gets a security advisory | said plainly in every report and once as a notice | run-all advisory |
+| 35 | updates waited two weeks or more | one quiet notice (no background updates: his decision) | test_status (stub) |
+| 36 | the clock is wrong (TLS fails) | phase 0 checks time sync | run-all clock |
+| 37 | a snapshot cannot be taken | the run stops before any change (B3 #12) | run-all snapper_broken |
+| 38 | snapshots fill the disk over months | cleanup by count (no qgroups — B3 #11), a space floor checked before each snapshot, the pinned ones kept | run-all disk_full; test_upkeep (stub) |
+| 39 | a duplicate or mixed set after a cut | phase 6: `dnf5 repoquery --duplicates`, `dnf5 check`, `rpm -V` of the set | run-all cut_* |
+| 40 | verify itself broken by the update | verify runs from the toolkit; a verify that cannot run is red, never green | run-all verify_broken |
 | 41 | power cut during a restore (between any two of its steps) | one atomic exchange, a sync before /boot, the default set last (§3.1): every cut leaves a root that boots with its kernels | restore-cut.sh (each step) |
-| 42 | a stored package tampered with between download and replay | `rpmkeys --checksig` of every stored package before any replay (replay skips OpenPGP checks) | broken-pkg.sh --tampered |
+| 42 | a stored package tampered with between download and replay | `rpmkeys --checksig` of every stored package before any replay (replay skips OpenPGP checks) | run-all pkg_tampered |
 | 43 | the split of /home is cut off half-way | offline, copy then compare then mount; the old /home untouched until a good boot; the pinned snapshot | split-cut.sh |
 | 44 | the bootloader (grub2-efi, shim) updated badly — it fails before boot counting can act, and it never rolls back (B5 #10, synthesis 17) | two stored transactions — tx1 with `--exclude=grub2-efi*,shim*`, tx2 those packages alone — both
 replayed in the candidate; live, tx2 only after tx1 is green (one stored transaction cannot be

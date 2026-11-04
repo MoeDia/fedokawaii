@@ -27,6 +27,7 @@ build() {
   inj_init "$vm" "$src" move-build
   inj_from pressed
   run --apply "$src" >>"$log" 2>&1 || { row BROKEN "the toolkit could not go in"; return 1; }
+  inj_desktop_always
   run "printf 'green %s test\n\n' \"\$(date +%s)\" | sudo tee $U/preflight-$n >/dev/null"
   run 'sudo mkdir -p ~/.config/fedokawaii; printf "WAIT=0\n" >~/.config/fedokawaii/upkeep.conf'
   press update
@@ -67,7 +68,7 @@ case_green() {
   v=$(run '. /etc/os-release; echo "$VERSION_ID"')
   if [[ $v != "$n" ]]; then row BROKEN "still Fedora $v after $t s: $(sed -n '/== report/,/== holds/p' "$out/facts.txt" | sed -n 3p)"; return 1; fi
   # a good start: the desktop, two minutes, the trial over
-  run 'grep -q initial_session /etc/greetd/fedokawaii.toml && echo session-kept; sudo systemctl reboot' >>"$log" 2>&1; sleep 25
+  run 'sudo systemctl reboot' >>"$log" 2>&1; sleep 25
   run --wait 900 >>"$log" 2>&1
   for _ in $(seq 40); do run "sudo test -e $U/probation" || break; sleep 10; done
   cp "$out/facts.txt" "$out/facts-first-start.txt"

@@ -6,20 +6,21 @@
 # stays. Run as the desktop's user (a session VM); the update button runs it (lib/move.sh) and keeps
 # the verdict. From the installed toolkit too: that folder has no .git, the harness wants one — a
 # throw-away copy made one.
-#   bash tools/vm-preflight.sh N [--out FILE] [--name NAME] [--port P] [--keep] [--ram MB]
+#   bash tools/vm-preflight.sh N [--out FILE] [--name NAME] [--port P] [--keep] [--ram MB] [--nice K]
 #     --out   the verdict: nothing when green, else a line a reason (the failing checks)
 #     --name  the VM's name (pf-N) · --port its ssh port (2299) · --keep the VM stays, to look at it
 # A red install takes no longer to say so than a green one: about an hour, at the lowest priority.
 # Exit 0 green · 1 red (the desktop does not install or start there) · 2 it could not run (no KVM,
 # no room, Fedora N's tree unreachable): no verdict on Fedora N.
 set -u
-n="" out=/dev/null name="" port=2299 keep=0 ram=8192
+n="" out=/dev/null name="" port=2299 keep=0 ram=8192 prio=19
 while (($#)); do
   case $1 in
     --out) out=$2; shift 2 ;;
     --name) name=$2; shift 2 ;;
     --port) port=$2; shift 2 ;;
     --ram) ram=$2; shift 2 ;;
+    --nice) prio=$2; shift 2 ;;
     --keep) keep=1; shift ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "vm-preflight: unknown option $1" >&2; exit 2 ;;
@@ -58,7 +59,7 @@ trap gone EXIT
 [[ -d $HOME/VM/harness/$name ]] && { bash "$here/vm-snap.sh" "$name" destroy >/dev/null 2>&1 || cannot "the old VM $name could not be removed"; }
 # (the VM's threads at the lowest priority: libvirt's daemon starts them, not this shell — and new
 # ones come at each start)
-( while sleep 20; do bash "$here/vm-snap.sh" "$name" nice 19 >/dev/null 2>&1; done ) & watcher=$!
+( while sleep 20; do bash "$here/vm-snap.sh" "$name" nice "$prio" >/dev/null 2>&1; done ) & watcher=$!
 
 say "Fedora $n: installing it in a test VM ($name)"
 bash "$here/vm-create.sh" "$name" --release "$n" --port "$port" --ram "$ram" >&2 \

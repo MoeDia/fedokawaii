@@ -50,6 +50,8 @@ keep moved
 case_ "the same tag again: nothing fetched; an older tag than this one: never back"
 reset_calls; press; eq "$RC" 0; not_called ' clone '
 back moved; fkh release-tags v2026.10.01; reset_calls; press; eq "$RC" 0; not_called ' clone '; eq "$(cat "$W/var/lib/fedokawaii/toolkit-release")" v2026.11.20
+case_ "a run cut half-way (phase steps): finished by the toolkit that began it, GitHub not asked"
+back built; fkh release-tags v2026.11.20; printf 'steps 1\n' >"$U/phase"; : >"$U/set"; reset_calls; press; eq "$RC" 0 "$(tail -n2 <<<"$OUT")"; not_called 'ls-remote'
 case_ "fetched, then cut (no network for the clone): this toolkit goes on"
 back built; fkh release-tags v2026.11.20; fkh fail-git-clone 5; press; eq "$RC" 0; has "$OUT" "could not be fetched"; [[ ! -e $W/usr/local/lib/fedokawaii/FROM-RELEASE ]] && _ok || _no "replaced"
 

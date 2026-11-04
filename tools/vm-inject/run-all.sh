@@ -48,6 +48,7 @@ base() {
   inj_init "$vm" "$src" base
   inj_from pressed
   run --apply "$src" >>"$log" 2>&1 || { row BROKEN "the toolkit could not go in"; return 1; }
+  inj_desktop_always
   run 'sudo dnf install -y -q rpm-build rpm-sign createrepo_c' >>"$log" 2>&1 || { row BROKEN "the build tools"; return 1; }
   printf '%s\n' "$PKGTOOL" | run 'sudo tee /usr/local/sbin/fk-inject-pkg >/dev/null; sudo chmod 755 /usr/local/sbin/fk-inject-pkg'
   # shellcheck disable=SC2016
@@ -74,7 +75,7 @@ from() {   # from ROW — the VM from "inject", this tree's toolkit in (the them
   run --repo "$src" >>"$log" 2>&1 && run 'sudo bash ~/fedokawaii/setup.sh --toolkit' >>"$log" 2>&1 || { row BROKEN "the toolkit"; return 1; }
   run 'sudo rm -f /var/lib/fedokawaii/update/why' >>"$log" 2>&1
 }
-pk() { run "sudo fk-inject-pkg $*" >>"$log" 2>&1; }
+pk() { local q; printf -v q '%q ' "$@"; run "sudo fk-inject-pkg $q" >>"$log" 2>&1; }
 v() { run "rpm -q --qf '%{version}' $1"; }
 report() { run "sudo sed -n ${1:-2}p $U/report"; }
 said() { [[ $INJ_OUT == *"$1"* ]]; }
@@ -124,12 +125,16 @@ cut_post() {
   ok_if '[[ $was == 1.1 ]] && [[ $(report 1) == *" ok" ]] && said "its steps and checks again"' "cut in the steps: the next press finishes them, nothing replayed: $(report)"
 }
 # ── the network, the repositories (rows 5, 19, 36) ───────────────────────────────────────────
+offline() { run "sudo nft add table inet fk; sudo nft 'add chain inet fk out { type filter hook output priority 0; }'; sudo nft add rule inet fk out tcp dport '{ 53, 80, 443 }' drop; sudo nft add rule inet fk out udp dport '{ 53, 123 }' drop" >>"$log" 2>&1; }
+online_again() { run 'sudo nft delete table inet fk' >>"$log" 2>&1; }
 network_kill() {
   from network-kill || return 1; pk fk-inject-a 1.1
-  press_bg; phase_is fetch 400 || { end_row BROKEN "never fetched"; return 1; }
-  link down; press_wait 1800; link up
-  local r=$INJ_RC was; was=$(v fk-inject-a)
-  ok_if '[[ $r != 0 && $was == 1.0 ]] && [[ $(report) == stopped* ]] && wait_desktop' "the network gone while fetching: exit $r, nothing changed: $(report)"
+  # (ssh stays: only what goes out is cut. Before the press, then again as it reaches its fetch)
+  offline; press; local r1=$INJ_RC w1=$INJ_OUT was1; was1=$(v fk-inject-a); online_again
+  press_bg; phase_is start 300; sleep 3; offline; press_wait 1800
+  local r2=$INJ_RC was2; was2=$(v fk-inject-a); online_again; cp "$out/press.out" "$out/press-2.out"
+  press
+  ok_if '[[ $r1 != 0 && $was1 == 1.0 && $w1 == *"no network"* && $(v fk-inject-a) == 1.1 ]] && wait_desktop' "no network: exit $r1, said; gone at its start: exit $r2, a $was2: \"$(run "sudo sed -n 2p $U/report")\"; back: the press whole"
 }
 thirdparty_lag() {
   from thirdparty-lag || return 1; pk fk-inject-a 1.1
@@ -178,7 +183,7 @@ disk_full() {
 disk_unalloc() {
   from disk-full-metadata || return 1; pk fk-inject-a 1.1
   # (chunks allocated, the space then freed: free is plenty, nothing unallocated — Btrfs's own trap)
-  run 'f=$(($(sudo btrfs filesystem usage -b / | awk "/Device unallocated:/ { print \$3 }") - 2 * 1024 ** 3)); sudo dd if=/dev/zero of=/var/tmp/fill bs=64M count=$((f / (64 * 1024 ** 2))) status=none; sync; sudo rm /var/tmp/fill; sync; sudo btrfs filesystem usage -b / | grep -E "unallocated|Free .estimated"' >>"$log" 2>&1
+  run 'f=$(($(sudo btrfs filesystem usage -b / | awk "/Device unallocated:/ { print \$3 }") - 2 * 1024 ** 3)); sudo fallocate -l "$f" /var/tmp/fill; sync; sudo rm /var/tmp/fill; sync; sudo btrfs filesystem usage -b / | grep -E "unallocated|Free .estimated"' >>"$log" 2>&1
   press
   ok_if 'said "unallocated" && [[ $(v fk-inject-a) == 1.0 ]]' "free space but nothing unallocated: refused (exit $INJ_RC): $(grep -m1 unallocated <<<"$INJ_OUT")"
 }

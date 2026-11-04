@@ -171,6 +171,8 @@ install_toolkit() {
     # (from now on the button leaves fedokawaii itself alone: lib/update.sh up_toolkit; a build and
     # the button's own move are not your copy)
     [[ $MODE == build || -n ${UP_TK:-} ]] || record toolkit-from-copy "$(date +%s)"
+    # (a release's toolkit says which it is — RELEASE, the ISO writes it: the button then fetches only a newer one)
+    if [[ -s $REPO_DIR/RELEASE ]]; then record toolkit-release "$(sed -n 1p "$REPO_DIR/RELEASE")"; fi
     toolkit_back
     rm -rf "$TOOLKIT.new" "$TOOLKIT.old"
     mkdir -p "${TOOLKIT%/*}"
@@ -2831,17 +2833,18 @@ manifest_sync() {
 # third-party repositories never stop dnf: one that is down, or not yet (or never) built
 # for a new Fedora, is skipped with a warning instead of failing every dnf command —
 # Fedora's own and RPM Fusion stay strict (the system needs them whole)
+third_party() { [[ $1 != @(fedora|fedora-*|updates|updates-*|rpmfusion-*) ]]; }   # (any other repository: never by name, a new one is covered as it comes)
 repos_lenient() {
   local r
   while read -r r; do
-    [[ $r == copr:* || $r == brave-browser || $r == claude-code ]] || continue
+    third_party "$r" || continue
     dnf config-manager setopt "$r.skip_if_unavailable=1" >/dev/null 2>&1 || true
   done < <(dnf repo list --all --json 2>/dev/null | jq -r '.[].id' 2>/dev/null)
 }
 third_party_off() {   # → --disablerepo=… for every repository that is not Fedora's or RPM Fusion's
   local r
   while read -r r; do
-    if [[ $r == copr:* || $r == brave-browser || $r == claude-code ]]; then printf -- '--disablerepo=%s\n' "$r"; fi
+    if third_party "$r"; then printf -- '--disablerepo=%s\n' "$r"; fi
   done < <(dnf repo list --enabled --json 2>/dev/null | jq -r '.[].id' 2>/dev/null || true)
   return 0
 }
