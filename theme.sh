@@ -247,6 +247,10 @@ retire .local/share/applications/calf.desktop "Calf's JACK host"
 #   ~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf — the clean mic (WebRTC noise
 #   suppression on the microphone): taken out at the owner's word (2026-10-27)
 retire .config/pipewire/pipewire.conf.d/60-clean-mic.conf 'libpipewire-module-echo-cancel'
+#   ~/.config/pipewire/pipewire.conf.d/60-share.conf — the "Share" output, one more loopback running
+#   all the time: kawa-sharesound links what a share needs for just as long (a PipeWire that read it
+#   keeps the node until its next start, which the desktop's lists never show)
+retire .config/pipewire/pipewire.conf.d/60-share.conf 'share_sink'
 #   ~/.bashrc.d/scriptorium.sh — this project's old name: a second prompt and its aliases
 retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)

@@ -6,13 +6,12 @@
 # list of your own is joined to this one, not replaced by it. Its wrapper has no flags file to
 # hold these (/opt/helium/helium-wrapper: it only sets the library path), so they are here.
 # The sound of a share:
-#   Entire screen  the computer's sound (Chromium's PulseAudio loopback for screen sharing, off by
-#                  default: PulseaudioLoopbackForScreenShare), its switch on from the first
-#                  (--system-audio-capture-default_checked, Chromium's own spelling). While a
-#                  screen is shared kawa-sharesound leaves the browser's own sound — the call —
-#                  out, so nobody hears themselves come back
+#   a screen or a window  the computer's sound (Chromium's PulseAudio loopback for screen sharing,
+#                  off by default: PulseaudioLoopbackForScreenShare), its switch on from the first
+#                  (--system-audio-capture-default_checked, Chromium's own spelling). While it is
+#                  shared kawa-sharesound leaves the browser's live sound — the call — out, so
+#                  nobody hears themselves come back
 #   a tab          that tab's sound (Chromium's own, nothing needed)
-#   a window       none: Chromium offers window sound only on Windows and macOS
 # Video through the GPU (VA-API, mesa-va-drivers-freeworld): a call's camera and a shared screen
 # are encoded by the card, not the processor (AcceleratedVideoEncoder — WebRTC's H.264/VP9/AV1 on
 # the card's encoder: a share stays smooth while something heavy runs), and videos are decoded

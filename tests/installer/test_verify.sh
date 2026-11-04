@@ -241,20 +241,6 @@ sed -i 's/Enabled: no/Enabled: yes/; s/(preferred)/(preferred, current)/' "$W/us
 V; has "$OUT" "✘  kawa-mem running"; has "$OUT" "✘  kawa-nowplaying running"; has "$OUT" "✔  refresh 144 Hz = best available ≤"
 lacks "$OUT" "every screen is dark"
 
-case_ "\"Share\" (the loopback of ~/.config/pipewire): found by its node name in PipeWire's list — WirePlumber 0.5's wpctl status shows a loopback under Filters by node.name, never \"Share\""
-back built; fkh procs "/usr/local/bin/dwl"
-cat >"$FKH/pw-dump" <<'J'
-[ { "id": 32, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink.out", "media.class": "Stream/Output/Audio", "node.description": "Share", "node.link-group": "loopback-1904-27" } } },
-  { "id": 33, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink", "media.class": "Audio/Sink", "node.description": "Share", "node.link-group": "loopback-1904-27" } } } ]
-J
-V; has "$OUT" "✔  \"Share\" output for calls (PipeWire node share_sink, an Audio/Sink"
-case_ "…its file not loaded (only the playback half, or nothing): a failure"
-cat >"$FKH/pw-dump" <<'J'
-[ { "id": 50, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "alsa_output.pci-0000_0c_00.4.analog-stereo", "media.class": "Audio/Sink", "node.description": "Share-alike speakers" } } } ]
-J
-V; has "$OUT" "✘  \"Share\" output for calls"
-rm -f "$FKH/pw-dump"; V; has "$OUT" "✘  \"Share\" output for calls" "PipeWire not running: no Share"
-
 # ── Wi-Fi ────────────────────────────────────────────────────────────────────
 case_ "a Wi-Fi radio NetworkManager does not manage: a failure"
 back built; hw_wifi; fkh nm-devices "ethernet:connected" "wifi:unmanaged"

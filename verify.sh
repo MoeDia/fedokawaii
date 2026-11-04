@@ -828,13 +828,6 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   ((xdpw_was)) || U systemctl --user stop --no-block xdg-desktop-portal-wlr.service 2>/dev/null
   check "file dialog portal (FileChooser ${fcv#u })"     bash -c '[[ $1 =~ ^u\ ([0-9]+)$ ]] && ((BASH_REMATCH[1] >= 3))' _ "$fcv"
   check "screen sharing portal: screens + windows"     test "$scs" = "u 3"
-  # "Share" (~/.config/pipewire/pipewire.conf.d/60-share.conf) asked for by its node name, in
-  # PipeWire's own list: a loopback's nodes share a node.link-group, and WirePlumber 0.5's
-  # wpctl status lists such nodes under "Filters" by node.name ("share_sink"), never by their
-  # description — grepping its output for "Share" failed with the output there
-  check "\"Share\" output for calls (PipeWire node share_sink, an Audio/Sink; \"Monitor of Share\" is its microphone)" \
-    jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["node.name"] == "share_sink"
-                   and .info.props["media.class"] == "Audio/Sink")' <<<"$(U pw-dump 2>/dev/null)"   # (no PipeWire: no input, jq -e fails)
   if ((THEMED)); then
     WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
     for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus lxqt-policykit-agent; do

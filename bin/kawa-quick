@@ -19,7 +19,7 @@
 #                               the card this moment: on, off, none, unread)
 #   kawa-quick --state sound    the sound panel's: sound (the output's level, also while
 #                               muted), muted (on|off), mic (on|muted|none), then each output
-#                               and input (not "Share"): "output|input<TAB>ID<TAB>1 (the
+#                               and input (not a share's mix): "output|input<TAB>ID<TAB>1 (the
 #                               default) or 0<TAB>DESCRIPTION<TAB>PORT<TAB>NICK<TAB>CARD<TAB>
 #                               PROFILE<TAB>API" (what names it; any but the first may be empty)
 #   kawa-quick --state brightness   the slider's: brightness
@@ -238,8 +238,8 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
   # Out, Rear Microphone, HDMI / DisplayPort), its nick (an HDMI output's: the monitor's
   # name), its card's description, its profile's (Analog Stereo, Digital Stereo (HDMI)), its
   # API (alsa, bluez5). A control character (a tab, a line break) a space: one device a line.
-  # Not "Share" (share_sink, ~/.config/pipewire): what plays there goes to calls, so it is
-  # picked for one program at a time in the mixer — as the default, every sound would be shared
+  # Not the mix a share records (kawa_share_mix, kawa-sharesound's while a screen is shared): it
+  # is no output anyone hears
   d=$(pw-dump 2>/dev/null) || return 0   # (PipeWire not running: no devices)
   jq -r '
     ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
@@ -250,8 +250,8 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
        | from_entries) as $cards
     | ([.[] | select(.type == "PipeWire:Interface:Node")]) as $nodes
     | ([$nodes[] | .info.props as $p
-       | select($p["media.class"] == "Audio/Sink" or $p["media.class"] == "Audio/Source")
-       | select($p["node.name"] != "share_sink")
+       | select($p["media.class"] == "Audio/Sink" or ($p["media.class"] // "" | startswith("Audio/Source")))
+       | select($p["node.name"] != "kawa_share_mix")
        | ($p["media.class"] == "Audio/Sink") as $out
        | ($cards[($p["device.id"] // "" | tostring)] // {}) as $card
        | [ (if $out then "output" else "input" end), .id,
@@ -277,7 +277,7 @@ source_to() {
   d=$(pw-dump 2>/dev/null) || return 1
   plan=$(jq -r --argjson to "$1" '
     [.[] | select(.type == "PipeWire:Interface:Node")] as $n
-    | ($n | map(select(.id == $to and .info.props["media.class"] == "Audio/Source")) | .[0]) as $t
+    | ($n | map(select(.id == $to and (.info.props["media.class"] // "" | startswith("Audio/Source")))) | .[0]) as $t
     | if $t == null then empty else
       ([.[] | select(.type == "PipeWire:Interface:Metadata" and .props["metadata.name"] == "default")
         | .metadata[]? | select(.key == "default.audio.source") | .value.name] | .[0] // "") as $src
@@ -328,6 +328,9 @@ mic_test() {
   rm -f -- "$f"
 }
 
+# (kawa-sharesound's own record: off, desktop or a program's name)
+state_sharesound() { local m=""; read -r m 2>/dev/null <"${XDG_RUNTIME_DIR:-/run/user/$UID}/kawa-sharesound/mode"; printf '%s\n' "${m:-off}"; }
+
 state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become spaces: a name
   local nettype net bt   # of yours — a Wi-Fi, a drive, a picture — cannot break a line)
   kv() { local v=${2//[$'\t\n\r']/ }; printf '%s\t%s\n' "$1" "$v"; }
@@ -340,6 +343,7 @@ state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become s
   fi
   kv drives "$(state_drives)"; kv backup "$(state_backup)"; kv dnd "$(state_dnd)"
   kv saver "$(state_saver)"; kv record "$(state_record)"; kv vrrnow "$(state_vrrnow)"
+  kv sharesound "$(state_sharesound)"
 }
 
 act() {   # act ACTION [N] — the panel's choices
@@ -391,6 +395,7 @@ act() {   # act ACTION [N] — the panel's choices
     record)     exec kawa-record ;;                             # (not recording: its menu · recording: stopped)
     ocr)        exec kawa-screenshot text ;;                    # (a region's words onto the clipboard)
     screenoff)  screen_off ;;
+    sharesound) exec kawa-sharesound menu ;;
     power)      exec kawa-power ;;
     *)          usage ;;
   esac

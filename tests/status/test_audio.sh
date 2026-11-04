@@ -2,11 +2,10 @@
 # tests/status/test_audio.sh — the sound panel's machine side (kawa-panel --sound draws it,
 # Super+A or a click on the bar's volume; kawa-quick knows the machine): what --state sound
 # says — the output's level and mute, the microphone's, every output and input from pw-dump
-# with the default ticked, never "Share" — and what each --do does: an output or input picked
+# with the default ticked, never a share's mix — and what each --do does: an output or input picked
 # made the default (wpctl set-default), mute and the microphone's mute switched over, the
 # mixer opened. PipeWire is fake_pw.py's machine (fixtures/pw.json: an analog output and
-# input, an HDMI output, and 60-share.conf's two "Share" loopbacks, which wpctl lists under
-# Filters). Then the mixer, wiremix: its theme files, its window, the manifest. And the old
+# input, an HDMI output, and a share's mix). Then the mixer, wiremix: its theme files, its window, the manifest. And the old
 # sound menu, kawa-audio: gone, its installed copy retired.
 . "$(dirname "$0")/lib.sh"
 setup() {

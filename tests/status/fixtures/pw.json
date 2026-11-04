@@ -2,9 +2,9 @@
   "running": true,
   "configured": {},
   "nodes": [
-    {"id": 36, "class": "Stream/Output/Audio", "name": "share_sink.out", "desc": "Share", "prio": 0, "vol": 1.0,
+    {"id": 36, "class": "Stream/Output/Audio", "name": "kawa_share_mix.out", "desc": "Share", "prio": 0, "vol": 1.0,
      "props": {"node.passive": true, "node.link-group": "loopback-1520-29"}},
-    {"id": 37, "class": "Audio/Sink", "name": "share_sink", "desc": "Share", "prio": 0, "vol": 1.0,
+    {"id": 37, "class": "Audio/Sink", "name": "kawa_share_mix", "desc": "Share", "prio": 0, "vol": 1.0,
      "props": {"node.link-group": "loopback-1520-29"}},
     {"id": 62, "class": "Audio/Sink", "name": "alsa_output.pci-0000_0e_00.4.analog-stereo",
      "desc": "Starship/Matisse HD Audio Controller Analog Stereo", "prio": 1009, "vol": 0.4,

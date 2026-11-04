@@ -46,7 +46,7 @@ a heading, then rows, a row a thing, in four groups:
 The icon lights in vermilion, and the state beside it in the strong ink, while a thing is on.
 The sound panel, three parts under their headings: sound — the volume's meter (hollow while
 muted; its icon the bar's) and two keys, mute and mixer (wiremix) · output and input — every
-device (not "Share"), the one in use ticked: a click makes another the default, playing audio
+device (not a share's mix), the one in use ticked: a click makes another the default, playing audio
 moves to it · the input's foot: two keys side by side, as mute and mixer above — mute
 microphone and test mic (5 s recorded, played back: kawa-quick --do mictest).
 The brightness slider: the brightness meter alone.
@@ -468,6 +468,8 @@ def quick_rows(s):
             dev = s.get("devices", "none")
             links.append(("devices", "tile_devices", "devices", dev, dev not in ("none", "off")))
     drv, bak = s.get("drives", "none"), s.get("backup", "not set up")
+    share = s.get("sharesound", "off")
+    links.append(("sharesound", "share", "share sound", share, share != "off"))
     links += [("drives", "tile_drive", "drives", drv, drv != "none"),
               ("backup", "tile_backup", "backup", bak, bak not in ("never", "not set up"))]
     rec = s.get("record") == "on"
@@ -1053,7 +1055,7 @@ def look(it, focused, hot):
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
 WHEELED = {"night": ("warmer", "cooler")}   # a row the wheel changes: the night light's warmth
-OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
+OPENERS = ("network", "devices", "sharesound", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
 ENTER = ("Return", "KP_Enter", "space")

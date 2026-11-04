@@ -9,6 +9,6 @@ chooser_cmd=@HOME@/.local/bin/kawa-share
 max_fps=60
 # while a screen is shared, notifications stay off it (critical ones still show), and the
 # bar shows a vermilion 共有 seal; at its end one notice says how many were held back (kawa-hush;
-# both run within sh)
-exec_before=@HOME@/.local/bin/kawa-hush on sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12
+# both run within sh). kawa-sharesound: the browser's call kept out of the sound it shares
+exec_before=@HOME@/.local/bin/kawa-hush on sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12; @HOME@/.local/bin/kawa-sharesound portal
 exec_after=@HOME@/.local/bin/kawa-hush off sharing; @HOME@/.local/bin/kawa-dwlstatus --poke 12
