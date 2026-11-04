@@ -14,6 +14,10 @@ ENGINE = "stockfish"
 GRACE = 3.0                 # seconds past a search's budget before it is stopped, then again before a kill
 
 
+def win_chance(cp):
+    return 0.5 + 0.5 * (2 / (1 + math.exp(-0.00368208 * cp)) - 1)
+
+
 class Search:
     """What a search was asked and what came back: root moves best first with their scores."""
     __slots__ = ("fen", "moves", "go", "multipv", "budget", "done", "lines", "best", "options", "tag", "asked_at", "stopping", "tries", "cancelled")
@@ -46,11 +50,9 @@ class Line:
         return self.cp
 
     def expected(self):
-        """Expected points for the side to move, 0–1, from the engine's own win/draw/loss model."""
-        if self.wdl:
-            w, d, _ = self.wdl
-            return (w + d / 2) / 1000
-        return 1.0 if self.mate and self.mate > 0 else 0.0 if self.mate is not None else 0.5
+        """Expected points for the side to move, 0–1: Lichess's win chance, fitted on real games by human
+        players (lichess.org/page/accuracy) — Stockfish's own WDL model is fitted to engines."""
+        return win_chance(self.score())
 
 
 class Engine:
@@ -172,7 +174,7 @@ class Engine:
         if not self.ready or self.current is not None or not self.queue or not self.proc:
             return
         s = self.current = self.queue.pop(0)
-        want = {"MultiPV": s.multipv, "UCI_ShowWDL": "true", **s.options}
+        want = {"MultiPV": s.multipv, **s.options}
         for k, v in want.items():
             if self.set.get(k) != v:
                 self.send(f"setoption name {k} value {v}")
@@ -317,8 +319,10 @@ def choose_weak(search, legal_uci, elo, rng=random):
     lines = [ln for ln in search.ranked() if ln.pv]
     if not lines:
         return rng.choice(legal_uci)
-    top = lines[0].score()
-    weights = [math.exp(max(-40.0, (ln.score() - top) / temp)) for ln in lines]
+    # (a mate counts as a thousand: the weakest levels miss even that, sometimes)
+    clamp = [max(-1000, min(1000, ln.score())) for ln in lines]
+    top = max(clamp)
+    weights = [math.exp((v - top) / temp) for v in clamp]
     r = rng.random() * sum(weights)
     for ln, w in zip(lines, weights):
         r -= w
@@ -329,12 +333,14 @@ def choose_weak(search, legal_uci, elo, rng=random):
 
 def play_request(fen, moves, elo, done, tag=None):
     """The Search that gets the engine's reply at a level. Weak: every root move at a small depth (the
-    choice is made by choose_weak afterwards). From 1320: its own UCI_Elo, half a second to think."""
+    choice is made by choose_weak afterwards). From 1320: its own UCI_Elo over a node budget (never the
+    clock's mercy: the same strength whatever else this machine is doing)."""
     if elo < 1320:
         depth = 1 if elo < 500 else 3 if elo < 800 else 5
         return Search(fen, moves, f"depth {depth}", done, multipv=40, budget=3.0, tag=tag,
                       options={"UCI_LimitStrength": "false", "Skill Level": 20})
-    return Search(fen, moves, f"movetime {300 + (elo - 1320) // 4}", done, budget=6.0, tag=tag,
+    nodes = 30000 if elo < 2200 else 200000 if elo < 2600 else 1000000
+    return Search(fen, moves, f"nodes {nodes}", done, budget=6.0, tag=tag,
                   options={"UCI_LimitStrength": "true", "UCI_Elo": min(elo, 3190)})
 
 
