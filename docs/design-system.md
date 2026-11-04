@@ -55,6 +55,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `accent_text` | `f47b58` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
 | `select` | `2e1f19` 181715 → Jasper Red 0.12 | `e2d0ae` e8e3c2 → Brick Red 0.12 | what is selected: the keyboard's cursor on a row (§4) — a 12 % tint of the seal's own red, every ink on it its own |
+| `select_hi` | `46271d` 181715 → Jasper Red 0.24 | `dcbd9b` e8e3c2 → Brick Red 0.24 | … held down by the pointer: 24 % |
 | `select_edge` | `eb5324` | `a84222` | … its 2 px edge at the row's left: the seal's red |
 | `text_on_select` | `f5ecc2` | `121b1b` | … the name and the picture on it: the strongest ink (13 : 1) |
 | `lacquer` | `82241f` Vandyke Red | `82241f` Vandyke Red | the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there) and a failed command's code in the prompt: the lacquer (漆), one in both moods |
@@ -253,7 +254,8 @@ screen and the bar's paper share one rhythm.
   row is noise (the timer's lengths have none).
 - **Cursor** (the keyboard's place; the owner's page, 00f RIGHT): the row's place — the content's width, the heading's
   own, so band and rule end on one line — tinted `select`, its first 2 px `select_edge`; the name and the picture
-  `text_on_select`; everything else keeps its own ink, so a thing that is on stays so and red never fights a band.
+  `text_on_select`; everything else keeps its own ink, so a thing that is on stays so and red never fights a band. Held
+  down by the pointer the tint is twice as deep (`select_hi`).
 - **Keycap** (wherever a key is named): a small tile, `key` paper in a 1 px `edge2` frame with its corners left out, a
   lip of `edge2` under it, its label in `muted` centred by its ink. Super is the torii, Shift its arrow, 10 × 8 and 8 × 8,
   pictures of `panel-art.txt`; a letter as the sheet writes it (case is meaning); the other keys a short word (enter, tab,
@@ -274,8 +276,9 @@ screen and the bar's paper share one rhythm.
   circle", then "way too simple, improve"): a list with presence. The masthead (§3): the mood's head, 32 px, shut until
   its scroll lands, then awake (the demon's mouth, the angel's eyes); its name and the rule; how long the machine has
   been up. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
-  screensaver, freesync, wallpaper), connect (network, Bluetooth, devices while it is on, drives, backup), capture
-  (screenshot, record, read text), session (the lights while kawa-quick reports them, screen off, power). Each row its own
+  screensaver, freesync, wallpaper), sound (share sound, while kawa-quick reports it), connect (network, Bluetooth, devices
+  while it is on, drives, backup), capture (screenshot, record, read text), power (the lights while kawa-quick reports them,
+  screen off, power). Each row its own
   picture, hand-drawn on the 16 px grid; its value in one column (x 331, right-aligned), its marks in another: a seal, or
   the key that does it anywhere — the menu teaches them. Red only for on: a seal inked, a recording's dot. Enter or a
   click switches it in place or opens its own menu.

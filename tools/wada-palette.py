@@ -122,6 +122,7 @@ def dark():
     # and a 2 px edge of it, the strongest ink on it (13 : 1) — a red "on" icon and a red value keep
     # their red there, which the full lacquer swallowed; every other ink stays its own
     p["select"] = mix(p["ground"], "Jasper Red", 0.12, "dark.select")
+    p["select_hi"] = mix(p["ground"], "Jasper Red", 0.24, "dark.select_hi")   # (held down by the pointer)
     p["select_edge"] = p["accent"]
     p["text_on_select"] = p["strong"]
     # the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there): the
@@ -169,6 +170,7 @@ def light():
     p["accent_text"] = w("Brick Red", "light.accent_text")
     p["text_on_accent"] = p["key"]
     p["select"] = mix(p["ground"], "Brick Red", 0.12, "light.select")   # (as the dark's: the seal's own red)
+    p["select_hi"] = mix(p["ground"], "Brick Red", 0.24, "light.select_hi")
     p["select_edge"] = p["accent"]
     p["text_on_select"] = p["strong"]
     p["lacquer"] = w("Vandyke Red", "light.lacquer")   # (the dark theme's lacquer: 8.5 : 1 under the key's cream)
@@ -225,7 +227,7 @@ def sheet(P, out):
 
 
 DOC_TOKENS = ("ground", "surface", "view", "key", "edge", "edge2", "hi", "lo", "faint", "muted", "text", "strong",
-              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "select", "select_edge", "text_on_select", "lacquer", "text_on_lacquer", "asagi",
+              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "select", "select_hi", "select_edge", "text_on_select", "lacquer", "text_on_lacquer", "asagi",
               "flame",
               "gold", "lit", "lit_text", "paper_folder", "paper_git", "paper_time")
 DOC_TERM = ("red", "green", "yellow", "blue", "purple", "teal", "bred", "bgreen", "byellow", "bblue", "bpurple", "bteal")

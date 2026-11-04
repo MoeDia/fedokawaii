@@ -93,7 +93,7 @@ EOF
 ROWS_ALL="theme night dnd saver vrr wallpaper network bluetooth devices drives backup screenshot record ocr screenoff power"
 ROWS_BT_OFF="theme night dnd saver vrr wallpaper network bluetooth drives backup screenshot record ocr screenoff power"
 ROWS_NO_BT="theme night dnd saver vrr wallpaper network drives backup screenshot record ocr screenoff power"
-case_ "the items, in order: the two levels (brightness, sound), then the rows in four sections — screen (theme, night light, do not disturb, screensaver, freesync, wallpaper), connect (network, bluetooth and devices with an adapter, drives, backup), capture (screenshot, record, read text), session (screen off, power)"
+case_ "the items, in order: the two levels (brightness, sound), then the rows in four sections — screen (theme, night light, do not disturb, screensaver, freesync, wallpaper), connect (network, bluetooth and devices with an adapter, drives, backup), capture (screenshot, record, read text), power (screen off, power)"
 eq "$(py 'fresh(); print(" ".join(i.key for i in p.items))')" "brightness sound $ROWS_ALL"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(i.key for i in p.items))')" "brightness sound $ROWS_NO_BT" "no adapter: neither bluetooth nor devices"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","")); print(" ".join(i.key for i in p.items))')" "brightness sound $ROWS_NO_BT" "no adapter, a stray devices line: it draws nothing"
@@ -102,13 +102,13 @@ eq "$(py 'fresh(STATE.replace("bluetooth\ton","bluetooth\toff")); print(" ".join
 eq "$(py 'fresh(); print("".join(i.kind[0] for i in p.items))')" "mmrrrrrrrrrrrrrrrr" "two levels, sixteen rows"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print("".join(i.kind[0] for i in p.items))')" "mmrrrrrrrrrrrrrr" "two levels, fourteen rows"
 eq "$(py 'fresh(); print([i.row for i in p.items] == list(range(len(p.items))))')" True "a row a thing: the arrows walk the numbers"
-case_ "quick_rows: the rows after the levels in four sections, each section (its label, its rows), each row (key, picture, name, value, on, seal, keys) — screen six, connect five (three without an adapter, four with it off), capture three, session two"
+case_ "quick_rows: the rows after the levels in their sections, each section (its label, its rows), each row (key, picture, name, value, on, seal, keys) — screen six, connect five (three without an adapter, four with it off), capture three, power two; sound and the lights once kawa-quick reports them"
 eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton","bluetooth\toff"), STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     g = kp.quick_rows(kp.parse_state(st)); out.append(([len(x) for _, x in g], {len(r) for _, x in g for r in x}))
 print(out)')" "[([6, 5, 3, 2], {7}), ([6, 4, 3, 2], {7}), ([6, 3, 3, 2], {7})]"
 eq "$(py 'g = kp.quick_rows(kp.parse_state(STATE)); print([l for l, _ in g], [[r[0] for r in x] for _, x in g])')" \
-  "['screen', 'connect', 'capture', 'session'] [['theme', 'night', 'dnd', 'saver', 'vrr', 'wallpaper'], ['network', 'bluetooth', 'devices', 'drives', 'backup'], ['screenshot', 'record', 'ocr'], ['screenoff', 'power']]"
+  "['screen', 'connect', 'capture', 'power'] [['theme', 'night', 'dnd', 'saver', 'vrr', 'wallpaper'], ['network', 'bluetooth', 'devices', 'drives', 'backup'], ['screenshot', 'record', 'ocr'], ['screenoff', 'power']]"
 eq "$(py 'fresh(""); print(len(p.items), p.item("theme").value, p.item("network").value, p.item("backup").value, repr(p.item("brightness").value))')" "16 dark offline not set up ''" \
   "a state with nothing in it (kawa-quick failed at the first read): the rows as they would be, no adapter"
 eq "$(py 'u = UI(); p = kp.Panel(u); print(len(p.items), p.size, p.item("night").value == "", [p.item(k).on for k in ("night", "network", "drives")])')" "16 (410, 554) True [False, False, False]" \
@@ -126,7 +126,7 @@ eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y},{i.w},{i.h}" for i in p.
   "brightness:17,65,376,40 sound:17,105,376,40 theme:17,173,376,20 night:17,193,376,20 dnd:17,213,376,20 saver:17,233,376,20 vrr:17,253,376,20 wallpaper:17,273,376,20 network:17,321,376,20 bluetooth:17,341,376,20 devices:17,361,376,20 drives:17,381,376,20 backup:17,401,376,20 screenshot:17,449,376,20 record:17,469,376,20 ocr:17,489,376,20 screenoff:17,537,376,20 power:17,557,376,20"
 eq "$(py 'fresh(); print({(i.x, i.w, i.h) for i in p.items if i.kind == "row"}, {(i.x, i.w, i.h, i.big) for i in p.items if i.kind == "meter"})')" "{(17, 376, 20)} {(17, 376, 40, True)}" "every row alike but its y; the levels too"
 eq "$(py 'fresh(); ys = [i.y for i in p.items]; print([b - a for a, b in zip(ys, ys[1:])])')" "[40, 68, 20, 20, 20, 20, 20, 48, 20, 20, 20, 20, 48, 20, 20, 48, 20]" "a level 40, a row 20; a section starts 28 further down: 8 of air, a label's row"
-eq "$(py 'fresh(); print([(m[0], m[2], m[4]) for m in p.marks])')" "[('masthead', 17, 'quick settings'), ('label', 153, 'screen'), ('label', 301, 'connect'), ('label', 429, 'capture'), ('label', 517, 'session')]" "the masthead at the content's corner, a label above each section"
+eq "$(py 'fresh(); print([(m[0], m[2], m[4]) for m in p.marks])')" "[('masthead', 17, 'quick settings'), ('label', 153, 'screen'), ('label', 301, 'connect'), ('label', 429, 'capture'), ('label', 517, 'power')]" "the masthead at the content's corner, a label above each section"
 eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     fresh(st); labels = [m[2] for m in p.marks if m[0] == "label"]
@@ -229,11 +229,20 @@ eq "$(t '' power)" "@power | power |  | None | Super+Shift+E | quiet"
 for k in $(py 'fresh(); print(*{i.keys for i in p.items if i.keys})'); do
   grep -q "^$k " "$REPO/configs/home/.config/fedokawaii/keybinds.txt" && _ok || _no "$k is no key of keybinds.txt"
 done
-case_ "the lights (the case's fans, the cooler, the keyboard): a switch, its row and seal once kawa-quick reports them, in the session's section, done in place"
+case_ "share sound: its own section and row once kawa-quick reports it, its own menu; a seal inked while it shares, what it shares as the value"
+eq "$(t 'STATE + "sharesound\toff\n"' sharesound)" "@share-sound | share sound |  | False |  | quiet"
+eq "$(t 'STATE + "sharesound\tdesktop\n"' sharesound)" "@share-sound | share sound | desktop | True |  | lit"
+eq "$(py 'fresh(); print(p.item("sharesound"), [m[4] for m in p.marks if m[0] == "label"])')" "None ['screen', 'connect', 'capture', 'power']" "not reported: no row, no label"
+eq "$(py 'g = kp.quick_rows(kp.parse_state(STATE + "sharesound\toff\n")); print([l for l, _ in g])')" "['screen', 'sound', 'connect', 'capture', 'power']"
+eq "$(py 'fresh(STATE + "sharesound\toff\n"); p.request(); u.answer(STATE + "sharesound\toff\n"); u.calls.clear(); p.activate("sharesound"); print(u.calls[-1], p.visible)')" "launch kawa-quick --do sharesound False"
+case_ "held down by the pointer the tint is twice as deep, until let go; only that row redrawn"
+eq "$(py 'i = kp.Item("k", "row", 0, 0, 10, 10, 0, name="x"); print(kp.look(i, True, False)["fill"], kp.look(i, True, False, True)["fill"], kp.look(i, False, False, True)["fill"])')" "select select_hi None"
+eq "$(py 'opened("quick", STATE); p.hover(*mid("night")); p.press(*mid("night")); a = p.pressed; u.drawn.clear(); p.release(*mid("night")); print(a, p.pressed, u.drawn[0])')" "night None ['night']"
+case_ "the lights (the case's fans, the cooler, the keyboard): a switch, its row and seal once kawa-quick reports them, in the power section, done in place"
 eq "$(t 'STATE + "rgb\ton\n"' rgb)" "@ember | lights |  | True |  | lit"
 eq "$(t 'STATE + "rgb\toff\n"' rgb)" "@ember | lights |  | False |  | quiet"
 eq "$(py 'fresh(); print(p.item("rgb"))')" None "not reported: no row"
-eq "$(py 'g = dict(kp.quick_rows(kp.parse_state(STATE + "rgb\ton\n"))); print([r[0] for r in g["session"]])')" "['rgb', 'screenoff', 'power']"
+eq "$(py 'g = dict(kp.quick_rows(kp.parse_state(STATE + "rgb\ton\n"))); print([r[0] for r in g["power"]])')" "['rgb', 'screenoff', 'power']"
 eq "$(py 'fresh(STATE + "rgb\ton\n"); p.request(); u.answer(STATE + "rgb\ton\n"); u.calls.clear(); p.activate("rgb"); print(u.calls, p.visible)')" "['run kawa-quick --do rgb'] True"
 case_ "no day or weather line: the bar's own, right above the panel"
 eq "$(py 'fresh(); print(hasattr(kp, "date_line"), [i.key for i in p.items if i.key in ("date", "day", "weather")])')" "False []" "no day or weather line: the bar shows them, right above"
@@ -447,12 +456,13 @@ case_ "no row is dead and none does both: the switches and the openers divide th
 eq "$(py 'dead = []
 for st in (STATE, STATE.replace("bluetooth\ton","bluetooth\toff"), STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     fresh(st); dead += [i.key for i in p.items if i.kind == "row" and i.key not in kp.SWITCHES + kp.OPENERS]
-fresh(STATE + "rgb\ton\n"); keys = [i.key for i in p.items if i.kind == "row"]
+fresh(STATE + "rgb\ton\nsharesound\toff\n"); keys = [i.key for i in p.items if i.kind == "row"]
 print(dead, sorted(set(kp.SWITCHES) & set(kp.OPENERS)), sorted(set(kp.SWITCHES + kp.OPENERS) - set(keys)), [i.key for i in p.items if i.kind == "meter"] == list(kp.METERS))')" \
   "[] [] [] True" "no row without something to do, none in both lists, nothing listed that no row has; the meters are METERS, in order"
 case_ "what a row runs is something kawa-quick --do knows: a branch in its act() for each key the panel sends (the wheel's warmer and cooler, the meters' volume and brightness too)"
 for k in $(py 'print(*kp.SWITCHES, *kp.OPENERS, *[k for pair in kp.WHEELED.values() for k in pair], "volume", "brightness")'); do
   [[ $k == rgb ]] && ! grep -q 'kawa-rgb' "$REPO/bin/kawa-quick" && continue   # (lane-hardware's: its state key and its action, on that branch)
+  [[ $k == sharesound ]] && ! grep -q 'kawa-sharesound' "$REPO/bin/kawa-quick" && continue   # (lane-browser's)
   grep -qE "^[[:space:]]+([a-z|]+\|)?$k(\|[a-z|]+)?\)" "$REPO/bin/kawa-quick" && _ok || _no "kawa-quick has no branch for --do $k"
 done
 
@@ -738,7 +748,7 @@ case_ "kawa-quick failing: the last state stays"
 eq "$(py 'fresh(); p.refresh(); u.answer("", 1); print(p.state["night"])')" on
 case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: the lit vermilion)"
 for m in dark light; do
-  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_edge','text_on_select','asagi','flame','gold','sand','ai','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
+  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_hi','select_edge','text_on_select','asagi','flame','gold','sand','ai','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
 done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —

@@ -35,7 +35,8 @@ NOT verified:
 ## Next, after the reboot (in this order)
 1. /dev/shm and maybe /tmp are gone. Rebuild mako for renders: copy ~/.local/src/mako, `git checkout -f 91c6b79`, apply src/mako/mako.patch, meson (see setup.sh build_mako), `nice -n 10`.
 2. `bash tools/panel-review.sh --only quick --themes light --out /dev/shm/lp/next`: does the kit work again? If it is still blank, find out why first.
-3. The owner's 18:49 and 19:12 notes and lane-browser's below, not yet done: section "sound" with the share-sound row (`sharesound`, opener, draw @share-sound); the masthead as a title plate with lane-ink's smooth 48–56 px head (check lane-ink's output name; my head-32*.png from lane-art's sheet go if so); pressed state drawn; his section names are screen · sound · connect · capture · power (I had "session": change it).
+3. Written at 20:18 with NOTHING run on them (main asked for no kit, suite or build before the reboot; panel.conf's select_hi added by hand as the generator would write it): the sections screen · sound · connect · capture · power, the share-sound row and @share-sound, the pressed state (`select_hi`). Run tests/menus/test_panel.sh and test_contrast, test_design_doc, test_generated first.
+   Still to do from the owner's 18:49 and 19:12 notes: the masthead as a title plate with lane-ink's smooth 48–56 px head. lane-ink has no output yet (its masters were still being chosen at 19:26): check its notes for the file name; my head-32*.png from lane-art's sheet go then. Layout problem to settle by eye: a 48 px head reaches x0 + 48, the words stand at x0 + 50 over the meter's first segment.
 4. `git merge main`, rebuild icons and themes, read each failure above and fix, run the whole suite with a long timeout, re-record gallery-expect.json, run one-popup.sh.
 5. Third critique pass; write the measurement table; render 1x and 4x into .claude/review/next/ with a note per page.
 6. Fill "What main must do", then the line DONE.

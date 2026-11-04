@@ -44,8 +44,9 @@ been up —, then the levels and the rows, a row a thing, under their labels:
                   switches it, the panel stays (the wheel on the night light: its warmth; wallpaper: its menu)
     connect       network · bluetooth · devices (those two only with a Bluetooth adapter; devices
                   while it is on) · drives · backup: their own menus, the panel goes (bluetooth: in place)
+    sound         share sound (while kawa-quick reports it): its own menu, the panel goes
     capture       screenshot · record · read text: the same
-    session       screen off · power: the same
+    power         lights (while kawa-quick reports them: in place) · screen off · power: the same
 A switch's state is a hanko at the row's right end, inked on, blank off; a value stands in a column of its own;
 what has a key of its own anywhere shows it, a keycap, so the menu teaches it.
 The sound panel, three parts under their headings: sound — the level, as quick settings has it (its
@@ -588,10 +589,13 @@ def quick_rows(s):
                ("record", "@record-on" if rec else "@record", "record", "recording" if rec else "", rec, None, "Super+Shift+R"),
                ("ocr", "@scroll", "read text", "", False, None, "Super+Shift+X")]
     # (the lights — the case's, the cooler's, the keyboard's: a switch of kawa-rgb's, once kawa-quick reports it)
-    session = [("rgb", "@ember", "lights", "", s["rgb"] == "on", s["rgb"] == "on", "")] if "rgb" in s else []
-    session += [("screenoff", "@screen-off", "screen off", "", False, None, ""),
+    power = [("rgb", "@ember", "lights", "", s["rgb"] == "on", s["rgb"] == "on", "")] if "rgb" in s else []
+    power += [("screenoff", "@screen-off", "screen off", "", False, None, ""),
              ("power", "@power", "power", "", False, None, "Super+Shift+E")]
-    return [("screen", screen), ("connect", links), ("capture", capture), ("session", session)]
+    # (sharing the sound: its own menu, kawa-sharesound's, once kawa-quick reports it; a section with no row: no label)
+    share = s.get("sharesound", "off")
+    sound = [("sharesound", "@share-sound", "share sound", "" if share == "off" else share, share != "off", share != "off", "")] if "sharesound" in s else []
+    return [sec for sec in (("screen", screen), ("sound", sound), ("connect", links), ("capture", capture), ("power", power)) if sec[1]]
 
 
 class Layout:
@@ -1243,14 +1247,14 @@ def layout_launcher(m):
     return lay
 
 
-def look(it, focused, hot):
+def look(it, focused, hot, pressed=False):
     """How an item is drawn (docs/design-system.md §4–§5) — the colours' names: fill (None:
     none of its own), edge (the cursor's: 2 px at the band's left), frame (None: none), glyph (its
     icon or picture), label (its name), value (its words; a meter's words when it has no level),
     detail (a menu row's second column).
     The cursor — the keyboard's place, and the pointer's: one light, never two — tints the item with
     the seal's red, 12 %, a 2 px edge of it at its left, its name and icon the strongest ink; a thing that
-    is on keeps its state, every other ink its own. At rest: a row's icon muted, its name text (the one
+    is on keeps its state, every other ink its own; held down by the pointer, the tint twice as deep. At rest: a row's icon muted, its name text (the one
     in use, a thing that is on: strong, its state strong); a key on its own fill in a 1 px frame; a
     footer's hint in muted."""
     bare = it.kind in ("meter", "row", "app")
@@ -1258,7 +1262,7 @@ def look(it, focused, hot):
         ink = "strong" if focused else "muted"
         return {"fill": None, "edge": None, "frame": None, "glyph": ink, "label": ink, "value": ink, "detail": ink}
     if focused:
-        return {"fill": "select", "edge": "select_edge" if bare else None, "frame": None if bare else "select_edge",
+        return {"fill": "select_hi" if pressed else "select", "edge": "select_edge" if bare else None, "frame": None if bare else "select_edge",
                 "glyph": "strong", "label": "text_on_select", "value": "strong" if it.on else "text", "detail": "text"}
     return {"fill": None if bare else "key", "edge": None, "frame": None if bare else "edge",
             "glyph": "strong" if it.lit or it.on else ("muted" if bare else "text"),
@@ -1267,7 +1271,7 @@ def look(it, focused, hot):
 
 SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver", "rgb")   # done in place: the panel stays
 WHEELED = {"night": ("warmer", "cooler")}   # a row the wheel changes: the night light's warmth
-OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
+OPENERS = ("network", "devices", "sharesound", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
 METERS = ("brightness", "sound")
 MOVES = ("Left", "h", "Right", "l", "Up", "k", "Down", "j", "Tab", "ISO_Left_Tab")
 ENTER = ("Return", "KP_Enter", "space")
@@ -1289,6 +1293,7 @@ class Panel:
         self.ox = 0              # the frame's air in its window (a middle menu: a column, §4)
         self.oy = 0              # … above it (a menu in the middle of the screen: as many rows as its shadow's under it)
         self.woke = False        # quick settings' head: awake (it wakes as the panel lands)
+        self.pressed = None      # the item the pointer holds down (its tint deeper until let go)
         self.armed = None        # a seal's first press taken: its key (the foot asks for the second)
         self.armed_at = 0.0
         self.dimmed = False      # a dialog's dim behind it, shown
@@ -1864,6 +1869,9 @@ class Panel:
             return
         if self.focus is not None:
             self.move(it.key)
+        self.pressed = it.key
+        if it.key == self.focus:
+            self.ui.redraw(it)
         if it.kind == "meter":
             v = self.meter_at(it, x, y=y)
             if v is not None:
@@ -1874,6 +1882,9 @@ class Panel:
 
     def release(self, x=None, y=None):
         key, self.dragging = self.dragging, None
+        held, self.pressed = self.item(self.pressed) if self.pressed else None, None
+        if held is not None and self.visible:
+            self.ui.redraw(held)
         if x is not None and self.visible:
             self.pointer = (x, y)
             self.rehot()                               # (a drag may end anywhere)
@@ -3132,7 +3143,7 @@ def main(argv):
     def item_(cr, it):
         """An item: its fill and frame, its icon, name, value (look() says in which colours)."""
         focused = it.key == panel.focus
-        lk = look(it, focused, it.key == panel.hot)
+        lk = look(it, focused, it.key == panel.hot, it.key == panel.pressed)
         if it.kind in ("row", "app", "meter"):
             if lk["fill"]:                        # (the cursor: the row's tint, its edge at the left)
                 box(cr, it.x, it.y, it.w, it.h, lk["fill"])

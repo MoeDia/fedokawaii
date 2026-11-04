@@ -1312,7 +1312,7 @@ def panel_conf(m, p):
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
     keys = ("ground", "surface", "key", "edge", "edge2", "lo", "faint", "muted", "text", "strong", "accent",
-            "accent_text", "accent_hi", "accent_lo", "text_on_accent", "select", "select_edge", "text_on_select",
+            "accent_text", "accent_hi", "accent_lo", "text_on_accent", "select", "select_hi", "select_edge", "text_on_select",
             "asagi", "flame", "gold")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1], "dim": (0x11, 0x13, 0x14, 0x66)}
