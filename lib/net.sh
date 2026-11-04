@@ -68,9 +68,7 @@ net_fw_file() {
   <description>Fedokawaii: no program on this machine opens a port on the router (UPnP, NAT-PMP, PCP).</description>
   <ingress-zone name="HOST"/>
   <egress-zone name="ANY"/>
-  <rule family="ipv4"><destination address="239.255.255.250"/><port port="1900" protocol="udp"/><reject/></rule>
-  <rule family="ipv6"><destination address="ff02::c"/><port port="1900" protocol="udp"/><reject/></rule>
-  <rule family="ipv6"><destination address="ff05::c"/><port port="1900" protocol="udp"/><reject/></rule>
+  <rule><port port="1900" protocol="udp"/><reject/></rule>
   <rule><port port="5351" protocol="udp"/><reject/></rule>
 </policy>
 XML
@@ -186,9 +184,9 @@ net_dns() {
 }
 # net_strays → every socket others could reach that the list does not name: "tcp/1234 what"
 net_strays() {
-  local proto a b c addr e f rest port known
+  local proto addr f rest port known
   known=$(awk '/^[0-9]/ && $2 != "local" { print $1 }' "$REPO_DIR/system/net-allow.list")
-  while IFS=' ' read -r proto a b c addr e f rest; do
+  while IFS=' ' read -r proto _ _ _ addr _ f rest; do
     port=${addr##*:}
     case ${addr%:*} in 127.*|'[::1]'|'[::ffff:127.'*) continue ;; esac
     grep -qxF "$port/$proto" <<<"$known" && continue
