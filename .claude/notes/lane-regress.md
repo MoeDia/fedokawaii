@@ -11,16 +11,8 @@ Started 4 Nov 17:43. Worktree ~/repos/fk-regress, branch lane-regress. Tests onl
 - Every new stand-in proven to fail on the old behaviour: 26 mutations, all caught (/dev/shm/r27/regress/mut/run.sh).
 
 ## PRODUCT BUGS FOR MAIN (found by the new checks; each fix proven on a scratch copy, nothing of the product changed here)
-1. **The bar grows 1 px** (r26-fu-4 back: 28 rows, the windows 1 px lower) under Arabic and emoji window titles, and under Arabic, emoji and Thai in what plays. `tools/regress/bar-titles.sh` is RED until this is in.
-   Fix, one rule in `configs/home/.config/waybar/style.css`, at the end:
-   `#custom-title, #custom-nowplaying { padding-top: 0; padding-bottom: 0; min-height: 20px; }`
-   Proven with the kit's --edit: 27 rows under all five titles, both themes, window and what plays; 0 pixels differ from today for plain and Japanese titles (the words stay on their rows). (Smaller line heights also hold the 27 rows but move the plain title's ink up a row: not those.) test_bargaps may need to read the new padding.
-2. **A float popup knocks a fullscreen window out of fullscreen** (bug 9 half done): Super+W, Super+R and every `kawa-term --float` window: dwl's mapnotify un-fullscreens for any new window on the tag. The warm windows and panel menus are fine. `tools/regress/popup-fullscreen.sh` is RED until this is in.
-   Fix, two lines in dwl.c (then tools/dwl-patch.sh, a session restart):
-   - mapnotify's end: `if (w != c && w != p && !ispopup(c) && w->isfullscreen && m == w->mon && (w->tags & c->tags))`
-   - focustop: `if (c->isfullscreen || ispopup(c))   /* (a popup over it keeps the keys) */ return c;`
-   (The first alone is not enough: the fullscreen window takes the focus back and the popup closes.) Proven on a scratch build: 10 popups over a fullscreen terminal, each shows, closing gives it back pixel for pixel. Run tools/hl-dwl.sh --asan with it before applying; test_dwl_anim's focustop case words may want a touch.
-
+1. DONE by main 19:09 (bad3e35): the bar grew 1 px under fallback faces; bar-titles.sh.
+2. DONE by main 19:09 (bad3e35): a float popup took a window out of fullscreen; popup-fullscreen.sh.
 3. **Select + middle click does nothing** (copy/paste, owner 14:27): `configs/home/.config/foot/foot.ini` has `selection-target=clipboard` under the comment "selecting text also fills the clipboard" — foot(5): "one of none, primary, clipboard or both", so the primary is never filled. `tools/regress/clipboard.sh` is RED until this is in.
    Fix: `selection-target=both`. Proven with the kit's --edit: all 13 cells hold.
 

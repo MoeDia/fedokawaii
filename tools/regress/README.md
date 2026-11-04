@@ -24,7 +24,7 @@ adds its row here with the line.
 **Records by their name** need no row, because `items.py` knows them: a master's verdict (`*-master*`, `*-R3`:
 what it found has its own `-fix` line), a run of the suite, a push, an apply, an event of the PC's
 (`r27-suite*`, `r27-push*`, `r27-apply*`, `r27-event`, `r27-boot*`, `r27-tidy*`), research and
-baselines (`*-digest`, `*-research`, `*-baseline`, `*-facts`, `*-hunt`).
+baselines (`*-digest`, `*-research`, `*-baseline`, `*-facts`, `*-hunt`), an ASan run (`*-asan`).
 
 **Run them:** `bash tests/run.sh regress` · `bash tools/regress/run.sh --bin bin --repo-art` ·
 `bash tools/prepush.sh` (all of it, before a push to main) · `fedokawaii selftest --sandbox` (on the
@@ -247,6 +247,16 @@ they break.
 | r27-iso-2 r27-iso-3 r27-iso-4 r27-iso-5 r27-iso-7 r27-iso-9 r27-iso-10 | the installer ISO | open T56: lane-iso |
 | r27-iso-6 r27-iso-8 | the ISO proven and released | open T57: lane-iso |
 | r27-rule-2 | his remote page keeps working through every change | manual: after an apply, open http://THE-PC:8737 with his token (fk-remote.service is his own, outside the repo) |
+| r27-19q | his first design review: the prompt's head, the lantern, the plain Super+X, the hop, the strip, the lock's gate | tools/regress/lock-gate.sh · tests/content/test_shell.sh "foot: a new window's prompt" · tests/menus/test_panel.sh "the items, in order: the two meters" · open T19q: pack 2 with him |
+| r27-19r | the clock to the minute; the band behind the bar gone again ("fully floating, no band, ever") | tests/session/test_glass.sh "on: " · tools/regress/bar-geometry.sh |
+| r27-19r-2 | terminal words through the glass over the worst wallpaper pixel | tests/static/test_contrast.sh "tools/contrast.py: every pair" |
+| r27-found-menu-cursor | a row's cursor whole, nothing left on the row it left | tools/regress/menu-cursor.sh |
+| r27-found-open | Super+/ after any popup: its height follows the app, its middle stays | tools/regress/one-popup.sh |
+| r27-found-start-dwl | a test's dwl beside the session stops no login | tests/session/test_startdwl.sh "a test's dwl beside it" |
+| r27-found-vt-bar | the bar back after a VT switch | open T32: lane-asobi reproduces it, the cause not known yet |
+| r27-manifest-flatpak | Flatpak only inside ASOBI, never removed by a repair | open T35: lane-asobi's branch has it |
+| r27-regress-bugs | what the new checks found: the bar 1 px taller under a fallback face, a popup taking a window out of fullscreen | tools/regress/bar-titles.sh · tools/regress/popup-fullscreen.sh |
+| r27-session-weight r27-vt-notes | tonight's session weight; wlroots' VT switch read | record: for tonight only (no lanes on the product); notes from the source |
 | r27-run-2 | the research round | open T58: not begun |
 | r27-run-5 | the whole suite, verify, the regression set, push | open T61: tools/prepush.sh is it |
 | r27-run-6 | the round's finish | open T62: not begun |

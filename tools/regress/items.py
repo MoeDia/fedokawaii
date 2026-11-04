@@ -28,7 +28,7 @@ MANUAL_MOST = 5     # (plan T52: a written reason it cannot be automated, five a
 # a master's review (what it found has its own -fix line, with its own row). README.md says so.
 RECORD = re.compile(r"""^r27$ | ^r27-(suites?|push|apply|event|boot|tidy|shm|note|f45-job|away-proof)(\b|-) | ^r27-inbox$
                         | -master(-\d+|-efh(-\d+)?)?$ | -R\d+b?$ | -review\d*$ | -baseline$ | -digest$ | -research$
-                        | -facts$ | -hunt$ | -weighed$ | -owner$""", re.X)
+                        | -facts$ | -hunt$ | -weighed$ | -owner$ | -asan$""", re.X)
 
 
 def rows(repo):
