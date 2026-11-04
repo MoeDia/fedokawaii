@@ -263,6 +263,8 @@ event() {
       [[ -n $name ]] || label=$(label_of "$dev")     # (an unlocked drive's own name, its maker…)
       disk=$(disk_of "$dev")
       remember "$dev" "${disk:-$dev}" "$label"
+      # (on a fresh system, the drive with your things: open now, its passphrase already typed)
+      setsid -f kawa-carry hint >/dev/null 2>&1 </dev/null
       read -r size fs < <(lsblk -ndo SIZE,FSTYPE -- "$dev" 2>/dev/null) || true
       poke
       # opened because you asked (the menu, M in yazi): you are on your way there already
@@ -371,9 +373,7 @@ watch() {   # udisks' own events → the bar and ~/Drives, within a moment of ea
     case $line in
       *Added*|*Removed*|*"Properties Changed"*)
         while IFS= read -r -t 0.3 _; do :; done          # (a burst of changes: one redraw)
-        links; kawa-dwlstatus --poke 13 2>/dev/null
-        # (on a fresh system, the drive with your things plugged in after login)
-        [[ $line != *Added* ]] || { kawa-carry hint </dev/null >/dev/null 2>&1 & } ;;
+        links; kawa-dwlstatus --poke 13 2>/dev/null ;;
     esac
   done < <(udisksctl monitor 2>/dev/null)
 }

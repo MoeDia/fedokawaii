@@ -81,6 +81,7 @@ plug one in             it opens; click its notice for its files
 the bar's drive mark    open or eject a drive (quick settings too)
 eject first             unplug once it says "safe to unplug"
 ── session ────────────────────────────────────────────────────────
+Super+Ctrl+R            refresh the desktop (no window of yours is touched)
 Super+Ctrl+Shift+Q      log out, no menu (Steam closed properly first)
 Ctrl+Alt+F2…F6          text consoles (Ctrl+Alt+F1: back here)
 ── drawing tablet: its pen in Sketch (Xournal++) ──────────────────
