@@ -168,7 +168,7 @@ CAP_GAP = 2                          # … 2 px between the caps of one chord
 TILE, TILE_GAP = 64, 12              # a seal tile (the power dialog): 64 square, 12 apart (the longest word fits under it)
 TILE_PIC = 40                        # … its picture, 12 px of paper round it
 WAKE_MS = 340                        # quick settings' head wakes as its scroll lands (dwl's unroll: 300 ms)
-ARM_HOLD = 0.35                      # a choice that needs a second press: none counts sooner (a held key's repeat, a double click)
+ARM_HOLD = 0.35                      # a choice that needs a second press: none counts sooner after the last (a double click)
 # the level display (design-system §9): one row — the icon in its column, the meter from cell 3,
 # the value right-aligned at the content's end (a gap and four letters after the meter: 28
 # cells) — in 16 px of pad and the hairline; its window the frame and the shadow
@@ -1301,7 +1301,9 @@ class Panel:
         self.woke = False        # quick settings' head: awake (it wakes as the panel lands)
         self.pressed = None      # the item the pointer holds down (its tint deeper until let go)
         self.armed = None        # a seal's first press taken: its key (the foot asks for the second)
-        self.armed_at = 0.0
+        self.armed_at = 0.0      # … the last press on it, a repeat's too
+        self.key_down = False    # a key has gone down and not come up: GDK's next press is its repeat, not a press
+        self.repeat = False      # … and this one was that
         self.dimmed = False      # a dialog's dim behind it, shown
         self.ticks = 0           # (a running timer's second: each menu its own)
         self.relayout()
@@ -1477,6 +1479,7 @@ class Panel:
         self.mode, self.what = "menu", what
         self.lost = None
         self.armed = None
+        self.key_down = self.repeat = False
         self.states["menu"] = menu
         self.reply = reply
         self.visible = True
@@ -1577,9 +1580,10 @@ class Panel:
             it = self.item(key)
             if it is None:
                 return
-            if it.confirm and (self.armed != key or self.ui.now() - self.armed_at < ARM_HOLD):
-                if self.armed != key:                 # (the first press: the foot asks for the second —
-                    self.armed, self.armed_at = key, self.ui.now()   # a held key's repeat or a double click is no second)
+            if it.confirm and (self.armed != key or self.repeat or self.ui.now() - self.armed_at < ARM_HOLD):
+                first = self.armed != key             # (the first press: the foot asks for the second. A key held down is
+                self.armed, self.armed_at = key, self.ui.now()   # no second, however long or stalled; nor is a double click)
+                if first:
                     self.ui.redraw()
                 return
             if m.stay and it.kind in ("key", "hint"):
@@ -1683,14 +1687,16 @@ class Panel:
         return level_at(off, segs)
 
     # keys
-    def key(self, name, char=""):
+    def key(self, name, char="", mods=False):
+        self.repeat, self.key_down = self.key_down, True
         if name == "Escape":
             self.close("chosen")
             return
         if self.mode == "menu" and self.state.prompt is not None and self.typed(name, char):
             return
-        hit = next((i for i in self.items if i.accel and name in i.accel.split("|")), None)
-        if hit:                                       # (a row's own key, a footer's: at once)
+        # (a row's own key, a footer's: at once; with Ctrl, Alt or Super held it is some other key)
+        hit = None if mods else next((i for i in self.items if i.accel and name in i.accel.split("|")), None)
+        if hit:
             self.activate(hit.key)
             return
         if self.view and not self.items:
@@ -1732,6 +1738,10 @@ class Panel:
                 keys = [cur.key] + keys
             j = (keys.index(cur.key) + (-1 if name == "ISO_Left_Tab" else 1)) % len(keys)
             self.move(keys[j])
+
+    def key_up(self):
+        """A key let go: the next one down is a press."""
+        self.key_down = self.repeat = False
 
     def first_key(self):
         """Where the first key puts the cursor: a menu's --select line, else its first choice (none: a
@@ -2278,6 +2288,7 @@ def main(argv):
         win.add(area)
         area.connect("draw", draw)
         win.connect("key-press-event", on_key)
+        win.connect("key-release-event", on_key_up)
         win.connect("motion-notify-event", on_motion)
         win.connect("enter-notify-event", on_enter)
         win.connect("leave-notify-event", on_leave)
@@ -3288,7 +3299,11 @@ def main(argv):
     def on_key(w, ev):
         c = Gdk.keyval_to_unicode(ev.keyval)
         ctrl = ev.state & (Gdk.ModifierType.CONTROL_MASK | Gdk.ModifierType.MOD1_MASK | Gdk.ModifierType.MOD4_MASK)
-        panel.key(Gdk.keyval_name(ev.keyval) or "", chr(c) if c and not ctrl else "")
+        panel.key(Gdk.keyval_name(ev.keyval) or "", chr(c) if c and not ctrl else "", bool(ctrl))
+        return True
+
+    def on_key_up(w, ev):
+        panel.key_up()
         return True
 
     def on_motion(w, ev):

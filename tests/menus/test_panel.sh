@@ -240,6 +240,7 @@ eq "$(py "fresh($RGB_SHARE); ks = [i.accel for i in p.items if i.accel]; print(s
 eq "$(py "fresh($RGB_SHARE); print([(i.key, i.keys) for i in p.items if i.kind == 'row' and not i.keys])")" "[]" "no row without a key"
 eq "$(py "fresh($RGB_SHARE); seen = []; p.activate = seen.append; p.key('g'); p.key('n'); p.key('b'); print(seen)")" "['rgb', 'night', 'bluetooth']"
 eq "$(py "fresh(); seen = []; p.activate = seen.append; p.key('j'); p.key('l'); print(seen)")" "[]" "(h j k l still move the cursor)"
+eq "$(py "fresh($RGB_SHARE); seen = []; p.activate = seen.append; p.key('n', '', True); p.key('g', '', True); print(seen)")" "[]" "with Ctrl, Alt or Super held: no row's key"
 case_ "share sound: its own section and row once kawa-quick reports it, its own menu; a seal inked while it shares, what it shares as the value"
 eq "$(t 'STATE + "sharesound\toff\n"' sharesound)" "@share-sound | share sound |  | False | a | quiet"
 eq "$(t 'STATE + "sharesound\tdesktop\n"' sharesound)" "@share-sound | share sound | desktop | True | a | lit"
@@ -1333,15 +1334,21 @@ eq "$(py "fresh(); p.request('menu x', kp.Menu($S, index=True), lambda rc, t: 0)
 eq "$(py "fresh(); p.request('menu x', kp.Menu($S, index=True), lambda rc, t: 0); s = [p.focus]; [p.key('Right') or s.append(p.focus) for _ in range(5)]; p.key('Left'); s.append(p.focus); p.key('Up'); p.key('Down'); print(s, p.focus)")" \
   "['0', '1', '2', '3', '4', '4', '3'] 3" "← → along the row, its ends stay; ↑ ↓ nothing"
 eq "$(py "fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); p.key('Return'); print(r, p.visible)")" "['0'] False" "a seal that asks nothing: at once"
-case_ "restart and shut down need a second press: the first says so in the foot's place; moving away takes it back; a held key's repeat or a double click (under 350 ms) is no second press"
-A="fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); p.key('Right'); p.key('Right'); p.key('Right'); p.key('Right')"
+case_ "restart and shut down need a second press: the first says so in the foot's place; moving away takes it back; a key held down, or a double click (under 350 ms from the last press), is no second press"
+A="fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); tap = lambda k: (p.key(k), p.key_up()); tap('Right'); tap('Right'); tap('Right'); tap('Right')"
 eq "$(py "$A; p.key('Return'); print(r, p.visible, p.armed, p.item(p.armed).confirm)")" "[] True 4 press again to shut down" "the first press: nothing done"
-eq "$(py "$A; p.key('Return'); p.key('Return'); print(r, p.visible, p.armed); u.t += 0.3; p.key('Return'); print(r, p.visible); u.t += 0.1; p.key('Return'); print(r, p.visible)")" \
-  "$(printf '%s\n' "[] True 4" "[] True" "['4'] False")" "a repeat at once, one at 300 ms: nothing; at 400 ms: done"
-eq "$(py "$A; p.key('Return'); u.t += 1; p.key('Left'); print(p.armed, p.focus, r); u.t += 1; p.key('Return'); print(p.armed, p.visible); u.t += 1; p.key('Return'); print(r)")" \
+eq "$(py "$A; p.key('Return'); p.key_up(); p.key('Return'); p.key_up(); print(r, p.visible, p.armed); u.t += 0.3; p.key('Return'); p.key_up(); print(r, p.visible); u.t += 0.4; p.key('Return'); print(r, p.visible)")" \
+  "$(printf '%s\n' "[] True 4" "[] True" "['4'] False")" "pressed again at once, and 300 ms after that: nothing; 400 ms after the last: done"
+HELD="$A; p.key('Return'); u.t += 0.3; p.key('Return'); [(setattr(u, 't', u.t + 0.029), p.key('Return')) for _ in range(100)]"
+eq "$(py "$HELD; print(r, p.visible, p.armed)")" "[] True 4" "Enter held (dwl: 300 ms, then every 29 ms; GDK makes each a press), 3 s: nothing"
+eq "$(py "$HELD; u.t += 5; p.key('Return'); print(r, p.visible)")" "[] True" "… a stalled machine, 5 s between two repeats, still no key let go: nothing"
+eq "$(py "$HELD; p.key_up(); u.t += 0.1; p.key('Return'); p.key_up(); print(r, p.visible); u.t += 0.4; p.key('Return'); print(r, p.visible)")" \
+  "$(printf '%s\n' "[] True" "['4'] False")" "… let go, and pressed again: too soon no, then done"
+eq "$(py "$HELD; p.key_up(); tap('Left'); tap('Right'); print(p.armed, r); tap('Return'); print(p.armed, r)")" "$(printf '%s\n' "None []" "4 []")" "… moved away and back: asks again"
+eq "$(py "$A; tap('Return'); u.t += 1; tap('Left'); print(p.armed, p.focus, r); u.t += 1; tap('Return'); print(p.armed, p.visible); u.t += 1; tap('Return'); print(r)")" \
   "$(printf '%s\n' "None 3 []" "3 True" "['3']")" "moved away: asked no more; restart asks for its own"
 eq "$(py "$A; p.key('Return'); u.t += 1; i = p.item('0'); p.hover(i.x + 2, i.y + 2); print(p.armed, p.focus, r)")" "None 0 []" "the pointer moved off it too"
-eq "$(py "fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); i = p.item('4'); p.press(i.x + 2, i.y + 2); a = (r[:], p.armed, p.visible); u.t += 0.1; p.press(i.x + 2, i.y + 2); b = (r[:], p.visible); u.t += 0.3; p.press(i.x + 2, i.y + 2); print(a, b, r, p.visible)")" \
+eq "$(py "fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); i = p.item('4'); p.press(i.x + 2, i.y + 2); a = (r[:], p.armed, p.visible); u.t += 0.1; p.press(i.x + 2, i.y + 2); b = (r[:], p.visible); u.t += 0.4; p.press(i.x + 2, i.y + 2); print(a, b, r, p.visible)")" \
   "([], '4', True) ([], True) ['4'] False" "by clicks: a double click is no second press; a click after it is"
 eq "$(py "$A; p.key('Return'); p.key('Escape'); print(p.armed, r, p.visible); p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); print(p.armed)")" "$(printf '%s\n' "None [''] False" None)" "Esc: nothing done (its caller told: dismissed), nothing remembered"
 case_ "the options as kawa-menu passes them"
