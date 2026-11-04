@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/menus/test_calendar.sh — kawa-calendar (the clock, Super+C): a month as a dropdown in
-# the panel's grid (cell lines), Monday first, today stamped, previous / next / today as keys. "Now" is a stand-in
+# the panel's grid (cell lines), Monday first, today a filled seal, previous / next / today as keycap hints. "Now" is a stand-in
 # (date without -d answers for $NOW); every other date sum is the real date's. Month edges:
 # leap and plain Februaries, months starting on a Monday or a Sunday, six-week months, the
 # turn of the year both ways; today on every weekday; locales.
@@ -28,16 +28,19 @@ key_at() { fz_rows "${2:-}" | sed -n "$(( $1 + 1 ))p"; }                    # li
 # ── a month ───────────────────────────────────────────────────────────────────────────
 case_ "October 2026, today Friday the 16th: the calendar icon and the month, the weekdays, six weeks, today stamped, three keys"
 setup 2026-10-16; answer esc; cal; rc 0 true
-eq "$(fz_rows | sed -n 1p)" "part	$ICON_CALENDAR	Oct 2026" "the heading carries the calendar's icon"
-eq "$(fz_rows | sed -n '2,8p' | tr '\n' '|')" "cell	Mo	head|cell	Tu	head|cell	We	head|cell	Th	head|cell	Fr	head|cell	Sa	head|cell	Su	head|"
+eq "$(fz_rows | sed -n 1p)" "part	@month-10	Oct 2026	week 42" "the heading carries the month's flower, and the week it is"
+eq "$(fz_rows | sed -n '2,8p' | tr '\n' '|')" "cell	Mo	head|cell	Tu	head|cell	We	head|cell	Th	head|cell	Fr	head|cell	Sa	head-sat|cell	Su	head-sun|" "Saturday indigo, Sunday the seal's red, as a Japanese calendar has them"
 eq "$(cells | wc -l)" 42 "six weeks, always"
-eq "$(week 1)" "28:dim 29:dim 30:dim 1 2 3 4" "September's last days dim before the 1st (a Thursday)"
-eq "$(week 3)" "12 13 14 15 16:today 17 18" "today stamped"
+eq "$(week 1)" "28:dim 29:dim 30:dim 1 2 3:sat 4:sun" "September's last days dim before the 1st (a Thursday)"
+eq "$(week 3)" "12 13 14 15 16:today 17:sat 18:sun" "today a filled seal"
 eq "$(week 6)" "2:dim 3:dim 4:dim 5:dim 6:dim 7:dim 8:dim" "November's first days fill the sixth week"
-eq "$(fz_rows | tail -n 3 | tr '\n' '|')" "key	$ICON_CHEVRON_LEFT	previous|key	$ICON_CHEVRON_RIGHT	next|key	$ICON_CALENDAR	today|"
+eq "$(fz_rows | tail -n 3 | tr '\n' '|')" "hint	Left|h	previous|hint	Right|l	next|hint	t	today|" "its keys in the footer: keycaps, not buttons"
 eq "$(fz_rows | wc -l)" 53 "the heading, 7 weekdays, 42 days, 3 keys"
 eq "$(fz_arg drop)" set "a dropdown"; eq "$(fz_arg middle)" set "from the bar's middle, the date's (a click or Super+C alike)"; eq "$(fz_arg select)" "" "opened clean"; eq "$(fz_arg width)" "" "sized by its grid"
 fits
+case_ "the twelve months' flowers are drawn (panel-art.txt); no week but where the month holds today"
+for m in 01 02 03 04 05 06 07 08 09 10 11 12; do grep -q "^@month-$m\$" "$REPO/configs/home/.config/fedokawaii/panel-art.txt" && _ok || _no "no month-$m"; done
+setup 2026-12-05; answer "pick next" esc; cal; eq "$(fz_rows 2 | sed -n 1p)" "part	@month-01	Jan 2027	" "another month: its flower, no week"
 case_ "today on every weekday: stamped, in its weekday's column"
 for d in 12 13 14 15 16 17 18; do
   setup "2026-10-$d"; answer esc; cal
@@ -46,14 +49,14 @@ for d in 12 13 14 15 16 17 18; do
 done
 case_ "today the 1st and a Monday (Feb 1 2027): first in its row, nothing dim before it"
 setup 2027-02-01; answer esc; cal
-eq "$(week 1)" "1:today 2 3 4 5 6 7"
+eq "$(week 1)" "1:today 2 3 4 5 6:sat 7:sun"
 
 # ── month edges ───────────────────────────────────────────────────────────────────────
 case_ "February in a leap year (2028): 29 days"
 setup 2028-02-10; answer esc; cal; eq "$(lastday)" 29; eq "$(month)" "Feb 2028"
 case_ "February in a plain year (2026): 28 days, starting on a Sunday: alone, last in its first row"
 setup 2026-02-10; answer esc; cal; eq "$(lastday)" 28
-eq "$(week 1)" "26:dim 27:dim 28:dim 29:dim 30:dim 31:dim 1"
+eq "$(week 1)" "26:dim 27:dim 28:dim 29:dim 30:dim 31:dim 1:sun"
 case_ "February 2027 starts on a Monday: four weeks of its own, two of March's"
 setup 2027-02-10; answer esc; cal; eq "$(lastday)" 28; eq "$(week 5)" "1:dim 2:dim 3:dim 4:dim 5:dim 6:dim 7:dim"
 case_ "February 2100 (not a leap year) and 2000 (a leap year)"
@@ -76,7 +79,7 @@ case_ "January → previous → December of the year before"
 setup 2027-01-31; answer "pick previous" enter esc; cal
 eq "$(month 2)" "Dec 2026"; eq "$(month 3)" "Nov 2026"
 case_ "the cursor stays on the key that paged"
-eq "$(key_at "$(fz_arg select 2)" 2)" "key	$ICON_CHEVRON_LEFT	previous"
+eq "$(key_at "$(fz_arg select 2)" 2)" "hint	Left|h	previous"
 case_ "on the 31st, next is the next month (not two ahead), previous the one before"
 setup 2026-01-31; answer "pick next" "pick previous" "pick previous" esc; cal
 eq "$(for n in 1 2 3 4; do month $n; done | tr '\n' ',')" "Jan 2026,Feb 2026,Jan 2026,Dec 2025,"
@@ -91,7 +94,7 @@ answer esc; cal
 eq "$(month)" "Oct 2026"; eq "$(today_)" 31
 case_ "today: this month again, today stamped, the cursor on today"
 setup 2026-10-16; answer "pick next" "pick next" "pick today" esc; cal
-eq "$(month 4)" "Oct 2026"; eq "$(today_ 4)" 16; eq "$(key_at "$(fz_arg select 4)" 4)" "key	$ICON_CALENDAR	today"
+eq "$(month 4)" "Oct 2026"; eq "$(today_ 4)" 16; eq "$(key_at "$(fz_arg select 4)" 4)" "hint	t	today"
 case_ "Esc, a click outside, typed text: closes, exit 0"
 for a in esc lost "typed 12"; do setup; answer "$a"; rc 0 cal; eq "$(fz_n)" 1; done
 case_ "a long way back and forth (24 months each way): the right month, no error"

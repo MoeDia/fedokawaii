@@ -24,7 +24,7 @@ import sys
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 HOME = ROOT / "configs/home"
 THEMES = HOME / ".config/fedokawaii/themes"
-WORDS, ICON, LARGE = 7.0, 4.5, 3.0
+WORDS, ICON, LARGE, SHAPE = 7.0, 4.5, 3.0, 3.01    # (SHAPE: no letter at all — a cursor's edge, a seal's mass: WCAG 1.4.11's 3 : 1)
 
 _spec = importlib.util.spec_from_file_location("wada_palette", ROOT / "tools/wada-palette.py")
 _wada = importlib.util.module_from_spec(_spec)
@@ -50,7 +50,7 @@ def apca(fg, bg):
     return 0.0 if s > -0.1 else -(s + 0.027) * 100
 
 
-APCA_NEED = {WORDS: 60.0, ICON: 45.0, LARGE: 45.0}      # (what each WCAG class asks, read by APCA)
+APCA_NEED = {WORDS: 60.0, ICON: 45.0, LARGE: 45.0, SHAPE: 30.0}      # (what each WCAG class asks, read by APCA)
 STEP = 15.0                                              # (Lc between neighbouring word inks: §1)
 
 
@@ -58,7 +58,8 @@ STEP = 15.0                                              # (Lc between neighbour
 # vermilion: no red on sumi reaches 60 — words to be read are never accent_text), words spotted
 ROLE_LC = {"strong": 75.0, "text": 75.0, "muted": 60.0, "accent_text": 45.0, "faint": 30.0}
 # kept by the owner's word, measured and shown, not counted: the seal's numeral is black (r27)
-APCA_KEPT = ("the workspace seal's numeral (Wada's Black, the owner's choice)",)
+APCA_KEPT = ("the workspace seal's numeral (Wada's Black, the owner's choice)",
+             "the calendar's today: its digit on the seal (the workspace seal's own pair)")
 
 
 def role_pairs(m):
@@ -105,16 +106,26 @@ def term_pairs(m):
             ("every menu (fzf)", "the letters matched, at rest", ink("hl", fg), bg, ICON)]
 
 
+def glass_pairs(m):
+    """A terminal's words through its glass (kawa-glass: foot's alpha, blended as stored): the ground over
+    the worst pixel any wallpaper can hold, white under the dark ground, black under the paper."""
+    alpha = float(re.search(r"^ON=([0-9.]+)", (ROOT / "bin/kawa-glass").read_text(), re.M).group(1))
+    pal, fg, bg = foot_colours(m)
+    worst = 255 if m == "dark" else 0
+    over = "".join(f"{round(alpha * int(bg[i:i + 2], 16) + (1 - alpha) * worst):02x}" for i in (0, 2, 4))
+    return [("the terminal", f"its words at alpha {alpha:g} over the worst wallpaper pixel", fg, over, WORDS)]
+
+
 def prompt_pairs(m):
     """The prompt: the mood's head on the ground (the demon in slot 1, the angel in the words' ink), its
     ink (30) on each paper (27–29: the folder, git, the time and jobs) and a failure's code, the cream
-    (25) on the lacquer (24) — foot's slots."""
+    (32) on the lacquer (31) — foot's slots."""
     pal, fg, bg = foot_colours(m)
-    return [("the prompt", "the mood's head on the ground", pal[1] if m == "dark" else fg, bg, ICON),
+    return [("the prompt", "the mood's head on the ground", pal[20] if m == "dark" else fg, bg, ICON),
             ("the prompt", "the folder's words on their paper", pal[30], pal[27], WORDS),
             ("the prompt", "git's words on their paper", pal[30], pal[28], WORDS),
             ("the prompt", "the time and the jobs on their paper", pal[30], pal[29], WORDS),
-            ("the prompt", "a failure's code on the lacquer", pal[25], pal[24], WORDS)]
+            ("the prompt", "a failure's code on the lacquer", pal[32], pal[31], WORDS)]
 
 
 YAZI_NAMES = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "gray", "darkgray", "lightred",
@@ -141,10 +152,22 @@ def panel_pairs(m):
     """quick settings: kawa-panel draws with panel.conf's colours by name — the names its look()
     gives the item under the cursor (tests/static/test_contrast.sh holds kawa-panel to them)."""
     c = dict(re.findall(r"^([a-z_]+)=([0-9a-f]{6})$", (THEMES / m / "panel.conf").read_text(), re.M))
-    return [("quick settings", "the item under the cursor: its words", c["text_on_select"], c["select"], WORDS),
-            ("quick settings", "the item under the cursor: its picture (an hour, a corner), its dot", c["text_on_select"], c["select"], ICON),
-            ("quick settings", "a meter under the cursor: a lit segment on the lacquer", c["text_on_select"], c["select"], ICON),
-            ("quick settings", "a meter under the cursor: lit against unlit (the level)", c["text_on_select"], c["select_lo"], LARGE)]
+    # (the cursor: a 12 % tint and a 2 px edge of the seal's red; every ink keeps its own on it, so each is measured)
+    return [("the panels", "the item under the cursor: its words", c["text_on_select"], c["select"], WORDS),
+            ("the panels", "the item under the cursor: its picture", c["strong"], c["select"], ICON),
+            ("the panels", "the item under the cursor: its value", c["text"], c["select"], WORDS),
+            ("the panels", "the item under the cursor: its key's label on its cap", c["muted"], c["key"], ICON),
+            ("the panels", "the item under the cursor: the cursor's edge", c["select_edge"], c["select"], SHAPE),
+            ("the panels", "the item under the cursor: a seal inked, a chosen dot", c["accent"], c["select"], SHAPE),
+            ("the panels", "a meter under the cursor: a lit segment on the tint", c["asagi"], c["select"], LARGE),
+            ("the panels", "a meter: lit against unlit (the level)", c["asagi"], c["edge"], LARGE),
+            ("the panels", "a seal inked: its paper's ring", c["ground"], c["accent"], SHAPE),
+            ("the panels", "a seal tile inked: its carved picture", c["text_on_accent"], c["accent"], SHAPE),
+            ("the panels", "a seal tile blank: its picture", c["muted"], c["key"], ICON),
+            ("the panels", "the calendar's today: its digit on the seal (the workspace seal's own pair)", c["text_on_accent"], c["accent"], ICON),
+            ("the panels", "the calendar's Saturday", c["ai"], c["ground"], ICON),
+            ("the panels", "the calendar's Sunday", c["accent_text"], c["ground"], ICON),
+            ("the panels", "a timer's sand on the ground", c["sand"], c["ground"], SHAPE)]
 
 
 def css_pairs(m):
@@ -187,7 +210,7 @@ def app_pairs(m):
 def rows():
     out = []
     for m in ("dark", "light"):
-        for surface, state, fg, bg, need in (term_pairs(m) + prompt_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
+        for surface, state, fg, bg, need in (term_pairs(m) + glass_pairs(m) + prompt_pairs(m) + yazi_pairs(m) + panel_pairs(m) + css_pairs(m) + qt_pairs(m) + app_pairs(m)):
             out.append((m, surface, state, fg, bg, contrast(fg, bg), need))
     return out
 

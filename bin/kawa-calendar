@@ -20,7 +20,7 @@ sel=()                                  # (opened clean; after paging, on the ke
 while :; do
   # today read once: at midnight a second reading could be the next day (the 1st marked
   # in the month just ending, or no day marked at all)
-  now=$(date +%Y-%m-%d) || exit 1
+  read -r now week < <(date '+%Y-%m-%d %V') || exit 1
   # the month (short and in English, like every date on the desktop: "Oct 2026"), its last
   # day and the last of the month before — one date for all three (a page is drawn at once)
   m="${now%-*}-01 $off month"
@@ -30,7 +30,8 @@ while :; do
 
   rows=()
   line() { local IFS=$'\t'; rows+=("$*"); }
-  line part "@month-$month" "$mname $year"
+  # (the week it is, at the heading's end, where the month holds today)
+  line part "@month-$month" "$mname $year" "${today:+week $week}"
   for w in Mo Tu We Th Fr; do line cell "$w" head; done
   line cell Sa head-sat; line cell Su head-sun
   # six weeks always (the grid never changes height as it pages): the month before's last

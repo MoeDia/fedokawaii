@@ -2,17 +2,19 @@
 # tools/panel-review.sh — the menus and panels rendered for a design review: each surface with a machine's real
 # state (a stand-in kawa-quick says what a live PC says: the kit has no sound, no Bluetooth), in both moods, through the
 # real desktop (tools/kit.sh: a headless dwl, the repository's bin and art), cropped to the surface, at 1× and 4×.
-#   bash tools/panel-review.sh [--out DIR] [--only NAME,NAME…] [--themes "dark light"]
+#   bash tools/panel-review.sh [--out DIR] [--only NAME,NAME…] [--themes "dark light"] [--mako BIN]
+#     --mako BIN   the notices by this mako (a build of src/mako/mako.patch not yet installed)
 #   Out (default .claude/review/next): NAME-1x.png NAME-4x.png, dark over light, on the moods' own grounds; and
 #   DIR/raw/THEME/NAME.png, the whole screens tools/px.py measures.
 set -u
 here=$(cd "$(dirname "$0")" && pwd); repo=$(cd "$here/.." && pwd)
-out=$repo/.claude/review/next only="" themes="dark light"
+out=$repo/.claude/review/next only="" themes="dark light" mako=""
 while (($#)); do
   case $1 in
     --out) out=${2:?}; shift 2 ;;
     --only) only=${2:?}; shift 2 ;;
     --themes) themes=${2:?}; shift 2 ;;
+    --mako) mako=$(realpath "${2:?}"); shift 2 ;;
     *) echo "panel-review: unknown $1" >&2; exit 2 ;;
   esac
 done
@@ -21,6 +23,8 @@ mkdir -p "$out/raw"
 W=$(mktemp -d /tmp/panel-review.XXXXXX); trap 'rm -rf "$W"' EXIT
 mkdir "$W/bin"
 for f in "$repo"/bin/*; do ln -s "$f" "$W/bin/"; done
+[[ -n $mako ]] && ln -s "$mako" "$W/bin/mako"
+ln -s "$repo/system/fedokawaii" "$W/bin/fedokawaii"
 rm "$W/bin/kawa-quick"
 cat >"$W/bin/kawa-quick" <<STUB
 #!/usr/bin/env bash
@@ -37,7 +41,7 @@ if [[ \${1:-} == --state ]]; then
            printf 'input\t62\t0\tRyzen\tRear Microphone\tALC1220 Analog\tRyzen HD Audio Controller\tAnalog Stereo\t\n' ;;
     brightness) printf 'brightness\t72%%\n' ;;
     *) printf 'theme\t%s\nbrightness\t72%%\nnight\t4000K\nvrr\tin games\nvrrnow\toff\nwallpaper\tthe-great-wave\nsound\t62%%\nmuted\t%s\n' "\$th" "\$m"
-       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\n' ;;
+       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\nrgb\ton\n' ;;
   esac
   exit 0
 fi
@@ -82,11 +86,30 @@ SURFACES=(
     printf '%s\nnap 0.9\n%s\nnap 0.5\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
   done
 } >"$W/play.sh"
+# (the kit's ground is swaybg's; now and then, seen under load only, its picture goes and dwl's dark root shows — swaybg
+# alive: said to main. A shot whose ground is not the mood's is no review: the run again, three at most)
+bad_ground() {   # bad_ground THEME → the shots whose ground is not the mood's (a dialog's: dimmed, so only the undimmed)
+  python3 -I - "$out/raw/$1" "$repo/configs/home/.config/fedokawaii/themes/$1/colors.sh" "$only" <<'CHECK'
+import os, re, sys
+from PIL import Image
+g = re.search(r'C_GROUND="?([0-9a-f]{6})', open(sys.argv[2]).read()).group(1)
+want = tuple(int(g[i:i + 2], 16) for i in (0, 2, 4))
+only = sys.argv[3].split(",") if sys.argv[3] else None
+for f in sorted(os.listdir(sys.argv[1])):
+    if f.endswith(".png") and not f.startswith("power") and (not only or f[:-4] in only):
+        px = Image.open(os.path.join(sys.argv[1], f)).convert("RGB").getpixel((3, 1076))
+        if px != want:
+            print(f[:-4])
+CHECK
+}
 for th in $themes; do
-  nice -n 10 bash "$here/kit.sh" --theme "$th" --time 400 --dwl /usr/local/bin/dwl --bin "$W/bin" --repo-art \
-    --out "$out/raw/$th" --play "$W/play.sh" play >"$W/kit-$th.log" 2>&1 \
-    || { echo "panel-review: the kit failed ($th): $(tail -n 3 "$W/kit-$th.log")" >&2; exit 1; }
-  [[ -s $out/raw/$th/panel.log ]] && { echo "panel-review: the panel said ($th):"; tail -n 6 "$out/raw/$th/panel.log"; }
+  for try in 1 2 3; do
+    nice -n 10 bash "$here/kit.sh" --theme "$th" --time 400 --dwl /usr/local/bin/dwl --bin "$W/bin" --repo-art \
+      --out "$out/raw/$th" --play "$W/play.sh" play >"$W/kit-$th.log" 2>&1 \
+      || { echo "panel-review: the kit failed ($th): $(tail -n 3 "$W/kit-$th.log")" >&2; exit 1; }
+    [[ -z $(bad_ground "$th") ]] && break
+    echo "panel-review: the ground went ($th, try $try): $(bad_ground "$th" | tr '\n' ' ')"
+  done
 done
 python3 -I - "$out" "$themes" <<'CROP'
 import os, sys

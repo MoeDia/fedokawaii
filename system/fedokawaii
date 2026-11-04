@@ -684,13 +684,13 @@ fi
 SECTIONS=(system update snapshots backups learning)
 tab_icon() {   # tab_icon SECTION → its pixel icon
   case $1 in
-    system) printf '%s' "${ICON_SEC_SYSTEM:-·}" ;; update) printf '%s' "${ICON_SEC_UPDATE:-·}" ;;
-    snapshots) printf '%s' "${ICON_CAMERA:-·}" ;; backups) printf '%s' "${ICON_SEC_BACKUPS:-·}" ;;
-    learning) printf '%s' "${ICON_MORTARBOARD:-·}" ;;
+    system) printf '%s' "${ICON_TAB_SYSTEM:-·}" ;; update) printf '%s' "${ICON_TAB_UPDATE:-·}" ;;
+    snapshots) printf '%s' "${ICON_TAB_SNAPSHOTS:-·}" ;; backups) printf '%s' "${ICON_TAB_BACKUPS:-·}" ;;
+    learning) printf '%s' "${ICON_TAB_LEARNING:-·}" ;;
   esac
 }
 # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
-SOON='chess|typing'
+SOON='chess|typing'         # (each its row only once its program is there: Super+U has no row that says "soon")
 PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
@@ -743,15 +743,17 @@ rows() {
   e update    update    "${ICON_DOWNLOAD:-·}"   update                 "$upd"
   e update    pull      "${ICON_TORII_SMALL:-·}" fedokawaii            "$pl"
   e update    upgrade   "${ICON_UPGRADE:-·}"    "$nxt"                 "$up"
-  e update    held      "${ICON_LOCK:-·}"       held                   "$(held_count)"
+  e update    held      "${ICON_LOCK:-·}"       "held back"            "$(n=$(held_count); printf '%s' "${n:-none}")"
   e snapshots snapshots "${ICON_UNDO:-·}"       "go back"              "$snap"
   e snapshots file      "${ICON_FILE:-·}"       "a file, back"         ""
   e backups   backup    "${ICON_ARCHIVE:-·}"    "back up now"          "$bk"
   e backups   restore   "${ICON_UNPACK:-·}"     restore                ""
   e backups   drive     "${ICON_USB:-·}"        "the drive"            "$dv"
+  e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
+  e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
-  e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
-  e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
+  command -v kawa-chess >/dev/null && e learning chess "${ICON_KNIGHT:-·}" chess ""
+  command -v kawa-typing >/dev/null && e learning typing "${ICON_KEYBOARD:-·}" typing ""
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
@@ -816,8 +818,8 @@ tab_next() {   # tab_next +1|-1 → the section beside the one shown
 }
 # The list and the pane, in a window W columns wide inside fzf's margins (FZF_COLUMNS, which
 # fzf tells every command it runs): the pane takes PANE columns at the right, the list the
-# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned at the
-# list's last column; what is not built yet in the faint ink, "soon". The menu asks for its rows
+# rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned two columns
+# short of the list's edge; what is not built yet in the faint ink, "soon". The menu asks for its rows
 # again once fzf is up and whenever the window changes size, so the column is right however
 # late the window gets its final size.
 PANE=50
@@ -828,9 +830,10 @@ PANE=50
 HG_FRAMES="${ICON_HG_0:-·} ${ICON_HG_1:-·} ${ICON_HG_2:-·} ${ICON_HG_3:-·} ${ICON_HG_3:-·} ${ICON_HG_4:-·}"
 fit_rows() {
   local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
+  # (W: the list's columns but one — its band ends a column past a row's, the value as far in as the icon, §4)
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
-  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 2))
+  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 3))
   run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
     if [[ $a == @($SOON) ]]; then
@@ -877,7 +880,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -960,6 +963,13 @@ explain() {
     backup)    pick 'running|backup'
                say "your home, to the drive you chose." \
                    "plug it in first." ;;
+    carry)     pick 'running'
+               say "what is yours alone, to a drive, under a" \
+                   "password you choose, read back after: then" \
+                   "you can wipe this computer." ;;
+    bring)     pick 'running'
+               say "after a fresh install: all of it back from" \
+                   "that drive. nothing new is replaced." ;;
     theme)     pick 'running'
                say "every config as the toolkit has it; yours" \
                    "kept first." ;;
@@ -1061,7 +1071,7 @@ job_head() {
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|settings|log'
+JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|carry|bring|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
@@ -1100,6 +1110,8 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     backup)    backup_now; rc=$? ;;
     restore)   backup_back; rc=$? ;;
     drive)     backup_drive; rc=$? ;;
+    carry)     kawa-carry pack; rc=$? ;;
+    bring)     kawa-carry back; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;
@@ -1364,7 +1376,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   [[ ${KAWA_WARM:-} == system ]] && away="execute-silent(kawa-warm --away system)+"
   fit_items | fzf --read0 --ansi --no-sort --no-input --gutter-raw=' ' \
     --height=100% --delimiter=$'\t' --with-nth=2 --tiebreak=index "${listen[@]}" \
-    --header="$(tabs system)" --header-first \
+    --header="$(tabs system)" --header-first --footer=$'\n'"$(screen_keys enter open '' tab next '' esc close '')" \
     --preview="k=$(printf '%q' "$PANE_KEPT")/{1}.\$FZF_PREVIEW_COLUMNS; [ -e $(printf '%q' "$PANE_KEPT")/on ] && [ -s \"\$k\" ] && exec cat \"\$k\"; exec $self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
     --bind="tab:execute-silent($self --tab +1)+$go,btab:execute-silent($self --tab -1)+$go" \

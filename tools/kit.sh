@@ -98,11 +98,18 @@ if ((repo_art)); then
   cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$repo/configs/home/.config/fedokawaii/panel-art.txt" "$h/.config/fedokawaii/"
   mkdir -p "$h/.bashrc.d" && cp "$repo/configs/home/.bashrc.d/fedokawaii.sh" "$h/.bashrc.d/"
   # (fzf.opts as theme.sh writes it: its prompt's chevron filled in)
-  sed "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
+  sed -e "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
+      -e "s|@ICON_BAND_EDGE@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_BAND_EDGE")|g" \
     "$repo/configs/home/.config/fedokawaii/fzf.opts" >"$h/.config/fedokawaii/fzf.opts"
   cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
   rm -rf "$h/.config/waybar" "$h/.config/mako"
   cp -a "$repo/configs/home/.config/waybar" "$repo/configs/home/.config/mako" "$h/.config/"
+  # (foot's colours: the repository's block in place of the installed one — a text screen's band and inks)
+  python3 -I -c 'import re, sys
+new = re.search(r"# >>> colours.*?# <<< colours", open(sys.argv[1]).read(), re.S).group(0)
+t = open(sys.argv[2]).read()
+open(sys.argv[2], "w").write(re.sub(r"# >>> colours.*?# <<< colours", lambda _: new, t, flags=re.S))' \
+    "$repo/configs/home/.config/foot/foot.ini" "$h/.config/foot/foot.ini" || exit 2
 else
   ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
 fi

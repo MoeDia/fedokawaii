@@ -78,8 +78,7 @@ def waybar_css(m, p):
     # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
     # tiles (紙 kami) — their paper, the vermilion of the torii's, and the seal's,
     # the words on the seal
-    rows = [("band", p["ground"]), ("band-rule", p["edge2"]),
-            ("surface", p["surface"]),                               # (a tooltip's solid ground)
+    rows = [("surface", p["surface"]),                               # (a tooltip's solid ground)
             ("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
             ("strong", p["strong"]), ("accent-text", p["accent_text"]), ("strong-on-accent", p["text_on_accent"]),
             ("asagi", p["asagi"]), ("blue", p["blue"]),                  # (blue: the keyboard's AR)
@@ -618,9 +617,11 @@ def foot_block():
         # paper_* tokens) and the ink its words take on them (30)
         out += [f"{27 + i}={p['paper_' + k]}" for i, k in enumerate(("folder", "git", "time"))]
         out += [f"30={p['lo'] if m == 'dark' else p['strong']}"]
-        # 31 the hairline of what floats (§4: dark, text at 50 %; light, strong at 84 %), for a frame a text
+        # (31, 32: the lacquer and its cream: a failed command's code in the prompt)
+        out += [f"31={p['lacquer']}", f"32={p['text_on_lacquer']}"]
+        # 33 the hairline of what floats (§4: dark, text at 50 %; light, strong at 84 %), for a frame a text
         # screen draws itself: the ring of yazi's pop-ups (the patched yazi, its theme.toml)
-        out += [f"31={_mixc(p['ground'], p['text'], 0.5) if m == 'dark' else _mixc(p['ground'], p['strong'], 0.84)}"]
+        out += [f"33={_mixc(p['ground'], p['text'], 0.5) if m == 'dark' else _mixc(p['ground'], p['strong'], 0.84)}"]
     out.append("# <<< colours")
     return "\n".join(out)
 
@@ -650,9 +651,14 @@ summary-icon-color=#{p['accent_text']}
 progress-color=over #{p['asagi']}40
 format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>
 
-# critical: the hairline in vermilion (the main config keeps these on screen until dismissed)
+# critical: what needs you (the main config keeps these on screen until dismissed) — the hairline in vermilion, a
+# 3 px bar of it inside the left one, the title's icon in a filled seal, and the key that takes it away
 [urgency=critical]
 border-color=#{p['accent']}
+left-edge=3 #{p['accent']}
+summary-icon-seal=#{p['accent']}
+summary-icon-color=#{p['text_on_accent']}
+format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>\\n<span line_height="20480"><span background="#{p['edge']}" foreground="#{p['strong']}"> super </span> <span background="#{p['edge']}" foreground="#{p['strong']}"> shift </span> <span background="#{p['edge']}" foreground="#{p['strong']}"> n </span><span foreground="#{p['muted']}"> dismiss</span></span>
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]
@@ -1313,13 +1319,13 @@ def panel_conf(m, p):
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
     keys = ("ground", "surface", "key", "edge", "edge2", "lo", "faint", "muted", "text", "strong", "accent",
             "accent_text", "accent_hi", "accent_lo", "text_on_accent", "select", "select_edge", "text_on_select",
-            "asagi", "flame", "gold", "blue")
+            "asagi", "flame", "gold")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1], "dim": (0x11, 0x13, 0x14, 0x66)}
-    # (sand: a running timer's bar; the dim: Wada's Black at 40 %, a dialog's, in either mood)
+    # (sand: a running timer's bar; ai: a Saturday's indigo; the dim: Wada's Black at 40 %, a dialog's, in either mood)
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
             + "".join(f"{k}={p[k]}\n" for k in keys)
-            + f"sand={p['gold'] if m == 'dark' else p['yellow']}\n"
+            + f"sand={p['gold'] if m == 'dark' else p['yellow']}\nai={p['blue'] if m == 'dark' else p['bblue']}\n"
             + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
 
 

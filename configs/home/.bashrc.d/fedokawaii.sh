@@ -84,7 +84,7 @@ unset -f __kawa_glass
 #   oni [repos/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
 #   oni [repos/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
 #
-#   head     the demon in red in the dark mood, the angel in sumi in the light one (the bar's crest
+#   head     the demon in the vermilion ink in the dark mood, the angel in sumi in the light one (the bar's crest
 #            in one ink, three cells, the line's whole height): where a command line starts;
 #            the demon roars, the angel looks up, when the last command failed
 #   folder   the one you are in, after the one above it (~ at home, / at the root), on Cream
@@ -157,7 +157,7 @@ __kawa_head() {
     __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_KANNON $ICON_HEAD_KANNON_2"
     ((__kawa_ok)) || __i_head="$ICON_HEAD_KANNON_OPEN $ICON_HEAD_KANNON_OPEN_2"
   else
-    __c_head=$'\001\e[31m\002' __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
+    __c_head=$__c_mark __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
     ((__kawa_ok)) || __i_head="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
   fi
 }
@@ -174,7 +174,7 @@ __kawa_w() {
 
 # __kawa_blk PAPER INK TEXT — a block of the line: the stamp edge from the block before (its
 # paper over this one's; the first, the line's own edge over the ground), then TEXT between a
-# space either side on PAPER (foot's colours: 26–29 the papers, 24 the lacquer)
+# space either side on PAPER (foot's colours: 26–29 the papers, 31 the lacquer)
 __kawa_blk() {
   if [[ -z $__kawa_prev ]]; then __kawa_line+=$'\001\e[38;5;'"$1"$';49m\002'"$__i_cap0"
   else __kawa_line+=$'\001\e[38;5;'"$__kawa_prev;48;5;$1"$'m\002'"$__i_cap"; fi
@@ -219,7 +219,7 @@ __kawa_layout() {
     __kawa_line="$__c_head$__i_head$__c_off " __kawa_prev=''
     __kawa_blk 27 30 "$above$place"
     [[ -n $git ]] && __kawa_blk 28 30 "$__i_branch$git"
-    [[ -n $code ]] && __kawa_blk 24 25 "$code"                 # (the lacquer and its cream: 7.9 : 1 and more)
+    [[ -n $code ]] && __kawa_blk 31 32 "$code"                 # (the lacquer and its cream: 7.9 : 1 and more)
     [[ -n $took$jobs ]] && __kawa_blk 29 30 "$took${took:+${jobs:+  }}$jobs"
     __kawa_line+=$'\001\e[38;5;'"$__kawa_prev"$';49m\002'"$__i_cap"$'\001\e[0m\002'" $__c_mark$__i_mark$__c_off "
     return 0

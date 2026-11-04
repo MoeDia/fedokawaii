@@ -68,10 +68,10 @@ progress_label  = { bold = true }
 progress_normal = { fg = "red", bg = "black" }
 progress_error  = { fg = "yellow", bg = "red" }
 
-# pop-ups (the patched yazi, src/yazi/yazi.patch, draws them as §4's panels): 31 the hairline of what floats; a
+# pop-ups (the patched yazi, src/yazi/yazi.patch, draws them as §4's panels): 33 the hairline of what floats; a
 # heading's name strong (23), a key in the words' own ink, what it does muted (21), the cursor's row 24 and 25
 [which]
-border          = { fg = "31" }
+border          = { fg = "33" }
 cols            = 3
 mask            = {}
 cand            = {}
@@ -81,7 +81,7 @@ separator       = "  "
 separator_style = {}
 
 [confirm]
-border     = { fg = "31" }
+border     = { fg = "33" }
 title      = { fg = "23" }
 body       = { fg = "21" }
 list       = {}
@@ -90,43 +90,43 @@ btn_no     = {}
 btn_labels = [ "y", "n" ]
 
 [spot]
-border   = { fg = "31" }
+border   = { fg = "33" }
 title    = { fg = "23" }
 tbl_col  = { fg = "21" }
 tbl_cell = { bg = "24", fg = "25" }
 
 [notify]
 # a notice's ring in the hairline, an error's in the seal's red; the heading's icon the desktop's own
-title_info  = { fg = "31" }
-title_warn  = { fg = "31" }
+title_info  = { fg = "33" }
+title_warn  = { fg = "33" }
 title_error = { fg = "16" }
 icon_info   = "\U000FE028"
 icon_warn   = "\U000FE028"
 icon_error  = "\U000FE050"
 
 [pick]
-border   = { fg = "31" }
+border   = { fg = "33" }
 active   = { bg = "24", fg = "25" }
 inactive = {}
 
 [input]
-border   = { fg = "31" }
+border   = { fg = "33" }
 title    = { fg = "23" }
 value    = {}
 selected = { bg = "18" }
 
 [cmp]
-border   = { fg = "31" }
+border   = { fg = "33" }
 active   = { bg = "24", fg = "25" }
 inactive = {}
 
 [tasks]
-border  = { fg = "31" }
+border  = { fg = "33" }
 title   = { fg = "23" }
 hovered = { bg = "24", fg = "25" }
 
 [help]
-border  = { fg = "31" }
+border  = { fg = "33" }
 chord   = { fg = "21" }
 action  = {}
 hovered = { bg = "24", fg = "25" }
