@@ -403,6 +403,8 @@ do_session() {
   "${VIRSH[@]}" send-key "$name" KEY_LEFTMETA KEY_ESC >/dev/null
   wait_for "$name" 15 "pgrep -u $TEST_USER -x gtklock" || { stage "RED: Super+Escape locked nothing"; do_shot "$name" "$R/no-lock.png"; return 1; }
   sleep 2; do_shot "$name" "$R/locked.png"
+  # (the gate: shut, every key is nothing but the secret one, Tab; open, keys type)
+  do_keys "$name" "<tab>"; sleep 1.5; do_shot "$name" "$R/lock-open.png"
   do_keys "$name" "$TEST_PASSWORD" "<enter>"
   wait_for "$name" 20 "! pgrep -u $TEST_USER -x gtklock" || { stage "RED: the password did not open the lock"; do_shot "$name" "$R/still-locked.png"; return 1; }
   sleep 2; do_shot "$name" "$R/unlocked.png"
