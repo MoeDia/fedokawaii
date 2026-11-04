@@ -1,0 +1,9 @@
+# /etc/systemd/system/kawa-asobi-op@.service — one job of the play world's, as root: a snapshot,
+# a reset, a delete, its status (the instance names it; kawa-asobi-root checks it). The only way
+# the desktop's user reaches root for the world: polkit lets it start these, nothing else.
+[Unit]
+Description=ASOBI: %I
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/sbin/kawa-asobi-root op %I

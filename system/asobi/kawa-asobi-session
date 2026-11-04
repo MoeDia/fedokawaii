@@ -1,0 +1,43 @@
+#!/usr/bin/env bash
+# /usr/local/bin/kawa-asobi-session — the play world's session, as user asobi on its own VT
+# (kawa-asobi.service): gamescope on the card itself, the screen's own 1080p at 144 Hz with
+# FreeSync, Steam's gamepad UI in it (the Flatpak, in its own sandbox: nothing it starts can
+# gain a privilege). GameMode held for as long as the world is in use. When Steam exits,
+# gamescope exits, the unit ends and the desktop comes back (kawa-asobi-root poststop).
+#
+#   kawa-asobi-session          the session
+#   kawa-asobi-session --stop   Steam closed as its own menu closes it (its saves to the cloud),
+#                               waited for (the unit's ExecStop: a stop, a shutdown, a reset)
+# Keys: /etc/xkb/rules/kawa-asobi gives Super+G the switch back to the desktop's VT, in gamescope
+# itself: no program reads the keyboard for it.
+set -u
+STEAM=com.valvesoftware.Steam
+# The connected screen's card and connector, from sysfs (numbers can move between boots)
+screen() {
+  local c
+  for c in /sys/class/drm/card[0-9]*-*/status; do
+    [[ $(cat "$c" 2>/dev/null) == connected ]] || continue
+    c=${c%/status}; c=${c##*/}
+    printf '%s %s\n' "${c%%-*}" "${c#*-}"
+    return 0
+  done
+  return 1
+}
+case ${1:-} in
+  --stop)
+    timeout 25 flatpak run --command=steam "$STEAM" -shutdown >/dev/null 2>&1
+    for ((i = 0; i < 80; i++)); do pgrep -u "$(id -u)" -x steam >/dev/null || exit 0; sleep 0.25; done
+    exit 0 ;;
+  "") ;;
+  *) echo "usage: kawa-asobi-session [--stop]" >&2; exit 2 ;;
+esac
+read -r card connector < <(screen) || { echo "kawa-asobi-session: no screen connected" >&2; exit 1; }
+dev=$(sed 's/^0x//' "/sys/class/drm/$card/device/vendor"):$(sed 's/^0x//' "/sys/class/drm/$card/device/device")
+hz=144
+# shellcheck source=/dev/null
+[[ -r /etc/fedokawaii/asobi.conf ]] && . /etc/fedokawaii/asobi.conf
+export XKB_DEFAULT_RULES=kawa-asobi XKB_DEFAULT_LAYOUT=us XKB_DEFAULT_OPTIONS=kawa:return
+gamemoded -r >/dev/null 2>&1 &
+exec gamescope --backend drm -W 1920 -H 1080 -r "$hz" --adaptive-sync \
+  --prefer-output "$connector" --prefer-vk-device "$dev" -e -- \
+  setpriv --no-new-privs flatpak run "$STEAM" -gamepadui

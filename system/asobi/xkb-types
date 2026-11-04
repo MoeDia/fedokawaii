@@ -1,0 +1,15 @@
+// /etc/xkb/types/kawa-asobi — a letter with one more level, under Super (kawa-asobi's symbols)
+partial default xkb_types "return" {
+  type "KAWA_RETURN" {
+    modifiers = Shift + Lock + Mod4;
+    map[Shift] = Level2;
+    map[Lock] = Level2;
+    map[Mod4] = Level3;
+    map[Shift+Mod4] = Level3;
+    map[Lock+Mod4] = Level3;
+    preserve[Lock] = Lock;
+    level_name[Level1] = "Base";
+    level_name[Level2] = "Caps";
+    level_name[Level3] = "Super";
+  };
+};

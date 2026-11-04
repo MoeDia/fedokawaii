@@ -1,0 +1,23 @@
+// /etc/polkit-1/rules.d/60-kawa-asobi.rules — installed by setup.sh (s_asobi).
+// DESK_USER may enter and close the play world and start its jobs: those units, nothing more.
+// asobi may do nothing an active seat user usually may (no reboot, no disks, no network settings,
+// no packages), but switch the VT back to the desktop, ask for realtime sound, and GameMode's own.
+polkit.addRule(function (action, subject) {
+  if (subject.user == "DESK_USER") {
+    if (action.id != "org.freedesktop.systemd1.manage-units") return polkit.Result.NOT_HANDLED;
+    var unit = action.lookup("unit"), verb = action.lookup("verb");
+    if (unit == "kawa-asobi.service" && (verb == "start" || verb == "stop")) return polkit.Result.YES;
+    if (/^kawa-asobi-op@[a-z]+(:[a-z0-9-]+)?\.service$/.test(unit) && verb == "start") return polkit.Result.YES;
+    return polkit.Result.NOT_HANDLED;
+  }
+  if (subject.user == "asobi") {
+    var allowed = ["org.freedesktop.login1.chvt", "org.freedesktop.RealtimeKit1.acquire-realtime",
+                   "org.freedesktop.RealtimeKit1.acquire-high-priority",
+                   "com.feralinteractive.GameMode.governor-helper",
+                   "com.feralinteractive.GameMode.gpu-helper",
+                   "com.feralinteractive.GameMode.cpu-helper",
+                   "com.feralinteractive.GameMode.procsys-helper"];
+    return allowed.indexOf(action.id) >= 0 ? polkit.Result.YES : polkit.Result.NO;
+  }
+  return polkit.Result.NOT_HANDLED;
+});

@@ -1,0 +1,7 @@
+# /etc/pam.d/kawa-asobi — the play world's session (kawa-asobi.service). No auth stack: systemd
+# never authenticates, and nothing else names this file. pam_systemd makes it a seat session on
+# its VT, pam_limits gives the gamemode group its nice.
+account  required  pam_unix.so
+session  required  pam_limits.so
+session  required  pam_unix.so
+session  required  pam_systemd.so class=user type=wayland
