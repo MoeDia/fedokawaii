@@ -1301,8 +1301,8 @@ cannot use `sudo`, it reaches the Internet and nothing of this house.
 144 Hz with FreeSync, and shows Steam's gamepad UI; your controller and your sound follow you there.
 **Super+G** in there comes back, and your desktop never stopped. Behind the desktop a game is frozen
 exactly where it was and costs nothing but its memory; Steam alone goes on working, so a download
-finishes. Steam's own **Exit to desktop** ends the world. The first time, Steam asks you to sign in:
-yours to do, nothing here stores it.
+finishes. Closing Steam from its own menu ends the world, and the *close* row below does the same. The
+first time, Steam asks you to sign in: yours to do, nothing here stores it.
 
 Everything else is one small window: Super+U → system → **asobi**.
 
