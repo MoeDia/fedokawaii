@@ -51,8 +51,9 @@ def build():
             k = f'{tag}.{g}'
             add(k + '.meet', s, 'meet', f'meet {said(g)}', g, known, size=30)
             add(k + '.drill', s, 'drill', f'drill {said(g)}', g, known, low, goal, size=60)
-            add(k + '.mix', s, 'mix', f'{said(g)} among the rest', g, known, low, goal, size=80)
-            add(k + '.words', s, 'words', f'words with {said(g)}', g, known, low, goal, size=100)
+            # (no vowel yet, no words: the same drill, longer)
+            add(k + '.mix', s, 'mix', f'{said(g)} among the rest' if known != g else f'drill {said(g)}, longer', g, known, low, goal, size=80)
+            add(k + '.words', s, 'words', f'words with {said(g)}' if set(known) & set('aeiou') else f'drill {said(g)}, longest', g, known, low, goal, size=100)
         stage_keys = known[len(before):]
         if s < 2:
             left = ''.join(c for c in known if c in 'qwertasdfgzxcvb')
@@ -308,6 +309,8 @@ def text_for(lesson, rng, stats=None):
             return ' '.join(out)
         return meet(lesson.keys, rng)
     if k == 'drill':
+        if lesson.keys.isdigit():     # (numbers among numbers)
+            return chunks(''.join(c for c in known if c.isdigit()), rng, size, lesson.keys)
         return chunks(lesson.keys + letters[-6:], rng, size, lesson.keys)
     if k == 'mix':
         if len({*letters} & set('aeiou')) >= 1 and len([w for w in words() if set(w) <= set(letters)]) >= 15:

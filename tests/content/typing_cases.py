@@ -622,6 +622,28 @@ def case_course_plan():
     finish(p)
 
 
+def case_landmark():
+    """the crossover and the marks: said once, kept"""
+    fresh(baseline=20)
+    p = Pty([sys.executable, '-IB', BIN, '--seed', '7'], (100, 32))
+    p.pump(0.3)
+    press(p, TAB)
+    p.pump(0.1)
+    for _ in range(8):       # (test, 15 seconds: the rows are in a fixed order)
+        p.send(b'\x1b[1;1:1B')    # (down)
+        p.pump(0.01)
+    press(p, ENTER)
+    d = wait_resume(p)
+    text = d['run']['text']
+    report('a test from the practice tab', d['lesson'] == 'free.test' and d['run']['limit'] == 15, str(d['lesson']))
+    type_at(p, text[:120], 60)
+    p.pump(7)
+    finish(p)
+    with open(os.path.join(state_dir(), 'progress.json')) as f:
+        st = json.load(f)
+    report('passing the old way is kept, and the mark', st.get('crossed') is True and st.get('mark') == 50, str((st.get('crossed'), st.get('mark'))))
+
+
 def case_ram():
     fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
     p = start((236, 52))

@@ -75,7 +75,7 @@ class Store:
     @staticmethod
     def _progress(d):
         """what was read, every value of the kind it must be"""
-        out = {'lessons': {}, 'baseline': None, 'quiet': False, 'day': {'date': '', 'seconds': 0.0, 'warm': False, 'test': False}}
+        out = {'lessons': {}, 'baseline': None, 'quiet': False, 'crossed': False, 'mark': 0, 'day': {'date': '', 'seconds': 0.0, 'warm': False, 'test': False}}
         for k, v in (d.get('lessons') or {}).items() if isinstance(d.get('lessons'), dict) else ():
             if isinstance(k, str) and isinstance(v, dict):
                 out['lessons'][k] = {'seals': int(_number(v.get('seals'))) % 7, 'best': _number(v.get('best')),
@@ -83,6 +83,8 @@ class Store:
         b = d.get('baseline')
         out['baseline'] = b if isinstance(b, (int, float)) and not isinstance(b, bool) and math.isfinite(b) else None
         out['quiet'] = d.get('quiet') is True
+        out['crossed'] = d.get('crossed') is True
+        out['mark'] = int(_number(d.get('mark')))
         day = d.get('day')
         if isinstance(day, dict) and isinstance(day.get('date'), str):
             out['day'] = {'date': day['date'], 'seconds': _number(day.get('seconds')), 'warm': day.get('warm') is True, 'test': day.get('test') is True}

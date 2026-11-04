@@ -43,12 +43,13 @@ TILDES = {'3': 'delete', '5': 'pageup', '6': 'pagedown', '1': 'home', '4': 'end'
 CSI = re.compile(r'\x1b\[([<?>=]?)([0-9;:]*)([ -/]*)([@-~])')
 
 ENTER = ('\x1b[?1049h'  # the screen of its own
+         '\x1b[22;2t\x1b]2;typing\x1b\\'  # the window's title, the old one kept: Super+/ knows the app by it
          '\x1b[?2031h\x1b[?1004h\x1b[?2004h'  # theme changes, focus, pasted text marked
          '\x1b[>31u\x1b[?u'  # real presses and releases, and whether it heard that
          '\x1b[?996n'  # the theme now
          '\x1b[?7l'  # no wrap at the right edge
          '\x1b[2J')
-LEAVE = ('\x1b[?1003l\x1b[?1006l\x1b[?2026l\x1b[?7h\x1b[0m\x1b[?25h\x1b[<u\x1b[?2004l\x1b[?1004l\x1b[?2031l\x1b[?1049l')
+LEAVE = ('\x1b[?1003l\x1b[?1006l\x1b[?2026l\x1b[?7h\x1b[0m\x1b[?25h\x1b[<u\x1b[?2004l\x1b[?1004l\x1b[?2031l\x1b[23;2t\x1b[?1049l')
 MOUSE_ON, MOUSE_OFF = '\x1b[?1003h\x1b[?1006h', '\x1b[?1003l\x1b[?1006l'
 
 

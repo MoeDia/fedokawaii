@@ -22,6 +22,8 @@ TABS = ('course', 'practice', 'progress')
 TAB_ICONS = {'course': 'MORTARBOARD', 'practice': 'BRUSH', 'progress': 'USAGE'}
 STAGE_ICONS = ('KEYBOARD', 'KEYBOARD', 'KEYBOARD', 'NOTE', 'PEN', 'CALC', 'EQUALS', 'CODE', 'LANTERN')
 MILESTONES = (50, 75, 90, 100, 120)
+MILESTONE_WORDS = {50: 'past 50: the average typist, of 168,000 measured.', 75: 'past 75: a trained typist of the old studies.',
+                   90: 'past 90: the fast group\'s average.', 100: 'past 100. that was the goal.', 120: 'past 120: the fastest of that study.'}
 
 
 def fg(n):
@@ -1067,12 +1069,28 @@ class LessonScreen(Screen):
         self.at(1, 0, '\x1b[K')
         self.heading(1, self.app.icon('KEYBOARD'), self.lesson.title, self.x0, self.W, self.stats(now), done)
 
+    def plain_words(self):
+        """what the row under the text says when nothing is wrong: a meet names its fingers until the first key; a
+        window too small for the keyboard always names the next finger"""
+        r = self.run
+        if self.lesson.kind == 'meet' and r.pos == 0 and r.correct + r.wrong == 0:
+            named = [f'{c} {keys.NAMES[keys.needs(c)[0][1]]}' for c in self.lesson.keys if keys.needs(c)]
+            home = 'feel the bumps on f and j.  ' if self.lesson.id == 'home.fj.meet' else ''
+            return home + '   '.join(named)
+        if not self.pic and not r.done:
+            need = keys.needs(r.text[r.pos], self.thumb)
+            if need:
+                return keys.NAMES[need[0][1]] + (' and ' + keys.NAMES[need[1][1]] if len(need) > 1 else '')
+        return ''
+
     def draw_notice(self):
         if self.notice_y >= self.rows_n:
             return
         self.at(self.notice_y, self.x0, '\x1b[0m' + ' ' * self.W)
         if self.notice:
             self.at(self.notice_y, self.text_x, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  ' + self.notice[:max(self.notice_w, 0)])
+        else:
+            self.at(self.notice_y, self.text_x, fg(MUTED) + self.plain_words()[:max(self.notice_w + 3, 0)] + OFF)
 
     def say(self, words, now, secs=2.0):
         if words != self.notice:
@@ -1342,6 +1360,8 @@ class LessonScreen(Screen):
             self.paint_letter(r.pos)
         if self.pic:
             self.apply_keys()
+        if not self.notice and (not self.pic or r.correct + r.wrong == 1):
+            self.draw_notice()
         self.caret()
         if now - self.saved_at > 2.0 or (r.pos and r.text[r.pos - 1] == ' '):
             self.t.flush()           # (the key's frame first: the disk never holds it up)
@@ -1365,6 +1385,25 @@ class LessonScreen(Screen):
         self.caret()
 
     # ── kept, finished, left ─────────────────────────────────────────────────
+    def landmark(self, wpm, acc):
+        """a test or a check that passed a mark for the first time: said once. The first is the crossover: touch
+        typing past his old way (Yechiam 2003: until there, people go back to it)"""
+        p = self.app.store.progress
+        if self.lesson.kind not in ('test', 'check') or acc < 97:
+            return ''
+        base, news = p['baseline'], ''
+        if base and wpm > base and not p['crossed']:
+            p['crossed'] = True
+            news = f'past your old way, {base:.0f} wpm. from here on it is only faster.'
+        for m in MILESTONES:
+            if wpm > m > p['mark']:
+                p['mark'] = m
+                news = MILESTONE_WORDS[m] if not news else news
+        return news
+
+    def finish_words(self):
+        return getattr(self, 'news', '')
+
     def save_resume(self, now=None):
         self.saved_at = now if now is not None else time.monotonic()
         self.app.store.save_resume({'lesson': self.lesson.id, 'index': self.index, 'title': self.lesson.title,
@@ -1403,6 +1442,7 @@ class LessonScreen(Screen):
             day['test'] = True
         cons = r.consistency()
         roll = r.rollover()
+        self.news = self.landmark(wpm, acc)
         rec = {'d': int(time.time()), 'l': les.id, 'k': les.kind, 'w': round(wpm, 2), 'r': round(raw, 2), 'a': round(acc, 2), 's': round(secs, 2)}
         if cons is not None:
             rec['c'] = round(cons, 1)
