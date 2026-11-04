@@ -88,10 +88,20 @@ index 4cfdc2f..2867d9b 100644
  	}
  }
 diff --git a/yazi-config/src/popup/options.rs b/yazi-config/src/popup/options.rs
-index 7b2587b..37e7a9c 100644
+index 7b2587b..38ceb3c 100644
 --- a/yazi-config/src/popup/options.rs
 +++ b/yazi-config/src/popup/options.rs
-@@ -49,7 +49,7 @@ impl ConfirmCfg {
+@@ -41,7 +41,8 @@ impl ConfirmCfg {
+ 			position,
+ 			title: Line::raw(title),
+ 			body: body.map(|b| Paragraph::new(b).wrap(Wrap { trim: false })).unwrap_or_default(),
+-			list: list.map(|l| Paragraph::new(l).wrap(Wrap { trim: false })).unwrap_or_default(),
++			// (a row a name: one too long for the panel loses its end, never a second line under the icons)
++			list: list.map(Paragraph::new).unwrap_or_default(),
+ 		}
+ 	}
+ 
+@@ -49,7 +50,7 @@ impl ConfirmCfg {
  		Self::new(
  			Self::replace_number(&YAZI.confirm.trash_title, files.len()),
  			YAZI.confirm.trash_position(),
@@ -100,7 +110,7 @@ index 7b2587b..37e7a9c 100644
  			Self::truncate_files(files, 100),
  		)
  	}
-@@ -58,7 +58,7 @@ impl ConfirmCfg {
+@@ -58,7 +59,7 @@ impl ConfirmCfg {
  		Self::new(
  			Self::replace_number(&YAZI.confirm.delete_title, files.len()),
  			YAZI.confirm.delete_position(),
@@ -109,7 +119,7 @@ index 7b2587b..37e7a9c 100644
  			Self::truncate_files(files, 100),
  		)
  	}
-@@ -93,7 +93,7 @@ impl ConfirmCfg {
+@@ -93,7 +94,7 @@ impl ConfirmCfg {
  		let mut lines = Vec::with_capacity(len.min(max + 1));
  		for (i, s) in it.into_iter().enumerate() {
  			if i >= max {
@@ -118,7 +128,7 @@ index 7b2587b..37e7a9c 100644
  				break;
  			}
  			lines.push(s.to_strand().into_string_lossy());
-@@ -105,7 +105,7 @@ impl ConfirmCfg {
+@@ -105,7 +106,7 @@ impl ConfirmCfg {
  		let mut lines = Vec::with_capacity(files.len().min(max + 1));
  		for (i, f) in files.iter().enumerate() {
  			if i >= max {
@@ -127,7 +137,7 @@ index 7b2587b..37e7a9c 100644
  				break;
  			}
  
-@@ -114,8 +114,35 @@ impl ConfirmCfg {
+@@ -114,8 +115,35 @@ impl ConfirmCfg {
  				lines[i].push_span(Span::styled(icon.text, icon.style));
  				lines[i].push_span(" ");
  			}
@@ -477,14 +487,14 @@ index 3ff88e8..4368f6c 100644
  	}
  }
 diff --git a/yazi-fm/src/confirm/list.rs b/yazi-fm/src/confirm/list.rs
-index 5418ac9..621cc0a 100644
+index 5418ac9..2855017 100644
 --- a/yazi-fm/src/confirm/list.rs
 +++ b/yazi-fm/src/confirm/list.rs
 @@ -1,8 +1,10 @@
 -use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::{StatefulWidget, Widget}};
 -use ratatui_widgets::{block::Block, borders::Borders, paragraph::Wrap, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
 +use ratatui_core::{buffer::Buffer, layout::Rect, widgets::{StatefulWidget, Widget}};
-+use ratatui_widgets::{paragraph::Wrap, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
++use ratatui_widgets::scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState};
  use yazi_config::THEME;
  use yazi_core::Core;
  
@@ -510,13 +520,14 @@ index 5418ac9..621cc0a 100644
  
  		let list = self
  			.core
-@@ -26,19 +24,18 @@ impl Widget for List<'_> {
+@@ -26,19 +24,17 @@ impl Widget for List<'_> {
  			.list
  			.clone()
  			.scroll((self.core.confirm.offset as u16, 0))
 -			.block(block)
- 			.style(THEME.confirm.list.get())
- 			.wrap(Wrap { trim: false });
+-			.style(THEME.confirm.list.get())
+-			.wrap(Wrap { trim: false });
++			.style(THEME.confirm.list.get());
  
 -		// Vertical scrollbar
  		let lines = list.line_count(inner.width);

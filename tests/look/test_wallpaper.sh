@@ -496,7 +496,8 @@ grep -m1 -F "$FZF_PICK	" "$FAKE_TMP/rows" || exit 1'
 }
 rows() { cat "$TMP/rows"; }
 nrows() { wc -l <"$TMP/rows"; }
-plain() { cut -f3 "$TMP/rows" | sed 's/\x1b\[[0-9;]*m//g'; }       # the rows as they read
+pics() { grep -av '^§' "$TMP/rows"; }                               # the pictures, the sections' labels left out
+plain() { pics | cut -f3 | sed 's/\x1b\[[0-9;]*m//g'; }              # the rows as they read
 setup; picker
 case_ "before the pack, nothing of your own: no rows"
 kawa-wallpaper --tui "$TMP/out"
@@ -516,8 +517,8 @@ art "$PACK/dark/ink-ridges-night.src" 64x40; art "$PACK/dark/moon-road-ink.src" 
 art "$PACK/dark/mishima-mist.src" 64x40; art "$PACK/dark/quay-night.src" 64x40; art "$PACK/dark/old-pier-at-night.src" 64x40; art "$PACK/light/red-fuji.src" 64x40
 photo "$WP/b.png"; photo "$WP/a.jpg"; photo "$WP/sub dir/c.webp"
 kawa-wallpaper --tui "$TMP/out"
-eq "$(cut -f1,2 "$TMP/rows" | head -n1)" "default	$(key_of ink-ridges-night)" "the default, with its key"
-eq "$(cut -f1 "$TMP/rows" | tr '\n' ' ')" "default pack:moon-road-ink pack:mishima-mist pack:seaside-train pack:quay-night pack:old-pier-at-night $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
+eq "$(pics | cut -f1,2 | head -n1)" "default	$(key_of ink-ridges-night)" "the default, with its key"
+eq "$(pics | cut -f1 | tr '\n' ' ')" "default pack:moon-road-ink pack:mishima-mist pack:seaside-train pack:quay-night pack:old-pier-at-night $WP/a.jpg $WP/b.png $WP/sub dir/c.webp "
 has "$(plain)" " $ICON_FOLDER  sub dir/c.webp"
 lacks "$(rows)" red-fuji "the other theme's pictures are not offered"
 
@@ -526,23 +527,34 @@ d=$(plain | head -n1)
 eq "$d" " $ICON_TORII  ink-ridges-night$(printf '%*s' $((76 - 4 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' at the last column"
 eq "$(plain | grep -F "$ICON_THEME" | while IFS= read -r l; do printf '%s\n' "$(LC_ALL=C.UTF-8 wc -L <<<"$l")"; done | sort -u)" 76 "the ◐ marks: at the last column (76)"
 eq "$(grep -cF "$ICON_THEME" "$TMP/rows")" 2 "quay-night and old-pier-at-night have a pair"
-has "$(sed -n 1p "$TMP/rows")" $'\e[38;5;21mcurrent · default' "the value in muted (palette 21)"
-has "$(sed -n 1p "$TMP/rows")" $'\e[38;5;21m'"$ICON_TORII" "the glyph in muted"
+has "$(pics | sed -n 1p)" $'\e[38;5;21mcurrent · default' "the value in muted (palette 21)"
+has "$(pics | sed -n 1p)" $'\e[38;5;21m'"$ICON_TORII" "the glyph in muted"
+case_ "the sections: each under a label of its own — its words muted at the icons' column, the rule, how many; the default's first, the old masters next; a label the cursor passes by, nothing picked from it"
+lab=$(grep -a '^§' "$TMP/rows" | cut -f3 | sed 's/\x1b\[[0-9;]*m//g')
+eq "$(sed 's/ ─* / /' <<<"$lab" | sed 's/ *$//' | head -n 2)" "$(printf '%s\n' ' ink and brush 1' ' woodblock prints by night 2')" "(the fetched ones' sections, counted)"
+eq "$(grep -a '^§' "$TMP/rows" | cut -f3 | head -n1 | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 76 "a label as wide as a row"
+has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;21mink and brush' "muted"; has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;19m──' "the rule's ink"
+a=$(args_of fzf "$(ncalls fzf)")
+has "$a" 'down:down+transform:[[ {1} == § ]] && echo down'; has "$a" 'up:up+transform:[[ {1} == § ]] && echo up'; has "$a" 'focus:transform:[[ {1} == § ]] && echo down' "whatever moved the cursor there"
+out_of_label=$(FZF_PICK=§ kawa-wallpaper --tui "$TMP/out2"; cat "$TMP/out2" 2>/dev/null)
+eq "$out_of_label" "" "a label is no choice"
 case_ "the one shown now says so: 'current' (a pair's ◐ after it); the default's own picture chosen by its name is the default, current"
 eq "$(plain | grep -c 'current')" 1 "nothing chosen yet: the default, current"
 echo pack:ink-ridges-night >"$STATE/wallpaper-dark"; kawa-wallpaper --tui "$TMP/out"
 eq "$(plain | grep -c 'current')" 1; has "$(plain | head -n1)" "ink-ridges-night"; has "$(plain | head -n1)" "current · default"
-has "$(args_of fzf "$(ncalls fzf)")" "load:pos(1)+" "the cursor on it"
+has "$(args_of fzf "$(ncalls fzf)")" "load:pos(2)+" "the cursor on it (under its section's label)"
 echo pack:quay-night >"$STATE/wallpaper-dark"; kawa-wallpaper --tui "$TMP/out"
 eq "$(plain | grep 'current' | sed 's/.*quay-night *//')" "current  $ICON_THEME" "a pack with a pair: current, its ◐ after it"
 lacks "$(plain | head -n1)" "current"
 rm -f "$STATE/wallpaper-dark"; kawa-wallpaper --tui "$TMP/out"
-case_ "the window (§7): the heading (its picture in accent_text, wallpaper, the rule in edge2), its own key on the last line — r, change every 4 h, its state —, nothing obvious (enter, esc), no input line, no pointer glyph of its own"
+case_ "the window (§7): the heading (its picture in accent_text, wallpaper, the rule in edge2), the settings under the list as options, each its key's tile at its row's end, nothing obvious (enter, esc), no input line, no pointer glyph of its own"
 a=$(args_of fzf "$(ncalls fzf)")
 has "$a" $'\e[38;5;20m'"$ICON_PICTURE"; has "$a" "wallpaper"$'\e[0m \e[38;5;19m──'
 lacks "$a" "╌"; lacks "$a" "壁" "no kanji (§13)"
 lacks "$a" "--pointer"; lacks "$a" "--border-label"
-has "$a" "--footer="$'\n'"r  "$'\e[38;5;21m'"change every 4 h"$'\e[0m  \e[38;5;23m'"off"$'\e[0m' "the key in the words' ink, what it does muted, its state strong"
+has "$a" "--footer="$'\n'" "$'\e[38;5;21m'"$ICON_HOURGLASS" "the settings under a blank row, each a row"
+has "$a" $'\e[38;5;20m\U000FF00C\e[0m \e[38;5;23moff' "off is chosen: its dot, its words strong"
+has "$a" $'\e[38;5;22m\U000FF00D\e[0m \e[38;5;21m1 h' "the others' ring, their words muted"
 lacks "$a" "enter set"; lacks "$a" "esc close"
 has "$a" "--no-input" "nothing to type: r is the key's"
 has "$a" "--with-nth=3.."
@@ -583,29 +595,58 @@ case_ "your own picture, shown now: 'current'"
 eq "$(plain | grep -c 'current')" 1 "one row: $(plain | grep 'current')"
 has "$(plain | grep 'current')" "p0500.png" "your own picture, shown now"
 
-case_ "every 4 hours: the picker's key r (or a click on its line) turns the switch, its last line says on/off at once — no row of the list"
-lacks "$(cut -f1 "$TMP/rows")" rotate "the switch is no row"
+case_ "the settings: keys r, o, s (or a click on their row) each go round its values, their block says so at once — no row of the list"
+lacks "$(cut -f1 "$TMP/rows")" rotate "a setting is no row"
 a=$(args_of fzf "$(ncalls fzf)")
-has "$a" "r:execute-silent($(printf '%q' "$(command -v kawa-wallpaper)") --rotate toggle)+transform-footer("
-has "$a" 'click-footer:transform:[ "$FZF_CLICK_FOOTER_LINE" = 2 ]' "a click on the key's line (the line under the blank one), nowhere else"
-rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" on
-eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g")" $'\nr  change every 4 h  on'
-rc 0 kawa-wallpaper --rotate toggle; eq "$(kawa-state get wallpaper-rotate)" off
-eq "$(kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g")" $'\nr  change every 4 h  off'
-rc 2 kawa-wallpaper --rotate maybe
+K=$(printf '%q' "$(command -v kawa-wallpaper)")
+has "$a" "r:execute-silent($K --rotate cycle)+transform-footer("; has "$a" "o:execute-silent($K --order cycle)+transform-footer("; has "$a" "s:execute-silent($K --from cycle)+transform-footer("
+has "$a" 'click-footer:transform:case "$FZF_CLICK_FOOTER_LINE" in 2)' "a click on a setting's row (the block's first row is the blank one), nowhere else"
+foot() { kawa-wallpaper --keys | sed "s/\x1b\[[0-9;]*m//g"; }
+eq "$(foot | sed -n 1p)" "" "(a blank row over them)"
+for v in off 1h 4h daily off; do
+  case $v in off) w="● off"; ;; 1h) w="● 1 h"; ;; 4h) w="● 4 h"; ;; daily) w="● daily"; ;; esac
+  w=${w/●/$'\U000FF00C'}
+  has "$(foot | sed -n 2p)" "$w" "$v chosen"
+  [[ $v == off && -n ${seen_off:-} ]] && break; seen_off=1
+  rc 0 kawa-wallpaper --rotate cycle
+done
+eq "$(kawa-state get wallpaper-rotate)" off "round to off again"
+eq "$(foot | sed -n 2p | LC_ALL=C.UTF-8 wc -L)" 76 "a setting's row as wide as a picture's: its tile at the end"
+kawa-state set wallpaper-rotate on; has "$(foot | sed -n 2p)" $'\U000FF00C 4 h' "an earlier version's on: every 4 hours"; kawa-state unset wallpaper-rotate
+has "$(foot | sed -n 3p)" $'\U000FF00C in turn'; rc 0 kawa-wallpaper --order cycle; has "$(foot | sed -n 3p)" $'\U000FF00C shuffle'; rc 0 kawa-wallpaper --order cycle; eq "$(kawa-state get wallpaper-order)" turn
+has "$(foot | sed -n 4p)" $'\U000FF00C both'; rc 0 kawa-wallpaper --from masters; has "$(foot | sed -n 4p)" $'\U000FF00C old masters'; rc 0 kawa-wallpaper --from cycle; has "$(foot | sed -n 4p)" $'\U000FF00C scenes'; rc 0 kawa-wallpaper --from both
+col() { foot | sed -n "$1p" | python3 -I -c 'import sys; print(sys.stdin.read().index("\U000FF00C"))'; }
+rc 0 kawa-wallpaper --rotate 1h; rc 0 kawa-wallpaper --from scenes; rc 0 kawa-wallpaper --order shuffle
+eq "$(col 2)" "$(($(col 4) - 0))" "the second value's dot under the second's, row to row"; eq "$(col 3)" "$(col 2)"
+rc 0 kawa-wallpaper --rotate off; rc 0 kawa-wallpaper --from both; rc 0 kawa-wallpaper --order turn
+rc 2 kawa-wallpaper --rotate maybe; rc 2 kawa-wallpaper --order maybe; rc 2 kawa-wallpaper --from maybe
 
-case_ "--next (its timer, every 4 hours): nothing while off; on, the pack's next picture after the one shown, round again at the end"
+case_ "--next (its timer, every hour): nothing while off; on, when its time has passed, the next picture after the one shown, round again at the end"
 setup
 art "$PACK/dark/ink-ridges-night.src" 1920x1080; art "$PACK/dark/moon-road-ink.src" 1920x1080; art "$PACK/light/ink-ridges.src" 1920x1080
 kawa-state set wallpaper-rotate off; rm -f "$STATE/wallpaper-dark"
 rc 0 kawa-wallpaper --next; [[ ! -e $STATE/wallpaper-dark ]] && _ok || _no "changed while off"
-kawa-state set wallpaper-rotate on
+kawa-state set wallpaper-rotate 4h
 rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:moon-road-ink "after the default: the next one fetched"
-rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:ink-ridges-night "after the last: the first again"
+rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:moon-road-ink "its time not passed: it stays"
+kawa-state set wallpaper-changed $((EPOCHSECONDS - 3 * 3600)); rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:moon-road-ink "three hours of four"
+kawa-state set wallpaper-changed $((EPOCHSECONDS - 4 * 3600)); rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:ink-ridges-night "after the last: the first again"
 eq "$(cat "$STATE/wallpaper-light")" pack:ink-ridges "a pair: both themes"
-grep -q 'OnUnitActiveSec=4h' "$REPO/configs/home/.config/systemd/user/kawa-wallpaper-next.timer" && _ok || _no "the timer: not every 4 hours"
+kawa-state set wallpaper-rotate 1h; kawa-state set wallpaper-changed $((EPOCHSECONDS - 3600)); rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:moon-road-ink "every hour"
+kawa-state set wallpaper-rotate daily; kawa-state set wallpaper-changed $((EPOCHSECONDS - 3600)); rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:moon-road-ink "daily: not yet"
+grep -q 'OnUnitActiveSec=1h' "$REPO/configs/home/.config/systemd/user/kawa-wallpaper-next.timer" && _ok || _no "the timer: not every hour"
 grep -q 'kawa-wallpaper-next.timer' "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "the timer is not started with the session"
-kawa-state set wallpaper-rotate off
+case_ "--next from a set: the old masters only, or all but them; shuffled: never the one shown"
+art "$PACK/dark/fudo-flames.src" 1920x1080; art "$PACK/dark/raijin-korin.src" 1920x1080
+kawa-state set wallpaper-rotate 1h; kawa-state set wallpaper-from masters; kawa-state unset wallpaper-changed
+rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:fudo-flames "the first old master"
+kawa-state unset wallpaper-changed; rc 0 kawa-wallpaper --next; eq "$(cat "$STATE/wallpaper-dark")" pack:raijin-korin "the next"
+kawa-state set wallpaper-from scenes; kawa-state unset wallpaper-changed; rc 0 kawa-wallpaper --next; [[ $(cat "$STATE/wallpaper-dark") != pack:@(fudo-flames|raijin-korin) ]] && _ok || _no "scenes: an old master"
+kawa-state set wallpaper-from masters; kawa-state set wallpaper-order shuffle
+for _ in 1 2 3 4; do was=$(cat "$STATE/wallpaper-dark"); kawa-state unset wallpaper-changed; rc 0 kawa-wallpaper --next; now=$(cat "$STATE/wallpaper-dark"); [[ $now != "$was" && $now == pack:@(fudo-flames|raijin-korin) ]] && _ok || _no "shuffled: $was then $now"; done
+kawa-state set wallpaper-rotate off; kawa-state set wallpaper-from both; kawa-state set wallpaper-order turn
+case_ "a pick of yours counts: the time runs from it"
+kawa-state unset wallpaper-changed; rc 0 kawa-wallpaper --set pack:moon-road-ink; v=$(kawa-state get wallpaper-changed); ((EPOCHSECONDS - v < 60)) && _ok || _no "wallpaper-changed: $v"
 
 case_ "Super+W, Enter on an odd name: set exactly, in one frame (no fade, nothing in between)"
 setup; picker
@@ -632,7 +673,7 @@ not_called '^fzf'
 # ── the preview pane ─────────────────────────────────────────────────────────
 # (the picker's previews always have the cell the window measured: --tui exports it; fzf
 # gives the pane's size)
-export KAWA_CELL=12x26 FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=18   # (its first line the rule: the picture's 17)
+export KAWA_CELL=12x26 FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=17
 pane() {   # pane CHOICE — what the picker's preview command shows (fzf's own command line, run)
   local cmd; cmd=$(args_of fzf "$(ncalls fzf)" | sed -n 's/^--preview=//p')
   [[ -n $cmd ]] || { echo "no --preview"; return 1; }
@@ -658,10 +699,10 @@ out=$(FZF_PREVIEW_COLUMNS=1 FZF_PREVIEW_LINES=1 kawa-wallpaper --preview pack:mo
 eq "$(cat "$TMP/err")" "" "a tiny pane: no error"
 case_ "--preview notes the pane's size (the cache draws ahead for it)"
 eq "$(cat "$PREVIEWS/geometry")" "12x26 78x17"
-case_ "the preview's own size: a whole fraction of the screen, centred in the pane, clear of its last line"
+case_ "the preview's own size: a whole fraction of the screen, centred across the pane and down to the window's hairline (as far as it lets: clear of its last line)"
 f=$PREVIEWS/1920x1080-12x26-$GD/$(key_of moon-road-ink).78x17.six
 [[ -s $f ]] && _ok || _no "not kept where the picker's command looks"
-eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;788;401' "640×360 (a third of 1080p) at 148,41 in a 936×442 pane"
+eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;788;416' "640×360 (a third of 1080p) at 148,56 in a 936×442 pane"
 
 case_ "in the picker (a cache hit): the preview is a cat of its sixel — no kawa-wallpaper run, under 100 ms"
 setup; picker
@@ -675,17 +716,15 @@ kawa-wallpaper --cache >/dev/null 2>&1
 KAWA_CELL=12x24 kawa-wallpaper --preview pack:moon-road-ink >"$TMP/want"
 printf '#!/bin/sh\necho RAN\n' >"$TMP/kbin/kawa-wallpaper"
 s=$EPOCHREALTIME; out=$(pane pack:moon-road-ink); e=$EPOCHREALTIME
-rule=${out%%$'\n'*}; pic=${out#*$'\n'}
-eq "$(sed 's/\x1b\[[0-9;]*m//g' <<<"$rule")" " $(printf '─%.0s' {1..76})" "the pane's first line: the rule, the content's first column to its last (76, as the heading's)"
-has "$rule" $'\e[38;5;19m' "(in the rule's ink, edge2)"
+pic=$out
 [[ $pic == $'\eP'* ]] && _ok || _no "no sixel: ${pic:0:40}"
 lacks "$out" RAN "kawa-wallpaper ran: not a hit"
 cmp -s <(printf '%s\n' "$pic") "$TMP/want" && _ok || _no "not the same picture as --preview draws"
-has "$(args_of fzf "$(ncalls fzf)")" "--preview-window=down,19,border-none,noinfo,~1"
+has "$(args_of fzf "$(ncalls fzf)")" "--preview-window=down,17,border-none,noinfo"
 (( (${e/./} - ${s/./}) < 100000 )) && _ok || _no "took $(( (${e/./} - ${s/./}) / 1000 )) ms"
 case_ "in the picker (a miss): --preview draws it"
 rm -f "$PREVIEWS"/*/"$(key_of moon-road-ink)".*.six
-eq "$(pane pack:moon-road-ink | sed 1d)" "RAN" "(under the rule)"
+eq "$(pane pack:moon-road-ink)" "RAN"
 case_ "your own picture not read yet: --preview (which reads it); once read, the next picker opens on a hit"
 cp "$REPO/bin/kawa-wallpaper" "$TMP/kbin/"; photo "$WP/mine.png"
 "$TMP/kbin/kawa-wallpaper" --tui "$TMP/out"

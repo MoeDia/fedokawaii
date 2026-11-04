@@ -89,9 +89,9 @@ local function how_old(file)
 end
 function Linemode:kawa()
 	local f = self._file
-	if LIST_W < 44 then return "" end
+	if LIST_W < 36 then return "" end
 	local big = amount(f, how_big(f), select(2, how_big(f)), 4, 2)
-	if LIST_W < 64 then return big end
+	if LIST_W < 52 then return big end
 	local age, unit = how_old(f)
 	return ui.Line { big, "  ", amount(f, age, unit, 3, 2) }
 end

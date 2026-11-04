@@ -576,17 +576,17 @@ out=$(y 120x40 <<'EOF'
 wait a.txt
 settle
 key ~
-wait Into the folder
+wait into the folder
 settle
 screen
 key <Esc>
 key <Esc>
-gone Into the folder
+gone into the folder
 quit
 EOF
 )
-has "$out" "Into the folder, or open the file(s)"; has "$out" "Drives: open or eject one"
-has "$out" "Go to your drives (~/Drives: one per open drive)"
+has "$out" "into the folder, or open the file(s)"; has "$out" "drives: open or eject one"
+has "$out" "go to your drives (~/Drives: one per open drive)"
 
 # ── a film: W watches it together ──────────────────────────────────────────────────────
 case_ "W on a film: Syncplay in a terminal window of its own (kawa-term kawa-together FILE)"
@@ -608,16 +608,16 @@ out=$(CWD=$TMP/films y 120x40 <<'EOF'
 wait night.mkv
 settle
 key ~
-wait Watch it together
+wait watch it together
 settle
 screen
 key <Esc>
 key <Esc>
-gone Watch it together
+gone watch it together
 quit
 EOF
 )
-has "$out" "Watch it together (Syncplay)"
+has "$out" "watch it together (Syncplay)"
 # ── the file dialog (kawa-pick): its own yazi, Enter and Esc, its title ─────────────────
 # (the dialog's yazi as kawa-pick runs it inside its window; the answer lands in $TMP/pk)
 pick() {   # pick MODE DIR [SIZE] — driven by the steps on stdin
@@ -794,7 +794,7 @@ EOF
 case_ "the heading a breadcrumb: the folders above, the one you are in — nothing cut, no \"…\"; an empty folder says so"
 # shellcheck disable=SC2088  # (the ~ yazi shows)
 has "$out" "~/work/deep/er ─" "the whole path, then the rule"
-out=$(y 120x30 <<'EOF'
+out=$(y 180x30 <<'EOF'
 wait a.txt
 settle
 screen
@@ -802,8 +802,8 @@ quit
 EOF
 )
 case_ "the list's columns: a file's size and age, right-aligned, their units after them"
-has "$(grep -F a.txt <<<"$out" | head -n1)" "6 B    3 d" "a.txt's size and age"
-has "$(grep -F b.txt <<<"$out" | head -n1)" "6 B    5 h" "b.txt's size and age"
+has "$(grep -F a.txt <<<"$out" | head -n1)" "6 B     3 d" "a.txt's size and age"
+has "$(grep -F b.txt <<<"$out" | head -n1)" "6 B     5 h" "b.txt's size and age"
 out=$(y 160x30 <<'EOF'
 wait a.txt
 settle
@@ -814,7 +814,7 @@ quit
 EOF
 )
 case_ "what has no picture: a card of its facts — its name, what it is, its size, when it changed, its rights"
-has "$out" "rights" "the card's last fact"; has "$out" "what    data" "the card's first"; lacks "$out" "File Type Classification" "yazi's own words gone"
+has "$out" "rights" "the card's last fact"; has "$out" "what     data" "the card's first"; lacks "$out" "File Type Classification" "yazi's own words gone"
 out=$(y 120x30 <<'EOF'
 wait a.txt
 settle
@@ -829,7 +829,9 @@ has "$out" "inner.txt" "sub dir's file in the preview"
 out=$(y 120x30 <<'EOF'
 wait a.txt
 settle
-key <Space><Space>
+key <Space>
+settle
+key <Space>
 settle
 screen
 quit
@@ -847,7 +849,9 @@ key r
 wait rename
 settle
 screen
-key <Esc><Esc>
+key <Esc>
+settle
+key <Esc>
 settle
 key d
 wait trash
@@ -861,13 +865,17 @@ settle
 key plan.pdf
 settle
 screen
-key <Esc><Esc>
+key <Esc>
+settle
+key <Esc>
 settle
 key ~
 wait a key or a word
 settle
 screen
-key <Esc><Esc>
+key <Esc>
+settle
+key <Esc>
 settle
 key g
 settle

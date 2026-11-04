@@ -128,14 +128,14 @@ declare -A L_CROP=() L_SUM=() L_PAIR=() L_SEC=()
 L_NAMES=()
 read_list() {   # read_list THEME — that theme's part of the list (L_NAMES, L_CROP, L_SUM, L_PAIR) and the
   # section each is under (L_SEC: the list's comment over it, "# ── dark: …" starting a theme's part)
-  local mode name pair crop sum _ here="" sec=""
+  local mode name pair crop sum rest here="" sec=""
   L_CROP=() L_SUM=() L_PAIR=() L_NAMES=() L_SEC=()
   [[ -r $LIST ]] || return 0
-  while read -r mode name pair crop sum _; do
+  while read -r mode name pair crop sum rest; do
     if [[ $mode == "#" ]]; then
       if [[ $name == ── ]]; then here=${pair%:}; sec=""
       elif [[ $here == "$1" ]]; then
-        sec="$name $pair $crop $sum $_"; sec=${sec%% — *}; sec=${sec%%:*}; sec=${sec% }; sec=${sec% }; sec=${sec#the }
+        sec="$name $pair $crop $sum $rest"; sec=${sec%% — *}; sec=${sec%%:*}; sec=${sec%"${sec##*[! ]}"}; sec=${sec#the }
       fi
       continue
     fi
@@ -562,9 +562,9 @@ LABEL=§                                                     # (a section's labe
 section() {   # section WORDS COUNT — a section's label, as its own row: the words muted at the icons' column, the
   # rule on to the values' column, how many it holds; the cursor passes it by
   local n s
-  n=$(( W - 1 - $(screen_cols "$1") - 2 - ${#2} - 2 )); ((n < 2)) && n=2
+  n=$(( W - 1 - $(screen_cols "$1") - 2 - ${#2} )); ((n < 2)) && n=2
   printf -v s '%*s' "$n" ''
-  printf '%s\t\t %s%s%s %s%s%s %s%s%s  ' "$LABEL" "$INK_MUTED" "$1" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF" "$INK_MUTED" "$2" "$INK_OFF"
+  printf '%s\t\t %s%s%s %s%s%s %s%s%s' "$LABEL" "$INK_MUTED" "$1" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF" "$INK_MUTED" "$2" "$INK_OFF"
 }
 sections() {   # the sections' names in the picker's order, a line each: the theme's own picture's, the old masters, the rest
   local name d=${DEFAULT_THEME_NAME:-}; local -A seen=()
@@ -774,6 +774,7 @@ case ${1:-menu} in
       --bind="down:down+transform:[[ {1} == $LABEL ]] && echo down" \
       --bind="up:up+transform:[[ {1} == $LABEL ]] && echo up" \
       --bind="focus:transform:[[ {1} == $LABEL ]] && echo down" \
+      --bind="home:first,end:last" \
       --bind="load:pos($pos)+unbind(load)") || exit 0
     # (load, not start: start comes before the list has arrived, and pos past what has arrived
     # yet lands short; once only. A section's label is passed by: a move onto it goes on, whatever made it)
