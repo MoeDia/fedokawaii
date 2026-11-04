@@ -129,10 +129,6 @@ keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Dri
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
-kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
-keep kawa-steam --watch </dev/null &              # game mode while a Steam game runs (until gaming moves into its VM: T35)
-kawa-steam --guard </dev/null &                   # Steam closed properly before a restart or shut down,
-                                                   #   whoever asks (its saves to Steam Cloud; STEAM=no: nothing)
 
 # away 15 minutes: the screensaver, the lock behind it (the first key or move ends the one
 # and brings up the other; the screensaver switched off in quick settings: the lock at once);

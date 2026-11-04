@@ -160,7 +160,7 @@ dry_packages() {   # the manifest's packages not installed yet, and the release 
   gpu=$(cat "$STATE_DIR/gpu" 2>/dev/null) || gpu=""
   [[ -n $gpu ]] || { if [[ $GPU != auto ]]; then gpu=$GPU; else gpu=$(hw_gpu); fi; }
   [[ $gpu == @(amd|intel) ]] || { log "GPU: '$gpu' — setup builds for amd or intel only (check says more)"; gpu=amd; }
-  while IFS= read -r p; do [[ -n $p ]] && ! rpm -q "$p" >/dev/null 2>&1 && miss+=("$p"); done < <(STEAM=$STEAM manifest_all "$gpu")
+  while IFS= read -r p; do [[ -n $p ]] && ! rpm -q "$p" >/dev/null 2>&1 && miss+=("$p"); done < <(manifest_all "$gpu")
   if ((${#miss[@]})); then log "would install ${#miss[@]} package(s) (the $gpu build): $(IFS=' '; echo "${miss[*]}")"
   else ok "every package of the manifest is installed"; fi
   [[ -n $user ]] || return 0

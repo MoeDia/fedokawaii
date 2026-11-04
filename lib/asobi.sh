@@ -53,7 +53,7 @@ asobi_system() {
   local s="$REPO_DIR/system/asobi" u; u=$(id -u "$ASOBI_USER")
   install -m 0755 "$s/kawa-asobi-root" /usr/local/sbin/kawa-asobi-root
   install -m 0755 "$s/kawa-asobi-session" /usr/local/bin/kawa-asobi-session
-  write_file /etc/systemd/system/kawa-asobi.service <"$s/kawa-asobi.service"
+  sed "s/ASOBI_UID/$u/g" "$s/kawa-asobi.service" | write_file /etc/systemd/system/kawa-asobi.service
   write_file /etc/systemd/system/kawa-asobi-watch.service <"$s/kawa-asobi-watch.service"
   write_file /etc/systemd/system/kawa-asobi-op@.service <"$s/kawa-asobi-op@.service"
   write_file /etc/pam.d/kawa-asobi <"$s/kawa-asobi.pam"
@@ -65,8 +65,10 @@ asobi_system() {
   # the world's user manager (its sound, its portals) behind the same walls as its session
   sed -n '/^# the walls/,/^RestrictSUIDSGID/p' "$s/kawa-asobi.service" \
     | { printf '# installed by setup.sh (s_asobi): the play world'"'"'s user manager behind the walls of its session\n[Service]\n'; grep -v '^#'; } \
+    | sed "s/ASOBI_UID/$u/g" \
     | write_file "/etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf"
   printf 'hz=%s\n' "${MONITOR_HZ:-144}" | write_file /etc/fedokawaii/asobi.conf
+  systemctl mask --quiet flatpak-add-fedora-repos.service   # (the package's own: no system-wide remote, ever)
   restorecon -R /etc/systemd/system/kawa-asobi* "/etc/systemd/system/user@$u.service.d" /etc/pam.d/kawa-asobi \
     /etc/polkit-1/rules.d/60-kawa-asobi.rules /etc/xkb /etc/gamemode.ini /etc/fedokawaii/asobi.conf \
     /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session 2>/dev/null || true
@@ -90,10 +92,49 @@ asobi_clean() {
   run btrfs subvolume snapshot -r "$ASOBI_HOME" "$ASOBI_SNAPS/clean"
 }
 
-s_asobi() {
+# Gaming left the desktop's account: Steam closed properly (its cloud saves), the games and their saves
+# moved into the world, so nothing is downloaded or lost again (copy-on-write: instant, no room taken),
+# and every trace of it out of this account. The saves' backup, ~/blasphemous-save-backup-20261022, stays.
+asobi_steam_move() {
+  local s=$TARGET_HOME/.local/share/Steam w=$ASOBI_HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam i
+  [[ -e $s || -e $TARGET_HOME/.steam ]] || return 0
+  if pgrep -u "$TARGET_USER" -x steam >/dev/null; then
+    as_user env "XDG_RUNTIME_DIR=/run/user/$TARGET_UID" steam -shutdown >/dev/null 2>&1 &
+    for ((i = 0; i < 120; i++)); do pgrep -u "$TARGET_USER" -x steam >/dev/null || break; sleep 0.25; done
+    pgrep -u "$TARGET_USER" -x steam >/dev/null && { log "Steam is still running in your account: it moves at the next run"; return 1; }
+  fi
+  if [[ -d $s ]]; then
+    install -d -o "$ASOBI_USER" -g "$ASOBI_USER" -m 0755 "$w" "$w/config"
+    for i in steamapps userdata; do
+      [[ -d $s/$i ]] && { cp -a --reflink=always -- "$s/$i" "$w/" || { log "the games could not move into the world (cp, above)"; return 1; }; }
+    done
+    [[ -f $s/config/config.vdf ]] && cp -a -- "$s/config/config.vdf" "$w/config/"
+    chown -R "$ASOBI_USER:$ASOBI_USER" "$ASOBI_HOME/.var"
+    restorecon -R "$ASOBI_HOME/.var"
+  fi
+  rm -rf -- "$TARGET_HOME/.steam" "$TARGET_HOME/.steampath" "$TARGET_HOME/.steampid" "$s" "$TARGET_HOME/.config/MangoHud" \
+    "$TARGET_HOME/.config/fedokawaii/steam-warm" "$TARGET_HOME/.local/state/fedokawaii/steam-proton"
+  log "Steam left your account: its games and saves are in the play world"
+}
+# what an older build put on the system for the host's own game mode (kawa-game, tuned's game profile)
+asobi_host_out() {
+  rm -rf /etc/tuned/profiles/fedokawaii-game
+  rm -f /etc/polkit-1/rules.d/60-fedokawaii-game.rules /etc/security/limits.d/60-fedokawaii-game.conf
+  rm -f "$(up_state_dir)/ge-proton"
+  asobi_steam_move
+}
+
+asobi_base() {
   asobi_account
   asobi_drop
   asobi_system
+}
+
+s_asobi() {
+  dnf_install "${PKG_ASOBI[@]}"
+  modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
+  asobi_base
   asobi_flatpaks
+  asobi_host_out
   asobi_clean
 }

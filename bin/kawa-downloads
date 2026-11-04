@@ -4,7 +4,7 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
 
     kawa-downloads           the menu (a click on the mark): downloads (its arrow) — a row each, its
                              source's glyph, its name, how much of how much, the percent; a
-                             click opens where it lands (Steam: its downloads page) · the
+                             click opens where it lands · the
                              foot: torrents (the search), while that window is not open
     kawa-downloads list      one line a download, tab-separated: SOURCE NAME DONE TOTAL WHERE
                              (bytes; TOTAL 0: not known yet)
@@ -27,7 +27,7 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
                              layout: its name, then "SOURCE · SIZE · click to open it");
                              a click opens WHERE
     kawa-downloads open SOURCE WHERE                 that: its folder in yazi, the file
-                             under the cursor (Steam: its downloads page)
+                             under the cursor
 
 The sources, each read where it already keeps its state (nothing asked of a running program):
   torrent  Torrents (torrra), while its window is open: kawa-torrra writes what it downloads
@@ -37,8 +37,6 @@ The sources, each read where it already keeps its state (nothing asked of a runn
            folder, one line a file — NAME DONE TOTAL WHERE — while it runs
   Brave    a .crdownload file in Brave's download folder: its size is what has come; how
            much will come, from Brave's own list (History, read without its lock)
-  Steam    a game in steamapps/downloading of each of Steam's libraries: how far, from its
-           appmanifest (BytesDownloaded of BytesToDownload)
 Exit: 0 · 1 it could not be done · 2 wrong use.
 """
 import ctypes
@@ -56,11 +54,10 @@ HOME = os.path.expanduser("~")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 STATE = os.path.join(RUN, "kawa-downloads")                  # torrra.PID: kawa-torrra's
 BRAVE = os.path.join(HOME, ".config/BraveSoftware/Brave-Origin/Default")
-STEAM = os.path.join(HOME, ".local/share/Steam")
 SIGNAL = 21                                                  # the bar's mark: SIGRTMIN+21
 BUSY = 2.0                                                   # seconds between looks while one runs
 WIDTH = 30                                                   # a name's columns in the menu
-GLYPH = {"torrent": "download", "Brave": "link", "Steam": "gamepad", "file": "archive"}
+GLYPH = {"torrent": "download", "Brave": "link", "file": "archive"}
 
 
 def icons():
@@ -156,43 +153,8 @@ def brave(folder):
     return out
 
 
-def steam_libraries():
-    try:
-        with open(os.path.join(STEAM, "steamapps/libraryfolders.vdf"), encoding="utf-8") as f:
-            return [os.path.join(p, "steamapps") for p in re.findall(r'"path"\s+"([^"]*)"', f.read())]
-    except OSError:
-        return []
-
-
-def acf(path):
-    try:
-        with open(path, encoding="utf-8", errors="replace") as f:
-            text = f.read()
-    except OSError:
-        return {}
-    out = {}
-    for k, v in re.findall(r'"(\w+)"\s+"([^"]*)"', text):
-        out.setdefault(k, v)
-    return out
-
-
-def steam(libs):
-    out = []
-    for lib in libs:
-        try:
-            ids = [i for i in os.listdir(os.path.join(lib, "downloading")) if i.isdigit()]
-        except OSError:
-            continue
-        for i in ids:
-            a = acf(os.path.join(lib, f"appmanifest_{i}.acf"))
-            done, total = int(a.get("BytesDownloaded", "0") or 0), int(a.get("BytesToDownload", "0") or 0)
-            if total and done < total:
-                out.append(("Steam", a.get("name", i), done, total, i))
-    return out
-
-
-def scan(folder, libs):
-    return torrents() + brave(folder) + steam(libs)
+def scan(folder):
+    return torrents() + brave(folder)
 
 
 # ── what they show ─────────────────────────────────────────────────────────────────────────
@@ -266,13 +228,13 @@ def follow():
         os._exit(0)
     for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         signal.signal(sig, bye)
-    ic, folder, libs = icons(), brave_folder(), steam_libraries()
+    ic, folder = icons(), brave_folder()
     items, looked, frame, shown, woke, beat = [], 0.0, 0, None, True, time.monotonic()
     try:
         while True:
             now = time.monotonic()
             if woke or now - looked >= BUSY:
-                items, looked, woke = scan(folder, libs), now, False
+                items, looked, woke = scan(folder), now, False
             line = bar_json(items, ic, frame if items else 0, lit())
             if line != shown:
                 print(line, flush=True)
@@ -348,16 +310,13 @@ def detached(cmd):
 
 
 def open_it(source, where):
-    if source == "Steam":
-        detached(["xdg-open", "steam://open/downloads"])
-        return
     # the file itself under yazi's cursor once it is there, else the folder it comes into
     detached(["kawa-term", "yazi", where if os.path.exists(where) else os.path.dirname(where)])
 
 
 def menu():
     ic = icons()
-    items = scan(brave_folder(), steam_libraries())
+    items = scan(brave_folder())
     rows, acts = [f"part\t{ic['download']}\tdownloads"], [None]
     for src, name, done, total, where in items:
         detail = f"{size(done)} of {size(total)}" if total else size(done)
@@ -406,11 +365,6 @@ def finished(item):
     src, _, _, _, where = item
     if src == "Brave":
         return os.path.exists(where) and not os.path.exists(where + ".crdownload")
-    if src == "Steam":
-        for lib in steam_libraries():
-            a = acf(os.path.join(lib, f"appmanifest_{where}.acf"))
-            if a:
-                return int(a.get("BytesDownloaded", "0") or 0) >= int(a.get("BytesToDownload", "0") or 0) > 0
     return False                                             # (torrents: kawa-torrra says it)
 
 
@@ -421,24 +375,21 @@ def watch():
         print("kawa-downloads: no inotify", file=sys.stderr)
         return 1
     os.makedirs(STATE, mode=0o700, exist_ok=True)
-    folder, libs = brave_folder(), steam_libraries()
+    folder = brave_folder()
     watched = set()
 
     def add(path, mask=CHANGES):
         if path not in watched and libc.inotify_add_watch(fd, os.fsencode(path), mask) >= 0:
             watched.add(path)
 
-    def watches():   # (a Steam library's downloading/ comes and goes: watched once it is there)
+    def watches():
         add(STATE, CHANGES | IN_CLOSE_WRITE)
         add(folder)
-        for lib in libs:
-            add(lib, CHANGES | IN_CLOSE_WRITE)
-            add(os.path.join(lib, "downloading"))
     ic = icons()
     before, shown = {}, None
     while True:
         watches()
-        items = scan(folder, libs)
+        items = scan(folder)
         now = {(i[0], i[4]): i for i in items}
         for k, i in before.items():
             if k not in now and finished(i):
@@ -467,11 +418,11 @@ def main(a):
     if cmd == "menu" and len(a) <= 1:
         return menu()
     if cmd == "list" and len(a) == 1:
-        for i in scan(brave_folder(), steam_libraries()):
+        for i in scan(brave_folder()):
             print("\t".join(str(x) for x in i))
         return 0
     if cmd == "bar" and len(a) == 1:
-        print(bar_json(scan(brave_folder(), steam_libraries()), icons(), 0, lit()))
+        print(bar_json(scan(brave_folder()), icons(), 0, lit()))
         return 0
     if cmd == "bar" and a[1:] == ["--follow"]:
         return follow()

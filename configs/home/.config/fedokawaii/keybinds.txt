@@ -60,7 +60,7 @@ Super+scroll            volume ±2 % (or scroll over it in the bar)
 Super+] / Super+[       monitor brightness up / down (DDC/CI)
 Brightness keys         the same, on keyboards that have them
 Alt+Shift               keyboard layout: us / ar (shown in the bar)
-Right Shift+F12         game overlay (MangoHud) on / off
+Super+G                 the play world (ASOBI), and back
 ── terminal (foot + bash) ─────────────────────────────────────────
 Ctrl+Shift+N            new terminal in this folder
 Ctrl+Shift+Z / X        jump to previous / next prompt
@@ -81,7 +81,7 @@ plug one in             it opens; click its notice for its files
 the bar's drive mark    open or eject a drive (quick settings too)
 eject first             unplug once it says "safe to unplug"
 ── session ────────────────────────────────────────────────────────
-Super+Ctrl+Shift+Q      log out, no menu (Steam closed properly first)
+Super+Ctrl+Shift+Q      log out, no menu
 Ctrl+Alt+F2…F6          text consoles (Ctrl+Alt+F1: back here)
 ── drawing tablet: its pen in Sketch (Xournal++) ──────────────────
 pen tip                 draw: press harder for a thicker line

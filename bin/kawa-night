@@ -9,14 +9,13 @@
 #   kawa-night on | off
 #   kawa-night warmer     one step warmer (on), 500 K a step: 5500 … 2500 K
 #   kawa-night cooler     one step cooler (on)
-#   kawa-night restore    as last set (autostart, at login; game mode at a game's end)
-#   kawa-night pause      off for now, what you set kept (game mode: a game's own colours)
+#   kawa-night restore    as last set (autostart, at login)
 # Exit: 0 · 1 gammastep missing or would not start (said in a notice) · 2 wrong use.
 set -u
 case ${1:-} in
-  ""|toggle|on|off|warmer|cooler|restore|pause) ;;
+  ""|toggle|on|off|warmer|cooler|restore) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-night [toggle|on|off|warmer|cooler|restore|pause]" >&2; exit 2 ;;
+  *) echo "usage: kawa-night [toggle|on|off|warmer|cooler|restore]" >&2; exit 2 ;;
 esac
 STATE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/night
 STEPS=(5500 5000 4500 4000 3500 3000 2500)
@@ -58,5 +57,4 @@ case ${1:-} in
   warmer)  step 1; power=on; keep; start ;;
   cooler)  step -1; power=on; keep; start ;;
   restore) if [[ $power == on ]]; then start; else stop; fi ;;
-  pause)   stop ;;
 esac

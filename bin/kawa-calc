@@ -39,7 +39,7 @@ start
 # answer EXPR → qalc's answer on stdout (nothing: no answer — not a sum, or qalc says no)
 answer() {
   local e=$1 l out="" w
-  [[ $e == *[0-9]* ]] || return 0                   # (a word alone is no sum: "steam" is not one)
+  [[ $e == *[0-9]* ]] || return 0                   # (a word alone is no sum: "hello" is not one)
   w=${e%% *}; w=${w,,}
   # (qalc's own commands are its prompt's, Ctrl+Q: never sent from here — "exit" would end it)
   [[ $w == @(quit|exit|set|save|store|assume|base|mode|help|list|find|info|delete|keep|unkeep|function|variable|rpn|stack|clear|history|exrates|swap|rotate|copy|move|pop|to|convert|factor|expand|partial|simplify|approximate|exact) ]] && return 0

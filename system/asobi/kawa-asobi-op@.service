@@ -2,8 +2,8 @@
 # a reset, a delete, its status (the instance names it; kawa-asobi-root checks it). The only way
 # the desktop's user reaches root for the world: polkit lets it start these, nothing else.
 [Unit]
-Description=ASOBI: %I
+Description=ASOBI: %i
 
 [Service]
 Type=oneshot
-ExecStart=/usr/local/sbin/kawa-asobi-root op %I
+ExecStart=/usr/local/sbin/kawa-asobi-root op %i

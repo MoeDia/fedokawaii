@@ -55,8 +55,6 @@ ALLOWED=(
   ".ssh|OpenSSH reads only ~/.ssh"
   ".gnupg|gpg's keys (elsewhere, its agent's sockets would no longer start by themselves)"
   ".pki|Brave's certificate store (Chromium writes ~/.pki/nssdb: no setting moves it)"
-  ".steam|Steam's links into its folder (Steam makes them again at every start)"
-  ".steampath|Steam's" ".steampid|Steam's"
 )
 # an older version's files in your home: PATH|what it was (a * matches as the shell does).
 # Only these; ~/.config/scriptorium (settings you may have changed) is kept in

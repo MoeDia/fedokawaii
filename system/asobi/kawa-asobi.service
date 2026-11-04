@@ -37,6 +37,7 @@ Restart=no
 ProtectHome=tmpfs
 BindPaths=/home/asobi
 BindPaths=/home/.asobi/drop
+BindPaths=/run/user/ASOBI_UID
 PrivateTmp=yes
 PrivateIPC=yes
 ProtectProc=invisible

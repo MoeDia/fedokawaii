@@ -170,7 +170,6 @@ place() {
 # ── 1. home tree ─────────────────────────────────────────────────────────────
 while IFS= read -r -d '' f; do
   rel=${f#"$REPO_DIR/configs/home/"}
-  [[ $STEAM != yes && ( $rel == .config/MangoHud/* || $rel == .local/share/applications/steam.desktop ) ]] && continue   # the game overlay, Steam's entry: with Steam only
   set_aside "$rel" "$f" && continue        # repair took it out (it broke something): until it changes
   place "$f" "$TARGET_HOME/$rel" user
 done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
@@ -266,6 +265,11 @@ retire .config/spotify-player/theme.toml 'spotify_player'
 #   Agents once: the desktop's own seals (current/apps) took their place
 retire .local/share/fedokawaii/icons/yazi.png ''
 retire .local/share/fedokawaii/icons/herdr.png ''
+# (gaming left this account for the play world, lib/asobi.sh: the host's game mode and its overlay)
+retire .local/bin/kawa-steam 'kawa-steam'
+retire .local/bin/kawa-game 'kawa-game'
+retire .config/MangoHud/MangoHud.conf ''
+retire .local/share/applications/steam.desktop 'kawa-steam'
 #   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
 #   the folder is now a link to the Sumi pointers of the theme in use (2c)
 retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'

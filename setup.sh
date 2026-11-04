@@ -65,6 +65,7 @@ source "$REPO_DIR/lib/hardware.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
 source "$REPO_DIR/lib/update.sh"
+source "$REPO_DIR/lib/asobi.sh"
 load_conf "$REPO_DIR"
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
@@ -770,14 +771,11 @@ EOF
   # then the sleep), not logind's, which would sleep first and lock as it wakes; any other
   # sleep waits for the lock (swayidle's before-sleep: kawa-lock waits up to 10 s).
   # (Some keyboards' Sleep key sends KEY_SUSPEND, which logind takes for the hibernate key:
-  # that one is dwl's too.) And a restart or shut down, whoever asks, waits for Steam to close
-  # properly while the desktop still runs (kawa-steam --guard: it sends your games' saves to
-  # Steam Cloud as it closes, done in a few seconds) — logind's wait for both, 25 s at most
+  # that one is dwl's too.)
   write_file /etc/systemd/logind.conf.d/90-fedokawaii.conf <<'EOF'
 # Fedokawaii — the Sleep key is the desktop's (locked, then asleep), whichever key code it
 # sends (KEY_SLEEP: logind's suspend key; KEY_SUSPEND: its hibernate key); a sleep from
-# elsewhere waits for the lock, a restart or shut down for Steam to close properly (its saves
-# to Steam Cloud). Read by systemd-logind when it starts: from the next start
+# elsewhere waits for the lock. Read by systemd-logind when it starts: from the next start
 [Login]
 HandleSuspendKey=ignore
 HandleSuspendKeyLongPress=ignore
@@ -975,9 +973,9 @@ waiting_retry() {
   done < <(waiting copr)
   while IFS= read -r p; do
     [[ -n $p ]] || continue
-    # (no longer wanted: another GPU now, Steam's 32-bit ones with STEAM=no, or RPM Fusion's
+    # (no longer wanted: another GPU now, the 32-bit ones host Steam took, or RPM Fusion's
     # Vulkan driver, which Fedora's replaced — vulkan_fedora)
-    if [[ ( $p == mesa-* && $(cat "$STATE_DIR/gpu" 2>/dev/null) != amd ) || ( $p == *.i686 && $STEAM != yes ) \
+    if [[ ( $p == mesa-* && $(cat "$STATE_DIR/gpu" 2>/dev/null) != amd ) || $p == *.i686 \
           || $p == mesa-vulkan-drivers-freeworld* ]]; then
       wait_del rpmfusion "$p"; continue
     fi
@@ -1844,8 +1842,7 @@ EOF
 #   host-only ones (this machine's drivers only: amdgpu stays in, the splash draws with it)
 # · a service has 15 s to stop (systemd's default is 90 s: a hung one held every shut down a
 #   minute and a half), one of yours 10 s — Prowlarr's container 20 s (podman's own 10 s,
-#   then its removal), Steam 25 s (kawa-steam's scope: its cloud saves); your whole user
-#   manager 30 s (user_stop). Steam's guard (a delay lock, logind's 25 s) runs before any of it
+#   then its removal); your whole user manager 30 s (user_stop)
 # · Btrfs mounted noatime: a read writes nothing (relatime still writes a file's first read
 #   of a day — on Btrfs a metadata copy, which also makes every snapshot grow apart)
 s_pace() {
@@ -1860,7 +1857,7 @@ s_pace() {
 DefaultTimeoutStopSec=15s
 EOF
   write_file /etc/systemd/user.conf.d/90-fedokawaii.conf <<'EOF'
-# Fedokawaii — a service of yours has 10 s to stop (Prowlarr 20 s, Steam 25 s: their own); the
+# Fedokawaii — a service of yours has 10 s to stop (Prowlarr 20 s: its own); the
 # whole user manager 30 s (user@.service.d/fedokawaii.conf). From the next start
 [Manager]
 DefaultTimeoutStopSec=10s
@@ -1991,78 +1988,9 @@ dev_update() {   # update: the CPython uv installed to its newest release, Rust'
   return "$rc"
 }
 
-s_gaming() {
-  [[ $STEAM == yes ]] || return 0
-  # Steam needs 32-bit Mesa: Fedora's Vulkan driver, named, so that no other build of it is
-  # picked for Steam; on AMD also RPM Fusion's VA driver, as the 64-bit one (out of step with
-  # Fedora's Mesa, it waits with its 64-bit one — Fedora's stands in, through Steam itself)
-  local x=mesa-va-drivers-freeworld.i686
-  dnf_install mesa-vulkan-drivers.i686
-  if [[ $(cat "$STATE_DIR/gpu" 2>/dev/null) == amd ]]; then
-    if grep -qx "${x%.i686}" < <(waiting rpmfusion); then wait_add rpmfusion "$x"   # (its 64-bit one waits: so does it)
-    else rf_need "$x"; fi
-  fi
-  dnf_install "${PKG_GAMING[@]}"
-  modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
-  game_mode                                       # game mode's profile, rights and priority
-  # GE-Proton comes from GitHub: down, or changed in a way this cannot follow, it must not
-  # stop the build — Steam has its own Proton meanwhile, and update tries again
-  contained install_ge_proton
-  ((CONTAINED_RC == 0)) || log "GE-Proton is not installed yet (why: above, or $LOG_FILE) — Steam's own Proton works meanwhile; update tries again"
-}
-
-# game_mode — game mode (kawa-game: a Steam game seen by the bar's watch, or `kawa-game run`):
-#   · the tuned profile fedokawaii-game — the desktop's own, with the AMD card at its full
-#     clocks (by its PCI address: card numbers can move; written again by repair). tuned is
-#     the one owner of the CPU and the card's level: kawa-game only switches profiles, and
-#     tuned puts the card's level back when it leaves the profile
-#   · the polkit rule letting you (and only you) switch between the two profiles, stop and
-#     start the background jobs' timers and freeze the report (kawa-game's TIMERS, REPORT)
-#   · a game may run at a higher priority than your other programs: nice down to -5
-game_mode() {
-  local pci gpu=""
-  if pci=$(hw_discrete_amd_pci); then
-    gpu="
-[sysfs]
-# the AMD card at its full clocks while a game runs (put back by tuned when the profile changes)
-/sys/bus/pci/devices/$pci/power_dpm_force_performance_level=high"
-  fi
-  write_file /etc/tuned/profiles/fedokawaii-game/tuned.conf <<CONF
-# /etc/tuned/profiles/fedokawaii-game/tuned.conf — installed by setup.sh (game_mode): the
-# profile while a game runs (kawa-game switches to it and back). The CPU as the desktop's own
-# profile has it: full performance always.
-[main]
-summary=fedokawaii while a game runs: the desktop's profile, the graphics card at its full clocks
-include=fedokawaii
-$gpu
-CONF
-  write_file /etc/polkit-1/rules.d/60-fedokawaii-game.rules <<RULES
-// installed by setup.sh (game_mode) — game mode's rights (kawa-game), $TARGET_USER's alone
-polkit.addRule(function (action, subject) {
-  if (subject.user != "$TARGET_USER") return polkit.Result.NOT_HANDLED;
-  // tuned's profile: kawa-game switches between the desktop's and the game's (tuned: the CPU's
-  // and the card's one owner)
-  if (action.id == "com.redhat.tuned.switch_profile") return polkit.Result.YES;
-  // the background jobs held back while a game runs (freeze asks "stop", thaw "start")
-  var held = ["snapper-timeline.timer", "snapper-cleanup.timer", "fedokawaii-scrub.timer",
-              "fstrim.timer", "fedokawaii-kernels.timer", "fedokawaii-report.service"];
-  if (action.id == "org.freedesktop.systemd1.manage-units" &&
-      held.indexOf(action.lookup("unit")) >= 0 &&
-      (action.lookup("verb") == "start" || action.lookup("verb") == "stop"))
-    return polkit.Result.YES;
-  return polkit.Result.NOT_HANDLED;
-});
-RULES
-  write_file /etc/security/limits.d/60-fedokawaii-game.conf <<LIMITS
-# installed by setup.sh (game_mode): a game may run ahead of your other programs (kawa-game
-# renices it to -5; from the next login)
-$TARGET_USER - nice -5
-LIMITS
-}
-
 s_groups() { usermod -aG video,render "$TARGET_USER"; input_group_out; }   # (subuids: s_torrents)
 # Earlier builds put you in the input group too. Nothing here needs it — logind hands the
-# session its keyboard and mouse, Steam's rules (steam-devices) open a controller — and while
+# session its keyboard and mouse, the world's seat session has the controller — and while
 # you are in it, any program you run can read every key you press. Taken out once, and said;
 # put back by hand (a controller no game sees: handbook §21.1), it stays — the record says so
 input_group_out() {
@@ -2127,12 +2055,8 @@ s_gate() {
   # packages left twice by a transaction a power cut stopped (a restart mid-phase): the older go
   tidy_duplicates || log "dnf could not tidy packages installed twice — verify names them"
   # (a driver package phase 2 could not install, or a device plugged in since: tried again —
-  # so are the parts that come from GitHub and may not have come: GE-Proton, the file dialog)
+  # so is the part that comes from GitHub and may not have come: the file dialog)
   s_hardware_setup
-  if [[ $STEAM == yes && -z $(up_tag ge-proton) ]]; then
-    contained install_ge_proton
-    ((CONTAINED_RC == 0)) || log "GE-Proton is still not installed — Steam's own Proton works meanwhile; update tries again"
-  fi
   tfc_current || s_filechooser
   syncplay_current || s_syncplay
   localsend_current || s_localsend
@@ -2554,7 +2478,7 @@ phase3() {
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
   step "3.09 LazyVim + plugins"                        s_lazyvim
   step "3.09b Python (uv) and Rust (rustup) to learn with" s_dev
-  step "3.10 Steam + GE-Proton"                        s_gaming
+  step "3.10 the play world: asobi (Steam, Bottles)"   s_asobi
   step "3.11 groups"                                   s_groups
   step "3.12 theme (only if chosen)"                   s_theme
   step "3.12b one kernel (the newest)"                 one_kernel
@@ -2796,20 +2720,16 @@ manifest_sync() {
     mapfile -t mine < <(printf '%s\n' "${mine[@]}" | sort -u)
     run dnf -y mark user "${mine[@]}" >/dev/null || true
   fi
-  # retired, or Steam's once STEAM is no: handed back to dnf (dnf autoremove clears them when
-  # nothing needs them — Steam's games and settings in your home stay)
+  # retired: handed back to dnf (dnf autoremove clears them when nothing needs them)
   local back=("${RETIRED_PKGS[@]}")
-  [[ $STEAM == yes ]] || back+=("${PKG_GAMING[@]}")
   for p in "${back[@]}"; do
     if grep -qx "$p" <<<"$ui" && ! grep -qx "$p" "$STATE_DIR/baseline-userinstalled"; then run dnf -y mark dependency "$p" || true; fi
   done
-  # (and the 32-bit drivers Steam's step added — by arch: the 64-bit ones stay)
-  if [[ $STEAM != yes ]]; then
-    local gi=()
-    mapfile -t gi < <(dnf repoquery --userinstalled --qf '%{name}.%{arch}\n' 2>/dev/null \
-                      | grep -xE 'mesa-va-drivers-freeworld\.i686|mesa-vulkan-drivers\.i686' || true)
-    if ((${#gi[@]})); then run dnf -y mark dependency "${gi[@]}" || true; fi
-  fi
+  # (and the 32-bit drivers host Steam took — by arch: the 64-bit ones stay; the world's own are its runtime's)
+  local gi=()
+  mapfile -t gi < <(dnf repoquery --userinstalled --qf '%{name}.%{arch}\n' 2>/dev/null \
+                    | grep -xE 'mesa-va-drivers-freeworld\.i686|mesa-vulkan-drivers\.i686' || true)
+  if ((${#gi[@]})); then run dnf -y mark dependency "${gi[@]}" || true; fi
   for p in "${FORBIDDEN_PKGS[@]}"; do if pkg_installed "$p"; then bad+=("$p"); fi; done
   if ((${#bad[@]})); then
     # never at the cost of something the desktop needs: what would go with them is looked at first
@@ -2923,7 +2843,7 @@ update_steps() {
   step_on "LocalSend" install_localsend
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
-  if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
+  step_on "the play world (its Flatpaks at their newest)" s_asobi
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
   # (before the theme: its notices' config is written for this mako — an older one would not start)
   if ! mako_current; then step_on "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" build_mako; fi
@@ -3230,6 +3150,7 @@ r_hygiene() {
   fi
   lpf_leftovers_out || rc=1                        # (what lpf's removal leaves: its account and folder)
   easyeffects_note                                 # (EasyEffects retired: your presets said where they stay)
+  asobi_host_out || rc=1                           # (gaming left this account for the play world)
   while IFS= read -r u; do
     [[ -n $u ]] || continue
     rm -rf -- "$u" && log "removed what a stopped run left: $u"
@@ -3365,7 +3286,6 @@ r_user() {       # the user's session plumbing: linger and its stop, the bus, gr
   loginctl enable-linger "$TARGET_USER"
   user_stop
   s_groups
-  if [[ $STEAM == yes ]]; then game_mode; fi
   wait_until 30 test -S "/run/user/$TARGET_UID/bus"   # (linger's systemd, a moment after it is on)
   if [[ -e $sec && ! -L $sec ]]; then
     [[ $(stat -c %u "$sec") == "$TARGET_UID" ]] || chown -h "$TARGET_UID:$TARGET_GID" "$sec"
@@ -3399,7 +3319,6 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
-  if [[ $STEAM == yes ]]; then install_ge_proton || rc=1; fi
   return "$rc"
 }
 # dwl itself: its own wlroots, the libraries under both, and the binary — built again from the
@@ -3502,8 +3421,10 @@ heal_all() {
   heal "the time zone ($TIMEZONE)" timedatectl set-timezone "$TIMEZONE"
   heal "inbound SSH ($SSH_SERVER) and the torrent port" r_ports
   heal "your session (linger, groups, fonts, secrets.sh mode)" r_user
+  heal "the play world (its user, its walls, its units)" asobi_base
+  ((net)) && heal "the play world's programs (Steam, Bottles)" asobi_flatpaks
   ((net)) && heal "dwl (its wlroots, libraries, binary)" r_dwl
-  ((net)) && heal "release binaries, fonts, Syncplay, ble.sh and GE-Proton" r_upstream
+  ((net)) && heal "release binaries, fonts, Syncplay, ble.sh" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" r_mako
   ((net)) && heal "torrra" torrra_up
@@ -3590,7 +3511,7 @@ trial_run() {
   step "T11 fonts, toolkit themes"        s_look
   step "T12 applications"                 s_apps
   step "T12b virtual machines"            s_virt
-  step "T13 Steam and its 32-bit Mesa"    s_gaming
+  step "T13 the play world"               s_asobi
   step "T14 release downloads (checksummed)" s_upstream
   local s; for s in "${TRIAL_SKIPPED[@]}"; do log "skipped (a booted machine's): $s"; done
   run_summary "container trial: every package step done"

@@ -45,10 +45,10 @@ scopes() { systemctl list-units --no-legend --plain --type=scope "session-*.scop
 # machine (a socket of anyone but the world, through the loopback or this machine's own
 # addresses — the DNS stub excepted), not the machines on the local network. Only while it runs:
 # nothing else is ever in nftables' table. (socket cgroupv2 is read at load: the world's user
-# slice exists by now — PAM has not run yet, so it is made first.)
+# manager makes the slice real — PAM has not run yet, so it is started first.)
 wall_up() {
   local u; u=$(uid)
-  systemctl start "user-$u.slice" || fail "the world's slice would not start"
+  systemctl start "user@$u.service" || fail "the world's user manager would not start"
   nft -f - <<NFT || fail "the network's wall would not load (nft, above): the world stays closed"
 table inet kawa_asobi
 delete table inet kawa_asobi
@@ -68,6 +68,35 @@ table inet kawa_asobi {
 NFT
 }
 wall_down() { nft delete table inet kawa_asobi 2>/dev/null; return 0; }
+# A device made through /dev/uinput (the seat's while the world is in front: Steam's virtual pads) is
+# ignored by every libinput while the world lives: the desktop's compositor never takes a key from it,
+# whatever a program of the world keeps open behind the desktop. Gamepads are read by the games
+# themselves, past libinput: Steam Input goes on working. Only while it runs (tools/uinput-key.py).
+input_wall_up() {
+  mkdir -p /run/udev/rules.d
+  printf '%s\n' 'SUBSYSTEM=="input", DEVPATH=="/devices/virtual/input/*", ENV{LIBINPUT_IGNORE_DEVICE}="1"' \
+    >/run/udev/rules.d/60-kawa-asobi.rules
+  udevadm control --reload
+}
+input_wall_down() { rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; return 0; }
+
+# ── the desktop while the world is in front: no saver, no lock, no sleep behind a game (kawa-idle waits
+# for a logind idle lock), and its notices held back, told at the return (kawa-hush: "3 notices while
+# you played") — a notice nobody can see would only time out
+INHIBIT=""
+as_desk() {
+  local u d; d=$(desk_user); u=$(id -u "$d") || return 1
+  runuser -u "$d" -- env "HOME=$(getent passwd "$d" | cut -d: -f6)" "XDG_RUNTIME_DIR=/run/user/$u" \
+    "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$u/bus" "PATH=$(getent passwd "$d" | cut -d: -f6)/.local/bin:/usr/local/bin:/usr/bin" "$@"
+}
+in_front() {
+  [[ -n $INHIBIT ]] || { systemd-inhibit --what=idle --who=asobi --why="the play world is in front" sleep infinity & INHIBIT=$!; }
+  as_desk kawa-hush on game 2>/dev/null
+}
+behind() {
+  [[ -n $INHIBIT ]] && { kill "$INHIBIT" 2>/dev/null; INHIBIT=""; }
+  as_desk kawa-hush off game 2>/dev/null
+}
 
 # ── freeze and thaw ──────────────────────────────────────────────────────────────────────────
 game_running() {   # a Steam game (its reaper) or a Windows program (Bottles' wineserver) in the world
@@ -122,6 +151,7 @@ prestart() {
   recover
   btrfs subvolume show "$WORLD" >/dev/null 2>&1 || fail "$WORLD is not there: the world cannot start (fedokawaii repair puts it back)"
   wall_up
+  input_wall_up
   gamemode_card
   drop_fix
   systemctl stop "${HELD[@]}" 2>/dev/null
@@ -133,6 +163,8 @@ poststop() {
   [[ $(front_vt) == "$WORLD_VT" ]] && chvt "$DESK_VT"
   loginctl terminate-user "$WHO" 2>/dev/null
   wall_down
+  input_wall_down
+  as_desk kawa-hush off game 2>/dev/null
   drop_fix
   systemctl start "${HELD[@]}" 2>/dev/null
   state off
@@ -146,8 +178,9 @@ while True:
     f.seek(0); print(f.read().strip(), flush=True); p.poll()
 ' | while read -r t; do
     if [[ $t == "tty$WORLD_VT" ]]; then
-      thaw; state front
+      thaw; state front; in_front
     else
+      behind
       drop_fix
       sleep 1            # (gamescope has given the card and the keyboard back by now)
       [[ $(front_vt) == "$WORLD_VT" ]] && continue

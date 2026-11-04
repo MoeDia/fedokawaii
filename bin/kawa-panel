@@ -2509,7 +2509,7 @@ def main(argv):
 
     def sum_of(text):
         """What qalc is asked for what is typed, or None: no digit (a word alone is no sum —
-        "steam" is not one), one of qalc's own commands; "15% of 2400" is qalc's "15% * 2400"."""
+        "hello" is not one), one of qalc's own commands; "15% of 2400" is qalc's "15% * 2400"."""
         e = text.strip()
         if not re.search(r"[0-9]", e) or NOT_SUMS.match(e.split()[0].lower()):
             return None
