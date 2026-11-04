@@ -105,7 +105,7 @@ def main():
                 s.clear_row(top + 12, s.left - 1, WIDTH + 2)
         elif not said and time.monotonic() - moved > STUCK:
             said = True
-            s.at(top + 12, s.left, "nothing has moved for 15 minutes. holding the power button is safe; start again.", MUTED)
+            s.at(top + 12, s.left, "nothing moved for 15 minutes. hold the power button, then start again.", MUTED)
         now = (state.word, state.count, int(state.percent))
         if now != drawn:
             drawn = now
