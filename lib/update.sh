@@ -583,11 +583,12 @@ up_boot() {
     if /usr/local/sbin/kawa-snap restore "$n"; then
       UP_END=restored; u_report
       up_tell "the last update was cut off half-way" "the system before it (snapshot $n) was put back — press update again when you like"
-      systemctl reboot
+      up_restart
     else up_tell "the last update was cut off half-way" "snapshot $n is the system before it, and could not be put back by itself: Super+U → snapshots → $n"; fi
   fi
 }
 up_tell() { as_user kawa-foryou add update-cut "$1" "$2" 2>/dev/null || log "$1 — $2"; }   # (a notice at login, kept until clicked)
+up_restart() { trap 'exit 0' TERM; systemctl reboot; }   # (the shutdown's own TERM is no interruption: nothing to continue, no "interrupted" on the screen)
 
 # ── probation: the start after an update (update-design §4.3). Its pinned snapshot stays until a
 # start has reached the desktop (grubenv's boot_success: Fedora's timer, two minutes into the

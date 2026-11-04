@@ -93,6 +93,7 @@ case_ "a damaged system: each failure named in place and in the list at the end,
 back built
 fkh_del installed grubby man-db                                           # the base tools, gone
 fkh_add installed nano; fkh_add userinstalled "htop User"; fkh_add installed htop   # forbidden; extra
+fkh_add installed systemd-import-keys; fkh_add userinstalled "systemd-import-keys User"; echo "systemd-import-keys systemd-container" >"$FKH/obsoletes"   # (split off a manifest package: not his, as on Fedora 45)
 fkh_del units "global-enabled wireplumber.service"                         # Fedora's preset undone
 fkh fw-services dhcpv6-client ssh cockpit                                  # cockpit open (closed whatever SSH_SERVER says)
 fkh kernels "6.18.1-200.fc44.x86_64" "6.18.2-200.fc44.x86_64" "6.18.44-fc-v114"
@@ -110,7 +111,7 @@ has "$(line "✘  missing packages")" grubby; has "$(line "✘  missing packages
 has "$OUT" "✘  forbidden packages present — nano"; has "$(line "✘  forbidden packages present")" systemd-oomd-defaults
 has "$OUT" "✘  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘  shutdown waits 30 s at most for your services"
 has "$OUT" "✘  the sound card never naps (no click at a volume change) — /etc/modprobe.d/fedokawaii-audio.conf missing"
-has "$OUT" "✘  installed outside the manifest — htop"
+has "$OUT" "✘  installed outside the manifest — htop"; lacks "$(line "✘  installed outside the manifest")" systemd-import-keys
 has "$OUT" "✘  user unit wireplumber.service enabled"
 has "$OUT" "✘  firewall: ssh open, no cockpit"
 has "$OUT" "✘  one kernel (two at most while a new one settles in)"

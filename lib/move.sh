@@ -257,6 +257,7 @@ do_after_upgrade() {
     step_on "torrra for the new Python" torrra_up
   fi
   step_on "the theme (dwl rebuilt if needed)" r_theme
+  step_on "the lock's quick answer (its PAM file: gtklock's new package writes its own)" lock_pam
   step_on "dnf's guard and what it knows (the new release's libraries)" guard_hooks
   step_on "Prowlarr (Podman may have moved its store)" prowlarr_up
   fixes_apply
@@ -307,5 +308,5 @@ move_undo() {   # move_undo FROM TO SNAPSHOT WHY — the system before the move,
   fi
   rm -f -- "$MOVE" "$MOVE_TOLD" "$MOVE_SET" "$UPD/snap"
   up_tell "the move to Fedora $to was undone: $(head -n1 <<<"$why")" "back on Fedora $from as it was (snapshot $snap); it is tried again after a month or with a newer toolkit"
-  systemctl reboot
+  up_restart
 }

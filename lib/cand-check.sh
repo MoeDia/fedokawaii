@@ -8,9 +8,54 @@ export LC_ALL=C
 red=0
 no() { echo "red: $*"; red=1; }
 user=${FK_USER:?}; home=$(getent passwd "$user" | cut -d: -f6)
-# every program's own check of the configs we own (system/kawa-fixer's table), a line for each red
-checks() { python3 -I /usr/local/sbin/kawa-fixer checks --user "$user" 2>&1 | sed -n 's/^red: //p'; }
-if [[ ${1:-} == --before ]]; then [[ ! -x /usr/local/sbin/kawa-fixer ]] || checks; exit 0; fi
+as_him() { runuser -u "$user" -- env HOME="$home" "$@"; }
+# what each program says of the configs we own, a line for each red
+configs() {
+  local fixer=${FK_FIXER:-/usr/local/sbin/kawa-fixer} out bad cmd g
+  if [[ -x $fixer ]]; then   # (its table: foot, mako, mpv, nvim, greetd, the bar's and the lock's CSS)
+    python3 -I "$fixer" checks --user "$user" 2>&1 | sed -n 's/^red: //p'
+  else
+    as_him foot --check-config >/dev/null 2>&1 || echo "foot does not take its config (foot --check-config)"
+    # nvim: its config and plugins at a real start; an error is words on stderr, the status stays 0
+    out=$(as_him timeout 60 nvim --headless -n -i NONE +qa 2>&1 </dev/null) || echo "nvim does not start (status $?)"
+    if bad=$(grep -E -m1 '(^|[^[:alnum:]])E[0-9]+:|^Error|stack traceback' <<<"$out"); then echo "nvim does not take its config: ${bad:0:200}"; fi
+  fi
+  # yazi: no check of its own, and --version reads nothing: a real start in a terminal of its own, then q
+  if [[ -x $home/.local/bin/yazi ]]; then
+    as_him TERM=foot python3 -I -B -c '
+import os, pty, select, sys, time
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv(sys.argv[1], sys.argv[1:])
+out, q, end = b"", time.time() + 1, time.time() + 30
+while time.time() < end:
+    if select.select([fd], [], [], 0.2)[0]:
+        try:
+            d = os.read(fd, 65536)
+        except OSError:
+            break
+        if not d:
+            break
+        out += d
+    if q and time.time() > q:
+        os.write(fd, b"q")
+        q = 0
+sys.exit(1 if b"parse error" in out or b"Caused by" in out else 0)
+' "$home/.local/bin/yazi" / </dev/null >/dev/null 2>&1 || echo "yazi does not take its config (a real start)"
+  fi
+  # greetd: no check of its own (greetd --help): its file read as TOML, what greetd(5) requires, the greeter there
+  g=${FK_GREETD:-/etc/greetd/fedokawaii.toml}
+  if [[ -e $g ]]; then
+    cmd=$(python3 -I -B -c '
+import shlex, sys, tomllib
+c = tomllib.load(open(sys.argv[1], "rb"))
+print(c["terminal"]["vt"] and shlex.split(c["default_session"]["command"])[0])
+' "$g" 2>/dev/null) || cmd=""
+    if [[ -z $cmd ]]; then echo "greetd cannot read ${g##*/}: not TOML, or no terminal.vt or default_session.command"
+    elif ! command -v "$cmd" >/dev/null; then echo "greetd's greeter is not there: $cmd"; fi
+  fi
+}
+if [[ ${1:-} == --before ]]; then configs; exit 0; fi
 # our own builds find every library they link (a move to a new Fedora: not asked — they are rebuilt
 # after it, and the test VM has shown that they build there: lib/move.sh)
 [[ -z ${FK_MOVE:-} ]] && for f in /usr/local/bin/dwl /usr/local/bin/mako /usr/local/lib/fedokawaii-wlroots-*/lib/*.so* \
@@ -48,11 +93,7 @@ for e in /boot/loader/entries/*.conf; do
 done
 # the configs we own, read by their programs' own checks: what this update made red (in a candidate
 # /run/fk-before says what was red before its packages — a container can make a program red by itself)
-if [[ -x /usr/local/sbin/kawa-fixer ]]; then
-  while IFS= read -r l; do
-    [[ -z $l ]] || grep -qF -- "${l%% — *} — " /run/fk-before 2>/dev/null || no "$l"
-  done < <(checks)
-else
-  runuser -u "$user" -- env HOME="$home" foot --check-config >/dev/null 2>&1 || no "foot does not take its config (foot --check-config)"
-fi
+while IFS= read -r l; do
+  [[ -z $l ]] || grep -qF -- "${l%% — *}" "${FK_BEFORE:-/run/fk-before}" 2>/dev/null || no "$l"
+done < <(configs)
 exit "$red"

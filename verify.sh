@@ -141,10 +141,15 @@ if ui=$(dnf repoquery --userinstalled --qf '%{name} %{reason}\n' 2>/dev/null) &&
   ui=$(awk 'NF < 2 || tolower($0) ~ / (external )?user$/ { print $1 }' <<<"$ui")
 elif ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) && [[ -n $ui ]]; then :; else ui=""; fi
 if [[ -n $ui ]]; then
-  # (the manifest by its names, and by the names its packages have now — Fedora renames some)
-  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
-                                             rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u) \
-           | grep -v '^kernel' | tr '\n' ' ')
+  # (the manifest by its names, and by the names its packages have now — Fedora renames some; what
+  # split off one of them reads "user" too, dnf hands it the reason of what it obsoletes: Fedora 45's
+  # systemd-import-keys, from systemd-container)
+  ours=$({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
+           rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u)
+  extras=""
+  while IFS= read -r p; do
+    rpm -q --qf '[%{OBSOLETENAME}\n]' "$p" 2>/dev/null | grep -qxF -- "$ours" || extras+="$p "
+  done < <(comm -23 <(sort -u <<<"$ui") <(echo "$ours") | grep -v '^kernel')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
 else fail "nothing user-installed beyond the manifest" "dnf repoquery failed"; fi
 check "no Flatpak, no Snap"                            bash -c 'command -v dnf && ! command -v flatpak && ! command -v snap'

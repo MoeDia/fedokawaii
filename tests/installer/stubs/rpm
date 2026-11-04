@@ -43,6 +43,8 @@ for n in "${names[@]}"; do
   if ((wp)); then p=$(provider "$n") || { echo "no package provides $n"; miss=$((miss+1)); continue; }
   else has installed "$n" && p=$n || { echo "package $n is not installed"; miss=$((miss+1)); continue; }; fi
   if ((list)); then awk -v p="$p" '$1 == p { print $2 }' "$FKH/files" 2>/dev/null; continue; fi
+  # (what it obsoletes: $FKH/obsoletes "NAME OLD")
+  if [[ $qf == *OBSOLETENAME* ]]; then awk -v p="$p" '$1 == p { print $2 }' "$FKH/obsoletes" 2>/dev/null; continue; fi
   if [[ -n $qf ]]; then printf '%s\n' "$p"; else echo "$p-1.0-1.fc44.x86_64"; fi
 done
 exit $miss
