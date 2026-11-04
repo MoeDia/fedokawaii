@@ -43,3 +43,18 @@ His words: "still not serious enough. DROP this whole pixelated act. Focus on th
 - Serious and ancient: nothing cute, flat or empty; detail everywhere.
 - Ownership: lane-ink paints the WHOLE lock artwork for both moods (figures, walls, carvings, torches, light layers) from public-domain masters and local generation as in its task, cleaned by hand into one style. lane-art stops lock work, hands over anything useful through its notes, and keeps the wallpapers. Main: the lock engine and the greeter show full-res painted layers (smooth scaling, never pixel scaling), the state images, and the animated light layers within the frame budget. lane-saver builds the saver from the same painting.
 - Candidates on his page (.claude/review/next/) before finishing: both moods, every state.
+
+## OWNER VERDICT 2026-11-04 20:32 on your render saver-dark.png: comment
+[Claude, art direction while the owner is away; his verdicts win] Two problems. (1) The removed figure left a blurred smear in the centre of both scenes (dark: a soft dark hole; light: a huge beige blur): it reads as a damaged picture. (2) The owner chose lane-ink's M1 (engraved Hannya mask) and M2 (Schongauer-style angel over Hokusai waves) as the masters at 19:25, not SD902/LA2, so the saver must follow those. Better idea than an empty wall: the SAME figure ASLEEP — the Hannya mask dimmed with its eyes closed (dark), the angel with her head bowed and wings folded (light) — so the saver is the lock's world at rest and the lock wakes it. Keep the torches breathing, embers and petals. The time seal: larger (about 3x), placed at a third of the frame, not floating mid-blur. Wait for lane-ink's finished M1/M2 locks (git fetch origin/lane-ink) and build on them.
+
+## OWNER VERDICT 2026-11-04 20:32 on your render saver-light.png: comment
+[Claude, art direction while the owner is away; his verdicts win] Same notes as saver-dark: no blurred hole; the angel (M2) asleep instead of removed; a bigger time seal at a third of the frame.
+
+## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.

@@ -69,7 +69,7 @@ static bool write_frame(const char *name, long at, const uint32_t *base, bool se
 					out[k] = over_px(a->frames[(size_t)y * (size_t)a->w * (size_t)a->n + (size_t)a->frame * (size_t)a->w + (size_t)x], out[k]);
 			}
 	}
-	if (all && !art.light)
+	if (all && art.haze)
 		lay(&haze, HAZE_DIV);
 	if (all)
 		lay(&air, AIR_DIV);
@@ -101,7 +101,7 @@ static bool write_frame(const char *name, long at, const uint32_t *base, bool se
 /* (a stamp, for the tests) */
 static void note_seal(void)
 {
-	if (seal_changed && seal_struck == 1)
+	if (seal_changed && seal_struck == SEAL_COOL - 1)
 		printf("seal %s %d %d\n", seal_digits, seal_x, seal_y);
 }
 
@@ -146,11 +146,9 @@ int main(int argc, char **argv)
 	if (!world_setup())
 		return 1;
 	size_t n = (size_t)art.w * (size_t)art.h;
-	char p[4200];
-	snprintf(p, sizeof p, "%s/%s", art.dir, art.wall);
 	int w = art.w, h = art.h;
-	if (!(paint = read_png(p, &w, &h, NULL))) {
-		fprintf(stderr, "kawa-saver-render: %s: no painting of %d × %d\n", p, art.w, art.h);
+	if (!(paint = malloc(n * 4)) || !paint_read(paint)) {
+		fprintf(stderr, "kawa-saver-render: %s/%s: no painting of %d × %d\n", art.dir, art.wall, art.w, art.h);
 		return 1;
 	}
 	if (under_file && !(under = read_png(under_file, &w, &h, NULL))) {

@@ -67,7 +67,7 @@ def look(name):
     marks = sum(tuple(got[n * ry + n // 2, n * (rx + pitch * i) + n // 2]) == core for i in range(rn))
     return same, marks
 s0, _ = look("saver"); s1, m1 = look("woke"); s2, m2 = look("typed")
-# (the seal: its red in the middle of the picture, an area as big as it)
+# (the seal: its red, an area as big as it, the digits cut out; a third of the frame: tests/look/test_saver.sh)
 ink = tuple(int(v, 16) for v in re.findall("..", re.search(r"^seal=(\w+)", conf, re.M).group(1)))
 shot = np.asarray(Image.open(f"{out}/saver.png").convert("RGB"), int)
 red = (np.abs(shot - ink).sum(-1) < 30).sum()
@@ -75,7 +75,7 @@ print(f"{s0 * 100:.0f} {s1 * 100:.2f} {m1} {s2 * 100:.2f} {m2} {red}")
 PY
 ) || { echo "saver-lock: the shots could not be read" >&2; exit 2; }
 read -r saver woke m1 typed m2 red <<<"$verdict"
-((red > 1500)) || { echo "saver-lock: no seal on the screensaver ($red pixels of its ink)" >&2; exit 1; }
+((red > 10000)) || { echo "saver-lock: no seal on the screensaver ($red pixels of its ink)" >&2; exit 1; }
 ((${saver%.*} < 90)) || { echo "saver-lock: the screensaver did not show over the lock ($saver % of the scene showing)" >&2; exit 1; }
 [[ ${woke%.*} -ge 99 ]] || { echo "saver-lock: after the first key the screen is not the lock's scene ($woke %)" >&2; exit 1; }
 ((m1 == 0)) || { echo "saver-lock: the key that ended the screensaver was typed ($m1 marks)" >&2; exit 1; }

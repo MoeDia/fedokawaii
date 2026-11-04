@@ -228,7 +228,7 @@ static void output_setup(struct output *o)
 	sub_make(o, &o->shade, 0, 0, art.w, art.h);
 	for (int i = 0; i < art.na; i++)
 		sub_make(o, &o->anims[i], art.anims[i].x, art.anims[i].y, art.anims[i].w, art.anims[i].h);
-	if (!art.light)
+	if (art.haze)
 		sub_make(o, &o->haze, 0, 0, art.w, art.h);
 	sub_make(o, &o->air, 0, 0, art.w, art.h);
 	sub_make(o, &o->seal, 0, 0, sealp.w, sealp.h);
@@ -287,7 +287,7 @@ static void show_step(double t)
 			goto clock;
 		for (int i = 0; i < art.na; i++)
 			sub_show(&o->anims[i], pic_frames[i][art.anims[i].frame].wl, 0, 0, art.anims[i].w, art.anims[i].h);
-		if (!art.light) {
+		if (art.haze) {
 			wl_surface_attach(o->haze.surface, pic_haze.wl, 0, 0);
 			for (int k = 0; k < art.nt; k++)
 				wl_surface_damage_buffer(o->haze.surface, haze_rect[k][0], haze_rect[k][1], haze_rect[k][2], haze_rect[k][3]);
@@ -700,13 +700,10 @@ int main(int argc, char **argv)
 	if (!world_setup())
 		return fail("out of memory");
 	/* the pictures: the painting whole, what opens (the painting not yet there: all clear), the layers */
-	char p[PATH_MAX + 64];
-	snprintf(p, sizeof p, "%s/%s", art.dir, art.wall);
 	if (!shm_make(&pic_paint, art.w, art.h) || !shm_make(&pic_open, art.w, art.h) || !shm_make(&pic_shade, shade.w, shade.h)
 			|| !shm_make(&pic_haze, haze.w, haze.h) || !shm_make(&pic_air, air.w, air.h) || !shm_make(&pic_seal, sealp.w, sealp.h))
 		return fail("out of memory");
-	int pw = art.w, ph = art.h;
-	if (!read_png(p, &pw, &ph, pic_paint.map))
+	if (!paint_read(pic_paint.map))
 		return fail("no painting (fedokawaii repair puts it back)");
 	shade.px = pic_shade.map, haze.px = pic_haze.map, air.px = pic_air.map, sealp.px = pic_seal.map;
 	open_tiles = calloc((size_t)((art.w + TILE - 1) / TILE) * (size_t)((art.h + TILE - 1) / TILE), 1);

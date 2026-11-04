@@ -1,25 +1,34 @@
 #!/usr/bin/env python3
-"""tools/build-saver.py — what kawa-saver needs from the lock's own art, per mood, in saver-scene.txt: the painting
-with no figure (lock-bare.png, the painter's; a scene of whole pixels, tools/build-lock.py's, its own bare scene
-scaled up: saver-wall.png), the fires and the lock's strips but those tied to the figure (fig-…), in the painting's
-pixels, and the time's seal (saver-seal.png). The saver opens onto the real lock when a key comes: it never holds the figure.
+"""tools/build-saver.py — what kawa-saver needs from the lock's own art, per mood, in saver-scene.txt: the lock's painting
+(lock-scene.png) and a patch over it with the figure asleep (saver-lids.png: the mask's eyes shut, re-cut by tools/build-ink.py's
+engraver; the angel's shut, her halo out), the flames (the painted flame itself moved in the heat: saver-flame-N.png) and the
+time's seal (saver-seal.png). A key opens the sleeper's picture onto the real lock: every pixel outside the patch is the lock's.
     python3 tools/build-saver.py [--art DIR]     DIR: the folder of dark/ and light/ (default the repository's)
-Run it after any change to the lock's art (tests/look/test_saver.sh says when it was forgotten). Needs python3-pillow."""
+Run it after any change to the lock's art (tests/look/test_saver.sh says when it was forgotten). Needs python3-pillow, numpy,
+scipy, and for the mask tools/build-ink.py's sources (art/ink/SOURCES.md)."""
 import argparse
 import hashlib
 import importlib.util
+import math
 import pathlib
-import sys
 
 import numpy as np
 from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from scipy import ndimage as ndi
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
-KEY = (255, 0, 255)                        # (a picture of whole pixels: where a flame has nothing)
-REACH = {"dark": 700, "light": 620}        # how far a fire's pool reaches, in pixels at 1920 × 1080
+REACH = {"dark": 560, "light": 620}        # how far a fire's pool reaches, in pixels at 1920 × 1080
 SIZE = (1920, 1080)
-SEAL = (62, 84)                            # the time's seal, in pixels: two rows of two digits
-DIGIT = (25, 34)                           # a digit's cell in it
+FIRES = {"dark": ((113, 192), (1789, 195)), "light": ((418, 200), (1528, 208))}   # the painted fires' middles
+FIGURE = {"dark": (960, 565, 560), "light": (1002, 420, 620)}   # where the sleeper breathes: its middle (the wake starts there), the reach of its light
+SPOTS = {"dark": ((1330, 720), (560, 400), (590, 720), (1360, 400)),    # where the seal lands, in turn across the frame: its thirds, clear of the figure
+         "light": ((1370, 720), (560, 400), (560, 720), (1370, 400))}
+FLAME = {"dark": (136, 196), "light": (176, 236)}   # a flame's frame round its fire, in pixels
+LOOPS = (14, 11)                           # a flame's frames, each fire its own count: they never beat together
+FLAME_MS = 84                              # a frame's time: a step of the saver's clock
+SEAL = (168, 228)                          # the time's seal, in pixels: two rows of two digits
+DIGIT = (68, 92)                           # a digit's cell in it
+SEAL_K = 2.7                               # (the seal's edge, its line and its wear are drawn at this many times their first size)
 DIGIT_FONT = "/usr/share/fonts/google-noto-vf/NotoSerif[wght].ttf"   # (its shapes baked in here: google-noto-serif-vf, OFL)
 
 
@@ -32,19 +41,38 @@ def words_of(path):
     return kv
 
 
-def pixel_scene(mood):
-    """the bare scene of tools/build-lock.py, a picture of whole pixels"""
-    sys.path.insert(0, str(ROOT / "tools"))
-    sys.dont_write_bytecode = True
-    spec = importlib.util.spec_from_file_location("build_lock", ROOT / "tools/build-lock.py")
-    bl = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(bl)
-    if mood == "dark":
-        return bl.dark_scene().convert("RGB")
-    ground, front, _ = bl.light_scene()
-    ground = ground.convert("RGBA")
-    ground.paste(front, (0, 0), front)
-    return ground.convert("RGB")
+def flame_strip(painting, fire, size, frames, seed):
+    """a looped strip of the painted flame moved in the heat: its pixels pushed sideways, more towards the tip, its tongues rising
+    and falling, the air close to it shimmering; nothing moves at the frame's edge (the frames lie on the same painting: no seam)"""
+    w, h = size
+    x0, y0 = fire[0] - w // 2, fire[1] - h // 2
+    crop = np.asarray(painting.crop((x0, y0, x0 + w, y0 + h)), np.float32)
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    lum, warm = crop.mean(-1), crop[..., 0] - crop[..., 2]
+    hot = np.clip((lum - 150) / 70, 0, 1) * np.clip((warm + 40) / 80, 0, 1)
+    hot *= np.clip(1.2 - np.hypot((xx - w / 2) / (w * .46), (yy - h / 2) / (h * .5)), 0, .2) * 5
+    heat = np.asarray(Image.fromarray((hot * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(9)), np.float32) / 255
+    heat = np.clip(heat / max(heat.max(), .01) * 1.7, 0, 1)
+    rows = np.nonzero(hot.max(1) > .5)[0]
+    tip, base = int(rows[0]), int(rows[-1])
+    up = np.clip((base - yy) / max(1, base - tip), 0, 1)
+    rng = np.random.default_rng(seed)
+    ph = rng.random(6) * 6.283
+    strip = np.zeros((h, w * frames, 4), np.uint8)
+    for f in range(frames):
+        t = f / frames * 2 * math.pi                 # (whole turns of it: the loop closes)
+        dx = up ** 1.3 * (6.5 * np.sin(yy / 27 - 2 * t + ph[0]) + 3.2 * np.sin(yy / 11 - 3 * t + ph[1]) + 2.4 * math.sin(t + ph[2]))
+        dy = up * (6.5 * math.sin(t + ph[3]) + 3.5 * math.sin(2 * t + ph[4]) + 1.6 * np.sin(xx / 9 + 3 * t + ph[5]))
+        sx, sy = np.clip(xx - dx * heat, 0, w - 1.001), np.clip(yy - dy * heat, 0, h - 1.001)
+        ix, iy = sx.astype(int), sy.astype(int)
+        fx, fy = (sx - ix)[..., None], (sy - iy)[..., None]
+        a = crop[iy, ix] * (1 - fx) + crop[iy, ix + 1] * fx
+        c = crop[iy + 1, ix] * (1 - fx) + crop[iy + 1, ix + 1] * fx
+        out = a * (1 - fy) + c * fy
+        out *= 1 + (heat * (.035 * math.sin(2 * t + ph[2]) + .02 * math.sin(3 * t + ph[4])))[..., None]
+        strip[:, f * w:(f + 1) * w, :3] = np.clip(out, 0, 255).astype(np.uint8)
+        strip[:, f * w:(f + 1) * w, 3] = (np.clip(heat * 9, 0, 1) * 255).astype(np.uint8)
+    return Image.fromarray(strip, "RGBA")
 
 
 def seal_atlas(path):
@@ -54,10 +82,10 @@ def seal_atlas(path):
     k = 4
     w, h = SEAL[0] * k, SEAL[1] * k
     yy, xx = np.mgrid[0:h, 0:w]
-    edge = np.minimum.reduce([xx, w - 1 - xx, yy, h - 1 - yy]) / k
+    edge = np.minimum.reduce([xx, w - 1 - xx, yy, h - 1 - yy]) / (k * SEAL_K)
     # (a coarse and a fine noise, smoothed: how the stone's edge wanders and where the ink took badly)
-    coarse = np.asarray(Image.fromarray((rng.random((h, w)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(k * 2.2)), float) / 255
-    fine = np.asarray(Image.fromarray((rng.random((h, w)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(k * 0.55)), float) / 255
+    coarse = np.asarray(Image.fromarray((rng.random((h, w)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(k * SEAL_K * 2.2)), float) / 255
+    fine = np.asarray(Image.fromarray((rng.random((h, w)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(k * 0.9)), float) / 255
     coarse = (coarse - coarse.mean()) / coarse.std()
     fine = (fine - fine.mean()) / fine.std()
     body = edge + coarse * 0.9 > 2.2                       # the edge
@@ -67,61 +95,139 @@ def seal_atlas(path):
     mottled = np.clip(0.93 + 0.05 * fine, 0.78, 1.0)
     alpha = np.where(a, mottled, 0.0)
     im = Image.fromarray((alpha * 255).astype(np.uint8)).resize(SEAL, Image.LANCZOS)
-    font = ImageFont.truetype(DIGIT_FONT, 33)
-    font.set_variation_by_name("Bold")
     strip = Image.new("L", (SEAL[0] + DIGIT[0] * 10, SEAL[1]), 0)
     strip.paste(im, (0, 0))
+    big = ImageFont.truetype(DIGIT_FONT, int(33 * SEAL_K * 4))
+    big.set_variation_by_name("Bold")
     for i in range(10):
         cell = Image.new("L", (DIGIT[0] * 4, DIGIT[1] * 4), 0)
-        big = ImageFont.truetype(DIGIT_FONT, 33 * 4)
-        big.set_variation_by_name("Bold")
         d = ImageDraw.Draw(cell)
         x0, y0, x1, y1 = d.textbbox((0, 0), str(i), font=big)
         d.text(((DIGIT[0] * 4 - (x1 - x0)) / 2 - x0, (DIGIT[1] * 4 - (y1 - y0)) / 2 - y0), str(i), font=big, fill=255)
+        # (cut by hand: the chisel's edge wanders a little, nothing like a typeface's)
+        a = np.asarray(cell.filter(ImageFilter.GaussianBlur(k * .7)), float) / 255
+        n = np.asarray(Image.fromarray((rng.random((DIGIT[1] * 4, DIGIT[0] * 4)) * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(k * 1.1)), float) / 255
+        cell = Image.fromarray(((a + (n - n.mean()) / n.std() * .10 > .5) * 255).astype(np.uint8))
         strip.paste(cell.resize(DIGIT, Image.LANCZOS), (SEAL[0] + i * DIGIT[0], 0))
     rgba = Image.merge("RGBA", (Image.new("L", strip.size, 255), Image.new("L", strip.size, 255), Image.new("L", strip.size, 255), strip))
     rgba.save(path, optimize=True)
 
 
-def build(d, mood):
+# ── the figure asleep ────────────────────────────────────────────────────────────────
+
+MASK_CROP = (652, 1330)                    # the mask's photograph (tools/build-ink.py's source): where these points were read from
+MASK_PLATES = (
+    # a gold eye plate's edge; its lash line: outer corner, inner corner, how far it sags
+    ([(82, 190), (92, 130), (118, 85), (150, 68), (200, 72), (260, 82), (330, 95), (400, 100), (470, 105), (510, 110), (530, 135), (542, 190),
+      (535, 240), (510, 280), (470, 310), (420, 330), (350, 332), (280, 315), (210, 285), (150, 255), (100, 225)], (96, 196), (534, 222), 84),
+    ([(716, 190), (725, 135), (745, 100), (800, 95), (880, 98), (950, 88), (1030, 75), (1090, 68), (1125, 80), (1148, 120), (1160, 170),
+      (1155, 225), (1120, 255), (1060, 285), (980, 310), (900, 325), (830, 325), (780, 300), (745, 260), (725, 225)], (722, 216), (1156, 186), 86),
+)
+LID_SKIN = np.array([.70, .46, .33], np.float32)   # the mask's own wood, round the plates
+
+
+def smooth(e0, e1, x):
+    t = np.clip((x - e0) / (e1 - e0), 0, 1)
+    return t * t * (3 - 2 * t)
+
+
+def eyes_shut(a):
+    """the mask's photograph with both gold plates become closed lids, in tones: tools/build-ink.py's engraver cuts them as it cuts
+    the rest of the face. The ball under the lid catches the light from above; a fold above it; one heavy cut for the lash, thin at
+    its ends; below it the lower lid, a narrow lit lip, then the socket's shadow"""
+    out = a.copy()
+    rng = np.random.default_rng(3)
+    for poly, (cx0, cy0), (cx1, cy1), sag in MASK_PLATES:
+        pts = [(x + MASK_CROP[0], y + MASK_CROP[1]) for x, y in poly]
+        cx0, cy0, cx1, cy1 = cx0 + MASK_CROP[0], cy0 + MASK_CROP[1], cx1 + MASK_CROP[0], cy1 + MASK_CROP[1]
+        x0, x1 = min(p[0] for p in pts) - 40, max(p[0] for p in pts) + 40
+        y0, y1 = min(p[1] for p in pts) - 40, max(p[1] for p in pts) + 40
+        im = Image.new("L", (x1 - x0, y1 - y0), 0)
+        ImageDraw.Draw(im).polygon([(x - x0, y - y0) for x, y in pts], fill=255)
+        hard = ndi.binary_dilation(np.asarray(im, np.float32) > 127, iterations=5)   # (past the plate's bright rim)
+        cover = ndi.gaussian_filter(hard.astype(np.float32), 3.0)[..., None]
+        yy, xx = np.mgrid[y0:y1, x0:x1].astype(np.float32)
+        u = np.clip((xx - cx0) / (cx1 - cx0), 0, 1)
+        lash = cy0 + (cy1 - cy0) * u + sag * 4 * u * (1 - u)
+        top = np.where(hard, yy, 1e9).min(axis=0, keepdims=True)
+        top = np.where(top > 1e8, float(y0), top)
+        v = np.clip((yy - top) / np.maximum(lash - top, 1), 0, 1)
+        lid = .46 + .30 * smooth(0, .26, v) - .22 * smooth(.66, 1, v)
+        lid *= 1 - .34 * smooth(.55, 1, np.abs(u - .5) * 2)
+        fold = top + (lash - top) * .24 - 6 * np.sin(np.pi * u)
+        lid *= 1 - .70 * np.exp(-((yy - fold) / 4.5) ** 2) * smooth(.10, .34, u) * smooth(.10, .34, 1 - u)
+        below = np.clip((yy - lash) / 44, 0, 1)
+        tone = np.where(yy > lash, .84 - .34 * smooth(.5, 1, below), lid)
+        wobble = ndi.gaussian_filter1d(rng.normal(0, 1, x1 - x0).astype(np.float32), 22) * 16
+        thick = 4.5 + 7.5 * np.maximum(np.sin(np.pi * u), 0) ** .7
+        tone = np.where(np.abs(yy - lash - wobble[None, :]) < thick, .02, tone)
+        tone = np.where((yy > lash) & (yy < lash + thick + 11), tone * .62, tone)
+        grain = ndi.gaussian_filter(rng.normal(0, 1, tone.shape).astype(np.float32), 2.4)
+        tone = np.clip(tone + grain * .16 * (tone > .05), 0, 1)
+        grey = (tone + .05) / 1.25                         # (the engraver's tone in an eye: its grey × 1.25 − .05; its grey: mostly red)
+        base = LID_SKIN[0] * .75 + float(LID_SKIN @ np.array([.3, .59, .11], np.float32)) * .25
+        rgb = np.clip(LID_SKIN[None, None, :] * (grey / base)[..., None], 0, 1)
+        out[y0:y1, x0:x1] = out[y0:y1, x0:x1] * (1 - cover) + rgb * cover
+    return out
+
+
+def ink_tool():
+    sp = importlib.util.spec_from_file_location("build_ink", ROOT / "tools/build-ink.py")
+    bi = importlib.util.module_from_spec(sp)
+    sp.loader.exec_module(bi)
+    return bi
+
+
+def asleep_dark():
+    """the lock's own frame with the jaw shut, the mask's eyes shut"""
+    bi = ink_tool()
+    a, _ = bi.mask_source()
+    f = bi.dark_frame(bi.dark_layers(), 0, eyes_shut(a))
+    return Image.fromarray((np.clip(f, 0, 1) * 255 + .5).astype(np.uint8))
+
+
+def patch_of(lock, sleeping, path):
+    """what differs between the lock and its sleeper, as one patch: (x, y) of it"""
+    a, b = np.asarray(lock.convert("RGB"), np.int16), np.asarray(sleeping.convert("RGB"), np.int16)
+    ys, xs = np.nonzero(np.abs(a - b).max(-1) > 1)
+    if not len(xs):
+        raise SystemExit(f"{path}: the sleeper is the lock")
+    x0, x1, y0, y1 = int(xs.min()), int(xs.max()) + 1, int(ys.min()), int(ys.max()) + 1
+    sleeping.convert("RGB").crop((x0, y0, x1, y1)).save(path, optimize=True)
+    return x0, y0
+
+
+def build(d, mood, sleeping=None):
     kv = words_of(d / "lock-scene.txt")
     out = []
-    bare = d / "lock-bare.png"
-    w, h = (int(v) for v in kv["size"][0])
-    if bare.exists():
-        k = 1
-        if Image.open(bare).size != SIZE:
-            raise SystemExit(f"{bare}: {Image.open(bare).size}, not {SIZE}")
-        wall = bare.name
-    else:                                  # (a scene of whole pixels: as the lock shows it, whole)
-        k = SIZE[0] // w
-        pixel_scene(mood).resize(SIZE, Image.NEAREST).save(d / "saver-wall.png", optimize=True)
-        wall = "saver-wall.png"
+    lock = Image.open(d / "lock-scene.png").convert("RGB")
+    if lock.size != SIZE:
+        raise SystemExit(f"{d / 'lock-scene.png'}: {lock.size}, not {SIZE}")
+    sleeping = sleeping or asleep_dark()
+    px, py = patch_of(lock, sleeping, d / "saver-lids.png")
     out.append(f"size {SIZE[0]} {SIZE[1]}")
-    out.append(f"wall {wall}   # the painting, the figure's place empty")
-    plate = kv.get("centre", kv.get("plate", [[SIZE[0] // 2 // k, SIZE[1] * 46 // 100 // k, SIZE[1] // 5 // k]]))[0]
-    cx, cy, cr = (int(v) * k for v in plate[:3])
-    out.append(f"centre {cx} {cy} {min(cr, SIZE[1] // 5)}   # the figure's place: where the world opens, and how far the seal wanders from it")
-    torches = [(int(a) * k, int(b) * k) for a, b in kv.get("torch", [])]
+    out.append("wall lock-scene.png   # the lock's own painting")
+    out.append(f"patch saver-lids.png {px} {py}   # over it, the figure asleep")
+    cx, cy, rest = FIGURE[mood]
+    out.append(f"centre {cx} {cy}   # the figure's place: where the world opens")
+    out.append(f"rest {rest}   # how far the sleeper's own light reaches")
+    for x, y in SPOTS[mood]:
+        out.append(f"spot {x} {y}   # where the seal lands")
+    torches = list(FIRES[mood])
     anims = []
-    for a in kv.get("anim", []):
-        name, *vals = a
-        if not name.startswith("fig-"):
-            anims.append([f"lock-{name}.png", *(int(v) * k for v in vals[:4]), int(vals[4]), int(vals[5])])
-    if not anims and "flame" in kv:        # (a scene of whole pixels: its flames, the lock's frames scaled up)
-        fw, fh, n = (int(v) for v in kv["frames"][0])
-        strip = Image.open(d / "lock-flame.png").convert("RGBA")
-        strip.resize((strip.width * k, strip.height * k), Image.NEAREST).save(d / "saver-flame.png", optimize=True)
-        for x, y in kv["flame"]:
-            anims.append(["saver-flame.png", int(x) * k, int(y) * k, fw * k, fh * k, n, 1000 // 8])
-            if "torch" not in kv:
-                torches.append((int(x) * k + fw * k // 2, int(y) * k + fh * k * 3 // 5))
+    for f in d.glob("saver-flame-*.png"):
+        f.unlink()
+    w, h = FLAME[mood]
+    for i, fire in enumerate(torches):
+        n = LOOPS[i % len(LOOPS)]
+        flame_strip(sleeping, fire, (w, h), n, 7 + i).save(d / f"saver-flame-{i}.png", optimize=True)
+        anims.append([f"saver-flame-{i}.png", fire[0] - w // 2, fire[1] - h // 2, w, h, n, FLAME_MS])
     for x, y in torches:
         out.append(f"torch {x} {y} {REACH[mood]}   # a fire: its middle, how far its pool reaches")
     for a in anims:
         out.append("anim " + " ".join(str(v) for v in a) + "   # a strip: file, place, a frame's size, frames, ms a frame")
-    top = min((a[2] for a in anims), default=min(y for _, y in torches) - 200)
-    out.append(f"ceiling {int(kv['ceiling'][0][0]) * k if 'ceiling' in kv else max(40, top - 170)}   # what stops the smoke")
+    top = min(a[2] for a in anims)
+    out.append(f"ceiling {int(kv['ceiling'][0][0]) if 'ceiling' in kv else max(40, top - 170)}   # what stops the smoke")
     seal_atlas(d / "saver-seal.png")
     out.append(f"seal {SEAL[0]} {SEAL[1]} {DIGIT[0]} {DIGIT[1]}   # saver-seal.png, its alpha: the seal, then the ten digits")
     sums = hashlib.sha256()
@@ -131,11 +237,12 @@ def build(d, mood):
     (d / "saver-scene.txt").write_text(
         "# saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.\n"
         + "\n".join(out) + "\n", encoding="utf-8")
-    print(f"{mood}: {wall}, {len(torches)} fires, {len(anims)} strips, the middle {cx} {cy}")
+    print(f"{mood}: patch at {px} {py}, {len(torches)} fires, {len(anims)} strips, the middle {cx} {cy}")
 
 
-ap = argparse.ArgumentParser(description="the screensaver's words, from the lock's art")
-ap.add_argument("--art", type=pathlib.Path, default=ROOT / "configs/home/.local/share/fedokawaii")
-args = ap.parse_args()
-for m in ("dark", "light"):
-    build(args.art / m, m)
+if __name__ == "__main__":
+    ap = argparse.ArgumentParser(description="the screensaver's words, from the lock's art")
+    ap.add_argument("--art", type=pathlib.Path, default=ROOT / "configs/home/.local/share/fedokawaii")
+    args = ap.parse_args()
+    for m in ("dark", "light"):
+        build(args.art / m, m)

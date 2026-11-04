@@ -485,12 +485,11 @@ the tiles of a group, 12 px between groups.
   scatter, the head shakes 3 px twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
-- **Screensaver** (kawa-saver): the lock's own painting, asleep: the same pixels, the figure's place empty (`lock-bare.png`;
-  `saver-scene.txt`: tools/build-saver.py). The dark lies over it, deep on the dark mood, the gold hour on the light, open round the
-  fires and breathing with them; the lock's own flames burn in it; on the dark, smoke curls off each flame up to the beam and embers
+- **Screensaver** (kawa-saver): the lock's own painting, asleep: `lock-scene.png` itself, and over it one patch, the figure at rest (`saver-lids.png`: the mask's eyes shut, re-cut by the lock's own engraver; the angel's shut, her halo out). `saver-scene.txt`: tools/build-saver.py. The dark lies over it, deep on the dark mood, the gold hour on the light, open round the
+  fires and breathing with them, and the sleeper has its own dim light, breathing slower (a little over 7 s); the painted flames burn in it (`saver-flame-N.png`: the flame itself moved in the heat); on the dark, smoke curls off each flame up to the beam and embers
   rise, cooling; on the light, gold dust hangs in the air and petals fall. Twelve steps a second, each thing a layer of its own, the
-  small ones scaled up smooth by the compositor. The time is a small seal, 62 × 84 px, cut from worn stone in `accent`, its digits
-  (12-hour, two rows of two) cut out of the red, stamped somewhere else in the figure's place every minute. Away (`--idle`) the
+  small ones scaled up smooth by the compositor. The time is a seal, 168 × 228 px, cut from worn stone, its digits
+  (12-hour, two rows of two) truly cut out: the painting shows through them. Every minute it is struck at another third of the frame (`spot`, clear of the figure, in turn across the frame, a little aside each time) in the hot ink, and cools in a second. Away (`--idle`) the
   lock comes up under it once the painting covers the screen; the first key or move wakes the world (§11), no key reaches anything.
   The screens dark: no step, no frame, no CPU.
 - **Boot**: GRUB's menu and the boot splash (plymouth) in Sumi UI ×2 on the mood's ground, the
@@ -527,7 +526,7 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver comes | the painting closes over the desktop from the edges to the figure's place, a soft edge 150 px wide, on a spring | 1200 |
-| a key wakes the world | the seal lifts, the fires leap, the dark lifts and the painting opens from the figure's place outwards, soft-edged, on a spring, onto the lock already under it: the figure is there; screens lit by that key, 1000 first while the monitor finds its signal | 440 |
+| a key wakes the world | the seal lifts, the fires leap, the dark lifts and the painting opens from the figure's place outwards, soft-edged, on a spring, onto the lock already under it: the same painting, the figure's eyes open; screens lit by that key, 1000 first while the monitor finds its signal | 440 |
 | the screensaver leaves (no lock under it, the last of its air over one) | dissolves off | 180 |
 | a screen back (switched on at its button, or woken after it dropped off the cable asleep) | its first picture is the whole desktop: black (the monitor is finding the signal) until its wallpaper and its bar are back and done drawing — 100 ms without a new frame of theirs — never seen being built | 1000 at most |
 | a stamp (the workspace seal) | down: the seal 1 px larger all round in `accent_hi`; then as it was, in `accent` | 60 |
