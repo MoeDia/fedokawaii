@@ -31,7 +31,9 @@ nap 1.2
 at 40 52; wlrctl pointer click left; sleep 0.05; wlrctl pointer click left; nap 0.5
 cell "foot: a word selected → the clipboard" "$(wl-paste -n 2>/dev/null)" copythisword
 cell "foot: a word selected → the primary" "$(wl-paste -p -n 2>/dev/null)" copythisword
-kill "$A"; wait "$A" 2>/dev/null; nap 0.8
+kill "$A"; wait "$A" 2>/dev/null
+# (kawa-clipkeep offers it again a moment after: on a loaded machine a longer moment)
+for _ in $(seq 24); do [ "$(wl-paste -n 2>/dev/null)" = copythisword ] && break; nap 0.25; done
 cell "a copy whose window closed: still there" "$(wl-paste -n 2>/dev/null)" copythisword
 
 foot -T paste sh -c 'exec cat >"$KIT_OUT/pasted.txt"' >/dev/null 2>&1 & B=$!

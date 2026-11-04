@@ -9,7 +9,7 @@ Started 4 Nov 17:43. Worktree ~/repos/fk-regress, branch lane-regress. Tests onl
 - `tools/regress/*.sh`, new headless: bar-titles, tv-frames (the master's trace: the TV frame by frame), popup-fullscreen, warm-rapid, monitor-state, clipboard, glass-cells, launcher-calc, term-grid (the owner's 2 Nov 18:22: 12 programs × 18 sizes, tiled in each layout, zoom, wide names, scrollback, a theme switch, a live resize, both themes; `term-grid-known.txt` the hand-resized-popup findings), gallery, anim. Stale since the heads, brought back: bar-geometry, prompt-burst, shots.py's tile split; one-popup knows Super+/ follows the app.
 - `tools/prepush.sh`: the commit in a throw-away copy, its own dwl built from its patch (6 s): the suite, the headless set, verify; a passed tree not twice; `--install` the git hook (a push to main only; other branches pass).
 - `tools/selftest.sh`: under --sandbox, the toolkit's own tests/regress and, with a GPU, tools/regress on the installed dwl.
-- Proof each can fail: 26 mutations of the new stand-ins, all caught (/dev/shm/r27/regress/mut/run.sh); tv-frames (order reversed, a third of the pace, other art), warm-rapid (a dwl dropping fast presses), monitor-state (back on workspace 1), glass-cells (alpha-mode=default, the old bug), launcher-calc (no settling, the old bug), bar-titles and popup-fullscreen (failed on the old product, hold on the fix), clipboard (fails today).
+- Proof each can fail: 26 mutations of the new stand-ins, all caught (~/.cache/lane-regress/mutations.sh); tv-frames (order reversed, a third of the pace, other art), warm-rapid (a dwl dropping fast presses), monitor-state (back on workspace 1), glass-cells (alpha-mode=default, the old bug), launcher-calc (no settling, the old bug), bar-titles and popup-fullscreen (failed on the old product, hold on the fix), clipboard (fails today).
 
 ## PRODUCT BUGS FOR MAIN (found by the new checks; each fix proven on a scratch copy, nothing of the product changed here)
 1. DONE by main 19:09 (bad3e35): the bar grew 1 px under fallback faces; bar-titles.sh.
@@ -31,9 +31,21 @@ Started 4 Nov 17:43. Worktree ~/repos/fk-regress, branch lane-regress. Tests onl
 - One line for CLAUDE.md's Tests bullet, yours to word: a new ledger line with a behaviour adds its row to tools/regress/README.md; `bash tools/prepush.sh` before a push to main.
 - The ledger line, ready: `r27-56 (T52, lane-regress, 4 Nov 17:43–…): every item r24→r27 and every row of the trace in tools/regress/README.md, held by tests/regress/test_list.sh; 13 new stand-in files, 11 new headless checks, each shown to fail on the old behaviour; prepush, selftest --sandbox; found: the bar 1 px taller under fallback faces, a popup taking a window out of fullscreen, select + middle click dead.`
 
-## State (keep current)
-- [x] items.py + test_list.sh
-- [x] the list complete
-- [x] the new checks, each proven to fail on the old behaviour
-- [x] wiring: selftest, prepush
-- [ ] the final headless run on the merged HEAD
+## State (keep current) — written 4 Nov 20:15, before main's forced reboot at about 20:25
+The PC was degraded from 19:51: PID 1 and the user manager in D state, a group lookup 90 s, 27,000 zombies (main's message 20:15; my numbers sent to it 20:07). Every kit since then is NOT evidence: waybar needed 90 s to start, so "no bar measured", "the bar's middle not found" and the like from that time mean nothing. Nothing of /dev/shm survives the boot.
+
+Held before the stall (real runs, on the tree of that moment):
+- tests/regress: all 13 files green at 19:32 (printing items and measures); test_kept rc 0; test_list 21/0.
+- Headless, by hand on main's bad3e35 and later: bar-titles and popup-fullscreen with the commit's own dwl (19:45–19:49), tv-frames, warm-rapid, monitor-state, glass-cells, launcher-calc; one-popup, lock-*, menu-*, notes-page, notice-unplug, level-display, window-frame, wash, wheel-notch, warm-exit, tile-widths, term-burst, session-start in the run of 18:48.
+- term-grid: 454 screens, both themes, 18:50–19:15: held but for term-grid-known.txt. Its tiled scenes were added after and seen in one dark run at 19:13 only.
+- static area: green but for this lane's own ShellCheck notes, fixed since (19:21); not re-run on the last commits.
+
+## NEXT, after the boot (in this order; run everything with nice -n 10; `export PATH=$HOME/.local/bin:$PATH` first)
+1. `git merge main`; `python3 tools/regress/items.py check`: a row for each new ledger line.
+2. tools/regress/bar-layout.sh: written during the stall and NEVER SEEN TO PASS (the bar was not drawn yet, each time). Run it, look at a shot, prove it fails (a --bin with kawa-dwlstatus's classes swapped). Fix or drop it, and its row.
+3. Is the kit's wait for 'Bar configured' (tools/kit.sh) right on a free machine? Same for KAWA_HL_NODE (tools/hl-dwl.sh): it never got a clean run either.
+4. clipboard.sh once more: its closed-window cell now waits. It stays red on the primary until main takes fix 3.
+5. The whole set on the commit's own dwl: `dwl=$(bash -c 'eval "$(sed -n "/^build_dwl()/,/^}/p" tools/prepush.sh)"; build_dwl "$PWD/COPY"')` from a frozen `git archive` copy, then `bash tools/regress/run.sh --bin bin --repo-art --dwl "$dwl"`, in the background with a long timeout. Never edit a script while it runs from the same tree: bash reads it as it goes.
+6. `bash tests/run.sh static`, `bash tests/run.sh regress`, then tests/installer/test_torture.sh alone (the selftest section's file; it was stopped waiting on the shared lock).
+7. gallery-expect.json: `bash tools/gallery.sh --record --bin bin --repo-art` if main's surfaces have settled; else leave it to main (quick, help, notes and the critical notice differed at 18:50, each from a redesign).
+8. Say in this note what is red and whose it is (known at 19:53, main's and not this lane's: content/test_tiles 16, content/test_fetch 4), then end the file with the one-word line, by 21:30.

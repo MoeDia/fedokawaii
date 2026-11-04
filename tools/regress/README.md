@@ -43,7 +43,7 @@ they break.
 | r27-bar-2 r26-20 r26-22 r26-25 r24-42 r26-3 r26-1 r26-4 r26-5 r26-16 | no inner frame on any cell; one frame per tile, 8 px paper to ink, stamps and seal to the pixel | tools/regress/bar-geometry.sh · tests/session/test_bar.sh "the style" |
 | r27-bar-3 | the active title in the lighter face: one weight of 1 px strokes | tests/session/test_dwlstatus.sh "titles: JSON and markup breakers" · tests/regress/test_fonts.sh "the UI face is one weight" |
 | r27-bar-4 | date DD/MM/YYYY, our red slash | tests/session/test_bar.sh "the items at rest" |
-| r27-bar-5 | US red, AR blue, clickable | tests/session/test_tag.sh "kb next" · tests/session/test_dwlstatus.sh "us,ara: us then ar" |
+| r27-bar-5 | US red, AR blue, clickable | tools/regress/bar-layout.sh · tests/session/test_tag.sh "kb next" · tests/session/test_dwlstatus.sh "us,ara: us then ar" |
 | r27-1427-8 | us/ar in capitals while Caps Lock is on, small when off, live | tests/session/test_dwlstatus.sh "Caps Lock (owner, 14:27)" |
 | r27-bar-6 | a red rule between the video's title and its channel | tests/status/test_nowplaying.sh "a song plays: the cassette, the title, a red rule" |
 | r27-bar-7 r26-2 | the visualizer in our red, wings either side of the clock | tests/status/test_nowplaying.sh "the wings: a module of their own each" · tests/status/test_nowplaying.sh "in the light theme: the wings in its own ten reds" |

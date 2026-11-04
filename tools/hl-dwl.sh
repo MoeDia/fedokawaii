@@ -39,6 +39,9 @@ for n in /sys/class/drm/renderD*; do
   [[ $v =~ ^[0-9]+$ ]] || v=0
   ((v > most)) && most=$v gpu=(WLR_RENDERER=gles2 "WLR_RENDER_DRM_DEVICE=/dev/dri/${n##*/}")
 done
+# (KAWA_HL_NODE=/dev/dri/renderD129: another card, when that one is busy: a local model on it starves a
+# kit's first frames for a minute, and the bar is not there when a check looks)
+[[ -n ${KAWA_HL_NODE:-} ]] && gpu=(WLR_RENDERER=gles2 "WLR_RENDER_DRM_DEVICE=$KAWA_HL_NODE")
 if ((asan)); then
   tree=$(dirname "$(realpath "$bin")") abuild=/tmp/hl-dwl-asan
   rm -rf "$abuild" && mkdir -p "$abuild" || exit 2

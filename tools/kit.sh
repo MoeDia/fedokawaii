@@ -158,7 +158,10 @@ kawa-dwlstatus <&0 >/dev/null 2>&1 &
 mako >/dev/null 2>&1 &
 foot --server --log-no-syslog >/dev/null 2>&1 &   # (never in his journal: dwl going first leaves foot "Broken pipe")
 waybar >"$K/waybar.log" 2>&1 &
+# (the bar drawn before a scene looks: 3 s on a free machine; a busy card can hold its first frame a minute)
 sleep 3
+for _ in \$(seq 240); do grep -q 'Bar configured' "$K/waybar.log" 2>/dev/null && break; sleep 0.25; done
+sleep 0.5
 fail=0
 for s in ${scenes[*]}; do
   case \$s in
