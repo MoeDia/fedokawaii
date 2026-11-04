@@ -23,8 +23,8 @@ LETTERS = (
 TRAVELS = ('frfvf juj mj', 'ded cd kik ,k', 'sws xs lol .l', 'aqa za ;p; /;', 'ftf gbg gtg', 'jyj hnh jnj')
 CAPITALS = ('FDSA', 'JKL:', 'GHTY', 'RUEI', 'WOQP', 'VMC?', 'ZNXB', "'\"-")
 NUMBERS = ('47', '38', '29', '10', '56')
-SYMBOLS = ('$&', '#*', '@(', ')!', '%^')
-SIGNS = ('[]', '\\|', '_+', '=<', '>~', '`{', '}')
+SYMBOLS = ('$&', '#*', '@!', '()', '%^')
+SIGNS = ('[]', '{}', '\\|', '_+', '=<', '>~', '`')
 # a sign among words, as it is used: W a word, N a number
 HABITS = {'$': '$N', '&': 'W & W', '#': '#N', '*': 'N * N', '@': 'W@W.org', '(': '(W W)', ')': '(W W)', '!': 'W!', '%': 'N%',
           '^': 'N^N', '[': 'W[N]', ']': 'W[N]', '\\': 'W\\W', '|': 'W | W', '_': 'W_W', '+': 'N + N', '=': 'W = N', '<': 'N < N',
@@ -32,6 +32,17 @@ HABITS = {'$': '$N', '&': 'W & W', '#': '#N', '*': 'N * N', '@': 'W@W.org', '(':
 BANDS = range(30, 111, 5)
 CODE_AFTER = {40: 'bash', 50: 'git', 60: 'python', 70: 'rust', 80: 'c'}
 STAGE_NAMES = ('home row', 'top row', 'bottom row', 'first sentences', 'capitals', 'numbers', 'symbols', 'more symbols', 'speed')
+
+
+def with_marks(words_, keys_, rng):
+    """a word in three ends with the lesson's new mark, and at least one does"""
+    marks = [c for c in keys_ if not c.isalpha()]
+    if not marks or not words_:
+        return words_
+    out = [w + rng.choice(marks) if rng.random() < 0.35 else w for w in words_]
+    if not any(w[-1] in marks for w in out):
+        out[0] += marks[0]
+    return out
 
 
 def said(g):
@@ -305,6 +316,11 @@ def word_weight(word, weight):
     return letters + (sum(weight.get(word[i:i + 2], 1) for i in range(n - 1)) / (n - 1) if n > 1 else 1)
 
 
+def cut(text, size):
+    """the text about size long, its last word whole"""
+    return text[:size + 8].rsplit(' ', 1)[0] if len(text) > size + 8 else text
+
+
 def text_for(lesson, rng, stats=None):
     """the characters this attempt types. stats: keys.json as the store holds it"""
     k, size, known = lesson.kind, lesson.size, lesson.known
@@ -324,18 +340,15 @@ def text_for(lesson, rng, stats=None):
         return chunks(lesson.keys + letters[-6:], rng, size, lesson.keys)
     if k == 'mix':
         if len({*letters} & set('aeiou')) >= 1 and len([w for w in words() if set(w) <= set(letters)]) >= 15:
-            return ' '.join(pick_words(letters, rng, lesson.keys.replace(',', '').replace('.', '').replace(';', '').replace('/', ''), max(size // 6, 8)))[:size + 8].rsplit(' ', 1)[0]
+            must = ''.join(c for c in lesson.keys if c.isalpha())
+            return cut(' '.join(with_marks(pick_words(letters, rng, must, max(size // 6, 8)), lesson.keys, rng)), size)
         return chunks(known.replace(' ', ''), rng, size, lesson.keys)
     if k == 'words':
         must = ''.join(c for c in lesson.keys if c.isalpha())
         pool = [w for w in words() if set(w) <= set(letters)]
         if len(pool) < 15 and not set(letters) & set('aeiou'):
             return chunks(known.replace(' ', ''), rng, size, lesson.keys)
-        marks = [c for c in lesson.keys if not c.isalpha()]
-        ws = pick_words(letters, rng, must, max(size // 5, 10), weak)
-        if marks:
-            ws = [w + (rng.choice(marks) if rng.random() < 0.35 else '') for w in ws]
-        return ' '.join(ws)[:size + 8].rsplit(' ', 1)[0]
+        return cut(' '.join(with_marks(pick_words(letters, rng, must, max(size // 5, 10), weak), lesson.keys, rng)), size)
     if k == 'anchor':
         return chunks(known or letters, rng, size, ''.join(c for c in lesson.keys if c in known))
     if k == 'travel':
@@ -346,10 +359,10 @@ def text_for(lesson, rng, stats=None):
     if k in ('review', 'check') and lesson.extra is None:
         ws = pick_words(letters, rng, '', (lesson.limit or 0) * 5 + max(size // 4, 12), weak if k == 'review' else None)
         return ' '.join(ws)
-    if k == 'check':          # (capitals, numbers, symbols: its lines, as many as a minute could take)
-        return fill(sentences()[lesson.extra], 1200, rng)
-    if k == 'sentences':
-        return fill(sentences()[lesson.extra], size, rng)
+    if k in ('check', 'sentences'):   # (capitals, numbers, symbols: lines of what has been met; a check, as many as a minute could take)
+        met = set(known)
+        lines = [t for t in sentences()[lesson.extra] if set(t) <= met]
+        return fill(lines, 1200 if k == 'check' else size, rng)
     if k == 'patterns':
         return pattern_text(lesson, rng, size)
     if k == 'habits':

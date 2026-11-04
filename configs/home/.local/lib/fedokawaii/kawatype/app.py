@@ -2,6 +2,7 @@
 foot's own cells in the palette's numbers, so it follows a theme switch by itself; the keyboard and the hands
 are pictures (canvas.py) repainted as the theme changes. docs/design-system.md §7 is the grammar of all of it.
 """
+import json
 import math
 import os
 import re
@@ -47,6 +48,11 @@ def load_icons():
     return out
 
 
+def percent(acc):
+    """a tenth of a percent, down: 96.97 is under 97, and must read so"""
+    return f'{math.floor(acc * 10) / 10:.1f}'
+
+
 def clock(seconds):
     return f'{int(seconds) // 60}:{int(seconds) % 60:02d}'
 
@@ -89,7 +95,7 @@ def meter(app, done, total):
 
 def fit_power(tests):
     """the power law of practice through (day, wpm): the day it reaches 100, or None. Two weeks of data at least"""
-    pts = [(r['d'], r['w']) for r in tests if r['w'] > 0]
+    pts = sorted((r['d'], r['w']) for r in tests if r['w'] > 0)
     if len(pts) < 8 or pts[-1][0] - pts[0][0] < 14 * 86400:
         return None
     t0 = pts[0][0]
@@ -104,7 +110,10 @@ def fit_power(tests):
     if b <= 0.01:
         return None
     a = my - b * mx
-    days = math.exp((math.log(100) - a) / b) - 1
+    try:
+        days = math.exp((math.log(100) - a) / b) - 1
+    except OverflowError:
+        return None
     return None if days > 3650 else t0 + days * 86400
 
 
@@ -135,7 +144,7 @@ def start(app, what):
     if kind == 'resume':
         return resumed(app, arg) or Home(app)
     if kind == 'lesson':
-        return LessonScreen(app, arg)
+        return open_lesson(app, arg)
     if kind == 'baseline':
         return LessonScreen.free(app, 'baseline')
     if kind == 'warmup':
@@ -146,18 +155,27 @@ def start(app, what):
 
 
 def resumed(app, d):
-    """the run a kill, a reboot or Esc left; None if what was kept cannot be used"""
+    """the lesson a kill, a reboot or Esc left; None if what was kept cannot be used. (Only a course's lesson is kept: a
+    practice run or a test is a thing of the moment, and a kept one would be measured over a lie)"""
     try:
         run = metrics.Run.restored(d['run'])
-        i = d.get('index')
-        if isinstance(i, int) and 0 <= i < len(course.LESSONS) and course.LESSONS[i].id == d.get('lesson'):
+        i = d['index']
+        if type(i) is int and 0 <= i < len(course.LESSONS) and course.LESSONS[i].id == d.get('lesson'):
             return LessonScreen(app, i, resume=run)
-        title = str(d.get('title') or 'go on')
-        lesson = course.Lesson(str(d.get('lesson')), 8, str(d.get('kind')), title, '', '', 0, 0, run.flow, len(run.text), run.limit, None)
-        return LessonScreen(app, None, lesson=lesson, resume=run)
-    except (KeyError, TypeError, ValueError, AttributeError, IndexError):
-        app.store.clear_resume()
-        return None
+    except (KeyError, TypeError, ValueError, AttributeError, IndexError, OverflowError):
+        pass
+    app.store.clear_resume()
+    return None
+
+
+def open_lesson(app, i):
+    """a lesson: where it was left, if it was; else from its start"""
+    d = app.store.load_resume()
+    if d.get('index') == i and d.get('lesson') == course.LESSONS[i].id:
+        screen = resumed(app, d)
+        if screen:
+            return screen
+    return LessonScreen(app, i)
 
 
 def wrap(text, w):
@@ -415,7 +433,7 @@ class Home(Screen):
                     v = fg(ACCENT_TEXT) + '✓' + OFF if d else ''
                 else:
                     v = seals_text(d['seals']) if d else fg(EDGE2) + SEAL_OFF * 5 + OFF
-                out.append(Row(self.app.icon(icons.get(les.kind, 'KEYBOARD')), les.title, v, lambda i=i: self.app.go(LessonScreen(self.app, i)), ('lesson', les)))
+                out.append(Row(self.app.icon(icons.get(les.kind, 'KEYBOARD')), les.title, v, lambda i=i: self.app.go(open_lesson(self.app, i)), ('lesson', les)))
         return out
 
     def practice_rows(self):
@@ -840,17 +858,18 @@ class LessonScreen(Screen):
         self.touched = set()       # (the letters to paint again)
         self.want_save = False
         self.painted_wrong = set()
+        self.news = ''             # (a mark passed for the first time: the result says it)
         self.save_resume()
 
     @classmethod
-    def free(cls, app, what, arg=None, day_test=False):
-        """from the practice tab: no lesson's seals, measured all the same"""
+    def free(cls, app, what, arg=None, day_test=False, title=None):
+        """from the practice tab, or a file: no lesson's seals, measured all the same"""
         rng = app.rng()
         st = app.store
         limit = None
         kind = what
         known = 'abcdefghijklmnopqrstuvwxyz'
-        title = {'weak': 'your weakest keys', 'words': 'plain words', 'passage': 'a passage', 'warmup': 'warm up, your weakest keys'}.get(what, what)
+        title = title or {'weak': 'your weakest keys', 'words': 'plain words', 'passage': 'a passage', 'warmup': 'warm up, your weakest keys'}.get(what, what)
         if what == 'weak':
             text = ' '.join(course.pick_words(known, rng, '', 60, course.weakness(st.keys)))
         elif what == 'warmup':
@@ -879,7 +898,6 @@ class LessonScreen(Screen):
             title = 'one minute, the way you type now'
         else:          # a file of your own
             text = arg
-            title = what
         lesson = course.Lesson(f'free.{what}', 8, kind, title, '', '', 0, 0, True, len(text), limit, None)
         return cls(app, None, lesson=lesson, text=text, day_test=day_test)
 
@@ -919,7 +937,7 @@ class LessonScreen(Screen):
         self.notice_y = y + text_rows
         self.notice_w = W - (self.text_x - x0) - 3
         self.tp = canvas.Picture(max(self.tw_px, self.letters.w), lines * self.letters.h, (cw, ch))
-        self.spans = wrap(self.run.text, self.chars)
+        self.spans = wrap(self.run.text, max(self.chars - 1, 1))     # (its last space or Enter has a whole letter's room)
         self.drawn_line = -1
         self.pic = None
         self.hand_state = None
@@ -956,7 +974,9 @@ class LessonScreen(Screen):
         c = r.text[i]
         shown = '↵' if c == '\n' else c
         ink = art.INK
-        if i == r.pos and self.caret_on and self.app.focused:
+        if self.dimmed:
+            cell = self.letters.cell(shown, ink['edge2'])
+        elif i == r.pos and self.caret_on and self.app.focused:
             cell = self.letters.cell(shown if c != ' ' else ' ', ink['text_on_accent'], ink['accent'])
         elif i < r.pos:
             got = r.got.get(i)
@@ -1082,7 +1102,7 @@ class LessonScreen(Screen):
         if r.correct + r.wrong == 0:
             return ''
         wpm, acc = r.net(now), r.accuracy()
-        s = fg(MUTED) + f'{wpm:.0f} wpm  {acc:.0f} %' + OFF
+        s = fg(MUTED) + f'{wpm:.0f} wpm  {math.floor(acc)} %' + OFF
         if self.paused_shown:
             s = fg(STRONG) + 'paused' + OFF + '  ' + s
         if r.limit:
@@ -1117,7 +1137,9 @@ class LessonScreen(Screen):
         if self.notice_y >= self.rows_n:
             return
         self.at(self.notice_y, self.x0, '\x1b[0m' + ' ' * self.W)
-        if self.notice:
+        if self.eye_open:             # (the eye before anything else that wants this row: it must be seen)
+            self.draw_eye()
+        elif self.notice:
             self.at(self.notice_y, self.text_x, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  ' + self.notice[:max(self.notice_w, 0)])
         else:
             self.at(self.notice_y, self.text_x, fg(MUTED) + self.plain_words()[:max(self.notice_w + 3, 0)] + OFF)
@@ -1139,11 +1161,6 @@ class LessonScreen(Screen):
         self.draw_text()
         self.tp.touch_all()
         self.send_text()
-
-    def remood(self):
-        self.t.write('\x1b[2J')
-        self.layout()
-        self.draw()
 
     # ── time ─────────────────────────────────────────────────────────────────
     def wait(self):
@@ -1200,43 +1217,27 @@ class LessonScreen(Screen):
             return
         if not self.eye_open and now >= self.eye_next and not self.paused_shown and self.notice_y < self.rows_n:
             self.eye_open = now
-            self.draw_eye()
+            self.draw_notice()
             self.stale = True
         elif self.eye_open and not self.dimmed and now - self.eye_open > 2:
             self.dimmed = True
             self.run.pause()
-            self.dim(True)
+            self.redraw_text()
 
     def eye_gap(self):
         return self.app.args.get('eye') or self.app.rng().uniform(40, 60)
 
     def draw_eye(self):
         """on the row between the text and the keyboard, where looking down at the keys misses it"""
-        cols, rows, cw, ch = self.app.size
+        cw, ch = self.app.size[2:]
         pic = canvas.Picture(40, ch, (cw, ch))
-        if self.eye_open:
-            art.paint_eye(pic, 0, max((ch - 16) // 2, 0), 2, self.app.dark)
-            self.t.write(pic.send(self.text_x + 1, self.notice_y + 1, art.PALETTE[self.app.dark]))
-            self.at(self.notice_y, self.text_x + 6, fg(STRONG) + 'tab' + OFF)
-        else:
-            self.t.write(f'\x1b[{self.notice_y + 1};{self.text_x + 1}H\x1b[10X')
+        art.paint_eye(pic, 0, max((ch - 18) // 2, 0), 2, self.app.dark)
+        self.t.write(pic.send(self.text_x + 1, self.notice_y + 1, art.PALETTE[self.app.dark]))
+        self.at(self.notice_y, self.text_x + math.ceil(40 / cw) + 1, fg(STRONG) + 'tab' + OFF)
 
-    def dim(self, on):
-        """the text goes faint until the eye is answered"""
-        self.tp.clear()
-        if not on:
-            self.drawn_line = -1
-            self.draw_text()
-        else:
-            k_line = self.drawn_line
-            for k in range(self.lines_n):
-                if k_line + k < len(self.spans):
-                    a, b = self.spans[k_line + k]
-                    for i in range(a, b):
-                        c = self.run.text[i]
-                        self.tp.spans((i - a) * self.letters.w, k * self.letters.h,
-                                      self.letters.cell('↵' if c == '\n' else c, art.INK['edge2']))
-        self.send_text()
+    def redraw_text(self):
+        self.drawn_line = -1
+        self.stale = True
 
     def draw_pacer(self, now):
         goal = self.lesson.goal or 40
@@ -1263,7 +1264,11 @@ class LessonScreen(Screen):
     def key(self, ev):
         now = ev.t
         name = ev.name
-        if bool(ev.mods & term.CAPS) != self.caps and name != 'caps':
+        if name == 'caps':                 # (the key itself turns it, before its own report says so)
+            if ev.kind == 'press':
+                self.caps = not self.caps
+                self.stale = True
+        elif bool(ev.mods & term.CAPS) != self.caps:
             self.caps = bool(ev.mods & term.CAPS)
             self.stale = True
         if ev.kind == 'release':
@@ -1289,7 +1294,7 @@ class LessonScreen(Screen):
             return
         if ev.kind == 'repeat':
             if name == 'backspace':
-                self.erase()
+                self.erase(now)
             return
         if name in MODIFIERS or name == 'caps':
             self.held[name] = now
@@ -1298,16 +1303,16 @@ class LessonScreen(Screen):
         if name in ('up', 'down', 'left', 'right', 'home', 'end', 'pageup', 'pagedown', 'insert', 'delete', 'other'):
             return
         if name == 'backspace':
-            self.erase()
+            self.erase(now)
             return
         if name == 'tab':
             if self.eye_open:
                 self.eye_open = 0.0
                 self.eye_next = now + self.eye_gap()
-                self.draw_eye()
+                self.draw_notice()
                 if self.dimmed:
                     self.dimmed = False
-                    self.dim(False)
+                    self.redraw_text()
                 self.stale = True
             return
         if self.dimmed:
@@ -1364,10 +1369,10 @@ class LessonScreen(Screen):
         if now - self.saved_at > 2.0 or r.text[r.pos - 1] == ' ':
             self.want_save = True
 
-    def erase(self):
+    def erase(self, now):
         r = self.run
         at = r.pos
-        if r.backspace():
+        if r.backspace(now):
             self.touched.add(at)
             self.stale = True
 
@@ -1391,20 +1396,22 @@ class LessonScreen(Screen):
                 news = MILESTONE_WORDS[m] if not news else news
         return news
 
-    def finish_words(self):
-        return getattr(self, 'news', '')
-
     def save_resume(self, now=None):
+        """a course's lesson under way, kept (from its first key: opening another lesson takes nothing away). --trace, for
+        its tests: any run, as it stands, in a file of theirs"""
         self.saved_at = now if now is not None else time.monotonic()
-        self.app.store.save_resume({'lesson': self.lesson.id, 'index': self.index, 'title': self.lesson.title,
-                                    'kind': self.lesson.kind, 'run': self.run.snapshot()})
+        snap = {'lesson': self.lesson.id, 'index': self.index, 'title': self.lesson.title, 'kind': self.lesson.kind, 'run': self.run.snapshot()}
+        if self.index is not None and self.run.pos:
+            self.app.store.save_resume(snap)
+        trace = self.app.args.get('trace')
+        if trace:
+            with open(trace + '.tmp', 'w') as f:
+                json.dump(snap, f)
+            os.replace(trace + '.tmp', trace)
 
     def leave(self):
-        """Esc: the run is kept, to go on from later"""
-        if self.run.pos:
-            self.save_resume()
-        else:
-            self.app.store.clear_resume()
+        """Esc: a lesson is kept, to go on from later; a practice run ends here"""
+        self.save_resume()
 
     def finish(self, now):
         self.finished = True
@@ -1439,7 +1446,8 @@ class LessonScreen(Screen):
         if roll is not None:
             rec['o'] = round(roll, 1)
         st.append_history(rec)
-        st.clear_resume()
+        if self.index is not None:
+            st.clear_resume()
         st.save()
         if les.kind == 'meet' and self.index is not None:   # (no score: on to its drill, without a stop)
             self.app.go(start(self.app, plan(self.app)))
@@ -1494,7 +1502,7 @@ class Result(Screen):
 
     def facts(self):
         les, r = self.les, self.ls.run
-        out = [('accuracy', f'{self.acc:.1f} %' + (', 97 at least' if les.goal else ''))]
+        out = [('accuracy', percent(self.acc) + ' %' + (', 97 at least' if les.goal else ''))]
         if les.goal:
             out.append(('goal', f'{les.goal} wpm'))
         out.append(('time', clock(self.secs)))
@@ -1516,6 +1524,10 @@ class Result(Screen):
             words = 'slipped on ' + ', '.join(named)
         if self.les.kind == 'baseline':
             return 'that is your old way. touch typing will pass it.'
+        if self.ls.news:
+            return self.ls.news
+        if self.ls.day_test:
+            return 'that is enough for today.'
         if not self.passed:
             if self.acc < 97:
                 return 'slower, then: 97 % opens the next one.' + (' ' + words + '.' if words else '')
@@ -1609,7 +1621,9 @@ class Result(Screen):
     def next(self):
         if not self.passed:
             self.again()
-        elif self.index is None and self.les.kind not in ('baseline', 'warmup', 'test'):
+        elif self.ls.day_test:               # (the day is done: back to the tabs, no further lesson pressed on him)
+            self.app.go(Home(self.app))
+        elif self.index is None and self.les.kind not in ('baseline', 'warmup'):
             self.app.go(Home(self.app, 'practice'))
         else:
             self.app.go(start(self.app, plan(self.app)))
@@ -1660,7 +1674,9 @@ def main(argv):
             for i, les in enumerate(course.LESSONS):
                 print(f'{i + 1:3}  {course.STAGE_NAMES[les.stage]:16} {les.kind:10} {les.low:3} {les.goal:3}  {les.title}')
             return 0
-        if a == '--seed' or a == '--eye':     # (for its tests: the words drawn; the eye's first opening, in seconds)
+        if a == '--trace':                    # (for its tests: the run under way, kept in this file)
+            args['trace'] = next(it, '')
+        elif a == '--seed' or a == '--eye':   # (for its tests: the words drawn; the eye's opening, in seconds)
             try:
                 args[a[2:]] = int(next(it))
             except (StopIteration, ValueError):
@@ -1691,6 +1707,8 @@ def main(argv):
         tty.poke()
     signal.signal(signal.SIGTERM, leave)
     signal.signal(signal.SIGHUP, leave)
+    for sig in (signal.SIGINT, signal.SIGQUIT, signal.SIGTSTP):   # (those keys are keys here, even as raw mode comes and goes)
+        signal.signal(sig, signal.SIG_IGN)
     text = None
     if path:
         try:
@@ -1710,9 +1728,9 @@ def main(argv):
     rc = 0
     try:
         if path:
-            first = LessonScreen.free(app, os.path.basename(path), text)
+            first = LessonScreen.free(app, 'file', text, title=os.path.basename(path))
         elif 'lesson' in args:
-            first = LessonScreen(app, args['lesson'])
+            first = open_lesson(app, args['lesson'])
         else:
             first = Home(app)
         app.run(first)

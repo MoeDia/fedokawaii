@@ -39,8 +39,10 @@ for l in course.LESSONS:
         t = course.text_for(l, random.Random(s))
         assert len(t) >= 8, l.id
         assert t.isascii(), l.id
-        if l.stage < 3:
+        if l.stage < 8:          # (nothing before it is met)
             assert set(t) <= set(l.known) | {' '}, (l.id, set(t) - set(l.known))
+        if l.kind in ('drill', 'words', 'mix') and any(not c.isalpha() for c in l.keys):
+            assert set(t) & {c for c in l.keys if not c.isalpha()}, ('its mark is missing', l.id)
 print('fine')
 PY
 eq "$(cat "$TMP/course.out")" "fine"

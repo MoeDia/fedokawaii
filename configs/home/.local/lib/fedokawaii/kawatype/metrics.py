@@ -89,9 +89,10 @@ class Run:
             self.pos += 1
         return ok
 
-    def backspace(self):
-        """flow: the last letter taken back (it stays counted)"""
+    def backspace(self, t):
+        """flow: the last letter taken back (it stays counted). A correction is typing: the clock goes on"""
         if self.flow and self.pos > 0:
+            self._tick(t)
             self.pos -= 1
             self.got.pop(self.pos, None)
             if self.pos < self.counted[0]:
@@ -179,13 +180,14 @@ class Run:
     def snapshot(self):
         return {'text': self.text, 'flow': self.flow, 'limit': self.limit, 'pos': self.pos,
                 'got': [self.got.get(i, '') for i in range(self.pos)], 'correct': self.correct, 'wrong': self.wrong,
-                'secs': self.active(), 'rolled': self.rolled, 'releases': self.releases, 'stamps': self.stamps[-4000:],
+                'secs': self.active(), 'rolled': self.rolled, 'releases': self.releases, 'stamps': self.stamps,
                 'slips': self.slips, 'shift': self.shift_slips, 'auto': sorted(self.auto)}
 
     @classmethod
     def restored(cls, d):
         """back from a snapshot; raises what a damaged one raises (the caller starts afresh then)"""
-        r = cls(d['text'], bool(d['flow']), d.get('limit'))
+        limit = d.get('limit')
+        r = cls(d['text'], bool(d['flow']), None if limit is None else float(limit))
         if not isinstance(r.text, str) or not r.text:
             raise ValueError('no text')
         r.pos = max(0, min(int(d['pos']), len(r.text)))

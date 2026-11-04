@@ -15,7 +15,7 @@ the other hand. Keys held on the real keyboard go down on the screen. A wrong ke
 | key | does |
 |---|---|
 | Enter | the next thing, on every screen |
-| Esc | out of a lesson, which is kept; back; close |
+| Esc | out of a lesson (it is kept); out of a practice run (it is not); back; close |
 | Backspace | takes a letter back (from the sentences on) |
 | Tab | answers the eye |
 | Ctrl+K | quiets the next key's light (the keyboard stays), or brings it back |

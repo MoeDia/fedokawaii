@@ -207,14 +207,10 @@ class Term:
                 if name:
                     events.append(Key('press', name, '', 0, now))
                 i += 3
-            elif s[i + 1] in 'P]_^':   # (a string the terminal answers with: skipped whole)
-                end = s.find('\x1b\\', i + 2)
-                if end < 0:
-                    if n - i < 4096:
-                        break
-                    i = n
-                else:
-                    i = end + 2
+            elif s[i + 1] in 'P]_^':   # (a string a terminal answers with: skipped whole; with no end, only its start)
+                st, bel = s.find('\x1b\\', i + 2), s.find('\x07', i + 2)
+                ends = [e for e in (st + 2 if st >= 0 else -1, bel + 1 if bel >= 0 else -1) if e > 0]
+                i = min(ends) if ends else i + 2
             else:
                 events.append(Key('press', 'escape', '', ALT if s[i + 1] != '\x1b' else 0, now))
                 i += 2 if s[i + 1] != '\x1b' else 1

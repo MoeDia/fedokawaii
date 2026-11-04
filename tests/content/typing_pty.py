@@ -2,16 +2,13 @@
 """typing_pty.py — kawa-typing in a pseudo-terminal of its own, played by a script: a typist at a known speed, a
 fuzzer, or a screen read back. Keys go in as foot sends them (the Kitty keyboard protocol) or as plain bytes.
 
-    python3 -I typing_pty.py [--size COLSxROWS] [--plain] [--seed N] [--wpm W] [--wrong EVERY] [--chars N] [--file F]
-                             [--roll MS] [--repeat N] [--dump FILE] [--keys "SECONDS:KEYS"]… [--end S] -- ARG…
+    python3 -I typing_pty.py [--size COLSxROWS] [--plain] [--seed N] [--dump FILE] [--keys "SECONDS:KEYS"]… [--end S] -- ARG…
 
-    --wpm W --chars N    types N characters of the text under way at W wpm (the text is read from resume.json)
-    --wrong EVERY        every EVERY-th press is wrong (the right one follows, as a person's would)
-    --roll MS            each key held MS past the next one's press (rollover), else released at once
     --keys S:KEYS        at S seconds, KEYS: Python escapes, as bytes; \\e is ESC
     --dump FILE          everything the program wrote, raw
 Ends when the program does, or at --end seconds (it is then asked to leave, Ctrl+C as foot sends it). Prints one
-JSON object: the exit status and what the terminal saw (bad escape sequences, mode 2026 balance, bytes).
+JSON object: the exit status and what the terminal saw (mode 2026 balance, sixels, bytes). Imported by typing_cases.py
+and typing_fuzz.py, which play it.
 """
 import argparse
 import fcntl
@@ -138,68 +135,6 @@ def state_dir():
     return os.path.join(base, 'fedokawaii', 'typing')
 
 
-def run_text(p, wait=5.0):
-    """the text under way, as the program keeps it"""
-    path = os.path.join(state_dir(), 'resume.json')
-    end = time.monotonic() + wait
-    while time.monotonic() < end:
-        p.pump(0.02)
-        try:
-            with open(path) as f:
-                return json.load(f)['run']
-        except (OSError, ValueError, KeyError):
-            continue
-    raise SystemExit('no text under way')
-
-
-def typist(p, a):
-    """a steady typist: a press every interval, on the exact clock; the key released at once, or later (rollover)"""
-    d = run_text(p)
-    text, pos = d['text'], d['pos']
-    interval = 12.0 / a.wpm       # (60 / (wpm × 5))
-    start = time.monotonic()
-    n = presses = wrongs = 0
-    held = None
-    last = None
-    while pos < len(text) and n < a.chars:
-        due = start + n * interval
-        while True:
-            left = due - time.monotonic()
-            if left <= 0:
-                break
-            if left > 0.002:
-                p.pump(min(left - 0.001, 0.05))
-        ch = text[pos]
-        if a.wrong and presses and presses % a.wrong == 0:
-            p.send(key(wrong_for(ch), a.plain))
-            if not a.plain:
-                p.send(key(wrong_for(ch), False, 3))
-            wrongs += 1
-            presses += 1
-            n += 1
-            continue
-        if a.roll and held is not None and not a.plain:
-            p.send(key(ch))
-            time.sleep(a.roll / 1000)
-            p.send(key(held, False, 3))
-            held = ch
-        else:
-            p.send(key(ch, a.plain))
-            if a.roll and not a.plain:
-                held = ch
-            elif not a.plain:
-                p.send(key(ch, False, 3))
-        presses += 1
-        pos += 1
-        n += 1
-        while pos < len(text) and text[pos] == ' ' and pos and text[pos - 1] == '\n':
-            pos += 1
-        last = time.monotonic()
-    if held and not a.plain:
-        p.send(key(held, False, 3))
-    return {'typed': presses, 'wrong': wrongs, 'seconds': None if last is None else last - start}
-
-
 def check_stream(raw):
     """what a terminal would object to: frames left open, sixels never closed"""
     s = bytes(raw)
@@ -212,10 +147,6 @@ def main():
     ap.add_argument('--size', default='84x31')
     ap.add_argument('--plain', action='store_true')
     ap.add_argument('--seed', type=int)
-    ap.add_argument('--wpm', type=float)
-    ap.add_argument('--wrong', type=int, default=0)
-    ap.add_argument('--chars', type=int, default=10 ** 9)
-    ap.add_argument('--roll', type=float, default=0)
     ap.add_argument('--keys', action='append', default=[])
     ap.add_argument('--end', type=float, default=30)
     ap.add_argument('--dump')
@@ -233,8 +164,6 @@ def main():
         while time.monotonic() - t0 < at and p.status is None:
             p.pump(0.02)
         p.send(data.replace(b'\\e', b'\x1b'))
-    if a.wpm:
-        out['typist'] = typist(p, a)
     end = t0 + a.end
     while time.monotonic() < end and p.status is None:
         if not p.pump(0.05):

@@ -158,7 +158,7 @@ symbols	Send it to mina@example.org by Friday!
 symbols	Sales rose 15% (from $200 to $230) in May.
 symbols	Rock & roll; salt & pepper; ink & paper.
 symbols	Item #7 is out of stock (back in June).
-symbols	5 * 4 = 20, and 2^8 = 256 (not 16).
+symbols	5 * 4 makes 20, and 2^8 makes 256 (not 16).
 symbols	Is it 100% done? Almost! Just 2% to go.
 symbols	Write to info@example.com for a price (in $).
 symbols	Issue #42 was closed by @mina at 9:15!

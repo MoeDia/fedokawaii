@@ -42,7 +42,11 @@ That number stays on the progress page, until touch typing passes it. Before tha
 faster, and most people go back to it there (Yechiam 2003). Past that day it stops mattering.
 
 **Block or flow.** Stages 1–3 and every key's lessons block: a wrong key does not move on. From the first
-sentences on, the text flows: a wrong letter stands in red, Backspace corrects, the error still counts.
+sentences on, and in every timed minute, the text flows: a wrong letter stands in red, Backspace corrects, the error
+still counts.
+
+**Kept.** A lesson left by Esc, a kill or a reboot goes on from where it stood; a practice run or a test does not (one
+stopped and picked up again would be measured over a lie).
 
 **Eyes up.** In sentences and passages an eye opens under the text every 40–60 s: press Tab within 2 s, or the text
 dims and waits till you do. Looking at your hands is how you miss it (Yechiam 2003). Never in a check or a test.
@@ -57,8 +61,8 @@ dims and waits till you do. Looking at your hands is how you miss it (Yechiam 20
 | 4 | first sentences | the whole alphabet, comma, period, no capitals | 20 | 10–16 → 20–26 | flow |
 | 5 | capitals | opposite shift: `FDSA` · `JKL:` · `GHTY` · `RUEI` · `WOQP` · `VMC?` · `ZNXB` · `' " -` | 30 | 8–12 → 20 | block, then flow |
 | 6 | numbers | `4 7` · `3 8` · `2 9` · `1 0` · `5 6` | 21 | 5–10 → 20 | block, then flow |
-| 7 | symbols | `$ &` · `# *` · `@ (` · `) !` · `% ^` | 18 | 5–8 → 18 | block, then flow |
-| 8 | more symbols | `[ ]` · `\ \|` · `_ +` · `= <` · `> ~` · `` ` { `` · `}` | 24 | 5–8 → 18 | block, then flow |
+| 7 | symbols | `$ &` · `# *` · `@ !` · `( )` · `% ^` | 18 | 5–8 → 18 | block, then flow |
+| 8 | more symbols | `[ ]` · `{ }` · `\ \|` · `_ +` · `= <` · `> ~` · `` ` `` | 24 | 5–8 → 18 | block, then flow |
 | 9 | speed | passages, patterns, a pacer, a check, each 5 wpm from 30 to 110; real code after the bands of 40 · 50 · 60 · 70 · 80 | 132 | goal − 10 → goal | flow |
 | | | **total** | **321** | | |
 

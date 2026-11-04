@@ -27,10 +27,16 @@ def report(name, ok, why=''):
         FAILS.append(name)
 
 
+def trace():
+    return os.path.join(state_dir(), '..', 'typing-trace.json')
+
+
 def fresh(baseline=40, lessons=None, day=None):
     d = state_dir()
     shutil.rmtree(d, ignore_errors=True)
     os.makedirs(d)
+    if os.path.exists(trace()):
+        os.unlink(trace())
     state = {'lessons': lessons or {}, 'baseline': baseline}
     if day:
         state['day'] = day
@@ -40,7 +46,7 @@ def fresh(baseline=40, lessons=None, day=None):
 
 
 def start(size=(100, 32), *args, env=None):
-    argv = [sys.executable, '-IB', BIN, '--seed', '7', *args]
+    argv = [sys.executable, '-IB', BIN, '--seed', '7', '--trace', trace(), *args]
     p = Pty(argv, size, env)
     p.pump(0.4)
     return p
@@ -76,6 +82,13 @@ def history():
 
 
 def resume():
+    """the run under way, any kind (--trace)"""
+    with open(trace()) as f:
+        return json.load(f)
+
+
+def kept():
+    """what stays for later: a course's lesson"""
     with open(os.path.join(state_dir(), 'resume.json')) as f:
         return json.load(f)
 
@@ -291,7 +304,7 @@ def case_capslock():
     p.pump(0.3)
     p.send(b'\x1b[27;1:1u')
     p.pump(0.2)
-    d = resume()['run'] if os.path.exists(os.path.join(state_dir(), 'resume.json')) else {'correct': 0, 'wrong': 0}
+    d = resume()['run']
     report('caps lock on: said, nothing counted', d['correct'] + d['wrong'] == 0, str((d['correct'], d['wrong'])))
     finish(p)
 
@@ -306,7 +319,7 @@ def case_arabic():
     p.pump(0.3)
     p.send(b'\x1b[27;1:1u')
     p.pump(0.2)
-    d = resume()['run'] if os.path.exists(os.path.join(state_dir(), 'resume.json')) else {'correct': 0, 'wrong': 0}
+    d = resume()['run']
     report('the Arabic layout up: said, nothing counted', d['correct'] + d['wrong'] == 0, str((d['correct'], d['wrong'])))
     finish(p)
 
@@ -320,7 +333,7 @@ def case_paste():
     p.pump(0.3)
     p.send(b'\x1b[27;1:1u')
     p.pump(0.2)
-    d = resume()['run'] if os.path.exists(os.path.join(state_dir(), 'resume.json')) else {'correct': 0, 'wrong': 0}
+    d = resume()['run']
     report('pasted text types nothing', d['correct'] + d['wrong'] == 0, str((d['correct'], d['wrong'])))
     finish(p)
 
@@ -348,26 +361,24 @@ def case_pause():
 
 # ── kept across a kill ───────────────────────────────────────────────────────
 def case_resume():
-    fresh()
-    path = text_file(TEXT[:90])
-    p = start((100, 32), path)
-    wait_resume(p)
-    type_at(p, TEXT[:45], 90)
-    p.pump(0.3)
+    fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
+    p = start((100, 32), '--lesson', 'home.fj.words')
+    d = wait_resume(p)
+    text = d['run']['text']
+    type_at(p, text[:45], 90)
+    p.pump(0.4)
     os.kill(p.pid, signal.SIGKILL)
     p.wait(1)
-    # (resume.json holds the run. Started again, without a file: the tabs, its row first)
-    d = resume()['run']
-    report('a kill leaves the run on disk', d['pos'] >= 30, str(d['pos']))
-    p = start()
+    d = kept()['run']
+    report('a kill leaves the lesson on disk', d['pos'] >= 25 and d['text'] == text, str(d['pos']))
+    p = start()                  # (started again: the tabs, its row first)
     press(p, ENTER)
     p.pump(0.3)
-    rest = TEXT[d['pos']:90]
-    type_at(p, rest, 90)
-    p.pump(0.4)
+    type_at(p, text[d['pos']:], 90)
+    p.pump(0.5)
     finish(p)
     h = history()
-    report('...Enter goes on from there, to the end', len(h) == 1, str(h))
+    report('...Enter goes on from there, to the end', len(h) == 1 and h[0]['l'] == 'home.fj.words', str(h))
     report('...and the speed is not hurt by the time it lay dead', h and h[-1]['w'] > 80, str(h and h[-1]))
     report('...nothing left under way', not os.path.exists(os.path.join(state_dir(), 'resume.json')), '')
 
@@ -381,7 +392,7 @@ def case_escape_keeps():
     type_at(p, text[:10], 120)
     p.send(b'\x1b[27;1:1u')
     p.pump(0.3)
-    d = resume()['run']
+    d = kept()['run']
     report('Esc in a lesson keeps it', d['pos'] == 10 and d['text'] == text, str(d['pos']))
     press(p, ENTER)    # (the first row is its "go on")
     p.pump(0.3)
@@ -392,14 +403,150 @@ def case_escape_keeps():
     report('...and finishes where it stopped', len(h) == 1 and h[0]['l'] == 'home.fj.drill', str(h))
 
 
+def case_kept_is_not_lost():
+    """a kept lesson survives the practice tab, a file, and another lesson opened and left untouched"""
+    fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
+    p = start()
+    press(p, ENTER)
+    d = wait_resume(p)
+    text = d['run']['text']
+    type_at(p, text[:10], 120)
+    p.send(b'\x1b[27;1:1u')       # (kept)
+    p.pump(0.2)
+    press(p, TAB)
+    p.pump(0.05)
+    press(p, ENTER)                # (a practice run, typed in and left)
+    d2 = wait_resume(p)
+    for ch in d2['run']['text'][:5]:
+        p.send(key(ch))
+        p.send(key(ch, False, 3))
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    report('a practice run opened and left: the kept lesson stays', kept()['run']['pos'] == 10 and kept()['run']['text'] == text, str(kept()['run']['pos']))
+    finish(p)
+    p = start((100, 32), '--lesson', 'home.dk.drill')    # (another lesson, left untouched)
+    p.pump(0.3)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    report('...another lesson opened and left untouched: it stays', kept()['lesson'] == 'home.fj.drill', str(kept()['lesson']))
+    finish(p)
+    p = start((100, 32), '--lesson', 'home.fj.drill')    # (its own row in the list: where it stood, not afresh)
+    d = wait_resume(p)
+    report('...the lesson opened from its row goes on where it stood', d['run']['pos'] == 10, str(d['run']['pos']))
+    finish(p)
+
+
+def case_file_names():
+    """a file is a file, whatever it is called"""
+    for name in ('test', 'code', 'words', 'passage', 'weak', 'warmup', 'baseline'):
+        fresh()
+        path = os.path.join(os.environ.get('TMP') or '/tmp', name)
+        with open(path, 'w') as f:
+            f.write('the quiet river runs')
+        p = start((100, 32), path)
+        d = wait_resume(p)
+        st = finish(p)
+        ok = st == 0 and d['run']['text'] == 'the quiet river runs' and d['title'] == name
+        with open(os.path.join(state_dir(), 'progress.json')) as f:
+            ok = ok and json.load(f)['baseline'] == 40
+        os.unlink(path)
+        if not ok:
+            report(f'a file called {name}', False, f'{st} {d}')
+            return
+    report('a file called test, code, words, baseline ...: typed as what it is', True)
+
+
+def case_eye_stays():
+    """the eye keeps its row: from a notice that ends, in a window with no keyboard; a theme switch keeps the text dim"""
+    fresh()
+    p = start((30, 12), '--eye', '1', '--lesson', 'sent.1')      # (no room for the keyboard)
+    d = wait_resume(p)
+    text = d['run']['text']
+    p.send(key(text[0]))
+    p.send(key(text[0], False, 3))
+    p.pump(1.6)
+    n = len(p.out)
+    p.pump(0.3)
+    report('a small window: the eye is drawn and says tab', b'tab' in bytes(p.out), '')
+    p.pump(2.2)
+    p.send(b'\x1b[?997;2n')       # (the theme, while dimmed)
+    p.pump(0.3)
+    p.send(key('q'))
+    p.pump(0.2)
+    press(p, TAB)
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    d = resume()['run']
+    report('...dimmed through a theme switch: keys still wait, Tab answers', d['pos'] == 1 and d['correct'] == 1 and d['wrong'] == 0, str((d['pos'], d['wrong'])))
+    st = finish(p)
+    report('...no traceback', st == 0 and n > 0, str(st))
+
+
+def case_caps_off():
+    fresh()
+    p = start((100, 32), '--lesson', 'sent.1')
+    d = wait_resume(p)
+    text = d['run']['text']
+    p.send(b'\x1b[57358;1:1u\x1b[57358;65:3u')     # (caps lock on)
+    p.pump(0.1)
+    p.send(key(text[0]).replace(b';1:1;', b';65:1;'))
+    p.pump(0.1)
+    p.send(b'\x1b[57358;65:1u\x1b[57358;1:3u')     # (and off again)
+    p.pump(0.1)
+    p.send(key(text[0]))
+    p.send(key(text[0], False, 3))
+    p.pump(0.2)
+    p.send(b'\x1b[27;1:1u')
+    p.pump(0.2)
+    d = resume()['run']
+    report('caps lock off again: the next key counts at once', d['pos'] == 1 and d['correct'] == 1, str((d['pos'], d['correct'])))
+    finish(p)
+
+
+def case_landmark_words():
+    fresh(baseline=20)
+    p = start()
+    text = timed_test(p)
+    type_at(p, text[:60], 120)
+    p.pump(13)
+    finish(p)
+    s = bytes(p.out)
+    report('the crossover is said on the result', b'past your old way' in s, str(history()))
+    fresh(baseline=20, day={'date': time.strftime('%Y-%m-%d'), 'seconds': 1300.0, 'warm': True, 'test': False})
+    p = start()
+    press(p, ENTER)
+    d = wait_resume(p)
+    report('the day\'s test comes first', d['lesson'] == 'free.test', str(d['lesson']))
+    finish(p)
+
+
+def case_practice_returns():
+    """Enter on a practice run's result goes back to the practice tab, not on into the course"""
+    fresh()
+    p = start()
+    text = timed_test(p)
+    type_at(p, text[:60], 120)
+    p.pump(13)                     # (its clock runs out)
+    n = len(p.out)
+    press(p, ENTER)
+    p.pump(0.4)
+    report('a test from the practice tab: Enter goes back there', b'practice' in bytes(p.out[n:]) and not os.path.exists(os.path.join(state_dir(), 'resume.json')), '')
+    finish(p)
+
+
 # ── state that cannot be read ────────────────────────────────────────────────
 def case_corrupt():
     samples = {
-        'progress.json': [b'', b'{', b'[1,2]', b'\xff\xfe\x00', b'{"lessons":{"x":1},"baseline":"a","day":7}', b'{"lessons":{"a":{"seals":"x"}}}', b'null', b'{"lessons":' * 2000],
+        'progress.json': [b'', b'{', b'[1,2]', b'\xff\xfe\x00', b'{"baseline":1' + b'0' * 400 + b'}', b'[' * 100000, b'{"lessons":{"x":1},"baseline":"a","day":7}', b'{"lessons":{"a":{"seals":"x"}}}', b'null', b'{"lessons":' * 2000],
         'keys.json': [b'{', b'{"keys":{"a":[1]},"pairs":3}', b'{"keys":{"a":["x",1,2,3]}}', b'{"keys":{"a":[1e400,1,2,3]}}'],
         'resume.json': [b'{', b'{"run":{}}', b'{"run":{"text":"","pos":0,"got":[],"flow":true,"correct":0,"wrong":0}}', b'{"run":{"text":"abc","pos":99,"got":3,"flow":1}}',
-                        b'{"lesson":"nope","index":99999,"run":{"text":"abc def","pos":2,"got":["a","b"],"flow":true,"correct":2,"wrong":0}}', b'{"run":7,"lesson":[]}'],
-        'history.jsonl': [b'\xff\xff\n{"d":1}\nnot json\n{"d":1,"k":"test","w":"x","a":2}\n', b'{"d":1,"k":"test","w":1e999,"a":2}\n'],
+                        b'{"lesson":"nope","index":99999,"run":{"text":"abc def","pos":2,"got":["a","b"],"flow":true,"correct":2,"wrong":0}}', b'{"run":7,"lesson":[]}',
+                        b'{"lesson":"home.fj.drill","index":1,"run":{"text":"abc","pos":1,"got":["a"],"flow":true,"correct":1,"wrong":0,"limit":"x"}}',
+                        b'{"lesson":"home.fj.drill","index":1,"run":{"text":"abc","pos":Infinity,"got":["a"],"flow":true,"correct":1,"wrong":0}}'],
+        'history.jsonl': [b'\xff\xff\n{"d":1}\nnot json\n{"d":1,"k":"test","w":"x","a":2}\n', b'{"d":1,"k":"test","w":1e999,"a":2}\n', b'[' * 100000 + b'\n',
+                          b'{"d":1,"k":"test","w":1' + b'0' * 400 + b',"a":2}\n'],
     }
     bad = 0
     for name, variants in samples.items():
@@ -522,8 +669,7 @@ def case_restore():
 def case_anchor():
     """the hand that holds f or j really holds it: foot tells the key is down"""
     fresh()
-    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--lesson', 'home.anchor.j'], (100, 32))
-    p.pump(0.4)
+    p = start((100, 32), '--lesson', 'home.anchor.j')
     d = wait_resume(p)
     text = d['run']['text']
     p.send(b'\x1b[?31u')                # (the terminal says it took the flags: releases will come)
@@ -533,12 +679,11 @@ def case_anchor():
     p.pump(0.2)
     p.send(b'\x1b[27;1:1u')
     p.pump(0.2)
-    d = resume()['run'] if os.path.exists(os.path.join(state_dir(), 'resume.json')) else {'correct': 0, 'wrong': 0, 'pos': 0}
+    d = resume()['run']
     report('an anchor lesson: nothing counts until j is held', d['correct'] + d['wrong'] == 0, str(d['correct']))
     finish(p)
     fresh()
-    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--lesson', 'home.anchor.j'], (100, 32))
-    p.pump(0.4)
+    p = start((100, 32), '--lesson', 'home.anchor.j')
     d = wait_resume(p)
     text = d['run']['text']
     p.send(b'\x1b[?31u')
@@ -563,8 +708,7 @@ def case_anchor():
 def case_eye():
     """open: Tab shuts it; left open 2 s: the text waits, the clock with it"""
     fresh()
-    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--eye', '1', '--lesson', 'sent.1'], (100, 32))
-    p.pump(0.4)
+    p = start((100, 32), '--eye', '1', '--lesson', 'sent.1')
     d = wait_resume(p)
     text = d['run']['text']
     p.send(key(text[0]))
@@ -587,8 +731,7 @@ def case_eye():
     report('...not answered: keys wait, nothing counted', d['pos'] == 1 and d['correct'] == 1, str((d['pos'], d['correct'])))
     finish(p)
     fresh()
-    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--eye', '1', '--lesson', 'sent.1'], (100, 32))
-    p.pump(0.4)
+    p = start((100, 32), '--eye', '1', '--lesson', 'sent.1')
     d = wait_resume(p)
     text = d['run']['text']
     p.send(key(text[0]))
@@ -638,8 +781,7 @@ def case_course_plan():
 def case_landmark():
     """the crossover and the marks: said once, kept"""
     fresh(baseline=20)
-    p = Pty([sys.executable, '-IB', BIN, '--seed', '7'], (100, 32))
-    p.pump(0.3)
+    p = start()
     press(p, TAB)
     p.pump(0.1)
     for _ in range(8):       # (test, 15 seconds: the rows are in a fixed order)
@@ -694,7 +836,7 @@ def case_screens():
     for size in ((100, 33), (60, 21), (130, 49)):
         demo_state()
         p = start(size)
-        for tab in range(3):
+        for _ in range(3):
             for _ in range(12):        # (every row: down and Enter, a few keys, Esc, back to the tab)
                 p.send(down)
                 p.pump(0.01)
@@ -737,8 +879,7 @@ def case_screens():
 
 def case_pacer():
     fresh()
-    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--lesson', 'speed.30.pacer'], (100, 33))
-    p.pump(0.3)
+    p = start((100, 33), '--lesson', 'speed.30.pacer')
     d = wait_resume(p)
     text = d['run']['text']
     n = len(p.out)
@@ -804,11 +945,27 @@ def case_tables():
     lines = wrap('the quick brown fox\njumps over', 10)
     report('wrap: at words and at Enter, nothing lost', ''.join('the quick brown fox\njumps over'[a:b] for a, b in lines) == 'the quick brown fox\njumps over'
            and all(b - a <= 11 for a, b in lines), str(lines))
+    from kawatype import canvas
+    pic = canvas.Picture(40, 20, (8, 20))    # (the eye's: a row, five cells)
+    pic.fill(0, 0, 40, 20, 1)
+    out = pic.send(3, 9, {1: b'1;2;3'})
+    report('a picture\'s erase is its own cells: never what lies below it', out.count(b'X') == 1 and b'\x1b[9;3H\x1b[5X' in out, repr(out[:40]))
     day = 86400
     tests = [{'d': 1000000 + i * day, 'w': 20 + 2 * i} for i in range(20)]
     when = fit_power(tests)
     report('the line to 100 wpm: a rising curve reaches it, later than its last test', when is not None and when > tests[-1]['d'], str(when))
     report('...a flat one, or too little data: no promise', fit_power([{'d': 1000000 + i * day, 'w': 40} for i in range(20)]) is None and fit_power(tests[:5]) is None, '')
+    back = [{'d': 2000000 - i * day, 'w': 20 + i} for i in range(20)]     # (a clock set back: dates out of order)
+    report('...dates out of order are no crash', fit_power(back) is None or fit_power(back) > 0, '')
+    r = Run('abcdef ghijkl', flow=True)
+    for t, c in ((0.0, 'a'), (1.0, 'b'), (2.0, 'c')):
+        r.press(c, t)
+    for t in (5.0, 8.0):
+        r.backspace(t)
+    r.press('b', 11.0)
+    report('corrections keep the clock going: 3 s between them is no pause', abs(r.active() - 11.0) < 1e-6, str(r.active()))
+    from kawatype.app import percent
+    report('96.97 % reads 96.9, under the bar it missed', percent(64 / 66 * 100) == '96.9' and percent(100) == '100.0', percent(64 / 66 * 100))
 
 
 def case_long_file():

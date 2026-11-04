@@ -132,8 +132,9 @@ class Picture:
             if self.sent.get((i, j)) == tile:
                 continue
             self.sent[(i, j)] = tile
-            for k in range(lines):
-                out.append(b'\x1b[%d;%dH\x1b[%dX' % (r0 + k, c0, cells))
+            # (only the cells this tile covers: what lies past the picture's edge is not its own)
+            for k in range(math.ceil((y1 - y0) / self.ch)):
+                out.append(b'\x1b[%d;%dH\x1b[%dX' % (r0 + k, c0, math.ceil((x1 - x0) / self.cw)))
             if any(any(t) for t in tile):
                 out.append(b'\x1b[%d;%dH' % (r0, c0))
                 out.append(sixel(tile, palette))

@@ -23,7 +23,11 @@ def state_dir():
 
 
 def _number(v, default=0.0):
-    return v if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else default
+    """v, if it is a number a sum can use (a whole number too long for a float is none)"""
+    try:
+        return v if isinstance(v, (int, float)) and not isinstance(v, bool) and math.isfinite(v) else default
+    except OverflowError:
+        return default
 
 
 class Store:
@@ -80,8 +84,7 @@ class Store:
             if isinstance(k, str) and isinstance(v, dict):
                 out['lessons'][k] = {'seals': int(_number(v.get('seals'))) % 7, 'best': _number(v.get('best')),
                                      'tries': int(_number(v.get('tries')))}
-        b = d.get('baseline')
-        out['baseline'] = b if isinstance(b, (int, float)) and not isinstance(b, bool) and math.isfinite(b) else None
+        out['baseline'] = _number(d.get('baseline'), None)
         out['quiet'] = d.get('quiet') is True
         out['crossed'] = d.get('crossed') is True
         out['mark'] = int(_number(d.get('mark')))
@@ -147,20 +150,20 @@ class Store:
         """the runs finished, oldest first; a line that cannot be read is passed over"""
         out = []
         try:
-            with open(self._path('history.jsonl'), encoding='utf-8') as f:
+            with open(self._path('history.jsonl'), encoding='utf-8', errors='replace') as f:
                 for line in f:
                     try:
                         r = json.loads(line)
-                    except ValueError:
+                    except (ValueError, RecursionError):
                         continue
                     if (isinstance(r, dict) and isinstance(r.get('k'), str)
-                            and all(isinstance(r.get(k), (int, float)) and math.isfinite(r[k]) for k in ('d', 'w', 'a'))
+                            and all(_number(r.get(k), None) is not None for k in ('d', 'w', 'a'))
                             and 0 <= r['w'] < 1000 and 0 < r['d'] < 1e11):
                         for k in ('s', 'o'):
-                            if not (isinstance(r.get(k), (int, float)) and math.isfinite(r[k])):
+                            if _number(r.get(k), None) is None:
                                 r.pop(k, None)
                         out.append(r)
-        except (OSError, UnicodeDecodeError):
+        except OSError:
             pass
         return out
 

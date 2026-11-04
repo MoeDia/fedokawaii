@@ -41,6 +41,10 @@ LESSONS = ['home.fj.meet', 'home.anchor.j', 'top.anchor.f', 'bottom.travel.0', '
 ARABIC = ['\x1b[1588::97;1:1;1588u', '\x1b[1587::115;1:1;1587u', '\x1b[1740::100;1:1;1740u', '\x1b[1608:1606:102;2:1;1606u']
 
 
+def trace():
+    return os.path.join(state_dir(), '..', 'typing-trace.json')
+
+
 def event(rng, p, plain_mode=False):
     """one thing that can happen"""
     r = rng.random()
@@ -79,7 +83,7 @@ def event(rng, p, plain_mode=False):
 def typist(rng, p):
     """a burst at speed: the text under way, as it stands"""
     try:
-        with open(os.path.join(state_dir(), 'resume.json')) as f:
+        with open(trace()) as f:
             d = json.load(f)['run']
     except (OSError, ValueError, KeyError, TypeError):
         return
@@ -117,14 +121,16 @@ def damage(rng):
 
 
 def start(rng, seed, size):
-    argv = [sys.executable, '-IB', BIN, '--seed', str(seed)]
+    argv = [sys.executable, '-IB', BIN, '--seed', str(seed), '--trace', trace()]
     r = rng.random()
     if r < 0.1:
         argv.append(os.path.join(os.path.dirname(os.path.abspath(__file__)), 'typing_cases.py'))
     elif r < 0.4:
         argv += ['--eye', '1', '--lesson', rng.choice(LESSONS)]
     p = Pty(argv, size, cell=rng.choice(((8, 20), (8, 20), (8, 20), (9, 22), (10, 25), (16, 40), (7, 15), (1, 1))))
-    p.pump(0.2)
+    t0 = time.monotonic()      # (until it has the terminal in raw mode: before that, a byte is a signal)
+    while b'\x1b[?1049h' not in p.out and p.status is None and time.monotonic() - t0 < 5:
+        p.pump(0.01)
     return p
 
 
