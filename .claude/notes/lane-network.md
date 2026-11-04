@@ -18,10 +18,12 @@ Built and pushed. The final scan on the live PC (19:36) and the live proof (19:3
 
 **Next, after the boot** (the evidence and my helper scripts are in `~/.cache/t39-keep/`; `/dev/shm/t39` is gone):
 1. Read the proof the reboot gives: verify's section "the network" (or `sudo bash ~/.cache/t39-keep/vm-check.sh ~/repos/fk-network dia`), `sysctl net.ipv4.conf.enp8s0.rp_filter` (must be 1), `sudo firewall-cmd --get-active-zones`, `systemctl is-enabled sshd` (disabled), `resolvectl status` (DNSOverTLS=opportunistic). Check first that no apply from a tree without this branch has run since: if so, re-apply with `sudo bash ~/.cache/t39-keep/vm-apply2.sh ~/repos/fk-network dia`.
-2. `sudo bash tools/net-proof.sh`, on the final tree, swarm included.
-3. On the normal `/tmp`: `tests/installer/test_upkeep.sh`, `test_verify.sh`, `test_report_rows.sh`, `tests/engine/test_configs.sh`, `tests/static/test_pipefail.sh`, `test_syntax.sh`. They wait on the installer-test lock when other lanes run; run them with `nice -n 10`.
-4. Clean up: `bash tools/vm-snap.sh r27-net destroy`, `git worktree remove --force ~/.cache/t39-base`, `rm -rf ~/.cache/t39-tmp* ~/.cache/t39-keep`. The temporary nft table `t39_watch` dies with the reboot.
-5. End this note with the finishing word only when all of that is clean.
+2. `git merge --no-ff origin/main` into this branch (`git merge-tree` at 20:20: no conflict), so every proof below runs on what will really be merged.
+3. `sudo bash tools/net-proof.sh`, on that tree, swarm included.
+4. On the normal `/tmp`: `tests/installer/test_upkeep.sh`, `test_verify.sh`, `test_report_rows.sh`, `tests/engine/test_configs.sh`, `tests/static/test_pipefail.sh`, `test_syntax.sh`. They wait on the installer-test lock when other lanes run; run them with `nice -n 10`.
+5. **The clean install, not yet proved for this branch:** the VM so far had `lib/net.sh`'s steps run by hand on a built state (`vm-apply2.sh`), never `setup` from nothing. `nice -n 10 bash tools/vm-smoke.sh r27-net` (reverts to fresh, about 20 min on 1 Nov; put a timeout on it) from a long-timeout background run. Setup's step 1.7b runs in phase 1, before the reboot, so a fault there stops every install.
+6. Clean up: `bash tools/vm-snap.sh r27-net destroy`, `git worktree remove --force ~/.cache/t39-base`, `rm -rf ~/.cache/t39-tmp* ~/.cache/t39-keep`. The temporary nft table `t39_watch` dies with the reboot.
+7. End this note with the finishing word only when all of that is clean.
 
 **What this boot tests.** Everything changed live is in files and survives: `/etc/firewalld/zones/{public,kawa-lan}.xml`, `/etc/firewalld/policies/kawa-no-upnp.xml`, `/etc/sysctl.d/60-fedokawaii-net.conf`, `/etc/NetworkManager/conf.d/91-fedokawaii-net.conf`, `/etc/NetworkManager/dispatcher.d/60-fedokawaii-names`, `/etc/systemd/resolved.conf.d/90-fedokawaii.conf`, sshd disabled, `/etc/ssh/sshd_config.d/40-fedokawaii.conf`. A VM reboot proved the set; this is the first on the PC. What does not survive, on purpose: the `t39_watch` table (a temporary counter, with a log rule that writes plain DNS packets to the journal: gone at the boot). The two applies queued behind the stuck sudo (`fedokawaii apply` from main's tree) die with the reboot; run from a tree without this branch, an apply would reopen ssh and 53317 to the world and put DNS back in plain, so **merge first**.
 
