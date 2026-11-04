@@ -76,7 +76,7 @@ def colors_sh(m, p):
 
 def waybar_css(m, p):
     # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
-    # tiles (紙 kami) — their paper, the vermilion of the torii's, the cat's and the seal's,
+    # tiles (紙 kami) — their paper, the vermilion of the torii's, and the seal's,
     # the words on the seal
     rows = [("surface", p["surface"]),                               # (a tooltip's solid ground)
             ("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),

@@ -23,7 +23,7 @@ class _Any:
     def __mro_entries__(self, bases): return (object,)
 Gtk = _Any(); GLib = _Any(); Gio = _Any()
 class Gdk:                                     # (the keys and the event kind it compares)
-    KEY_Return, KEY_KP_Enter, KEY_ISO_Enter, KEY_a = 0xff0d, 0xff8d, 0xfe34, 0x61
+    KEY_Return, KEY_KP_Enter, KEY_ISO_Enter, KEY_a, KEY_Tab, KEY_Escape = 0xff0d, 0xff8d, 0xfe34, 0x61, 0xff09, 0xff1b
     class EventType: KEY_PRESS, KEY_RELEASE, BUTTON_PRESS = 8, 9, 4
 EOF
 # drive.py THEME_FILE SCRIPT… — kawa-greet loaded as a module (its main() not run), its
@@ -42,6 +42,7 @@ if mode == "theme":
 if mode == "guard":                            # the wake guard and the empty Enter, step by step
     import time, types
     w = kg.Greeter.__new__(kg.Greeter); w.asleep, w.woke = False, 0.0
+    w.scene = None
     class Entry:
         text = ""
         def has_focus(self): return True
@@ -59,6 +60,40 @@ if mode == "guard":                            # the wake guard and the empty En
     w.woke = time.monotonic() - kg.GUARD - 0.1
     out.append(("2 s later enter", w.input(None, key(kg.Gdk.KEY_Return))))
     print(" | ".join(f"{a}: {b}" for a, b in out)); sys.exit(0)
+if mode == "gate":                             # the gate: shut, Tab, typed, Enter eats, a wrong word opens it
+    import time, types
+    w = kg.Greeter.__new__(kg.Greeter); w.asleep, w.woke = False, 0.0
+    w.scene = types.SimpleNamespace(gn=5, gx=0, gy=0, gw=1, gh=1, rx=0, ry=0, pitch=1, rn=1)
+    w.redraw = lambda *a: None
+    w.gate, w.gate_frame, w.gate_src, w.gate_try, w.gate_t0 = kg.GATE_SHUT, 0, 0, False, 0.0
+    class Entry:
+        text = ""
+        def has_focus(self): return True
+        def get_text(self): return self.text
+        def set_text(self, t): self.text = t
+        def is_sensitive(self): return True
+    w.entry = Entry()
+    tried = []
+    w.login = lambda e: tried.append(e.text)
+    key = lambda k, t=kg.Gdk.EventType.KEY_PRESS: types.SimpleNamespace(type=t, keyval=k)
+    def settle():
+        w.gate_t0 = time.monotonic() - 1
+        w.gate_step()
+    G = kg.Gdk; out = []
+    out.append(("a shut", w.input(None, key(G.KEY_a)), w.gate))
+    out.append(("enter shut", w.input(None, key(G.KEY_Return)), w.gate))
+    out.append(("tab", w.input(None, key(G.KEY_Tab)), w.gate))
+    settle(); out.append(("opened", w.gate, w.gate_frame))
+    out.append(("a open", w.input(None, key(G.KEY_a)), w.gate))
+    out.append(("empty enter open", w.input(None, key(G.KEY_Return)), w.gate))
+    w.entry.text = "pw"
+    out.append(("enter", w.input(None, key(G.KEY_Return)), w.gate, tried))
+    settle(); out.append(("eaten", w.gate, w.gate_frame, tried))
+    out.append(("tab again", w.input(None, key(G.KEY_Tab)), w.gate))
+    settle()
+    out.append(("esc", w.input(None, key(G.KEY_Escape)), w.gate, repr(w.entry.text)))
+    settle(); out.append(("shut", w.gate, w.gate_frame))
+    print(" | ".join(str(x) for x in out)); sys.exit(0)
 if mode == "scene":                            # the lock's scene as the login reads it, both moods
     for t in ("dark", "light"):
         sc = kg.Scene(f"{sys.argv[4]}/{t}")
@@ -123,6 +158,9 @@ echo light >"$TMP/theme"; eq "$(th)" light
 echo dark >"$TMP/theme"; eq "$(th)" dark
 echo '../../etc' >"$TMP/theme"; eq "$(th)" dark "a name that is not a theme: dark, never a path"
 
+case_ "the gate (the owner, 4 Nov: \"a secret key opens his mouth; he closes it like he ate the password\"): shut, every key is nothing; Tab opens it; open, keys type and an empty Enter tries nothing; Enter shuts it and only then tries; Esc shuts it, the line cleared"
+eq "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" gate)" \
+  "('a shut', True, 0) | ('enter shut', True, 0) | ('tab', True, 1) | ('opened', 2, 4) | ('a open', False, 2) | ('empty enter open', True, 2) | ('enter', True, 3, ['pw']) | ('eaten', 0, 0, ['pw']) | ('tab again', True, 1) | ('esc', True, 3, \"''\") | ('shut', 0, 0)"
 case_ "the wake guard: asleep, and 2 s after waking, keys and clicks only wake; an empty Enter is never a try"
 eq "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" guard)" \
   "awake a: False | empty enter: True | enter with a password: False | asleep enter: True | just woke enter: True | just woke release: True | 2 s later enter: False"

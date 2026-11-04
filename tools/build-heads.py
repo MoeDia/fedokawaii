@@ -10,7 +10,6 @@ half, mirrored when built), the large ones brush strokes at their own size (oni(
 a line's width is chosen for the size, not scaled from another). Writes, all committed:
     art/icons.txt                         the prompt's glyphs (then tools/build-icons.py)
     themes/MOOD/face.png, face-open.png   the bar's end tile, 22 × 20, the tile's paper through the rest
-    themes/MOOD/face-big.png              quick settings' middle, 56 × 56
     .local/share/fedokawaii/MOOD/head.six fetch's picture, a sixel of 128 × 160: 16 cells × 8 lines
 tools/build-lock.py takes the lock's heads from here.
 
@@ -658,7 +657,6 @@ def write_outputs():
     for mood, kind, shut, open_ in (("dark", "oni", "un", "a"), ("light", "kannon", "closed", "open")):
         picture(f"{kind}.bar.{shut}").save(themes / mood / "face.png", optimize=True)
         picture(f"{kind}.bar.{open_}").save(themes / mood / "face-open.png", optimize=True)
-        picture(f"{kind}.56.{shut}").save(themes / mood / "face-big.png", optimize=True)
         (share / mood / "head.six").write_text(sixel(fetch_size(kind, shut)), encoding="ascii")
 
 
