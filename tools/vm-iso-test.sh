@@ -17,6 +17,7 @@
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
+#   bash tools/vm-iso-test.sh again NAME ISO           the same VM and disk, started from a stick again
 #   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
 #   bash tools/vm-iso-test.sh carry-check NAME QCOW2   brought back from it (a VM made with --usb QCOW2), compared
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
@@ -322,6 +323,18 @@ do_carry_check() {
   echo "vm-iso-test: every carried file back, byte for byte, modes kept"
 }
 
+# do_again NAME ISO — the same VM and disk, started from a stick again (first in the boot order): what a
+# firmware that boots the stick twice shows, and an install over a finished one
+do_again() {
+  local name=$1 iso=$2 d=$V/$1
+  "${VIRSH[@]}" destroy "$name" >/dev/null 2>&1
+  iso=$(readlink -f "$iso")
+  sed -i -E "s|<memory unit='MiB'>[0-9]+<|<memory unit='MiB'>4096<|; s|(<source file=')[^']*\.iso('/>)|\1$iso\2|; s|(<target dev='sda' bus='sata'/><readonly/>)(<boot order='1'/>)?|\1<boot order='1'/>|" "$d/domain.xml"
+  "${VIRSH[@]}" define "$d/domain.xml" >/dev/null || return 1
+  mem_guard "$name"
+  "${VIRSH[@]}" start "$name" >/dev/null
+}
+
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
 # the screen says, read exactly, and a PNG of it in DIR
 do_matrix() {
@@ -376,6 +389,7 @@ case $cmd in
   run) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_run "$@" ;;
   follow) name_ok "${1:-}"; do_follow "$1" ;;
   matrix) do_matrix "$@" ;;
+  again) name_ok "${1:-}"; do_again "$@" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
