@@ -2,8 +2,7 @@
 ## OWNER 17:32 — TONIGHT
 The owner wants the whole round finished today; he is at the PC until 23:30. Finish, test, push and end this file with a line DONE by 21:30. Complete and working first, refine after; never fake done; list what is left for main. Run heavy builds and tests with nice -n 10. Questions for him: append to ~/repos/fedokawaii/.claude/inbox.md as "## <time> — question from lane-chess".
 
-<!-- status -->
-<!-- pass of 21:40, should it be cut off: results of the last full run are in /dev/shm/lane-chess/logs-e (summary.txt, wm-summary.txt = the trial merge on lane-integrate + the integration patch, fuzz30.log, year5.log); renders in /dev/shm/lane-chess/new-{dark,light}. Read those before running anything again. -->
+<!-- status 23:54: everything is committed at 0985441 and pushed. The final proof runs on a frozen copy of that commit (results in /dev/shm/lane-chess/logs-k/summary.txt). The line DONE comes when it is green. -->
 # lane-chess — T25a, T25b, T25c: the chess app
 
 Branch `lane-chess`. State at the end of this file. `kawa-chess` runs, plays, teaches and reviews.
@@ -25,14 +24,21 @@ theme.sh needs **no change**: its home tree installs configs/home/ as it is, bin
 
 ## What the main run must do to merge
 
-1. Merge `lane-chess` (a trial `git merge-tree` against main 77b19a9 is clean). No font or icon was rebuilt (only existing icons are used), so nothing binary conflicts.
-2. `git apply .claude/notes/lane-chess-integration.patch` (rebuilt at 20:16 on main 77b19a9; if main has moved, `git apply --3way`: only system/fedokawaii's guard line can conflict) — the edits to files this lane may not touch: lib/manifest.sh (stockfish), PACKAGES.md,
-   tools/packages.evidence, tests/static/fixtures/programs.txt, tests/look/fixtures/{launched,not-launched}.txt, tests/look/test_launcher.sh,
-   system/fedokawaii (the learning row: chess is no longer "soon", opens `kawa-chess --window`), tests/engine/test_menu.sh, docs/design-system.md §14.
-   If the typing lane changed `SOON` first, its one line conflicts: keep both removed.
+lane-integrate's train (`train-head`, gate-fix 86c8c9f) already holds this lane and its wiring. What is left for it:
+
+1. Merge `lane-chess` again: two commits since (faces, titles, the keys' tile). Only this lane's files: no conflict.
+   **Merge after lane-appsui, as the owner's order has it**: `ui.py`'s `tile()` now writes the tile lane-appsui's Sumi Icons Term
+   carries (U+FF001, U+FF000 + each letter, U+FF002, as `screen_tile`). Without those fonts the keys would be empty boxes.
+2. Two lines of `.claude/notes/lane-chess-integration.patch` changed for FEDORA 45 ONLY; copy them to the train:
+   `tools/packages.evidence` "F45 updates: stockfish 19-1.fc45 (mdapi.fedoraproject.org/f45/pkg/stockfish, dnf --releasever=45
+   repoquery; …", `tests/static/fixtures/programs.txt` "… /usr/bin/stockfish, Fedora 45 updates". Checked at 23:44: Fedora 45 has
+   stockfish 19-1.fc45, the same 19 every test here played against.
 3. `fedokawaii apply` in its turn installs stockfish (dnf) and the files. Look at it: Super+U → learning → chess.
 4. `tests/content/` here run with the stand-in engine anywhere, and with the real one once stockfish is on PATH (or `KAWA_TEST_STOCKFISH=PATH`).
 5. Plan: mark T25a, T25b, T25c from the ledger lines below; master-trace r27-dec-9a–h.
+
+For a tree that has no train: the whole patch still applies on main b0656c4 (checked 23:30); on a tree with lane-pixels or
+lane-appsui, `system/fedokawaii` conflicts in its SOON line and the learning rows: no chess in SOON, `[[ -n $desk ]] && e learning chess …`.
 
 Not done here, on purpose (other lanes' or main's files, or his word): the design-system.md §-numbers for the board (a row in §14 is in the patch; a § of its own when the main run wants it); T27 cutting docs/learn/chess/README.md into the Learn pieces; VM proof of the install (T54); T19p's review pack may want a chess page (tools/chess-gallery.sh writes the shots).
 
@@ -85,19 +91,6 @@ Found and fixed in this pass, each with its test where a test can see it:
 New since the last notes (r27-extra, for his veto, with those above): the year's scroll unrolls and rolls up (420 ms, the rod in whole art pixels with its shadow), a torii at the end of the plan's path at 1800, a large face across a large board, the face of who you meet on today's game row, a drag with the man under the pointer, sparks in puzzles and lessons, a solved puzzle's beat (the square lit, `✓ solved +8`, 0.55 s, any key goes on), chess's own ?? ? ?! in the review, arrows redrawn on the art's pixels, board and panel one centred block in a large window (the panel no wider than 60 columns: a tile is the usual size, 236 × 51 alone on a workspace).
 
 For the main run: my fuzz's Ctrl+\\ left python core dumps in /var/lib/systemd/coredump (87 python3.14 of uid 1000 today, not all from this lane; 1 GB in all with others'). No sudo here, so I left them: systemd-tmpfiles ages them out, or `sudo rm` them when convenient.
-
-## Where this pass stopped, 20:20: forced reboot announced for 20:25
-
-**First look at `uptime -s`: if it still says 2026-11-04 15:46:21, the reboot has not come yet: main asked for no kit, no suite, no build, no GPU job and no systemctl until it has (PID 1 is stuck, swap full, results not to be trusted): read and edit only.**
-
-Committed and pushed. /dev/shm is lost in the reboot; the real engine is kept at ~/.cache/lane-chess/stockfish, with mont.sh and freeze.sh (delete that folder when this lane ends: nothing else uses it).
-
-**Next, in this order, after the boot:**
-1. Check the seal's clamp and the cursor on "go on to day 8" by eye (95b784a came after the last shot): a small kit play at 236×51 (report → Enter → the seal).
-2. Full tests on the final code, from a frozen copy (freeze.sh, so that edits do not touch a run): test_chess_rules, test_chess, test_chess_destroy with `KAWA_TEST_STOCKFISH=~/.cache/lane-chess/stockfish`; chess_puzzles200; chess_games 20; `tools/check-chess-lessons.py`.
-3. **The fuzz, 30 minutes, on a frozen copy** (T25c's accept): `python3 -I -B tests/content/chess_fuzz.py DIR 1800 SEED`, nice -n 10, then fill the table above.
-4. Gallery both moods on the final code; compare the light fullscreen shots once more.
-5. Rebuild the integration patch if main moved; update this file's table; the line DONE at its end. The ledger lines above stand as they are.
 
 ## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
 OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
