@@ -266,7 +266,7 @@ roundtrip() {
   run 'sudo /usr/local/sbin/kawa-snap restore old' >>"$log" 2>&1 || { end_row BROKEN "kawa-snap restore old"; return 1; }
   restart; wait_desktop
   local a3; a3=$(v fk-inject-a)
-  ok_if '[[ $a1 == 1.0 && $home == mine && $auto == no && $h2 -ge 1 ]] && desktop' "restored: a $a1, his file kept ($home), labels off: $rel, autorelabel: $auto, holds back: $h2, press then a $a2; restore old: a $a3"
+  ok_if '[[ $a1 == 1.0 && $home == mine && $auto == no && $h2 -ge 1 && $a3 == 1.1 ]] && desktop' "restored: a $a1, his file kept ($home), labels off: $rel, autorelabel: $auto, holds back: $h2, press then a $a2; restore old: a $a3"
 }
 # ── the run itself (rows 26, 27, 28, 29, 30) ─────────────────────────────────────────────────
 lock_held() {
