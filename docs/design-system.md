@@ -20,8 +20,8 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | the seal (vermilion) | Jasper Red | Brick Red (a softer, older red) |
 | fire and metal | torchlight: Apricot Orange; old brass: Isabella | gold leaf: Yellow Ocher |
 | lit | a cold teal: Venice Green toward Ecru | a deep porcelain teal |
-| art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
-| the lock | a castle wall, three pools of torchlight, carved battles of oni and tennin, the samurai demon facing you: his mouth is the gate | the same battle in the sky of an old screen, between bands of gold mist, two hanging lanterns, Marishiten: the sutra in her hands is the gate |
+| art (the lock and the heads are engraved paintings, everything else stays pixel art) | an engraved Hannya, carved war in a torch-lit hall | Schongauer's angel in an indigo wash over Hokusai's kind of sea |
+| the lock | an engraved Hannya mask, facing you, in a torch-lit hall of carved war: his jaw is the gate | Schongauer's engraved angel over the waves, between carved pillars and their torches: the scroll on her staff is the gate |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
 | the head (quick settings' tile on the bar, the prompt, fetch, the lock: one character sheet, docs/art/heads.md; owner, 4 Nov: "more RED, classic Japanese", "badass samurai, EPIC": detail by line, not by colour) | a demon of the red companies: red lacquer, sumi, bone, kuwagata horns, laced lames: his teeth locked 吽, he roars 阿 while its panel is open and in the prompt when a command failed | Marishiten, the samurai's goddess of light: sumi on gofun, red only in the urna and lips, a nimbus of blades, a war-crown: her eyes closed, open while the panel is open and in the prompt when a command failed |
 
@@ -460,36 +460,29 @@ the tiles of a group, 12 px between groups.
   aligned with the title; progress: the meter (§4). Critical: the hairline `accent`.
 - **Level display** (kawa-osd): a panel of one row — the icon, the meter, the value — centred low
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
-- **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper; the settings by
-  `tools/build-lock.py`, the figures by lane-ink: flat tones, as old pixel art is; a shape has its tone,
-  its bevels face the nearer torch, the light raises the tones by whole steps). The camera is low (the
-  owner, 18:45): the wall leans to a point high over the middle, near things large, the eaves seen from
-  below; hard chiaroscuro, nothing calm or empty. Dark: a castle wall (ishigaki, joints `lo`) in stepped
-  pools of torchlight, stone by stone, the rest all but black; rafters' ends, a stone beam with the
-  thunder key and the war marching along it, brackets under it, the quote gilded on its lintel between
-  the figure's horns; a shimenawa with its paper; two torches (`flame`, 8 frames a second, out of step);
-  two panels of carved battle, oni against tennin, in deep relief; flames cut dark behind the figure in
-  ember-red lines; the sea's waves on the step; chains, rocks and the dead black in the foreground. His
-  mouth is the gate (five frames, `lock-gate.png`, `gate` in `lock-scene.txt`): open, the password glows
-  in it, each character an ember — a mark of the scene's own pixels (arms `flame`, middle `strong`,
-  corners `accent_lo`; the arms `asagi` while Caps Lock is on), the newest eight in sight, 7 px apart —
-  and the caret a bar as tall as a mark in `flame`, blinking once a second, always there while the line
-  has the keyboard.
-  Light: the same story in the sky of an old screen, seen from below: paper in stepped pools paler round
-  two hanging bronze lanterns (a small flame in each fire box, 8 frames a second), fine rays over it;
-  vermilion eaves, the thunder key and the war in gold, the quote in sumi on a plaque with its seal; the
-  same battle in sumi, shu and gold, heaven's host small and high, the oni large at your feet, its tiers
-  parted by suyari-gasumi (straight gold bars with rounded ends, stepping, an inner line, sparing
-  kirikane); gold flames behind the figure. The sutra in her hands is the gate (five frames, the same
-  way): unrolled, each character a brush mark on its paper (`strong`, its corners `lo`), the caret in
-  `accent`.
-  Its life (`anim` and `sparks` in `lock-scene.txt`, about 0.7 % of a core): the torches' or lanterns'
-  light moving on the stones, the carvings and the paper in six stepped frames, smoke, embers rising,
-  petals falling.
-  One quote per mood (§0) in Sumi UI's own pixels on a plaque, as a temple's hall carries its name, no
-  translation; no date, no time, no buttons, no hint. The scene is drawn at whole pixels (×3 on 1080p),
-  centred, its edges' own colour round it (kawa-lockmod). A wrong password says so at once (the marks
-  scatter, the gate shakes 3 px twice — §11), and the line is empty again.
+- **Lock** (gtklock + kawa-lockmod; one painting per mood, never the wallpaper, 1920 × 1080, `tools/build-ink.py`; the
+  owner, 4 Nov 19:11 and 21:40: "drop this pixelated act", "super solid and beautiful"; sources: `art/ink/SOURCES.md`).
+  One engraver's hand: every line one ink, cut at 3 × and reduced, washes laid flat under the lines, no blur, nothing
+  empty. Dark (his master M1): the engraved Hannya at the middle, facing you, long ringed horns, the mane in fine lines
+  of light, brow and cheeks cut with scrolls, a robe's collar; behind it a hall of carved stone, angels and demons at
+  war, two torches, warm paper falling into black; the quote gilded on a stone tablet between the horns. His jaw is
+  the gate (seven frames, `lock-gate.png`, `gate` in `lock-scene.txt`): shut he grins, the secret key opens it, the
+  password burns in his throat, each character a small drawn fire (`lock-marks.png`, the newest eight in sight,
+  23 px apart; their shape in `asagi` while Caps Lock is on), the caret a bar as tall as a mark; Enter shuts it on them.
+  Light (his master M2): Schongauer's angel, her line kept and strengthened, in an indigo wash with the gold ring
+  behind her head, rising out of the sea between two great waves and two carved pillars whose figures hold burning
+  torches, clouds in curling scrolls, sakura; the quote on a print's title slip with its red seal. The banderole she
+  held is the scroll, rolled on her staff (seven frames, the same way): sealed with a red hanko at rest; unrolled by
+  the secret key, gold columns on its paper, each character one stroke of the brush in its column; rolled and sealed
+  again on Enter.
+  Its life (`anim`, `frames` and `sparks` in `lock-scene.txt`): the fires licking (a strip, 8 frames a second, the two
+  out of step), a veil of one dark ink thin and thick over the stone as they breathe (ink stays ink, the paper falls
+  and rises: never a colour laid on the carvings), the fire seen in the demon's pupils, embers rising; the angel's
+  rays turning, petals falling. All of it asleep while the screens are dark.
+  One quote per mood (§0) in a brush's own hand (Yuji Boku), no translation; no date, no time, no buttons, no hint.
+  Shown pixel for pixel on 1080p, smooth on any other size, centred, the mood's ground round it. A wrong password says
+  so at once (the marks scatter, the gate shakes twice — §11), and the line is empty again. What PAM says is one line
+  of words low on the painting, its own halo round its letters.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
 - **Screensaver** (kawa-saver): a cloth the screen's size on the mood's ground — hitomezashi sewn

@@ -91,3 +91,9 @@ OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii pro
 4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
 5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
 6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## OWNER VERDICT 2026-11-04 21:41 on your render final-direction: comment
+OWNER 21:40 — HIS WORDS: "ditch all of the ink renders except the 2 I sent and discussed, and make something super solid and beautiful; don't stop until you are fully done."
+- The ONLY masters: ink-M1-masters-demon (the engraved Hannya mask) and ink-M2-masters-angel (the Schongauer-style angel over Hokusai's waves). Every SD*, LA*, LD*, A*, D* candidate is dropped: delete them from .claude/review/next/ so his page shows only the real work.
+- Deliver, finished and wired for main to apply: (1) the dark lock 1920x1080 built around M1 (the torch-lit carved hall in the same engraved line, torches as light layers, the mouth states closed / open / bite on THIS mask); (2) the light lock built around M2 (one continuous engraved scene, no pasted patches, full frame, lanterns, the banderole as the scroll with its states); (3) every icon size from the same two faces (fetch ~300 px, menus 48-56 px, the bar 21 px coin, the prompt woodcut glyph); (4) the Learn book cover from the two; (5) the greeter = the lock.
+- Quality bar: super solid and beautiful — one consistent engraved technique, clean edges, no blur, no artefacts, the composition filling the frame, checked at 1x and 4x. Show the finished set in .claude/review/next/, write DONE only when all of it is finished and handed over.
