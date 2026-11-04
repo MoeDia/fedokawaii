@@ -3,11 +3,14 @@
 # system/kawa-fixer): before a culprit bisection found is held, a failure of a config of ours goes
 # to the model on this PC's own card — in a copy of the system with the culprit in, and a copy of
 # the home, never the real ones. Its edit counts only if the program's own check and all of the
-# candidate's checks then pass; it is kept in UP_FIXES (the updater's memory, never rolled back),
-# laid over the configs from then on (theme.sh's place, fixes_apply), and said in the report.
-# Everything else: held and told, as before. Sourced by setup.sh after lib/update.sh.
+# candidate's checks then pass; it waits in UP_FIXNEW until the package itself is in, then is kept
+# in UP_FIXES (the updater's memory, never rolled back), laid over the configs from then on
+# (theme.sh's place, fixes_apply), and said in the report; an update undone takes its fix back out
+# (the old version would refuse the new text). Everything else: held and told, as before. Sourced
+# by setup.sh after lib/update.sh.
 FIXER=/usr/local/sbin/kawa-fixer
-UP_FIXES=$UPD/fixes
+UP_FIXES=$UPD/fixes            # in force
+UP_FIXNEW=$UPD/fixes.new       # proven in a copy, its package not in yet
 UP_HOME=$UP_TOP/home.cand      # a writable copy of /home while candidates exist: their config checks read it
 UP_FIX_LINES=()                # (what the fixer did this run, for the report)
 
@@ -24,9 +27,31 @@ up_home_drop() {
 }
 # fixes_cand — the kept fixes on a candidate that has just received its packages (and its home's copy)
 fixes_cand() {
-  [[ -n $(compgen -G "$UP_FIXES/*.json") && -x $FIXER ]] || return 0
-  "$FIXER" reapply --fixes "$UP_FIXES" --home "$UP_HOME${TARGET_HOME#/home}" --root "$UP_CAND" >/dev/null 2>&1 || true
+  local d
+  for d in "$UP_FIXES" "$UP_FIXNEW"; do
+    [[ -n $(compgen -G "$d/*.json") && -x $FIXER ]] || continue
+    "$FIXER" reapply --fixes "$d" --home "$UP_HOME${TARGET_HOME#/home}" --root "$UP_CAND" >/dev/null 2>&1 || true
+  done
 }
+# fixes_commit — the packages are in: what waited comes into force; fix-new names them, for fixes_undo
+# (never before: a theme run would lay a fix on a config whose program does not know it yet)
+fixes_commit() {
+  local f
+  [[ -n $(compgen -G "$UP_FIXNEW/*.json") ]] || return 0
+  mkdir -p "$UP_FIXES"
+  for f in "$UP_FIXNEW"/*.json; do mv -f -- "$f" "$UP_FIXES/"; echo "${f##*/}" >>"$UPD/fix-new"; done
+  rmdir -- "$UP_FIXNEW" 2>/dev/null || true
+}
+# fixes_undo — the update did not stay: its fixes out again, each file as it was; fixes_settled: it stayed
+fixes_undo() {
+  local n
+  [[ -s $UPD/fix-new && -x $FIXER ]] || return 0
+  while IFS= read -r n; do
+    "$FIXER" unapply "$UP_FIXES/$n" --home "$TARGET_HOME" --root / || log "the fixer's edit $n could not be taken back"
+  done <"$UPD/fix-new"
+  rm -f -- "$UPD/fix-new"
+}
+fixes_settled() { rm -f -- "$UPD/fix-new"; }
 # fixes_apply — the same on the running system, after the theme: /etc's too (a home's file written
 # as its owner: kawa-fixer write_keep). Each one that is no longer needed is dropped, said
 fixes_apply() {
@@ -44,7 +69,8 @@ up_fix() {
   "$FIXER" names --why-file "$why" "$@" >/dev/null 2>&1 || return 1
   [[ -d $UP_HOME ]] || { UP_FIX_LINES+=("the fixer could not run: no copy of the home"); return 1; }
   log "the local AI fixer tries: $(head -n1 "$why")"
-  rm -rf -- "$UPD/try" "$dir"; mkdir -p "$dir" "$UPD/cand-boot/loader/entries" "$UPD/cand-boot/grub2"
+  rm -rf -- "$UPD/try" "$dir" "$UPD/cand-boot"; mkdir -p "$dir" "$UPD/cand-boot/loader/entries" "$UPD/cand-boot/grub2"
+  cp -a /boot/grub2/grubenv "$UPD/cand-boot/grub2/" 2>/dev/null || true   # (as cand_try: the scratch /boot shaped like the real one)
   dnf -q -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || { UP_FIX_LINES+=("the fixer could not run: those packages could not be stored on their own"); return 1; }
   [[ -s $UPD/try/transaction.json ]] || return 1
   cand_drop
@@ -60,15 +86,15 @@ up_fix() {
   line=$("$FIXER" run "$dir/case.json" --out "$dir/out.json" --log "$dir/log" 2>&1) || rc=$?
   log "the fixer: $line"
   if ((rc == 0)) && cand_run "$UPD/try" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
-    "$FIXER" keep "$dir/out.json" --fixes "$UP_FIXES" >/dev/null
+    "$FIXER" keep "$dir/out.json" --fixes "$UP_FIXNEW" >/dev/null
     UP_FIX_LINES+=("$line")
-    cand_drop; rm -rf -- "$UPD/try"
+    cand_drop; rm -rf -- "$UPD/try" "$UPD/cand-boot"
     return 0
   fi
   # (its edits stayed in the home's copy: a clean one for what follows)
   ((rc == 0)) && line="its fix passed its own check, not the whole system's: held"
   UP_FIX_LINES+=("the fixer: $line")
-  cand_drop; rm -rf -- "$UPD/try"
+  cand_drop; rm -rf -- "$UPD/try" "$UPD/cand-boot"
   up_home_drop; up_home_copy
   return 1
 }

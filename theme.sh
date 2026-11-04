@@ -1125,4 +1125,8 @@ else
 fi
 # the backups: the newest ten runs kept (each folder holds only what that run replaced)
 prune_theme_backups U >/dev/null
+# (the fixer's kept edits on what setup, not this run, writes: /etc's files — lib/fixer.sh)
+if [[ -n $(compgen -G '/var/lib/fedokawaii/update/fixes/*.json') && -x /usr/local/sbin/kawa-fixer ]]; then
+  R /usr/local/sbin/kawa-fixer reapply --fixes /var/lib/fedokawaii/update/fixes --home "$TARGET_HOME" --root / >>"$LOG_FILE" 2>&1 || log "the fixer's kept edits could not be laid over /etc's files"
+fi
 T=$(mktemp); date '+%F %T' >"$T"; uinstall 0644 "$T" "$STATE/theme-applied"; rm -f "$T"

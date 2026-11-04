@@ -25,3 +25,6 @@ config at all unless cand_run binds a home (a fake green today): cand_try should
 
 ## Open questions
 none
+
+## OWNER ANSWER 2026-11-04 19:01 — to your question «2026-11-04 19:00 — question from lane-fixer»
+remove it its a stray or dont since remember when all done i will nuke this install and doa. fresh one

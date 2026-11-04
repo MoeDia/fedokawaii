@@ -73,6 +73,7 @@ up_leftovers() {   # what a run cut before its end left (a power cut: no exit tr
                    # "offered" report named as the way back stays pinned (UPD/offered) until an
                    # update is kept: its probation then releases it with its own
   local n o=""
+  rm -rf -- "$UP_FIXNEW"   # (a fix proven by a run that ended before its package went in: asked anew)
   n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if [[ $n =~ ^[0-9]+$ ]] && ! grep -q "^$n " "$UPD/probation" 2>/dev/null; then
     [[ -s $UPD/report ]] && IFS=' ' read -r _ o _ <"$UPD/report"   # (TIME OUTCOME; setup.sh's IFS is newline and tab)
@@ -375,6 +376,7 @@ u_check() {   # → 0 nothing newly red · 1 (UPD/why lists what)
 # a restore would take his files back in time too, so it is offered
 u_undo() {
   local n s=(); n=$(cat "$UPD/snap" 2>/dev/null) || n=""
+  fixes_undo     # (the old version would refuse what the fixer wrote for the new one)
   mapfile -t s < <(awk '$3 != "-" { print $1 }' "$UPD/set" 2>/dev/null)
   ((${#s[@]})) && { up_sources; up_hold "$(head -n1 "$UPD/why")" "${s[@]}"; }
   UP_TOGETHER=${#s[@]}   # (the whole set: red only on the running system, so never told apart)
@@ -447,6 +449,7 @@ up_boot() {
   else
     date +%s | write_file "$UPD/restored-once" 0644
     echo "the last update was cut off half-way" >"$UPD/why"
+    fixes_undo
     if /usr/local/sbin/kawa-snap restore "$n"; then
       UP_END=restored; u_report
       up_tell "the last update was cut off half-way" "the system before it (snapshot $n) was put back — press update again when you like"

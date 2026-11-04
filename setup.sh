@@ -3005,12 +3005,14 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
     u_replay || { u_undo; u_report; return 0; }
   fi
   up_phase steps
+  fixes_commit   # (what the local AI fixer has proven comes into force with its package: lib/fixer.sh)
   update_steps
-  fixes_apply    # (what the local AI fixer has kept: lib/fixer.sh)
+  fixes_apply
   after_dnf_done
   if ! u_check; then
     u_undo; record last-update "$(date +%s) stopped"; u_report; return 0
   fi
+  fixes_settled
   if [[ -s $UPD/set ]]; then UP_END=ok; elif ((UP_HELD)); then UP_END=held; else UP_END=current; fi
   up_probation
   # (no "checks" here: what verify finds red was red before — a new red would have undone it)

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# shellcheck disable=SC2088  # (a ~ here is the text of a file's name, as an answer gives it)
 # tests/installer/test_fixer.sh — system/kawa-fixer, the update's local AI fixer, against a stand-in
 # model server (scripted answers over its UNIX socket) and stand-in programs: every guard rail, every
 # way a run ends, the kept fixes, the install, and the model's server itself (its sandbox, its end).
@@ -10,58 +11,7 @@ kf() { python3 -B -I "$F" "$@"; }
 
 # ── a model server: answers/N are its answers in turn ("@hang": nothing, "@die": the connection cut,
 # "@slow": one word, then nothing), requests/N what it was asked ────────────────────────────────
-cat >"$TMP/stub-server" <<'PYEOF'
-#!/usr/bin/python3 -I
-import http.server, json, os, socket, socketserver, sys, time
-args = sys.argv[1:]
-sock = args[args.index("--host") + 1]
-base = os.environ.get("FK_STUB") or os.path.dirname(os.path.abspath(__file__))
-os.makedirs(f"{base}/requests", exist_ok=True)
-with open(f"{base}/argv", "w") as f:
-    json.dump(args, f)
-with open(f"{base}/env", "w") as f:
-    json.dump(dict(os.environ), f)
-with open(f"{base}/netdev", "w") as f:
-    f.write(open("/proc/self/net/dev").read())
-n = [0]
-class H(http.server.BaseHTTPRequestHandler):
-    protocol_version = "HTTP/1.0"
-    def log_message(self, *a):
-        pass
-    def address_string(self):
-        return "stub"
-    def do_GET(self):
-        self.send_response(200); self.end_headers(); self.wfile.write(b'{"status":"ok"}')
-    def do_POST(self):
-        body = self.rfile.read(int(self.headers["Content-Length"]))
-        n[0] += 1
-        with open(f"{base}/requests/{n[0]}.json", "wb") as f:
-            f.write(body)
-        try:
-            ans = open(f"{base}/answers/{n[0]}").read()
-        except OSError:
-            ans = '{"verdict":"cannot_fix","reason":"no more answers","edits":[]}'
-        if ans.startswith("@die"):
-            self.connection.close(); return
-        self.send_response(200); self.send_header("Content-Type", "text/event-stream"); self.end_headers()
-        if ans.startswith("@hang"):
-            time.sleep(60); return
-        if ans.startswith("@slow"):
-            self.wfile.write(b'data: {"choices":[{"delta":{"content":"{"}}]}\n\n'); self.wfile.flush()
-            time.sleep(60); return
-        d = {"choices": [{"delta": {"reasoning_content": "thinking"}}]}
-        self.wfile.write(b"data: " + json.dumps(d).encode() + b"\n\n")
-        d = {"choices": [{"delta": {"content": ans}}], "timings": {"prompt_n": 9, "predicted_n": 9, "predicted_per_second": 33.3}}
-        self.wfile.write(b"data: " + json.dumps(d).encode() + b"\n\ndata: [DONE]\n\n")
-class S(socketserver.ThreadingMixIn, socketserver.UnixStreamServer):
-    daemon_threads = True
-    def get_request(self):
-        c, a = super().get_request()
-        return c, ("stub", 0)
-if os.environ.get("FK_STUB_EXIT"):
-    sys.exit(int(os.environ["FK_STUB_EXIT"]))
-S(sock, H).serve_forever()
-PYEOF
+cp "$REPO/tests/installer/fixer-stub-server.py" "$TMP/stub-server"
 chmod +x "$TMP/stub-server"
 export FK_STUB=$TMP/srv
 SP=""
@@ -69,7 +19,7 @@ serve_stub() {   # a fresh stand-in server on $TMP/srv/s.sock
   [[ -n $SP ]] && { kill "$SP" 2>/dev/null; wait "$SP" 2>/dev/null; }
   rm -rf "$FK_STUB"; mkdir -p "$FK_STUB/answers"
   "$TMP/stub-server" --host "$FK_STUB/s.sock" & SP=$!
-  local i; for i in $(seq 50); do [[ -S $FK_STUB/s.sock ]] && break; sleep 0.1; done
+  local _; for _ in $(seq 50); do [[ -S $FK_STUB/s.sock ]] && break; sleep 0.1; done
   NA=0
 }
 answer() { NA=$((NA + 1)); printf '%s' "$1" >"$FK_STUB/answers/$NA"; }
@@ -105,7 +55,7 @@ fixer() {   # fixer: the run, with the stand-in server → OUT, RC, the report i
 }
 j() { jq -r "$1" "$C/out.json"; }
 conf() { cat "$H/.config/foot/foot.ini"; }
-requests() { ls "$FK_STUB/requests" 2>/dev/null | wc -l; }
+requests() { find "$FK_STUB/requests" -type f 2>/dev/null | wc -l; }
 FOOT='~/.config/foot/foot.ini'
 
 case_ "a right answer: the file changed, its own check green, the report says what and why"
@@ -213,6 +163,10 @@ eq "$RC" 0; has "$(conf)" $'[desktop]\nutmp-helper=none'; has "$(conf)" $'[main]
 eq "$(j '.edits[0].section')" desktop
 serve_stub; fresh; answer '{"verdict":"fix","reason":"moved","edits":[{"file":"~/.config/foot/foot.ini","search":"utempter=none","replace":"utmp-helper=none","section":"[scrollback]"}]}'; fixer
 eq "$RC" 0; has "$(conf)" $'[scrollback]\nutmp-helper=none\nlines=20000'; has "$(jq -r '.response_format.json_schema.schema.properties.edits.items.properties | keys | join(" ")' "$FK_STUB/requests/1.json")" section
+case_ "section.option written as a key in an INI file means that section: mended before it is tried, and kept so"
+serve_stub; fresh; printf '* `desktop.utmp-helper` is where it went\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"; answer "$(edit "$FOOT" 'utempter=none' 'desktop.utmp-helper=none')"; fixer
+eq "$RC" 0; has "$(conf)" $'[desktop]\nutmp-helper=none'; eq "$(j '.edits[0].section')" desktop; eq "$(j '.edits[0].replace')" utmp-helper=none
+
 case_ "a [header] written in the middle of a file would take the lines after it away: refused, told how"
 serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' $'[desktop]\nutmp-helper=none')"; answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
 eq "$RC" 3; eq "$(conf)" "$before"; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" 'give it in "section"'
@@ -308,17 +262,17 @@ rc 2 kf run "$TMP/nope.json"
 # ── the kept fixes ──────────────────────────────────────────────────────────────────────────────
 case_ "a proven fix kept, and put back over a freshly themed file"
 serve_stub; fresh; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer; eq "$RC" 0
-FX=$C/fixes; OUT=$(kf keep "$C/out.json" --fixes "$FX"); has "$OUT" kept; rec=$(ls "$FX"/*.json); eq "$(jq -r '.edits[0].search' "$rec")" utempter=none; eq "$(jq -r '.packages[0].name' "$rec")" foot
+FX=$C/fixes; OUT=$(kf keep "$C/out.json" --fixes "$FX"); has "$OUT" kept; rec=$(compgen -G "$FX/*.json"); eq "$(jq -r '.edits[0].search' "$rec")" utempter=none; eq "$(jq -r '.packages[0].name' "$rec")" foot
 printf '[main]\nutempter=none\nfont=new\n' >"$H/.config/foot/foot.ini"     # (a theme run)
 OUT=$(kf reapply --fixes "$FX" --home "$H" --root "$R"); has "$OUT" "1 in place"; has "$(conf)" utmp-helper=none; has "$(conf)" font=new
 OUT=$(kf reapply --fixes "$FX" --home "$H" --root "$R"); has "$OUT" "1 in place"; eq "$(grep -c utmp-helper "$H/.config/foot/foot.ini")" 1
 case_ "the toolkit has caught up (its old text gone, the new not there): the fix is dropped, said"
 printf '[main]\nsomething=else\n' >"$H/.config/foot/foot.ini"
-OUT=$(kf reapply --fixes "$FX" --home "$H" --root "$R"); has "$OUT" "dropped"; eq "$(ls "$FX" | wc -l)" 0
+OUT=$(kf reapply --fixes "$FX" --home "$H" --root "$R"); has "$OUT" "dropped"; eq "$(find "$FX" -maxdepth 1 -type f | wc -l)" 0
 case_ "a damaged record is dropped, a record naming a forbidden file touches nothing"
 mkdir -p "$FX"; echo 'not json' >"$FX/1.json"; mkdir -p "$H/.config/fedokawaii"; echo 'A=1' >"$H/.config/fedokawaii/secrets.sh"
 printf '{"edits":[{"file":"~/.config/fedokawaii/secrets.sh","search":"A=1","replace":"A=2"}]}' >"$FX/2.json"
-OUT=$(kf reapply --fixes "$FX" --home "$H" --root "$R"); eq "$(cat "$H/.config/fedokawaii/secrets.sh")" A=1; eq "$(ls "$FX" | wc -l)" 0
+OUT=$(kf reapply --fixes "$FX" --home "$H" --root "$R"); eq "$(cat "$H/.config/fedokawaii/secrets.sh")" A=1; eq "$(find "$FX" -maxdepth 1 -type f | wc -l)" 0
 case_ "/etc's files by the root given; a fix in a palette reaches both moods"
 mkdir -p "$FX" "$R/etc/greetd"; printf 'vt = 1\n' >"$R/etc/greetd/fedokawaii.toml"
 printf '{"edits":[{"file":"/etc/greetd/fedokawaii.toml","search":"vt = 1","replace":"vt = 2"}]}' >"$FX/3.json"
@@ -336,7 +290,7 @@ case_ "a palette's kept fix on either mood's rendered text"
 printf '{"edits":[{"file":"~/.config/fedokawaii/themes/dark/foot.ini","search":"a=1","replace":"b=1"}]}' >"$FX/2.json"
 printf 'a=1\n' >"$C/rendered2"; kf rendered --fixes "$FX" --home "$H" --file "$H/.config/fedokawaii/themes/light/foot.ini" --text "$C/rendered2"; eq "$(cat "$C/rendered2")" b=1
 case_ "a kept fix whose file is not here says nothing about the toolkit: kept"
-rm -f "$FX"/*; printf '{"edits":[{"file":"~/.config/nothere/foot.ini","search":"a","replace":"b"}]}' >"$FX/3.json"; kf reapply --fixes "$FX" --home "$H" --root "$R" >/dev/null; eq "$(ls "$FX" | wc -l)" 1
+rm -f "$FX"/*; printf '{"edits":[{"file":"~/.config/nothere/foot.ini","search":"a","replace":"b"}]}' >"$FX/3.json"; kf reapply --fixes "$FX" --home "$H" --root "$R" >/dev/null; eq "$(find "$FX" -maxdepth 1 -type f | wc -l)" 1
 case_ "names: what a failure is about; nothing of ours: exit 3, said"
 printf 'foot does not take its config — err: x\n' >"$C/why"; OUT=$(kf names --why-file "$C/why" foot); eq "$?" 0; eq "$OUT" foot
 printf 'dwl misses libwlroots-0.21.so\n' >"$C/why"; OUT=$(kf names --why-file "$C/why" wlroots); eq "$?" 3; has "$OUT" "not a config of ours"
@@ -347,6 +301,12 @@ mkdir -p "$HOME/.config/foot" "$HOME/.config/mako" "$HOME/.config/mpv" "$HOME/.c
 OUT=$(KAWA_FIXER_PATH=$STUBS:/usr/bin:/bin PATH=$STUBS:/usr/bin:/bin kf checks); RC=$?; eq "$RC" 1; has "$OUT" "red: foot does not take its config — "; has "$OUT" "red: mako does not take its config — Failed to parse"
 lacks "$OUT" mpv; lacks "$OUT" nvim; lacks "$OUT" yazi
 called '^foot --check-config'; not_called '^yazi'
+
+case_ "a fix taken out again: each file as it was before it, the record gone"
+serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer; eq "$RC" 0
+FX=$C/fixes; kf keep "$C/out.json" --fixes "$FX" >/dev/null; rec=$(compgen -G "$FX/*.json"); has "$(jq -r '.before["~/.config/foot/foot.ini"]' "$rec")" "utempter=none"
+kf unapply "$rec" --home "$H" --root "$R"; eq "$(conf)" "$before"; [[ ! -e $rec ]] && _ok || _no "the record stayed"
+rc 0 kf unapply "$rec" --home "$H" --root "$R"
 
 case_ "keep refuses a report that is no fix"
 fresh; printf '{"verdict":"held"}' >"$C/out.json"; rc 2 kf keep "$C/out.json" --fixes "$C/fixes"
@@ -412,7 +372,7 @@ if unshare --user --map-current-user --net true 2>/dev/null; then
   eq "$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -name 'fixer.*' | wc -l)" 0
 
   case_ "a runtime that dies while loading, or never loads: held, nothing left"
-  fresh; UH2=$H; jq --arg h "$UH" '. + {user_home: $h}' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"
+  fresh; jq --arg h "$UH" '. + {user_home: $h}' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"
   mv "$RT/llama-server" "$RT/real"; printf '#!/bin/sh\nexit 3\n' >"$RT/llama-server"; chmod +x "$RT/llama-server"; run_server; eq "$RC" 3; eq "$(j .class)" runtime; has "$OUT" "stopped while loading"
   printf '#!/bin/sh\nexec sleep 60\n' >"$RT/llama-server"; run_server; eq "$RC" 3; eq "$(j .class)" runtime; has "$OUT" "did not load"
   sleep 0.3; ! pgrep -f "sleep 60" -u "$(id -u)" -P 1 >/dev/null; mv "$RT/real" "$RT/llama-server"
@@ -447,7 +407,7 @@ if unshare --user --map-current-user --net true 2>/dev/null; then
   reset_calls; PATH=$STUBS:$PATH pinned install --home "$IH" >/dev/null; not_called '^curl'
   case_ "a download that differs from its pin: refused, removed, nothing in place"
   IH=$TMP/ih2; mkdir -p "$IH"; PIN_RT=$(jq -cn '{tag: "b12110", url: "http://x/rt", sha: "bad"}')
-  OUT=$(PATH=$STUBS:$PATH pinned install --home "$IH" 2>&1); [[ $? -ne 0 ]] && _ok || _no "a wrong file was taken"; has "$OUT" "checksum"
+  if OUT=$(PATH=$STUBS:$PATH pinned install --home "$IH" 2>&1); then _no "a wrong file was taken"; else _ok; fi; has "$OUT" "checksum"
   [[ ! -e $IH/.local/lib/fedokawaii/llama-b12110 ]] && _ok || _no "a wrong runtime is in place"
   case_ "no card here: the install says so, and takes nothing"
   rm -rf "$TMP/sysfs"; mkdir -p "$TMP/sysfs"; IH=$TMP/ih3; mkdir -p "$IH"; OUT=$(PATH=$STUBS:$PATH pinned install --home "$IH"); eq "$?" 0; has "$OUT" "no graphics card"; [[ ! -e $IH/.local/lib/fedokawaii ]] && _ok || _no "installed without a card"

@@ -347,7 +347,12 @@ def main():
     rss = rss_mib(srv.pid) if srv else 0
     pages = cached_mib(a.model) if a.model else -1
     out = open(a.out, "a") if a.out else None
-    row = lambda *x: (print("\t".join(str(v) for v in x), flush=True), out and (out.write("\t".join(str(v) for v in x) + "\n"), out.flush()))
+    def row(*x):
+        line = "\t".join(str(v) for v in x)
+        print(line, flush=True)
+        if out:
+            out.write(line + "\n")
+            out.flush()
     row("# model", os.path.basename(a.model or "?"), "load_s", round(load), "vram_before_mib", before, "vram_loaded_mib", loaded, "rss_mib", rss, "file_in_ram_mib", pages, time.strftime("%F %T"))
     bad = 0
     tally = {}
@@ -355,14 +360,14 @@ def main():
         for c in cases:
             for run in range(a.runs):
                 seed = 1 + 1000 * run
-                d, target, spec = build(c, a.work)
+                d, target, spec = build(c, f"{a.work}/s{seed}")
                 spec["seed"] = seed
                 if a.request:
                     spec["request"] = json.loads(a.request)
                 cpath = f"{d}/case.json"
                 json.dump(spec, open(cpath, "w"))
                 t0 = time.time()
-                r = subprocess.run([sys.executable, "-B", "-I", FIXER, "run", cpath, "--out", f"{d}/out.json", "--sock", sock or "/nonexistent", "--log", f"{d}/log"],
+                subprocess.run([sys.executable, "-B", "-I", FIXER, "run", cpath, "--out", f"{d}/out.json", "--sock", sock or "/nonexistent", "--log", f"{d}/log"],
                                    capture_output=True, text=True, timeout=1500)
                 rep = json.load(open(f"{d}/out.json"))
                 g = grade(c, target, rep)
