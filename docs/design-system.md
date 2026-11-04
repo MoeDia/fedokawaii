@@ -460,29 +460,36 @@ the tiles of a group, 12 px between groups.
   aligned with the title; progress: the meter (§4). Critical: the hairline `accent`.
 - **Level display** (kawa-osd): a panel of one row — the icon, the meter, the value — centred low
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
-- **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper, `tools/build-lock.py`:
-  flat tones, as old pixel art is; a shape has its tone, its bevels face the nearer torch, the light
-  raises the tones by whole steps). Dark: a castle wall (ishigaki, `edge` to `art_olive`, joints `lo`)
-  in three stepped pools of torchlight, stone by stone; a stone beam with the thunder key, clouds and
-  fire along it and the quote gilded on its lintel between the horns; a shimenawa with its paper; two
-  torches (`flame`, 8 frames a second, out of step); two panels of carved battle, oni against tennin;
-  flames carved behind the head with their old paint left; the sea's waves on the step. The oni faces
-  you, teeth locked, in his armour; his mouth is the gate (five frames, `lock-gate.png`, `gate` in `lock-scene.txt`):
-  open, the password glows in it, each character an ember — a mark of the scene's own pixels (arms
-  `flame`, middle `strong`, corners `accent_lo`; the arms `asagi` while Caps Lock is on), the newest
-  eight in sight, 7 px apart — and the caret a bar as tall as a mark in `flame`, blinking once a
-  second, always there while the line has the keyboard.
-  Light: the same story in the sky of an old screen: paper in three pools paler round two hanging
-  bronze lanterns (tsuri-dōrō, a small flame in each fire box, 8 frames a second); a vermilion beam, its
-  thunder key and clouds in gold, the quote in sumi on a plaque with its seal; the same battle in sumi,
-  shu and gold, its tiers parted by suyari-gasumi (straight gold bars with rounded ends, stepping, an
-  inner line, sparing kirikane); gold flames behind Marishiten. Her eyes closed, a sealed sutra in her
-  hands; the sutra is the gate (five frames, the same way): unrolled, her eyes open, each character a
-  brush mark on its paper (`strong`, its corners `lo`), the caret in `accent`.
+- **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper; the settings by
+  `tools/build-lock.py`, the figures by lane-ink: flat tones, as old pixel art is; a shape has its tone,
+  its bevels face the nearer torch, the light raises the tones by whole steps). The camera is low (the
+  owner, 18:45): the wall leans to a point high over the middle, near things large, the eaves seen from
+  below; hard chiaroscuro, nothing calm or empty. Dark: a castle wall (ishigaki, joints `lo`) in stepped
+  pools of torchlight, stone by stone, the rest all but black; rafters' ends, a stone beam with the
+  thunder key and the war marching along it, brackets under it, the quote gilded on its lintel between
+  the figure's horns; a shimenawa with its paper; two torches (`flame`, 8 frames a second, out of step);
+  two panels of carved battle, oni against tennin, in deep relief; flames cut dark behind the figure in
+  ember-red lines; the sea's waves on the step; chains, rocks and the dead black in the foreground. His
+  mouth is the gate (five frames, `lock-gate.png`, `gate` in `lock-scene.txt`): open, the password glows
+  in it, each character an ember — a mark of the scene's own pixels (arms `flame`, middle `strong`,
+  corners `accent_lo`; the arms `asagi` while Caps Lock is on), the newest eight in sight, 7 px apart —
+  and the caret a bar as tall as a mark in `flame`, blinking once a second, always there while the line
+  has the keyboard.
+  Light: the same story in the sky of an old screen, seen from below: paper in stepped pools paler round
+  two hanging bronze lanterns (a small flame in each fire box, 8 frames a second), fine rays over it;
+  vermilion eaves, the thunder key and the war in gold, the quote in sumi on a plaque with its seal; the
+  same battle in sumi, shu and gold, heaven's host small and high, the oni large at your feet, its tiers
+  parted by suyari-gasumi (straight gold bars with rounded ends, stepping, an inner line, sparing
+  kirikane); gold flames behind the figure. The sutra in her hands is the gate (five frames, the same
+  way): unrolled, each character a brush mark on its paper (`strong`, its corners `lo`), the caret in
+  `accent`.
+  Its life (`anim` and `sparks` in `lock-scene.txt`, about 0.7 % of a core): the torches' or lanterns'
+  light moving on the stones, the carvings and the paper in six stepped frames, smoke, embers rising,
+  petals falling.
   One quote per mood (§0) in Sumi UI's own pixels on a plaque, as a temple's hall carries its name, no
   translation; no date, no time, no buttons, no hint. The scene is drawn at whole pixels (×3 on 1080p),
   centred, its edges' own colour round it (kawa-lockmod). A wrong password says so at once (the marks
-  scatter, the head shakes 3 px twice — §11), and the line is empty again.
+  scatter, the gate shakes 3 px twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
 - **Screensaver** (kawa-saver): a cloth the screen's size on the mood's ground — hitomezashi sewn
