@@ -15,8 +15,6 @@ from common import cells
 
 # foot's colours past the sixteen (tools/build-themes.py): docs/design-system.md §1, screen.sh
 ACCENT, EDGE, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = 16, 18, 19, 20, 21, 22, 23, 24, 25
-TEXT = None                                        # (the terminal's own foreground)
-ASAGI = 6
 
 _SEQ = re.compile(rb"\x1b\[([?<>=]?)([0-9;:]*)([ -/]*)([@-~])")
 _KEYS = {b"A": "up", b"B": "down", b"C": "right", b"D": "left", b"H": "home", b"F": "end", b"Z": "shift-tab"}
@@ -56,6 +54,7 @@ class Term:
         self.buf = b""
         self.pasting = None
         self.cursor = None                         # (row, column) of the line typed on, or nothing
+        self.placed = None
 
     def enter(self):
         self.saved = termios.tcgetattr(self.fd_in)
@@ -119,21 +118,10 @@ class Term:
             if self.shown.get(y):
                 self.shown[y] = ""
                 out.append(f"\x1b[{y + 1};1H\x1b[0m\x1b[K")
-        mode = "" if out else None
-        if self.cursor is None:
-            place = "\x1b[?25l"
-        else:
-            place = f"\x1b[{self.cursor[0] + 1};{self.cursor[1] + 1}H\x1b[?25h"
-        if place != getattr(self, "placed", None):
+        place = "\x1b[?25l" if self.cursor is None else f"\x1b[{self.cursor[0] + 1};{self.cursor[1] + 1}H\x1b[?25h"
+        if out or place != self.placed:
             self.placed = place
-            mode = ""
-        if mode is None:
-            return
-        self.raw(("\x1b[?2026h" + "".join(out) + place + "\x1b[?2026l").encode("utf-8", "replace"))
-
-    def redraw(self):
-        self.shown.clear()
-        self.placed = None
+            self.raw(("\x1b[?2026h" + "".join(out) + place + "\x1b[?2026l").encode("utf-8", "replace"))
 
     # ── input ───────────────────────────────────────────────────────────────────────────────
     def read(self):

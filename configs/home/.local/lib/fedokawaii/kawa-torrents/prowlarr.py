@@ -1,8 +1,9 @@
 #!/usr/bin/python3 -I
 """Prowlarr, as this program asks it: a search site by site, so what a quick site finds shows at once and
-a slow one holds up nothing; the usual sites added (setup.sh: `prowlarr.py add`, key on stdin); and those
-that fail for good rested, so Prowlarr's page says nothing is wrong and no search waits for them
-(`prowlarr.py tend`, and kawa-torrents after a first search).
+a slow one holds up nothing (measured 4 Nov: Knaben 0.6 s, YTS 39.6 s — one whole search waits for the slowest);
+the usual sites added (setup.sh: `prowlarr.py add`, key on stdin); and those that fail rested, so that Prowlarr's
+page says nothing is wrong and no search waits for them (`prowlarr.py tend`, kawa-torrents after a first search,
+kawa-prowlarr before the page opens).
 
 The usual sites (public, none behind Cloudflare's challenge — those need FlareSolverr, which this desktop
 does not run; researched 2026-10-17 against Prowlarr's and Jackett's indexer definitions, measured here
@@ -14,20 +15,19 @@ does not run; researched 2026-10-17 against Prowlarr's and Jackett's indexer def
    Knaben            Knaben — a search across many trackers (built into Prowlarr)
    limetorrents      LimeTorrents — films and series
    torrentdownloads  Torrent Downloads — films and series
-Left out on purpose: EZTV, 1337x, KickassTorrents, dmhy, Tokyo Toshokan (Cloudflare: FlareSolverr only;
-Tokyo Toshokan since 2026: "Cloudflare protection detected" at each search); AniDex (unreliable since its
-2025 server move); TorrentGalaxy, RARBG copies, BitSearch (gone from Prowlarr); TorrentProject2 and
-TorrentsCSV (no film/series categories).
+Left out on purpose: EZTV, 1337x, KickassTorrents, dmhy (Cloudflare: FlareSolverr only); AniDex (unreliable
+since its 2025 server move); TorrentGalaxy, RARBG copies, BitSearch (gone from Prowlarr); TorrentProject2 and
+TorrentsCSV (no film/series categories). Taken out where an older setup added it: Tokyo Toshokan ("Cloudflare
+protection detected" at search after search, though Prowlarr's own test of it passes).
 
-A site is rested when it has failed for more than six hours — Prowlarr's own line for its warning
-(IndexerLongTermStatusCheck) — and Prowlarr's own test of it fails too: switched off, noted in
+A site is rested when it has a failure on record and Prowlarr's own test of it fails too: switched off, noted in
 ~/.local/state/fedokawaii/torrents/rested. Each tend tries the rested again, and those that answer are switched
-on. One you switched off yourself is never touched.
+on. One you switched off yourself is never touched. When every site with a failure fails its test and none has
+just answered, it is this computer's network, and nothing is rested.
 
 Exit (add): 0 every one present · 1 one or more could not be added (said, one line each) · 2 Prowlarr did
 not answer, or refused the key. Exit (tend): 0 · 2 the same.
 """
-import datetime
 import json
 import os
 import sys
@@ -39,7 +39,7 @@ import urllib.request
 URL = os.environ.get("KAWA_PROWLARR_URL", "http://127.0.0.1:9696")
 INDEXERS = [("nyaasi", 1), ("SubsPlease", 5), ("thepiratebay", 10),
             ("yts", 10), ("Knaben", 15), ("limetorrents", 20), ("torrentdownloads", 25)]
-LONG_TERM = 6 * 3600                               # seconds: Prowlarr's own line for its warning
+RETIRED = ("tokyotosho",)
 SEARCH_WAIT = 60
 HOME = os.path.expanduser("~")
 RESTED = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.join(HOME, ".local/state"), "fedokawaii/torrents/rested")
@@ -93,7 +93,12 @@ def search(key, site, query):
 # ── the usual sites ─────────────────────────────────────────────────────────────────────────
 def add_usual(key):
     try:
-        have = {(i.get("definitionName") or "").lower() for i in api(key, "GET", "/indexer")}
+        indexers = api(key, "GET", "/indexer")
+        for i in indexers:
+            if (i.get("definitionName") or "").lower() in RETIRED:
+                api(key, "DELETE", f"/indexer/{i['id']}")
+                print(f"{i.get('name')}: taken out (Cloudflare: it fails at search after search)")
+        have = {(i.get("definitionName") or "").lower() for i in indexers}
         missing = [(d, p) for d, p in INDEXERS if d.lower() not in have]
         if not missing:
             print(f"Prowlarr's indexers: all {len(INDEXERS)} in place")
@@ -173,55 +178,46 @@ def answers(key, indexer):
         return False
 
 
-def tend(key, now=None):
-    """Prowlarr's page without its warning, for good: what fails for long is rested, what is back switched on."""
-    now = time.time() if now is None else now
+def tend(key):
+    """Prowlarr's page without its warning, for good: what fails is rested, what is back switched on."""
     try:
         indexers = {i["id"]: i for i in api(key, "GET", "/indexer")}
-        failing = api(key, "GET", "/indexerstatus") or []
+        failing = [st.get("indexerId") for st in api(key, "GET", "/indexerstatus") or []]
     except (urllib.error.URLError, OSError, ValueError, KeyError, TypeError) as e:
         print(f"Prowlarr did not answer as it should ({e})", file=sys.stderr)
         return 2
-    mine = {i for i in rested() if i in indexers}
-    changed = len(mine) != len(rested())
+    before = rested()
+    mine = {i for i in before if i in indexers}
     for i in sorted(mine):
-        if not indexers[i].get("enable"):
-            if answers(key, dict(indexers[i], enable=True)):
-                try:
-                    api(key, "PUT", f"/indexer/{i}?forceSave=true", dict(indexers[i], enable=True))
-                    mine.discard(i)
-                    changed = True
-                    print(f"{indexers[i].get('name')}: answers again, switched on")
-                except (urllib.error.URLError, OSError, ValueError) as e:
-                    print(f"{indexers[i].get('name')}: could not be switched on ({e})", file=sys.stderr)
-        else:                                      # (you switched it on yourself: yours again)
+        it = indexers[i]
+        if it.get("enable"):                       # (you switched it on yourself: yours again)
             mine.discard(i)
-            changed = True
-    for st in failing:
-        i = st.get("indexerId")
-        it = indexers.get(i)
-        since = parse_time(st.get("initialFailure"))
-        if not it or not it.get("enable") or since is None or now - since < LONG_TERM:
-            continue
-        if answers(key, it):
-            continue
-        try:
-            api(key, "PUT", f"/indexer/{i}?forceSave=true", dict(it, enable=False))
-            mine.add(i)
-            changed = True
-            print(f"{it.get('name')}: rested (no answer for {int((now - since) // 3600)} hours)")
-        except (urllib.error.URLError, OSError, ValueError) as e:
-            print(f"{it.get('name')}: could not be rested ({e})", file=sys.stderr)
-    if changed:
+        elif answers(key, dict(it, enable=True)):
+            try:
+                api(key, "PUT", f"/indexer/{i}?forceSave=true", dict(it, enable=True))
+                mine.discard(i)
+                print(f"{it.get('name')}: answers again, switched on")
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                print(f"{it.get('name')}: could not be switched on ({e})", file=sys.stderr)
+    sick = [i for i in failing if i in indexers and indexers[i].get("enable")]
+    dead = [i for i in sick if not answers(key, indexers[i])]
+    alive_elsewhere = len(dead) < len([i for i in indexers.values() if i.get("enable")])
+    if dead and alive_elsewhere:
+        for i in dead:
+            it = indexers[i]
+            try:
+                api(key, "PUT", f"/indexer/{i}?forceSave=true", dict(it, enable=False))
+                mine.add(i)
+                print(f"{it.get('name')}: rested (it does not answer from here)")
+            except (urllib.error.URLError, OSError, ValueError) as e:
+                print(f"{it.get('name')}: could not be rested ({e})", file=sys.stderr)
+    if mine != before:
         note_rested(mine)
+        try:                                       # (its page says so at once, not at its next look)
+            api(key, "POST", "/command", {"name": "CheckHealth"})
+        except (urllib.error.URLError, OSError, ValueError):
+            pass
     return 0
-
-
-def parse_time(text):
-    try:
-        return datetime.datetime.fromisoformat(text.replace("Z", "+00:00")).timestamp()
-    except (AttributeError, ValueError):
-        return None
 
 
 def main(argv):

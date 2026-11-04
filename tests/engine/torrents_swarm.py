@@ -10,9 +10,13 @@ import os
 import random
 import select
 import socket
+import struct
 import subprocess
 import sys
+import threading
 import time
+import urllib.parse
+from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 import libtorrent as lt
 
@@ -23,6 +27,22 @@ class Torrent:
     pass
 
 
+class Tracker(BaseHTTPRequestHandler):
+    """As little of a tracker as a .torrent needs on the loopback: every announce told where the seeder listens."""
+    port = 0
+
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        peers = socket.inet_aton("127.0.0.1") + struct.pack(">H", self.port)
+        body = lt.bencode({"interval": 60, "peers": peers})
+        self.send_response(200)
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self.wfile.write(body)
+
+
 class Swarm:
     def __init__(self, root):
         self.root = root
@@ -30,6 +50,15 @@ class Swarm:
         self.ses = lt.session({"listen_interfaces": "127.0.0.1:0", "enable_dht": False, "enable_lsd": False,
                                "enable_upnp": False, "enable_natpmp": False, "allow_multiple_connections_per_ip": True,
                                "alert_mask": lt.alert_category.error})
+        for _ in range(100):
+            if self.ses.listen_port():
+                break
+            time.sleep(0.02)
+        handler = type("BoundTracker", (Tracker,), {"port": self.ses.listen_port()})
+        self.http = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+        self.http.daemon_threads = True
+        threading.Thread(target=self.http.serve_forever, daemon=True).start()
+        self.announce = f"http://127.0.0.1:{self.http.server_address[1]}/announce"
 
     def torrent(self, name, files, piece=1 << 18, seed=True, rate=0):
         """FILES: {relative path: bytes}. A folder of its own for each; a .torrent beside it."""
@@ -48,6 +77,7 @@ class Swarm:
                     left -= k
         lt.add_files(fs, os.path.join(where, name))
         ct = lt.create_torrent(fs, piece, flags=lt.create_torrent.v1_only)
+        ct.add_tracker(self.announce)
         lt.set_piece_hashes(ct, where)
         data = lt.bencode(ct.generate())
         t = Torrent()
@@ -70,10 +100,12 @@ class Swarm:
         t.handle = self.ses.add_torrent(atp)
         if rate:
             t.handle.set_upload_limit(rate)
-        t.magnet = f"magnet:?xt=urn:btih:{t.hash}&dn={t.name}&x.pe=127.0.0.1:{self.ses.listen_port()}"
+        t.magnet = (f"magnet:?xt=urn:btih:{t.hash}&dn={urllib.parse.quote(t.name)}&tr={urllib.parse.quote(self.announce, safe='')}"
+                    f"&x.pe=127.0.0.1:{self.ses.listen_port()}")
         return t
 
     def close(self):
+        self.http.shutdown()
         self.ses.pause()
         del self.ses
 

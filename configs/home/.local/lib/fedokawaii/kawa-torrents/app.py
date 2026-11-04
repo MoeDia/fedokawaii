@@ -20,7 +20,7 @@ import common
 import prowlarr
 import term
 from common import cells, cut, pad, reading, size, speed, duration
-from term import ACCENT, ACCENT_TEXT, ASAGI, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, Term
+from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, Term
 
 ANIM = 0.125                                       # 8 a second: the moving icons (design-system §13)
 PANE_MIN = 132                                     # columns from which the details stand beside the list
@@ -124,6 +124,8 @@ class App:
         self.first_links = list(first_links)
         self.focused = True
         self.cursor_id = None                      # the row the cursor is on, whatever moves around it
+        self.coming = None                         # a row added a moment ago, not told of yet
+        self.find_moved = False
         self.top = 0
         self.items = []                            # the list shown: dicts, with "id" when it can be chosen
         self.pane_focus = False                    # the keyboard in the details' files
@@ -249,6 +251,9 @@ class App:
         elif ev == "files":
             self.files[m["id"]] = m["files"]
         elif ev == "detail":
+            old = self.detail.get(m["id"])
+            if old and "trackers" not in m and "trackers" in old:
+                m["trackers"] = old["trackers"]
             self.detail[m["id"]] = m
         elif ev == "stream":
             if self.wants_play == m["id"]:
@@ -269,7 +274,7 @@ class App:
         if m.get("err"):
             self.tell(m["err"])
         elif m.get("id"):
-            self.cursor_id, self.pane_focus, self.page = m["id"], False, False
+            self.cursor_id, self.coming, self.pane_focus, self.page = m["id"], m["id"], False, False
             if m.get("known"):
                 self.tell("already here")
 
@@ -378,8 +383,8 @@ class App:
         if not q:
             return
         self.search_id += 1
-        self.results, self.search_err, self.cursor_find = {}, "", None
-        self.top = 0
+        self.results, self.search_err = {}, ""
+        self.top, self.find_moved = 0, False
         if q in self.cache and time.monotonic() - self.cache[q][0] < 300:
             self.results = dict(self.cache[q][1])
             self.pending_sites = self.total_sites = 0
@@ -557,10 +562,8 @@ class App:
         if self.filter is None:
             for o in self.offers_now():
                 items.append({"kind": "offer", "id": "o:" + o["value"], "offer": o})
-            if items:
-                items.append({"kind": "gap"})
         coming, resting, here = self.order()
-        first = True
+        first = not items
         for icon, word, rows in (("DOWNLOAD", "downloading", coming), ("PAUSE", "paused", resting), ("CHECK", "finished", here)):
             if not rows:
                 continue
@@ -599,9 +602,20 @@ class App:
             spans += [" ", ("─" * (room - 1), EDGE2)]
         return spans
 
+    def segment(self, level):
+        """A meter's square by how much of it is here, 0 … 8: read-off, read-1 … read-7, read."""
+        return self.icon("READ_OFF" if level <= 0 else "READ" if level >= 8 else f"READ_{level}")
+
     def meter(self, fraction, inks):
-        done = int(max(0.0, min(1.0, fraction)) * 10 + 0.5) if fraction < 1 else 10
-        return [(self.icon("READ") * done, inks[0]), (self.icon("READ_OFF") * (10 - done), inks[1])]
+        """Ten segments: those done solid, the next part-way (its inside coming in as a dissolve does), the rest hollow."""
+        tenths = max(0.0, min(1.0, fraction)) * 10
+        done = int(tenths)
+        spans = [(self.segment(8) * done, inks[0])]
+        if done < 10:
+            part = int((tenths - done) * 8)
+            spans.append((self.segment(part), inks[0] if part else inks[1]))
+            spans.append((self.segment(0) * (9 - done), inks[1]))
+        return spans
 
     def state_icon(self, r):
         """A row's picture says its state; the ones that move while something happens (§5, §13)."""
@@ -674,7 +688,7 @@ class App:
         if words:
             if "meter" in b and r["total"] and r["word"] != "failed":
                 out.append(("METER", frac))
-            out.append((cut(words, max(10, w // 3)), None if r["word"] == "failed" else MUTED))
+            out.append((cut(words, max(10, w // 2 if r["word"] == "failed" else w // 3)), None if r["word"] == "failed" else MUTED))
             if "size" in b and r["total"]:
                 out.append((f"{size(r['total']):>8}", MUTED))
             return out
@@ -719,31 +733,32 @@ class App:
         return spans
 
     def draw_result(self, item, w, selected):
+        """A result: its kind's icon, its name; then the site, its age and its size where they fit, and last the
+        seedling and how many share it: what says most about how fast it will come."""
         r = item["row"]
-        band = w >= 104, w >= 76, w >= 54
         vals = []
-        if band[0]:
-            vals.append((f"{cut(r['site'], 14):<14}", MUTED))
-        if band[1]:
+        if w >= 104:
+            vals.append((pad(cut(r["site"], 14), 14), MUTED))
+        if w >= 76:
             vals.append((f"{age_words(r['age']):>9}", MUTED))
-        vals.append((f"{size(r['size']):>8}", MUTED))
-        if band[2]:
-            seeds = f"{r['seeds']:>5}"
-        else:
-            seeds = f"{r['seeds']:>4}"
-        vals.append((seeds, FAINT if not r["seeds"] else None))
-        vw = sum(cells(v[0]) + 2 for v in vals)
+        if w >= 40:
+            vals.append((f"{size(r['size']):>8}", MUTED))
+        vw = sum(cells(v[0]) + 2 for v in vals) + 2 + 3 + 5
         name = cut(r["name"], w - 4 - vw)
         filler = w - 4 - cells(name) - vw
+        seeds = f"{r['seeds']:>5}"
+        sprout = self.icon("SPROUT")
         if selected:
             spans = [(" " + self.icon(r["cat"]) + "  " + name + " " * filler, ON_SELECT, SELECT)]
             for v in vals:
                 spans.append(("  " + v[0], ON_SELECT, SELECT))
+            spans.append(("  " + sprout + "  " + seeds, ON_SELECT, SELECT))
             return spans
         dead = not r["seeds"]
         spans = [" ", (self.icon(r["cat"]), FAINT if dead else MUTED), "  ", (name, FAINT if dead else None), " " * filler]
         for v in vals:
             spans += ["  ", v]
+        spans += ["  ", (sprout, FAINT if dead else MUTED), "  ", (seeds, FAINT if dead else None)]
         return spans
 
     def draw_offer(self, item, w, selected):
@@ -758,8 +773,8 @@ class App:
         name = cut(o["name"], name_w)
         filler = w - 4 - cells(where) - 2 - cells(name) - (cells(value) + 2 if value else 0)
         if selected:
-            return [(" " + self.icon("MAGNET" if "MAGNET" in self.ic else "LINK") + "  " + where + "  " + name + " " * filler + ("  " + value if value else ""), ON_SELECT, SELECT)]
-        return [" ", (self.icon("MAGNET" if "MAGNET" in self.ic else "LINK"), ACCENT_TEXT), "  ", (where, MUTED), "  ", (name, STRONG), " " * filler,
+            return [(" " + self.icon("MAGNET") + "  " + where + "  " + name + " " * filler + ("  " + value if value else ""), ON_SELECT, SELECT)]
+        return [" ", (self.icon("MAGNET"), ACCENT_TEXT), "  ", (where, MUTED), "  ", (name, STRONG), " " * filler,
                 *(["  ", (value, MUTED)] if value else [])]
 
     def tabs(self, w):
@@ -855,7 +870,11 @@ class App:
     def place_cursor(self, h):
         """The cursor on a row that exists; the view where it can be seen."""
         ids = [k for k, it in enumerate(self.items) if "id" in it]
+        if self.tab == "find" and not self.find_moved and ids:
+            self.cursor_id = self.items[ids[0]]["id"]
         at = next((k for k in ids if self.items[k]["id"] == self.cursor_id), None)
+        if at is None and self.coming and self.coming == self.cursor_id and self.tab == "downloads":
+            return                                 # (added a moment ago: its row is on its way)
         if at is None:
             if not ids:
                 self.cursor_id = None
@@ -883,7 +902,8 @@ class App:
                 break
             it = self.items[at]
             y = top + k
-            selected = "id" in it and it["id"] == self.cursor_id and not self.pane_focus and self.adding is None
+            here = "id" in it and it["id"] == self.cursor_id
+            selected = here and not self.pane_focus and self.adding is None
             kind = it["kind"]
             if kind == "head":
                 frame[y] = [" "] + self.heading(it["icon"], it["word"], w)
@@ -892,7 +912,9 @@ class App:
             elif kind == "failure":
                 frame[y] = ["  ", (self.icon("CROSS"), ACCENT_TEXT), "  ", cut(it["word"], w - 4)]
             elif kind == "row":
-                frame[y] = self.lacquer(self.draw_row(it, w, selected), selected)
+                frame[y] = self.lacquer(self.draw_row(it, w, selected or here), selected or here)
+                if here and not selected:          # (the keyboard is in its files: its place kept in a band)
+                    frame[y] = [(s[0], STRONG, EDGE) if isinstance(s, tuple) else s for s in frame[y]]
             elif kind == "result":
                 frame[y] = self.lacquer(self.draw_result(it, w, selected), selected)
             elif kind == "offer":
@@ -942,7 +964,7 @@ class App:
         y = 3
         room = w - 4
         text, at = self.adding.view(room)
-        magnet = self.icon("MAGNET" if "MAGNET" in self.ic else "LINK")
+        magnet = self.icon("MAGNET")
         spans = ["  ", (magnet, ACCENT_TEXT), "  "]
         if self.adding.text:
             spans.append(text)
@@ -996,7 +1018,7 @@ class App:
             lines.append(["   ", (pad(k, kw), MUTED), "  ", cut(v, w - 3 - kw - 2)])
         det = self.detail.get(r["id"])
         if det and det.get("pieces"):
-            lines += [[], [], self.heading("READ", "pieces", w), []]
+            lines += [[], [], self.heading("PIECES", "pieces", w), []]
             lines.append(self.piece_line(det["pieces"], w))
         files = self.files.get(r["id"])
         if files:
@@ -1036,7 +1058,7 @@ class App:
         if r["up"] >= 1000:
             out.append(("sends", speed(r["up"])))
         if r["peers"] or r["known"]:
-            out.append(("peers", f"{r['peers']} of {max(r['known'], r['peers'])}" + (f", {r['seeds']} with it all" if r["seeds"] else "")))
+            out.append(("peers", f"{r['peers']} of {max(r['known'], r['peers'])}" + (f", {r['seeds']} seeds" if r["seeds"] else "")))
         if r["ratio"]:
             out.append(("ratio", f"{r['ratio']:.2f}"))
         if r["source"]:
@@ -1049,25 +1071,18 @@ class App:
             out.append(("trackers", f"{ok} of {len(tr)} answer"))
         return out
 
-    def piece_line(self, cells_, w):
-        """The pieces, a segment a cell: solid where here, hollow where not; what is half here, partly lit."""
-        done = self.icon("READ")
-        off = self.icon("READ_OFF")
-        spans, run, ink_now = [], "", None
-        for level in cells_[:max(1, w - 3)]:
-            if level == 8:
-                c, i = done, ACCENT_TEXT
-            elif level == 0:
-                c, i = off, EDGE2
-            else:
-                c, i = done, MUTED
-            if i != ink_now and run:
-                spans.append((run, ink_now))
-                run = ""
-            run += c
-            ink_now = i
+    def piece_line(self, levels, w):
+        """A torrent's pieces, a segment a cell, each by how much of it is here, 0 … 8; what plays or came first, solid from the left."""
+        spans, run, now = [], [], None
+        for level in levels[:max(1, w - 3)]:
+            ink_ = EDGE2 if level == 0 else ACCENT_TEXT
+            if ink_ != now and run:
+                spans.append(("".join(run), now))
+                run = []
+            run.append(self.segment(level))
+            now = ink_
         if run:
-            spans.append((run, ink_now))
+            spans.append(("".join(run), now))
         return ["   ", *spans]
 
     def file_line(self, r, files, k, prefix, w, selected, det):
@@ -1081,7 +1096,7 @@ class App:
         pct = f"{int(100 * got / sz):>3}%" if sz else "100%"
         value = f"{size(sz):>8}  {pct}" if w >= 44 else pct
         room = w - 4 - cells(value) - 2
-        n = cut(name, room)
+        n = cut_file(name, room)
         filler = room - cells(n)
         if selected:
             return Chosen([(" " + self.icon(icon) + "  " + n + " " * filler + "  " + value, ON_SELECT, SELECT)])
@@ -1115,7 +1130,10 @@ class App:
         elif self.pane_focus:
             keys = (("space", "keep or skip", ""), ("a", "all", ""), ("n", "none", ""), ("enter", "play", ""))
         else:
-            keys = (("a", "add", ""), ("y", "copy magnet", ""), ("v", "play", ""), ("p", "pause", ""), ("d", "remove", ""), ("t", "slow", "on" if self.turtle else "off"))
+            r = self.selected_row()
+            word = r["word"] if r else ""
+            p = ("r", "try again", "") if word == "failed" else ("p", "go on", "") if word == "paused" else ("p", "pause", "")
+            keys = (("a", "add", ""), ("y", "copy magnet", ""), ("v", "play", ""), p, ("d", "remove", ""), ("t", "slow", "on" if self.turtle else "off"))
         frame[y] = [" "] + keys_spans(keys, w)
 
     # ── input ───────────────────────────────────────────────────────────────────────────────
@@ -1187,12 +1205,14 @@ class App:
         ids = [k for k, it in enumerate(self.items) if "id" in it]
         if not ids:
             return
+        self.find_moved = self.tab == "find"
         at = next((p for p, k in enumerate(ids) if self.items[k]["id"] == self.cursor_id), 0)
         at = max(0, min(len(ids) - 1, at + step))
         self.cursor_id = self.items[ids[at]]["id"]
 
     def jump(self, end):
         ids = [k for k, it in enumerate(self.items) if "id" in it]
+        self.find_moved = self.tab == "find"
         if ids:
             self.cursor_id = self.items[ids[-1 if end else 0]]["id"]
 
@@ -1278,6 +1298,8 @@ class App:
         elif k in ("enter", "l", "right", "space"):
             self.open_row(r)
         elif k == "p":
+            if r["id"].startswith("url-"):
+                return
             self.send({"op": "resume" if r["word"] in ("paused", "failed") else "pause", "id": r["id"]})
         elif k == "y":
             self.copy_row(r)
@@ -1291,9 +1313,9 @@ class App:
         elif k == "c":
             self.send({"op": "recheck", "id": r["id"]})
         elif k == "d":
-            self.ask = (cut_words(f"remove {reading(r['name'])}? y removes it, the files stay", self.t.cols - 4), lambda: self.send({"op": "remove", "id": r["id"]}))
+            self.ask = (cut(f"remove {reading(r['name'])}? y removes it, the files stay", self.t.cols - 4), lambda: self.send({"op": "remove", "id": r["id"]}))
         elif k == "D":
-            self.ask = (cut_words(f"delete {reading(r['name'])} and its files? y deletes them", self.t.cols - 4), lambda: self.send({"op": "remove", "id": r["id"], "files": True}))
+            self.ask = (cut(f"delete {reading(r['name'])} and its files? y deletes them", self.t.cols - 4), lambda: self.send({"op": "remove", "id": r["id"], "files": True}))
 
     def open_row(self, r):
         self.file_cursor = self.file_top = 0
@@ -1405,7 +1427,6 @@ class App:
             self.filter = None
             return True
         if k == "enter":
-            self.filter = Line(self.filter.text) if False else self.filter
             r = self.selected_row()
             if r:
                 self.open_row(r)
@@ -1494,6 +1515,8 @@ class App:
     def on_mouse(self, kind, x, y):
         if self.ask:
             return
+        if kind == "release":
+            return
         if kind in ("wheel-up", "wheel-down"):
             self.on_wheel(-3 if kind == "wheel-up" else 3, x)
             return
@@ -1510,6 +1533,7 @@ class App:
         it = self.mouse_map.get(y)
         if it is None:
             return
+        self.find_moved = self.tab == "find"
         if kind == "move":
             if not self.pane_focus and self.adding is None:
                 self.cursor_id = it["id"]
@@ -1602,6 +1626,16 @@ class App:
         return min(waits) if waits else None
 
 
+def cut_file(name, n):
+    """A file's name in N columns: cut at a word, its type kept (a video stays a video)."""
+    if cells(name) <= n:
+        return name
+    stem, dot, end = name.rpartition(".")
+    if not dot or len(end) > 5 or n <= len(end) + 4:
+        return cut(name, n)
+    return cut(stem, n - len(end) - 1) + "." + end
+
+
 def keys_spans(keys, w):
     """As many of KEYS as fit in W, whole; four columns between two."""
     out, used = [], 0
@@ -1622,10 +1656,6 @@ def keys_spans(keys, w):
 def pad_to(spans, n):
     used = sum(cells(s if isinstance(s, str) else s[0]) for s in spans)
     return spans + [" " * max(0, n - used)]
-
-
-def cut_words(s, n):
-    return cut(s, n)
 
 
 def age_words(hours):

@@ -28,11 +28,13 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
                              a click opens WHERE
     kawa-downloads open SOURCE WHERE                 that: its folder in yazi, the file
                              under the cursor (Steam: its downloads page)
+    kawa-downloads failed NAME WHAT                  a download that cannot go on (a full disk): a
+                             critical notice with its name and what went wrong
 
 The sources, each read where it already keeps its state (nothing asked of a running program):
-  torrent  Torrents (torrra), while its window is open: kawa-torrra writes what it downloads
-           to $XDG_RUNTIME_DIR/kawa-downloads/torrra.PID every 2 s, and gives each finished
-           one its notice itself (a torrent's file staying put says nothing)
+  torrent  Torrents' engine (kawa-torrents), with or without its window: it writes what it downloads
+           to $XDG_RUNTIME_DIR/kawa-downloads/torrent.PID every 2 s, and gives each finished
+           one its notice itself, once (a torrent's file staying put says nothing)
   jobs     any other long job (an archive packed, a PDF tool) the same way: NAME.PID in that
            folder, one line a file — NAME DONE TOTAL WHERE — while it runs
   Brave    a .crdownload file in Brave's download folder: its size is what has come; how
@@ -54,7 +56,7 @@ import time
 
 HOME = os.path.expanduser("~")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-STATE = os.path.join(RUN, "kawa-downloads")                  # torrra.PID: kawa-torrra's
+STATE = os.path.join(RUN, "kawa-downloads")                  # torrent.PID: kawa-torrents' engine's
 BRAVE = os.path.join(HOME, ".config/BraveSoftware/Brave-Origin/Default")
 STEAM = os.path.join(HOME, ".local/share/Steam")
 SIGNAL = 21                                                  # the bar's mark: SIGRTMIN+21
@@ -86,7 +88,7 @@ def size(n):
 
 # ── the sources ─────────────────────────────────────────────────────────────────────────────
 def torrents():
-    """Every job's list in STATE, SOURCE.PID (kawa-torrra's torrra.PID: its torrents; any other
+    """Every job's list in STATE, SOURCE.PID (the engine's torrent.PID: its torrents; any other
     long job — an archive packed, a PDF tool — the same four columns under its own name);
     one whose process is gone is taken away."""
     out = []
@@ -99,7 +101,7 @@ def torrents():
         if not m:
             continue
         p = os.path.join(STATE, n)
-        src = "torrent" if m.group(1) == "torrra" else m.group(1)
+        src = m.group(1)
         if not os.path.exists(f"/proc/{m.group(2)}"):
             try:
                 os.remove(p)
@@ -329,11 +331,11 @@ def short(name, torrent=False):
     return cut[:at] if at >= WIDTH // 2 else cut
 
 
-def torrra_open():
-    """Torrents' window is open (it holds kawa-torrra's lock)."""
+def torrents_open():
+    """Torrents' window is open (it holds a lock on this file while it is)."""
     import fcntl
     try:
-        with open(os.path.join(RUN, "kawa-torrra.lock"), "a") as f:
+        with open(os.path.join(RUN, "kawa-torrents.window"), "a") as f:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return False
     except BlockingIOError:
@@ -367,7 +369,7 @@ def menu():
     if not items:
         rows.append(f"off\t{ic['download']}\tnothing downloading")
         acts.append(None)
-    if not torrra_open():
+    if not torrents_open():
         rows.append(f"key\t{ic['download']}\ttorrents")
         acts.append(("torrents",))
     sel = ["--select", "1"] if items else []
@@ -380,7 +382,13 @@ def menu():
     if act and act[0] == "open":
         open_it(act[1], act[2])
     elif act and act[0] == "torrents":
-        detached(["kawa-term", "kawa-torrra", "--open"])
+        detached(["kawa-torrents", "--open"])
+    return 0
+
+
+def failed_notice(name, what):
+    ic = icons()
+    subprocess.run(["notify-send", "-a", "downloads", "-u", "critical", "--", f"{ic['download']}  {name}", what], capture_output=True, check=False)
     return 0
 
 
@@ -411,7 +419,7 @@ def finished(item):
             a = acf(os.path.join(lib, f"appmanifest_{where}.acf"))
             if a:
                 return int(a.get("BytesDownloaded", "0") or 0) >= int(a.get("BytesToDownload", "0") or 0) > 0
-    return False                                             # (torrents: kawa-torrra says it)
+    return False                                             # (torrents: the engine says it)
 
 
 def watch():
@@ -482,7 +490,9 @@ def main(a):
     if cmd == "open" and len(a) == 3:
         open_it(a[1], a[2])
         return 0
-    print("usage: kawa-downloads [menu|list|bar [--follow]|watch|notice SOURCE NAME BYTES WHERE|open SOURCE WHERE]"
+    if cmd == "failed" and len(a) == 3:
+        return failed_notice(a[1], a[2])
+    print("usage: kawa-downloads [menu|list|bar [--follow]|watch|notice SOURCE NAME BYTES WHERE|open SOURCE WHERE|failed NAME WHAT]"
           " (kawa-downloads --help)", file=sys.stderr)
     return 2
 

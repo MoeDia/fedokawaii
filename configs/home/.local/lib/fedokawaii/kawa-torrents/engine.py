@@ -212,11 +212,17 @@ class Player(BaseHTTPRequestHandler):
         end = min(end, st.size - 1)
         if pos > end or pos < 0:
             self.send_response(416)
+            self.send_header("Connection", "close")
+            self.close_connection = True
             self.send_header("Content-Range", f"bytes */{st.size}")
             self.send_header("Content-Length", "0")
             self.end_headers()
             return
         self.send_response(206 if ranged else 200)
+        # (said aloud: ffmpeg asks to close, and takes a server's silence for keeping the connection — its
+        # next seek, on a socket closed under it, ended the film with "End of file")
+        self.send_header("Connection", "close")
+        self.close_connection = True
         self.send_header("Accept-Ranges", "bytes")
         self.send_header("Content-Type", mimetypes.guess_type(st.name)[0] or "application/octet-stream")
         self.send_header("Content-Length", str(end - pos + 1))
@@ -265,11 +271,11 @@ class Player(BaseHTTPRequestHandler):
 
 
 class Client:
-    __slots__ = ("sock", "buf", "out", "watch", "sent_files", "cells")
+    __slots__ = ("sock", "buf", "out", "watch", "sent_files", "cells", "trackers_at")
 
     def __init__(self, sock):
         self.sock, self.buf, self.out = sock, b"", bytearray()
-        self.watch, self.sent_files, self.cells = None, None, 40
+        self.watch, self.sent_files, self.cells, self.trackers_at = None, None, 40, 0.0
 
 
 class Engine:
@@ -332,6 +338,7 @@ class Engine:
     def make_session(self):
         settings = {
             "alert_mask": lt.alert_category.status | lt.alert_category.storage | lt.alert_category.error,
+            "alert_queue_size": 4000,
             "listen_interfaces": "127.0.0.1:0" if LOCAL else f"0.0.0.0:{PORT},[::]:{PORT}",
             "enable_dht": not LOCAL, "dht_bootstrap_nodes": ROUTERS,
             # nothing announced on the LAN, no port opened on the router behind your back
@@ -576,8 +583,8 @@ class Engine:
                 pass
             except OSError as e:
                 say(f"could not remove {i}{tail}: {e}")
-        self.meta["told"].pop(i, None)
-        self.meta["source"].pop(i, None)
+        for kept in ("told", "source", "errors", "gone"):
+            self.meta.get(kept, {}).pop(i, None)
         self.dirty = True
         self.save_state()
         self.push_rows()
@@ -611,6 +618,8 @@ class Engine:
                 self.on_finished(a.handle)
             elif isinstance(a, lt.metadata_received_alert):
                 self.save_resume(a.handle)
+            elif isinstance(a, lt.fastresume_rejected_alert):
+                self.on_files_gone(a)
             elif isinstance(a, lt.file_error_alert):
                 self.on_file_error(a)
             elif isinstance(a, lt.torrent_error_alert):
@@ -623,6 +632,17 @@ class Engine:
         say(f"port not free: {a.message()}")
         if not LOCAL and self.ses.listen_port() == 0:
             self.ses.apply_settings({"listen_interfaces": "0.0.0.0:0,[::]:0"})
+
+    def on_files_gone(self, a):
+        """Its files moved or deleted since (yazi, by hand): libtorrent would quietly start over, tens of gigabytes
+        unasked. It stops; the row says so, and p fetches them again, or d takes it off the list."""
+        i = tid(a.handle)
+        say(f"{i}: resume data rejected: {a.message()}")
+        if self.meta["told"].get(i) or a.handle.status(0).total_wanted_done:
+            a.handle.unset_flags(AUTO)
+            a.handle.pause()
+            self.meta.setdefault("gone", {})[i] = 1
+            self.dirty = True
 
     def on_resume(self, a):
         try:
@@ -659,19 +679,22 @@ class Engine:
 
     # ── rows ────────────────────────────────────────────────────────────────────────────────
     def word(self, s, i):
-        if s.errc.value():
+        if s.errc.value() or i in self.meta.get("gone", ()):
             return "failed"
         st = s.state
-        if st in (ST.checking_files, ST.checking_resume_data):
+        if st == ST.checking_files:
             return "checking"
         if s.moving_storage:
             return "moving"
-        if s.flags & PAUSED:
-            return "queued" if s.flags & AUTO else "paused"
+        if s.flags & PAUSED and not s.flags & AUTO:
+            return "paused"
         if st == ST.downloading_metadata:
             return "finding"
-        if st in (ST.finished, ST.seeding):
+        # (checking_resume_data, a moment at each start, says nothing: a finished one is finished all through it)
+        if st in (ST.finished, ST.seeding) or (st == ST.checking_resume_data and s.total_wanted and s.total_wanted_done == s.total_wanted):
             return "done"
+        if s.flags & PAUSED:
+            return "queued"
         return "downloading"
 
     def row(self, s):
@@ -682,7 +705,8 @@ class Engine:
                "peers": s.num_peers, "seeds": s.num_seeds, "known": max(s.list_peers, s.num_incomplete + s.num_complete, 0),
                "added": s.added_time, "at": s.completed_time, "progress": s.progress_ppm,
                "folder": s.save_path, "source": self.meta["source"].get(i, ""),
-               "err": s.errc.message() if s.errc.value() else "", "meta": s.has_metadata,
+               "err": s.errc.message() if s.errc.value() else "its files are gone" if i in self.meta.get("gone", ()) else "",
+               "meta": s.has_metadata,
                "ratio": round(s.all_time_upload / s.all_time_download, 2) if s.all_time_download else 0}
         st = self.streams.get(i)
         if st is not None:
@@ -774,7 +798,10 @@ class Engine:
         if h is None or not h.is_valid():
             return
         s = h.status(lt.torrent_handle.query_pieces)
-        d = {"ev": "detail", "id": i, "pieces": cells_of(s.pieces, c.cells), "trackers": trackers_of(h)}
+        d = {"ev": "detail", "id": i, "pieces": cells_of(s.pieces, c.cells)}
+        if time.monotonic() - c.trackers_at >= 5:  # (a nested list of every address of this computer: every 5 s is plenty)
+            c.trackers_at = time.monotonic()
+            d["trackers"] = trackers_of(h)
         if s.has_metadata:
             if c.sent_files != i:
                 self.send_files(c, h, i)
@@ -850,6 +877,9 @@ class Engine:
         if h.status(0).errc.value():
             h.clear_error()
             self.meta.get("errors", {}).pop(q["id"], None)
+        if self.meta.get("gone", {}).pop(q["id"], None):
+            self.meta["told"].pop(q["id"], None)
+            self.dirty = True
         h.set_flags(AUTO)
         h.resume()
         self.idle_since = time.monotonic()
@@ -894,7 +924,7 @@ class Engine:
         return {"magnet": lt.make_magnet_uri(self.handle(q))}
 
     def op_watch(self, c, q):
-        c.watch, c.sent_files = q.get("id"), None
+        c.watch, c.sent_files, c.trackers_at = q.get("id"), None, 0.0
         c.cells = max(1, min(int(q.get("cells", 40)), 400))
         if c.watch:
             self.send_detail(c)
@@ -1142,20 +1172,18 @@ def cells_of(pieces, n):
 
 
 def trackers_of(h):
-    """Each tracker: its address, and whether it answers — in the engine's words, for the details."""
+    """Each tracker: its address, and whether it answers, for the details. (An answer on one of the computer's
+    addresses is an answer: loopback and link-local ones never reach a tracker, and always fail.)"""
     out = []
     for t in h.trackers():
-        state, fails = "", 0
-        for ep in t.get("endpoints", ()):
-            for v in ep.get("info_hashes", ()) or [ep]:
-                fails = max(fails, v.get("fails", 0))
-                if v.get("updating"):
-                    state = state or "asking"
-                msg = v.get("last_error")
-                if msg and msg.get("value"):
-                    state = "failed"
-                elif v.get("last_error") is not None or v.get("start_sent"):
-                    state = state or "answers"
+        ends = t.get("endpoints") or ()
+        state = ""
+        if t.get("verified") or any(e.get("start_sent") for e in ends):
+            state = "answers"
+        elif any(e.get("updating") for e in ends):
+            state = "asking"
+        elif any(e.get("fails") for e in ends):
+            state = "failed"
         out.append([common.safe(t.get("url", "")), state])
     return out
 
