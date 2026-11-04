@@ -54,7 +54,7 @@ The last 16 seconds of speed in the music's columns at the tabs' right end. Down
 **Tests**: `bash tests/engine/test_torrents.sh` needs `rb_libtorrent-python3` installed (before step 1 it says so and fails: here it ran against the rpm unpacked into a scratch folder, PYTHONPATH + LD_LIBRARY_PATH).
 
 **Left for others, not done here** (outside this lane's files):
-- The books (Guide ch. 20, the Learn book's torrra pages) and `docs/build/render/{apps.sh,shoot.sh,lib/fakeprowlarr.py}`, which still shoot torrra for their figures: at the book update. README.md lines 222 and 227 still say torrra in two long table rows that other lanes edit: one word each.
+- The books (Guide ch. 20, the Learn book's torrra pages) and `docs/build/render/{apps.sh,shoot.sh,lib/fakeprowlarr.py}`, which still shoot torrra for their figures: at the book update.
 - The browser (T31a): `AutoLaunchProtocolsFromOrigins` for `magnet` would spare the "open with?" question once; `AutoOpenFileTypes` for `torrent` would add a .torrent the moment it lands. Its lane's file, a line each.
 - His qBittorrent (his own install of 28 Oct, plan line ~570): nothing here needs it; `rb_libtorrent` stays either way as Fedora's dependency of the binding.
 - T39 (network): the engine: UPnP, NAT-PMP and LSD off, port 6881 on 0.0.0.0 and [::], another port only if 6881 is taken.

@@ -219,7 +219,7 @@ a month before yours ends.
 
 | Command | Does |
 |---|---|
-| `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
+| `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrents, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
 | `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the repository is public: no sign-in, no token |
 | `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
