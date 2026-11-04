@@ -196,6 +196,13 @@ s.read("14:08:53,492 WARNING something else: Downloading 1 RPMs, 2 MiB / 4 MiB (
 assert s.word == "the toolkit", vars(s)
 PY
 
+case_ "the kickstart's updates repository: a name of its own (Anaconda's dnf_manager.add_repository never enables again the system's \"updates\" it has just disabled: every package would come from the release tree)"
+has "$(cat "$REPO/iso/ks.cfg")" 'repo --name=fk-updates --metalink='
+lacks "$(cat "$REPO/iso/ks.cfg")" 'repo --name=updates'
+has "$(cat "$REPO/iso/ks.cfg")" 'updates-released-f@RELEASE@'
+lacks "$(cat "$REPO/iso/ks.cfg")" 'updates-testing'
+lacks "$(cat "$REPO/iso/ks.cfg")" 'rawhide'
+
 case_ "the kickstart: strictly parsed by pykickstart as this release's handler, the answers in"
 if python3 -c 'import pykickstart' 2>/dev/null; then
   sed -e 's/@RELEASE@/45/g' -e "s|^%include /tmp/answers.ks|keyboard --vckeymap=us --xlayouts=us\ntimezone Asia/Dubai --utc\nnetwork --bootproto=dhcp --device=link --activate --hostname=fedokawaii\nuser --name=dia --groups=wheel --iscrypted --password=\$y\$x\nignoredisk --only-use=vda\nclearpart --all --initlabel --disklabel=gpt --drives=vda\nbootloader --boot-drive=vda --timeout=0|" "$REPO/iso/ks.cfg" >"$TMP/ks.cfg"
