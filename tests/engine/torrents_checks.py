@@ -815,6 +815,7 @@ def layout():
     eq([s.cells[first][x][2] for x in (0, 57, 115)], [24, 24, 24], "the whole row, to the window's edge")
     eq(s.cells[first][0][:2], ("▎", 16), "its edge: 2 px of the cell's 8, the seal's red")
     eq(s.cells[first][5][1], 25, "its words the strongest ink")
+    eq({s.cells[first][x][1] for x in range(100, 115) if (s.cells[first][x][0] or " ") != " "}, {None}, "a value in the text's ink, not muted: words on what is selected are ≥ 7 : 1")
     # every number column to one edge, so the digits stack: a meter, a speed, a time, a size, words where numbers would be
     text = lambda name: "".join(c[0] or " " for c in s.cells[row_of(w, name)])
     motion = [text(n) for n in ("Night of the Living", "debian-13.1.0", "全十五編")]

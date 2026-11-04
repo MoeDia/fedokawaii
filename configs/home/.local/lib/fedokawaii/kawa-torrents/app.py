@@ -984,11 +984,12 @@ class App:
                 self.mouse_map[y] = it
 
     def laid(self, spans, selected):
-        """A row laid on the window, from the cursor's column to the one beyond the content. Under the cursor (§7) that
-        column holds its edge, every cell the tint, words with no ink of their own the strongest, every other ink its own."""
+        """A row laid on the window, from the cursor's column to the one beyond the content. Under the cursor (§4, §7) that
+        column holds its edge, every cell the tint, words with no ink of their own the strongest, a value `text` (muted
+        is 4.1 : 1 on the light tint, words on what is selected ≥ 7), every other ink its own."""
         if selected:
-            return [(CURSOR_EDGE, ACCENT, SELECT), *[(s, ON_SELECT, SELECT) if isinstance(s, str) else (s[0], s[1] or ON_SELECT, SELECT) for s in spans],
-                    (" ", ON_SELECT, SELECT)]
+            on_tint = lambda s: (s, ON_SELECT, SELECT) if isinstance(s, str) else (s[0], None if s[1] == MUTED else s[1] or ON_SELECT, SELECT)
+            return [(CURSOR_EDGE, ACCENT, SELECT), *map(on_tint, spans), (" ", ON_SELECT, SELECT)]
         return [" ", *spans]
 
     def draw_find_line(self, frame, w):
