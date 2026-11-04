@@ -17,6 +17,10 @@ _RASTER = re.compile(rb'"(\d+);(\d+);(\d+);(\d+)')
 _SIX = re.compile(rb"#(\d+)(?:;2;\d+;\d+;\d+)?|!(\d+)([?-~])|([?-~])|(\$)|(-)")
 
 
+# (a keycap's cells read as its letters: U+FF000 + an ASCII code, its ends U+FF001 and U+FF002, design-system §7 Keys)
+_KEYCAPS = {0xFF000 + c: chr(c) for c in range(0x20, 0x7F)} | {0xFF001: " ", 0xFF002: " "}
+
+
 class Tty:
     def __init__(self, argv, cols=126, rows=33, env=None, cw=8, ch=20, mood="dark"):
         self.cols, self.rows, self.cw, self.ch = cols, rows, cw, ch
@@ -263,7 +267,7 @@ class Tty:
             self.sgr = params.decode()
 
     def text(self):
-        return ["".join(r).rstrip() for r in self.grid]
+        return ["".join(r).translate(_KEYCAPS).rstrip() for r in self.grid]
 
     def find(self, s):
         return any(s in ln for ln in self.text())

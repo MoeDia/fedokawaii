@@ -3,6 +3,7 @@
 The owner wants the whole round finished today; he is at the PC until 23:30. Finish, test, push and end this file with a line DONE by 21:30. Complete and working first, refine after; never fake done; list what is left for main. Run heavy builds and tests with nice -n 10. Questions for him: append to ~/repos/fedokawaii/.claude/inbox.md as "## <time> — question from lane-chess".
 
 <!-- status -->
+<!-- pass of 21:40, should it be cut off: results of the last full run are in /dev/shm/lane-chess/logs-e (summary.txt, wm-summary.txt = the trial merge on lane-integrate + the integration patch, fuzz30.log, year5.log); renders in /dev/shm/lane-chess/new-{dark,light}. Read those before running anything again. -->
 # lane-chess — T25a, T25b, T25c: the chess app
 
 Branch `lane-chess`. State at the end of this file. `kawa-chess` runs, plays, teaches and reviews.

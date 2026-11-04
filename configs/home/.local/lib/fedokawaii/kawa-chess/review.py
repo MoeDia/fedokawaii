@@ -13,6 +13,7 @@ from ui import Row, footed, heading, icon, keys_line, meter, window, wrap
 
 # Expected-points loss → a word, the steps of chess.com's own classification
 CLASSES = ((0.20, "blunder"), (0.10, "mistake"), (0.05, "inaccuracy"), (0.02, "good"), (0.0, "excellent"))
+SAID = {"blunder": "a blunder", "mistake": "a mistake", "inaccuracy": "an inaccuracy", "good": "good", "excellent": "excellent"}
 NODES = 150000
 
 
@@ -269,7 +270,7 @@ class Replay(Screen):
         room = h - len(out) - len(tail) - 1
         out += moves_rows(self.g, w, room, self.at - 1)
         out += [""] * max(0, h - 2 - len(out) - len(tail))
-        return footed(out + tail, h, keys_line(w, ("← →", "walk"), ("enter", "review"), ("esc", "back")))
+        return footed(out + tail, h, keys_line(w, ("< >", "walk"), ("enter", "review"), ("esc", "back")))
 
     def key(self, name):
         if name in ("left", "up"):
@@ -446,13 +447,13 @@ class Review(Screen):
             no = f"{pos.full}." if pos.turn == B.WHITE else f"{pos.full}..."
             out += [[(s, None)] for s in wrap("before the engine speaks: which of your moves would you take back?", w)]
             out += ["", [(no + " ", MUTED), (san, STRONG)], ""]
-            return footed(out, h, keys_line(w, ("← →", "walk"), ("enter", "this one"), ("esc", "skip")))
+            return footed(out, h, keys_line(w, ("< >", "walk"), ("enter", "this one"), ("esc", "skip")))
         if self.phase == "moment":
             body = self._moment_lines(w, h - 4)
             if self.step == "find":
                 keys = [("esc", "show me")]
             else:
-                keys = [("← →", "the line"), ("enter", "next")] if self.line else [("enter", "next")]
+                keys = [("< >", "the line"), ("enter", "next")] if self.line else [("enter", "next")]
         else:
             body = self._summary_lines(w, h - 4)
             keys = [("enter", "keep it"), ("esc", "skip")]
@@ -468,8 +469,9 @@ class Review(Screen):
         lines = [[(f"moment {self.mi + 1} of {len(self.moments)}", MUTED)], ""]
         if self.judged and self.mi == 0:
             lines += [[(s, MUTED)] for s in wrap(self.judged, w)] + [""]
-        said = f"{no}{dots} you played {played}: a {m['class']}."
-        lines += [[f"{no}{dots} you played ", (played, STRONG), f": a {m['class']}."]] if len(said) <= w else [[(s, None)] for s in wrap(said, w)]
+        verdict = SAID[m["class"]]
+        said = f"{no}{dots} you played {played}: {verdict}."
+        lines += [[f"{no}{dots} you played ", (played, STRONG), f": {verdict}."]] if len(said) <= w else [[(s, None)] for s in wrap(said, w)]
         lines.append("")
         if self.step == "find":
             lines += [[(s, None)] for s in wrap("find a better move.", w)]
