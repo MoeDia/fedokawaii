@@ -75,6 +75,8 @@ lacks "$(cat "$KAWA_LEARN/pieces/001-how-to-read.md")" "at the back"
 python3 -B -I -c 'import re,sys
 b=open(sys.argv[1],encoding="utf-8").read()
 assert "<!-- lesson\nThese lessons are the Learn book" in b and "<!-- book -->\n\nThis book is the practical one" in b' "$REPO/docs/fedokawaii-learn.md" && _ok || _no "the book's markers"
+case_ "a table's columns: the short ones whole, only the long sentences wrap"
+s=$(kawa-learn --text how-to-read --cols 88); has "$s" "Space (in the list)"; has "$s" "I — From zero"
 case_ "the book's own words: no \"You need\" in a lesson (the list says what a lesson needs), no appendix to turn to"
 eq "$(grep -l 'You need:' "$KAWA_LEARN"/pieces/*.md | wc -l)" 0
 eq "$(grep -lE '^# ' "$KAWA_LEARN"/pieces/*.md | wc -l)" "$(python3 -B -I - "$KAWA_LEARN/pieces" <<'PY'
@@ -93,10 +95,10 @@ PY
 
 # ── the old Guide ─────────────────────────────────────────────────────────────────────────
 case_ "the Guide PDF and every reference to it are gone (the handbook's source stays, the technical reference)"
-[[ ! -e $REPO/docs/Fedokawaii-Guide.pdf ]] && _ok || _no "the PDF is there"
+[[ ! -e "$REPO/docs/Fedokawaii-Guide"".pdf" ]] && _ok || _no "the PDF is there"
 [[ -s $REPO/docs/fedokawaii-guide.md ]] && _ok || _no "its source went too"
-out=$(grep -rIl --exclude-dir=.git --exclude-dir=.claude --exclude=CLAUDE.md --exclude=test_learn.sh --exclude=test_menu.sh 'Guide\.pdf' "$REPO" 2>/dev/null); eq "$out" "" "still named in: $out"
-out=$(grep -rIlE --exclude-dir=.git --exclude-dir=.claude --exclude=test_learn.sh --exclude=test_menu.sh 'fedokawaii guide\b' "$REPO/bin" "$REPO/system" "$REPO/configs" "$REPO/tests" "$REPO/README.md" 2>/dev/null); eq "$out" "" "the command still named in: $out"
+out=$(grep -rIl --exclude-dir=.git --exclude-dir=.claude --exclude=CLAUDE.md 'Guide\.pdf' "$REPO" 2>/dev/null); eq "$out" "" "still named in: $out"
+out=$(grep -rIlE --exclude=test_learn.sh --exclude=test_menu.sh --exclude-dir=.git --exclude-dir=.claude 'fedokawaii guide\b' "$REPO/bin" "$REPO/system" "$REPO/configs" "$REPO/tests" "$REPO/README.md" 2>/dev/null); eq "$out" "" "the command still named in: $out"
 
 # ── every lesson, every width ─────────────────────────────────────────────────────────────
 case_ "every lesson laid out at 120, 88, 60, 40, 20 and 9 columns: nothing wider than the window, no word lost"
@@ -201,6 +203,15 @@ has "$(cat "$KAWA_LEARN"/pieces/*-py-two-ways.md)" "## 25.1 two ways to run Pyth
 has "$(grep -h '^## ' "$KAWA_LEARN"/pieces/*-py-numbers-mistakes.md)" "common mistakes"
 has "$(awk -F'\t' '$2=="rs-vec"' "$KAWA_LEARN/index.tsv")" "Vec: a growing list"
 grep -v '^#' "$REPO/bin/kawa-learn" | grep -q '…\|\.\.\.' && _no "a dotted word in the program" || _ok
+case_ "every lesson opens in the window: n from the first to the last, a kill-free walk through all of them, in order"
+n=$(awk -F'\t' '$1=="L"{c++} END{print c}' "$KAWA_LEARN/index.tsv"); last=$(awk -F'\t' '$1=="L"{t=$7} END{print t}' "$KAWA_LEARN/index.tsv")
+s=$(pty 118x40 --arg how-to-read '!walk' n "$n" '!dump' 2>&1 | screens); has "$s" "$last"; lacks "$s" "cannot be read"
+case_ "the stamp's inks are the mood's own: the ring edge2, the thump accent_hi, the seal accent; a wrong or missing theme draws no wrong colour"
+percent() { python3 -I -c 'import sys; h=sys.argv[1]; print(";".join(str(round(int(h[i:i+2],16)*100/255)) for i in (0,2,4)))' "$1"; }
+mkdir -p "$XDG_CONFIG_HOME/fedokawaii/current"; printf 'accent=eb5324\naccent_hi=f47b58\nedge2=3c2f22\n' >"$XDG_CONFIG_HOME/fedokawaii/current/panel.conf"
+rm -f "$ST/learn"; out=$(pty 100x20 --arg how-to-read G '\r' '!wait' 0.2 '!dump' 2>&1); i=$(grep -- '--- sixels' <<<"$out")
+has "$i" "$(percent 3c2f22)" "the ring: $i"; has "$i" "$(percent f47b58)" "the thump: $i"; has "$i" "$(percent eb5324)" "the seal: $i"
+rm -f "$ST/learn"; rm -rf "$XDG_CONFIG_HOME/fedokawaii/current"
 case_ "ten seconds of anything: keys, the mouse, sizes from one cell to the whole screen — no Traceback"
 out=$(pty 118x40 '!fuzz' 10 "$RANDOM" 2>&1); r=$?; ((r == 0)) && _ok || _no "exit $r: ${out: -600}"
 

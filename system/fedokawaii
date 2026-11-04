@@ -1028,7 +1028,7 @@ explain() {
     drive)     pick 'running'; drive_rows
                say "the drive your backups go to. enter: another," \
                    "from the drives plugged in." ;;
-    learn)     learn_rows
+    learn)     pick 'running'; learn_rows
                say "the book, in lessons you do one by one," \
                    "beside a terminal." ;;
     chess)     soon "chess from the first move to 1800: games," \

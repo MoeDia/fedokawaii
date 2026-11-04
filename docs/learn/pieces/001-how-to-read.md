@@ -23,7 +23,8 @@ should see, then an exercise of your own.
 | **Space** (in the list) | stamps a lesson you already know, or takes a stamp off |
 
 Go in order if you have never typed a command. After that, go where you need to: the list says
-what each lesson needs. The full handbook — how every part of the desktop is built and why —
+what each lesson needs. (Part VI comes before Part V here: Rust is learnt with what it teaches.)
+The full handbook — how every part of the desktop is built and why —
 stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you want to know how
 something works inside. These lessons are about *using* it.
 
@@ -37,7 +38,7 @@ something works inside. These lessons are about *using* it.
 | V — Rust | a full course in six levels: from cargo to ownership, traits, lifetimes, tests, iterators and threads, then a CLI, your own autograd, models in Rust, and Rust inside Python | 48–66 |
 | VI — Working with AI | how a language model works — tokens, context, training, hallucination —; asking well; agents and their risks; Claude Code from the daily loop to your own hooks, skills and subagents; the professional's habits that outlast any tool | 67–72 |
 
-### How a lesson looks
+### how a lesson looks
 
 Every new idea comes as an example first: you type it, then you see what it printed.
 
@@ -52,7 +53,7 @@ A line starting with `$` is what you type, without the `$`. The lines under it a
 computer answers. Your answer may differ in details (a name, a date, a number): what matters
 is its shape. A block without `$` is a file's contents, to type into an editor.
 
-### The boxes
+### the boxes
 
 > **Word — prompt.** The text the terminal shows when it waits for your command. Each new word
 > gets a box like this the first time it appears.
@@ -62,7 +63,7 @@ is its shape. A block without `$` is a file's contents, to type into an editor.
 
 > **Careful.** Something that can lose work or break a setting. Read it before you type.
 
-### The exercises
+### the exercises
 
 Each chapter ends with exercises, graded by stars:
 
@@ -81,7 +82,7 @@ a worked solution, with the output it printed, under **s**. Try for real before 
 struggle is where the learning happens; the solution is there to check, or to unstick you after
 twenty honest minutes.
 
-### Three rules that make learning fast
+### three rules that make learning fast
 
 1. **Type, never paste.** Your fingers learn the shapes: brackets, quotes, the order of words.
 2. **One small step, then check.** Run it after every change. A mistake found at once is a

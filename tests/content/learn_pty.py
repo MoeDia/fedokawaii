@@ -2,7 +2,8 @@
 """learn_pty.py COLSxROWS [--arg A]… STEP… — kawa-learn in a terminal of its own, what it draws read back as a
 screen would (cursor moves, erases, text by width; colours, titles and sixels passed over, sixels counted).
 Each STEP: a key's text with backslash escapes (j, \\r, \\x1b[B …) · =COLSxROWS the window takes that size ·
-!dump the screen, between lines "--- screen" · !wait S · !term a SIGTERM · !hup a SIGHUP · !fuzz SECONDS SEED
+!dump the screen, between lines "--- screen" · !wait S · !term a SIGTERM · !hup a SIGHUP · !walk KEY N the key N
+times, at once · !fuzz SECONDS SEED
 keys, mouse and sizes at random. At the end it presses nothing: without !term it closes with q, q, and its
 exit status is the program's (124 still running after 5 s; 125 a Traceback in what it wrote)."""
 import codecs
@@ -29,6 +30,7 @@ class Screen:
         self.resize(cols, rows)
         self.x = self.y = 0
         self.sixels = 0
+        self.inks = []
         self.buf = ""
 
     def resize(self, cols, rows):
@@ -94,6 +96,7 @@ class Screen:
                     return
                 if s[i + 1] == "P":
                     self.sixels += 1
+                    self.inks.extend(re.findall(r"#0;2;(\d+;\d+;\d+)", s[i:end]))
                 i = end + 2
             else:
                 i += 2
@@ -157,6 +160,13 @@ def main():
             os.kill(pid, signal.SIGTERM if st == "!term" else signal.SIGHUP)
             term_sent = True
             pump(0.2, 1.0)
+        elif st == "!walk":             # (a key pressed N times, as fast as it takes it)
+            k, n = codecs.decode(args[i], "unicode_escape").encode(), int(args[i + 1])
+            i += 2
+            for _ in range(n):
+                send(k)
+                pump(0.003, 0.05)
+            pump(0.3, 3.0)
         elif st == "!fuzz":
             secs, seed = float(args[i]), int(args[i + 1])
             i += 2
@@ -208,7 +218,7 @@ def main():
     if status is None:
         os.kill(pid, signal.SIGKILL)
         return 124
-    print(f"--- sixels {scr.sixels}")
+    print(f"--- sixels {scr.sixels} {' '.join(scr.inks)}")
     return os.waitstatus_to_exitcode(status)
 
 

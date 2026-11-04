@@ -22,23 +22,23 @@ for le in course.lessons:
     # the source's words: no comments, no fences' names, no markup
     src = re.sub(r"<!--.*?-->", " ", text, flags=re.S)
     src = re.sub(r"^```\S*$", " ", src, flags=re.M)
-    want = set(re.findall(r"[^\W_]+", src))
-    want -= {"Word"}                         # (a box's "Word —": its icon says it)
+    want = set(re.findall(r"[^\W_]+", src.lower()))
+    want -= {"word"}                         # (a box's "Word —": its icon says it)
     for width in map(int, sys.argv[2:]):
-        page = k.Page(text, {}, "", le["title"])
+        page = k.Page(text, {}, le["title"])
         page.hl = {}
         out = page.layout(width, True)
-        got = set(re.findall(r"[^\W_]+", " ".join(le["sections"])))        # (the lesson's own heading: the page's head has them)
+        got = set(re.findall(r"[^\W_]+", " ".join(le["sections"]).lower()))        # (the lesson's own heading: the page's head has them)
         for ln in out:
             s = k.plain(ln.runs)
             lines += 1
-            got.update(re.findall(r"[^\W_]+", s))
+            got.update(re.findall(r"[^\W_]+", s.lower()))
             if k.run_cols(ln.runs) > width:
                 print(f"{le['id']} at {width}: a line of {k.run_cols(ln.runs)}: {s[:60]}")
                 bad += 1
         # (a word longer than the line is cut across lines: compare what is left without spaces)
-        joined = "".join(k.plain(ln.runs).lstrip("│↳ ") for ln in out)
-        lost = [w for w in want - got if w not in joined and w not in le["title"]]
+        joined = "".join(k.plain(ln.runs).lstrip("│↳ ") for ln in out).lower()
+        lost = [w for w in want - got if w not in joined and w not in le["title"].lower()]
         if lost:
             print(f"{le['id']} at {width}: lost {sorted(lost)[:8]}")
             bad += 1

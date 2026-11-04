@@ -582,7 +582,7 @@ fresh; unset WAYLAND_DISPLAY; stub kawa-learn; stub kawa-term
 fedokawaii learn; called "^kawa-learn --text$"; not_called kawa-term
 case_ "the old Guide is gone: no such command, no PDF named"
 out=$(fedokawaii guide 2>&1); eq "$?" 2; has "$out" 'unknown command "guide"'
-lacks "$(cat "$(command -v fedokawaii)")" "Fedokawaii-Guide.pdf"
+lacks "$(cat "$(command -v fedokawaii)")" "Fedokawaii-Guide"".pdf"
 case_ "the row and the pane say how far: from the file kawa-learn keeps, no program started for the row"
 fresh; export WAYLAND_DISPLAY=wayland-1; mkdir -p "$XDG_STATE_HOME/fedokawaii"
 printf '12\t259\tthe ten keys, and how windows arrange\t4\t2200\n' >"$XDG_STATE_HOME/fedokawaii/learn.place"

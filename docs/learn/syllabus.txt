@@ -37,7 +37,7 @@ read-errors | last line first, and the ten you will meet | 0 1 2 3 x
 part desktop | the desktop | shoji
 chapter 4 keys | keys, windows and layouts | keycap
 ten-keys | the ten keys, and how windows arrange | PII 0 1 2
-desks-session | workspaces and the session | 3 4 x
+desks-session | workspaces, the session, how things move | 3 4 5 x
 y
 chapter 5 bar | the bar, menus and notices | sliders
 the-bar | the bar, left to right | 0 1

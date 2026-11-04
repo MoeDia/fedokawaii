@@ -134,6 +134,8 @@ def read_book():
                 start(f"{chap}.{s[2]}", s[3])
                 cur.lines.append(f"## {s[1]}.{s[2]} {lower_first(s[3])}")
                 continue
+            if line.startswith("### ") and line != "### Exercises":
+                line = "### " + lower_first(line[4:])
             if line == "### Exercises" and chap:
                 in_ex, ex_star = True, 0
                 start(f"{chap}.x")

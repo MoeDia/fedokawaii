@@ -35,7 +35,8 @@ should see, then an exercise of your own.
 | **Space** (in the list) | stamps a lesson you already know, or takes a stamp off |
 
 Go in order if you have never typed a command. After that, go where you need to: the list says
-what each lesson needs. The full handbook — how every part of the desktop is built and why —
+what each lesson needs. (Part VI comes before Part V here: Rust is learnt with what it teaches.)
+The full handbook — how every part of the desktop is built and why —
 stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you want to know how
 something works inside. These lessons are about *using* it.
 -->
@@ -477,6 +478,22 @@ With two monitors, **Super+,** and **Super+.** move the focus left and right, an
 | **Super+Shift+N** | dismiss every notice |
 | **Alt+Shift** | switch the keyboard layout (us / ar) |
 | **Ctrl+Alt+F2…F6** | a text console, should the desktop ever freeze (**Ctrl+Alt+F1** back) |
+
+## 4.5 How things move
+
+Everything here moves on purpose, and each kind of movement means one thing, so after a day you read
+them without thinking:
+
+| You see | It means | Where |
+|---|---|---|
+| a window or a menu arriving and leaving, in square pixels | something is coming or going | every window, menu and notice |
+| a red seal pressed down for a moment | a choice was made | a switch turned on, the workspace you moved to, a lesson finished |
+| something unrolling like a hanging scroll, a rod going down before it | something long is opening | **Super+U**, **Super+N**, **Super+V**, a lesson |
+| ink bleeding across the whole screen | the whole picture is changing | a new wallpaper, dark to light (**Super+Shift+W**) |
+
+Nothing ever waits for a movement: a key or a click acts at once on where things are going. Press
+**Super+2**, **Super+3**, **Super+1** as fast as you like: you are never held up, and nothing is
+lost on the way.
 
 ### Exercises
 

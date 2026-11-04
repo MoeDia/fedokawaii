@@ -8,7 +8,7 @@ needs: []
 optional: no
 ---
 
-### Where to go next
+### where to go next
 
 | You liked | Next |
 |---|---|

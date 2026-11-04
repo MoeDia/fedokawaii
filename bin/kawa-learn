@@ -256,8 +256,8 @@ class Page:
     """a piece laid out for a width: lines (runs at the page's own columns); each line knows its
     block, so a new width, or the solutions shown, keep what was at the top of the page"""
 
-    def __init__(self, text, icons, chapter_icon, title):
-        self.text, self.icons, self.chapter_icon, self.title = text, icons, chapter_icon, title
+    def __init__(self, text, icons, title):
+        self.text, self.icons, self.title = text, icons, title
         self.hl = None
 
     def has_solutions(self):
@@ -338,9 +338,16 @@ class Page:
             if sum(least) + 2 * (n - 1) > room:     # (too narrow for columns: each row a small block)
                 self.stacked(lines, cells, indent, width)
                 return
+            # (the room left goes to the narrowest column still short of its words, a cell at a
+            # time: short columns stay whole, only the long sentences wrap)
             spare = room - 2 * (n - 1) - sum(least)
-            want = sum(a - b for a, b in zip(natural, least, strict=True)) or 1
-            widths = [b + (a - b) * spare // want for a, b in zip(natural, least, strict=True)]
+            widths = list(least)
+            while spare > 0:
+                short = [i for i in range(n) if widths[i] < natural[i]]
+                if not short:
+                    break
+                widths[min(short, key=lambda i: widths[i])] += 1
+                spare -= 1
         total = sum(widths) + 2 * (n - 1)
         for k, row in enumerate(cells):
             wrapped = [wrap(row[i] if k else [(plain(row[i]), MUTED)], max(1, widths[i])) for i in range(n)]
@@ -512,18 +519,19 @@ class Page:
         first = True
         for p in paras:
             text = " ".join(p)
+            item = re.match(r"^([-*]|\d+\.) (.*)$", text)
+            if not first and not item:
+                self.gap(1)
             if first and text.startswith("**Word — "):
                 text = "**" + text[len("**Word — "):]
-            start = [self.ink_icon(icon or "NOTE"), ("  ", "")] if first else [("   ", "")]
-            if re.match(r"^([-*]|\d+\.) ", text):
-                m = re.match(r"^([-*]|\d+\.) (.*)$", text)
-                mark = "•" if m[1] in "-*" else m[1]
-                w = cols(mark) + 1
-                self.para(lines, inline(m[2]), indent + 3, width, first=[(mark, MUTED), (" ", "")], hang=w)
+            elif first and text.startswith("**In this chapter**"):
+                text = "**in this chapter**" + text[len("**In this chapter**"):]
+            if item:
+                mark = "•" if item[1] in "-*" else item[1]
+                self.para(lines, inline(item[2]), indent + 3, width, first=[(mark, MUTED), (" ", "")], hang=cols(mark) + 1)
             else:
+                start = [self.ink_icon(icon or "NOTE"), ("  ", "")] if first else [("   ", "")]
                 self.para(lines, inline(text), indent, width, first=start, hang=3)
-                if not first or len(paras) > 1 and not re.match(r"^([-*]|\d+\.) ", (paras[1][0] if len(paras) > 1 else "")):
-                    self.gap(1)
             first = False
         self.gap(1)
 
@@ -649,14 +657,12 @@ def pretty_date(iso):
 
 # ── the seal: one ink, painted at each draw in the mood's colours ───────────────────────────
 def theme_colours():
-    colours = {}
+    """the mood's inks, as the theme writes them for the panel (a sixel's colours are its own, no palette's)"""
     try:
-        with open(os.path.join(CONFIG, "fedokawaii/current/colors.sh"), encoding="utf-8") as f:
-            for m in re.finditer(r"^C_(\w+)=([0-9a-fA-F]{6})", f.read(), re.M):
-                colours[m[1]] = m[2]
+        with open(os.path.join(CONFIG, "fedokawaii/current/panel.conf"), encoding="utf-8") as f:
+            return dict(re.findall(r"^(\w+)=#?([0-9a-fA-F]{6})\b", f.read(), re.M))
     except OSError:
-        pass
-    return colours
+        return {}
 
 
 def read_seals():
@@ -717,12 +723,13 @@ class Term:
         self.old = None
         self.rows, self.cols = 24, 80
         self.frame = []
+        self.wiped = True       # (the next frame starts from a clean screen: inside it, so no blank one is ever seen)
 
     def __enter__(self):
         self.old = termios.tcgetattr(0)
         tty.setraw(0, termios.TCSANOW)
         # (no line wrap: what a very small window cannot hold stops at its edge, the rows stay rows)
-        self.write("\x1b[?1049h\x1b[?7l\x1b[?25l\x1b[?2031h\x1b[?1007h\x1b]2;lessons\x1b\\\x1b[2J")
+        self.write("\x1b[?1049h\x1b[?7l\x1b[?25l\x1b[?2031h\x1b[?1007h\x1b]2;lessons\x1b\\")
         self.size()
         return self
 
@@ -756,6 +763,10 @@ class Term:
         """the frame: only the rows that changed, all at once (synchronized output: no half frame,
         ever); after: what is written last (a picture, the cursor)"""
         out = ["\x1b[?2026h"]
+        if self.wiped:
+            out.append("\x1b[2J")
+            self.frame = []
+            self.wiped = False
         if len(self.frame) != len(lines):
             self.frame = [None] * len(lines)
         for i, s in enumerate(lines):
@@ -769,6 +780,11 @@ class Term:
 
 KEYS = {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end", "Z": "btab"}
 TILDE = {"1": "home", "4": "end", "5": "pgup", "6": "pgdn", "7": "home", "8": "end"}
+
+
+MOUSE = re.compile(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])")
+THEME = re.compile(r"\x1b\[\?997;(\d)n")
+CSI = re.compile(r"\x1b[\[O]([0-9;?]*)([A-Za-z~])")
 
 
 def decode(data):
@@ -798,17 +814,17 @@ def decode(data):
             elif c >= " ":
                 out.append(c)
             continue
-        m = re.compile(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])").match(s, i)
+        m = MOUSE.match(s, i)
         if m:
             out.append(("mouse", int(m[1]), int(m[2]) - 1, int(m[3]) - 1, m[4] == "M"))
             i = m.end()
             continue
-        m = re.compile(r"\x1b\[\?997;(\d)n").match(s, i)
+        m = THEME.match(s, i)
         if m:
             out.append(("theme",))
             i = m.end()
             continue
-        m = re.compile(r"\x1b[\[O]([0-9;?]*)([A-Za-z~])").match(s, i)
+        m = CSI.match(s, i)
         if m:
             i = m.end()
             if m[2] == "~":
@@ -1220,8 +1236,7 @@ class App:
             text = body_of(os.path.join(LEARN, "pieces", le["file"]))
         except OSError as e:
             text = f"This lesson cannot be read: {e.strerror}. `fedokawaii repair` puts it back."
-        ch = self.course.chapters[le["chapter"]]
-        self.page = Page(text, self.icons, icon_key(ch["icon"]), le["title"])
+        self.page = Page(text, self.icons, le["title"])
         self.relayout()
         self.ptop = 0
         self.unroll = time.monotonic()
@@ -1230,8 +1245,8 @@ class App:
             at_block = block if where == le["id"] else 0
         if at_block:
             self.to_block(at_block)
-        self.term.write(f"\x1b[?1000;1003;1006l\x1b]2;{le['title']}\x1b\\\x1b[2J")
-        self.term.frame = []
+        self.term.write(f"\x1b[?1000;1003;1006l\x1b]2;{le['title']}\x1b\\")
+        self.term.wiped = True
         self.seal_drawn = None
 
     def relayout(self):
@@ -1314,7 +1329,7 @@ class App:
         before is written again, and that wipes it"""
         t = self.term
         hot = done and self.thump > time.monotonic()
-        key = (pos, done, hot, self.colours.get("ACCENT"), self.mood())
+        key = (pos, done, hot, self.colours.get("accent"), self.mood())
         last = self.seal_drawn
         if len(t.frame) != len(lines):
             t.frame = [None] * len(lines)
@@ -1327,8 +1342,8 @@ class App:
             span = range(pos[0] - 1, min(pos[0] - 1 + SEAL_ROWS, len(lines)))
             if key != last or any(t.frame[r] != lines[r] for r in span):
                 mask = self.seals.get(self.mood() if done else "place")
-                ink = self.colours.get("ACCENT_HI" if hot else "ACCENT" if done else "EDGE2", "888888")
-                if mask:
+                ink = self.colours.get("accent_hi" if hot else "accent" if done else "edge2")
+                if mask and ink:
                     paint = f"\x1b[{pos[0]};{pos[1]}H" + sixel(mask, ink, grow=1 if hot else 0)
                 if hot != (last[2] if last else False) or key[:2] != (last[:2] if last else None):
                     for r in span:               # (a seal drawn over an older one: the older first wiped)
@@ -1433,8 +1448,8 @@ class App:
         self.course.keep_where(self.lesson, self.top_block())
         self.screen = "list"
         self.seal_drawn = None
-        self.term.frame = []
-        self.term.write("\x1b]2;lessons\x1b\\\x1b[2J")
+        self.term.wiped = True
+        self.term.write("\x1b]2;lessons\x1b\\")
         if self.query is None:
             self.part = next(i for i, p in enumerate(self.course.parts) if p["id"] == self.lesson["part"])
         self.cursor = self.lesson
@@ -1443,7 +1458,7 @@ class App:
     # ── running ───────────────────────────────────────────────────────────────────────────
     def resize(self):
         self.term.size()
-        self.term.write("\x1b[2J")
+        self.term.wiped = True
         self.seal_drawn = None
         if self.screen == "page":
             block = self.top_block()
@@ -1515,7 +1530,7 @@ CONSOLE = str.maketrans({"★": "*", "—": "-", "–": "-", "·": "-", "•": "
 
 
 def text_lesson(course, le, width):
-    page = Page(body_of(os.path.join(LEARN, "pieces", le["file"])), {}, "", le["title"])
+    page = Page(body_of(os.path.join(LEARN, "pieces", le["file"])), {}, le["title"])
     page.hl = {}
     place = f"lesson {le['place']} of {len(course.required)}" if le["place"] else "when you have the time"
     out = "\n".join([f"{le['title']} — {place}", ""] + [plain(ln.runs).rstrip() for ln in page.layout(width, True)]) + "\n"
