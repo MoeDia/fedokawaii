@@ -69,11 +69,14 @@ base() {
   row held "the state inject"
 }
 # ── what the rows share ──────────────────────────────────────────────────────────────────────
-from() {   # from ROW — the VM from "inject", this tree's toolkit in (the theme's files are the state's)
+from() {   # from ROW [real] — the VM from "inject", this tree's toolkit in (the theme's files are the state's).
+           # A press spends four of its seven minutes starting the desktop in the kit, twice: only
+           # the rows about the desktop keep that ("real"); the others have the check say green
   inj_init "$vm" "$src" "$1"
   inj_from inject
   run --repo "$src" >>"$log" 2>&1 && run 'sudo bash ~/fedokawaii/setup.sh --toolkit' >>"$log" 2>&1 || { row BROKEN "the toolkit"; return 1; }
   run 'sudo rm -f /var/lib/fedokawaii/update/why' >>"$log" 2>&1
+  [[ ${2:-} == real ]] || run 'for t in session-start bar-geometry lock-start; do printf "#!/bin/bash\nexit 0\n" | sudo tee /usr/local/lib/fedokawaii/tools/regress/$t.sh >/dev/null; done' >>"$log" 2>&1
 }
 pk() { local q; printf -v q '%q ' "$@"; run "sudo fk-inject-pkg $q" >>"$log" 2>&1; }
 v() { run "rpm -q --qf '%{version}' $1"; }
@@ -216,7 +219,7 @@ broken_lib() {
   ok_if '[[ $(v fk-inject-a) == 1.0 && $held == *fk-inject-a* ]] && run "ls /usr/lib64/libxkbcommon.so.0 >/dev/null" && wait_desktop' "a library our builds link gone in the copy: held: $held; the running system untouched; $(report)"
 }
 broken_session() {   # (the copy cannot start a desktop: the live check after the transaction sees it)
-  from broken-session || return 1
+  from broken-session real || return 1
   pk fk-inject-a 1.1 posttrans='test -d /run/fedokawaii/top && chmod 000 /usr/bin/waybar || :'
   press
   local end line; end=$(report 1); line=$(report)
@@ -224,7 +227,7 @@ broken_session() {   # (the copy cannot start a desktop: the live check after th
   ok_if '[[ $end == *" restored" && $(v fk-inject-a) == 1.0 ]] && run "test -x /usr/bin/waybar" && desktop' "the bar does not start on the running system: $line; at the restart the system before it, the desktop up"
 }
 broken_mesa() {
-  from broken-mesa || return 1
+  from broken-mesa real || return 1
   pk fk-inject-a 1.1 posttrans='test -d /run/fedokawaii/top && { for f in /usr/lib64/libEGL.so.1*; do [ -f "$f" ] && : >"$f"; done; } || :'
   press
   local end line; end=$(report 1); line=$(report)

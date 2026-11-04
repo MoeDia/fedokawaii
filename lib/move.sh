@@ -21,6 +21,7 @@ MOVE_TOLD=$UPD/move-told      # N: "ready" was said; the next press moves
 MOVE_SET=$UPD/move-set        # NAME OLD NEW of the move's transaction, as up_set writes them
 MOVE_LAST=$UPD/last-upgrade   # TIME FROM TO ok|partial|checks|failed: the status, the login's notice
 MOVE_AFTER=/etc/systemd/system/fedokawaii-after-upgrade.service
+MOVE_OFFLINE=/usr/lib/sysimage/libdnf5/offline   # (dnf5's: its stored transaction, in the same form as --store's)
 MOVE_VALID=$((30 * 86400))    # (a verdict is tried again after this long: monthly, design §4.4)
 MOVE_SKIP=()
 
@@ -147,6 +148,8 @@ do_move() {   # do_move N — every gate green and he knows: tried in a copy, sn
     dnf system-upgrade clean >/dev/null 2>&1 || true
     move_waits "$n" "the download stopped (the network?) — nothing changed; press update again"; return 0
   fi
+  # (the judge's list: what Fedora's own download has just resolved — the mirrors may have moved on since the copy's)
+  if [[ -s $MOVE_OFFLINE/transaction.json ]]; then up_set "$MOVE_OFFLINE" >"$MOVE_SET"; fi
   move_arm "$from" "$n"
   hdr "ready: restarting into the installation of Fedora $n in 30 seconds (20–40 minutes; leave it on)"
   as_user notify-send -a update -u critical -- update "restarting in 30 seconds: the move to Fedora $n (20–40 minutes; leave it on)" 2>/dev/null || true

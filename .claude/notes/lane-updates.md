@@ -3,6 +3,7 @@
 VM: `r27-updates` (port 2290; ~/VM/harness/r27-updates; clone of f44's states, rebased onto its own base image). Frozen trees for proofs: ~/.cache/r27-updates/tree.
 
 ## Status (newest first)
+- 19:11 PC dry run (`dnf5 --releasever=45 distro-sync --assumeno`, a throw-away cache): without --allowerasing it fails: Fedora 45's protobuf-compiler 33 vs grpc-cpp (a dependency of libarrow-flight here). With it (do_move's second try): 1916 upgrades, 38 new, 4 harmless downgrades (gh, pyOpenSSL, xen-libs, xen-licenses: F44's updates newer than F45's day-one), one removal: protobuf-compiler, nobody needs it. 2 GiB to fetch. So the PC's move resolves.
 - 18:58 T46 code committed (lib/move.sh, tools/vm-preflight.sh; test_upgrade, test_status green). T45 (i) built: the button updates fedokawaii itself from the newest v… tag (test_toolkit_move 49/0). Super+U: one item, update (the rows "fedokawaii" and "Fedora N" gone). tools/vm-inject/lib.sh, run-all.sh (27 rows), release-move.sh written. The real 44 → 45 in VM r27-updates: build running (state "armed", then green, cut, red); then the host pre-flight (vm-preflight.sh 45 --ram 4096); then run-all.
 - 17:50 started; design + code read; VM cloned and booting; baseline apply running.
 
