@@ -24,6 +24,28 @@ if compgen -G '/dev/dri/renderD*' >/dev/null; then eq "$(ran)" "suite,headless -
 out=$(P 2>&1); eq "$?" 0; has "$out" "passed already"; eq "$(ran)" ""
 item r27-never-2 "the suite, the headless set and verify before a push, none twice on one tree"
 
+case_ "prepush judges the commit's own dwl: its patch built in the copy, handed to the headless set; a patch that does not build is red"
+if compgen -G '/dev/dri/renderD*' >/dev/null; then
+  mkdir -p "$TMP/home/.local/src/dwl" src/dwl lib
+  git -C "$TMP/home/.local/src/dwl" init -q
+  printf 'all:\n\t@cp config.h dwl\nclean:\n' >"$TMP/home/.local/src/dwl/Makefile"
+  git -C "$TMP/home/.local/src/dwl" add -A; git -C "$TMP/home/.local/src/dwl" commit -qm pin
+  pin=$(git -C "$TMP/home/.local/src/dwl" rev-parse HEAD)
+  wh=/usr/local/lib/fedokawaii-wlroots-0.20
+  if [[ -r $wh/cflags ]]; then
+    printf 'DWL_COMMIT="%s"\nDWL_WLROOTS="0.20"\n' "$pin" >fedokawaii.conf
+    printf 'DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb")\n' >lib/manifest.sh
+    : >src/dwl/config.h
+    printf -- '--- /dev/null\n+++ b/patched\n@@ -0,0 +1 @@\n+patched\n' >src/dwl/dwl.patch
+    git add -A; git commit -qm dwl
+    out=$(P 2>&1); eq "$?" 0 "$out"
+    has "$(cat "$RAN")" "--dwl /" "the headless set was not given the commit's dwl: $(cat "$RAN")"; : >"$RAN"
+    printf 'this is no patch\n' >src/dwl/dwl.patch; git add -A; git commit -qm broken
+    out=$(P 2>&1); eq "$?" 1 "a patch that does not build went through: $out"; has "$out" "does not build"; lacks "$(cat "$RAN")" "headless"; : >"$RAN"
+    git rm -rqf src/dwl fedokawaii.conf lib; git commit -qm 'no dwl again'; P >/dev/null 2>&1; : >"$RAN"
+  fi
+fi
+
 case_ "prepush: any part red is red, the others still run, and the next try runs again"
 echo x >x; git add x; git commit -qm x
 SUITE_RC=1 P >/dev/null 2>&1; eq "$?" 1; has "$(ran)" "verify"

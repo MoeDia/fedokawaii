@@ -7,11 +7,13 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 export PATH=$HOME/.local/bin:$PATH             # (the desktop's own commands, as the session has them)
-broken=() blind=()
+broken=() blind=() dwl="" prev=""
+for o; do [[ $prev == --dwl ]] && dwl=$o; prev=$o; done
 for t in "$here"/*.sh; do
   [[ $t == "$here/run.sh" ]] && continue
   n=$(basename "$t" .sh)
-  a=(); grep -q 'KIT OPTION' "$t" && a=("$@")     # (the kit's options only for the checks that take them)
+  # (the kit's options only for the checks that take them; a dwl binary for those that take only that)
+  a=(); if grep -q 'KIT OPTION' "$t"; then a=("$@"); elif [[ -n $dwl ]] && grep -q '\[DWL\]' "$t"; then a=("$dwl"); fi
   out=$(timeout "${KAWA_REGRESS_LIMIT:-2600}" bash "$t" "${a[@]}" 2>&1); rc=$?
   case $rc in 0) mark=✔ ;; 2|124) mark='?' ;; *) mark=✘ ;; esac    # (?: it could not run, or could not judge: no verdict)
   printf '%s %-18s %s\n' "$mark" "$n" "$(grep . <<<"$out" | tail -n 1)"
