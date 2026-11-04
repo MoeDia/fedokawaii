@@ -236,7 +236,8 @@ class Hands:
 
     def _lit_table(self, finger):
         token = FINGER_TOKEN[finger]
-        return _table({'o': 'paper_ink', 'k': 'paper_ink', 'h': token, 'b': token, 's': token, 'd': token, 'n': 'paper_ink', 'N': 'paper_ink', 'g': 'paper_ink'})
+        nail = 'strong' if self.dark else 'key'
+        return _table({'o': 'paper_ink', 'k': 'paper_ink', 'h': token, 'b': token, 's': token, 'd': token, 'n': nail, 'N': nail, 'g': 'paper_ink'})
 
     def _bad_table(self):
         return _table({'o': 'accent_lo', 'k': 'accent_lo', 'h': 'accent', 'b': 'accent', 's': 'accent', 'd': 'accent', 'n': 'text_on_accent', 'N': 'text_on_accent', 'g': 'text_on_accent'})
@@ -355,22 +356,22 @@ def paint_seal(pic, x, y, size, dark, state):
                     pic.fill(ox + i * k, oy + j * k, k, k, hole)
 
 
-EYE = {
-    True: ('......########......', '...###........###...', '.##...oooooooo...##.', '#....oo..##..oo....#', '#....oo..##..oo....#',
-           '.##...oooooooo...##.', '...###........###...', '......########......'),
-    False: ('....................', '......########......', '...###........###...', '.##...oooooooo...##.', '#....oo.####.oo....#',
-            '.##...oooooooo...##.', '...###........###...', '......########......'),
+EYE = {     # L the lid, w the white, g the iris, k the pupil
+    True: ('.......LLLLLL.......', '....LLLwwwwwwLLL....', '..LLwwwwggggwwwwLL..', '.LwwwwwgggkgwwwwwwL.', 'LwwwwwwgggkggwwwwwwL', '.LwwwwwgggkgwwwwwwL.',
+           '..LLwwwwggggwwwwLL..', '....LLLwwwwwwLLL....', '.......LLLLLL.......'),
+    False: ('....................', '.......LLLLLL.......', '....LLLLLLLLLLLL....', '..LLLwwwggggwwwLLL..', '.LwwwwwgggkggwwwwwL.', '..LwwwwwgggggwwwwL..',
+            '....LLwwwwwwwwLL....', '.......LLLLLL.......', '....................'),
 }
+EYE_INKS = {True: {'L': 'accent_text', 'w': 'accent_lo', 'g': 'gold', 'k': 'lo'}, False: {'L': 'strong', 'w': 'key', 'g': 'gold', 'k': 'strong'}}
 
 
 def paint_eye(pic, x, y, k, dark):
-    """the eye that opens above the text (Yechiam 2003's signal): the demon's slit in gold, the angel's calm"""
-    rows = EYE[dark]
-    for j, row in enumerate(rows):
+    """the eye that opens under the text (Yechiam 2003's signal): the demon's slit in gold, the angel's calm one"""
+    inks = EYE_INKS[dark]
+    for j, row in enumerate(EYE[dark]):
         for i, c in enumerate(row):
             if c != '.':
-                ink = INK['accent_text'] if c == '#' else INK['gold']
-                pic.fill(x + i * k, y + j * k, k, k, ink)
+                pic.fill(x + i * k, y + j * k, k, k, INK[inks[c]])
 
 
 def paint_word(pic, x, y, word, ink, k):

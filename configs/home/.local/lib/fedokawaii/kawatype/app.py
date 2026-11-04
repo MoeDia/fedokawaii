@@ -21,7 +21,7 @@ OFF = '\x1b[0m'
 DAY_MINUTES = 20
 SEAL_ON, SEAL_OFF = '●', '○'
 TABS = ('course', 'practice', 'progress')
-TAB_ICONS = {'course': 'MORTARBOARD', 'practice': 'KEYCAP', 'progress': 'USAGE'}
+TAB_ICONS = {'course': 'MORTARBOARD', 'practice': 'BRUSH', 'progress': 'USAGE'}
 STAGE_ICONS = ('KEYBOARD', 'KEYBOARD', 'KEYBOARD', 'NOTE', 'PEN', 'CALC', 'EQUALS', 'CODE', 'LANTERN')
 MILESTONES = (50, 75, 90, 100, 120)
 
@@ -344,8 +344,30 @@ class Home(Screen):
         self.pic = None
         self.kb = self.hands = None
         self.scale = 1
+        self.pic_col = 0
         self.tab_spans = []
         self.plan = plan(app)
+        self.drum_at = time.monotonic() + 2.5     # (the hands drum their fingers, now and then: alive, even at rest)
+        self.drum_i = -1
+
+    def wait(self):
+        return 0.07 if self.pic and self.hands and self.app.focused else None
+
+    def tick(self, now):
+        """a finger lifted at a time, little to index, on both hands, every few seconds"""
+        if not (self.pic and self.hands) or now < self.drum_at or not self.app.focused:
+            return
+        self.drum_i += 1
+        order = ((0, 9), (1, 8), (2, 7), (3, 6))
+        if self.drum_i >= len(order):
+            self.hands.pose = {}
+            self.drum_i = -1
+            self.drum_at = now + 3.5
+        else:
+            self.hands.pose = {f: (0, 2) for f in order[self.drum_i]}
+            self.drum_at = now + 0.07
+        self.hands.paint(self.pic, self.scale, 0, art.KEY_H * self.scale)
+        self.t.write(self.pic.send(self.pic_col + 1, self.first + 3 + 1, art.PALETTE[self.app.dark]))
 
     # ── what each tab lists ──────────────────────────────────────────────────
     def build(self):
@@ -378,7 +400,7 @@ class Home(Screen):
     def stage_rows(self):
         have = self.app.store.progress['lessons']
         out = []
-        icons = {'meet': 'KEYCAP', 'check': 'HOURGLASS', 'passage': 'BOOK', 'pacer': 'LANTERN', 'code': 'CODE', 'sentences': 'NOTE'}
+        icons = {'check': 'HOURGLASS', 'passage': 'BOOK', 'pacer': 'LANTERN', 'code': 'CODE', 'sentences': 'NOTE', 'patterns': 'SPIRAL'}
         for i, l in enumerate(course.LESSONS):
             if l.stage == self.stage:
                 d = have.get(l.id)
@@ -550,9 +572,9 @@ class Home(Screen):
             for name in changed:
                 self.kb.paint_key(self.pic, name, self.scale)
             cols_pic = math.ceil(self.pic.w / self.app.size[2])
-            px = x + (w - cols_pic) // 2
+            self.pic_col = x + (w - cols_pic) // 2
             self.pic.touch_all()
-            self.t.write(self.pic.send(px + 1, self.first + 3 + 1, art.PALETTE[self.app.dark]))
+            self.t.write(self.pic.send(self.pic_col + 1, self.first + 3 + 1, art.PALETTE[self.app.dark]))
 
     def draw(self):
         self.t.write('\x1b[?25l')
@@ -865,8 +887,8 @@ class LessonScreen(Screen):
         t = min(self.scale, 2) or 1
         self.t_scale = t
         self.letters = art.Letters(t)
-        self.tw_px = min(px_w, max(art.KEY_W * max(self.scale, 1), 56 * 7 * t), 76 * 7 * t)
-        self.tw_px -= self.tw_px % cw
+        # (the text and the keyboard one column, one left edge; with no keyboard, up to 76 letters)
+        self.tw_px = art.KEY_W * self.scale if self.scale else min(px_w, 76 * 7 * t)
         self.chars = max(self.tw_px // self.letters.w, 1)
         lines = 3
         if not self.scale:
@@ -881,7 +903,8 @@ class LessonScreen(Screen):
         self.text_y = y
         self.text_x = x0 + (W - math.ceil(self.tw_px / cw)) // 2
         self.notice_y = y + text_rows
-        self.tp = canvas.Picture(max(self.tw_px, cw), lines * self.letters.h, (cw, ch))
+        self.notice_w = W - (self.text_x - x0) - 3
+        self.tp = canvas.Picture(max(self.tw_px, self.letters.w), lines * self.letters.h, (cw, ch))
         self.spans = wrap(self.run.text, self.chars)
         self.drawn_line = -1
         self.pic = None
@@ -1051,7 +1074,7 @@ class LessonScreen(Screen):
             return
         self.at(self.notice_y, self.x0, '\x1b[0m' + ' ' * self.W)
         if self.notice:
-            self.at(self.notice_y, self.text_x, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  ' + self.notice[:max(self.W - 5, 0)])
+            self.at(self.notice_y, self.text_x, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  ' + self.notice[:max(self.notice_w, 0)])
 
     def say(self, words, now, secs=2.0):
         if words != self.notice:

@@ -50,9 +50,9 @@ def build():
             known += g
             k = f'{tag}.{g}'
             add(k + '.meet', s, 'meet', f'meet {said(g)}', g, known, size=30)
-            add(k + '.drill', s, 'drill', f'{said(g)}, drill', g, known, low, goal, size=60)
+            add(k + '.drill', s, 'drill', f'drill {said(g)}', g, known, low, goal, size=60)
             add(k + '.mix', s, 'mix', f'{said(g)} among the rest', g, known, low, goal, size=80)
-            add(k + '.words', s, 'words', f'{said(g)}, words', g, known, low, goal, size=100)
+            add(k + '.words', s, 'words', f'words with {said(g)}', g, known, low, goal, size=100)
         stage_keys = known[len(before):]
         if s < 2:
             left = ''.join(c for c in known if c in 'qwertasdfgzxcvb')
@@ -83,8 +83,8 @@ def build():
             seen += g
             k = f'{tag}.{g}'
             add(k + '.meet', stage, 'meet', f'meet {said(g)}', g, seen, size=30)
-            add(k + '.drill', stage, 'drill', f'{said(g)}, drill', g, seen, low, goal, size=60)
-            add(k + '.words', stage, 'habits', f'{said(g)}, in words', g, seen, low, goal, flow=True, size=90)
+            add(k + '.drill', stage, 'drill', f'drill {said(g)}', g, seen, low, goal, size=60)
+            add(k + '.words', stage, 'habits', f'words with {said(g)}', g, seen, low, goal, flow=True, size=90)
     groups_of('caps', 4, CAPITALS, 8, 20)
     for i in range(5):
         add(f'caps.sent.{i + 1}', 4, 'sentences', f'sentences with capitals, {i + 1} of 5', '', seen, 12, 20, flow=True, size=140 + 15 * i, extra='capitals')
