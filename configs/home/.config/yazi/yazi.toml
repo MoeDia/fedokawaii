@@ -19,6 +19,8 @@ prepend_previewers = [
   { mime = "application/{rar,vnd.rar,x-rar,x-rar-compressed}", run = "kawa-rar" },
 ]
 prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]
+# how many a folder holds, for the list's size column, without the cursor having been over it (its own group: mime's still run)
+prepend_fetchers = [ { url = "local://*/", run = "kawa-count", prio = "low", group = "kawa-count" } ]
 
 # yazi's own list of previewers (yazi-default.toml, 26.9.1), two of them ours: a folder's rows with the desktop's words for what
 # is not there yet (kawa-folder) and, for what yazi has no picture of — a binary, an empty file —, a card of its facts

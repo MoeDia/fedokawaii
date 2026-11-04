@@ -1065,5 +1065,23 @@ EOF
   eq "$(sed -n '/tasks ─/,$p' <<<"$out" | grep -cF $'\U000FF006')" 3 "three rows between the ring's top and bottom"
 else echo "  (the installed yazi has not the desktop's patch yet: its pop-ups' cases skipped)"; fi
 
+# The size column's counts (plugins/kawa-count.yazi): every folder on the page, before the cursor has been over it
+setup
+mkdir -p "$W/sub dir/x" "$W/many"; : >"$W/sub dir/y"; (cd "$W/many" && seq 1 10001 | xargs touch)
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+screen
+key k
+screen
+quit
+EOF
+)
+case_ "a folder says how many it holds at once, the cursor never been over it; more than the fetcher reads: 10k+; nothing left running (quit asks nothing)"
+has "$(grep -F 'sub dir' <<<"$out" | head -n1)" " 2 " "sub dir: two"
+has "$(grep -F 'notes.xopp' <<<"$out" | head -n1)" " 0 " "notes.xopp, a folder with nothing in it: 0"
+has "$(grep -F 'many' <<<"$out" | head -n1)" "10k+" "many: at most the fetcher's limit read"
+lacks "$out" "quit?" "no task of its own to ask about"
+
 flush; rm -f "$SF"
 done_

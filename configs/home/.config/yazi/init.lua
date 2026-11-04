@@ -53,7 +53,8 @@ function Entity:padding()
 end
 
 -- The list's two columns (yazi.toml: linemode = "kawa"; §7 Files): how big, how old — numbers tabular and right-aligned
--- in muted, their units faint; on the cursor's row the row's own ink. A folder says how many it holds once read.
+-- in muted, their units faint; on the cursor's row the row's own ink. A folder says how many it holds: what yazi has read
+-- when it has read it, else what plugins/kawa-count.yazi found, in the background, for every folder on the page.
 -- A window too narrow gives up the age, then the size: the names keep their room.
 local LIST_W = 200
 local current_redraw = Current.redraw
@@ -90,10 +91,15 @@ local function amount(file, number, unit, nw, uw)
 	-- (bold(true) takes a folder row's bold away: the list draws the row's style first, under this)
 	return ui.Line { ui.Span(n .. " "):fg("21"):bold(true), ui.Span(u):fg("22"):bold(true) }
 end
+Holds = {}
 local function how_big(file)
 	if file.cha.is_dir then
 		local read = cx.active:history(file.url)
-		return read and tostring(#read.files) or "", ""
+		if read and read.stage() then
+			local n = #read.files
+			return n < 10000 and tostring(n) or (n // 1000) .. "k", ""
+		end
+		return Holds[tostring(file.url)] or "", ""
 	end
 	local n, units = file.cha.len or 0, { "B", "KB", "MB", "GB", "TB" }
 	local i = 1
