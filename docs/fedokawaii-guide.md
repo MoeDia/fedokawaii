@@ -5837,8 +5837,8 @@ status line, each in a colour of its own. Esc leaves every other mode for Normal
 | Replace | REPLACE, red | typing over the existing text | `R` |
 | Terminal | TERMINAL, teal | in a shell inside neovim; Esc Esc, quickly, stops typing into it | Ctrl+/ (again to hide it) |
 
-`:` opens a small box near the top of the window with suggestions under it (Tab completes); a
-search with `/` stays at the bottom.
+`:` opens the command line on the last row, in the status line's place, with suggestions above it
+(Tab completes); a search with `/` does the same.
 
 **Try this.** Type the practice file. In a terminal:
 
