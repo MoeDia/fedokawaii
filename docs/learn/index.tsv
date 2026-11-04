@@ -1,9 +1,9 @@
-P	zero	from zero	sprout
-P	desktop	the desktop	window
+P	zero	from zero	enso
+P	desktop	the desktop	shoji
 P	programs	the programs	tools
-P	python	Python	python
-P	ai	working with AI	speech
-P	rust	Rust	rust
+P	python	Python	cobra
+P	ai	working with AI	karakuri
+P	rust	Rust	crab
 C	0	zero	start here	torii-small
 C	1	zero	what the pieces are	file
 C	2	zero	your first ten minutes in the terminal	terminal
@@ -15,7 +15,7 @@ C	7	desktop	starting things: launcher, calculator, downloads	search
 C	8	desktop	looking after it: Super+U	kit
 C	12	programs	yazi: the files	folder
 C	9	programs	bash and ble.sh: the shell	prompt
-C	11	programs	moving and reading: zoxide, eza, bat, tldr	read
+C	11	programs	moving and reading: zoxide, eza, bat, tldr	pages
 C	10	programs	finding anything: fzf, fd, ripgrep	search
 C	13	programs	neovim: the editor	pen
 C	14	programs	git, lazygit and GitHub	branch
@@ -77,7 +77,7 @@ C	63	rust	a tiny autograd, in Rust	spiral
 C	64	rust	running models in Rust: candle and burn	monitor
 C	65	rust	Rust inside Python: PyO3	link
 C	66	rust	where to go next	globe
-L	how-to-read	001-how-to-read.md	1	zero	0	how this works	5		
+L	how-to-read	001-how-to-read.md	1	zero	0	how this works	6		
 L	the-plan	002-the-plan.md	2	zero	0	twenty-six weeks	4	how-to-read	
 L	glossary	003-glossary.md	0	zero	0	the words, all of them	8	the-plan	
 L	what-pieces	004-what-pieces.md	3	zero	1	files, paths, programs, variables	7		1.1 files and folders|1.2 paths|1.3 programs and commands|1.4 variables|1.5 text, and why it matters here

@@ -82,7 +82,8 @@ def read_book():
         if not fence:
             m, p = CHAPTER.match(line), PART.match(line)
             if p:
-                start("P" + p[1], p[2]); chap = None; in_ex = in_sol = False
+                start("P" + p[1], p[2])
+                chap, in_ex, in_sol = None, False, False
                 continue
             if m and m[1] in "BCD":
                 chap, in_sol, in_ex, cur, solved = None, True, False, None, {}
@@ -118,7 +119,8 @@ def read_book():
                 continue
             if line == "### Exercises" and chap:
                 in_ex, ex_star = True, 0
-                start(f"{chap}.x"); sections[f"{chap}.y"] = Section(f"{chap}.y", "")
+                start(f"{chap}.x")
+                sections[f"{chap}.y"] = Section(f"{chap}.y", "")
                 continue
             if line.strip() == "<!-- cut -->" and cur:
                 base = cur.key.split("/")[0]

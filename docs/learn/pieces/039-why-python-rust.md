@@ -57,6 +57,6 @@ plan.
 
 **How each lesson works.** A concept in plain words; three to six tiny programs, each with what
 it prints under *You should see*; the mistakes beginners make, with the real error message; then
-exercises from ★ to ★★★★, with worked solutions in appendices B and C. Type every example. Then
+exercises from ★ to ★★★★, each with a worked solution. Type every example. Then
 change one thing and predict what it will print before you run it — that habit, more than any
 other, is what makes a programmer.

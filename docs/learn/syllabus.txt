@@ -21,7 +21,7 @@
 # (chapter 69 needs chapter 47, 67 is better after 45) and before Rust, so Rust is learnt with
 # what it teaches.
 
-part zero | from zero | sprout
+part zero | from zero | enso
 chapter 0 start | start here | torii-small | needs
 how-to-read | how this works | how
 the-plan | twenty-six weeks | 66.0/1
@@ -34,7 +34,7 @@ time-savers | the keys that save the most time, and help | 3 4 x
 chapter 3 errors | reading errors | cross
 read-errors | last line first, and the ten you will meet | 0 1 2 3 x
 
-part desktop | the desktop | window
+part desktop | the desktop | shoji
 chapter 4 keys | keys, windows and layouts | keycap
 ten-keys | the ten keys, and how windows arrange | PII 0 1 2
 desks-session | workspaces and the session | 3 4 x
@@ -59,7 +59,7 @@ yazi-moves | yazi's moves | PIII 0 1 2 x
 chapter 9 bash | bash and ble.sh: the shell | prompt
 bash-moves | the shell's moves | 0 1 2 x
 y
-chapter 11 moving | moving and reading: zoxide, eza, bat, tldr | read
+chapter 11 moving | moving and reading: zoxide, eza, bat, tldr | pages
 moving-moves | moving and reading | 0 1 x
 chapter 10 finding | finding anything: fzf, fd, ripgrep | search
 finding-moves | finding anything | 0 1 2 x
@@ -88,7 +88,7 @@ podman-moves | containers | 0 x
 chapter 21 agents | Claude Code and herdr: AI agents | agents | needs 14
 agents-moves | agents, a quick start | 0 x
 
-part python | Python | python
+part python | Python | cobra
 chapter 23 why | why Python and Rust | speech
 why-python-rust | why Python and Rust | PIV 0
 chapter 24 loop | the daily development loop | restart
@@ -255,7 +255,7 @@ py-agent-loop | the agent | 3
 x
 y
 
-part ai | working with AI | speech
+part ai | working with AI | karakuri
 chapter 67 model | what a language model is | speech
 tokens | tokens and next-token prediction | PVI 0 1 2
 training | training, the context window | 3 4
@@ -286,7 +286,7 @@ own-every-line | you own every line; specs; review | 0 1 2 3
 keep-learning | keep learning; a card for the wall | 4 5 6 x
 y
 
-part rust | Rust | rust
+part rust | Rust | crab
 chapter 48 rs-start | Rust from zero: cargo and the loop | tools
 rs-project | a project | PV 0 1
 rs-neovim | in neovim; reading the compiler | 2 3 4 x

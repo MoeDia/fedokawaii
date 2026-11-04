@@ -89,7 +89,7 @@ here() {
   fi
   case $app in
     warm-notes) s=notes ;; warm-clip) s=clip ;; warm-system) s=system ;;
-    kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;; kawa-torrents) s=torrra ;;
+    kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;; kawa-torrents) s=torrra ;; kawa-learn) s=learn ;;
     org.pwmt.zathura) s=zathura ;; mpv) s=mpv ;;
   esac
   # a terminal's title names the program in front: the shell's hook, yazi, nvim (and what runs in

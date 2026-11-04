@@ -33,7 +33,7 @@ case_ "an unknown command: exit 2, and how to get help"
 out=$(fedokawaii frobnicate 2>&1); eq "$?" 2; has "$out" 'unknown command "frobnicate"'; has "$out" "fedokawaii help"
 rc 2 fedokawaii -x; rc 2 fedokawaii "up date"; rc 2 fedokawaii $'update\nrepair'
 case_ "a command given more than it takes: exit 2, root's side never asked"
-for c in update verify repair theme drift snapshots backup log status copy diff apply guide settings; do
+for c in update verify repair theme drift snapshots backup log status copy diff apply learn settings; do
   rc 2 fedokawaii "$c" extra
 done
 rc 2 fedokawaii upgrade now; rc 2 fedokawaii upgrade --now extra
@@ -110,7 +110,7 @@ eq "$(cat "$TMP/secs")" "system: status verify repair drift change theme setting
 update: update pull upgrade held 
 snapshots: snapshots file 
 backups: backup restore drive 
-learning: guide chess typing keys "
+learning: learn chess typing keys "
 out=$(WAYLAND_DISPLAY=wayland-1 allrows)
 (( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "a row wider than 38: $(plain "$out")"
 lacks "$(plain "$out")" "╌" "no dashed line anywhere"
@@ -133,7 +133,7 @@ for a in chess typing; do
 done
 case_ "rows: away from the desktop (a text console, ssh) — change, keys and the to-do are screens of the desktop"
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
-eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
+eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "learn chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
 case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
 eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update pull upgrade held "
 eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
@@ -214,10 +214,10 @@ fresh; stub kawa-notes
 WAYLAND_DISPLAY=wayland-1 fedokawaii --run todo </dev/null; not_called 'kawa-notes'
 eq "$(fedokawaii --explain todo 2>&1)" ""
 has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY|\$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
-case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
+case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the lessons, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; learn\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
 called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
@@ -284,7 +284,7 @@ rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc44.x86_64 >"$R/new
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
-for a in status update pull upgrade verify repair snapshots backup theme drift change settings remind log keys guide; do
+for a in status update pull upgrade verify repair snapshots backup theme drift change settings remind log keys learn; do
   out=$(FZF_PREVIEW_LINES=16 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")
   (( $(wc -l <<<"$out") <= 16 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   heading_ok "$(sed -n 1p <<<"$out")" 49 "$a: the pane's heading (level with the tab bar)"
@@ -568,21 +568,28 @@ eq "$(cat "$R/less.out")" $'first line\nlast line' "less shows the log"
 reset_calls; rm -f "$R/less.out"; fedokawaii log >/dev/null 2>&1; called "^sudo cat -- $R/fedokawaii.log$"; called '^less \+G$'
 case_ "log with sudo refusing: said, and no pager"
 fresh; : >"$R/sudo-refused"; out=$(fedokawaii log 2>&1); has "$out" "needs root"; not_called '^less'
-case_ "the learning guide: zathura, on its own (the menu never waits for it)"
+case_ "the lessons: a window of their own, tiled (the menu never waits for it)"
+fresh; export WAYLAND_DISPLAY=wayland-1; stub kawa-learn; stub kawa-term
+tty_free fedokawaii --run learn </dev/null >/dev/null 2>&1; called "^setsid -f kawa-term --app kawa-learn lessons kawa-learn$"
+reset_calls; fedokawaii learn; called "^setsid -f kawa-term --app kawa-learn lessons kawa-learn$"
+case_ "the lessons missing, or kawa-learn: said, not a silent nothing"
+rm -f "$R/toolkit/docs/learn/index.tsv"
+out=$(fedokawaii learn 2>&1); eq "$?" 1; has "$out" "the lessons are missing"
 fresh; export WAYLAND_DISPLAY=wayland-1
-tty_free fedokawaii --run guide </dev/null >/dev/null 2>&1; called "^setsid -f zathura $R/toolkit/docs/Fedokawaii-Learn.pdf"
-reset_calls; fedokawaii guide; called "^setsid -f zathura"
-case_ "the learning guide missing, or zathura: said, not a silent nothing"
-rm -f "$R/toolkit/docs/Fedokawaii-Learn.pdf"
-out=$(fedokawaii guide 2>&1); eq "$?" 1; has "$out" "the learning guide is missing"
-fresh; export WAYLAND_DISPLAY=wayland-1
-out=$(without zathura -- fedokawaii guide 2>&1); eq "$?" 1; has "$out" "zathura is not installed"
-case_ "the learning guide on a text console (no desktop: the rescue screen): its text, in less"
-fresh; unset WAYLAND_DISPLAY; printf '# Fedokawaii\n' >"$R/toolkit/docs/fedokawaii-learn.md"
-fedokawaii guide; called "^less .*$R/toolkit/docs/fedokawaii-learn.md"; not_called zathura
-case_ "the full handbook stays in the repository: the menu never opens it"
-fresh; export WAYLAND_DISPLAY=wayland-1; printf '%%PDF-1.4 the handbook\n' >"$R/toolkit/docs/Fedokawaii-Guide.pdf"
-fedokawaii guide; not_called "Fedokawaii-Guide.pdf"; called "^setsid -f zathura $R/toolkit/docs/Fedokawaii-Learn.pdf"; unset WAYLAND_DISPLAY
+out=$(without kawa-learn -- fedokawaii learn 2>&1); eq "$?" 1; has "$out" "kawa-learn is missing"
+case_ "the lessons on a text console (no desktop: the rescue screen): the next as text, no window"
+fresh; unset WAYLAND_DISPLAY; stub kawa-learn; stub kawa-term
+fedokawaii learn; called "^kawa-learn --text$"; not_called kawa-term
+case_ "the old Guide is gone: no such command, no PDF named"
+out=$(fedokawaii guide 2>&1); eq "$?" 2; has "$out" 'unknown command "guide"'
+lacks "$(cat "$(command -v fedokawaii)")" "Fedokawaii-Guide.pdf"
+case_ "the row and the pane say how far: from the file kawa-learn keeps, no program started for the row"
+fresh; export WAYLAND_DISPLAY=wayland-1; mkdir -p "$XDG_STATE_HOME/fedokawaii"
+printf '12\t259\tthe ten keys, and how windows arrange\t4\t2200\n' >"$XDG_STATE_HOME/fedokawaii/learn.place"
+stub kawa-learn
+has "$(fedokawaii --rows learning | sed -n 1p)" "12 of 259"; not_called kawa-learn
+out=$(plain "$(fedokawaii --explain learn)"); has "$out" "12 of 259"; has "$out" "the ten keys, and how windows"; has "$out" "arrange"; has "$out" "4 min"; has "$out" "36 h"
+unset WAYLAND_DISPLAY
 
 # ── settings: a copy edited, checked by root, only then saved ─────────────────
 editor() { printf '#!/bin/sh\n%s\n' "$1" >"$TMP/ed"; chmod +x "$TMP/ed"; export VISUAL=$TMP/ed; }

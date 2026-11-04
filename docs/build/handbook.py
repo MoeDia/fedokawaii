@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
-"""Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
-($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
+"""The machinery docs/build/learn.py prints the Learn book with: Markdown and REAL renders
+($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora 44's versions) to a PDF."""
 import re
 import os
 import sys
@@ -9,10 +9,11 @@ import html as H
 import subprocess
 import importlib.util
 from pathlib import Path
-USAGE = """usage: python3 docs/build/handbook.py        builds docs/Fedokawaii-Guide.pdf (a few minutes)
+USAGE = """usage: python3 docs/build/learn.py           builds the Learn book's PDF through this script (a few minutes)
        python3 docs/build/handbook.py --help  this text
 The repository is the one this script sits in (FEDOKAWAII_REPO overrides it); the renders and
-the scratch folder come from FEDOKAWAII_SCRATCH, the output folder from FEDOKAWAII_OUT."""
+the scratch folder come from FEDOKAWAII_SCRATCH, the output folder from FEDOKAWAII_OUT; the source
+and the file name from FEDOKAWAII_GUIDE and FEDOKAWAII_PDF, which learn.py sets."""
 # (anything but no argument at all is not a build: a stray --help must never start one)
 if len(sys.argv) > 1:
     print(USAGE, file=sys.stdout if sys.argv[1] in ("-h", "--help") else sys.stderr)
@@ -44,10 +45,8 @@ def stitch(col, on, per, h, k=4):
     t.save(b, "PNG")
     return "url(data:image/png;base64," + base64.b64encode(b.getvalue()).decode() + ")"
 CHROME = os.environ.get("FEDOKAWAII_CHROME", "/opt/pw-browsers/chromium-1194/chrome-linux/chrome")
-OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/guide")   # (test copy: configurable)
-# the book's file name: the handbook's by default; learn.py (beside this script) prints the
-# learning guide through the same machinery under its own
-PDF = os.environ.get("FEDOKAWAII_PDF", "Fedokawaii-Guide.pdf")
+OUT = os.environ.get("FEDOKAWAII_OUT", f"{S}/book")   # (test copy: configurable)
+PDF = os.environ.get("FEDOKAWAII_PDF") or sys.exit(USAGE)
 IMG = f"{OUT}/img2"
 R = f"{S}/real/shots"
 NM = f"{S}/mock/node_modules/@fontsource"
@@ -269,7 +268,7 @@ subprocess.run(["python3", f"{REPO}/tools/build-icons.py", "--preview", f"{IMG}/
 add("icons", f"{IMG}/icons.png")
 
 # ── the document ───────────────────────────────────────────────────────────────
-src = open(os.environ.get("FEDOKAWAII_GUIDE", f"{REPO}/docs/fedokawaii-guide.md"), encoding="utf-8").read()
+src = open(os.environ["FEDOKAWAII_GUIDE"], encoding="utf-8").read()
 fm, body = re.match(r"^---\n(.*?)\n---\n(.*)$", src, re.S).groups()
 meta = dict(re.findall(r'^(\w+):\s*"(.*)"$', fm, re.M))
 missing = []

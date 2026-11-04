@@ -14,7 +14,7 @@ the work. This part teaches that first, and Claude Code with it. Chapters 67–6
 true of any model and any agent. Chapters 70–71 are Claude Code itself, from the daily loop to
 your own hooks, skills and subagents. Chapter 72 is the craft: how professionals use all of it
 on real projects, and how to keep learning when the tools move on. Every chapter ends with
-exercises; appendix D has a worked answer for each.
+exercises, each with a worked answer.
 
 > **Careful.** Commands and key names in chapters 70–71 are Claude Code's as of October 2026.
 > If one has changed, `/help` inside Claude Code and the documentation (`code.claude.com/docs`)

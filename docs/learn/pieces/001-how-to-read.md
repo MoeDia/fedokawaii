@@ -3,18 +3,29 @@ id: how-to-read
 title: how this works
 part: zero
 chapter: 0
-minutes: 5
+minutes: 6
 needs: []
 optional: no
 ---
 
-This book is the practical one. It teaches by doing: a short example, what you should see,
-then an exercise of your own. The full handbook — how every part of the desktop is built and
-why — stays in the project's repository on GitHub (`docs/fedokawaii-guide.md`), for the day
-you want to know how something works inside. This book is about *using* it.
+These lessons are the Learn book cut into pieces you do one by one, in the order that teaches
+best: what a piece needs always comes before it. Each takes a few minutes, and each is done
+beside a terminal (**Super+Enter** opens one next to this window): a short example, what you
+should see, then an exercise of your own.
 
-It has six parts. Read Part I first if you have never typed a command. After that, go where
-you need to: each chapter stands on its own and says what it expects you to know.
+| Key | Does |
+|---|---|
+| **Enter** | turns the page; at a lesson's end, stamps it; once more, the next lesson |
+| **↑ ↓**, the wheel | a line |
+| **s** | in an exercise lesson, the worked solutions |
+| **Esc** | back to the list, where the seal marks the next lesson |
+| **/** (in the list) | finds a word in every lesson |
+| **Space** (in the list) | stamps a lesson you already know, or takes a stamp off |
+
+Go in order if you have never typed a command. After that, go where you need to: the list says
+what each lesson needs. The full handbook — how every part of the desktop is built and why —
+stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you want to know how
+something works inside. These lessons are about *using* it.
 
 | Part | You learn | Chapters |
 |---|---|---|
@@ -24,7 +35,6 @@ you need to: each chapter stands on its own and says what it expects you to know
 | IV — Python | a daily development routine, then a full course in six levels: from your first number to classes, tests, async and packaging, then data, NumPy, a neural network, a transformer, fine-tuning and an agent | 23–47 |
 | V — Rust | a full course in six levels: from cargo to ownership, traits, lifetimes, tests, iterators and threads, then a CLI, your own autograd, models in Rust, and Rust inside Python | 48–66 |
 | VI — Working with AI | how a language model works — tokens, context, training, hallucination —; asking well; agents and their risks; Claude Code from the daily loop to your own hooks, skills and subagents; the professional's habits that outlast any tool | 67–72 |
-| Appendices | a glossary; the worked solution to every exercise of Parts IV, V and VI | A–D |
 
 ### How a lesson looks
 
@@ -62,11 +72,12 @@ Each chapter ends with exercises, graded by stars:
 | ★★★ | a small project: you decide how | half an hour |
 | ★★★★ | a challenge: it stretches what the chapter taught | an evening |
 
-Every exercise says what you should see when it works. In Parts IV, V and VI, every exercise has
-a worked solution at the back — appendix B for Python, C for Rust, D for working with AI, under
-the exercise's number — with the output it printed. Try for real before you look: the struggle is where the learning
-happens; the solution is there to check, or to unstick you after twenty honest minutes. Keep a line for each one you finish in
-your notes (**Super+N**): `- [x] 10.3 every PDF I own`. Watching that list grow is half the fun.
+Every exercise says what you should see when it works. Each chapter's ★ and ★★ are its *practice*,
+a lesson like the others. Its ★★★ and ★★★★ are its *projects*: when you have the time, never counted
+and never in your way — they are where proficiency comes from. In Parts IV, V and VI every exercise has
+a worked solution, with the output it printed, under **s**. Try for real before you look: the
+struggle is where the learning happens; the solution is there to check, or to unstick you after
+twenty honest minutes.
 
 ### Three rules that make learning fast
 

@@ -182,8 +182,8 @@ answer "pick yours alone" "pick shell additions"; config_
 eq "$(cat "$HOME/.bashrc.d/local.sh")" "alias ll='ls -l'"
 case_ "your scripts: yazi in ~/.local/bin"
 setup; answer "pick yours alone" "pick your scripts"; config_; called "^footclient -N -- yazi $HOME/.local/bin$"
-case_ "learn: the learning guide, the help sheet, a man page, a web page"
-setup; answer "pick learn" "pick learning guide"; config_; called '^fedokawaii guide$'; fits 2
+case_ "learn: the lessons, the help sheet, a man page, a web page"
+setup; answer "pick learn" "pick 	lessons	"; config_; called '^fedokawaii learn$'; fits 2
 eq "$(fz_rows 2 | sed -n 1p | cut -f1-3)" "part	$ICON_MORTARBOARD	learn" "its heading: the mortarboard and its name"
 setup; answer "pick learn" "pick 	keys	"; config_; called '^kawa-help'
 setup; answer "pick learn" "pick man foot.ini"; config_; called '^kawa-term man 5 foot.ini$'

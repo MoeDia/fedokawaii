@@ -1,0 +1,13 @@
+[Desktop Entry]
+# The lessons (kawa-learn): the Learn book cut into pieces done one by one, in a terminal window of its
+# own (kawa-term, app-id kawa-learn), tiled, so what a lesson asks you to type goes in the terminal beside
+# it. Its icon: the mortarboard (the launcher draws it: X-Fedokawaii-Icon).
+Type=Application
+Name=Lessons
+GenericName=The Learn book, in lessons
+Comment=Short lessons, one by one: the terminal, the desktop, the programs, Python, working with AI, Rust
+X-Fedokawaii-Icon=mortarboard
+Exec=@HOME@/.local/bin/kawa-term --app kawa-learn lessons @HOME@/.local/bin/kawa-learn
+Terminal=false
+Categories=Education;
+Keywords=learn;lessons;book;python;rust;course;tutorial;guide;

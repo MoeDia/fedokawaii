@@ -20,7 +20,7 @@ are made. **PyO3** is the bridge; **maturin** builds it.
 ```text
 $ cd ~/repos
 $ uvx maturin new --bindings pyo3 fastwords && cd fastwords
-  ✨ Done! New project created fastwords
+  Done! New project created fastwords
 ```
 
 *(`uvx` runs a Python tool without installing it. maturin lays out a Rust crate that builds into a
@@ -62,7 +62,7 @@ Build it into the project's `.venv` and try it:
 
 ```text
 $ uv run --with maturin maturin develop --release --uv
-🛠 Installed fastwords-0.1.0
+Installed fastwords-0.1.0
 $ uv run python
 >>> import fastwords
 >>> fastwords.dot([1, 2, 3], [4, 5, 6])
