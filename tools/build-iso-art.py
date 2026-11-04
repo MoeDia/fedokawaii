@@ -267,17 +267,10 @@ def grub(out):
         Image.new("RGBA", (1, 1), (0, 0, 0, 0)).save(out / f"term_{part}.png", optimize=True)
     item_h, pad = 24 * gs, 8 * gs
     bw, bh = MENU_W + 2 * pad + 4 * gs * 2, len(MENU) * item_h + 2 * pad
-    # (GRUB's terminal: the black window it opens while the kernel and the initrd load, 20 s from a slow
-    # stick. The signed image has no background_color or background_image to change its black, so it is
-    # the size of one letter in the corner, and the menu stays on the screen until the splash takes over)
     (out / "theme.txt").write_text(f"""# the boot menu of the fedokawaii installer (tools/build-iso-art.py): PNG words, no font
 desktop-color: "#{P['ground']}"
 title-text: ""
 terminal-box: "term_*.png"
-terminal-left: "0"
-terminal-top: "0"
-terminal-width: "8"
-terminal-height: "16"
 
 + image {{
     left = 0 top = 100%-240

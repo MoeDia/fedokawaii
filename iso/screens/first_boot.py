@@ -73,7 +73,6 @@ def main():
         s.heading(top + 6, "download", "installing the desktop")
 
     page()
-    s.show()
     env = dict(os.environ, TERM="dumb")
     p = subprocess.Popen(["/usr/bin/bash", f"{TOOLKIT}/setup.sh", "--resume"], stdin=subprocess.DEVNULL,  # noqa: S603
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)

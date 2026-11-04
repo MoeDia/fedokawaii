@@ -47,10 +47,10 @@ def sgr(ink, ground=GROUND):
 
 
 class Screen:
-    """A VT of our own, behind whatever shows now: the first page is drawn there, unseen, and show()
-    brings it forward as the splash goes (the splash cannot hand over without a black gap otherwise,
-    and the console's font cannot be changed on the VT the splash holds in graphics mode). Past 6, so
-    logind starts no getty on it; everything else — Anaconda, systemd, setup — writes on tty1."""
+    """A VT of our own, behind whatever shows now: dressed there, and brought forward at the first page
+    (clear() calls show()), so the splash stays up to that moment (the console's font cannot be changed
+    on the VT the splash holds in graphics mode). Past 6, so logind starts no getty on it; everything
+    else — Anaconda, systemd, setup — writes on tty1."""
 
     def __init__(self, tty=TTY, keys=True):
         self.fd = os.open(tty, os.O_RDWR | os.O_NOCTTY)
@@ -72,10 +72,14 @@ class Screen:
         self.write("\033[?25l\033[?7l" + sgr(TEXT) + "\033[2J")
 
     def show(self):
-        """This VT forward, for good: what has been drawn on it appears at once."""
+        """This VT forward, for good, the first page to be drawn right after: colours sent while a VT is
+        hidden wait for the switch, which does not apply them when the splash leaves graphics mode."""
         if self.shown:
             return
         self.shown = True
+        # (the splash's own VT shows for a blink as it goes: nothing on it to see)
+        with contextlib.suppress(OSError), open("/dev/tty1", "w", encoding="ascii") as f:
+            f.write("\033[2J\033[?25l")
         subprocess.run(["plymouth", "quit"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
         with contextlib.suppress(OSError), open("/proc/sys/kernel/printk", "w", encoding="ascii") as f:
             f.write("1")         # (the kernel writes on whichever VT shows: only an emergency, here)
@@ -93,13 +97,18 @@ class Screen:
             time.sleep(0.05)
         with contextlib.suppress(OSError):
             fcntl.ioctl(self.fd, VT_LOCKSWITCH)      # (Alt+F2 must not show what is behind)
+        self.write(self.palette())
 
     def dress(self):
         """Our font and our colours on this VT, and how many cells that makes."""
         subprocess.run(["setfont", "-C", self.tty, FONT], check=False, stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL)
         self.rows, self.cols = self.size()
-        self.write("".join(f"\033]P{n:X}{c}" for n, c in PALETTE.items()))
+        self.write(self.palette())
+
+    @staticmethod
+    def palette():
+        return "".join(f"\033]P{n:X}{c}" for n, c in PALETTE.items())
 
     def undressed(self):
         """Something reloaded the console's font (a size other than ours): dress again. True: redraw."""
@@ -123,6 +132,7 @@ class Screen:
         self.write(f"\033[{row + 1};{col + 1}H{sgr(ink, ground)}{text}")
 
     def clear(self):
+        self.show()
         self.write(sgr(TEXT) + "\033[2J")
 
     def clear_row(self, row, col=0, width=None):
@@ -156,7 +166,6 @@ class Screen:
     def key(self, timeout=None):
         """One key: a character, or a name (up, down, left, right, enter, esc, backspace, tab, f2);
         None when nothing came within timeout."""
-        self.show()
         r, _, _ = select.select([self.fd], [], [], timeout)
         if not r:
             return None

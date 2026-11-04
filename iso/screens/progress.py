@@ -88,7 +88,6 @@ def main():
         s.heading(top + 6, "download", "installing the base system")
 
     page()
-    s.show()
     while True:
         if s.undressed():
             page()
