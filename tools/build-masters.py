@@ -21,10 +21,19 @@ Reads art/masters/masters.toml — one table a picture:
                                  seam down the picture): filled across from either side
     clean   = [[x0, y0, x1, y1], …]  in the picture's pixels: what is not the picture (a cartouche,
                                  a seal, a poem card) made ground, filled in from all round it
+    marks   = [[x0, y0, x1, y1], …]  in the picture's pixels: a print's writing on a ground that must
+                                 stay (its clouds, their contour): only the ink in the box filled in,
+                                 no patch left to see
     fields  = [[[ax, ay], [x, y], …], …]  a large thing to take out, its outline in the picture's
                                  pixels: one colour, the print's own at ax, ay
+    even    = [[x, reach], …]    two sheets of a print inked apart: the step in lightness across the
+                                 picture's column x taken out of the right-hand sheet, row by row,
+                                 less and less over REACH columns
+    dodge   = [[x0, y0, x1, y1, lift, gain], …]  a dark face lost in its ground: inside the box's
+                                 ellipse its lightness raised by LIFT, its lines × GAIN
     fade    = [[x0, x1], …]      in the picture's columns: into the top's ink, the picture whole at
-                                 x0 and gone at x1 (a screen painting's own edge, carried on)
+                                 x0 and gone at x1, an uneven edge as a wash has (a painting's own
+                                 edge, carried on)
     paper   = 0.9                lightness (0 … 1 of the picture's) from which it is the bare paper:
                                  a stain or a ghost of old print goes, a light print's ground lies flat
     smooth  = 2                  passes of the smoothing
@@ -58,7 +67,7 @@ import sys
 import tomllib
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC = ROOT / "art/masters/masters.toml"
@@ -182,6 +191,51 @@ def smooth(lab, passes=2, sigma_l=0.06):
     return lab
 
 
+def dark_marks(L, below=0.035):
+    """L: a box of the picture's lightness. Its writing: what lies darker than the ground round it
+    (a 15 × 15 median), and a pixel all round that."""
+    im = Image.fromarray((np.clip(L, 0, 1) * 255).astype(np.uint8))
+    ground = np.asarray(im.filter(ImageFilter.MedianFilter(15)), dtype=np.float64) / 255
+    ink = Image.fromarray(((L < ground - below) * 255).astype(np.uint8))
+    return np.asarray(ink.filter(ImageFilter.MaxFilter(3))) > 0
+
+
+def even(lab, x, reach, wide=6, sigma=12, most=0.1):
+    """The step in lightness across column X (WIDE columns each side, row by row, softened down the
+    column so a figure crossing it sets nothing, and at most MOST) taken out on its right, less
+    and less over REACH columns."""
+    L = lab[..., 0]
+    step = L[:, x + 1:x + 1 + wide].mean(1) - L[:, x - wide:x].mean(1)
+    k = np.exp(-(np.arange(-3 * sigma, 3 * sigma + 1) ** 2) / (2 * sigma ** 2))
+    step = np.convolve(np.pad(step, 3 * sigma, mode="edge"), k / k.sum(), mode="valid")
+    t = np.clip(1 - (np.arange(W) - x) / reach, 0, 1)
+    t[:x] = 0
+    out = lab.copy()
+    out[..., 0] = L - np.clip(step, -most, most)[:, None] * t[None, :]
+    return out
+
+
+def soft(L, passes=3):
+    """L softened (1 2 1 along each axis, PASSES times)"""
+    for _ in range(passes):
+        for axis in (0, 1):
+            L = (np.roll(L, 1, axis) + 2 * L + np.roll(L, -1, axis)) / 4
+    return L
+
+
+def dodge(lab, x0, y0, x1, y1, lift, gain):
+    """Inside the box's ellipse (fading over its outer quarter) the lightness raised by LIFT and
+    what stands out from its surroundings × GAIN: a dark face's lines come back."""
+    yy, xx = np.mgrid[0:H, 0:W]
+    r = np.hypot((xx - (x0 + x1) / 2) / ((x1 - x0) / 2), (yy - (y0 + y1) / 2) / ((y1 - y0) / 2))
+    m = np.clip((1 - r) / 0.25, 0, 1)
+    m = m * m * (3 - 2 * m)
+    L = lab[..., 0]
+    out = lab.copy()
+    out[..., 0] = L + m * (lift + (gain - 1) * (L - soft(L)))
+    return out
+
+
 def tones(lab, spec, mood, known):
     """The picture's lightness stretched over its mood's ramp (1st to 99th percentile of what is
     the print's own, KNOWN: a stray speck neither black nor white sets nothing, nor does a filled
@@ -201,6 +255,17 @@ def tones(lab, spec, mood, known):
     return out
 
 
+def wander(seed, reach):
+    """A slow unevenness over the picture, H × W, within ± REACH: never a straight edge. The same
+    every build."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((H, W))
+    for rows, part in ((6, 0.65), (14, 0.25), (34, 0.1)):
+        grid = rng.uniform(-1, 1, (rows, rows * 2)).astype(np.float32)
+        out += part * np.asarray(Image.fromarray(grid, "F").resize((W, H), Image.BICUBIC), dtype=np.float64)
+    return out * reach
+
+
 def calm_top(lab, mood, fades=()):
     """ichimonji-bokashi: the first rows one ink, fading into the picture; the same ink over FADES
     (x0 x1: the picture whole at x0, gone at x1), where a painting's own edge would show."""
@@ -209,8 +274,8 @@ def calm_top(lab, mood, fades=()):
     t = (t * t * (3 - 2 * t))[:, None, None]
     keep = np.tile(t, (1, W, 1))
     for x0, x1 in fades:
-        f = np.clip((np.arange(W) - x0) / (x1 - x0), 0, 1)
-        keep = keep * (1 - f * f * (3 - 2 * f))[None, :, None]
+        f = np.clip((np.arange(W) + wander(x0, abs(x1 - x0) * 0.6) - x0) / (x1 - x0), 0, 1)
+        keep = keep * (1 - f * f * (3 - 2 * f))[..., None]
     return lab * keep + ink * (1 - keep)
 
 
@@ -316,10 +381,16 @@ def build(name, spec):
     lab = oklab(lin)
     for x0, y0, x1, y1 in spec.get("clean", ()):
         past[y0:y1, x0:x1] = True
+    for x0, y0, x1, y1 in spec.get("marks", ()):
+        past[y0:y1, x0:x1] |= dark_marks(lab[y0:y1, x0:x1, 0])
     for (ax, ay), *poly in spec.get("fields", ()):
         mask = Image.new("1", (W, H), 0)
         ImageDraw.Draw(mask).polygon([tuple(q) for q in poly], fill=1)
         lab[np.asarray(mask, bool)] = lab[ay - 2:ay + 3, ax - 2:ax + 3].mean((0, 1))
+    for x, reach in spec.get("even", ()):
+        lab = even(lab, x, reach)
+    for box in spec.get("dodge", ()):
+        lab = dodge(lab, *box)
     # (the holes filled before the smoothing and after it: its edge-keeping never sees what was there)
     lab = smooth(heal(lab, past), passes=spec.get("smooth", 2))
     lab = calm_top(tones(heal(lab, past), spec, spec["theme"], ~past), spec["theme"], spec.get("fade", ()))

@@ -88,4 +88,18 @@ His words: "still not serious enough. DROP this whole pixelated act. Focus on th
 - Ownership: lane-ink paints the WHOLE lock artwork for both moods (figures, walls, carvings, torches, light layers) from public-domain masters and local generation as in its task, cleaned by hand into one style. lane-art stops lock work, hands over anything useful through its notes, and keeps the wallpapers. Main: the lock engine and the greeter show full-res painted layers (smooth scaling, never pixel scaling), the state images, and the animated light layers within the frame budget. lane-saver builds the saver from the same painting.
 - Candidates on his page (.claude/review/next/) before finishing: both moods, every state.
 
-DONE (wallpapers finished and on `lane-art`, nothing applied; the lock and the icons are lane-ink's by the owner's 19:11 and 19:12 notes).
+## NOT DONE: a second look at the wallpapers (4 Nov, from 19:56), repairs in progress
+The lock and the icons are lane-ink's by the owner's 19:11 and 19:12 notes. The wallpapers were called finished at 4c86af4, but a look at screen size found real defects:
+- Raijin, Fujin: a flat ink slab with a straight, mask-like edge (the god centred past the painting's edge). Now inside the painting, as Kōrin laid them out; false gold-leaf accents at the edges cleaned.
+- Oiwa: the chin cut by the crop. Close-up kept, shifted down. (Widening past the print looked worse: its margins and a dark rectangle of sky.)
+- Fudō: a tonal seam at x 462 (the third sheet), the print's margin along the bottom row, the god's face a dark blob. New ops `even`, `dodge`; crop moved up.
+- Yoshino: a pale rectangle with straight edges where the title was. New op `marks` takes only the ink of the characters.
+- Seigen: Danjūrō's crest on the arm reads as a smudge (`fields`). Hag, Benten, Noh, Cleveland, feather robe, Willow: specks, a stray stroke, the fan's smudge. Willow's `fade` edge now uneven (`wander`), not a straight line.
+
+**State at this commit:** `tools/build-masters.py` and `art/masters/masters.toml` are changed; `art/masters/out` and the hashes in `wallpapers.list` are NOT rebuilt yet, so the committed pictures are still 4c86af4's and the tests still hold. Safe to merge, but nothing visible has changed yet.
+
+**Next, after the reboot (main's message, 4 Nov ~20:10: forced reboot ~20:25, no builds before it):**
+1. Build each changed picture to scratch and look at it at 3×: oiwa, fudo, raijin, fujin looked at or pending; seigen, hag, benten, cleveland, hagoromo, yoshino, feather-robe, willow not yet seen. Scratch tools are copied to `~/.cache/r27-art-scratch/` (`variant.py NAME TAG 'toml overrides' --x3`, writes to /dev/shm/lane-art/var, make that folder first).
+2. `nice -n 10 python3 tools/build-masters.py NAME…` for those that pass; put their new sha256 in `wallpapers.list`.
+3. `tests/static/test_masters.sh`, `test_syntax.sh`, `test_design_doc.sh`, `tests/look/test_wallpaper.sh`; `python3 tools/art-pack.py .claude/review/next` for the changed pages.
+4. Update this file, commit, push, tell lane-integrate (a small follow-up merge), end this file with a bare DONE line.
