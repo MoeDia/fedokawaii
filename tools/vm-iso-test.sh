@@ -21,6 +21,7 @@
 #   bash tools/vm-iso-test.sh again NAME ISO           the same VM and disk, started from a stick again
 #   bash tools/vm-iso-test.sh over NAME ISO            a whole run over a finished install (`i` on that page)
 #   bash tools/vm-iso-test.sh path NAME QCOW2          after a run: his things back, the update button, verify
+#   bash tools/vm-iso-test.sh facts NAME               what a run left: hash in logs, strays, firmware, the splash…
 #   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
 #   bash tools/vm-iso-test.sh carry-check NAME QCOW2   brought back from it (a VM made with --usb QCOW2), compared
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
@@ -439,6 +440,22 @@ do_midway() {
   rm -rf "${V:?}/$n"
 }
 
+# do_facts NAME — what a run leaves behind that a user would never look at, each read from the installed system
+do_facts() {
+  vm_ssh "$1" 'set -u
+    printf "secure boot: "; mokutil --sb-state 2>/dev/null || echo unknown
+    printf "password hash in the logs: "; sudo sh -c "grep -l \"\\\$y\\\$\" /var/log/anaconda/* /root/*.cfg /var/log/fk-post.log /var/log/fedokawaii.log 2>/dev/null" | wc -l
+    printf "the installer left behind: "; ls -d /etc/systemd/system/fedokawaii-resume.service* /var/lib/fedokawaii/first-boot 2>/dev/null | wc -l
+    printf "the toolkit holds the round: "; ls -d /usr/local/lib/fedokawaii/.claude /usr/local/lib/fedokawaii/CLAUDE.md /usr/local/lib/fedokawaii/tools/claude-loop.sh 2>/dev/null | wc -l
+    printf "console= on the kernel line: "; tr " " "\n" </proc/cmdline | grep -cx "console=tty[0-9]*"
+    printf "splash crashes this boot: "; journalctl -b --no-pager 2>/dev/null | grep -c "plymouthd.*\(SEGV\|dumped core\)"
+    printf "firmware: "; rpm -q linux-firmware amd-gpu-firmware realtek-firmware amd-ucode-firmware 2>&1 | grep -c "not installed"; 
+    printf "kernel, initramfs: "; ls -s --block-size=M /boot/initramfs-*.img | tr "\n" " "; echo
+    printf "fonts in it: "; sudo lsinitrd 2>/dev/null | grep -E "\.(ttf|otf)$" | sed "s/.* //" | tr "\n" " "; echo
+    printf "ssh enabled: "; systemctl is-enabled sshd 2>/dev/null
+    printf "disk: "; findmnt -no SOURCE / | cut -c1-40; sudo btrfs subvolume list / | wc -l'
+}
+
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
 # the screen says, read exactly, and a PNG of it in DIR
 do_matrix() {
@@ -497,6 +514,7 @@ case $cmd in
   again) name_ok "${1:-}"; do_again "$@" ;;
   over) name_ok "${1:-}"; do_over "$@" ;;
   path) name_ok "${1:-}"; do_path "$@" ;;
+  facts) name_ok "${1:-}"; do_facts "$1" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
