@@ -81,13 +81,12 @@ SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syn
 # network (Wi-Fi or cable): no account, no cloud. Its Linux release is a folder (the app, its
 # libraries, its data), kept whole in ~/.local/share/localsend; ~/.local/bin/localsend points
 # into it. Its ports (tcp: the files · udp: devices finding each other) are open in the
-# firewall (setup.sh, open_ports). 1.18.2 (fixes: 1.17 and older devices found again, a peer's
+# firewall (system/net-allow.list). 1.18.2 (fixes: 1.17 and older devices found again, a peer's
 # redirect never followed, its server restarted when it stops) — measured 2026-10-21, the same
 # files and libraries as 1.18.0's
 LOCALSEND_TAG=v1.18.2
 LOCALSEND_ASSET=LocalSend-1.18.2-linux-x86-64.tar.gz
 LOCALSEND_SHA256=287690a9a8eb6da9c83cc97b3e3030ac67daf32a7331fcf307d0939300658d16
-LOCALSEND_PORT=53317
 BLESH_REPO=https://github.com/akinomyoga/ble.sh.git
 BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 

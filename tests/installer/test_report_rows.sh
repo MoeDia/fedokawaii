@@ -19,7 +19,8 @@ row() {
   rest=${rest% | *}; printf '%s' "${rest% | *}"
 }
 # run NAME — the row run as the report runs it (its variables), its output in OUT, status in RC
-mkdir -p "$TMP/tk" "$TMP/state"; cp "$REPO/fedokawaii.conf" "$TMP/tk/"
+mkdir -p "$TMP/tk/lib" "$TMP/tk/system" "$TMP/state"; cp "$REPO/fedokawaii.conf" "$TMP/tk/"
+cp "$REPO/lib/net.sh" "$TMP/tk/lib/"; cp "$REPO/system/net-allow.list" "$REPO/system/sysctl-net.conf" "$TMP/tk/system/"
 run() {
   OUT=$(TK=$TMP/tk STATE=$TMP/state U=$USER UH=$HOME UIDN=$UID DWL=${DWL:-} WB=${WB:-} QUICK=0 RT=$XDG_RUNTIME_DIR \
         timeout 20 bash -c "$(row "$1")" 2>&1 </dev/null); RC=$?
@@ -68,35 +69,30 @@ stub ps "cat <<'EOF'
 EOF"
 run "BRV-02 Brave draws with the GPU"; eq "$RC" 0 "$OUT"
 
-case_ "NET-07: the ports as firewalld lists them (the first one too); NET-09: mDNS and Steam's Remote Play are no strangers, LLMNR is (it is off)"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "dhcpv6-client mdns ssh" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 0 "$OUT"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "ssh mdns cockpit" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "closed: 6881/tcp"; has "$OUT" "cockpit open"
+case_ "NET-07: the firewall against the list, its difference named (lib/net.sh: test_net.sh has the rest)"
+stub firewall-cmd 'exit 252'
+run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "firewalld is not running"
+case_ "NET-09: only what the list names; a stranger on every address is a finding (5355, LLMNR: off on this desktop), loopback never"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=13))
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
 udp UNCONN 0 0 0.0.0.0:5353 0.0.0.0:* users:((\"avahi-daemon\",pid=880,fd=12))
 udp UNCONN 0 0 [::]:5355 [::]:* users:((\"systemd-resolve\",pid=666,fd=14))
 EOF"
-run "NET-09 what listens"; eq "$RC" 1 "LLMNR is off on this desktop: 5355 on every address is a finding"
+run "NET-09 what listens"; eq "$RC" 1 "LLMNR is off on this desktop: 5355 on every address is a finding"; has "$OUT" "5355/tcp systemd-resolve"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
+tcp LISTEN 0 4096 127.0.0.1:43587 0.0.0.0:* users:((\"steam\",pid=2370,fd=46))
 tcp LISTEN 0 128 0.0.0.0:27036 0.0.0.0:* users:((\"steam\",pid=2370,fd=134))
 udp UNCONN 0 0 *:27036 *:* users:((\"steam\",pid=2370,fd=132))
-udp UNCONN 0 0 0.0.0.0:5353 0.0.0.0:* users:((\"avahi-daemon\",pid=880,fd=12))
+udp UNCONN 0 0 224.0.0.251:5353 0.0.0.0:* users:((\"steamwebhelper\",pid=880,fd=12))
+udp UNCONN 0 0 [fe80::1]%enp8s0:546 [::]:* users:((\"NetworkManager\",pid=883,fd=28))
+tcp LISTEN 0 5 0.0.0.0:8737 0.0.0.0:* users:((\"python3\",pid=883,fd=3))
 EOF"
 run "NET-09 what listens"; eq "$RC" 0 "$OUT"
-stub ss "echo 'tcp LISTEN 0 128 0.0.0.0:27036 0.0.0.0:* users:((\"nc\",pid=9,fd=3))'"
-run "NET-09 what listens"; eq "$RC" 1 "27036 is Steam's alone"
 run "NET-20 no LLMNR"; eq "$RC" 0 "$OUT"
 stub ss "echo 'udp UNCONN 0 0 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=12))'"
 run "NET-20 no LLMNR"; eq "$RC" 1
-case_ "NET-21: Steam's 27036 opened in the firewall is a finding"
-stub firewall-cmd 'case "$*" in --state|-q\ --state) exit 0 ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 27036/udp" ;; *--list-services*) echo "mdns" ;; esac'
-run "NET-21 Steam's 27036 stays closed"; eq "$RC" 1 "$OUT"
-stub firewall-cmd 'case "$*" in --state|-q\ --state) exit 0 ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp" ;; *--list-services*) echo "mdns" ;; esac'
-run "NET-21 Steam's 27036 stays closed"; eq "$RC" 0 "$OUT"
 
 case_ "RES-03: the volume module follows PipeWire (long-running, as nowplaying, mem and timer)"
 WB=4242

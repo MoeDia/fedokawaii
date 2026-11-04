@@ -284,36 +284,4 @@ else _ok; fi
 : >"$TMP/textual-broken"
 FAKE_TEXTUAL_BROKEN=$TMP/textual-broken "$V/bin/python" -I -c "$vp" "$TV" 2>/dev/null && _no "a broken Textual passes verify's check" || _ok
 
-# ── setup.sh's open_ports (torrra's 6881, LocalSend's 53317) ──────────────────────────────────────────────────
-# firewalld: its saved ports in $TMP/fw-perm, its running ones in $TMP/fw-run; a reload
-# makes the running ones the saved ones (dropping what was added only while it runs)
-tp_world() {
-  sandbox
-  { grep '^OPEN_PORTS=' "$REPO/setup.sh"; sed -n '/^open_ports() {/,/^}/p' "$REPO/setup.sh"; } >"$TMP/tp.sh"
-  : >"$TMP/fw-perm"; : >"$TMP/fw-run"
-  stub firewall-cmd 'f="$TMP/fw-run"; for a in "$@"; do [ "$a" = --permanent ] && f="$TMP/fw-perm"; done
-for a in "$@"; do case $a in
-  --state) [ -e "$TMP/fw-down" ] && exit 252; exit 0 ;;
-  --query-port=*) grep -qx "${a#--query-port=}" "$f"; exit $? ;;
-  --add-port=*) echo "${a#--add-port=}" >>"$f" ;;
-  --reload) cp "$TMP/fw-perm" "$TMP/fw-run" ;;
-esac; done'
-}
-tp() { OUT=$(LOG_FILE=$TMP/fk.log bash -c 'set -Eeuo pipefail; . "$1/lib/common.sh"; LOCALSEND_PORT=53317; . "$2"; open_ports' _ "$REPO" "$TMP/tp.sh" 2>&1); RC=$?; }
-both() { printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp; }
-
-case_ "open_ports, 6881 open already (saved and running): nothing changed, firewalld not reloaded"
-tp_world; both >"$TMP/fw-perm"; both >"$TMP/fw-run"; tp; eq "$RC" 0 "$OUT"
-not_called 'add-port'; not_called 'reload'
-case_ "open_ports, closed: opened, saved and running, without a reload"
-tp_world; tp; eq "$RC" 0 "$OUT"
-eq "$(sort "$TMP/fw-perm" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp "; eq "$(sort "$TMP/fw-run" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp "
-not_called 'reload'
-case_ "open_ports, saved but not running (another rule added at run time stays): opened while it runs"
-tp_world; both >"$TMP/fw-perm"; echo 8080/tcp >"$TMP/fw-run"; tp; eq "$RC" 0
-has "$(cat "$TMP/fw-run")" "8080/tcp" "a rule added while firewalld runs was dropped"; has "$(cat "$TMP/fw-run")" "6881/udp"
-not_called '\-\-permanent \-\-add-port'
-case_ "open_ports, firewalld not running: said, nothing done"
-tp_world; : >"$TMP/fw-down"; tp; eq "$RC" 0; has "$OUT" "firewalld is not running"; not_called 'port'
-
 done_

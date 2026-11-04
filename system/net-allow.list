@@ -1,0 +1,28 @@
+# system/net-allow.list — every door of this machine, the one list. setup.sh makes the firewall
+# from it (lib/net.sh); verify, the report and tools/portscan.sh hold the machine against it.
+#
+#   PORT/PROTO  WHERE  WHEN    WHAT
+#
+# WHERE  world  anyone on the internet (and the LAN)
+#        lan    private addresses only: the firewall's zone kawa-lan (lib/net.sh, NET_LAN_SOURCES)
+#        local  this computer only: bound to its loopback, no firewall needed
+#        shut   a program binds it on every address; the firewall keeps it closed
+# WHEN   always
+#        ssh    SSH_SERVER=yes and a key in ~/.ssh/authorized_keys (keys only: no key, no sshd)
+#        remote the remote page is installed (fk-remote.service)
+6881/tcp    world  always  torrents: peers connect in
+6881/udp    world  always  torrents: DHT and uTP
+53317/tcp   lan    always  LocalSend: files coming in
+53317/udp   lan    always  LocalSend: devices finding each other
+8737/tcp    lan    remote  the remote page
+22/tcp      lan    ssh     SSH, keys only
+546/udp     lan    always  DHCPv6: the router's answers
+53/tcp      local  always  systemd-resolved: names, for this computer
+53/udp      local  always  systemd-resolved: names, for this computer
+323/udp     local  always  chrony's control port
+9696/tcp    local  always  Prowlarr
+11434/tcp   local  always  Ollama: the update's local fixer
+68/udp      shut   always  DHCP: the answers follow our own requests
+5353/udp    shut   always  mDNS: browsers and Steam listen; nothing here answers it
+27036/tcp   shut   always  Steam: Remote Play, never opened
+27036/udp   shut   always  Steam: Remote Play discovery, never opened

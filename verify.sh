@@ -32,6 +32,7 @@ source "$REPO_DIR/lib/manifest.sh"
 source "$REPO_DIR/lib/upstream.sh"
 source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
+source "$REPO_DIR/lib/net.sh"
 read_conf "$REPO_DIR/fedokawaii.conf"
 [[ -f $STATE_DIR/user ]] || { echo "setup has not started — nothing to verify yet (try: check)" >&2; exit 2; }
 TARGET_USER=$(head -n1 "$STATE_DIR/user" | tr -d '[:space:]'); TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
@@ -436,7 +437,6 @@ for s in "${svcs[@]}"; do
 done
 for s in "${SVC_USER_GLOBAL[@]}"; do check "user unit $s enabled" bash -c "systemctl --global is-enabled $s | grep -qx enabled"; done
 check "tuned profile fedokawaii (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawaii'
-check "no LLMNR (names on the network: mDNS only)"   grep -qx 'LLMNR=no' /etc/systemd/resolved.conf.d/90-fedokawaii.conf
 check "zram: half the RAM, zstd (from the next start)" grep -qx 'compression-algorithm = zstd' /etc/systemd/zram-generator.conf
 check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawaii.conf
 check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb enable_autosuspend=0' /etc/modprobe.d/fedokawaii-btusb.conf
@@ -519,27 +519,33 @@ if [[ $(stat -f -c %T "$TARGET_HOME") == btrfs ]]; then
   if btrfs subvolume show "$TARGET_HOME/Downloads" >/dev/null 2>&1; then pass "~/Downloads kept out of /home's snapshots (own subvolume)"
   else warn "~/Downloads is inside /home's snapshots" "a deleted download keeps its space until the last snapshot holding it expires"; fi
 fi
-# the firewall's ports — when firewalld runs (Fedora's, from @core). Without it (taken out, or
-# switched off) nothing filters at all: setup says so and goes on (s_ssh, torrent_port), and
-# so does this — a warning, never a failure that would stop setup's gate for good
-fw=1; firewall-cmd -q --state 2>/dev/null || fw=0
-if ((fw)); then
-  ports=$(firewall-cmd --list-ports 2>/dev/null) || ports="(firewalld not answering)"
-  fwsvc=$(firewall-cmd --list-services 2>/dev/null) || fwsvc="(firewalld not answering)"
-  check "torrent port 6881 open (tcp + udp)"           bash -c "grep -q 6881/tcp <<<'$ports' && grep -q 6881/udp <<<'$ports'"
-  check "LocalSend's port $LOCALSEND_PORT open (tcp + udp)" bash -c "grep -q $LOCALSEND_PORT/tcp <<<'$ports' && grep -q $LOCALSEND_PORT/udp <<<'$ports'"
+
+# ── the network ──────────────────────────────────────────────────────────────
+section "the network (system/net-allow.list)"
+# the firewall against the list, saved and running: a difference is named, and fails
+netw=$(net_firewall_wrong)
+if [[ -z $netw ]]; then pass "the firewall: only the list's doors (world: $(net_doors world | paste -sd' ' -) · LAN: $(net_doors lan | paste -sd' ' -))"
+else while IFS= read -r l; do fail "the firewall: $l" "repair puts it back"; done <<<"$netw"; fi
+netw=$(net_sysctl_wrong)
+if [[ -z $netw ]]; then pass "the kernel's network settings in force (no redirects, no source routing, strict paths)"
+else while IFS= read -r l; do fail "the kernel's network settings: $l" "repair puts them back"; done <<<"$netw"; fi
+netw=$(net_dns_wrong)
+if [[ -z $netw ]]; then pass "names go over TLS; no LLMNR, no mDNS"
+else fail "names: $netw" "repair puts it back"; fi
+# (a stray socket is behind the firewall all the same: said, never a failure — any program may open one)
+netw=$(net_strays)
+if [[ -z $netw ]]; then pass "what listens: only the list's doors"
+else warn "listening, not on the list: $(paste -sd' ' - <<<"$netw")" "the firewall keeps these closed; add a door to system/net-allow.list only if one is meant"; fi
+[[ $(sysctl -n net.ipv4.ip_forward 2>/dev/null) == 0 && $(sysctl -n net.ipv6.conf.all.forwarding 2>/dev/null) == 0 ]] \
+  && pass "no forwarding: this machine is no router" \
+  || warn "forwarding is on" "a program turned it on; the firewall still forwards nothing"
+if ssh_wanted; then
+  check "sshd on (a key in authorized_keys), at every boot" bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
 else
-  warn "no firewall running (firewalld)" "nothing filters connections from outside; the ports of torrra (6881) and LocalSend ($LOCALSEND_PORT) are open anyway"
+  check "sshd off (SSH_SERVER=$SSH_SERVER, $(grep -cE '^[^#[:space:]]' "$TARGET_HOME/.ssh/authorized_keys" 2>/dev/null || true) keys)" bash -c '! systemctl is-enabled --quiet sshd.service && ! systemctl is-active --quiet sshd.service'
 fi
-if [[ $SSH_SERVER == no ]]; then
-  check "sshd off (SSH_SERVER=no)"                     bash -c '! systemctl is-enabled --quiet sshd.service'
-  ((fw)) && check "firewall: no ssh / cockpit"         bash -c "[[ '$fwsvc' != *'not answering'* ]] && ! grep -qwE 'ssh|cockpit' <<<'$fwsvc'"
-else
-  check "sshd on (SSH_SERVER=yes), at every boot"      bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
-  # (any case: OpenSSH 10.5 — Fedora 45 — prints its keywords as written, "PermitRootLogin no")
-  check "sshd: keys only, no root (SSH_SERVER=yes)"    bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
-  ((fw)) && check "firewall: ssh open, no cockpit"     bash -c "[[ '$fwsvc' != *'not answering'* ]] && grep -qw ssh <<<'$fwsvc' && ! grep -qw cockpit <<<'$fwsvc'"
-fi
+# (any case: OpenSSH 10.5 — Fedora 45 — prints its keywords as written, "PermitRootLogin no")
+check "sshd: keys only, no root"                       bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
 
 # ── upstream binaries ────────────────────────────────────────────────────────
 section "upstream binaries (lib/upstream.sh)"
