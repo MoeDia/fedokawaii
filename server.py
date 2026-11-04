@@ -228,7 +228,7 @@ def gallery():
                     st = p.stat()
                     items.append({"src": s, "file": str(p.relative_to(d)), "v": int(st.st_mtime), "kb": st.st_size // 1024})
         items.sort(key=lambda i: -i["v"])
-        return items[:80]
+        return items[:300]
     return cached("gallery", 15, f)
 
 def review():
@@ -245,12 +245,14 @@ def review():
             "feedback": read(FEEDBACK, 20000)}
 
 def verdicts():
-    v = {}
+    """item -> the owner's latest verdict; Claude's notes only where the owner has none"""
+    own, cl = {}, {}
     for head, body in entries(read(FEEDBACK)):
         p = [x.strip() for x in head.split("—")]
         if len(p) >= 3 and p[2] in ("love", "ok", "change", "redo"):
-            v[p[1]] = {"v": p[2], "at": p[0][-5:], "text": body[:200]}
-    return v
+            by_claude = body.startswith("[Claude") or body.startswith("CORRECTION") or "relayed" in body[:120]
+            (cl if by_claude else own)[p[1]] = {"v": p[2], "at": p[0][-5:], "text": body[:200], "by": "claude" if by_claude else "you"}
+    return {**cl, **own}
 
 def add_feedback(item, verdict, text):
     item = re.sub(r"[^\w ./:-]", "", str(item))[:120] or "general"
@@ -359,6 +361,11 @@ def act(d):
         nonstop()
     elif a == "bulk":
         bulk(d.get("hours", 6))
+    elif a == "selfupdate":                          # the page updates itself from the repo's `remote` branch
+        sh("systemd-run", "--user", f"--unit=fk-remote-update-{int(time.time())}", "bash", "-c",
+           "sleep 1; d=$(mktemp -d) && git clone -q -b remote --depth 1 https://github.com/MoeDia/fedokawaii $d/r && "
+           "python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' $d/r/server.py && "
+           f"install -m644 $d/r/server.py $d/r/index.html {Path(__file__).parent}/ && rm -rf $d && systemctl --user restart fk-remote")
     elif a == "conductor":
         sh("systemctl", "--user", "enable", "--now", "r27-lane-conductor.service")
     elif a == "feedback":

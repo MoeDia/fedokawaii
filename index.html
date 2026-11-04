@@ -47,6 +47,19 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 .msg{font-size:12px;color:var(--soft);margin-top:6px;min-height:1em}.err{color:var(--red)}
 #login{max-width:420px;margin:15vh auto}#banner{display:none;background:var(--red);color:#fff;padding:6px 12px;margin-top:10px}
 .pane{display:none}.pane.on{display:block}
+.lsec{border-top:1px solid var(--faint);padding:10px 0}.lsec:first-child{border:0}.lsec>summary{list-style:none}.lsec>summary::-webkit-details-marker{display:none}
+.lsec>summary b{font-size:13px}.lsec>summary:before{content:"▸ ";color:var(--soft)}.lsec[open]>summary:before{content:"▾ "}
+.thumbs{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:10px;margin-top:8px}
+.th{border:1px solid var(--faint);padding:6px;background:var(--bg)}.th .im{height:150px;display:flex;align-items:center;justify-content:center;background:#6f6f6f;cursor:zoom-in;overflow:hidden}
+.th .im img{max-width:100%;max-height:150px;display:block}.th .nm{font-size:11px;color:var(--soft);margin-top:4px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.th .row{margin-top:4px;gap:4px}.th button.sm{padding:0 6px;font-size:11px}
+.pending{margin-top:10px;background:var(--gold);color:#fff;padding:6px 10px;cursor:pointer}
+.more{margin-top:8px}
+.lb{position:fixed;inset:0;z-index:50;background:rgba(10,9,8,.94);display:flex;flex-direction:column;padding:10px 14px;color:#ece3d0}
+.lb[hidden]{display:none}.lb .sub{color:#a39a89}.lbbar{display:flex;gap:8px;align-items:center;flex-wrap:wrap}.lb button{background:#211e1a;color:#ece3d0;border-color:#3a352e}
+.lbimg{flex:1;display:flex;align-items:center;justify-content:center;min-height:0;margin:8px 0}.lbimg img{max-width:100%;max-height:100%;object-fit:contain}
+.lbfoot textarea{background:#171512;color:#ece3d0;border-color:#3a352e}
+.sm.sel{background:var(--ink);color:var(--paper);border-color:var(--ink)}
 </style></head><body>
 <div id="login" class="card" hidden><h2>Fedokawaii remote</h2><p class="sub">The token is in <b>~/.config/fedokawaii/remote-token</b> on the PC.</p>
 <input id="tok" type="password" placeholder="token"><div class="row" style="margin-top:8px"><button class="red" id="go">open</button></div><div class="msg" id="lmsg"></div></div>
@@ -68,17 +81,23 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 <section class="card"><h2>Lanes <span class="sub">what every agent is doing; pause one if memory gets tight</span></h2><div id="lanes" class="sub">–</div></section>
 <section class="card"><h2>Control</h2><div class="row">
 <button data-a="nonstop">main: non-stop until done</button><button data-a="daily">main: 1 h a day</button><button data-a="bulk" data-h="6">main: bulk 6 h</button>
-<button data-a="newpass">restart main's pass</button><button data-a="conductor">start the conductor</button><button data-a="stop" class="red">stop everything</button></div>
+<button data-a="newpass">restart main's pass</button><button data-a="conductor">start the conductor</button><button data-a="selfupdate">update this page</button><button data-a="stop" class="red">stop everything</button></div>
 <div class="msg" id="cmsg"></div><div class="sub" id="cond"></div></section>
 </div>
 
 <div class="pane" id="p-ds">
-<section class="card"><h2>New from the lanes <span class="sub">newest first · your verdict goes straight to the lane that drew it</span></h2><div id="gal" class="sub">nothing yet</div></section>
-<section class="card"><h2>The main run's review pack</h2><div id="rq" class="sub"></div><div id="rv">–</div>
+<section class="card"><h2>New from the lanes <span class="sub">grouped by lane, newest lane first · click a picture to see it big · your verdict goes straight to the lane that drew it</span></h2>
+<div class="row" id="dsbar"><button class="sm" id="f-need">needs my verdict</button><button class="sm" id="f-all">all</button><span class="grow"></span><span id="jump" class="sub"></span></div>
+<div id="pending" class="pending" hidden></div>
+<div id="gal" class="sub" style="margin-top:10px">nothing yet</div></section>
+<section class="card"><details data-k="pack" id="packd"><summary><b>The main run's review pack</b> <span class="sub" id="packsum"></span></summary><div id="rq" class="sub" style="margin-top:8px"></div><div id="rv">–</div></details>
 <div style="margin-top:12px"><b>General design note</b><textarea id="gn" placeholder="anything about the design as a whole"></textarea>
 <div class="row" style="margin-top:6px"><button class="red" onclick="fb('general','comment',$('gn'))">send note</button></div></div></section>
-<section class="card"><h2>Your design feedback <span class="sub">newest first</span></h2><div id="fbk" class="sub"></div></section>
+<section class="card"><details><summary><b>Your design feedback</b> <span class="sub">newest first</span></summary><div id="fbk" class="sub" style="margin-top:8px"></div></details></section>
 </div>
+<div id="lb" class="lb" hidden><div class="lbbar"><b id="lbt"></b><span class="sub" id="lbs"></span><span class="grow"></span><span id="lbchip"></span><button class="sm" id="lbp">‹ prev</button><button class="sm" id="lbn">next ›</button><button class="sm" id="lbx">close ✕</button></div>
+<div class="lbimg"><img id="lbi" alt=""></div>
+<div class="lbfoot"><textarea id="lbc" placeholder="what to change (optional)" style="min-height:40px"></textarea><div class="row" style="margin-top:6px" id="lbv"></div></div></div>
 
 <div class="pane" id="p-ib">
 <section class="card"><h2>Add a task</h2><textarea id="tt" placeholder="say it any way — the run cleans it up and puts it in the plan"></textarea>
@@ -118,8 +137,8 @@ function put(id,key,html){if(keys[id]===key)return;keys[id]=key;const el=$(id);c
  const f=document.activeElement&&el.contains(document.activeElement)?document.activeElement.id:null;el.innerHTML=html;
  el.querySelectorAll("details[data-k]").forEach(x=>{if(open.includes(x.dataset.k))x.open=true});
  for(const k in keep){const t=$(k);if(t)t.value=keep[k]}if(f&&$(f))$(f).focus()}
-const vbtns=(item,tid)=>['love','ok','change','redo'].map(v=>'<button class="sm" onclick="fb(\''+esc(item)+'\',\''+v+'\',$(\''+tid+'\'))">'+v+'</button>').join("");
-const vchip=item=>{const v=S&&S.verdicts[item];return v?'<span class="vchip '+v.v+'" title="'+esc(v.text)+'">you: '+v.v+' · '+esc(v.at)+'</span>':""};
+const vbtns=(item,tid)=>['love','ok','change','redo'].map(v=>'<button class="sm" onclick="fb(\''+esc(item)+'\',\''+v+'\','+(tid?'$(\''+tid+'\')':'null')+')">'+v+'</button>').join("");
+const vchip=item=>{const v=S&&S.verdicts[item];return v?'<span class="vchip '+v.v+'" title="'+esc(v.text)+'">'+(v.by=="claude"?"Claude":"you")+': '+v.v+' · '+esc(v.at)+'</span>':""};
 function render(s){
  const nA=(s.agents||[]).length,c=s.claude,Ls=s.lanes||[],work=Ls.filter(l=>l.state=="working").length;
  $("dot").style.background=c||work?"var(--green)":"var(--red)";$("st").textContent=c||work?"working":"idle";
@@ -137,17 +156,19 @@ function render(s){
  const Q=s.questions||[];$("qn").textContent=Q.length||"";$("b-ov").textContent=Q.length||"";$("qs").classList.toggle("hot",Q.length>0);
  put("qlist",JSON.stringify(Q.map(q=>q.key)),Q.length?Q.map((q,i)=>'<div class="q"><b>'+esc(q.who)+'</b> <span class="sub">'+esc(q.head)+'</span><pre>'+esc(q.body)+'</pre><textarea id="qa'+i+'" placeholder="your answer"></textarea><div class="row" style="margin-top:6px"><button class="red sm" onclick="ans(\''+esc(q.key)+'\',$(\'qa'+i+'\'))">send answer</button></div></div>').join(""):"none right now");
  /* lanes */
- put("lanes",JSON.stringify(Ls.map(l=>[l.name,l.state,l.last,l.ahead,l.notes,l.report,l.paused,Math.floor((l.seconds||0)/60)])),'<table class="lanes"><tr><th>lane</th><th>state</th><th>last saved step · its report</th><th></th></tr>'+Ls.map(l=>'<tr><td><b>'+esc(l.name)+'</b><div class="sub">'+(l.mode=="sys"?"system":"lane")+(l.ahead?" · "+l.ahead+" commits":"")+'</div></td><td><span class="st '+l.state+'">'+l.state+'</span><div class="sub">'+dur(l.seconds)+'</div></td><td>'+
+ put("lanes",JSON.stringify(Ls.map(l=>[l.name,l.state,l.last,l.ahead,l.notes,l.report,l.paused,Math.floor((l.seconds||0)/1800)])),'<table class="lanes"><tr><th>lane</th><th>state</th><th>last saved step · its report</th><th></th></tr>'+Ls.map(l=>'<tr><td><b>'+esc(l.name)+'</b><div class="sub">'+(l.mode=="sys"?"system":"lane")+(l.ahead?" · "+l.ahead+" commits":"")+'</div></td><td><span class="st '+l.state+'">'+l.state+'</span><div class="sub">'+dur(l.seconds)+'</div></td><td>'+
   (l.last?'<span class="sub">'+esc(l.last.split("\t")[0])+'</span> '+esc(l.last.split("\t")[1]||""):'<span class="sub">nothing saved yet</span>')+
   '<details data-k="'+esc(l.name)+'"><summary class="sub">report, notes, task</summary>'+(l.report?'<div class="notes" style="color:var(--ink)">'+esc(l.report)+'</div>':'')+'<div class="notes">'+esc(l.notes.join("\n"))+'</div><div class="sub" style="margin-top:4px">task: '+esc(l.task)+'</div></details></td><td>'+
   (l.state=="done"?"":l.paused?'<button class="sm" onclick="lane(\'resume\',\''+esc(l.name)+'\')">resume</button>':'<button class="sm" onclick="lane(\'pause\',\''+esc(l.name)+'\')">pause</button>')+'</td></tr>').join("")+'</table>');
  const C=s.conductor||{};$("cond").innerHTML="conductor: <b>"+(C.active?"running":"off")+"</b>"+(C.maxl?" · up to "+C.maxl+" lanes at once":"")+" · starts lanes only while 5 GB RAM is free";
  $("clog").textContent=(C.log||[]).join("\n")||"–";
- /* design */
+ /* design: grouped by lane; while you are looking at it, new renders wait behind a bar */
  const G=s.gallery||[],fresh=G.filter(g=>g.v>seen).length;if(!$("p-ds").classList.contains("on"))$("b-ds").textContent=fresh||"";
- put("gal",JSON.stringify(G.map(g=>g.src+g.file+g.v))+JSON.stringify(s.verdicts),G.length?'<div class="gal">'+G.map((g,i)=>{const item="next/"+g.src+"/"+g.file;return '<div class="g"><b>'+esc(g.src)+'</b> <span class="sub">'+esc(g.file)+' · '+hm(g.v)+'</span>'+(g.v>seen?'<span class="new">new</span>':'')+vchip(item)+
-  '<a href="'+img(g.src,g.file,g.v)+'" target="_blank"><img loading="lazy" src="'+img(g.src,g.file,g.v)+'"></a><textarea id="gc'+i+'" placeholder="what to change (optional)" style="min-height:44px;margin-top:6px"></textarea><div class="row" style="margin-top:4px">'+vbtns(item,"gc"+i)+'</div></div>'}).join("")+'</div>':"nothing yet — lanes put their renders in .claude/review/next/");
- const r=s.review;if(r){
+ const gk=JSON.stringify(G.map(g=>g.src+g.file+g.v));
+ if(!GAL.key||!$("p-ds").classList.contains("on")||document.hidden){GAL.data=G;GAL.key=gk;GAL.next=null;$("pending").hidden=true;drawGal()}
+ else if(gk!==GAL.key){GAL.next=G;GAL.nkey=gk;const n=G.filter(g=>!GAL.data.some(o=>o.src==g.src&&o.file==g.file&&o.v==g.v)).length;$("pending").hidden=!n;$("pending").textContent=n+" new or changed render"+(n>1?"s":"")+" — click to show them"}
+ else drawGal(true);
+ const r=s.review;if(r){const jd=r.items.filter(i=>s.verdicts[i.title]).length;$("packsum").textContent=r.items.length+" pages · "+jd+" judged";
   put("fbk",r.feedback,(r.feedback.trim()?r.feedback.trim().split(/\n(?=## )/).reverse().map(x=>'<div class="ib"><b>'+esc(x.split("\n")[0].replace(/^## /,""))+'</b><div class="notes">'+esc(x.split("\n").slice(1).join("\n"))+'</div></div>').join(""):"none yet"));
   put("rq",r.questions,r.questions?"<pre>"+esc(r.questions)+"</pre>":"");
   put("rv",JSON.stringify(r.items.map(i=>i.file+i.v))+JSON.stringify(s.verdicts),r.items.length?r.items.map((i,n)=>'<div class="ri"><b>'+esc(i.title)+'</b>'+vchip(i.title)+(i.note?'<div class="sub">'+esc(i.note)+'</div>':'')+
@@ -158,17 +179,39 @@ function render(s){
  put("log",s.log.join("\n"),esc(s.log.join("\n")));
  put("commits",s.commits.join("\n"),s.commits.map(l=>{const[a,b]=l.split("\t");return'<div class="c"><span class="sub">'+esc(a)+"</span><span>"+esc(b||"")+"</span></div>"}).join(""));
  let h="",ph=null;for(const x of t){if(x.phase!=ph){ph=x.phase;h+='<div class="phase">'+esc(ph)+"</div>"}h+='<div class="task'+(x.state=="done"?" done":"")+(x===cur?" cur":"")+'"><span>'+(x.state=="done"?"✓":x===cur?"▸":"·")+'</span><span class="id">'+esc(x.id)+'</span><span class="t">'+esc(x.title)+"</span></div>"}
- put("plan",h,h||"no plan");$("upd").textContent=s.time+" · updates every 5 s"}
+ put("plan",h,h||"no plan");$("upd").textContent=s.time+" · updates every 8 s"}
+const GAL={data:[],key:"",filter:ls.get("fkr_gf","need"),showall:{}};
+let closed=new Set(JSON.parse(ls.get("fkr_closed","[]")));
+function judged(g){const v=S&&S.verdicts["next/"+g.src+"/"+g.file];return !!(v&&v.by=="you")}
+function drawGal(chipsOnly){const G=GAL.data;const by={};G.forEach(g=>(by[g.src]=by[g.src]||[]).push(g));
+ const order=Object.keys(by).sort((a,b)=>by[b][0].v-by[a][0].v);
+ $("f-need").classList.toggle("sel",GAL.filter=="need");$("f-all").classList.toggle("sel",GAL.filter=="all");
+ const vk=JSON.stringify(S?S.verdicts:{});const key=GAL.key+GAL.filter+JSON.stringify(GAL.showall)+vk+[...closed].join();
+ if(chipsOnly&&keys.gal===key)return;
+ let flat=[];const html=order.map(src=>{let L=by[src];const total=L.length,need=L.filter(g=>!judged(g)).length;if(GAL.filter=="need")L=L.filter(g=>!judged(g));
+  const shown=GAL.showall[src]?L:L.slice(0,8);const cards=shown.map(g=>{const i=flat.push(g)-1,item="next/"+g.src+"/"+g.file;
+   return '<div class="th"><div class="im" onclick="lbOpen('+i+')"><img loading="lazy" src="'+img(g.src,g.file,g.v)+'" alt=""></div><div class="nm" title="'+esc(g.file)+'">'+esc(g.file)+' · '+hm(g.v)+(g.v>seen?' <span class="new">new</span>':'')+'</div><div>'+vchip(item)+'</div><div class="row">'+vbtns(item,null)+'</div></div>'}).join("");
+  return '<details class="lsec" data-k="g-'+esc(src)+'" id="sec-'+esc(src)+'"'+(closed.has(src)?'':' open')+' ontoggle="secT(\''+esc(src)+'\',this.open)"><summary><b>'+esc(src)+'</b> <span class="sub">'+total+' renders · '+need+' need your verdict · latest '+hm(by[src][0].v)+'</span></summary>'+
+   (cards?'<div class="thumbs">'+cards+'</div>':'<div class="sub" style="margin-top:6px">all judged</div>')+(L.length>8&&!GAL.showall[src]?'<button class="sm more" onclick="GAL.showall[\''+esc(src)+'\']=1;drawGal()">show all '+L.length+'</button>':'')+'</details>'}).join("");
+ GAL.flat=flat;put("gal",key,G.length?html:"nothing yet — lanes put their renders in .claude/review/next/");
+ $("jump").innerHTML=order.map(src=>'<a href="#sec-'+esc(src)+'" style="margin-left:8px;color:var(--soft)">'+esc(src)+'</a>').join("")}
+function secT(src,open){open?closed.delete(src):closed.add(src);ls.set("fkr_closed",JSON.stringify([...closed]))}
+$("f-need").onclick=()=>{GAL.filter="need";ls.set("fkr_gf","need");drawGal()};$("f-all").onclick=()=>{GAL.filter="all";ls.set("fkr_gf","all");drawGal()};
+$("pending").onclick=()=>{if(GAL.next){GAL.data=GAL.next;GAL.key=GAL.nkey;GAL.next=null}$("pending").hidden=true;drawGal()};
+let LB=-1;function lbOpen(i){LB=i;const g=GAL.flat[i];if(!g)return;const item="next/"+g.src+"/"+g.file;$("lb").hidden=false;$("lbt").textContent=g.src+" · "+g.file;$("lbs").textContent=" "+hm(g.v)+" · "+(i+1)+" of "+GAL.flat.length;
+ const im=$("lbi");im.style.imageRendering="auto";im.onload=()=>{im.style.imageRendering=im.naturalWidth<900?"pixelated":"auto"};im.src=img(g.src,g.file,g.v);$("lbchip").innerHTML=vchip(item);$("lbv").innerHTML=vbtns(item,"lbc")}
+$("lbx").onclick=()=>{$("lb").hidden=true;LB=-1};$("lbp").onclick=()=>lbOpen(Math.max(0,LB-1));$("lbn").onclick=()=>lbOpen(Math.min(GAL.flat.length-1,LB+1));
+document.addEventListener("keydown",e=>{if(LB<0||e.target.tagName=="TEXTAREA")return;if(e.key=="Escape")$("lbx").onclick();if(e.key=="ArrowLeft")$("lbp").onclick();if(e.key=="ArrowRight")$("lbn").onclick()});
 async function tick(){if(!T)return login();if(busy)return;busy=true;try{const s=await api("/api/state");S=s;lastOk=Date.now();
   $("banner").style.display="none";$("conn").className="pill ok";$("conn").textContent="live";$("login").hidden=true;$("app").hidden=false;render(s)}
  catch(e){if(e.message=="token"){busy=false;return login("wrong token")}$("conn").className="pill bad";$("conn").textContent="reconnecting";$("app").hidden=!S;
   $("banner").style.display="block";$("banner").textContent="The PC is not answering ("+e.message+")"+(lastOk?" · last good update "+Math.round((Date.now()-lastOk)/1000)+" s ago":"")+". Retrying every 5 s — after a reboot it comes back by itself."}
  finally{busy=false}}
 async function post(b,ok){try{await api("/api/action",b);$("cmsg").textContent=ok;for(const k in keys)delete keys[k];tick();return true}catch(e){const m='<span class="err">'+esc(e.message)+"</span>";$("cmsg").innerHTML=m;$("tmsg").innerHTML=m;return false}}
-document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the main run, every lane and the conductor?"))return;post({action:a,hours:b.dataset.h},"done: "+b.textContent)});
+document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the main run, every lane and the conductor?"))return;post({action:a,hours:b.dataset.h},a=="selfupdate"?"updating the page — it reloads in about 10 s":"done: "+b.textContent).then(ok=>{if(ok&&a=="selfupdate")setTimeout(()=>location.reload(),10000)})});
 $("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;if(await post({action:"task",text:v},"sent")){$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass"}};
-async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)&&el)el.value=""}
+async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)){if(el)el.value="";setTimeout(()=>{if(LB>=0)lbOpen(LB);drawGal()},1200)}}
 async function ans(key,el){const v=el.value.trim();if(!v)return el.focus();if(await post({action:"answer",key,text:v},"answer sent: the lane and the main run both have it"))el.value=""}
 function lane(a,n){if(a=="pause"&&!confirm("Pause lane "+n+"? Its saved work stays; resume any time."))return;post({action:a,lane:n},a+"d: "+n)}
-tick();setInterval(tick,5000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
+tick();setInterval(tick,8000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
 </script></body></html>
