@@ -221,7 +221,7 @@ screen and the bar's paper share one rhythm.
 | seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, 40 segments on the second row, from x 50 of the content to its right inset |
-| masthead | 2 rows | — | quick settings' head: the mood's 32 px head in those columns, the name and the rule, under them a quiet line; 8 px of air under it |
+| masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
 | seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
 | app icon | 16 × 16 | — | the launcher's: an app's own icon at its native 16 px, centred in the row |
@@ -273,9 +273,10 @@ screen and the bar's paper share one rhythm.
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
 - **Quick settings** (Super+X, the head on the bar — the owner, 4 Nov: "over-engineered, a simpler way; forget this
-  circle", then "way too simple, improve"): a list with presence. The masthead (§3): the mood's head, 32 px, shut until
-  its scroll lands, then awake (the demon's mouth, the angel's eyes); its name and the rule; how long the machine has
-  been up. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
+  circle", then "way too simple, improve"): a list with presence. The masthead (§3), a title plate as on a printed book's cover: the mood's head, shut until
+  its scroll lands, then awake (the demon's mouth, the angel's eyes); its name; how long the machine has been up; and at
+  its right end the mood's pattern, two moods, not a recolour: the demon's uroko, the triangle scales the Noh Hannya wears, the angel's seigaiha, the
+  waves she stands over, each dissolving through an ordered dither toward the words. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
   screensaver, freesync, wallpaper), sound (share sound, while kawa-quick reports it), connect (network, Bluetooth, devices
   while it is on, drives, backup), capture (screenshot, record, read text), power (the lights while kawa-quick reports them,
   screen off, power). Each row its own
