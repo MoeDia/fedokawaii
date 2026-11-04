@@ -2572,6 +2572,9 @@ phase3() {
   (( NO_REBOOT )) && { unit_file_out; exit 0; }
   sleep 15
   rm -f "/etc/systemd/system/$RESUME_UNIT"   # (switched off already; no reload: the reboot reads it)
+  # (setup's starts never reached a desktop to mark them good: Fedora 45's GRUB shows its menu for a start after
+  # such a one, menu_auto_hide or not. This start into the login screen is no failure's)
+  grub2-editenv - set boot_success=1 >/dev/null 2>&1 || true
   systemctl reboot
 }
 
