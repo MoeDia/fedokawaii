@@ -6,6 +6,22 @@ The owner wants the whole round finished today; he is at the PC until 23:30. Fin
 i want it skipped
 
 <!-- status -->
+## State at 20:15, 4 Nov: NOT DONE yet (the forced reboot of about 20:25, main's word)
+
+Everything is committed and pushed; nothing of this lane is running. **The code is complete; what is left is re-checking it.** The machine has been failing since about 19:51 (main: PID 1 and the user manager stuck, swap nearly full), so results after that are not to be trusted, and the last changes have not had a clean run:
+
+- The last commit's changes: masks known by their pixels (no table of icon keys), the toolbar's three shorter words, `QLabel`'s words, UTF-16 surrogates in paths, a close dropped while a dialog is out, the pen check without a fenced bus. Seen working in the kit at about 20:00: both moods, light → dark live, repeated dialogs, the process alive. Not yet re-run on them: `tools/regress/sketch-pen.sh`: its last two tries hit its time limit while the machine failed (last clean result, 19:43, the code before them: 2, 8, 16 px).
+- `tests/installer/test_upstream.sh`: 266 passed, 0 failed (19:55, in a sick machine but a clean result). `tests/installer/test_theme.sh` **has never finished here**: it waited for the shared lock until stopped for the reboot.
+
+**Next, after the reboot, in this order, each with nice -n 10:**
+1. `cd ~/repos/fk-firealpaca`; `git status` is clean; `git fetch origin main`, merge it if it moved; `python3 tools/build-themes.py` if the palette moved.
+2. A throw-away home for the pen check (it reads `$HOME`): `~/.cache/lane-firealpaca/scripts/skinhome.sh` makes most of it; `app` is `~/.local/share/fedokawaii/firealpaca/app`, the library `make -C src/kawa-firealpaca O=DIR`, `.local/src/dwl` a link to the real tree. Then `HOME=that bash tools/regress/sketch-pen.sh`. If it runs out of time on a healthy machine, its message now says why: find that, do not raise the limit.
+3. `tests/content/test_sketch.sh`, `tests/installer/test_theme.sh`, `test_theme_parts.sh`, `test_manifest.sh`, `tests/static/test_syntax.sh`, `test_generated.sh`, `test_contrast.sh`, `tests/look/test_launcher.sh`, `tests/yazi/test_yazi.sh`, `tests/menus/test_help.sh`. test_theme's new case is unproven: it may need work.
+4. Both moods once more in the kit (the plays: `~/.cache/lane-firealpaca/scripts/k17.sh`, `k25.sh`; their paths still say /dev/shm/fa-lane: `kit-seed.sh` wants the app, the built library and `tools/vptr`, `vkbd`, rebuilt from `~/.cache/lane-firealpaca/tools`).
+5. Then this file ends with DONE. `rm -rf ~/.cache/lane-firealpaca` first: it is this lane's scratch.
+
+A finding worth keeping: FireAlpaca's start stalled 41 s in the kit from about 19:45 (plain too, `KAWA_FA_PLAIN=1`): Qt's first connect to the kit's **fenced** session bus through the bundle's old libdbus. The real session's bus: 0.001 s with the same library, so the owner never sees it. Plays and the pen check take the bus away (`DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent`: past that point in 0.4 s).
+
 # lane-firealpaca — T28: Sketch is FireAlpaca, themed to the limit
 
 Branch `lane-firealpaca`. Every test below was run on this PC, in a fenced headless dwl (`tools/hl-dwl.sh`, `tools/kit.sh`): nothing on the owner's screen. Proof shots beside this file: `lane-firealpaca/sketch-dark.png`, `sketch-light.png`, `pen-pressure.png`.
@@ -59,10 +75,10 @@ Costs, honestly: two to three times the RAM, closed source, X11 only.
 - **The mood live**: `current` renamed as kawa-theme does, while it runs: sheet, inks, masks and lists follow, no restart (dark ↔ light, shots).
 - **Alignment, measured** (`first/last non-ground x` per row, identical in both moods): content x 48 – 311 in the left panels, 1639 – 1902 in the right; heading icons +2; rule to the content's edge; meters 6 + 2 px on the grid.
 - **Real launcher path** in the kit with `--bin bin`: new sketch named by date; Ctrl+S; Ctrl+O and Ctrl+Shift+S through kawa-pick (yazi); Cancel removes the stand-in; a second file through the launcher opens as a tab in the one running (no second process).
-- **No network**: starts, opens the page, no hang.
+- **No network**: starts, opens the page, no hang (run before the start page was skipped: it showed "No internet" and Enter closed it).
 - **The pen's side buttons**: on the private dwl: upper + tip: colour picked (#FFFFFF from the page); lower + drag: the page moved.
 - **Keys**: Tab, F2, F7, Ctrl+K, Ctrl+N, Ctrl+O, Ctrl+Alt drag (size 24 → 46), Space drag (the page moved), from the running program.
-- Test files: `tests/content/test_sketch.sh` 110/110, `tests/look/test_launcher.sh` 268/268, `tests/menus/test_help.sh` 142/142, `tests/yazi/test_yazi.sh` 140/140, `tests/static/test_generated.sh`, `test_syntax.sh`, `test_deps.sh`, `test_design_doc.sh`, `test_noellipsis.sh`, `tools/check-packages`: green. See below for the installer's tests.
+- Test files, before the merge of main and the last changes (to be run again, above): `tests/content/test_sketch.sh` 110/110, `tests/look/test_launcher.sh` 268/268, `tests/menus/test_help.sh` 142/142, `tests/yazi/test_yazi.sh` 140/140, `tests/static/test_generated.sh`, `test_syntax.sh`, `test_deps.sh`, `test_design_doc.sh`, `test_noellipsis.sh`, `tools/check-packages`: green. `tests/installer/test_upstream.sh` 266/266.
 
 ## What main (lane-integrate) must do
 

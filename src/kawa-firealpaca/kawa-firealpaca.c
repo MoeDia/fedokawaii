@@ -643,52 +643,13 @@ ours(const QString *path)
 	return path;
 }
 
-/* the icons that are ours, by QIcon::cacheKey: their pixmaps get their state's ink */
-static long mask_keys[1024];
-
-static void
-mask_add(long key)
-{
-	if (!key)
-		return;
-	for (unsigned n = 0; n < 1024; n++) {
-		unsigned i = ((unsigned long)key >> 32 ^ (unsigned long)key) * 2654435761u % 1024 + n;
-		if (!mask_keys[i % 1024] || mask_keys[i % 1024] == key) {
-			mask_keys[i % 1024] = key;
-			return;
-		}
-	}
-}
-
-static bool
-mask_has(long key)
-{
-	for (unsigned n = 0; n < 1024; n++) {
-		unsigned i = ((unsigned long)key >> 32 ^ (unsigned long)key) * 2654435761u % 1024 + n;
-		if (!mask_keys[i % 1024])
-			return false;
-		if (mask_keys[i % 1024] == key)
-			return true;
-	}
-	return false;
-}
-
 void
 _ZN5QIconC1ERK7QString(void *self, const QString *path)
 {
 	static void (*real)(void *, const QString *);
-	const QString *p;
-
 	if (!real)
 		real = dlsym(RTLD_NEXT, "_ZN5QIconC1ERK7QString");
-	if (!on) {
-		real(self, path);
-		return;
-	}
-	p = ours(path);
-	real(self, p);
-	if (p != path)
-		mask_add(qt.icon_key(self));
+	real(self, on ? ours(path) : path);
 }
 
 void
@@ -700,58 +661,72 @@ _ZN7QPixmapC1ERK7QStringPKc6QFlagsIN2Qt19ImageConversionFlagEE(void *self, const
 	real(self, on ? ours(path) : path, format, flags);
 }
 
-/* The state's ink on a mask, each once (key, size, ink), kept: a toolbar is painted often. */
+/* The state's ink on a mask, each once (icon, size, ink), kept: a toolbar is painted often. A mask is
+ * known by its pixels: black, or Qt's greyed form of black, in shape only. A picture in colours, its
+ * logo in a dialog, stays. Nothing goes wrong when the table is full, only slower. */
 static void
 inked(void *ret, const void *icon, int mode, int state)
 {
-	static struct { long key; uint32_t c; int w, h; unsigned char pm[OBJECT_BYTES]; bool used; } memo[1536];
+	static struct { long key; uint32_t c; int w, h; unsigned char pm[OBJECT_BYTES]; bool used, mask; } memo[1536];
 	long key = qt.icon_key(icon);
-	uint32_t c;
-	unsigned char img[OBJECT_BYTES], argb[OBJECT_BYTES];
-	int w, h;
+	uint32_t c = mode == MODE_DISABLED ? ink.faint : state == STATE_OFF && mode != MODE_SELECTED ? ink.text : ink.on_select;
+	int w = qt.pixmap_w(ret), h = qt.pixmap_h(ret);
+	unsigned char img[OBJECT_BYTES], argb[OBJECT_BYTES], pm[OBJECT_BYTES];
 	long stride;
 	uint32_t *px;
 	unsigned slot;
+	bool mask = true, free_slot = false;
 
-	if (!mask_has(key))
-		return;
-	c = mode == MODE_DISABLED ? ink.faint : state == STATE_OFF && mode != MODE_SELECTED ? ink.text : ink.on_select;
-	w = qt.pixmap_w(ret);
-	h = qt.pixmap_h(ret);
 	if (w <= 0 || h <= 0)
 		return;
 	slot = (unsigned)(((unsigned long)key * 31 + c) * 2654435761u + (unsigned)w * 131 + (unsigned)h) % 1536;
 	for (unsigned n = 0; n < 1536; n++, slot = (slot + 1) % 1536) {
-		if (memo[slot].used && memo[slot].key == key && memo[slot].c == c && memo[slot].w == w && memo[slot].h == h) {
-			qt.pixmap_assign(ret, memo[slot].pm);
+		if (!memo[slot].used) {
+			free_slot = true;
+			break;
+		}
+		if (memo[slot].key == key && memo[slot].c == c && memo[slot].w == w && memo[slot].h == h) {
+			if (memo[slot].mask)
+				qt.pixmap_assign(ret, memo[slot].pm);
 			return;
 		}
-		if (!memo[slot].used)
-			break;
 	}
 	qt.pixmap_image(img, ret);
 	qt.img_convert(argb, img, ARGB32, 0);
 	qt.img_free(img);
 	px = (uint32_t *)qt.img_bits(argb);
 	stride = qt.img_bpl(argb) / 4;
-	for (int y = 0; y < h; y++)
-		for (int x = 0; x < w; x++)
-			px[y * stride + x] = (px[y * stride + x] & 0xff000000u) | (c & 0xffffff);
-	if (!memo[slot].used) {
-		qt.pixmap_from(memo[slot].pm, argb, 0);
+	for (int y = 0; y < h && mask; y++)
+		for (int x = 0; x < w; x++) {
+			uint32_t p = px[y * stride + x];
+			int r = p >> 16 & 255, g = p >> 8 & 255, b = p & 255;
+			if ((p >> 24) && (abs(r - g) > 8 || abs(g - b) > 8)) {
+				mask = false;
+				break;
+			}
+		}
+	if (mask) {
+		for (int y = 0; y < h; y++)
+			for (int x = 0; x < w; x++)
+				px[y * stride + x] = (px[y * stride + x] & 0xff000000u) | (c & 0xffffff);
+		if (free_slot) {
+			qt.pixmap_from(memo[slot].pm, argb, 0);      /* (made in its place: kept for good) */
+			qt.pixmap_assign(ret, memo[slot].pm);
+		} else {
+			qt.pixmap_from(pm, argb, 0);
+			qt.pixmap_assign(ret, pm);
+			qt.pixmap_free(pm);
+		}
+	}
+	qt.img_free(argb);
+	if (free_slot) {
 		memo[slot].key = key;
 		memo[slot].c = c;
 		memo[slot].w = w;
 		memo[slot].h = h;
+		memo[slot].mask = mask;
 		memo[slot].used = true;
-		qt.pixmap_assign(ret, memo[slot].pm);
-	} else {                                     /* (the table full: not kept) */
-		unsigned char pm[OBJECT_BYTES];
-		qt.pixmap_from(pm, argb, 0);
-		qt.pixmap_assign(ret, pm);
-		qt.pixmap_free(pm);
 	}
-	qt.img_free(argb);
 }
 
 void
@@ -916,13 +891,19 @@ static bool in_dialog;           /* input to the program is dropped while its di
 static char *
 to_utf8(const QString *s)
 {
-	char *o = malloc((s->size > 0 ? (size_t)s->size : 0) * 3 + 1), *p = o;
+	char *o = malloc((s->size > 0 ? (size_t)s->size : 0) * 4 + 1), *p = o;
 
 	if (!o)
 		return NULL;
 	for (long i = 0; i < s->size; i++) {
 		unsigned c = s->ptr[i];
-		if (c < 0x80)
+		if (c >= 0xd800 && c < 0xdc00 && i + 1 < s->size && s->ptr[i + 1] >= 0xdc00 && s->ptr[i + 1] < 0xe000) {
+			c = 0x10000 + ((c - 0xd800) << 10) + (s->ptr[++i] - 0xdc00);
+			*p++ = (char)(0xf0 | c >> 18);
+			*p++ = (char)(0x80 | (c >> 12 & 63));
+			*p++ = (char)(0x80 | (c >> 6 & 63));
+			*p++ = (char)(0x80 | (c & 63));
+		} else if (c < 0x80)
 			*p++ = (char)c;
 		else if (c < 0x800) {
 			*p++ = (char)(0xc0 | c >> 6);
@@ -1110,11 +1091,14 @@ _ZN8QPainter8drawTextERK6QRectFiRK7QStringPS0_(void *self, const void *rect, int
 	real(self, rect, flags, text, bound);
 }
 
-/* ── words its hand-placed panels have no room for ────────────────────────────── */
+/* ── words its hand-placed panels have no room for, and two that say more than they need ────── */
 static const struct { const char *from, *to; } WORDS[] = {
 	{ "Show only Active Layer", "Active only" },
 	{ "Add Below", "Below" },
 	{ "FireAlpaca (64bit)", "FireAlpaca" },
+	{ "Anti-aliasing (Global)", "Anti-aliasing" },
+	{ "Stabilizer (Global)", "Stabilizer" },
+	{ "Zero Pressure on Both Ends", "Taper both ends" },
 };
 static QString word_to[sizeof WORDS / sizeof *WORDS];
 
@@ -1137,6 +1121,24 @@ _ZN15QAbstractButton7setTextERK7QString(void *self, const QString *text)
 	if (!real)
 		real = dlsym(RTLD_NEXT, "_ZN15QAbstractButton7setTextERK7QString");
 	real(self, on ? worded(text) : text);
+}
+
+void
+_ZN6QLabel7setTextERK7QString(void *self, const QString *text)
+{
+	static void (*real)(void *, const QString *);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN6QLabel7setTextERK7QString");
+	real(self, on ? worded(text) : text);
+}
+
+void
+_ZN6QLabelC1ERK7QStringP7QWidget6QFlagsIN2Qt10WindowTypeEE(void *self, const QString *text, void *parent, int flags)
+{
+	static void (*real)(void *, const QString *, void *, int);
+	if (!real)
+		real = dlsym(RTLD_NEXT, "_ZN6QLabelC1ERK7QStringP7QWidget6QFlagsIN2Qt10WindowTypeEE");
+	real(self, on ? worded(text) : text, parent, flags);
 }
 
 /* (the bar shows a window's title: it has no use for "(64bit)") */
@@ -1407,6 +1409,7 @@ _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *eve
 		case 6: case 7:                              /* the keys */
 		case 31:                                     /* the wheel */
 		case 87: case 92: case 93:                   /* the pen */
+		case 19:                                     /* a close (Super+Q): the dialog goes first */
 			return true;
 		}
 	done = real(self, receiver, event);

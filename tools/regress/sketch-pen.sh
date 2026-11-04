@@ -36,8 +36,9 @@ cp "$HOME/.local/share/fedokawaii/firealpaca/blank.mdp" "$w/page.mdp"
 cat >"$w/inside.sh" <<PLAY
 export HOME=$h XDG_CONFIG_HOME=$h/.config XDG_DATA_HOME=$h/.local/share XDG_CACHE_HOME=$h/.cache XDG_STATE_HOME=$h/.local/state
 cd "\$HOME" || exit 1
-( ulimit -c 0; exec env -u QT_QPA_PLATFORMTHEME QT_QPA_PLATFORM=xcb KAWA_FA_OPEN="$w/page.mdp" LD_PRELOAD="$lib" "$app" ) >"$w/app.log" 2>&1 &
-sleep 12
+# (no session bus: it needs none, and the bundle's old libdbus can take 41 s to greet a fenced one, 4 Nov; 1 ms the real one)
+( ulimit -c 0; exec env -u QT_QPA_PLATFORMTHEME QT_QPA_PLATFORM=xcb DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent KAWA_FA_OPEN="$w/page.mdp" LD_PRELOAD="$lib" "$app" ) >"$w/app.log" 2>&1 &
+sleep 9
 $park
 pen() { printf '%s\n' "\$*" >"$w/tablet"; sleep 0.012; }
 for row in "300 0.10" "500 0.50" "700 1.00"; do
@@ -49,7 +50,7 @@ done
 sleep 1
 grim "$w/shot.png"
 PLAY
-FAKE_TABLET=$w/tablet bash "$here/../hl-dwl.sh" "$w/inside.sh" --dwl "$w/dwl/dwl" --time 60 --keep "$w/logs" || { echo "sketch-pen: the run failed" >&2; exit 2; }
+FAKE_TABLET=$w/tablet bash "$here/../hl-dwl.sh" "$w/inside.sh" --dwl "$w/dwl/dwl" --time 90 --keep "$w/logs" || { echo "sketch-pen: the run failed: $(tail -n 2 "$w/logs/script.log" "$w/logs/dwl.log" 2>/dev/null | cut -c1-200)" >&2; exit 2; }
 [[ -s $w/shot.png ]] || { echo "sketch-pen: no shot" >&2; exit 2; }
 out=$(python3 -I - "$w/shot.png" <<'PY'
 import sys
