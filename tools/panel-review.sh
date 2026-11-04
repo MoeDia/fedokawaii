@@ -41,7 +41,7 @@ if [[ \${1:-} == --state ]]; then
            printf 'input\t62\t0\tRyzen\tRear Microphone\tALC1220 Analog\tRyzen HD Audio Controller\tAnalog Stereo\t\n' ;;
     brightness) printf 'brightness\t72%%\n' ;;
     *) printf 'theme\t%s\nbrightness\t72%%\nnight\t4000K\nvrr\tin games\nvrrnow\toff\nwallpaper\tthe-great-wave\nsound\t62%%\nmuted\t%s\n' "\$th" "\$m"
-       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\n' ;;
+       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\nrgb\ton\n' ;;
   esac
   exit 0
 fi
@@ -86,11 +86,30 @@ SURFACES=(
     printf '%s\nnap 0.9\n%s\nnap 0.5\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
   done
 } >"$W/play.sh"
+# (the kit's ground is swaybg's; now and then, seen under load only, its picture goes and dwl's dark root shows — swaybg
+# alive: said to main. A shot whose ground is not the mood's is no review: the run again, three at most)
+bad_ground() {   # bad_ground THEME → the shots whose ground is not the mood's (a dialog's: dimmed, so only the undimmed)
+  python3 -I - "$out/raw/$1" "$repo/configs/home/.config/fedokawaii/themes/$1/colors.sh" "$only" <<'CHECK'
+import os, re, sys
+from PIL import Image
+g = re.search(r'C_GROUND="?([0-9a-f]{6})', open(sys.argv[2]).read()).group(1)
+want = tuple(int(g[i:i + 2], 16) for i in (0, 2, 4))
+only = sys.argv[3].split(",") if sys.argv[3] else None
+for f in sorted(os.listdir(sys.argv[1])):
+    if f.endswith(".png") and not f.startswith("power") and (not only or f[:-4] in only):
+        px = Image.open(os.path.join(sys.argv[1], f)).convert("RGB").getpixel((3, 1076))
+        if px != want:
+            print(f[:-4])
+CHECK
+}
 for th in $themes; do
-  nice -n 10 bash "$here/kit.sh" --theme "$th" --time 400 --dwl /usr/local/bin/dwl --bin "$W/bin" --repo-art \
-    --out "$out/raw/$th" --play "$W/play.sh" play >"$W/kit-$th.log" 2>&1 \
-    || { echo "panel-review: the kit failed ($th): $(tail -n 3 "$W/kit-$th.log")" >&2; exit 1; }
-  [[ -s $out/raw/$th/panel.log ]] && { echo "panel-review: the panel said ($th):"; tail -n 6 "$out/raw/$th/panel.log"; }
+  for try in 1 2 3; do
+    nice -n 10 bash "$here/kit.sh" --theme "$th" --time 400 --dwl /usr/local/bin/dwl --bin "$W/bin" --repo-art \
+      --out "$out/raw/$th" --play "$W/play.sh" play >"$W/kit-$th.log" 2>&1 \
+      || { echo "panel-review: the kit failed ($th): $(tail -n 3 "$W/kit-$th.log")" >&2; exit 1; }
+    [[ -z $(bad_ground "$th") ]] && break
+    echo "panel-review: the ground went ($th, try $try): $(bad_ground "$th" | tr '\n' ' ')"
+  done
 done
 python3 -I - "$out" "$themes" <<'CROP'
 import os, sys

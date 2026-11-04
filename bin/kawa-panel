@@ -34,38 +34,41 @@ is another click, however fast it comes. Every key's request counts, however fas
 repeats no held key that opens something (one press), so presses as fast as you like end open
 after an odd number, closed after an even one.
 
-Quick settings is a plain menu (the owner, 4 Nov: "over-engineered, break it down, a simpler way"):
-a heading, then rows, a row a thing, in four groups:
-    the meters    brightness and sound, the panels' own meter; ← → or a click or a drag set them, the
-                  wheel ±5; Enter on sound: the sound panel
-    in place      theme · night light · do not disturb · screensaver · freesync: Enter or a click
-                  switches it, the panel stays (the wheel on the night light: its warmth)
-    connections   network · bluetooth · devices (those two only with a Bluetooth adapter; devices
-                  while it is on) · drives · backup: their own menus, the panel goes
-    the screen    wallpaper · screenshot · record · read text · screen off · power: the same
-The icon lights in vermilion, and the state beside it in the strong ink, while a thing is on.
-The sound panel, three parts under their headings: sound — the volume's meter (hollow while
-muted; its icon the bar's) and two keys, mute and mixer (wiremix) · output and input — every
-device (not "Share"), the one in use ticked: a click makes another the default, playing audio
-moves to it · the input's foot: two keys side by side, as mute and mixer above — mute
-microphone and test mic (5 s recorded, played back: kawa-quick --do mictest).
-The brightness slider: the brightness meter alone.
+Quick settings is a menu with presence (the owner, 4 Nov: "way too simple, improve"; docs/design-system.md §4):
+the masthead — the mood's head, 32 px, waking as its scroll lands, the name, how long the machine has
+been up —, then the levels and the rows, a row a thing, under their labels:
+    the levels    brightness and sound, instruments: a lantern whose glow rises with the brightness, a temple
+                  bell whose ripples spread with the sound; ← → or a click or a drag on the meter set
+                  them, the wheel ±5; Enter on sound, or a click on its word: the sound panel
+    screen        theme · night light · do not disturb · screensaver · freesync · wallpaper: Enter or a click
+                  switches it, the panel stays (the wheel on the night light: its warmth; wallpaper: its menu)
+    connect       network · bluetooth · devices (those two only with a Bluetooth adapter; devices
+                  while it is on) · drives · backup: their own menus, the panel goes (bluetooth: in place)
+    capture       screenshot · record · read text: the same
+    session       screen off · power: the same
+A switch's state is a hanko at the row's right end, inked on, blank off; a value stands in a column of its own;
+what has a key of its own anywhere shows it, a keycap, so the menu teaches it.
+The sound panel, three parts under their headings: sound — the level, as quick settings has it (its
+meter hollow while muted), mute (m) and the mixer (x, wiremix) · output and input — every device (not
+"Share") under its own name and picture, the one in use with the hanko's dot: a click makes another
+the default, playing audio moves to it · the input's foot: mute microphone (n), test mic (t: 5 s recorded,
+played back: kawa-quick --do mictest).
+The brightness slider: the brightness instrument alone.
 Everything on docs/design-system.md's grid (§3–§4): rows of 20 px, a heading's icon, name and
-rule, keys one row high, the frame's hairline (its corners left out) and the bar's shadow — sized
-in whole cells.
+rule, the frame's hairline (its corners left out) and the bar's shadow — sized in whole cells.
 Opened by a click on the bar, each hangs right under the pointer (dwl's dwl-pointer, written
 as it clicks), kept 8 px inside its output; opened by its key, under its own module: quick
 settings at the right end, the others under the volume and the brightness (fixed margins,
 measured on a 1920 px bar).
 
-One light (§5): the cursor — filled in vermilion — is the keyboard's place and the pointer's:
+One light (§5): the cursor — the seal's red, a 12 % tint and a 2 px edge — is the keyboard's place and the pointer's:
 the item under the pointer takes it at once (no easing, also right after it opens), a key
 moves it from there. It is not there until a key or the pointer asks for it: the first arrow,
 Tab or Enter puts it on the first item, every open starts without it (nothing remembered from
 the last time). A click does what is under the pointer.
 
 Keys: arrows or h j k l move · on a meter ← → (h l) change it by 5 (the slider's from the first
-press: it is all there is) · Enter or Space does it · Tab goes round · Esc closes.
+press: it is all there is) · Enter or Space does it · Tab goes round · a row's own key does it · Esc closes.
 The mouse: a click does it; on a meter a click or a drag sets the level there, the wheel (or a
 touchpad) moves it by 5. A click outside closes it, as with every menu. Switches (theme, night light,
 freesync, bluetooth, dnd, screensaver; mute, an output, an input) stay open and show the new state; the
@@ -141,6 +144,7 @@ HEAD_H = ROW + GAP                   # a heading: its row, then 8 px of air
 QUICK_GAP = ROW // 2                 # quick settings: the air between its groups (half a row: they stay one list)
 QUICK_VALUE = 20 * CELL              # … a state's words at most this wide
 QUICK_MARKS = 46                     # … its marks' column: a seal, or a chord of three keys (14 + 2 + 14 + 2 + 14)
+ABSENT = ("none", "offline", "not set up", "never", "not offered")   # … a state that is nothing there (§5: faint)
 SECTION = ROW                        # the air above a heading (none at a panel's top)
 KEY_H = ROW                          # a key: one row high, its 1 px frame inside the row
 SEGS, SEG_W, SEG_H = 20, 6, 10       # a meter: 20 segments 6 × 10 px, one a cell (2 px of air) — 5 % each
@@ -148,7 +152,7 @@ SPAN = SEGS * CELL                   # 160: the segments' run
 BIG_SEGS = 40                        # an instrument's meter (§4): the same segments, 40 of them: 2.5 % each
 BIG_H = 2 * ROW                      # an instrument: its name and number, then its meter
 PIC_W = 32                           # an instrument's picture, the masthead's head: 32 wide (x0 + 8 to x0 + 40)
-WORD_X = 6 * CELL                    # … its words (cell 6: the picture, a cell of air)
+WORD_X = 6 * CELL + 2                # … its words, on its meter's first segment (the meter's run ends on the right inset)
 HEAD_PIC_H = 2 * ROW                 # the masthead: the head's 32 px in two rows
 EDGE_W = 2                           # the cursor's edge: 2 px of the seal's red at the band's left
 RIGHT_IN = CELL                      # a row's right inset: its value's ink ends this far inside the band —
@@ -158,8 +162,8 @@ CAP_H, CAP_Y = 16, 2                 # a keycap: 16 rows (the em inside its fram
 CAP_PAD = 3                          # … the paper either side of its label (and its 1 px frame)
 CAP_MIN = 14                         # … at least: a single letter's
 CAP_GAP = 2                          # … 2 px between the caps of one chord
-TILE, TILE_GAP = 56, 16              # a seal tile (the power dialog): 56 square, 16 apart
-TILE_PIC = 32                        # … its picture, 12 px of paper round it
+TILE, TILE_GAP = 64, 12              # a seal tile (the power dialog): 64 square, 12 apart (the longest word fits under it)
+TILE_PIC = 40                        # … its picture, 12 px of paper round it
 WAKE_MS = 340                        # quick settings' head wakes as its scroll lands (dwl's unroll: 300 ms)
 ARM_HOLD = 0.35                      # a choice that needs a second press: none counts sooner (a held key's repeat, a double click)
 # the level display (design-system §9): one row — the icon in its column, the meter from cell 3,
@@ -199,6 +203,15 @@ def read_pics(path=PICS):
     except OSError:
         pass
     return out
+
+
+def pic_ink(rows):
+    """A picture's ink: x, y, w, h (what centres it: by its ink, the odd pixel of air to the right and below)."""
+    if not rows:
+        return None
+    xs = [x for r in rows for x, c in enumerate(r) if c != "."]
+    ys = [y for y, r in enumerate(rows) if set(r) != {"."}]
+    return (min(xs), min(ys), max(xs) - min(xs) + 1, max(ys) - min(ys) + 1) if xs else None
 
 
 def icons(path=ICONS_SH):
@@ -365,16 +378,6 @@ def percent(v):
     return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
 
 
-def vol_icon(pct, muted):
-    """The sound panel's meter's icon: the bar's own for that level (its speaker with no wave
-    at 0, one up to 25 %, two to 50, three to 75, four above; crossed out while muted)."""
-    if muted:
-        return "vol_mute"
-    if not pct:
-        return "vol_0"
-    return f"vol_{min(4, (pct + 24) // 25)}"
-
-
 # ── a meter: twenty segments, one rule both ways (docs/design-system.md §4) ──────────────
 # Twenty segments, 6 × 10 px, one a cell (2 px of air between): 5 % each. A level lights its
 # whole segments and the next one partly, from the bottom, two rows a percent — every level has
@@ -456,8 +459,8 @@ def chord_parts(label):
 
 
 def cap_w(what):
-    """A cap's width, its frame in it: a picture's 14, a word's its letters and 3 px each side."""
-    return CAP_MIN if what.startswith("@") else max(CAP_MIN, px_of(what) + 2 * (CAP_PAD + 1))
+    """A cap's width, its frame in it: a picture's or a letter's 14, a word's its letters and 3 px each side."""
+    return CAP_MIN if what.startswith("@") or len(what) == 1 else px_of(what) + 2 * (CAP_PAD + 1)
 
 
 def chord_w(label):
@@ -531,7 +534,7 @@ class Item:
     def __init__(self, key, kind, x, y, w, h, row, **kw):
         self.key, self.kind, self.x, self.y, self.w, self.h, self.row = key, kind, x, y, w, h, row
         self.kanji = self.icon = self.glyph = self.seal = self.vcol = None
-        self.lit = self.muted = self.scrolls = self.on = self.big = False
+        self.lit = self.muted = self.scrolls = self.on = self.big = self.absent = False
         self.name = self.value = self.tip = self.detail = self.keys = self.accel = self.confirm = ""
         self.__dict__.update(kw)
 
@@ -565,11 +568,12 @@ def quick_rows(s):
     dnd, night, saver = s.get("dnd", "off"), s.get("night", "off"), s.get("saver", "off")
     vrr, vrr_on = vrr_shown(s)
     screen = [("theme", "@moon" if dark else "@sun", "theme", "dark" if dark else "light", False, None, "Super+Shift+W"),
-              ("night", "@andon", "night light", "" if night == "off" else night, night != "off", night != "off", ""),
+              ("night", "@andon" if night == "off" else "@andon-on", "night light", "" if night == "off" else night,
+               night != "off", night != "off", ""),
               ("dnd", "@bell-off" if dnd != "off" else "@bell", "do not disturb", "" if dnd in ("on", "off") else dnd,
                dnd != "off", dnd != "off", ""),
               ("saver", "@saver", "screensaver", "" if saver == "off" else saver, saver != "off", saver != "off", ""),
-              ("vrr", "@wave", "freesync", vrr, vrr_on, vrr_on, ""),
+              ("vrr", "@wave", "freesync", "" if vrr == "off" else vrr, vrr_on, vrr_on, ""),
               ("wallpaper", "@fuji", "wallpaper", s.get("wallpaper", ""), False, None, "Super+W")]
     links = [("network", {"ethernet": "@ethernet", "wifi": "@wifi"}.get(net, "@offline"), "network",
               s.get("network", "offline"), False, None, "")]
@@ -581,11 +585,13 @@ def quick_rows(s):
               ("backup", "@kura", "backup", s.get("backup", "not set up"), False, None, "")]
     rec = s.get("record") == "on"
     capture = [("screenshot", "@camera", "screenshot", "", False, None, "Print"),
-               ("record", "@record", "record", "recording" if rec else "", rec, None, "Super+Shift+R"),
+               ("record", "@record-on" if rec else "@record", "record", "recording" if rec else "", rec, None, "Super+Shift+R"),
                ("ocr", "@scroll", "read text", "", False, None, "Super+Shift+X")]
-    power = [("screenoff", "@screen-off", "screen off", "", False, None, ""),
+    # (the lights — the case's, the cooler's, the keyboard's: a switch of kawa-rgb's, once kawa-quick reports it)
+    session = [("rgb", "@ember", "lights", "", s["rgb"] == "on", s["rgb"] == "on", "")] if "rgb" in s else []
+    session += [("screenoff", "@screen-off", "screen off", "", False, None, ""),
              ("power", "@power", "power", "", False, None, "Super+Shift+E")]
-    return [("screen", screen), ("connect", links), ("capture", capture), ("power", power)]
+    return [("screen", screen), ("connect", links), ("capture", capture), ("session", session)]
 
 
 class Layout:
@@ -1016,11 +1022,6 @@ def layout_menu(m):
                   [], marks, (top, view_h, height) if view_h < height else None)
 
 
-def bri_icon(pct):
-    """Brightness's icon for a level: the bar's own (kawa-brightness: a fifth each)."""
-    return f"bri_{min(4, pct // 20)}" if pct is not None else "bri_0"
-
-
 def instrument(key, x0, y, r, pic, name, s, muted=False):
     """A level as an instrument (§4): its picture, its name, its number over the meter's forty
     segments — two rows, one choice."""
@@ -1037,7 +1038,7 @@ def device_pic(pre, label):
     """A sound device's picture, by what its short name says it is: each its own, none repeated for nothing."""
     low = label.lower()
     if pre == "in":
-        return "@jack" if " mic" in low or low.endswith("line in") else "@input"
+        return "@jack" if low.endswith((" mic", "line in")) else "@input"
     return "@headphones" if "bluetooth" in low else "@monitor" if "hdmi" in low or "dp" in low.split() else "@jack"
 
 
@@ -1060,7 +1061,8 @@ def layout_quick(s):
         y += ROW
         for key, pic, name, value, on, seal, keys in rows:
             items.append(Item(key, "row", x0, y, INNER, ROW, r, glyph=pic, name=name, on=on, seal=seal, keys=keys,
-                              value=fit(value, QUICK_VALUE), vcol=x0 + INNER - RIGHT_IN - QUICK_MARKS - GAP))
+                              value=fit(value, QUICK_VALUE), vcol=x0 + INNER - RIGHT_IN - QUICK_MARKS - GAP,
+                              absent=value in ABSENT))
             y += ROW
             r += 1
     y += PAD + BORDER
@@ -1256,10 +1258,10 @@ def look(it, focused, hot):
                 "glyph": "strong", "label": "text_on_select", "value": "strong" if it.on else "text", "detail": "text"}
     return {"fill": None if bare else "key", "edge": None, "frame": None if bare else "edge",
             "glyph": "strong" if it.lit or it.on else ("muted" if bare else "text"),
-            "label": "strong" if it.lit else "text", "value": "strong" if it.on else "muted", "detail": "text"}
+            "label": "strong" if it.lit else "text", "value": "strong" if it.on else "faint" if it.absent else "muted", "detail": "text"}
 
 
-SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver")   # done in place: the panel stays
+SWITCHES = ("theme", "night", "vrr", "bluetooth", "dnd", "saver", "rgb")   # done in place: the panel stays
 WHEELED = {"night": ("warmer", "cooler")}   # a row the wheel changes: the night light's warmth
 OPENERS = ("network", "devices", "drives", "backup", "wallpaper", "screenshot", "record", "ocr", "screenoff", "power")
 METERS = ("brightness", "sound")
@@ -1657,8 +1659,8 @@ class Panel:
         None: not there (its name: what the name does)."""
         off = x - self.slider_x(item)
         segs = BIG_SEGS if item.big else SEGS
-        if not held and not (-CELL <= off < segs * CELL + CELL):
-            return None
+        if not held and (not (-CELL <= off < segs * CELL + CELL) or (item.big and y < item.y + ROW)):
+            return None                               # (an instrument's name and number: not its meter)
         return level_at(off, segs)
 
     # keys
@@ -2282,6 +2284,8 @@ def main(argv):
         # its border in line with a window's there), the others under their module
         # (a menu not dropped from the bar — power, help, change —: no anchor, the middle)
         side, margin, out_x = panel.place
+        if side == "centre":                     # (the screen's own middle: not the area the bar leaves — 13 px lower)
+            GtkLayerShell.set_exclusive_zone(win, -1)
         if side == "middle":                     # (the top alone: centred on its output)
             GtkLayerShell.set_anchor(win, GtkLayerShell.Edge.TOP, True)
             GtkLayerShell.set_margin(win, GtkLayerShell.Edge.TOP, 8)
@@ -2751,9 +2755,10 @@ def main(argv):
         pictures ("@name", on the 16 px grid, centred in the column and the row), or a glyph of
         the icon font (its ink centred, on the letters' line)."""
         if ref.startswith("@"):
-            s = pic_surface(ref[1:], ink)
-            if s is not None:
-                pic(cr, ref[1:], x + (GLYPH_COL - s.get_width()) // 2, y + (ROW - s.get_height()) // 2, ink)
+            box_ = pic_ink(pics.get(ref[1:]))
+            if box_:
+                ix, iy, iw, ih = box_
+                pic(cr, ref[1:], x + (GLYPH_COL - iw) // 2 - ix, y + (ROW - ih) // 2 - iy, ink)
         elif ref:
             glyph(cr, x, y + (ROW - LINE) // 2, ref, ink)
 
@@ -3158,7 +3163,7 @@ def main(argv):
             sx, sy = Panel.slider_x(it), it.y + ROW + (ROW - SEG_H) // 2 - 2
             segments(cr, it.muted, sx, sy, pct, BIG_SEGS)
             for i in range(0, BIG_SEGS + 1, BIG_SEGS // 4):     # (its scale: a tick each quarter, under the meter)
-                box(cr, min(sx + i * CELL, sx + (BIG_SEGS - 1) * CELL + SEG_W - 1), sy + SEG_H + 1, 1, 2, "edge2")
+                box(cr, min(sx + i * CELL, sx + (BIG_SEGS - 1) * CELL + SEG_W - 1), sy + SEG_H + 1, 1, 2, "faint")
         elif it.kind == "meter":
             pct = percent(it.value)
             row_icon(cr, it.x + GLYPH_X, it.y, ic.get(it.icon, it.icon) if it.icon else "", lk["glyph"])
@@ -3220,11 +3225,11 @@ def main(argv):
             else:
                 glyph(cr, it.x, it.y, g, lk["glyph"], it.w, it.h)
 
-    # a seal tile's rim: which pixels the carving lost (each seal the same hand), x, y on its 56 × 56
-    CHIPS = ((14, 0), (15, 0), (41, 1), (0, 22), (1, 37), (55, 12), (54, 40), (55, 41), (30, 55), (31, 54))
+    # a seal tile's rim: which pixels the carving lost (each seal the same hand), x, y on its 64 × 64
+    CHIPS = ((16, 0), (17, 0), (47, 1), (0, 25), (1, 42), (63, 14), (62, 46), (63, 47), (34, 63), (35, 62))
 
     def seal_tile(cr, it, focused):
-        """A dialog's tile (§4): a square seal 56 px, its corners stepped. Inked under the cursor — the seal's
+        """A dialog's tile (§4): a square seal 64 px, its corners stepped. Inked under the cursor — the seal's
         red, the picture carved out in the paper's ink; blank else — the key's paper in a 2 px rim, the picture in
         its muted ink; the first press of one that asks for a second: lit, the foot asks. The word under it."""
         x, y, S = it.x, it.y, TILE
