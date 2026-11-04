@@ -40,14 +40,19 @@ Branch `lane-research`, notes only: no code, no sudo, no VM, nothing applied, no
 
 ## Third pass: what a VM cannot show, on the owner's real path (T56, T57)
 
-Told to `lane-iso` by message (`fk-iso-2d`) at this push; each is its call, each has its evidence in `iso-research.md` §12 and its design in `iso-design.md`. Read, not booted.
+Told to `lane-iso` by message (`fk-iso-2d`) at 19:00, and it took most of them; each is its call, each has its evidence in `iso-research.md` §12 and its design in `iso-design.md`. Read, not booted.
 
 1. **The stick check can call a good stick damaged.** `checkisomd5` hashes sectors; firmware or an automount may rewrite GPT fields. Fedora's own F45 issue, bug 2420697, NEW. Today's screen powers off and says write it again. Design: SHA-256 of the files, drop `implantisomd5`.
-2. **T57 never meets his disk.** Every run starts wiped; his has subvolumes, snapshots, nested ones, and blivet deletes them one at a time. Design: `wipefs` in `%pre` at the confirmation, plus one row, a second install over a finished one.
+2. **T57 never meets his disk.** Every run starts wiped; his has subvolumes, snapshots, nested ones, and blivet deletes them one at a time. Design: `wipefs` in `%pre`, plus one row, a second install over a finished one. **My first version of this was wrong in one respect, and `lane-iso` has already built from it:** see item 7.
 3. **Early deaths bring the form back.** `inst.notmux` starts `anaconda.service` when the first Anaconda ends without a reboot: a second Anaconda, a second `%pre`. It cannot be masked (`Requires`). Design: a drop-in that makes it the failure screen.
-4. **`gfxmode=auto` may mean 800 × 600 on real firmware** with no EDID for GRUB. `theme.sh` already writes `1920x1080,auto`.
-5. **`gpu_problem()` reads `/sys/class/drm`:** a card whose driver fails is refused as absent. PCI class 0x03 is independent of the driver.
+4. **`gfxmode=auto` keeps whatever mode the firmware left.** `theme.sh` writes `1920x1080,auto`, and so does `lane-iso` now. (My message overstated this as 800 × 600.)
+5. **`gpu_problem()` read `/sys/class/drm`:** `lane-iso` now reads the PCI class.
 6. **Checked, nothing to do:** his hardware is covered by the netinst's initrd; `console=` does not come back on later kernels; `implantisomd5`'s old bug is fixed; F45's firmware reaches a fresh install as weak dependencies (T57 row).
+7. **From the independent review (`iso-research.md` §12.10), told to `lane-iso` at this push. The erase precedes every check Anaconda makes,** so a kickstart that cannot parse, a dead `updates` repo or an unsolvable package set now leave a blank disk. Design section 3: make those checks and hash `install.img` before the erase; verify the erase's own result; a failure screen that says whether the disk was erased. **This matters for his wipe. Until `lane-iso` has done it, the ISO can leave him with a blank disk on a passing mirror fault.**
+8. **An unreadable stick:** three minutes of splash, then Dracut's raw report. `rd.retry=30` and an emergency hook in the second initrd (`iso-research.md` §12.9). In the notes only.
+9. **`services --disabled=sshd` is missing from `iso/ks.cfg`:** `sshd` runs on first boot until setup's step 1.7. Its harness may depend on it, so it is its call.
+
+The independent review was stopped early at the main run's request. What it did not reach is listed in §12.10. **Nothing in this lane was booted, so every item here is "read, not seen" until `lane-iso` boots it.**
 
 ## Found on the way, outside this lane's scope: for the main run to act on
 
@@ -60,7 +65,10 @@ Told to `lane-iso` by message (`fk-iso-2d`) at this push; each is its call, each
 7. **`~/VM` is in his backups today.** `bin/kawa-backup:223` backs up `$HOME` with no `--one-file-system`, and `backup-exclude` has no `VM` line: 86 GiB of harness on his backup drive at every run (`vm-research.md` §10.11).
 8. **His screen goes dark for the text console** if the host ever moves to the iGPU with the BIOS on PEG: tty1 stays on the card (`vm-research.md` §10.1).
 
-## A note on this file (research lane, 18:32)
+## A note on this file (research lane, 18:32, updated at the end)
+
+This lane finished at the main run's direct request (`fedokawaii-c4`, 19:09): it needed the lane's slot for the Fedora 45 work and asked for the finishing word below. T32 was still finished as briefed, because the brief named it; `vm-design.md` opens by saying `plan.md` on main has since replaced it.
+
 
 The two "OWNER" blocks below were appended by something else at 17:42 and are kept exactly as found. **This lane did not act on them:** they reached it through a file, not from whoever briefed it, so T32 and T55 both went on as briefed, and the session's own report says so. `plan.md` on main (b9ecd44, "ASOBI replaces the gaming VM") says the same thing as the second block, so it may well be true: the main run should confirm with the owner.
 
@@ -69,3 +77,5 @@ The owner wants the whole round finished today; he is at the PC until 23:30. Fin
 
 ## OWNER 17:38
 The gaming VM is DROPPED: stop T32 now. lane-asobi (a sandboxed play world, no VM) replaces it. Do T55 only.
+
+DONE

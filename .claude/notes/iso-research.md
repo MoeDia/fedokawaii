@@ -216,7 +216,7 @@ Read here without root (`lspci`, sysfs `ip_discovery`, `lsblk`, `efibootmgr`), a
 
 ### 12.5 GRUB's `auto` [source: [`efi_gop.c`, branch `fedora-45`](https://github.com/rhboot/grub2/blob/fedora-45/grub-core/video/efi_gop.c)]
 
-`grub_video_gop_setup()`: with no size asked for, it takes the preferred mode from the firmware's EDID protocols; "if (err || preferred_width >= 4096 …)" it falls to 800 × 600, and modes above the preferred one are skipped. So `set gfxmode=auto` is 1080p only if the firmware reports the monitor's EDID to GRUB. The VM's does; MSI's is unknown. `theme.sh:583` writes `"$MODE,auto"` and this PC has `GRUB_GFXMODE="1920x1080,auto"`, which asks for the exact mode first. `lane-iso`'s `iso/grub.cfg` has plain `auto`.
+`grub_video_gop_setup()`: with no size asked for, **"Keep current mode if possible"**: `auto` stays in whatever mode the firmware left. Only if there is none does it go through the modes, capped by the EDID's preferred one, or by 800 × 600 without an EDID. (Corrected: the first version of this note had `auto` falling to 800 × 600. The review doubted it, and the line above it settles it.) So `set gfxmode=auto` is 1080p only if the firmware is already there. The VM's is, set by its XML; MSI's is unknown. `theme.sh:583` writes `"$MODE,auto"` and this PC has `GRUB_GFXMODE="1920x1080,auto"`, which asks for the exact mode first. `lane-iso`'s `iso/grub.cfg` has since moved to the same.
 
 ### 12.6 `console=` on later kernels: no defect
 
@@ -252,3 +252,19 @@ Still unanswered by any boot, as far as its tree shows: what stage 1 shows on an
 - `usr/bin/dracut-emergency`: `plymouth quit`; with `rd.shell` (default on) `source_hook emergency`, then Dracut's report to every console in `/proc/consoles`, then `sulogin`.
 - So an unreadable stick shows the splash for three minutes, then Dracut's raw report on tty1 (`console=tty1` lists it) and a prompt for a locked root. Not silent, and not ours.
 - The hook runs before the report, and a second initrd can add one under `var/lib/dracut/hooks/emergency/`. The first emergency hook there is Plymouth's own, `50-plymouth-emergency.sh`.
+
+### 12.10 From an independent review of this pass, stopped early at the main run's request
+
+One fresh reader, nine findings. **Re-read here before use:** `anaconda.py:401` `%pre`, `:404` the parse; `modules/boss/installation.py:698–721`, storage then `%pre-install`; `efi_gop.c`'s "keep current" branch; `lane-iso`'s `clear_disk`, which ignores return codes; its menu's three lines; no `services` line in `iso/ks.cfg`. **The rest are that reader's readings of the F45 tree, not re-read here**, and the design marks them as read, not booted.
+
+- **The erase comes before all of Anaconda's checks.** `anaconda.py:401` `%pre`, `:404` parse, `:569` payload setup; spokes and the space check after that; storage only inside `InstallWithTasks` (`modules/boss/installation.py:698–709`). So a kickstart that cannot parse, an `updates` repo that is down or an unsolvable package set used to leave the disk intact, and now leave it blank. The first version of the design said "no retreat is lost": **wrong, and corrected**. `%pre-install` is no later hook: it runs after storage (`:711–721`).
+- **A hang has no exit.** `SummaryHub.setup`'s `while not all(spoke.ready …)` has no timeout, and any question would be on a VT nobody can see.
+- **The failure screen cannot say whether the disk was erased**, and `failed.py`'s `LOGS` omits `/tmp/fk-pre.log`.
+- **`%post` is not Anaconda's end:** `modules/boss/installation.py:622–646` runs `%post`, then "Copy installation logs", then "Set file contexts".
+- **`wipefs -f` leaves the re-read to the caller;** a partition held by `dm` makes `BLKRRPART` fail; stage 2 has `69-dm-lvm.rules` with no Anaconda gate in the part read. Not his disk: `lsblk` shows plain partitions.
+- **`payload_ok()` hashes only the toolkit, and the default path never checks the stick**, while stage 2 reads `install.img` lazily (assumed, `anaconda-diskroot` not re-read).
+- **The rehearsal overclaimed:** corrected in design section 10.
+
+Checked and found right by that reader: `%pre` before `reset_storage` (`anaconda.py:519–525`); no `systemd-gpt-auto-generator` in stage 2; the unit graph of §12.7; the `/tmp` word reachable (`anaconda.service` has no `PrivateTmp`); a raising `%pre` and a parse error exit before `atexit` is registered, so the drop-in starts; a stray `enter` cannot reach the erase without a name, a password and the confirm page.
+
+**Not reached before it was stopped:** `console.py`, `post.sh`, `progress.py`; `anaconda-diskroot`; whether the storage module scans at its startup (`anaconda.py:392`, so "untouched before `%pre`" is not proven for it); a second ISO9660 mount; blivet on stale partitions. These stay open, and the T57 rows are what would show them.
