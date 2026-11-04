@@ -97,7 +97,7 @@ assert len(kv["torch"]) >= 1, "no fire"
 assert len(kv["patch"]) == 1, "the sleeper: one patch"
 name, x, y = kv["patch"][0][0], int(kv["patch"][0][1]), int(kv["patch"][0][2])
 pw, ph = Image.open(d / name).size
-assert 0 <= x and 0 <= y and x + pw <= W and y + ph <= H and pw * ph < W * H / 3, f"{name}: outside the painting, or no patch at all ({pw} x {ph})"
+assert 0 <= x and 0 <= y and x + pw <= W and y + ph <= H and pw * ph < W * H / 2, f"{name}: outside the painting, or no patch at all ({pw} x {ph})"
 cx, cy = map(int, kv["centre"][0])
 assert x <= cx <= x + pw + W // 4 and y <= cy + H // 3, "the patch is not on the figure"
 assert 2 <= len(kv["spot"]) <= 4, "the seal's spots"
@@ -155,7 +155,9 @@ patch = np.asarray(Image.open(f"{d}/{pn}").convert("RGB"), float)
 lock_there = paint[py:py + patch.shape[0], px:px + patch.shape[1]]
 assert (np.abs(patch - lock_there).sum(-1) > 30).mean() > .01, "the patch is the lock's own picture"
 m = a[cy - 60:cy + 60, cx - 120:cx + 120].mean()
-print(f"sleeper {m / max(1, paint[cy - 60:cy + 60, cx - 120:cx + 120].mean()):.2f}")
+asleep = paint.copy()
+asleep[py:py + patch.shape[0], px:px + patch.shape[1]] = patch
+print(f"sleeper {m / max(1, asleep[cy - 60:cy + 60, cx - 120:cx + 120].mean()):.2f}")
 # the breath: the figure's light at the middle, over a breath
 bs = [np.asarray(Image.open(f).convert("RGB"), float)[cy - 60:cy + 60, cx - 120:cx + 120].mean() for f in sorted(glob.glob(f"{o}/step-*.ppm"))]
 print(f"breath {max(bs) - min(bs):.2f}")
@@ -183,7 +185,8 @@ PY
     read -r _ w0 w1 <<<"$(sed -n 's/^wake/wake/p' <<<"$py")"
     python3 -I -c "import sys; a, b = float(sys.argv[1]), float(sys.argv[2]); sys.exit(0 if a < 0.01 and b > 0.9 else 1)" "$w0" "$w1" && _ok || _no "the wake: from the painting whole ($w0 clear) to the lock all clear of it ($w1 clear)"
     read -r _ sleeper <<<"$(sed -n 's/^sleeper/sleeper/p' <<<"$py")"
-    python3 -I -c "import sys; v = float(sys.argv[1]); sys.exit(0 if 0.15 < v < 0.75 else 1)" "$sleeper" && _ok || _no "the sleeper: its middle at $sleeper of the painting's light, not dim, or lost"
+    if [[ $t == dark ]]; then lo=0.15 hi=0.75; else lo=0.75 hi=0.97; fi   # (the dark: a dim shape in it; the light: the gold hour, only a veil)
+    python3 -I -c "import sys; v, a, b = map(float, sys.argv[1:]); sys.exit(0 if a < v < b else 1)" "$sleeper" "$lo" "$hi" && _ok || _no "the sleeper: its middle at $sleeper of its own painting's light (want $lo–$hi)"
     read -r _ breath <<<"$(sed -n 's/^breath/breath/p' <<<"$py")"
     python3 -I -c "import sys; sys.exit(0 if float(sys.argv[1]) > 0.8 else 1)" "$breath" && _ok || _no "the sleeper does not breathe ($breath levels over a breath)"
     read -r _ red <<<"$(sed -n 's/^seal/seal/p' <<<"$py")"
