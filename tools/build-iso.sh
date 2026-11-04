@@ -62,7 +62,7 @@ done
 # ── the pictures ─────────────────────────────────────────────────────────────
 # (from the commit, not the working tree: the same bytes whatever lies around)
 mkdir "$work/src"
-git -C "$repo" archive "$commit" -- art system tools/build-iso-art.py tools/build-themes.py iso lib/common.sh | tar -xf - -C "$work/src"
+git -C "$repo" archive "$commit" -- art system tools iso lib | tar -xf - -C "$work/src"
 python3 -B "$work/src/tools/build-iso-art.py" "$work/art"
 
 # reproducible <dir> <out>: a directory as a newc cpio, sorted, its times the commit's, root's
