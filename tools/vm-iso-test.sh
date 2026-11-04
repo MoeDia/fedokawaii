@@ -19,6 +19,7 @@
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
 #   bash tools/vm-iso-test.sh again NAME ISO           the same VM and disk, started from a stick again
 #   bash tools/vm-iso-test.sh over NAME ISO            a whole run over a finished install (`i` on that page)
+#   bash tools/vm-iso-test.sh path NAME QCOW2          after a run: his things back, the update button, verify
 #   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
 #   bash tools/vm-iso-test.sh carry-check NAME QCOW2   brought back from it (a VM made with --usb QCOW2), compared
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
@@ -361,6 +362,24 @@ do_over() {
   do_follow "$name"
 }
 
+# do_path NAME CARRY — the rest of the owner's path on an installed VM (T54b 5), after its run: his things back
+# from the drive, the update button pressed, everything still green
+do_path() {
+  local name=$1 img=$2 rc
+  R=$V/$name/run; T0=$SECONDS
+  do_carry_check "$name" "$img" >"$R/carry.log" 2>&1; rc=$?
+  stage "his things back from the drive: exit $rc ($(tail -n1 "$R/carry.log" | cut -c1-80))"
+  ((rc == 0)) || return 1
+  # (what Super+U's update runs, as root: the unit of its own, its output followed here)
+  vm_ssh "$name" 'sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh update' >"$R/update.log" 2>&1; rc=$?
+  stage "the update button: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$R/update.log" | grep -E 'update|done|held|✔|✘' | tail -n1 | cut -c1-100)"
+  ((rc == 0)) || return 1
+  until vm_ssh "$name" true 2>/dev/null; do ((SECONDS - T0 > 7200)) && return 1; sleep 5; done
+  vm_ssh "$name" 'sudo fedokawaii verify' >"$R/verify-after.log" 2>&1; rc=$?
+  stage "verify after the update: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$R/verify-after.log" | grep -oE '[0-9]+ checks passed|[0-9]+ of [0-9]+ checks failed' | tail -n1)"
+  return "$rc"
+}
+
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
 # the screen says, read exactly, and a PNG of it in DIR
 do_matrix() {
@@ -417,6 +436,7 @@ case $cmd in
   matrix) do_matrix "$@" ;;
   again) name_ok "${1:-}"; do_again "$@" ;;
   over) name_ok "${1:-}"; do_over "$@" ;;
+  path) name_ok "${1:-}"; do_path "$@" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
