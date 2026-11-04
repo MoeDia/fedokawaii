@@ -37,7 +37,7 @@ The block above came into this file from outside the lane's brief; the work foll
 |---|---|
 | `tests/content/test_learn.sh` (new: cut, all lessons at 6 widths, keys, mouse, kills, bad state, fuzz) | passes |
 | `tools/regress/learn-grid.sh --bin bin --repo-art --dwl /usr/local/bin/dwl` (pixels, both moods) | held |
-| test_syntax, test_noellipsis, test_deps, test_tools, test_pipefail, test_launcher, test_help, test_config, test_report_rows, test_configs (content), test_generated, test_design_doc | pass (see "open" for test_menu) |
+| Before merging main: test_syntax, test_noellipsis, test_deps, test_tools, test_pipefail, test_launcher, test_help, test_config, test_report_rows, test_configs (content), test_generated, test_design_doc, test_menu (746/746) | pass |
 | Frames of a lesson opening and of the stamp (wf-recorder in the kit) | no blank frame, every step clean |
 | A live theme switch, foot's mode 2031 | the seal repaints in the new mood |
 | Input to the terminal's frame, by pty on this loaded PC | start 85 ms; a key 1-2 ms |
@@ -60,9 +60,10 @@ The block above came into this file from outside the lane's brief; the work foll
 
 ## What main must do
 
-1. `git merge --no-ff lane-learning`. Expect conflicts in:
+1. `git merge --no-ff lane-learning`. Main was merged into this lane at 8dfb063 and that merge had no conflict left; main
+   has moved 28 commits since. If it conflicts again, the likely places are:
    - `art/icons.txt` (both sides append: keep both), then **`python3 tools/build-icons.py`** and take its output for
-     `SumiIcons*.ttf` and `icons.sh`, which are generated and will conflict as binaries;
+     `SumiIcons*.ttf` and `icons.sh`, which are generated and conflict as binaries;
    - `system/fedokawaii`'s learning rows and `SOON` if chess and typing merged first (T25m): keep `learn` as the first row;
    - `tests/menus/test_help.sh`'s list of sheets if another lane added one;
    - `docs/fedokawaii-learn.md`: after any merge that touches the book, run `python3 tools/learn-pieces.py` and commit.
@@ -83,7 +84,6 @@ The block above came into this file from outside the lane's brief; the work foll
    Super+U → learning → Enter, a lesson, the stamp, both moods; and rebuild the PDF at T63.
 8. Run `bash tools/regress/run.sh` once: `learn-grid` joined it, so T52 has it.
 
-Nothing else is left for this lane.
 
 ## OWNER 18:49 — THE LEARN BOOK'S COVER
 The Learn book ("fedokawaii — learn") gets a real cover, shown in the PDF's first page, in Super+R's books (the cover preview) and in Super+U's Learning tab:
@@ -91,3 +91,28 @@ The Learn book ("fedokawaii — learn") gets a real cover, shown in the PDF's fi
 - the title set as real typography in a cartouche with a red hanko seal, plus a one-line subtitle; no pixel font on the cover
 - the figures come from lane-ink's chosen masters (git fetch; origin/lane-ink), placeholders until then; lane-learning builds and wires the cover; it looks right at the books menu's thumbnail size too
 - render it at full size and at thumbnail size into .claude/review/next/ for his verdict
+
+## State, 4 Nov 20:15: NOT done. Stopped for the forced reboot main announced
+
+Everything is committed and pushed. The suite on the merged tree (8dfb063) was stopped by this lane at 20:14 and never
+finished: PID 1 was stuck, memory was short and the machine was overloaded, so **none of its results below count as proof**.
+
+| Area | Result on the merged tree | What is known |
+|---|---|---|
+| content | test_fetch 4 failed, test_tiles 12 failed, the rest passed | test_fetch 94/4 and test_tiles 128/10 **fail the same on a clean 306a69c** (measured): not this lane's. The 2 more in test_tiles (btop's presets) are not explained yet; this lane did not touch btop |
+| engine | test_menu 8 failed (738 passed) | 4 are shown, all "[17  lessons]": main's own rows `carry` and `bring` make it 19 while its test says 17. **Read, not run on main.** The other 4 were cut from the log |
+| menus, static | all passed | |
+| look | test_lock 8, test_theme 1, test_units 1, test_wallpaper (count not in the log) failed | gtklock restarts, timing, swaybg: this lane touched none of them, but that is not proof either |
+| installer, session, status, drives, yazi | not run | |
+
+`test_learn` and `tools/regress/learn-grid.sh` were not part of what stopped: learn-grid held on the merged tree. test_learn last
+passed (139/139) before the merge; the content area above ran it on the merged tree and did not list it as failed.
+
+### Next step, after the boot (this lane)
+
+1. `git merge main` again; on conflict, as in "What main must do" 1; `python3 tools/build-icons.py`, `python3 tools/learn-pieces.py`.
+2. Update the count in the plain-menu test only if main has not: with `carry` and `bring`, lessons is entry 19, if the run confirms it.
+3. On a quiet machine, `nice -n 10`, never under nohup (`setsid -f`): `tests/content/test_learn.sh`, `tests/engine/test_menu.sh`,
+   `tools/regress/learn-grid.sh --bin bin --repo-art --dwl /usr/local/bin/dwl`, then `bash tests/run.sh` area by area.
+4. For each failure left, run the same test on a clean `git archive main` and say which are this lane's. Fix those.
+5. Only then end this file with the line DONE.
