@@ -254,7 +254,7 @@ do_after_upgrade() {
     step_on "nothing doubled or fighting" r_hygiene
     step_on "dwl and the libraries under it" r_dwl
     step_on "the desktop's own tools and their libraries" r_upstream
-    step_on "torrra for the new Python" torrra_up
+    step_on "torrents" torrents_up
   fi
   step_on "the theme (dwl rebuilt if needed)" r_theme
   step_on "the lock's quick answer (its PAM file: gtklock's new package writes its own)" lock_pam
