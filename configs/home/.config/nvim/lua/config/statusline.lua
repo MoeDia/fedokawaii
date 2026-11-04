@@ -129,7 +129,9 @@ function M.setup()
   -- the command line opens on this line's own row: the same rows are left for the text, so nothing
   -- above moves, and no row stays empty the rest of the time. Both options in one step, in the same
   -- frame (ui2 would close its window a tick later: a frame of this line one row too high)
+  if vim.o.cmdheight ~= 0 then return end   -- (a neovim without ui2: its own row, nothing to lend)
   local function rows(height, status)
+    if vim.v.event.cmdlevel ~= 1 then return end   -- (Ctrl+R = inside a command line: the outer one stays)
     vim.cmd("noautocmd set cmdheight=" .. height)
     vim.o.laststatus = status
   end

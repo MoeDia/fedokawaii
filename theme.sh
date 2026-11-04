@@ -1010,7 +1010,8 @@ if changed /.local/share/fonts/; then session_fonts_reload; fi
 # neovim's plugins when their list or their lock changed: each at the lock's commit, what is off
 # the list gone (the lock is this toolkit's: tested together, setup.sh nvim_restore)
 if { changed /nvim/lua/plugins/ || changed /nvim/lazy-lock.json; } && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then
-  U timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' +qa >>"$LOG_FILE" 2>&1 && ok "neovim's plugins at their lock's commits"
+  U timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' '+Lazy! load nvim-treesitter' '+lua require("config.parsers").sync()' +qa >>"$LOG_FILE" 2>&1 \
+    && ok "neovim's plugins at their lock's commits, its parsers as listed"
 fi
 # API keys live only here, read into the environment by the shell: yours alone (600)
 SECRETS=$TARGET_HOME/.config/fedokawaii/secrets.sh

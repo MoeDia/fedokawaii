@@ -1338,7 +1338,7 @@ return {{
           vim.api.nvim_set_hl(0, "StatusLineNC", {{ bg = p.line, fg = p.muted }})
           set("Key", {{ bg = p.key, fg = p.text }})
           set("Quiet", {{ bg = p.line, fg = p.muted }})
-          set("File", {{ bg = p.line, fg = p.muted, bold = true }})
+          set("File", {{ bg = p.line, fg = p.muted }})
           set("Changed", {{ bg = p.line, fg = p.yellow, bold = true }})
           set("Root", {{ bg = p.line, fg = p.teal }})
           set("Recording", {{ bg = p.line, fg = p.accent, bold = true }})

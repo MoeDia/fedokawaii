@@ -57,6 +57,27 @@ return {
     cmd = { "LspInfo", "LspLog", "LspRestart", "LspStart", "LspStop" },
   },
 
+  -- parsers and their text objects with the first file: the first screen has none to read
+  {
+    "nvim-treesitter/nvim-treesitter",
+    lazy = true,
+    event = function() return { "LazyFile" } end,
+  },
+  {
+    "nvim-treesitter/nvim-treesitter-textobjects",
+    event = function() return { AFTER_FIRST_FRAME } end,
+  },
+  -- the tabs with the second file: LazyVim's option already hides them until there is one
+  {
+    "akinsho/bufferline.nvim",
+    event = function() return { vim.fn.argc(-1) > 1 and "VeryLazy" or "BufAdd" } end,
+  },
+  -- the closing bracket with the first bracket typed
+  {
+    "nvim-mini/mini.pairs",
+    event = function() return { "InsertEnter", "CmdlineEnter" } end,
+  },
+
   -- the signs come a moment after the text, as they always did: git answers later anyway
   {
     "lewis6991/gitsigns.nvim",
