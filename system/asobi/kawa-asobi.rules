@@ -12,7 +12,7 @@ polkit.addRule(function (action, subject) {
     return polkit.Result.NOT_HANDLED;
   }
   if (subject.user == "asobi") {
-    var allowed = ["org.freedesktop.login1.chvt", "org.freedesktop.RealtimeKit1.acquire-realtime",
+    var allowed = ["org.freedesktop.login1.chvt", "org.freedesktop.RealtimeKit1.acquire-real-time",
                    "org.freedesktop.RealtimeKit1.acquire-high-priority",
                    "com.feralinteractive.GameMode.governor-helper",
                    "com.feralinteractive.GameMode.gpu-helper",

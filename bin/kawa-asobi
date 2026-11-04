@@ -149,11 +149,10 @@ snaps() {
       work "deleting $name" "delete:$name"
       continue
     fi
-    choice=$(printf '%s\t%s\n%s\t%s\n' back "$(screen_row "$ICON_CHEVRON_LEFT" "keep the world as it is" "" "$(screen_width)")" \
-      yes "$(screen_row "$ICON_UNDO" "reset it to $name" "" "$(screen_width)")" \
-      | fzf --ansi --no-sort --no-input --height=100% --delimiter=$'\t' --with-nth=2 \
-          --header="$(screen_heading "$ICON_KOMA" "reset to a snapshot" "$(screen_width)")"$'\n\n'"the world closes and becomes $name; what it is now stays as a snapshot, before-reset."$'\n ' \
-      </dev/null) || continue
+    choice=$(fzf --ansi --no-sort --no-input --height=100% --delimiter=$'\t' --with-nth=2 \
+      --header="$(screen_heading "$ICON_KOMA" "reset to a snapshot" "$(screen_width)")"$'\n\n'"the world closes and becomes $name;"$'\n'"what it is now stays as a snapshot, before-reset."$'\n ' \
+      < <(printf '%s\t%s\n%s\t%s\n' back "$(screen_row "$ICON_CHEVRON_LEFT" "keep the world as it is" "" "$(screen_width)")" \
+            yes "$(screen_row "$ICON_UNDO" "reset it to $name" "" "$(screen_width)")")) || continue
     [[ ${choice%%$'\t'*} == yes ]] || continue
     work "resetting to $name" "reset:$name"
   done

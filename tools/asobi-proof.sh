@@ -172,7 +172,12 @@ vt_proof() {
   card=$(for c in /sys/class/drm/card[0-9]*-*/status; do [[ $(cat "$c") == connected ]] && { c=${c%%-*}; echo "${c##*/card}"; break; }; done)
   cat "/sys/kernel/debug/dri/$card/state" >"$OUT/drm-state.txt" 2>&1
   holds "the screen at 1920x1080, 144 Hz" bash -c 'grep -A8 "crtc\[" '"$OUT"'/drm-state.txt | grep -E "active=1" >/dev/null && grep -qE "mode:.*\"1920x1080\": 144" '"$OUT"'/drm-state.txt'
-  holds "FreeSync on (the card's own word)" grep -q 'vrr_enabled=1' "$OUT/drm-state.txt"
+  "$DESK_HOME/.local/bin/kawa-display" --vrr >"$OUT/vrr.txt" 2>&1
+  holds "FreeSync on (the card's own word: VRR_ENABLED)" grep -qP '\tyes\ton' "$OUT/vrr.txt"
+  inside_user gamemoded -s >"$OUT/gamemode.txt" 2>&1
+  holds "GameMode on"                    grep -q 'is active' "$OUT/gamemode.txt"
+  holds "the card at its full clocks"    test "$(cat "/sys/class/drm/card$card/device/power_dpm_force_performance_level")" = high
+  holds "the desktop's idle held"        bash -c 'systemd-inhibit --list --no-pager --no-legend | grep -q "asobi.*idle"'
   { inside_user wpctl status; } >"$OUT/world-sound.txt" 2>&1
   holds "the sound card is the world's"  grep -q 'Audio/Sink\|Analog Stereo\|Digital Stereo' "$OUT/world-sound.txt"
   env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" runuser -u "$DESK" -- wpctl status >"$OUT/desk-sound-away.txt" 2>&1
@@ -186,7 +191,8 @@ vt_proof() {
   holds "Super+G: the desktop in front"  test "$(cat /sys/class/tty/tty0/active)" = tty1
   if [[ $(cat /sys/class/tty/tty0/active) != tty1 ]]; then chvt 1; sleep 1.5; fi
   sleep 2.5
-  holds "the watch knows"                bash -c '[[ $(cat /run/kawa-asobi/state) == @(away|frozen) ]]'
+  holds "the watch knows"                bash -c 'shopt -s extglob; [[ $(cat /run/kawa-asobi/state) == @(away|frozen) ]]'
+  never "the desktop's idle free again"  bash -c 'systemd-inhibit --list --no-pager --no-legend | grep -q "asobi.*idle"'
   env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" runuser -u "$DESK" -- wpctl status >"$OUT/desk-sound-back.txt" 2>&1
   holds "the sound card is yours again"  grep -q 'Analog Stereo' "$OUT/desk-sound-back.txt"
   echo "in again, and out by Steam's own exit"

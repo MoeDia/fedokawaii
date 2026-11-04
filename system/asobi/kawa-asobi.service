@@ -7,7 +7,7 @@
 [Unit]
 Description=ASOBI: the play world
 Conflicts=getty@tty8.service kawa-asobi-bottles.service
-After=getty@tty8.service systemd-user-sessions.service
+After=getty@tty8.service systemd-user-sessions.service user@ASOBI_UID.service
 Wants=kawa-asobi-watch.service
 StartLimitIntervalSec=0
 

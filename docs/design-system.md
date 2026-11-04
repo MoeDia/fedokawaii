@@ -625,6 +625,7 @@ numbers here against its files.
 | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
 | help | Super+/ | `bin/kawa-help` | T23 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
+| the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
 
 ## 15. The grill list
 

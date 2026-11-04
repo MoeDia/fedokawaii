@@ -20,7 +20,7 @@ as_asobi() {   # as_asobi CMD… — as the world's user, with a clean environme
 # the account: no password (locked), no shell, no wheel, no subordinate ids; its home made first, as
 # a subvolume, so the snapshots can hold it whole and /home's own snapshots and backups cannot
 asobi_account() {
-  [[ $(stat -f -c %T /home) == btrfs ]] || die "the play world needs /home on Btrfs (it is $(stat -f -c %T /home))"
+  [[ $(findmnt -no FSTYPE --target /home) == btrfs ]] || die "the play world needs /home on Btrfs (it is $(findmnt -no FSTYPE --target /home))"
   getent group gamemode >/dev/null || systemd-sysusers gamemode.conf
   if ! btrfs subvolume show "$ASOBI_HOME" >/dev/null 2>&1; then
     [[ -e $ASOBI_HOME ]] && die "$ASOBI_HOME is there and is no subvolume: moved away by hand, it can be made"
@@ -138,6 +138,6 @@ s_asobi() {
   modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
   asobi_base
   asobi_flatpaks
-  asobi_host_out
   asobi_clean
+  asobi_host_out
 }

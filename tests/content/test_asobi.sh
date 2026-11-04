@@ -152,6 +152,7 @@ stub pgrep "echo $g"
 reset_calls; root watch; eq "$RC" 0 "$OUT"
 kill "$g" 2>/dev/null; wait "$g" 2>/dev/null
 called 'thaw app.slice'; called '^systemd-inhibit --what=idle'; called 'freeze app.slice'
+called 'set-property --runtime user-[0-9]*.slice CPUWeight=400'; called 'set-property --runtime user-[0-9]*.slice CPUWeight=50'
 eq "$(cat "$KAWA_ASOBI_RUN/state")" frozen
 case_ "the watch: behind with Steam alone: it goes on working (a download)"
 stub pgrep 'echo 1'

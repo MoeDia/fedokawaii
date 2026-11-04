@@ -89,11 +89,14 @@ as_desk() {
   runuser -u "$d" -- env "HOME=$(getent passwd "$d" | cut -d: -f6)" "XDG_RUNTIME_DIR=/run/user/$u" \
     "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$u/bus" "PATH=$(getent passwd "$d" | cut -d: -f6)/.local/bin:/usr/local/bin:/usr/bin" "$@"
 }
+weight() { systemctl set-property --runtime "user-$(uid).slice" "CPUWeight=$1" "IOWeight=$1" 2>/dev/null; }
 in_front() {
+  weight 400            # (the world's share of the machine, ahead of whatever the desktop left running)
   [[ -n $INHIBIT ]] || { systemd-inhibit --what=idle --who=asobi --why="the play world is in front" sleep infinity >/dev/null 2>&1 & INHIBIT=$!; }
   as_desk kawa-hush on game 2>/dev/null
 }
 behind() {
+  weight 50             # (and behind the desktop: a download gives way)
   [[ -n $INHIBIT ]] && { kill "$INHIBIT" 2>/dev/null; INHIBIT=""; }
   as_desk kawa-hush off game 2>/dev/null
 }
@@ -154,6 +157,7 @@ poststop() {
   # (the screen first, as the world's last act: the desktop back at once, the rest behind it)
   [[ $(front_vt) == "$WORLD_VT" ]] && chvt "$DESK_VT"
   loginctl terminate-user "$WHO" 2>/dev/null
+  weight 100
   wall_down
   input_wall_down
   as_desk kawa-hush off game 2>/dev/null
