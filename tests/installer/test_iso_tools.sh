@@ -134,8 +134,9 @@ elif case == "clear":
         out = "/dev/nvme0n1\n/dev/nvme0n1p1\n/dev/nvme0n1p2\n" if cmd[0] == "lsblk" else ""
         return types.SimpleNamespace(stdout=out, returncode=0)
     q.run = rec_run
-    q.clear_disk("nvme0n1")
-    wiped = [c[-1] for c in calls if c[0] == "wipefs"]
+    q.ERASED = sys.argv[4] + "/erased"
+    q.clear_disk(None, "nvme0n1")
+    wiped = [c[-1] for c in calls if c[0] == "wipefs" and c[1] == "-a"]
     assert wiped == ["/dev/nvme0n1p2", "/dev/nvme0n1p1", "/dev/nvme0n1"], wiped
     assert ("blockdev", "--rereadpt", "/dev/nvme0n1") in calls, calls
 elif case == "answers":
@@ -187,7 +188,7 @@ else skip "pykickstart is not here"; fi
 lacks "$(cat "$REPO/iso/ks.cfg")" sshpw "no back door in the product"
 
 case_ "what happens to the chosen disk: every partition blank, the deepest first, the disk last; nothing else"
-python3 -I -B "$TMP/q.py" "$A" "$REPO" clear && _ok || _no "the wipe"
+python3 -I -B "$TMP/q.py" "$A" "$REPO" clear "$TMP" && _ok || _no "the wipe"
 
 case_ "the first start: nothing of the installer stays, and no console=tty1 on the installed system"
 p=$(cat "$REPO/iso/screens/post.sh")

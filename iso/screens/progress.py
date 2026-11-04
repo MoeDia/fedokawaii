@@ -14,6 +14,7 @@ from console import ACCENT_TEXT, MUTED, TEXT, WIDTH, G, Screen  # noqa: E402
 
 SYSLOG = "/tmp/syslog"
 FRAMES = ("hg-0", "hg-1", "hg-2", "hg-3", "hg-4")
+STUCK = 900                      # seconds of nothing from Anaconda before the screen says so
 # how the meter is shared out: a slow disk and a fast line, or the other way round, come out about right
 DOWNLOAD, INSTALL = 40, 90       # the meter's percent when each has finished
 # what the installer is at, in our words: the first that fits a line of its own
@@ -81,6 +82,8 @@ def main():
     pos = 0
     drawn = None
     frame = 0
+    moved = time.monotonic()
+    said = False
 
     def page():
         s.clear()
@@ -95,6 +98,14 @@ def main():
         text, pos = lines_since(pos)
         for line in text.splitlines():
             state.read(line)
+        if text:
+            moved = time.monotonic()
+            if said:
+                said = False
+                s.clear_row(top + 12, s.left - 1, WIDTH + 2)
+        elif not said and time.monotonic() - moved > STUCK:
+            said = True
+            s.at(top + 12, s.left, "nothing has moved for 15 minutes. holding the power button is safe; start again.", MUTED)
         now = (state.word, state.count, int(state.percent))
         if now != drawn:
             drawn = now

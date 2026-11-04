@@ -9,7 +9,8 @@ import sys
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from console import Screen, message_page, power_off, wrap  # noqa: E402
 
-LOGS = ("/tmp/anaconda.log", "/tmp/packaging.log", "/tmp/storage.log", "/tmp/program.log")
+LOGS = ("/tmp/fk-pre.log", "/tmp/anaconda.log", "/tmp/packaging.log", "/tmp/storage.log", "/tmp/program.log")
+ERASED = "/tmp/fk-disk-erased"     # (questions.py: the disk it erased)
 
 
 def reason():
@@ -43,7 +44,12 @@ def main():
         return
     stop_progress()
     s = Screen()
-    lines = wrap("the installation stopped. the disk may hold a part of it; nothing else on this PC was changed.")
+    try:
+        with open(ERASED, encoding="ascii") as f:
+            what = f"{f.read().strip()} was erased and holds a part of it; nothing else on this PC was changed."
+    except OSError:
+        what = "no disk was touched."
+    lines = wrap(f"the installation stopped. {what} start again from the stick.")
     why = []
     for r in reason():
         why += wrap(r)

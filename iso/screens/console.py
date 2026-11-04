@@ -8,6 +8,7 @@ boot runs this before anything else is installed.
 """
 import contextlib
 import fcntl
+import glob
 import os
 import select
 import struct
@@ -43,11 +44,22 @@ def sgr(ink, ground=GROUND):
     return f"\033[0;{bright}{30 + (ink & 7)};{40 + ground}m"
 
 
+def fbcon_bound():
+    """The kernel's graphical console has taken over (its driver is bound to a VT console)."""
+    for d in glob.glob("/sys/class/vtconsole/vtcon*"):
+        try:
+            with open(f"{d}/name", encoding="ascii") as n, open(f"{d}/bind", encoding="ascii") as b:
+                if "frame buffer" in n.read() and b.read().strip() == "1":
+                    return True
+        except OSError:
+            pass
+    return False
+
+
 class Screen:
-    """A VT of our own, behind whatever shows now: dressed there, and brought forward at the first page
-    (clear() calls show()), so the splash stays up to that moment (the console's font cannot be changed
-    on the VT the splash holds in graphics mode). Past 6, so logind starts no getty on it; everything
-    else — Anaconda, systemd, setup — writes on tty1."""
+    """A VT of our own, brought forward at the first page, the splash staying up to that moment. Past 6,
+    so logind starts no getty on it; everything else — Anaconda, systemd, setup — writes on tty1.
+    (rows and cols bring it forward: what lays a page out is about to draw it.)"""
 
     def __init__(self, tty=TTY, keys=True):
         self.fd = os.open(tty, os.O_RDWR | os.O_NOCTTY)
@@ -55,7 +67,7 @@ class Screen:
         self.keys = keys
         self.saved = None
         self.shown = False
-        self.dress()
+        self._rows, self._cols = 38, 137
         if keys:
             with contextlib.suppress(OSError):
                 fcntl.ioctl(self.fd, KDSKBMODE, K_UNICODE)
@@ -66,11 +78,21 @@ class Screen:
             raw[6][termios.VMIN] = 0
             raw[6][termios.VTIME] = 0
             termios.tcsetattr(self.fd, termios.TCSANOW, raw)
-        self.write("\033[?25l\033[?7l" + sgr(TEXT) + "\033[2J")
+
+    @property
+    def rows(self):
+        self.show()
+        return self._rows
+
+    @property
+    def cols(self):
+        self.show()
+        return self._cols
 
     def show(self):
-        """This VT forward, for good, the first page to be drawn right after: colours sent while a VT is
-        hidden wait for the switch, which does not apply them when the splash leaves graphics mode."""
+        """This VT forward, for good. Font and colours only now: fbcon may not have taken over yet (it waits
+        for the first letter on the VT that shows, Fedora's deferred takeover, and a font set before that
+        is lost), and colours sent to a hidden VT are not applied when the splash leaves graphics mode."""
         if self.shown:
             return
         self.shown = True
@@ -94,13 +116,20 @@ class Screen:
             time.sleep(0.05)
         with contextlib.suppress(OSError):
             fcntl.ioctl(self.fd, VT_LOCKSWITCH)      # (Alt+F2 must not show what is behind)
-        self.write(self.palette())
+        self.write("\033[?25l\033[?7l" + sgr(TEXT))
+        for _ in range(40):      # (the letter fbcon waits for, erased at once)
+            if fbcon_bound():
+                break
+            self.write(".\b")
+            time.sleep(0.05)
+        self.dress()
+        self.write(sgr(TEXT) + "\033[2J")
 
     def dress(self):
         """Our font and our colours on this VT, and how many cells that makes."""
         subprocess.run(["setfont", "-C", self.tty, FONT], check=False, stdout=subprocess.DEVNULL,
                        stderr=subprocess.DEVNULL)
-        self.rows, self.cols = self.size()
+        self._rows, self._cols = self.size()
         self.write(self.palette())
 
     @staticmethod
@@ -109,7 +138,7 @@ class Screen:
 
     def undressed(self):
         """Something reloaded the console's font (a size other than ours): dress again. True: redraw."""
-        if self.size() == (self.rows, self.cols):
+        if self.size() == (self._rows, self._cols):
             return False
         self.dress()
         return True

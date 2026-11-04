@@ -604,30 +604,75 @@ def shell_quote(v):
     return "'" + v.replace("'", "'\\''") + "'"
 
 
-def clear_disk(name):
-    """The chosen disk blank, after its last confirmation: Anaconda then has nothing to walk. On a disk
-    with years of Btrfs subvolumes and snapshots it would destroy each in turn (blivet, its clearpart),
-    a path nothing proves; a wiped disk is the one it is proven on."""
+ERASED = "/tmp/fk-disk-erased"     # (failed.py says which: the disk as it was, or blank)
+
+
+def clear_disk(s, name):
+    """The chosen disk blank, after its last confirmation and every check that can still say no: Anaconda
+    then has nothing to walk. On a disk with years of Btrfs subvolumes and snapshots it would destroy
+    each in turn (blivet, its clearpart), a path nothing proves; a blank disk is the one it is proven on."""
     disk = f"/dev/{name}"
     parts = run("lsblk", "-nrpo", "NAME", disk).stdout.split()
+    with open(ERASED, "w", encoding="ascii") as f:
+        f.write(name)
     for dev in reversed(parts):             # (the deepest first; the disk itself is the list's first)
+        run("swapoff", dev)
         run("wipefs", "-a", "-f", dev)
-    run("blockdev", "--rereadpt", disk)
     run("udevadm", "settle", "--timeout=30")
+    for _ in range(5):
+        run("blockdev", "--rereadpt", disk)
+        run("udevadm", "settle", "--timeout=30")
+        left = run("lsblk", "-nrpo", "NAME", disk).stdout.split()[1:]
+        if not left and not run("wipefs", "-n", disk).stdout.strip():
+            return
+        time.sleep(2)
+    refuse(s, "cross", "the disk could not be cleared",
+           f"{disk} is in use by something on this PC ({' '.join(left) or 'its signature'}). it may be partly erased.")
+
+
+def before_the_disk(s):
+    """Every check that can still say no while the disk is as it was: Anaconda only gets to its own after
+    this point (%pre runs first, then the kickstart is parsed, then the repositories, the packages)."""
+    try:
+        from pykickstart.parser import KickstartParser
+        from pykickstart.version import makeVersion
+        KickstartParser(makeVersion(), errorsAreFatal=True, followIncludes=True).readKickstart("/run/install/ks.cfg")
+    except Exception as e:              # (whatever the parser raises is this page's reason)
+        refuse(s, "cross", "this stick is damaged", f"its install file does not read: {e}")
+    for repo in (f"fedora-{RELEASE}", f"updates-released-f{RELEASE}"):
+        r = run("curl", "-sSf", "-o", "/dev/null", "--max-time", "20",
+                f"https://mirrors.fedoraproject.org/metalink?repo={repo}&arch=x86_64")
+        if r.returncode != 0:
+            refuse(s, "ethernet", "no answer", f"Fedora's servers do not answer for {repo}. nothing was touched: start again in a while.")
 
 
 def payload_ok():
-    """The toolkit as it was built: checked before the disk is touched."""
-    try:
-        with open(os.path.join(HERE, "toolkit.sha256"), encoding="ascii") as f:
-            want = f.read().split()[0]
+    """What the install reads later, as it was built: the toolkit, and the installer's own image, read
+    from the stick only from here on. Checked before the disk is touched."""
+    def sum_of(path):
         h = hashlib.sha256()
-        with open(os.path.join(HERE, "toolkit.tar.xz"), "rb") as f:
+        with open(path, "rb") as f:
             for chunk in iter(lambda: f.read(1 << 20), b""):
                 h.update(chunk)
-    except OSError:
+        return h.hexdigest()
+
+    mnt = "/tmp/fk-stick"
+    try:
+        with open(os.path.join(HERE, "toolkit.sha256"), encoding="ascii") as f:
+            if f.read().split()[0] != sum_of(os.path.join(HERE, "toolkit.tar.xz")):
+                return False
+        os.makedirs(mnt, exist_ok=True)
+        dev = run("blkid", "-L", VOLID).stdout.strip()
+        if run("mount", "-o", "ro", dev, mnt).returncode != 0:
+            return False
+        try:
+            with open(f"{mnt}/fk-sums", encoding="utf-8") as f:
+                sums = dict(reversed(line.rstrip("\n").split("  ", 1)) for line in f)
+            return sums["./images/install.img"] == sum_of(f"{mnt}/images/install.img")
+        finally:
+            run("umount", mnt)
+    except (OSError, KeyError, ValueError):
         return False
-    return h.hexdigest() == want
 
 
 def main():
@@ -643,8 +688,9 @@ def main():
     form = Form(s, ds, geo())
     form.run()
     write_answers(form)
+    before_the_disk(s)
     s.clear()
-    clear_disk(form.disk)
+    clear_disk(s, form.disk)
     s.close()
     # the one owner of the screen from here on (Omarchy's lesson): a daemon, its files closed
     # (pykickstart's warning: otherwise the installation appears hung)
