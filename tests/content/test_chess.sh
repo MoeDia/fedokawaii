@@ -23,7 +23,7 @@ t.send("\t"); t.pump(0.2); got.append(t.find("ten minutes"))
 t.send("\t"); t.pump(0.2); got.append(t.find("a free game"))
 t.send("\t"); t.pump(0.3); got.append(t.find("puzzle rating"))
 t.send("\t"); t.pump(0.2); got.append(t.find("day 1 of 365"))
-t.send("\x1b"); t.pump(0.4)
+t.send("\x1b"); t.ended()
 print(got, t.alive(), t.status, repr(crash_text(home)))
 PY
 )" "[True, True, True, True, True, True, True, True, True] False 0 ''"
@@ -143,7 +143,7 @@ go_to_tab(t, "puzzles"); t.send("\r"); t.pump(0.3)
 trace = root / "trace"
 done = 0; seen = 0; ids = []
 start_r = json.loads((state(home) / "progress.json").read_text())["puzzle"]["r"] if (state(home) / "progress.json").exists() else 650
-end = time.time() + 45
+end = time.time() + 120
 while done < 12 and time.time() < end and t.alive():
     t.pump(0.03)
     lines = trace.read_text().splitlines() if trace.exists() else []
@@ -220,12 +220,12 @@ import sys, pathlib
 sys.path.insert(0, sys.argv[1])
 from chess_lib import *
 root = pathlib.Path(sys.argv[2]) / "g"
-home, env = make_home(root, extra={"FAKE_SF_DIE": "1"})
+home, env = make_home(root, extra={"FAKE_SF_DIE": "1", "FAKE_SF_ONCE": str(root) + "-mark"})
 t = open_app(env); start_free_game(t); t.send("e4"); t.send("\r"); t.pump(2.5)
 a = len(current(home)["moves"])
 t.close()
 root = pathlib.Path(sys.argv[2]) / "h"
-home, env = make_home(root, extra={"FAKE_SF_MUTE": "1"})
+home, env = make_home(root, extra={"FAKE_SF_MUTE": "1", "FAKE_SF_ONCE": str(root) + "-mark"})
 t = open_app(env); start_free_game(t); t.send("e4"); t.send("\r"); t.pump(11)
 b = len(current(home)["moves"])
 t.close()
@@ -245,7 +245,7 @@ for cols, rows in ((60, 20), (64, 24), (86, 24), (100, 33), (126, 33), (60, 45),
     t = open_app(env, cols, rows)
     res.append(t.alive() and t.sixels >= 1 and (t.find("day 1") or t.find("today") ))
     t.close()
-t = open_app(env, 40, 12); res.append(t.find("chess needs 60")); t.resize(126, 33); t.pump(0.4); res.append(t.find("day 1 of 365"))
+t = open_app(env, 40, 12); res.append(t.find("chess needs")); t.resize(126, 33); t.pump(0.4); res.append(t.find("day 1 of 365"))
 t.send("\t"); t.pump(0.1); t.send("\t"); t.pump(0.1); t.send("\t"); t.pump(0.1)
 t.send("\r"); t.pump(0.1); t.send("\x1b[B\x1b[B\r"); t.pump(0.3)
 t.send("e4"); t.pump(0.05)

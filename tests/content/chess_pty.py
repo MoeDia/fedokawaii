@@ -104,6 +104,13 @@ class Tty:
                 return self.find(text)
         return False
 
+    def ended(self, seconds=5.0):
+        """Pump until the program has ended; True if it has."""
+        end = time.monotonic() + seconds
+        while self.alive() and time.monotonic() < end:
+            self.pump(0.03)
+        return not self.alive()
+
     def feed(self, data):
         buf = self.pending + data
         self.pending = b""
@@ -137,7 +144,7 @@ class Tty:
                     continue
                 i += 2
                 continue
-            if c < 0x20:
+            if c < 0x20 or c == 0x7f:
                 if c == 0x0d:
                     self.cur = (self.cur[0], 0)
                 elif c == 0x0a:
@@ -165,6 +172,8 @@ class Tty:
                     self.ink[r][co] = self.sgr
                 co += 1
             self.cur = (r, min(co, self.cols - 1))
+            if self.pending:
+                return
             i = e
 
     def _csi(self, lead, params, final):

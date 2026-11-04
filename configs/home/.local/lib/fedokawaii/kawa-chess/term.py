@@ -11,6 +11,7 @@ import signal
 import struct
 import sys
 import termios
+import time
 
 # foot's colours past the sixteen (tools/build-themes.py): docs/design-system.md §1, screen.sh
 ACCENT, EDGE, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = 16, 18, 19, 20, 21, 22, 23, 24, 25
@@ -47,6 +48,8 @@ class Term:
         self.shown = {}                # (row, col) → the row's text as drawn
         self.buf = b""
         self.pasting = False
+        self.paste_since = 0.0
+        self.buf_since = 0.0
 
     def enter(self):
         self.saved = termios.tcgetattr(self.fd_in)
@@ -148,8 +151,15 @@ class Term:
             return [("eof",)]
         if not data:
             return [("eof",)]
+        # (a sequence begun and never ended, older than any real one: its ESC goes, what follows is keys)
+        now = time.monotonic()
+        if self.buf and now - self.buf_since > 0.25:
+            self.buf = self.buf[1:]
         self.buf += data
-        return self._parse()
+        out = self._parse()
+        if self.buf:
+            self.buf_since = now
+        return out
 
     def _parse(self):
         out = []
@@ -157,6 +167,9 @@ class Term:
         i, n = 0, len(buf)
         while i < n:
             c = buf[i]
+            if self.pasting and time.monotonic() - self.paste_since > 2.0:
+                self.pasting = False     # (a paste that never ended: foot never does that, but keys must not die)
+                continue
             if self.pasting:
                 e = buf.find(b"\x1b[201~", i)
                 if e < 0:
@@ -255,6 +268,7 @@ class Term:
             first = params.split(b";")[0]
             if first == b"200":
                 self.pasting = True
+                self.paste_since = time.monotonic()
                 return None
             name = _TILDE.get(first)
             return ("key", name) if name else None

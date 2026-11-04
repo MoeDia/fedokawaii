@@ -203,7 +203,10 @@ class Game(Screen):
         self.me = spec["colour"]
         self.g = B.Game(spec["fen"])
         for u in spec.get("line") or ():
-            self.g.play(B.from_uci(u))
+            m = B.from_uci(u)
+            if m not in self.g.pos.legal():
+                raise ValueError(f"not a move here: {u}")
+            self.g.play(m)
         self.n_line = len(self.g.moves)
         self.hand = MoveInput()
         self.flipped = self.me == B.BLACK
@@ -238,7 +241,10 @@ class Game(Screen):
     # ── keeping it ───────────────────────────────────────────────────────────────────────────
     def _restore(self, saved):
         for u in saved["moves"][self.n_line:]:
-            self.g.play(B.from_uci(u))
+            m = B.from_uci(u)
+            if m not in self.g.pos.legal() or self.g.over():
+                raise ValueError(f"not a move here: {u}")
+            self.g.play(m)
         self.clock = saved.get("clock", self.clock)
         self.times = saved.get("times", [])
         self.hints_used = saved.get("hints_used", 0)
@@ -645,9 +651,10 @@ class Game(Screen):
             loser = B.BLACK if result == "1-0" else B.WHITE
             self.fallen = (self.g.pos.kings[loser], 0)
             self.fall_at = time.monotonic() + 0.25
-        self.app.store.delete("current.json")
+        # (the record first, the game in hand gone after it: nothing is lost between the two)
         if self.done_cb:
             self.done_cb(self)
+        self.app.store.delete("current.json")
         self.app.touch()
 
     def _leave_game(self):

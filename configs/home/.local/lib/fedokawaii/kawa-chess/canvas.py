@@ -48,7 +48,6 @@ class Canvas:
             r = y + dy
             if r < 0 or r >= H:
                 continue
-            o = r * W + x
             for dx, data in runs:
                 if inkmap is not None:
                     data = data.translate(inkmap)
@@ -61,7 +60,6 @@ class Canvas:
                 if b > W:
                     data = data[:W - a]
                 px[r * W + a:r * W + a + len(data)] = data
-            _ = o
 
     def blit(self, other, x, y):
         """A canvas copied onto this one, its 0 pixels too (clipped)."""

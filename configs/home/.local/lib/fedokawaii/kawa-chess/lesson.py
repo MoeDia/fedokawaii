@@ -11,7 +11,6 @@ line `---`. In a page:
   @drill THEME N [±R] N puzzles of a theme now (R: around your rating, shifted)
 Anything else is words; a blank line starts a new paragraph.
 """
-import os
 import re
 import time
 
@@ -20,7 +19,7 @@ from app import Screen
 from play import MoveInput, board_marks, moved_parts
 from puzzles import Session
 from term import ACCENT_TEXT, FAINT, MUTED, STRONG
-from ui import Row, heading, icon, wrap
+from ui import heading, icon, wrap
 
 
 class Page:
@@ -431,4 +430,3 @@ def _broken(why):
     return [p]
 
 
-__all__ = ["Lesson", "Library", "parse", "Row", "STRONG", "os"]

@@ -7,7 +7,6 @@ grid and the wallpapers' 3 px pixel is the largest board's. Inks: inks.txt, by n
 import math
 import pathlib
 
-from board import BLACK, WHITE, KING
 from canvas import Canvas, Sprite, encode, hex_percent
 
 GRID = 40            # the men's drawing grid (a square of art pixels)
@@ -375,8 +374,6 @@ class BoardView:
     def _m_cur(self, x, y):
         """The keyboard's place: the lacquer's corners, a line of its ink beside them."""
         self._corners(x, y, self.art.index["select"], 12, 3)
-        s = self.s
-        self._corners(x + 3 * s, y + 3 * s, self.art.index["on_select"], 0, 0) if False else None
 
     def _m_hint(self, x, y):
         self._corners(x, y, self.art.index["asagi"], 14, 3)
@@ -401,7 +398,7 @@ class BoardView:
         """An arrow from middle to middle, dithered so that what lies under it still shows; a
         knight's goes round its corner."""
         f, t, ink = arrow
-        s, S = self.s, self.S
+        S = self.S
         ax, ay = self.origin(f)
         bx, by = self.origin(t)
         ax, ay, bx, by = ax + S // 2, ay + S // 2, bx + S // 2, by + S // 2
@@ -424,7 +421,7 @@ class BoardView:
         ux, uy = (bx - ax) / (n * s), (by - ay) / (n * s)
         w = 2
         stop = n - (9 if head else 0)
-        for i in range(0 if head or True else 0, stop + 1):
+        for i in range(stop + 1):
             cx, cy = ax + ux * i * s, ay + uy * i * s
             gx, gy = int(cx) // s * s, int(cy) // s * s
             for k in range(-w, w):
@@ -466,4 +463,3 @@ class BoardView:
         return fx0, fy0, part.sixel(palette)
 
 
-__all__ = ["Art", "BoardView", "MARGIN", "WHITE", "BLACK", "KING"]

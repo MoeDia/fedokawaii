@@ -74,7 +74,6 @@ class Progress:
         self.active()
         pid = item[0]
         p = self.puzzle
-        first_meeting = pid not in self.seen
         p["r"], p["rd"], p["vol"] = glicko2(p["r"], p["rd"], p["vol"], item[3], 75.0, 1.0 if ok else 0.0)
         self.seen.add(pid)
         self.tries += 1
@@ -94,7 +93,6 @@ class Progress:
                     d["at"] = now + REPEAT_DAYS[d["step"]]
         else:
             self.due[pid] = {"at": now + REPEAT_DAYS[0], "step": 0, **({"item": list(item)} if pid.startswith("own") else {})}
-        _ = first_meeting
 
     def due_puzzle(self):
         """An item whose day has come, or None."""

@@ -8,10 +8,9 @@ import time
 import traceback
 
 from art import Art, BoardView, MARGIN
-from board import Position, sq_name  # noqa: F401  (sq_name: for the screens that log)
 from engine import Engine
 from store import Store
-from term import FAINT, MUTED, Term, Wakeups
+from term import MUTED, ON_SELECT, SELECT, Term, Wakeups
 from ui import Layout, load_icons, wrap
 
 HOME = os.path.expanduser("~")
@@ -226,7 +225,6 @@ class App:
                     # (the cursor's column before the content, and one beyond it: the lacquer's)
                     spans = ln.spans(lay.pw, sel)
                     if sel:
-                        from term import ON_SELECT, SELECT
                         spans = [(" ", ON_SELECT, SELECT), *spans, (" ", ON_SELECT, SELECT)]
                     else:
                         spans = [" ", *spans, " "]
@@ -273,7 +271,7 @@ class App:
             self.touch()
 
     def _anim_frame(self, now):
-        an, v = self.anim, self.view
+        an = self.anim
         places, finished = an.positions(now)
         if finished:
             self.finish_anim()
@@ -285,7 +283,6 @@ class App:
             an.placed = places
             an.last = places
             self.term.flush()
-        _ = v
 
     def _moving_frame(self, an, places):
         """One picture: the box round all the men's old and new places (a castling's king and rook)."""
@@ -298,7 +295,7 @@ class App:
         fx0, fy0 = x0 // cw * cw, y0 // ch * ch
         fx1, fy1 = min(v.size, -(-x1 // cw) * cw), min(v.size, -(-y1 // ch) * ch)
         part = an.ground.crop(fx0, fy0, fx1 - fx0, fy1 - fy0)
-        for (piece, _a, _b), (x, y) in zip(an.parts, places):
+        for (piece, _a, _b), (x, y) in zip(an.parts, places, strict=True):
             part.stamp(v.art.man(piece, v.s), x - fx0, y - fy0)
         return [(fx0, fy0, part.sixel(self.palette()))]
 
@@ -375,15 +372,15 @@ class App:
         sel = selectors.DefaultSelector()
         sel.register(term.fd_in, selectors.EVENT_READ, "term")
         sel.register(wake.r, selectors.EVENT_READ, "wake")
-        engine_fd = None
+        engine_fd, engine_gen = None, 0
         term.enter()
         self.relayout()
         try:
             while not self.quit and self.stack:
-                if self.engine.fileno() != engine_fd:
+                if (self.engine.fileno(), self.engine.generation) != (engine_fd, engine_gen):
                     if engine_fd is not None:
                         sel.unregister(engine_fd)
-                    engine_fd = self.engine.fileno()
+                    engine_fd, engine_gen = self.engine.fileno(), self.engine.generation
                     if engine_fd is not None:
                         sel.register(engine_fd, selectors.EVENT_READ, "engine")
                 now = time.monotonic()
@@ -470,4 +467,4 @@ def in_window(_argv):
     os.execvp("kawa-term", ["kawa-term", "--app", "kawa-chess", "chess", os.path.abspath(sys.argv[0])])
 
 
-__all__ = ["App", "Screen", "MARGIN", "Position", "FAINT"]
+__all__ = ["App", "Screen", "MARGIN", "DATA"]

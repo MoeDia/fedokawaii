@@ -1,7 +1,6 @@
 """What the chess tests share: a throw-away home with the app's files, kawa-chess in a pty, a player that reads the
 position from the app's own files and answers through the keyboard."""
 import json
-import os
 import pathlib
 import shutil
 import sys

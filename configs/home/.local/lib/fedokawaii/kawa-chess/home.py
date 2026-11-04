@@ -1,8 +1,6 @@
 """The first screen: today's plan, with the lessons, puzzles, your games and your progress as tabs (§7)."""
-import datetime
 import os
 import random
-import re
 import time
 
 import board as B
@@ -11,7 +9,7 @@ from canvas import Canvas
 from course import Course
 from lesson import Lesson, Library
 from play import Game
-from progress import Progress, today_ordinal
+from progress import Progress
 from puzzles import SESSION, Bank, Session
 from review import Review, goal_met
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
@@ -415,7 +413,7 @@ class Home(Screen):
 
     def _game_over(self, game):
         """A game ended: its PGN and record kept, the level moved; the review comes next."""
-        pr, course = self.pr, self.course
+        pr = self.pr
         spec = game.spec
         o = game.outcome
         no = spec.get("no")
@@ -695,4 +693,3 @@ def _clean_spec(spec):
     return spec
 
 
-__all__ = ["Home", "Canvas", "datetime", "re", "today_ordinal"]

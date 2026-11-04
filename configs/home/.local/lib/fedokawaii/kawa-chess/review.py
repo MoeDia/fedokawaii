@@ -7,8 +7,8 @@ import math
 import board as B
 from app import Screen
 from engine import analysis_request
-from play import MoveInput, board_marks, moved_parts
-from term import ACCENT_TEXT, FAINT, MUTED, STRONG
+from play import MoveInput, board_marks
+from term import ACCENT_TEXT, MUTED, STRONG
 from ui import Row, heading, icon, meter, wrap
 
 # Expected-points loss → a word, the steps of chess.com's own classification
@@ -569,4 +569,3 @@ class Review(Screen):
         self.app.engine.stop_process()
 
 
-__all__ = ["Review", "Analysis", "accuracy", "classify", "moved_parts", "FAINT"]

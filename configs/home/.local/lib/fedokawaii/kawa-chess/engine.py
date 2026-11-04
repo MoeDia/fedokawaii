@@ -11,7 +11,7 @@ import subprocess
 import time
 
 ENGINE = "stockfish"
-GRACE = 3.0                 # seconds past a search's budget before it is stopped, then again before a kill
+GRACE = 1.5                 # seconds past a search's budget before it is stopped, then again before a kill
 
 
 def win_chance(cp):
@@ -67,6 +67,7 @@ class Engine:
         self.failed = None          # why it cannot run at all (no program)
         self.last_used = time.monotonic()
         self.restarts = []          # when it was last started again after dying
+        self.generation = 0         # (a new process may get the old one's descriptor number)
 
     # ── the process ──────────────────────────────────────────────────────────────────────────
     def start(self):
@@ -80,6 +81,7 @@ class Engine:
             self.failed = f"{ENGINE}: {e.strerror or e}"
             return False
         self.fd = self.proc.stdout.fileno()
+        self.generation += 1
         os.set_blocking(self.fd, False)
         self.buf = b""
         self.ready = False
@@ -309,7 +311,7 @@ def weakness(elo):
     rows = _WEAK
     if elo <= rows[0][0]:
         return rows[0][1:]
-    for (e0, t0, b0), (e1, t1, b1) in zip(rows, rows[1:]):
+    for (e0, t0, b0), (e1, t1, b1) in zip(rows, rows[1:], strict=False):
         if elo <= e1:
             a = (elo - e0) / (e1 - e0)
             return t0 * (t1 / t0) ** a, b0 + (b1 - b0) * a
@@ -329,7 +331,7 @@ def choose_weak(search, legal_uci, elo, rng=random):
     top = max(clamp)
     weights = [math.exp((v - top) / temp) for v in clamp]
     r = rng.random() * sum(weights)
-    for ln, w in zip(lines, weights):
+    for ln, w in zip(lines, weights, strict=True):
         r -= w
         if r <= 0:
             return ln.pv[0]

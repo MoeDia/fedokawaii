@@ -507,7 +507,9 @@ def matching(pos, typed, names=None):
     whether what is typed is by itself a whole name of one of them."""
     names = pos.names() if names is None else names
     t = _plain(typed) if typed else ""
-    found = {m: True for name, m in names.items() if name.startswith(t)}
+    # (typed as it is, too: "a1b" on the way to a1b3 is not a promotion to a bishop)
+    tries = (t, typed.strip()) if typed else (t,)
+    found = {m: True for name, m in names.items() if name.startswith(tries)}
     if not found and t[:1] == "b":        # (no pawn on the b-file does that: the bishop was meant)
         t = "B" + t[1:]
         found = {m: True for name, m in names.items() if name.startswith(t)}

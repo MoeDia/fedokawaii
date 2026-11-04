@@ -105,6 +105,9 @@ def main(argv):
                 except ValueError as e:
                     bad.append(f"{where}: {e}")
                     pos = None
+            ops = [ln.split()[0] for ln in page.split("\n") if ln.startswith(("@play", "@try"))]
+            if ops.count("@play") > 1 or ops.count("@try") > 1 or ops == ["@try", "@play"]:
+                bad.append(f"{where}: a page plays its moves first, then asks: one of each, in that order")
             for line in page.split("\n"):
                 s = line.strip()
                 if not s:

@@ -942,8 +942,8 @@ the last piece, and the king safe, in one move.
 ---
 @play Rd8 Rxd7 Rxd7 Rd1 Qe6 Bxd7+ Nxd7
 @try Qb8+ | the queen, on the last rank. only the knight can take her.
-@play Nxb8
 ---
+@play Nxb8
 @try Rd8# | the bishop on g5 guards d8.
 the rook, on the file he opened, guarded by the bishop he brought first. every piece in the game.
 

@@ -71,15 +71,14 @@ def main(argv):
             th = wk["themes"][dow % len(wk["themes"])]
             lines.append(f"| {d} | {m.get('title', '—')} | {m.get('source', '—')} | {themes.get(th, th or 'mixed')} |")
         lines += ["", "| game | kind | start | you | clock | goal | measured by |", "|---|---|---|---|---|---|---|"]
-        for d in range(first, last + 1):
-            for k in range(2):
-                no += 1
-                g = wk["games"][(no - 1) % 14]
-                kind = "light" if g.get("light") else "deep"
-                you = {0: "white", 1: "black"}.get(SY.POS[g["pos"]][1] if "pos" in g else g.get("you"), "by turns")
-                clock = g.get("clock")
-                clock = f"{clock[0]}+{clock[1]}" if clock else "as the stage"
-                lines.append(f"| {no} | {kind} | {start_word(g)} | {you} | {clock} | {g['goal']} | {g.get('check', '—')} |")
+        for _ in range(2 * (last - first + 1)):
+            no += 1
+            g = wk["games"][(no - 1) % 14]
+            kind = "light" if g.get("light") else "deep"
+            you = {0: "white", 1: "black"}.get(SY.POS[g["pos"]][1] if "pos" in g else g.get("you"), "by turns")
+            clock = g.get("clock")
+            clock = f"{clock[0]}+{clock[1]}" if clock else "as the stage"
+            lines.append(f"| {no} | {kind} | {start_word(g)} | {you} | {clock} | {g['goal']} | {g.get('check', '—')} |")
         lines.append("")
     w("\n".join(lines) + "\n", encoding="utf-8")
     print(f"{no} games, {sum(1 for x in meta)} lessons", file=sys.stderr)

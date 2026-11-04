@@ -2,7 +2,6 @@
 miss comes back on a widening schedule (Woodpecker's repetition, your own blunders too); ten minutes a day.
 """
 import math
-import os
 import random
 import time
 
@@ -278,6 +277,7 @@ class Session(Screen):
     def _score(self, ok):
         pr = self._state()
         pr.puzzle_result(self.item, ok)
+        pr.save()
 
     def _solved(self):
         if not self.failed_now:
@@ -410,4 +410,3 @@ class Session(Screen):
             self._tried(m)
 
 
-__all__ = ["Bank", "Session", "glicko2", "SESSION", "REPEAT_DAYS", "os"]

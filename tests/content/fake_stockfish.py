@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """A stand-in for Stockfish that speaks enough UCI for the tests: legal moves from the program's own rules, in a
 fixed order, scores by material; answers at once. FAKE_SF_DIE=N: dies at the Nth `go` (the engine killed mid-think).
-FAKE_SF_MUTE=N: never answers the Nth `go`."""
+FAKE_SF_MUTE=N: never answers the Nth `go`. Each of them once: FAKE_SF_ONCE=FILE is the mark that it has happened."""
 import os
 import sys
 
@@ -35,9 +35,13 @@ def main():
                     pos.push(B.from_uci(u))
         elif t[0] == "go":
             gos += 1
-            if die and gos == die:
-                os._exit(9)
-            if mute and gos == mute:
+            once = os.environ.get("FAKE_SF_ONCE")
+            fresh = not once or not os.path.exists(once)
+            if (die and gos == die or mute and gos == mute) and fresh:
+                if once:
+                    open(once, "w").close()
+                if die:
+                    os._exit(9)
                 continue
             moves = pos.legal()
             if not moves:

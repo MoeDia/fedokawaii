@@ -8,7 +8,7 @@ The week's last day adds a report; every fourth week adds an exam: twenty puzzle
 tried again on another day if not. A game's level is your own plus its offset, kept inside the week's band.
 Levels are this program's ladder, measured engine against engine; they are not chess.com ratings.
 
-## Week 1: the men and how they move (days 1–7)
+## Week 1: the pieces and how they move (days 1–7)
 
 Level band 250–300.
 
@@ -70,7 +70,7 @@ Level band 250–350.
 | 27 | deep | the start | by turns | as the stage | a whole game, level: nothing to prove but legal moves and one mate. | finish |
 | 28 | deep | the start | by turns | as the stage | a whole game, level: nothing to prove but legal moves and one mate. | finish |
 
-## Week 3: what the men are worth (days 15–21)
+## Week 3: what the pieces are worth (days 15–21)
 
 Level band 250–400.
 
@@ -163,7 +163,7 @@ Level band 350–550.
 | 69 | deep | the start | by turns | as the stage | the marks on your pieces are off now: see them yourself. | safe |
 | 70 | light | puzzle bank: hangingPiece | by turns | as the stage | someone left a piece hanging here: take it, keep it, win. | win |
 
-## Week 6: the opening: centre, men out, king home (days 36–42)
+## Week 6: the opening: centre, pieces out, king home (days 36–42)
 
 Level band 400–600.
 
@@ -241,15 +241,15 @@ Level band 500–700. Milestone by its end: level 650, puzzle rating 950. Exam: 
 
 | game | kind | start | you | clock | goal | measured by |
 |---|---|---|---|---|---|---|
-| 99 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned man is a guard that does not guard. | safe |
+| 99 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned piece is a guard that does not guard. | safe |
 | 100 | light | puzzle bank: pin | by turns | as the stage | a tactic is waiting here. find it, then win the game from there. | win |
-| 101 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned man is a guard that does not guard. | safe |
+| 101 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned piece is a guard that does not guard. | safe |
 | 102 | light | puzzle bank: pin | by turns | as the stage | a tactic is waiting here. find it, then win the game from there. | win |
-| 103 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned man is a guard that does not guard. | safe |
+| 103 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned piece is a guard that does not guard. | safe |
 | 104 | light | puzzle bank: pin | by turns | as the stage | a tactic is waiting here. find it, then win the game from there. | win |
-| 105 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned man is a guard that does not guard. | safe |
+| 105 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned piece is a guard that does not guard. | safe |
 | 106 | light | puzzle bank: pin | by turns | as the stage | a tactic is waiting here. find it, then win the game from there. | win |
-| 107 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned man is a guard that does not guard. | safe |
+| 107 | deep | the start | by turns | as the stage | pin something and pile up on it; a pinned piece is a guard that does not guard. | safe |
 | 108 | light | puzzle bank: pin | by turns | as the stage | a tactic is waiting here. find it, then win the game from there. | win |
 | 109 | deep | the start | by turns | as the stage | test games, a level above you: what you have, you use. | finish |
 | 110 | light | after e4 e5 Nf3 Nc6 Bc4 Nf6 | white | as the stage | White in the Two Knights: watch for Bg5 and ...Bg4. | safe |
@@ -411,7 +411,7 @@ Level band 750–1000.
 | 181 | deep | the start | by turns | as the stage | every move, their answer first: what do they do if you play it? | think:15 |
 | 182 | light | puzzle bank: pin | by turns | as the stage | a tactic is waiting here. find it, then win the game from there. | win |
 
-## Week 14: the guard removed, the overworked man (days 92–98)
+## Week 14: the guard removed, the overworked piece (days 92–98)
 
 Level band 800–1050.
 
