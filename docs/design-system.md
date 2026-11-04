@@ -495,19 +495,19 @@ done ✓).
 
 ## 11. Motion
 
-Playful, with weight (the owner, 4 Nov: "smoother, more natural, the window jumping in, a retro Japanese
-style"): a window **hops** (gravity's arcs), a workspace **moves** like a heavy fusuma on its track, a menu
-**unrolls** like a hanging scroll, a quiet thing **dissolves** (an ordered dither at the wallpapers' 3 px pixel), a
-choice is **stamped**. Each kind means one thing: a hop is a window arriving or leaving, the strip is a place left
-for another, a scroll is something opened and put away, a dissolve is a message passing.
+Fluid like water, calm, Japanese, with movement in it (the owner, 4 Nov 17:48, 18:12): **springs**, never a bezier: a thing
+starts at no speed, flows, passes its rest a little and settles. A window **rises**, a workspace **moves** like a fusuma on its
+track, a menu **unrolls** like a hanging scroll behind its rod, a quiet thing **dissolves** (an ordered dither at the wallpapers'
+3 px pixel), a choice is **stamped**. Each kind means one thing: a rise is a window arriving, the strip is a place left for
+another, a scroll is something opened and put away, a dissolve is a message passing.
 
 | what | how | ms |
 |---|---|---|
-| a window opens | hops: up from 44 px below its place, 10 px past it, down on it at 72 % of the way, one bounce of 2 px; 5 % smaller at first, its size whole at the top of the arc; clear within its first tenth | 420 |
-| a window closes | a lift of 6 px, then it drops 36 px, fading from a quarter of the way, 5 % smaller at the end | 400 |
-| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; it gathers speed (a square law), strikes its post at 78 % and comes back 20 px; the rail (5 of the wallpapers' pixels wide: ink, lacquer, ink, the screen's whole height, under the bar) goes with the windows coming in; the bar's stamp lifts and stamps down on the new numeral; the wallpaper stays; a switch during a move goes on from where each window stands | 420 |
-| tiled windows making room | slide to their new places, eased out | 240 |
-| a menu, panel or popup, a warm window (Super+U, N, V), a floating terminal (Super+R, W …) shown · put away | unrolls from its top edge down, the rod (its bottom hairline and shadow) travelling · rolls up into its top edge | 300 · 240 |
+| a window opens | rises from 120 px below its place on a spring (7.5 rad, damping 0.72), past it by a few px, and settles; 82 % of its size at first, whole with the same spring; clear within its first 18 % | 450 |
+| a window closes | sinks 64 px, gathering speed, 11 % smaller at the end, fading | 400 |
+| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; a spring (8 rad, damping 0.84), past its place a little; a wave through the windows, the ones nearest the way out first (48 ms between the first and the last); the rail (5 of the wallpapers' pixels wide: ink, lacquer, ink, the screen's whole height, under the bar) goes with the windows coming in; the bar's stamp lifts and stamps down on the new numeral; the wallpaper stays; a switch during a move goes on from where each window stands | 450 |
+| tiled windows making room | flow to their new places on a spring, no overshoot | 300 |
+| a menu, panel or popup, a warm window (Super+U, N, V), a floating terminal (Super+R, W …) shown · put away | unrolls from its top edge down, behind a rod (a lacquer bar 4 px high, 2 px wider than the scroll either side, ink caps; it fades in the last 30 %) on its frame's foot · rolls up into its top edge | 300 · 240 |
 | a notice | its frame at once, its words dissolving in; dissolves away | 240 · 200 |
 | the level display | at once with the key; dissolves away | 0 · 300 |
 | the lock comes | at once | 0 |
