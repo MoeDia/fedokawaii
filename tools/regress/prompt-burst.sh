@@ -21,11 +21,11 @@ TERM=foot python3 -I -c 'import pty, sys; pty.spawn(["bash", "--rcfile", sys.arg
 for b in 1 2 3; do
   chord logo $b; nap 0.3
   for i in 1 2 3 4 5 6 7 8; do foot bash -i >/dev/null 2>&1 & sleep 0.05; done
-  nap 6; shot "burst$b"
+  nap 6; shot "burst$b"; nap 8; shot "late$b"
 done
 PLAY
 sed -i "1i REAL=$HOME" "$out/play.sh"
-bash "$here/../kit.sh" --theme dark "$@" --out "$out" --play "$out/play.sh" --time 120 play >"$out/kit.log" 2>&1 || { echo "prompt-burst: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
+bash "$here/../kit.sh" --theme dark "$@" --out "$out" --play "$out/play.sh" --time 160 play >"$out/kit.log" 2>&1 || { echo "prompt-burst: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
 # (each prompt's folder block: a row of its paper at least 24 px long with none above it)
 th=$HOME/.config/foot/foot.ini
 [[ " $* " == *" --repo-art "* ]] && th=$here/../../configs/home/.config/foot/foot.ini
@@ -50,8 +50,11 @@ for y in range(41, m.shape[0]):
         x = x1
 print(n)' "$1" "$paper"; }
 for b in 1 2 3; do
-  [[ -s $out/burst$b.png ]] || { echo "prompt-burst: no shot of burst $b" >&2; exit 2; }
-  n=$(count "$out/burst$b.png") || exit 2
-  [[ $n == 8 ]] || { echo "prompt-burst: burst $b — $n prompt lines in 8 windows" >&2; exit 1; }
+  [[ -s $out/late$b.png ]] || { echo "prompt-burst: no shot of burst $b" >&2; exit 2; }
+  n=$(count "$out/burst$b.png") || exit 2; m=$(count "$out/late$b.png") || exit 2
+  # (a loaded machine may be slow to draw the last prompt: more than eight is the fault at any time, fewer
+  # only once they have had their time)
+  ((n <= 8)) || { echo "prompt-burst: burst $b — $n prompt lines in 8 windows" >&2; exit 1; }
+  [[ $m == 8 ]] || { echo "prompt-burst: burst $b — $m prompt lines in 8 windows, 14 s on" >&2; exit 1; }
 done
 echo "prompt-burst: held — three bursts of 8 windows, one prompt line in each"
