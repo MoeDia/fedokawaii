@@ -13,11 +13,11 @@ fresh
 out=$(fedokawaii status 2>&1); r=$?
 case_ "first run after setup: nothing recorded yet"
 eq "$r" 0
-has "$(line release "$out")" "Fedora 44"
+has "$(line release "$out")" "Fedora 45"
 has "$(line updated "$out")" "none since setup"
 has "$(line verified "$out")" "not yet"
 has "$(line due "$out")" "in 60 days" "the season counts from setup (30 days ago, every 90)"
-has "$(line kernel "$out")" "6.17.1-300.fc44.x86_64"
+has "$(line kernel "$out")" "6.17.1-300.fc45.x86_64"
 has "$(line disk "$out")" "641 GB free of 2.0 TB"
 has "$(line backup "$out")" "no drive · quick settings → backup"; lacks "$(line backup "$out")" "BACKUP_TARGET" "(no setting's name on the screen)"
 lacks "$out" "running"; lacks "$out" "low"
@@ -63,16 +63,16 @@ out=$(fedokawaii status)
 has "$(line updated "$out")" "none since setup"; has "$out" "stopped"
 case_ "the last run's own report: what it changed, what the updates hold back"
 fresh; rec last-update-done "$(ago_s 1)"; rec last-update "$(ago_s 1) ok"; mkdir -p "$R/state/update"
-printf '%s ok\nupdated · 61 packages · held: mesa 26.1-1.fc44\n' "$(ago_s 1)" >"$R/state/update/report"
-printf '%s 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa the desktop does not start\n' mesa-dri-drivers mesa-libEGL >"$R/state/update/holds"
+printf '%s ok\nupdated · 61 packages · held: mesa 26.1-1.fc45\n' "$(ago_s 1)" >"$R/state/update/report"
+printf '%s 26.1-1.fc45 26.0-1.fc45 2026-11-01 mesa the desktop does not start\n' mesa-dri-drivers mesa-libEGL >"$R/state/update/holds"
 out=$(fedokawaii status); has "$out" "61 packages · 1 held" "a family held counts once, as the held row counts it"
 (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
 printf '%s ok\nupdated · 1 package\n' "$(ago_s 1)" >"$R/state/update/report"; rm -f "$R/state/update/holds"
 out=$(fedokawaii status); has "$out" "1 package"; lacks "$out" "held"
 case_ "…sixty held at once: counted, never listed — the status as narrow as ever"
 fresh; rec last-update-done "$(ago_s 1)"; rec last-update "$(ago_s 1) ok"; mkdir -p "$R/state/update"
-printf '%s ok\nupdated · 61 packages · held: p01 1.1-1.fc44 · p02 1.1-1.fc44 and 58 more\n' "$(ago_s 1)" >"$R/state/update/report"
-for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc44 1.0-1.fc44 2026-11-01 p$i the desktop does not start"; done >"$R/state/update/holds"
+printf '%s ok\nupdated · 61 packages · held: p01 1.1-1.fc45 · p02 1.1-1.fc45 and 58 more\n' "$(ago_s 1)" >"$R/state/update/report"
+for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc45 1.0-1.fc45 2026-11-01 p$i the desktop does not start"; done >"$R/state/update/holds"
 out=$(fedokawaii status); has "$out" "61 packages · 60 held"; lacks "$out" "p02"
 (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
 rm -f "$R/state/update/holds"
@@ -81,8 +81,8 @@ fresh; rec last-update-done "$(ago_s 1)"; rec last-update "$(ago_s 1) ok"; mkdir
 printf '%s ok\nupdated · 96 packages · desktop red before: not judged\nits desktop items red before it were not judged:\nthe desktop does not start: not running: waybar\n' "$(ago_s 1)" >"$R/state/update/report"
 out=$(fedokawaii status); has "$out" "96 packages"; has "$out" "desktop red before: not judged"; lacks "$out" "96 packages · desktop"
 (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
-printf '%s ok\nupdated · 96 packages · held: mesa 26.1-1.fc44 · desktop red before: not judged\n' "$(ago_s 1)" >"$R/state/update/report"
-printf '%s 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa the desktop does not start\n' mesa-dri-drivers >"$R/state/update/holds"
+printf '%s ok\nupdated · 96 packages · held: mesa 26.1-1.fc45 · desktop red before: not judged\n' "$(ago_s 1)" >"$R/state/update/report"
+printf '%s 26.1-1.fc45 26.0-1.fc45 2026-11-01 mesa the desktop does not start\n' mesa-dri-drivers >"$R/state/update/holds"
 out=$(fedokawaii status); has "$out" "96 packages · 1 held"; has "$out" "desktop red before: not judged"
 (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
 out=$(plain "$(fedokawaii --explain status)"); has "$out" "desktop red before: not judged"; (( $(widest "$out") <= 50 )) && _ok || _no "the pane too wide: $out"
@@ -127,15 +127,15 @@ rm -f "$R/pwned"
 
 # ── the machine ──────────────────────────────────────────────────────────────
 case_ "a newer kernel installed: restart for it (its name fits)"
-fresh; echo 6.17.10-1300.fc44.x86_64 >"$R/newest-kernel"
-has "$(line kernel "$(fedokawaii status)")" "6.17.10-1300.fc44 · restart for it"
+fresh; echo 6.17.10-1300.fc45.x86_64 >"$R/newest-kernel"
+has "$(line kernel "$(fedokawaii status)")" "6.17.10-1300.fc45 · restart for it"
 case_ "little room left: low"
 echo "2000000000000 12000000000" >"$R/df"
 has "$(line disk "$(fedokawaii status)")" "12 GB free of 2.0 TB · low"
 case_ "df failing: no disk line, no noise"
 stub df 'exit 1'; out=$(fedokawaii status 2>&1); lacks "$out" "disk"; eq "$?" 0
 case_ "rpm missing (or failing): the running kernel"
-stub rpm 'exit 127'; has "$(line kernel "$(fedokawaii status)")" "6.17.1-300.fc44.x86_64"
+stub rpm 'exit 127'; has "$(line kernel "$(fedokawaii status)")" "6.17.1-300.fc45.x86_64"
 
 case_ "packages Fedora no longer has: whole names while they fit, then how many more — never a name cut, never an ellipsis"
 fresh; printf '%s\n' libfoo-tools some-long-retired-package-name another-one >"$R/state/unavailable"
@@ -159,7 +159,7 @@ printf '/etc/a.rpmnew\n' >"$R/state/rpmnew"; has "$(fedokawaii status)" "1 confi
 case_ "support known from os-release: the day, and how far"
 fresh; out=$(fedokawaii status)
 has "$(line support "$out")" "until 19 May 2027 · in"
-has "$(line next "$out")" "Fedora 45"
+has "$(line next "$out")" "Fedora 46"
 case_ "support ended: move on"
 sed -i 's/^SUPPORT_END=.*/SUPPORT_END=2026-01-01/' "$R/os-release"
 has "$(line support "$(fedokawaii status)")" "ended 1 Jan 2026 — move on"
@@ -167,21 +167,21 @@ case_ "no SUPPORT_END: estimated (about)"
 sed -i '/^SUPPORT_END/d' "$R/os-release"
 has "$(line support "$(fedokawaii status)")" "until about"
 case_ "the next release out 70 days ago (recorded by an update): ready to move"
-fresh; rec release-45 "$(ago_s 70)"
-has "$(line next "$(fedokawaii status)")" "Fedora 45 · ready to move to"
+fresh; rec release-46 "$(ago_s 70)"
+has "$(line next "$(fedokawaii status)")" "Fedora 46 · ready to move to"
 case_ "out 10 days ago: offered once settled (60 days)"
-rec release-45 "$(ago_s 10)"; has "$(line next "$(fedokawaii status)")" "offered in 50 days"
+rec release-46 "$(ago_s 10)"; has "$(line next "$(fedokawaii status)")" "offered in 50 days"
 case_ "os-release unreadable: no made-up release or dates"
 fresh; rm -f "$R/os-release"
 out=$(fedokawaii status 2>&1); r=$?
 eq "$r" 0; lacks "$out" "Fedora 0"; lacks "$out" "Fedora 1 "
 has "$(line release "$out")" "unknown"
 case_ "a move between releases: told for two months, then not"
-fresh; rec last-upgrade "$(ago_s 3) 43 44 ok"
-has "$(line moved "$(fedokawaii status)")" "Fedora 43 → 44 ·"
-rec last-upgrade "$(ago_s 3) 43 44 failed"; has "$(line moved "$(fedokawaii status)")" "to Fedora 44 failed"
-rec last-upgrade "$(ago_s 3) 43 44 partial"; has "$(line moved "$(fedokawaii status)")" "· repair"
-rec last-upgrade "$(ago_s 61) 43 44 ok"; lacks "$(fedokawaii status)" "moved"
+fresh; rec last-upgrade "$(ago_s 3) 45 46 ok"
+has "$(line moved "$(fedokawaii status)")" "Fedora 45 → 46 ·"
+rec last-upgrade "$(ago_s 3) 45 46 failed"; has "$(line moved "$(fedokawaii status)")" "to Fedora 46 failed"
+rec last-upgrade "$(ago_s 3) 45 46 partial"; has "$(line moved "$(fedokawaii status)")" "· repair"
+rec last-upgrade "$(ago_s 61) 45 46 ok"; lacks "$(fedokawaii status)" "moved"
 
 # ── a run going on (root's lock) ─────────────────────────────────────────────
 case_ "an update running now (its lock held): said first, and in the menu"
@@ -227,10 +227,10 @@ eq "$(fedokawaii remind)" "$(fedokawaii remind check)" "check is the default"
 case_ "remind check: due — how long since the last update"
 rec last-update-done "$(ago_s 95)"; has "$(fedokawaii remind check)" "the update season is here: 95 days since the last update"
 case_ "remind check: a new Fedora has settled"
-rec release-45 "$(ago_s 70)"; has "$(fedokawaii remind check)" "Fedora 45 has settled"
+rec release-46 "$(ago_s 70)"; has "$(fedokawaii remind check)" "Fedora 46 has settled"
 case_ "remind check: support ends within a month comes first"
 sed -i "s/^SUPPORT_END=.*/SUPPORT_END=$(date -d '+20 days' +%F)/" "$R/os-release"
-has "$(fedokawaii remind check)" "Fedora 44's support ends"
+has "$(fedokawaii remind check)" "Fedora 45's support ends"
 
 case_ "remind quiet (the session's timer): one notice a day, as the desktop's"
 fresh; rec last-update-done "$(ago_s 95)"
@@ -304,11 +304,11 @@ fresh; setting BACKUP_TARGET "\$(touch $TMP/ran)"; fedokawaii status >/dev/null;
 [[ ! -e $TMP/ran ]] && _ok || _no "a setting was run"
 
 case_ "a move's outcome: told once at the next login, critical when it failed"
-fresh; rec last-upgrade "$(ago_s 0) 43 44 failed"; rec last-update-done "$(ago_s 0)"
-fedokawaii remind quiet; called 'notify-send -a desktop -u critical -- .*  upkeep the move to Fedora 44 did not complete'
+fresh; rec last-upgrade "$(ago_s 0) 45 46 failed"; rec last-update-done "$(ago_s 0)"
+fedokawaii remind quiet; called 'notify-send -a desktop -u critical -- .*  upkeep the move to Fedora 46 did not complete'
 reset_calls; fedokawaii remind quiet; not_called 'notify-send'
-fresh; rec last-upgrade "$(ago_s 1) 43 44 ok"; fedokawaii remind quiet; called 'Fedora 44 is in place — the move finished'
-fresh; rec last-upgrade "$(ago_s 90) 43 44 ok"; fedokawaii remind quiet; not_called 'in place'
+fresh; rec last-upgrade "$(ago_s 1) 45 46 ok"; fedokawaii remind quiet; called 'Fedora 46 is in place — the move finished'
+fresh; rec last-upgrade "$(ago_s 90) 45 46 ok"; fedokawaii remind quiet; not_called 'in place'
 
 case_ "remind settings: every, wait, on, off — saved, read back"
 fresh
@@ -343,16 +343,16 @@ case_ "status asks Fedora's servers once a day: out → recorded for the menu"
 fresh
 stub curl 'printf "HTTP/2 200\r\nlast-modified: Tue, 14 Apr 2026 10:00:00 GMT\r\n\r\n"'
 fedokawaii status >/dev/null
-wait_for "$HOME/.cache/fedokawaii/release-45" && _ok || _no "release-45 not recorded"
-called 'curl -fsSI --proto =https --max-time 10 https://dl.fedoraproject.org/pub/fedora/linux/releases/45/'
-has "$(line next "$(fedokawaii status)")" "Fedora 45 · ready to move to" "released in April + a week, settled 60 days"
+wait_for "$HOME/.cache/fedokawaii/release-46" && _ok || _no "release-46 not recorded"
+called 'curl -fsSI --proto =https --max-time 10 https://dl.fedoraproject.org/pub/fedora/linux/releases/46/'
+has "$(line next "$(fedokawaii status)")" "Fedora 46 · ready to move to" "released in April + a week, settled 60 days"
 case_ "…and not again the same day"
 reset_calls; fedokawaii status >/dev/null; sleep 0.3; not_called 'curl'
 case_ "offline (or not out yet): nothing recorded, no noise, no wait"
 fresh; stub curl 'exit 6'
 t0=$(date +%s%N); out=$(fedokawaii status 2>&1); t1=$(date +%s%N)
 wait_for "$HOME/.cache/fedokawaii/checked"
-[[ ! -e $HOME/.cache/fedokawaii/release-45 ]] && _ok || _no "recorded while offline"
+[[ ! -e $HOME/.cache/fedokawaii/release-46 ]] && _ok || _no "recorded while offline"
 (( (t1 - t0) / 1000000 < 3000 )) && _ok || _no "status waited on the network"
 case_ "a slow network never holds status up"
 fresh; stub curl 'sleep 5'
@@ -360,8 +360,8 @@ t0=$(date +%s%N); fedokawaii status >/dev/null 2>&1; t1=$(date +%s%N)
 (( (t1 - t0) / 1000000 < 3000 )) && _ok || _no "status waited $(( (t1 - t0) / 1000000 )) ms for curl"
 case_ "a nonsense date from the server: the day it was seen, never later"
 fresh; stub curl 'printf "HTTP/2 200\r\nlast-modified: someday\r\n\r\n"'
-fedokawaii status >/dev/null; wait_for "$HOME/.cache/fedokawaii/release-45"
-v=$(cat "$HOME/.cache/fedokawaii/release-45" 2>/dev/null)
+fedokawaii status >/dev/null; wait_for "$HOME/.cache/fedokawaii/release-46"
+v=$(cat "$HOME/.cache/fedokawaii/release-46" 2>/dev/null)
 [[ $v =~ ^[0-9]+$ ]] && (( v <= $(date +%s) )) && _ok || _no "release day [$v]"
 
 done_

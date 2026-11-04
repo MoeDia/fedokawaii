@@ -62,7 +62,7 @@ case "$a" in
   *" copr enable "*) net_on || exit 1; c=${*: -1}
       # $FKH/copr-nochroot: the COPRs with no build for this release (dnf5's copr plugin says so)
       if has copr-nochroot "$c"; then
-        printf 'Chroot not found in the given Copr project (fedora-44-x86_64).\nYou can choose one of the available chroots explicitly:\n fedora-43-x86_64\n' >&2; exit 1
+        printf 'Chroot not found in the given Copr project (fedora-45-x86_64).\nYou can choose one of the available chroots explicitly:\n fedora-43-x86_64\n' >&2; exit 1
       fi
       add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
   *" offline clean "*|*" system-upgrade clean "*|*" clean metadata "*) exit 0;;
@@ -147,7 +147,7 @@ case "$a" in
       has available wlroots-devel && echo "wlroots-devel-$(cat "$FKH/wlroots-version" 2>/dev/null || echo 0.20.2)"; exit 0;;
   *" repoquery "*"--available"*"--whatprovides "*)
       net_on || { echo "Failed to download metadata for repo 'fedora'" >&2; exit 1; }
-      p=${*: -1}; has available "$p" && echo "$p-1.0-1.fc44.x86_64"; exit 0;;
+      p=${*: -1}; has available "$p" && echo "$p-1.0-1.fc45.x86_64"; exit 0;;
   *" repoquery "*"--installed"*"--whatrequires"*) cat "$FKH/whatrequires" 2>/dev/null; exit 0;;
   *" repoquery "*"--installed"*"--extras"*) exit 0;;
   *" repoquery "*"--installed"*" bash "*) exit 0;;
@@ -155,8 +155,8 @@ case "$a" in
       net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       countdown dnf-install && { echo "dnf stub: a mirror timed out" >&2; exit 1; }
       # what real mirrors and repositories do, each N times ($FKH/fail-dnf-KIND = N) — in dnf5's words
-      countdown dnf-404 && { echo "Librepo error: Status code: 404 for https://mirror.example/fedora/44/x86_64/os/Packages/b/bash.rpm" >&2; exit 1; }
-      countdown dnf-metalink && { echo "Failed to download metadata (metalink: \"https://mirrors.fedoraproject.org/metalink?repo=fedora-44\") for repository \"fedora\": Cannot prepare internal mirrorlist" >&2; exit 1; }
+      countdown dnf-404 && { echo "Librepo error: Status code: 404 for https://mirror.example/fedora/45/x86_64/os/Packages/b/bash.rpm" >&2; exit 1; }
+      countdown dnf-metalink && { echo "Failed to download metadata (metalink: \"https://mirrors.fedoraproject.org/metalink?repo=fedora-45\") for repository \"fedora\": Cannot prepare internal mirrorlist" >&2; exit 1; }
       countdown dnf-checksum && { echo "Interrupted by header callback: Downloading successful, but checksum doesn't match. Calculated: 1a… Expected: 2b…" >&2; exit 1; }
       countdown dnf-lock && { echo "Failed to obtain rpm transaction lock. Another transaction is in progress." >&2; exit 1; }
       countdown dnf-gpg && { echo "Transaction failed: Signature verification failed. OpenPGP check for package \"x\" has failed: The certificate is not available." >&2; exit 1; }
@@ -181,12 +181,12 @@ case "$a" in
         if ((skip)) && ! has available "$p"; then echo "dnf stub: skipping unavailable $p" >&2; continue; fi
         # $FKH/behind: RPM Fusion's builds out of step with Fedora (what dnf then says)
         if has behind "$p"; then
-          printf 'Problem: package %s-1.0-1.fc44 requires mesa-filesystem(x86-64) = 1.0, but none of the providers can be installed\n' "$p" >&2; rc=1; continue
+          printf 'Problem: package %s-1.0-1.fc45 requires mesa-filesystem(x86-64) = 1.0, but none of the providers can be installed\n' "$p" >&2; rc=1; continue
         fi
         # $FKH/clash "A B": A and B cannot both be installed (a file conflict) — dnf names both
         cl=$(awk -v p="$p" '$1 == p { print $2; exit }' "$FKH/clash" 2>/dev/null)
         if [[ -n $cl ]] && { has installed "$cl" || [[ $a == *" $cl "* ]]; }; then
-          printf ' Problem: file /usr/bin/x from install of %s-1.0-1.fc44.x86_64 conflicts with file from package %s-1.0-1.fc44.x86_64\n' "$p" "$cl" >&2; rc=1; continue
+          printf ' Problem: file /usr/bin/x from install of %s-1.0-1.fc45.x86_64 conflicts with file from package %s-1.0-1.fc45.x86_64\n' "$p" "$cl" >&2; rc=1; continue
         fi
         if has uninstallable "$p" || ! has available "$p"; then echo "No match for argument: $p" >&2; rc=1; else mark_user "$p"; fi
         # (RPM Fusion's Vulkan driver conflicts with Fedora's: --allowerasing takes Fedora's out)
@@ -212,7 +212,7 @@ case "$a" in
       net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       # $FKH/fail-dnf-upgrade = N: cut off half-way N times, each leaving packages twice — on
       # which a later transaction trips until they are tidied
-      if countdown dnf-upgrade; then echo "kernel-core-6.19.2-200.fc44.x86_64" >>"$FKH/dups"; echo "Transaction failed: cut off" >&2; exit 1; fi
+      if countdown dnf-upgrade; then echo "kernel-core-6.19.2-200.fc45.x86_64" >>"$FKH/dups"; echo "Transaction failed: cut off" >&2; exit 1; fi
       [[ -s $FKH/dups ]] && { echo "Problem: duplicate packages installed: $(head -n1 "$FKH/dups")" >&2; exit 1; }
       if [[ $a == *--disablerepo=* ]]; then exit "$(rcfor upgrade-off 0)"; fi
       exit "$(rcfor upgrade 0)";;

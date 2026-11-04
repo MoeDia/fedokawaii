@@ -1,12 +1,12 @@
 #!/bin/bash
-# Build the fedokawaii apps — and the text/toolkit stack they draw with — at Fedora 44's
-# versions into /opt/f44 (run as root). Nothing is installed outside /opt/f44.
-# Sources are expected under /opt/f44/src (README.md says where each came from).
+# Build the fedokawaii apps — and the text/toolkit stack they draw with — at Fedora's
+# versions into /opt/fk-stack (run as root). Nothing is installed outside /opt/fk-stack.
+# Sources are expected under /opt/fk-stack/src (README.md says where each came from).
 #
 #   build.sh [step...]   default: every step, in order; finished steps are skipped
 #                        unless FORCE=1 (e.g. FORCE=1 build.sh fcft foot)
 set -euo pipefail
-P=/opt/f44
+P=/opt/fk-stack
 S=$P/src
 LOG=$P/build-logs
 mkdir -p "$LOG"

@@ -412,8 +412,8 @@ timeout=20
 installonly_limit=2
 defaultyes=True
 # never as a weak dependency: Node 22 (neovim recommends tree-sitter-cli, which recommends
-# "nodejs" — nodejs22 on Fedora 44; on 45 the package named nodejs, which owns /usr/bin/node
-# as nodejs24-bin does and would stop the media step). One Node.js: the manifest's 24.
+# "nodejs": Fedora's selector package, which owns /usr/bin/node as nodejs24-bin does and would
+# stop the media step). One Node.js: the manifest's 24.
 # Nor PackageKit, the background updater of software centres (forbidden: dnf only), which
 # PackageKit-Qt6, a library some Qt programs link, recommends. Nor what LibreOffice recommends
 # beyond Writer, Calc and Impress: Java (for its database and old macros — some 200 MB) and
@@ -436,9 +436,8 @@ EOF
   # manifest's packages are marked as yours instead, so dnf's clean-up never takes them.)
   # package metadata is fetched when you update (`dnf upgrade --refresh`), not every hour or
   # so in the background by dnf's makecache timer: no downloads and no work between updates
-  # Masked, not disabled: Fedora 44's dnf5-makecache.timer is a static unit (switched on by a
-  # link its package ships, not by an [Install] section), which `disable` cannot turn off — it
-  # only prints why. A mask holds through dnf updates; `systemctl unmask` undoes it. Both are
+  # Masked, not disabled: a mask holds through dnf updates and whatever a preset says, where a
+  # `disable` lasts only until the next one; `systemctl unmask` undoes it. Both are
   # masked whether installed yet or not: on a minimal install the timer arrives with a later
   # package (the first verify found it running), and a mask made ahead holds it from the start
   local u
@@ -1115,11 +1114,10 @@ s_gpu() {
   if [[ $gpu == amd ]]; then
     # RPM Fusion's freeworld drivers (H.264 and HEVC) wait while they are out of step with
     # Fedora's Mesa (rf_get): Fedora's own work meanwhile, and update or repair swaps them in.
-    # VA: since Fedora 44 Fedora's VA drivers live inside mesa-dri-drivers (which obsoletes
-    # mesa-va-drivers), and RPM Fusion's build installs beside it. Never --allowerasing for
-    # it: a conflict must stop the run, not take mesa-dri-drivers — and the desktop — with it
-    if pkg_installed mesa-va-drivers; then dnf_do swap mesa-va-drivers mesa-va-drivers-freeworld
-    else rf_need mesa-va-drivers-freeworld; fi
+    # VA: Fedora's VA drivers live inside mesa-dri-drivers, and RPM Fusion's build installs beside
+    # it. Never --allowerasing for it: a conflict must stop the run, not take mesa-dri-drivers —
+    # and the desktop — with it
+    rf_need mesa-va-drivers-freeworld
     # (Vulkan: Fedora's own, in PKG_GPU_COMMON above — lib/manifest.sh says why)
     # (and LACT, from its COPR — left out while that has no build for this Fedora: s_repos)
     local amd_pkgs; mapfile -t amd_pkgs < <(not_waiting "${PKG_GPU_amd[@]}")
@@ -1213,7 +1211,7 @@ phase2() {
 s_build() {
   dnf_install "${PKG_BUILD[@]}"
   # dwl's own copy of wlroots (lib/common.sh: wlr_keep), kept for good from here on
-  wlr_keep || die "wlroots $DWL_WLROOTS is not in this Fedora (it has $(wlr_has)) — install on a Fedora that ships it (44 or 45)"
+  wlr_keep || die "wlroots $DWL_WLROOTS is not in this Fedora (it has $(wlr_has)) — install Fedora $FEDORA_RELEASE, which ships it"
   ok "wlroots $DWL_WLROOTS kept for dwl: $(wlr_home)"
 }
 
@@ -1366,8 +1364,8 @@ EOF
   # seconds. Given up, it says so on tty1 (fedokawaii-login-failed) — never a black screen
   # with nothing to go on, never another login in its place
   write_file /etc/systemd/system/greetd.service.d/fedokawaii.conf <<'EOF'
-# installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (Fedora 45 runs
-# kmscon there, earlier releases agetty). It starts once the splash has left (plymouth-quit,
+# installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (kmscon runs there
+# on a Fedora Server installed by hand, agetty on any other). It starts once the splash has left (plymouth-quit,
 # which leaves its last frame on screen: see its drop-in), so the card is free and nothing
 # clears the screen in between. (A Conflicts= on plymouth-quit stalled the boot on the splash:
 # both are wanted by the same target, and systemd cancelled greetd's start.) A login screen
@@ -1958,7 +1956,7 @@ s_lazyvim() {
 }
 
 # s_dev — Python and Rust to learn with (handbook §43), yours, in your home: uv's newest
-# CPython (python3.14 in ~/.local/bin, beside Fedora's python3, which the desktop's own
+# CPython (python3.15 in ~/.local/bin, beside Fedora's python3, which the desktop's own
 # scripts keep; packages with uv pip, projects with uv init / uv run), and rustup's stable
 # Rust with rust-analyzer, clippy and rustfmt (~/.local/share/cargo/bin — CARGO_HOME: on the
 # session's PATH and the shell's). Then neovim's servers and debuggers for both (Mason: basedpyright, ruff, debugpy,
@@ -3466,7 +3464,14 @@ r_nvim() {   # LazyVim's plugins: the missing ones installed, at the lockfile's 
 }
 r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: update's job)
   local py; py=$(as_user uv python find --managed-python 2>/dev/null) || py=""
-  if [[ -z $py || ! -x $TARGET_HOME/.local/share/cargo/bin/rust-analyzer ]] || ! as_user test -x "$TARGET_HOME/.local/share/nvim/mason/bin/basedpyright"; then s_dev; fi
+  if [[ -z $py || ! -x $TARGET_HOME/.local/share/cargo/bin/rust-analyzer ]] || ! as_user test -x "$TARGET_HOME/.local/share/nvim/mason/bin/basedpyright"; then s_dev; return; fi
+  # Mason's Python tools run in a venv of the python3 they were installed with, by its versioned
+  # name: a new Fedora's Python leaves that name dangling, and basedpyright and debugpy dead
+  local v
+  for v in "$TARGET_HOME"/.local/share/nvim/mason/packages/*/venv/bin/python; do
+    [[ -L $v && ! -e $v ]] && { log "neovim's Python tools ran on an earlier Fedora's Python — installed anew"; dev_mason; return; }
+  done
+  return 0
 }
 r_filechooser() { tfc_current || build_filechooser; }   # the yazi file dialog, built if missing or not TFC_TAG
 r_mako() { mako_current || build_mako; }                # the notices' mako, built if missing, not MAKO_TAG or its patch changed

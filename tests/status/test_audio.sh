@@ -197,7 +197,7 @@ case_ "kawa-audio, the fuzzel sound menu, is gone: nothing runs it; theme.sh ret
 eq "$(grep -rlw 'kawa-audio' "$REPO/bin" "$REPO/configs" "$REPO/src" 2>/dev/null)" "" "no script, config or key runs it"
 has "$(cat "$REPO/theme.sh")" "retire .local/bin/kawa-audio 'kawa-audio — the sound menu'"
 
-# ── the mixer itself: wiremix 0.11.0 (Fedora 44's), its theme files and its place ───────────
+# ── the mixer itself: wiremix 0.11.0 (Fedora 45's), its theme files and its place ───────────
 case_ "the two wiremix.toml are TOML; the theme named is the one defined; only wiremix's own style keys"
 # (the style keys of wiremix 0.11.0's [themes.*] — tsowell/wiremix wiremix.toml at v0.11.0; an
 # unknown one makes wiremix refuse to start)

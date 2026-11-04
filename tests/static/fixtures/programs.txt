@@ -1,5 +1,5 @@
 # tests/static/fixtures/programs.txt — where each program the desktop runs comes from, on a
-# fresh Fedora 44 Server "Minimal Install" after setup. tests/static/test_deps.sh holds every
+# fresh Fedora 45 Server "Minimal Install" after setup. tests/static/test_deps.sh holds every
 # program found in the scripts and configs against this list (deps.py says how it reads them).
 #
 #   PROGRAM   KIND      WHAT
@@ -17,9 +17,9 @@
 #                       (command -v, or a fallback after ||)
 # The desktop's own programs (bin/, system/) need no line.
 #
-# Package → file: mdapi.fedoraproject.org/f44/files/<package> (checked 2026-10-16 where it
-# says "f44"); @core: comps "Minimal Install" = core (+ its defaults), checked against
-# forge.fedoraproject.org/releng/fedora-comps comps-f44.xml.in on 2026-10-16; the chains: mdapi requires.
+# Package → file: mdapi.fedoraproject.org/f45/files/<package> (checked 2026-10-16 where it
+# says "f45"); @core: comps "Minimal Install" = core (+ its defaults), checked against
+# forge.fedoraproject.org/releng/fedora-comps comps-f45.xml.in on 2026-10-16; the chains: mdapi requires.
 
 # ── a Minimal Install ─────────────────────────────────────────────────────────────────────
 bash                minimal   bash              # @core
@@ -87,28 +87,28 @@ false               minimal   coreutils
 test                minimal   coreutils
 expr                minimal   coreutils
 uniq                minimal   coreutils
-flock               minimal   util-linux-core   # f44: util-linux-core (util-linux, @core, requires it)
-logger              minimal   util-linux-core   # f44
-mount               minimal   util-linux-core   # f44 (kawa-snap: the file system's top level)
-umount              minimal   util-linux-core   # f44
+flock               minimal   util-linux-core   # f45: util-linux-core (util-linux, @core, requires it)
+logger              minimal   util-linux-core   # f45
+mount               minimal   util-linux-core   # f45 (kawa-snap: the file system's top level)
+umount              minimal   util-linux-core   # f45
 chroot              minimal   coreutils         # (kawa-snap: kernel-install inside a restored copy)
 restorecon          minimal   policycoreutils   # @core (SELinux)
-kernel-install      minimal   systemd-udev      # f44: kernel-core requires it
+kernel-install      minimal   systemd-udev      # f45: kernel-core requires it
 grub2-mkconfig      minimal   grub2-tools       # the installer's bootloader (grub2-efi-x64 requires it)
-grub2-editenv       minimal   grub2-tools-minimal  # f44 (grub2-tools requires it: kawa-snap restore drops a stale tmp_saved_entry)
+grub2-editenv       minimal   grub2-tools-minimal  # f45 (grub2-tools requires it: kawa-snap restore drops a stale tmp_saved_entry)
 grubby              manifest  grubby
 systemd-nspawn      manifest  systemd-container
 wf-recorder         manifest  wf-recorder
-losetup             minimal   util-linux-core   # f44
-renice              minimal   util-linux-core   # f44
+losetup             minimal   util-linux-core   # f45
+renice              minimal   util-linux-core   # f45
 tuned-adm           manifest  tuned              # kawa-game: the game's profile and back
 ionice              minimal   util-linux        # @core (kawa-wallpaper: its background drawing at idle priority)
-setsid              minimal   util-linux-core   # f44
-lsblk               minimal   util-linux        # @core (not in -core, f44)
-exch                minimal   util-linux        # @core (util-linux 2.41: renameat2 RENAME_EXCHANGE — kawa-snap restore, f44)
-findmnt             minimal   util-linux-core   # f44
-mountpoint          minimal   util-linux-core   # f44
-blkid               minimal   util-linux-core   # f44
+setsid              minimal   util-linux-core   # f45
+lsblk               minimal   util-linux        # @core (not in -core, f45)
+exch                minimal   util-linux        # @core (util-linux 2.41: renameat2 RENAME_EXCHANGE — kawa-snap restore, f45)
+findmnt             minimal   util-linux-core   # f45
+mountpoint          minimal   util-linux-core   # f45
+blkid               minimal   util-linux-core   # f45
 runuser             minimal   util-linux        # @core (fedokawaii-report: everything it asks as you)
 rfkill              minimal   util-linux        # @core (the report: Bluetooth)
 lscpu               minimal   util-linux        # @core (the report)
@@ -119,16 +119,16 @@ ps                  minimal   procps-ng
 free                minimal   procps-ng
 pidof               minimal   procps-ng
 uptime              minimal   procps-ng
-grep                minimal   grep              # dracut requires it (f44); the kernel needs dracut
-sed                 minimal   sed               # dracut (f44)
-find                minimal   findutils         # dracut (f44)
-awk                 minimal   gawk              # policycoreutils and audit-rules (@core) require gawk (f44)
+grep                minimal   grep              # dracut requires it (f45); the kernel needs dracut
+sed                 minimal   sed               # dracut (f45)
+find                minimal   findutils         # dracut (f45)
+awk                 minimal   gawk              # policycoreutils and audit-rules (@core) require gawk (f45)
 busctl              minimal   systemd           # @core
 systemctl           minimal   systemd
-ldd                 minimal   glibc-common      # f44: /usr/bin/ldd; glibc requires glibc-common
-getent              minimal   glibc-common      # f44
-iconv               minimal   glibc-common      # f44
-locale              minimal   glibc-common      # f44
+ldd                 minimal   glibc-common      # f45: /usr/bin/ldd; glibc requires glibc-common
+getent              minimal   glibc-common      # f45
+iconv               minimal   glibc-common      # f45
+locale              minimal   glibc-common      # f45
 journalctl          minimal   systemd           # @core
 loginctl            minimal   systemd
 systemd-run         minimal   systemd
@@ -144,7 +144,7 @@ lsinitrd            minimal   dracut            # the kernel needs dracut (the r
 dnf                 minimal   dnf5              # @core (/usr/bin/dnf; the report: repositories, history)
 getenforce          minimal   libselinux-utils  # @core (the report: SELinux)
 btrfs               minimal   btrfs-progs       # the installer adds it for the Btrfs root (the report: Btrfs)
-xargs               minimal   findutils         # dracut (f44)
+xargs               minimal   findutils         # dracut (f45)
 less                minimal   less              # @core
 ss                  minimal   iproute           # @core (ip, ss)
 ip                  minimal   iproute
@@ -162,33 +162,33 @@ lsusb               manifest  usbutils          # the report: USB devices
 jq                  manifest  jq
 cmp                 manifest  diffutils
 diff                manifest  diffutils
-tar                 manifest  tar               # f44: the release archives; fedokawaii pull packs a working copy aside
+tar                 manifest  tar               # f45: the release archives; fedokawaii pull packs a working copy aside
 man                 manifest  man-db
 nvim                manifest  neovim
 nmtui               manifest  NetworkManager-tui
 mpv                 manifest  mpv
-node                manifest  nodejs24-bin      # f44: /usr/bin/node (yt-dlp's --js-runtimes node)
+node                manifest  nodejs24-bin      # f45: /usr/bin/node (yt-dlp's --js-runtimes node)
 playerctl           manifest  playerctl
 cava                manifest  cava
-wiremix             manifest  wiremix           # f44: 0.11.0 (rust-wiremix)
-pw-dump             manifest  pipewire-utils    # f44
-pw-metadata         manifest  pipewire-utils    # f44: kawa-nowplaying follows the default output
-pw-play             manifest  pipewire-utils    # f44 (a link to pw-cat)
-pw-record           manifest  pipewire-utils    # f44 (a link to pw-cat): the sound panel's test mic
-pw-mon              manifest  pipewire-utils    # f44 (the bar's volume follows PipeWire's events)
-pw-metadata         manifest  pipewire-utils    # f44 (now playing's meter follows the default output)
+wiremix             manifest  wiremix           # f45: 0.11.0 (rust-wiremix)
+pw-dump             manifest  pipewire-utils    # f45
+pw-metadata         manifest  pipewire-utils    # f45: kawa-nowplaying follows the default output
+pw-play             manifest  pipewire-utils    # f45 (a link to pw-cat)
+pw-record           manifest  pipewire-utils    # f45 (a link to pw-cat): the sound panel's test mic
+pw-mon              manifest  pipewire-utils    # f45 (the bar's volume follows PipeWire's events)
+pw-metadata         manifest  pipewire-utils    # f45 (now playing's meter follows the default output)
 wpctl               manifest  wireplumber
 waybar              manifest  waybar
 mako                manifest  mako
 makoctl             manifest  mako
-foot                manifest  foot              # f44: foot, footclient (+ foot.desktop, footclient.desktop)
+foot                manifest  foot              # f45: foot, footclient (+ foot.desktop, footclient.desktop)
 footclient          manifest  foot
 swaybg              manifest  swaybg
 swayidle            manifest  swayidle
-gtklock             manifest  gtklock           # f44: gtklock 4
+gtklock             manifest  gtklock           # f45: gtklock 4
 cage                manifest  cage
-plymouth-set-default-theme dep plymouth plymouth-plugin-script   # f44: /usr/sbin/plymouth-set-default-theme
-plymouth            dep       plymouth plymouth-plugin-script   # f44: /usr/bin/plymouth (rpm -qf) — fedokawaii-split's messages
+plymouth-set-default-theme dep plymouth plymouth-plugin-script   # f45: /usr/sbin/plymouth-set-default-theme
+plymouth            dep       plymouth plymouth-plugin-script   # f45: /usr/bin/plymouth (rpm -qf) — fedokawaii-split's messages
 wlr-randr           manifest  wlr-randr
 wlopm               manifest  wlopm
 ddcutil             manifest  ddcutil
@@ -201,11 +201,11 @@ slurp               manifest  slurp
 gammastep           manifest  gammastep
 notify-send         manifest  libnotify
 xdg-open            manifest  xdg-utils
-udiskie             manifest  udiskie           # f44: udiskie, udiskie-info, -mount, -umount
+udiskie             manifest  udiskie           # f45: udiskie, udiskie-info, -mount, -umount
 udiskie-mount       manifest  udiskie
 udiskie-umount      manifest  udiskie
-lxqt-policykit-agent manifest lxqt-policykit   # f44: /usr/libexec/lxqt-policykit-agent (not in PATH: the autostart names it whole)
-udisksctl           dep       udisks2 udiskie   # f44: udisks2 (/usr/bin/udisksctl), required by udiskie
+lxqt-policykit-agent manifest lxqt-policykit   # f45: /usr/libexec/lxqt-policykit-agent (not in PATH: the autostart names it whole)
+udisksctl           dep       udisks2 udiskie   # f45: udisks2 (/usr/bin/udisksctl), required by udiskie
 bluetoothctl        manifest  bluez
 zathura             manifest  zathura
 pdfinfo             manifest  poppler-utils
@@ -213,13 +213,13 @@ pdftoppm            manifest  poppler-utils
 pdfimages           manifest  poppler-utils     # a PDF's pictures (kawa-file)
 pdftotext           manifest  poppler-utils     # a PDF's text (kawa-file)
 pdfsig              manifest  poppler-utils     # a PDF's digital signatures checked (kawa-file)
-qpdf                manifest  qpdf              # f44: merge, split, rotate, lock PDFs (kawa-file)
-xournalpp           manifest  xournalpp         # f44
-magick              manifest  ImageMagick       # f44: ImageMagick 7 (magick)
+qpdf                manifest  qpdf              # f45: merge, split, rotate, lock PDFs (kawa-file)
+xournalpp           manifest  xournalpp         # f45
+magick              manifest  ImageMagick       # f45: ImageMagick 7 (magick)
 btop                manifest  btop
-gdu                 manifest  gdu               # f44: /usr/bin/gdu; the Disk usage entry
-vd                  manifest  visidata          # f44: /usr/bin/vd (and visidata); the Tables entry, yazi's Enter on a .csv
-fd                  manifest  fd-find           # f44: /usr/bin/fd
+gdu                 manifest  gdu               # f45: /usr/bin/gdu; the Disk usage entry
+vd                  manifest  visidata          # f45: /usr/bin/vd (and visidata); the Tables entry, yazi's Enter on a .csv
+fd                  manifest  fd-find           # f45: /usr/bin/fd
 fzf                 manifest  fzf
 file                manifest  file
 eza                 manifest  eza
@@ -228,12 +228,12 @@ zoxide              manifest  zoxide
 shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
 restic              manifest  restic
-fusermount3         manifest  fuse3             # f44: /usr/bin/fusermount3 (Super+U → restore: a backup unmounted)
+fusermount3         manifest  fuse3             # f45: /usr/bin/fusermount3 (Super+U → restore: a backup unmounted)
 brave-origin        manifest  brave-origin      # (Brave's own repo)
 claude              manifest  claude-code       # (Anthropic's own repo; herdr's Ctrl+B a)
-7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
-zstd                manifest  zstd              # f44: /usr/bin/zstd (.tar.zst: kawa-file)
-unrar               manifest  unrar             # RPM Fusion nonfree f44: /usr/bin/unrar (RAR: kawa-file, kawa-books)
+7z                  manifest  7zip              # f45: /usr/bin/7z only (no 7zz)
+zstd                manifest  zstd              # f45: /usr/bin/zstd (.tar.zst: kawa-file)
+unrar               manifest  unrar             # RPM Fusion nonfree f45: /usr/bin/unrar (RAR: kawa-file, kawa-books)
 ffmpeg              manifest  ffmpeg
 ffprobe             manifest  ffmpeg
 rg                  manifest  ripgrep

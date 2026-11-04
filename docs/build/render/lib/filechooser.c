@@ -2,7 +2,7 @@
  * that asks the FileChooser portal (Brave's "Upload", "Open file…"): a GtkFileChooserDialog
  * in OPEN mode with Cancel / Open, in the folder it is given. The theme is whatever GTK
  * picks from GSettings (gtk-theme): no GTK_THEME, no CSS of its own. Built by apps.sh
- * against /opt/f44's GTK 3.24.52.
+ * against /opt/fk-stack's GTK 3.24.52.
  *
  *   kawa-filechooser [FOLDER]      prints the chosen path, or nothing on Cancel / Escape
  */

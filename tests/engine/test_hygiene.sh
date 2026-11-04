@@ -35,17 +35,17 @@ strict() { ( set -Eeuo pipefail; IFS=$'\n\t'; "$@" ); }   # (as setup.sh calls t
 
 # ── packages ─────────────────────────────────────────────────────────────────
 case_ "hy_duplicates: what dnf lists twice, by name-version.arch"
-fresh; stub dnf 'printf "%s\n" bash-5.2.37-1.fc44.x86_64 bash-5.3.0-1.fc44.x86_64'
-eq "$(hy_duplicates)" $'bash-5.2.37-1.fc44.x86_64\nbash-5.3.0-1.fc44.x86_64'
+fresh; stub dnf 'printf "%s\n" bash-5.2.37-1.fc45.x86_64 bash-5.3.0-1.fc45.x86_64'
+eq "$(hy_duplicates)" $'bash-5.2.37-1.fc45.x86_64\nbash-5.3.0-1.fc45.x86_64'
 called '^dnf -q repoquery --duplicates --qf %\{name\}-%\{evr\}\.%\{arch\}'
 case_ "hy_duplicates: dnf failing or missing — nothing, and no failure"
 stub dnf 'echo "Error: Failed to obtain rpm transaction lock" >&2; exit 1'
 eq "$(strict hy_duplicates)" ""; eq "$?" 0
 eq "$(without dnf -- bash -c '. "$1"; set -e; hy_duplicates; echo ok' _ "$TMP/hygiene.sh" 2>&1)" ok
 case_ "hy_dnf_problems: dnf check's lines (blank ones dropped), its errors too"
-fresh; stub dnf 'printf "%s\n\n  %s\n" "Problem: package foo-1-1.fc44.x86_64 requires libbar.so.1" "broken dependency"; echo "warning: rpmdb" >&2; exit 1'
+fresh; stub dnf 'printf "%s\n\n  %s\n" "Problem: package foo-1-1.fc45.x86_64 requires libbar.so.1" "broken dependency"; echo "warning: rpmdb" >&2; exit 1'
 out=$(strict hy_dnf_problems); eq "$?" 0
-eq "$out" $'Problem: package foo-1-1.fc44.x86_64 requires libbar.so.1\n  broken dependency\nwarning: rpmdb'
+eq "$out" $'Problem: package foo-1-1.fc45.x86_64 requires libbar.so.1\n  broken dependency\nwarning: rpmdb'
 called '^dnf -q check'
 case_ "hy_dnf_problems: all in order — nothing"
 stub dnf 'exit 0'; eq "$(hy_dnf_problems)" ""

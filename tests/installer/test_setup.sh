@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/installer/test_setup.sh — setup.sh from a fresh Fedora 44 Server (Minimal Install) to the
+# tests/installer/test_setup.sh — setup.sh from a fresh Fedora 45 Server (Minimal Install) to the
 # finished desktop in the fake machine: phase 1 → reboot → 2 → reboot → 3, the resume unit that
 # carries it across restarts (and keeps greetd off tty1 meanwhile), a run stopped half-way and
 # started again (a power cut mid-phase: duplicates tidied at the gate), the state files missing
@@ -39,7 +39,7 @@ eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null
 # dependency — set before the first install, and dnf reads it back so)
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*"
 lacks "$OUT" "dnf shows exclude_from_weak"
-# (dnf's metadata timer, static on Fedora 44: masked — `disable` cannot turn a static unit off)
+# (dnf's metadata timer: masked, which holds through every update of its package)
 grep -qx "masked dnf5-makecache.timer" "$FKH/units" && _ok || _no "dnf5-makecache.timer not masked"
 not_called 'systemctl\] disable --now dnf5-makecache'
 eq "$(cat "$FKH/hostname" 2>/dev/null)" fedokawaii "a machine with no name gets one"
@@ -186,12 +186,12 @@ lacks "$OUT" "No such file"; lacks "$OUT" "final verification failed"
 [[ ! -e $W$CLONE ]] && _ok || _no "the clone is still there"
 [[ $(grep -n 'removed: the toolkit' <<<"$OUT" | cut -d: -f1) -gt $(grep -n '✔  verified' <<<"$OUT" | tail -n1 | cut -d: -f1) ]] && _ok || _no "removed before the final check"
 
-case_ "Fedora 45: phase 2 takes RPM Fusion's release packages for 45, and goes on as on 44"
-back phase2; fedora_release 45
-resume --no-reboot; eq "$RC" 0; eq "$(state phase)" 3; has "$OUT" "Fedora 45 · phase 2"
-called 'download1\.rpmfusion\.org/free/fedora/rpmfusion-free-release-45\.noarch\.rpm'
-called 'download1\.rpmfusion\.org/nonfree/fedora/rpmfusion-nonfree-release-45\.noarch\.rpm'
-not_called 'release-44\.noarch'
+case_ "a newer Fedora: phase 2 takes RPM Fusion's release packages for it, and goes on as on 45"
+back phase2; fedora_release 46
+resume --no-reboot; eq "$RC" 0; eq "$(state phase)" 3; has "$OUT" "Fedora 46 · phase 2"
+called 'download1\.rpmfusion\.org/free/fedora/rpmfusion-free-release-46\.noarch\.rpm'
+called 'download1\.rpmfusion\.org/nonfree/fedora/rpmfusion-nonfree-release-46\.noarch\.rpm'
+not_called 'release-45\.noarch'
 
 # ── stopped half-way, started again ──────────────────────────────────────────
 case_ "a step that fails (a mirror down for good): the line and the log named, exit 1, the phase kept"
@@ -217,12 +217,12 @@ setup --no-reboot; eq "$RC" 1 "the cut-off update stops the run"
 setup --no-reboot; eq "$RC" 0 "the run again: $(grep -E '✘' <<<"$OUT" | head -n2 | tr '\n' '|')"
 called 'dnf\] -y remove --duplicates'; eq "$(cat "$FKH/dups")" "" "no package left twice"; eq "$(state phase)" 2
 case_ "…and in phase 2: the restart resumes it, and it goes through"
-back phase2; fkh dups "glibc-2.43-2.fc44.x86_64"
+back phase2; fkh dups "glibc-2.43-2.fc45.x86_64"
 resume --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n2 | tr '\n' '|')"
 eq "$(cat "$FKH/dups")" "" "no package left twice"; eq "$(state phase)" 3
 
 case_ "the gate finds a problem repair can fix (a dnf problem distro-sync clears): setup repairs it itself, checks again, and goes on to the login"
-back phase3; fkh dnfcheck "package: foo-1.0-1.fc44.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
+back phase3; fkh dnfcheck "package: foo-1.0-1.fc45.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
 fkh distro-sync-fixes
 resume --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "verify found problems (above) — setup repairs them now"; has "$OUT" "repaired: verify passes now"
@@ -230,8 +230,8 @@ eq "$(cat "$FKH/dnfcheck")" "" "dnf's problem fixed"
 eq "$(state phase)" "done"; grep -qx 'enabled greetd.service' "$FKH/units" && _ok || _no "the login not switched on"
 rm -f "$FKH/distro-sync-fixes"
 case_ "a power cut mid-transaction and a dnf problem repair cannot fix: duplicates tidied, repaired once, then it stops before the login"
-back phase3; fkh dups "kernel-core-6.19.1-200.fc44.x86_64"
-fkh dnfcheck "package: foo-1.0-1.fc44.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
+back phase3; fkh dups "kernel-core-6.19.1-200.fc45.x86_64"
+fkh dnfcheck "package: foo-1.0-1.fc45.x86_64" "  dependency: libbar.so.1()(64bit)" "   problem: missing dependency"
 resume --no-reboot; eq "$RC" 1
 called 'dnf\] -y remove --duplicates'; eq "$(cat "$FKH/dups")" "" "the older copies removed"
 has "$OUT" "setup repairs them now"; has "$OUT" "repair: nothing doubled or fighting"
@@ -288,7 +288,7 @@ setup --help; eq "$RC" 0; has "$OUT" "--no-reboot"
 case_ "--status: the phase, the user, the finished steps — read-only, also while a run holds the lock"
 back phase3
 fkrun bash -c "exec 9>/var/lib/fedokawaii/lock; flock 9; bash $TK/setup.sh --status; exit \$?"
-eq "$RC" 0; has "$OUT" "phase 3 · user fkuser · Fedora 44"; has "$OUT" "✔ 2.2 GPU drivers"
+eq "$RC" 0; has "$OUT" "phase 3 · user fkuser · Fedora 45"; has "$OUT" "✔ 2.2 GPU drivers"
 case_ "--reset: progress forgotten (the user and the baseline kept), the resume unit gone"
 fkrun bash "$TK/setup.sh" --reset; eq "$RC" 0
 eq "$(state phase)" ""; eq "$(state user)" fkuser; [[ -s $W/var/lib/fedokawaii/baseline-userinstalled ]] && _ok || _no "baseline lost"

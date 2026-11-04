@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/installer/test_check.sh — check.sh, the readiness check setup runs first, on a fake fresh
-# Fedora 44 Server (and 45): ready as the README's installer settings leave it (exit 0) — and each
+# Fedora 45 Server: ready as the README's installer settings leave it (exit 0) — and each
 # installer choice or machine state that would stop setup hours in named as ✘ (exit 1), what
 # does not block as !, and misuse as exit 2. (Its GPU, laptop, Wi-Fi and boot lines: test_hardware.sh)
 . "$(dirname "$0")/lib.sh"
@@ -15,10 +15,10 @@ keep fresh
 
 case_ "the machine as the README's installer settings leave it, with the shipped fedokawaii.conf: ready (exit 0)"
 chk; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "✔  all values valid"; has "$OUT" "✔  Fedora 44 (supported)"; has "$OUT" "✔  Fedora's minimal base (Custom Operating System, no edition)"
+has "$OUT" "✔  all values valid"; has "$OUT" "✔  Fedora 45 (supported)"; has "$OUT" "✔  Fedora's minimal base (Custom Operating System, no edition)"
 has "$OUT" "✔  / is Btrfs"; has "$OUT" "✔  desktop user: fkuser"; has "$OUT" "✔  fkuser is an administrator (wheel)"
 has "$OUT" "✔  reachable: codeberg.org"; has "$OUT" "✔  wlroots 0.20 in this Fedora"
-has "$OUT" "✔  COPR ilyaz/LACT builds for Fedora 44"; lacks "$OUT" "dejan/lazygit" "lazygit is a release now, not a COPR"
+has "$OUT" "✔  COPR ilyaz/LACT builds for Fedora 45"; lacks "$OUT" "dejan/lazygit" "lazygit is a release now, not a COPR"
 has "$OUT" "READY for setup"; lacks "$OUT" "✘"
 [[ -s $W/var/log/fedokawaii-check.log ]] && _ok || _no "no log"
 not_called 'dnf\] -y|systemctl\] (enable|disable)|grubby\] --update'
@@ -36,7 +36,7 @@ sed -i 's/^\(wheel:[^:]*:[^:]*:\).*/\1/' "$W/etc/group"
 fkh selinux Permissive; fkh rc-check-upgrade 1; fkh no-route; fkh unreachable codeberg.org
 fkh_del available wlroots-devel
 chk; eq "$RC" 1
-has "$OUT" "✘  Fedora 43 — too old"
+has "$OUT" "✘  Fedora 43 — too old — fedokawaii is made for Fedora 45"
 has "$OUT" "!  edition is 'workstation'"
 has "$OUT" "✘  a desktop environment is installed — gnome-shell"
 has "$OUT" "✘  installed, but the desktop has its own: firefox — sudo dnf remove firefox"
@@ -47,7 +47,7 @@ has "$OUT" "✘  no default route"; has "$OUT" "✘  unreachable: codeberg.org"
 has "$OUT" "✘  wlroots 0.20 is not in Fedora 43"
 has "$OUT" "NOT READY — fix the ✘ items above"
 case_ "Server's Minimal Install instead (its os-release names the Server edition): passed as well, no warning"
-back fresh; sed -i 's/ (Forty Four)/ (Server Edition)/' "$W/etc/os-release"
+back fresh; sed -i 's/ (Forty Five)/ (Server Edition)/' "$W/etc/os-release"
 printf '%s\n' 'VARIANT="Server Edition"' 'VARIANT_ID=server' >>"$W/etc/os-release"
 chk; eq "$RC" 0
 has "$OUT" "✔  Fedora Server edition (Minimal Install)"; lacks "$OUT" "!  edition is"
@@ -59,12 +59,12 @@ chk; eq "$RC" 0; has "$OUT" "✔  nothing installed that the desktop replaces"
 case_ "what does not block: a newer Fedora, 30 GB free, 6 GB RAM, the clock not synced, updates pending, a newer kernel, over SSH, no Bluetooth, Open-Meteo down"
 back fresh; osr VERSION_ID 46; fkh df-free-gb 30
 printf 'MemTotal:        6000000 kB\n' >"$W/proc/meminfo"
-fkh ntp no; fkh rc-check-upgrade 100; fkh newest-kernel 6.19.9-200.fc44.x86_64
+fkh ntp no; fkh rc-check-upgrade 100; fkh newest-kernel 6.19.9-200.fc45.x86_64
 rm -rf "$W/sys/class/bluetooth"; fkh unreachable api.open-meteo.com
 fkrun env SSH_CONNECTION="10.0.0.2 5000 10.0.0.1 22" bash "$C"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "!  Fedora 46 — newer than tested"; has "$OUT" "!  30 GB free on /"; has "$OUT" "!  6 GB RAM"
 has "$OUT" "!  clock not synchronised"; has "$OUT" "2 package updates pending"
-has "$OUT" "!  a newer kernel (6.19.9-200.fc44.x86_64) is installed but not running"
+has "$OUT" "!  a newer kernel (6.19.9-200.fc45.x86_64) is installed but not running"
 has "$OUT" "!  running over SSH"; has "$OUT" "!  no Bluetooth adapter seen"; has "$OUT" "!  unreachable: api.open-meteo.com"
 has "$OUT" "READY for setup"
 
@@ -99,7 +99,7 @@ case_ "where it runs: sudo's own pseudo-terminal is looked past (SUDO_TTY) — t
 fkrun env SUDO_TTY=/dev/pts/0 kmscon bash "$C"; eq "$RC" 0
 lacks "$OUT" "running over SSH" "Fedora 45's console is kmscon's pseudo-terminal: the machine's own screen"
 fkrun env SUDO_TTY=/dev/pts/3 bash "$C"; has "$OUT" "!  running over SSH or in a terminal window (/dev/pts/3)"
-back fresh; fkrun env SUDO_TTY=/dev/tty1 bash "$C"; lacks "$OUT" "running over SSH" "Fedora 44's console, /dev/tty1"
+back fresh; fkrun env SUDO_TTY=/dev/tty1 bash "$C"; lacks "$OUT" "running over SSH" "the kernel's console, /dev/tty1"
 case_ "Rawhide: named as Fedora's development branch — a warning, not a stop"
 back fresh; osr VERSION_ID 46; echo REDHAT_BUGZILLA_PRODUCT_VERSION=rawhide >>"$W/etc/os-release"
 fkh copr-without "ilyaz/LACT fedora-46-x86_64"       # (until 46 branches off, COPR builds it as fedora-rawhide)
@@ -112,6 +112,6 @@ has "$OUT" "!  COPR ilyaz/LACT has nothing for Fedora 45 yet — setup leaves la
 lacks "$OUT" "✘ COPR"
 case_ "… COPR not answering: a warning, setup finds out itself"
 back fresh; fkh unreachable copr.fedorainfracloud.org
-chk; has "$OUT" "!  could not ask COPR whether ilyaz/LACT builds for Fedora 44"
+chk; has "$OUT" "!  could not ask COPR whether ilyaz/LACT builds for Fedora 45"
 
 done_

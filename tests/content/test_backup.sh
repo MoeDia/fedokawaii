@@ -6,7 +6,7 @@
 # no restic — where the setting is read from, the words of every "why not" (not set up, not
 # plugged in, no password, restic missing, a run going on), the status the menus show,
 # --window — then, with the real restic (skipped where it is not
-# installed, as Fedora 44 has 0.19.1): the first backup making the repository, a tree with
+# installed, as Fedora 45 has 0.19.1): the first backup making the repository, a tree with
 # Arabic, Japanese and spaced names and a 50 MB file, what the exclude list keeps out, list,
 # restoring one file and a folder byte for byte into ~/Restored (never over the original), a
 # second backup adding almost nothing, prune, check, a wrong password, the drive pulled, a
@@ -181,7 +181,7 @@ case_ "a home folder with a space: the same words"
 setup unplugged; mv "$HOME" "$TMP/my home"; export HOME="$TMP/my home"; rc 1 kawa-backup; has "$(notice)" "KINGSTON is not plugged in"
 
 # ── with restic: the backup itself ───────────────────────────────────────────
-if [[ -z $RESTIC ]]; then skip "restic is not installed — the backup itself is not run (Fedora 44 has restic 0.19.1)"; done_; exit; fi
+if [[ -z $RESTIC ]]; then skip "restic is not installed — the backup itself is not run (Fedora 45 has restic 0.19.1)"; done_; exit; fi
 setup; home_files
 case_ "the first backup: the repository made on the drive, every file in, the notices at the start and the end"
 out=$(kawa-backup 2>&1); r=$?

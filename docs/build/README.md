@@ -13,7 +13,7 @@ the book is a mock-up. This folder keeps everything that made it, as it was run.
 | `render/shoot.sh` | the desktop: bar, menus and quick settings, notices, level display, terminal, lock — both themes (`SHOOT_ONLY="menus …"` for some; `switch` times a theme switch) |
 | `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Brave, the mixer (wiremix), pairing (bluetui), VisiData |
 | `render/grub.sh` | the boot menu, drawn by GRUB 2.12 itself: the installed theme on a rescue CD booted in QEMU with UEFI firmware, with Fedora's entries → `shots/grub.png` |
-| `render/build.sh` | builds the drawing stack (Pango, fcft, foot, mako, gtklock, waybar …) at Fedora 44's versions into `/opt/f44` |
+| `render/build.sh` | builds the drawing stack (Pango, fcft, foot, mako, gtklock, waybar …) at Fedora's versions into `/opt/fk-stack` |
 | `render/sway.conf` | the headless compositor that stands in for dwl, drawing dwl's 2 px frame |
 | `render/README.md` | the render kit in detail: what is real, what stands in, every output file |
 | `render/lib/`, `render/stubs/` | small helpers and stand-ins for hardware the sandbox lacks (Bluetooth, DDC/CI, a player, a monitor list; `lib/fakebluez.py` answers as BlueZ for bluetui) |

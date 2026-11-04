@@ -1,4 +1,4 @@
-# zathura 2026.07.18 (Fedora zathura-2026.07.18-1.fc44, with pdf-mupdf and cb): PDF, EPUB and CBZ (Super+R books)
+# zathura 2026.07.18 (Fedora zathura-2026.07.18-1.fc45, with pdf-mupdf and cb): PDF, EPUB and CBZ (Super+R books)
 # command: zathura --version
 # source: man zathura (the installed page: MOUSE AND KEY BINDINGS, COMMANDS) and man zathurarc (guioptions)
 # source: https://github.com/pwmt/zathura/blob/2026.07.18/zathura/config.c (the default shortcuts; only here: Y)

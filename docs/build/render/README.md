@@ -1,10 +1,10 @@
-# Real renders of the fedokawaii desktop (headless, Fedora 44 versions)
+# Real renders of the fedokawaii desktop (headless, Fedora's versions)
 
 `shoot.sh` starts the real apps — waybar, mako, foot/footclient, gtklock, quick settings' panel (the menus and the launcher) — with
 the test user's configs (what `theme.sh --user kawau` installed), in a headless sway on a
 1920×1080 output at scale 1, and captures them with grim for the dark and the light theme.
-The apps, and the libraries that draw their text, are built at the versions Fedora 44
-ships (`/opt/f44`, see below). Nothing here is a mock-up: every PNG is a lossless grab
+The apps, and the libraries that draw their text, are built at the versions Fedora
+ships (`/opt/fk-stack`, see below). Nothing here is a mock-up: every PNG is a lossless grab
 of what the compositor showed.
 
 ## Run
@@ -68,7 +68,7 @@ menu — and `~/.local/share/applications/kawa-*.desktop` — "Files" in the lau
 `kawa-*` script and `fetch`, the user's
 bash prompt (`~/.bashrc.d/fedokawaii.sh`), fonts (DepartureMono Nerd Font, JetBrainsMono
 Nerd Font v3.5.1, PixelMplus12, Sumi Icons, Noto, Amiri, Liberation, Noto Color Emoji),
-adw-gtk3 6.4 + Papirus 20250501 (Fedora 44's), dconf defaults, PipeWire + WirePlumber
+adw-gtk3 6.4 + Papirus 20250501 (Fedora's), dconf defaults, PipeWire + WirePlumber
 (the volume module, `wpctl`, `pw-dump`), D-Bus, notify-send, the `kawa-dwlstatus` →
 waybar signal path, typing (wtype, a virtual keyboard).
 
@@ -88,18 +88,18 @@ Stand-ins (`stubs/`, first in PATH; `xdg/`; `lib/`):
 | `wlr-randr` | `/tmp/veiltest/fakebin/wlr-randr`: sway's outputs in wlr-randr's format |
 | audio devices | PipeWire null sinks/source named like the owner's machine (the Ryzen HD audio controller's ALC1220 analog, the Navi 48's HDMI to an LG ULTRAGEAR); `stubs/pw-dump` adds their cards and active routes (Line Out, Rear Microphone, HDMI / DisplayPort), which null devices lack |
 | launcher entries | `xdg/share/applications`: Fedora's `.desktop` names/icons for the GUI apps setup.sh installs, plus foot's own three |
-| system identity | inside the namespace: hostname `fedokawaii`, a Fedora 44 Server `/etc/os-release` (what `fetch` prints) |
+| system identity | inside the namespace: hostname `fedokawaii`, a Fedora 45 Server `/etc/os-release` (what `fetch` prints) |
 | `~/repos/fedokawaii` | recreated each run: a copy of the repo as a git repo with +1 staged, ~2 modified, ?1 untracked, ↑1 ahead |
 | the screenshot in `notify-normal` | a crop of the wallpaper's Fuji scene |
 
-## Built at Fedora 44's versions (`build.sh` → `/opt/f44`)
+## Built at Fedora's versions (`build.sh` → `/opt/fk-stack`)
 
-Versions from packages.fedoraproject.org (Fedora 44 column; the `fedora-44.html` release
-page where the overview showed a later update). Sources: GitHub (git tags) or upstream
+Versions from packages.fedoraproject.org when the kit was last built, before Fedora 45: it wants
+a rebuild at 45's (foot 1.28, fontconfig 2.18, glib 2.90 …: `dnf repoquery` says). Sources: GitHub (git tags) or upstream
 release tarballs from Ubuntu's archive pool (Codeberg, freedesktop/GNOME GitLab and
 Fedora's own hosts are not reachable from this sandbox).
 
-| package | F44 | built | source |
+| package | Fedora | built | source |
 |---|---|---|---|
 | waybar | 0.15.0 | 0.15.0 | github.com/Alexays/Waybar tag (spdlog 1.15.2 / fmt 12.0.0 wraps from GitHub) |
 | mako | 1.11.0 | 1.11.0 | github.com/emersion/mako tag v1.11.0 |
@@ -126,8 +126,8 @@ fonts-noto-color-emoji, fonts-liberation, fonts-hosny-amiri, wtype, libnotify-bi
 pipewire, dconf-cli; the user's fonts in `~kawau/.local/share/fonts` as setup.sh lays
 them out (`DepartureMonoNerd/`, `JetBrainsMonoNerd/`, `PixelMplus/`).
 
-The session uses `LD_LIBRARY_PATH=/opt/f44/lib`, so every app (including waybar's
-GTK/gtkmm and mako's pango/cairo) draws with the Fedora 44 stack above; `logs/<theme>/libs.txt`
+The session uses `LD_LIBRARY_PATH=/opt/fk-stack/lib`, so every app (including waybar's
+GTK/gtkmm and mako's pango/cairo) draws with the Fedora stack above; `logs/<theme>/libs.txt`
 shows it.
 
 ## One-time setup (already done in this sandbox)
@@ -146,9 +146,9 @@ apt-get install meson ninja-build scdoc pkg-config cmake gperf libwayland-dev li
 # runtime
 apt-get install pipewire pipewire-bin dbus-daemon dbus-bin libnotify-bin wtype dconf-cli jq \
   fonts-noto-core fonts-noto-color-emoji fonts-liberation fonts-hosny-amiri
-python3 -m venv /opt/f44/meson-venv && /opt/f44/meson-venv/bin/pip install meson==1.9.1
-./build.sh                                    # → /opt/f44 (≈35 min on 2 cores)
-# themes as Fedora 44 packages them
+python3 -m venv /opt/fk-stack/meson-venv && /opt/fk-stack/meson-venv/bin/pip install meson==1.9.1
+./build.sh                                    # → /opt/fk-stack (≈35 min on 2 cores)
+# themes as Fedora packages them
 tar xf adw-gtk3v6.4.tar.xz -C /usr/share/themes          # GitHub release v6.4
 cp -a papirus/{Papirus,Papirus-Dark,Papirus-Light} /usr/share/icons/   # git tag 20250501
 # the user's fonts, laid out as setup.sh does (owned by kawau), then fc-cache as kawau:
@@ -169,7 +169,7 @@ from there; shoot.sh calls `/usr/bin/dconf update` and the real `fc-cache` itsel
   gives; dwl's own window frames, gaps and centred-dialog patch are not drawn, and the
   terminal floats at a fixed size instead of tiling.
 - Still Ubuntu 24.04's: libwayland 1.22, xkbcommon 1.6, gdk-pixbuf 2.42 (icons/images),
-  gtkmm 3.24.9, PipeWire 1.0.5, bash 5.2.21 (Fedora 44: 5.3 — `fetch` prints it), the
+  gtkmm 3.24.9, PipeWire 1.0.5, bash 5.2.21 (Fedora: 5.3 — `fetch` prints it), the
   fontconfig *configuration* in /etc/fonts (Ubuntu's conf.d, read by fontconfig 2.17).
 - PixelMplus 12 is the Regular face only (no Bold in the provided fonts).
 - Time is real (Asia/Dubai): the clock and the prompt's time and its sun/moon follow the
@@ -229,7 +229,7 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | `app-btop`, `app-btop-themefix` | btop started first on another workspace so its graphs have history; `-themefix` is the same btop with the theme where btop can find it (see below) |
 | `app-mpv` | mpv 0.41 (`--gpu-sw`: no GPU here) on a 10 s video of the light wallpaper's Fuji, controller shown (`osc-visibility always`), paused at 0:04 |
 | `app-zathura` | the handbook PDF at page 5 |
-| `app-filechooser` | `lib/filechooser.c` (GTK 3.24.52 from /opt/f44): GtkFileChooserDialog "Open File", theme from GSettings |
+| `app-filechooser` | `lib/filechooser.c` (GTK 3.24.52 from /opt/fk-stack): GtkFileChooserDialog "Open File", theme from GSettings |
 | `app-share` | `kawa-share` fed four xdg-desktop-portal-wlr 0.8.4 lines; `wlr-randr` answers for DP-1 and HDMI-A-1 |
 | `app-torrra`, `app-torrra-search` | `kawa-torrra --open` (the launcher's way) with `lib/fakeprowlarr.py` on 127.0.0.1:9696; "ubuntu 24.04" typed |
 | `app-brave` | Brave Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |

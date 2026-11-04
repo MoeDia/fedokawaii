@@ -65,7 +65,7 @@ repo_of() {
     *) local c; for c in "${COPRS[@]}"; do [[ $(copr_pkgs "$c") == "$1" ]] && { echo "copr:$c"; return; }; done; echo fedora ;;
   esac
 }
-vendor() { case $1 in fedora|updates|updates-testing|fedora-*|updates-*) echo fedora ;; rpmfusion-free*) echo rpmfusion-free ;; rpmfusion-nonfree*) echo rpmfusion-nonfree ;; copr:*) echo "${1%%:*}:${1#*:}" ;; *) echo "$1" ;; esac; }
+vendor() { case $1 in fedora|updates|updates-testing|fedora-*|updates-*) echo fedora ;; rpmfusion-free*) echo rpmfusion-free ;; rpmfusion-nonfree*) echo rpmfusion-nonfree ;; copr:copr.fedorainfracloud.org:*) local c=${1#copr:copr.fedorainfracloud.org:}; echo "copr:${c/://}" ;; *) echo "$1" ;; esac; }
 # the names two vendors both offer, as meant, and why the one setup wants is the one dnf takes
 # (its version is the newer: dnf takes the newest from any vendor)
 declare -A TWO_VENDORS=(
@@ -224,7 +224,7 @@ if ((LIVE)); then
   # each repository setup adds: enabled, its packages signed
   for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
     grep -qx "$r" <<<"$REPOS" || { info "$r: not enabled here (setup's phase 2 adds it)"; continue; }
-    g=$(dnf -q repo info "$r" 2>/dev/null | sed -n 's/^ *\(GPG check\|PGP check\|Gpgcheck\) *: *//Ip' | sed -n 1p)
+    g=$(dnf -q repo info "$r" 2>/dev/null | sed -n 's/^ *\(GPG check\|PGP check\|Gpgcheck\|Verify packages\) *: *//Ip' | sed -n 1p)
     if [[ ${g,,} == @(yes|1|true|*enabled*) ]]; then pass "$r: enabled, packages signature-checked"
     else fail "$r: enabled without a signature check (gpgcheck) — its .repo file in /etc/yum.repos.d needs gpgcheck=1"; fi
   done
@@ -239,7 +239,7 @@ if ((LIVE)); then
           v=${FOUND[$n]%% *} r=${v#*@} v=${v%@*} s=${SRC[$n]:-$n}
           case $(vendor "$r") in
             fedora) u="https://packages.fedoraproject.org/pkgs/$s/$n/" ;;
-            copr:*) u="https://copr.fedorainfracloud.org/coprs/${r#copr:copr.fedorainfracloud.org:}/"; u=${u/://} ;;
+            copr:*) u=${r#copr:copr.fedorainfracloud.org:}; u="https://copr.fedorainfracloud.org/coprs/${u/://}/" ;;
             *) u=$(grep "^$n|" "$EVIDENCE" | cut -d'|' -f3) ;;
           esac
           echo "$n|$(vendor "$r")|$u|$d|$n-$v from $r (dnf repoquery)"

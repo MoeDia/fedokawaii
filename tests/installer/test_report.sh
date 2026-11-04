@@ -38,7 +38,7 @@ printf '%s\n' '#!/bin/bash' 'case "$1 $2" in' \
   '"history list") printf "%s\n" "ID Command line                    Date and time       Action(s) Altered" "  8 dnf upgrade -y                  2026-10-19 04:40:00               3" "  7 dnf install -y libreoffice-writer hunspell-ar 2026-10-19 04:03:12               412" "  6 dnf install -y git             2026-10-19 03:50:01               9" ;;' \
   '"history info") echo "Transaction ID : $3"; echo "Packages altered: hunspell-ar qt6-qtwebengine" ;;' \
   '*) exec /usr/local/bin/dnf "$@" ;;' 'esac' >"$W/usr/local/sbin/dnf"
-printf '%s\n' '#!/bin/bash' '[ "$1" = -qf ] && { case $2 in *qwebengine*) echo qt6-qtwebengine-6.10.0-1.fc44.x86_64 ;; *) echo waybar-0.14.0-1.fc44.x86_64 ;; esac; exit 0; }' 'exec /usr/local/bin/rpm "$@"' >"$W/usr/local/sbin/rpm"
+printf '%s\n' '#!/bin/bash' '[ "$1" = -qf ] && { case $2 in *qwebengine*) echo qt6-qtwebengine-6.10.0-1.fc45.x86_64 ;; *) echo waybar-0.14.0-1.fc45.x86_64 ;; esac; exit 0; }' 'exec /usr/local/bin/rpm "$@"' >"$W/usr/local/sbin/rpm"
 chmod 755 "$W"/usr/local/sbin/{coredumpctl,dnf,rpm}
 fk bash -c 'mkdir -p /home/fkuser/.cache/oops /home/fkuser/.local/share/containers/storage/overlay/x /home/fkuser/Downloads
             touch /home/fkuser/Downloads/rooted; chown 0:0 /home/fkuser/Downloads/rooted
@@ -60,7 +60,7 @@ printf '%s\n' 'Oct 19 14:09:33 fedokawaii kawa-greet[1098]: 00:00:00.053 [INFO] 
 printf '%s\n' 'Oct 19 14:09:25 fedora kernel: virt/tdx: TDX not supported by the host platform' \
   'Oct 19 14:09:27 fedora kernel: amdgpu: Overdrive is enabled, please disable it before reporting any bugs unrelated to overdrive.' \
   'Oct 19 14:10:54 fedokawaii systemd-coredump[3637]: Process 3626 (bwrap) of user 1000 dumped core.' \
-  '                                                   Module bwrap from rpm bubblewrap-0.12.0-1.fc44.x86_64' \
+  '                                                   Module bwrap from rpm bubblewrap-0.12.0-1.fc45.x86_64' \
   '                                                   #0  0x00007f0926263f4b execve (libc.so.6 + 0xc0f4b)' \
   'Oct 19 14:12:11 fedokawaii foot[1486]: wayland: failed to roundtrip Wayland display: Broken pipe' \
   'Oct 19 14:12:11 fedokawaii foot[1486]: wayland: failed to flush wayland socket: Broken pipe' \
@@ -143,7 +143,7 @@ has "$REP" "no desktop session is running (dwl not found for fkuser)"
 case_ "crashes, grouped by program: the desktop's a FAIL, before setup finished only listed, qwebengine's dictionary conversion during dnf known — each with its package and dnf's transaction"
 a=$(area "10. the journal and the system's health")
 lacks "$a" "qwebengine_convert_dict" "the dictionaries' conversion as dnf installed hunspell: known, no finding"
-has "$REP" "26 × SIGTRAP  /usr/lib64/qt6/libexec/qwebengine_convert_dict  (uid 0, qt6-qtwebengine-6.10.0-1.fc44.x86_64)"
+has "$REP" "26 × SIGTRAP  /usr/lib64/qt6/libexec/qwebengine_convert_dict  (uid 0, qt6-qtwebengine-6.10.0-1.fc45.x86_64)"
 has "$REP" "  known and harmless: the dictionaries' conversion as dnf installed hunspell or qtwebengine ("
 has "$REP" "  the dnf transaction last begun before it: 7: dnf install -y libreoffice-writer hunspell-ar 2026-10-19 04:03:12 · 412"
 has "$a" "FAIL  SYS-02 /usr/bin/waybar crashed 1 times (SIGSEGV, 2026-10-19 05:01:02)"

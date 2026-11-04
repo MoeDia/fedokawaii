@@ -78,7 +78,7 @@ fi
 
 # ── btop ─────────────────────────────────────────────────────────────────────
 config .config/btop/btop.conf
-# btop 1.4.6+ (Fedora 44: 1.4.7) — its config names (btop_config.cpp)
+# btop 1.4.6+ (Fedora 45: 1.4.7) — its config names (btop_config.cpp)
 BOPTS=" color_theme theme_background truecolor force_tty presets vim_keys rounded_corners
 terminal_sync graph_symbol graph_symbol_cpu graph_symbol_gpu graph_symbol_mem graph_symbol_net
 graph_symbol_proc shown_boxes update_ms proc_sorting proc_reversed proc_tree proc_colors

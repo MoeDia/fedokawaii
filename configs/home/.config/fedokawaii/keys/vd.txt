@@ -1,8 +1,8 @@
-# VisiData 3.3 (Fedora visidata-3.3-2.fc44): the Tables window (vd; .csv and .tsv open in it from yazi)
+# VisiData 3.3 (Fedora visidata-3.3-4.fc45): the Tables window (vd; .csv and .tsv open in it from yazi)
 # command: vd --version; vd --help
 # note: the file is vd.txt for the command the shell's hook sees (vd); its parts are headed "visidata" (kawa-help's part_icon knows both)
 # source: man visidata (the installed page: GLOBAL COMMANDS, Metasheets, Derived Sheets)
-# source: /usr/lib/python3.14/site-packages/visidata/clipboard.py (the installed code: Y copies with wl-copy under Wayland)
+# source: /usr/lib/python3.15/site-packages/visidata/clipboard.py (the installed code: Y copies with wl-copy under Wayland)
 # ours: configs/home/.config/visidata/config.py (no key changed; quitguard on, disp_menu off: Alt+H still opens the menu)
 ── visidata: moving ───────────────────────────────────────────────
 h j k l                 left, down, up, right (arrow keys too)

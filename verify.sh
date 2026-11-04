@@ -54,7 +54,18 @@ source /etc/os-release
 cp=$(conf_report)
 if [[ -z $cp ]]; then pass "fedokawaii.conf: every value valid"
 else while IFS= read -r l; do fail "fedokawaii.conf: $l" "fedokawaii settings"; done <<<"$cp"; fi
-check "Fedora $VERSION_ID (44 or newer)"              test "$VERSION_ID" -ge 44
+# (older: a warning, not a failure. A machine that has the toolkit but not its Fedora yet works on,
+# and the update button moves it up: a red here would only stand in the way of that)
+if ((VERSION_ID >= FEDORA_RELEASE)); then pass "Fedora $VERSION_ID ($FEDORA_RELEASE or newer)"
+else warn "Fedora $VERSION_ID: fedokawaii is made for Fedora $FEDORA_RELEASE" "the update button moves it up"; fi
+# (Fedora's repository files live in /usr/share/dnf5/repos.d; a copy under /etc wins over the whole
+# file, so a stale one would go on steering dnf after Fedora changes its own. Fedora's upgrade leaves one
+# only if it was edited. A warning: dnf works, only by that copy. Older than this Fedora: not there yet)
+if ((VERSION_ID >= FEDORA_RELEASE)); then
+  shadow=(/etc/yum.repos.d/fedora*.repo)
+  if [[ -e ${shadow[0]} ]]; then warn "a copy of Fedora's repository file in /etc wins over Fedora's own: ${shadow[*]##*/}" "compare with /usr/share/dnf5/repos.d, then delete it"
+  else pass "Fedora's repository files are Fedora's own (none copied to /etc)"; fi
+fi
 check "SELinux enforcing"                              test "$(getenforce 2>/dev/null)" = Enforcing
 check "/ is Btrfs"                                     test "$(findmnt -no FSTYPE /)" = btrfs
 # every file in your home is yours — ~/.cache, and ~/Downloads (its own Btrfs subvolume, where

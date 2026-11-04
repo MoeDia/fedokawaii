@@ -17,6 +17,10 @@ world built
 keep built
 
 # ── a sound system ───────────────────────────────────────────────────────────
+case_ "the release: Fedora 45 passes; a machine still on an older one is warned, never red — the update button moves it up"
+back built; V; has "$OUT" "✔  Fedora 45 (45 or newer)"
+back built; fedora_release 43; V; has "$OUT" "!  Fedora 43: fedokawaii is made for Fedora 45 — the update button moves it up"; lacks "$OUT" "✘  Fedora 43"
+
 case_ "a finished install: everything passes (exit 0), the outcome recorded for the menu"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n4 | tr '\n' '|')"
 has "$OUT" "✔  verified"; lacks "$OUT" "✘"
@@ -95,7 +99,7 @@ fkh_del installed grubby man-db                                           # the 
 fkh_add installed nano; fkh_add userinstalled "htop User"; fkh_add installed htop   # forbidden; extra
 fkh_del units "global-enabled wireplumber.service"                         # Fedora's preset undone
 fkh fw-services dhcpv6-client ssh cockpit                                  # cockpit open (closed whatever SSH_SERVER says)
-fkh kernels "6.18.1-200.fc44.x86_64" "6.18.2-200.fc44.x86_64" "6.18.44-fc-v114"
+fkh kernels "6.18.1-200.fc45.x86_64" "6.18.2-200.fc45.x86_64" "6.18.44-fc-v114"
 rm -f "$FKH/vainfo-renderD128"                                             # no VA-API driver
 fkh scrub-status $'Scrub started: x\nError summary:    csum=3\n  Corrected:      0\n  Uncorrectable:  3'
 echo 'PROWLARR_API_KEY=short' >"$W/home/fkuser/.config/fedokawaii/secrets.sh"
@@ -162,9 +166,9 @@ case_ "greetd's drop-in without the splash's order (an older one): named, exit 3
 back built; sed -i '/retain-splash/d' "$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf"
 V; eq "$RC" 3; has "$OUT" "✘  greetd owns tty1 and takes the screen from the splash with no black between (its drop-in)"
 case_ "a kernel whose boot image dracut could not make (dnf does not fail on that): named, exit 3"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"              # the older one at rest, no image for it
-V; eq "$RC" 3; has "$OUT" "✘  kernels without a boot image (initramfs) — 6.18.1-200.fc44.x86_64 — would not start; repair makes them (dracut)"
-echo initramfs >"$W/boot/initramfs-6.18.1-200.fc44.x86_64.img"
+back built; fkh kernels "6.18.1-200.fc45.x86_64" "$(uname -r)"              # the older one at rest, no image for it
+V; eq "$RC" 3; has "$OUT" "✘  kernels without a boot image (initramfs) — 6.18.1-200.fc45.x86_64 — would not start; repair makes them (dracut)"
+echo initramfs >"$W/boot/initramfs-6.18.1-200.fc45.x86_64.img"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  every kernel has its boot image (initramfs)"
 
 # ── setup's gate, and misuse ─────────────────────────────────────────────────

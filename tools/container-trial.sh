@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# tools/container-trial.sh — Fedokawaii's package steps, for real, in a throw-away Fedora 44
+# tools/container-trial.sh — Fedokawaii's package steps, for real, in a throw-away Fedora 45
 # container, attacked in the ways a real install meets: the results in ONE file to hand on.
 #
 #   bash tools/container-trial.sh            (from a clone of the repository, as yourself — no sudo)
 #   fedokawaii trial                         (the same, on a finished Fedokawaii desktop)
-#   options: --image REF (default registry.fedoraproject.org/fedora:44) · --keep (leave the
+#   options: --image REF (default registry.fedoraproject.org/fedora:45) · --keep (leave the
 #            container for a look: podman exec -it fedokawaii-trial bash) · --help
 #
 # Needs: podman (rootless), the network, ~10 GB free where podman keeps its containers, 20–40
@@ -32,7 +32,7 @@
 set -uo pipefail
 export LC_ALL=C.UTF-8
 REPO=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
-IMAGE=registry.fedoraproject.org/fedora:44 KEEP=0
+IMAGE=registry.fedoraproject.org/fedora:45 KEEP=0
 while (($#)); do
   case $1 in
     --image) [[ -n ${2:-} ]] || { echo "container-trial: --image REF" >&2; exit 2; }; IMAGE=$2; shift ;;
@@ -239,7 +239,7 @@ echo "Fedokawaii container trial — $(date '+%F %H:%M') · $IMAGE · the result
 : >"$D/trial.log"
 ok=1
 stage "podman and space"            s_podman  || ok=0
-((ok)) && { stage "the Fedora 44 image" s_image || ok=0; }
+((ok)) && { stage "the Fedora 45 image" s_image || ok=0; }
 ((ok)) && { stage "the container (Server-like base, the repository, a user)" s_container || ok=0; }
 if ((ok)); then
   stage "check-packages: the manifest (static)" s_static

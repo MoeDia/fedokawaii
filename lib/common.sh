@@ -272,6 +272,11 @@ dnf_install() {
 pkg_installed() { rpm -q "$1" >/dev/null 2>&1; }                # installed under exactly this name
 pkg_provided()  { rpm -q --whatprovides "$1" >/dev/null 2>&1; }  # …or by a package renamed since (Fedora keeps the old name as a Provides)
 
+# the one Fedora this toolkit is made for and tested on. Setup starts only there (check.sh). A machine
+# still on an older one goes on working (apply, update, verify warns): the update button moves it up
+# shellcheck disable=SC2034  # (check.sh, verify.sh and setup.sh read it)
+FEDORA_RELEASE=45
+
 # ── report helpers (check.sh, verify.sh) ────────────────────────────────────
 PASS=0 FAILS=() WARNS=()
 section() { _heading "$1"; }

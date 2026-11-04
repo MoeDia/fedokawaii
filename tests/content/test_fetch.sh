@@ -9,9 +9,9 @@
 setup() {   # setup — a sandbox and a made-up machine in $R (fetch's copy: $TMP/fetch)
   sandbox
   R=$TMP/root; mkdir -p "$R/etc" "$R/usr/lib" "$R/proc/sys/kernel"
-  printf 'NAME="Fedora Linux"\nVERSION="44 (Forty Four)"\nID=fedora\nVERSION_ID=44\nPRETTY_NAME="Fedora Linux 44 (Forty Four)"\n' >"$R/usr/lib/os-release"
+  printf 'NAME="Fedora Linux"\nVERSION="45 (Forty Five)"\nID=fedora\nVERSION_ID=45\nPRETTY_NAME="Fedora Linux 45 (Forty Five)"\n' >"$R/usr/lib/os-release"
   ln -s ../usr/lib/os-release "$R/etc/os-release"
-  echo 6.17.1-300.fc44.x86_64 >"$R/proc/sys/kernel/osrelease"
+  echo 6.17.1-300.fc45.x86_64 >"$R/proc/sys/kernel/osrelease"
   echo fedora >"$R/proc/sys/kernel/hostname"
   echo "11523.47 40000.00" >"$R/proc/uptime"                     # 3h 12m
   printf 'MemTotal:       16252928 kB\nMemFree:         9000000 kB\nMemAvailable:   12897484 kB\n' >"$R/proc/meminfo"
@@ -40,7 +40,7 @@ eq "$(grep -oE '<[[:space:]]*/[^ ;)]+' "$TMP/fetch" | grep -v "^<$R/")" "" "a fi
 case_ "the facts: you@the host (no spaces), the system, the kernel, the uptime, the session, bash, memory, the colours"
 setup
 out=$(F neko | sed 's/\x1b\[[0-9;]*m//g')
-has "$out" "kawau@fedora"; lacks "$out" "kawau @"; has "$out" "fedora 44"; has "$out" " 6.17.1"
+has "$out" "kawau@fedora"; lacks "$out" "kawau @"; has "$out" "fedora 45"; has "$out" " 6.17.1"
 has "$out" "3h 12m"; has "$out" "dwl · foot"; has "$out" "bash ${BASH_VERSION%%(*}"
 has "$out" "3.2 / 15.5 GiB"; has "$out" "● ● ● ● ● ● ● ●"
 eq "$(F neko | grep -c .)" 8 "eight lines between two blank ones"
@@ -55,11 +55,11 @@ echo "86460.0 1.0" >"$R/proc/uptime"; has "$(F neko | sed 's/\x1b\[[0-9;]*m//g')
 
 case_ "os-release: quotes of either kind, a field missing (NAME's own default: Linux)"
 setup
-printf "NAME='Fedora Linux'\nVERSION_ID='44'\n" >"$R/usr/lib/os-release"
-out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora 44"; lacks "$out" "'"
+printf "NAME='Fedora Linux'\nVERSION_ID='45'\n" >"$R/usr/lib/os-release"
+out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora 45"; lacks "$out" "'"
 printf 'NAME="Fedora Linux"\n' >"$R/usr/lib/os-release"
 out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora"$'\n' "no version: no trailing space"
-printf 'VERSION_ID=45\n' >"$R/usr/lib/os-release"
+printf 'VERSION_ID=46\n' >"$R/usr/lib/os-release"
 out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " linux 45"
 
 case_ "no USER, no session (a TTY, ssh): the rest still there"

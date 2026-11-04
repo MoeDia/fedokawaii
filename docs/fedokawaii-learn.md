@@ -1,7 +1,7 @@
 ---
 title: "Fedokawaii — learn"
 subtitle: "Every key, every program, two languages and the craft of working with AI: from your first command to a small language model of your own"
-date: "October 2026 · Fedora 44 · Python 3.14 · Rust · ROCm 7.2"
+date: "November 2026 · Fedora 45 · Python 3.14 · Rust · ROCm 7.2"
 kanji: "1=始 2=端 3=誤 4=窓 5=品 6=写 7=起 8=守 9=言 10=探 11=歩 12=書 13=筆 14=史 15=動 16=音 17=網 18=遊 19=流 20=記 21=問 22=箱 23=選 24=環 25=数 26=字 27=巡 28=関 29=列 30=鍵 31=冊 32=例 33=包 34=類 35=試 36=型 37=生 38=待 39=令 40=統 41=積 42=楽 43=脳 44=火 45=語 46=調 47=使 48=錆 49=変 50=回 51=有 52=借 53=構 54=挙 55=集 56=果 57=性 58=命 59=組 60=反 61=並 62=具 63=微 64=推 65=橋 66=道 67=識 68=頼 69=行 70=作 71=拡 72=匠 A=辞 B=解 C=答 D=応"
 ---
 
@@ -1430,7 +1430,7 @@ here). podman runs containers as you, never as root.
 
 | Command | Does |
 |---|---|
-| `podman run --rm -it fedora:44 bash` | a throw-away Fedora, gone when you `exit` |
+| `podman run --rm -it fedora:45 bash` | a throw-away Fedora, gone when you `exit` |
 | `podman run --rm -it python:3.14 python` | a Python of another version, for a minute |
 | `podman ps -a` · `podman images` | running and stopped containers · the images kept |
 | `podman run --rm -v ~/practice:/w:Z -w /w python:3.14 python script.py` | run a script of yours inside |
@@ -7883,10 +7883,10 @@ learns from noisier steps, but each is much cheaper — the way every large mode
 
 ## 44.1 Where things stand (October 2026)
 
-| Piece | State on Fedora 44 |
+| Piece | State on Fedora 45 |
 |---|---|
 | the card's driver | `amdgpu`, in the kernel: nothing to install |
-| ROCm, AMD's computing stack | Fedora packages it (`rocm-*`, version 7.1); AMD's own list of supported systems does not include Fedora |
+| ROCm, AMD's computing stack | Fedora packages it (`rocm-*`, version 7.2); AMD's own list of supported systems does not include Fedora |
 | PyTorch for ROCm | PyTorch's official wheels, `download.pytorch.org/whl/rocm7.2` (PyTorch 2.14), carry their own copy of ROCm 7.2 and include the RX 9060 XT (`gfx1200`, RDNA 4) — so Fedora's ROCm packages are not needed for PyTorch |
 | btop | shows the card's load, memory, heat and watts while you train (through `rocm-smi`, installed) |
 

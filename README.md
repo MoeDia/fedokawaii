@@ -1,6 +1,6 @@
 # Fedokawaii — Fedora Server → dwl, scripted
 
-*Fedora + kawaii (かわいい, "cute").* A reproducible dwl desktop on Fedora 44/45 from a
+*Fedora + kawaii (かわいい, "cute").* A reproducible dwl desktop on Fedora 45 from a
 minimal Server install: dark and retro, a little Japanese, drawn pixel by pixel. One tool
 per job, no Flatpak, every package verified, and a verifier that proves it. The helpers are
 the `kawa-*` commands (川, *kawa*, river).
@@ -144,7 +144,7 @@ PACKAGES.md        what is installed, from where, and why
 
 ## 1 · Fedora Server installer — the settings that matter
 
-Boot the Fedora 44 Server USB → **Install Fedora 44**:
+Boot the Fedora 45 Server USB → **Install Fedora 45**:
 
 | Screen | Set |
 |---|---|

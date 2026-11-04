@@ -1,4 +1,4 @@
-# btop 1.4.7 (Fedora btop-1.4.7-1.fc44): the system monitor
+# btop 1.4.7 (Fedora btop-1.4.7-2.fc45): the system monitor
 # command: btop --version; btop --help
 # source: https://github.com/aristocratos/btop/blob/v1.4.7/src/btop_menu.cpp (its help window; all 46 lines also found in the installed binary)
 # source: https://github.com/aristocratos/btop/blob/v1.4.7/src/btop_input.cpp (the key handling)

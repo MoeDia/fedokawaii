@@ -37,7 +37,7 @@ pkg_has lact && _no "LACT installed without its COPR" || _ok
 grep -qx 'enabled lactd.service' "$FKH/units" && _no "lactd enabled without LACT" || _ok
 eq "$(grep -c "mesa-va-drivers-freeworld 26.2.4 from RPM Fusion is made for mesa-filesystem 26.2.4; Fedora has mesa-filesystem 26.2.5" <<<"$OUT")" 1 "said once, with both versions"
 has "$OUT" "libheif-freeworld 1.23.5 from RPM Fusion is made for libheif 1.23.5; Fedora has libheif 1.23.6"
-has "$OUT" "the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out until it has"
+has "$OUT" "the COPR ilyaz/LACT has no build for Fedora 45 yet — lact left out until it has"
 reboot_world; keep phase3
 
 case_ "phase 3: Steam's 32-bit drivers wait with their 64-bit ones; the gate and the final check pass, with warnings"
@@ -47,7 +47,7 @@ lacks "$(state pending-rpmfusion)" vulkan; has "$(state pending-rpmfusion)" mesa
 pkg_has mesa-vulkan-drivers.i686 && _ok || _no "Steam's 32-bit Vulkan driver (Fedora's) not installed"
 pkg_has steam && _ok || _no "Steam not installed"
 has "$OUT" "!  libheif-freeworld 1.23.5 waits for Fedora's libheif 1.23.5"; has "$OUT" "!  mesa-va-drivers-freeworld 26.2.4 waits for Fedora's mesa-filesystem 26.2.4"
-has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out"
+has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 45 yet — lact left out"
 lacks "$OUT" "✘  forbidden packages present"; lacks "$OUT" "✘ installed outside the manifest"; lacks "$OUT" "✘ missing packages"
 keep waiting
 
@@ -70,14 +70,14 @@ for p in mesa-va-drivers-freeworld libheif-freeworld mesa-va-drivers-freeworld.i
 done; _ok
 pkg_has mesa-vulkan-drivers-freeworld && _no "RPM Fusion's Vulkan driver installed" || _ok
 not_called 'allowerasing.*vulkan|vulkan.*allowerasing'
-eq "$(state pending-copr)" ilyaz/LACT; has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 44 yet"
+eq "$(state pending-copr)" ilyaz/LACT; has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 45 yet"
 case_ "repair: the COPR has a build now — enabled, LACT installed and its service on, the record cleared"
 fkh copr-nochroot
 tk --repair; eq "$RC" 0 "$(grep -E '✘|still needs' <<<"$OUT" | head -n3 | tr '\n' '|')"
 [[ ! -e $W/var/lib/fedokawaii/pending-copr ]] && _ok || _no "still recorded"
 pkg_has lact && _ok || _no "LACT not installed"
 grep -qx 'enabled lactd.service' "$FKH/units" && _ok || _no "lactd not enabled"
-has "$OUT" "the COPR ilyaz/LACT has a build for Fedora 44 now — enabled"
+has "$OUT" "the COPR ilyaz/LACT has a build for Fedora 45 now — enabled"
 case_ "update while still out of step: nothing tried in vain, nothing failed, still recorded"
 back waiting; reset_calls
 tk --update; eq "$RC" 0

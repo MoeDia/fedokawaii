@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """Builds Fedokawaii-Guide.pdf from docs/fedokawaii-guide.md and REAL renders
-($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora 44's versions)."""
+($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora's versions)."""
 import re
 import os
 import sys
