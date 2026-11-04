@@ -30,10 +30,15 @@ nft -f - <<EOF || { no "nftables refused the counting table"; exit 1; }
 table inet $TABLE {
   counter plain { }
   counter tls { }
+  counter upnp { }
   chain out {
     type filter hook output priority 100; policy accept;
     oifname != "lo" oifname != "$VETH" meta skuid != "$(id -u "$U")" meta l4proto { tcp, udp } th dport 53 counter name plain
     oifname != "lo" meta l4proto tcp th dport 853 counter name tls
+  }
+  chain left {
+    type filter hook postrouting priority 300; policy accept;
+    oifname != "lo" udp dport { 1900, 5351 } counter name upnp
   }
 }
 EOF
@@ -66,7 +71,8 @@ sys.exit(0 if json.loads(d.split(b"\n")[0]).get("TLS", {}).get("startTLS") == "t
 PY
 
 # ── no program opens a port on the router ─────────────────────────────────────
-python3 -I - <<'PY' && ok "UPnP and NAT-PMP stop at the firewall" || no "UPnP or NAT-PMP left this machine"
+python3 -I - <<'PY' && [[ $(nft list counter inet "$TABLE" upnp | sed -n 's/.*packets \([0-9]*\).*/\1/p') == 0 ]] \
+  && ok "UPnP and NAT-PMP stop at the firewall (none past it)" || no "UPnP or NAT-PMP left this machine"
 import socket, subprocess, sys
 gw = subprocess.run(["ip", "-4", "route", "show", "default"], capture_output=True, text=True).stdout.split()
 gw = gw[2] if len(gw) > 2 else "192.0.2.1"

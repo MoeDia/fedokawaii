@@ -76,6 +76,7 @@ case_ "the network's rows read as shell (a stray quote would make a row say noth
 for n in "NET-07 the firewall" "NET-08 sshd only where it can be used" "NET-09 what listens" "NET-20 no LLMNR" "NET-21 names go over TLS" "NET-25 mDNS" "NET-26 the kernel's network settings"; do
   bash -n -c "$(row "$n")" 2>/dev/null && _ok || _no "$n does not parse"
 done
+has "$(row "LS-01 LocalSend and its port")" "--zone=kawa-lan --query-port=53317/udp" "LocalSend's door is the LAN's"
 case_ "NET-09: only what the list names; a stranger on every address is a finding (5355, LLMNR: off on this desktop), loopback never"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=13))

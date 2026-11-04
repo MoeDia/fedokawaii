@@ -202,7 +202,7 @@ net_dns() {
   restorecon "$NET_DNS_FILE" 2>/dev/null || true
   systemctl try-reload-or-restart systemd-resolved.service 2>/dev/null || true
 }
-# net_strays → every socket others could reach that the list does not name: "tcp/1234 what"
+# net_strays → every socket others could reach that the list does not name: "1234/tcp what"
 net_strays() {
   local proto addr f rest port known
   known=$(awk '/^[0-9]/ && $2 != "local" { print $1 }' "$REPO_DIR/system/net-allow.list")
