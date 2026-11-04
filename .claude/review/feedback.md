@@ -47,55 +47,55 @@ improve it a bit more
 ## 2026-11-04 17:50 — 05-quick — redo — open
 
 
-## 2026-11-04 17:51 — 14-power — redo — open
+## 2026-11-04 17:51 — 14-power — redo — in the plan: T19s
 
 
-## 2026-11-04 17:51 — 36-wallpapers-dark — love — open
+## 2026-11-04 17:51 — 36-wallpapers-dark — love — in the plan: T19s
 
 
-## 2026-11-04 17:51 — 37-wallpapers-light — love — open
+## 2026-11-04 17:51 — 37-wallpapers-light — love — in the plan: T19s
 
 
-## 2026-11-04 17:51 — 34-todo — love — open
+## 2026-11-04 17:51 — 34-todo — love — in the plan: T19s
 
 
-## 2026-11-04 17:51 — 33-notes — love — open
+## 2026-11-04 17:51 — 33-notes — love — in the plan: T19s
 
 
-## 2026-11-04 17:52 — 32-btop — change — open
+## 2026-11-04 17:52 — 32-btop — change — in the plan: T19s
 could be better spaced more easier to understand
 
-## 2026-11-04 17:52 — 31-yazi — change — open
+## 2026-11-04 17:52 — 31-yazi — change — in the plan: T19s
 can be even better imrpve
 
-## 2026-11-04 17:52 — 30-terminal — love — open
+## 2026-11-04 17:52 — 30-terminal — love — in the plan: T19s
 
 
-## 2026-11-04 17:52 — 29-git — love — open
+## 2026-11-04 17:52 — 29-git — love — in the plan: T19s
 
 
-## 2026-11-04 17:52 — 28-calculator — ok — open
+## 2026-11-04 17:52 — 28-calculator — ok — in the plan: T19s
 can be better
 
-## 2026-11-04 17:52 — 26-books — change — open
+## 2026-11-04 17:52 — 26-books — change — in the plan: T19s
 position of the book cover more centered more proper
 
-## 2026-11-04 17:53 — 25-wallpaper-picker — love — open
+## 2026-11-04 17:53 — 25-wallpaper-picker — love — in the plan: T19s
 
 
-## 2026-11-04 17:53 — 25-wallpaper-picker — change — open
+## 2026-11-04 17:53 — 25-wallpaper-picker — change — in the plan: T19s
 you can make the line 'r change every 4 h on' better more option like looking
 
-## 2026-11-04 17:53 — 24-clipboard — love — open
+## 2026-11-04 17:53 — 24-clipboard — love — in the plan: T19s
 
 
-## 2026-11-04 17:53 — 23-system-4 — change — open
+## 2026-11-04 17:53 — 23-system-4 — change — in the plan: T19s
 word like 'soon' too much on the right fix text placement here
 
-## 2026-11-04 17:53 — 22-system-3 — change — open
+## 2026-11-04 17:53 — 22-system-3 — change — in the plan: T19s
 same text placement 'none'
 
-## 2026-11-04 17:54 — 18-notice-critical — ok — open
+## 2026-11-04 17:54 — 18-notice-critical — ok — in the plan: T19s
 can be a bit better
 
 ## 2026-11-04 18:03 — general — comment — open
