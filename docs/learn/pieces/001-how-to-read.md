@@ -27,6 +27,7 @@ what each lesson needs. The full handbook — how every part of the desktop is b
 stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you want to know how
 something works inside. These lessons are about *using* it.
 
+
 | Part | You learn | Chapters |
 |---|---|---|
 | I — From zero | what a terminal, a file, a path, a program and a variable are; how to read an error | 1–3 |
@@ -71,6 +72,7 @@ Each chapter ends with exercises, graded by stars:
 | ★★ | combine two things from the chapter | five minutes |
 | ★★★ | a small project: you decide how | half an hour |
 | ★★★★ | a challenge: it stretches what the chapter taught | an evening |
+
 
 Every exercise says what you should see when it works. Each chapter's ★ and ★★ are its *practice*,
 a lesson like the others. Its ★★★ and ★★★★ are its *projects*: when you have the time, never counted

@@ -43,10 +43,27 @@ def lower_first(s):
     return s if word in PROPER or word[1:2].isupper() else s[:1].lower() + s[1:]
 
 
+# a table's row that differs between the two forms (a comment inside a table would break it in the PDF):
+# its start → what the lessons have instead, or nothing
+LESSON_ROWS = {
+    "| Appendices |": None,
+    "| learning | lessons |": "| learning | lessons | what you are reading: the book, in pieces | every day |",
+}
+
+
 def for_lessons(text):
     """the book as the lessons read it: its book-only stretches gone, its lesson-only ones open"""
     text = re.sub(r"<!-- book -->\n.*?<!-- /book -->\n?", "", text, flags=re.S)
-    return re.sub(r"<!-- lesson\n(.*?)\n-->", r"\1", text, flags=re.S)
+    text = re.sub(r"<!-- lesson\n(.*?)\n-->", r"\1", text, flags=re.S)
+    out = []
+    for line in text.split("\n"):
+        for start, instead in LESSON_ROWS.items():
+            if line.startswith(start):
+                line = instead
+                break
+        if line is not None:
+            out.append(line)
+    return "\n".join(out)
 
 
 class Section:

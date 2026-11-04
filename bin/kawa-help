@@ -38,7 +38,7 @@ part_icon() {
     bluetui) K=$ICON_BLUETOOTH ;; visidata) K=$ICON_SHEET ;; gdu) K=$ICON_USAGE ;; zathura) K=$ICON_PAGES ;;
     torrra) K=$ICON_DOWNLOAD ;;   # (visidata: vd.txt's parts are headed by the program's full name)
     mpv) K=$ICON_MONITOR ;; notes) K=$ICON_NOTE ;; to-do) K=$ICON_TODO ;; clipboard) K=$ICON_CLIPBOARD ;;
-    wallpaper) K=$ICON_PICTURE ;; books) K=$ICON_BOOK ;; system) K=$ICON_SEC_SYSTEM ;;
+    wallpaper) K=$ICON_PICTURE ;; books) K=$ICON_BOOK ;; system) K=$ICON_SEC_SYSTEM ;; lessons|lesson) K=$ICON_MORTARBOARD ;;
     *) K=$ICON_KEYCAP ;;
   esac
 }

@@ -1,4 +1,4 @@
-#!/usr/bin/python3 -IB
+#!/usr/bin/python3
 """kawa-learn — the lessons: the Learn book cut into pieces you do one by one, beside a terminal
 (Super+U → learning → lessons; the launcher's Lessons). A window of its own, tiled, so what a lesson
 asks you to type goes in the terminal next to it (Super+Enter). docs/design-system.md §7.
@@ -37,6 +37,7 @@ LIST_MIN = 46       # the list's columns at least, where a pane beside it is dra
 BLOCK = LIST_MIN + 3 + PANE + 14   # list and pane together at most: wider, they stay centred
 SEAL_ROWS = 3       # the stamp at a lesson's end: its terminal rows (a 56 px seal, 60 px with its thump)
 SEAL_COLS = 8
+UNROLL = 0.24       # a lesson opening, seconds (§11)
 
 # the inks: foot's palette past the sixteen (screen.sh), so a theme switch reaches every open page
 ACCENT, ON_ACCENT, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = \
@@ -235,11 +236,11 @@ def console_runs(text):
     """a ```text block: what you type strong, what the computer answers muted; a file's or a
     picture's lines (no prompt anywhere in it) as they are"""
     lines = text.split("\n")
-    if not any(x.startswith(("$ ", ">>> ", "... ")) or x in ("$", ">>>") for x in lines):
+    if not any(x.startswith(("$ ", ">>> ", "." * 3 + " ")) or x in ("$", ">>>") for x in lines):
         return [[(x, "")] if x else [] for x in lines]
     out, typed = [], False
     for x in lines:
-        m = re.match(r"^(\$|>>>|\.\.\.)( .*)?$", x)
+        m = re.match(r"^(\$|>>>|\.{3})( .*)?$", x)
         if m:
             typed = x.endswith("\\")
             out.append([(m[1], FAINT), (m[2] or "", STRONG)])
@@ -485,7 +486,7 @@ class Page:
         self.para(lines, inline(text), indent, width)
 
     def box(self, lines, quote, indent, width):
-        """> Word — …, Checkpoint, Careful, In this chapter: the kind's icon in the heading's column,
+        """a quote: a new word, a checkpoint, careful, in this chapter: the kind's icon in the heading's column,
         its words from the name's (§7); a line of - or 1. inside it a list"""
         icon = None
         head = next((q for q in quote if q), "")
@@ -720,12 +721,13 @@ class Term:
     def __enter__(self):
         self.old = termios.tcgetattr(0)
         tty.setraw(0, termios.TCSANOW)
-        self.write("\x1b[?1049h\x1b[?25l\x1b[?2031h\x1b[?1007h\x1b]2;lessons\x1b\\\x1b[2J")
+        # (no line wrap: what a very small window cannot hold stops at its edge, the rows stay rows)
+        self.write("\x1b[?1049h\x1b[?7l\x1b[?25l\x1b[?2031h\x1b[?1007h\x1b]2;lessons\x1b\\\x1b[2J")
         self.size()
         return self
 
     def __exit__(self, *_):
-        self.write("\x1b[?2031l\x1b[?1000;1003;1006l\x1b[?25h\x1b[?1049l")
+        self.write("\x1b[?2031l\x1b[?1000;1003;1006l\x1b[?7h\x1b[?25h\x1b[?1049l")
         try:
             termios.tcsetattr(0, termios.TCSANOW, self.old)
         except termios.error:
@@ -846,7 +848,7 @@ class App:
         self.seal_at = None
         self.seal_drawn = None
         self.thump = 0
-        self.message = ""
+        self.unroll = 0
         self.running = True
         self.mouse = None
         self.pane_seal = None
@@ -1222,6 +1224,7 @@ class App:
         self.page = Page(text, self.icons, icon_key(ch["icon"]), le["title"])
         self.relayout()
         self.ptop = 0
+        self.unroll = time.monotonic()
         if at_block is None:
             where, block = self.course.where()
             at_block = block if where == le["id"] else 0
@@ -1281,12 +1284,25 @@ class App:
             head += [(" ", ""), (place, MUTED)]
         if rows > 1:
             lines[1] = margin + ansi(head)
-        for k in range(view):
+        # opening (§11: a scroll unrolling): the rows come from the top, the rod going down before them
+        shown = view
+        if self.unroll:
+            t = (time.monotonic() - self.unroll) / UNROLL
+            if t >= 1:
+                self.unroll = 0
+            else:
+                shown = int(view * (1 - (1 - t) ** 2))
+        for k in range(shown):
             at = self.ptop + k
             r = 3 + k
             if r < rows and at < total:
                 lines[r] = margin + ansi(self.lines[at].runs)
         foot = self.footer()
+        if shown < view:
+            if 3 + shown < rows:
+                lines[3 + shown] = margin + ansi([("─" * w, ACCENT)])
+            self.show(lines, None, False)
+            return
         if rows > 4 and foot:
             lines[rows - 2] = margin + ansi(foot)
         self.show(lines, self.seal_at_page(x0, view), self.lesson["id"] in self.course.done)
@@ -1460,6 +1476,8 @@ class App:
                 wait = None
                 if self.thump:
                     wait = max(0.0, self.thump - time.monotonic())
+                if self.unroll:
+                    wait = 0.007        # (a frame of its own, at every refresh: nothing waits for it)
                 ready, _, _ = select.select([0, r], [], [], wait)
                 if self.thump and time.monotonic() >= self.thump:
                     self.thump = 0
@@ -1477,6 +1495,7 @@ class App:
                     if not data:
                         self.running = False
                         break
+                    self.unroll = 0             # (a key acts at once on where things are going: §6)
                     for k in decode(data):
                         if isinstance(k, tuple) and k[0] == "theme":
                             self.colours = theme_colours()
@@ -1491,12 +1510,17 @@ class App:
 
 
 # ── plain text: a text console ──────────────────────────────────────────────────────────────
+CONSOLE = str.maketrans({"★": "*", "—": "-", "–": "-", "·": "-", "•": "*", "→": "->", "←": "<-", "↳": ">", "│": "|", "─": "-",
+                         "\u2026": "." * 3, "×": "x", "✓": "v", "✗": "x", "“": '"', "”": '"', "‘": "'", "’": "'", "§": "s."})
+
+
 def text_lesson(course, le, width):
     page = Page(body_of(os.path.join(LEARN, "pieces", le["file"])), {}, "", le["title"])
     page.hl = {}
     place = f"lesson {le['place']} of {len(course.required)}" if le["place"] else "when you have the time"
-    head = [f"{le['title']} — {place}", "", ]
-    return "\n".join(head + [plain(ln.runs).rstrip() for ln in page.layout(width, True)]) + "\n"
+    out = "\n".join([f"{le['title']} — {place}", ""] + [plain(ln.runs).rstrip() for ln in page.layout(width, True)]) + "\n"
+    # (a text console's font has few of these signs; a terminal has them all)
+    return out.translate(CONSOLE) if os.environ.get("TERM") == "linux" else out
 
 
 def text_mode(course, args):

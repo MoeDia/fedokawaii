@@ -74,7 +74,7 @@ has "$(cat "$KAWA_LEARN/pieces/001-how-to-read.md")" "These lessons are the Lear
 lacks "$(cat "$KAWA_LEARN/pieces/001-how-to-read.md")" "at the back"
 python3 -B -I -c 'import re,sys
 b=open(sys.argv[1],encoding="utf-8").read()
-assert "<!-- lesson\nThese lessons are the Learn book" in b and "<!-- book -->\nThis book is the practical one" in b' "$REPO/docs/fedokawaii-learn.md" && _ok || _no "the book's markers"
+assert "<!-- lesson\nThese lessons are the Learn book" in b and "<!-- book -->\n\nThis book is the practical one" in b' "$REPO/docs/fedokawaii-learn.md" && _ok || _no "the book's markers"
 case_ "the book's own words: no \"You need\" in a lesson (the list says what a lesson needs), no appendix to turn to"
 eq "$(grep -l 'You need:' "$KAWA_LEARN"/pieces/*.md | wc -l)" 0
 eq "$(grep -lE '^# ' "$KAWA_LEARN"/pieces/*.md | wc -l)" "$(python3 -B -I - "$KAWA_LEARN/pieces" <<'PY'
@@ -107,6 +107,12 @@ out=$(kawa-learn --text py-arithmetic --cols 60); has "$out" "numbers and arithm
 eq "$(awk '{ if (length($0) > 60) print }' <<<"$out" | wc -l)" 0 "wider than asked"
 out=$(kawa-learn --text nonsense 2>&1); eq "$?" 1; has "$out" "no lesson nonsense"
 rc 2 kawa-learn --text a b; rc 2 kawa-learn --text --cols x
+case_ "a text console: its signs in plain letters; on its terminal, in less, then a key: Enter stamps and goes on, q stops"
+out=$(TERM=linux kawa-learn --text py-numbers-practice --cols 70); lacks "$out" "★"; lacks "$out" "—"; has "$out" "25.1 * Seconds"
+rm -f "$ST/learn"; stub less 'cat >/dev/null'
+out=$(python3 -I "$REPO/tests/lib/pty_run.py" --cols 80 --rows 24 --send 0.8 '\n' --send 1.6 'q\n' --timeout 6 -- kawa-learn --text 2>&1); has "$out" "how this works: enter stamps it"; has "$out" "twenty-six weeks: enter stamps it"
+grep -q '^how-to-read' "$ST/learn" && _ok || _no "Enter did not stamp: $(cat "$ST/learn" 2>/dev/null)"; grep -q '^the-plan' "$ST/learn" && _no "q stamped" || _ok
+rm -f "$ST/learn" "$(command -v less)"
 
 # ── the window ────────────────────────────────────────────────────────────────────────────
 case_ "the list: the first run, on the next lesson, the part's tabs, the place, nothing stamped"
@@ -181,6 +187,11 @@ case_ "the lessons missing: said, with what puts them back; no terminal: said"
 out=$(KAWA_LEARN=$TMP/nowhere kawa-learn 2>&1); eq "$?" 1; has "$out" "fedokawaii repair puts them back"
 out=$(kawa-learn </dev/null 2>&1 | cat); has "$out" "needs a terminal"
 rc 2 kawa-learn nonsense extra
+case_ "every lesson stamped: no next, no seal in the list, every key still works; the place says so"
+awk -F'\t' '$1=="L"{print $2"\t2026-11-01"}' "$KAWA_LEARN/index.tsv" >"$ST/learn"
+s=$(pty 118x30 '!dump' '\r' G '\r' '!dump' | screens); lacks "$s" "Traceback"; has "$(kawa-learn --place)" "of"; lacks "$(kawa-learn --place)" "next"
+out=$(kawa-learn --text); has "$out" "every lesson is stamped"
+rm -f "$ST/learn"
 case_ "a lesson's file gone: the window says so in its place, nothing falls over"
 rm -rf "$TMP/l"; cp -r "$KAWA_LEARN" "$TMP/l"; rm -f "$TMP/l"/pieces/001-*; s=$(KAWA_LEARN=$TMP/l pty 100x20 '\r' '!dump' | screens); has "$s" "cannot be read"
 case_ "the theme switches under it: foot's word that it did, the seal drawn again"
@@ -189,7 +200,7 @@ case_ "words: lower case in the headings, proper names kept; the code's own \"..
 has "$(cat "$KAWA_LEARN"/pieces/*-py-two-ways.md)" "## 25.1 two ways to run Python"
 has "$(grep -h '^## ' "$KAWA_LEARN"/pieces/*-py-numbers-mistakes.md)" "common mistakes"
 has "$(awk -F'\t' '$2=="rs-vec"' "$KAWA_LEARN/index.tsv")" "Vec: a growing list"
-grep -q '"…"\|\.\.\."' "$REPO/bin/kawa-learn" && _no "a dotted word in the program" || _ok
+grep -v '^#' "$REPO/bin/kawa-learn" | grep -q '…\|\.\.\.' && _no "a dotted word in the program" || _ok
 case_ "ten seconds of anything: keys, the mouse, sizes from one cell to the whole screen — no Traceback"
 out=$(pty 118x40 '!fuzz' 10 "$RANDOM" 2>&1); r=$?; ((r == 0)) && _ok || _no "exit $r: ${out: -600}"
 

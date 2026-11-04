@@ -425,6 +425,31 @@ content, inside its margin of one cell:
   end (the first key is a word, never a command), the pen's room kept as the notes' however
   long the list; esc gives the list, where space ticks, and an item left with no words goes;
   its footer names the keys of the moment.
+- **The lessons** (Super+U → learning → lessons, the launcher's Lessons: `bin/kawa-learn`; a window tiled beside a
+  terminal, because a lesson is done by typing, from a narrow tile to the whole screen). The list: **Tabs**, the book's
+  parts, with the place (`12 of 259`, `muted`) at the list's last column; a chapter a **Heading**, its number `muted`
+  before its name, once one of its lessons is stamped `n of m` `muted` after the rule; a lesson a **Row**: its mark in
+  the icon column (✓ `muted` stamped, the seal `accent_text` on the next, nothing else), its number right-aligned on
+  columns 4–6 (`faint`; stamped `muted`), its name from column 9 (`text`; stamped `muted`), the time right-aligned
+  (`muted`; stamped `faint`). Projects (a chapter's ★★★ and ★★★★: when you have the time, never counted, never "next"):
+  a star in the number's place, words `muted`. From 99 columns of content the pane, 50 as Super+U's: the lesson's
+  **Heading**, its **Facts** (lesson, stamped, takes, needs), the sections it holds, its stamp or the ring waiting for it,
+  and at the pane's foot two **Meters** and what is left. `/` a **Search line** in the tabs' place: found by words in every
+  lesson, a lesson's name first. It opens on the next lesson, the one thing to do.
+  A lesson: a page of 88 columns at most, centred; its **Heading** (the chapter's icon, the name — with the section's
+  number when it is one section —, the rule `accent` as far as you have read, `edge2` the rest, the place `muted`), a
+  row of paper that never scrolls, the words, a row of paper, the screen's own keys (`enter  stamp it`, `enter
+  next: NAME`, `s  solutions  on`) on the last line. Paragraphs at column 0, `**strong**` in `strong`, an aside
+  (`*…*`) `muted` italic, a word of code on the band (`ansi0`, §1). A section: its number `muted` in a heading's icon
+  place, its name `strong`, the rule. A box (a new word, a checkpoint, careful, in this chapter): its icon `accent_text`
+  at column 0, its words from 3. A list at column 1, its words from 3. Code: a rail `│` `edge2` at column 0, the code from
+  2 in bat's colours (its theme "ansi": the palette), what you type `strong` and what the computer answers `muted`, a
+  line too long going on under `↳` `faint`, nothing cut. A table: the head `muted`, the solid rule, columns two apart;
+  too narrow for columns, each row a small block. An exercise: its number `muted`, its stars `accent_text` (Sumi Icons'
+  `star`, one cell: UDEV Gothic's ★ takes two and overlaps what follows), its name `strong`. Under the last words the
+  stamp's place: the ring in `edge2`, Enter stamps it (§11) — the mood's seal in `accent`, 56 × 56 in one ink, its
+  halves mirrored (`docs/learn/seals.txt`: the oni, the lotus over water; a sixel, so the theme's words reach it through
+  foot's mode 2031). Nothing asks the mouse of a page (the terminal's selection stays yours; the wheel comes as arrows).
 - **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
   ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
   spill into one blank cell only): the demon in slot 1's red in the dark mood, the angel in the words' ink in the
@@ -515,10 +540,12 @@ the tiles of a group, 12 px between groups.
 
 ## 10. The books and the Learn pieces
 
-The PDFs and the Learning section's pieces use the same parts in print: headings as icon + name
-+ rule, the palette's ink and paper, Sumi UI for headings and labels at whole multiples, tables
-ruled with the solid rule, square corners everywhere; each piece shows its place (piece n of N,
-done ✓).
+The Learn book has two forms from one source (`docs/fedokawaii-learn.md`): the lessons, its pieces in the
+order that teaches best (`docs/learn/syllabus.txt`; cut by `tools/learn-pieces.py`; §7 the lessons), and its
+PDF (`docs/build/learn.py`), the same parts in print: headings as icon + name + rule, the palette's ink and
+paper, Sumi UI for headings and labels at whole multiples, tables ruled with the solid rule, square corners
+everywhere. Each lesson shows its place (`12 of 259`, stamped ✓). `docs/fedokawaii-guide.md`, the technical
+reference, stays in the repository and has no PDF.
 
 ## 11. Motion
 
@@ -544,7 +571,7 @@ stamp is a choice made, a scroll is something long opening.
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
 | the screensaver leaves | dissolves off | 180 |
 | a screen back (switched on at its button, or woken after it dropped off the cable asleep) | its first picture is the whole desktop: black (the monitor is finding the signal) until its wallpaper and its bar are back and done drawing — 100 ms without a new frame of theirs — never seen being built | 1000 at most |
-| a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
+| a stamp (a toggle switched on — an hour of quick settings' dial —, the workspace seal, a lesson stamped) | down: the seal 1 px larger all round in `accent_hi`, an hour's picture in `accent_hi`; then as it was, in `accent` | 60 |
 | a meter changing — the dial's beads | they light or go out one after another on the frame clock — a bead on the first frame 12 ms or more after the last: at 144 Hz every second frame (a meter of segments: at once) | 12 a bead (13.9 at 144 Hz) |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
@@ -625,6 +652,7 @@ numbers here against its files.
 | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
 | help | Super+/ | `bin/kawa-help` | T23 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
+| the lessons | Super+U → learning, the launcher | `bin/kawa-learn`, cut by `tools/learn-pieces.py` | T27 |
 
 ## 15. The grill list
 

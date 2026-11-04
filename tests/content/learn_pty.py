@@ -140,7 +140,7 @@ def main():
             os.write(fd, b)
         except OSError:
             pass
-    pump(0.2, 2.0)
+    pump(0.3, 3.0)
     i = 0
     term_sent = False
     while i < len(args):
@@ -186,7 +186,7 @@ def main():
             pump(0.2)
         else:
             send(codecs.decode(st, "unicode_escape").encode("latin1").decode("utf-8", "replace").encode())
-            pump(0.1)
+            pump(0.25, 3.0)     # (quiet for a moment: a busy machine, a lesson unrolling)
     if not term_sent:
         send(b"q")
         pump(0.1)

@@ -8,7 +8,7 @@ Space                   stamp it, or take its stamp off
 /                       find in every lesson's words (Esc ends it)
 b                       the whole book, as a PDF
 Esc / q                 close
-── lessons: a lesson ──────────────────────────────────────────────
+── lesson: its page ───────────────────────────────────────────────
 ↑ / ↓ / the wheel       a line
 Space / PgUp / PgDn     a page
 Enter                   a page; at its end the stamp, then the next lesson

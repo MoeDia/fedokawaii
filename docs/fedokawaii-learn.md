@@ -8,6 +8,7 @@ kanji: "1=始 2=端 3=誤 4=窓 5=品 6=写 7=起 8=守 9=言 10=探 11=歩 12=�
 # How to read this book
 
 <!-- book -->
+
 This book is the practical one. It teaches by doing: a short example, what you should see,
 then an exercise of your own. The full handbook — how every part of the desktop is built and
 why — stays in the project's repository on GitHub (`docs/fedokawaii-guide.md`), for the day
@@ -15,7 +16,9 @@ you want to know how something works inside. This book is about *using* it.
 
 It has six parts. Read Part I first if you have never typed a command. After that, go where
 you need to: each chapter stands on its own and says what it expects you to know.
+
 <!-- /book -->
+
 <!-- lesson
 These lessons are the Learn book cut into pieces you do one by one, in the order that teaches
 best: what a piece needs always comes before it. Each takes a few minutes, and each is done
@@ -37,6 +40,7 @@ stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you 
 something works inside. These lessons are about *using* it.
 -->
 
+
 | Part | You learn | Chapters |
 |---|---|---|
 | I — From zero | what a terminal, a file, a path, a program and a variable are; how to read an error | 1–3 |
@@ -45,9 +49,7 @@ something works inside. These lessons are about *using* it.
 | IV — Python | a daily development routine, then a full course in six levels: from your first number to classes, tests, async and packaging, then data, NumPy, a neural network, a transformer, fine-tuning and an agent | 23–47 |
 | V — Rust | a full course in six levels: from cargo to ownership, traits, lifetimes, tests, iterators and threads, then a CLI, your own autograd, models in Rust, and Rust inside Python | 48–66 |
 | VI — Working with AI | how a language model works — tokens, context, training, hallucination —; asking well; agents and their risks; Claude Code from the daily loop to your own hooks, skills and subagents; the professional's habits that outlast any tool | 67–72 |
-<!-- book -->
 | Appendices | a glossary; the worked solution to every exercise of Parts IV, V and VI | A–D |
-<!-- /book -->
 
 ### How a lesson looks
 
@@ -86,12 +88,15 @@ Each chapter ends with exercises, graded by stars:
 | ★★★★ | a challenge: it stretches what the chapter taught | an evening |
 
 <!-- book -->
+
 Every exercise says what you should see when it works. In Parts IV, V and VI, every exercise has
 a worked solution at the back — appendix B for Python, C for Rust, D for working with AI, under
 the exercise's number — with the output it printed. Try for real before you look: the struggle is where the learning
 happens; the solution is there to check, or to unstick you after twenty honest minutes. Keep a line for each one you finish in
 your notes (**Super+N**): `- [x] 10.3 every PDF I own`. Watching that list grow is half the fun.
+
 <!-- /book -->
+
 <!-- lesson
 Every exercise says what you should see when it works. Each chapter's ★ and ★★ are its *practice*,
 a lesson like the others. Its ★★★ and ★★★★ are its *projects*: when you have the time, never counted
@@ -817,12 +822,7 @@ the pane on the right tells more about the one under the cursor. What is still b
 | backups | back up now | your home to the backup drive | weekly |
 | backups | restore | your files as a backup holds them: pick a file, a folder or several — a copy lands in `~/Restored`, never over what is there | when something is lost |
 | backups | the drive | which drive your backups go to, whether it is plugged in, how full, and the last backup; Enter picks another | once, then when it changes |
-<!-- book -->
 | learning | lessons | this book, cut into short lessons you do one by one | every day |
-<!-- /book -->
-<!-- lesson
-| learning | lessons | what you are reading: the book, in pieces | every day |
--->
 
 From a terminal: `update`, `verify`, `repair`, `snaps`, and `fedokawaii report` (below).
 
