@@ -1,0 +1,1779 @@
+# the lessons of kawa-chess, in the order of the year: lesson.py says how they are read, tools/check-chess-lessons.py holds them to the board
+=== the-board
+title: the board, and the rook
+minutes: 5
+source: Steps Method 1, lesson 1; chess.com Learn to Play
+
+@fen 8/8/8/8/8/8/8/K6k w - - 0 1
+@mark e4
+sixty-four squares. the files run up the board, a to h; the ranks run across, 1 to 8. a square is named by its file, then its rank: this one is e4.
+
+white sits at the bottom. the corner at your right hand is always a light square.
+---
+@find e4 a1 h8 d5 g2 b7
+find each square as it is named: type its name, or click it. you will use this on every move from now on.
+---
+a move is typed (Rd7), or clicked, piece then square, or made with the arrows and enter. type when you can: the notation is how chess is read and written, and typing it teaches it.
+
+one thing said once. no one on record has gone from nothing to 1800 in a single year. this year is built to try it, and your numbers will say plainly where you stand.
+---
+@fen 8/8/8/8/3R4/8/8/K6k w - - 0 1
+@mark d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4
+the rook moves in straight lines, along its rank or its file, as far as the way is clear. it never jumps.
+---
+@fen 8/3p4/8/8/3R1P2/8/8/K6k w - - 0 1
+@try Rxd7 | look up the d-file. type Rxd7, or click the rook and then the pawn.
+it takes what stands in its way by landing on its square. your own pawn on f4 blocks it: it cannot pass. take the black pawn.
+---
+@fen 4k3/1p6/8/8/8/8/8/R3K3 w - - 0 1
+@try Ra7 | stand on the pawn's rank with a clear way to it.
+a rook attacks along its lines. attack the pawn on b7 from the side.
+
+=== the-bishop
+title: the bishop
+minutes: 3
+source: Steps Method 1; Seirawan, Play Winning Chess
+
+@fen 8/8/8/8/3B4/8/8/K6k w - - 0 1
+@mark a7 b6 c5 e3 f2 g1 c3 b2 a1 e5 f6 g7 h8
+the bishop moves on the diagonals, as far as the way is clear. this one stands on a dark square and stays on dark squares all its life.
+---
+@fen 4k3/8/2p5/8/8/5B2/8/4K3 w - - 0 1
+@try Bxc6+ | follow the diagonal from f3 up to the left.
+take the pawn on c6.
+---
+@fen 4k3/8/6p1/8/8/8/1B6/4K3 w - - 0 1
+the pawn on g6 stands on a light square. your bishop on b2 runs on the dark ones: it can never take that pawn, however long it tries. look at the colour first.
+
+=== the-queen
+title: the queen
+minutes: 2
+source: Steps Method 1; Seirawan, Play Winning Chess
+
+@fen 8/8/8/8/3Q4/8/8/K6k w - - 0 1
+@mark d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4 a7 b6 c5 e3 f2 g1 c3 b2 e5 f6 g7 h8
+the queen moves as a rook and as a bishop together: every line, any distance. she is your strongest piece, and the one you can least afford to lose.
+---
+@fen 4k3/8/1p3p2/8/3Q4/8/8/4K3 w - - 0 1
+@try Qxb6 Qxf6 | any line that reaches a pawn with a clear way will do.
+two pawns stand on her lines. take one.
+
+=== the-king
+title: the king
+minutes: 2
+source: Steps Method 1; Seirawan, Play Winning Chess
+
+@fen 8/8/8/8/3K4/8/8/7k w - - 0 1
+@mark c3 d3 e3 c4 e4 c5 d5 e5
+the king moves one square, any way. he is not strong, but the whole game is about him: trap him and you have won.
+---
+@fen 8/8/8/3k4/8/3K4/8/8 w - - 0 1
+@mark c4 d4 e4
+@try Kc3 Ke3 Kd2 Kc2 Ke2 | c4, d4 and e4 are closed: he may not step next to the other king.
+two kings can never stand side by side. the three squares between these two are closed to both. move the white king.
+
+=== the-knight
+title: the knight
+minutes: 4
+source: Steps Method 1; Seirawan, Play Winning Chess
+
+@fen 8/8/8/8/3N4/8/8/K6k w - - 0 1
+@mark b3 b5 c2 c6 e2 e6 f3 f5
+the knight jumps: two squares in a line, then one to the side, an L. he lands on these squares and touches nothing between. nothing blocks him. he always lands on the other colour.
+---
+@fen 4k3/8/2p5/8/3N4/8/8/4K3 w - - 0 1
+@try Nxc6 | two up, one to the left.
+take the pawn on c6.
+---
+@fen 7k/8/4p3/8/8/8/8/N3K3 w - - 0 1
+@try Nb3 Nc2 | from the corner he has two squares only.
+a knight in the corner reaches little. bring him out.
+---
+@fen 7k/8/8/8/3p4/8/2N5/4K3 w - - 0 1
+@try Nxd4 | two up, one to the right.
+a knight's moves are the hardest to see at first, so look for them on purpose. take the pawn.
+
+=== the-pawn
+title: the pawn
+minutes: 4
+source: Steps Method 1, the pawn; Seirawan, Play Winning Chess
+
+@fen 4k3/pppppppp/8/8/8/8/PPPPPPPP/4K3 w - - 0 1
+@mark e3 e4
+the pawn moves straight ahead, one square; from its first square it may go two. it never goes back, and anything in front of it blocks it.
+---
+@fen 4k3/8/8/3p4/4P3/8/8/4K3 w - - 0 1
+@try exd5 | a pawn takes one square diagonally forward: exd5.
+the pawn does not take straight ahead: it takes diagonally. take the black pawn.
+---
+@fen 4k3/8/8/4p3/4P3/8/8/4K3 w - - 0 1
+two pawns face to face block each other: neither can move or take.
+---
+@fen 8/4P3/8/8/8/8/k7/4K3 w - - 0 1
+@try e8=Q+ | move it to the last rank: type e8=Q.
+a pawn that reaches the last rank becomes a queen, a rook, a bishop or a knight: your choice, nearly always the queen.
+
+=== the-first-whole-game
+title: your first whole game
+minutes: 3
+source: Steps Method 1; chess.com Learn to Play
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@mark d1 d8
+the rooks in the corners, then knights, then bishops; the queen on her own colour, so d1 for White, d8 for Black; the king beside her; the pawns in front. White moves first, then turn about. you may never pass, and a piece taken stays off.
+---
+@play e4 e5 Nf3 Nc6
+each side brings something out. you know how every piece moves now: that is all you need for your first whole game. the goal, for now, is simply to take what you safely can. this week they have no queen.
+
+=== check
+title: check
+minutes: 3
+source: Steps Method 1, check; lichess Learn: out of check
+
+@fen 4k3/8/8/8/8/8/8/4RK2 b - - 0 1
+the white rook attacks the black king along the e-file: that is check. a king may never stay attacked and may never step into attack: check must be answered at once.
+---
+@fen 4k3/4p3/8/8/8/8/4qP2/4K3 w - - 0 1
+@try Kxe2 | nothing guards the queen.
+there are three answers. first: take what gives the check.
+---
+@fen 6k1/8/8/8/8/5n2/8/4K3 w - - 0 1
+@try Ke2 Kf2 Kf1 Kd1 | d2 is covered by the knight as well. step somewhere else.
+second: move the king away. a knight's check can never be blocked: he jumps.
+---
+@fen 7k/8/8/8/2B5/8/8/4K2r w - - 0 1
+@try Bf1 | the bishop can stand between the rook and the king.
+third: put something between. your king guards f1, so the rook cannot take without losing itself.
+
+=== checkmate
+title: checkmate
+minutes: 4
+source: Steps Method 1, the mate lessons; Silman, Complete Endgame Course, part one
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1
+@try Rd8# | the rook goes to the last rank.
+when the king is in check and none of the three answers exists, it is checkmate and the game is over. the black king is hemmed in by his own pawns. mate him.
+---
+@fen 7k/6pp/8/8/8/8/8/K5Q1 w - - 0 1
+Qxg7 here would be check, but the king simply takes the queen. a check is nothing by itself: every answer has to be closed.
+---
+@fen 7k/6pp/8/8/8/8/1B6/K5Q1 w - - 0 1
+@try Qxg7# | on g7 the bishop guards her.
+with a bishop on the long diagonal the queen on g7 is guarded. now it is mate.
+---
+@fen 4k3/8/4K3/8/8/8/8/7R w - - 0 1
+@try Rh8# | check along the last rank.
+your king takes the squares in front of his; the rook gives the check. two pieces, working together.
+
+=== stalemate
+title: stalemate
+minutes: 3
+source: Silman, Complete Endgame Course, part one (stalemate awareness); Steps Method 1, the draw
+
+@fen 7k/5Q2/6K1/8/8/8/8/8 b - - 0 1
+black to move. he is not in check, and he has no legal move at all. that is stalemate: the game is a draw, and white, with everything, gets half a point.
+---
+@fen 7k/8/6K1/8/8/8/5Q2/8 w - - 0 1
+@try Qf8# | Qf7 would leave him no move and no check: stalemate. a queen check on the last rank is the mate.
+your move. look for the mate, and check that you are not about to do what you just saw.
+
+=== castling
+title: castling
+minutes: 3
+source: Steps Method 1, castling; chess.com Learn to Play
+
+@fen r3k2r/pppppppp/8/8/8/8/PPPPPPPP/R3K2R w KQkq - 0 1
+@try O-O O-O-O | type O-O, or click the king and then g1.
+once a game, the king moves two squares towards a rook, and the rook jumps over to his other side. it hides the king and brings the rook out, in one move. O-O is the short side, O-O-O the long. castle.
+---
+not allowed: if the king or that rook has moved; if anything stands between them; if the king is in check; if he would cross or land on an attacked square.
+---
+@fen r3k2r/pppppppp/b7/8/8/8/PPPP1PPP/R3K2R w KQkq - 0 1
+@try O-O-O | the bishop on a6 looks at f1: he may not cross it. the other side is free.
+the short way is closed to you here. castle the other way.
+
+=== en-passant
+title: en passant
+minutes: 2
+source: Steps Method 1, en passant; lichess Learn
+
+@fen 4k3/3p4/8/4P3/8/8/8/4K3 b - - 0 1
+@play d5
+a pawn that moves two squares can be taken as if it had moved one, by a pawn already on its fifth rank. black has just played d7 to d5.
+---
+@fen 4k3/8/8/3pP3/8/8/8/4K3 w - d6 0 2
+@try exd6 | your pawn moves diagonally to d6, behind the black pawn, and the black pawn goes.
+take it, now or never: the right lasts one move.
+
+=== promotion
+title: promotion
+minutes: 3
+source: Steps Method 1; Silman, Complete Endgame Course, part one
+
+@fen 8/P7/8/8/8/8/k7/4K3 w - - 0 1
+@try a8=Q | a8, then the queen: type a8=Q.
+a pawn on the last rank must become a queen, rook, bishop or knight. you may have two queens or more. every pawn is a queen waiting: that is why endings are fought over pawns.
+---
+@fen 8/8/8/8/8/8/2k1p3/4K3 b - - 0 1
+@flip
+@try Kd3 | stand beside the pawn; the white king must then give way.
+your pawn is one step away and the white king stands on e1. walk your king up beside it.
+
+=== notation-and-draws
+title: notation and draws
+minutes: 4
+source: FIDE Laws of Chess, Appendix C; Steps Method 1, notation and the draw
+
+@fen r1bqkbnr/pppp1ppp/2n5/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3
+@try Bb5 Bc4 | a bishop to b5 is Bb5, to c4 is Bc4.
+K Q R B N name the pieces; a pawn has no letter. Nf3: a knight to f3. x takes: Bxc6. + is check, # is mate. if two knights can reach a square, say which: Nbd2. type a bishop move.
+---
+@fen 7k/8/8/8/8/8/8/K7 w - - 0 1
+a game is also drawn by stalemate; when neither side has enough to mate; by agreement; when the same position comes three times; when fifty moves pass with no capture and no pawn move. this program ends the game on all of these by itself, as chess.com does.
+
+=== what-they-are-worth
+title: what the pieces are worth
+minutes: 3
+source: Seirawan, Play Winning Chess (force); Steps Method 1, favourable exchange
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+pawn 1, knight 3, bishop 3, rook 5, queen 9. the king has no price: he is never taken. at your level most games are decided by who has more of these.
+
+add it up before any trade. a rook for a knight: you give 5, you get 3. a queen for a rook: you give 9, you get 5.
+---
+@fen 6k1/5ppp/8/8/3q4/8/2R2PPP/6K1 w - - 0 1
+@try Rc8+ | look at the last rank. a check first.
+his queen is worth more than your rook, but nothing says you must run. Rc8+ forces her to block on d8, and then you take her.
+
+=== free-pieces
+title: free pieces
+minutes: 4
+source: Steps Method 1, attack and capture, and its three questions; Lichess theme hangingPiece
+
+@fen rnbqkb1r/pppp1ppp/8/4p3/4n3/2N5/PPPP1PPP/R1BQKBNR w KQkq - 0 3
+@try Nxe4 | your knight on c3 reaches e4.
+every move, three questions: can I win material, can I mate, is a piece of mine in danger? free means nothing guards it. take the knight.
+---
+@fen r1bqkb1r/pppp1ppp/2n2n2/4p3/4P3/3P4/PPP2PPP/RNBQKBNR w KQkq - 0 1
+the black knight attacks your pawn on e4, but your pawn on d3 guards it. if he takes, you take back: his knight for your pawn. a guarded piece is not free.
+---
+@fen rnbqk1nr/pppp1ppp/8/b3p3/4P3/8/PPPQ1PPP/RNB1KBNR w KQkq - 0 1
+@try Qxa5 | follow the diagonal. nothing guards the bishop.
+his bishop attacks your queen. but look: nothing guards the bishop. take it.
+---
+@drill hangingPiece 5 -200
+five from real games. something is hanging in each.
+
+=== attack-and-defence
+title: attack and defence
+minutes: 3
+source: Steps Method 1, defending; Heisman, Everyone's 2nd Chess Book
+
+@fen 4k3/8/8/3n4/8/8/2P5/4K3 w - - 0 1
+@try c4 | push the pawn so that it attacks the knight, on a square he does not attack.
+to attack is to threaten to take. a pawn attacking a knight wins time: he must move. attack him.
+---
+@fen 4k3/8/8/3n4/2P5/8/8/4K3 b - - 0 1
+@flip
+@any
+@try Nb4 Nb6 Nc3 Nc7 Ne3 Ne7 Nf4 Nf6 | a knight move saves him.
+attacked, you have four answers: move away, guard it, block the line, take the attacker. here only the first is left: move the knight.
+---
+@fen 4k3/8/8/8/1r6/8/1P6/1R2K3 b - - 0 1
+@any
+@try Ra4 Rc4 Rd4 Re4+ Rf4 Rg4 Rh4 Rb5 Rb6 Rb7 Rb8 Rb3 | Rxb2 Rxb2: you give 5 for 1. leave the pawn alone.
+the white rook guards the pawn on b2. look before you take: move your rook anywhere but there.
+
+=== counting
+title: counting
+minutes: 4
+source: Heisman, Is it safe? (counting); Steps Method 1, favourable exchange
+
+@fen 4k3/8/5n2/3p4/8/2N1N3/8/4K3 w - - 0 1
+@try Ncxd5 Nexd5 | two attackers, one guard: start.
+count who attacks a square and who guards it. two knights attack d5, one knight guards it. you take, he takes, you take: you are a whole knight ahead.
+---
+@fen 4k3/4n3/5n2/3p4/8/2N1N3/8/4K3 w - - 0 1
+two attackers, two guards. you take, he takes, you take, he takes: two knights gone for a pawn and a knight. when the guards match the attackers, do not start.
+---
+@fen 3r2k1/5ppp/8/3p4/8/8/3R1PPP/3R2K1 w - - 0 1
+@try Rxd5 | two rooks against one guard.
+rooks stacked on one file count as two. Rxd5 Rxd5 Rxd5: a pawn and a rook for a rook.
+---
+@drill hangingPiece 5 -150
+count before each capture.
+
+=== good-and-bad-trades
+title: good trades, bad trades
+minutes: 3
+source: Seirawan, Play Winning Chess (force); Silman, Complete Endgame Course
+
+@fen 4k3/8/8/3n4/8/2B5/8/4K2R w - - 0 1
+a knight and a bishop are worth about the same: trading one for the other is fair. when you are ahead, fair trades are good, for what is left wins alone. when you are behind, avoid them.
+---
+@fen 6kr/8/8/8/8/8/1Q6/6KR w - - 0 1
+@try Rxh8+ | his king guards h8, your rook goes first and the trade is done.
+you have a queen more. trade the rooks and nothing is left to fight you.
+
+=== when-not-to-take
+title: when not to take
+minutes: 3
+source: Heisman, Everyone's 2nd Chess Book; Steps Method 1, defending
+
+@fen rnbqkbnr/ppp2ppp/3p4/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 0 3
+@try d4 Nc3 Bc4 Bb5 | the pawn on e5 is guarded by d6. Nxe5 dxe5 gives 3 for 1. bring a piece out instead.
+the e5 pawn looks loose. but look what guards it. leave it, and bring something out.
+---
+@fen 6k1/5ppp/8/8/8/1q6/5PPP/1Q4K1 w - - 0 1
+@try Qxb3 | nothing guards the black queen.
+sometimes the answer is simply yes. the rule was: look. not: be afraid.
+
+=== the-simplest-plan
+title: the simplest plan
+minutes: 2
+source: Seirawan, Play Winning Chess; Chernev, Logical Chess: Move by Move
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play e4 e5 Nf3 Nc6 Bc4 Nf6 O-O
+a pawn in the centre; knights and bishops out; the king castled; take everything left free; leave nothing of yours free; when ahead, trade; then mate. watch the first of it.
+
+=== the-back-rank
+title: the back rank
+minutes: 3
+source: Steps Method 1, mate; Lichess theme backRankMate
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 1
+@try Ra8# | straight up to the last rank.
+the king stands behind his own pawns, and no square is left to him. a rook on the last rank is mate: the most common mate there is.
+---
+@fen 3r2k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1
+@try Rxd8# | take the rook, and it is mate.
+his rook guards the rank, but nothing guards his rook.
+---
+@fen 6k1/5p1p/6p1/8/8/8/5PPP/R5K1 w - - 0 1
+@try g3 g4 h3 h4 f3 f4 | a pawn move in front of your king gives him a square.
+your king has the same problem. make him a square before you need it.
+---
+@drill backRankMate 5 -200
+now you find them.
+
+=== mate-in-one
+title: mate in one
+minutes: 4
+source: Polgár, Chess: 5334 Problems (mates in one); Steps Method 1
+
+@fen r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR w KQkq - 4 4
+@try Qxf7# | the queen lands on f7, guarded by the bishop.
+look at what stands round the king and what guards it. only the king guards f7, and your bishop backs the queen. the scholar's mate.
+---
+@fen rnb1kbnr/pppp1ppp/8/4p3/6Pq/5P2/PPPPP2P/RNBQKBNR w KQkq - 1 3
+this one has happened already: white opened his own king in two moves, and the queen mates. the fool's mate, the shortest game there is.
+---
+@drill mateIn1 8 -200
+eight mates in one. go through the checks you can give, and of each ask: can he answer?
+
+=== the-ladder
+title: the ladder
+minutes: 3
+source: Silman, Complete Endgame Course, part one (the staircase)
+
+@fen 8/8/8/4k3/8/8/R7/1R2K3 w - - 0 1
+@play Rb5+ Kd6 Ra6+ Kc7
+two rooks mate alone. one holds a rank, the other checks on the next; he steps back; they swap. it climbs like a ladder. when he comes near a rook, slide it far away along its rank and carry on.
+---
+@fen 8/k7/7R/8/8/8/8/4K1R1 w - - 0 1
+@try Rg7+ | one rook holds the sixth. the other checks on the seventh.
+he is on the seventh, and the sixth is closed to him.
+---
+@fen 1k6/6R1/7R/8/8/8/8/4K3 w - - 0 1
+@try Rh8# | the seventh is held: the last rank is the mate.
+one more.
+
+=== king-and-queen
+title: king and queen against a king
+minutes: 5
+source: Silman, Complete Endgame Course, part one (the box)
+
+@fen 8/8/8/4k3/8/8/8/3QK3 w - - 0 1
+@arrow d1d3
+you must know this by the end of the week. put the queen a knight's jump from his king: he is in a box. each time he steps back, follow by a knight's jump: the box shrinks.
+---
+@fen 7k/4Q3/8/8/8/8/8/K7 b - - 0 1
+he has g8 and back, nothing more. stop shrinking. this is the moment people stalemate him. now your king walks up; the queen only waits.
+---
+@fen 6k1/8/5QK1/8/8/8/8/8 w - - 0 1
+@try Qd8# | the queen to the last rank.
+your king takes the seventh rank's squares. the mate.
+---
+in this week's games you do it against the engine at its full defence: under twenty moves.
+
+=== king-and-rook
+title: king and rook against a king
+minutes: 5
+source: Silman, Complete Endgame Course, part one (the box, opposition)
+
+@fen 8/8/8/4k3/8/8/8/R3K3 w - - 0 1
+a rook cannot make a small box alone: your king helps all the way. cut him off with the rook, bring your king opposite his, then check: he must step back a rank.
+---
+@fen 4k3/8/4K3/8/8/8/8/7R w - - 0 1
+@try Rh8# | check along the last rank.
+kings face each other with one square between: that is the moment to check.
+---
+@fen 3k4/8/4K3/8/8/8/8/7R w - - 0 1
+@any
+@try Rg1 Rf1 Rh2 Rh3 Rh4 Rh5 | not a check yet: he would step out. a quiet rook move along the file, staying far away.
+not opposite yet. a waiting move with the rook: he must move, and whichever way he goes, you are closer.
+---
+in this week's games: under thirty moves. the fifty-move rule is watching.
+
+=== do-not-stalemate
+title: do not stalemate
+minutes: 3
+source: Silman, Complete Endgame Course, part one (stalemate awareness)
+
+@fen 7k/8/6K1/8/8/8/8/4Q3 w - - 0 1
+@try Qe8# | the queen to the last rank: check, and he has nothing.
+every won ending has one last danger. before each move near the end, look at his king: does he have a square? no square and no check, and you have thrown it away.
+---
+@fen 7k/8/8/6K1/8/8/8/5Q2 w - - 0 1
+@try Kg6 Kh6 | Qf7 would stalemate him at once. bring the king, and leave him g8.
+g8 and h7 are his. leave him a square until the mate.
+---
+@fen k7/8/1K6/8/8/8/8/5Q2 w - - 0 1
+@try Qf8# | a check along the last rank, your king covering the rest.
+he is cornered.
+
+=== is-it-safe
+title: is it safe?
+minutes: 4
+source: Heisman, "Is it safe?" and Everyone's 2nd Chess Book; Steps Method's three questions
+
+@fen r1bqkbnr/ppp2ppp/2np4/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 0 4
+@try O-O d3 c3 Nc3 | Bxf7+ Kxf7: your bishop for a pawn. something quieter.
+ask of every move you are about to play: if I play this, can he reply with a check, a capture or a threat that I cannot meet? assume yes, and try to prove yourself wrong. Bxf7+ looks fierce. play something safe instead.
+---
+@fen rnb1kbnr/pppp1ppp/5q2/4p3/4P3/5N2/PPPP1PPP/RNBQKB1R w KQkq - 2 3
+then, when he has moved, ask: what does that move do? what does it attack, what does it stop guarding? his queen came to f6 and looks at your knight. count: your queen and your g-pawn guard it. no threat. carry on.
+---
+this is the difference between hope and chess. the games this week ask only that: not one piece given away.
+@drill hangingPiece 4 -100
+
+=== the-blunder-check
+title: the blunder check
+minutes: 3
+source: Heisman, Everyone's 2nd Chess Book; Steps Method 1, defending
+
+@fen r5k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1
+@try g3 g4 h3 h4 f3 f4 | Rd7 Ra1 is mate. your rook is all that guards your last rank.
+before you let go of the piece, play the move in your head and look again. your rook looks free to go. what is it holding? make the safe move.
+---
+@fen r1bqkb1r/pppp1ppp/2n2n2/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4
+in time it takes one breath: what have I left unguarded, which of his pieces can now get somewhere? that breath is worth more than an hour of openings.
+
+=== loose-pieces
+title: loose pieces
+minutes: 3
+source: Heisman, Hope Chess vs Real Chess (seeds of tactical destruction); Lichess theme hangingPiece
+
+@fen r1b1k2r/ppppqppp/2n2n2/2b1p3/2B1P3/2N2N2/PPPPQPPP/R1B1K2R w KQkq - 6 6
+a piece nothing guards is loose. a loose piece is not lost yet, but nearly every tactic aims at one. look at your own after each move, and his before each move: the two lists change all the time.
+---
+@drill hangingPiece 5 -50
+one is loose in each of these.
+
+=== the-centre
+title: the centre
+minutes: 3
+source: Seirawan, Play Winning Chess (space); Chernev, Logical Chess: Move by Move
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@mark d4 e4 d5 e5
+@try e4 d4 | one of the two pawns that stands in front of the king or queen.
+these four squares: a knight there reaches eight squares, on the edge four. put a pawn on one; it also opens the way for your bishop and queen.
+
+=== pieces-out
+title: pieces out
+minutes: 3
+source: Chernev, Logical Chess: Move by Move; Seirawan, Winning Chess Openings
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play e4 e5 Nf3 Nc6 Bc4 Bc5
+@try O-O d3 c3 Nc3 | castle, or bring another piece, or back up the centre.
+in the opening every move brings something new out: knights first, for they know where they go; then bishops. each piece once. look at how little is left to do.
+
+=== king-home
+title: the king goes home
+minutes: 3
+source: Seirawan, Play Winning Chess; Chernev, Logical Chess: Move by Move
+
+@fen r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 b kq - 0 6
+@flip
+@try O-O | castle: the king to g8.
+the centre is where the fight opens: a king left there is a target. castle before the tenth move, nearly always on the short side.
+
+=== opening-sins
+title: three sins of the opening
+minutes: 3
+source: Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move
+
+@fen r1bqkbnr/pppp1ppp/2n5/4p2Q/4P3/8/PPPP1PPP/RNB1KBNR b KQkq - 2 3
+@flip
+@try Nf6 | a move that attacks her and brings something out.
+the queen out early: she gets chased, and every chase is a free move for him. the same piece moved twice while the rest sleep. pawns grabbed while the king stands in the middle. chase this queen.
+
+=== two-at-once
+title: two at once
+minutes: 3
+source: Steps Method 1 (double attack) and 2; Seirawan, Winning Chess Tactics
+
+@fen 4k3/b7/8/8/8/8/8/3QK3 w - - 0 1
+@try Qa4+ | a check that also looks along the a-file.
+one move attacks two things: he can only save one. every tactic is some form of this. here: his king and his bishop, on one queen move.
+---
+@drill fork 4 -150
+find the double attack.
+
+=== the-knights-fork
+title: the knight's fork
+minutes: 3
+source: Steps Method 2; Lichess theme fork
+
+@fen r3k3/8/8/1N6/8/8/8/4K3 w - - 0 1
+@try Nc7+ | from c7 he reaches both e8 and a8.
+the knight's fork is the most common and the easiest to miss, because he does not look along a line: you have to look for him.
+---
+@fen 4q1k1/8/8/3N4/8/8/8/K7 w - - 0 1
+@try Nf6+ | which square touches both g8 and e8?
+king and queen.
+---
+@drill fork 6 -100
+a knight's jump away from two things: every move, look.
+
+=== the-queens-fork
+title: the queen's fork
+minutes: 2
+source: Steps Method 2; Lichess theme fork
+
+@fen 4k3/8/7b/8/8/8/8/3QK3 w - - 0 1
+@try Qh5+ | a check that also looks at the bishop.
+she attacks along eight lines, so she forks whatever is loose. the favourite: a check and a loose piece.
+---
+@drill fork 4 -100
+loose piece plus check.
+
+=== the-pawns-fork
+title: the pawn's fork
+minutes: 2
+source: Steps Method 2; Lichess theme fork
+
+@fen 4k3/8/8/2n1n3/8/3P4/8/4K3 w - - 0 1
+@try d4 | push it between them.
+a pawn is the cheapest attacker: whatever it forks, it wins, for it costs nothing to lose.
+
+=== the-pin
+title: the pin
+minutes: 3
+source: Steps Method 2; Seirawan, Winning Chess Tactics
+
+@fen 4k3/8/2n5/8/8/3B4/8/4K3 w - - 0 1
+@try Bb5 | the knight stands on the line from b5 to the king.
+a long-range piece attacks a piece and, behind it, the king. the piece in between may not move at all: it is pinned. pin the knight.
+---
+@fen 4k3/8/2n5/1B6/8/8/3P4/4K3 w - - 0 1
+@try d4 | bring the pawn up to attack him.
+a pinned piece cannot run. attack it with something cheap: d4, then d5.
+---
+@drill pin 4 -150
+find the pin.
+
+=== pinned-to-the-queen
+title: pinned to the queen
+minutes: 3
+source: Steps Method 2; Seirawan, Winning Chess Tactics
+
+@fen rnbqkb1r/ppp2ppp/3p1n2/4p3/4P3/3P1N2/PPP2PPP/RNBQKB1R w KQkq - 0 4
+@try Bg5 | the bishop looks through f6 at d8.
+with a queen behind, the piece may legally move, but then she falls. it guards nothing now. that is your weapon; his bishop can do the same to you.
+
+=== using-a-pin
+title: using a pin
+minutes: 3
+source: Seirawan, Winning Chess Tactics; Lichess theme pin
+
+@fen r2qkb1r/ppp2ppp/2np1n2/4p1B1/4P1b1/2NP1N2/PPP2PPP/R2QKB1R w KQkq - 2 6
+@try Nd5 | another attacker on the pinned knight.
+a pinned piece guards nothing and cannot run. add attackers until it falls: on f6 here.
+---
+@drill pin 5 -100
+use each pin.
+
+=== the-skewer
+title: the skewer
+minutes: 2
+source: Seirawan, Winning Chess Tactics; Lichess theme skewer
+
+@fen 8/1q6/2k5/8/8/3B4/8/4K3 w - - 0 1
+@try Be4+ | a check along the long diagonal, with the queen behind him.
+the pin turned round: the valuable piece stands in front, attacked, and when it moves, what is behind it is taken.
+---
+@drill skewer 4 -100
+line them up.
+
+=== discovered-attack
+title: the discovered attack
+minutes: 3
+source: Seirawan, Winning Chess Tactics; Lichess theme discoveredAttack
+
+@fen r5k1/4qppp/8/8/4B3/8/8/4R1K1 w - - 0 1
+@try Bxh7+ | the bishop moves with check; the rook behind it now sees the queen.
+one piece moves and uncovers another behind it: two attacks in one move. if the piece that moves also gives check, he has no time for the other.
+---
+@drill discoveredAttack 4 -100
+what is behind what?
+
+=== discovered-check
+title: discovered check
+minutes: 2
+source: Seirawan, Winning Chess Tactics; Lichess theme discoveredCheck
+
+@fen 4k3/8/1q6/8/8/4B3/8/4R1K1 w - - 0 1
+@try Bxb6+ | the bishop takes the queen; the rook behind it gives check.
+when the piece that moves uncovers check, it may go anywhere, take anything: he must first answer the check.
+---
+@drill discoveredCheck 3 -100
+the moving piece is free.
+
+=== how-to-find-mate-in-two
+title: how to find mate in two
+minutes: 4
+source: Polgár, Chess: 5334 Problems (mates in two); Steps Method 2
+
+@fen rr4k1/5ppp/8/8/8/1Q6/5PPP/1R4K1 w - - 0 1
+@try Qxb8+ | a queen for a rook, with check: he has only one answer.
+do not search moves; search the king. which squares are his? where would a mate land? then: which check drives him to it, or takes away the last guard? the sacrifice is fine, if the answer is forced.
+---
+@play Rxb8
+@try Rxb8# | the last guard has gone.
+he had one answer. now the mate.
+---
+@drill mateIn2 6 -200
+start from where the king stands.
+
+=== the-scholars-mate
+title: the scholar's mate
+minutes: 2
+source: Steps Method 1; Chernev, Logical Chess: Move by Move
+
+@fen r1bqkbnr/pppp1ppp/2n5/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3
+@flip
+@try g6 Qe7 Qf6 | f7 must be guarded, or the queen shut out.
+half of everyone you will meet below a thousand tries this. queen and bishop both look at f7, guarded by the king alone. stop it: you will win time on the queen next.
+
+=== the-early-queen
+title: the early queen
+minutes: 3
+source: Seirawan, Winning Chess Openings; Lichess theme attackingF2F7
+
+@fen r1bqkbnr/pppp1p1p/2n3p1/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR b KQkq - 1 4
+@flip
+@try Nf6 | the knight shuts the f-file and comes out in one move.
+she comes back to f3: f7 again. a developing move that blocks her is worth two. now you are ahead in the race; she will have to move again.
+
+=== smothered-mate
+title: the smothered mate
+minutes: 3
+source: Polgár, Chess: 5334 Problems; Lichess theme smotheredMate
+
+@fen r6k/6pp/7N/8/8/1Q6/8/6K1 w - - 0 1
+@try Qg8+ | the queen lands next to him, guarded by the knight; only the rook can take her.
+a king with no squares, his own pieces around him: a knight's check is mate. sometimes you give the queen to fill his last square.
+---
+@play Rxg8
+@try Nf7# | the knight, and he has walled himself in.
+his own rook closed the door.
+---
+@drill smotheredMate 3 -100
+look for the knight.
+
+=== key-squares
+title: key squares
+minutes: 4
+source: Silman, Complete Endgame Course, parts two and three (king and pawn)
+
+@fen 8/8/3K4/8/4P3/8/5k2/8 w - - 0 1
+@mark d6 e6 f6
+@try e5 Ke6 Ke5 Kd5 | the king stands on a key square already: nothing can stop you now.
+every pawn has key squares: two ranks ahead of it, and the files beside. get your king onto one and the pawn queens, whoever is to move. no pawn move is hurried: the king first.
+
+=== the-opposition
+title: the opposition
+minutes: 4
+source: Silman, Complete Endgame Course, part two (opposition)
+
+@fen 4k3/8/4K3/4P3/8/8/8/8 b - - 0 1
+kings face each other, one square between, and it is his move: he must give way. that is the opposition, and in pawn endings it is everything.
+@play Kd8
+---
+@try Kf7 | past him on the side he left: your pawn walks home.
+he stepped aside. go past him on the other side.
+---
+@fen 8/8/4k3/8/4K3/8/4P3/8 w - - 0 1
+@try e3 | a pawn step costs nothing and gives him the move.
+a pawn further back holds a spare move. spend it, and he has to give way.
+
+=== the-square
+title: the square of the pawn
+minutes: 3
+source: Silman, Complete Endgame Course, part three; Steps Method 3
+
+@fen 8/8/8/8/P3k3/8/8/K7 b - - 0 1
+@mark a8 e8 e4
+@flip
+@try Kd5 Kd4 | step towards the corner.
+draw a square from the pawn to the last rank, as wide as the pawn has left to run. if his king can step into it, he catches the pawn. you are in the square: go.
+
+=== pawn-races
+title: pawn races
+minutes: 3
+source: Silman, Complete Endgame Course, part six (pawn races); Steps Method 3
+
+@fen 8/8/8/7P/p7/8/1k6/6K1 w - - 0 1
+@try h6 | run: the first queen on the long diagonal covers a1.
+count the moves each pawn needs. the first to queen often stops the other, or takes it at once: here a queen on h8 looks at a1.
+---
+@drill promotion 3 -100
+count first.
+
+=== your-opening-as-white
+title: your opening as White
+minutes: 4
+source: Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play e4 e5 Nf3 Nc6 Bc4 Bc5
+@try c3 d3 O-O | c3 and d4 is the plan; d3 and O-O the quiet way.
+the Italian game. e4, Nf3, Bc4 and castle: the bishop looks at f7 from the first moment. then c3 and d4 for the centre. that is all you need for months. if he does not play e5, the same pieces go to the same squares.
+
+=== your-opening-as-black
+title: your opening as Black
+minutes: 4
+source: Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@flip
+@play e4
+@try e5 | answer in the centre.
+against e4 you play e5, against d4 you play d5: claim your share. then knights out, a bishop out, castle.
+---
+@play Nf3
+@try Nc6 | guard the pawn on e5 with a developing move.
+a guard that also comes out.
+---
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play d4
+@try d5 | the same again.
+d4: d5.
+---
+@play c4
+@try e6 | a pawn guards d5 and the bishop can still get out.
+the Queen's Gambit: e6, Nf6, Be7, O-O. solid for life.
+
+=== hope-chess
+title: hope chess
+minutes: 3
+source: Heisman, Hope Chess vs Real Chess
+
+@fen r1bqkb1r/pppp1ppp/2n2n2/4p2Q/2B1P3/8/PPPP1PPP/RNB1K1NR b KQkq - 3 3
+@flip
+@try Nxh5 | her square is attacked: take her.
+hope chess: you play a move without asking what he can do to it, and hope. white just left his queen for a mate he hoped you would miss. real chess: for every move you consider, you look at his checks, captures and threats first, and only play it if you can meet them. that is the whole difference until 1700.
+
+=== candidate-moves
+title: candidate moves
+minutes: 4
+source: de Groot, Thought and Choice in Chess; Heisman, Everyone's 2nd Chess Book
+
+@fen r2q1rk1/ppp2ppp/2npbn2/2b1p3/2B1P3/2NP1N2/PPP1QPPP/R1B2RK1 w - - 4 8
+@try Bg5 Be3 Bxe6 Nd5 h3 | a developing move, a trade, a jump to the centre: two or three moves worth comparing.
+strong players do not see further than weak ones so much as look at better moves. first the question, what matters here? then two or three candidates. then, for each, his best answer. then choose. never play the first move you see without looking for a second.
+
+=== checks-captures-threats
+title: checks, captures, threats
+minutes: 3
+source: Heisman, Is it safe?; Steps Method, the three questions
+
+@fen 6k1/1p3ppp/2q5/8/8/2Q5/5PPP/3R2K1 w - - 0 1
+@try Rd8+ Qxc6 | start with the check. what stops it? then the capture.
+when you look for moves, look in this order: every check, every capture, every threat. they are the only moves that force anything. do it for you, then for him. here both sides have a weak last rank: yours is safe only while it is your move.
+---
+@drill middlegame 4 -150
+checks first, then captures.
+
+=== remove-the-guard
+title: removing the guard
+minutes: 3
+source: Steps Method 3–4; Lichess theme capturingDefender
+
+@fen r4rk1/ppp2ppp/5n2/6N1/8/2BQ4/PP3PPP/R5K1 w - - 0 1
+@try Bxf6 | the knight on f6 guards h7. take it.
+Qxh7 would be mate, but the knight guards h7. if a target is guarded by one piece, attack the guard: take it, chase it, block it.
+---
+@drill capturingDefender 5 -100
+what is guarding it?
+
+=== the-overworked-man
+title: the overworked piece
+minutes: 3
+source: Steps Method 4; Lichess theme deflection
+
+@fen 4r1k1/4qppp/8/8/8/8/1Q3PPP/4R1K1 w - - 0 1
+@try Rxe7 | his rook takes back: then see what it has left.
+one piece, two jobs. his rook guards the queen and the back rank. after Rxe7 Rxe7, Qb8+ wins the rest.
+
+=== deflection-and-attraction
+title: deflection and attraction
+minutes: 3
+source: Steps Method 4; Lichess themes deflection, attraction
+
+@fen 2rq2k1/5ppp/8/8/8/8/2Q2PPP/2R3K1 w - - 0 1
+@try Qxc8 | her guard of the rook is the one thing holding the rank.
+deflection: pull a guard away, even at a price. attraction: pull a piece to the square where it gets hit, often the king. Qxc8 Qxc8 Rxc8 is mate.
+---
+@drill deflection 3 -100
+pull it away.
+---
+@drill attraction 3 -100
+lure it in.
+
+=== arabian-and-anastasia
+title: the Arabian and Anastasia's mate
+minutes: 3
+source: Lichess themes arabianMate, anastasiaMate; Polgár, Chess: 5334 Problems
+
+@fen 7k/7p/5N2/8/8/8/8/6RK w - - 0 1
+@try Rg8# | the knight guards g8 and h7's neighbours.
+the Arabian mate: the king in the corner, the knight on f6, the rook on the last rank.
+---
+@fen 5r2/4Nppk/8/8/8/8/4K3/R7 w - - 0 1
+@try Rh1# | the rook to the h-file.
+Anastasia's: the knight on e7 closes g8 and g6; his own pawn closes g7; the rook mates on the edge.
+---
+@drill arabianMate 2 -100
+---
+@drill anastasiaMate 2 -100
+
+=== boden-and-two-bishops
+title: Boden's mate and two bishops
+minutes: 3
+source: Lichess themes bodenMate, doubleBishopMate; Polgár, Chess: 5334 Problems
+
+@fen 2kr4/pp1n4/2n5/8/4QB2/3B4/8/6K1 w - - 0 1
+@try Qxc6+ | a queen for a knight: only the b-pawn can take her.
+two bishops on crossing lines leave a king on c8 nothing. first the queen pulls the pawn away.
+---
+@play bxc6
+@try Ba6# | the second bishop.
+the crossing lines.
+---
+@drill bodenMate 2 -100
+
+=== dovetail-and-hook
+title: the dovetail and the hook
+minutes: 3
+source: Lichess themes dovetailMate, hookMate
+
+@fen 6k1/5ppp/8/8/8/8/8/6K1 w - - 0 1
+the dovetail: the queen touches the king diagonally, guarded, and his own pieces block the two squares behind him. the hook: rook, guarded by a knight, guarded by a pawn: three pieces in a chain. you learn them by doing them.
+---
+@drill dovetailMate 3 -100
+the queen beside him.
+---
+@drill hookMate 2 -100
+the chain.
+
+=== open-lines-to-the-king
+title: open lines to the king
+minutes: 3
+source: Seirawan, Winning Chess Strategies; Lichess theme kingsideAttack
+
+@fen r1bq1rk1/pp3ppp/2n2n2/2bp4/8/2NB1N2/PPP2PPP/R1BQ1RK1 w - - 0 9
+count: how many of your pieces are near his king, how many of his guard it? attack when you have more. rooks need open files, bishops open diagonals: a pawn trade that opens a line to him is worth more than a pawn.
+---
+@drill kingsideAttack 5 -100
+who is near the king?
+
+=== the-greek-gift
+title: the Greek gift
+minutes: 4
+source: Seirawan, Winning Chess Tactics; Lichess theme sacrifice
+
+@fen r1bq1rk1/pppn1ppp/4p3/3pP3/1b1P4/2NB1N2/PPP2PPP/R1BQK2R w KQ - 0 8
+@try Bxh7+ | the bishop takes on h7 with check.
+the bishop is given for one pawn, but it pulls the king out. it works when a knight reaches g5, the queen reaches h5, and no black knight can come to f6.
+---
+@play Kxh7
+@try Ng5+ | the knight with check.
+---
+@play Kg8
+@try Qh5 | she threatens mate on h7.
+in this week's light games you will play it out.
+
+=== the-bare-king
+title: the bare king
+minutes: 3
+source: Lichess theme exposedKing; Seirawan, Winning Chess Strategies
+
+@fen 8/5k2/8/8/8/8/5K2/8 w - - 0 1
+a king with no pawns round him cannot rest: every check drives him somewhere worse. but do not check for the sake of it. each check should bring another piece in with tempo, or take a square away.
+---
+@drill exposedKing 5 -100
+checks with a point.
+
+=== morphys-opera-game
+title: Morphy's opera game
+minutes: 6
+source: Morphy against the Duke of Brunswick and Count Isouard, Paris 1858 (the game itself); Chernev, Logical Chess
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play e4 e5 Nf3 d6 d4 Bg4 dxe5 Bxf3 Qxf3 dxe5 Bc4 Nf6
+Paris, 1858, in a box at the opera. Morphy is White. you find his moves.
+@try Qb3 | she hits two things at once: f7 and b7.
+he has the queen and bishop out, and sees two targets.
+---
+@play Qe7 Nc3 c6 Bg5 b5
+@try Nxb5 | every Black piece is asleep. give something to keep the lines open.
+everything of his is out. everything of theirs is at home.
+---
+@play cxb5 Bxb5+ Nbd7
+@try O-O-O | the rook arrives on the pinned knight with one move.
+the last piece, and the king safe, in one move.
+---
+@play Rd8 Rxd7 Rxd7 Rd1 Qe6 Bxd7+ Nxd7
+@try Qb8+ | the queen, on the last rank. only the knight can take her.
+---
+@play Nxb8
+@try Rd8# | the bishop on g5 guards d8.
+the rook, on the file he opened, guarded by the bishop he brought first. every piece in the game.
+
+=== a-king-hunt
+title: a king hunt
+minutes: 5
+source: Edward Lasker against Thomas, London 1912 (the game itself); Chernev, Logical Chess
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play d4 e6 Nf3 f5 Nc3 Nf6 Bg5 Be7 Bxf6 Bxf6 e4 fxe4 Nxe4 b6 Ne5 O-O Bd3 Bb7 Qh5 Qe7
+London, 1912. White has more pieces near the king than Black has guarding him.
+@try Qxh7+ | she goes to h7. yes.
+---
+@play Kxh7 Nxf6+ Kh6 Neg4+ Kg5 h4+ Kf4 g3+ Kf3 Be2+ Kg2 Rh2+ Kg1
+watch him walk across the board. every move is a check, and he has one answer each time.
+---
+@try Kd2# O-O-O# | he has one square left: take it, with a discovered check along the first rank.
+the last move: your own king, or your castling.
+
+=== the-pin-that-won
+title: the pin that was not
+minutes: 4
+source: Légal against Saint-Brie, Paris 1750 (the game itself); Seirawan, Winning Chess Tactics
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@play e4 e5 Nf3 d6 Bc4 Bg4 Nc3 g6
+Black's bishop pins the knight to the queen. but a queen is only worth nine, and a pin to her is not the law.
+@try Nxe5 | break the pin. let her go.
+---
+@play Bxd1
+@try Bxf7+ | the check first.
+---
+@play Ke7
+@try Nd5# | the knight, and it is over: he won the queen and lost the game.
+Légal's mate. a pin to the queen can be broken if what you gain is worth more. it works against you too.
+
+=== the-open-file
+title: the open file
+minutes: 3
+source: Steps Method 5 (open files); Seirawan, Winning Chess Strategies
+
+@fen 1r4k1/pp3ppp/2p5/8/8/2P5/PP3PPP/3R2K1 w - - 0 1
+@try Rd7 | up the open file, onto his seventh.
+a file with no pawns is a road for a rook. get there first, then use it: the seventh rank is the road's end.
+
+=== the-seventh-rank
+title: the seventh rank
+minutes: 3
+source: Steps Method 5 (the seventh rank); Silman, Complete Endgame Course
+
+@fen 6k1/pp3ppp/8/8/8/8/PP3PPP/3R2K1 w - - 0 1
+@try Rd7 | the seventh attacks his pawns from the side and shuts in his king.
+a rook on the seventh attacks pawns from where they cannot guard each other, and holds his king on the last rank. two rooks there usually win by themselves.
+
+=== doubling
+title: doubling the rooks
+minutes: 2
+source: Seirawan, Winning Chess Strategies; Lichess theme backRankMate
+
+@fen r5k1/pp3ppp/8/8/8/8/PP1R1PPP/3R2K1 w - - 0 1
+@try Rd8+ | the first goes in, the second follows.
+two rooks on one file guard each other and hit twice: whatever guards the entry square is outnumbered.
+
+=== outposts
+title: outposts
+minutes: 3
+source: Steps Method 5 (strong squares); Seirawan, Winning Chess Strategies
+
+@fen r4rk1/pp3ppp/2p5/3pP3/3n4/8/PP3PPP/R1BR2K1 b - - 0 1
+@flip
+@try Ne2+ | look at what he forks from there, now that nothing can chase him on d4 anyway.
+a square no enemy pawn can ever attack is an outpost. a knight on it, guarded by a pawn, is worth a rook. first look for what he can do from it now.
+
+=== good-and-bad-bishops
+title: good and bad bishops
+minutes: 3
+source: Seirawan, Winning Chess Strategies; Silman, Complete Endgame Course
+
+@fen 2b5/4k3/p3p1p1/1p1pP3/1P1P4/P2BK1P1/8/8 w - - 0 1
+his pawns stand on light squares, and so does his bishop: it hits his own pawns and guards nothing else: a bad bishop. your pawns stand on dark squares, your bishop on light: it attacks what cannot move. put your pawns on the colour your bishop does not stand on.
+
+=== the-two-bishops
+title: the two bishops
+minutes: 2
+source: Silman, Complete Endgame Course, part five; Seirawan, Winning Chess Strategies
+
+@fen 4k3/pp3ppp/8/8/8/2B2B2/PP3PPP/4K3 w - - 0 1
+together they cover both colours. in an open position, with pawns on both wings, they are worth more than a bishop and a knight. keep them; open the game; trade off the rest.
+
+=== the-passed-pawn
+title: the passed pawn
+minutes: 3
+source: Steps Method 1 plus (the passed pawn); Silman, Complete Endgame Course
+
+@fen 8/5k2/8/3P4/8/5K2/8/8 w - - 0 1
+@try Ke4 Kf4 | the king leads; the pawn follows.
+no enemy pawn in front of it or beside it: it is passed. it ties something down all game. in the ending, it queens: walk it with your king.
+
+=== weak-pawns
+title: weak pawns
+minutes: 3
+source: Steps Method 4–5 (weak pawns); Seirawan, Winning Chess Strategies
+
+@fen r4rk1/p4ppp/2p5/8/8/2P1P3/P4PPP/R4RK1 w - - 0 1
+a pawn no other pawn can guard, an isolated one, needs a piece to guard it for life; doubled pawns cannot guard each other; a pawn left behind its neighbours is backward, and the square in front of it is a hole. his c-pawn and a-pawn are weak, and so are yours. aim at them, and do not make more of your own.
+
+=== chains
+title: pawn chains
+minutes: 3
+source: Seirawan, Winning Chess Strategies; Steps Method 5
+
+@fen rnbqkbnr/pp3ppp/4p3/2ppP3/3P4/8/PPP2PPP/RNBQKBNR w KQkq - 0 4
+@try Nf3 c3 | guard the base of your chain.
+a chain of pawns on a diagonal guards itself, all but its base. your base is d4: guard it. his is e6. the side you hold more of is the side you attack on: yours, the king's wing.
+
+=== queen-against-pawn
+title: queen against pawn
+minutes: 4
+source: Silman, Complete Endgame Course, part four
+
+@fen K7/8/8/8/8/8/3pk3/7Q w - - 0 1
+@try Qe4+ Qh2+ Qg2+ | check him, from close by.
+a pawn one step from queening, a king beside it: check until the king has to stand in front of its own pawn. that wins a move: your king steps closer. repeat. only rook and bishop pawns can sometimes draw.
+
+=== the-lucena-position
+title: the Lucena position
+minutes: 4
+source: Silman, Complete Endgame Course, part four
+
+@fen 1K1k4/1P6/8/8/8/8/r7/2R5 w - - 0 1
+@try Rd1+ | drive his king away from the pawn.
+the rook ending you must know. your king in front of your pawn, their rook behind it. first drive his king a file further.
+---
+@play Ke7
+@try Rd4 | a rook on the fourth rank: it will build a bridge.
+now the rook goes to the fourth rank. next lesson: why.
+
+=== the-bridge
+title: the bridge
+minutes: 4
+source: Silman, Complete Endgame Course, part four
+
+@fen 1K6/1P2k3/8/8/3R4/8/8/r7 w - - 0 1
+@try Kc7 | step out in front of the pawn.
+the king steps out. he will be checked. he walks towards the rook, and the rook shields him.
+---
+@play Rc1+
+@try Kb6 | down the board, towards your rook.
+---
+@play Rb1+
+@try Kc6 | and across.
+---
+@play Rc1+
+@try Kb5 | one more step.
+---
+@play Rb1+
+@try Rb4 | the rook blocks the check. the pawn will queen.
+the bridge. this wins every time. in the games this week you play it against the engine.
+
+=== the-philidor-position
+title: the Philidor position
+minutes: 4
+source: Silman, Complete Endgame Course, part four
+
+@fen 4k3/7R/r7/3KP3/8/8/8/8 b - - 0 1
+@flip
+@try Rb6 | stay on the sixth rank, out of his king's reach: he cannot come forward while you hold it.
+the rook ending you must know as defender. a rook on your third rank keeps his king out.
+---
+@play e6
+@try Rb1 Rb2 Rb3 | now behind him: check from far away.
+the pawn has moved: it no longer shelters his king. go behind: check from the back, for ever. a draw.
+
+=== rooks-behind-pawns
+title: rooks behind pawns
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Endings
+
+@fen r7/8/8/P3k3/8/5P2/5K2/R7 w - - 0 1
+@try a6 | the rook behind it pushes as well.
+rooks go behind passed pawns, your own and his: there the rook's reach grows as the pawn moves. his rook in front of the pawn is stuck there.
+
+=== the-active-rook
+title: the active rook
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Endings
+
+@fen 8/5pk1/6p1/7p/P6P/6P1/r4PK1/1R6 w - - 0 1
+@try Rb5 Rb4 Rb7 | keep the pawn guarded from the side, or attack something.
+in rook endings, a rook that attacks is worth a pawn. give the pawn if you must; never leave the rook tied to guarding it.
+
+=== a-budget-for-the-clock
+title: a budget for the clock
+minutes: 2
+source: Heisman, on time management and slow games
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+a game has about forty of your moves. fifteen minutes and ten seconds a move gives about thirty seconds each: spend less in the opening you know, most when the position changes, when a capture is possible, when you have a plan to choose. a good player uses nearly all his time. a slow loss teaches more than a quick win.
+
+=== your-own-errors
+title: your own errors
+minutes: 2
+source: Heisman, on review; Howard 2012 (games and coaching, not hours)
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+you do not make every kind of mistake: you make your own three or four, again and again. the reviews have been writing them down; the report shows them. what you wrote after each game is the book that teaches you most. read it once a week.
+
+=== the-last-check
+title: the last check
+minutes: 2
+source: Heisman, Everyone's 2nd Chess Book; Steps Method's three questions
+
+@fen r1bq1rk1/ppp2ppp/2np1n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQ1RK1 w - - 0 7
+you have thought, you have chosen. before you play it: is there anything simple he can do to this? you will catch one blunder in five this way. that alone is hundreds of points.
+
+=== see-it-in-your-head
+title: see it in your head
+minutes: 3
+source: Steps Method, Thinking ahead; Yusupov, Build Up Your Chess (solve without moving the pieces)
+
+@fen r1bq1rk1/pp3ppp/2n1pn2/3p4/1b1P4/2NBPN2/PP3PPP/R1BQ1RK1 w - - 0 9
+calculation is the board in your head. move the pieces there, one at a time, and stop to look at the new position as if it stood in front of you: what is attacked now, what is loose? start with two moves. it grows.
+---
+@drill mateIn3 5 -100
+no touching till you have seen the end.
+
+=== forcing-lines
+title: forcing lines
+minutes: 3
+source: Yusupov, Build Up Your Chess; Lichess theme sacrifice
+
+@fen r2q1rk1/ppp2ppp/2n1b3/3Np3/2B1n3/5N2/PPP2PPP/R1BQ1RK1 w - - 0 10
+checks, then captures, then threats, because his answers are few. a line of forcing moves can be seen to the end; a quiet move leaves him the whole board. look at every forcing move, even the mad one: a sacrifice is only a forcing move you are afraid of.
+---
+@drill sacrifice 5 -100
+follow them to the end.
+
+=== count-to-quiet
+title: count to quiet
+minutes: 3
+source: Yusupov, Build Up Your Chess; Heisman, counting
+
+@fen r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2NP1N2/PPP2PPP/R1BQK2R w KQkq - 0 5
+in a line of captures do not stop until nothing more can be taken, then count what is left. most mistakes are one move short: you take, he takes, you stop looking, and his next capture was the point.
+---
+@drill intermezzo 4 -100
+see past the obvious answer.
+
+=== their-threat-first
+title: their threat first
+minutes: 3
+source: Heisman, Is it safe?; Lichess theme defensiveMove
+
+@fen r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5Q2/PPPP1PPP/RNB1K1NR b KQkq - 3 3
+@flip
+@try Nf6 Qf6 Qe7 | he threatens Qxf7, mate.
+before you do anything: if he could play twice in a row, what would he do? that is his threat. most of defence is just asking.
+---
+@drill defensiveMove 5 -100
+find the only move.
+
+=== the-counterattack
+title: the counterattack
+minutes: 3
+source: Seirawan, Winning Chess Tactics; Steps Method 3
+
+@fen r1bqkb1r/pppp1ppp/2n2n2/4p1N1/2B1P3/8/PPPP1PPP/RNBQK2R b KQkq - 5 4
+@flip
+@try d5 | block the bishop's line, and hit it.
+he threatens Nxf7. you need not only guard: a move that defends and attacks at once can turn the game.
+
+=== the-move-in-between
+title: the move in between
+minutes: 3
+source: Lichess theme intermezzo; Steps Method 3
+
+@fen 6k1/pp3ppp/2q5/8/1r6/2N1Q3/PP3PPP/6K1 w - - 0 1
+he expects you to answer the threat at once. first ask if there is a check or a bigger threat that he must answer. the recapture will still be there afterwards.
+---
+@drill intermezzo 5 -100
+not the obvious move.
+
+=== clearing-the-way
+title: clearing the way
+minutes: 2
+source: Steps Method 4 (clearance); Lichess theme clearance
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1
+one of your own pieces stands on the very square or line you need. move it, with a threat, and the door opens.
+---
+@drill clearance 5 -100
+what is in your way?
+
+=== cutting-the-line
+title: cutting the line
+minutes: 2
+source: Lichess theme interference
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1
+two of his pieces guard each other along a line. put something on that line, even something he can take: while he takes it, the guard is broken.
+---
+@drill interference 4 -100
+cut it.
+
+=== through-a-man
+title: the x-ray
+minutes: 2
+source: Lichess theme xRayAttack; Seirawan, Winning Chess Tactics
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1
+a rook or bishop reaches through what stands in front of it, the moment that piece moves or is traded. when you count a square, count the pieces behind the pieces.
+---
+@drill xRayAttack 4 -100
+look through.
+
+=== the-pawn-storm
+title: the pawn storm
+minutes: 3
+source: Seirawan, Winning Chess Strategies; Lichess theme kingsideAttack
+
+@fen r1bq1rk1/pp2ppbp/2np1np1/8/3NP3/2N1BP2/PPPQ2PP/R3KB1R w KQ - 2 9
+@try O-O-O | take your king out of the way first: then your pawns are free to run.
+with your king gone from a wing, its pawns can run at him. every pawn trade there opens a file for your rooks. first your own king.
+
+=== opposite-castling
+title: opposite castling
+minutes: 3
+source: Seirawan, Winning Chess Strategies
+
+@fen r1bq1rk1/pp2ppbp/2np1np1/8/3NP3/2N1BP2/PPPQ2PP/2KR1B1R b - - 3 9
+kings on opposite wings: a race. each move is either your attack or nothing. defend only when you must, and even then with a tempo. whoever opens a file first usually wins.
+
+=== the-h-file
+title: the h-file
+minutes: 3
+source: Lichess theme kingsideAttack; Seirawan, Winning Chess Strategies
+
+@fen r1bq1rk1/pp2ppb1/3p1np1/7p/3NP2P/2N1BP2/PPPQ2P1/2KR1B1R w - - 0 12
+h4, h5, a trade on g6: the file opens, and rook and queen come down it. the h-pawn is the attacker's cheapest key to a castled king.
+---
+@drill kingsideAttack 4 0
+the file is the road.
+
+=== holes
+title: holes
+minutes: 3
+source: Steps Method 5 (strong squares); Seirawan, Winning Chess Strategies
+
+@fen r1bqkb1r/pp3ppp/2n1pn2/2pp4/3P4/2N1PN2/PPP1BPPP/R1BQK2R w KQkq - 0 6
+a pawn can never go back. the square it once guarded it will never guard again: if no pawn can reach it, it is a hole. a piece put there can stay for the whole game. before you push a pawn: what does it give up for ever?
+
+=== the-colour-of-the-squares
+title: the colour of the squares
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Strategies
+
+@fen r2qkb1r/pp3ppp/2n1pn2/3p4/3P4/2N1PN2/PP3PPP/R1BQKB1R w KQkq - 0 8
+trade off a bishop and all the squares of its colour may be weak for a whole game, above all round the king. if your pawns stand on dark squares and your dark bishop has gone, the light ones are yours to keep; the dark ones, his.
+
+=== making-a-weakness
+title: making a weakness
+minutes: 3
+source: Seirawan, Winning Chess Strategies; Silman, Complete Endgame Course
+
+@fen r4rk1/pp3ppp/2n1b3/2pp4/8/2N1PN2/PP3PPP/R1B2RK1 w - - 0 12
+one weakness can be guarded. attack one, and when his pieces are tied to it, attack a second somewhere else: the principle of two weaknesses. most long games are won that way.
+
+=== good-pieces-and-bad-pieces
+title: good pieces and bad pieces
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Strategies
+
+@fen 2r3k1/pp3ppp/2n1b3/3p4/3P4/2N1BN2/PP3PPP/2R3K1 w - - 0 15
+a piece is worth what it does here, not what the table says. trade your worst piece for his best. keep a bishop if the game is open, a knight if it is shut. a rook with no file is worth a knight.
+
+=== trading-when-ahead
+title: trading when ahead
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Endings
+
+@fen 3r2k1/5ppp/8/8/8/4PP2/4K1PP/2R5 w - - 0 1
+@try Rd1 | offer the rooks, your king guarding: a pawn ahead with nothing else on the board is a won game.
+when you are ahead, trade pieces and keep pawns: the pawn you are up becomes a queen once nothing stops it. when behind, the opposite: trade pawns, keep pieces.
+
+=== the-trade-you-regret
+title: the trade you regret
+minutes: 3
+source: Silman, Complete Endgame Course; Lichess theme pawnEndgame
+
+@fen 8/5pk1/6p1/8/P5P1/5K2/8/8 w - - 0 1
+before you trade down to a pawn ending, count it to the end: a pawn ending cannot be undone. the outside passed pawn here wins by itself: it pulls his king away, yours eats the rest. if you cannot count it, do not go in.
+
+=== pawn-breaks
+title: pawn breaks
+minutes: 3
+source: Seirawan, Winning Chess Strategies; Steps Method 5
+
+@fen r1bq1rk1/pp1nbppp/2p1pn2/3p4/2PP4/2N1PN2/PP1B1PPP/R2QKB1R w KQ - 2 8
+in a shut position, one pawn move opens it. before you plan anything: which pawn move opens the game for your pieces, and which for his? prepare yours, stop his. the plans of a whole opening hang on that one move.
+
+=== space
+title: space
+minutes: 3
+source: Seirawan, Play Winning Chess (space); Seirawan, Winning Chess Strategies
+
+@fen r1bqkbnr/pp1npppp/2p5/3pP3/3P4/5N2/PPP2PPP/RNBQKB1R w KQkq - 2 5
+the pawn line decides who has room. with more room, avoid trades: he has nowhere to put his pieces. with less, trade: each trade lets the rest breathe.
+
+=== the-closed-centre
+title: the closed centre
+minutes: 3
+source: Seirawan, Winning Chess Strategies
+
+@fen r1bqk2r/ppp1bppp/2np1n2/4p3/2PPP3/2N2N2/PP3PPP/R1BQKB1R w KQkq - 0 6
+when the centre locks, the game moves to the wings. attack where your pawns point. knights grow stronger than bishops. and your king can wait in the middle a little longer: nothing is coming through.
+
+=== good-bishop-bad-bishop-endings
+title: good bishop against bad
+minutes: 4
+source: Silman, Complete Endgame Course, parts four and five
+
+@fen 2b5/4k3/p3p1p1/1p1pP3/1P1P4/P2BK1P1/8/8 w - - 0 1
+@try Bxg6 | nothing guards g6: his bishop cannot get there in time.
+his pawns stand on the colour of his own bishop: yours attacks them, and his is tied to guarding them. he defends, you choose where. here he has already run out of guards.
+
+=== knight-against-bishop
+title: knight against bishop
+minutes: 3
+source: Silman, Complete Endgame Course, part four; Seirawan, Winning Chess Endings
+
+@fen 8/4kp2/4p1p1/3nP3/5P2/2B3P1/5K2/8 w - - 0 1
+pawns on both wings favour the bishop, its long range working both ways. pawns on one wing, or a shut centre, favour the knight, who reaches every colour. your pawns on the bishop's opposite colour are safe from it.
+
+=== the-wrong-bishop
+title: the wrong bishop
+minutes: 2
+source: Silman, Complete Endgame Course, part four
+
+@fen 7k/8/7K/7P/4B3/8/8/8 w - - 0 1
+a rook pawn and a bishop that does not cover its corner cannot win: his king sits in the corner, and no piece can drive him out. here you are a piece and a pawn up, and it is a draw. know that before you trade into it.
+
+=== cutting-off-the-king
+title: cutting off the king
+minutes: 4
+source: Silman, Complete Endgame Course, part five (rook endings)
+
+@fen 8/8/8/1k6/8/8/4PK2/7R w - - 0 1
+@try Rc1 Rd1 | the rook on a file between his king and your pawn.
+your rook on a file shuts his king out, and the pawn walks up with your king. every file you hold is a whole game's work for him.
+
+=== rook-and-two-pawns
+title: rook and two pawns
+minutes: 3
+source: Silman, Complete Endgame Course, part five
+
+@fen 8/5pk1/6p1/8/8/5PP1/5K2/4R3 w - - 0 1
+two connected pawns win nearly always; two apart often draw. keep them side by side, rook behind or beside, your king in front. no pawn hurries.
+---
+@drill rookEndgame 5 0
+the rook stays active.
+
+=== the-italian-plan
+title: the plan of the Italian
+minutes: 4
+source: Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move
+
+@fen r1bqk2r/pppp1ppp/2n2n2/2b1p3/2B1P3/2P2N2/PP1P1PPP/RNBQK2R w KQkq - 3 5
+@try d4 d3 O-O | c3 was played for this: d4.
+c3 then d4: two pawns in the centre, and his bishop and knight must give way. if d4 cannot work yet, d3, castle, Nbd2, and h3 for the slow game: the same idea, one step later.
+
+=== against-the-sicilian
+title: against the Sicilian
+minutes: 4
+source: Seirawan, Winning Chess Openings
+
+@fen rnbqkbnr/pp1ppppp/8/2p5/4P3/2P5/PP1P1PPP/RNBQKBNR b KQkq - 0 2
+@play d5 exd5 Qxd5 d4 Nf6
+@try Nf3 Be3 Na3 | develop: the queen on d5 will be chased.
+the Alapin: c3 and d4 for the centre, with no theory to learn. you avoid a thousand sharp lines and get a free game. your pieces go to their usual squares.
+
+=== against-caro-and-french
+title: against the Caro-Kann and French
+minutes: 4
+source: Seirawan, Winning Chess Openings
+
+@fen rnbqkbnr/pp2pppp/2p5/3pP3/3P4/8/PPP2PPP/RNBQKBNR b KQkq - 0 3
+@play Bf5
+@try Nf3 Be3 h4 Bd3 | the Advance: space, knight out, c3 to guard the chain.
+in both he plays d5 against your e4. you push e5, take the space on the king's wing, and guard d4. in the French his light bishop is shut in; in the Caro it gets out first, so look at it.
+
+=== the-qgd-plan
+title: the plan of the Queen's Gambit Declined
+minutes: 4
+source: Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move
+
+@fen rnbqkb1r/ppp2ppp/4pn2/3p4/2PP4/2N5/PP2PPPP/R1BQKBNR w KQkq - 2 4
+@flip
+@play Bg5
+@try Be7 Nbd7 | guard against the pin, get ready to castle.
+Be7, O-O, Nbd7, c6. then the freeing moves: dxc4, then c5 or e5. you are solid, and your light bishop waits for its moment. that freeing break is your whole plan.
+
+=== what-is-different
+title: what is different?
+minutes: 4
+source: Silman, Complete Endgame Course (imbalances, as his method); Seirawan, Winning Chess Strategies
+
+@fen r3kb1r/pp1n1ppp/2p1pn2/q7/2BP1B2/2N2N2/PP3PPP/R2Q1RK1 w kq - 0 11
+in a quiet position, compare: minor pieces (bishop or knight?), pawn structure, space, material, development, king safety, files. a plan is simply the thing that makes one of these differences count.
+
+=== making-a-plan
+title: making a plan
+minutes: 4
+source: Seirawan, Winning Chess Strategies; Yusupov, Build Up Your Chess
+
+@fen r2q1rk1/1b2bppp/p1n1pn2/1p6/3P4/P1N1BN2/1PQ1BPPP/R4RK1 w - - 0 14
+what do I want the position to look like in five moves? which piece gets where, which pawn moves, what would stop it? a poor plan beats none, because your pieces start to work together. when the position changes, change the plan.
+
+=== the-worst-piece
+title: the worst piece
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Strategies
+
+@fen r2q1rk1/pp1bbppp/2n1pn2/3p4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w - - 4 10
+@try Bd2 Bb1 e4 Qe2 a3 h3 | c1 has done nothing yet. it, or the quiet move that wakes it.
+no plan in sight? find your worst piece and improve it. your bishop on c1 has not moved. most of chess is that.
+
+=== simplify
+title: simplify
+minutes: 3
+source: Silman, Complete Endgame Course; Heisman, Everyone's 2nd Chess Book (what to do when way ahead)
+
+@fen 2r3k1/5ppp/8/8/3N4/4P3/5PPP/3R2K1 w - - 0 1
+ahead by a piece: the only way to lose is a trick. take away the tricks. trade whatever he offers; offer whatever he guards; then bring the king up. do not hunt pawns while your own back rank is bare.
+
+=== no-counterplay
+title: no counterplay
+minutes: 3
+source: Heisman, Everyone's 2nd Chess Book (when way ahead); Yusupov, Build Up Your Chess
+
+@fen 2r3k1/5ppp/8/8/3N4/4P3/5PPP/2R3K1 b - - 0 1
+when you win, your opponent has one hope: a threat you overlook. each move, ask only: what can he still do? take that from him. then ask again. the win does not run away.
+
+=== one-good-move-at-a-time
+title: one good move at a time
+minutes: 2
+source: Heisman, Everyone's 2nd Chess Book; Silman, Complete Endgame Course
+
+@fen 8/5pkp/6p1/8/8/8/Q4PPP/6K1 w - - 0 1
+a won game loses its grip when you look for the fastest way. look for the safe way. a safe way to win in twenty moves beats a brilliant one in ten that you are not sure of.
+
+=== a-swindle
+title: a swindle
+minutes: 3
+source: Heisman, Everyone's 2nd Chess Book; Lichess theme equality
+
+@fen r5k1/5ppp/8/3p4/3n4/5P2/5KPP/1R6 w - - 0 1
+you are losing: now the only question is what he can get wrong. set one trap after another: his back rank, a pinned piece, a stalemate, a fork. never resign while there is a trick left to try; he has to win it first.
+---
+@drill equality 4 -100
+there is a way back.
+
+=== the-fortress
+title: the fortress
+minutes: 3
+source: Silman, Complete Endgame Course, part six (bishop fortresses)
+
+@fen 7k/8/7K/7P/4B3/8/8/8 b - - 0 1
+a fortress is a position the stronger side cannot break, however much he has: a king in the wrong corner, a rook on a line that cannot be driven off. when you are behind, look for one: trade until only that is left.
+
+=== perpetual-check
+title: perpetual check
+minutes: 3
+source: FIDE Laws of Chess (threefold repetition); Lichess theme equality
+
+@fen 6k1/5pp1/7p/8/8/6P1/q4PKP/4Q3 b - - 0 1
+if you can give check for ever and he cannot escape, the game is drawn. when you are lost, look at his king first: an open king and your queen may be all you need.
+
+=== traps-in-the-italian
+title: traps in the Italian
+minutes: 3
+source: Seirawan, Winning Chess Openings
+
+@fen r1bqkbnr/pppp1ppp/8/4p3/2BnP3/5N2/PPPP1PPP/RNBQK2R w KQkq - 4 4
+@try Nxd4 c3 O-O | Nxe5 Qg5! and your knight and g2 fall together. take on d4, or push him off.
+this knight jump is bait: the pawn on e5 looks free. many have lost to it online. the plain answer wins a pawn.
+
+=== traps-after-e5
+title: traps after e5
+minutes: 3
+source: Seirawan, Winning Chess Openings
+
+@fen r1bqkb1r/ppp2ppp/2n2n2/3Pp1N1/2B5/8/PPPP1PPP/RNBQK2R b KQkq - 0 5
+@flip
+@try Na5 | Nxd5 Nxf7! Kxf7 Qf3+ is the famous fried liver. move the knight away with tempo on the bishop.
+the Two Knights: he attacks f7 at once. this is your only safe move: hit the bishop and let the pawn go.
+
+=== traps-after-d5
+title: traps after d5
+minutes: 3
+source: Seirawan, Winning Chess Openings
+
+@fen r1bqkb1r/pppn1ppp/5n2/3N2B1/3P4/8/PP2PPPP/R2QKBNR b KQkq - 0 6
+@flip
+@try Nxd5 | your knight takes. he takes the queen; then Bb4+ wins it back and the piece as well.
+he has just taken on d5, thinking the knight is pinned. a pin to the queen is not a law. take back with the pinned knight.
+
+=== what-do-they-want
+title: what do they want?
+minutes: 3
+source: Heisman, Is it safe?; Yusupov, Build Up Your Chess
+
+@fen r1bq1rk1/pp2bppp/2n1pn2/3p4/3P4/2N1PN2/PP2BPPP/R1BQ1RK1 w - - 0 9
+before your own plan, say his: if he could move twice, what would he do? what is he aiming at, which pawn does he want to push? half of good chess is that one question at every move.
+---
+@drill quietMove 4 0
+a quiet answer.
+
+=== prophylaxis
+title: prophylaxis
+minutes: 3
+source: Yusupov, Build Up Your Chess; Seirawan, Winning Chess Strategies
+
+@fen r1bq1rk1/pp2bppp/2n1pn2/3p4/3P4/P1N1PN2/1P2BPPP/R1BQ1RK1 b - - 0 9
+a move that stops his best idea before he has it, and costs you nothing. a3 to stop Nb4, h3 to stop Bg4 and to give your king air. it looks like nothing; it is how strong players stay out of trouble.
+
+=== the-piece-doing-nothing
+title: the piece doing nothing
+minutes: 2
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Strategies
+
+@fen r2q1rk1/pb2bppp/1pn1pn2/2pp4/3P1B2/2PBPN2/PP1N1PPP/R2Q1RK1 w - - 0 10
+look over your pieces one at a time. which one does nothing where it stands? bringing it into the game is often the best move on the board.
+
+=== tempo
+title: tempo
+minutes: 3
+source: Seirawan, Play Winning Chess (time); Yusupov, Build Up Your Chess
+
+@fen r1bqkbnr/pppp1ppp/2n5/4p3/2B1P3/5N2/PPPP1PPP/RNBQK2R b KQkq - 3 3
+a move that makes a threat wins a tempo: he has to answer, you then get to move again. the initiative is a string of those. keep it while it lasts; once he has one free move, it has gone.
+
+=== breaking-in-the-centre
+title: breaking in the centre
+minutes: 3
+source: Seirawan, Winning Chess Strategies
+
+@fen r1bq1rk1/ppp1bppp/2n2n2/3pp3/4P3/2NP1N2/PPP1BPPP/R1BQ1RK1 w - - 0 7
+an attack on the wing is answered by a break in the centre: open the middle while his pieces are off at the edge. when his king is still in the centre, open it at any cost.
+
+=== giving-to-attack
+title: giving to attack
+minutes: 3
+source: Lichess theme sacrifice; Yusupov, Build Up Your Chess
+
+@fen r1bq1rk1/pp3ppp/2nbpn2/3p4/3P4/2NBPN2/PP3PPP/R1BQ1RK1 w - - 0 9
+a pawn for two open lines, a piece for the king dragged out. count what you get: tempo, open files, his pieces shut out. if you can name it, it is a sacrifice; if you cannot, it is a hope.
+---
+@drill sacrifice 4 0
+what do you get for it?
+
+=== playing-with-the-isolani
+title: playing with the isolated pawn
+minutes: 4
+source: Seirawan, Winning Chess Strategies
+
+@fen r1bq1rk1/pp2bppp/2n1pn2/8/3P4/2N2N2/PP2BPPP/R1BQ1RK1 w - - 0 9
+@try Bf4 Bg5 Be3 a3 Re1 | a piece move: keep your pieces, keep the game alive.
+your d-pawn stands alone. in the ending it is weak; in the middlegame it gives you e5, c5 and open files, and d5 is the break. keep the pieces on and attack.
+
+=== playing-against-the-isolani
+title: playing against it
+minutes: 3
+source: Seirawan, Winning Chess Strategies
+
+@fen r1bq1rk1/pp2bppp/2n1pn2/8/3P4/2N2N2/PP2BPPP/R1BQ1RK1 b - - 0 9
+@flip
+@try Nb4 Nd5 Bd7 b6 | d5 is your square: put a piece there, or get ready to.
+blockade it on d5, the square in front; trade pieces, for each trade makes the pawn weaker; then surround it. the ending belongs to you.
+
+=== hanging-pawns
+title: hanging pawns
+minutes: 3
+source: Seirawan, Winning Chess Strategies
+
+@fen r2q1rk1/pb2bppp/1pn1pn2/8/2PP4/2NB1N2/P4PPP/R1BQ1RK1 w - - 0 11
+two pawns side by side, with no pawns on the files beside them. together they control the centre and can break at the right moment; once one moves, the other is weak. attack them; or, if they are yours, keep them moving.
+
+=== triangulation
+title: losing a move on purpose
+minutes: 4
+source: Silman, Complete Endgame Course, part five (triangulation)
+
+@fen 8/8/8/8/8/8/8/K6k w - - 0 1
+in a pawn ending it often matters who has to move. your king can walk a triangle in three moves where his can only step back and forth in two: same position, his move. it looks like wasting time, and it wins games.
+---
+@drill zugzwang 4 0
+whoever must move, loses.
+
+=== the-outside-passed-pawn
+title: the outside passed pawn
+minutes: 3
+source: Silman, Complete Endgame Course; Seirawan, Winning Chess Endings
+
+@fen 8/5pk1/6p1/8/P5P1/5K2/8/8 w - - 0 1
+@try a5 Ke4 Kf4 | run the far pawn or bring your king up.
+a passed pawn far from the kings: his king must go after it, and yours eats everything on the other side.
+
+=== the-active-king
+title: the active king
+minutes: 3
+source: Silman, Complete Endgame Course, part two (king activity)
+
+@fen 8/5kpp/8/8/8/8/5PPP/6K1 w - - 0 1
+@try Kf1 f4 | bring the king to the middle, first of all.
+when the queens are off, the king is a strong piece. walk him to the centre before anything else.
+
+=== playing-on-ten-minutes
+title: playing on ten minutes
+minutes: 3
+source: chess.com help (rapid starts at 10 minutes); Heisman, on time management
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+ten minutes is fifteen seconds a move for forty moves. you cannot think deeply each time: so you must know your first ten moves without thinking, and do the three questions in one breath. keep a minute for the end. never be the one who loses on time with a won game.
+
+=== simple-when-short
+title: simple when short of time
+minutes: 2
+source: Anderson, Kleinberg and Mullainathan 2016 (errors rise sharply as time runs out)
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/3R2K1 w - - 0 1
+errors climb when seconds run short, and hardly before. under a minute, play the safest move that keeps things simple: trade, guard, stay out of checks. a draw you have kept is worth more than a win you could not find.
+
+=== the-woodpecker
+title: the woodpecker
+minutes: 2
+source: Smith and Tikkanen, The Woodpecker Method (schedule as Chessable's account gives it); Cepeda et al. 2008 (spacing)
+
+@fen 6k1/5ppp/8/8/8/8/5PPP/6K1 w - - 0 1
+the idea: solve the same tactics again and again, each round quicker, until you see them at once. everything you ever missed has been coming back on its schedule; this week it comes back as a flood. what is hard to see today, you will see in a game.
+
+=== capablanca-simple-chess
+title: Capablanca's simple chess
+minutes: 4
+source: Capablanca as a model; Chernev, Logical Chess: Move by Move
+
+@fen 8/5ppk/8/P7/1P6/2PK4/5P2/8 w - - 0 1
+he made it look easy because he aimed at the ending from the first move. no combination for its own sake: better pieces, one weakness, trade, then the king walks in. when you want to know what to do in a quiet position, ask what the ending would want.
+
+=== rubinstein-rook-ending
+title: Rubinstein's rook endings
+minutes: 3
+source: Rubinstein as a model; Silman, Complete Endgame Course
+
+@fen 8/5ppk/8/8/P7/R7/5PPP/r5K1 w - - 0 1
+the rook attacks, the king comes up, the pawn stays beside the rook. a pawn ahead is rarely enough, so he made sure every piece was doing the most it could first. half the endings you will ever play are rook endings: they are worth the study.
+
+=== a-model-attack
+title: a model attack
+minutes: 3
+source: Chernev, Logical Chess: Move by Move
+
+@fen r1bq1rk1/pp3ppp/2n1pn2/2bp4/8/2NBPN2/PPP2PPP/R1BQ1RK1 w - - 0 8
+a fine attack has steps: develop first; then bring pieces towards the king, one by one, without him seeing why; then open the line; then strike. most attacks fail because they begin at the last step.
+
+=== queen-endings
+title: queen endings
+minutes: 3
+source: Silman, Complete Endgame Course, part six
+
+@fen 8/5pk1/6p1/8/P7/4q1P1/Q4PK1/8 w - - 0 1
+two queens and a few pawns: checks everywhere. the passed pawn counts most; the king that has shelter from checks counts next. a queen in the centre guards and attacks everything. think of perpetual before you push.
+---
+@drill queenEndgame 4 0
+watch the checks.
+
+=== heavy-pieces
+title: heavy pieces together
+minutes: 3
+source: Lichess theme queenRookEndgame; Seirawan, Winning Chess Endings
+
+@fen 3r2k1/5ppp/8/8/8/1Q6/5PPP/3R2K1 w - - 0 1
+queen and rook: the back rank and the seventh are everything. your own king safety first; then a battery on an open file. many of these are decided by a single check that picks up a rook.
+---
+@drill queenRookEndgame 4 0
+king first.
+
+=== gambits-at-1500
+title: gambits you will meet
+minutes: 3
+source: Seirawan, Winning Chess Openings; Lichess theme attackingF2F7
+
+@fen rnbqkbnr/ppp2ppp/8/3pp3/4P3/8/PPPP1PPP/RNBQKBNR w KQkq - 0 3
+online people play gambits to catch you out. most can be taken: count, grab the pawn if nothing falls, give some of it back to finish developing. keep your king in mind. a gambit you have played against once holds no fear.
+
+=== the-online-opponent
+title: the online opponent
+minutes: 2
+source: chess.com help (Glicko, rating deviation); Heisman, on playing stronger opponents
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+a rating is a blurred number. opponents below you will swindle, above you will blunder. play the board, not the rating. a new account moves fast at first: do not read much into the first ten games.
+
+=== when-you-lose
+title: when you lose
+minutes: 2
+source: Heisman: "Don't be afraid of losing. Be afraid of playing a game and not learning something."
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+you will lose hundreds of games, as everyone has. stop after two losses in a row. look at where it turned, say why in one sentence. the player who improves is the one who wants to know.
+
+=== a-review-of-your-own
+title: a review of your own
+minutes: 2
+source: Heisman, on review; Roediger and Karpicke 2006 (retrieval)
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+before any engine: go through your game by yourself. where did it turn, what were you thinking then? only then look. your own judgement is what you are training; the engine only checks it.
+
+=== what-to-do-next
+title: what to do next
+minutes: 2
+source: Heisman, on slow games; Yusupov, Build Up Your Chess
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+play real people now: chess.com, ten minutes or longer, when you are fresh. go on reviewing. Silman's next chapters, Yusupov's books, a club. you have a way of working that will carry you long after this year.

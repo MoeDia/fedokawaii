@@ -1,0 +1,28 @@
+#!/usr/bin/env python3
+"""kawa-chess — chess from the first move to 1800: a game a sitting against Stockfish, lessons, puzzles, a
+review of every game; all in the terminal, the board drawn in sixels. Super+U → learning → chess.
+
+  kawa-chess            today's plan, where you left it
+  kawa-chess --window   the same, in a window of its own (the launcher and Super+U start it so)
+  kawa-chess --check    the program, its files and Stockfish looked at: says what is wrong, exit 1
+
+Its programs live in ~/.local/lib/fedokawaii/kawa-chess, its art and lessons in
+~/.local/share/fedokawaii/chess, your games and progress in ~/.local/state/fedokawaii/chess.
+"""
+import os
+import signal
+import sys
+
+signal.signal(signal.SIGINT, signal.SIG_DFL)      # (Ctrl+C before the screen is ours: gone, quietly)
+HOME = os.path.expanduser("~")
+LIB = os.path.join(HOME, ".local/lib/fedokawaii/kawa-chess")
+sys.path.insert(0, LIB)
+# (compiled once, kept in the cache: nothing beside the installed files)
+sys.pycache_prefix = os.path.join(os.environ.get("XDG_CACHE_HOME") or os.path.join(HOME, ".cache"), "kawa-chess", "pyc")
+
+if __name__ == "__main__":
+    if not os.path.isfile(os.path.join(LIB, "app.py")):
+        print(f"kawa-chess: nothing at {LIB}: run the theme step (Super+U → the theme, anew)", file=sys.stderr)
+        sys.exit(1)
+    from app import main
+    sys.exit(main(sys.argv))
