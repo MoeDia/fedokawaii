@@ -31,6 +31,7 @@ class Screen:
         self.buf = b""
         self.overflow = False
         self.resizing = False
+        self.bells = 0
         self.updates = 0
 
     def resize(self, rows, cols):
@@ -53,6 +54,7 @@ class Screen:
                 self.csi(m)
                 i = m.end()
             elif b[i] in (0x0d, 0x0a, 0x08, 0x07):
+                self.bells += b[i] == 0x07
                 i += 1
             else:
                 j = i

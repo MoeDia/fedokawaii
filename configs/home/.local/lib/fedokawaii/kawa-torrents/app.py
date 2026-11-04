@@ -252,6 +252,8 @@ class App:
                 self.rows.pop(i, None)
         elif ev == "turtle":
             self.turtle = m["on"]
+        elif ev == "attention":                    # (a bell: foot's urgent=yes, so the bar shows which workspace holds this window)
+            self.t.raw(b"\a")
         elif ev == "moved":
             if self.cursor_id == m["from"]:
                 self.cursor_id = m["to"]

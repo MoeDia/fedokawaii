@@ -124,12 +124,14 @@ def serve():
     sel.register(ls, selectors.EVENT_READ, None)
     bufs = {}
     log = os.environ.get("MOCK_LOG")
+    every = set()
     while True:
         for key, _ in sel.select():
             if key.data is None:
                 c, _ = ls.accept()
                 sel.register(c, selectors.EVENT_READ, "c")
                 bufs[c] = b""
+                every.add(c)
                 continue
             c = key.fileobj
             try:
@@ -138,6 +140,7 @@ def serve():
                 data = b""
             if not data:
                 sel.unregister(c)
+                every.discard(c)
                 c.close()
                 continue
             bufs[c] += data
@@ -159,6 +162,10 @@ def serve():
                     out.append({"re": q.get("n"), "id": "a" * 40, "known": False, "err": ""})
                 elif q["op"] == "stream":
                     out.append({"re": q.get("n"), "url": "http://127.0.0.1:1/stream/file.mkv"})
+                elif q["op"] == "attention":
+                    for other in every:
+                        other.sendall(b'{"ev":"attention"}\n')
+                    out.append({"re": q.get("n")})
                 elif q.get("n") is not None:
                     out.append({"re": q["n"]})
                 for m in out:

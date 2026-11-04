@@ -1190,14 +1190,18 @@ def hand_over():
     r = subprocess.run([*me, "--open", m], capture_output=True, text=True, check=False)
     eq(r.returncode, 0, r.stderr)
     eq(len(calls("kawa-term")), 1, "no second window")
-    a = asked()[-1]
-    eq((a["op"], a["value"]), ("add", m), "added to the one open")
+    a = next(x for x in reversed(asked()) if x["op"] == "add")
+    eq(a["value"], m, "added to the one open")
+    w.settle(0.2)
+    eq(w.screen.bells, 1, "the window asks for you (foot: a bell; dwl: its workspace lit)")
     assert any("added: From The Browser" in n or "added: From.The.Browser" in n for n in calls("notify-send")), calls("notify-send")
     r = subprocess.run([*me, "--open", "https-not-a-link"], capture_output=True, text=True, check=False)
     eq(r.returncode, 1, "not a link")
     assert any("not a magnet link" in n for n in calls("notify-send")), calls("notify-send")
     r = subprocess.run([*me, "--open"], capture_output=True, text=True, check=False)
     eq(r.returncode, 0, "the launcher, with a window open")
+    w.settle(0.2)
+    assert w.screen.bells >= 2, "the launcher's entry with the window elsewhere: it asks for you too"
     # a second window started directly goes the same way, its link handed over
     r = subprocess.run([*me, m], capture_output=True, text=True, check=False)
     eq(r.returncode, 0, r.stderr)

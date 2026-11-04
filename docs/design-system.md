@@ -351,7 +351,8 @@ content, inside its margin of one cell:
   tall window, one on a small. What could be added stands over the list in the
   magnet's icon (the clipboard's link, a .torrent just downloaded). Find: the Search line, then a
   row a result: its kind's icon, its name, then as they fit the site, its age and its size, last the
-  seedling (`sprout`) and how many share it; none: `faint`, last.
+  seedling (`sprout`) and how many share it; none: `faint`, last. Opened again while its window stands
+  elsewhere, the window asks for you (§5: a bell, its workspace `asagi` on the bar).
 - **Cursor**: the row's cells filled `select` (the lacquer, §4) from the cursor's column to the
   one beyond the content, its inks `text_on_select` — every ink, the row's own colours stripped
   (fzf's `bg+ 24`, `fg+ 25`, `:strip`).

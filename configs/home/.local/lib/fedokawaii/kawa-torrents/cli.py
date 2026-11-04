@@ -119,6 +119,7 @@ def open_link(args):
                     return 1
                 name = common.reading(common.magnet_name(value) if kind == "magnet" else os.path.basename(value)[:-8])
                 notify(("already here: " if a.get("known") else "added: ") + name)
+        ask_engine({"op": "attention"})            # (the window asks for you: its workspace lit on the bar)
         return 0
     cmd = ["kawa-term", "--app", "kawa-torrents", "Torrents", os.path.realpath(sys.argv[0]), *args]
     os.execvp(cmd[0], cmd)

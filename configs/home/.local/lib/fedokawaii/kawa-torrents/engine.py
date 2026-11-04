@@ -989,6 +989,10 @@ class Engine:
         self.idle_since = time.monotonic()
         self.update_now()
 
+    def op_attention(self, c, q):
+        """Someone opened Torrents, or a link, with its window elsewhere: the window is told to ask for you."""
+        self.tell({"ev": "attention"})
+
     def op_turtle(self, c, q):
         self.meta["turtle"] = bool(q["on"])
         self.dirty = True
