@@ -19,7 +19,7 @@ ln -s "$REAL/.local/share/fedokawaii/dark" "$REAL/.local/share/fedokawaii/light"
 ln -s "$REAL/.local/lib/fedokawaii" "$HOME/.local/lib/fedokawaii"
 if [[ $REAL != "$CALLER" ]]; then
   cp "$REAL/.config/fedokawaii/lock.ui" "$HOME/.config/fedokawaii/lock.ui"
-  for t in dark light; do cp "$REAL/.config/fedokawaii/themes/$t/gtklock.css" "$HOME/.config/fedokawaii/themes/$t/"; done
+  for t in dark light; do cp "$REAL/.config/fedokawaii/themes/$t/"{gtklock.css,saver.conf} "$HOME/.config/fedokawaii/themes/$t/"; done
 fi
 printf '#!/bin/sh\nexit 0\n' >"$KIT_OUT/stub/logger"; chmod +x "$KIT_OUT/stub/logger"
 PATH="$KIT_OUT/stub:$PATH" KAWA_LOCK_SLEEP=0 kawa-saver --idle >"$KIT_OUT/saver.log" 2>&1 &

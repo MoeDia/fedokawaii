@@ -1209,15 +1209,18 @@ def panel_conf(m, p):
 
 
 def saver_conf(m, p):
-    """kawa-saver, the screensaver: it draws dot by dot (C), so it takes the colours by name —
-    the ground, the sashiko's thread and its shadow (art_olive and lo on the ink — the thread is
-    art, not words: it keeps its tone when the words' roles move — blue and edge on the paper),
-    the seals' vermilion (accent: a stamp; accent_text: the clock's 時), its clock's panel."""
+    """kawa-saver, the screensaver: it draws dot by dot (C), so it takes the colours by name — the air's
+    (embers cooling, smoke, on the ink; gold dust and cherry petals, a Wada coral, on the paper) and its seal's:
+    the ink, the ink struck, what is cut out of it (the wall's own dark; the paper)."""
     dark = m == "dark"
-    c = dict(p, thread=p["art_olive"] if dark else p["blue"], shade=p["lo"] if dark else p["edge"])
-    keys = ("ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text")
+    c = {"spark_hot": p["strong"], "spark": p["flame"], "spark_cool": p["accent"], "spark_dim": p["accent_lo"],
+         "drift": p["art_olive"], "drift_lo": p["art_umber"], "seal": p["accent"], "seal_hot": p["accent_hi"],
+         "seal_cut": p["ground"]} if dark else \
+        {"spark_hot": p["hi"], "spark": p["gold"], "spark_cool": p["yellow"], "spark_dim": p["lo"],
+         "drift": _wada.W["Coral Red"], "drift_lo": p["accent_hi"], "seal": p["accent"], "seal_hot": p["accent_hi"],
+         "seal_cut": p["key"]}
     return (f"# {header('~/.config/fedokawaii/current/saver.conf', 'the screensaver in ' + NAMES[m])}\n"
-            + "".join(f"{k}={c[k]}\n" for k in keys))
+            + "".join(f"{k}={v}\n" for k, v in c.items()))
 
 
 def dwl_colors(m, p):

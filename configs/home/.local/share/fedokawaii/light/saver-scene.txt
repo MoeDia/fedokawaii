@@ -1,0 +1,3 @@
+# saver-scene.txt — tools/build-saver.py wrote it; for kawa-saver, beside lock-scene.txt.
+halo 320 176 88 148 e2b540   # the ring round the figure's place: its middle, its radii, its inks
+lock 22d33acbaf5f21c1   # the lock's art it was drawn from (tests/look/test_saver.sh)
