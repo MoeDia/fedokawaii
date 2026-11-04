@@ -144,13 +144,16 @@ class Stream:
         """The player reads PIECE now: the ones ahead of it rushed; a jump drops the old rush."""
         if piece == self.head:
             return
-        if not self.head <= piece <= self.head + 2:
+        window = max(4, STREAM_WINDOW // self.plen)
+        near = self.head <= piece <= self.head + window // 2
+        # (reading on: only the pieces new to the window; small pieces mean thousands in it, at every step)
+        start = self.head + window + 1 if near and self.head >= 0 else piece
+        if not near:
             self.h.clear_piece_deadlines()
         self.head = piece
-        window = max(4, STREAM_WINDOW // self.plen)
-        for k, p in enumerate(range(piece, min(self.last, piece + window) + 1)):
+        for p in range(start, min(self.last, piece + window) + 1):
             if not self.h.have_piece(p):
-                self.h.set_piece_deadline(p, 300 + 120 * k)
+                self.h.set_piece_deadline(p, 300 + 120 * (p - piece))
 
     def wait(self, piece, alive):
         """True once PIECE is on the disk; False if the stream ended or the player left meanwhile."""
@@ -245,8 +248,8 @@ class Player(BaseHTTPRequestHandler):
                     return
                 self.wfile.write(data)
                 pos += len(data)
-        except OSError:
-            self.close_connection = True           # (the player left: mpv seeks by closing)
+        except (OSError, RuntimeError):            # (the player left: mpv seeks by closing; the torrent removed under it)
+            self.close_connection = True
         finally:
             if fd >= 0:
                 os.close(fd)
