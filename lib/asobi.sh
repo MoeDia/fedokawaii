@@ -72,6 +72,10 @@ asobi_system() {
   write_file /etc/xkb/types/kawa-asobi <"$s/xkb-types"
   write_file /etc/gamemode.ini <"$s/gamemode.ini"
   write_file /etc/xdg-desktop-portal/gamescope-portals.conf <"$s/portals.conf"
+  # (the walls on this one user's manager alone. A drop-in for every user@ takes the desktop's own manager
+  # down with them at its next start: ProtectHome over /run/user, "Failed to allocate manager object", as an
+  # early build of this file did on 4 Nov 2026; what it left is gone here)
+  rm -f /etc/systemd/system/user@.service.d/50-kawa-asobi.conf
   sed "s/ASOBI_UID/$u/g" "$s/walls.conf" | write_file "/etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf"
   write_file /etc/systemd/user/kawa-asobi-world.service <"$s/kawa-asobi-world.service"
   printf 'hz=%s\n' "${MONITOR_HZ:-144}" | write_file /etc/fedokawaii/asobi.conf
@@ -107,9 +111,10 @@ asobi_clean() {
 }
 
 # Gaming left the desktop's account: the games and their saves go into the world (copy-on-write: instant, no
-# room taken), so nothing is downloaded or lost again. What the world already holds is never overwritten, a
-# save played on in there least of all. Steam's settings only before anyone has signed in there: they hold
-# each game's Proton (a game whose saves are Windows ones reads them through it)
+# room taken), so nothing is downloaded or lost again. The newer of the two wins, file by file: a save played
+# on in there is never overwritten, one played here after an earlier copy is never lost. Steam's settings only
+# before anyone has signed in there: they hold each game's Proton (a game whose saves are Windows ones reads
+# them through it)
 asobi_steam_copy() {
   local s=$TARGET_HOME/.local/share/Steam w=$ASOBI_HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam i
   [[ -d $s ]] || return 0
@@ -118,7 +123,7 @@ asobi_steam_copy() {
     "$ASOBI_HOME/.var/app/com.valvesoftware.Steam/.local/share" "$w" "$w/config"
   for i in steamapps userdata; do
     [[ -d $s/$i ]] || continue
-    cp -a --reflink=always --update=none -- "$s/$i" "$w/" || { log "the games could not move into the world (cp, above)"; return 1; }
+    cp -a --reflink=always --update=older -- "$s/$i" "$w/" || { log "the games could not move into the world (cp, above)"; return 1; }
   done
   [[ -e $w/config/loginusers.vdf || ! -f $s/config/config.vdf ]] || cp -a -- "$s/config/config.vdf" "$w/config/"
   chown -R "$ASOBI_USER:$ASOBI_USER" "$w"

@@ -24,6 +24,12 @@ for f in kawa-asobi.service kawa-asobi-bottles.service kawa-asobi-watch.service 
   lacks "$(cat "$W/etc/systemd/system/$f" 2>/dev/null)" ASOBI_UID "$f: the uid not filled in"
 done
 has "$(cat "$W/etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf")" "BindPaths=/run/user/$u"
+case_ "the walls on the world's own manager alone: what an early build left on every user@ goes"
+[[ ! -e $W/etc/systemd/system/user@.service.d/50-kawa-asobi.conf ]] && _ok || _no "walls on every user's manager"
+mkdir -p "$W/etc/systemd/system/user@.service.d"; echo '[Service]' >"$W/etc/systemd/system/user@.service.d/50-kawa-asobi.conf"
+step asobi_system; eq "$RC" 0 "$OUT"
+[[ ! -e $W/etc/systemd/system/user@.service.d/50-kawa-asobi.conf ]] && _ok || _no "the old drop-in stayed: the desktop's manager would not start"
+grep -q 'user@\.service\.d' "$W/etc/systemd/system/kawa-asobi.service" && _no "the session names the template" || _ok
 has "$(cat "$W/etc/polkit-1/rules.d/60-kawa-asobi.rules")" 'subject.user == "fkuser"'
 for f in rules/kawa-asobi symbols/kawa-asobi types/kawa-asobi; do [[ -s $W/etc/xkb/$f ]] && _ok || _no "no xkb $f"; done
 [[ -s $W/etc/systemd/user/kawa-asobi-world.service && -s $W/etc/pam.d/kawa-asobi && -s $W/etc/gamemode.ini ]] && _ok || _no "a file missing"
@@ -35,10 +41,10 @@ has "$b" 'Conflicts=getty@tty8.service kawa-asobi.service'; has "$s" 'Conflicts=
 grep -q '^After=.*kawa-asobi\.service' <<<"$b" && _ok || _no "Bottles not ordered after Steam"
 grep -q '^After=.*kawa-asobi-bottles\.service' <<<"$s" && _ok || _no "Steam not ordered after Bottles"
 case_ "the Flatpaks: per user, from Flathub, both, kept off what is not theirs; no system-wide remote"
-called 'flatpak --user remote-add --if-not-exists flathub https://dl.flathub.org/'
-called 'flatpak --user install .*com.valvesoftware.Steam com.usebottles.bottles'
-called 'flatpak --user override com.valvesoftware.Steam .*--nofilesystem=/mnt .*--filesystem=/home/.asobi/drop'
-called 'systemctl mask .*flatpak-add-fedora-repos.service'
+called '^asobi\[flatpak\] --user remote-add --if-not-exists flathub https://dl.flathub.org/'
+called '^asobi\[flatpak\] --user install .*com.valvesoftware.Steam com.usebottles.bottles'
+called '^asobi\[flatpak\] --user override com.valvesoftware.Steam .*--nofilesystem=/mnt .*--filesystem=/home/.asobi/drop'
+called 'systemctl\] mask .*flatpak-add-fedora-repos.service'
 case_ "the drop folder: a group of two, set-group-id; the snapshots root's; your link to it"
 eq "$(fk stat -c %a:%G /home/.asobi/drop)" 2770:asobi-drop
 eq "$(fk stat -c %a:%U /home/.asobi/snapshots)" 700:root
@@ -47,12 +53,13 @@ eq "$(fk readlink /home/fkuser/Drop)" /home/.asobi/drop
 
 case_ "made again: nothing doubled, clean kept as it was"
 reset_calls; step s_asobi; eq "$RC" 0 "$OUT"
-not_called '^useradd'; not_called '^groupadd'; not_called 'btrfs subvolume (create|snapshot)'
+not_called '\[useradd\]'; not_called '\[groupadd\]'; not_called '\[btrfs\] subvolume (create|snapshot)'
 eq "$(grep -c '^asobi:' "$W/etc/passwd")" 1
 
 world built --themed
 case_ "no Btrfs under /home: no world, and it says why"
 fkh fstype-_home xfs
+sed -i '/^asobi:/d' "$W/etc/passwd"; fk sed -i '/^asobi:/d' /etc/shadow
 step asobi_account; eq "$RC" 1 "$OUT"; has "$OUT" "/home on Btrfs"
 grep -q '^asobi:' "$W/etc/passwd" && _no "the user was made" || _ok
 
@@ -64,11 +71,15 @@ S=$W/home/fkuser/.local/share/Steam Wd=$W/home/asobi/.var/app/com.valvesoftware.
 mkdir -p "$S/steamapps/common/Game" "$S/steamapps/compatdata/7/pfx" "$S/userdata/1" "$S/config" "$W/home/fkuser/.steam" "$W/home/fkuser/blasphemous-save-backup-20261022"
 echo game >"$S/steamapps/common/Game/g"; echo old-save >"$S/steamapps/compatdata/7/pfx/save"; echo vdf >"$S/config/config.vdf"; echo keep >"$W/home/fkuser/blasphemous-save-backup-20261022/s"
 fk chown -R fkuser:fkuser /home/fkuser/.local /home/fkuser/.steam /home/fkuser/blasphemous-save-backup-20261022
-# (played on in the world already: that save is newer than anything here)
-mkdir -p "$Wd/steamapps/compatdata/7/pfx"; echo new-save >"$Wd/steamapps/compatdata/7/pfx/save"
+# (played on in the world already: that save is newer than the one here; played here after an earlier copy: this one newer than the world's)
+mkdir -p "$Wd/steamapps/compatdata/7/pfx" "$Wd/steamapps/compatdata/8/pfx" "$S/steamapps/compatdata/8/pfx"
+echo new-save >"$Wd/steamapps/compatdata/7/pfx/save"; touch -d '+1 hour' "$Wd/steamapps/compatdata/7/pfx/save"
+echo earlier-copy >"$Wd/steamapps/compatdata/8/pfx/save"; touch -d '-1 hour' "$Wd/steamapps/compatdata/8/pfx/save"
+echo played-here >"$S/steamapps/compatdata/8/pfx/save"; fk chown -R fkuser:fkuser /home/fkuser/.local
 step asobi_host_out; eq "$RC" 0 "$OUT"
 eq "$(cat "$Wd/steamapps/common/Game/g")" game "the game did not move"
 eq "$(cat "$Wd/steamapps/compatdata/7/pfx/save")" new-save "a save played on in the world was overwritten"
+eq "$(cat "$Wd/steamapps/compatdata/8/pfx/save")" played-here "a save played here after an earlier copy was lost"
 eq "$(cat "$Wd/config/config.vdf")" vdf
 [[ ! -e $S && ! -e $W/home/fkuser/.steam ]] && _ok || _no "Steam still in the account"
 eq "$(cat "$W/home/fkuser/blasphemous-save-backup-20261022/s")" keep

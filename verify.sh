@@ -663,6 +663,9 @@ check "the drop folder, shared by the two of you"       bash -c '[[ $(stat -c %a
 check "Steam and Bottles, per user, in its home"        bash -c 'a=$(cd / && runuser -u asobi -- env HOME=/home/asobi flatpak --user list --app --columns=application); [[ $a == *com.valvesoftware.Steam* && $a == *com.usebottles.bottles* ]]'
 check "its session unit, its PAM file, its polkit rule" bash -c 'systemd-analyze verify kawa-asobi.service >/dev/null 2>&1; test -s /etc/systemd/system/kawa-asobi.service && test -s /etc/pam.d/kawa-asobi && test -s /etc/polkit-1/rules.d/60-kawa-asobi.rules'
 check "Super+G out of the world (its keyboard)"         test -s /etc/xkb/symbols/kawa-asobi
+# (its walls on its own manager alone: on every user@ they kept yours from starting, 4 Nov 2026)
+check "its walls on its own manager, none on yours"     bash -c 'u=$(id -u asobi) && [[ -s /etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf && ! -e /etc/systemd/system/user@.service.d/50-kawa-asobi.conf && $(systemctl show -P ProtectHome "user@$(id -u "$1").service") == no ]]' _ "$TARGET_USER"
+check "your own manager is running"                     bash -c 'systemctl is-active --quiet "user@$(id -u "$1").service"' _ "$TARGET_USER"
 
 # ── snapshots ────────────────────────────────────────────────────────────────
 if ((PRE == 0)); then

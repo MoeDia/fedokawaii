@@ -11,7 +11,9 @@
 #   sudo bash tools/asobi-proof.sh vt2      as the desktop's user asks, on the real screen, 2 min at most: a game frozen
 #                                           behind the desktop and thawed, Steam closed for Bottles, Bottles and back
 #   sudo bash tools/asobi-proof.sh cycles   only VT switches on an empty VT (the desktop's side: its bar), 20 s
-#   sudo bash tools/asobi-proof.sh all      walls, then reset (never vt, cycles: they take the owner's screen)
+#   sudo bash tools/asobi-proof.sh manager  the desktop's own manager has none of the world's walls, and any other
+#                                           user's starts: a throw-away user's, for real, then gone (his is not restarted)
+#   sudo bash tools/asobi-proof.sh all      walls, reset, manager (never vt, cycles: they take the owner's screen)
 # Writes what it saw to ${ASOBI_PROOF_OUT:-/dev/shm/r27/asobi-proof}. Exit 0 all held · 1 something did not.
 set -u
 export LC_ALL=C.UTF-8 PATH=/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
@@ -156,6 +158,26 @@ reset_proof() {
   never "clean cannot be deleted"        /usr/local/sbin/kawa-asobi-root op delete:clean
   never "a bad name is refused"          /usr/local/sbin/kawa-asobi-root op "reset:../../etc"
   never "a snapshot that is not there"   /usr/local/sbin/kawa-asobi-root op reset:no-such-one
+}
+
+# The walls belong to the world's own manager. On the template they kept every other user's from starting
+# (4 Nov 2026: ProtectHome over /run/user, "Failed to allocate manager object"), seen only at his next login.
+manager() {
+  local who=asobi-probe-$$ id
+  echo "the desktop's own manager"
+  holds "it runs"                        systemctl is-active --quiet "user@$DESK_UID.service"
+  holds "no drop-in of the world's on it" bash -c '[[ $(systemctl show -P DropInPaths user@'"$DESK_UID"'.service) != *asobi* ]]'
+  holds "no drop-in for every user@ but the one of its timeouts" bash -c '[[ $(ls /etc/systemd/system/user@.service.d/) == fedokawaii.conf ]]'
+  holds "ProtectHome no, PrivateTmp no"  bash -c '[[ $(systemctl show -P ProtectHome user@'"$DESK_UID"'.service) == no && $(systemctl show -P PrivateTmp user@'"$DESK_UID"'.service) == no ]]'
+  echo "the template, for real: a throw-away user's manager starts as the desktop's would"
+  useradd --no-create-home --home-dir /nonexistent --shell /usr/sbin/nologin "$who" || { no "the throw-away user"; return; }
+  id=$(id -u "$who")
+  holds "user@$id starts"                systemctl start "user@$id.service"
+  holds "and answers"                    runuser -u "$who" -- env "XDG_RUNTIME_DIR=/run/user/$id" systemctl --user is-system-running --wait
+  holds "its runtime folder is writable" runuser -u "$who" -- touch "/run/user/$id/.probe"
+  systemctl stop "user@$id.service" "user-runtime-dir@$id.service" 2>/dev/null
+  userdel "$who" 2>/dev/null; groupdel "$who" 2>/dev/null
+  never "and gone"                       id -u "$who"
 }
 
 # ── the desktop's side of a VT switch: wlroots destroys every output when its session is paused, and makes
@@ -355,8 +377,9 @@ case ${1:-} in
   vt)    vt_proof ;;
   cycles) cycles ;;
   vt2)   vt2_proof ;;
-  all)   walls; reset_proof ;;
-  *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|vt2|cycles|all" >&2; exit 2 ;;
+  manager) manager ;;
+  all)   walls; reset_proof; manager ;;
+  *) echo "usage: sudo bash tools/asobi-proof.sh walls|reset|vt|vt2|cycles|manager|all" >&2; exit 2 ;;
 esac
 echo
 if ((fails)); then echo "$fails did not hold"; exit 1; fi
