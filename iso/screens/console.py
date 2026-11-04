@@ -29,9 +29,9 @@ PALETTE = {GROUND: "181715", SELECT: "82241f", SURFACE: "1c1916", ACCENT: "eb532
            FAINT: "907e5d", MUTED: "cab596", TEXT: "e7cfa1", STRONG: "f5ecc2", ACCENT_TEXT: "f47b58",
            ASAGI: "82c1b4", _14: "e2b540", ON_SELECT: "f5ecc2"}
 
-KDSETMODE, KD_TEXT = 0x4B3A, 0
+KDSETMODE, KD_TEXT, KD_GRAPHICS = 0x4B3A, 0, 1
 KDSKBMODE, K_UNICODE = 0x4B45, 3
-VT_ACTIVATE, VT_WAITACTIVE = 0x5606, 0x5607
+VT_ACTIVATE, VT_WAITACTIVE, VT_LOCKSWITCH = 0x5606, 0x5607, 0x560B
 WIDTH = 72                       # the content's columns, centred on any screen
 
 
@@ -50,13 +50,16 @@ class Screen:
             n = int(tty.rsplit("tty", 1)[1])
             fcntl.ioctl(self.fd, VT_ACTIVATE, n)
             fcntl.ioctl(self.fd, VT_WAITACTIVE, n)
+            # (through graphics and back: only that restores fbcon's picture after plymouth's
+            # --retain-splash; with a plain KD_TEXT the VT says text and the screen stays frozen)
+            fcntl.ioctl(self.fd, KDSETMODE, KD_GRAPHICS)
             fcntl.ioctl(self.fd, KDSETMODE, KD_TEXT)
+            fcntl.ioctl(self.fd, VT_LOCKSWITCH)       # (Alt+F2 must not show what is behind)
             if keys:
                 fcntl.ioctl(self.fd, KDSKBMODE, K_UNICODE)
         except OSError:
             pass
-        subprocess.run(["setfont", "-C", tty, FONT], check=False, stdout=subprocess.DEVNULL,
-                       stderr=subprocess.DEVNULL)
+        self.dress()
         if keys:
             self.saved = termios.tcgetattr(self.fd)
             raw = termios.tcgetattr(self.fd)
@@ -65,9 +68,21 @@ class Screen:
             raw[6][termios.VMIN] = 0
             raw[6][termios.VTIME] = 0
             termios.tcsetattr(self.fd, termios.TCSANOW, raw)
+        self.write("\033[?25l\033[?7l" + sgr(TEXT) + "\033[2J")
+
+    def dress(self):
+        """Our font and our colours on this VT, and how many cells that makes."""
+        subprocess.run(["setfont", "-C", self.tty, FONT], check=False, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
         self.rows, self.cols = self.size()
-        out = "".join(f"\033]P{n:X}{c}" for n, c in PALETTE.items())
-        self.write(out + "\033[?25l\033[?7l" + sgr(TEXT) + "\033[2J")
+        self.write("".join(f"\033]P{n:X}{c}" for n, c in PALETTE.items()))
+
+    def undressed(self):
+        """Something reloaded the console's font (a size other than ours): dress again. True: redraw."""
+        if self.size() == (self.rows, self.cols):
+            return False
+        self.dress()
+        return True
 
     def size(self):
         s = fcntl.ioctl(self.fd, termios.TIOCGWINSZ, b"\0" * 8)

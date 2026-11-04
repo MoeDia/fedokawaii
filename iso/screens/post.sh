@@ -31,6 +31,7 @@ fi
 # setup's records: who, with the theme, from phase 1
 mkdir -p "$STATE"
 printf '%s\n' "$FK_USER" >"$STATE/user"
+printf '1\n' >"$STATE/phase"      # (and what tells a stick booted again that a disk is taken: questions.py)
 : >"$STATE/with-theme"
 
 # the first start's look: the splash in the installed boot image, before theme.sh's turn comes
@@ -40,9 +41,9 @@ chroot "$R" plymouth-set-default-theme sumi
 for k in "$R"/usr/lib/modules/*; do
   [[ -f $k/vmlinuz ]] && chroot "$R" dracut -f --kver "${k##*/}"
 done
-# (console=tty2 kept Anaconda's words off our screen: not for the installed system)
-chroot "$R" grubby --update-kernel=ALL --remove-args="console=tty2"
-sed -i -E 's/ ?console=tty2//' "$R/etc/default/grub"
+# (console=tty3 kept Anaconda's words off our screen: not for the installed system)
+chroot "$R" grubby --update-kernel=ALL --remove-args="console=tty3"
+sed -i -E 's/ ?console=tty3//' "$R/etc/default/grub"
 
 # the first start's screen, as the resume unit (setup.sh's own unit: the same text it writes at each
 # of its reboots, ExecStart here replaced by the screen), and its files: gone at the end (first_boot.py)

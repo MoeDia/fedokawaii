@@ -11,8 +11,11 @@
 #   bash tools/vm-iso-test.sh keys NAME TEXT…          letters typed; words in <> are keys: <enter> <tab> <down>
 #   bash tools/vm-iso-test.sh link NAME up|down        the network cable
 #   bash tools/vm-iso-test.sh ssh NAME CMD…            on the installed system (user fk, the test's)
+#   bash tools/vm-iso-test.sh say NAME [WORDS]         what the console says, read exactly; with WORDS: are they there
 #   bash tools/vm-iso-test.sh install NAME [PASSWORD]  the questions answered through the screens
+#   bash tools/vm-iso-test.sh watch NAME DIR [SECONDS] the display as PNGs, one each time it changes, until stopped
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
+# A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
 # Exit: 0 as asked · 1 failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -72,6 +75,9 @@ do_create() {
 d /home/$TEST_USER/.ssh 0700 $TEST_USER $TEST_USER -
 f+ /home/$TEST_USER/.ssh/authorized_keys 0600 $TEST_USER $TEST_USER - $pub
 f+ /etc/sudoers.d/90-iso-test 0440 root root - $sudoers"
+  # (built as the PC is, GPU=amd, as tools/vm-smoke.sh builds: the same packages, so what is proven is his)
+  local resume
+  resume=$(printf '%s\n' '[Service]' "ExecStartPre=-/usr/bin/sed -i 's/^GPU=\"auto\"/GPU=\"amd\"/' /usr/local/lib/fedokawaii/fedokawaii.conf")
   local boot=""
   ((cdfirst)) && boot="<boot order='1'/>"
   cat >"$d/domain.xml" <<EOF
@@ -82,6 +88,7 @@ f+ /etc/sudoers.d/90-iso-test 0440 root root - $sudoers"
   <sysinfo type='smbios'><oemStrings>
     <entry>$(credential tmpfiles.extra "$tmp")</entry>
     <entry>$(credential systemd.unit-dropin.multi-user.target "$(printf '[Unit]\nWants=sshd.service\n')")</entry>
+    <entry>$(credential systemd.unit-dropin.fedokawaii-resume.service "$resume")</entry>
   </oemStrings></sysinfo>
   $os
   <features><acpi/><apic/><smm state='on'/></features>
@@ -151,25 +158,103 @@ vm_ssh() {
     -o ServerAliveInterval=15 -i "$KEY" -p "$(cat "$V/$name/port")" "$TEST_USER@127.0.0.1" "$*"
 }
 
-# wait_for NAME PNG-TEST SECONDS — until the display shows what the test says; tools/iso-shot.py knows them
-wait_screen() {
-  local name=$1 what=$2 secs=$3 end=$((SECONDS + $3)) t
-  t=$V/$name/wait.png
+# the console font, made as the builder makes it: what do_say reads the screen with
+console_font() {
+  local f=$V/.art/console/sumi-console.psf
+  if [[ ! -s $f || $here/build-iso-art.py -nt $f ]]; then
+    rm -rf "$V/.art"; mkdir -p "$V"
+    SOURCE_DATE_EPOCH=1 python3 -B "$here/build-iso-art.py" "$V/.art" >/dev/null || return 1
+  fi
+  printf '%s\n' "$f"
+}
+
+do_say() {   # do_say NAME [WORDS] — the console's words now, or: are WORDS among them
+  local name=$1 t f; shift
+  f=$(console_font) || return 1
+  t=$V/$name/say.png
+  do_shot "$name" "$t" 2>/dev/null || return 1
+  python3 -I -B "$here/iso-shot.py" "$t" "$f" "$@"
+}
+
+# wait_words NAME WORDS SECONDS — until the console says so
+wait_words() {
+  local name=$1 what=$2 end=$((SECONDS + $3))
   while ((SECONDS < end)); do
-    if do_shot "$name" "$t" 2>/dev/null && python3 -I -B "$here/iso-shot.py" "$t" "$what"; then return 0; fi
-    sleep 3
+    do_say "$name" "$what" 2>/dev/null && return 0
+    sleep 2
   done
-  echo "vm-iso-test: $name: no '$what' screen within $secs s (last: $t)" >&2
+  echo "vm-iso-test: $name: no '$what' on the screen within $3 s (last: $V/$name/say.png)" >&2
   return 1
 }
 
 do_install() {
   local name=$1 pw=${2:-$TEST_PASSWORD}
-  wait_screen "$name" form 600 || return 1
-  sleep 1
+  wait_words "$name" "a new home" 600 || return 1
   do_keys "$name" "$TEST_USER" "<enter>" "$pw" "<enter>" "$pw" "<enter>" "<down>" "<down>" "<down>" "<down>" "<enter>" || return 1
-  sleep 1
+  wait_words "$name" "will be erased" 20 || return 1
   do_keys "$name" "<enter>"
+}
+
+do_watch() {   # the display as PNGs, one each time it changes
+  local name=$1 dir=$2 iv=${3:-2} last="" sum t
+  mkdir -p "$dir"
+  while "${VIRSH[@]}" domstate "$name" >/dev/null 2>&1; do
+    t=$(date +%H%M%S)
+    if do_shot "$name" "$dir/.new.png" 2>/dev/null; then
+      sum=$(md5sum <"$dir/.new.png")
+      if [[ $sum != "$last" ]]; then mv "$dir/.new.png" "$dir/$t.png"; last=$sum; fi
+    fi
+    sleep "$iv"
+  done
+}
+
+# one whole run, through the real screens: the times are from the first boot to the login screen
+do_run() {
+  local name=$1 iso=$2; shift 2
+  do_create "$name" "$iso" "$@" || return 1
+  local r=$V/$name/run t0=$SECONDS last="" ph
+  mkdir -p "$r"
+  stage() { printf '%s %6d s  %s\n' "$(date +%T)" "$((SECONDS - t0))" "$*" | tee -a "$r/log"; }
+  "${VIRSH[@]}" start "$name" >/dev/null || return 1
+  stage "started: $(sha256sum "$iso" | cut -c1-16)"
+  setsid -f bash "$0" watch "$name" "$r/screens" 3 >/dev/null 2>&1 </dev/null
+  do_install "$name" || { stage "RED: the questions"; return 1; }
+  stage "questions answered"
+  until vm_ssh "$name" true 2>/dev/null; do
+    ((SECONDS - t0 > 3600)) && { stage "RED: the installed system never answered"; return 1; }
+    "${VIRSH[@]}" domstate "$name" | grep -q running || "${VIRSH[@]}" start "$name" >/dev/null 2>&1
+    sleep 5
+  done
+  stage "base system installed: the first start answers"
+  while :; do
+    ((SECONDS - t0 > 21600)) && { stage "RED: setup not done after 6 h (phase $last)"; return 1; }
+    sleep 20
+    ph=$(vm_ssh "$name" 'sudo head -n1 /var/lib/fedokawaii/phase 2>/dev/null') || continue
+    if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; fi
+    [[ $ph == "done" ]] && break
+    if ! vm_ssh "$name" 'systemctl is-active -q fedokawaii-resume.service || systemctl is-activating -q fedokawaii-resume.service' 2>/dev/null \
+       && vm_ssh "$name" 'sudo grep -q "✘" /var/log/fedokawaii.log' 2>/dev/null; then
+      vm_ssh "$name" 'sudo tail -n 60 /var/log/fedokawaii.log' >"$r/setup-tail.log" 2>&1
+      stage "RED: setup stopped in phase ${ph:-?}: $r/setup-tail.log"
+      return 1
+    fi
+  done
+  stage "setup done"
+  until vm_ssh "$name" 'systemctl is-active -q greetd' 2>/dev/null; do
+    ((SECONDS - t0 > 25200)) && { stage "RED: no login screen"; return 1; }
+    sleep 5
+  done
+  sleep 5
+  do_shot "$name" "$r/login.png"
+  stage "the login screen: $r/login.png"
+  vm_ssh "$name" 'sudo cat /var/log/fedokawaii.log' >"$r/setup.log" 2>&1
+  do_keys "$name" "$TEST_PASSWORD" "<enter>"
+  sleep 25
+  do_shot "$name" "$r/desktop.png"
+  vm_ssh "$name" 'sudo fedokawaii verify' >"$r/verify.log" 2>&1
+  local rc=$?
+  stage "verify: exit $rc, $(sed 's/\x1b\[[0-9;]*m//g' "$r/verify.log" | grep -oE '[0-9]+ checks passed|[0-9]+ of [0-9]+ checks failed' | tail -n1), the failing lines: grep ✘ $r/verify.log"
+  return "$rc"
 }
 
 cmd=${1:-}; [[ -n $cmd ]] && shift
@@ -183,6 +268,9 @@ case $cmd in
   keys) name_ok "${1:-}"; do_keys "$@" ;;
   link) name_ok "${1:-}"; mac=$("${VIRSH[@]}" domiflist "$1" | awk 'NR > 2 && NF { print $5; exit }'); "${VIRSH[@]}" domif-setlink "$1" "$mac" "$2" >/dev/null ;;
   ssh) name_ok "${1:-}"; vm_ssh "$@" ;;
+  say) name_ok "${1:-}"; do_say "$@" ;;
   install) name_ok "${1:-}"; do_install "$@" ;;
+  watch) name_ok "${1:-}"; do_watch "$@" ;;
+  run) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_run "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
 esac

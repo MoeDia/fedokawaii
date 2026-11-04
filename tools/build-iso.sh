@@ -81,6 +81,8 @@ git -C "$repo" archive --format=tar "$commit" -- . ':(exclude).claude' | xz -T1 
 say "images/product.img"
 p=$work/product/usr/share/fedokawaii-iso
 mkdir -p "$p" "$work/product/etc/systemd/system/plymouth-quit.service.d"
+# (the console's font is ours from the first screen: Anaconda's keyboard step reloads it through localed)
+ln -s /dev/null "$work/product/etc/systemd/system/systemd-vconsole-setup.service"
 cp "$work/src/iso/screens/"* "$p/"
 cp "$work/art/console/sumi-console.psf" "$work/art/console/glyphs.py" "$p/"
 cp "$work/toolkit.tar.xz" "$p/"
@@ -124,7 +126,7 @@ xz -T1 --check=crc32 -6 <"$work/boot.cpio" >"$work/fedokawaii-boot.img"
 
 # ── the menu and the kickstart ──────────────────────────────────────────────
 say "the menu and the kickstart"
-args="inst.stage2=hd:LABEL=$ISO_VOLID inst.ks=hd:LABEL=$ISO_VOLID:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.nosave=input_ks,output_ks console=tty2 rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 $pal"
+args="inst.stage2=hd:LABEL=$ISO_VOLID inst.ks=hd:LABEL=$ISO_VOLID:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.nosave=input_ks,output_ks console=tty3 rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 $pal"
 if ((dev)); then args+=" inst.sshd"; fi
 sed -e "s|@VOLID@|$ISO_VOLID|g" -e "s|@ARGS@|$args|g" "$work/src/iso/grub.cfg" >"$work/grub.cfg"
 sed -e "s|@RELEASE@|$ISO_RELEASE|g" "$work/src/iso/ks.cfg" >"$work/ks.cfg"

@@ -5,6 +5,7 @@ tty1, and leaves /tmp/answers.ks for the kickstart's %include and /tmp/answers.e
 disk is not touched before the last page is answered; refusals turn the PC off (any key), no retry.
 """
 import ctypes
+import glob
 import hashlib
 import json
 import os
@@ -129,6 +130,31 @@ def installed_disk():
     return None
 
 
+def gpu_problem():
+    """What setup's own check would stop at, said before the disk is touched: the desktop is built on
+    AMD's and Intel's open drivers. (A test VM brings systemd's credentials in its firmware's
+    OEM strings: tools/vm-iso-test.sh; a real PC has none.)"""
+    vendors = set()
+    for d in glob.glob("/sys/class/drm/card[0-9]*/device/vendor"):
+        try:
+            with open(d, encoding="ascii") as f:
+                vendors.add(f.read().strip())
+        except OSError:
+            pass
+    if vendors & {"0x1002", "0x8086"}:
+        return ""
+    for raw in glob.glob("/sys/firmware/dmi/entries/11-*/raw"):
+        try:
+            with open(raw, "rb") as f:
+                if b"io.systemd.credential" in f.read():
+                    return ""
+        except OSError:
+            pass
+    if "0x10de" in vendors:
+        return "this PC has an NVIDIA card alone. fedokawaii is built on the open drivers of AMD and Intel."
+    return "no AMD or Intel graphics were found on this PC. fedokawaii is built on their open drivers."
+
+
 def checks(s):
     if not os.path.isdir("/sys/firmware/efi"):
         refuse(s, "power", "this PC started without UEFI",
@@ -139,6 +165,9 @@ def checks(s):
     if mem < MIN_RAM_MIB:
         refuse(s, "power", "not enough memory",
                f"this PC has {round(mem / 1024)} GB of memory. fedokawaii needs 4 GB.")
+    gpu = gpu_problem()
+    if gpu:
+        refuse(s, "monitor", "no graphics to build on", gpu)
     ds = disks()
     if not ds or gib(ds[0][2]) < MIN_DISK_GIB:
         have = f"the largest disk here holds {size_words(ds[0][2])}." if ds else "no disk was found."
@@ -520,8 +549,8 @@ def payload_ok():
 
 def main():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    s = Screen()
     run("plymouth", "quit", "--retain-splash")
+    s = Screen()
     ds = checks(s)
     if not payload_ok():
         refuse(s, "cross", "this stick is damaged",

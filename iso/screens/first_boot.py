@@ -50,9 +50,9 @@ def phase_done():
 
 
 def clean_up():
-    """Nothing of the installer stays: the drop-in, this folder."""
+    """Nothing of the installer stays: the drop-in, this folder. (No reload: this run is the unit's,
+    and the next start reads the files as they are; what the screen still needs is in memory.)"""
     shutil.rmtree(DROPIN, ignore_errors=True)
-    run("systemctl", "daemon-reload")
     shutil.rmtree(HERE, ignore_errors=True)
 
 
@@ -63,13 +63,13 @@ def words_of(heading):
 
 def main():
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
-    s = Screen(keys=False)
     run("plymouth", "quit", "--retain-splash")
+    s = Screen(keys=False)
     total = total_steps()
-    top = max(1, (s.rows - 13) // 2)
+    top = max(1, (s.rows - 12) // 2)
     s.clear()
     s.torii(top)
-    s.heading(top + 7, "download", "installing the desktop")
+    s.heading(top + 6, "download", "installing the desktop")
     env = dict(os.environ, TERM="dumb")
     p = subprocess.Popen(["/usr/bin/bash", f"{TOOLKIT}/setup.sh", "--resume"], stdin=subprocess.DEVNULL,  # noqa: S603
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)
@@ -96,27 +96,27 @@ def main():
                     m = re.match(r"^── (.+)$", line)
                     if m and not m.group(1).startswith(("Fedokawaii", "phase ")):
                         word = words_of(m.group(1))
-                    if "rebooting" in line:
+                    if "built — rebooting into" in line:
+                        word = "ready: the login screen comes next"
+                        clean_up()
+                    elif "rebooting" in line:
                         word = "restarting; it carries on by itself"
         done = steps_done()
         state = (word, done)
         if state != drawn:
             drawn = state
-            s.clear_row(top + 9, s.left - 1, WIDTH + 2)
+            s.clear_row(top + 8, s.left - 1, WIDTH + 2)
             shown = wrap(word, WIDTH - 12)[0] if word else ""
-            s.at(top + 9, s.left + 1, shown, TEXT)
+            s.at(top + 8, s.left, shown, TEXT)
             count = f"{done} of {total}"
-            s.at(top + 9, s.left + WIDTH - len(count), count, MUTED)
-            s.meter(top + 11, s.left, done, total)
+            s.at(top + 8, s.left + WIDTH - len(count), count, MUTED)
+            s.meter(top + 10, s.left, done, total)
         if time.monotonic() >= next_frame:
             next_frame = time.monotonic() + 0.6
-            s.at(top + 7, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
+            s.at(top + 6, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
             frame += 1
     rc = p.wait()
     if rc == 0:
-        if phase_done():
-            clean_up()
-            message_page(s, "check", "ready", ["the login screen comes next."])
         return
     # setup stopped: its reason, and a restart carries on (setup.sh's own promise)
     s.close()
@@ -125,7 +125,12 @@ def main():
     lines = []
     for t in why:
         lines += wrap(re.sub(r"^[0-9:]+\s+", "", t))
-    message_page(s, "cross", "setup stopped", lines[:10] + ["", "any key restarts the PC; setup carries on from there."])
+    if phase_done():
+        clean_up()
+        last = "any key restarts the PC into the login screen. Super+U, repair, sets this right."
+    else:
+        last = "any key restarts the PC; setup carries on from there."
+    message_page(s, "cross", "setup stopped", lines[:10] + ["", *wrap(last)])
     while s.key(None) is None:
         pass
     restart()

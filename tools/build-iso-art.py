@@ -110,7 +110,13 @@ def psf(glyphs):
     console keeps 16 colours for both ink and ground (fbcon gives a 512-glyph font 8 grounds)."""
     if len(glyphs) > 256:
         sys.exit(f"build-iso-art: {len(glyphs)} glyphs, the console's limit for 16 grounds is 256")
-    glyphs = glyphs + [(Image.new("1", (CELL_W, CELL_H), 0), [])] * (256 - len(glyphs))
+    # (every ASCII letter on its own number: the console erases with glyph 0x20, unmapped, so that
+    # one must be the blank — anything else there shows faintly over the whole screen)
+    blank = (Image.new("1", (CELL_W, CELL_H), 0), [])
+    ascii_ = {g[1][0]: g for g in glyphs if 0x20 <= g[1][0] < 0x7F}
+    rest = [g for g in glyphs if not 0x20 <= g[1][0] < 0x7F]
+    glyphs = rest[:0x20] + [blank] * (0x20 - len(rest[:0x20])) + [ascii_[c] for c in range(0x20, 0x7F)]
+    glyphs += rest[0x20:] + [blank] * (256 - len(glyphs) - len(rest[0x20:]))
     bytes_row = (CELL_W + 7) // 8
     head = struct.pack("<4B7I", 0x72, 0xb5, 0x4a, 0x86, 0, 32, 1, len(glyphs),
                        bytes_row * CELL_H, CELL_H, CELL_W)
@@ -132,7 +138,7 @@ def psf(glyphs):
 
 def console(out):
     out.mkdir(parents=True, exist_ok=True)
-    glyphs = [(double(letter(" ")), [0, 0x20, 0xA0])]
+    glyphs = [(double(letter(" ")), [0x20, 0xA0])]
     for cp in range(0x21, 0x7F):
         glyphs.append((double(letter(chr(cp))), [cp]))
     glyphs[ord("?") - 0x20][1].append(0xFFFD)      # (what the console draws for what it has not)

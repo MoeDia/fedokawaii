@@ -1,7 +1,7 @@
 """iso/screens/progress.py — what the screen shows while Anaconda installs the base system.
 
-The one owner of tty1 from %pre to the reboot; Anaconda's own words go to tty2 (console=tty2,
-inst.notmux). Read from its logs: /tmp/packaging.log and /tmp/anaconda.log.
+The one owner of tty1 from %pre to the reboot; Anaconda's own words go to tty3 (console=tty3,
+inst.notmux). It reads what Anaconda says, as the journal hands it to /tmp/syslog ("INFO anaconda:").
 """
 import os
 import re
@@ -9,22 +9,27 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from console import ACCENT_TEXT, FAINT, MUTED, STRONG, TEXT, WIDTH, G, Screen, wrap  # noqa: E402
+from console import ACCENT_TEXT, MUTED, TEXT, WIDTH, G, Screen  # noqa: E402
 
-PROGRESS = "/tmp/anaconda.log"
-PACKAGING = "/tmp/packaging.log"
-STEPS = (("Configuring storage", "the disk"), ("Running pre-installation", "the disk"),
-         ("Starting package installation", "the packages"), ("Downloading", "the packages"),
-         ("Preparing transaction", "the packages"), ("Performing post-installation", "the system"),
-         ("Configuring installed system", "the system"), ("Writing network", "the system"),
-         ("Creating users", "the system"), ("Installing boot loader", "the boot menu"),
-         ("Generating initramfs", "the boot menu"), ("Running post-installation", "our toolkit"))
+SYSLOG = "/tmp/syslog"
 FRAMES = ("hg-0", "hg-1", "hg-2", "hg-3", "hg-4")
+# how the meter is shared out: a slow disk and a fast line, or the other way round, come out about right
+DOWNLOAD, INSTALL = 40, 90       # the meter's percent when each has finished
+# what the installer is at, in our words: the first that fits a line of its own
+WORDS = (("Creating ", "the disk"), ("Running pre-installation", "the disk"),
+         ("Downloading packages", "the packages"), ("Configuring installed system", "the system"),
+         ("Writing network", "the system"), ("Creating users", "the system"),
+         ("Installing boot loader", "the boot menu"), ("Performing post-installation", "the boot menu"),
+         ("Generating initramfs", "the boot menu"), ("Running post-installation", "the toolkit"),
+         ("Storing configuration", "the toolkit"))
+DOWN_RE = re.compile(r"Downloading \d+ RPMs?, ([\d.]+) (\w+) / ([\d.]+) (\w+) \((\d+)%\)")
+UNIT = {"B": 1, "KiB": 1024, "MiB": 1024 ** 2, "GiB": 1024 ** 3}
+PACK_RE = re.compile(r"(?:Installing|Configuring|Verifying) .*\((\d+)/(\d+)\)")
 
 
-def tail_new(path, pos):
+def lines_since(pos):
     try:
-        with open(path, "rb") as f:
+        with open(SYSLOG, "rb") as f:
             f.seek(pos)
             data = f.read()
             return data.decode("utf-8", "replace"), f.tell()
@@ -32,41 +37,75 @@ def tail_new(path, pos):
         return "", pos
 
 
+def human(n):
+    return f"{n / 1024 ** 3:.1f} GB" if n >= 1024 ** 3 else f"{round(n / 1024 ** 2)} MB"
+
+
+class State:
+    def __init__(self):
+        self.word, self.count, self.percent = "the disk", "", 0
+
+    def read(self, line):
+        said = line.split("INFO anaconda:", 1)
+        if len(said) != 2:
+            return
+        said = said[1].strip()
+        m = DOWN_RE.search(said)
+        if m:
+            got = float(m.group(1)) * UNIT.get(m.group(2), 1)
+            total = float(m.group(3)) * UNIT.get(m.group(4), 1)
+            self.word = "the packages"
+            self.count = f"{human(got)} of {human(total)}"
+            self.percent = DOWNLOAD * got / max(total, 1)
+            return
+        m = PACK_RE.search(said)
+        if m:
+            self.word = "the packages"
+            self.count = f"{m.group(1)} of {m.group(2)}"
+            self.percent = DOWNLOAD + (INSTALL - DOWNLOAD) * int(m.group(1)) / max(int(m.group(2)), 1)
+            return
+        for key, words in WORDS:
+            if key in said:
+                self.word, self.count = words, ""
+                if words in ("the system", "the boot menu", "the toolkit"):
+                    step = ("the system", "the boot menu", "the toolkit").index(words)
+                    self.percent = max(self.percent, INSTALL + 3 * step)
+                return
+
+
 def main():
     s = Screen(keys=False)
-    top = max(1, (s.rows - 11) // 2)
-    s.clear()
-    s.torii(top)
-    s.heading(top + 7, "download", "installing the base system")
-    word, done, total = "the disk", 0, 0
-    positions = {PROGRESS: 0, PACKAGING: 0}
-    frame = 0
+    top = max(1, (s.rows - 12) // 2)
+    state = State()
+    pos = 0
     drawn = None
+    frame = 0
+
+    def page():
+        s.clear()
+        s.torii(top)
+        s.heading(top + 6, "download", "installing the base system")
+
+    page()
     while True:
-        for path in positions:
-            text, positions[path] = tail_new(path, positions[path])
-            for line in text.splitlines():
-                for key, w in STEPS:
-                    if key in line:
-                        word = w
-                m = re.search(r"Installing .*\((\d+)/(\d+)\)", line) or re.search(r"\[\s*(\d+)/(\d+)\]", line)
-                if m:
-                    done, total = int(m.group(1)), int(m.group(2))
-                    word = "the packages"
-        state = (word, done, total)
-        if state != drawn:
-            drawn = state
-            s.clear_row(top + 9, s.left - 1, WIDTH + 2)
-            s.at(top + 9, s.left + 1, word, TEXT)
-            if total:
-                count = f"{done} of {total}"
-                s.at(top + 9, s.left + WIDTH - len(count), count, MUTED)
-                s.meter(top + 11, s.left, done, total)
-        s.at(top + 7, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
+        if s.undressed():
+            page()
+            drawn = None
+        text, pos = lines_since(pos)
+        for line in text.splitlines():
+            state.read(line)
+        now = (state.word, state.count, int(state.percent))
+        if now != drawn:
+            drawn = now
+            s.clear_row(top + 8, s.left - 1, WIDTH + 2)
+            s.at(top + 8, s.left, state.word, TEXT)
+            if state.count:
+                s.at(top + 8, s.left + WIDTH - len(state.count), state.count, MUTED)
+            s.meter(top + 10, s.left, int(state.percent), 100)
+        s.at(top + 6, s.left, G[FRAMES[frame % len(FRAMES)]], ACCENT_TEXT)
         frame += 1
         time.sleep(0.6)
 
 
 if __name__ == "__main__":
-    _ = (FAINT, STRONG, wrap)
     main()
