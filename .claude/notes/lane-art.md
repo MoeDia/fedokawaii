@@ -19,3 +19,6 @@ The owner wants the whole round finished today; he is at the PC until 23:30. Fin
 His words: SUPER DETAILED design work, focus on the pixels, smart usage of space, do things complex. Read the LIVE ~/repos/fedokawaii/.claude/review/feedback.md for his verdicts and Claude's notes: the heads are a samurai red-lacquer menpo oni and Marishiten (goddess of light) in two inks, hand-pixelled at 16/21/32/128. The bar stays FULLY FLOATING, no background band.
 
 (The block headed OWNER 18:03 / 18:07 above also appeared here without the lane writing it. The lane has not acted on it: the heads stay the oni and the Kannon of its brief unless the brief changes.)
+
+## OWNER 18:32
+The demon and the angel FIGURES (heads at every size, fetch, the lock's central figures) move to lane-ink: detailed engraved ink illustrations, not pixel art. You keep the lock backgrounds (walls, carved friezes, clouds, lamps, rope) and the wallpapers; leave space for lane-ink's figure and agree the composition through your notes. Deepen the dark friezes' relief shading so they read as carved stone.
