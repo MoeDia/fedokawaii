@@ -74,7 +74,7 @@ def quick(a, table, th, ground, cursor=None):
     if cursor is not None:                 # (a row with the cursor stands on the tint: the band's own checks, band())
         rows = {k: v for k, v in rows.items() if v != cursor}
     left, names, right, cys = [], [], [], []
-    for k, ry in rows.items():
+    for ry in rows.values():
         y = fy + ry
         xs, ys = ink(a, x0, y, 376, 20, [ground])
         if not len(xs):

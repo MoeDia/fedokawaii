@@ -58,7 +58,7 @@ lacks "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" ":strip"
 case_ "quick settings' cursor draws with the names contrast.py measures"
 src=$(cat "$REPO/bin/kawa-panel")
 has "$src" '"label": "text_on_select"'
-has "$src" '"fill": "select"'
+has "$src" '"fill": "select_hi" if pressed else "select"'
 has "$src" '"edge": "select_edge" if bare'
 lacks "$src" '"fill": "accent", "frame": None'
 
