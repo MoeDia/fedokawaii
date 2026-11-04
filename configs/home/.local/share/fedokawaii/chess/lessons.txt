@@ -1,7 +1,7 @@
 # the lessons of kawa-chess, in the order of the year: lesson.py says how they are read, tools/check-chess-lessons.py holds them to the board
 === the-board
-title: the board
-minutes: 3
+title: the board, and the rook
+minutes: 5
 source: Steps Method 1, lesson 1; chess.com Learn to Play
 
 @fen 8/8/8/8/8/8/8/K6k w - - 0 1
@@ -16,12 +16,7 @@ find each square as it is named: type its name, or click it. you will use this o
 a move is typed (Rd7), or clicked, piece then square, or made with the arrows and enter. type when you can: the notation is how chess is read and written, and typing it teaches it.
 
 one thing said once. no one on record has gone from nothing to 1800 in a single year. this year is built to try it, and your numbers will say plainly where you stand.
-
-=== the-rook
-title: the rook
-minutes: 3
-source: Steps Method 1; Seirawan, Play Winning Chess
-
+---
 @fen 8/8/8/8/3R4/8/8/K6k w - - 0 1
 @mark d1 d2 d3 d5 d6 d7 d8 a4 b4 c4 e4 f4 g4 h4
 the rook moves in straight lines, along its rank or its file, as far as the way is clear. it never jumps.
@@ -117,6 +112,18 @@ two pawns face to face block each other: neither can move or take.
 @fen 8/4P3/8/8/8/8/k7/4K3 w - - 0 1
 @try e8=Q+ | move it to the last rank: type e8=Q.
 a pawn that reaches the last rank becomes a queen, a rook, a bishop or a knight: your choice, nearly always the queen.
+
+=== the-first-whole-game
+title: your first whole game
+minutes: 3
+source: Steps Method 1; chess.com Learn to Play
+
+@fen rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+@mark d1 d8
+the rooks in the corners, then knights, then bishops; the queen on her own colour, so d1 for White, d8 for Black; the king beside her; the pawns in front. White moves first, then turn about. you may never pass, and a piece taken stays off.
+---
+@play e4 e5 Nf3 Nc6
+each side brings something out. you know how every piece moves now: that is all you need for your first whole game. the goal, for now, is simply to take what you safely can. this week they have no queen.
 
 === check
 title: check
@@ -270,7 +277,7 @@ to attack is to threaten to take. a pawn attacking a knight wins time: he must m
 @flip
 @any
 @try Nb4 Nb6 Nc3 Nc7 Ne3 Ne7 Nf4 Nf6 | a knight move saves him.
-attacked, you have four answers: move away, guard it, block the line, take the attacker. no pawn can be guarded here for you: move the knight.
+attacked, you have four answers: move away, guard it, block the line, take the attacker. here only the first is left: move the knight.
 ---
 @fen 4k3/8/8/8/1r6/8/1P6/1R2K3 b - - 0 1
 @any
@@ -1687,7 +1694,7 @@ the idea: solve the same tactics again and again, each round quicker, until you 
 === capablanca-simple-chess
 title: Capablanca's simple chess
 minutes: 4
-source: Capablanca against Tartakower, New York 1924 (the game itself); Chernev, Logical Chess
+source: Capablanca as a model; Chernev, Logical Chess: Move by Move
 
 @fen 8/5ppk/8/P7/1P6/2PK4/5P2/8 w - - 0 1
 he made it look easy because he aimed at the ending from the first move. no combination for its own sake: better pieces, one weakness, trade, then the king walks in. when you want to know what to do in a quiet position, ask what the ending would want.
@@ -1695,7 +1702,7 @@ he made it look easy because he aimed at the ending from the first move. no comb
 === rubinstein-rook-ending
 title: Rubinstein's rook endings
 minutes: 3
-source: Rubinstein's games (as a model); Silman, Complete Endgame Course
+source: Rubinstein as a model; Silman, Complete Endgame Course
 
 @fen 8/5ppk/8/8/P7/R7/5PPP/r5K1 w - - 0 1
 the rook attacks, the king comes up, the pawn stays beside the rook. a pawn ahead is rarely enough, so he made sure every piece was doing the most it could first. half the endings you will ever play are rook endings: they are worth the study.

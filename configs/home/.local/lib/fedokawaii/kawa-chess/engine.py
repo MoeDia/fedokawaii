@@ -12,6 +12,7 @@ import time
 
 ENGINE = "stockfish"
 GRACE = 1.5                 # seconds past a search's budget before it is stopped, then again before a kill
+IDLE = 120.0                # seconds of nothing asked before the process goes
 
 
 def win_chance(cp):
@@ -207,8 +208,12 @@ class Engine:
             self._line(raw.decode("ascii", "replace").strip())
 
     def tick(self, now):
-        """Called now and then: a search past its budget is stopped; one that will not stop, killed."""
+        """Called now and then: a search past its budget is stopped; one that will not stop, killed; an engine
+        nothing has asked anything for two minutes is let go (its 150 MB are of no use to anyone meanwhile)."""
         s = self.current
+        if self.proc and s is None and not self.queue and now - self.last_used > IDLE:
+            self.stop_process()
+            return
         if s is not None and s.asked_at is not None:
             over = now - s.asked_at - s.budget
             if over > GRACE * 2:

@@ -163,14 +163,14 @@ SAFE = "before each move: what does it leave unguarded, what does their last mov
 CARD = "the three questions, every move: can I win material, can I mate, is a piece of mine in danger?"
 WEEKS = [
     # ── the first month: the men, the rules, what they are worth, mate (Steps 1, Silman part one) ──
-    dict(title="the pieces and how they move", band=(250, 300), themes=["hangingPiece"],
-         lessons=["the-board", "the-rook", "the-bishop", "the-queen", "the-king", "the-knight", "the-pawn"],
+    dict(title="the pieces and how they move", band=(250, 300), themes=["@vision"] * 6 + ["hangingPiece"],
+         lessons=["the-board", "the-bishop", "the-queen", "the-king", "the-knight", "the-pawn", "the-first-whole-game"],
          games=G(2, "a rook against three pawns: take them all before one reaches the far side.", pos="rook-v-pawns", hints=5, elo=440)
          + G(2, "a bishop against three pawns: take what stands on your colour, hold the rest back.", pos="bishop-v-pawns", hints=5, elo=440)
          + G(2, "the queen against eight pawns: she wins if you never let one through.", pos="queen-v-pawns", hints=5, elo=440)
-         + G(2, "pawns against pawns: the first to reach the far side has a queen.", pos="pawn-war", hints=5, elo=440)
+         + G(2, "the rook again, and now your king helps: walk him up to the pawns.", pos="rook-v-pawns", hints=5, elo=440)
          + G(2, "a knight against three pawns: learn his jump, catch them from far away.", pos="knight-v-pawns", hints=5, elo=440)
-         + G(2, "pawns against pawns again: now look before you push: can it be taken?", pos="pawn-war", hints=5, elo=440)
+         + G(2, "pawns against pawns: the first to reach the far side has a queen. look before you push.", pos="pawn-war", hints=5, elo=440)
          + G(2, "your first whole game: they have no queen. take whatever you safely can.", odds="q", hints=5, elo=440)),
     dict(title="check, mate and the rules", band=(250, 350), themes=["mateIn1", "hangingPiece"],
          lessons=["check", "checkmate", "stalemate", "castling", "en-passant", "promotion", "notation-and-draws"],

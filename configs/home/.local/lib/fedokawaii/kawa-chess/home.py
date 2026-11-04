@@ -9,8 +9,8 @@ from canvas import Canvas
 from course import Course
 from lesson import Lesson, Library
 from play import Game
-from progress import Progress
-from puzzles import SESSION, Bank, Session
+from progress import Progress, today_ordinal
+from puzzles import SESSION, Bank, Session, Vision
 from review import Replay, Review, goal_met
 from syllabus import opponent
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
@@ -39,6 +39,11 @@ class Home(Screen):
         self.lib = app.library = Library(os.path.join(DATA, "lessons.txt"))
         self.course = app.course = Course(self.lib, app.bank)
         self.ready = True
+        # (a day finished, and a new date since: the next one is simply there)
+        pr = self.pr
+        if self.next_open(self.day_items()) is None and pr.day < 365 and pr.last_active != today_ordinal():
+            pr.day += 1
+            pr.save()
         self.on_show()
         saved = app.store.load("current.json", {})
         if saved.get("spec") and saved.get("moves") is not None:
@@ -111,7 +116,8 @@ class Home(Screen):
 
     def _rows_puzzles(self):
         pr = self.pr
-        out = [Row("STORM", "ten minutes, mixed", act=("puzzles", None))]
+        out = [Row("STORM", "ten minutes, mixed", act=("puzzles", None)),
+               Row("SEARCH", "the squares", pr.vision_best or "", act=("vision",))]
         for key, name in self.course.theme_names():
             s = pr.solved_by_theme.get(key)
             v = f"{s[0]}/{s[1]}" if s else ""
@@ -242,6 +248,8 @@ class Home(Screen):
         out = [heading("KNIGHT", f"day {pr.day} of 365", w, right=f"week {wk.no}"), ""]
         out += [[(s, None)] for s in wrap(wk.title, w)]
         out.append("")
+        if pr.day >= 365 and self.next_open(self.day_items()) is None:
+            out += [[(s, STRONG)] for s in wrap("the year is done. now play real people: chess.com, ten minutes.", w)] + [""]
         return out
 
     def _head_lessons(self, w):
@@ -372,6 +380,8 @@ class Home(Screen):
         elif kind == "puzzles":
             name = act[1] or "mixed"
             self.app.push(Session(f"puzzles · {name}", act[1]))
+        elif kind == "vision":
+            self.app.push(Vision())
         elif kind == "free":
             self._free_game()
         elif kind == "replay":
@@ -406,6 +416,8 @@ class Home(Screen):
             ses = Session(it.label, it.ref, left=left, done=finished)
             ses.on_leave = lambda s=None: self._keep_left(day, ses)
             self.app.push(ses)
+        elif it.kind == "vision":
+            self.app.push(Vision(lambda s: pr.mark_done(day, it.key)))
         elif it.kind == "exam":
             self._exam(it)
         elif it.kind == "report":

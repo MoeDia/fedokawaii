@@ -10,8 +10,10 @@ Its programs live in ~/.local/lib/fedokawaii/kawa-chess, its art and lessons in
 ~/.local/share/fedokawaii/chess, your games and progress in ~/.local/state/fedokawaii/chess.
 """
 import os
+import signal
 import sys
 
+signal.signal(signal.SIGINT, signal.SIG_DFL)      # (Ctrl+C before the screen is ours: gone, quietly)
 HOME = os.path.expanduser("~")
 LIB = os.path.join(HOME, ".local/lib/fedokawaii/kawa-chess")
 sys.path.insert(0, LIB)

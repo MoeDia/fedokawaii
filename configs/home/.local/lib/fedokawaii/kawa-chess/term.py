@@ -62,11 +62,11 @@ class Term:
         new[6][termios.VMIN], new[6][termios.VTIME] = 1, 0
         termios.tcsetattr(self.fd_in, termios.TCSANOW, new)
         os.set_blocking(self.fd_in, False)
-        self.raw(b"\x1b[?1049h\x1b[?25l\x1b[2J\x1b[?1003h\x1b[?1006h\x1b[?1016h\x1b[?1004h\x1b[?2004h\x1b[?2031h\x1b[?996n\x1b]2;chess\x1b\\")
+        self.raw(b"\x1b[?1049h\x1b[?25l\x1b[?7l\x1b[2J\x1b[?1003h\x1b[?1006h\x1b[?1016h\x1b[?1004h\x1b[?2004h\x1b[?2031h\x1b[?996n\x1b]2;chess\x1b\\")
         self.measure()
 
     def leave(self):
-        self.raw(b"\x1b[?2031l\x1b[?2004l\x1b[?1004l\x1b[?1016l\x1b[?1006l\x1b[?1003l\x1b[0m\x1b[?25h\x1b[?1049l")
+        self.raw(b"\x1b[?2031l\x1b[?2004l\x1b[?1004l\x1b[?1016l\x1b[?1006l\x1b[?1003l\x1b[0m\x1b[?7h\x1b[?25h\x1b[?1049l")
         if self.saved is not None:
             try:
                 termios.tcsetattr(self.fd_in, termios.TCSANOW, self.saved)

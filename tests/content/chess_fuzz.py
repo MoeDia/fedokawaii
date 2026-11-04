@@ -112,7 +112,7 @@ class Fuzz:
         t.pump(self.rng.choice((0.0, 0.0, 0.01, 0.03, 0.1)))
         self.check()
         if not t.alive() and t.status not in (0,):
-            if t.status not in (-9, -15, -1, 137, 143):
+            if t.status not in (-9, -15, -2, -1, 137, 143):   # (killed by the fuzz; or its Ctrl+C just before or after the raw screen)
                 self.fail.append(f"died by itself: status {t.status}\n" + t.screen()[:400])
             self.start_app()
         elif not t.alive():

@@ -185,6 +185,7 @@ class BoardView:
         self.marks = {}                  # sq → set of mark names
         self.arrows = []                 # (from, to, ink name)
         self.hide = set()                # squares whose man is not drawn (it is moving)
+        self.coords = True               # (the board's letters and numbers: off for the squares drill)
         self._frame()
 
     # ── where things are ──────────────────────────────────────────────────────────────────────
@@ -244,7 +245,7 @@ class BoardView:
     def _key(self, sq):
         p = 0 if sq in self.hide else self.board[sq]
         m = self.marks.get(sq)
-        return (p, tuple(sorted(m)) if m else None, self.arrows and self._arrow_sig(sq))
+        return (p, tuple(sorted(m)) if m else None, self.arrows and self._arrow_sig(sq), self.coords)
 
     def _arrow_sig(self, sq):
         x, y = self.origin(sq)
@@ -305,7 +306,8 @@ class BoardView:
         i = art.index
         if "check" in marks:
             self._glow(x, y, i["ck_l"] if light else i["ck_d"])
-        self._coords(sq, x, y, light)
+        if self.coords:
+            self._coords(sq, x, y, light)
         p = 0 if sq in self.hide else self.board[sq]
         if "dot" in marks and not p:
             self._dot(x, y, i["dot_l"] if light else i["dot_d"], 10)

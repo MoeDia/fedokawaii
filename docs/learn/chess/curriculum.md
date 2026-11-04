@@ -14,13 +14,13 @@ Level band 325–625.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
-| 1 | the board | Steps Method 1, lesson 1; chess.com Learn to Play | a piece for free |
-| 2 | the rook | Steps Method 1; Seirawan, Play Winning Chess | a piece for free |
-| 3 | the bishop | Steps Method 1; Seirawan, Play Winning Chess | a piece for free |
-| 4 | the queen | Steps Method 1; Seirawan, Play Winning Chess | a piece for free |
-| 5 | the king | Steps Method 1; Seirawan, Play Winning Chess | a piece for free |
-| 6 | the knight | Steps Method 1; Seirawan, Play Winning Chess | a piece for free |
-| 7 | the pawn | Steps Method 1, the pawn; Seirawan, Play Winning Chess | a piece for free |
+| 1 | the board, and the rook | Steps Method 1, lesson 1; chess.com Learn to Play | the squares (board vision), two minutes |
+| 2 | the bishop | Steps Method 1; Seirawan, Play Winning Chess | the squares (board vision), two minutes |
+| 3 | the queen | Steps Method 1; Seirawan, Play Winning Chess | the squares (board vision), two minutes |
+| 4 | the king | Steps Method 1; Seirawan, Play Winning Chess | the squares (board vision), two minutes |
+| 5 | the knight | Steps Method 1; Seirawan, Play Winning Chess | the squares (board vision), two minutes |
+| 6 | the pawn | Steps Method 1, the pawn; Seirawan, Play Winning Chess | the squares (board vision), two minutes |
+| 7 | your first whole game | Steps Method 1; chess.com Learn to Play | a piece for free |
 
 | game | kind | start | you | clock | goal | measured by |
 |---|---|---|---|---|---|---|
@@ -30,12 +30,12 @@ Level band 325–625.
 | 4 | deep | bishop-v-pawns | white | as the stage | a bishop against three pawns: take what stands on your colour, hold the rest back. | — |
 | 5 | deep | queen-v-pawns | white | as the stage | the queen against eight pawns: she wins if you never let one through. | — |
 | 6 | deep | queen-v-pawns | white | as the stage | the queen against eight pawns: she wins if you never let one through. | — |
-| 7 | deep | pawn-war | white | as the stage | pawns against pawns: the first to reach the far side has a queen. | — |
-| 8 | deep | pawn-war | white | as the stage | pawns against pawns: the first to reach the far side has a queen. | — |
+| 7 | deep | rook-v-pawns | white | as the stage | the rook again, and now your king helps: walk him up to the pawns. | — |
+| 8 | deep | rook-v-pawns | white | as the stage | the rook again, and now your king helps: walk him up to the pawns. | — |
 | 9 | deep | knight-v-pawns | white | as the stage | a knight against three pawns: learn his jump, catch them from far away. | — |
 | 10 | deep | knight-v-pawns | white | as the stage | a knight against three pawns: learn his jump, catch them from far away. | — |
-| 11 | deep | pawn-war | white | as the stage | pawns against pawns again: now look before you push: can it be taken? | — |
-| 12 | deep | pawn-war | white | as the stage | pawns against pawns again: now look before you push: can it be taken? | — |
+| 11 | deep | pawn-war | white | as the stage | pawns against pawns: the first to reach the far side has a queen. look before you push. | — |
+| 12 | deep | pawn-war | white | as the stage | pawns against pawns: the first to reach the far side has a queen. look before you push. | — |
 | 13 | deep | they have no queen | by turns | as the stage | your first whole game: they have no queen. take whatever you safely can. | — |
 | 14 | deep | they have no queen | by turns | as the stage | your first whole game: they have no queen. take whatever you safely can. | — |
 
@@ -1409,8 +1409,8 @@ Level band 1575–1875.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
-| 316 | Capablanca's simple chess | Capablanca against Tartakower, New York 1924 (the game itself); Chernev, Logical Chess | in the middlegame |
-| 317 | Rubinstein's rook endings | Rubinstein's games (as a model); Silman, Complete Endgame Course | in the ending |
+| 316 | Capablanca's simple chess | Capablanca as a model; Chernev, Logical Chess: Move by Move | in the middlegame |
+| 317 | Rubinstein's rook endings | Rubinstein as a model; Silman, Complete Endgame Course | in the ending |
 | 318 | a model attack | Chernev, Logical Chess: Move by Move | mixed |
 | 319 | — | — | in the middlegame |
 | 320 | — | — | in the ending |

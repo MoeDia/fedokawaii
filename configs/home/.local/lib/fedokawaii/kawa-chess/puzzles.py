@@ -102,6 +102,99 @@ def glicko2(r, rd, vol, opp_r, opp_rd, score, tau=0.75):
     return new_mu / q + 1500, max(45.0, min(350.0, new_phi / q)), new_vol
 
 
+class Vision(Screen):
+    """Board vision (Steps Method 1; chess.com's own drill): a square named, you find it, typed or clicked, on a board
+    with no letters, two minutes; the board turns round halfway. Seeing the squares without looking is what all else stands on."""
+    SECONDS = 120.0
+    plain = True
+
+    def __init__(self, done=None):
+        self.done_cb = done
+        self.left = self.SECONDS
+        self.rng = random.Random()
+        self.want = self.rng.randrange(64)
+        self.right = self.wrong = 0
+        self.typed = ""
+        self.t_mark = time.monotonic()
+        self.finished = False
+        self.flash = None
+        self.shown = None
+        self.cursor = None
+
+    def board(self):
+        marks = {}
+        if self.flash:
+            marks[self.flash[0]] = {self.flash[1]}
+        return [0] * 64, marks, [], self.left < self.SECONDS / 2
+
+    def _answer(self, sq):
+        if sq == self.want:
+            self.right += 1
+            self.flash = (sq, "good")
+        else:
+            self.wrong += 1
+            self.flash = (sq, "bad")
+        self.want = self.rng.randrange(64)
+        self.typed = ""
+
+    def tick(self, now):
+        if self.finished:
+            return None
+        self.left -= now - self.t_mark
+        self.t_mark = now
+        if self.left <= 0:
+            self.left = 0
+            self.finished = True
+            pr = self.app.progress
+            if self.right > pr.vision_best:
+                pr.vision_best = self.right
+            pr.active()
+            pr.save()
+            if self.done_cb:
+                self.done_cb(self)
+            self.app.touch()
+            return None
+        sec = int(self.left + 0.999)
+        if sec != self.shown:
+            self.shown = sec
+            self.app.touch()
+        return now + 0.25
+
+    def panel(self, w, h):
+        sec = int(self.left + 0.999)
+        out = [heading("SEARCH", "the squares", w, right=f"{sec // 60}:{sec % 60:02d}"), ""]
+        if self.finished:
+            out += [[(f"{self.right} found", STRONG), (f", {self.wrong} missed.", None)], "",
+                    [(f"your best: {self.app.progress.vision_best}", MUTED)], "", [("enter goes back", MUTED)]]
+            return out
+        name = B.sq_name(self.want)
+        out += [["find  ", (name, STRONG), "   ", (self.typed, MUTED)], "",
+                Row("CHECK", "found", self.right), Row("CROSS", "missed", self.wrong)]
+        return out
+
+    def key(self, name):
+        if self.finished:
+            if name in ("enter", "esc"):
+                self.app.pop()
+        elif name == "esc":
+            self.app.pop()
+        elif name == "backspace":
+            self.typed = ""
+
+    def text(self, chars):
+        if self.finished:
+            return
+        for ch in chars.lower():
+            if not self.typed and ch in "abcdefgh":
+                self.typed = ch
+            elif self.typed and ch in "12345678":
+                self._answer(B.sq_of(self.typed + ch))
+
+    def click(self, sq):
+        if not self.finished:
+            self._answer(sq)
+
+
 class Session(Screen):
     """A sitting of puzzles; theme: Lichess's theme key or None. done(): the time is used up."""
 
@@ -388,15 +481,28 @@ class Session(Screen):
         elif name in ("left", "right", "up", "down"):
             hand.arrow(name, self.flipped, self.last >> 6 & 63 if self.last is not None else self.pos.kings[self.pos.turn])
 
+    def _hurry(self):
+        """A key while the other side's move is on its way: it lands now, nothing waits for an animation (§6)."""
+        if self.reply_at is not None and not self.showing and self.hand.pos is None:
+            self.reply_at = None
+            self._reply()
+            self.app.finish_anim()
+
     def text(self, chars):
-        if self.finished or self.showing or self.hand.pos is None:
+        if self.finished or self.showing:
+            return
+        self._hurry()
+        if self.hand.pos is None:
             return
         m = self.hand.text(chars)
         if m is not None:
             self._tried(m)
 
     def click(self, sq):
-        if self.finished or self.showing or self.hand.pos is None:
+        if self.finished or self.showing:
+            return
+        self._hurry()
+        if self.hand.pos is None:
             return
         m = self.hand.touch(sq)
         if m is not None:

@@ -69,7 +69,8 @@ def main(argv):
             slug = wk["lessons"][dow] if dow < len(wk.get("lessons", [])) else None
             m = meta.get(slug, {}) if slug else {}
             th = wk["themes"][dow % len(wk["themes"])]
-            lines.append(f"| {d} | {m.get('title', '—')} | {m.get('source', '—')} | {themes.get(th, th or 'mixed')} |")
+            word = "the squares (board vision), two minutes" if th == "@vision" else themes.get(th, th or "mixed")
+            lines.append(f"| {d} | {m.get('title', '—')} | {m.get('source', '—')} | {word} |")
         lines += ["", "| game | kind | start | you | clock | goal | measured by |", "|---|---|---|---|---|---|---|"]
         for _ in range(2 * (last - first + 1)):
             no += 1

@@ -12,7 +12,7 @@ from chess_lib import B, crash_text, make_home, open_app, state  # noqa: E402
 KEYS = ["\r", "\x1b", "\t", "\x1b[Z", "\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\x7f", " ", "?", "t", "q", "r", "b", "n", "x", "O", "0", "=", "+", "#", "e", "4", "8", "a", "1", "\x1b[5~", "\x1b[6~", "\x1b[H", "\x1b[F", "\x1b[3~", "\x01", "\x04", "\x0c", "\x1a", "é", "\x1b[15~", "\x1b[1;5A", "\x1bOP"]
 SCREENS = {        # name → the keys that reach it from the first screen, what state it needs
     "today": "", "lessons": "\t", "puzzles": "\t\t", "games": "\t\t\t", "progress": "\t\t\t\t",
-    "free": "\t\t\t\r", "lesson-find": "\r\r", "game": "\t\t\t\r\x1b[B\x1b[B\r", "game-menu": "\t\t\t\r\x1b[B\x1b[B\r\x1b", "session": "\t\t\r",
+    "free": "\t\t\t\r", "lesson-find": "\r\r", "squares": "\t\t\x1b[B\r", "game": "\t\t\t\r\x1b[B\x1b[B\r", "game-menu": "\t\t\t\r\x1b[B\x1b[B\r\x1b", "session": "\t\t\r",
     "review": "@review", "report": "@report", "resume": "@resume", "replay": "@replay",
 }
 SIZES = ((60, 20), (126, 33), (236, 51))

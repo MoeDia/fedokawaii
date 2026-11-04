@@ -238,6 +238,7 @@ class App:
                 if b is not None:
                     squares, marks, arrows, flipped = b
                     self.view.turn_over(flipped)
+                    self.view.coords = not getattr(s, "plain", False)
                     self.view.set(squares, marks, arrows)
                 self._send_board()
         self._draw_panel(s)

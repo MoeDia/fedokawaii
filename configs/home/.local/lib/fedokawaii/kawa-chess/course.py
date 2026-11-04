@@ -37,6 +37,8 @@ class Item:
             return [spec["goal"], f"you play {side} against {spec['opponent']}, level {spec['elo']}, {tc}."]
         if self.kind == "review":
             return ["three moments: you find the move, then you see why."]
+        if self.kind == "vision":
+            return ["the squares named one after another, the board without its letters: find as many as you can."]
         if self.kind == "puzzles":
             return ["what you missed comes back first"]
         if self.kind == "exam":
@@ -86,7 +88,10 @@ class Course:
         out.append(Item(self, f"game{no}", "game", no, f"game {no}", "KNIGHT"))
         out.append(Item(self, f"review{no}", "review", no, f"review of game {no}", "SEARCH"))
         word = self.theme_word(theme) or "mixed"
-        out.append(Item(self, f"puzzles{day}", "puzzles", theme, f"puzzles: {word}", "STORM"))
+        if theme == "@vision":     # (the first days: not one piece is known yet, the squares are)
+            out.append(Item(self, f"vision{day}", "vision", None, "the squares: two minutes", "SEARCH"))
+        else:
+            out.append(Item(self, f"puzzles{day}", "puzzles", theme, f"puzzles: {word}", "STORM"))
         out.append(Item(self, f"game{no + 1}", "game", no + 1, f"game {no + 1}", "KNIGHT"))
         out.append(Item(self, f"review{no + 1}", "review", no + 1, f"review of game {no + 1}", "SEARCH"))
         if dow == 6:

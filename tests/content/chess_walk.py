@@ -60,13 +60,11 @@ def main(argv):
                 t.pump(0.15)
                 if not t.find("to solve"):
                     bad.append(f"{lid} p{pn + 1}: no drill on the screen")
-                t.send("\x1b")
-                t.pump(0.05)
-                if t.find("to solve"):
+                for _ in range(8):      # (Esc: the answer, then on, then out: until the lesson is back)
                     t.send("\x1b")
-                    t.pump(0.05)
-                    t.send("\x1b")
-                    t.pump(0.05)
+                    t.pump(0.1)
+                    if not t.find("to solve"):
+                        break
             t.send("\r")
             t.pump(0.03)
         t.pump(0.05)
