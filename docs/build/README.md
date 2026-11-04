@@ -1,7 +1,7 @@
 # docs/build — how the handbook PDF is made
 
 `Fedokawaii-Guide.pdf` is `fedokawaii-guide.md` typeset with **real screenshots**: the desktop's
-own programs (waybar, mako, foot, gtklock, the panel, yazi, neovim, mpv, Brave …) started with
+own programs (waybar, mako, foot, gtklock, the panel, yazi, neovim, mpv, Helium …) started with
 this repository's configs, as `theme.sh` installs them, and captured to the pixel. Nothing in
 the book is a mock-up. This folder keeps everything that made it, as it was run.
 
@@ -11,7 +11,7 @@ the book is a mock-up. This folder keeps everything that made it, as it was run.
 | `learn.py` | the learning guide, `Fedokawaii-Learn.pdf` (what Super+U opens): `fedokawaii-learn.md` through `handbook.py`'s own machinery — only the source, the file name and the chapters' kanji (its front matter's `kanji:`) differ |
 | `pdfpack.py` | re-compresses the PDF's pictures losslessly (PNG row predictors), so the book stays small — every pixel the same |
 | `render/shoot.sh` | the desktop: bar, menus and quick settings, notices, level display, terminal, lock — both themes (`SHOOT_ONLY="menus …"` for some; `switch` times a theme switch) |
-| `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Brave, the mixer (wiremix), pairing (bluetui), VisiData |
+| `render/apps.sh` | the applications and windows: yazi, neovim, lazygit, btop, mpv, zathura, the file dialog, books, notes, Super+U, torrra, Helium, the mixer (wiremix), pairing (bluetui), VisiData |
 | `render/grub.sh` | the boot menu, drawn by GRUB 2.12 itself: the installed theme on a rescue CD booted in QEMU with UEFI firmware, with Fedora's entries → `shots/grub.png` |
 | `render/build.sh` | builds the drawing stack (Pango, fcft, foot, mako, gtklock, waybar …) at Fedora 44's versions into `/opt/f44` |
 | `render/sway.conf` | the headless compositor that stands in for dwl, drawing dwl's 2 px frame |

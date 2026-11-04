@@ -1,5 +1,5 @@
 /* filechooser.c — GTK 3's "Open File" dialog, as xdg-desktop-portal-gtk shows it to an app
- * that asks the FileChooser portal (Brave's "Upload", "Open file…"): a GtkFileChooserDialog
+ * that asks the FileChooser portal (Helium's "Upload", "Open file…"): a GtkFileChooserDialog
  * in OPEN mode with Cancel / Open, in the folder it is given. The theme is whatever GTK
  * picks from GSettings (gtk-theme): no GTK_THEME, no CSS of its own. Built by apps.sh
  * against /opt/f44's GTK 3.24.52.

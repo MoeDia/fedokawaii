@@ -127,6 +127,7 @@ keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app ask
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
+{ sleep 8; keep kawa-browser --warm; } </dev/null >/dev/null 2>&1 &   # the browser, no window: Super+B a word to it (after the login's rush)
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
 kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)

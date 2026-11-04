@@ -39,7 +39,7 @@ The sources, each read where it already keeps its state (nothing asked of a runn
            is what has come; how much will come, from the browser itself — its downloads API, by
            way of the desktop's small extension (~/.local/share/fedokawaii/browser), which runs
            this script as its native messaging host (its History holds no row while one runs)
-  tool     yt-dlp, curl, wget, aria2c in a terminal: the kernel wakes the watcher as one starts
+  yt-dlp, curl, wget, aria2c  in a terminal: the kernel wakes the watcher as one starts
            (inotify on the program's file); what comes is the file it writes, once 1 MB is
            there; how much will come is theirs alone to know: the mark, no percent
 Exit: 0 · 1 it could not be done · 2 wrong use.
@@ -65,7 +65,7 @@ TOOL_MIN = 1000000                                           # a tool's file cou
 SIGNAL = 21                                                  # the bar's mark: SIGRTMIN+21
 BUSY = 2.0                                                   # seconds between looks while one runs
 WIDTH = 30                                                   # a name's columns in the menu
-GLYPH = {"torrent": "download", "browser": "download", "tool": "download", "file": "archive"}
+GLYPH = {"torrent": "download", "browser": "download", "file": "archive"}
 
 
 def icons():
@@ -99,7 +99,7 @@ def torrents():
         names = os.listdir(STATE)
     except OSError:
         return out
-    for n in names:
+    for n in sorted(names):
         m = re.fullmatch(r"([a-z][a-z0-9-]*)\.(\d+)", n)
         if not m:
             continue
@@ -201,10 +201,10 @@ def tool_pids():
     return out
 
 
-def tools(pids=None):
+def tools():
     """What those are writing: a file of yours, open for writing, past TOOL_MIN."""
     out = []
-    for pid in pids if pids is not None else tool_pids():
+    for pid, name in tool_pids().items():
         try:
             fds = os.listdir(f"/proc/{pid}/fd")
         except OSError:
@@ -213,15 +213,15 @@ def tools(pids=None):
             try:
                 path = os.readlink(f"/proc/{pid}/fd/{fd}")
                 with open(f"/proc/{pid}/fdinfo/{fd}", encoding="utf-8") as f:
-                    flags = int(f.readline().split()[1], 8)
+                    flags = int(re.search(r"^flags:\s*(\d+)", f.read(), re.M).group(1), 8)
                 if not flags & 3 or not path.startswith(HOME + "/") or path.startswith(os.path.join(HOME, ".cache", "")):
                     continue
                 done = os.stat(path).st_size
-            except (OSError, IndexError, ValueError):
+            except (OSError, AttributeError, ValueError):
                 continue
             if done >= TOOL_MIN:
                 target = path[:-5] if path.endswith(".part") else path
-                out.append(("tool", os.path.basename(target), done, 0, target))
+                out.append((name, os.path.basename(target), done, 0, target))
     return out
 
 
@@ -446,7 +446,7 @@ def finished(item):
     src, _, _, _, where = item
     if src == "browser":
         return os.path.exists(where) and not os.path.exists(where + ".crdownload")
-    if src == "tool":
+    if src in TOOLS:
         return os.path.exists(where)
     return False                                             # (torrents: kawa-torrra says it)
 
@@ -478,7 +478,7 @@ def watch():
         now = {(i[0], i[4]): i for i in items}
         for k, i in before.items():
             if k not in now and finished(i):
-                detached([sys.argv[0], "notice", i[0], i[1], str(i[3]), i[4]])
+                detached([sys.argv[0], "notice", i[0], i[1], str(i[3] or i[2]), i[4]])
         before = now
         b = bar_json(items, ic)
         if b != shown:

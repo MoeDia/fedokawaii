@@ -393,7 +393,7 @@ everything else is faster once your hands know them.
 |---|---|
 | **Super+Return** | a terminal |
 | **Super+Space** | the launcher: type a program's name, Enter |
-| **Super+B** · **Super+E** | the browser (Brave) · the files (yazi) |
+| **Super+B** · **Super+E** | the browser (Helium) · the files (yazi) |
 | **Super+Q** | close the window |
 | **Super+J** · **Super+K** | focus the next · previous window |
 | **Super+Shift+Return** | move this window to the first, largest place |
@@ -646,7 +646,7 @@ the clipboard. The notice opens it when you click it.
 
 **6.1 ★ Annotate.** **Super+Print**, drag over this window, put an arrow (**z**) and a number
 marker (**m**), **Enter**. Paste it into a note (**Super+N** cannot hold pictures — paste it into
-a Brave chat or email instead).
+a chat in the browser or email instead).
 
 *Expected:* the marked-up picture appears where you paste.
 
@@ -697,12 +697,12 @@ the clipboard in turn.
 
 ## 7.1 The launcher
 
-**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `ste` for Steam, `syn` for
+**Super+Space** (or the torii). Type a few letters — `hel` for Helium, `ste` for Steam, `syn` for
 Syncplay — and **Enter**. The programs you start most rise to the top. **Shift+Delete** makes one
 forget its rank.
 
-Each entry has its icon: a window program shows its own (Brave, Steam, LibreOffice); every other
-entry — the terminal programs, the pages in Brave — one of the desktop's own **pixel icons**, in
+Each entry has its icon: a window program shows its own (Helium, Steam, LibreOffice); every other
+entry — the terminal programs, the pages in Helium — one of the desktop's own **pixel icons**, in
 the theme's red: a terminal for Terminal, a pair of brackets for the Editor, a folder for Files,
 a branch for Git, a page for Notes, a clipboard, a calculator, a wrench for the file tools, a
 picture for the wallpapers, a chip for the system monitor — after a week you find them by their
@@ -727,13 +727,13 @@ before, **Ctrl+U** clears, **Esc** closes.
 
 ## 7.3 The downloads centre
 
-Anything that downloads — Brave, Steam, a torrent — shows in the bar's download mark as one
+Anything that downloads — the browser, a torrent, curl or yt-dlp in a terminal — shows in the bar's download mark as one
 percent. Click it for the list: each download with its source, size and progress; a click opens
 where it lands. A notice says when each one finishes.
 
 ### Exercises
 
-**7.1 ★ No mouse.** Start Brave, yazi and btop from the launcher alone.
+**7.1 ★ No mouse.** Start Helium, yazi and btop from the launcher alone.
 
 **7.2 ★ Quick sums.** In the calculator: how many seconds in a week (`1 week to s`)?
 
@@ -744,7 +744,7 @@ terminal.
 
 *Expected:* the notice *15% of 2400 = 360 · copied*, and `360` pasted.
 
-**7.3 ★★ Watch it arrive.** Download a Fedora image's checksum file in Brave
+**7.3 ★★ Watch it arrive.** Download a Fedora image's checksum file in Helium
 (`https://fedoraproject.org`) and watch the bar's mark, then click the finished notice.
 
 *Expected:* the mark appears while it downloads and goes when it is done; the notice opens
@@ -776,7 +776,7 @@ the pane on the right tells more about the one under the cursor. What is still b
 | system | status | how things stand, on one page | when curious |
 | system | verify | every check; changes nothing | after something odd |
 | system | repair | verify, then put right what it found | when verify fails |
-| update | update | everything up to date: Fedora, Brave, Claude Code, the desktop's tools, neovim's plugins — with a snapshot first | each season, when it says *due* |
+| update | update | everything up to date: Fedora, Helium, Claude Code, the desktop's tools, neovim's plugins — with a snapshot first | each season, when it says *due* |
 | update | fedokawaii | the desktop itself, newest from GitHub | when you hear of a change |
 | update | Fedora N | the move to the next release | once it says *ready* |
 | snapshots | go back | the list of snapshots of the system, and one brought back | before and after a risky change |
@@ -1203,7 +1203,7 @@ commit it in lazygit (**a**, **c**).
 *Expected:* the file disappears on `main` and returns on `idea`.
 
 **14.4 ★★★ On GitHub.** Create the repository on GitHub with `gh repo create`, push, and open
-it in Brave (`gh repo view --web`).
+it in Helium (`gh repo view --web`).
 
 # 15. btop: the machine
 
@@ -1215,7 +1215,7 @@ doing, and which program is to blame. Click the bar's memory, or run `btop`.
 | Keys | Does |
 |---|---|
 | **1** · **2** · **3** · **4** | the processor, memory, network, process boxes on / off |
-| **f** | filter the processes: type `brave` |
+| **f** | filter the processes: type `helium` |
 | **e** | show processes as a tree |
 | **↑** **↓** then **t** · **k** | end a process politely · kill it at once |
 | **p** | cycle layout presets |
@@ -1267,14 +1267,15 @@ film; agree on a room name; one person's pause pauses both. **Enter** in mpv cha
 
 **16.3 ★★ Together.** Watch a short film with a friend through Syncplay.
 
-# 17. Brave: the web
+# 17. Helium: the web
 
-**Best at:** the web, privately, with ads and trackers blocked. **Super+B**.
+**Best at:** the web, privately: ads and trackers blocked with nothing to install (uBlock lives inside
+it). **Super+B**: it is already running, with no window, so the window is there at once.
 
 | Keys | Does |
 |---|---|
 | **Ctrl+L** | the address bar: type a search or an address |
-| **Ctrl+T** · **Ctrl+W** · **Ctrl+Shift+T** | new tab · close · reopen the last closed |
+| **Ctrl+T** · **Ctrl+W** · **Ctrl+Shift+T** | new tab · close · reopen the last closed (a whole closed window too) |
 | **Ctrl+Shift+A** | search your open tabs |
 | **Ctrl+F** · **Ctrl+J** · **Ctrl+H** | find in page · downloads · history |
 | **Ctrl+Shift+N** | private window |
@@ -1282,6 +1283,16 @@ film; agree on a room name; one person's pause pauses both. **Enter** in mpv cha
 
 For the developer: the developer tools' *Console* runs JavaScript on any page; *Network* shows
 every request a page makes — the fastest way to learn how a website talks to its server.
+
+**Sharing with sound, in Meet, the Discord website or any call in it.** Share the **entire screen**
+or a **window**: *Share with system audio* is already on, and the others hear your computer: a film
+in mpv, a song, a video in another tab. They never hear themselves: while you share, the call's own
+sound is kept out of what is sent. Share a **tab**: they hear that tab alone. For a program that can
+only send a microphone: quick settings → *share sound* gives it a microphone that carries your voice
+and the desktop's sound, or one program's. Its own sound stays out there too.
+
+Downloads show on the bar: its arrow, the tray filling, the percent. Spotify and WhatsApp in the
+launcher are its windows too, signed in once.
 
 ### Exercises
 
@@ -8546,7 +8557,7 @@ Hello, world!
 | `cargo clippy` | advice: simpler, more idiomatic ways to write what you wrote |
 | `cargo fmt` | format the code (neovim does it on save) |
 | `cargo add NAME` | add a crate from crates.io |
-| `cargo doc --open` | the documentation of your project and every crate it uses, in Brave |
+| `cargo doc --open` | the documentation of your project and every crate it uses, in Helium |
 
 ## 48.2 In neovim
 

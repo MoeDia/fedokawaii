@@ -68,7 +68,7 @@ you
 | *(for example)* | your output differs: numbers, sizes, dates and versions vary |
 | `…` and *(shortened)* | lines or characters left out to fit the page |
 | **Super+Return** | keys pressed together; **Super** is the key with the Windows logo, the one that opens the Start menu on Windows |
-| *Settings → Shields* | a path through menus |
+| *Settings → uBlock* | a path through menus |
 | `~` | your home folder, `/home/you` |
 | `you`, `fedora` | this book's user name and machine name; yours appear instead |
 | §… and ch. … | a section or a chapter of this book, by number |
@@ -187,7 +187,7 @@ Four ideas run through every file:
 
 | Idea | What it means in practice |
 |---|---|
-| **One tool per job** | one editor (neovim), one browser (Brave Origin), one terminal (foot), one panel for the launcher and every menu (kawa-panel). `verify.sh` fails if a second one appears, and update and repair take out what is doubled or fights (§36.2) |
+| **One tool per job** | one editor (neovim), one browser (Helium), one terminal (foot), one panel for the launcher and every menu (kawa-panel). `verify.sh` fails if a second one appears, and update and repair take out what is doubled or fights (§36.2) |
 | **Nothing hidden** | every package is listed in `lib/manifest.sh`, every release binary in `lib/upstream.sh`, every colour in `tools/build-themes.py`, every icon in `art/icons.txt` |
 | **Proof, not hope** | `verify.sh` checks the machine against the lists; `theme.sh --check` checks every config against the repository |
 | **Pixel-exact** | a pixel face — Sumi UI on a 14-pixel grid — and the icons drawn on the same grid, shown at whole multiples of it only (14 in the bar and menus, 56 for the lock screen's clock, 28 to 56 in the boot menu); the terminal's face, UDEV Gothic NF, in a cell of 8 × 20 pixels; pixel art is enlarged by whole numbers only, so every pixel stays a sharp square |
@@ -370,7 +370,7 @@ Every part of this machine sits in one of four layers. Each layer uses the one b
 ```text
  layer                  on this machine                on Windows                 the book
  ─────────────────────  ─────────────────────────────  ─────────────────────────  ──────────
- desktop and programs   dwl, waybar · Brave, foot      the desktop · Edge         Parts II–III
+ desktop and programs   dwl, waybar · Helium, foot      the desktop · Edge         Parts II–III
  services               systemd · NetworkManager       services.msc · Wi-Fi       Part IV
  kernel                 Linux · its drivers            Windows kernel · drivers   Part IV
  hardware               processor · graphics card      the same box               Part IV
@@ -1192,7 +1192,7 @@ Two words in the table below need a line each first:
 
 > **Word — repository.** A store things are fetched from. A *package repository* is a server of
 > packages, like a shop's catalogue: Fedora has its own, and setup adds a few (RPM Fusion,
-> Brave's). The project's *git repository*, on GitHub, holds its files and their history.
+> Helium's). The project's *git repository*, on GitHub, holds its files and their history.
 
 The setup's work also reaches below the programs, into how the kernel starts:
 
@@ -1205,7 +1205,7 @@ The setup's work also reaches below the programs, into how the kernel starts:
 | `fedokawaii.sh` | the menu for the install | runs the others; nothing of its own | the front desk |
 | `check.sh` | **readiness** | nothing — is this Fedora, online, on Btrfs, with room to work? | the pre-flight check |
 | `setup.sh` | **software** | repositories, packages, drivers, kernel arguments, the dwl binary and its session launcher, services, the performance profile, snapshots — and what software needs before it can run: the LazyVim starter, the Prowlarr container file and key, torrra's settings and its key wrapper | the builder |
-| `theme.sh` | **look and configuration** | every file it ships under `~/.config` and `~/.local` (`bin/kawa-*`, `share/fedokawaii`, `share/applications`, `share/themes`, fonts), `~/.bashrc.d`, the pixel art, `/etc/dconf` defaults, the boot menu theme and `/etc/default/grub`, the console font and colours, dwl rebuilt from `src/dwl/config.h`, two C helpers built from `src/`, Brave's colours (set once in its profile) and its launcher entries (so a screen share can carry sound, and Brave is listed once) | the decorator |
+| `theme.sh` | **look and configuration** | every file it ships under `~/.config` and `~/.local` (`bin/kawa-*`, `share/fedokawaii`, `share/applications`, `share/themes`, fonts), `~/.bashrc.d`, the pixel art, `/etc/dconf` defaults, the boot menu theme and `/etc/default/grub`, the console font and colours, dwl rebuilt from `src/dwl/config.h`, two C helpers built from `src/`, Helium's colours (set once in its profile) and its launcher entries (so a screen share can carry sound, and Helium is listed once) | the decorator |
 | `verify.sh` | **proof** | nothing of yours — checks against the manifest and the repository; it only wakes Prowlarr to ask it, and writes its result to `/var/lib/fedokawaii/last-verify` | the inspector |
 | `system/fedokawaii` | **upkeep** — the system's own control, installed as the `fedokawaii` command (Super+U) | nothing itself: it reads the records and runs the scripts above through `sudo` (§35.1) | the caretaker |
 
@@ -1308,7 +1308,7 @@ The phases, step by step:
 | Phase | Steps | Why this order |
 |---|---|---|
 | **1** | readiness check → record what is installed → DNF tuning → boot-menu and two-kernel policy → full update → base tools → the performance profile → remove nano, vim, rescue kernel → SSH policy → **reboot** | the record lets `verify.sh` spot anything extra later; tuning first so the big update downloads ten at a time; update before any third-party repository so RPM Fusion matches the base libraries; SSH closed before the first reboot, so a run that stops early never leaves it open |
-| **2** | RPM Fusion (its two release packages from its own server — its mirror list only if that does not answer — each checked against RPM Fusion's signing key before it is installed), Brave, Claude Code (key fingerprint checked), COPRs → GPU drivers → this machine's drivers and firmware → full ffmpeg and media tools → **reboot** | drivers before the programs that use them, so nothing pulls the wrong variant; the reboot activates the GPU kernel argument. Near a new release RPM Fusion can be a few days behind Fedora's Mesa, and a COPR may have no build yet: what waits is left out with a note, Fedora's own drivers stand in, and `update` or `repair` adds it later (`verify` warns meanwhile) |
+| **2** | RPM Fusion (its two release packages from its own server — its mirror list only if that does not answer — each checked against RPM Fusion's signing key before it is installed), Helium, Claude Code (key fingerprint checked), COPRs → GPU drivers → this machine's drivers and firmware → full ffmpeg and media tools → **reboot** | drivers before the programs that use them, so nothing pulls the wrong variant; the reboot activates the GPU kernel argument. Near a new release RPM Fusion can be a few days behind Fedora's Mesa, and a COPR may have no build yet: what waits is left out with a note, Fedora's own drivers stand in, and `update` or `repair` adds it later (`verify` warns meanwhile) |
 | **3** | build tools → dwl (pinned commit + patch) → greetd login → desktop → fonts and toolkit themes → apps → release binaries → the yazi file dialog → Prowlarr + torrra → LazyVim → Steam → groups → theme (if chosen) → **verify gate** → enable the login, snapshots, baseline | the login is enabled last, only after verification, so a failure never leaves you at a black screen |
 
 What takes tty1 is `fedokawaii-resume.service`, a *systemd unit*: a small file that tells
@@ -1591,7 +1591,7 @@ name (**Super+Space**), move between windows with keys, and close one with **Sup
 |---|---|
 | **Super+Space** | the launcher: type a few letters of a program's name, then **Enter** |
 | **Super+Return** | a terminal |
-| **Super+B** · **Super+E** | the browser (Brave Origin) · the files (yazi) |
+| **Super+B** · **Super+E** | the browser (Helium) · the files (yazi) |
 | **Super+X**, or the cat at the right end of the bar | quick settings — the theme is the first tile |
 | **Super+/** | every key, searchable |
 | **Super+V** | anything you copied, newest first |
@@ -1600,7 +1600,7 @@ name (**Super+Space**), move between windows with keys, and close one with **Sup
 
 | Press | You see | Close it with |
 |---|---|---|
-| **Super+Space** | a box listing programs; type `bra` and Brave is among the first | **Esc** |
+| **Super+Space** | a box listing programs; type `bra` and Helium is among the first | **Esc** |
 | **Super+Return** | a terminal, its prompt waiting | **Super+Q** |
 | **Super+E** | yazi, the files, in your home folder | **q** |
 | **Super+X** | quick settings, a panel dropping down from the right end of the bar | **Esc**, a click outside, or **Super+X** again |
@@ -1760,7 +1760,7 @@ give the lock time before any other sleep — two lines in
 `/etc/systemd/logind.conf.d/90-fedokawaii.conf`, `HandleSuspendKey=ignore` and
 `InhibitDelayMaxSec=25` (the same wait lets Steam close properly before a restart, §21.1) —
 and `verify` checks that the key is left to the desktop. A video
-playing in mpv or Brave holds the idle timer itself; music, or anything else playing through
+playing in mpv or Helium holds the idle timer itself; music, or anything else playing through
 MPRIS or holding logind's idle lock, makes `kawa-idle` wait until it stops. The times are yours
 to change through your working copy (ch. 42): the 90 seconds are `sleep_after=90` in
 `bin/kawa-lock`, the 15 and 30 minutes the `timeout 900` and `timeout 1800` of the `swayidle`
@@ -1986,7 +1986,7 @@ a two-page selection to keep beside the keyboard.
 
 | Keys | Does |
 |---|---|
-| **Super+Return · Space · B · E** | terminal · launcher · Brave Origin · files (yazi) |
+| **Super+Return · Space · B · E** | terminal · launcher · Helium · files (yazi) |
 | **Super+X · V · /** | quick settings · clipboard history · help |
 | Super+A · C · W | sound · calendar · wallpaper |
 | Super+R · Super+N | books (§16.2) · notes, and again to put them away (§16.3) |
@@ -2039,7 +2039,7 @@ a two-page selection to keep beside the keyboard.
 | Right Shift+F12 | the game overlay (MangoHud) on / off, in games started with it |
 | Super+Ctrl+Shift+Q · Ctrl+Alt+F2…F6 | log out · text consoles (Ctrl+Alt+F1 comes back) |
 
-Windows carry no title-bar buttons anywhere — not in GTK apps, not in Brave: dwl tiles them,
+Windows carry no title-bar buttons anywhere — not in GTK apps, not in Helium: dwl tiles them,
 Super+Q closes them.
 
 > **On Windows.** Some habits carry over: **Win+V** is the clipboard history there too, and here
@@ -2085,9 +2085,9 @@ before you start it.
 | **Super+2**, then **Super+Return** | a terminal on workspace 2; in the bar, 二 is stamped with the vermilion seal |
 | **Super+3**, then **Super+E** | yazi on workspace 3 |
 | **Super+Tab**, **Super+Tab** | 2, then 3 again: back and forth between the last two |
-| **Super+1**, then **Super+B** | Brave on 1; in the bar, 二 and 三 turn from faint to ink — they hold windows |
+| **Super+1**, then **Super+B** | Helium on 1; in the bar, 二 and 三 turn from faint to ink — they hold windows |
 | **Super+0** | all three windows together, in the spiral; **Super+1** returns |
-| on 1: **Super+Shift+3** | Brave moves to 3, beside yazi; workspace 1 is empty |
+| on 1: **Super+Shift+3** | Helium moves to 3, beside yazi; workspace 1 is empty |
 
 ## 7.4 Frames: which window has the focus
 
@@ -2127,7 +2127,7 @@ If the new screen is now the one the machine starts on, apply the theme again (*
 
 **Check yourself**
 
-1. Two terminals are open, side by side, and you start Brave. Where does it go? → *into the next place: the first terminal keeps the left, the second moves to the top right, Brave goes below it*
+1. Two terminals are open, side by side, and you start Helium. Where does it go? → *into the next place: the first terminal keeps the left, the second moves to the top right, Helium goes below it*
 2. How do you put the focused terminal on workspace 4? → *Super+Shift+4*
 3. Which key fills the whole screen with the focused window? → *Super+F (fullscreen); Super+F again brings it back into the spiral*
 
@@ -2496,7 +2496,7 @@ the one you choose. This short chapter is the switch, and the pictures behind yo
 ## 9.1 Dark and light
 
 Press **Super+Shift+W** (or quick settings → *theme*). The terminals and everything in them,
-the bar, menus, notifications, GTK and Qt apps, Brave, mpv, btop, zathura and the wallpaper
+the bar, menus, notifications, GTK and Qt apps, Helium, mpv, btop, zathura and the wallpaper
 all change at once, under the one transition the design system allows: the screen as it
 was, faded away over a third of a second (eased in and out, drawn by the compositor at every
 refresh). It never holds a click: press again during it and it jumps to its end, then switches
@@ -2506,7 +2506,7 @@ The theme you leave on is the one the next login starts in. From a terminal, `ka
 or `kawa-theme dark` chooses one, `kawa-theme` alone switches, and `kawa-theme get` names the
 one in use. The two palettes, and how each program gets its colours, are in ch. 40.
 
-**Try this.** Open a terminal and Brave side by side, then press **Super+Shift+W**. Watch the
+**Try this.** Open a terminal and Helium side by side, then press **Super+Shift+W**. Watch the
 crests rise; both windows are light now, and so is the bar. Press it again for the night.
 
 ## 9.2 Wallpapers
@@ -2796,7 +2796,7 @@ goes with the weekly tidy; one with something in it is yours and stays.
 **A clean home.** Nothing else sits at the top of your home but bash's own files (`.bashrc`,
 `.bash_profile`, `.bash_logout`), the desktop's `.bashrc.d/`, the three XDG folders
 (`.config/`, `.local/`, `.cache/`), and what a program cannot be told otherwise: `.ssh/`,
-`.gnupg/`, Brave's `.pki/` and Steam's `.steam` links. Every other program is told where its
+`.gnupg/`, Helium's `.pki/` and Steam's `.steam` links. Every other program is told where its
 files go by `/etc/profile.d/fedokawaii-home.sh`, read by every shell and by the session:
 bash's, less's, Python's, Node's and SQLite's histories in `~/.local/state/`, Rust's `cargo`
 and `rustup` in `~/.local/share/cargo` and `~/.local/share/rustup` (`CARGO_HOME`,
@@ -2807,7 +2807,7 @@ and `rustup` in `~/.local/share/cargo` and `~/.local/share/rustup` (`CARGO_HOME`
 moves anything a program still drops in the old places, takes out what an older version of
 the desktop left, ages out old thumbnails and downloads (`~/.config/user-tmpfiles.d`), and
 trims each cache over its limit: npm's and pip's 500 MB, uv's 3 GB, thumbnails 500 MB,
-Brave's 1.5 GB (only while Brave is closed). The drawn wallpapers, Mesa's shaders and cargo's
+Helium's 1.5 GB (only while Helium is closed). The drawn wallpapers, Mesa's shaders and cargo's
 crates keep their own limits; the health report's CLEAN rows measure them all. Nothing you
 made is ever touched.
 
@@ -2948,7 +2948,7 @@ safe. The command runs in the current folder.
 **Recommended: yazi, neovim and lazygit together.** Work in one terminal: browse in yazi,
 press Enter on a file to edit it in neovim, `:q` to return; when the work is done, `:` then
 `lazygit` to stage and commit, and `q` in lazygit brings you back to yazi. Uploading a file
-in Brave opens yazi too, as the file dialog (§10.4, §14.3).
+in Helium opens yazi too, as the file dialog (§10.4, §14.3).
 
 **Pitfalls.**
 
@@ -2989,13 +2989,13 @@ describes the newest yazi; `~` lists the keys of the version installed here.
 
 ## 10.4 Open, upload and save: the file dialog
 
-Every program's *Open*, *Upload* and *Save as* — Brave's uploads and
+Every program's *Open*, *Upload* and *Save as* — Helium's uploads and
 downloads, every GTK program's dialogs — opens **yazi** (§10.3) in a small floating
 terminal: the same file manager, keys and previews you already use, instead of a separate
 dialog with its own ways. It is dressed like the other popups — what it is for in a rule
 along the top (*open file*, *open files*, *open folder*, *save file*, with the folder you are
 in), the keys that matter along the bottom. It starts in the folder the program suggests
-(Brave: where you last saved or uploaded), else your home.
+(Helium: where you last saved or uploaded), else your home.
 
 One program keeps a dialog of its own: LibreOffice, which builds its *Open* and *Save*
 windows itself. They are GTK's, drawn in the desktop's theme (§16.4).
@@ -3006,8 +3006,8 @@ yazi too, in a window of its own, as **Super+E** does. How the dialog is wired i
 
 <!-- fig:app-filechooser | The file dialog an upload opens: yazi in a floating window, the PDF under the cursor previewed. -->
 
-**Try this.** In Brave, press **Ctrl+O** (open a file). The dialog opens, *open file* in its top
-rule. Go into `practice`, put the cursor on `bashrc.txt` and press **Enter**: Brave shows the
+**Try this.** In Helium, press **Ctrl+O** (open a file). The dialog opens, *open file* in its top
+rule. Go into `practice`, put the cursor on `bashrc.txt` and press **Enter**: Helium shows the
 file's text. **Ctrl+W** closes that tab.
 
 ### Keys in the dialog
@@ -3027,7 +3027,7 @@ file's text. **Ctrl+W** closes that tab.
 Saving shows the file before it is written: the program's suggested name is waiting in the
 folder, standing in for the file until you choose — its preview says *the file being saved* —
 and Enter keeps it there. Is a file of that name there already, the stand-in is
-*name (1).ext* beside it (as Brave names a second download) — Enter on the old one replaces it
+*name (1).ext* beside it (as Helium names a second download) — Enter on the old one replaces it
 instead, after asking. Cancel, and the stand-in is removed again: nothing is left behind.
 
 ## 10.5 Which program opens a file
@@ -3039,7 +3039,7 @@ A file's name may end in `.pdf`, but programs go by something more exact: its MI
 > open a file by it.
 
 **Default programs** come from `~/.config/mimeapps.list` (set by Theme), so `xdg-open`,
-yazi, Brave's downloads and every other program agree: the list names one program for each
+yazi, Helium's downloads and every other program agree: the list names one program for each
 MIME type. `xdg-mime` asks it:
 
 ```sh
@@ -3051,7 +3051,7 @@ The whole list:
 
 | Type | Opens in |
 |---|---|
-| web pages, links | Brave Origin |
+| web pages, links | Helium |
 | folders | yazi (in a terminal window) |
 | text, code, config files, Markdown | neovim (in a terminal window) |
 | pictures | imv |
@@ -3668,7 +3668,7 @@ and its marks are described in §11.3.
 | Ctrl+Shift+C · Ctrl+Shift+V | copy · paste. Selecting text with the mouse already copies it |
 | Shift+PageUp / PageDown | scroll back through the last 20 000 lines (also the mouse wheel) |
 | Ctrl+Shift+R | search the scrollback: type, then Ctrl+R for the older match, Ctrl+S for the newer; Ctrl+W widens the match by a word; Enter ends the search with the match selected; Esc cancels |
-| Ctrl+Shift+O | URL mode: every link on screen gets a short label; type the label to open it in Brave; Esc leaves |
+| Ctrl+Shift+O | URL mode: every link on screen gets a short label; type the label to open it in Helium; Esc leaves |
 | Ctrl+Shift+Y | copy mode: every commit hash, IP address and file path on screen gets a label; type it and that text is on the clipboard — no careful selecting. Type the label in capitals and it is pasted where you are typing as well |
 | Ctrl+Shift+Z / X | jump to the previous / next prompt |
 | Ctrl+Shift+G | the last command's output in neovim (§11.3) |
@@ -3888,7 +3888,7 @@ Sharjah, 34 °C
 ```
 
 `wl-copy` puts what it is given on the clipboard; `wl-paste` prints what the clipboard holds.
-Press **Super+V**: the line is at the top of the history. Press **Esc**, click into Brave's
+Press **Super+V**: the line is at the top of the history. Press **Esc**, click into Helium's
 address bar and press **Ctrl+V**: there it is.
 
 Copying works the same way in every program: Ctrl+C / Ctrl+V (Ctrl+Shift+C / V in the
@@ -3924,11 +3924,11 @@ mouse move; the full text — or the picture itself — shows underneath. A copy
 text nor a picture is listed as *data*, with *not text* at the right; its kind and size show
 underneath.
 
-**Pictures** — a screenshot (§12.2), a picture copied in Brave (right-click → *Copy image*),
+**Pictures** — a screenshot (§12.2), a picture copied in Helium (right-click → *Copy image*),
 one copied in satty or LibreOffice — are kept as pictures: listed by kind, size and weight
 (`▣  png picture` … `1920×1080 · 2 MiB`), and drawn underneath when the cursor is on them.
 **Enter** puts the picture itself back, as a picture, so pasting it into a chat, an e-mail or
-a document pastes the picture. Brave's *Copy image* also offers the picture's link as text;
+a document pastes the picture. Helium's *Copy image* also offers the picture's link as text;
 the history keeps the picture. Cells copied from a spreadsheet come with a picture of
 themselves too: there the text is what is kept.
 
@@ -3991,7 +3991,7 @@ $ ls ~/Pictures/Screenshots
 
 *(for example)*
 
-Then open a chat or a mail in Brave and press **Ctrl+V**: the picture is pasted.
+Then open a chat or a mail in Helium and press **Ctrl+V**: the picture is pasted.
 
 ### Recording the screen: Super+Shift+R
 
@@ -4058,7 +4058,7 @@ installed here.
    **1…5** for colours, Ctrl+Z to undo.
 3. Press **Enter**: the picture is copied and satty closes. (Ctrl+S saves it to
    `~/Pictures/Screenshots/` instead.)
-4. Paste with **Ctrl+V** in Brave, a chat, or Claude Code. **Super+V** brings back earlier
+4. Paste with **Ctrl+V** in Helium, a chat, or Claude Code. **Super+V** brings back earlier
    copies, pictures included.
 
 For a plain shot, **Print** (region) or **Shift+Print** (whole screen) both saves and copies.
@@ -4067,7 +4067,7 @@ For a plain shot, **Print** (region) or **Shift+Print** (whole screen) both save
 
 In yazi, **Ctrl+C** puts the files you selected (or the one under the cursor) on the
 clipboard, **Ctrl+X** marks them to be moved, and **Ctrl+V** pastes them into the folder you are
-in — as on Windows. They paste into other programs too: a mail or a chat in Brave takes them
+in — as on Windows. They paste into other programs too: a mail or a chat in Helium takes them
 as attachments. Nothing is ever pasted over a file already there: the new one becomes
 `name (1).ext`. A picture on the clipboard (a screenshot) pastes as a file, `pasted DATE.png`.
 yazi's own **y**, **x** and **p** still copy and move inside yazi.
@@ -4075,7 +4075,7 @@ yazi's own **y**, **x** and **p** still copy and move inside yazi.
 ## 12.6 Smaller pictures and PDFs: Super+Z
 
 A photo from a phone is 4 MB; a mail wants under 1 MB, a chat less. Copy the picture (Ctrl+C
-in yazi, a screenshot, or *Copy image* in Brave), press **Super+Z**, and choose:
+in yazi, a screenshot, or *Copy image* in Helium), press **Super+Z**, and choose:
 
 | Row | Makes |
 |---|---|
@@ -4090,7 +4090,7 @@ The result lands beside the original — `holiday (email).jpg` — and on the cl
 a photo was taken, and the like, is stripped from it. In yazi, **Alt+S** does the same with the
 files you selected, without copying first. Nothing is overwritten, and a PDF that would come
 out no smaller is left as it is. A copied picture that has no file of its own (a screenshot,
-an image copied in Brave) gets one in `~/Pictures`: `copied DATE (chat).jpg`.
+an image copied in Helium) gets one in `~/Pictures`: `copied DATE (chat).jpg`.
 
 **An earlier copy.** With the clipboard history open (**Super+V**, §12.1), Super+Z works on
 the entry under the cursor instead of on what the clipboard holds now. The menu opens over
@@ -4255,7 +4255,7 @@ stick's name) under 出 *eject*. Wait for **safe to unplug**; then pull it out. 
 
 ## 13.3 In yazi and every file dialog
 
-In yazi and in every file dialog (uploads in Brave included), **M** shows the drives:
+In yazi and in every file dialog (uploads in Helium included), **M** shows the drives:
 
 | Key | Does |
 |---|---|
@@ -4273,7 +4273,7 @@ along the bottom *enter open · e eject · esc close*. With nothing plugged in i
 plugged in*. `~/Drives` keeps itself up to date as drives open and close; a file or folder of
 yours put there is left alone.
 
-So to attach a photo from an SD card in Brave: **Upload** → the dialog opens → **M** →
+So to attach a photo from an SD card in Helium: **Upload** → the dialog opens → **M** →
 Enter on the card → Enter on the photo.
 
 ## 13.4 Encrypted drives and disk images
@@ -4423,7 +4423,7 @@ and `man` for any command (§11.7).
 > **In this chapter**
 >
 > - start any program by typing part of its name
-> - browse with Brave, and upload a file from it
+> - browse with Helium, and upload a file from it
 > - share a screen, a window or a tab in a call, with the right sound
 >
 > **You need:** §6.3 (the first six keys) and §10.4 (the file dialog).
@@ -4456,7 +4456,7 @@ remember it.
    **Esc** closes the launcher.
 
 * It matches a program's **name, what it is, and its keywords**: *brave* and *browser* both
-  find Brave Origin, *wifi* finds Network, *task manager* finds System monitor. Only the
+  find Helium, *wifi* finds Network, *task manager* finds System monitor. Only the
   name is shown.
 * Best matches first: a name that starts with what you typed, then a word of the name that
   does, a name that holds it, what the program is or its keywords, and last the letters in
@@ -4486,14 +4486,14 @@ remember it.
   | Backup | restic onto the backup drive (kawa-backup) | `backup` |
   | Agents · Torrents · Syncplay | herdr · torrra · Syncplay (ch. 20, §15.7) | `claude` · `torrent` · `together` |
 
-  The rest — Brave, LibreOffice, Xournal++ (and Sketch), Easy Effects, LocalSend, Steam,
+  The rest — Helium, LibreOffice, Xournal++ (and Sketch), Easy Effects, LocalSend, Steam,
   OpenRGB, LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
   `tests/look/fixtures/not-launched.txt` in the toolkit says why for each.
 * A window program shows its **own icon**, as its package ships it, at 22 × 22 — no icon
-  pack: Brave, LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend,
-  Syncplay, OpenRGB, LACT. Every other entry — the terminal programs, and the pages in Brave —
+  pack: Helium, LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend,
+  Syncplay, OpenRGB, LACT. Every other entry — the terminal programs, and the pages in Helium —
   shows one of the desktop's **pixel icons** (art/icons.txt, the Sumi Icons font), in the
   icon column in the theme's accent ink (switching the theme switches it):
 
@@ -4514,11 +4514,11 @@ remember it.
   (qt6ct), LibreOffice's start centre, and mpv and zathura with nothing to open — are hidden
   by entries of the same name in `~/.local/share/applications` (`NoDisplay=true`); the
   programs still work, and films and documents still open in them. **Spotify** is its web
-  player in a Brave app window (§15.4).
-* **WhatsApp** is WhatsApp Web, `web.whatsapp.com`, in a Brave app window the same way, with
+  player in a Helium app window (§15.4).
+* **WhatsApp** is WhatsApp Web, `web.whatsapp.com`, in a Helium app window the same way, with
   its seal 話 (WhatsApp makes no Linux app, so no WhatsApp icon is installed): type
   `whatsapp` in the launcher, scan its code once with your phone (WhatsApp → *Linked
-  devices*), and Brave keeps it linked. Its messages arrive as the desktop's notices.
+  devices*), and Helium keeps it linked. Its messages arrive as the desktop's notices.
 * **Git** lists your repositories — every folder with a `.git` in `~/repos` or your home,
   the one you worked in last at the top, each with its branch — and **Enter** opens lazygit
   in the one you pick (ch. 41). With none yet, it says so and offers two keys: **c** clones
@@ -4537,54 +4537,54 @@ remember it.
 heading comment says how entries are ranked); the entries are the `.desktop` files of
 `~/.local/share/applications` and the system's.
 
-## 14.2 Brave Origin, the browser
+## 14.2 Helium, the browser
 
-<!-- fig:app-brave | Brave Origin's new-tab page on both themes: the tab strip and toolbar in the palette, no window buttons; the address bar, focused, keeps Brave's own grey (white on paper) and blue ring. -->
+<!-- fig:app-brave | Helium's new-tab page on both themes: the tab strip and toolbar in the palette, no window buttons; the address bar, focused, keeps Helium's own grey (white on paper) and blue ring. -->
 
-**Super+B**. Brave Origin is Brave with Rewards, Wallet, VPN, Leo, News and the Tor windows
+**Super+B**. Helium is Helium with Rewards, Wallet, VPN, Leo, News and the Tor windows
 removed from the build — Talk, Playlist, Speedreader, the Web Discovery Project and the usage and
-crash reports go too; the Shields (ad and tracker blocking) remain. It is free on Linux and
+crash reports go too; the uBlock (ad and tracker blocking) remain. It is free on Linux and
 the only browser here (`verify` fails if another appears).
 
 **Try this.** Open a tab, lose it, and get it back.
 
-1. **Super+B** opens Brave. **Ctrl+T** opens a new tab with the cursor in the address bar:
+1. **Super+B** opens Helium. **Ctrl+T** opens a new tab with the cursor in the address bar:
    type `fedoraproject.org` and press Enter.
 2. **Ctrl+W** closes that tab. **Ctrl+Shift+T** brings it back, on the same page.
 3. **Super+Q** closes the whole window, every tab in it — the one key here to treat with care.
 
 The keys table below has the rest; the two short sections before it are what this desktop
-changes in Brave, and what to look at once.
+changes in Helium, and what to look at once.
 
 ### What this desktop sets up
 
 Very little, on purpose:
 
-* **The desktop's colours.** Brave runs in its GTK mode (Theme sets it in the profile while
-  Brave is closed): the tab strip, toolbar, menus and dialogs take the palette from the GTK
+* **The desktop's colours.** Helium runs in its GTK mode (Theme sets it in the profile while
+  Helium is closed): the tab strip, toolbar, menus and dialogs take the palette from the GTK
   theme, the new-tab page is the theme's ground, and both follow a theme switch live. Web
   pages that offer a dark version follow the portal's dark / light. The address bar and
-  Brave's own pages (settings, Shields) keep Brave's greys.
+  Helium's own pages (settings, uBlock) keep Helium's greys.
 * **No window buttons** — the tab strip ends at the tab list; Super+Q closes the window.
 * **File dialogs.** Upload buttons and *Save as* open the desktop's file dialog, served by the
   portal (§10.4).
 * **Screen sharing** goes through the portal and the *share what?* menu; a tab's sound always
   travels, and *Also share system audio* is turned on for screens and windows (§14.4).
-* **Saved logins** stay in Brave's *basic* store — the one it uses here anyway, with no
+* **Saved logins** stay in Helium's *basic* store — the one it uses here anyway, with no
   keyring running, guarded by your home folder's permissions rather than a password of its
   own — pinned by the launcher (`--password-store=basic`), so a keyring arriving later can
   never leave every saved password and cookie unreadable.
 * **No flags file** — Chromium 140 and later choose Wayland by themselves. Whether videos are
-  decoded by the GPU is Brave's own default; `brave://gpu` → *Video Decode* shows it.
+  decoded by the GPU is Helium's own default; `chrome://gpu` → *Video Decode* shows it.
 * Links opened elsewhere — foot's URL mode, lazygit, LibreOffice — open in
-  Brave, and magnet links clicked in Brave open in torrra (ch. 20).
+  Helium, and magnet links clicked in Helium open in torrra (ch. 20).
 
 ### Worth checking once
 
-These live in Brave's own settings, are not managed here, and their
+These live in Helium's own settings, are not managed here, and their
 names can move between versions:
 
-* *Settings → Shields*: the defaults for blocking trackers and ads and for fingerprinting.
+* *Settings → uBlock*: the defaults for blocking trackers and ads and for fingerprinting.
   The lion icon in the address bar changes them for one site — the first thing to try when a
   site misbehaves.
 * *Settings → Privacy and security*: the data-collection switches. Origin removes most
@@ -4604,9 +4604,9 @@ Ctrl+Shift+T brings tabs back. Choosing a theme from the Chrome Web Store replac
 (Theme then leaves it be); *Settings → Appearance → Theme → GTK* brings the desktop's colours
 back.
 
-## 14.3 Recipe: upload a file from Brave
+## 14.3 Recipe: upload a file from Helium
 
-1. In Brave, click the site's upload button. The file dialog opens: yazi, floating, in the
+1. In Helium, click the site's upload button. The file dialog opens: yazi, floating, in the
    folder you last uploaded from (§10.4).
 2. Find the file: ↑ ↓ and → ← through the folders — or **z** and a few letters of its name
    to jump to it below this folder, **Z** and a word to jump to a folder you use often, or
@@ -4616,21 +4616,21 @@ back.
 
 ## 14.4 Screen sharing — picture and sound
 
-A call in Brave (or any program) that shares a screen asks the desktop portal, which asks
+A call in Helium (or any program) that shares a screen asks the desktop portal, which asks
 what to share with the **share what?** menu: every screen with its size, and every open
 window by its title (a window without one is listed as *untitled window* and the start of its
 id). With only one screen and no choice to make, it is taken without asking.
 
-**One share, one question.** Brave (and every program built on Chromium, such as Discord's and
+**One share, one question.** Helium (and every program built on Chromium, such as Discord's and
 Slack's desktop apps) asks the portal more than once for a single share: once when you open
 the *Window* or *Entire screen* tab of its own picker, for the preview, and again when you
 press *Share*. The menu answers only the first time:
 
-* a **screen** — the portal gives Brave a one-time pass (a *restore token*) along with the
+* a **screen** — the portal gives Helium a one-time pass (a *restore token*) along with the
   preview, and the share itself presents it instead of asking
   (`XDPW_PERSIST_MODE=transient` in
   `~/.config/systemd/user/xdg-desktop-portal-wlr.service.d/sharing.conf`). The pass lasts
-  only while Brave runs: after a restart, the menu asks again;
+  only while Helium runs: after a restart, the menu asks again;
 * a **window** — the portal has no such pass for windows, so the menu remembers your choice
   for **10 seconds**: a request in that time that offers the same window gets it, without a
   menu (the same goes for a screen). The 10 seconds count from your choice; **Esc** forgets
@@ -4649,45 +4649,49 @@ back so they never appear in the call — critical ones and the level display st
 
 | You want the others to hear | Do |
 |---|---|
-| the sound of a **Brave tab** (a video you are showing) | share the tab and keep *Also share tab audio* ticked — Brave captures it itself |
-| the **computer's sound** with a whole screen or a window | tick *Also share system audio* in Brave's picker (Theme turned this Brave feature on). It carries everything you hear — including the call itself, so others may hear an echo of their own voices. Headphones do not help; use it for a moment, or use the next row instead |
-| **only certain programs** (a game, a player), in any call program | in the mixer (sound panel → *mixer* → *Playback*) move those programs to the **Share** output — you still hear them — then pick **Share (as microphone)** as the microphone, or as a second audio input, in the call program. Only what you moved there is sent, never the call |
+| the sound of a **Helium tab** (a video you are showing) | share the tab: *Share with tab audio* is on, and Helium captures it itself |
+| the **computer's sound** with a whole screen or a window | share it: *Share with system audio* is on from the first (`kawa-browser`). Everything goes along but the call's own sound: nobody hears themselves come back |
+| **a program that can only send a microphone** (or one program's sound alone) | quick settings → *share sound*: *the desktop's sound*, or one of the programs playing. A microphone of its own, "share sound", becomes the default input: your voice and that sound. Back to *off* when done |
 
 > **Word — PipeWire.** The sound server: the program that carries every other program's sound
 > to the speakers or headphones — and the pictures of a screen share to the call.
 
-**Share** is a pair of PipeWire devices of this desktop's own, set up in
-`~/.config/pipewire/pipewire.conf.d/60-share.conf`: an output you can send programs to, and
-*Share (as microphone)*, which a call can record from. `wpctl status` lists them under
-*Filters* by their node names, `share_sink` and `share_sink.out` (WirePlumber shows a
-loopback there, never by its description) — so look for `share_sink`, not "Share"; verify
-asks PipeWire itself (`pw-dump`) for the node `share_sink`.
+A browser shares a whole screen's sound by recording the default output's monitor, so what the
+browser plays would go along: measured, -21 dB of a real call in the shared sound, and Chromium's
+echo canceller does not take it out here. So while a screen is shared (the portal starts it)
+`kawa-sharesound` gives that recording a mix of its own, `kawa_share_mix`, an output nothing plays,
+and links every stream to it as well as to your speakers, but a browser's live ones: a call and a
+page's WebAudio ask for a 10.7 ms buffer, a film or a song in a tab for 21.3 ms, so those stay in
+(measured: other programs and a film at -72 dB, the call at -106 dB, its floor). The share microphone,
+`kawa_share_mic`, is fed by the mix and your microphone; whoever records it has their own sound left
+out of the mix. None of these nodes exists while nothing is shared. `tools/share-sound-proof.sh`
+proves all of it with the real browser, picker and PipeWire.
 
 Your microphone itself travels as usual; check it in the sound panel (Super+A → input).
 
 ## 14.5 Recipe: share your screen, with sound, in a call
 
-1. In the call, choose to share. In Brave's picker:
+1. In the call, choose to share. In Helium's picker:
     * a **tab** — its sound comes along when *Also share tab audio* is ticked;
     * a **window** or the **entire screen** — tick *Also share system audio* to send what you
       hear (it includes the call itself; see §14.4 for the quieter way).
 2. For a window or a screen, the desktop's *share what?* menu appears as you open that tab
-   of Brave's picker; pick one. Brave shows it, and *Share* sends it without asking again.
-   With only one choice it is taken without asking. To choose something else — Brave's
+   of Helium's picker; pick one. Helium shows it, and *Share* sends it without asking again.
+   With only one choice it is taken without asking. To choose something else — Helium's
    *Reselect*, or starting the share over — let 10 seconds pass since your first choice:
    until then the menu answers with it, without opening.
 3. Notifications are held back while you share; critical ones still show.
 4. Your microphone travels as usual; check it in the sound panel (Super+A → input).
 
-**A smooth share.** The picture takes the fastest path there is, set up by Brave's starter
-(`~/.local/bin/brave-origin`, which Super+B, the launcher and links all run — Brave has no
-flags file here): the portal hands Brave dwl's own GPU buffers through PipeWire (DMA-BUF: no
+**A smooth share.** The picture takes the fastest path there is, set up by Helium's starter
+(`~/.local/bin/kawa-browser`, which Super+B, the launcher and links all run — Helium has no
+flags file here): the portal hands Helium dwl's own GPU buffers through PipeWire (DMA-BUF: no
 copy through the processor) at up to 60 frames a second (`max_fps=60` in
 `~/.config/xdg-desktop-portal-wlr/config`), and the graphics card's video encoder compresses
 it (VA-API: `AcceleratedVideoEncoder`), so a game and a share run side by side without the
 processor doing the video. The call itself chooses the rate it sends — Meet and Discord up to
 30, Discord 60 when you pick it. To see it at work, while sharing open
-**brave://webrtc-internals** in another tab, open the call's connection, and find the
+**chrome://webrtc-internals** in another tab, open the call's connection, and find the
 *outbound-rtp (kind=video)* stats:
 
 | Stat | Fast path | Slow path |
@@ -4696,23 +4700,23 @@ processor doing the video. The call itself chooses the rate it sends — Meet an
 | `framesPerSecond` | near what the call asks (30, or 60) | well below it |
 | `qualityLimitationReason` | `none` | `cpu` |
 
-`brave://gpu` lists the card's encoders under *Video Acceleration Information*, and the health
+`chrome://gpu` lists the card's encoders under *Video Acceleration Information*, and the health
 report checks the whole path (SHARE-14, SHARE-16).
 
 **What you learnt**
 
 - **Super+Space** starts a program by part of its name, or of what it does (*wifi*, *disk*).
-- **Super+B** opens Brave. **Ctrl+W** closes a tab and **Ctrl+Shift+T** brings it back;
+- **Super+B** opens Helium. **Ctrl+W** closes a tab and **Ctrl+Shift+T** brings it back;
   **Super+Q** closes the whole window.
 - An upload button opens yazi as the file dialog: **Enter** picks a file, **Esc** cancels.
-- A shared tab brings its own sound; a screen or window needs *Also share system audio*, or
-  the **Share** output for chosen programs only.
+- A shared tab brings its own sound; a screen or window the computer's, never the call's; for a
+  program that only sends a microphone, *share sound* in quick settings.
 
 **Check yourself**
 
 1. Where is the program that shows what fills the disk? → *type `disk` in the launcher: **Disk usage** (gdu)*
 2. Which key closes one tab, and which closes them all? → *Ctrl+W one tab; Super+Q the whole window*
-3. How can a call hear a game but not the call itself? → *move the game to **Share** in the mixer, and choose Share (as microphone) in the call*
+3. How can a call hear a game but not the call itself? → *share the screen in the browser, or quick settings → share sound for any other program: the call's own sound is left out by itself*
 
 # 15. Pictures, video, music and sound
 
@@ -4732,7 +4736,7 @@ open, and how sound finds its way to the right speaker.
 
 ## 15.1 Pictures: imv
 
-Open a picture from yazi or Brave's downloads (imv is the default for pictures), or type
+Open a picture from yazi or Helium's downloads (imv is the default for pictures), or type
 `imv picture.jpg`, `imv folder/` (every picture in it) or `imv -r folder/` (subfolders too).
 It opens **floating**, on the theme's ground colour.
 
@@ -4777,11 +4781,11 @@ which, and at what bitrate.
 
 <!-- fig:app-mpv | mpv with its on-screen controller in the palette. -->
 
-Open a video from yazi or Brave's downloads (mpv is the default for video and sound), or type
+Open a video from yazi or Helium's downloads (mpv is the default for video and sound), or type
 `mpv file`, `mpv folder/` or `mpv 'https://…'`.
 
 One window serves the evening: a film or a song you open (**Enter** in yazi, a download in
-Brave, anything that opens files) goes to the mpv window already open and replaces what plays
+Helium, anything that opens files) goes to the mpv window already open and replaces what plays
 there — several chosen at once play one after the other. If Syncplay's player is open
 (§15.7), that one takes it, and Syncplay tells the room. For a second window, **Alt+Enter** in
 yazi, or `kawa-play --new file` in a terminal (`mpv file` always
@@ -4835,7 +4839,7 @@ downloads into the current folder; `yt-dlp -F URL` lists the formats; `yt-dlp -x
 --audio-format mp3 URL` keeps only the sound (ffmpeg does the conversion).
 
 **Try this.** Keep only the sound of a talk you are allowed to keep, as an MP3 in your
-*Music* folder. Copy the video's address in Brave (Ctrl+L, Ctrl+C), then:
+*Music* folder. Copy the video's address in Helium (Ctrl+L, Ctrl+C), then:
 
 ```sh
 cd ~/Music
@@ -4871,7 +4875,7 @@ Naskh. If `i` shows dropped frames on a weak GPU, try `mpv --interpolation=no fi
 
 ## 15.3 Recipe: watch or keep a video from the web
 
-1. Copy the link in Brave.
+1. Copy the link in Helium.
 2. In a terminal: `mpv 'LINK'` to watch it in mpv, or `yt-dlp 'LINK'` to download it into the
    current folder.
 3. Keep the quotes: links often contain `&`, which the shell would otherwise act on.
@@ -4879,19 +4883,19 @@ Naskh. If `i` shows dropped frames on a weak GPU, try `mpv --interpolation=no fi
 ## 15.4 Music: Spotify and cava
 
 **Spotify** is Spotify's web player, `open.spotify.com`, in a window of its own: type
-`spotify` in the launcher (**Super+Space**), or click it there. It is Brave's *app window* —
+`spotify` in the launcher (**Super+Space**), or click it there. It is Helium's *app window* —
 no tabs, no address bar, tiled and moved like every other window, with its seal 曲 in the
 launcher (no Spotify icon is installed). Sign in once — a free account works (with adverts),
-Premium without them — and Brave keeps you signed in. Its colours are Spotify's own dark ones,
+Premium without them — and Helium keeps you signed in. Its colours are Spotify's own dark ones,
 whatever the theme.
 
-It plays through Brave, so everything Brave's sound does, it does: it appears in the bar's
-*now playing* with the meter moving (Brave tells the desktop what plays over MPRIS, and the
+It plays through Helium, so everything Helium's sound does, it does: it appears in the bar's
+*now playing* with the meter moving (Helium tells the desktop what plays over MPRIS, and the
 meter listens to the speakers), and the media keys play, pause and skip it (§15.5).
 
 > **Widevine.** Spotify's player plays only in a browser that has *Widevine*, the module
-> for protected media. Theme switches it on in Brave once, before Brave's first start (Brave's
-> own setting: `brave://settings` → *Widevine*); Brave then fetches the module by itself.
+> for protected media. Theme switches it on in Helium once, before Helium's first start (Helium's
+> own setting: `chrome://settings` → *Widevine*); Helium then fetches the module by itself.
 > Switch it off there and it stays off — Theme never turns it on again.
 
 > **Why not Spotify's app.** It was built on this machine by lpf from an RPM Fusion recipe
@@ -4932,10 +4936,10 @@ width, `f` / `b` colours, `r` reloads the config after an edit, `q` quits. That 
    window. **q** closes cava.
 4. Press the **Play/Pause** key: Spotify pauses. **Super+Q** on its window closes it.
 
-**Pitfalls.** *"Playback of protected content is not enabled"*: Widevine is off in Brave —
-`brave://settings`, search *Widevine*, switch it on, and restart Brave. Nothing in *now
-playing*: Brave's media integration is on by default — a flag you added in
-`brave://flags` that turns off *hardware media key handling* takes it away.
+**Pitfalls.** *"Playback of protected content is not enabled"*: Widevine is off in Helium —
+`chrome://settings`, search *Widevine*, switch it on, and restart Helium. Nothing in *now
+playing*: Helium's media integration is on by default — a flag you added in
+`chrome://flags` that turns off *hardware media key handling* takes it away.
 
 **Read more:** [Spotify's keyboard shortcuts](https://support.spotify.com/article/keyboard-shortcuts/)
 and [cava's README](https://github.com/karlstav/cava#readme).
@@ -4946,7 +4950,7 @@ and [cava's README](https://github.com/karlstav/cava#readme).
 > it — "what are you playing?", "pause". Chapter 32 shows how it works.
 
 Every player that speaks MPRIS shows in *now playing* and answers the media keys:
-Brave (Spotify's web player, a video or a tab playing sound) and mpv (through the mpv-mpris
+Helium (Spotify's web player, a video or a tab playing sound) and mpv (through the mpv-mpris
 plugin). *MPRIS* is the standard D-Bus interface through which a player says what it plays
 and takes play, pause and skip from anyone.
 
@@ -4956,11 +4960,11 @@ and takes play, pause and skip from anyone.
 | the next track | the **Next** key, or right-click the title |
 | the previous track | the **Previous** key, or middle-click the title |
 
-With several players at once — music in Spotify (Brave) and a paused film in mpv —
+With several players at once — music in Spotify (Helium) and a paused film in mpv —
 the bar shows the one playing (the last to start, if more than one does), else the last one
 paused. The keys and the clicks run `kawa-nowplaying play-pause`, `next` or `previous`, which
 act on the player that is **playing**: the music pauses, and the paused film stays as it was.
-(Brave is one player for all its tabs and windows: it shows the one that plays last.)
+(Helium is one player for all its tabs and windows: it shows the one that plays last.)
 Plain `playerctl` would pick the player that started first, and could start the video on top
 of the music.
 
@@ -5013,7 +5017,7 @@ two twins in `pipewire-pulse.conf.d` and `client.conf.d`):
 
 | Setting | Is | Why |
 |---|---|---|
-| `default.clock.rate = 48000` | the card's rate | calls, games, Brave and Spotify's web player all play at 48 kHz: nothing resampled |
+| `default.clock.rate = 48000` | the card's rate | calls, games, Helium and Spotify's web player all play at 48 kHz: nothing resampled |
 | `default.clock.allowed-rates = [ 44100 48000 88200 96000 ]` | rates PipeWire may switch to | a 44.1 kHz FLAC in mpv, playing alone, runs the card at 44.1 kHz — bit for bit; it switches only while nothing plays, so you never hear it |
 | `default.clock.min-quantum = 256` | the shortest period (5.3 ms) | a game or a call may ask for less; below 256 the analog card crackles while the GPU is busy |
 | `resample.quality = 10` | the resampler, 0–14 (PipeWire's own default: 4) | when two programs at different rates play at once; it costs time only while it resamples |
@@ -5029,12 +5033,12 @@ ticked row under 入 is the default input: click another microphone's row and th
 the default, and what records moves to it at once — a call in progress keeps going; muted stays
 muted.
 
-**Calls in Brave: Discord and Meet.** Set *Input Device* (Discord → User Settings → Voice &
+**Calls in Helium: Discord and Meet.** Set *Input Device* (Discord → User Settings → Voice &
 Video) and *Microphone* (Meet → ⋮ → Settings → Audio) to **Default**: they then follow the
-input you pick in the sound panel. Meet asks Brave for its own echo cancellation and gain on
-every call and offers no switch. `brave-origin` starts Brave so that a call can never move your
+input you pick in the sound panel. Meet asks Helium for its own echo cancellation and gain on
+every call and offers no switch. `kawa-browser` starts Helium so that a call can never move your
 microphone's level in the system (its `WebRtcAllowInputVolumeAdjustment` is off,
-`~/.local/bin/brave-origin`): only Brave's own gain, inside the call, is left.
+`~/.local/bin/kawa-browser`): only Helium's own gain, inside the call, is left.
 
 **The microphone's level.** Set once, in the mixer: sound panel → *mixer* → *Input Devices*,
 the microphone near **100 %** — that is the card's 0 dB; above it the card adds its boost,
@@ -5045,7 +5049,7 @@ health report checks the range (*AUD-19*).
 **wiremix**, the full mixer: sound panel → *mixer*. It is a terminal program, and opens in a
 floating window of its own; the tabs are named along its foot. *Playback* — a volume and an
 output device for **each program** (send a call to headphones and music to speakers, or a game
-to the **Share** output for a call, §14.4); *Recording* — which microphone each program listens
+to another output); *Recording* — which microphone each program listens
 to, shown while it records; *Output Devices* and *Input Devices* — each device's level, with a
 meter of what is playing; *Configuration* — the card's profile (for example HDMI against
 analogue, or turning a card off).
@@ -5058,8 +5062,7 @@ analogue, or turning a card off).
 1. Play something: music in Spotify, or a video in mpv.
 2. **Super+A**, then *mixer*, the key beside *mute* under 音 *sound*. wiremix opens on *Playback*, and the
    player has a row of its own: its name, the output it plays to at the right (◇ marks the
-   default one), a bar for its level. One row is always there, *share_sink.out: Share output*:
-   the **Share** device (§14.4) passing on to your speakers what you send it — leave it at 100 %.
+   default one), a bar for its level.
 3. **j** and **k** move the marker to that row; **h** (or **←**) lowers its level, one per cent
    a step, **1** to **9** set it to 10 % to 90 %, **0** to 100 %. Only that program gets quieter.
 4. **Enter** opens the list of outputs for the row. **j**/**k** to another one (headphones, a
@@ -5281,7 +5284,7 @@ small thing to do, then lists the keys and the details.
 
 <!-- fig:app-zathura | A PDF in zathura, in the palette. -->
 
-Open a document from yazi or Brave's downloads (zathura is the default for PDF, EPUB and
+Open a document from yazi or Helium's downloads (zathura is the default for PDF, EPUB and
 comic books), or type `zathura --fork file.pdf` — `--fork` gives the terminal back. zathura
 reads **PDF**, **EPUB** and **XPS** (through mupdf) and **CBZ/CBR** comic archives. Pages open
 fitted to the window, one per row; the status and command bars are hidden until needed.
@@ -5486,7 +5489,7 @@ another tool chosen in *Edit → Preferences → Stylus* stays as you set it.
 
 **LibreOffice** is the office suite: **Writer** for letters and documents, **Calc** for
 spreadsheets, **Impress** for slides (§16.5). Each is in the launcher (type `writer`, `calc`
-or `impress`), and each is the default for its files: **Enter** in yazi, a download in Brave
+or `impress`), and each is the default for its files: **Enter** in yazi, a download in Helium
 or `xdg-open` opens a Word file (`.docx`, `.doc`) in Writer, an Excel file (`.xlsx`, `.xls`)
 in Calc and a PowerPoint file (`.pptx`, `.ppt`) in Impress — their OpenDocument cousins
 (`.odt`, `.ods`, `.odp`) too. A `.csv` opens in VisiData instead (§16.7). They edit
@@ -5559,7 +5562,7 @@ $ qpdf --show-npages first-three.pdf
 Ch. 19 has many more recipes like this one, for PDFs, pictures, video and sound.
 
 **Read more:** [LibreOffice's help](https://help.libreoffice.org/) (also *Help → LibreOffice
-Help*, in Brave), [the qpdf manual](https://qpdf.readthedocs.io/) and [Xournal++'s guide](https://xournalpp.github.io/).
+Help*, in Helium), [the qpdf manual](https://qpdf.readthedocs.io/) and [Xournal++'s guide](https://xournalpp.github.io/).
 
 ## 16.5 Slides: LibreOffice Impress
 
@@ -5660,7 +5663,7 @@ list of units and functions.
 A CSV — a table saved as plain text, one line per row, commas between the columns — wants
 sorting, summing and filtering before it wants a spreadsheet. **VisiData** (`vd`)
 does that in the terminal, on a file of any size, and opens at once: **Enter** on a `.csv` or
-`.tsv` in yazi (**q** brings yazi back), a download from Brave in a terminal window of its own
+`.tsv` in yazi (**q** brings yazi back), a download from Helium in a terminal window of its own
 (the *Tables* entry, §10.5), or `vd file.csv` in a terminal.
 
 <!-- fig:app-visidata | VisiData on a small CSV, the cursor on the temp column: its name lit, the sum row under the table, the status line below; on the dark theme, the same on the light. -->
@@ -6202,7 +6205,7 @@ prints only `a` and `0`.
 
 **Here, the plain commands use the desktop's clipboard.** LazyVim sets `clipboard=unnamedplus`
 (except in an SSH session), so `y`, `d`, `c`, `x` and `p` all go through the system clipboard:
-a line yanked in neovim pastes into Brave with Ctrl+V, a link copied in Brave pastes in neovim
+a line yanked in neovim pastes into Helium with Ctrl+V, a link copied in Helium pastes in neovim
 with `p`, and every yank lands in the clipboard history (Super+V, §12.1) — and, thanks to
 `kawa-clipkeep`, stays on the clipboard after neovim closes. `"+y` and `"+p`, the way plain Vim
 reaches the clipboard, work too and do exactly the same.
@@ -6218,7 +6221,7 @@ reaches the clipboard, work too and do exactly the same.
 | `*` | the primary selection (select, then middle-click) |
 | `/` · `:` · `.` · `%` | the last search · the last command · the last text typed · this file's name |
 
-**Tip:** since deletes go to the clipboard, a `dd` replaces the link you copied in Brave a minute
+**Tip:** since deletes go to the clipboard, a `dd` replaces the link you copied in Helium a minute
 ago. It is still in Super+V; to keep it on the clipboard, delete with `"_d`, or paste your last
 yank with `"0p`.
 
@@ -6624,7 +6627,7 @@ vim.opt.wrap = true              -- long lines wrap in every file, not only in t
 | search · next · previous · the word under the cursor | `/text` · `n` · `N` · `*` |
 | replace in the whole file | `:%s/old/new/g` (`gc` to confirm each) |
 | record · stop · play a macro | `qa` · `q` · `@a`, `@@`, `10@a` |
-| open the link under the cursor in Brave | `gx` |
+| open the link under the cursor in Helium | `gx` |
 | fold · unfold · open every fold | `zc` · `zo` · `zR` |
 | find a file · text · an open buffer | Space Space · Space / · Space , |
 | the file tree · lazygit | Space e · Space g g |
@@ -7730,9 +7733,9 @@ Zone names come from `timedatectl list-timezones | rg -i york`.
 >
 > - open Prowlarr's page: no login, the torrent sites setup gave it already there
 > - search, download and seed with torrra
-> - open magnet links from Brave, and act on torrra's messages when something is wrong
+> - open magnet links from Helium, and act on torrra's messages when something is wrong
 >
-> **You need:** ch. 14 (Brave) and ch. 11 (the terminal).
+> **You need:** ch. 14 (Helium) and ch. 11 (the terminal).
 
 <!-- fig:app-torrra | torrra after a search: twelve results with their sizes and seeders:leechers, in the terminal's colours. -->
 
@@ -7804,7 +7807,7 @@ programs (torrra) still need its API key. `verify` checks it: *Prowlarr's page o
 login*. To look at the eight:
 
 1. Open **Prowlarr** from the launcher (**Super+Space**, type `prow`), or type `prowlarr` in a
-   terminal: it wakes Prowlarr (a few seconds) and opens <http://localhost:9696> in Brave once
+   terminal: it wakes Prowlarr (a few seconds) and opens <http://localhost:9696> in Helium once
    it answers — straight onto its indexers.
 2. **Indexers** lists them; **Test All** checks each one. One that is down for a while is kept:
    Prowlarr tries it at every search and pauses one that keeps failing. To add another site:
@@ -7869,9 +7872,9 @@ watch torrents work.
 5. **Ctrl+Q** quits, and the download pauses with it. Open **Torrents** again: it carries on
    where it was.
 
-### Magnet links in Brave
+### Magnet links in Helium
 
-The first magnet link you click makes Brave ask whether to open
+The first magnet link you click makes Helium ask whether to open
 it with *xdg-open*; tick *Always allow* and say yes. From then on a magnet link — or a
 `.torrent` file opened from the downloads (a `file://` link to one too) — starts torrra in its
 own window at that torrent's file list; **Enter** starts the download (pressed before the list has loaded, it takes every
@@ -8299,7 +8302,7 @@ bottom up:
 programs that live on it:
 
 ```text
- your programs      Brave Origin · foot + bash · mpv · yazi · neovim · Steam
+ your programs      Helium · foot + bash · mpv · yazi · neovim · Steam
  the session        dwl (on wlroots) · waybar · mako · kawa-panel · swayidle · gtklock · kawa-*
  desktop services   PipeWire + WirePlumber · xdg-desktop-portal · D-Bus · polkit agent · udiskie
  system services    systemd · greetd · NetworkManager · resolved · BlueZ · firewalld · tuned
@@ -8531,7 +8534,7 @@ The folders that matter, each with an example from this machine:
 | `/proc` | the kernel's view of processes and settings, made up as you read it | `/proc/cmdline`, `/proc/1234/status` |
 | `/sys` | the kernel's view of devices and drivers | `/sys/class/drm`, `/sys/firmware/efi` |
 | `/dev` | device files, made by the kernel and udev (§30.2) | `/dev/nvme0n1`, `/dev/dri/renderD128`, `/dev/zram0` |
-| `/opt` | large self-contained programs from outside the distribution | Brave's package puts the browser under `/opt/brave.com/` |
+| `/opt` | large self-contained programs from outside the distribution | Helium's package puts the browser under `/opt/brave.com/` |
 
 > **Word — device file.** A file in `/dev` that stands for a piece of hardware: reading or
 > writing it talks to a driver, not to a stored file. `/dev/nvme0n1` is the whole SSD;
@@ -8590,11 +8593,11 @@ The whole picture, place by place, with who writes there and what may go:
 | `/etc` | system-wide settings: DNF (`/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf`, the snapshot hook in `/etc/dnf/libdnf5-plugins/actions.d/`), the tuned profile, NetworkManager, `/etc/dconf`, `/etc/default/grub`, snapper's configs | Setup and Theme (as root), and Fedora's packages | no. Change Fedokawaii's own files through `fedokawaii.conf` and the toolkit (§5.5); anything else with `sudoedit FILE`, as a drop-in where the program reads one (§28.3) |
 | `~/.config` | every program's settings | Theme owns the files listed in §42.2; the rest are yours | no — but a managed file edited here is replaced at the next Theme run |
 | `~/.config/fedokawaii/` | `env`, `themes/`, `current`, `icons.sh`, `width.sh`, `files.sh`, `backup-exclude`, `secrets.sh` | Theme (`env` is written from `fedokawaii.conf`); `secrets.sh` is yours | no |
-| `~/.local/bin` | `kawa-*` helpers, `fetch`, `brave-origin`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `lazygit`, `bluetui`) | Theme and `update` | no. Your own scripts may live here too, under names the desktop does not use there |
+| `~/.local/bin` | `kawa-*` helpers, `fetch`, `kawa-browser`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `lazygit`, `bluetui`) | Theme and `update` | no. Your own scripts may live here too, under names the desktop does not use there |
 | `~/.local/share` | program data: Steam and its games, uv's Pythons and torrra, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
 | `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update), `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 10 |
 | `~/.cache` | logs, previews, the scaled wallpapers, the clipboard history, launcher counts | the programs | yes, piece by piece; every program rebuilds its part (§38.2) |
-| `~/Downloads` | what Brave, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
+| `~/Downloads` | what Helium, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
 | `~/Pictures/Screenshots` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | the screenshot tools | yes, whenever you like |
 | `~/Pictures/Wallpapers` | your own wallpapers, shown on both themes | you | yes |
 | `~/Books` | your library: what the books window (Super+R) lists | you (and its Ctrl+A) | yes, book by book — Ctrl+D in the window sends one to the trash |
@@ -10053,7 +10056,7 @@ dnf's job. Asking rpm is always safe:
 | which files are in this package? | `rpm -ql greetd` | `/etc/greetd/config.toml`, `/usr/bin/greetd`, `/usr/lib/systemd/system/greetd.service`, … |
 | what is it, and from whom? | `rpm -qi ffmpeg-libs` | `Name : ffmpeg-libs` … `Vendor : RPM Fusion` … |
 | have its files changed since? | `rpm -V greetd` | nothing when they are as packaged; a line per changed file otherwise |
-| which keys does rpm trust? | `rpmkeys --list` | one line per key: its fingerprint and its name — Fedora's, RPM Fusion's, Brave's, Claude Code's, each COPR's |
+| which keys does rpm trust? | `rpmkeys --list` | one line per key: its fingerprint and its name — Fedora's, RPM Fusion's, Helium's, Claude Code's, each COPR's |
 
 Fedora 43 brought **RPM 6.0**, which identifies keys by their full fingerprint and makes
 `rpmkeys` the tool for them. From Fedora 45 rpm also refuses, by default, any package whose
@@ -10131,7 +10134,7 @@ The last one keeps four things out that would otherwise arrive unasked:
 | Node 22 (`nodejs`) | tree-sitter-cli, which neovim recommends (§27.4) | this desktop keeps one Node.js, the 24 the manifest names |
 | PackageKit | PackageKit-Qt6, a library some Qt programs use | a software centre's background updater: here dnf alone installs and updates (§27.10) |
 | Java (`java-*-openjdk-headless`) | LibreOffice | some 200 MB for LibreOffice's database program and old macros, neither installed here |
-| LibreOffice's offline help (`libreoffice-help-*`) | LibreOffice's language packs | **F1** opens the same help online, in Brave |
+| LibreOffice's offline help (`libreoffice-help-*`) | LibreOffice's language packs | **F1** opens the same help online, in Helium |
 
 Setup and `verify` check all seven with `dnf --dump-main-config`, which prints every setting as
 DNF sees it once all its files are read:
@@ -10196,7 +10199,7 @@ trusting it; Fedora's own keys come with Fedora, in `/etc/pki/rpm-gpg/`.
 
 > **On Fedora 45.** `ls /usr/share/dnf5/repos.d/` lists Fedora's own repository files, and
 > its keys are in `/usr/share/pki/rpm-gpg/`: Fedora 45 moved both out of `/etc`. The files
-> setup adds — Claude Code's, Brave's, the COPRs' — stay in `/etc/yum.repos.d/`.
+> setup adds — Claude Code's, Helium's, the COPRs' — stay in `/etc/yum.repos.d/`.
 
 *Read more:* [Enforcing signature checking by default](https://fedoraproject.org/wiki/Changes/Enforcing_signature_checking_by_default).
 
@@ -10212,7 +10215,7 @@ dnf repolist          # the enabled ones, by id and name
 | `fedora-cisco-openh264` | Cisco's H.264 codec, built and shipped by Cisco for licensing reasons | enabled by Fedora by default |
 | `rpmfusion-free` (+ `-updates`) | free software Fedora leaves out, mostly for patent reasons | the full **ffmpeg**, Mesa's **freeworld** VA-API driver (H.264 and HEVC), `libheif-freeworld` |
 | `rpmfusion-nonfree` (+ `-updates`) | software that is free to use but not open source | **Steam**; Intel's full VA-API driver |
-| `brave-browser` | Brave's own, signed | `brave-origin` |
+| `brave-browser` | Helium's own, signed | `kawa-browser` |
 | `claude-code` | Anthropic's own, signed, fingerprint checked | `claude-code` |
 | `copr:copr.fedorainfracloud.org:ilyaz:LACT` | a COPR (§5.4) | LACT, the AMD GPU control |
 | `copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs` | a COPR | `grub-btrfs`, the snapshots in the boot menu |
@@ -10423,7 +10426,7 @@ waybar                          the bar
 | a click → the player | `"on-click": "kawa-nowplaying play-pause"`: a D-Bus call to the player the bar shows | the button in the bar |
 
 The script prints lines such as `{"text":"…  artist — title  …","class":"playing"}`;
-waybar puts the text in the bar and the class in its stylesheet. Brave (Spotify's web player
+waybar puts the text in the bar and the class in its stylesheet. Helium (Spotify's web player
 among its tabs and windows) joins the same way, because it registers an MPRIS name too.
 
 ## 27.10 The manifest, setup and verify
@@ -10557,7 +10560,7 @@ list into its count.
   and a signature; `rpm` asks about installed ones.
 - dnf refreshes, solves, asks, downloads and checks, then installs in one transaction — here
   between two snapshots.
-- Every repository is signed and checked; this desktop adds RPM Fusion, Brave, Claude Code and
+- Every repository is signed and checked; this desktop adds RPM Fusion, Helium, Claude Code and
   a COPR to Fedora's own.
 - Programs need sonames, not packages; drivers are loaded by name at run time, which dnf
   cannot see — `verify` tests them.
@@ -11303,7 +11306,7 @@ keeps running with nobody logged in, because setup turned **linger** on for you
 | `XKB_DEFAULT_LAYOUT`, `XKB_DEFAULT_OPTIONS` | `us,ara`, `grp:alt_shift_toggle` | the keyboard, from `fedokawaii.conf` |
 | `QT_QPA_PLATFORM`, `GDK_BACKEND` | `wayland;xcb`, `wayland,x11` | Qt and GTK: Wayland first, X11 as the fallback (§31.6) |
 | `GTK_USE_PORTAL` | `1` | GTK 3 programs' file dialogs through the portal (yazi) |
-| `EDITOR`, `TERMINAL`, `BROWSER` | `nvim`, `foot`, `brave-origin` | programs that open one of these |
+| `EDITOR`, `TERMINAL`, `BROWSER` | `nvim`, `foot`, `kawa-browser` | programs that open one of these |
 | `XCURSOR_THEME` | `default` | the pointers: `~/.local/share/icons/default`, a link to the Sumi pointers of the theme in use (§40.5) |
 | `PATH` | `~/.local/bin` first | the `kawa-*` helpers |
 
@@ -11710,7 +11713,7 @@ This chapter follows both, layer by layer, from the program down to the kernel's
 From a program's drawing to light on the screen:
 
 ```text
- a program (Brave, foot, mpv)   draws its window into a buffer, through its toolkit (GTK, Qt):
+ a program (Helium, foot, mpv)   draws its window into a buffer, through its toolkit (GTK, Qt):
    │                            on the GPU with Mesa (radeonsi · RADV · ANV) and the kernel's DRM,
    │                            or on the CPU
    ▼
@@ -11762,7 +11765,7 @@ Facts worth knowing for 2025–2026:
 * **RADV** is the Vulkan driver for AMD. AMD ended its own open driver, AMDVLK, in September
   2025 and now backs RADV. This desktop uses Fedora's build of it, 64- and 32-bit (Steam's
   games need both). RPM Fusion also makes a freeworld Vulkan build, but all it adds is
-  Vulkan's own H.264 and HEVC video, which nothing here uses — mpv and Brave decode through
+  Vulkan's own H.264 and HEVC video, which nothing here uses — mpv and Helium decode through
   VA-API — and its 64- and 32-bit packages have clashed over a shared file, so installing
   the one took the other out. `repair` swaps it for Fedora's if an older setup put it in.
 * Intel's new kernel driver **xe** is the default for Lunar Lake and Battlemage since Linux
@@ -11862,7 +11865,7 @@ Volume: 0.40
 |---|---|---|
 | **ALSA** | the kernel's sound drivers, and the oldest way for a program to reach a sound card | `/proc/asound/cards`; `/dev/snd/` |
 | **PipeWire** | one sound server for every program: it mixes streams, moves them between devices and passes sound between programs (and video, for screen sharing) | `pipewire.service`, started by `pipewire.socket` |
-| **pipewire-pulse** | PipeWire speaking PulseAudio's protocol, so programs written for PulseAudio (Brave, Steam) work unchanged | `pipewire-pulse.service` (package `pipewire-pulseaudio`) |
+| **pipewire-pulse** | PipeWire speaking PulseAudio's protocol, so programs written for PulseAudio (Helium, Steam) work unchanged | `pipewire-pulse.service` (package `pipewire-pulseaudio`) |
 | **pipewire-alsa** | sends programs that open ALSA directly (some games) through PipeWire | a plugin, no process of its own |
 | **WirePlumber** | PipeWire's *session manager*: the policy — which device is the default, where a new stream goes, what is remembered | `wireplumber.service` |
 
@@ -12004,17 +12007,17 @@ by a file named after `XDG_CURRENT_DESKTOP` — here `wlroots`, so
 | Interface | Backend | Does |
 |---|---|---|
 | `FileChooser` | `termfilechooser` | yazi in a floating terminal, through `kawa-pick` — the only file dialog |
-| `ScreenCast` · `Screenshot` | `wlr` | screen sharing and screenshots for Brave and others |
-| `Settings` | `gtk` | the colour scheme GTK 4 and Brave follow |
+| `ScreenCast` · `Screenshot` | `wlr` | screen sharing and screenshots for Helium and others |
+| `Settings` | `gtk` | the colour scheme GTK 4 and Helium follow |
 | `AppChooser` · `Print` · `Notification` · `Inhibit` · `Access` · `Account` · `Email` · `DynamicLauncher` · `Lockdown` | `gtk` | the rest the GTK backend serves, each named |
 
-An upload in Brave, link by link:
+An upload in Helium, link by link:
 
-1. Brave calls the portal's `OpenFile` method on your session bus.
+1. Helium calls the portal's `OpenFile` method on your session bus.
 2. `xdg-desktop-portal` reads `wlroots-portals.conf` and passes the request to the
    termfilechooser backend (D-Bus starts it if it is not yet running).
 3. The backend runs `~/.local/bin/kawa-pick`, which opens yazi in a floating foot window.
-4. You choose a file; the path travels back the same way, and Brave reads that file.
+4. You choose a file; the path travels back the same way, and Helium reads that file.
 
 The portals start only inside a graphical session, which is why the autostart starts
 `dwl-session.target` (it binds systemd's `graphical-session.target`) and `start-dwl` stops it at
@@ -12041,7 +12044,7 @@ org.freedesktop.impl.portal.ScreenCast=wlr
 org.freedesktop.impl.portal.Screenshot=wlr
 # file dialogs: yazi, the one dialog
 org.freedesktop.impl.portal.FileChooser=termfilechooser
-# the dark / light setting that GTK 4 and Brave follow
+# the dark / light setting that GTK 4 and Helium follow
 org.freedesktop.impl.portal.Settings=gtk
 # the rest the GTK backend serves, each by name (no default=: nothing goes anywhere unnamed)
 org.freedesktop.impl.portal.AppChooser=gtk
@@ -12179,7 +12182,7 @@ starts the file dialog's backend at the first upload.
 
 **Check yourself**
 
-1. Which bus carries a message from Brave to the portal? → *your session bus*
+1. Which bus carries a message from Helium to the portal? → *your session bus*
 2. Why does mako come back after it was closed? → *D-Bus activates it when the next
    notification arrives*
 3. Which file decides that file dialogs open yazi? → *`wlroots-portals.conf`, in
@@ -12872,7 +12875,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | system | `fedokawaii.conf` valid · Fedora ≥ 44 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/Downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
 | packages (lib/manifest.sh) | every manifest package installed · no lpf, nor what it left (it built Spotify's old app: a warning until update and repair take it out) · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
 | zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
-| repositories & dnf | RPM Fusion, Brave, Claude Code, COPRs · all seven DNF values |
+| repositories & dnf | RPM Fusion, Helium, Claude Code, COPRs · all seven DNF values |
 | upkeep (fedokawaii · Super+U) | the toolkit root's alone · the `fedokawaii` command the toolkit's · the manifest marked as yours |
 | boot & kernel | the boot-menu setting · the boot-success timer · one kernel, the newest, running (two only while a new one settles in) · the start-up check that keeps it one · every kernel's boot image · no rescue image · the boot's arguments on every entry (rhgb quiet: the splash; a quiet boot — no kernel or systemd messages, no console cursor; no console-size wait) · a text console's cursor back at login · vi a script for nvim (never a link: dracut would follow it) · the GPU kernel argument |
 | GPU & media | hardware video decoding · Vulkan · btop's view of an AMD card (the ROCm SMI library) · ffmpeg encoders |
@@ -12880,9 +12883,9 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock's quick wrong-password answer (its PAM file) and its words without its module · the yazi file dialog built and known to the portals |
 | services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
 | upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh · GE-Proton |
-| applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
+| applications | Helium actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
-| theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
+| theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Helium in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
 | live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices (PipeWire's node `share_sink`) · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
 
 The *live session* area appears only while your desktop session runs (verify looks for dwl):
@@ -12975,7 +12978,7 @@ every 60, 90 or 120 days, then off.
 | your working copy | only when the update is run from it (chapter 42): the copy becomes the toolkit, your saved settings merged in | a copy with a link in it is refused: it stops before anything has changed |
 | checks | 10 GB free on `/` and 300 MB on `/boot`, no earlier update waiting for a restart, dnf's own state (packages left twice by an interrupted run are tidied); a clock that is not synchronised is only reported | it stops before anything has changed, and says what to do |
 | snapshot | a numbered snapshot of `/`, *before update DATE*, checked to exist | it stops: nothing is updated without one |
-| packages | one `dnf upgrade --refresh` — Fedora, RPM Fusion, Brave, Claude Code, the COPRs — run as a system service of its own, its output followed in the window and kept in the log: closing the window, or the session ending, cannot cut it off halfway | tried again; if a third-party repository is what fails, Fedora's own updates go ahead without it and the report says so; otherwise it stops with nothing changed |
+| packages | one `dnf upgrade --refresh` — Fedora, RPM Fusion, Helium, Claude Code, the COPRs — run as a system service of its own, its output followed in the window and kept in the log: closing the window, or the session ending, cannot cut it off halfway | tried again; if a third-party repository is what fails, Fedora's own updates go ahead without it and the report says so; otherwise it stops with nothing changed |
 | `fedokawaii.conf` | its system values applied again: keyboard, time zone, DNF, SSH, the performance profile | |
 | the manifest | anything missing installed; a package a newer Fedora no longer has is listed, never fatal | |
 | this machine's drivers | the firmware the kernel asked for and did not find, the CPU's microcode, Wi-Fi's and the sound card's parts — whatever this hardware needs (§30.1); device firmware updates are listed, never applied by themselves | each on its own |
@@ -13063,7 +13066,7 @@ their own when they ask — each command touches that one program only:
 
 | When | Command |
 |---|---|
-| Brave reports a security fix you want now | `sudo dnf upgrade --refresh brave-origin` |
+| Helium reports a security fix you want now | `sudo dnf upgrade --refresh kawa-browser` |
 | YouTube stops playing in mpv, or yt-dlp says to update | `sudo dnf upgrade --refresh yt-dlp` |
 | security fixes only, between seasons (optional) | `sudo dnf upgrade --refresh --security` |
 
@@ -14052,7 +14055,7 @@ report**, `~/fedokawaii-report.txt`. About 700 checks, each with an ID (`BOOT-01
   desktop's wake-ups (each of its own processes at most 20 a second), every session
   process's memory against its limit, the desktop's total after login (at most 450 MB), the
   bar (its processes, each module's run time, how often anything polls — never under 10 s —
-  and its CPU at rest, under 1 % of a core), the terminal, neovim, yazi and a cold Brave
+  and its CPU at rest, under 1 % of a core), the terminal, neovim, yazi and a cold Helium
   timed as they open, a wallpaper's change and preview, and the theme switch (THEME-10, at
   most 1.5 s); the launcher (UI-05) and a dropdown from the bar (UI-04) are judged the same way;
 - **the install:** setup's log (each `✘` with the six lines that led to it), verify's full
@@ -14064,7 +14067,7 @@ report**, `~/fedokawaii-report.txt`. About 700 checks, each with an ID (`BOOT-01
   theme, the session's programs (each running once), the journal, crashes (grouped by
   program, with the package and what dnf was doing then), sleep and the lock;
 - **the hardware and the network:** the cards, the monitor and DDC/CI, input, the network,
-  the clock, the firewall, sound (the Share output, the click), Bluetooth, the disks, Btrfs,
+  the clock, the firewall, sound (the click), Bluetooth, the disks, Btrfs,
   snapshots and the NVMe's health;
 - **the desktop:** how fast menus, the panel and the level display answer; the bar, notices,
   the clipboard (a copy followed into Super+V's history, and kept once its program quits),
@@ -14096,7 +14099,7 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
   (PERF-09, `system/fedokawaii-latency`): every bar module's click (its menu or panel up, its
   button lit, then dark), the three panels, a volume key to the bar's figure, the hotkey
   toggles, notices, the fzf screens' lists and a keystroke's filter, the terminal, the
-  shell's first prompt and the prompt after a command, neovim, yazi, btop, lazygit, Brave
+  shell's first prompt and the prompt after a command, neovim, yazi, btop, lazygit, Helium
   from cold, a screenshot, OCR, a recording's start, a wallpaper preview, and the theme
   switches and wallpaper changes the desktop logs itself. Each is judged on its 95th
   percentile and its spread — never one lucky sample — and listed worst first. The ordinary
@@ -14153,12 +14156,12 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
 | the bar shows no workspaces | `~/.cache/waybar.log`; `pgrep -f kawa-dwlstatus` |
 | the bar, the terminal server or the clipboard keeper vanished | they start again by themselves within a second; if one keeps failing, a notice says so once — `~/.cache/dwl.log`. mako is started again by the next notification |
 | a copy is gone after closing its program | `pgrep kawa-clipkeep` (not installed: the login said so); **Super+U** → *theme, applied again*; Super+V still has it |
-| an upload button does nothing | `verify` (the portal checks); then restart Brave — it looks for the file-dialog portal when it starts |
+| an upload button does nothing | `verify` (the portal checks); then restart Helium — it looks for the file-dialog portal when it starts |
 | a USB drive does not open | `lsblk -f` (is a file system there?); `pgrep -a udiskie`; open it by hand: `udisksctl mount -b /dev/sdb1` says why not; an NTFS disk from Windows: §13.7 |
 | "is in use" when ejecting | the notice names the program: close it (a terminal standing in the drive: `cd` out), then eject again |
 | no music meter | `cava -v`; the meter appears only while an MPRIS player plays (`playerctl -l` lists them); should cava end, it is back half a second later |
 | brightness does nothing | switch **DDC/CI on** in the monitor's own menu, then try Super+]; on a laptop, `ls /sys/class/backlight` should list its screen |
-| Brave not in the desktop's colours | it was open while the theme was applied: close Brave, then **Super+U** → *theme, applied again* (or Settings → Appearance → Theme → GTK) |
+| Helium not in the desktop's colours | it was open while the theme was applied: close Helium, then **Super+U** → *theme, applied again* (or Settings → Appearance → Theme → GTK) |
 | torrra says Prowlarr has no indexers switched on | `fedokawaii repair` adds the usual eight (online); or *Prowlarr* in the launcher → Indexers (§20.1) |
 | the boot menu has the wrong size | after changing monitors: **Super+U** → *theme, applied again* |
 | a wallpaper-pack picture is missing | `kawa-wallpaper --pack` when online |
@@ -14172,10 +14175,9 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
 
 | Known issue | Status |
 |---|---|
-| foot does not reorder right-to-left text | Arabic is complete in GTK/Qt programs and Brave; in the terminal the letters show but are not reordered — a foot limitation |
+| foot does not reorder right-to-left text | Arabic is complete in GTK/Qt programs and Helium; in the terminal the letters show but are not reordered — a foot limitation |
 | Steam's interface | not themeable |
-| Brave's own pages | settings pages, the Shields panel, about:blank and error pages keep Brave's own greys; private windows keep its private colours |
-| sharing a screen with system sound | carries the call's own sound too (an echo for the others); use a tab's sound or the Share output instead (§14.4) |
+| Helium's own pages | settings pages, the uBlock panel, about:blank and error pages keep Helium's own greys; private windows keep its private colours |
 
 **Reading the logs.** Most rows in the first table end in a log; these commands read them:
 
@@ -14471,14 +14473,14 @@ below read.
 | mako | `include=current/mako` (outside any section, as mako requires); the file carries its own sections for low-urgency, critical and level notices | `makoctl reload` |
 | GTK 4 / libadwaita | one `gtk.css` with both palettes, chosen by GTK's color-scheme media query | gsettings `color-scheme` |
 | GTK 3 | two GTK themes of its own, `Fedokawaii` and `Fedokawaii-dark` (adw-gtk3 + the palette, in `~/.local/share/themes`) | gsettings `gtk-theme` — every open window, the file dialog included |
-| Brave | GTK mode (set by Theme): its tab strip, toolbar and menus come from the GTK theme, a few rules in it reach Brave alone (the address bar keeps Brave's own colours); the new-tab page is the ground colour (`light-dark()`); web pages follow the portal's dark / light | live |
+| Helium | GTK mode (set by Theme): its tab strip, toolbar and menus come from the GTK theme, a few rules in it reach Helium alone (the address bar keeps Helium's own colours); the new-tab page is the ground colour (`light-dark()`); web pages follow the portal's dark / light | live |
 | Qt | `qt6ct.conf` is a link into the theme (the palette, GTK's fonts — Noto Sans 10.5, UDEV Gothic NF 11 — and GTK's Adwaita icons) | the link is replaced; qt6ct watches its folder |
 | mpv | `include` of `current/mpv.conf`: on-screen text, the controller, menus | every open player loads the new file over its socket |
 | btop | `color_theme = "fedokawaii"`: `~/.config/btop/themes/fedokawaii.theme` is a link through `current` (btop takes themes only by name) | SIGUSR2 |
 | zathura | `include ../fedokawaii/current/zathurarc` | `SourceConfig` over D-Bus |
 | imv | its config file is a link into the theme | next start |
 | gtklock (the lock) | `kawa-lock` passes `-s current/gtklock.css`; the login screen has its own copy of both themes' | next lock; the login screen after `fedokawaii repair` |
-| the pointers | `~/.local/share/icons/default` is a link to `Sumi-dark` or `Sumi-light` (§40.5); GTK 3 has gsettings `cursor-theme` | the link is replaced and dwl told (SIGUSR1): it loads them again, and the window under the pointer asks anew — GTK 4, foot, Qt and Brave at once, GTK 3 by gsettings; an XWayland program at its next start |
+| the pointers | `~/.local/share/icons/default` is a link to `Sumi-dark` or `Sumi-light` (§40.5); GTK 3 has gsettings `cursor-theme` | the link is replaced and dwl told (SIGUSR1): it loads them again, and the window under the pointer asks anew — GTK 4, foot, Qt and Helium at once, GTK 3 by gsettings; an XWayland program at its next start |
 | the screenshot region | `kawa-screenshot` reads `current/colors.sh` | next screenshot |
 | wallpaper | each theme's own choice | `kawa-wallpaper --restore` |
 | MangoHud (games) | `MangoHud.conf` in the dark palette and Sumi UI | — |
@@ -14512,7 +14514,7 @@ checks that each one is still a palette colour (it stops if not).
 | **Sumi UI** (東雲 Shinonome Gothic 14) | everything the desktop draws itself: the bar, the launcher, menus, panels and notifications at 14 px; the lock and login screens (their clock at 56); the boot menu at 28, 42 or 56 px; the boot splash | a dot face with Latin, kana and kanji in one face, on a 14 px grid (a letter 7 px wide, a kanji 14), every stroke one pixel — set at 14 px or a whole multiple, never in points, with smoothing off. No two letters touch (each one-cell character keeps its last column empty); its five old-fashioned signs (the tilde, the backslash, both quotes, the grave accent) are redrawn, the signs and punctuation the desktop uses (‘ ’ “ ” – — … • arrows ◆ ● ✓ ° ± × ÷ €) drawn by hand on its grid (`art/signs.txt`), Latin Extended-A (ā č ę ł ő ř ş ž) composed from its own letters and accents, and Greek, Cyrillic and the rarer signs taken from Cozette (MIT). A file of this repository (`system/fonts`, made by `tools/build-fonts.py`; MIT), installed for every account in `/usr/local/share/fonts/fedokawaii` because the login screen runs as its own user, and declared bold so no program ever smears it with a bold of its own making |
 | **Sumi Term** (UDEV Gothic NF) | the terminal and all in it (neovim, yazi, btop…) at 16 px, on 20 px lines (§11.9); and every program's `monospace` — GTK and Qt, mpv's on-screen text, Syncplay's words on the film, zathura | JetBrains Mono's letters with BIZ UDGothic's Japanese and the Nerd Font symbols, one face for all code: installed as it comes from its own release (`lib/upstream.sh`, each of its four files pinned by SHA-256; SIL Open Font License 1.1, "UDEV Gothic" its reserved name), and named "Sumi Term" by an alias in `/etc/fonts/conf.d/60-fedokawaii-pixel.conf`; drawn smoothed in grey with light hinting |
 | **Sumi Icons** | every icon in the bar, menus and notifications — and, as *Sumi Icons Term*, in the prompt, fetch and the clipboard and wallpaper windows | the desktop's own icon font, built from `art/icons.txt` on the same grid |
-| **Noto Naskh Arabic** · **Noto Kufi Arabic** | Arabic: Naskh in GTK and Qt programs, Brave and LibreOffice (fontconfig's `sans-serif` for `lang=ar`, Amiri for `serif`); Kufi in the bar, the menus and the notices, beside the pixel letters | joined and right to left wherever the program shapes text. The terminal (foot) cannot: it would draw Arabic unjoined and left to right, so nothing the desktop shows there carries it — the weather window names your city as `WEATHER_CITY` spells it |
+| **Noto Naskh Arabic** · **Noto Kufi Arabic** | Arabic: Naskh in GTK and Qt programs, Helium and LibreOffice (fontconfig's `sans-serif` for `lang=ar`, Amiri for `serif`); Kufi in the bar, the menus and the notices, beside the pixel letters | joined and right to left wherever the program shapes text. The terminal (foot) cannot: it would draw Arabic unjoined and left to right, so nothing the desktop shows there carries it — the weather window names your city as `WEATHER_CITY` spells it |
 | **Noto Sans CJK** | Japanese, Chinese and Korean in programs, web pages and subtitles | a full, smooth face where text is read at length |
 | **Terminus** | the text console | sharp bitmap font for the console under the login screen |
 | Noto Sans, Amiri, Liberation, Noto Color Emoji | GTK and Qt programs (Noto Sans 10.5 in both), documents, Arabic serif, emoji | |
@@ -14662,7 +14664,7 @@ What changes at once and what waits:
 | Program | How it gets its pointer | After a switch |
 |---|---|---|
 | dwl (the desktop, window frames, moving and resizing) | the `default` theme | at once |
-| GTK 4, foot, Qt 6, Brave — anything that asks dwl for a pointer by name | dwl draws it | at once: the window under the pointer is made to ask again |
+| GTK 4, foot, Qt 6, Helium — anything that asks dwl for a pointer by name | dwl draws it | at once: the window under the pointer is made to ask again |
 | GTK 3 | gsettings `cursor-theme` | at once |
 | XWayland programs, some games | `XCURSOR_THEME=default`, read when they start | at their next start |
 
@@ -15212,11 +15214,11 @@ serves git too, so a push over HTTPS asks for no token and needs no SSH key.
 
 | Command | Does |
 |---|---|
-| `gh auth login` | sign in, once: choose *GitHub.com*, *HTTPS*, *Yes* to git, then *Login with a web browser* — Brave opens to confirm a short code |
+| `gh auth login` | sign in, once: choose *GitHub.com*, *HTTPS*, *Yes* to git, then *Login with a web browser* — Helium opens to confirm a short code |
 | `gh auth status` | which account is signed in, and whether its token still works |
 | `gh repo create notes --private --source . --push` | this folder's repository on GitHub, private, pushed in one step |
 | `gh repo clone USER/NAME` | a copy of a repository, its remote already set |
-| `gh browse` | this repository's page in Brave |
+| `gh browse` | this repository's page in Helium |
 | `gh issue list` · `gh issue create` | the open issues · a new one, asked for line by line |
 | `gh pr create` · `gh pr list` · `gh pr checkout 12` | a pull request from this branch · the open ones · pull request 12 as a local branch |
 | `gh release download --repo OWNER/NAME` | the files of a project's newest release, here |
@@ -15480,7 +15482,7 @@ will undo it.
 | `~/.bashrc.d/local.sh` (any name but `fedokawaii.sh`) | your aliases, functions and `export`s. Fedora's `~/.bashrc` reads every file in `~/.bashrc.d` by name, so `local.sh` comes after `fedokawaii.sh`, and what you set there wins | by every new terminal |
 | `~/.config/dwl/autostart.local.sh` | programs to start at every login. End each one that keeps running with `&` | at the next login (its output goes to `~/.cache/dwl.log`) |
 | `~/.config/nvim/lua/plugins/*.lua`, all but `colorscheme.lua` | LazyVim plugins, and changes to the ones it has | at neovim's next start |
-| `~/.local/bin/` — names the desktop does not use there (`kawa-…`, `fetch`, `brave-origin`, the release tools such as `yazi`, `torrra`) | your own scripts, on your `PATH` | at once |
+| `~/.local/bin/` — names the desktop does not use there (`kawa-…`, `fetch`, `kawa-browser`, the release tools such as `yazi`, `torrra`) | your own scripts, on your `PATH` | at once |
 | the right-hand column of the table in §42.2 | each program's own settings: `mpv/input.conf`, `cava/config`… | by that program |
 
 **Super+Shift+U → yours alone** opens the first three in neovim — the first time, it starts
@@ -15521,7 +15523,7 @@ fedokawaii drift      # the managed configs that differ from the toolkit (change
 
 | Managed by Theme (edit in the working copy) | Yours (edit in place) |
 |---|---|
-| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
+| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Helium settings Theme makes — its colours and its launcher entry, §5.3) |
 
 ## 42.3 Where each thing lives
 
@@ -15565,7 +15567,7 @@ An example of each language, as it appears in these files:
 
 ```c
 /* C — src/dwl/config.h: one row per key: modifiers, key, what it does, its argument */
-{ MODKEY,          XKB_KEY_b,   spawn,   {.v = browsercmd} },   /* Super+B → Brave */
+{ MODKEY,          XKB_KEY_b,   spawn,   {.v = browsercmd} },   /* Super+B → Helium */
 ```
 
 ```jsonc
@@ -15838,7 +15840,7 @@ commit `fedokawaii copy` made: the toolkit as it came.
    (`@DEFAULT_AUDIO_SINK@` is no token: it is wpctl's own name for the default output.)
 4. **A script's first line decides its mode.** The theme makes a file executable when it
    starts with `#!`, so a new script in `bin/` begins with `#!/usr/bin/env bash`.
-5. **Names**: the desktop's helpers are `kawa-…`, beside `fetch`, `brave-origin` and the release
+5. **Names**: the desktop's helpers are `kawa-…`, beside `fetch`, `kawa-browser` and the release
    tools in `~/.local/bin`. Give your own scripts other names.
 6. **A key in `config.h` gets its line in `keybinds.txt`**, so **Super+/** stays complete.
 7. **A package goes into the manifest.** Never only `dnf install`: `verify` would list it
@@ -16237,7 +16239,7 @@ thing.
 |---|---|---|
 | 1 | three aliases and a function in `~/.bashrc.d/local.sh` (§42.1) | variables, quoting, functions |
 | 2 | a script in `~/.local/bin` that tells you the free space on `/` and `~` — §25.6 writes it with you | arguments, `if`, pipes, exit status |
-| 3 | a new key in `config.h`: **Super+Shift+B** opens Brave in a private window — the same cycle as the gaps in §42.4 | reading C, rebuild and apply |
+| 3 | a new key in `config.h`: **Super+Shift+B** opens Helium in a private window — the same cycle as the gaps in §42.4 | reading C, rebuild and apply |
 | 4 | a bar module that shows how many updates wait (`dnf check-update -q | wc -l`, every hour) | waybar's JSON, signals, a helper script |
 | 5 | a Python script that keeps each day's weather in an SQLite file and prints the week | Python, JSON from an API, SQL |
 | 6 | a small TypeScript tool that turns your notes' headings into a table of contents | types, Node.js, reading files |
@@ -16342,7 +16344,7 @@ channel), so it updates with `dnf upgrade` (and `update`) and does not update it
 ### Signing in
 
 Either sign in with a Claude account (Pro, Max, Team or Enterprise): the
-first start opens the sign-in page in Brave. Or use an API key — and keep it only in
+first start opens the sign-in page in Helium. Or use an API key — and keep it only in
 `~/.config/fedokawaii/secrets.sh` as `export ANTHROPIC_API_KEY=…` (§25.8); Claude Code asks
 once whether to use the key it finds in the environment. Never put a key in the repository
 or in a project's settings files.
@@ -16578,7 +16580,7 @@ a package is §42.11.
 | torrents | torrra + Prowlarr | a terminal client that searches through Prowlarr's hundreds of indexers |
 | video | mpv (+ mpv-mpris, yt-dlp, Node.js) · `kawa-play` (this repository) | plays nearly any file, and web links through yt-dlp; Node.js answers YouTube's JavaScript challenges for yt-dlp; `kawa-play` sends what you open to the mpv window already open (Syncplay's first), so one window serves the evening |
 | office | LibreOffice Writer, Calc, Impress (+ libreoffice-gtk3, English and Arabic dictionaries) | opens and edits Word, Excel and PowerPoint files and saves back to them; drawn by GTK, so it follows the theme; only these three of the suite |
-| music | Spotify's web player, in a Brave app window | free or Premium, in a window of its own; it plays through Brave, so the bar's now-playing, its meter and the media keys follow it (Widevine, which it needs, switched on once in Brave) |
+| music | Spotify's web player, in a Helium app window | free or Premium, in a window of its own; it plays through Helium, so the bar's now-playing, its meter and the media keys follow it (Widevine, which it needs, switched on once in Helium) |
 | tables | VisiData (LibreOffice Calc for Excel files) | a CSV opens at once, sorts, sums and filters like a spreadsheet, in the terminal's colours |
 | disk usage | gdu | what fills a folder, largest first, in a window you can walk |
 | pictures and PDFs to send | ImageMagick · Ghostscript · `kawa-shrink` (this repository) | Super+Z: a size for a mail or a chat, or another kind (JPEG, WebP, PNG), in two keys — the two tools were already here for previews and PDFs |
@@ -16636,7 +16638,7 @@ follow the XDG folders (§23.3): settings in `~/.config`, data in `~/.local/shar
 | Path | What | Notes |
 |---|---|---|
 | `~/Documents/` · `~/Pictures/` · `~/Videos/` · `~/Music/` | what you keep | the standard folders: file dialogs and yazi know them |
-| `~/Downloads/` | arrivals: Brave, torrra and yt-dlp save here | its own Btrfs subvolume, outside every snapshot (§37.2) |
+| `~/Downloads/` | arrivals: Helium, torrra and yt-dlp save here | its own Btrfs subvolume, outside every snapshot (§37.2) |
 | `~/Books/` | your library — the books window lists it (Super+R, §16.2) | folders inside are fine |
 | `~/Notes/notes.md` | your notes (Super+N, §16.3) | plain Markdown |
 | `~/Pictures/Screenshots/` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | |
@@ -16671,8 +16673,8 @@ $ xdg-user-dir DOWNLOAD
 | mpv and yt-dlp | `~/.config/mpv/` (`mpv.conf`, `scripts/`) · `~/.config/yt-dlp/config` | — | `~/.local/state/mpv/` (where each video stopped) |
 | torrra (torrents) | `~/.config/torrra/config.toml` — Prowlarr's address, the download folder, colours; never the key | the program: `~/.local/share/uv/tools/torrra/` · downloads: `~/Downloads/` | |
 | Prowlarr | `~/.config/containers/systemd/prowlarr.container` (how it runs) · its key: `secrets.sh` | `~/.config/prowlarr/` (its database: indexers, history) · the image: `~/.local/share/containers/` | `journalctl --user -u prowlarr` |
-| Brave Origin | `~/.config/BraveSoftware/Brave-Origin/` (profile, settings, extensions) | the same folder | `~/.cache/BraveSoftware/` |
-| Spotify | Brave's profile (`~/.config/BraveSoftware/Brave-Origin/`: the sign-in, as for any site); its launcher entry `~/.local/share/applications/spotify.desktop` (Theme's) | | Brave's cache |
+| Helium | `~/.config/HeliumSoftware/Helium-Origin/` (profile, settings, extensions) | the same folder | `~/.cache/HeliumSoftware/` |
+| Spotify | Helium's profile (`~/.config/HeliumSoftware/Helium-Origin/`: the sign-in, as for any site); its launcher entry `~/.local/share/applications/spotify.desktop` (Theme's) | | Helium's cache |
 | LibreOffice | `~/.config/libreoffice/` (its profile: your Tools → Options, recent files, your dictionary words); the Arabic default in `/etc/dconf` (Theme's) | | |
 | btop | `~/.config/btop/btop.conf` | | |
 | quick settings | its colours: `~/.config/fedokawaii/current/panel.conf` (Theme's) | — | `~/.config/fedokawaii/vrr` (the FreeSync setting) |
@@ -16695,7 +16697,7 @@ $ xdg-user-dir DOWNLOAD
 | `/usr/local/libexec/xdg-desktop-portal-termfilechooser` (+ its service files under `/usr/local/lib` and `/usr/local/share`) | the yazi file dialog's portal, built by setup |
 | `/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf` · `/etc/dnf/libdnf5-plugins/actions.d/` | DNF's settings · the snapshot around every DNF run |
 | `/etc/tuned/profiles/fedokawaii/` · `/etc/NetworkManager/conf.d/90-fedokawaii.conf` · `/etc/modprobe.d/fedokawaii-btusb.conf` | the performance profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off (§21.1) |
-| `/etc/yum.repos.d/` | the repositories setup adds: Brave's, Claude Code's (its key in `/etc/pki/rpm-gpg/`), the two COPRs; RPM Fusion's come with its release packages (§27.6) |
+| `/etc/yum.repos.d/` | the repositories setup adds: Helium's, Claude Code's (its key in `/etc/pki/rpm-gpg/`), the two COPRs; RPM Fusion's come with its release packages (§27.6) |
 | `/etc/profile.d/editor.sh` · `/etc/profile.d/kawa-torrra.sh` · `/etc/modules-load.d/fedokawaii-i2c.conf` | neovim as the editor · `torrra` run through `kawa-torrra` · `i2c-dev` at every start (monitor brightness) |
 | `/etc/systemd/system/fedokawaii-scrub.{service,timer}` | the monthly Btrfs scrub (§38.2) |
 | `/etc/systemd/system/user@.service.d/fedokawaii.conf` | at shutdown, your own systemd gets 30 s to stop Prowlarr and the portals |
@@ -16721,7 +16723,7 @@ the full lists are in §7.2 (and on screen with **Super+/**) for the desktop, §
 
 | Keys | Does |
 |---|---|
-| **Super+Return · Space · B · E** | terminal · launcher · Brave Origin · files (yazi) |
+| **Super+Return · Space · B · E** | terminal · launcher · Helium · files (yazi) |
 | **Super+X · V · /** | quick settings · clipboard history · every key, searchable |
 | Super+A · C · W | sound · calendar · wallpaper |
 | Super+R · N · Z | books · notes (again to put them away) · shrink what you copied |
@@ -16940,7 +16942,7 @@ something — copy, move, delete, install — act at once: read the example befo
 |---|---|---|
 | `dnf search` · `dnf info` | find a package · describe one | `dnf info btop` |
 | `dnf install` · `dnf remove` | add · take away (and what only it needed) | `sudo dnf install hyperfine` |
-| `dnf upgrade --refresh` | update everything (the season's update does more, §36.2) | `sudo dnf upgrade --refresh brave-origin` |
+| `dnf upgrade --refresh` | update everything (the season's update does more, §36.2) | `sudo dnf upgrade --refresh kawa-browser` |
 | `dnf provides` | which package has a file or command | `dnf provides '*/bin/7z'` |
 | `dnf repoquery --requires` · `--recommends` | what a package needs · would like | `dnf repoquery --requires waybar` |
 | `dnf repoquery --installed --whatrequires` | what installed packages need this one | `dnf repoquery --installed --whatrequires libva` |
@@ -17071,7 +17073,7 @@ The rest are called by the bar, the keys and other programs, not by you; each st
 | `kawa-pick` | the file chooser portal | the file dialog: yazi in a window (§10.4) |
 | `kawa-share` | xdg-desktop-portal-wlr, when an app shares the screen | asks what to share (§14.4) |
 | `kawa-sixel` | the books, clipboard and wallpaper windows | a picture as a sixel, drawn exactly, in the terminal |
-| `brave-origin` (in `~/.local/bin`) | Super+B, the launcher and every link you open | Brave Origin, started so a shared screen can carry the computer's sound (§14.4) |
+| `kawa-browser` (in `~/.local/bin`) | Super+B, the launcher and every link you open | Helium, started so a shared screen can carry the computer's sound (§14.4) |
 | `kawa-greet` · `start-dwl` | greetd | the login screen (§6.1) · the session it starts: dwl and its autostart (§29.9) |
 | `kawa-snap` | DNF, around every transaction | the *pre* and *post* snapshots (§37.2) |
 | `kawa-torrra` | the launcher's *Torrents*, and `torrra` typed in a terminal | torrra with the Prowlarr key from `secrets.sh` (ch. 20) |

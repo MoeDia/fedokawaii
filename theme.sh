@@ -730,8 +730,7 @@ retire .local/share/applications/com.brave.Origin.desktop 'brave'
 # button (what a key or its menu reaches stays in its menu). Its first-start page is answered:
 # Helium's services on (its web store, uBlock's lists, the spelling dictionaries, all through its
 # anonymous proxy: helium.computer). Its seed colour, what its own pages and focus rings are made
-# from, the desktop's shu (#C73E1D, as Chromium keeps it: a signed ARGB number), never its blue; the
-# last session comes back at its start (Helium loads its tabs only as you open them). These are settings of each profile (its Preferences, rewritten
+# from, the desktop's shu (#C73E1D, as Chromium keeps it: a signed ARGB number), never its blue. These are settings of each profile (its Preferences, rewritten
 # by Helium while it runs): set only while it is closed, and before its first start too — once per
 # profile (and again only if this list changes): what you choose in Helium afterwards stays.
 BROWSER_DIR="$TARGET_HOME/.config/net.imput.helium"
@@ -740,7 +739,7 @@ BROWSER_SET='.extensions.theme.system_theme = 1
   | .helium.browser.layout = 1 | .helium.browser.rounded_frame = false
   | .helium.browser.show_avatar_button = false | .helium.browser.show_extensions_button = false
   | .browser.theme.user_color2 = -3719651 | .browser.theme.is_grayscale2 = false
-  | .ntp.shortcust_visible = false | .session.restore_on_startup = 1'
+  | .ntp.shortcust_visible = false'
 BROWSER_OK='.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true and .helium.browser.layout == 1'
 BROWSER_MARK="compact · square · GTK · shu · services on"      # what the marker below records (a new one: set again)
 BROWSER_PREFS=()
