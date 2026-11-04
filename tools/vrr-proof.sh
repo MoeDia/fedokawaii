@@ -4,7 +4,8 @@
 #   1 the card: DRM's vrr_capable and VRR_ENABLED (kawa-display --vrr), asked during each step
 #   2 dwl: the intervals between its presents (its frame log, SIGUSR2): with FreeSync they follow
 #     the picture's rate (10 ms at 100 fps), without it they are whole refreshes (6.94 ms apart)
-#   3 the monitor itself: its own measure of the refresh (DDC/CI VCP 0xAE), asked once a second
+#   3 the monitor itself: its own word for the refresh (DDC/CI VCP 0xAE), asked each second. On
+#     the LG it stays at the mode's 143.90 whatever the refresh does: recorded, proves nothing
 # The steps: 100 fps and 60 fps with FreeSync on, 40 fps (below the panel's 48 Hz floor: frames
 # doubled), then 100 fps with it off; 72 is no test (2 × 6.94 ms either way). His setting
 # (~/.config/fedokawaii/vrr) is put back at the end, whatever happens.
@@ -12,7 +13,6 @@
 # Exit 0 · 2 no session, or the frame log already in use · 3 a witness disagrees
 set -uo pipefail
 out=${1:-/dev/shm/r27/vrr-proof-$(date +%H%M%S)}
-here=$(cd "$(dirname "$0")" && pwd)
 mkdir -p "$out"
 wb=$(pgrep -u "$USER" -xo waybar) || { echo "vrr-proof: no session (waybar)" >&2; exit 2; }
 eval "$(tr '\0' '\n' <"/proc/$wb/environ" | grep -E '^(WAYLAND_DISPLAY|DISPLAY|XDG_RUNTIME_DIR|DBUS_SESSION_BUS_ADDRESS)=' | sed 's/^/export /')"
@@ -22,11 +22,11 @@ for fd in /proc/"$dwl"/fd/*; do
   [[ $(readlink "$fd" 2>/dev/null) == "$log" ]] && { echo "vrr-proof: dwl's frame log is in use by another run" >&2; exit 2; }
 done
 conn=$(wlr-randr | awk '/^[^ ]/ { o = $1 } /Enabled: yes/ { print o; exit }')
-sysd=$(printf '%s\n' /sys/class/drm/card*-"$conn" | head -n 1)
+sysd=$(printf '%s\n' /sys/class/drm/card*-"$conn" | sed -n 1p)
 bus=$(readlink "$sysd/ddc"); bus=${bus##*i2c-}
 [[ $bus =~ ^[0-9]+$ ]] || { echo "vrr-proof: no DDC bus for $conn" >&2; exit 2; }
 export XDG_CACHE_HOME=$out/ddc-cache
-ddc=(ddcutil --bus "$bus" --skip-ddc-checks --sleep-multiplier 2 --maxtries 10,10,15)
+ddc=(ddcutil --bus "$bus" --skip-ddc-checks --sleep-multiplier 2 --maxtries "10,10,15")
 vrrf=$HOME/.config/fedokawaii/vrr
 saved=$(cat "$vrrf" 2>/dev/null || echo games)
 player=""

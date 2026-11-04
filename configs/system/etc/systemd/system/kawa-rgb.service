@@ -1,9 +1,9 @@
-# installed by theme.sh — the lights: every light in the PC breathes one ember (src/kawa-rgb).
-# Root only because the device nodes are root's: no capabilities, nothing writable but its status
-# in /run/kawa-rgb, no network, only hidraw and I2C devices. The keyboard's node also carries its
+# installed by theme.sh — the lights: every light in the PC, one steady red (src/kawa-rgb). Root
+# only because the device nodes are root's: no capabilities, nothing writable but /run/kawa-rgb and
+# /var/lib/kawa-rgb, no network, only hidraw and I2C devices. The keyboard's node also carries its
 # keys, which is why this is not given to your session: nothing of yours can read them through it.
 [Unit]
-Description=Fedokawaii: every light, one ember
+Description=Fedokawaii: every light, one steady red
 
 [Service]
 ExecStart=/usr/local/bin/kawa-rgb run
@@ -11,6 +11,7 @@ Restart=always
 RestartSec=5
 RuntimeDirectory=kawa-rgb
 RuntimeDirectoryMode=0755
+StateDirectory=kawa-rgb
 Nice=5
 MemoryMax=8M
 TasksMax=2

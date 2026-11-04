@@ -1,0 +1,16 @@
+# installed by theme.sh — the lights out before a sleep, back after it: the service is told, and
+# this waits until it has done it (kawa-rgb sleep). In the sleep's transaction, so it also runs at
+# the login screen, with no session to ask.
+[Unit]
+Description=Fedokawaii: the lights out for the sleep
+Before=sleep.target
+StopWhenUnneeded=yes
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+ExecStart=/usr/local/bin/kawa-rgb sleep
+ExecStop=/usr/local/bin/kawa-rgb wake
+
+[Install]
+WantedBy=sleep.target

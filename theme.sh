@@ -919,7 +919,7 @@ fi
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
 #   kawa-saver     the screensaver (and the lock behind it: away 15 minutes, kawa-idle)
 #   kawa-lockmod   the lock screen's keys and wake guard (a gtklock module, GTK 3's headers)
-#   kawa-rgb       every light, one ember: a service of the system's (root takes the built file)
+#   kawa-rgb       every light, one steady red: a service of the system's (root takes the built file)
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
@@ -930,16 +930,6 @@ tool_sum() { local s x f=() d=$REPO_DIR/src/$1
   s=$(cat "${f[@]}" | sha256sum); printf '%s' "${s%% *}"; }
 tool_current() { [[ -f $(tool_dest "$1") && $(cat "$STATE/$1.sha256" 2>/dev/null) == "$(tool_sum "$1")" ]]; }
 TOTAL=$((TOTAL + ${#TOOLS[@]}))
-# the ember's colours are the palette's accents; how it breathes, the mood's (src/kawa-rgb):
-# dark low and slow, light brighter and quicker. NAME ACCENT FLOOR% PEAK% RISE_S FALL_S
-RGB_TMP=$(mktemp)
-{ echo "# written by theme.sh from the palette; read by kawa-rgb at its start"
-  ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/dark/colors.sh" && echo "dark $C_ACCENT 12 55 3.5 5.5" )
-  ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/light/colors.sh" && echo "light $C_ACCENT 35 80 3 4" )
-} >"$RGB_TMP"
-place "$RGB_TMP" /etc/fedokawaii/rgb.conf root
-rm -f "$RGB_TMP"
-
 if ((CHECK)); then
   # the boot menu and console, the part the theme run carries on without (it says so): one it
   # could not make is a warning, not drift — else verify's final check would stop setup on it
@@ -1011,12 +1001,13 @@ done
 
 # ── 5. derived state ─────────────────────────────────────────────────────────
 if changed /etc/dconf/; then R dconf update; ok "dconf defaults compiled"; fi
-if changed kawa-rgb || changed /etc/fedokawaii/rgb.conf; then
+if changed kawa-rgb; then         # (the tool, its units, its colours; `changed` matches them all)
   R systemctl daemon-reload
-  R systemctl enable --quiet kawa-rgb.service
+  R systemctl enable --quiet kawa-rgb.service kawa-rgb-sleep.service
   R systemctl restart kawa-rgb.service
-  ok "the lights: one ember (kawa-rgb)"
+  ok "the lights: one steady red (kawa-rgb)"
 fi
+if changed 60-fedokawaii-cooler.rules; then R udevadm control --reload; fi
 # new rules or the icon font: its folder touched first — a font rewritten in place leaves the
 # folder's mtime as it was, and fontconfig would go on serving the cache of the old one
 if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts"; fi

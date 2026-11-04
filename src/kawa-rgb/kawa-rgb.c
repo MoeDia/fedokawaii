@@ -1,23 +1,30 @@
 /*
- * kawa-rgb — every light in the PC breathes one ember, in the desktop's red.
+ * kawa-rgb — every light in the PC, one steady red.
  *
  * The lights speak three small protocols (the keyboard's has no other driver), so this is one
- * program with no libraries and no scanner: the motherboard's Mystic Light and the Redragon
- * K617 over hidraw feature reports, the Gigabyte card's logo over its I2C bus. Every device
- * gets the same level in the same tick, 8 times a second, so they are truly in phase: a
- * breath, not a sine (it rises faster than it falls), and redder as it dims, as an ember does.
+ * program with no libraries and no scanner: the motherboard's Mystic Light and the Redragon K617
+ * over hidraw feature reports, the Gigabyte card's logo over its I2C bus. Each device has its own
+ * colour value (rgb.conf), so that they look the same, and nothing moves: while nothing changes
+ * this sends nothing to anything. It changes on events only:
+ *
+ *   the lock screen up     a fade to about 30 %
+ *   screens off, a sleep   off
+ *   unlocked, awake        back to full
+ *   the switch             on or off for everything (quick settings), kept across reboots, in the
+ *                          hardware's memory too: off is off from power-on
  *
  *   kawa-rgb run [--trace FILE]   the service (kawa-rgb.service, as root without capabilities)
- *   kawa-rgb baseline             the hardware's own memory, once per change: red and breathing
- *                                 from power-on, before this program runs (read back first,
- *                                 written only when it differs: it wears flash)
- *   kawa-rgb status               what the service has found, from /run/kawa-rgb/status
+ *   kawa-rgb on | off | toggle    the switch (yours: a file beside the login screen's mood)
+ *   kawa-rgb state                the switch, "on" or "off"
+ *   kawa-rgb lock | unlock        kawa-lock: the lock screen came up, went away
+ *   kawa-rgb sleep | wake         kawa-rgb-sleep.service: the machine is going to sleep, is back
+ *   kawa-rgb status               what the service has found (/run/kawa-rgb/status)
  *
- * It asks nobody and nobody tells it anything: the mood from the file kawa-theme keeps for the
- * login screen, the screens from DRM. Screens off: the fire is banked, the floor held, nothing
- * sent. While the K617 is typed on it holds its breath (a report goes through the same small
- * controller that scans the keys) and comes back to the others afterwards; it never reads keys.
- * A device that fails is closed and looked for again, so a replug and a resume just work.
+ * The screens come from DRM, nobody tells it. What each device does by itself, from power-on until
+ * the service runs, is in its own memory: read first and written only when it differs, since flash
+ * wears (the K617's blocks are read, patched and written back whole, never from a template). The
+ * keyboard's node also carries its keys: nothing here ever reads them. A device that fails or goes
+ * away is closed and looked for again, so a replug and a resume just work.
  *
  * The cooler's display (1a2c:4184, the "SEMICO keyboard", no keys of its own) shows the CPU's
  * temperature: the report its vendor's software sends (07 ff ff, then the digits).
@@ -28,7 +35,6 @@
  * Built by theme.sh (src/kawa-rgb/Makefile), installed as /usr/local/bin/kawa-rgb.
  */
 #define _GNU_SOURCE
-#include <ctype.h>
 #include <dirent.h>
 #include <errno.h>
 #include <fcntl.h>
@@ -48,11 +54,10 @@
 #include <time.h>
 #include <unistd.h>
 
-#define TICK_NS 125000000L          /* 8 Hz: under the card's mode register's 9 updates a second */
-#define TICKS_S 8
-#define RESCAN_TICKS (2 * TICKS_S)  /* a missing device looked for */
-#define HOLD_TICKS (2 * TICKS_S)    /* the K617 after its last key report */
-#define FADE_TICKS 10               /* a mood's colours into the other's: the ink wash's 1.2 s */
+#define FADE_MS 125                 /* a step of a fade: 8 a second, the card's register takes 9 */
+#define IDLE_MS 500                 /* a look at the screens and the switch while nothing moves */
+#define FADE_STEP 0.125             /* of the whole way, a step: a second from full to nothing */
+#define GAMMA 2.2                   /* LEDs are linear, the eye is not: a level is what it looks */
 
 /* ── the machine's paths ─────────────────────────────────────────────────────────── */
 static const char *root = "";
@@ -69,9 +74,11 @@ static char *at(const char *fmt, ...)
     return b;
 }
 static const char *CONF = "/etc/fedokawaii/rgb.conf";
-static const char *MOOD = "/var/lib/fedokawaii-greeter/theme";
+static const char *SWITCH = "/var/lib/fedokawaii-greeter/rgb";
+static const char *LOCKED = "/var/lib/fedokawaii-greeter/rgb-locked";
 static const char *STATUS = "/run/kawa-rgb/status";
-static const char *BASE_MARK = "/var/lib/fedokawaii/rgb-baseline";
+static const char *SLEEPING = "/run/kawa-rgb/sleeping";
+static const char *BASE_MARK = "/var/lib/kawa-rgb/card";
 
 static int slurp(const char *path, char *out, size_t n)
 {
@@ -85,53 +92,10 @@ static int slurp(const char *path, char *out, size_t n)
     out[r] = 0;
     return (int)r;
 }
-
-/* ── the moods (rgb.conf: NAME HEX FLOOR% PEAK% RISE_S FALL_S) ───────────────────── */
-struct mood {
-    double rgb[3];          /* the accent in linear light: LEDs are linear, the palette is sRGB */
-    double floor, peak;
-    double rise, fall;
-};
-static struct mood moods[2];
-static bool mood_read(const char *line, struct mood *m)
+static void ms(long n)
 {
-    unsigned v;
-    double fl, pk, rise, fall;
-    if (sscanf(line, "%*s %6x %lf %lf %lf %lf", &v, &fl, &pk, &rise, &fall) != 5)
-        return false;
-    for (int i = 0; i < 3; i++)
-        m->rgb[i] = 255.0 * pow(((v >> (16 - 8 * i)) & 255) / 255.0, 2.2);
-    m->floor = fl / 100;
-    m->peak = pk / 100;
-    m->rise = rise;
-    m->fall = fall;
-    return rise > 0 && fall > 0 && fl >= 0 && pk <= 100 && fl <= pk;
-}
-static void conf_load(void)
-{
-    char buf[1024], *line, *save;
-    if (slurp(at("%s", CONF), buf, sizeof buf) < 0) {
-        fprintf(stderr, "kawa-rgb: cannot read %s: %s\n", CONF, strerror(errno));
-        exit(1);
-    }
-    int seen = 0;
-    for (line = strtok_r(buf, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
-        if (!strncmp(line, "dark ", 5) && mood_read(line, &moods[0]))
-            seen |= 1;
-        else if (!strncmp(line, "light ", 6) && mood_read(line, &moods[1]))
-            seen |= 2;
-    }
-    if (seen != 3) {
-        fprintf(stderr, "kawa-rgb: %s needs a dark and a light line: NAME HEX FLOOR%% PEAK%% RISE_S FALL_S\n", CONF);
-        exit(1);
-    }
-}
-static int mood_now(int was)
-{
-    char buf[16];
-    if (slurp(at("%s", MOOD), buf, sizeof buf) < 0)
-        return was;
-    return !strncmp(buf, "light", 5);
+    struct timespec t = {n / 1000, (n % 1000) * 1000000L};
+    nanosleep(&t, NULL);
 }
 
 /* ── the transports: real ioctls, or plain writes into a test's files ────────────── */
@@ -175,9 +139,19 @@ static int i2c_xfer(int fd, uint16_t addr, uint16_t flags, uint8_t *buf, uint16_
     struct i2c_rdwr_ioctl_data rd = {.msgs = &msg, .nmsgs = 1};
     return ioctl(fd, I2C_RDWR, &rd) < 0 ? -1 : 0;
 }
+/* still there? A hidraw node answers this without a word on the USB; a test's file is unlinked */
+static bool alive(int fd)
+{
+    struct hidraw_devinfo info;
+    if (regular(fd)) {
+        struct stat st;
+        return fstat(fd, &st) == 0 && st.st_nlink > 0;
+    }
+    return ioctl(fd, HIDIOCGRAWINFO, &info) == 0;
+}
 
-/* a hidraw node by its USB ids and interface: /dev/hidrawN, and its name in *found */
-static int hidraw_find(unsigned vid, unsigned pid, int iface, char *found, size_t n)
+/* a hidraw node by its USB ids and interface */
+static int hidraw_find(unsigned vid, unsigned pid, int iface)
 {
     char want[32], tail[16], buf[512];
     snprintf(want, sizeof want, "0003:%08X:%08X", vid, pid);
@@ -196,8 +170,6 @@ static int hidraw_find(unsigned vid, unsigned pid, int iface, char *found, size_
         if (!end || (size_t)(end + 1 - phys) < strlen(tail) || strncmp(end + 1 - strlen(tail), tail, strlen(tail)))
             continue;
         fd = open(at("/dev/%s", e->d_name), O_RDWR | O_CLOEXEC | O_NONBLOCK);
-        if (fd >= 0)
-            snprintf(found, n, "%.31s", e->d_name);
     }
     closedir(d);
     return fd;
@@ -207,70 +179,92 @@ static int hidraw_find(unsigned vid, unsigned pid, int iface, char *found, size_
 struct light {
     const char *name;
     int fd;
+    int rgb[3];             /* its red at full (rgb.conf) */
     bool dirty;             /* its state may be lost: sent again, even if unchanged */
+    bool remembered;        /* its own memory looked at, for the switch as it is */
     int sent[3];            /* the last colour it took */
-    double level;           /* where its breath is: follows the one breath, at a limited speed */
     int (*open)(struct light *);
     int (*send)(struct light *, const uint8_t rgb[3]);
-    /* the K617's typing watch */
-    int urbs;               /* fd of its USB device's urbnum */
-    unsigned long seen;     /* urbnum at the last look */
-    int hold;               /* ticks left of holding its breath */
-    unsigned own;           /* URBs of our own since the last look */
-    uint8_t tmpl[185];      /* the motherboard's packet as it came */
+    int (*remember)(struct light *, const uint8_t rgb[3]);   /* 0 as it was · 1 written · -1 not so */
 };
 
-/* Mystic Light, 185-byte feature report 0x52, zone-based on this board: one colour per zone, so
- * a chain of any length on JARGB_V2 takes the one colour. Never save_data here: it would wear
- * flash at 8 Hz. The real headers are JRGB1 and JARGB_V2_1 (rainbow 1); the others (the same
- * packet's phantom zones) take the same colour, harmless */
+/* Mystic Light, 185-byte feature report 0x52, zone-based on this board: one colour per zone, so a
+ * chain of any length on JARGB_V2 takes the one colour. Only `remember` ever sets save_data. The
+ * real headers are JRGB1 and JARGB_V2_1 (rainbow 1); the packet's phantom zones take the same */
 static const uint8_t MSI_ZONES[] = {1, 11, 21, 31, 42, 74, 174};
+static uint8_t msi_now[185], msi_kept[185];     /* the packet as sent; as last saved, or as it came */
 static int msi_open(struct light *l)
 {
-    char name[32];
-    l->fd = hidraw_find(0x0DB0, 0x0076, 0, name, sizeof name);
+    l->fd = hidraw_find(0x0DB0, 0x0076, 0);
     if (l->fd < 0)
         return -1;
-    if (feature_get(l->fd, 0x52, l->tmpl, sizeof l->tmpl) != (int)sizeof l->tmpl) {
+    if (feature_get(l->fd, 0x52, msi_now, sizeof msi_now) != (int)sizeof msi_now) {
         close(l->fd);
         l->fd = -1;
         return -1;
     }
+    memcpy(msi_kept, msi_now, sizeof msi_kept);
     return 0;
 }
-static void msi_zones(uint8_t *p, const uint8_t rgb[3], uint8_t effect, uint8_t bright, uint8_t speed)
+static void msi_paint(uint8_t *p, const uint8_t rgb[3])
 {
+    uint8_t effect = rgb[0] || rgb[1] || rgb[2];     /* 1 static, 0 off */
     for (size_t i = 0; i < sizeof MSI_ZONES; i++) {
         uint8_t *z = p + MSI_ZONES[i];
         z[0] = effect;
         memcpy(z + 1, rgb, 3);
-        z[4] = (uint8_t)(bright << 2 | speed);
+        z[4] = 10 << 2;     /* full; the colour is the level */
         memcpy(z + 5, rgb, 3);
         z[8] = 0x80;        /* the custom colour */
     }
 }
 static int msi_send(struct light *l, const uint8_t rgb[3])
 {
-    uint8_t p[185];
-    memcpy(p, l->tmpl, sizeof p);
-    msi_zones(p, rgb, 1, 10, 0);
-    p[184] = 0;
-    return feature_set(l->fd, p, sizeof p);
+    msi_paint(msi_now, rgb);
+    msi_now[184] = 0;
+    return feature_set(l->fd, msi_now, sizeof msi_now);
+}
+static int msi_remember(struct light *l, const uint8_t rgb[3])
+{
+    uint8_t want[185], back[185];
+    memcpy(want, msi_kept, sizeof want);
+    msi_paint(want, rgb);
+    want[184] = msi_kept[184] = 0;
+    if (!memcmp(want, msi_kept, sizeof want))
+        return 0;
+    /* (as MSI's own software does: the old state, then the new, each with its save flag) */
+    want[184] = msi_kept[184] = 1;
+    int r = feature_set(l->fd, msi_kept, sizeof msi_kept);
+    r |= feature_set(l->fd, want, sizeof want);
+    if (r)
+        return -1;
+    ms(100);
+    want[184] = 0;
+    memcpy(msi_kept, want, sizeof msi_kept);
+    memcpy(msi_now, want, sizeof msi_now);
+    if (feature_get(l->fd, 0x52, back, sizeof back) != (int)sizeof back)
+        return -1;
+    return regular(l->fd) || !memcmp(back + 1, want + 1, 183) ? 1 : -1;
 }
 
-/* The K617 Fizz, live frame: 382-byte feature report, 96 RGB triplets, volatile. Interface 1 also
- * carries a keyboard report, which nothing here reads (the fd is only ever ioctl'd); whether it
- * is being typed on comes from its USB device's URB count, which says nothing of what */
+/* The K617 Fizz, live frame: 382-byte feature report, 96 RGB triplets, lost on a reconnect. Its
+ * stored effect: the blocks below. Interface 1 also carries a keyboard report, which nothing here
+ * reads (the fd is only ever ioctl'd) */
+#define K617_BLOCK 1032
+#define K617_MODE 0
+#define K617_EXEC 3
+#define K617_FIXED 0x01
+#define K617_OFF 0x16
+static const struct { uint8_t select[6]; uint8_t head[5]; } K617_BLOCKS[] = {
+    {{0x05, 0x88, 0xb8, 0, 0, 0}, {0x06, 0x08, 0xb8, 0x00, 0x40}},      /* mode */
+    {{0x05, 0x89, 0xbc, 0, 0, 0}, {0x06, 0x09, 0xbc, 0x00, 0x40}},      /* canvas */
+    {{0x05, 0x89, 0xc0, 0, 0, 0}, {0x06, 0x09, 0xc0, 0x00, 0x40}},      /* routing */
+    {{0x05, 0x83, 0xb6, 0, 0, 0}, {0x06, 0x03, 0xb6, 0x00, 0x00}},      /* exec */
+};
 static int k617_open(struct light *l)
 {
-    char name[32];
-    l->fd = hidraw_find(0x258A, 0x0049, 1, name, sizeof name);
-    if (l->fd < 0)
-        return -1;
-    l->urbs = open(at("/sys/class/hidraw/%s/device/../../urbnum", name), O_RDONLY | O_CLOEXEC);
-    l->own = 0;
-    l->seen = 0;
-    return 0;
+    l->fd = hidraw_find(0x258A, 0x0049, 1);
+    return l->fd < 0 ? -1 : 0;
 }
 static int k617_send(struct light *l, const uint8_t rgb[3])
 {
@@ -279,29 +273,68 @@ static int k617_send(struct light *l, const uint8_t rgb[3])
     f[0] = 0x08; f[1] = 0x0a; f[2] = 0x7a; f[3] = 0x01;
     for (int i = 0; i < 96; i++)
         memcpy(f + 4 + i * 3, rgb, 3);
-    l->own++;
     return feature_set(l->fd, f, sizeof f);
 }
-static bool k617_typing(struct light *l)
+static int k617_read(int fd, uint8_t blocks[4][K617_BLOCK])
 {
-    char buf[32];
-    if (l->urbs < 0)
-        return false;
-    ssize_t r = pread(l->urbs, buf, sizeof buf - 1, 0);
-    if (r <= 0)
-        return false;
-    buf[r] = 0;
-    unsigned long now = strtoul(buf, NULL, 10);
-    bool moved = l->seen && now - l->seen > l->own;
-    l->seen = now;
-    l->own = 0;
-    return moved;
+    for (int i = 0; i < 4; i++) {
+        uint8_t raw[K617_BLOCK];
+        if (feature_set(fd, K617_BLOCKS[i].select, 6))
+            return -1;
+        ms(60);
+        int n = feature_get(fd, 0x06, raw, sizeof raw);
+        if (n < 64)
+            return -1;
+        memset(blocks[i], 0, K617_BLOCK);
+        memcpy(blocks[i], raw, (size_t)n);
+        memcpy(blocks[i], K617_BLOCKS[i].head, 5);
+        ms(60);
+    }
+    return 0;
+}
+static int k617_remember(struct light *l, const uint8_t rgb[3])
+{
+    static uint8_t now[4][K617_BLOCK], want[4][K617_BLOCK];
+    bool lit = rgb[0] || rgb[1] || rgb[2];
+    if (k617_read(l->fd, now))
+        return -1;
+    memcpy(want, now, sizeof want);
+    uint8_t *mode = want[K617_MODE], *ex = want[K617_EXEC];
+    if (ex[14] != 0x5a || ex[15] != 0xa5)        /* (its commit mark: anything else is not a block we know) */
+        return -1;
+    uint8_t effect = lit ? K617_FIXED : K617_OFF;
+    if (lit) {
+        memcpy(mode + 29, rgb, 3);               /* fixed-on's colour */
+        ex[38] = 0x00;                           /* its "many colours" flag off */
+        ex[39] = 0x04;                           /* speed 1, brightness 4 of 4: the colour is the level */
+    }
+    ex[21] = effect;
+    if (!memcmp(now, want, sizeof want))
+        return 0;
+    uint8_t scratch[K617_BLOCK];
+    int r = feature_set(l->fd, K617_BLOCKS[K617_EXEC].select, 6);
+    ms(60);
+    if (feature_get(l->fd, 0x06, scratch, sizeof scratch) < 0)    /* (without this read it ignores the burst) */
+        r = -1;
+    ms(60);
+    for (int i = 0; i < 4 && !r; i++) {
+        r = feature_set(l->fd, want[i], K617_BLOCK);
+        ms(60);
+    }
+    return r ? -1 : 1;
 }
 
-/* The Gigabyte RX 9060 XT: its RGB controller at 0x75 on the card's OEM I2C bus. A 64-byte write
- * takes the kernel 9 ms of busy wait (100 kHz, polled): only the logo's zone is streamed */
+/* The Gigabyte RX 9060 XT: its RGB controller at 0x75 on the card's OEM I2C bus. It parses nothing
+ * shorter than 64 bytes (a shorter write gets no answer), and a 64-byte write takes the kernel 9 ms
+ * of busy wait (100 kHz, polled), and never a read that follows no write of ours. Six zones, of
+ * which the logo is GPU_ZONE: in a fade only that one moves, the others take the end of it */
 #define GPU_ADDR 0x75
 #define GPU_ZONE 3
+#define GPU_ZONES 6
+#define GPU_REG_MODE 0x12
+#define GPU_REG_SAVE 0x13
+#define GPU_STATIC 0x01
+#define GPU_OFF 0x00
 static int gpu_write(int fd, const uint8_t *head, size_t n)
 {
     uint8_t p[64];
@@ -340,22 +373,90 @@ static int gpu_open(struct light *l)
     }
     return 0;
 }
+static int gpu_zone(int fd, uint8_t zone, const uint8_t rgb[3])
+{
+    uint8_t mode = rgb[0] || rgb[1] || rgb[2] ? GPU_STATIC : GPU_OFF;
+    uint8_t h[] = {GPU_REG_MODE, 0x01, mode, 0x01, 0x0a, rgb[0], rgb[1], rgb[2], 0x00, zone, 0x00};
+    return gpu_write(fd, h, sizeof h);
+}
+static int card_todo;               /* zones still to take the colour the logo has */
+static uint8_t card_rgb[3];
 static int gpu_send(struct light *l, const uint8_t rgb[3])
 {
-    uint8_t h[] = {0x12, 0x01, 0x01, 0x01, 0x0a, rgb[0], rgb[1], rgb[2], 0x00, GPU_ZONE, 0x00};
-    return gpu_write(l->fd, h, sizeof h);
+    memcpy(card_rgb, rgb, 3);
+    card_todo = GPU_ZONES;
+    return gpu_zone(l->fd, GPU_ZONE, rgb);
+}
+static int gpu_remember(struct light *l, const uint8_t rgb[3])
+{
+    /* it answers nothing about its colour: a mark says what it was last given */
+    char mark[16], was[16] = "";
+    snprintf(mark, sizeof mark, "%02x%02x%02x\n", rgb[0], rgb[1], rgb[2]);
+    if (slurp(at("%s", BASE_MARK), was, sizeof was) >= 0 && !strcmp(was, mark))
+        return 0;
+    int r = 0;
+    for (uint8_t z = 0; z < GPU_ZONES && !r; z++) {      /* (all six, as Gigabyte's own software does) */
+        r = gpu_zone(l->fd, z, rgb);
+        ms(120);
+    }
+    uint8_t save[] = {GPU_REG_SAVE, 0x01};
+    r |= gpu_write(l->fd, save, sizeof save);
+    if (r)
+        return -1;
+    if (!regular(l->fd))
+        ms(500);            /* (writing its flash, it answers nothing) */
+    int fd = open(at("%s", BASE_MARK), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd >= 0) {
+        if (write(fd, mark, strlen(mark)) < 0)
+            r = -1;
+        close(fd);
+    }
+    return r ? -1 : 1;
 }
 
 static struct light lights[] = {
-    {.name = "motherboard", .fd = -1, .urbs = -1, .open = msi_open, .send = msi_send},
-    {.name = "keyboard", .fd = -1, .urbs = -1, .open = k617_open, .send = k617_send},
-    {.name = "card", .fd = -1, .urbs = -1, .open = gpu_open, .send = gpu_send},
+    {.name = "motherboard", .fd = -1, .open = msi_open, .send = msi_send, .remember = msi_remember},
+    {.name = "keyboard", .fd = -1, .open = k617_open, .send = k617_send, .remember = k617_remember},
+    {.name = "card", .fd = -1, .open = gpu_open, .send = gpu_send, .remember = gpu_remember},
 };
 #define NLIGHTS (sizeof lights / sizeof lights[0])
-#define KEYBOARD (&lights[1])
+#define CARD (&lights[2])
 
-/* ── the cooler's display: the CPU's temperature, its own report ─────────────────── */
-static int disp_fd = -1, temp_fd = -1, disp_shown = -1000;
+/* ── rgb.conf: motherboard|keyboard|card R G B, each's red at full; dim N, the lock's level in % ── */
+static double dim_level;
+static void conf_load(void)
+{
+    char buf[1024], *line, *save;
+    if (slurp(at("%s", CONF), buf, sizeof buf) < 0) {
+        fprintf(stderr, "kawa-rgb: cannot read %s: %s\n", CONF, strerror(errno));
+        exit(1);
+    }
+    unsigned seen = 0;
+    int want = (1 << NLIGHTS) | ((1 << NLIGHTS) - 1);
+    for (line = strtok_r(buf, "\n", &save); line; line = strtok_r(NULL, "\n", &save)) {
+        char name[32];
+        int a, b, c;
+        if (sscanf(line, "dim %d", &a) == 1 && a >= 0 && a <= 100) {
+            dim_level = a / 100.0;
+            seen |= 1u << NLIGHTS;
+            continue;
+        }
+        if (sscanf(line, "%31s %d %d %d", name, &a, &b, &c) != 4 || a < 0 || a > 255 || b < 0 || b > 255 || c < 0 || c > 255)
+            continue;
+        for (size_t i = 0; i < NLIGHTS; i++)
+            if (!strcmp(name, lights[i].name)) {
+                lights[i].rgb[0] = a; lights[i].rgb[1] = b; lights[i].rgb[2] = c;
+                seen |= 1u << i;
+            }
+    }
+    if ((int)seen != want) {
+        fprintf(stderr, "kawa-rgb: %s needs a line for each of motherboard, keyboard, card (NAME R G B) and dim N\n", CONF);
+        exit(1);
+    }
+}
+
+/* ── the cooler's display: the CPU's temperature, its own report, once a second ──── */
+static int disp_fd = -1, temp_fd = -1, disp_shown = -1;
 static double temp_avg = -1000;
 static void temp_find(void)
 {
@@ -373,9 +474,13 @@ static void temp_find(void)
 }
 static void disp_tick(void)
 {
-    char buf[32], name[32];
+    char buf[32];
+    if (disp_fd >= 0 && !alive(disp_fd)) {
+        close(disp_fd);
+        disp_fd = -1;
+    }
     if (disp_fd < 0)
-        disp_fd = hidraw_find(0x1A2C, 0x4184, 1, name, sizeof name);
+        disp_fd = hidraw_find(0x1A2C, 0x4184, 1);
     if (disp_fd < 0)
         return;
     if (temp_fd < 0)
@@ -386,13 +491,10 @@ static void disp_tick(void)
     if (r <= 0)
         return;
     buf[r] = 0;
-    double t = strtol(buf, NULL, 10) / 1000.0;
+    double t = (double)strtol(buf, NULL, 10) / 1000.0;
     temp_avg = temp_avg < -999 ? t : temp_avg + (t - temp_avg) * 0.25;   /* Tctl jumps: a few seconds' average */
     int v = (int)lround(temp_avg);
-    if (v < 0)
-        v = 0;
-    if (v > 999)
-        v = 999;
+    v = v < 0 ? 0 : v > 999 ? 999 : v;
     disp_shown = v;
     uint8_t rep[64] = {0x07, 0xff, 0xff, (uint8_t)(v / 100), (uint8_t)(v / 10 % 10), (uint8_t)(v % 10)};
     if (report_out(disp_fd, rep, sizeof rep)) {
@@ -401,26 +503,8 @@ static void disp_tick(void)
     }
 }
 
-/* ── the breath ──────────────────────────────────────────────────────────────────── */
-static double breath(double t, const struct mood *m)
-{
-    double p = fmod(t, m->rise + m->fall);
-    double c = p < m->rise ? 0.5 - 0.5 * cos(M_PI * p / m->rise)
-                           : 0.5 + 0.5 * cos(M_PI * (p - m->rise) / m->fall);
-    return m->floor + (m->peak - m->floor) * c;
-}
-/* the colour at a level: the red falls with the level, green and blue faster, so it reddens */
-static void ember(const double rgb[3], double level, uint8_t out[3])
-{
-    static const double fall[3] = {1.0, 1.5, 2.0};
-    for (int i = 0; i < 3; i++) {
-        double v = rgb[i] * pow(level, fall[i]);
-        out[i] = v >= 255 ? 255 : (uint8_t)lround(v);
-    }
-}
-
-/* ── the screens, from DRM: lit while any connected screen is on ─────────────────── */
-static bool screens_on(void)
+/* ── what decides ────────────────────────────────────────────────────────────────── */
+static bool screens_on(void)     /* lit while any connected screen is on, from DRM */
 {
     char buf[32];
     DIR *d = opendir(at("/sys/class/drm"));
@@ -438,13 +522,44 @@ static bool screens_on(void)
     closedir(d);
     return on;
 }
+static double clock_s(clockid_t c)
+{
+    struct timespec t;
+    clock_gettime(c, &t);
+    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+}
+static bool switched_on(void)
+{
+    char buf[8];
+    return slurp(at("%s", SWITCH), buf, sizeof buf) < 0 || strncmp(buf, "off", 3);
+}
+/* locked: the mark is there, and from this boot (a session that died locked leaves it behind) */
+static bool locked(void)
+{
+    struct stat st;
+    if (stat(at("%s", LOCKED), &st))
+        return false;
+    return (double)st.st_mtime >= clock_s(CLOCK_REALTIME) - clock_s(CLOCK_BOOTTIME) - 2;
+}
+static bool sleeping(void)
+{
+    return access(at("%s", SLEEPING), F_OK) == 0;
+}
+
+/* a level (what it looks like) on a device's red */
+static void paint(const struct light *l, double level, uint8_t out[3])
+{
+    double pwm = pow(level, GAMMA);
+    for (int i = 0; i < 3; i++)
+        out[i] = (uint8_t)lround(l->rgb[i] * pwm);
+}
 
 /* ── what it found, for `kawa-rgb status`: rewritten only when it changes ────────── */
-static void status_write(int mood, bool lit)
+static void status_write(const char *word)
 {
     static char last[512];
     char now[512];
-    int n = snprintf(now, sizeof now, "mood %s\nscreens %s\n", mood ? "light" : "dark", lit ? "on" : "off");
+    int n = snprintf(now, sizeof now, "lights %s\n", word);
     for (size_t i = 0; i < NLIGHTS; i++)
         n += snprintf(now + n, sizeof now - (size_t)n, "%s %s\n", lights[i].name, lights[i].fd >= 0 ? "ok" : "missing");
     n += snprintf(now + n, sizeof now - (size_t)n, "display %s\n", disp_fd >= 0 ? "ok" : "missing");
@@ -465,11 +580,11 @@ static void status_write(int mood, bool lit)
 static volatile sig_atomic_t stopping;
 static void on_term(int s) { (void)s; stopping = 1; }
 
-static double clock_s(clockid_t c)
+static void let_go(struct light *l)
 {
-    struct timespec t;
-    clock_gettime(c, &t);
-    return (double)t.tv_sec + (double)t.tv_nsec / 1e9;
+    if (l->fd >= 0)
+        close(l->fd);
+    l->fd = -1;
 }
 
 static int run(const char *trace_path)
@@ -484,295 +599,135 @@ static int run(const char *trace_path)
     sigaction(SIGTERM, &sa, NULL);
     sigaction(SIGINT, &sa, NULL);
 
-    int mood = mood_now(0), fade = 0;
-    bool lit = screens_on();
-    double rgb[3], from[3];
-    memcpy(rgb, moods[mood].rgb, sizeof rgb);
-    memcpy(from, rgb, sizeof from);
-    double base = clock_s(CLOCK_MONOTONIC);
-    double slept = clock_s(CLOCK_BOOTTIME) - base;
-    /* the fastest the breath itself moves in a tick, and a device's limit: a device coming back
-     * (a wake, the end of a typing burst) walks to the breath instead of jumping there */
-    struct timespec next;
-    clock_gettime(CLOCK_MONOTONIC, &next);
-    long tick = 0;
+    double slept = clock_s(CLOCK_BOOTTIME) - clock_s(CLOCK_MONOTONIC);
+    double next_display = 0, next_check = 0, next_scan = 0;
+    bool on = switched_on(), was_on = on;
+    double level = -1;              /* where the fade is: at the first look, it goes there at once */
 
-    for (size_t i = 0; i < NLIGHTS; i++) {
-        lights[i].level = moods[mood].floor;
+    for (size_t i = 0; i < NLIGHTS; i++)
         lights[i].dirty = true;
-    }
     while (!stopping) {
-        const struct mood *m = &moods[mood];
         double now = clock_s(CLOCK_MONOTONIC);
         /* a suspend passed: everything's state may be gone (and USB devices renumbered) */
         double away = clock_s(CLOCK_BOOTTIME) - now;
         if (away - slept > 1.0) {
             for (size_t i = 0; i < NLIGHTS; i++) {
-                struct light *l = &lights[i];
-                if (l->fd >= 0)
-                    close(l->fd);
-                if (l->urbs >= 0)
-                    close(l->urbs);
-                l->fd = l->urbs = -1;
-                l->dirty = true;
+                let_go(&lights[i]);
+                lights[i].dirty = true;
             }
             if (disp_fd >= 0)
                 close(disp_fd);
             disp_fd = -1;
+            next_scan = 0;
         }
         slept = away;
 
-        if (tick % TICKS_S == 0) {
-            int was = mood;
-            mood = mood_now(mood);
-            if (mood != was) {
-                memcpy(from, rgb, sizeof from);
-                fade = FADE_TICKS;
-                m = &moods[mood];
-            }
-            lit = screens_on();
+        /* what it should look like now */
+        on = switched_on();
+        bool lit = screens_on(), asleep = sleeping();
+        double target = !on || !lit || asleep ? 0 : locked() ? dim_level : 1;
+        const char *word = !on ? "switched off" : asleep ? "off, asleep" : !lit ? "off, screens off" : target < 1 ? "dim" : "full";
+        if (level < 0 || asleep)
+            level = target;
+        else
+            level += target > level ? fmin(FADE_STEP, target - level) : -fmin(FADE_STEP, level - target);
+
+        if (on != was_on)
+            for (size_t i = 0; i < NLIGHTS; i++)
+                lights[i].remembered = false;
+        was_on = on;
+
+        /* the devices: gone ones looked for, each one's memory, then what has changed */
+        if (now >= next_check) {
+            next_check = now + 2;
+            for (size_t i = 0; i < NLIGHTS; i++)
+                if (&lights[i] != CARD && lights[i].fd >= 0 && !alive(lights[i].fd)) {
+                    let_go(&lights[i]);
+                    lights[i].dirty = true;
+                }
         }
-        if (fade > 0)
-            fade--;
-        for (int i = 0; i < 3; i++)
-            rgb[i] = m->rgb[i] + (from[i] - m->rgb[i]) * fade / FADE_TICKS;
-
-        double target = lit ? breath(now - base, m) : m->floor;
-        double limit = 2.5 * (m->peak - m->floor) * M_PI / (2.0 * (m->rise < m->fall ? m->rise : m->fall)) / TICKS_S;
-
+        bool scan = now >= next_scan;
+        if (scan)
+            next_scan = now + 2;
         for (size_t i = 0; i < NLIGHTS; i++) {
             struct light *l = &lights[i];
             if (l->fd < 0) {
-                if (tick % RESCAN_TICKS != 0 || l->open(l) < 0)
+                if (!scan || l->open(l) < 0)
                     continue;
                 l->dirty = true;
             }
-            if (l == KEYBOARD && lit) {
-                if (k617_typing(l))
-                    l->hold = HOLD_TICKS;
-                if (l->hold > 0) {
-                    l->hold--;
+            uint8_t c[3];
+            paint(l, level, c);
+            if (l->dirty || c[0] != l->sent[0] || c[1] != l->sent[1] || c[2] != l->sent[2]) {
+                if (l->send(l, c) < 0) {
+                    fprintf(stderr, "kawa-rgb: %s: %s\n", l->name, strerror(errno));
+                    let_go(l);
+                    l->dirty = true;
+                    continue;
+                }
+                l->dirty = false;
+                l->sent[0] = c[0]; l->sent[1] = c[1]; l->sent[2] = c[2];
+            } else if (l == CARD && card_todo > 0) {
+                /* the fade has ended: the card's other zones, one a step */
+                card_todo--;
+                if (card_todo != GPU_ZONE && gpu_zone(l->fd, (uint8_t)card_todo, card_rgb) < 0) {
+                    let_go(l);
+                    l->dirty = true;
                     continue;
                 }
             }
-            double d = target - l->level;
-            l->level += d > limit ? limit : d < -limit ? -limit : d;
-            uint8_t c[3];
-            ember(rgb, l->level, c);
-            if (!l->dirty && c[0] == l->sent[0] && c[1] == l->sent[1] && c[2] == l->sent[2])
-                continue;
-            if (l->send(l, c) < 0) {
-                close(l->fd);
-                if (l->urbs >= 0)
-                    close(l->urbs);
-                l->fd = l->urbs = -1;
-                continue;
-            }
-            l->dirty = false;
-            l->sent[0] = c[0]; l->sent[1] = c[1]; l->sent[2] = c[2];
         }
-        if (tick % TICKS_S == 0) {
-            disp_tick();
-            status_write(mood, lit);
+        if (now >= next_display) {
+            next_display = now + 1;
+            if (target > 0)
+                disp_tick();
         }
+        status_write(word);
         if (trace) {
-            fprintf(trace, "%.3f %s %s", now - base, mood ? "light" : "dark", lit ? "lit" : "banked");
+            fprintf(trace, "%.3f %s", now, word);
             for (size_t i = 0; i < NLIGHTS; i++)
-                fprintf(trace, " %s=%d,%d,%d%s", lights[i].name, lights[i].sent[0], lights[i].sent[1], lights[i].sent[2],
-                        lights[i].hold > 0 ? "H" : "");
+                fprintf(trace, " %s=%d,%d,%d", lights[i].name, lights[i].sent[0], lights[i].sent[1], lights[i].sent[2]);
             fprintf(trace, " display=%d\n", disp_shown);
             fflush(trace);
         }
-
-        tick++;
-        next.tv_nsec += TICK_NS;
-        if (next.tv_nsec >= 1000000000L) {
-            next.tv_nsec -= 1000000000L;
-            next.tv_sec++;
-        }
-        while (clock_nanosleep(CLOCK_MONOTONIC, TIMER_ABSTIME, &next, NULL) == EINTR && !stopping)
-            ;
-        /* (a machine that fell behind by more than a beat does not race to catch up) */
-        struct timespec t;
-        clock_gettime(CLOCK_MONOTONIC, &t);
-        if (t.tv_sec > next.tv_sec + 1)
-            next = t;
+        /* each one's own memory, when the fade has ended: it takes a while, and a write there may
+         * put its live state out: sent again */
+        if (level == target)
+            for (size_t i = 0; i < NLIGHTS; i++) {
+                struct light *l = &lights[i];
+                if (l->fd < 0 || l->remembered)
+                    continue;
+                uint8_t full[3];
+                paint(l, on ? 1 : 0, full);
+                int w = l->remember(l, full);
+                if (w < 0)
+                    fprintf(stderr, "kawa-rgb: %s's memory: not as it should be\n", l->name);
+                l->remembered = true;
+                l->dirty = w > 0;
+            }
+        ms(level != target || card_todo > 0 ? FADE_MS : IDLE_MS);
     }
     if (trace)
         fclose(trace);
     return 0;
 }
 
-/* ── the baseline: what each device does by itself, from power-on, until the service runs ──
- * Red and breathing, in the hardware's own memory. Each is read first and written only when it
- * differs: flash wears. The K617's blocks are read, patched and written back whole, never from a
- * template: what they hold besides the effect is its own (fizzctl's frames carry someone else's) */
-#define K617_BLOCK 1032
-static const struct { const char *name; uint8_t select[6]; uint8_t head[5]; } K617_BLOCKS[] = {
-    {"mode",    {0x05, 0x88, 0xb8, 0, 0, 0}, {0x06, 0x08, 0xb8, 0x00, 0x40}},
-    {"canvas",  {0x05, 0x89, 0xbc, 0, 0, 0}, {0x06, 0x09, 0xbc, 0x00, 0x40}},
-    {"routing", {0x05, 0x89, 0xc0, 0, 0, 0}, {0x06, 0x09, 0xc0, 0x00, 0x40}},
-    {"exec",    {0x05, 0x83, 0xb6, 0, 0, 0}, {0x06, 0x03, 0xb6, 0x00, 0x00}},
-};
-#define K617_MODE 0
-#define K617_EXEC 3
-#define K617_RESPIRE 0x02
-static void ms(long n)
+/* ── the small commands ──────────────────────────────────────────────────────────── */
+static int put_file(const char *path, const char *text)
 {
-    struct timespec t = {n / 1000, (n % 1000) * 1000000L};
-    nanosleep(&t, NULL);
-}
-static int k617_read(int fd, uint8_t blocks[4][K617_BLOCK])
-{
-    for (int i = 0; i < 4; i++) {
-        uint8_t raw[K617_BLOCK];
-        if (feature_set(fd, K617_BLOCKS[i].select, 6))
-            return -1;
-        ms(60);
-        int n = feature_get(fd, 0x06, raw, sizeof raw);
-        if (n < 64)
-            return -1;
-        memset(blocks[i], 0, K617_BLOCK);
-        memcpy(blocks[i], raw, (size_t)n);
-        memcpy(blocks[i], K617_BLOCKS[i].head, 5);
-        ms(60);
-    }
-    return 0;
-}
-static int k617_baseline(const uint8_t rgb[3])
-{
-    char name[32];
-    int fd = hidraw_find(0x258A, 0x0049, 1, name, sizeof name);
-    if (fd < 0) {
-        puts("keyboard: not here");
-        return 0;
-    }
-    static uint8_t now[4][K617_BLOCK], want[4][K617_BLOCK];
-    if (k617_read(fd, now)) {
-        puts("keyboard: could not read its memory, left alone");
-        close(fd);
+    char tmp[512];
+    snprintf(tmp, sizeof tmp, "%s.%d", path, (int)getpid());
+    int fd = open(tmp, O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
+    if (fd < 0 || write(fd, text, strlen(text)) != (ssize_t)strlen(text)) {
+        fprintf(stderr, "kawa-rgb: cannot write %s: %s\n", path, strerror(errno));
+        if (fd >= 0)
+            close(fd);
+        unlink(tmp);
         return 1;
     }
-    memcpy(want, now, sizeof want);
-    uint8_t *mode = want[K617_MODE], *ex = want[K617_EXEC];
-    if (ex[14] != 0x5a || ex[15] != 0xa5) {      /* (its commit mark: anything else is not this firmware's block) */
-        puts("keyboard: its memory is not as expected, left alone");
-        close(fd);
-        return 1;
-    }
-    memcpy(mode + 218, rgb, 3);                  /* the single colour */
-    memcpy(mode + 29, rgb, 3);
-    ex[21] = K617_RESPIRE;
-    ex[38 + 2 * (K617_RESPIRE - 1)] = 0x00;      /* its "many colours" flag off */
-    ex[39] = 0x03;                               /* speed 1 (stored 0), brightness 3 of 4 */
-    ex[39 + 2 * (K617_RESPIRE - 1)] = 0x03;
-    if (!memcmp(now, want, sizeof want)) {
-        puts("keyboard: as it should be");
-        close(fd);
-        return 0;
-    }
-    uint8_t init[6];
-    memcpy(init, K617_BLOCKS[K617_EXEC].select, 6);
-    uint8_t scratch[K617_BLOCK];
-    int r = feature_set(fd, init, 6);
-    ms(60);
-    if (feature_get(fd, 0x06, scratch, sizeof scratch) < 0)       /* (without this read it ignores the burst) */
-        r = -1;
-    ms(60);
-    for (int i = 0; i < 4 && !r; i++) {
-        r = feature_set(fd, want[i], K617_BLOCK);
-        ms(60);
-    }
-    if (r) {
-        puts("keyboard: the write failed");
-        close(fd);
-        return 1;
-    }
-    ms(200);
-    bool same = k617_read(fd, now) == 0 && !memcmp(now[K617_EXEC], want[K617_EXEC], 64)
-                && !memcmp(now[K617_MODE] + 218, rgb, 3);
-    puts(same ? "keyboard: written, read back equal" : "keyboard: written, but it reads back differently");
     close(fd);
-    return same ? 0 : 1;
+    return rename(tmp, path) ? 1 : 0;
 }
-static int msi_baseline(const uint8_t rgb[3])
-{
-    struct light l = {.fd = -1, .urbs = -1};
-    if (msi_open(&l)) {
-        puts("motherboard: not here");
-        return 0;
-    }
-    uint8_t want[185];
-    memcpy(want, l.tmpl, sizeof want);
-    msi_zones(want, rgb, 2, 10, 0);              /* breathing, slowest */
-    want[184] = 0;
-    if (!memcmp(want, l.tmpl, sizeof want)) {
-        puts("motherboard: as it should be");
-        close(l.fd);
-        return 0;
-    }
-    want[184] = 1;                               /* save_data: to its flash */
-    uint8_t old[185];
-    memcpy(old, l.tmpl, sizeof old);
-    old[184] = 1;
-    /* (as MSI's own software does: the old state, then the new) */
-    int r = feature_set(l.fd, old, sizeof old);
-    r |= feature_set(l.fd, want, sizeof want);
-    ms(100);
-    uint8_t back[185];
-    bool same = !r && feature_get(l.fd, 0x52, back, sizeof back) == (int)sizeof back && !memcmp(back + 1, want + 1, 183);
-    puts(same ? "motherboard: written, read back equal" : "motherboard: written, but it reads back differently");
-    close(l.fd);
-    return same ? 0 : 1;
-}
-static int gpu_baseline(const uint8_t rgb[3])
-{
-    struct light l = {.fd = -1, .urbs = -1};
-    if (gpu_open(&l)) {
-        puts("card: not here");
-        return 0;
-    }
-    /* it answers nothing about its colour: a mark says what it was last given */
-    char mark[32], was[32] = "";
-    snprintf(mark, sizeof mark, "%02x%02x%02x pulse\n", rgb[0], rgb[1], rgb[2]);
-    if (slurp(at("%s", BASE_MARK), was, sizeof was) >= 0 && !strcmp(was, mark)) {
-        puts("card: as it was last set");
-        close(l.fd);
-        return 0;
-    }
-    int r = 0;
-    for (uint8_t z = 0; z < 6 && !r; z++) {      /* (all six, as Gigabyte's own software does) */
-        uint8_t h[] = {0x12, 0x01, 0x02, 0x01, 0x0a, rgb[0], rgb[1], rgb[2], 0x00, z, 0x00};
-        r = gpu_write(l.fd, h, sizeof h);
-        ms(120);
-    }
-    uint8_t save[] = {0x13, 0x01};
-    r |= gpu_write(l.fd, save, sizeof save);
-    close(l.fd);
-    if (r) {
-        puts("card: the write failed");
-        return 1;
-    }
-    int fd = open(at("%s", BASE_MARK), O_WRONLY | O_CREAT | O_TRUNC | O_CLOEXEC, 0644);
-    if (fd >= 0) {
-        if (write(fd, mark, strlen(mark)) < 0)
-            puts("card: its mark could not be written");
-        close(fd);
-    }
-    puts("card: written (it answers nothing back)");
-    return 0;
-}
-static int baseline(void)
-{
-    conf_load();
-    uint8_t c[3];
-    ember(moods[0].rgb, moods[0].peak, c);
-    int r = msi_baseline(c);
-    r |= gpu_baseline(c);
-    r |= k617_baseline(c);
-    return r ? 1 : 0;
-}
-
 static int status(void)
 {
     char buf[512];
@@ -783,22 +738,51 @@ static int status(void)
     fputs(buf, stdout);
     return 0;
 }
+/* the sleep's unit: the mark, then as long as the service needs to have put everything out */
+static int to_sleep(void)
+{
+    if (put_file(at("%s", SLEEPING), "1\n"))
+        return 0;           /* (no service, nothing to tell) */
+    char buf[64];
+    for (int i = 0; i < 30; i++) {
+        if (slurp(at("%s", STATUS), buf, sizeof buf) >= 0 && strstr(buf, "asleep"))
+            break;
+        ms(50);
+    }
+    return 0;
+}
 
 int main(int argc, char **argv)
 {
     const char *r = getenv("KAWA_RGB_ROOT");
     if (r)
         root = r;
-    if (argc >= 2 && !strcmp(argv[1], "run")) {
+    const char *cmd = argc >= 2 ? argv[1] : "";
+    if (!strcmp(cmd, "run")) {
         if (argc == 4 && !strcmp(argv[2], "--trace"))
             return run(argv[3]);
         if (argc == 2)
             return run(NULL);
+    } else if (argc == 2) {
+        if (!strcmp(cmd, "status"))
+            return status();
+        if (!strcmp(cmd, "state")) {
+            puts(switched_on() ? "on" : "off");
+            return 0;
+        }
+        if (!strcmp(cmd, "on") || !strcmp(cmd, "off"))
+            return put_file(at("%s", SWITCH), !strcmp(cmd, "on") ? "on\n" : "off\n");
+        if (!strcmp(cmd, "toggle"))
+            return put_file(at("%s", SWITCH), switched_on() ? "off\n" : "on\n");
+        if (!strcmp(cmd, "lock"))
+            return put_file(at("%s", LOCKED), "1\n");
+        if (!strcmp(cmd, "unlock"))
+            return unlink(at("%s", LOCKED)) && errno != ENOENT ? 1 : 0;
+        if (!strcmp(cmd, "sleep"))
+            return to_sleep();
+        if (!strcmp(cmd, "wake"))
+            return unlink(at("%s", SLEEPING)) && errno != ENOENT ? 1 : 0;
     }
-    if (argc == 2 && !strcmp(argv[1], "status"))
-        return status();
-    if (argc == 2 && !strcmp(argv[1], "baseline"))
-        return baseline();
-    fprintf(stderr, "usage: kawa-rgb run [--trace FILE] | baseline | status\n");
+    fprintf(stderr, "usage: kawa-rgb run [--trace FILE] | on | off | toggle | state | lock | unlock | sleep | wake | status\n");
     return 2;
 }
