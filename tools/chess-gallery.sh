@@ -64,7 +64,7 @@ win 126x33; key Tab; key Tab; sleep 0.2; key Return; sleep 1.2; grim "$KIT_OUT/3
 printf '%s\n' '[Event "x"]' '[White "you"]' '[Black "tengu"]' '[Result "0-1"]' '' '1. e4 e5 2. Nf3 Nc6 3. Bc4 Nf6 4. Ng5 d5 5. exd5 Nxd5 6. Nxf7 Kxf7 7. Qf3+ Ke6 8. Nc3 Nb4 9. O-O c6 10. d4 Nxc2 11. Qg3 Nxa1 0-1' >"$ST/games/57.pgn"
 python3 -I -c 'import json,sys
 json.dump(dict(day=29,items={"29/lesson-is-it-safe":"x","29/game57":"x"},played={"57":dict(score="loss",elo=1100,t=1,me=0,times=[8]*11,check="safe",goal="not one piece given away.",accuracy=None)}),open(sys.argv[1]+"/progress.json","w"))' "$ST"
-win 126x33; key Return; sleep 25; grim "$KIT_OUT/40-review-judge.png"; key Return; sleep 0.4; grim "$KIT_OUT/41-review-moment.png"; key Escape; sleep 0.3; grim "$KIT_OUT/42-review-shown.png"
+win 126x33; key Return; sleep 45; grim "$KIT_OUT/40-review-judge.png"; key Return; sleep 0.4; grim "$KIT_OUT/41-review-moment.png"; key Escape; sleep 0.3; grim "$KIT_OUT/42-review-shown.png"
 # (as many moments as the engine found: Enter on the answer, Esc on the next question, until the summary asks for its line; the kit's terminal cannot be read from here, so the moments are counted: one in this game)
 key Return; sleep 0.3; text "look at f7 before anything else"; sleep 0.2; grim "$KIT_OUT/43-review-summary.png"; key Return; sleep 0.3; grim "$KIT_OUT/44-after-review.png"; quit
 rm -f "$ST/progress.json"* "$ST/current.json"*
@@ -96,4 +96,4 @@ say "err: $(tail -3 $HOME/err.log 2>/dev/null | tr '\n' ' ')"
 say "crash: $(tail -30 $ST/crash.log 2>/dev/null)"
 PLAY
 } >"$play"
-bash "$here/kit.sh" --theme "$theme" --time 300 --out "$out" --play "$play" play
+bash "$here/kit.sh" --theme "$theme" --time 420 --out "$out" --play "$play" play
