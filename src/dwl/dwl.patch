@@ -2812,7 +2812,7 @@
  void
  startdrag(struct wl_listener *listener, void *data)
  {
-@@ -2879,38 +4477,2142 @@ tagmon(const Arg *arg)
+@@ -2879,38 +4477,2155 @@ tagmon(const Arg *arg)
  		setmon(sel, dirtomon(arg->i), 0);
  }
  
@@ -3141,7 +3141,7 @@
 +			warmhide(c, 1);
 +		else
 +			warmshow(c);
-+		return;
+ 		return;
 +	}
 +	/* not there: started, and shown as it maps — a press meanwhile undoes this one (an
 +	 * even number of presses leaves it away); started again if it never came (3 s) */
@@ -3161,7 +3161,9 @@
 +	size_t n = strspn(s, "abcdefghijklmnopqrstuvwxyz0123456789-");
 +	return n && n < sizeof(warmpend.name) && !s[n];
 +}
-+
+ 
+-	if (n > m->nmaster)
+-		mw = m->nmaster ? (int)roundf(m->w.width * m->mfact) : 0;
 +static void
 +warmcmd(const char *line)
 +{
@@ -3506,19 +3508,26 @@
 +	wlr_scene_node_set_position(&r->part[2]->node, x + (RAIL_CELLS - 1) * cell, m->m.y);
 +}
 +
-+/* a move in direction dir begins on m: all of the strip is one body. The workspace in front stands at X, moving
-+ * at V (a switch during a move; at rest both 0); the next one lies a strip's length beyond it, and all of
-+ * it, whatever is on it, moves by the same way at the same speed until that one is on its place */
++/* a move in direction dir begins on m: all of the strip is one body. The workspace in front (was) stands at X,
++ * moving at V (a switch during a move; at rest both 0), the farthest of its windows on the way the next one
++ * lies (the wave leaves some behind the strip's clock); the next one lies a strip's length beyond it, and all
++ * of it, whatever is on it, moves at the same speed until that one is on its place */
 +static void
-+stripstart(Monitor *m, int dir)
++stripstart(Monitor *m, int dir, uint32_t was)
 +{
 +	double t = nowms(), X = 0.0, V = 0.0;
++	Client *c;
 +	int under = m->stript0 > 0.0 && t - m->stript0 < anim_tag_ms;
 +	if (under) {
 +		double p = (t - m->stript0 - m->stripwave) / (anim_tag_ms - anim_tag_wave);
 +		p = p < 0 ? 0 : p > 1 ? 1 : p;
 +		X = tagat(m->stripx0, 0, m->stripv, p);
 +		V = tagspeed(m->stripx0, 0, m->stripv, p);
++		wl_list_for_each(c, &clients, link)
++			if (c->mon == m && (c->tags & was) && (c->anim == AnimIn || c->anim == AnimOut)) {
++				double x = tagat(c->tagx0, c->tagx1, c->tagv, tagprogress(c, t - c->animt0));
++				X = dir > 0 ? MAX(X, x) : MIN(X, x);
++			}
 +	}
 +	m->stripx0 = (int)lround(X) + dir * stripw(m);
 +	m->stripd = -m->stripx0;
@@ -3674,7 +3683,7 @@
 +	}
 +	if (node->type != WLR_SCENE_NODE_BUFFER || !(b = wlr_scene_buffer_from_node(node))->buffer
 +			|| color[0] <= 0)
- 		return;
++		return;
 +	/* (a surface's picture is on the GPU already: the client buffer's texture) */
 +	if (!(cb = wlr_client_buffer_get(b->buffer)) || !(tex = cb->texture))
 +		if (!(tex = own = wlr_texture_from_buffer(drw, b->buffer)))
@@ -3704,9 +3713,7 @@
 +	}
 +	return sh;
 +}
- 
--	if (n > m->nmaster)
--		mw = m->nmaster ? (int)roundf(m->w.width * m->mfact) : 0;
++
 +/* a program of the two, linked (0: it would not build) */
 +static GLuint
 +glprogram(const char *vs, const char *fs)
@@ -4039,6 +4046,12 @@
  		}
 -		i++;
  	}
++	if (held)                          /* (the strip's clock with them: its rails were last stamped together) */
++		wl_list_for_each(r, &rails, link)
++			if (r->mon == m) {
++				m->stript0 += now - r->last;
++				break;
++			}
 +	wl_list_for_each_safe(r, rtmp, &rails, link) {
 +		if (r->mon != m)
 +			continue;
@@ -4973,7 +4986,7 @@
  }
  
  void
-@@ -2961,6 +6663,9 @@ void
+@@ -2961,6 +6676,9 @@ void
  unlocksession(struct wl_listener *listener, void *data)
  {
  	SessionLock *lock = wl_container_of(listener, lock, unlock);
@@ -4983,7 +4996,7 @@
  	destroylock(lock, 1);
  }
  
-@@ -2968,7 +6673,20 @@ void
+@@ -2968,7 +6686,20 @@ void
  unmaplayersurfacenotify(struct wl_listener *listener, void *data)
  {
  	LayerSurface *l = wl_container_of(listener, l, unmap);
@@ -5004,7 +5017,7 @@
  	l->mapped = 0;
  	wlr_scene_node_set_enabled(&l->scene->node, 0);
  	if (l == exclusive_focus)
-@@ -2977,6 +6695,14 @@ unmaplayersurfacenotify(struct wl_listen
+@@ -2977,6 +6708,14 @@ unmaplayersurfacenotify(struct wl_listen
  		arrangelayers(l->mon);
  	if (l->layer_surface->surface == seat->keyboard_state.focused_surface)
  		focusclient(focustop(selmon), 1);
@@ -5019,7 +5032,7 @@
  	motionnotify(0, NULL, 0, 0, 0, 0);
  }
  
-@@ -2985,12 +6711,27 @@ unmapnotify(struct wl_listener *listener
+@@ -2985,12 +6724,27 @@ unmapnotify(struct wl_listener *listener
  {
  	/* Called when the surface is unmapped, and should no longer be shown. */
  	Client *c = wl_container_of(listener, c, unmap);
@@ -5047,7 +5060,7 @@
  
  	if (client_is_unmanaged(c)) {
  		if (c == exclusive_focus) {
-@@ -3110,10 +6851,12 @@ updatemons(struct wl_listener *listener,
+@@ -3110,10 +6864,12 @@ updatemons(struct wl_listener *listener,
  	}
  
  	if (selmon && selmon->wlr_output->enabled) {
@@ -5060,7 +5073,7 @@
  		focusclient(focustop(selmon), 1);
  		if (selmon->lock_surface) {
  			client_notify_enter(selmon->lock_surface->surface,
-@@ -3168,16 +6911,281 @@ urgent(struct wl_listener *listener, voi
+@@ -3168,16 +6924,283 @@ urgent(struct wl_listener *listener, voi
  void
  view(const Arg *arg)
  {
@@ -5106,7 +5119,7 @@
 +	focusclient(focustop(m), 1);
 +	arrange(m);
 +	if (slide) {
-+		stripstart(m, dir);
++		stripstart(m, dir, was);
 +		railstart(m, dir, was, now);
 +		wl_list_for_each(c, &clients, link) {
 +			int before, after;
@@ -5120,10 +5133,12 @@
 +				if (before && after) {
 +					animstop(c);
 +				} else {
-+					int x;
++					int x, w = stripw(m);
 +					c->animp = tagprogress(c, nowms() - c->animt0);   /* (its place now, not at the last frame) */
 +					x = tagdx(c);
-+					tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : x + m->stripd, m->stripv, 0);
++					/* (whole strips off its place, whatever the wave left it: off the screen at the end) */
++					tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : (int)lround((double)(x + m->stripd) / w) * w,
++							m->stripv, 0);
 +				}
 +				wlr_scene_node_set_enabled(&c->scene->node, 1);
 +			} else if (before && !after) {
@@ -5347,7 +5362,7 @@
  void
  virtualkeyboard(struct wl_listener *listener, void *data)
  {
-@@ -3231,8 +7239,12 @@ xytonode(double x, double y, struct wlr_
+@@ -3231,8 +7254,12 @@ xytonode(double x, double y, struct wlr_
  					wlr_scene_buffer_from_node(node))->surface;
  	}
  
@@ -5361,7 +5376,7 @@
  }
  
  void
-@@ -3279,6 +7291,23 @@ activatex11(struct wl_listener *listener
+@@ -3279,6 +7306,23 @@ activatex11(struct wl_listener *listener
  		wlr_xwayland_surface_activate(c->surface.xwayland, 1);
  }
  
@@ -5385,7 +5400,7 @@
  void
  associatex11(struct wl_listener *listener, void *data)
  {
-@@ -3293,8 +7322,9 @@ configurex11(struct wl_listener *listene
+@@ -3293,8 +7337,9 @@ configurex11(struct wl_listener *listene
  {
  	Client *c = wl_container_of(listener, c, configure);
  	struct wlr_xwayland_surface_configure_event *event = data;
@@ -5396,7 +5411,7 @@
  		wlr_xwayland_surface_configure(c->surface.xwayland,
  				event->x, event->y, event->width, event->height);
  		return;
-@@ -3325,6 +7355,7 @@ createnotifyx11(struct wl_listener *list
+@@ -3325,6 +7370,7 @@ createnotifyx11(struct wl_listener *list
  	LISTEN(&xsurface->events.destroy, &c->destroy, destroynotify);
  	LISTEN(&xsurface->events.dissociate, &c->dissociate, dissociatex11);
  	LISTEN(&xsurface->events.request_activate, &c->activate, activatex11);
