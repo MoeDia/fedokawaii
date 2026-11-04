@@ -78,18 +78,19 @@ Found and fixed in this pass, each with its test where a test can see it:
 - Words cut in half in narrow panels (`teng`, `game 57 of`, `reading the gam`): `_cut` cuts at a word or not at all; the sweep fails on any line wider than the panel.
 - Replay's dangling "you won:" with no termination; the seal's large frame spilled past the paper and stayed (see-through margin): kept on the paper.
 - SIGTERM with a terminal that will not read: no longer waited for.
+- **A light game from a puzzle** (245 of the 730) began before the opponent's move, so a weak engine could simply not play it and the tactic never came: the first move is on the board now (checked for all 245: legal, you to move). Its start was also searched for again at every frame of the row under the cursor: once now.
 - The tests: fixed sleeps at start-up replaced by Tty.settle (they failed at load 50); the walk waits for its drills; **the fuzz started a second program after every restart** (the first kept the lock, the second sat in cooked mode, a random Ctrl+\\ dumped core): one at a time now, and SIGQUIT ignored in the tests' programs.
 
 New since the last notes (r27-extra, for his veto, with those above): the year's scroll unrolls and rolls up (420 ms, the rod in whole art pixels with its shadow), a torii at the end of the plan's path at 1800, a large face across a large board, the face of who you meet on today's game row, a drag with the man under the pointer, sparks in puzzles and lessons, a solved puzzle's beat (the square lit, `✓ solved +8`, 0.55 s, any key goes on), chess's own ?? ? ?! in the review, arrows redrawn on the art's pixels, board and panel one centred block in a large window (the panel no wider than 60 columns: a tile is the usual size, 236 × 51 alone on a workspace).
 
 For the main run: my fuzz's Ctrl+\\ left python core dumps in /var/lib/systemd/coredump (87 python3.14 of uid 1000 today, not all from this lane; 1 GB in all with others'). No sudo here, so I left them: systemd-tmpfiles ages them out, or `sudo rm` them when convenient.
 
-## Where this pass stopped, 20:17: forced reboot announced for 20:25
+## Where this pass stopped, 20:20: forced reboot announced for 20:25
 
 Committed and pushed. /dev/shm is lost in the reboot; the real engine is kept at ~/.cache/lane-chess/stockfish, with mont.sh and freeze.sh (delete that folder when this lane ends: nothing else uses it).
 
 **Next, in this order, after the boot:**
-1. Check the seal's clamp and the cursor on "go on to day 8" by eye (the commit 95b784a came after the last shot): a small kit play at 236×51 (report → Enter → the seal).
+1. Check the seal's clamp and the cursor on "go on to day 8" by eye (95b784a came after the last shot): a small kit play at 236×51 (report → Enter → the seal).
 2. Full tests on the final code, from a frozen copy (freeze.sh, so that edits do not touch a run): test_chess_rules, test_chess, test_chess_destroy with `KAWA_TEST_STOCKFISH=~/.cache/lane-chess/stockfish`; chess_puzzles200; chess_games 20; `tools/check-chess-lessons.py`.
 3. **The fuzz, 30 minutes, on a frozen copy** (T25c's accept): `python3 -I -B tests/content/chess_fuzz.py DIR 1800 SEED`, nice -n 10, then fill the table above.
 4. Gallery both moods on the final code; compare the light fullscreen shots once more.
