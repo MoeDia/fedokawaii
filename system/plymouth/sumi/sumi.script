@@ -6,8 +6,8 @@
 # A disk that asks for its password gets the lock screen's box: "the disk's password", and a vermilion ◆ for each character typed.
 # Everything sits on whole pixels around the screen's middle (Math.Int: no half pixels).
 
-Window.SetBackgroundTopColor(0.0941, 0.0902, 0.0824);   # #181715, the ground of the dark theme
-Window.SetBackgroundBottomColor(0.0941, 0.0902, 0.0824);
+Window.SetBackgroundTopColor(0.0942, 0.0903, 0.0824);   # #181715, the ground of the dark theme
+Window.SetBackgroundBottomColor(0.0942, 0.0903, 0.0824);
 
 cx = Math.Int(Window.GetWidth() / 2);
 cy = Math.Int(Window.GetHeight() / 2);
