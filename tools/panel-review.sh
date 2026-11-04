@@ -43,7 +43,7 @@ if [[ \${1:-} == --state ]]; then
            printf 'input\t62\t0\tRyzen\tRear Microphone\tALC1220 Analog\tRyzen HD Audio Controller\tAnalog Stereo\t\n' ;;
     brightness) printf 'brightness\t72%%\n' ;;
     *) printf 'theme\t%s\nbrightness\t72%%\nnight\t4000K\nvrr\tin games\nvrrnow\toff\nwallpaper\tthe-great-wave\nsound\t62%%\nmuted\t%s\n' "\$th" "\$m"
-       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\nrgb\ton\n' ;;
+       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\nrgb\ton\nsharesound\toff\n' ;;
   esac
   exit 0
 fi
@@ -94,12 +94,22 @@ rv_downloads() {
   setsid -f kawa-downloads
 }
 rv_downloads_end() { kill "$RV_SLEEP" 2>/dev/null; rm -f "$XDG_RUNTIME_DIR"/kawa-downloads/torrra.*; }
+# (a loaded PC draws a surface late, a list half-way: the shot waits for the screen to change from before it opened and
+# to hold still, two grabs 0.3 s apart alike, 12 s at most)
+rv_grab() { grim -t ppm - | md5sum; }
+rv_still() {
+  local before=$1 a="" b i
+  for ((i = 0; i < 40; i++)); do
+    b=$(rv_grab); [[ $b != "$before" && $b == "$a" ]] && return 0
+    a=$b; sleep 0.3
+  done
+}
 WORDS
   echo 'panel; ready; warm; nap 1.5'
   for s in "${SURFACES[@]}"; do
     IFS='|' read -r name open keys close <<<"$s"
     [[ -z $only || ,$only, == *",$name,"* ]] || continue
-    printf '%s\nnap 0.9\n%s\nnap 0.5\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
+    printf 'RV_BEFORE=$(rv_grab)\n%s\nnap 0.9\n%s\nnap 0.5\nrv_still "$RV_BEFORE"\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
   done
 } >"$W/play.sh"
 # (the kit's ground is swaybg's; now and then, seen under load only, its picture goes and dwl's dark root shows — swaybg
