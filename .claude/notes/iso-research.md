@@ -245,3 +245,10 @@ Anaconda copies `console=` to the installed system (§11), and `lane-iso`'s `pos
 `--retain-splash` (§10) was read in Plymouth 24.004.60, F44's version; F45 ships 26.134.222. It no longer matters: the code above does not rely on it.
 
 Still unanswered by any boot, as far as its tree shows: what stage 1 shows on an unreadable stick. Its hooks: `initqueue/timeout/50-anaconda-error-reporting.sh` writes `warn` lines; `emergency/50-plymouth-emergency.sh` hides the splash. With `console=tty1` those lines at least reach the screen that is showing.
+
+### 12.9 What stage 1 does when it cannot find the stick [the F45 initrd, through `lsinitrd -f`]
+
+- `usr/bin/dracut-initqueue:14–16,75`: `RDRETRY` is `rd.retry`, default 180, doubled, against a loop that sleeps half a second: timeout hooks at two thirds (120 s), "Could not boot." at the end (180 s). `rd.retry` is the documented way to shorten that.
+- `usr/bin/dracut-emergency`: `plymouth quit`; with `rd.shell` (default on) `source_hook emergency`, then Dracut's report to every console in `/proc/consoles`, then `sulogin`.
+- So an unreadable stick shows the splash for three minutes, then Dracut's raw report on tty1 (`console=tty1` lists it) and a prompt for a locked root. Not silent, and not ours.
+- The hook runs before the report, and a second initrd can add one under `var/lib/dracut/hooks/emergency/`. The first emergency hook there is Plymouth's own, `50-plymouth-emergency.sh`.

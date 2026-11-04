@@ -160,6 +160,8 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 | The stick stays in; the firmware boots it again | Marker check, section 3; `reboot --eject` for optical; Anaconda should put Fedora first in the boot order: T57's row sees whether it does |
 | Anaconda crashes, or dies early | `%onerror` shows it in our screen with the log's path. A `%pre` that raises or a parse error reaches no `%onerror` (I§11), the VT is locked with no shell, and `anaconda.service` starts next: a second Anaconda, a second `%pre`, the form back as if nothing had happened (I§12.7). **A drop-in in `product.img` turns that unit into the answer:** `Type=oneshot`, `ExecStart=` emptied, then `failed.py`. It can only start when Anaconda has ended without taking the machine down, so every early death lands on one screen, with no watcher to write. `%post` leaves a word in `/tmp`, and with that word there the unit does nothing, so a slow reboot can never flash it. Masking is no option: `anaconda-direct` `Requires` it. Read, not booted: tested with a bad repo URL, a raising `%pre` and a kickstart that cannot parse |
 | "This stick is damaged", on a good stick | Fedora's check can say that (I§12.2). Ours reads files, not sectors (section 5). T57 proves both directions: a copy with the three GPT fields changed passes, a copy with one flipped byte in `install.img` fails |
+| The stick cannot be read at all | Today: three minutes of splash, then Dracut's raw report and a prompt for a locked root (I§12.9). `rd.retry=30` on the boot line, and a hook in the second initrd, `var/lib/dracut/hooks/emergency/00-fedokawaii.sh`, sourced before that report: plain words on tty1 in the kernel's font (no font of ours exists yet at that point), any key powers off. Read, not booted |
+| Stage 2 dies before `%pre` (a bad block in `install.img`) | The splash stays: `plymouth-quit` is masked and nothing has drawn yet. **Left open on purpose**: rare, the kernel's own errors go to tty1 behind the splash, and "check this stick" finds it. Said here so that nobody takes it for covered |
 | The disk is not empty, and it is not simple | His has subvolumes, snapshots, nested ones. The erase in `%pre` leaves nothing to walk (section 3). T57: a second install over a finished one |
 | Mirrors fail mid-way | Anaconda's own retries; a final failure → `%onerror`. Slow-network run in T57 |
 | Mirror content changed between `%pre`'s check and install | Nothing to do: `%onerror`; no half-state matters on a disk that was going to be erased |
@@ -199,7 +201,8 @@ Twice from the same inputs: **the same bytes for step 6, proven (I§4)**; steps 
 | Parse packaging progress from a real run | **Done by `lane-iso`:** `/tmp/syslog` |
 | `%pre`'s daemon survives into the installation | **Done by `lane-iso`** |
 | `-kmscon` with `@^custom-environment` on F45 | Runs in `lane-iso`'s install; T57 confirms `rpm -q kmscon` says no |
-| A damaged `install.img` on a test ISO | **Open.** What stage 1 shows under the splash. Silence is a defect: T56 decides how the failure reaches the screen (I§12.8 lists the hooks) |
+| A damaged `install.img` on a test ISO | **Open.** What stage 2 shows under the splash (section 6 expects nothing better than the splash) |
+| `inst.stage2=hd:LABEL=nothing` on a test build | **New.** Our words within 30 s and any key powers off, with the hook of section 6 |
 | A drop-in that replaces `anaconda.service` | **New.** Does a raising `%pre` land on `failed.py`, and does a normal install still reboot with no flash of it? (I§12.7) |
 
 ### T57's matrix, each from a wiped disk (`tools/vm-iso-test.sh`, `virsh send-key` and `virsh screenshot`; the real screens, no answer file)
