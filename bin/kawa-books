@@ -393,7 +393,7 @@ case ${1:-} in
     mapfile -t pick < <(fd -t f -i "${args[@]}" . \
         "$HOME/Downloads" "$HOME/Documents" 2>/dev/null \
       | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t %s%s%s  %s\n' "$p" "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "${p/#"$HOME"/\~}"; done \
-      | fzf --ansi --multi --height=100% --delimiter=$'\t' --with-nth=2 \
+      | fzf --ansi --multi --height=100% --no-clear --delimiter=$'\t' --with-nth=2 \
           --header="$(screen_heading "$ICON_BOOK" "add books" 100)"$'\n ' --ghost='from ~/Downloads ~/Documents' \
           --footer=$'\n'"$(screen_keys tab mark '')" \
       | cut -f1)
@@ -431,7 +431,9 @@ if ((${#list[@]})); then ghost='~/Books'; else ghost='none in ~/Books yet — ct
 self=$(printf '%q' "$0")
 # (the terminal's cursor a thin bar, not foot's block: it stands before the ghost's first letter, never over it)
 { printf '\e[6 q' >/dev/tty; } 2>/dev/null
-printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% \
+# (--no-clear: fzf leaves its page up as it goes — the window ends now, or the next list draws over it —, so the
+# window rolls up with its words, never as a blank page: tools/regress/float-exit.sh)
+printf '%s\n' "${list[@]}" | fzf --ansi --no-sort --height=100% --no-clear \
   --delimiter=$'\t' --with-nth=2 --tiebreak=index --header="$head" --ghost="$ghost" \
   --info-command='printf "%s  " "$FZF_INFO"' \
   --preview="$self --preview {1} {3} {4} {6}" --preview-window='right,36,border-left,noinfo,wrap' \

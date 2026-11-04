@@ -568,10 +568,10 @@ section() {   # section WORDS COUNT — a section's label, as its own row: the w
   printf '%s\t\t %s%s%s %s%s%s %s%s%s' "$LABEL" "$INK_MUTED" "$1" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF" "$INK_MUTED" "$2" "$INK_OFF"
 }
 sections() {   # the sections' names in the picker's order, a line each: the theme's own picture's, the old masters, the rest
-  local name d=${DEFAULT_THEME_NAME:-}; local -A seen=()
+  local name d=${DEFAULT_THEME_NAME:-} old="old masters"; local -A seen=()
   [[ -n ${L_SEC[$d]:-} ]] && { seen[${L_SEC[$d]}]=1; printf '%s\n' "${L_SEC[$d]}"; }
-  [[ -z ${seen[old masters]:-} ]] && for name in "${L_NAMES[@]}"; do
-    [[ ${L_SEC[$name]} == "old masters" ]] && { seen[old masters]=1; printf '%s\n' "old masters"; break; }
+  [[ -z ${seen[$old]:-} ]] && for name in "${L_NAMES[@]}"; do
+    [[ ${L_SEC[$name]} == "$old" ]] && { seen[$old]=1; printf '%s\n' "$old"; break; }
   done
   for name in "${L_NAMES[@]}"; do
     [[ -n ${seen[${L_SEC[$name]:-.}]:-} ]] && continue

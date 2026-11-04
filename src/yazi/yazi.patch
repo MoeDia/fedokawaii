@@ -5,6 +5,19 @@ one of them (rename and the other inputs, trash and the other confirms, help, wh
 rounded frame, from Lua either; a confirm fits what it says; its files named under their folder. `yazi --version`: Patch.
 Regenerate: tools/yazi-patch.sh.
 
+diff --git a/yazi-actor/src/app/quit.rs b/yazi-actor/src/app/quit.rs
+index 4d1cb82..86468e3 100644
+--- a/yazi-actor/src/app/quit.rs
++++ b/yazi-actor/src/app/quit.rs
+@@ -34,7 +34,7 @@ impl Actor for Quit {
+ 				Self::wait_probe(),
+ 			);
+ 
+-			Raterm::stop();
++			Raterm::goodbye();
+ 			process::exit(opt.code);
+ 		});
+ 
 diff --git a/yazi-actor/src/confirm/arrow.rs b/yazi-actor/src/confirm/arrow.rs
 index bc75ccb..e0a61be 100644
 --- a/yazi-actor/src/confirm/arrow.rs
@@ -1235,6 +1248,45 @@ index 085ea50..ed0597b 100644
  				}),
  				Renderable::Table(Box::new(table)),
  			];
+diff --git a/yazi-tui/src/raterm.rs b/yazi-tui/src/raterm.rs
+index 7f69036..3c1cafa 100644
+--- a/yazi-tui/src/raterm.rs
++++ b/yazi-tui/src/raterm.rs
+@@ -70,7 +70,19 @@ impl Raterm {
+ 		})
+ 	}
+ 
+-	pub fn stop() {
++	pub fn stop() { Self::stop_(true) }
++
++	/// The last thing yazi does (fedokawaii): where the window ends with it — a terminal started for it by foot, the file
++	/// dialog — its page stays up, the cursor hidden, so the window closes with its words and never as an empty page.
++	/// Typed in a shell, the shell's screen comes back as ever.
++	pub fn goodbye() {
++		let ends = std::env::var_os("KAWA_PICK").is_some()
++			|| std::fs::read_to_string(format!("/proc/{}/comm", std::os::unix::process::parent_id()))
++				.is_ok_and(|c| c.trim_end() == "foot");
++		Self::stop_(!ends)
++	}
++
++	fn stop_(leave: bool) {
+ 		let state = STATE.get();
+ 		if !state.started {
+ 			return EMULATOR.stop();
+@@ -78,10 +90,12 @@ impl Raterm {
+ 
+ 		_ = writef!(
+ 			TTY.writer(),
+-			"{}{PopKeyboardFlags}{DisableDrop}{DisableDrag}{}{}{DisableColorSchemeUpdates}{DisableFocusChange}{DisableClipboard}{DisableBracketedPaste}{ShowCursor}{LeaveAlternateScreen}",
++			"{}{PopKeyboardFlags}{DisableDrop}{DisableDrag}{}{}{DisableColorSchemeUpdates}{DisableFocusChange}{DisableClipboard}{DisableBracketedPaste}{}{}",
+ 			If(state.mouse, DisableMouseCapture),
+ 			RestoreCursorStyle { blink: EMULATOR.cursor_blink.get(), shape: EMULATOR.cursor_shape.get() },
+ 			If(state.title, SetTitle("")),
++			If(leave, ShowCursor),
++			If(leave, LeaveAlternateScreen),
+ 		);
+ 
+ 		STATE.set(RatermState::default());
 diff --git a/yazi-version/src/lib.rs b/yazi-version/src/lib.rs
 index 3473a31..c9444dd 100644
 --- a/yazi-version/src/lib.rs

@@ -248,7 +248,6 @@ python3             dep       python3 tuned     # tuned is a python program (fir
 
 # ── yazi and the rest from their releases, and what setup builds ─────────────────────────
 satty               upstream  -
-yazi                upstream  -
 ya                  upstream  -
 bluetui             upstream  -
 lazygit             upstream  -                 # (its release; the COPR dejan/lazygit is no longer kept)
@@ -257,6 +256,7 @@ localsend           built     install_localsend # lib/upstream.sh: its release, 
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
 kawa-saver          built     kawa-saver        # theme.sh, from src/kawa-saver (swayidle starts it)
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
+yazi                built     YAZI_TAG          # setup.sh, from GitHub + src/yazi
 vi                  built     /usr/local/bin/vi # setup.sh: a script that runs nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
 ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): ble.sh's commands, built from its
