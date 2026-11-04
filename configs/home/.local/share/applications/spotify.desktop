@@ -1,17 +1,17 @@
 [Desktop Entry]
-# Spotify: its web player (open.spotify.com) in a window of its own — Brave's app window: no
-# tabs, no address bar, tiled like every other window, through ~/.local/bin/brave-origin as
-# all of Brave is. Free or Premium, signed in once (Brave keeps the login). It plays through
-# Brave, so the bar's now-playing and its meter show it (Brave's media session over MPRIS,
-# cava on the output) and the media keys work it. Spotify's player needs Widevine, which
-# theme.sh switches on in Brave once (brave://settings → Widevine turns it off again). Its
+# Spotify: its web player (open.spotify.com) in a window of its own — Helium's app window: no
+# tabs, no address bar, tiled like every other window, through ~/.local/bin/kawa-browser as
+# all of Helium is. Free or Premium, signed in once (Helium keeps the login). It plays through
+# Helium, so the bar's now-playing and its meter show it (Helium's media session over MPRIS,
+# cava on the output) and the media keys work it. Spotify's player needs Widevine, which the
+# toolkit fetches from Google and kawa-browser names to Helium (lib/upstream.sh). Its
 # icon: our pixel music (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Spotify
 GenericName=Music Player
 Comment=Spotify's web player, in a window of its own
 X-Fedokawaii-Icon=music
-Exec=@HOME@/.local/bin/brave-origin --app=https://open.spotify.com
+Exec=@HOME@/.local/bin/kawa-browser --app=https://open.spotify.com
 Terminal=false
 Categories=Audio;AudioVideo;Player;
 Keywords=spotify;music;songs;podcasts;

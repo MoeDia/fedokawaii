@@ -58,7 +58,7 @@ on-button-left=invoke-default-action
 [app-name=drives urgency=critical]
 default-timeout=0
 
-# a finished download (kawa-downloads: a torrent, Brave's, a Steam game): 8 s, and a click
+# a finished download (kawa-downloads: a torrent, Helium's, a Steam game): 8 s, and a click
 # opens it — the file under yazi's cursor, or Steam's downloads
 [app-name=downloads]
 default-timeout=8000

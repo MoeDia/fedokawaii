@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
 # tests/status/test_downloads.sh — kawa-downloads, the downloads centre: what it finds of each
-# source (Torrents' list, Brave's .crdownload files and its History, Steam's appmanifests),
+# source (Torrents' list, the browser's .crdownload files and its History, Steam's appmanifests),
 # the bar's mark, the menu and what a click on it opens, the one notice of a finished
 # download, and the watcher: woken by the kernel as a download starts or ends, quiet between.
 . "$(dirname "$0")/lib.sh"
-D=$HOME/Downloads B=$HOME/.config/BraveSoftware/Brave-Origin/Default L=$HOME/.local/share/Steam/steamapps
+D=$HOME/Downloads B=$HOME/.config/net.imput.helium/Default L=$HOME/.local/share/Steam/steamapps
 world() {
   sandbox
-  D=$HOME/Downloads B=$HOME/.config/BraveSoftware/Brave-Origin/Default L=$HOME/.local/share/Steam/steamapps
+  D=$HOME/Downloads B=$HOME/.config/net.imput.helium/Default L=$HOME/.local/share/Steam/steamapps
   mkdir -p "$D" "$B" "$L"
   stub kawa-term; stub xdg-open; stub kawa-menu
 }
-brave_db() {   # brave_db CURRENT TARGET TOTAL… — Brave's History: downloads under way (state 0)
+browser_db() {   # browser_db CURRENT TARGET TOTAL… — the browser's History: downloads under way (state 0)
   python3 -I - "$B/History" "$@" <<'EOF'
 import sqlite3, sys
 db = sqlite3.connect(sys.argv[1])
@@ -45,14 +45,14 @@ torrra_list 999999 $'stale\t1\t2\t/x'
 eq "$(kawa-downloads list)" $'torrent\tBig Buck Bunny\t250\t1000\t'"$D/Big Buck Bunny"
 [[ ! -e $XDG_RUNTIME_DIR/kawa-downloads/torrra.999999 ]] && _ok || _no "a gone window's list stayed"
 
-case_ "Brave: a .crdownload — what has come is its size, how much will come from its History"
+case_ "the browser: a .crdownload — what has come is its size, how much will come from its History"
 world; head -c 300 /dev/zero >"$D/film.mkv.crdownload"; head -c 50 /dev/zero >"$D/Unconfirmed 1234.crdownload"
-brave_db "$D/film.mkv.crdownload" "$D/film.mkv" 1200 "$D/Unconfirmed 1234.crdownload" "$D/report.pdf" 0
-eq "$(kawa-downloads list | sort)" "Brave	film.mkv	300	1200	$D/film.mkv
-Brave	report.pdf	50	0	$D/report.pdf"
+browser_db "$D/film.mkv.crdownload" "$D/film.mkv" 1200 "$D/Unconfirmed 1234.crdownload" "$D/report.pdf" 0
+eq "$(kawa-downloads list | sort)" "browser	film.mkv	300	1200	$D/film.mkv
+browser	report.pdf	50	0	$D/report.pdf"
 case_ "…with no History at hand: its name from the file, the total not known yet"
-rm -f "$B/History"; eq "$(kawa-downloads list | sort | head -n1)" $'Brave\tUnconfirmed 1234\t50\t0\t'"$D/Unconfirmed 1234"
-case_ "…Brave's own download folder when you set one (its settings)"
+rm -f "$B/History"; eq "$(kawa-downloads list | sort | head -n1)" $'browser\tUnconfirmed 1234\t50\t0\t'"$D/Unconfirmed 1234"
+case_ "…the browser's own download folder when you set one (its settings)"
 mkdir -p "$TMP/elsewhere"; printf '{"download": {"default_directory": "%s"}}' "$TMP/elsewhere" >"$B/Preferences"
 : >"$TMP/elsewhere/x.iso.crdownload"; eq "$(kawa-downloads list | cut -f2)" "x.iso"
 
@@ -68,7 +68,7 @@ I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DL_0")   # (at r
 F=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_DL_FILL_5")   # (25 %: five steps of the tray's fill)
 T=$(sed -n 's/^C_TEAL=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
 eq "$(mark)" '{"text": "<span color='"'#$T'"'>'"$F"'</span>'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
-: >"$D/a.crdownload"; brave_db "$D/a.crdownload" "$D/a" 0
+: >"$D/a.crdownload"; browser_db "$D/a.crdownload" "$D/a" 0
 out=$(mark); has "$out" "$I""25<span"; lacks "$out" count
 sleep 600 & job=$!; on_exit "kill $job 2>/dev/null"; mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"
 printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"
@@ -170,8 +170,8 @@ kawa-downloads; names=$(awk -F'\t' '$1 == "row" { print $3 }' "$TMP/menu.in" | s
 eq "$names" "$(printf '%s\n' "Album Name 5.1.FLAC" "The Seven Samurai 1954 1080p" a_very_long_file_name_without photos-2026.tar.zst ubuntu-24.04.1-desktop-amd64 | sort)"
 case_ "a finished download's notice: its name, then SOURCE · SIZE · click to open it; a click opens it"
 world; : >"$D/film.mkv"; stub notify-send 'echo default'
-kawa-downloads notice Brave film.mkv 1500000000 "$D/film.mkv"
-called "^notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  film.mkv Brave · 1.5 GB · click to open it$"
+kawa-downloads notice browser film.mkv 1500000000 "$D/film.mkv"
+called "^notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  film.mkv browser · 1.5 GB · click to open it$"
 called "^kawa-term yazi $D/film.mkv\$"
 case_ "…closed unclicked: nothing opens"
 world; stub notify-send; kawa-downloads notice Steam Celeste 0 2; not_called '^xdg-open'
@@ -179,7 +179,7 @@ called "^notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  Celeste Ste
 
 # ── the watcher ──────────────────────────────────────────────────────────────────────────
 waitfor() { local i; for ((i = 0; i < 50; i++)); do eval "$1" && return 0; sleep 0.1; done; return 1; }
-case_ "the watcher: the mark poked as a Brave download starts, and as it ends"
+case_ "the watcher: the mark poked as a browser download starts, and as it ends"
 world; stub notify-send
 kawa-downloads watch & w=$!; on_exit "kill $w 2>/dev/null"
 waitfor 'grep -q "^kawa-dwlstatus --poke 21$" "$CALLS"' && _ok || _no "not poked at its start"
@@ -187,7 +187,7 @@ waitfor 'grep -q "^kawa-dwlstatus --poke 21$" "$CALLS"' && _ok || _no "not poked
 waitfor 'grep -q "^kawa-dwlstatus --poke 21$" "$CALLS"' && _ok || _no "not poked as a download began"
 case_ "…finished (renamed to its own name): its notice"
 : >"$CALLS"; mv "$D/song.flac.crdownload" "$D/song.flac"
-waitfor 'grep -q "^notify-send -a downloads .* song.flac Brave" "$CALLS"' && _ok || _no "no notice: $(cat "$CALLS")"
+waitfor 'grep -q "^notify-send -a downloads .* song.flac browser" "$CALLS"' && _ok || _no "no notice: $(cat "$CALLS")"
 called '^kawa-dwlstatus --poke 21$'
 case_ "…cancelled (its file gone): no notice"
 : >"$D/x.zip.crdownload"; sleep 0.8; : >"$CALLS"; rm -f "$D/x.zip.crdownload"

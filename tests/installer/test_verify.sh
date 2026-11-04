@@ -34,8 +34,8 @@ has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔  shutdown waits 30 s at most for your services"
 has "$OUT" "✔  the sound card never naps (no click at a volume change)"; has "$OUT" "✔  a restart waits for Steam to close properly (25 s at most)"
 
-case_ "…the same once the update button put brave-origin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
-fkh from-stored; V; has "$OUT" "✔  brave-origin from brave-browser (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
+case_ "…the same once the update button put helium-bin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
+fkh from-stored; V; has "$OUT" "✔  helium-bin from copr:copr.fedorainfracloud.org:imput:helium (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
 case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
 back built
 fk bash -c 'c=/home/fkuser/.local/share/containers/storage/overlay; runuser -u fkuser -- mkdir -p "$c/l1/diff/app" && : >"$c/l1/diff/app/Prowlarr.dll" && chown -R 100910:100910 "$c/l1"'   # (podman's own folders: yours)
@@ -288,15 +288,15 @@ printf 'linux /vmlinuz rootflags=subvol="root/.snapshots/371/snapshot" quiet\n' 
 V; eq "$RC" 3; has "$OUT" "✘  the boot menu's snapshots — it names root/.snapshots/371/snapshot, no longer on the disk — fedokawaii repair lists them again"
 rm -f "$W/boot/grub2/grub-btrfs.cfg"; V; has "$OUT" "✔  $n"
 
-# ── Brave ────────────────────────────────────────────────────────────────────
-case_ "Brave Origin: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
+# ── the browser ────────────────────────────────────────────────────────────────────
+case_ "Helium: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
 back built; V
-has "$OUT" "✔  Brave Origin starts (headless: its DevTools port answers)"
-p=$(cat "$FKH/brave-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "Brave left running after the check (pid ${p:-none})"
-case_ "Brave Origin that cannot start: a failure, said at once (not after the full minute)"
-fkh brave broken; t0=$SECONDS; V; eq "$RC" 3
-has "$OUT" "✘  Brave Origin starts (headless: its DevTools port answers)"
-((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a Brave that had exited"
-rm -f "$FKH/brave"
+has "$OUT" "✔  Helium starts (headless: its DevTools port answers)"
+p=$(cat "$FKH/browser-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "the browser left running after the check (pid ${p:-none})"
+case_ "A browser that cannot start: a failure, said at once (not after the full minute)"
+fkh browser broken; t0=$SECONDS; V; eq "$RC" 3
+has "$OUT" "✘  Helium starts (headless: its DevTools port answers)"
+((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a browser that had exited"
+rm -f "$FKH/browser"
 
 done_

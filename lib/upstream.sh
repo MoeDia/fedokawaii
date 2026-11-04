@@ -52,6 +52,9 @@ FACES_OLD=/usr/local/share/fonts/fusion-pixel
 # (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
 # GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
 GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
+# Widevine, by way of Firefox's update service: install_widevine says why it is not pinned
+WIDEVINE_UPDATE=https://aus5.mozilla.org/update/3/GMP/999.0/20261001000000/Linux_x86_64-gcc3/en-US/release/Linux/default/default/update.xml
+WIDEVINE_DIR=/usr/local/lib/fedokawaii-widevine
 # torrra (from PyPI, with uv tool) is held at this version: kawa-torrra hands it the Prowlarr
 # key by replacing three methods of its settings class, so a newer torrra is taken only
 # after that has been checked against it.
@@ -206,6 +209,46 @@ install_localsend() {   # the pinned release, whole, into ~/.local/share/localse
   ok "LocalSend $LOCALSEND_TAG → ~/.local/share/localsend (localsend)"
 }
 localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
+
+# Widevine: Google's module for protected media (Spotify's web player plays nothing without it).
+# Helium ships none (its site: Google licenses it to partners) and loads it from the folder its
+# hint file names (kawa-browser writes that). Never in this repository or the ISO: fetched here,
+# for this computer, from Google's own server, at the address and SHA-512 that Mozilla's update
+# service gives Firefox (the version in its address, 999, asks for the newest it knows); looked at
+# by every update. In its own folder under /usr/local/lib, as the component's layout has it.
+install_widevine() {
+  local d url sum ver have
+  d=$(mktemp -d "$KAWA_TMP/rel.XXXXXX")
+  retry 3 10 "${CURL[@]}" -o "$d/update.xml" "$WIDEVINE_UPDATE" || { log "Widevine: Mozilla's update service does not answer"; rm -rf "$d"; return 1; }
+  read -r url sum ver < <(python3 -I -c 'import sys, xml.etree.ElementTree as E
+for a in E.parse(sys.argv[1]).getroot().iter("addon"):
+    if a.get("id") == "gmp-widevinecdm" and a.get("hashFunction") == "sha512":
+        print(a.get("URL"), a.get("hashValue"), a.get("version"))' "$d/update.xml" 2>/dev/null) || true
+  [[ $url == https://edgedl.me.gvt1.com/* || $url == https://www.google.com/dl/* ]] && [[ $sum =~ ^[0-9a-f]{128}$ && $ver =~ ^[0-9.]+$ ]] \
+    || { log "Widevine: the update service's answer names no module of Google's"; rm -rf "$d"; return 1; }
+  have=$(jq -r .version "$WIDEVINE_DIR/manifest.json" 2>/dev/null) || have=""
+  if [[ $have == "$ver" ]]; then log "Widevine $ver — in place"; rm -rf "$d"; return 0; fi
+  retry 3 10 "${CURL[@]}" -o "$d/w.crx3" "$url" || { log "Widevine: download failed: $url"; rm -rf "$d"; return 1; }
+  [[ $(sha512sum "$d/w.crx3" | cut -d' ' -f1) == "$sum" ]] || { log "Widevine $ver: its SHA-512 is not the one announced — refused"; rm -rf "$d"; return 1; }
+  # (a .crx3 is a zip behind a header of its own; only these three files are taken from it)
+  python3 -I -c 'import io, os, sys, zipfile
+b = open(sys.argv[1], "rb").read()
+if b[:4] != b"Cr24": sys.exit(1)
+z = zipfile.ZipFile(io.BytesIO(b[12 + int.from_bytes(b[8:12], "little"):]))
+for n in ("manifest.json", "LICENSE", "_platform_specific/linux_x64/libwidevinecdm.so"):
+    p = os.path.join(sys.argv[2], n)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    open(p, "wb").write(z.read(n))' "$d/w.crx3" "$d/x" 2>/dev/null \
+    && [[ $(jq -r .version "$d/x/manifest.json" 2>/dev/null) == "$ver" ]] \
+    || { log "Widevine $ver: the package does not hold what it should — refused"; rm -rf "$d"; return 1; }
+  # the new folder made beside the old one, then put in its place: never half of each
+  rm -rf -- "$WIDEVINE_DIR.new" && cp -r --no-preserve=all -- "$d/x" "$WIDEVINE_DIR.new" \
+    && chmod 0755 "$WIDEVINE_DIR.new/_platform_specific/linux_x64/libwidevinecdm.so" \
+    && rm -rf -- "$WIDEVINE_DIR" && mv -T -- "$WIDEVINE_DIR.new" "$WIDEVINE_DIR" \
+    || { log "could not write $WIDEVINE_DIR (is the disk full?)"; rm -rf "$d"; return 1; }
+  rm -rf "$d"
+  ok "Widevine $ver → $WIDEVINE_DIR"
+}
 
 retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record says we put there) and its record
   local n

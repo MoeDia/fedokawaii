@@ -692,113 +692,78 @@ DWL_SUM=${DWL_SUM%% *}
 dwl_current() { [[ -x /usr/local/bin/dwl && $(cat "$DWL_MARK" 2>/dev/null) == "$DWL_SUM" ]]; }
 TOTAL=$((TOTAL + 1))
 
-# ── 4a. Brave: sound with a shared screen ────────────────────────────────────
-# Sharing a screen or a window in a call can carry the computer's sound too — Chromium's
-# PulseAudio loopback for screen sharing, off by default and no longer a brave://flags
-# switch (Brave clears it from its Local State), so ~/.local/bin/brave-origin starts Brave
-# with it. Super+B and a shell find that first in PATH; links that start Brave go through
-# its launcher entry, so Brave's own entry is copied to ~/.local/share/applications with
-# its Exec lines pointing there — made again whenever Brave's own entry changes.
-# The package also ships com.brave.Origin.desktop, the name the portals look Brave up by. Its
-# NoDisplay=true sits in the wrong section (brave/brave-browser#52193), so the launcher would
-# list Brave twice, once without the screen-share sound: its copy here is hidden as meant.
-for BRAVE_ENTRY in brave-origin.desktop:show com.brave.Origin.desktop:hide; do
-  BRAVE_SYS_DESKTOP=/usr/share/applications/${BRAVE_ENTRY%:*}
-  BRAVE_USR_DESKTOP=$TARGET_HOME/.local/share/applications/${BRAVE_ENTRY%:*}
-  [[ -r $BRAVE_SYS_DESKTOP ]] || continue
+# ── 4a. The browser: sound with a shared screen ──────────────────────────────
+# ~/.local/bin/kawa-browser starts Helium so that a shared screen carries the computer's sound
+# (its header says all it sets; Helium's own wrapper has no flags file). Super+B and a shell find
+# that first in PATH; links go through its launcher entry, so Helium's own entry is copied to
+# ~/.local/share/applications with its Exec lines pointing there — made again whenever Helium's
+# own entry changes.
+BROWSER_SYS_DESKTOP=/usr/share/applications/helium.desktop
+BROWSER_USR_DESKTOP=$TARGET_HOME/.local/share/applications/helium.desktop
+if [[ -r $BROWSER_SYS_DESKTOP ]]; then
   TOTAL=$((TOTAL + 1))
   BT=$(mktemp)
-  sed -E "s#^Exec=/usr/bin/brave-origin-stable( |\$)#Exec=$TARGET_HOME/.local/bin/brave-origin\1#" \
-    "$BRAVE_SYS_DESKTOP" \
-    | awk -v hide="$([[ ${BRAVE_ENTRY#*:} == hide ]] && echo 1)" \
-        'hide && /^NoDisplay=/ { next } { print } hide && $0 == "[Desktop Entry]" { print "NoDisplay=true" }' >"$BT"
-  if cmp -s "$BT" "$BRAVE_USR_DESKTOP"; then :
-  elif ((CHECK)); then DRIFT+=("$BRAVE_USR_DESKTOP (Brave's launcher entry: screen-share sound)")
+  sed -E "s#^Exec=helium( |\$)#Exec=$TARGET_HOME/.local/bin/kawa-browser\1#" "$BROWSER_SYS_DESKTOP" >"$BT"
+  if cmp -s "$BT" "$BROWSER_USR_DESKTOP"; then :
+  elif ((CHECK)); then DRIFT+=("$BROWSER_USR_DESKTOP (the browser's launcher entry: screen-share sound)")
   else
-    uinstall 0644 "$BT" "$BRAVE_USR_DESKTOP"
-    CHANGED+=("$BRAVE_USR_DESKTOP (Brave starts with screen-share sound)")
-  fi
-  rm -f "$BT"
-done
-
-# ── 4c. Brave: the desktop's colours ─────────────────────────────────────────
-# Brave's GTK theme mode paints its tab strip, toolbar, menus and dialogs from
-# the GTK 3 theme kawa-theme switches (Fedokawaii / Fedokawaii-dark, which carry a few rules
-# for Brave alone) and follows every switch live; web pages follow the portal's dark/light.
-# The new-tab page gets the ground colour as CSS light-dark(), so it switches by itself.
-# Both are settings of each profile (its Preferences, rewritten by Brave while it runs):
-# set only while Brave is closed, and before its first start too — once per profile (and
-# again only if the desktop's colours change): what you choose in Brave afterwards stays.
-BRAVE_DIR="$TARGET_HOME/.config/BraveSoftware/Brave-Origin"
-# shellcheck source=/dev/null
-ground() { ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/$1/colors.sh" && printf '%s' "$C_GROUND" ); }
-BRAVE_NTP="light-dark(#$(ground light), #$(ground dark))"
-# The new tab is kept to its search box: Brave draws its widgets (the stats card above
-# all) for dark pictures, and on paper they would be grey on grey.
-BRAVE_SET='(if (.extensions.theme.id // "") == "" then .extensions.theme.system_theme = 1 else . end)
-  | .brave.new_tab_page.background = {type: "color", random: false, selected_value: $ntp}
-  | .brave.new_tab_page.show_stats = false | .brave.new_tab_page.hide_all_widgets = true'
-# (a theme you install from the Web Store replaces GTK mode — Brave then drops it: left be)
-BRAVE_OK='((.extensions.theme.id // "") != "" or .extensions.theme.system_theme == 1)
-  and .brave.new_tab_page.background.type == "color" and .brave.new_tab_page.background.selected_value == $ntp
-  and .brave.new_tab_page.hide_all_widgets == true'
-BRAVE_MARK="$BRAVE_NTP · widgets off"         # what the marker below records (a new one: set again)
-BRAVE_PREFS=()
-for BP in "$BRAVE_DIR"/Default/Preferences "$BRAVE_DIR"/Profile\ */Preferences; do
-  [[ -f $BP ]] && BRAVE_PREFS+=("$BP")
-done
-((${#BRAVE_PREFS[@]})) || BRAVE_PREFS=("$BRAVE_DIR/Default/Preferences")   # before the first start
-for BP in "${BRAVE_PREFS[@]}"; do
-  TOTAL=$((TOTAL + 1))
-  BM="$STATE/brave-$(printf '%s' "$BP" | sha1sum | cut -c1-12)"     # set once: the colours it got
-  if [[ -s $BP ]] && jq -e --arg ntp "$BRAVE_NTP" "$BRAVE_OK" "$BP" >/dev/null 2>&1; then
-    ((CHECK)) || [[ $(cat "$BM" 2>/dev/null) == "$BRAVE_MARK" ]] || { printf '%s\n' "$BRAVE_MARK" | U tee "$BM" >/dev/null; }
-    continue
-  fi
-  [[ $(cat "$BM" 2>/dev/null) == "$BRAVE_MARK" ]] && continue          # changed in Brave since: yours
-  if ((CHECK)); then DRIFT+=("$BP (Brave not in the desktop's colours)")
-  elif U brave-origin --is-open; then
-    log "Brave is open: its colours are set by the next Theme run (or Settings → Appearance → Theme → GTK)"
-  else
-    BT=$(mktemp)
-    if [[ -s $BP ]]; then
-      if ! jq --arg ntp "$BRAVE_NTP" "$BRAVE_SET" "$BP" >"$BT" 2>/dev/null; then
-        log "Brave's Preferences does not read as JSON — left alone ($BP)"; rm -f "$BT"; continue
-      fi
-    else
-      jq -n --arg ntp "$BRAVE_NTP" "$BRAVE_SET" >"$BT"
-    fi
-    uinstall 0600 "$BT" "$BP"; rm -f "$BT"
-    printf '%s\n' "$BRAVE_MARK" | U tee "$BM" >/dev/null
-    CHANGED+=("$BP (Brave: the desktop's colours, a ground-coloured new tab)")
-  fi
-done
-# Widevine, Brave's player for protected media — Spotify's web player (the launcher's Spotify)
-# plays nothing without it: switched on once, as brave://settings switches it (its Local
-# State: brave.widevine_opted_in), while Brave is closed and before its first start too.
-# Switched off in Brave afterwards, it stays off (the marker says it was set once).
-BRAVE_LS="$BRAVE_DIR/Local State" BWM=$STATE/brave-widevine
-TOTAL=$((TOTAL + 1))
-if [[ -s $BRAVE_LS ]] && jq -e '.brave.widevine_opted_in == true' "$BRAVE_LS" >/dev/null 2>&1; then
-  ((CHECK)) || [[ -e $BWM ]] || U touch "$BWM"
-elif [[ -e $BWM ]]; then :                                            # switched off in Brave since: yours
-# (Brave open: its starter, ~/.local/bin/brave-origin, switches it on before Brave's next start
-# — Brave writes Local State again as it closes, so nothing may write it now; no drift either)
-elif U brave-origin --is-open; then
-  ((CHECK)) || log "Brave is open: Widevine goes on at its next start (its starter switches it on) — close Brave and start it again"
-elif ((CHECK)); then DRIFT+=("$BRAVE_LS (Widevine off: Spotify's web player cannot play)")
-else
-  BT=$(mktemp)
-  if [[ ! -s $BRAVE_LS ]]; then jq -n '.brave.widevine_opted_in = true' >"$BT"
-  elif ! jq '.brave.widevine_opted_in = true' "$BRAVE_LS" >"$BT" 2>/dev/null; then
-    log "Brave's Local State does not read as JSON — Widevine left as it is ($BRAVE_LS)"; : >"$BT"
-  fi
-  if [[ -s $BT ]]; then
-    uinstall 0600 "$BT" "$BRAVE_LS"; U touch "$BWM"
-    CHANGED+=("$BRAVE_LS (Brave: Widevine on, for Spotify's web player)")
+    uinstall 0644 "$BT" "$BROWSER_USR_DESKTOP"
+    CHANGED+=("$BROWSER_USR_DESKTOP (the browser starts with screen-share sound)")
   fi
   rm -f "$BT"
 fi
+retire .local/bin/brave-origin 'Brave Origin'
+retire .local/share/applications/brave-origin.desktop 'brave'
+retire .local/share/applications/com.brave.Origin.desktop 'brave'
+
+# ── 4c. The browser: the desktop's colours, its first start ──────────────────
+# Chromium's GTK theme mode paints Helium's tab strip, toolbar, menus and dialogs from the GTK
+# theme (Fedokawaii / -dark: the .chromium rules there are for the browser alone) and follows
+# every switch live; web pages follow the portal's dark/light. The layout is Helium's compact one
+# (the address and the tabs on one row: more page on one monitor), square, no profile or puzzle
+# button (what a key or its menu reaches stays in its menu). Its first-start page is answered:
+# Helium's services on (its web store, uBlock's lists, the spelling dictionaries, all through its
+# anonymous proxy: helium.computer). These are settings of each profile (its Preferences, rewritten
+# by Helium while it runs): set only while it is closed, and before its first start too — once per
+# profile (and again only if this list changes): what you choose in Helium afterwards stays.
+BROWSER_DIR="$TARGET_HOME/.config/net.imput.helium"
+BROWSER_SET='.extensions.theme.system_theme = 1
+  | .helium.completed_onboarding = true | .helium.services.user_consented = true | .helium.services.schema_version = 1
+  | .helium.browser.layout = 1 | .helium.browser.rounded_frame = false
+  | .helium.browser.show_avatar_button = false | .helium.browser.show_extensions_button = false
+  | .ntp.shortcust_visible = false'
+BROWSER_OK='.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true and .helium.browser.layout == 1'
+BROWSER_MARK="compact · square · GTK · services on"      # what the marker below records (a new one: set again)
+BROWSER_PREFS=()
+for BP in "$BROWSER_DIR"/Default/Preferences "$BROWSER_DIR"/Profile\ */Preferences; do
+  [[ -f $BP ]] && BROWSER_PREFS+=("$BP")
+done
+((${#BROWSER_PREFS[@]})) || BROWSER_PREFS=("$BROWSER_DIR/Default/Preferences")   # before the first start
+for BP in "${BROWSER_PREFS[@]}"; do
+  TOTAL=$((TOTAL + 1))
+  BM="$STATE/browser-$(printf '%s' "$BP" | sha1sum | cut -c1-12)"     # set once: what it got
+  if [[ -s $BP ]] && jq -e "$BROWSER_OK" "$BP" >/dev/null 2>&1; then
+    ((CHECK)) || [[ $(cat "$BM" 2>/dev/null) == "$BROWSER_MARK" ]] || { printf '%s\n' "$BROWSER_MARK" | U tee "$BM" >/dev/null; }
+    continue
+  fi
+  [[ $(cat "$BM" 2>/dev/null) == "$BROWSER_MARK" ]] && continue          # changed in Helium since: yours
+  if ((CHECK)); then DRIFT+=("$BP (the browser not in the desktop's colours)")
+  elif U kawa-browser --is-open; then
+    log "the browser is open: its colours and layout are set by the next Theme run"
+  else
+    BT=$(mktemp)
+    if [[ -s $BP ]]; then
+      if ! jq "$BROWSER_SET" "$BP" >"$BT" 2>/dev/null; then
+        log "the browser's Preferences does not read as JSON — left alone ($BP)"; rm -f "$BT"; continue
+      fi
+    else
+      jq -n "$BROWSER_SET" >"$BT"
+    fi
+    uinstall 0600 "$BT" "$BP"; rm -f "$BT"
+    printf '%s\n' "$BROWSER_MARK" | U tee "$BM" >/dev/null
+    CHANGED+=("$BP (the browser: the desktop's colours, its compact layout)")
+  fi
+done
 
 # ── 4d. Syncplay: watching together ──────────────────────────────────────────
 # ~/.config/syncplay.ini is Syncplay's own: it writes the whole file again whenever you change

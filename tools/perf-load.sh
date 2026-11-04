@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # tools/perf-load.sh — the standard heavy-use scene, every frame timed inside dwl (its frame
 # log; tools/framestat.py): a 1080p60 video playing (mpv, hardware decoding as configured),
-# Brave with 10 animated pages on a throw-away profile (never his own), 8 terminals running
+# Helium with 10 animated pages on a throw-away profile (never his own), 8 terminals running
 # btop, and a workspace switch every 2 s for 2 minutes through the real keys; CPU, GPU, RAM and
 # dwl's own memory sampled meanwhile. It uses workspaces 6 and 7 and closes all it opened
 # (Super+Q on its own windows), then shows workspace 1. Run it while nobody is at the keyboard.
@@ -41,7 +41,7 @@ super 6; sleep 0.6
 mpv --loop=inf --really-quiet "$shm/video.mp4" >/dev/null 2>&1 &
 sleep 1.5
 urls=(); for i in $(seq 10); do urls+=("file://$shm/pages/p$i.html"); done
-brave-origin --user-data-dir="$shm/brave" --no-first-run --no-default-browser-check --new-window "${urls[@]}" >/dev/null 2>&1 &
+kawa-browser --user-data-dir="$shm/browser" --no-first-run --no-default-browser-check --new-window "${urls[@]}" >/dev/null 2>&1 &
 sleep 4
 super 7; sleep 0.6
 for _ in $(seq 8); do footclient -e btop >/dev/null 2>&1 & sleep 0.4; done
@@ -63,17 +63,17 @@ read -r _ u2 n2 s2 i2 w2 q2 sq2 st2 _ </proc/stat
 kill -USR2 "$dwl"; sleep 0.3
 cp "$log" "$out/frames.log"
 
-# close what it opened: the terminals (workspace 7), then Brave and mpv (6), then workspace 1
+# close what it opened: the terminals (workspace 7), then Helium and mpv (6), then workspace 1
 for _ in $(seq 8); do super q; sleep 0.4; done
 super 6; sleep 0.6
 super q; sleep 1; super q; sleep 1
 sleep 1
-[[ -d $shm/brave ]] && rm -rf "$shm/brave"     # (its throw-away profile)
+[[ -d $shm/browser ]] && rm -rf "$shm/browser"     # (its throw-away profile)
 super 1
 
 busy=$(( (u2+n2+s2+q2+sq2+st2) - (u1+n1+s1+q1+sq1+st1) )); all=$(( busy + (i2+w2) - (i1+w1) ))
 {
-  echo "fedokawaii perf-load — $(date '+%F %T') — 1080p60 video + Brave 10 animated pages + 8 btop, a switch every 2 s, 120 s"
+  echo "fedokawaii perf-load — $(date '+%F %T') — 1080p60 video + Helium 10 animated pages + 8 btop, a switch every 2 s, 120 s"
   echo "  CPU busy over the run: $(awk -v b=$busy -v a=$all 'BEGIN{printf "%.1f", 100*b/a}') %"
   awk '{g+=$3; v=$5; u+=$7; r=$9; n++} END {printf "  GPU busy avg %.0f %% · VRAM %d MiB · RAM used avg %.0f MiB · dwl RSS at the end %d KiB\n", g/n, v, u/n, r}' "$samples"
   python3 "$here/framestat.py" "$out/frames.log" --anim | grep -vE '^  \S+ +(c[0-9]+|g) ' | sed 's/^/  /'

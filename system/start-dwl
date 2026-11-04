@@ -47,13 +47,13 @@ export QT_QPA_PLATFORMTHEME=qt6ct
 export GDK_BACKEND="wayland,x11"
 # file dialogs through the portal, so they are the desktop's (yazi, see wlroots-portals.conf):
 # GTK 3 programs only with this (it also sends their print dialog through the portal — the
-# same GTK dialog); GTK 4 (4.22) and Brave use the portal by themselves whenever it runs
+# same GTK dialog); GTK 4 (4.22) and Helium use the portal by themselves whenever it runs
 export GTK_USE_PORTAL=1
 # SDL_VIDEODRIVER is deliberately not set: games bundling an older SDL2 fail to start
 # when it is, and SDL3 already picks Wayland by itself.
 export _JAVA_AWT_WM_NONREPARENTING=1
 
-export EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=brave-origin
+export EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=kawa-browser
 # the pointers: "default" is ~/.local/share/icons/default, a link to the Sumi pointers of the
 # theme in use (kawa-theme re-points it), so programs reading this follow the theme too
 export XCURSOR_THEME=default XCURSOR_SIZE=24

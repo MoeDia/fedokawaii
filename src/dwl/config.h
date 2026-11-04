@@ -173,7 +173,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 /* commands */
 static const char *termcmd[]     = { "footclient", NULL };
 static const char *menucmd[]     = { "kawa-menu", "--launcher", NULL };   /* the torii's: one menu at a time */
-static const char *browsercmd[]  = { "brave-origin", NULL };
+static const char *browsercmd[]  = { "kawa-browser", NULL };
 static const char *filescmd[]    = { "footclient", "yazi", NULL };
 
 /* A key added or changed here belongs in the help sheet too: configs/home/.config/fedokawaii/

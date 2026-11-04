@@ -84,8 +84,8 @@ has "$(m 'printf "%s\n" "${SVC_SYSTEM[@]}"')" greetd.service; has "$(m 'echo "${
 case_ "every name is a plain package name (no stray spaces, no comment glued on)"
 bad=$(all amd | grep -vE '^[A-Za-z0-9][A-Za-z0-9._+-]*$' || true); eq "$bad" ""
 case_ "the vendor repositories: HTTPS, and the Claude key's fingerprint is 40 hex digits"
-has "$(m 'echo $BRAVE_REPO_URL $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "https://"
+has "$(m 'echo $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "https://"
 [[ $(m 'echo $CLAUDE_KEY_FPR') =~ ^[0-9A-F]{40}$ ]] && _ok || _no "fingerprint"
-lacks "$(m 'echo $BRAVE_REPO_URL $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "http:"
+lacks "$(m 'echo $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "http:"
 
 done_

@@ -1,15 +1,15 @@
 [Desktop Entry]
-# WhatsApp: WhatsApp Web (web.whatsapp.com) in a window of its own — Brave's app window: no
-# tabs, no address bar, tiled like every other window, through ~/.local/bin/brave-origin as
-# all of Brave is. Linked to your phone once (scan the code in WhatsApp → Linked devices);
-# Brave keeps the link. Its notices come through Brave, as the desktop's other notices do.
+# WhatsApp: WhatsApp Web (web.whatsapp.com) in a window of its own — Helium's app window: no
+# tabs, no address bar, tiled like every other window, through ~/.local/bin/kawa-browser as
+# all of Helium is. Linked to your phone once (scan the code in WhatsApp → Linked devices);
+# Helium keeps the link. Its notices come through Helium, as the desktop's other notices do.
 # Its icon: our pixel speech (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=WhatsApp
 GenericName=Messenger
 Comment=WhatsApp Web, in a window of its own
 X-Fedokawaii-Icon=speech
-Exec=@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com
+Exec=@HOME@/.local/bin/kawa-browser --app=https://web.whatsapp.com
 Terminal=false
 Categories=Network;InstantMessaging;Chat;
 Keywords=whatsapp;chat;messages;messenger;

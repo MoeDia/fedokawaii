@@ -1,0 +1,58 @@
+#!/usr/bin/env bash
+# ~/.local/bin/kawa-browser — the browser: Helium (Chromium's engine, Google's services out, uBlock
+# inside, its own Fedora repository: lib/manifest.sh), started so that sharing does what it does on
+# Windows. Super+B, links (Theme points the desktop's helium.desktop here), the web apps and
+# `kawa-browser` in a shell all start it this way; everything else reaches it unchanged — a feature
+# list of your own is joined to this one, not replaced by it. Its wrapper has no flags file to
+# hold these (/opt/helium/helium-wrapper: it only sets the library path), so they are here.
+# The sound of a share:
+#   Entire screen  the computer's sound (Chromium's PulseAudio loopback for screen sharing, off by
+#                  default: PulseaudioLoopbackForScreenShare), its switch on from the first
+#                  (--system-audio-capture-default_checked, Chromium's own spelling). While a
+#                  screen is shared kawa-sharesound leaves the browser's own sound — the call —
+#                  out, so nobody hears themselves come back
+#   a tab          that tab's sound (Chromium's own, nothing needed)
+#   a window       none: Chromium offers window sound only on Windows and macOS
+# Video through the GPU (VA-API, mesa-va-drivers-freeworld): a call's camera and a shared screen
+# are encoded by the card, not the processor (AcceleratedVideoEncoder — WebRTC's H.264/VP9/AV1 on
+# the card's encoder: a share stays smooth while something heavy runs), and videos are decoded
+# there and handed to the compositor without a copy (AcceleratedVideoDecodeLinuxGL, …ZeroCopyGL:
+# Chromium's VA-API path on Wayland). chrome://gpu lists them under "Video Acceleration
+# Information". A share is always taken through the portal and PipeWire, by Chromium's own choice
+# under Wayland — DMA-BUF frames straight from dwl's GPU buffers, up to the portal's max_fps (60).
+# To see it at work in a call: chrome://webrtc-internals → the call's outbound-rtp (video) stats:
+# encoderImplementation "ExternalEncoder" (VA-API; "libvpx"/"OpenH264" = the processor),
+# framesPerSecond near what the call asks, qualityLimitationReason "none".
+# The microphone's level is never moved by a call: WebRtcAllowInputVolumeAdjustment off — else
+# Chromium's gain control turns the system's microphone volume up and down as you speak (Meet
+# always asks for it), pumping the level every other program records at; its own gain inside the
+# call still works. A --disable-features of your own is joined to this one.
+# The password store is pinned to Chromium's basic one — no keyring runs here — so that a keyring
+# a package brings later can never leave every login and cookie saved before it unreadable. (A
+# --password-store of your own comes after it: Chromium keeps a switch's last value.)
+set -u
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium
+# Open with this profile? Chromium's own mark — SingletonLock, a link to HOST-PID — whose process
+# is alive; a crash's stale mark is no open browser, nor is one of another home. The one check for
+# whatever must not write its files under it: `kawa-browser --is-open` (0 open, 1 not) — Theme and
+# kawa-tidy ask it; its colours and Widevine below too
+is_open() { local o; o=$(readlink -- "$conf/SingletonLock" 2>/dev/null) && kill -0 "${o##*-}" 2>/dev/null; }
+[[ ${1:-} == --is-open ]] && { is_open; exit; }
+feat=PulseaudioLoopbackForScreenShare,AcceleratedVideoEncoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL args=() rest=""
+off=WebRtcAllowInputVolumeAdjustment
+for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
+  if [[ -z $rest && $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"
+  elif [[ -z $rest && $a == --disable-features=* ]]; then off+=",${a#--disable-features=}"
+  else [[ $a == -- ]] && rest=1; args+=("$a"); fi
+done
+b=/usr/bin/helium
+[[ -x $b ]] || { echo "kawa-browser: Helium is not installed (sudo dnf install helium-bin)" >&2; exit 127; }
+# Widevine (Spotify's web player plays nothing without it): the module the toolkit keeps
+# (setup.sh: install_widevine, from Google's own server), named to Helium where Chromium looks for
+# it, its hint file. Helium's own updater may name a newer one there: left be while that one is
+# there. Only with the browser closed, as Chromium reads it at its start and may write it
+cdm=/usr/local/lib/fedokawaii-widevine hint=$conf/WidevineCdm/latest-component-updated-widevine-cdm
+if [[ -r $cdm/manifest.json && ! -s $hint ]] && ! is_open; then
+  mkdir -p -- "${hint%/*}" && printf '{"Path":"%s"}' "$cdm" >"$hint"
+fi
+exec "$b" "--enable-features=$feat" "--disable-features=$off" --password-store=basic --system-audio-capture-default_checked "${args[@]}"

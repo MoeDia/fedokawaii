@@ -129,7 +129,7 @@ for pair in text/plain=kawa-edit.desktop inode/directory=kawa-files.desktop imag
             application/vnd.openxmlformats-officedocument.wordprocessingml.document=libreoffice-writer.desktop \
             application/vnd.openxmlformats-officedocument.presentationml.presentation=libreoffice-impress.desktop \
             application/zip=kawa-files.desktop x-scheme-handler/magnet=kawa-torrents.desktop \
-            x-scheme-handler/https=brave-origin.desktop text/x-script.python=kawa-edit.desktop \
+            x-scheme-handler/https=helium.desktop text/x-script.python=kawa-edit.desktop \
             application/x-xopp=com.github.xournalpp.xournalpp.desktop; do
   grep -qxF "$pair" "$ma" && _ok || _no "mimeapps.list lacks $pair"
 done

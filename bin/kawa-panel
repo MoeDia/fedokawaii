@@ -925,7 +925,7 @@ def layout(s, mode="quick"):
 # you typed is a sum, a percentage or a conversion — its answer, worked out as you type (qalc,
 # one for the session's panel: the calculator's own), then the programs it finds, best first:
 # a name that starts with it, a word of the name that does, a name that holds it, what the
-# program is or its keywords (GenericName, Keywords: "browser" finds Brave), the letters in
+# program is or its keywords (GenericName, Keywords: "browser" finds Helium), the letters in
 # order; equals, the one started more often first, then by name. Ten rows show; more scroll.
 # Each its icon (16 px, shown 1:1): a window program's own (the icon theme's, hicolor), or one
 # of the desktop's pixel icons (X-Fedokawaii-Icon: its name in art/icons.txt) for a program in a

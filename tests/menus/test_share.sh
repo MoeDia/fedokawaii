@@ -72,8 +72,8 @@ case_ "the portal before 0.8 (bare screen names): still listed by name"
 setup; answer "row 2"; eq "$(share DP-1 HDMI-A-1)" HDMI-A-1; eq "$(fz_rows | sed -n 3p | cut -f3,5)" "HDMI-A-1	1920×1080"
 
 case_ "screens and windows: windows by their title, without wlroots' token"
-setup; answer "row 3"; out=$(share "$M1" "$M2" "Window: Weekly sync — Brave ($ID)")
-eq "$(fz_rows | sed -n 4p)" "row	$ICON_WINDOW	Weekly sync — Brave"; eq "$out" "Window: Weekly sync — Brave ($ID)"
+setup; answer "row 3"; out=$(share "$M1" "$M2" "Window: Weekly sync — Helium ($ID)")
+eq "$(fz_rows | sed -n 4p)" "row	$ICON_WINDOW	Weekly sync — Helium"; eq "$out" "Window: Weekly sync — Helium ($ID)"
 case_ "a title with brackets of its own: only the last (the token) goes"
 setup; answer esc; share "$M1" "Window: Inbox (3) — Thunderbird ($ID)" >/dev/null
 eq "$(nm 2)" "Inbox (3) — Thunderbird"
@@ -121,16 +121,16 @@ eq "$(nm 2 | python3 -I "$MD/cols.py" --px)" 312 "cut by columns (a and 19 wide 
 eq "$(nm 2)" "a$(printf '夜%.0s' {1..19})" "no …"
 
 # ── one share, one question ──────────────────────────────────────────────────
-# Brave's picker opens a portal session for its preview ("Window" pane: windows only), then the
+# Helium's picker opens a portal session for its preview ("Window" pane: windows only), then the
 # share opens another; xdpw gives no restore token for a window, so both reach kawa-share.
 MEM() { printf '%s' "$XDG_RUNTIME_DIR/kawa-share.last"; }
 LOGF() { printf '%s' "$HOME/.cache/kawa-share.log"; }
 # remember LINE SECONDS_AGO — the memory as a choice made that long ago left it
 remember() { printf '%s\t%s\n' "$(( ${EPOCHREALTIME//[.,]/} - $2 * 1000000 ))" "$1" >"$(MEM)"; }
-W1="Window: Weekly sync — Brave ($ID)" W2="Window: notes.md — nvim (${ID/4f/77})"
+W1="Window: Weekly sync — Helium ($ID)" W2="Window: notes.md — nvim (${ID/4f/77})"
 W3="Window: btop (${ID/4f/aa})"
 
-case_ "Brave's two requests for one window share: one menu; the second answered at once, unchanged"
+case_ "Helium's two requests for one window share: one menu; the second answered at once, unchanged"
 setup; answer "row 2"
 eq "$(share "$W2" "$W1" "$W3")" "$W1" "the preview's request: asked"
 eq "$(fz_n)" 1
@@ -140,8 +140,8 @@ eq "$(share "$W3" "$W1")" "$W1" "a third request (an Electron app's), a moment l
 eq "$(fz_n)" 1
 case_ "the window's title changed in between (a call's timer, a page loading): found by its token"
 setup; answer "row 1"; share "$W1" "$W2" >/dev/null
-out=$(share "$W2" "Window: Weekly sync (2) — Brave ($ID)")
-eq "$out" "Window: Weekly sync (2) — Brave ($ID)" "the line as offered now (the portal matches today's title)"
+out=$(share "$W2" "Window: Weekly sync (2) — Helium ($ID)")
+eq "$out" "Window: Weekly sync (2) — Helium ($ID)" "the line as offered now (the portal matches today's title)"
 eq "$(fz_n)" 1
 case_ "a title with brackets, tabs, escapes: remembered and given back byte for byte"
 setup; t=$'Window: Inbox (3)\t\e[1m — Thunderbird ('"$ID)"; answer "row 2"

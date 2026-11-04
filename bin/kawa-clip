@@ -194,7 +194,7 @@ case ${1:-} in
     head -c $((MAX_BYTES + 1)) >"$tmp"; cat >/dev/null      # (all read: the copying program never waits)
     # A picture is kept as the picture — PNG when it is offered as one — unless the copy is
     # text that only comes with a picture of itself (cells from a spreadsheet). Text that is
-    # just the picture's address counts as none: Brave's "Copy image" offers the picture,
+    # just the picture's address counts as none: Helium's "Copy image" offers the picture,
     # its <img> tag and its link, and wl-paste hands over the link
     pic=$(grep -m1 -x image/png <<<"$types" || grep -m1 '^image/' <<<"$types")
     if [[ -n $pic ]] && { ! grep -qxE 'text/plain(;charset=utf-8)?|UTF8_STRING|STRING|TEXT' <<<"$types" \

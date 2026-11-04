@@ -149,8 +149,8 @@ has "$(sed -n '/    def list(self):/,/return self.cache/p' "$P")" 'a.pic = (ic[a
 lacks "$(cat "$P")" '"窓"' "no kanji for a window any more"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
-eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://open.spotify.com" "Spotify: a Brave app window"
-eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: a Brave app window"
+eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/kawa-browser --app=https://open.spotify.com" "Spotify: a Helium app window"
+eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/kawa-browser --app=https://web.whatsapp.com" "WhatsApp: a Helium app window"
 
 case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), the launcher's icons from GTK's own theme (Adwaita, then hicolor)"
 bad=$(grep -rli papirus "$REPO"/{configs,bin,lib,tools,system,theme.sh,setup.sh,verify.sh} 2>/dev/null | grep -v '__pycache__' \

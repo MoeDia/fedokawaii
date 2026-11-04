@@ -3,7 +3,7 @@
 # answers as cliphist 0.7 does (fake_cliphist.py): text with newlines, tabs and leading
 # dashes, a huge copy, pictures of every kind Go reads, binary data, a broken picture, an
 # empty history, and wl-copy or cliphist missing; and what is kept of each copy (--store,
-# behind wl-paste --watch): a screenshot, Brave's "Copy image", spreadsheet cells, a secret,
+# behind wl-paste --watch): a screenshot, Helium's "Copy image", spreadsheet cells, a secret,
 # copies too big, the hundredth. fzf, wl-paste and the window are stand-ins; the previews are
 # drawn for real (ImageMagick, kawa-sixel) and read back pixel by pixel.
 . "$(dirname "$0")/lib.sh"
@@ -258,7 +258,7 @@ case_ "… a copy over our own 20 MiB: not kept at all (as before)"
 python3 -I -c 'import sys; sys.stdout.buffer.write(b"x" * (21 << 20))' >"$TMP/stdin"; offer 'text/plain;charset=utf-8'
 n0=$(ls "$CLIP_DB" | wc -l); rc 0 store; eq "$(ls "$CLIP_DB" | wc -l)" "$n0"; eq "$(ls "$B" 2>/dev/null | wc -l)" 0
 
-case_ "Brave's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
+case_ "Helium's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
 store_setup
 magick -size 640x480 xc:'#7fb8b0' png:- >"$TMP/cat.png"
 offer text/html image/png text/plain 'text/plain;charset=utf-8'

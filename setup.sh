@@ -417,7 +417,7 @@ defaultyes=True
 # Nor PackageKit, the background updater of software centres (forbidden: dnf only), which
 # PackageKit-Qt6, a library some Qt programs link, recommends. Nor what LibreOffice recommends
 # beyond Writer, Calc and Impress: Java (for its database and old macros — some 200 MB) and
-# its offline help (F1 opens the same help online, in Brave)
+# its offline help (F1 opens the same help online, in Helium)
 exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*
 EOF
   local k want v dump; dump=$(dnf --dump-main-config 2>/dev/null) || dump=""
@@ -1052,9 +1052,7 @@ s_repos() {
   local r repos c
   rpmfusion_release || die "RPM Fusion's release packages for Fedora $FEDORA_VER could not be fetched (the lines above say why) — run setup again once download1.rpmfusion.org answers (it carries on here)"
 
-  if [[ ! -f /etc/yum.repos.d/brave-browser.repo ]]; then
-    dnf_do config-manager addrepo --from-repofile="$BRAVE_REPO_URL" || die "Brave's repository could not be added (the lines above say why)"
-  fi
+  rm -f /etc/yum.repos.d/brave-browser.repo         # (the browser before Helium, an earlier setup's)
 
   # Claude Code: official signed repo. The key file must hold exactly one key, the one the
   # docs name (a second key appended to it would otherwise be trusted too); it is kept
@@ -1084,7 +1082,7 @@ EOF
   # (RPM Fusion's builds now match the base libraries)
   dnf_do upgrade --refresh || die "the update with the new repositories did not go through (the lines above say why) — run setup again (it carries on here)"
   repos=$(repos_enabled) || die "dnf could not list its repositories"
-  for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
+  for r in rpmfusion-free rpmfusion-nonfree claude-code; do
     grep -qx "$r" <<<"$repos" || die "repository $r is not enabled"
   done
 }
@@ -1200,7 +1198,7 @@ s_media() {
 
 phase2() {
   wait_for_network; tidy_after_cut
-  step "2.1 repositories (RPM Fusion, Brave, Claude Code, COPR)" s_repos
+  step "2.1 repositories (RPM Fusion, Claude Code, COPR)" s_repos
   step "2.2 GPU drivers + amdgpu kernel argument"                s_gpu
   step "2.2b this machine's drivers and firmware"                s_hardware_setup
   step "2.3 ffmpeg (RPM Fusion) + media tools"                   s_media
@@ -1424,7 +1422,7 @@ i2c_dev() {   # i2c-dev at every boot (monitor brightness over DDC/CI), and now:
 }
 s_look()    { dnf_install "${PKG_LOOK[@]}"; }
 # (tree-sitter-cli recommends "nodejs", Node 22: never taken — exclude_from_weak, s_dnf)
-s_apps()    { local p; mapfile -t p < <(not_waiting "${PKG_APPS[@]}"); dnf_install "${p[@]}"; }   # (a COPR's waits: grub-btrfs)
+s_apps()    { local p; mapfile -t p < <(not_waiting "${PKG_APPS[@]}"); dnf_install "${p[@]}"; s_widevine; }   # (a COPR's waits: grub-btrfs)
 s_virt()    { dnf_install "${PKG_VIRT[@]}"; }       # (libvirt's daemons start on demand: nothing to enable)
 
 s_upstream() {
@@ -1437,6 +1435,11 @@ s_upstream() {
 s_localsend() {
   contained install_localsend
   ((CONTAINED_RC == 0)) || log "LocalSend is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
+}
+# Widevine (lib/upstream.sh): never a reason to stop — update and repair try again
+s_widevine() {
+  contained install_widevine
+  ((CONTAINED_RC == 0)) || log "Widevine is not installed yet (why: above, or $LOG_FILE): Spotify waits for it — update and repair try again"
 }
 # Syncplay (lib/upstream.sh): never a reason to stop — update and repair try again
 s_syncplay() {
@@ -1451,7 +1454,7 @@ s_blesh() {
 }
 
 # ── lpf's leftovers ──────────────────────────────────────────────────────────
-# Spotify is its web player now (the launcher's Spotify: open.spotify.com in a Brave app
+# Spotify is its web player now (the launcher's Spotify: open.spotify.com in a Helium app
 # window); its app was built here by lpf until then. lpf, lpf-spotify-client and the
 # spotify-client it built are RETIRED_PKGS: handed back to dnf, whose clean-up (r_hygiene)
 # takes them — /etc/sudoers.d/pkg-build goes with lpf's package. What a package's removal
@@ -2830,20 +2833,20 @@ manifest_sync() {
 repos_lenient() {
   local r
   while read -r r; do
-    [[ $r == copr:* || $r == brave-browser || $r == claude-code ]] || continue
+    [[ $r == copr:* || $r == claude-code ]] || continue
     dnf config-manager setopt "$r.skip_if_unavailable=1" >/dev/null 2>&1 || true
   done < <(dnf repo list --all --json 2>/dev/null | jq -r '.[].id' 2>/dev/null)
 }
 third_party_off() {   # → --disablerepo=… for every repository that is not Fedora's or RPM Fusion's
   local r
   while read -r r; do
-    if [[ $r == copr:* || $r == brave-browser || $r == claude-code ]]; then printf -- '--disablerepo=%s\n' "$r"; fi
+    if [[ $r == copr:* || $r == claude-code ]]; then printf -- '--disablerepo=%s\n' "$r"; fi
   done < <(dnf repo list --enabled --json 2>/dev/null | jq -r '.[].id' 2>/dev/null || true)
   return 0
 }
 # the packages: one transaction, detached, snapshotted around (the dnf actions hook). Should
 # a third-party repository fail it — a signing key changed, a repository gone — it runs again
-# without them, and says so: Fedora's own updates never wait on Brave's or a COPR's
+# without them, and says so: Fedora's own updates never wait on Claude Code's or a COPR's
 dnf_upgrade() {
   local off=() i
   for i in 1 2; do
@@ -2921,6 +2924,7 @@ update_steps() {
   step_on "the desktop's face (Sumi UI)" install_faces
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
+  step_on "Widevine (Spotify's player)" install_widevine
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
   if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
@@ -3399,6 +3403,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
+  install_widevine || rc=1
   if [[ $STEAM == yes ]]; then install_ge_proton || rc=1; fi
   return "$rc"
 }
@@ -3581,7 +3586,7 @@ trial_run() {
   step "T2 full system update"            s_update
   step "T3 base packages"                 s_base
   step "T4 remove nano, vim, rescue kernel" s_trim
-  step "T5 repositories (RPM Fusion, Brave, Claude Code, COPR)" s_repos
+  step "T5 repositories (RPM Fusion, Claude Code, COPR)" s_repos
   step "T6 GPU packages (AMD and common)" trial_gpu
   step "T7 ffmpeg (RPM Fusion) + media"   s_media
   step "T8 build dependencies"            s_build

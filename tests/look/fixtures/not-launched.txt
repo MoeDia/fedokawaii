@@ -59,7 +59,7 @@ libadwaita                      a library (satty)
 plymouth-plugin-script          the boot splash
 # ── media, graphics, drivers ──
 ffmpeg                          a command (ffprobe too)
-mpv                             the player: films open in it (Files, Brave); with nothing to play it shows nothing — hidden
+mpv                             the player: films open in it (Files, Helium); with nothing to play it shows nothing — hidden
 mpv-mpris                       mpv's part: the bar's now-playing and the media keys
 yt-dlp                          a command: mpv plays links through it
 nodejs24                        yt-dlp's JavaScript runtime; neovim's language servers
@@ -141,7 +141,7 @@ ghostscript                     a command: PDF compression
 tesseract                       a command: text from scans
 tesseract-langpack-eng          tesseract's English
 tesseract-langpack-ara          tesseract's Arabic
-imv                             the image viewer: pictures open in it (Files, Brave); its package's entry stays
+imv                             the image viewer: pictures open in it (Files, Helium); its package's entry stays
 ImageMagick                     commands: conversions (magick)
 ImageMagick-heic                ImageMagick's HEIC part
 python3-twisted                 Syncplay's library

@@ -26,7 +26,7 @@ TAGS = [f"{1 << i}" for i in range(9)]
 ROWS = {
     "Super+Return":            ("terminal (foot)", ["spawn:footclient"]),
     "Super+Space":             ("launcher", ["spawn:kawa-menu --launcher"]),
-    "Super+B":                 ("browser (Brave Origin)", ["spawn:brave-origin"]),
+    "Super+B":                 ("browser (Helium)", ["spawn:kawa-browser"]),
     "Super+E":                 ("files (yazi)", ["spawn:footclient yazi"]),
     "Super+X":                 ("quick settings", ["spawn:kawa-quick"]),
     "Super+A":                 ("sound panel", ["spawn:kawa-quick sound"]),

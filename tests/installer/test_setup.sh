@@ -117,7 +117,7 @@ eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07e) at its pinned commit"
 [[ -f $W/home/fkuser/.local/share/blesh/ble.sh ]] && _ok || _no "ble.sh not installed"
-# Spotify is its web player (a Brave app window): nothing of lpf's, no step of its own
+# Spotify is its web player (a Helium app window): nothing of lpf's, no step of its own
 pkg_has lpf || pkg_has lpf-spotify-client || pkg_has spotify-client && _no "lpf or a Spotify package installed" || _ok
 lacks "$(ls "$W/var/lib/fedokawaii")" "Spotify" "no Spotify step"
 # (the clone setup was started from: gone at the end — the toolkit has all of it)

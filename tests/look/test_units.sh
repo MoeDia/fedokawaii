@@ -150,7 +150,7 @@ args_eq kawa-dwlstatus 1 --poke 12
 
 case_ "one question per share: the portal hands out restore tokens, transient only (a screen is not asked twice)"
 mapfile -t envs < <(key "$D" Environment)
-eq "${envs[*]}" "XDPW_PERSIST_MODE=transient" "Brave's picker and its share joined by a token; never 'permanent'"
+eq "${envs[*]}" "XDPW_PERSIST_MODE=transient" "Helium's picker and its share joined by a token; never 'permanent'"
 grep -q '^Environment=XDPW_PERSIST_MODE=transient$' "$D" && _ok || _no "not one plain Environment= line"
 # the portal's own word for it (xdpw 0.7+, src/screencast/screencast.c): "transient" or
 # "permanent", anything else is "none" — a typo would quietly bring the second question back

@@ -36,10 +36,10 @@ modes() { paste -sd' ' "$TMP/mako.modes"; }
 
 case_ "a share: the sharing mode on; at its end, the notices that came meanwhile counted — critical and level ones not"
 fake_mako
-note hist 7 normal brave "before the share"
+note hist 7 normal helium "before the share"
 kawa-hush on sharing; eq "$(modes)" "default sharing"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-hush.sharing")" 7 "the mark: the highest notice so far"
-note hist 8 normal brave "a message"; note list 9 normal discord "a ping"
+note hist 8 normal helium "a message"; note list 9 normal discord "a ping"
 note hist 10 critical desktop "a drive pulled out"; note hist 11 normal osd "volume" osd
 kawa-hush off sharing
 eq "$(modes)" "default"
@@ -54,11 +54,11 @@ has "$(cat "$TMP/notices")" "1 notice while you played"
 
 case_ "a click on it lists them: a heading (the quiet bell, when), an info row each (title, app) — only read, nothing to choose"
 fake_mako; touch "$TMP/click"
-kawa-hush on sharing; note hist 3 normal brave "lunch?"; note list 4 normal discord "call me"; kawa-hush off sharing
+kawa-hush on sharing; note hist 3 normal helium "lunch?"; note list 4 normal discord "call me"; kawa-hush off sharing
 m=$(cat "$TMP/menu")
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 has "$m" $'part\t'"$ICON_BELL_OFF"$'\twhile you shared'
-has "$m" $'info\t'"$ICON_BELL"$'\tlunch?\t\tbrave'
+has "$m" $'info\t'"$ICON_BELL"$'\tlunch?\t\thelium'
 has "$m" $'info\t'"$ICON_BELL"$'\tcall me\t\tdiscord'
 eq "$(grep -c '^info	' <<<"$m")" 2 "each notice an info row (the cursor and the pointer pass it)"
 eq "$(grep -vc -e '^part	' -e '^info	' <<<"$m")" 0 "no choice in it"

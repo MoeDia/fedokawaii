@@ -114,7 +114,7 @@ look
 argv kawa-saver; argv kawa-lock
 n=$TMP/n
 stub playerctl 'c=$(cat "'"$n"'" 2>/dev/null || echo 0); echo $((c + 1)) >"'"$n"'"; [ "$c" -lt "${PLAYING:-0}" ] && echo Playing || echo Paused'
-stub systemd-inhibit '[ -e "$FAKE_TMP/inhibit" ] && echo "brave 1000 me 4242 brave idle Playing video block"; exit 0'
+stub systemd-inhibit '[ -e "$FAKE_TMP/inhibit" ] && echo "helium 1000 me 4242 helium idle Playing video block"; exit 0'
 argv sleep
 case_ "nothing playing: away runs the screensaver (--idle), dark the screens off"
 rc 0 kawa-idle away; args_eq kawa-saver 1 --idle
@@ -129,7 +129,7 @@ eq "$(ncalls sleep)" 2 "two looks while it played"; args_eq sleep 1 30; args_eq 
 case_ "an idle lock in logind (systemd-inhibit --what=idle): it waits too"
 look; argv kawa-saver; argv kawa-lock
 stub playerctl; : >"$TMP/inhibit"
-stub systemd-inhibit '[ -e "'"$TMP"'/inhibit" ] && echo "brave 1000 me 4242 brave idle Playing video block"; exit 0'
+stub systemd-inhibit '[ -e "'"$TMP"'/inhibit" ] && echo "helium 1000 me 4242 helium idle Playing video block"; exit 0'
 stub sleep 'rm -f "'"$TMP"'/inhibit"'
 rc 0 kawa-idle dark; args_eq kawa-lock 1 --screens off; called '^sleep 30$'
 case_ "back (a key, a move): a wait still running ends there — nothing shows, nothing locks"

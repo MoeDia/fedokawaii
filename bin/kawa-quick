@@ -269,7 +269,7 @@ state_audio() {   # the sound panel's: the output's level and mute, the micropho
 
 # source_to ID — the default input made node ID (wpctl set-default: WirePlumber keeps it
 # across restarts), and what was recording from the old default moved with it at once, a
-# call's microphone too (pw-metadata target.object — Brave picks its microphone itself when a
+# call's microphone too (pw-metadata target.object — Helium picks its microphone itself when a
 # site names one, and such a stream would not follow the default alone); the old one's mute
 # carried over (muted stays muted). 1: no such input
 source_to() {

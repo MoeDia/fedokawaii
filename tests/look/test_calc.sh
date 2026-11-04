@@ -69,7 +69,7 @@ class UI:
     def copy_answer_of(self, m, q): self.calls.append(f"copy-of {q}")
     def start(self, app): self.calls.append(f"start {app.id}")
     def command(self, text): self.calls.append(f"command {text}")
-apps = [kp.App("brave-origin.desktop", "Brave Origin", "Web browser", ["internet"], None, None),
+apps = [kp.App("helium.desktop", "Helium", "Web browser", ["internet"], None, None),
         kp.App("kawa-calc.desktop", "Calculator", "Sums and conversions", ["math"], "calc", None)]
 u = UI(); p = kp.Panel(u)
 def typed(text):
@@ -108,7 +108,7 @@ src=$(sed -n '/        def copy_answer(self, text):/,/^$/p' "$REPO/bin/kawa-pane
 script=$(python3 -c 'import ast, sys; print("".join(ast.literal_eval("(" + sys.argv[1] + ")")))' "$src")
 bash -c "$script" _ 360; eq "$(cat "$TMP/clip" 2>/dev/null)" 360 "the answer on the clipboard"; called notify-send "copied 360"
 case_ "the launcher: an entry picked (a click or Enter) starts it; text that finds nothing runs as a command"
-eq "$(lp 'typed("brav"); print([i.name for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' "['Brave Origin']" 'start brave-origin.desktop False')"
+eq "$(lp 'typed("heli"); print([i.name for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' "['Helium']" 'start helium.desktop False')"
 eq "$(lp 'typed("math"); print([i.name for i in p.items])')" "['Calculator']" "found by its keywords"
 eq "$(lp 'typed("htop -d 5"); print([i.key for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' '[]' 'command htop -d 5 False')"
 lacks "$(cat "$REPO/bin/kawa-menu")" "fuzzel" "kawa-menu --launcher asks the panel, nothing else"

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-pick — the file dialog. Brave's "Upload" and "Save as…" and the Open/Save dialogs of
+# kawa-pick — the file dialog. Helium's "Upload" and "Save as…" and the Open/Save dialogs of
 # GTK programs ask the file chooser portal; ~/.config/xdg-desktop-portal/wlroots-portals.conf
 # sends that to xdg-desktop-portal-termfilechooser (built by setup.sh), which runs this:
 # yazi in a small floating terminal (foot, app-id "kawa-dialog": a dialog, not a popup), in the desktop's colours.
@@ -11,7 +11,7 @@
 #            it (the portal makes it; kawa-pick words it): Enter saves it · r renames it first · Enter on a
 #            folder takes it into that folder · Enter on another file replaces that one,
 #            after a question; cancelling removes the file made for saving again. Where a
-#            file of that name is there already, it is "name (1).ext" (as in Brave)
+#            file of that name is there already, it is "name (1).ext" (as in Helium)
 #   back     (Super+U → a file, back: inside only) your files as a snapshot holds them —
 #            Enter takes the file under the cursor (or every one Space marked, files and
 #            folders) · Enter on a folder goes into it · q takes the folder you are in

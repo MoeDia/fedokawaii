@@ -17,7 +17,7 @@ NetworkManager-tui     kawa-network                            nmtui
 foot                   footclient                              footclient
 wiremix                kawa-mixer                              wiremix
 lact                   pkg:io.github.ilya_zlobintsev.LACT.desktop
-brave-origin           pkg:brave-origin.desktop
+helium-bin             pkg:helium.desktop
 claude-code            kawa-agents                             herdr
 libreoffice-writer     pkg:libreoffice-writer.desktop
 libreoffice-calc       pkg:libreoffice-calc.desktop

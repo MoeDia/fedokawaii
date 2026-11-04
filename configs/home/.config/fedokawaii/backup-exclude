@@ -31,12 +31,12 @@
 @HOME@/.local/share/fedokawaii/upstream
 @HOME@/.local/share/fedokawaii/wallpapers
 # the browser's caches (its bookmarks, passwords and settings stay in)
-@HOME@/.config/BraveSoftware/*/*/Cache
-@HOME@/.config/BraveSoftware/*/*/Code Cache
-@HOME@/.config/BraveSoftware/*/*/GPUCache
-@HOME@/.config/BraveSoftware/*/*/Service Worker/CacheStorage
-@HOME@/.config/BraveSoftware/*/*/DawnGraphiteCache
-@HOME@/.config/BraveSoftware/*/*/DawnWebGPUCache
-@HOME@/.config/BraveSoftware/*/ShaderCache
+@HOME@/.config/net.imput.helium/*/Cache
+@HOME@/.config/net.imput.helium/*/Code Cache
+@HOME@/.config/net.imput.helium/*/GPUCache
+@HOME@/.config/net.imput.helium/*/Service Worker/CacheStorage
+@HOME@/.config/net.imput.helium/*/DawnGraphiteCache
+@HOME@/.config/net.imput.helium/*/DawnWebGPUCache
+@HOME@/.config/net.imput.helium/ShaderCache
 # a backup of a backup: what restore put back is already in one
 @HOME@/Restored

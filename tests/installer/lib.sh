@@ -498,7 +498,7 @@ built() {
   mkdir -p "$W/home/fkuser/.config"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
   mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=25\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
-  printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
+  printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/claude-code.repo"; cp "$W/etc/yum.repos.d/claude-code.repo" "$W/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:imput:helium.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
   # (the disk's layout: the real fedokawaii-split, on the fake machine's flat layout — stubs/findmnt, btrfs, mount)
   install -m 0755 "$REPO/system/fedokawaii-split" "$W/usr/local/sbin/fedokawaii-split"
@@ -541,7 +541,7 @@ built() {
     fedokawaii-boot-good.path fedokawaii-update-resume.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
-  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs >"$FKH/coprs"
+  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs copr:copr.fedorainfracloud.org:imput:helium >"$FKH/coprs"
   mkdir -p "$W/usrshare/vulkan/icd.d" "$W/usrshare/icons/Papirus" "$W/usrshare/icons/Papirus-Dark" "$W/usrshare/icons/Adwaita/cursors"
   : >"$W/usrshare/vulkan/icd.d/radeon_icd.x86_64.json"; fake_cmd "$W/usrbin/greetd"
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"

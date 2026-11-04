@@ -769,9 +769,9 @@ def gtk3_theme(m, p):
     out += [f"@define-color {k:<26}#{v};" for k, v in gtk_vars(m, p)]
     out += [f"@define-color {'kawa_' + k:<26}#{p[k]};" for k in KAWA]
     out += ["",
-            "/* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
-            "   strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every",
-            "   style node it reads the class .chromium, so the rules below reach Brave only: its",
+            "/* Helium (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
+            "   strip, toolbar and menus (its address bar keeps Helium's own). Chromium gives every",
+            "   style node it reads the class .chromium, so the rules below reach Helium only: its",
             "   accent (checked boxes, the selected row) is the lacquer rather than a dull blend,",
             "   its tooltips are the palette's, and its tab strip stays the same when the window is",
             "   not focused. */",

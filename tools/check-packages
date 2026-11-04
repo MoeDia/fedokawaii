@@ -60,7 +60,7 @@ repo_of() {
   case $1 in
     rpmfusion-free-release|ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo rpmfusion-free ;;
     rpmfusion-nonfree-release|steam|unrar|intel-media-driver) echo rpmfusion-nonfree ;;
-    brave-origin) echo brave-browser ;;
+    helium-bin) echo copr:copr.fedorainfracloud.org:imput:helium ;;
     claude-code) echo claude-code ;;
     *) local c; for c in "${COPRS[@]}"; do [[ $(copr_pkgs "$c") == "$1" ]] && { echo "copr:$c"; return; }; done; echo fedora ;;
   esac
@@ -222,7 +222,7 @@ if ((LIVE)); then
   done
   if ((${#dup[@]})); then fail "one tool per job — the same command from two packages: ${dup[*]}"; else pass "no command comes from two manifest packages (${#BIN[@]} commands)"; fi
   # each repository setup adds: enabled, its packages signed
-  for r in rpmfusion-free rpmfusion-nonfree brave-browser claude-code; do
+  for r in rpmfusion-free rpmfusion-nonfree copr:copr.fedorainfracloud.org:imput:helium claude-code; do
     grep -qx "$r" <<<"$REPOS" || { info "$r: not enabled here (setup's phase 2 adds it)"; continue; }
     g=$(dnf -q repo info "$r" 2>/dev/null | sed -n 's/^ *\(GPG check\|PGP check\|Gpgcheck\) *: *//Ip' | sed -n 1p)
     if [[ ${g,,} == @(yes|1|true|*enabled*) ]]; then pass "$r: enabled, packages signature-checked"

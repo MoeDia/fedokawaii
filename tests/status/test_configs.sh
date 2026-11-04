@@ -64,7 +64,7 @@ has "$Q" 'default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 
 has "$Q" 'default.clock.quantum       = 1024'
 has "$Q" 'default.clock.min-quantum   = 256'
 has "$Q" 'default.clock.max-quantum   = 2048'
-case_ "the resampler at quality 14 (the best there is) wherever streams are made: PipeWire's own, Pulse programs (Brave, Steam), PipeWire programs (mpv) — in stream.properties, nothing else set there"
+case_ "the resampler at quality 14 (the best there is) wherever streams are made: PipeWire's own, Pulse programs (Helium, Steam), PipeWire programs (mpv) — in stream.properties, nothing else set there"
 for f in pipewire.conf.d pipewire-pulse.conf.d client.conf.d; do
   eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality = 14')" 1 "$f"
   eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality')" 1 "$f: one quality"

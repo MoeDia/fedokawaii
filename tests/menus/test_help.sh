@@ -104,8 +104,8 @@ done
 for t in "~/repos/fedokawaii" "btop2" "Yazi"; do
   keys_setup; focus footclient "$t"; answer esc; kawa-help; eq "$(parts | cut -d' ' -f1)" launch "titled $t"
 done
-case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, Torrents torrra, zathura, mpv; Brave: the desktop's first"
-for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata kawa-torrents:torrra org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
+case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, Torrents torrra, zathura, mpv; Helium: the desktop's first"
+for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata kawa-torrents:torrra org.pwmt.zathura:zathura mpv:mpv helium:launch; do
   keys_setup; focus "${t%%:*}" "a title"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "app id ${t%%:*}"
 done
