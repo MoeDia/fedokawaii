@@ -251,7 +251,7 @@ do_run() {
 # verify. A setup that stopped shows it on its own screen: RED with its reason, and `follow` carries on
 # after a fix (a key restarts the VM). Timed from the run's start, or this follow's.
 do_follow() {
-  local name=$1 last="" ph
+  local name=$1 last="" ph since=$SECONDS
   R=$V/$name/run; mkdir -p "$R"
   ((${T0:-0})) || T0=$SECONDS
   until vm_ssh "$name" true 2>/dev/null; do
@@ -264,8 +264,15 @@ do_follow() {
     ((SECONDS - T0 > 21600)) && { stage "RED: setup not done after 6 h (phase $last)"; return 1; }
     sleep 20
     ph=$(vm_ssh "$name" 'sudo head -n1 /var/lib/fedokawaii/phase 2>/dev/null') || continue
-    if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; fi
+    if [[ $ph != "$last" ]]; then stage "phase: ${ph:-none yet}"; last=$ph; since=$SECONDS; fi
     [[ $ph == "done" ]] && break
+    # (FK_RESET_PHASE: the power pulled once, a minute into that phase: setup carries on by itself)
+    if [[ ${FK_RESET_PHASE:-} == "$ph" ]] && ((SECONDS - since > 60)); then
+      stage "the reset, in phase $ph"
+      "${VIRSH[@]}" reset "$name" >/dev/null
+      FK_RESET_PHASE=""
+      sleep 30
+    fi
     if do_say "$name" "setup stopped" 2>/dev/null; then
       do_say "$name" >"$R/stopped.txt" 2>/dev/null
       vm_ssh "$name" 'sudo tail -n 60 /var/log/fedokawaii.log' >"$R/setup-tail.log" 2>&1
