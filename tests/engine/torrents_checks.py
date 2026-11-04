@@ -13,6 +13,7 @@ import sys
 import threading
 import time
 import urllib.error
+import urllib.parse
 import urllib.request
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
@@ -1156,15 +1157,17 @@ def engine_lost():
 def hostile_names():
     """A torrent's name is a stranger's words: an escape, a bell, a writing-direction override never reach the terminal."""
     import common as cm
-    bad = "evil\x1b[2J\x1b]0;owned\x07name‮.mkv"
+    bad = "evil\x1b[2J\x1b]0;owned\x07name\u202e.mkv"
     out = cm.reading(bad)
-    assert "\x1b" not in out and "\x07" not in out and "‮" not in out, repr(out)
-    p = os.path.join(TMP, "hostile.py")
-    with open(os.path.join(HERE, "torrents_mock.py"), encoding="utf-8") as f:
-        src = f.read()
-    # the real engine cleans them too: its row comes through common.safe
-    assert "common.safe(s.name)" in open(os.path.join(LIB, "engine.py"), encoding="utf-8").read(), "the engine's rows"
-    del p, src
+    assert "\x1b" not in out and "\x07" not in out and "\u202e" not in out, repr(out)
+    # through the real engine: a magnet's name, as a stranger's link would have it
+    e = spawn_engine()
+    c = e.client()
+    c.ask({"op": "add", "kind": "magnet", "value": "magnet:?xt=urn:btih:" + "ef" * 20 + "&dn=" + urllib.parse.quote(bad)})
+    r = c.wait(lambda: c.rows.get("ef" * 20), 10, "its row")
+    assert "\x1b" not in r["name"] and "\u202e" not in r["name"], repr(r["name"])
+    c.close()
+    e.stop()
 
 
 def single_window():
@@ -1185,7 +1188,6 @@ def single_window():
 def terminal_restored():
     """Hung up, killed by TERM, q, Ctrl+Q: the terminal is put back each time, its modes off."""
     mock()
-    from torrents_screen import Window
     for how in ("q", "ctrl-q", "term", "hup"):
         w = window(24, 80)
         w.has("finished")
@@ -1204,7 +1206,6 @@ def terminal_restored():
             assert mode not in w.screen.modes, f"{how}: mode {mode} left on"
         _, status = os.waitpid(w.pid, 0)
         eq(status, 0, f"{how}: ends clean")
-    del Window
 
 
 # ── Prowlarr ────────────────────────────────────────────────────────────────────────────────
@@ -1348,8 +1349,6 @@ def prowlarr_add():
 def prowlarr_search():
     """A site Prowlarr is letting rest answers 400: no results, no trouble. secret() takes the key only from a private file."""
     import prowlarr as pr
-    d = fake_prowlarr()
-    del d
     os.environ["KAWA_PROWLARR_URL"] = "http://127.0.0.1:1"
     p = os.path.join(HOME, ".config/fedokawaii/secrets.sh")
     os.makedirs(os.path.dirname(p), exist_ok=True)

@@ -154,7 +154,6 @@ class App:
         self.tab_hits = []
         # find
         self.query = Line()
-        self.searching = False                     # the keyboard in the list, not on the line
         self.line_focus = True
         self.results = {}
         self.pending_sites = 0
@@ -165,7 +164,6 @@ class App:
         self.prowlarr_woken = False
         self.tended = False
         self.sort = 0
-        self.history = []
         self.cache = {}
         self.queue = []
         self.q_lock = threading.Lock()
@@ -665,8 +663,8 @@ class App:
     def row_words(self, r):
         """What stands instead of numbers while there are none."""
         w = r["word"]
-        if w == "failed":
-            return r["err"] or "failed"
+        if w == "failed":                          # (its first clause: the whole of it stands in its details)
+            return (r["err"] or "failed").partition(":")[0]
         if w == "finding":
             return "looking for it"
         if w == "asking":
@@ -963,7 +961,6 @@ class App:
                 frame[y] = self.lacquer(self.draw_offer(it, w, selected), selected)
             if "id" in it:
                 self.mouse_map[y] = it
-        self.list_box = (top, h, w)
 
     def lacquer(self, spans, selected):
         """The cursor's fill: from the cursor's column to the one beyond the content."""
@@ -1181,7 +1178,7 @@ class App:
             frame[y] = [" ", (cut(self.saying, w - 2), STRONG)]
             return
         if not self.connected:
-            frame[y] = [" ", (self.icon("CROSS"), ACCENT_TEXT), "  ", cut("the engine does not answer: trying again", w - 3)]
+            frame[y] = [" ", (self.icon("CROSS"), ACCENT_TEXT), "  ", cut("the engine does not answer: trying again (systemctl --user status kawa-torrents)", w - 3)]
             return
         if self.adding is not None:
             frame[y] = [" "] + keys_spans((("ctrl+o", "pick a file", ""),), w)

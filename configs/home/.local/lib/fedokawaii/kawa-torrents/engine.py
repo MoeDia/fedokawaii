@@ -99,8 +99,8 @@ class Pending:
 class Stream:
     """A file played while it comes: its pieces rushed from where the player reads, in order after that."""
 
-    def __init__(self, engine, h, index):
-        self.engine, self.h, self.index = engine, h, index
+    def __init__(self, h, index):
+        self.h, self.index = h, index
         ti = h.torrent_file()
         fs = ti.files()
         self.token = secrets.token_urlsafe(16)
@@ -355,7 +355,7 @@ class Engine:
                     ses.load_state(lt.bdecode(f.read()))
             except FileNotFoundError:
                 pass
-            except (OSError, RuntimeError, ValueError, TypeError) as e:
+            except (OSError, RuntimeError, ValueError, TypeError, AttributeError) as e:
                 say(f"the DHT's nodes of last time could not be read: {e}")
         self.apply_turtle(ses)
         return ses
@@ -1014,7 +1014,7 @@ class Engine:
                 return {"url": self.stream_url(old)}
             return {"waiting": True}
         finished = h.status(0).is_finished
-        st = self.streams[i] = Stream(self, h, index)
+        st = self.streams[i] = Stream(h, index)
         if finished:
             self.wake(h, i)
         self.start_http()
@@ -1190,7 +1190,7 @@ class Engine:
         if not LOCAL:
             try:
                 write_file(os.path.join(STATE, "dht"), lt.bencode(self.ses.save_state(lt.save_state_flags_t.save_dht_state)))
-            except (OSError, RuntimeError) as e:
+            except (OSError, RuntimeError, AttributeError) as e:
                 say(f"the DHT's nodes could not be saved: {e}")
         self.save_state()
         self.mark_unfinished()
