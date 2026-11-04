@@ -114,6 +114,9 @@ case_ "the download stops: nothing armed, cleared, said; the snapshot goes back 
 back told; fkh rc-sysup 1; reset_calls; press; eq "$RC" 0 "$(tail -n2 <<<"$OUT")"
 has "$OUT" "Fedora 46 waits: the download stopped"; called 'dnf\] system-upgrade clean'; [[ ! -e $unit && ! -e $U/move ]] && _ok || _no "armed all the same"
 n=$(cat "$U/snap"); rm -f "$FKH/rc-sysup"; reset_calls; press; called "snapper\] -c root modify -c number $n"
+case_ "the restart into the installation, as a real shutdown ends the run: its TERM is no \"interrupted\": he was told (status 0)"
+back told; touch "$FKH/reboot-terms"; reset_calls; press; rm -f "$FKH/reboot-terms"; eq "$RC" 0 "$(tail -n2 <<<"$OUT")"
+called 'dnf\] -y system-upgrade reboot'; lacks "$OUT" "interrupted"
 case_ "dnf cannot arrange the restart: nothing armed is left behind (exit 1)"
 back told; fkh rc-reboot 1; reset_calls; press; eq "$RC" 1; has "$OUT" "dnf could not arrange the restart into Fedora 46"
 [[ ! -e $unit && ! -e $U/move ]] && _ok || _no "the unit or the record left behind"; called 'grub2-editenv\] - unset boot_counter'
@@ -153,9 +156,14 @@ eq "$(cut -d' ' -f4 "$U/last-upgrade")" failed
 case_ "…the restart's own TERM reaches the run: no \"interrupted\" on the screen, status 0"
 back armed; whole; fkh session-red "not running: waybar"; touch "$FKH/reboot-terms"; reset_calls; tk --after-upgrade; rm -f "$FKH/reboot-terms"
 eq "$RC" 0; called 'systemctl\] reboot'; lacks "$OUT" "interrupted"
-case_ "the snapshot cannot be put back: never a loop — the record gone, the way back said, no restart"
+case_ "a full disk refuses every record of the red: the snapshot goes back all the same, one restart, said"
+back armed; mkdir -p "$U/move-red-46" "$U/last-upgrade" "$U/probation"; rm -f "$W/home/fkuser/.foryou"; n=$(cut -d' ' -f3 "$U/move"); reset_calls; tk --after-upgrade; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+called "kawa-snap\] restore $n"; called 'systemctl\] reboot'; has "$(foryou)" "the move to Fedora 46 was undone"; [[ ! -e $U/move ]] && _ok || _no "the record stays: every start would run it again"
+case_ "the snapshot cannot be put back: never a loop — the record gone, the way back said, no restart; no trial left on what stays: no watchdog, no trial arguments"
 back armed; printf '#!/bin/sh\nexit 1\n' >"$W/usr/local/sbin/kawa-snap"; rm -f "$W/home/fkuser/.foryou"; reset_calls; tk --after-upgrade
 not_called 'systemctl\] reboot'; [[ ! -e $U/move && ! -e $unit ]] && _ok || _no "it would run again"; has "$(foryou)" "could not be put back by itself: Super+U → snapshots"
+lacks "$(cat "$W/etc/kernel/cmdline")" "rd.shell=0"; [[ ! -e $W/etc/systemd/system.conf.d/90-fedokawaii-probation.conf ]] && _ok || _no "the watchdog stays armed"
+called 'grubby\] --update-kernel=ALL --remove-args=rd.shell=0'
 case_ "a restart cut between the restore and its record: back on 45, no unit: the next start says so, once"
 back armed; rm -f "$unit" "$W/home/fkuser/.foryou"; reset_calls; tk --update-resume; eq "$RC" 0
 has "$(foryou)" "the move to Fedora 46 was undone"; [[ ! -e $U/move ]] && _ok || _no "the record stays"
