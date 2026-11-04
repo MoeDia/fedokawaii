@@ -74,7 +74,7 @@ class Art:
         if lines is None:
             return None
         cv = Canvas(GRID, GRID)
-        cv.stamp(Sprite(lines, {c: self.index["face_" + c] for c in "oklwfdreyagbh"}), 0, 0)
+        cv.stamp(Sprite(lines, {c: self.index["face_" + c] for c in "oklwfdreyagbhnui"}), 0, 0)
         return cv
 
     def fallen(self, piece, step, s):

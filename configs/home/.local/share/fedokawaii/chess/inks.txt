@@ -53,3 +53,6 @@ face_a eb5324 eb5324
 face_g 759260 759260
 face_h 396139 396139
 face_b 5a82b3 5a82b3
+face_n 34475d 34475d
+face_u 5e4123 5e4123
+face_i a3af81 a3af81

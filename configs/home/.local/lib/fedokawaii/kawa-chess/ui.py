@@ -5,7 +5,7 @@ Lines are lists of spans; a Row carries what a click or Enter on it means.
 """
 import re
 
-from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG
+from term import ACCENT, ACCENT_TEXT, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG
 
 PIECE_MIN_ROWS = 18        # 320 px + the frame: the smallest board
 _ICON = re.compile(r"^ICON_([A-Z0-9_]+)=\$'((?:\\x[0-9a-f]{2})+)'", re.M)
@@ -131,8 +131,9 @@ class Face:
 
 
 def tile(key):
-    """A key on a text screen (§7): a cell-high tile, its letters and a cell either side."""
-    return (f" {key} ", STRONG, EDGE)
+    """A key on a text screen (§7 Keys): whole cells of Sumi Icons Term, U+FF001, then U+FF000 + each letter's ASCII
+    code, then U+FF002: its frame, its lip and its letters one ink, no fill."""
+    return ("\U000ff001" + "".join(chr(0xff000 + ord(c)) for c in key) + "\U000ff002", MUTED)
 
 
 def keys_line(w, *pairs):

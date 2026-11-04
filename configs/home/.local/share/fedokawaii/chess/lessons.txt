@@ -390,7 +390,7 @@ he is on the seventh, and the sixth is closed to him.
 one more.
 
 === king-and-queen
-title: king and queen against a king
+title: king and queen against king
 minutes: 5
 source: Silman, Complete Endgame Course, part one (the box)
 
@@ -408,7 +408,7 @@ your king takes the seventh rank's squares. the mate.
 in this week's games you do it against the engine at its full defence: under twenty moves.
 
 === king-and-rook
-title: king and rook against a king
+title: king and rook against king
 minutes: 5
 source: Silman, Complete Endgame Course, part one (the box, opposition)
 
@@ -846,7 +846,7 @@ pull it away.
 lure it in.
 
 === arabian-and-anastasia
-title: the Arabian and Anastasia's mate
+title: Arabian and Anastasia mates
 minutes: 3
 source: Lichess themes arabianMate, anastasiaMate; Polgár, Chess: 5334 Problems
 
@@ -1433,7 +1433,7 @@ source: Seirawan, Winning Chess Openings
 the Alapin: c3 and d4 for the centre, with no theory to learn. you avoid a thousand sharp lines and get a free game. your pieces go to their usual squares.
 
 === against-caro-and-french
-title: against the Caro-Kann and French
+title: the Caro-Kann and the French
 minutes: 4
 source: Seirawan, Winning Chess Openings
 
@@ -1443,7 +1443,7 @@ source: Seirawan, Winning Chess Openings
 in both he plays d5 against your e4. you push e5, take the space on the king's wing, and guard d4. in the French his light bishop is shut in; in the Caro it gets out first, so look at it.
 
 === the-qgd-plan
-title: the plan of the Queen's Gambit Declined
+title: the Queen's Gambit Declined
 minutes: 4
 source: Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move
 
@@ -1613,7 +1613,7 @@ a pawn for two open lines, a piece for the king dragged out. count what you get:
 what do you get for it?
 
 === playing-with-the-isolani
-title: playing with the isolated pawn
+title: with the isolated pawn
 minutes: 4
 source: Seirawan, Winning Chess Strategies
 

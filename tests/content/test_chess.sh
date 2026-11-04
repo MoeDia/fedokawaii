@@ -383,7 +383,7 @@ words = "".join(s[0] for s in row)
 inks = {s[0].strip(): s[1] for s in row if s[0].strip()}
 own = inks["5 min"] == T.MUTED and inks["the rook"] == T.ON_SELECT and inks["b"] == T.ON_SELECT
 keys = U.keys_line(16, ("enter", "open"), ("tab", "next"))
-tile = keys[0] == (" enter ", T.STRONG, T.EDGE) and U.span_len(keys) <= 16 and U.span_len(U.keys_line(40, ("enter", "open"), ("tab", "next"))) == 24
+tile = keys[0] == ("\U000ff001" + "".join(chr(0xff000 + ord(c)) for c in "enter") + "\U000ff002", T.MUTED) and U.span_len(keys) <= 16 and U.span_len(U.keys_line(40, ("enter", "open"), ("tab", "next"))) == 24
 foot = U.footed(["a", "b", "c", "d", "e"], 5, keys)
 last = foot[-1] is keys and foot[:3] == ["a", "b", "c"] and foot[3] == "" and len(foot) == 5
 head = U.heading("BOOK", "the rook", 30, right="week 1")
