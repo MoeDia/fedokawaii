@@ -421,6 +421,9 @@ case_ "…a stored package without a signature this system trusts: stopped befor
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh rpm-badsig
 up; eq "$RC" 1; has "$OUT" "a package is not signed by a key this system trusts — nothing changed"
 not_called 'snapper\] -c root create .*before update'; not_called 'dnf\] -y -C replay'
+case_ "the power button while the running system changes: held from the transaction to the report"
+back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
+called 'systemd-inhibit\] --what=shutdown:sleep:handle-power-key'; i=$(grep -n 'systemd-inhibit' "$CALLS" | head -n1 | cut -d: -f1); r=$(grep -n 'dnf\] -y -C replay' "$CALLS" | head -n1 | cut -d: -f1); ((i < r)) && _ok || _no "inhibitor $i, replay $r"
 case_ "…rpm's database damaged, and it can be rebuilt: rebuilt first, then the update goes on, whole"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh rpmdb-damaged
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; called 'rpmdb\] --rebuilddb'; has "$OUT" "rpm's database is damaged: rebuilt"; eq "$(report)" ok

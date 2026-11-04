@@ -2998,6 +2998,7 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
     u_snapshot
     u_replay || { u_undo; u_report; return 0; }
   fi
+  up_power_hold
   up_phase steps
   update_steps
   after_dnf_done

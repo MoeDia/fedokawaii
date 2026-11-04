@@ -144,10 +144,10 @@ thirdparty_lag() {
 }
 clock() {
   from clock || return 1; pk fk-inject-a 1.1
-  run 'sudo timedatectl set-ntp false; sudo date -s "2020-01-02 03:04:05"' >>"$log" 2>&1
+  run 'sudo date -s "2020-01-02 03:04:05"' >>"$log" 2>&1
   press
-  local r=$INJ_RC was; was=$(v fk-inject-a); run 'sudo timedatectl set-ntp true' >>"$log" 2>&1
-  ok_if '[[ $(run "date +%Y") != 2020 ]] || said "the clock"' "the clock in 2020: exit $r, $was: $(grep -m1 'clock' <<<"$INJ_OUT")"
+  local y; y=$(run 'date +%Y')
+  ok_if '[[ $y != 2020 && $(v fk-inject-a) == 1.1 ]] || said "the clock"' "the clock in 2020: exit $INJ_RC, now $y: $(grep -m1 -i 'clock' <<<"$INJ_OUT")"
 }
 # ── bad packages (rows 6, 11, 20, 42) ────────────────────────────────────────────────────────
 pkg_unsigned() {
@@ -289,11 +289,12 @@ close_window() {
 inhibit() {
   from inhibit || return 1; pk fk-inject-a 1.1 post='sleep 25'; pk fk-inject-b 1.1 req='fk-inject-a = 1.1-1'
   press_bg; phase_is replay 1200 || { end_row BROKEN "never reached the transaction"; return 1; }
-  sleep 6
-  local list off; list=$(run 'systemd-inhibit --list --no-pager 2>/dev/null | grep -iE "dnf|rpm|fedokawaii" | head -n 3'); off=$(run 'systemctl poweroff 2>&1 | head -n 2; true')
-  printf '%s\n' "$list" "$off" >"$out/inhibit.txt"
+  sleep 4
+  local list; list=$(run 'systemd-inhibit --list --no-pager 2>/dev/null | grep -i fedokawaii | head -n 2')
+  printf '%s\n' "$list" >"$out/inhibit.txt"
   press_wait 1800
-  ok_if '[[ -n $list && $(v fk-inject-a) == 1.1 ]]' "the power button in the transaction: blocked: $(tr -s ' ' <<<"$list" | head -n1): as you: $(head -n1 <<<"$off")"
+  local after; after=$(run 'systemd-inhibit --list --no-pager 2>/dev/null | grep -ic fedokawaii')
+  ok_if '[[ -n $list && $after == 0 && $(v fk-inject-a) == 1.1 ]]' "the power button in the transaction: blocked by: $(tr -s ' ' <<<"$list" | head -n1 | cut -c1-80); released after it"
 }
 toolkit_bad() {
   from toolkit-bad || return 1; pk fk-inject-a 1.1

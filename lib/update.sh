@@ -381,7 +381,18 @@ u_snapshot() {
   fi
   printf '%s\n' "$SNAP_N" | write_file "$UPD/snap" 0644
 }
+# while the running system changes: no shutdown, no sleep, the power button and the lid do nothing, and
+# logind says why (design §5 row 30). Root can still force it; the resume at the next start answers that
+UP_POWER=""
+up_power_hold() {
+  [[ -z $UP_POWER ]] || return 0
+  systemd-inhibit --what=shutdown:sleep:handle-power-key:handle-suspend-key:handle-hibernate-key:handle-lid-switch \
+    --who=fedokawaii --why="an update is being installed: it says when it is done" --mode=block tail --pid=$$ -f /dev/null >/dev/null 2>&1 9>&- &
+  UP_POWER=$!
+}
+up_power_free() { [[ -z $UP_POWER ]] || { pkill -P "$UP_POWER" 2>/dev/null; kill "$UP_POWER" 2>/dev/null; wait "$UP_POWER" 2>/dev/null; UP_POWER=""; }; return 0; }
 u_replay() {   # → 1 the transaction failed on the running system
+  up_power_hold
   local h; h=$(up_hist) || h=""
   printf '%s\n' "$h" | write_file "$UPD/hist" 0644 2>/dev/null || rm -f -- "$UPD/hist"
   up_phase replay
@@ -460,6 +471,7 @@ up_advisory() {
 }
 u_report() {   # u_report — the outcome: UPD/report (the pane), the log beside it, a notice
   local held="" fam=() line why log n desk keep sec
+  up_power_free
   # (the holds by family, as the pane names them — two at most, then how many more: a notice is
   # a line, and a whole set held at once is hundreds of names)
   [[ -s $UPD/holds ]] && mapfile -t fam < <(hold_families "$UPD/holds" | cut -f1)
