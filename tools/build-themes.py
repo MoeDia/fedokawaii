@@ -873,25 +873,26 @@ def qt_colors(m, p):
 
 def btop_theme(m, p):
     box = p["edge2"] if m == "dark" else p["edge"]
-    start = p["edge"] if m == "dark" else p["ansi0"]
     t = {
         "main_bg": p["ground"], "main_fg": p["text"], "title": p["strong"], "hi_fg": p["accent_text"],
         "selected_bg": p["select"], "selected_fg": p["text_on_select"],
         "inactive_fg": p["faint"], "graph_text": p["muted"], "meter_bg": p["edge"] if m == "dark" else p["ansi0"],
         "proc_misc": p["asagi"],
         "cpu_box": box, "mem_box": box, "net_box": box, "proc_box": box, "div_line": p["edge"],
-        "temp_start": p["green"], "temp_mid": p["yellow"], "temp_end": p["accent"],
-        "cpu_start": p["green"], "cpu_mid": p["yellow"], "cpu_end": p["accent"],
-        "free_start": box, "free_mid": p["teal"], "free_end": p["bteal"],
-        "cached_start": box, "cached_mid": p["blue"], "cached_end": p["bblue"],
-        "available_start": box, "available_mid": p["green"], "available_end": p["bgreen"],
-        "used_start": box, "used_mid": p["yellow"], "used_end": p["accent"],
-        "download_start": start, "download_mid": p["blue"], "download_end": p["bblue"],
-        "upload_start": start, "upload_mid": p["purple"], "upload_end": p["bpurple"],
-        "process_start": p["green"], "process_mid": p["yellow"], "process_end": p["accent"],
+        # what rises toward alarm, one ramp: asagi, the seal's gold, the seal's red (every meter of the desktop, §4)
+        "temp_start": p["asagi"], "temp_mid": p["yellow"], "temp_end": p["accent"],
+        "cpu_start": p["asagi"], "cpu_mid": p["yellow"], "cpu_end": p["accent"],
+        "used_start": p["asagi"], "used_mid": p["yellow"], "used_end": p["accent"],
+        "process_start": p["asagi"], "process_mid": p["yellow"], "process_end": p["accent"],
+        # what is good to have much of, one calm ink; the network's two ways, two
+        "free_start": p["asagi"], "free_mid": p["asagi"], "free_end": p["asagi"],
+        "cached_start": p["asagi"], "cached_mid": p["asagi"], "cached_end": p["asagi"],
+        "available_start": p["asagi"], "available_mid": p["asagi"], "available_end": p["asagi"],
+        "download_start": p["asagi"], "download_mid": p["asagi"], "download_end": p["asagi"],
+        "upload_start": p["yellow"], "upload_mid": p["yellow"], "upload_end": p["yellow"],
     }
     out = [f"# {header('~/.config/fedokawaii/current/btop.theme', NAMES[m] + ' colours for btop')}",
-           "# Gradients run matcha → yamabuki → vermilion: calm when idle, warm under load."]
+           "# One ramp for what rises: asagi → gold → the seal's red, calm when idle, warm under load."]
     out += [f'theme[{k}]="#{v}"' for k, v in t.items()]
     return "\n".join(out) + "\n"
 

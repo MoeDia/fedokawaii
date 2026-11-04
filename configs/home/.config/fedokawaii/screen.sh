@@ -60,6 +60,19 @@ screen_keys() {
   done
   printf '%s' "$out"
 }
+# screen_tile KEY [INK] — a key as a tile of whole cells (Sumi Icons Term, tools/build-icons.py CELLS; docs/design-system.md
+# §7): its frame, corners left out, its lip and its letters in one ink, on any ground; 2 px of air under and over it,
+# so tiles on rows running never touch. Three columns for a letter, a column more for each letter after it
+screen_tile() {
+  local k=$1 out=$'\xf3\xbf\x80\x81' n i b
+  for ((i = 0; i < ${#k}; i++)); do
+    printf -v n '%d' "'${k:i:1}"
+    printf -v b '\\xf3\\xbf\\x%02x\\x%02x' $((0x80 + (n >> 6))) $((0x80 + (n & 63)))
+    printf -v b '%b' "$b"
+    out+=$b
+  done
+  printf '%s%s\xf3\xbf\x80\x82%s' "${2:-$INK_MUTED}" "$out" "$INK_OFF"
+}
 # screen_width — the width a screen's lines have: the terminal's, less two columns of paper each
 # side (in fzf: its margin of one and its pointer's column; outside fzf, two spaces). Fails
 # without a terminal: a screen is drawn only in one
