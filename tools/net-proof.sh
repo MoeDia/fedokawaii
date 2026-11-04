@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/net-proof.sh — what the doors are for still works, and what they keep out stays out: the
-# names over TLS (nothing plain to port 53), updates, Syncplay, a real torrent swarm, the remote
+# names over TLS (nothing plain to port 53), updates, Steam, Syncplay, a real torrent swarm, the remote
 # page and LocalSend from the far end of a cable (from the LAN they answer, from the world they do
 # not), no UPnP leaving. Run after any change to the network's rules, as root; tools/portscan.sh
 # proves the doors themselves, this what uses them. A program not running is said, not started
@@ -58,6 +58,10 @@ for u in https://github.com/ https://dl.flathub.org/repo/summary.idx https://lsc
 done
 c=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/ 2>/dev/null)
 [[ $c == 200 ]] && ok "Steam's servers answer" || no "Steam's servers: ${c:-nothing}"
+if id asobi >/dev/null 2>&1; then    # (the play world's own account: the same way out)
+  c=$(cd / && runuser -u asobi -- curl -sS -m 15 -o /dev/null -w '%{http_code}' https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/ 2>/dev/null)
+  [[ $c == 200 ]] && ok "Steam's servers answer asobi" || no "Steam's servers, as asobi: ${c:-nothing}"
+fi
 grep -q '^\^[*+]' <<<"$(timeout 15 chronyc -n sources 2>/dev/null)" && ok "the clock has a source" || no "chrony has no source"
 
 # ── Syncplay: its public server, the way the client starts ────────────────────
