@@ -8,6 +8,9 @@ export LC_ALL=C
 red=0
 no() { echo "red: $*"; red=1; }
 user=${FK_USER:?}; home=$(getent passwd "$user" | cut -d: -f6)
+# every program's own check of the configs we own (system/kawa-fixer's table), a line for each red
+checks() { python3 -I /usr/local/sbin/kawa-fixer checks --user "$user" 2>&1 | sed -n 's/^red: //p'; }
+if [[ ${1:-} == --before ]]; then [[ ! -x /usr/local/sbin/kawa-fixer ]] || checks; exit 0; fi
 # our own builds find every library they link
 for f in /usr/local/bin/dwl /usr/local/bin/mako /usr/local/lib/fedokawaii-wlroots-*/lib/*.so* \
          /usr/local/libexec/xdg-desktop-portal-termfilechooser \
@@ -42,6 +45,13 @@ for e in /boot/loader/entries/*.conf; do
     [[ -z $lost ]] || no "the boot image of $k lacks what this machine starts with today: ${lost//$'\n'/ }"
   fi
 done
-# the configs we own, read by their programs' own checks
-runuser -u "$user" -- env HOME="$home" foot --check-config >/dev/null 2>&1 || no "foot does not take its config (foot --check-config)"
+# the configs we own, read by their programs' own checks: what this update made red (in a candidate
+# /run/fk-before says what was red before its packages — a container can make a program red by itself)
+if [[ -x /usr/local/sbin/kawa-fixer ]]; then
+  while IFS= read -r l; do
+    [[ -z $l ]] || grep -qF -- "${l%% — *} — " /run/fk-before 2>/dev/null || no "$l"
+  done < <(checks)
+else
+  runuser -u "$user" -- env HOME="$home" foot --check-config >/dev/null 2>&1 || no "foot does not take its config (foot --check-config)"
+fi
 exit "$red"

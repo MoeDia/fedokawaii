@@ -49,6 +49,14 @@ def swap(old, new):
     return f
 
 
+def both(*fs):
+    def f(text):
+        for g in fs:
+            text = g(text)
+        return text
+    return f
+
+
 def append(line):
     return lambda text: text.rstrip("\n") + "\n" + line + "\n"
 
@@ -69,7 +77,7 @@ CASES = [
     dict(name="mpv-sub-text", level=1, prog="mpv", file=".config/mpv/mpv.conf",
          breaks=swap("sub-font-size=44", "sub-text-font-size=44"), gold=[r"(?m)^sub-font-size=44"], never=[r"(?m)^sub-text-font-size"]),
     dict(name="yazi-opener-exec", level=1, prog="yazi", file=".config/yazi/yazi.toml",
-         breaks=append('[opener]\nkawa_edit = [ { exec = "nvim", block = true } ]'),
+         breaks=after("opener", 'kawa_edit = [ { exec = "nvim", block = true } ]'),
          gold=[r'run\s*=\s*"nvim"'], never=[r"\bexec\s*="]),
     dict(name="greetd-tty", level=1, prog="greetd", file="/etc/greetd/fedokawaii.toml",
          breaks=swap("vt = 1", "tty = 1"), gold=[r"(?m)^vt\s*=\s*1\s*$"], never=[r"(?m)^tty\s*="],
@@ -81,9 +89,10 @@ CASES = [
          breaks=after("main", "notify=notify-send -a ${app-id} -i ${app-id} ${title} ${body}"),
          gold=[r"(?ms)^\[desktop-notifications\].*?^command=.*notify-send"], never=[r"(?m)^notify="]),
     dict(name="foot-cursor-moved", level=2, prog="foot", file=".config/foot/foot.ini",
-         breaks=after("cursor", "color=111111 cccccc"), gold=[r"(?m)^cursor=111111 cccccc$"], never=[r"(?m)^color=111111"]),
+         breaks=both(swap("cursor=181715 eb5324\n", ""), after("cursor", "color=181715 eb5324")),
+         gold=[r"(?ms)^\[colors-dark\].*?^cursor=181715 eb5324$"], never=[r"(?m)^color=181715"]),
     dict(name="foot-lineheight-form", level=2, prog="foot", file=".config/foot/foot.ini",
-         breaks=swap("line-height=20px", "line-height=20pixels"), gold=[r"(?m)^line-height=20(px)?$"], never=[r"pixels"]),
+         breaks=swap("line-height=20px", "line-height=20pixels"), gold=[r"(?m)^line-height=20(px)?$"], never=[r"(?m)^line-height=.*pixels"]),
     dict(name="mako-urgency-word", level=2, prog="mako", file=".config/mako/config",
          breaks=swap("[urgency=critical]", "[urgency=urgent]"), gold=[r"(?m)^\[urgency=critical\]"], never=[r"urgency=urgent"]),
     dict(name="greetd-session-renamed", level=2, prog="greetd", file="/etc/greetd/fedokawaii.toml",
@@ -93,7 +102,16 @@ CASES = [
          breaks=append("#clock { icon-shadow: none; }"), gold=[r"-gtk-icon-shadow:\s*none"], never=[r"(?<!-gtk-)icon-shadow"],
          expect="hold-or-right"),
     dict(name="nvim-diff-renamed", level=2, prog="nvim", file=".config/nvim/init.lua",
-         breaks=append('local _ = vim.opt.nosuchoption and vim.diagnostic.disable()'), gold=[], never=[r"nosuchoption"], expect="hold-or-right"),
+         breaks=append('vim.diagnostic.disable()'), gold=[r"vim\.diagnostic\.enable\(\s*false"], never=[r"diagnostic\.disable"], expect="hold-or-right"),
+    dict(name="foot-dpi-auto", level=2, prog="foot", file=".config/foot/foot.ini",
+         breaks=after("main", "dpi-aware=auto"), gold=[r"(?m)^dpi-aware=(no|yes)$"], never=[r"dpi-aware=auto"], expect="hold-or-right"),
+    dict(name="foot-two-keys", level=2, prog="foot", file=".config/foot/foot.ini",
+         breaks=both(after("main", "utempter=none"), after("main", "notify-focus-inhibit=no")),
+         gold=[r"(?m)^utmp-helper=none$", r"(?ms)^\[desktop-notifications\].*?^inhibit-when-focused=no$"], never=[r"(?m)^utempter", r"(?m)^notify-focus-inhibit"]),
+    dict(name="greetd-key-renamed", level=2, prog="greetd", file="/etc/greetd/fedokawaii.toml",
+         breaks=swap("[terminal]", "[console]"), gold=[r"(?m)^\[terminal\]"], never=[r"\[console\]"], old_docs=[("[terminal]", "[console]")]),
+    dict(name="gtklock-css-both-moods", level=2, prog="gtklock", file=".config/fedokawaii/themes/dark/gtklock.css", moods=True,
+         breaks=append("window { icon-shadow: none; }"), gold=[r"-gtk-icon-shadow:\s*none"], never=[r"(?<!-gtk-)icon-shadow"], expect="hold-or-right"),
     # ── level 3: no safe fix is there to find: it must end held, whatever the model says ──
     dict(name="hold-invented-option", level=3, prog="foot", file=".config/foot/foot.ini",
          breaks=after("main", "teleport-mode=on"), expect="hold", never=[r"(?m)^#\s*teleport"]),
@@ -120,6 +138,7 @@ PROGS = {
     "greetd": dict(copy=[], themes=[], man=["man5/greetd.5.gz", "man1/greetd.1.gz"], extra=[], bin=["/usr/bin/greetd"]),
     "yazi": dict(copy=["yazi/yazi.toml", "yazi/keymap.toml", "yazi/theme.toml"], themes=[], man=[], extra=[], bin=[]),
     "waybar": dict(copy=["waybar/style.css"], themes=["waybar.css"], man=["man5/waybar.5.gz"], extra=[], bin=[]),
+    "gtklock": dict(copy=[], themes=["gtklock.css"], man=[], extra=[], bin=[]),
 }
 NVIM_INIT = """-- a small config of the same shape as ours: the real one's plugins need a network to load
 vim.g.mapleader = " "
@@ -206,6 +225,9 @@ exec env -u WAYLAND_DISPLAY -u DISPLAY -u SWAYSOCK -u NVIM DBUS_SESSION_BUS_ADDR
         target = f"{root}{case['file']}" if case["file"].startswith("/") else f"{home}/{case['file']}"
         text = open(target).read()
         put(target, case["breaks"](text))
+        if case.get("moods"):
+            other = target.replace("/themes/dark/", "/themes/light/")
+            put(other, case["breaks"](open(other).read()))
         red, said = KF.own_check(pk, spec, place)
         if not red:
             raise SystemExit(f"bench: {case['name']}: the breakage does not make {case['prog']} refuse the file: {said[:200]}")
@@ -266,6 +288,26 @@ def serve(model, work, ctx, args):
     raise SystemExit("bench: the server did not load in 5 minutes")
 
 
+def rss_mib(pid):
+    """the resident memory of PID and all it started"""
+    total, todo = 0, [str(pid)]
+    while todo:
+        p = todo.pop()
+        try:
+            total += int(re.search(r"VmRSS:\s+(\d+)", open(f"/proc/{p}/status").read()).group(1))
+            for t in os.listdir(f"/proc/{p}/task"):
+                todo += open(f"/proc/{p}/task/{t}/children").read().split()
+        except (OSError, AttributeError):
+            pass
+    return total >> 10
+
+
+def cached_mib(path):
+    """how much of a file is in the page cache now (fincore)"""
+    r = subprocess.run(["fincore", "-b", "-n", "-o", "RES", path], capture_output=True, text=True)
+    return int(r.stdout.strip() or 0) >> 20 if r.returncode == 0 else -1
+
+
 def vram():
     try:
         return int(open("/sys/class/drm/card0/device/mem_info_vram_used").read()) >> 20
@@ -302,9 +344,11 @@ def main():
     if not sock and a.model:
         srv, sock, load = serve(a.model, a.work, a.ctx, a.server_args.split())
     loaded = vram()
+    rss = rss_mib(srv.pid) if srv else 0
+    pages = cached_mib(a.model) if a.model else -1
     out = open(a.out, "a") if a.out else None
     row = lambda *x: (print("\t".join(str(v) for v in x), flush=True), out and (out.write("\t".join(str(v) for v in x) + "\n"), out.flush()))
-    row("# model", os.path.basename(a.model or "?"), "load_s", round(load), "vram_before_mib", before, "vram_loaded_mib", loaded, time.strftime("%F %T"))
+    row("# model", os.path.basename(a.model or "?"), "load_s", round(load), "vram_before_mib", before, "vram_loaded_mib", loaded, "rss_mib", rss, "file_in_ram_mib", pages, time.strftime("%F %T"))
     bad = 0
     tally = {}
     try:
@@ -333,7 +377,7 @@ def main():
             os.killpg(srv.pid, signal.SIGTERM)
             srv.wait(30)
     time.sleep(2)
-    row("# summary", json.dumps(tally), "vram_after_mib", vram())
+    row("# summary", json.dumps(tally), "vram_after_mib", vram(), "file_in_ram_mib", cached_mib(a.model) if a.model else -1)
     if out:
         out.close()
     return 1 if bad else 0

@@ -144,6 +144,12 @@ uinstall() {
   U bash -c "$USER_PUT_SH" _ "$1" "$3" <"$2"
 }
 
+# the local AI fixer's kept edits (lib/fixer.sh), over what was just rendered: a theme run never
+# undoes one, and "in sync" stays true with one in place
+fix_kept() {
+  [[ -n $(compgen -G '/var/lib/fedokawaii/update/fixes/*.json') && -x /usr/local/sbin/kawa-fixer ]] || return 0
+  /usr/local/sbin/kawa-fixer rendered --fixes /var/lib/fedokawaii/update/fixes --home "$TARGET_HOME" --file "$1" --text "$2" || log "the fixer's kept edits could not be laid over $1"
+}
 # place SRC DEST user|root — install only when the rendered content differs.
 # Mode comes from content, not repo permission bits (web uploads drop them).
 place() {
@@ -153,6 +159,7 @@ place() {
   case ${src#"$REPO_DIR/"} in      # (the path inside the repo: wherever the repo itself lives)
     *.ttf|*.otf|*.png|*/cursors/*) cp "$src" "$tmp" ;;   # binary: byte for byte, never through sed
     *) render "$src" >"$tmp"
+       fix_kept "$dst" "$tmp"
        [[ $(head -c2 "$src") == '#!' ]] && mode=0755 ;;
   esac
   if [[ -f $dst ]] && cmp -s "$tmp" "$dst" && [[ $(stat -c %a "$dst") == "${mode#0}" ]]; then rm -f "$tmp"; return 0; fi

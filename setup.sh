@@ -65,6 +65,7 @@ source "$REPO_DIR/lib/hardware.sh"
 source "$REPO_DIR/lib/guard.sh"
 source "$REPO_DIR/lib/pace.sh"
 source "$REPO_DIR/lib/update.sh"
+source "$REPO_DIR/lib/fixer.sh"
 load_conf "$REPO_DIR"
 
 # The error report, on stderr. Inside a $(…), a <(…) or a pipeline (errtrace hands the trap
@@ -1432,6 +1433,18 @@ s_upstream() {
   install_term_face
   install_faces
   s_localsend
+  s_fixer
+}
+# The local AI fixer (system/kawa-fixer, lib/fixer.sh): its program, and, on a machine with the card
+# for it, its runtime and model in the user's ~/.local, checksum-pinned. A big download: never a
+# reason to stop — without it a broken config is only held and told; update and repair try again
+install_fixer() {
+  install -m 0755 "$REPO_DIR/system/kawa-fixer" "$FIXER"
+  as_user "$FIXER" install --home "$TARGET_HOME"
+}
+s_fixer() {
+  contained install_fixer
+  ((CONTAINED_RC == 0)) || log "the local AI fixer is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
 }
 # LocalSend (lib/upstream.sh): never a reason to stop — the gate, update and repair try again
 s_localsend() {
@@ -2921,6 +2934,7 @@ update_steps() {
   step_on "the desktop's face (Sumi UI)" install_faces
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
+  step_on "the local AI fixer" install_fixer
   step_on "ble.sh" install_blesh
   step_on "the tools this desktop no longer has" retire_upstream
   if [[ $STEAM == yes ]]; then step_on "GE-Proton" install_ge_proton; fi
@@ -2992,6 +3006,7 @@ do_update() {   # the button's run (lib/update.sh: the phases, their state in UP
   fi
   up_phase steps
   update_steps
+  fixes_apply    # (what the local AI fixer has kept: lib/fixer.sh)
   after_dnf_done
   if ! u_check; then
     u_undo; record last-update "$(date +%s) stopped"; u_report; return 0
@@ -3396,6 +3411,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   retire_upstream || rc=1
   install_term_face || rc=1
   install_faces || rc=1
+  install_fixer || rc=1
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
