@@ -218,7 +218,7 @@ FORBIDDEN_PKGS=(
   systemd-oomd-defaults                                                        # oomd's rules: under memory pressure it ends a whole cgroup —
                                                                                #   the session's holds every program you run (the kernel's OOM killer stays)
   gdm sddm lightdm lxdm                                                        # logins: greetd only
-  flatpak snapd PackageKit gnome-software                                      # dnf only
+  snapd PackageKit gnome-software                                              # dnf only (the play world's Flatpaks are its own user's)
   dracut-config-rescue                                                         # no rescue image
   ffmpeg-free                                                                  # RPM Fusion ffmpeg only
   mesa-vulkan-drivers-freeworld                                                # Vulkan: Fedora's own (PKG_GPU_COMMON)

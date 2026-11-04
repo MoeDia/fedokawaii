@@ -85,6 +85,7 @@ static const unsigned int anim_wash_hold_ms = 3000; /* …a cover never told to 
 static const LayerAnim layeranims[] = {
 	/* namespace        in ms  out ms  rolls */
 	{ "kawa-panel",     300,   240,    1 },
+	{ "kawa-dim",       180,   120,    0 },
 	{ "notifications",  240,   200,    0 },
 	{ "kawa-level",     0,     300,    0 },
 	{ "kawa-saver",     0,     180,    0 },

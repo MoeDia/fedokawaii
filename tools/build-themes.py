@@ -1343,7 +1343,7 @@ def dwl_colors(m, p):
     ink = min(inks, key=lambda c: sum(int(c[i:i + 2], 16) for i in (0, 2, 4)))
     return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
             f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
-            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\n")
+            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['select']}ff\n")
 
 
 FILES = {
