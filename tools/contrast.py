@@ -110,7 +110,7 @@ def prompt_pairs(m):
     ink (30) on each paper (27–29: the folder, git, the time and jobs) and a failure's code, the cream
     (25) on the lacquer (24) — foot's slots."""
     pal, fg, bg = foot_colours(m)
-    return [("the prompt", "the mood's head on the ground", pal[1] if m == "dark" else fg, bg, ICON),
+    return [("the prompt", "the mood's head on the ground", pal[20] if m == "dark" else fg, bg, ICON),
             ("the prompt", "the folder's words on their paper", pal[30], pal[27], WORDS),
             ("the prompt", "git's words on their paper", pal[30], pal[28], WORDS),
             ("the prompt", "the time and the jobs on their paper", pal[30], pal[29], WORDS),

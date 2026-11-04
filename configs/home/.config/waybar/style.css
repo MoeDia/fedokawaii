@@ -1,5 +1,5 @@
-/* ~/.config/waybar/style.css — 紙 kami: washi tiles set in a band of the mood's ground along the top
-   of the screen, each part of the desktop on a tile of its own (docs/design-system.md §8). On the ink
+/* ~/.config/waybar/style.css — 紙 kami: no bar, but washi tiles floating along the top of the
+   screen, each part of the desktop on a tile of its own (docs/design-system.md §8). On the ink
    theme the paper is dyed in ink (墨染め sumizome) and the words pale; on the paper theme it is
    the paper as it comes (生成り kinari) and the words sumi. Every tile is the frame everything
    that floats has (§4) — a hairline round the paper, its corner pixels left out, and the shadow
@@ -46,8 +46,7 @@
   text-shadow: none;
 }
 
-/* (the band: every row, its last the hairline under it) */
-window#waybar { background-color: @band; box-shadow: inset 0 -1px 0 0 @band-rule; color: @text; }
+window#waybar { background: transparent; color: @text; }
 /* GTK's own button look, should a module ever draw one: never a fill, a ring or a bevel */
 button, button:hover, button:active, button:checked { background: none; box-shadow: none; border: none; }
 
