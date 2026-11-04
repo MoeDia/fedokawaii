@@ -22,7 +22,6 @@ import secrets
 import selectors
 import signal
 import socket
-import subprocess
 import sys
 import threading
 import time
@@ -77,14 +76,6 @@ def write_file(path, data):
         f.flush()
         os.fsync(f.fileno())
     os.replace(new, path)
-
-
-def detached(cmd):
-    try:
-        subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-                         start_new_session=True)
-    except OSError as e:
-        say(f"could not run {cmd[0]}: {e}")
 
 
 def tid(h_or_status):
@@ -301,6 +292,7 @@ class Engine:
         self.pend = {}                             # id → Pending
         self.streams = {}                          # id → Stream
         self.saving = 0
+        self.said = 0
         self.woken = set()                         # ids to be added anew once their resume data is written
         self.dirty = False
         self.stopping = False
@@ -679,8 +671,7 @@ class Engine:
             say(f"{i}: {what}")
             told[i] = what
             self.dirty = True
-            name = common.reading(a.handle.status(QUERY_NAME).name)
-            detached(["kawa-downloads", "failed", name, what])
+            self.say_to_desktop("failed", common.reading(a.handle.status(QUERY_NAME).name), what)
 
     def on_finished(self, h):
         """Once for each torrent, and only for bytes that came over the network: never for a check that
@@ -695,7 +686,20 @@ class Engine:
         self.save_state()
         if s.total_payload_download > 0 and s.total_wanted > 0:
             where = os.path.join(s.save_path, s.name) if s.name else s.save_path
-            detached(["kawa-downloads", "notice", "torrent", common.reading(s.name) or "a torrent", str(s.total_wanted), where])
+            self.say_to_desktop("finished", common.reading(s.name) or "a torrent", str(s.total_wanted), where)
+
+    def say_to_desktop(self, *fields):
+        """A word for the session's watcher (kawa-downloads watch), a file of tab-separated fields it reads and takes away: the
+        engine, walled in, starts no program and has no way to the screen. A session not there yet: it waits for it."""
+        self.said += 1
+        path = os.path.join(RUN, "kawa-downloads", f"said.{os.getpid()}.{self.said}")
+        try:
+            os.makedirs(os.path.dirname(path), mode=0o700, exist_ok=True)
+            with open(path + ".new", "w", encoding="utf-8") as f:
+                f.write("\t".join(x.replace("\t", " ").replace("\n", " ") for x in fields) + "\n")
+            os.replace(path + ".new", path)
+        except OSError as e:
+            say(f"a word for the desktop could not be written: {e}")
 
     # ── rows ────────────────────────────────────────────────────────────────────────────────
     def trouble(self, s, i):

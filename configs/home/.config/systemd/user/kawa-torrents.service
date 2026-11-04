@@ -1,7 +1,9 @@
 # ~/.config/systemd/user/kawa-torrents.service — Torrents' engine (libtorrent): downloads go on with the window
 # closed; it ends by itself, everything saved, 30 s after there is no window and nothing left to download.
-# It reads what strangers on the network send, so it sees as little as it needs: everything read-only but the
-# downloads, its own state and its cache; your keys not at all.
+# It reads what strangers on the network send, so it sees next to nothing: of your home only its own program, the
+# downloads, its state and its cache (a tmpfs over the rest: your keys, your browsers' cookies, your data are not there to
+# read). It starts no program: its words wait for the session's watcher (kawa-downloads watch). Each line below tried on
+# the real network, 4 Nov 2026: 41 peers, pieces coming, in a transient unit with these same walls.
 [Unit]
 Description=Torrents' engine (libtorrent)
 Requires=kawa-torrents.socket
@@ -20,13 +22,16 @@ OOMScoreAdjust=200
 NoNewPrivileges=yes
 PrivateTmp=yes
 ProtectSystem=strict
-ProtectHome=read-only
+ProtectHome=tmpfs
 # (+: this one line outside the walls below, so that they find what they name)
 ExecStartPre=+/usr/bin/mkdir -p %h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
-ReadWritePaths=%h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
-InaccessiblePaths=-%h/.ssh -%h/.gnupg -%h/.config/fedokawaii/secrets.sh -%h/.config/BraveSoftware
+BindPaths=%h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
+BindReadOnlyPaths=%h/.local/bin/kawa-torrents %h/.local/lib/fedokawaii/kawa-torrents
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
-LockPersonality=yes
-RestrictRealtime=yes
 RestrictNamespaces=yes
+RestrictRealtime=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
 SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources @mount

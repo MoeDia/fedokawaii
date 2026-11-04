@@ -21,8 +21,9 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
                              ("active") while its menu is open (kawa-drop.open)
     kawa-downloads watch     the session's watcher (autostart): woken by the kernel (inotify)
                              as a download starts or ends, it pokes the mark (SIGRTMIN+21) and
-                             says each finished one; while any runs it looks every 2 s, idle
-                             it sleeps until the next
+                             says each finished one, and what Torrents' engine has left for it
+                             (STATE/said.*: the engine has no way to the screen of its own); while
+                             any runs it looks every 2 s, idle it sleeps until the next
     kawa-downloads notice SOURCE NAME BYTES WHERE    a finished download's notice (the one
                              layout: its name, then "SOURCE · SIZE · click to open it");
                              a click opens WHERE
@@ -33,8 +34,8 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
 
 The sources, each read where it already keeps its state (nothing asked of a running program):
   torrent  Torrents' engine (kawa-torrents), with or without its window: it writes what it downloads
-           to $XDG_RUNTIME_DIR/kawa-downloads/torrent.PID every 2 s, and gives each finished
-           one its notice itself, once (a torrent's file staying put says nothing)
+           to $XDG_RUNTIME_DIR/kawa-downloads/torrent.PID every 2 s, and each finished one once to
+           STATE/said.PID.N for the watcher to say (a torrent's file staying put says nothing)
   jobs     any other long job (an archive packed, a PDF tool) the same way: NAME.PID in that
            folder, one line a file — NAME DONE TOTAL WHERE — while it runs
   Brave    a .crdownload file in Brave's download folder: its size is what has come; how
@@ -422,6 +423,26 @@ def finished(item):
     return False                                             # (torrents: the engine says it)
 
 
+def hear_engine():
+    """What Torrents' engine left for the desktop: each said, each taken away."""
+    try:
+        names = [n for n in os.listdir(STATE) if re.fullmatch(r"said\.\d+\.\d+", n)]
+    except OSError:
+        return
+    for n in sorted(names):
+        p = os.path.join(STATE, n)
+        try:
+            with open(p, encoding="utf-8") as f:
+                t = f.read().rstrip("\n").split("\t")
+            os.remove(p)
+        except OSError:
+            continue
+        if t[0] == "finished" and len(t) == 4:
+            detached([sys.argv[0], "notice", "torrent", t[1], t[2], t[3]])
+        elif t[0] == "failed" and len(t) == 3:
+            detached([sys.argv[0], "failed", t[1], t[2]])
+
+
 def watch():
     libc = ctypes.CDLL(None, use_errno=True)
     fd = libc.inotify_init1(os.O_CLOEXEC)
@@ -446,6 +467,7 @@ def watch():
     before, shown = {}, None
     while True:
         watches()
+        hear_engine()
         items = scan(folder, libs)
         now = {(i[0], i[4]): i for i in items}
         for k, i in before.items():

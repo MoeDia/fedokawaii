@@ -168,6 +168,18 @@ printf '%s\t1\t2\t%s\n' photos-2026.tar.zst "$D" a_very_long_file_name_without_a
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 0'
 kawa-downloads; names=$(awk -F'\t' '$1 == "row" { print $3 }' "$TMP/menu.in" | sort)
 eq "$names" "$(printf '%s\n' "Album Name 5.1.FLAC" "The Seven Samurai 1954 1080p" a_very_long_file_name_without photos-2026.tar.zst ubuntu-24.04.1-desktop-amd64 | sort)"
+case_ "what Torrents' engine left for the desktop: each said, each taken away, nothing else in that folder touched"
+world; sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
+mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"; R=$XDG_RUNTIME_DIR/kawa-downloads
+printf 'finished\tA Film\t1500000000\t%s\n' "$D/A Film" >"$R/said.$live.1"; printf 'failed\tAnother\tno space left on device\n' >"$R/said.$live.2"
+printf 'finished\thalf' >"$R/said.$live.3.new"; printf 'x\t1\t2\t%s\n' "$D" >"$R/pack.$live"
+stub kawa-dwlstatus
+. "$HOME/.config/fedokawaii/icons.sh"; ( timeout 3 kawa-downloads watch ) >/dev/null 2>&1
+/bin/sleep 0.3
+[[ ! -e $R/said.$live.1 && ! -e $R/said.$live.2 ]] && _ok || _no "left there"
+[[ -e $R/said.$live.3.new && -e $R/pack.$live ]] && _ok || _no "something else taken"
+called "notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  A Film torrent · 1.5 GB · click to open it"
+called "notify-send -a downloads -u critical -- $ICON_DOWNLOAD  Another no space left on device"
 case_ "a download that cannot go on: a critical notice, its name and what went wrong"
 world; . "$HOME/.config/fedokawaii/icons.sh"; kawa-downloads failed "A Film" "no space left on device"
 called "^notify-send -a downloads -u critical -- $ICON_DOWNLOAD  A Film no space left on device$"

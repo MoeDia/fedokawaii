@@ -44,8 +44,25 @@ def calls(name):
         return []
 
 
+def said(kind):
+    """What the engine has left for the desktop: (the session's watcher would take these away: there is none here)."""
+    d = os.path.join(os.environ["XDG_RUNTIME_DIR"], "kawa-downloads")
+    out = []
+    try:
+        names = sorted(os.listdir(d))
+    except FileNotFoundError:
+        return out
+    for n in names:
+        if n.startswith("said.") and not n.endswith(".new"):
+            with open(os.path.join(d, n), encoding="utf-8") as f:
+                t = f.read().rstrip("\n").split("\t")
+            if t[0] == kind:
+                out.append(t)
+    return out
+
+
 def notices():
-    return [c for c in calls("kawa-downloads") if " notice " in " " + c]
+    return said("finished")
 
 
 def spawn_engine(idle=600):
@@ -84,7 +101,7 @@ def magnet_to_done():
     same_tree(os.path.join(t.where, t.name), downloaded(t.name))
     time.sleep(0.3)
     eq(len(notices()), 1, "one notice")
-    assert "notice torrent Big Buck Bunny" in notices()[0], notices()
+    eq(notices()[0][:3], ["finished", "Big Buck Bunny", str(t.total)], "its words")
     # the bar's list: while it downloaded; gone with it
     mg = c.ask({"op": "magnet", "id": t.hash})["magnet"]
     assert t.hash in mg and mg.startswith("magnet:?xt=urn:btih:"), mg
@@ -524,8 +541,7 @@ def disk_full():
     err = c.wait(lambda: c.rows.get(t.hash, {}).get("word") == "failed" and c.rows[t.hash]["err"], 60, "the disk's full said")
     assert "space" in err.lower(), err
     time.sleep(1.5)
-    failed = [x for x in calls("kawa-downloads") if " failed " in x]
-    eq(len(failed), 1, "one critical notice")
+    eq(len(said("failed")), 1, "one critical notice")
     assert e.proc.poll() is None, "the engine goes on"
     os.remove(filler)
     c.ask({"op": "resume", "id": t.hash})
