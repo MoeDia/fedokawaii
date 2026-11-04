@@ -27,7 +27,7 @@ eq "$(grep -c '^menuentry' "$g")" 2
 lacks "$(cat "$g")" nomodeset
 lacks "$(cat "$g")" rd.live.check "the check runs on our screen: %pre"
 has "$(grep -c 'initrd /images/pxeboot/initrd.img /images/pxeboot/fedokawaii-boot.img' "$g")" 2
-has "$(cat "$REPO/tools/build-iso.sh")" "plymouth.ignore-serial-consoles" "without it console= forces Plymouth's details"
+has "$(cat "$REPO/tools/build-iso.sh")" "console=tty1" "any other console forces Plymouth's details (and the status lines)"
 has "$(cat "$REPO/tools/build-iso.sh")" "':(exclude).claude'" "the round's notes never ship"
 for c in fkinstall fkcheck; do [[ -s $A/grub/icons/$c.png ]] && _ok || _no "no words for $c"; done
 [[ ! -e $A/grub/icons/fkbasic.png ]] && _ok || _no "a third line's words"
@@ -176,9 +176,9 @@ PY
 else skip "pykickstart is not here"; fi
 lacks "$(cat "$REPO/iso/ks.cfg")" sshpw "no back door in the product"
 
-case_ "the first start: nothing of the installer stays, and no console=tty3 on the installed system"
+case_ "the first start: nothing of the installer stays, and no console=tty1 on the installed system"
 p=$(cat "$REPO/iso/screens/post.sh")
-has "$p" 'remove-args="console=tty3"'
+has "$p" 'remove-args="console=tty1"'
 has "$(cat "$REPO/iso/screens/first_boot.py")" "shutil.rmtree(DROPIN"
 has "$(cat "$REPO/iso/screens/first_boot.py")" "shutil.rmtree(HERE"
 bash -n "$REPO/iso/screens/post.sh" && _ok || _no "post.sh"

@@ -16,7 +16,7 @@ import sys
 import time
 
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-from console import ACCENT_TEXT, MUTED, TEXT, WIDTH, G, Screen, message_page, restart, run, wrap  # noqa: E402
+from console import ACCENT_TEXT, MUTED, TEXT, WIDTH, G, Screen, message_page, restart, wrap  # noqa: E402
 
 STATE = "/var/lib/fedokawaii"
 TOOLKIT = "/usr/local/lib/fedokawaii"
@@ -63,14 +63,6 @@ def words_of(heading):
 
 def main():
     signal.signal(signal.SIGHUP, signal.SIG_IGN)
-    run("plymouth", "quit", "--retain-splash")
-    # (nothing else writes on this screen: systemd's status lines, the kernel's below an emergency)
-    os.kill(1, signal.SIGRTMIN + 21)
-    try:
-        with open("/proc/sys/kernel/printk", "w", encoding="ascii") as f:
-            f.write("1")
-    except OSError:
-        pass
     s = Screen(keys=False)
     total = total_steps()
     top = max(1, (s.rows - 12) // 2)
@@ -81,6 +73,7 @@ def main():
         s.heading(top + 6, "download", "installing the desktop")
 
     page()
+    s.show()
     env = dict(os.environ, TERM="dumb")
     p = subprocess.Popen(["/usr/bin/bash", f"{TOOLKIT}/setup.sh", "--resume"], stdin=subprocess.DEVNULL,  # noqa: S603
                          stdout=subprocess.PIPE, stderr=subprocess.STDOUT, env=env)

@@ -141,6 +141,7 @@ def check_stick(s):
     s.clear()
     s.torii(top)
     s.heading(top + 6, "hg-0", "checking this stick")
+    s.show()
     # (--gauge: a percent a line, what dialog would read)
     p = subprocess.Popen(["checkisomd5", "--gauge", dev], stdout=subprocess.PIPE,  # noqa: S603
                          stderr=subprocess.DEVNULL, stdin=subprocess.DEVNULL, text=True)
@@ -596,7 +597,6 @@ def payload_ok():
 
 def main():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
-    run("plymouth", "quit", "--retain-splash")
     s = Screen()
     with open("/proc/cmdline", encoding="utf-8") as f:
         if "fk.check" in f.read().split():

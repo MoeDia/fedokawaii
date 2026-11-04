@@ -6,10 +6,10 @@ console's 16. What fbcon gives: 16 inks, 8 grounds (SGR 40–47) — the roles b
 Python's standard library only: stage 2 has no stty, tput or curses screen to lean on, and first
 boot runs this before anything else is installed.
 """
+import contextlib
 import fcntl
 import os
 import select
-import shutil
 import struct
 import subprocess
 import termios
@@ -18,7 +18,7 @@ import time
 from glyphs import G
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-TTY = "/dev/tty1"
+TTY = "/dev/tty8"
 FONT = os.path.join(HERE, "sumi-console.psf")
 
 # ANSI number → role. Grounds must sit in 0–7 (SGR 40–47 reaches no others).
@@ -29,10 +29,16 @@ PALETTE = {GROUND: "181715", SELECT: "82241f", SURFACE: "1c1916", ACCENT: "eb532
            FAINT: "907e5d", MUTED: "cab596", TEXT: "e7cfa1", STRONG: "f5ecc2", ACCENT_TEXT: "f47b58",
            ASAGI: "82c1b4", _14: "e2b540", ON_SELECT: "f5ecc2"}
 
-KDSETMODE, KD_TEXT, KD_GRAPHICS = 0x4B3A, 0, 1
+KDSETMODE, KD_TEXT = 0x4B3A, 0
 KDSKBMODE, K_UNICODE = 0x4B45, 3
-VT_ACTIVATE, VT_WAITACTIVE, VT_LOCKSWITCH = 0x5606, 0x5607, 0x560B
+VT_ACTIVATE, VT_LOCKSWITCH = 0x5606, 0x560B
 WIDTH = 72                       # the content's columns, centred on any screen
+
+
+def active():
+    """The number of the VT that shows now."""
+    with open("/sys/class/tty/tty0/active", encoding="ascii") as f:
+        return int(f.read().strip()[3:])
 
 
 def sgr(ink, ground=GROUND):
@@ -41,26 +47,21 @@ def sgr(ink, ground=GROUND):
 
 
 class Screen:
+    """A VT of our own, behind whatever shows now: the first page is drawn there, unseen, and show()
+    brings it forward as the splash goes (the splash cannot hand over without a black gap otherwise,
+    and the console's font cannot be changed on the VT the splash holds in graphics mode). Past 6, so
+    logind starts no getty on it; everything else — Anaconda, systemd, setup — writes on tty1."""
+
     def __init__(self, tty=TTY, keys=True):
         self.fd = os.open(tty, os.O_RDWR | os.O_NOCTTY)
         self.tty = tty
         self.keys = keys
         self.saved = None
-        try:                     # (the screen is ours: plymouth may have left it in graphics, or on another VT)
-            n = int(tty.rsplit("tty", 1)[1])
-            fcntl.ioctl(self.fd, VT_ACTIVATE, n)
-            fcntl.ioctl(self.fd, VT_WAITACTIVE, n)
-            # (through graphics and back: only that restores fbcon's picture after plymouth's
-            # --retain-splash; with a plain KD_TEXT the VT says text and the screen stays frozen)
-            fcntl.ioctl(self.fd, KDSETMODE, KD_GRAPHICS)
-            fcntl.ioctl(self.fd, KDSETMODE, KD_TEXT)
-            fcntl.ioctl(self.fd, VT_LOCKSWITCH)       # (Alt+F2 must not show what is behind)
-            if keys:
-                fcntl.ioctl(self.fd, KDSKBMODE, K_UNICODE)
-        except OSError:
-            pass
+        self.shown = False
         self.dress()
         if keys:
+            with contextlib.suppress(OSError):
+                fcntl.ioctl(self.fd, KDSKBMODE, K_UNICODE)
             self.saved = termios.tcgetattr(self.fd)
             raw = termios.tcgetattr(self.fd)
             raw[0] &= ~(termios.ICRNL | termios.IXON | termios.INLCR | termios.IGNCR)
@@ -69,6 +70,29 @@ class Screen:
             raw[6][termios.VTIME] = 0
             termios.tcsetattr(self.fd, termios.TCSANOW, raw)
         self.write("\033[?25l\033[?7l" + sgr(TEXT) + "\033[2J")
+
+    def show(self):
+        """This VT forward, for good: what has been drawn on it appears at once."""
+        if self.shown:
+            return
+        self.shown = True
+        subprocess.run(["plymouth", "quit"], check=False, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+        with contextlib.suppress(OSError), open("/proc/sys/kernel/printk", "w", encoding="ascii") as f:
+            f.write("1")         # (the kernel writes on whichever VT shows: only an emergency, here)
+        n = int(self.tty.rsplit("tty", 1)[1])
+        for i in range(60):
+            with contextlib.suppress(OSError):
+                fcntl.ioctl(self.fd, VT_ACTIVATE, n)
+            if active() == n:
+                break
+            if i == 20:          # (a VT left in graphics mode refuses to be switched away from)
+                with contextlib.suppress(OSError):
+                    other = os.open(f"/dev/tty{active()}", os.O_RDWR | os.O_NOCTTY)
+                    fcntl.ioctl(other, KDSETMODE, KD_TEXT)
+                    os.close(other)
+            time.sleep(0.05)
+        with contextlib.suppress(OSError):
+            fcntl.ioctl(self.fd, VT_LOCKSWITCH)      # (Alt+F2 must not show what is behind)
 
     def dress(self):
         """Our font and our colours on this VT, and how many cells that makes."""
@@ -132,6 +156,7 @@ class Screen:
     def key(self, timeout=None):
         """One key: a character, or a name (up, down, left, right, enter, esc, backspace, tab, f2);
         None when nothing came within timeout."""
+        self.show()
         r, _, _ = select.select([self.fd], [], [], timeout)
         if not r:
             return None
@@ -202,7 +227,3 @@ def power_off():
 def restart():
     run("systemctl", "reboot")
     time.sleep(60)
-
-
-def tty_ready():
-    return shutil.which("setfont") is not None

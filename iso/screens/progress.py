@@ -1,7 +1,8 @@
 """iso/screens/progress.py — what the screen shows while Anaconda installs the base system.
 
-The one owner of tty1 from %pre to the reboot; Anaconda's own words go to tty3 (console=tty3,
-inst.notmux). It reads what Anaconda says, as the journal hands it to /tmp/syslog ("INFO anaconda:").
+The one owner of the screen from %pre to the reboot (its VT, console.py); Anaconda's own words stay on
+tty1 (console=tty1, inst.notmux). It reads what Anaconda says, as the journal hands it to /tmp/syslog
+("INFO anaconda:").
 """
 import os
 import re
@@ -87,6 +88,7 @@ def main():
         s.heading(top + 6, "download", "installing the base system")
 
     page()
+    s.show()
     while True:
         if s.undressed():
             page()

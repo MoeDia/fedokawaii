@@ -42,9 +42,9 @@ chroot "$R" plymouth-set-default-theme sumi
 for k in "$R"/usr/lib/modules/*; do
   [[ -f $k/vmlinuz ]] && chroot "$R" dracut -f --kver "${k##*/}"
 done
-# (console=tty3 kept Anaconda's words off our screen, the splash's flag with it: not for the installed system)
-chroot "$R" grubby --update-kernel=ALL --remove-args="console=tty3 plymouth.ignore-serial-consoles"
-sed -i -E 's/ ?(console=tty3|plymouth\.ignore-serial-consoles)//' "$R/etc/default/grub"
+# (console=tty1 is the installer's, whose screens are on another VT: not for the installed system)
+chroot "$R" grubby --update-kernel=ALL --remove-args="console=tty1"
+sed -i -E 's/ ?console=tty1//' "$R/etc/default/grub"
 
 # the first start's screen, as the resume unit (setup.sh's own unit: the same text it writes at each
 # of its reboots, ExecStart here replaced by the screen), and its files: gone at the end (first_boot.py)
