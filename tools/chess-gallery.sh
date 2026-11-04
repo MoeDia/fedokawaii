@@ -30,7 +30,7 @@ rm -rf "$HOME/.local/share/fedokawaii/chess"; cp -r "$REPO/configs/home/.local/s
 cp "$REPO/configs/home/.config/fedokawaii/keys/chess.txt" "$HOME/.config/fedokawaii/keys/" 2>/dev/null
 [ -n "$SF" ] && ln -sf "$SF" "$HOME/sf/stockfish"
 export PATH=$REPO/bin:$HOME/sf:$PATH
-win() { footclient -E -a float -T chess -W "$1" -- bash -c 'kawa-chess 2>>$HOME/err.log; echo "rc=$?" >>$HOME/err.log' >/dev/null 2>&1 & sleep 1.6; }
+win() { footclient -E -a float -T chess -W "$1" -- bash -c 'kawa-chess 2>>$HOME/err.log; echo "rc=$?" >>$HOME/err.log' >/dev/null 2>&1 & sleep 3; }
 quit() { wtype -M ctrl -k c -m ctrl; sleep 0.6; }
 game() {   # game FEN MOVES… — a game left open at this position (you: white unless FEN says otherwise)
   local fen=$1 c=$2; shift 2
