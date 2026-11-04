@@ -151,7 +151,7 @@ def check(repo):
                 elif words:
                     cases.setdefault(what, case_lines(p))
                     if not any(words in ln for ln in cases[what]):
-                        faults.append(f'line {n}: {what} has no case with "{words}"')
+                        faults.append(f'line {n}: {what} has no case with "{words}": reworded? the row\'s words follow it; gone? name what guards {items[0]} now')
     if manual > MANUAL_MOST:
         faults.append(f"{manual} rows done by hand, at most {MANUAL_MOST}")
     want = wanted(repo)
@@ -165,7 +165,7 @@ def check(repo):
         for f in sorted(os.listdir(os.path.join(repo, d))):
             p = f"{d}/{f}"
             if p.endswith(".sh") and f not in ("run.sh", "lib.sh") and p not in used:
-                faults.append(f"{p} is no row's check")
+                faults.append(f"{p} is no row's check: name it in the row of what it guards (tools/regress/README.md)")
     return faults
 
 
