@@ -527,6 +527,11 @@ built() {
   chmod 755 "$W/usr/local/bin/mako"
   printf '%s\n' "[Service]" "ExecStart=" "ExecStart=/usr/local/bin/mako" >"$W/usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf"
   { printf '%s\n' "$(conf_val MAKO_TAG)" "$(conf_val MAKO_COMMIT)"; cat "$REPO/src/mako/mako.patch"; } | sha256sum | cut -d' ' -f1 >"$W/usr/local/bin/mako.built"
+  # the files' yazi, as build_yazi leaves it: the binary (its patch's mark) and the record of what it was built from
+  mkdir -p "$W/home/fkuser/.local/bin" "$W/home/fkuser/.local/share/fedokawaii/upstream"
+  printf '#!/bin/sh\necho "Yazi"; echo "    Version: 26.9.1"; echo "    Patch  : fedokawaii"\n' >"$W/home/fkuser/.local/bin/yazi"
+  chmod 755 "$W/home/fkuser/.local/bin/yazi"
+  { printf '%s\n' "$(conf_val YAZI_TAG)" "$(conf_val YAZI_COMMIT)"; cat "$REPO/src/yazi/yazi.patch"; } | sha256sum | cut -d' ' -f1 >"$W/home/fkuser/.local/share/fedokawaii/upstream/yazi.built"
   : >"$W/var/lib/systemd/linger/fkuser"; : >"$W/dev/ntsync"
   # every manifest package installed and marked as yours; the services setup enabled
   ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"

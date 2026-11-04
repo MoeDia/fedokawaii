@@ -53,7 +53,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Auth dialogs | lxqt-policykit | F | |
 | USB drives | udiskie + udisks2 + `kawa-drives` · exfatprogs · dosfstools · ntfs-3g | F | sticks, disks and SD cards open by themselves under `/run/media/$USER`; `kawa-drives` gives the notices, the bar's drive mark, yazi's **M** and the eject that says "safe to unplug"; exFAT and FAT tools check, repair and name the usual sticks; ntfs-3g opens NTFS whether or not the kernel has its own NTFS driver (Fedora's kernels have changed which one they build) |
 | Bluetooth | bluez + bluetui | F + GH (musl, SHA-256 pinned) | controller dongle; pairing in a floating terminal window (quick settings → *pair a device*) |
-| Files | yazi + 7zip + file | GH (musl) + F | 7-Zip: archive previews and extraction; `file`: types |
+| Files | yazi (built with `src/yazi/yazi.patch`: its pop-ups the desktop's panels; `ya` from its release) + 7zip + file | git (GitHub, pinned commit) + GH + F | Fedora's rust + cargo build it (`build_yazi`), the checkout and its objects gone after. 7-Zip: archive previews and extraction; `file`: types |
 | Office | LibreOffice Writer · Calc · Impress + libreoffice-gtk3 · hunspell-en · hunspell-ar | F | open and edit Word, Excel and PowerPoint files (and OpenDocument), the defaults for them (a `.csv` stays VisiData's); drawn by GTK 3, so it follows the theme; English and Arabic spelling — Arabic is its right-to-left language here (`/etc/dconf`, Theme). Only these three: no Base, Draw or Math; Java and the offline help are never taken as weak dependencies |
 | Reading | zathura (+ mupdf, cb) | F | PDF, EPUB, CBZ; the books window's comic covers and page counts come from 7z (Files' 7zip; a RAR comic's from unrar) |
 | PDF tools | qpdf · poppler-utils · ghostscript · xournalpp | F | merge, split, rotate, password · images and text out · compress · annotate and sign |
@@ -117,7 +117,7 @@ before setup started plus the manifest — anything else is reported by name.
 | a separate clock script | waybar's own clock module shows seconds and wakes on the second by itself |
 | tuigreet, wlogout, fastfetch | kawa-greet (the login screen), a power menu of its own (`kawa-power`), the own `fetch` |
 | npm for Claude Code | Claude Code now ships an official signed dnf repo (Node.js and npm are back, for yt-dlp and Mason — see below) |
-| Rust + cargo (+ openssl/alsa/dbus devel, cmake) | yazi and bluetui come as release binaries — 15 min faster setup |
+| openssl/alsa/dbus devel, cmake | bluetui comes as a release binary; yazi's build (Rust + cargo, kept: update rebuilds it) needs none of them |
 | GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Brave and Steam bundle their own) |
 | x264, x265, svt-av1, libaom, dav1d, opus, lame, flac, … CLI/lib packages | pulled in by ffmpeg where needed; the CLI encoders duplicated ffmpeg |
 | google-noto-sans-arabic-fonts | fontconfig sends Arabic to Noto Naskh; Sans Arabic was never used |

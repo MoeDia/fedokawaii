@@ -135,6 +135,8 @@ ripgrep|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everyth
 rocm-smi|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|rocm-smi-7.1.1 in Fedora 44 Everything (official mirror)
 rpmfusion-free-release|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14 — rpmfusion-free (https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm)
 rpmfusion-nonfree-release|rpmfusion-nonfree|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14 — rpmfusion-nonfree (https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-44.noarch.rpm)
+rust|fedora|https://packages.fedoraproject.org/pkgs/rust/rust/|2026-11-04|F44 updates: rust 1.99.1-2.fc44 (dnf info); yazi's build (rust-version 1.95 in its Cargo.toml)
+cargo|fedora|https://packages.fedoraproject.org/pkgs/rust/cargo/|2026-11-04|F44 updates: cargo 1.99.1-2.fc44 (dnf info); yazi's build
 rustup|fedora|https://packages.fedoraproject.org/search?query=rustup|2026-10-14|manifest 2026-10-14
 ShellCheck|fedora|https://packages.fedoraproject.org/search?query=ShellCheck|2026-10-14|manifest 2026-10-14
 slurp|fedora|https://packages.fedoraproject.org/search?query=slurp|2026-10-14|manifest 2026-10-14

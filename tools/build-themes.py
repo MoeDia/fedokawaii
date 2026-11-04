@@ -618,6 +618,9 @@ def foot_block():
         # paper_* tokens) and the ink its words take on them (30)
         out += [f"{27 + i}={p['paper_' + k]}" for i, k in enumerate(("folder", "git", "time"))]
         out += [f"30={p['lo'] if m == 'dark' else p['strong']}"]
+        # 31 the hairline of what floats (§4: dark, text at 50 %; light, strong at 84 %), for a frame a text
+        # screen draws itself: the ring of yazi's pop-ups (the patched yazi, its theme.toml)
+        out += [f"31={_mixc(p['ground'], p['text'], 0.5) if m == 'dark' else _mixc(p['ground'], p['strong'], 0.84)}"]
     out.append("# <<< colours")
     return "\n".join(out)
 

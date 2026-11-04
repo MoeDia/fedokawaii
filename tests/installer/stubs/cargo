@@ -1,0 +1,13 @@
+#!/bin/bash
+# cargo of the fake Fedora: build … in yazi's checkout makes target/release/yazi, the patch's mark in its --version
+# ($FKH/fail-cargo = N: the first N calls fail)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor cargo 0); ((r == 0)) || exit "$r"
+countdown cargo && { echo "error: could not compile" >&2; exit 101; }
+if [[ $1 == build ]]; then
+  mkdir -p target/release
+  printf '#!/bin/sh\necho "Yazi"; echo "    Version: 26.9.1"; echo "    Patch  : fedokawaii"\n' >target/release/yazi
+  chmod 755 target/release/yazi
+fi
+exit 0

@@ -12,14 +12,15 @@ cwd            = { fg = "23" }
 find_keyword   = { fg = "lightred", bold = true, underline = true }
 find_position  = { fg = "lightcyan", bg = "reset", bold = true }
 symlink_target = { fg = "darkgray", italic = true }
-marker_copied   = { fg = "green",     bg = "green" }
-marker_cut      = { fg = "red",       bg = "red" }
-marker_marked   = { fg = "lightcyan", bg = "lightcyan" }
-marker_selected = { fg = "yellow",    bg = "yellow" }
-marker_symbol   = "│"
-count_copied   = { fg = "black", bg = "green" }
-count_cut      = { fg = "black", bg = "red" }
-count_selected = { fg = "black", bg = "yellow" }
+# a mark: half a cell of its ink against the row, on the rail's column (copied, cut, marked, selected)
+marker_copied   = { fg = "green" }
+marker_cut      = { fg = "red" }
+marker_marked   = { fg = "lightcyan" }
+marker_selected = { fg = "yellow" }
+marker_symbol   = "▐"
+count_copied   = { fg = "21" }
+count_cut      = { fg = "21" }
+count_selected = { fg = "21" }
 border_symbol = "│"
 border_style  = { fg = "19" }
 syntect_theme = ""
@@ -67,62 +68,67 @@ progress_label  = { bold = true }
 progress_normal = { fg = "red", bg = "black" }
 progress_error  = { fg = "yellow", bg = "red" }
 
-# pop-ups: a hairline in the text colour, titles in the strongest ink, keys in asagi
+# pop-ups (the patched yazi, src/yazi/yazi.patch, draws them as §4's panels): 31 the hairline of what floats; a
+# heading's name strong (23), a key in the words' own ink, what it does muted (21), the cursor's row 24 and 25
 [which]
-border          = { fg = "gray" }
+border          = { fg = "31" }
 cols            = 3
 mask            = {}
-cand            = { fg = "lightcyan" }
-rest            = { fg = "darkgray" }
-desc            = { fg = "gray" }
+cand            = {}
+rest            = {}
+desc            = { fg = "21" }
 separator       = "  "
-separator_style = { fg = "darkgray" }
+separator_style = {}
 
 [confirm]
-border     = { fg = "gray" }
-title      = { fg = "white" }
-body       = {}
+border     = { fg = "31" }
+title      = { fg = "23" }
+body       = { fg = "21" }
 list       = {}
-btn_yes    = { fg = "black", bg = "red" }
+btn_yes    = {}
 btn_no     = {}
-btn_labels = [ "  [Y]es  ", "  (N)o  " ]
+btn_labels = [ "y", "n" ]
 
 [spot]
-border   = { fg = "gray" }
-title    = { fg = "white" }
-tbl_col  = { fg = "lightcyan" }
-tbl_cell = { fg = "black", bg = "yellow" }
+border   = { fg = "31" }
+title    = { fg = "23" }
+tbl_col  = { fg = "21" }
+tbl_cell = { bg = "24", fg = "25" }
 
 [notify]
-title_info  = { fg = "green" }
-title_warn  = { fg = "yellow" }
-title_error = { fg = "red" }
+# a notice's ring in the hairline, an error's in the seal's red; the heading's icon the desktop's own
+title_info  = { fg = "31" }
+title_warn  = { fg = "31" }
+title_error = { fg = "16" }
+icon_info   = "\U000FE028"
+icon_warn   = "\U000FE028"
+icon_error  = "\U000FE050"
 
 [pick]
-border   = { fg = "gray" }
+border   = { fg = "31" }
 active   = { bg = "24", fg = "25" }
 inactive = {}
 
 [input]
-border   = { fg = "gray" }
-title    = { fg = "white" }
+border   = { fg = "31" }
+title    = { fg = "23" }
 value    = {}
-selected = { bg = "black" }
+selected = { bg = "18" }
 
 [cmp]
-border   = { fg = "gray" }
+border   = { fg = "31" }
 active   = { bg = "24", fg = "25" }
 inactive = {}
 
 [tasks]
-border  = { fg = "gray" }
-title   = { fg = "white" }
+border  = { fg = "31" }
+title   = { fg = "23" }
 hovered = { bg = "24", fg = "25" }
 
 [help]
-border  = { fg = "gray" }
-chord   = { fg = "lightcyan" }
-action  = {}
+border  = { fg = "31" }
+chord   = {}
+action  = { fg = "21" }
 hovered = { bg = "24", fg = "25" }
 
 # file names by kind; folders in blue, like ls — each kind in its brighter slot (in light the
@@ -143,6 +149,9 @@ rules = [
 	{ url = "*", is = "orphan", fg = "red", crossed = true },
 	{ url = "*", is = "dummy", fg = "red", crossed = true },
 	{ url = "*/", is = "dummy", fg = "red", crossed = true },
+	# what starts with a dot steps back (the owner keeps them shown): folders and files muted
+	{ url = ".*/", fg = "21" },
+	{ url = ".*", fg = "21" },
 	{ url = "*/", fg = "lightblue", bold = true },
 ]
 

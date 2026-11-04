@@ -34,9 +34,9 @@ eq "$(cat "$W$H/.local/share/fedokawaii/upstream/satty")" v0.22.0
 eq "$(fk stat -c %U "$H/.local/share/fedokawaii/upstream/satty")" fkuser
 case_ "a second run: in place, nothing downloaded"
 reset_calls; up "install_upstream_bin $satty"; eq "$RC" 0; has "$OUT" "satty v0.22.0 — in place"; not_called 'curl'
-case_ "yazi (a zip with two binaries in a folder): both installed"
+case_ "ya (a zip with two binaries in a folder): the one it asks for, yazi itself built here (build_yazi)"
 up 'install_upstream_bin "${UPSTREAM[1]}"'; eq "$RC" 0
-[[ -x $W$H/.local/bin/yazi && -x $W$H/.local/bin/ya ]] && _ok || _no "yazi or ya missing"
+[[ ! -e $W$H/.local/bin/yazi && -x $W$H/.local/bin/ya ]] && _ok || _no "ya missing, or the release's yazi installed"
 case_ "bluetui (the release file is the binary itself, no archive): installed under the tool's name"
 up 'install_upstream_bin "${UPSTREAM[2]}"'; eq "$RC" 0
 has "$OUT" "verified: bluetui-x86_64-linux-musl"; has "$OUT" "✔ bluetui v0.8.2 → ~/.local/bin (bluetui)"

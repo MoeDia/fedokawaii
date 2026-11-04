@@ -414,6 +414,13 @@ else
   check "notices: the desktop's mako ${MAKO_TAG:-?} (src/mako/mako.patch) runs" U bash -c '"$1" --help >/dev/null 2>&1 && grep -q shadow-color "$1"' _ "$mk"
   check "mako.service starts the desktop's mako (its drop-in)" grep -qx "ExecStart=$mk" /usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf
 fi
+# the files: the desktop's yazi (setup.sh: build_yazi — src/yazi/yazi.patch, the pinned tag)
+yz=$TARGET_HOME/.local/bin/yazi
+if [[ ! -x $yz ]]; then
+  fail "the desktop's yazi not built: no file manager, no file dialog" "update or repair builds it"
+else
+  check "files: the desktop's yazi ${YAZI_TAG:-?} (src/yazi/yazi.patch) runs" U bash -c '[[ $("$1" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]]' _ "$yz"
+fi
 # the file dialog: yazi through xdg-desktop-portal-termfilechooser, which setup.sh builds — the
 # only one (portals.conf names no other), so not built means apps have no file dialog at all
 tfc=/usr/local/libexec/xdg-desktop-portal-termfilechooser
