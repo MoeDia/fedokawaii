@@ -1,5 +1,7 @@
 # lane-hardware: T36, T37, T38 (branch lane-hardware, worktree ~/repos/fk-hardware)
 
+**READ FIRST (main, 4 Nov 20:15, a forced reboot at about 20:25):** while `ps -o stat= -p 1` starts with D, or until the PC has rebooted (`uptime -s` later than 20:15 on 4 Nov), start nothing: no sudo, no systemctl, no daemon-reload, no tests, no builds, no questions to the owner. Wait. After the boot main runs a memory check and restarts the lanes; then follow "Next steps after the reboot" below.
+
 Source: lane-research2's digests (`~/repos/fk-research2/.claude/notes/research-T36-T37-rgb.md`, `research-T38-monitor.md`).
 Scratch: `/dev/shm/r27-lane-hardware` (scripts, device backups). Started 4 Nov 18:12.
 
