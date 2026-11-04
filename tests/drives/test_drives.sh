@@ -385,13 +385,13 @@ ln -s /run/media/me/OLD "$HOME/Drives/OLD"; ln -s "$TMP" "$HOME/Drives/mine"; ec
 kawa-drives watch
 [[ ! -L $HOME/Drives/OLD ]] && _ok || _no "the closed drive's link stayed"
 [[ -L $HOME/Drives/mine && -f $HOME/Drives/notes.txt && -L $HOME/Drives/KINGSTON ]] && _ok || _no "$(ls -A "$HOME/Drives" | tr '\n' '|')"
-case_ "a drive that comes: kawa-carry's notice is asked for (a fresh system, your things on it); a change of one already here: no"
+case_ "a drive opened: kawa-carry's notice is asked for (a fresh system, your things on it); what udisks says while a drive closes (its jobs are objects too: 'Added'): no"
 stub kawa-carry
-stub udisksctl 'echo "12:00:00: Added /org/freedesktop/UDisks2/block_devices/sdc1"'
-reset_calls; kawa-drives watch
-for _ in {1..20}; do grep -q "^kawa-carry hint" "$CALLS" && break; sleep 0.1; done
-called "^kawa-carry hint"
-stub udisksctl 'echo "12:00:00: /org/freedesktop/UDisks2/block_devices/sdc1: Properties Changed"'
-reset_calls; kawa-drives watch; sleep 0.5; grep -q "^kawa-carry" "$CALLS" && _no "a hint for a drive already here" || _ok
+reset_calls; kawa-drives event device_mounted /dev/sdb1 True KINGSTON ""
+called "^setsid -f kawa-carry hint"
+for l in "Added /org/freedesktop/UDisks2/jobs/7" "Added /org/freedesktop/UDisks2/block_devices/sdc1" "/org/freedesktop/UDisks2/block_devices/sdc1: Properties Changed"; do
+  stub udisksctl "echo \"12:00:00: $l\""
+  reset_calls; kawa-drives watch; sleep 0.3; grep -q "^kawa-carry" "$CALLS" && _no "a hint from udisks' line: $l" || _ok
+done
 
 done_
