@@ -99,6 +99,20 @@ def inks(p, mood):
         o["b_l"] = mix("Deep Grayish Olive", "Isabella Color", 0.22)
         o["b_d"] = mix("Black", "Deep Slate Green", 0.2)
         o["b_t"] = W["Yellow Ocher"]
+    # the faces of the ladder (faces.txt): the same in both moods, they are the opponents, not the room
+    o["face_o"] = mix("Black", "Vandyke Brown", 0.05)
+    o["face_k"] = mix("Black", "Vandyke Brown", 0.1)
+    o["face_w"] = mix("Sulpher Yellow", "Isabella Color", 0.14)
+    o["face_l"] = mix("Sulpher Yellow", "White", 0.5)
+    o["face_f"] = mix("Ecru", "Sulpher Yellow", 0.45)
+    o["face_d"] = mix("Ecru", "Light Brownish Olive", 0.25)
+    o["face_r"] = mix("Red Orange", "Vandyke Red", 0.25)
+    o["face_e"] = W["Vandyke Red"]
+    o["face_y"] = W["Isabella Color"]
+    o["face_a"] = W["Jasper Red"]
+    o["face_g"] = mix("Rainette Green", "Cossack Green", 0.35)
+    o["face_h"] = mix("Cossack Green", "Black", 0.2)
+    o["face_b"] = W["Olympic Blue"]
     return o
 
 

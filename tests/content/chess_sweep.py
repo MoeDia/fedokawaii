@@ -13,7 +13,7 @@ KEYS = ["\r", "\x1b", "\t", "\x1b[Z", "\x1b[A", "\x1b[B", "\x1b[C", "\x1b[D", "\
 SCREENS = {        # name → the keys that reach it from the first screen, what state it needs
     "today": "", "lessons": "\t", "puzzles": "\t\t", "games": "\t\t\t", "progress": "\t\t\t\t",
     "free": "\t\t\t\r", "lesson-find": "\r\r", "game": "\t\t\t\r\x1b[B\x1b[B\r", "game-menu": "\t\t\t\r\x1b[B\x1b[B\r\x1b", "session": "\t\t\r",
-    "review": "@review", "report": "@report", "resume": "@resume",
+    "review": "@review", "report": "@report", "resume": "@resume", "replay": "@replay",
 }
 SIZES = ((60, 20), (126, 33), (236, 51))
 
@@ -22,7 +22,7 @@ def prepare(home, name):
     st = state(home)
     shutil.rmtree(st, ignore_errors=True)
     (st / "games").mkdir(parents=True)
-    if name == "@review":
+    if name in ("@review", "@replay"):
         (st / "games/1.pgn").write_text('[White "you"]\n[Black "x"]\n[Result "0-1"]\n\n1. e4 e5 2. Qg4 Nf6 3. Qg5 Nxe4 4. d3 Nxg5 0-1\n')
         (st / "progress.json").write_text(json.dumps({"items": {"1/lesson-the-board": "x", "1/game1": "x"}, "played": {"1": {"score": "loss", "elo": 500, "t": 1, "me": 0, "times": [3] * 4, "check": "safe", "goal": "be safe"}}}))
     elif name == "@report":
@@ -43,18 +43,7 @@ def main(argv):
                 prepare(home, path)
                 t = open_app(env, cols, rows, mood=mood)
 
-                def enter():
-                    if path.startswith("@"):
-                        if path in ("@review", "@report"):
-                            t.send("\r")
-                            t.pump(0.5)
-                    else:
-                        for k in path if path.count("\x1b[") == 0 and "\x1b" not in path else _split(path):
-                            t.send(k)
-                            t.pump(0.03)
-                    t.pump(0.05)
-
-                enter()
+                enter(t, path)
                 for k in KEYS:
                     t.send(k)
                     t.pump(0.02)
@@ -68,10 +57,26 @@ def main(argv):
                             print(f"died on {name} key {k!r}, status {t.status}\n{t.screen()[:400]}")
                             return 1
                         t = open_app(env, cols, rows, mood=mood)
-                        enter()
+                        enter(t, path)
                 t.close()
     print(f"{n} keys, no crash")
     return 0
+
+
+def enter(t, path):
+    """The keys that reach a screen."""
+    if path in ("@review", "@report"):
+        t.send("\r")
+        t.pump(0.5)
+    elif path == "@replay":
+        for k in ("\t", "\t", "\t", "\x1b[B", "\r"):
+            t.send(k)
+            t.pump(0.03)
+    elif not path.startswith("@"):
+        for k in _split(path):
+            t.send(k)
+            t.pump(0.03)
+    t.pump(0.05)
 
 
 def _split(path):

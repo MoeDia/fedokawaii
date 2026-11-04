@@ -10,7 +10,7 @@ import board as B
 from app import Screen
 from engine import analysis_request, choose_weak, play_request
 from term import ACCENT_TEXT, FAINT, MUTED, STRONG
-from ui import Row, heading, icon, wrap
+from ui import Face, Row, heading, icon, wrap
 
 ALLOWED = set("abcdefghABCDEFGHxXNRQKnrqkO0o-=+#12345678")
 
@@ -167,6 +167,44 @@ class MoveInput:
         return out
 
 
+def moves_rows(g, w, room, mark):
+    """A game's moves in two columns, the move `mark` in the strong ink and in view; a narrow panel gives each its line."""
+    p = B.Position(g.start)
+    first_black = p.turn == B.BLACK
+    full = p.full
+    rows = []
+    at = 0                         # (the row of the marked move)
+    if w >= 22:
+        i = 0
+        while i < len(g.sans):
+            a = "..." if first_black and i == 0 else g.sans[i]
+            k = 0 if first_black and i == 0 else 1
+            b = g.sans[i + k] if i + k < len(g.sans) else ""
+            if mark in (i, i + k):
+                at = len(rows)
+            ink_a = STRONG if i == mark and k else None
+            ink_b = STRONG if i + k == mark else None
+            rows.append([" ", (f"{full}.".ljust(5), MUTED), (a.ljust(9), ink_a), (b, ink_b)])
+            i += 1 + k
+            full += 1
+    else:
+        black = first_black
+        for j, san in enumerate(g.sans):
+            num = "" if black else f"{full}."
+            if j == mark:
+                at = len(rows)
+            rows.append([" ", (num.ljust(4), MUTED), (san, STRONG if j == mark else None)])
+            if black:
+                full += 1
+            black = not black
+    if room <= 0:
+        return []
+    top = max(0, min(at - room + 1, len(rows) - room)) if at >= room else 0
+    if at == len(rows) - 1:
+        top = max(0, len(rows) - room)
+    return rows[top:top + room]
+
+
 def hand_line(hand, idle=""):
     """The input line: the chevron, then what is typed, or why it is no move, or what is asked."""
     line = [(icon("CHEVRON_RIGHT"), ACCENT_TEXT), "  "]
@@ -315,18 +353,39 @@ class Game(Screen):
             top += [[("material? mate? danger?", FAINT)], ""]
         opp_turn = self.g.pos.turn != self.me and not self.g.over()
         hg = f"HG_{int(now * 6) % 5}" if opp_turn and not self.paused else None
-        opp = self._side_row(spec.get("opponent", "stockfish"), 1 - self.me, hg)
         me = self._side_row("you", self.me, None)
         foot = self._input_lines(w)
         lower = [me, ""] + foot
-        room = h - len(top) - 2 - len(lower) - (1 if h > 12 else 0)
+        opp = self._opponent(w, h, hg)
+        room = h - len(top) - len(opp) - len(lower) - (1 if h > 12 else 0)
         middle = self.menu_lines(w, room) if self.menu else self._moves(w, room)
-        lines = top + [opp, ""] + middle
+        lines = top + opp + middle
         lines += [""] * max(0, h - len(lines) - len(lower)) + lower
         return lines[:h]
 
     def menu_lines(self, w, room):
         return list(self.menu)
+
+    def _opponent(self, w, h, hg):
+        """Who sits across: the face and the words beside it, where there is room for them."""
+        side = 1 - self.me
+        name = self.spec.get("opponent", "stockfish")
+        if w < 26 or h < 20:
+            return [self._side_row(name, side, hg), ""]
+        turn = self.g.pos.turn == side and not self.g.over()
+        left = None
+        if self.clock:
+            left = self.clock[side] - (time.monotonic() - self.t_mark if turn and not self.paused else 0)
+        clock = fmt_clock(left)
+        room = w - Face.COLS + 1
+        title = name + self._ahead(side)
+        pad = room - len(title) - len(clock)
+        low = f"level {self.spec['elo']}"
+        top = [(title, STRONG if turn else None), " " * max(1, pad), (clock, ACCENT_TEXT if left is not None and left < 30 else STRONG if turn else MUTED)]
+        bottom = [(low, MUTED)]
+        if hg:
+            bottom += [" " * max(1, room - len(low) - 2), (icon(hg), MUTED)]
+        return [Face(name, top, bottom), Face.BELOW, ""]
 
     def _ahead(self, side):
         """How much material a side is ahead, in pawns: "+3", or nothing."""
@@ -350,35 +409,7 @@ class Game(Screen):
         return Row(ic, name, clock, ink=ink, value_ink=vink)
 
     def _moves(self, w, room):
-        """The moves in two columns, the last ones in view; a narrow panel gives each its line."""
-        g = self.g
-        p = B.Position(g.start)
-        first_black = p.turn == B.BLACK
-        full = p.full
-        wide = w >= 22
-        rows = []
-        i = 0
-        last = len(g.sans) - 1
-        if wide:
-            while i < len(g.sans):
-                a = "..." if first_black and i == 0 else g.sans[i]
-                k = 0 if first_black and i == 0 else 1
-                b = g.sans[i + k] if i + k < len(g.sans) else ""
-                ink_a = STRONG if i == last and k else None
-                ink_b = STRONG if i + k == last else None
-                rows.append([" ", (f"{full}.".ljust(5), MUTED), (a.ljust(9), ink_a), (b, ink_b)])
-                i += 1 + k
-                full += 1
-        else:
-            # (a narrow panel: each move its line, the number with White's)
-            black = first_black
-            for j, s in enumerate(g.sans):
-                num = "" if black else f"{full}."
-                rows.append([" ", (num.ljust(4), MUTED), (s, STRONG if j == last else None)])
-                if black:
-                    full += 1
-                black = not black
-        return rows[-max(0, room):] if room > 0 else []
+        return moves_rows(self.g, w, room, len(self.g.sans) - 1)
 
     def _input_lines(self, w):
         if self.g.over():

@@ -11,9 +11,10 @@ from lesson import Lesson, Library
 from play import Game
 from progress import Progress
 from puzzles import SESSION, Bank, Session
-from review import Review, goal_met
+from review import Replay, Review, goal_met
+from syllabus import opponent
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
-from ui import Row, heading, icon, wrap
+from ui import Face, Row, heading, icon, wrap
 
 TABS = (("today", "KNIGHT"), ("lessons", "BOOK"), ("puzzles", "STORM"), ("games", "SHEET"), ("progress", "USAGE"))
 
@@ -496,6 +497,17 @@ class Home(Screen):
         self.app.push(Review(label, tags, g, rec.get("me", 0), f"review of game {label}", spec=rec, done=finished, saved=None))
 
     def _replay(self, label):
+        rec = self.pr.played.get(label)
+        text = self.app.store.read_text(f"games/{label}.pgn")
+        try:
+            tags, g = B.read_pgn(text or "")
+        except ValueError:
+            self.message = "this game's record cannot be read"
+            return
+        self.app.push(Replay(label, tags, g, rec or {}, lambda: self._review_again(label)))
+
+    def _review_again(self, label):
+        self.app.pop()
         self._review_game(label)
 
     def _free_game(self):
@@ -523,8 +535,12 @@ class FreeSetup(Screen):
                 Row("ONI", "level", self.LEVELS[self.level], tag="level"),
                 Row("CHEVRON_RIGHT", "begin", tag="begin")]
         self._rows = rows
-        out = [heading("KNIGHT", "a free game", w), ""] + rows
-        self.cursor = 2 + self.i
+        level = self.LEVELS[self.level]
+        who = opponent(level)
+        out = [heading("KNIGHT", "a free game", w), "", Face(who, [(who, STRONG)], [(f"level {level}", MUTED)]), Face.BELOW, ""] + rows
+        if w < 26:
+            out = [heading("KNIGHT", "a free game", w), "", "", "", ""] + rows
+        self.cursor = 5 + self.i
         return out
 
     def key(self, name):
@@ -549,8 +565,9 @@ class FreeSetup(Screen):
                 self._begin()
 
     def click_row(self, i):
-        self.i = max(0, min(2, i - 2))
-        self.key("enter")
+        if 5 <= i <= 7:
+            self.i = i - 5
+            self.key("enter")
 
     def _begin(self):
         c = self.colour if self.colour < 2 else random.randrange(2)

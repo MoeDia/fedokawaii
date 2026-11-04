@@ -11,7 +11,7 @@ from art import Art, BoardView, MARGIN
 from engine import Engine
 from store import Store
 from term import MUTED, ON_SELECT, SELECT, Term, Wakeups
-from ui import Layout, load_icons, wrap
+from ui import Face, Layout, load_icons, wrap
 
 HOME = os.path.expanduser("~")
 DATA = os.path.join(os.environ.get("XDG_DATA_HOME") or os.path.join(HOME, ".local/share"), "fedokawaii/chess")
@@ -146,6 +146,8 @@ class App:
         self.focused = True
         self.rows_at = {}            # panel row on the screen → index in the screen's panel lines
         self.pic_key = None          # the picture shown in the board's place, if any
+        self.face_at = None          # the face in the panel: (name, row, column, mood)
+        self.face_rows = set()
         self.pic_mood = None
 
     # ── the screens ──────────────────────────────────────────────────────────────────────────
@@ -192,6 +194,8 @@ class App:
         self.layout = Layout(t.cols, t.rows, t.cw, t.ch)
         flipped = self.view.flipped if self.view else False
         self.pic_key = None
+        self.face_at = None
+        self.face_rows = set()
         if self.layout.small:
             self.view = None
         else:
@@ -248,10 +252,23 @@ class App:
         lines = s.panel(lay.pw, lay.ph)
         self.rows_at = {}
         cur = getattr(s, "cursor", None)
+        # (rows that held a picture and hold none now: their words were never drawn over it)
+        rows_now = {lay.pr + i for i, ln in enumerate(lines[:lay.ph]) if isinstance(ln, Face) or ln is Face.BELOW}
+        for row in self.face_rows - rows_now:
+            t.forget(row, lay.pc - 1)
+            t.forget(row, lay.pc + Face.COLS - 1)
+        self.face_rows = rows_now
+        if not rows_now:
+            self.face_at = None
         for i in range(lay.ph):
             row = lay.pr + i
             if i < len(lines):
                 ln = lines[i]
+                if isinstance(ln, Face):
+                    self._draw_face(ln, row)
+                    continue
+                if ln is Face.BELOW:
+                    continue
                 if hasattr(ln, "spans"):
                     self.rows_at[row] = i
                     sel = cur == i
@@ -266,6 +283,25 @@ class App:
                 t.text(row, lay.pc - 1, [" ", *ln], lay.pw + 2)
             else:
                 t.text(row, lay.pc - 1, [], lay.pw + 2)
+
+    def _draw_face(self, face, row):
+        """A picture and the words beside it; the picture sent only when it or its place changes."""
+        t, lay = self.term, self.layout
+        col = lay.pc - 1
+        at = (face.name, row, col, self.mood)
+        if at != self.face_at:
+            self.face_at = at
+            for r in (row, row + 1):
+                t.forget(r, col)
+                t.text(r, col, [], lay.pw + 2)
+                t.forget(r, col)
+                t.forget(r, lay.pc + Face.COLS - 1)
+            cv = self.art.face(face.name)
+            if cv is not None:
+                t.picture(row, lay.pc, cv.sixel(self.palette()))
+        w = lay.pw - Face.COLS + 1
+        t.text(row, lay.pc + Face.COLS - 1, face.top, w)
+        t.text(row + 1, lay.pc + Face.COLS - 1, face.bottom, w)
 
     def _too_small(self):
         t = self.term
@@ -363,6 +399,7 @@ class App:
             if ev[1] != self.mood:
                 self.mood = ev[1]
                 self.pic_key = None
+                self.face_at = None
                 if self.view:
                     self.view.redraw_all()
                 self.touch()

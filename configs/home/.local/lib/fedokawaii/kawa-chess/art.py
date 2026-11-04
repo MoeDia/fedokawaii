@@ -49,6 +49,7 @@ class Art:
                 self.pal["dark"][i] = hex_percent(dark)
                 self.pal["light"][i] = hex_percent(light)
         self.drawings = _read_blocks(self.folder / "pieces.txt")
+        self.faces = _read_blocks(self.folder / "faces.txt")
         self._men = {}
         self._tex = {}
 
@@ -64,6 +65,15 @@ class Art:
             inks = {c: self.index[f"{side}_{c}"] for c in "ofldt"}
             sp = self._men[key] = Sprite(self.drawings[KINDS[piece & 7]], inks).scaled(s)
         return sp
+
+    def face(self, name):
+        """A face of the ladder as a canvas of its own, 40 × 40; None if it was never drawn."""
+        lines = self.faces.get(name)
+        if lines is None:
+            return None
+        cv = Canvas(GRID, GRID)
+        cv.stamp(Sprite(lines, {c: self.index["face_" + c] for c in "oklwfdreyagbh"}), 0, 0)
+        return cv
 
     def fallen(self, piece, step, s):
         """The king toppling: his drawing turned 30° a step about his foot, nearest pixel, whole art pixels."""

@@ -7,7 +7,7 @@ import math
 import board as B
 from app import Screen
 from engine import analysis_request
-from play import MoveInput, board_marks, hand_line
+from play import MoveInput, board_marks, hand_line, moves_rows
 from term import ACCENT_TEXT, MUTED, STRONG
 from ui import Row, heading, icon, meter, wrap
 
@@ -240,6 +240,56 @@ def pick_moments(scored, n=3):
     """The moves that cost the most, in the order they were played; nothing under an inaccuracy."""
     worst = sorted((s for s in scored if s["loss"] > 0.05), key=lambda s: -s["loss"])[:n]
     return sorted(worst, key=lambda s: s["ply"])
+
+
+class Replay(Screen):
+    """A game gone by: walk it with the arrows; what you wrote about it; Enter reviews it again."""
+
+    def __init__(self, label, tags, g, rec, again):
+        self.label, self.tags, self.g, self.rec, self.again = label, tags, g, rec, again
+        self.at = len(g.moves)
+        self.flipped = rec.get("me") == B.BLACK
+        self.cursor = None
+
+    def board(self):
+        pos = self.g.replay(self.at)
+        return pos.b, board_marks(pos, self.g.moves[self.at - 1] if self.at else None), [], self.flipped
+
+    def panel(self, w, h):
+        rec = self.rec
+        out = [heading("SHEET", f"game {self.label}", w, right=self.g.result), ""]
+        word = {"win": "you won", "loss": "you lost", "draw": "a draw"}.get(rec.get("score"), "")
+        out += [[(s, MUTED)] for s in wrap(f"{word}: {rec.get('why', '')}", w)] + [""]
+        tail = []
+        if rec.get("accuracy") is not None:
+            tail.append(Row("USAGE", "accuracy", f"{rec['accuracy']:.0f} %"))
+        if rec.get("takeaway"):
+            tail += [""] + [[(s, None)] for s in wrap(rec["takeaway"], w)]
+        room = h - len(out) - len(tail) - 1
+        out += moves_rows(self.g, w, room, self.at - 1)
+        out += [""] * max(0, h - len(out) - len(tail))
+        return (out + tail)[:h]
+
+    def key(self, name):
+        if name in ("left", "up"):
+            self.at = max(0, self.at - 1)
+        elif name in ("right", "down"):
+            self.at = min(len(self.g.moves), self.at + 1)
+        elif name == "home":
+            self.at = 0
+        elif name == "end":
+            self.at = len(self.g.moves)
+        elif name == "pageup":
+            self.at = max(0, self.at - 10)
+        elif name == "pagedown":
+            self.at = min(len(self.g.moves), self.at + 10)
+        elif name == "esc":
+            self.app.pop()
+        elif name == "enter":
+            self.again()
+
+    def wheel(self, d):
+        self.at = max(0, min(len(self.g.moves), self.at + d))
 
 
 class Review(Screen):

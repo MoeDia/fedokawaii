@@ -101,6 +101,17 @@ def _cut(s, n):
     return cut[:sp] if sp > n // 2 else cut
 
 
+class Face:
+    """Two panel lines with a picture beside them: 40 × 40 px, five cells by two rows, on the content's first column;
+    the words of each line start one cell after it. The line after a Face is its second row (Face.BELOW)."""
+    __slots__ = ("name", "top", "bottom")
+    BELOW = object()
+    COLS = 6
+
+    def __init__(self, name, top, bottom):
+        self.name, self.top, self.bottom = name, top, bottom
+
+
 def keys_line(*pairs):
     """A screen's own keys on its last line: the key in text, what it does muted, its state strong."""
     out = []

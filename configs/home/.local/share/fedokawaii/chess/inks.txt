@@ -40,3 +40,16 @@ b_f 26211b 122725
 b_l 83623c 786a45
 b_d 161615 121819
 b_t c5a56e e2b540
+face_o 141514 141514
+face_k 161615 161615
+face_w eee2b6 eee2b6
+face_l faf6e1 faf6e1
+face_f d9c9a8 d9c9a8
+face_d b19e81 b19e81
+face_r c53926 c53926
+face_e 82241f 82241f
+face_y c5a56e c5a56e
+face_a eb5324 eb5324
+face_g 759260 759260
+face_h 396139 396139
+face_b 5a82b3 5a82b3
