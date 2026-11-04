@@ -95,7 +95,7 @@ has_picture "$(TERM=xterm-256color F neko)" && _no "a picture in 256 colours" ||
 has_picture "$(TERM=xterm-256color COLORTERM=truecolor F neko)" && _ok || _no "no picture with COLORTERM"
 
 # ── the pictures ─────────────────────────────────────────────────────────────
-case_ "every picture: 20 × 16 pixels, every letter in its palette, every colour the desktop's own"
+case_ "every picture: 20 × 16 pixels (the two heads, the bar's crests: 22 × 20), every letter in its palette, every colour the desktop's own"
 python3 -I - "$REPO/bin/fetch" "$REPO/tools/wada-palette.py" <<'EOF' >"$TMP/art.txt"
 import importlib.util, re, sys
 src = open(sys.argv[1]).read()
@@ -117,14 +117,16 @@ for n in names:
     grid = rows[1:]
     bad = [c for r in grid for c in r if c != "." and c not in pal]
     foreign = [v for v in pal.values() if v.lower() not in own]
-    print(n, len(grid), {len(r) for r in grid} == {20}, not bad, foreign or "ok")
+    print(n, len(grid), {len(r) for r in grid} == {22 if n in ("oni", "tennin") else 20}, not bad, foreign or "ok")
 EOF
 has "$(cat "$TMP/art.txt")" "names True" "NAMES and the ART_ arrays list the same twelve"
-eq "$(grep -cE '^[a-z]+ 16 True True ok$' "$TMP/art.txt")" 12 "$(grep -vE ' 16 True True ok$|^names' "$TMP/art.txt" | tr '\n' ' ')"
-case_ "each picture drawn: 8 lines of 20 cells, two pixels per cell in 24-bit colour"
+eq "$(grep -cE '^[a-z]+ 16 True True ok$' "$TMP/art.txt")" 10 "$(grep -vE ' 16 True True ok$|^names' "$TMP/art.txt" | tr '\n' ' ')"
+eq "$(grep -cE '^(oni|tennin) 20 True True ok$' "$TMP/art.txt")" 2 "the two heads"
+case_ "each picture drawn: 8 lines of 20 cells (the two heads: 10 of 22), two pixels per cell in 24-bit colour"
 for n in oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ramen; do
   out=$(F "$n")
-  eq "$(grep -c $'\e\\[0;38;2;\\|\e\\[38;2;' <<<"$out")" 8 "$n"
+  h=8; [[ $n == oni || $n == tennin ]] && h=10
+  eq "$(grep -c $'\e\\[0;38;2;\\|\e\\[38;2;' <<<"$out")" "$h" "$n"
   lacks "$out" "38;2;;" "$n: a colour missing"
 done
 case_ "no name: the mood's own face — the oni in the dark theme, the tennin in the light (THEME in the theme's colors.sh); random: one of the twelve, every time (30 runs)"
@@ -132,7 +134,7 @@ eq "$(F)" "$(F oni)" "the dark theme: the oni"
 mkdir -p "$HOME/.config/fedokawaii/current" && printf 'THEME=light\n' >"$HOME/.config/fedokawaii/current/colors.sh"
 eq "$(F)" "$(F tennin)" "the light theme: the tennin"
 rm -f "$HOME/.config/fedokawaii/current/colors.sh"
-bad=0; for _ in {1..30}; do [[ $(F random | grep -c $'38;2;') == 8 ]] || bad=$((bad + 1)); done
+bad=0; for _ in {1..30}; do h=$(F random | grep -c $'38;2;'); [[ $h == 8 || $h == 10 ]] || bad=$((bad + 1)); done
 eq "$bad" 0
 
 case_ "misuse and help"
