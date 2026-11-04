@@ -25,6 +25,7 @@ import store as S  # noqa: E402
 import ui as U  # noqa: E402
 
 DATA = REPO / "configs/home/.local/share/fedokawaii/chess"
+USUAL_PANEL = 40      # (the panel's content in the usual window, 126 x 33: no row may lose a word there)
 
 
 def known_checks():
