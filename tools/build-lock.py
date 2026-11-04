@@ -417,6 +417,40 @@ def mandorla(r, cx, cy, base=92, short=30, long_=56, seed=3, n=30):
         r.line(r.stroke([at(base + 14, 0.0), at(base + ln * 0.45, 0.05), at(base + ln * 0.68, 0.12)]))
 
 
+def rel_line(pts):
+    return Canvas(W, H).stroke_mask(pts, 1.0)
+
+
+def frieze(heaven=False):
+    """the beam's carving: small fighters marching on the middle, clouds and fire between them —
+    the oni on the dungeon's, the tennin on the temple's"""
+    fz = Relief()
+    for x, sgn in ((36, False), (604, True), (166, False), (474, True)):
+        cloud(fz, x, 35, 0.5, sgn)
+    for x in (98, 542, 232, 408):
+        fire(fz, x, 41, 13, 0.55, x)
+    if heaven:
+        for x, kind, flip in ((64, "dive", False), (576, "dive", True), (134, "sword", False), (506, "sword", True), (198, "bow", False), (442, "bow", True)):
+            angel_fig(fz, Place(x, 35, 0.4, flip=flip), ANGEL[kind])
+    else:
+        for x, kind, flip in ((64, "lunge", False), (576, "lunge", True), (134, "swing", False), (506, "swing", True), (198, "brace", False), (442, "brace", True)):
+            oni_fig(fz, Place(x, 41, 0.42, flip=flip), ONI[kind])
+    return fz
+
+
+def tomoe(r, x, y, rad=10):
+    """mitsudomoe: three commas in a ring, the crest of a temple's eaves"""
+    yy, xx = np.mgrid[0:H, 0:W]
+    d = np.hypot(xx + 0.5 - x, yy + 0.5 - y)
+    r.add(d < rad)
+    for i in range(3):
+        a = 2 * math.pi * i / 3 - math.pi / 2
+        hx, hy = x + rad * 0.42 * math.cos(a), y + rad * 0.42 * math.sin(a)
+        r.L |= (np.hypot(xx + 0.5 - hx, yy + 0.5 - hy) < rad * 0.27) & (d < rad)
+        tail = [(hx, hy), (x + rad * 0.72 * math.cos(a + 0.8), y + rad * 0.72 * math.sin(a + 0.8)), (x + rad * 0.5 * math.cos(a + 1.75), y + rad * 0.5 * math.sin(a + 1.75))]
+        r.L |= r.stroke(tail, rad * 0.32, 1.0) & (d < rad)
+
+
 def lettered(quote):
     """The quote in Sumi UI at its own pixels (14 px a character, 2 px apart), cropped to its ink."""
     font = ImageFont.truetype(str(FONT), 14)
@@ -493,21 +527,34 @@ def dark_ground():
     t[45] = 5
     t[46:49] = 0
 
-    # the frieze in the beam: a march of clouds and fire
-    fz = Relief()
-    for x, sgn in ((36, False), (112, True), (190, False), (452, True), (530, False), (606, True)):
-        cloud(fz, x, 31, 0.62, sgn)
-    for x in (74, 150, 228, 412, 492, 568):
-        fire(fz, x, 41, 14, 0.62, x)
+    # the frieze in the beam: the same war marching toward the middle, small
+    fz = frieze()
     band = np.zeros((H, W), bool)
     band[16:42] = True
     fm = fz.M & band
     t[li.behind(fm) & band] = 0
-    t[fm] = 3
+    t[fm] = 4
     lit, dark = li.bevel(fm)
-    t[lit] = 5
+    t[lit] = 6
     t[dark] = 2
     t[fm & fz.L] = 1
+
+    # on the stones in the light: crests cut long ago (mitsudomoe), cracks
+    crests = Relief()
+    for x, y in ((40, 112), (178, 96), (462, 96), (600, 112)):
+        tomoe(crests, x, y)
+    cm = crests.M & stone
+    t[li.behind(cm) & stone] = np.maximum(t[li.behind(cm) & stone] - 1, 0)
+    t[cm] += 1
+    lit, _ = li.bevel(cm)
+    t[lit] += 1
+    t[cm & crests.L] = 1
+    for _ in range(46):            # the cracks: a line that wanders across a stone or two
+        x, y = rng.uniform(0, W), rng.uniform(49, 168)
+        pts = [(x, y)]
+        for _ in range(int(rng.integers(2, 5))):
+            pts.append((pts[-1][0] + rng.uniform(-10, 10), pts[-1][1] + rng.uniform(2, 8)))
+        t[rel_line(pts) & stone] = 0
 
     # the panels: carved battles
     rel = Relief()
@@ -533,10 +580,10 @@ def dark_ground():
             t[rel.stroke([(x - ln * math.cos(a), y - ln * math.sin(a)), (x, y + rng.uniform(-3, 3)), (x + ln * math.cos(a), y + ln * math.sin(a))]) & inside] = 2
         mr = rel.M & inside
         t[li.behind(mr) & inside] = 0
-        t[mr] = 4
+        t[mr] = 5
         lit, dark = li.bevel(mr)
-        t[lit] = 6
-        t[dark] = 2
+        t[lit] = 7
+        t[dark] = 3
         t[mr & rel.L] = 1
     # the light on what is carved: by the pixel, a step of dither at its edges
     carved = (yy < 49) | (yy >= 318)
@@ -545,6 +592,8 @@ def dark_ground():
     bay = np.array([[0, 2], [3, 1]])[yy % 2, xx % 2]
     rr = np.minimum(np.hypot(xx - TORCH_X[0], (yy - FLAME_Y) * 1.12), np.hypot(xx - TORCH_X[1], (yy - FLAME_Y) * 1.12)) + bay * 2.5
     k = np.where(rr < 80, 3, np.where(rr < 130, 2, np.where(rr < 190, 1, 0)))
+    for x0, y0, x1, y1 in panels:      # (the panels' figures hold their tone: the light never burns them out)
+        k[y0:y1, x0:x1] = np.minimum(k[y0:y1, x0:x1], 1)
     add = carved & (t > 0)
     t[add] += k[add]
     paint[t == 1] = ""
@@ -676,11 +725,10 @@ LAMP_FLAME = (8, 12)                                   # a lantern's flame frame
 def lantern(img, lx):
     """A hanging temple lantern (tsuri-dōrō) at x LX: its chain from the beam, the jewel, a
     six-sided bronze roof with curled tips, the fire box — a lattice lit from inside round a clear
-    window, where the module's flame burns —, its foot; ochre bronze lit from the left, verdigris
-    here and there."""
+    window, where the module's flame burns —, its foot; ochre bronze lit from the left."""
     px = img.load()
     d = ImageDraw.Draw(img)
-    br, br_hi, br_lo, pat = rgb(L["yellow"]), rgb(L["gold"]), rgb(L["lo"]), rgb(L["asagi"])
+    br, br_hi, br_lo = rgb(L["yellow"]), rgb(L["gold"]), rgb(L["lo"])
     for y in range(46, 48):
         px[lx, y] = br
     d.ellipse([lx - 3, 48, lx + 2, 53], fill=br, outline=br_lo)  # the jewel
@@ -696,8 +744,6 @@ def lantern(img, lx):
         px[x, 68] = br_lo
     for t in (-1, 1):
         px[lx + t * 23, 67] = px[lx + t * 24, 66] = br_lo
-    for y, x in ((65, lx - 14), (66, lx + 9), (64, lx + 17)):
-        px[x, y] = pat                                           # (verdigris, where rain sits)
     x0, x1, y0, y1 = lx - 11, lx + 10, 69, 101                   # the fire box
     d.rectangle([x0, y0, x1, y1], fill=br)
     d.rectangle([x0 + 2, y0 + 2, x1 - 2, y1 - 2], fill=rgb(L["key"]))
@@ -708,7 +754,6 @@ def lantern(img, lx):
     d.line([(x0, y0), (x1, y0)], fill=br_hi)
     d.line([(x0, y0), (x0, y1)], fill=br_hi)
     d.line([(x1, y0 + 1), (x1, y1)], fill=br_lo)
-    px[x0 + 1, y1 - 3] = px[x1 - 1, y0 + 4] = pat
     for i, y in enumerate(range(102, 108)):                      # the foot, narrowing
         hw = 10 - i * 1.2
         d.line([(int(lx - hw), y), (int(lx + hw), y)], fill=br if i < 5 else br_lo)
@@ -864,11 +909,7 @@ def light_scene():
     put(yy == 14, "G", fp)
     put((yy >= 43) & (yy < 45), "G", fp)
     put(yy == 45, "K", fp)
-    fz = Relief()
-    for x, sgn in ((36, False), (112, True), (190, False), (452, True), (530, False), (606, True)):
-        cloud(fz, x, 31, 0.62, sgn)
-    for x in (74, 150, 228, 412, 492, 568):
-        fire(fz, x, 41, 14, 0.62, x)
+    fz = frieze(heaven=True)
     band = (yy >= 16) & (yy < 42)
     put(fz.M & band, "G", fp)
     put(fz.M & fz.L & band, "r", fp)

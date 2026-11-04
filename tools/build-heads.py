@@ -397,9 +397,9 @@ def oni(open_=0.0, w=216, h=326, f=1.0, top=30, mane=True):
 
 # ── the Kannon, large ────────────────────────────────────────────────────────────────────────
 
-def petal(c, P, bx, by, ang, ln, wd):
+def petal(c, P, bx, by, ang, ln, wd, red=0.64):
     """one lotus petal from its base: two brush curves meeting in a sharp tip; gofun, its tip the
-    seal's red over a step of dither, a key line, a vein"""
+    seal's red (from RED of its length) over a step of dither, a key line, a vein"""
     ca, sa = math.cos(ang), math.sin(ang)
 
     def at(u, v):
@@ -408,7 +408,7 @@ def petal(c, P, bx, by, ang, ln, wd):
     back = spline([at(ln, 0), at(ln * 0.82, -wd * 0.2), at(ln * 0.52, -wd * 0.5), at(ln * 0.22, -wd * 0.36), at(0, 0)], per=8)
     m = c.poly_mask(P([tuple(p) for p in side] + [tuple(p) for p in back[1:]]))
     c.fill(m, "P")
-    u0 = ln * 0.64
+    u0 = ln * red
     bowl = spline([at(u0 + ln * 0.12, wd * 0.6), at(u0, 0), at(u0 + ln * 0.12, -wd * 0.6)], per=8)
     tm = c.poly_mask(P([tuple(p) for p in bowl] + [at(ln * 1.1, -wd * 0.6), at(ln * 1.1, wd * 0.6)])) & m
     c.fill(tm, "R")
@@ -429,9 +429,12 @@ def lotus(c, P, o, f, top, by):
         for th in angles:
             sn, cs = math.sin(th * deg), math.cos(th * deg)
             bx, by_ = sn * 6 * (1 - e) + sn * hw * in_ * e, by * (1 - e) + (yc - cs * hh * in_) * e
-            tx, ty = sn * 5 * (1 - e) + (sn * hw * in_ + sn * l1) * e, (by - 88 + abs(th) / 180 * 16) * (1 - e) + (yc - cs * hh * in_ - cs * l1 * 0.62) * e
+            # (shut, each petal stands with a tip of its own, splayed: the far ones tallest)
+            shut_x = math.copysign(abs(sn) ** 0.5 * 15, sn) if abs(sn) > 0.01 else 0
+            shut_h = 90 - 30 * abs(sn) if cs >= 0 else 74 - 24 * abs(sn)
+            tx, ty = shut_x * (1 - e) + (sn * hw * in_ + sn * l1) * e, (by - shut_h) * (1 - e) + (yc - cs * hh * in_ - cs * l1 * 0.62) * e
             ln = math.hypot(tx - bx, ty - by_)
-            petal(c, P, bx, by_, math.atan2(tx - bx, by_ - ty), ln, 30 * (1 - e) + w1 * e)
+            petal(c, P, bx, by_, math.atan2(tx - bx, by_ - ty), ln, 26 * (1 - e) + w1 * e, 0.46 + 0.18 * e)
     # the far petals, the sides (shut, only those that show)
     ring((0, 24, -24) if e < 0.02 else (0, 24, -24, 48, -48, 72, -72, 96, -96), 54, 30)
     if e > 0.2:     # the heart: lacquer in a gold rim, where the password lies
