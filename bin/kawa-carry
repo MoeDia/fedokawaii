@@ -130,11 +130,17 @@ back() {
   return 0
 }
 
+# (it only looks: udiskie opens what is plugged in, and a drive you closed stays closed; choose would
+# open every closed one, and ask for an encrypted one's passphrase unasked)
 hint() {
   [[ -e $DONE ]] && return 0
-  choose any >/dev/null || return 0
-  mkdir -p "$STATE" && date +%F >"$DONE.told"
-  [[ $(<"$DONE.told") ]] && notify-send -a backup -- "$ICON_UNPACK  your things" "on the drive just plugged in: Super+U → backups → bring back"
+  local f
+  while IFS=$'\t' read -r _ _ _ _ _ f; do
+    [[ -n $f && -d $f/$FOLDER ]] || continue
+    mkdir -p "$STATE" && date +%F >"$DONE.told"
+    [[ $(<"$DONE.told") ]] && notify-send -a backup -- "$ICON_UNPACK  your things" "on the drive just plugged in: Super+U → backups → bring back"
+    return 0
+  done < <(kawa-drives list 2>/dev/null)
 }
 
 case ${1:-} in

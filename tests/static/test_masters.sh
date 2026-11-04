@@ -43,4 +43,43 @@ PY
 case_ "no paper at any picture's edges: no print margin, frame line or mount left at a side (build-masters' edge check; the master's T18 review 1, must-fix 1)"
 out=$(cd "$REPO" && python3 -I -B tools/build-masters.py --check "$OUT"/*.png 2>&1)
 [[ $? -eq 0 && -z $out ]] && _ok || _no "$out"
+
+case_ "the edge check tells a margin from a plain ground: paper over a darker picture is refused, bare paper with things lying on it is not"
+out=$(python3 -I -B - "$REPO" <<'PY'
+import importlib.util, sys
+from pathlib import Path
+import numpy as np
+spec = importlib.util.spec_from_file_location("build_masters", Path(sys.argv[1]) / "tools/build-masters.py")
+bm = importlib.util.module_from_spec(spec); spec.loader.exec_module(bm)
+base = np.tile(np.array([0.5, 0.52, 0.48, 0.5] * (bm.W // 4)), (bm.H, 1))   # (a dithered ground: no flat line)
+margin = base.copy()
+margin[-20:] = 0.96
+if not any(b.startswith("bottom") for b in bm.edges(margin)):
+    print("a paper margin under a darker picture passed")
+ground = np.full((bm.H, bm.W), 0.96)
+ground[bm.H - 40:bm.H - 28, 300:460] = 0.3                                  # (a line and a ribbon on bare paper)
+if any(b.startswith("bottom") for b in bm.edges(ground)):
+    print("bare paper with a line on it was refused: " + "; ".join(bm.edges(ground)))
+PY
+)
+[[ $? -eq 0 && -z $out ]] && _ok || _no "$out"
+
+case_ "a hole at the picture's edge is filled from what lies round it, nothing from the far side (the left strip of the Kōrin screens)"
+out=$(python3 -I -B - "$REPO" <<'PY'
+import importlib.util, sys
+from pathlib import Path
+import numpy as np
+spec = importlib.util.spec_from_file_location("build_masters", Path(sys.argv[1]) / "tools/build-masters.py")
+bm = importlib.util.module_from_spec(spec); spec.loader.exec_module(bm)
+lab = np.zeros((bm.H, bm.W, 3))
+lab[..., 0] = 0.2
+lab[:, bm.W // 2:, 0] = 0.9                  # (dark at the left, pale at the far right)
+hole = np.zeros((bm.H, bm.W), bool)
+hole[300:360, 0:30] = True
+worst = bm.heal(lab, hole)[hole, 0].max()
+if abs(worst - 0.2) > 0.01:
+    print(f"filled up to L {worst:.3f}, round it L 0.2")
+PY
+)
+[[ $? -eq 0 && -z $out ]] && _ok || _no "$out"
 done_

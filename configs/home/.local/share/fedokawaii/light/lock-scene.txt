@@ -1,13 +1,17 @@
 # lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown
 # N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.
 size 640 360
-ground f7f1d1   # round the scene: its edges' commonest colour
+ground 82241f   # round the scene: its edges' commonest colour
+gate 223 176 194 162 5   # lock-gate.png: its frames side by side, shut first: where they lie, each's size, how many
 frames 8 12 8   # lock-flame.png: the frames side by side, 8 a second
 flame 102 81   # a flame's frame, its top-left
 flame 530 81   # a flame's frame, its top-left
-row 366 114 5 7   # the password: the first mark's middle, the pitch, how many in sight
-mark 986f2d e2b540 ffffff   # a mark: its arms, its middle, its corners
+row 295 316 7 8   # the password: the first mark's middle, the pitch, how many in sight
+mark 121b1b 121b1b 96865e   # a mark: its arms, its middle, its corners
 caps 00726a   # the arms while Caps Lock is on
-caret 986f2d   # a bar as tall as a mark at the next place, once a second
-plate 320 189 138   # what shakes at a wrong password: its middle, its radius
-words 338 359   # the line of words (what PAM says): the rows it is centred in
+caret a84222   # a bar as tall as a mark at the next place, once a second
+plate 320 176 104   # what shakes at a wrong password: its middle, its radius
+words 344 354   # the line of words (what PAM says): the rows it is centred in
+anim light-l 0 46 214 255 6 220   # lock-NAME.png: a looped strip with alpha, a frame every MS
+anim light-r 426 46 214 255 6 220   # lock-NAME.png: a looped strip with alpha, a frame every MS
+sparks petals 30 cb6336 a84222   # particles: how many, their young ink and their old

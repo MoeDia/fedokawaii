@@ -222,8 +222,8 @@ kawa-timer bar timer >"$TMP/tcell" & BG_PIDS+=($!)
 until_ '[[ -s $TMP/tcell ]]'; eq "$(tail -n1 "$TMP/tcell")" '{"text":""}' "no timer: an empty cell (waybar hides it)"
 until_ '[[ -s $TMP/time ]]'
 # (10–12 o'clock: "l1", its 1's own column of air — style.css takes it back)
-T_RE='(0[0-9]:[0-5][0-9] [AP]M"|1[0-2]:[0-5][0-9] [AP]M","class":"l1")'
-TA_RE='(0[0-9]:[0-5][0-9] [AP]M","class":"active"|1[0-2]:[0-5][0-9] [AP]M","class":\["l1","active"\])'
+T_RE='(0[0-9]:[0-5][0-9]:[0-5][0-9] [AP]M"|1[0-2]:[0-5][0-9]:[0-5][0-9] [AP]M","class":"l1")'
+TA_RE='(0[0-9]:[0-5][0-9]:[0-5][0-9] [AP]M","class":"active"|1[0-2]:[0-5][0-9]:[0-5][0-9] [AP]M","class":\["l1","active"\])'
 [[ $(tail -n1 "$TMP/time") =~ ^\{\"text\":\"$T_RE\}$ ]] && _ok || _no "$(tail -n1 "$TMP/time")"
 alive; p=$P; echo "$p kawa-timer" >"$R/kawa-drop.open"; kawa-dwlstatus --wake
 until_ '[[ $(tail -n1 "$TMP/time") == *active* ]]' && _ok || _no "not lit: $(tail -n1 "$TMP/time")"
@@ -378,7 +378,7 @@ for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
 sys.exit(bad)
 EOF
 
-case_ "the mood's head: drawn (build-themes FACES, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
+case_ "the mood's head: drawn (art/heads.txt, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
 for th in dark light; do
   for f in face face-open; do
     eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "22 20 6" "$th/$f.png: 22 × 20 with alpha"
