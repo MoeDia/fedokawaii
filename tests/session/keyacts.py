@@ -54,6 +54,7 @@ ROWS = {
     "Super+Shift+A":           ("region → annotate", ["spawn:kawa-screenshot edit"]),
     "Super+Shift+X":           ("region → its text", ["spawn:kawa-screenshot text"]),
     "Super+Shift+R":           ("record the screen (again: stop)", ["spawn:kawa-record"]),
+    "Super+Ctrl+R":            ("refresh the desktop", ["refresh:kawa-refresh"]),
     "Super+Shift+P":           ("pause the recording", ["spawn:kawa-record pause"]),
     "Super+Q":                 ("close window", ["killclient:0"]),
     "Super+J / K":             ("focus next / previous", ["focusstack:+1", "focusstack:-1"]),
@@ -122,7 +123,7 @@ def keys_of(spec):
 def action(func, arg, cmds):
     """dwl's (function, argument text) → 'spawn:COMMAND' (spawnheld:) or 'FUNCTION:ARGUMENT'."""
     arg = arg.strip()
-    if func in ("spawn", "spawnheld"):
+    if func in ("spawn", "spawnheld", "refresh"):        # (refresh: dwl's half, then this command)
         if m := re.fullmatch(r'SHCMD\("(.*)"\)', arg):
             return f"{func}:" + m.group(1)
         if m := re.fullmatch(r"\{\s*\.v\s*=\s*(\w+)\s*\}", arg):

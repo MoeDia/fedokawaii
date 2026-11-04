@@ -221,6 +221,7 @@ kawa-play                       films open in mpv through it
 kawa-power                      a menu: Super+Shift+E, quick settings' power
 kawa-quick                      quick settings (the bar's cat); its windows have entries (Network, Bluetooth, Volume mixer)
 kawa-record                     Super+Shift+R, the bar's 録 mark
+kawa-refresh                    Super+Ctrl+R: the desktop's own programs anew
 kawa-screenshot                 Print, Shift+Print, Super+Print, quick settings' screenshot
 kawa-share                      the screen share's chooser
 kawa-shrink                     a menu: Super+Z, yazi's Alt+S
