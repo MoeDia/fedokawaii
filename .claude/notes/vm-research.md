@@ -185,7 +185,7 @@ Windows should still say "Virtual machine: Yes" (the gist's check read the other
 - [QEMU virtio-sound](https://www.qemu.org/docs/master/system/devices/virtio/virtio-snd.html) names only Linux guests. **[kvm-guest-drivers-windows](https://github.com/virtio-win/kvm-guest-drivers-windows) has no sound driver** (folders on 4 Nov 2026: Balloon NetKVM fwcfg ivshmem pciserial pvpanic stdvga viocrypt viofs viogpu vioinput viomem viorng vioscsi vioserial viosock viostor). T33's "virtio-sound" cannot work on Windows.
 - **`virtio-win` is not a Fedora package** (`packages.fedoraproject.org/pkgs/virtio-win` 404). [Fedora's own doc](https://docs.fedoraproject.org/en-US/quick-docs/creating-windows-virtual-machines-using-virtio-drivers/): "Fedora cannot ship Windows virtIO drivers because they cannot be built automatically as part of Fedora's build system". It lives at [fedorapeople](https://fedorapeople.org/groups/virt/virtio-win/direct-downloads/stable-virtio/) (0.1.302 today); its [repo file](https://fedorapeople.org/groups/virt/virtio-win/virtio-win.repo) has `gpgcheck=0`, which Fedora 45's enforced RPM signatures refuse (`f45-changes-3nov.md` item 5). Take the ISO, pinned by checksum, into the VM's folder.
 - Firmware on this PC: `/usr/share/qemu/firmware/30-edk2-ovmf-4m-qcow2-x64-sb-enrolled.json` → `OVMF_CODE_4M.secboot.qcow2` + `OVMF_VARS_4M.secboot.qcow2`, `enrolled-keys`, `requires-smm`, `pc-q35-*`. `qemu-audio-pipewire`, `virtiofsd`, `qemu-device-usb-host`, `swtpm-tools` are installed.
-- Fedora 45 moves QEMU 10.2.2 → 11.1.3, libvirt 12.0.0 → 12.6.0; edk2 and swtpm unchanged (`f45-changes-3nov.md`). The gist says QEMU ≥ 11.0.1 refuses a guest whose function "shares a PCI reset domain with another function": re-test after T46.
+- Fedora 45 moves QEMU 10.2.2 → 11.1.3, libvirt 12.0.0 → 12.6.0; edk2 and swtpm unchanged (`f45-changes-3nov.md`). The gist's QEMU ≥ 11.0.1 refusal does not reach this card: §10.5.
 - [Kernel VFIO](https://docs.kernel.org/driver-api/vfio.html): when a group holds several devices, "each will need to be bound to a VFIO driver before operations on the VFIO group are allowed"; the guide's bind is unbind + `new_id`; [`driver_override`](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/ABI/testing/sysfs-bus-pci): "When specified, only a driver with a name matching the value written to driver_override will have an opportunity to bind", and it does not unbind by itself. `reset_method`: "Writing an empty string disables the ability to reset the device."
 - [Fedora: Virtualization, getting started](https://docs.fedoraproject.org/en-US/quick-docs/virtualization-getting-started/): the Fedora guide; nothing on passthrough.
 - [Arch wiki, PCI passthrough via OVMF](https://wiki.archlinux.org/title/PCI_passthrough_via_OVMF) [R, curated]: `vcpupin`/`emulatorpin`/`iothreadpin` layout, dynamic isolation with `systemctl set-property --runtime -- user.slice AllowedCPUs=…` (and `system.slice`, `init.scope`), audio via `runtimeDir` plus running QEMU as the desktop user, THP "allocated up front" with VFIO, dynamic hugepages section marked disputed.
@@ -198,7 +198,7 @@ Windows should still say "Virtual machine: Yes" (the gist's check read the other
 - [Options to optimize gaming performance in Windows 11](https://eus.prod.support.services.microsoft.com/en-us/windows/options-to-optimize-gaming-performance-in-windows-11-a255f612-2949-4373-a566-ff6f3f474613) [P]: "a performance impact with memory integrity and VMP on in some scenarios", with the toggle to turn each off and the warning about reduced protection.
 - [WinGet](https://learn.microsoft.com/en-us/windows/package-manager/winget/) [P]: not available until after the first login, an asynchronous registration; `Add-AppxPackage -RegisterByFamilyName -MainPackage Microsoft.DesktopAppInstaller_8wekyb3d8bbwe` forces it.
 - The ISO: [Fido](https://github.com/pbatard/Fido) (GPL-3, by Rufus's author, 26H2 added 30 Sep 2026, pushed 3 Nov 2026) scripts Microsoft's own download page, in PowerShell; [Mido](https://github.com/ElliotKillick/Mido) stopped in May 2024. Or the owner's download from [Microsoft's page](https://www.microsoft.com/software-download/windows11). The ISO's `sources/license/` carries the terms in force.
-- Licence: the wording "This license allows you to install only one instance of the software for use on one device, whether that device is physical or virtual" reached me only through [a third party quoting the terms](https://docs.computle.com/onboarding/administrator-guide/virtual-machine-licensing-and-user-identification-requirements-windows-11-professional) [R]; Microsoft's page did not load (404). Read the ISO's copy before quoting it to him.
+- Licence: the terms in Microsoft's own words are in §10.7. The ISO's `sources/license/` carries the text that applies to his copy: T33 reads it.
 - [PresentMon v2.6.0](https://github.com/GameTechDev/PresentMon) (21 Sep 2026) [P]: frame times inside the guest.
 
 ## 7. Display: the monitor, the wiring, the alternative
@@ -229,7 +229,7 @@ mswhql(1)mccs_ver(2.0)asset_eep(32)mpu_ver(01))
 - T06: LG has one DP 1.4, one HDMI 2.0; the board shows HDMI and VGA, no DP. Host on board HDMI, card's DP to the LG.
 - [wlroots env_vars](https://gitlab.freedesktop.org/wlroots/wlroots/-/blob/master/docs/env_vars.md) [P]: `WLR_DRM_DEVICES` is colon-separated, so a `by-path` name (it has colons) cannot be used: pass `/dev/dri/cardN`, resolved from the PCI address at each start. `system/start-dwl` picks by largest VRAM today.
 - [Kernel modedb](https://git.kernel.org/pub/scm/linux/kernel/git/torvalds/linux.git/tree/Documentation/fb/modedb.rst) [P]: `video=<conn>:d` disables a connector for the console.
-- MSI's AM5 BIOS offers primary display PEG or IGD ([#5644](https://gitlab.freedesktop.org/drm/amd/-/work_items/5644) names it on an MSI X870) [R]; this board's manual was not readable (403). The dGPU is `boot_vga=1`, so firmware and GRUB draw on it today.
+- MSI's AM5 BIOS offers primary display PEG or IGD: MSI's own guide, §10.1. The dGPU is `boot_vga=1`, so firmware, GRUB and the text console draw on it today.
 
 ### Looking Glass [P: its repo's docs, master, 7 Oct 2026]
 
@@ -245,5 +245,70 @@ mswhql(1)mccs_ver(2.0)asset_eep(32)mpu_ver(01))
 
 - Any report of a Navi 44 rebind on 7.2.x after the August fix. Any AMD statement on VMs and vDisplay.
 - A physical display at 144 Hz with VRR under KVM with the hypervisor bit on.
-- CS2 in a KVM guest in 2026 on a VAC-secured server, with evidence. FACEIT's or other anti-cheats' written position on VMs (none in [their support pages](https://support.faceit.com/hc/en-us/articles/9394666828188) found; a kernel-mode driver is documented; assume refusal until tried).
+- CS2 in a KVM guest in 2026 on a VAC-secured server, with evidence. FACEIT's or other anti-cheats' written position on VMs: none found, but see §10.8.
 - Measured evdev versus USB-controller input latency: none credible found. Reports of the board's own `15:00.3/.4` USB controllers under passthrough ([Debian](https://lists.debian.org/debian-kernel/2025/09/msg00309.html), [Xen](https://lists.xen.org/archives/html/xen-devel/2025-07/msg01661.html)) describe AMD xHCI resets going badly on other platforms.
+
+## 10. Second pass, 4 Nov 2026: what the first pass left open
+
+### 10.1 Where the firmware, GRUB and the text console draw
+
+- **[P]** [MSI's AM5 BIOS guide](https://download.msi.com/archive/mnu_exe/mb/AMDAM5BIOS.pdf) (January 2023, for AM5 boards in general; this board's own manual stays refused): `Settings > Advanced > Integrated Graphics Configuration > Initiate Graphic Adapter`, "Selects a graphics device as the primary boot device. [IGD] Integrated Graphics Display. [PEG] PCI-Express Graphics Device." Delete enters setup, F10 saves and resets. Read with `pdftotext`.
+- **[P]** Kernel v7.2 `arch/x86/video/video-common.c`, `video_is_primary_device()`: true for the PCI device with a BAR holding the framebuffer the firmware set up. `fbcon.c` `fbcon_select_primary()` maps every console to that device's framebuffer (`CONFIG_FRAMEBUFFER_CONSOLE_DETECT_PRIMARY=y` here). This boot's journal: "fbcon: amdgpudrmfb (fb0) is primary device". `fbcon=map:<n>` overrides it and disables that detection (`fbcon.c:508–518`).
+- **So tty1 follows the firmware, not the compositor.** With the firmware on the card, the console, every kernel message and an emergency prompt stay on the card's dark DP while the desktop is on the board's HDMI.
+- **[R]** [Arch forum](https://bbs.archlinux.org/viewtopic.php?id=310537) (late 2025, board not named): iGPU as primary was honoured with CSM on; with CSM off, "system booted with display output on the dgpu". One report, no BIOS version, no end to the thread. CSM is no way out: MSI's guide calls it "For the non-UEFI driver add-on devices or non-UEFI mode OS", and the poster says it cost them Secure Boot. So the design must survive the setting being ignored: test B.
+
+### 10.2 144 Hz on the iGPU's HDMI
+
+- **[P]** The LG's EDID, decoded here: first timing 1920×1080 at 143.98 Hz with a **346.50 MHz** pixel clock; 60 Hz at 148.50; in the extension 119.98 Hz at 285.50 and 100 Hz at 228.80. HDMI 1.4 block: 300 MHz. HDMI Forum block: 450 MHz. AMD's FreeSync block: 48–144 Hz. So 144 Hz is above HDMI 1.4's rate: the source must do HDMI 2.0's.
+- **[P]** MSI's [datasheet](https://storage-asset.msi.com/datasheet/mb/us/PRO-B650M-B.pdf): "Support 4K@60Hz as specified in HDMI 2.1, VGA – Requires Processor Graphics"; back panel "1. HDMI 2. VGA". 4K60 is 594 MHz, so 346.5 fits on paper.
+- **[P]** [LG's page](https://www.lg.com/cl/monitores/gaming/24g411a-b/): "(HDMI 2.0 admite hasta 144 Hz)", DisplayPort "(1ea)", version 1.4, "Se requiere un cable y una tarjeta gráfica compatibles con DP 1.4", 120 Hz native with 144 Hz as overclock; the box holds "cables de conexión", not said which.
+- Not proven until a cable is in. If the port falls short, 119.98 Hz at 285.50 MHz is in the EDID too.
+
+### 10.3 What makes an unbind wait forever
+
+- **[P]** `/dev/i2c-N`: `i2c-dev.c:604` takes `i2c_get_adapter()` at open, which holds `get_device(&adapter->dev)` (`i2c-core-base.c:2637`), until close (`i2c-dev.c:632`). `i2c_del_adapter()` ends in `wait_for_completion(&adap->dev_released)` (`:1840`), with no timeout. So one open fd on a bus of the card blocks amdgpu's unbind: an OpenRGB server on `i2c-6`, a `ddcutil` caught mid-read on `i2c-5`. The writer of the unbind holds the device lock while it waits; #5446 shows what that does to libvirt.
+- **[P]** ALSA: `sound/core/init.c:644–661`, `snd_card_free()` waits "until all devices are ready for the free operation", without a timeout: every open file on the card closed. `/proc/asound/cards`: card 0 is the card's HDA; PipeWire holds it today. Test R runs with no session, so it cannot see this.
+- **[P]** [WirePlumber's ALSA page](https://pipewire.pages.freedesktop.org/wireplumber/daemon/configuration/alsa.html): `device.disabled` "Disables the device. WirePlumber will not create it at all". Used in `monitors/alsa.lua:690` in the installed 0.5.19. He listens on the board's analog output, so the card's HDA is not needed on the host at all.
+- `/dev/kfd` (0666 root:render) is one node for every amdgpu device. T47's ROCm path holds it. Whether an open one blocks an unbind was not read or measured: the hook treats it as a holder.
+
+### 10.4 virtiofs and the memory of a game VM
+
+- **[P]** [libvirt's virtiofs page](https://libvirt.org/kbase/virtiofs.html): "QEMU needs to allocate the backing memory for all the guest RAM as shared memory"; memfd or hugepages; "Don't forget the <memoryBacking> elements".
+- **[P]** This PC: `/sys/kernel/mm/transparent_hugepage/shmem_enabled` is `never`. [The kernel's THP page](https://docs.kernel.org/admin-guide/mm/transhuge.html) makes that the policy for the internal shmem mount that memfd uses. So memfd-backed guest RAM gets 4 KiB pages, against the "THP first" that section 4 of the design rests on; the way out would be hugetlb pages reserved up front.
+- **[P]** [virtio-win's page](https://github.com/virtio-win/kvm-guest-drivers-windows/wiki/Virtiofs:-Shared-file-system): the guest needs "WinFSP with at least "Core" feature enabled" plus the service. A third-party filesystem driver in the guest, next to VAC, for a folder used once.
+
+### 10.5 QEMU 11's "refusal" does not reach this card
+
+- **[P]** QEMU v11.1.0 `hw/vfio/container-legacy.c:1068`, "vfio: Cannot reset device %s, depends on group %d which is not owned.", `iommufd.c:869` the same by device. It is the hot-reset path: for each device the kernel lists on the reset bus, it fails if this QEMU does not own its group.
+- [The gist](https://gist.github.com/PhialsBasement/c34e908352bd2e8a49197edc70df2d94) [R] meets it passing an onboard audio function on B550/X570 and says 11.0.1+ will not start.
+- Here the bus below the card's switch holds `03:00.0` and `03:00.1` and nothing else (`lspci -s 03:`), both passed. Test R on F45 still proves it.
+
+### 10.6 Internal snapshots with UEFI
+
+**[P]** libvirt v12.0.0 `src/qemu/qemu_snapshot.c:1040–1063`: an active VM with pflash needs "QCOW2 nvram format"; offline, `qemu-img snapshot` runs on each qcow2, the NVRAM included (`:356–377`). So `VARS.qcow2` with the VM off is supported. [`<nvram format=…>`](https://libvirt.org/formatdomain.html) must say qcow2. The TPM's state directory is in no qcow2, so a snapshot does not cover it.
+
+### 10.7 Windows
+
+- **Licence [P]:** [Windows 11 OEM terms, April 2024](https://www.microsoft.com/content/dam/microsoft/usetm/documents/windows/11/oem-(pre-installed)/UseTerms_OEM_Windows_11_English.pdf): "This license allows you to install only one instance of the software for use on one device, whether that device is physical or virtual. If you want to use the software on more than one virtual device, you must obtain a separate license for each instance." and "“device” means a local hardware system (whether physical or virtual)". These are the OEM terms; the retail file's address was not found. So this VM needs its own licence, and an OEM licence tied to another PC is not obviously one: T33 reads the ISO's copy.
+- **Device encryption [P]:** [Microsoft's OEM page](https://learn.microsoft.com/en-us/windows-hardware/design/device-experiences/oem-bitlocker) documents `PreventDeviceEncryption` and frames it as being for OEMs with their own encryption, otherwise prohibited under Windows 11's licensing (read through a search excerpt). **Not scripted.** T33 reads `manage-bde -status`; if it is on and costs something, the Settings switch is his to use.
+- **AMD's installer [P, excerpts]:** AMD's [command-line guide](https://drivers.amd.com/relnotes/command-line-installation.pdf) documents `Setup.exe -INSTALL -boot` for Radeon PRO; [RSX2-INSTALL](https://www.amd.com/en/resources/support-articles/faqs/RSX2-INSTALL.html) sends consumers to it. [R]: [an HP forum user](https://h30434.www3.hp.com/t5/Unanswered-Topics-Notebook/HP-EliteBook-745-G5-Command-Line-Install-Radeon-Driver/m-p/7701762) says `setup.exe -install` is silent and also installs the Radeon app. No document promises it for Adrenalin: test the pinned package. Whether Windows Update offers a driver for `1002:7590`: not found.
+
+### 10.8 FACEIT
+
+**[P, excerpts: its pages refuse fetching]** [FACEIT's rollout post](https://www.faceit.com/en/news/faceit-rollout-of-tpm-secure-boot-iommu-and-vbs): from 25 November 2025 "both TPM 2.0 and Secure Boot will be required for all players", IOMMU and VBS expanding in stages; [TPM attestation failed](https://support.faceit.com/hc/en-us/articles/20669555338268-TPM-attestation-failed). Nothing found names VMs. Inference: swtpm has no manufacturer's key chain to attest with, and VBS needs the nested `svm` the design turns off. The owner never named FACEIT.
+
+### 10.9 Looking Glass on Wayland (T32's question)
+
+**[P]** [requirements.rst](https://github.com/gnif/LookingGlass/blob/master/doc/requirements.rst): "The client requires an EGL-capable graphics driver. X11 and Wayland are supported." Only native HDR names a protocol, `color-management-v1`. `~/.local/src/dwl/dwl.c` has pointer constraints, relative pointer, presentation time, idle inhibit and xdg decoration. Nothing blocks the client on our compositor.
+
+### 10.10 What catches a hung host
+
+**[P]** `/dev/watchdog0` is the SP5100 TCO timer, 60 s. T45 sets `RuntimeWatchdogSec=1min` only during a kernel's trial (`lib/update.sh:482`). **This kernel has no hung-task detector: `CONFIG_DETECT_HUNG_TASK` is not set, and `/proc/sys/kernel/hung_task_panic` does not exist.** `softlockup_panic` (0) and `hardlockup_panic` exist, `panic` is 10. A stuck unbind leaves PID 1 running and the CPUs free: no watchdog and no lockup detector fires, so only a timer in the test's own runner can end it (`/proc/sysrq-trigger`).
+
+### 10.11 Backups
+
+**[P]** `bin/kawa-backup:223` runs `restic backup --exclude-file … -- "$HOME"` with no `--one-file-system`, and `backup-exclude` has no `VM` line. So `~/VM` goes to his backup drive: 86 GiB of harness today, a Windows disk later.
+
+### 10.12 Things that needed no change
+
+`cpu0` pairs with `cpu6`, `cpu1` with `cpu7`, `cpu5` with `cpu11` (sysfs): the pinning in the design holds. `libvirt-guests.service` is installed, disabled; its man page has `ON_SHUTDOWN=shutdown` with `SHUTDOWN_TIMEOUT`. Keyboards expose several event nodes: `usb-SEMICO_USB_Gaming_Keyboard-{event-kbd,event-if01,if01-event-kbd}`, `usb-BY_Tech_Gaming_Keyboard-{event-kbd,event-if01,if01-event-mouse}`.
