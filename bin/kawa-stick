@@ -1,0 +1,81 @@
+#!/usr/bin/env bash
+# kawa-stick — the installer on a USB stick, for the day this PC is installed fresh (Super+U → backups).
+#
+#   kawa-stick [ISO]   the ISO given, or the newest fedokawaii-*.iso in ~/Downloads, or the newest
+#                      release's from GitHub (fetched there); its sum checked; the USB drives big enough
+#                      for it (a disk inside the PC is never offered); the one chosen named, and erased only
+#                      after enter; written, read back, switched off. root's password asked for the writing.
+#
+# Exit: 0 written · 1 it could not be done (said) · 2 misuse · 4 left alone (no stick, or not confirmed).
+set -u
+export LC_ALL=C.UTF-8
+case :$PATH: in *":$HOME/.local/bin:"*) ;; *) PATH=$HOME/.local/bin:$PATH ;; esac
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
+RELEASES=${KAWA_STICK_RELEASES:-https://api.github.com/repos/MoeDia/fedokawaii/releases/latest}
+W=$(screen_width 2>/dev/null) || W=76
+((W > 76)) && W=76
+say() { printf '  %s\n' "$@"; }
+die() { printf '  %s%s%s\n' "$INK_ACCENT_TEXT" "$*" "$INK_OFF" >&2; exit 1; }
+human() { numfmt --to=si --suffix=B -- "$1" | sed -E 's/([0-9])([A-Za-z])/\1 \2/'; }
+
+fetch() {   # fetch → the newest release's ISO and its sum in ~/Downloads, its path printed
+  local j url name
+  mkdir -p "$HOME/Downloads"
+  j=$(curl -sSf --max-time 30 "$RELEASES") || die "GitHub does not answer, and ~/Downloads holds no installer"
+  url=$(jq -r '[.assets[] | select(.name | test("^fedokawaii-.*\\.iso$"))][0].browser_download_url // empty' <<<"$j")
+  [[ -n $url ]] || die "the newest release has no installer in it"
+  name=${url##*/}
+  say "$name, from GitHub" >&2
+  curl -fL --progress-bar -C - -o "$HOME/Downloads/$name" "$url" >&2 || die "the download stopped; again carries on from there"
+  curl -sSfL -o "$HOME/Downloads/$name.sha256" "$url.sha256" || die "its checksum could not be fetched"
+  printf '%s\n' "$HOME/Downloads/$name"
+}
+
+iso=${1:-}
+(($# <= 1)) || { echo "usage: kawa-stick [ISO]" >&2; exit 2; }
+printf '\n  %s\n\n' "$(screen_heading "${ICON_USB:-·}" "the installer on a stick" "$W")"
+if [[ -z $iso ]]; then
+  iso=$(compgen -G "$HOME/Downloads/fedokawaii-*.iso" | LC_ALL=C sort | tail -n1)
+  [[ -n $iso ]] || iso=$(fetch) || exit 1
+fi
+[[ -f $iso ]] || die "$iso is not there"
+if [[ -f $iso.sha256 ]]; then
+  (cd "$(dirname "$iso")" && sha256sum --quiet -c "${iso##*/}.sha256") >/dev/null 2>&1 \
+    || die "${iso##*/} is not as it was built: delete it, then again"
+fi
+size=$(stat -c %s -- "$iso")
+
+# the USB drives it fits on: PATH<TAB>SIZE<TAB>MODEL
+mapfile -t drives < <(lsblk -J -d -b -p -o NAME,SIZE,MODEL,TRAN,TYPE 2>/dev/null | jq -r --argjson s "$size" \
+  '.blockdevices[] | select(.tran == "usb" and .type == "disk" and (.size | tonumber) >= $s) | [.name, (.size | tostring), ((.model // "") | gsub("^ +| +$"; ""))] | @tsv')
+if ((${#drives[@]} == 0)); then
+  say "no USB drive of $(human "$size") or more is plugged in: plug one in, then again"
+  exit 4
+fi
+pick=${drives[0]}
+if ((${#drives[@]} > 1)); then
+  for i in "${!drives[@]}"; do
+    IFS=$'\t' read -r d s m <<<"${drives[i]}"
+    printf '   %d  %s  %s\n' "$((i + 1))" "$(human "$s")" "${m:-$d}"
+  done
+  IFS= read -rsn1 k
+  [[ $k =~ ^[1-9]$ ]] && ((k <= ${#drives[@]})) || exit 4
+  pick=${drives[k - 1]}
+fi
+IFS=$'\t' read -r dev s model <<<"$pick"
+printf '  %s\n\n' "$(screen_row "${ICON_FILE:-·}" "${iso##*/}" "$(human "$size")" "$W")"
+say "everything on ${model:-$dev} ($(human "$s"), $dev) will be erased." "enter writes it, any other key leaves it alone."
+IFS= read -rsn1 k
+[[ -z $k ]] || exit 4
+
+# (nothing of it may stay open: udiskie opens what is plugged in)
+for p in $(lsblk -nrpo NAME -- "$dev" | tail -n +2); do udisksctl unmount -b "$p" >/dev/null 2>&1; done
+sudo dd if="$iso" of="$dev" bs=4M oflag=direct conv=fsync status=progress || die "the writing stopped: the stick is not usable. again, or another stick"
+say "read back"
+sudo cmp -n "$size" -- "$iso" "$dev" || die "the stick gave back something else: take another"
+udisksctl power-off -b "$dev" >/dev/null 2>&1
+printf '\n  %s\n' "$(screen_row "${ICON_CHECK:-·}" "ready: safe to unplug" "" "$W")"
+say "start from it with the firmware's boot menu (F11 on most boards)."

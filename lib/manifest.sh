@@ -88,7 +88,7 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
 DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1 glesv2")
 PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manager, X11 apps
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
-  plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)
+  plymouth-plugin-script plymouth-plugin-label)                 # the boot splash (the "sumi" Plymouth theme is a script); the label: Plymouth 26's script plugin crashes without text rendering (4 Nov, F45: ply_console_viewer_hide on NULL)
 PKG_DESKTOP=(
   pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave and Steam; ALSA for
                                                           #   programs that open it directly: games)

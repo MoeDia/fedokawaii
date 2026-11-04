@@ -58,6 +58,7 @@ python3-gobject                 a library (the login screen, the panels)
 gtk3                            a library
 gtk4                            a library (satty)
 libadwaita                      a library (satty)
+plymouth-plugin-label           the boot splash (a script theme needs it on F45)
 plymouth-plugin-script          the boot splash
 # ── media, graphics, drivers ──
 ffmpeg                          a command (ffprobe too)
@@ -227,6 +228,7 @@ kawa-term                       the terminal windows' opener
 kawa-theme                      dark ⇄ light: quick settings' theme
 kawa-timer                      a menu: the bar's time
 kawa-carry                      your own things across a wipe: Super+U → backups
+kawa-stick                      the installer on a USB stick: Super+U → backups
 kawa-tidy                       the home kept clean: its timer runs it
 kawa-warm                       the warm windows (notes, clipboard, system): their keys, in dwl
 kawa-wash                       the theme switch's and a new wallpaper's transition: dwl draws it

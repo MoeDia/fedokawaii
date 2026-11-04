@@ -429,7 +429,7 @@ write_file() {                      # write_file PATH [MODE] < content — never
 # the project's own top level: what a clone or download of it holds (tests/static checks it
 # against the repository), so that setup's end can tell the project's files from yours
 # shellcheck disable=SC2034  # (setup.sh reads it)
-PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh
+PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh iso
              lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes
              .claude CLAUDE.md .shellcheckrc ruff.toml)   # (the agents' brief and notes, the linters' rules: the project's own too)
 # the boot's own arguments, on every boot entry (setup.sh's s_quiet_boot puts them there,
