@@ -13,6 +13,7 @@ other small things in state.json. A link of Prowlarr's holds its API key: kept i
 written. Each finished torrent says so once (kawa-downloads notice), remembered in state.json: never
 again at a start, and never for bytes that were already on the disk.
 """
+import base64
 import fcntl
 import json
 import mimetypes
@@ -441,7 +442,7 @@ class Engine:
 
     # ── adding ──────────────────────────────────────────────────────────────────────────────
     def add(self, kind, value, name="", source="", also="", paused=False):
-        """A magnet, a .torrent's path or a link → (id, already there?, what went wrong). ALSO: a link that
+        """A magnet, a .torrent's contents or a link → (id, already there?, what went wrong). ALSO: a link that
         may know the torrent's own trackers (Prowlarr's), asked in the background."""
         try:
             if kind == "url":
@@ -449,11 +450,9 @@ class Engine:
             atp = lt.parse_magnet_uri(value) if kind == "magnet" else lt.add_torrent_params()
             if kind == "bytes":
                 atp.ti = lt.torrent_info(lt.bdecode(value))
-            elif kind == "file":
-                atp.ti = lt.torrent_info(value)
             return self.add_params(atp, name, source, also, paused)
         except (RuntimeError, ValueError, OSError) as e:
-            what = "not a torrent" if kind in ("bytes", "file") else "not a link that can be read"
+            what = "not a torrent" if kind == "bytes" else "not a link that can be read"
             return None, False, f"{what} ({e})"
 
     def add_params(self, atp, name="", source="", also="", paused=False):
@@ -890,7 +889,10 @@ class Engine:
                                   "turtle": self.meta["turtle"]}, ensure_ascii=False, separators=(",", ":")) + "\n").encode())
 
     def op_add(self, c, q):
-        i, known, err = self.add(q["kind"], q["value"], q.get("name", ""), q.get("source", ""), q.get("also", ""))
+        kind, value = q["kind"], q["value"]
+        if kind == "torrent":
+            kind, value = "bytes", base64.b64decode(value)
+        i, known, err = self.add(kind, value, q.get("name", ""), q.get("source", ""), q.get("also", ""))
         return {"id": i, "known": known, "err": err}
 
     def clear_trouble(self, h, i):

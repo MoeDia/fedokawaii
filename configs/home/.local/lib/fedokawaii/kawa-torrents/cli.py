@@ -55,7 +55,12 @@ def add(args):
             rc = 1
             continue
         for kind, value in found:
-            a = ask_engine({"op": "add", "kind": kind, "value": value})
+            try:
+                a = ask_engine({"op": "add", **common.asking(kind, value)})
+            except OSError as e:
+                print(f"kawa-torrents: {value}: {e.strerror}", file=sys.stderr)
+                rc = 1
+                continue
             if a is None:
                 print("kawa-torrents: the engine does not answer — systemctl --user status kawa-torrents", file=sys.stderr)
                 return 1
@@ -93,26 +98,29 @@ def window_open():
 def open_link(args):
     """From the launcher and xdg-open: a window of its own, or, while one is open, the link added to it. The
     window it is added to shows it at once, wherever it stands: a notice says so here too."""
+    args = [a for a in args if a]
     if window_open():
-        if args and args[0]:
-            found = common.links(args[0])
+        for arg in args:
+            found = common.links(arg)
             if not found:
                 notify("not a magnet link or a .torrent file", "critical")
                 return 1
             for kind, value in found:
-                a = ask_engine({"op": "add", "kind": kind, "value": value})
+                try:
+                    a = ask_engine({"op": "add", **common.asking(kind, value)})
+                except OSError as e:
+                    notify(f"{os.path.basename(value)}: {e.strerror}", "critical")
+                    return 1
                 if a is None:
                     notify("the engine does not answer: systemctl --user status kawa-torrents", "critical")
                     return 1
                 if a.get("err"):
                     notify(a["err"], "critical")
                     return 1
-                name = common.magnet_name(value) if kind == "magnet" else common.reading(os.path.basename(value))
+                name = common.reading(common.magnet_name(value) if kind == "magnet" else os.path.basename(value)[:-8])
                 notify(("already here: " if a.get("known") else "added: ") + name)
         return 0
-    cmd = ["kawa-term", "--app", "kawa-torrents", "Torrents", os.path.realpath(sys.argv[0])]
-    if args and args[0]:
-        cmd.append(args[0])
+    cmd = ["kawa-term", "--app", "kawa-torrents", "Torrents", os.path.realpath(sys.argv[0]), *args]
     os.execvp(cmd[0], cmd)
     return 1
 

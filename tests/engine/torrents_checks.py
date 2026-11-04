@@ -22,6 +22,8 @@ REPO = os.environ["REPO"]
 LIB = os.path.join(REPO, "configs/home/.local/lib/fedokawaii/kawa-torrents")
 sys.path.insert(0, LIB)
 sys.pycache_prefix = os.path.join(os.environ["HOME"], ".cache/pyc")
+import common as common_  # noqa: E402
+
 TMP = os.environ["TMP"]
 HOME = os.environ["HOME"]
 STATE = os.path.join(HOME, ".local/state/fedokawaii/torrents")
@@ -110,16 +112,16 @@ def file_and_links():
     t = s.torrent("from.a.file", {"a.bin": 1 << 20})
     e = spawn_engine()
     c = e.client()
-    a = c.ask({"op": "add", "kind": "file", "value": t.path})
+    a = c.ask({"op": "add", **common_.asking("file", t.path)})
     eq((a["id"], a["known"], a["err"]), (t.hash, False, ""), "a .torrent")
     c.wait(lambda: c.rows.get(t.hash, {}).get("word") == "done", 40, "done")
-    eq(c.ask({"op": "add", "kind": "file", "value": t.path})["known"], True, "the same file again")
+    eq(c.ask({"op": "add", **common_.asking("file", t.path)})["known"], True, "the same file again")
     eq(c.ask({"op": "add", "kind": "magnet", "value": t.magnet})["known"], True, "its magnet")
-    a = c.ask({"op": "add", "kind": "file", "value": __file__})
+    a = c.ask({"op": "add", **common_.asking("file", __file__)})
     assert a["err"].startswith("not a torrent"), a
     a = c.ask({"op": "add", "kind": "magnet", "value": "magnet:?xt=urn:btih:zz"})
     assert a["err"].startswith("not a link"), a
-    a = c.ask({"op": "add", "kind": "file", "value": "/nonexistent/x.torrent"})
+    a = c.ask({"op": "add", "kind": "torrent", "value": "bm90IGJlbmNvZGU="})
     assert a["err"], a
     eq(len(c.rows), 1, "nothing added for them")
     # nonsense on the socket: answered or ignored, never the end of it
@@ -211,7 +213,7 @@ def choose_files():
     e = spawn_engine()
     c = e.client()
     s.ses.pause()                                  # (no one sends until the choice is made)
-    c.ask({"op": "add", "kind": "file", "value": t.path})
+    c.ask({"op": "add", **common_.asking("file", t.path)})
     c.ask({"op": "watch", "id": t.hash, "cells": 20})
     f = c.event("files", 10)
     names = [x[0] for x in f["files"] if x]
@@ -582,6 +584,8 @@ def words():
     f = os.path.join(TMP, "my file.torrent")
     open(f, "w").close()
     eq(cm.links(f), [("file", f)], "a path with a space")
+    os.chdir(TMP)
+    eq(cm.links("my file.torrent"), [("file", f)], "named from where you stand")
     eq(cm.links("file://" + f.replace(" ", "%20")), [("file", f)], "a file:// URI")
     eq(cm.links("/no/such/file.torrent"), [], "a path that is not there")
     eq(cm.links("nothing here"), [], "nothing")

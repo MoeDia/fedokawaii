@@ -12,12 +12,10 @@ import selectors
 import signal
 import socket
 import subprocess
-import tempfile
 import threading
 import time
 
 import common
-import prowlarr
 from common import cells, cut, pad, reading, size, speed, duration
 from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, Term
 
@@ -127,6 +125,8 @@ class App:
         self.find_moved = False
         self.top = 0
         self.items = []                            # the list shown: dicts, with "id" when it can be chosen
+        self.items_key = None
+        self.version = 0                           # one more with every change to the rows or the offers
         self.pane_focus = False                    # the keyboard in the details' files
         self.page = False                          # a narrow window: the details fill it
         self.filter = None                         # the list's filter line
@@ -232,6 +232,7 @@ class App:
             return
         ev = m.get("ev")
         if ev == "rows":
+            self.version += 1
             if m.get("all"):
                 self.rows = {}
                 self.turtle = m.get("turtle", False)
@@ -266,7 +267,10 @@ class App:
             self.tell("not a magnet link, a .torrent file or a link to one")
             return
         for kind, value in kinds:
-            self.send({"op": "add", "kind": kind, "value": value, "name": name, "source": source, "also": also}, self.added)
+            try:
+                self.send({"op": "add", **common.asking(kind, value), "name": name, "source": source, "also": also}, self.added)
+            except OSError as e:
+                self.tell(f"{os.path.basename(value)}: {e.strerror}")
         self.go_downloads()
 
     def added(self, m):
@@ -317,8 +321,10 @@ class App:
         except OSError:
             pass
         self.offers = offers
+        self.version += 1
 
     def on_clipboard(self, text):
+        self.version += 1
         self.offers = [o for o in self.offers if o["from"] != "clipboard"]
         found = [(k, v) for k, v in common.links(text, loose=False)]
         if self.adding is not None and not self.adding.text and found:
@@ -338,6 +344,7 @@ class App:
         return [o for o in self.offers if not o["hash"] or o["hash"] not in self.rows]
 
     def take_offer(self, o):
+        self.version += 1
         self.offers.remove(o)
         self.declined.add(o["value"])
         self.add_link(o["value"], o["name"] if o["kind"] != "many" else "")
@@ -396,6 +403,7 @@ class App:
 
     def search_thread(self, sid, q):
         """Prowlarr woken first if asleep (a few seconds), then each site asked on its own thread."""
+        import prowlarr                            # (only now: urllib and all it brings, half the window's memory)
         if not self.key:
             self.key = prowlarr.secret()
         if not self.key:
@@ -426,6 +434,7 @@ class App:
             threading.Thread(target=self.site_thread, args=(sid, q, site), daemon=True).start()
 
     def site_thread(self, sid, q, site):
+        import prowlarr
         rows = []
         try:
             rows = prowlarr.search(self.key, site, q)
@@ -465,6 +474,7 @@ class App:
                         threading.Thread(target=self.tend_thread, daemon=True).start()
 
     def tend_thread(self):
+        import prowlarr
         try:
             with open(os.devnull, "w") as quiet:
                 import contextlib
@@ -850,7 +860,10 @@ class App:
             elif self.filter is not None:
                 body_top = self.draw_filter_line(frame, list_w)
             body_h = rows - body_top - 1
-            self.items = self.find_items() if self.tab == "find" else self.list_items()
+            key = (self.tab, self.version, self.filter.text if self.filter else None, len(self.results), self.sort, self.search_err, bool(self.pending_sites), self.search_id)
+            if key != self.items_key:              # (an icon's next frame needs no new list: a thousand rows cost nothing)
+                self.items_key = key
+                self.items = self.find_items() if self.tab == "find" else self.list_items()
             self.place_cursor(body_h)
             if pane:
                 self.draw_list(frame, body_top, body_h, list_w)
@@ -1272,6 +1285,7 @@ class App:
                 self.take_offer(o)
                 return
             if k in ("x", "delete", "backspace"):
+                self.version += 1
                 self.offers.remove(o)
                 self.declined.add(o["value"])
                 return
@@ -1454,6 +1468,7 @@ class App:
 
     def pick_file(self):
         """The file dialog's own yazi, in this terminal: back here with what was chosen."""
+        import tempfile
         with tempfile.NamedTemporaryFile("r", prefix="kawa-torrents.", dir=common.RUN, delete=True) as f:
             self.t.leave()
             try:

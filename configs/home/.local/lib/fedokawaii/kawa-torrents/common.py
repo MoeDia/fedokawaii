@@ -2,13 +2,12 @@
 name and a number are written. Nothing here imports libtorrent: the window starts without it."""
 import base64
 import binascii
+import functools
 import html
 import os
 import re
 import unicodedata
-import urllib.error
 import urllib.parse
-import urllib.request
 
 HOME = os.path.expanduser("~")
 STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.join(HOME, ".local/state"), "fedokawaii/torrents")
@@ -26,6 +25,7 @@ _B32 = re.compile(r"(?<![A-Z2-7])[A-Z2-7]{32}(?![A-Z2-7])")
 _FILE_URI = re.compile(r"file://[^\s\"'<>\\`]+\.torrent(?=$|[\s\"'<>\\`])", re.I)
 _PATH = re.compile(r"(?:^|(?<=[\s\"']))((?:~|/)[^\n\"']*?\.torrent)(?=$|[\s\"'])", re.I | re.M)
 _TAIL = ").,;:!?]}>"
+MAX_TORRENT = 64 << 20                             # bytes: more than any .torrent, less than a mistake
 
 
 def file_uri_path(uri):
@@ -40,6 +40,8 @@ def links(text, loose=True):
     typed or pasted for this purpose can mean — a bare hash, any http link (a git commit is 40
     hex digits too: never offered from the clipboard)."""
     text = (text or "").strip()
+    if loose and text.endswith(".torrent") and os.path.isfile(text):   # (named from where you stand, spaces and all)
+        return [("file", os.path.abspath(text))]
     found, seen = [], set()
 
     def add(at, kind, value):
@@ -74,6 +76,16 @@ def links(text, loose=True):
             for m in list(_HEX.finditer(text)) + list(_B32.finditer(text)):
                 add(m.start(), "magnet", "magnet:?xt=urn:btih:" + m.group(0))
     return [(k, v) for _, k, v in sorted(found, key=lambda f: f[0])]
+
+
+def asking(kind, value):
+    """(kind, value) of links() as the engine is asked: a .torrent goes as its contents, so the engine, walled in, needs no
+    sight of the folder it lies in (/tmp, where a browser may have put it, is not its own)."""
+    if kind != "file":
+        return {"kind": kind, "value": value}
+    with open(value, "rb") as f:
+        data = f.read(MAX_TORRENT)
+    return {"kind": "torrent", "value": base64.b64encode(data).decode("ascii")}
 
 
 def _query(uri):
@@ -126,15 +138,17 @@ class FetchFailed(Exception):
         self.final = final
 
 
-class _NoRedirect(urllib.request.HTTPRedirectHandler):
-    def redirect_request(self, *a, **k):
-        return None
-
-
 def fetch_link(url, wait):
     """What a link leads to: ("magnet", uri) (a redirect) or ("bytes", a .torrent's contents). The words
     of a failure name its cause and never the link (it holds Prowlarr's key)."""
-    opener = urllib.request.build_opener(_NoRedirect)
+    import urllib.error            # (here, not above: with what it pulls in, half the window's memory and start)
+    import urllib.request
+
+    class NoRedirect(urllib.request.HTTPRedirectHandler):
+        def redirect_request(self, *a, **k):
+            return None
+
+    opener = urllib.request.build_opener(NoRedirect)
     for _ in range(6):
         if url.lower().startswith("magnet:"):
             return "magnet", url
@@ -188,6 +202,7 @@ def _gap(m):
     return " "
 
 
+@functools.lru_cache(maxsize=4096)                 # (asked for at every frame, for every row in sight)
 def reading(name):
     """A torrent's name as words: its dots and underscores read as spaces — a version's dots
     (1.6, 24.04.1) and a file's type at the end kept."""
