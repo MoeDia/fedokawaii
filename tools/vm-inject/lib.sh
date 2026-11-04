@@ -13,6 +13,7 @@
 #   facts                  the end state, for the evidence: report, phase, snapshots, kernels, holds, verify
 #   row OK|BROKEN WHAT     the row's line, its status in INJ_BAD
 set -u
+# shellcheck disable=SC2034  # (src, INJ_RC, INJ_BAD: for the scripts that source this)
 inj_init() {
   vm=$1 src=$2 out=/dev/shm/r27/inject/$3 name=$3
   here=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
@@ -23,6 +24,7 @@ inj_from() {
   { bash "$here/vm-snap.sh" "$vm" revert "$1" && bash "$here/vm-snap.sh" "$vm" start && bash "$here/vm-snap.sh" "$vm" nice 10; } >>"$log" 2>&1 \
     || { echo "$name: the VM did not start from $1" >&2; exit 2; }
 }
+# shellcheck disable=SC2034
 INJ_RC=""; INJ_OUT=""
 press_bg() {   # (detached: a move restarts the VM under it)
   local a=(update); (($#)) && a=("$@")
@@ -31,6 +33,7 @@ press_bg() {   # (detached: a move restarts the VM under it)
 press_wait() {   # press_wait [S] → 0 ended · 1 not within S seconds (3600)
   local end=$((SECONDS + ${1:-3600}))
   while ((SECONDS < end)); do
+    # shellcheck disable=SC2034
     run 'test -s /tmp/press.rc' 2>/dev/null && { INJ_RC=$(run 'cat /tmp/press.rc'); press_words; return 0; }
     sleep 5
   done
@@ -61,5 +64,6 @@ facts() {
 }
 row() {
   printf '%-22s %-7s %s\n' "$name" "$1" "$2" | tee -a "$out/row"
+  # shellcheck disable=SC2034
   [[ $1 == held ]] || INJ_BAD=1
 }

@@ -7,7 +7,8 @@ VM: `r27-updates` (port 2290; ~/VM/harness/r27-updates; clone of f44's states, r
 - 17:50 started; design + code read; VM cloned and booting; baseline apply running.
 
 ## What main must do to merge and apply
-(filled in as it is built)
+Merge: lane-integrate carries it. New files: lib/move.sh, tools/vm-preflight.sh, tools/vm-inject/{lib,run-all,release-move}.sh, tests/installer/test_toolkit_move.sh, tests/installer/stubs/rpmdb. Super+U loses the rows "fedokawaii" and "Fedora N"; lane-pixels' row work merges beside it.
+The PC's move, after the merged apply: (1) the test VM's verdict: `bash tools/vm-preflight.sh 45 --ram 4096 --out /tmp/pf` from the merged tree (about an hour; green writes nothing by itself) then `printf 'green %s pc\n\n' "$(date +%s)" | sudo tee /var/lib/fedokawaii/update/preflight-45` — or take the lane's green run below, it stays valid 30 days whatever the toolkit; (2) tell him on the page 2 minutes before; (3) `sudo fedokawaii upgrade --now`: the update first, then the whole move in a copy, the snapshot, the download, a notice, 30 seconds, the restart. The next start judges it before the login (20–40 minutes in all on tty1); greetd's [initial_session] as CLAUDE.md START 4 if the desktop must come back unattended. A red ends back on Fedora 44 with one more restart, said on login and in UPD/report.
 
 ## Open questions
 none

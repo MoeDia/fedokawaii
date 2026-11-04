@@ -60,7 +60,10 @@ base() {
     sudo dnf install -y -q fk-inject-a fk-inject-b
     sudo dnf -q config-manager setopt "*.includepkgs=fk-inject*"
     mkdir -p ~/.config/fedokawaii; printf "WAIT=180\n" >~/.config/fedokawaii/upkeep.conf' >>"$log" 2>&1 || { row BROKEN "the test repository"; return 1; }
-  # (all of today's real updates in already, so a press shows only what a row puts there)
+  # (one press with nothing to do: what its steps fetch the first time is then in the state, and every row's press is quick)
+  press update
+  [[ $INJ_RC == 0 ]] || { row BROKEN "the press with nothing to do: $(tail -n1 <<<"$INJ_OUT")"; return 1; }
+  run 'sudo rm -f /tmp/press.rc /tmp/press.out' >>"$log" 2>&1
   bash "$here/vm-snap.sh" "$vm" save inject >>"$log" 2>&1 || { row BROKEN "the state"; return 1; }
   row held "the state inject"
 }
@@ -76,7 +79,7 @@ v() { run "rpm -q --qf '%{version}' $1"; }
 report() { run "sudo sed -n ${1:-2}p $U/report"; }
 said() { [[ $INJ_OUT == *"$1"* ]]; }
 desktop() { run 'pgrep -x dwl >/dev/null && pgrep -x waybar >/dev/null'; }
-wait_desktop() { local i; for i in $(seq 40); do desktop && return 0; sleep 3; done; return 1; }
+wait_desktop() { local _i; for _i in $(seq 40); do desktop && return 0; sleep 3; done; return 1; }
 restart() { run 'sudo systemctl reboot' >>"$log" 2>&1; sleep 25; run --wait 900 >>"$log" 2>&1 && bash "$here/vm-snap.sh" "$vm" nice 10 >>"$log" 2>&1; }
 again() { cut_power; sleep 1; restart_vm; }
 theiface() { virsh -q -c qemu:///session domiflist "fk-$vm" | awk 'NF { print $1; exit }'; }
@@ -110,7 +113,7 @@ cut_transaction() {
   press_bg; phase_is replay 1200 || { end_row BROKEN "never reached the transaction"; return 1; }
   sleep 15; again
   # (the start itself judges it, before the login: not whole → the snapshot back, one restart)
-  local i; for i in $(seq 60); do [[ $(run "sudo sed -n 1p $U/report 2>/dev/null | cut -d' ' -f2") == restored && $(v fk-inject-a) == 1.0 ]] && break; sleep 5; run --wait 300 >>"$log" 2>&1; done
+  local _i; for _i in $(seq 60); do [[ $(run "sudo sed -n 1p $U/report 2>/dev/null | cut -d' ' -f2") == restored && $(v fk-inject-a) == 1.0 ]] && break; sleep 5; run --wait 300 >>"$log" 2>&1; done
   ok_if '[[ $(v fk-inject-a) == 1.0 && $(v fk-inject-b) == 1.0 ]] && wait_desktop && run "sudo test -e $U/restored-once"' "cut in the transaction: the system before it back, one restart: $(run 'tail -n1 ~/.local/state/fedokawaii/for-you/update-cut 2>/dev/null')"
 }
 cut_post() {
@@ -236,7 +239,7 @@ verify_broken() {
   press_bg; phase_is steps 1500 || { end_row BROKEN "never reached the steps"; return 1; }
   run 'sudo sh -c "printf \"exit 1\n\" >/usr/local/lib/fedokawaii/verify.sh"' >>"$log" 2>&1
   press_wait 1800
-  local end=$(report 1) line; line=$(report); restart
+  local end line; end=$(report 1); line=$(report); restart
   ok_if '[[ $end == *" restored" && $(v fk-inject-a) == 1.0 ]] && wait_desktop' "verify itself broken: red, never green: $line"
 }
 # ── the system before it, and back (rows 18, 23, 24, 25) ─────────────────────────────────────
@@ -275,7 +278,7 @@ close_window() {
   from close-window || return 1; pk fk-inject-a 1.1
   press_bg; phase_is candidate 900 || { end_row BROKEN "never reached the copy"; return 1; }
   run 'sudo pkill -f "fedokawaii.sh update"; sudo pkill -x tail' >>"$log" 2>&1
-  local i; for i in $(seq 360); do run 'systemctl is-active --quiet fedokawaii-update.service' || break; sleep 5; done
+  local _i; for _i in $(seq 360); do run 'systemctl is-active --quiet fedokawaii-update.service' || break; sleep 5; done
   ok_if '[[ $(v fk-inject-a) == 1.1 && $(report 1) == *" ok" ]]' "the window closed mid-run: the unit went on: $(report)"
 }
 inhibit() {
@@ -297,9 +300,34 @@ toolkit_bad() {
   press_words; run "sudo cat $U/toolkit-red" >"$out/toolkit-red" 2>&1
   ok_if '[[ $(cat "$out/toolkit-red") == v2099.1.1 ]] && [[ $(v fk-inject-a) == 1.1 ]] && run "bash -n /usr/local/lib/fedokawaii/lib/update.sh"' "a release that does not parse: refused, the update went on with the toolkit it had: $(report)"
 }
+# ── backups: a drive plugged in, a backup, a file lost, the file back (T48) ──────────────────
+backup_drive() {
+  from backup-drive || return 1
+  local img=$out/usb.img; qemu-img create -q -f raw "$img" 2G
+  virsh -q -c qemu:///session attach-disk "fk-$vm" "$img" sdz --targetbus usb --driver qemu --subdriver raw --live >>"$log" 2>&1 \
+    || { end_row BROKEN "the drive could not be plugged in"; return 1; }
+  sleep 5
+  # shellcheck disable=SC2016
+  run 'd=$(lsblk -dpno NAME,TRAN | awk "\$2 == \"usb\" { print \$1; exit }"); [ -n "$d" ] && sudo mkfs.ext4 -q -L FKTEST "$d"; sudo udevadm settle
+    sudo sed -i "s/^BACKUP_TARGET=[^ ]*/BACKUP_TARGET=\"FKTEST\"/" /usr/local/lib/fedokawaii/fedokawaii.conf; grep -n "^BACKUP_TARGET" /usr/local/lib/fedokawaii/fedokawaii.conf
+    install -m 600 /dev/null ~/.config/fedokawaii/secrets.sh; echo "RESTIC_PASSWORD=\"a test only\"" >~/.config/fedokawaii/secrets.sh
+    mkdir -p ~/Notes; echo "the first words" >~/Notes/lost.md' >>"$log" 2>&1
+  # shellcheck disable=SC2016
+  local e='export XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus PATH=$HOME/.local/bin:$PATH; '
+  run "$e kawa-backup" >"$out/backup.out" 2>&1; local r1=$?
+  local list; list=$(run "$e kawa-backup list" 2>&1)
+  run 'rm ~/Notes/lost.md' >>"$log" 2>&1
+  run "$e kawa-backup restore \$HOME/Notes/lost.md" >"$out/restore.out" 2>&1; local r2=$?
+  local back; back=$(run 'cat ~/Restored/*/Notes/lost.md 2>/dev/null || find ~/Restored -name lost.md -exec cat {} +')
+  # (the plug pulled while open: nothing hangs, the next backup says it is not there)
+  virsh -q -c qemu:///session detach-disk "fk-$vm" sdz --live >>"$log" 2>&1; sleep 5
+  local gone; gone=$(run "$e timeout 60 kawa-backup where" 2>&1)
+  rm -f "$img"
+  ok_if '[[ $r1 == 0 && $r2 == 0 && $back == "the first words" ]]' "a backup to a USB drive (exit $r1), $(wc -l <<<"$list") listed, the file back in ~/Restored (exit $r2: $back); plug pulled: $gone"
+}
 ALL=(cut_download cut_candidate cut_transaction cut_post network_kill thirdparty_lag clock pkg_unsigned pkg_scriptlet pkg_conflict pkg_tampered
      disk_full disk_unalloc boot_full snapper_broken rpmdb_damage broken_lib broken_session broken_mesa bls_broken verify_broken roundtrip
-     lock_held stale_offline close_window inhibit toolkit_bad)
+     lock_held stale_offline close_window inhibit toolkit_bad backup_drive)
 if [[ ${1:-} == base ]]; then base; exit $?; fi
 rows=("$@"); ((${#rows[@]})) || rows=("${ALL[@]}")
 bad=0

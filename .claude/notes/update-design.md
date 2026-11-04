@@ -229,6 +229,16 @@ before it).
 
 Phase 1 — **the toolkit first**: this repository's newest commit at its signed release tag from
 GitHub (r24-41b), re-exec from it; an unreachable GitHub: go on with the installed toolkit, said.
+*As built (4 Nov, lib/update.sh up_toolkit):* the newest `v…` tag over HTTPS (no signature: this machine
+has no key of the project's to check one with; GitHub's TLS and "only a tag, only forward" are the
+trust). Cloned as the user, every script parsed, its own tests/installer/test_torture.sh in a fake
+machine; red → this toolkit goes on, the tag recorded in UPD/toolkit-red and never tried again. Green
+→ the system before it snapshotted and pinned (UPD/snap-first: it becomes the run's own snapshot, so a
+red later takes the toolkit back with the packages), installed, the run re-executed from it. A red
+after it blames no package: the tag is refused, the next press tries the same packages on the old
+toolkit. A toolkit applied from a copy (fedokawaii apply, pull: STATE/toolkit-from-copy) is left alone:
+that machine follows its copy. Super+U's own "fedokawaii" row is gone; `fedokawaii pull` stays the working
+copy's command.
 
 Phase 2 — **refresh and download**: `dnf5 upgrade --refresh --downloadonly` (third-party
 repositories lenient: one failing is left out, said — B3 #15); the package set recorded (name,
@@ -353,6 +363,20 @@ facts after it (`dnf5 offline status` and `log`, os-release, rpm's set, verify, 
 start after an offline run restores the pinned snapshot by itself unless all is complete); red →
 the pinned snapshot restored, "Fedora N waits" with the failing checks. Fedora 45 (3 Nov 2026,
 B1 #13: systemd 262, dracut 111, grub2 81, rpm 6.1 with signatures enforced) is the first.
+*As built (4 Nov, lib/move.sh, tools/vm-preflight.sh):* the move has no row of its own; a press that
+ends with this Fedora current looks at the next one. Gates in order: released (Fedora's own server,
+never a mirror), settled (WAIT, 7 days; sooner within 60 days of this release's end; `fedokawaii upgrade
+--now` skips it), RPM Fusion has it, every COPR that has it (one that has not is left out, said), our
+builds' libraries are in it, the test VM (a fresh Fedora N, this desktop installed from nothing, its
+start, f45-checks; about an hour at nice 19; verdict in UPD/preflight-N for 30 days; a red one tried
+again with a newer toolkit). Then told once ("press update again": never a restart he was not told
+about; `upgrade` skips that too), then the whole `--releasever=N distro-sync` stored and replayed in a
+candidate (FK_MOVE: the builds' ldd not asked, they are rebuilt after it), the snapshot pinned, Fedora's
+own `system-upgrade download` and `reboot`. `fedokawaii-after-upgrade.service`, before the login, judges
+by facts: the release, every package of the set at its version, no duplicates; then the desktop's steps,
+then verify and the desktop's start against the press's baseline. Red anywhere: `kawa-snap restore`,
+one restart, "Fedora N waits". No answer in three hours: the login comes up, the unit tries again next
+start (MOVE stays). GRUB's counting armed at 4 (the offline start counts).
 
 ### 4.5 The AI fixer (T47; B6)
 

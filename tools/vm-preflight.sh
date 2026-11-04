@@ -65,7 +65,7 @@ bash "$here/vm-create.sh" "$name" --release "$n" --port "$port" --ram "$ram" >&2
   || { [[ -d $HOME/VM/harness/$name ]] && tail -n 3 "$HOME/VM/harness/$name/virt-install.log" >&2; cannot "Fedora $n could not be installed in the test VM (its tree, or the network)"; }
 say "Fedora $n: this desktop on it, from nothing, then started"
 bash "$here/vm-smoke.sh" "$name" --timeout 240 >&2; rc=$?
-s=$(ls -d "$HOME/VM/harness/$name"/smoke-* 2>/dev/null | sed -n '$p')
+s=$(find "$HOME/VM/harness/$name" -maxdepth 1 -name 'smoke-*' 2>/dev/null | sort | sed -n '$p')
 if ((rc != 0)); then
   # (the summary's reason, then what verify names: the first ten)
   mapfile -t why < <(

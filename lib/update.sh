@@ -125,7 +125,8 @@ up_rpmdb() {
   rpm -qa >/dev/null 2>&1 && rpmdb --verifydb >/dev/null 2>&1 && return 0
   log "rpm's database is damaged: rebuilt from what it can still read (its copy kept until that has proven itself)"
   rm -rf -- "$b"; cp -a --reflink=auto -- "$d" "$b" || die "rpm's database is damaged, and no copy of it could be made — nothing changed"
-  was=$(rpm -qa --root="$(ls -d /.snapshots/*/snapshot 2>/dev/null | sort -t/ -k3 -n | sed -n '$p')" 2>/dev/null | wc -l) || was=0
+  was=$(find /.snapshots -mindepth 2 -maxdepth 2 -name snapshot 2>/dev/null | sort -t/ -k3 -n | sed -n '$p') || was=""
+  was=$(rpm -qa --root="${was:-/nowhere}" 2>/dev/null | wc -l) || was=0
   if rpmdb --rebuilddb >/dev/null 2>&1 && rpm -qa >/dev/null 2>&1 && rpmdb --verifydb >/dev/null 2>&1; then
     now=$(rpm -qa 2>/dev/null | wc -l) || now=0
     if ((now > 0 && now * 10 >= was * 9)); then rm -rf -- "$b"; ok "rpm's database rebuilt: $now packages"; return 0; fi
