@@ -206,7 +206,8 @@ def palm(mood):
     if mood == 'oni':
         d.polygon([(12, 39), (26, 36), (46, 36), (60, 38), (69, 46), (68, 54), (58, 60), (56, 66), (24, 66), (20, 58), (12, 50)], fill=255)
     else:
-        d.polygon([(15, 41), (28, 38), (46, 38), (58, 40), (65, 48), (62, 56), (54, 61), (52, 66), (28, 66), (24, 59), (15, 51)], fill=255)
+        d.polygon([(16, 44), (17, 41), (21, 39), (28, 38), (46, 38), (53, 39), (58, 41), (62, 44), (65, 48), (64, 52), (60, 56), (55, 60), (52, 66),
+                   (28, 66), (25, 60), (20, 56), (17, 52), (16, 48)], fill=255)
     px = im.load()
     g = [['s' if px[x, y] else '.' for x in range(W)] for y in range(H)]
     g = outlined(g, open_below=False)
@@ -231,6 +232,11 @@ def palm(mood):
             for x in range(kx, kx + 3):
                 if g[43][x] in 'shd':
                     g[43][x] = 'k'
+        # a lotus of gold leaf on the back of the hand
+        for y, x0, x1 in ((48, 39, 40), (49, 38, 41), (50, 36, 43), (51, 37, 42), (52, 38, 41)):
+            for x in range(x0, x1 + 1):
+                if g[y][x] in 'shd':
+                    g[y][x] = 'g'
     if mood == 'oni':
         # an iron cuff with gold studs, then the tiger's pelt, torn at the edge
         x0, x1 = 19, 62

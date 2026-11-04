@@ -51,7 +51,8 @@ def wrong_for(ch):
 
 
 class Pty:
-    def __init__(self, argv, size, env=None):
+    def __init__(self, argv, size, env=None, cell=(8, 20)):
+        self.cell = cell
         self.pid, self.fd = pty.fork()
         if self.pid == 0:
             if env:
@@ -59,7 +60,7 @@ class Pty:
             os.environ['TERM'] = 'foot'
             os.execv(argv[0], argv)
         cols, rows = size
-        fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * 8, rows * 20))
+        fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * cell[0], rows * cell[1]))
         os.set_blocking(self.fd, False)   # (as foot's: both ways full is never a deadlock)
         self.out = bytearray()
         self.status = None
@@ -105,8 +106,9 @@ class Pty:
             except OSError:
                 return
 
-    def resize(self, cols, rows):
-        fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * 8, rows * 20))
+    def resize(self, cols, rows, cell=None):
+        self.cell = cell or self.cell
+        fcntl.ioctl(self.fd, termios.TIOCSWINSZ, struct.pack('HHHH', rows, cols, cols * self.cell[0], rows * self.cell[1]))
         try:
             os.kill(self.pid, signal.SIGWINCH)
         except OSError:

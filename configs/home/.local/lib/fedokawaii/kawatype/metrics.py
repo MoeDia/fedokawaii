@@ -31,6 +31,7 @@ class Run:
         self.samples = []          # (char, ms since the last press or None, right)
         self.slips = {}            # expected char → wrong presses on it
         self.shift_slips = 0       # capitals made with the shift of the same hand
+        self.counted = (0, 0)      # (standing()'s memo: up to which position, how many stood correct)
 
     # ── the clock ────────────────────────────────────────────────────────────
     def _tick(self, t):
@@ -92,6 +93,8 @@ class Run:
         if self.flow and self.pos > 0:
             self.pos -= 1
             self.got.pop(self.pos, None)
+            if self.pos < self.counted[0]:
+                self.counted = (0, 0)
             return True
         return False
 
@@ -112,7 +115,7 @@ class Run:
         and the correct start of the last one (as Monkeytype counts them)"""
         if not self.flow:
             return self.pos
-        count = i = 0
+        i, count = self.counted              # (the words already counted stay counted: asked at every key)
         text, got, end = self.text, self.got, self.pos
         n = len(text)
         while i < end:
@@ -121,14 +124,15 @@ class Run:
                 j += 1
             word_end = min(j + 1, n)         # (its space with it)
             if end < word_end:               # (the last word, not finished)
+                self.counted = (i, count)
                 k = i
                 while k < end and got.get(k) == text[k]:
                     k += 1
-                count += k - i
-                break
+                return count + k - i
             if all(got.get(k) == text[k] for k in range(i, word_end)):
                 count += word_end - i
             i = word_end
+        self.counted = (i, count)
         return count
 
     def minutes(self, now=None):

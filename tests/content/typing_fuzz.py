@@ -25,7 +25,7 @@ import time
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 from typing_pty import Pty, key, state_dir   # noqa: E402
 
-BIN = os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bin', 'kawa-typing')
+BIN = os.environ.get('TYPING_BIN') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', '..', 'bin', 'kawa-typing')
 LETTERS = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789 `~!@#$%^&*()-_=+[]{}\\|;:\'",.<>/?\n'
 NAMED = [13, 9, 127, 27, 32, 57358, 57441, 57442, 57443, 57444, 57447, 57448, 57449, 57450, 57453, 57399, 57414, 57376, 57427, 0, 999999]
 LEGACY = [b'\x1b[A', b'\x1b[B', b'\x1b[C', b'\x1b[D', b'\x1b[H', b'\x1b[F', b'\x1b[3~', b'\x1b[5~', b'\x1b[6~', b'\x1bOP', b'\x1bOA', b'\x1b[1;5C', b'\x1b[1;1:3D',

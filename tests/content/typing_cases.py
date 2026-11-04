@@ -482,6 +482,19 @@ def case_sizes():
     p.pump(0.2)
     st = finish(p)
     report('resized while typing: nothing lost', st == 0 and resume()['run']['pos'] >= 18 if st == 0 else False, str(st))
+    # the font's size changed (Ctrl+plus: 2 px at a time), a screen at scale 2: other cells, the same picture on them
+    fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
+    p = start((100, 32))
+    press(p, ENTER)
+    d = wait_resume(p)
+    text = d['run']['text']
+    for i, cell in enumerate(((9, 22), (10, 25), (16, 40), (7, 15), (1, 1), (8, 20))):
+        p.resize(100, 32, cell)
+        p.pump(0.1)
+        type_at(p, text[i * 3:i * 3 + 3], 300)
+    p.pump(0.2)
+    st = finish(p)
+    report('every cell size: no traceback', st == 0 and b'Traceback' not in bytes(p.out), str(st))
 
 
 def case_restore():
@@ -642,6 +655,22 @@ def case_landmark():
     with open(os.path.join(state_dir(), 'progress.json')) as f:
         st = json.load(f)
     report('passing the old way is kept, and the mark', st.get('crossed') is True and st.get('mark') == 50, str((st.get('crossed'), st.get('mark'))))
+
+
+def case_long_file():
+    """a long file: the last key as quick as the first (standing() counts on from where it stood)"""
+    fresh()
+    body = (TEXT + ' ') * 40
+    path = text_file(body[:19000])
+    p = start((100, 32), path)
+    wait_resume(p)
+    t0 = time.monotonic()
+    for ch in body[:600]:
+        p.send(key(ch))
+        p.send(key(ch, False, 3))
+    p.pump(0.5)
+    finish(p)
+    report(f'a file of 19000 characters: 600 keys in one burst drawn in {time.monotonic() - t0:.1f} s', b'Traceback' not in bytes(p.out) and p.status == 0, str(p.status))
 
 
 def case_ram():

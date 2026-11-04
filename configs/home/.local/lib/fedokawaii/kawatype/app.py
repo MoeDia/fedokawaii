@@ -531,8 +531,9 @@ class Home(Screen):
             return
         x, w = self.pane_x, self.pane_w
         rows = self.app.size[1]
-        for r in range(1, rows):
-            self.at(r, x, '\x1b[K')
+        for r in (1, self.first, self.first + 1):     # (its words only: the picture under them stays, and only what changes is sent)
+            if r < rows:
+                self.at(r, x, '\x1b[K')
         tell = self.rows[self.cursor].tell if self.rows else None
         st = self.app.store
         lit = {}
@@ -579,7 +580,6 @@ class Home(Screen):
                 self.kb.paint_key(self.pic, name, self.scale)
             cols_pic = math.ceil(self.pic.w / self.app.size[2])
             self.pic_col = x + (w - cols_pic) // 2
-            self.pic.touch_all()
             self.t.write(self.pic.send(self.pic_col + 1, self.first + 3 + 1, art.PALETTE[self.app.dark]))
 
     def draw(self):
@@ -589,6 +589,8 @@ class Home(Screen):
             self.draw_progress()
         else:
             self.draw_list()
+            if self.pic:
+                self.pic.touch_all()
             self.draw_pane()
         if self.app.store.failed:
             self.at(self.app.size[1] - 1, self.x0, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  the disk would not take your progress')
@@ -818,6 +820,7 @@ class LessonScreen(Screen):
         self.saved_at = 0.0
         self.finished = False
         self.pacer_cell = None
+        self.caps = False          # (caps lock on: every key tells it)
         self.watched = self.lesson.kind in ('sentences', 'passage') and not self.lesson.limit
         self.eye_next = 0.0        # (when the eye opens next: at random, every 40–60 s of a text)
         self.eye_open = 0.0        # (when it opened; 0: it is shut)
@@ -993,6 +996,8 @@ class LessonScreen(Screen):
         r = self.run
         if r.done:
             return []
+        if self.caps:
+            return [('caps', 0)]
         if self.eye_open:
             return [('tab', 0)]
         anchor = self.anchor()
@@ -1241,6 +1246,9 @@ class LessonScreen(Screen):
     def key(self, ev):
         now = ev.t
         name = ev.name
+        if bool(ev.mods & term.CAPS) != self.caps and name != 'caps':
+            self.caps = bool(ev.mods & term.CAPS)
+            self.apply_keys()
         if ev.kind == 'release':
             self.held.pop(name, None)
             self.app.releases = True
@@ -1315,7 +1323,7 @@ class LessonScreen(Screen):
             self.caret()
             return
         if not ch.isascii():
-            self.say('the keyboard is not in english', now)
+            self.say('the keyboard is not in english: alt + shift', now)
             self.caret()
             return
         self.typed(ch, name, now, ev)
