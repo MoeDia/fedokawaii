@@ -173,6 +173,29 @@ if python3 -I -B "$TMP/q.py" "$A" "$REPO" answers "$TMP/t" 2>"$TMP/err"; then
   e=$(cat "$TMP/t/answers.env"); has "$e" "FK_USER='dia'"; has "$e" "FK_CITY='O'\\''Fallon'"
 else _no "the answers: $(tail -n3 "$TMP/err")"; fi
 
+case_ "the base system's progress: Anaconda's own lines, as they came in a real run, make the meter"
+python3 -I -B - "$A" "$REPO" <<'PY' && _ok || _no "the progress"
+import os, sys
+sys.dont_write_bytecode = True
+sys.path[:0] = [os.path.join(sys.argv[1], "console"), os.path.join(sys.argv[2], "iso/screens")]
+import progress
+s = progress.State()
+says = lambda t: s.read("14:08:53,492 INFO anaconda:" + t)
+says("Creating btrfs on /dev/vda3")
+assert (s.word, s.count, s.percent) == ("the disk", "", 0), vars(s)
+says("Downloading packages")
+says("Downloading 427 RPMs, 305.17 MiB / 615.03 MiB (49%) done.")
+assert s.word == "the packages" and s.count == "305 MB of 615 MB" and 19 < s.percent < 20, vars(s)
+says("Installing NetworkManager.x86_64 (340/427)")
+assert s.count == "340 of 427" and 79 < s.percent < 80, vars(s)
+says("Configuring filesystem.x86_64")
+assert s.count == "340 of 427", vars(s)
+says("Running post-installation scripts")
+assert s.word == "the toolkit" and s.percent >= 90, vars(s)
+s.read("14:08:53,492 WARNING something else: Downloading 1 RPMs, 2 MiB / 4 MiB (50%) done.")
+assert s.word == "the toolkit", vars(s)
+PY
+
 case_ "the kickstart: strictly parsed by pykickstart as this release's handler, the answers in"
 if python3 -c 'import pykickstart' 2>/dev/null; then
   sed -e 's/@RELEASE@/45/g' -e "s|^%include /tmp/answers.ks|keyboard --vckeymap=us --xlayouts=us\ntimezone Asia/Dubai --utc\nnetwork --bootproto=dhcp --device=link --activate --hostname=fedokawaii\nuser --name=dia --groups=wheel --iscrypted --password=\$y\$x\nignoredisk --only-use=vda\nclearpart --all --initlabel --disklabel=gpt --drives=vda\nbootloader --boot-drive=vda --timeout=0|" "$REPO/iso/ks.cfg" >"$TMP/ks.cfg"
