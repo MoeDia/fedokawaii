@@ -6,7 +6,7 @@ Started 4 Nov 17:43. Worktree ~/repos/fk-regress, branch lane-regress. Tests onl
 - `tools/regress/README.md`: the list — every ledger item r24→r27 and every row of the master's trace → its check (or: gone / record / manual / open T..).
 - `tools/regress/items.py`: reads that list; `check` (held by tests/regress/test_list.sh) · `count` · `of NAME` · `blame LOG`.
 - `tests/regress/test_*.sh`: the stand-in checks that did not exist: boot, bar, fonts, keys, gone, counts, lock, dwl, isolation, kept, suite, wiring, list.
-- `tools/regress/*.sh`, new headless: bar-titles, tv-frames, popup-fullscreen, warm-rapid, gallery, anim.
+- `tools/regress/*.sh`, new headless: bar-titles, tv-frames, popup-fullscreen, warm-rapid, monitor-state, clipboard, term-grid, gallery, anim.
 - `tools/prepush.sh` (the commit in a throw-away copy: suite, headless set, verify; `--install` the git hook, main only), `tools/selftest.sh`'s section under --sandbox.
 - Every new stand-in proven to fail on the old behaviour: 26 mutations, all caught (/dev/shm/r27/regress/mut/run.sh).
 
@@ -20,6 +20,9 @@ Started 4 Nov 17:43. Worktree ~/repos/fk-regress, branch lane-regress. Tests onl
    - mapnotify's end: `if (w != c && w != p && !ispopup(c) && w->isfullscreen && m == w->mon && (w->tags & c->tags))`
    - focustop: `if (c->isfullscreen || ispopup(c))   /* (a popup over it keeps the keys) */ return c;`
    (The first alone is not enough: the fullscreen window takes the focus back and the popup closes.) Proven on a scratch build: 10 popups over a fullscreen terminal, each shows, closing gives it back pixel for pixel. Run tools/hl-dwl.sh --asan with it before applying; test_dwl_anim's focustop case words may want a touch.
+
+3. **Select + middle click does nothing** (copy/paste, owner 14:27): `configs/home/.config/foot/foot.ini` has `selection-target=clipboard` under the comment "selecting text also fills the clipboard" — foot(5): "one of none, primary, clipboard or both", so the primary is never filled. `tools/regress/clipboard.sh` is RED until this is in.
+   Fix: `selection-target=both`. Proven with the kit's --edit: all 13 cells hold.
 
 ## What main must do to merge
 - lane-integrate merges this branch. Conflicts are unlikely: everything is under tests/regress, tools/regress, tools/prepush.sh, tools/selftest.sh, tools/README-tools.md.
