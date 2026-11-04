@@ -25,8 +25,8 @@ PKG_BASE=(
                         #   kernel arguments (amdgpu, the console palette). Neither is in a
                         #   Minimal Install's @core: tar is @standard's, and the installer
                         #   adds grubby only for a UEFI boot — a BIOS install has none
-  NetworkManager sudo   # in @core already: listed so they are marked as yours, and dnf's
-                        # clean-up (autoremove) can never take the network or sudo
+  NetworkManager sudo firewalld   # in @core already: listed so they are marked as yours, and dnf's
+                        # clean-up (autoremove) can never take the network, sudo or the firewall
   NetworkManager-tui    # nmtui
   bash-completion       # tab completion for every CLI below
   neovim                # the only editor

@@ -101,6 +101,7 @@ back built
 rm -f "$W/etc/sysctl.d/60-fedokawaii-net.conf" "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf" "$FKH/sysctl-now"
 : >"$CALLS"; step net_sysctl; eq "$RC" 0 "$OUT"; cmp -s "$REPO/system/sysctl-net.conf" "$W/etc/sysctl.d/60-fedokawaii-net.conf" && _ok || _no "the file"
 called 'sysctl\] -q -p /etc/sysctl.d/60-fedokawaii-net.conf'
+has "$(cat "$W/etc/NetworkManager/conf.d/91-fedokawaii-net.conf")" "connection.mptcp-flags=1" "NetworkManager would loosen the strict path check"
 : >"$CALLS"; step net_dns; eq "$RC" 0 "$OUT"; called 'systemctl\] try-reload-or-restart systemd-resolved.service'
 d=$(cat "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf")
 for l in 'DNSOverTLS=opportunistic' 'Domains=~.' 'LLMNR=no' 'MulticastDNS=no' 'cloudflare-dns.com' 'dns.quad9.net' '2606:4700:4700::1111'; do has "$d" "$l"; done

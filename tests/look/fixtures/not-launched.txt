@@ -19,6 +19,7 @@ man-db                          man, in a shell; the change menu opens the manua
 tar                             a command
 grubby                          kernel arguments, set by setup
 NetworkManager                  a service (Network is nmtui)
+firewalld                       a service (system/net-allow.list makes its rules)
 sudo                            a command
 bash-completion                 the shell's tab completion
 tuned                           a service: the performance profile

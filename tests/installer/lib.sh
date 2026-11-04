@@ -554,7 +554,7 @@ built() {
     mkdir -p "$W/etc/firewalld/zones" "$W/etc/firewalld/policies" "$W/etc/sysctl.d" "$W/etc/systemd/resolved.conf.d"
     rm -f "$W"/etc/firewalld/zones/* "$W"/etc/firewalld/policies/*
     while IFS= read -r f; do net_fw_file "$f" >"$W/etc/firewalld/$f"; done < <(_net_fw_files)
-    _net_dns_conf >"$W$NET_DNS_FILE"; cp "$REPO/system/sysctl-net.conf" "$W$NET_SYSCTL_FILE"; cp "$REPO/system/sysctl-net.conf" "$FKH/sysctl-now" )
+    _net_dns_conf >"$W$NET_DNS_FILE"; cp "$REPO/system/sysctl-net.conf" "$W$NET_SYSCTL_FILE"; cp "$REPO/system/sysctl-net.conf" "$FKH/sysctl-now"; mkdir -p "$W/etc/NetworkManager/conf.d"; _net_nm_conf >"$W$NET_NM_FILE" )
   rm -rf "$FKH/fw-run"; mkdir -p "$FKH/fw-run"; cp -r "$W/etc/firewalld/zones" "$W/etc/firewalld/policies" "$FKH/fw-run/"; echo public >"$FKH/fw-default"
   echo menu_auto_hide=2 >"$FKH/grubenv"
   local q="rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 systemd.tty.term.console=dumb initcall_blacklist=simpledrm_platform_driver_init split_lock_detect=off"

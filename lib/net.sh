@@ -22,6 +22,7 @@ NET_LAN_SOURCES=(10.0.0.0/8 172.16.0.0/12 192.168.0.0/16 169.254.0.0/16 fc00::/7
 NET_DNS="1.1.1.1#cloudflare-dns.com 1.0.0.1#cloudflare-dns.com 2606:4700:4700::1111#cloudflare-dns.com 2606:4700:4700::1001#cloudflare-dns.com 9.9.9.9#dns.quad9.net 149.112.112.112#dns.quad9.net 2620:fe::fe#dns.quad9.net 2620:fe::9#dns.quad9.net"
 NET_DNS_FILE=/etc/systemd/resolved.conf.d/90-fedokawaii.conf
 NET_SYSCTL_FILE=/etc/sysctl.d/60-fedokawaii-net.conf
+NET_NM_FILE=/etc/NetworkManager/conf.d/91-fedokawaii-net.conf
 
 # ssh_wanted — sshd runs only where it can be used: SSH_SERVER=yes and a key to log in with
 ssh_wanted() { [[ $SSH_SERVER == yes ]] && grep -qsE '^[^#[:space:]]' "$TARGET_HOME/.ssh/authorized_keys"; }
@@ -108,7 +109,7 @@ net_firewall_wrong() {
       [[ $have == "$want" ]] || echo "zone $z holds sources [$have], should be [$want]"
     fi
   done
-  firewall-cmd --info-policy="$NET_POLICY" 2>/dev/null | grep -q '(active)' || echo "policy $NET_POLICY is not running"
+  [[ $(firewall-cmd --info-policy="$NET_POLICY" 2>/dev/null) == *"(active)"* ]] || echo "policy $NET_POLICY is not running"
   # (the card with the default route: a connection tied to another zone would skip all of it)
   while IFS= read -r i; do
     have=$(firewall-cmd --get-zone-of-interface="$i" 2>/dev/null) || have=none
@@ -155,9 +156,16 @@ _net_sysctl_rows() {
     else printf '%s %s\n' "$k" "$v"; fi
   done <"$REPO_DIR/system/sysctl-net.conf" | sort -u
 }
+# (NetworkManager loosens the strict path check on every card it handles MPTCP for: its own
+# manual, connection.mptcp-flags, and seen at a boot. Nothing here uses MPTCP: handling off)
+_net_nm_conf() {
+  printf '%s\n' "# Fedokawaii — no MPTCP handling: NetworkManager would loosen rp_filter on the card for it" \
+    "[connection]" "connection.mptcp-flags=1"
+}
 net_sysctl_wrong() {
   local k v have
   cmp -s "$REPO_DIR/system/sysctl-net.conf" "$NET_SYSCTL_FILE" || echo "$NET_SYSCTL_FILE is not the project's"
+  [[ -f $NET_NM_FILE && $(<"$NET_NM_FILE") == "$(_net_nm_conf)" ]] || echo "$NET_NM_FILE is not the project's"
   while IFS=' ' read -r k v; do
     have=$(sysctl -n "$k" 2>/dev/null) || have=none
     [[ $have == "$v" ]] || echo "$k = $have, should be $v"
@@ -166,6 +174,10 @@ net_sysctl_wrong() {
 net_sysctl() {
   cmp -s "$REPO_DIR/system/sysctl-net.conf" "$NET_SYSCTL_FILE" \
     || { write_file "$NET_SYSCTL_FILE" 0644 <"$REPO_DIR/system/sysctl-net.conf"; restorecon "$NET_SYSCTL_FILE" 2>/dev/null || true; }
+  if [[ ! -f $NET_NM_FILE || $(<"$NET_NM_FILE") != "$(_net_nm_conf)" ]]; then
+    _net_nm_conf | write_file "$NET_NM_FILE" 0644; restorecon "$NET_NM_FILE" 2>/dev/null || true
+    nmcli general reload conf >/dev/null 2>&1 || true
+  fi
   sysctl -q -p "$NET_SYSCTL_FILE" || die "the kernel refuses $NET_SYSCTL_FILE (above)"
 }
 _net_dns_conf() {

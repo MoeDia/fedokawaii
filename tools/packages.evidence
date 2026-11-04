@@ -97,6 +97,7 @@ mpv|fedora|https://packages.fedoraproject.org/search?query=mpv|2026-10-14|manife
 mpv-mpris|fedora|https://packages.fedoraproject.org/search?query=mpv-mpris|2026-10-14|manifest 2026-10-14
 neovim|fedora|https://packages.fedoraproject.org/search?query=neovim|2026-10-14|manifest 2026-10-14
 NetworkManager|fedora|https://packages.fedoraproject.org/search?query=NetworkManager|2026-10-14|manifest 2026-10-14
+firewalld|fedora|https://packages.fedoraproject.org/search?query=firewalld|2026-11-04|manifest 2026-11-04
 NetworkManager-tui|fedora|https://packages.fedoraproject.org/search?query=NetworkManager-tui|2026-10-14|manifest 2026-10-14
 nodejs24|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/|2026-10-20|F44 (nodejs24 by its own name; nodejs is 22)
 nodejs24-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-bin/|2026-10-20|F44

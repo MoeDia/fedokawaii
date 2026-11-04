@@ -53,7 +53,7 @@ for u in https://github.com/ https://dl.flathub.org/repo/summary.idx https://lsc
 done
 c=$(curl -sS -m 15 -o /dev/null -w '%{http_code}' https://api.steampowered.com/ISteamWebAPIUtil/GetServerInfo/v1/ 2>/dev/null)
 [[ $c == 200 ]] && ok "Steam's servers answer" || no "Steam's servers: ${c:-nothing}"
-timeout 15 chronyc -n sources 2>/dev/null | grep -q '^\^[*+]' && ok "the clock has a source" || no "chrony has no source"
+grep -q '^\^[*+]' <<<"$(timeout 15 chronyc -n sources 2>/dev/null)" && ok "the clock has a source" || no "chrony has no source"
 
 # ── Syncplay: its public server, the way the client starts ────────────────────
 python3 -I - <<'PY' && ok "Syncplay's server answers and offers TLS" || no "Syncplay's server (syncplay.pl:8999)"
@@ -90,12 +90,12 @@ N=(ip netns exec "$NS")
 "${N[@]}" ip route add "$T/32" via 10.199.42.1
 far() { "${N[@]}" curl -sS -k -m 4 -o /dev/null -w '%{http_code}' --interface "$1" "${@:2}" 2>&1; }
 LAN=10.199.42.2 WORLD=198.51.100.2
-if ss -Htln 'sport = :8737' | grep -q .; then
+if [[ -n $(ss -Htln 'sport = :8737') ]]; then
   c=$(far "$LAN" "http://$T:8737/"); [[ $c == *200 ]] && ok "the remote page answers the LAN" || no "the remote page, from the LAN: $c"
   c=$(far "$LAN" "http://$T:8737/api/state"); [[ $c == *401 ]] && ok "the remote page wants its token" || no "the remote page's state without a token: $c"
   c=$(far "$WORLD" "http://$T:8737/"); [[ $c == *000* || $c == *timed* ]] && ok "the remote page is silent to the world" || no "the remote page answered the world: $c"
 else say "the remote page is not running"; fi
-if ss -Htln 'sport = :53317' | grep -q .; then
+if [[ -n $(ss -Htln 'sport = :53317') ]]; then
   # (LocalSend's HTTPS asks for a client certificate: the handshake reaching that question is the answer)
   c=$("${N[@]}" curl -sS -k -m 4 -o /dev/null --interface "$LAN" "https://$T:53317/api/localsend/v2/info" 2>&1); [[ $c == *"certificate required"* || $c == "" ]] && ok "LocalSend answers the LAN" || no "LocalSend, from the LAN: $c"
   c=$("${N[@]}" curl -sS -k -m 4 -o /dev/null --interface "$WORLD" "https://$T:53317/api/localsend/v2/info" 2>&1); [[ $c == *imed* ]] && ok "LocalSend is silent to the world" || no "LocalSend answered the world: $c"
@@ -106,7 +106,7 @@ c=$("${N[@]}" ping -c1 -W2 -I "$WORLD" "$T" 2>&1 | grep -c ' 0% packet loss'); (
 if ((SWARM)); then
   py=$UH/.local/share/uv/tools/torrra/bin/python; "$py" -I -c 'import libtorrent' 2>/dev/null || py=python3
   if ! "$py" -I -c 'import libtorrent' 2>/dev/null; then say "no libtorrent here: the swarm left out"
-  elif ss -Htln 'sport = :6881' | grep -q .; then say "the torrents window is open: the swarm left out"
+  elif [[ -n $(ss -Htln 'sport = :6881') ]]; then say "the torrents window is open: the swarm left out"
   else
     chmod 755 "$TMP"; d=$TMP/swarm; mkdir -p "$d"; chown "$U" "$d"     # (the session runs as you, its files in here)
     (cd "$d" && runuser -u "$U" -- env -u PYTHONPATH "$py" -I - "$d" >"$TMP/swarm.out" 2>&1) <<'PY' &
