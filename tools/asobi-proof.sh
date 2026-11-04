@@ -310,7 +310,7 @@ vt2_proof() {
   echo "in again, as Super+G asks"
   t=$(date +%s%N)
   holds "kawa-asobi enter"               "${ask[@]}" enter
-  for i in {1..40}; do [[ $(cat /run/kawa-asobi/state) == front ]] && break; sleep 0.1; done
+  for _ in {1..40}; do [[ $(cat /run/kawa-asobi/state) == front ]] && break; sleep 0.1; done
   ok "thawed $(( ($(date +%s%N) - t) / 1000000 )) ms after the key"
   holds "VT 8 in front"                  test "$(cat /sys/class/tty/tty0/active)" = tty8
   holds "app.slice thawed"               grep -qx 'frozen 0' "$uid_slice/cgroup.events"

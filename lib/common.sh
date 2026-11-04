@@ -575,7 +575,7 @@ CONF_KEYS=(USERNAME GPU SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEAT
            BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT)
 # settings an earlier version had, gone since: read past in a file not yet merged (update's
 # conf_merge takes their lines out) — SPOTIFY (Spotify's app, built here; its web player now)
-CONF_RETIRED=(SPOTIFY)
+CONF_RETIRED=(SPOTIFY STEAM)
 CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
 # one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
 # (the value: BASH_REMATCH[3], [4] or [5], whichever matched)

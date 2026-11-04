@@ -70,8 +70,8 @@ size() { [[ ${1:-} =~ ^[0-9]+$ ]] && numfmt --to=si --suffix=B --round=nearest -
 status_lines() { cat -- "$RUN/status" 2>/dev/null; }
 snaps_count() { local n=0 k _; while IFS=$'\t' read -r k _; do [[ $k == snap ]] && ((n++)); done < <(status_lines); echo "$n"; }
 disk_value() {
-  local k a b c d world="" free=""
-  while IFS=$'\t' read -r k a b c d; do
+  local k a b world="" free=""
+  while IFS=$'\t' read -r k a b _; do
     case $k in world) world=$b ;; free) free=$a ;; esac
   done < <(status_lines)
   printf 'world %s · free %s' "$(size "$world")" "$(size "$free")"
@@ -83,7 +83,7 @@ drop_value() {
 state_word() { case $1 in starting) echo starting ;; away) echo "running" ;; frozen) echo "asleep" ;; *) echo "" ;; esac; }
 
 rows() {   # rows main|snaps W — WHAT<TAB>ROW a line
-  local k a b c d s w=$2
+  local k a b c s w=$2
   if [[ $1 == main ]]; then
     s=$(state)
     printf '%s\t%s\n' enter "$(screen_row "$ICON_TORII_SMALL" enter "$(state_word "$s")" "$w")"
@@ -94,7 +94,7 @@ rows() {   # rows main|snaps W — WHAT<TAB>ROW a line
     printf '%s\t%s\n' disk "$(screen_row "$ICON_DRIVE" "disk use" "$(disk_value)" "$w")"
     printf '%s\t%s\n' drop "$(screen_row "$ICON_FOLDER" "drop folder" "$(drop_value)" "$w")"
   else
-    while IFS=$'\t' read -r k a b c d; do
+    while IFS=$'\t' read -r k a b c _; do
       [[ $k == snap ]] || continue
       printf '%s\t%s\n' "$a" "$(screen_row "$ICON_CAMERA" "$a" "$(date -d "@$b" '+%-d %b %H:%M' 2>/dev/null) · $(size "$c")" "$w")"
     done < <(status_lines | sort -t$'\t' -k3,3nr)

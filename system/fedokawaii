@@ -736,8 +736,10 @@ rows() {
   e system    repair    "${ICON_KIT:-·}"        repair                 ""
   e system    drift     "${ICON_BRANCH:-·}"     drift                  ""
   [[ -n $desk ]] && e system change "${ICON_CODE:-·}" "change the desktop" ""
-  local w=""; IFS= read -r w 2>/dev/null </run/kawa-asobi/state; case $w in front|away) w=running ;; frozen) w=asleep ;; *) w="" ;; esac
-  e system    asobi     "${ICON_KOMA:-·}"       asobi                  "$w"
+  if [[ -n $desk ]]; then
+    local w=""; IFS= read -r w 2>/dev/null </run/kawa-asobi/state; case $w in front|away) w=running ;; frozen) w=asleep ;; *) w="" ;; esac
+    e system  asobi     "${ICON_KOMA:-·}"       asobi                  "$w"
+  fi
   e system    theme     "${ICON_THEME:-·}"      "the theme, anew"      ""
   e system    settings  "${ICON_SLIDERS:-·}"    settings               ""
   e system    remind    "${ICON_BELL:-·}"       reminders              "$([[ $REMIND == yes ]] && echo "every $EVERY days" || echo off)"
