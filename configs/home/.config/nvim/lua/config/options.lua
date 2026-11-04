@@ -4,10 +4,12 @@
 require("config.clipboard").setup()
 
 -- The command line and the messages: nvim's own ui2 (0.12), no plugin in between, and no row given
--- up for them: a message comes and goes above the status line, the command line opens over it.
+-- up for them: a message comes and goes above the status line, the command line opens over it,
+-- and what is there to be read (:ls, :registers, a shell command's output) stays in a pager, q closes.
 -- (a neovim without it keeps its plain command line; tests/content/test_notes.sh holds the installed
 -- one to having it, so an update that drops it is caught, not lived with)
-if pcall(function() require("vim._core.ui2").enable({ msg = { target = "msg" } }) end) then vim.o.cmdheight = 0 end
+local messages = { target = "msg", targets = { list_cmd = "pager", shell_out = "pager", shell_err = "pager" } }
+if pcall(function() require("vim._core.ui2").enable({ msg = messages }) end) then vim.o.cmdheight = 0 end
 -- The status line, from the first frame on (config/statusline.lua)
 require("config.statusline").setup()
 

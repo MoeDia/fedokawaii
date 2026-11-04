@@ -71,7 +71,7 @@ Keys: dumped from the real session on Python, Rust and the first screen (`nvim_g
 ## How it was checked
 
 - `tools/regress/nvim-start.sh` (new, picked up by `regress/run.sh`): 12 checks on what nvim actually draws, frame by frame, no timing limits but Ctrl+D's. All held.
-- Every kept plugin used through its key in the pty, 46 cases, no error (`flash`, picker, grep, tree, lazygit, grug-far, trouble, `]t`, `]h`, `]f`, `]c`, hover, rename, `gd`, `gr`, `gcc` in four languages, text objects, pairs, completion, the debugger, tests, REPL, Mason, Lazy, session, `:Man`, `:help`, `:checkhealth lazy`). The same run on the old config said the same.
+- Every kept plugin used through its key in the pty, 46 cases, plus 10 on the command line's rows (`flash`, picker, grep, tree, lazygit, grug-far, trouble, `]t`, `]h`, `]f`, `]c`, hover, rename, `gd`, `gr`, `gcc` in four languages, text objects, pairs, completion, the debugger, tests, REPL, Mason, Lazy, session, `:Man`, `:help`, `:checkhealth lazy`). New config: 55 of 56 clean; the one message (E325 on `L`) is the probe's own, a swap file its SIGKILL left between cases, and the old config says it too. The old config also had one picker race on `gr`.
 - A real debug session: Rust and Python both stop at their breakpoint.
 - The command line's rows through nested `Ctrl+R =`, `input()`, a confirm dialog, `q:`, a mapped `:`, `:%s` preview: the layout always returns (49 text rows). Frame by frame in a real foot: opening and closing change only the last row, one frame each.
 - Both themes shot in the kit, every state; the status row's stripes measured equal to the old one's (`px.py runs`): tile 17+64, branch 81+64, place 1801+96. Status colours follow `:set background`.
@@ -87,9 +87,21 @@ Keys: dumped from the real session on Python, Rust and the first screen (`nvim_g
 
 ## For the owner's veto (r27-extra)
 
-Each of these is a look or feel he did not ask for: the command line opening on the status line's own row instead of noice's float near the top (`cmdheight=1` would make `:` cheaper and give up a row); messages at the right above the line instead of toasts at the top right; no animated scroll or scope line (`Space u S` brings the scroll back for a session); a code fence in a Markdown file is a blank row instead of no row; a changed file's name bold in the text's ink in the line; a server's name and percent in the line while it works, instead of noice's corner messages.
+Each of these is a look or feel he did not ask for: the command line opening on the status line's own row instead of noice's float near the top (`cmdheight=1` would make `:` cheaper and give up a row); messages at the right above the line instead of toasts at the top right; no animated scroll or scope line (`Space u S` brings the scroll back for a session); a code fence in a Markdown file is a blank row instead of no row; a changed file's name bold in the text's ink in the line; a server's name and percent in the line while it works, instead of noice's corner messages; `:ls`, `:registers`, `:map` and a shell command's output in nvim's pager at the bottom (`q` closes), not noice's split.
 
 ## Left, not this lane's
 
 - T19: a hover's float has no frame on the see-through ground (`K`): the code behind it shows past its right edge. Same as before this lane; `vim.o.winborder = "single"` would frame it but also every other float, so it wants the design pass.
 - `lua/config/{autocmds,keymaps}.lua` remain on the live PC from the old starter (comments only, possibly his): T42 may take them.
+
+## State at 20:14, 4 Nov: NOT done yet (main announced a forced reboot at about 20:25)
+
+Everything is committed and pushed. My running jobs were stopped for the reboot, so these are **still open**:
+
+1. **The installer test area has not finished on the final tree.** Only `test_setup` (240 passed, on an earlier commit), `test_clean` (44) and `test_common` (138) completed with the lane's changes. `test_verify` failed 15 cases on one cause: the fake machine had three of the eight Mason tools. `tests/installer/lib.sh` is fixed, but the re-run was stopped before it reported, so that fix is unproved. Re-run: `bash ~/.cache/lane-nvim/keep/run-installer.sh` under `setsid -f`, file by file, from a frozen copy; other lanes hold the lock for long stretches. Pass or fix each.
+2. **`tests/content/test_tools.sh`, `test_configs.sh` and `tools/regress/nvim-start.sh` again on the final tree.** The pager routing in `options.lua` came after their last run. It was checked by hand only: 11 commands in the pty, `:!ls` and `:registers` in a real foot.
+3. **`first` (first-use times) has no trustworthy result.** Its runs fell at load 96, and the last was stopped. Re-run `python3 -B tools/nvim-bench.py first ~/.cache/lane-nvim/sb --variants before after --runs 5` after refreshing `after` with `sandbox --config after=$PWD/configs/home/.config/nvim`, and report it here.
+4. **The numbers above were taken on a machine main now says was unhealthy** (a kernel oops at 19:15, PID 1 stuck from 19:51, swap nearly full). The before/after comparison was interleaved, so its direction holds, but `start` and `keys` should be run once more on the rebooted machine before these tables go into the ledger. The final `start` run predates only the pager routing; `keys` predates the deferred server load and the pager routing.
+5. Then: remove `~/.cache/lane-nvim` and `/dev/shm/lane-nvim*`, and end this file with DONE.
+
+Helpers and raw results survive in `~/.cache/lane-nvim/keep/` (they expect `/dev/shm/lane-nvim/` to exist: `mkdir -p` it and copy them back). The sandbox is `~/.cache/lane-nvim/sb`.

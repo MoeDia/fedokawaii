@@ -731,7 +731,7 @@ def cmd_first(args):
                     os.remove(env["KAWA_BENCH_OUT"])
                 t = Term(nvim_argv(root, files), env, cwd=root + "/work")
                 wait_ready(t, env, extra_ms=1200)   # (a person's first key, not one racing the start)
-                r = press(t, keys, 300, 0, cap_ms=1500)
+                r = press(t, keys, 800, 0, cap_ms=4000)   # (a loaded machine stalls longer than any quiet shorter than this)
                 res.setdefault(f"{v}|{label}", []).append(r)
                 t.close()
     table = {}
