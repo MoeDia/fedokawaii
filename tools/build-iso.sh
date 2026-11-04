@@ -1,0 +1,158 @@
+#!/usr/bin/env bash
+# tools/build-iso.sh — the fedokawaii installer: one bootable ISO, reproducible, as a normal user.
+#   bash tools/build-iso.sh [--ref REF] [--out DIR] [--dev]
+#     --ref REF   the commit whose toolkit goes in (default HEAD; its time is the ISO's: SOURCE_DATE_EPOCH)
+#     --out DIR   where the ISO goes (default ~/VM/iso/out)
+#     --dev       an installer you can enter over ssh (inst.sshd): for working on it, never to publish
+# Fedora's netinst, its signed shim, GRUB and kernel untouched (Secure Boot stays on), replayed by
+# xorriso with only what nobody signs changed: the menu's grub.cfg, a kickstart, our screens as
+# images/product.img (Anaconda overlays it on its stage 2), the boot splash as a second initrd, the
+# toolkit as a tarball in the first. Same inputs (iso/inputs.sh) and same commit = the same bytes.
+# Written up in .claude/notes/iso-design.md. Needs: xorriso, mtools, cpio, xz, git, curl, python3-pillow.
+# Exit: 0 built (fedokawaii-DATE.iso + .sha256) · 1 failed (the line above says why) · 2 misuse.
+set -Eeuo pipefail
+here=$(cd "$(dirname "$0")" && pwd)
+repo=$(cd "$here/.." && pwd)
+ref=HEAD out=$HOME/VM/iso/out dev=0
+while (($#)); do
+  case $1 in
+    --ref) ref=$2; shift 2 ;;
+    --out) out=$2; shift 2 ;;
+    --dev) dev=1; shift ;;
+    -h|--help) sed -n '2,/^set -E/{/^set -E/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+    *) echo "build-iso: unknown option $1" >&2; exit 2 ;;
+  esac
+done
+for t in xorriso mcopy mdir cpio xz git curl rpm2cpio python3 sha256sum; do
+  command -v "$t" >/dev/null || { echo "build-iso: $t is missing" >&2; exit 1; }
+done
+# shellcheck source=iso/inputs.sh
+source "$repo/iso/inputs.sh"
+cache=$HOME/VM/iso/in
+mkdir -p "$cache/rpm" "$out"
+commit=$(git -C "$repo" rev-parse --verify "$ref^{commit}")
+export SOURCE_DATE_EPOCH
+SOURCE_DATE_EPOCH=$(git -C "$repo" log -1 --format=%ct "$commit")
+stamp=$(date -u -d "@$SOURCE_DATE_EPOCH" +%Y%m%d)
+work=$(mktemp -d "$HOME/VM/iso/build.XXXXXX")
+trap 'rm -rf "$work"' EXIT
+say() { printf '%s %s\n' "$(date +%T)" "$*"; }
+
+# ── the inputs, each by its checksum ─────────────────────────────────────────
+fetch() {   # fetch URL FILE SHA256 — from the cache, or the network; never a file that does not match
+  local url=$1 f=$2 sum=$3
+  if [[ ! -s $f ]]; then curl -sSfL --retry 3 --max-time 3600 -o "$f.part" "$url"; mv "$f.part" "$f"; fi
+  [[ $(sha256sum "$f" | cut -d' ' -f1) == "$sum" ]] || { echo "build-iso: $f is not the pinned file (sha256)" >&2; exit 1; }
+}
+# (the release must be the newest stable: a newer one is a new pin, after its VM pre-flight)
+newest=$(curl -sSf --max-time 30 https://fedoraproject.org/releases.json \
+  | python3 -Ic 'import json, sys; print(max(int(r["version"]) for r in json.load(sys.stdin) if r["version"].isdigit()))')
+[[ $newest == "$ISO_RELEASE" ]] || { echo "build-iso: Fedora $newest is the newest stable, the pin says $ISO_RELEASE (iso/inputs.sh)" >&2; exit 1; }
+say "inputs: $ISO_NETINST, commit ${commit:0:12}"
+netinst=$cache/$ISO_NETINST
+fetch "$ISO_NETINST_URL" "$netinst" "$ISO_NETINST_SHA256"
+mkdir "$work/rpm"
+for r in "${ISO_RPMS[@]}"; do
+  n=${r% *}
+  case $n in lib*) sub=l ;; p*) sub=p ;; i*) sub=i ;; *) echo "build-iso: where is $n?" >&2; exit 1 ;; esac
+  fetch "$ISO_RPM_URL/$sub/$n" "$cache/rpm/$n" "${r#* }"
+  rpm2cpio "$cache/rpm/$n" | (cd "$work/rpm" && cpio -idm --quiet)
+done
+
+# ── the pictures ─────────────────────────────────────────────────────────────
+# (from the commit, not the working tree: the same bytes whatever lies around)
+mkdir "$work/src"
+git -C "$repo" archive "$commit" -- art system tools/build-iso-art.py tools/build-themes.py iso lib/common.sh | tar -xf - -C "$work/src"
+python3 -B "$work/src/tools/build-iso-art.py" "$work/art"
+
+# reproducible <dir> <out>: a directory as a newc cpio, sorted, its times the commit's, root's
+reproducible() {
+  find "$1" -exec touch -h -d "@$SOURCE_DATE_EPOCH" {} +
+  (cd "$1" && find . -print0 | LC_ALL=C sort -z | cpio --null --quiet -o -H newc -R 0:0 --reproducible) >"$2"
+}
+
+# ── the toolkit ──────────────────────────────────────────────────────────────
+say "the toolkit"
+# (what the system needs, not the round's own notes)
+git -C "$repo" archive --format=tar "$commit" -- . ':(exclude).claude' | xz -T1 -6 --check=crc32 >"$work/toolkit.tar.xz"
+
+# ── stage 2's files: images/product.img ─────────────────────────────────────
+say "images/product.img"
+p=$work/product/usr/share/fedokawaii-iso
+mkdir -p "$p" "$work/product/etc/systemd/system/plymouth-quit.service.d"
+cp "$work/src/iso/screens/"* "$p/"
+cp "$work/art/console/sumi-console.psf" "$work/art/console/glyphs.py" "$p/"
+cp "$work/toolkit.tar.xz" "$p/"
+(cd "$work" && sha256sum toolkit.tar.xz) >"$p/toolkit.sha256"
+# (anaconda.target wants plymouth-quit: the picture must stay until our first draw)
+printf '%s\n' '[Service]' 'ExecStart=' 'ExecStart=-/usr/bin/plymouth quit --retain-splash' \
+  >"$work/product/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf"
+# the answers file's kernel arguments (the palette from the dark theme, the boot's own from lib/common.sh)
+eval "$(sed -n '/^BOOT_ARGS=(/,/)$/p' "$work/src/lib/common.sh")"
+pal=$(python3 -B - "$work/src" <<'PY'
+import importlib.util
+import pathlib
+import sys
+sys.dont_write_bytecode = True
+s = importlib.util.spec_from_file_location("themes", pathlib.Path(sys.argv[1]) / "tools/build-themes.py")
+m = importlib.util.module_from_spec(s)
+s.loader.exec_module(m)
+p = m.P["dark"]
+inks = [p["ground"]] + [p[k] for k in ("red", "green", "yellow", "blue", "purple", "teal", "ansi7", "ansi8",
+                                       "bred", "bgreen", "byellow", "bblue", "bpurple", "bteal", "ansi15")]
+print(" ".join("vt.default_%s=%s" % (n, ",".join(str(int(c[o:o + 2], 16)) for c in inks))
+               for n, o in (("red", 0), ("grn", 2), ("blu", 4))))
+PY
+)
+sed -i "s|@APPEND@|${BOOT_ARGS[*]} $pal|" "$p/questions.py"
+reproducible "$work/product" "$work/product.cpio"
+gzip -n -9 <"$work/product.cpio" >"$work/product.img"
+
+# ── the first stage's splash: a second initrd ───────────────────────────────
+say "the boot splash"
+b=$work/boot
+mkdir -p "$b/usr/lib64/plymouth/renderers" "$b/usr/share/plymouth/themes/sumi" "$b/etc/plymouth"
+cp -a "$work/rpm/usr/lib64/plymouth/script.so" "$b/usr/lib64/plymouth/"
+cp -a "$work/rpm/usr/lib64/plymouth/renderers/"*.so "$b/usr/lib64/plymouth/renderers/"
+cp -a "$work/rpm/usr/lib64/"libply-splash-graphics.so* "$work/rpm/usr/lib64/"libpng16.so* "$work/rpm/usr/lib64/"libdrm.so* "$b/usr/lib64/"
+cp "$work/art/plymouth/"* "$b/usr/share/plymouth/themes/sumi/"
+printf '%s\n' '[Daemon]' 'Theme=sumi' 'ShowDelay=0' 'DeviceTimeout=8' >"$b/etc/plymouth/plymouthd.conf"
+ln -s sumi/sumi.plymouth "$b/usr/share/plymouth/themes/default.plymouth"
+reproducible "$b" "$work/boot.cpio"
+xz -T1 --check=crc32 -6 <"$work/boot.cpio" >"$work/fedokawaii-boot.img"
+
+# ── the menu and the kickstart ──────────────────────────────────────────────
+say "the menu and the kickstart"
+args="inst.stage2=hd:LABEL=$ISO_VOLID inst.ks=hd:LABEL=$ISO_VOLID:/ks.cfg inst.text inst.notmux inst.noshell inst.geoloc=0 inst.nosave=input_ks,output_ks console=tty2 rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0 $pal"
+if ((dev)); then args+=" inst.sshd"; fi
+sed -e "s|@VOLID@|$ISO_VOLID|g" -e "s|@ARGS@|$args|g" "$work/src/iso/grub.cfg" >"$work/grub.cfg"
+sed -e "s|@RELEASE@|$ISO_RELEASE|g" "$work/src/iso/ks.cfg" >"$work/ks.cfg"
+if ((dev)); then sed -i '1i sshpw --username=root --plaintext fk' "$work/ks.cfg"; fi
+touch -d "@$SOURCE_DATE_EPOCH" "$work/grub.cfg"
+
+# ── the EFI partition: only its grub.cfg changes (nothing signed) ───────────
+# (where the netinst keeps it: GPT partition 2, read from the image itself)
+read -r esp_lba esp_n < <(xorriso -indev "$netinst" -report_system_area plain 2>/dev/null \
+  | awk '$1 == "GPT" && $2 == "start" && $5 == "2" { print $6, $7 }')
+dd if="$netinst" of="$work/esp.img" bs=512 skip="$esp_lba" count="$esp_n" status=none
+mcopy -o -m -i "$work/esp.img" "$work/grub.cfg" ::/EFI/BOOT/grub.cfg
+mcopy -o -m -i "$work/esp.img" "$work/grub.cfg" ::/EFI/BOOT/BOOT.conf
+
+# ── the ISO ─────────────────────────────────────────────────────────────────
+iso=$out/fedokawaii-$stamp.iso
+say "the ISO: $iso"
+rm -f "$iso"
+xorriso -no_rc -indev "$netinst" -outdev "$iso" -boot_image any replay \
+  -append_partition 2 C12A7328-F81F-11D2-BA4B-00A0C93EC93B "$work/esp.img" \
+  -update "$work/grub.cfg" /EFI/BOOT/grub.cfg \
+  -update "$work/grub.cfg" /EFI/BOOT/BOOT.conf \
+  -update "$work/grub.cfg" /boot/grub2/grub.cfg \
+  -map "$work/ks.cfg" /ks.cfg \
+  -map "$work/product.img" /images/product.img \
+  -map "$work/fedokawaii-boot.img" /images/pxeboot/fedokawaii-boot.img \
+  -map "$work/art/grub" /boot/grub2/themes/fedokawaii \
+  -alter_date_r b "=$SOURCE_DATE_EPOCH" / -- \
+  >"$work/xorriso.log" 2>&1 || { tail -n 20 "$work/xorriso.log" >&2; exit 1; }
+"$work/rpm/usr/bin/implantisomd5" --force --supported-iso "$iso" >/dev/null
+(cd "$out" && sha256sum "${iso##*/}") >"$iso.sha256"
+say "built: $(cut -c1-16 "$iso.sha256") $(stat -c %s "$iso") bytes"
