@@ -18,7 +18,7 @@ src=$HOME/.local/src/dwl
 [[ -f $src/dwl.c ]] || { echo "sketch-pen: no dwl source at $src" >&2; exit 2; }
 w=$(mktemp -d /dev/shm/regress-pen.XXXXXX); trap 'rm -rf "$w"' EXIT
 # the private dwl: the tree as it is, a fake tablet added
-mkdir "$w/dwl" && tar -C "$src" --exclude=.git --exclude=dwl --exclude='*.o' -cf - . | tar -C "$w/dwl" -xf - || exit 2
+mkdir "$w/dwl" && tar --numeric-owner -C "$src" --exclude=.git --exclude=dwl --exclude='*.o' -cf - . | tar -C "$w/dwl" -xf - || exit 2
 python3 -I "$here/../fake-tablet.py" "$w/dwl/dwl.c" >/dev/null || exit 2
 # (the mouse parked off the window: a brush with a fade grew a tail on the first stroke until dwl's penmove told
 # the window of the pointer once, 4 Nov. A dwl without that line is only tried with the mouse over the window)
@@ -38,7 +38,12 @@ export HOME=$h XDG_CONFIG_HOME=$h/.config XDG_DATA_HOME=$h/.local/share XDG_CACH
 cd "\$HOME" || exit 1
 # (no session bus: it needs none, and the bundle's old libdbus can take 41 s to greet a fenced one, 4 Nov; 1 ms the real one)
 ( ulimit -c 0; exec env -u QT_QPA_PLATFORMTHEME QT_QPA_PLATFORM=xcb DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent KAWA_FA_OPEN="$w/page.mdp" LD_PRELOAD="$lib" "$app" ) >"$w/app.log" 2>&1 &
-sleep 9
+# (the white page in its place, not a guess at how long a busy machine takes: 4 Nov, a shot of an empty screen)
+for i in \$(seq 120); do
+  [ "\$(grim -g '800,500 1x1' -t ppm - 2>/dev/null | tail -c 3 | od -An -tx1 | tr -d ' \n')" = ffffff ] && break
+  sleep 0.5
+done
+sleep 2
 $park
 pen() { printf '%s\n' "\$*" >"$w/tablet"; sleep 0.012; }
 for row in "300 0.10" "500 0.50" "700 1.00"; do

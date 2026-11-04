@@ -6,21 +6,13 @@ The owner wants the whole round finished today; he is at the PC until 23:30. Fin
 i want it skipped
 
 <!-- status -->
-## State at 20:15, 4 Nov: NOT DONE yet (the forced reboot of about 20:25, main's word)
+## State at 20:35, 4 Nov: NOT DONE yet; the re-check is running
 
-Everything is committed and pushed; nothing of this lane is running. **The code is complete; what is left is re-checking it.** The machine has been failing since about 19:51 (main: PID 1 and the user manager stuck, swap nearly full), so results after that are not to be trusted, and the last changes have not had a clean run:
+Main merged in (77b19a9f), the skin regenerated: no change. Re-run on the merge, all green: `test_sketch` 110/110, `test_theme` 151/151 (its first finished run), `test_theme_parts` 129/129, `test_manifest` 68/68, `test_upstream` 266/266, `test_syntax` 824/824, `test_generated` 276/276, `test_contrast` 21/21, `test_help` 142/142, `test_launcher` 268/268, `test_yazi` 140/140, `test_deps` 197/197, `test_design_doc` 54/54, `test_noellipsis` 9/9. The pen, on the last code: held, 2, 8, 16 px at 0.10, 0.50, 1.00 (20:32).
 
-- The last commit's changes: masks known by their pixels (no table of icon keys), the toolbar's three shorter words, `QLabel`'s words, UTF-16 surrogates in paths, a close dropped while a dialog is out, the pen check without a fenced bus. Seen working in the kit at about 20:00: both moods, light → dark live, repeated dialogs, the process alive. Not yet re-run on them: `tools/regress/sketch-pen.sh`: its last two tries hit its time limit while the machine failed (last clean result, 19:43, the code before them: 2, 8, 16 px).
-- `tests/installer/test_upstream.sh`: 266 passed, 0 failed (19:55, in a sick machine but a clean result). `tests/installer/test_theme.sh` **has never finished here**: it waited for the shared lock until stopped for the reboot.
+The machine is still sick (PID 1 stuck, 28k zombies): `getgrgid` hangs in nss-systemd, so `ls -l`, `ps` and `tar` take minutes; a crashing process hangs in the core dump's pipe. Avoid them; `tar --numeric-owner`.
 
-**Next, after the reboot, in this order, each with nice -n 10:**
-1. `cd ~/repos/fk-firealpaca`; `git status` is clean; `git fetch origin main`, merge it if it moved; `python3 tools/build-themes.py` if the palette moved.
-2. A throw-away home for the pen check (it reads `$HOME`): `~/.cache/lane-firealpaca/scripts/skinhome.sh` makes most of it; `app` is `~/.local/share/fedokawaii/firealpaca/app`, the library `make -C src/kawa-firealpaca O=DIR`, `.local/src/dwl` a link to the real tree. Then `HOME=that bash tools/regress/sketch-pen.sh`. If it runs out of time on a healthy machine, its message now says why: find that, do not raise the limit.
-3. `tests/content/test_sketch.sh`, `tests/installer/test_theme.sh`, `test_theme_parts.sh`, `test_manifest.sh`, `tests/static/test_syntax.sh`, `test_generated.sh`, `test_contrast.sh`, `tests/look/test_launcher.sh`, `tests/yazi/test_yazi.sh`, `tests/menus/test_help.sh`. test_theme's new case is unproven: it may need work.
-4. Both moods once more in the kit (the plays: `~/.cache/lane-firealpaca/scripts/k17.sh`, `k25.sh`; their paths still say /dev/shm/fa-lane: `kit-seed.sh` wants the app, the built library and `tools/vptr`, `vkbd`, rebuilt from `~/.cache/lane-firealpaca/tools`).
-5. Then this file ends with DONE. `rm -rf ~/.cache/lane-firealpaca` first: it is this lane's scratch.
-
-A finding worth keeping: FireAlpaca's start stalled 41 s in the kit from about 19:45 (plain too, `KAWA_FA_PLAIN=1`): Qt's first connect to the kit's **fenced** session bus through the bundle's old libdbus. The real session's bus: 0.001 s with the same library, so the owner never sees it. Plays and the pen check take the bus away (`DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent`: past that point in 0.4 s).
+Left: every dialog walked (`/dev/shm/fa-lane/scripts/dlgwalk.c`, a probe, never installed) because dialog buttons touch the frame (0 px on the right in New, also at the foot in Environment). Then this file ends with DONE; `rm -rf ~/.cache/lane-firealpaca /dev/shm/fa-lane` first.
 
 # lane-firealpaca — T28: Sketch is FireAlpaca, themed to the limit
 
