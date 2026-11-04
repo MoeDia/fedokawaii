@@ -247,3 +247,7 @@ tooltip box, tooltip * { padding: 0; margin: 0; min-height: 0; min-width: 0; }
    padding is what is left of the design's: 8 of pad and the row's 3 above the line, one row and
    one column of it in the picture) */
 tooltip label { color: @text; padding: 6px 3px 8px 3px; margin: 0; }
+
+/* (a window title or what plays in a fallback face, Arabic, emoji, Thai, taller than ours: the bar keeps
+   its 27 rows, the words on their rows) */
+#custom-title, #custom-nowplaying { padding-top: 0; padding-bottom: 0; min-height: 20px; }

@@ -84,7 +84,7 @@ unset -f __kawa_glass
 #   oni [repos/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
 #   oni [repos/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
 #
-#   head     the demon in red in the dark mood, the angel in sumi in the light one (the bar's crest
+#   head     the demon in the vermilion ink in the dark mood, the angel in sumi in the light one (the bar's crest
 #            in one ink, three cells, the line's whole height): where a command line starts;
 #            the demon roars, the angel looks up, when the last command failed
 #   folder   the one you are in, after the one above it (~ at home, / at the root), on Cream
@@ -157,7 +157,7 @@ __kawa_head() {
     __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_ANGEL $ICON_HEAD_ANGEL_2"
     ((__kawa_ok)) || __i_head="$ICON_HEAD_ANGEL_OPEN $ICON_HEAD_ANGEL_OPEN_2"
   else
-    __c_head=$'\001\e[31m\002' __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
+    __c_head=$__c_mark __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
     ((__kawa_ok)) || __i_head="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
   fi
 }

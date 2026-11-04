@@ -397,7 +397,7 @@ content, inside its margin of one cell:
   its footer names the keys of the moment.
 - **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
   ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
-  spill into one blank cell only): the demon in slot 1's red in the dark mood, the angel in the words' ink in the
+  spill into one blank cell only): the demon in the vermilion ink (`accent_text`, foot's slot 20) in the dark mood, the angel in the words' ink in the
   light; the demon roars, the angel looks up, when the last command failed; a switch of mood reaches an open terminal
   at its next prompt. The blocks: three papers of Wada's combination #300 (Cream Yellow, Turquoise Green, Calamine Blue:
   `tools/wada-palette.py`'s paper_* tokens, foot's colours 27–29, their ink 30, the same papers in both moods), words
@@ -520,7 +520,7 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 |---|---|---|
 | a window opens | rises from 120 px below its place on a spring (7.5 rad, damping 0.72), past it by a few px, and settles; 82 % of its size at first, whole with the same spring; clear within its first 18 % | 450 |
 | a window closes | sinks 64 px, gathering speed, 11 % smaller at the end, fading | 400 |
-| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; a spring (8 rad, damping 0.84), past its place a little; a wave through the windows, the ones nearest the way out first (48 ms between the first and the last); the rail (5 of the wallpapers' pixels wide: ink, lacquer, ink, the screen's whole height, under the bar) goes with the windows coming in; the bar's stamp lifts and stamps down on the new numeral; the wallpaper stays; a switch during a move goes on from where each window stands | 450 |
+| a workspace move | both workspaces on one strip, the screen and a rail long: to a higher one the strip moves left, to a lower one right; a spring (8 rad, damping 0.84), past its place a little; a wave split round the rail (leaving windows, the rail, coming windows, 48 ms in all), the rail between them in every frame; all of it one body: a switch during a move goes on from where it stands at the strip's speed, by the same way, a move back on the rail already at that seam; the bar and the wallpaper stay; never with a full-screen window | 450 |
 | tiled windows making room | flow to their new places on a spring, no overshoot | 300 |
 | a menu, panel or popup, a warm window (Super+U, N, V), a floating terminal (Super+R, W …) shown · put away | unrolls from its top edge down, behind a rod (a lacquer bar 4 px high, 2 px wider than the scroll either side, ink caps; it fades in the last 30 %) on its frame's foot · rolls up into its top edge | 300 · 240 |
 | a notice | its frame at once, its words dissolving in; dissolves away | 240 · 200 |

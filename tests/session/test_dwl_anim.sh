@@ -102,14 +102,17 @@ grep -q 'uint64_t linear = DRM_FORMAT_MOD_LINEAR;' <<<"$f" && grep -q '.format =
   && grep -q '"XLIBS=xcb xcb-icccm pixman-1 glesv2"' "$REPO/lib/manifest.sh" && grep -q 'XLIBS="xcb xcb-icccm pixman-1 glesv2"' "$REPO/tools/hl-dwl.sh" \
   && _ok || _no "the buffer's life"
 
-case_ "a workspace move: both on one strip, the screen and a rail long, the old windows out and the new in over anim_tag_ms on a spring, a wave through them; the rail of three pieces going with the ones coming in; freed with its monitor; a switch during a move goes on from where each stands"
+case_ "a workspace move: both on one strip, the screen and a rail long, the old windows out and the new in over anim_tag_ms on a spring, a wave split round the rail; the rail of three pieces between them; freed with its monitor; all of the strip one body: a switch during a move goes on from where each stands, at the strip's speed, by the same way, a move back on the rail already there"
 f=$(added applyframe)
 grep -q 'dx = tagdx(c);' <<<"$f" \
-  && grep -q 'return 1.0 - spring(p, TAG_W, TAG_Z);' <(sed -n '/^+tagease(double p)$/,/^+}/p' "$P") \
-  && grep -q 'anim_tag_wave \* (dir > 0 ? n : 1.0 - n);' <(sed -n '/^+tagwave(Client \*c, int dir)$/,/^+}/p' "$P") \
+  && grep -q 'return x1 + (x0 - x1) \* spring(p, TAG_W, TAG_Z) + v \* springv(p, TAG_W, TAG_Z);' <(sed -n '/^+tagat(int x0, int x1, double v, double p)$/,/^+}/p' "$P") \
+  && grep -q 'anim_tag_wave \* 0.5 \* (in + (dir > 0 ? n : 1.0 - n));' <(sed -n '/^+tagwave(Client \*c, int dir, int in)$/,/^+}/p' "$P") \
   && grep -q 'return m->m.width + RAIL_CELLS \* moncell(m);' <(sed -n '/^+stripw(Monitor \*m)$/,/^+}/p' "$P") \
-  && grep -q ': kind == AnimSlide ? anim_slide_ms : anim_tag_ms;' "$P" && grep -q '^+		railstart(m, dir);' "$P" \
-  && grep -q 'tagmove(c, after ? AnimIn : AnimOut, tagdx(c), after ? 0 : -dir \* stripw(m), 0);' "$P" \
+  && grep -q ': kind == AnimSlide ? anim_slide_ms : anim_tag_ms;' "$P" && grep -q '^+		railstart(m, dir, was, now);' "$P" \
+  && grep -q 'tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : x + m->stripd, m->stripv, 0);' "$P" \
+  && grep -q 'm->stripx0 = (int)lround(X) + dir \* stripw(m);' <(sed -n '/^+stripstart(Monitor \*m, int dir)$/,/^+}/p' "$P") \
+  && grep -q 'r->x1 = r->x0 + m->stripd;' "$P" \
+  && grep -q 'back |= r->tags == was && r->from == now;' "$P" \
   && grep -q 'railfree(r);' <(added cleanupmon; sed -n '/^ cleanupmon(/,/^ }/p' "$P"; grep -A3 'wl_list_for_each_safe(r, rtmp, &rails, link)' "$P") \
   && ! grep -q 'animturn\|animrev\|anim_drift' "$P" \
   && _ok || _no "the strip"
@@ -117,7 +120,7 @@ grep -q 'dx = tagdx(c);' <<<"$f" \
 case_ "layer surfaces by namespace (config.h layeranims): the panels' menus unroll over 300 ms and roll up over 240, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
   grep -Eq '^	\{ "kawa-panel", +300, +240, +1 \},' <<<"$c" && grep -Eq '^	\{ "notifications", +240, +200, +0 \},' <<<"$c" \
-    && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
+    && grep -Eq '^	\{ "kawa-dim", +180, +120, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
     && _ok || _no "layeranims"
 done
 case_ "a scroll's rod (a lacquer bar, ink caps) leads every unroll and roll-up, the panels' and the warm windows', gone with it"
@@ -192,7 +195,7 @@ grep -q '^-	motionnotify(0, NULL, 0, 0, 0, 0);$' <(grep -B12 '^ 	wlr_scene_node_
 # ── beside the animations, in the same patch: full screen and X11 windows ──
 case_ "focustop: a visible full-screen window first (a window it hides never takes the keys on a return to its workspace), else the latest focused one shown"
 f=$(sed -n '/^ focustop(Monitor \*m)$/,/^ }$/p' "$P")
-grep -q '^+		if (c->isfullscreen)$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
+grep -q '^+		if (c->isfullscreen || (!top && ispopup(c)))$' <<<"$f" && grep -q '^+		if (!top)$' <<<"$f" && grep -q '^+			continue;$' <<<"$f" \
   && _ok || _no "focustop does not prefer the full-screen window"
 case_ "arrange: an X11 window shown again is told it is not minimised (a Wine game black on returning to its workspace)"
 grep -q '^+			if (VISIBLEON(c, m) && client_is_x11(c) && !client_is_unmanaged(c)$' "$P" \

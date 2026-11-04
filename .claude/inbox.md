@@ -112,3 +112,56 @@ New lanes, mark their tasks theirs: lane-saver (38 the saver), lane-review (T19n
 ## 2026-11-04 18:49 — finding from lane-iso (main: for your plan; owner: a question at the end) — in the plan: T46 (plymouth-plugin-label, RPM Fusion key path before F45), T59 (memtest after the round)
 1. **F45's Plymouth crashes on our splash on every boot** unless plymouth-plugin-label is installed (26.134.222: script plugin calls ply_console_viewer_hide on a NULL viewer when there is no text rendering; coredump in my VM, source read). The result is a text boot with status lines, no splash. Fixed in lane-iso: lib/manifest.sh PKG_SESSION (+ packages.evidence, not-launched). The PC's 44 → 45 upgrade needs that package in before its first F45 boot, or merge lane-iso first (it also fixes setup.sh's RPM Fusion key path: F45's release packages keep the key under /usr/share/pki; a clean F45 install stopped there). The splash's ground in system/plymouth/sumi was the old #0f0e0c, now #181715.
 2. **Btrfs on the PC's NVMe logged its first checksum errors ever**, two files in five minutes: 18:42:25 a file under ~/.cache/r27-fixer (offset 806 MB), 18:46:17 my just-written ISO under ~/VM (offset 81 MB, read gave EIO, the ISO was thrown away). `btrfs device stats`: corruption_errs 7, wr/rd/flush 0, no MCE in the journal. Fresh data with a bad checksum points at RAM or at the kernel under memory pressure (the PC hit a global OOM at 18:15), not at the SSD; I have no proof which. Owner: if you can spare the PC for an hour after the round, a memtest (the random restart of 26 Oct would fit bad RAM too); until then nothing here is at risk that Btrfs does not report.
+
+## 2026-11-04 18:52 — in the plan: quick settings: lane-pixels; the Learn cover: lane-learning with lane-ink
+
+## OWNER 18:49 — MORE LOVE FOR QUICK SETTINGS (Super+X)
+He wants quick settings to be a small masterpiece, not a plain list. Keep it a menu (no circle), but:
+- a header with character: the mood's head (lane-ink's ink version at menu size) beside "quick settings", drawn into a little title plate
+- the two meters as real instruments at the top, with numbers: brightness as the lantern's glow filling, volume as segments; the same ramp as every meter
+- on/off drawn as small hanko seals (inked = on, blank = off) instead of the words
+- small section labels in muted ink (screen · sound · connect · capture · power) with even rhythm between sections
+- the new rows: RGB (all lights on/off, from lane-hardware) and share sound (from lane-browser)
+- every action row shows its key at the right as a keycap; the selected row uses the highlight RIGHT (2 px edge + tint)
+- hover/selected/pressed states drawn, the unroll motion kept, both moods, every gap measured; render it at 1x and 4x into .claude/review/next/ for his verdict
+
+## OWNER 18:49 — THE LEARN BOOK'S COVER
+The Learn book ("fedokawaii — learn") gets a real cover, shown in the PDF's first page, in Super+R's books (the cover preview) and in Super+U's Learning tab:
+- a full-bleed engraved ink illustration in the new style: the demon and the angel facing each other across the cover (dark and light, the two moods of the system), with Hokusai waves, clouds and sakura between them
+- the title set as real typography in a cartouche with a red hanko seal, plus a one-line subtitle; no pixel font on the cover
+- the figures come from lane-ink's chosen masters (git fetch; origin/lane-ink), placeholders until then; lane-learning builds and wires the cover; it looks right at the books menu's thumbnail size too
+- render it at full size and at thumbnail size into .claude/review/next/ for his verdict
+
+(lane-pixels owns quick settings; lane-learning owns the cover, with lane-ink's figures.)
+
+## 2026-11-04 18:56 — question from lane-hardware
+RGB is now solid red everywhere, as you asked: no motion. Please look and answer in one line, comparing with the keyboard: Gigabyte logo? case fans? CPU cooler's fan? For each: same red, too orange, too pink, too bright, too dim, or not red at all (say what it does). And the cooler's little display: does it show the CPU temperature?
+
+## 2026-11-04 18:59 — in the plan: T38, lane-hardware (its notes hold his answer)
+The owner's answer to «2026-11-04 18:56 — question from lane-hardware» (also written into that lane's notes):
+the keyboard is not red fix that and cpu is showing temperature between 88 and 89 c and the color is nice but brightness could be a little bit less
+
+## 2026-11-04 19:00 — question from lane-fixer
+Ollama: it was installed by hand on 24 Oct (/usr/local/bin/ollama, a service running at every start, 16 GB of models in /usr/share/ollama: Qwen3.5-9B and deepseek-coder-v2). The update's fixer does not use it: it has its own runtime and model in ~/.local, loaded only during an update. The plan (T42) removes Ollama as a stray unless you use it yourself. Keep it for your own use, or remove it with its two models? I go on with "remove" unless you say keep.
+
+## 2026-11-04 19:01 — in the plan: T42, T54b, lane-fixer (Ollama is a stray: nothing installs it; he wipes this PC at the end)
+The owner's answer to «2026-11-04 19:00 — question from lane-fixer» (also written into that lane's notes):
+remove it its a stray or dont since remember when all done i will nuke this install and doa. fresh one
+
+## 2026-11-04 19:01 — question from lane-hardware
+Thanks: dimmer coming. The keyboard: until 19:05 I drive it directly: 10 seconds green, 10 blue, 10 red, round and round. Look at it now. Does it follow those colours? If not, what does it show (one colour? which? a pattern? dark?)
+
+## 2026-11-04 19:01 — in the plan: T38, lane-hardware (its notes hold his answer)
+The owner's answer to «2026-11-04 19:01 — question from lane-hardware» (also written into that lane's notes):
+it IS showing 10 green 10 blue 10 red
+
+## 2026-11-04 19:02 — open
+The owner's answer to «2026-11-04 18:43 — question from lane-hardware» (also written into that lane's notes):
+yes it stays the same workspcae it works
+
+## 2026-11-04 19:02 — open
+The owner's answer to «2026-11-04 18:41 — question from lane-hardware» (also written into that lane's notes):
+we spoke about this
+
+## 2026-11-04 19:05 — question from lane-hardware
+Good, the keyboard listens. Now its own memory, the colour it shows when nothing drives it: look at it now, I set it to green for this test. Is it plain green? If not, what does it show?
