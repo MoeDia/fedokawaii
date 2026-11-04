@@ -31,7 +31,7 @@ local function path()
   local full = vim.api.nvim_buf_get_name(0)
   if full == "" then return "" end
   local name = full
-  local cwd = LazyVim.root.cwd()
+  local cwd = vim.uv.cwd() or ""
   if full:sub(1, #cwd + 1) == cwd .. "/" then
     name = full:sub(#cwd + 2)
   else
@@ -46,8 +46,8 @@ end
 
 -- the project's name, when it is not the folder neovim was started in
 local function root()
-  local r, cwd = LazyVim.root.get({ normalize = true }), LazyVim.root.cwd()
-  if r == cwd then return "" end
+  local r = LazyVim.root.get({ normalize = true })
+  if r == vim.uv.cwd() then return "" end
   return "%#KawaStRoot# " .. FOLDER .. " " .. text(vim.fs.basename(r))
 end
 
@@ -75,6 +75,19 @@ local function changes()
   return out
 end
 
+-- a language server at work: its name and how far it is, until it says it has finished
+local busy = ""
+local function on_progress(ev)
+  local value = ev.data.params.value
+  local client = vim.lsp.get_client_by_id(ev.data.client_id)
+  if value.kind == "end" or not client then
+    busy = ""
+  else
+    busy = client.name .. (value.percentage and " " .. value.percentage .. "%" or "")
+  end
+  vim.cmd.redrawstatus()
+end
+
 -- where the cursor is, in the file's symbols (Trouble's, from the first server that has them)
 local symbols
 local function here()
@@ -93,7 +106,8 @@ function M.render()
     .. (vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "") .. " " .. path() .. "%#KawaStQuiet#" .. here()
   local rec = vim.fn.reg_recording()
   local dap = package.loaded["dap"] and require("dap").status() or ""
-  local right = (rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "")
+  local right = (busy ~= "" and "%#KawaStQuiet#" .. text(busy) .. " " or "")
+    .. (rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "")
     .. (dap ~= "" and "%#KawaStDebug# " .. text(dap) .. " " or "")
     .. changes()
   -- the place: Top, Bot or its percent, the line, the column
@@ -115,6 +129,7 @@ function M.setup()
   vim.api.nvim_create_autocmd("User", {
     group = group, pattern = { "GitSignsUpdate", "DapProgressUpdate" }, callback = function() vim.cmd.redrawstatus() end,
   })
+  vim.api.nvim_create_autocmd("LspProgress", { group = group, callback = on_progress })
   vim.api.nvim_create_autocmd("LspAttach", {
     group = group,
     callback = function(ev)

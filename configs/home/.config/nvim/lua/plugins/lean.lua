@@ -1,5 +1,5 @@
--- ~/.config/nvim/lua/plugins/lean.lua — LazyVim, lighter (T30; the numbers: tools/nvim-bench.py,
--- .claude/notes/lane-nvim.md). Off: what costs more than it gives here. Later: what the first
+-- ~/.config/nvim/lua/plugins/lean.lua — LazyVim, lighter (measured with tools/nvim-bench.py; the
+-- tables: the ledger's r27-34). Off: what costs more than it gives here. Later: what the first
 -- screen does not need waits for its key, its file or the frame after. The keys stay LazyVim's.
 
 -- LazyVim compiled a language's indent, fold and text-object queries just to learn that they exist
@@ -96,7 +96,6 @@ return {
   -- parsers and their text objects with the first file: the first screen has none to read
   {
     "nvim-treesitter/nvim-treesitter",
-    lazy = true,
     event = function() return { "LazyFile" } end,
   },
   {
