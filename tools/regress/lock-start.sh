@@ -69,6 +69,9 @@ for name in ("first", "lock"):
         keep[n * fy:n * (fy + fh), n * fx:n * (fx + fw)] = False
     rx, ry, pitch, rn = map(int, kv["row"][0])
     keep[n * (ry - 3):n * (ry + 4), n * (rx - 2):n * (rx + pitch * rn + 3)] = False
+    if "gate" in kv:                                   # (its frames over the scene: lock-gate.sh judges them)
+        gx, gy, gw, gh, _ = map(int, kv["gate"][0])
+        keep[n * gy - n:n * (gy + gh + 1), n * gx - n:n * (gx + gw + 1)] = False
     out.append(str(int((~(got == want).all(axis=2))[keep].sum())))   # (pixels off the scene)
 print(*out, n)
 PY
