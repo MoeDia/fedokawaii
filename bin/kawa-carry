@@ -102,7 +102,6 @@ meter() {   # meter DONE TOTAL WORDS — ten segments (§7) and the words, on on
   done
   printf '\r\e[K  %s  %s%s%s' "$s" "$INK_MUTED" "$3" "$INK_OFF"
 }
-parts_of() { compgen -G "$1/carry.part.*" | LC_ALL=C sort; }
 
 save() {
   local total=0 b p free old=0

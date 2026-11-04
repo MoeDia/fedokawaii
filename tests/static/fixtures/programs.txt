@@ -39,6 +39,7 @@ ls                  minimal   coreutils
 mkdir               minimal   coreutils
 mktemp              minimal   coreutils
 mkfifo              minimal   coreutils
+split               minimal   coreutils
 mv                  minimal   coreutils
 numfmt              minimal   coreutils
 paste               minimal   coreutils
