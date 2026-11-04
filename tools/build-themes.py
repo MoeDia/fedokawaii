@@ -1211,15 +1211,15 @@ def panel_conf(m, p):
 def saver_conf(m, p):
     """kawa-saver, the screensaver: it draws its air and its seal itself (C), so it takes the colours by name — the
     air's (embers cooling, smoke, on the ink; gold dust and cherry petals, a Wada coral paled, on the paper), its seal's: the
-    ink, the ink struck (it cools); the shade over the sleeping painting (the painting's own black; on the paper, the gold
+    ink, the ink struck (it cools), the digits cut out of it; the shade over the sleeping painting (the painting's own black; on the paper, the gold
     hour: a warm brown)."""
     dark = m == "dark"
     c = {"spark_hot": p["strong"], "spark": p["flame"], "spark_cool": p["accent"], "spark_dim": p["accent_lo"],
          "drift": p["art_kinari"], "drift_lo": p["art_umber"], "seal": _wada.mix(p["accent"], p["accent_lo"], 0.5), "seal_hot": p["accent"],
-         "shade": "0b0a09"} if dark else \
+         "seal_cut": "0b0a09", "shade": "0b0a09"} if dark else \
         {"spark_hot": p["hi"], "spark": p["gold"], "spark_cool": p["yellow"], "spark_dim": p["lo"],
          "drift": _wada.mix(_wada.W["Coral Red"], p["key"], 0.62), "drift_lo": p["accent"], "seal": p["accent"], "seal_hot": p["accent_hi"],
-         "shade": _wada.W["Vandyke Brown"]}
+         "seal_cut": p["key"], "shade": _wada.W["Vandyke Brown"]}
     return (f"# {header('~/.config/fedokawaii/current/saver.conf', 'the screensaver in ' + NAMES[m])}\n"
             + "".join(f"{k}={v}\n" for k, v in c.items()))
 

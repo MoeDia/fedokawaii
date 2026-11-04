@@ -9,7 +9,7 @@
  *   the anims      the lock's own strips (flames, light on the stones), the same frames in the same places
  *   the haze       1/4 size: smoke off each flame, curling up to the beam and creeping along it (the dark mood, unless the lock's strips carry smoke)
  *   the air        1/2 size: embers rising (dark), gold dust and petals falling (light)
- *   the seal       the time, stamped at another third of the frame every minute, its digits cut out: the painting shows through them
+ *   the seal       the time, stamped at another third of the frame every minute, its digits cut out: the painting shows faintly through them
  */
 #include <math.h>
 #include <png.h>
@@ -37,11 +37,12 @@
 #define BREATH_STEPS 86  /* the figure's breath: a little over 7 s, far slower than the fires' */
 #define SEAL_ASIDE 56    /* how far the seal lands from its spot, in pixels */
 #define SEAL_COOL 12     /* steps a seal takes to cool from the ink it is struck in */
+#define SEAL_THROUGH 190 /* the digits cut out: this much (of 256) their ink, the rest the painting showing through */
 
 /* ── the inks (current/saver.conf) ──────────────────────────────────────────────────── */
-enum { SPARK_HOT, SPARK, SPARK_COOL, SPARK_DIM, DRIFT, DRIFT_LO, SEAL_INK, SEAL_HOT, SHADE_INK, NCOL };
+enum { SPARK_HOT, SPARK, SPARK_COOL, SPARK_DIM, DRIFT, DRIFT_LO, SEAL_INK, SEAL_HOT, SEAL_CUT, SHADE_INK, NCOL };
 static const char *colour_names[NCOL] = {
-	"spark_hot", "spark", "spark_cool", "spark_dim", "drift", "drift_lo", "seal", "seal_hot", "shade",
+	"spark_hot", "spark", "spark_cool", "spark_dim", "drift", "drift_lo", "seal", "seal_hot", "seal_cut", "shade",
 };
 static uint32_t pal[NCOL];
 
@@ -689,7 +690,7 @@ static void haze_step(void)
 	}
 }
 
-/* ── the time: a seal, hakubun, its digits cut out of the red; at another third of the frame every minute ── */
+/* ── the time: a seal, hakubun, its digits cut out of the red, the painting faintly through them; at another third of the frame every minute ── */
 /* a's share (0 … 256) of ink h, the rest of ink l */
 static uint32_t ink_mix(uint32_t h, uint32_t l, uint32_t a)
 {
@@ -738,7 +739,7 @@ static void seal_step(void)
 				int m = g[y * atlas + x];
 				if (m) {
 					uint32_t *q = &sealp.px[(gy + y) * sealp.w + gx + x];
-					*q = scale_px(*q, (uint32_t)(256 - m));
+					*q = ink_at(pal[SEAL_CUT], m * SEAL_THROUGH / 256) + scale_px(*q, (uint32_t)(256 - m));
 				}
 			}
 	}

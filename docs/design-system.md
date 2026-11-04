@@ -485,11 +485,11 @@ the tiles of a group, 12 px between groups.
   scatter, the head shakes 3 px twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
-- **Screensaver** (kawa-saver): the lock's own painting, asleep: `lock-scene.png` itself, and over it one patch, the figure at rest (`saver-lids.png`: the mask's eyes shut, re-cut by the lock's own engraver; the angel's shut, her halo out). `saver-scene.txt`: tools/build-saver.py. The dark lies over it, deep on the dark mood, the gold hour on the light, open round the
-  fires and breathing with them, and the sleeper has its own dim light, breathing slower (a little over 7 s); the painted flames burn in it (`saver-flame-N.png`: the flame itself moved in the heat); on the dark, smoke curls off each flame up to the beam and embers
+- **Screensaver** (kawa-saver): the lock's own painting, asleep: `lock-scene.png` itself, and over it one patch, the figure at rest (`saver-lids.png`: the mask's eyes shut, re-cut by the lock's own engraver; the angel's shut, her head bowed, her halo down to a trace). `saver-scene.txt`: tools/build-saver.py. The dark lies over it, deep on the dark mood, the gold hour on the light, open round the
+  fires and breathing with them, and the sleeper has its own dim light, breathing slower (a little over 7 s); the lock's own flames burn in it; on the dark, smoke curls off each flame up to the beam and embers
   rise, cooling; on the light, gold dust hangs in the air and petals fall. Twelve steps a second, each thing a layer of its own, the
   small ones scaled up smooth by the compositor. The time is a seal, 168 × 228 px, cut from worn stone, its digits
-  (12-hour, two rows of two) truly cut out: the painting shows through them. Every minute it is struck at another third of the frame (`spot`, clear of the figure, in turn across the frame, a little aside each time) in the hot ink, and cools in a second. Away (`--idle`) the
+  (12-hour, two rows of two) cut out: the painting shows faintly through them. Every minute it is struck at another third of the frame (`spot`, clear of the figure, in turn across the frame, a little aside each time) in the hot ink, and cools in a second. Away (`--idle`) the
   lock comes up under it once the painting covers the screen; the first key or move wakes the world (§11), no key reaches anything.
   The screens dark: no step, no frame, no CPU.
 - **Boot**: GRUB's menu and the boot splash (plymouth) in Sumi UI ×2 on the mood's ground, the

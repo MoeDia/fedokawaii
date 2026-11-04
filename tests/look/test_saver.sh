@@ -62,13 +62,13 @@ if [[ -n $SAVER ]]; then
   out=$(saver 2>&1); eq "$?$out" 0
   exec 7>&-
 
-  case_ "its colours: the theme's saver.conf, all nine — missing, it says what to repair"
-  names="spark_hot spark spark_cool spark_dim drift drift_lo seal seal_hot shade "
+  case_ "its colours: the theme's saver.conf, all ten — missing, it says what to repair"
+  names="spark_hot spark spark_cool spark_dim drift drift_lo seal seal_hot seal_cut shade "
   for t in dark light; do
-    eq "$(grep -c '^[a-z0-9_]*=[0-9a-f]\{6\}$' "$REPO/configs/home/.config/fedokawaii/themes/$t/saver.conf")" 9 "$t"
+    eq "$(grep -c '^[a-z0-9_]*=[0-9a-f]\{6\}$' "$REPO/configs/home/.config/fedokawaii/themes/$t/saver.conf")" 10 "$t"
     eq "$(sed -n 's/=.*//p' "$REPO/configs/home/.config/fedokawaii/themes/$t/saver.conf" | grep -v '^#' | tr '\n' ' ')" "$names" "$t: the names kawa-saver reads"
   done
-  has "$(cat "$SRC/world.h")" '"spark_hot", "spark", "spark_cool", "spark_dim", "drift", "drift_lo", "seal", "seal_hot", "shade",'
+  has "$(cat "$SRC/world.h")" '"spark_hot", "spark", "spark_cool", "spark_dim", "drift", "drift_lo", "seal", "seal_hot", "seal_cut", "shade",'
   rm "$HOME/.config/fedokawaii/current"
   out=$(saver 2>&1); eq "$?" 1; has "$out" "saver.conf"; has "$out" "fedokawaii repair"
   ln -sfn themes/dark "$HOME/.config/fedokawaii/current"

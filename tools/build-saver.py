@@ -1,15 +1,14 @@
 #!/usr/bin/env python3
 """tools/build-saver.py — what kawa-saver needs from the lock's own art, per mood, in saver-scene.txt: the lock's painting
-(lock-scene.png) and a patch over it with the figure asleep (saver-lids.png: the mask's eyes shut, re-cut by tools/build-ink.py's
-engraver; the angel's shut, her halo out), the flames (the painted flame itself moved in the heat: saver-flame-N.png) and the
-time's seal (saver-seal.png). A key opens the sleeper's picture onto the real lock: every pixel outside the patch is the lock's.
+(lock-scene.png) and a patch over it with the figure asleep (saver-lids.png: the mask's eyes shut and its jaw, re-cut by
+tools/build-ink.py's engraver; the angel's eyes shut, her head bowed, her halo out), the lock's own flames, and the time's seal
+(saver-seal.png). A key opens the sleeper's picture onto the real lock: every pixel outside the patch is the lock's.
     python3 tools/build-saver.py [--art DIR]     DIR: the folder of dark/ and light/ (default the repository's)
 Run it after any change to the lock's art (tests/look/test_saver.sh says when it was forgotten). Needs python3-pillow, numpy,
 scipy, and for the mask tools/build-ink.py's sources (art/ink/SOURCES.md)."""
 import argparse
 import hashlib
 import importlib.util
-import math
 import pathlib
 
 import numpy as np
@@ -19,13 +18,10 @@ from scipy import ndimage as ndi
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 REACH = {"dark": 560, "light": 620}        # how far a fire's pool reaches, in pixels at 1920 × 1080
 SIZE = (1920, 1080)
-FIRES = {"dark": ((113, 192), (1789, 195)), "light": ((418, 200), (1528, 208))}   # the painted fires' middles
 FIGURE = {"dark": (960, 565, 560), "light": (1002, 420, 620)}   # where the sleeper breathes: its middle (the wake starts there), the reach of its light
 SPOTS = {"dark": ((1330, 720), (560, 400), (590, 720), (1360, 400)),    # where the seal lands, in turn across the frame: its thirds, clear of the figure
          "light": ((1370, 720), (560, 400), (560, 720), (1370, 400))}
-FLAME = {"dark": (136, 196), "light": (176, 236)}   # a flame's frame round its fire, in pixels
-LOOPS = (14, 11)                           # a flame's frames, each fire its own count: they never beat together
-FLAME_MS = 84                              # a frame's time: a step of the saver's clock
+FLAME_MS = 125                             # a flame's frame, 8 a second as on the lock
 SEAL = (168, 228)                          # the time's seal, in pixels: two rows of two digits
 DIGIT = (68, 92)                           # a digit's cell in it
 SEAL_K = 2.7                               # (the seal's edge, its line and its wear are drawn at this many times their first size)
@@ -39,40 +35,6 @@ def words_of(path):
         if w:
             kv.setdefault(w[0], []).append(w[1:])
     return kv
-
-
-def flame_strip(painting, fire, size, frames, seed):
-    """a looped strip of the painted flame moved in the heat: its pixels pushed sideways, more towards the tip, its tongues rising
-    and falling, the air close to it shimmering; nothing moves at the frame's edge (the frames lie on the same painting: no seam)"""
-    w, h = size
-    x0, y0 = fire[0] - w // 2, fire[1] - h // 2
-    crop = np.asarray(painting.crop((x0, y0, x0 + w, y0 + h)), np.float32)
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    lum, warm = crop.mean(-1), crop[..., 0] - crop[..., 2]
-    hot = np.clip((lum - 150) / 70, 0, 1) * np.clip((warm + 40) / 80, 0, 1)
-    hot *= np.clip(1.2 - np.hypot((xx - w / 2) / (w * .46), (yy - h / 2) / (h * .5)), 0, .2) * 5
-    heat = np.asarray(Image.fromarray((hot * 255).astype(np.uint8)).filter(ImageFilter.GaussianBlur(9)), np.float32) / 255
-    heat = np.clip(heat / max(heat.max(), .01) * 1.7, 0, 1)
-    rows = np.nonzero(hot.max(1) > .5)[0]
-    tip, base = int(rows[0]), int(rows[-1])
-    up = np.clip((base - yy) / max(1, base - tip), 0, 1)
-    rng = np.random.default_rng(seed)
-    ph = rng.random(6) * 6.283
-    strip = np.zeros((h, w * frames, 4), np.uint8)
-    for f in range(frames):
-        t = f / frames * 2 * math.pi                 # (whole turns of it: the loop closes)
-        dx = up ** 1.3 * (6.5 * np.sin(yy / 27 - 2 * t + ph[0]) + 3.2 * np.sin(yy / 11 - 3 * t + ph[1]) + 2.4 * math.sin(t + ph[2]))
-        dy = up * (6.5 * math.sin(t + ph[3]) + 3.5 * math.sin(2 * t + ph[4]) + 1.6 * np.sin(xx / 9 + 3 * t + ph[5]))
-        sx, sy = np.clip(xx - dx * heat, 0, w - 1.001), np.clip(yy - dy * heat, 0, h - 1.001)
-        ix, iy = sx.astype(int), sy.astype(int)
-        fx, fy = (sx - ix)[..., None], (sy - iy)[..., None]
-        a = crop[iy, ix] * (1 - fx) + crop[iy, ix + 1] * fx
-        c = crop[iy + 1, ix] * (1 - fx) + crop[iy + 1, ix + 1] * fx
-        out = a * (1 - fy) + c * fy
-        out *= 1 + (heat * (.035 * math.sin(2 * t + ph[2]) + .02 * math.sin(3 * t + ph[4])))[..., None]
-        strip[:, f * w:(f + 1) * w, :3] = np.clip(out, 0, 255).astype(np.uint8)
-        strip[:, f * w:(f + 1) * w, 3] = (np.clip(heat * 9, 0, 1) * 255).astype(np.uint8)
-    return Image.fromarray(strip, "RGBA")
 
 
 def seal_atlas(path):
@@ -179,11 +141,84 @@ def ink_tool():
 
 
 def asleep_dark():
-    """the lock's own frame with the jaw shut, the mask's eyes shut"""
+    """the lock's own frame with the jaw shut, the mask's eyes shut, no flames (their strips lie over it)"""
     bi = ink_tool()
-    a, _ = bi.mask_source()
-    f = bi.dark_frame(bi.dark_layers(), 0, eyes_shut(a))
+    L = bi.dark_layers()
+    return to_image(bi.dark_frame(L, 0, eyes_shut(L["a"]), flames=False))
+
+
+def to_image(f):
     return Image.fromarray((np.clip(f, 0, 1) * 255 + .5).astype(np.uint8))
+
+
+# the angel's eyes on the screen, in pixels: what is taken out of her lines, the lid's line that takes its place (three points on it, a sag)
+ANGEL_EYES = (
+    ([(995, 175), (1000, 173), (1007, 173), (1011, 176), (1011, 180), (1006, 182.5), (1000, 182), (996, 179)], ((996.6, 176.4), (1003.2, 180.8), (1010.2, 178.8))),
+    ([(1027, 179), (1033, 178), (1039, 179), (1039.5, 185), (1034, 186.5), (1029, 185)], ((1027.2, 180), (1032.8, 184.2), (1039, 182.2))),
+)
+BOW = (977, 240, 8.5, (1002, 186), 78, 158)   # her head bowed: the neck it turns on, by how much, where wholly turned, the reach of that, where it fades out
+
+
+def angel_eyes_shut(ink):
+    """her lines with both eyes shut: the eye's opening clean, one fine arc for the lid, three short lashes"""
+    k = 4
+    x0, y0, w, h = 985, 160, 70, 40
+    wipe = Image.new("L", (w * k, h * k), 0)
+    line = Image.new("L", (w * k, h * k), 0)
+    dw, dl = ImageDraw.Draw(wipe), ImageDraw.Draw(line)
+    for poly, (a, b, c) in ANGEL_EYES:
+        dw.polygon([((x - x0) * k, (y - y0) * k) for x, y in poly], fill=255)
+        pts = []
+        for i in range(25):
+            t = i / 24
+            pts.append((((1 - t) ** 2 * a[0] + 2 * t * (1 - t) * (2 * b[0] - (a[0] + c[0]) / 2) + t * t * c[0] - x0) * k,
+                        ((1 - t) ** 2 * a[1] + 2 * t * (1 - t) * (2 * b[1] - (a[1] + c[1]) / 2) + t * t * c[1] - y0) * k))
+        dl.line(pts, fill=255, width=int(1.3 * k))
+        for t in (.42, .6, .78):                           # (the lashes: short, down and outward)
+            q = pts[round(t * 24)]
+            dl.line([q, (q[0] + 1.1 * k, q[1] + 1.9 * k)], fill=200, width=int(.6 * k))
+    a = np.asarray(wipe.resize((w, h), Image.BOX), np.float32) / 255
+    b = np.asarray(line.resize((w, h), Image.BOX), np.float32) / 255
+    out = ink.copy()
+    out[y0:y0 + h, x0:x0 + w] = np.maximum(out[y0:y0 + h, x0:x0 + w] * (1 - a), b)
+    return out
+
+
+def bowed(a):
+    """a picture (2 or 3 axes) with her head turned forward on the neck, fading out through the hair: the curls take up the seam"""
+    px, py, deg, (hx, hy), r0, r1 = BOW
+    H, W = a.shape[:2]
+    yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
+    w = 1 - smooth(r0, r1, np.hypot(xx - hx, yy - hy))
+    th = np.radians(deg) * w
+    dx, dy = xx - px, yy - py
+    sx = px + dx * np.cos(th) + dy * np.sin(th)            # (where each pixel comes from: turned back)
+    sy = py - dx * np.sin(th) + dy * np.cos(th)
+    y0, y1, x0, x1 = hy - r1 - 4, hy + r1 + 4, hx - r1 - 4, hx + r1 + 4
+    box = (sy[y0:y1, x0:x1], sx[y0:y1, x0:x1])
+    out = a.copy()
+    if a.ndim == 2:
+        out[y0:y1, x0:x1] = np.clip(ndi.map_coordinates(a, box, order=3), 0, 1)     # (a spline: her fine lines stay fine)
+    else:
+        for i in range(a.shape[2]):
+            out[y0:y1, x0:x1, i] = np.clip(ndi.map_coordinates(a[..., i], box, order=3), 0, 1)
+    return out
+
+
+def asleep_light(L=None):
+    """the lock's own frame with the scroll rolled and sealed: her eyes shut, her head bowed, the halo gone down to a trace, no rays"""
+    bi = ink_tool()
+    L = dict(L or bi.light_layers())
+    ink, wash = L["ink"], L["wash"]
+    ring = bi.paste_box(bi.halo_ring(), (bi.HEAD[0] - 200, bi.HEAD[1] - 200), (bi.SH, bi.SW))
+    base = wash * (1 - ink[..., None] * .96) + bi.SUMI_L * ink[..., None] * .96
+    L["base"] = base * (1 - ring[..., None] * .16) + bi.GOLD * ring[..., None] * .16
+    fi = bowed(angel_eyes_shut(L["fig_i"]))
+    L["fig_a"], L["body"] = bowed(L["fig_a"]), bowed(L["body"])
+    return to_image(bi.light_frame(L, 0, flames=False, a_ink=fi))
+
+
+ASLEEP = {"dark": asleep_dark, "light": asleep_light}
 
 
 def patch_of(lock, sleeping, path):
@@ -203,7 +238,7 @@ def build(d, mood, sleeping=None):
     lock = Image.open(d / "lock-scene.png").convert("RGB")
     if lock.size != SIZE:
         raise SystemExit(f"{d / 'lock-scene.png'}: {lock.size}, not {SIZE}")
-    sleeping = sleeping or asleep_dark()
+    sleeping = sleeping or ASLEEP[mood]()
     px, py = patch_of(lock, sleeping, d / "saver-lids.png")
     out.append(f"size {SIZE[0]} {SIZE[1]}")
     out.append("wall lock-scene.png   # the lock's own painting")
@@ -213,19 +248,13 @@ def build(d, mood, sleeping=None):
     out.append(f"rest {rest}   # how far the sleeper's own light reaches")
     for x, y in SPOTS[mood]:
         out.append(f"spot {x} {y}   # where the seal lands")
-    torches = list(FIRES[mood])
-    anims = []
-    for f in d.glob("saver-flame-*.png"):
-        f.unlink()
-    w, h = FLAME[mood]
-    for i, fire in enumerate(torches):
-        n = LOOPS[i % len(LOOPS)]
-        flame_strip(sleeping, fire, (w, h), n, 7 + i).save(d / f"saver-flame-{i}.png", optimize=True)
-        anims.append([f"saver-flame-{i}.png", fire[0] - w // 2, fire[1] - h // 2, w, h, n, FLAME_MS])
-    for x, y in torches:
-        out.append(f"torch {x} {y} {REACH[mood]}   # a fire: its middle, how far its pool reaches")
+    # the fires: the lock's own flames, the same frames in the same places (each its own pace: they never beat together)
+    fw, fh, n = (int(v) for v in kv["frames"][0])
+    anims = [["lock-flame.png", int(x), int(y), fw, fh, n, FLAME_MS + 13 * i] for i, (x, y) in enumerate(kv["flame"])]
     for a in anims:
         out.append("anim " + " ".join(str(v) for v in a) + "   # a strip: file, place, a frame's size, frames, ms a frame")
+    for a in anims:
+        out.append(f"torch {a[1] + fw // 2} {a[2] + fh // 2} {REACH[mood]}   # a fire: its middle, how far its pool reaches")
     top = min(a[2] for a in anims)
     out.append(f"ceiling {int(kv['ceiling'][0][0]) if 'ceiling' in kv else max(40, top - 170)}   # what stops the smoke")
     seal_atlas(d / "saver-seal.png")
@@ -237,7 +266,7 @@ def build(d, mood, sleeping=None):
     (d / "saver-scene.txt").write_text(
         "# saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.\n"
         + "\n".join(out) + "\n", encoding="utf-8")
-    print(f"{mood}: patch at {px} {py}, {len(torches)} fires, {len(anims)} strips, the middle {cx} {cy}")
+    print(f"{mood}: patch at {px} {py}, {len(anims)} fires, the middle {cx} {cy}")
 
 
 if __name__ == "__main__":
