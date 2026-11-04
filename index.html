@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Fedokawaii Remote</title>
+<style>
+:root{--bg:#f3ecdc;--paper:#fbf6ea;--ink:#22201c;--soft:#6d665b;--faint:#d9cfbb;--red:#c8361d;--redsoft:#f1d6cc;--green:#3d7a52;--mono:ui-monospace,"SF Mono",Menlo,monospace}
+@media (prefers-color-scheme:dark){:root{--bg:#171512;--paper:#211e1a;--ink:#ece3d0;--soft:#a39a89;--faint:#3a352e;--red:#e0553b;--redsoft:#3b231d;--green:#7fb38f}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.5 var(--mono)}
+main{max-width:1040px;margin:0 auto;padding:20px 16px 60px}
+header{display:flex;align-items:center;gap:12px;flex-wrap:wrap}.seal{width:38px;height:38px;background:var(--red);color:#fff;display:grid;place-items:center;font-size:20px;font-weight:700}
+h1{font-size:18px;margin:0;letter-spacing:.05em}.sub{color:var(--soft);font-size:12px}.grow{flex:1}
+.card{background:var(--paper);border:1px solid var(--faint);padding:14px 16px;margin-top:14px}
+.card h2{font-size:12px;margin:0 0 10px;text-transform:uppercase;letter-spacing:.14em;color:var(--soft)}
+.cols{display:grid;grid-template-columns:1fr 1fr;gap:14px}@media(max-width:780px){.cols{grid-template-columns:1fr}}
+button,input,textarea{font:inherit;color:inherit}button{background:var(--paper);border:1px solid var(--faint);padding:6px 12px;cursor:pointer}
+button:hover{border-color:var(--red)}button.red{background:var(--red);border-color:var(--red);color:#fff}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+input,textarea{background:var(--bg);border:1px solid var(--faint);padding:8px;width:100%}textarea{min-height:90px;resize:vertical}
+.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:8px}
+.big{font-size:26px;font-weight:700}.bar{height:9px;background:var(--faint);margin-top:6px}.bar i{display:block;height:100%;background:var(--red)}
+.task{display:grid;grid-template-columns:18px 52px 1fr;gap:8px;padding:2px 0}.task.done{color:var(--soft)}.task.done .t{text-decoration:line-through}
+.task.cur{background:var(--redsoft)}.id{color:var(--red)}.phase{margin:12px 0 4px;font-weight:700}
+pre{margin:0;white-space:pre-wrap;word-break:break-word;font-size:12px;max-height:340px;overflow:auto}
+.c{display:grid;grid-template-columns:90px 1fr;gap:8px;border-top:1px solid var(--faint);padding:3px 0}.c:first-child{border:0}
+.ri{border-top:1px solid var(--faint);padding:12px 0}.ri:first-child{border:0}.ri img{max-width:100%;border:1px solid var(--faint);image-rendering:pixelated;cursor:zoom-in}
+.msg{font-size:12px;color:var(--soft);margin-top:6px}.err{color:var(--red)}
+#login{max-width:420px;margin:15vh auto}
+</style></head><body>
+<div id="login" class="card" hidden><h2>Fedokawaii remote</h2><p class="sub">The token is in <b>~/.config/fedokawaii/remote-token</b> on the PC.</p>
+<input id="tok" type="password" placeholder="token"><div class="row" style="margin-top:8px"><button class="red" id="go">open</button></div><div class="msg" id="lmsg"></div></div>
+<main id="app" hidden>
+<header><div class="seal">鬼</div><div><h1>FEDOKAWAII · REMOTE</h1><div class="sub" id="upd">…</div></div><div class="grow"></div><button id="out">forget token</button></header>
+<section class="card"><h2>Now</h2><div class="row" style="gap:28px">
+<div><span class="dot" id="dot"></span><b id="st">…</b><div class="sub" id="st2"></div></div>
+<div><div class="big" id="pct">–</div><div class="sub" id="cnt"></div></div>
+<div class="grow" style="min-width:240px"><div class="sub">current task</div><div id="cur">–</div><div class="bar"><i id="bf"></i></div></div>
+<div class="sub" id="sys"></div></div></section>
+<section class="card"><h2>Control</h2><div class="row">
+<button data-a="nonstop">non-stop until done</button><button data-a="daily">daily schedule (1 h a day)</button>
+<button data-a="bulk" data-h="6">bulk 6 h</button><button data-a="bulk" data-h="12">bulk 12 h</button>
+<button data-a="newpass">restart current pass</button><button data-a="stop" class="red">stop everything</button></div>
+<div class="msg" id="cmsg"></div></section>
+<div class="cols">
+<section class="card"><h2>Add a task</h2><textarea id="tt" placeholder="say it any way — the run cleans it up and puts it in the plan"></textarea>
+<div class="row" style="margin-top:8px"><button class="red" id="send">send to the run</button></div><div class="msg" id="tmsg"></div></section>
+<section class="card"><h2>Inbox</h2><pre id="inbox" class="sub">–</pre></section></div>
+<section class="card"><h2>Design review</h2><div id="rq" class="sub"></div><div id="rv">–</div>
+<div style="margin-top:12px"><b>General design note</b><textarea id="gn" placeholder="anything about the design as a whole"></textarea>
+<div class="row" style="margin-top:6px"><button class="red" onclick="fb('general','comment',document.getElementById('gn'))">send note</button></div></div>
+<details style="margin-top:10px"><summary class="sub">your design feedback so far</summary><pre id="fbk" class="sub"></pre></details></section>
+<section class="card"><h2>Agents working now</h2><div id="agents" class="sub">–</div></section>
+<section class="card"><h2>Live log</h2><pre id="log">–</pre></section>
+<section class="card"><h2>Lanes</h2><div id="lanes" class="sub">no lanes</div></section>
+<section class="card"><h2>Commits (on the PC)</h2><div id="commits">–</div></section>
+<section class="card"><h2>The plan</h2><div id="plan">–</div></section>
+</main>
+<script>
+const $=i=>document.getElementById(i);const esc=s=>String(s).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+let T="";try{T=localStorage.getItem("fkr_tok")||""}catch{}
+async function api(p,b){const r=await fetch(p,{method:b?"POST":"GET",headers:{"X-Token":T,"Content-Type":"application/json"},body:b?JSON.stringify(b):undefined,cache:"no-store"});if(r.status==401)throw new Error("token");if(!r.ok)throw new Error(r.status);return r.json()}
+function login(m){$("app").hidden=true;$("login").hidden=false;$("lmsg").textContent=m||""}
+$("go").onclick=()=>{T=$("tok").value.trim();try{localStorage.setItem("fkr_tok",T)}catch{}$("login").hidden=true;tick()};
+$("out").onclick=()=>{try{localStorage.removeItem("fkr_tok")}catch{}T="";login()};
+function dur(s){if(s==null)return"";const h=Math.floor(s/3600),m=Math.floor(s%3600/60);return h?h+" h "+m+" min":m+" min"}
+async function tick(){if(!T)return login();try{const s=await api("/api/state");$("login").hidden=true;$("app").hidden=false;
+const run=s.units.filter(u=>u.active=="active").map(u=>u.unit.replace(".service",""));const nA=(s.agents||[]).length;
+const c=s.claude;$("dot").style.background=c?"var(--green)":run.length?"var(--soft)":"var(--red)";
+$("st").textContent=c?"working":run.length?"resting":"stopped";if(nA>1)$("st").textContent+=" · "+nA+" agents";
+$("st2").textContent=(c?"this pass: "+dur(c.seconds)+" · ":"")+(run.length?run.join(", "):"nothing scheduled")+(s.dirty?" · "+s.dirty+" files in progress":"");
+const t=s.plan,d=t.filter(x=>x.state=="done").length,cur=t.find(x=>x.state=="wip")||t.find(x=>x.state!="done");const pc=t.length?Math.round(d*100/t.length):0;
+$("pct").textContent=pc+"%";$("cnt").textContent=d+" of "+t.length+" tasks";$("bf").style.width=pc+"%";$("cur").innerHTML=cur?"<b>"+esc(cur.id)+"</b> "+esc(cur.title):"all done";
+$("sys").innerHTML="load "+s.load.join(" ")+"<br>RAM "+(s.mem[1]||"?")+" / "+(s.mem[0]||"?")+" MB · GPU "+(s.gpu||"?")+"%";
+$("log").textContent=s.log.join("\n");if(s.review)renderReview(s.review);
+$("agents").innerHTML=(s.agents||[]).length?s.agents.map(a=>"<b>"+esc(a.who)+"</b> · "+dur(a.seconds)).join("<br>"):"none right now";
+const L=s.lanes||{};$("lanes").innerHTML=Object.keys(L).length?Object.keys(L).map(k=>"<b>"+esc(k)+"</b><pre>"+esc(L[k].join("\n"))+"</pre>").join(""):"no lanes";$("inbox").textContent=s.inbox.trim()||"empty";
+$("commits").innerHTML=s.commits.map(l=>{const[a,b]=l.split("\t");return'<div class="c"><span class="sub">'+esc(a)+"</span><span>"+esc(b||"")+"</span></div>"}).join("");
+let h="",ph=null;for(const x of t){if(x.phase!=ph){ph=x.phase;h+='<div class="phase">'+esc(ph)+"</div>"}h+='<div class="task'+(x.state=="done"?" done":"")+(x===cur?" cur":"")+'"><span>'+(x.state=="done"?"✓":x===cur?"▸":"·")+'</span><span class="id">'+esc(x.id)+'</span><span class="t">'+esc(x.title)+"</span></div>"}
+$("plan").innerHTML=h||"no plan";$("upd").textContent=s.time+" · live, every 5 s"}catch(e){if(e.message=="token")login("wrong token");else $("upd").innerHTML='<span class="err">PC not reachable ('+esc(e.message)+")</span>"}}
+document.querySelectorAll("[data-a]").forEach(b=>b.onclick=async()=>{const a=b.dataset.a;if(a=="stop"&&!confirm("Stop the run completely?"))return;
+$("cmsg").textContent="…";try{await api("/api/action",{action:a,hours:b.dataset.h});$("cmsg").textContent="done: "+b.textContent;setTimeout(tick,1500)}catch(e){$("cmsg").innerHTML='<span class="err">'+esc(e.message)+"</span>"}});
+$("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;try{await api("/api/action",{action:"task",text:v});$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass";tick()}catch(e){$("tmsg").innerHTML='<span class="err">'+esc(e.message)+"</span>"}};
+let rvKey="";
+function renderReview(r){const key=JSON.stringify(r.items.map(i=>i.file))+r.questions;$("fbk").textContent=r.feedback.trim()||"none yet";if(key===rvKey)return;rvKey=key;
+$("rq").innerHTML=r.questions?"<pre>"+esc(r.questions)+"</pre>":"";
+$("rv").innerHTML=r.items.length?r.items.map((i,n)=>'<div class="ri"><b>'+esc(i.title)+'</b>'+(i.note?'<div class="sub">'+esc(i.note)+'</div>':'')+
+'<a href="/review/'+encodeURIComponent(i.file)+'?t='+encodeURIComponent(T)+'" target="_blank"><img loading="lazy" src="/review/'+encodeURIComponent(i.file)+'?t='+encodeURIComponent(T)+'"></a>'+
+'<textarea id="c'+n+'" placeholder="what to change (optional)"></textarea><div class="row" style="margin-top:6px">'+
+['love','ok','change','redo'].map(v=>'<button onclick="fb(\''+esc(i.title)+'\',\''+v+'\',document.getElementById(\'c'+n+'\'))">'+v+'</button>').join("")+'</div></div>').join("")
+:"no review pack yet — the run publishes one before the last design refinement (T19p)"}
+async function fb(item,verdict,el){try{await api("/api/action",{action:"feedback",item,verdict,text:el?el.value:""});if(el)el.value="";$("cmsg").textContent="feedback saved: "+item+" — "+verdict;rvKey="";tick()}catch(e){alert(e.message)}}
+tick();setInterval(tick,5000);
+</script></body></html>
