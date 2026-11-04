@@ -253,12 +253,13 @@ def pad(s, n):
 
 # ── a number ────────────────────────────────────────────────────────────────────────────────
 def size(n):
+    """Three figures at most, 7 cells at most: 800 B · 12 KB · 640 MB · 88.0 MB · 23.6 GB."""
     n = float(n)
     for unit in ("B", "KB", "MB", "GB"):
         if n < 1000:
-            return f"{n:.0f} {unit}" if unit in ("B", "KB") else f"{n:.1f} {unit}"
+            return f"{n:.0f} {unit}" if unit in ("B", "KB") or n >= 100 else f"{n:.1f} {unit}"
         n /= 1000
-    return f"{n:.1f} TB"
+    return f"{n:.0f} TB" if n >= 100 else f"{n:.1f} TB"
 
 
 def speed(n):
@@ -276,6 +277,18 @@ def duration(s):
         return f"{s // 3600} h {s % 3600 // 60:02d}"
     d = s // 86400
     return "1 day" if d == 1 else f"{d} days"
+
+
+def eta(s):
+    """How long, in a column: its unit one letter, so the digits stack: 45 s · 12 m · 3.2 h · 2 d."""
+    s = int(s)
+    if s < 60:
+        return f"{s} s"
+    if s < 3600:
+        return f"{s // 60} m"
+    if s < 86400:
+        return f"{s / 3600:.1f} h"
+    return f"{s // 86400} d"
 
 
 def natural(s):

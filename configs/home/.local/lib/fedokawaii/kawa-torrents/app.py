@@ -16,7 +16,7 @@ import threading
 import time
 
 import common
-from common import cells, cut, pad, reading, size, speed, duration
+from common import cells, cut, duration, eta, pad, reading, size, speed
 from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, Term
 
 ANIM = 0.125                                       # 8 a second: the moving icons (design-system §13)
@@ -27,6 +27,7 @@ _ICON = re.compile(r"^ICON_([A-Z0-9_]+)=\$'((?:\\x[0-9a-f]{2})+)'", re.M)
 CATEGORY = ((2000, "TV_0"), (5000, "TV_0"), (3000, "MUSIC"), (7000, "BOOK"), (1000, "GAMEPAD"), (4000, "CODE"))
 SORTS = ("seeds", "size", "newest", "name")
 SPARK = 16                                         # columns of the speed's picture
+CURSOR_EDGE = "▎"                                  # foot's own block: 2 px of the cell's 8, the row's whole 20
 
 
 def load_icons():
@@ -40,7 +41,7 @@ def load_icons():
 
 
 class Chosen(list):
-    """A row the cursor stands on: whoever lays it down gives it the lacquer."""
+    """A row the cursor stands on: whoever lays it down gives it the cursor's tint."""
 
 
 class Line:
@@ -722,14 +723,18 @@ class App:
         return ("pct",)
 
     def value_cols(self, r, w):
-        """The row's values, each right-aligned in its column, two columns apart. A finished row has no meter: what
-        it still says is what it sends, if it does, and how big it is."""
+        """The row's values, each right-aligned in its column, two columns apart, the same columns on every row of a
+        part: the digits stack. A finished row has no meter: what it still says is what it sends, in the speed's
+        column, and how big it is. Words stand where the numbers would, so a meter stays in its column."""
         b = self.band(w)
+        eta_w = 6 if "size" in b else 7            # (without a size of their own, a finished row's size stands here)
         if r["word"] == "done":
             out = []
             if r["up"] >= 1000 and w >= 62:
                 out.append((f"{'↑ ' + speed(r['up']):>11}", MUTED))
-            out.append((f"{size(r['total']):>8}", MUTED))
+                if "size" in b:
+                    out.append((" " * eta_w, MUTED))
+            out.append((f"{size(r['total']):>7}", MUTED))
             return out
         frac = (r["done"] / r["total"]) if r["total"] else 0
         words = self.row_words(r)
@@ -737,11 +742,14 @@ class App:
             words = f"buffering {int(r['stream']['buffered'] * 100)}%"
         out = []
         if words:
-            if "meter" in b and r["total"] and r["word"] != "failed":
+            words = cut(words, max(10, w // 2 if r["word"] == "failed" else w // 3))
+            room = sum({"pct": 4 + 2, "speed": 9 + 2, "eta": eta_w + 2}.get(k, 0) for k in b) - 2
+            if "meter" in b and r["total"] and r["word"] != "failed" and cells(words) <= room:
                 out.append(("METER", frac))
-            out.append((cut(words, max(10, w // 2 if r["word"] == "failed" else w // 3)), None if r["word"] == "failed" else MUTED))
-            if "size" in b and r["total"]:
-                out.append((f"{size(r['total']):>8}", MUTED))
+                words = " " * (room - cells(words)) + words
+            out.append((words, None if r["word"] == "failed" else MUTED))
+            if "size" in b:
+                out.append((f"{size(r['total']) if r['total'] else '':>7}", MUTED))
             return out
         if "meter" in b:
             out.append(("METER", frac))
@@ -751,36 +759,28 @@ class App:
             out.append((f"{speed(r['down']):>9}", MUTED))
         if "eta" in b:
             left = (r["total"] - r["done"]) / r["down"] if r["down"] else None
-            out.append((f"{duration(left) if left is not None else '':>7}", MUTED))
+            out.append((f"{eta(left) if left is not None else '':>{eta_w}}", MUTED))
         if "size" in b:
-            out.append((f"{size(r['total']):>8}" if r["total"] else " " * 8, MUTED))
+            out.append((f"{size(r['total']) if r['total'] else '':>7}", MUTED))
         return out
 
     def draw_row(self, item, w, selected):
-        """A row: its icon at column 1, its name from column 4, the values right-aligned to the last."""
+        """A row: its icon at column 1, its name from column 4, the values right-aligned to the last. Under the cursor
+        its picture and name take the strongest ink (laid), but a state in red stays red."""
         r = item["row"]
         icon, inkname = self.state_icon(r)
         vals = self.value_cols(r, w)
         vw = sum((10 if v[0] == "METER" else cells(v[0])) + 2 for v in vals)
         name = cut(reading(r["name"]), w - 4 - vw)
         filler = w - 4 - cells(name) - vw
-        if selected:
-            spans = [(" " + self.icon(icon) + "  " + name + " " * filler, ON_SELECT, SELECT)]
-        else:
-            spans = [" ", (self.icon(icon), inkname), "  ", (name, FAINT if r["word"] == "queued" else None), " " * filler]
+        spans = [" ", (self.icon(icon), None if selected and inkname != ACCENT_TEXT else inkname), "  ",
+                 (name, FAINT if r["word"] == "queued" and not selected else None), " " * filler]
         for v in vals:
-            if selected:
-                spans.append(("  ", ON_SELECT, SELECT))
-                if v[0] == "METER":
-                    spans += [(t, ON_SELECT, SELECT) for t, _ in self.meter(v[1], (0, 0))]
-                else:
-                    spans.append((v[0], ON_SELECT, SELECT))
+            spans.append("  ")
+            if v[0] == "METER":
+                spans += self.meter(v[1], (MUTED, EDGE2) if r["word"] == "paused" else (ACCENT_TEXT, EDGE2))
             else:
-                spans.append("  ")
-                if v[0] == "METER":
-                    spans += self.meter(v[1], (MUTED, EDGE2) if r["word"] == "paused" else (ACCENT_TEXT, EDGE2))
-                else:
-                    spans.append(v)
+                spans.append(v)
         return spans
 
     def draw_result(self, item, w, selected):
@@ -791,22 +791,16 @@ class App:
         if w >= 104:
             vals.append((pad(cut(r["site"], 17), 17), MUTED))
         if w >= 76:
-            vals.append((f"{age_words(r['age']):>9}", MUTED))
+            vals.append((f"{age_words(r['age']):>5}", MUTED))
         if w >= 40:
-            vals.append((f"{size(r['size']):>8}", MUTED))
+            vals.append((f"{size(r['size']):>7}", MUTED))
         vw = sum(cells(v[0]) + 2 for v in vals) + 2 + 3 + 5
         name = cut(r["name"], w - 4 - vw)
         filler = w - 4 - cells(name) - vw
         seeds = f"{r['seeds']:>5}"
         sprout = self.icon("SPROUT")
-        if selected:
-            spans = [(" " + self.icon(r["cat"]) + "  " + name + " " * filler, ON_SELECT, SELECT)]
-            for v in vals:
-                spans.append(("  " + v[0], ON_SELECT, SELECT))
-            spans.append(("  " + sprout + "  " + seeds, ON_SELECT, SELECT))
-            return spans
-        dead = not r["seeds"]
-        spans = [" ", (self.icon(r["cat"]), FAINT if dead else MUTED), "  ", (name, FAINT if dead else None), " " * filler]
+        dead = not r["seeds"] and not selected
+        spans = [" ", (self.icon(r["cat"]), None if selected else FAINT if dead else MUTED), "  ", (name, FAINT if dead else None), " " * filler]
         for v in vals:
             spans += ["  ", v]
         spans += ["  ", (sprout, FAINT if dead else MUTED), "  ", (seeds, FAINT if dead else None)]
@@ -823,9 +817,7 @@ class App:
         name_w = w - 4 - (cells(value) + 2 if value else 0) - cells(where) - 2
         name = cut(o["name"], name_w)
         filler = w - 4 - cells(where) - 2 - cells(name) - (cells(value) + 2 if value else 0)
-        if selected:
-            return [(" " + self.icon("MAGNET") + "  " + where + "  " + name + " " * filler + ("  " + value if value else ""), ON_SELECT, SELECT)]
-        return [" ", (self.icon("MAGNET"), ACCENT_TEXT), "  ", (where, MUTED), "  ", (name, STRONG), " " * filler,
+        return [" ", (self.icon("MAGNET"), ACCENT_TEXT), "  ", (where, MUTED), "  ", (name, None if selected else STRONG), " " * filler,
                 *(["  ", (value, MUTED)] if value else [])]
 
     def tabs(self, w):
@@ -981,20 +973,22 @@ class App:
             elif kind == "failure":
                 frame[y] = ["  ", (self.icon("CROSS"), ACCENT_TEXT), "  ", cut(it["word"], w - 4)]
             elif kind == "row":
-                frame[y] = self.lacquer(self.draw_row(it, w, selected or here), selected or here)
+                frame[y] = self.laid(self.draw_row(it, w, selected or here), selected)
                 if here and not selected:          # (the keyboard is in its files: its place kept in a band)
-                    frame[y] = [(s[0], STRONG, EDGE) if isinstance(s, tuple) else s for s in frame[y]]
+                    frame[y] = [(" ", STRONG, EDGE), *[(s if isinstance(s, str) else s[0], STRONG, EDGE) for s in frame[y][1:]], (" ", STRONG, EDGE)]
             elif kind == "result":
-                frame[y] = self.lacquer(self.draw_result(it, w, selected), selected)
+                frame[y] = self.laid(self.draw_result(it, w, selected), selected)
             elif kind == "offer":
-                frame[y] = self.lacquer(self.draw_offer(it, w, selected), selected)
+                frame[y] = self.laid(self.draw_offer(it, w, selected), selected)
             if "id" in it:
                 self.mouse_map[y] = it
 
-    def lacquer(self, spans, selected):
-        """The cursor's fill: from the cursor's column to the one beyond the content."""
+    def laid(self, spans, selected):
+        """A row laid on the window, from the cursor's column to the one beyond the content. Under the cursor (§7) that
+        column holds its edge, every cell the tint, words with no ink of their own the strongest, every other ink its own."""
         if selected:
-            return [(" ", ON_SELECT, SELECT), *spans, (" ", ON_SELECT, SELECT)]
+            return [(CURSOR_EDGE, ACCENT, SELECT), *[(s, ON_SELECT, SELECT) if isinstance(s, str) else (s[0], s[1] or ON_SELECT, SELECT) for s in spans],
+                    (" ", ON_SELECT, SELECT)]
         return [" ", *spans]
 
     def draw_find_line(self, frame, w):
@@ -1081,7 +1075,7 @@ class App:
         r = self.rows.get(self.cursor_id)
         lines = self.detail_lines(r, cols - x - 1, rows - 1)
         for y, spans in enumerate(lines[:rows - 1]):
-            frame[y] = frame[y] + self.lacquer(spans, isinstance(spans, Chosen))
+            frame[y] = frame[y] + self.laid(spans, isinstance(spans, Chosen))
         self.pane_x = x
 
     def draw_page(self, frame, cols, rows, w):
@@ -1089,7 +1083,7 @@ class App:
         r = self.page_row()
         lines = self.detail_lines(r, w, rows - 1)
         for y, spans in enumerate(lines[:rows - 1]):
-            frame[y] = self.lacquer(spans, isinstance(spans, Chosen))
+            frame[y] = self.laid(spans, isinstance(spans, Chosen))
         self.pane_x = 1
 
     def detail_lines(self, r, w, h):
@@ -1184,14 +1178,13 @@ class App:
         got = progress[k] if progress and k < len(progress) else 0
         icon = "BOX_ON" if on else "BOX_OFF"
         pct = f"{int(100 * got / sz):>3}%" if sz else "100%"
-        value = f"{size(sz):>8}  {pct}" if w >= 44 else pct
+        value = f"{size(sz):>7}  {pct}" if w >= 44 else pct
         room = w - 4 - cells(value) - 2
         n = cut_file(name, room)
         filler = room - cells(n)
         if selected:
-            return Chosen([(" " + self.icon(icon) + "  " + n + " " * filler + "  " + value, ON_SELECT, SELECT)])
-        ink_ = None if on else FAINT
-        return [" ", (self.icon(icon), MUTED if on else FAINT), "  ", (n, ink_), " " * filler, "  ", (value, MUTED if on else FAINT)]
+            return Chosen([" ", (self.icon(icon), None), "  ", (n, None), " " * filler, "  ", (value, MUTED)])
+        return [" ", (self.icon(icon), MUTED if on else FAINT), "  ", (n, None if on else FAINT), " " * filler, "  ", (value, MUTED if on else FAINT)]
 
     def want_watch(self, i, w):
         """The engine tells of one torrent: the pieces in as many cells as the cloth here holds (three lines on a tall window, one on a small)."""
@@ -1766,15 +1759,16 @@ def pad_to(spans, n):
 
 
 def age_words(hours):
+    """How old, in a column: its unit one letter, so the digits stack: 5 h · 12 d · 20 w · 3 y."""
     h = int(hours or 0)
     if h < 24:
-        return f"{h} h" if h else ""               # (a site that gives no date says "now": nothing is said)
+        return f"{h} h" if h else ""               # (a site that does not say)
     d = h // 24
     if d < 60:
-        return f"{d} days" if d > 1 else "1 day"
+        return f"{d} d"
     if d < 730:
-        return f"{d // 30} months"
-    return f"{d // 365} years"
+        return f"{d // 7} w"
+    return f"{d // 365} y"
 
 
 def cat_icon(categories):

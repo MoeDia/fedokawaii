@@ -281,7 +281,8 @@ world() {   # world fresh|built [--themed]
     "global-enabled grub-boot-success.timer" \
     "enabled sshd.service" "active sshd.service" "enabled firewalld.service" "active firewalld.service" \
     "enabled fstrim.timer" "static dnf5-makecache.timer" >"$FKH/units"
-  echo dnf5-makecache.timer >"$FKH/unitfiles"      # (Fedora 44's: static — on by its package's own link)
+  # (dnf5-makecache: Fedora's, static, on by its package's own link; the socket: the theme's, a user unit)
+  printf '%s\n' dnf5-makecache.timer kawa-torrents.socket >"$FKH/unitfiles"
   fake_cmd "$W/usrbin/nano"; fake_cmd "$W/usrbin/vi"     # (nano, vim-minimal: in a Minimal Install)
   mkdir -p "$W/etc/grub.d"   # (grub2-tools, in a Minimal Install: Shift/Esc/F8 shows the hidden menu)
   printf '#!/bin/sh\n' >"$W/etc/grub.d/12_menu_auto_hide"; chmod 755 "$W/etc/grub.d/12_menu_auto_hide"

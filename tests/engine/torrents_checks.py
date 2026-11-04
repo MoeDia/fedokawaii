@@ -691,7 +691,7 @@ def words():
     eq(cm.reading("Night.of.the.Living.Dead.1968.1080p.x264"), "Night of the Living Dead 1968 1080p x264", "words")
     eq(cm.reading("Album.Name.5.1.Remaster"), "Album Name 5.1 Remaster", "a version's dot")
     eq(cm.reading("Album.Name.5.1.FLAC"), "Album Name 5.1.FLAC", "a file's type at the end")
-    eq(cm.reading("fedora-44-x86_64-netinst.iso"), "fedora-44-x86_64-netinst.iso", "a disc's name is a file's")
+    eq(cm.reading("fedora-45-x86_64-netinst.iso"), "fedora-45-x86_64-netinst.iso", "a disc's name is a file's")
     eq(cm.reading("Already spaced.name"), "Already spaced.name", "already words")
     eq(cm.cells("北斎 ab"), 7, "a kanji two")
     eq(cm.cut("北斎漫画全十五編", 5), "北斎", "a kanji is never cut in half")
@@ -809,17 +809,29 @@ def layout():
     eq(s.line(y + 1).strip(), "", "a blank under a heading")
     y = row_of(w, "paused")
     assert s.line(y - 1).strip() == "" and s.line(y - 2).strip() == "", "two blank lines over a heading"
-    # the row under the cursor: from the cursor's column to one past the content, in the lacquer
+    # the row under the cursor (§7, RIGHT): from the cursor's column to one past the content, tinted; that column its edge
     eq(s.cells[row_of(w, "paused")][0][2], None, "no fill on a heading")
     first = next(yy for yy in range(s.rows) if s.cells[yy][0][2] == 24)
     eq([s.cells[first][x][2] for x in (0, 57, 115)], [24, 24, 24], "the whole row, to the window's edge")
-    eq(s.cells[first][5][1], 25, "its words in the lacquer's ink")
+    eq(s.cells[first][0][:2], ("▎", 16), "its edge: 2 px of the cell's 8, the seal's red")
+    eq(s.cells[first][5][1], 25, "its words the strongest ink")
+    # every number column to one edge, so the digits stack: a meter, a speed, a time, a size, words where numbers would be
+    text = lambda name: "".join(c[0] or " " for c in s.cells[row_of(w, name)])
+    motion = [text(n) for n in ("Night of the Living", "debian-13.1.0", "全十五編")]
+    eq({t.index("/s") for t in motion} | {text("Big Buck Bunny").index("/s")}, {motion[0].index("/s")}, "the speeds' edge, a finished row's sending too")
+    edge = motion[0].rindex(" m") + 2
+    eq({t.rindex(" m") + 2 for t in motion}, {edge}, "the times' edge")
+    for name, word in (("Sintel", "looking for it"), ("Tears of Steel", "asking the site"), ("[SubsPlease]", "no one sending"), ("ubuntu-26.04", "checking"),
+                       ("archlinux", "queued"), ("The General", "no space left on device"), ("Metropolis", "could not reach it")):
+        eq(text(name).index(word) + len(word), edge, f"{word}: words in the times' place")
+    first_segment = lambda t: min(t.index(c) for c in meter_letters() if c in t)
+    eq({first_segment(text(n)) for n in ("Night of the Living", "[SubsPlease]", "ubuntu-26.04", "archlinux", "Nosferatu")}, {first_segment(motion[0])}, "the meters' column")
     y = row_of(w, "debian-13.1.0")
     eq(s.line(y)[5:18], "debian-13.1.0", "a name at column 5 of the screen")
     assert s.line(y)[2] != " " and s.line(y)[3] == " " and s.line(y)[4] == " ", s.line(y)[:8]
     assert s.line(y).rstrip()[-2:] == "GB" and len(s.line(y).rstrip()) == 115, f"values end at the last content column: {s.line(y)!r}"
     # the same column for the sizes down the list
-    ys = [row_of(w, n) for n in ("debian-13.1.0", "Nosferatu", "Big Buck Bunny", "fedora-44")]
+    ys = [row_of(w, n) for n in ("debian-13.1.0", "Nosferatu", "Big Buck Bunny", "fedora-45")]
     ends = {len(s.line(yy).rstrip()) for yy in ys}
     eq(ends, {115}, "a column of sizes")
     # a kanji name: two columns a letter, the row still ends where the others do
@@ -870,7 +882,7 @@ def keys_():
     w.keys("k")
     on("Tears of Steel")
     w.keys("G")
-    on("fedora-44")
+    on("fedora-45")
     w.keys("g")
     on("Tears of Steel")
     w.keys(b"\x04")                                # ctrl+d: a page
@@ -999,7 +1011,7 @@ def details():
     w.keys("\x1b")
     y0 = next(y for y in range(s.rows) if "Subs/English.srt" in s.line(y)[rail:] or "English.srt" in s.line(y))
     w.hover(y0, rail + 10)
-    eq(s.cells[y0][rail + 1][2], 24, "the pointer on a file: the lacquer there")
+    eq(s.cells[y0][rail + 1][2], 24, "the pointer on a file: the cursor's tint there")
     n = len([x for x in asked() if x["op"] == "files"])
     w.click(y0, rail + 3)
     eq(len([x for x in asked() if x["op"] == "files"]), n + 1, "a click on its box")

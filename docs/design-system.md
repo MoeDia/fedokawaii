@@ -343,8 +343,10 @@ content, inside its margin of one cell:
   the last 16 seconds of it in the music's columns, §8), newest first; each row its state's icon (§5: it moves while bytes come; the
   antenna television while it plays; the hourglass while it is looked for, asked of a site or
   checked; ✘ with what stopped it, in words), its name as words (a torrent's dots read as spaces, never "…"), then
-  right-aligned, two columns apart: the meter, the percent, the speed, the time left, the size —
-  the size last on every row, one column down the list. A finished row keeps only what it sends and its size.
+  right-aligned, two columns apart, each one edge down its part so the digits stack: the meter, the percent, the
+  speed, the time left (its unit a letter: 45 s, 12 m, 3.2 h, 2 d), the size — the size last on every row. Words
+  that stand instead of numbers end in the time's place; a finished row keeps only what it sends, in the speed's
+  column, and its size.
   Fewer columns as the window narrows: the size goes first (under 104 columns), then the time left (84), the meter
   (62), the speed (44); the percent stays. From 132 columns its details stand beside the list (a
   rail, a free column, 60 wide; the keyboard in them leaves a band of `edge` on the list's row, as

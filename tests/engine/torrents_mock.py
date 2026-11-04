@@ -45,7 +45,7 @@ ROWS = [
     row("3" * 40, "Big Buck Bunny 2008 1080p open movie", "done", int(1.1 * GB), int(1.1 * GB), 0, 420000, 2, 0, 12, 3000, 20),
     row("4" * 40, "Sita Sings the Blues (2008) 1080p", "done", 640 * MB, 640 * MB, added=DAY, at=DAY // 2),
     row("5" * 40, "Internet.Archive.Prelinger.Collection.Duck.and.Cover.1951.mp4", "done", 88 * MB, 88 * MB, added=2 * DAY, at=2 * DAY),
-    row("6" * 40, "fedora-44-x86_64-netinst.iso", "done", int(1.0 * GB), int(1.0 * GB), added=3 * DAY, at=3 * DAY),
+    row("6" * 40, "fedora-45-x86_64-netinst.iso", "done", int(1.0 * GB), int(1.0 * GB), added=3 * DAY, at=3 * DAY),
 ]
 FILES = [["Night.of.the.Living.Dead.1968/Night.of.the.Living.Dead.1968.1080p.BluRay.x264.mkv", int(7 * GB)],
          ["Night.of.the.Living.Dead.1968/Subs/English.srt", 90000], ["Night.of.the.Living.Dead.1968/Subs/Japanese.srt", 110000],

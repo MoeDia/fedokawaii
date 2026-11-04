@@ -3,7 +3,7 @@
 # (tools/kit.sh: the real GPU, foot and its fonts, both moods), a mock engine saying every state at once
 # (tests/engine/torrents_mock.py), at a narrow tile, half the screen and the whole of it, measured against
 # docs/design-system.md §7, to the pixel:
-#   · the cursor's lacquer: 20 px on the row grid, from the cursor's column to the window's last, its colour the token's
+#   · the cursor: 20 px on the row grid, tinted from the cursor's column to the window's last, the token's colour; its first 2 px the edge
 #   · the tab's vermilion line under its name alone, flush with the letters
 #   · a heading's rule on the cell's tenth pixel row, and how much the part holds ending in the last content column
 #   · a row's icon in its column, the right margin free of ink but for the cursor
@@ -50,20 +50,23 @@ if Ye - Y0 != 20 * rows:
     no(f"the window holds {(Ye - Y0) / 20} rows, not {rows}")
 col = lambda c: X0 + 8 * c
 row = lambda r: Y0 + 20 * r
-# the lacquer: a whole row of the grid
+# the cursor: a whole row of the grid, tinted; its first 2 px the edge, the seal's red, 20 tall, nothing beside it
 sel = near("SELECT")
 ys = [y for y in range(Y0, Ye) if sel[y, X0:Xe].sum() > 8 * cols // 3]
 if not ys:
     no("no cursor's row")
 else:
     if len(ys) != 20 or (ys[0] - Y0) % 20:
-        no(f"the lacquer is {len(ys)} px tall, at {(ys[0] - Y0) % 20} px off the grid")
+        no(f"the cursor's tint is {len(ys)} px tall, at {(ys[0] - Y0) % 20} px off the grid")
     xs = np.nonzero(sel[ys[0]])[0]
     pane = cols >= 132
-    if not pane and (xs[0] != X0 or xs[-1] != Xe - 1):
-        no(f"the lacquer runs {xs[0] - X0} … {xs[-1] - X0}, not 0 … {8 * cols - 1}")
-    if pane and xs[0] != X0:
-        no(f"the lacquer starts {xs[0] - X0} px in")
+    if not pane and (xs[0] != X0 + 2 or xs[-1] != Xe - 1):
+        no(f"the cursor's tint runs {xs[0] - X0} … {xs[-1] - X0}, not 2 … {8 * cols - 1}")
+    if pane and xs[0] != X0 + 2:
+        no(f"the cursor's tint starts {xs[0] - X0} px in")
+    edge = near("ACCENT")[ys[0]:ys[0] + 20, X0 - 1:X0 + 3]
+    if not edge[:, 1:3].all() or edge[:, 0].any() or edge[:, 3].any():
+        no("the cursor's edge is not 2 px of the seal's red, the row's 20 tall")
 # the tab's line: under "downloads" alone: columns 4 … 12, at the top of the row after the tabs
 line = near("ACCENT")[row(1) : row(1) + 3, X0 : col(40)]
 ly, lx = np.nonzero(line)
@@ -86,7 +89,7 @@ head = np.abs(a[row(3) + 2:row(3) + 18, X0:X0 + 8 * (list_w + 2)] - a[Ye - 1, Xe
 ends = np.nonzero(head.sum(axis=0))[0]
 if not len(ends) or not 8 * list_w <= ends.max() <= 8 * (list_w + 1):
     no(f"the heading's row ends at {ends.max() if len(ends) else None} px, not in column {list_w}")
-# nothing but the lacquer in the right margin column (the whole-screen one: the same at the pane's end; a letter's own
+# nothing but the cursor's tint in the right margin column (the whole-screen one: the same at the pane's end; a letter's own
 # overhang of a pixel, as % has, is the font's)
 ground = a[Ye - 1, Xe - 1]
 margin = np.abs(a[Y0:Ye, col(cols - 1) + 1:Xe] - ground).sum(axis=2) > 12
