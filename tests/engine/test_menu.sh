@@ -116,7 +116,7 @@ out=$(WAYLAND_DISPLAY=wayland-1 allrows)
 lacks "$(plain "$out")" "╌" "no dashed line anywhere"
 case_ "never again: no to-do in Super+U — it lives in Super+N alone (owner 1 Nov 22:27: \"to-do should NOT be in learning\")"
 lacks "$(plain "$out")" "to-do"; [[ -z $(grep "^todo"$'\t' <<<"$out") ]] && _ok || _no "a todo row: $(grep "^todo" <<<"$out")"
-case_ "rows: each entry a column in, its icon, two columns, its name; the value right-aligned at the list's last column, muted"
+case_ "rows: each entry a column in, its icon, two columns, its name; the value right-aligned two columns short of the list's edge, muted"
 for a in update snapshots remind; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
   [[ $l =~ ^" "$'\e[38;5;21m'.$'\e[0m'"  "[a-z] ]] && _ok || _no "$a: $l"

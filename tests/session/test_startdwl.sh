@@ -82,6 +82,20 @@ case_ "one graphics card, its memory not said (Intel's): that one$n"
 gpus card0; start; eq "$(envof dwl WLR_DRM_DEVICES)" /dev/dri/card0
 case_ "two cards, neither saying its video memory: WLR_DRM_DEVICES not set, and the log says why$n"
 gpus card0 card1; start; eq "$(envof dwl WLR_DRM_DEVICES)" ""; has "$(cat "$LOG")" "2 graphics cards, none saying its video memory"
+case_ "a test's dwl beside it (off-screen, a runtime folder of its own: the kit, the update's smoke test) stops no login; this session's own dwl does"
+setup; dwl dwl
+env XDG_RUNTIME_DIR=/tmp/not-this-session sleep 60 & other=$!
+env XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" sleep 60 & own=$!
+on_exit "kill $other $own 2>/dev/null"
+sleep 0.2
+stub pgrep "echo $other"
+start
+lacks "$OUT" "already running"
+stub pgrep "echo $other; echo $own"
+start
+has "$OUT" "already running (dwl, process $own)"; eq "$RC" 1
+kill "$other" "$own" 2>/dev/null
+
 case_ "start-dwl --gpu (the login screen's cage): the same card as WLR_DRM_DEVICES=…, nothing when it cannot tell — dwl not started$n"
 sh=$TMP/shbin/sh; [[ $SHL == dash ]] && sh=$(command -v dash)
 : >"$CALLS"; gpus card0:536870912 card1:17163091968
@@ -120,9 +134,9 @@ setup; dwl dwl 'exit 0'; start
 eq "$RC" 0; not_called "^bash"; called "stop dwl-session.target"
 
 case_ "a second start while the desktop runs: refused, the running session's log untouched$n"
-setup; dwl dwl; echo "the running session" >"$LOG"; stub pgrep 'echo 4242'
+setup; dwl dwl; echo "the running session" >"$LOG"; env XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" sleep 30 & running=$!; on_exit "kill $running 2>/dev/null"; sleep 0.2; stub pgrep "echo $running"
 start
-eq "$RC" 1; has "$OUT" "already running"; has "$OUT" "4242"
+eq "$RC" 1; has "$OUT" "already running"; has "$OUT" "$running"
 not_called "^dwl"; not_called "^systemctl"; not_called "^bash"
 eq "$(cat "$LOG")" "the running session"; [[ ! -e $LOG.old ]] && _ok || _no "the running session's log was moved"
 called "^pgrep -xu $(id -u) "
@@ -143,7 +157,7 @@ case_ "… a helper named that is not there: the session starts as on any consol
 setup; dwl dwl; KMS_START_SCRIPT=no-such-helper start
 eq "$RC" 0; called "^dwl -s"
 case_ "… and a second start while the desktop runs is refused before any hand-over$n"
-setup; dwl dwl; stub kmscon-launch-gui '"$@"'; stub pgrep 'echo 4242'
+setup; dwl dwl; stub kmscon-launch-gui '"$@"'; env XDG_RUNTIME_DIR="$XDG_RUNTIME_DIR" sleep 30 & running=$!; on_exit "kill $running 2>/dev/null"; sleep 0.2; stub pgrep "echo $running"
 KMS_START_SCRIPT=kmscon-launch-gui start
 eq "$RC" 1; has "$OUT" "already running"; not_called "^kmscon-launch-gui"
 

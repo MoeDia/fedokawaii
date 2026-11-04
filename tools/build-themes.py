@@ -76,7 +76,7 @@ def colors_sh(m, p):
 
 def waybar_css(m, p):
     # what style.css takes: the words' inks, lit (asagi: under the pointer, or open), and the
-    # tiles (紙 kami) — their paper, the vermilion of the torii's, the cat's and the seal's,
+    # tiles (紙 kami) — their paper, the vermilion of the torii's, and the seal's,
     # the words on the seal
     rows = [("surface", p["surface"]),                               # (a tooltip's solid ground)
             ("faint", p["faint"]), ("muted", p["muted"]), ("text", p["text"]),
@@ -281,7 +281,7 @@ def lock_scroll(m, fill, rule, s=2):
 
 # the mood's head on the bar's end tile (quick settings' own: a demon by night, an angel by day), a
 # woodblock's crest (the owner, 4 Nov: "less colours, more conventional, more RED; monotone, classic
-# Japanese"): 22 × 20, the tile's paper rows whole — R the seal's red, K the ground's ink, W the
+# Japanese"): 22 × 20, the tile's paper rows whole — R the seal's red, K the black ink, W the
 # cream of the demon's eyes and teeth; N the angel's nimbus in the red, '.' the paper shows through.
 # Each drawn as its left half, mirrored when built (a mask is symmetric to the pixel). Dark: an oni,
 # roaring while quick settings is open; light: a Kannon, opening her eyes and smiling.
@@ -375,145 +375,10 @@ NNKKKKKKKKK
 }
 
 
-# the dial's middle at rest (kawa-panel, quick settings): the mood's face drawn for it, 56 × 56 at
-# 1 px — its left half here, mirrored when built (a face is symmetric to the pixel); the open face
-# (the panel is open): the hannya roaring after Hokusai's Warai Hannya — ringed gold horns, the
-# brows sloping up in anguish, glaring gold eyes, a fanged grin in lacquer —, the tennin serene in
-# a gold nimbus — a pinned bun, long hair, the urna, gold irises, a small smile, a gold-edged collar
-FACE_BIG = {
-    "dark": """
-........KK..................
-.......KGGK.................
-.......KGGGKK...............
-........KGGKKK..............
-........KKKGGGK.............
-........KGGGGGGK............
-.........KGGGGKKK...........
-.........KGGKKGGGK..........
-..........KKGGGGGK......KKKK
-.........KGGGGGGGGK.KKKKWWWW
-..........KGGGGGKKKKWWWWWKKW
-..........KGGGKKKGGWWWWWKKWW
-..........KGKKKGGWWWWWKKKWKW
-...........KGGGGWWWWWKKWKKWW
-............KGGWWWWKKKWKKKWW
-.............KKWWWKKWWKKKKKW
-.............KKKKKKWKKKKKKKW
-............KKKWWWWWKKKKKKWW
-...........KKKKWWWWKKKKKKWWW
-..........KKKKWWWKKKKKKWWWWW
-.........KWKKKWWKKKKKWWWWWWW
-.........KWKKWKKKKKKWWWWWWWW
-.........KKKKKKKKKWWWWWWWWWW
-........KWKKKKKKWWWWWWWWWWWW
-........KWKKKKWKKKKKKKKWWWWW
-........KWKKWWKKGGGGGGKKWWWW
-........KWWWWKKGGGGGGGGKKWKW
-........KWWWKKGGGGGGGGGGGKWW
-.......KWWWWWGGGGGGGGGGGWKWW
-.......KWWWWWWGGGGGGGGGWWKWW
-.......KWWWWWWKKKKKKKKKWKKWW
-.......KWWWWWWWWWWWWWWWKKKWW
-.......KWWWWWWWWWWKKKWKKKKKW
-.......KWWWWWWWWWKKWWKKKKKKW
-........KWWWWWWKKWWWWWKKKWWW
-........KWWWWWKKWWWWWWWWWWWW
-........KWWWKGGGGGGGGGGGGGGG
-........KWWGGGDDWWWWWWWWWWWW
-.........KGGWWWDWWWWWWWWWWWW
-..........DDWWWDDDDDDDDDDDDD
-.........KWDWWWDDDDDDDDDDDDD
-..........KDWWWDDDDDDDDDDDDD
-...........DDWDDDDDDDDDDDDDD
-............DWDDDWDDDDDDDDDD
-...........KGWDDDWWDDDDDDDDD
-............KGDDDWWDDDDDDDDD
-.............KGDDWWDDDDDDDDD
-..............KGDWWWDDDDDDDD
-...............KGWWWWWDDDDDD
-................KGGGGGGGGGGG
-.................KKWWWWWWWWW
-...................KKWWWWWWW
-.....................KKKKKKK
-.......................KWWWW
-........................KKWW
-..........................KK
-""",
-    "light": """
-.......................GGGGG
-...................GGGGGGGGG
-.................GGGGGG.GGGG
-...............GGGGG..GGKKKK
-.............GGGG.....GKKKKK
-............GGG.......KKKKKK
-...........GGG........KKKKKK
-.........GGGG.........KKKKKK
-........GGG...........KKKKKK
-........GG.............KKKKK
-.......GGG..............KKKK
-......GGG..........KKKKKKKKK
-.....GGG..........KKKKKKKKKK
-.....GG..........KKKKKKKKKKK
-....GGG.........KKKKKKKKKKWW
-....GG.........KKKKKKKKWWWWW
-....GG.........KKKKKKKWWWWWW
-...GG.........KKKKKKKWWWWWWW
-...GG.........KKKKKKWWWWWWWW
-...GG.........KKKKKWWWWWWWWW
-..GGG........KKKKKWWWWWWWWWD
-..GG.........KKKKKWWWWWWWWWD
-..GG.........KKKKKKKKKKKKWWW
-..GG........KKKKKKWWWWWWWWWW
-..GG........KKKKKWWWKKKKKWWW
-..GG........KKKKKWWWKWWWWKWW
-..GG........KKKKKWKKWWGGWWKW
-..GG........KKKKKWWWWWGKWWWW
-..GG........KKKKKWWWKKKKKWWW
-..GGG......KKKKKKWWWWWWWWWWW
-...GG......KKKKKKWWWWWWWWWWW
-...GG......KKKKKKWWWWWWWWWWW
-...GG......KKKKKKKWWWWWWWWWW
-....GG.....KKKKKKKWWWWWWWWWW
-....GG.....KKKKKKKWWWWWWWWKW
-....GGG....KKKKKKKWWWWWWWWWW
-.....GG....KKKKKK.KWWWWWWWWW
-.....GGG...KKKKKK.KWWWWWWWWW
-......GGG..KKKKKK..KWWDDDDDD
-.......GGG..KKKKK..KWWWWWWWW
-........GG..KKKKK...KWWWDDDD
-........GGG.KKKKK...KWWWWWWW
-.........GGGKKKKKK...KWWWWWW
-...........GKKKKKK....KWWWWW
-............KKKKKK.....KWWWW
-.............KKKKK.....KWWWW
-.............KKKKKGG...KWWWW
-..............KKKKKGGGGWWWWW
-..............KKKKKGGGGWWWWW
-...............KKKK.DGGDDWWW
-.................DDDDDGGGDDD
-..............DDDDDDDDDDGGGD
-............DDDDDDDDDDDDDDGG
-...........DDDDDDDDDDDDDDDDD
-..........DDDDDDDDDDDDDDDDDD
-............................
-""",
-}
-
-
-def face_big(m, p, half):
-    """The middle's face as a PNG: its half mirrored, in the faces' four inks (face())."""
-    return face(m, p, "\n".join(r + r[::-1] for r in half.strip("\n").split("\n")))
-
 def head(m, p, half):
     """The bar's head as a PNG: its half mirrored, in its inks, the tile's paper through the rest."""
-    ink = {"R": p["accent"], "N": p["accent"], "K": p["ground"] if m == "dark" else p["strong"], "W": p["strong"]}
+    ink = {"R": p["accent"], "N": p["accent"], "K": p["lo"] if m == "dark" else p["strong"], "W": p["strong"]}
     rows = [r + r[::-1] for r in half.strip("\n").split("\n")]
-    return png(len(rows[0]), len(rows), [[_rgb(ink[c]) if c != "." else (0, 0, 0, 0) for c in r] for r in rows])
-
-def face(m, p, art):
-    """The dial's face as a PNG, its own pixels only (the tile's paper shows through the rest)."""
-    ink = {"K": P["dark"]["lo"], "W": p["text_on_select"], "G": P["dark"]["yellow"], "D": p["select"]}
-    rows = art.strip("\n").split("\n")
     return png(len(rows[0]), len(rows), [[_rgb(ink[c]) if c != "." else (0, 0, 0, 0) for c in r] for r in rows])
 
 
@@ -699,7 +564,6 @@ def ornaments(m, p):
         "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
         "face.png": head(m, p, FACES[m][0]),
         "face-open.png": head(m, p, FACES[m][1]),
-        "face-big.png": face_big(m, p, FACE_BIG[m]),
         **{f"sky-{n}.png": sky(m, p, a) for n, a in SKY.items()},
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew

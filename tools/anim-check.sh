@@ -5,8 +5,8 @@
 # 1, and as long as config.h says, ± 1 frame (its pace from the steps themselves, its last step
 # within a frame of its end):
 #   open anim_open_ms (c1) · close anim_close_ms (g) · tiled windows making room anim_slide_ms
-#   (c5) · a workspace switch: the old leaving anim_tag_each_ms (c3), the new over anim_tag_ms
-#   (c2) · the wash anim_wash_ms (w)
+#   (c5) · a workspace move: the old leaving (c3) and the new coming (c2), both over anim_tag_ms
+#   · the wash anim_wash_ms (w)
 # (warm windows, the panels' menus, notices, the level display, the lock: their own checks in
 # tools/regress/ — warm-exit, menu-first-click, level-display — they need the desktop's scripts)
 #   bash tools/anim-check.sh [--dwl BIN] [--keep DIR]
@@ -48,7 +48,7 @@ import re, statistics, sys
 log, cfg = sys.argv[1], open(sys.argv[2]).read()
 ms = {k: int(v) for k, v in re.findall(r"anim_(\w+)_ms\s*=\s*(\d+)", cfg)}
 want = {"c1": ("open", ms["open"]), "g": ("close", ms["close"]), "c5": ("slide", ms["slide"]),
-        "c3": ("workspace out", ms["tag_each"]), "c2": ("workspace in", ms["tag"]), "w": ("wash", ms["wash"])}
+        "c3": ("workspace out", ms["tag"]), "c2": ("workspace in", ms["tag"]), "w": ("wash", ms["wash"])}
 steps = {}
 for line in open(log):
     w = line.split()
