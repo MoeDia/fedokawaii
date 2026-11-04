@@ -123,7 +123,7 @@ they break.
 | r27-dwl-noxwayland | dwl with no XWayland: exits clean | tools/regress/no-xwayland-exit.sh |
 | r27-dwl-termburst | a burst of new terminals never crashes dwl | tools/regress/term-burst.sh |
 | r27-21-cold | a cold Super+N: the press is never lost | tests/session/test_warm.sh "its key's press taken as it MAPS" · tools/regress/notes-page.sh |
-| r27-bug-2a r27-21-bug2 | notes: no black areas around the text | tests/look/test_units.sh "foot.ini: the see-through ground on every cell" |
+| r27-bug-2a r27-21-bug2 | notes: no black areas around the text, nor in any program under the glass | tools/regress/glass-cells.sh · tests/look/test_units.sh "foot.ini: the see-through ground on every cell" |
 | r27-bug-2b r27-bug-6a r27-21-bug6 | notes: no flicker on save | tests/content/test_notes.sh "notes.lua: neovim's ui2 on" |
 | r27-bug-2c r27-bug-2d r27-bug-2e r27-21-nb r27-21-nb2 | notes: a lined notebook, the heading's blank row, margins that never move | tools/regress/notes-page.sh · tests/content/test_notes.sh "notes.lua: the heading in the tabline" |
 | r27-21-master-fix | the page: no conceal, the pen in the page on a cold start | tests/content/test_notes.sh "notes.lua: a start on a day already written" |

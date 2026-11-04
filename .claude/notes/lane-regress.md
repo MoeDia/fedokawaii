@@ -22,7 +22,7 @@ Started 4 Nov 17:43. Worktree ~/repos/fk-regress, branch lane-regress. Tests onl
 - A case reworded or removed that a row names: test_list.sh says the line; fix the row's words. A task marked DONE in plan.md with an `open T..` row: the row must name its checks (test_list.sh says so). The lanes' own tests (chess, typing, torrents, updates, ISO …) go into their rows then.
 - After Super+X and the other surfaces settle: `bash tools/gallery.sh --record --bin bin --repo-art` once, or tools/regress/gallery.sh stays red on those surfaces.
 - When the merge storm is over: `bash tools/prepush.sh --install` in ~/repos/fedokawaii (hooks are shared by every worktree: lane branches pass untouched, a push to main runs everything; `git push --no-verify` is the way round it). Not installed here on purpose: a push to main would wait an hour tonight.
-- For `fedokawaii copy` to install the hook on a new copy (plan T52), one line in system/fedokawaii's copy_make after the clone: `bash "$COPY/tools/prepush.sh" --install >/dev/null 2>&1 || true` — product code, left to main.
+- For `fedokawaii copy` to install the hook on a new copy (plan T52), one line in system/fedokawaii's copy_make after its `git init`: `(cd "$COPY" && bash tools/prepush.sh --install) >/dev/null 2>&1 || true` — product code, left to main.
 
 ## State (keep current)
 - [x] items.py + test_list.sh
