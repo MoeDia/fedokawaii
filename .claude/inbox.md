@@ -133,3 +133,35 @@ The Learn book ("fedokawaii — learn") gets a real cover, shown in the PDF's fi
 - render it at full size and at thumbnail size into .claude/review/next/ for his verdict
 
 (lane-pixels owns quick settings; lane-learning owns the cover, with lane-ink's figures.)
+
+## 2026-11-04 18:56 — question from lane-hardware
+RGB is now solid red everywhere, as you asked: no motion. Please look and answer in one line, comparing with the keyboard: Gigabyte logo? case fans? CPU cooler's fan? For each: same red, too orange, too pink, too bright, too dim, or not red at all (say what it does). And the cooler's little display: does it show the CPU temperature?
+
+## 2026-11-04 18:59 — in the plan: T38, lane-hardware (its notes hold his answer)
+The owner's answer to «2026-11-04 18:56 — question from lane-hardware» (also written into that lane's notes):
+the keyboard is not red fix that and cpu is showing temperature between 88 and 89 c and the color is nice but brightness could be a little bit less
+
+## 2026-11-04 19:00 — question from lane-fixer
+Ollama: it was installed by hand on 24 Oct (/usr/local/bin/ollama, a service running at every start, 16 GB of models in /usr/share/ollama: Qwen3.5-9B and deepseek-coder-v2). The update's fixer does not use it: it has its own runtime and model in ~/.local, loaded only during an update. The plan (T42) removes Ollama as a stray unless you use it yourself. Keep it for your own use, or remove it with its two models? I go on with "remove" unless you say keep.
+
+## 2026-11-04 19:01 — in the plan: T42, T54b, lane-fixer (Ollama is a stray: nothing installs it; he wipes this PC at the end)
+The owner's answer to «2026-11-04 19:00 — question from lane-fixer» (also written into that lane's notes):
+remove it its a stray or dont since remember when all done i will nuke this install and doa. fresh one
+
+## 2026-11-04 19:01 — question from lane-hardware
+Thanks: dimmer coming. The keyboard: until 19:05 I drive it directly: 10 seconds green, 10 blue, 10 red, round and round. Look at it now. Does it follow those colours? If not, what does it show (one colour? which? a pattern? dark?)
+
+## 2026-11-04 19:01 — in the plan: T38, lane-hardware (its notes hold his answer)
+The owner's answer to «2026-11-04 19:01 — question from lane-hardware» (also written into that lane's notes):
+it IS showing 10 green 10 blue 10 red
+
+## 2026-11-04 19:02 — open
+The owner's answer to «2026-11-04 18:43 — question from lane-hardware» (also written into that lane's notes):
+yes it stays the same workspcae it works
+
+## 2026-11-04 19:02 — open
+The owner's answer to «2026-11-04 18:41 — question from lane-hardware» (also written into that lane's notes):
+we spoke about this
+
+## 2026-11-04 19:05 — question from lane-hardware
+Good, the keyboard listens. Now its own memory, the colour it shows when nothing drives it: look at it now, I set it to green for this test. Is it plain green? If not, what does it show?

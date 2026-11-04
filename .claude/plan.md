@@ -326,7 +326,7 @@ approach:
 - First reviews: T19k-7 (quick settings, the dial) and the open T19k items; then every task as it closes; at the end T61 runs the master over the whole round.
 accept: master-trace.md has every request with a task and a state, no request without one; every task closed after this date has a master verdict line in the ledger; the master's findings of the first review fixed and re-reviewed to a pass.
 
-### T19r — the art direction's main-run parts (.claude/notes/art-direction-claude.md, owner inbox 4 Nov 17:24; his verdicts override it)  [todo]
+### T19r — the art direction's main-run parts (.claude/notes/art-direction-claude.md, owner inbox 4 Nov 17:24; his verdicts override it)  [done 2026-11-04 — 1 withdrawn by him, 2 measured (tools/contrast.py glass_pairs: 10.73 and 11.19 : 1 over the worst pixel), 3 in lane-pixels with Super+U, 4 decided by him (00f RIGHT, lane-pixels everywhere)]
 deps: T19q 4–7 in the same review pack  · model: main  · ledger: r27-19r-N
 1. **§2 The bar's ground** WITHDRAWN by the owner 18:07 (fully floating, no band, ever; the seconds stay gone): a band in the mood's paper/sumi (opaque or ≥ 90 %, a 1 px hairline below), the tiles insets in it; one gap inside a group (4 px), one between groups (12 px), written in §8; the date without seconds, one clock style; the workspaces' rule written down. accept: tools/regress/bar-geometry.sh rewritten to it, bar-burst holds; both moods at 1× and ×3.
 2. **§3 Opaque windows**: terminals opaque or ≥ 0.96 (foot's alpha), the art in gaps and empty workspaces; body-text contrast against the worst composited pixel ≥ 7 : 1 measured. accept: tools/contrast.py case; a shot over the busiest wallpaper of each mood.
