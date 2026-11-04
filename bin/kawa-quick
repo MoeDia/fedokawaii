@@ -23,7 +23,7 @@
 #                               default) or 0<TAB>DESCRIPTION<TAB>PORT<TAB>NICK<TAB>CARD<TAB>
 #                               PROFILE<TAB>API" (what names it; any but the first may be empty)
 #   kawa-quick --state brightness   the slider's: brightness
-#   kawa-quick --do ACTION [N]  one thing done: theme · night · vrr · bluetooth · dnd (each
+#   kawa-quick --do ACTION [N]  one thing done: theme · rgb · night · vrr · bluetooth · dnd (each
 #                               switched over; dnd on|off|hour|morning: set so; end: off, as a
 #                               timed one's timer ends it) · saver (the screensaver on ⇄ off) ·
 #                               warmer · cooler (the night light, a step, on) · brightness N · volume N (set, in %) · mute ·
@@ -113,9 +113,9 @@ state_saver() {   # the screensaver (kawa-saver reads the same file): on unless 
   [[ $(cat "$SAVER" 2>/dev/null) == off ]] && echo off || echo "15 min"   # 15 min (kawa-idle)
 }
 VRR=$HOME/.config/fedokawaii/vrr
-state_vrr()   {   # FreeSync (variable refresh, dwl reads the file): in games (a full-screen
-  # window: the screen follows the game's frames, no tearing, no stutter), always, or off
-  case $(cat "$VRR" 2>/dev/null) in always) echo always ;; off) echo off ;; *) echo 'in games' ;; esac
+state_vrr()   {   # FreeSync (variable refresh, dwl reads the file): full screen (while a window
+  # is: the screen follows its frames, so a 60 fps video has even ones), always, or off
+  case $(cat "$VRR" 2>/dev/null) in always) echo always ;; off) echo off ;; *) echo 'full screen' ;; esac
 }
 state_vrrnow() {  # …and what the card does this moment (kawa-display --vrr, DRM's VRR_ENABLED):
   # on (a screen follows the frames now) · off · none (no screen offers it: the monitor's own
@@ -350,6 +350,7 @@ state() {   # everything, KEY<TAB>VALUE (a value's tabs and line breaks become s
   fi
   kv drives "$(state_drives)"; kv backup "$(state_backup)"; kv dnd "$(state_dnd)"
   kv saver "$(state_saver)"; kv record "$(state_record)"; kv vrrnow "$(state_vrrnow)"; kv uptime "$(state_up)"
+  kv rgb "$(kawa-rgb state 2>/dev/null || echo off)"   # (every light in the PC: on or off)
 }
 
 act() {   # act ACTION [N] — the panel's choices
@@ -357,13 +358,14 @@ act() {   # act ACTION [N] — the panel's choices
   case $1 in brightness|volume|output|input) (($# == 2)) || usage ;; dnd) (($# <= 2)) || usage ;; *) (($# == 1)) || usage ;; esac
   case $1 in
     theme)      kawa-theme toggle ;;
+    rgb)        kawa-rgb toggle ;;                   # (kept, the hardware's memory too: src/kawa-rgb)
     night)      kawa-night toggle ;;                 # (kept: the next login finds it so)
     warmer|cooler) kawa-night "$1" ;;
     saver)      mkdir -p "${SAVER%/*}"             # on ⇄ off (off: the lock alone at 15 min)
                 [[ $(state_saver) == off ]] && v=on || v=off
                 echo "$v" >"$SAVER.$$" && mv -f "$SAVER.$$" "$SAVER" ;;   # (whole: kawa-saver never reads half)
-    vrr)        mkdir -p "${VRR%/*}"   # in games → always → off → in games (dwl takes it up at once:
-                case $(state_vrr) in 'in games') v=always ;; always) v=off ;; *) v=games ;; esac
+    vrr)        mkdir -p "${VRR%/*}"   # full screen → always → off → full screen (dwl takes it up at once:
+                case $(state_vrr) in 'full screen') v=always ;; always) v=off ;; *) v=games ;; esac
                 echo "$v" >"$VRR.$$" && mv -f "$VRR.$$" "$VRR"   # (SIGUSR1 makes it read the file again)
                 dwl_reload ;;
     bluetooth)  if [[ $(state_bt) == on ]]; then bt power off >/dev/null; v=off

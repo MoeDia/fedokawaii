@@ -1,0 +1,11 @@
+19:19:00 start                        lights full dpms=On
+19:19:04 lock +3 s                    lights dim dpms=On
+19:19:11 lock +10 s                   lights dim dpms=On
+19:19:14 unlock +3 s                  lights full dpms=On
+19:19:24 switch off +3 s              lights switched off dpms=On
+19:19:31 switch off +10 s             lights switched off dpms=On
+19:19:34 switch on +3 s               lights full dpms=On
+19:19:41 switch on +10 s              lights full dpms=On
+19:19:44 screens off +3 s             lights off, screens off dpms=Off
+19:19:48 screens off +7 s             lights off, screens off dpms=Off
+19:19:51 screens on +3 s              lights full dpms=On

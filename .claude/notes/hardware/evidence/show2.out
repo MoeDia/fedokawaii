@@ -1,0 +1,5 @@
+19:28:01 start                lights full
+19:28:11 lock +10 s           lights dim
+19:28:21 unlock +10 s         lights full
+19:29:06 switch off +45 s     lights switched off
+19:29:11 switch on +5 s       lights full

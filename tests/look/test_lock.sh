@@ -28,6 +28,7 @@ setup() {
   argv gtklock "$FAKE_LOCK"
   argv wlopm
   stub logger
+  stub kawa-rgb; stub kawa-display
   MOD=$HOME/.local/lib/fedokawaii/kawa-lockmod.so   # (theme.sh builds it: src/kawa-lockmod)
   mkdir -p "${MOD%/*}"; : >"$MOD"
   # pkill -xu UID gtklock: this sandbox's stand-ins only (SIGTERM, as the real one sends)
@@ -56,9 +57,12 @@ case_ "… it runs under its keeper, and the journal says the lock is up"
 keeping && _ok || _no "no keeper holds the lock"
 [[ -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && _ok || _no "not marked locked"
 called '^logger -t kawa-lock -- lock up$'
-case_ "the password: gtklock ends well, the keeper with it — unlocked, said so, and the next press locks anew"
+called '^kawa-rgb lock$'
+not_called '^kawa-rgb unlock$'
+case_ "the password: gtklock ends well, the keeper with it — unlocked, said so, the lights back, and the next press locks anew"
 unlock
 called '^logger -t kawa-lock -- unlocked$'
+called '^kawa-rgb unlock$'
 [[ ! -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && _ok || _no "still marked locked after the password"
 rc 0 kawa-lock; eq "$(locks)" 2 "a new lock"; unlock
 
@@ -152,6 +156,7 @@ kill -KILL "$(lastlock)"
 waitfor '! keeping' || _no "the keeper outlived the desktop"
 eq "$(locks)" 1
 called '^logger -t kawa-lock -- locker exited rc=137 — the desktop has ended$'
+called '^kawa-rgb unlock$'
 
 case_ "the machine wakes (swayidle's after-resume): the screens lit, the journal says whether it is locked"
 setup
@@ -177,6 +182,7 @@ rc 0 kawa-lock --screens off; rc 0 kawa-lock --screens on
 args_eq wlopm 1 --off '*'; args_eq wlopm 2 --on '*'
 eq "$(tr '\n' '|' <"$TMP/notes")" "note: off|note: off|" "off before the dark; on only once lit"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
+waitfor 'grep -q "^kawa-display --monitor$" "$CALLS"' && _ok || _no "lit: the monitor's menu not looked at"
 rc 2 kawa-lock --screens; rc 2 kawa-lock --screens dim
 case_ "--screens on when wlopm fails: the note stays dark, written anew (the lock's next input tries again) and it says so"
 setup

@@ -699,6 +699,10 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 - The dissolve is a threshold against a 4 × 4 Bayer matrix in 3 px blocks, done in the private
   wlroots' GLES2 texture shader (a flag on the scene node), so any window, panel or layer can
   dissolve at no cost.
+- The lights in the case do not move (the owner, 4 Nov 18:45: the card's logo cannot stay in step with the others, so
+  no animation across devices): one steady red, a value per device so they look the same by eye, matched by the owner
+  (`/etc/fedokawaii/rgb.conf`). They change on events only, a second's fade each way: the lock screen to about 30 % of
+  how they look, screens off or a sleep to dark (a sleep at once), unlocked or awake back to full (`src/kawa-rgb`).
 
 ## 12. Windows
 

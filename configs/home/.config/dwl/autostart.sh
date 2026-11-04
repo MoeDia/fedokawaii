@@ -98,6 +98,8 @@ kawa-display </dev/null                            # resolution + refresh rate
 kawa-theme apply </dev/null                        # dark or light: GTK/Qt settings, wallpaper
 kawa-state restore </dev/null                      # what you set, as you left it, before the bar draws
                                                    #   (do not disturb, Bluetooth, brightness; kawa-state)
+kawa-display --monitor </dev/null >/dev/null 2>&1 &  # the monitor's own menu, its true level to the bar (DDC/CI is slow)
+kawa-rgb unlock </dev/null >/dev/null 2>&1           # (a session that died locked left the lights dim)
 kawa-night restore </dev/null                      # night light: as you last left it (on or off, its warmth)
 kawa-glass ensure </dev/null                       # the terminal's glass file, there before foot starts (foot.ini
                                                    #   includes it: foot refuses its config without it)

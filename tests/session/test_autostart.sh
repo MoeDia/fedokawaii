@@ -41,6 +41,7 @@ setup() {   # setup [SHELL] — a home with the autostart, every program it star
   stub kawa-night                                  # (the night light as last left: kawa-night restore)
   stub kawa-state                                  # (what you set, put back: kawa-state restore)
   stub kawa-glass                                  # (the terminal's glass file there before foot: kawa-glass ensure)
+  stub kawa-rgb                                    # (a session that died locked: the lights back)
   daemon lxqt-policykit-agent; mv "$STUBS/lxqt-policykit-agent" "$TMP/root/usr/libexec/"   # (its one place)
   export WAYLAND_DISPLAY=wayland-1 DISPLAY=:1
 }
@@ -100,7 +101,7 @@ for SHL in sh=bash dash; do
 case_ "login: the session handed to systemd first, then the display, the theme, the helpers$n"
 setup "$SHL"; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/OLD"; up
 settled waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus lxqt-policykit-agent kawa-clipkeep && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
-eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-downloads|kawa-clipkeep|wl-paste|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
+eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-downloads|kawa-clipkeep|wl-paste|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send|kawa-display --monitor|kawa-rgb)( |$)' "$CALLS")" \
 "systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG
 systemctl --user stop dwl-session.target
 systemctl --user start dwl-session.target
@@ -115,7 +116,7 @@ kawa-night restore
 kawa-glass ensure
 systemctl --user --no-block start mako.service" "in this order, the display's modes, the theme and your settings before any helper"
 called "^waybar $"; called "^kawa-panel $"; called "^systemctl --user --no-block start mako.service$"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
-called "^kawa-night restore$"; not_called "^gammastep"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"; called "^kawa-downloads watch$"
+called "^kawa-display --monitor$"; called "^kawa-rgb unlock$"; called "^kawa-night restore$"; not_called "^gammastep"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"; called "^kawa-downloads watch$"
 called "^swayidle -w timeout 900 kawa-idle away resume kawa-idle back timeout 1800 kawa-idle dark resume kawa-idle back; kawa-lock --screens on after-resume kawa-lock --resumed before-sleep kawa-lock --now$"
 called "^kawa-clipkeep $"; not_called "^notify-send"
 for d in waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done

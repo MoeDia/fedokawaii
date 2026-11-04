@@ -164,7 +164,6 @@ PKG_APPS=(
                                                     #   (lazygit, the git TUI: lib/upstream.sh)
   ShellCheck                                        # explains what is wrong in a shell script: fedokawaii apply
                                                     #   reads the ones you changed (and neovim's bash server, §17.15)
-  openrgb                                           # RGB lighting (fan speeds: the motherboard's firmware)
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
   grub-btrfs                                        # the snapshots in the boot menu (its COPR: no Fedora package)
   restic fuse3                                      # backups to another disk (kawa-backup); fuse3: a backup
@@ -194,6 +193,7 @@ PKG_ASOBI=(flatpak                # the world's programs, per user, in its own h
 #    are no longer "yours" and dnf autoremove clears them when nothing needs them. Move a
 #    package here when you take it out of the lists above ───────────────────────────────
 RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffprobe does its job
+              openrgb               # the lights are kawa-rgb's (src/kawa-rgb); its rule gave the session every I2C bus
               pavucontrol blueman   # the mixer and the pairing window are terminal programs now: wiremix, bluetui
               lazygit               # its COPR is no longer kept: lazygit comes from its release (lib/upstream.sh)
               solaar liquidctl      # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler

@@ -135,7 +135,7 @@ s_again() {
   return 0
 }
 # a set of applications taken out, so a run has something to install again
-APPS_OUT="libreoffice-impress xournalpp openrgb qrencode"
+APPS_OUT="libreoffice-impress xournalpp qrencode"
 s_killed() {
   q "dnf -y remove $APPS_OUT >/dev/null 2>&1"; marks_out
   # (in the background inside the container; killed as soon as dnf is in its transaction)

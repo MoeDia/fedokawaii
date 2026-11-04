@@ -278,7 +278,7 @@ for st in running idle suspended; do
 done
 a=$(cat "$REPO/configs/home/.config/dwl/autostart.sh")
 has "$a" 'if [ -e "$HOME/.local/state/fedokawaii/sound-restart" ]; then' "the login takes it up"
-[[ $(grep -n 'sound-restart' <<<"$a" | head -n1 | cut -d: -f1) -lt $(grep -n '^kawa-display' <<<"$a" | cut -d: -f1) ]] && _ok || _no "the login's restart comes after something else started"
+[[ $(grep -n 'sound-restart' <<<"$a" | head -n1 | cut -d: -f1) -lt $(grep -n '^kawa-display' <<<"$a" | head -n1 | cut -d: -f1) ]] && _ok || _no "the login's restart comes after something else started"
 case_ "…no clean mic in the sound server (the usual run), or no sound server at all: no call to wpctl, no restart"
 pwdump "alsa_input.pci-0000_15_00.6.analog-stereo"; fkh pw-dump "$(sed 's/clean_mic/gone/g' "$FKH/pw-dump")"; reset_calls
 theme; eq "$RC" 0; not_called 'wpctl\]'; not_called 'systemctl\] --user restart pipewire'

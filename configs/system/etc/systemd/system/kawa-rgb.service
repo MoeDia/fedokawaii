@@ -1,0 +1,47 @@
+# installed by theme.sh — the lights: every light in the PC, one steady red (src/kawa-rgb). Root
+# only because the device nodes are root's: no capabilities, nothing writable but /run/kawa-rgb and
+# /var/lib/kawa-rgb, no network, only hidraw and I2C devices. The keyboard's node also carries its
+# keys, which is why this is not given to your session: nothing of yours can read them through it.
+[Unit]
+Description=Fedokawaii: every light, one steady red
+
+[Service]
+ExecStart=/usr/local/bin/kawa-rgb run
+Restart=always
+RestartSec=5
+RuntimeDirectory=kawa-rgb
+RuntimeDirectoryMode=0755
+StateDirectory=kawa-rgb
+Nice=5
+MemoryMax=8M
+TasksMax=2
+CPUQuota=15%
+CapabilityBoundingSet=
+NoNewPrivileges=yes
+DevicePolicy=closed
+DeviceAllow=char-hidraw rw
+DeviceAllow=char-i2c rw
+ProtectSystem=strict
+ProtectHome=yes
+PrivateTmp=yes
+PrivateNetwork=yes
+RestrictAddressFamilies=none
+IPAddressDeny=any
+ProtectKernelTunables=yes
+ProtectKernelModules=yes
+ProtectKernelLogs=yes
+ProtectControlGroups=yes
+ProtectClock=yes
+ProtectHostname=yes
+RestrictNamespaces=yes
+RestrictRealtime=yes
+RestrictSUIDSGID=yes
+LockPersonality=yes
+MemoryDenyWriteExecute=yes
+SystemCallArchitectures=native
+SystemCallFilter=@system-service
+SystemCallFilter=~@privileged @resources
+UMask=0022
+
+[Install]
+WantedBy=multi-user.target

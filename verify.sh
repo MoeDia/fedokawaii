@@ -74,6 +74,7 @@ check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=n
 # no boot image, no splash; setup.sh's editor_policy)
 check "vi → nvim (a script: dracut never follows it into nvim)" bash -c '[[ ! -L /usr/local/bin/vi && -x /usr/local/bin/vi ]] && grep -qx "exec nvim \"\$@\"" /usr/local/bin/vi'
 check "i2c-dev loaded (monitor brightness over DDC/CI)" test -d /sys/module/i2c_dev
+check "the lights' one tool is running (kawa-rgb)" systemctl is-active --quiet kawa-rgb.service
 
 # ── packages ─────────────────────────────────────────────────────────────────
 section "packages (lib/manifest.sh)"
