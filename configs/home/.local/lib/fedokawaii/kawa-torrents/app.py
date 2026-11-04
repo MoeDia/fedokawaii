@@ -1242,7 +1242,7 @@ class App:
             if k == "y":
                 action()
             return
-        if k == "ctrl-q":
+        if k in ("ctrl-q", "ctrl-c"):
             self.quit = True
             return
         if k == "ctrl-v":
@@ -1608,17 +1608,20 @@ class App:
                 if a <= x < b and name != self.tab:
                     self.switch_tab()
                     return
-        pane_x = getattr(self, "pane_x", None)
-        if pane_x is not None and self.pane_shown(self.t.cols) and x >= pane_x - 1:
-            if kind == "press":
-                self.click_file(y)
+        pane_x = getattr(self, "pane_x", 0)
+        if self.page or (self.pane_shown(self.t.cols) and x >= pane_x - 1):
+            self.mouse_in_files(kind, x, y, pane_x)
+            return
+        if self.tab == "find" and y == 3 and kind == "press":
+            self.line_focus = True                 # (a click on the search line: back on it)
             return
         it = self.mouse_map.get(y)
         if it is None:
             return
         self.find_moved = self.tab == "find"
         if kind == "move":
-            if not self.pane_focus and self.adding is None:
+            if self.adding is None:
+                self.pane_focus = False            # (the pointer back on the list: one light, here)
                 self.cursor_id = it["id"]
         elif kind == "press":
             self.cursor_id = it["id"]
@@ -1628,13 +1631,16 @@ class App:
             self.cursor_id = it["id"]
             self.copy_row(it["row"])
 
-    def click_file(self, y):
+    def mouse_in_files(self, kind, x, y, pane_x):
+        """In the details: the pointer takes the cursor to a file; a click on its box keeps or skips it, on its name acts as Enter."""
         order = getattr(self, "file_order", [])
         at = self.file_top + y - getattr(self, "file_y", 0)
-        if 0 <= at < len(order) and y >= getattr(self, "file_y", 0):
-            self.pane_focus = True
-            self.file_cursor = at
-            self.key_files("space")
+        if not self.selected_row() or y < getattr(self, "file_y", 1 << 30) or not 0 <= at < len(order):
+            return
+        self.pane_focus = True
+        self.file_cursor = at
+        if kind == "press":
+            self.key_files("space" if x < pane_x + 3 else "enter")
 
     def on_wheel(self, step, x):
         if self.pane_focus or (self.pane_shown(self.t.cols) and x >= getattr(self, "pane_x", 10 ** 6)):

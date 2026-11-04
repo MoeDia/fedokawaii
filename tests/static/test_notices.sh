@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tests/static/test_notices.sh — every notice of the desktop is laid out alike: the app
-# (-a desktop · drives · backup · torrra · notices, the names mako's sections go by), the icon (a Sumi
+# (-a desktop · drives · backup · torrents · notices, the names mako's sections go by), the icon (a Sumi
 # Icons glyph — never a kanji (design-system §13) —, two spaces, then the title — or the picture itself with -i), a title in lower
 # case (a name stays as it is spelled: Steam, Bluetooth, Prowlarr), "--" before it, so a
 # title can never be read as an option; something missing that repair puts back is critical.
