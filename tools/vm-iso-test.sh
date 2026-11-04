@@ -216,6 +216,13 @@ wait_words() {
 do_install() {
   local name=$1 pw=${2:-$TEST_PASSWORD}
   wait_words "$name" "a new home" 600 || return 1
+  # (Alt+F2 moves nothing; F2 from any row: the keyboards, and back)
+  "${VIRSH[@]}" send-key "$name" KEY_LEFTALT KEY_F2 >/dev/null; sleep 1
+  do_say "$name" "a new home" || { echo "vm-iso-test: Alt+F2 moved the screen" >&2; return 1; }
+  do_keys "$name" "<f2>"
+  wait_words "$name" "type to filter" 10 || { echo "vm-iso-test: F2 opened no keyboards" >&2; return 1; }
+  do_keys "$name" "<esc>"
+  wait_words "$name" "a new home" 10 || return 1
   do_keys "$name" "$TEST_USER" "<enter>" "$pw" "<enter>" "$pw" "<enter>" "<down>" "<down>" "<down>" "<down>" "<enter>" || return 1
   wait_words "$name" "will be erased" 20 || return 1
   do_keys "$name" "<enter>"
