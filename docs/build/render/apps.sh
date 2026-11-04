@@ -146,7 +146,7 @@ make_media() {   # the test video, the demo PDF/picture/notes (→ $C/media, cop
 EOF
   printf 'Receipt 2026-09-12\nKonbini, Kawaguchiko\nonigiri ×2   ¥340\ntea          ¥160\ntotal        ¥500\n' >"$m/receipt-0912.txt"
   rm -rf "${SH:?}/media"; mkdir -p "$SH/media"; cp -a "$m/." "$SH/media/"
-  cp "$REPO/docs/Fedokawaii-Guide.pdf" "$SH/media/fedokawaii-guide.pdf"
+  cp "$REPO/docs/Fedokawaii-Learn.pdf" "$SH/media/fedokawaii-learn.pdf"
   chmod -R a+rX "$SH/media"
 }
 
@@ -372,7 +372,7 @@ home_setup() {   # what the user's home holds for the shots (all inside the over
   done
   # the yazi demo folder, the video, the PDF
   "${u[@]}" mkdir -p "$KH/Documents/Receipts" "$KH/Videos" "$KH/Downloads"
-  "${u[@]}" cp "$SH/media/notes.md" "$SH/media/fedokawaii-guide.pdf" "$KH/Documents/"
+  "${u[@]}" cp "$SH/media/notes.md" "$SH/media/fedokawaii-learn.pdf" "$KH/Documents/"
   [[ -s $SH/media/fuji-dawn.png ]] && "${u[@]}" cp "$SH/media/fuji-dawn.png" "$KH/Documents/"
   "${u[@]}" cp "$SH/media/receipt-0912.txt" "$KH/Documents/Receipts/2026-09-12-konbini.txt"
   "${u[@]}" sh -c 'cd "$1" && printf "Receipt 2026-09-20\nBookshop, Jimbocho\n" >2026-09-20-books.txt' sh "$KH/Documents/Receipts"
@@ -708,7 +708,7 @@ except socket.timeout:
 
 shot_zathura() {
   local pid
-  k zathura -P 67 "$KH/Documents/fedokawaii-guide.pdf" >"$LT/zathura.log" 2>&1 &   # page 67: chapter 11 opens (the terminal lesson)
+  k zathura -P 67 "$KH/Documents/fedokawaii-learn.pdf" >"$LT/zathura.log" 2>&1 &   # (a page of the book with words and code)
   pid=$!
   waitfor 15 "the zathura window" win_geom org.pwmt.zathura || { kill "$pid" 2>/dev/null; return; }
   sleep 2.5

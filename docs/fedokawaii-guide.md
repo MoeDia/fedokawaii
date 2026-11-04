@@ -15378,7 +15378,7 @@ For the desktop itself, look the part up here. Every path is inside your working
 | what this hardware gets | `lib/hardware.sh` (what it looks for: firmware, microcode, Wi-Fi, sound) | bash | the next update or repair | — |
 | what counts as doubled or fighting | `lib/manifest.sh` (`FORBIDDEN_PKGS`), `lib/hygiene.sh` (services that fight) | bash lists | the next update or repair | — |
 | the control (Super+U) | `system/fedokawaii` | bash | after apply | — |
-| this handbook | `docs/fedokawaii-guide.md`; the PDF is built by `docs/build/` | Markdown | — | — |
+| this handbook | `docs/fedokawaii-guide.md`: the technical reference, in the repository alone (no PDF) | Markdown | — | — |
 
 An example of each language, as it appears in these files:
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-"""Builds Fedokawaii-Learn.pdf — the learning guide Super+U opens — from docs/fedokawaii-learn.md,
-through handbook.py's own machinery: the same pixel faces, seals, stitch, palette, figures and
-contents. Only the source, the file name and the chapters' kanji (the guide's front matter) differ.
+"""Builds Fedokawaii-Learn.pdf — the Learn book whole — from docs/fedokawaii-learn.md, through
+handbook.py's machinery: the pixel faces, seals, stitch, palette, figures and contents; the
+chapters' kanji from the book's front matter.
 
 usage: python3 docs/build/learn.py        builds Fedokawaii-Learn.pdf in FEDOKAWAII_OUT
        python3 docs/build/learn.py --help this text

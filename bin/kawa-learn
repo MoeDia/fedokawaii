@@ -1,0 +1,1624 @@
+#!/usr/bin/python3
+"""kawa-learn — the lessons: the Learn book cut into pieces you do one by one, beside a terminal
+(Super+U → learning → lessons; the launcher's Lessons). A window of its own, tiled, so what a lesson
+asks you to type goes in the terminal next to it (Super+Enter). docs/design-system.md §7.
+
+    kawa-learn            the list: the parts as tabs, the cursor on the next lesson
+    kawa-learn ID         that lesson
+    kawa-learn --text [ID] [--cols N]  a lesson as plain text: the next, or that one (a text
+                          console: fedokawaii learn); on a terminal, in less, then a key to stamp it
+    kawa-learn --place    how far you are, a line of words (and the file Super+U's row reads)
+
+The list: ↑ ↓ the lessons, ← → Tab the parts, Enter opens, Space stamps or unstamps, / finds in the
+lessons' words, b the whole book as a PDF. A lesson: ↑ ↓ the wheel, Space a page, Enter a page and at
+its end the stamp, then the next; ← → the lesson before, after; s the solutions; Esc back.
+The source: docs/fedokawaii-learn.md, cut by tools/learn-pieces.py into docs/learn/ — read from
+$KAWA_LEARN (the toolkit's by default). Kept: ~/.local/state/fedokawaii/learn (what is stamped: a line
+"ID<TAB>YYYY-MM-DD" each), learn.at (where you stopped), learn.place (Super+U's row).
+Exit 0 · 1 the lessons cannot be read (said) · 2 misuse."""
+import math
+import os
+import re
+import select
+import signal
+import subprocess
+import sys
+import termios
+import time
+import tty
+import unicodedata
+
+LEARN = os.environ.get("KAWA_LEARN") or "/usr/local/lib/fedokawaii/docs/learn"
+HOME = os.path.expanduser("~")
+STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or HOME + "/.local/state", "fedokawaii")
+CONFIG = os.environ.get("XDG_CONFIG_HOME") or HOME + "/.config"
+MEASURE = 88        # the page's columns at most: a line you can read
+PANE = 50           # the list's pane, as Super+U's
+LIST_MIN = 46       # the list's columns at least, where a pane beside it is drawn
+BLOCK = LIST_MIN + 3 + PANE + 14   # list and pane together at most: wider, they stay centred
+SEAL_ROWS = 3       # the stamp at a lesson's end: its terminal rows (a 56 px seal, 60 px with its thump)
+SEAL_COLS = 8
+UNROLL = 0.30       # a lesson opening, seconds (§11: a scroll, 300)
+
+# the inks: foot's palette past the sixteen (screen.sh), so a theme switch reaches every open page
+ACCENT, ON_ACCENT, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = \
+    "38;5;16", "38;5;17", "38;5;19", "38;5;20", "38;5;21", "38;5;22", "38;5;23", "48;5;24", "38;5;25"
+BAND = "48;5;0"     # the terminal's black: what a code word lies on (§1: it carries text, strong)
+LACQUER = "38;5;24"  # select as an ink: a rod (§11; foot draws ▂ itself: 5 px of the cell's 20, on its foot)
+ITALIC = "3"
+
+
+# ── widths: what the terminal counts (a kanji two, an accent none; our icons one, spilling) ──
+def char_cols(c):
+    o = ord(c)
+    if o < 0x300:
+        return 1
+    if 0xE000 <= o <= 0xF8FF or 0xF0000 <= o <= 0xFFFFD:
+        return 1
+    if unicodedata.category(c) in ("Mn", "Me", "Cf"):
+        return 0
+    return 2 if unicodedata.east_asian_width(c) in "WF" else 1
+
+
+def cols(s):
+    return len(s) if s.isascii() else sum(map(char_cols, s))
+
+
+def split_cols(s, n):
+    """s cut after n columns at most: (what fits, the rest); nothing fits (a kanji in the last
+    column): ("", s) — the caller starts a new line"""
+    w = 0
+    for i, c in enumerate(s):
+        w += char_cols(c)
+        if w > n:
+            return s[:i], s[i:]
+    return s, ""
+
+
+# ── runs: a line is a list of (text, sgr) ─────────────────────────────────────────────────
+STAR = "★"          # (the terminal's own is two cells wide and overlaps what follows: ours, read at the start)
+
+
+def ansi(runs):
+    out, cur = [], ""
+    for text, sgr in runs:
+        if sgr != cur:
+            out.append(f"\x1b[0;{sgr}m" if sgr else "\x1b[0m")
+            cur = sgr
+        out.append(text)
+    if cur:
+        out.append("\x1b[0m")
+    return "".join(out).replace("★", STAR)
+
+
+def plain(runs):
+    return "".join(t for t, _ in runs)
+
+
+def run_cols(runs):
+    return sum(cols(t) for t, _ in runs)
+
+
+def mix(a, b):
+    return f"{a};{b}" if a and b else a or b
+
+
+TOKEN = re.compile(r"(`+)(.+?)\1|\*\*(.+?)\*\*|(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])", re.S)
+
+
+def inline(s, sgr=""):
+    """a paragraph's words as runs: **strong**, *aside*, `code` (nothing inside it read)"""
+    out, at = [], 0
+    for m in TOKEN.finditer(s):
+        if m.start() > at:
+            out.append((s[at:m.start()], sgr))
+        if m[1]:
+            out.append((m[2], mix(sgr, BAND)))
+        elif m[3] is not None:
+            out.extend(inline(m[3], STRONG if not sgr else mix(sgr, STRONG)))
+        else:
+            out.extend(inline(m[4], mix(sgr, MUTED + ";" + ITALIC)))
+        at = m.end()
+    if at < len(s):
+        out.append((s[at:], sgr))
+    return out
+
+
+def wrap(runs, width):
+    """runs → lines of at most width columns, broken at spaces (a word longer than a line is cut
+    across lines, nothing lost, nothing dotted); a space keeps its run's ink only inside a line"""
+    atoms, cur, space = [], [], None
+    for text, sgr in runs:
+        parts = re.split(r"( +)", text)
+        for p in parts:
+            if not p:
+                continue
+            if p.startswith(" "):
+                if cur:
+                    atoms.append((cur, space))
+                    cur = []
+                space = sgr
+            else:
+                cur.append((p, sgr))
+    if cur:
+        atoms.append((cur, space))
+    lines, line, used = [], [], 0
+    for atom, sp in atoms:
+        w = run_cols(atom)
+        if line and used + 1 + w <= width:
+            line.append((" ", sp or ""))
+            line.extend(atom)
+            used += 1 + w
+            continue
+        if line:
+            lines.append(line)
+            line, used = [], 0
+        if w <= width:
+            line, used = list(atom), w
+            continue
+        for text, sgr in atom:          # (longer than a line: a path, a long name)
+            while text:
+                head, rest = split_cols(text, width - used)
+                if not head:
+                    if not line:            # (a window one column wide: one letter a line, whatever it costs)
+                        head, rest = text[0], text[1:]
+                    else:
+                        lines.append(line)
+                        line, used = [], 0
+                        continue
+                text = rest
+                line.append((head, sgr))
+                used += cols(head)
+    if line:
+        lines.append(line)
+    return lines or [[]]
+
+
+# ── a piece: Markdown → lines of the page ──────────────────────────────────────────────────
+class Line:
+    __slots__ = ("runs", "block", "seal")
+
+    def __init__(self, runs, block=0, seal=False):
+        self.runs, self.block, self.seal = runs, block, seal
+
+
+FENCE = re.compile(r"^```(\S*)$")
+EXERCISE = re.compile(r"^\*\*(\d+\.\d+) (★+) ?(.*?)\*\*(.*)$", re.S)
+SOLUTION = re.compile(r"^<!-- solution (\S+) -->$")
+BOXES = (("Word — ", "BOOK"), ("Checkpoint", "CHECK"), ("Careful", "CAREFUL"), ("In this chapter", "ORDER"))
+BAT_LANG = {"python": "python", "rust": "rust", "sh": "bash", "json": "json", "toml": "toml", "markdown": "markdown"}
+
+
+def body_of(path):
+    with open(path, encoding="utf-8") as f:
+        text = f.read()
+    m = re.match(r"^---\n.*?\n---\n\n?", text, re.S)
+    return text[m.end():] if m else text
+
+
+def highlight(blocks):
+    """the code blocks (language, text) in bat's colours (the theme "ansi": foot's palette), each
+    lines of runs: bat started on them together, so a lesson of ten blocks costs one's wait"""
+    jobs = []
+    for lang, text in blocks:
+        if BAT_LANG.get(lang):
+            try:
+                p = subprocess.Popen(["bat", "--color=always", "--style=plain", "--paging=never", "--wrap=never",
+                                      "--theme=ansi", "-l", BAT_LANG[lang]], stdin=subprocess.PIPE,
+                                     stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+            except OSError:
+                return {}
+            jobs.append((lang, text, p))
+    out = {}
+    for lang, text, p in jobs:
+        # (one write and one read each: a block is far smaller than a pipe's buffer or it waits a moment)
+        coloured, _ = p.communicate(text)
+        if p.returncode == 0:
+            out[(lang, text)] = [ansi_runs(x) for x in coloured.split("\n")[:-1]] if coloured.endswith("\n") \
+                else [ansi_runs(x) for x in coloured.split("\n")]
+    return out
+
+
+SGR = re.compile(r"\x1b\[([0-9;]*)m")
+
+
+def ansi_runs(s):
+    runs, at, sgr = [], 0, ""
+    for m in SGR.finditer(s):
+        if m.start() > at:
+            runs.append((s[at:m.start()], sgr))
+        sgr = "" if m[1] in ("", "0") else m[1]
+        at = m.end()
+    if at < len(s):
+        runs.append((s[at:], sgr))
+    return runs
+
+
+def console_runs(text):
+    """a ```text block: what you type strong, what the computer answers muted; a file's or a
+    picture's lines (no prompt anywhere in it) as they are"""
+    lines = text.split("\n")
+    if not any(x.startswith(("$ ", ">>> ", "." * 3 + " ")) or x in ("$", ">>>") for x in lines):
+        return [[(x, "")] if x else [] for x in lines]
+    out, typed = [], False
+    for x in lines:
+        m = re.match(r"^(\$|>>>|\.{3})( .*)?$", x)
+        if m:
+            typed = x.endswith("\\")
+            out.append([(m[1], FAINT), (m[2] or "", STRONG)])
+        elif typed:
+            typed = x.endswith("\\")
+            out.append([(x, STRONG)])
+        else:
+            out.append([(x, MUTED)] if x else [])
+    return out
+
+
+class Page:
+    """a piece laid out for a width: lines (runs at the page's own columns); each line knows its
+    block, so a new width, or the solutions shown, keep what was at the top of the page"""
+
+    def __init__(self, text, icons, title):
+        self.text, self.icons, self.title = text, icons, title
+        self.hl = None
+
+    def has_solutions(self):
+        return "<!-- solution " in self.text
+
+    def blocks(self):
+        return [m for m in re.finditer(r"^```(\S*)\n(.*?)\n```$", self.text, re.M | re.S)]
+
+    def layout(self, width, solutions=False):
+        if self.hl is None:
+            self.hl = highlight([(m[1], m[2]) for m in self.blocks()])
+        lines = []
+        self.block = 0
+        self.pending_blank = 0
+        self.render(self.text.split("\n"), lines, width, solutions, 0, True)
+        return lines
+
+    def ink_icon(self, name, ink=ACCENT_TEXT):
+        return (self.icons.get(name, "·"), ink)
+
+    # (adds a run of blank lines before what comes next, however many were asked: the most wins)
+    def gap(self, n):
+        self.pending_blank = max(self.pending_blank, n)
+
+    def put(self, lines, runs, indent=0):
+        if self.pending_blank and lines:
+            lines.extend(Line([], self.block) for _ in range(self.pending_blank))
+        self.pending_blank = 0
+        lines.append(Line(([(" " * indent, "")] if indent else []) + runs, self.block))
+
+    def para(self, lines, runs, indent, width, first=None, hang=0):
+        """words wrapped; first: what stands before them on the first line, hang columns wide"""
+        for i, ln in enumerate(wrap(runs, max(1, width - indent - hang))):
+            if i == 0 and first:
+                self.put(lines, first + ln, indent)
+            else:
+                self.put(lines, ln, indent + hang)
+
+    def code(self, lines, lang, text, indent, width):
+        rows = self.hl.get((lang, text)) if BAT_LANG.get(lang) else None
+        if rows is None:
+            rows = console_runs(text)
+        rail, room = ("│", EDGE2), max(1, width - indent - 2)
+        for runs in rows:
+            first = True
+            cont = list(runs)
+            while first or cont:
+                line, used = [], 0
+                while cont and used < room:
+                    t, sgr = cont.pop(0)
+                    if not t:
+                        continue
+                    head, rest = split_cols(t, room - used)
+                    if not head:
+                        if line:
+                            cont.insert(0, (t, sgr))
+                            break
+                        head, rest = t[0], t[1:]        # (a window one column wide: never a loop)
+                    line.append((head, sgr))
+                    used += cols(head)
+                    if rest:
+                        cont.insert(0, (rest, sgr))
+                self.put(lines, [rail if first else ("↳", FAINT), (" ", "")] + line, indent)
+                first = False
+
+    def table(self, lines, rows, indent, width):
+        cells = [[inline(c.strip().replace(r"\|", "|")) for c in re.split(r"(?<!\\)\|", r.strip().strip("|"))]
+                 for r in rows if not re.match(r"^\|[\s:|-]+\|$", r)]
+        n = max(len(r) for r in cells)
+        for r in cells:
+            r.extend([[] for _ in range(n - len(r))])
+        room = width - indent
+        natural = [max(run_cols(r[i]) for r in cells) for i in range(n)]
+        least = [max((max((cols(w) for w in plain(r[i]).split(" ")), default=0) for r in cells), default=1) for i in range(n)]
+        least = [max(1, min(a, room)) for a in least]
+        widths = natural
+        if sum(natural) + 2 * (n - 1) > room:
+            if sum(least) + 2 * (n - 1) > room:     # (too narrow for columns: each row a small block)
+                self.stacked(lines, cells, indent, width)
+                return
+            # (the room left goes to the narrowest column still short of its words, a cell at a
+            # time: short columns stay whole, only the long sentences wrap)
+            spare = room - 2 * (n - 1) - sum(least)
+            widths = list(least)
+            while spare > 0:
+                short = [i for i in range(n) if widths[i] < natural[i]]
+                if not short:
+                    break
+                widths[min(short, key=lambda i: widths[i])] += 1
+                spare -= 1
+        total = sum(widths) + 2 * (n - 1)
+        for k, row in enumerate(cells):
+            wrapped = [wrap(row[i] if k else [(plain(row[i]), MUTED)], max(1, widths[i])) for i in range(n)]
+            for j in range(max(len(w) for w in wrapped)):
+                out = []
+                for i in range(n):
+                    part = wrapped[i][j] if j < len(wrapped[i]) else []
+                    out.extend(part)
+                    if i < n - 1:
+                        out.append((" " * (widths[i] - run_cols(part) + 2), ""))
+                self.put(lines, out, indent)
+            if k == 0:
+                self.put(lines, [("─" * total, EDGE2)], indent)
+
+    def stacked(self, lines, cells, indent, width):
+        head = cells[0]
+        for row in cells[1:]:
+            for i, c in enumerate(row):
+                if not c:
+                    continue
+                self.para(lines, ([(plain(head[i]) + ": ", MUTED)] if plain(head[i]) else []) + c, indent + (2 if i else 0), width)
+            self.gap(1)
+
+    def heading(self, lines, name, width, indent, icon=None):
+        """a part of the page (§7, two blank lines above, one under): the section's number where a
+        heading's icon stands, muted (the page's own heading has the icon), or an icon of its own"""
+        self.gap(2)
+        sec = re.match(r"^(\d+\.\d+) (.*)$", name)
+        start = [self.ink_icon(icon), ("  ", "")] if icon else [(sec[1] + " ", MUTED)] if sec else []
+        room = width - indent - run_cols(start)
+        fit = wrap([(sec[2] if sec else name, STRONG)], max(1, room - 3))
+        for i, ln in enumerate(fit):
+            rule = room - run_cols(ln) - 1
+            self.put(lines, (start if i == 0 else [(" " * run_cols(start), "")]) + ln
+                     + ([(" ", ""), ("─" * rule, EDGE2)] if i == len(fit) - 1 and rule > 0 else []), indent)
+        self.gap(1)
+
+    def render(self, src, lines, width, solutions, indent, top):
+        i, n = 0, len(src)
+        first_block = top
+        while i < n:
+            x = src[i]
+            if not x.strip():
+                i += 1
+                continue
+            self.block += 1
+            m = FENCE.match(x)
+            if m:
+                j = i + 1
+                while j < n and not src[j].startswith("```"):
+                    j += 1
+                self.gap(1)
+                self.code(lines, m[1], "\n".join(src[i + 1:j]), indent, width)
+                self.gap(1)
+                i, first_block = j + 1, False
+                continue
+            h = re.match(r"^(#{2,3}) (.*)$", x)
+            if h:
+                name = h[2]
+                sec = re.match(r"^(\d+\.\d+) (.*)$", name)
+                # (a lesson of one section: the page's own heading has said it)
+                if not (first_block and sec and sec[2] == self.title):
+                    if len(h[1]) == 2 or name == "exercises":
+                        self.heading(lines, name, width, indent, "PEN" if name == "exercises" else None)
+                    else:
+                        self.gap(1)
+                        self.para(lines, inline(name, STRONG), indent, width)
+                        self.gap(1)
+                i, first_block = i + 1, False
+                continue
+            s = SOLUTION.match(x)
+            if s:
+                j = i + 1
+                while j < n and src[j] != "<!-- /solution -->":
+                    j += 1
+                if solutions:
+                    self.gap(1)
+                    self.para(lines, [("solution", MUTED)], indent, width, first=[self.ink_icon("CHECK"), ("  ", "")], hang=3)
+                    self.gap(1)
+                    self.render(src[i + 1:j], lines, width, solutions, indent + 3, False)
+                    self.gap(1)
+                i = j + 1
+                first_block = False
+                continue
+            if x.startswith("<!--"):
+                while i < n and "-->" not in src[i]:
+                    i += 1
+                i += 1
+                continue
+            if x.startswith("|"):
+                j = i
+                while j < n and src[j].startswith("|"):
+                    j += 1
+                self.gap(1)
+                self.table(lines, src[i:j], indent, width)
+                self.gap(1)
+                i, first_block = j, False
+                continue
+            if x.startswith(">"):
+                j = i
+                while j < n and src[j].startswith(">"):
+                    j += 1
+                self.box(lines, [q[1:].lstrip(" ") if len(q) > 1 else "" for q in src[i:j]], indent, width)
+                i, first_block = j, False
+                continue
+            li = re.match(r"^([-*]|\d+\.) (.*)$", x)
+            if li:
+                j = i
+                while j < n and re.match(r"^([-*]|\d+\.) ", src[j]):
+                    item = [src[j]]
+                    j += 1
+                    while j < n and src[j].strip() and not re.match(r"^([-*]|\d+\.) |^```|^\||^>|^#|^<!--", src[j]):
+                        item.append(src[j].strip())
+                        j += 1
+                    self.item(lines, " ".join(item), indent, width)
+                self.gap(1)
+                i, first_block = j, False
+                continue
+            j = i
+            para = []
+            while j < n and src[j].strip() and not re.match(r"^```|^\||^>|^#{2,3} |^<!--", src[j]) \
+                    and not (j > i and re.match(r"^([-*]|\d+\.) ", src[j])):
+                para.append(src[j].strip())
+                j += 1
+            self.paragraph(lines, " ".join(para), indent, width)
+            self.gap(1)
+            i, first_block = j, False
+
+    def item(self, lines, text, indent, width):
+        m = re.match(r"^([-*]|\d+\.) (.*)$", text)
+        mark = "•" if m[1] in "-*" else m[1]
+        w = cols(mark) + 1
+        self.para(lines, inline(m[2]), indent + 1, width, first=[(mark, MUTED), (" ", "")], hang=w)
+
+    def paragraph(self, lines, text, indent, width):
+        e = EXERCISE.match(text)
+        if e:
+            first = [(e[1], MUTED), (" ", ""), (e[2], ACCENT_TEXT), (" ", "")]
+            if e[3]:
+                first += [(e[3], STRONG)]
+            self.para(lines, first + inline(e[4]), indent, width)
+            return
+        self.para(lines, inline(text), indent, width)
+
+    def box(self, lines, quote, indent, width):
+        """a quote: a new word, a checkpoint, careful, in this chapter: the kind's icon in the heading's column,
+        its words from the name's (§7); a line of - or 1. inside it a list"""
+        icon = None
+        head = next((q for q in quote if q), "")
+        word = re.match(r"^\*\*(.*?)\*\*", head)
+        if word:
+            for start, name in BOXES:
+                if word[1].startswith(start):
+                    icon = name
+        self.gap(1)
+        paras, cur = [], []
+        for q in quote:
+            if not q:
+                if cur:
+                    paras.append(cur)
+                cur = []
+            elif re.match(r"^([-*]|\d+\.) ", q) and cur:
+                paras.append(cur)
+                cur = [q]
+            else:
+                cur.append(q)
+        if cur:
+            paras.append(cur)
+        first = True
+        for p in paras:
+            text = " ".join(p)
+            item = re.match(r"^([-*]|\d+\.) (.*)$", text)
+            if not first and not item:
+                self.gap(1)
+            if first and text.startswith("**Word — "):
+                text = "**" + text[len("**Word — "):]
+            elif first and text.startswith("**In this chapter**"):
+                text = "**in this chapter**" + text[len("**In this chapter**"):]
+            if item:
+                mark = "•" if item[1] in "-*" else item[1]
+                self.para(lines, inline(item[2]), indent + 3, width, first=[(mark, MUTED), (" ", "")], hang=cols(mark) + 1)
+            else:
+                start = [self.ink_icon(icon or "NOTE"), ("  ", "")] if first else [("   ", "")]
+                self.para(lines, inline(text), indent, width, first=start, hang=3)
+            first = False
+        self.gap(1)
+
+
+# ── the lessons: the index, what is stamped ────────────────────────────────────────────────
+class Course:
+    def __init__(self):
+        self.parts, self.chapters, self.lessons, self.by_id = [], {}, [], {}
+        with open(os.path.join(LEARN, "index.tsv"), encoding="utf-8") as f:
+            for row in f.read().split("\n"):
+                c = row.split("\t")
+                if c[0] == "P":
+                    self.parts.append({"id": c[1], "name": c[2], "icon": c[3], "lessons": []})
+                elif c[0] == "C":
+                    self.chapters[c[1]] = {"n": c[1], "part": c[2], "name": c[3], "icon": c[4], "lessons": []}
+                elif c[0] == "L":
+                    le = {"id": c[1], "file": c[2], "place": int(c[3]), "part": c[4], "chapter": c[5], "title": c[6],
+                          "minutes": int(c[7]), "needs": c[8].split(), "sections": c[9].split("|") if c[9] else [],
+                          "i": len(self.lessons)}
+                    self.lessons.append(le)
+                    self.by_id[le["id"]] = le
+                    self.chapters[le["chapter"]]["lessons"].append(le)
+                    next(p for p in self.parts if p["id"] == le["part"])["lessons"].append(le)
+        self.required = [le for le in self.lessons if le["place"]]
+        self.done = {}
+        self.read_state()
+
+    def read_state(self):
+        # (a line it cannot read is passed over, never the whole file lost: it stays until a stamp is taken off)
+        self.done = {}
+        try:
+            with open(os.path.join(STATE, "learn"), encoding="utf-8", errors="replace") as f:
+                for row in f:
+                    c = row.rstrip("\n").split("\t")
+                    if len(c) == 2 and re.fullmatch(r"[a-z0-9-]+", c[0]) and re.fullmatch(r"\d{4}-\d\d-\d\d", c[1]):
+                        self.done[c[0]] = c[1]
+        except OSError:
+            pass
+
+    def write_state(self):
+        self.write(os.path.join(STATE, "learn"), "".join(f"{k}\t{v}\n" for k, v in self.done.items()))
+
+    @staticmethod
+    def write(path, text):
+        tmp = f"{path}.{os.getpid()}"
+        try:
+            os.makedirs(os.path.dirname(path), exist_ok=True)
+            with open(tmp, "w", encoding="utf-8") as f:
+                f.write(text)
+            os.replace(tmp, path)
+        except OSError:          # (a disk that is full: the page goes on, the stamp is not kept)
+            try:
+                os.unlink(tmp)
+            except OSError:
+                pass
+
+    def stamp(self, le, on=True):
+        self.read_state()                 # (another window of it may have stamped meanwhile)
+        if on:
+            self.done[le["id"]] = time.strftime("%Y-%m-%d")
+        else:
+            self.done.pop(le["id"], None)
+        self.write_state()
+        self.write_place()
+
+    def count(self):
+        return sum(1 for le in self.required if le["id"] in self.done)
+
+    def next_lesson(self):
+        return next((le for le in self.required if le["id"] not in self.done), None)
+
+    def left(self):
+        return sum(le["minutes"] for le in self.required if le["id"] not in self.done)
+
+    def write_place(self):
+        n = self.next_lesson()
+        self.write(os.path.join(STATE, "learn.place"), "\t".join(
+            (str(self.count()), str(len(self.required)), n["title"] if n else "", str(n["minutes"]) if n else "0", str(self.left()))) + "\n")
+
+    def where(self):
+        try:
+            with open(os.path.join(STATE, "learn.at"), encoding="utf-8") as f:
+                c = f.read().strip().split("\t")
+            if len(c) == 2 and c[0] in self.by_id and c[1].isdigit():
+                return c[0], int(c[1])
+        except (OSError, ValueError):
+            pass
+        return None, 0
+
+    def keep_where(self, le, block):
+        self.write(os.path.join(STATE, "learn.at"), f"{le['id']}\t{block}\n")
+
+
+def read_icons():
+    icons = {}
+    try:
+        with open(os.path.join(CONFIG, "fedokawaii/icons.sh"), encoding="utf-8") as f:
+            for m in re.finditer(r"^ICON_(\w+)=\$'((?:\\x[0-9a-f]{2})+)'", f.read(), re.M):
+                icons[m[1]] = bytes.fromhex(m[2].replace("\\x", "")).decode()
+    except (OSError, ValueError):
+        pass
+    return icons
+
+
+def icon_key(name):
+    return name.upper().replace("-", "_")
+
+
+def how_long(minutes):
+    if minutes < 60:
+        return f"{minutes} min"
+    h, m = divmod(minutes, 60)
+    return f"{h} h {m}" if m and h < 10 else f"{h + (m >= 30)} h"
+
+
+def pretty_date(iso):
+    try:
+        t = time.strptime(iso, "%Y-%m-%d")
+    except ValueError:
+        return iso
+    return time.strftime("%-d %b", t) if t.tm_year == time.localtime().tm_year else time.strftime("%-d %b %Y", t)
+
+
+# ── the seal: one ink, painted at each draw in the mood's colours ───────────────────────────
+def theme_colours():
+    """the mood's inks, as the theme writes them for the panel (a sixel's colours are its own, no palette's)"""
+    try:
+        with open(os.path.join(CONFIG, "fedokawaii/current/panel.conf"), encoding="utf-8") as f:
+            return dict(re.findall(r"^(\w+)=#?([0-9a-fA-F]{6})\b", f.read(), re.M))
+    except OSError:
+        return {}
+
+
+def read_seals():
+    seals, cur = {}, None
+    try:
+        with open(os.path.join(LEARN, "seals.txt"), encoding="utf-8") as f:
+            for row in f:
+                row = row.rstrip("\n")
+                if row.startswith("@"):
+                    cur = seals[row[1:]] = []
+                elif cur is not None and row and not row.startswith("#!"):
+                    cur.append(row)
+    except OSError:
+        pass
+    return seals
+
+
+def sixel(mask, colour, grow=0):
+    """a one-ink picture (rows of # and .) as a sixel: unset pixels left unset (P2=1), so the
+    terminal's own ground, glass and all, shows through; grow: each pixel of its edge a pixel out"""
+    if grow:
+        h, w = len(mask), len(mask[0])
+        big = [[False] * (w + 2) for _ in range(h + 2)]
+        for y, row in enumerate(mask):
+            for x, c in enumerate(row):
+                if c == "#":
+                    for dy in (0, 1, 2):
+                        for dx in (0, 1, 2):
+                            big[y + dy][x + dx] = True
+        mask = ["".join("#" if p else "." for p in row) for row in big]
+    w = len(mask[0])
+    r, g, b = (round(int(colour[i:i + 2], 16) * 100 / 255) for i in (0, 2, 4))
+    out = [f"\x1bP0;1;0q\"1;1;{w};{len(mask)}#0;2;{r};{g};{b}#0"]
+    for top in range(0, len(mask), 6):
+        band = mask[top:top + 6]
+        cells = []
+        for x in range(w):
+            v = 0
+            for i, row in enumerate(band):
+                if row[x] == "#":
+                    v |= 1 << i
+            cells.append(chr(63 + v))
+        # run-lengths: a seal is mostly long runs
+        s, x = [], 0
+        while x < w:
+            y = x
+            while y < w and cells[y] == cells[x]:
+                y += 1
+            s.append(f"!{y - x}{cells[x]}" if y - x > 3 else cells[x] * (y - x))
+            x = y
+        out.append("".join(s) + ("-" if top + 6 < len(mask) else ""))
+    return "".join(out) + "\x1b\\"
+
+
+# ── the terminal ────────────────────────────────────────────────────────────────────────────
+class Term:
+    def __init__(self):
+        self.old = None
+        self.rows, self.cols = 24, 80
+        self.frame = []
+        self.wiped = True       # (the next frame starts from a clean screen: inside it, so no blank one is ever seen)
+
+    def __enter__(self):
+        self.old = termios.tcgetattr(0)
+        tty.setraw(0, termios.TCSANOW)
+        # (no line wrap: what a very small window cannot hold stops at its edge, the rows stay rows)
+        self.write("\x1b[?1049h\x1b[?7l\x1b[?25l\x1b[?2031h\x1b[?1007h\x1b]2;lessons\x1b\\")
+        self.size()
+        return self
+
+    def __exit__(self, *_):
+        self.write("\x1b[?2031l\x1b[?1000;1003;1006l\x1b[?7h\x1b[?25h\x1b[?1049l")
+        try:
+            termios.tcsetattr(0, termios.TCSANOW, self.old)
+        except termios.error:
+            pass
+
+    @staticmethod
+    def write(s):
+        data = s.encode("utf-8", "surrogateescape")
+        while data:
+            try:
+                n = os.write(1, data)
+            except BlockingIOError:
+                select.select([], [1], [], 1)
+                continue
+            data = data[n:]
+
+    def size(self):
+        try:
+            sz = os.get_terminal_size(1)
+            self.rows, self.cols = max(1, sz.lines), max(1, sz.columns)
+        except OSError:
+            pass
+        self.frame = []
+
+    def draw(self, lines, after=""):
+        """the frame: only the rows that changed, all at once (synchronized output: no half frame,
+        ever); after: what is written last (a picture, the cursor)"""
+        out = ["\x1b[?2026h"]
+        if self.wiped:
+            out.append("\x1b[2J")
+            self.frame = []
+            self.wiped = False
+        if len(self.frame) != len(lines):
+            self.frame = [None] * len(lines)
+        for i, s in enumerate(lines):
+            if self.frame[i] != s:
+                out.append(f"\x1b[{i + 1};1H{s}\x1b[K")
+                self.frame[i] = s
+        out.append(after)
+        out.append("\x1b[?2026l")
+        self.write("".join(out))
+
+
+KEYS = {"A": "up", "B": "down", "C": "right", "D": "left", "H": "home", "F": "end", "Z": "btab"}
+TILDE = {"1": "home", "4": "end", "5": "pgup", "6": "pgdn", "7": "home", "8": "end"}
+
+
+MOUSE = re.compile(r"\x1b\[<(\d+);(\d+);(\d+)([Mm])")
+THEME = re.compile(r"\x1b\[\?997;(\d)n")
+CSI = re.compile(r"\x1b[\[O]([0-9;?]*)([A-Za-z~])")
+
+
+def decode(data):
+    """bytes as they came → events: a key's name or letter, ("mouse", button, x, y, press),
+    ("theme",). A lone ESC is the key"""
+    out = []
+    s = data.decode("utf-8", "replace")
+    i = 0
+    while i < len(s):
+        c = s[i]
+        if c != "\x1b":
+            i += 1
+            if c in "\r\n":
+                out.append("enter")
+            elif c == "\t":
+                out.append("tab")
+            elif c in "\x7f\b":
+                out.append("backspace")
+            elif c in "\x03\x11":
+                out.append("quit")
+            elif c == "\x06":
+                out.append("pgdn")
+            elif c == "\x02":
+                out.append("pgup")
+            elif c == "\x15":
+                out.append("clear")
+            elif c >= " ":
+                out.append(c)
+            continue
+        m = MOUSE.match(s, i)
+        if m:
+            out.append(("mouse", int(m[1]), int(m[2]) - 1, int(m[3]) - 1, m[4] == "M"))
+            i = m.end()
+            continue
+        m = THEME.match(s, i)
+        if m:
+            out.append(("theme",))
+            i = m.end()
+            continue
+        m = CSI.match(s, i)
+        if m:
+            i = m.end()
+            if m[2] == "~":
+                k = TILDE.get(m[1].split(";")[0])
+                if k:
+                    out.append(k)
+            elif m[2] in KEYS:
+                out.append(KEYS[m[2]])
+            continue
+        out.append("esc")
+        i += 1
+    return out
+
+
+class App:
+    def __init__(self, course):
+        global STAR
+        self.course = course
+        self.icons = read_icons()
+        STAR = self.icons.get("STAR", STAR)
+        self.seals = read_seals()
+        self.colours = theme_colours()
+        self.term = Term()
+        self.screen = "list"
+        self.part = 0
+        self.cursor = None
+        self.top = 0
+        self.rows_shown = []
+        self.query = None
+        self.found = []
+        self.haystack = None
+        self.lesson = None
+        self.page = None
+        self.lines = []
+        self.ptop = 0
+        self.solutions = False
+        self.seal_at = None
+        self.seal_drawn = None
+        self.thump = 0
+        self.unroll = 0
+        self.running = True
+        self.mouse = None
+        self.pane_seal = None
+        n = course.next_lesson() or course.lessons[0]
+        self.go_part(next(i for i, p in enumerate(course.parts) if p["id"] == n["part"]), n)
+
+    def icon(self, name):
+        return self.icons.get(icon_key(name), "·")
+
+    # ── the list ─────────────────────────────────────────────────────────────────────────
+    def go_part(self, i, lesson=None):
+        self.part = i
+        p = self.course.parts[i]
+        self.cursor = lesson or next((le for le in p["lessons"] if le["place"] and le["id"] not in self.course.done),
+                                     p["lessons"][0])
+        self.top = 0
+        self.fit_list()
+
+    def shape(self):
+        """columns: (left of the block, the list's width, the pane's, or 0) for this window"""
+        room = self.term.cols - 4
+        if room >= LIST_MIN + 3 + PANE:
+            block = min(room, BLOCK)
+            return 2 + (room - block) // 2, block - PANE - 3, PANE
+        return 2, max(8, room), 0
+
+    def list_rows(self):
+        """the list's rows for the part shown: a chapter's heading, a blank under it, its lessons,
+        two blanks before the next (§3); or what a search found"""
+        rows = []
+        if self.query is not None:
+            return [("lesson", le) for le in self.found]
+        p = self.course.parts[self.part]
+        seen = []
+        for le in p["lessons"]:
+            if le["chapter"] not in seen:
+                seen.append(le["chapter"])
+        for k, ch in enumerate(seen):
+            if k:
+                rows += [("blank",), ("blank",)]
+            rows += [("chapter", self.course.chapters[ch]), ("blank",)]
+            rows += [("lesson", le) for le in self.course.chapters[ch]["lessons"]]
+        return rows
+
+    def fit_list(self):
+        rows = self.list_rows()
+        self.rows_shown = rows
+        view = self.list_height()
+        at = next((i for i, r in enumerate(rows) if r[0] == "lesson" and r[1] is self.cursor), 0)
+        # (the heading of the first lesson comes along when it fits: where a list starts is said)
+        lead = at
+        while lead > 0 and rows[lead - 1][0] != "lesson" and at - (lead - 1) < view - 1:
+            lead -= 1
+        margin = 2
+        if lead < self.top + (0 if lead == at else margin):
+            self.top = max(0, lead if lead != at else at - margin)
+        if at >= self.top + view - margin:
+            self.top = at - view + margin + 1
+        self.top = max(0, min(self.top, max(0, len(rows) - view)))
+
+    def list_height(self):
+        return max(1, self.term.rows - 5)
+
+    def move(self, step):
+        rows = [r[1] for r in self.list_rows() if r[0] == "lesson"]
+        if not rows:
+            return
+        try:
+            i = next(k for k, le in enumerate(rows) if le is self.cursor)
+        except StopIteration:
+            i = 0
+        self.cursor = rows[max(0, min(len(rows) - 1, i + step))]
+        self.fit_list()
+
+    def draw_list(self):
+        rows = self.term.rows
+        x0, lw, pw = self.shape()
+        lines = [[] for _ in range(rows)]
+        course = self.course
+        place = f"{course.count()} of {len(course.required)}"
+
+        def put(r, col, runs):
+            if 0 <= r < rows:
+                used = run_cols(lines[r])
+                if col > used:
+                    lines[r].append((" " * (col - used), ""))
+                lines[r].extend(runs)
+
+        if self.query is None:
+            top, under, at = [], [], 0
+            for i, p in enumerate(course.parts):
+                ico = self.icon(p["icon"])
+                if i == self.part:
+                    top += [(ico, ACCENT_TEXT), ("  ", ""), (p["name"], STRONG)]
+                    under += [(" " * (at + 3 - run_cols(under)), ""), ("▔" * cols(p["name"]), ACCENT)]
+                    at += 3 + cols(p["name"])
+                else:
+                    top += [(ico, MUTED), (" ", "")]
+                    at += 2
+                if i < len(course.parts) - 1:
+                    top.append(("   ", ""))
+                    at += 3
+            put(1, x0, top)
+            put(1, x0 + lw - cols(place), [(place, MUTED)])
+            put(2, x0, under)
+        else:
+            q = self.query
+            put(1, x0 + 1, [(self.icon("CHEVRON_RIGHT"), ACCENT_TEXT)])
+            put(1, x0 + 4, [(q, "")] if q else [("find in the lessons", FAINT)])
+            count = str(len(self.found)) if q else ""
+            put(1, x0 + lw - cols(count), [(count, MUTED)])
+        view = self.list_height()
+        for k, row in enumerate(self.rows_shown[self.top:self.top + view]):
+            r = 4 + k
+            if row[0] == "chapter":
+                ch = row[1]
+                name = [(ch["n"] + " ", MUTED)] if ch["n"] != "0" else []
+                name += [(ch["name"], STRONG)]
+                ls = [le for le in ch["lessons"] if le["place"]]
+                d = sum(1 for le in ls if le["id"] in course.done)
+                value = f"{d} of {len(ls)}" if d and ls else ""
+                used = 3 + run_cols(name)
+                rule = lw - used - 1 - (cols(value) + 1 if value else 0)
+                head = [(self.icon(ch["icon"]), ACCENT_TEXT), ("  ", "")] + name
+                if rule >= 1:
+                    head += [(" ", ""), ("─" * rule, EDGE2)]
+                if value and rule >= 1:
+                    head += [(" ", ""), (value, MUTED)]
+                put(r, x0, head)
+            elif row[0] == "lesson":
+                put(r, x0 - 1 if row[1] is self.cursor else x0, self.lesson_row(row[1], lw))
+        if pw:
+            self.draw_pane(put, x0 + lw + 3, pw, rows)
+        out = [ansi(x) for x in lines]
+        spot = self.pane_seal if pw and self.cursor else None
+        if self.query is not None and rows > 1:
+            tail = f"\x1b[2;{x0 + 5 + cols(self.query)}H\x1b[?25h"
+        else:
+            tail = "\x1b[?25l"
+        self.term.write("\x1b[?1000;1003;1006h")
+        self.show(out, (spot[0] + 1, spot[1] + 1) if spot else None, bool(self.cursor) and self.cursor["id"] in course.done, tail)
+
+    def lesson_row(self, le, lw):
+        """a row (§7): its mark at column 1, the number at 4, its name, the time right-aligned at
+        the list's last column. Under the cursor every ink is the lacquer's, from the cursor's
+        column to the one past the content"""
+        course = self.course
+        done = le["id"] in course.done
+        if done:
+            mark, ink = self.icon("CHECK"), MUTED
+        elif le is course.next_lesson():
+            mark, ink = self.icon("SEAL"), ACCENT_TEXT
+        else:
+            mark, ink = " ", ""
+        num = f"{le['place']:>3}" if le["place"] else "  ★"
+        value = how_long(le["minutes"])
+        room = lw - 9 - cols(value) - 2
+        # (a narrow tile: the name's end goes, at a word, nothing in its place; the time stays)
+        title = plain(wrap([(le["title"], "")], max(1, room))[0]) if cols(le["title"]) > room else le["title"]
+        pad = " " * max(2, lw - 9 - cols(title) - cols(value))
+        if le is self.cursor:
+            s = mix(SELECT, ON_SELECT)
+            return [("  ", s), (mark, s), ("  ", s), (num, s), ("  ", s), (title, s), (pad, s), (value, s), (" ", s)]
+        quiet = done or not le["place"]
+        return [(" ", ""), (mark, ink), ("  ", ""), (num, MUTED if quiet else FAINT), ("  ", ""), (title, MUTED if quiet else ""),
+                (pad, ""), (value, FAINT if done else MUTED)]
+
+    def draw_pane(self, put, x, w, rows):
+        le = self.cursor
+        if not le:
+            return
+        course = self.course
+        ch = course.chapters[le["chapter"]]
+        name = [(le["title"], STRONG)]
+        rule = max(0, w - 3 - run_cols(name) - 1)
+        put(1, x, [(self.icon(ch["icon"]), ACCENT_TEXT), ("  ", "")] + name + ([(" ", ""), ("─" * rule, EDGE2)] if rule else []))
+        r = 4
+        key = 8
+
+        def fact(k, runs):
+            nonlocal r
+            put(r, x + 3, [(k, MUTED)])
+            put(r, x + 3 + key + 1, runs)
+            r += 1
+
+        if le["place"]:
+            fact("lesson", [(f"{le['place']} of {len(course.required)}", "")])
+        else:
+            fact("lesson", [("when you have the time", "")])
+        if le["id"] in course.done:
+            fact("stamped", [(pretty_date(course.done[le["id"]]), "")])
+        fact("takes", [(how_long(le["minutes"]), "")])
+        for i, need in enumerate(le["needs"]):
+            n = course.by_id[need]
+            done = need in course.done
+            words = n["title"] if n["chapter"] == le["chapter"] else f"{n['chapter']} {course.chapters[n['chapter']]['name']}"
+            mark = self.icon("CHECK") if done else self.icon("BOX_OFF")
+            for k, ln in enumerate(wrap([(words, MUTED if done else "")], w - 3 - key - 1 - 3)):
+                fact("needs" if i == 0 and k == 0 else "", ([(mark, MUTED)] if k == 0 else [(" ", "")]) + [("  ", "")] + ln)
+        if le["sections"]:
+            r += 1
+            for sec in le["sections"]:
+                for k, ln in enumerate(wrap([(sec, "")], w - 3)):
+                    put(r, x + 3 + (5 if k else 0), [(plain(ln), MUTED)])
+                    r += 1
+        # how far: the part's meter and the whole's (§7 Meter), at the pane's foot; between them and
+        # what is told above, where it fits, the lesson's stamp or the ring waiting for it
+        p = next(q for q in course.parts if q["id"] == le["part"])
+        foot = rows - 5
+        self.pane_seal = (r + 2, x + 4) if foot - (r + 1) >= SEAL_ROWS + 1 else None
+        if foot > r:
+            req = [q for q in p["lessons"] if q["place"]]
+            d = sum(1 for q in req if q["id"] in course.done)
+            self.meter(put, foot, x, key, "part", d, len(req))
+            self.meter(put, foot + 1, x, key, "all", course.count(), len(course.required))
+            left = course.left()
+            if left:
+                put(foot + 2, x + 3, [("left", MUTED)])
+                put(foot + 2, x + 3 + key + 1, [(how_long(left), "")])
+
+    def meter(self, put, r, x, key, name, done, total):
+        n = (done * 10 + total - 1) // total if total else 0
+        put(r, x + 3, [(name, MUTED)])
+        whole = done == total and total
+        lit, off = self.icon("READ"), self.icon("READ_OFF")
+        put(r, x + 3 + key + 1, [(lit * n, MUTED if whole else ACCENT_TEXT), (off * (10 - n), EDGE2), (f"  {done} of {total}", MUTED)])
+
+    def key_list(self, k):
+        rows = self.list_height()
+        if isinstance(k, tuple):
+            if k[0] == "mouse":
+                self.mouse_list(k)
+            return
+        if self.query is not None:
+            if k == "esc":
+                self.query, self.found = None, []
+                self.go_part(self.part, self.cursor)
+                return
+            if k in ("up", "down", "pgup", "pgdn", "enter"):
+                pass
+            elif k == "backspace":
+                self.query = self.query[:-1]
+                self.search()
+                return
+            elif k == "clear":
+                self.query = ""
+                self.search()
+                return
+            elif isinstance(k, str) and len(k) == 1:
+                self.query += k
+                self.search()
+                return
+            elif k != "quit":
+                return
+        if k in ("q", "esc", "quit"):
+            self.running = False
+        elif k in ("j", "down"):
+            self.move(1)
+        elif k in ("k", "up"):
+            self.move(-1)
+        elif k == "pgdn":
+            self.move(rows - 2)
+        elif k == "pgup":
+            self.move(-(rows - 2))
+        elif k in ("g", "home"):
+            self.move(-10**6)
+        elif k in ("G", "end"):
+            self.move(10**6)
+        elif k in ("l", "right", "tab"):
+            self.go_part((self.part + 1) % len(self.course.parts))
+        elif k in ("h", "left", "btab"):
+            self.go_part((self.part - 1) % len(self.course.parts))
+        elif k == "enter":
+            if self.cursor and (self.query is None or self.found):
+                self.open_lesson(self.cursor)
+        elif k == " " and self.cursor:
+            self.course.stamp(self.cursor, self.cursor["id"] not in self.course.done)
+            self.thump = time.monotonic() + 0.06
+        elif k == "/":
+            self.query = ""
+            self.search()
+        elif k == "b":
+            self.open_book()
+
+    def open_book(self):
+        pdf = os.path.join(os.path.dirname(LEARN), "Fedokawaii-Learn.pdf")
+        if os.path.exists(pdf):
+            subprocess.Popen(["setsid", "-f", "zathura", pdf], stdin=subprocess.DEVNULL,
+                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+
+    def tab_at(self, x):
+        x0 = self.shape()[0]
+        at = x0
+        for i, p in enumerate(self.course.parts):
+            w = 3 + cols(p["name"]) if i == self.part else 2
+            if at <= x < at + w:
+                return i
+            at += w + 3
+        return None
+
+    def mouse_list(self, k):
+        _, b, x, y, press = k
+        if b & 64:                  # the wheel
+            if press:
+                self.move(-1 if b & 1 == 0 else 1)
+            return
+        hit = None
+        x0, lw, _ = self.shape()
+        if 4 <= y < 4 + self.list_height() and x0 - 1 <= x <= x0 + lw:     # (the list's rows, not the pane beside them)
+            at = self.top + y - 4
+            if at < len(self.rows_shown) and self.rows_shown[at][0] == "lesson":
+                hit = self.rows_shown[at][1]
+        moved = b & 32
+        if moved:
+            # (motion alone: one light — the cursor goes to the row under the pointer; no scroll)
+            if hit is not None and self.mouse != (x, y):
+                self.cursor = hit
+            self.mouse = (x, y)
+            return
+        if press and b & 3 == 0:
+            if y == 1 and self.query is None:
+                t = self.tab_at(x)
+                if t is not None:
+                    self.go_part(t)
+                return
+            if hit is not None:
+                self.cursor = hit
+                self.open_lesson(hit)
+
+    def search(self):
+        q = (self.query or "").lower().split()
+        if self.haystack is None:
+            self.haystack = []
+            for le in self.course.lessons:
+                try:
+                    body = body_of(os.path.join(LEARN, "pieces", le["file"])).lower()
+                except OSError:
+                    body = ""
+                self.haystack.append((le, le["title"].lower(), " ".join(le["sections"]).lower(), body))
+        if not q:
+            self.found = []
+            self.cursor = None
+            self.top = 0
+            self.rows_shown = []
+            return
+        scored = []
+        for le, title, sections, body in self.haystack:
+            if all(w in title or w in sections or w in body for w in q):
+                score = sum(100 if w in title else 40 if w in sections else 0 for w in q)
+                score += min(30, sum(body.count(w) for w in q))
+                scored.append((-score, le["i"], le))
+        scored.sort(key=lambda t: t[:2])
+        self.found = [t[2] for t in scored]
+        self.cursor = self.found[0] if self.found else None
+        self.top = 0
+        self.rows_shown = [("lesson", le) for le in self.found]
+
+    # ── a lesson ──────────────────────────────────────────────────────────────────────────
+    def page_shape(self):
+        room = self.term.cols - 4
+        w = max(8, min(room, MEASURE))
+        return 2 + (room - w) // 2, w
+
+    def open_lesson(self, le, at_block=None):
+        self.lesson = le
+        self.cursor = le
+        self.screen = "page"
+        self.solutions = False
+        try:
+            text = body_of(os.path.join(LEARN, "pieces", le["file"]))
+        except OSError as e:
+            text = f"This lesson cannot be read: {e.strerror}. `fedokawaii repair` puts it back."
+        self.page = Page(text, self.icons, le["title"])
+        self.relayout()
+        self.ptop = 0
+        self.unroll = time.monotonic()
+        if at_block is None:
+            where, block = self.course.where()
+            at_block = block if where == le["id"] else 0
+        if at_block:
+            self.to_block(at_block)
+        self.term.write(f"\x1b[?1000;1003;1006l\x1b]2;{le['title']}\x1b\\")
+        self.term.wiped = True
+        self.seal_drawn = None
+
+    def relayout(self):
+        _, w = self.page_shape()
+        self.lines = self.page.layout(w, self.solutions)
+        # the place for the stamp, its rows blank: the seal is drawn over them while they are all in sight
+        self.lines.extend(Line([], self.page.block) for _ in range(2))
+        self.seal_at = len(self.lines)
+        self.lines.extend(Line([], self.page.block, seal=i == 0) for i in range(SEAL_ROWS))
+        self.lines.append(Line([], self.page.block))
+
+    def body_height(self):
+        return max(1, self.term.rows - 6)
+
+    def to_block(self, block):
+        self.ptop = next((i for i, ln in enumerate(self.lines) if ln.block >= block), 0)
+        self.clamp()
+
+    def top_block(self):
+        return self.lines[self.ptop].block if self.ptop < len(self.lines) else 0
+
+    def clamp(self):
+        self.ptop = max(0, min(self.ptop, max(0, len(self.lines) - self.body_height())))
+
+    def at_end(self):
+        return self.ptop + self.body_height() >= len(self.lines)
+
+    def draw_page(self):
+        rows = self.term.rows
+        x0, w = self.page_shape()
+        le = self.lesson
+        ch = self.course.chapters[le["chapter"]]
+        view = self.body_height()
+        total = max(1, len(self.lines))
+        lines = [""] * rows
+        margin = " " * x0
+        # the heading: its icon, the lesson's name, the rule — vermilion as far as you have read — and its place
+        place = f"{le['place']} of {len(self.course.required)}" if le["place"] else ""
+        # (a lesson of one section: its number too, its own heading in the page left out)
+        sec = re.match(r"^(\d+\.\d+) (.*)$", le["sections"][0]) if len(le["sections"]) == 1 else None
+        num = sec[1] if sec and sec[2] == le["title"] else ""
+        lead = cols(num) + 1 if num else 0
+        name = plain(wrap([(le["title"], "")], max(1, w - 3 - lead - (cols(place) + 3 if place else 2)))[0])
+        room = max(0, w - 3 - lead - cols(name) - 1 - (cols(place) + 1 if place else 0))
+        seen = min(1.0, (self.ptop + view) / total)
+        red = room if self.at_end() else int(room * seen)
+        head = [(self.icon(ch["icon"]), ACCENT_TEXT), ("  ", "")] + ([(num + " ", MUTED)] if num else []) \
+            + [(name, STRONG), (" ", ""), ("─" * red, ACCENT), ("─" * (room - red), EDGE2)]
+        if place:
+            head += [(" ", ""), (place, MUTED)]
+        if rows > 1:
+            lines[1] = margin + ansi(head)
+        # opening (§11: a scroll unrolling, on a spring: from rest, flowing, settling): the rows come
+        # from the top, the rod going down before them, gone for the last 30 % as dwl's fades
+        shown = view
+        rod = False
+        if self.unroll:
+            t = (time.monotonic() - self.unroll) / UNROLL
+            if t >= 1:
+                self.unroll = 0
+            else:
+                shown = int(view * (1 - math.exp(-7 * t) * (1 + 7 * t)))
+                rod = t < 0.7
+        for k in range(shown):
+            at = self.ptop + k
+            r = 3 + k
+            if r < rows and at < total:
+                lines[r] = margin + ansi(self.lines[at].runs)
+        foot = self.footer()
+        if shown < view:
+            if rod and 3 + shown < rows:
+                lines[3 + shown] = margin + ansi([("▂" * w, LACQUER)])
+            self.show(lines, None, False)
+            return
+        if rows > 4 and foot:
+            lines[rows - 2] = margin + ansi(foot)
+        self.show(lines, self.seal_at_page(x0, view), self.lesson["id"] in self.course.done)
+
+    def show(self, lines, pos, done, tail=""):
+        """the frame, and the stamp at (row, column), 1-based, or none: the empty ring, or the seal in
+        the mood's vermilion — a pixel larger in accent_hi for the thump (§11). A row written again
+        loses what it covered, so the seal is painted whenever one of its rows was; where it was
+        before is written again, and that wipes it"""
+        t = self.term
+        hot = done and self.thump > time.monotonic()
+        key = (pos, done, hot, self.colours.get("accent"), self.mood())
+        last = self.seal_drawn
+        if len(t.frame) != len(lines):
+            t.frame = [None] * len(lines)
+        if last and last[0] and last[0] != pos:
+            for r in range(last[0][0] - 1, last[0][0] - 1 + SEAL_ROWS):
+                if r < len(t.frame):
+                    t.frame[r] = None
+        paint = ""
+        if pos:
+            span = range(pos[0] - 1, min(pos[0] - 1 + SEAL_ROWS, len(lines)))
+            if key != last or any(t.frame[r] != lines[r] for r in span):
+                mask = self.seals.get(self.mood() if done else "place")
+                ink = self.colours.get("accent_hi" if hot else "accent" if done else "edge2")
+                if mask and ink:
+                    paint = f"\x1b[{pos[0]};{pos[1]}H" + sixel(mask, ink, grow=1 if hot else 0)
+                if hot != (last[2] if last else False) or key[:2] != (last[:2] if last else None):
+                    for r in span:               # (a seal drawn over an older one: the older first wiped)
+                        t.frame[r] = None
+        self.seal_drawn = key
+        t.draw(lines, paint + tail)
+
+    def seal_at_page(self, x0, view):
+        # the end of the lesson: the empty place, or the stamp — whole or not at all
+        at = self.seal_at
+        if at is not None and at >= self.ptop and at + SEAL_ROWS <= self.ptop + view:
+            return (at - self.ptop + 4, x0 + 1)
+        return None
+
+    def mood(self):
+        try:
+            return "light" if os.readlink(os.path.join(CONFIG, "fedokawaii/current")).rstrip("/").endswith("light") else "dark"
+        except OSError:
+            return "dark"
+
+    def footer(self):
+        le = self.lesson
+        done = le["id"] in self.course.done
+        out = []
+
+        def key(k, what, state=""):
+            if out:
+                out.append(("    ", ""))
+            out.extend([(k, ""), ("  ", ""), (what, MUTED)])
+            if state:
+                out.extend([("  ", ""), (state, STRONG)])
+
+        if self.at_end():
+            if not done:
+                key("enter", "stamp it")
+            else:
+                n = self.after(le)
+                if n:
+                    key("enter", "next: " + n["title"])
+        if self.page.has_solutions():
+            key("s", "solutions", "on" if self.solutions else "")
+        return out
+
+    def after(self, le):
+        rest = [x for x in self.course.lessons[le["i"] + 1:] if x["place"] and x["id"] not in self.course.done]
+        return rest[0] if rest else self.course.next_lesson()
+
+    def key_page(self, k):
+        view = self.body_height()
+        if isinstance(k, tuple):
+            return
+        if k in ("q", "esc", "quit"):
+            if k == "quit":
+                self.running = False
+            self.leave_page()
+        elif k in ("j", "down"):
+            self.ptop += 1
+        elif k in ("k", "up"):
+            self.ptop -= 1
+        elif k in (" ", "pgdn", "f"):
+            self.ptop += max(1, view - 2)
+        elif k in ("b", "pgup"):
+            self.ptop -= max(1, view - 2)
+        elif k == "d":
+            self.ptop += max(1, view // 2)
+        elif k == "u":
+            self.ptop -= max(1, view // 2)
+        elif k in ("g", "home"):
+            self.ptop = 0
+        elif k in ("G", "end"):
+            self.ptop = len(self.lines)
+        elif k == "enter":
+            if not self.at_end():
+                self.ptop += max(1, view - 2)
+            elif self.lesson["id"] not in self.course.done:
+                self.course.stamp(self.lesson, True)
+                self.thump = time.monotonic() + 0.06
+            else:
+                n = self.after(self.lesson)
+                if n:
+                    self.course.keep_where(self.lesson, 0)
+                    self.open_lesson(n)
+        elif k in ("n", "right", "l"):
+            self.step(1)
+        elif k in ("p", "left", "h"):
+            self.step(-1)
+        elif k == "s" and self.page.has_solutions():
+            block = self.top_block()
+            self.solutions = not self.solutions
+            self.relayout()
+            self.to_block(block)
+        self.clamp()
+
+    def step(self, by):
+        ls = self.course.lessons
+        i = self.lesson["i"] + by
+        if 0 <= i < len(ls):
+            self.course.keep_where(self.lesson, self.top_block())
+            self.open_lesson(ls[i], at_block=0)
+
+    def leave_page(self):
+        self.course.keep_where(self.lesson, self.top_block())
+        self.screen = "list"
+        self.seal_drawn = None
+        self.term.wiped = True
+        self.term.write("\x1b]2;lessons\x1b\\")
+        if self.query is None:
+            self.part = next(i for i, p in enumerate(self.course.parts) if p["id"] == self.lesson["part"])
+        self.cursor = self.lesson
+        self.fit_list()
+
+    # ── running ───────────────────────────────────────────────────────────────────────────
+    def resize(self):
+        self.term.size()
+        self.term.wiped = True
+        self.seal_drawn = None
+        if self.screen == "page":
+            block = self.top_block()
+            self.relayout()
+            self.to_block(block)
+        else:
+            self.fit_list()
+
+    def draw(self):
+        if self.screen == "list":
+            self.draw_list()
+        else:
+            self.draw_page()
+
+    def run(self, start=None):
+        r, w = os.pipe()
+        os.set_blocking(w, False)
+        signal.set_wakeup_fd(w, warn_on_full_buffer=False)
+        signal.signal(signal.SIGWINCH, lambda *_: None)
+        signal.signal(signal.SIGTERM, lambda *_: setattr(self, "running", False))
+        signal.signal(signal.SIGHUP, lambda *_: setattr(self, "running", False))
+        with self.term:
+            self.resize()
+            if start:
+                self.open_lesson(start)
+            self.course.write_place()
+            size = (self.term.rows, self.term.cols)
+            while self.running:
+                self.draw()
+                wait = None
+                if self.thump:
+                    wait = max(0.0, self.thump - time.monotonic())
+                if self.unroll:
+                    wait = 0.007        # (a frame of its own, at every refresh: nothing waits for it)
+                ready, _, _ = select.select([0, r], [], [], wait)
+                if self.thump and time.monotonic() >= self.thump:
+                    self.thump = 0
+                if r in ready:
+                    os.read(r, 256)
+                    try:
+                        sz = os.get_terminal_size(1)
+                    except OSError:
+                        sz = None
+                    if sz and (sz.lines, sz.columns) != size:
+                        size = (sz.lines, sz.columns)
+                        self.resize()
+                if 0 in ready:
+                    data = os.read(0, 4096)
+                    if not data:
+                        self.running = False
+                        break
+                    self.unroll = 0             # (a key acts at once on where things are going: §6)
+                    for k in decode(data):
+                        if isinstance(k, tuple) and k[0] == "theme":
+                            self.colours = theme_colours()
+                            self.seal_drawn = None
+                        elif self.screen == "list":
+                            self.key_list(k)
+                        else:
+                            self.key_page(k)
+            if self.screen == "page":
+                self.course.keep_where(self.lesson, self.top_block())
+        return 0
+
+
+# ── plain text: a text console ──────────────────────────────────────────────────────────────
+CONSOLE = str.maketrans({"★": "*", "—": "-", "–": "-", "·": "-", "•": "*", "→": "->", "←": "<-", "↳": ">", "│": "|", "─": "-",
+                         "\u2026": "." * 3, "×": "x", "✓": "v", "✗": "x", "“": '"', "”": '"', "‘": "'", "’": "'", "§": "s."})
+
+
+def text_lesson(course, le, width):
+    page = Page(body_of(os.path.join(LEARN, "pieces", le["file"])), {}, le["title"])
+    page.hl = {}
+    place = f"lesson {le['place']} of {len(course.required)}" if le["place"] else "when you have the time"
+    out = "\n".join([f"{le['title']} — {place}", ""] + [plain(ln.runs).rstrip() for ln in page.layout(width, True)]) + "\n"
+    # (a text console's font has few of these signs; a terminal has them all)
+    return out.translate(CONSOLE) if os.environ.get("TERM") == "linux" else out
+
+
+def text_mode(course, args):
+    width = None
+    if "--cols" in args:
+        i = args.index("--cols")
+        try:
+            width = int(args[i + 1])
+        except (IndexError, ValueError):
+            print("usage: kawa-learn --text [ID] [--cols N]", file=sys.stderr)
+            return 2
+        del args[i:i + 2]
+    if len(args) > 1:
+        print("usage: kawa-learn --text [ID] [--cols N]", file=sys.stderr)
+        return 2
+    le = course.by_id.get(args[0]) if args else course.next_lesson()
+    if args and not le:
+        print(f"kawa-learn: no lesson {args[0]}", file=sys.stderr)
+        return 1
+    if not le:
+        print("every lesson is stamped.")
+        return 0
+    if width is None:
+        try:
+            width = os.get_terminal_size(1).columns - 1
+        except OSError:
+            width = 80
+    width = max(8, min(width, MEASURE))
+    words = text_lesson(course, le, width)
+    if not sys.stdout.isatty():
+        sys.stdout.write(words)
+        return 0
+    while le:
+        subprocess.run(["less", "-c"], input=text_lesson(course, le, width), text=True, check=False)
+        print(f"{le['title']}: enter stamps it and goes on, q stops ", end="", flush=True)
+        try:
+            ans = sys.stdin.readline().strip()
+        except KeyboardInterrupt:
+            ans = "q"
+        if ans == "q" or not sys.stdin.isatty():
+            return 0
+        course.stamp(le, True)
+        le = course.next_lesson()
+    print("every lesson is stamped.")
+    return 0
+
+
+def main(args):
+    if args[:1] in (["-h"], ["--help"]):
+        print(__doc__)
+        return 0
+    try:
+        course = Course()
+    except (OSError, IndexError, ValueError, StopIteration, KeyError) as e:
+        print(f"kawa-learn: the lessons cannot be read ({LEARN}: {e}) — fedokawaii repair puts them back", file=sys.stderr)
+        return 1
+    if not course.lessons:
+        print(f"kawa-learn: no lessons in {LEARN} — fedokawaii repair puts them back", file=sys.stderr)
+        return 1
+    if args[:1] == ["--text"]:
+        return text_mode(course, args[1:])
+    if args[:1] == ["--place"]:
+        course.write_place()
+        n = course.next_lesson()
+        print(f"{course.count()} of {len(course.required)}" + (f" · next: {n['title']}" if n else ""))
+        return 0
+    start = None
+    if args:
+        start = course.by_id.get(args[0])
+        if not start or len(args) > 1:
+            print("usage: kawa-learn [ID | --text [ID] | --place]", file=sys.stderr)
+            return 2
+    if not (sys.stdin.isatty() and sys.stdout.isatty()):
+        print("kawa-learn: it needs a terminal (--text prints a lesson)", file=sys.stderr)
+        return 2
+    return App(course).run(start)
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1:]))

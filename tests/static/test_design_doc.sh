@@ -7,7 +7,7 @@
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 DOC=$REPO/docs/design-system.md
-BUILT=(palette ui-face term-face menus bar windows notices)
+BUILT=(palette ui-face term-face menus bar windows notices lessons)
 
 case_ "whole: no open question left in it"
 grep -nE '\b(TBD|TODO|FIXME|XXX)\b|\?\?' "$DOC" >"$TMP/open" && _no "$(head -3 "$TMP/open")" || _ok
@@ -176,6 +176,23 @@ built_notices() {   # §4, §9: notices — the doc's numbers in mako's config, 
     has "$(cat "$REPO/configs/home/.config/fedokawaii/themes/$t/mako")" "summary-icon-color=#" "$t: the title's icon in its own ink"
   done
   has "$(cat "$REPO/src/mako/mako.patch")" "shadow-color" "the desktop's mako draws them (src/mako/mako.patch)"
+}
+built_lessons() {   # §7: the page's 88 columns, the pane's 50 (Super+U's), the seal 56 × 56 mirrored, the star a cell
+  local k=$REPO/bin/kawa-learn
+  has "$(sed -n '/\*\*The lessons\*\*/,/\*\*The prompt\*\*/p' "$DOC")" "a page of 88 columns at most"
+  has "$(sed -n '/\*\*The lessons\*\*/,/\*\*The prompt\*\*/p' "$DOC")" "the pane, 50 as Super+U's"
+  has "$(cat "$k")" "MEASURE = 88"; has "$(cat "$k")" "PANE = 50"
+  grep -q '^PANE=50$' "$REPO/system/fedokawaii" && _ok || _no "Super+U's pane is not 50"
+  python3 -I - "$REPO/docs/learn/seals.txt" <<'PY' && _ok || _no "the seals: not 56 x 56, or not mirrored"
+import sys
+seals, cur = {}, None
+for row in open(sys.argv[1], encoding="utf-8").read().split("\n"):
+    if row.startswith("@"): cur = seals[row[1:]] = []
+    elif cur is not None and row: cur.append(row)
+assert set(seals) == {"dark", "light", "place"}
+for rows in seals.values():
+    assert len(rows) == 56 and all(len(r) == 56 and r == r[::-1] and set(r) <= set("#.") for r in rows)
+PY
 }
 for s in "${BUILT[@]}"; do
   case_ "§14 $s: rebuilt to the doc — its numbers in its files"

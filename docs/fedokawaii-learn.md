@@ -7,6 +7,8 @@ kanji: "1=始 2=端 3=誤 4=窓 5=品 6=写 7=起 8=守 9=言 10=探 11=歩 12=�
 
 # How to read this book
 
+<!-- book -->
+
 This book is the practical one. It teaches by doing: a short example, what you should see,
 then an exercise of your own. The full handbook — how every part of the desktop is built and
 why — stays in the project's repository on GitHub (`docs/fedokawaii-guide.md`), for the day
@@ -14,6 +16,31 @@ you want to know how something works inside. This book is about *using* it.
 
 It has six parts. Read Part I first if you have never typed a command. After that, go where
 you need to: each chapter stands on its own and says what it expects you to know.
+
+<!-- /book -->
+
+<!-- lesson
+These lessons are the Learn book cut into pieces you do one by one, in the order that teaches
+best: what a piece needs always comes before it. Each takes a few minutes, and each is done
+beside a terminal (**Super+Enter** opens one next to this window): a short example, what you
+should see, then an exercise of your own.
+
+| Key | Does |
+|---|---|
+| **Enter** | turns the page; at a lesson's end, stamps it; once more, the next lesson |
+| **↑ ↓**, the wheel | a line |
+| **s** | in an exercise lesson, the worked solutions |
+| **Esc** | back to the list, where the seal marks the next lesson |
+| **/** (in the list) | finds a word in every lesson |
+| **Space** (in the list) | stamps a lesson you already know, or takes a stamp off |
+
+Go in order if you have never typed a command. After that, go where you need to: the list says
+what each lesson needs. (Part VI comes before Part V here: Rust is learnt with what it teaches.)
+The full handbook — how every part of the desktop is built and why —
+stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you want to know how
+something works inside. These lessons are about *using* it.
+-->
+
 
 | Part | You learn | Chapters |
 |---|---|---|
@@ -61,11 +88,24 @@ Each chapter ends with exercises, graded by stars:
 | ★★★ | a small project: you decide how | half an hour |
 | ★★★★ | a challenge: it stretches what the chapter taught | an evening |
 
+<!-- book -->
+
 Every exercise says what you should see when it works. In Parts IV, V and VI, every exercise has
 a worked solution at the back — appendix B for Python, C for Rust, D for working with AI, under
 the exercise's number — with the output it printed. Try for real before you look: the struggle is where the learning
 happens; the solution is there to check, or to unstick you after twenty honest minutes. Keep a line for each one you finish in
 your notes (**Super+N**): `- [x] 10.3 every PDF I own`. Watching that list grow is half the fun.
+
+<!-- /book -->
+
+<!-- lesson
+Every exercise says what you should see when it works. Each chapter's ★ and ★★ are its *practice*,
+a lesson like the others. Its ★★★ and ★★★★ are its *projects*: when you have the time, never counted
+and never in your way — they are where proficiency comes from. In Parts IV, V and VI every exercise has
+a worked solution, with the output it printed, under **s**. Try for real before you look: the
+struggle is where the learning happens; the solution is there to check, or to unstick you after
+twenty honest minutes.
+-->
 
 ### Three rules that make learning fast
 
@@ -439,6 +479,24 @@ With two monitors, **Super+,** and **Super+.** move the focus left and right, an
 | **Alt+Shift** | switch the keyboard layout (us / ar) |
 | **Ctrl+Alt+F2…F6** | a text console, should the desktop ever freeze (**Ctrl+Alt+F1** back) |
 
+## 4.5 How things move
+
+Everything here moves on purpose, like water: it starts from rest, flows and settles. Each kind of
+movement means one thing, so after a day you read them without thinking:
+
+| You see | It means | Where |
+|---|---|---|
+| a window rising to its place and settling, or sinking away | a window arriving, or leaving | every window |
+| the whole screen sliding sideways, like a fusuma on its track | a place left for another: to a higher number it goes left, to a lower one right | **Super+1** to **Super+9** |
+| something unrolling behind a lacquer rod | something opened; it rolls up again as it goes | every menu, **Super+U**, **Super+N**, **Super+V**, a lesson |
+| a quiet thing dissolving, in square pixels | a message passing | a notice, the level display |
+| a red seal pressed down for a moment | a choice made | the workspace's seal, a lesson stamped |
+| ink bleeding across the whole screen | the whole picture changing | a new wallpaper, dark to light (**Super+Shift+W**) |
+
+Nothing ever waits for a movement: a key or a click acts at once on where things are going. Press
+**Super+2**, **Super+3**, **Super+1** as fast as you like: you are never held up, and nothing is
+lost on the way.
+
 ### Exercises
 
 **4.1 ★ Three windows.** Open a terminal, then yazi (**Super+E**), then another terminal. Press
@@ -786,7 +844,7 @@ the pane on the right tells more about the one under the cursor. What is still b
 | backups | back up now | your home to the backup drive | weekly |
 | backups | restore | your files as a backup holds them: pick a file, a folder or several — a copy lands in `~/Restored`, never over what is there | when something is lost |
 | backups | the drive | which drive your backups go to, whether it is plugged in, how full, and the last backup; Enter picks another | once, then when it changes |
-| learning | lessons | this book | |
+| learning | lessons | this book, cut into short lessons you do one by one | every day |
 
 From a terminal: `update`, `verify`, `repair`, `snaps`, and `fedokawaii report` (below).
 
@@ -1299,7 +1357,7 @@ doing, and which program is to blame. Click the bar's memory, or run `btop`.
 | **m** · **o** | menu · options |
 
 On AMD it shows the graphics card's load, memory, heat and watts: watch it while a game or a
-training run (chapter 28) works.
+training run (chapter 44) works.
 
 ### Exercises
 
@@ -1601,7 +1659,7 @@ plan.
 
 **How each lesson works.** A concept in plain words; three to six tiny programs, each with what
 it prints under *You should see*; the mistakes beginners make, with the real error message; then
-exercises from ★ to ★★★★, with worked solutions in appendices B and C. Type every example. Then
+exercises from ★ to ★★★★, each with a worked solution. Type every example. Then
 change one thing and predict what it will print before you run it — that habit, more than any
 other, is what makes a programmer.
 
@@ -6989,7 +7047,7 @@ source (`docs/fedokawaii-learn.md` in the toolkit).
 >
 > **You need:** level 5 (chapters 37–39).
 
-Level 6 turns everything you know toward data and, from chapter 42, machine learning. Before any
+Level 6 turns everything you know toward data and, from chapter 43, machine learning. Before any
 library, do the whole job once by hand: it is the only way to understand what pandas or NumPy
 then do for you, and many small jobs need nothing more.
 
@@ -14568,7 +14626,7 @@ are made. **PyO3** is the bridge; **maturin** builds it.
 ```text
 $ cd ~/repos
 $ uvx maturin new --bindings pyo3 fastwords && cd fastwords
-  ✨ Done! New project created fastwords
+  Done! New project created fastwords
 ```
 
 *(`uvx` runs a Python tool without installing it. maturin lays out a Rust crate that builds into a
@@ -14610,7 +14668,7 @@ Build it into the project's `.venv` and try it:
 
 ```text
 $ uv run --with maturin maturin develop --release --uv
-🛠 Installed fastwords-0.1.0
+Installed fastwords-0.1.0
 $ uv run python
 >>> import fastwords
 >>> fastwords.dot([1, 2, 3], [4, 5, 6])
@@ -14705,6 +14763,8 @@ Part VI fits beside any week from week 3 on: one chapter a week, its exercises o
 project — by week 9 you are building with an agent the way chapter 72 describes, and every
 checkpoint after that is a chance to practise it.
 
+<!-- cut -->
+
 ### Where to go next
 
 | You liked | Next |
@@ -14728,7 +14788,7 @@ the work. This part teaches that first, and Claude Code with it. Chapters 67–6
 true of any model and any agent. Chapters 70–71 are Claude Code itself, from the daily loop to
 your own hooks, skills and subagents. Chapter 72 is the craft: how professionals use all of it
 on real projects, and how to keep learning when the tools move on. Every chapter ends with
-exercises; appendix D has a worked answer for each.
+exercises, each with a worked answer.
 
 > **Careful.** Commands and key names in chapters 70–71 are Claude Code's as of October 2026.
 > If one has changed, `/help` inside Claude Code and the documentation (`code.claude.com/docs`)

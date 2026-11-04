@@ -44,11 +44,12 @@ tools/             generators: build-fonts.py (Sumi UI and Sumi Term → system/
                    palette → every app, and the bar's ornaments) · build-cursors.py (the pointers)
 tests/             the self-tests: every helper, the engine and the installer, edge case by edge
                    case, against stand-ins for the hardware (bash tests/run.sh — see §6)
-docs/              the learning guide Super+U opens: fedokawaii-learn.md and Fedokawaii-Learn.pdf
-                   (every key and program, Python and Rust from zero to AI, then working with AI
-                   and Claude Code as a professional) · the full
-                   handbook, kept here as the reference: fedokawaii-guide.md, Fedokawaii-Guide.pdf ·
-                   build/ (how both PDFs and their real screenshots were made: docs/build/README.md)
+docs/              the Learn book (every key and program, Python and Rust from zero to AI, then
+                   working with AI and Claude Code as a professional): fedokawaii-learn.md, its
+                   PDF, and learn/ — the lessons Super+U opens, the book cut into pieces by
+                   tools/learn-pieces.py · fedokawaii-guide.md, the full handbook, the technical
+                   reference, in this repository alone · build/ (how the PDF and its real
+                   screenshots were made: docs/build/README.md)
 PACKAGES.md        what is installed, from where, and why
 ```
 
@@ -254,8 +255,8 @@ toolkit), never in the toolkit itself, so every update keeps the change (handboo
 | `fedokawaii apply` | ShellCheck's advice, every script parsed, the copy made the toolkit (your saved settings merged in), then the theme — or repair, when packages or system parts changed |
 
 Files the theme never writes are yours to edit in place: `~/.bashrc.d/local.sh`,
-`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. The learning guide
-(**Super+U** → *learn*) teaches every program by exercises, then Python and Rust up to a
+`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. The lessons
+(**Super+U** → *learning* → *lessons*) teach every program by exercises, then Python and Rust up to a
 transformer, fine-tuning and an agent, then working with AI as a professional: how a language
 model works, asking well, agents and their risks, and Claude Code from the daily loop to your
 own hooks, skills and subagents (Part VI, chapters 67–72, every exercise answered in

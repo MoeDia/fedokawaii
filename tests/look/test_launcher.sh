@@ -99,7 +99,7 @@ eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords 
 case_ "every listed entry: a window program's own icon, or one of our pixel icons (X-Fedokawaii-Icon)"
 OFFICIAL=" com.github.xournalpp.xournalpp "
 OURS="kawa-asobi:koma kawa-typing:keyboard footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
-  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-wallpaper:picture kawa-backup:archive
+  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-learn:mortarboard kawa-wallpaper:picture kawa-backup:archive
   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
   kawa-prowlarr:search spotify:music whatsapp:speech"

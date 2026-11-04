@@ -47,6 +47,7 @@ kawa-backup            kawa-backup                             kawa-backup
 kawa-books             kawa-books                              kawa-books
 kawa-clip              kawa-clip                               kawa-clip
 kawa-git               kawa-git                                kawa-git
+kawa-learn             kawa-learn                              kawa-learn
 kawa-notes             kawa-notes                              kawa-notes
 kawa-prowlarr          kawa-prowlarr                           kawa-prowlarr
 kawa-sketch            kawa-sketch                             kawa-sketch
