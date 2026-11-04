@@ -1263,9 +1263,8 @@
 .#........#.
 .##########.
 
-# the bar's brightness, five steps as the volume's speaker has: 日 as first written, a ring
-# with its dot — bri-0 the empty ring, then the dot kindles, the four rays, the near and the
-# far diagonals (bri-4 = @sun)
+# the bar's brightness, five steps as the volume's speaker has: a stone lantern (the owner, 4 Nov:
+# "something unique"; the sun stays the weather's), dark at bri-0, more of its window lit each step
 @bri-0
 .....##.....
 ...######...
