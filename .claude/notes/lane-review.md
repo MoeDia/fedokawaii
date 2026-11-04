@@ -46,6 +46,8 @@ the kit's log, F line), so anim-check fails at load; the curves are judged from 
 
 The rail's patch: `.claude/notes/lane-review/rail.diff` (against dwl.c at 2440693's patch), ASan clean under 1-2-3-1 bursts ×6 with
 windows closed mid-move (676 c2, 767 c3 steps; leaks at exit only, none in rail code).
+The rail's check: `.claude/notes/lane-review/rail.sh`, for tools/regress/: fails on 2440693's dwl, holds on the patch (both run 19:26).
+Still to look at when they land: main's lock engine for the painted lock (owner 19:11: smooth scaling, light layers within the frame budget, the gate's states), the heads' wiring (19:12), whether the 19:13–19:27 findings were taken (grep the inbox for `from lane-review`, then re-measure: rail.sh, a Tab on a dark lock, the clock's wake, a float's roll-up).
 
 ## What main must do to merge and apply
 Nothing to merge but this log. Findings are in the inbox; the patch is on this branch.
