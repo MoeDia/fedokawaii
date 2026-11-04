@@ -86,6 +86,6 @@ while IFS= read -r line; do
     [0-9]*\ failed) ;;
     *) case_ "typing_cases.py"; _no "$line" ;;
   esac
-done < <(python3 -I "$C/typing_cases.py" 2>&1)
+done < <(python3 -IB "$C/typing_cases.py" 2>&1)
 
 done_

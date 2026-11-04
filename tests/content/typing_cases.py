@@ -674,6 +674,143 @@ def case_indent():
     report('...and 60 wpm typed measures 60, not more for the indent', h and abs(h[-1]['w'] - 60) <= 1.5, str(h and h[-1]))
 
 
+def demo_state():
+    """three weeks of practice, as the app itself would have kept them"""
+    d = fresh(baseline=30, lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}, 'home.fj.drill': {'seals': 3, 'best': 21.5, 'tries': 2}})
+    now = int(time.time())
+    with open(os.path.join(d, 'history.jsonl'), 'w') as f:
+        for k in range(40):
+            f.write(json.dumps({'d': now - (40 - k) * 40000, 'l': 'free.test', 'k': 'test', 'w': 20 + k, 'r': 22 + k, 'a': 97.5, 's': 60.0, 'c': 70.0, 'o': 10.0}) + '\n')
+    keys_ = {c: [200, 2 + 40 * (c in 'qz'), 180.0 + 200 * (c in 'qzp'), 170.0] for c in 'abcdefghijklmnopqrstuvwxyz'}
+    with open(os.path.join(d, 'keys.json'), 'w') as f:
+        json.dump({'keys': keys_, 'pairs': {'th': [50, 0, 300.0, 0.0], 'he': [50, 0, 100.0, 0.0]}}, f)
+    return d
+
+
+def case_screens():
+    """every row of every tab opened, typed in and left; every stage opened; the pages with data on them"""
+    down = b'\x1b[1;1:1B'
+    bad = []
+    for size in ((100, 33), (60, 21), (130, 49)):
+        demo_state()
+        p = start(size)
+        for tab in range(3):
+            for _ in range(12):        # (every row: down and Enter, a few keys, Esc, back to the tab)
+                p.send(down)
+                p.pump(0.01)
+            press(p, TAB)
+            p.pump(0.05)
+        for i in range(11):            # (the practice tab's rows, each one started)
+            press(p, TAB)              # (course → practice)
+            p.pump(0.03)
+            for _ in range(i):
+                p.send(down)
+                p.pump(0.005)
+            press(p, ENTER)
+            p.pump(0.1)
+            try:
+                d = resume()['run']
+                for ch in d['text'][:4]:
+                    p.send(key(ch))
+                    p.send(key(ch, False, 3))
+            except (OSError, ValueError, KeyError):
+                bad.append(f'row {i}: no run')
+            p.pump(0.05)
+            p.send(b'\x1b[27;1:1u')     # (Esc: to the course tab)
+            p.pump(0.05)
+        for s in range(9):             # (every stage opened, Esc back)
+            for _ in range(s + 1):
+                p.send(down)
+                p.pump(0.005)
+            press(p, ENTER)
+            p.pump(0.05)
+            p.send(b'\x1b[1;1:1F')      # (to its last lesson)
+            p.send(b'\x1b[1;1:1H')
+            p.pump(0.02)
+            p.send(b'\x1b[27;1:1u')
+            p.pump(0.03)
+        st = finish(p)
+        if st != 0 or b'Traceback' in bytes(p.out):
+            bad.append(f'{size}: status {st}: {bytes(p.out[-300:])!r}')
+    report('every row, tab and stage, at three sizes, with three weeks of data', not bad, '; '.join(bad)[:500])
+
+
+def case_pacer():
+    fresh()
+    p = Pty([sys.executable, '-IB', BIN, '--seed', '7', '--lesson', 'speed.30.pacer'], (100, 33))
+    p.pump(0.3)
+    d = wait_resume(p)
+    text = d['run']['text']
+    n = len(p.out)
+    type_at(p, text[:6], 30)
+    p.pump(1.5)        # (the pacer walks on, a letter every 0.4 s)
+    grew = len(p.out) - n
+    st = finish(p)
+    report('the pacer walks while the caret waits', st == 0 and grew > 1000 and b'Traceback' not in bytes(p.out), f'{grew} bytes, status {st}')
+
+
+def timed_test(p):
+    press(p, TAB)
+    p.pump(0.1)
+    for _ in range(8):
+        p.send(b'\x1b[1;1:1B')
+        p.pump(0.01)
+    press(p, ENTER)
+    return wait_resume(p)['run']['text']
+
+
+def case_clock_runs_out():
+    """a timed test ends on its clock, with keys or without them in its last seconds; a real pause stops it"""
+    fresh()
+    p = start()
+    text = timed_test(p)
+    type_at(p, text[:160], 150)     # (12.8 s of keys, then nothing)
+    p.pump(3.5)
+    st = finish(p)
+    h = history()
+    report('a 15 s test whose last keys came early ends on its clock', len(h) == 1 and abs(h[0]['s'] - 15) < 0.5, str(h))
+    report('...measured over its 15 s', h and abs(h[0]['w'] - (160 - 1) / 5 / 0.25) < 3 and st == 0, str((h, st)))
+    fresh()
+    p = start()
+    text = timed_test(p)
+    type_at(p, text[:30], 150)      # (2.4 s, then more than 5 s of nothing: the clock stops)
+    p.pump(9)
+    report('...more than 5 s without a key: it waits, it does not end', not history(), str(history()))
+    st = finish(p)
+    report('...and can still be left', st == 0, str(st))
+
+
+def case_tables():
+    """the seals' table and the measures, as curriculum.md writes them"""
+    sys.path.insert(0, os.path.join(HERE, '..', '..', 'configs/home/.local/lib/fedokawaii'))
+    from kawatype.app import fit_power, seals_for, wrap
+    from kawatype.metrics import Run, kogasa
+    rows = [(96.9, 50, 12, 0), (97, 4, 12, 0), (97, 5, 12, 1), (97, 7.34, 12, 2), (97, 9.7, 12, 3), (98.9, 12, 12, 4), (99, 12, 12, 5), (99.9, 18, 12, 5), (100, 18, 12, 6)]
+    bad = [r for r in rows if seals_for(r[1], r[0], 5, r[2]) != r[3]]
+    report('the seals as curriculum.md\'s table', not bad, str(bad))
+    report('consistency: kogasa(0) = 100, Monkeytype\'s formula', abs(kogasa(0) - 100) < 1e-9 and abs(kogasa(1) - 8.9) < 0.3, str(kogasa(1)))
+    r = Run('ab cd', flow=True)
+    for t, c in ((0.0, 'a'), (0.1, 'x'), (0.2, ' '), (0.3, 'c'), (0.4, 'd')):
+        r.press(c, t)
+    report('flowing: a word with a wrong letter does not count, the partial last word does', r.standing() == 2, str(r.standing()))
+    r = Run('abc def', flow=True)
+    for t, c in ((0.0, 'a'), (0.1, 'b'), (0.2, 'c'), (10.0, ' '), (10.1, 'd')):
+        r.press(c, t)
+    report('a gap over 5 s is out of the clock', abs(r.active() - 0.3) < 1e-6, str(r.active()))
+    r = Run('abcdef' * 10)
+    for i, c in enumerate('abcdef' * 5):
+        r.press(c, i * 0.2)
+    report('(C − 1) / 5 / minutes: 200 ms a key is 60.0 wpm whatever the length', abs(r.net() - 60) < 1e-6, str(r.net()))
+    lines = wrap('the quick brown fox\njumps over', 10)
+    report('wrap: at words and at Enter, nothing lost', ''.join('the quick brown fox\njumps over'[a:b] for a, b in lines) == 'the quick brown fox\njumps over'
+           and all(b - a <= 11 for a, b in lines), str(lines))
+    day = 86400
+    tests = [{'d': 1000000 + i * day, 'w': 20 + 2 * i} for i in range(20)]
+    when = fit_power(tests)
+    report('the line to 100 wpm: a rising curve reaches it, later than its last test', when is not None and when > tests[-1]['d'], str(when))
+    report('...a flat one, or too little data: no promise', fit_power([{'d': 1000000 + i * day, 'w': 40} for i in range(20)]) is None and fit_power(tests[:5]) is None, '')
+
+
 def case_long_file():
     """a long file: the last key as quick as the first (standing() counts on from where it stood)"""
     fresh()
