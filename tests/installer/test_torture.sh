@@ -97,18 +97,18 @@ cat >"$STUBS/dnf" <<'EOF'
 #!/bin/bash
 a=" $* "
 case $a in
-  *" repo list "*"--json"*) { printf '%s\n' fedora updates; [[ -e $HOME/.fk-base-only ]] || printf '%s\n' rpmfusion-free rpmfusion-nonfree brave-browser claude-code \
+  *" repo list "*"--json"*) { printf '%s\n' fedora updates; [[ -e $HOME/.fk-base-only ]] || printf '%s\n' rpmfusion-free rpmfusion-nonfree copr:copr.fedorainfracloud.org:imput:helium claude-code \
                                 copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs; } | jq -R . | jq -sc 'map({id: ., is_enabled: true})' ;;
-  *" repo list "*) printf 'repo id repo name\nfedora Fedora\nupdates Updates\n'; [[ -e $HOME/.fk-base-only ]] || printf 'rpmfusion-free x\nrpmfusion-nonfree x\nbrave-browser x\nclaude-code x\ncopr:copr.fedorainfracloud.org:ilyaz:LACT x\ncopr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs x\n' ;;
-  *" repo info "*) [[ $a == *brave-browser* ]] && echo "PGP check : no" || echo "PGP check : yes" ;;
+  *" repo list "*) printf 'repo id repo name\nfedora Fedora\nupdates Updates\n'; [[ -e $HOME/.fk-base-only ]] || printf 'rpmfusion-free x\nrpmfusion-nonfree x\ncopr:copr.fedorainfracloud.org:imput:helium x\nclaude-code x\ncopr:copr.fedorainfracloud.org:ilyaz:LACT x\ncopr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs x\n' ;;
+  *" repo info "*) [[ $a == *copr:copr.fedorainfracloud.org:imput:helium* ]] && echo "PGP check : no" || echo "PGP check : yes" ;;
   *" --whatprovides "*) [[ ${*: -1} == wiremix ]] && echo wiremix-ng ;;
   *" --whatobsoletes "*) ;;
   *" --files "*) case ${*: -1} in fd-find) echo /usr/bin/fd ;; fzf) printf '/usr/bin/fzf\n/usr/bin/fd\n' ;; esac ;;
   *" repoquery "*) [[ $a == *"%{repoid}"* ]] || { echo "dnf5 has no such field" >&2; exit 1; }
                   for n; do [[ $n == -* || $n == repoquery || $n == *%* ]] && continue
-                    [[ -e $HOME/.fk-base-only ]] && case $n in ffmpeg|*-freeworld|unrar|intel-media-driver|brave-origin|claude-code|lact|grub-btrfs|rpmfusion-*) continue ;; esac
+                    [[ -e $HOME/.fk-base-only ]] && case $n in ffmpeg|*-freeworld|unrar|intel-media-driver|helium-bin|claude-code|lact|grub-btrfs|rpmfusion-*) continue ;; esac
                     case $n in wiremix|gdu) ;; ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo "$n|1.0-1|rpmfusion-free|$n" ;;
-                      unrar|intel-media-driver) echo "$n|1.0-1|rpmfusion-nonfree|$n" ;; brave-origin) echo "$n|1.0-1|brave-browser|$n" ;; claude-code) echo "$n|1.0-1|claude-code|$n" ;;
+                      unrar|intel-media-driver) echo "$n|1.0-1|rpmfusion-nonfree|$n" ;; helium-bin) echo "$n|1.0-1|copr:copr.fedorainfracloud.org:imput:helium|$n" ;; claude-code) echo "$n|1.0-1|claude-code|$n" ;;
                       lact) echo "lact|0.10.1-1|copr:copr.fedorainfracloud.org:ilyaz:LACT|lact" ;; grub-btrfs) echo "grub-btrfs|4.14-1|copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs|grub-btrfs" ;;
                       *) echo "$n|1.0-1.fc44|fedora|$n" ;; esac; done ;;
 esac
@@ -118,7 +118,7 @@ chmod 755 "$STUBS/dnf"
 o=$(bash "$TMP/cp/tools/check-packages" --live 2>&1); eq "$?" 1
 has "$o" "not in any enabled repository: gdu (fedora)"; has "$o" "renamed?): wiremix → wiremix-ng"
 has "$o" "the same command from two packages: /usr/bin/fd: fd-find and fzf"
-has "$o" "brave-browser: enabled without a signature check"; has "$o" "rpmfusion-free: enabled, packages signature-checked"
+has "$o" "copr:copr.fedorainfracloud.org:imput:helium: enabled without a signature check"; has "$o" "rpmfusion-free: enabled, packages signature-checked"
 if ((EUID == 0)); then has "$o" "all of them resolve together in one transaction"; else has "$o" "one-transaction check skipped: it needs root" "as a user: said, not faked"; fi
 case_ "check-packages --live before setup adds the repositories (the trial's order): their names wait, said as info — never missing"
 touch "$HOME/.fk-base-only"; o=$(bash "$TMP/cp/tools/check-packages" --live 2>&1)

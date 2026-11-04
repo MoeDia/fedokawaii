@@ -325,6 +325,31 @@ eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0" "the working copy s
 fake_firealpaca 1.0.0 >"$dl/linux"; up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
 cp "$TMP/fa.pinned" "$dl/linux"
 
+# ── Widevine: Google's module, by way of Mozilla's update service ───────────────────────────
+wv=$W/usr/local/lib/fedokawaii-widevine
+case_ "install_widevine: Google's module, the three files in their places, not one more (a .crx3 is a zip behind a header)"
+back start; rm -rf "$wv"; widevine_release 4.10.1 "$dl"; reset_calls; up "install_widevine"; eq "$RC" 0 "$OUT"
+has "$OUT" "✔ Widevine 4.10.1 → /usr/local/lib/fedokawaii-widevine"
+called 'curl.*aus5.mozilla.org/update/3/GMP/999.0/.*update.xml'; called 'curl.*edgedl.me.gvt1.com/.*w-4.10.1.crx3'
+eq "$(cd "$wv" && find . -type f | sort | tr '\n' ' ')" "./LICENSE ./_platform_specific/linux_x64/libwidevinecdm.so ./manifest.json "
+eq "$(jq -r .version "$wv/manifest.json")" 4.10.1
+[[ ! -e $W/usr/local/lib/outside && ! -e $wv.new ]] && _ok || _no "a stray beside it"
+case_ "…the version already there: nothing downloaded"
+reset_calls; up "install_widevine"; eq "$RC" 0; has "$OUT" "Widevine 4.10.1 — in place"; not_called 'edgedl.me.gvt1.com'
+case_ "…a newer one: put in its place, whole"
+widevine_release 4.10.2 "$dl"; up "install_widevine"; eq "$RC" 0; eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
+has "$(cat "$wv/_platform_specific/linux_x64/libwidevinecdm.so")" "cdm 4.10.2"
+case_ "…a package that is not the one announced: refused, the one there kept"
+widevine_release 4.10.3 "$dl"; printf x >>"$dl/w-4.10.3.crx3"; up "install_widevine"; eq "$RC" 1; has "$OUT" "SHA-512 is not the one announced — refused"
+eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
+case_ "…an answer naming another server, or none: refused"
+widevine_release 4.10.3 "$dl"; sed -i 's#https://edgedl.me.gvt1.com#https://evil.example#' "$dl/update.xml"; up "install_widevine"; eq "$RC" 1
+has "$OUT" "names no module of Google's"
+echo '<updates/>' >"$dl/update.xml"; up "install_widevine"; eq "$RC" 1; has "$OUT" "names no module of Google's"
+case_ "…no network: said, the one there kept; setup goes on (s_widevine: never a reason to stop)"
+widevine_release 4.10.2 "$dl"; fkh net off; up "install_widevine"; eq "$RC" 1; has "$OUT" "does not answer"; eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
+up "s_widevine"; eq "$RC" 0; has "$OUT" "Widevine is not installed yet"; rm -f "$FKH/net"
+
 # ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
 case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"
 back start; up "install_localsend"; eq "$RC" 0 "$OUT"

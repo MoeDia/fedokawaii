@@ -188,7 +188,7 @@ else warn "left behind by a stopped run" "$(tr '\n' ' ' <<<"$d")— repair clear
 section "repositories & dnf"
 # (dnf's JSON: its table may cut a long repository id short — a COPR's are)
 enabled=$(repos_enabled) || enabled=""
-for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree rpmfusion-nonfree-updates brave-browser claude-code; do
+for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree rpmfusion-nonfree-updates claude-code; do
   check "repo $r enabled" grep -qx "$r" <<<"$enabled"
 done
 for c in "${COPRS[@]}"; do
@@ -197,9 +197,10 @@ for c in "${COPRS[@]}"; do
 done
 # (a package the update button put in records its origin as @stored_transaction(REPO): the
 # stored transaction was resolved from REPO, and its signature checked before it went in)
-for pr in brave-origin:brave-browser claude-code:claude-code; do
-  check "${pr%%:*} from ${pr#*:} (gpgcheck=1)" \
-    bash -c "o=\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*}); o=\${o#@stored_transaction(}; test \"\${o%)}\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
+for pr in helium-bin:copr:copr.fedorainfracloud.org:imput:helium claude-code:claude-code; do
+  r=${pr#*:} f=/etc/yum.repos.d/${r/#copr:/_copr:}.repo
+  check "${pr%%:*} from $r (gpgcheck=1)" \
+    bash -c "o=\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*}); o=\${o#@stored_transaction(}; test \"\${o%)}\" = $r && grep -qx gpgcheck=1 $f"
 done
 check "dnf max_parallel_downloads=$DNF_PARALLEL"       test "$(dnfopt max_parallel_downloads)" = "$DNF_PARALLEL"
 check "dnf fastestmirror on"                           grep -qxiE '1|true' <<<"$(dnfopt fastestmirror)"
@@ -618,11 +619,10 @@ check "UDEV Gothic NF v2.2.0, the terminal's face (its four files as pinned)" \
 
 # ── applications (do they actually start?) ──────────────────────────────────
 section "applications"
-# Brave, hidden (no screen needed), in a profile of its own: started is when its DevTools port
-# answers — the browser process up and serving. (Not --dump-dom: Brave Origin's headless mode
-# keeps running without ever carrying it out.) Its whole process group is ended after
-check "Brave Origin starts (headless: its DevTools port answers)" \
-  U bash -c 'd=$(mktemp -d); setsid brave-origin --headless --disable-gpu --user-data-dir="$d" --remote-debugging-port=0 about:blank >/dev/null 2>&1 & p=$! r=1
+# The browser, hidden (no screen needed), in a profile of its own: started is when its DevTools
+# port answers — the browser process up and serving. Its whole process group is ended after
+check "Helium starts (headless: its DevTools port answers)" \
+  U bash -c 'd=$(mktemp -d); setsid kawa-browser --headless --disable-gpu --user-data-dir="$d" --remote-debugging-port=0 about:blank >/dev/null 2>&1 & p=$! r=1
     for _ in $(seq 60); do
       if [[ -s $d/DevToolsActivePort ]]; then
         curl -s --max-time 5 "http://127.0.0.1:$(head -n1 "$d/DevToolsActivePort")/json/version" | grep -c "\"Browser\"" >/dev/null && r=0; break
@@ -630,6 +630,8 @@ check "Brave Origin starts (headless: its DevTools port answers)" \
       kill -0 "$p" 2>/dev/null || break; sleep 1
     done
     kill -- -"$p" 2>/dev/null; sleep 1; kill -9 -- -"$p" 2>/dev/null; rm -rf "$d"; exit $r'
+if [[ -r /usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64/libwidevinecdm.so ]]; then pass "Widevine in place (Spotify's web player)"
+else warn "Widevine is not in place: Spotify's web player cannot play" "update fetches it again"; fi
 check "Claude Code runs"                               U timeout 20 claude --version
 # herdr (Agents), started as its launcher entry starts it — on a terminal of its own (a
 # pseudo-terminal, 120×36: herdr refuses one of no size), from ~/repos, with your config —
@@ -789,24 +791,20 @@ else
   check "GTK and the portal follow the theme (prefer-$mode)" grep -q "prefer-$mode" <<<"$(U gsettings get org.gnome.desktop.interface color-scheme 2>&1)"
   gtk=Fedokawaii; [[ $mode == dark ]] && gtk=Fedokawaii-dark
   check "GTK 3 theme $gtk (adw-gtk3 + the palette)"    grep -q "'$gtk'" <<<"$(U gsettings get org.gnome.desktop.interface gtk-theme 2>&1)"
-  check "no window buttons in title bars (GTK, Brave)"  grep -qx "':'" <<<"$(U gsettings get org.gnome.desktop.wm.preferences button-layout 2>&1)"
+  check "no window buttons in title bars (GTK, Helium)"  grep -qx "':'" <<<"$(U gsettings get org.gnome.desktop.wm.preferences button-layout 2>&1)"
   check "folders open in yazi, text in neovim"         test "$(U xdg-mime query default inode/directory) $(U xdg-mime query default text/plain)" = "kawa-files.desktop kawa-edit.desktop"
-  check "links open in Brave Origin"                   test "$(U xdg-mime query default x-scheme-handler/https)" = brave-origin.desktop
+  check "links open in Helium"                         test "$(U xdg-mime query default x-scheme-handler/https)" = helium.desktop
   check "file dialogs → yazi (FileChooser: termfilechooser, the only one)" \
     grep -qx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$TARGET_HOME/.config/xdg-desktop-portal/wlroots-portals.conf"
   check "the file dialog runs kawa-pick (executable)" \
     bash -c 'grep -qx "cmd=$1/.local/bin/kawa-pick" "$1/.config/xdg-desktop-portal-termfilechooser/config" && test -x "$1/.local/bin/kawa-pick"' _ "$TARGET_HOME"
-  check "Brave starts with screen-share sound (launcher entry → ~/.local/bin/brave-origin)" \
-    grep -q "^Exec=$TARGET_HOME/.local/bin/brave-origin" "$TARGET_HOME/.local/share/applications/brave-origin.desktop"
-  if [[ -r /usr/share/applications/com.brave.Origin.desktop ]]; then   # (brave/brave-browser#52193)
-    check "Brave listed once in the launcher (its second entry hidden)" \
-      bash -c 'sed -n "/^\[Desktop Entry\]/,/^\[/p" "$1" | grep -qx NoDisplay=true' _ "$TARGET_HOME/.local/share/applications/com.brave.Origin.desktop"
-  fi
-  # set once by Theme; what you choose in Brave afterwards is yours, so only a note
-  if jq -e '((.extensions.theme.id // "") != "" or .extensions.theme.system_theme == 1) and .brave.new_tab_page.background.type == "color"' \
-       "$TARGET_HOME/.config/BraveSoftware/Brave-Origin/Default/Preferences" >/dev/null 2>&1; then
-    pass "Brave in the desktop's colours (GTK mode, ground-coloured new tab)"
-  else warn "Brave not in the desktop's colours" "your choice in Brave — or Settings → Appearance → Theme → GTK"; fi
+  check "Helium starts with screen-share sound (launcher entry → ~/.local/bin/kawa-browser)" \
+    grep -q "^Exec=$TARGET_HOME/.local/bin/kawa-browser" "$TARGET_HOME/.local/share/applications/helium.desktop"
+  # set once by Theme; what you choose in Helium afterwards is yours, so only a note
+  if jq -e '.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true' \
+       "$TARGET_HOME/.config/net.imput.helium/Default/Preferences" >/dev/null 2>&1; then
+    pass "Helium in the desktop's colours (GTK mode, its compact layout)"
+  else warn "Helium not in the desktop's colours" "your choice in Helium — or Settings → Appearance → Theme → GTK"; fi
   check "magnet links and .torrent files open in Torrents" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
   check "GTK 3 themes find adw-gtk3"                   bash -c 'for t in "" -dark; do f=$(sed -n "s|.*url(\"file://\([^\"]*\)\").*|\1|p" "$1/Fedokawaii$t/gtk-3.0/gtk.css"); [[ -r $f ]] || exit 1; done' _ "$TARGET_HOME/.local/share/themes"
   check "monospace and Sumi Term → UDEV Gothic NF"      U bash -c '[[ $(fc-match monospace) == *"UDEV Gothic NF"* && $(fc-match "Sumi Term") == *"UDEV Gothic NF"* ]]'
@@ -878,13 +876,6 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   ((xdpw_was)) || U systemctl --user stop --no-block xdg-desktop-portal-wlr.service 2>/dev/null
   check "file dialog portal (FileChooser ${fcv#u })"     bash -c '[[ $1 =~ ^u\ ([0-9]+)$ ]] && ((BASH_REMATCH[1] >= 3))' _ "$fcv"
   check "screen sharing portal: screens + windows"     test "$scs" = "u 3"
-  # "Share" (~/.config/pipewire/pipewire.conf.d/60-share.conf) asked for by its node name, in
-  # PipeWire's own list: a loopback's nodes share a node.link-group, and WirePlumber 0.5's
-  # wpctl status lists such nodes under "Filters" by node.name ("share_sink"), never by their
-  # description — grepping its output for "Share" failed with the output there
-  check "\"Share\" output for calls (PipeWire node share_sink, an Audio/Sink; \"Monitor of Share\" is its microphone)" \
-    jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["node.name"] == "share_sink"
-                   and .info.props["media.class"] == "Audio/Sink")' <<<"$(U pw-dump 2>/dev/null)"   # (no PipeWire: no input, jq -e fails)
   if ((THEMED)); then
     WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
     for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus lxqt-policykit-agent; do

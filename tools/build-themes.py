@@ -71,6 +71,7 @@ def colors_sh(m, p):
              f"THEME={m}"]
     lines += [f"C_{k.upper()}={p[k]}" for k in keys]
     lines.append(f"C_TEAL={p['asagi']}   # asagi: the level display")
+    lines.append(f"C_FLAME={p['flame']}   # a meter over 80 %")
     wing = " ".join(_mixc(p["accent_lo"], p["accent"], i / 9) for i in range(10))
     lines.append(f'C_WING="{wing}"   # the music meter (the clock\'s wings): 1 … 10 px, accent_lo rising to accent')
     lines.append(f'C_ANSI="{" ".join(ansi(p))}"   # the 16 terminal colours (theme.sh: console palette)')
@@ -678,9 +679,9 @@ def gtk3_theme(m, p):
     out += [f"@define-color {k:<26}#{v};" for k, v in gtk_vars(m, p)]
     out += [f"@define-color {'kawa_' + k:<26}#{p[k]};" for k in KAWA]
     out += ["",
-            "/* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
-            "   strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every",
-            "   style node it reads the class .chromium, so the rules below reach Brave only: its",
+            "/* Helium (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
+            "   strip, toolbar and menus (its address bar keeps Helium's own). Chromium gives every",
+            "   style node it reads the class .chromium, so the rules below reach Helium only: its",
             "   accent (checked boxes, the selected row) is the lacquer rather than a dull blend,",
             "   its tooltips are the palette's, and its tab strip stays the same when the window is",
             "   not focused. */",
@@ -688,7 +689,8 @@ def gtk3_theme(m, p):
             "treeview.view.cell.chromium:selected:focus { background-color: @accent_bg_color; color: @accent_fg_color; }",
             "tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }",
             "tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }",
-            "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }"]
+            "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }",
+            "window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }"]
     out += ["", *SQUARE_NOTE, *square_rules(3)]
     return "\n".join(out) + "\n"
 

@@ -21,7 +21,7 @@
 #   mako                 makoctl reload
 #   btop                 SIGUSR2 (reload)        zathura   SourceConfig over D-Bus
 #   GTK, libadwaita,     gsettings: color-scheme, gtk-theme (live; icon-theme Adwaita) —
-#   Brave                Brave in GTK mode (theme.sh) takes its frame, toolbar and menus
+#   Helium                Helium in GTK mode (theme.sh) takes its frame, toolbar and menus
 #                        from the GTK theme, and web pages their dark/light from the portal
 #   Qt (qt6ct)           its config link is replaced, which qt6ct watches (≈3 s)
 #   mpv (every player)   load-config-file over its socket (scripts/kawa-ipc.lua; Syncplay's own)
@@ -30,7 +30,7 @@
 #                        colours (current/dwl.colors), and the pointers their theme —
 #   pointers             ~/.local/share/icons/default → /usr/share/icons/Sumi-dark or -light,
 #                        loaded again by dwl, and every window under the pointer asks anew — Wayland programs that ask dwl for a pointer by
-#                        name (GTK 4, foot, Qt, Brave) change at once; GTK 3 by gsettings
+#                        name (GTK 4, foot, Qt, Helium) change at once; GTK 3 by gsettings
 #                        cursor-theme; programs drawing their own from XCURSOR_THEME
 #                        (XWayland ones, some games) take the new one when next started
 #   the login screen     /var/lib/fedokawaii-greeter/theme (yours; kawa-greet reads it)

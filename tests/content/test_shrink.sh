@@ -115,7 +115,7 @@ case_ "files copied in yazi (Ctrl+C): those"
 setup
 kawa-clipfiles copy "$A/screen.png"
 rc 0 shrink "	WebP"; [[ -s $A/screen.webp ]] && _ok || _no "not done"
-case_ "a picture copied (a screenshot, an image in Brave): the result kept in ~/Pictures"
+case_ "a picture copied (a screenshot, an image in Helium): the result kept in ~/Pictures"
 setup
 wl-copy --type image/png <"$A/screen.png"
 rc 0 shrink "chat	under 500 KB"

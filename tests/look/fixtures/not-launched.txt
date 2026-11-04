@@ -63,7 +63,7 @@ plymouth-plugin-label           the boot splash (a script theme needs it on F45)
 plymouth-plugin-script          the boot splash
 # ── media, graphics, drivers ──
 ffmpeg                          a command (ffprobe too)
-mpv                             the player: films open in it (Files, Brave); with nothing to play it shows nothing — hidden
+mpv                             the player: films open in it (Files, Helium); with nothing to play it shows nothing — hidden
 mpv-mpris                       mpv's part: the bar's now-playing and the media keys
 yt-dlp                          a command: mpv plays links through it
 nodejs24                        yt-dlp's JavaScript runtime; neovim's language servers
@@ -147,7 +147,7 @@ stockfish                       kawa-chess runs it, only while it is needed
 tesseract                       a command: text from scans
 tesseract-langpack-eng          tesseract's English
 tesseract-langpack-ara          tesseract's Arabic
-imv                             the image viewer: pictures open in it (Files, Brave); its package's entry stays
+imv                             the image viewer: pictures open in it (Files, Helium); its package's entry stays
 ImageMagick                     commands: conversions (magick)
 ImageMagick-heic                ImageMagick's HEIC part
 python3-twisted                 Syncplay's library
@@ -196,6 +196,7 @@ satty                           the screenshot's editor: it opens on a capture (
 # ── the desktop's own helpers ──
 kawa-bar                        the bar's buttons
 kawa-brightness                 the brightness keys and slider
+kawa-browser                    the browser's starter: Super+B, links, the web apps go through it
 kawa-calendar                   a menu: the bar's date (Super+C)
 kawa-cell                       a part of the windows' pictures
 kawa-clipfiles                  files on the clipboard: yazi's Ctrl+C / Ctrl+V
@@ -224,6 +225,7 @@ kawa-quick                      quick settings (the bar's cat); its windows have
 kawa-record                     Super+Shift+R, the bar's 録 mark
 kawa-refresh                    Super+Ctrl+R: the desktop's own programs anew
 kawa-screenshot                 Print, Shift+Print, Super+Print, quick settings' screenshot
+kawa-sharesound                 sound in a share: the portal starts it, quick settings' row
 kawa-share                      the screen share's chooser
 kawa-shrink                     a menu: Super+Z, yazi's Alt+S
 kawa-sixel                      a part of the windows' pictures

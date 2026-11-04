@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# kawa-nowplaying — what is playing (Spotify's web player, mpv, a video in Brave…), on the bar:
+# kawa-nowplaying — what is playing (Spotify's web player, mpv, a video in Helium…), on the bar:
 #
 #   ▁▃▅▇▅▃▂▁  27∕10∕2026  水  09:14:08 PM  ▁▂▃▅▇▅▃▁      ┆ ▣ title │ artist ┆ …
 #
@@ -14,7 +14,7 @@
 #               cassette for sound (its reels turning, 5 a second) —, the title, a red rule,
 #               the artist or the channel, quieter (design-system §8, §13)
 #   paused      the same picture, still; the title muted; no wings. No player → hidden
-# A video or sound: mpv says by its file's name; a browser (Brave: Chromium's MPRIS gives no
+# A video or sound: mpv says by its file's name; a browser (Helium: Chromium's MPRIS gives no
 # address, its picture a PNG of its own) by the picture's shape — a video's frame is wide, a
 # record's sleeve square; no picture at all: sound.
 #
@@ -23,7 +23,7 @@
 # this script writes a frame into each while its wing is running (its pid file says so —
 # asked once a second, no process started), never into one nobody reads.
 #
-# Several players at once (music in Spotify, a paused video in a Brave tab): the one
+# Several players at once (music in Spotify, a paused video in a Helium tab): the one
 # playing is shown — the last to start, if more than one is — else the last one paused.
 #
 # Two event streams merged into one pipe, nothing polled: playerctl --follow (track and

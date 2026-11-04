@@ -56,7 +56,7 @@ PKG_MEDIA=(
 # Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64-bit (the play world's games bring their
 # own, 32-bit too, in their Flatpak runtime). RPM Fusion's
 # freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
-# and Brave decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
+# and Helium decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
 # have clashed over a shared file (Fedora 44, Mesa 26.1/26.2)
 PKG_GPU_COMMON=(mesa-dri-drivers mesa-vulkan-drivers vulkan-loader linux-firmware)
 PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
@@ -90,7 +90,7 @@ PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manag
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
   plymouth-plugin-script plymouth-plugin-label)                 # the boot splash (the "sumi" Plymouth theme is a script); the label: Plymouth 26's script plugin crashes without text rendering (4 Nov, F45: ply_console_viewer_hide on NULL)
 PKG_DESKTOP=(
-  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave; ALSA for programs
+  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Helium; ALSA for programs
                                                           #   that open it directly)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
@@ -126,7 +126,7 @@ PKG_LOOK=(
 )
 PKG_APPS=(
   stockfish             # chess: the opponent and the reviewer of kawa-chess (Super+U → learning), its net inside the binary
-  brave-origin claude-code                          # browser, AI (vendor repos)
+  helium-bin claude-code                            # browser (its COPR: helium.computer), AI (vendor repo)
   gh                                                # GitHub from the terminal: sign in once (gh auth login),
                                                     #   then clone, pull requests, issues, releases
   libreoffice-writer libreoffice-calc libreoffice-impress
@@ -207,13 +207,13 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               python3-fonttools     # the faces are the repo's own files now (system/fonts): nothing to build
               fuzzel                # the launcher and every menu are kawa-panel's (its sums worked out as you type)
               pipx python3.13       # (for torrra, gone: kawa-torrents runs on Fedora's python3 and libtorrent)
-              lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Brave app window
+              lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Helium app window
                                                        #   now; lpf's account and folder: setup.sh, lpf_leftovers_out
 
 # ── never present after setup (removed, replaced, or out of scope) ─────────
 FORBIDDEN_PKGS=(
   nano nano-default-editor vim-minimal vim-enhanced vim-default-editor emacs   # editors: neovim only
-  firefox chromium brave-browser                                               # browsers: Brave Origin only
+  firefox chromium brave-browser brave-origin brave-keyring                    # browsers: Helium only
   alacritty kitty xterm konsole gnome-terminal                                 # terminals: foot only
   rofi wofi wmenu bemenu                                                       # launchers: kawa-panel's only
   tuigreet gtkgreet wlogout fastfetch neofetch                                 # replaced: kawa-greet, kawa-panel menus, own fetch
@@ -239,7 +239,6 @@ SVC_SYSTEM_amd=(lactd.service)
 SVC_USER_GLOBAL=(pipewire.socket pipewire-pulse.socket wireplumber.service)   # (Fedora's presets enable them; verify checks)
 
 # ── vendor repositories ────────────────────────────────────────────────────
-BRAVE_REPO_URL="https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo"
 CLAUDE_REPO_BASEURL="https://downloads.claude.ai/claude-code/rpm/stable"
 CLAUDE_KEY_URL="https://downloads.claude.ai/keys/claude-code.asc"
 CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
@@ -249,8 +248,8 @@ CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 RPMFUSION_FREE_FPR="E9A491A3DE247814E7E067EAE06F8ECDD651FF2E"
 RPMFUSION_NONFREE_FPR="79BDB88F9BBF73910FD4095B6A2AF96194843C65"
 # (grub-btrfs: zzahkaboom24's COPR builds 4.14 for Fedora 43 and 44 — kylegospo's stopped at 38)
-COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs)
-copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; esac; }   # what each COPR brings
+COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs imput/helium)
+copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; imput/helium) echo helium-bin ;; esac; }   # what each COPR brings
 
 # waiting PART → what waits for a repository to catch up with this Fedora, one name per line
 # (setup.sh records it; update and repair try again and clear it): "rpmfusion" — RPM Fusion's

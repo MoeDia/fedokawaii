@@ -393,6 +393,26 @@ pin_faces() {   # the fake machine's copies of the project: the terminal face's 
     done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${TERM_FACE_FILES[@]}")
   done
 }
+# widevine_release VERSION DIR — what install_widevine fetches: update.xml (Mozilla's answer, its address on
+# Google's server, the SHA-512) and the package itself
+widevine_release() {
+  python3 -I - "$1" "$2" <<'WIDEVINE'
+import hashlib, io, json, sys, zipfile
+ver, d = sys.argv[1:3]
+b = io.BytesIO()
+with zipfile.ZipFile(b, "w") as z:
+    z.writestr("manifest.json", json.dumps({"version": ver}))
+    z.writestr("LICENSE", "Google's")
+    z.writestr("_platform_specific/linux_x64/libwidevinecdm.so", "cdm " + ver)
+    z.writestr("../outside", "never taken")
+crx = b"Cr24" + (3).to_bytes(4, "little") + (4).to_bytes(4, "little") + b"head" + b.getvalue()
+open(f"{d}/w-{ver}.crx3", "wb").write(crx)
+open(f"{d}/update.xml", "w").write(f"""<?xml version="1.0"?><updates><addons>
+<addon id="gmp-gmpopenh264" URL="https://ciscobinary.openh264.org/x.zip" hashFunction="sha512" hashValue="00" size="1" version="2.6.0"/>
+<addon id="gmp-widevinecdm" URL="https://edgedl.me.gvt1.com/edgedl/release2/chrome_component/x/w-{ver}.crx3" hashFunction="sha512" hashValue="{hashlib.sha512(crx).hexdigest()}" size="{len(crx)}" version="{ver}"/>
+</addons></updates>""")
+WIDEVINE
+}
 releases() {
   local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
@@ -408,6 +428,8 @@ releases() {
   tool lazygit "$(sed -E 's/^lazygit_([0-9.]+)_.*/\1/' <<<"$lgfile")" "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothicNF-$f.ttf"; done
   echo other >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothic35NF-Regular.ttf"   # (a variant the archive has too: not taken)
+  # Widevine: Mozilla's answer and Google's package (a zip behind a CRX3 header)
+  widevine_release 4.10.1 "$FKH/dl"
   # LocalSend: its release folder (the app, its libraries, its data)
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
   echo lib >"$r/ls/lib/libapp.so"; echo png >"$r/ls/data/flutter_assets/assets/img/logo-512.png"
@@ -533,7 +555,7 @@ built() {
   mkdir -p "$W/home/fkuser/.config"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
   mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=25\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
-  printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/brave-browser.repo"; cp "$W/etc/yum.repos.d/brave-browser.repo" "$W/etc/yum.repos.d/claude-code.repo"
+  printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/claude-code.repo"; cp "$W/etc/yum.repos.d/claude-code.repo" "$W/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:imput:helium.repo"
   printf '#!/bin/sh\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"; : >"$W/etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions"
   # (the disk's layout: the real fedokawaii-split, on the fake machine's flat layout — stubs/findmnt, btrfs, mount)
   install -m 0755 "$REPO/system/fedokawaii-split" "$W/usr/local/sbin/fedokawaii-split"
@@ -582,7 +604,7 @@ built() {
     fedokawaii-boot-good.path fedokawaii-update-resume.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)
-  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs >"$FKH/coprs"
+  printf '%s\n' copr:copr.fedorainfracloud.org:ilyaz:LACT copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs copr:copr.fedorainfracloud.org:imput:helium >"$FKH/coprs"
   mkdir -p "$W/usrshare/vulkan/icd.d" "$W/usrshare/icons/Papirus" "$W/usrshare/icons/Papirus-Dark" "$W/usrshare/icons/Adwaita/cursors"
   : >"$W/usrshare/vulkan/icd.d/radeon_icd.x86_64.json"; fake_cmd "$W/usrbin/greetd"
   printf '%s\n' root home >"$FKH/snapper-configs"; echo "1,fedokawaii baseline" >"$FKH/snaps"
@@ -635,6 +657,8 @@ built() {
   mkdir -p "$U/.local/share/fedokawaii/firealpaca/app/usr/bin"; printf '#!/bin/sh\necho firealpaca\n' >"$U/.local/share/fedokawaii/firealpaca/app/usr/bin/FireAlpaca"
   chmod 755 "$U/.local/share/fedokawaii/firealpaca/app/usr/bin/FireAlpaca"
   ( . "$REPO/lib/upstream.sh"; echo "$FIREALPACA_VERSION" ) >"$U/.local/share/fedokawaii/upstream/firealpaca"
+  mkdir -p "$W/usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64"; : >"$W/usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64/libwidevinecdm.so"
+  echo '{"version":"4.10.1"}' >"$W/usr/local/lib/fedokawaii-widevine/manifest.json"
   # ble.sh built from its pinned commit, the commit recorded
   ( . "$TI/stubs/_lib.sh"; fake_blesh_install "$U/.local/share/blesh" )
   ( . "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT" ) >"$U/.local/share/fedokawaii/upstream/blesh"

@@ -33,7 +33,7 @@ bin/               the kawa-* helpers (→ ~/.local/bin): menus, bar modules, th
                    the drives (kawa-drives: notices, the bar's mark, eject),
                    screen-share picker, backups (kawa-backup), watching together (kawa-together),
                    fetch, the popup window (kawa-term --float) and its pictures (kawa-sixel),
-                   brave-origin (Brave with screen-share sound)
+                   kawa-browser (Helium: warm, its call out of a shared screen's sound)
 configs/           what theme installs: home/ mirrors $HOME (foot, waybar, mako, gtk, qt, bash,
                    nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
 art/               source art: icons.txt (every icon, drawn as text) · signs.txt (the faces'
@@ -60,7 +60,7 @@ PACKAGES.md        what is installed, from where, and why
   ink text). The screen holds still while everything changes underneath, then the new theme
   arrives as a row of seigaiha wave crests with a dithered fringe — rising like dawn, or
   falling like nightfall. Terminals and everything in them, neovim, the bar, menus,
-  notifications, GTK, Qt, Brave (in its GTK mode), mpv, btop, zathura, the lock screen and the
+  notifications, GTK, Qt, Helium (in its GTK mode), mpv, btop, zathura, the lock screen and the
   wallpaper all follow, live. Every colour used for reading reaches 4.5 : 1; only decoration
   meant to recede sits lower.
 - **Two pixel faces and pixel icons**: *Sumi UI* — 東雲 Shinonome Gothic 16 Bold, Latin, kana
@@ -89,10 +89,10 @@ PACKAGES.md        what is installed, from where, and why
 - **Level display**: the volume, microphone and brightness keys show a hi-fi level wedge of
   pixel columns at the bottom centre, updating in place while a key is held.
 - **Clipboard**: Super+V opens a small window with the clipboard history — text and pictures
-  (screenshots, Brave's *Copy image*), searchable, with the full text or the picture itself as
+  (screenshots, Helium's *Copy image*), searchable, with the full text or the picture itself as
   a preview, and Enter puts a picture back as a picture; a copy stays on the clipboard after
   the program it came from is closed.
-- **No window buttons**: dwl tiles and Super+Q closes, so no app (GTK or Brave) draws any.
+- **No window buttons**: dwl tiles and Super+Q closes, so no app (GTK or Helium) draws any.
 - **Books and notes**: Super+R lists every book in `~/Books` (PDF, EPUB, comics) with the
   page you stopped on, a reading bar and the cover — Enter reads it in zathura, Ctrl+A adds
   books from Downloads, Ctrl+D removes. Super+N opens `~/Notes/notes.md`, a dated diary of
@@ -102,7 +102,7 @@ PACKAGES.md        what is installed, from where, and why
   colours for a palette. A drawing tablet (an XP-Pen Star G430S here) needs no driver: its pen draws with
   pressure, its lower button moves the page and its upper one takes a colour while held, and the pad keeps the
   screen's proportions. Xournal++ stays for writing on and signing PDFs.
-- **File dialogs**: every Open, Upload and Save as — Brave's too — is yazi in a floating
+- **File dialogs**: every Open, Upload and Save as — Helium's too — is yazi in a floating
   terminal, with its previews and keys — the one dialog (LibreOffice alone shows GTK's: it
   builds that dialog itself, without the portal).
 - **Office**: LibreOffice Writer, Calc and Impress open and edit Word, Excel and PowerPoint
@@ -277,8 +277,8 @@ glossary are appendices D and E.
 - **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a
   password in `~/.config/fedokawaii/secrets.sh` (`RESTIC_PASSWORD="…"` — keep a copy of it elsewhere: without it the backup
   cannot be read), plug the drive in, quick settings → *backup* (handbook §37.6).
-- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). It is Spotify's web player in a Brave app window;
-  Theme switched on Widevine in Brave for it, and the bar's now-playing and meter follow it (handbook §15.4).
+- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). It is Spotify's web player in a Helium app window;
+  setup fetched Widevine from Google for it, and the bar's now-playing and meter follow it (handbook §15.4).
 - **Syncplay** (watching a film with friends, in step): nothing to set — Theme started
   `~/.config/syncplay.ini` (the public server syncplay.pl, your name, a room of your own); **W** on a
   film in yazi, or *Syncplay* in the launcher, asks for the room (handbook §15.7).
@@ -286,8 +286,8 @@ glossary are appendices D and E.
 - **Agents** (herdr): several Claude Code sessions in one window — *Agents* in the launcher, **Ctrl+B a** for
   each new one, **Ctrl+B Shift+G** for a git worktree of its own; the sidebar marks the one that needs you
   (handbook §44.3).
-- **Brave Origin**: nothing to set — Theme put it in GTK mode, so it wears the palette and follows
-  the dark/light switch, and starts it so a screen share can carry the computer's sound.
+- **Helium**: nothing to set — Theme answered its first start and put it in GTK mode, so it wears the
+  palette and follows the dark/light switch; a screen share carries the computer's sound, never the call.
 
 ## 5 · Kernels and the boot menu
 

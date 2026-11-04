@@ -121,7 +121,7 @@
   "custom/drives": { "exec": "kawa-bar drives -- kawa-drives bar", "return-type": "json", "signal": 13,
                      "tooltip": false, "exec-on-event": false, "on-click": "setsid -f kawa-drives" },
 
-  // the download mark while anything downloads — a torrent, Brave (kawa-downloads): its arrow
+  // the download mark while anything downloads — a torrent, Helium (kawa-downloads): its arrow
   // dropping into the tray (6 frames, 8 a second), the percent of them all; click: what comes
   // in and how far, a click on one opens where it lands. Long-running: asleep while nothing
   // downloads, woken by its watcher's word and its menu's (kawa-dwlstatus: its fifo); empty

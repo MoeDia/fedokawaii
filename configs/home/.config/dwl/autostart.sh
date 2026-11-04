@@ -134,6 +134,7 @@ keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app ask
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
+{ sleep 8; keep kawa-browser --warm; } </dev/null >/dev/null 2>&1 &   # the browser, no window: Super+B a word to it (after the login's rush)
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 kawa-carry hint </dev/null &                       # a fresh install, the drive with your things plugged in: said once
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
@@ -142,7 +143,7 @@ keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Supe
 # and brings up the other; the screensaver switched off in quick settings: the lock at once);
 # away 30 minutes: the screens dark (the outputs stay, so windows stay where they are; a key
 # wakes them). Never while something plays (kawa-idle): a video holds the idle timer itself
-# (Brave and mpv ask the compositor: idle-inhibit), music and anything holding logind's idle
+# (Helium and mpv ask the compositor: idle-inhibit), music and anything holding logind's idle
 # lock make kawa-idle wait until they end. Sleep is yours to ask for: the power menu, or a lock
 # (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every sleep is dark and locked
 # first (so swayidle, which does it, is never given up on: see keep); as the machine wakes the

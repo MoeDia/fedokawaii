@@ -8,7 +8,7 @@
 SD=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 
 # pw_world — the fixture machine (fixtures/pw.json): a sound card's analog output and input,
-# the graphics card's HDMI output, and the two "Share" loopbacks of 60-share.conf
+# the graphics card's HDMI output, and a share's mix (kawa-sharesound's)
 pw_world() {
   cp "$SD/fixtures/pw.json" "$TMP/pw.json"
   export FAKE_PW=$TMP/pw.json

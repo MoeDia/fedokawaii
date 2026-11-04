@@ -54,7 +54,7 @@ ALLOWED=(
   ".config|settings" ".local|data and state" ".cache|what can be made again"
   ".ssh|OpenSSH reads only ~/.ssh"
   ".gnupg|gpg's keys (elsewhere, its agent's sockets would no longer start by themselves)"
-  ".pki|Brave's certificate store (Chromium writes ~/.pki/nssdb: no setting moves it)"
+  ".pki|the browser's certificate store (Chromium writes ~/.pki/nssdb: no setting moves it)"
 )
 # an older version's files in your home: PATH|what it was (a * matches as the shell does).
 # Only these; ~/.config/scriptorium (settings you may have changed) is kept in
@@ -72,7 +72,7 @@ LEFTOVERS=(
 UNUSED_DIRS=(Desktop Public Templates)
 # the caches: PATH|LIMIT (MB)|HOW|what — clear: emptied when over; oldest: the oldest files out
 # until under 80 % of it; uv: uv cache prune (what no environment uses), then emptied if still
-# over; brave: emptied when over and Brave is closed; own: the program keeps it within its
+# over; browser: emptied when over and the browser is closed; own: the program keeps it within its
 # limit itself — only measured (over it, --check names it)
 CACHES=(
   "$XDG_CACHE_HOME/npm|500|clear|npm's downloads"
@@ -80,7 +80,7 @@ CACHES=(
   "$XDG_CACHE_HOME/uv|3000|uv|uv's packages"
   "$XDG_CACHE_HOME/thumbnails|500|oldest|thumbnails of your files"
   "$XDG_CACHE_HOME/yt-dlp|200|clear|yt-dlp's player scripts"
-  "$XDG_CACHE_HOME/BraveSoftware|1500|brave|Brave's cache"
+  "$XDG_CACHE_HOME/net.imput.helium|1500|browser|the browser's cache"
   "$XDG_CACHE_HOME/fedokawaii|1500|own|the wallpapers drawn ahead (kawa-wallpaper keeps the pictures and screens in use)"
   "$XDG_CACHE_HOME/mesa_shader_cache|1100|own|the graphics driver's shaders (Mesa: 1 GB)"
   "$XDG_CACHE_HOME/mesa_shader_cache_db|1100|own|the graphics driver's shaders (Mesa: 1 GB)"
@@ -141,9 +141,9 @@ leftovers() {
   done
   return "$rc"
 }
-# Brave open? Its starter beside this script answers from Chromium's own lock (brave-origin
-# --is-open); one that cannot be asked counts as open: nothing deleted under a running Brave
-brave_open() { local b=${0%/*}/brave-origin; [[ -x $b ]] || return 0; "$b" --is-open; }
+# The browser open? Its starter beside this script answers from Chromium's own lock (kawa-browser
+# --is-open); one that cannot be asked counts as open: nothing deleted under a running browser
+browser_open() { local b=${0%/*}/kawa-browser; [[ -x $b ]] || return 0; "$b" --is-open; }
 trim() {   # every cache over its limit, its own way
   local e p lim how what s f rc=0
   for e in "${CACHES[@]}"; do
@@ -158,7 +158,7 @@ trim() {   # every cache over its limit, its own way
           rm -f -- "${f#* }"; s=$(mb "$p")
         done < <(find "$p" -type f -printf '%T@ %p\0' | sort -zn) ;;
       uv) uv cache prune --quiet || rc=1; (($(mb "$p") > lim)) && { uv cache clean --quiet || rc=1; } ;;
-      brave) brave_open && continue; find "$p" -mindepth 1 -delete || rc=1 ;;
+      browser) browser_open && continue; find "$p" -mindepth 1 -delete || rc=1 ;;
       own) continue ;;
     esac
     say "$what ($(tilde "$p")): $s MB, over $lim MB — now $(mb "$p") MB"

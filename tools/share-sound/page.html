@@ -1,0 +1,40 @@
+<!doctype html><meta charset=utf-8><title>share sound test</title>
+<body style="background:#111;color:#ddd;font:16px monospace"><pre id=out>idle</pre>
+<script>
+// tools/share-sound-proof.sh's page: getDisplayMedia's audio track measured in three bands — what
+// another program plays (350–950 Hz), a film in a tab (2100–3300 Hz), a call (a 1500 Hz tone through
+// a real WebRTC connection) — in dB, against the floor above them
+window.res = null;
+window.start = async (opts) => {
+  const s = await navigator.mediaDevices.getDisplayMedia(opts);
+  window.stream = s;
+  const at = s.getAudioTracks();
+  window.res = { video: s.getVideoTracks().map(t => t.getSettings().displaySurface), audio: at.map(t => t.label) };
+  if (at.length) {
+    const ctx = new AudioContext(); await ctx.resume();
+    const src = ctx.createMediaStreamSource(new MediaStream(at));
+    const node = ctx.createAnalyser(); node.fftSize = 8192; node.smoothingTimeConstant = 0.6; src.connect(node);
+    window.an = { ctx, node, data: new Float32Array(node.frequencyBinCount) };
+  }
+  return window.res;
+};
+const band = (lo, hi) => { const a = window.an, r = a.ctx.sampleRate / a.node.fftSize; let s = 0, n = 0;
+  for (let i = Math.round(lo / r); i <= Math.round(hi / r); i++) { s += Math.pow(10, a.data[i] / 10); n++; } return 10 * Math.log10(s / n); };
+window.levels = async () => { const a = window.an; if (!a) return 'no audio track'; const v = { other: [], film: [], call: [], floor: [] };
+  for (let k = 0; k < 10; k++) { a.node.getFloatFrequencyData(a.data); v.other.push(band(350, 950)); v.film.push(band(2100, 3300)); v.call.push(band(1480, 1520)); v.floor.push(band(9000, 12000));
+    await new Promise(r => setTimeout(r, 300)); }
+  const m = x => { const f = x.filter(Number.isFinite); return f.length ? +(f.reduce((p, c) => p + c, 0) / f.length).toFixed(1) : null; };
+  return { other: m(v.other), film: m(v.film), call: m(v.call), floor: m(v.floor) }; };
+window.film = async () => { const a = new Audio('film.wav'); a.loop = true; window.filmEl = a; await a.play(); return 'film plays'; };
+window.call = async () => {
+  const c = new AudioContext(); await c.resume(); const o = c.createOscillator(); o.frequency.value = 1500; const dst = c.createMediaStreamDestination(); o.connect(dst); o.start();
+  const a = new RTCPeerConnection(), b = new RTCPeerConnection();
+  window.cands = 0;
+  a.onicecandidate = e => { if (e.candidate) { window.cands++; b.addIceCandidate(e.candidate); } }; b.onicecandidate = e => { if (e.candidate) { window.cands++; a.addIceCandidate(e.candidate); } };
+  b.ontrack = e => { const el = new Audio(); el.srcObject = e.streams[0]; el.play(); window.callEl = el; };
+  dst.stream.getTracks().forEach(t => a.addTrack(t, dst.stream));
+  await a.setLocalDescription(await a.createOffer()); await b.setRemoteDescription(a.localDescription);
+  await b.setLocalDescription(await b.createAnswer()); await a.setRemoteDescription(b.localDescription);
+  window.pcs = [a, b]; return 'call plays';
+};
+</script>

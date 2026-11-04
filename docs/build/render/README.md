@@ -206,7 +206,7 @@ overlay whose writes go to `apps-cache/run/<theme>/` (deleted at the end; `APPS_
 keeps it). Demo files (`~/Documents`, `~/Videos`, `~/Pictures`), `secrets.sh` with the stand-in
 Prowlarr key, the demo repository (apps.sh's own `demo_repo`: the repo's files committed in a dozen
 steps dated Sep–Oct 2026, a merged `wallpaper` branch and an open `torrra` one, origin one commit
-behind; then work in progress like shoot.sh's: +1 staged, ~2 modified, ?1 untracked), a fresh dconf user database, Brave's profile, torrra's config…
+behind; then work in progress like shoot.sh's: +1 staged, ~2 modified, ?1 untracked), a fresh dconf user database, Helium's profile, torrra's config…
 all live there. The system dconf defaults are compiled from the repo's `00-fedokawaii` only
 and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still holds an old
 `00-scriptorium` that would override `gtk-theme` and `button-layout`).
@@ -231,7 +231,7 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | `app-filechooser` | `lib/filechooser.c` (GTK 3.24.52 from /opt/f44): GtkFileChooserDialog "Open File", theme from GSettings |
 | `app-share` | `kawa-share` fed four xdg-desktop-portal-wlr 0.8.4 lines; `wlr-randr` answers for DP-1 and HDMI-A-1 |
 | `app-torrra`, `app-torrra-search` | `kawa-torrra --open` (the launcher's way) with `lib/fakeprowlarr.py` on 127.0.0.1:9696; "ubuntu 24.04" typed |
-| `app-brave` | Brave Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |
+| `app-brave` | Helium Origin new-tab page, second start, `--no-first-run --no-default-browser-check`, `brave.origin.free_tier_accepted` set (the one-time Origin question answered "Proceed") |
 | `app-wiremix` | `kawa-term --float --once mixer mixer 96x29 -- wiremix` (Super+A → *mixer*) while `mpv --no-video` plays the test video: one stream on the Playback tab |
 | `app-bluetui` | `kawa-term --float --once pair pair 96x29 -- bluetui` (Super+X → *pair a device*) on a private session bus where `lib/fakebluez.py` answers as BlueZ (adapter `fedokawaii`; a game controller and a headset paired, a phone found nearby), after **s** (scan) |
 | `app-visidata` | `vd weather.csv` in `~/practice` (a small made-up table), a column made numeric (`#`), sorted (`[`), summed (`+` → sum): the frequency line at the bottom |

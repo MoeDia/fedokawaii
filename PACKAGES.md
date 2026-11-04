@@ -29,7 +29,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Shell | bash + bash-completion · ble.sh | F + git (pinned commit) | native prompt, OSC 7 / 133 for foot; ble.sh (the Bash Line Editor) types for it: the line coloured as you type, a grey suggestion from your history, a completion menu — in the terminal's 16 colours, so it follows the theme |
 | Shell helpers | fzf · zoxide · eza · bat · tldr | F | Ctrl+R / Ctrl+T / Alt+C · a `cd` that learns your folders · `ls` with git status and trees · `cat` in syntax colours · `tldr` examples |
 | Editor | neovim + LazyVim + tree-sitter-cli | F + git | nano / vim-minimal are **removed** |
-| Browser | Brave Origin | V | free on Linux; Shields only; in GTK mode, so it wears the palette |
+| Browser | Helium (`helium-bin`) | C | Chromium's engine, Google's services out, uBlock inside; its own COPR (imput/helium, F44 and F45, signed); in GTK mode, so it wears the palette; warm at login (`kawa-browser`) |
 | AI | Claude Code | V (`downloads.claude.ai`, key fingerprint checked) | |
 | AI agents side by side | herdr | GH (static, SHA-256 pinned) | several Claude Code sessions in panes of one terminal window (launcher → *Agents*), each marked working, blocked or idle in a sidebar; a git worktree per task on one key; a notice (mako) when one finishes or asks. Its own multiplexer and server, so no tmux; Claude Squad (needs tmux, AGPL, last release August 2026) was the other candidate. Its update and rule-download checks are off: it stays the pinned release |
 | Launcher + all menus | `kawa-panel` (through `kawa-menu`) | this repository (Python + GTK 3) | the launcher (Super+Space, the torii): the desktop entries, each with its own icon or a kanji seal, a sum or a conversion answered as you type and copied by Enter; and every small menu: power, audio, calendar, drives, help, change, shrink, screen-share picker (the wallpaper and clipboard windows are fzf). One process with quick settings, so nothing starts when you open one |
@@ -40,7 +40,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Level display | mako (category `osd`) | F | `kawa-osd`: volume, microphone, brightness — no separate OSD program |
 | Wallpaper | swaybg | F | |
 | Outputs | wlr-randr · wlopm · wayland-utils | F | `kawa-display` picks the best refresh rate ≤ `MONITOR_HZ` · `wlopm` powers screens off when idle without moving windows · `wayland-info` lists what the compositor offers (the health report) |
-| Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf) — text and pictures (screenshots, Brave's *Copy image*), the last 100, none over 20 MiB (`kawa-clip --store` behind `wl-paste --watch`); pictures previewed in the terminal (ImageMagick draws them as sixels) and copied back as pictures |
+| Clipboard | wl-clipboard + cliphist + fzf | F | Super+V: the history in a small window (fzf) — text and pictures (screenshots, Helium's *Copy image*), the last 100, none over 20 MiB (`kawa-clip --store` behind `wl-paste --watch`); pictures previewed in the terminal (ImageMagick draws them as sixels) and copied back as pictures |
 | Screenshots | grim + slurp + satty | F + GH | satty needs gtk4 + libadwaita (listed) |
 | Night light | gammastep | F | `kawa-night`: the warmth you set, day and night alike (it never follows the sun), kept across logins; quick settings turns it on and off, its wheel warmer or cooler |
 | Audio | PipeWire + WirePlumber (+ pulse/alsa shims) + pipewire-utils | F | wiremix (the mixer: a terminal program, in a floating window, in the theme's colours), playerctl; all sound processing is PipeWire's own: an equaliser, when wanted, its filter-chain's param_eq (EasyEffects and Calf retired); `pw-dump` feeds the audio menu, `pw-play` sounds the timer's chime |
@@ -48,7 +48,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Monitor brightness | ddcutil | F | DDC/CI, like Twinkle Tray on Windows |
 | Bar clicks | wtype | F | clicking a workspace presses its key (Super+1…9) |
 | Portals | xdg-desktop-portal-wlr + -gtk | F | screen share (with the `kawa-share` picker; one question per share: transient restore tokens for screens, `XDPW_PERSIST_MODE`, 0.7+; a window's choice remembered 10 s by `kawa-share`) / file dialogs / dark mode |
-| File dialogs | xdg-desktop-portal-termfilechooser 1.4.3 + yazi (`kawa-pick`) | git (GitHub, pinned commit) | not packaged for Fedora: built by setup.sh like dwl (meson + inih-devel + systemd-devel, kept); Brave's and GTK programs' Open/Save dialogs are yazi in a floating terminal; the GTK dialog stays as the fallback — and is LibreOffice's: it builds GTK's dialog itself, never asking the portal |
+| File dialogs | xdg-desktop-portal-termfilechooser 1.4.3 + yazi (`kawa-pick`) | git (GitHub, pinned commit) | not packaged for Fedora: built by setup.sh like dwl (meson + inih-devel + systemd-devel, kept); Helium's and GTK programs' Open/Save dialogs are yazi in a floating terminal; the GTK dialog stays as the fallback — and is LibreOffice's: it builds GTK's dialog itself, never asking the portal |
 | Terminal for apps | xdg-terminal-exec | F | programs that ask for a terminal get foot |
 | Auth dialogs | lxqt-policykit | F | |
 | USB drives | udiskie + udisks2 + `kawa-drives` · exfatprogs · dosfstools · ntfs-3g | F | sticks, disks and SD cards open by themselves under `/run/media/$USER`; `kawa-drives` gives the notices, the bar's drive mark, yazi's **M** and the eject that says "safe to unplug"; exFAT and FAT tools check, repair and name the usual sticks; ntfs-3g opens NTFS whether or not the kernel has its own NTFS driver (Fedora's kernels have changed which one they build) |
@@ -68,7 +68,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Video | mpv + mpv-mpris + yt-dlp + nodejs24 (+ -bin, -npm-bin) | F | mpv-mpris: mpv in the bar and on the media keys; Node.js: yt-dlp's JavaScript runtime for YouTube, and npm for Mason's language servers |
 | Watching together | Syncplay 1.7.6 (no window) | git (GitHub, pinned commit) + F | its source at the v1.7.6 tag's commit with two fixes of ours (src/syncplay/syncplay.patch: mpv waited for at the start, the window closed with mpv), run by Fedora's python3 with python3-twisted (+tls) · python3-pyOpenSSL · python3-certifi · python3-pem (lib/upstream.sh); Fedora's syncplay package is left out: it brings PySide6 and 27 Qt modules for a window never used. `kawa-together`: a small form (server, room, name, password, film; your last choice ready, Enter rejoins it), then Syncplay beside mpv; pause, seek, ready and chat reach friends through a public server (syncplay.pl) |
 | Codecs | ffmpeg (full) | RF | replaces ffmpeg-free |
-| Music | Spotify's web player | — (Brave Origin) | open.spotify.com in a Brave app window (`spotify.desktop`), free or Premium; Widevine switched on once in Brave (Theme); Brave's MPRIS: the bar's now-playing and meter, the media keys |
+| Music | Spotify's web player | — (Helium) | open.spotify.com in a Helium app window (`spotify.desktop`), free or Premium; Widevine fetched from Google for this computer (`install_widevine`); Helium's MPRIS: the bar's now-playing and meter, the media keys |
 | Torrents | kawa-torrents (ours) on libtorrent + Prowlarr | F + podman | our own engine and window (bin/kawa-torrents) on Fedora's python3 and `rb_libtorrent-python3`: no Python of its own, no Textual; a socket-started engine that goes on with the window closed |
 | Git | git + lazygit + delta (`git-delta`) | F + GH + F | lazygit from its own release, pinned like yazi (its COPR is no longer kept); delta draws its diffs (syntax colours in the terminal's own palette, line numbers, side by side in a wide window); lazygit also opens inside neovim (Space g g) |
 | Python and Rust (learning) | uv · rustup | F | uv 0.12 (Fedora 44): a current CPython in your home (`python3.14`, beside Fedora's `python3`, which the desktop's scripts keep), `uv pip`, `uv venv`, `uv run`; rustup 1.29 (Fedora 44): setup runs `rustup-init` for you — stable Rust with rust-analyzer, clippy and rustfmt in `~/.local/share/cargo/bin` (CARGO_HOME). neovim's side (basedpyright, ruff, debugpy, codelldb) from Mason. Update moves all of it on |
@@ -96,8 +96,8 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 
 ## Never present (verify.sh fails if any appear)
 
-Editors other than neovim (nano, nano-default-editor, vim-minimal, vim-enhanced, vim-default-editor, emacs) · the rescue kernel (dracut-config-rescue) · browsers other than Brave
-Origin (firefox, chromium, brave-browser) · other terminals and launchers (alacritty, kitty, xterm,
+Editors other than neovim (nano, nano-default-editor, vim-minimal, vim-enhanced, vim-default-editor, emacs) · the rescue kernel (dracut-config-rescue) · browsers other than Helium
+(firefox, chromium, brave-browser, brave-origin) · other terminals and launchers (alacritty, kitty, xterm,
 konsole, gnome-terminal, rofi, wofi, wmenu, bemenu) · second polkit agents and tray NM
 (polkit-gnome, hyprpolkitagent, network-manager-applet) · snapd, PackageKit,
 gnome-software · ffmpeg-free · tuigreet, gtkgreet, wlogout, fastfetch, neofetch (replaced by
@@ -120,7 +120,7 @@ before setup started plus the manifest — anything else is reported by name.
 | tuigreet, wlogout, fastfetch | kawa-greet (the login screen), a power menu of its own (`kawa-power`), the own `fetch` |
 | npm for Claude Code | Claude Code now ships an official signed dnf repo (Node.js and npm are back, for yt-dlp and Mason — see below) |
 | openssl/alsa/dbus devel, cmake | bluetui comes as a release binary; yazi's build (Rust + cargo, kept: update rebuilds it) needs none of them |
-| GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Brave bundles its own) |
+| GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Helium bundles its own) |
 | x264, x265, svt-av1, libaom, dav1d, opus, lame, flac, … CLI/lib packages | pulled in by ffmpeg where needed; the CLI encoders duplicated ffmpeg |
 | google-noto-sans-arabic-fonts | fontconfig sends Arabic to Noto Naskh; Sans Arabic was never used |
 | starship (COPR) | native bash prompt, no process per prompt |
@@ -131,7 +131,7 @@ before setup started plus the manifest — anything else is reported by name.
 | mediainfo | ffprobe (part of ffmpeg) tells the same about a video or song |
 | pavucontrol, blueman | terminal programs first: wiremix (Fedora's package) is the mixer, bluetui (GitHub release, pinned) pairs devices — both open in a floating foot window and wear the theme; no GTK window, nothing to start at login |
 | EasyEffects, Calf | one sound-processing stack, PipeWire's own: an equaliser is its filter-chain's param_eq when wanted (handbook §15.6) — nothing running beside PipeWire, no Qt program kept for one job |
-| Brave flags file | Chromium ≥ 140 picks Wayland automatically |
+| A browser flags file | Helium has none; Chromium ≥ 140 picks Wayland automatically; what it needs is in `kawa-browser` |
 | `keepcache`, `skip_if_unavailable`, `clean_requirements_on_remove` in dnf config | already Fedora's defaults |
 | lazygit's COPR (dejan/lazygit) | its description says it is no longer maintained; lazygit now comes from its GitHub release, pinned (SHA-256) |
 | solaar, liquidctl | nothing to drive on this machine: the mouse (on a USB receiver) needs no app, and the cooler is an air cooler — liquidctl is for liquid coolers and fan hubs |
@@ -140,7 +140,7 @@ before setup started plus the manifest — anything else is reported by name.
 | presenterm (release binary) | slides are Impress's, which opens and shows PowerPoint files; update takes the binary and its theme link out |
 | spotify_player (release binary) | Spotify's web player instead (a free account works too); update takes the binary and its settings out |
 | Steam · MangoHud · GE-Proton (and `kawa-steam`, `kawa-game`, the desktop's own game mode) | gaming left the desktop's account for the play world: Steam and Bottles run in their own user's Flatpaks, on a screen of their own — nothing of it stays on yours; update hands the packages back to dnf and moves Steam's games and saves into the world, the rest out of your account |
-| lpf, lpf-spotify-client, spotify-client | Spotify's own app, built here by lpf from RPM Fusion's recipe — until the recipe pointed at a download Spotify had taken down (Oct 2026); its web player in a Brave app window does the same. Update hands the three back to dnf, and repair removes lpf's account (pkg-build) and /var/lib/lpf |
+| lpf, lpf-spotify-client, spotify-client | Spotify's own app, built here by lpf from RPM Fusion's recipe — until the recipe pointed at a download Spotify had taken down (Oct 2026); its web player in a Helium app window does the same. Update hands the three back to dnf, and repair removes lpf's account (pkg-build) and /var/lib/lpf |
 | papirus-icon-theme | every program shows its own icon, as its package ships it (the launcher, GTK, Qt, the notices): no icon pack over them; update hands it back to dnf |
 | fuzzel | the launcher is kawa-panel's own, as every menu already was: one process, one look, the sums answered as you type (fuzzel has no calculator); update hands it back to dnf |
 | Fusion Pixel (release download) · python3-fonttools | the desktop's faces are this repository's own files now, Sumi UI and Sumi Term (`system/fonts`): nothing is downloaded or built on the machine; update removes the old font folder (`/usr/local/share/fonts/fusion-pixel`) and hands fonttools back to dnf |

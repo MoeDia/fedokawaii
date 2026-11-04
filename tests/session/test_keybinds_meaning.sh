@@ -27,7 +27,7 @@ copy; sed -i -e 's/XKB_KEY_j,                 focusstack,       {.i = +1}/XKB_KE
   -e 's/XKB_KEY_k,                 focusstack,       {.i = -1}/XKB_KEY_k, focusstack, {.i = +1}/' "$CH"
 says "Super+J / K (Super+j) is 'focus next / previous', but config.h does focusstack:-1"
 case_ "… the browser key running something else"
-copy; sed -i 's/"brave-origin", NULL/"firefox", NULL/' "$CH"; says "config.h does spawn:firefox"
+copy; sed -i 's/"kawa-browser", NULL/"firefox", NULL/' "$CH"; says "config.h does spawn:firefox"
 case_ "… the layouts in another order (Super+Y would arrange in columns)"
 copy; python3 -I - "$CH" <<'EOF'
 import sys; p = sys.argv[1]; s = open(p).read()

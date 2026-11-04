@@ -42,7 +42,7 @@ case_ "forbidden by the names Fedora's packages have, not by their commands (rpm
 f=$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"')
 has "$f" SwayNotificationCenter; grep -qx swaync <<<"$f" && _no "swaync is a command: its package is SwayNotificationCenter" || _ok
 case_ "lazygit from its own release, pinned like yazi (its COPR is no longer kept): no package, no COPR"
-lacks "$(all amd)" lazygit; eq "$(m 'echo "${COPRS[*]}"')" "ilyaz/LACT zzahkaboom24/grub-btrfs"
+lacks "$(all amd)" lazygit; eq "$(m 'echo "${COPRS[*]}"')" "ilyaz/LACT zzahkaboom24/grub-btrfs imput/helium"
 has "$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')" lazygit
 u=$( . "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" )
 grep -qE '^lazygit\|jesseduffield/lazygit\|v[0-9.]+\|lazygit_[0-9.]+_linux_x86_64\.tar\.gz\|[0-9a-f]{64}\|lazygit$' <<<"$u" && _ok || _no "lazygit not pinned in lib/upstream.sh"
@@ -84,8 +84,8 @@ has "$(m 'printf "%s\n" "${SVC_SYSTEM[@]}"')" greetd.service; has "$(m 'echo "${
 case_ "every name is a plain package name (no stray spaces, no comment glued on)"
 bad=$(all amd | grep -vE '^[A-Za-z0-9][A-Za-z0-9._+-]*$' || true); eq "$bad" ""
 case_ "the vendor repositories: HTTPS, and the Claude key's fingerprint is 40 hex digits"
-has "$(m 'echo $BRAVE_REPO_URL $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "https://"
+has "$(m 'echo $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "https://"
 [[ $(m 'echo $CLAUDE_KEY_FPR') =~ ^[0-9A-F]{40}$ ]] && _ok || _no "fingerprint"
-lacks "$(m 'echo $BRAVE_REPO_URL $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "http:"
+lacks "$(m 'echo $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "http:"
 
 done_

@@ -231,7 +231,7 @@ shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
 restic              manifest  restic
 fusermount3         manifest  fuse3             # f44: /usr/bin/fusermount3 (Super+U → restore: a backup unmounted)
-brave-origin        manifest  brave-origin      # (Brave's own repo)
+helium              manifest  helium-bin        # (its COPR, imput/helium)
 claude              manifest  claude-code       # (Anthropic's own repo; herdr's Ctrl+B a)
 7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
 zstd                manifest  zstd              # f44: /usr/bin/zstd (.tar.zst: kawa-file)

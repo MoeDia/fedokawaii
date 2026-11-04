@@ -1,15 +1,13 @@
 #!/usr/bin/env bash
 # tests/status/test_configs.sh — the two configs behind the bar's sound: cava.conf must give
 # kawa-nowplaying exactly the frames it parses (16 bands of 0–6, ';' apart, one frame a line),
-# and 60-share.conf's devices must be the ones the sound panel (kawa-quick --state sound) and the handbook treat as "Share";
+# the old "Share" output gone (kawa-sharesound's nodes only while a share runs), its file retired;
 # then PipeWire's 50-quality.conf (rates, period, resampler) and WirePlumber's
 # 50-bluetooth-quality.conf (the headphones' codecs); and the clean mic, gone: its file not
 # shipped, theme.sh retiring the one an earlier install left.
-# (That PipeWire 1.0 loads 60-share.conf and lists both under Filters was checked live.)
 . "$(dirname "$0")/lib.sh"
 box
 CAVA=$REPO/configs/home/.config/fedokawaii/cava.conf
-SHARE=$REPO/configs/home/.config/pipewire/pipewire.conf.d/60-share.conf
 ini() {   # ini SECTION KEY — a value of cava.conf (';' comments, as cava's iniparser reads it)
   python3 -I - "$CAVA" "$1" "$2" <<'EOF'
 import configparser, sys
@@ -34,21 +32,11 @@ case_ "cava.conf: PulseAudio input (PipeWire answers it); kawa-nowplaying, not c
 has "$(cat "$REPO/bin/kawa-nowplaying")" "GRACE=" "kawa-nowplaying ends cava after a while with nothing playing"
 eq "$(ini input method)" pulse
 
-strip() { sed -e 's/#.*//' "$SHARE"; }
-case_ "60-share.conf: one loopback, braces and brackets balanced"
-eq "$(strip | grep -c 'libpipewire-module-loopback')" 1 "one loopback only (a second, recording Share, crashed PipeWire 1.6)"
-eq "$(strip | tr -cd '{' | wc -c)" "$(strip | tr -cd '}' | wc -c)" "{ }"
-eq "$(strip | tr -cd '[' | wc -c)" "$(strip | tr -cd ']' | wc -c)" "[ ]"
-case_ "60-share.conf: 'Share' is the output share_sink — the very name kawa-quick keeps out of the sound panel's list"
-has "$(strip | grep -A3 'capture.props' | head -n 4)" 'node.name        = "share_sink"'
-has "$(strip)" 'media.class      = "Audio/Sink"'
-has "$(grep -o 'node.name"\] != "[a-z_]*"' "$REPO/bin/kawa-quick")" '"share_sink"'
-case_ "60-share.conf: nothing records a sink (stream.capture.sink, the crash), no virtual source"
-lacks "$(strip)" 'stream.capture.sink'; lacks "$(strip)" 'Audio/Source'; lacks "$(strip)" 'as microphone'
-case_ "60-share.conf: never the default output (priority.session 0)"
-eq "$(strip | grep -c 'priority.session = 0')" 1
-case_ "60-share.conf: the names the handbook uses"
-has "$(strip)" 'node.description = "Share"'; has "$(sed -n '1,12p' "$SHARE")" '"Monitor of Share"'
+case_ "no loopback running all the time for a share: 60-share.conf not shipped, theme.sh retiring the one an earlier install left; the portal starts kawa-sharesound"
+[[ ! -e $REPO/configs/home/.config/pipewire/pipewire.conf.d/60-share.conf ]] && _ok || _no "60-share.conf still shipped"
+has "$(cat "$REPO/theme.sh")" "retire .config/pipewire/pipewire.conf.d/60-share.conf 'share_sink'"
+has "$(grep '^exec_before=' "$REPO/configs/home/.config/xdg-desktop-portal-wlr/config")" '@HOME@/.local/bin/kawa-sharesound portal'
+has "$(grep -o 'node.name"\] != "[a-z_]*"' "$REPO/bin/kawa-quick")" '"kawa_share_mix"'
 
 # ── what you hear ────────────────────────────────────────────────────────────
 PW=$REPO/configs/home/.config/pipewire
@@ -64,7 +52,7 @@ has "$Q" 'default.clock.allowed-rates = [ 44100 48000 88200 96000 176400 192000 
 has "$Q" 'default.clock.quantum       = 1024'
 has "$Q" 'default.clock.min-quantum   = 256'
 has "$Q" 'default.clock.max-quantum   = 2048'
-case_ "the resampler at quality 14 (the best there is) wherever streams are made: PipeWire's own, Pulse programs (Brave), PipeWire programs (mpv) — in stream.properties, nothing else set there"
+case_ "the resampler at quality 14 (the best there is) wherever streams are made: PipeWire's own, Pulse programs (Helium), PipeWire programs (mpv) — in stream.properties, nothing else set there"
 for f in pipewire.conf.d pipewire-pulse.conf.d client.conf.d; do
   eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality = 14')" 1 "$f"
   eq "$(nc "$PW/$f/50-quality.conf" | grep -c 'resample.quality')" 1 "$f: one quality"

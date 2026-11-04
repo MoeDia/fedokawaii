@@ -1,14 +1,14 @@
 #!/usr/bin/env bash
 # kawa-share — what to share. xdg-desktop-portal-wlr runs it when an app starts a screen
-# share (Brave's "Entire screen" or "Window", OBS, a video call): the choices arrive on
+# share (Helium's "Entire screen" or "Window", OBS, a video call): the choices arrive on
 # stdin, one per line, and the line printed back — unchanged — is shared; no answer (Esc)
 # cancels the share (exit 1). Lines look like (portal 0.8 and later; 0.7 sent a bare
 # screen name):
 #   Monitor: DP-1 Dell Inc. DELL U2720Q 1234
-#   Window: Weekly sync — Brave (4f2a9c1e0b7d4e21a3c5f6b7d8e9f0a1)
+#   Window: Weekly sync — Helium (4f2a9c1e0b7d4e21a3c5f6b7d8e9f0a1)
 # — in brackets wlroots' own token for the window, not its app id. A single choice is taken
 # at once, without a question; several get the usual menu.
-# One share, one question. Brave (any Chromium, Electron) asks the portal more than once for
+# One share, one question. Helium (any Chromium, Electron) asks the portal more than once for
 # one share: its own picker opens a session for the preview, then the share itself opens
 # another — they are meant to be joined by a restore token, which the portal gives for a
 # screen (XDPW_PERSIST_MODE, the portal's drop-in) but never for a window. So a choice made

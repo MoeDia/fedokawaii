@@ -1,5 +1,5 @@
 # /etc/dconf/db/local.d/00-fedokawaii — system defaults read by GTK 3/4, libadwaita,
-# xdg-desktop-portal-gtk (→ Brave's dark mode) and LibreOffice. Compiled by `dconf update`.
+# xdg-desktop-portal-gtk (→ Helium's dark mode) and LibreOffice. Compiled by `dconf update`.
 [org/gnome/desktop/interface]
 color-scheme='prefer-dark'
 gtk-theme='Fedokawaii-dark'
@@ -13,7 +13,7 @@ font-antialiasing='rgba'
 font-hinting='slight'
 
 # no window buttons anywhere — dwl tiles and closes windows (Super+Q), so title bars
-# (GTK headers, Brave's tab strip) carry none: ':' is "nothing left, nothing right"
+# (GTK headers, Helium's tab strip) carry none: ':' is "nothing left, nothing right"
 [org/gnome/desktop/wm/preferences]
 button-layout=':'
 

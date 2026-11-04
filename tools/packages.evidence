@@ -13,7 +13,6 @@ amiri-fonts|fedora|https://packages.fedoraproject.org/search?query=amiri-fonts|2
 bash-completion|fedora|https://packages.fedoraproject.org/search?query=bash-completion|2026-10-14|manifest 2026-10-14
 bat|fedora|https://packages.fedoraproject.org/search?query=bat|2026-10-14|manifest 2026-10-14
 bluez|fedora|https://packages.fedoraproject.org/search?query=bluez|2026-10-14|manifest 2026-10-14
-brave-origin|brave-browser|https://brave.com/origin/linux/|2026-10-20|dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo; key brave-core.asc (the .repo file)
 btop|fedora|https://packages.fedoraproject.org/search?query=btop|2026-10-14|manifest 2026-10-14
 cage|fedora|https://packages.fedoraproject.org/search?query=cage|2026-10-14|manifest 2026-10-14
 cava|fedora|https://packages.fedoraproject.org/search?query=cava|2026-10-14|manifest 2026-10-14
@@ -61,6 +60,7 @@ gtk3|fedora|https://packages.fedoraproject.org/search?query=gtk3|2026-10-14|mani
 gtk3-devel|fedora|https://packages.fedoraproject.org/search?query=gtk3-devel|2026-10-14|manifest 2026-10-14
 gtk4|fedora|https://packages.fedoraproject.org/search?query=gtk4|2026-10-14|manifest 2026-10-14
 gtklock|fedora|https://packages.fedoraproject.org/search?query=gtklock|2026-10-14|manifest 2026-10-14
+helium-bin|copr:imput/helium|https://copr.fedorainfracloud.org/coprs/imput/helium/|2026-11-04|the official COPR (helium.computer → github.com/imputnet/helium-linux): gpgcheck=1, key 07BCFCA30AC7E51BCFEDFFF74A3186EA47912C39, F44 and F45 chroots; 0.20.3.1 = Chromium 156.0.8078.79
 hunspell-ar|fedora|https://packages.fedoraproject.org/search?query=hunspell-ar|2026-10-14|manifest 2026-10-14
 hunspell-en|fedora|https://packages.fedoraproject.org/search?query=hunspell-en|2026-10-14|manifest 2026-10-14
 ImageMagick|fedora|https://packages.fedoraproject.org/search?query=ImageMagick|2026-10-14|manifest 2026-10-14

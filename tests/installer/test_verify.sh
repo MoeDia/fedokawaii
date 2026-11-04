@@ -34,8 +34,8 @@ has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔  shutdown waits 30 s at most for your services"
 has "$OUT" "✔  the sound card never naps (no click at a volume change)"
 
-case_ "…the same once the update button put brave-origin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
-fkh from-stored; V; has "$OUT" "✔  brave-origin from brave-browser (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
+case_ "…the same once the update button put helium-bin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
+fkh from-stored; V; has "$OUT" "✔  helium-bin from copr:copr.fedorainfracloud.org:imput:helium (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
 case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
 back built
 fk bash -c 'c=/home/fkuser/.local/share/containers/storage/overlay; runuser -u fkuser -- mkdir -p "$c/l1/diff/app" && : >"$c/l1/diff/app/Prowlarr.dll" && chown -R 100910:100910 "$c/l1"'   # (podman's own folders: yours)
@@ -239,20 +239,6 @@ sed -i 's/Enabled: no/Enabled: yes/; s/(preferred)/(preferred, current)/' "$W/us
 V; has "$OUT" "✘  kawa-mem running"; has "$OUT" "✘  kawa-nowplaying running"; has "$OUT" "✔  refresh 144 Hz = best available ≤"
 lacks "$OUT" "every screen is dark"
 
-case_ "\"Share\" (the loopback of ~/.config/pipewire): found by its node name in PipeWire's list — WirePlumber 0.5's wpctl status shows a loopback under Filters by node.name, never \"Share\""
-back built; fkh procs "/usr/local/bin/dwl"
-cat >"$FKH/pw-dump" <<'J'
-[ { "id": 32, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink.out", "media.class": "Stream/Output/Audio", "node.description": "Share", "node.link-group": "loopback-1904-27" } } },
-  { "id": 33, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink", "media.class": "Audio/Sink", "node.description": "Share", "node.link-group": "loopback-1904-27" } } } ]
-J
-V; has "$OUT" "✔  \"Share\" output for calls (PipeWire node share_sink, an Audio/Sink"
-case_ "…its file not loaded (only the playback half, or nothing): a failure"
-cat >"$FKH/pw-dump" <<'J'
-[ { "id": 50, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "alsa_output.pci-0000_0c_00.4.analog-stereo", "media.class": "Audio/Sink", "node.description": "Share-alike speakers" } } } ]
-J
-V; has "$OUT" "✘  \"Share\" output for calls"
-rm -f "$FKH/pw-dump"; V; has "$OUT" "✘  \"Share\" output for calls" "PipeWire not running: no Share"
-
 # ── Wi-Fi ────────────────────────────────────────────────────────────────────
 case_ "a Wi-Fi radio NetworkManager does not manage: a failure"
 back built; hw_wifi; fkh nm-devices "ethernet:connected" "wifi:unmanaged"
@@ -286,15 +272,15 @@ printf 'linux /vmlinuz rootflags=subvol="root/.snapshots/371/snapshot" quiet\n' 
 V; eq "$RC" 3; has "$OUT" "✘  the boot menu's snapshots — it names root/.snapshots/371/snapshot, no longer on the disk — fedokawaii repair lists them again"
 rm -f "$W/boot/grub2/grub-btrfs.cfg"; V; has "$OUT" "✔  $n"
 
-# ── Brave ────────────────────────────────────────────────────────────────────
-case_ "Brave Origin: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
+# ── the browser ────────────────────────────────────────────────────────────────────
+case_ "Helium: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
 back built; V
-has "$OUT" "✔  Brave Origin starts (headless: its DevTools port answers)"
-p=$(cat "$FKH/brave-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "Brave left running after the check (pid ${p:-none})"
-case_ "Brave Origin that cannot start: a failure, said at once (not after the full minute)"
-fkh brave broken; t0=$SECONDS; V; eq "$RC" 3
-has "$OUT" "✘  Brave Origin starts (headless: its DevTools port answers)"
-((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a Brave that had exited"
-rm -f "$FKH/brave"
+has "$OUT" "✔  Helium starts (headless: its DevTools port answers)"
+p=$(cat "$FKH/browser-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "the browser left running after the check (pid ${p:-none})"
+case_ "A browser that cannot start: a failure, said at once (not after the full minute)"
+fkh browser broken; t0=$SECONDS; V; eq "$RC" 3
+has "$OUT" "✘  Helium starts (headless: its DevTools port answers)"
+((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a browser that had exited"
+rm -f "$FKH/browser"
 
 done_

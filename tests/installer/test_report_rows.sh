@@ -62,12 +62,12 @@ run "RES-03 waybar's children"; eq "$RC" 0 "$OUT"
 stub ps "echo '   6000      60 S    sleep 1000'"
 run "RES-03 waybar's children"; eq "$RC" 1
 
-case_ "BRV-02: another Chromium program's GPU process (--disable-gpu) is not Brave's"
+case_ "BRV-02: another Chromium program's GPU process (--disable-gpu) is not the browser's"
 stub ps "cat <<'EOF'
 /opt/discord/Discord --type=gpu-process --disable-gpu --use-gl=disabled
-/opt/brave.com/brave-origin/brave --type=gpu-process --ozone-platform=wayland --use-angle=vulkan
+/opt/helium/helium --type=gpu-process --ozone-platform=wayland --use-angle=vulkan
 EOF"
-run "BRV-02 Brave draws with the GPU"; eq "$RC" 0 "$OUT"
+run "BRV-02 the browser draws with the GPU"; eq "$RC" 0 "$OUT"
 
 case_ "NET-07: the firewall against the list, its difference named (lib/net.sh: test_net.sh has the rest)"
 stub firewall-cmd 'exit 252'
@@ -178,15 +178,15 @@ printf '%s\n' "$HOME/.cache" >"$HOME/.config/fedokawaii/backup-exclude"; run "BA
 
 case_ "PERF-02, PERF-08: the sample PERF-01 leaves — the desktop's wake-ups and the bar's CPU judged, apps listed only"
 WB=4242; printf '%s\n' "4242	0.30	4.0	60000	waybar" "5350	0.01	0.3	3500	bash /home/u/.local/bin/kawa-mem" \
-  "5351	0.02	1.0	3500	bash /home/u/.local/bin/kawa-timer bar" "7000	9.00	900.0	900000	/opt/brave.com/brave-origin/brave --type=renderer" >"/tmp/fk-perf-sample.$UID"
-run "PERF-02 the desktop's wake-ups"; eq "$RC" 0 "$OUT"; has "$OUT" "app    /opt/brave.com"
+  "5351	0.02	1.0	3500	bash /home/u/.local/bin/kawa-timer bar" "7000	9.00	900.0	900000	/opt/helium/helium --type=renderer" >"/tmp/fk-perf-sample.$UID"
+run "PERF-02 the desktop's wake-ups"; eq "$RC" 0 "$OUT"; has "$OUT" "app    /opt/helium"
 run "PERF-08 the bar at rest"; eq "$RC" 0 "$OUT"; has "$OUT" "0.33 % in all"
 printf '%s\n' "4242	2.50	40.0	60000	waybar" >"/tmp/fk-perf-sample.$UID"
 run "PERF-02 the desktop's wake-ups"; eq "$RC" 1 "40 a second is too many"; has "$OUT" "TOO MANY"
 run "PERF-08 the bar at rest"; eq "$RC" 1 "2.5 % of a core"
 rm -f "/tmp/fk-perf-sample.$UID"; run "PERF-02 the desktop's wake-ups"; eq "$RC" 1 "no sample: a finding, never a pass"; WB=""
 case_ "PERF-03: each helper under its limit; an app is listed, never judged"
-stub ps "printf '%s\n' ' 90000 waybar' ' 3000 bash /h/.local/bin/kawa-mem' ' 2500000 /opt/brave.com/brave-origin/brave'"
+stub ps "printf '%s\n' ' 90000 waybar' ' 3000 bash /h/.local/bin/kawa-mem' ' 2500000 /opt/helium/helium'"
 run "PERF-03 every session process's memory (RSS)"; eq "$RC" 0 "$OUT"; has "$OUT" "app"
 stub ps "printf '%s\n' ' 300000 waybar'"; run "PERF-03 every session process's memory (RSS)"; eq "$RC" 1; has "$OUT" "OVER"
 rm -f "$STUBS/ps"

@@ -69,23 +69,23 @@ eq "$(cat "$HOME/.local/state/fedokawaii/foot-glass.ini")" g "the terminal's gla
 tidy --check leftovers; eq "$RC" 0 "$OUT"
 
 home
-case_ "caches: over its limit, each its own way — cleared, oldest first, uv's prune, Brave's only while it is closed, a program's own only measured"
+case_ "caches: over its limit, each its own way — cleared, oldest first, uv's prune, the browser's only while it is closed, a program's own only measured"
 mkfile "$HOME/.cache/npm/a" 510; mkfile "$HOME/.cache/pip/b" 20
 for i in 1 2 3 4 5 6; do mkfile "$HOME/.cache/thumbnails/large/$i.png" 100; touch -d "@$((1700000000 + i * 1000))" "$HOME/.cache/thumbnails/large/$i.png"; done
-mkfile "$HOME/.cache/uv/big" 3100; mkfile "$HOME/.cache/BraveSoftware/Brave-Browser/Default/Cache/data" 1600
+mkfile "$HOME/.cache/uv/big" 3100; mkfile "$HOME/.cache/net.imput.helium/Default/Cache/data" 1600
 mkfile "$HOME/.cache/fedokawaii/wallpaper-screens/2560x1440/a.png" 1600
 mkdir -p "$HOME/Documents"; mkfile "$HOME/Documents/big.iso" 50
 tidy --check caches; eq "$RC" 1; has "$OUT" "over its limit"
-bl="${XDG_CONFIG_HOME:-$HOME/.config}/BraveSoftware/Brave-Origin/SingletonLock"   # (Brave open: its own lock, its process alive)
+bl="${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium/SingletonLock"   # (the browser open: its own lock, its process alive)
 sleep 60 & live=$!; mkdir -p "${bl%/*}"; ln -sfn "fedokawaii-$live" "$bl"
 tidy; eq "$RC" 0 "$OUT"
 [[ ! -e $HOME/.cache/npm/a && -f $HOME/.cache/pip/b ]] && _ok || _no "npm over: cleared; pip under: kept"
 eq "$(ls "$HOME/.cache/thumbnails/large" | tr '\n' ' ')" "3.png 4.png 5.png 6.png " "the oldest thumbnails out, until under 80 % of 500 MB"
 [[ ! -e $HOME/.cache/uv/big ]] && _ok || _no "uv's prune"; called "^uv cache prune --quiet$"; not_called "^uv cache clean"
-[[ -f $HOME/.cache/BraveSoftware/Brave-Browser/Default/Cache/data ]] && _ok || _no "Brave's cache cleared while Brave runs"
+[[ -f $HOME/.cache/net.imput.helium/Default/Cache/data ]] && _ok || _no "the browser's cache cleared while it runs"
 [[ -f $HOME/.cache/fedokawaii/wallpaper-screens/2560x1440/a.png && -f $HOME/Documents/big.iso ]] && _ok || _no "a program's own cache, or your file, touched"
 kill "$live"; wait "$live" 2>/dev/null; tidy             # (closed: the lock's process gone — a crash's stale mark too)
-[[ ! -e $HOME/.cache/BraveSoftware/Brave-Browser ]] && _ok || _no "Brave closed: its cache cleared"
+[[ ! -e $HOME/.cache/net.imput.helium/Default ]] && _ok || _no "the browser closed: its cache cleared"
 tidy --check caches; eq "$RC" 1 "the drawn wallpapers still over: named, never trimmed here"; has "$OUT" "the wallpapers drawn ahead"
 
 home

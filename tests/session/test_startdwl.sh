@@ -63,7 +63,7 @@ done
 for v in XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=dwl XDG_CURRENT_DESKTOP=wlroots XKB_DEFAULT_LAYOUT=us,ara \
          XKB_DEFAULT_OPTIONS=grp:alt_shift_toggle "QT_QPA_PLATFORM=wayland;xcb" QT_QPA_PLATFORMTHEME=qt6ct \
          GDK_BACKEND=wayland,x11 GTK_USE_PORTAL=1 _JAVA_AWT_WM_NONREPARENTING=1 EDITOR=nvim VISUAL=nvim \
-         TERMINAL=foot BROWSER=brave-origin XCURSOR_THEME=default XCURSOR_SIZE=24; do
+         TERMINAL=foot BROWSER=kawa-browser XCURSOR_THEME=default XCURSOR_SIZE=24; do
   eq "$(envof dwl "${v%%=*}")" "${v#*=}" "${v%%=*}"
 done
 eq "$(envof dwl SDL_VIDEODRIVER)" "" "SDL_VIDEODRIVER not set (old SDL2 games)"

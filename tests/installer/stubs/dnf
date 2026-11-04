@@ -10,7 +10,6 @@ repos() {   # the enabled repositories, one id per line
   printf '%s\n' fedora updates
   if has installed rpmfusion-free-release; then printf '%s\n' rpmfusion-free rpmfusion-free-updates; fi
   if has installed rpmfusion-nonfree-release; then printf '%s\n' rpmfusion-nonfree rpmfusion-nonfree-updates; fi
-  [[ -f /etc/yum.repos.d/brave-browser.repo ]] && echo brave-browser
   [[ -f /etc/yum.repos.d/claude-code.repo ]] && echo claude-code
   cat "$FKH/coprs" 2>/dev/null
   return 0
@@ -138,7 +137,7 @@ case "$a" in
   *" --installed "*"%{from_repo}"*)
       p=${*: -1}; has installed "$p" || exit 0
       # ($FKH/from-stored: put in by the update button — dnf5 records @stored_transaction(REPO))
-      case $p in brave-origin) r=brave-browser ;; claude-code) r=claude-code ;; *) r=fedora ;; esac
+      case $p in helium-bin) r=copr:copr.fedorainfracloud.org:imput:helium ;; claude-code) r=claude-code ;; *) r=fedora ;; esac
       if [[ -f $FKH/from-stored ]]; then echo "@stored_transaction($r)"; else echo "$r"; fi; exit 0;;
   *" --releasever="*" repoquery "*)
       net_on || { echo "Failed to download metadata" >&2; exit 1; }

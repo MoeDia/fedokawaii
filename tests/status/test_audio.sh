@@ -2,11 +2,10 @@
 # tests/status/test_audio.sh — the sound panel's machine side (kawa-panel --sound draws it,
 # Super+A or a click on the bar's volume; kawa-quick knows the machine): what --state sound
 # says — the output's level and mute, the microphone's, every output and input from pw-dump
-# with the default ticked, never "Share" — and what each --do does: an output or input picked
+# with the default ticked, never a share's mix — and what each --do does: an output or input picked
 # made the default (wpctl set-default), mute and the microphone's mute switched over, the
 # mixer opened. PipeWire is fake_pw.py's machine (fixtures/pw.json: an analog output and
-# input, an HDMI output, and 60-share.conf's two "Share" loopbacks, which wpctl lists under
-# Filters). Then the mixer, wiremix: its theme files, its window, the manifest. And the old
+# input, an HDMI output, and a share's mix). Then the mixer, wiremix: its theme files, its window, the manifest. And the old
 # sound menu, kawa-audio: gone, its installed copy retired.
 . "$(dirname "$0")/lib.sh"
 setup() {
@@ -137,7 +136,7 @@ rc 0 kawa-quick --state sound
 eq "$(sq)" "$(printf '%s\n' $'sound\tno output' $'muted\toff' $'mic\tnone')"
 
 # ── an input picked: what records moves with it ──────────────────────────────────────────────
-# the owner's machine with Brave in a Meet call recording the default input (a site that names
+# the owner's machine with Helium in a Meet call recording the default input (a site that names
 # its microphone: such a stream does not follow the default alone), and a front microphone
 # beside the rear one
 call_world() {
@@ -146,21 +145,21 @@ call_world() {
   stub pw-metadata 'exec python3 -I '"$SD"'/fake_pw.py pw-metadata "$@"'
   pw_edit "st['devices'][0]['routes'].append({'direction': 'Input', 'device': 5, 'name': 'analog-input-front-mic', 'description': 'Front Microphone'})
 st['nodes'] += [dict(node('alsa_input.pci-0000_15_00.6.analog-stereo'), id=68, name='front', prio=100, props=dict(node('alsa_input.pci-0000_15_00.6.analog-stereo')['props'], **{'card.profile.device': 5})),
-  {'id': 120, 'class': 'Stream/Input/Audio', 'name': 'Chromium input', 'desc': 'meet.google.com', 'vol': 1.0, 'props': {'application.name': 'Brave', 'target.object': 'alsa_input.pci-0000_15_00.6.analog-stereo'}}]
+  {'id': 120, 'class': 'Stream/Input/Audio', 'name': 'Chromium input', 'desc': 'meet.google.com', 'vol': 1.0, 'props': {'application.name': 'Helium', 'target.object': 'alsa_input.pci-0000_15_00.6.analog-stereo'}}]
 st['links'] = [[67, 120]]"
 }
-brave_from() { python3 -I -c 'import json, sys; st = json.load(open(sys.argv[1])); print(*[o for o, n in st["links"] if n == 120])' "$FAKE_PW"; }
+browser_from() { python3 -I -c 'import json, sys; st = json.load(open(sys.argv[1])); print(*[o for o, n in st["links"] if n == 120])' "$FAKE_PW"; }
 case_ "an input picked while a call records: that microphone the default, the call moved to it at once (still recording: it goes on), the old one's mute carried over"
 call_world; pw_edit "node('alsa_input.pci-0000_15_00.6.analog-stereo')['mute'] = True"
-eq "$(brave_from)" 67 "Brave records the rear mic"
+eq "$(browser_from)" 67 "Helium records the rear mic"
 rc 0 kawa-quick --do input 68
 grep -q '^wpctl set-default 68$' "$FAKE_PW.log" && _ok || _no "no set-default 68"
-grep -q '^pw-metadata 120 target.object front$' "$FAKE_PW.log" && _ok || _no "Brave not moved"
-eq "$(brave_from)" 68 "Brave records the front mic now"
+grep -q '^pw-metadata 120 target.object front$' "$FAKE_PW.log" && _ok || _no "Helium not moved"
+eq "$(browser_from)" 68 "Helium records the front mic now"
 eq "$(devs | grep $'^input' | cut -f2,3 | tr '\n' ' ')" $'67\t0 68\t1 ' "the front mic ticked"
 eq "$(sv mic)" muted "muted stays muted"
 case_ "…and back: the same the other way; only the call's stream moves, never a card's node or a loopback's"
-rc 0 kawa-quick --do input 67; eq "$(brave_from)" 67 "Brave records the rear mic again"
+rc 0 kawa-quick --do input 67; eq "$(browser_from)" 67 "Helium records the rear mic again"
 eq "$(grep -c '^pw-metadata' "$FAKE_PW.log")" 2 "one move each way, nothing else"
 case_ "an input picked keeps nothing of its own in kawa-state (the default is WirePlumber's: it keeps it across restarts)"
 setup; rc 0 kawa-quick --do input 67; eq "$(kawa-state list)" ""

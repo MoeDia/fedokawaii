@@ -11,7 +11,7 @@ hotkey toggles, the terminal, neovim, the fzf screens' lists, a notice, and what
 logs itself (theme switches, wallpaper changes). --full (fedokawaii report --perf) times every
 part it can reach: every bar module's click (its dropdown or panel up, its button lit, then
 dark), the three panels, the shell's first prompt and the prompt after a command, yazi, btop
-and lazygit's first frame, Brave from cold, a screenshot, OCR, a recording's start, a preview.
+and lazygit's first frame, Helium from cold, a screenshot, OCR, a recording's start, a preview.
 What needs timing hooks the desktop does not export (dwl's frame callbacks: a new window's
 first frame, a retile, a workspace switch, hover and slider frames; the login → ready) and
 what would lock you out (the lock, the greeter, the screensaver) is listed as not measured.
@@ -54,7 +54,7 @@ def have(cmd):
 
 def run(cmd, timeout=10, **kw):
     """CMD's exit status; one past TIMEOUT is ended with all it started (its own process
-    group: Brave's helpers too) and answers 124 — a sample that took the whole limit, never
+    group: Helium's helpers too) and answers 124 — a sample that took the whole limit, never
     a traceback that ends the run."""
     p = subprocess.Popen(cmd, stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                          stderr=subprocess.DEVNULL, start_new_session=True, **kw)
@@ -218,7 +218,7 @@ def apps():
             os.waitpid(pid, 0)
             os.close(fd)
         add("yazi draws its first screen", 300, s)
-    b = "/usr/bin/brave-origin-stable"
+    b = "/usr/bin/helium"
     if os.access(b, os.X_OK) and FULL:
         s = []
         for _ in range(3):
@@ -228,7 +228,7 @@ def apps():
             shutil.rmtree(d, ignore_errors=True)
             if rc in (0, 124):                   # (124: it hung — the whole 20 s counted, slow)
                 s.append(ms)
-        add("Brave from cold (a fresh profile, headless)", 3000, s)
+        add("Helium from cold (a fresh profile, headless)", 3000, s)
 
 
 # ── what the desktop times itself: theme switches, wallpaper changes (their logs) ─────────

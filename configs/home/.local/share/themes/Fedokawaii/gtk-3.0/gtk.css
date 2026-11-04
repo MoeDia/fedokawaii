@@ -35,9 +35,9 @@
 @define-color kawa_strong               #121b1b;
 @define-color kawa_accent_text          #a84222;
 
-/* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab
-   strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every
-   style node it reads the class .chromium, so the rules below reach Brave only: its
+/* Helium (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab
+   strip, toolbar and menus (its address bar keeps Helium's own). Chromium gives every
+   style node it reads the class .chromium, so the rules below reach Helium only: its
    accent (checked boxes, the selected row) is the lacquer rather than a dull blend,
    its tooltips are the palette's, and its tab strip stays the same when the window is
    not focused. */
@@ -46,6 +46,7 @@ treeview.view.cell.chromium:selected:focus { background-color: @accent_bg_color;
 tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }
 tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }
 headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }
+window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }
 
 /* The desktop's parts (docs/design-system.md), as far as GTK draws them. Square, as the
    rest of the desktop: dwl draws each window's border, so a window's rounded corners
