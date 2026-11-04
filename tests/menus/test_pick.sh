@@ -163,8 +163,13 @@ setup; does esc; rm -f "$TMP/new.out"; PATH="$STUBS:/usr/bin:/bin" "$PORTAL_CMD"
 case_ "an answer file left from an earlier pick is emptied first"
 setup; echo "$P/stale" >"$TMP/old.out"; does esc; PATH="$STUBS:/usr/bin:/bin" "$PORTAL_CMD" 0 0 0 "$P" "$TMP/old.out" 0
 eq "$(cat "$TMP/old.out")" ""
-case_ "the dialog's yazi: your theme, init.lua and plugins, the dialog's keys and its Enter/Esc plugin"
+case_ "the dialog's yazi: your theme, init.lua, yazi.toml (hidden files shown, dotfiles too) and plugins, the dialog's keys and its Enter/Esc plugin"
 setup; does esc; portal open 0 0 "$P" >/dev/null
+has "$(cat "$W/yazi-config")" "./yazi.toml -> $HOME/.config/yazi/yazi.toml"
+# (the master's T22 should-fix 7: the dialog shows what the file manager shows — test_yazi's "hidden
+# files shown" case runs the real yazi on that same file)
+python3 -I -c 'import sys, tomllib; sys.exit(tomllib.load(open(sys.argv[1], "rb"))["mgr"]["show_hidden"] is not True)' \
+  "$HOME/.config/yazi/yazi.toml" && _ok || _no "the dialog's yazi.toml hides dotfiles"
 has "$(cat "$W/yazi-config")" "./keymap.toml -> $HOME/.config/fedokawaii/yazi-pick/keymap.toml"
 has "$(cat "$W/yazi-config")" "./plugins/kawa-pick.yazi -> $HOME/.config/fedokawaii/yazi-pick/kawa-pick.yazi"
 has "$(cat "$W/yazi-config")" "./theme.toml -> $HOME/.config/yazi/theme.toml"

@@ -4614,6 +4614,17 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   830–841 (was 829–840); the title's words from x 854 ('l' has a column of air), the ◆s from 853 — one origin, the
   names' column. Tests: test_file 287/0, test_drives 123/0, test_menu 84/0 (the six expectations now carry the tab).
   Live at the next apply (not in r27-f45's 94840bd) + a panel restart.
+- r27-22-sf7 (4 Nov 16:16, the master's T22 should-fix 7): test_pick's "the dialog's yazi" case now also holds the
+  yazi.toml link (fake_yazi's record of YAZI_CONFIG_HOME: ./yazi.toml → ~/.config/yazi/yazi.toml) and that file's
+  [mgr] show_hidden = true (tomllib); test_yazi's "hidden files shown" case runs the real yazi on that same file — the
+  chain covers the dialog. test_pick 106/0.
+- r27-22-sf4-weighed (16:17, not built — for the next pass): "check the smallest file, not the first" is right only for
+  non-solid archives. Solid 7z/RAR decode a block from its start: the cheapest test is the smallest NON-EMPTY file that
+  OPENS its block (7z -slt gives "Block = N"; a non-solid archive: every file opens its own) — an empty entry proves
+  nothing (no data to decrypt: any password "passes"). RAR5 stores a password check value in the header (a wrong one
+  is said before any data — confirm with unrar on a RAR5 test archive; tests/lib/rar4.py makes RAR4 only); RAR4 has
+  none (the file's CRC at its end). And should-fix 5 (Esc on the held window) bounds the rest: the caller learns it
+  was dismissed. Build both with archives made by 7z (solid, -ms=on; non-solid; -mhe) and rar4.py.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or
