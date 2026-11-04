@@ -18,6 +18,10 @@ from .term import Flags, Focus, Key, Mood, Mouse, Pasted, Resize
 ACCENT, ON_ACCENT, EDGE, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = 16, 17, 18, 19, 20, 21, 22, 23, 24, 25
 OFF = '\x1b[0m'
 DAY_MINUTES = 20
+TEXT_LINES = 5          # (the text in view at most: the line just typed, the one under way, three to come)
+FEED_RATE, FEED_SECONDS = 42.0, 0.16   # (the paper feeding a line: a spring with no overshoot)
+ANSWER_STEP = 0.07      # (the hands' answer to a result: a pose each)
+CALENDAR_WEEKS = 43     # (at the keyboard's width on 8 px cells: its 600 px whole, a seal 12 px, 2 of air)
 SEAL_ON, SEAL_OFF = '●', '○'
 TABS = ('course', 'practice', 'progress')
 TAB_ICONS = {'course': 'MORTARBOARD', 'practice': 'BRUSH', 'progress': 'USAGE'}
@@ -176,6 +180,35 @@ def open_lesson(app, i):
         if screen:
             return screen
     return LessonScreen(app, i)
+
+
+def at_word(s, w):
+    """s in w cells: cut at a word, never an ellipsis (docs/design-system.md §2); a single word too long loses its end"""
+    if len(s) <= w:
+        return s
+    return s[:w + 1].rsplit(' ', 1)[0][:w] if w > 0 else ''
+
+
+def key_heat(stats):
+    """each key's ink on the progress page's keyboard, by how sure of it you are"""
+    out = {}
+    for c, w in course.weakness(stats).items():
+        if c in keys.CHARS:
+            out[keys.CHARS[c][0]] = 'accent' if w > 1.5 else 'flame' if w > 1.15 else 'asagi'
+    return out
+
+
+def streak(history):
+    """days practised in a row, up to today (or yesterday: today is not over)"""
+    days = {time.strftime('%Y-%m-%d', time.localtime(r['d'])) for r in history}
+    t = time.time()
+    if time.strftime('%Y-%m-%d', time.localtime(t)) not in days:
+        t -= 86400
+    n = 0
+    while time.strftime('%Y-%m-%d', time.localtime(t)) in days:
+        n += 1
+        t -= 86400
+    return n
 
 
 def wrap(text, w):
@@ -346,6 +379,52 @@ class Screen:
         self.at(row, x0, s)
 
 
+# ── every screen's one place ─────────────────────────────────────────────────
+class Stage:
+    """Where things stand, on every screen: one column, as wide as the keyboard; the keyboard and the hands at its foot; over
+    them a row of words; over that, what the screen is about. So a lesson opens with the keyboard where it was, and its
+    result leaves it there. (A window too small for the hands, or for the keyboard: without them.)"""
+    ABOVE = 18      # (the rows over the keyboard, with room: air, the tabs and their line, air, eleven rows of list, air, the words, air)
+    WIDEST = 60     # (the column's width where the keyboard does not set it)
+
+    def __init__(self, app, list_rows=0):
+        """list_rows: what must stay over the keyboard, on a screen that lists: in a small window the list goes first"""
+        self.app = app
+        cols, rows, self.cw, self.ch = app.size
+        room = max(cols - 4, 1)
+        self.scale, self.with_hands, self.pic_rows = 0, False, 0
+        for k, hands in ((3, True), (2, True), (1, True), (1, False)):
+            n = math.ceil((art.KEY_H + (art.HANDS_H if hands else 0)) * k / self.ch)
+            over = max(3 + math.ceil(60 * min(k, 2) / self.ch), list_rows)  # (air, the heading, air, three lines; then the words)
+            if art.KEY_W * k <= room * self.cw and over + 1 + n + 1 <= rows:
+                self.scale, self.with_hands, self.pic_rows = k, hands, n
+                over_words = over
+                break
+        self.pic_w = math.ceil(art.KEY_W * self.scale / self.cw)
+        self.W = max(self.pic_w, min(room, self.WIDEST))
+        self.x = (cols - self.W) // 2
+        self.pic_x = (cols - self.pic_w) // 2
+        spare = rows - 1 - self.pic_rows - self.ABOVE
+        self.pic_y = self.ABOVE + spare // 2 if spare > 0 else rows - 1 - self.pic_rows
+        self.words_y = (self.pic_y - 2 if self.pic_y - 2 >= over_words else self.pic_y - 1) if self.scale else rows - 1
+        self.key_rows = math.ceil(art.KEY_H * self.scale / self.ch)   # (the keyboard's alone: where the hands begin)
+
+    def picture(self, hands=True):
+        """the keyboard and the hands at rest, painted, not yet sent → (Picture, Keyboard, Hands or None)"""
+        k, dark = self.scale, self.app.dark
+        hands = hands and self.with_hands
+        pic = canvas.Picture(art.KEY_W * k, (art.KEY_H + (art.HANDS_H if hands else 0)) * k, (self.cw, self.ch))
+        kb = art.Keyboard(dark)
+        kb.paint(pic, k)
+        drawn = art.Hands(dark) if hands else None
+        if drawn:
+            drawn.paint(pic, k, 0, art.KEY_H * k)
+        return pic, kb, drawn
+
+    def send(self, pic):
+        return pic.send(self.pic_x + 1, self.pic_y + 1, art.PALETTE[self.app.dark])
+
+
 # ── the tabs ─────────────────────────────────────────────────────────────────
 class Row:
     __slots__ = ('icon', 'name', 'value', 'act', 'tell')
@@ -364,10 +443,7 @@ class Home(Screen):
         self.cursor = 0
         self.top = 0
         self.rows = []
-        self.pic = None
-        self.kb = self.hands = None
-        self.scale = 1
-        self.pic_col = 0
+        self.pic = self.kb = self.hands = None
         self.tab_spans = []
         self.plan = plan(app)
         self.drum_at = time.monotonic() + 2.5     # (the hands drum their fingers, now and then: alive, even at rest)
@@ -391,8 +467,8 @@ class Home(Screen):
         else:
             self.hands.pose = {f: (0, 2) for f in order[self.drum_i]}
             self.drum_at = now + 0.07
-        self.hands.paint(self.pic, self.scale, 0, art.KEY_H * self.scale)
-        self.t.write(self.pic.send(self.pic_col + 1, self.first + 3 + 1, art.PALETTE[self.app.dark]))
+        self.hands.paint(self.pic, self.place.scale, 0, art.KEY_H * self.place.scale)
+        self.t.write(self.place.send(self.pic))
 
     # ── what each tab lists ──────────────────────────────────────────────────
     def build(self):
@@ -414,7 +490,7 @@ class Home(Screen):
         kind, title, arg = self.plan
         total = len(course.LESSONS)
         value = f'{arg + 1} of {total}' if kind == 'lesson' else ''
-        tell = ('next', course.LESSONS[arg]) if kind == 'lesson' else ('plan', kind)
+        tell = ('lesson', course.LESSONS[arg]) if kind == 'lesson' else ('plan', kind)
         out.append(Row(a.icon('CHEVRON_RIGHT'), title, fg(MUTED) + value + OFF, lambda: a.go(start(a, self.plan)), tell))
         counts = course.stage_counts()
         for s, name in enumerate(course.STAGE_NAMES):
@@ -441,7 +517,7 @@ class Home(Screen):
 
         def go(*args):
             return lambda: a.go(LessonScreen.free(a, *args))
-        out = [Row(a.icon('KEYBOARD'), 'your weakest keys', act=go('weak'), tell=('words', 'the letters you are slowest and least sure on.')),
+        out = [Row(a.icon('KEYBOARD'), 'your weakest keys', act=go('weak'), tell=('weak', 'the letters you are slowest and least sure on.')),
                Row(a.icon('NOTE'), 'plain words', act=go('words'), tell=('words', 'the 200 commonest words, drawn at random.')),
                Row(a.icon('BOOK'), 'a passage', act=go('passage'), tell=('words', 'Okakura, Hearn or Nitobe, as printed.'))]
         for lang in ('bash', 'git', 'python', 'rust', 'c'):
@@ -465,36 +541,27 @@ class Home(Screen):
     # ── its place on the screen ──────────────────────────────────────────────
     def layout(self):
         self.build()
-        cols, rows, cw, ch = self.app.size
-        self.x0 = 2
-        self.W = max(cols - 4, 1)
+        rows = self.app.size[1]
         self.first = 4                          # (a row of air, the tabs, their line, a row of air)
-        self.visible = max(rows - self.first - 1, 1)
-        self.pane = self.tab != 'progress' and cols >= 92
-        self.list_w = min(47, self.W) if self.pane else self.W
-        self.pane_x = self.x0 + self.list_w + 2
-        self.pane_w = cols - self.pane_x - 2
-        self.pic = None
+        pl = self.place = Stage(self.app, self.first + 7)
+        self.x0, self.W = pl.x, pl.W
+        self.visible = max((pl.words_y - 1 if pl.scale else rows - 1) - self.first, 1)
+        self.list_w = self.W
+        self.pic = self.kb = self.hands = None
         if self.tab == 'progress':
             self.progress_layout()
-        elif self.pane and self.tab == 'course':
-            # the keyboard and the hands at rest, as large as the pane has room for
-            for k in (2, 1):
-                need_rows = math.ceil((art.KEY_H + art.HANDS_H) * k / ch)
-                if art.KEY_W * k <= self.pane_w * cw and self.first + 3 + need_rows < rows:
-                    self.scale = k
-                    self.pic = canvas.Picture(art.KEY_W * k, (art.KEY_H + art.HANDS_H) * k, (cw, ch))
-                    self.kb = art.Keyboard(self.app.dark)
-                    self.hands = art.Hands(self.app.dark)
-                    self.kb.paint(self.pic, k)
-                    self.hands.paint(self.pic, k, 0, art.KEY_H * k)
-                    break
+        elif pl.scale:
+            self.pic, self.kb, self.hands = pl.picture()
 
     # ── drawing ──────────────────────────────────────────────────────────────
     def draw_tabs(self):
+        self.tab_spans = []
+        if self.stage is not None:             # (inside a stage: where you are, and how far along)
+            done, n = self.lessons_done(self.stage), course.stage_counts()[self.stage]
+            self.heading(1, self.app.icon(STAGE_ICONS[self.stage]), course.STAGE_NAMES[self.stage], self.x0, self.W, fg(MUTED) + f'{done} of {n}' + OFF, done / n)
+            return
         x = self.x0
         s = ''
-        self.tab_spans = []
         under = None
         for name in TABS:
             icon = self.app.icon(TAB_ICONS[name])
@@ -510,6 +577,10 @@ class Home(Screen):
         self.at(1, self.x0, s)
         if under:
             self.at(2, under[0], fg(ACCENT) + '▔' * under[1] + OFF)
+        if self.tab != 'progress':
+            tail = self.today_words()
+            if x + width(tail) <= self.x0 + self.W:
+                self.at(1, self.x0 + self.W - width(tail), tail)
 
     def draw_row(self, i):
         row = self.first + i - self.top
@@ -518,11 +589,7 @@ class Home(Screen):
         r = self.rows[i]
         w = self.list_w
         value, vw = r.value, width(r.value)
-        room = max(w - 4 - (vw + 2 if vw else 0), 0)
-        name = r.name
-        if len(name) > room:           # (never an ellipsis: cut at a word, or the name's end goes)
-            name = name[:room + 1].rsplit(' ', 1)[0] if ' ' in name[:room + 1] else name[:room]
-            name = name[:room]
+        name = at_word(r.name, max(w - 4 - (vw + 2 if vw else 0), 0))
         pad = ' ' * max(w - 4 - len(name) - vw, 0)
         if i == self.cursor:
             s = bg(SELECT) + fg(ON_SELECT) + '  ' + r.icon + '  ' + name + pad + plain(value) + ' ' + OFF
@@ -539,66 +606,74 @@ class Home(Screen):
             self.draw_row(i)
 
     def today_words(self):
-        st = self.app.store
-        m = st.minutes_today()
+        m = self.app.store.minutes_today()
         if m >= DAY_MINUTES:
             return fg(STRONG) + 'enough for today' + OFF
-        return fg(MUTED) + f'{int(m)} of {DAY_MINUTES} min' + OFF
+        return fg(MUTED) + f'today  {int(m)} of {DAY_MINUTES} min' + OFF
 
-    def draw_pane(self):
-        if not self.pane:
-            return
-        x, w = self.pane_x, self.pane_w
-        rows = self.app.size[1]
-        for r in (1, self.first, self.first + 1):     # (its words only: the picture under them stays, and only what changes is sent)
-            if r < rows:
-                self.at(r, x, '\x1b[K')
-        tell = self.rows[self.cursor].tell if self.rows else None
-        st = self.app.store
-        lit = {}
-        lines = []
-        self.heading(1, self.app.icon('LANTERN'), 'today', x, w, self.today_words())
-        kind = tell[0] if tell else ''
-        if kind in ('next', 'lesson'):
-            les = tell[1]
-            if les.goal:
-                lines.append(fg(MUTED) + 'goal ' + OFF + f'{les.goal} wpm' + fg(MUTED) + ', 97 % or more' + OFF)
-            else:
-                lines.append(fg(MUTED) + 'no score: only the fingers' + OFF)
-            d = st.progress['lessons'].get(les.id)
-            if d and les.goal and d['best']:
-                lines.append(fg(MUTED) + 'best ' + OFF + f'{d["best"]:.0f} wpm')
-            for c in les.keys or '':
+    def told(self, tell):
+        """about the row under the cursor → (its words, the keys it is about, the keys to warm)"""
+        lit, heat = {}, {}
+        kind, what = tell if tell else ('', None)
+        words = ''
+        if kind == 'lesson':
+            words = fg(MUTED) + 'no score: only the fingers' + OFF
+            if what.goal:
+                words = fg(MUTED) + 'goal ' + OFF + f'{what.goal} wpm' + fg(MUTED) + ', 97 % or more' + OFF
+                d = self.app.store.progress['lessons'].get(what.id)
+                if d and d['best']:
+                    words += fg(MUTED) + '   best ' + OFF + f'{d["best"]:.0f} wpm'
+            for c in what.keys or '':
                 for name, f in keys.needs(c):
                     lit[name] = f
         elif kind == 'stage':
-            s = tell[1]
-            lines.append(fg(MUTED) + f'{self.lessons_done(s)} of {course.stage_counts()[s]} lessons' + OFF)
+            words = fg(MUTED) + f'{self.lessons_done(what)} of {course.stage_counts()[what]} lessons' + OFF
             for les in course.LESSONS:
-                if les.stage == s:
+                if les.stage == what:
                     for c in les.keys or '':
                         for name, f in keys.needs(c):
                             lit.setdefault(name, f)
         elif kind == 'plan':
-            lines += {'baseline': ['first, how fast you are today, however you', 'type: touch typing will pass it one day.'],
-                      'resume': ['it goes on where it stopped.'],
-                      'warmup': ['a minute on what you own, before anything new.'],
-                      'test': ['the same test every day: the line you will', 'watch rise.'],
-                      'practice': ['the course is done. this is what keeps it.']}.get(tell[1], [])
-        elif kind == 'words':
-            lines.append(tell[1])
-        y = self.first
-        for line in lines[:2]:
-            self.at(y, x, line)
-            y += 1
-        if self.pic:
-            changed = set(lit) | set(self.kb.lit)
-            self.kb.lit = lit
-            for name in changed:
-                self.kb.paint_key(self.pic, name, self.scale)
-            cols_pic = math.ceil(self.pic.w / self.app.size[2])
-            self.pic_col = x + (w - cols_pic) // 2
-            self.t.write(self.pic.send(self.pic_col + 1, self.first + 3 + 1, art.PALETTE[self.app.dark]))
+            words = {'baseline': 'how fast you are today, however you type: touch typing will pass it.',
+                     'resume': 'it goes on where it stopped.',
+                     'warmup': 'a minute on what you own, before anything new.',
+                     'test': 'the same test every day: the line you will watch rise.',
+                     'practice': 'the course is done. this is what keeps it.'}.get(what, '')
+        elif kind in ('words', 'weak'):
+            words = what
+            if kind == 'weak':
+                heat = key_heat(self.app.store.keys)
+        return words, lit, heat
+
+    def draw_tell(self):
+        pl = self.place
+        tell = self.rows[self.cursor].tell if self.rows else None
+        words, lit, heat = self.told(tell)
+        place = ''
+        if len(self.rows) > self.visible:     # (a list longer than its rows says where you are in it)
+            place = f'{self.cursor + 1} of {len(self.rows)}'
+        room = self.W - (len(place) + 2 if place else 0)
+        if width(words) > room:
+            words = at_word(plain(words), room)
+        self.at(pl.words_y, self.x0, '\x1b[0m\x1b[K' + fg(MUTED) + words + OFF)
+        if place:
+            self.at(pl.words_y, self.x0 + self.W - len(place), fg(MUTED) + place + OFF)
+        if not self.pic:
+            return
+        kb, k = self.kb, pl.scale
+        changed = set(lit) | set(kb.lit) | set(heat) | set(kb.heat)
+        shift = 'lshift' in lit or 'rshift' in lit
+        if shift != kb.shift:
+            kb.shift = shift
+            changed |= {name for name, p in keys.PLACE.items() if p[4] != p[5]}
+        kb.lit, kb.heat = lit, heat
+        for name in changed:
+            kb.paint_key(self.pic, name, k)
+        fingers = set(lit.values())
+        if self.hands and fingers != self.hands.lit:
+            self.hands.lit = fingers
+            self.hands.paint(self.pic, k, 0, art.KEY_H * k)
+        self.t.write(pl.send(self.pic))
 
     def draw(self):
         self.t.write('\x1b[?25l')
@@ -609,7 +684,7 @@ class Home(Screen):
             self.draw_list()
             if self.pic:
                 self.pic.touch_all()
-            self.draw_pane()
+            self.draw_tell()
         if self.app.store.failed:
             self.at(self.app.size[1] - 1, self.x0, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  the disk would not take your progress')
 
@@ -625,7 +700,7 @@ class Home(Screen):
         else:
             self.draw_row(old)
             self.draw_row(to)
-        self.draw_pane()
+        self.draw_tell()
 
     def switch(self, tab):
         self.tab, self.stage, self.cursor, self.top = tab, None, 0, 0
@@ -684,7 +759,7 @@ class Home(Screen):
                     self.switch(name)
                     return
         i = row - self.first + self.top
-        inside = self.first <= row < self.first + self.visible and 0 <= i < len(self.rows) and col < self.x0 + self.list_w + 1
+        inside = self.first <= row < self.first + self.visible and 0 <= i < len(self.rows) and self.x0 - 1 <= col <= self.x0 + self.list_w
         if ev.kind == 'move' and inside:
             self.move(i)
         elif ev.kind == 'press' and inside and ev.button == 0:
@@ -694,18 +769,30 @@ class Home(Screen):
 
     # ── the progress tab ─────────────────────────────────────────────────────
     def progress_layout(self):
+        """the facts where the list stands, the speed beside them, each key's sureness on the keyboard; under it, where
+        the hands stand elsewhere, every day practised"""
+        pl = self.place
         cols, rows, cw, ch = self.app.size
-        self.chart = self.cal = self.heat = None
-        self.col2 = self.x0 + 47 + 2
-        wide = cols >= 92
-        w2 = (cols - self.col2 - 2) * cw if wide else self.W * cw
-        self.chart_rows = 8
-        if w2 >= 200 and rows >= 20:
-            self.chart = canvas.Picture((w2 // cw) * cw, self.chart_rows * ch, (cw, ch))
-        if w2 >= 270 and rows >= 28 or (wide and rows >= 24):
-            self.cal = canvas.Picture(min(270, w2 // cw * cw), 4 * ch, (cw, ch))
-        if rows >= 22 and (self.W * cw >= art.KEY_W):
-            self.heat = canvas.Picture(art.KEY_W, art.KEY_H, (cw, ch))
+        self.chart = self.cal = None
+        foot = pl.words_y + 1 if pl.scale else rows - 1
+        self.foot = foot
+        self.chart_x = self.x0 + min(36, self.W // 2)
+        wide = self.x0 + self.W - self.chart_x
+        self.chart_rows = min(foot - self.first, 12)
+        if wide * cw >= 200 and self.chart_rows >= 5:
+            self.chart = canvas.Picture(wide * cw, self.chart_rows * ch, (cw, ch))
+        if pl.scale:
+            self.pic, self.kb, _ = pl.picture(hands=False)
+            self.kb.heat = key_heat(self.app.store.keys)
+            self.kb.paint(self.pic, pl.scale)
+            self.cal_y = pl.pic_y + pl.key_rows
+            self.cal_rows = pl.pic_rows - pl.key_rows if pl.with_hands else 0
+            px = art.KEY_W * pl.scale
+            pitch = max((px + 2) // CALENDAR_WEEKS, 9)
+            self.cal_tall = math.ceil(7 * pitch / ch)
+            if self.cal_rows >= self.cal_tall + 1:
+                self.cal = canvas.Picture(px, self.cal_tall * ch, (cw, ch))
+                self.cal_pitch = pitch
 
     def draw_progress(self):
         a = self.app
@@ -719,53 +806,39 @@ class Home(Screen):
         base = st.progress['baseline']
         total = sum(r.get('s', 0) for r in h)
         facts = [('lessons', f'{self.lessons_done()} of {len(course.LESSONS)}'),
-                 ('in all', f'{int(total // 3600)} h {int(total % 3600 // 60)} min'),
-                 ('days', str(len({time.strftime("%Y-%m-%d", time.localtime(r["d"])) for r in h}))),
                  ('last test', f'{last["w"]:.0f} wpm, {last["a"]:.1f} %' if last else 'none yet'),
                  ('best test', f'{best:.0f} wpm' if best is not None else 'none yet')]
-        rolls = [r['o'] for r in h[-40:] if 'o' in r]
-        if rolls:
-            facts.append(('rollover', f'{sum(rolls) / len(rolls):.0f} %'))
         if base:
             passed = best is not None and best > base
             facts.append(('your old way', f'{base:.0f} wpm' + (', passed' if passed else '')))
         when = fit_power(tests)
         if when:
             facts.append(('100 wpm', 'around ' + time.strftime('%B %Y', time.localtime(when)).lower()))
-        weak = course.weakness(st.keys)
-        slow = sorted((k for k in weak if len(k) == 2), key=weak.get, reverse=True)[:4]
+        facts += [('in all', f'{int(total // 3600)} h {int(total % 3600 // 60)} min'),
+                  ('days', str(len({time.strftime("%Y-%m-%d", time.localtime(r["d"])) for r in h})))]
+        rolls = [r['o'] for r in h[-40:] if 'o' in r]
+        if rolls:
+            facts.append(('rollover', f'{sum(rolls) / len(rolls):.0f} %'))
+        slow = sorted((k for k in course.weakness(st.keys) if len(k) == 2), key=course.weakness(st.keys).get, reverse=True)[:4]
         if slow:
             facts.append(('slowest pairs', ' '.join(slow)))
-        row = self.first
         pad = max(len(k) for k, _ in facts)
-        for k, v in facts:
-            if row < rows - 1:
-                self.at(row, x + 3, fg(MUTED) + k.ljust(pad + 2) + OFF + v)
-            row += 1
+        for i, (k, v) in enumerate(facts):
+            if self.first + i < self.foot:
+                self.at(self.first + i, x + 3, fg(MUTED) + k.ljust(pad + 2) + OFF + at_word(v, max(self.chart_x - x - 3 - pad - 3, 4) if self.chart else 40))
         pal = art.PALETTE[a.dark]
-        wide = cols >= 92
-        left_row = row + 1
-        if self.heat and left_row + math.ceil(art.KEY_H / ch) < rows:
-            kb = art.Keyboard(a.dark)
-            weak = course.weakness(st.keys)
-            for c, w in weak.items():
-                if c in keys.CHARS:
-                    kb.heat[keys.CHARS[c][0]] = art.INK['accent'] if w > 1.5 else art.INK['flame'] if w > 1.15 else art.INK['asagi']
-            kb.paint(self.heat, 1)
-            self.t.write(self.heat.send(x + 1, left_row + 1, pal))
-            left_row += math.ceil(art.KEY_H / ch) + 1
-        col = self.col2 if wide else x
-        y = 1 if wide else left_row
-        if self.chart and y + 2 + self.chart_rows < rows:
-            w = cols - col - 2 if wide else self.W
-            self.heading(y, a.icon('USAGE'), 'speed', col, w)
+        if self.chart:
+            self.heading(1, a.icon('USAGE'), 'speed', self.chart_x, x + self.W - self.chart_x)
             self.paint_chart(tests, base)
-            self.t.write(self.chart.send(col + 1, y + 3, pal))
-            y += self.chart_rows + 3
-        if self.cal and y + 2 + 4 < rows and wide:
-            self.heading(y, a.icon('CALENDAR'), 'days', col, cols - col - 2)
+            self.t.write(self.chart.send(self.chart_x + 1, self.first + 1, pal))
+        if self.pic:
+            self.pic.touch_all()
+            self.t.write(self.place.send(self.pic))
+        if self.cal:
+            run = streak(h)
+            self.heading(self.cal_y, a.icon('CALENDAR'), 'days', x, self.W, fg(MUTED) + f'{run} in a row' + OFF if run > 1 else '')
             self.paint_calendar(h)
-            self.t.write(self.cal.send(col + 1, y + 3, pal))
+            self.t.write(self.cal.send(self.place.pic_x + 1, self.cal_y + (2 if self.cal_rows >= self.cal_tall + 2 else 1) + 1, pal))
 
     def paint_chart(self, tests, base):
         p = self.chart
@@ -777,9 +850,12 @@ class Home(Screen):
 
         def y(v):
             return H - int(v / top * H) + 1
-        for m in MILESTONES:                  # (the milestones: a row of dots each, their figure at the left)
+        label_y = None
+        for m in reversed(MILESTONES):        # (a row of dots each; its figure at the left, where it has room)
             if m <= top:
-                art.paint_word(p, 0, y(m) - 7, str(m), ink['faint'], 1)
+                if label_y is None or y(m) - label_y >= 15:
+                    art.paint_word(p, 0, y(m) - 7, str(m), ink['faint'], 1)
+                    label_y = y(m)
                 for xx in range(24, p.w, 6):
                     p.fill(xx, y(m), 1, 1, ink['edge2'])
         if base:
@@ -799,22 +875,23 @@ class Home(Screen):
             p.fill(prev[0] - 2, prev[1] - 2, 5, 5, ink['accent'])
 
     def paint_calendar(self, history):
-        """the last 26 weeks, a seal for every day practised (the handbook's "calendar full of green squares")"""
+        """the months behind you, a seal for every day practised (the handbook's "calendar full of green squares"), today at the right end"""
         p = self.cal
         p.clear()
         ink = art.INK
+        pitch = self.cal_pitch
         days = {time.strftime('%Y-%m-%d', time.localtime(r['d'])) for r in history}
         now = time.time()
-        today = time.localtime(now)
-        back = today.tm_wday + 25 * 7
+        weeks = min(53, (p.w + 2) // pitch)
+        back = time.localtime(now).tm_wday + (weeks - 1) * 7
+        left = p.w + 2 - weeks * pitch
+        size = pitch - 2
         for i in range(back + 1):
-            t = now - (back - i) * 86400
-            lt = time.localtime(t)
-            col, row = i // 7, lt.tm_wday
+            lt = time.localtime(now - (back - i) * 86400)
             on = time.strftime('%Y-%m-%d', lt) in days
-            x, y = col * 10, row * 10 + 2
-            p.fill(x + 1, y, 6, 8, ink['accent'] if on else ink['edge'])
-            p.fill(x, y + 1, 8, 6, ink['accent'] if on else ink['edge'])
+            x, y = left + i // 7 * pitch, lt.tm_wday * pitch
+            p.fill(x + 1, y, size - 2, size, ink['accent'] if on else ink['edge'])
+            p.fill(x, y + 1, size, size - 2, ink['accent'] if on else ink['edge'])
 
 
 # ── a lesson ─────────────────────────────────────────────────────────────────
@@ -849,6 +926,7 @@ class LessonScreen(Screen):
         self.dimmed = False        # (it was not answered: the text waits)
         self.paused_shown = False
         self.drawn_line = -1
+        self.feed = None
         self.spans = []
         self.kb = self.hands = self.pic = None
         self.caret_on = True
@@ -905,51 +983,28 @@ class LessonScreen(Screen):
     def layout(self):
         cols, rows, cw, ch = self.app.size
         self.rows_n = rows
-        x0, W = 2, max(cols - 4, 1)
-        self.x0, self.W = x0, W
-        top = 3                                 # (air, the heading, air)
-        px_w = W * cw
-        # the largest whole multiple the window has room for, with the hands; then one without them
-        self.scale, self.show_hands = 0, False
-        for s, hands in ((3, True), (2, True), (1, True), (1, False)):
-            t = min(s, 2)
-            need = top + math.ceil(60 * t / ch) + 1 + math.ceil((art.KEY_H + (art.HANDS_H if hands else 0)) * s / ch)
-            if art.KEY_W * s <= px_w and need <= rows:
-                self.scale, self.show_hands = s, hands
-                break
-        t = min(self.scale, 2) or 1
-        self.letters = art.Letters(t)
+        pl = self.place = Stage(self.app)
+        self.x0, self.W = pl.x, pl.W
+        self.scale, self.show_hands = pl.scale, pl.with_hands
+        self.letters = art.Letters(min(self.scale, 2) or 1)
         # (the text and the keyboard one column, one left edge; with no keyboard, up to 76 letters)
-        self.tw_px = art.KEY_W * self.scale if self.scale else min(px_w, 76 * 7 * t)
+        self.tw_px = art.KEY_W * self.scale if self.scale else min(self.W * cw, 76 * self.letters.w)
         self.chars = max(self.tw_px // self.letters.w, 1)
-        lines = 3
-        if not self.scale:
-            lines = max(min((rows - top - 1) * ch // self.letters.h, 3), 1)
-        self.lines_n = lines
-        text_rows = math.ceil(lines * self.letters.h / ch)
-        pic_rows = 0
-        if self.scale:
-            pic_rows = math.ceil((art.KEY_H + (art.HANDS_H if self.show_hands else 0)) * self.scale / ch)
-        free = max(rows - top - text_rows - 1 - pic_rows - 1, 0)
-        y = top + free // 3
-        self.text_y = y
-        self.text_x = x0 + (W - math.ceil(self.tw_px / cw)) // 2
-        self.notice_y = y + text_rows
-        self.notice_w = W - (self.text_x - x0) - 3
-        self.tp = canvas.Picture(max(self.tw_px, self.letters.w), lines * self.letters.h, (cw, ch))
+        self.lines_n = max(min((pl.words_y - 3) * ch // self.letters.h, TEXT_LINES), 1)
+        self.back = 1 if self.lines_n >= 3 else 0      # (the line just typed stays in view, above the one under way)
+        self.text_y = max(pl.words_y - math.ceil(self.lines_n * self.letters.h / ch), 0)
+        self.text_x = pl.pic_x if self.scale else self.x0
+        self.notice_y = pl.words_y
+        self.notice_w = self.W - (self.text_x - self.x0) - 3
+        self.tp = canvas.Picture(max(self.tw_px, self.letters.w), self.lines_n * self.letters.h, (cw, ch))
         self.spans = wrap(self.run.text, max(self.chars - 1, 1))     # (its last space or Enter has a whole letter's room)
         self.drawn_line = -1
-        self.pic = None
+        self.feed = None
+        self.pic = self.kb = self.hands = None
         self.hand_state = None
         if self.scale:
-            s = self.scale
-            pw, ph = art.KEY_W * s, (art.KEY_H + (art.HANDS_H if self.show_hands else 0)) * s
-            self.pic = canvas.Picture(pw, ph, (cw, ch))
-            self.pic_x = x0 + (W - math.ceil(pw / cw)) // 2
-            self.pic_y = self.notice_y + 1
-            self.kb = art.Keyboard(self.app.dark)
-            self.hands = art.Hands(self.app.dark) if self.show_hands else None
-            self.kb.paint(self.pic, s)
+            self.pic, self.kb, self.hands = pl.picture()
+            self.pic_x, self.pic_y = pl.pic_x, pl.pic_y
             self.painted_wrong = set()
             self.apply_keys(send=False)
 
@@ -966,7 +1021,7 @@ class LessonScreen(Screen):
     # ── the words ────────────────────────────────────────────────────────────
     def paint_letter(self, i, place=None):
         """the character at position i as it stands now: typed faint, a wrong one on vermilion, the next one
-        under the caret (the terminal's own: a vermilion block, Sumi Term's §1)"""
+        under the caret (the terminal's own: a vermilion block, Sumi Term's §1); the lines far ahead a step quieter"""
         place = place or self.place_of(i)
         if not place:
             return
@@ -989,13 +1044,14 @@ class LessonScreen(Screen):
         elif c == '\n':
             cell = self.letters.cell(shown, ink['faint'])
         else:
-            cell = self.letters.cell(shown, ink['text'])
+            far = place[1] // self.letters.h - self.back >= 2
+            cell = self.letters.cell(shown, ink['muted' if far else 'text'])
         self.tp.spans(place[0], place[1], cell)
 
     def place_of(self, pos):
         """where position pos lies on the text's picture"""
         line = self.line_of(pos)
-        k = line - self.drawn_line
+        k = line - self.drawn_line + self.back
         if not 0 <= k < self.lines_n:
             return None
         return (pos - self.spans[line][0]) * self.letters.w, k * self.letters.h
@@ -1004,16 +1060,37 @@ class LessonScreen(Screen):
         r = self.run
         line = self.line_of(min(r.pos, len(r.text) - 1))
         if line != self.drawn_line or force:
+            if self.drawn_line >= 0 and line == self.drawn_line + 1 and self.lines_n > 1:
+                self.feed = ([bytes(row) for row in self.tp.rows], time.monotonic())   # (the paper feeds: what it was, and since when)
             self.drawn_line = line
             self.tp.clear()
             for k in range(self.lines_n):
-                if line + k < len(self.spans):
-                    a, b = self.spans[line + k]
+                n = line + k - self.back
+                if 0 <= n < len(self.spans):
+                    a, b = self.spans[n]
                     for i in range(a, b):
                         self.paint_letter(i, ((i - a) * self.letters.w, k * self.letters.h))
 
     def send_text(self):
-        self.t.write(self.tp.send(self.text_x + 1, self.text_y + 1, art.PALETTE[self.app.dark]))
+        """the text, or on its way up a line: a spring, no overshoot, whole pixels, the old page leaving over the top"""
+        tp = self.tp
+        pal = art.PALETTE[self.app.dark]
+        final = None
+        if self.feed:
+            old, t0 = self.feed
+            t = time.monotonic() - t0
+            left = round(self.letters.h * (1 + FEED_RATE * t) * math.exp(-FEED_RATE * t))
+            if left <= 0 or t >= FEED_SECONDS:
+                self.feed = None
+                tp.touch_tiles()
+            else:
+                final = tp.rows
+                h = self.letters.h
+                tp.rows = [old[y + h - left] if y < left else final[y - left] for y in range(len(final))]
+                tp.touch_tiles()
+        self.t.write(tp.send(self.text_x + 1, self.text_y + 1, pal))
+        if final is not None:
+            tp.rows = final
 
     def render(self, now):
         """what the keys since the last frame changed, drawn once: a burst of keys is one frame, never a queue of them"""
@@ -1140,9 +1217,9 @@ class LessonScreen(Screen):
         if self.eye_open:             # (the eye before anything else that wants this row: it must be seen)
             self.draw_eye()
         elif self.notice:
-            self.at(self.notice_y, self.text_x, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  ' + self.notice[:max(self.notice_w, 0)])
+            self.at(self.notice_y, self.text_x, fg(ACCENT_TEXT) + self.app.icon('CROSS') + OFF + '  ' + at_word(self.notice, max(self.notice_w, 0)))
         else:
-            self.at(self.notice_y, self.text_x, fg(MUTED) + self.plain_words()[:max(self.notice_w + 3, 0)] + OFF)
+            self.at(self.notice_y, self.text_x, fg(MUTED) + at_word(self.plain_words(), max(self.notice_w + 3, 0)) + OFF)
 
     def say(self, words, now, secs=2.0):
         if words != self.notice:
@@ -1164,6 +1241,8 @@ class LessonScreen(Screen):
 
     # ── time ─────────────────────────────────────────────────────────────────
     def wait(self):
+        if self.feed:
+            return 0.012
         if self.notice or self.wrong_until or self.lesson.kind == 'pacer' and self.run.first is not None:
             return 0.08
         if self.run.limit and self.run.first is not None:
@@ -1203,6 +1282,8 @@ class LessonScreen(Screen):
                 self.stale = True
         if self.watched:
             self.tick_eye(now)
+        if self.feed:
+            self.stale = True
         self.render(now)
         if self.want_save:
             self.want_save = False
@@ -1475,8 +1556,8 @@ def slow_keys(run):
 
 
 class Result(Screen):
-    """the seals stamped one after another (§11), the speed in display size, the facts, the keyboard with what
-    slipped on it; Enter goes on, r again"""
+    """the seals stamped one after another (§11), the speed in display size, the facts, how it stands against the runs before
+    it; the keyboard where it was, with what slipped on it, and the hands answering; Enter goes on, r again"""
 
     def __init__(self, app, lesson_screen, wpm, raw, acc, secs, cons, roll, seals, best):
         super().__init__(app)
@@ -1487,19 +1568,64 @@ class Result(Screen):
         self.seals = seals
         self.best = best
         self.passed = not self.les.goal or seals > 0
-        self.top_pic = self.kb_pic = None
+        self.top_pic = self.bars = self.pic = self.kb = self.hands = None
         self.began = None
         self.stamped = 0
         self.opened = time.monotonic()
         self.slow = slow_keys(lesson_screen.run)
+        self.family_name, self.family_runs = self.family()
+        self.answer = self.hands_answer()    # (the hands' poses still to come, one each ANSWER_STEP)
+        self.answer_at = 0.0
+
+    def family(self):
+        """the runs this one is measured against: every test and check; a course's lesson, those of its stage; a practice
+        run, those of its kind. A key's first meeting has no speed to compare"""
+        h = self.app.store.history()
+        les = self.les
+        if les.kind in ('test', 'check'):
+            return 'your tests', [r for r in h if r['k'] in ('test', 'check')]
+        if self.index is not None:
+            ids = {x.id for x in course.LESSONS if x.stage == les.stage and x.goal}
+            return course.STAGE_NAMES[les.stage], [r for r in h if r.get('l') in ids]
+        return les.title, [r for r in h if r['k'] == les.kind and r.get('l') == les.id]
+
+    def hands_answer(self):
+        """passed: a wave, little to index on both hands (the gold seal: twice); not passed: they sink a little, and stay"""
+        if not self.les.goal:
+            return []
+        if not self.passed:
+            return [{f: (0, -3) for f in (0, 1, 2, 3, 6, 7, 8, 9)}]
+        wave = [{f: (0, 4) for f in pair} for pair in ((0, 9), (1, 8), (2, 7), (3, 6))] + [{}]
+        return wave * 2 if self.seals >= 6 else wave
 
     def layout(self):
         cols, rows, cw, ch = self.app.size
-        self.x0, self.W = 2, max(cols - 4, 1)
-        self.top_pic = canvas.Picture(min(self.W * cw // cw * cw, 8 * 40), 6 * ch, (cw, ch)) if rows >= 14 and self.W * cw >= 192 else None
-        self.kb_pic = None
-        if self.W * cw >= art.KEY_W and rows >= 26 or (cols >= 92 and rows >= 18):
-            self.kb_pic = canvas.Picture(art.KEY_W, art.KEY_H, (cw, ch))
+        pl = self.place = Stage(self.app)
+        self.x0, self.W = pl.x, pl.W
+        self.pic = self.kb = self.hands = self.top_pic = self.bars = None
+        if pl.scale:
+            self.pic, self.kb, self.hands = pl.picture()
+            for c in self.slow:
+                self.kb.heat[keys.needs(c)[0][0]] = 'flame'
+            # (what slipped: the worst three in vermilion, the others a step quieter)
+            for i, c in enumerate(sorted(self.ls.run.slips, key=self.ls.run.slips.get, reverse=True)):
+                n = keys.needs(c)
+                if n:
+                    if i < 3:
+                        self.kb.wrong.add(n[0][0])
+                    else:
+                        self.kb.heat[n[0][0]] = 'flame'
+            self.kb.paint(self.pic, pl.scale)
+        self.foot = pl.words_y if pl.scale else rows - 2     # (the verdict's row)
+        room = self.foot - 3
+        self.tall = 5 if self.les.goal else 3
+        if room >= self.tall + len(self.facts()) and self.W * cw >= 192:
+            self.top_pic = canvas.Picture(min(self.W * cw, 320), self.tall * ch, (cw, ch))
+            self.bars_x = self.x0 + min(self.W // 2 + 4, 44)
+            wide = self.x0 + self.W - self.bars_x
+            self.bars_rows = min(room - 3, 7)
+            if len(self.family_runs) >= 2 and wide * cw >= 120 and self.bars_rows >= 3:
+                self.bars = canvas.Picture(wide * cw, self.bars_rows * ch, (cw, ch))
 
     def seal_state(self, i):
         if i >= min(self.seals, 5) or i >= self.stamped:
@@ -1519,11 +1645,25 @@ class Result(Screen):
         art.paint_word(p, 0, y, word, ink['strong'], 3)
         art.paint_word(p, (len(word) * 7 + 2) * 3, y + 20, 'wpm', ink['muted'], 1)
 
+    def paint_bars(self):
+        """the runs before this one, a bar each (the meter's rhythm: 6 px, 2 of air), this one at the right end"""
+        p = self.bars
+        ink = art.INK
+        p.clear()
+        runs = [r['w'] for r in self.family_runs][-(p.w // 8):]
+        top = max(runs) or 1
+        for i, v in enumerate(runs):
+            h = max(round(v / top * (p.h - 1)), 2)
+            p.fill(p.w - (len(runs) - i) * 8 + 2, p.h - h, 6, h, ink['accent'] if i == len(runs) - 1 else ink['faint'])
+
     def facts(self):
         les, r = self.les, self.ls.run
         out = [('accuracy', percent(self.acc) + ' %' + (', 97 at least' if les.goal else ''))]
         if les.goal:
             out.append(('goal', f'{les.goal} wpm'))
+        prior = self.best if self.index is not None else max((x['w'] for x in self.family_runs[:-1]), default=0)
+        if prior:
+            out.append(('best', 'this one' if self.wpm > prior else f'{prior:.0f} wpm'))
         out.append(('time', clock(self.secs)))
         if self.cons is not None:
             out.append(('consistency', f'{self.cons:.0f} %'))
@@ -1557,7 +1697,7 @@ class Result(Screen):
     def draw(self):
         a = self.app
         les = self.les
-        cols, rows, cw, ch = a.size
+        rows = a.size[1]
         self.t.write('\x1b[?25l')
         place = ''
         if self.index is not None:
@@ -1569,61 +1709,61 @@ class Result(Screen):
             self.paint_top()
             self.top_pic.touch_all()
             self.t.write(self.top_pic.send(self.x0 + 1, row + 1, pal))
-            row += 5 if les.goal else 4
+            row += self.tall + (self.foot - 3 > self.tall + len(self.facts()))
         else:
-            self.at(row, self.x0, seals_text(self.seals) + '  ' + f'{self.wpm:.0f} wpm' if les.goal else f'{self.wpm:.0f} wpm')
+            speed = f'{self.wpm:.0f} wpm'
+            self.at(row, self.x0, seals_text(self.seals) + '  ' + speed if les.goal else speed)
             row += 2
+        if self.bars:
+            self.heading(3, a.icon('USAGE'), self.family_name, self.bars_x, self.x0 + self.W - self.bars_x)
+            self.paint_bars()
+            self.t.write(self.bars.send(self.bars_x + 1, 5 + 1, pal))
         facts = self.facts()
         pad = max(len(k) for k, _ in facts)
         for k, v in facts:
-            if row < rows - 2:
+            if row < self.foot:
                 self.at(row, self.x0 + 3, fg(MUTED) + k.ljust(pad + 2) + OFF + v)
                 row += 1
         words = self.verdict()
-        if words and row + 1 < rows - 2:
-            row += 1
-            self.at(row, self.x0, words[:self.W])
-            row += 1
-        if self.kb_pic:
-            kb = art.Keyboard(a.dark)
-            for c in self.slow:
-                kb.heat[keys.needs(c)[0][0]] = art.INK['flame']
-            for c in self.ls.run.slips:
-                n = keys.needs(c)
-                if n:
-                    kb.wrong.add(n[0][0])
-            kb.paint(self.kb_pic, 1)
-            wide = cols >= 92
-            kx = cols - 2 - math.ceil(art.KEY_W / cw) if wide else self.x0
-            ky = 3 if wide else row + 1
-            if ky + math.ceil(art.KEY_H / ch) < rows - 1:
-                self.t.write(self.kb_pic.send(kx + 1, ky + 1, pal))
+        if words and self.foot > 3:
+            self.at(self.foot, self.x0, at_word(words, self.W))
+        if self.pic:
+            self.pic.touch_all()
+            self.t.write(self.place.send(self.pic))
         if rows >= 8:
             go = 'next' if self.passed else 'again'
             again = '    r  ' + fg(MUTED) + 'again' + OFF if self.index is not None and self.passed else ''
-            self.at(rows - 2, self.x0, 'enter  ' + fg(MUTED) + go + OFF + again)
+            self.at(rows - 1, self.x0, 'enter  ' + fg(MUTED) + go + OFF + again)
         self.began = None
 
+    def stamping(self):
+        return self.top_pic is not None and self.stamped < min(self.seals, 5)
+
     def wait(self):
-        return 0.03 if self.top_pic and self.stamped < min(self.seals, 5) else None
+        return 0.03 if self.stamping() or (self.hands and self.answer) else None
 
     def tick(self, now):
-        if not self.top_pic or self.stamped >= min(self.seals, 5):
+        if self.stamping():
+            if self.began is None:
+                self.began = now + 0.08
+                return
+            # (each stamp: down for 60 ms, lit and a pixel larger; then as it stays. 140 ms apart)
+            i = self.stamped
+            at = now - self.began - i * 0.14
+            if at >= 0:
+                p = self.top_pic
+                down = at < 0.06
+                state = 'down' if down else ('gold' if self.seals >= 6 else 'on')
+                art.paint_seal(p, i * 40 + 2, 2, 32, self.app.dark, state)
+                if not down:
+                    self.stamped += 1
+                self.t.write(p.send(self.x0 + 1, 4, art.PALETTE[self.app.dark]))
             return
-        if self.began is None:
-            self.began = now + 0.08
-            return
-        # (each stamp: down for 60 ms, lit and a pixel larger; then as it stays. 140 ms apart)
-        i = self.stamped
-        at = now - self.began - i * 0.14
-        if at >= 0:
-            p = self.top_pic
-            down = at < 0.06
-            state = 'down' if down else ('gold' if self.seals >= 6 else 'on')
-            art.paint_seal(p, i * 40 + 2, 2, 32, self.app.dark, state)
-            if not down:
-                self.stamped += 1
-            self.t.write(p.send(self.x0 + 1, 4, art.PALETTE[self.app.dark]))
+        if self.hands and self.answer and now >= self.answer_at:      # (when the stamps are down, the hands answer)
+            self.answer_at = now + ANSWER_STEP
+            self.hands.pose = self.answer.pop(0)
+            self.hands.paint(self.pic, self.place.scale, 0, art.KEY_H * self.place.scale)
+            self.t.write(self.place.send(self.pic))
 
     def key(self, ev):
         if ev.kind != 'press':

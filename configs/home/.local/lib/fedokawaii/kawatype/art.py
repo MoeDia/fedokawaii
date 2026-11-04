@@ -119,7 +119,7 @@ class Keyboard:
         self.lit = {}       # key → finger
         self.down = set()
         self.wrong = set()
-        self.heat = {}      # key → an ink (the progress page's)
+        self.heat = {}      # key → how sure of it you are, a token: filled where it wants work, only its legend where it is yours
         self.shift = False
         self.rest = Look(INK['key'], INK['edge'], INK['edge2'], INK['muted'] if dark else INK['text'])
         self.home = Look(INK['key'], INK['edge'], INK['edge2'], INK['text'])
@@ -132,8 +132,10 @@ class Keyboard:
         if f is not None:
             return Look(FINGER_INK[f], INK['paper_ink'], INK['paper_ink'], INK['paper_ink'])
         h = self.heat.get(name)
+        if h == 'asagi':
+            return Look(INK['key'], INK['edge'], INK['edge2'], INK['asagi'])
         if h is not None:
-            return Look(h, INK['edge'], INK['edge2'], INK['ground'])
+            return Look(INK[h], INK['edge'], INK['edge2'], INK['ground'])
         return self.home if name in 'asdfjkl;' else self.rest
 
     def legend(self, name):

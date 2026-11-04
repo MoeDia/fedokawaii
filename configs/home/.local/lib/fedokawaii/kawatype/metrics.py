@@ -7,6 +7,7 @@ docs/learn/typing/curriculum.md defines them (net and raw wpm, accuracy, consist
 import math
 
 PAUSE = 5.0      # seconds without a key: the clock stops (Dhakal 2018 drops such gaps too)
+FASTEST = 600    # wpm: past this the clock did not see the typing (every gap a pause, a focus lost at every key): no speed to tell
 
 
 def kogasa(cov):
@@ -144,14 +145,19 @@ class Run:
             secs = min(secs, self.limit)
         return secs / 60
 
+    @staticmethod
+    def _speed(chars, minutes):
+        wpm = max(chars - 1, 0) / 5 / minutes if minutes > 0 else 0.0
+        return wpm if wpm <= FASTEST else 0.0
+
     def net(self, now=None):
         m = self.minutes(now)
         typed = self.standing() - sum(1 for a in self.auto if a < self.pos)
-        return max(typed - 1, 0) / 5 / m if m > 0 else 0.0
+        return self._speed(typed, m)
 
     def raw(self, now=None):
         m = self.minutes(now)
-        return max(self.correct + self.wrong - 1, 0) / 5 / m if m > 0 else 0.0
+        return self._speed(self.correct + self.wrong, m)
 
     def accuracy(self):
         n = self.correct + self.wrong

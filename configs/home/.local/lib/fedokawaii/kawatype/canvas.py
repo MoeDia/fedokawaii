@@ -72,6 +72,10 @@ class Picture:
         self.dirty = {(i, j) for i in range(self.cols) for j in range(self.tiles_y)}
         self.sent.clear()
 
+    def touch_tiles(self):
+        """every tile looked at again at the next send; those that come out the same are not sent"""
+        self.dirty = {(i, j) for i in range(self.cols) for j in range(self.tiles_y)}
+
     def _touch(self, x0, y0, x1, y1):
         tw, th = self.tile_w, self.tile_h
         for j in range(y0 // th, (y1 - 1) // th + 1):
