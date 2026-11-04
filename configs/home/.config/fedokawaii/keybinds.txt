@@ -83,8 +83,9 @@ eject first             unplug once it says "safe to unplug"
 ── session ────────────────────────────────────────────────────────
 Super+Ctrl+Shift+Q      log out, no menu (Steam closed properly first)
 Ctrl+Alt+F2…F6          text consoles (Ctrl+Alt+F1: back here)
-── drawing tablet: its pen in Sketch (Xournal++) ──────────────────
+── drawing tablet: its pen in Sketch (FireAlpaca) ─────────────────
 pen tip                 draw: press harder for a thicker line
-lower button            the eraser, while held
-upper button            the hand, while held: drag the page
+lower button            the hand, while held: drag the page
+upper button            the eyedropper, while held
+Tab                     Sketch: every panel away, and back
 over other windows      mouse: tip left, lower right, upper middle

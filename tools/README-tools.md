@@ -11,6 +11,8 @@
 | `kit.sh` | the real surfaces in a headless dwl from a throw-away home (the installed configs; dwl itself in that home): the bar, notices, the launcher, quick settings, Super+U and its tabs, a mock TUI — or a play | `bash tools/kit.sh [--theme dark\|light] [--bin bin] [--time S] [--out DIR] SCENE…` · `--play FILE play` |
 | `kit-play.sh` | a play's words (sourced by the kit): `at X Y`, `by`, `click`, `key`, `chord logo u`, `text`, `shot NAME [X,Y WxH]`, `panel`, `warm`, `nap`, `say` — the pointer through wlrctl, the keys through wtype | a play is a file of those lines |
 | `vpointer.c` | a virtual pointer that sends what a real mouse wheel sends (axis_discrete) or a touchpad's part — wlrctl's scroll is a touchpad's only; for a headless dwl | build: its header (wayland-scanner + cc, the XML in `tools/protocols/`) · `vpointer wheel N` · `finger DY` · `move X Y` |
+| `build-firealpaca.py`, `firealpaca_skin.py` | FireAlpaca's masks and starting files; its sheet, inks and pictures (read by `build-themes.py`) | `python3 tools/build-firealpaca.py` |
+| `fake-tablet.py`, `vkbd.c` | for `regress/sketch-pen.sh`: a private dwl given a tablet of nothing through a FIFO; one virtual keyboard that stays (Xwayland never keeps up with wtype's) | built by that check |
 | `hotplug-test.sh` | a real monitor unplug/replug on the free GPU (root) with X11 windows (`xconf.c`) | `sudo bash tools/hotplug-test.sh [DWL]` (`CYCLES=N`) |
 | `dwl-patch.sh` | `src/dwl/dwl.patch` from the edited tree — before `fedokawaii apply` | `bash tools/dwl-patch.sh [TREE]` |
 | `selftest.sh` | the installed system checked from a copy | `fedokawaii selftest [--sandbox]` |

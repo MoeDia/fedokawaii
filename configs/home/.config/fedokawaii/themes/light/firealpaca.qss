@@ -9,19 +9,19 @@ QToolTip { background-color: #ecdfb3; color: #122625; border: 1px solid #d7bc8c;
 QMenuBar { background: #e8e3c2; padding: 0; spacing: 0; border: none; }
 QMenuBar::item { background: transparent; padding: 3px 8px; }
 QMenuBar::item:selected, QMenuBar::item:pressed { background: #82241f; color: #f8f3d8; }
-QMenu { background: #e8e3c2; border-image: url(@THEME@/firealpaca-frame.png) 1 2 3 1 stretch stretch; border-width: 1px 2px 3px 1px; padding: 8px 0; }
+QMenu { background: #e8e3c2; border-image: url(KAWATHEME/firealpaca-frame.png) 1 2 3 1 stretch stretch; border-width: 1px 2px 3px 1px; padding: 8px 0; }
 QMenu::item { background: transparent; padding: 3px 16px 3px 32px; }
 QMenu::item:selected { background: #82241f; color: #f8f3d8; }
 QMenu::item:disabled { color: #8b917f; }
 QMenu::item:disabled:selected { background: transparent; color: #8b917f; }
 QMenu::separator { height: 1px; background: #d7bc8c; margin: 9px 8px 10px 8px; }
 QMenu::indicator { width: 12px; height: 12px; left: 10px; background: transparent; }
-QMenu::indicator:checked { image: url(@THEME@/firealpaca-menu-check.png); }
-QMenu::indicator:checked:selected { image: url(@THEME@/firealpaca-menu-check-sel.png); }
-QMenu::indicator:checked:disabled { image: url(@THEME@/firealpaca-check-off.png); }
-QMenu::right-arrow { image: url(@THEME@/firealpaca-right.png); width: 12px; height: 12px; right: 4px; }
-QMenu::right-arrow:selected { image: url(@THEME@/firealpaca-right-sel.png); }
-QMenu::right-arrow:disabled { image: url(@THEME@/firealpaca-right-off.png); }
+QMenu::indicator:checked { image: url(KAWATHEME/firealpaca-menu-check.png); }
+QMenu::indicator:checked:selected { image: url(KAWATHEME/firealpaca-menu-check-sel.png); }
+QMenu::indicator:checked:disabled { image: url(KAWATHEME/firealpaca-check-off.png); }
+QMenu::right-arrow { image: url(KAWATHEME/firealpaca-right.png); width: 12px; height: 12px; right: 4px; }
+QMenu::right-arrow:selected { image: url(KAWATHEME/firealpaca-right-sel.png); }
+QMenu::right-arrow:disabled { image: url(KAWATHEME/firealpaca-right-off.png); }
 
 QToolBar { background: #e8e3c2; border: none; spacing: 0; padding: 0; }
 QToolBar::handle { image: none; width: 0; height: 0; }
@@ -34,16 +34,16 @@ QToolButton::menu-indicator { image: none; }
 
 QDockWidget { color: #121b1b; titlebar-close-icon: none; titlebar-normal-icon: none; }
 QDockWidget::title { background-color: #e8e3c2; background-repeat: no-repeat; background-position: left center; text-align: left; padding: 3px 0 3px 32px; }
-QDockWidget#DockColor::title { background-image: url(@THEME@/firealpaca-head-color.png); }
-QDockWidget#DockColorHistory::title { background-image: url(@THEME@/firealpaca-head-history.png); }
-QDockWidget#DockPalette::title { background-image: url(@THEME@/firealpaca-head-palette.png); }
-QDockWidget#DockBrushPreview::title { background-image: url(@THEME@/firealpaca-head-preview.png); }
-QDockWidget#DockBrushControl::title { background-image: url(@THEME@/firealpaca-head-control.png); }
-QDockWidget#DockBrush::title { background-image: url(@THEME@/firealpaca-head-brush.png); }
-QDockWidget#DockNavi::title { background-image: url(@THEME@/firealpaca-head-navi.png); }
-QDockWidget#DockLayer::title { background-image: url(@THEME@/firealpaca-head-layer.png); }
-QDockWidget#DockReference::title { background-image: url(@THEME@/firealpaca-head-reference.png); }
-QDockWidget#DockBrushSize::title { background-image: url(@THEME@/firealpaca-head-size.png); }
+QDockWidget#DockColor::title { background-image: url(KAWATHEME/firealpaca-head-color.png); }
+QDockWidget#DockColorHistory::title { background-image: url(KAWATHEME/firealpaca-head-history.png); }
+QDockWidget#DockPalette::title { background-image: url(KAWATHEME/firealpaca-head-palette.png); }
+QDockWidget#DockBrushPreview::title { background-image: url(KAWATHEME/firealpaca-head-preview.png); }
+QDockWidget#DockBrushControl::title { background-image: url(KAWATHEME/firealpaca-head-control.png); }
+QDockWidget#DockBrush::title { background-image: url(KAWATHEME/firealpaca-head-brush.png); }
+QDockWidget#DockNavi::title { background-image: url(KAWATHEME/firealpaca-head-navi.png); }
+QDockWidget#DockLayer::title { background-image: url(KAWATHEME/firealpaca-head-layer.png); }
+QDockWidget#DockReference::title { background-image: url(KAWATHEME/firealpaca-head-reference.png); }
+QDockWidget#DockBrushSize::title { background-image: url(KAWATHEME/firealpaca-head-size.png); }
 QDockWidget::close-button, QDockWidget::float-button { width: 0; height: 0; border: none; background: transparent; image: none; }
 QDockWidget#DockColor { min-height: 220px; max-height: 220px; }
 QDockWidget#DockPalette { min-height: 281px; max-height: 281px; }
@@ -60,21 +60,21 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QAbstractSpinBox { background: #
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus { border-color: #586459; }
 QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled { color: #8b917f; }
 QComboBox::drop-down { background: transparent; border: none; width: 16px; }
-QComboBox::down-arrow { image: url(@THEME@/firealpaca-down.png); width: 12px; height: 12px; }
-QComboBox::down-arrow:disabled { image: url(@THEME@/firealpaca-down-off.png); }
+QComboBox::down-arrow { image: url(KAWATHEME/firealpaca-down.png); width: 12px; height: 12px; }
+QComboBox::down-arrow:disabled { image: url(KAWATHEME/firealpaca-down-off.png); }
 QComboBox QAbstractItemView { background: #e8e3c2; color: #122625; border: 1px solid #d7bc8c; selection-background-color: #82241f; selection-color: #f8f3d8; }
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button { background: transparent; border: none; width: 16px; }
-QAbstractSpinBox::up-arrow { image: url(@THEME@/firealpaca-up.png); width: 12px; height: 6px; }
-QAbstractSpinBox::down-arrow { image: url(@THEME@/firealpaca-down.png); width: 12px; height: 6px; }
+QAbstractSpinBox::up-arrow { image: url(KAWATHEME/firealpaca-up.png); width: 12px; height: 6px; }
+QAbstractSpinBox::down-arrow { image: url(KAWATHEME/firealpaca-down.png); width: 12px; height: 6px; }
 
 QCheckBox { spacing: 8px; }
 QCheckBox::indicator { width: 12px; height: 12px; background: #f8f3d8; border: 1px solid #d7bc8c; }
-QCheckBox::indicator:checked { image: url(@THEME@/firealpaca-check.png); }
-QCheckBox::indicator:checked:disabled { image: url(@THEME@/firealpaca-check-off.png); }
+QCheckBox::indicator:checked { image: url(KAWATHEME/firealpaca-check.png); }
+QCheckBox::indicator:checked:disabled { image: url(KAWATHEME/firealpaca-check-off.png); }
 QCheckBox::indicator:disabled { border-color: #dfcc9c; }
 QRadioButton { spacing: 8px; }
 QRadioButton::indicator { width: 12px; height: 12px; background: #f8f3d8; border: 1px solid #d7bc8c; }
-QRadioButton::indicator:checked { image: url(@THEME@/firealpaca-dot.png); }
+QRadioButton::indicator:checked { image: url(KAWATHEME/firealpaca-dot.png); }
 
 QSlider { background: transparent; }
 QSlider::groove:horizontal { background: #dfcc9c; height: 2px; }

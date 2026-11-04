@@ -9,7 +9,7 @@
  * is drawn on the canvas, the files and the pen are never touched.
  *
  *   the sheet     ~/.config/fedokawaii/current/firealpaca.qss, set as the application's style
- *                 sheet; @THEME@ in it is the mood's folder (tools/build-themes.py writes it)
+ *                 sheet; KAWATHEME in it is the mood's folder (tools/build-themes.py writes it)
  *   the inks      current/firealpaca.conf: "token rrggbb" lines, from the same palette
  *   its images    QPainter::drawImage: by the class of the widget drawn on, a list's greys and
  *                 its selection's blues become the mood's ramps (white → view, black → text;
@@ -68,8 +68,6 @@ static bool on;                  /* FireAlpaca itself, every symbol found, not a
 static pthread_t main_thread;
 static char home[PATH_MAX - 128];
 
-struct qpointf { double x, y; };
-
 /* ── Qt's functions ───────────────────────────────────────────────────────────── */
 static struct {
 	void (*draw_image_r)(void *, const void *, const void *, const void *, int);
@@ -114,11 +112,6 @@ static struct {
 	void (*process_events)(int);
 	void (*set_geometry)(void *, const void *);
 	void (*layout_margins)(void *, int, int, int, int);
-	void (*mouse_new)(void *, int, const void *, const void *, int, int, int, const void *);
-	void (*mouse_free)(void *);
-	const void *(*primary_device)(const void *);
-	void *(*event_point)(void *, long);
-	struct qpointf (*point_position)(const void *);
 } qt;
 
 static bool
@@ -158,10 +151,6 @@ resolve(void)
 		S(process_events, "_ZN16QCoreApplication13processEventsE6QFlagsIN10QEventLoop17ProcessEventsFlagEE"),
 		S(set_geometry, "_ZN7QWidget11setGeometryERK5QRect"),
 		S(layout_margins, "_ZN7QLayout18setContentsMarginsEiiii"),
-		S(mouse_new, "_ZN11QMouseEventC1EN6QEvent4TypeERK7QPointFS4_N2Qt11MouseButtonE6QFlagsIS6_ES7_INS5_16KeyboardModifierEEPK15QPointingDevice"),
-		S(mouse_free, "_ZN11QMouseEventD1Ev"),
-		S(primary_device, "_ZN15QPointingDevice21primaryPointingDeviceERK7QString"),
-		S(event_point, "_ZN13QPointerEvent5pointEx"), S(point_position, "_ZNK11QEventPoint8positionEv"),
 #undef S
 	};
 	for (size_t i = 0; i < sizeof t / sizeof *t; i++) {
@@ -763,7 +752,7 @@ _ZNK5QIcon6pixmapEP7QWindowRK5QSizeNS_4ModeENS_5StateE(void *ret, const void *se
 }
 
 /* ── the mood ─────────────────────────────────────────────────────────────────── */
-/* The sheet from the current mood's folder, @THEME@ in it made absolute (each mood its own path:
+/* The sheet from the current mood's folder, KAWATHEME in it made absolute (each mood its own path:
  * Qt keeps pictures by their path), and the inks. */
 static void
 load_mood(void)
@@ -798,7 +787,7 @@ load_mood(void)
 		return;
 	}
 	for (char *p = text; *p;) {
-		char *at = strstr(p, "@THEME@");
+		char *at = strstr(p, "KAWATHEME");
 		size_t len = at ? (size_t)(at - p) : strlen(p), dlen = strlen(dir);
 		if (used + len + dlen + 1 >= cap) {
 			char *grown = realloc(out, cap = (cap + len + dlen) * 2);
@@ -815,7 +804,7 @@ load_mood(void)
 			break;
 		memcpy(out + used, dir, dlen);
 		used += dlen;
-		p = at + 7;
+		p = at + 9;
 	}
 	qt.string_utf8(&sheet, (long)used, out);
 	qt.set_sheet(*qt.app, &sheet);
@@ -844,11 +833,6 @@ static void *action_fit;         /* QAction FIT_NAME: the page, whole, in its wi
 static char *open_file;          /* what its next Open dialog answers, unasked */
 static bool wanted_mood, wanted_open;
 static int fit_left;             /* a file just opened: its page fitted again as its window settles */
-/* FireAlpaca takes something of a first stroke from the last mouse moves it has seen, and a brush with a
- * fade redrawn at the pen's lift gets a long tail to there if there have not been two (a mouse resting on
- * the bar while Sketch opens by keyboard, and the pen first: dwl keeps the mouse out while a pen is over a
- * window that reads pens). So its window is told of two more as the pen first comes near; no pointer moves. */
-static bool pen_seen;
 
 void
 _ZN7QObject13setObjectNameE14QAnyStringView(void *self, const void *data, size_t tagged)
@@ -972,8 +956,10 @@ start_of(const QString *dir, const QString *filter, bool save)
 			*cut = 0;
 		return d;
 	}
-	if (stat(d, &st) == 0 && S_ISDIR(st.st_mode)) {
+	{
 		char *f = filter ? to_utf8(filter) : NULL, *star = f ? strstr(f, "*.") : NULL;
+		char *slash = strrchr(d, '/');
+		bool folder = stat(d, &st) == 0 && S_ISDIR(st.st_mode);
 		if (star) {
 			size_t k = 0;
 			star += 2;
@@ -983,10 +969,12 @@ start_of(const QString *dir, const QString *filter, bool save)
 			ext[k] = 0;
 		}
 		free(f);
-		if (asprintf(&out, "%s/untitled.%s", d, ext) < 0)
-			out = NULL;
-		free(d);
-		d = out;
+		if (folder || !strchr(slash ? slash : d, '.')) {       /* a folder, or a name with no extension of its own */
+			if (asprintf(&out, folder ? "%s/untitled.%s" : "%s.%s", d, ext) < 0)
+				out = NULL;
+			free(d);
+			d = out;
+		}
 	}
 	if (d && access(d, F_OK) == 0) {               /* a name of its own: "name (1).ext", as the desktop's */
 		char *dot = strrchr(d, '.'), *slash = strrchr(d, '/'), *free_name = NULL;
@@ -1299,21 +1287,6 @@ _ZN12QApplication6notifyEP7QObjectP6QEvent(void *self, void *receiver, void *eve
 			qt.action_activate(action_fit, 0);
 		}
 		return true;
-	}
-	if (!pen_seen && type == 87) {
-		const void *meta = ((const void *(*)(void *))(*(void ***)receiver)[0])(receiver);
-		if (!strcmp(qt.class_name(meta), "QWidgetWindow")) {
-			struct qpointf at = qt.point_position(qt.event_point(event, 0));
-			unsigned char ev[256];
-			QString none = { 0 };
-			const void *mouse = qt.primary_device(&none);
-			pen_seen = true;
-			for (int i = 0; i < 2; i++) {
-				qt.mouse_new(ev, 5 /* MouseMove */, &at, &at, 0, 0, 0, mouse);
-				real(self, receiver, ev);
-				qt.mouse_free(ev);
-			}
-		}
 	}
 	if (in_dialog)
 		switch (type) {

@@ -20,10 +20,15 @@ w=$(mktemp -d /dev/shm/regress-pen.XXXXXX); trap 'rm -rf "$w"' EXIT
 # the private dwl: the tree as it is, a fake tablet added
 mkdir "$w/dwl" && tar -C "$src" --exclude=.git --exclude=dwl --exclude='*.o' -cf - . | tar -C "$w/dwl" -xf - || exit 2
 python3 -I "$here/../fake-tablet.py" "$w/dwl/dwl.c" >/dev/null || exit 2
+# (the mouse parked off the window: a brush with a fade grew a tail on the first stroke until dwl's penmove told
+# the window of the pointer once, 4 Nov. A dwl without that line is only tried with the mouse over the window)
+park="wlrctl pointer move -8000 -8000; wlrctl pointer move 800 500; sleep 0.3"
+grep -q 'also watches the mouse' "$w/dwl/dwl.c" && park="wlrctl pointer move -8000 -8000; sleep 0.3"
 inc=$(cat /usr/local/lib/fedokawaii-wlroots-0.20/cflags) l=/usr/local/lib/fedokawaii-wlroots-0.20/lib
 make -s -C "$w/dwl" WLR_INCS="$inc" WLR_LIBS="-Wl,-rpath,$l -L$l -lwlroots-0.20 -lpixman-1 -ldrm" \
   XWAYLAND=-DXWAYLAND XLIBS="xcb xcb-icccm pixman-1 glesv2" >"$w/make.log" 2>&1 || { echo "sketch-pen: the private dwl did not build ($(tail -n 1 "$w/make.log"))" >&2; exit 2; }
 # one keyboard that stays, as a real one does (Xwayland drops a keymap that comes and goes)
+# shellcheck disable=SC2046  # (pkg-config's words are meant to split)
 wayland-scanner client-header "$here/../protocols/virtual-keyboard-unstable-v1.xml" "$w/vk-protocol.h" &&
   wayland-scanner private-code "$here/../protocols/virtual-keyboard-unstable-v1.xml" "$w/vk-protocol.c" &&
   cc -O2 -o "$w/vkbd" "$here/../vkbd.c" "$w/vk-protocol.c" -I"$w" $(pkg-config --cflags --libs wayland-client xkbcommon) || exit 2
@@ -41,7 +46,7 @@ exec 8>"$w/keys"
 ( ulimit -c 0; exec env -u QT_QPA_PLATFORMTHEME QT_QPA_PLATFORM=xcb KAWA_FA_OPEN="$w/page.mdp" LD_PRELOAD="$lib" "$app" ) >"$w/app.log" 2>&1 &
 sleep 12
 echo 'k Return' >&8; sleep 3
-wlrctl pointer move -8000 -8000; sleep 0.3      # (the mouse parked off the window: the first stroke's old tail, 4 Nov)
+$park
 pen() { printf '%s\n' "\$*" >"$w/tablet"; sleep 0.012; }
 for row in "300 0.10" "500 0.50" "700 1.00"; do
   set -- \$row; y=\$1 p=\$2

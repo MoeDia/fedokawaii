@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/fake-tablet.py DWL.C — for tools/regress/sketch-pen.sh: a copy of dwl.c given a tablet of nothing,
 fed through the FIFO named by $FAKE_TABLET: "i X Y" the pen near, "m X Y P" moved (pressure 0..1), "d" and "u"
-the tip, "o" gone. Only ever for a private build under a headless run: the session's dwl never has it."""
+the tip, "b CODE 1|0" a side button (331 BTN_STYLUS, 332 BTN_STYLUS2), "o" gone. Only ever for a private build under a headless run: the session's dwl never has it."""
 import sys
 p = sys.argv[1]
 s = open(p).read()
@@ -35,6 +35,10 @@ fake_read(int fd, uint32_t mask, void *d)
 			struct wlr_tablet_tool_proximity_event e = { .tablet = &fake_tab, .tool = &fake_tool, .time_msec = fake_ms(),
 				.x = fake_x / 1920.0, .y = fake_y / 1080.0, .state = WLR_TABLET_TOOL_PROXIMITY_OUT };
 			wl_signal_emit_mutable(&fake_tab.events.proximity, &e);
+		} else if (sscanf(l, "b %lf %lf", &x, &y) == 2) {
+			struct wlr_tablet_tool_button_event e = { .tablet = &fake_tab, .tool = &fake_tool, .time_msec = fake_ms(),
+				.button = (uint32_t)x, .state = y > 0 ? WLR_BUTTON_PRESSED : WLR_BUTTON_RELEASED };
+			wl_signal_emit_mutable(&fake_tab.events.button, &e);
 		} else if (l[0] == 'd' || l[0] == 'u') {
 			struct wlr_tablet_tool_tip_event e = { .tablet = &fake_tab, .tool = &fake_tool, .time_msec = fake_ms(),
 				.x = fake_x / 1920.0, .y = fake_y / 1080.0, .state = l[0] == 'd' ? WLR_TABLET_TOOL_TIP_DOWN : WLR_TABLET_TOOL_TIP_UP };

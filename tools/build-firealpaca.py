@@ -80,7 +80,7 @@ def sheet(art, path, zoom):
     w = cols * (cell + 4)
     paper = (0xe8, 0xe3, 0xc2, 255)
     img = [[paper for _ in range(w)] for _ in range(h)]
-    for i, (name, rows) in enumerate(sorted(art.items())):
+    for i, (_, rows) in enumerate(sorted(art.items())):
         ox, oy = (i % cols) * (cell + 4) + 2, (i // cols) * (cell + 4) + 2
         for y, r in enumerate(rows):
             for x, c in enumerate(r):

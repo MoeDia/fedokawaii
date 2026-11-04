@@ -60,8 +60,8 @@ for m in dark light; do
   done
   q=$REPO/configs/home/.config/fedokawaii/themes/$m/firealpaca.qss
   has "$(cat "$q")" '"Sumi UI"'
-  for u in $(grep -oE '@THEME@/[a-z0-9-]+\.png' "$q" | sort -u); do
-    [[ -s $REPO/configs/home/.config/fedokawaii/themes/$m/${u#@THEME@/} ]] && _ok || _no "$m: $u not there"
+  for u in $(grep -oE 'KAWATHEME/[a-z0-9-]+\.png' "$q" | sort -u); do
+    [[ -s $REPO/configs/home/.config/fedokawaii/themes/$m/${u#KAWATHEME/} ]] && _ok || _no "$m: $u not there"
   done
 done
 case_ "the seeds: Wada's 159 by name, no path of the machine it was made on, no id of its"

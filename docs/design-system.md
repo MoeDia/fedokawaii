@@ -576,6 +576,9 @@ stamp is a choice made, a scroll is something long opening.
   ways. **12 × 12** beside words, on the em's rows 1–12, centred on the capitals (§2);
   **14 × 14** alone; the bar's two emblems **16 × 16** (its face is a picture, §3). Sumi Icons Term draws the same pixels,
   centred in two terminal cells.
+- **A program's pictures** (FireAlpaca's tool strip and panels: `art/firealpaca-icons.txt`, 18, 20 and 24 px, the sizes its
+  own files have): one ink, masses solid, painted in its state's ink as it is shown (`text`, `faint` disabled, `text_on_select`
+  checked): a mask, so a mood needs no second set.
 - **Pictures** (quick settings' dial, §4): **28 × 28** in `art/crests.txt` — one ink, strokes
   2 px both ways, a 45° stroke a run of 3 on the stair (as heavy as a straight 2), details
   knocked out 1 px wide (a band inside a silhouette stops a pixel short of its edge: the outline
@@ -625,6 +628,7 @@ numbers here against its files.
 | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
 | help | Super+/ | `bin/kawa-help` | T23 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
+| Sketch (FireAlpaca): its menus, panels, lists, meters, tool strip, both moods | the launcher | `src/kawa-firealpaca` (loaded into it), `tools/firealpaca_skin.py` (its sheet, inks and pictures, in `themes/`), `art/firealpaca-icons.txt`, `art/firealpaca-parts.txt`, `configs/firealpaca/` | T28 |
 
 ## 15. The grill list
 

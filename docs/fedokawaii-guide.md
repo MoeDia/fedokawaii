@@ -2896,7 +2896,7 @@ Those seven keys are most of daily use. The whole list follows; **~** shows it i
 On a folder, Enter goes into it (yazi's own Enter would open the folder in neovim:
 `~/.config/yazi/plugins/smart-enter.yazi`). With files selected (Space), Enter opens all of
 them; otherwise the one under the cursor. A Xournal++ note (`.xopp`) opens in Xournal++ —
-yazi would otherwise take it for a gzip archive. On a file, Enter uses the first *opener* — a command
+yazi would otherwise take it for a gzip archive — and a sketch (`.mdp`) in FireAlpaca. On a file, Enter uses the first *opener* — a command
 yazi runs to open a file — for the file's type (its MIME type, such as `image/png`,
 §10.5): text and JSON open in neovim inside the same window (`:q` brings
 you back to yazi); an archive is unpacked next to itself (yazi's *Extract here*, with 7-Zip);
@@ -4486,13 +4486,13 @@ remember it.
   | Backup | restic onto the backup drive (kawa-backup) | `backup` |
   | Agents · Torrents · Syncplay | herdr · torrra · Syncplay (ch. 20, §15.7) | `claude` · `torrent` · `together` |
 
-  The rest — Brave, LibreOffice, Xournal++ (and Sketch), Easy Effects, LocalSend, Steam,
+  The rest — Brave, LibreOffice, Xournal++, FireAlpaca (Sketch), Easy Effects, LocalSend, Steam,
   OpenRGB, LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
   `tests/look/fixtures/not-launched.txt` in the toolkit says why for each.
 * A window program shows its **own icon**, as its package ships it, at 22 × 22 — no icon
-  pack: Brave, LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend,
+  pack: Brave, LibreOffice, Xournal++, Steam, LocalSend,
   Syncplay, OpenRGB, LACT. Every other entry — the terminal programs, and the pages in Brave —
   shows one of the desktop's **pixel icons** (art/icons.txt, the Sumi Icons font), in the
   icon column in the theme's accent ink (switching the theme switches it):
@@ -5460,21 +5460,30 @@ highlighter (Ctrl+Shift+H), text (Ctrl+Shift+T) and eraser (Ctrl+Shift+E). It sa
 marks in a separate `.xopp` file and never changes the PDF; *File → Export as PDF* writes a
 new PDF with the marks in it — that is the file to send.
 
-**Drawing: Sketch.** *Sketch* in the launcher opens Xournal++ on a blank landscape page, the
-shape of the screen, saved as `~/Pictures/Sketches/sketch DATE.xopp` as you draw. *File →
-Export as…* (Ctrl+E) makes a picture to send, and Super+Z (§12.6) makes it small. Xournal++ is
-light (it starts in under a second) and draws in the desktop's GTK theme; its page stays white.
+**Drawing: Sketch.** *Sketch* in the launcher (`kawa-sketch`) is **FireAlpaca**, the official Linux build
+(`lib/upstream.sh`: a Qt 6.5 AppImage from firealpaca.com, unpacked whole into
+`~/.local/share/fedokawaii/firealpaca/app`; its terms forbid passing it on, so it always comes from them), on a
+new page the shape of the screen, `~/Pictures/Sketches/sketch DATE.mdp`. It is closed, runs on X11 only, and has no
+theme files, so `src/kawa-firealpaca` (loaded into it by `kawa-sketch`, no Qt headers) dresses it through Qt's public
+functions: the mood's style sheet and inks (`themes/*/firealpaca.qss`, `.conf`, written by
+`tools/firealpaca_skin.py`), its own lists and sliders recoloured by widget class as they are drawn, Sumi UI in place of
+its fixed face, our 86 masks in place of its pictures (`art/firealpaca-icons.txt`), its hand-placed panels moved onto
+the grid, Open and Save through `kawa-pick`, and the mood followed while it runs. What is on the canvas, the files and
+the pen are never touched. `KAWA_FA_PLAIN=1 kawa-sketch` shows it as it comes. Once, `theme.sh` gives it its starting
+files (`configs/firealpaca/`: Wada's 159 colours, a few brushes, the panels, a white page 1920 × 1080); then they are
+its own. Its start page is its makers' news and advertising, the free edition's bargain (the ad-free edition has no
+Linux build): it stays, **Enter** closes it. *File → Export* makes a PNG or PSD, and Super+Z (§12.6) makes it small.
 
-**The drawing tablet** — an XP-Pen Star G430S here, or any other — needs no driver: Fedora's
-kernel knows it, and it works the moment it is plugged in. Its pen (the battery-free P01) draws
-with pressure in Sketch — press harder for a thicker line — and its two side buttons are set
-for drawing:
+**The drawing tablet** — an XP-Pen Star G430S here, or any other — needs no driver: Fedora's kernel knows it, and it works
+the moment it is plugged in. dwl hands the pen to Xwayland as a tablet (tablet-v2), and Qt reads it as a stylus with
+pressure: `tools/regress/sketch-pen.sh` proves the path, 2, 8 and 16 px at pressure 0.10, 0.50 and 1.00. Its two side
+buttons do what FireAlpaca gives them, and Xournal++ keeps its own settings:
 
-| on the pen | in Sketch (Xournal++) | over anything else |
-|---|---|---|
-| the tip | draws | a left click |
-| the lower button, held | the eraser | the right button |
-| the upper button, held | the hand: drag the page | the middle button |
+| on the pen | in Sketch (FireAlpaca) | in Xournal++ | over anything else |
+|---|---|---|---|
+| the tip | draws | draws | a left click |
+| the lower button, held | the hand: drag the page | the eraser | the right button |
+| the upper button, held | the eyedropper | the hand | the middle button |
 
 The pad is 4 × 3 inches; the screen is wider (16:9), so the pad keeps the screen's proportions —
 a circle drawn is round on screen: the pad's whole width is the screen's width, its top three

@@ -3,7 +3,7 @@ tools/build-themes.py, written into themes/<mode>/ as
 
     firealpaca.conf     the inks src/kawa-firealpaca reads (its lists, its meters, the grey round
                         the canvas: pixels the program writes itself)
-    firealpaca.qss      its Qt style sheet (@THEME@: the mood's folder, filled in by kawa-firealpaca)
+    firealpaca.qss      its Qt style sheet (KAWATHEME: the mood's folder, filled in by kawa-firealpaca)
     firealpaca-*.png    what a style sheet can only take as pictures: the frame of a menu (§4), the
                         panels' headings, the boxes, arrows and marks
 
@@ -118,7 +118,7 @@ def sheet(m, p):
     faint, muted, text, strong = p["faint"], p["muted"], p["text"], p["strong"]
     sel, on_sel, accent, asagi = p["select"], p["text_on_select"], p["accent"], p["asagi"]
     surface = p["surface"]
-    heads = "\n".join(f'QDockWidget#{obj}::title {{ background-image: url(@THEME@/firealpaca-head-{icon}.png); }}'
+    heads = "\n".join(f'QDockWidget#{obj}::title {{ background-image: url(KAWATHEME/firealpaca-head-{icon}.png); }}'
                       for obj, _, icon in DOCKS)
     return f"""\
 * {{ font-family: "Sumi UI"; font-size: 14px; font-weight: normal; outline: 0; }}
@@ -132,19 +132,19 @@ QToolTip {{ background-color: #{surface}; color: #{text}; border: 1px solid #{ed
 QMenuBar {{ background: #{g}; padding: 0; spacing: 0; border: none; }}
 QMenuBar::item {{ background: transparent; padding: 3px 8px; }}
 QMenuBar::item:selected, QMenuBar::item:pressed {{ background: #{sel}; color: #{on_sel}; }}
-QMenu {{ background: #{g}; border-image: url(@THEME@/firealpaca-frame.png) 1 2 3 1 stretch stretch; border-width: 1px 2px 3px 1px; padding: 8px 0; }}
+QMenu {{ background: #{g}; border-image: url(KAWATHEME/firealpaca-frame.png) 1 2 3 1 stretch stretch; border-width: 1px 2px 3px 1px; padding: 8px 0; }}
 QMenu::item {{ background: transparent; padding: 3px 16px 3px 32px; }}
 QMenu::item:selected {{ background: #{sel}; color: #{on_sel}; }}
 QMenu::item:disabled {{ color: #{faint}; }}
 QMenu::item:disabled:selected {{ background: transparent; color: #{faint}; }}
 QMenu::separator {{ height: 1px; background: #{edge2}; margin: 9px 8px 10px 8px; }}
 QMenu::indicator {{ width: 12px; height: 12px; left: 10px; background: transparent; }}
-QMenu::indicator:checked {{ image: url(@THEME@/firealpaca-menu-check.png); }}
-QMenu::indicator:checked:selected {{ image: url(@THEME@/firealpaca-menu-check-sel.png); }}
-QMenu::indicator:checked:disabled {{ image: url(@THEME@/firealpaca-check-off.png); }}
-QMenu::right-arrow {{ image: url(@THEME@/firealpaca-right.png); width: 12px; height: 12px; right: 4px; }}
-QMenu::right-arrow:selected {{ image: url(@THEME@/firealpaca-right-sel.png); }}
-QMenu::right-arrow:disabled {{ image: url(@THEME@/firealpaca-right-off.png); }}
+QMenu::indicator:checked {{ image: url(KAWATHEME/firealpaca-menu-check.png); }}
+QMenu::indicator:checked:selected {{ image: url(KAWATHEME/firealpaca-menu-check-sel.png); }}
+QMenu::indicator:checked:disabled {{ image: url(KAWATHEME/firealpaca-check-off.png); }}
+QMenu::right-arrow {{ image: url(KAWATHEME/firealpaca-right.png); width: 12px; height: 12px; right: 4px; }}
+QMenu::right-arrow:selected {{ image: url(KAWATHEME/firealpaca-right-sel.png); }}
+QMenu::right-arrow:disabled {{ image: url(KAWATHEME/firealpaca-right-off.png); }}
 
 QToolBar {{ background: #{g}; border: none; spacing: 0; padding: 0; }}
 QToolBar::handle {{ image: none; width: 0; height: 0; }}
@@ -174,21 +174,21 @@ QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QAbstractSpinBox {{ background: 
 QLineEdit:focus, QSpinBox:focus, QDoubleSpinBox:focus, QComboBox:focus {{ border-color: #{muted}; }}
 QLineEdit:disabled, QSpinBox:disabled, QDoubleSpinBox:disabled, QComboBox:disabled {{ color: #{faint}; }}
 QComboBox::drop-down {{ background: transparent; border: none; width: 16px; }}
-QComboBox::down-arrow {{ image: url(@THEME@/firealpaca-down.png); width: 12px; height: 12px; }}
-QComboBox::down-arrow:disabled {{ image: url(@THEME@/firealpaca-down-off.png); }}
+QComboBox::down-arrow {{ image: url(KAWATHEME/firealpaca-down.png); width: 12px; height: 12px; }}
+QComboBox::down-arrow:disabled {{ image: url(KAWATHEME/firealpaca-down-off.png); }}
 QComboBox QAbstractItemView {{ background: #{g}; color: #{text}; border: 1px solid #{edge2}; selection-background-color: #{sel}; selection-color: #{on_sel}; }}
 QAbstractSpinBox::up-button, QAbstractSpinBox::down-button {{ background: transparent; border: none; width: 16px; }}
-QAbstractSpinBox::up-arrow {{ image: url(@THEME@/firealpaca-up.png); width: 12px; height: 6px; }}
-QAbstractSpinBox::down-arrow {{ image: url(@THEME@/firealpaca-down.png); width: 12px; height: 6px; }}
+QAbstractSpinBox::up-arrow {{ image: url(KAWATHEME/firealpaca-up.png); width: 12px; height: 6px; }}
+QAbstractSpinBox::down-arrow {{ image: url(KAWATHEME/firealpaca-down.png); width: 12px; height: 6px; }}
 
 QCheckBox {{ spacing: 8px; }}
 QCheckBox::indicator {{ width: 12px; height: 12px; background: #{key}; border: 1px solid #{edge2}; }}
-QCheckBox::indicator:checked {{ image: url(@THEME@/firealpaca-check.png); }}
-QCheckBox::indicator:checked:disabled {{ image: url(@THEME@/firealpaca-check-off.png); }}
+QCheckBox::indicator:checked {{ image: url(KAWATHEME/firealpaca-check.png); }}
+QCheckBox::indicator:checked:disabled {{ image: url(KAWATHEME/firealpaca-check-off.png); }}
 QCheckBox::indicator:disabled {{ border-color: #{edge}; }}
 QRadioButton {{ spacing: 8px; }}
 QRadioButton::indicator {{ width: 12px; height: 12px; background: #{key}; border: 1px solid #{edge2}; }}
-QRadioButton::indicator:checked {{ image: url(@THEME@/firealpaca-dot.png); }}
+QRadioButton::indicator:checked {{ image: url(KAWATHEME/firealpaca-dot.png); }}
 
 QSlider {{ background: transparent; }}
 QSlider::groove:horizontal {{ background: #{edge}; height: 2px; }}
