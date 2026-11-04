@@ -129,6 +129,10 @@ asobi_steam_copy() {
 asobi_steam_move() {
   local i
   [[ -e $TARGET_HOME/.local/share/Steam || -e $TARGET_HOME/.steam ]] || return 0
+  if systemctl is-active --quiet kawa-asobi.service kawa-asobi-bottles.service; then
+    log "the play world is open: Steam leaves your account at the next run"
+    return 0
+  fi
   if pgrep -u "$TARGET_USER" -x steam >/dev/null; then
     as_user env "XDG_RUNTIME_DIR=/run/user/$TARGET_UID" steam -shutdown >/dev/null 2>&1 &
     for ((i = 0; i < 120; i++)); do pgrep -u "$TARGET_USER" -x steam >/dev/null || break; sleep 0.25; done

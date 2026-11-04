@@ -9,6 +9,7 @@ export REPO_DIR STATE_DIR LOG_FILE
 touch "$LOG_FILE"; chmod 600 "$LOG_FILE"
 source "$REPO_DIR/lib/common.sh"
 source "$REPO_DIR/lib/manifest.sh"
+source "$REPO_DIR/lib/upstream.sh"
 source "$REPO_DIR/lib/asobi.sh"
 TARGET_USER=$(head -n1 "$STATE_DIR/user" | tr -d '[:space:]')
 TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
