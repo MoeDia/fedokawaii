@@ -1105,6 +1105,24 @@ def no_key_no_prowlarr():
     eq(w.close(), 0, "ends clean")
 
 
+def prowlarr_down():
+    """Prowlarr that says it will not start: said at once, not after a minute and a half of waiting."""
+    p = os.path.join(TMP, "stubs/kawa-prowlarr")
+    with open(p, "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\nexit 1\n")
+    mock()
+    os.environ["KAWA_PROWLARR_URL"] = "http://127.0.0.1:1"
+    d = os.path.join(HOME, ".config/fedokawaii")
+    with open(os.path.join(d, "secrets.sh"), "w") as f:
+        f.write("PROWLARR_API_KEY=" + "0" * 32 + "\n")
+    os.chmod(os.path.join(d, "secrets.sh"), 0o600)
+    w = window(30, 116)
+    w.has("finished")
+    w.keys("\t", "x", "\r")
+    w.has("Prowlarr did not start", 6)
+    eq(w.close(), 0, "ends clean")
+
+
 def first_view():
     """Nothing downloaded yet: the window opens on the search, the caret on its line."""
     mock(("--empty",))

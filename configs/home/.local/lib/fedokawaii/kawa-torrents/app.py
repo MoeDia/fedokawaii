@@ -163,6 +163,7 @@ class App:
         self.search_err = ""
         self.key = None
         self.prowlarr_woken = False
+        self.prowlarr_down = False
         self.tended = False
         self.sort = 0
         self.cache = {}
@@ -397,9 +398,11 @@ class App:
     def wake_thread(self):
         try:
             r = subprocess.run(["kawa-prowlarr", "--busy"], stdin=subprocess.DEVNULL, capture_output=True, check=False)
-            self.post(("prowlarr-up", r.returncode == 0))
+            self.prowlarr_down = r.returncode != 0
         except OSError:
-            self.post(("prowlarr-up", False))
+            self.prowlarr_down = True
+        if self.prowlarr_down:
+            self.prowlarr_woken = False            # (the next search asks again)
 
     def start_search(self):
         q = " ".join(self.query.text.split())
@@ -414,6 +417,7 @@ class App:
             self.line_focus = False
             return
         self.pending_sites = self.total_sites = 1          # (until the sites are known)
+        self.prowlarr_down = False
         self.wake_prowlarr()
         threading.Thread(target=self.search_thread, args=(self.search_id, q), daemon=True).start()
         self.line_focus = False
@@ -428,6 +432,9 @@ class App:
             return
         sites, err, end = None, "", time.monotonic() + 90
         while time.monotonic() < end:
+            if self.prowlarr_down:                 # (no need to wait for what said it will not come)
+                err = "Prowlarr did not start: journalctl --user -u prowlarr -e says why"
+                break
             try:
                 sites = prowlarr.sites(self.key)
                 break
@@ -474,8 +481,6 @@ class App:
                 self.copy(it[1], "magnet copied")
             elif kind == "say":
                 self.tell(it[1])
-            elif kind == "prowlarr-up":
-                pass
             elif kind == "search-failed" and it[1] == self.search_id:
                 self.search_err = it[2]
                 self.pending_sites = 0

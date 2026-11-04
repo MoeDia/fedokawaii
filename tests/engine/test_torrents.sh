@@ -54,6 +54,7 @@ scenario play_key         "v: with its files not asked for yet, it goes on by it
 scenario details          "the details beside the list, their own page when narrow; files kept and skipped; a video played"
 scenario find             "sites one by one, a slow one holding up nothing; sorted; copied; added from the hash, no site, no key"
 scenario no_key_no_prowlarr "what stops a search is said where its results would be"
+scenario prowlarr_down    "Prowlarr that will not start: said at once"
 scenario first_view       "nothing downloaded yet: it opens on the search"
 scenario offers           "the clipboard's magnet and a fresh .torrent offered; Enter adds, x leaves it, none offered twice"
 scenario hand_over        "a link opened: a window for it, or added to the one open with a notice: never two windows"
