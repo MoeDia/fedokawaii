@@ -372,7 +372,7 @@ case_ "M lists the drives: label, size, file system, open or closed — and the 
 has "$out" "drives"
 has "$out" "KINGSTON                          28.9G  vfat   open"
 has "$out" "WD Elements                      431.5G  ntfs   closed"
-has "$out" "e  eject"; lacks "$out" "esc close" "its own key alone (§7)"
+has "$out" ' eject'; lacks "$out" "esc close" "its own key alone (§7)"
 called '^kawa-drives list$'
 case_ "the list starts on the first drive; j and k (↓ ↑) move, and not past either end"
 lit() { sed -n "$((30 * $1 + 31)),$((30 * $1 + 60))p" <<<"$out" | grep -oE 'KINGSTON|WD Elements'; }
@@ -433,7 +433,7 @@ gone  eject
 quit
 EOF
 )
-called '^kawa-drives open /dev/sdb1$'; has "$out" "e  eject"
+called '^kawa-drives open /dev/sdb1$'; has "$out" ' eject'
 eq "$(grep -c '^kawa-drives list' "$CALLS")" 2 "listed again after the failure"
 eq "$(last_dir)" "$W"
 
@@ -544,7 +544,7 @@ called '^kawa-drives open /dev/sdd1$' "opening passes the drive's device, never 
 python3 - "$out" <<'EOF' && _ok || _no "the frame's right border is not straight"
 import sys, unicodedata
 BAR = "│\U000FF006\U000FF007"                          # (a rail, or the frame's sides: the patched yazi's ring of cells)
-rows = [r for r in sys.argv[1].split("\n") if sum(r.count(b) for b in BAR) >= 3 and any(w in r for w in ("1.9T", "64G", "8G", "e  eject"))]
+rows = [r for r in sys.argv[1].split("\n") if sum(r.count(b) for b in BAR) >= 3 and any(w in r for w in ("1.9T", "64G", "8G", " eject"))]
 def last_bar(r):
     w, at = 0, None
     for ch in r:
@@ -555,7 +555,7 @@ sys.exit(0 if len(rows) == 4 and len({last_bar(r) for r in rows}) == 1 else 1)
 EOF
 case_ "a narrow window (50 columns): the list fits, cut to the window"
 out=$(drives_screen 50x20)
-has "$out" "e  eject"; has "$out" "exfat"
+has "$out" ' eject'; has "$out" "exfat"
 
 # ── g d ──────────────────────────────────────────────────────────────────────────────────
 case_ "g d goes to ~/Drives, where each open drive is a folder by its name (kawa-drives keeps it)"

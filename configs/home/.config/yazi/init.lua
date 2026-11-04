@@ -320,7 +320,7 @@ function Progress:redraw()
 	local s = cx.tasks.summary
 	if s.total == 0 then return {} end
 	local words = (s.percent and string.format("%d %%", math.floor(s.percent)) .. SEP or "") .. (s.total - s.success) .. " left"
-	return { ui.Clear(self._area), ui.Line(ui.Span(words):fg(s.failed == 0 and "21" or "20")):area(self._area):align(ui.Align.RIGHT) }
+	return { ui.Clear(self._area), ui.Line { ui.Span(words):fg(s.failed == 0 and "21" or "20"), ui.Span(" ") }:area(self._area):align(ui.Align.RIGHT) }
 end
 
 -- The task window's rows (the frame and its heading: the patched yazi): §7's row — the kind's icon at column 1, what it
