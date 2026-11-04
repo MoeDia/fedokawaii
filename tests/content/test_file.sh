@@ -132,8 +132,8 @@ setup; answers "7z · with a password" smallest; rc 0 kawa-file "$A/folder"
 s=$A/folder.7z; [[ -s $s ]] && _ok || _no "no $s"
 called '^7z a -t7z -mx9 -ms=on .*-p -mhe=on '
 eq "$(grep -c -- '--password' "$CALLS")" 2 "typed twice"
-called "^kawa-menu --title password --prompt $ICON_LOCK   --password --width 40\$"
-called "^kawa-menu --title the same again --prompt $ICON_LOCK   --password --width 40\$"
+called "^kawa-menu --title password --prompt $ICON_LOCK"$'\t'" --password --width 40\$"
+called "^kawa-menu --title the same again --prompt $ICON_LOCK"$'\t'" --password --width 40\$"
 not_called "$TPW"
 grep -rqs "$TPW" "$HOME" "$XDG_RUNTIME_DIR" && _no "the password is in a file" || _ok
 7z l -ba -p- "$s" >/dev/null 2>&1 && _no "its names show without the password" || _ok
@@ -189,9 +189,9 @@ setup; (cd "$A" && printf '%s\n%s\n' "$TPW" "$TPW" | 7z a -bso0 -tzip -p -mem=AE
 answers esc; kf "$A/locked.zip"; has "$(menu 1)" "asks its password"
 answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
 eq "$(cat "$A/locked/one.txt")" "first file"; not_called "$TPW"
-called "^kawa-menu --title locked\.zip · password --prompt $ICON_LOCK   --password --stay --width 40\$"; called '^kawa-menu --done$'
+called "^kawa-menu --title locked\.zip · password --prompt $ICON_LOCK"$'\t'" --password --stay --width 40\$"; called '^kawa-menu --done$'
 reset_calls; TPW=wrong TPW2=esc; answers "extract here"; rc 0 kawa-file "$A/locked.zip"
-called "^kawa-menu --title ${FAILED}locked\.zip · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$"; not_called 'notify-send'
+called "^kawa-menu --title ${FAILED}locked\.zip · wrong password --prompt $ICON_LOCK"$'\t'" --password --stay --width 40\$"; not_called 'notify-send'
 [[ ! -e $A/one.txt && ! -e "$A/folder (1)" ]] && _ok || _no "something was extracted: $(ls "$A" | tr '\n' '|')"
 case_ "… a wrong password, then the right one: asked again in the same window, then opened (its window closed at once: --done)"
 reset_calls; TPW=wrong TPW2=secret-Pa55; answers "extract into a folder"; rc 0 kawa-file "$A/locked.zip"
@@ -316,7 +316,7 @@ answers unlock; rc 0 kawa-file "$l"; eq "$(words "$A/r.locked.unlocked.pdf")" "p
 called '^qpdf --password-file=- --decrypt '; not_called "$TPW"
 grep -rqs "$TPW" "$HOME" "$XDG_RUNTIME_DIR" && _no "the password is in a file" || _ok
 reset_calls; TPW2=$TPW TPW=nope; answers unlock; rc 0 kawa-file "$l"
-called "^kawa-menu --title ${FAILED}r\.locked\.pdf · wrong password --prompt $ICON_LOCK   --password --stay --width 40\$" "(a wrong one said where it was typed, asked again: bug 10)"
+called "^kawa-menu --title ${FAILED}r\.locked\.pdf · wrong password --prompt $ICON_LOCK"$'\t'" --password --stay --width 40\$" "(a wrong one said where it was typed, asked again: bug 10)"
 called '^kawa-menu --done$'; not_called 'notify-send .*wrong'; not_called "$TPW"
 TPW2=""
 

@@ -4602,6 +4602,18 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   copied to ~/.cache/r27-f45-run/branched-1nov/) and made again from the RELEASED tree (releases/45 answered 200 at
   16:05; vm-create --release 45 --port 2224), vm-smoke f45 --timeout 300, tools/vm-inject/f45-checks.sh f45; the
   worktree removed at the end. Every step's line in ~/.cache/r27-f45-run/summary.txt (on disk: survives a reboot).
+- r27-away-proof (16:11:02): the 1-minute live trial of tools/away.sh fired by itself ("away: 1 min without input, no
+  call, no game — running: date"): the gate works end to end on his session (read only).
+- r27-22-sf3 (4 Nov 16:12–16:16, the master's T22 should-fix 3): the password prompt's lock sat 1 px left of the icon
+  column (laid out as a letter: kawa-file passed "$ICON_LOCK  " as the prompt's text). Prompts now speak the titles'
+  grammar, "MARK<Tab>words" (title_parts): kawa-file (both password asks) and kawa-drives (a vault's passphrase) pass
+  "$ICON_LOCK"$'\t'; kawa-panel's input row draws the mark with glyph() in the icon column and starts what is typed on
+  the names' column (NAME_X), a prompt without a mark as before (x + CELL: "order ", "page ", "under "). kawa-menu's
+  request carries one argument a line, so the tab arrives whole. Measured in the kit (tools/kit.sh --bin bin, a play:
+  the wrong-password title over the line, three typed), both moods alike: the title's ✗ ink x 830–841, the lock
+  830–841 (was 829–840); the title's words from x 854 ('l' has a column of air), the ◆s from 853 — one origin, the
+  names' column. Tests: test_file 287/0, test_drives 123/0, test_menu 84/0 (the six expectations now carry the tab).
+  Live at the next apply (not in r27-f45's 94840bd) + a panel restart.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or

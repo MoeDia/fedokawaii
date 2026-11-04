@@ -2888,9 +2888,13 @@ def main(argv):
             box(cr, x, y, w, h, "key")
             frame(cr, x, y, w, h, "edge")
             ty = y + (h - LINE) // 2
-            pw = text(cr, x + CELL, ty, prompt, "muted") if prompt else 0
-            qw = text(cr, x + CELL + pw, ty, query, "text", width=w - 2 * CELL - pw - 2, tail=True)
-            box(cr, x + CELL + pw + qw + 1, ty, 2, LINE, "accent_text")   # (the caret: still, no blink)
+            mark, words = title_parts(prompt or "")   # ("MARK\twords": the mark in the icon column, as a
+            if mark:                                 #  title's; what is typed on the names' column)
+                glyph(cr, x + GLYPH_X, ty, mark, "muted")
+            tx = x + (NAME_X if mark else CELL)
+            pw = text(cr, tx, ty, words, "muted") if words else 0
+            qw = text(cr, tx + pw, ty, query, "text", width=w - (tx - x) - CELL - pw - 2, tail=True)
+            box(cr, tx + pw + qw + 1, ty, 2, LINE, "accent_text")   # (the caret: still, no blink)
         elif k == "none":
             _, x, y = m
             text(cr, x + NAME_X, y + (ROW - LINE) // 2, "none", "faint")

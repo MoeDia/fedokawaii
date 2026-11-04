@@ -335,7 +335,7 @@ case_ "passphrase: hidden typing, the label in the prompt, Esc = status 1 and no
 setup
 stub kawa-menu 'echo "s3cret pass"'
 eq "$(kawa-drives passphrase /dev/sdc1 vault "")" "s3cret pass"
-called "^kawa-menu --title vault · passphrase --prompt $(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_LOCK")   --password --width 40\$"
+called "^kawa-menu --title vault · passphrase --prompt $(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_LOCK")"$'\t'" --password --width 40\$"
 stub kawa-menu 'exit 1'
 out=$(kawa-drives passphrase /dev/sdc1 vault ""); r=$?
 eq "$r" 1 "Esc must fail so udiskie leaves it locked"; eq "$out" ""
