@@ -447,7 +447,8 @@ class Form:
             if len(items) > height:
                 s.at(top + 2, s.left + 1, G["chevron"], ACCENT_TEXT)
                 s.at(top + 2, s.left + 4, q if q else "type to filter", TEXT if q else FAINT)
-                s.at(top + 2, s.left + 4 + len(q), " ", TEXT, ACCENT if q else 0)
+                if q:
+                    s.at(top + 2, s.left + 4 + len(q), " ", TEXT, ACCENT)
                 count = f"{len(shown)}"
                 s.at(top + 2, s.left + WIDTH - len(count), count, MUTED)
             for i, x in enumerate(shown[first:first + height]):
