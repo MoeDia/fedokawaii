@@ -12,7 +12,7 @@ out=$(mktemp -d /dev/shm/regress-gate.XXXXXX)
 [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$out"' EXIT
 src=${LOCK_HOME:-$HOME}
 grep -q '^gate ' "$src/.local/share/fedokawaii/dark/lock-scene.txt" 2>/dev/null \
-  || { echo "lock-gate: no gate in the scene ($src): fedokawaii apply" >&2; exit 1; }
+  || { echo "lock-gate: no gate in the scene ($src): fedokawaii apply" >&2; exit 2; }
 cat >"$out/play.sh" <<'PLAY'
 mkdir -p "$HOME/.local/share/fedokawaii" "$HOME/.local/lib" "$KIT_OUT/stub"
 ln -s "$REAL/.local/share/fedokawaii/dark" "$REAL/.local/share/fedokawaii/light" "$HOME/.local/share/fedokawaii/"
