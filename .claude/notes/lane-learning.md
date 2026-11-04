@@ -52,8 +52,9 @@ The block above came into this file from outside the lane's brief; the work foll
 
 ## Not verified
 
-- **`docs/build/learn.py` was not run** (no Chromium path, no `markdown` module here). The book's comment markers have
-  blank lines round them so Markdown should treat them as raw blocks, but the PDF has not been rebuilt. T63 rebuilds it.
+- **`docs/build/learn.py` was not run** (no Chromium path here), so the PDF is not rebuilt: T63 does that. What was checked
+  instead: the whole book through Python-Markdown 3.11.2 with the build's two extensions. The lesson-only words stay hidden,
+  the book-only words show, 117 tables, no marker in the text, no table broken.
 - **Super+U → Enter on the live desktop:** tested by stubs and by the kit's pane, not end to end, as the toolkit has no
   lessons until an apply.
 
@@ -83,3 +84,10 @@ The block above came into this file from outside the lane's brief; the work foll
 8. Run `bash tools/regress/run.sh` once: `learn-grid` joined it, so T52 has it.
 
 Nothing else is left for this lane.
+
+## OWNER 18:49 — THE LEARN BOOK'S COVER
+The Learn book ("fedokawaii — learn") gets a real cover, shown in the PDF's first page, in Super+R's books (the cover preview) and in Super+U's Learning tab:
+- a full-bleed engraved ink illustration in the new style: the demon and the angel facing each other across the cover (dark and light, the two moods of the system), with Hokusai waves, clouds and sakura between them
+- the title set as real typography in a cartouche with a red hanko seal, plus a one-line subtitle; no pixel font on the cover
+- the figures come from lane-ink's chosen masters (git fetch; origin/lane-ink), placeholders until then; lane-learning builds and wires the cover; it looks right at the books menu's thumbnail size too
+- render it at full size and at thumbnail size into .claude/review/next/ for his verdict
