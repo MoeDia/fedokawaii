@@ -121,6 +121,7 @@ hw_discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczoss
 
 # the pointer of every list (the fzf options file): the icon font's chevron
 CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
+BAND_EDGE=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_BAND_EDGE")
 
 # btop's box for the discrete AMD card: its number in ROCm SMI's order (lib/hardware.sh,
 # hw_btop_gpu) — and no card's box at all without one
@@ -129,7 +130,7 @@ BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu ${BTOP_GPU:+$BTOP_GPU }mem net proc"
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
-      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" \
+      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|@ICON_BAND_EDGE@|$BAND_EDGE|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" \
       -e "s|@BTOP_BOXES@|$BTOP_BOXES|g" -e "s|@BTOP_GPU@|${BTOP_GPU:-gpu0}|g" "$1"
 }
 

@@ -950,11 +950,11 @@ def layout_menu(m):
             prev = None
         elif kind == "sand":
             marks.append(("sand", x0, y, w, f[0], fld(f, 1)))
-            y += ROW
+            y += ROW + GAP
             prev = "row"
         elif kind == "watch":
             marks.append(("watch", x0, y, w, f[0]))
-            y += ROW
+            y += ROW + GAP
             prev = "row"
         elif kind == "cell":
             run = []
@@ -1030,7 +1030,15 @@ def instrument(key, x0, y, r, pic, name, s, muted=False):
 def speaker_pic(s):
     """The sound's picture: the temple bell with as many ripples as the level holds, stilled while muted."""
     pct = percent(s.get("sound", ""))
-    return "@bonsho-mute" if s.get("muted") == "on" else f"@bonsho-{0 if not pct else min(3, (pct + 32) // 33)}"
+    return "@bonsho-mute" if s.get("muted") == "on" or s.get("sound") == "muted" else f"@bonsho-{0 if not pct else min(3, (pct + 32) // 33)}"
+
+
+def device_pic(pre, label):
+    """A sound device's picture, by what its short name says it is: each its own, none repeated for nothing."""
+    low = label.lower()
+    if pre == "in":
+        return "@jack" if " mic" in low or low.endswith("line in") else "@input"
+    return "@headphones" if "bluetooth" in low else "@monitor" if "hdmi" in low or "dp" in low.split() else "@jack"
 
 
 def layout_quick(s):
@@ -1078,8 +1086,8 @@ def layout_sound(s):
     items.append(Item("mixer", "row", x0, y, INNER, ROW, r, glyph="@sliders", name="mixer", accel="x", keys="x"))
     y += ROW
     r += 1
-    for icon, pic, name, pre, devs in (("@headphones", "@output", "output", "out", s.get("outputs", [])),
-                                       ("@mic", "@input", "input", "in", s.get("inputs", []))):
+    for icon, name, pre, devs in (("@headphones", "output", "out", s.get("outputs", [])),
+                                  ("@mic", "input", "in", s.get("inputs", []))):
         y += SECTION
         heads.append((icon, name, x0, y))
         y += HEAD_H
@@ -1087,7 +1095,7 @@ def layout_sound(s):
             nones.append((x0, y))
             y += ROW
         for dev_id, default, label in devs:
-            items.append(Item(f"{pre}:{dev_id}", "row", x0, y, INNER, ROW, r, glyph=pic,
+            items.append(Item(f"{pre}:{dev_id}", "row", x0, y, INNER, ROW, r, glyph=device_pic(pre, label),
                               name=label, lit=default))
             y += ROW
             r += 1
@@ -2824,7 +2832,7 @@ def main(argv):
             if panel.mode == "menu" and panel.state.caps:
                 caps(cr, x + HEAD_X, y, name)
             else:
-                named(cr, x + NAME_X, ty, name, "faint" if off else "text", width=(dx if detail else right) - (x + NAME_X) - CELL)
+                named(cr, x + NAME_X, ty, name, "faint" if off else "text", width=(dx - CELL if detail else right) - (x + NAME_X))
             if detail:
                 text(cr, dx, ty, detail, "faint" if off else "text", width=right - dx)
         elif k == "cell":

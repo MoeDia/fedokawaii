@@ -647,9 +647,14 @@ summary-icon-color=#{p['accent_text']}
 progress-color=over #{p['asagi']}40
 format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>
 
-# critical: the hairline in vermilion (the main config keeps these on screen until dismissed)
+# critical: what needs you (the main config keeps these on screen until dismissed) — the hairline in vermilion, a
+# 3 px bar of it inside the left one, the title's icon in a filled seal, and the key that takes it away
 [urgency=critical]
 border-color=#{p['accent']}
+left-edge=3 #{p['accent']}
+summary-icon-seal=#{p['accent']}
+summary-icon-color=#{p['text_on_accent']}
+format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>\\n<span line_height="20480"><span background="#{p['edge']}" foreground="#{p['strong']}"> super </span> <span background="#{p['edge']}" foreground="#{p['strong']}"> shift </span> <span background="#{p['edge']}" foreground="#{p['strong']}"> n </span><span foreground="#{p['muted']}"> dismiss</span></span>
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]

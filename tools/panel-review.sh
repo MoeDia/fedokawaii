@@ -2,17 +2,19 @@
 # tools/panel-review.sh — the menus and panels rendered for a design review: each surface with a machine's real
 # state (a stand-in kawa-quick says what a live PC says: the kit has no sound, no Bluetooth), in both moods, through the
 # real desktop (tools/kit.sh: a headless dwl, the repository's bin and art), cropped to the surface, at 1× and 4×.
-#   bash tools/panel-review.sh [--out DIR] [--only NAME,NAME…] [--themes "dark light"]
+#   bash tools/panel-review.sh [--out DIR] [--only NAME,NAME…] [--themes "dark light"] [--mako BIN]
+#     --mako BIN   the notices by this mako (a build of src/mako/mako.patch not yet installed)
 #   Out (default .claude/review/next): NAME-1x.png NAME-4x.png, dark over light, on the moods' own grounds; and
 #   DIR/raw/THEME/NAME.png, the whole screens tools/px.py measures.
 set -u
 here=$(cd "$(dirname "$0")" && pwd); repo=$(cd "$here/.." && pwd)
-out=$repo/.claude/review/next only="" themes="dark light"
+out=$repo/.claude/review/next only="" themes="dark light" mako=""
 while (($#)); do
   case $1 in
     --out) out=${2:?}; shift 2 ;;
     --only) only=${2:?}; shift 2 ;;
     --themes) themes=${2:?}; shift 2 ;;
+    --mako) mako=$(realpath "${2:?}"); shift 2 ;;
     *) echo "panel-review: unknown $1" >&2; exit 2 ;;
   esac
 done
@@ -21,6 +23,8 @@ mkdir -p "$out/raw"
 W=$(mktemp -d /tmp/panel-review.XXXXXX); trap 'rm -rf "$W"' EXIT
 mkdir "$W/bin"
 for f in "$repo"/bin/*; do ln -s "$f" "$W/bin/"; done
+[[ -n $mako ]] && ln -s "$mako" "$W/bin/mako"
+ln -s "$repo/system/fedokawaii" "$W/bin/fedokawaii"
 rm "$W/bin/kawa-quick"
 cat >"$W/bin/kawa-quick" <<STUB
 #!/usr/bin/env bash
