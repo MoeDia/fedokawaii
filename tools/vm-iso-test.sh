@@ -351,6 +351,7 @@ do_again() {
   "${VIRSH[@]}" destroy "$name" >/dev/null 2>&1
   iso=$(readlink -f "$iso")
   sed -i -E "s|<memory unit='MiB'>[0-9]+<|<memory unit='MiB'>4096<|; s|(<source file=')[^']*\.iso('/>)|\1$iso\2|; s|(<target dev='sda' bus='sata'/><readonly/>)(<boot order='1'/>)?|\1<boot order='1'/>|" "$d/domain.xml"
+  "${VIRSH[@]}" undefine "$name" --keep-nvram >/dev/null 2>&1
   "${VIRSH[@]}" define "$d/domain.xml" >/dev/null || return 1
   mem_guard "$name"
   "${VIRSH[@]}" start "$name" >/dev/null
