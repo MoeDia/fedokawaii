@@ -2,10 +2,11 @@
 # VT 8, started on demand (Super+G: kawa-asobi enter), the desktop running on behind it. PAM makes
 # it a real seat session, so the card, the keyboard, the sound and the controller follow the VT in
 # front (logind, uaccess). No authentication happens: systemd opens the session itself, for a user
-# whose password is locked.
+# whose password is locked. Everything of the world itself runs in that user's own manager, behind
+# one set of walls (user@ASOBI_UID.service.d/50-kawa-asobi.conf, written from system/asobi/walls.conf).
 [Unit]
 Description=ASOBI: the play world
-Conflicts=getty@tty8.service
+Conflicts=getty@tty8.service kawa-asobi-bottles.service
 After=getty@tty8.service systemd-user-sessions.service
 Wants=kawa-asobi-watch.service
 StartLimitIntervalSec=0
@@ -25,6 +26,7 @@ StandardError=journal
 SyslogIdentifier=kawa-asobi
 UtmpIdentifier=tty8
 UtmpMode=user
+Environment=KAWA_ASOBI_FACE=steam
 ExecStartPre=+/usr/local/sbin/kawa-asobi-root prestart
 ExecStart=/usr/local/bin/kawa-asobi-session
 ExecStartPost=+/usr/bin/chvt 8
@@ -33,20 +35,3 @@ ExecStop=/usr/local/bin/kawa-asobi-session --stop
 ExecStopPost=+/usr/local/sbin/kawa-asobi-root poststop
 TimeoutStopSec=45
 Restart=no
-# the walls (the same as user@ASOBI_UID.service's, so a portal sees no more than a game)
-ProtectHome=tmpfs
-BindPaths=/home/asobi
-BindPaths=/home/.asobi/drop
-BindPaths=/run/user/ASOBI_UID
-PrivateTmp=yes
-PrivateIPC=yes
-ProtectProc=invisible
-TemporaryFileSystem=/dev/shm:mode=1777,nosuid,nodev
-InaccessiblePaths=-/mnt -/media -/run/media
-RestrictSUIDSGID=yes
-# gamescope's own capability (its file capability: the compositor's thread ahead of the game's), and
-# nothing else, ever: sudo, su and every other set-user-id program lose their power in here
-CapabilityBoundingSet=CAP_SYS_NICE
-LimitNOFILE=524288
-
-[Install]

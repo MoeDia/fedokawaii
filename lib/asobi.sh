@@ -53,7 +53,11 @@ asobi_system() {
   local s="$REPO_DIR/system/asobi" u; u=$(id -u "$ASOBI_USER")
   install -m 0755 "$s/kawa-asobi-root" /usr/local/sbin/kawa-asobi-root
   install -m 0755 "$s/kawa-asobi-session" /usr/local/bin/kawa-asobi-session
+  install -m 0755 "$s/kawa-asobi-world" /usr/local/bin/kawa-asobi-world
   sed "s/ASOBI_UID/$u/g" "$s/kawa-asobi.service" | write_file /etc/systemd/system/kawa-asobi.service
+  sed -e "s/ASOBI_UID/$u/g" -e 's/^Conflicts=getty@tty8.service kawa-asobi-bottles.service/Conflicts=getty@tty8.service kawa-asobi.service/' \
+      -e 's/^Description=ASOBI: the play world/Description=ASOBI: the play world, Bottles in front/' -e 's/^Environment=KAWA_ASOBI_FACE=steam/Environment=KAWA_ASOBI_FACE=bottles/' \
+      "$s/kawa-asobi.service" | write_file /etc/systemd/system/kawa-asobi-bottles.service
   write_file /etc/systemd/system/kawa-asobi-watch.service <"$s/kawa-asobi-watch.service"
   write_file /etc/systemd/system/kawa-asobi-op@.service <"$s/kawa-asobi-op@.service"
   write_file /etc/pam.d/kawa-asobi <"$s/kawa-asobi.pam"
@@ -62,16 +66,14 @@ asobi_system() {
   write_file /etc/xkb/symbols/kawa-asobi <"$s/xkb-symbols"
   write_file /etc/xkb/types/kawa-asobi <"$s/xkb-types"
   write_file /etc/gamemode.ini <"$s/gamemode.ini"
-  # the world's user manager (its sound, its portals) behind the same walls as its session
-  sed -n '/^# the walls/,/^RestrictSUIDSGID/p' "$s/kawa-asobi.service" \
-    | { printf '# installed by setup.sh (s_asobi): the play world'"'"'s user manager behind the walls of its session\n[Service]\n'; grep -v '^#'; } \
-    | sed "s/ASOBI_UID/$u/g" \
-    | write_file "/etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf"
+  sed "s/ASOBI_UID/$u/g" "$s/walls.conf" | write_file "/etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf"
+  write_file /etc/systemd/user/kawa-asobi-world.service <"$s/kawa-asobi-world.service"
   printf 'hz=%s\n' "${MONITOR_HZ:-144}" | write_file /etc/fedokawaii/asobi.conf
   systemctl mask --quiet flatpak-add-fedora-repos.service   # (the package's own: no system-wide remote, ever)
   restorecon -R /etc/systemd/system/kawa-asobi* "/etc/systemd/system/user@$u.service.d" /etc/pam.d/kawa-asobi \
     /etc/polkit-1/rules.d/60-kawa-asobi.rules /etc/xkb /etc/gamemode.ini /etc/fedokawaii/asobi.conf \
-    /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session 2>/dev/null || true
+    /usr/local/sbin/kawa-asobi-root /usr/local/bin/kawa-asobi-session /usr/local/bin/kawa-asobi-world \
+    /etc/systemd/user/kawa-asobi-world.service 2>/dev/null || true
   systemctl daemon-reload
 }
 
@@ -83,7 +85,7 @@ asobi_flatpaks() {
   as_asobi flatpak --user override com.valvesoftware.Steam --nofilesystem=/mnt --nofilesystem=/media \
     --nofilesystem=/run/media --nofilesystem=xdg-music --nofilesystem=xdg-pictures \
     --system-no-talk-name=org.freedesktop.UDisks2 --filesystem="$ASOBI_DROP"
-  as_asobi flatpak --user override com.usebottles.bottles --filesystem="$ASOBI_DROP"
+  as_asobi flatpak --user override com.usebottles.bottles --system-no-talk-name=org.freedesktop.UDisks2 --filesystem="$ASOBI_DROP"
 }
 
 # clean: the world as installed, what "reset" can always go back to (taken once)
