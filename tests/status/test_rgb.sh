@@ -155,6 +155,12 @@ K lock; echo On >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; secs 2; eq "$(now_of ke
 K unlock; echo disconnected >"$M/sys/class/drm/card0-HDMI-A-1/status"; secs 2.5; eq "$(now_of keyboard)" 0,0,0 "the monitor gone from the cable: off"
 stop
 
+case_ "the monitor switched off: out quickly (the owner, 19:26: a delay): at most 3 steps after a look ten times a second"
+machine; start; secs 2; echo Off >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; t0=$(date +%s%N)
+while [[ $(now_of keyboard) != 0,0,0 ]] && (($(date +%s%N) - t0 < 3000000000)); do /bin/sleep 0.02; done
+ms=$((($(date +%s%N) - t0) / 1000000)); ((ms <= 900)) && _ok || _no "out after $ms ms"
+stop
+
 case_ "a sleep: out at once and the unit waits for it; awake: back"
 machine; start; secs 1.5; a=$(date +%s%N); K sleep; b=$(date +%s%N)
 ((b - a < 1600000000)) && _ok || _no "the sleep's unit waited $(((b - a) / 1000000)) ms"

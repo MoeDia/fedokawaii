@@ -12,6 +12,8 @@
 | `kit-play.sh` | a play's words (sourced by the kit): `at X Y`, `by`, `click`, `key`, `chord logo u`, `text`, `shot NAME [X,Y WxH]`, `panel`, `warm`, `nap`, `say` — the pointer through wlrctl, the keys through wtype | a play is a file of those lines |
 | `vpointer.c` | a virtual pointer that sends what a real mouse wheel sends (axis_discrete) or a touchpad's part — wlrctl's scroll is a touchpad's only; for a headless dwl | build: its header (wayland-scanner + cc, the XML in `tools/protocols/`) · `vpointer wheel N` · `finger DY` · `move X Y` |
 | `hotplug-test.sh` | a real monitor unplug/replug on the free GPU (root) with X11 windows (`xconf.c`) | `sudo bash tools/hotplug-test.sh [DWL]` (`CYCLES=N`) |
+| `vrr-proof.sh` | FreeSync on the real screen: the card (DRM), dwl's presents, the monitor's own word at 100, 60, 40 fps and with it off (a full-screen picture for a minute: a notice first) | `bash tools/vrr-proof.sh [OUTDIR]` |
+| `monitor-power-test.sh` | the monitor really off and on over DDC/CI (VCP D6): workspace, layout, focus, mode compared (the screen out for seconds: a notice first) | `bash tools/monitor-power-test.sh [SECONDS]` |
 | `dwl-patch.sh` | `src/dwl/dwl.patch` from the edited tree — before `fedokawaii apply` | `bash tools/dwl-patch.sh [TREE]` |
 | `selftest.sh` | the installed system checked from a copy | `fedokawaii selftest [--sandbox]` |
 | `regress/*.sh` | never again: one headless check per reported bug or measured surface (`menu-first-click`, `calendar-middle`, `one-popup`, `bar-geometry`, `window-frame`, `level-display`, `warm-exit`, `notes-page`, `wheel-notch` (a real mouse notch from `vpointer.c`); `no-xwayland-exit` and `term-burst` take a dwl binary, not kit options), each passing on the fixed build and failing on the old one; `regress/shots.py` measures their shots | `bash tools/regress/NAME.sh [KIT OPTION…]` (`--bin bin --repo-art`: the repository's state) |
@@ -23,4 +25,4 @@
 
 Rules: timing comes from the frame log only (a recorder perturbs frames); big recordings go to /dev/shm
 and are deleted; nothing here touches the live session except `perf.sh`/`shot.sh` (they drive or
-read it) and `hotplug-test.sh` (another card, root).
+read it), `hotplug-test.sh` (another card, root), `vrr-proof.sh` and `monitor-power-test.sh` (his real screen).
