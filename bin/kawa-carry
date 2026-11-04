@@ -10,7 +10,8 @@
 #                              asked; only what is missing is put in place, nothing of the new system replaced,
 #                              but secrets.sh, which is yours
 #   kawa-carry list            what goes: SIZE<TAB>PATH a line
-#   kawa-carry hint            a notice, once, when a drive with your things is plugged in on a new system
+#   kawa-carry hint            a notice, once, when a drive with your things is plugged in on a new system (at
+#                              login for one already there, by kawa-drives watch for one that comes)
 # Exit: 0 done · 1 it could not be done (said) · 2 misuse · 4 nothing to do (no drive plugged in, none picked).
 set -u
 export LC_ALL=C.UTF-8
@@ -21,6 +22,8 @@ LIST=$HOME/.config/fedokawaii/carry.list
 FOLDER=fedokawaii-carry
 STATE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii
 DONE=$STATE/carried                       # "back" has run on this system
+SETTINGS=${KAWA_CARRY_SETTINGS:-/usr/local/lib/fedokawaii/fedokawaii.conf}   # (the toolkit's, outside your home)
+TAKEN=.config/fedokawaii/carried-settings.conf   # (its copy: goes in the trip, as carry.list says)
 say() { printf '  %s\n' "$*"; }
 die() { printf '  %s\n' "$*" >&2; exit 1; }
 
@@ -75,6 +78,7 @@ password() {
 pack() {
   local dest=${1:-} p repo items=()
   command -v restic >/dev/null || die "restic is not installed — fedokawaii repair puts it back"
+  [[ -r $SETTINGS ]] && cp -f -- "$SETTINGS" "$HOME/$TAKEN"
   mapfile -t items < <(paths)
   ((${#items[@]})) || die "nothing to carry: $LIST names nothing that is here"
   say "what goes:"
@@ -96,7 +100,8 @@ pack() {
     || die "it did not all go: nothing is safe yet — see above"
   say "reading all of it back"
   restic -r "$repo" check --read-data >/dev/null 2>&1 || die "the drive gave back something else: use another drive"
-  say "$ICON_CHECK  safe to wipe. Your password is the only key to it."
+  mkdir -p "$STATE" && date +%F >"$DONE.told"   # (this system took them: no notice to bring them back)
+  say "$ICON_CHECK  safe to wipe. your password is the only key to it."
 }
 
 back() {
@@ -121,6 +126,8 @@ back() {
   [[ -e $root/$f ]] && install -m 600 -- "$root/$f" "$HOME/$f"
   mkdir -p "$STATE" && date +%F >"$DONE"
   say "$ICON_CHECK  all of it is back"
+  [[ -e $HOME/$TAKEN ]] && say "your old settings: ~/$TAKEN — set them in Super+U → settings"
+  return 0
 }
 
 hint() {
