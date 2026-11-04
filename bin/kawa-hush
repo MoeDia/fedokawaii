@@ -5,7 +5,7 @@
 #   kawa-hush on sharing    a screen share began (the screen-sharing portal's exec_before:
 #                           ~/.config/xdg-desktop-portal-wlr/config)
 #   kawa-hush off sharing   it ended (exec_after)
-#   kawa-hush on game · off game   game mode (kawa-game)
+#   kawa-hush on game · off game   the play world in front, and back (kawa-asobi-root watch)
 # At "off", once no reason holds any more, one notice tells what was held back: "3 notices
 # while you shared" (or "… while you played"); a click on it lists them (app and title) in the
 # usual menu, only to read: each an info row (the cursor and the pointer pass it; Esc or a
@@ -90,5 +90,5 @@ for other in sharing game; do
   printf '%s\n' "$base" >"$RUN/kawa-hush.$other"
   exit 0
 done
-setsid -f "$0" tell "$why" "$base" </dev/null >/dev/null 2>&1   # (the portal and kawa-game go on at once)
+setsid -f "$0" tell "$why" "$base" </dev/null >/dev/null 2>&1   # (the portal and the world's watch go on at once)
 exit 0

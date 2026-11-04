@@ -31,7 +31,6 @@ visidata               kawa-tables                             vd
 gdu                    kawa-disk                               gdu
 openrgb                pkg:org.openrgb.OpenRGB.desktop
 restic                 kawa-backup                             restic
-steam                  steam                                   steam
 # release binaries (lib/upstream.sh)
 yazi                   kawa-files                              yazi
 bluetui                kawa-bluetooth                          bluetui
@@ -43,6 +42,7 @@ syncplay               syncplay                                kawa-together
 torrra                 kawa-torrents                           kawa-torrra
 prowlarr               kawa-prowlarr                           prowlarr
 # the desktop's own helpers that open a window of their own
+kawa-asobi             kawa-asobi                              kawa-asobi
 kawa-backup            kawa-backup                             kawa-backup
 kawa-books             kawa-books                              kawa-books
 kawa-clip              kawa-clip                               kawa-clip
@@ -51,6 +51,5 @@ kawa-notes             kawa-notes                              kawa-notes
 kawa-prowlarr          kawa-prowlarr                           kawa-prowlarr
 kawa-sketch            kawa-sketch                             kawa-sketch
 kawa-file              kawa-file                               kawa-file
-kawa-steam             steam                                   kawa-steam
 kawa-together          syncplay                                kawa-together
 kawa-wallpaper         kawa-wallpaper                          kawa-wallpaper

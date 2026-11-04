@@ -37,7 +37,7 @@ setup() {   # setup [SHELL] — a home with the autostart, every program it star
   cp "$(command -v sleep)" "$TMP/sys/zzz"; cp "$BASH" "$TMP/sys/sh"
   mkdir -p "$TMP/kbin"; cp "$REPO/bin/kawa-dwlstatus" "$TMP/kbin/"   # the one helper of ours it runs
   daemon $DAEMONS
-  stub systemctl; stub dbus-update-activation-environment; stub kawa-display; stub kawa-theme; stub kawa-steam; stub kawa-game; stub sleep
+  stub systemctl; stub dbus-update-activation-environment; stub kawa-display; stub kawa-theme; stub sleep
   stub kawa-night                                  # (the night light as last left: kawa-night restore)
   stub kawa-state                                  # (what you set, put back: kawa-state restore)
   stub kawa-glass                                  # (the terminal's glass file there before foot: kawa-glass ensure)
@@ -100,7 +100,7 @@ for SHL in sh=bash dash; do
 case_ "login: the session handed to systemd first, then the display, the theme, the helpers$n"
 setup "$SHL"; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar/OLD"; up
 settled waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus lxqt-policykit-agent kawa-clipkeep && _ok || _no "not all started: $(cat "$CALLS" | tr '\n' '|')"
-eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-downloads|kawa-clipkeep|kawa-steam|kawa-game|wl-paste|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
+eq "$(grep -vE '^(waybar|kawa-panel|mako|foot|udiskie|kawa-drives|kawa-downloads|kawa-clipkeep|wl-paste|swayidle|lxqt-policykit-agent|pgrep|sleep|notify-send)( |$)' "$CALLS")" \
 "systemctl --user import-environment WAYLAND_DISPLAY DISPLAY XDG_CURRENT_DESKTOP XDG_SESSION_DESKTOP XDG_SESSION_TYPE GTK_USE_PORTAL GDK_DEBUG
 systemctl --user stop dwl-session.target
 systemctl --user start dwl-session.target
@@ -117,7 +117,7 @@ systemctl --user --no-block start mako.service" "in this order, the display's mo
 called "^waybar $"; called "^kawa-panel $"; called "^systemctl --user --no-block start mako.service$"; called "^foot --server$"; called "^udiskie $"; called "^wl-paste --watch kawa-clip --store$"
 called "^kawa-night restore$"; not_called "^gammastep"; called "^lxqt-policykit-agent $"; called "^kawa-drives watch$"; called "^kawa-downloads watch$"
 called "^swayidle -w timeout 900 kawa-idle away resume kawa-idle back timeout 1800 kawa-idle dark resume kawa-idle back; kawa-lock --screens on after-resume kawa-lock --resumed before-sleep kawa-lock --now$"
-called "^kawa-clipkeep $"; called "^kawa-steam --warm$"; called "^kawa-steam --guard$"; called "^kawa-game restore$"; not_called "^notify-send"
+called "^kawa-clipkeep $"; not_called "^notify-send"
 for d in waybar kawa-panel foot udiskie wl-paste swayidle kawa-dwlstatus kawa-clipkeep; do eq "$(running "$d")" 1 "one $d"; done
 [[ ! -e $XDG_RUNTIME_DIR/dwl-bar/OLD ]] && _ok || _no "the last session's bar state was kept"
 case_ "dwl's status reaches the bar (one monitor)$n"
@@ -231,5 +231,8 @@ case_ "the two timers autostart starts end with the session (PartOf it): the rem
 for f in systemd/user/fedokawaii-remind.timer systemd/user/grub-boot-success.timer.d/session.conf; do
   grep -qx 'PartOf=dwl-session.target' "$REPO/configs/home/.config/$f" && _ok || _no "$f is not PartOf=dwl-session.target"
 done
+
+case_ "gaming is the play world's (lib/asobi.sh): the session starts no Steam helper and no game mode"
+a=$(cat "$REPO/configs/home/.config/dwl/autostart.sh"); lacks "$a" "kawa-steam"; lacks "$a" "kawa-game"
 
 done_

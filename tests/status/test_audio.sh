@@ -247,7 +247,7 @@ has "$(grep -E '^\s*\{ "=float",' "$REPO/src/dwl/config.h")" '1,           -1'
 lacks "$(cat "$REPO/src/dwl/config.h")" pavucontrol; lacks "$(cat "$REPO/src/dwl/config.h")" blueman
 has "$(grep -F "footclient -a \"\$app\"" "$REPO/bin/kawa-term")" "-a \"\$app\""; has "$(grep -E "^once=.* app=float" "$REPO/bin/kawa-term")" "app=float"
 case_ "the manifest: wiremix installed, pavucontrol never again (forbidden) and handed back to dnf (retired)"
-m() { (STEAM=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
+m() { (. "$REPO/lib/manifest.sh"; eval "$1"); }
 has " $(m 'manifest_all amd' | tr '\n' ' ') " " wiremix "; lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " pavucontrol "
 has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " pavucontrol "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " pavucontrol "
 has "$(grep -E '^wiremix ' "$REPO/tests/static/fixtures/programs.txt")" "manifest  wiremix"

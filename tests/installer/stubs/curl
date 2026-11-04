@@ -44,8 +44,6 @@ case $url in
        has copr-without "$o/$pn $chr" || js+="${js:+, }\"$chr\": \"https://download.copr.fedorainfracloud.org/results/$o/$pn/$chr/\""
      done
      printf '{"full_name": "%s/%s", "chroot_repos": {%s}}\n' "$o" "$pn" "$js"; exit 0 ;;
-  https://api.github.com/repos/GloriousEggroll/*) countdown curl-ge-api && { echo "curl: (22) The requested URL returned error: 403" >&2; exit 22; }
-     cat "$FKH/ge.json" 2>/dev/null || { echo "curl: (22) 404" >&2; exit 22; }; exit 0 ;;
 esac
 f=${url##*/}
 countdown "curl-$f" && { echo "curl: (28) Operation timed out" >&2; exit 28; }

@@ -1,0 +1,15 @@
+# /etc/systemd/user/kawa-asobi-world.service — the play world in front: gamescope and Steam, in the user
+# manager of asobi alone (no other user's manager starts it). kawa-asobi.service holds its seat session.
+[Unit]
+Description=ASOBI: gamescope and Steam's gamepad UI
+ConditionUser=asobi
+After=pipewire.socket pipewire-pulse.socket wireplumber.service
+
+[Service]
+ExecStart=/usr/local/bin/kawa-asobi-world
+ExecStop=/usr/local/bin/kawa-asobi-world --stop
+TimeoutStopSec=40
+Slice=app.slice
+LimitNOFILE=524288
+LimitCORE=0
+SuccessExitStatus=SIGABRT

@@ -23,6 +23,7 @@ hook() {   # hook install|remove NAME
             if [[ $1 == install ]] && ! grep -q '^greetd:' /etc/passwd; then
               echo 'greetd:x:968:968:greetd:/var/lib/greetd:/sbin/nologin' >>/etc/passwd; echo 'greetd:x:968:' >>/etc/group
             fi ;;
+    gamemode) if [[ $1 == install ]] && ! grep -q '^gamemode:' /etc/group; then echo 'gamemode:x:969:' >>/etc/group; fi ;;   # (its sysusers: the group GameMode's nice limit belongs to)
     mpv-mpris) f=/etc/mpv/scripts/mpris.so ;;
     mesa-vulkan-drivers-freeworld) f=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json ;;
     mesa-vulkan-drivers) f=/usr/share/vulkan/icd.d/intel_icd.x86_64.json ;;

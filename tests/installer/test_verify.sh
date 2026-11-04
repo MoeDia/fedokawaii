@@ -32,7 +32,7 @@ has "$OUT" "✔  restic runs (backups to another disk: kawa-backup)"   # (the ex
 has "$OUT" "✔  Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔  syncplay runs without a window"
 has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔  shutdown waits 30 s at most for your services"
-has "$OUT" "✔  the sound card never naps (no click at a volume change)"; has "$OUT" "✔  a restart waits for Steam to close properly (25 s at most)"
+has "$OUT" "✔  the sound card never naps (no click at a volume change)"
 
 case_ "…the same once the update button put brave-origin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
 fkh from-stored; V; has "$OUT" "✔  brave-origin from brave-browser (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
@@ -64,17 +64,16 @@ fkh prowlarr-auth forms; V; eq "$RC" 3
 has "$OUT" "✘  Prowlarr's page opens with no login — authentication: forms, its page answered 302"; rm -f "$FKH/prowlarr-auth"
 
 # ── warnings: never a failure ────────────────────────────────────────────────
-case_ "warnings only (no firewall running, no AV1 decoding, GE-Proton not yet, Syncplay and ble.sh not yet, a driver package missing): exit 0"
+case_ "warnings only (no firewall running, no AV1 decoding, Syncplay and ble.sh not yet, a driver package missing): exit 0"
 back built
 fkh firewalld-down
 printf '      VAProfileH264High   : VAEntrypointVLD\n      VAProfileHEVCMain   : VAEntrypointVLD\n' >"$FKH/vainfo-renderD128"
-rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton"
 rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh"
 fkh kmsg '[ 3.1] iwlwifi 0000:00:14.3: Direct firmware load for iwlwifi-so-a0-gf-a0-89.ucode failed with error -2'
 fkh fwfiles "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 has "$OUT" "!  no firewall running (firewalld)"; lacks "$OUT" "torrent port 6881"; lacks "$OUT" "firewall: no ssh"
-has "$OUT" "!  no AV1 hardware decode"; has "$OUT" "!  GE-Proton not installed yet"
+has "$OUT" "!  no AV1 hardware decode"
 has "$OUT" "!  driver packages this machine needs — iwlwifi-mvm-firmware"
 has "$OUT" "!  Syncplay not installed yet"; has "$OUT" "!  ble.sh not installed yet"
 has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 5)) && _ok || _no "$w warnings recorded"
@@ -173,7 +172,7 @@ case_ "--pre-finalize (setup's gate): the login and snapshots not yet looked at;
 back built; rm -f "$W/etc/systemd/system/display-manager.service" "$W/var/lib/fedokawaii/last-verify"
 fkh_del units "enabled greetd.service" "enabled snapper-timeline.timer" "enabled snapper-cleanup.timer"
 V --pre-finalize; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapshots"
+has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapper config for /" "the snapshots' section left out (the play world's own snapshots are another check)"
 [[ ! -e $W/var/lib/fedokawaii/last-verify ]] && _ok || _no "the gate's run was recorded for the menu"
 V; eq "$RC" 3 "without --pre-finalize those are failures"; has "$OUT" "✘  the login is no login manager at all"
 case_ "misuse: an unknown option, not root, setup not started (exit 2); --help (0)"

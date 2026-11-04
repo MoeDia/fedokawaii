@@ -13,7 +13,7 @@ resume() { fkrun bash "$TK/setup.sh" --resume "$@"; }
 tk() { fkrun bash "$TK/setup.sh" "$@"; }
 # out_of_step — RPM Fusion's builds a version behind Fedora's Mesa and libheif
 out_of_step() {
-  fkh behind mesa-va-drivers-freeworld libheif-freeworld mesa-va-drivers-freeworld.i686
+  fkh behind mesa-va-drivers-freeworld libheif-freeworld
   fkh versions "mesa-va-drivers-freeworld 26.2.4" "mesa-filesystem 26.2.5" "libheif-freeworld 1.23.5" "libheif 1.23.6"
 }
 caught_up() { fkh behind; fkh versions "mesa-va-drivers-freeworld 26.2.5" "mesa-filesystem 26.2.5" \
@@ -40,12 +40,13 @@ has "$OUT" "libheif-freeworld 1.23.5 from RPM Fusion is made for libheif 1.23.5;
 has "$OUT" "the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out until it has"
 reboot_world; keep phase3
 
-case_ "phase 3: Steam's 32-bit drivers wait with their 64-bit ones; the gate and the final check pass, with warnings"
+case_ "phase 3: the 64-bit VA driver and libheif still wait, no 32-bit driver with them (the play world's runtime brings its own); the gate and the final check pass, with warnings"
 resume --no-reboot; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n4 | tr '\n' '|')"
 eq "$(state phase)" "done"
-lacks "$(state pending-rpmfusion)" vulkan; has "$(state pending-rpmfusion)" mesa-va-drivers-freeworld.i686
-pkg_has mesa-vulkan-drivers.i686 && _ok || _no "Steam's 32-bit Vulkan driver (Fedora's) not installed"
-pkg_has steam && _ok || _no "Steam not installed"
+lacks "$(state pending-rpmfusion)" vulkan; lacks "$(state pending-rpmfusion)" i686; has "$(state pending-rpmfusion)" mesa-va-drivers-freeworld
+pkg_has mesa-vulkan-drivers.i686 && _no "a 32-bit Vulkan driver on the desktop's side" || _ok
+pkg_has steam && _no "Steam installed on the desktop's side" || _ok
+for p in flatpak gamescope gamemode ntsync-autoload steam-devices; do pkg_has "$p" || _no "$p (the play world's) not installed"; done; _ok
 has "$OUT" "!  libheif-freeworld 1.23.5 waits for Fedora's libheif 1.23.5"; has "$OUT" "!  mesa-va-drivers-freeworld 26.2.4 waits for Fedora's mesa-filesystem 26.2.4"
 has "$OUT" "!  the COPR ilyaz/LACT has no build for Fedora 44 yet — lact left out"
 lacks "$OUT" "✘  forbidden packages present"; lacks "$OUT" "✘ installed outside the manifest"; lacks "$OUT" "✘ missing packages"
@@ -65,7 +66,7 @@ case_ "update: RPM Fusion caught up — its builds put in (Fedora's Vulkan drive
 back waiting; caught_up
 tk --update; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 [[ ! -e $W/var/lib/fedokawaii/pending-rpmfusion ]] && _ok || _no "still recorded: $(state pending-rpmfusion | tr '\n' ' ')"
-for p in mesa-va-drivers-freeworld libheif-freeworld mesa-va-drivers-freeworld.i686 mesa-vulkan-drivers mesa-vulkan-drivers.i686; do
+for p in mesa-va-drivers-freeworld libheif-freeworld mesa-vulkan-drivers; do
   pkg_has "$p" || _no "$p not installed"
 done; _ok
 pkg_has mesa-vulkan-drivers-freeworld && _no "RPM Fusion's Vulkan driver installed" || _ok

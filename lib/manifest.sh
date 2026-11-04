@@ -21,7 +21,7 @@ PKG_BASE=(
                         #   the menus answer a hover and a click from their first frame)
   diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
                         #   the change menu opens (both usually there; listed, never assumed)
-  tar grubby            # tar: the release archives, GE-Proton, the C helpers' builds · grubby:
+  tar grubby            # tar: the release archives, the C helpers' builds · grubby:
                         #   kernel arguments (amdgpu, the console palette). Neither is in a
                         #   Minimal Install's @core: tar is @standard's, and the installer
                         #   adds grubby only for a UEFI boot — a BIOS install has none
@@ -53,11 +53,11 @@ PKG_MEDIA=(
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
   unrar                 # RAR archives and .cbr comics (nonfree): Fedora's 7-Zip reads no RAR (kawa-file, kawa-books)
 )
-# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64- and 32-bit. RPM Fusion's
+# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64-bit (the play world's games bring their
+# own, 32-bit too, in their Flatpak runtime). RPM Fusion's
 # freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
 # and Brave decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
-# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2): installing Steam's 32-bit one
-# took the 64-bit one out again
+# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2)
 PKG_GPU_COMMON=(mesa-dri-drivers mesa-vulkan-drivers vulkan-loader linux-firmware)
 PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
              rocm-smi)   # the ROCm SMI library: btop reads the card through it (load, memory, heat, watts)
@@ -82,7 +82,7 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
   rust cargo            # …and yazi (the files, with src/yazi/yazi.patch): setup.sh's build_yazi. Fedora's, updated with
                         #   the system; your own Rust to learn with is rustup's, apart (below)
 )
-# dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
+# dwl's config.mk ships XWayland commented out; X11 apps need it on
 # (and pixman: dwl.patch damages a window capture's output itself — capturesession; GLES 2:
 # its dissolve, a shader of its own — the headers come with wlroots-devel's own requirement)
 DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1 glesv2")
@@ -90,8 +90,8 @@ PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manag
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
   plymouth-plugin-script plymouth-plugin-label)                 # the boot splash (the "sumi" Plymouth theme is a script); the label: Plymouth 26's script plugin crashes without text rendering (4 Nov, F45: ply_console_viewer_hide on NULL)
 PKG_DESKTOP=(
-  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave and Steam; ALSA for
-                                                          #   programs that open it directly: games)
+  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave; ALSA for programs
+                                                          #   that open it directly)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
                                                           #   (sound processing, an equaliser: PipeWire's own modules — no package)
@@ -180,10 +180,13 @@ PKG_VIRT=(              # virtual machines: the games VM (Windows with the graph
                         #   nothing runs until a VM is started
   libvirt-daemon-kvm virt-install edk2-ovmf passt swtpm swtpm-tools qemu-img
 )
-PKG_GAMING=(steam gamescope mangohud
-            ntsync-autoload    # /dev/ntsync at boot: Proton's faster Windows synchronisation
-            steam-devices)     # the rules that let Steam (and Proton's games) open a controller:
-                               #   Steam brings it today — listed, never assumed
+PKG_ASOBI=(flatpak                # the world's programs, per user, in its own home: Steam, Bottles (lib/asobi.sh)
+           kbd                    # chvt: the screen back on the desktop when the world ends
+           xprop                  # FreeSync held on in gamescope (GAMESCOPE_VRR_ENABLED, kawa-asobi-world)
+           gamescope gamemode     # its compositor, on the card itself; the card at full clocks while it plays
+           ntsync-autoload        # /dev/ntsync at boot: Proton's faster Windows synchronisation
+           steam-devices)         # Valve's own rules for controllers (ValveSoftware/steam-devices, Fedora's
+                                  #   package): Steam in its Flatpak cannot install them, the host must
 
 # ── dropped from the manifest: Update hands them back to dnf as dependencies, so they
 #    are no longer "yours" and dnf autoremove clears them when nothing needs them. Move a
@@ -195,7 +198,7 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
               abiword gnumeric sc-im   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
               papirus-icon-theme       # every app shows its own icon now (hicolor), not an icon pack's
               bsdtar                   # the books window's comics: 7z lists and opens them (one archive tool)
-              gamemode                 # game mode is kawa-game's (tuned owns the CPU and the card's level)
+              steam mangohud           # gaming moved into the play world (its own Flatpak); no overlay
               easyeffects calf      # one sound-processing stack, PipeWire's own: an equaliser if you want
                                     #   one (filter-chain's param_eq) — handbook §15.6
               python3-fonttools     # the faces are the repo's own files now (system/fonts): nothing to build
@@ -264,7 +267,7 @@ manifest_all() {
   printf '%s\n' "${PKG_BASE[@]}" "${PKG_RELEASE[@]}" "${PKG_MEDIA[@]}" \
     "${PKG_GPU_COMMON[@]}" "${!gpu_pkgs}" "${PKG_BUILD[@]}" "${PKG_SESSION[@]}" \
     "${PKG_DESKTOP[@]}" "${PKG_LOOK[@]}" "${PKG_APPS[@]}" "${PKG_VIRT[@]}"
-  [[ $STEAM == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
+  printf '%s\n' "${PKG_ASOBI[@]}"
   # libraries a release binary needed that Fedora stopped pulling in by itself (say
   # openssl3-libs, once Fedora 45 moved to OpenSSL 4): installed and recorded by lib/upstream.sh
   cat "${STATE_DIR:-/var/lib/fedokawaii}/upstream-libs" 2>/dev/null || true

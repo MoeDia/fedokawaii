@@ -1,0 +1,8 @@
+# asobi (Super+U → system → asobi, the launcher's ASOBI): the play world, from the desktop
+# source: bin/kawa-asobi (its fzf keys: enter, esc; on a snapshot d), src/dwl/config.h, system/asobi/xkb-symbols
+── asobi: Super+G ─────────────────────────────────────────────────
+Super+G                 into the play world; in there, back here
+↑ / ↓                   the row before / after
+Enter                   do it
+d                       on a snapshot: delete it (clean always stays)
+Esc                     back; on the first screen, away

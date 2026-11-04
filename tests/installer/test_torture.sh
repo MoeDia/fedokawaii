@@ -44,10 +44,10 @@ lib() { OUT=$(LOG_FILE=/dev/null STATE_DIR=$TMP/state bash -c '. "$1/lib/common.
 sandbox
 case_ "every fedokawaii.conf key fuzzed: refused by its name, or valid — never a shell error, never a number that wraps"
 mapfile -t KEYS < <(sed -n 's/^\([A-Z_]*\)=.*/\1/p' "$REPO/fedokawaii.conf")
-eq "${#KEYS[@]}" 23 "the keys of fedokawaii.conf"
+eq "${#KEYS[@]}" 22 "the keys of fedokawaii.conf"
 FUZZ=("" " " "a b" "日本語" "مدينة" '$(touch /tmp/fk-pwned)' '`id`' 'x;rm -rf /' "../../etc/passwd" "-1" "0" \
       "18446744073709551760" "99999999999999999999999" "$(printf 'x%.0s' {1..3000})" $'tab\there' "yes " "AMD" "v0.9 " "\\")
-STRICT=" GPU STEAM SSH_SERVER THEME WALLPAPER_PACK BOOT_MENU_SECONDS MONITOR_HZ DNF_PARALLEL TIMEZONE NIGHT_LIGHT KB_LAYOUTS KB_TOGGLE BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT YAZI_TAG YAZI_COMMIT "
+STRICT=" GPU SSH_SERVER THEME WALLPAPER_PACK BOOT_MENU_SECONDS MONITOR_HZ DNF_PARALLEL TIMEZONE NIGHT_LIGHT KB_LAYOUTS KB_TOGGLE BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT YAZI_TAG YAZI_COMMIT "
 n=0 bad=0
 for k in "${KEYS[@]}"; do
   for v in "${FUZZ[@]}"; do
@@ -106,9 +106,9 @@ case $a in
   *" --files "*) case ${*: -1} in fd-find) echo /usr/bin/fd ;; fzf) printf '/usr/bin/fzf\n/usr/bin/fd\n' ;; esac ;;
   *" repoquery "*) [[ $a == *"%{repoid}"* ]] || { echo "dnf5 has no such field" >&2; exit 1; }
                   for n; do [[ $n == -* || $n == repoquery || $n == *%* ]] && continue
-                    [[ -e $HOME/.fk-base-only ]] && case $n in ffmpeg|*-freeworld|steam|unrar|intel-media-driver|brave-origin|claude-code|lact|grub-btrfs|rpmfusion-*) continue ;; esac
+                    [[ -e $HOME/.fk-base-only ]] && case $n in ffmpeg|*-freeworld|unrar|intel-media-driver|brave-origin|claude-code|lact|grub-btrfs|rpmfusion-*) continue ;; esac
                     case $n in wiremix|gdu) ;; ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo "$n|1.0-1|rpmfusion-free|$n" ;;
-                      steam|unrar|intel-media-driver) echo "$n|1.0-1|rpmfusion-nonfree|$n" ;; brave-origin) echo "$n|1.0-1|brave-browser|$n" ;; claude-code) echo "$n|1.0-1|claude-code|$n" ;;
+                      unrar|intel-media-driver) echo "$n|1.0-1|rpmfusion-nonfree|$n" ;; brave-origin) echo "$n|1.0-1|brave-browser|$n" ;; claude-code) echo "$n|1.0-1|claude-code|$n" ;;
                       lact) echo "lact|0.10.1-1|copr:copr.fedorainfracloud.org:ilyaz:LACT|lact" ;; grub-btrfs) echo "grub-btrfs|4.14-1|copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs|grub-btrfs" ;;
                       *) echo "$n|1.0-1.fc44|fedora|$n" ;; esac; done ;;
 esac

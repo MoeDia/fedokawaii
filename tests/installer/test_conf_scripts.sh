@@ -33,7 +33,7 @@ eq "$RC" 1; has "$OUT" "✘  GPU must be auto, amd or intel (is 'nvidia')"; has 
 case_ "check: the file missing is one ✘ line"
 rm -f "$cf"; fkrun bash /home/fkuser/fedokawaii/check.sh
 eq "$RC" 1; has "$OUT" "✘  cannot read /home/fkuser/fedokawaii/fedokawaii.conf"
-lacks "$OUT" "STEAM must be"
+lacks "$OUT" "WALLPAPER_PACK must be"
 
 world built
 tcf=$W/usr/local/lib/fedokawaii/fedokawaii.conf

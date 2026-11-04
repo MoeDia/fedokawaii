@@ -7,9 +7,7 @@
 # yazi's theme and layout code, the fonts' pixel metrics every alignment is measured with —
 # so an update never moves them: what was installed is what stays, file for file, and a
 # download that differs by a single byte is refused. Downloads come straight from the
-# release page (no GitHub API, so no rate limit to run into). The one exception is
-# GE-Proton, which follows its newest release: games are what it is for, and it changes
-# nothing else (the newest two are kept, so a game pinned to the older one still starts).
+# release page (no GitHub API, so no rate limit to run into).
 
 # shellcheck disable=SC2034  # UPSTREAM is iterated by setup.sh and verify.sh
 #          name             repo                     tag        file in the release                                   sha-256                                                            binaries → ~/.local/bin
@@ -50,9 +48,6 @@ TERM_FACE_FILES=(
 # own system user. FACES_OLD: where the pixel font before them lay (Fusion Pixel)
 FACES_DIR=/usr/local/share/fonts/fedokawaii
 FACES_OLD=/usr/local/share/fonts/fusion-pixel
-# (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
-# GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
-GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
 # torrra (from PyPI, with uv tool) is held at this version: kawa-torrra hands it the Prowlarr
 # key by replacing three methods of its settings class, so a newer torrra is taken only
 # after that has been checked against it.
@@ -94,7 +89,6 @@ BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 
 up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
-proton_dir()   { echo "$TARGET_HOME/.local/share/Steam/compatibilitytools.d"; }
 
 record_tag() {   # (every write into the home is the user's own: user_put)
   as_user mkdir -p "$(up_state_dir)"
@@ -417,57 +411,4 @@ install_blesh() {
   blesh_warm
   record_tag blesh "$BLESH_COMMIT"
   ok "ble.sh ${BLESH_COMMIT:0:7} (the shell's colours, suggestions and menus) → ~/.local/share/blesh"
-}
-
-# GE-Proton: its newest release (the GitHub API names it; its own .sha512sum file — the one
-# for that very file — checks it). The newest two are kept, so a game pinned to the
-# previous one still starts. Returns 1, having changed nothing, when GitHub cannot be
-# reached or the file does not check out. Its folder is named as the archive names it.
-install_ge_proton() {
-  local json tag url sumurl dir want got file name top part
-  dir=$(proton_dir)
-  json=$("${CURL[@]}" -H 'Accept: application/vnd.github+json' \
-         "https://api.github.com/repos/$GE_PROTON_REPO/releases/latest") || { log "GitHub not reachable for GE-Proton"; return 1; }
-  # the checksum file is the one named like the archive (…-x86_64.sha512sum); a release with
-  # a single checksum file of another name is taken only when it is the only one there
-  IFS=$'\t' read -r tag url sumurl < <(jq -r --arg re "$GE_PROTON_ASSET" '
-    .tag_name as $t | (.assets | map(select(.name | test($re))) | first) as $a
-    | ($a.name // "" | sub("\\.tar\\.gz$"; ".sha512sum")) as $sn
-    | (.assets | map(select(.name | test("\\.sha512sum$")))) as $sums
-    | ($sums | map(select(.name == $sn)) | first // (if ($sums | length) == 1 then $sums[0] else null end)) as $s
-    | [$t, ($a.browser_download_url // ""), ($s.browser_download_url // "")] | @tsv' <<<"$json") || true
-  # (an answer that is not JSON — a Wi-Fi sign-in page — reads as no release: said below)
-  [[ -n ${tag:-} && -n ${url:-} && -n ${sumurl:-} ]] || { log "no GE-Proton release file for x86_64 found"; return 1; }
-  file=${url##*/}; name=${file%.tar.gz}
-  if [[ -d $dir/$name || -d $dir/$tag ]]; then   # (put there before, or by another tool: recorded)
-    if [[ -d $dir/$name ]]; then record_tag ge-proton "$name"; else record_tag ge-proton "$tag"; fi
-    log "$name — in place"; return 0
-  fi
-  # the line for this file, or the file's only hash
-  want=$("${CURL[@]}" "$sumurl") || { log "GE-Proton's checksum file not reachable"; return 1; }
-  want=$({ grep -F -- "$file" <<<"$want" || printf '%s\n' "$want"; } | grep -oE '\b[0-9a-f]{128}\b' | sed -n 1p; exit "${PIPESTATUS[1]}") \
-    || { log "GE-Proton's checksum file holds no SHA-512 for $file"; return 1; }
-  REL_DIR=$(mktemp -d "$KAWA_TMP/rel.XXXXXX")
-  retry 3 10 "${CURL[@]}" -o "$REL_DIR/ge.tar.gz" "$url" || { log "GE-Proton download failed"; return 1; }
-  got=$(sha512sum "$REL_DIR/ge.tar.gz" | cut -d' ' -f1)
-  [[ $got == "$want" ]] || { log "GE-Proton $file: checksum mismatch — refused"; return 1; }
-  mkdir -p "$REL_DIR/x"; tar -xzf "$REL_DIR/ge.tar.gz" -C "$REL_DIR/x" --no-same-owner
-  # its one top folder (GE-Proton11-9-x86_64/, or GE-Proton10-25/ before), with Steam's file in it
-  top=$(find "$REL_DIR/x" -mindepth 1 -maxdepth 1 -type d -name 'GE-Proton*' -printf '%f\n')
-  [[ -n $top && $top != *$'\n'* && -f $REL_DIR/x/$top/compatibilitytool.vdf ]] \
-    || { log "the GE-Proton archive did not hold one GE-Proton folder with compatibilitytool.vdf"; return 1; }
-  # unpacked by you into a folder of its own, then moved into place in one step: a power cut or
-  # a full disk half-way leaves nothing half-made that a later run would take for installed
-  # (each step checked: repair calls this where errexit is off)
-  part=$dir/.fedokawaii-unpack
-  if ! { as_user mkdir -p "$dir" && as_user rm -rf -- "$part" && as_user mkdir -- "$part" \
-         && tar -C "$REL_DIR/x" -cf - "$top" | as_user tar -C "$part" -xf - --no-same-owner \
-         && as_user mv -T -- "$part/$top" "$dir/$top"; }; then
-    as_user rm -rf -- "$part"; log "GE-Proton could not be unpacked into $dir (is the disk full?)"; return 1
-  fi
-  as_user rm -rf -- "$part"
-  as_user find "$dir" -mindepth 1 -maxdepth 1 -type d -name 'GE-Proton*' -printf '%f\n' | sort -V | head -n -2 \
-    | while read -r old; do as_user rm -rf "${dir:?}/$old"; log "removed old $old"; done
-  record_tag ge-proton "$top"; rm -rf "$REL_DIR"
-  ok "$top → Steam compatibilitytools.d"
 }

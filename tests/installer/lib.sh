@@ -130,7 +130,7 @@ usr_farm() {
   mkdir -p "$b" "$s"
   (cd /usr/bin && find . -mindepth 1 -maxdepth 1 -printf "$W/.usr/bin/%f\\0") | xargs -0 ln -s -t "$b"
   (cd /usr/share && find . -mindepth 1 -maxdepth 1 ! -name icons ! -name vulkan ! -name applications ! -name locale ! -name plymouth -printf "$W/.usr/share/%f\\0") | xargs -0 ln -s -t "$s"
-  for n in vi vim view vimdiff nano emacs flatpak snap nvim agreety greetd gnome-shell steam; do rm -f "$b/$n"; done
+  for n in vi vim view vimdiff nano emacs flatpak snap nvim agreety greetd gnome-shell steam gamescope; do rm -f "$b/$n"; done
   mkdir -p "$s/icons" "$s/applications" "$s/vulkan/icd.d" "$s/locale"
   for n in /usr/share/locale/*; do [[ $n == */fk ]] || ln -s "$W/.usr$n" "$s/locale/${n##*/}"; done   # (fk: the lock screen's, setup's own)
   mkdir -p "$s/plymouth/themes"   # (sumi: the boot splash, theme.sh's own — a machine that ran it has one)
@@ -205,7 +205,8 @@ world() {   # world fresh|built [--themed]
   usr_farm
   fake_pylibs
   # the desktop user, an administrator; Fedora's os-release; GRUB's defaults
-  sed -i '/^fkuser:/d; /^greetd:/d' "$W/etc/passwd" "$W/etc/group"
+  sed -i '/^fkuser:/d; /^greetd:/d; /^asobi:/d; /^asobi-drop:/d' "$W/etc/passwd" "$W/etc/group"   # (this PC's own play world's user and group: not the fake one's)
+  sed -i '/^asobi:/d' "$W/etc/shadow" 2>/dev/null; true
   echo "fkuser:x:$FK_UID:$FK_UID:Fk User:/home/fkuser:/bin/bash" >>"$W/etc/passwd"
   echo "fkuser:x:$FK_UID:" >>"$W/etc/group"
   if grep -q '^wheel:' "$W/etc/group"; then sed -i -E 's/^(wheel:[^:]*:[^:]*:)(.*)$/\1\2,fkuser/; s/^(wheel:[^:]*:[^:]*:),/\1/' "$W/etc/group"
@@ -275,7 +276,7 @@ world() {   # world fresh|built [--themed]
     nano nano-default-editor vim-minimal dracut-config-rescue linux-firmware systemd >"$FKH/installed"
   printf '%s\n' bash sudo NetworkManager kernel-core grub2-tools grubby firewalld openssh-server nano \
     vim-minimal dracut-config-rescue | sed 's/$/ User/' >"$FKH/userinstalled"
-  { ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd; manifest_all intel; printf '%s\n' "${FORBIDDEN_amd[@]}" )
+  { ( STATE_DIR=/nonexistent; . "$REPO/lib/manifest.sh"; manifest_all amd; manifest_all intel; printf '%s\n' "${FORBIDDEN_amd[@]}" )
     printf '%s\n' mesa-vulkan-drivers.i686 mesa-vulkan-drivers-freeworld mesa-vulkan-drivers-freeworld.i686 mesa-va-drivers-freeworld.i686 amd-ucode-firmware microcode_ctl \
       NetworkManager-wifi wireless-regdb alsa-sof-firmware iwlwifi-mvm-firmware realtek-firmware kernel-core
     cat "$FKH/installed"; } | sort -u >"$FKH/available"
@@ -317,6 +318,7 @@ reboot_world() {   # what a restart changes: the kernel's arguments as recorded;
 fk_perms() {   # the fake machine's own ownership: the user's home is fkuser's; the stub records anyone's
   chmod -R a+rwX "$FKH"
   fk chown -R "$FK_UID:$FK_UID" /home/fkuser /run/user 2>/dev/null
+  fk chmod 711 /home/fkuser 2>/dev/null   # (Fedora's is 700: nobody else reads it — the play world's user least of all; 711, so this test's own user still reaches the files it names)
   [[ -d $W/var/lib/fedokawaii-greeter ]] && fk chown "$FK_UID:$FK_UID" /var/lib/fedokawaii-greeter   # (setup gives it to you)
   if [[ -d $W/runuser/$FK_UID ]]; then fk chown -R "$FK_UID:$FK_UID" "/run/user/$FK_UID"; fi
   return 0
@@ -392,7 +394,7 @@ releases() {
   local r=$TMP/rel d f sum name file old
   rm -rf "$r"; mkdir -p "$r"
   tool() { printf '#!/bin/sh\necho "%s %s"\n' "$1" "$2" >"$3"; chmod 755 "$3"; }
-  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/ud/UDEVGothic_NF_v2.2.0" "$r/ge/GE-Proton10-25"
+  mkdir -p "$r/satty" "$r/yazi/yazi-x86_64-unknown-linux-musl" "$r/lg" "$r/ud/UDEVGothic_NF_v2.2.0"
   tool satty 0.22.0 "$r/satty/satty"; tool yazi 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/yazi"; tool ya 26.9.1 "$r/yazi/yazi-x86_64-unknown-linux-musl/ya"
   tool bluetui 0.8.2 "$FKH/dl/bluetui-x86_64-linux-musl"     # (no archive: the release file is the binary)
   fake_herdr "$FKH/dl/herdr-linux-x86_64"                    # (no archive either)
@@ -403,7 +405,6 @@ releases() {
   tool lazygit "$(sed -E 's/^lazygit_([0-9.]+)_.*/\1/' <<<"$lgfile")" "$r/lg/lazygit"; echo licence >"$r/lg/LICENSE"; echo readme >"$r/lg/README.md"   # (as its release: beside them)
   for f in Regular Bold Italic BoldItalic; do fake_face "UDEVGothicNF-$f.ttf" >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothicNF-$f.ttf"; done
   echo other >"$r/ud/UDEVGothic_NF_v2.2.0/UDEVGothic35NF-Regular.ttf"   # (a variant the archive has too: not taken)
-  echo '"compatibilitytools" { }' >"$r/ge/GE-Proton10-25/compatibilitytool.vdf"
   # LocalSend: its release folder (the app, its libraries, its data)
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
   echo lib >"$r/ls/lib/libapp.so"; echo png >"$r/ls/data/flutter_assets/assets/img/logo-512.png"
@@ -412,11 +413,6 @@ releases() {
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
   tar -czf "$FKH/dl/$lgfile" -C "$r/lg" LICENSE README.md lazygit
   (cd "$r/ud" && python3 -m zipfile -c "$FKH/dl/UDEVGothic_NF_v2.2.0.zip" UDEVGothic_NF_v2.2.0)
-  tar -czf "$FKH/dl/GE-Proton10-25.tar.gz" -C "$r/ge" GE-Proton10-25
-  (cd "$FKH/dl" && sha512sum GE-Proton10-25.tar.gz >GE-Proton10-25.sha512sum)
-  printf '%s\n' '{"tag_name":"GE-Proton10-25","assets":[' \
-    '{"name":"GE-Proton10-25.sha512sum","browser_download_url":"https://github.com/x/GE-Proton10-25.sha512sum"},' \
-    '{"name":"GE-Proton10-25.tar.gz","browser_download_url":"https://github.com/x/GE-Proton10-25.tar.gz"}]}' >"$FKH/ge.json"
   echo "-----BEGIN PGP PUBLIC KEY BLOCK-----" >"$FKH/dl/claude-code.asc"
   # the fake machine's copies of the project, pinned to these files
   for d in "$W/home/fkuser/fedokawaii" "$W/usr/local/lib/fedokawaii"; do
@@ -435,11 +431,30 @@ releases() {
 }
 
 # ── a finished install (setup done; with --themed, the theme applied too) ──────────
+# asobi_world — the play world as setup leaves it (lib/asobi.sh): its user (no wheel, locked, no shell),
+# its home and its first snapshot as subvolumes, the drop folder shared with fkuser, Steam and
+# Bottles in its Flatpak, and the files of its unit, its PAM service, its polkit rule and its keyboard
+asobi_world() {
+  local au=3500
+  sed -i '/^asobi:/d; /^asobi-drop:/d; /^gamemode:/d' "$W/etc/passwd" "$W/etc/group"
+  touch "$W/etc/shadow"; sed -i '/^asobi:/d' "$W/etc/shadow"
+  echo "asobi:x:$au:$au:ASOBI the play world:/home/asobi:/usr/sbin/nologin" >>"$W/etc/passwd"
+  echo "asobi:x:$au:" >>"$W/etc/group"; echo "gamemode:x:969:asobi" >>"$W/etc/group"; echo "asobi-drop:x:$((au + 1)):asobi,fkuser" >>"$W/etc/group"
+  echo "asobi:!:20000:0:99999:7:::" >>"$W/etc/shadow"
+  mkdir -p "$W/home/asobi" "$W/home/.asobi/snapshots/clean" "$W/home/.asobi/drop"
+  fkh_add subvolumes /home/asobi /home/.asobi/snapshots/clean
+  fk bash -c "chown $au:$au /home/asobi; chmod 700 /home/asobi /home/.asobi/snapshots; chown 0:$((au + 1)) /home/.asobi/drop; chmod 2770 /home/.asobi/drop"
+  fkh flatpak-apps com.valvesoftware.Steam com.usebottles.bottles
+  mkdir -p "$W/etc/pam.d" "$W/etc/polkit-1/rules.d" "$W/etc/xkb/symbols" "$W/etc/systemd/system"
+  cp "$REPO/system/asobi/kawa-asobi.pam" "$W/etc/pam.d/kawa-asobi"; cp "$REPO/system/asobi/xkb-symbols" "$W/etc/xkb/symbols/kawa-asobi"
+  cp "$REPO/system/asobi/kawa-asobi.service" "$W/etc/systemd/system/kawa-asobi.service"
+  sed 's/DESK_USER/fkuser/g' "$REPO/system/asobi/kawa-asobi.rules" >"$W/etc/polkit-1/rules.d/60-kawa-asobi.rules"
+}
 built() {
   local themed=$1 S=$W/var/lib/fedokawaii U=$W/home/fkuser p
   echo "done" >"$S/phase"; echo fkuser >"$S/user"; echo amd >"$S/gpu"
   local gid=3100
-  for p in video render gamemode; do gid=$((gid + 1))
+  for p in video render; do gid=$((gid + 1))
     if grep -q "^$p:" "$W/etc/group"; then sed -i -E "s/^($p:[^:]*:[^:]*:)(.+)\$/\\1\\2,fkuser/; s/^($p:[^:]*:[^:]*:)\$/\\1fkuser/" "$W/etc/group"
     else echo "$p:x:$gid:fkuser" >>"$W/etc/group"; fi
   done
@@ -484,11 +499,6 @@ built() {
   mkdir -p "$W/etc/mpv/scripts"; rm -f "$W/etc/mpv/scripts/mpris.so"; : >"$W/etc/mpv/scripts/mpris.so"
   mkdir -p "$W/etc/modprobe.d" "$W/etc/systemd/system/user@.service.d"
   echo 'options btusb enable_autosuspend=0' >"$W/etc/modprobe.d/fedokawaii-btusb.conf"
-  # game mode (setup.sh: game_mode): tuned's game profile, its polkit rule, a game's priority
-  mkdir -p "$W/etc/tuned/profiles/fedokawaii-game" "$W/etc/polkit-1/rules.d" "$W/etc/security/limits.d"
-  printf '[main]\ninclude=fedokawaii\n\n[sysfs]\n/sys/bus/pci/devices/0000:03:00.0/power_dpm_force_performance_level=high\n' >"$W/etc/tuned/profiles/fedokawaii-game/tuned.conf"
-  printf 'polkit.addRule(function (action, subject) { return polkit.Result.NOT_HANDLED; });\n' >"$W/etc/polkit-1/rules.d/60-fedokawaii-game.rules"
-  echo 'fkuser - nice -5' >"$W/etc/security/limits.d/60-fedokawaii-game.conf"
   echo 'options snd_hda_intel power_save=0' >"$W/etc/modprobe.d/fedokawaii-audio.conf"
   printf '[Service]\nTimeoutStopSec=30s\n' >"$W/etc/systemd/system/user@.service.d/fedokawaii.conf"
   mkdir -p "$W/etc/systemd/sleep.conf.d"; printf '[Sleep]\nAllowHibernation=no\nAllowHybridSleep=no\nAllowSuspendThenHibernate=no\n' >"$W/etc/systemd/sleep.conf.d/90-fedokawaii.conf"
@@ -539,8 +549,9 @@ built() {
   chmod 755 "$W/home/fkuser/.local/bin/yazi"
   { printf '%s\n' "$(conf_val YAZI_TAG)" "$(conf_val YAZI_COMMIT)"; cat "$REPO/src/yazi/yazi.patch"; } | sha256sum | cut -d' ' -f1 >"$W/home/fkuser/.local/share/fedokawaii/upstream/yazi.built"
   : >"$W/var/lib/systemd/linger/fkuser"; : >"$W/dev/ntsync"
+  asobi_world
   # every manifest package installed and marked as yours; the services setup enabled
-  ( STATE_DIR=/nonexistent STEAM=yes; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"
+  ( STATE_DIR=/nonexistent; . "$REPO/lib/manifest.sh"; manifest_all amd ) | sort -u >"$TMP/manifest"
   cp "$TMP/manifest" "$S/manifest"
   grep -vxF -e nano -e nano-default-editor -e vim-minimal -e dracut-config-rescue "$FKH/installed" \
     | cat - "$TMP/manifest" <(echo mesa-vulkan-drivers.i686) <(echo amd-ucode-firmware) | sort -u >"$FKH/installed.n"
@@ -571,9 +582,9 @@ built() {
   printf '[%s]\n' "$(for d in nyaasi SubsPlease tokyotosho thepiratebay yts Knaben limetorrents torrentdownloads; do
     printf '{"enable": true, "definitionName": "%s"},' "$d"; done | sed 's/,$//')" >"$FKH/prowlarr-indexers"
   echo $'Scrub started:    Sat Oct  3 02:00:00 2026\nStatus:           finished\nError summary:    no errors found' >"$FKH/scrub-status"
-  # the user's home: tools at their pinned tags, fonts, GE-Proton, torrra, secrets, Prowlarr, nvim
+  # the user's home: tools at their pinned tags, fonts, torrra, secrets, Prowlarr, nvim
   mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" \
-    "$W/usr/local/share/fonts/fedokawaii" "$U/.local/share/Steam/compatibilitytools.d/GE-Proton10-25" \
+    "$W/usr/local/share/fonts/fedokawaii" \
     "$U/.local/src/dwl/.git" "$U/.local/share/uv/tools/torrra/bin" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
     "$U/.config/prowlarr" "$U/.config/nvim" "$U/.config/torrra" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
   local name tag bins b f
@@ -582,7 +593,6 @@ built() {
     [[ $name == herdr ]] && fake_herdr "$U/.local/bin/herdr"
     echo "$tag" >"$U/.local/share/fedokawaii/upstream/$name"
   done < <(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}")
-  echo GE-Proton10-25 >"$U/.local/share/fedokawaii/upstream/ge-proton"
   # Syncplay from its pinned source: the folder, the two starters, the commit recorded
   ( . "$TI/stubs/_lib.sh"; FKH=$FKH fake_syncplay_source "$U/.local/share/fedokawaii/syncplay" )
   ( . "$REPO/lib/upstream.sh"; d=/home/fkuser/.local/share/fedokawaii/syncplay

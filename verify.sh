@@ -152,7 +152,7 @@ if [[ -n $ui ]]; then
   done < <(comm -23 <(sort -u <<<"$ui") <(echo "$ours") | grep -v '^kernel')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
 else fail "nothing user-installed beyond the manifest" "dnf repoquery failed"; fi
-check "no Flatpak, no Snap"                            bash -c 'command -v dnf && ! command -v flatpak && ! command -v snap'
+check "no Snap, and no Flatpak outside the play world"  bash -c 'command -v dnf && ! command -v snap && [[ -z $(flatpak remotes --system --columns=name 2>/dev/null) ]]'
 check "one editor (no vim, nano, emacs)"               bash -c 'command -v nvim && ! command -v vim && ! command -v nano && ! command -v emacs'
 # nothing doubled, nothing fighting (lib/hygiene.sh) — repair puts each of these right
 d=$(hy_duplicates)
@@ -374,7 +374,7 @@ else info "NTFS drives open with ntfs-3g (this kernel has no ntfs3)"; fi
 section "compositor & login"
 check "dwl $DWL_TAG installed"                         U bash -c "/usr/local/bin/dwl -v 2>&1 | grep -q '${DWL_TAG#v}'"
 check "dwl at the pinned commit"                       test "$(U git -C "$TARGET_HOME/.local/src/dwl" rev-parse HEAD 2>/dev/null)" = "$DWL_COMMIT"
-check "dwl built with XWayland (Steam, X11 apps)"      U bash -c 'ldd /usr/local/bin/dwl | grep -q libxcb'
+check "dwl built with XWayland (X11 apps)"      U bash -c 'ldd /usr/local/bin/dwl | grep -q libxcb'
 # (the whole patch, as theme.sh tests it: it would come off cleanly — fed on stdin, as root
 # reads the toolkit's copy)
 dwl_patched() { U git -C "$TARGET_HOME/.local/src/dwl" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; }
@@ -459,12 +459,11 @@ if ! grep -qx 'options snd_hda_intel power_save=0' /etc/modprobe.d/fedokawaii-au
 elif [[ -r /sys/module/snd_hda_intel/parameters/power_save && $(cat /sys/module/snd_hda_intel/parameters/power_save) != 0 ]]; then
   fail "the sound card never naps (no click at a volume change)" "snd_hda_intel power_save is $(cat /sys/module/snd_hda_intel/parameters/power_save) now — repair sets 0"
 else pass "the sound card never naps (no click at a volume change)"; fi
-[[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
+check "ntsync ready for Proton (/dev/ntsync)"          test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
 check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernation=no' /etc/systemd/sleep.conf.d/90-fedokawaii.conf
 check "every sleep locked first (the Sleep key is dwl's)"    grep -qx 'HandleSuspendKey=ignore' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
-check "a restart waits for Steam to close properly (25 s at most)" grep -qx 'InhibitDelayMaxSec=25' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 # the pace of a start and a shut down, a clean system and home (setup.sh: s_pace, s_clean)
 check "a system service has 15 s to stop, one of yours 10 s" \
   bash -c "grep -qx 'DefaultTimeoutStopSec=15s' /etc/systemd/system.conf.d/90-fedokawaii.conf && grep -qx 'DefaultTimeoutStopSec=10s' /etc/systemd/user.conf.d/90-fedokawaii.conf"
@@ -595,11 +594,6 @@ case $(up_tag blesh) in
 esac
 check "UDEV Gothic NF v2.2.0, the terminal's face (its four files as pinned)" \
   bash -c 'for e; do f=${e%%|*}; [[ $(sha256sum "'"$FACES_DIR"'/$f" 2>/dev/null | cut -d" " -f1) == "${e#*|}" ]] || exit 1; done' _ "${TERM_FACE_FILES[@]}"
-# (GE-Proton comes from GitHub, and setup carries on without it: Steam has its own Proton)
-if [[ $STEAM == yes ]]; then
-  if [[ -z $(up_tag ge-proton) ]]; then warn "GE-Proton not installed yet" "Steam's own Proton works meanwhile — update tries again"
-  else check "GE-Proton $(up_tag ge-proton)" test -d "$(proton_dir)/$(up_tag ge-proton)"; fi
-fi
 
 # ── applications (do they actually start?) ──────────────────────────────────
 section "applications"
@@ -671,7 +665,19 @@ check "Python: uv's CPython"                           U uv python find --manage
 check "Rust: cargo, rust-analyzer, clippy, rustfmt (rustup)" U bash -c 'for b in cargo rust-analyzer cargo-clippy rustfmt; do test -x ~/.local/share/cargo/bin/$b || exit 1; done'
 check "neovim's Python and Rust servers (basedpyright, ruff, codelldb)" U bash -c 'for b in basedpyright ruff codelldb; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
 check "restic runs (backups to another disk: kawa-backup)" U restic version
-[[ $STEAM == yes ]] && check "game mode's tuned profile"  test -s /etc/tuned/profiles/fedokawaii-game/tuned.conf
+# ── the play world (lib/asobi.sh): a user that can touch nothing of yours, its walls, its programs
+section "the play world"
+check "asobi: no wheel, no password, no shell"          bash -c '[[ " $(id -nG asobi) " != *" wheel "* && $(passwd -S asobi | cut -d" " -f2) == L && $(getent passwd asobi | cut -d: -f7) == */nologin ]]'
+check "asobi cannot read your home, nor sudo"           bash -c '! runuser -u asobi -- test -r "$1" && ! runuser -u asobi -- sudo -n true 2>/dev/null' _ "$TARGET_HOME"
+check "its home a Btrfs subvolume of its own, its alone" bash -c 'btrfs subvolume show /home/asobi >/dev/null && [[ $(stat -c %a:%U /home/asobi) == 700:asobi ]]'
+check "its snapshots (clean, as installed, among them)" bash -c 'btrfs subvolume show /home/.asobi/snapshots/clean >/dev/null && [[ $(stat -c %a /home/.asobi/snapshots) == 700 ]]'
+check "the drop folder, shared by the two of you"       bash -c '[[ $(stat -c %a:%G /home/.asobi/drop) == 2770:asobi-drop ]]'
+check "Steam and Bottles, per user, in its home"        bash -c 'a=$(cd / && runuser -u asobi -- env HOME=/home/asobi flatpak --user list --app --columns=application); [[ $a == *com.valvesoftware.Steam* && $a == *com.usebottles.bottles* ]]'
+check "its session unit, its PAM file, its polkit rule" bash -c 'systemd-analyze verify kawa-asobi.service >/dev/null 2>&1; test -s /etc/systemd/system/kawa-asobi.service && test -s /etc/pam.d/kawa-asobi && test -s /etc/polkit-1/rules.d/60-kawa-asobi.rules'
+check "Super+G out of the world (its keyboard)"         test -s /etc/xkb/symbols/kawa-asobi
+# (its walls on its own manager alone: on every user@ they kept yours from starting, 4 Nov 2026)
+check "its walls on its own manager, none on yours"     bash -c 'u=$(id -u asobi) && [[ -s /etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf && ! -e /etc/systemd/system/user@.service.d/50-kawa-asobi.conf && $(systemctl show -P ProtectHome "user@$(id -u "$1").service") == no ]]' _ "$TARGET_USER"
+check "your own manager is running"                     bash -c 'systemctl is-active --quiet "user@$(id -u "$1").service"' _ "$TARGET_USER"
 
 # ── snapshots ────────────────────────────────────────────────────────────────
 if ((PRE == 0)); then

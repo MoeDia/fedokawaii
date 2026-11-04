@@ -106,7 +106,7 @@ out=$(fedokawaii update 2>&1); eq "$?" 0; has "$out" "the update on the running 
 case_ "rows: five sections, each its entries in order, each fitting the 38-column list"
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
 for s in $SECS; do printf '%s: %s\n' "$s" "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --rows "$s" | cut -f1 | tr '\n' ' ')"; done >"$TMP/secs"
-eq "$(cat "$TMP/secs")" "system: status verify repair drift change theme settings remind log 
+eq "$(cat "$TMP/secs")" "system: status verify repair drift change asobi theme settings remind log 
 update: update held 
 snapshots: snapshots file 
 backups: backup restore drive carry stick bring 
@@ -217,7 +217,7 @@ has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\|asobi\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
 called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|carry\|bring\|settings\|log\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
@@ -593,9 +593,9 @@ fresh; editor 'true'
 out=$(tty_free fedokawaii --run settings </dev/null 2>&1)
 has "$out" "unchanged"; has "$out" "finished"; eq "$(front_calls)" ""
 case_ "settings changed and valid: root checks the copy, saves it"
-editor 'sed -i "s/^STEAM=\"yes\"/STEAM=\"no\"/" "$1"'
+editor 'sed -i "s/^WALLPAPER_PACK=\"yes\"/WALLPAPER_PACK=\"no\"/" "$1"'
 out=$(tty_free fedokawaii --run settings </dev/null 2>&1)
-has "$(front_calls)" "front conf "; has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'; has "$out" "finished"
+has "$(front_calls)" "front conf "; has "$(cat "$R/toolkit/fedokawaii.conf")" 'WALLPAPER_PACK="no"'; has "$out" "finished"
 case_ "settings with a slip: not saved, the reason shown, the temp copy gone"
 fresh; editor 'echo "BAD=1" >>"$1"'
 out=$(tty_free fedokawaii --run settings </dev/null 2>&1)
@@ -604,9 +604,9 @@ eq "$(find "$XDG_RUNTIME_DIR" -name 'fedokawaii.conf.*' | wc -l)" 0 "the edited 
 case_ "settings with a slip: edit it again (y) keeps your edit; fixed, it is saved"
 fresh
 # (first: a slip; the second time the editor sees it, it takes the slip out again)
-editor 'if grep -q BAD "$1"; then sed -i "/BAD/d; s/^STEAM=\"yes\"/STEAM=\"no\"/" "$1"; else echo "BAD=1" >>"$1"; fi'
+editor 'if grep -q BAD "$1"; then sed -i "/BAD/d; s/^WALLPAPER_PACK=\"yes\"/WALLPAPER_PACK=\"no\"/" "$1"; else echo "BAD=1" >>"$1"; fi'
 out=$(on_tty "yx" fedokawaii --run settings)
-has "$out" "edit it again"; has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'
+has "$out" "edit it again"; has "$(cat "$R/toolkit/fedokawaii.conf")" 'WALLPAPER_PACK="no"'
 has "$out" "finished"
 case_ "settings with a slip: n gives up — nothing saved"
 fresh; editor 'echo "BAD=1" >>"$1"'
@@ -616,9 +616,9 @@ case_ "settings: an editor that does not exist is said, nothing asked of root"
 fresh; export VISUAL=/nonexistent/editor
 out=$(tty_free fedokawaii --run settings </dev/null 2>&1); has "$out" "/nonexistent/editor"; lacks "$out" "unchanged"; eq "$(front_calls)" ""
 case_ "settings: VISUAL with its own options (code --wait style)"
-fresh; printf '#!/bin/sh\n[ "$1" = --wait ] || exit 9\nsed -i "s/^STEAM=\\"yes\\"/STEAM=\\"no\\"/" "$2"\n' >"$TMP/ed2"; chmod +x "$TMP/ed2"
+fresh; printf '#!/bin/sh\n[ "$1" = --wait ] || exit 9\nsed -i "s/^WALLPAPER_PACK=\\"yes\\"/WALLPAPER_PACK=\\"no\\"/" "$2"\n' >"$TMP/ed2"; chmod +x "$TMP/ed2"
 export VISUAL="$TMP/ed2 --wait"
-tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'
+tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/toolkit/fedokawaii.conf")" 'WALLPAPER_PACK="no"'
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────

@@ -181,9 +181,10 @@ swtpm                           a virtual machine's TPM (Windows 11)
 swtpm-tools                     swtpm's set-up
 passt                           a virtual machine's network
 qemu-img                        a virtual machine's disk images
-# ── games' parts ──
-gamescope                       a command games are started with
-mangohud                        the games' overlay
+# ── the play world's parts (kawa-asobi: Super+G) ──
+flatpak                         the play world's programs, per user, in its own home
+gamemode                        the card at full clocks while the world plays
+gamescope                       the world's compositor, on the card itself
 ntsync-autoload                 a kernel module
 steam-devices                   controllers' rules
 # ── release binaries' parts ──
@@ -201,10 +202,9 @@ kawa-downloads                  a menu: the bar's download mark
 kawa-drives                     a menu: the bar's drives, the drive's notice
 kawa-dwlstatus                  the bar's status
 kawa-foryou                     what only you can do: a notice at login and Super+U's first row
-kawa-game                       game mode: Steam's watch in the bar runs it
 kawa-glass                      a switch: Super+U → transparency
 kawa-help                       a menu: Super+/
-kawa-hush                       notices held back while sharing or gaming
+kawa-hush                       notices held back while sharing or while the play world is in front
 kawa-idle                       what happens while you are away
 kawa-lock                       the lock: Super+Escape
 kawa-mem                        the bar's memory

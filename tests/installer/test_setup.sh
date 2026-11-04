@@ -34,7 +34,7 @@ pkg_has nano && _no "nano still there" || _ok
 pkg_has systemd-oomd-defaults && _no "systemd-oomd-defaults still there (its kill would take the whole session)" || _ok
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-btusb.conf" 2>/dev/null)" "options btusb enable_autosuspend=0" "the Bluetooth dongle never sleeps"
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-audio.conf" 2>/dev/null)" "options snd_hda_intel power_save=0" "the sound card's codec never naps (no click as it wakes)"
-eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=25 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock, a restart for Steam to close"
+eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=25 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock"
 # (Node 22, which neovim brings through tree-sitter-cli's recommendation, never taken as a weak
 # dependency — set before the first install, and dnf reads it back so)
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*"
@@ -74,9 +74,9 @@ eq "$(state hardware-pkgs)" amd-ucode-firmware
 reboot_world; keep phase3
 
 case_ "phase 3: dwl and the desktop, the gate, then the login enabled last and the resume unit gone"
-# (GitHub refusing GE-Proton's release list once, the file dialog's first build failing, and
-# LazyVim's plugin clones failing the first time: none stops the build, the gate tries again)
-fkh fail-curl-ge-api 1; fkh fail-meson 1; fkh fail-nvim-plugins 1
+# (the file dialog's first build failing, and LazyVim's plugin clones failing the first time:
+# none stops the build, the gate tries again)
+fkh fail-meson 1; fkh fail-nvim-plugins 1
 # (garbage the end sweeps: the download the clone was unpacked from, twelve theme runs' backups)
 B=$W/home/fkuser/.local/state/fedokawaii/backup
 for i in $(seq -w 1 12); do mkdir -p "$B/202601${i}-120000"; done; mkdir -p "$W/home/fkuser/Downloads"; : >"$W/home/fkuser/Downloads/fedokawaii.zip"; touch -d '1 hour ago' "$W/home/fkuser/Downloads/fedokawaii.zip"   # (downloaded before it was unpacked)
@@ -112,7 +112,7 @@ has "$ru" $'Type=oneshot'; has "$ru" "After=graphical.target network-online.targ
 grep -qx 'enabled fedokawaii-report.service' "$FKH/units" && _ok || _no "fedokawaii-report.service not enabled"
 [[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
 for t in satty yazi ya bluetui lazygit herdr; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
-eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
+[[ ! -e $W/home/fkuser/.local/share/Steam && ! -e $W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton ]] && _ok || _no "Steam's folder or GE-Proton's record in your home (gaming is the play world's)"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07e) at its pinned commit"
@@ -139,9 +139,8 @@ called "uv\] python install"
 [[ -L $W/home/fkuser/.local/share/uv/tool-bin/torrra && ! -e $W/home/fkuser/.local/bin/torrra && ! -L $W/home/fkuser/.local/bin/torrra ]] \
   && _ok || _no "uv's torrra is in ~/.local/bin"
 eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "torrra's port and LocalSend's"
-case_ "the gate's second tries: GE-Proton, the yazi file dialog and LazyVim's plugins, each put in place there"
-has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "no file dialog yet: termfilechooser did not build"
-has "$OUT" "✔ GE-Proton10-25 → Steam compatibilitytools.d"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
+case_ "the gate's second tries: the yazi file dialog and LazyVim's plugins, each put in place there"
+has "$OUT" "no file dialog yet: termfilechooser did not build"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
 called "nvim\] --headless \+Lazy! install"
 [[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
 case_ "after the build: verify passes (exit 0), and setup run again only says so"

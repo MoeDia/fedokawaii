@@ -13,7 +13,7 @@ setup() {
 setup
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
-rc 1 kawa-calc --answer steam
+rc 1 kawa-calc --answer hello
 # the launcher (kawa-panel's): its Panel driven with a stand-in ui that notes what it is asked
 lp() {
   local G=$TMP/gi; mkdir -p "$G/gi/repository"

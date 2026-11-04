@@ -15,7 +15,7 @@ area() { awk -v a="$1" '$0 == a { on = 1; next } /^[0-9]+\. / || /^── / { on
 
 world built
 # the machine as the owner's was found (19 Oct): a secret in the settings and in the install's
-# log; a program installed but broken; Steam (optional) not here; lpf's folder left; crashes — 26 of a
+# log; a program installed but broken; gamescope (optional) not here; lpf's folder left; crashes — 26 of a
 # package's helper while dnf ran, one of the bar, one before setup finished; files of root's
 # in the home, and podman's storage (the containers' own ids); a ✘ in the log with what led to it
 printf 'GH_TOKEN="ghp_never-copied-1"\n' >>"$W$TK/fedokawaii.conf"
@@ -127,8 +127,8 @@ case_ "every program, run: a broken one FAILs with its output, a missing optiona
 a=$(area "27. applications")
 has "$a" "FAIL  foot: installed but broken (exit 3) — expected: prints its version"
 has "$a" "| foot: error while loading shared libraries: libfcft.so.4" "the broken one's output, in the findings"
-has "$a" "WARN  SPOT-05 lpf's leftovers are gone (exit 1)" "lpf's folder left behind: a WARN"; has "$a" "WARN  steam: not installed (optional)"
-lacks "$a" "SPOT-04"; lacks "$a" "SPOT-06"; lacks "$a" "FAIL  steam"
+has "$a" "WARN  SPOT-05 lpf's leftovers are gone (exit 1)" "lpf's folder left behind: a WARN"; has "$a" "WARN  ASOBI-07 gamescope: not installed (optional)"
+lacks "$a" "SPOT-04"; lacks "$a" "SPOT-06"; lacks "$a" "FAIL  ASOBI-07"
 t=$(sed -n '/^── by area: each check/,/^── fine/p' <<<"$REP")
 grep -qE '^  ok    SPOT-06 Spotify opens its web player ' <<<"$t" && _ok || _no "the web player's entry not ok: $(grep ' SPOT-06 ' <<<"$t")"
 grep -qE '^  ok    cava ' <<<"$t" && _ok || _no "cava (a working stand-in) not ok: $(grep ' cava ' <<<"$t")"

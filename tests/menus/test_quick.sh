@@ -180,7 +180,7 @@ case_ "bluetui comes from lib/upstream.sh, pinned (a static x86_64 binary, v0.8.
 e=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" | grep '^bluetui|')
 eq "$(cut -d'|' -f2-4,6 <<<"$e")" "pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|bluetui"
 [[ $(cut -d'|' -f5 <<<"$e") =~ ^[0-9a-f]{64}$ ]] && _ok || _no "no SHA-256 pinned"
-m() { (STEAM=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
+m() { (. "$REPO/lib/manifest.sh"; eval "$1"); }
 lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " blueman "; has " $(m 'manifest_all amd' | tr '\n' ' ') " " bluez "
 has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " blueman "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " blueman "
 has "$(grep -E '^bluetui ' "$REPO/tests/static/fixtures/programs.txt")" "upstream"

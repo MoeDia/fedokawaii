@@ -18,7 +18,7 @@ import time
 # linux/input-event-codes.h — the keys a check needs (add more as they are needed)
 KEYS = {"ESC": 1, "A": 30, "S": 31, "Q": 16, "W": 17, "E": 18, "R": 19, "SPACE": 57,
         "CAPSLOCK": 58, "LEFTSHIFT": 42, "RIGHTSHIFT": 54, "LEFTCTRL": 29, "LEFTALT": 56,
-        "LEFTMETA": 125, "ENTER": 28, "BACKSPACE": 14, "TAB": 15, "F12": 88}
+        "LEFTMETA": 125, "ENTER": 28, "BACKSPACE": 14, "TAB": 15, "F12": 88, "G": 34}
 EV_SYN, EV_KEY, SYN_REPORT = 0, 1, 0
 UI_SET_EVBIT, UI_SET_KEYBIT = 0x40045564, 0x40045565          # _IOW('U', 100/101, int)
 UI_DEV_CREATE, UI_DEV_DESTROY = 0x5501, 0x5502                # _IO('U', 1/2)

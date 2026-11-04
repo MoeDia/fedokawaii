@@ -13,7 +13,6 @@
 #                                        changes), two packages bringing the same command (one tool
 #                                        per job), and each repository's setup (enabled, signed)
 #   --write-evidence                     (with --live) every package row rewritten from dnf's answer
-#   --steam no                           without the gaming list (as fedokawaii.conf's STEAM=no)
 #
 # Exit: 0 clean · 1 something to fix (each ✘ line says what and how) · 2 misuse.
 # Nothing is installed or changed: --live only asks dnf (as root it resolves the transaction too).
@@ -21,12 +20,11 @@ set -uo pipefail
 export LC_ALL=C.UTF-8
 REPO=$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")/.." && pwd)
 EVIDENCE=$REPO/tools/packages.evidence
-LIVE=0 WRITE=0 STEAM=yes MAX_AGE_DAYS=60
+LIVE=0 WRITE=0 MAX_AGE_DAYS=60
 while (($#)); do
   case $1 in
     --live) LIVE=1 ;;
     --write-evidence) WRITE=1 ;;
-    --steam) [[ ${2:-} == @(yes|no) ]] || { echo "check-packages: --steam yes|no" >&2; exit 2; }; STEAM=$2; shift ;;
     -h|--help) sed -n '2,/^[^#]/{/^#/p}' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;
     *) echo "check-packages: unknown option $1 — bash tools/check-packages --help" >&2; exit 2 ;;
   esac; shift
@@ -44,8 +42,7 @@ section() { printf '\n%s%s%s\n' "$B" "$1" "$Z"; }
 # shellcheck source-path=SCRIPTDIR/..
 # shellcheck source=lib/manifest.sh
 STATE_DIR=/nonexistent . "$REPO/lib/manifest.sh"
-LISTS=(PKG_BASE PKG_RELEASE PKG_MEDIA PKG_GPU_COMMON PKG_GPU_amd PKG_GPU_intel PKG_BUILD PKG_SESSION PKG_DESKTOP PKG_LOOK PKG_APPS)
-[[ $STEAM == yes ]] && LISTS+=(PKG_GAMING)
+LISTS=(PKG_BASE PKG_RELEASE PKG_MEDIA PKG_GPU_COMMON PKG_GPU_amd PKG_GPU_intel PKG_BUILD PKG_SESSION PKG_DESKTOP PKG_LOOK PKG_APPS PKG_ASOBI)
 declare -A WHERE=()   # name → the list(s) it is in
 NAMES=()
 for l in "${LISTS[@]}"; do
@@ -59,7 +56,7 @@ done
 repo_of() {
   case $1 in
     rpmfusion-free-release|ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo rpmfusion-free ;;
-    rpmfusion-nonfree-release|steam|unrar|intel-media-driver) echo rpmfusion-nonfree ;;
+    rpmfusion-nonfree-release|unrar|intel-media-driver) echo rpmfusion-nonfree ;;
     brave-origin) echo brave-browser ;;
     claude-code) echo claude-code ;;
     *) local c; for c in "${COPRS[@]}"; do [[ $(copr_pkgs "$c") == "$1" ]] && { echo "copr:$c"; return; }; done; echo fedora ;;
@@ -85,7 +82,7 @@ covers() {
   esac
 }
 
-section "the manifest (${#NAMES[@]} packages, STEAM=$STEAM)"
+section "the manifest (${#NAMES[@]} packages)"
 bad=0
 for n in "${NAMES[@]}"; do
   read -ra in <<<"${WHERE[$n]}"

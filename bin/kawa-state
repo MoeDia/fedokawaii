@@ -37,7 +37,7 @@ F=$DIR/settings REC=$DIR/restored
 SYS=${KAWA_SYSFS:-/sys} PROC=${KAWA_PROC:-/proc}   # (the tests point these at a made-up machine)
 # settings an earlier version kept that the desktop no longer has: each taken out of the store
 # at the next login, quietly (no record, no failure) — add a key here when its setting goes
-RETIRED=(cleanmic)   # (the sound panel's noise-suppressed microphone, gone since 2026-10-27)
+RETIRED=(cleanmic gamemode)   # (the sound panel's noise-suppressed microphone, gone since 2026-10-27; the host's game mode, gone with Steam)
 
 get() {   # get KEY → its value (the last line of it wins: a hand edit never makes two)
   local l v="" found=1

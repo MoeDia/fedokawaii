@@ -315,8 +315,8 @@ done
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
-print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-weather", "kawa-tag", "kawa-timer", "kawa-quick", "kawa-steam")])' "$REPO/bin/kawa-panel")" \
-  "kawa-calendar:[19] kawa-drives:[13] kawa-weather:[18] kawa-tag:[9] kawa-timer:[] kawa-quick:[12] kawa-steam:None" "the panel pokes each dropdown's button with its module's signal (the timer's: woken; do not disturb's: the mode tile's +12; Steam has no button on the bar now)"
+print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-weather", "kawa-tag", "kawa-timer", "kawa-quick", "kawa-nothing")])' "$REPO/bin/kawa-panel")" \
+  "kawa-calendar:[19] kawa-drives:[13] kawa-weather:[18] kawa-tag:[9] kawa-timer:[] kawa-quick:[12] kawa-nothing:None" "the panel pokes each dropdown's button with its module's signal (the timer's: woken; do not disturb's: the mode tile's +12; a menu with no button on the bar: none)"
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)

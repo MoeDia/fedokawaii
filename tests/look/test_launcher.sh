@@ -38,9 +38,9 @@ has "$(cat "$REPO/configs/home/.config/waybar/config.jsonc")" '"on-click": "sets
 case_ "every program a person opens has a listed entry (fixtures/launched.txt); all else installed says why not (fixtures/not-launched.txt)"
 FX=$REPO/tests/look/fixtures
 names() { grep -v '^#' "$1" | awk 'NF { print $1 }'; }
-# what the toolkit installs: the manifest (both GPUs, with Steam), the release binaries,
+# what the toolkit installs: the manifest (both GPUs), the release binaries,
 # LocalSend and Syncplay (lib/upstream.sh), torrra (uv tool) and Prowlarr (a container), the helpers
-installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STEAM=yes STATE_DIR=/nonexistent
+installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STATE_DIR=/nonexistent
   manifest_all amd; printf "%s\n" "${PKG_GPU_intel[@]}"; for u in "${UPSTREAM[@]}"; do echo "${u%%|*}"; done' _ "$REPO"
   grep -q '^LOCALSEND_TAG=' "$REPO/lib/upstream.sh" && echo localsend
   grep -q '^SYNCPLAY_TAG=' "$REPO/lib/upstream.sh" && echo syncplay
@@ -98,8 +98,8 @@ PY
 eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager), its name first"
 
 case_ "every listed entry: a window program's own icon, or one of our pixel icons (X-Fedokawaii-Icon)"
-OFFICIAL=" com.github.xournalpp.xournalpp steam "
-OURS="footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
+OFFICIAL=" com.github.xournalpp.xournalpp "
+OURS="kawa-asobi:koma footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
   kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-wallpaper:picture kawa-backup:archive
   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download

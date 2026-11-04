@@ -1,0 +1,10 @@
+#!/bin/bash
+# flatpak of the fake Fedora (the play world's: per user, in the world's own home): an install
+# records its apps in $FKH/flatpak-apps, a list prints them; no system-wide remote, ever
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in
+  *" install "*) for a; do [[ $a == *.*.* && $a != -* && $a != http* ]] && add flatpak-apps "$a"; done ;;
+  *" list "*)    cat "$FKH/flatpak-apps" 2>/dev/null ;;
+esac
+exit 0

@@ -72,10 +72,10 @@ eq "$(guarded 'command -v kawa-clipkeep >/dev/null && kawa-clipkeep x; dbus-upda
 eq "$(guarded 'wl-copy x && notify-send y; grim | wl-copy; resvg a b')" "" "&& and | are no fallback"
 
 # ── the closure ──────────────────────────────────────────────────────────────────────────
-pkgs() {   # pkgs GPU STEAM → every package setup installs for that machine
-  (STEAM=$2 STATE_DIR=$TMP/nostate; . "$REPO/lib/manifest.sh"; manifest_all "$1") >"$TMP/pkgs.$1.$2"
+pkgs() {   # pkgs GPU → every package setup installs for that machine
+  (STATE_DIR=$TMP/nostate; . "$REPO/lib/manifest.sh"; manifest_all "$1") >"$TMP/pkgs.$1"
 }
-pkgs amd yes; pkgs intel yes; pkgs amd no
+pkgs amd; pkgs intel
 
 calls=$(python3 "$S/deps.py" calls "$REPO")
 case_ "every kind of place a program is named was read"
@@ -87,37 +87,34 @@ for p in kawa-drives xournalpp makoctl wpctl yazi kawa-menu footclient btop kawa
   has "$(cut -f3 <<<"$calls" | sort -u | tr '\n' ' ')" " $p " "the call of $p was not found"
 done
 
-case_ "every program the desktop runs is installed (AMD, with Steam: the likely first machine)"
-out=$(python3 "$S/deps.py" check "$REPO" "$S/fixtures" "$TMP/pkgs.amd.yes"); r=$?
+case_ "every program the desktop runs is installed (AMD: the likely first machine)"
+out=$(python3 "$S/deps.py" check "$REPO" "$S/fixtures" "$TMP/pkgs.amd"); r=$?
 while IFS= read -r ln; do [[ -n $ln ]] && _no "$ln"; done <<<"$out"
 eq "$r" 0
 case_ "… on an Intel machine as well (nothing relies on an AMD-only package)"
-out=$(python3 "$S/deps.py" check "$REPO" "$S/fixtures" "$TMP/pkgs.intel.yes")
-eq "$out" ""
-case_ "… and with STEAM=no (nothing relies on the games' packages)"
-out=$(python3 "$S/deps.py" check "$REPO" "$S/fixtures" "$TMP/pkgs.amd.no")
+out=$(python3 "$S/deps.py" check "$REPO" "$S/fixtures" "$TMP/pkgs.intel")
 eq "$out" ""
 
 case_ "the check is not blind: a program nobody installs is caught, and says where it is called"
 mkdir -p "$TMP/repo"; cp -r "$REPO"/{bin,system,lib,configs,src,setup.sh,theme.sh} "$TMP/repo/"
 printf '#!/usr/bin/env bash\nnot-a-real-program --now\n' >"$TMP/repo/bin/kawa-zzz"
-out=$(python3 "$S/deps.py" check "$TMP/repo" "$S/fixtures" "$TMP/pkgs.amd.yes")
+out=$(python3 "$S/deps.py" check "$TMP/repo" "$S/fixtures" "$TMP/pkgs.amd")
 has "$out" "not-a-real-program: installed by nothing — bin/kawa-zzz:2"
 mkdir -p "$TMP/fx"; cp "$S"/fixtures/*.txt "$TMP/fx/"
 grep -v '^jq ' "$S/fixtures/programs.txt" >"$TMP/fx/programs.txt"
-has "$(python3 "$S/deps.py" check "$REPO" "$TMP/fx" "$TMP/pkgs.amd.yes")" "jq: installed by nothing"
+has "$(python3 "$S/deps.py" check "$REPO" "$TMP/fx" "$TMP/pkgs.amd")" "jq: installed by nothing"
 case_ "… and an optional program called without a guard is caught"
 printf '#!/usr/bin/env bash\nresvg in.svg out.png\n' >"$TMP/repo/bin/kawa-zzz"
-has "$(python3 "$S/deps.py" check "$TMP/repo" "$S/fixtures" "$TMP/pkgs.amd.yes")" "resvg: optional, but called unguarded"
+has "$(python3 "$S/deps.py" check "$TMP/repo" "$S/fixtures" "$TMP/pkgs.amd")" "resvg: optional, but called unguarded"
 printf '#!/usr/bin/env bash\ncommand -v resvg >/dev/null && resvg in.svg out.png\n' >"$TMP/repo/bin/kawa-zzz"
-lacks "$(python3 "$S/deps.py" check "$TMP/repo" "$S/fixtures" "$TMP/pkgs.amd.yes")" "resvg"
+lacks "$(python3 "$S/deps.py" check "$TMP/repo" "$S/fixtures" "$TMP/pkgs.amd")" "resvg"
 case_ "… and a fixture line that is not true to the manifest is caught"
 sed 's/^git  *manifest  *git$/git manifest git-core-nonsense/' "$S/fixtures/programs.txt" >"$TMP/fx/programs.txt"
-has "$(python3 "$S/deps.py" check "$REPO" "$TMP/fx" "$TMP/pkgs.amd.yes")" "package git-core-nonsense is not in lib/manifest.sh"
+has "$(python3 "$S/deps.py" check "$REPO" "$TMP/fx" "$TMP/pkgs.amd")" "package git-core-nonsense is not in lib/manifest.sh"
 
 # ── default programs ─────────────────────────────────────────────────────────────────────
 case_ "every launcher entry mimeapps.list and xdg-terminals.list name exists (and no type twice)"
-out=$(python3 "$S/deps.py" desktop "$REPO" "$S/fixtures" "$TMP/pkgs.amd.yes"); r=$?
+out=$(python3 "$S/deps.py" desktop "$REPO" "$S/fixtures" "$TMP/pkgs.amd"); r=$?
 while IFS= read -r ln; do [[ -n $ln ]] && _no "$ln"; done <<<"$out"
 eq "$r" 0
 case_ "the guide's promises hold in mimeapps.list"

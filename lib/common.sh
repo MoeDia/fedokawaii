@@ -441,7 +441,7 @@ PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf
 # amdgpu took the screen from it at 4.5 s — a mode change, the splash drawn a second time and
 # again after the switch to the real root: "Starting Fedora" seen three times. Without it
 # plymouth waits for the card's own driver (in the boot image, there by 4.5 s) and draws once.
-# split_lock_detect=off: a split lock (Steam's HTTP threads take one every few seconds) is
+# split_lock_detect=off: a split lock (a game's threads may take one every few seconds) is
 # trapped and the thread put to sleep 10 ms each time — a stutter for a warning nobody reads.
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
 BOOT_ARGS=(rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0
@@ -527,7 +527,6 @@ validate_conf() {                   # prints one line per problem; empty = valid
   # (a number's digits are bounded before it is compared: bash's arithmetic wraps past 2^63, so
   # 18446744073709551760 would compare as 144)
   [[ $GPU =~ ^(auto|amd|intel)$ ]]              || echo "GPU must be auto, amd or intel (is '$GPU')"
-  [[ $STEAM =~ ^(yes|no)$ ]]                    || echo "STEAM must be yes or no (is '$STEAM')"
   [[ $SSH_SERVER =~ ^(yes|no)$ ]]               || echo "SSH_SERVER must be yes or no (is '$SSH_SERVER')"
   [[ $THEME =~ ^(dark|light)$ ]]                || echo "THEME must be dark or light (is '$THEME')"
   [[ $WALLPAPER_PACK =~ ^(yes|no)$ ]]           || echo "WALLPAPER_PACK must be yes or no (is '$WALLPAPER_PACK')"
@@ -573,12 +572,12 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # fedokawaii.conf is read as data, never run as code: KEY="value" lines (a value in double or
 # single quotes, or a bare word; a # comment after it), only the settings below. Anything
 # else in it is reported as a problem, and the values are checked before anything runs.
-CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
+CONF_KEYS=(USERNAME GPU SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
            BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT YAZI_TAG YAZI_COMMIT)
 # settings an earlier version had, gone since: read past in a file not yet merged (update's
 # conf_merge takes their lines out) — SPOTIFY (Spotify's app, built here; its web player now)
-CONF_RETIRED=(SPOTIFY)
+CONF_RETIRED=(SPOTIFY STEAM)
 CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
 # one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
 # (the value: BASH_REMATCH[3], [4] or [5], whichever matched)

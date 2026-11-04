@@ -40,8 +40,7 @@ tidy --check dotfiles; eq "$RC" 1; has "$OUT" "~/.cargo: belongs in"; has "$OUT"
 
 home
 case_ "dotfiles: Fedora's and the allowed ones pass; anything else named, a known one with what moves it"
-touch "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.bash_logout" "$HOME/.steampid"; mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/.cache" "$HOME/.ssh" "$HOME/.pki" "$HOME/.bashrc.d"
-ln -s .local/share/Steam "$HOME/.steam"
+touch "$HOME/.bashrc" "$HOME/.bash_profile" "$HOME/.bash_logout"; mkdir -p "$HOME/.config" "$HOME/.local" "$HOME/.cache" "$HOME/.ssh" "$HOME/.pki" "$HOME/.bashrc.d"
 tidy --check dotfiles; eq "$RC" 0 "$OUT"; has "$OUT" "nothing loose"
 touch "$HOME/.wget-hsts" "$HOME/.node_repl_history"
 tidy --check dotfiles; eq "$RC" 1

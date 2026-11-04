@@ -1,0 +1,6 @@
+// /etc/xkb/symbols/kawa-asobi — Super+G, in the play world, is the desktop's VT (1): gamescope itself
+// answers that key by switching (wlserver_handle_key: XF86Switch_VT_n). Enter and leave on one key.
+partial alphanumeric_keys
+xkb_symbols "return" {
+  key <AC05> { type[Group1] = "KAWA_RETURN", symbols[Group1] = [ g, G, XF86Switch_VT_1 ] };
+};

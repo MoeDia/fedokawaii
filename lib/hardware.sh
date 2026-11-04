@@ -48,7 +48,7 @@ hw_test_vm() { [[ -e ${HW_STATE:-/var/lib/fedokawaii}/test-vm && $(hw_gpu) == vm
 # hw_discrete_amd — an AMD card with memory of its own (2 GiB or more): not an APU's shared
 # memory. mpv's high-quality scaling is written for such a card (theme.sh).
 # hw_discrete_amd_pci — its PCI address (0000:03:00.0: it stays when card numbers move —
-# game mode's tuned profile sets its clocks through it, setup.sh: game_mode)
+# GameMode sets its clocks through it, the play world: lib/asobi.sh)
 hw_discrete_amd() { hw_discrete_amd_pci >/dev/null; }
 hw_discrete_amd_pci() {
   local d v a

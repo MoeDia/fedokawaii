@@ -5,7 +5,7 @@ One tool per job. The authoritative list is `lib/manifest.sh` (packages) and `li
 for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts and the dictionaries on 17 Oct), and
 every Fedora one again on 21 Oct 2026 in Fedora 44 and in Rawhide (46) — each is in both; the
 release downloads re-measured that day, each the newest release but ble.sh (a commit: §27.7 of
-the guide says why). No Flatpak, no Snap, no fallbacks.
+the guide says why). No Snap, no fallbacks; Flatpak only in the play world (its own user's).
 
 Where each name was seen, and when, is `tools/packages.evidence` (a source URL and a date per package and per
 release download). `bash tools/check-packages` audits the list anywhere (a name twice, wanted and forbidden,
@@ -81,11 +81,11 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Containers | podman | F | for Prowlarr |
 | GPU | Mesa freeworld VA-API · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |
 | Peripherals | OpenRGB | F | RGB lighting on the motherboard's headers; fan speeds are the motherboard firmware's (§21.2) |
-| Gaming | Steam · gamescope · MangoHud · GE-Proton · ntsync-autoload · steam-devices | RF + F + GH | GE-Proton keeps the newest two (its own installer: no ProtonPlus / protonup — one tool); ntsync: Proton's faster synchronisation; game mode by itself for every Steam game: `kawa-game` (tuned's game profile for the card's clocks — tuned the one owner of CPU and card; the game reniced; notices, night light, idle, background timers held) — Feral's gamemode retired (it would set the CPU too); MangoHud in every Steam game, hidden until Shift_R+F12 |
+| Play world | flatpak · gamescope · gamemode · ntsync-autoload · steam-devices · kbd | F | the games live in a user of their own (asobi), on a screen of their own, entered with Super+G (`kawa-asobi`, `lib/asobi.sh`): Steam and Bottles are Flatpaks in that user's home — the only Flatpaks there are, none system-wide; gamescope draws that screen on the card itself, gamemode holds the card at full clocks while it plays, ntsync is Proton's faster synchronisation, steam-devices the controllers' rules (Steam in its Flatpak cannot install them), kbd's `chvt` puts the desktop back when the world ends |
 | Fonts | Sumi UI and Sumi Term · JetBrainsMono Nerd · Sumi Icons · Terminus (console) · Noto Sans · Noto Sans CJK · Noto Naskh Arabic · Noto Kufi Arabic · Amiri · Noto Color Emoji · Liberation | repo + GH + F | Sumi UI and Sumi Term = the desktop's two pixel faces, Latin, kana and kanji in one face each, kept in this repository (`system/fonts`, built by `tools/build-fonts.py`, SIL Open Font License 1.1): Sumi UI is 東雲 Shinonome Gothic 16 Bold (JF Dot, public domain), in the bar, menus, panels and notices at 16 px, the lock and login screens, the boot menu and splash; Sumi Term is Kappa 20 Bold, in the terminal at 20 px on 24 px lines; their signs redrawn by hand, and what they lack from GNU Unifont JP 17; JetBrainsMono Nerd = the apps' monospace and the Nerd Font symbols programs draw; Noto Sans CJK = Japanese, Chinese, Korean in programs and subtitles; Sumi Icons = this desktop's icons; Kufi = Arabic in the pixel UI (bar, menus, notices); Liberation = metric-compatible fonts for office files |
 | Look | adw-gtk3 · qt6ct · dconf · pointers drawn here (Adwaita beneath for rare shapes) | F + repo | dark/light switched live by `kawa-theme`; the pixel pointers come from `art/cursors.txt`; icons: each program's own (hicolor), under GTK's Adwaita — no icon pack; windows, dialogs, buttons square (the GTK themes) |
 | Build (kept) | gcc · make · pkgconf · wayland/wlroots/xcb devel · gtk3-devel | F | theme.sh rebuilds dwl when you change a keybind, and builds kawa-clipkeep, kawa-saver and kawa-lockmod (GTK 3's headers) |
-| Script plumbing | dnf5-plugins · git · jq · gnupg2 · tar · grubby · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; tar unpacks the release archives and GE-Proton, grubby sets the kernel arguments (neither is in a Minimal Install's `@core`; the installer adds grubby only on a UEFI machine); diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
+| Script plumbing | dnf5-plugins · git · jq · gnupg2 · tar · grubby · diffutils · man-db · libva-utils · libdnf5-plugin-actions | F | used by setup.sh / verify.sh; tar unpacks the release archives, grubby sets the kernel arguments (neither is in a Minimal Install's `@core`; the installer adds grubby only on a UEFI machine); diff / cmp compare the copy and the toolkit, man opens the manuals the change menu lists (both usually present: listed, never assumed); actions = a snapshot pair around every dnf run |
 | Drivers and firmware | fwupd · pciutils · usbutils, and what this machine needs (`lib/hardware.sh`): microcode_ctl or amd-ucode-firmware, NetworkManager-wifi + wireless-regdb, alsa-sof-firmware, the firmware the kernel asked for (iwlwifi-…-firmware and the like), intel-media-driver beside an AMD card | F + RF | fwupd: device firmware from the LVFS, applied only by you · lspci / lsusb: which device, which driver · the per-machine packages are found from the hardware at setup, update and repair, and recorded in `/var/lib/fedokawaii/hardware-pkgs` (part of the manifest from then on) |
 | Base | NetworkManager · sudo | F | already in @core — listed so they are marked as yours and dnf's clean-up never takes them |
 | Base | NetworkManager-tui · xorg-x11-server-Xwayland · xdg-utils · xdg-user-dirs | F | nmtui (quick settings → network) · X11 programs · `xdg-open` · `~/Pictures`… |
@@ -97,7 +97,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 Editors other than neovim (nano, nano-default-editor, vim-minimal, vim-enhanced, vim-default-editor, emacs) · the rescue kernel (dracut-config-rescue) · browsers other than Brave
 Origin (firefox, chromium, brave-browser) · other terminals and launchers (alacritty, kitty, xterm,
 konsole, gnome-terminal, rofi, wofi, wmenu, bemenu) · second polkit agents and tray NM
-(polkit-gnome, hyprpolkitagent, network-manager-applet) · flatpak, snapd, PackageKit,
+(polkit-gnome, hyprpolkitagent, network-manager-applet) · snapd, PackageKit,
 gnome-software · ffmpeg-free · tuigreet, gtkgreet, wlogout, fastfetch, neofetch (replaced by
 kawa-greet, kawa-menu's menus and the own `fetch`) · swaylock (the lock: gtklock only) · pavucontrol, blueman (replaced by wiremix and bluetui, in
 terminal windows) · second notification daemons (dunst, SwayNotificationCenter: swaync) ·
@@ -118,7 +118,7 @@ before setup started plus the manifest — anything else is reported by name.
 | tuigreet, wlogout, fastfetch | kawa-greet (the login screen), a power menu of its own (`kawa-power`), the own `fetch` |
 | npm for Claude Code | Claude Code now ships an official signed dnf repo (Node.js and npm are back, for yt-dlp and Mason — see below) |
 | openssl/alsa/dbus devel, cmake | bluetui comes as a release binary; yazi's build (Rust + cargo, kept: update rebuilds it) needs none of them |
-| GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Brave and Steam bundle their own) |
+| GStreamer plugins + `@multimedia` group | nothing installed uses GStreamer (mpv = ffmpeg; Brave bundles its own) |
 | x264, x265, svt-av1, libaom, dav1d, opus, lame, flac, … CLI/lib packages | pulled in by ffmpeg where needed; the CLI encoders duplicated ffmpeg |
 | google-noto-sans-arabic-fonts | fontconfig sends Arabic to Noto Naskh; Sans Arabic was never used |
 | starship (COPR) | native bash prompt, no process per prompt |
@@ -137,6 +137,7 @@ before setup started plus the manifest — anything else is reported by name.
 | sc-im | one spreadsheet is enough: Calc for formulas, VisiData for looking at data |
 | presenterm (release binary) | slides are Impress's, which opens and shows PowerPoint files; update takes the binary and its theme link out |
 | spotify_player (release binary) | Spotify's web player instead (a free account works too); update takes the binary and its settings out |
+| Steam · MangoHud · GE-Proton (and `kawa-steam`, `kawa-game`, the desktop's own game mode) | gaming left the desktop's account for the play world: Steam and Bottles run in their own user's Flatpaks, on a screen of their own — nothing of it stays on yours; update hands the packages back to dnf and moves Steam's games and saves into the world, the rest out of your account |
 | lpf, lpf-spotify-client, spotify-client | Spotify's own app, built here by lpf from RPM Fusion's recipe — until the recipe pointed at a download Spotify had taken down (Oct 2026); its web player in a Brave app window does the same. Update hands the three back to dnf, and repair removes lpf's account (pkg-build) and /var/lib/lpf |
 | papirus-icon-theme | every program shows its own icon, as its package ships it (the launcher, GTK, Qt, the notices): no icon pack over them; update hands it back to dnf |
 | fuzzel | the launcher is kawa-panel's own, as every menu already was: one process, one look, the sums answered as you type (fuzzel has no calculator); update hands it back to dnf |
@@ -175,8 +176,11 @@ before setup started plus the manifest — anything else is reported by name.
 | 7zip, file | yazi's archive previews and extraction; file types for the clipboard window |
 | zstd · unrar | File tools (Super+D, `kawa-file`): `.tar.zst` archives (tar runs zstd) · RAR archives and `.cbr` comics, extract only (RPM Fusion nonfree, RARLAB's own; Fedora's 7-Zip is built without RAR, and Fedora's own `unrar` is a wrapper for unrar-free, version 0.3 — RPM Fusion's, the newer, is the one dnf installs) |
 | google-noto-sans-cjk-vf-fonts | Japanese, Chinese and Korean in programs, web pages and subtitles |
-| ntsync-autoload | Proton's faster synchronisation (with Steam) |
-| steam-devices | the rules that let Steam open a game controller (Bluetooth or USB); Steam brings it today — listed so dnf's clean-up can never take it |
+| flatpak | the play world's Steam and Bottles, per user, in the world's own home; never a system-wide remote |
+| gamescope · gamemode | the world's screen, drawn on the card itself · the card at full clocks while it plays |
+| ntsync-autoload | Proton's faster synchronisation (in the play world) |
+| steam-devices | Valve's rules that let a game open a controller (Bluetooth or USB); Steam in its Flatpak cannot install them, so the desktop does — listed so dnf's clean-up can never take it |
+| kbd | `chvt`: the screen back on the desktop when the play world ends |
 | fwupd, pciutils, usbutils | firmware inside the devices (SSD, motherboard, dock), offered by update and applied by you · which device is which, and which driver holds it |
 | exfatprogs, dosfstools, ntfs-3g | the USB drives: check, repair and name exFAT and FAT sticks; NTFS opens whatever NTFS driver the kernel has |
 | python3, glib2, fontconfig | already there as other packages' dependencies; listed so they are never assumed: the helpers' Python parts and the self-tests · `gsettings`, `gio` · `fc-match`, `fc-cache` |

@@ -1116,7 +1116,6 @@ GPU="amd"` — and so is a setting written twice or missing. After the install, 
 |---|---|---|
 | `USERNAME` | empty | the desktop user; empty = whoever ran `sudo` |
 | `GPU` | `auto` | `auto`, `amd` or `intel` — drivers, video decoding, and mpv's scaling. Set it when the kernel does not drive the card yet (too new): setup installs its drivers. NVIDIA alone and virtual machines are not supported; the check says so before anything is installed |
-| `STEAM` | `yes` | Steam, gamescope, MangoHud, GE-Proton, game mode; switched to `no`, the next update hands those packages back to dnf, and its clean-up removes them (your games stay in your home) |
 | `SSH_SERVER` | `yes` | `yes` runs sshd at every boot, opens ssh in the firewall, and lets in keys only (no password, no root) — every update keeps it so; `no` disables sshd and closes ssh/cockpit in the firewall |
 | `MONITOR_HZ` | `144` | the highest refresh rate at or below this is used (30–540) |
 | `KB_LAYOUTS` | `us,ara` | keyboard layouts by their XKB names; the first one is always used for shortcuts. `localectl list-x11-keymap-layouts` lists the names |
@@ -1309,7 +1308,7 @@ The phases, step by step:
 |---|---|---|
 | **1** | readiness check → record what is installed → DNF tuning → boot-menu and two-kernel policy → full update → base tools → the performance profile → remove nano, vim, rescue kernel → SSH policy → **reboot** | the record lets `verify.sh` spot anything extra later; tuning first so the big update downloads ten at a time; update before any third-party repository so RPM Fusion matches the base libraries; SSH closed before the first reboot, so a run that stops early never leaves it open |
 | **2** | RPM Fusion (its two release packages from its own server — its mirror list only if that does not answer — each checked against RPM Fusion's signing key before it is installed), Brave, Claude Code (key fingerprint checked), COPRs → GPU drivers → this machine's drivers and firmware → full ffmpeg and media tools → **reboot** | drivers before the programs that use them, so nothing pulls the wrong variant; the reboot activates the GPU kernel argument. Near a new release RPM Fusion can be a few days behind Fedora's Mesa, and a COPR may have no build yet: what waits is left out with a note, Fedora's own drivers stand in, and `update` or `repair` adds it later (`verify` warns meanwhile) |
-| **3** | build tools → dwl (pinned commit + patch) → greetd login → desktop → fonts and toolkit themes → apps → release binaries → the yazi file dialog → Prowlarr + torrra → LazyVim → Steam → groups → theme (if chosen) → **verify gate** → enable the login, snapshots, baseline | the login is enabled last, only after verification, so a failure never leaves you at a black screen |
+| **3** | build tools → dwl (pinned commit + patch) → greetd login → desktop → fonts and toolkit themes → apps → release binaries → the yazi file dialog → Prowlarr + torrra → LazyVim → the play world → groups → theme (if chosen) → **verify gate** → enable the login, snapshots, baseline | the login is enabled last, only after verification, so a failure never leaves you at a black screen |
 
 What takes tty1 is `fedokawaii-resume.service`, a *systemd unit*: a small file that tells
 systemd what to start at boot. While setup holds tty1 there is no login there. To see how far
@@ -1576,7 +1575,7 @@ name (**Super+Space**), move between windows with keys, and close one with **Sup
 
 | On Windows | Here |
 |---|---|
-| the taskbar and the system tray | the bar; there is no tray — Steam's gamepad has its own place there (§6.5) |
+| the taskbar and the system tray | the bar; there is no tray |
 | the Start menu: press Windows, type a name | the launcher: **Super+Space**, type a name |
 | Task View's virtual desktops (**Win+Tab**) | workspaces 1–9, **Super+1…9** |
 | Quick Settings (**Win+A**) | quick settings, **Super+X** |
@@ -1651,7 +1650,6 @@ walks along it from left to right.
 | 6 | **now playing** | the first tile on the right: a cassette whose reels turn while sound plays, then the title and, quieter, the artist; and the music's *wings*: its spectrum inside the scroll either side of the clock, eight thin columns a side rising and falling in one warm grey — the taller, the brighter — the left channel on the left, the right on the right, the lowest notes nearest the clock | play/pause (the wings too) · right: next · middle: previous |
 | 7 | **mode** | a kanji while something is on that you should not forget: **静** (*quiet*), in quiet ink, while do-not-disturb holds notices back, **共有** (*sharing*), in vermilion, while the screen is being shared; nothing otherwise | quick settings |
 | 8 | **drive mark** | the drive icon while a USB stick, disk or SD card is plugged in: quiet, then lit once one of them is open; a number beside it for two or more | the drives menu: open or eject (ch. 13) |
-| 9 | **gamepad** | only while Steam runs: faint while it starts, in ink once it is ready, vermilion while a game runs | Steam's window · right: its menu — Library, Downloads, Friends, Settings, start with the desktop, quit Steam (ch. 21) |
 | 10 | **US / AR** | the keyboard layout, only when you have more than one (vermilion while it is not the first) | |
 | 11 | **memory** | the chip icon and how much memory the programs hold (`5.2G`), counted as btop and Windows count it — not the files Linux keeps in spare memory; vermilion past 85 % | opens btop |
 | 12 | **volume** | the speaker, its waves showing the level (none at 0, then one to four as it rises), and the number; *off* with the speaker crossed out (as the level display says) | the sound panel, right under it (§8.1): the volume, mute, the outputs and inputs · right: mute · scroll: ±2 % |
@@ -1660,7 +1658,7 @@ walks along it from left to right.
 | 15 | **the cat** | quick settings: the cat on the right corner's vermilion tile, 6 px from the screen's edge as the torii's is from the other; it smiles, in the other ink, while the panel or any menu dropping from the bar is on screen | quick settings |
 
 There is no tray: the few programs that would put an icon there either have a place of their
-own on the bar (Steam's gamepad) or a key. How busy the processor is shows in btop (a click on
+own on the bar or a key. How busy the processor is shows in btop (a click on
 the memory).
 
 **Try this.** Click the date (5): the calendar drops down; **Esc** closes it. Click the
@@ -1758,7 +1756,7 @@ which locks first and then sleeps. Left to the system, the key would put the mac
 first and lock it only as it woke. So setup tells the system to leave the key alone, and to
 give the lock time before any other sleep — two lines in
 `/etc/systemd/logind.conf.d/90-fedokawaii.conf`, `HandleSuspendKey=ignore` and
-`InhibitDelayMaxSec=25` (the same wait lets Steam close properly before a restart, §21.1) —
+`InhibitDelayMaxSec=25` —
 and `verify` checks that the key is left to the desktop. A video
 playing in mpv or Brave holds the idle timer itself; music, or anything else playing through
 MPRIS or holding logind's idle lock, makes `kawa-idle` wait until it stops. The times are yours
@@ -1812,8 +1810,7 @@ electricity) and *power*, with how long the machine has been up at the end of th
 > **Careful.** Log out, restart and shut down end every program at once, without asking to
 > save. Save your work first: **Ctrl+S** in most programs, `:w` in neovim.
 
-**Super+Ctrl+Shift+Q** logs out at once, without the menu — Steam, when it runs, is closed
-properly first, as the menu's *log out* does (§21.1). It is the one way out should a menu
+**Super+Ctrl+Shift+Q** logs out at once, without the menu. It is the one way out should a menu
 not open: there is no Ctrl+Alt+Backspace. A choice the system refuses — another user still
 logged in, a program holding it back — says why in a notice: *could not shut down — …*.
 
@@ -2036,7 +2033,6 @@ a two-page selection to keep beside the keyboard.
 | Super+scroll | volume ±2 %, with the level shown like the volume keys (up also unmutes) |
 | Super+] / [ · brightness keys | monitor brightness (the same level display) |
 | Alt+Shift | keyboard layout |
-| Right Shift+F12 | the game overlay (MangoHud) on / off, in games started with it |
 | Super+Ctrl+Shift+Q · Ctrl+Alt+F2…F6 | log out · text consoles (Ctrl+Alt+F1 comes back) |
 
 Windows carry no title-bar buttons anywhere — not in GTK apps, not in Brave: dwl tiles them,
@@ -2071,8 +2067,7 @@ one wants attention (§6.5).
 
 **A layout to copy.** Give each kind of work its own number, the same every day, and your hands
 learn where things are: **1** the browser · **2** terminals · **3** files · **4** reading ·
-**9** Steam. Steam's window and its games open on the workspace you are on, so press **Super+9**
-before you start it.
+**9** anything you want out of the way.
 
 > **On Windows.** Task View's virtual desktops are made and closed by hand (**Win+Ctrl+D**) and
 > visited in a row (**Win+Ctrl+←/→**). Here nine always exist, each one key away, and a window
@@ -2226,7 +2221,6 @@ one menu is open at a time: another menu's key closes the one on screen and open
 | share what? | a screen share | 共: the screens (each with its size) and windows you can share (§14.4) |
 | drives | the bar's drive mark, quick settings | 盤 drives: every file system on a USB stick, disk or SD card, *open* or *closed*, its size on the right — open it in yazi — then 出 eject, a row each drive (ch. 13) |
 | help | **Super+/** | every keybinding under its part's kanji, the key, then what it does in a column; type to filter |
-| Steam | a right-click on the bar's gamepad (while Steam runs) | 遊 Steam: library · downloads · friends · settings · start with the desktop (▣ on, □ off) · quit Steam (§21.1) |
 | shrink | **Super+Z** | 縮 shrink, with what you copied and its size: for an email, a chat, a size you type; 形 as another kind (JPEG, WebP, PNG); 紙 PDF at three sizes (§12.6) |
 | file tools | **Super+D**, *File tools* in the launcher | 解 unpack · 紙 pages · 抜 take out · 変 change · 署 sign · 包 pack, only the parts that fit what you copied, with its size at the first heading's end; then 圧 compression, 序 order, 頁 page, 回 rotate or 隅 corner when a choice needs one (§12.8) |
 | change | **Super+Shift+U**, the Super+U menu → *change the desktop* | every part of the desktop by name, in five headed parts — 見 *look* (colours, bar, bar look, icons, notifications, launcher) · 手 *use* (keys, terminal, shell, files, drives, autostart) · 系 *system* (settings, packages, yours alone) · 史 *history* (what changed, history, apply) · 案 *help* (learn) — each opened in your working copy, then applied (chapter 42) |
@@ -2411,7 +2405,7 @@ ordinary one, and a critical one with its vermilion border.
 | critical — the vermilion border | until you click it |
 
 The desktop's own notices are titled in lower case, as its menus are — *backup*, *upkeep*,
-*sketch*, *workspaces* — with a name kept as it is spelt (*Steam*, *Bluetooth*). When a key
+*sketch*, *workspaces* — with a name kept as it is spelt (*Brave*, *Bluetooth*). When a key
 needs a program that is not there, its notice names it and says how to mend it: *zathura is
 missing — fedokawaii repair puts it back* (§35.1).
 
@@ -2781,7 +2775,7 @@ program's own files.
 │                          and secrets.sh, your keys
 ├── .local/
 │   ├── bin/               the kawa-* helpers, fetch, the release tools (yazi, lazygit…)
-│   ├── share/             programs' data: Steam and its games, the wallpaper pack, fonts,
+│   ├── share/             programs' data: the wallpaper pack, fonts,
 │   │                      LocalSend, neovim's plugins, the trash
 │   └── state/             what programs remember: each theme's wallpaper, copies of
 │                          settings Theme replaced
@@ -2796,7 +2790,7 @@ goes with the weekly tidy; one with something in it is yours and stays.
 **A clean home.** Nothing else sits at the top of your home but bash's own files (`.bashrc`,
 `.bash_profile`, `.bash_logout`), the desktop's `.bashrc.d/`, the three XDG folders
 (`.config/`, `.local/`, `.cache/`), and what a program cannot be told otherwise: `.ssh/`,
-`.gnupg/`, Brave's `.pki/` and Steam's `.steam` links. Every other program is told where its
+`.gnupg/`, Brave's `.pki/` link. Every other program is told where its
 files go by `/etc/profile.d/fedokawaii-home.sh`, read by every shell and by the session:
 bash's, less's, Python's, Node's and SQLite's histories in `~/.local/state/`, Rust's `cargo`
 and `rustup` in `~/.local/share/cargo` and `~/.local/share/rustup` (`CARGO_HOME`,
@@ -3898,7 +3892,7 @@ terminal), and selecting text in the terminal copies it as well. Two things make
   clipboard, as it would on a plain Wayland desktop. Copies a password manager marks as
   secret are never kept, nor copies over 64 MiB, nor the primary selection (select +
   middle-click).
-* **Between Wayland and X11 programs** (Steam, older games) the compositor passes copies both
+* **Between Wayland and X11 programs** (older ones) the compositor passes copies both
   ways by itself. (*X11* is the older display system Wayland replaces; programs written only
   for it run through *XWayland*, a compatibility layer dwl starts when one needs it.)
 
@@ -4486,13 +4480,13 @@ remember it.
   | Backup | restic onto the backup drive (kawa-backup) | `backup` |
   | Agents · Torrents · Syncplay | herdr · torrra · Syncplay (ch. 20, §15.7) | `claude` · `torrent` · `together` |
 
-  The rest — Brave, LibreOffice, Xournal++ (and Sketch), Easy Effects, LocalSend, Steam,
+  The rest — Brave, LibreOffice, Xournal++ (and Sketch), Easy Effects, LocalSend,
   OpenRGB, LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
   `tests/look/fixtures/not-launched.txt` in the toolkit says why for each.
 * A window program shows its **own icon**, as its package ships it, at 22 × 22 — no icon
-  pack: Brave, LibreOffice, Xournal++ (and Sketch, which opens in it), Steam, LocalSend,
+  pack: Brave, LibreOffice, Xournal++ (and Sketch, which opens in it), LocalSend,
   Syncplay, OpenRGB, LACT. Every other entry — the terminal programs, and the pages in Brave —
   shows one of the desktop's **pixel icons** (art/icons.txt, the Sumi Icons font), in the
   icon column in the theme's accent ink (switching the theme switches it):
@@ -6954,8 +6948,7 @@ $ du -xh -d1 ~ | sort -h | tail -5
 | `| tail -5` | keeps the last five: the biggest |
 
 The last line is your whole home. `~/Downloads` is missing: it is a subvolume of its own,
-which `-x` steps over (§38.2) — `du -sh ~/Downloads` measures it alone. Steam's games live in
-`~/.local/share`, which is why `.local` is often the largest.
+which `-x` steps over (§38.2) — `du -sh ~/Downloads` measures it alone.
 
 *If you see `du: invalid maximum depth 'l'`:* the option is `-d1`, with the digit one.
 
@@ -7957,9 +7950,8 @@ and the [magnet link format](https://bittorrent.org/beps/bep_0009.html).
 
 > **In this chapter**
 >
-> - install and play Windows games through Steam and Proton
-> - what game mode does by itself, and the performance overlay
-> - pair a game controller for Steam
+> - the play world, ASOBI: a user and a screen of its own for every game
+> - its walls, its snapshots, the one folder it shares with you
 > - control RGB lighting, Logitech devices, coolers and an AMD graphics card
 >
 > **You need:** §14.1 (the launcher) and §7.3 (workspaces).
@@ -7967,206 +7959,44 @@ and the [magnet link format](https://bittorrent.org/beps/bep_0009.html).
 The last chapter of Part III is for play, and for the hardware that likes to be tuned: the
 lights, the mouse, the cooler and the graphics card.
 
-## 21.1 Steam — games
+## 21.1 ASOBI — the play world
 
-Start **Steam** from the launcher. Its entry there is the desktop's own (`kawa-steam`, in
-place of Steam's entry of the same name): when Steam already runs in the background its window
-comes up at once; when it does not, Steam starts, with a notice — *starting Steam…*, or
-*updating itself* on its very first start — that goes once its window is there. `steam://`
-links (a game's page, an *Install* button on the web) go the same way. Unlike Steam's own
-entry, it carries no hint to start on "the other GPU": with the processor's graphics left on,
-that would be the processor's, not the card the screen is on. The library window
-tiles on the workspace you are on, like any window; Steam's small windows (sign in, settings,
-friends, news) float, centred. Games open where you are too. Steam runs through XWayland, and
-its own interface ignores the desktop's themes (§39.2).
+Games do not live in your account. **ASOBI** (遊び, *play*) is a user of its own, `asobi`, on a VT of its own.
+**Super+G** starts it on demand (`kawa-asobi enter`): gamescope takes the card, at the screen's own mode with
+FreeSync, and shows Steam's gamepad UI. **Super+G** in there comes back; the desktop never stopped.
 
-**A warm start.** A minute after you log in, the desktop starts Steam quietly in the
-background, at low priority, so its window is there at once when you want it and the first
-minutes of the session are not slowed. Closing the window leaves Steam running — downloads go
-on — and the bar's **gamepad** shows it: dim while it starts, lit once it is ready, filled
-vermilion during a game. A click brings the window up; a right-click opens Steam's menu:
-*Library · Downloads · Friends · Settings*, *start with the desktop* (on or off: off ends the
-warm start), and *quit Steam*.
+| What | Where | Why |
+|---|---|---|
+| its home | `/home/asobi`, a Btrfs subvolume | out of `/home`'s snapshots and of your backups; snapshot and reset whole |
+| its snapshots | `/home/.asobi/snapshots` (root's) | `clean` is the world as installed; `before-reset-…` the way back from a reset |
+| the one shared folder | `/home/.asobi/drop`, `~/Drop` for you | group `asobi-drop`, the two of you; whatever either side drops, the other can read |
+| its session | `kawa-asobi.service` (VT 8, PAM file `kawa-asobi`) | a real seat session: card, keyboard, sound and controller follow the VT in front (logind) |
+| everything it runs | its user manager, `user@UID.service` | one set of walls: `/etc/systemd/system/user@UID.service.d/50-kawa-asobi.conf` |
+| what only root may do | `kawa-asobi-root`, by `kawa-asobi-op@JOB.service` | polkit lets your user start those units and nothing more |
+| its programs | Steam, Bottles: Flatpaks of its own user, from Flathub | each in its sandbox as well; no Flatpak anywhere else on this machine |
 
-**Steam Cloud: Steam always closes properly.** As Steam closes, it sends your games' saves to
-Steam Cloud — but only when it is *asked* to close, as its own *Exit* asks. Killed, it sends
-nothing, and the next start (here or on Windows) can find the cloud older than your last
-session, or ask which copy to keep. Steam draws through XWayland, which ends with the desktop,
-so the desktop asks first, every time:
+**The walls**, all proved by `sudo bash tools/asobi-proof.sh walls`: no password, no shell, no wheel, no sudo. Inside
+its namespaces `/home` holds only itself; `/tmp`, `/var/tmp`, `/dev/shm` and System V memory are its own;
+`/proc` shows only its own processes. polkit says no to everything an active seat user may usually do, but the VT
+switch, realtime sound and GameMode's helpers. While it runs, `nft` table `kawa_asobi` lets it reach the
+Internet and nothing of this house: no service of yours on the loopback, no machine on your network. And no
+device it makes through `/dev/uinput` reaches your desktop (`LIBINPUT_IGNORE_DEVICE`, for as long as it runs).
 
-| When | What closes Steam |
-|---|---|
-| *quit Steam* in the gamepad's menu | `kawa-steam --quit` — Steam's own close (`steam -shutdown`), waited for |
-| the power menu's *log out*, or **Super+Ctrl+Shift+Q** | the same, before the desktop ends; a notice says *closing — your saves go to Steam Cloud first* |
-| restart or shut down — the power menu, the power button, `systemctl reboot`, an update's restart | `kawa-steam --guard`, which the session starts: logind warns it before the computer stops (a *delay lock*, waited for up to 25 s), and it closes Steam the same way while the desktop still runs |
+**Behind the desktop**, a world with a game in it is frozen by the kernel's cgroup freezer (`app.slice`): no CPU,
+no card, the game exactly where it was. Steam alone goes on working, at a small share of the CPU, so a download
+finishes. In front, the world has the larger share, GameMode holds the card at its full clocks, the
+desktop's idle timers wait, and its notices are held back and told at your return.
 
-Each close goes to the journal with how long it took: `journalctl -t kawa-steam` —
-*asked Steam to quit (logout), done in 3.2 s* — and each upload Steam made as it closed:
-*cloud: Blasphemous (774361) upload OK*, or its failure.
+**Windows games** run through Proton, as Steam ships it: a game page → the gear → Properties → Compatibility.
+ProtonDB (`protondb.com`) lists what others did for each game. **Bottles** is the world's other face, for other
+Windows programs: `kawa-asobi bottles`, or Super+U → system → asobi → bottles (one face at a time: Steam closes first).
 
-**A game whose cloud saves were made on Windows.** Some games have a Linux build that keeps
-its saves in Linux's folders (`~/.config/unity3d/…`), apart from the Windows build's
-(`AppData`). Played here as its Linux build, such a game never sees the saves you made on
-Windows — Steam's own log says *Skipping download of file … to our platform* — and its uploads
-can fail (*I/O Operation Failed*) on files of the Windows folders. `kawa-steam --cloud` lists
-every game's last upload and any such game; each time Steam closes, `kawa-steam` sets such a
-game to run with GE-Proton (its *Properties → Compatibility*), so it uses the Windows saves in
-the cloud, and starts its sync state afresh (Steam compares with the cloud at the next start,
-and asks if both changed). Once a game: set back by hand, it stays as you set it.
+**Controllers:** Valve's own rules (`steam-devices`, Fedora's package) open them to whoever holds the seat; a
+controller paired or plugged in on the desktop works in the world as soon as it is in front.
 
-```sh
-kawa-steam --cloud      # Blasphemous (774361): last upload …: OK · its cloud saves are Windows' — it runs with GE-Proton…
-```
-
-> **On Windows.** It is the same Steam, signed in to the same account, with the same library.
-> A Windows game runs here through Proton, which answers its Windows calls with Linux ones.
-
-**Try this.** Start Steam, play a game, and look at the overlay.
-
-1. **Super+9**, then **Super+Space**, type `steam`, Enter. Steam's library opens there — at
-   once if the warm start has already run.
-2. Start a game. Game mode comes on by itself within three seconds (below): `kawa-game`
-   in a terminal says *on (steam …)*.
-3. **Right Shift+F12** shows or hides the overlay in its corner: frames per second, the CPU's
-   and the GPU's load and temperature. It is in every game Steam starts, hidden until asked.
-4. Quit the game: the library window is back, and game mode ends. Closing the window leaves
-   Steam running, and the gamepad stays in the bar; *quit Steam* in its right-click menu ends it.
-
-| Term | In one line |
-|---|---|
-| XWayland | the bridge that lets an older X11 program, such as Steam, show on a Wayland desktop |
-| Proton | Valve's compatibility layer, built on Wine: it runs Windows games on Linux |
-| GE-Proton | a community build of Proton that carries fixes and media patches ahead of Valve's |
-| `%command%` | in launch options, the place where Steam puts the game's own command line |
-| FreeSync | AMD's name for *adaptive sync*: the monitor follows the game's own frame rate instead of a fixed one — no tearing, no stutter when frames come unevenly |
-
-**Game mode.** While a Steam game runs — a Windows one through Proton too, with no launch
-option — the desktop gives the computer to it, and takes it all back when the game ends:
-
-| While a game runs | Why |
-|---|---|
-| tuned's game profile: the graphics card at its full clocks | no ramping up and down between scenes |
-| the game ahead of your other programs (nice −5, first for the disk) | a download or a build in the background does not take its frames |
-| notices held back (critical ones and the level display still show) | nothing pops over the game; at its end one notice says *3 notices while you played* — click it for the list |
-| the night light off, your setting kept | the game's own colours |
-| no screensaver or lock | a game played with a controller moves no mouse |
-| the background jobs held: hourly snapshots, the monthly Btrfs scrub, weekly TRIM, the kernel check, the health report | no disk or CPU work behind the game; a job that came due runs when the game ends |
-| every frame at the refresh; *vsync off* honoured only with FreeSync on | nothing on the screen ever tears: the desktop and every window flip at the refresh. Only while FreeSync is on (the *in games* setting, a game full screen) does a game whose own *vsync* is off get its frames at once — whole under the monitor's top rate, torn only above it. With FreeSync off, such a game waits for the refresh as everything else |
-
-The processor and the card have one owner, tuned (§30.4): game mode switches its profile from
-*fedokawaii* to *fedokawaii-game* and back — the processor is at full performance in both, the
-card at its full clocks only in the game's. All of it is **`kawa-game`**: the bar's Steam watch
-(the gamepad) sees a game start and end, and `journalctl -t kawa-game` shows each. A game
-started outside Steam gets it with `kawa-game run GAME` (in Lutris or Heroic: as the game's
-command prefix). `kawa-game auto off` stops it for Steam's games, `kawa-game auto on` brings it
-back (kept across logins).
-
-Each game's **launch options** (in Steam: the game's *Properties* → *General*) take the other
-tools installed with it:
-
-| Launch options | Does |
-|---|---|
-| `gamescope -W 2560 -H 1440 -r 120 -f -- %command%` | the game inside its own small compositor at a fixed size and refresh rate; add `-w 1920 -h 1080 -F fsr` to render lower and upscale |
-| `gamescope --mangoapp -f -- %command%` | gamescope with the overlay — inside gamescope, use `--mangoapp` rather than `mangohud` |
-
-**FreeSync.** On a monitor that can do it, quick settings' *freesync* tile (its seal 滑) goes
-round three settings: *in games* — the default: on while a window, a game or a video, is full
-screen on that monitor —, *always*, and *off*. dwl reads the choice from
-`~/.config/fedokawaii/vrr` and takes it up at the next change of window; a monitor that cannot
-do it is left alone. The tile shows what the graphics card does *this moment*, read from the
-card itself (DRM's `VRR_ENABLED`): *games · off* at the desktop, *games · on* in a full-screen
-game, *always · on*, its seal stamped only while it is on; *not offered* when the monitor
-offers none. `fedokawaii freesync` says the same in a line a screen:
-
-```sh
-fedokawaii freesync     # FreeSync: HDMI-A-1 — ON now: the refresh follows the frames · setting: …
-kawa-display --vrr      # the raw state: NAME, vrr_capable (yes/no), VRR_ENABLED (on/off)
-```
-
-*not offered* means the monitor's own menu has it off (an LG UltraGear: the joystick → *Game
-Adjust* → *Adaptive-Sync* or *FreeSync*: *On*, or *Extended* for the widest range), or the
-cable or port cannot carry it — nothing on the computer can switch it on then. To watch it
-work, play a game below the monitor's top rate: quick settings (**Super+X**) reads *games ·
-on*, and a monitor whose menu shows the incoming refresh rate shows the game's frame rate
-there, not 144.
-
-### GE-Proton
-
-Setup installs the newest GE-Proton, and `update` adds new releases, keeping the
-newest two so a game pinned to the older one still starts. Restart Steam to see a new one.
-Choose it per game in *Properties → Compatibility* (*Force the use of a specific Steam Play
-compatibility tool*), or for every game in Steam's *Settings → Compatibility*. GE-Proton uses
-the kernel's `ntsync` driver (loaded at boot) by itself: the waiting and signalling between a
-Windows game's threads is done by the kernel instead of being imitated, which is faster.
-
-```sh
-ls -l /dev/ntsync      # the device is there: the driver is loaded
-```
-
-Should one game misbehave with it, the launch option `PROTON_NO_NTSYNC=1 %command%` runs that
-game without it.
-
-### Windows games
-
-Most Windows games just run: Steam picks Proton for them by itself. When one does not:
-
-1. Look it up on [ProtonDB](https://www.protondb.com): players' reports say which Proton
-   works and which launch options it needs.
-2. In Steam, the game's *Properties → Compatibility*: tick *Force the use of a specific Steam
-   Play compatibility tool* and choose — *Proton Experimental* (Valve's newest), a numbered
-   Proton, or *GE-Proton* (videos in cut-scenes, newer fixes). One game at a time: the others
-   keep Steam's choice.
-3. Still wrong: `gamescope -f -- %command%` in its launch options (a game that cannot cope
-   with the desktop's windows or sizes), or `PROTON_NO_NTSYNC=1 %command%`.
-
-What is already done for you: GE-Proton installed and kept current by `update` (the newest
-two), `ntsync` loaded, Mesa's RADV for Vulkan, the 32-bit libraries Steam needs, Steam's
-shader pre-caching on (its default: *Settings → Downloads*), and Fedora's limits for Proton
-(`vm.max_map_count` and open files, checked by the health report). **Right Shift+F12** shows
-the overlay; game mode does the rest by itself.
-
-**Pitfalls.** Outside gamescope the overlay is in every Steam game, hidden until
-**Right Shift+F12**; inside gamescope, use `--mangoapp`. MangoHud's settings are a managed
-file: change them in the repository's `MangoHud.conf`. `update` keeps only the newest two
-GE-Proton builds, so a game forced to an older one needs a new choice under *Compatibility*.
-
-**Read more:** the READMEs of [GE-Proton](https://github.com/GloriousEggroll/proton-ge-custom#readme)
-(its launch options), [gamescope](https://github.com/ValveSoftware/gamescope#readme) and
-[MangoHud](https://github.com/flightlessmango/MangoHud#readme).
-
-### Controllers
-
-A game controller on Bluetooth pairs the way headphones do (§8.3):
-
-1. Put the controller into pairing mode. On an Xbox controller, hold the small pair button on
-   its top edge until the Xbox button flashes fast; on a PlayStation one, hold **Share** (or
-   **Create**) and the **PS** button together until the light bar flashes.
-2. **Super+X** → *devices*; in bluetui, **s** scans, **Tab** moves to *Scanning*, **j**/**k**
-   to the controller, **Enter** pairs it — trusted and connected by itself.
-3. Start Steam: *Settings → Controller* lists it, and every game sees it.
-
-No driver needs adding. Fedora's kernel drives the common ones itself — Xbox (`hid-microsoft`),
-PlayStation (`hid-playstation`), Switch Pro and 8BitDo in Switch mode (`hid-nintendo`) — and
-Steam reaches them through `steam-devices`, rules that let your user open a controller.
-
-The Bluetooth dongle never sleeps. A controller on a dongle that naps between packets lags or
-drops, so setup switches the dongle's power saving off, from the next start on
-(`options btusb enable_autosuspend=0` in `/etc/modprobe.d/fedokawaii-btusb.conf`).
-
-**A controller no game sees.** One that pairs but that no game sees may need the `input`
-group, which opens every input device to your programs directly. Setup leaves you out of it,
-because while you are in it any program you run can read every key you press. To try it:
-
-```sh
-sudo usermod -aG input $USER    # then log out and in again
-```
-
-Update and repair leave you in it; `sudo gpasswd -d $USER input` takes you out again.
-
-**Pitfall.** Microsoft's own USB receiver for Xbox controllers, the *Xbox Wireless Adapter*, is
-not Bluetooth. It needs `xone`, a driver built outside Fedora's kernel, which Secure Boot
-refuses to load unless you enrol a signing key of your own. Pair the controller over Bluetooth
-instead.
+**Why a user and not a VM:** a game gets the card natively, at no cost in frames, and nothing here is a virtual
+machine. A user is a lesser wall than a VM against an attacker with a kernel exploit, and that is the one thing it
+does not stop; the snapshot `clean` undoes everything short of that.
 
 ## 21.2 Hardware — OpenRGB and LACT
 
@@ -8223,17 +8053,15 @@ programs, one layer at a time, from the files on the disk to the network.
 
 **What you learnt**
 
-- Steam starts warm in the background; the launcher's *Steam* or the bar's gamepad brings its window up where you are. Proton runs Windows games, GE-Proton when a game needs it.
 - FreeSync follows a game's frame rate: *in games* by default, in quick settings.
-- Game mode comes with every Steam game by itself (`kawa-game`); a game's launch options take `gamescope` before `%command%`.
-- **Right Shift+F12** shows or hides the overlay, in every Steam game.
+- A game behind the desktop is frozen, costing no CPU and no card; Steam alone goes on working.
 - OpenRGB sets the lights and LACT the graphics card; only LACT re-applies its settings at boot
   by itself. Fan speeds belong to the motherboard's start-up settings.
 
 **Check yourself**
 
-1. You closed Steam's window. Is Steam still running, and how do you get it back? → *yes, its gamepad is in the bar: click it (or the launcher's Steam); right-click → quit Steam ends it*
-2. How do you show the overlay in a Steam game? → ***Right Shift+F12**: it is in every game, hidden until asked*
+1. A Windows program did something strange in the world. How do you undo it? → *Super+U → system → asobi → reset to a snapshot: `clean` is the world as installed*
+2. What can the world reach of yours? → *the drop folder, and nothing else*
 3. Your RGB lights forget their colours after a power cut. Why? → *nothing starts OpenRGB at login: add `openrgb --profile NAME &` to `autostart.local.sh`*
 
 # Part IV — Understanding Linux
@@ -8299,7 +8127,7 @@ bottom up:
 programs that live on it:
 
 ```text
- your programs      Brave Origin · foot + bash · mpv · yazi · neovim · Steam
+ your programs      Brave Origin · foot + bash · mpv · yazi · neovim
  the session        dwl (on wlroots) · waybar · mako · kawa-panel · swayidle · gtklock · kawa-*
  desktop services   PipeWire + WirePlumber · xdg-desktop-portal · D-Bus · polkit agent · udiskie
  system services    systemd · greetd · NetworkManager · resolved · BlueZ · firewalld · tuned
@@ -8591,7 +8419,7 @@ The whole picture, place by place, with who writes there and what may go:
 | `~/.config` | every program's settings | Theme owns the files listed in §42.2; the rest are yours | no — but a managed file edited here is replaced at the next Theme run |
 | `~/.config/fedokawaii/` | `env`, `themes/`, `current`, `icons.sh`, `width.sh`, `files.sh`, `backup-exclude`, `secrets.sh` | Theme (`env` is written from `fedokawaii.conf`); `secrets.sh` is yours | no |
 | `~/.local/bin` | `kawa-*` helpers, `fetch`, `brave-origin`, `kawa-clipkeep`, the release binaries (`yazi`, `ya`, `satty`, `lazygit`, `bluetui`) | Theme and `update` | no. Your own scripts may live here too, under names the desktop does not use there |
-| `~/.local/share` | program data: Steam and its games, uv's Pythons and torrra, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
+| `~/.local/share` | program data: uv's Pythons and torrra, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
 | `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `lazy-lock/` (neovim's plugin versions before each update), `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 10 |
 | `~/.cache` | logs, previews, the scaled wallpapers, the clipboard history, launcher counts | the programs | yes, piece by piece; every program rebuilds its part (§38.2) |
 | `~/Downloads` | what Brave, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
@@ -10211,7 +10039,7 @@ dnf repolist          # the enabled ones, by id and name
 | `fedora` · `updates` | the release as it shipped · every fix since | nearly everything |
 | `fedora-cisco-openh264` | Cisco's H.264 codec, built and shipped by Cisco for licensing reasons | enabled by Fedora by default |
 | `rpmfusion-free` (+ `-updates`) | free software Fedora leaves out, mostly for patent reasons | the full **ffmpeg**, Mesa's **freeworld** VA-API driver (H.264 and HEVC), `libheif-freeworld` |
-| `rpmfusion-nonfree` (+ `-updates`) | software that is free to use but not open source | **Steam**; Intel's full VA-API driver |
+| `rpmfusion-nonfree` (+ `-updates`) | software that is free to use but not open source | Intel's full VA-API driver |
 | `brave-browser` | Brave's own, signed | `brave-origin` |
 | `claude-code` | Anthropic's own, signed, fingerprint checked | `claude-code` |
 | `copr:copr.fedorainfracloud.org:ilyaz:LACT` | a COPR (§5.4) | LACT, the AMD GPU control |
@@ -10252,7 +10080,6 @@ update never moves them, and a download that differs by one byte is refused.
 | LocalSend | 1.18.2 | its own release, kept whole in `~/.local/share/localsend`: Fedora does not package it |
 | ble.sh | 0.4.0-devel4+d81fd54 (a commit of 8 Sep 2026) | its own releases (2023) predate the bash 5.3 Fedora ships, and its nightly file is replaced in place, so it is built here from that commit — git checks every file against it |
 | torrra | 2.5.1 | its key wrapper replaces three of its methods; libtorrent under it moves to the newest |
-| GE-Proton | the newest; two kept | games are what it is for, and it changes nothing else |
 
 dwl is built from a pinned commit (`DWL_COMMIT`), and so is the file dialog's portal
 (`TFC_COMMIT`); Syncplay's source is held at one too (`SYNCPLAY_COMMIT`), and so is ble.sh's
@@ -11760,8 +11587,8 @@ calls into the GPU's own commands. Each GPU family has one of each:
 Facts worth knowing for 2025–2026:
 
 * **RADV** is the Vulkan driver for AMD. AMD ended its own open driver, AMDVLK, in September
-  2025 and now backs RADV. This desktop uses Fedora's build of it, 64- and 32-bit (Steam's
-  games need both). RPM Fusion also makes a freeworld Vulkan build, but all it adds is
+  2025 and now backs RADV. This desktop uses Fedora's build of it, 64-bit (the play world's
+  games bring their own). RPM Fusion also makes a freeworld Vulkan build, but all it adds is
   Vulkan's own H.264 and HEVC video, which nothing here uses — mpv and Brave decode through
   VA-API — and its 64- and 32-bit packages have clashed over a shared file, so installing
   the one took the other out. `repair` swaps it for Fedora's if an older setup put it in.
@@ -11806,7 +11633,7 @@ The launcher, the menus and quick settings (`kawa-panel`) are layer surfaces too
 
 ## 31.5 XWayland
 
-Programs written only for X11 — Steam, many games — run through **XWayland**, an X server that
+Programs written only for X11 run through **XWayland**, an X server that
 is itself a Wayland client. dwl is built with it switched on (`XWAYLAND=-DXWAYLAND`) and starts
 it only when an X11 program first connects; copy and paste work in both directions.
 
@@ -11862,7 +11689,7 @@ Volume: 0.40
 |---|---|---|
 | **ALSA** | the kernel's sound drivers, and the oldest way for a program to reach a sound card | `/proc/asound/cards`; `/dev/snd/` |
 | **PipeWire** | one sound server for every program: it mixes streams, moves them between devices and passes sound between programs (and video, for screen sharing) | `pipewire.service`, started by `pipewire.socket` |
-| **pipewire-pulse** | PipeWire speaking PulseAudio's protocol, so programs written for PulseAudio (Brave, Steam) work unchanged | `pipewire-pulse.service` (package `pipewire-pulseaudio`) |
+| **pipewire-pulse** | PipeWire speaking PulseAudio's protocol, so programs written for PulseAudio (Brave) work unchanged | `pipewire-pulse.service` (package `pipewire-pulseaudio`) |
 | **pipewire-alsa** | sends programs that open ALSA directly (some games) through PipeWire | a plugin, no process of its own |
 | **WirePlumber** | PipeWire's *session manager*: the policy — which device is the default, where a new stream goes, what is remembered | `wireplumber.service` |
 
@@ -11916,7 +11743,7 @@ pw-top                                       # every stream live, with its load 
 
 1. Which device file may any program open, and which only the compositor? → *`renderD128` ·
    `card1`*
-2. Why does Steam need XWayland? → *it is written for X11 only; XWayland is an X server that
+2. Why does a program written for X11 need XWayland? → *it speaks X11 only; XWayland is an X server that
    runs as a Wayland client*
 3. Which program decides where a new sound stream goes? → *WirePlumber, PipeWire's session
    manager*
@@ -12266,9 +12093,8 @@ One of resolved's extras is off here: **LLMNR**, Windows' older way of finding n
 home network, which listens on every address (port 5355) and answers anyone who asks — the
 classic target for a machine on the same network pretending to be another
 (`/etc/systemd/resolved.conf.d/90-fedokawaii.conf`: `LLMNR=no`). Names on the home network
-(`printer.local`) are *mDNS*'s, answered by avahi. Steam's own listener on 27036 (Remote
-Play's discovery) stays closed in the firewall; the report's NET-09, NET-20 and NET-21 check
-all three.
+(`printer.local`) are *mDNS*'s, answered by avahi; the report's NET-09 and NET-20 check
+both.
 
 ## 33.3 The firewall: firewalld
 
@@ -12822,7 +12648,6 @@ copy's is meant. For example:
 
 | Key | Saved through *settings* | In the copy | The toolkit gets |
 |---|---|---|---|
-| `STEAM` | `no` | `yes`, as it always was | `no` — yours stays |
 | `MONITOR_HZ` | `144` | `165`, changed in the copy | `165` — the copy's change |
 | `DWL_COMMIT` | (a pin) | a newer pin | the copy's |
 
@@ -12879,7 +12704,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
 | compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock's quick wrong-password answer (its PAM file) and its words without its module · the yazi file dialog built and known to the portals |
 | services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
-| upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh · GE-Proton |
+| upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh |
 | applications | Brave Origin actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
 | theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Brave in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
@@ -12980,7 +12805,7 @@ every 60, 90 or 120 days, then off.
 | the manifest | anything missing installed; a package a newer Fedora no longer has is listed, never fatal | |
 | this machine's drivers | the firmware the kernel asked for and did not find, the CPU's microcode, Wi-Fi's and the sound card's parts — whatever this hardware needs (§30.1); device firmware updates are listed, never applied by themselves | each on its own |
 | nothing doubled or fighting | packages left twice removed; what `dnf check` finds brought in line; services that fight the desktop's own switched off; the login made greetd's again; dependencies nothing needs removed; what a stopped run left cleared. Configuration files an update could not merge are listed in `/var/lib/fedokawaii/rpmnew`, never touched | each on its own |
-| the desktop's own parts | dwl's wlroots, the pinned tools and fonts (§27.7), GE-Proton, the file dialog | each on its own: one that fails — GitHub down, say — is reported, the rest goes on, and the next update tries it again |
+| the desktop's own parts | dwl's wlroots, the pinned tools and fonts (§27.7), the file dialog | each on its own: one that fails — GitHub down, say — is reported, the rest goes on, and the next update tries it again |
 | torrra · Prowlarr | libtorrent to its newest under torrra; Prowlarr's newest image, then started and checked | |
 | neovim's plugins | your current versions kept first (`~/.local/state/fedokawaii/lazy-lock/`, the last six), then `Lazy! sync` | |
 | verify | every check, the outcome recorded for the menu | |
@@ -13001,7 +12826,7 @@ through Mason in neovim (`:Mason`, then `U`).
 
 1. **Super+U** → *update* (its mark reads **due** once the season has come round), or type
    `update`. It snapshots, upgrades every package, installs what the manifest gained, checks
-   the pinned tools and fonts, brings GE-Proton, torrra's libtorrent and Prowlarr's image up
+   the pinned tools and fonts, brings torrra's libtorrent and Prowlarr's image up
    to date, syncs neovim's plugins, and finishes with `verify` (§36.2).
 2. If it reports a new kernel, restart; the one before stays installed as the way back.
 3. Not included: Mason's tools in neovim (`:Mason`, then `U`). The toolkit itself stays the
@@ -13393,7 +13218,7 @@ were taken, so deleting a large file frees nothing until the last snapshot holdi
 * `~/Downloads` — its own subvolume (setup made it while the folder was empty; `verify` warns
   if it is not). A Btrfs snapshot never includes a subvolume nested inside it.
 * `/boot` and `/boot/efi` — separate partitions; the previous kernel is the safety net (§29.5).
-* everything else in your home **is** in the `home` snapshots: `~/.cache`, Steam's games,
+* everything else in your home **is** in the `home` snapshots: `~/.cache`,
   podman's images. Deleting them frees their space only as the snapshots holding them expire.
 
 To keep another big folder out the way `~/Downloads` is, make it a subvolume while it is
@@ -13653,8 +13478,7 @@ fetched again. Move what you keep into `~/Documents` or another folder (§10.2),
 backup has it.
 
 The rest is what a program would download again by itself: `~/.cache` and the browser's
-caches; the trash; Steam's games and GE-Proton (the saves of Windows games, in
-`steamapps/compatdata`, stay in); neovim's plugins, torrra's Python environment, Prowlarr's
+caches; the trash; neovim's plugins, torrra's Python environment, Prowlarr's
 container image, the desktop's release binaries and the wallpaper pack (the update fetches
 each again); and `~/Restored` itself. To change the list — say, to back up `~/Downloads`
 after all, delete its line — change it in your working copy and apply (chapter 42).
@@ -13765,8 +13589,6 @@ uname -r             # the one running: the newest
 |---|---|---|
 | torrra (uv tool) | `~/.local/share/uv/tools/torrra`, on a Python 3.13 uv fetched for it | nothing to do: torrra stays at its version, and `update` moves libtorrent under it to the newest (`uv tool upgrade torrra`). `uv tool list` shows it; its own `torrra` command is kept in `~/.local/share/uv/tool-bin`, off your PATH, on purpose — `torrra` is `kawa-torrra`; do not `uv tool uninstall` it — `verify` checks it. A machine set up before kept it in pipx: `update` moves it to uv |
 | Prowlarr's image | podman's storage in `~/.local/share/containers` | `podman system df` shows the size; `podman image prune` removes *dangling* images — older versions left without a name when a newer one was pulled (`update` already runs it). Not `podman image prune -a`: Prowlarr's container exists only while it runs, so that would delete its current image too |
-| GE-Proton | `~/.local/share/Steam/compatibilitytools.d` | nothing: `update` keeps the newest two |
-| games | `~/.local/share/Steam/steamapps` | Steam's *Settings → Storage*: uninstall games there. Each game's Proton prefix (`steamapps/compatdata`) and shader cache (`steamapps/shadercache`) can grow to gigabytes; a folder there for a game you no longer have can go |
 | neovim's tools | Mason, in `~/.local/share/nvim/mason` | `:Mason`, `X` on a tool you no longer use |
 
 ## 38.2 Disk space and logs
@@ -13778,7 +13600,7 @@ would free. Ask Btrfs:
 | Command | Shows |
 |---|---|
 | `sudo btrfs filesystem usage /` | the real picture: *Free (estimated)*, and *Device unallocated* |
-| `sudo btrfs filesystem du -s ~/Downloads ~/.local/share/Steam` | how much of a folder is its own and how much is shared with snapshots |
+| `sudo btrfs filesystem du -s ~/Downloads` | how much of a folder is its own and how much is shared with snapshots |
 | `du -xh --max-depth=1 ~ | sort -h | tail` | the biggest folders in your home (`-x` stays on one subvolume, so it skips `~/Downloads`; run it there separately) |
 | `fd -HI -S +1g . ~` | single files of 1 GB or more (`-H`: hidden ones too; `-I`: also those a `.gitignore` hides, such as build folders in `~/repos`) |
 
@@ -13791,18 +13613,17 @@ Overall:
     Device allocated:            212.02GiB
     Device unallocated:          719.49GiB
     Free (estimated):            741.22GiB      (min: 381.47GiB)
-$ sudo btrfs filesystem du -s ~/Downloads ~/.local/share/Steam
+$ sudo btrfs filesystem du -s ~/Downloads
      Total   Exclusive  Set shared  Filename
   38.40GiB    38.40GiB       0.00B  /home/you/Downloads
-  61.20GiB     2.10GiB    59.10GiB  /home/you/.local/share/Steam
 ```
 
 *(for example; shortened)*
 
 *Free (estimated)* is roughly what you can still write. *Device unallocated* is space Btrfs
 has not yet handed to data or metadata (see *balance* below). *Exclusive* is what deleting the
-folder would free at once: all of `~/Downloads`, which no snapshot holds, but little of
-Steam's — the rest is shared with the `home` snapshots and comes back only as they expire.
+folder would free at once: all of `~/Downloads`, which no snapshot holds; in a folder the `home` snapshots hold too, the
+rest is shared with them and comes back only as they expire.
 
 ### What fills it: gdu
 
@@ -13824,7 +13645,7 @@ $ gdu ~
 ```
 
 *(for example; shortened)* The scan takes a few seconds for a home of this size. **Enter** on
-`/.local` shows `share`, then `Steam` inside it: the games. **←** at each step comes back up.
+`/.local` shows `share`. **←** at each step comes back up.
 
 | Keys | Does |
 |---|---|
@@ -13932,7 +13753,7 @@ catches up once a week. Two more tools exist; neither is needed often:
 4. Big files: `fd -u -S +1g . ~` (`-u` also looks in hidden folders and in what a
    `.gitignore` leaves out, such as build output in a code folder; `-H` alone skips that).
 5. Caches and logs: `podman image prune`, `sudo journalctl --vacuum-size=200M`,
-   `sudo dnf clean all`, and Steam's own *Settings → Storage* for games.
+   `sudo dnf clean all`; the play world's games: Super+U → system → asobi → disk use.
 
 **Tip:** chapter 38 explains each of these, and which caches are safe to clear (§38.2).
 
@@ -14173,7 +13994,6 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
 | Known issue | Status |
 |---|---|
 | foot does not reorder right-to-left text | Arabic is complete in GTK/Qt programs and Brave; in the terminal the letters show but are not reordered — a foot limitation |
-| Steam's interface | not themeable |
 | Brave's own pages | settings pages, the Shields panel, about:blank and error pages keep Brave's own greys; private windows keep its private colours |
 | sharing a screen with system sound | carries the call's own sound too (an echo for the others); use a tab's sound or the Share output instead (§14.4) |
 
@@ -14481,7 +14301,6 @@ below read.
 | the pointers | `~/.local/share/icons/default` is a link to `Sumi-dark` or `Sumi-light` (§40.5); GTK 3 has gsettings `cursor-theme` | the link is replaced and dwl told (SIGUSR1): it loads them again, and the window under the pointer asks anew — GTK 4, foot, Qt and Brave at once, GTK 3 by gsettings; an XWayland program at its next start |
 | the screenshot region | `kawa-screenshot` reads `current/colors.sh` | next screenshot |
 | wallpaper | each theme's own choice | `kawa-wallpaper --restore` |
-| MangoHud (games) | `MangoHud.conf` in the dark palette and Sumi UI | — |
 | the console, boot menu | always the dark theme's colours | — |
 
 The news travels as signals (§26.2). `SIGUSR1` and `SIGUSR2` are left for each
@@ -14501,7 +14320,7 @@ To change a colour: edit the palette at the top of `tools/build-themes.py` in yo
 run `python3 tools/build-themes.py` there, then apply (ch. 42). **Super+Shift+U →
 colours** does the middle step for you: it runs the generator when you save, then offers to
 apply. A few files cannot read a generated one —
-dwl's `config.h` (the dark theme's, until it reads the theme's `dwl.colors`), mpv's subtitle colours, satty, MangoHud, `fetch` and the
+dwl's `config.h` (the dark theme's, until it reads the theme's `dwl.colors`), mpv's subtitle colours, satty, `fetch` and the
 scripts' fallbacks — so they hold the colours themselves, and every run of the generator
 checks that each one is still a palette colour (it stops if not).
 
@@ -15521,7 +15340,7 @@ fedokawaii drift      # the managed configs that differ from the toolkit (change
 
 | Managed by Theme (edit in the working copy) | Yours (edit in place) |
 |---|---|
-| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `MangoHud/MangoHud.conf`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
+| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Brave settings Theme makes — its colours and its launcher entry, §5.3) |
 
 ## 42.3 Where each thing lives
 
@@ -16615,7 +16434,7 @@ report.
 | tree-sitter-cli · ShellCheck | builds the parsers neovim colours code with · finds mistakes in shell scripts | LazyVim's syntax colours (ch. 17) · `shellcheck script` explains a mistake (§25.6), and `fedokawaii apply` reads the scripts you changed |
 | fwupd | `fwupdmgr`: firmware for the SSD, motherboard and dock, from the LVFS | *update* lists what is new; `fwupdmgr update` applies it when you choose (§30.1) |
 | tuned | sets the processor, disks and network for a desktop that is always plugged in | the *fedokawaii* profile (§30.4) |
-| steam-devices · ntsync-autoload | the rules that let Steam open a controller · `/dev/ntsync` at boot | a gamepad works in games · Proton's faster Windows synchronisation (ch. 21) |
+| steam-devices · ntsync-autoload | the rules that open a controller to the seat's user · `/dev/ntsync` at boot | a gamepad works in the play world · Proton's faster Windows synchronisation (ch. 21) |
 
 **Removed as redundant** across versions: tuigreet and agreety (kawa-greet), wlogout (the
 power menu, `kawa-power`), fastfetch (own `fetch`), a separate clock script (waybar's clock), starship
@@ -16681,7 +16500,6 @@ $ xdg-user-dir DOWNLOAD
 | Sketch (Xournal++) | `~/.config/xournalpp/` | `~/Pictures/Sketches/` | |
 | VisiData · gdu | `~/.config/visidata/config.py` · `~/.config/gdu/gdu.yaml` | `~/.local/share/visidata/` | |
 | tldr | its colours and refresh in `~/.bashrc.d/fedokawaii.sh` | | `~/.cache/tldr/` (the pages) |
-| Steam and games | | `~/.local/share/Steam/` · GE-Proton in `compatibilitytools.d/` there | |
 | GTK, Qt, pointers | `~/.config/gtk-4.0/` · `~/.config/qt6ct/` · `/etc/dconf` | `~/.local/share/themes/Fedokawaii*` · `~/.local/share/icons/default` (a link to the pointers in use, in `/usr/share/icons`) | |
 
 ## B.3 On the system
@@ -17042,7 +16860,6 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-git` | the launcher's *Git*: your repositories, lazygit in the one picked (or clone one, start one) | `kawa-git --list` |
 | `kawa-books` · `kawa-notes` · `kawa-clip` · `kawa-shrink` | the books, notes, clipboard and shrink windows (Super+R, N, V, Z) | `kawa-books` |
 | `kawa-sketch` | a blank page in Xournal++ for the pen | `kawa-sketch` |
-| `kawa-steam` | Steam's window, or a `steam://` link in it | `kawa-steam steam://open/downloads` |
 | `kawa-term` · `kawa-term --float` | a command in a new terminal window · in a small floating one | `kawa-term btop` |
 | `kawa-display` | every monitor at its best refresh rate (≤ `MONITOR_HZ`) | `kawa-display` |
 | `kawa-prowlarr` | Prowlarr's web page (it starts when asked, sleeps after) · asleep now | `kawa-prowlarr stop` |
@@ -17163,7 +16980,6 @@ commands themselves are in appendix D.
 | free software | software anyone may read, change and pass on: free as in freedom, not as in price (§2.4) |
 | FreeType | the library that turns font outlines into pixels (§31.7) |
 | freeworld | RPM Fusion's builds of Mesa and libheif with the codecs Fedora leaves out (§27.6) |
-| GE-Proton | a community build of Proton, with fixes and media patches ahead of Valve's (§21.1) |
 | generator | a small program systemd runs at boot to write units, such as podman's for quadlets (§34.6) |
 | git | the version-control program: it keeps the history of a folder as commits (§41.1) |
 | glob | a pattern bash turns into matching file names before the command runs: `*.pdf` (§25.1) |
@@ -17350,7 +17166,7 @@ commands themselves are in appendix D.
 | `XDG_RUNTIME_DIR` | your per-session folder in memory, `/run/user/1000` (§23.2) |
 | xe · i915 | Intel's newer and older kernel graphics drivers (§31.2) |
 | XKB | the keyboard layouts and options: `us,ara`, `grp:alt_shift_toggle` (§30.2) |
-| XWayland | the bridge that lets an older X11 program, such as Steam, show on a Wayland desktop (§21.1) |
+| XWayland | the bridge that lets an older X11 program show on a Wayland desktop |
 | zone (firewalld) | a named list of what may come in, for the network cards assigned to it (§33.3) |
 | zram | swap kept compressed in memory (§30.4) |
 
@@ -17433,7 +17249,7 @@ Fedora 45 also brings Python 3.15, GCC 16.2, glibc 2.44 and Go 1.27 (beta, Septe
 ## F.3 The Linux desktop
 
 **Wayland is now the only session on the two big desktops.** X11 programs still run on both,
-through XWayland, as Steam does here.
+through XWayland.
 
 | Desktop | The X11 session | When |
 |---|---|---|

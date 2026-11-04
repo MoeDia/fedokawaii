@@ -1,0 +1,174 @@
+#!/usr/bin/env bash
+# kawa-asobi — ASOBI 遊び, the play world: every game in a user of its own (asobi) on a VT of its
+# own, Steam's gamepad UI on the card itself; the desktop runs on behind it and sees nothing of it,
+# nor it of the desktop, but one drop folder. This is the desktop's side of it:
+#
+#   kawa-asobi            the app, in this terminal: enter · bottles · close · snapshot now · reset to
+#                         a snapshot · disk use · the drop folder (a text screen, design system §7)
+#   kawa-asobi --window   the app in a small window of its own (Super+U; the launcher's ASOBI)
+#   kawa-asobi enter      into the world (Super+G): started if it does not run, back in front if
+#                         it does, a frozen game going on where it stopped. Super+G in there, or
+#                         Steam's own exit, is the way back here
+#   kawa-asobi bottles    the world with Bottles in front (other Windows programs): one face at a
+#                         time, so a running Steam closes first
+#   kawa-asobi close      the world closed: Steam ends as its own menu ends it (saves to its cloud)
+#   kawa-asobi state      off · starting · front · away (Steam working behind the desktop) ·
+#                         frozen (a game stopped in time behind the desktop)
+#   kawa-asobi --rows main|snaps [W] · --heading main|snaps [W]
+#                         the screens' rows and heading, W columns wide (fzf asks at each resize)
+#
+# Root's part (kawa-asobi-root) runs only as the units polkit lets this user start: the session
+# and one job at a time (kawa-asobi-op@JOB). Exit: 0 · 1 could not (a notice says why) · 2 misuse.
+set -u
+STEAM_UNIT=kawa-asobi.service BOTTLES_UNIT=kawa-asobi-bottles.service RUN=${KAWA_ASOBI_RUN:-/run/kawa-asobi} WORLD_VT=8
+DROP=${KAWA_ASOBI_DROP:-/home/.asobi/drop}
+case ${1:-} in
+  -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
+  ""|--window|enter|bottles|close|state) ;;
+  --rows|--heading) [[ ${2:-} == @(main|snaps) ]] || { echo "usage: kawa-asobi $1 main|snaps [W]" >&2; exit 2; } ;;
+  *) echo "usage: kawa-asobi [--window | enter | close | state] (kawa-asobi --help)" >&2; exit 2 ;;
+esac
+
+state() {
+  local s=""
+  systemctl is-active --quiet "$STEAM_UNIT" "$BOTTLES_UNIT" || { echo off; return 0; }
+  [[ -r $RUN/state ]] && IFS= read -r s <"$RUN/state"
+  echo "${s:-starting}"
+}
+notice() { notify-send -a asobi -- "${ICON_KOMA:-·}  asobi" "$1" 2>/dev/null; }
+# (a job of root's: the unit waited for, its outcome in $RUN/last — ok|fail TAB when TAB what)
+job() { systemctl start --no-ask-password --quiet "kawa-asobi-op@$1.service" 2>/dev/null; }
+start() {   # start UNIT
+  systemctl start --no-ask-password --quiet --no-block "$1" || { notice "the world would not start: journalctl -t kawa-asobi"; return 1; }
+}
+front() {
+  busctl call --quiet --allow-interactive-authorization=no org.freedesktop.login1 /org/freedesktop/login1/seat/seat0 \
+    org.freedesktop.login1.Seat SwitchTo u "$WORLD_VT" || { notice "the world would not come to the front"; return 1; }
+}
+enter() { if [[ $(state) == off ]]; then start "$STEAM_UNIT"; else front; fi; }
+# (a unit's Conflicts= closes the other face, properly, before this one starts)
+bottles() { if systemctl is-active --quiet "$BOTTLES_UNIT"; then front; else start "$BOTTLES_UNIT"; fi; }
+
+case ${1:-} in
+  enter) # shellcheck source=/dev/null
+         . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; enter; exit ;;
+  bottles) # shellcheck source=/dev/null
+         . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; bottles; exit ;;
+  close) systemctl stop --no-ask-password --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; exit ;;
+  state) state; exit 0 ;;
+  --window) exec kawa-term --float --once asobi asobi 66x12 -- "$0" ;;
+esac
+
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/icons.sh"
+# shellcheck source=/dev/null
+. "$HOME/.config/fedokawaii/screen.sh"
+SAID=${XDG_RUNTIME_DIR:-/tmp}/kawa-asobi.said    # what the last job came to, under the heading
+
+size() { [[ ${1:-} =~ ^[0-9]+$ ]] && numfmt --to=si --suffix=B --round=nearest --format=%.0f "$1" | sed -E 's/([0-9])([kKMGT]?B)$/\1 \2/' || printf 'counting'; }
+# the status root's job wrote: world EXCL TOTAL · snap NAME BORN EXCL TOTAL · free BYTES
+status_lines() { cat -- "$RUN/status" 2>/dev/null; }
+snaps_count() { local n=0 k _; while IFS=$'\t' read -r k _; do [[ $k == snap ]] && ((n++)); done < <(status_lines); echo "$n"; }
+disk_value() {
+  local k a b world="" free=""
+  while IFS=$'\t' read -r k a b _; do
+    case $k in world) world=$b ;; free) free=$a ;; esac
+  done < <(status_lines)
+  printf 'world %s · free %s' "$(size "$world")" "$(size "$free")"
+}
+drop_value() {
+  local n; n=$(find -P "$DROP" -mindepth 1 -maxdepth 1 -printf x 2>/dev/null | wc -c)
+  case $n in 0) echo empty ;; 1) echo "1 item" ;; *) echo "$n items" ;; esac
+}
+state_word() { case $1 in starting) echo starting ;; away) echo "running" ;; frozen) echo "asleep" ;; *) echo "" ;; esac; }
+
+rows() {   # rows main|snaps W — WHAT<TAB>ROW a line
+  local k a b c s w=$2
+  if [[ $1 == main ]]; then
+    s=$(state)
+    printf '%s\t%s\n' enter "$(screen_row "$ICON_TORII_SMALL" enter "$(state_word "$s")" "$w")"
+    printf '%s\t%s\n' bottles "$(screen_row "$ICON_TOKKURI" bottles "" "$w")"
+    [[ $s != off ]] && printf '%s\t%s\n' close "$(screen_row "$ICON_DOOR" close "" "$w")"
+    printf '%s\t%s\n' snapshot "$(screen_row "$ICON_CAMERA" "snapshot now" "" "$w")"
+    printf '%s\t%s\n' reset "$(screen_row "$ICON_UNDO" "reset to a snapshot" "$(snaps_count)" "$w")"
+    printf '%s\t%s\n' disk "$(screen_row "$ICON_DRIVE" "disk use" "$(disk_value)" "$w")"
+    printf '%s\t%s\n' drop "$(screen_row "$ICON_FOLDER" "drop folder" "$(drop_value)" "$w")"
+  else
+    while IFS=$'\t' read -r k a b c _; do
+      [[ $k == snap ]] || continue
+      printf '%s\t%s\n' "$a" "$(screen_row "$ICON_CAMERA" "$a" "$(date -d "@$b" '+%-d %b %H:%M' 2>/dev/null) · $(size "$c")" "$w")"
+    done < <(status_lines | sort -t$'\t' -k3,3nr)
+  fi
+}
+heading() {   # heading main|snaps W
+  local t=asobi m=""; [[ $1 == snaps ]] && t="reset to a snapshot"
+  screen_heading "$ICON_KOMA" "$t" "$2"
+  [[ -s $SAID ]] && IFS= read -r m <"$SAID"
+  [[ -n $m ]] && printf '\n\n%s' "$m"
+  printf '\n '
+}
+if [[ ${1:-} == --rows || ${1:-} == --heading ]]; then
+  w=${3:-}; [[ -n $w ]] || w=$(screen_width) || exit 1
+  if [[ $1 == --rows ]]; then rows "$2" "$w"; else heading "$2" "$w"; fi
+  exit 0
+fi
+
+command -v fzf >/dev/null || { echo "kawa-asobi: fzf is missing — fedokawaii repair puts it back" >&2; exit 1; }
+export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+screen_width >/dev/null || { echo "kawa-asobi: no terminal to draw in" >&2; exit 1; }
+self=$(printf '%q' "$0")
+trap 'rm -f -- "$SAID"' EXIT
+pick() {   # pick KIND [fzf's options]
+  local kind=$1; shift
+  fzf --ansi --no-sort --no-input --height=100% --delimiter=$'\t' --with-nth=2 --with-shell='bash -c' \
+    --bind="start,resize:reload-sync[$self --rows $kind]+transform-header[$self --heading $kind]" \
+    "$@" </dev/null
+}
+said() {   # said WHAT: the outcome of the job that just ended, under the heading
+  local k t m
+  IFS=$'\t' read -r k t m <"$RUN/last" 2>/dev/null
+  if [[ $k == ok ]]; then printf '%s%s%s  %s\n' "$INK_MUTED" "$ICON_CHECK" "$INK_OFF" "$m" >"$SAID"
+  else printf '%s%s%s  %s\n' "$INK_ACCENT_TEXT" "$ICON_CROSS" "$INK_OFF" "${m:-$1 failed}" >"$SAID"; fi
+}
+# the outcome of a job, whatever it was; its screen while it runs (a reset closes the world first)
+work() {   # work WORDS JOB
+  printf '\e[H\e[2J\n  %s\n\n    %s%s%s  %s' "$(screen_heading "$ICON_KOMA" asobi "$(screen_width)")" \
+    "$INK_MUTED" "$ICON_HG_0" "$INK_OFF" "$1" >/dev/tty
+  job "$2"; said "$1"
+}
+# reset: the list, then the one question (the cursor on the safe answer); d deletes a snapshot
+snaps() {
+  local out key name choice
+  while :; do
+    systemctl start --no-ask-password --quiet --no-block kawa-asobi-op@status.service 2>/dev/null
+    out=$(pick snaps --expect=d --footer="$(screen_keys d delete "")") || return 0
+    key=${out%%$'\n'*}; name=${out#*$'\n'}; name=${name%%$'\t'*}
+    [[ -n $name ]] || continue
+    if [[ $key == d ]]; then
+      [[ $name == clean ]] && { printf '%s%s%s  clean, the world as installed, always stays\n' "$INK_ACCENT_TEXT" "$ICON_CROSS" "$INK_OFF" >"$SAID"; continue; }
+      work "deleting $name" "delete:$name"
+      continue
+    fi
+    choice=$(fzf --ansi --no-sort --no-input --height=100% --delimiter=$'\t' --with-nth=2 \
+      --header="$(screen_heading "$ICON_KOMA" "reset to a snapshot" "$(screen_width)")"$'\n\n'"the world closes and becomes $name;"$'\n'"what it is now stays as a snapshot, before-reset."$'\n ' \
+      < <(printf '%s\t%s\n%s\t%s\n' back "$(screen_row "$ICON_CHEVRON_LEFT" "keep the world as it is" "" "$(screen_width)")" \
+            yes "$(screen_row "$ICON_UNDO" "reset it to $name" "" "$(screen_width)")")) || continue
+    [[ ${choice%%$'\t'*} == yes ]] || continue
+    work "resetting to $name" "reset:$name"
+  done
+}
+
+# How the world stands, asked in the background: the screen opens at once on the last count
+systemctl start --no-ask-password --quiet --no-block kawa-asobi-op@status.service 2>/dev/null
+while :; do
+  out=$(pick main) || exit 0
+  case ${out%%$'\t'*} in
+    enter)    enter; exit ;;
+    bottles)  bottles; exit ;;
+    close)    work "closing the world" status; systemctl stop --no-ask-password --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; : >"$SAID" ;;
+    snapshot) work "taking a snapshot" snapshot ;;
+    reset)    : >"$SAID"; snaps; : >"$SAID" ;;
+    disk)     work "counting" status; : >"$SAID" ;;
+    drop)     setsid -f xdg-open "$DROP" >/dev/null 2>&1 </dev/null; exit 0 ;;
+  esac
+done

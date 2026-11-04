@@ -717,6 +717,7 @@ numbers here against its files.
 | the system monitor | the bar's memory, the launcher | btop (`configs/home/.config/btop/btop.conf`, its theme from `tools/build-themes.py`) | T19s |
 | help | Super+/ | `bin/kawa-help` | T23 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
+| the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
 
 ## 15. The grill list
 

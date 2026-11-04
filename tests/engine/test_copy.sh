@@ -119,7 +119,7 @@ echo "font=Changed" >>"$C/configs/home/.config/foot/foot.ini"
 fedokawaii diff; called '^less -R'; has "$(plain "$(cat "$R/less.out")")" "+font=Changed"
 case_ "diff: the settings you saved from the menu since the copy was made are no change of the copy's"
 fresh; ident; fedokawaii copy >/dev/null
-sed -i 's/^STEAM="yes"/STEAM="no"/' "$R/toolkit/fedokawaii.conf"     # (the menu's settings, saved as root)
+sed -i 's/^WALLPAPER_PACK="yes"/WALLPAPER_PACK="no"/' "$R/toolkit/fedokawaii.conf"     # (the menu's settings, saved as root)
 out=$(fedokawaii diff 2>&1); has "$out" "the same — nothing to apply"
 case_ "diff: the copy's own change of a setting is"
 sed -i 's/^MONITOR_HZ="144"/MONITOR_HZ="60"/' "$C/fedokawaii.conf"

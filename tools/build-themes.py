@@ -24,7 +24,7 @@ their contrast. This script is the only place the colours are written down; it r
   configs/home/.config/nvim/lua/plugins/colorscheme.lua   gruvbox remapped to both palettes
 
 A few files cannot include a generated one (dwl's config.h is compiled in; mpv's subtitles,
-satty, MangoHud, fetch and the scripts' fallbacks hold literal colours): each run checks that
+satty, fetch and the scripts' fallbacks hold literal colours): each run checks that
 every colour written in them is one of the palettes' (COPIES below), and stops if not.
 
 Outputs are committed, so installing needs no Python. Run again after changing a colour.
@@ -1184,7 +1184,7 @@ def lualine_palettes():
 COPIES = ["bin/kawa-books", "bin/kawa-notes", "bin/kawa-clip", "bin/kawa-menu", "bin/kawa-lock",
           "bin/kawa-wallpaper", "bin/kawa-screenshot", "bin/kawa-record", "bin/fetch", "src/dwl/config.h",
           "configs/home/.config/mpv/mpv.conf", "configs/home/.config/satty/config.toml",
-          "configs/home/.config/MangoHud/MangoHud.conf", "configs/home/.config/lazygit/config.yml"]
+          "configs/home/.config/lazygit/config.yml"]
 
 
 def check_copies():

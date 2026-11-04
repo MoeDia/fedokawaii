@@ -29,7 +29,15 @@ echo 'my own notes' >"$W$H/.config/sc-im/mine.sc"
 mkdir -p "$W$H/.config/pipewire/pipewire.conf.d"
 printf '%s\n' '# ~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf — the clean mic' 'context.modules = [ { name = libpipewire-module-echo-cancel } ]' \
   >"$W$H/.config/pipewire/pipewire.conf.d/60-clean-mic.conf"
-fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player" "$H/.config/pipewire"
+# …and gaming's, which left this account for the play world: Steam's helper, game mode's, the
+# overlay's config and Steam's launcher entry, each still ours
+mkdir -p "$W$H/.config/MangoHud" "$W$H/.local/bin" "$W$H/.local/share/applications"
+printf '%s\n' '#!/usr/bin/env bash' '# kawa-steam — Steam, shown and hidden from the bar' >"$W$H/.local/bin/kawa-steam"
+printf '%s\n' '#!/usr/bin/env bash' '# kawa-game — game mode' >"$W$H/.local/bin/kawa-game"
+printf '%s\n' 'fps' >"$W$H/.config/MangoHud/MangoHud.conf"
+printf '%s\n' '[Desktop Entry]' 'Name=Steam' 'Exec=kawa-steam %U' >"$W$H/.local/share/applications/steam.desktop"
+fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player" "$H/.config/pipewire" "$H/.config/MangoHud" \
+  "$H/.local/bin/kawa-steam" "$H/.local/bin/kawa-game" "$H/.local/share/applications/steam.desktop"
 
 # ── the first run ────────────────────────────────────────────────────────────
 case_ "first run: every file of configs/home, bin/ and configs/system in place (exit 0)"
@@ -92,6 +100,13 @@ pw=$W$H/.config/pipewire/pipewire.conf.d
 has "$(cat "$b/.config/pipewire/pipewire.conf.d/60-clean-mic.conf" 2>/dev/null)" "libpipewire-module-echo-cancel" "kept in the backup"
 has "$OUT" "60-clean-mic.conf (retired)"
 [[ -s $pw/50-quality.conf && -s $pw/60-share.conf ]] && _ok || _no "the folder lost 50-quality.conf or 60-share.conf"
+
+case_ "gaming left this account (lib/asobi.sh has it): Steam's and game mode's helpers, the overlay's config and Steam's entry, still ours, into the backup"
+[[ ! -e $W$H/.local/bin/kawa-steam && ! -e $W$H/.local/bin/kawa-game && ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok \
+  || _no "left: $(ls -d "$W$H"/.local/bin/kawa-{steam,game} "$W$H"/.config/MangoHud "$W$H"/.local/share/applications/steam.desktop 2>/dev/null | tr '\n' ' ')"
+[[ -f $b/.local/bin/kawa-steam && -f $b/.local/bin/kawa-game && -f $b/.config/MangoHud/MangoHud.conf && -f $b/.local/share/applications/steam.desktop ]] && _ok \
+  || _no "not in the backup ($b)"
+has "$OUT" "kawa-steam (retired)"; has "$OUT" "kawa-game (retired)"; has "$OUT" "MangoHud.conf (retired)"; has "$OUT" "steam.desktop (retired)"
 
 case_ "the pointers: both Sumi themes, their other names made as links, the default one the theme's"
 miss="" n=0

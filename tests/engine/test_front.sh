@@ -114,10 +114,10 @@ eq "$(grep -c 'F E D O' <<<"$out")" 1 "the menu not shown again"; eq "$(front_ca
 
 # ── conf: the settings, checked before they are saved ────────────────────────
 case_ "conf FILE (the menu's edited copy): checked, then made the toolkit's settings"
-fresh; cp "$R/toolkit/fedokawaii.conf" "$TMP/edit.conf"; sed -i 's/^STEAM="yes"/STEAM="no"/' "$TMP/edit.conf"
+fresh; cp "$R/toolkit/fedokawaii.conf" "$TMP/edit.conf"; sed -i 's/^WALLPAPER_PACK="yes"/WALLPAPER_PACK="no"/' "$TMP/edit.conf"
 out=$(front conf "$TMP/edit.conf" 2>&1); eq "$?" 0; has "$out" "every value is valid"
 has "$out" "BACKUP_TARGET and BACKUP_REMIND_DAYS count at once" "the backup's two need no update: said"
-has "$(cat "$R/toolkit/fedokawaii.conf")" 'STEAM="no"'
+has "$(cat "$R/toolkit/fedokawaii.conf")" 'WALLPAPER_PACK="no"'
 called "^runuser -u kawa -- cat -- $TMP/edit.conf" "read as whoever ran sudo, never as root"
 case_ "conf with a slip: not saved, every problem listed, the settings as they were"
 sed -e 's/^MONITOR_HZ="144"/MONITOR_HZ="9000"/' "$R/toolkit/fedokawaii.conf" >"$TMP/bad.conf"; printf 'FOO=1\n' >>"$TMP/bad.conf"
@@ -200,7 +200,7 @@ case_ "apply: a name holding \" and \" is still one file"
 fresh; copy_world; printf '# a\n' >"$R/toolkit/configs/home/.config/foot/notes and todo.sh"; printf '# b\n' >"$W/configs/home/.config/foot/notes and todo.sh"
 out=$(front apply 2>&1); has "$out" "configs/home/.config/foot/notes and todo.sh"; lacks "$out" "    configs/home/.config/foot/notes"$'\n'
 case_ "apply: settings saved from the menu since the copy was made are no change of the copy's"
-fresh; copy_world; sed -i 's/^STEAM="yes"/STEAM="no"/' "$R/toolkit/fedokawaii.conf"
+fresh; copy_world; sed -i 's/^WALLPAPER_PACK="yes"/WALLPAPER_PACK="no"/' "$R/toolkit/fedokawaii.conf"
 out=$(front apply 2>&1); has "$out" "nothing to apply"
 case_ "apply of very many files: forty named, the rest counted"
 fresh; copy_world; for i in $(seq 1 45); do echo "$i" >"$W/configs/home/.config/foot/f$i.ini"; done
