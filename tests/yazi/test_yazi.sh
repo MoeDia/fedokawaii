@@ -780,5 +780,129 @@ EOF
   not_called '^7z'
 else echo "  (no unrar here: the RAR case skipped)"; fi
 
+# ── the desktop's yazi: the list's columns, the breadcrumb, the cards, the pop-ups ─────────
+setup
+touch -d "3 days ago" "$W/a.txt"; touch -d "5 hours ago" "$W/b.txt"; : >"$W/nothing.bin"; head -c 3000 /dev/urandom >"$W/zz.bin"; echo x >"$W/.hidden"; echo x >"$W/sub dir/inner.txt"
+mkdir -p "$W/deep/er"
+out=$(CWD=$W/deep/er y 120x30 <<'EOF'
+wait empty
+settle
+screen
+quit
+EOF
+)
+case_ "the heading a breadcrumb: the folders above, the one you are in — nothing cut, no \"…\"; an empty folder says so"
+# shellcheck disable=SC2088  # (the ~ yazi shows)
+has "$out" "~/work/deep/er ─" "the whole path, then the rule"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+screen
+quit
+EOF
+)
+case_ "the list's columns: a file's size and age, right-aligned, their units after them"
+has "$(grep -F a.txt <<<"$out" | head -n1)" "6 B    3 d" "a.txt's size and age"
+has "$(grep -F b.txt <<<"$out" | head -n1)" "6 B    5 h" "b.txt's size and age"
+out=$(y 160x30 <<'EOF'
+wait a.txt
+settle
+key G
+settle
+screen
+quit
+EOF
+)
+case_ "what has no picture: a card of its facts — its name, what it is, its size, when it changed, its rights"
+has "$out" "rights" "the card's last fact"; has "$out" "what    data" "the card's first"; lacks "$out" "File Type Classification" "yazi's own words gone"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key <Down><Down><Down>
+settle
+screen
+quit
+EOF
+)
+case_ "a folder's preview: its rows (the override of yazi's folder recursed and the pane stood empty: never again)"
+has "$out" "inner.txt" "sub dir's file in the preview"
+out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key <Space><Space>
+settle
+screen
+quit
+EOF
+)
+case_ "marks: a muted fact at the rule's end, no block of colour"
+has "$(sed -n 1p <<<"$out")" "2 marked" "the count at the rule's end"
+if "$YAZI" --version 2>/dev/null | grep -q 'Patch  : fedokawaii'; then
+  RING_TL=$(printf '\363\277\200\203') RING_T=$(printf '\363\277\200\204') KEY_L=$(printf '\363\277\200\201') KEY_R=$(printf '\363\277\200\202')
+  key_of() { local i o=$KEY_L c n; for ((i = 0; i < ${#1}; i++)); do printf -v n %d "'${1:i:1}"; printf -v c '\\363\\277\\%03o\\%03o' $((0x80 + (n >> 6))) $((0x80 + (n & 63))); printf -v c '%b' "$c"; o+=$c; done; printf '%s%s' "$o" "$KEY_R"; }
+  out=$(y 120x30 <<'EOF'
+wait a.txt
+settle
+key r
+wait rename
+settle
+screen
+key <Esc><Esc>
+settle
+key d
+wait trash
+settle
+screen
+key n
+settle
+key a
+wait new file
+settle
+key plan.pdf
+settle
+screen
+key <Esc><Esc>
+settle
+key ~
+wait a key or a word
+settle
+screen
+key <Esc><Esc>
+settle
+key g
+settle
+screen
+key <Esc>
+settle
+key w
+wait tasks
+settle
+screen
+key <Esc>
+settle
+quit
+EOF
+  )
+  case_ "the pop-ups: the ring of cells, never rounded, nothing in its rule, a heading inside"
+  has "$out" "$RING_TL$RING_T" "the ring's corner and top"
+  for c in ╭ ╮ ╰ ╯; do lacks "$out" "$c" "no rounded corner"; done
+  has "$out" "  rename ─" "rename's heading: its name, the rule"
+  lacks "$out" "Rename:" "yazi's own word gone"; lacks "$out" "[Y]es" "yazi's button gone"
+  case_ "trash: the folder said once, the name, the choices as keys; n keeps it"
+  has "$out" "  trash 1 file? ─"; has "$out" "$(key_of y) trash"; has "$out" "$(key_of n) keep"
+  [[ -e $W/a.txt ]] && _ok || _no "n: the file kept"
+  # shellcheck disable=SC2088  # (the ~ yazi shows)
+  has "$out" "~/work" "the folder"
+  case_ "create: what is typed on the row's columns, its heading"
+  has "$out" "plan.pdf"; has "$out" "new file ─"
+  case_ "help: keys as tiles, what they do lower case, a search line with its ghost and its count; its layer in plain words"
+  has "$out" "keys  files ─"; has "$out" "a key or a word"; has "$out" "$(key_of enter)" "a key's tile"; lacks "$out" "mgr.help"
+  has "$out" "into the folder" "what it does, lower case"
+  case_ "which (g): the same ring, each key its tile"
+  has "$out" "$(key_of h)" "g h"
+  case_ "tasks: none, said quietly under its heading"
+  has "$out" "tasks ─"; has "$out" " none"
+else echo "  (the installed yazi has not the desktop's patch yet: its pop-ups' cases skipped)"; fi
+
 flush; rm -f "$SF"
 done_
