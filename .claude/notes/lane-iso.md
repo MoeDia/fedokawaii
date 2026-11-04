@@ -12,7 +12,20 @@
 - `bin/kawa-carry` is main's (T54b 4): I had written another before seeing it, and removed mine.
 
 ## What main must do to merge
-Merge lane-iso (new: `iso/`, tools above; touches `setup.sh`, `lib/manifest.sh`, `lib/common.sh` PROJECT_TOP, `system/plymouth/sumi/sumi.script`, packages.evidence, PACKAGES.md, fixtures). **Before the PC's first boot on F45: `plymouth-plugin-label` must be installed** (apply or update after the merge), or that boot is a text boot.
+Merge lane-iso (new: `iso/`, `tools/build-iso.sh`, `tools/build-iso-art.py`, `tools/iso-shot.py`, `tools/vm-iso-test.sh`, `bin/kawa-stick`, tests; touches `setup.sh`, `lib/manifest.sh`, `lib/common.sh` PROJECT_TOP, `system/fedokawaii` (one row, backups → the installer), `system/plymouth/sumi/sumi.script`, packages.evidence, PACKAGES.md, README, fixtures). **Before the PC's first boot on F45: `plymouth-plugin-label` must be installed** (apply or update after the merge), or that boot is a text boot with a backtrace on screen.
+
+**The ISO that ships:** when every lane is in, tag the commit `vYYYY.MM.DD`, push the tag (the update button adopts only v… tags, lane-updates), then:
+```
+bash tools/build-iso.sh --ref vYYYY.MM.DD --out ~/VM/iso/out      # 2 min; needs xorriso, mtools, cpio, python3-pillow (on this PC now, not in the manifest: a builder's tools)
+bash tools/vm-iso-test.sh run r27-iso ~/VM/iso/out/fedokawaii-*.iso --no-sb --usb ~/VM/iso/carry.qcow2     # about 50 min, 4 GiB
+bash tools/vm-iso-test.sh path r27-iso ~/VM/iso/carry.qcow2       # his things back, the update button, verify
+gh release create vYYYY.MM.DD ~/VM/iso/out/fedokawaii-*.iso ~/VM/iso/out/fedokawaii-*.iso.sha256 --title "fedokawaii YYYY.MM.DD" --notes "the installer: README, From the ISO"
+```
+`kawa-stick` (Super+U → backups → the installer) takes the release's asset from GitHub by these names.
+
+**For the owner, before the wipe (only he can):** the rehearsal: write the stick, start from it once (F11 on his MSI board), look at the menu, the splash and the form, press F2, hold the power button. Nothing is touched before the form's last page. It is the one thing a VM cannot show: his firmware, amdgpu, his monitor. Two minutes.
+
+**Ledger lines (this lane does not edit the ledger):** r27-60 T56, r27-61 T57: see `.claude/notes/iso-runs.md`.
 
 ## OWNER 17:46 — THE FINAL FRESH INSTALL (shapes the end of the round)
 When the round is done he WIPES this PC and does one last brand-new install from our ISO. Nothing may be tied to this install.
