@@ -1,10 +1,18 @@
 # lane-iso — T56, T57: the installer ISO (state: see the list; ends with DONE when finished)
 
 ## State (updated as it goes)
-- `tools/build-iso.sh`, `iso/` (kickstart, GRUB menu, screens), `tools/build-iso-art.py`, `tools/iso-shot.py` (reads the console exactly), `tools/vm-iso-test.sh` (the proof).
-- Proven so far: GRUB menu under Secure Boot; our form on tty1; Anaconda silent on tty3; progress from its own lines.
-- Global OOM on the PC 4 Nov 18:15:43 killed every VM (fk-r27-updates, fk-r27-net, mine) and r27-lane-updates: one ISO VM at a time from now, 6 GiB, `mem_guard`.
+- Built: `tools/build-iso.sh`, `iso/` (kickstart, GRUB menu, screens), `tools/build-iso-art.py`, `tools/iso-shot.py` (reads the console exactly), `tools/vm-iso-test.sh` (the proof), `tests/installer/test_iso_tools.sh`.
+- Proven by boots in the VM: firmware picture → themed menu (Secure Boot on and off; off: no black window, on: GRUB's terminal black for its seconds, nothing can change that under Secure Boot) → splash on the same ground → our form, drawn on VT 8 → Anaconda silent on tty1 → progress from its own lines → first start → setup on one screen. Two builds of one commit: the same bytes.
+- Found on the way and fixed here (they matter beyond the ISO, main: see Merge):
+  1. F45's Plymouth 26 crashes (SEGV in script.so) on every script theme without a label plugin + font: our splash becomes a text boot. `plymouth-plugin-label` in PKG_SESSION.
+  2. RPM Fusion's F45 release package keeps its key under /usr/share/pki: setup.sh stopped at 2.1 on a clean F45. Fixed.
+  3. bluez came as a dependency on F45 and setup's clean-up took it: manifest_mark before the gate. gtklock's PAM file written before gtklock was installed: lock_pam after it.
+  4. The splash's ground was the old #0f0e0c: now #181715.
+- The memory rule (owner 18:15, below): VMs 4 GiB, one at a time, enforced by `mem_guard`. My first run was already going at 6 GiB when I read it; it was left to finish its last minutes, every later VM is 4 GiB.
+- `bin/kawa-carry` is main's (T54b 4): I had written another before seeing it, and removed mine.
 
+## What main must do to merge
+Merge lane-iso (new: `iso/`, tools above; touches `setup.sh`, `lib/manifest.sh`, `lib/common.sh` PROJECT_TOP, `system/plymouth/sumi/sumi.script`, packages.evidence, PACKAGES.md, fixtures). **Before the PC's first boot on F45: `plymouth-plugin-label` must be installed** (apply or update after the merge), or that boot is a text boot.
 
 ## OWNER 17:46 — THE FINAL FRESH INSTALL (shapes the end of the round)
 When the round is done he WIPES this PC and does one last brand-new install from our ISO. Nothing may be tied to this install.

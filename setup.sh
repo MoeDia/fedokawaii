@@ -1414,6 +1414,7 @@ EOF
 
 s_desktop() {
   dnf_install "${PKG_DESKTOP[@]}"
+  lock_pam                  # (gtklock's package, in just now, wrote its own)
   systemctl enable bluetooth.service
   i2c_dev
 }
@@ -2146,7 +2147,10 @@ s_gate() {
   fi
   # what the build's own steps left that nothing needs (a swap's, a build's dependencies) goes
   # before the check, not after it: the check would warn about them, and finalize takes them anyway
+  local gate_want; mapfile -t gate_want < <(manifest_all "$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)")
+  manifest_mark "${gate_want[@]}"
   dnf_unneeded_out || log "dnf could not take out what nothing needs any more — verify names it"
+  r_hygiene || true         # (a service a package switched on by itself, iscsid.socket on Fedora 45: the check should find nothing)
   # the last check: what it finds is repaired here and now — the same fixes as fedokawaii
   # repair — and checked again; only what is still wrong after that stops setup
   if ! run bash "$REPO_DIR/verify.sh" --pre-finalize; then
@@ -2748,8 +2752,25 @@ snapshot_before() {   # snapshot_before WHAT [important] — a numbered snapshot
 # package a newer Fedora no longer has is reported, not fatal), every manifest package
 # marked as yours (so `dnf autoremove` never takes one that first came as a dependency),
 # nothing forbidden, and the packages dropped from the manifest handed back to dnf
+# manifest_mark PACKAGE… — every manifest package marked as yours, so dnf's clean-up never takes one (one a
+# fresh install brought as a dependency, bluez on Fedora 45, would go with the first thing that pulled it
+# in) — under the name it has now (a package Fedora renamed is marked by its new name)
+manifest_mark() {
+  local p q ui mine=()
+  ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) || ui=""
+  for p in "$@"; do
+    if rpm -q "$p" >/dev/null 2>&1; then q=$p   # (itself, when installed: never another provider)
+    else q=$(rpm -q --qf '%{NAME}\n' --whatprovides "$p" 2>/dev/null | awk 'NR == 1') || continue; fi
+    [[ -n $q && $q != *' '* ]] || continue
+    grep -qxF -- "$q" <<<"$ui" || mine+=("$q")
+  done
+  if ((${#mine[@]})); then
+    mapfile -t mine < <(printf '%s\n' "${mine[@]}" | sort -u)
+    run dnf -y mark user "${mine[@]}" >/dev/null || true
+  fi
+}
 manifest_sync() {
-  local p q avail gpu rc=0 r want=() miss=() gone=() failed=() bad=() mine=() ui others wait
+  local p avail gpu rc=0 r want=() miss=() gone=() failed=() bad=() others wait
   gpu=$(cat "$STATE_DIR/gpu" 2>/dev/null || echo amd)
   mapfile -t want < <(manifest_all "$gpu")
   # what waited for RPM Fusion or a COPR to catch up with this Fedora: tried again first
@@ -2784,19 +2805,7 @@ manifest_sync() {
       printf '%s\n' "${gone[@]}" | write_file "$STATE_DIR/unavailable" 0644
     else rm -f "$STATE_DIR/unavailable"; fi
   fi
-  # every manifest package marked as yours, so dnf's clean-up never takes one — under the name
-  # it has now (a package Fedora renamed is marked by its new name)
-  ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) || ui=""
-  for p in "${want[@]}"; do
-    if rpm -q "$p" >/dev/null 2>&1; then q=$p   # (itself, when installed: never another provider)
-    else q=$(rpm -q --qf '%{NAME}\n' --whatprovides "$p" 2>/dev/null | awk 'NR == 1') || continue; fi
-    [[ -n $q && $q != *' '* ]] || continue
-    grep -qxF -- "$q" <<<"$ui" || mine+=("$q")
-  done
-  if ((${#mine[@]})); then
-    mapfile -t mine < <(printf '%s\n' "${mine[@]}" | sort -u)
-    run dnf -y mark user "${mine[@]}" >/dev/null || true
-  fi
+  manifest_mark "${want[@]}"
   # retired, or Steam's once STEAM is no: handed back to dnf (dnf autoremove clears them when
   # nothing needs them — Steam's games and settings in your home stay)
   local back=("${RETIRED_PKGS[@]}")
