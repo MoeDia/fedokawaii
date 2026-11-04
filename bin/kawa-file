@@ -26,6 +26,7 @@
 #   sign        write or draw on it · sign by hand (Xournal++, on a copy) · draw your signature
 #                once (kept in ~/.local/share/fedokawaii/signature.png) · stamp it on a page's
 #                corner · check its digital signatures (pdfsig)
+#   torrents    a .torrent file: download it · copy its magnet link
 #   pack        anything chosen into .zip (to share), .7z or .tar.zst, zip and 7z with a
 #                password too (AES-256; 7z hides the names as well); then the compression: fast,
 #                balanced, smallest or a level you type — the last one per format remembered
@@ -314,6 +315,12 @@ if ((np + ${#shut[@]})); then
     row drawsig  "$ICON_NOTE" "draw your signature" "$([[ -s $SIG ]] && echo "again, to replace it" || echo "once, kept for stamping")"
   fi
   row verify "$ICON_CHECK" "check its signatures" "digital ones"
+fi
+torrents=(); for f in "${items[@]}"; do [[ -f $f && $f == *.torrent ]] && torrents+=("$f"); done
+if ((${#torrents[@]})); then
+  part "$ICON_DOWNLOAD" torrents
+  row t-add "$ICON_DOWNLOAD" "download it" "in Torrents"
+  ((${#torrents[@]} == 1)) && row t-magnet "$ICON_MAGNET" "copy its magnet link" "to the clipboard"
 fi
 part "$ICON_ARCHIVE" pack
 row zip    "$ICON_ARCHIVE" zip "to share: opens anywhere"
@@ -701,5 +708,8 @@ case $act in
   drawsig) draw_signature; ((np == 1)) && stamp ;;
   stamp)  stamp ;;
   verify) verify ;;
+  t-add)  setsid -f kawa-torrents --open "${torrents[@]}" >/dev/null 2>&1 </dev/null ;;
+  t-magnet) if kawa-torrents magnet "${torrents[0]}" >"$LOG" 2>&1; then notify-send -a desktop -- "$ICON_MAGNET  magnet link copied" "${torrents[0]##*/}"
+            else oops "its magnet link could not be read" "${torrents[0]##*/}"; fi ;;
 esac
 exit 0

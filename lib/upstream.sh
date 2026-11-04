@@ -48,10 +48,6 @@ TERM_FACE_FILES=(
 # own system user. FACES_OLD: where the pixel font before them lay (Fusion Pixel)
 FACES_DIR=/usr/local/share/fonts/fedokawaii
 FACES_OLD=/usr/local/share/fonts/fusion-pixel
-# torrra (from PyPI, with uv tool) is held at this version: kawa-torrra hands it the Prowlarr
-# key by replacing three methods of its settings class, so a newer torrra is taken only
-# after that has been checked against it.
-TORRRA_VERSION=2.5.1
 # Syncplay (watching together: kawa-together starts it) runs from its own source, held at the
 # v1.7.6 tag's commit as the file dialog's is: Fedora's package would bring PySide6 and 27 Qt
 # modules for a window the terminal way never opens. It is pure Python, so its syncplay/

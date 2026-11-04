@@ -1,0 +1,11 @@
+# ~/.config/systemd/user/kawa-torrents.socket — where Torrents' engine is asked for (started by
+# ~/.config/dwl/autostart.sh, with the session). systemd holds it: the first window or link that connects
+# starts the engine, nothing runs and no memory is held before that, and one that connects as the
+# engine ends is never lost.
+[Unit]
+Description=Torrents' engine: started when something asks for it
+PartOf=dwl-session.target
+
+[Socket]
+ListenStream=%t/kawa-torrents.sock
+SocketMode=0600

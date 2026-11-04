@@ -393,10 +393,30 @@ content, inside its margin of one cell:
   column (1), what is typed — or the ghost words saying what the list holds, `faint` — at their
   names' (4); the count right-aligned to the last column, `muted`. A short list has none (Super+U,
   Super+W): its letters are free for its own keys.
-- **Meter** (a quantity in a row: Super+R's reading): ten segments, a cell each (Sumi Icons' `read`
-  and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in characters) — done
-  solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the cursor's row
-  strips the inks, the shapes still say it. Nothing yet: no meter at all.
+- **Meter** (a quantity in a row: Super+R's reading, a torrent's progress): ten segments, a cell each
+  (Sumi Icons' `read` and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in
+  characters) — done solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the
+  segment part-way (`read-1` … `read-7`) keeps `read-off`'s frame and comes in by the Bayer matrix of
+  every dissolve (§11), a seventh more with each; the cursor's row strips the inks, the shapes still
+  say it. Nothing yet: no meter at all.
+- **Torrents** (`kawa-torrents`, its two tabs): the list in parts (downloading, paused, finished: a
+  heading each, how many and how much at the end of its rule; at the tabs' right end what comes and goes,
+  the last 16 seconds of it in the music's columns, §8), newest first; each row its state's icon (§5: it moves while bytes come; the
+  antenna television while it plays; the hourglass while it is looked for, asked of a site or
+  checked; ✘ with what stopped it, in words), its name as words (a torrent's dots read as spaces, never "…"), then
+  right-aligned, two columns apart, each one edge down its part so the digits stack: the meter, the percent, the
+  speed, the time left (its unit a letter: 45 s, 12 m, 3.2 h, 2 d), the size — the size last on every row. Words
+  that stand instead of numbers end in the time's place; a finished row keeps only what it sends, in the speed's
+  column, and its size.
+  Fewer columns as the window narrows: the size goes first (under 104 columns), then the time left (84), the meter
+  (62), the speed (44); the percent stays. From 132 columns its details stand beside the list (a
+  rail, a free column, 60 wide; the keyboard in them leaves a band of `edge` on the list's row, as
+  Files does); narrower, they fill the window. Its pieces a cloth of meter segments, three lines on a
+  tall window, one on a small. What could be added stands over the list in the
+  magnet's icon (the clipboard's link, a .torrent just downloaded). Find: the Search line, then a
+  row a result: its kind's icon, its name, then as they fit the site, its age and its size, last the
+  seedling (`sprout`) and how many share it; none: `faint`, last. Opened again while its window stands
+  elsewhere, the window asks for you (§5: a bell, its workspace `asagi` on the bar).
 - **Cursor**: the row's cells tinted `select` (§4) from the cursor's column to the one beyond the content; that column
   holds its edge, a glyph of Sumi Icons Term (`band-edge`: 2 px of the cell's 8, the line's 20 rows, in `accent`: fzf's
   pointer); the words `text_on_select`, every other ink its own (fzf's `bg+ 24`, `fg+ 25`, `pointer 16`, no `:strip`).
@@ -717,6 +737,7 @@ numbers here against its files.
 | the calculator | the launcher's Calculator | `bin/kawa-panel` (`Calc`), `bin/kawa-calc` | T19s |
 | the system monitor | the bar's memory, the launcher | btop (`configs/home/.config/btop/btop.conf`, its theme from `tools/build-themes.py`) | T19s |
 | help | Super+/ | `bin/kawa-help` | T23 |
+| torrents | the launcher, a magnet link, the bar's mark | `bin/kawa-torrents` (`.local/lib/fedokawaii/kawa-torrents`) | T29 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
 | the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
 

@@ -170,8 +170,8 @@ PKG_APPS=(
   uv rustup                                         # Python and Rust to learn with: uv installs a current
                                                     #   CPython and its packages, rustup-init the stable Rust
                                                     #   (+ rust-analyzer, clippy, rustfmt) — both in your home (setup.sh: s_dev)
-  podman                                            # Prowlarr container (torrra: uv tool, on uv's own Python 3.13 —
-                                                    #   libtorrent has wheels only up to 3.13: setup.sh torrra_up)
+  podman                                            # Prowlarr's container
+  rb_libtorrent-python3                             # torrents: the engine of kawa-torrents, on Fedora's python3
 )
 PKG_VIRT=(              # virtual machines: the games VM (Windows with the graphics card passed
                         #   through: libvirt + QEMU/KVM, OVMF's UEFI and Secure Boot, swtpm's TPM 2.0
@@ -203,7 +203,7 @@ RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffpr
                                     #   one (filter-chain's param_eq) — handbook §15.6
               python3-fonttools     # the faces are the repo's own files now (system/fonts): nothing to build
               fuzzel                # the launcher and every menu are kawa-panel's (its sums worked out as you type)
-              pipx python3.13       # uv installs torrra now, on a Python 3.13 of its own (one Python tool: uv)
+              pipx python3.13       # (for torrra, gone: kawa-torrents runs on Fedora's python3 and libtorrent)
               lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Brave app window
                                                        #   now; lpf's account and folder: setup.sh, lpf_leftovers_out
 

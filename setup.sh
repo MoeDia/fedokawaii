@@ -8,7 +8,7 @@
 #                                  dnf upgrade (snapshotted), the desktop's own tools, verify
 #    sudo bash setup.sh --upgrade [--now]   move to the next Fedora release, once it has settled
 #    sudo bash setup.sh --repair   verify, fix what can be fixed (packages, services, session,
-#                                  release tools, torrra, Prowlarr, theme), verify again
+#                                  release tools, torrents, Prowlarr, theme), verify again
 #    sudo bash setup.sh --after-dnf   after a dnf transaction (the guard's unit runs it): dwl
 #                                  starts, rebuilt where a library changed, checked, told
 #    sudo bash setup.sh --layout   the disk's flat layout: armed for the next start, or its old
@@ -1679,13 +1679,11 @@ s_yazi() {
   ((CONTAINED_RC == 0)) || log "yazi did not build (why: above, or $LOG_FILE): no file manager until update or repair builds it"
 }
 
-# ── torrents: Prowlarr (a rootless container) finds them, torrra downloads them ──
+# ── torrents: Prowlarr (a rootless container) finds them, kawa-torrents downloads them ──
 # One API key between the two. Its master copy is ~/.config/fedokawaii/secrets.sh (yours,
 # 600): Prowlarr gets it as a podman secret (podman keeps that copy in its own store, yours
-# alone), torrra from kawa-torrra in memory — never in a program's settings, never on a
-# command line.
-TORRRA_VENV=.local/share/uv/tools/torrra   # (uv tool's: UV_TOOL_DIR's default)
-TORRRA_BIN=.local/share/uv/tool-bin        # (where uv puts torrra's own command: off your PATH)
+# alone), kawa-torrents reads it there when it searches, in memory — never in a program's
+# settings, never on a command line.
 
 prowlarr_image() { sed -n 's/^Image=//p' "$REPO_DIR/system/prowlarr.container"; }   # (the one place it is named)
 prowlarr_key() {   # → the key, made in secrets.sh the first time (or if it is not valid)
@@ -1702,12 +1700,12 @@ prowlarr_key() {   # → the key, made in secrets.sh the first time (or if it is
     # 32 hex characters starting with a letter: nothing along the way can take it for a number
     key=""
     until [[ $key =~ ^[a-f][0-9a-f]{31}$ ]]; do key=$(od -An -N16 -tx1 /dev/urandom | tr -d ' \n'); done
-    as_user sed -i -e '/^# Prowlarr ↔ torrra/d' -e '/^[[:space:]]*\(export[[:space:]]\+\)\?PROWLARR_API_KEY=/d' "$sec"
+    as_user sed -i -e '/^# Prowlarr ↔ /d' -e '/^[[:space:]]*\(export[[:space:]]\+\)\?PROWLARR_API_KEY=/d' "$sec"
     if [[ -s $sec && -n $(tail -c1 "$sec") ]]; then printf '\n' | as_user tee -a "$sec" >/dev/null; fi
-    printf '# Prowlarr ↔ torrra (made by setup.sh; Prowlarr is handed it again at every update)\nPROWLARR_API_KEY=%s\n' "$key" \
+    printf '# Prowlarr ↔ kawa-torrents (made by setup.sh; Prowlarr is handed it again at every update)\nPROWLARR_API_KEY=%s\n' "$key" \
       | as_user tee -a "$sec" >/dev/null
   fi
-  # (not exported: only kawa-torrra reads it, from this file, so no other program you start
+  # (not exported: only kawa-torrents reads it, from this file, so no other program you start
   # carries it in its environment)
   printf %s "$key"
 }
@@ -1761,83 +1759,44 @@ prowlarr_up() {
   PROWLARR_KEY=$key wait_until 30 prowlarr_accepts \
     || { ((was)) || as_user systemctl --user stop --no-block prowlarr.service || true
          die "Prowlarr does not take the key from secrets.sh — journalctl --user -u prowlarr"; }
-  # the sites torrra searches through: the usual public ones, each added once (those you
+  # the sites kawa-torrents searches through: the usual public ones, each added once (those you
   # have, or switched off, are left as they are) — never a reason to stop: one Prowlarr cannot
   # reach now is added all the same, and a run that could not add one says so
   local out
-  if out=$(printf %s "$key" | as_user python3 -I "$REPO_DIR/system/prowlarr-indexers.py" 2>&1); then log "$out"
+  if out=$(printf %s "$key" | as_user python3 -I "$REPO_DIR/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py" add 2>&1); then log "$out"
   else log "Prowlarr's indexers: not all added — $(tr '\n' ' ' <<<"$out")(update and repair try again)"; fi
-  # it runs on demand (torrra's search, `prowlarr`): checked, it goes back to sleep — unless
+  # it runs on demand (a search in Torrents, `prowlarr`): checked, it goes back to sleep — unless
   # it was already running when this began
   ((was)) || as_user systemctl --user stop --no-block prowlarr.service || true
 }
 
-# torrra itself: uv's own Python 3.13 (libtorrent has wheels only up to 3.13; uv fetches it —
-# Fedora's python3 stays the desktop's), its command wrapped by kawa-torrra, and its settings: Prowlarr as the indexer, best-seeded results first,
-# downloads in ~/Downloads, the terminal's own colours — and no key in them
-# torrra_from_pipx — an earlier setup's torrra (pipx's venv, pipx's command) taken out: uv
-# installs it now (pipx and Fedora's python3.13 have left the manifest)
-torrra_from_pipx() {
-  local pd=$TARGET_HOME/.local/share/pipx
-  [[ -d $pd/venvs/torrra || -L $pd/bin/torrra ]] || return 0
-  log "torrra: pipx's install taken out — uv installs it now"
-  as_user rm -rf -- "$pd/venvs/torrra" "$pd/bin/torrra"
-  as_user rmdir -- "$pd/venvs" "$pd/bin" "$pd/shared" "$pd" 2>/dev/null || true
-}
-torrra_up() {
-  local py=$TARGET_HOME/$TORRRA_VENV/bin/python old=$TARGET_HOME/.local/bin/torrra
-  # (torrra.app: the whole program loads — Textual, Rich and httpx with it, not only libtorrent;
-  # and every library at its pin: a list that moved — Textual for its theme — installs again)
-  local pins=$REPO_DIR/system/torrra-constraints.txt
-  local probe='import sys, importlib.metadata as m, torrra, libtorrent, torrra.__main__, torrra.app
-pins = [l.strip().split("==") for l in open(sys.argv[2]) if l.strip() and not l.startswith("#")]
-sys.exit(m.version("torrra") != sys.argv[1] or any(m.version(n) != v for n, v in pins))'
-  torrra_from_pipx
-  if ! as_user "$py" -I -c "$probe" "$TORRRA_VERSION" "$pins" 2>/dev/null; then
-    # its libraries at the versions torrra was released with (system/torrra-constraints.txt),
-    # and uv's own `torrra` command kept in uv's folder: on your PATH it would run torrra
-    # without the key — `torrra` is kawa-torrra's
-    # (Fedora's uv has Python downloads set to manual: the 3.13 CPython is fetched by
-    # `uv python install` itself — uv's managed Python, not Fedora's python3)
-    # (each try a quarter of an hour at most: a download that stalls never holds the run)
-    retry 3 20 run as_user timeout 900 uv python install 3.13 || die "uv could not fetch Python 3.13 for torrra"
-    retry 3 20 run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" \
-      timeout 900 uv tool install --force --python 3.13 --constraints "$pins" "torrra==$TORRRA_VERSION" \
-      || die "torrra did not install"
+# torrents themselves: our own program (bin/kawa-torrents and ~/.local/lib/fedokawaii/kawa-torrents, which the theme
+# step installs, as it does every helper) on Fedora's python3 and Fedora's libtorrent (rb_libtorrent-python3, in the
+# manifest: Fedora builds it for each Python). Checked from the repository: this runs before the theme step.
+# torrra_out — what an older setup left taken out: its list handed over to the engine first (each torrent, its
+# chosen files, what it has already told of), then uv's tool, the Python 3.13 it alone used, its wrapper, its settings.
+torrents_cmd() { as_user env KAWA_TORRENTS_LIB="$REPO_DIR/configs/home/.local/lib/fedokawaii/kawa-torrents" python3 "$REPO_DIR/bin/kawa-torrents" "$@"; }
+torrra_out() {
+  local h=$TARGET_HOME
+  if [[ -e $h/.local/share/torrra/torrra.db ]]; then
+    torrents_cmd inherit || die "torrra's list could not be read: it stays in ~/.local/share/torrra until this is put right"
   fi
-  as_user "$py" -I -c "$probe" "$TORRRA_VERSION" "$pins" || die "torrra $TORRRA_VERSION is installed but does not load (libtorrent, or a library under it)"
-  # a `torrra` an older setup left in ~/.local/bin (a link into pipx's or uv's folder): gone
+  if [[ -d $h/.local/share/uv/tools/torrra ]]; then
+    log "torrra: taken out — kawa-torrents has its place"
+    as_user uv tool uninstall torrra >/dev/null 2>&1 || as_user rm -rf -- "$h/.local/share/uv/tools/torrra"
+    as_user uv python uninstall 3.13 >/dev/null 2>&1 || true   # (uv's own, kept for torrra alone: libtorrent's wheels stopped there)
+  fi
+  rm -f /usr/local/bin/kawa-torrra /etc/profile.d/kawa-torrra.sh
+  as_user rm -rf -- "$h/.config/torrra" "$h/.cache/torrra" "$h/.local/share/torrra" \
+    "$h/.local/share/uv/tool-bin/torrra" "$h/.local/share/pipx/venvs/torrra" "$h/.local/share/pipx/bin/torrra"
+  as_user rmdir -- "$h/.local/share/uv/tool-bin" "$h/.local/share/pipx/venvs" "$h/.local/share/pipx/bin" "$h/.local/share/pipx/shared" "$h/.local/share/pipx" 2>/dev/null || true
+  local old=$h/.local/bin/torrra
   if [[ -L $old && $(readlink -- "$old") == */@(pipx/venvs|uv/tools)/torrra/* ]]; then as_user rm -f -- "$old"; fi
-  install -m 0755 "$REPO_DIR/system/kawa-torrra" /usr/local/bin/kawa-torrra
-  install -m 0644 "$REPO_DIR/system/kawa-torrra.profile.sh" /etc/profile.d/kawa-torrra.sh
-  restorecon /usr/local/bin/kawa-torrra /etc/profile.d/kawa-torrra.sh
-  as_user mkdir -p "$TARGET_HOME/.config/torrra"
-  as_user "$py" -I - "$TARGET_HOME/.config/torrra/config.toml" "$TARGET_HOME/Downloads" <<'PY'
-import os, sys, tomllib, tomli_w
-path, downloads = sys.argv[1], sys.argv[2]
-try:
-    with open(path, "rb") as f:
-        cfg = tomllib.load(f)
-except FileNotFoundError:
-    cfg = {}
-except tomllib.TOMLDecodeError as e:     # yours, with a slip in it: left exactly as it is
-    print(f"~/.config/torrra/config.toml does not read as TOML ({e}) — left as it is; fix it or delete it")
-    sys.exit(0)
-g = cfg.setdefault("general", {})
-g.setdefault("download_path", downloads)
-g.setdefault("default_sort", "seeders")
-if g.get("theme") in (None, "gruvbox", "textual-dark", "ansi-light", "ansi-dark"):   # older setups' choices
-    g["theme"] = "fedokawaii"                            # the desktop's (kawa-torrra registers it)
-idx = cfg.setdefault("indexers", {})
-idx["default"] = "prowlarr"
-p = idx.setdefault("prowlarr", {})
-p["url"] = "http://127.0.0.1:9696"
-p.pop("api_key", None)
-tmp = path + ".tmp"
-with open(tmp, "wb") as f:
-    tomli_w.dump(cfg, f)
-os.replace(tmp, path)
-PY
+  return 0
+}
+torrents_up() {
+  torrents_cmd --check >/dev/null || die "the torrents program does not load (Fedora's rb_libtorrent-python3?): $(torrents_cmd --check 2>&1 | tail -n1)"
+  torrra_out
 }
 
 # ~/Downloads as its own btrfs subvolume, so /home's snapshots leave it out: the space of
@@ -1873,7 +1832,7 @@ s_torrents() {
   wait_until 30 test -S "/run/user/$TARGET_UID/bus" || die "your own systemd did not start within 30 s of linger (systemctl status user@$TARGET_UID.service says why)"
   as_user podman system migrate >/dev/null 2>&1 || true      # picks up new sub-IDs
   downloads_subvolume
-  torrra_up
+  torrents_up
   prowlarr_up
   open_ports
 }
@@ -1990,9 +1949,9 @@ user_dirs() {
   run as_user xdg-user-dirs-update
 }
 OPEN_PORTS=(6881/tcp 6881/udp "$LOCALSEND_PORT/tcp" "$LOCALSEND_PORT/udp")
-open_ports() {   # torrra's port and LocalSend's, open in the firewall (when firewalld runs: otherwise said)
+open_ports() {   # the torrents' port and LocalSend's, open in the firewall (when firewalld runs: otherwise said)
   local p
-  firewall-cmd -q --state 2>/dev/null || { log "firewalld is not running — the ports of torrra (6881) and LocalSend ($LOCALSEND_PORT) are left as they are"; return 0; }
+  firewall-cmd -q --state 2>/dev/null || { log "firewalld is not running — the ports of torrents (6881) and LocalSend ($LOCALSEND_PORT) are left as they are"; return 0; }
   # asked first, then added where missing — saved and running alike — so a repair changes
   # nothing when it is open already, and never reloads firewalld (a reload drops what other
   # programs added while it runs: Docker's rules, should you install it)
@@ -2504,7 +2463,7 @@ clone_done() {
 }
 
 # clean_caches — what a build, an update or a repair leaves behind and nothing reads again:
-# dnf's downloaded packages; pip's and npm's download caches (torrra, neovim's language
+# dnf's downloaded packages; pip's and npm's download caches (neovim's language
 # servers: fetched again if ever needed); the toolkit's half-made copies and the temp folders
 # of runs a power cut stopped; Prowlarr's images it no longer runs; and the theme's backups
 # of your replaced files beyond the newest ten runs. Never what is used: dnf's metadata, the
@@ -2543,7 +2502,7 @@ phase3() {
   step "3.07b3 files: yazi ${YAZI_TAG:-} (pinned, the desktop's pop-ups)" s_yazi
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
-  step "3.08 Prowlarr + torrra (wired together)"       s_torrents
+  step "3.08 Prowlarr + torrents (wired together)"     s_torrents
   step "3.09 LazyVim + plugins"                        s_lazyvim
   step "3.09b Python (uv) and Rust (rustup) to learn with" s_dev
   step "3.10 the play world: asobi (Steam, Bottles)"   s_asobi
@@ -2925,14 +2884,8 @@ update_steps() {
   # (before the theme: its notices' config is written for this mako — an older one would not start)
   if ! mako_current; then step_on "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" build_mako; fi
   if ! yazi_current; then step_on "yazi (${YAZI_TAG:-}, the desktop's pop-ups)" build_yazi; fi
-  # torrra: libtorrent (the part that talks to the network) and certifi to their newest —
-  # uv tool upgrade keeps the install's own pins (torrra==TORRRA_VERSION, the constraints: the
-  # interface libraries torrra was written for stay put); then checked by torrra_up, which
-  # installs it again if it no longer loads — and moves an earlier setup's pipx install to uv
-  if [[ -d $TARGET_HOME/$TORRRA_VENV ]]; then
-    step_on "torrra's libtorrent" run as_user env UV_TOOL_BIN_DIR="$TARGET_HOME/$TORRRA_BIN" timeout 900 uv tool upgrade torrra
-  fi
-  step_on "torrra" torrra_up
+  # (libtorrent comes with dnf, Fedora's own: only checked here)
+  step_on "torrents" torrents_up
   # Prowlarr's newest image, fetched now (it runs on demand: its next start uses it); the
   # images it replaced go
   step_on "Prowlarr's image" run as_user timeout 1200 podman pull --quiet "$(prowlarr_image)"
@@ -3202,7 +3155,7 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   s_report                         # (the first-start report's unit: an install that lost it runs it next start)
   s_tuning
 }
-r_ports() { s_ssh; open_ports; }   # SSH as SSH_SERVER says; torrra's and LocalSend's ports open
+r_ports() { s_ssh; open_ports; }   # SSH as SSH_SERVER says; the torrents' and LocalSend's ports open
 r_boot() {       # the boot: its menu and success timer (s_boot), no rescue image, AMD's kernel
                  # argument, a quiet boot (its arguments, the consoles' cursor at login), every
                  # kernel's image; neovim the editor
@@ -3373,7 +3326,7 @@ heal_all() {
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" r_mako
   ((net)) && heal "yazi (${YAZI_TAG:-}, the desktop's pop-ups)" r_yazi
-  ((net)) && heal "torrra" torrra_up
+  heal "torrents (its program, Fedora's libtorrent)" torrents_up
   ((net)) && heal "neovim's plugins (any missing)" r_nvim
   ((net)) && heal "Python and Rust (uv's CPython, rustup's stable, Mason's tools)" r_dev
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up
@@ -3408,7 +3361,7 @@ do_repair() {
   if ((${#STILL[@]})); then
     printf -v s '%s · ' "${STILL[@]}"; log "still needs you: ${s% · } — the lines above say why"
   fi
-  ((net)) || log "offline: packages, release tools, the file dialog and torrra were left for the next repair"
+  ((net)) || log "offline: packages, release tools and the file dialog were left for the next repair"
   [[ $after == 0 ]] || log "what verify still reports: fedokawaii verify"
   # (the outcome for whoever ran it: 0 when nothing is left to fix, 3 when something is —
   # 1 is reserved for repair itself stopping)

@@ -134,7 +134,7 @@ case_ "GIO (gio open, every GTK program) reads each default exactly as mimeapps.
 GIO=$( [[ -x /opt/f44/bin/gio ]] && echo /opt/f44/bin/gio || command -v gio 2>/dev/null)
 if [[ -n $GIO ]]; then
   config .config/mimeapps.list .local/share/applications
-cp "$REPO/bin/kawa-term" "$REPO/bin/kawa-play" "$HOME/.local/bin/"   # (an entry whose program is missing is skipped)
+cp "$REPO/bin/kawa-term" "$REPO/bin/kawa-play" "$REPO/bin/kawa-torrents" "$HOME/.local/bin/"   # (an entry whose program is missing is skipped)
   # the packages' own entries, as stand-ins without a MimeType of their own: the default must
   # hold by mimeapps.list alone
   mkdir -p "$TMP/sys/applications"

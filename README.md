@@ -20,7 +20,7 @@ lib/               shared shell: common.sh (output, steps, locks) · manifest.sh
                    hygiene.sh (nothing doubled or fighting: packages, services, leftovers)
 system/            what setup installs: `fedokawaii` (the system's control and its menu, Super+U),
                    the session launcher (with its rescue screen), greeter, snapshots around dnf,
-                   the performance profile, torrra's key wrapper, and the Prowlarr container
+                   the performance profile, and the Prowlarr container
                    (→ ~/.config/containers/systemd)
 src/               what is compiled or patched here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
                    full window borders, centred dialogs, Arabic-proof keys, the layout for the bar,
@@ -228,12 +228,12 @@ yours ends.
 
 | Command | Does |
 |---|---|
-| `fedokawaii update` (Super+U → update) | the one button, everything from A to Z: fedokawaii itself from GitHub's newest release, Fedora's packages, the desktop's pinned tools, torrra, Prowlarr, neovim's plugins, firmware listed. Stored once, proven in a copy of the system, a pinned snapshot, the same transaction on the running one, verify and the desktop's start; red in the copy: the culprit found by halves and held; red on the running system: the system before it back at the next start. A new Fedora comes through it too: a test VM first, then told, then the next press moves (one restart); red anywhere, Fedora stays as it was and says why |
+| `fedokawaii update` (Super+U → update) | the one button, everything from A to Z: fedokawaii itself from GitHub's newest release, Fedora's packages, the desktop's pinned tools, torrents, Prowlarr, neovim's plugins, firmware listed. Stored once, proven in a copy of the system, a pinned snapshot, the same transaction on the running one, verify and the desktop's start; red in the copy: the culprit found by halves and held; red on the running system: the system before it back at the next start. A new Fedora comes through it too: a test VM first, then told, then the next press moves (one restart); red anywhere, Fedora stays as it was and says why |
 | `fedokawaii upgrade [--now]` | the same run without the "press again" (`--now`: without waiting for the new Fedora to settle) |
 | `fedokawaii pull` (change → update fedokawaii) | a working copy's way: the one clone, `~/repos/fedokawaii`, fast-forwarded from GitHub, then the update run from it, repair if verify still finds something. From then on that machine follows its copy, not the releases; the repository is public: no sign-in, no token |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
 | `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 680 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
-| `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |
+| `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrents, Prowlarr, drifted configs — and verify again; offline, what needs no network |
 | `fedokawaii theme` · `fedokawaii drift` | apply the configs again (dwl rebuilt only if needed) · list files that differ |
 | `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands (the last backup's day among it) · the snapshots · the last log · `fedokawaii.conf` · the season |
 | `fedokawaii backup` (or `kawa-backup`; quick settings → backup) | your home — minus `~/Downloads`, caches and what can be downloaded again — to the drive `BACKUP_TARGET` names in `fedokawaii.conf` (it counts as soon as *settings* saves it), with restic; `kawa-backup restore PATH` brings a file or folder back into `~/Restored/`; a notice when the last backup is older than `BACKUP_REMIND_DAYS` (7) |
@@ -269,7 +269,7 @@ glossary are appendices D and E.
 
 ## 4 · First login, once
 
-- **Prowlarr**: nothing to do — it is wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
+- **Prowlarr**: nothing to do — it is wired to Torrents (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
   it as a podman secret), its eight usual sites are in, and its page asks for no login (it answers on this computer only):
   `prowlarr` (or *Prowlarr* in the launcher) starts it on demand and opens <http://localhost:9696> (handbook §20.1).
 - **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a

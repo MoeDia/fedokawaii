@@ -8,7 +8,7 @@
 #            fonts.conf): Sumi UI and the icons themselves, Sumi Term and monospace → UDEV Gothic NF,
 #            sans-serif → Noto Sans; Sumi UI drawn without smoothing
 #   tty1     no kmscon on tty1 (setup resumes on tty1: its autologin is a getty's)
-#   prowlarr started as a torrra search starts it (on demand: no [Install]), its /ping answering
+#   prowlarr started as a search in Torrents starts it (on demand: no [Install]), its /ping answering
 #            within two minutes, stopped again
 #   repos    no repository file of Fedora's (/usr/share/dnf5/repos.d, from 45 on) shadowed by a copy
 #            of the same name in /etc/yum.repos.d — a copy there overrides the whole file

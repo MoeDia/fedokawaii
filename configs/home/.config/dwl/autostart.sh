@@ -44,6 +44,12 @@ systemctl --user start fedokawaii-remind.timer 2>/dev/null
 systemctl --user start kawa-tidy.timer 2>/dev/null
 # the wallpaper every 4 hours (Super+W: "a new one every 4 hours", off unless switched on)
 systemctl --user start kawa-wallpaper-next.timer 2>/dev/null
+# Torrents' engine: its socket with the session; the engine itself at once only when downloads were left
+# unfinished (the mark it keeps while any is), else at the first window or link
+systemctl --user start kawa-torrents.socket 2>/dev/null
+if [ -e "${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/torrents/unfinished" ]; then
+  systemctl --user --no-block start kawa-torrents.service 2>/dev/null
+fi
 # GRUB's hidden menu: this boot counts as successful once the desktop has run two minutes
 # (the timer stops with the session: one that ends sooner leaves the boot unmarked)
 systemctl --user start grub-boot-success.timer 2>/dev/null

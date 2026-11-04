@@ -174,6 +174,7 @@ fuse3                           restic mount's helper (fusermount3): Super+U →
 libdnf5-plugin-actions          dnf's snapshot hook
 grub-btrfs                      the snapshots in the boot menu
 podman                          Prowlarr's container
+rb_libtorrent-python3           a library: Torrents' engine (kawa-torrents)
 libvirt-daemon-kvm              the virtual machines' engine (the games VM; the test VMs)
 virt-install                    makes a virtual machine (tools/vm-create.sh)
 edk2-ovmf                       a virtual machine's UEFI firmware

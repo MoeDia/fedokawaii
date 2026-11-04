@@ -133,6 +133,7 @@ qalculate|fedora|https://packages.fedoraproject.org/search?query=qalculate|2026-
 qpdf|fedora|https://packages.fedoraproject.org/search?query=qpdf|2026-10-14|manifest 2026-10-14
 qrencode|fedora|https://packages.fedoraproject.org/search?query=qrencode|2026-10-14|manifest 2026-10-14
 qt6ct|fedora|https://packages.fedoraproject.org/search?query=qt6ct|2026-10-14|manifest 2026-10-14
+rb_libtorrent-python3|fedora|https://packages.fedoraproject.org/pkgs/rb_libtorrent/rb_libtorrent-python3/|2026-11-04|2.0.11-5.fc44 in Fedora 44 (dnf info); 2.0.11-9.fc45 in Fedora 45 (.claude/notes/f45-changes.md): built for the system Python
 restic|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|restic-0.18.1 in Fedora 44 Everything (official mirror)
 ripgrep|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|ripgrep-14.1.1 in Fedora 44 Everything (official mirror)
 rocm-smi|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|rocm-smi-7.1.1 in Fedora 44 Everything (official mirror)
@@ -170,7 +171,6 @@ upstream:udev-gothic|github:yuru7/udev-gothic|https://github.com/yuru7/udev-goth
 upstream:satty|github:gabm/Satty|https://github.com/gabm/Satty/releases/download/v0.22.0/satty-x86_64-unknown-linux-gnu.tar.gz|2026-10-21|sha256 eb7a028c4a5c… matches the pin (downloaded and measured; the newest release)
 upstream:syncplay|github:Syncplay/syncplay|https://github.com/Syncplay/syncplay/releases/tag/v1.7.6|2026-10-21|tag v1.7.6 = 993232ab095b (git ls-remote); the newest release
 upstream:termfilechooser|github:hunkyburrito/xdg-desktop-portal-termfilechooser|https://github.com/hunkyburrito/xdg-desktop-portal-termfilechooser/releases/tag/v1.4.3|2026-10-21|tag v1.4.3 peels to cb8cec0b30aa (git ls-remote); the newest release
-upstream:torrra|pypi|https://pypi.org/project/torrra/2.5.1/|2026-10-21|2.5.1 on PyPI, the newest; libtorrent 2.1.1 has wheels up to Python 3.13 (uv's 3.13 for it)
 upstream:yazi|github:sxyazi/yazi|https://github.com/sxyazi/yazi/releases/download/v26.9.1/yazi-x86_64-unknown-linux-musl.zip|2026-10-21|sha256 9b9c39decccf… matches the pin (downloaded and measured; the newest release)
 usbutils|fedora|https://packages.fedoraproject.org/search?query=usbutils|2026-10-14|manifest 2026-10-14
 uv|fedora|https://packages.fedoraproject.org/search?query=uv|2026-10-14|manifest 2026-10-14

@@ -1045,7 +1045,7 @@ if [[ $WALLPAPER_PACK == yes ]]; then
 fi
 # GTK, libadwaita and the portal take the theme from your dconf settings, not a file
 U kawa-theme settings || log "GTK settings follow the theme at your next login (no user D-Bus now)"
-# the prompt, aliases and torrra come from ~/.bashrc.d, which Fedora's ~/.bashrc reads; one
+# the prompt and aliases come from ~/.bashrc.d, which Fedora's ~/.bashrc reads; one
 # that does not (replaced by hand, or by a dotfiles tool) gets Fedora's few lines added
 if ! grep -qs 'bashrc.d' "$TARGET_HOME/.bashrc"; then
   U tee -a "$TARGET_HOME/.bashrc" >/dev/null <<'RC' || die "could not add ~/.bashrc.d to ~/.bashrc"

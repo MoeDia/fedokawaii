@@ -33,9 +33,9 @@ db.execute("INSERT INTO downloads VALUES (?, ?, 0, ?, 0)", (sys.argv[2], sys.arg
 db.commit()
 EOF
 }
-torrra_list() {   # torrra_list PID LINE… — Torrents' list, as kawa-torrra writes it
+torrent_list() {   # torrent_list PID LINE… — Torrents' list, as its engine writes it
   mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"; local p=$1; shift
-  printf '%s\n' "$@" >"$XDG_RUNTIME_DIR/kawa-downloads/torrra.$p"
+  printf '%s\n' "$@" >"$XDG_RUNTIME_DIR/kawa-downloads/torrent.$p"
 }
 mark() { kawa-downloads bar; }
 
@@ -43,12 +43,12 @@ mark() { kawa-downloads bar; }
 case_ "nothing downloading: an empty list, the mark hidden"
 world; eq "$(kawa-downloads list)" ""; eq "$(mark)" '{"text":""}'
 
-case_ "Torrents: its window's list (its pid alive); one left by a window gone is taken away"
+case_ "Torrents: its engine's list (its pid alive); one left by an engine gone is taken away"
 world; sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
-torrra_list "$live" $'Big Buck Bunny\t250\t1000\t'"$D/Big Buck Bunny"
-torrra_list 999999 $'stale\t1\t2\t/x'
+torrent_list "$live" $'Big Buck Bunny\t250\t1000\t'"$D/Big Buck Bunny"
+torrent_list 999999 $'stale\t1\t2\t/x'
 eq "$(kawa-downloads list)" $'torrent\tBig Buck Bunny\t250\t1000\t'"$D/Big Buck Bunny"
-[[ ! -e $XDG_RUNTIME_DIR/kawa-downloads/torrra.999999 ]] && _ok || _no "a gone window's list stayed"
+[[ ! -e $XDG_RUNTIME_DIR/kawa-downloads/torrent.999999 ]] && _ok || _no "a gone engine's list stayed"
 
 case_ "Brave: a .crdownload — what has come is its size, how much will come from its History"
 world; head -c 300 /dev/zero >"$D/film.mkv.crdownload"; head -c 50 /dev/zero >"$D/Unconfirmed 1234.crdownload"
@@ -134,7 +134,7 @@ rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
 case_ "the menu: downloads under its arrow, a row each — its glyph, its name (a torrent's dots as spaces), how much of how much, the percent"
 world; . "$HOME/.config/fedokawaii/icons.sh"
 sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
-torrra_list "$live" $'Big.Buck.Bunny.2008.1080p\t2500000000\t5000000000\t'"$D/Big.Buck.Bunny.2008.1080p"
+torrent_list "$live" $'Big.Buck.Bunny.2008.1080p\t2500000000\t5000000000\t'"$D/Big.Buck.Bunny.2008.1080p"
 dl Celeste 0 1200000000
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 1'
 kawa-downloads; rows=$(cat "$TMP/menu.in")
@@ -148,10 +148,10 @@ called "^kawa-term yazi $D\$"
 : >"$D/Big.Buck.Bunny.2008.1080p"; reset_calls; kawa-downloads; called "^kawa-term yazi $D/Big.Buck.Bunny.2008.1080p\$"
 case_ "…on a Brave download: where it lands (its folder, until the file has its own name)"
 reset_calls; stub kawa-menu 'cat >/dev/null; echo 2'; kawa-downloads; called "^kawa-term yazi $D\$"; not_called '^xdg-open'
-case_ "…the foot's torrents: the search, in a window of its own"
-stub kawa-menu 'cat >/dev/null; echo 3'; kawa-downloads; called '^kawa-term kawa-torrra --open$'
-case_ "…no torrents key while that window is open (it holds kawa-torrra's lock)"
-exec 8>"$XDG_RUNTIME_DIR/kawa-torrra.lock"; flock -n 8
+case_ "…the foot's torrents: a window of its own"
+stub kawa-torrents; stub kawa-menu 'cat >/dev/null; echo 3'; kawa-downloads; called '^kawa-torrents --open$'
+case_ "…no torrents key while that window is open (it holds the lock on kawa-torrents.window)"
+exec 8>"$XDG_RUNTIME_DIR/kawa-torrents.window"; flock -n 8
 stub kawa-menu 'cat >"$TMP/menu.in"'; kawa-downloads; lacks "$(cat "$TMP/menu.in")" "torrents"; exec 8>&-
 case_ "…nothing downloading: said, and nothing to put the cursor on"
 world; stub kawa-menu 'cat >"$TMP/menu.in"'; kawa-downloads
@@ -163,11 +163,26 @@ not_called '^kawa-term'; not_called '^xdg-open'
 case_ "a name in the menu: a torrent's dots and underscores as spaces — a version's dots and a file's type kept —, any other download's name as its file has it; cut within 30 columns at a word, or at - _ . in a name without spaces (never …)"
 world; . "$HOME/.config/fedokawaii/icons.sh"
 sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
-torrra_list "$live" $'ubuntu-24.04.1-desktop-amd64.iso\t1\t2\t'"$D" $'Album.Name.5.1.FLAC\t1\t2\t'"$D" $'The.Seven.Samurai.1954.1080p.BluRay.x264\t1\t2\t'"$D"
+torrent_list "$live" $'ubuntu-24.04.1-desktop-amd64.iso\t1\t2\t'"$D" $'Album.Name.5.1.FLAC\t1\t2\t'"$D" $'The.Seven.Samurai.1954.1080p.BluRay.x264\t1\t2\t'"$D"
 printf '%s\t1\t2\t%s\n' photos-2026.tar.zst "$D" a_very_long_file_name_without_any_spaces_at_all.pdf "$D" >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$live"
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 0'
 kawa-downloads; names=$(awk -F'\t' '$1 == "row" { print $3 }' "$TMP/menu.in" | sort)
 eq "$names" "$(printf '%s\n' "Album Name 5.1.FLAC" "The Seven Samurai 1954 1080p" a_very_long_file_name_without photos-2026.tar.zst ubuntu-24.04.1-desktop-amd64 | sort)"
+case_ "what Torrents' engine left for the desktop: each said, each taken away, nothing else in that folder touched"
+world; sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
+mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"; R=$XDG_RUNTIME_DIR/kawa-downloads
+printf 'finished\tA Film\t1500000000\t%s\n' "$D/A Film" >"$R/said.$live.1"; printf 'failed\tAnother\tno space left on device\n' >"$R/said.$live.2"
+printf 'finished\thalf' >"$R/said.$live.3.new"; printf 'x\t1\t2\t%s\n' "$D" >"$R/pack.$live"
+stub kawa-dwlstatus
+. "$HOME/.config/fedokawaii/icons.sh"; ( timeout 3 kawa-downloads watch ) >/dev/null 2>&1
+/bin/sleep 0.3
+[[ ! -e $R/said.$live.1 && ! -e $R/said.$live.2 ]] && _ok || _no "left there"
+[[ -e $R/said.$live.3.new && -e $R/pack.$live ]] && _ok || _no "something else taken"
+called "notify-send -a downloads -A default=open -- $ICON_DOWNLOAD  A Film torrent · 1.5 GB · click to open it"
+called "notify-send -a downloads -u critical -- $ICON_DOWNLOAD  Another no space left on device"
+case_ "a download that cannot go on: a critical notice, its name and what went wrong"
+world; . "$HOME/.config/fedokawaii/icons.sh"; kawa-downloads failed "A Film" "no space left on device"
+called "^notify-send -a downloads -u critical -- $ICON_DOWNLOAD  A Film no space left on device$"
 case_ "a finished download's notice: its name, then SOURCE · SIZE · click to open it; a click opens it"
 world; : >"$D/film.mkv"; stub notify-send 'echo default'
 kawa-downloads notice Brave film.mkv 1500000000 "$D/film.mkv"

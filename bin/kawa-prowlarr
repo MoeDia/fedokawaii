@@ -1,14 +1,15 @@
 #!/usr/bin/env bash
-# kawa-prowlarr — Prowlarr, which finds torrents for torrra, runs only while it is wanted:
+# kawa-prowlarr — Prowlarr, which finds torrents for Torrents, runs only while it is wanted:
 # it holds some 300 MB of memory, so it starts when something needs it and goes back to
 # sleep 30 minutes after the last thing that did (a search window closed, its page opened).
 #
 #   kawa-prowlarr          its web page (the launcher's "Prowlarr", `prowlarr` in a shell):
-#                          started if asleep, opened in the browser once it answers — no
-#                          login (it answers on this computer only), its sites already in
+#                          started if asleep, what fails rested (kawa-torrents tend: no warning
+#                          on the page), opened in the browser once it answers — no login (it
+#                          answers on this computer only), its sites already in
 #   kawa-prowlarr stop     asleep now (`prowlarr stop`)
-#   kawa-prowlarr --busy   in use (torrra's search starts): started, no sleep planned
-#   kawa-prowlarr --idle   done for now (torrra's window closes): asleep in 30 minutes,
+#   kawa-prowlarr --busy   in use (the find tab of Torrents): started, no sleep planned
+#   kawa-prowlarr --idle   done for now (Torrents' window closes): asleep in 30 minutes,
 #                          unless something wants it again before then
 #
 # The sleep is a timer of systemd's (prowlarr-idle.timer, made here each time, gone once it
@@ -31,7 +32,7 @@ start() {   # Prowlarr up and answering (the start returns once it is healthy)
   if ! systemctl --user start prowlarr.service; then
     # one that does not start is stopped again: left, it would try every 10 s until the next boot
     systemctl --user stop --no-block prowlarr.service
-    notify-send -a torrra -u critical -- "$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_DOWNLOAD")  Prowlarr did not start" "journalctl --user -u prowlarr -e says why" 2>/dev/null
+    notify-send -a torrents -u critical -- "$(. "$HOME/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_DOWNLOAD")  Prowlarr did not start" "journalctl --user -u prowlarr -e says why" 2>/dev/null
     echo 'kawa-prowlarr: Prowlarr did not start — journalctl --user -u prowlarr -e says why' >&2
     return 1
   fi
@@ -45,6 +46,7 @@ idle() {   # asleep in IDLE_MIN minutes (also one still starting: a window close
 
 case ${1:-} in
   "")      start || exit 1
+           timeout 20 kawa-torrents tend >/dev/null 2>&1   # (a site that does not answer: not waited for long)
            xdg-open "$URL" >/dev/null 2>&1 &
            idle ;;                                   # (the page open: asleep 30 minutes from now)
   stop)    calm; systemctl --user stop prowlarr.service ;;

@@ -39,10 +39,10 @@ herdr                  kawa-agents                             herdr
 localsend              localsend                               localsend
 syncplay               syncplay                                kawa-together
 # installed by setup.sh another way
-torrra                 kawa-torrents                           kawa-torrra
 prowlarr               kawa-prowlarr                           prowlarr
 # the desktop's own helpers that open a window of their own
 kawa-asobi             kawa-asobi                              kawa-asobi
+kawa-torrents          kawa-torrents                           kawa-torrents
 kawa-backup            kawa-backup                             kawa-backup
 kawa-books             kawa-books                              kawa-books
 kawa-clip              kawa-clip                               kawa-clip
