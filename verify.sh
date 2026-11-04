@@ -645,7 +645,7 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
 }
 # (its config and its launcher entry come with the theme)
 ((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
-check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
+check "neovim's plugins at the commits of their lock (lazy-lock.json)" nvim_at_lock
 check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/uv/tools/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
 check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version </dev/null'
 check "torrra uses Prowlarr, and no key in its config" bash -c 'grep -qx "default = \"prowlarr\"" "$1" && ! grep -q api_key "$1"' _ "$TARGET_HOME/.config/torrra/config.toml"
@@ -657,7 +657,7 @@ check "qalc runs"                                      U qalc -t 1+1
 # Python and Rust to learn with (setup.sh s_dev): uv's CPython, rustup's stable, neovim's servers
 check "Python: uv's CPython"                           U uv python find --managed-python
 check "Rust: cargo, rust-analyzer, clippy, rustfmt (rustup)" U bash -c 'for b in cargo rust-analyzer cargo-clippy rustfmt; do test -x ~/.local/share/cargo/bin/$b || exit 1; done'
-check "neovim's Python and Rust servers (basedpyright, ruff, codelldb)" U bash -c 'for b in basedpyright ruff codelldb; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
+check "neovim's servers and formatters (Mason: Python, Rust's debugger, Lua, TOML, shell)" U bash -c 'for b in basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
 check "restic runs (backups to another disk: kawa-backup)" U restic version
 [[ $STEAM == yes ]] && check "game mode's tuned profile"  test -s /etc/tuned/profiles/fedokawaii-game/tuned.conf
 

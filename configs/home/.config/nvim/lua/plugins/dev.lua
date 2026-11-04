@@ -138,12 +138,6 @@ return {
     opts = { spec = { { "<leader>r", group = "run / repl" } } },
   },
 
-  -- the parsers for both languages and their files, installed with the plugins
-  {
-    "nvim-treesitter/nvim-treesitter",
-    opts = { ensure_installed = { "python", "rust", "toml", "markdown", "markdown_inline" } },
-  },
-
   -- lazygit inside neovim (Space g g): its own config (~/.config/lazygit/config.yml: delta,
   -- the commit form), coloured from the theme's own inks — vermilion for the panel you are in,
   -- as the desktop's focused window — and no Nerd Font icons (they would stand among the pixel

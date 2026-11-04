@@ -1,0 +1,117 @@
+-- ~/.config/nvim/lua/config/statusline.lua — the editor's bottom line, without a plugin: there in
+-- the first frame (lualine came 10–40 ms after the text, and redrew the first screen when it
+-- came), and drawn in the same frame as the key that changed it (lualine's own timer: up to 16 ms
+-- later, a second draw for every key). Its colours are colorscheme.lua's (KawaSt*): they follow
+-- the theme. The first screen has no line at all, and no row is given up or taken back for that.
+local M = {}
+
+-- what nvim_get_mode() says → the word, and the colour of its tile
+local MODES = {
+  n = { "NORMAL", "Normal" }, no = { "O-PENDING", "Normal" }, nov = { "O-PENDING", "Normal" },
+  noV = { "O-PENDING", "Normal" }, ["no\22"] = { "O-PENDING", "Normal" },
+  v = { "VISUAL", "Visual" }, vs = { "VISUAL", "Visual" }, V = { "V-LINE", "Visual" },
+  Vs = { "V-LINE", "Visual" }, ["\22"] = { "V-BLOCK", "Visual" }, ["\22s"] = { "V-BLOCK", "Visual" },
+  s = { "SELECT", "Visual" }, S = { "S-LINE", "Visual" }, ["\19"] = { "S-BLOCK", "Visual" },
+  i = { "INSERT", "Insert" }, ic = { "INSERT", "Insert" }, ix = { "INSERT", "Insert" },
+  R = { "REPLACE", "Replace" }, Rc = { "REPLACE", "Replace" }, Rx = { "REPLACE", "Replace" },
+  Rv = { "V-REPLACE", "Replace" }, Rvc = { "V-REPLACE", "Replace" }, Rvx = { "V-REPLACE", "Replace" },
+  c = { "COMMAND", "Command" }, cv = { "EX", "Command" }, ce = { "EX", "Command" },
+  r = { "REPLACE", "Command" }, rm = { "MORE", "Command" }, ["r?"] = { "CONFIRM", "Command" },
+  ["!"] = { "SHELL", "Terminal" }, t = { "TERMINAL", "Terminal" }, nt = { "NORMAL", "Normal" },
+}
+local UNKNOWN = { "NORMAL", "Normal" }
+
+-- (a word in the line: a % in it is a %)
+local function text(s) return (s:gsub("%%", "%%%%")) end
+
+-- the file's path from the working folder (or the project's root), its last three parts
+local function path()
+  local full = vim.api.nvim_buf_get_name(0)
+  if full == "" then return "" end
+  local name = full
+  local cwd = LazyVim.root.cwd()
+  if full:sub(1, #cwd + 1) == cwd .. "/" then
+    name = full:sub(#cwd + 2)
+  else
+    local root = LazyVim.root.get({ normalize = true })
+    if full:sub(1, #root + 1) == root .. "/" then name = full:sub(#root + 2) end
+  end
+  local parts = vim.split(name, "/", { plain = true })
+  local dir = #parts > 1 and table.concat(parts, "/", math.max(1, #parts - 2), #parts - 1) .. "/" or ""
+  local file = vim.bo.modified and "%#KawaStChanged#" or "%#KawaStFile#"
+  return "%#KawaStQuiet#" .. text(dir) .. file .. text(parts[#parts]) .. (vim.bo.readonly and " 󰌾 " or "")
+end
+
+-- the project's name, when it is not the folder neovim was started in
+local function root()
+  local r, cwd = LazyVim.root.get({ normalize = true }), LazyVim.root.cwd()
+  if r == cwd then return "" end
+  return "%#KawaStRoot# 󱉭  " .. text(vim.fs.basename(r))
+end
+
+local DIAG = { { "ERROR", "Error", " " }, { "WARN", "Warn", " " }, { "INFO", "Info", " " }, { "HINT", "Hint", " " } }
+local function diagnostics()
+  local counts = vim.diagnostic.count(0)
+  local out = ""
+  for _, d in ipairs(DIAG) do
+    local n = counts[vim.diagnostic.severity[d[1]]]
+    if n then out = out .. "%#KawaSt" .. d[2] .. "#" .. d[3] .. n .. " " end
+  end
+  return out == "" and "" or " " .. out
+end
+
+-- what gitsigns counted in this file
+local function changes()
+  local g = vim.b.gitsigns_status_dict
+  if not g then return "" end
+  local out = ""
+  if (g.added or 0) > 0 then out = out .. "%#KawaStAdded# " .. g.added .. " " end
+  if (g.changed or 0) > 0 then out = out .. "%#KawaStModified# " .. g.changed .. " " end
+  if (g.removed or 0) > 0 then out = out .. "%#KawaStRemoved# " .. g.removed .. " " end
+  return out
+end
+
+function M.render()
+  -- (the first screen: the terminal's own ground, as the rest of it)
+  if vim.bo.filetype == "snacks_dashboard" then return "%#Normal#" end
+  local mode = MODES[vim.api.nvim_get_mode().mode] or UNKNOWN
+  local head = vim.b.gitsigns_head or vim.g.gitsigns_head or ""
+  local left = "%#KawaSt" .. mode[2] .. "# " .. mode[1] .. " "
+    .. (head ~= "" and "%#KawaStKey# " .. text(head) .. " " or "")
+    .. root() .. diagnostics() .. "%#KawaStQuiet#"
+    .. (vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "") .. " " .. path()
+  local rec = vim.fn.reg_recording()
+  local dap = package.loaded["dap"] and require("dap").status() or ""
+  local right = "%#KawaStQuiet#%S "
+    .. (rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "")
+    .. (dap ~= "" and "%#KawaStDebug# " .. text(dap) .. " " or "")
+    .. changes()
+  -- the place: Top, Bot or its percent, the line, the column
+  local line, last = vim.fn.line("."), vim.fn.line("$")
+  local where = line == 1 and "Top" or line == last and "Bot" or string.format("%2d%%%%", math.floor(line / last * 100))
+  return left .. "%<%=" .. right .. "%#KawaStKey# " .. where .. string.format(" %3d:%-2d ", line, vim.fn.charcol("."))
+end
+
+function M.setup()
+  vim.o.showcmdloc = "statusline"   -- (the keys of a command being typed: %S, there and not over the text)
+  vim.o.statusline = "%!v:lua.require'config.statusline'.render()"
+  local group = vim.api.nvim_create_augroup("kawa_statusline", { clear = true })
+  -- what the line says and neovim does not know it says: drawn again when that changes
+  vim.api.nvim_create_autocmd({ "ModeChanged", "DiagnosticChanged", "RecordingEnter", "RecordingLeave" }, {
+    group = group, callback = function() vim.cmd.redrawstatus() end,
+  })
+  vim.api.nvim_create_autocmd("User", {
+    group = group, pattern = { "GitSignsUpdate", "DapProgressUpdate" }, callback = function() vim.cmd.redrawstatus() end,
+  })
+  -- the command line opens on this line's own row: the same rows are left for the text, so nothing
+  -- above moves, and no row stays empty the rest of the time. Both options in one step, in the same
+  -- frame (ui2 would close its window a tick later: a frame of this line one row too high)
+  local function rows(height, status)
+    vim.cmd("noautocmd set cmdheight=" .. height)
+    vim.o.laststatus = status
+  end
+  vim.api.nvim_create_autocmd("CmdlineEnter", { group = group, callback = function() rows(1, 0) end })
+  vim.api.nvim_create_autocmd("CmdlineLeave", { group = group, callback = function() rows(0, 3) end })
+end
+
+return M

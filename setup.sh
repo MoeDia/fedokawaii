@@ -1946,15 +1946,18 @@ open_ports() {   # torrra's port and LocalSend's, open in the firewall (when fir
   done
 }
 
-s_lazyvim() {
+# neovim's plugins at the commits of the desktop's own lazy-lock.json (configs/home/.config/nvim:
+# tested together, moved only with this toolkit): the missing cloned, the moved checked out, what
+# is no longer listed gone. Never `Lazy! sync` or `update`: those would float to today's newest
+nvim_restore() {
+  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' +qa
+}
+s_lazyvim() {   # (the config comes first, as the theme will install it: it names the plugins and their commits)
   if [[ ! -f $TARGET_HOME/.config/nvim/init.lua ]]; then
-    local t; t=$(as_user mktemp -d)
-    retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet --depth 1 https://github.com/LazyVim/starter "$t"
-    as_user rm -rf "$t/.git"
     as_user mkdir -p "$TARGET_HOME/.config/nvim"
-    as_user cp -rn "$t/." "$TARGET_HOME/.config/nvim/"; as_user rm -rf "$t"
+    as_user cp -r "$REPO_DIR/configs/home/.config/nvim/." "$TARGET_HOME/.config/nvim/"
   fi
-  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! sync' +qa
+  nvim_restore
 }
 
 # s_dev — Python and Rust to learn with (handbook §43), yours, in your home: uv's newest
@@ -1974,12 +1977,15 @@ s_dev() {
   dev_mason || rc=1
   return "$rc"
 }
-dev_mason() {   # neovim's Python and Rust tools (Mason loaded first — LazyVim loads it on demand —
-                # then :MasonInstall, which waits when headless), and the two languages' parsers
+# Mason's tools, every one of them here (LazyVim would fetch the rest at a first file, from the
+# network, in the background; lua/plugins/lean.lua: no longer)
+MASON_TOOLS="basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo"
+dev_mason() {   # neovim's tools (Mason loaded first — LazyVim loads it on demand — then :MasonInstall,
+                # which waits when headless), and the parsers (config/parsers.lua: as its list says)
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
   run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" timeout 900 \
-    nvim --headless '+Lazy! load mason.nvim' '+MasonInstall basedpyright ruff debugpy codelldb' \
-      '+Lazy! load nvim-treesitter' '+lua require("nvim-treesitter").install({"python","rust","ron","toml","markdown","markdown_inline","ninja","rst"}):wait(600000)' +qa
+    nvim --headless '+Lazy! load mason.nvim' "+MasonInstall $MASON_TOOLS" \
+      '+Lazy! load nvim-treesitter' '+lua require("config.parsers").sync()' +qa
 }
 dev_update() {   # update: the CPython uv installed to its newest release, Rust's stable, Mason's tools
   local rc=0
@@ -1987,7 +1993,7 @@ dev_update() {   # update: the CPython uv installed to its newest release, Rust'
   if [[ -x $TARGET_HOME/.local/share/cargo/bin/rustup ]]; then run as_user timeout 1800 "$TARGET_HOME/.local/share/cargo/bin/rustup" update || rc=1
   else s_dev || rc=1; fi
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] && { run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" \
-    timeout 900 nvim --headless '+Lazy! load mason.nvim' '+MasonUpdate' '+MasonInstall basedpyright ruff debugpy codelldb' +qa || rc=1; }
+    timeout 900 nvim --headless '+Lazy! load mason.nvim' '+MasonUpdate' "+MasonInstall $MASON_TOOLS" +qa || rc=1; }
   return "$rc"
 }
 
@@ -2137,11 +2143,11 @@ s_gate() {
   syncplay_current || s_syncplay
   localsend_current || s_localsend
   blesh_current || s_blesh
-  # (and LazyVim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
+  # (and neovim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
   # fail — then only nvim itself fetches them again; repair cannot run before the build ends)
-  if [[ ! -d $TARGET_HOME/.local/share/nvim/lazy/LazyVim ]]; then
+  if ! nvim_at_lock; then
     contained r_nvim
-    ((CONTAINED_RC == 0)) || log "LazyVim's plugins could not be fetched yet (why: above, or $LOG_FILE)"
+    ((CONTAINED_RC == 0)) || log "neovim's plugins could not be fetched yet (why: above, or $LOG_FILE)"
   fi
   # what the build's own steps left that nothing needs (a swap's, a build's dependencies) goes
   # before the check, not after it: the check would warn about them, and finalize takes them anyway
@@ -2552,7 +2558,7 @@ phase3() {
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
   step "3.08 Prowlarr + torrra (wired together)"       s_torrents
-  step "3.09 LazyVim + plugins"                        s_lazyvim
+  step "3.09 LazyVim + plugins (at the lock's commits)" s_lazyvim
   step "3.09b Python (uv) and Rust (rustup) to learn with" s_dev
   step "3.10 Steam + GE-Proton"                        s_gaming
   step "3.11 groups"                                   s_groups
@@ -2876,16 +2882,13 @@ after_dnf_done() {
   rm -f "$STATE_DIR/after-dnf"
   record last-after-dnf "$(date +%s) $( ((${#UPDATE_STEPS_FAILED[@]} + ${#STILL[@]})) && echo partial || echo ok)" || true
 }
-# neovim's plugins: the versions you have now are kept first (the last six), so an update that
-# breaks something can be undone (handbook: "Recipe: undo a bad update"); then brought up to date
+# neovim's plugins: at the commits of the lock this toolkit brings (nvim_restore: they move when
+# the toolkit's lock moves, never on their own), the parsers as its list says, and each one checked
 nvim_plugins() {
-  local lock=$TARGET_HOME/.config/nvim/lazy-lock.json keep=$TARGET_HOME/.local/state/fedokawaii/lazy-lock
-  if [[ -f $lock && ! -L $lock ]]; then
-    as_user mkdir -p "$keep"
-    as_user cp -- "$lock" "$keep/lazy-lock.$(date +%Y%m%d-%H%M).json"
-    as_user bash -c 'ls -1t "$1"/lazy-lock.*.json | tail -n +7 | xargs -r rm -f --' _ "$keep"
-  fi
-  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! sync' +qa
+  nvim_restore || return 1
+  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! load nvim-treesitter' '+lua require("config.parsers").sync()' +qa || return 1
+  as_user rm -rf "$TARGET_HOME/.local/state/fedokawaii/lazy-lock"   # (where an older update kept the versions it replaced)
+  nvim_at_lock || { log "neovim's plugins not at their lock's commits: $(nvim_off_lock | tr '\n' ' ')"; return 1; }
 }
 step_on() {   # step_on WHAT FN… — one contained step; a failure is remembered, not fatal
   log "update: $1"; local what=$1; shift
@@ -3460,9 +3463,9 @@ r_sound() {
   log "PipeWire does not keep running, and none of fedokawaii's sound files is the cause — journalctl --user -u pipewire -b says why"
   return 1
 }
-r_nvim() {   # LazyVim's plugins: the missing ones installed, at the lockfile's versions
+r_nvim() {   # neovim's plugins: at the lock's commits, whatever was missing or moved
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
-  run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! install' +qa
+  nvim_restore
 }
 r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: update's job)
   local py; py=$(as_user uv python find --managed-python 2>/dev/null) || py=""
@@ -3507,7 +3510,7 @@ heal_all() {
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" r_mako
   ((net)) && heal "torrra" torrra_up
-  ((net)) && heal "neovim's plugins (any missing)" r_nvim
+  ((net)) && heal "neovim's plugins (at their lock's commits)" r_nvim
   ((net)) && heal "Python and Rust (uv's CPython, rustup's stable, Mason's tools)" r_dev
   heal "Prowlarr (it starts, and takes the key from secrets.sh)" prowlarr_up
   heal "the theme (configs, dwl, helpers, wallpapers)" r_theme

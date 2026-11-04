@@ -402,6 +402,15 @@ set_aside() {   # set_aside REL REPO-FILE → 0 when that version of REL was set
 # followed). The content arrives on stdin, read by cat — reopening /dev/stdin as the user
 # would be refused, root's pipe or file not being the user's to open.
 # shellcheck disable=SC2016  # expanded by the inner bash
+# nvim_off_lock — neovim's plugins not at the commit ~/.config/nvim/lazy-lock.json names, one a line
+# (lazy.nvim writes that file one plugin a line, in this form); nvim_at_lock — none of them
+nvim_off_lock() {
+  as_user bash -c 'while IFS=" " read -r name commit; do
+      [[ $(git -C "$HOME/.local/share/nvim/lazy/$name" rev-parse HEAD 2>/dev/null) == "$commit" ]] || printf "%s\n" "$name"
+    done < <(sed -n "s/^ *\"\([^\"]*\)\": *{.*\"commit\": *\"\([0-9a-f]*\)\".*/\1 \2/p" "$HOME/.config/nvim/lazy-lock.json")'
+}
+nvim_at_lock() { [[ -f $TARGET_HOME/.config/nvim/lazy-lock.json && -z $(nvim_off_lock) ]]; }
+
 USER_PUT_SH='t=$(mktemp "${2%/*}/.${2##*/}.XXXXXX") || exit 1
   if cat >"$t" && chmod "$1" "$t" && mv -fT -- "$t" "$2"; then exit 0; fi
   rm -f -- "$t"; exit 1'

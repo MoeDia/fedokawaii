@@ -241,6 +241,13 @@ retire() {   # retire FILE PATTERN
 #   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawaii themes; the old
 #   file would pin one palette over both
 retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
+#   LazyVim's starter, which setup no longer fetches: the desktop ships its own init.lua
+retire .config/nvim/.gitignore 'tt\.\*'
+retire .config/nvim/.neoconf.json 'neodev'
+retire .config/nvim/LICENSE 'Apache License'
+retire .config/nvim/README.md 'A starter template for'
+retire .config/nvim/stylua.toml 'column_width = 120'
+retire .config/nvim/lua/plugins/example.lua 'just an example spec'
 #   ~/.local/share/applications/calf.desktop — hid Calf's JACK host, which came with EasyEffects
 #   (both retired: PipeWire's own modules do their job)
 retire .local/share/applications/calf.desktop "Calf's JACK host"
@@ -1000,10 +1007,10 @@ if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts";
 if changed /fontconfig/ || changed /.local/share/fonts/; then U fc-cache -f; fi
 # (a face replaced under the running bar and notices: they start again — session_fonts_reload)
 if changed /.local/share/fonts/; then session_fonts_reload; fi
-# the colourscheme plugin is fetched the first time its spec appears — install only: the
-# plugins you have stay at their versions (they move with update, which keeps the old ones)
-if changed /nvim/lua/plugins/ && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then
-  U timeout 900 nvim --headless '+Lazy! install' +qa >>"$LOG_FILE" 2>&1 && ok "neovim plugins installed (colourscheme)"
+# neovim's plugins when their list or their lock changed: each at the lock's commit, what is off
+# the list gone (the lock is this toolkit's: tested together, setup.sh nvim_restore)
+if { changed /nvim/lua/plugins/ || changed /nvim/lazy-lock.json; } && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then
+  U timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' +qa >>"$LOG_FILE" 2>&1 && ok "neovim's plugins at their lock's commits"
 fi
 # API keys live only here, read into the environment by the shell: yours alone (600)
 SECRETS=$TARGET_HOME/.config/fedokawaii/secrets.sh

@@ -3,6 +3,13 @@
 -- wherever it was made (config/clipboard.lua: why)
 require("config.clipboard").setup()
 
+-- The command line and the messages: nvim's own ui2 (0.12), no plugin in between, and no row given
+-- up for them: a message comes and goes above the status line, the command line opens over it
+require("vim._core.ui2").enable({ msg = { target = "msg" } })
+vim.o.cmdheight = 0
+-- The status line, from the first frame on (config/statusline.lua)
+require("config.statusline").setup()
+
 -- The window's title names the program in front, for Super+/ (kawa-help shows its keys first):
 -- "nvim", or what runs in the terminal buffer in front (lazygit from Space g g). nvim puts the
 -- title it found back as it ends (foot's title stack), so yazi or lazygit that started it is
