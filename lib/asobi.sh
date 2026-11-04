@@ -82,8 +82,13 @@ asobi_system() {
 # the world's programs, each in its own Flatpak sandbox: Steam kept off the mounts, the disks' D-Bus
 # service and the pictures it asks for by default; both given the drop folder and nothing of /home
 asobi_flatpaks() {
+  if systemctl is-active --quiet kawa-asobi.service kawa-asobi-bottles.service; then
+    log "the play world is open: its programs are updated at the next run"
+    return 0
+  fi
   run as_asobi flatpak --user remote-add --if-not-exists flathub "$ASOBI_FLATHUB"
   run as_asobi flatpak --user install -y --noninteractive --or-update flathub "${ASOBI_APPS[@]}"
+  run as_asobi flatpak --user uninstall -y --noninteractive --unused
   as_asobi flatpak --user override com.valvesoftware.Steam --nofilesystem=/mnt --nofilesystem=/media \
     --nofilesystem=/run/media --nofilesystem=xdg-music --nofilesystem=xdg-pictures \
     --system-no-talk-name=org.freedesktop.UDisks2 --filesystem="$ASOBI_DROP"
@@ -96,28 +101,37 @@ asobi_clean() {
   run btrfs subvolume snapshot -r "$ASOBI_HOME" "$ASOBI_SNAPS/clean"
 }
 
-# Gaming left the desktop's account: Steam closed properly (its cloud saves), the games and their saves
-# moved into the world, so nothing is downloaded or lost again (copy-on-write: instant, no room taken),
-# and every trace of it out of this account. The saves' backup, ~/blasphemous-save-backup-20261022, stays.
-asobi_steam_move() {
+# Gaming left the desktop's account: the games and their saves go into the world (copy-on-write: instant, no
+# room taken), so nothing is downloaded or lost again. What the world already holds is never overwritten, a
+# save played on in there least of all. Steam's settings only before anyone has signed in there: they hold
+# each game's Proton (a game whose saves are Windows ones reads them through it)
+asobi_steam_copy() {
   local s=$TARGET_HOME/.local/share/Steam w=$ASOBI_HOME/.var/app/com.valvesoftware.Steam/.local/share/Steam i
-  [[ -e $s || -e $TARGET_HOME/.steam ]] || return 0
+  [[ -d $s ]] || return 0
+  install -d -o "$ASOBI_USER" -g "$ASOBI_USER" -m 0755 "$ASOBI_HOME/.var" "$ASOBI_HOME/.var/app" \
+    "$ASOBI_HOME/.var/app/com.valvesoftware.Steam" "$ASOBI_HOME/.var/app/com.valvesoftware.Steam/.local" \
+    "$ASOBI_HOME/.var/app/com.valvesoftware.Steam/.local/share" "$w" "$w/config"
+  for i in steamapps userdata; do
+    [[ -d $s/$i ]] || continue
+    cp -a --reflink=always --update=none -- "$s/$i" "$w/" || { log "the games could not move into the world (cp, above)"; return 1; }
+  done
+  [[ -e $w/config/loginusers.vdf || ! -f $s/config/config.vdf ]] || cp -a -- "$s/config/config.vdf" "$w/config/"
+  chown -R "$ASOBI_USER:$ASOBI_USER" "$w"
+  restorecon -R "$ASOBI_HOME/.var"
+}
+# and then every trace of it out of this account, Steam closed properly first (its cloud saves). The saves'
+# backup, ~/blasphemous-save-backup-20261022, stays
+asobi_steam_move() {
+  local i
+  [[ -e $TARGET_HOME/.local/share/Steam || -e $TARGET_HOME/.steam ]] || return 0
   if pgrep -u "$TARGET_USER" -x steam >/dev/null; then
     as_user env "XDG_RUNTIME_DIR=/run/user/$TARGET_UID" steam -shutdown >/dev/null 2>&1 &
     for ((i = 0; i < 120; i++)); do pgrep -u "$TARGET_USER" -x steam >/dev/null || break; sleep 0.25; done
     pgrep -u "$TARGET_USER" -x steam >/dev/null && { log "Steam is still running in your account: it moves at the next run"; return 1; }
   fi
-  if [[ -d $s ]]; then
-    install -d -o "$ASOBI_USER" -g "$ASOBI_USER" -m 0755 "$w" "$w/config"
-    for i in steamapps userdata; do
-      [[ -d $s/$i ]] && { cp -a --reflink=always -- "$s/$i" "$w/" || { log "the games could not move into the world (cp, above)"; return 1; }; }
-    done
-    [[ -f $s/config/config.vdf ]] && cp -a -- "$s/config/config.vdf" "$w/config/"
-    chown -R "$ASOBI_USER:$ASOBI_USER" "$ASOBI_HOME/.var"
-    restorecon -R "$ASOBI_HOME/.var"
-  fi
-  rm -rf -- "$TARGET_HOME/.steam" "$TARGET_HOME/.steampath" "$TARGET_HOME/.steampid" "$s" "$TARGET_HOME/.config/MangoHud" \
-    "$TARGET_HOME/.config/fedokawaii/steam-warm" "$TARGET_HOME/.local/state/fedokawaii/steam-proton"
+  asobi_steam_copy || return 1
+  rm -rf -- "$TARGET_HOME/.steam" "$TARGET_HOME/.steampath" "$TARGET_HOME/.steampid" "$TARGET_HOME/.local/share/Steam" \
+    "$TARGET_HOME/.config/MangoHud" "$TARGET_HOME/.config/fedokawaii/steam-warm" "$TARGET_HOME/.local/state/fedokawaii/steam-proton"
   log "Steam left your account: its games and saves are in the play world"
 }
 # what an older build put on the system for the host's own game mode (kawa-game, tuned's game profile)
@@ -133,12 +147,15 @@ asobi_base() {
   asobi_drop
   asobi_system
 }
+asobi_programs() {
+  asobi_flatpaks
+  asobi_clean
+}
 
 s_asobi() {
   dnf_install "${PKG_ASOBI[@]}"
   modprobe ntsync 2>/dev/null || true             # now too, not only from the next boot on
   asobi_base
-  asobi_flatpaks
-  asobi_clean
+  asobi_programs
   asobi_host_out
 }

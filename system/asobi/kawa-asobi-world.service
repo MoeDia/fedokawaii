@@ -12,3 +12,4 @@ TimeoutStopSec=40
 Slice=app.slice
 LimitNOFILE=524288
 LimitCORE=0
+SuccessExitStatus=SIGABRT

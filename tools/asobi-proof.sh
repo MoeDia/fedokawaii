@@ -224,7 +224,14 @@ vt_proof() {
   ok "gamescope runs"
   holds "Steam's gamepad UI runs, in its Flatpak"  bash -c 'pgrep -u asobi -f "steam.*-gamepadui" >/dev/null'
   holds "/dev/uinput is the seat's"      runuser -u "$WHO" -- test -w /dev/uinput
-  sleep 8
+  # how long the screen stays black: a picture of the screen until it holds more than a few colours
+  for t in {1..30}; do
+    inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1 2>/dev/null
+    sleep 1
+    inside_user cat /tmp/gamescope.png >"$OUT/world.png" 2>/dev/null
+    [[ $(magick "$OUT/world.png" -format '%k' info: 2>/dev/null || echo 0) -gt 50 ]] && break
+  done
+  ok "the first picture of Steam, $(($(date +%s) - $(date -d "$before" +%s))) s after the key"
   card=$(for c in /sys/class/drm/card[0-9]*-*/status; do [[ $(cat "$c") == connected ]] && { c=${c%%-*}; echo "${c##*/card}"; break; }; done)
   cat "/sys/kernel/debug/dri/$card/state" >"$OUT/drm-state.txt" 2>&1
   holds "the screen at 1920x1080, 144 Hz" grep -qE 'mode:.*"1920x1080": 144' "$OUT/drm-state.txt"
@@ -237,9 +244,7 @@ vt_proof() {
   holds "the world's share of the machine" test "$(systemctl show -P CPUWeight "user-$UID_W.slice")" = 400
   inside_user wpctl status >"$OUT/world-sound.txt" 2>&1
   holds "the sound card is the world's"  grep -qE 'Analog Stereo|Digital Stereo' "$OUT/world-sound.txt"
-  inside_user env DISPLAY=:0 xprop -root -f GAMESCOPECTRL_REQUEST_SCREENSHOT 32c -set GAMESCOPECTRL_REQUEST_SCREENSHOT 1
-  sleep 3
-  inside_user cat /tmp/gamescope.png >"$OUT/world.png" 2>/dev/null
+  inside_user env DISPLAY=:0 xprop -root GAMESCOPE_VRR_ENABLED GAMESCOPE_VRR_CAPABLE GAMESCOPE_VRR_FEEDBACK >"$OUT/vrr-atoms.txt" 2>&1
   echo "back, as Super+G does it (the key itself: a virtual keyboard, the input wall lifted for it)"
   rm -f /run/udev/rules.d/60-kawa-asobi.rules; udevadm control --reload; sleep 0.5
   python3 -I "$(dirname "$0")/uinput-key.py" LEFTMETA+G

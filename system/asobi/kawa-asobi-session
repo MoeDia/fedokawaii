@@ -16,4 +16,7 @@ esac
 systemctl --user set-environment "XDG_SESSION_ID=${XDG_SESSION_ID:-}" "XDG_SEAT=${XDG_SEAT:-seat0}" \
   "XDG_VTNR=${XDG_VTNR:-8}" XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=gamescope \
   "KAWA_ASOBI_FACE=${KAWA_ASOBI_FACE:-steam}" || exit 1
-exec systemctl --user start --wait kawa-asobi-world.service
+# (however it ended is the world's own journal's to say: gamescope aborts on its way out as a habit, and a
+# session that dies at once is told by kawa-asobi-root poststop)
+systemctl --user start --wait kawa-asobi-world.service
+exit 0
