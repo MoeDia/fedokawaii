@@ -269,6 +269,15 @@ case_ "the repo's conf: every device, in range"
 machine; cp "$REPO/configs/system/etc/fedokawaii/rgb.conf" "$M/etc/fedokawaii/rgb.conf"; start; secs 1; stop; eq "$(cat "$M/out")" ""
 has "$(state)" "lights full"
 
+case_ "the unit is the system's, from boot: nothing of a session in it (4 Nov: the display stayed dark after a reboot)"
+U=$REPO/configs/system/etc/systemd/system/kawa-rgb.service
+has "$(cat "$U")" "WantedBy=multi-user.target"
+eq "$(grep -cE '^(User|Group|PartOf|BindsTo|Requires|Requisite)=|graphical-session|default\.target|user@' "$U")" 0
+eq "$(find "$REPO/configs/home" -name 'kawa-rgb*' | wc -l)" 0
+
+case_ "a headless desktop (the kit, the regress checks) never reaches the real lights"
+has "$(cat "$REPO/tools/hl-dwl.sh")" 'KAWA_RGB_ROOT="$rt/no-lights"'
+
 case_ "the command line; a status with no service; a switch it cannot write"
 rc 2 "$BIN"; rc 2 "$BIN" nonsense; rc 2 "$BIN" run --trace; rc 2 "$BIN" on off
 machine; rc 1 K status

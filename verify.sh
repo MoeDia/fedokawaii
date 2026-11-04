@@ -75,6 +75,8 @@ check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=n
 check "vi → nvim (a script: dracut never follows it into nvim)" bash -c '[[ ! -L /usr/local/bin/vi && -x /usr/local/bin/vi ]] && grep -qx "exec nvim \"\$@\"" /usr/local/bin/vi'
 check "i2c-dev loaded (monitor brightness over DDC/CI)" test -d /sys/module/i2c_dev
 check "the lights' one tool is running (kawa-rgb)" systemctl is-active --quiet kawa-rgb.service
+# (the system's, from boot, whatever your session does: 4 Nov, the cooler's display stayed dark after a reboot)
+check "the lights' one tool starts at every boot" systemctl is-enabled --quiet kawa-rgb.service
 
 # ── packages ─────────────────────────────────────────────────────────────────
 section "packages (lib/manifest.sh)"
