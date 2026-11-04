@@ -197,7 +197,7 @@ def blame(repo, log):
     said = set()
     with open(log, encoding="utf8", errors="replace") as f:
         for line in f:
-            m = re.match(r"\s*✘ (.+?)(?: — |\s{2,}|$)", line)
+            m = re.match(r"\s*✘ (.+)", line)
             if not m:
                 continue
             case = m.group(1).strip()

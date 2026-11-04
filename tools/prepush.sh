@@ -70,7 +70,7 @@ HOOK_END
     rc=0
     while read -r _ sha ref _; do
       [[ $ref == refs/heads/main && ! $sha =~ ^0+$ ]] || continue
-      run_all "$sha" || rc=$?
+      run_all "$sha" </dev/null || rc=$?
     done
     exit "$rc" ;;
   -h|--help) sed -n '2,/^[^#]/{/^#/p}' "$0" | sed 's/^# \{0,1\}//'; exit 0 ;;

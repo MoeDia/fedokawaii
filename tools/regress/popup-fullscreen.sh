@@ -35,8 +35,8 @@ def load(n):
     return np.asarray(Image.open(p).convert("RGB"), dtype=np.int16)
 base = load("base")
 bad, least = [], 10 ** 9
-if (base[0, 0] != base[5, 5]).any() and (base[:27] != base[30:57]).all():
-    bad.append("the terminal is not fullscreen")
+if len(np.unique(base[3], axis=0)) != 1:      # (row 3: the bar's hairlines, unless a window covers it all)
+    bad.append("the terminal is not fullscreen: the bar shows")
 for k in keys:
     on, off = load("on-" + k), load("off-" + k)
     shown = int(np.any(on != base, axis=-1).sum())
