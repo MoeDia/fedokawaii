@@ -73,7 +73,9 @@ EVIDENCE = {"check": 2500, "config": 9000, "diff": 5000, "docs": 9000, "news": 3
 
 # ── the programs it may touch, each with its own check. A program not here, or a failure of another
 # kind (a library, a boot image, a transaction), is held at once: no model loaded for it ──────────
-CSS_CHECK = ("import gi,sys\ngi.require_version('Gtk','3.0')\nfrom gi.repository import Gtk\np=Gtk.CssProvider();bad=[]\n"
+# (GTK's own parser. GTK not loading says nothing about the file: no verdict, the desktop's check judges that)
+CSS_CHECK = ("import sys\ntry:\n import gi\n gi.require_version('Gtk','3.0')\n from gi.repository import Gtk\nexcept Exception:\n sys.exit(0)\n"
+             "p=Gtk.CssProvider();bad=[]\n"
              "def said(_,s,e):\n print(f'{s.get_file().get_basename() if s.get_file() else \"\"}:{s.get_start_line()+1}: {e.message}');bad.append(1)\n"
              "p.connect('parsing-error',said)\n"
              "try:\n p.load_from_path(sys.argv[1])\nexcept Exception as e:\n print(e);bad.append(1)\n"
@@ -109,13 +111,13 @@ PROGRAMS = {
         "red": r"Error parsing option|option not found|invalid value|Unknown option|Option .* requires",
         "man": ["man1/mpv.1"],
     },
+    # (its config is code: the bench's model turned disable() into enable(), the docs' own words, and the
+    # check stayed green. A check that cannot see a meaning flipped: asked of the check, never of the model)
     "nvim": {
-        "packages": ["neovim", "nvim"], "says": r"\bnvim\b|\bneovim\b", "kind": "lua", "binary": "/usr/bin/nvim",
-        "files": ["~/.config/nvim/init.lua", "~/.config/nvim/lua/**/*.lua"],
+        "packages": ["neovim", "nvim"], "says": r"\bnvim\b|\bneovim\b", "kind": "lua", "held_only": "its config is code",
+        "files": ["~/.config/nvim/init.lua"],
         "check": ["nvim", "--headless", "+qa"],
         "red": r"\bE\d+:|Error in |Error detected|Unknown option",
-        "man": ["man1/nvim.1"], "news": ["/usr/share/nvim/runtime/doc/news.txt", "/usr/share/nvim/runtime/doc/deprecated.txt"],
-        "docs": ["/usr/share/nvim/runtime/doc/options.txt"],
     },
     "greetd": {
         "packages": ["greetd"], "says": r"\bgreetd\b", "kind": "toml", "binary": "/usr/bin/greetd",
@@ -146,11 +148,11 @@ PROGRAMS = {
 NOT_CONFIG = re.compile(r"\bmisses\b|boot image|boot entry|no root=|does not go through|conflict|signature|not signed|initramfs", re.I)
 # files never read and never written, whatever a table or an answer says (CLAUDE.md: secrets)
 NEVER = re.compile(r"secrets|token|password|credential|\.ssh|\.gnupg|\.pki|keyring|/shadow|sudoers")
-COMMENT = {"ini": ("#", ";"), "toml": ("#",), "css": ("/*", "*"), "lua": ("--",), "jsonc": ("//",)}
+COMMENT = {"ini": ("#", ";"), "toml": ("#",), "css": ("/*", "*"), "lua": ("--",)}
 # what no fix ever brings in by itself: only a line that already says it may carry it over
 SHELLY = re.compile(r"\$\(|`|/dev/tcp|https?://|authorized_keys|\b(?:curl|wget|nc|ncat|socat|scp|ssh|sudo|su|pkexec|doas|"
                     r"systemctl|dnf|rpm|chmod|chown|mkfs|dd|rm|mv|python3?|perl|ruby|base64|eval|bash|sh|exec|include|"
-                    r"import|dofile|loadfile|loadstring|load|require|source|os\.execute|io\.popen|vim\.system|vim\.fn\.system|vim\.cmd|nvim_command|nvim_exec\w*|jobstart)\b")
+                    r"import|source)\b")
 # a key that runs something: its value only ever carried over word for word (a changelog cannot steer one in)
 COMMANDY = re.compile(r"^(?:shell|command|exec|run|launch|on-[\w-]+|script[\w-]*|input-conf|lock-command|unlock-command|"
                       r"[\w-]*-command|command-[\w-]+|[\w-]*-exec)$")
@@ -710,10 +712,6 @@ def keys_in(line, kind):
         out = re.findall(r"^\[+\s*([^\]=\s]+)", s)
         out += re.findall(r"^([\w.-]+)\s*=", s)
         return out + re.findall(r"[{,]\s*([\w-]+)\s*=", s)
-    if kind == "jsonc":
-        return re.findall(r'"([\w/#.-]+)"\s*:', s)
-    if kind == "lua":
-        return re.findall(r"\bvim\.(?:opt|o|go|bo|wo)\.(\w+)", s)
     return []   # (css: GTK's own parser is the key check, and it is strict)
 
 
@@ -851,13 +849,16 @@ def plan_edits(answer, allowed, place, kind="ini", complaint=""):
 
 
 def changelog_names(news, key):
-    """what the changelog names around each mention of KEY, in its `marks`: where it says what replaced it"""
+    """what the changelog names around each mention of KEY, in its `marks`: where it says what replaced it —
+    the mentions that say "replaced", "renamed" … decide, if there are any (an entry that only introduced
+    two options side by side says nothing about one replacing the other)"""
     lines = news.splitlines()
-    out = set()
+    says, only = set(), set()
     for i, line in enumerate(lines):
         if re.search(rf"`[^`]*(?<![\w-]){re.escape(key)}(?![\w-])[^`]*`", line):
-            out.update(re.findall(r"`([^`]+)`", "\n".join(lines[max(0, i - 6):i + 7])))
-    return {n for n in out if key not in n or n != key}
+            block = "\n".join(lines[max(0, i - 1):i + 6])
+            (says if re.search(r"\b(replac\w*|renam\w*|moved|instead)\b", block, re.I) else only).update(re.findall(r"`([^`]+)`", block))
+    return {n for n in (says or only) if n != key}
 
 
 def validate(prog, plan, corpus, binary, news=""):
@@ -1046,8 +1047,6 @@ def fix_one(name, case, place, sock, seed0, report, logdir):
             # (the file is back: an answer built on the refused edit would find nothing)
             problems = [f"the program still refuses it, it says: {trim(newout, 800)}",
                         "That edit was taken back: the file is again exactly as shown above."]
-            if any(re.search(r"(?m)^\s*[\w-]+\.[\w.-]+\s*=", e.get("replace", "")) for e in answer["edits"]) and prog["kind"] in ("ini", "toml"):
-                problems.append('A name written section.option in the docs is two things: put the option=value in replace and the section\'s name in "section".')
         wrong += 1
         report["refused"].append(problems[:4])
         if wrong >= TRIES:
@@ -1105,6 +1104,9 @@ def triage(why, pkgs):
     names = implicated(lines, pkgs) if lines else []
     if not names:
         raise Held("not-config", f"not a config of ours: {first_line(chr(10).join(why)) or 'no failure named'}")
+    for n in names:
+        if len(names) == 1 and PROGRAMS[n].get("held_only"):
+            raise Held("held-only", f"{n}: {PROGRAMS[n]['held_only']}: not for the fixer")
     return names
 
 
@@ -1146,6 +1148,9 @@ def run_case(case, sock, out_path, logdir, server_args):
         report["programs"] = reds
         if not reds:
             raise Held("green", f"{', '.join(names)}: its own check finds nothing wrong with its config")
+        for n in reds:
+            if PROGRAMS[n].get("held_only"):
+                raise Held("held-only", f"{n}: {PROGRAMS[n]['held_only']}: not for the fixer")
         if not sock:
             gone = missing(case.get("user_home", place.home), full=True)
             if gone:
@@ -1229,11 +1234,13 @@ def reapply(fixes, home, root):
                     continue
                 text = read_text(f)
                 kind = kind_of(f)
-                if e["replace"] and e["replace"] in text:
+                if e["replace"].strip() and e["replace"] in text:
                     alive = True
                 elif len(find_span(text, e["search"], kind)) == 1:
                     write_keep(f, apply_edit(text, e, kind))
                     alive = True
+                elif not e["replace"].strip():
+                    alive = True   # (a deletion, done: a theme run may bring the line back)
         if alive:
             done += 1
         else:

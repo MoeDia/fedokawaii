@@ -62,21 +62,25 @@ fixes_apply() {
   log "$out"
 }
 # up_fix WHYFILE NAME… — NAME… make the candidate red for what WHYFILE says. → 0 mended: kept, and
-# nothing to hold · 1 no fix: hold them (UP_FIX_LINES says why, if the fixer got that far)
+# nothing to hold · 1 no fix: hold them (UP_FIX_LINES says why, if the fixer got that far). The
+# transaction: NAME… stored on their own — or UP_FIX_TX, one stored already (a move to a new Fedora)
 up_fix() {
-  local why=$1 rc=0 dir=$UPD/fix line; shift
+  local why=$1 rc=0 dir=$UPD/fix line tx=${UP_FIX_TX:-$UPD/try}; shift
   [[ -x $FIXER ]] || return 1
   # (a failure no config edit can mend is held at once: no copy made, the card left alone)
   "$FIXER" names --why-file "$why" "$@" >/dev/null 2>&1 || return 1
   [[ -d $UP_HOME ]] || { UP_FIX_LINES+=("the fixer could not run: no copy of the home"); return 1; }
   log "the local AI fixer tries: $(head -n1 "$why")"
-  rm -rf -- "$UPD/try" "$dir" "$UPD/cand-boot"; mkdir -p "$dir" "$UPD/cand-boot/loader/entries" "$UPD/cand-boot/grub2"
+  rm -rf -- "$dir" "$UPD/cand-boot"; mkdir -p "$dir" "$UPD/cand-boot/loader/entries" "$UPD/cand-boot/grub2"
   cp -a /boot/grub2/grubenv "$UPD/cand-boot/grub2/" 2>/dev/null || true   # (as cand_try: the scratch /boot shaped like the real one)
-  dnf -q -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || { UP_FIX_LINES+=("the fixer could not run: those packages could not be stored on their own"); return 1; }
-  [[ -s $UPD/try/transaction.json ]] || return 1
+  if [[ -z ${UP_FIX_TX:-} ]]; then
+    rm -rf -- "$UPD/try"
+    dnf -q -y upgrade --store="$UPD/try" "$@" >/dev/null 2>&1 || { UP_FIX_LINES+=("the fixer could not run: those packages could not be stored on their own"); return 1; }
+  fi
+  [[ -s $tx/transaction.json ]] || return 1
   cand_drop
   btrfs subvolume snapshot / "$UP_CAND" >/dev/null || return 1
-  if ! cand_run "$UPD/try" dnf5 --disable-plugin=actions -y -C replay /tx >>"$UPD/cand.log" 2>&1; then
+  if ! cand_run "$tx" dnf5 --disable-plugin=actions -y -C replay /tx >>"$UPD/cand.log" 2>&1; then
     cand_drop; UP_FIX_LINES+=("the fixer could not run: the transaction does not go through"); return 1
   fi
   fixes_cand     # (what an earlier round of this run has already mended)
@@ -87,17 +91,17 @@ up_fix() {
   up_fix_case "$why" "$dir" "$@" >"$dir/case.json"
   line=$("$FIXER" run "$dir/case.json" --out "$dir/out.json" --log "$dir/log" 2>&1) || rc=$?
   log "the fixer: $line"
-  if ((rc == 0)) && cand_run "$UPD/try" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
+  if ((rc == 0)) && cand_run "$tx" /usr/bin/bash /run/fk-check >>"$UPD/cand.log" 2>&1; then
     "$FIXER" keep "$dir/out.json" --fixes "$UP_FIXNEW" >/dev/null
     UP_FIX_LINES+=("$line")
     UP_MENDED+=${UP_MENDED:+, }$(sed -E 's/^fixed (.*) in [0-9]+ tr.*/\1/' <<<"$line")
-    cand_drop; rm -rf -- "$UPD/try" "$UPD/cand-boot"
+    cand_drop; rm -rf -- "$UPD/cand-boot"; [[ -n ${UP_FIX_TX:-} ]] || rm -rf -- "$UPD/try"
     return 0
   fi
   # (its edits stayed in the home's copy: a clean one for what follows)
   ((rc == 0)) && line="its fix passed its own check, not the whole system's: held"
   UP_FIX_LINES+=("the fixer: $line")
-  cand_drop; rm -rf -- "$UPD/try" "$UPD/cand-boot"
+  cand_drop; rm -rf -- "$UPD/cand-boot"; [[ -n ${UP_FIX_TX:-} ]] || rm -rf -- "$UPD/try"
   up_home_drop; up_home_copy
   return 1
 }

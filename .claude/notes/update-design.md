@@ -357,7 +357,7 @@ B1 #13: systemd 262, dracut 111, grub2 81, rpm 6.1 with signatures enforced) is 
 ### 4.5 The AI fixer (T47; B6) — as built, 4 Nov (system/kawa-fixer, lib/fixer.sh; choice and numbers: .claude/notes/fixer-bench.md; limits: fixer-limits.md)
 
 For what bisection found, before it is held, and only when the failure names a config of ours (kawa-fixer's table:
-foot, mako, mpv, nvim's own files, greetd, yazi, the bar's and the lock's CSS) and that program's own check is red;
+foot, mako, mpv, greetd, yazi, the bar's and the lock's CSS; Neovim's is code: held-only) and that program's own check is red;
 anything else (a library, a kernel, a transaction, a check that is green) is held at once, no copy made, no model
 loaded. llama.cpp's `llama-server` (its Vulkan release build at a pinned tag and checksum, no ROCm stack), one model
 (checksum-pinned, in ~/.local), loaded only for that run: no network (its own namespace, a UNIX socket), low priority,

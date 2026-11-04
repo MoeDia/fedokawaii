@@ -27,15 +27,18 @@ afterwards.
 ## What it fixes (measured, each from a real or realistic breakage)
 A renamed option · an option moved to another section · a changed value form (`20pixels` to `20px`) · a renamed section ·
 a renamed GTK CSS property (in both moods at once) · several of these in one file, one after another.
-In the configs of: foot, mako, mpv, Neovim's own files, greetd, the bar's and the lock's CSS, yazi.
+In the configs of: foot, mako, mpv, greetd, the bar's and the lock's CSS, yazi.
 
 ## What it never touches: held and told at once, the model not even loaded
 - A library that changed its name, a package conflict, a failing package script, a bad signature.
 - A kernel or boot image that will not start (the trial of a new kernel handles those).
 - dwl and wlroots: a change there is C code, not a config. A new wlroots may need a real port: the PC stays on the
   working version and says so well before its end of support.
-- Our own programs (the panel, the greeter, the bar's scripts), Neovim's plugins (pinned by their lock file), and
-  everything the toolkit pins (yazi, fonts, the wlroots build): those move only with a new toolkit.
+- Our own programs (the panel, the greeter, the bar's scripts) and everything the toolkit pins (yazi, fonts, the wlroots
+  build, Neovim's plugins by their lock file): those move only with a new toolkit.
+- Neovim's config: it is code. Red in Neovim's own check: held and told, the model not asked. In the bench the model turned
+  `vim.diagnostic.disable()` into `vim.diagnostic.enable()`, the docs' own words, the opposite of what the line meant, and the
+  check stayed green: a check cannot see a meaning flipped, so this class is held-only.
 - A desktop that does not start while each program's own check of its config is green: the cause is somewhere else.
 
 ## What it cannot see

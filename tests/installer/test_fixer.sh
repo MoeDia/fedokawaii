@@ -134,13 +134,10 @@ case_ "a bug of this program ends held too, the file put back"
 serve_stub; fresh; before=$(conf); jq '.packages = "not a list"' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
 eq "$RC" 3; eq "$(j .class)" internal; eq "$(conf)" "$before"; has "$OUT" "the fixer failed"
 
-case_ "the rails on a program whose config is code: nvim's Lua brings in nothing that runs things"
+case_ "a program whose config is code: held at once, no model asked — a check cannot see a meaning flipped"
 stub nvim 'if grep -q "old_thing" "$HOME/.config/nvim/init.lua"; then echo "Error in init.lua: E5113: attempt to call field old_thing"; fi; exit 0'
-for bad in 'vim.fn.system("id")' 'os.execute("id")' 'vim.cmd("!id")' 'require("evil")' 'vim.system({"id"})'; do
-  serve_stub; fresh 'nvim does not take its config'; mkdir -p "$H/.config/nvim"; printf 'vim.old_thing()\n' >"$H/.config/nvim/init.lua"; jq '.packages = [{name: "neovim"}]' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"
-  answer "$(edit '~/.config/nvim/init.lua' 'vim.old_thing()' "$bad")"; answer '{"verdict":"cannot_fix","reason":"no","edits":[]}'; fixer
-  eq "$RC" 3 "$bad went through"; has "$(cat "$H/.config/nvim/init.lua")" 'vim.old_thing()'
-done
+serve_stub; fresh 'nvim does not take its config'; mkdir -p "$H/.config/nvim"; printf 'vim.old_thing()\n' >"$H/.config/nvim/init.lua"; before=$(cat "$H/.config/nvim/init.lua")
+SOCK=/nonexistent fixer; eq "$RC" 3; eq "$(j .class)" held-only; has "$OUT" "its config is code"; eq "$(requests)" 0; eq "$(cat "$H/.config/nvim/init.lua")" "$before"
 
 case_ "a command a line already says may be carried over, as it stands"
 serve_stub; fresh; printf '[main]\nutempter=/usr/bin/run-thing --flag\n' >"$H/.config/foot/foot.ini"
@@ -169,6 +166,11 @@ case_ "the changelog says what replaced it: a neighbour that also passes the che
 serve_stub; fresh; before=$(conf); printf '\n\n\n\n\n\n\n\n* `other-name` is an option\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"
 answer "$(edit "$FOOT" 'utempter=none' 'other-name=none')"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
 eq "$RC" 0; eq "$(j .tries)" 2; has "$(conf)" utmp-helper=none; lacks "$(conf)" other-name; has "$(jq -r '.messages[1].content' "$FK_STUB/requests/2.json")" "the changelog names what replaced"
+case_ "an older entry that only introduced two options side by side says nothing: the one that says replaced decides"
+serve_stub; fresh; before=$(conf); printf '\n\n\n\n\n\n\n\n\n## 1.0\n* `utempter` and `other-name` are new options\n' >>"$R/usr/share/doc/foot/CHANGELOG.md"
+answer "$(edit "$FOOT" 'utempter=none' 'other-name=none')"; answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer
+eq "$RC" 0; eq "$(j .tries)" 2; has "$(conf)" utmp-helper=none
+
 case_ "no mention in the changelog: the rule has nothing to say"
 serve_stub; fresh; printf '# nothing here\n' >"$R/usr/share/doc/foot/CHANGELOG.md"; printf 'stuff new-name stuff' >"$R/usr/bin/foot"; answer "$(edit "$FOOT" 'utempter=none' 'new-name=none')"; fixer; eq "$RC" 0
 
@@ -353,6 +355,10 @@ serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' 'utmp-
 FX=$C/fixes; kf keep "$C/out.json" --fixes "$FX" >/dev/null; rec=$(compgen -G "$FX/*.json"); has "$(jq -r '.before["~/.config/foot/foot.ini"]' "$rec")" "utempter=none"
 kf unapply "$rec" --home "$H" --root "$R"; eq "$(conf)" "$before"; [[ ! -e $rec ]] && _ok || _no "the record stayed"
 rc 0 kf unapply "$rec" --home "$H" --root "$R"
+
+case_ "a kept deletion stays in force across runs, though its old text is gone"
+fresh; FX=$C/fixes; mkdir -p "$FX"; printf '{"edits":[{"file":"~/.config/foot/foot.ini","search":"utempter=none\\n","replace":""}]}' >"$FX/1.json"
+kf reapply --fixes "$FX" --home "$H" --root "$R" >/dev/null; lacks "$(conf)" utempter; kf reapply --fixes "$FX" --home "$H" --root "$R" >/dev/null; eq "$(find "$FX" -type f | wc -l)" 1
 
 case_ "keep refuses a report that is no fix"
 fresh; printf '{"verdict":"held"}' >"$C/out.json"; rc 2 kf keep "$C/out.json" --fixes "$C/fixes"
