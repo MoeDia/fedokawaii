@@ -3,8 +3,9 @@
 # (r26-7: "misalignment when many terminals open quickly" — foot's clear pushed the screen into
 # its scrollback, so a window retiled under a prompt showed the heading twice): eight real foot
 # windows 50 ms apart, each a bash with your prompt (~/.bashrc.d/fedokawaii.sh) and ble.sh, three
-# times; every window must show exactly one prompt line — counted by the mark block's top edge
-# (paper_mark, the same in both moods). Headless (tools/kit.sh, the real GPU).
+# times; every window must show exactly one prompt line — counted by the folder block's top edge
+# (paper_folder, foot's colour 27: the head before it is a picture that changes with its mood).
+# Headless (tools/kit.sh, the real GPU).
 #   bash tools/regress/prompt-burst.sh [KIT OPTION…]
 # Exit 0 held · 1 a burst showed more or fewer prompts than windows (said) · 2 the kit could not run
 set -u
@@ -25,13 +26,16 @@ done
 PLAY
 sed -i "1i REAL=$HOME" "$out/play.sh"
 bash "$here/../kit.sh" --theme dark "$@" --out "$out" --play "$out/play.sh" --time 120 play >"$out/kit.log" 2>&1 || { echo "prompt-burst: the kit failed: $(tail -n 2 "$out/kit.log")" >&2; exit 2; }
-# (each prompt's mark block: a row of paper_mark at least 24 px long with none above it)
+# (each prompt's folder block: a row of its paper at least 24 px long with none above it)
+th=$HOME/.config/foot/foot.ini
+[[ " $* " == *" --repo-art "* ]] && th=$here/../../configs/home/.config/foot/foot.ini
+paper=$(sed -n '/^\[colors-dark\]/,/^\[/s/^27=//p' "$th"); [[ $paper =~ ^[0-9a-f]{6}$ ]] || { echo "prompt-burst: no paper_folder in $th" >&2; exit 2; }
 count() { python3 -I -c '
 import sys
 import numpy as np
 from PIL import Image
 a = np.asarray(Image.open(sys.argv[1]).convert("RGB"))
-m = np.all(a == (0xf4, 0x80, 0x67), axis=2)
+m = np.all(a == tuple(bytes.fromhex(sys.argv[2])), axis=2)
 n = 0
 for y in range(41, m.shape[0]):
     row, above, x = m[y], m[y - 1], 0
@@ -44,7 +48,7 @@ for y in range(41, m.shape[0]):
             x1 += 1
         n += x1 - x >= 24 and not above[x + 10]
         x = x1
-print(n)' "$1"; }
+print(n)' "$1" "$paper"; }
 for b in 1 2 3; do
   [[ -s $out/burst$b.png ]] || { echo "prompt-burst: no shot of burst $b" >&2; exit 2; }
   n=$(count "$out/burst$b.png") || exit 2
