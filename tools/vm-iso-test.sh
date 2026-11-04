@@ -17,6 +17,8 @@
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
 #   bash tools/vm-iso-test.sh follow NAME              the same from the installed system's first start on
 #   bash tools/vm-iso-test.sh matrix ISO DIR           the refusals and the stick's check: small VMs, read exactly
+#   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
+#   bash tools/vm-iso-test.sh carry-check NAME QCOW2   brought back from it (a VM made with --usb QCOW2), compared
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
 # Exit: 0 as asked · 1 failed · 2 misuse.
 set -u
@@ -28,9 +30,13 @@ TEST_USER=fk
 TEST_PASSWORD=${FK_TEST_PASSWORD:-kawaii-test}
 
 die() { echo "vm-iso-test: $*" >&2; exit 1; }
-# (the PC is shared: a VM starts only with room for it and 3 GiB to spare; a global OOM killed every VM on 4 Nov 18:15)
+# (the PC is shared: a VM starts only with room for it and 3 GiB to spare, and never beside another of
+# this tool's: a global OOM killed every VM on 4 Nov 18:15; the owner's rule since: one at a time, 4 GiB)
 mem_guard() {
   local name=$1 want have
+  if "${VIRSH[@]}" list --name | grep -E '^r27-iso' | grep -qvxF "$name"; then
+    die "another VM of this lane is running: $("${VIRSH[@]}" list --name | grep -E '^r27-iso' | tr '\n' ' ')"
+  fi
   want=$(sed -n "s|.*<memory unit='MiB'>\([0-9]*\)<.*|\1|p" "$V/$name/domain.xml")
   for _ in $(seq 180); do
     have=$(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
@@ -48,7 +54,7 @@ credential() {   # credential NAME TEXT — an SMBIOS type 11 string systemd imp
 
 do_create() {
   local name=$1 iso=$2; shift 2
-  local disk=80 ram=6144 cpus=6 port="" sb=yes fw=efi link=up cdfirst=0 usb=""
+  local disk=80 ram=4096 cpus=6 port="" sb=yes fw=efi link=up cdfirst=0 usb=""     # (the owner, 18:15: 4 GiB at most)
   while (($#)); do
     case $1 in
       --disk) disk=$2; shift 2 ;;
@@ -284,6 +290,38 @@ do_follow() {
   return "$rc"
 }
 
+# the owner's carry-over across a wipe, through a USB drive of the VM's (a qcow2 under ~/VM/iso/): test files
+# of each kind in the home, packed with main's kawa-carry; on the next VM, brought back, every file compared
+CARRY_PASSWORD=carry-test
+carry_env='export XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; export PATH=$HOME/.local/bin:$PATH'
+do_carry_save() {
+  local name=$1 img=$2
+  qemu-img create -q -f qcow2 "$img" 6G || return 1
+  "${VIRSH[@]}" attach-disk "$name" "$img" sdz --targetbus usb --subdriver qcow2 --cache unsafe --live >/dev/null || return 1
+  sleep 5
+  vm_ssh "$name" 'set -e
+    d=$(lsblk -dnpo NAME,TRAN | awk "\$2 == \"usb\" { print \$1; exit }"); [ -n "$d" ]
+    sudo mkfs.ext4 -q -L FKCARRY "$d"; sudo udevadm settle; sleep 3
+    cd ~; mkdir -p Notes Documents blasphemous-save-backup-20261022 .ssh .config/net.imput.helium/Default
+    echo "- [ ] the list" >Notes/todo.md; echo "مرحبا 日本語" >"Documents/العربية 日本語.txt"
+    head -c 5000000 /dev/urandom >Documents/big.bin; echo save >blasphemous-save-backup-20261022/savegame
+    echo key >.ssh/id_test; chmod 600 .ssh/id_test; printf "%s\n" "{}" >.config/net.imput.helium/Default/Preferences
+    printf "export TEST_KEY=carried\n" >.config/fedokawaii/secrets.sh; chmod 600 .config/fedokawaii/secrets.sh
+    find Notes Documents blasphemous-save-backup-20261022 .ssh/id_test .config/net.imput.helium .config/fedokawaii/secrets.sh -type f -print0 | sort -z | xargs -0 sha256sum >/tmp/carry.sums' || return 1
+  vm_ssh "$name" "$carry_env; RESTIC_PASSWORD=$CARRY_PASSWORD kawa-carry pack </dev/null" || return 1
+  vm_ssh "$name" 'cat /tmp/carry.sums' >"$img.sums" || return 1
+  vm_ssh "$name" 'sudo sync'
+  "${VIRSH[@]}" detach-disk "$name" sdz --live >/dev/null
+  [[ -s $img.sums ]]
+}
+do_carry_check() {
+  local name=$1 img=$2
+  vm_ssh "$name" "$carry_env; for i in 1 2 3 4 5 6; do [ -n \"\$(lsblk -nro MOUNTPOINT,LABEL | grep FKCARRY | cut -d' ' -f1)\" ] && break; sleep 5; done; RESTIC_PASSWORD=$CARRY_PASSWORD kawa-carry back </dev/null" || return 1
+  vm_ssh "$name" 'sha256sum --quiet -c -' <"$img.sums" || return 1
+  [[ $(vm_ssh "$name" 'stat -c %a ~/.ssh/id_test ~/.config/fedokawaii/secrets.sh | tr "\n" " "') == "600 600 " ]] || { echo "vm-iso-test: a key lost its mode" >&2; return 1; }
+  echo "vm-iso-test: every carried file back, byte for byte, modes kept"
+}
+
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
 # the screen says, read exactly, and a PNG of it in DIR
 do_matrix() {
@@ -311,11 +349,11 @@ do_matrix() {
     cp "$V/$n/say.png" "$dir/$c.png" 2>/dev/null
     "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
   }
-  one disk-20g "no disk large enough" -- --disk 20 --ram 4000
-  one no-network "no network" -- --ram 4000 --no-net
-  one bios "without UEFI" -- --ram 4000 --bios
+  one disk-20g "no disk large enough" -- --disk 20
+  one no-network "no network" -- --no-net
+  one bios "without UEFI" -- --bios
   one ram-3g "not enough memory" -- --ram 3000
-  one stick-check "a new home" "<down>" "<enter>" -- --ram 4000
+  one stick-check "a new home" "<down>" "<enter>" --
   "${VIRSH[@]}" undefine "$n" --nvram >/dev/null 2>&1
   rm -rf "${V:?}/$n"
   grep -c green "$dir/matrix.txt"
@@ -338,5 +376,7 @@ case $cmd in
   run) name_ok "${1:-}"; [[ $# -ge 2 ]] || exit 2; do_run "$@" ;;
   follow) name_ok "${1:-}"; do_follow "$1" ;;
   matrix) do_matrix "$@" ;;
+  carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
+  carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
 esac
