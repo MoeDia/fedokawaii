@@ -126,6 +126,7 @@ keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app ask
                                                    # Fedora keeps it out of PATH, in libexec)
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
+kawa-carry first </dev/null >/dev/null 2>&1 &     # a new install's first login: the carry-over from before the wipe, if its drive is here
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures

@@ -749,6 +749,8 @@ rows() {
   e backups   backup    "${ICON_ARCHIVE:-·}"    "back up now"          "$bk"
   e backups   restore   "${ICON_UNPACK:-·}"     restore                ""
   e backups   drive     "${ICON_USB:-·}"        "the drive"            "$dv"
+  e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
+  e backups   bring     "${ICON_UNPACK:-·}"     "after a wipe"         ""
   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
   e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
   e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
@@ -877,7 +879,7 @@ tick() {
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
+  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
@@ -1007,6 +1009,13 @@ explain() {
     drive)     pick 'running'; drive_rows
                say "the drive your backups go to. enter: another," \
                    "from the drives plugged in." ;;
+    carry)     say "all that is yours on a drive, read back and" \
+                   "checked, for the day this disk is erased: your" \
+                   "folders, keys, browser, progress. configs stay:" \
+                   "the new system writes its own." ;;
+    bring)     say "the carry-over from a drive, back in your home." \
+                   "at the first login of a new install it asks by" \
+                   "itself when the drive is plugged in." ;;
     chess)     soon "chess from the first move to 1800: games," \
                     "puzzles, lessons." ;;
     typing)    soon "touch typing, finger by finger, to 100 words" \
@@ -1055,13 +1064,13 @@ job_head() {
   local w n=$1
   on_console && return 0
   w=$(screen_width) || return 0
-  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; file) n="a file, back" ;; esac
+  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; file) n="a file, back" ;; carry) n="before you wipe" ;; bring) n="after a wipe" ;; esac
   printf '\n  %s\n\n' "$(screen_heading "$(icon_of "$1")" "$n" "$w")"
 }
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|settings|log'
+JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|carry|bring|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
@@ -1100,6 +1109,8 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     backup)    backup_now; rc=$? ;;
     restore)   backup_back; rc=$? ;;
     drive)     backup_drive; rc=$? ;;
+    carry)     kawa-carry save; rc=$? ;;
+    bring)     kawa-carry restore; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;
