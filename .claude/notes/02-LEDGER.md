@@ -3269,7 +3269,7 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   /dev/shm/r27/master-archive/T21-r1). Old suite worktrees (42892e1, 0737d1b: both rc 0) removed.
 - r27-22-grid (2 Nov 11:42–11:56, 83f1389, WIP of T22): yazi rebuilt onto §7's grid. MEASURED (kit, real GPU, the
   main window full-screen, px.py, dark): the heading's icon ink x 27–38 inside the frame (cell at x 25 = column 0),
-  the path from column 3 (x 49), the rule (edge2) to x 1872 — two cells short of the edge, as it begins (the window's
+  the path from column 3 (x 49), the rule (edge2) to x 1880 [was "1872": corrected 4 Nov by the master's T22 nit — 1880 ends cell 232 of 235] — two cells short of the edge, as it begins (the window's
   6 px remainder lies past them: foot's cells); a blank row under it; rows' icons at column 1 (x 33) in the parent
   column and the same pattern after every rail (one free column, the cursor's, column 0, the icon); the footer's
   words from x 26 (column 0), its right end x 1872. The cursor: the lacquer #82241f, its inks #f5ecc2 (dark) /
@@ -4625,6 +4625,13 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
   is said before any data — confirm with unrar on a RAR5 test archive; tests/lib/rar4.py makes RAR4 only); RAR4 has
   none (the file's CRC at its end). And should-fix 5 (Esc on the held window) bounds the rest: the caller learns it
   was dismissed. Build both with archives made by 7z (solid, -ms=on; non-solid; -mhe) and rar4.py.
+- r27-22-nits (4 Nov 16:18, the master's T22 nits): (1) r27-22-grid's rule end corrected (x 1880, not 1872); (2)
+  password_for's empty-answer branch KEPT on purpose — the panel never answers an empty query (typed() ignores Return on
+  an empty field), but the line guards the contract between two programs (an empty answer must never be tried as a
+  password, whatever a later kawa-menu does): one test, no fallback; (3) init.lua's cell child: the comment names yazi
+  26.9.1's Entity orders it sits between (padding 1000 < 1500 < icon 2000 …: github.com/sxyazi/yazi v26.9.1
+  yazi-plugin/preset/components/entity.lua) — test_yazi 136/0; (4) "right one opens" and (5) the Learn chapter 12
+  additions: at the book pass (T63), noted there.
 ## >>> NEXT PASS STARTS HERE (4 Nov, written 16:13 by the 15:46 pass — the lines above say what it did): the inbox first.
 ## (★) r27-f45 FIRST: `systemctl --user status r27-f45`, then ~/.cache/r27-f45-run/summary.txt (apply.log, smoke.log,
 ##     checks.log, the smoke-* folder, f45-checks/). While r27-f45 is active: never touch ~/VM/harness/f45 or

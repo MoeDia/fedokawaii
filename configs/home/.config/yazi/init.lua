@@ -40,7 +40,10 @@ local header_new = Header.new
 function Header:new(area, ...)
 	return header_new(self, area and area:pad(ui.Pad(0, 2, 0, 2)) or area, ...)
 end
-Entity:children_add(function() return " " end, 1500) -- (the cell between the cursor's column and the icon)
+-- the cell between the cursor's column and the icon: yazi 26.9.1's Entity children are padding 1000,
+-- icon 2000, prefix 3000, highlights 4000, found 5000, symlink 6000 (preset/components/entity.lua) — a
+-- yazi that renumbers them moves this cell (test_yazi's frame case would see the column move)
+Entity:children_add(function() return " " end, 1500)
 
 -- What is not there yet, said quietly where a row's name would stand (§1: faint; never centred, never
 -- "…"): an empty folder, one still being read, a filter that finds nothing, one that cannot be read —
