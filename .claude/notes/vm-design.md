@@ -117,7 +117,7 @@ Read without him: `boot_vga` of `15:00.0` and `03:00.0`, the journal's "fbcon: �
 
 Whether the HDMI's DDC still obeys when HDMI is not the input showing decides the whole display design, and rockowitz warns it may not: "Some monitors will respond to DDC requests only on the currently selected input". **That needs no second cable.** With the LG on the card's HDMI as it is today:
 
-`setvcp xF4 xD0 --i2c-source-addr=x50 --noverify`, DP, where nothing is plugged in. Read `ae`. A few seconds later, from the same HDMI, now the inactive input: `setvcp xF4 x90 --i2c-source-addr=x50 --noverify`. One attempt, no looping through values (R§11.2).
+`setvcp xF4 xD0 --i2c-source-addr=x50 --noverify`, DP, where nothing is plugged in. Read `ae`. A few seconds later, from the same HDMI, now the inactive input: `setvcp xF4 x90 --i2c-source-addr=x50 --noverify`. One attempt, no looping through values (R§11.2). `F4` is LG's private code, and T38 otherwise leaves those alone: this is the one exception, with `getvcp known` compared before and after.
 
 | Result | Design |
 |---|---|

@@ -172,7 +172,7 @@ A script fetched every URL in the four notes and looked for each quoted phrase i
 
 ### 12.2 Fedora 45's own list: [Common Issues](https://fedoraproject.org/start/) ([its source](https://discussion.fedoraproject.org/tags/c/ask/common-issues/82/none/f45))
 
-Six items. Two touch the ISO. None names the kernel, AMD or graphics.
+The start page shows six; the tag itself, read through its JSON, holds twelve (4 Nov). Two touch this ISO. The others are live images, Atomic, Macs, Raspberry Pi, BitLocker, a KDE clipboard, and one driver: older NVIDIA cards. No AMD item. A search for F45 installer failures on this card's family found none, which is a search and not a proof. The proposed issues and the blocker list were not read beyond `f45-changes-3nov.md`'s Go/No-Go lines.
 
 **[Install media sometimes fail media check at 4.8%](https://discussion.fedoraproject.org/t/install-media-sometimes-fail-media-check-at-4-8/108478)**, tagged f40 to f45; [bug 2420697](https://bugzilla.redhat.com/show_bug.cgi?id=2420697): `isomd5sum`, version 45, NEW, filed 9 Dec 2025.
 
