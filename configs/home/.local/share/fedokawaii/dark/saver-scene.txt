@@ -6,12 +6,12 @@ centre 960 565   # the figure's place: where the world opens
 rest 560   # how far the sleeper's own light reaches
 spot 1330 720   # where the seal lands
 spot 560 400   # where the seal lands
-spot 590 720   # where the seal lands
 spot 1360 400   # where the seal lands
-anim lock-flame.png 68 98 92 176 8 125   # a strip: file, place, a frame's size, frames, ms a frame
-anim lock-flame.png 1743 98 92 176 8 138   # a strip: file, place, a frame's size, frames, ms a frame
-torch 114 186 560   # a fire: its middle, how far its pool reaches
-torch 1789 186 560   # a fire: its middle, how far its pool reaches
+spot 590 720   # where the seal lands
+anim lock-flame.png 52 85 120 186 12 125   # a strip: file, place, a frame's size, frames, ms a frame
+anim lock-flame.png 1732 82 120 186 12 138   # a strip: file, place, a frame's size, frames, ms a frame
+torch 112 178 560   # a fire: its middle, how far its pool reaches
+torch 1792 175 560   # a fire: its middle, how far its pool reaches
 ceiling 40   # what stops the smoke
 seal 168 228 68 92   # saver-seal.png, its alpha: the seal, then the ten digits
-lock fdc90f6ff975662b   # the lock's art it was built from (tests/look/test_saver.sh)
+lock 832a58877fc5c1e5   # the lock's art it was built from (tests/look/test_saver.sh)

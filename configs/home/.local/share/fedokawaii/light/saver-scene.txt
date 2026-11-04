@@ -1,17 +1,17 @@
 # saver-scene.txt — for kawa-saver: tools/build-saver.py wrote it from the lock's own art; in the painting's pixels.
 size 1920 1080
 wall lock-scene.png   # the lock's own painting
-patch saver-lids.png 700 0   # over it, the figure asleep
+patch saver-lids.png 846 63   # over it, the figure asleep
 centre 1002 420   # the figure's place: where the world opens
 rest 620   # how far the sleeper's own light reaches
 spot 1370 720   # where the seal lands
-spot 560 400   # where the seal lands
-spot 560 720   # where the seal lands
+spot 510 520   # where the seal lands
 spot 1370 400   # where the seal lands
-anim lock-flame.png 308 61 165 196 8 125   # a strip: file, place, a frame's size, frames, ms a frame
-anim lock-flame.png 1456 63 165 196 8 138   # a strip: file, place, a frame's size, frames, ms a frame
-torch 390 159 620   # a fire: its middle, how far its pool reaches
-torch 1538 161 620   # a fire: its middle, how far its pool reaches
+spot 570 750   # where the seal lands
+anim lock-flame.png 319 16 132 176 12 125   # a strip: file, place, a frame's size, frames, ms a frame
+anim lock-flame.png 1461 23 132 176 12 138   # a strip: file, place, a frame's size, frames, ms a frame
+torch 385 104 620   # a fire: its middle, how far its pool reaches
+torch 1527 111 620   # a fire: its middle, how far its pool reaches
 ceiling 40   # what stops the smoke
 seal 168 228 68 92   # saver-seal.png, its alpha: the seal, then the ten digits
-lock ae1127400963d080   # the lock's art it was built from (tests/look/test_saver.sh)
+lock 6c4a21780685059d   # the lock's art it was built from (tests/look/test_saver.sh)

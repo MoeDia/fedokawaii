@@ -21,7 +21,7 @@ SIZE = (1920, 1080)
 SLEEPER = {"dark": (440, 0, 1480, 1080), "light": (700, 0, 1600, 1010)}   # what of the sleeper's frame goes over the lock: the figure, its gate
 FIGURE = {"dark": (960, 565, 560), "light": (1002, 420, 620)}   # where the sleeper breathes: its middle (the wake starts there), the reach of its light
 SPOTS = {"dark": ((1330, 720), (560, 400), (1360, 400), (590, 720)),    # where the seal lands, in turn, every move across the frame: its thirds, clear of the figure
-         "light": ((1370, 720), (560, 400), (1370, 400), (560, 720))}
+         "light": ((1370, 720), (510, 520), (1370, 400), (570, 750))}   # (the left ones clear of her quote's plaque, x 558–615 to y 330)
 FLAME_MS = 125                             # a flame's frame, 8 a second as on the lock
 SEAL = (168, 228)                          # the time's seal, in pixels: two rows of two digits
 DIGIT = (68, 92)                           # a digit's cell in it
@@ -158,6 +158,7 @@ ANGEL_EYES = (
     ([(1027, 179), (1033, 178), (1039, 179), (1039.5, 185), (1034, 186.5), (1029, 185)], ((1027.2, 180), (1032.8, 184.2), (1039, 182.2))),
 )
 BOW = (977, 240, 8.5, (1002, 186), 78, 158)   # her head bowed: the neck it turns on, by how much, where wholly turned, the reach of that, where it fades out
+ANGEL_HEAD = (985, 196)                    # tools/build-ink.py's HEAD these points were read against
 
 
 def angel_eyes_shut(ink):
@@ -209,6 +210,8 @@ def bowed(a):
 def asleep_light():
     """the lock's own frame with the scroll rolled and sealed: her eyes shut, her head bowed, the halo down to a trace, no rays"""
     bi = ink_tool()
+    if tuple(bi.HEAD) != ANGEL_HEAD:
+        raise SystemExit(f"the angel moved ({bi.HEAD}, not {ANGEL_HEAD}): read ANGEL_EYES and BOW off her new place")
     ring = bi.halo_ring
     bi.halo_ring = lambda: ring() * .16                    # (all her layers as the lock's but this)
     L = dict(bi.light_layers())
