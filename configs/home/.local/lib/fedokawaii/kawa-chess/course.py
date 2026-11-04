@@ -117,8 +117,7 @@ class Course:
             # (once for a game: the row under the cursor asks at every frame, and the search goes through the whole bank)
             if no not in self.bank_starts:
                 self.bank_starts[no] = self._bank_start(g["bank"], no, pr)
-            fen, colour = self.bank_starts[no]
-            line = []
+            fen, colour, line = self.bank_starts[no]
         light = g.get("light")
         clock = g.get("clock", (5, 5) if light and wk.no > 4 else wk_clock(wk.no))
         return {"title": f"game {no} of 730", "goal": goal, "fen": fen, "line": line, "colour": colour, "elo": elo,
@@ -135,10 +134,17 @@ class Course:
         pool = [it for it in bank.items if tag in f" {it[4]} " and abs(it[3] - want) <= 200] or \
                [it for it in bank.items if tag in f" {it[4]} "] or bank.items
         if not pool:
-            return B.START, 0
-        pos = B.Position(rng.choice(pool)[1])
-        # (the puzzle's first move is the opponent's: it is on the board when the game begins)
-        return pos.fen(), 1 - pos.turn
+            return B.START, 0, []
+        item = rng.choice(pool)
+        # (a puzzle's first move is the opponent's: it is on the board when the game begins, and the tactic is yours to find)
+        try:
+            pos = B.Position(item[1])
+            first = B.from_uci(item[2].split()[0])
+            if first not in pos.legal():
+                raise ValueError("first move illegal")
+        except (ValueError, IndexError):
+            return B.START, 0, []
+        return pos.fen(), 1 - pos.turn, [B.uci(first)]
 
     def bank(self):
         return self.bank_ref
