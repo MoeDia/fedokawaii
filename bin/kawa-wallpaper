@@ -628,7 +628,7 @@ from() { local r; r=$(kawa-state get wallpaper-from 2>/dev/null); [[ $r == @(mas
 # every value in sight from a column of their own, the chosen one's dot in accent_text and its words strong, the others'
 # hollow, their words muted; its key a tile at the row's end, as far in as a value's
 option() {
-  local icon=$1 label=$2 key=$3 chosen=$4 p v w row used=0 pad
+  local icon=$1 label=$2 key=$3 chosen=$4 p v w row used=0 pad n=0 cols=(15 12 9 7)
   local on=$'\xf3\xbf\x80\x8c' off=$'\xf3\xbf\x80\x8d'     # (the cells U+FF00C and U+FF00D: a dot, 6 px round, and its ring)
   shift 4
   printf -v row ' %s%s%s  %-18s' "$INK_MUTED" "$icon" "$INK_OFF" "$label"
@@ -636,7 +636,8 @@ option() {
     v=${p%%=*} w=${p#*=}
     if [[ $v == "$chosen" ]]; then row+="$INK_ACCENT_TEXT$on$INK_OFF $INK_STRONG$w$INK_OFF"
     else row+="$INK_FAINT$off$INK_OFF $INK_MUTED$w$INK_OFF"; fi
-    row+="   "; used=$((used + 2 + ${#w} + 3))
+    # (each value in its column: the dots stand one over the other, row to row)
+    printf -v w '%*s' $((cols[n] - 2 - ${#w})) ''; row+=$w; used=$((used + cols[n])); n=$((n + 1))
   done
   pad=$(( W - 4 - 18 - used - 3 )); ((pad < 0)) && pad=0
   printf '%s%*s%s\n' "$row" "$pad" '' "$(screen_tile "$key" "$INK_MUTED")"

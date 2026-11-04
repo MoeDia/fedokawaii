@@ -4,6 +4,7 @@
 #
 #   … | kawa-menu [--drop [--middle]] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P [--fuzzy]] [--index] [--stay]
 #   kawa-menu --launcher
+#   kawa-menu --calc
 #
 #   the lines   one a thing, its fields apart by tabs (kawa-panel's "a menu"): part KANJI NAME
 #               [VALUE] · row|on|off|info GLYPH NAME [DETAIL [VALUE]] · key GLYPH NAME · cell TEXT
@@ -16,6 +17,7 @@
 #               key opened it (the calendar, the timer)
 #   --launcher  the launcher itself (the panel's: the torii and Super+Space), in the middle
 #               of the screen — open, or closed when it is open
+#   --calc      the calculator (the panel's: "Calculator" in the launcher, kawa-calc), the same
 #   --title     a quiet line above the list
 #   --width N   at least N columns of 7 px (without it the menu is as wide as its content)
 #   --lines N   at most N rows show; a longer list scrolls (the wheel, the cursor)
@@ -49,12 +51,13 @@
 set -u
 usage() { echo "usage: … | kawa-menu [--drop [--middle]] [--title TEXT] [--width N] [--lines N] [--select N] [--prompt P [--password | --fuzzy]] [--index] [--stay] · kawa-menu --done · kawa-menu --launcher" >&2; exit 2; }
 pargs=()                                      # (a menu's options, as the panel takes them)
-launcher=0 idx=0 done=0
+launcher=0 idx=0 done=0 toggle=launcher
 while (($#)); do
   case $1 in
     --drop)   pargs+=(--drop); shift; continue ;;
     --middle) pargs+=(--middle); shift; continue ;;
     --launcher) launcher=1; shift; continue ;;
+    --calc) launcher=1 toggle=calc; shift; continue ;;
     --done)   done=1; shift; continue ;;
     --index)  idx=1; pargs+=(--index); shift; continue ;;
     --stay)   pargs+=(--stay); shift; continue ;;
@@ -134,5 +137,5 @@ if ! alive; then
   for _ in {1..60}; do alive && break; sleep 0.05; done
   [[ -n $panel ]] || { echo "kawa-menu: no panel to show the launcher (is the session's kawa-panel running?)" >&2; exit 1; }
 fi
-ask "toggle launcher" || exit 1
+ask "toggle $toggle" || exit 1
 exit 0
