@@ -903,7 +903,14 @@ working; the window only shows the run, so closing it stops nothing.
 
 A held package is tried again at every press, and let go when a newer version passes. When a local
 model can mend what stopped it (a config option a new version renamed), it tries that in a copy
-first; what it cannot mend stays held, and said.
+first; what it cannot mend stays held, and said: section 8.7.
+
+The desktop's own steps are the one part the copy does not try: its new packages, firmware, the
+pinned tools and the theme go in after the transaction, on the running system. The checks after them
+judge them all the same, and a red undoes them with the update.
+
+An update you stop by hand leaves its unit *failed* in `systemctl --failed` until the next press
+clears it: expected, nothing to do.
 
 **A new kernel** is on trial at the next start: three starts to reach the desktop, and if it cannot,
 the kernel before it comes back by itself, and the new one is held until a newer one comes.

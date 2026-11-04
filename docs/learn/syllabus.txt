@@ -51,6 +51,10 @@ launcher-calc | launcher, calculator, downloads | 0 1 2 3 x
 chapter 8 upkeep | looking after it: Super+U | kit
 super-u | the entries you will use | 0 1
 snapshots-report | snapshots and the health report | 2 3
+update-button | the update button, from A to Z | 4
+undo-and-copies | snapshots and backups: two different things | 5
+notices | when a notice asks for you | 6
+the-fixer | the local model: what it can and cannot do | 7
 x
 
 part programs | the programs | tools
