@@ -167,7 +167,7 @@ tiles = ["#custom-torii", "#custom-menu", "#focused"] + [f"#custom-tag{k}" for k
          "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather"]
 for sel in tiles:
     p_, m_, b_, o = box(sel)
-    kind = "kami-red.png" if sel in ("#custom-torii", "#custom-menu") else "kami-tile.png"
+    kind = "kami-red.png" if sel == "#custom-torii" else "kami-tile.png"
     bi = o.get("border-image", "")
     if kind not in bi or not bi.split(")")[1].strip().startswith("4 2 3 2"): bad.append(f"{sel}: border-image {bi}")
     want(f"{sel}: its border (the picture's slices)", b_, [4, 2, 3, 2])
