@@ -44,5 +44,43 @@ for e in /boot/loader/entries/*.conf; do
   fi
 done
 # the configs we own, read by their programs' own checks
-runuser -u "$user" -- env HOME="$home" foot --check-config >/dev/null 2>&1 || no "foot does not take its config (foot --check-config)"
+as_him() { runuser -u "$user" -- env HOME="$home" "$@"; }
+as_him foot --check-config >/dev/null 2>&1 || no "foot does not take its config (foot --check-config)"
+# nvim: its config and plugins at a real start; an error is words on stderr, the status stays 0
+out=$(as_him timeout 60 nvim --headless -n -i NONE +qa 2>&1 </dev/null) || no "nvim does not start (status $?)"
+if bad=$(grep -E -m1 '(^|[^[:alnum:]])E[0-9]+:|^Error|stack traceback' <<<"$out"); then no "nvim does not take its config: ${bad:0:200}"; fi
+# yazi: no check of its own, and --version reads nothing: a real start in a terminal of its own, then q
+if [[ -x $home/.local/bin/yazi ]]; then
+  as_him TERM=foot python3 -I -B -c '
+import os, pty, select, sys, time
+pid, fd = pty.fork()
+if pid == 0:
+    os.execv(sys.argv[1], sys.argv[1:])
+out, q, end = b"", time.time() + 1, time.time() + 30
+while time.time() < end:
+    if select.select([fd], [], [], 0.2)[0]:
+        try:
+            d = os.read(fd, 65536)
+        except OSError:
+            break
+        if not d:
+            break
+        out += d
+    if q and time.time() > q:
+        os.write(fd, b"q")
+        q = 0
+sys.exit(1 if b"parse error" in out or b"Caused by" in out else 0)
+' "$home/.local/bin/yazi" / </dev/null >/dev/null 2>&1 || no "yazi does not take its config (a real start)"
+fi
+# greetd: no check of its own (greetd --help): its file read as TOML, what greetd(5) requires, the greeter there
+g=${FK_GREETD:-/etc/greetd/fedokawaii.toml}
+if [[ -e $g ]]; then
+  cmd=$(python3 -I -B -c '
+import shlex, sys, tomllib
+c = tomllib.load(open(sys.argv[1], "rb"))
+print(c["terminal"]["vt"] and shlex.split(c["default_session"]["command"])[0])
+' "$g" 2>/dev/null) || cmd=""
+  if [[ -z $cmd ]]; then no "greetd cannot read ${g##*/}: not TOML, or no terminal.vt or default_session.command"
+  elif ! command -v "$cmd" >/dev/null; then no "greetd's greeter is not there: $cmd"; fi
+fi
 exit "$red"
