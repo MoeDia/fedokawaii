@@ -13,9 +13,9 @@ sp = importlib.util.spec_from_file_location("bh", f"{repo}/tools/build-heads.py"
 bh = importlib.util.module_from_spec(sp); sp.loader.exec_module(bh)
 s = bh.sheet()
 AIR = {"prompt": (1, 18), "bar": (2, 17)}   # the rows the ink may take
-INKS = {"prompt": 1, "bar": 3, "32": 4, "56": 4}
-for kind, states in (("oni", ("un", "a")), ("kannon", ("closed", "open"))):
-    for size, (w, h) in (("prompt", (24, 20)), ("bar", (22, 20)), ("32", (32, 32)), ("56", (56, 56))):
+INKS = {"prompt": 1, "bar": 3, "32": 4}
+for kind, states in (("oni", ("un", "a")), ("angel", ("closed", "open"))):
+    for size, (w, h) in (("prompt", (24, 20)), ("bar", (22, 20)), ("32", (32, 32))):
         for st in states:
             n = f"{kind}.{size}.{st}"
             if n not in s:
@@ -42,14 +42,14 @@ G=$TMP/gen; mkdir -p "$G"; cp -r "$REPO"/{tools,art,configs} "$G/"
 d=$(diff -rq "$REPO/configs" "$G/configs" 2>&1; diff -q "$REPO/art/icons.txt" "$G/art/icons.txt" 2>&1)
 [[ -z $d ]] && _ok || _no "$d"
 
-case_ "fetch's sixels: 128 × 160, read back pixel for pixel: the drawing, the terminal's own ground through the rest"
+case_ "fetch's sixels: 144 × 180, read back pixel for pixel: the drawing, the terminal's own ground through the rest"
 out=$(python3 -I -B - "$REPO" <<'PY'
 import importlib.util, re, sys
 from PIL import Image
 repo = sys.argv[1]
 sp = importlib.util.spec_from_file_location("bh", f"{repo}/tools/build-heads.py")
 bh = importlib.util.module_from_spec(sp); sp.loader.exec_module(bh)
-for mood, kind, st in (("dark", "oni", "un"), ("light", "kannon", "closed")):
+for mood, kind, st in (("dark", "oni", "un"), ("light", "angel", "closed")):
     six = open(f"{repo}/configs/home/.local/share/fedokawaii/{mood}/head.six", encoding="ascii").read()
     m = re.fullmatch(r'\x1bP0;1;0q"1;1;(\d+);(\d+)(.*)\x1b\\', six, re.S)
     w, h = int(m[1]), int(m[2])
@@ -80,5 +80,5 @@ for mood, kind, st in (("dark", "oni", "un"), ("light", "kannon", "closed")):
     print(mood, w, h, same)
 PY
 )
-eq "$out" "$(printf '%s\n' 'dark 128 160 True' 'light 128 160 True')"
+eq "$out" "$(printf '%s\n' 'dark 144 180 True' 'light 144 180 True')"
 done_

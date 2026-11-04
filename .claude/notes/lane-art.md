@@ -22,3 +22,6 @@ His words: SUPER DETAILED design work, focus on the pixels, smart usage of space
 
 ## OWNER 18:32
 The demon and the angel FIGURES (heads at every size, fetch, the lock's central figures) move to lane-ink: detailed engraved ink illustrations, not pixel art. You keep the lock backgrounds (walls, carved friezes, clouds, lamps, rope) and the wallpapers; leave space for lane-ink's figure and agree the composition through your notes. Deepen the dark friezes' relief shading so they read as carved stone.
+
+## OWNER 18:45 — THE LOCK SCREEN EVEN MORE INTENSE
+On top of 18:37: push the drama. Low camera angles, the figure towering and breaking past the frame's edges, hard chiaroscuro (light from the torches carving faces out of black), the torches really flickering and throwing moving light and shadow on stone and carvings, embers rising, smoke drifting, the demon's eyes glowing faintly, the angel's halo turning slowly with petals falling, density of detail everywhere, nothing calm or empty. Still one painting between lane-ink's figures and lane-art's settings. Animate within the lock's frame budget (light, embers, smoke, eyes, halo, petals), and keep it cheap on the GPU.

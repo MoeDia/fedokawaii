@@ -23,6 +23,14 @@ bh = importlib.util.module_from_spec(_spec)
 _spec.loader.exec_module(bh)
 
 
+QUESTIONS = """The art, redone for your notes of 17:00–17:48.
+1. The demon (page 10): is this the badass samurai you meant? Teeth locked at rest, or the mouth closed behind the armour?
+2. The angel (page 11): Marishiten, a warrior goddess, in sumi and one red. Epic enough, or more armour, more blades?
+3. The lock (pages 20–33): is the wall dense enough, and the sutra the right twin for the demon's mouth?
+4. The wallpapers (page 40 on): you loved them; they now have no text or seals, a calm band for the floating bar, and the light set in ink, shu and gold. Did anything you loved get lost? The Willow Kannon replaces the Goddess on a Dragon.
+"""
+
+
 def big(im, k):
     return im.resize((im.width * k, im.height * k), Image.NEAREST)
 
@@ -98,17 +106,18 @@ def main():
     d = pathlib.Path(sys.argv[1])
     d.mkdir(parents=True, exist_ok=True)
     bh.looks(d)
-    for kind, n, words in (("oni", "10", "The oni, one character at every size: the prompt, the bar's tile, 32, 56, fetch, the lock. Above as the screen shows them, below four times larger; shut and open at each. Few inks: the seal's red in its values, sumi, bone."),
-                           ("kannon", "11", "The Kannon, the same way: her eyes closed and half open. Sumi, gofun, a gold ring, red only in the urna and the lips.")):
+    for kind, n, words in (("oni", "10", "The demon, redone for your 17:16 note (more detailed, badass, samurai, EPIC) and your 'less colours, more red': a samurai of the red companies, one character at every size. Red lacquer, sumi line and hatching, bone; the detail is in the line, not in more colours. The prompt, the bar's tile, 32, fetch, the lock: as the screen shows them above, four times larger below, teeth locked and roaring at each."),
+                           ("angel", "11", "The angel, the same way: Marishiten, the samurai's own guardian goddess of light. Sumi on paper, red only in the urna and the lips, a nimbus of blades, a war-crown, laced armour; her eyes closed and open.")):
         (d / f"heads-{kind}.png").rename(d / f"{n}-heads-{kind}.png")
         (d / f"{n}-heads-{kind}.md").write_text(words + "\n", encoding="utf-8")
-    lock(d, "dark", 20, ("the demon faces you, teeth locked, on a castle wall lit in three steps by two torches; a battle of oni and tennin carved either side.",
+    lock(d, "dark", 20, ("the samurai demon faces you, teeth locked, on a castle wall lit in three steps by two torches; a battle of oni and tennin carved either side and marching along the beam.",
                          "his mouth is the gate, the password glows in it.",
                          "a carved panel, flat tones, the bevels turned to the torch."))
-    lock(d, "light", 30, ("the same battle in the sky of an old screen, between bands of gold mist; the Kannon, eyes closed, a lotus bud in her hands.",
-                          "the flower has opened, her eyes half open, the password lies in its heart. Her quote says: not saying is the flower.",
+    lock(d, "light", 30, ("the same battle in the sky of an old screen, between bands of gold mist; Marishiten, eyes closed, a sealed sutra in her hands.",
+                          "the sutra unrolled, her eyes open, the password brushed on it; Enter rolls it up and it is sealed, as your menus unroll.",
                           "the mist (suyari-gasumi: straight bars with rounded ends, an inner line, cut gold) and the fighters."))
     walls(d, 40)
+    (d / "questions.md").write_text(QUESTIONS, encoding="utf-8")
 
 
 if __name__ == "__main__":

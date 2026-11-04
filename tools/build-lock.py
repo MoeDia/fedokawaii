@@ -9,16 +9,17 @@ The owner, 4 Nov: "the demon facing me; a secret key opens his mouth; I type; he
 like he ate it; the dungeon far denser, ancient carvings of demons and angels fighting" — "the same
 for the angel, be smart".
 
-dark: a castle wall (ishigaki, tools/build-heads.py's oni before it) under a stone beam with the
-thunder key, the quote gilded on its lintel (口は禍の門, the mouth is the gate of misfortune), a
-shimenawa rope with its paper, two torches lighting three stepped pools stone by stone, flames
-carved behind the head, two panels of carved battle — oni against tennin — and the sea's waves on
-the step. The mouth is the gate: it opens, the password glows in it, ember by ember; it shuts.
+dark: a castle wall (ishigaki) under a stone beam, the war marching along it, the thunder key, the
+quote gilded on its lintel (口は禍の門, the mouth is the gate of misfortune), a shimenawa rope with its
+paper, two torches lighting three stepped pools stone by stone, flames carved behind the head, two
+panels of carved battle — oni against tennin — and the sea's waves on the step; before it all the
+samurai demon of tools/build-heads.py. His mouth is the gate: it opens, the password glows in it,
+ember by ember; it shuts.
 light: the same story in the sky of an old screen: paper, gold mist (suyari-gasumi) between the
 scenes of the same battle in sumi, shu and gold, two hanging lanterns in three stepped pools of
-paler paper, a gold mandorla, the Kannon with her eyes closed and a lotus bud in her hands. The
-flower is the gate: 言わぬが花, not saying is the flower: it opens, the password lies in its heart,
-mote by mote; it closes, and she keeps it.
+paler paper, gold flames, and Marishiten, eyes closed, a sealed sutra in her hands. The sutra is the
+gate: it unrolls, her eyes open, the password is brushed on it mark by mark; it rolls up, sealed
+(言わぬが花, better left unsaid).
 
 Each scene is flat tones, as old pixel art is: a shape has its tone, its bevels face the nearer
 torch, the light raises the tones by whole steps, nothing is smoothed.
@@ -58,8 +59,8 @@ FW, FH, FRAMES = 26, 44, 8                             # a flame's frame
 FLAME_TOP = 76                                         # its frame's top (the flame stands on the haft's head)
 GATE_FRAMES = (0.0, 0.25, 0.5, 0.75, 1.0)              # the gate's frames, shut … open
 GATE_PITCH, GATE_N = 7, 8                              # marks 7 px apart, the newest 8 in sight (the caret the 9th)
-ONI_AT = (212, 12)                                     # the oni's canvas on the scene (216 × 326, f 0.9)
-KANNON_AT = (212, 38)                                  # the Kannon's (216 × 322, f 0.82)
+ONI_AT = (200, 36)                                     # the oni's canvas on the scene (240 × 324, f 0.8)
+ANGEL_AT = (200, 22)                                   # the angel's (240 × 338, f 0.82)
 RAMP = {"dark": [D["lo"], D["ground"], D["key"], D["edge"], D["edge2"], D["hi"], D["art_umber"], D["art_olive"], D["gold"], D["art_kinari"], D["strong"]]}
 
 
@@ -490,20 +491,18 @@ def dark_ground():
 
     # carved flames behind the head
     r = Relief()
-    mandorla(r, 320, 176)
+    mandorla(r, 320, 170)
     keep = np.zeros((H, W), bool)
     keep[49:318] = True
     fl = r.M & keep
     t[li.behind(fl)] = 0
-    t[fl] = 5
-    paint = np.zeros((H, W), "<U1")       # the old paint left on them: its deep red, the seal's where the light takes an edge
-    paint[fl] = "D"
+    t[fl] = 1
+    # (the flames cut dark in the wall, their lines and the edge the torch takes in the old paint's red)
+    paint = np.zeros((H, W), "<U1")
     lit, dark = li.bevel(fl)
-    paint[lit] = "R"
+    paint[(fl & r.L) | lit] = "D"
+    paint[lit & (np.hypot(xx + 0.5 - 320, yy + 0.5 - 170) > 128)] = "R"
     t[dark] = 0
-    paint[dark] = ""
-    t[fl & r.L] = 1
-    paint[fl & r.L] = ""
 
     # the steps at the foot, the waves on the first
     t[318:] = 2
@@ -596,7 +595,6 @@ def dark_ground():
         k[y0:y1, x0:x1] = np.minimum(k[y0:y1, x0:x1], 1)
     add = carved & (t > 0)
     t[add] += k[add]
-    paint[t == 1] = ""
     return np.clip(t, 0, len(RAMP["dark"]) - 1), paint
 
 
@@ -698,7 +696,7 @@ def gilded(img, inks):
 
 
 def oni_frames():
-    return [bh.oni(o, w=216, h=326, f=0.9, top=30).image("oni") for o in GATE_FRAMES]
+    return [bh.oni(o, w=240, h=324, f=0.8, top=64, horn=0.72).image("oni") for o in GATE_FRAMES]
 
 
 def dark_scene():
@@ -828,8 +826,8 @@ def scene_figures(a, b):
     fire(b, 570, 330, 15, 0.8, 6)
 
 
-def kannon_frames():
-    return [bh.kannon(o, eyes=o >= 0.5, w=216, h=322, f=0.82, top=6).image("kannon") for o in GATE_FRAMES]
+def angel_frames():
+    return [bh.angel(o, eyes=o >= 0.5, w=240, h=338, f=0.82).image("angel") for o in GATE_FRAMES]
 
 
 def plaque_light(img):
@@ -861,8 +859,8 @@ def light_scene():
     bay = np.array([[0, 8, 2, 10], [12, 4, 14, 6], [3, 11, 1, 9], [15, 7, 13, 5]])[yy % 4, xx % 4] * 0.7
     img = Image.fromarray(sky[np.where(rr + bay < 56, 3, np.where(rr + bay < 116, 2, np.where(rr + bay < 186, 1, 0)))], "RGB")
     px = img.load()
-    inks = {k_: rgb(v) for k_, v in bh.INKS["kannon"].items()}
-    inks["y"] = rgb(L["yellow"])
+    inks = {k_: rgb(v) for k_, v in bh.INKS["angel"].items()}
+    inks.update(y=rgb(L["yellow"]), G=rgb(L["gold"]), g=rgb(L["yellow"]))     # (gold is the world's here, not hers)
 
     def put(mask, ink, on=px):
         c = inks[ink] if on is px else inks[ink] + (255,)
@@ -871,11 +869,10 @@ def light_scene():
 
     # the mandorla: gold flames behind her, the mist's own leaf
     r = Relief()
-    mandorla(r, 320, 142, base=84, short=26, long_=46, seed=9)
+    mandorla(r, 320, 176, base=104, short=26, long_=44, seed=9)
     below = yy >= 46
     m = r.M & below
     put(m, "G")
-    put(m & r.L, "y")
     put(dilate(m) & ~m & below, "y")
     # the battle, its tiers: the oni in shu, the tennin in gofun, sumi's line round both
     fa, fb = Relief(), Relief()
@@ -1030,16 +1027,16 @@ def main():
     # dark
     gate, strip, full = gate_strip(dark_scene(), oni_frames(), ONI_AT)
     dstrip = flames([(rgb(D["accent_lo"]), 1.00, 0.00), (rgb(D["accent"]), 0.80, 0.08), (rgb(D["flame"]), 0.60, 0.30), (rgb(D["strong"]), 0.36, 0.55)], rgb(D["flame"]), lick=1.1)
-    row = (first, 232)
+    row = (first, round((220 + 64) * 0.8) + ONI_AT[1])
     marks = (rgb(D["flame"]), rgb(D["strong"]), rgb(D["accent_lo"]), rgb(D["asagi"]), rgb(D["flame"]))
-    write("dark", full[-1], strip, dstrip, placed(row, marks, (320, 170, 128), rim_ink(full[-1]), (344, 354), gate, [(x - FW // 2, FLAME_TOP) for x in TORCH_X], (FW, FH)))
+    write("dark", full[-1], strip, dstrip, placed(row, marks, (320, 180, 120), rim_ink(full[-1]), (344, 354), gate, [(x - FW // 2, FLAME_TOP) for x in TORCH_X], (FW, FH)))
     # light
     ground, front, fires = light_scene()
-    lgate, lstrip, lfull = gate_strip(ground, kannon_frames(), KANNON_AT, front)
+    lgate, lstrip, lfull = gate_strip(ground, angel_frames(), ANGEL_AT, front)
     fstrip = flames([(rgb(L["accent"]), 1.00, 0.00), (rgb(L["gold"]), 0.70, 0.30), (rgb(L["hi"]), 0.35, 0.60)], rgb(L["gold"]), *LAMP_FLAME)
-    lrow = (first, round((314 - 34 + 6) * 0.82) + KANNON_AT[1])
-    lmarks = (rgb(L["gold"]), rgb(L["key"]), rgb(L["accent_lo"]), rgb(D["asagi"]), rgb(L["gold"]))
-    write("light", lfull[-1], lstrip, fstrip, placed(lrow, lmarks, (320, 142, 104), rim_ink(lfull[-1]), (344, 354), lgate, fires, LAMP_FLAME))
+    lrow = (first, round((288 + bh.TOP_ANGEL) * 0.82) + ANGEL_AT[1])
+    lmarks = (rgb(L["strong"]), rgb(L["strong"]), rgb(L["lo"]), rgb(L["asagi"]), rgb(L["accent"]))
+    write("light", lfull[-1], lstrip, fstrip, placed(lrow, lmarks, (320, 176, 104), rim_ink(lfull[-1]), (344, 354), lgate, fires, LAMP_FLAME))
     if a.preview:
         a.preview.mkdir(parents=True, exist_ok=True)
         for mood, frames, st, r_, m_, spots, size in (("dark", full, dstrip, row, marks, [(x - FW // 2, FLAME_TOP) for x in TORCH_X], (FW, FH)),

@@ -2,13 +2,13 @@
 # N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.
 size 640 360
 ground 221e1a   # round the scene: its edges' commonest colour
-gate 238 189 164 137 5   # lock-gate.png: its frames side by side, shut first: where they lie, each's size, how many
+gate 250 227 140 117 5   # lock-gate.png: its frames side by side, shut first: where they lie, each's size, how many
 frames 26 44 8   # lock-flame.png: the frames side by side, 8 a second
 flame 93 76   # a flame's frame, its top-left
 flame 521 76   # a flame's frame, its top-left
-row 295 232 7 8   # the password: the first mark's middle, the pitch, how many in sight
+row 295 263 7 8   # the password: the first mark's middle, the pitch, how many in sight
 mark f68c50 f5ecc2 82241f   # a mark: its arms, its middle, its corners
 caps 82c1b4   # the arms while Caps Lock is on
 caret f68c50   # a bar as tall as a mark at the next place, once a second
-plate 320 170 128   # what shakes at a wrong password: its middle, its radius
+plate 320 180 120   # what shakes at a wrong password: its middle, its radius
 words 344 354   # the line of words (what PAM says): the rows it is centred in

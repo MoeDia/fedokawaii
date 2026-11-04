@@ -21,9 +21,9 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | fire and metal | torchlight: Apricot Orange; old brass: Isabella | gold leaf: Yellow Ocher |
 | lit | a cold teal: Venice Green toward Ecru | a deep porcelain teal |
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
-| the lock | a castle wall, three pools of torchlight, carved battles of oni and tennin, the oni facing you: his mouth is the gate | the same battle in the sky of an old screen, between bands of gold mist, two hanging lanterns, the Kannon: the lotus in her hands is the gate |
+| the lock | a castle wall, three pools of torchlight, carved battles of oni and tennin, the samurai demon facing you: his mouth is the gate | the same battle in the sky of an old screen, between bands of gold mist, two hanging lanterns, Marishiten: the sutra in her hands is the gate |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
-| the head (quick settings' tile on the bar, the prompt, fetch, the lock: one character sheet, docs/art/heads.md) | an oni in the seal's red, sumi, bone, after Noh's demon masks: his teeth locked 吽, his mouth open 阿 while its panel is open and in the prompt when a command failed | a Kannon in sumi and gofun, a gold ring, red urna and lips: her eyes closed, half open while the panel is open and in the prompt when a command failed |
+| the head (quick settings' tile on the bar, the prompt, fetch, the lock: one character sheet, docs/art/heads.md; owner, 4 Nov: "more RED, classic Japanese", "badass samurai, EPIC": detail by line, not by colour) | a demon of the red companies: red lacquer, sumi, bone, kuwagata horns, laced lames: his teeth locked 吽, he roars 阿 while its panel is open and in the prompt when a command failed | Marishiten, the samurai's goddess of light: sumi on gofun, red only in the urna and lips, a nimbus of blades, a war-crown: her eyes closed, open while the panel is open and in the prompt when a command failed |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
 typed (sources: kotobank — デジタル大辞泉, 精選版 日本国語大辞典; the earliest uses 1252 and 1729).
@@ -467,7 +467,7 @@ the tiles of a group, 12 px between groups.
   fire along it and the quote gilded on its lintel between the horns; a shimenawa with its paper; two
   torches (`flame`, 8 frames a second, out of step); two panels of carved battle, oni against tennin;
   flames carved behind the head with their old paint left; the sea's waves on the step. The oni faces
-  you, teeth locked; his mouth is the gate (five frames, `lock-gate.png`, `gate` in `lock-scene.txt`):
+  you, teeth locked, in his armour; his mouth is the gate (five frames, `lock-gate.png`, `gate` in `lock-scene.txt`):
   open, the password glows in it, each character an ember — a mark of the scene's own pixels (arms
   `flame`, middle `strong`, corners `accent_lo`; the arms `asagi` while Caps Lock is on), the newest
   eight in sight, 7 px apart — and the caret a bar as tall as a mark in `flame`, blinking once a
@@ -476,9 +476,9 @@ the tiles of a group, 12 px between groups.
   bronze lanterns (tsuri-dōrō, a small flame in each fire box, 8 frames a second); a vermilion beam, its
   thunder key and clouds in gold, the quote in sumi on a plaque with its seal; the same battle in sumi,
   shu and gold, its tiers parted by suyari-gasumi (straight gold bars with rounded ends, stepping, an
-  inner line, sparing kirikane); gold flames behind the Kannon. Her eyes closed, a lotus bud in her
-  hands; the flower is the gate (five frames, the same way): open, her eyes half open, the password lies
-  in its lacquer heart, each character a gold mote (arms `gold`, middle `key`).
+  inner line, sparing kirikane); gold flames behind Marishiten. Her eyes closed, a sealed sutra in her
+  hands; the sutra is the gate (five frames, the same way): unrolled, her eyes open, each character a
+  brush mark on its paper (`strong`, its corners `lo`), the caret in `accent`.
   One quote per mood (§0) in Sumi UI's own pixels on a plaque, as a temple's hall carries its name, no
   translation; no date, no time, no buttons, no hint. The scene is drawn at whole pixels (×3 on 1080p),
   centred, its edges' own colour round it (kawa-lockmod). A wrong password says so at once (the marks
