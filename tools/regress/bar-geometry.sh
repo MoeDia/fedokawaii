@@ -40,8 +40,8 @@ for th in dark light; do
       ((l == 5 && r == 5 && r0 == 6 && r1 == 21)) || no "the seal at $a: $l/$r px from the paper, rows $r0–$r1"
       continue
     fi
-    if ((r1 - r0 == 19)); then                      # (quick settings' head: a picture 22 × 20, the paper's rows whole, 3 | 4 either side: its odd pixel of air)
-      ((l == 3 && r == 4 && r0 == 4 && r1 == 23)) || no "the head at $a: $l/$r px from the paper, rows $r0–$r1 (want 3 | 4, rows 4–23)"
+    if ((r1 - r0 == 19)); then                      # (quick settings' head: a picture 22 × 20, the paper's rows whole; the kannon's nimbus fills its 22 columns, the oni's horns 20: the odd pixel right either way)
+      ((l >= 4 && r == l + 1 && r0 == 4 && r1 == 23)) || no "the head at $a: $l/$r px from the paper, rows $r0–$r1 (want ≥ 4 with the odd pixel right, rows 4–23)"
       continue
     fi
     ((l == 8 && r == 8)) || no "the tile at $a: $l px paper→ink, $r px ink→paper (want 8, 8)"

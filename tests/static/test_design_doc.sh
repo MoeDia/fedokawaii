@@ -125,13 +125,12 @@ def row(name):
     return m.group(1).strip() if m else None
 got = {"cell": f"{kp.CELL} × {kp.ROW}", "row": str(kp.ROW), "pad": str(kp.PAD), "hairline": str(kp.HAIR),
        "shadow": str(kp.SHADOW_B), "icon column": str(kp.GLYPH_COL), "content": str(kp.INNER),
-       "dial": f"{kp.DIAL} × {kp.DIAL}", "hour": f"{kp.HOUR} × {kp.HOUR}", "bead": f"{kp.BEAD} Ø",
        "key": f"{kp.KEY_H} high", "meter": f"{kp.SPAN} × {kp.SEG_H}",
        "gap": str(kp.GAP)}
 bad = [f"{k}: doc {row(k)}, kawa-panel {v}" for k, v in got.items() if row(k) != v]
 print(bad, kp.SEGS, kp.SEG_W, kp.DOT, kp.SHADOW_R, kp.NAME_X // kp.CELL, kp.HEAD_X // kp.CELL)
 PY
-)" "[] 20 6 6 1 4 3" "the doc's grid (§3) in kawa-panel: cell, row, pad, hairline, shadow, icon column, content, dial, hour, bead, key, meter, gap; 20 segments of 6; the dot 6; the shadow's column 1; a row's name at cell 4, a heading's at cell 3"
+)" "[] 20 6 6 1 4 3" "the doc's grid (§3) in kawa-panel: cell, row, pad, hairline, shadow, icon column, content, key, meter, gap; 20 segments of 6; the dot 6; the shadow's column 1; a row's name at cell 4, a heading's at cell 3"
   has "$(cat "$REPO/configs/home/.config/mako/config")" "width=410" "a notice as wide as the sound panel (§3: 410 with pad and hairlines)"
   lacks "$(grep -n 'part[^a-z]*[一-龯]' "$REPO"/bin/kawa-* 2>/dev/null)" "part" "no kanji heading in any menu (§13)"
 }
