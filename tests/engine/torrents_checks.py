@@ -893,8 +893,14 @@ def keys_():
     w.keys("a")
     for c in "ab" * 20:
         w.keys(c)
+    assert w.screen.find("abababababababab"), "what it comes to is said, under the line\n" + w.screen.dump()
     w.keys("\r")
     eq(asked()[-1]["op"], "add", "a bare hash added")
+    w.keys("a")
+    for c in "words":
+        w.keys(c)
+    w.has("not a magnet link", 3)
+    w.keys("\x1b")
     eq(asked()[-1]["value"], "magnet:?xt=urn:btih:" + "ab" * 20, "as a magnet")
     # a paste anywhere adds
     m = "magnet:?xt=urn:btih:" + "cd" * 20 + "&dn=pasted"
@@ -952,7 +958,9 @@ def details():
     w.keys("\x1b")
     w.resize(30, 64)
     w.keys("\r")
+    w.settle(0.2)
     assert s.line(0)[1] != " " and not s.find("finished"), "its own page\n" + s.dump()
+    assert any(s.cells[y][0][2] == 24 for y in range(s.rows)), "straight into its files\n" + s.dump()
     assert s.find("pieces") and s.find("state"), s.dump()
     w.keys("\x1b")
     assert s.find("downloading"), "back to the list"

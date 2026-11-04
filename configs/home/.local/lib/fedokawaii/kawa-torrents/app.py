@@ -144,6 +144,7 @@ class App:
         self.speed_at = 0.0
         self.wants_play = None                     # a stream asked for, waiting for its head
         self.wants_files = None                    # v on a row whose files have not come yet
+        self.into_files = None                     # Enter on a row whose files have not come yet
         self.synced = False                        # the engine has said what it has
         self.offers = []                           # what could be added: the clipboard's, the Downloads folder's
         self.declined = set()
@@ -256,6 +257,10 @@ class App:
                 self.cursor_id = m["to"]
         elif ev == "files":
             self.files[m["id"]] = m["files"]
+            if self.into_files == m["id"]:         # (Enter on a row whose files were on their way)
+                self.into_files = None
+                if self.cursor_id == m["id"] and (self.page or self.pane_shown(self.t.cols)):
+                    self.pane_focus = True
             if self.wants_files == m["id"]:        # (v, its files asked for: they are here)
                 self.wants_files = None
                 if self.rows.get(m["id"]):
@@ -1009,7 +1014,26 @@ class App:
             spans.append((cut("a magnet link, a link to a .torrent, its path or a hash", room), FAINT))
         frame[y] = spans
         self.t.cursor = (y, 1 + 4 + at)
-        return y + 2
+        said = self.understood(self.adding.text)
+        if said:
+            frame[y + 1] = ["     ", (cut(said[0], room), said[1])]
+        return y + 3
+
+    def understood(self, text):
+        """What a line typed or pasted comes to, before Enter: its name, how many, or that it is none."""
+        if not text.strip():
+            return None
+        found = common.links(text)
+        if not found:
+            return "not a magnet link, a .torrent file or a link to one", FAINT
+        if len(found) > 1:
+            return f"{len(found)} links", STRONG
+        kind, value = found[0]
+        if kind == "magnet":
+            return reading(common.magnet_name(value)), STRONG
+        if kind == "file":
+            return reading(os.path.basename(value)[:-8]), STRONG
+        return "a link: asked when added", MUTED
 
     def draw_filter_line(self, frame, w):
         y = 3
@@ -1358,6 +1382,7 @@ class App:
         self.file_cursor = self.file_top = 0
         self.page = not self.pane_shown(self.t.cols)
         self.pane_focus = bool(self.files.get(r["id"]))
+        self.into_files = None if self.pane_focus else r["id"]
 
     def copy_row(self, r):
         if r["id"].startswith("url-"):
