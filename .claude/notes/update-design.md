@@ -393,8 +393,9 @@ edits with an optional section to move a line to; the file names an enum. The ra
 file is one of the program's (never a secret, also through a link); the search occurs exactly once; a key not in the
 new docs or the program's own bytes is invented; a command, a download, a new path may only be carried over from what
 a removed line said, and a key that runs something keeps its value word for word; a deletion or comment-out only with
-the new version's own news saying the option went; the old value's letters stay or the docs show the new one; at most
-16 lines. Then it edits the candidate (the set in, a writable snapshot of `home`), the program's own check must turn
+the new version's own news saying the option went; the old value's letters stay or the docs show the new one; where the
+changelog names what replaced a key, that is the replacement; each edit touches what the program complains of; at most
+10 lines. Then it edits the candidate (the set in, a writable snapshot of `home`), the program's own check must turn
 green (a palette: in both moods), then all the candidate's checks. Two wrong answers end it; each answer that moves
 the check on to its next complaint is kept. Proven, it waits in UPD/fixes.new; the package replayed on the running
 system, it comes into force in UPD/fixes: laid over what theme.sh renders (place → fix_kept, so "in sync" stays true
