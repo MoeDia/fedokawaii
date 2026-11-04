@@ -21,9 +21,9 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | fire and metal | torchlight: Apricot Orange; old brass: Isabella | gold leaf: Yellow Ocher |
 | lit | a cold teal: Venice Green toward Ecru | a deep porcelain teal |
 | art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
-| the lock | a dungeon wall, two torches, the Hannya's open mouth | a temple in clouds — golden mist on a paper sky —, two hanging bronze lanterns, Seiōbo through a round window |
+| the lock | a castle wall, three pools of torchlight, carved battles of oni and tennin, the samurai demon facing you: his mouth is the gate | the same battle in the sky of an old screen, between bands of gold mist, two hanging lanterns, Marishiten: the sutra in her hands is the gate |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
-| the head (quick settings' tile on the bar, the prompt, fetch) | a woodblock's crest (owner, 4 Nov: "more RED, monotone, classic Japanese"): an oni in the seal's red, black features, cream eyes and teeth; it roars while its panel is open and in the prompt when a command failed | a Kannon in sumi, a red nimbus, red lips and urna; she opens her eyes and smiles while the panel is open, and looks up in the prompt when a command failed |
+| the head (quick settings' tile on the bar, the prompt, fetch, the lock: one character sheet, docs/art/heads.md; owner, 4 Nov: "more RED, classic Japanese", "badass samurai, EPIC": detail by line, not by colour) | a demon of the red companies: red lacquer, sumi, bone, kuwagata horns, laced lames: his teeth locked 吽, he roars 阿 while its panel is open and in the prompt when a command failed | Marishiten, the samurai's goddess of light: sumi on gofun, red only in the urna and lips, a nimbus of blades, a war-crown: her eyes closed, open while the panel is open and in the prompt when a command failed |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
 typed (sources: kotobank — デジタル大辞泉, 精選版 日本国語大辞典; the earliest uses 1252 and 1729).
@@ -55,6 +55,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `accent_text` | `f47b58` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
 | `select` | `2e1f19` 181715 → Jasper Red 0.12 | `e2d0ae` e8e3c2 → Brick Red 0.12 | what is selected: the keyboard's cursor on a row (§4) — a 12 % tint of the seal's own red, every ink on it its own |
+| `select_hi` | `46271d` 181715 → Jasper Red 0.24 | `dcbd9b` e8e3c2 → Brick Red 0.24 | … held down by the pointer: 24 % |
 | `select_edge` | `eb5324` | `a84222` | … its 2 px edge at the row's left: the seal's red |
 | `text_on_select` | `f5ecc2` | `121b1b` | … the name and the picture on it: the strongest ink (13 : 1) |
 | `lacquer` | `82241f` Vandyke Red | `82241f` Vandyke Red | the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there) and a failed command's code in the prompt: the lacquer (漆), one in both moods |
@@ -217,10 +218,10 @@ screen and the bar's paper share one rhythm.
 | content | 376 | 47 | a panel's inner width: the sound panel, a notice, the launcher (410 with pad and hairlines) |
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | keycap | 16 + 1 high | — | a key named (§4): rows 2–17 of its row, a lip on 18; 14 wide (a letter, a picture), a word its letters and 4 either side; 2 apart in a chord, 4 between two |
-| seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset |
+| seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset, or against the row's key, 2 px apart |
 | meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
 | instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, 40 segments on the second row, from x 50 of the content to its right inset |
-| masthead | 2 rows | — | quick settings' head: the mood's 32 px head in those columns, the name and the rule, under them a quiet line; 8 px of air under it |
+| masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
 | seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
 | app icon | 16 × 16 | — | the launcher's: an app's own icon at its native 16 px, centred in the row |
@@ -253,7 +254,8 @@ screen and the bar's paper share one rhythm.
   row is noise (the timer's lengths have none).
 - **Cursor** (the keyboard's place; the owner's page, 00f RIGHT): the row's place — the content's width, the heading's
   own, so band and rule end on one line — tinted `select`, its first 2 px `select_edge`; the name and the picture
-  `text_on_select`; everything else keeps its own ink, so a thing that is on stays so and red never fights a band.
+  `text_on_select`; everything else keeps its own ink, so a thing that is on stays so and red never fights a band. Held
+  down by the pointer the tint is twice as deep (`select_hi`).
 - **Keycap** (wherever a key is named): a small tile, `key` paper in a 1 px `edge2` frame with its corners left out, a
   lip of `edge2` under it, its label in `muted` centred by its ink. Super is the torii, Shift its arrow, 10 × 8 and 8 × 8,
   pictures of `panel-art.txt`; a letter as the sheet writes it (case is meaning); the other keys a short word (enter, tab,
@@ -271,14 +273,17 @@ screen and the bar's paper share one rhythm.
   by their ink. Two or three share a row, 8 apart, the row the content's width; an icon-only key
   is 20 × 20.
 - **Quick settings** (Super+X, the head on the bar — the owner, 4 Nov: "over-engineered, a simpler way; forget this
-  circle", then "way too simple, improve"): a list with presence. The masthead (§3): the mood's head, 32 px, shut until
-  its scroll lands, then awake (the demon's mouth, the angel's eyes); its name and the rule; how long the machine has
-  been up. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
-  screensaver, freesync, wallpaper), connect (network, Bluetooth, devices while it is on, drives, backup), capture
-  (screenshot, record, read text), session (the lights while kawa-quick reports them, screen off, power). Each row its own
-  picture, hand-drawn on the 16 px grid; its value in one column (x 331, right-aligned), its marks in another: a seal, or
-  the key that does it anywhere — the menu teaches them. Red only for on: a seal inked, a recording's dot. Enter or a
-  click switches it in place or opens its own menu.
+  circle", then "way too simple, improve"): a list with presence. The masthead (§3), a title plate as on a printed book's cover: the mood's head, shut until
+  its scroll lands, then awake (the demon's mouth, the angel's eyes); its name; how long the machine has been up; and at
+  its right end the mood's pattern, two moods, not a recolour: the demon's uroko, the triangle scales the Noh Hannya wears, the angel's seigaiha, the
+  waves she stands over, each dissolving through an ordered dither toward the words. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
+  screensaver, freesync, wallpaper), sound (share sound, while kawa-quick reports it), connect (network, Bluetooth, devices
+  while it is on, drives, backup), capture (screenshot, record, read text), power (the lights while kawa-quick reports them,
+  screen off, power). Each row its own
+  picture, hand-drawn on the 16 px grid; its value in one column (x 331, right-aligned), its marks in another: every row its key at the
+  right inset, the chord that does it anywhere, else a letter of its own here (never h j k l, the cursor's), its last cap in one
+  column; a switch's seal against it, 2 px apart, every seal in one column. The menu teaches them. Red only for on: a seal inked, a recording's dot. Enter, its
+  key or a click switches it in place or opens its own menu.
 - **Instrument** (a level, where it is the point: quick settings, the sound panel, the brightness): two rows, one choice. Its
   picture alive in the first columns — a chōchin whose glow (`flame`) rises rib by rib with the brightness, a temple bell
   (bonshō) whose ripples spread with the sound, stilled and struck through while muted —; its name, and its number
@@ -556,22 +561,37 @@ the tiles of a group, 12 px between groups.
   (`src/mako/mako.patch`: left-edge, summary-icon-seal).
 - **Level display** (kawa-osd): a panel of one row — the icon, the meter, the value — centred low
   on the screen; it comes with the key at once and leaves 1.2 s after the last one.
-- **Lock** (gtklock + kawa-lockmod; one scene per mood, never the wallpaper): dark — a dungeon
-  wall of stone (`edge`, `edge2`, `hi`, mortar `lo`), two torches flickering (`flame`, brass
-  `gold`, 8 frames a second, out of step), the Hannya after the old masters on a round stone plate,
-  its mouth open on a dark gate: the password glows inside it, each character an ember — a mark of
-  the scene's own pixels (arms `flame`, middle `strong`, corners `accent_lo`; the arms `asagi`
-  while Caps Lock is on), the newest seven in sight — and the caret a bar as tall as a mark in
-  `flame`, blinking once a second, always there while the line has the keyboard. The scene is
-  drawn at whole pixels (×3 on 1080p), centred, its edges' own colour round it (kawa-lockmod).
-  Light — a temple in clouds: golden mist (suyari-gasumi, the stepped gold bands of the old
-  screens) on a paper sky lit by two hanging bronze lanterns (tsuri-dōrō, verdigris here and there,
-  a small flame in each fire box, 8 frames a second), and through a round window in a wooden ring
-  Seiōbo (Kōgyo's Noh print) offering her peach; the password in her sky beside it, each character
-  a gold mote (arms `yellow`, middle `gold`). One quote per mood (§0) in Sumi UI's own pixels on a plaque over the
-  art, as a temple's hall carries its name (gilded on the dark's stone lintel), no translation; no
-  date, no time, no buttons, no hint. A wrong password says so at once (the embers scatter, the face shakes 3 px
-  twice — §11), and the line is empty again.
+- **Lock** (the owner, 19:11: this pixel scene stands only until lane-ink's full-resolution painting
+  lands, which replaces all of it). (gtklock + kawa-lockmod; one scene per mood, never the wallpaper;
+  `tools/build-lock.py`: flat tones, as old pixel art is; a shape has its tone,
+  its bevels face the nearer torch, the light raises the tones by whole steps). The camera is low (the
+  owner, 18:45): the wall leans to a point high over the middle, near things large, the eaves seen from
+  below; hard chiaroscuro, nothing calm or empty. Dark: a castle wall (ishigaki, joints `lo`) in stepped
+  pools of torchlight, stone by stone, the rest all but black; rafters' ends, a stone beam with the
+  thunder key and the war marching along it, brackets under it, the quote gilded on its lintel between
+  the figure's horns; a shimenawa with its paper; two torches (`flame`, 8 frames a second, out of step);
+  two panels of carved battle, oni against tennin, in deep relief; flames cut dark behind the figure in
+  ember-red lines; the sea's waves on the step; chains, rocks and the dead black in the foreground. His
+  mouth is the gate (five frames, `lock-gate.png`, `gate` in `lock-scene.txt`): open, the password glows
+  in it, each character an ember — a mark of the scene's own pixels (arms `flame`, middle `strong`,
+  corners `accent_lo`; the arms `asagi` while Caps Lock is on), the newest eight in sight, 7 px apart —
+  and the caret a bar as tall as a mark in `flame`, blinking once a second, always there while the line
+  has the keyboard.
+  Light: the same story in the sky of an old screen, seen from below: paper in stepped pools paler round
+  two hanging bronze lanterns (a small flame in each fire box, 8 frames a second), fine rays over it;
+  vermilion eaves, the thunder key and the war in gold, the quote in sumi on a plaque with its seal; the
+  same battle in sumi, shu and gold, heaven's host small and high, the oni large at your feet, its tiers
+  parted by suyari-gasumi (straight gold bars with rounded ends, stepping, an inner line, sparing
+  kirikane); gold flames behind the figure. The sutra in her hands is the gate (five frames, the same
+  way): unrolled, each character a brush mark on its paper (`strong`, its corners `lo`), the caret in
+  `accent`.
+  Its life (`anim` and `sparks` in `lock-scene.txt`, about 0.7 % of a core): the torches' or lanterns'
+  light moving on the stones, the carvings and the paper in six stepped frames, smoke, embers rising,
+  petals falling.
+  One quote per mood (§0) in Sumi UI's own pixels on a plaque, as a temple's hall carries its name, no
+  translation; no date, no time, no buttons, no hint. The scene is drawn at whole pixels (×3 on 1080p),
+  centred, its edges' own colour round it (kawa-lockmod). A wrong password says so at once (the marks
+  scatter, the gate shakes 3 px twice — §11), and the line is empty again.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
 - **Screensaver** (kawa-saver): a cloth the screen's size on the mood's ground — hitomezashi sewn
@@ -661,10 +681,14 @@ another, a scroll is something opened and put away, a dissolve is a message pass
   falls, lies a beat, the glass turns; 6 a second while the menu shows — fzf told each frame,
   the pane kept meanwhile, never made again at every frame); at rest, their first frame (the
   hourglass: the plain one).
-- **Art** — pixel versions of public-domain old masters, drawn in the palette's inks at the
-  wallpapers' 3 px pixel: demons and warriors after Kuniyoshi and Hokusai (dark), tennin after
-  Buddhist painting (light) — about ten wallpapers each, the lock's scenes, quick settings' face
-  (the heads, §0: on the bar's end tile, in the prompt, the fetch art).
+- **Art** — pixel versions of public-domain old masters, in three inks at the wallpapers' 3 px pixel
+  (`tools/build-masters.py`, `art/masters`): a ramp from the mood's ink to its paper, the seal's red,
+  and in the light mood gold. Demons and warriors after Kuniyoshi and Hokusai (dark), Kannon and tennin
+  after Buddhist painting (light), about ten each: no cartouche, seal or poem card left, no seam
+  between a triptych's sheets, no face cut by an edge, the subject in the middle where the print
+  allows, and a calm top: the first 14 rows of the picture (42 px, the bar's) one ink, fading into the
+  picture over the next 24, as the band a printer wiped across the top of the block (ichimonji-bokashi).
+  The two heads stand in until lane-ink's painting gives their icons (`docs/art/heads.md`).
 
 ## 14. Surfaces and their owners
 

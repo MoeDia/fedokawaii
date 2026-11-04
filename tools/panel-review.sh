@@ -20,11 +20,13 @@ while (($#)); do
 done
 export PATH=$HOME/.local/bin:$PATH
 mkdir -p "$out/raw"
-W=$(mktemp -d /tmp/panel-review.XXXXXX); trap 'rm -rf "$W"' EXIT
+W=$(mktemp -d /tmp/panel-review.XXXXXX); [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$W"' EXIT; [[ ${KEEP:-} == 1 ]] && echo "panel-review: kept $W"
 mkdir "$W/bin"
 for f in "$repo"/bin/*; do ln -s "$f" "$W/bin/"; done
 [[ -n $mako ]] && ln -s "$mako" "$W/bin/mako"
 ln -s "$repo/system/fedokawaii" "$W/bin/fedokawaii"
+# (nothing the shots press may reach the machine: the power dialog's second press stands in here; the PC is shared)
+for c in systemctl loginctl reboot poweroff shutdown; do printf '#!/bin/sh\nexit 0\n' >"$W/bin/$c"; chmod +x "$W/bin/$c"; done
 rm "$W/bin/kawa-quick"
 cat >"$W/bin/kawa-quick" <<STUB
 #!/usr/bin/env bash
@@ -41,7 +43,7 @@ if [[ \${1:-} == --state ]]; then
            printf 'input\t62\t0\tRyzen\tRear Microphone\tALC1220 Analog\tRyzen HD Audio Controller\tAnalog Stereo\t\n' ;;
     brightness) printf 'brightness\t72%%\n' ;;
     *) printf 'theme\t%s\nbrightness\t72%%\nnight\t4000K\nvrr\tin games\nvrrnow\toff\nwallpaper\tthe-great-wave\nsound\t62%%\nmuted\t%s\n' "\$th" "\$m"
-       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\nrgb\ton\n' ;;
+       printf 'nettype\tethernet\nnetwork\twired\nbluetooth\ton\ndevices\tWH-1000XM4\ndrives\t1 drive\nbackup\t3 days ago\ndnd\toff\nsaver\t15 min\nuptime\tup 03h 07m\nrecord\toff\nrgb\ton\nsharesound\toff\n' ;;
   esac
   exit 0
 fi
@@ -67,6 +69,10 @@ SURFACES=(
   "help|chord logo slash|:|key Escape"
   "help-find|chord logo slash|text 'lock'|key Escape"
   "launcher|chord logo space|:|key Escape"
+  "launcher-sum|chord logo space|text '15% of 2400'; nap 0.9|key Escape"
+  "dialog-keys|rv_dialog|key Right|key Escape"
+  "password|rv_password|text 'abc'|key Escape"
+  "downloads-busy|rv_downloads|:|key Escape; rv_downloads_end"
   "dnd|setsid -f kawa-quick dnd|:|key Escape"
   "drives|setsid -f kawa-drives|:|key Escape"
   "weather|setsid -f kawa-weather|:|key Escape"
@@ -79,11 +85,31 @@ SURFACES=(
 )
 {
   echo '. "$HOME/.config/fedokawaii/icons.sh"'
-  echo 'panel; warm; nap 1.5'
+  cat <<'WORDS'
+rv_dialog() { printf 'note\tthe disk is nearly full: go on?\nkey\t\tgo on\nkey\t\tnot now\n' | kawa-menu >/dev/null & }
+rv_password() { kawa-menu --prompt "" --password --title "report.pdf · password" </dev/null >/dev/null & }
+rv_downloads() {
+  mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"; sleep 40 & RV_SLEEP=$!
+  printf 'ubuntu-26.04-desktop-amd64.iso\t2147483648\t5368709120\t/tmp/x\nDune Part Two 2160p.mkv\t10737418240\t21474836480\t/tmp/y\n' >"$XDG_RUNTIME_DIR/kawa-downloads/torrra.$RV_SLEEP"
+  setsid -f kawa-downloads
+}
+rv_downloads_end() { kill "$RV_SLEEP" 2>/dev/null; rm -f "$XDG_RUNTIME_DIR"/kawa-downloads/torrra.*; }
+# (a loaded PC draws a surface late, a list half-way: the shot waits for the screen to change from before it opened and
+# to hold still, two grabs 0.3 s apart alike, 12 s at most)
+rv_grab() { grim -t ppm - | md5sum; }
+rv_still() {
+  local before=$1 a="" b i
+  for ((i = 0; i < 40; i++)); do
+    b=$(rv_grab); [[ $b != "$before" && $b == "$a" ]] && return 0
+    a=$b; sleep 0.3
+  done
+}
+WORDS
+  echo 'panel; ready; warm; nap 1.5'
   for s in "${SURFACES[@]}"; do
     IFS='|' read -r name open keys close <<<"$s"
     [[ -z $only || ,$only, == *",$name,"* ]] || continue
-    printf '%s\nnap 0.9\n%s\nnap 0.5\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
+    printf 'RV_BEFORE=$(rv_grab)\n%s\nnap 0.9\n%s\nnap 0.5\nrv_still "$RV_BEFORE"\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
   done
 } >"$W/play.sh"
 # (the kit's ground is swaybg's; now and then, seen under load only, its picture goes and dwl's dark root shows — swaybg

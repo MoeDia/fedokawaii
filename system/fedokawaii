@@ -690,7 +690,7 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
   esac
 }
 # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
-SOON='chess|typing'         # (each its row only once its program is there: Super+U has no row that says "soon")
+SOON='chess|typing'
 PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
@@ -752,8 +752,8 @@ rows() {
   e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
   e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
-  command -v kawa-chess >/dev/null && e learning chess "${ICON_KNIGHT:-·}" chess ""
-  command -v kawa-typing >/dev/null && e learning typing "${ICON_KEYBOARD:-·}" typing ""
+  e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
+  e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }

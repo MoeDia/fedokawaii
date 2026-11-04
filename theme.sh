@@ -152,7 +152,7 @@ place() {
   TOTAL=$((TOTAL + 1))
   tmp=$(mktemp)
   case ${src#"$REPO_DIR/"} in      # (the path inside the repo: wherever the repo itself lives)
-    *.ttf|*.otf|*.png|*/cursors/*) cp "$src" "$tmp" ;;   # binary: byte for byte, never through sed
+    *.ttf|*.otf|*.png|*.six|*/cursors/*) cp "$src" "$tmp" ;;   # binary: byte for byte, never through sed
     *) render "$src" >"$tmp"
        [[ $(head -c2 "$src") == '#!' ]] && mode=0755 ;;
   esac

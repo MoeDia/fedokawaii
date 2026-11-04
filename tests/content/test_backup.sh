@@ -116,7 +116,7 @@ has "$(cat "$TMP/fzf.args")" "--drive-heading"
 # the picker's screen (docs/design-system.md §7): heading and rows drawn at fzf's width
 . "$HOME/.config/fedokawaii/icons.sh"
 eq "$(KAWA_BACKUP_DRIVES=$'KINGSTON\t28.9G vfat · open' kawa-backup --drive-rows 40 | sed 's/\x1b\[[0-9;]*m//g')" \
-  $'KINGSTON\t28.9G vfat · open\t '"$ICON_DRIVE"'  KINGSTON          28.9G vfat · open' "a row (screen.sh): a space, the icon, two spaces, the name, its value right-aligned a column in from the 40th (as far from the row's end as its icon from the start)"
+  $'KINGSTON\t28.9G vfat · open\t '"$ICON_DRIVE"'  KINGSTON          28.9G vfat · open' "a row (screen.sh): a space, the icon, two spaces, the name, its value right-aligned at the 39th column, a column inside the band as the icon is"
 h=$(kawa-backup --drive-heading 40 | sed 's/\x1b\[[0-9;]*m//g')
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 eq "$(head -n1 <<<"$h")" "$ICON_DRIVE  back up to $(printf '─%.0s' {1..26})" "the heading: its icon (a column, its ink into the next), two spaces, the name, a space, a solid rule to the 40th column"

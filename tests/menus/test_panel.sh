@@ -93,7 +93,7 @@ EOF
 ROWS_ALL="theme night dnd saver vrr wallpaper network bluetooth devices drives backup screenshot record ocr screenoff power"
 ROWS_BT_OFF="theme night dnd saver vrr wallpaper network bluetooth drives backup screenshot record ocr screenoff power"
 ROWS_NO_BT="theme night dnd saver vrr wallpaper network drives backup screenshot record ocr screenoff power"
-case_ "the items, in order: the two levels (brightness, sound), then the rows in four sections — screen (theme, night light, do not disturb, screensaver, freesync, wallpaper), connect (network, bluetooth and devices with an adapter, drives, backup), capture (screenshot, record, read text), session (screen off, power)"
+case_ "the items, in order: the two levels (brightness, sound), then the rows in four sections — screen (theme, night light, do not disturb, screensaver, freesync, wallpaper), connect (network, bluetooth and devices with an adapter, drives, backup), capture (screenshot, record, read text), power (screen off, power)"
 eq "$(py 'fresh(); print(" ".join(i.key for i in p.items))')" "brightness sound $ROWS_ALL"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print(" ".join(i.key for i in p.items))')" "brightness sound $ROWS_NO_BT" "no adapter: neither bluetooth nor devices"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","")); print(" ".join(i.key for i in p.items))')" "brightness sound $ROWS_NO_BT" "no adapter, a stray devices line: it draws nothing"
@@ -102,13 +102,13 @@ eq "$(py 'fresh(STATE.replace("bluetooth\ton","bluetooth\toff")); print(" ".join
 eq "$(py 'fresh(); print("".join(i.kind[0] for i in p.items))')" "mmrrrrrrrrrrrrrrrr" "two levels, sixteen rows"
 eq "$(py 'fresh(STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")); print("".join(i.kind[0] for i in p.items))')" "mmrrrrrrrrrrrrrr" "two levels, fourteen rows"
 eq "$(py 'fresh(); print([i.row for i in p.items] == list(range(len(p.items))))')" True "a row a thing: the arrows walk the numbers"
-case_ "quick_rows: the rows after the levels in four sections, each section (its label, its rows), each row (key, picture, name, value, on, seal, keys) — screen six, connect five (three without an adapter, four with it off), capture three, session two"
+case_ "quick_rows: the rows after the levels in their sections, each section (its label, its rows), each row (key, picture, name, value, on, seal, keys) — screen six, connect five (three without an adapter, four with it off), capture three, power two; sound and the lights once kawa-quick reports them"
 eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton","bluetooth\toff"), STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     g = kp.quick_rows(kp.parse_state(st)); out.append(([len(x) for _, x in g], {len(r) for _, x in g for r in x}))
 print(out)')" "[([6, 5, 3, 2], {7}), ([6, 4, 3, 2], {7}), ([6, 3, 3, 2], {7})]"
 eq "$(py 'g = kp.quick_rows(kp.parse_state(STATE)); print([l for l, _ in g], [[r[0] for r in x] for _, x in g])')" \
-  "['screen', 'connect', 'capture', 'session'] [['theme', 'night', 'dnd', 'saver', 'vrr', 'wallpaper'], ['network', 'bluetooth', 'devices', 'drives', 'backup'], ['screenshot', 'record', 'ocr'], ['screenoff', 'power']]"
+  "['screen', 'connect', 'capture', 'power'] [['theme', 'night', 'dnd', 'saver', 'vrr', 'wallpaper'], ['network', 'bluetooth', 'devices', 'drives', 'backup'], ['screenshot', 'record', 'ocr'], ['screenoff', 'power']]"
 eq "$(py 'fresh(""); print(len(p.items), p.item("theme").value, p.item("network").value, p.item("backup").value, repr(p.item("brightness").value))')" "16 dark offline not set up ''" \
   "a state with nothing in it (kawa-quick failed at the first read): the rows as they would be, no adapter"
 eq "$(py 'u = UI(); p = kp.Panel(u); print(len(p.items), p.size, p.item("night").value == "", [p.item(k).on for k in ("night", "network", "drives")])')" "16 (410, 554) True [False, False, False]" \
@@ -126,7 +126,7 @@ eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.x},{i.y},{i.w},{i.h}" for i in p.
   "brightness:17,65,376,40 sound:17,105,376,40 theme:17,173,376,20 night:17,193,376,20 dnd:17,213,376,20 saver:17,233,376,20 vrr:17,253,376,20 wallpaper:17,273,376,20 network:17,321,376,20 bluetooth:17,341,376,20 devices:17,361,376,20 drives:17,381,376,20 backup:17,401,376,20 screenshot:17,449,376,20 record:17,469,376,20 ocr:17,489,376,20 screenoff:17,537,376,20 power:17,557,376,20"
 eq "$(py 'fresh(); print({(i.x, i.w, i.h) for i in p.items if i.kind == "row"}, {(i.x, i.w, i.h, i.big) for i in p.items if i.kind == "meter"})')" "{(17, 376, 20)} {(17, 376, 40, True)}" "every row alike but its y; the levels too"
 eq "$(py 'fresh(); ys = [i.y for i in p.items]; print([b - a for a, b in zip(ys, ys[1:])])')" "[40, 68, 20, 20, 20, 20, 20, 48, 20, 20, 20, 20, 48, 20, 20, 48, 20]" "a level 40, a row 20; a section starts 28 further down: 8 of air, a label's row"
-eq "$(py 'fresh(); print([(m[0], m[2], m[4]) for m in p.marks])')" "[('masthead', 17, 'quick settings'), ('label', 153, 'screen'), ('label', 301, 'connect'), ('label', 429, 'capture'), ('label', 517, 'session')]" "the masthead at the content's corner, a label above each section"
+eq "$(py 'fresh(); print([(m[0], m[2], m[4]) for m in p.marks])')" "[('masthead', 17, 'quick settings'), ('label', 153, 'screen'), ('label', 301, 'connect'), ('label', 429, 'capture'), ('label', 517, 'power')]" "the masthead at the content's corner, a label above each section"
 eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     fresh(st); labels = [m[2] for m in p.marks if m[0] == "label"]
@@ -167,7 +167,8 @@ case_ "the levels (§4): an instrument — its picture, its name, its number ove
 eq "$(py 'fresh(); print(" ".join(f"{i.key}:{i.icon}:{i.name}:{i.value}:{i.muted}:{p.slider_x(i)}" for i in p.items if i.kind == "meter"))')" \
   "brightness:@lantern:brightness:70%:False:67 sound:@bonsho-2:sound:62%:False:67"
 eq "$(py 'fresh(STATE + "muted\ton\n"); print(p.item("sound").icon, p.item("sound").muted, p.item("brightness").muted)')" "@bonsho-mute True False" "muted: the bell stilled and struck through, its segments hollow; the brightness does not follow"
-eq "$(py 'fresh(STATE.replace("62%", "muted")); print(p.item("sound").icon, p.item("sound").value)')" "@bonsho-mute muted" "as kawa-quick --state says it"
+eq "$(py 'fresh(STATE + "muted\ton\n"); print(p.item("sound").value, p.item("sound").muted)')" "62% True" "as kawa-quick --state says it: its level kept, hollow"
+eq "$(py 'fresh(STATE + "muted\ton\n"); p.set_level("sound", 40); print(p.states["quick"]["muted"], p.item("sound").muted)')" "off False" "a level set unmutes here too"
 eq "$(py 'out = []
 for v in (0, 1, 33, 34, 66, 67, 100):
     fresh(STATE.replace("62%", f"{v}%")); out.append(p.item("sound").icon)
@@ -182,36 +183,36 @@ t() { py "fresh($1); i = p.item('$2'); print(i.glyph, '|', i.name, '|', i.value,
 case_ "each row: its own picture, its name, how it stands — a switch's state a seal (inked on, blank off) and a word only where it says more; the key that does it anywhere; the theme is a mood, never on"
 eq "$(t '' theme)" "@moon | theme | dark | None | Super+Shift+W | quiet"
 eq "$(t 'STATE.replace("theme\tdark","theme\tlight")' theme)" "@sun | theme | light | None | Super+Shift+W | quiet" "light: the sun"
-eq "$(t '' night)" "@andon-on | night light | on | True |  | lit" "lit: its flame"
-eq "$(t 'STATE.replace("night\ton","night\toff")' night)" "@andon | night light |  | False |  | quiet"
-eq "$(t 'STATE.replace("night\ton","night\t3500K")' night)" "@andon-on | night light | 3500K | True |  | lit" "on: its warmth"
-eq "$(t '' saver)" "@saver | screensaver |  | False |  | quiet" "(no saver line: off)"
-eq "$(t 'STATE + "saver\t15 min\n"' saver)" "@saver | screensaver | 15 min | True |  | lit"
-eq "$(t 'STATE + "saver\toff\n"' saver)" "@saver | screensaver |  | False |  | quiet"
-eq "$(t '' vrr)" "@wave | freesync | in games | True |  | lit"
-eq "$(t 'STATE.replace("vrr\tin games","vrr\toff")' vrr)" "@wave | freesync |  | False |  | quiet"
+eq "$(t '' night)" "@andon-on | night light | on | True | n | lit" "lit: its flame"
+eq "$(t 'STATE.replace("night\ton","night\toff")' night)" "@andon | night light |  | False | n | quiet"
+eq "$(t 'STATE.replace("night\ton","night\t3500K")' night)" "@andon-on | night light | 3500K | True | n | lit" "on: its warmth"
+eq "$(t '' saver)" "@saver | screensaver |  | False | s | quiet" "(no saver line: off)"
+eq "$(t 'STATE + "saver\t15 min\n"' saver)" "@saver | screensaver | 15 min | True | s | lit"
+eq "$(t 'STATE + "saver\toff\n"' saver)" "@saver | screensaver |  | False | s | quiet"
+eq "$(t '' vrr)" "@wave | freesync | in games | True | f | lit"
+eq "$(t 'STATE.replace("vrr\tin games","vrr\toff")' vrr)" "@wave | freesync |  | False | f | quiet"
 case_ "FreeSync's row: the setting and the card's own state this moment (vrrnow), inked only while on"
-eq "$(t 'STATE + "vrrnow\toff\n"' vrr)" "@wave | freesync | games · off | False |  | quiet"
-eq "$(t 'STATE + "vrrnow\ton\n"' vrr)" "@wave | freesync | games · on | True |  | lit"
-eq "$(t 'STATE.replace("vrr\tin games","vrr\talways") + "vrrnow\ton\n"' vrr)" "@wave | freesync | always · on | True |  | lit"
-eq "$(t 'STATE + "vrrnow\tnone\n"' vrr)" "@wave | freesync | not offered | False |  | quiet"
-eq "$(t 'STATE.replace("vrr\tin games","vrr\toff") + "vrrnow\toff\n"' vrr)" "@wave | freesync |  | False |  | quiet"
+eq "$(t 'STATE + "vrrnow\toff\n"' vrr)" "@wave | freesync | games · off | False | f | quiet"
+eq "$(t 'STATE + "vrrnow\ton\n"' vrr)" "@wave | freesync | games · on | True | f | lit"
+eq "$(t 'STATE.replace("vrr\tin games","vrr\talways") + "vrrnow\ton\n"' vrr)" "@wave | freesync | always · on | True | f | lit"
+eq "$(t 'STATE + "vrrnow\tnone\n"' vrr)" "@wave | freesync | not offered | False | f | quiet"
+eq "$(t 'STATE.replace("vrr\tin games","vrr\toff") + "vrrnow\toff\n"' vrr)" "@wave | freesync |  | False | f | quiet"
 case_ "the network row's picture follows the kind of link: wired, Wi-Fi, none"
-eq "$(t '' network)" "@wifi | network | Home Net 5G | None |  | quiet"
-eq "$(t 'STATE.replace("nettype\twifi","nettype\tethernet").replace("Home Net 5G","wired")' network)" "@ethernet | network | wired | None |  | quiet"
-eq "$(t 'STATE.replace("nettype\twifi","nettype\toffline").replace("Home Net 5G","offline")' network)" "@offline | network | offline | None |  | quiet"
+eq "$(t '' network)" "@wifi | network | Home Net 5G | None | e | quiet"
+eq "$(t 'STATE.replace("nettype\twifi","nettype\tethernet").replace("Home Net 5G","wired")' network)" "@ethernet | network | wired | None | e | quiet"
+eq "$(t 'STATE.replace("nettype\twifi","nettype\toffline").replace("Home Net 5G","offline")' network)" "@offline | network | offline | None | e | quiet"
 case_ "bluetooth, devices, drives, backup, do not disturb: each its own picture; the crossed bell once do not disturb is on"
-eq "$(t '' bluetooth)" "@bluetooth | bluetooth |  | True |  | lit"
-eq "$(t 'STATE.replace("bluetooth\ton","bluetooth\toff")' bluetooth)" "@bluetooth | bluetooth |  | False |  | quiet"
-eq "$(t '' devices)" "@devices | devices | none | None |  | quiet"
-eq "$(t 'STATE.replace("devices\tnone","devices\tWH-1000XM5")' devices)" "@devices | devices | WH-1000XM5 | None |  | quiet"
-eq "$(t '' drives)" "@drive | drives | KINGSTON 58G | None |  | quiet"
-eq "$(t 'STATE.replace("KINGSTON 58G","none")' drives)" "@drive | drives | none | None |  | quiet"
-eq "$(t '' backup)" "@kura | backup | 3 days ago | None |  | quiet"
-eq "$(t 'STATE.replace("3 days ago","never")' backup)" "@kura | backup | never | None |  | quiet"
-eq "$(t 'STATE.replace("backup\t3 days ago\n","")' backup)" "@kura | backup | not set up | None |  | quiet" "(no backup line: not set up)"
-eq "$(t '' dnd)" "@bell | do not disturb |  | False |  | quiet"
-eq "$(t 'STATE.replace("dnd\toff","dnd\ton")' dnd)" "@bell-off | do not disturb |  | True |  | lit"
+eq "$(t '' bluetooth)" "@bluetooth | bluetooth |  | True | b | lit"
+eq "$(t 'STATE.replace("bluetooth\ton","bluetooth\toff")' bluetooth)" "@bluetooth | bluetooth |  | False | b | quiet"
+eq "$(t '' devices)" "@devices | devices | none | None | v | quiet"
+eq "$(t 'STATE.replace("devices\tnone","devices\tWH-1000XM5")' devices)" "@devices | devices | WH-1000XM5 | None | v | quiet"
+eq "$(t '' drives)" "@drive | drives | KINGSTON 58G | None | r | quiet"
+eq "$(t 'STATE.replace("KINGSTON 58G","none")' drives)" "@drive | drives | none | None | r | quiet"
+eq "$(t '' backup)" "@kura | backup | 3 days ago | None | u | quiet"
+eq "$(t 'STATE.replace("3 days ago","never")' backup)" "@kura | backup | never | None | u | quiet"
+eq "$(t 'STATE.replace("backup\t3 days ago\n","")' backup)" "@kura | backup | not set up | None | u | quiet" "(no backup line: not set up)"
+eq "$(t '' dnd)" "@bell | do not disturb |  | False | d | quiet"
+eq "$(t 'STATE.replace("dnd\toff","dnd\ton")' dnd)" "@bell-off | do not disturb |  | True | d | lit"
 case_ "a state that is nothing there says so in the faint ink (§5: absent) — its word, the rest of the row as ever"
 eq "$(py 'out = []
 for st, k in ((STATE, "devices"), (STATE.replace("KINGSTON 58G","none"), "drives"), (STATE.replace("3 days ago","never"), "backup"), (STATE, "drives"), (STATE, "backup")):
@@ -223,16 +224,37 @@ eq "$(t '' screenshot)" "@camera | screenshot |  | None | Print | quiet"
 eq "$(t '' record)" "@record | record |  | None | Super+Shift+R | quiet"
 eq "$(t 'STATE + "record\ton\n"' record)" "@record-on | record | recording | None | Super+Shift+R | lit"
 eq "$(t '' ocr)" "@scroll | read text |  | None | Super+Shift+X | quiet"
-eq "$(t '' screenoff)" "@screen-off | screen off |  | None |  | quiet"
+eq "$(t '' screenoff)" "@screen-off | screen off |  | None | o | quiet"
 eq "$(t '' power)" "@power | power |  | None | Super+Shift+E | quiet"
-for k in $(py 'fresh(); print(*{i.keys for i in p.items if i.keys})'); do
+for k in $(py 'fresh(); print(*{i.keys for i in p.items if len(i.keys) > 1})'); do
   grep -q "^$k " "$REPO/configs/home/.config/fedokawaii/keybinds.txt" && _ok || _no "$k is no key of keybinds.txt"
 done
-case_ "the lights (the case's fans, the cooler, the keyboard): a switch, its row and seal once kawa-quick reports them, in the session's section, done in place"
-eq "$(t 'STATE + "rgb\ton\n"' rgb)" "@ember | lights |  | True |  | lit"
-eq "$(t 'STATE + "rgb\toff\n"' rgb)" "@ember | lights |  | False |  | quiet"
+case_ "a menu with no rows (a dialog, a password's field): its words start where its keys and field do; with rows, or a failure's mark, on the name column"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu(["note\tthe disk is nearly full", "key\t\tgo on", "key\t\tnot now"])).marks])')" "['lead']"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu([], title="report.pdf · password", prompt="")).marks][:1])')" "['lead']"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu([], title="!\twrong password", prompt="")).marks][:1])')" "['note']" "(a wrong password: its mark in the icon column)"
+eq "$(py 'print([q[0] for q in kp.layout_menu(kp.Menu(["note\tpick one", "row\tI\tfive"])).marks])')" "['note']"
+case_ "every other row its own letter (the owner, 18:49: every action row shows its key): all different, none the cursor's h j k l; pressed, it does the row"
+RGB_SHARE='STATE + "rgb\ton\nsharesound\toff\n"'
+eq "$(py "fresh($RGB_SHARE); ks = [i.accel for i in p.items if i.accel]; print(sorted(ks), len(ks) == len(set(ks)), set(ks) & set('hjkl'))")" "['a', 'b', 'd', 'e', 'f', 'g', 'n', 'o', 'r', 's', 'u', 'v'] True set()"
+eq "$(py "fresh($RGB_SHARE); print([(i.key, i.keys) for i in p.items if i.kind == 'row' and not i.keys])")" "[]" "no row without a key"
+eq "$(py "fresh($RGB_SHARE); seen = []; p.activate = seen.append; p.key('g'); p.key('n'); p.key('b'); print(seen)")" "['rgb', 'night', 'bluetooth']"
+eq "$(py "fresh(); seen = []; p.activate = seen.append; p.key('j'); p.key('l'); print(seen)")" "[]" "(h j k l still move the cursor)"
+eq "$(py "fresh($RGB_SHARE); seen = []; p.activate = seen.append; p.key('n', '', True); p.key('g', '', True); print(seen)")" "[]" "with Ctrl, Alt or Super held: no row's key"
+case_ "share sound: its own section and row once kawa-quick reports it, its own menu; a seal inked while it shares, what it shares as the value"
+eq "$(t 'STATE + "sharesound\toff\n"' sharesound)" "@share-sound | share sound |  | False | a | quiet"
+eq "$(t 'STATE + "sharesound\tdesktop\n"' sharesound)" "@share-sound | share sound | desktop | True | a | lit"
+eq "$(py 'fresh(); print(p.item("sharesound"), [m[4] for m in p.marks if m[0] == "label"])')" "None ['screen', 'connect', 'capture', 'power']" "not reported: no row, no label"
+eq "$(py 'g = kp.quick_rows(kp.parse_state(STATE + "sharesound\toff\n")); print([l for l, _ in g])')" "['screen', 'sound', 'connect', 'capture', 'power']"
+eq "$(py 'fresh(STATE + "sharesound\toff\n"); p.request(); u.answer(STATE + "sharesound\toff\n"); u.calls.clear(); p.activate("sharesound"); print(u.calls[-1], p.visible)')" "launch kawa-quick --do sharesound False"
+case_ "held down by the pointer the tint is twice as deep, until let go; only that row redrawn"
+eq "$(py 'i = kp.Item("k", "row", 0, 0, 10, 10, 0, name="x"); print(kp.look(i, True, False)["fill"], kp.look(i, True, False, True)["fill"], kp.look(i, False, False, True)["fill"])')" "select select_hi None"
+eq "$(py 'opened("quick", STATE); p.hover(*mid("night")); p.press(*mid("night")); a = p.pressed; u.drawn.clear(); p.release(*mid("night")); print(a, p.pressed, u.drawn[0])')" "night None ['night']"
+case_ "the lights (the case's fans, the cooler, the keyboard): a switch, its row and seal once kawa-quick reports them, in the power section, done in place"
+eq "$(t 'STATE + "rgb\ton\n"' rgb)" "@ember | lights |  | True | g | lit"
+eq "$(t 'STATE + "rgb\toff\n"' rgb)" "@ember | lights |  | False | g | quiet"
 eq "$(py 'fresh(); print(p.item("rgb"))')" None "not reported: no row"
-eq "$(py 'g = dict(kp.quick_rows(kp.parse_state(STATE + "rgb\ton\n"))); print([r[0] for r in g["session"]])')" "['rgb', 'screenoff', 'power']"
+eq "$(py 'g = dict(kp.quick_rows(kp.parse_state(STATE + "rgb\ton\n"))); print([r[0] for r in g["power"]])')" "['rgb', 'screenoff', 'power']"
 eq "$(py 'fresh(STATE + "rgb\ton\n"); p.request(); u.answer(STATE + "rgb\ton\n"); u.calls.clear(); p.activate("rgb"); print(u.calls, p.visible)')" "['run kawa-quick --do rgb'] True"
 case_ "no day or weather line: the bar's own, right above the panel"
 eq "$(py 'fresh(); print(hasattr(kp, "date_line"), [i.key for i in p.items if i.key in ("date", "day", "weather")])')" "False []" "no day or weather line: the bar shows them, right above"
@@ -246,7 +268,7 @@ eq "$(py 'out = []
 for st in (STATE, STATE.replace("bluetooth\ton\n", "")):
     fresh(st); pics = [i.glyph or i.icon for i in p.items]; out.append((len(pics), len(set(pics))))
 print(out)')" "[(18, 18), (16, 16)]"
-case_ "the pictures (panel-art.txt): a row's at most 16 × 16, a level's 32 wide, a seal tile's 40 × 40, a key's at most 12 × 12 in its cap; every row of a picture one width; only the file's inks; the twelve months, the five seals, all there"
+case_ "the pictures (panel-art.txt): a row's at most 16 × 16, a level's 32 wide, a seal tile's 40 × 40, a key's at most 12 × 12 in its cap, a title plate's pattern 224 × 38; every row of a picture one width; only the file's inks; the twelve months, the five seals, all there"
 eq "$(python3 -I -B - "$PICS" <<'PY'
 import re, sys
 bad, names = [], {}
@@ -268,6 +290,7 @@ for n, rows in names.items():
     if n.startswith("t-"): limit = (40, 40)
     elif n.startswith(("bonsho", "lantern")): limit = (32, 36)
     elif n.startswith("key-"): limit = (12, 12)
+    elif n.startswith("plate-"): limit = (224, 38)
     else: limit = (16, 16)
     if w > limit[0] or h > limit[1]: bad.append(("size", n, w, h))
 want = [f"month-{m:02d}" for m in range(1, 13)] + ["t-lock", "t-sleep", "t-logout", "t-restart", "t-off", "seal-on", "seal-off", "key-super", "key-shift"]
@@ -371,7 +394,7 @@ eq "$(py 'fresh(); out = []
 for i in range(7): p.request("launcher", kp.Launcher([], {}), None); out.append(p.visible); u.t += 0.03
 print(out)')" "[True, False, True, False, True, False, True]"
 eq "$(py 'import os; print(os.path.basename(kp.MARKS["launcher"]), kp.POKE["launcher"])')" "kawa-launcher.open 20" "lit by its marker, the torii's module poked with SIGRTMIN+20"
-eq "$(py 'fresh(); p.request("launcher", kp.Launcher([], {}), None); print(p.heads, p.size, p.win, p.rules)')" "[('torii_small', 'launcher', 17, 17)] (410, 302) (411, 304) []" "its heading the small torii; always ten rows tall: 17 + 28 + the line typed on (20) + 20 + 200 + 17 = 302"
+eq "$(py 'fresh(); p.request("launcher", kp.Launcher([], {}), None); print(p.heads, p.size, p.win, p.rules)')" "[('torii_small', 'launcher', 17, 17)] (410, 302) (411, 306) []" "its heading the small torii; always ten rows tall: 17 + 28 + the line typed on (20) + 20 + 200 + 17 = 302"
 eq "$(py 'fresh(); u.cid = "c1"; p.request("launcher", kp.Launcher([], {}), None); u.cid = "c2"; p.close("lost"); u.t += 0.01; p.request("launcher", kp.Launcher([], {}), None); print(p.visible)')" False \
   "the torii clicked while it is open: that click closed it — its own call does not reopen it"
 eq "$(py 'fresh(); u.cid = "c1"; p.request("launcher", kp.Launcher([], {}), None); u.cid = "c2"; p.close("lost"); p.request("launcher", kp.Launcher([], {}), None); u.t += 0.1; u.cid = "c3"; p.request("launcher", kp.Launcher([], {}), None); print(p.visible)')" True \
@@ -446,12 +469,13 @@ case_ "no row is dead and none does both: the switches and the openers divide th
 eq "$(py 'dead = []
 for st in (STATE, STATE.replace("bluetooth\ton","bluetooth\toff"), STATE.replace("bluetooth\ton\n","").replace("devices\tnone\n","")):
     fresh(st); dead += [i.key for i in p.items if i.kind == "row" and i.key not in kp.SWITCHES + kp.OPENERS]
-fresh(STATE + "rgb\ton\n"); keys = [i.key for i in p.items if i.kind == "row"]
+fresh(STATE + "rgb\ton\nsharesound\toff\n"); keys = [i.key for i in p.items if i.kind == "row"]
 print(dead, sorted(set(kp.SWITCHES) & set(kp.OPENERS)), sorted(set(kp.SWITCHES + kp.OPENERS) - set(keys)), [i.key for i in p.items if i.kind == "meter"] == list(kp.METERS))')" \
   "[] [] [] True" "no row without something to do, none in both lists, nothing listed that no row has; the meters are METERS, in order"
 case_ "what a row runs is something kawa-quick --do knows: a branch in its act() for each key the panel sends (the wheel's warmer and cooler, the meters' volume and brightness too)"
 for k in $(py 'print(*kp.SWITCHES, *kp.OPENERS, *[k for pair in kp.WHEELED.values() for k in pair], "volume", "brightness")'); do
   [[ $k == rgb ]] && ! grep -q 'kawa-rgb' "$REPO/bin/kawa-quick" && continue   # (lane-hardware's: its state key and its action, on that branch)
+  [[ $k == sharesound ]] && ! grep -q 'kawa-sharesound' "$REPO/bin/kawa-quick" && continue   # (lane-browser's)
   grep -qE "^[[:space:]]+([a-z|]+\|)?$k(\|[a-z|]+)?\)" "$REPO/bin/kawa-quick" && _ok || _no "kawa-quick has no branch for --do $k"
 done
 
@@ -657,7 +681,7 @@ eq "$(py 'i = kp.Item("k", "key", 0, 0, 10, 10, 0, name="x"); a, b = kp.look(i, 
 eq "$(py 'i = kp.Item("k", "hint", 0, 0, 10, 10, -1, name="x"); a, b = kp.look(i, False, False), kp.look(i, True, False); print(a["fill"], a["glyph"], a["label"], "|", b["fill"], b["glyph"], b["label"])')" "None muted muted | None strong strong" "a footer's hint: muted, the strong ink under the pointer; never a band"
 case_ "draw() takes every colour from look(): the cursor (the pointer moves it), nothing else decides"
 src=$(sed -n '/    def draw(widget, cr):/,/^    def on_key/p' "$REPO/bin/kawa-panel")
-has "$src" 'lk = look(it, focused, it.key == panel.hot)'
+has "$src" 'lk = look(it, focused, it.key == panel.hot, it.key == panel.pressed)'
 lacks "$src" 'text_on_select" if on else "text'
 case_ "no GTK widget with a hover look: the window holds one drawing area, painted whole; no transitions"
 has "$(cat "$REPO/bin/kawa-panel")" '* { transition: none; animation: none; }'
@@ -671,7 +695,7 @@ has "$d" 'box(cr, x + c, y, w - 2 * c, t, name)'; has "$d" 'box(cr, x + c, y + h
 has "$d" 'box(cr, x, y + t, t, h - 2 * t, name)'; has "$d" 'box(cr, x + w - t, y + t, t, h - 2 * t, name)'
 has "$d" 'frame(cr, 0, 0, W, H, "hair", cut=True)'
 has "$d" 'box(cr, HAIR, H, W - HAIR, 1, "shadow1")'; has "$d" 'box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")'; has "$d" 'box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")'
-has "$d" 'cr.translate(panel.ox, 0)' "the frame's own place in the window"
+has "$d" 'cr.translate(panel.ox, panel.oy)' "the frame's own place in the window"
 has "$d" 'box(cr, it.x, it.y, it.w, it.h, lk["fill"])' "the cursor: the row's place, the heading's own width"
 has "$d" 'box(cr, it.x, it.y, EDGE_W, it.h, lk["edge"])' "…its 2 px edge at the left"
 case_ "a heading's pixels: its icon (accent_text) in the icon column, its name (strong) from cell 3, the rule — 1 px edge2, solid, on the row's row 10 — to the content's edge (8 px before a value, muted, at its end)"
@@ -690,7 +714,8 @@ has "$d" 'row_icon(cr, it.x + GLYPH_X, it.y, g, lk["glyph"])'
 has "$d" 'ix, iy, iw, ih = box_'
 has "$d" 'right = it.x + it.w - RIGHT_IN'
 has "$d" 'caps(cr, right - w, it.y, it.keys)'
-has "$d" 'seal_mark(cr, it.x + it.w - RIGHT_IN - SEAL_W, it.y, it.seal)'
+has "$d" 'seal_mark(cr, right - w - CAP_GAP - SEAL_W, it.y, it.seal)' "a seal against its key: every key's last cap in one column, every seal in one"
+has "$d" 'seal_mark(cr, right - SEAL_W, it.y, it.seal)'
 has "$d" 'named(cr, it.x + NAME_X, ty, it.name, lk["label"], width=end - (it.x + NAME_X))'
 case_ "the chosen dot and a calendar's today, in pixels: a lit row with no value gets a 6 px vermilion dot at its right inset, its corners left out; today a filled seal, the row's height square, its corners left out, its digit in the paper's ink"
 has "$d" 'if it.lit and not it.value:'
@@ -737,7 +762,7 @@ case_ "kawa-quick failing: the last state stays"
 eq "$(py 'fresh(); p.refresh(); u.answer("", 1); print(p.state["night"])')" on
 case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: the lit vermilion)"
 for m in dark light; do
-  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_edge','text_on_select','asagi','flame','gold','sand','ai','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
+  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_hi','select_edge','text_on_select','asagi','flame','gold','sand','ai','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
 done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —
@@ -1014,7 +1039,7 @@ eq "$(py 'fresh(); u.at = (880, 0, 1920); p.request("menu kawa-calendar", kp.Men
   "('middle', 0, 0) 1 (194, 74) (196, 76) True"
 eq "$(py 'fresh(); p.request("menu kawa-calendar", kp.Menu(["a", "b"], drop=True, middle=True), lambda rc, t: 0); print(p.place, p.ox, p.win)')" "('middle', 0, None) 1 (196, 76)" "by a key: dwl's output"
 eq "$(py 'fresh(); p.request("menu kawa-drives", kp.Menu(["a", "b"], drop=True), lambda rc, t: 0); print(p.place, p.ox, p.win); p.request("menu kawa-power", kp.Menu(["a", "b"]), lambda rc, t: 0); print(p.place, p.ox, p.win)')" \
-  "$(printf '%s\n' "('right', 7, None) 0 (195, 76)" "('centre', 0, None) 0 (195, 76)")" "a dropdown from the right, a menu in the middle of the screen: the box and the shadow, no air before"
+  "$(printf '%s\n' "('right', 7, None) 0 (195, 76)" "('centre', 0, None) 0 (195, 78)")" "a dropdown from the right: the box and the shadow, no air before; a menu in the middle of the screen: two rows above it, as its shadow's under it — the frame centred to the pixel"
 eq "$(py 'fresh(); p.request("menu kawa-calendar", kp.Menu(["a", "b"], drop=True, middle=True), lambda rc, t: 0); p.close("chosen"); p.request("sound"); print(p.ox, p.win == (p.size[0] + 1, p.size[1] + 2))')" "0 True" "the next panel opens without it"
 case_ "opened by a click on the bar: centred under the pointer, on that output, kept 8 px inside its edges"
 eq "$(py 'print(kp.hang(1563, 0, 1920, 410), kp.hang(1616, 0, 1920, 312), kp.hang(1900, 0, 1920, 410), kp.hang(30, 0, 1920, 410), kp.hang(960, 0, 1920, 410))')" "1358 1460 1502 8 755" \
@@ -1123,6 +1148,13 @@ lay = kp.layout_menu(m); cells = [mk for mk in lay.marks if mk[0] == "cell"]
 print(lay.size, len(cells), [(c[1], c[2]) for c in cells[:8]], sorted({c[2] for c in cells}))
 print([c[3:5] for c in cells][:1], [c[1:7] for c in cells if c[6] == "today"], [(it.x, it.y, it.w, it.h) for it in lay.items])')" \
   "$(printf '%s\n' "(362, 230) 49 [(17, 45), (65, 45), (113, 45), (161, 45), (209, 45), (257, 45), (305, 45), (17, 65)] [45, 65, 85, 105, 125, 145, 165]" "[(40, 20)] [(65, 105, 40, 20, '16', 'today')] [(17, 193, 104, 20), (129, 193, 104, 20), (241, 193, 104, 20)]")"
+case_ "--lines N on a list typed into (Super+/): one size whatever the sheet — how many headings fall in its first lines changes nothing: the same box, the same place, every time (§4)"
+eq "$(py 'def sheet(parts):
+    L = []
+    for n in range(parts): L += ["part\tI\tp%d" % n] + ["info\t\tk%d\td" % i for i in range(60 // parts)]
+    return kp.layout_menu(kp.Menu(L, prompt="", fuzzy=True, caps=True, lines_shown=24))
+print({sheet(n).size[1] for n in (1, 2, 3, 6, 12)}, sheet(3).view[1], 24 * kp.ROW + 3 * (kp.HEAD_H + kp.SECTION))')" "{698} 624 624"
+eq "$(py 'print(kp.layout_menu(kp.Menu(["part\tI\tp", "info\t\tk\td"], prompt="", fuzzy=True, caps=True, lines_shown=24)).size[1])')" 122 "a sheet shorter than that: its own size (a pad, the field, a row of air, a heading and a row, a pad)"
 case_ "--lines N: N lines of choices whole, their headings above them not counted"
 eq "$(py 'print(kp.layout_menu(kp.Menu(["part\t共\tshare", "row\tx\ta", "row\tx\tb", "row\tx\tc"], lines_shown=3)).view)')" None "a heading and three rows, three asked: all of it, no scrolling"
 eq "$(py 'm = kp.Menu(["part\t起\tone"] + ["row\t\tk\td"] * 5 + ["part\t写\ttwo"] + ["row\t\tk\td"] * 5, lines_shown=6)
@@ -1302,15 +1334,21 @@ eq "$(py "fresh(); p.request('menu x', kp.Menu($S, index=True), lambda rc, t: 0)
 eq "$(py "fresh(); p.request('menu x', kp.Menu($S, index=True), lambda rc, t: 0); s = [p.focus]; [p.key('Right') or s.append(p.focus) for _ in range(5)]; p.key('Left'); s.append(p.focus); p.key('Up'); p.key('Down'); print(s, p.focus)")" \
   "['0', '1', '2', '3', '4', '4', '3'] 3" "← → along the row, its ends stay; ↑ ↓ nothing"
 eq "$(py "fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); p.key('Return'); print(r, p.visible)")" "['0'] False" "a seal that asks nothing: at once"
-case_ "restart and shut down need a second press: the first says so in the foot's place; moving away takes it back; a held key's repeat or a double click (under 350 ms) is no second press"
-A="fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); p.key('Right'); p.key('Right'); p.key('Right'); p.key('Right')"
+case_ "restart and shut down need a second press: the first says so in the foot's place; moving away takes it back; a key held down, or a double click (under 350 ms from the last press), is no second press"
+A="fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); tap = lambda k: (p.key(k), p.key_up()); tap('Right'); tap('Right'); tap('Right'); tap('Right')"
 eq "$(py "$A; p.key('Return'); print(r, p.visible, p.armed, p.item(p.armed).confirm)")" "[] True 4 press again to shut down" "the first press: nothing done"
-eq "$(py "$A; p.key('Return'); p.key('Return'); print(r, p.visible, p.armed); u.t += 0.3; p.key('Return'); print(r, p.visible); u.t += 0.1; p.key('Return'); print(r, p.visible)")" \
-  "$(printf '%s\n' "[] True 4" "[] True" "['4'] False")" "a repeat at once, one at 300 ms: nothing; at 400 ms: done"
-eq "$(py "$A; p.key('Return'); u.t += 1; p.key('Left'); print(p.armed, p.focus, r); u.t += 1; p.key('Return'); print(p.armed, p.visible); u.t += 1; p.key('Return'); print(r)")" \
+eq "$(py "$A; p.key('Return'); p.key_up(); p.key('Return'); p.key_up(); print(r, p.visible, p.armed); u.t += 0.3; p.key('Return'); p.key_up(); print(r, p.visible); u.t += 0.4; p.key('Return'); print(r, p.visible)")" \
+  "$(printf '%s\n' "[] True 4" "[] True" "['4'] False")" "pressed again at once, and 300 ms after that: nothing; 400 ms after the last: done"
+HELD="$A; p.key('Return'); u.t += 0.3; p.key('Return'); [(setattr(u, 't', u.t + 0.029), p.key('Return')) for _ in range(100)]"
+eq "$(py "$HELD; print(r, p.visible, p.armed)")" "[] True 4" "Enter held (dwl: 300 ms, then every 29 ms; GDK makes each a press), 3 s: nothing"
+eq "$(py "$HELD; u.t += 5; p.key('Return'); print(r, p.visible)")" "[] True" "… a stalled machine, 5 s between two repeats, still no key let go: nothing"
+eq "$(py "$HELD; p.key_up(); u.t += 0.1; p.key('Return'); p.key_up(); print(r, p.visible); u.t += 0.4; p.key('Return'); print(r, p.visible)")" \
+  "$(printf '%s\n' "[] True" "['4'] False")" "… let go, and pressed again: too soon no, then done"
+eq "$(py "$HELD; p.key_up(); tap('Left'); tap('Right'); print(p.armed, r); tap('Return'); print(p.armed, r)")" "$(printf '%s\n' "None []" "4 []")" "… moved away and back: asks again"
+eq "$(py "$A; tap('Return'); u.t += 1; tap('Left'); print(p.armed, p.focus, r); u.t += 1; tap('Return'); print(p.armed, p.visible); u.t += 1; tap('Return'); print(r)")" \
   "$(printf '%s\n' "None 3 []" "3 True" "['3']")" "moved away: asked no more; restart asks for its own"
 eq "$(py "$A; p.key('Return'); u.t += 1; i = p.item('0'); p.hover(i.x + 2, i.y + 2); print(p.armed, p.focus, r)")" "None 0 []" "the pointer moved off it too"
-eq "$(py "fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); i = p.item('4'); p.press(i.x + 2, i.y + 2); a = (r[:], p.armed, p.visible); u.t += 0.1; p.press(i.x + 2, i.y + 2); b = (r[:], p.visible); u.t += 0.3; p.press(i.x + 2, i.y + 2); print(a, b, r, p.visible)")" \
+eq "$(py "fresh(); r = []; p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); i = p.item('4'); p.press(i.x + 2, i.y + 2); a = (r[:], p.armed, p.visible); u.t += 0.1; p.press(i.x + 2, i.y + 2); b = (r[:], p.visible); u.t += 0.4; p.press(i.x + 2, i.y + 2); print(a, b, r, p.visible)")" \
   "([], '4', True) ([], True) ['4'] False" "by clicks: a double click is no second press; a click after it is"
 eq "$(py "$A; p.key('Return'); p.key('Escape'); print(p.armed, r, p.visible); p.request('menu x', kp.Menu($S, index=True), lambda rc, t: r.append(t)); print(p.armed)")" "$(printf '%s\n' "None [''] False" None)" "Esc: nothing done (its caller told: dismissed), nothing remembered"
 case_ "the options as kawa-menu passes them"

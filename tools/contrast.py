@@ -155,6 +155,7 @@ def panel_pairs(m):
     # (the cursor: a 12 % tint and a 2 px edge of the seal's red; every ink keeps its own on it, so each is measured)
     return [("the panels", "the item under the cursor: its words", c["text_on_select"], c["select"], WORDS),
             ("the panels", "the item under the cursor: its picture", c["strong"], c["select"], ICON),
+            ("the panels", "an item held down by the pointer: its words", c["text_on_select"], c["select_hi"], WORDS),
             ("the panels", "the item under the cursor: its value", c["text"], c["select"], WORDS),
             ("the panels", "the item under the cursor: its key's label on its cap", c["muted"], c["key"], ICON),
             ("the panels", "the item under the cursor: the cursor's edge", c["select_edge"], c["select"], SHAPE),

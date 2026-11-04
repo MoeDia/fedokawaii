@@ -476,6 +476,30 @@ PY
   grep -q '^#input-field {' "$css" && _ok || _no "$t: without the module the line has no look of its own"
   grep -q 'transition: none;' "$css" && _ok || _no "$t: a transition could ease gtklock's line in for frames"
 done
+case_ "the gate (tools/build-lock.py): its frames side by side, shut first, each different, the last the scene's own; the row of marks inside it, on the gate's own dark"
+for t in dark light; do
+  out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
+import sys
+from PIL import Image, ImageChops
+d = sys.argv[1]
+kv = {}
+for line in open(f"{d}/lock-scene.txt"):
+    w = line.split("#")[0].split()
+    if w: kv.setdefault(w[0], []).append(w[1:])
+x, y, w, h, n = map(int, kv["gate"][0])
+strip = Image.open(f"{d}/lock-gate.png").convert("RGB")
+scene = Image.open(f"{d}/lock-scene.png").convert("RGB")
+assert strip.size == (w * n, h), f"strip {strip.size}, gate {w} {h} {n}"
+frames = [strip.crop((i * w, 0, (i + 1) * w, h)) for i in range(n)]
+assert all(ImageChops.difference(a, b).getbbox() for a, b in zip(frames, frames[1:])), "two frames alike"
+assert not ImageChops.difference(frames[-1], scene.crop((x, y, x + w, y + h))).getbbox(), "the scene is not the gate open"
+rx, ry, pitch, rn = map(int, kv["row"][0])
+assert x <= rx - 1 and rx + pitch * rn + 1 < x + w and y <= ry - 1 and ry + 1 < y + h, "the row outside the gate"
+print("gate ok")
+PY
+)
+  eq "$out" "gate ok" "$t"
+done
 m=$REPO/src/kawa-lockmod/kawa-lockmod.c
 grep -q 'gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");' "$m" && _ok || _no "the module does not mark its windows"
 grep -q 'gtk_widget_set_opacity(win->window_box, 0);' "$m" && _ok || _no "gtklock's line could show for frames before the stylesheet hides it (master T20/1)"
