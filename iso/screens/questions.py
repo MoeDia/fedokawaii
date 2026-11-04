@@ -20,7 +20,7 @@ from console import (ACCENT, ACCENT_TEXT, EDGE2, FAINT, MUTED, ON_SELECT, SELECT
                      message_page, power_off, restart, run, wrap)
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-MIN_DISK_GIB = 60
+MIN_DISK_GB = 60
 MIN_RAM_MIB = 3584               # (check.sh's: a "4 GB" machine shows about 3.7 GiB)
 METALINK = "https://mirrors.fedoraproject.org/metalink?repo=fedora-@REL@&arch=x86_64"
 RELEASE = "45"
@@ -82,8 +82,9 @@ def holds(d):
     return ", ".join(sorted(kinds)) if kinds else "empty"
 
 
-def gib(n):
-    return n / 1024 ** 3
+def gb(n):
+    """As disks are sold and as size_words says it: "60 GB" passes for 60 GB."""
+    return n / 1000 ** 3
 
 
 def size_words(n):
@@ -229,9 +230,9 @@ def checks(s):
     if gpu:
         refuse(s, "monitor", "no graphics to build on", gpu)
     ds = disks()
-    if not ds or gib(ds[0][2]) < MIN_DISK_GIB:
-        have = f"the largest disk here holds {size_words(ds[0][2])}." if ds else "no disk was found."
-        refuse(s, "drive", "no disk large enough", f"{have} fedokawaii needs {MIN_DISK_GIB} GB.")
+    if not ds or gb(ds[0][2]) < MIN_DISK_GB:
+        have = f"the largest disk inside this PC holds {size_words(ds[0][2])}." if ds else "no disk was found inside this PC."
+        refuse(s, "drive", "no disk large enough", f"{have} fedokawaii needs {MIN_DISK_GB} GB.")
     reason = network_reason()
     if reason:
         refuse(s, "ethernet", "no network", reason)
@@ -337,7 +338,7 @@ class Form:
     def __init__(self, s, ds, geoip):
         self.s, self.ds = s, ds
         # (the one that fits, if there is only one; among several the choice is yours, never a default)
-        fit = [d for d in ds if gib(d[2]) >= MIN_DISK_GIB]
+        fit = [d for d in ds if gb(d[2]) >= MIN_DISK_GB]
         self.disk = fit[0][0] if len(fit) == 1 else ""
         tz = geoip.get("time_zone") or "UTC"
         if tz not in zones():
@@ -479,7 +480,7 @@ class Form:
 
     def pick_disk(self):
         words = {self.disk_words(d): d for d in self.ds}
-        small = {w for w, d in words.items() if gib(d[2]) < MIN_DISK_GIB}
+        small = {w for w, d in words.items() if gb(d[2]) < MIN_DISK_GB}
         got = self.picker("disk", "drive", list(words), self.fields["disk"].value, small)
         if got:
             self.fields["disk"].value, self.disk = got, words[got][0]

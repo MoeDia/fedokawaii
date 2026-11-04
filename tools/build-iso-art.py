@@ -273,25 +273,27 @@ def grub(out):
         Image.new("RGBA", (1, 1), (0, 0, 0, 0)).save(out / f"term_{part}.png", optimize=True)
     item_h, pad = 24 * gs, 8 * gs
     bw, bh = MENU_W + 2 * pad + 4 * gs * 2, len(MENU) * item_h + 2 * pad
+    # (the torii where the splash has it, so that it stays still from the menu on; GRUB's terminal, which
+    # paints over everything under it as an entry starts, covers the menu and the hem and leaves the torii)
     (out / "theme.txt").write_text(f"""# the boot menu of the fedokawaii installer (tools/build-iso-art.py): PNG words, no font
 desktop-color: "#{P['ground']}"
 title-text: ""
 terminal-box: "term_*.png"
-terminal-left: "50%-490"
-terminal-top: "100%-770"
-terminal-width: "980"
-terminal-height: "530"
+terminal-left: "0"
+terminal-top: "50%-20"
+terminal-width: "100%"
+terminal-height: "50%+20"
 
 + image {{
     left = 0 top = 100%-240
     file = "hem.png"
 }}
 + image {{
-    left = 50%-44 top = 50%-{bh // 2 + 120}
+    left = 50%-44 top = 50%-108
     file = "torii.png"
 }}
 + boot_menu {{
-    left = 50%-{bw // 2} top = 50%-{bh // 2} width = {bw} height = {bh}
+    left = 50%-{bw // 2} top = 50%+4 width = {bw} height = {bh}
     menu_pixmap_style = "menu_*.png"
     selected_item_pixmap_style = "select_*.png"
     item_height = {item_h} item_padding = {pad} item_spacing = 0
@@ -300,7 +302,7 @@ terminal-height: "530"
 }}
 + progress_bar {{
     id = "__timeout__"
-    left = 50%-{bw // 2} top = 50%+{bh // 2 + 4 * gs - 1} width = {bw} height = {ph}
+    left = 50%-{bw // 2} top = 50%+{4 + bh + 4 * gs - 1} width = {bw} height = {ph}
     bar_style = "bar_*.png" highlight_style = "hl_*.png"
 }}
 """, encoding="utf-8")
