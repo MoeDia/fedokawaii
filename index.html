@@ -82,6 +82,7 @@ details summary{cursor:pointer}.notes{color:var(--soft);white-space:pre-wrap;mar
 <section class="card"><h2>Control</h2><div class="row">
 <button data-a="nonstop">main: non-stop until done</button><button data-a="daily">main: 1 h a day</button><button data-a="bulk" data-h="6">main: bulk 6 h</button>
 <button data-a="newpass">restart main's pass</button><button data-a="conductor">start the conductor</button><button data-a="selfupdate">update this page</button><button data-a="stop" class="red">stop everything</button></div>
+<div class="row" style="margin-top:10px"><span class="sub">lanes at once:</span><b id="maxl">–</b><button class="sm" onclick="setMax(-2)">− 2</button><button class="sm" onclick="setMax(2)">+ 2</button><span class="sub">(the conductor still waits while the PC is overloaded or low on memory)</span></div>
 <div class="msg" id="cmsg"></div><div class="sub" id="cond"></div></section>
 </div>
 
@@ -159,8 +160,8 @@ function render(s){
  put("lanes",JSON.stringify(Ls.map(l=>[l.name,l.state,l.last,l.ahead,l.notes,l.report,l.paused,Math.floor((l.seconds||0)/1800)])),'<table class="lanes"><tr><th>lane</th><th>state</th><th>last saved step · its report</th><th></th></tr>'+Ls.map(l=>'<tr><td><b>'+esc(l.name)+'</b><div class="sub">'+(l.mode=="sys"?"system":"lane")+(l.ahead?" · "+l.ahead+" commits":"")+'</div></td><td><span class="st '+l.state+'">'+l.state+'</span><div class="sub">'+dur(l.seconds)+'</div></td><td>'+
   (l.last?'<span class="sub">'+esc(l.last.split("\t")[0])+'</span> '+esc(l.last.split("\t")[1]||""):'<span class="sub">nothing saved yet</span>')+
   '<details data-k="'+esc(l.name)+'"><summary class="sub">report, notes, task</summary>'+(l.report?'<div class="notes" style="color:var(--ink)">'+esc(l.report)+'</div>':'')+'<div class="notes">'+esc(l.notes.join("\n"))+'</div><div class="sub" style="margin-top:4px">task: '+esc(l.task)+'</div></details></td><td>'+
-  (l.state=="done"?"":l.paused?'<button class="sm" onclick="lane(\'resume\',\''+esc(l.name)+'\')">resume</button>':'<button class="sm" onclick="lane(\'pause\',\''+esc(l.name)+'\')">pause</button>')+'</td></tr>').join("")+'</table>');
- const C=s.conductor||{};$("cond").innerHTML="conductor: <b>"+(C.active?"running":"off")+"</b>"+(C.maxl?" · up to "+C.maxl+" lanes at once":"")+" · starts lanes only while 5 GB RAM is free";
+  ((l.state=="waiting"||l.state=="queued")&&!l.paused?'<button class="sm" title="start this one next" onclick="lane(\'first\',\''+esc(l.name)+'\')">↑ next</button> ':'')+(l.state=="done"?"":l.paused?'<button class="sm" onclick="lane(\'resume\',\''+esc(l.name)+'\')">resume</button>':'<button class="sm" onclick="lane(\'pause\',\''+esc(l.name)+'\')">pause</button>')+'</td></tr>').join("")+'</table>');
+ const C=s.conductor||{};$("maxl").textContent=C.maxl||"–";$("cond").innerHTML="conductor: <b>"+(C.active?"running":"off")+"</b>"+(C.maxl?" · up to "+C.maxl+" lanes at once":"")+" · starts lanes only while 5 GB RAM is free";
  $("clog").textContent=(C.log||[]).join("\n")||"–";
  /* design: grouped by lane; while you are looking at it, new renders wait behind a bar */
  const G=s.gallery||[],fresh=G.filter(g=>g.v>seen).length;if(!$("p-ds").classList.contains("on"))$("b-ds").textContent=fresh||"";
@@ -212,6 +213,7 @@ document.querySelectorAll("[data-a]").forEach(b=>b.onclick=()=>{const a=b.datase
 $("send").onclick=async()=>{const v=$("tt").value.trim();if(!v)return;if(await post({action:"task",text:v},"sent")){$("tt").value="";$("tmsg").textContent="sent — the run reads it at its next pass"}};
 async function fb(item,verdict,el){if(await post({action:"feedback",item,verdict,text:el?el.value:""},"saved: "+item+" — "+verdict)){if(el)el.value="";setTimeout(()=>{if(LB>=0)lbOpen(LB);drawGal()},1200)}}
 async function ans(key,el){const v=el.value.trim();if(!v)return el.focus();if(await post({action:"answer",key,text:v},"answer sent: the lane and the main run both have it"))el.value=""}
-function lane(a,n){if(a=="pause"&&!confirm("Pause lane "+n+"? Its saved work stays; resume any time."))return;post({action:a,lane:n},a+"d: "+n)}
+function setMax(d){const n=Math.max(4,Math.min(24,((S&&S.conductor.maxl)||14)+d));post({action:"maxl",n},"lanes at once: "+n)}
+function lane(a,n){if(a=="pause"&&!confirm("Pause lane "+n+"? Its saved work stays; resume any time."))return;post({action:a,lane:n},a=="first"?n+" starts next":a+"d: "+n)}
 tick();setInterval(tick,8000);document.addEventListener("visibilitychange",()=>{if(!document.hidden)tick()});
 </script></body></html>

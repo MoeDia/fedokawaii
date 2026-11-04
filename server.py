@@ -366,6 +366,27 @@ def act(d):
            "sleep 1; d=$(mktemp -d) && git clone -q -b remote --depth 1 https://github.com/MoeDia/fedokawaii $d/r && "
            "python3 -c 'import ast,sys; ast.parse(open(sys.argv[1]).read())' $d/r/server.py && "
            f"install -m644 $d/r/server.py $d/r/index.html {Path(__file__).parent}/ && rm -rf $d && systemctl --user restart fk-remote")
+    elif a == "maxl":                                # how many lanes may run at once (the conductor re-reads it on restart)
+        n = max(4, min(int(d.get("n", 14)), 24))
+        with LOCK:
+            t = read(CONDUCTOR)
+            if "MAXL=" not in t:
+                return False
+            CONDUCTOR.write_text(re.sub(r"MAXL=\d+", f"MAXL={n}", t, count=1))
+        sh("systemctl", "--user", "restart", "r27-lane-conductor.service")
+    elif a == "first":                               # a lane to the top of the conductor's list
+        name = str(d.get("lane", ""))
+        if not NAME.match(name):
+            return False
+        with LOCK:
+            lines = read(REG).splitlines()
+            mine = [l for l in lines if l.lstrip("#").startswith(name + "|")]
+            if not mine:
+                return False
+            head = [l for l in lines if l.startswith("# ")]
+            rest = [l for l in lines if l not in mine and not l.startswith("# ") and l.strip()]
+            tmp = REG.with_suffix(".tmp"); tmp.write_text("\n".join(head + mine + rest) + "\n"); os.replace(tmp, REG)
+        _cache.clear()
     elif a == "conductor":
         sh("systemctl", "--user", "enable", "--now", "r27-lane-conductor.service")
     elif a == "feedback":
