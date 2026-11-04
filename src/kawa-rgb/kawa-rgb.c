@@ -5,10 +5,10 @@
  * program with no libraries and no scanner: the motherboard's Mystic Light and the Redragon K617
  * over hidraw feature reports, the Gigabyte card's logo over its I2C bus. Each device has its own
  * colour value (rgb.conf), so that they look the same, and nothing moves: while nothing changes
- * this sends nothing to anything. It changes on events only:
+ * they are sent nothing. It changes on events only:
  *
  *   the lock screen up     a fade to about 30 %
- *   screens off, a sleep   off
+ *   screens off, a sleep   out, quickly (it looks ten times a second)
  *   unlocked, awake        back to full
  *   the switch             on or off for everything (quick settings), kept across reboots, in the
  *                          hardware's memory too: off is off from power-on
@@ -55,8 +55,9 @@
 #include <unistd.h>
 
 #define FADE_MS 125                 /* a step of a fade: 8 a second, the card's register takes 9 */
-#define IDLE_MS 500                 /* a look at the screens and the switch while nothing moves */
-#define FADE_STEP 0.125             /* of the whole way, a step: a second from full to nothing */
+#define IDLE_MS 100                 /* a look at the screens and the switch while nothing moves */
+#define FADE_STEP 0.125             /* of the whole way, a step: the lock's fade, about a second */
+#define OUT_STEP 0.34               /* going out with the screens: three steps */
 #define GAMMA 2.2                   /* LEDs are linear, the eye is not: a level is what it looks */
 
 /* ── the machine's paths ─────────────────────────────────────────────────────────── */
@@ -504,23 +505,48 @@ static void disp_tick(void)
 }
 
 /* ── what decides ────────────────────────────────────────────────────────────────── */
-static bool screens_on(void)     /* lit while any connected screen is on, from DRM */
+/* lit while any connected screen is on, from DRM: asked ten times a second, so its files are kept
+ * open and only read again; the list made anew every couple of seconds */
+struct screen { int status, dpms; };
+static struct screen screens[16];
+static int nscreens;
+static void screens_find(void)
 {
-    char buf[32];
+    for (int i = 0; i < nscreens; i++) {
+        close(screens[i].status);
+        close(screens[i].dpms);
+    }
+    nscreens = 0;
     DIR *d = opendir(at("/sys/class/drm"));
     if (!d)
-        return false;
-    bool on = false;
-    for (struct dirent *e; !on && (e = readdir(d));) {
+        return;
+    for (struct dirent *e; nscreens < 16 && (e = readdir(d));) {
         if (strncmp(e->d_name, "card", 4) || !strchr(e->d_name, '-'))
             continue;
-        if (slurp(at("/sys/class/drm/%s/status", e->d_name), buf, sizeof buf) < 0 || strncmp(buf, "connected", 9))
-            continue;
-        if (slurp(at("/sys/class/drm/%s/dpms", e->d_name), buf, sizeof buf) >= 0 && !strncmp(buf, "On", 2))
-            on = true;
+        int a = open(at("/sys/class/drm/%s/status", e->d_name), O_RDONLY | O_CLOEXEC);
+        int b = open(at("/sys/class/drm/%s/dpms", e->d_name), O_RDONLY | O_CLOEXEC);
+        if (a >= 0 && b >= 0) {
+            screens[nscreens].status = a;
+            screens[nscreens++].dpms = b;
+        } else {
+            if (a >= 0)
+                close(a);
+            if (b >= 0)
+                close(b);
+        }
     }
     closedir(d);
-    return on;
+}
+static bool screens_on(void)
+{
+    char buf[16];
+    for (int i = 0; i < nscreens; i++) {
+        if (pread(screens[i].status, buf, sizeof buf, 0) < 9 || strncmp(buf, "connected", 9))
+            continue;
+        if (pread(screens[i].dpms, buf, sizeof buf, 0) >= 2 && !strncmp(buf, "On", 2))
+            return true;
+    }
+    return false;
 }
 static double clock_s(clockid_t c)
 {
@@ -604,6 +630,7 @@ static int run(const char *trace_path)
     bool on = switched_on(), was_on = on;
     double level = -1;              /* where the fade is: at the first look, it goes there at once */
 
+    screens_find();
     for (size_t i = 0; i < NLIGHTS; i++)
         lights[i].dirty = true;
     while (!stopping) {
@@ -627,10 +654,11 @@ static int run(const char *trace_path)
         bool lit = screens_on(), asleep = sleeping();
         double target = !on || !lit || asleep ? 0 : locked() ? dim_level : 1;
         const char *word = !on ? "switched off" : asleep ? "off, asleep" : !lit ? "off, screens off" : target < 1 ? "dim" : "full";
-        if (level < 0 || asleep || fabs(target - level) <= FADE_STEP)
+        double step = target == 0 ? OUT_STEP : FADE_STEP;
+        if (level < 0 || asleep || fabs(target - level) <= step)
             level = target;
         else
-            level += target > level ? FADE_STEP : -FADE_STEP;
+            level += target > level ? step : -step;
 
         if (on != was_on)
             for (size_t i = 0; i < NLIGHTS; i++)
@@ -640,6 +668,7 @@ static int run(const char *trace_path)
         /* the devices: gone ones looked for, each one's memory, then what has changed */
         if (now >= next_check) {
             next_check = now + 2;
+            screens_find();
             for (size_t i = 0; i < NLIGHTS; i++)
                 if (&lights[i] != CARD && lights[i].fd >= 0 && !alive(lights[i].fd)) {
                     let_go(&lights[i]);
