@@ -5,7 +5,8 @@
 # frame looked at — dwl's ghost of the window must be its page as it was: the heading, the
 # rows, the cursor's fill — never a blank terminal with a lone cursor. (Put away, the page rolls
 # up into its top edge, frozen as it stood — T19: whatever is still open above its rod is the
-# open page's own rows, pixel for pixel.)
+# open page's own rows, pixel for pixel.) A floating terminal that is not warm (Super+R) as well: fzf
+# clears its page on exit unless told (--no-clear), and an empty paper rolled away (lane-review, 4 Nov).
 #   bash tools/regress/warm-exit.sh [KIT OPTION…]   (e.g. --bin bin --repo-art before an apply)
 # Exit 0 held · 1 broken (said) · 2 the kit could not run
 set -u
@@ -28,16 +29,31 @@ nap 2
 key Return
 nap 0.04
 shot enter
+nap 1.5
+chord logo r
+nap 2.5
+shot open-books
+key Escape
+nap 0.04
+shot esc-books
+nap 1.5
+chord logo r
+nap 2.5
+key Escape
+nap 0.12
+shot mid-books
 PLAY
 fail=0
 no() { echo "warm-exit ($th): $*" >&2; fail=1; }
 for th in dark light; do
   bash "$here/../kit.sh" --theme "$th" "$@" --out "$out/$th" --play "$out/play.sh" play >"$out/kit-$th.log" 2>&1 \
     || { echo "warm-exit: the kit failed: $(tail -n 2 "$out/kit-$th.log")" >&2; exit 2; }
-  for f in esc enter; do
+  # (mid-books: well into the roll-up, where a wiped page shows: at 40 ms fzf may not have ended yet)
+  for f in esc enter esc-books mid-books; do
+    o=open; [[ $f == *-books ]] && o=open-books
     # the page's ink in the window's box, against the open window's: a ghost keeps nearly all
     # of it (it fades: an ink a little off still counts); a wiped terminal keeps none
-    m=$(python3 -I - "$out/$th/open.png" "$out/$th/$f.png" <<'EOF'
+    m=$(python3 -I - "$out/$th/$o.png" "$out/$th/$f.png" <<'EOF'
 import sys
 from PIL import Image
 a = Image.open(sys.argv[1]).convert("RGB"); b = Image.open(sys.argv[2]).convert("RGB")
@@ -65,11 +81,11 @@ for y in range(ya, yb):
 print(was, both)
 EOF
 )
-    [[ $m != none ]] || { no "the clipboard did not open"; break; }
+    [[ $m != none ]] || { no "$o: the window did not open"; break; }
     [[ $m != late ]] || { no "closing by $f: the shot came after the scroll had all but closed — nothing to judge"; continue; }
     read -r was now <<<"$m"
     ((was > 0 && now * 100 >= was * 90)) || no "closing by $f: $now of the open page's $was ink points above the rod — a page wiped before it went"
   done
 done
 ((fail)) && exit 1
-echo "warm-exit: held — Esc and Enter: the clipboard rolls up as its page was, both themes"
+echo "warm-exit: held — Esc and Enter: the clipboard rolls up as its page was, Super+R too, both themes"

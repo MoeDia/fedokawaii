@@ -109,8 +109,8 @@ grep -q 'dx = tagdx(c);' <<<"$f" \
   && grep -q 'anim_tag_wave \* 0.5 \* (in + (dir > 0 ? n : 1.0 - n));' <(sed -n '/^+tagwave(Client \*c, int dir, int in)$/,/^+}/p' "$P") \
   && grep -q 'return m->m.width + RAIL_CELLS \* moncell(m);' <(sed -n '/^+stripw(Monitor \*m)$/,/^+}/p' "$P") \
   && grep -q ': kind == AnimSlide ? anim_slide_ms : anim_tag_ms;' "$P" && grep -q '^+		railstart(m, dir, was, now);' "$P" \
-  && grep -q 'tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : x + m->stripd, m->stripv, 0);' "$P" \
-  && grep -q 'm->stripx0 = (int)lround(X) + dir \* stripw(m);' <(sed -n '/^+stripstart(Monitor \*m, int dir)$/,/^+}/p' "$P") \
+  && grep -q 'tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : (int)lround((double)(x + m->stripd) / w) \* w,' "$P" \
+  && grep -q 'm->stripx0 = (int)lround(X) + dir \* stripw(m);' <(sed -n '/^+stripstart(Monitor \*m, int dir, uint32_t was)$/,/^+}/p' "$P") \
   && grep -q 'r->x1 = r->x0 + m->stripd;' "$P" \
   && grep -q 'back |= r->tags == was && r->from == now;' "$P" \
   && grep -q 'railfree(r);' <(added cleanupmon; sed -n '/^ cleanupmon(/,/^ }/p' "$P"; grep -A3 'wl_list_for_each_safe(r, rtmp, &rails, link)' "$P") \
@@ -182,7 +182,7 @@ grep -q '!locked && c && c->mon && !c->isfullscreen' <(added animok) && grep -q 
   && grep -q 'if (c->mon == m && c->isfullscreen && (c->tags & (was | now)))' "$P" && _ok || _no "an exclusion is missing"
 
 case_ "an animation waits while its monitor is held for a window to draw its new size (its clock moved on: nothing lost to an unshown frame)"
-grep -q '^+		held = pending && m->holding && !m->holdover;' "$P" && [[ $(grep -c 't0 += now - .*last;' <(added animframe)) == 4 ]] \
+grep -q '^+		held = pending && m->holding && !m->holdover;' "$P" && [[ $(grep -c 't0 += now - .*last;' <(added animframe)) == 5 ]] \
   && ! sed -n '/if (held)/,/continue;/p' <(added animframe) | grep -q 'left = 1' \
   && _ok || _no "animframe ignores holdmon, or asks for frames while held (a held screen answering its own frames: dwl ran out of memory)"
 
