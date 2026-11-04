@@ -114,7 +114,7 @@ game_running() {   # a Steam game (its reaper) or a Windows program (Bottles' wi
 # session.slice, go on: PipeWire must let go of the sound card when the seat changes)
 # (the kernel's own freezer, on the slice's cgroup: systemctl freeze takes services and scopes, not slices)
 app_slice() { local u; u=$(uid); printf '%s\n' "${KAWA_ASOBI_CGROUP:-/sys/fs/cgroup}/user.slice/user-$u.slice/user@$u.service/app.slice"; }
-freeze() { echo 1 >"$(app_slice)/cgroup.freeze" && state frozen; }
+freeze() { if echo 1 >"$(app_slice)/cgroup.freeze"; then state frozen; else state away; fi; }
 thaw() { [[ -e $(app_slice)/cgroup.freeze ]] && echo 0 >"$(app_slice)/cgroup.freeze"; return 0; }
 
 # ── a file either side dropped must be readable by the other, whatever mode it came with ───
