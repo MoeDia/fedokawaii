@@ -24,10 +24,12 @@ typing filters a long list. A screen with a key of its own shows it on its last 
 what it does, and its state — and nothing else there: Super+/ has all the rest.
 
 **The wallpaper picker** (**Super+W**) lists the theme's pictures, with the one under the cursor
-shown underneath, as the screen will show it. Hold ↓ to run through them; **Enter** sets one,
-**Esc** leaves everything as it was. Its own key is on its last line — *r  change every 4 h  off*:
-**r** (or a click on that line) turns it on, and from then on the pack's next picture goes up
-every four hours of a session, by itself. It stays as you left it across logins.
+shown underneath, as the screen will show it, the list in its sections with the old masters near
+the top. Hold ↓ to run through them; **Enter** sets one, **Esc** leaves everything as it was. Under
+the list are its settings, every value in sight, each with its key (or a click on its row):
+**r** *change by itself* — off, every hour, every 4 hours, daily; **o** *order* — in turn or
+shuffled; **s** *from* — the old masters, the scenes, or both. They stay as you left them across
+logins.
 
 **The one transition.** A theme switch (**Super+Shift+W**) and a new wallpaper share one
 transition: the old screen fades away over a third of a second, drawn at every refresh of the

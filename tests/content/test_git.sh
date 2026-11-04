@@ -69,7 +69,8 @@ run >/dev/null
 args=$(cat "$TMP/fzf.args.1")
 heading_ok "$(hdr none)" 76
 has "$(kawa-git --heading none 76)" "no repositories yet"
-has "$args" "--footer="$'\n\e[48;5;18m\e[38;5;23m c \e[0m \e[38;5;21mclone\e[0m   \e[48;5;18m\e[38;5;23m n \e[0m \e[38;5;21mnew\e[0m' "its two keys (§7: the key a keycap, what it does muted, three columns apart)"
+tile() { bash -c 'INK_MUTED=$'"'"'\e[38;5;21m'"'"' INK_OFF=$'"'"'\e[0m'"'"'; . "$1"; screen_tile "$2"' _ "$REPO/configs/home/.config/fedokawaii/screen.sh" "$1"; }
+has "$args" "--footer="$'\n'"$(tile c) "$'\e[38;5;21mclone\e[0m   '"$(tile n) "$'\e[38;5;21mnew\e[0m' "its two keys (§7: the key a tile, what it does muted, three columns apart)"
 has "$args" "--bind=c:pos(1)+accept,n:pos(2)+accept"
 has "$(plain <"$TMP/fzf.in.1")" "clone one"; has "$(plain <"$TMP/fzf.in.1")" "start a new one"
 

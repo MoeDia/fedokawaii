@@ -3,7 +3,7 @@ id: launcher-calc
 title: launcher, calculator, downloads
 part: desktop
 chapter: 7
-minutes: 10
+minutes: 11
 needs: [desks-session]
 optional: no
 ---
@@ -18,11 +18,11 @@ optional: no
 
 ## 7.1 the launcher
 
-**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `ste` for Steam, `syn` for
+**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `as` for ASOBI, `syn` for
 Syncplay — and **Enter**. The programs you start most rise to the top. **Shift+Delete** makes one
 forget its rank.
 
-Each entry has its icon: a window program shows its own (Brave, Steam, LibreOffice); every other
+Each entry has its icon: a window program shows its own (Brave, LibreOffice); every other
 entry — the terminal programs, the pages in Brave — one of the desktop's own **pixel icons**, in
 the theme's red: a terminal for Terminal, a pair of brackets for the Editor, a folder for Files,
 a branch for Git, a page for Notes, a clipboard, a calculator, a wrench for the file tools, a
@@ -35,9 +35,10 @@ icon and *copy* at its right. **Enter** copies it: a notice says *copied*, the a
 
 ## 7.2 the calculator
 
-*Calculator* in the launcher (**Super+Space**, `calc`): type a sum, a percentage or a
-conversion and the answer shows as you type; **Enter** copies it. **↑** brings back the sum
-before, **Ctrl+U** clears, **Esc** closes.
+*Calculator* in the launcher (**Super+Space**, `calc`), a small panel over whatever you are doing:
+type a sum, a percentage or a conversion and the answer shows large as you type; **Enter** copies
+it and keeps the sum below. **↑** brings back the sum before, **↓** goes down to the session's sums
+(**Enter** copies one), **Ctrl+U** clears, **Ctrl+Q** opens qalc's own prompt, **Esc** closes.
 
 | You type | You see |
 |---|---|
@@ -48,7 +49,7 @@ before, **Ctrl+U** clears, **Esc** closes.
 
 ## 7.3 the downloads centre
 
-Anything that downloads — Brave, Steam, a torrent — shows in the bar's download mark as one
+Anything that downloads — Brave, a torrent — shows in the bar's download mark as one
 percent. Click it for the list: each download with its source, size and progress; a click opens
 where it lands. A notice says when each one finishes.
 

@@ -463,7 +463,7 @@ FZF_MATCH_COUNT=0 bash -c "$c"; eq "$(cur)" "$WIN " "(with bash as \$SHELL)"
 bind focus 1 >/dev/null 2>&1; FZF_MATCH_COUNT=2 sh -c "$c"; eq "$(kawa-clip --held)" 1 "matches: left as it is"
 case_ "… fzf listens on its socket, for the history's reload"
 has "$(cat "$FZF_ARGS")" "--listen=$XDG_RUNTIME_DIR/kawa-clip.sock"
-has "$(cat "$FZF_ARGS")" $'\e[48;5;18m\e[38;5;23m super+z \e[0m \e[38;5;21mshrink' "its last line names the key, a keycap (§7)"
+has "$(cat "$FZF_ARGS")" "$(bash -c 'INK_MUTED=$'"'"'\e[38;5;21m'"'"' INK_OFF=$'"'"'\e[0m'"'"'; . "$1"; screen_tile super+z' _ "$REPO/configs/home/.config/fedokawaii/screen.sh") "$'\e[38;5;21mshrink' "its last line names the key, a tile (§7)"
 lacks "$(cat "$FZF_ARGS")" "enter copy" "nothing obvious (§7)"
 case_ "a new copy while it is open (--store): the window's list reloaded, the cursor on the newest"
 stub curl

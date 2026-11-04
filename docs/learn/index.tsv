@@ -92,7 +92,7 @@ L	menus-notices	012-menus-notices.md	10	desktop	5	menus and notices	11	the-bar	5
 L	clipboard-shots	013-clipboard-shots.md	11	desktop	6	clipboard, screenshots, recordings	3	desks-session	6.1 the clipboard and its history|6.2 screenshots|6.3 recording the screen
 L	shrink-archives	014-shrink-archives.md	12	desktop	6	smaller files, archives and PDFs	2	clipboard-shots	6.4 smaller pictures and PDFs: Super+Z|6.5 archives and PDFs: Super+D
 L	capture-practice	015-capture-practice.md	13	desktop	6	practice	23	shrink-archives	
-L	launcher-calc	016-launcher-calc.md	14	desktop	7	launcher, calculator, downloads	10	desks-session	7.1 the launcher|7.2 the calculator|7.3 the downloads centre
+L	launcher-calc	016-launcher-calc.md	14	desktop	7	launcher, calculator, downloads	11	desks-session	7.1 the launcher|7.2 the calculator|7.3 the downloads centre
 L	super-u	017-super-u.md	15	desktop	8	the entries you will use	3	desks-session	8.1 the entries you will use
 L	snapshots-report	018-snapshots-report.md	16	desktop	8	snapshots and the health report	3	super-u	8.2 snapshots: an undo for the whole system|8.3 the health report
 L	update-button	019-update-button.md	17	desktop	8	the update button, from A to Z	5	snapshots-report	8.4 the update button, from A to Z
@@ -112,283 +112,284 @@ L	git-moves	032-git-moves.md	27	programs	14	git, lazygit and gh	14	nvim-moves	14
 L	git-projects	033-git-projects.md	0	programs	14	projects	30	git-moves	
 L	btop-moves	034-btop-moves.md	28	programs	15	btop	7	desks-session	
 L	notes-pdfs	035-notes-pdfs.md	29	programs	20	notes, books, PDFs	2	desks-session	20.1 PDFs: one tool for each job
-L	small-tools-practice	036-small-tools-practice.md	30	programs	20	practice	16	notes-pdfs	
-L	mpv-moves	037-mpv-moves.md	31	programs	16	video and sound	12	desks-session	
-L	brave-moves	038-brave-moves.md	32	programs	17	the web	7	desks-session	
-L	steam-moves	039-steam-moves.md	33	programs	18	games	7	desks-session	
-L	torrra-moves	040-torrra-moves.md	34	programs	19	torrents	2	desks-session	
-L	podman-moves	041-podman-moves.md	35	programs	22	containers	7	time-savers	
-L	agents-moves	042-agents-moves.md	36	programs	21	agents, a quick start	8	git-moves	
-L	why-python-rust	043-why-python-rust.md	37	python	23	why Python and Rust	4		
-L	loop-project	044-loop-project.md	38	python	24	the tools, and a new project	3	nvim-moves git-moves	24.1 the tools, and what each does|24.2 a new project
-L	loop-edit	045-loop-edit.md	39	python	24	edit, test, debug	3	loop-project	24.3 edit in neovim|24.4 test on every save|24.5 debug: look inside a running program
-L	loop-commit	046-loop-commit.md	40	python	24	commit, and the whole loop	12	loop-edit	24.6 commit and push|24.7 the whole loop, on one card
-L	py-two-ways	047-py-two-ways.md	41	python	25	two ways to run Python	5	loop-commit	25.1 two ways to run Python
-L	py-arithmetic	048-py-arithmetic.md	42	python	25	numbers and arithmetic	6	py-two-ways	25.2 numbers and arithmetic
-L	py-variables	049-py-variables.md	43	python	25	variables and types	7	py-arithmetic	25.3 variables: names for values|25.4 types: what kind of value
-L	py-print-input	050-py-print-input.md	44	python	25	print and input	6	py-variables	25.5 print: show something|25.6 input: ask a question
-L	py-numbers-mistakes	051-py-numbers-mistakes.md	45	python	25	common mistakes	4	py-print-input	25.7 common mistakes
-L	py-numbers-practice	052-py-numbers-practice.md	46	python	25	practice	18	py-numbers-mistakes	
-L	py-numbers-projects	053-py-numbers-projects.md	0	python	25	projects	180	py-numbers-practice	
-L	py-strings	054-py-strings.md	47	python	26	making strings, indexing, slicing	7	py-numbers-practice	26.1 making strings|26.2 indexing and slicing
-L	py-methods	055-py-methods.md	48	python	26	what a string can do	5	py-strings	26.3 methods: what a string can do
-L	py-immutable	056-py-immutable.md	49	python	26	strings never change; text and numbers	5	py-methods	26.4 strings never change|26.5 text and numbers together
-L	py-text-mistakes	057-py-text-mistakes.md	50	python	26	common mistakes	3	py-immutable	26.6 common mistakes
-L	py-text-practice	058-py-text-practice.md	51	python	26	practice	18	py-text-mistakes	
-L	py-text-projects	059-py-text-projects.md	0	python	26	projects	180	py-text-practice	
-L	py-if	060-py-if.md	52	python	27	True, False, if	7	py-numbers-practice py-text-practice	27.1 True and False|27.2 if, elif, else
-L	py-while-for	061-py-while-for.md	53	python	27	while and for	8	py-if	27.3 while: repeat while true|27.4 for: once for each thing
-L	py-break	062-py-break.md	54	python	27	break, continue, common mistakes	8	py-while-for	27.5 break and continue|27.6 common mistakes
-L	py-guessing	063-py-guessing.md	55	python	27	checkpoint: a guessing game	30	py-break	27.7 checkpoint project — a guessing game
-L	py-flow-practice	064-py-flow-practice.md	56	python	27	practice	18	py-guessing	
-L	py-flow-projects	065-py-flow-projects.md	0	python	27	projects	210	py-flow-practice	
-L	py-function	066-py-function.md	57	python	28	what a function is; parameters	4	py-flow-practice	28.1 what a function is|28.2 parameters: values going in
-L	py-return	067-py-return.md	58	python	28	return, defaults, keyword arguments	6	py-function	28.3 return: a value coming back|28.4 defaults and keyword arguments
-L	py-scope	068-py-scope.md	59	python	28	scope, docstrings and assert	7	py-return	28.5 scope: where a name lives|28.6 docstrings and assert: say it, then check it
-L	py-calling	069-py-calling.md	60	python	28	functions calling functions	4	py-scope	28.7 functions calling functions
-L	py-functions-mistakes	070-py-functions-mistakes.md	61	python	28	common mistakes	4	py-calling	28.8 common mistakes
-L	py-functions-practice	071-py-functions-practice.md	62	python	28	practice	18	py-functions-mistakes	
-L	py-functions-projects	072-py-functions-projects.md	0	python	28	projects	180	py-functions-practice	
-L	py-list	073-py-list.md	63	python	29	a list, and changing it	6	py-functions-practice	29.1 a list|29.2 changing a list
-L	py-sorting	074-py-sorting.md	64	python	29	sorting, looping over lists	6	py-list	29.3 sorting|29.4 looping over lists
-L	py-nested	075-py-nested.md	65	python	29	lists of lists, tuples	5	py-sorting	29.5 lists of lists|29.6 tuples: fixed lists
-L	py-aliases	076-py-aliases.md	66	python	29	two names, one list; common mistakes	5	py-nested	29.7 two names, one list|29.8 common mistakes
-L	py-lists-practice	077-py-lists-practice.md	67	python	29	practice	18	py-aliases	
-L	py-lists-projects	078-py-lists-projects.md	0	python	29	projects	180	py-lists-practice	
-L	py-dict	079-py-dict.md	68	python	30	a dictionary, safely	5	py-functions-practice py-lists-practice	30.1 a dictionary|30.2 getting values safely|30.3 changing and removing
-L	py-dict-loop	080-py-dict-loop.md	69	python	30	looping, counting and grouping	6	py-dict	30.4 looping over a dictionary|30.5 counting and grouping
-L	py-sets	081-py-sets.md	70	python	30	nested data, sets	4	py-dict-loop	30.6 nested data|30.7 sets
-L	py-dicts-mistakes	082-py-dicts-mistakes.md	71	python	30	common mistakes	3	py-sets	30.8 common mistakes
-L	py-contacts	083-py-contacts.md	72	python	30	checkpoint: a contacts book	30	py-dicts-mistakes	30.9 checkpoint project — a contacts book
-L	py-dicts-practice	084-py-dicts-practice.md	73	python	30	practice	18	py-contacts	
-L	py-dicts-projects	085-py-dicts-projects.md	0	python	30	projects	180	py-dicts-practice	
-L	py-pathlib	086-py-pathlib.md	74	python	31	paths, whole files	4	py-dicts-practice	31.1 paths with pathlib|31.2 write, then read, a whole file
-L	py-lines	087-py-lines.md	75	python	31	line by line, folders	4	py-pathlib	31.3 line by line, with open|31.4 folders
-L	py-csv	088-py-csv.md	76	python	31	CSV: tables in text	3	py-lines	31.5 CSV: tables in text
-L	py-json	089-py-json.md	77	python	31	JSON, and common mistakes	5	py-csv	31.6 JSON: nested data in text|31.7 common mistakes
-L	py-files-practice	090-py-files-practice.md	78	python	31	practice	18	py-json	
-L	py-files-projects	091-py-files-projects.md	0	python	31	projects	180	py-files-practice	
-L	py-exception	092-py-exception.md	79	python	32	what an exception is	3	py-files-practice	32.1 what an exception is
-L	py-try	093-py-try.md	80	python	32	try, except, else, finally	6	py-exception	32.2 try and except|32.3 else and finally
-L	py-raise	094-py-raise.md	81	python	32	raising your own	4	py-try	32.4 raising your own
-L	py-catch	095-py-catch.md	82	python	32	when to catch; common mistakes	3	py-raise	32.5 when to catch, and when not|32.6 common mistakes
-L	py-errors-practice	096-py-errors-practice.md	83	python	32	practice	13	py-catch	
-L	py-errors-projects	097-py-errors-projects.md	0	python	32	projects	180	py-errors-practice	
-L	py-import	098-py-import.md	84	python	33	import, and your own module	5	py-files-practice py-errors-practice loop-commit	33.1 import: code from elsewhere|33.2 your own module
-L	py-main	099-py-main.md	85	python	33	__name__, PyPI, a project with uv	6	py-import	33.3 if __name__ == "__main__"|33.4 packages from the internet: PyPI|33.5 a project with uv
-L	py-modules-mistakes	100-py-modules-mistakes.md	86	python	33	common mistakes	2	py-main	33.6 common mistakes
-L	py-expenses	101-py-expenses.md	87	python	33	checkpoint: an expense tracker	40	py-modules-mistakes	33.7 checkpoint project — an expense tracker
-L	py-modules-practice	102-py-modules-practice.md	88	python	33	practice	18	py-expenses	
-L	py-modules-projects	103-py-modules-projects.md	0	python	33	projects	180	py-modules-practice	
-L	py-why-classes	104-py-why-classes.md	89	python	34	why classes; self	7	py-modules-practice	34.1 why classes|34.2 self, step by step
-L	py-account	105-py-account.md	90	python	34	a useful class: a bank account	4	py-why-classes	34.3 a useful class: a bank account
-L	py-special	106-py-special.md	91	python	34	special methods	4	py-account	34.4 special methods: print, ==, +
-L	py-dataclasses	107-py-dataclasses.md	92	python	34	dataclasses	6	py-special	34.5 dataclasses: the short way
-L	py-inheritance	108-py-inheritance.md	93	python	34	inheritance, briefly	4	py-dataclasses	34.6 inheritance, briefly
-L	py-classes-mistakes	109-py-classes-mistakes.md	94	python	34	common mistakes	3	py-inheritance	34.7 common mistakes
-L	py-classes-practice	110-py-classes-practice.md	95	python	34	practice	18	py-classes-mistakes	
-L	py-classes-projects	111-py-classes-projects.md	0	python	34	projects	180	py-classes-practice	
-L	py-first-test	112-py-first-test.md	96	python	35	the first test	3	py-classes-practice loop-commit	35.1 why tests|35.2 the first test
-L	py-failure	113-py-failure.md	97	python	35	reading a failure, testing errors	6	py-first-test	35.3 reading a failure|35.4 testing errors
-L	py-many-cases	114-py-many-cases.md	98	python	35	many cases, files in tests	7	py-failure	35.5 many cases, one test|35.6 files in tests: tmp_path
-L	py-tdd	115-py-tdd.md	99	python	35	test first, what to test	5	py-many-cases	35.7 test first: red, green, tidy|35.8 what to test|35.9 common mistakes
-L	py-tests-practice	116-py-tests-practice.md	100	python	35	practice	18	py-tdd	
-L	py-tests-projects	117-py-tests-projects.md	0	python	35	projects	180	py-tests-practice	
-L	py-hint	118-py-hint.md	101	python	36	what a type hint is, and checking	4	py-classes-practice py-tests-practice	36.1 what a type hint is|36.2 checking: the mistake found before it runs
-L	py-common-types	119-py-common-types.md	102	python	36	the common types	3	py-hint	36.3 the common types
-L	py-optional	120-py-optional.md	103	python	36	optional values; your own types	6	py-common-types	36.4 optional values: None handled|36.5 your own types
-L	py-generic	121-py-generic.md	104	python	36	generic functions, how much to type	3	py-optional	36.6 generic functions|36.7 how much to type|36.8 common mistakes
-L	py-library	122-py-library.md	105	python	36	checkpoint: a tested, typed library	40	py-generic	36.9 checkpoint project — a tested, typed library
-L	py-types-practice	123-py-types-practice.md	106	python	36	practice	13	py-library	
-L	py-types-projects	124-py-types-projects.md	0	python	36	projects	180	py-types-practice	
-L	py-comprehensions	125-py-comprehensions.md	107	python	37	comprehensions	5	py-types-practice	37.1 list comprehensions|37.2 dictionary and set comprehensions
-L	py-for-really	126-py-for-really.md	108	python	37	what for really does	2	py-comprehensions	37.3 what for really does
-L	py-generators	127-py-generators.md	109	python	37	generators	8	py-for-really	37.4 generators: values on demand
-L	py-tools	128-py-tools.md	110	python	37	generator expressions, zip and friends	5	py-generators	37.5 generator expressions|37.6 tools: zip, enumerate, sorted, itertools
-L	py-functools	129-py-functools.md	111	python	37	functools	6	py-tools	37.7 functools: tools for functions|37.8 common mistakes
-L	py-generators-practice	130-py-generators-practice.md	112	python	37	practice	18	py-functools	
-L	py-generators-projects	131-py-generators-projects.md	0	python	37	projects	210	py-generators-practice	
-L	py-waiting	132-py-waiting.md	113	python	38	waiting, not working: async and await	6	py-generators-practice	38.1 waiting, not working|38.2 async and await
-L	py-switching	133-py-switching.md	114	python	38	seeing the switching; tasks	4	py-waiting	38.3 seeing the switching|38.4 tasks and TaskGroup
-L	py-timeouts	134-py-timeouts.md	115	python	38	timeouts, limiting	4	py-switching	38.5 timeouts|38.6 limiting: a semaphore
-L	py-real-async	135-py-real-async.md	116	python	38	real use, when it helps, mistakes	5	py-timeouts	38.7 real use: many web requests|38.8 when async helps|38.9 common mistakes
-L	py-async-practice	136-py-async-practice.md	117	python	38	practice	12	py-real-async	
-L	py-async-projects	137-py-async-projects.md	0	python	38	projects	180	py-async-practice	
-L	py-argparse	138-py-argparse.md	118	python	39	arguments and argparse	6	py-modules-practice py-tests-practice py-generators-practice	39.1 a program that takes arguments|39.2 argparse
-L	py-exit-pipes	139-py-exit-pipes.md	119	python	39	exit codes, the error stream, pipes	6	py-argparse	39.3 exit codes and the error stream|39.4 pipes: stdin and stdout
-L	py-package	140-py-package.md	120	python	39	a package, installed as your own command	7	py-exit-pipes	39.5 a package: src layout and an entry point|39.6 install it as your own command|39.7 common mistakes
-L	py-notes	141-py-notes.md	121	python	39	checkpoint: notes, from the command line	40	py-package	39.8 checkpoint project — notes, from the command line
-L	py-cli-practice	142-py-cli-practice.md	122	python	39	practice	12	py-notes	
-L	py-cli-projects	143-py-cli-projects.md	0	python	39	projects	180	py-cli-practice	
-L	py-load	144-py-load.md	123	python	40	the data: load and clean	6	py-cli-practice	40.1 the data|40.2 load and clean
-L	py-summaries	145-py-summaries.md	124	python	40	summaries: statistics	3	py-load	40.3 summaries: statistics
-L	py-group	146-py-group.md	125	python	40	group by	5	py-summaries	40.4 group by
-L	py-dates	147-py-dates.md	126	python	40	dates, a chart in the terminal	4	py-group	40.5 dates|40.6 a chart in the terminal
-L	py-results	148-py-results.md	127	python	40	writing results; common mistakes	3	py-dates	40.7 writing results|40.8 common mistakes
-L	py-data-practice	149-py-data-practice.md	128	python	40	practice	12	py-results	
-L	py-data-projects	150-py-data-projects.md	0	python	40	projects	180	py-data-practice	
-L	py-arrays	151-py-arrays.md	129	python	41	arrays	5	py-data-practice	41.1 arrays
-L	py-shape	152-py-shape.md	130	python	41	shape and dtype	4	py-arrays	41.2 shape and dtype
-L	py-slicing	153-py-slicing.md	131	python	41	indexing, masks	5	py-shape	41.3 indexing and slicing|41.4 masks: choosing by condition
-L	py-broadcast	154-py-broadcast.md	132	python	41	broadcasting, dot products	6	py-slicing	41.5 broadcasting|41.6 dot products and matrices
-L	py-random	155-py-random.md	133	python	41	random numbers, speed, mistakes	4	py-broadcast	41.7 random numbers, and speed|41.8 common mistakes
-L	py-numpy-practice	156-py-numpy-practice.md	134	python	41	practice	18	py-random	
-L	py-numpy-projects	157-py-numpy-projects.md	0	python	41	projects	180	py-numpy-practice	
-L	py-chart	158-py-chart.md	135	python	42	your writing, as a chart	8	py-cli-practice	42.1 your writing, as a chart
-L	py-flashcards	159-py-flashcards.md	136	python	42	flashcards	5	py-chart	42.2 flashcards
-L	py-weather	160-py-weather.md	137	python	42	the weather; the Game of Life	6	py-flashcards	42.3 the weather, from a web API|42.4 the Game of Life
-L	py-fun-practice	161-py-fun-practice.md	138	python	42	practice	11	py-weather	
-L	py-fun-projects	162-py-fun-projects.md	0	python	42	projects	30	py-fun-practice	
-L	py-compute	163-py-compute.md	139	python	43	what a network computes	5	py-numpy-practice	43.1 arrays|43.2 what a network computes
-L	py-40-lines	164-py-40-lines.md	140	python	43	the whole network, in 40 lines	7	py-compute	43.3 the whole network, in 40 lines
-L	py-calculus	165-py-calculus.md	141	python	43	check the calculus; handwritten digits	3	py-40-lines	43.4 check the calculus|43.5 handwritten digits
-L	py-network-practice	166-py-network-practice.md	142	python	43	practice	12	py-calculus	
-L	py-network-projects	167-py-network-projects.md	0	python	43	projects	30	py-network-practice	
-L	py-torch-install	168-py-torch-install.md	143	python	44	where things stand; install	3	py-network-practice	44.1 where things stand (October 2026)|44.2 install
-L	py-card	169-py-card.md	144	python	44	is the card there?	4	py-torch-install	44.3 is the card there?
-L	py-torch-digits	170-py-torch-digits.md	145	python	44	the digits network, in PyTorch	6	py-card	44.4 the digits network, in PyTorch
-L	py-torch-practice	171-py-torch-practice.md	146	python	44	practice	12	py-torch-digits	
-L	py-torch-projects	172-py-torch-projects.md	0	python	44	projects	30	py-torch-practice	
-L	py-transformer	173-py-transformer.md	147	python	45	the ideas, and the model	15	py-torch-practice	45.1 the ideas, in plain words|45.2 the model
-L	py-transformer-practice	174-py-transformer-practice.md	148	python	45	practice	16	py-transformer	
-L	py-transformer-projects	175-py-transformer-projects.md	0	python	45	projects	30	py-transformer-practice	
-L	py-tune-code	176-py-tune-code.md	149	python	46	the data, and the code	11	py-transformer-practice	46.1 the data: questions and answers about your desktop|46.2 the code
-L	py-tune-practice	177-py-tune-practice.md	150	python	46	practice	6	py-tune-code	
-L	py-tune-projects	178-py-tune-projects.md	0	python	46	projects	30	py-tune-practice	
-L	py-agent-setup	179-py-agent-setup.md	151	python	47	set up, one question	3	py-cli-practice	47.1 set up|47.2 one question
-L	py-agent-loop	180-py-agent-loop.md	152	python	47	the agent	10	py-agent-setup	47.3 the agent
-L	py-agent-practice	181-py-agent-practice.md	153	python	47	practice	11	py-agent-loop	
-L	py-agent-projects	182-py-agent-projects.md	0	python	47	projects	30	py-agent-practice	
-L	tokens	183-tokens.md	154	ai	67	tokens and next-token prediction	4	agents-moves	67.1 tokens|67.2 next-token prediction
-L	training	184-training.md	155	ai	67	training, the context window	3	tokens	67.3 training: where the knowledge comes from|67.4 the context window
-L	hallucination	185-hallucination.md	156	ai	67	reasoning, hallucination, choosing a model	3	training	67.5 reasoning, and why "think first" works|67.6 hallucination|67.7 choosing a model
-L	model-practice	186-model-practice.md	157	ai	67	practice	12	hallucination	
-L	model-projects	187-model-projects.md	0	ai	67	projects	30	model-practice	
-L	five-parts	188-five-parts.md	158	ai	68	the five parts of a good request	3	model-practice	68.1 the five parts of a good request|68.2 show, do not describe
-L	ask-iterate	189-ask-iterate.md	159	ai	68	ask it to ask you; iterate	13	five-parts	68.3 ask it to ask you|68.4 iterate on the request, not the result|68.5 questions are cheap; use them
-L	asking-projects	190-asking-projects.md	0	ai	68	projects	30	ask-iterate	
-L	agent-loop	191-agent-loop.md	160	ai	69	the loop, and what goes wrong	3	py-agent-practice model-practice ask-iterate	69.1 the loop|69.2 what goes wrong
-L	injection	192-injection.md	161	ai	69	prompt injection; agency is a dial	13	agent-loop	69.3 prompt injection|69.4 agency is a dial
-L	agents-idea-projects	193-agents-idea-projects.md	0	ai	69	projects	30	injection	
-L	claude-starting	194-claude-starting.md	162	ai	70	starting, permission modes	2	git-moves agents-moves injection	70.1 starting|70.2 permission modes
-L	claude-steps	195-claude-steps.md	163	ai	70	the four steps, steering a session	2	claude-starting	70.3 the four steps|70.4 steering a session
-L	claude-md	196-claude-md.md	164	ai	70	CLAUDE.md	14	claude-steps	70.5 CLAUDE.md: what every session should know
-L	claude-loop-projects	197-claude-loop-projects.md	0	ai	70	projects	30	claude-md	
-L	claude-hooks	198-claude-hooks.md	165	ai	71	settings and hooks	4	claude-md	71.1 settings and permission rules|71.2 hooks: rules that always hold
-L	claude-skills	199-claude-skills.md	166	ai	71	skills and subagents	4	claude-hooks	71.3 skills: your workflows, on demand|71.4 subagents: clean context for side jobs
-L	claude-more	200-claude-more.md	167	ai	71	MCP, claude -p, many at once	2	claude-skills	71.5 MCP: connecting other systems|71.6 without the chat: `claude -p`|71.7 many at once
-L	claude-tools-practice	201-claude-tools-practice.md	168	ai	71	practice	16	claude-more	
-L	claude-tools-projects	202-claude-tools-projects.md	0	ai	71	projects	150	claude-tools-practice	
-L	own-every-line	203-own-every-line.md	169	ai	72	you own every line; specs; review	3	claude-tools-practice	72.1 you own every line|72.2 specs carry decisions|72.3 reviewing AI work
-L	keep-learning	204-keep-learning.md	170	ai	72	keep learning; a card for the wall	8	own-every-line	72.4 keep learning, not just shipping|72.5 staying good as tools change|72.6 a card for the wall
-L	pro-projects	205-pro-projects.md	0	ai	72	projects	150	keep-learning	
-L	rs-project	206-rs-project.md	171	rust	48	a project	4	loop-commit	48.1 a project
-L	rs-neovim	207-rs-neovim.md	172	rust	48	in neovim; reading the compiler	11	rs-project	48.2 in neovim|48.3 check on every save|48.4 reading the compiler
-L	rs-let	208-rs-let.md	173	rust	49	let, and shadowing	8	rs-neovim	49.1 let: a name for a value|49.2 shadowing
-L	rs-numbers	209-rs-numbers.md	174	rust	49	number types	8	rs-let	49.3 number types
-L	rs-tuples	210-rs-tuples.md	175	rust	49	bool, char, text, tuples, arrays	4	rs-numbers	49.4 bool, char and text|49.5 tuples and arrays
-L	rs-expressions	211-rs-expressions.md	176	rust	49	functions, the missing semicolon	7	rs-tuples	49.6 functions|49.7 expressions and the missing semicolon
-L	rs-basics-mistakes	212-rs-basics-mistakes.md	177	rust	49	common mistakes	2	rs-expressions	49.8 common mistakes
-L	rs-basics-practice	213-rs-basics-practice.md	178	rust	49	practice	18	rs-basics-mistakes	
-L	rs-basics-projects	214-rs-basics-projects.md	0	rust	49	projects	180	rs-basics-practice	
-L	rs-if	215-rs-if.md	179	rust	50	if and else	5	rs-basics-practice	50.1 if and else
-L	rs-loops	216-rs-loops.md	180	rust	50	loop, while, for and ranges	8	rs-if	50.2 loop, while|50.3 for and ranges
-L	rs-labels	217-rs-labels.md	181	rust	50	continue, labels, a first match	6	rs-loops	50.4 continue, and labelled loops|50.5 match on numbers, a first look
-L	rs-flow-mistakes	218-rs-flow-mistakes.md	182	rust	50	common mistakes	4	rs-labels	50.6 common mistakes
-L	rs-guessing	219-rs-guessing.md	183	rust	50	checkpoint: a number-guessing machine	30	rs-flow-mistakes	50.7 checkpoint project — a number-guessing machine
-L	rs-flow-practice	220-rs-flow-practice.md	184	rust	50	practice	18	rs-guessing	
-L	rs-flow-projects	221-rs-flow-projects.md	0	rust	50	projects	180	rs-flow-practice	
-L	rs-scope	222-rs-scope.md	185	rust	51	why ownership; scope	8	rs-flow-practice	51.1 why ownership|51.2 scope: where a variable lives
-L	rs-moving	223-rs-moving.md	186	rust	51	moving, copying, cloning	8	rs-scope	51.3 moving|51.4 copying: small simple values|51.5 cloning: a real copy, on purpose
-L	rs-own-functions	224-rs-own-functions.md	187	rust	51	ownership and functions	7	rs-moving	51.6 ownership and functions
-L	rs-own-loops	225-rs-own-loops.md	188	rust	51	moves in loops and collections	7	rs-own-functions	51.7 moves in loops and collections
-L	rs-partial	226-rs-partial.md	189	rust	51	a partial move; common mistakes	2	rs-own-loops	51.8 a partial move|51.9 common mistakes
-L	rs-own-practice	227-rs-own-practice.md	190	rust	51	practice	18	rs-partial	
-L	rs-own-projects	228-rs-own-projects.md	0	rust	51	projects	180	rs-own-practice	
-L	rs-references	229-rs-references.md	191	rust	52	references: borrowing to look	4	rs-own-practice	52.1 references: borrowing to look
-L	rs-mut	230-rs-mut.md	192	rust	52	mutable references	6	rs-references	52.2 mutable references: borrowing to change
-L	rs-rule	231-rs-rule.md	193	rust	52	the rule: many readers, or one writer	6	rs-mut	52.3 the rule: many readers, or one writer
-L	rs-last-use	232-rs-last-use.md	194	rust	52	a borrow ends at its last use	4	rs-rule	52.4 a borrow ends at its last use
-L	rs-dangling	233-rs-dangling.md	195	rust	52	no dangling references	5	rs-last-use	52.5 no dangling references
-L	rs-slices	234-rs-slices.md	196	rust	52	slices; common mistakes	8	rs-dangling	52.6 slices: borrowing a part|52.7 common mistakes
-L	rs-borrow-practice	235-rs-borrow-practice.md	197	rust	52	practice	18	rs-slices	
-L	rs-borrow-projects	236-rs-borrow-projects.md	0	rust	52	projects	180	rs-borrow-practice	
-L	rs-struct	237-rs-struct.md	198	rust	53	a struct, printed	7	rs-own-practice rs-borrow-practice	53.1 a struct|53.2 printing a struct: derive Debug
-L	rs-methods	238-rs-methods.md	199	rust	53	methods with impl	4	rs-struct	53.3 methods with impl
-L	rs-new	239-rs-new.md	200	rust	53	associated functions: new	4	rs-methods	53.4 associated functions: new
-L	rs-tuple-structs	240-rs-tuple-structs.md	201	rust	53	tuple structs and unit structs	6	rs-new	53.5 tuple structs and unit structs
-L	rs-derive	241-rs-derive.md	202	rust	53	deriving more; common mistakes	7	rs-tuple-structs	53.6 deriving more|53.7 common mistakes
-L	rs-structs-practice	242-rs-structs-practice.md	203	rust	53	practice	18	rs-derive	
-L	rs-structs-projects	243-rs-structs-projects.md	0	rust	53	projects	180	rs-structs-practice	
-L	rs-enum	244-rs-enum.md	204	rust	54	an enum, variants with data	8	rs-structs-practice	54.1 an enum|54.2 variants with data
-L	rs-match	245-rs-match.md	205	rust	54	match must cover everything; patterns	8	rs-enum	54.3 match must cover everything|54.4 patterns
-L	rs-option	246-rs-option.md	206	rust	54	Option: maybe a value	7	rs-match	54.5 Option: maybe a value
-L	rs-option-work	247-rs-option-work.md	207	rust	54	working with Option; methods on enums	9	rs-option	54.6 working with Option|54.7 methods on enums|54.8 common mistakes
-L	rs-bank	248-rs-bank.md	208	rust	54	checkpoint: a bank with commands	40	rs-option-work	54.9 checkpoint project — a bank with commands
-L	rs-enums-practice	249-rs-enums-practice.md	209	rust	54	practice	18	rs-bank	
-L	rs-enums-projects	250-rs-enums-projects.md	0	rust	54	projects	180	rs-enums-practice	
-L	rs-vec	251-rs-vec.md	210	rust	55	Vec: a growing list	6	rs-enums-practice	55.1 Vec: a growing list
-L	rs-vec-structs	252-rs-vec-structs.md	211	rust	55	Vec of structs, sorting	4	rs-vec	55.2 Vec of structs, sorting
-L	rs-string	253-rs-string.md	212	rust	55	String in depth	6	rs-vec-structs	55.3 String in depth
-L	rs-hashmap	254-rs-hashmap.md	213	rust	55	HashMap: look up by key	5	rs-string	55.4 HashMap: look up by key
-L	rs-maps-sets	255-rs-maps-sets.md	214	rust	55	BTreeMap, HashSet, VecDeque	7	rs-hashmap	55.5 BTreeMap: sorted keys|55.6 HashSet: unique values|55.7 VecDeque: a queue|55.8 common mistakes
-L	rs-collections-practice	256-rs-collections-practice.md	215	rust	55	practice	18	rs-maps-sets	
-L	rs-collections-projects	257-rs-collections-projects.md	0	rust	55	projects	180	rs-collections-practice	
-L	rs-result	258-rs-result.md	216	rust	56	two kinds of failure; Result	6	rs-collections-practice	56.1 two kinds of failure|56.2 Result
-L	rs-question	259-rs-question.md	217	rust	56	shortcuts, the ? operator	6	rs-result	56.3 shortcuts: unwrap, expect, unwrap_or|56.4 the ? operator
-L	rs-box-dyn	260-rs-box-dyn.md	218	rust	56	errors of different kinds	5	rs-question	56.5 errors of different kinds: Box<dyn Error>
-L	rs-own-error	261-rs-own-error.md	219	rust	56	your own error type	6	rs-box-dyn	56.6 your own error type
-L	rs-map-err	262-rs-map-err.md	220	rust	56	map_err; common mistakes	5	rs-own-error	56.7 converting between errors: map_err|56.8 common mistakes
-L	rs-counter	263-rs-counter.md	221	rust	56	checkpoint: a word counter that never panics	40	rs-map-err	56.9 checkpoint project — a word counter that never panics
-L	rs-errors-practice	264-rs-errors-practice.md	222	rust	56	practice	18	rs-counter	
-L	rs-errors-projects	265-rs-errors-projects.md	0	rust	56	projects	180	rs-errors-practice	
-L	rs-trait	266-rs-trait.md	223	rust	57	a trait	8	rs-errors-practice	57.1 a trait
-L	rs-trait-params	267-rs-trait-params.md	224	rust	57	traits as parameters	4	rs-trait	57.2 traits as parameters
-L	rs-std-traits	268-rs-std-traits.md	225	rust	57	standard traits you implement	10	rs-trait-params	57.3 standard traits you implement
-L	rs-generics	269-rs-generics.md	226	rust	57	generics	8	rs-std-traits	57.4 generics
-L	rs-dyn	270-rs-dyn.md	227	rust	57	generic structs; dyn Trait	8	rs-generics	57.5 generic structs|57.6 dyn Trait: different types in one list|57.7 common mistakes
-L	rs-traits-practice	271-rs-traits-practice.md	228	rust	57	practice	18	rs-dyn	
-L	rs-traits-projects	272-rs-traits-projects.md	0	rust	57	projects	180	rs-traits-practice	
-L	rs-lifetime	273-rs-lifetime.md	229	rust	58	what a lifetime is	4	rs-borrow-practice rs-traits-practice	58.1 what a lifetime is
-L	rs-write-one	274-rs-write-one.md	230	rust	58	when you must write one	7	rs-lifetime	58.2 when you must write one
-L	rs-no-need	275-rs-no-need.md	231	rust	58	when you do not; structs that hold references	7	rs-write-one	58.3 when you do not need one|58.4 structs that hold references
-L	rs-static	276-rs-static.md	232	rust	58	'static; when in doubt, own it	2	rs-no-need	58.5 'static|58.6 when in doubt, own it
-L	rs-statistics	277-rs-statistics.md	233	rust	58	checkpoint: a generic statistics library	40	rs-static	58.7 checkpoint project — a generic statistics library
-L	rs-lifetimes-practice	278-rs-lifetimes-practice.md	234	rust	58	practice	12	rs-statistics	
-L	rs-lifetimes-projects	279-rs-lifetimes-projects.md	0	rust	58	projects	180	rs-lifetimes-practice	
-L	rs-rooms	280-rs-rooms.md	235	rust	59	modules: rooms in a program	6	rs-lifetimes-practice	59.1 modules: rooms in a program
-L	rs-module-files	281-rs-module-files.md	236	rust	59	modules in files	4	rs-rooms	59.2 modules in files
-L	rs-lib-bin	282-rs-lib-bin.md	237	rust	59	a library and a binary	7	rs-module-files	59.3 a library and a binary
-L	rs-tests	283-rs-tests.md	238	rust	59	tests	8	rs-lib-bin	59.4 tests
-L	rs-more-tests	284-rs-more-tests.md	239	rust	59	more kinds of test	8	rs-tests	59.5 more kinds of test
-L	rs-crates	285-rs-crates.md	240	rust	59	crates from crates.io; common mistakes	2	rs-more-tests	59.6 crates from crates.io|59.7 common mistakes
-L	rs-modules-practice	286-rs-modules-practice.md	241	rust	59	practice	13	rs-crates	
-L	rs-modules-projects	287-rs-modules-projects.md	0	rust	59	projects	150	rs-modules-practice	
-L	rs-closures	288-rs-closures.md	242	rust	60	closures	5	rs-modules-practice	60.1 closures
-L	rs-take-closures	289-rs-take-closures.md	243	rust	60	functions that take closures; iterators	6	rs-closures	60.2 functions that take closures|60.3 iterators
-L	rs-into-iter	290-rs-into-iter.md	244	rust	60	iter, iter_mut, into_iter; laziness	4	rs-take-closures	60.4 iter, iter_mut, into_iter|60.5 laziness
-L	rs-chain	291-rs-chain.md	245	rust	60	collect, and a real chain	4	rs-into-iter	60.6 collect into anything|60.7 a real chain
-L	rs-own-iter	292-rs-own-iter.md	246	rust	60	your own iterator; common mistakes	6	rs-chain	60.8 your own iterator|60.9 common mistakes
-L	rs-iter-practice	293-rs-iter-practice.md	247	rust	60	practice	18	rs-own-iter	
-L	rs-iter-projects	294-rs-iter-projects.md	0	rust	60	projects	180	rs-iter-practice	
-L	rs-threads-start	295-rs-threads-start.md	248	rust	61	threads	5	rs-iter-practice	61.1 threads
-L	rs-why-move	296-rs-why-move.md	249	rust	61	why move	6	rs-threads-start	61.2 why move
-L	rs-arc	297-rs-arc.md	250	rust	61	Arc and Mutex	4	rs-why-move	61.3 sharing state: Arc and Mutex
-L	rs-races	298-rs-races.md	251	rust	61	data races are compile errors	5	rs-arc	61.4 data races are compile errors
-L	rs-channels	299-rs-channels.md	252	rust	61	channels; how much faster?	8	rs-races	61.5 channels: send messages|61.6 how much faster?|61.7 common mistakes
-L	rs-scanner	300-rs-scanner.md	253	rust	61	checkpoint: a parallel file scanner	40	rs-channels	61.8 checkpoint project — a parallel file scanner
-L	rs-threads-practice	301-rs-threads-practice.md	254	rust	61	practice	12	rs-scanner	
-L	rs-threads-projects	302-rs-threads-projects.md	0	rust	61	projects	180	rs-threads-practice	
-L	rs-wordfreq	303-rs-wordfreq.md	255	rust	62	wordfreq	11	rs-threads-practice	
-L	rs-cli-practice	304-rs-cli-practice.md	256	rust	62	practice	11	rs-wordfreq	
-L	rs-cli-projects	305-rs-cli-projects.md	0	rust	62	projects	30	rs-cli-practice	
-L	rs-tinygrad	306-rs-tinygrad.md	257	rust	63	tinygrad	20	py-network-practice rs-traits-practice	
-L	rs-autograd-practice	307-rs-autograd-practice.md	258	rust	63	practice	11	rs-tinygrad	
-L	rs-autograd-projects	308-rs-autograd-projects.md	0	rust	63	projects	30	rs-autograd-practice	
-L	rs-candle	309-rs-candle.md	259	rust	64	candle and burn	7	py-torch-practice rs-cli-practice	64.1 candle: the PyTorch model, in Rust|64.2 burn: tensors on the card, through Vulkan
-L	rs-models-practice	310-rs-models-practice.md	260	rust	64	practice	11	rs-candle	
-L	rs-models-projects	311-rs-models-projects.md	0	rust	64	projects	30	rs-models-practice	
-L	rs-pyo3-module	312-rs-pyo3-module.md	261	rust	65	a Python module written in Rust	8	loop-commit rs-cli-practice	
-L	rs-pyo3-practice	313-rs-pyo3-practice.md	262	rust	65	practice	6	rs-pyo3-module	
-L	rs-pyo3-projects	314-rs-pyo3-projects.md	0	rust	65	projects	30	rs-pyo3-practice	
-L	where-next	315-where-next.md	263	rust	66	where to go next	1		
+L	sketch	036-sketch.md	30	programs	20	drawing: Sketch	4	notes-pdfs	20.2 drawing: Sketch
+L	small-tools-practice	037-small-tools-practice.md	31	programs	20	practice	16	sketch	
+L	mpv-moves	038-mpv-moves.md	32	programs	16	video and sound	12	desks-session	
+L	brave-moves	039-brave-moves.md	33	programs	17	the web	7	desks-session	
+L	steam-moves	040-steam-moves.md	34	programs	18	games	14	desks-session	
+L	torrra-moves	041-torrra-moves.md	35	programs	19	torrents	2	desks-session	
+L	podman-moves	042-podman-moves.md	36	programs	22	containers	7	time-savers	
+L	agents-moves	043-agents-moves.md	37	programs	21	agents, a quick start	8	git-moves	
+L	why-python-rust	044-why-python-rust.md	38	python	23	why Python and Rust	4		
+L	loop-project	045-loop-project.md	39	python	24	the tools, and a new project	3	nvim-moves git-moves	24.1 the tools, and what each does|24.2 a new project
+L	loop-edit	046-loop-edit.md	40	python	24	edit, test, debug	3	loop-project	24.3 edit in neovim|24.4 test on every save|24.5 debug: look inside a running program
+L	loop-commit	047-loop-commit.md	41	python	24	commit, and the whole loop	12	loop-edit	24.6 commit and push|24.7 the whole loop, on one card
+L	py-two-ways	048-py-two-ways.md	42	python	25	two ways to run Python	5	loop-commit	25.1 two ways to run Python
+L	py-arithmetic	049-py-arithmetic.md	43	python	25	numbers and arithmetic	6	py-two-ways	25.2 numbers and arithmetic
+L	py-variables	050-py-variables.md	44	python	25	variables and types	7	py-arithmetic	25.3 variables: names for values|25.4 types: what kind of value
+L	py-print-input	051-py-print-input.md	45	python	25	print and input	6	py-variables	25.5 print: show something|25.6 input: ask a question
+L	py-numbers-mistakes	052-py-numbers-mistakes.md	46	python	25	common mistakes	4	py-print-input	25.7 common mistakes
+L	py-numbers-practice	053-py-numbers-practice.md	47	python	25	practice	18	py-numbers-mistakes	
+L	py-numbers-projects	054-py-numbers-projects.md	0	python	25	projects	180	py-numbers-practice	
+L	py-strings	055-py-strings.md	48	python	26	making strings, indexing, slicing	7	py-numbers-practice	26.1 making strings|26.2 indexing and slicing
+L	py-methods	056-py-methods.md	49	python	26	what a string can do	5	py-strings	26.3 methods: what a string can do
+L	py-immutable	057-py-immutable.md	50	python	26	strings never change; text and numbers	5	py-methods	26.4 strings never change|26.5 text and numbers together
+L	py-text-mistakes	058-py-text-mistakes.md	51	python	26	common mistakes	3	py-immutable	26.6 common mistakes
+L	py-text-practice	059-py-text-practice.md	52	python	26	practice	18	py-text-mistakes	
+L	py-text-projects	060-py-text-projects.md	0	python	26	projects	180	py-text-practice	
+L	py-if	061-py-if.md	53	python	27	True, False, if	7	py-numbers-practice py-text-practice	27.1 True and False|27.2 if, elif, else
+L	py-while-for	062-py-while-for.md	54	python	27	while and for	8	py-if	27.3 while: repeat while true|27.4 for: once for each thing
+L	py-break	063-py-break.md	55	python	27	break, continue, common mistakes	8	py-while-for	27.5 break and continue|27.6 common mistakes
+L	py-guessing	064-py-guessing.md	56	python	27	checkpoint: a guessing game	30	py-break	27.7 checkpoint project — a guessing game
+L	py-flow-practice	065-py-flow-practice.md	57	python	27	practice	18	py-guessing	
+L	py-flow-projects	066-py-flow-projects.md	0	python	27	projects	210	py-flow-practice	
+L	py-function	067-py-function.md	58	python	28	what a function is; parameters	4	py-flow-practice	28.1 what a function is|28.2 parameters: values going in
+L	py-return	068-py-return.md	59	python	28	return, defaults, keyword arguments	6	py-function	28.3 return: a value coming back|28.4 defaults and keyword arguments
+L	py-scope	069-py-scope.md	60	python	28	scope, docstrings and assert	7	py-return	28.5 scope: where a name lives|28.6 docstrings and assert: say it, then check it
+L	py-calling	070-py-calling.md	61	python	28	functions calling functions	4	py-scope	28.7 functions calling functions
+L	py-functions-mistakes	071-py-functions-mistakes.md	62	python	28	common mistakes	4	py-calling	28.8 common mistakes
+L	py-functions-practice	072-py-functions-practice.md	63	python	28	practice	18	py-functions-mistakes	
+L	py-functions-projects	073-py-functions-projects.md	0	python	28	projects	180	py-functions-practice	
+L	py-list	074-py-list.md	64	python	29	a list, and changing it	6	py-functions-practice	29.1 a list|29.2 changing a list
+L	py-sorting	075-py-sorting.md	65	python	29	sorting, looping over lists	6	py-list	29.3 sorting|29.4 looping over lists
+L	py-nested	076-py-nested.md	66	python	29	lists of lists, tuples	5	py-sorting	29.5 lists of lists|29.6 tuples: fixed lists
+L	py-aliases	077-py-aliases.md	67	python	29	two names, one list; common mistakes	5	py-nested	29.7 two names, one list|29.8 common mistakes
+L	py-lists-practice	078-py-lists-practice.md	68	python	29	practice	18	py-aliases	
+L	py-lists-projects	079-py-lists-projects.md	0	python	29	projects	180	py-lists-practice	
+L	py-dict	080-py-dict.md	69	python	30	a dictionary, safely	5	py-functions-practice py-lists-practice	30.1 a dictionary|30.2 getting values safely|30.3 changing and removing
+L	py-dict-loop	081-py-dict-loop.md	70	python	30	looping, counting and grouping	6	py-dict	30.4 looping over a dictionary|30.5 counting and grouping
+L	py-sets	082-py-sets.md	71	python	30	nested data, sets	4	py-dict-loop	30.6 nested data|30.7 sets
+L	py-dicts-mistakes	083-py-dicts-mistakes.md	72	python	30	common mistakes	3	py-sets	30.8 common mistakes
+L	py-contacts	084-py-contacts.md	73	python	30	checkpoint: a contacts book	30	py-dicts-mistakes	30.9 checkpoint project — a contacts book
+L	py-dicts-practice	085-py-dicts-practice.md	74	python	30	practice	18	py-contacts	
+L	py-dicts-projects	086-py-dicts-projects.md	0	python	30	projects	180	py-dicts-practice	
+L	py-pathlib	087-py-pathlib.md	75	python	31	paths, whole files	4	py-dicts-practice	31.1 paths with pathlib|31.2 write, then read, a whole file
+L	py-lines	088-py-lines.md	76	python	31	line by line, folders	4	py-pathlib	31.3 line by line, with open|31.4 folders
+L	py-csv	089-py-csv.md	77	python	31	CSV: tables in text	3	py-lines	31.5 CSV: tables in text
+L	py-json	090-py-json.md	78	python	31	JSON, and common mistakes	5	py-csv	31.6 JSON: nested data in text|31.7 common mistakes
+L	py-files-practice	091-py-files-practice.md	79	python	31	practice	18	py-json	
+L	py-files-projects	092-py-files-projects.md	0	python	31	projects	180	py-files-practice	
+L	py-exception	093-py-exception.md	80	python	32	what an exception is	3	py-files-practice	32.1 what an exception is
+L	py-try	094-py-try.md	81	python	32	try, except, else, finally	6	py-exception	32.2 try and except|32.3 else and finally
+L	py-raise	095-py-raise.md	82	python	32	raising your own	4	py-try	32.4 raising your own
+L	py-catch	096-py-catch.md	83	python	32	when to catch; common mistakes	3	py-raise	32.5 when to catch, and when not|32.6 common mistakes
+L	py-errors-practice	097-py-errors-practice.md	84	python	32	practice	13	py-catch	
+L	py-errors-projects	098-py-errors-projects.md	0	python	32	projects	180	py-errors-practice	
+L	py-import	099-py-import.md	85	python	33	import, and your own module	5	py-files-practice py-errors-practice loop-commit	33.1 import: code from elsewhere|33.2 your own module
+L	py-main	100-py-main.md	86	python	33	__name__, PyPI, a project with uv	6	py-import	33.3 if __name__ == "__main__"|33.4 packages from the internet: PyPI|33.5 a project with uv
+L	py-modules-mistakes	101-py-modules-mistakes.md	87	python	33	common mistakes	2	py-main	33.6 common mistakes
+L	py-expenses	102-py-expenses.md	88	python	33	checkpoint: an expense tracker	40	py-modules-mistakes	33.7 checkpoint project — an expense tracker
+L	py-modules-practice	103-py-modules-practice.md	89	python	33	practice	18	py-expenses	
+L	py-modules-projects	104-py-modules-projects.md	0	python	33	projects	180	py-modules-practice	
+L	py-why-classes	105-py-why-classes.md	90	python	34	why classes; self	7	py-modules-practice	34.1 why classes|34.2 self, step by step
+L	py-account	106-py-account.md	91	python	34	a useful class: a bank account	4	py-why-classes	34.3 a useful class: a bank account
+L	py-special	107-py-special.md	92	python	34	special methods	4	py-account	34.4 special methods: print, ==, +
+L	py-dataclasses	108-py-dataclasses.md	93	python	34	dataclasses	6	py-special	34.5 dataclasses: the short way
+L	py-inheritance	109-py-inheritance.md	94	python	34	inheritance, briefly	4	py-dataclasses	34.6 inheritance, briefly
+L	py-classes-mistakes	110-py-classes-mistakes.md	95	python	34	common mistakes	3	py-inheritance	34.7 common mistakes
+L	py-classes-practice	111-py-classes-practice.md	96	python	34	practice	18	py-classes-mistakes	
+L	py-classes-projects	112-py-classes-projects.md	0	python	34	projects	180	py-classes-practice	
+L	py-first-test	113-py-first-test.md	97	python	35	the first test	3	py-classes-practice loop-commit	35.1 why tests|35.2 the first test
+L	py-failure	114-py-failure.md	98	python	35	reading a failure, testing errors	6	py-first-test	35.3 reading a failure|35.4 testing errors
+L	py-many-cases	115-py-many-cases.md	99	python	35	many cases, files in tests	7	py-failure	35.5 many cases, one test|35.6 files in tests: tmp_path
+L	py-tdd	116-py-tdd.md	100	python	35	test first, what to test	5	py-many-cases	35.7 test first: red, green, tidy|35.8 what to test|35.9 common mistakes
+L	py-tests-practice	117-py-tests-practice.md	101	python	35	practice	18	py-tdd	
+L	py-tests-projects	118-py-tests-projects.md	0	python	35	projects	180	py-tests-practice	
+L	py-hint	119-py-hint.md	102	python	36	what a type hint is, and checking	4	py-classes-practice py-tests-practice	36.1 what a type hint is|36.2 checking: the mistake found before it runs
+L	py-common-types	120-py-common-types.md	103	python	36	the common types	3	py-hint	36.3 the common types
+L	py-optional	121-py-optional.md	104	python	36	optional values; your own types	6	py-common-types	36.4 optional values: None handled|36.5 your own types
+L	py-generic	122-py-generic.md	105	python	36	generic functions, how much to type	3	py-optional	36.6 generic functions|36.7 how much to type|36.8 common mistakes
+L	py-library	123-py-library.md	106	python	36	checkpoint: a tested, typed library	40	py-generic	36.9 checkpoint project — a tested, typed library
+L	py-types-practice	124-py-types-practice.md	107	python	36	practice	13	py-library	
+L	py-types-projects	125-py-types-projects.md	0	python	36	projects	180	py-types-practice	
+L	py-comprehensions	126-py-comprehensions.md	108	python	37	comprehensions	5	py-types-practice	37.1 list comprehensions|37.2 dictionary and set comprehensions
+L	py-for-really	127-py-for-really.md	109	python	37	what for really does	2	py-comprehensions	37.3 what for really does
+L	py-generators	128-py-generators.md	110	python	37	generators	8	py-for-really	37.4 generators: values on demand
+L	py-tools	129-py-tools.md	111	python	37	generator expressions, zip and friends	5	py-generators	37.5 generator expressions|37.6 tools: zip, enumerate, sorted, itertools
+L	py-functools	130-py-functools.md	112	python	37	functools	6	py-tools	37.7 functools: tools for functions|37.8 common mistakes
+L	py-generators-practice	131-py-generators-practice.md	113	python	37	practice	18	py-functools	
+L	py-generators-projects	132-py-generators-projects.md	0	python	37	projects	210	py-generators-practice	
+L	py-waiting	133-py-waiting.md	114	python	38	waiting, not working: async and await	6	py-generators-practice	38.1 waiting, not working|38.2 async and await
+L	py-switching	134-py-switching.md	115	python	38	seeing the switching; tasks	4	py-waiting	38.3 seeing the switching|38.4 tasks and TaskGroup
+L	py-timeouts	135-py-timeouts.md	116	python	38	timeouts, limiting	4	py-switching	38.5 timeouts|38.6 limiting: a semaphore
+L	py-real-async	136-py-real-async.md	117	python	38	real use, when it helps, mistakes	5	py-timeouts	38.7 real use: many web requests|38.8 when async helps|38.9 common mistakes
+L	py-async-practice	137-py-async-practice.md	118	python	38	practice	12	py-real-async	
+L	py-async-projects	138-py-async-projects.md	0	python	38	projects	180	py-async-practice	
+L	py-argparse	139-py-argparse.md	119	python	39	arguments and argparse	6	py-modules-practice py-tests-practice py-generators-practice	39.1 a program that takes arguments|39.2 argparse
+L	py-exit-pipes	140-py-exit-pipes.md	120	python	39	exit codes, the error stream, pipes	6	py-argparse	39.3 exit codes and the error stream|39.4 pipes: stdin and stdout
+L	py-package	141-py-package.md	121	python	39	a package, installed as your own command	7	py-exit-pipes	39.5 a package: src layout and an entry point|39.6 install it as your own command|39.7 common mistakes
+L	py-notes	142-py-notes.md	122	python	39	checkpoint: notes, from the command line	40	py-package	39.8 checkpoint project — notes, from the command line
+L	py-cli-practice	143-py-cli-practice.md	123	python	39	practice	12	py-notes	
+L	py-cli-projects	144-py-cli-projects.md	0	python	39	projects	180	py-cli-practice	
+L	py-load	145-py-load.md	124	python	40	the data: load and clean	6	py-cli-practice	40.1 the data|40.2 load and clean
+L	py-summaries	146-py-summaries.md	125	python	40	summaries: statistics	3	py-load	40.3 summaries: statistics
+L	py-group	147-py-group.md	126	python	40	group by	5	py-summaries	40.4 group by
+L	py-dates	148-py-dates.md	127	python	40	dates, a chart in the terminal	4	py-group	40.5 dates|40.6 a chart in the terminal
+L	py-results	149-py-results.md	128	python	40	writing results; common mistakes	3	py-dates	40.7 writing results|40.8 common mistakes
+L	py-data-practice	150-py-data-practice.md	129	python	40	practice	12	py-results	
+L	py-data-projects	151-py-data-projects.md	0	python	40	projects	180	py-data-practice	
+L	py-arrays	152-py-arrays.md	130	python	41	arrays	5	py-data-practice	41.1 arrays
+L	py-shape	153-py-shape.md	131	python	41	shape and dtype	4	py-arrays	41.2 shape and dtype
+L	py-slicing	154-py-slicing.md	132	python	41	indexing, masks	5	py-shape	41.3 indexing and slicing|41.4 masks: choosing by condition
+L	py-broadcast	155-py-broadcast.md	133	python	41	broadcasting, dot products	6	py-slicing	41.5 broadcasting|41.6 dot products and matrices
+L	py-random	156-py-random.md	134	python	41	random numbers, speed, mistakes	4	py-broadcast	41.7 random numbers, and speed|41.8 common mistakes
+L	py-numpy-practice	157-py-numpy-practice.md	135	python	41	practice	18	py-random	
+L	py-numpy-projects	158-py-numpy-projects.md	0	python	41	projects	180	py-numpy-practice	
+L	py-chart	159-py-chart.md	136	python	42	your writing, as a chart	8	py-cli-practice	42.1 your writing, as a chart
+L	py-flashcards	160-py-flashcards.md	137	python	42	flashcards	5	py-chart	42.2 flashcards
+L	py-weather	161-py-weather.md	138	python	42	the weather; the Game of Life	6	py-flashcards	42.3 the weather, from a web API|42.4 the Game of Life
+L	py-fun-practice	162-py-fun-practice.md	139	python	42	practice	11	py-weather	
+L	py-fun-projects	163-py-fun-projects.md	0	python	42	projects	30	py-fun-practice	
+L	py-compute	164-py-compute.md	140	python	43	what a network computes	5	py-numpy-practice	43.1 arrays|43.2 what a network computes
+L	py-40-lines	165-py-40-lines.md	141	python	43	the whole network, in 40 lines	7	py-compute	43.3 the whole network, in 40 lines
+L	py-calculus	166-py-calculus.md	142	python	43	check the calculus; handwritten digits	3	py-40-lines	43.4 check the calculus|43.5 handwritten digits
+L	py-network-practice	167-py-network-practice.md	143	python	43	practice	12	py-calculus	
+L	py-network-projects	168-py-network-projects.md	0	python	43	projects	30	py-network-practice	
+L	py-torch-install	169-py-torch-install.md	144	python	44	where things stand; install	3	py-network-practice	44.1 where things stand (October 2026)|44.2 install
+L	py-card	170-py-card.md	145	python	44	is the card there?	4	py-torch-install	44.3 is the card there?
+L	py-torch-digits	171-py-torch-digits.md	146	python	44	the digits network, in PyTorch	6	py-card	44.4 the digits network, in PyTorch
+L	py-torch-practice	172-py-torch-practice.md	147	python	44	practice	12	py-torch-digits	
+L	py-torch-projects	173-py-torch-projects.md	0	python	44	projects	30	py-torch-practice	
+L	py-transformer	174-py-transformer.md	148	python	45	the ideas, and the model	15	py-torch-practice	45.1 the ideas, in plain words|45.2 the model
+L	py-transformer-practice	175-py-transformer-practice.md	149	python	45	practice	16	py-transformer	
+L	py-transformer-projects	176-py-transformer-projects.md	0	python	45	projects	30	py-transformer-practice	
+L	py-tune-code	177-py-tune-code.md	150	python	46	the data, and the code	11	py-transformer-practice	46.1 the data: questions and answers about your desktop|46.2 the code
+L	py-tune-practice	178-py-tune-practice.md	151	python	46	practice	6	py-tune-code	
+L	py-tune-projects	179-py-tune-projects.md	0	python	46	projects	30	py-tune-practice	
+L	py-agent-setup	180-py-agent-setup.md	152	python	47	set up, one question	3	py-cli-practice	47.1 set up|47.2 one question
+L	py-agent-loop	181-py-agent-loop.md	153	python	47	the agent	10	py-agent-setup	47.3 the agent
+L	py-agent-practice	182-py-agent-practice.md	154	python	47	practice	11	py-agent-loop	
+L	py-agent-projects	183-py-agent-projects.md	0	python	47	projects	30	py-agent-practice	
+L	tokens	184-tokens.md	155	ai	67	tokens and next-token prediction	4	agents-moves	67.1 tokens|67.2 next-token prediction
+L	training	185-training.md	156	ai	67	training, the context window	3	tokens	67.3 training: where the knowledge comes from|67.4 the context window
+L	hallucination	186-hallucination.md	157	ai	67	reasoning, hallucination, choosing a model	3	training	67.5 reasoning, and why "think first" works|67.6 hallucination|67.7 choosing a model
+L	model-practice	187-model-practice.md	158	ai	67	practice	12	hallucination	
+L	model-projects	188-model-projects.md	0	ai	67	projects	30	model-practice	
+L	five-parts	189-five-parts.md	159	ai	68	the five parts of a good request	3	model-practice	68.1 the five parts of a good request|68.2 show, do not describe
+L	ask-iterate	190-ask-iterate.md	160	ai	68	ask it to ask you; iterate	13	five-parts	68.3 ask it to ask you|68.4 iterate on the request, not the result|68.5 questions are cheap; use them
+L	asking-projects	191-asking-projects.md	0	ai	68	projects	30	ask-iterate	
+L	agent-loop	192-agent-loop.md	161	ai	69	the loop, and what goes wrong	3	py-agent-practice model-practice ask-iterate	69.1 the loop|69.2 what goes wrong
+L	injection	193-injection.md	162	ai	69	prompt injection; agency is a dial	13	agent-loop	69.3 prompt injection|69.4 agency is a dial
+L	agents-idea-projects	194-agents-idea-projects.md	0	ai	69	projects	30	injection	
+L	claude-starting	195-claude-starting.md	163	ai	70	starting, permission modes	2	git-moves agents-moves injection	70.1 starting|70.2 permission modes
+L	claude-steps	196-claude-steps.md	164	ai	70	the four steps, steering a session	2	claude-starting	70.3 the four steps|70.4 steering a session
+L	claude-md	197-claude-md.md	165	ai	70	CLAUDE.md	14	claude-steps	70.5 CLAUDE.md: what every session should know
+L	claude-loop-projects	198-claude-loop-projects.md	0	ai	70	projects	30	claude-md	
+L	claude-hooks	199-claude-hooks.md	166	ai	71	settings and hooks	4	claude-md	71.1 settings and permission rules|71.2 hooks: rules that always hold
+L	claude-skills	200-claude-skills.md	167	ai	71	skills and subagents	4	claude-hooks	71.3 skills: your workflows, on demand|71.4 subagents: clean context for side jobs
+L	claude-more	201-claude-more.md	168	ai	71	MCP, claude -p, many at once	2	claude-skills	71.5 MCP: connecting other systems|71.6 without the chat: `claude -p`|71.7 many at once
+L	claude-tools-practice	202-claude-tools-practice.md	169	ai	71	practice	16	claude-more	
+L	claude-tools-projects	203-claude-tools-projects.md	0	ai	71	projects	150	claude-tools-practice	
+L	own-every-line	204-own-every-line.md	170	ai	72	you own every line; specs; review	3	claude-tools-practice	72.1 you own every line|72.2 specs carry decisions|72.3 reviewing AI work
+L	keep-learning	205-keep-learning.md	171	ai	72	keep learning; a card for the wall	8	own-every-line	72.4 keep learning, not just shipping|72.5 staying good as tools change|72.6 a card for the wall
+L	pro-projects	206-pro-projects.md	0	ai	72	projects	150	keep-learning	
+L	rs-project	207-rs-project.md	172	rust	48	a project	4	loop-commit	48.1 a project
+L	rs-neovim	208-rs-neovim.md	173	rust	48	in neovim; reading the compiler	11	rs-project	48.2 in neovim|48.3 check on every save|48.4 reading the compiler
+L	rs-let	209-rs-let.md	174	rust	49	let, and shadowing	8	rs-neovim	49.1 let: a name for a value|49.2 shadowing
+L	rs-numbers	210-rs-numbers.md	175	rust	49	number types	8	rs-let	49.3 number types
+L	rs-tuples	211-rs-tuples.md	176	rust	49	bool, char, text, tuples, arrays	4	rs-numbers	49.4 bool, char and text|49.5 tuples and arrays
+L	rs-expressions	212-rs-expressions.md	177	rust	49	functions, the missing semicolon	7	rs-tuples	49.6 functions|49.7 expressions and the missing semicolon
+L	rs-basics-mistakes	213-rs-basics-mistakes.md	178	rust	49	common mistakes	2	rs-expressions	49.8 common mistakes
+L	rs-basics-practice	214-rs-basics-practice.md	179	rust	49	practice	18	rs-basics-mistakes	
+L	rs-basics-projects	215-rs-basics-projects.md	0	rust	49	projects	180	rs-basics-practice	
+L	rs-if	216-rs-if.md	180	rust	50	if and else	5	rs-basics-practice	50.1 if and else
+L	rs-loops	217-rs-loops.md	181	rust	50	loop, while, for and ranges	8	rs-if	50.2 loop, while|50.3 for and ranges
+L	rs-labels	218-rs-labels.md	182	rust	50	continue, labels, a first match	6	rs-loops	50.4 continue, and labelled loops|50.5 match on numbers, a first look
+L	rs-flow-mistakes	219-rs-flow-mistakes.md	183	rust	50	common mistakes	4	rs-labels	50.6 common mistakes
+L	rs-guessing	220-rs-guessing.md	184	rust	50	checkpoint: a number-guessing machine	30	rs-flow-mistakes	50.7 checkpoint project — a number-guessing machine
+L	rs-flow-practice	221-rs-flow-practice.md	185	rust	50	practice	18	rs-guessing	
+L	rs-flow-projects	222-rs-flow-projects.md	0	rust	50	projects	180	rs-flow-practice	
+L	rs-scope	223-rs-scope.md	186	rust	51	why ownership; scope	8	rs-flow-practice	51.1 why ownership|51.2 scope: where a variable lives
+L	rs-moving	224-rs-moving.md	187	rust	51	moving, copying, cloning	8	rs-scope	51.3 moving|51.4 copying: small simple values|51.5 cloning: a real copy, on purpose
+L	rs-own-functions	225-rs-own-functions.md	188	rust	51	ownership and functions	7	rs-moving	51.6 ownership and functions
+L	rs-own-loops	226-rs-own-loops.md	189	rust	51	moves in loops and collections	7	rs-own-functions	51.7 moves in loops and collections
+L	rs-partial	227-rs-partial.md	190	rust	51	a partial move; common mistakes	2	rs-own-loops	51.8 a partial move|51.9 common mistakes
+L	rs-own-practice	228-rs-own-practice.md	191	rust	51	practice	18	rs-partial	
+L	rs-own-projects	229-rs-own-projects.md	0	rust	51	projects	180	rs-own-practice	
+L	rs-references	230-rs-references.md	192	rust	52	references: borrowing to look	4	rs-own-practice	52.1 references: borrowing to look
+L	rs-mut	231-rs-mut.md	193	rust	52	mutable references	6	rs-references	52.2 mutable references: borrowing to change
+L	rs-rule	232-rs-rule.md	194	rust	52	the rule: many readers, or one writer	6	rs-mut	52.3 the rule: many readers, or one writer
+L	rs-last-use	233-rs-last-use.md	195	rust	52	a borrow ends at its last use	4	rs-rule	52.4 a borrow ends at its last use
+L	rs-dangling	234-rs-dangling.md	196	rust	52	no dangling references	5	rs-last-use	52.5 no dangling references
+L	rs-slices	235-rs-slices.md	197	rust	52	slices; common mistakes	8	rs-dangling	52.6 slices: borrowing a part|52.7 common mistakes
+L	rs-borrow-practice	236-rs-borrow-practice.md	198	rust	52	practice	18	rs-slices	
+L	rs-borrow-projects	237-rs-borrow-projects.md	0	rust	52	projects	180	rs-borrow-practice	
+L	rs-struct	238-rs-struct.md	199	rust	53	a struct, printed	7	rs-own-practice rs-borrow-practice	53.1 a struct|53.2 printing a struct: derive Debug
+L	rs-methods	239-rs-methods.md	200	rust	53	methods with impl	4	rs-struct	53.3 methods with impl
+L	rs-new	240-rs-new.md	201	rust	53	associated functions: new	4	rs-methods	53.4 associated functions: new
+L	rs-tuple-structs	241-rs-tuple-structs.md	202	rust	53	tuple structs and unit structs	6	rs-new	53.5 tuple structs and unit structs
+L	rs-derive	242-rs-derive.md	203	rust	53	deriving more; common mistakes	7	rs-tuple-structs	53.6 deriving more|53.7 common mistakes
+L	rs-structs-practice	243-rs-structs-practice.md	204	rust	53	practice	18	rs-derive	
+L	rs-structs-projects	244-rs-structs-projects.md	0	rust	53	projects	180	rs-structs-practice	
+L	rs-enum	245-rs-enum.md	205	rust	54	an enum, variants with data	8	rs-structs-practice	54.1 an enum|54.2 variants with data
+L	rs-match	246-rs-match.md	206	rust	54	match must cover everything; patterns	8	rs-enum	54.3 match must cover everything|54.4 patterns
+L	rs-option	247-rs-option.md	207	rust	54	Option: maybe a value	7	rs-match	54.5 Option: maybe a value
+L	rs-option-work	248-rs-option-work.md	208	rust	54	working with Option; methods on enums	9	rs-option	54.6 working with Option|54.7 methods on enums|54.8 common mistakes
+L	rs-bank	249-rs-bank.md	209	rust	54	checkpoint: a bank with commands	40	rs-option-work	54.9 checkpoint project — a bank with commands
+L	rs-enums-practice	250-rs-enums-practice.md	210	rust	54	practice	18	rs-bank	
+L	rs-enums-projects	251-rs-enums-projects.md	0	rust	54	projects	180	rs-enums-practice	
+L	rs-vec	252-rs-vec.md	211	rust	55	Vec: a growing list	6	rs-enums-practice	55.1 Vec: a growing list
+L	rs-vec-structs	253-rs-vec-structs.md	212	rust	55	Vec of structs, sorting	4	rs-vec	55.2 Vec of structs, sorting
+L	rs-string	254-rs-string.md	213	rust	55	String in depth	6	rs-vec-structs	55.3 String in depth
+L	rs-hashmap	255-rs-hashmap.md	214	rust	55	HashMap: look up by key	5	rs-string	55.4 HashMap: look up by key
+L	rs-maps-sets	256-rs-maps-sets.md	215	rust	55	BTreeMap, HashSet, VecDeque	7	rs-hashmap	55.5 BTreeMap: sorted keys|55.6 HashSet: unique values|55.7 VecDeque: a queue|55.8 common mistakes
+L	rs-collections-practice	257-rs-collections-practice.md	216	rust	55	practice	18	rs-maps-sets	
+L	rs-collections-projects	258-rs-collections-projects.md	0	rust	55	projects	180	rs-collections-practice	
+L	rs-result	259-rs-result.md	217	rust	56	two kinds of failure; Result	6	rs-collections-practice	56.1 two kinds of failure|56.2 Result
+L	rs-question	260-rs-question.md	218	rust	56	shortcuts, the ? operator	6	rs-result	56.3 shortcuts: unwrap, expect, unwrap_or|56.4 the ? operator
+L	rs-box-dyn	261-rs-box-dyn.md	219	rust	56	errors of different kinds	5	rs-question	56.5 errors of different kinds: Box<dyn Error>
+L	rs-own-error	262-rs-own-error.md	220	rust	56	your own error type	6	rs-box-dyn	56.6 your own error type
+L	rs-map-err	263-rs-map-err.md	221	rust	56	map_err; common mistakes	5	rs-own-error	56.7 converting between errors: map_err|56.8 common mistakes
+L	rs-counter	264-rs-counter.md	222	rust	56	checkpoint: a word counter that never panics	40	rs-map-err	56.9 checkpoint project — a word counter that never panics
+L	rs-errors-practice	265-rs-errors-practice.md	223	rust	56	practice	18	rs-counter	
+L	rs-errors-projects	266-rs-errors-projects.md	0	rust	56	projects	180	rs-errors-practice	
+L	rs-trait	267-rs-trait.md	224	rust	57	a trait	8	rs-errors-practice	57.1 a trait
+L	rs-trait-params	268-rs-trait-params.md	225	rust	57	traits as parameters	4	rs-trait	57.2 traits as parameters
+L	rs-std-traits	269-rs-std-traits.md	226	rust	57	standard traits you implement	10	rs-trait-params	57.3 standard traits you implement
+L	rs-generics	270-rs-generics.md	227	rust	57	generics	8	rs-std-traits	57.4 generics
+L	rs-dyn	271-rs-dyn.md	228	rust	57	generic structs; dyn Trait	8	rs-generics	57.5 generic structs|57.6 dyn Trait: different types in one list|57.7 common mistakes
+L	rs-traits-practice	272-rs-traits-practice.md	229	rust	57	practice	18	rs-dyn	
+L	rs-traits-projects	273-rs-traits-projects.md	0	rust	57	projects	180	rs-traits-practice	
+L	rs-lifetime	274-rs-lifetime.md	230	rust	58	what a lifetime is	4	rs-borrow-practice rs-traits-practice	58.1 what a lifetime is
+L	rs-write-one	275-rs-write-one.md	231	rust	58	when you must write one	7	rs-lifetime	58.2 when you must write one
+L	rs-no-need	276-rs-no-need.md	232	rust	58	when you do not; structs that hold references	7	rs-write-one	58.3 when you do not need one|58.4 structs that hold references
+L	rs-static	277-rs-static.md	233	rust	58	'static; when in doubt, own it	2	rs-no-need	58.5 'static|58.6 when in doubt, own it
+L	rs-statistics	278-rs-statistics.md	234	rust	58	checkpoint: a generic statistics library	40	rs-static	58.7 checkpoint project — a generic statistics library
+L	rs-lifetimes-practice	279-rs-lifetimes-practice.md	235	rust	58	practice	12	rs-statistics	
+L	rs-lifetimes-projects	280-rs-lifetimes-projects.md	0	rust	58	projects	180	rs-lifetimes-practice	
+L	rs-rooms	281-rs-rooms.md	236	rust	59	modules: rooms in a program	6	rs-lifetimes-practice	59.1 modules: rooms in a program
+L	rs-module-files	282-rs-module-files.md	237	rust	59	modules in files	4	rs-rooms	59.2 modules in files
+L	rs-lib-bin	283-rs-lib-bin.md	238	rust	59	a library and a binary	7	rs-module-files	59.3 a library and a binary
+L	rs-tests	284-rs-tests.md	239	rust	59	tests	8	rs-lib-bin	59.4 tests
+L	rs-more-tests	285-rs-more-tests.md	240	rust	59	more kinds of test	8	rs-tests	59.5 more kinds of test
+L	rs-crates	286-rs-crates.md	241	rust	59	crates from crates.io; common mistakes	2	rs-more-tests	59.6 crates from crates.io|59.7 common mistakes
+L	rs-modules-practice	287-rs-modules-practice.md	242	rust	59	practice	13	rs-crates	
+L	rs-modules-projects	288-rs-modules-projects.md	0	rust	59	projects	150	rs-modules-practice	
+L	rs-closures	289-rs-closures.md	243	rust	60	closures	5	rs-modules-practice	60.1 closures
+L	rs-take-closures	290-rs-take-closures.md	244	rust	60	functions that take closures; iterators	6	rs-closures	60.2 functions that take closures|60.3 iterators
+L	rs-into-iter	291-rs-into-iter.md	245	rust	60	iter, iter_mut, into_iter; laziness	4	rs-take-closures	60.4 iter, iter_mut, into_iter|60.5 laziness
+L	rs-chain	292-rs-chain.md	246	rust	60	collect, and a real chain	4	rs-into-iter	60.6 collect into anything|60.7 a real chain
+L	rs-own-iter	293-rs-own-iter.md	247	rust	60	your own iterator; common mistakes	6	rs-chain	60.8 your own iterator|60.9 common mistakes
+L	rs-iter-practice	294-rs-iter-practice.md	248	rust	60	practice	18	rs-own-iter	
+L	rs-iter-projects	295-rs-iter-projects.md	0	rust	60	projects	180	rs-iter-practice	
+L	rs-threads-start	296-rs-threads-start.md	249	rust	61	threads	5	rs-iter-practice	61.1 threads
+L	rs-why-move	297-rs-why-move.md	250	rust	61	why move	6	rs-threads-start	61.2 why move
+L	rs-arc	298-rs-arc.md	251	rust	61	Arc and Mutex	4	rs-why-move	61.3 sharing state: Arc and Mutex
+L	rs-races	299-rs-races.md	252	rust	61	data races are compile errors	5	rs-arc	61.4 data races are compile errors
+L	rs-channels	300-rs-channels.md	253	rust	61	channels; how much faster?	8	rs-races	61.5 channels: send messages|61.6 how much faster?|61.7 common mistakes
+L	rs-scanner	301-rs-scanner.md	254	rust	61	checkpoint: a parallel file scanner	40	rs-channels	61.8 checkpoint project — a parallel file scanner
+L	rs-threads-practice	302-rs-threads-practice.md	255	rust	61	practice	12	rs-scanner	
+L	rs-threads-projects	303-rs-threads-projects.md	0	rust	61	projects	180	rs-threads-practice	
+L	rs-wordfreq	304-rs-wordfreq.md	256	rust	62	wordfreq	11	rs-threads-practice	
+L	rs-cli-practice	305-rs-cli-practice.md	257	rust	62	practice	11	rs-wordfreq	
+L	rs-cli-projects	306-rs-cli-projects.md	0	rust	62	projects	30	rs-cli-practice	
+L	rs-tinygrad	307-rs-tinygrad.md	258	rust	63	tinygrad	20	py-network-practice rs-traits-practice	
+L	rs-autograd-practice	308-rs-autograd-practice.md	259	rust	63	practice	11	rs-tinygrad	
+L	rs-autograd-projects	309-rs-autograd-projects.md	0	rust	63	projects	30	rs-autograd-practice	
+L	rs-candle	310-rs-candle.md	260	rust	64	candle and burn	7	py-torch-practice rs-cli-practice	64.1 candle: the PyTorch model, in Rust|64.2 burn: tensors on the card, through Vulkan
+L	rs-models-practice	311-rs-models-practice.md	261	rust	64	practice	11	rs-candle	
+L	rs-models-projects	312-rs-models-projects.md	0	rust	64	projects	30	rs-models-practice	
+L	rs-pyo3-module	313-rs-pyo3-module.md	262	rust	65	a Python module written in Rust	8	loop-commit rs-cli-practice	
+L	rs-pyo3-practice	314-rs-pyo3-practice.md	263	rust	65	practice	6	rs-pyo3-module	
+L	rs-pyo3-projects	315-rs-pyo3-projects.md	0	rust	65	projects	30	rs-pyo3-practice	
+L	where-next	316-where-next.md	264	rust	66	where to go next	1		

@@ -4,7 +4,7 @@ title: practice
 part: programs
 chapter: 20
 minutes: 16
-needs: [notes-pdfs]
+needs: [sketch]
 optional: no
 ---
 
