@@ -291,19 +291,29 @@ class Engine:
 # (Skill Level through UCI_Elo: src/search.h). The levels are one scale measured by tools/chess-ladder.py,
 # engine against engine, anchored at Stockfish's 1320 (docs/learn/chess/ladder.md): an engine pool's
 # numbers, not chess.com's (Stockfish's own FAQ: no human scale can be claimed).
-_WEAK = (              # level, temperature in cp, chance of any legal move (measured: 200 games a pair)
-    (290, 1e5, 1.00),
-    (317, 1500.0, 0.30),
-    (350, 800.0, 0.20),
-    (400, 500.0, 0.15),
-    (445, 350.0, 0.10),
-    (515, 250.0, 0.07),
-    (615, 180.0, 0.05),
-    (760, 130.0, 0.03),
-    (930, 90.0, 0.02),
-    (1140, 60.0, 0.01),
+_WEAK = (              # level, temperature in cp, chance of any legal move (measured: ladder.md)
+    (440, 1e5, 1.00),
+    (465, 1500.0, 0.30),
+    (500, 800.0, 0.20),
+    (550, 500.0, 0.15),
+    (595, 350.0, 0.10),
+    (650, 250.0, 0.07),
+    (715, 180.0, 0.05),
+    (840, 130.0, 0.03),
+    (980, 90.0, 0.02),
+    (1155, 60.0, 0.01),
     (1320, 40.0, 0.00),
 )
+_STRONG = ((1320, 1320), (1511, 1500), (1656, 1700), (1777, 1900), (1910, 2100), (2053, 2300), (2400, 2800), (2750, 3190))  # level, UCI_Elo
+
+
+def uci_elo(level):
+    """Stockfish's UCI_Elo for a level of this ladder, between the measured rows."""
+    rows = _STRONG
+    for (l0, u0), (l1, u1) in zip(rows, rows[1:], strict=False):
+        if level <= l1:
+            return int(u0 + (u1 - u0) * (max(level, l0) - l0) / (l1 - l0))
+    return rows[-1][1]
 
 
 def weakness(elo):
@@ -345,9 +355,10 @@ def play_request(fen, moves, elo, done, tag=None):
     if elo < 1320:
         return Search(fen, moves, "depth 1", done, multipv=60, budget=3.0, tag=tag,
                       options={"UCI_LimitStrength": "false", "Skill Level": 20})
-    nodes = 30000 if elo < 2200 else 200000 if elo < 2600 else 1000000
+    u = uci_elo(elo)
+    nodes = 30000 if u < 2200 else 200000 if u < 2600 else 1000000
     return Search(fen, moves, f"nodes {nodes}", done, budget=6.0, tag=tag,
-                  options={"UCI_LimitStrength": "true", "UCI_Elo": min(elo, 3190)})
+                  options={"UCI_LimitStrength": "true", "UCI_Elo": u})
 
 
 def analysis_request(fen, moves, done, nodes=120000, multipv=2, tag=None):

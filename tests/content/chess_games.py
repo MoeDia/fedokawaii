@@ -15,7 +15,7 @@ def main(argv):
     root, sf_path, n = pathlib.Path(argv[1]), argv[2], int(argv[3])
     home, env = make_home(root, real_engine=sf_path)
     played = 0
-    steps_list = [-16, -14, -12, -10, -8, -6, -4, -2, 0, 2, 4, 6, 8, -15, -13, -11, -9, -7, -5, -3]
+    steps_list = [-2, 0, 2, 4, 6, 8, 10, 12, 14, 16, 1, 3, 5, 7, 9, 11, 13, 15, -1, 18]
     for i in range(n):
         t = open_app(env)
         start_free_game(t, colour=i % 2, level_steps=steps_list[i % len(steps_list)])
@@ -52,7 +52,7 @@ def main(argv):
             # (out of time: it stays open, resign it)
             t.send("\x1b")
             t.pump(0.1)
-            t.send("\x1b[A\x1b[A\r")
+            t.send("\x1b[B\x1b[B\x1b[B\x1b[B\r")   # (the menu: resign)
             t.pump(0.2)
             played += 1 if current(home) is None else 0
         t.close()

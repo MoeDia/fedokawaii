@@ -486,7 +486,7 @@ class Home(Screen):
 class FreeSetup(Screen):
     """A free game: the level and the colour, nothing else; not counted in the course."""
 
-    LEVELS = (250, 400, 600, 800, 1000, 1200, 1320, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2200, 2500, 3190)
+    LEVELS = (440, 500, 550, 650, 750, 850, 950, 1050, 1150, 1250, 1320, 1400, 1500, 1600, 1700, 1800, 1900, 2000, 2200, 2500, 2750)
 
     def __init__(self, home):
         self.home = home
@@ -651,7 +651,7 @@ def year_picture(view, pr, course):
 
     for level in (500, 1000, 1500, 2000):
         cv.fill(left, ypos(level), cell * 52, 1, ink["sq_l2"])
-    pts = [(1, 350)] + [(wk.no * 7, wk.milestone["level"]) for wk in course.weeks if wk.milestone]
+    pts = [(1, 450)] + [(wk.no * 7, wk.milestone["level"]) for wk in course.weeks if wk.milestone]
     for (d0, r0), (d1, r1) in zip(pts, pts[1:], strict=False):
         for d in range(d0, d1, 3):
             cv.fill(xpos(d), ypos(r0 + (r1 - r0) * (d - d0) / (d1 - d0)), s, s, ink["dot_l"])

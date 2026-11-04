@@ -10,7 +10,7 @@ def today_ordinal():
 
 
 class Progress:
-    DEFAULT_GAME = {"r": 350.0, "rd": 200.0, "vol": 0.06}
+    DEFAULT_GAME = {"r": 450.0, "rd": 200.0, "vol": 0.06}
     DEFAULT_PUZZLE = {"r": 650.0, "rd": 250.0, "vol": 0.06}
 
     def __init__(self, store):

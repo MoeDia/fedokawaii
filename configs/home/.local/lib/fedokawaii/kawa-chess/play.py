@@ -231,6 +231,7 @@ class Game(Screen):
         self.thinking_since = None
         self.shown = None
         self.landing = None          # (a move on its way: its squares lit from its first frame)
+        self.begun = False
         self.fallen = None           # (the beaten king's square, how far he has fallen)
         self.fall_at = 0
         if saved:
@@ -599,6 +600,9 @@ class Game(Screen):
                 self.app.touch()
             return self.fall_at if self.fallen is not None and self.fallen[1] < 3 else None
         g = self.g
+        if not self.begun:
+            self.begun = True
+            self.save()               # (from its first moment it is a game that can be taken up again)
         if self.clock and not self.paused:
             turn = g.pos.turn
             left = self.clock[turn] - (now - self.t_mark)

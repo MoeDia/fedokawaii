@@ -110,8 +110,8 @@ def _compact(row):
 
 
 # the ladder: who sits across the board at each level — from a harmless tree spirit to the oni's king
-LADDER = ((400, "kodama"), (600, "tanuki"), (800, "kappa"), (1000, "karakasa"), (1200, "kitsune"), (1400, "tengu"),
-          (1600, "yuki-onna"), (1800, "oni"), (2000, "hannya"), (9999, "shuten-doji"))
+LADDER = ((550, "kodama"), (700, "tanuki"), (850, "kappa"), (1000, "karakasa"), (1150, "kitsune"), (1300, "tengu"),
+          (1500, "yuki-onna"), (1700, "oni"), (1900, "hannya"), (9999, "shuten-doji"))
 
 
 def opponent(elo):
@@ -165,13 +165,13 @@ WEEKS = [
     # ── the first month: the men, the rules, what they are worth, mate (Steps 1, Silman part one) ──
     dict(title="the pieces and how they move", band=(250, 300), themes=["hangingPiece"],
          lessons=["the-board", "the-rook", "the-bishop", "the-queen", "the-king", "the-knight", "the-pawn"],
-         games=G(2, "a rook against three pawns: take them all before one reaches the far side.", pos="rook-v-pawns", hints=5, elo=250)
-         + G(2, "a bishop against three pawns: take what stands on your colour, hold the rest back.", pos="bishop-v-pawns", hints=5, elo=250)
-         + G(2, "the queen against eight pawns: she wins if you never let one through.", pos="queen-v-pawns", hints=5, elo=250)
-         + G(2, "pawns against pawns: the first to reach the far side has a queen.", pos="pawn-war", hints=5, elo=250)
-         + G(2, "a knight against three pawns: learn his jump, catch them from far away.", pos="knight-v-pawns", hints=5, elo=250)
-         + G(2, "pawns against pawns again: now look before you push: can it be taken?", pos="pawn-war", hints=5, elo=250)
-         + G(2, "your first whole game: they have no queen. take whatever you safely can.", odds="q", hints=5, elo=250)),
+         games=G(2, "a rook against three pawns: take them all before one reaches the far side.", pos="rook-v-pawns", hints=5, elo=440)
+         + G(2, "a bishop against three pawns: take what stands on your colour, hold the rest back.", pos="bishop-v-pawns", hints=5, elo=440)
+         + G(2, "the queen against eight pawns: she wins if you never let one through.", pos="queen-v-pawns", hints=5, elo=440)
+         + G(2, "pawns against pawns: the first to reach the far side has a queen.", pos="pawn-war", hints=5, elo=440)
+         + G(2, "a knight against three pawns: learn his jump, catch them from far away.", pos="knight-v-pawns", hints=5, elo=440)
+         + G(2, "pawns against pawns again: now look before you push: can it be taken?", pos="pawn-war", hints=5, elo=440)
+         + G(2, "your first whole game: they have no queen. take whatever you safely can.", odds="q", hints=5, elo=440)),
     dict(title="check, mate and the rules", band=(250, 350), themes=["mateIn1", "hangingPiece"],
          lessons=["check", "checkmate", "stalemate", "castling", "en-passant", "promotion", "notation-and-draws"],
          games=G(4, "two rooks against a lone king: mate him; they walk him to the edge rank by rank.", pos="two-rooks", elo=1320, check="mate:30")
@@ -437,5 +437,24 @@ WEEKS = [
          games=pair(G(7, "the last exam: then play on chess.com, ten minutes: see what the year made of you.", clock=(10, 0), off=150, check="finish"),
                     B7("endgame", 3) + B7("middlegame", 4))),
 ]
+# the levels each week moves between, and where the plan wants you every fourth week: the ladder as measured
+# (ladder.md). Level 1500–1800 is where the little outside evidence puts 1800 on chess.com; nothing can say closer
+PLAN = {4: 550, 8: 700, 12: 850, 16: 1000, 20: 1100, 24: 1200, 28: 1300, 32: 1400, 36: 1500, 40: 1600, 44: 1700, 48: 1750, 52: 1800}
+
+
+def _plan_at(week):
+    """The plan's level at the end of a week, straight between its marks."""
+    last_w, last_l = 0, 450
+    for w, level in PLAN.items():
+        if week <= w:
+            return last_l + (level - last_l) * (week - last_w) / (w - last_w)
+        last_w, last_l = w, level
+    return last_l
+
+
+for _i, _w in enumerate(WEEKS, 1):
+    _w["band"] = (int(_plan_at(_i)) - 150, int(_plan_at(_i)) + 150)
+    if _w.get("milestone"):
+        _w["milestone"]["level"] = PLAN[_i]
 assert len(WEEKS) == 52
 assert all(len(w["games"]) == 14 for w in WEEKS)

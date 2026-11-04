@@ -74,26 +74,21 @@ t = open_app(env)
 back = t.find("e4")
 saved = current(home)
 pos = position_of(saved)
-# play it out: the first legal move, every time, whatever it is
-g = 0
-while g < 400 and t.alive():
+# twelve moves more, then the menu: resign (back, turn round, a hint, a draw, resign, leave)
+for _ in range(12):
     saved = current(home)
-    if saved is None:
-        break
     pos = position_of(saved)
     if pos.turn != saved["spec"]["colour"]:
-        t.pump(0.05)
-        g += 1
+        t.pump(1.6)
         continue
-    moves = pos.legal()
-    if not moves:
-        break
-    t.send(B.uci(moves[-1])); t.pump(0.02); t.send("\r"); t.pump(0.3)
-    g += 1
+    t.send(B.uci(pos.legal()[-1])); t.pump(0.02); t.send("\r"); t.pump(0.3)
+t.pump(1.6)
+t.send("\x1b"); t.pump(0.1); t.send("\x1b"); t.pump(0.1)
+t.send("\x1b[B\x1b[B\x1b[B\x1b[B"); t.pump(0.1); t.send("\r"); t.pump(0.3)
 over = current(home) is None
 pgn = sorted(state(home).glob("games/*.pgn"))
 tags, game = B.read_pgn(pgn[0].read_text())
-print(illegal, bool(two), back, over, len(pgn), tags["Result"] == game.result, game.over(), repr(crash_text(home)))
+print(illegal, bool(two), back, over, len(pgn), tags["Result"] == game.result, t.find("you resigned"), repr(crash_text(home)))
 t.close()
 PY
 )" "True True True True 1 True True ''"
@@ -172,6 +167,62 @@ t.send("\x1b"); t.pump(0.1); t.send("\x1b"); t.pump(0.1)
 t.close()
 p = json.loads((state(home) / "progress.json").read_text())
 print(done >= 12, p["puzzle"]["r"] != start_r, len(p["due"]) > 0, len(set(ids)) >= done - 5, p["tries"] > 0, repr(crash_text(home)))
+PY
+)" "True True True True True ''"
+
+case_ "the plan holds: an exam failed stays open, sixteen of twenty passes; a gate game lost is played again"
+eq "$(py <<'PY'
+import sys, json, pathlib, time
+sys.path.insert(0, sys.argv[1])
+from chess_lib import *
+root = pathlib.Path(sys.argv[2]) / "x"
+home, env = make_home(root)
+st = state(home); st.mkdir(parents=True)
+items = {f"28/{k}": "x" for k in ("game55", "review55", "puzzles28", "game56", "review56")}
+(st / "progress.json").write_text(json.dumps({"day": 28, "items": items}))
+trace = root / "trace"
+def play_exam(right):
+    """Twenty puzzles: the first `right` solved, the rest given up."""
+    seen = len(trace.read_text().splitlines()) if trace.exists() else 0
+    for n in range(20):
+        end = time.time() + 12
+        while time.time() < end:
+            t.pump(0.03)
+            lines = trace.read_text().splitlines() if trace.exists() else []
+            if len(lines) > seen:
+                break
+        seen = len(lines)
+        _, pid, fen, moves, rating = lines[-1].split("\t")
+        line = moves.split()
+        t.pump(0.8)
+        if n < right:
+            for i in range(1, len(line), 2):
+                t.send(line[i]); t.pump(0.01); t.send("\r"); t.pump(0.25)
+                if i + 1 < len(line):
+                    t.pump(0.65)
+        else:
+            t.send("\x1b"); t.pump(0.1); t.send("\r"); t.pump(0.1)
+    t.pump(0.3)
+t = open_app(env)
+a = t.find("the exam of these four weeks")
+t.send("\r"); t.pump(0.3)
+play_exam(0)
+t.send("\r"); t.pump(0.2)
+fail = t.find("sixteen to pass") and not json.loads((st / "progress.json").read_text())["items"].get("28/exam4")
+t.send("\r"); t.pump(0.3)
+play_exam(20)
+t.send("\r"); t.pump(0.3)
+ok = bool(json.loads((st / "progress.json").read_text())["items"].get("28/exam4"))
+t.close()
+# a gate: king and queen in under twenty, game 43 is the first of week 4's: resign it, it stays open
+(st / "progress.json").write_text(json.dumps({"day": 22, "items": {"22/lesson-the-back-rank": "x"}}))
+t = open_app(env); t.send("\r"); t.pump(0.5)
+t.send("\x1b"); t.pump(0.1); t.send("\x1b[B\x1b[B\x1b[B\x1b[B\r"); t.pump(0.4); t.send("\r"); t.pump(0.3)
+p = json.loads((st / "progress.json").read_text())
+gate_open = "22/game43" not in p["items"]
+said = t.find("played again")
+t.close()
+print(a, fail, ok, gate_open, said, repr(crash_text(home)))
 PY
 )" "True True True True True ''"
 

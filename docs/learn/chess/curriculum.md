@@ -10,7 +10,7 @@ Levels are this program's ladder, measured engine against engine; they are not c
 
 ## Week 1: the pieces and how they move (days 1–7)
 
-Level band 250–300.
+Level band 325–625.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -41,7 +41,7 @@ Level band 250–300.
 
 ## Week 2: check, mate and the rules (days 8–14)
 
-Level band 250–350.
+Level band 350–650.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -72,7 +72,7 @@ Level band 250–350.
 
 ## Week 3: what the pieces are worth (days 15–21)
 
-Level band 250–400.
+Level band 375–675.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -103,7 +103,7 @@ Level band 250–400.
 
 ## Week 4: mate at once, and the lone king (days 22–28)
 
-Level band 300–450. Milestone by its end: level 450, puzzle rating 750. Exam: mate in one, a piece for free, the back rank, around 600.
+Level band 400–700. Milestone by its end: level 550, puzzle rating 750. Exam: mate in one, a piece for free, the back rank, around 600.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -134,7 +134,7 @@ Level band 300–450. Milestone by its end: level 450, puzzle rating 750. Exam: 
 
 ## Week 5: is it safe? (days 29–35)
 
-Level band 350–550.
+Level band 437–737.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -165,7 +165,7 @@ Level band 350–550.
 
 ## Week 6: the opening: centre, pieces out, king home (days 36–42)
 
-Level band 400–600.
+Level band 475–775.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -196,7 +196,7 @@ Level band 400–600.
 
 ## Week 7: the fork (days 43–49)
 
-Level band 450–650.
+Level band 512–812.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -227,7 +227,7 @@ Level band 450–650.
 
 ## Week 8: the pin (days 50–56)
 
-Level band 500–700. Milestone by its end: level 650, puzzle rating 950. Exam: forks, pins, a piece for free, mate in one, around 750.
+Level band 550–850. Milestone by its end: level 700, puzzle rating 950. Exam: forks, pins, a piece for free, mate in one, around 750.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -258,7 +258,7 @@ Level band 500–700. Milestone by its end: level 650, puzzle rating 950. Exam: 
 
 ## Week 9: the skewer and the discovered attack (days 57–63)
 
-Level band 550–750.
+Level band 587–887.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -289,7 +289,7 @@ Level band 550–750.
 
 ## Week 10: mate in two (days 64–70)
 
-Level band 600–800.
+Level band 625–925.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -320,7 +320,7 @@ Level band 600–800.
 
 ## Week 11: kings and pawns (days 71–77)
 
-Level band 650–850.
+Level band 662–962.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -351,7 +351,7 @@ Level band 650–850.
 
 ## Week 12: the first exam (days 78–84)
 
-Level band 700–950. Milestone by its end: level 800, puzzle rating 1100. Exam: forks, pins, skewers, mate in two, discovered attacks, around 900.
+Level band 700–1000. Milestone by its end: level 850, puzzle rating 1100. Exam: forks, pins, skewers, mate in two, discovered attacks, around 900.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -382,7 +382,7 @@ Level band 700–950. Milestone by its end: level 800, puzzle rating 1100. Exam:
 
 ## Week 13: real chess: how to choose a move (days 85–91)
 
-Level band 750–1000.
+Level band 737–1037.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -413,7 +413,7 @@ Level band 750–1000.
 
 ## Week 14: the guard removed, the overworked piece (days 92–98)
 
-Level band 800–1050.
+Level band 775–1075.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -444,7 +444,7 @@ Level band 800–1050.
 
 ## Week 15: mates with names (days 99–105)
 
-Level band 850–1100.
+Level band 812–1112.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -475,7 +475,7 @@ Level band 850–1100.
 
 ## Week 16: attacking the castled king (days 106–112)
 
-Level band 900–1200. Milestone by its end: level 950, puzzle rating 1250. Exam: discovered attacks, removing the guard, deflection, mate in two, attacking the king, around 1050.
+Level band 850–1150. Milestone by its end: level 1000, puzzle rating 1250. Exam: discovered attacks, removing the guard, deflection, mate in two, attacking the king, around 1050.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -506,7 +506,7 @@ Level band 900–1200. Milestone by its end: level 950, puzzle rating 1250. Exam
 
 ## Week 17: a master's game, move by move (days 113–119)
 
-Level band 950–1250.
+Level band 875–1175.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -537,7 +537,7 @@ Level band 950–1250.
 
 ## Week 18: the rooks (days 120–126)
 
-Level band 1000–1250.
+Level band 900–1200.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -568,7 +568,7 @@ Level band 1000–1250.
 
 ## Week 19: knights and bishops (days 127–133)
 
-Level band 1050–1300.
+Level band 925–1225.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -599,7 +599,7 @@ Level band 1050–1300.
 
 ## Week 20: pawns: the skeleton of the game (days 134–140)
 
-Level band 1100–1350. Milestone by its end: level 1050, puzzle rating 1350. Exam: rook endings, pawn endings, trapped pieces, advanced pawns, f2 and f7, around 1150.
+Level band 950–1250. Milestone by its end: level 1100, puzzle rating 1350. Exam: rook endings, pawn endings, trapped pieces, advanced pawns, f2 and f7, around 1150.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -630,7 +630,7 @@ Level band 1100–1350. Milestone by its end: level 1050, puzzle rating 1350. Ex
 
 ## Week 21: queen against pawn, and the Lucena (days 141–147)
 
-Level band 1150–1400.
+Level band 975–1275.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -661,7 +661,7 @@ Level band 1150–1400.
 
 ## Week 22: the Philidor, and active rooks (days 148–154)
 
-Level band 1200–1450.
+Level band 1000–1300.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -692,7 +692,7 @@ Level band 1200–1450.
 
 ## Week 23: the clock and your habits (days 155–161)
 
-Level band 1250–1500.
+Level band 1025–1325.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -723,7 +723,7 @@ Level band 1250–1500.
 
 ## Week 24: the second exam (days 162–168)
 
-Level band 1250–1550. Milestone by its end: level 1150, puzzle rating 1450. Exam: forks, pins, rook endings, attacking the king, deflection, only moves, around 1300.
+Level band 1050–1350. Milestone by its end: level 1200, puzzle rating 1450. Exam: forks, pins, rook endings, attacking the king, deflection, only moves, around 1300.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -754,7 +754,7 @@ Level band 1250–1550. Milestone by its end: level 1150, puzzle rating 1450. Ex
 
 ## Week 25: calculating (days 169–175)
 
-Level band 1300–1550.
+Level band 1075–1375.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -785,7 +785,7 @@ Level band 1300–1550.
 
 ## Week 26: defending (days 176–182)
 
-Level band 1350–1600.
+Level band 1100–1400.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -816,7 +816,7 @@ Level band 1350–1600.
 
 ## Week 27: clearance, interference, x-ray (days 183–189)
 
-Level band 1400–1650.
+Level band 1125–1425.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -847,7 +847,7 @@ Level band 1400–1650.
 
 ## Week 28: storms: opposite castling (days 190–196)
 
-Level band 1450–1700. Milestone by its end: level 1250, puzzle rating 1550. Exam: mate in three, sacrifices, only moves, clearance, attacking the king, around 1400.
+Level band 1150–1450. Milestone by its end: level 1300, puzzle rating 1550. Exam: mate in three, sacrifices, only moves, clearance, attacking the king, around 1400.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -878,7 +878,7 @@ Level band 1450–1700. Milestone by its end: level 1250, puzzle rating 1550. Ex
 
 ## Week 29: weak squares (days 197–203)
 
-Level band 1450–1700.
+Level band 1175–1475.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -909,7 +909,7 @@ Level band 1450–1700.
 
 ## Week 30: what to trade (days 204–210)
 
-Level band 1500–1750.
+Level band 1200–1500.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -940,7 +940,7 @@ Level band 1500–1750.
 
 ## Week 31: breaks and space (days 211–217)
 
-Level band 1500–1750.
+Level band 1225–1525.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -971,7 +971,7 @@ Level band 1500–1750.
 
 ## Week 32: minor-piece endings (days 218–224)
 
-Level band 1550–1800. Milestone by its end: level 1350, puzzle rating 1650. Exam: bishop endings, knight endings, pawn endings, quiet moves, trapped pieces, around 1500.
+Level band 1250–1550. Milestone by its end: level 1400, puzzle rating 1650. Exam: bishop endings, knight endings, pawn endings, quiet moves, trapped pieces, around 1500.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1002,7 +1002,7 @@ Level band 1550–1800. Milestone by its end: level 1350, puzzle rating 1650. Ex
 
 ## Week 33: rook endings, once more (days 225–231)
 
-Level band 1550–1800.
+Level band 1275–1575.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1033,7 +1033,7 @@ Level band 1550–1800.
 
 ## Week 34: your openings, your plans (days 232–238)
 
-Level band 1600–1850.
+Level band 1300–1600.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1064,7 +1064,7 @@ Level band 1600–1850.
 
 ## Week 35: imbalances: making a plan (days 239–245)
 
-Level band 1600–1850.
+Level band 1325–1625.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1095,7 +1095,7 @@ Level band 1600–1850.
 
 ## Week 36: the third exam (days 246–252)
 
-Level band 1600–1900. Milestone by its end: level 1450, puzzle rating 1750. Exam: rook endings, attacking the king, quiet moves, only moves, sacrifices, bishop endings, around 1600.
+Level band 1350–1650. Milestone by its end: level 1500, puzzle rating 1750. Exam: rook endings, attacking the king, quiet moves, only moves, sacrifices, bishop endings, around 1600.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1126,7 +1126,7 @@ Level band 1600–1900. Milestone by its end: level 1450, puzzle rating 1750. Ex
 
 ## Week 37: winning the won game (days 253–259)
 
-Level band 1650–1900.
+Level band 1375–1675.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1157,7 +1157,7 @@ Level band 1650–1900.
 
 ## Week 38: saving lost positions (days 260–266)
 
-Level band 1700–1950.
+Level band 1400–1700.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1188,7 +1188,7 @@ Level band 1700–1950.
 
 ## Week 39: traps in your own openings (days 267–273)
 
-Level band 1700–1950.
+Level band 1425–1725.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1219,7 +1219,7 @@ Level band 1700–1950.
 
 ## Week 40: what do they want? (days 274–280)
 
-Level band 1750–2000. Milestone by its end: level 1550, puzzle rating 1850. Exam: only moves, quiet moves, the move in between, equality, in the opening, around 1700.
+Level band 1450–1750. Milestone by its end: level 1600, puzzle rating 1850. Exam: only moves, quiet moves, the move in between, equality, in the opening, around 1700.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1250,7 +1250,7 @@ Level band 1750–2000. Milestone by its end: level 1550, puzzle rating 1850. Ex
 
 ## Week 41: the initiative (days 281–287)
 
-Level band 1750–2000.
+Level band 1475–1775.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1281,7 +1281,7 @@ Level band 1750–2000.
 
 ## Week 42: the isolated pawn, hanging pawns (days 288–294)
 
-Level band 1800–2050.
+Level band 1500–1800.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1312,7 +1312,7 @@ Level band 1800–2050.
 
 ## Week 43: king endings, deeper (days 295–301)
 
-Level band 1800–2050.
+Level band 1525–1825.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1343,7 +1343,7 @@ Level band 1800–2050.
 
 ## Week 44: ten minutes (days 302–308)
 
-Level band 1800–2050. Milestone by its end: level 1650, puzzle rating 1950. Exam: pawn endings, zugzwang, sacrifices, clearance, mate in three, around 1800.
+Level band 1550–1850. Milestone by its end: level 1700, puzzle rating 1950. Exam: pawn endings, zugzwang, sacrifices, clearance, mate in three, around 1800.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1374,7 +1374,7 @@ Level band 1800–2050. Milestone by its end: level 1650, puzzle rating 1950. Ex
 
 ## Week 45: the woodpecker (days 309–315)
 
-Level band 1800–2100.
+Level band 1562–1862.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1405,7 +1405,7 @@ Level band 1800–2100.
 
 ## Week 46: masters again (days 316–322)
 
-Level band 1850–2100.
+Level band 1575–1875.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1436,7 +1436,7 @@ Level band 1850–2100.
 
 ## Week 47: queens and rooks together (days 323–329)
 
-Level band 1850–2100.
+Level band 1587–1887.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1467,7 +1467,7 @@ Level band 1850–2100.
 
 ## Week 48: who you will meet (days 330–336)
 
-Level band 1900–2150. Milestone by its end: level 1750, puzzle rating 2000. Exam: queen endings, in the opening, f2 and f7, sacrifices, only moves, around 1900.
+Level band 1600–1900. Milestone by its end: level 1750, puzzle rating 2000. Exam: queen endings, in the opening, f2 and f7, sacrifices, only moves, around 1900.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1498,7 +1498,7 @@ Level band 1900–2150. Milestone by its end: level 1750, puzzle rating 2000. Ex
 
 ## Week 49: the last climb: rapid as it is (days 337–343)
 
-Level band 1900–2200.
+Level band 1612–1912.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1529,7 +1529,7 @@ Level band 1900–2200.
 
 ## Week 50: the last climb: stronger (days 344–350)
 
-Level band 1950–2250.
+Level band 1625–1925.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1560,7 +1560,7 @@ Level band 1950–2250.
 
 ## Week 51: the last climb: all of it (days 351–357)
 
-Level band 2000–2300.
+Level band 1637–1937.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
@@ -1591,7 +1591,7 @@ Level band 2000–2300.
 
 ## Week 52: the last exam (days 358–365)
 
-Level band 2000–2350. Milestone by its end: level 1800, puzzle rating 2100. Exam: mixed, around 2000.
+Level band 1650–1950. Milestone by its end: level 1800, puzzle rating 2100. Exam: mixed, around 2000.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
