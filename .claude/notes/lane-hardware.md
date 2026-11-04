@@ -41,3 +41,21 @@ all good except the keyboard still
 
 ## OWNER ANSWER 2026-11-04 19:08 — to your question «2026-11-04 19:07 — question from lane-hardware»
 now the keyboard is all good perfect
+
+## OWNER ANSWER 2026-11-04 19:12 — to your question «2026-11-04 19:13 — question from lane-hardware»
+it does show 42
+
+## OWNER ANSWER 2026-11-04 19:12 — to your question «2026-11-04 19:09 — question from lane-hardware»
+this is fine its the best yea
+
+## OWNER ANSWER 2026-11-04 19:13 — to your question «2026-11-04 19:10 — question from lane-hardware»
+now its showing static blue i think
+
+## OWNER ANSWER 2026-11-04 19:15 — to your question «2026-11-04 19:17 — question from lane-hardware»
+all good the keyboard right now only its left side is in red
+
+## OWNER ANSWER 2026-11-04 19:17 — to your question «2026-11-04 19:18 — question from lane-hardware»
+yea now the whole keyboard good
+
+## OWNER ANSWER 2026-11-04 19:17 — to your question «2026-11-04 19:16 — question from lane-hardware»
+everythihng aligned and good

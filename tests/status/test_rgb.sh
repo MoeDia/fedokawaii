@@ -46,9 +46,9 @@ blocks() {   # blocks FILE EFFECT [R G B] — the K617's memory as it reads back
   python3 -I - "$@" <<'PY'
 import sys
 f, eff = sys.argv[1], int(sys.argv[2])
-b = bytearray(1032); b[14] = 0x5a; b[15] = 0xa5; b[21] = eff; b[100] = 0x77
+b = bytearray(1032); b[14] = 0x5a; b[15] = 0xa5; b[137] = 0x5a; b[138] = 0xa5; b[21] = eff; b[100] = 0x77
 if len(sys.argv) > 3:
-    b[29:32] = bytes(map(int, sys.argv[3:6])); b[38] = 0; b[39] = 4
+    b[29:32] = bytes(map(int, sys.argv[3:6])); b[38] = 0; b[39] = 0x34
 open(f, "wb").write(b)
 PY
 }
@@ -72,40 +72,37 @@ a=$(sizes); secs 3; eq "$(sizes)" "$a" "not one write while nothing changes"
 s=$(K status); has "$s" "motherboard ok"; has "$s" "keyboard ok"; has "$s" "card ok"; has "$s" "display ok"
 stop
 
-case_ "the wire: the keyboard's live frame, its memory (read, then written whole), its frame again"
-eq "$(bytes_at hidraw1 1032 7)" 080a7a01ff0000 "the live frame"
-# (the head, a frame, its four blocks selected, the first select again, four whole blocks, a frame)
-start_=$((1032 + 382 + 6 * 4 + 6))
-eq "$(size hidraw1)" "$((start_ + 4 * 1032 + 382))"
-eq "$(bytes_at hidraw1 "$start_" 5)" 0608b80040 "MODE's head"
-eq "$(bytes_at hidraw1 "$((start_ + 1032))" 5)" 0609bc0040 "CANVAS's head"
-eq "$(bytes_at hidraw1 "$((start_ + 2064))" 5)" 0609c00040 "ROUTING's head"
-ex=$((start_ + 3096))
-eq "$(bytes_at hidraw1 "$ex" 5)" 0603b60000 "EXEC's head, last"
+case_ "the wire: the keyboard: its memory first (read, then the colour and the config written whole), then its live frame"
+# (the head, its two blocks selected, the config's select again, two whole blocks, the frame)
+start_=$((1032 + 6 * 2 + 6))
+eq "$(size hidraw1)" "$((start_ + 2 * 1032 + 382))"
+eq "$(bytes_at hidraw1 1032 6)" 0588b8000000 "the colour table selected"
+eq "$(bytes_at hidraw1 1038 6)" 0583b6000000 "the config selected, and only those"
+eq "$(bytes_at hidraw1 "$start_" 5)" 0608b80040 "the colour table's head"
+ex=$((start_ + 1032))
+eq "$(bytes_at hidraw1 "$ex" 5)" 0603b60000 "the config's head, last"
 eq "$(bytes_at hidraw1 "$((ex + 21))" 1)" 01 "fixed-on"
-eq "$(bytes_at hidraw1 "$((ex + 38))" 2)" 0004 "one colour, the highest brightness"
+eq "$(bytes_at hidraw1 "$((ex + 38))" 2)" 0034 "its palette's first, the highest brightness"
 eq "$(bytes_at hidraw1 "$((ex + 14))" 2)" 5aa5 "its commit mark kept"
 eq "$(bytes_at hidraw1 "$((start_ + 29))" 3)" ff0000 "the colour"
 eq "$(bytes_at hidraw1 "$((start_ + 100))" 1)" 77 "its own bytes kept"
-eq "$(bytes_at hidraw1 "$((start_ + 4 * 1032))" 7)" 080a7a01ff0000 "the live frame again"
+eq "$(bytes_at hidraw1 "$((start_ + 2 * 1032))" 7)" 080a7a01ff0000 "then the live frame"
 
-case_ "the wire: the board: a packet, its memory (the old state, then the new, saved), a packet"
-eq "$(size hidraw4)" "$((185 * 5))"
-eq "$(bytes_at hidraw4 $((185 + 184)) 1)" 00 "the live packet: never saved"
-eq "$(bytes_at hidraw4 $((185 + 32)) 4)" c80a0028 "the same on the ARGB header"
-eq "$(bytes_at hidraw4 $((185 * 2 + 184)) 1)" 01 "the old state saved"
-eq "$(bytes_at hidraw4 $((185 * 3 + 184)) 1)" 01 "the new state saved"
-eq "$(bytes_at hidraw4 $((185 * 3 + 1)) 5)" 01c80a0028 "static, its value, full"
-eq "$(bytes_at hidraw4 $((185 * 4 + 184)) 1)" 00 "the live packet again, not saved"
+case_ "the wire: the board: its memory (the old state, then the new, saved), then a packet, not saved"
+eq "$(size hidraw4)" "$((185 * 4))"
+eq "$(bytes_at hidraw4 $((185 + 184)) 1)" 01 "the old state saved"
+eq "$(bytes_at hidraw4 $((185 * 2 + 184)) 1)" 01 "the new state saved"
+eq "$(bytes_at hidraw4 $((185 * 2 + 1)) 5)" 01c80a0028 "static, its value, full"
+eq "$(bytes_at hidraw4 $((185 * 3 + 184)) 1)" 00 "the live packet: never saved"
+eq "$(bytes_at hidraw4 $((185 * 3 + 32)) 4)" c80a0028 "the same on the ARGB header"
 
-case_ "the wire: the card: the ask; the logo; its six zones and a save; the logo, then the others (whole 64-byte writes)"
+case_ "the wire: the card: the ask; its six zones and a save; the logo, then the others (whole 64-byte writes)"
 eq "$(bytes_at i2c-6 0 2)" 1001 "the presence ask first"
 eq "$(bytes_at i2c-6 64 8)" 120101010af00014 "static, the slowest, full, its value"
-eq "$(bytes_at i2c-6 73 1)" 03 "the logo's zone first"
-eq "$(bytes_at i2c-6 $((64 * 8)) 2)" 1301 "the save"
-eq "$(bytes_at i2c-6 $((64 * 9 + 9)) 1)" 03 "the logo's zone again"
-eq "$(bytes_at i2c-6 $((64 * 10 + 9)) 1)" 05 "then the others, not the logo's twice"
-eq "$(size i2c-6)" "$((64 * (1 + 1 + 6 + 1 + 6)))" "each zone once"
+eq "$(bytes_at i2c-6 $((64 * 7)) 2)" 1301 "the save"
+eq "$(bytes_at i2c-6 $((64 * 8 + 9)) 1)" 03 "the logo's zone first"
+eq "$(bytes_at i2c-6 $((64 * 9 + 9)) 1)" 05 "then the others, not the logo's twice"
+eq "$(size i2c-6)" "$((64 * (1 + 6 + 1 + 6)))" "each zone once"
 eq "$(cat "$M/var/lib/kawa-rgb/card")" f00014 "its mark: it answers nothing back"
 
 case_ "the cooler's display: the CPU's temperature, its vendor's report"
@@ -125,14 +122,14 @@ open(sys.argv[1], "wb").write(d)
 PY
 echo f00014 >"$M/var/lib/kawa-rgb/card"
 start; secs 2; stop
-eq "$(size hidraw1)" "$((1032 + 382 + 6 * 4))" "keyboard: only the frame and its selects"
+eq "$(size hidraw1)" "$((1032 + 6 * 2 + 382))" "keyboard: only its selects and the frame"
 eq "$(size hidraw4)" "$((185 * 2))" "board: only the frame"
 eq "$(size i2c-6)" "$((64 * (1 + 6)))" "card: the ask and the zones, no save"
 eq "$(cat "$M/out")" "" "and nothing to say"
 
 case_ "a keyboard whose memory is not what we know: left alone (no burst), said once; its live frame still goes"
 machine; head -c 1032 /dev/zero >"$M/dev/hidraw1"; start; secs 2; stop
-eq "$(size hidraw1)" "$((1032 + 382 + 6 * 4))"
+eq "$(size hidraw1)" "$((1032 + 6 * 2 + 382))"
 has "$(cat "$M/out")" "keyboard's memory"; eq "$(grep -c memory "$M/out")" 1 "once"
 
 case_ "the lock screen: a fade to about 30 % (of what it looks: 7 % of the value), and back"
@@ -169,7 +166,7 @@ machine; a=$(date +%s); K sleep; rc 0 K wake; b=$(date +%s); ((b - a <= 3)) && _
 
 case_ "the switch: off for everything, in the hardware's memory too, and kept"
 machine; eq "$(K state)" on "untouched: on"; start; secs 2
-k=$(size hidraw1); K off; eq "$(K state)" off; eq "$(cat "$M/var/lib/fedokawaii-greeter/rgb")" off "in a file"; secs 4
+k=$(size hidraw1); K off; eq "$(K state)" off; eq "$(cat "$M/var/lib/fedokawaii-greeter/rgb")" off "in a file"; secs 5
 eq "$(now_of keyboard)" 0,0,0; eq "$(state)" "lights switched off"
 # (the keyboard's stored effect: off; in this test's file, its reads stay what they were)
 t=$(od -An -tx1 -v -j "$k" "$M/dev/hidraw1" | tr -d ' \n'); has "$t" "0603b60000" "the burst came"
@@ -186,7 +183,7 @@ case_ "…kept across a restart: stays off, no frame of light"
 : >"$M/trace"; start; secs 1.5; stop
 eq "$(col keyboard | sort -u)" 0,0,0 "never lit"
 case_ "…and on again, the memories too; toggle"
-start; secs 0.8; K on; eq "$(K state)" on; secs 5; eq "$(now_of keyboard)" 255,0,0; eq "$(state)" "lights full"
+start; secs 1.8; K on; eq "$(K state)" on; secs 6; eq "$(now_of keyboard)" 255,0,0; eq "$(state)" "lights full"
 eq "$(cat "$M/var/lib/kawa-rgb/card")" f00014 "the card's memory back"
 K toggle; eq "$(K state)" off; K toggle; eq "$(K state)" on; stop
 lacks "$(cat "$M/out")" "kawa-rgb: card"
@@ -196,7 +193,7 @@ machine; rm "$M/dev/hidraw1"; ln -s /dev/full "$M/dev/hidraw1"; start; secs 3
 has "$(K status)" "keyboard missing"; has "$(K status)" "motherboard ok"
 rm "$M/dev/hidraw1"; blocks "$M/dev/hidraw1" 1 255 0 0; secs 3
 has "$(K status)" "keyboard ok"
-eq "$(bytes_at hidraw1 1032 7)" 080a7a01ff0000 "its colour sent again"
+eq "$(tail -c 382 "$M/dev/hidraw1" | head -c 7 | od -An -tx1 | tr -d ' \n')" 080a7a01ff0000 "its colour sent again"
 stop
 
 case_ "a device gone (replugged), on the same node and on a new one: found, its colour sent again"

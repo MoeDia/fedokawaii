@@ -183,6 +183,7 @@ struct light {
     bool dirty;             /* its state may be lost: sent again, even if unchanged */
     bool remembered;        /* its own memory looked at, for the switch as it is */
     int sent[3];            /* the last colour it took */
+    double sent_at;         /* when (the monotonic clock) */
     int (*open)(struct light *);
     int (*send)(struct light *, const uint8_t rgb[3]);
     int (*remember)(struct light *, const uint8_t rgb[3]);   /* 0 as it was · 1 written · -1 not so */
@@ -287,6 +288,7 @@ static int k617_read(int fd, uint8_t blocks[2][K617_BLOCK])
         memcpy(blocks[i], K617_HEADS[i], 5);
         ms(60);
     }
+    ms(100);
     return 0;
 }
 static int k617_remember(struct light *l, const uint8_t rgb[3])
@@ -317,6 +319,8 @@ static int k617_remember(struct light *l, const uint8_t rgb[3])
         r = feature_set(l->fd, want[i], K617_BLOCK);
         ms(100);
     }
+    if (!regular(l->fd))
+        ms(1000);           /* (a live frame too soon is lost to its new effect) */
     return r ? -1 : 1;
 }
 
@@ -652,6 +656,20 @@ static int run(const char *trace_path)
                     continue;
                 l->dirty = true;
             }
+            /* each one's own memory, when the fade has ended and its last frame has settled:
+             * the keyboard paints a live frame for a while after taking it, and anything said
+             * to it meanwhile cuts the painting short. A write there puts its live state out:
+             * sent again */
+            if (!l->remembered && level == target && now - l->sent_at >= 1.0) {
+                uint8_t full[3];
+                paint(l, on ? 1 : 0, full);
+                int w = l->remember(l, full);
+                if (w < 0)
+                    fprintf(stderr, "kawa-rgb: %s's memory: not as it should be\n", l->name);
+                l->remembered = true;
+                if (w > 0)
+                    l->dirty = true;
+            }
             uint8_t c[3];
             paint(l, level, c);
             if (l->dirty || c[0] != l->sent[0] || c[1] != l->sent[1] || c[2] != l->sent[2]) {
@@ -663,6 +681,7 @@ static int run(const char *trace_path)
                 }
                 l->dirty = false;
                 l->sent[0] = c[0]; l->sent[1] = c[1]; l->sent[2] = c[2];
+                l->sent_at = now;
             } else if (l == CARD && card_todo > 0) {
                 /* the fade has ended: the card's other zones, one a step */
                 card_todo--;
@@ -686,21 +705,6 @@ static int run(const char *trace_path)
             fprintf(trace, " display=%d\n", disp_shown);
             fflush(trace);
         }
-        /* each one's own memory, when the fade has ended: it takes a while, and a write there may
-         * put its live state out: sent again */
-        if (level == target)
-            for (size_t i = 0; i < NLIGHTS; i++) {
-                struct light *l = &lights[i];
-                if (l->fd < 0 || l->remembered)
-                    continue;
-                uint8_t full[3];
-                paint(l, on ? 1 : 0, full);
-                int w = l->remember(l, full);
-                if (w < 0)
-                    fprintf(stderr, "kawa-rgb: %s's memory: not as it should be\n", l->name);
-                l->remembered = true;
-                l->dirty = w > 0;
-            }
         ms(level != target || card_todo > 0 ? FADE_MS : IDLE_MS);
     }
     if (trace)
