@@ -237,6 +237,9 @@ local function dump()
   out.messages = vim.api.nvim_exec2("messages", { output = true }).output
   out.clients = vim.tbl_map(function(c) return c.name end, vim.lsp.get_clients())
   out.ft = vim.bo.filetype
+  out.foldmethod = vim.wo.foldmethod
+  local highlighter = vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()]
+  out.conceal_line = highlighter and highlighter._conceal_line or false
   local f = io.open(os.getenv("KAWA_BENCH_OUT"), "w")
   if f then f:write(vim.json.encode(out)); f:close() end
   if os.getenv("KAWA_BENCH_QUIT") then vim.cmd("qa!") end  -- (a real foot in the kit: no keys there)
@@ -493,6 +496,8 @@ def one_start(root, variant, s, silent=False, timeout=15.0, raw=None, dump_ms=25
     res["messages"] = dump.get("messages", "")
     res["clients"] = dump.get("clients", [])
     res["ft"] = dump.get("ft")
+    res["foldmethod"] = dump.get("foldmethod")
+    res["conceal_line"] = dump.get("conceal_line")
     # its exit: Esc, :qa!, to the pty's end
     if not t.eof:
         at = t.send(b"\x1b:qa!\r")
@@ -772,6 +777,9 @@ def cmd_check(args):
         "a text file loads no server and no Mason")
     r = one_start(root, variant, "py", dump_ms=4000)
     say(sorted(r["clients"]) == ["basedpyright", "ruff"], f"a Python file has its servers ({r['clients']})")
+    say(r["foldmethod"] == "indent", f"folds by indent: nothing walks the whole file at the first frame ({r['foldmethod']})")
+    r = one_start(root, variant, "md")
+    say(r["conceal_line"] is False, f"a Markdown file: no line-by-line conceal check at each key ({r['conceal_line']})")
     # the keys
     config, off = parse_variant(variant)
     env = environ(root, config, off)

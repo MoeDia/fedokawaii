@@ -126,6 +126,30 @@ if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   eq "$(cat "$TMP/msgs" "$TMP/nvim.out")" "" "messages at the first file"
   (cd "$HOME/repos/demo" && timeout 60 nvim --headless +Tutor "+lua io.open('$TMP/tutor', 'w'):write(vim.bo.filetype)" +qa >"$TMP/nvim.out" 2>&1)
   eq "$(cat "$TMP/tutor" 2>/dev/null)" tutor "nvim +Tutor: the Learn book's first exercise ($(cut -c1-80 "$TMP/nvim.out"))"
+  case_ "neovim: a Markdown file's highlighter has no conceal_lines (a key costs half), a float that is no file keeps neovim's own; folds by indent"
+  printf '# t\n\n```python\nx = 1\n```\n' >"$HOME/repos/demo/b.md"
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless b.md "+lua vim.defer_fn(function()
+      local h = vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()]
+      local float = vim.api.nvim_create_buf(false, true)
+      vim.bo[float].buftype = 'nofile'
+      vim.api.nvim_buf_set_lines(float, 0, -1, false, { '\`\`\`python', 'x = 1', '\`\`\`' })
+      vim.treesitter.start(float, 'markdown')
+      local f = io.open('$TMP/md', 'w')
+      f:write(tostring(h and h._conceal_line or false), ' ', tostring(vim.treesitter.highlighter.active[float]._conceal_line), ' ', vim.wo.foldmethod)
+      f:close(); vim.cmd('qa!') end, 1500)" >"$TMP/nvim.out" 2>&1)
+  eq "$(cat "$TMP/md" 2>/dev/null)" "false true indent" "file, float, folds ($(cut -c1-120 "$TMP/nvim.out"))"
+  case_ "neovim's status line: the mode's tile, a % in a name kept a %, a deep path its last three parts with no ellipsis, the place; nothing on the first screen"
+  mkdir -p "$HOME/repos/demo/a/b/c/d"; : >"$HOME/repos/demo/a/b/c/d/100%.txt"
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless 'a/b/c/d/100%.txt' "+lua vim.defer_fn(function()
+      local render = require('config.statusline').render
+      local f = io.open('$TMP/line', 'w')
+      f:write(vim.o.statusline, '\n', render(), '\n')
+      vim.bo.filetype = 'snacks_dashboard'
+      f:write(render(), '\n'); f:close(); vim.cmd('qa!') end, 1000)" >"$TMP/nvim.out" 2>&1)
+  line=$(sed -n 2p "$TMP/line" 2>/dev/null)
+  eq "$(sed -n 1p "$TMP/line" 2>/dev/null)" "%!v:lua.require'config.statusline'.render()" "the option ($(cut -c1-120 "$TMP/nvim.out"))"
+  has "$line" "%#KawaStNormal# NORMAL "; has "$line" "c/d/"; lacks "$line" "b/c"; has "$line" "100%%.txt"; has "$line" "Top"; lacks "$line" "…"
+  eq "$(sed -n 3p "$TMP/line" 2>/dev/null)" "%#Normal#" "the first screen: no line"
 else skip "no nvim, or no plugins at $NVIM_DATA (FEDOKAWAII_NVIM_DATA)"; fi
 
 done_

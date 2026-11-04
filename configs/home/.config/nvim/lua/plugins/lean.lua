@@ -14,6 +14,15 @@ end
 
 -- after the first frame when a file was named on the command line; else with the first file
 local AFTER_FIRST_FRAME = vim.fn.argc(-1) > 0 and "VeryLazy" or "LazyFile"
+-- with the first file of these kinds, the frame after it is drawn (lazy.nvim's ft loads a plugin
+-- inside the FileType event, before the first frame)
+local function after_frame_of(plugin, filetypes)
+  vim.api.nvim_create_autocmd("FileType", {
+    pattern = filetypes,
+    once = true,
+    callback = function() vim.schedule(function() require("lazy").load({ plugins = { plugin } }) end) end,
+  })
+end
 
 return {
   -- two colour schemes nothing loads (the desktop's is gruvbox with its own palette)
@@ -49,15 +58,39 @@ return {
   },
 
   -- the servers only for the kinds of file that have one: a text file or a commit message never
-  -- pays for them (if a local.lua adds a server, its filetype goes here too). And folds by indent
-  -- (LazyVim's own 'foldmethod'; z c, z o and the rest as ever): asking the server, or treesitter,
-  -- walked the whole file at the first frame (30 ms in 1,600 lines, 100 in 20,000) and again as it changed
+  -- pays for them (a server of a local.lua: ft = its filetype, in its own spec), and after the first
+  -- frame. And folds by indent (LazyVim's own 'foldmethod'; z c, z o and the rest as ever): asking the
+  -- server, or treesitter, walked the whole file at the first frame (30 ms in 1,600 lines, 100 in
+  -- 20,000) and again as it changed
   {
     "neovim/nvim-lspconfig",
     event = function() return {} end,
-    ft = { "python", "rust", "lua", "toml" },
     cmd = { "LspInfo", "LspLog", "LspRestart", "LspStart", "LspStop" },
+    init = function() after_frame_of("nvim-lspconfig", { "python", "rust", "lua", "toml" }) end,
     opts = { folds = { enabled = false } },
+  },
+  -- (the Python environment remembered: as soon, but no sooner than the first frame)
+  {
+    "linux-cultist/venv-selector.nvim",
+    ft = function() return {} end,
+    init = function() after_frame_of("venv-selector.nvim", { "python" }) end,
+  },
+  -- rustaceanvim asked nvim-dap for its configuration at every first Rust file, and that loaded the
+  -- debugger and its panels (29 ms, before the first frame). The same configuration, written out; the
+  -- debugger loads when rust-analyzer offers it something to debug, or at its first key
+  {
+    "mrcjkb/rustaceanvim",
+    dependencies = { "mason.nvim" },   -- (LazyVim reads codelldb's place from Mason as this loads)
+    init = function()
+      vim.g.rustaceanvim = {
+        dap = {
+          configuration = {
+            name = "Rust debug client", type = "codelldb", request = "launch",
+            stopOnEntry = false, sourceLanguages = { "rust" },
+          },
+        },
+      }
+    end,
   },
 
   -- parsers and their text objects with the first file: the first screen has none to read
