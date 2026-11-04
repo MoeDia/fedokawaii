@@ -36,7 +36,7 @@ LEGACY = [b'\x1b[A', b'\x1b[B', b'\x1b[C', b'\x1b[D', b'\x1b[H', b'\x1b[F', b'\x
 NAVIGATE = [b'\x1b[9;1:1u\x1b[9;1:3u', b'\x1b[9;2:1u\x1b[9;2:3u', b'\x1b[13;1:1u\x1b[13;1:3u', b'\x1b[27;1:1u\x1b[27;1:3u', b'\x1b[1;1:1A', b'\x1b[1;1:1B', b'\x1b[1;1:2B', b'\x1b[1;1:1C',
             b'\x1b[1;1:1D', b'\x1b[5;1:1~', b'\x1b[6;1:1~', b'\x1b[1;1:1H', b'\x1b[1;1:1F', b'\x1b[106;1:1;106u', b'\x1b[107;1:1;107u', b'\x1b[114;1:1;114u', b'\x1b[113;1:1;113u',
             b'\x1b[107;5:1u', b'\x1b[<35;10;8M', b'\x1b[<35;10;12M', b'\x1b[<0;10;8M', b'\x1b[<0;10;8m', b'\x1b[<0;20;2M', b'\x1b[<65;10;8M', b'\x1b[?31u']
-LESSONS = ['home.fj.meet', 'home.anchor.j', 'top.anchor.f', 'bottom.travel.0', 'sent.1', 'sent.pat.1', 'caps.FDSA.words', 'num.47.drill', 'sym.$&.words', 'sign.`{.meet', 'speed.30.pacer',
+LESSONS = ['home.fj.meet', 'home.anchor.j', 'top.anchor.f', 'bottom.travel.0', 'sent.1', 'sent.pat.1', 'caps.FDSA.words', 'num.47.drill', 'sym.$&.words', 'sign.`.meet', 'speed.30.pacer',
            'speed.30.check', 'speed.110.passage.1', 'code.python.1', 'code.c.2', 'sign.check']
 ARABIC = ['\x1b[1588::97;1:1;1588u', '\x1b[1587::115;1:1;1587u', '\x1b[1740::100;1:1;1740u', '\x1b[1608:1606:102;2:1;1606u']
 
