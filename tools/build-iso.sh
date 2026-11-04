@@ -108,6 +108,8 @@ print(" ".join("vt.default_%s=%s" % (n, ",".join(str(int(c[o:o + 2], 16)) for c 
 PY
 )
 sed -i "s|@APPEND@|${BOOT_ARGS[*]} $pal|" "$p/questions.py"
+# (a release of fedokawaii: the update button knows which one this is, and takes the next)
+git -C "$repo" describe --tags --exact-match --match 'v*' "$commit" 2>/dev/null >"$p/toolkit-release" || : >"$p/toolkit-release"
 reproducible "$work/product" "$work/product.cpio"
 gzip -n -9 <"$work/product.cpio" >"$work/product.img"
 

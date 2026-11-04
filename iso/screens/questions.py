@@ -337,11 +337,13 @@ class Form:
         self.msg = ""
 
     @staticmethod
-    def disk_words(d):
-        words = f"{d[0]}  {size_words(d[2])}"
-        if d[1]:
-            words += f"  {d[1]}"
-        return f"{words}  · {d[3]}"
+    def disk_words(d, room=WIDTH - 19):
+        """Its name and size always; what it holds, then its model, as far as they fit (never cut)."""
+        base = f"{d[0]}  {size_words(d[2])}"
+        for words in (f"{base}  {d[1]}  · {d[3]}", f"{base}  · {d[3]}", f"{base}  {d[1]}", base):
+            if len(words) <= room:
+                return words
+        return base
 
     def row_of(self, i):
         return self.top + 8 + i
