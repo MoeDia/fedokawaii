@@ -106,7 +106,7 @@ quiet() {   # quiet PROGRAM ARG… — with no display and no session bus (and /
 }
 
 case_ "the desktop's mako (src/mako/mako.patch: setup.sh builds it) reads its config with both themes (makoctl reload would take it) — Fedora's would refuse its options"
-m=""; [[ -x /usr/local/bin/mako ]] && grep -q shadow-color /usr/local/bin/mako && m=/usr/local/bin/mako
+m=""; [[ -x /usr/local/bin/mako ]] && grep -q left-edge /usr/local/bin/mako && m=/usr/local/bin/mako   # (built from today's patch)
 if [[ -n $m ]]; then
   for t in dark light; do
     ln -sfn "themes/$t" "$HOME/.config/fedokawaii/current"

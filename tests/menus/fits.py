@@ -34,7 +34,7 @@ def f(line):
     return parts + [""] * (5 - len(parts))
 
 
-KINDS = ("part", "row", "on", "off", "key", "cell", "note")
+KINDS = ("part", "row", "on", "off", "key", "cell", "note", "hint", "seal", "foot", "sand", "watch", "label")
 lines = [(i, f(ln)) for i, ln in enumerate(rows) if ln.strip()]
 named = [px(x[2]) for _, x in lines if x[0] in ("row", "on", "off") and x[3]]
 dx = 24 + (max(named) if named else 0) + 12
@@ -64,8 +64,10 @@ while k < len(lines):
         continue
     elif kind == "cell":
         need = px(x[1]) * W // 36 if px(x[1]) > 36 else 0
-    elif kind == "note":
+    elif kind in ("note", "foot", "label"):
         need = 6 + px(x[1]) + 6
+    elif kind in ("hint", "seal", "sand", "watch"):
+        need = 0                                    # (their own widths: the panel's, test_panel)
     else:
         need = 24 + px(rows[i]) + 6
     if need > W:

@@ -18,14 +18,16 @@ power() {   # power [SECONDS] — kawa-power, the machine up for SECONDS (defaul
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
 # ── the choices ───────────────────────────────────────────────────────────────────────
-case_ "the menu: the power icon and power with the uptime at its end, five choices, centred, sized to its content"
+case_ "the dialog: five seals, each its drawn picture and its word, the uptime in its foot; the desktop dimmed; centred; restart and shut down ask for a second press"
 setup; answer esc; power
-eq "$(fz_rows | sed -n 1p | cut -f1-3)" "part	$ICON_POWER	power" "the heading: the power icon"
-eq "$(fz_rows | sed -n 1p | cut -f4 | cut -c1-3)" "up " "the uptime at the heading's end"
-eq "$(fz_rows | sed 1d | tr '\n' '|')" "row	$ICON_LOCK	lock|row	$ICON_ZZZ	sleep|row	$ICON_DOOR	log out|row	$ICON_RESTART	restart|row	$ICON_POWER	shut down|" "a row a choice: its icon, its name"
-eq "$(fz_arg select)" 1 "the cursor's first key on lock"
+eq "$(fz_rows | sed '$d' | tr '\n' '|')" "seal	@t-lock	lock|seal	@t-sleep	sleep|seal	@t-logout	log out|seal	@t-restart	restart	press again to restart|seal	@t-off	shut down	press again to shut down|" "a seal a choice"
+eq "$(fz_rows | tail -n1 | cut -f1)" foot; eq "$(fz_rows | tail -n1 | cut -f2 | cut -c1-3)" "up " "the uptime in its foot"
+eq "$(fz_arg select)" "" "it opens on lock, the first"
+eq "$(fz_arg dim)" set "the desktop dimmed"
 eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" ""; eq "$(fz_arg title)" ""; eq "$(fz_arg index)" set; eq "$(fz_arg drop)" "" "centred"
 fits
+case_ "…and each seal's picture is drawn (panel-art.txt)"
+for n in t-lock t-sleep t-logout t-restart t-off; do grep -q "^@$n\$" "$REPO/configs/home/.config/fedokawaii/panel-art.txt" && _ok || _no "no $n"; done
 
 act() { setup; answer "pick $1"; power; }
 case_ "lock: the lock screen"
@@ -81,9 +83,9 @@ case_ "--help: what it is, exit 0; anything else: exit 2, no menu"
 setup; has "$(kawa-power --help)" "lock, sleep, log out"; rc 0 kawa-power --help
 rc 2 kawa-power now; eq "$(fz_n)" 0
 
-# ── the uptime at the heading's end ───────────────────────────────────────────────────────────
+# ── the uptime in its foot ─────────────────────────────────────────────────────────────────────
 if ((NS)); then
-  up() { setup; answer esc; power "$1"; fz_rows | sed -n 1p | cut -f4; }
+  up() { setup; answer esc; power "$1"; fz_rows | tail -n1 | cut -f2; }
   case_ "uptime: always 'up' and ten characters, at the edges of each form"
   eq "$(up 0)" "up 00h 00m" "just booted"
   eq "$(up 59)" "up 00h 00m"
@@ -99,7 +101,7 @@ if ((NS)); then
   for loc in tr_TR.UTF-8 ar_EG.UTF-8; do
     setup; printf '90061.5 0\n' >"$TMP/uptime"; answer esc
     ns "mount --bind '$TMP/uptime' /proc/uptime" env "$(locale_ "$loc")" LC_ALL="$loc" kawa-power 2>/dev/null
-    eq "$(fz_rows | sed -n 1p | cut -f4)" "up 01d 01h" "$loc"; fits "" "$loc"
+    eq "$(fz_rows | tail -n1 | cut -f2)" "up 01d 01h" "$loc"; fits "" "$loc"
   done
 else
   echo "  (uptime cases skipped: no user namespaces here to stand in for /proc/uptime)"

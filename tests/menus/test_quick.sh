@@ -75,7 +75,7 @@ case_ "--state: every key, in order, one KEY<TAB>VALUE a line"
 out=$(state); rc 0 quick --state
 keys=$(cut -f1 <<<"$out" | tr '\n' ',')
 if ((NS)); then
-  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,"
+  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,uptime,"
 else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,"; fi
 eq "$(grep -vc $'^[a-z]*\t' <<<"$out")" 0 "every line a key, a tab, a value"
 eq "$(st theme)" dark; eq "$(st nettype)" ethernet; eq "$(st network)" wired

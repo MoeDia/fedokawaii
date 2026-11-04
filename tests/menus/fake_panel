@@ -12,6 +12,7 @@
 #   pick TEXT    Enter on the first line containing TEXT
 #   typed TEXT   Enter on a filter that matches nothing: the text
 #   hang         stays open until the next request (then dismissed) or kawa-menu ends
+#   (a seal's ASK: its second press is the panel's own, never reaches its caller: one answer here)
 # (no answer left: esc). The answer: the line's number (--index), else its name — a typed
 # line's third field (part/row/on/off/key: KIND GLYPH NAME), a plain line whole. Every menu
 # leaves $FZ/args.N (one option a line), $FZ/in.N (the rows), $FZ/who.N (its caller) and
@@ -45,10 +46,10 @@ answer_one() {   # answer_one PID — kawa-menu PID's menu
   done
   if [[ -s $FZ/answers ]]; then a=$(head -n1 "$FZ/answers"); sed -i 1d "$FZ/answers"; fi
   echo "${a:-esc}" >"$FZ/out.$n"
-  choice() {   # choice N — line N can be chosen (a row, on, key or plain line; never an off or info row)
+  choice() {   # choice N — line N can be chosen (a row, on, key, hint, seal or plain line; never an off or info row)
     local l=${rows[$1]:-}
     [[ -n ${l//[[:space:]]/} ]] || return 1
-    case ${l%%$'\t'*} in part|off|info|cell|note) [[ $l == *$'\t'* ]] && return 1 ;; esac
+    case ${l%%$'\t'*} in part|off|info|cell|note|foot|sand|watch|label) [[ $l == *$'\t'* ]] && return 1 ;; esac
     return 0
   }
   choose() {   # choose N — Enter on line N
@@ -56,7 +57,7 @@ answer_one() {   # answer_one PID — kawa-menu PID's menu
     choice "$1" || { echo "fake panel: line $1 is not a choice: [$l]" >&2; reply "$p" 1; return; }
     if ((index)); then reply "$p" 0 "$1"; return; fi
     case ${l%%$'\t'*} in
-      row|on|key) IFS=$'\t' read -r -a g <<<"$l"; reply "$p" 0 "${g[2]:-${g[1]}}" ;;
+      row|on|key|hint|seal) IFS=$'\t' read -r -a g <<<"$l"; reply "$p" 0 "${g[2]:-${g[1]}}" ;;
       *) reply "$p" 0 "$l" ;;
     esac
   }

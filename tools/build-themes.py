@@ -618,6 +618,8 @@ def foot_block():
         # paper_* tokens) and the ink its words take on them (30)
         out += [f"{27 + i}={p['paper_' + k]}" for i, k in enumerate(("folder", "git", "time"))]
         out += [f"30={p['lo'] if m == 'dark' else p['strong']}"]
+        # (31, 32: the lacquer and its cream: a failed command's code in the prompt)
+        out += [f"31={p['lacquer']}", f"32={p['text_on_lacquer']}"]
     out.append("# <<< colours")
     return "\n".join(out)
 

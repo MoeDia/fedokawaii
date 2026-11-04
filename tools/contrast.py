@@ -108,13 +108,13 @@ def term_pairs(m):
 def prompt_pairs(m):
     """The prompt: the mood's head on the ground (the demon in slot 1, the angel in the words' ink), its
     ink (30) on each paper (27–29: the folder, git, the time and jobs) and a failure's code, the cream
-    (25) on the lacquer (24) — foot's slots."""
+    (32) on the lacquer (31) — foot's slots."""
     pal, fg, bg = foot_colours(m)
     return [("the prompt", "the mood's head on the ground", pal[1] if m == "dark" else fg, bg, ICON),
             ("the prompt", "the folder's words on their paper", pal[30], pal[27], WORDS),
             ("the prompt", "git's words on their paper", pal[30], pal[28], WORDS),
             ("the prompt", "the time and the jobs on their paper", pal[30], pal[29], WORDS),
-            ("the prompt", "a failure's code on the lacquer", pal[25], pal[24], WORDS)]
+            ("the prompt", "a failure's code on the lacquer", pal[32], pal[31], WORDS)]
 
 
 YAZI_NAMES = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "gray", "darkgray", "lightred",
@@ -141,10 +141,22 @@ def panel_pairs(m):
     """quick settings: kawa-panel draws with panel.conf's colours by name — the names its look()
     gives the item under the cursor (tests/static/test_contrast.sh holds kawa-panel to them)."""
     c = dict(re.findall(r"^([a-z_]+)=([0-9a-f]{6})$", (THEMES / m / "panel.conf").read_text(), re.M))
-    return [("quick settings", "the item under the cursor: its words", c["text_on_select"], c["select"], WORDS),
-            ("quick settings", "the item under the cursor: its picture (an hour, a corner), its dot", c["text_on_select"], c["select"], ICON),
-            ("quick settings", "a meter under the cursor: a lit segment on the lacquer", c["text_on_select"], c["select"], ICON),
-            ("quick settings", "a meter under the cursor: lit against unlit (the level)", c["text_on_select"], c["select_lo"], LARGE)]
+    # (the cursor: a 12 % tint and a 2 px edge of the seal's red; every ink keeps its own on it, so each is measured)
+    return [("the panels", "the item under the cursor: its words", c["text_on_select"], c["select"], WORDS),
+            ("the panels", "the item under the cursor: its picture", c["strong"], c["select"], ICON),
+            ("the panels", "the item under the cursor: its value", c["text"], c["select"], WORDS),
+            ("the panels", "the item under the cursor: its key's label on its cap", c["muted"], c["key"], ICON),
+            ("the panels", "the item under the cursor: the cursor's edge", c["select_edge"], c["select"], LARGE),
+            ("the panels", "the item under the cursor: a seal inked, a chosen dot", c["accent"], c["select"], LARGE),
+            ("the panels", "a meter under the cursor: a lit segment on the tint", c["asagi"], c["select"], LARGE),
+            ("the panels", "a meter: lit against unlit (the level)", c["asagi"], c["edge"], LARGE),
+            ("the panels", "a seal inked: its paper's ring", c["ground"], c["accent"], LARGE),
+            ("the panels", "a seal tile inked: its carved picture", c["text_on_accent"], c["accent"], LARGE),
+            ("the panels", "a seal tile blank: its picture", c["muted"], c["key"], ICON),
+            ("the panels", "the calendar's today: its digit on the seal", c["text_on_accent"], c["accent"], ICON),
+            ("the panels", "the calendar's Saturday", c["blue"], c["ground"], ICON),
+            ("the panels", "the calendar's Sunday", c["accent_text"], c["ground"], ICON),
+            ("the panels", "a timer's sand on the ground", c["sand"], c["ground"], LARGE)]
 
 
 def css_pairs(m):
