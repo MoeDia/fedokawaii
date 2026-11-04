@@ -211,7 +211,7 @@ def pick_words(allowed, rng, must='', count=40, weight=None):
             # (twice more, and the word that holds most of the weakest keys wins)
             for _ in range(2):
                 other = src[min(int(n * rng.random() ** 1.5), n - 1)]
-                if sum(weight.get(c, 1) for c in other) / len(other) > sum(weight.get(c, 1) for c in w) / len(w):
+                if word_weight(other, weight) > word_weight(w, weight):
                     w = other
         out.append(w)
     return out
@@ -286,17 +286,27 @@ def habit(sign, rng, pool):
     return out
 
 
-def weakness(keys_stats, band_ms=None):
-    """each key's weight for the adaptive lessons: slower and less sure than the others, more of it"""
-    stats = {k: v for k, v in keys_stats.items() if v[0] >= 5 and v[2] > 0}
-    if not stats:
-        return {}
-    mean = sum(v[2] for v in stats.values()) / len(stats)
-    return {k: (v[2] / mean) ** 2 * (1 + 12 * v[1] / max(v[0], 1)) for k, v in stats.items()}
+def weakness(stats):
+    """the adaptive lessons' weights, from keys.json (keybr's idea, with errors and pairs): a key or a pair of letters
+    slower and less sure than the others weighs more; what has too few samples weighs nothing yet"""
+    out = {}
+    for part, need in (('keys', 5), ('pairs', 8)):
+        known = {k: v for k, v in stats.get(part, {}).items() if v[0] >= need and v[2] > 0}
+        if known:
+            mean = sum(v[2] for v in known.values()) / len(known)
+            for k, v in known.items():
+                out[k] = (v[2] / mean) ** 2 * (1 + 12 * v[1] / max(v[0], 1))
+    return out
+
+
+def word_weight(word, weight):
+    n = len(word)
+    letters = sum(weight.get(c, 1) for c in word) / n
+    return letters + (sum(weight.get(word[i:i + 2], 1) for i in range(n - 1)) / (n - 1) if n > 1 else 1)
 
 
 def text_for(lesson, rng, stats=None):
-    """the characters this attempt types"""
+    """the characters this attempt types. stats: keys.json as the store holds it"""
     k, size, known = lesson.kind, lesson.size, lesson.known
     letters = ''.join(c for c in known if c.isalpha() and c.islower())
     weak = weakness(stats or {})

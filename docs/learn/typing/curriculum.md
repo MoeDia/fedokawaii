@@ -54,11 +54,11 @@ dims and waits till you do. Looking at your hands is how you miss it (Yechiam 20
 | 1 | home row | `f j` · `d k` · `s l` · `a ;` · `g h` + space | 25 | 5 → 12 | block |
 | 2 | top row | `r u` · `e i` · `w o` · `q p` · `t y` | 25 | 6 → 15 | block |
 | 3 | bottom row | `v m` · `c ,` · `z /` · `b n` · `x .` | 26 | 8 → 18 | block |
-| 4 | first sentences | the whole alphabet, comma, period, no capitals | 20 | 10–15 → 20–25 | flow |
-| 5 | capitals | opposite shift: `FDSA` · `JKL:` · `GHTY` · `RUEI` · `WOQP` · `VMC?` · `ZNXB` · `' " -` | 30 | 8 → 20 | block, then flow |
-| 6 | numbers | `4 7` · `3 8` · `2 9` · `1 0` · `5 6` | 21 | 5 → 20 | block, then flow |
-| 7 | symbols | `$ &` · `# *` · `@ (` · `) !` · `% ^` | 18 | 5 → 18 | block, then flow |
-| 8 | more symbols | `[ ]` · `\ \|` · `_ +` · `= <` · `> ~` · `` ` { `` · `}` | 24 | 5 → 18 | block, then flow |
+| 4 | first sentences | the whole alphabet, comma, period, no capitals | 20 | 10–16 → 20–26 | flow |
+| 5 | capitals | opposite shift: `FDSA` · `JKL:` · `GHTY` · `RUEI` · `WOQP` · `VMC?` · `ZNXB` · `' " -` | 30 | 8–12 → 20 | block, then flow |
+| 6 | numbers | `4 7` · `3 8` · `2 9` · `1 0` · `5 6` | 21 | 5–10 → 20 | block, then flow |
+| 7 | symbols | `$ &` · `# *` · `@ (` · `) !` · `% ^` | 18 | 5–8 → 18 | block, then flow |
+| 8 | more symbols | `[ ]` · `\ \|` · `_ +` · `= <` · `> ~` · `` ` { `` · `}` | 24 | 5–8 → 18 | block, then flow |
 | 9 | speed | passages, patterns, a pacer, a check, each 5 wpm from 30 to 110; real code after the bands of 40 · 50 · 60 · 70 · 80 | 132 | goal − 10 → goal | flow |
 | | | **total** | **321** | | |
 

@@ -134,7 +134,7 @@ def text_file(body=TEXT):
 
 # ── the measures ─────────────────────────────────────────────────────────────
 def case_speed():
-    for wpm, chars in ((40, 70), (60, 90), (100, 140), (200, 200)):
+    for wpm, chars in ((40, 40), (60, 50), (100, 70), (200, 100)):
         fresh()
         path = text_file(TEXT[:chars])
         p = start((100, 32), path)

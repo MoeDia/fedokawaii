@@ -573,7 +573,6 @@ class Home(Screen):
             self.at(y, x, line)
             y += 1
         if self.pic:
-            self.kb.dark, self.hands.dark = self.app.dark, self.app.dark
             changed = set(lit) | set(self.kb.lit)
             self.kb.lit = lit
             for name in changed:
@@ -714,6 +713,10 @@ class Home(Screen):
         when = fit_power(tests)
         if when:
             facts.append(('100 wpm', 'around ' + time.strftime('%B %Y', time.localtime(when)).lower()))
+        weak = course.weakness(st.keys)
+        slow = sorted((k for k in weak if len(k) == 2), key=weak.get, reverse=True)[:4]
+        if slow:
+            facts.append(('slowest pairs', ' '.join(slow)))
         row = self.first
         pad = max(len(k) for k, _ in facts)
         for k, v in facts:
@@ -725,7 +728,7 @@ class Home(Screen):
         left_row = row + 1
         if self.heat and left_row + math.ceil(art.KEY_H / ch) < rows:
             kb = art.Keyboard(a.dark)
-            weak = course.weakness(st.keys['keys'])
+            weak = course.weakness(st.keys)
             for c, w in weak.items():
                 if c in keys.CHARS:
                     kb.heat[keys.CHARS[c][0]] = art.INK['accent'] if w > 1.5 else art.INK['flame'] if w > 1.15 else art.INK['asagi']
@@ -809,7 +812,7 @@ class LessonScreen(Screen):
         if resume is not None:
             self.run = resume
         else:
-            body = text if text is not None else course.text_for(les, app.rng(), st.keys['keys'])
+            body = text if text is not None else course.text_for(les, app.rng(), st.keys)
             self.run = metrics.Run(body, les.flow, les.limit)
         self.held = {}             # keys down now → when
         self.prev_key = None
@@ -844,11 +847,11 @@ class LessonScreen(Screen):
         known = 'abcdefghijklmnopqrstuvwxyz'
         title = {'weak': 'your weakest keys', 'words': 'plain words', 'passage': 'a passage', 'warmup': 'warm up, your weakest keys'}.get(what, what)
         if what == 'weak':
-            text = ' '.join(course.pick_words(known, rng, '', 60, course.weakness(st.keys['keys'])))
+            text = ' '.join(course.pick_words(known, rng, '', 60, course.weakness(st.keys)))
         elif what == 'warmup':
             done = [les for les in course.LESSONS if les.id in st.progress['lessons']]
             known = ''.join(c for c in (done[-1].known if done else known) if c.isalpha() and c.islower()) or known
-            text = ' '.join(course.pick_words(known, rng, '', 45, course.weakness(st.keys['keys'])))
+            text = ' '.join(course.pick_words(known, rng, '', 45, course.weakness(st.keys)))
         elif what == 'words':
             top = course.words()[:200]
             text = course.fill(top, 300, rng)

@@ -13,8 +13,9 @@ has "$(kawa-typing --help)" "kawa-typing FILE"
 rc 2 kawa-typing --nonsense
 rc 2 kawa-typing --seed
 out=$(kawa-typing 2>&1 </dev/null); eq "$?" 1; has "$out" "terminal"
-out=$(tty_run 80 kawa-typing "$TMP/nothing" 2>&1); has "$out" "No such file"
-printf '\n\n  \n' >"$TMP/empty"; out=$(tty_run 80 kawa-typing "$TMP/empty" 2>&1); has "$out" "nothing in it to type"
+out=$(TERM=foot tty_run 80 kawa-typing "$TMP/nothing" 2>&1); has "$out" "No such file"
+printf '\n\n  \n' >"$TMP/empty"; out=$(TERM=foot tty_run 80 kawa-typing "$TMP/empty" 2>&1); has "$out" "nothing in it to type"
+out=$(TERM=linux tty_run 80 kawa-typing 2>&1); has "$out" "foot"
 
 case_ "the course: as many lessons as its document says, stage by stage"
 table=$(kawa-typing --course)
