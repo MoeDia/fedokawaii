@@ -5,7 +5,9 @@ rollover, resume after a kill, damaged state, every size. Prints "ok NAME" or "F
     python3 -I typing_cases.py [CASE…]
 """
 import json
+import math
 import os
+import re
 import shutil
 import signal
 import sys
@@ -1048,6 +1050,125 @@ def case_start_time():
     ms = (time.monotonic() - t0) * 1000
     finish(p)
     report(f'first frame in {ms:.0f} ms', ms < 500, f'{ms:.0f} ms')
+
+
+class NoTerminal:
+    """what a screen writes, kept: its layout and drawing played in this process"""
+
+    def __init__(self):
+        self.out = []
+
+    def write(self, b):
+        self.out.append(b if isinstance(b, str) else b.decode('latin-1'))
+
+    def flush(self):
+        pass
+
+    def mouse_on(self, on):
+        pass
+
+
+def no_terminal():
+    sys.path.insert(0, os.path.join(HERE, '..', '..', 'configs/home/.local/lib/fedokawaii'))
+    from kawatype import app, art, canvas, course, term
+    return app, art, canvas, course, term
+
+
+def case_verdict_of_a_check():
+    """a check passed: its stage is yours, in so many words; a band of the speed stage, that band"""
+    A, _, _, course, term = no_terminal()
+    said = {}
+    for lid, want in (('sent.check', 'first sentences: yours.'), ('speed.30.check', '30 wpm: yours.')):
+        fresh(baseline=999, lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
+        a = A.App(NoTerminal(), {'seed': 3})
+        a.size = (79, 38, 8, 20)
+        ls = A.LessonScreen(a, course.BY_ID[lid])
+        a.screen = ls
+        ls.layout()
+        now = time.monotonic()
+        for i, c in enumerate(ls.run.text[:60]):
+            ls.key(term.Key('press', 'space' if c == ' ' else c.lower(), c, 0, now + i * 0.3))     # (40 wpm: past no landmark)
+            ls.key(term.Key('release', 'space' if c == ' ' else c.lower(), '', 0, now + i * 0.3 + 0.03))
+        ls.finish(now + 18)
+        said[lid] = a.screen.verdict(), want
+    report('a check passed says its stage is yours', all(a == b for a, b in said.values()), str(said))
+
+
+def case_geometry():
+    """every size and cell, with no terminal at all: each screen's column and pictures inside the window, nothing written past
+    its edges (a terminal would pile it up on the last row or column), the words over the keyboard, never under it"""
+    A, art, canvas, course, term = no_terminal()
+    fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
+    cup = re.compile(r'\x1b\[(\d+);(\d+)H')
+    sends = []
+    real_send = canvas.Picture.send
+
+    def send(pic, col, row, palette):
+        sends.append((pic, col, row))
+        return real_send(pic, col, row, palette)
+
+    canvas.Picture.send = send
+    t = NoTerminal()
+    a = A.App(t, {'seed': 3})
+    bad = set()
+    checked = 0
+
+    def look(name, cols, rows, cw, ch):
+        for m in cup.finditer(''.join(t.out)):
+            r, c = int(m[1]), int(m[2])
+            if not (1 <= r <= rows and 1 <= c <= cols):
+                bad.add(f'{name} {cols}x{rows} cell {cw}x{ch}: written at row {r} col {c}')
+        for pic, col, row in sends:
+            if pic.w and (col < 1 or row < 1 or col - 1 + math.ceil(pic.w / cw) > cols or row - 1 + math.ceil(pic.h / ch) > rows):
+                bad.add(f'{name} {cols}x{rows} cell {cw}x{ch}: a picture {pic.w}x{pic.h} at {col},{row} passes the edge')
+        t.out.clear()
+        sends.clear()
+
+    many = (1, 2, 3, 5, 8, 12, 20, 30, 38, 39, 40, 41, 42, 44, 60, 79, 80, 84, 100, 130, 160, 200, 236, 300)
+    tall = (1, 2, 3, 4, 5, 8, 9, 10, 14, 20, 21, 24, 31, 33, 38, 48, 52, 60, 90)
+    for cw, ch in ((8, 20), (9, 22), (10, 25), (16, 40), (7, 15), (1, 1)):
+        for cols in many if (cw, ch) == (8, 20) else many[::2]:
+            for rows in tall if (cw, ch) == (8, 20) else tall[::2]:
+                a.size = (cols, rows, cw, ch)
+                checked += 1
+                pl = A.Stage(a)
+                if pl.scale:
+                    n = (art.KEY_W * pl.scale, (art.KEY_H + (art.HANDS_H if pl.with_hands else 0)) * pl.scale)
+                    if pl.pic_x < 0 or pl.pic_y < 0 or pl.pic_x * cw + n[0] > cols * cw or pl.pic_y * ch + n[1] > (rows - 1) * ch:
+                        bad.add(f'stage {cols}x{rows} cell {cw}x{ch}: the picture outside the window')
+                    if pl.words_y >= pl.pic_y:
+                        bad.add(f'stage {cols}x{rows} cell {cw}x{ch}: the words on the keyboard')
+                if pl.x < 0 or pl.x + pl.W > cols:
+                    bad.add(f'stage {cols}x{rows} cell {cw}x{ch}: the column {pl.x}+{pl.W} outside the window')
+                for tab in A.TABS:
+                    a.screen = A.Home(a, tab)
+                    a.screen.layout()
+                    a.screen.draw()
+                    look('home ' + tab, cols, rows, cw, ch)
+                ls = A.LessonScreen(a, course.BY_ID['speed.30.passage.1'])
+                a.screen = ls
+                ls.layout()
+                ls.draw()
+                look('lesson', cols, rows, cw, ch)
+                if ls.scale and ls.text_y + math.ceil(ls.lines_n * ls.letters.h / ch) > ls.notice_y:
+                    bad.add(f'lesson {cols}x{rows} cell {cw}x{ch}: the text runs into the row under it')
+                now = time.monotonic()
+                for i, c in enumerate(ls.run.text[:40]):
+                    ls.key(term.Key('press', 'space' if c == ' ' else c.lower(), c, 0, now + i * 0.1))
+                ls.tick(now + 4)
+                t.out.clear()
+                sends.clear()
+                ls.finish(now + 4.1)
+                a.screen.draw()
+                look('result', cols, rows, cw, ch)
+    canvas.Picture.send = real_send
+    seen, short = set(), []       # (one line for each screen in each window, the first thing wrong there)
+    for b_ in sorted(bad):
+        k = b_.split(':')[0]
+        if k not in seen:
+            seen.add(k)
+            short.append(b_)
+    report(f'{checked} sizes and cells, every screen inside its window', not bad, f'{len(short)} windows: ' + '; '.join(short[:60]))
 
 
 CASES = {k[5:]: v for k, v in list(globals().items()) if k.startswith('case_')}

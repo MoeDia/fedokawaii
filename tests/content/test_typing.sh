@@ -66,6 +66,8 @@ for line in open(repo + '/configs/home/.local/lib/fedokawaii/kawatype/inks.txt')
     t, d, l = line.split()
     if t == 'paper_ink':
         assert (d, l) == (P['dark']['lo'], P['light']['strong']), t
+    elif t == 'paper_mark':   # (the little finger's: Wada's, the fourth paper of the prompt's combination)
+        assert d == l == m.w('Grenadine Pink'), t
     else:
         assert (d, l) == (P['dark'][t], P['light'][t]), t
 print('fine')

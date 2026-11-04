@@ -148,7 +148,7 @@ class Keyboard:
         w = width * 5
         down = name in self.down
         look = self.look(name)
-        face_w = w - 1                       # (a column of air between keys)
+        face_w = w if x * 5 + w == KEY_W else w - 1      # (a column of air between keys; the last of a row ends on the column's edge)
         rows = [bytearray(w) for _ in range(20)]
         top = 1 if down else 0
         for y in range(top, 18 + top):

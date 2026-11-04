@@ -5,10 +5,12 @@ launcher. Twenty minutes a day; the first row always knows what comes next.
 
 ## What you see
 
-The text on top, the keyboard under it (your own: the K617, 61 keys), and two hands: the demon's in the dark, the angel's
-in the light. The next key is lit, and the finger that goes to it wears the same colour: little pink, ring yellow, middle
-green, index blue, on both hands; the thumbs gold, for the space bar. A capital lights two keys: its own, and the shift of
-the other hand. Keys held on the real keyboard go down on the screen. A wrong key flashes red.
+One stage on every screen: the keyboard (your own: the K617, 61 keys) and two hands stay where they are, the demon's in the
+dark, the angel's in the light; what the screen is about stands over them: the list, the text you type, a result. The next key
+is lit, and the finger that goes to it wears the same colour: little pink, ring yellow, middle green, index blue, on both
+hands; the thumbs gold, for the space bar. A capital lights two keys: its own, and the shift of the other hand. Keys held on
+the real keyboard go down on the screen. A wrong key flashes red. A run with no slip lifts embers from the demon's hands,
+petals from the angel's.
 
 ## Keys
 
@@ -34,8 +36,9 @@ the other hand. Keys held on the real keyboard go down on the screen. A wrong ke
   text dims and waits. You only miss it by looking at your hands.
 - **The first minute** measures you as you type today, whatever way. Touch typing feels slower than that for a long time, and
   it is where most people give up and go back to their old way. The progress page keeps that number until you pass it.
-- **Twenty minutes, daily.** Short and often beats long and rare: the most famous study of this, on postmen learning to type,
-  found one hour a day beat four, and the ones trained best enjoyed it least. It says so when you have done enough.
+- **Twenty minutes, daily.** Hour for hour, short and often beats long and rare: the most famous study of this, on postmen
+  learning to type, found that an hour a day learned more from each hour than four hours a day (which still finished sooner by
+  the calendar), and the ones trained best enjoyed it least. It says so when you have done enough.
 - **Then speed**: passages from Okakura, Hearn and Nitobe, the commonest letter patterns, real code, and a pacer: a second caret
   running at the goal. From 30 wpm to 110, five at a time, always at 97 %.
 

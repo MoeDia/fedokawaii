@@ -27,7 +27,10 @@ def palette():
     spec = importlib.util.spec_from_file_location('wada', os.path.join(ROOT, 'tools/wada-palette.py'))
     m = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(m)
-    return m.palette()[0]
+    p = m.palette()[0]
+    for mood in p:      # (the little finger's paper: Wada's combination #300 has four, the prompt now wears three)
+        p[mood]['paper_mark'] = m.w('Grenadine Pink')
+    return p
 
 
 def write_inks():

@@ -35,7 +35,7 @@ A key's first lesson has no score. Failing costs nothing: the same lesson again,
 
 **Today** is 20 minutes: `Enter` on the first row goes on where you stopped. A warm-up on your weakest keys, then
 lessons, then, when the minutes are up, a one-minute test: the line you watch rise. Then it says so, and you may go
-on. Short and daily beats long and rare (Baddeley & Longman 1978).
+on. Hour for hour, short and daily beats long and rare (Baddeley & Longman 1978).
 
 **The crossover**: the first thing the app asks for is one minute of plain words typed the way you type now.
 That number stays on the progress page, until touch typing passes it. Before that day the old way feels
