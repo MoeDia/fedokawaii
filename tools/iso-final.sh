@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/iso-final.sh — the installer that ships, in one command: built from one commit, proven in a fresh VM, released.
-#   bash tools/iso-final.sh COMMIT CARRY.qcow2     the build, the owner's whole path (tools/vm-iso-test.sh whole), the refusals
+#   bash tools/iso-final.sh COMMIT                 the build, the owner's whole path (tools/vm-iso-test.sh whole), the refusals
 #   bash tools/iso-final.sh --release COMMIT       after a green proof of that commit: its tag pushed, the GitHub release
 # It tags the commit vYYYY.MM.DD (its own date) here before the build, for the toolkit in the ISO to know which release it is;
 # the tag leaves this PC only with --release, because the update button adopts every v… tag it finds on GitHub. The tools run
@@ -25,8 +25,6 @@ if ((release)); then
   exit 0
 fi
 
-carry=${2:-}
-[[ -s $carry ]] && [[ -s $carry.sums ]] || { echo "iso-final: no drive of test things at '$carry' (vm-iso-test.sh carry-save)" >&2; exit 2; }
 mkdir -p "$dir"
 exec > >(tee -a "$dir/record") 2>&1
 say() { printf '%s %s\n' "$(date +%T)" "$*"; }
@@ -34,12 +32,14 @@ say "commit $commit, tag $tag"
 [[ $(git -C "$repo" rev-parse -q --verify "refs/tags/$tag^{commit}") == "$commit" ]] || git -C "$repo" tag -f "$tag" "$commit" >/dev/null || exit 1
 frozen=$dir/tools
 rm -rf "$frozen"; mkdir -p "$frozen"
-git -C "$repo" archive "$commit" tools art system lib iso | tar -xf - -C "$frozen" || exit 1
+git -C "$repo" archive "$commit" tools art system lib iso bin/kawa-carry fedokawaii.conf \
+  configs/home/.config/fedokawaii/icons.sh configs/home/.config/fedokawaii/carry.list | tar -xf - -C "$frozen" || exit 1
 nice -n 10 bash "$frozen/tools/build-iso.sh" --ref "$commit" --out "$dir" || { say "RED: the build"; exit 1; }
 iso=$(compgen -G "$dir/fedokawaii-*-$short.iso") || { say "RED: no ISO in $dir"; exit 1; }
 say "built: $(cat "$iso.sha256")"
 vm=(bash "$frozen/tools/vm-iso-test.sh")
-"${vm[@]}" whole r27-iso "$iso" "$carry" --no-sb; rc=$?
+"${vm[@]}" carry-make "$dir/carry.qcow2" >/dev/null || { say "RED: the drive of test things"; exit 1; }
+"${vm[@]}" whole r27-iso "$iso" "$dir/carry.qcow2" --no-sb; rc=$?
 cp -a "$HOME/VM/iso/vm/r27-iso/run" "$dir/run" 2>/dev/null
 "${vm[@]}" stop r27-iso >/dev/null 2>&1
 ((rc == 0)) || { say "RED: the whole path, exit $rc: $dir/run/log"; exit 1; }
