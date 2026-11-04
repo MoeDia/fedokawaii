@@ -177,3 +177,11 @@ can be a bit better
 
 ## 2026-11-04 18:11 — 02-bar — redo — open
 OWNER 18:07: the bar stays FULLY FLOATING like before: NO background band behind it, ever. Revert the band now. Claude's art note section 2 and his 02-bar note are withdrawn. Readability comes from the tiles themselves (solid tiles with their own edge) and calm wallpaper tops (lane-art).
+
+## 2026-11-04 18:35 — 00a-new-prompt-and-fetch — redo — in the plan: T19q 1, lane-ink
+OWNER 18:32 (new direction for the demon and the angel everywhere: icon, fetch, lock): not pixel art — EPIC detailed ink illustrations, "a Renaissance Japanese style painting, go wild, make it your own". Demon: a Hannya in fine engraved / irezumi ink, hatching, scrollwork on the face, horns, wild hair. Angel: a Renaissance winged angel in Japanese tattoo / ukiyo-e ink with Hokusai waves, sakura and clouds, indigo wash. lane-ink owns it (see its task); Claude's Marishiten / menpo idea is superseded by this.
+
+## 2026-11-04 18:47 — 39-lock — redo — in the plan: T19q 8b
+
+## OWNER 18:45 — THE LOCK SCREEN EVEN MORE INTENSE
+On top of 18:37: push the drama. Low camera angles, the figure towering and breaking past the frame's edges, hard chiaroscuro (light from the torches carving faces out of black), the torches really flickering and throwing moving light and shadow on stone and carvings, embers rising, smoke drifting, the demon's eyes glowing faintly, the angel's halo turning slowly with petals falling, density of detail everywhere, nothing calm or empty. Still one painting between lane-ink's figures and lane-art's settings. Animate within the lock's frame budget (light, embers, smoke, eyes, halo, petals), and keep it cheap on the GPU.

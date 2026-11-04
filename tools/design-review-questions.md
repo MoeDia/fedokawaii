@@ -1,6 +1,6 @@
 Design review 1, 4 Nov. Real renders of the repo as it is, both moods. Click a picture for its real size.
 
-Your notes are read and go first. Done so far, at the top of this page (00a–00f): the prompt, Super+X, the window's hop and drop, the workspace move, menus unrolling. Coming next: the band behind the bar, the brightness lantern, the lock's demon eating the password, the saver. The heads, wallpapers and lock art are being redrawn by the art lane.
+Your notes are read and go first.
 
 What I would like from you on this pack:
 1. Page 01: does it read as one world in both moods? What is the first thing you would change?

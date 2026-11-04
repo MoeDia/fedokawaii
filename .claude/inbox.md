@@ -80,3 +80,35 @@ ASOBI needs a real test on your screen: at about 18:50 your monitor switches to 
 
 ## 2026-11-04 18:22 — question from lane-hardware
 The cooler's little display: until 18:23 I send it the number 88, then 42 until 18:24, then nothing. Does it show 88 and then 42? What does it show when I stop? (Add it to your answer to my 18:16 question.)
+
+## 2026-11-04 18:31 — question from lane-hardware
+Notice, no answer needed: at 18:34, for about 1 minute, a full-screen test picture appears 4 times (it proves FreeSync: the monitor's own refresh is measured). It takes the keyboard while it shows, so don't type then. Your windows stay as they are.
+
+## 2026-11-04 18:35 — in the plan: T19q 1 (figure art: lane-ink; lane-art keeps walls, friezes, clouds, wallpapers)
+OWNER 18:32: the demon and the angel become EPIC detailed ink illustrations (engraved / irezumi style, Renaissance-meets-Japanese), not pixel art, at every size: icon, prompt, fetch, quick settings, lock. New lane-ink owns all figure art (mark the heads theirs; the Marishiten/menpo note is superseded). lane-art keeps the lock backgrounds (walls, friezes, clouds) and the wallpapers. The rest of the UI stays pixel.
+
+## 2026-11-04 18:58 — question from lane-browser
+The new browser is Helium (Chromium 156, native Wayland, hardware video on your card, uBlock built in, its own Fedora repo). One thing only you can decide: Helium ships no Widevine, which Spotify's web player needs. Helium can load Google's Widevine module if the installer fetches it from Google's own server (the same file Brave and Firefox use, checked by hash, never stored in our repo or ISO). It works here. But the module's LICENSE says "You may not use … the Software without a separate license agreement with Google" (Brave and Firefox have such agreements, Helium does not, which is why Helium does not ship it). I am building it as: fetched at install and update for this PC only, so Spotify keeps working. Tell me if you would rather NOT use it: then Spotify would need another way (its own Linux app). If you say nothing, it stays as built.
+
+## 2026-11-04 18:41 — question from lane-hardware
+RGB, please look inside your PC now, it is all running. Everything should breathe slowly in dim red. One line, as you see it: keyboard? Gigabyte logo? case fans? CPU cooler's fan? And the cooler's little display: it should show your CPU temperature (about 80 today), does it? Last: with a stopwatch, how many seconds is one breath of the Gigabyte logo, dark to dark? (Forget my 18:16 and 18:22 questions, this one replaces them.)
+
+## 2026-11-04 18:43 — question from lane-hardware
+Notice: at 18:46 your monitor switches itself off for about 15 seconds and comes back, a test that your workspace and windows stay exactly as they were. If it stays dark after 40 seconds, press the monitor's own power button once and tell me here. Nothing else to do.
+
+## 2026-11-04 18:47 — in the plan: T19q 8b (the lock's moving light), T36 (rgb solid: lane-hardware), lanes saver, review, f45, system marked
+
+## OWNER 18:45 — THE LOCK SCREEN EVEN MORE INTENSE
+On top of 18:37: push the drama. Low camera angles, the figure towering and breaking past the frame's edges, hard chiaroscuro (light from the torches carving faces out of black), the torches really flickering and throwing moving light and shadow on stone and carvings, embers rising, smoke drifting, the demon's eyes glowing faintly, the angel's halo turning slowly with petals falling, density of detail everywhere, nothing calm or empty. Still one painting between lane-ink's figures and lane-art's settings. Animate within the lock's frame budget (light, embers, smoke, eyes, halo, petals), and keep it cheap on the GPU.
+
+## OWNER 18:45 — RGB: SOLID, NOT BREATHING
+The GPU's RGB cannot stay in sync, so no breathing or any animation across devices. Instead:
+- ONE steady red on every device (fans, hub, cooler, GPU logo, K617), calibrated per device so they LOOK identical (each brand renders red differently; the GPU drifts orange or pink): a per-device colour value, then one question on his page to confirm the match by eye.
+- Event-driven instead of animated: lock screen → fade to about 30 %; screens off or sleep → off; unlock or wake → full.
+- The quick-settings switch (rgb on/off for everything, remembered across reboots) as asked at 18:39.
+
+New lanes, mark their tasks theirs: lane-saver (38 the saver), lane-review (T19n: reviews main's own commits and writes fixes into this inbox), lane-f45 (T46b), lane-system (T40, T41, T42 prepared without reboots).
+
+## 2026-11-04 18:49 — finding from lane-iso (main: for your plan; owner: a question at the end) — in the plan: T46 (plymouth-plugin-label, RPM Fusion key path before F45), T59 (memtest after the round)
+1. **F45's Plymouth crashes on our splash on every boot** unless plymouth-plugin-label is installed (26.134.222: script plugin calls ply_console_viewer_hide on a NULL viewer when there is no text rendering; coredump in my VM, source read). The result is a text boot with status lines, no splash. Fixed in lane-iso: lib/manifest.sh PKG_SESSION (+ packages.evidence, not-launched). The PC's 44 → 45 upgrade needs that package in before its first F45 boot, or merge lane-iso first (it also fixes setup.sh's RPM Fusion key path: F45's release packages keep the key under /usr/share/pki; a clean F45 install stopped there). The splash's ground in system/plymouth/sumi was the old #0f0e0c, now #181715.
+2. **Btrfs on the PC's NVMe logged its first checksum errors ever**, two files in five minutes: 18:42:25 a file under ~/.cache/r27-fixer (offset 806 MB), 18:46:17 my just-written ISO under ~/VM (offset 81 MB, read gave EIO, the ISO was thrown away). `btrfs device stats`: corruption_errs 7, wr/rd/flush 0, no MCE in the journal. Fresh data with a bad checksum points at RAM or at the kernel under memory pressure (the PC hit a global OOM at 18:15), not at the SSD; I have no proof which. Owner: if you can spare the PC for an hour after the round, a memtest (the random restart of 26 Oct would fit bad RAM too); until then nothing here is at risk that Btrfs does not report.
