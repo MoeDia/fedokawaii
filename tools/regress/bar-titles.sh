@@ -2,7 +2,8 @@
 # tools/regress/bar-titles.sh — never again a bar that grows with a title (r26-fu-4: 46 px with an
 # Arabic, an emoji or a Thai title, whose fallback faces are taller than ours): the real bar on the
 # real GPU, both themes, a real window under each title, then each as what plays (a stand-in player)
-# — its rows the same to the pixel as with nothing there, and the title really drawn.
+# — its rows the same to the pixel as with nothing there, the title really drawn, and a title longer than
+# the bar pushing nothing off its place.
 #   bash tools/regress/bar-titles.sh [KIT OPTION…]
 # Exit 0 held · 1 broken (each title said) · 2 the kit could not run
 set -u
@@ -24,7 +25,8 @@ STUB_END
 printf '#!/bin/sh\nexec sleep 300\n' >"$b/pw-metadata"
 printf '#!/bin/sh\nexec sleep 300\n' >"$b/cava"
 chmod +x "$b"/playerctl "$b"/pw-metadata "$b"/cava
-titles=('مرحبا بالعالم — نافذة' '🎉 party 👍🏽 🇯🇵' 'สวัสดีชาวโลก ทดสอบ' '日本語のタイトル・テスト' 'A plain title')
+long="$(printf 'a very long title of many words that goes on %.0s' {1..12})"
+titles=('مرحبا بالعالم — نافذة' '🎉 party 👍🏽 🇯🇵' 'สวัสดีชาวโลก ทดสอบ' '日本語のタイトル・テスト' 'A plain title' "$long")
 {
   echo 'nap 1.5; shot empty 0,0 1920x40'
   for i in "${!titles[@]}"; do
@@ -46,10 +48,15 @@ for th in dark light; do
   for n in w p; do for i in "${!titles[@]}"; do
     w=window; [[ $n == p ]] && w="what plays"
     got=$(python3 -I "$here/shots.py" bar "$out/$th/$n$i.png" "$fibre" | grep '^rows ')
-    [[ $got == "$want" ]] || { echo "bar-titles ($th): $w [${titles[i]}]: $got (want $want)" >&2; fail=1; }
+    [[ $got == "$want" ]] || { echo "bar-titles ($th): $w [${titles[i]:0:40}]: $got (want $want)" >&2; fail=1; }
+    # (however long: the clock in its place, the far tile on its hairline, nothing pushed off)
+    [[ $(python3 -I "$here/shots.py" bar "$out/$th/$n$i.png" "$fibre" | grep '^tile ' | tail -n 1 | cut -d' ' -f3) == 1912 ]] \
+      || { echo "bar-titles ($th): $w [${titles[i]:0:40}]: the far tile pushed off its place" >&2; fail=1; }
+    [[ $(python3 -I "$here/shots.py" middle "$out/$th/$n$i.png" 13) == "$(python3 -I "$here/shots.py" middle "$out/$th/empty.png" 13)" ]] \
+      || { echo "bar-titles ($th): $w [${titles[i]:0:40}]: the clock pushed off the middle" >&2; fail=1; }
     python3 -I "$here/shots.py" differ "$out/$th/empty.png" "$out/$th/$n$i.png" 60,4,1800,20 >/dev/null \
-      || { echo "bar-titles ($th): $w [${titles[i]}] was not drawn" >&2; fail=1; }
+      || { echo "bar-titles ($th): $w [${titles[i]:0:40}] was not drawn" >&2; fail=1; }
   done; done
 done
 ((fail)) && exit 1
-echo "bar-titles: held — 27 rows under Arabic, emoji, Thai, Japanese and plain titles, a window and what plays, both themes"
+echo "bar-titles: held — 27 rows, the clock and the far tile in their place, under Arabic, emoji, Thai, Japanese, plain and over-long titles, a window and what plays, both themes"
