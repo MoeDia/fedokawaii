@@ -108,11 +108,11 @@ class Canvas:
         ys = [p[1] for p in pts]
         for y in range(max(int(min(ys)) - 1, 0), min(int(max(ys)) + 2, self.h)):
             yc, xs = y + 0.5, []
-            for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1]):
+            for (x0, y0), (x1, y1) in zip(pts, pts[1:] + pts[:1], strict=True):
                 if (y0 <= yc < y1) or (y1 <= yc < y0):
                     xs.append(x0 + (yc - y0) * (x1 - x0) / (y1 - y0))
             xs.sort()
-            for a, b in zip(xs[::2], xs[1::2]):
+            for a, b in zip(xs[::2], xs[1::2], strict=True):
                 x0, x1 = max(math.ceil(a - 0.5), 0), min(math.floor(b - 0.5), self.w - 1)
                 if x1 >= x0:
                     m[y, x0:x1 + 1] = True
@@ -699,7 +699,7 @@ def write_glyphs():
         rows = s[name][2]
         for suffix, cut in (("", (0, 16)), ("-2", (16, 24))):
             block = f"@{icon}{suffix}\n" + "\n".join(r[cut[0]:cut[1]] for r in rows) + "\n"
-            text, n = re.subn(rf"^@{re.escape(icon)}{re.escape(suffix)}\n(?:[.#]+\n)+", lambda _: block, text, flags=re.M)
+            text, n = re.subn(rf"^@{re.escape(icon)}{re.escape(suffix)}\n(?:[.#]+\n)+", block.replace("\\", r"\\"), text, flags=re.M)
             if n != 1:
                 raise SystemExit(f"art/icons.txt: @{icon}{suffix} found {n} times")
     ICONS.write_text(text, encoding="utf-8")

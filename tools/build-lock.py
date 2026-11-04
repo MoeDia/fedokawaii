@@ -250,7 +250,7 @@ def bolt(r, a, b, seed=0):
     n = 5
     pts = [(a[0] + (b[0] - a[0]) * i / n + (rng.uniform(-5, 5) if 0 < i < n else 0), a[1] + (b[1] - a[1]) * i / n) for i in range(n + 1)]
     m = np.zeros_like(r.M)
-    for (x0, y0), (x1, y1) in zip(pts, pts[1:]):
+    for (x0, y0), (x1, y1) in zip(pts, pts[1:], strict=False):
         m |= r.stroke([(x0, y0), (x1, y1)], 2.4, 1.2)
     r.add(m, sep=False, accent=True)
 
@@ -406,7 +406,7 @@ def raimon(x0, x1, y0):
     m = np.zeros((H, W), bool)
     s = [(0, 0), (8, 0), (8, 8), (2, 8), (2, 3), (5, 3), (5, 5)]
     for x in range(x0, x1, 12):
-        for (a, b), (c, d) in zip(s, s[1:]):
+        for (a, b), (c, d) in zip(s, s[1:], strict=False):
             n = max(abs(c - a), abs(d - b))
             for i in range(n + 1):
                 px = x + a + (c - a) * i // n
@@ -436,15 +436,15 @@ def mandorla(r, cx, cy, base=92, short=30, long_=56, seed=3, n=30):
     curling the same way"""
     rng = np.random.default_rng(seed)
     r.add(r.stroke([(cx + (base + 12) * math.cos(a), cy + (base + 12) * math.sin(a)) for a in np.linspace(0, 2 * math.pi, 40)], 30))
+
+    def at(a, rad, da):
+        return (cx + rad * math.cos(a + da), cy + rad * math.sin(a + da))
     for i in range(n):
         a = 2 * math.pi * i / n + rng.uniform(-0.03, 0.03)
         ln = (long_ if i % 3 == 1 else short + (long_ - short) * 0.45 if i % 3 == 2 else short) + rng.uniform(-5, 5)
-
-        def at(rad, da):
-            return (cx + rad * math.cos(a + da), cy + rad * math.sin(a + da))
         tip = base + ln
-        r.add(r.stroke([at(base, -0.04), at(base + ln * 0.45, 0.03), at(base + ln * 0.75, 0.13), at(tip, 0.10)], 30, prof=lambda t: (1 - t) ** 1.25 + 0.02))
-        r.line(r.stroke([at(base + 14, 0.0), at(base + ln * 0.45, 0.05), at(base + ln * 0.68, 0.12)]))
+        r.add(r.stroke([at(a, base, -0.04), at(a, base + ln * 0.45, 0.03), at(a, base + ln * 0.75, 0.13), at(a, tip, 0.10)], 30, prof=lambda t: (1 - t) ** 1.25 + 0.02))
+        r.line(r.stroke([at(a, base + 14, 0.0), at(a, base + ln * 0.45, 0.05), at(a, base + ln * 0.68, 0.12)]))
 
 
 def rel_line(pts):
@@ -554,6 +554,13 @@ def foreground(t, li, rng):
     lit, _ = li.bevel(rocks | m)
     t[lit & (yy < 200)] = 5
     t[lit & (yy >= 200)] = 3
+    # what the battle left on the step, either side of the words' field: skulls, bones, a broken spear
+    for x, y, k in ((118, 348, 1.0), (196, 352, 0.9), (444, 352, 0.9), (522, 348, 1.0)):
+        skull(r, x, y, k)
+    for a, b in (((136, 354), (170, 346)), ((150, 342), (178, 354)), ((206, 346), (232, 354)), ((408, 354), (434, 346)), ((462, 346), (490, 354)), ((470, 354), (504, 342))):
+        r.add(r.stroke([a, b], 2.4))
+    r.add(r.stroke([(90, 344), (112, 330)], 1.6) | blade(r, Place(0, 0), (90, 344), (112, 330), 2.6, 7))
+    r.add(r.stroke([(550, 344), (528, 330)], 1.6) | blade(r, Place(0, 0), (550, 344), (528, 330), 2.6, 7))
     t[r.M] = 3
     lit, dark = li.bevel(r.M)
     t[lit] = 7
@@ -670,6 +677,7 @@ def dark_ground(reach=1.0):
         deep(t, rel.M & inside, rel.L, 3, li, inside)
     # the light on what is carved: by the pixel, hard, a step of dither at its edges
     carved = (yy < 60) | (yy >= 318) | panels[0] | panels[1]
+    paint[carved] = ""                 # (the flames lie behind all of this)
     bay = np.array([[0, 2], [3, 1]])[yy % 2, xx % 2]
     rr = (np.minimum(np.hypot(xx - TORCH_X[0], (yy - FLAME_Y) * 1.08), np.hypot(xx - TORCH_X[1], (yy - FLAME_Y) * 1.08)) + bay * 2.5) / reach
     k = np.where(rr < 90, 3, np.where(rr < 140, 2, np.where(rr < 196, 1, 0)))
@@ -1002,7 +1010,8 @@ def light_front():
              ((-60, 214, 330, 340), (426, 700, 330, 340), (-60, 700, 338, 360)))                  # the last, before her, where the words go
     for i, bars in enumerate(bands):
         paint = gold_mist(suyari(xx, yy, bars), xx, yy)
-        if i == len(bands) - 1:                 # (the words' field stays plain gold)
+        if i == len(bands) - 1:                 # (the sea's waves in its line; the words' field stays plain gold)
+            paint[seigaiha(341, 360) & (paint == "G")] = "g"
             paint[(yy >= 342) & (yy < 356) & (xx >= 230) & (xx < 410)] = "G"
         for ink in ("G", "g", "y"):
             put(paint == ink, ink)

@@ -21,12 +21,25 @@ Reads art/masters/masters.toml — one table a picture:
                                  seam down the picture): filled across from either side
     clean   = [[x0, y0, x1, y1], …]  in the picture's pixels: what is not the picture (a cartouche,
                                  a seal, a poem card) made ground, filled in from all round it
+    marks   = [[x0, y0, x1, y1], …]  in the picture's pixels: a print's writing on a ground that must
+                                 stay (its clouds, their contour): only the ink in the box filled in,
+                                 no patch left to see; a fifth number, how far below the ground ink
+                                 starts (where the writing crosses a line paler than itself)
     fields  = [[[ax, ay], [x, y], …], …]  a large thing to take out, its outline in the picture's
-                                 pixels: one colour, the print's own at ax, ay
+                                 pixels: one colour, the print's own at ax, ay (or a line carried
+                                 on across what was taken out)
+    even    = [[x, reach], …]    two sheets of a print inked apart: the step in lightness across the
+                                 picture's column x shared out between them, row by row, less and
+                                 less over REACH columns each way
+    dodge   = [[x0, y0, x1, y1, lift, gain], …]  a dark face lost in its ground: inside the box's
+                                 ellipse its lightness raised by LIFT, its lines × GAIN
     fade    = [[x0, x1], …]      in the picture's columns: into the top's ink, the picture whole at
-                                 x0 and gone at x1 (a screen painting's own edge, carried on)
+                                 x0 and gone at x1, an uneven edge as a wash has (a painting's own
+                                 edge, carried on)
     paper   = 0.9                lightness (0 … 1 of the picture's) from which it is the bare paper:
                                  a stain or a ghost of old print goes, a light print's ground lies flat
+    speck   = 4                  an accent in a group of fewer pixels than this is the ramp's: a faded
+                                 print's flecks go, its one strong red stays
     smooth  = 2                  passes of the smoothing
 writes art/masters/out/NAME.png: 640 × 360 pixels, every one a colour of its mood's palette
 (an indexed PNG: a few dozen kilobytes) — the screen shows each as 3 × 3 (1920 × 1080; 2 × 2 on
@@ -58,7 +71,7 @@ import sys
 import tomllib
 
 import numpy as np
-from PIL import Image, ImageDraw
+from PIL import Image, ImageDraw, ImageFilter
 
 ROOT = pathlib.Path(__file__).resolve().parent.parent
 SPEC = ROOT / "art/masters/masters.toml"
@@ -114,6 +127,12 @@ def hexes(h):
     return np.array([[int(x[i:i + 2], 16) for i in (0, 2, 4)] for x in h]) / 255
 
 
+def half(a):
+    """a plane at half its size, each new pixel the mean of the four under it (an odd last row or column left out)"""
+    hh, ww = a.shape[0] // 2 * 2, a.shape[1] // 2 * 2
+    return (a[:hh:2, :ww:2] + a[1:hh:2, :ww:2] + a[:hh:2, 1:ww:2] + a[1:hh:2, 1:ww:2]) / 4
+
+
 def heal(lab, hole):
     """HOLE (… × a mask) filled in from all round it, smoothly: push-pull, each scale filling what
     the finer one could not — a flat ground stays flat, a gradient goes on."""
@@ -123,9 +142,6 @@ def heal(lab, hole):
     levels = [(lab * weight[..., None], weight)]
     while levels[-1][1].shape[0] > 2 and levels[-1][1].shape[1] > 2 and (levels[-1][1] == 0).any():
         val, wt = levels[-1]
-        hh, ww = wt.shape[0] // 2 * 2, wt.shape[1] // 2 * 2
-        def half(a):
-            return (a[:hh:2, :ww:2] + a[1:hh:2, :ww:2] + a[:hh:2, 1:ww:2] + a[1:hh:2, 1:ww:2]) / 4
         levels.append((half(val), half(wt)))
     val, wt = levels[-1]
     cur = val / np.maximum(wt, 1e-9)[..., None]
@@ -134,9 +150,11 @@ def heal(lab, hole):
     for val, wt in reversed(levels[:-1]):
         up = np.repeat(np.repeat(cur, 2, 0), 2, 1)
         up = np.pad(up, ((0, wt.shape[0] - up.shape[0]), (0, wt.shape[1] - up.shape[1]), (0, 0)), mode="edge")
-        # (a soft step, so the coarse scale's blocks do not show)
-        for axis in (0, 1):
-            up = (np.roll(up, 1, axis) + 2 * up + np.roll(up, -1, axis)) / 4
+        # (a soft step, so the coarse scale's blocks do not show; at the picture's edge it stops:
+        # wrapped round, a hole at the left took a tone from the far right)
+        up = np.pad(up, ((1, 1), (1, 1), (0, 0)), mode="edge")
+        up = (up[:-2] + 2 * up[1:-1] + up[2:]) / 4
+        up = (up[:, :-2] + 2 * up[:, 1:-1] + up[:, 2:]) / 4
         k = np.clip(wt, 0, 1)[..., None]
         cur = val + (1 - k) * up
     return np.where(hole[..., None], cur, lab)
@@ -179,6 +197,52 @@ def smooth(lab, passes=2, sigma_l=0.06):
     return lab
 
 
+def dark_marks(L, below=0.035):
+    """L: a box of the picture's lightness. Its writing: what lies darker than the ground round it
+    (a 15 × 15 median), and two pixels all round that (the ink's soft edge, else a pale ghost of it)."""
+    im = Image.fromarray((np.clip(L, 0, 1) * 255).astype(np.uint8))
+    ground = np.asarray(im.filter(ImageFilter.MedianFilter(15)), dtype=np.float64) / 255
+    ink = Image.fromarray(((L < ground - below) * 255).astype(np.uint8))
+    return np.asarray(ink.filter(ImageFilter.MaxFilter(5))) > 0
+
+
+def even(lab, x, reach, wide=6, sigma=12, most=0.1):
+    """The step in lightness across column X (WIDE columns each side, row by row, softened down the
+    column so a figure crossing it sets nothing, and at most MOST) shared out: half off the lighter
+    side, half onto the darker, less and less over REACH columns each way (taken from one side
+    alone it leaves a dark line down the seam)."""
+    L = lab[..., 0]
+    step = L[:, x + 1:x + 1 + wide].mean(1) - L[:, x - wide:x].mean(1)
+    k = np.exp(-(np.arange(-3 * sigma, 3 * sigma + 1) ** 2) / (2 * sigma ** 2))
+    step = np.convolve(np.pad(step, 3 * sigma, mode="edge"), k / k.sum(), mode="valid")
+    cols = np.arange(W)
+    t = np.clip(1 - np.abs(cols - x) / reach, 0, 1) * np.where(cols > x, -0.5, 0.5)
+    out = lab.copy()
+    out[..., 0] = L + np.clip(step, -most, most)[:, None] * t[None, :]
+    return out
+
+
+def soft(L, passes=3):
+    """L softened (1 2 1 along each axis, PASSES times)"""
+    for _ in range(passes):
+        for axis in (0, 1):
+            L = (np.roll(L, 1, axis) + 2 * L + np.roll(L, -1, axis)) / 4
+    return L
+
+
+def dodge(lab, x0, y0, x1, y1, lift, gain):
+    """Inside the box's ellipse (fading over its outer quarter) the lightness raised by LIFT and
+    what stands out from its surroundings × GAIN: a dark face's lines come back."""
+    yy, xx = np.mgrid[0:H, 0:W]
+    r = np.hypot((xx - (x0 + x1) / 2) / ((x1 - x0) / 2), (yy - (y0 + y1) / 2) / ((y1 - y0) / 2))
+    m = np.clip((1 - r) / 0.25, 0, 1)
+    m = m * m * (3 - 2 * m)
+    L = lab[..., 0]
+    out = lab.copy()
+    out[..., 0] = L + m * (lift + (gain - 1) * (L - soft(L)))
+    return out
+
+
 def tones(lab, spec, mood, known):
     """The picture's lightness stretched over its mood's ramp (1st to 99th percentile of what is
     the print's own, KNOWN: a stray speck neither black nor white sets nothing, nor does a filled
@@ -198,6 +262,17 @@ def tones(lab, spec, mood, known):
     return out
 
 
+def wander(seed, reach):
+    """A slow unevenness over the picture, H × W, within ± REACH: never a straight edge. The same
+    every build."""
+    rng = np.random.default_rng(seed)
+    out = np.zeros((H, W))
+    for rows, part in ((6, 0.65), (14, 0.25), (34, 0.1)):
+        grid = rng.uniform(-1, 1, (rows, rows * 2)).astype(np.float32)
+        out += part * np.asarray(Image.fromarray(grid, "F").resize((W, H), Image.BICUBIC), dtype=np.float64)
+    return out * reach
+
+
 def calm_top(lab, mood, fades=()):
     """ichimonji-bokashi: the first rows one ink, fading into the picture; the same ink over FADES
     (x0 x1: the picture whole at x0, gone at x1), where a painting's own edge would show."""
@@ -206,12 +281,12 @@ def calm_top(lab, mood, fades=()):
     t = (t * t * (3 - 2 * t))[:, None, None]
     keep = np.tile(t, (1, W, 1))
     for x0, x1 in fades:
-        f = np.clip((np.arange(W) - x0) / (x1 - x0), 0, 1)
-        keep = keep * (1 - f * f * (3 - 2 * f))[None, :, None]
+        f = np.clip((np.arange(W) + wander(x0, abs(x1 - x0) * 0.6) - x0) / (x1 - x0), 0, 1)
+        keep = keep * (1 - f * f * (3 - 2 * f))[..., None]
     return lab * keep + ink * (1 - keep)
 
 
-def quantise(lab, mood, chroma=0.07, hue_deg=40, margin=0.1):
+def quantise(lab, mood, chroma=0.07, hue_deg=40, least=None, margin=0.1):
     """Each pixel: an accent where it is strongly coloured (chroma over CHROMA) and an accent's
     hue is within HUE_DEG of its own — the nearest such by OKLab —, else a step of the ramp by
     its lightness alone, two neighbouring steps mixed by a 4 × 4 Bayer threshold where it falls
@@ -236,7 +311,7 @@ def quantise(lab, mood, chroma=0.07, hue_deg=40, margin=0.1):
     d = np.where(dh < hue_deg, d, np.inf)
     best = d.argmin(-1)
     use = (c > chroma) & np.isfinite(d.min(-1))
-    use &= ~specks(use)
+    use &= ~specks(use, least or ACCENT_MIN)
     return np.where(use, len(rl) + best, ramp_idx)
 
 
@@ -268,8 +343,8 @@ def specks(mask, least=ACCENT_MIN):
 
 # the edges a picture must not have (the master's T18 review: six had a print's paper margin,
 # its frame line or a mount at the screen's edge), by lightness, side by side: flat lines at the
-# edge (one ink across: paper, a mount) unlike the EDGE_IN after them — a print's plain ground
-# going on inside is its own; or the outer 1–EDGE_BAND lines stepping by more than EDGE_STEP
+# edge (one ink across: paper, a mount) unlike the EDGE_IN after them (their median: a print's
+# plain ground going on inside is its own, whatever lies on it); or the outer 1–EDGE_BAND lines stepping by more than EDGE_STEP
 # from the EDGE_BAND just inside them (a frame line) — a painting's own gradient ramps, it does
 # not step. (A margin of dithered paper wider than that is seen only by eye: lotus-sutra-gateway's)
 EDGE_BAND, EDGE_IN, EDGE_STEP, EDGE_FLAT, EDGE_LINE = 4, 20, 0.08, 0.03, 0.05
@@ -287,7 +362,7 @@ def edges(L):
         while k < 40 and a[k].std() < EDGE_FLAT:
             k += 1
         if k:
-            inner = a[k:k + EDGE_IN].mean()
+            inner = np.median(a[k:k + EDGE_IN])
             if abs(a[:k].mean() - inner) > EDGE_LINE:
                 found.append(f"{side}: {k} flat {what}{'s' * (k > 1)} at L {a[:k].mean():.2f}, inside {inner:.2f}")
                 continue
@@ -313,18 +388,25 @@ def build(name, spec):
     lab = oklab(lin)
     for x0, y0, x1, y1 in spec.get("clean", ()):
         past[y0:y1, x0:x1] = True
+    for x0, y0, x1, y1, *below in spec.get("marks", ()):
+        past[y0:y1, x0:x1] |= dark_marks(lab[y0:y1, x0:x1, 0], *below)
     for (ax, ay), *poly in spec.get("fields", ()):
         mask = Image.new("1", (W, H), 0)
         ImageDraw.Draw(mask).polygon([tuple(q) for q in poly], fill=1)
         lab[np.asarray(mask, bool)] = lab[ay - 2:ay + 3, ax - 2:ax + 3].mean((0, 1))
+        past[np.asarray(mask, bool)] = False       # (drawn: it stays over a hole it crosses)
+    for x, reach in spec.get("even", ()):
+        lab = even(lab, x, reach)
+    for box in spec.get("dodge", ()):
+        lab = dodge(lab, *box)
     # (the holes filled before the smoothing and after it: its edge-keeping never sees what was there)
     lab = smooth(heal(lab, past), passes=spec.get("smooth", 2))
     lab = calm_top(tones(heal(lab, past), spec, spec["theme"], ~past), spec["theme"], spec.get("fade", ()))
-    idx = quantise(lab, spec["theme"], spec.get("chroma", 0.07), spec.get("hue", 40))
+    idx = quantise(lab, spec["theme"], spec.get("chroma", 0.07), spec.get("hue", 40), spec.get("speck"))
     idx[:TOP_FLAT] = (TOP_INK[spec["theme"]] % len(RAMP[spec["theme"]]))
     if "paper" in spec:                # (what is left of a stain on the bare paper: a few pixels, gone)
         bare = len(RAMP[spec["theme"]]) - 1
-        idx[specks(idx != bare, 10)] = bare
+        idx[specks(idx != bare, 16)] = bare
     out = Image.fromarray(idx.astype(np.uint8), "P")
     flat = (hexes(PALETTE[spec["theme"]]) * 255).round().astype(np.uint8).flatten().tolist()
     out.putpalette(flat + [0] * (768 - len(flat)))
