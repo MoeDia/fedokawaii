@@ -827,7 +827,8 @@ def layout():
     eq(s.cells[first][5][1], 25, "its words the strongest ink")
     eq({s.cells[first][x][1] for x in range(100, 115) if (s.cells[first][x][0] or " ") != " "}, {None}, "a value in the text's ink, not muted: words on what is selected are ≥ 7 : 1")
     # every number column to one edge, so the digits stack: a meter, a speed, a time, a size, words where numbers would be
-    text = lambda name: "".join(c[0] or " " for c in s.cells[row_of(w, name)])
+    def text(name):
+        return "".join(c[0] or " " for c in s.cells[row_of(w, name)])
     motion = [text(n) for n in ("Night of the Living", "debian-13.1.0", "全十五編")]
     eq({t.index("/s") for t in motion} | {text("Big Buck Bunny").index("/s")}, {motion[0].index("/s")}, "the speeds' edge, a finished row's sending too")
     edge = motion[0].rindex(" m") + 2
@@ -835,7 +836,8 @@ def layout():
     for name, word in (("Sintel", "looking for it"), ("Tears of Steel", "asking the site"), ("[SubsPlease]", "no one sending"), ("ubuntu-26.04", "checking"),
                        ("archlinux", "queued"), ("The General", "no space left on device"), ("Metropolis", "could not reach it")):
         eq(text(name).index(word) + len(word), edge, f"{word}: words in the times' place")
-    first_segment = lambda t: min(t.index(c) for c in meter_letters() if c in t)
+    def first_segment(t):
+        return min(t.index(c) for c in meter_letters() if c in t)
     eq({first_segment(text(n)) for n in ("Night of the Living", "[SubsPlease]", "ubuntu-26.04", "archlinux", "Nosferatu")}, {first_segment(motion[0])}, "the meters' column")
     y = row_of(w, "debian-13.1.0")
     eq(s.line(y)[5:18], "debian-13.1.0", "a name at column 5 of the screen")

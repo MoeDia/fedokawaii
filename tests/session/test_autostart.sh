@@ -107,6 +107,7 @@ systemctl --user start dwl-session.target
 systemctl --user start fedokawaii-remind.timer
 systemctl --user start kawa-tidy.timer
 systemctl --user start kawa-wallpaper-next.timer
+systemctl --user start kawa-torrents.socket
 systemctl --user start grub-boot-success.timer
 kawa-display${SP}
 kawa-theme apply

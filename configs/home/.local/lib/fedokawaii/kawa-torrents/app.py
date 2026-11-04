@@ -989,7 +989,6 @@ class App:
         column holds its edge, every cell the tint, words with no ink of their own the strongest, a value `text` (muted
         is 4.1 : 1 on the light tint, words on what is selected ≥ 7), every other ink its own."""
         if selected:
-            on_tint = lambda s: (s, ON_SELECT, SELECT) if isinstance(s, str) else (s[0], None if s[1] == MUTED else s[1] or ON_SELECT, SELECT)
             return [(CURSOR_EDGE, ACCENT, SELECT), *map(on_tint, spans), (" ", ON_SELECT, SELECT)]
         return [" ", *spans]
 
@@ -1758,6 +1757,13 @@ def keys_spans(keys, w):
 def pad_to(spans, n):
     used = sum(cells(s if isinstance(s, str) else s[0]) for s in spans)
     return spans + [" " * max(0, n - used)]
+
+
+def on_tint(s):
+    """A span on the cursor's tint: see App.laid."""
+    if isinstance(s, str):
+        return (s, ON_SELECT, SELECT)
+    return (s[0], None if s[1] == MUTED else s[1] or ON_SELECT, SELECT)
 
 
 def age_words(hours):
