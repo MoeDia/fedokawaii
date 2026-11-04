@@ -467,7 +467,7 @@ do_matrix() {
   }
   [[ -n ${FK_MATRIX_FROM:-} ]] || one disk-20g "no disk large enough" -- --disk 20
   [[ -n ${FK_MATRIX_FROM:-} ]] || one no-network "no network" -- --no-net
-  one bios "without UEFI" -- --bios
+  one bios "without UEFI" -- --bios --cd-first
   one ram-3g "not enough memory" -- --ram 3000
   one stick-check "a new home" "<down>" "<enter>" --
   "${VIRSH[@]}" undefine "$n" --nvram >/dev/null 2>&1
