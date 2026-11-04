@@ -284,6 +284,10 @@ for LPF_ENTRY in lpf lpf-gui lpf-notify lpf-spotify-client; do retire ".local/sh
 retire .config/fuzzel/fuzzel.ini 'fedokawaii/current/fuzzel.ini'
 retire .local/share/fonts/SumiSealInk.ttf ''
 retire .local/share/fonts/SumiSealPaper.ttf ''
+for _m in dark light; do   # (the screensaver's whole-pixel pictures: it shows the lock's painting now)
+  retire ".local/share/fedokawaii/$_m/saver-scene.ppm" ''
+  retire ".local/share/fedokawaii/$_m/saver-flame.ppm" ''
+done
 for OLD_THEME in dark light; do
   retire ".config/fedokawaii/themes/$OLD_THEME/fuzzel.ini" ''
   for OLD_PIC in stitch hem seam-end patch patch-beni patch-asagi clock washi; do

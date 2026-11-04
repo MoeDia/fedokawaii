@@ -269,6 +269,8 @@ static void show_step(double t)
 		if (!o->ready || o->closed)
 			continue;
 		sub_show(&o->shade, pic_shade.wl, 0, 0, shade.w, shade.h);
+		if (falling)                          /* (the rest once the painting covers the screen) */
+			goto clock;
 		for (int i = 0; i < art.na; i++)
 			sub_show(&o->anims[i], pic_frames[i][art.anims[i].frame].wl, 0, 0, art.anims[i].w, art.anims[i].h);
 		if (!art.light) {
@@ -288,6 +290,7 @@ static void show_step(double t)
 			sub_show(&o->seal, pic_seal.wl, 0, 0, sealp.w, sealp.h);
 			wl_surface_commit(o->surface);    /* (the seal's new place is its parent's to take) */
 		}
+clock:
 		if (!o->waiting_frame) {              /* (the clock of it all: no frames given, no steps taken) */
 			struct wl_callback *cb = wl_surface_frame(o->shade.surface);
 			wl_callback_add_listener(cb, &frame_listener, o);

@@ -9,7 +9,7 @@
  *   the anims      the lock's own strips (flames, light on the stones), the same frames in the same places
  *   the haze       1/4 size: smoke off each flame, curling up to the beam and creeping along it (the dark mood)
  *   the air        1/2 size: embers rising (dark), gold dust and petals falling (light)
- *   the seal       the time, stamped somewhere else in the middle every minute: the one thing in the world's pixels
+ *   the seal       the time, stamped somewhere else in the middle every minute, its digits cut out of the red
  */
 #include <math.h>
 #include <png.h>
@@ -32,9 +32,6 @@
 #define WAKE_MS 440      /* the world wakes (§11: 400–450) */
 #define FALL_MS 1200     /* it falls asleep (the wash's own time) */
 #define RAMP_PX 150      /* the soft edge of the opening, in pixels */
-#define SEAL_DOT 3       /* a seal's pixel, on the screen */
-#define SEAL_W 17        /* … in its pixels; struck, one more all round */
-#define SEAL_H 22
 
 /* ── the inks (current/saver.conf) ──────────────────────────────────────────────────── */
 enum { SPARK_HOT, SPARK, SPARK_COOL, SPARK_DIM, DRIFT, DRIFT_LO, SEAL_INK, SEAL_HOT, SEAL_CUT, SHADE_INK, NCOL };
@@ -81,6 +78,8 @@ static struct {
 	int cx, cy, cr;               /* the figure's place: where the world opens, the seal's ground */
 	int ceiling;                  /* the beam the smoke stops at */
 	int nt, na;
+	int seal_w, seal_h, digit_w, digit_h;   /* saver-seal.png: the seal, a digit's cell */
+	uint8_t *seal;                /* … its alpha: the seal, then the ten digits */
 	struct torch torches[MAXTORCH];
 	struct anim anims[MAXANIM];
 	char dir[4096];
@@ -138,7 +137,7 @@ static inline uint32_t scale_px(uint32_t p, uint32_t m)
 /* src over dst, both premultiplied */
 static inline uint32_t over_px(uint32_t s, uint32_t d)
 {
-	uint32_t a = 255 - (s >> 24);
+	uint32_t a = 256 - (s >> 24);
 	uint32_t rb = ((d & 0x00ff00ffu) * a >> 8) & 0x00ff00ffu;
 	uint32_t ag = ((d >> 8 & 0x00ff00ffu) * a) & 0xff00ff00u;
 	return s + (ag | rb);
@@ -238,14 +237,24 @@ static bool read_art(const char *home)
 		else if (sscanf(line, "wall %63s", art.wall) == 1) ;
 		else if (sscanf(line, "centre %d %d %d", &art.cx, &art.cy, &art.cr) == 3) ;
 		else if (sscanf(line, "ceiling %d", &art.ceiling) == 1) ;
+		else if (sscanf(line, "seal %d %d %d %d", &art.seal_w, &art.seal_h, &art.digit_w, &art.digit_h) == 4) ;
 		else if (art.nt < MAXTORCH && sscanf(line, "torch %d %d %d", &t->x, &t->y, &t->reach) == 3)
 			art.nt++;
 		else if (art.na < MAXANIM && sscanf(line, "anim %63s %d %d %d %d %d %d", a->file, &a->x, &a->y, &a->w, &a->h, &a->n, &a->ms) == 7)
 			art.na++;
 	}
 	fclose(f);
-	if (art.w <= 0 || art.h <= 0 || !art.wall[0] || art.cr <= 0)
+	if (art.w <= 0 || art.h <= 0 || !art.wall[0] || art.cr <= 0 || art.seal_w <= 0)
 		return false;
+	int sw = art.seal_w + 10 * art.digit_w, sh = art.seal_h;
+	snprintf(p, sizeof p, "%s/saver-seal.png", art.dir);
+	uint32_t *atlas = read_png(p, &sw, &sh, NULL);
+	art.seal = malloc((size_t)sw * (size_t)sh);
+	if (!atlas || !art.seal)
+		return false;
+	for (size_t i = 0; i < (size_t)sw * (size_t)sh; i++)
+		art.seal[i] = (uint8_t)(atlas[i] >> 24);
+	free(atlas);
 	for (int i = 0; i < art.na; i++) {
 		struct anim *a = &art.anims[i];
 		int w = a->w * a->n, h = a->h;
@@ -264,7 +273,7 @@ static bool world_setup(void)
 	shade.w = art.w / SHADE_DIV, shade.h = art.h / SHADE_DIV;
 	haze.w = art.w / HAZE_DIV, haze.h = art.h / HAZE_DIV;
 	air.w = art.w / AIR_DIV, air.h = art.h / AIR_DIV;
-	sealp.w = (SEAL_W + 2) * SEAL_DOT, sealp.h = (SEAL_H + 2) * SEAL_DOT;
+	sealp.w = art.seal_w, sealp.h = art.seal_h;
 	size_t n = (size_t)shade.w * (size_t)shade.h, fall = (size_t)(shade.w + 2) * (size_t)(shade.h + 2);
 	shade_dist = malloc(n * sizeof *shade_dist);
 	if (!shade_dist)
@@ -398,12 +407,12 @@ static void glow(float fx, float fy, float r, uint32_t c, int a)
 static void embers_step(void)
 {
 	for (int t = 0; t < art.nt; t++) {
-		if (rnd(5))
+		if (rnd(3))
 			continue;
 		for (int s = 0; s < NSPARK; s++)
 			if (!sparks[s].live) {
-				sparks[s] = (struct spark){ .live = true, .x = (float)art.torches[t].x + frnd(-16, 16), .y = (float)art.torches[t].y - frnd(10, 60),
-					.vx = frnd(-0.6f, 0.6f), .vy = frnd(-3.4f, -1.4f), .ph = frnd(0, 6.28f), .life = 46 + (int)rnd(84), .big = rnd(7) == 0 };
+				sparks[s] = (struct spark){ .live = true, .x = (float)art.torches[t].x + frnd(-22, 22), .y = (float)art.torches[t].y - frnd(10, 70),
+					.vx = frnd(-0.8f, 0.8f), .vy = frnd(-3.8f, -1.5f), .ph = frnd(0, 6.28f), .life = 50 + (int)rnd(90), .big = rnd(6) == 0 };
 				break;
 			}
 	}
@@ -423,10 +432,10 @@ static void embers_step(void)
 		int a = 4 * e->age / (e->life + 1);
 		float x = e->x / AIR_DIV, y = e->y / AIR_DIV;
 		uint32_t c = pal[a == 0 ? SPARK_HOT : a == 1 ? SPARK : a == 2 ? SPARK_COOL : SPARK_DIM];
-		glow(x, y, e->big ? 4.0f : 2.6f, pal[a < 2 ? SPARK : SPARK_COOL], a == 3 ? 90 : 170);
+		glow(x, y, e->big ? 5.0f : 3.4f, pal[a < 2 ? SPARK : SPARK_COOL], a == 3 ? 120 : 230);
 		plot((int)x, (int)y, c);
-		if (e->big && a < 2)
-			plot((int)x + 1, (int)y, c), plot((int)x, (int)y + 1, c);
+		if (a < 3)
+			plot((int)x + 1, (int)y, c), plot((int)x, (int)y + 1, c), plot((int)x + 1, (int)y + 1, c);
 	}
 }
 
@@ -488,11 +497,11 @@ static void petal_draw(uint32_t *out, int frame, float size, uint32_t body, uint
 					float w = 0.64f * sqrtf(fmaxf(0, 1 - u * u)) * (1 + 0.28f * u);
 					bool in = fabsf(v) < w && !(u > 0.72f && fabsf(v) < 0.16f);
 					inside += in;
-					rim += in && (fabsf(v) > w - 0.2f || u < -0.72f);
+					rim += in && (fabsf(v) > w - 0.17f || u < -0.8f || u > 0.82f);
 				}
 			float a = (float)inside / 16;
 			uint32_t c = rim * 2 > inside ? edge : body;
-			out[y * PETAL_S + x] = inside ? ink_at(c, (int)(a * 255)) : 0;
+			out[y * PETAL_S + x] = inside ? ink_at(c, (int)(a * (rim * 2 > inside ? 215 : 240))) : 0;
 		}
 }
 
@@ -543,7 +552,7 @@ static void air_setup(void)
 	if (art.light)
 		for (int f = 0; f < PETAL_FRAMES; f++) {
 			petal_draw(petal_near[f], f, 6.4f, pal[DRIFT], pal[DRIFT_LO]);
-			petal_draw(petal_far[f], f, 3.6f, pal[DRIFT], pal[DRIFT]);
+			petal_draw(petal_far[f], f, 3.8f, pal[DRIFT], pal[DRIFT_LO]);
 		}
 	for (int s = 0; s < 340; s++) {
 		tick++;
@@ -622,22 +631,7 @@ static void haze_step(void)
 }
 
 /* ── the time: a small seal, hakubun, the digits cut out of the red; another place in the middle every minute ── */
-static const uint8_t DIGIT[10][7] = {
-	{ 0x0e, 0x11, 0x13, 0x15, 0x19, 0x11, 0x0e }, { 0x04, 0x0c, 0x04, 0x04, 0x04, 0x04, 0x0e },
-	{ 0x0e, 0x11, 0x01, 0x02, 0x04, 0x08, 0x1f }, { 0x1f, 0x02, 0x04, 0x02, 0x01, 0x11, 0x0e },
-	{ 0x02, 0x06, 0x0a, 0x12, 0x1f, 0x02, 0x02 }, { 0x1f, 0x10, 0x1e, 0x01, 0x01, 0x11, 0x0e },
-	{ 0x06, 0x08, 0x10, 0x1e, 0x11, 0x11, 0x0e }, { 0x1f, 0x01, 0x02, 0x04, 0x08, 0x08, 0x08 },
-	{ 0x0e, 0x11, 0x11, 0x0e, 0x11, 0x11, 0x0e }, { 0x0e, 0x11, 0x11, 0x0f, 0x01, 0x02, 0x0c },
-};
-
-static void seal_dot(int x, int y, uint32_t c)
-{
-	for (int j = 0; j < SEAL_DOT; j++)
-		for (int i = 0; i < SEAL_DOT; i++)
-			sealp.px[(size_t)((y + 1) * SEAL_DOT + j) * (size_t)sealp.w + (size_t)((x + 1) * SEAL_DOT + i)] = c;
-}
-
-/* changes the picture only at the minute, and the step after it (it is struck); says so in seal_changed */
+/* changes the picture only at the minute, and the step after it (it is struck, in the hot ink); says so in seal_changed */
 static void seal_step(void)
 {
 	seal_changed = false;
@@ -660,31 +654,24 @@ static void seal_step(void)
 	if (!seal_struck)
 		return;
 	seal_changed = true;
-	memset(sealp.px, 0, (size_t)sealp.w * (size_t)sealp.h * 4);
-	if (--seal_struck) {                      /* (down: a pixel larger all round, the hot ink, for one step) */
-		for (int y = -1; y <= SEAL_H; y++)
-			for (int x = -1; x <= SEAL_W; x++)
-				seal_dot(x, y, pal[SEAL_HOT]);
-		return;
-	}
-	for (int y = 0; y < SEAL_H; y++)
-		for (int x = 0; x < SEAL_W; x++) {
-			bool edge = x == 0 || y == 0 || x == SEAL_W - 1 || y == SEAL_H - 1;
-			bool corner = (x == 0 || x == SEAL_W - 1) && (y == 0 || y == SEAL_H - 1);
-			/* (a seal is worn: a corner gone, a bite out of the edge here and there, its own each minute) */
-			unsigned h = (unsigned)(x * 73 + y * 151) * 2654435761u + (unsigned)seal_minute * 40503u;
-			if (corner || (edge && (h >> 24) < 24))
-				continue;
-			bool line = x == 1 || y == 1 || x == SEAL_W - 2 || y == SEAL_H - 2;
-			seal_dot(x, y, pal[line ? SEAL_CUT : SEAL_INK]);
-		}
+	uint32_t ink = pal[--seal_struck ? SEAL_HOT : SEAL_INK];
+	int atlas = art.seal_w + 10 * art.digit_w;
+	for (int y = 0; y < sealp.h; y++)
+		for (int x = 0; x < sealp.w; x++)
+			sealp.px[y * sealp.w + x] = ink_at(ink, art.seal[y * atlas + x]);
+	/* the digits cut out: two rows of two, centred */
+	int gap = 1, x0 = (sealp.w - 2 * art.digit_w - gap) / 2, y0 = (sealp.h - 2 * art.digit_h) / 2;
 	for (int d = 0; d < 4; d++) {
-		const uint8_t *g = DIGIT[seal_digits[d] & 15];
-		int gx = 3 + (d & 1) * 6, gy = 3 + (d >> 1) * 9;
-		for (int r = 0; r < 7; r++)
-			for (int b = 0; b < 5; b++)
-				if (g[r] >> (4 - b) & 1)
-					seal_dot(gx + b, gy + r, pal[SEAL_CUT]);
+		int gx = x0 + (d & 1) * (art.digit_w + gap), gy = y0 + (d >> 1) * art.digit_h;
+		const uint8_t *g = art.seal + art.seal_w + (seal_digits[d] & 15) * art.digit_w;
+		for (int y = 0; y < art.digit_h; y++)
+			for (int x = 0; x < art.digit_w; x++) {
+				int m = g[y * atlas + x];
+				if (m) {
+					uint32_t *q = &sealp.px[(gy + y) * sealp.w + gx + x];
+					*q = over_px(ink_at(pal[SEAL_CUT], m), *q);
+				}
+			}
 	}
 }
 

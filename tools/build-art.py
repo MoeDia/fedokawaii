@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""tools/build-art.py — draw the boot splash's pictures, the screensaver's letters and the lock's
+"""tools/build-art.py — draw the boot splash's pictures, and the lock's
 words (the lock's and login's scenes are tools/build-lock.py's).
 
     python3 tools/build-art.py

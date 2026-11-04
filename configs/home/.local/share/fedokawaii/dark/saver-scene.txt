@@ -7,4 +7,5 @@ torch 1602 307 700   # a fire: its middle, how far its pool reaches
 anim saver-flame.png 279 228 78 132 8 125   # a strip: file, place, a frame's size, frames, ms a frame
 anim saver-flame.png 1563 228 78 132 8 125   # a strip: file, place, a frame's size, frames, ms a frame
 ceiling 58   # what stops the smoke
+seal 62 84 25 34   # saver-seal.png, its alpha: the seal, then the ten digits
 lock ae77db442a12a026   # the lock's art it was built from (tests/look/test_saver.sh)

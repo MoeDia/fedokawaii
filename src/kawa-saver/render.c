@@ -2,8 +2,10 @@
  * src/kawa-saver/render.c — kawa-saver's world with no screen: its layers laid over each other as the compositor lays
  * them (premultiplied, the small ones scaled up smooth), written as P6 files; what a step costs on stdout. The tests
  * and the renders use it; it is not installed.
- *   kawa-saver-render DIR [--steps N] [--every K] [--fall] [--wake] [--clock HH:MM] [--seed N] [--under FILE.png]
- *     --under  the lock's picture, what shows where the world has opened (default: magenta, to be measured)
+ *   kawa-saver-render DIR [--steps N] [--every K] [--fall] [--wake] [--frames K] [--clock HH:MM] [--seed N] [--under FILE.png]
+ *     --every   each K-th step written (0: none), named step-N.ppm
+ *     --frames  of the fall and the wake (144 frames a second), each K-th written (and the last), named fall-MS, wake-MS
+ *     --under   the lock's picture, what shows where the world has opened (default: magenta, to be measured)
  *   HOME's ~/.config/fedokawaii/current says the mood; it reads what kawa-saver reads.
  * Exit 0 · 1 it could not · 2 wrong use.
  */
@@ -52,13 +54,13 @@ static void lay(const struct picture *p, int div)
 	}
 }
 
-static bool write_frame(const char *name, long at, const uint32_t *base, bool seal)
+static bool write_frame(const char *name, long at, const uint32_t *base, bool seal, bool all)
 {
 	size_t n = (size_t)art.w * (size_t)art.h;
 	for (size_t i = 0; i < n; i++)
 		out[i] = over_px(base[i], under ? under[i] : 0xffff00ffu);
 	lay(&shade, SHADE_DIV);
-	for (int i = 0; i < art.na; i++) {
+	for (int i = 0; all && i < art.na; i++) {
 		const struct anim *a = &art.anims[i];
 		for (int y = 0; y < a->h; y++)
 			for (int x = 0; x < a->w; x++) {
@@ -67,9 +69,10 @@ static bool write_frame(const char *name, long at, const uint32_t *base, bool se
 					out[k] = over_px(a->frames[(size_t)y * (size_t)a->w * (size_t)a->n + (size_t)a->frame * (size_t)a->w + (size_t)x], out[k]);
 			}
 	}
-	if (!art.light)
+	if (all && !art.light)
 		lay(&haze, HAZE_DIV);
-	lay(&air, AIR_DIV);
+	if (all)
+		lay(&air, AIR_DIV);
 	if (seal)
 		for (int y = 0; y < sealp.h; y++)
 			for (int x = 0; x < sealp.w; x++)
@@ -95,6 +98,13 @@ static bool write_frame(const char *name, long at, const uint32_t *base, bool se
 	return !fclose(f) && ok;
 }
 
+/* (a stamp, for the tests) */
+static void note_seal(void)
+{
+	if (seal_changed && seal_struck == 1)
+		printf("seal %s %d %d\n", seal_digits, seal_x, seal_y);
+}
+
 static float front_max(void)
 {
 	float w = fmaxf((float)art.cx, (float)(art.w - art.cx)), h = fmaxf((float)art.cy, (float)(art.h - art.cy));
@@ -103,13 +113,14 @@ static float front_max(void)
 
 int main(int argc, char **argv)
 {
-	long steps = 240, every = 1;
+	long steps = 240, every = 1, frames_every = 1, frame_no = 0;
 	bool fall = false, wake = false;
 	const char *clock = NULL, *under_file = NULL;
 	unsigned seed = 7;
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--steps") && i + 1 < argc) steps = atol(argv[++i]);
 		else if (!strcmp(argv[i], "--every") && i + 1 < argc) every = atol(argv[++i]);
+		else if (!strcmp(argv[i], "--frames") && i + 1 < argc) frames_every = atol(argv[++i]);
 		else if (!strcmp(argv[i], "--clock") && i + 1 < argc) clock = argv[++i];
 		else if (!strcmp(argv[i], "--seed") && i + 1 < argc) seed = (unsigned)strtoul(argv[++i], NULL, 10);
 		else if (!strcmp(argv[i], "--under") && i + 1 < argc) under_file = argv[++i];
@@ -117,11 +128,11 @@ int main(int argc, char **argv)
 		else if (!strcmp(argv[i], "--wake")) wake = true;
 		else if (argv[i][0] != '-' && !dir) dir = argv[i];
 		else {
-			fputs("usage: kawa-saver-render DIR [--steps N] [--every K] [--fall] [--wake] [--clock HH:MM] [--seed N] [--under FILE.png]\n", stderr);
+			fputs("usage: kawa-saver-render DIR [--steps N] [--every K] [--fall] [--wake] [--frames K] [--clock HH:MM] [--seed N] [--under FILE.png]\n", stderr);
 			return 2;
 		}
 	}
-	if (!dir)
+	if (!dir || frames_every < 1)
 		return 2;
 	rng = seed ? seed : 1;
 	world_time = render_time;
@@ -175,9 +186,9 @@ int main(int argc, char **argv)
 				next += pace;
 				tick++;
 				world_step(t, front);
+				note_seal();
 			}
-			snprintf(p, sizeof p, "fall");
-			if (!write_frame(p, (long)(t + 0.5), opened, false))
+			if ((frame_no++ % frames_every == 0 || t + frame >= FALL_MS) && !write_frame("fall", (long)(t + 0.5), opened, false, false))
 				return 1;
 		}
 	}
@@ -194,7 +205,8 @@ int main(int argc, char **argv)
 			if (took > slowest) slowest = took;
 		}
 		total += nair_now, most = nair_now > most ? nair_now : most;
-		if (every && s % every == 0 && !write_frame("step", s, paint, true))
+		note_seal();
+		if (every && s % every == 0 && !write_frame("step", s, paint, true, true))
 			return 1;
 	}
 	if (steps > 12)
@@ -207,6 +219,7 @@ int main(int argc, char **argv)
 		front = was = -RAMP_PX;
 		double t0 = clock_ms;
 		long steps_ms = 0;
+		frame_no = 0;
 		for (double t = 0; t <= WAKE_MS + frame; t += frame) {
 			double f = t / WAKE_MS;
 			wake_p = f >= 1 ? 1.0f : (float)spring(f);
@@ -224,7 +237,7 @@ int main(int argc, char **argv)
 			}
 			double took = wall_ms() - t1;
 			steps_ms = (long)took > steps_ms ? (long)took : steps_ms;
-			if (!write_frame("wake", (long)(t + 0.5), opened, false))
+			if ((frame_no++ % frames_every == 0 || t + frame > WAKE_MS + frame) && !write_frame("wake", (long)(t + 0.5), opened, false, true))
 				return 1;
 		}
 		printf("a frame of the wake: %ld ms at most\n", steps_ms);
