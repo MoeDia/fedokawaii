@@ -59,7 +59,24 @@ local LIST_W = 200
 local current_redraw = Current.redraw
 function Current:redraw()
 	LIST_W = self._area.w
+	-- (the room a name has: the row less its cell, icon and air, the columns at its end, and a column of paper)
+	Entity._room = LIST_W - 5 - (LIST_W < 36 and 1 or LIST_W < 52 and 10 or 19) - 1
 	return current_redraw(self)
+end
+local parent_redraw = Parent.redraw
+function Parent:redraw()
+	Entity._room = self._area.w - 5 - 1
+	return parent_redraw(self)
+end
+-- A name too long for its room is cut at a word's end (the desktop's rule: never "…"): a space, a - or _ between words, if one is
+-- in the room's second half; a name of one long word loses its end
+local entity_highlights = Entity.highlights
+function Entity:highlights()
+	local name, room, marks = ui.printable(self._file.name), Entity._room, self._file:highlights()
+	if not room or (marks and #marks > 0) or wide(name) <= room then return entity_highlights(self) end
+	local s = cut(name, room)
+	local at = s:match("^.*()[ _%-]")
+	return at and at > #s // 2 and s:sub(1, at - 1) or s
 end
 local function amount(file, number, unit, nw, uw)
 	local n = string.format("%" .. nw .. "s", number)
@@ -83,7 +100,7 @@ local function how_old(file)
 	if not t or t == 0 then return "", "" end
 	local s = math.max(0, os.time() - math.floor(t))
 	if s < 60 then return "now", "" end
-	for _, u in ipairs { { 31536000, "y" }, { 2592000, "mo" }, { 604800, "w" }, { 86400, "d" }, { 3600, "h" }, { 60, "m" } } do
+	for _, u in ipairs { { 31536000, "y" }, { 2592000, "mo" }, { 604800, "w" }, { 86400, "d" }, { 3600, "h" }, { 60, "min" } } do
 		if s >= u[1] then return tostring(s // u[1]), u[2] end
 	end
 end
@@ -93,7 +110,7 @@ function Linemode:kawa()
 	local big = amount(f, how_big(f), select(2, how_big(f)), 4, 2)
 	if LIST_W < 52 then return big end
 	local age, unit = how_old(f)
-	return ui.Line { big, "  ", amount(f, age, unit, 3, 2) }
+	return ui.Line { big, "  ", amount(f, age, unit, 3, 3) }
 end
 
 -- What is not there yet, said quietly where a row's name would stand (§1: faint; never centred, never
@@ -185,10 +202,10 @@ local function panes(w, h) -- → "cols"/"rows", the ratio
 	return "cols", { 0, 1, 0 }
 end
 
--- The parent column never narrower than the home folder's names need ("Downloads": 17
--- columns with its margins, its icon, the icon's second half and the free column before the rail), e.g. in the file dialog
--- or a window of 60–80 columns; the list gives up the difference while it keeps 24.
-local PARENT_MIN, CURRENT_MIN = 17, 24
+-- The parent column never narrower than a folder's name of a dozen letters needs (20 columns with its margins, its
+-- icon, the icon's second half and the free column before the rail), e.g. in the file dialog or a window of 60–120 columns;
+-- the list gives up the difference while it keeps 24.
+local PARENT_MIN, CURRENT_MIN = 20, 24
 local tab_layout = Tab.layout
 function Tab:layout(...)
 	local r, a = rt.mgr.ratio, self._area

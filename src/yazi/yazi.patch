@@ -119,7 +119,7 @@ index cbb76a2..36a78ea 100644
  				THICK => ratatui_widgets::borders::BorderType::Thick,
  				QUADRANT_INSIDE => ratatui_widgets::borders::BorderType::QuadrantInside,
 diff --git a/yazi-config/src/popup/help.rs b/yazi-config/src/popup/help.rs
-index 4cfdc2f..2867d9b 100644
+index 4cfdc2f..91d771f 100644
 --- a/yazi-config/src/popup/help.rs
 +++ b/yazi-config/src/popup/help.rs
 @@ -4,6 +4,6 @@ pub struct Help;
@@ -127,7 +127,7 @@ index 4cfdc2f..2867d9b 100644
  impl Help {
  	pub fn position() -> Position {
 -		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 80, height: 25 })
-+		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 86, height: 31 })
++		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 96, height: 31 })
  	}
  }
 diff --git a/yazi-config/src/popup/options.rs b/yazi-config/src/popup/options.rs
@@ -231,10 +231,45 @@ index ed32d5d..9d65ed9 100644
  	fn max_height(&self, len: usize) -> u16 {
  		self.open_offset.height.min(Self::BORDER.saturating_add(len as u16))
 diff --git a/yazi-core/src/help/help.rs b/yazi-core/src/help/help.rs
-index 93193eb..db57bf2 100644
+index 93193eb..bc7a7c7 100644
 --- a/yazi-core/src/help/help.rs
 +++ b/yazi-core/src/help/help.rs
-@@ -76,7 +76,8 @@ impl Help {
+@@ -1,3 +1,5 @@
++use std::collections::HashMap;
++
+ use anyhow::Result;
+ use ratatui_widgets::block::Padding;
+ use yazi_binding::position::Position;
+@@ -22,6 +24,9 @@ pub struct Help {
+ 	pub offset: usize,
+ 	pub cursor: usize,
+ 	pub height: u16,
++
++	// fedokawaii: a second key for the same deed, beside the first on its row: what it does → its keys
++	pub also: HashMap<String, Vec<ChordArc>>,
+ }
+ 
+ impl Help {
+@@ -45,6 +50,18 @@ impl Help {
+ 			self.bindings = Self::filter_chords(&KEYMAP.chords(self.layer), kw);
+ 		}
+ 
++		// One row a deed: the keys that do the same thing stand on the first one's row
++		self.also.clear();
++		let mut seen = HashMap::new();
++		self.bindings.retain(|c| {
++			let desc = c.desc_or_run().into_owned();
++			if seen.insert(desc.clone(), ()).is_none() {
++				return true;
++			}
++			self.also.entry(desc).or_default().push(c.clone());
++			false
++		});
++
+ 		render!(self.scroll(0));
+ 	}
+ 
+@@ -76,7 +93,8 @@ impl Help {
  }
  
  impl Help {
@@ -244,7 +279,7 @@ index 93193eb..db57bf2 100644
  
  	// --- Bindings
  	pub fn window(&self) -> &[ChordArc] {
-@@ -98,8 +99,8 @@ impl Scrollable for Help {
+@@ -98,8 +116,8 @@ impl Scrollable for Help {
  	fn total(&self) -> usize { self.bindings.len() }
  
  	fn limit(&self) -> usize {
@@ -723,7 +758,7 @@ index 0000000..7d562b3
 +	Line::from(spans)
 +}
 diff --git a/yazi-fm/src/help/bindings.rs b/yazi-fm/src/help/bindings.rs
-index a234040..888eabc 100644
+index a234040..95871fe 100644
 --- a/yazi-fm/src/help/bindings.rs
 +++ b/yazi-fm/src/help/bindings.rs
 @@ -1,8 +1,10 @@
@@ -738,7 +773,7 @@ index a234040..888eabc 100644
  pub(super) struct Bindings<'a> {
  	core: &'a Core,
  }
-@@ -18,26 +20,43 @@ impl Widget for Bindings<'_> {
+@@ -18,26 +20,52 @@ impl Widget for Bindings<'_> {
  			return;
  		}
  
@@ -749,8 +784,16 @@ index a234040..888eabc 100644
 +		let col1: Vec<_> = bindings
 +			.iter()
 +			.map(|c| {
-+				let keys: String =
-+					c.on.iter().map(|k| frame::keycap(&frame::key_word(&k.to_string()))).collect();
++				let tiles = |c: &yazi_config::keymap::ChordArc| -> String {
++					c.on.iter().map(|k| frame::keycap(&frame::key_word(&k.to_string()))).collect()
++				};
++				let mut keys = tiles(c);
++				if let Some(more) = self.core.help.also.get(c.desc_or_run().as_ref()) {
++					for m in more {
++						keys.push(' ');
++						keys.push_str(&tiles(m));
++					}
++				}
 +				ListItem::new(Line::from(Span::raw(keys))).style(THEME.help.chord.get())
 +			})
 +			.collect();
@@ -764,9 +807,10 @@ index a234040..888eabc 100644
  
 -		let chunks =
 -			layout::Layout::horizontal([Constraint::Length(20), Constraint::Fill(1)]).split(area);
-+		let chunks = layout::Layout::horizontal([Constraint::Length(24), Constraint::Fill(1)]).split(Rect {
++		// (as far in from the cursor's right end as from its left: a column of the content each side)
++		let chunks = layout::Layout::horizontal([Constraint::Length(32), Constraint::Fill(1)]).split(Rect {
 +			x: area.x + 1,
-+			width: area.width.saturating_sub(1),
++			width: area.width.saturating_sub(2),
 +			..area
 +		});
  
@@ -793,7 +837,7 @@ index a234040..888eabc 100644
  	}
  }
 diff --git a/yazi-fm/src/help/help.rs b/yazi-fm/src/help/help.rs
-index 221481a..526e685 100644
+index 221481a..433986d 100644
 --- a/yazi-fm/src/help/help.rs
 +++ b/yazi-fm/src/help/help.rs
 @@ -1,10 +1,9 @@
@@ -809,7 +853,7 @@ index 221481a..526e685 100644
  
  pub(crate) struct Help<'a> {
  	core: &'a Core,
-@@ -18,33 +17,36 @@ impl Widget for Help<'_> {
+@@ -18,33 +17,38 @@ impl Widget for Help<'_> {
  	fn render(self, _: Rect, buf: &mut Buffer) {
  		let help = &self.core.help;
  		let area = self.core.mgr.area(help.position);
@@ -865,7 +909,9 @@ index 221481a..526e685 100644
 +			Line::styled("a key or a word", frame::FAINT).render(Rect { x: field.x + 1, ..field }, buf);
 +		}
 +		help.input.render(field, buf);
-+		Line::styled(n.to_string(), frame::MUTED).right_aligned().render(line, buf);
++		Line::styled(n.to_string(), frame::MUTED)
++			.right_aligned()
++			.render(Rect { width: line.width.saturating_sub(1), ..line }, buf);
 +
 +		// Bindings: under a row of paper
 +		Bindings::new(self.core).render(

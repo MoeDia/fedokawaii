@@ -3105,12 +3105,12 @@ def main(argv):
                 room -= hw + 4 + tw + 2 * CELL
         parts = re.findall(r"[-+]?[0-9][0-9.,]*(?:[eE][-+]?[0-9]+)?|0x[0-9A-Fa-f]+|[^0-9]+", ans) if ans else ["0"]
         figure = [bool(re.match(r"[-+]?[0-9]", p)) for p in parts]
-        wide = sum(2 * px_of(p) if f else px_of(p) for p, f in zip(parts, figure))
+        wide = sum(2 * px_of(p) if f else px_of(p) for p, f in zip(parts, figure, strict=True))
         base = y + 30                             # (the capitals' last row is the row's 29: an em of 28 stands on it)
         if wide > room:
             text(cr, x, y + (h - LINE) // 2, ans, "strong", width=room)
             return
-        for p, f in zip(parts, figure):
+        for p, f in zip(parts, figure, strict=True):
             if f:
                 lay = big_layout(cr, p)
                 col(cr, "strong" if ans else "faint")

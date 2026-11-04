@@ -401,9 +401,9 @@ content, inside its margin of one cell:
   then the folder `muted`), the rule to its end, where what is marked or waiting to be pasted stands
   as a `muted` fact ("3 marked", "2 to move") — and a blank row; then the panes, each its own column
   of rows on this grid, one free column after each rail (`edge2`). In the list two columns at the
-  row's end: how big, how old, numbers tabular and right-aligned in `muted`, their units `faint`
+  row's end: how big, how old (min, h, d, w, mo, y), numbers tabular and right-aligned in `muted`, their units `faint`
   (a folder: how many it holds, once read; a list under 52 columns gives up the age, under 36 the
-  size). The cursor's row as above, with a 2 px edge in `accent` at its first column; a place in
+  size); a name too long for its room is cut at a word's end. The cursor's row as above, with a 2 px edge in `accent` at its first column; a place in
   another folder — the one you are in, in the parent column, and where you would land, in the
   preview's — a band of `edge`, its words `strong`. At rest a row keeps its kind's colour (folders
   `ansi4`, bold; what starts with a dot `muted`). A mark is half a cell of its ink on the rail's

@@ -543,11 +543,12 @@ called '^kawa-drives open /dev/sdd1$' "opening passes the drive's device, never 
 # every row of the frame ends in its border at the same column (wide characters counted right)
 python3 - "$out" <<'EOF' && _ok || _no "the frame's right border is not straight"
 import sys, unicodedata
-rows = [r for r in sys.argv[1].split("\n") if r.count("│") >= 3 and any(w in r for w in ("1.9T", "64G", "8G", "e  eject"))]
+BAR = "│\U000FF006\U000FF007"                          # (a rail, or the frame's sides: the patched yazi's ring of cells)
+rows = [r for r in sys.argv[1].split("\n") if sum(r.count(b) for b in BAR) >= 3 and any(w in r for w in ("1.9T", "64G", "8G", "e  eject"))]
 def last_bar(r):
     w, at = 0, None
     for ch in r:
-        if ch == "│": at = w
+        if ch in BAR: at = w
         w += 2 if unicodedata.east_asian_width(ch) in "WF" else 1
     return at
 sys.exit(0 if len(rows) == 4 and len({last_bar(r) for r in rows}) == 1 else 1)
@@ -690,7 +691,7 @@ out = " ".join(rails)
 if st: out += (" " if out else "") + "stitch %d-%d" % (len(st[0]) - len(st[0].lstrip()), len(st[0].rstrip()) - 1)
 print(out or "none")'; }
 setup
-for e in "156x40:20 77" "95x40:17 58" "77x40:17 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
+for e in "156x40:20 77" "95x40:20 58" "77x40:20 47" "58x40:stitch 1-56" "37x40:stitch 1-35" "58x24:28" "58x14:28" "34x14:none" "20x8:none"; do
   s=${e%%:*} want=${e#*:}
   case_ "yazi at ${s}: $(case $want in *stitch*) echo "the list above the preview, the stitch between them (one free column each end)" ;; none) echo "the list alone" ;;
     *\ *) echo "parent, list and preview" ;; *) echo "the list and the preview side by side" ;; esac)"

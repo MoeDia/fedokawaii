@@ -25,6 +25,7 @@ function M:peek(job)
 		return quiet(job, not done and "loading" or err and ("cannot be read: " .. tostring(err)) or "empty")
 	end
 
+	Entity._room = job.area.w - 5 - 1
 	local left, right = {}, {}
 	for _, f in ipairs(folder.window) do
 		local entity = Entity:new(f)
