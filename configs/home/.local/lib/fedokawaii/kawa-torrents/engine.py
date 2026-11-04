@@ -570,6 +570,7 @@ class Engine:
         h = self.handles.pop(i, None)
         if h is None:
             return
+        self.woken.pop(i, None)
         st = self.streams.pop(i, None)
         if st is not None:
             st.gone = True
@@ -1112,6 +1113,7 @@ class Engine:
 
     def tick(self):
         now = time.monotonic()
+        self.drain()                               # (the alert pipe's word can be missed by a hair: never left for long)
         if now - self.last_update >= TICK:
             self.update_now()
         self.check_streams()
@@ -1192,7 +1194,6 @@ class Engine:
         for st in self.streams.values():
             st.finish()
         self.ses.pause()
-        self.saving = 0
         for h in self.handles.values():
             if h.is_valid() and h.need_save_resume_data():
                 self.save_resume(h)

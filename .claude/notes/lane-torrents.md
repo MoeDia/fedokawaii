@@ -61,6 +61,10 @@ The last 16 seconds of speed in the music's columns at the tabs' right end. Down
 - T54b/T62 (the wipe): `~/.local/state/fedokawaii/torrents` is his list; it is small and worth carrying.
 - Renders for his page: `.claude/review/next/torrents-*` (tools/review-gather.sh picks them up).
 
+## A Learn piece, ready for the book's update ("Torrents")
+Super+Space, torrents. Paste a magnet link anywhere in the window, or click one in the browser, and it comes in. Its row says how far it is; Enter shows its pieces and its files, where Space keeps or skips a file. `y` copies its magnet, `v` plays it now, while it comes: mpv opens as soon as its first pieces are here, and it can jump anywhere, what it needs is fetched first. Tab goes to find: what you type goes to the sites through Prowlarr, each on its own, so what the quick ones find shows at once. Enter takes a result, `v` takes it and plays it.
+Close the window: what downloads goes on (the bar's arrow shows it), and when nothing is left the engine ends by itself, everything saved. A download left unfinished goes on at the next login. Finished ones tell you once. If a site fails for long, Prowlarr rests it and tries again later: nothing for you to do.
+
 ## Ledger lines to copy (r27-33)
 - r27-33 (T29 + inbox 17:04, 4 Nov 17:20–, lane-torrents): torrra replaced by kawa-torrents (evidence and numbers: .claude/notes/lane-torrents.md). VERIFIED: tests/engine/test_torrents.sh on a real local swarm and a pseudo-terminal; tools/regress/torrents.sh (3 sizes, both moods, to the pixel); real Prowlarr (a private copy), real network, real mpv. LIVE with the next repair + apply.
 - r27-33-prowlarr: health `[]`: Allowed Hosts set, public DNS for the container, Tokyo Toshokan out, what fails rested (sources in the lane note).

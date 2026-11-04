@@ -339,7 +339,8 @@ content, inside its margin of one cell:
   every dissolve (§11), a seventh more with each; the cursor's row strips the inks, the shapes still
   say it. Nothing yet: no meter at all.
 - **Torrents** (`kawa-torrents`, its two tabs): the list in parts (downloading, paused, finished: a
-  heading each, how many and how much at the end of its rule), newest first; each row its state's icon (§5: it moves while bytes come; the
+  heading each, how many and how much at the end of its rule; at the tabs' right end what comes and goes,
+  the last 16 seconds of it in the music's columns, §8), newest first; each row its state's icon (§5: it moves while bytes come; the
   antenna television while it plays; the hourglass while it is looked for, asked of a site or
   checked; ✘ with what stopped it, in words), its name as words (a torrent's dots read as spaces, never "…"), then
   right-aligned, two columns apart: the meter, the percent, the speed, the time left, the size —
