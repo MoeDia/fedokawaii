@@ -1,0 +1,10 @@
+#!/bin/bash
+# groupadd of the fake Fedora: the group in the fake /etc/group
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor groupadd 0); ((r == 0)) || exit "$r"
+name=${*: -1}
+grep -q "^$name:" /etc/group && { echo "groupadd: group '$name' already exists" >&2; exit 9; }
+id=3300; while cut -d: -f3 /etc/group | grep -qx "$id"; do id=$((id + 1)); done
+echo "$name:x:$id:" >>/etc/group
+exit 0

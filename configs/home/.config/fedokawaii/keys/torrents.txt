@@ -1,0 +1,39 @@
+# kawa-torrents: the desktop's own (bin/kawa-torrents); libtorrent 2.0.11 (Fedora's rb_libtorrent-python3), Prowlarr finds
+# command: kawa-torrents --check
+# source: configs/home/.local/lib/fedokawaii/kawa-torrents/app.py (key_list, key_files, key_find, key_adding)
+── torrents: anywhere ─────────────────────────────────────────────
+Tab                     downloads or find (Left / Right too; a click)
+Ctrl+Q                  close the window: what downloads goes on
+Paste                   a magnet link, a link or a .torrent: added at once
+Ctrl+V                  the same, from the clipboard
+── torrents: downloads ────────────────────────────────────────────
+j / k                   move down / up (arrow keys too)
+Ctrl+D / Ctrl+U         a page down / up
+g / G                   top / bottom of the list
+Enter or l              its details and files
+a                       add: a magnet, a link, a path, a hash
+y                       copy its magnet link
+v                       play it now, while it comes
+o                       its folder in yazi
+p                       pause or go on (P: all of them)
+r                       ask its trackers again, or try a failed one again
+c                       check its files again
+d / D                   remove it / remove it and delete its files
+t                       slow: the speed held down, or free again
+/                       only those that contain a word
+q                       close the window
+── torrents: adding ───────────────────────────────────────────────
+Enter                   add what is on the line
+Ctrl+O                  pick a .torrent in yazi
+x                       an offer from the clipboard or Downloads: not now
+── torrents: its files ────────────────────────────────────────────
+Space                   keep it or skip it
+a / n / i               keep all / none / the other way round
+Enter                   play it now, while it comes
+Esc                     back to the list
+── torrents: find ─────────────────────────────────────────────────
+Enter                   search; on a result, download it
+v                       download it and play it at once
+/                       back to the line
+y                       copy its magnet link
+s                       sort: seeds, size, newest, name

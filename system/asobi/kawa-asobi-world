@@ -1,0 +1,71 @@
+#!/usr/bin/env bash
+# /usr/local/bin/kawa-asobi-world — the play world in front (kawa-asobi-world.service, in the world's own
+# user manager): gamescope on the card itself, the screen's 1080p at 144 Hz with FreeSync, and in it one
+# of the world's two faces, its Flatpak in its sandbox (nothing started from here can gain a privilege):
+# Steam's gamepad UI, or Bottles for other Windows programs (KAWA_ASOBI_FACE: gamescope follows only
+# what Steam itself starts, so Bottles has a compositor of its own, one face at a time). GameMode held
+# while it runs. The face exits: gamescope exits: the session ends: the desktop is back.
+#
+#   kawa-asobi-world            the compositor, on the screen's own card
+#   kawa-asobi-world --inside   what gamescope runs: the session's bus told of its display, the face
+#   kawa-asobi-world --stop     Steam closed as its own menu closes it (saves to its cloud), waited for
+# Keys: /etc/xkb/rules/kawa-asobi gives Super+G the switch back to the desktop's VT, inside gamescope:
+# no program reads the keyboard for it.
+set -u
+STEAM=com.valvesoftware.Steam BOTTLES=com.usebottles.bottles FACE=${KAWA_ASOBI_FACE:-steam}
+screen() {   # the connected screen's card and connector, from sysfs (numbers can move between boots)
+  local c
+  for c in /sys/class/drm/card[0-9]*-*/status; do
+    [[ $(cat "$c" 2>/dev/null) == connected ]] || continue
+    c=${c%/status}; c=${c##*/}
+    printf '%s %s\n' "${c%%-*}" "${c#*-}"
+    return 0
+  done
+  return 1
+}
+case ${1:-} in
+  --stop)
+    [[ $FACE == steam ]] || exit 0
+    # (Valve's own tool, down the running Steam's pipe. A "flatpak run --command=steam -shutdown" is a sandbox of its own:
+    # in another PID namespace steam.sh's is_steam_running finds nothing, the request never arrives, and the unit's SIGKILL
+    # ends Steam unclean, its cloud not told: "didn't shutdown cleanly" at each next start, seen 4 Nov 2026)
+    data=$HOME/.var/app/$STEAM
+    HOME=$data timeout 10 "$data/.local/share/Steam/ubuntu12_32/steam-runtime/amd64/usr/bin/steam-runtime-steam-remote" -shutdown >/dev/null 2>&1 \
+      || echo "kawa-asobi-world: Steam could not be asked to close: it ends unclean" >&2
+    for ((i = 0; i < 140; i++)); do pgrep -u "$(id -u)" -x steam >/dev/null || exit 0; sleep 0.25; done
+    exit 0 ;;
+  --inside)
+    # (portals and the D-Bus services draw on gamescope's own display)
+    dbus-update-activation-environment --systemd DISPLAY WAYLAND_DISPLAY XDG_CURRENT_DESKTOP GAMESCOPE_WAYLAND_DISPLAY 2>/dev/null
+    gamemoded -r >/dev/null 2>&1 &
+    # (Steam's: Steam names its own apps and takes the focus from it; Bottles, in a gamescope with no Steam, could not)
+    [[ $FACE == steam ]] && { /usr/local/bin/kawa-asobi-splash >/dev/null 2>&1 & }
+    # (GTK on gamescope's X server: its Wayland socket has no windows to offer)
+    [[ $FACE == bottles ]] && exec setpriv --no-new-privs flatpak run --nosocket=wayland --env=GDK_BACKEND=x11 "$BOTTLES"
+    # (FreeSync: Steam writes this switch from its own display setting, off by default outside a Deck,
+    # over gamescope's --adaptive-sync; held on, its setting never matters)
+    [[ $FACE == steam ]] && { xprop -root -f GAMESCOPE_VRR_ENABLED 32c -set GAMESCOPE_VRR_ENABLED 1
+      xprop -root -spy GAMESCOPE_VRR_ENABLED | while read -r l; do
+        [[ $l == *"= 0" ]] && xprop -root -f GAMESCOPE_VRR_ENABLED 32c -set GAMESCOPE_VRR_ENABLED 1
+      done & }
+    # (a proof's headless run is no seat: no /dev/uinput, so no warning about it from Steam's wrapper)
+    [[ ${KAWA_ASOBI_BACKEND:-drm} == headless ]] && exec setpriv --no-new-privs flatpak run --nodevice=all --device=dri "$STEAM" -gamepadui
+    exec setpriv --no-new-privs flatpak run "$STEAM" -gamepadui ;;
+  "") ;;
+  *) echo "usage: kawa-asobi-world [--inside | --stop]" >&2; exit 2 ;;
+esac
+read -r card connector < <(screen) || { echo "kawa-asobi-world: no screen connected" >&2; exit 1; }
+dev=$(sed 's/^0x//' "/sys/class/drm/$card/device/vendor"):$(sed 's/^0x//' "/sys/class/drm/$card/device/device")
+hz=144
+# shellcheck source=/dev/null
+[[ -r /etc/fedokawaii/asobi.conf ]] && . /etc/fedokawaii/asobi.conf
+export XKB_DEFAULT_RULES=kawa-asobi XKB_DEFAULT_LAYOUT=us XKB_DEFAULT_OPTIONS=kawa:return
+# (Steam's face: Steam in charge of what is shown and how. Bottles': windows of any size, at a whole multiple and
+# crisp, never a blurred enlargement)
+face=(-e); [[ $FACE == steam ]] || face=(-S integer -F nearest)
+# (a proof's headless run has no card to take: tools/asobi-proof.sh)
+if [[ ${KAWA_ASOBI_BACKEND:-drm} == headless ]]; then
+  exec gamescope --backend headless -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" "${face[@]}" -- "$0" --inside
+fi
+exec gamescope --backend drm -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" --adaptive-sync \
+  --prefer-output "$connector" --prefer-vk-device "$dev" "${face[@]}" -- "$0" --inside

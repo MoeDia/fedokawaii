@@ -6,10 +6,12 @@
 #                            — Esc leaves everything as it was
 # kawa-wallpaper --restore   show the current theme's choice again (login, theme switch)
 # kawa-wallpaper --set C     show choice C and remember it (what the picker runs)
-# kawa-wallpaper --next      the pack's next picture, when "change every 4 h" is on (the
-#                            picker's key r, its state on the picker's last line: kawa-state
-#                            wallpaper-rotate on|off; its timer: kawa-wallpaper-next.timer)
-# kawa-wallpaper --rotate on|off|toggle   that key's switch
+# kawa-wallpaper --next      the next picture, when it is time: the picker's settings (below its
+#                            list) say how often, from which set and in what order — kawa-state
+#                            wallpaper-rotate off|1h|4h|daily, wallpaper-from masters|scenes|both,
+#                            wallpaper-order turn|shuffle; its timer looks every hour
+# kawa-wallpaper --rotate off|1h|4h|daily|cycle  --from masters|scenes|both|cycle
+# kawa-wallpaper --order turn|shuffle|cycle      those settings (the picker's keys r, s, o)
 # kawa-wallpaper --pack      fetch the wallpaper pack, then draw it for the screen (theme.sh)
 # kawa-wallpaper --cache     draw whatever of the pack is not drawn yet, for every screen
 # kawa-wallpaper --cache-status   is everything drawn? (exit 1: not all of it)
@@ -53,9 +55,9 @@ case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"
 WIN_COLS=80 W=76            # the picker's window (kawa-term --float 80x37) and its rows' width: below
 # Super+W: the picker window at once, before anything else is read (a second press while it
 # is open closes it, as fast: kawa-term --float --once). 80 × 37: the clipboard window's width, an
-# odd height (centred to the pixel, the tallest that fits under the bar): the list, then an
-# 18-row area for the picture — as far below its rule as above the window's foot. What was
-# picked is put up once the window has closed (menu, below)
+# odd height (centred to the pixel, the tallest that fits under the bar): the list, its settings,
+# then a 17-row area for the picture — as far below the settings as above the window's hairline.
+# What was picked is put up once the window has closed (menu, below)
 if [[ ${1:-menu} == menu ]]; then
   export XDG_RUNTIME_DIR=${XDG_RUNTIME_DIR:-/run/user/$UID}
   [[ -d $XDG_RUNTIME_DIR && -w $XDG_RUNTIME_DIR ]] \
@@ -122,15 +124,23 @@ screen_sizes() {   # every screen size to draw for, the first screen's first: th
 }
 
 # ── the list and the pictures' keys ───────────────────────────────────────────────────
-declare -A L_CROP=() L_SUM=() L_PAIR=()
+declare -A L_CROP=() L_SUM=() L_PAIR=() L_SEC=()
 L_NAMES=()
-read_list() {   # read_list THEME — that theme's part of the list (L_NAMES, L_CROP, L_SUM, L_PAIR)
-  local mode name pair crop sum _
-  L_CROP=() L_SUM=() L_PAIR=() L_NAMES=()
+read_list() {   # read_list THEME — that theme's part of the list (L_NAMES, L_CROP, L_SUM, L_PAIR) and the
+  # section each is under (L_SEC: the list's comment over it, "# ── dark: …" starting a theme's part)
+  local mode name pair crop sum rest here="" sec=""
+  L_CROP=() L_SUM=() L_PAIR=() L_NAMES=() L_SEC=()
   [[ -r $LIST ]] || return 0
-  while read -r mode name pair crop sum _; do
+  while read -r mode name pair crop sum rest; do
+    if [[ $mode == "#" ]]; then
+      if [[ $name == ── ]]; then here=${pair%:}; sec=""
+      elif [[ $here == "$1" ]]; then
+        sec="$name $pair $crop $sum $rest"; sec=${sec%% — *}; sec=${sec%%:*}; sec=${sec%"${sec##*[! ]}"}; sec=${sec#the }
+      fi
+      continue
+    fi
     [[ $mode == "$1" ]] || continue
-    L_NAMES+=("$name"); L_CROP[$name]=$crop L_SUM[$name]=$sum L_PAIR[$name]=$pair
+    L_NAMES+=("$name"); L_CROP[$name]=$crop L_SUM[$name]=$sum L_PAIR[$name]=$pair L_SEC[$name]=$sec
   done <"$LIST"
 }
 read_list "$THEME"
@@ -386,6 +396,9 @@ make_preview() {   # make_preview SCREEN CELL COLSxROWS → KEY's sixel there (f
   # background shows — kawa-sixel), and clear of its last line (a picture touching it would
   # scroll the window: fzf #2544)
   local s=$1 cell=$2 area=$3 w h aw ah bw bh n m pw ph lp tp screen out
+  # (centred between what is above the pane and the window's hairline: the pane's own height, fzf's margin
+  # of a row and foot's 8 px under it. The pane's first line is an empty one, written at once — over a pane that has
+  # said nothing for half a second fzf writes "Loading .." in a block of its own —, the picture starts under it)
   w=${s%x*} h=${s#*x}
   aw=$(( ${area%x*} * ${cell%x*} )) ah=$(( ${area#*x} * ${cell#*x} ))   # the area
   bw=$aw bh=$((ah - ${cell#*x}))                                         # what the picture may fill
@@ -393,13 +406,13 @@ make_preview() {   # make_preview SCREEN CELL COLSxROWS → KEY's sixel there (f
   n=$(( (w + bw - 1) / bw )) m=$(( (h + bh - 1) / bh )); ((m > n)) && n=$m; ((n < 1)) && n=1
   pw=$((w / n)) ph=$((h / n))
   ((pw > 0 && ph > 0)) || return 1
-  lp=$(( (aw - pw) / 2 )) tp=$(( (ah - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph))
+  lp=$(( (aw - pw) / 2 )) tp=$(( (ah + ${cell#*x} + 8 - ph) / 2 )); ((tp > bh - ph)) && tp=$((bh - ph)); ((tp < ${cell#*x})) && tp=${cell#*x}
   out=$(preview_path "$s" "$cell" "$area" "$C_GROUND")
   [[ -s $out && ! $SRC -nt $out ]] && { printf '%s' "$out"; return 0; }
   screen=$(cover "$s") || return 1
   mkdir -p "${out%/*}"
   { magick "$screen" -filter Lanczos -resize "${pw}x${ph}!" \
-      -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp + ph))" ppm:- 2>/dev/null \
+      -background "#$C_GROUND" -gravity southeast -extent "$((lp + pw))x$((tp - ${cell#*x} + ph))" ppm:- 2>/dev/null \
       | kawa-sixel "$C_GROUND" && printf '\n'; } >"$out.$BASHPID.tmp" && mv -f "$out.$BASHPID.tmp" "$out" \
     || { rm -f "$out.$BASHPID.tmp"; return 1; }
   printf '%s' "$out"
@@ -531,12 +544,13 @@ cache_status() {   # the report's and verify's look: complete and current?
 
 # ── the picker ────────────────────────────────────────────────────────────────────────
 # A text screen (docs/design-system.md §7, in screen.sh's words, as every other one): the
-# heading — its picture, wallpaper, the rule — then the list, each row its glyph and name, the
-# theme's own picture marked "default" and a picture with a day/night pair ◐, right-aligned
-# in muted; the cursor the accent fill; on its last line its own key, r, and the switch's
-# state (no input line: nothing to type, the letter is the key's). The window is fixed
-# (kawa-term --float 80x37), so the rows' width is known: its columns less two each side
-# (fzf's margin and the cursor fill's: W, at the top)
+# heading — its picture, wallpaper, the rule — then the list by its sections (the theme's own
+# picture's first, the old masters next), each section's label a row the cursor passes by, each
+# picture its glyph and name, the theme's own marked "default" and one with a day/night pair ◐,
+# right-aligned in muted; under the list the settings, as options: every value in sight, the one
+# in force chosen, its key at the row's end (no input line: nothing to type, the letters are the
+# keys'). The window is fixed (kawa-term --float 80x37), so the rows' width is known: its columns
+# less two each side (fzf's margin and the cursor fill's: W, at the top)
 declare -A OWN_SUM=()
 current() {   # the choice shown now, as the list names it: the default's own picture is "default"
   local c
@@ -545,21 +559,49 @@ current() {   # the choice shown now, as the list names it: the default's own pi
   printf '%s\n' "$c"
 }
 
-rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the preview's cache
-  # name, or empty when not known yet); the one shown now says "current"
-  local name dflt p st sum t f cur
-  dflt=$(resolve default) cur=$(current)
-  if source_of "$dflt"; then
-    p=default; [[ $cur == default ]] && p="current · default"
-    printf 'default\t%s\t%s\n' "$KEY" "$(screen_row "$ICON_TORII" "${dflt#pack:}" "$p" "$W")"
-  fi
-  for name in "${L_NAMES[@]}"; do
-    [[ pack:$name == "$dflt" ]] && continue                 # (listed first, as the default)
-    source_of "pack:$name" || continue
-    p=""; [[ ${L_PAIR[$name]} != - ]] && p=$ICON_THEME
-    [[ pack:$name == "$cur" ]] && p="current${p:+  $p}"
-    printf 'pack:%s\t%s\t%s\n' "$name" "$KEY" "$(screen_row "$ICON_PICTURE" "$name" "$p" "$W")"
+LABEL=§                                                     # (a section's label in the list: its CHOICE)
+section() {   # section WORDS COUNT — a section's label, as its own row: the words muted at the icons' column, the
+  # rule on to the values' column, how many it holds; the cursor passes it by
+  local n s
+  n=$(( W - 2 - $(screen_cols "$1") - 2 - ${#2} )); ((n < 2)) && n=2
+  printf -v s '%*s' "$n" ''
+  printf '%s\t\t %s%s%s %s%s%s %s%s%s' "$LABEL" "$INK_MUTED" "$1" "$INK_OFF" "$INK_STITCH" "${s// /$STITCH}" "$INK_OFF" "$INK_MUTED" "$2" "$INK_OFF"
+}
+sections() {   # the sections' names in the picker's order, a line each: the theme's own picture's, the old masters, the rest
+  local name d=${DEFAULT_THEME_NAME:-} masters="old masters"; local -A seen=()
+  [[ -n ${L_SEC[$d]:-} ]] && { seen[${L_SEC[$d]}]=1; printf '%s\n' "${L_SEC[$d]}"; }
+  [[ -z ${seen[$masters]:-} ]] && for name in "${L_NAMES[@]}"; do
+    [[ ${L_SEC[$name]} == "$masters" ]] && { seen[$masters]=1; printf '%s\n' "$masters"; break; }
   done
+  for name in "${L_NAMES[@]}"; do
+    [[ -n ${seen[${L_SEC[$name]:-.}]:-} ]] && continue
+    seen[${L_SEC[$name]:-.}]=1; printf '%s\n' "${L_SEC[$name]}"
+  done
+}
+rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the preview's cache
+  # name, or empty when not known yet); the one shown now says "current"; each section under its label
+  local name dflt p st sum t f cur sec n
+  dflt=$(resolve default) cur=$(current)
+  DEFAULT_THEME_NAME=${dflt#pack:}
+  # (a list of no sections, one fetched before they were written: one list, no label)
+  while IFS= read -r sec; do
+    [[ -n $sec ]] && {
+      n=0; for name in "${L_NAMES[@]}"; do [[ ${L_SEC[$name]} == "$sec" ]] && source_of "pack:$name" && n=$((n + 1)); done
+      ((n)) && { section "$sec" "$n"; printf '\n'; }
+    }
+    for name in "${L_NAMES[@]}"; do
+      [[ ${L_SEC[$name]} == "$sec" ]] || continue
+      source_of "pack:$name" || continue
+      if [[ pack:$name == "$dflt" ]]; then
+        p=default; [[ $cur == default ]] && p="current · default"
+        printf 'default\t%s\t%s\n' "$KEY" "$(screen_row "$ICON_TORII" "$name" "$p" "$W")"
+        continue
+      fi
+      p=""; [[ ${L_PAIR[$name]} != - ]] && p=$ICON_THEME
+      [[ pack:$name == "$cur" ]] && p="current${p:+  $p}"
+      printf 'pack:%s\t%s\t%s\n' "$name" "$KEY" "$(screen_row "$ICON_PICTURE" "$name" "$p" "$W")"
+    done
+  done < <(sections)
   # your own (a name with a tab or a line break in it cannot be listed): their keys from what
   # was read of them before — one not read yet is read when it is first shown
   if [[ -r $SUMS ]]; then
@@ -576,32 +618,86 @@ rows() {   # every choice for this theme: "CHOICE<TAB>KEY<TAB>ROW" (KEY: the pre
     done
 }
 
-keys() {   # the picker's last line (a blank one over it): the switch "change every 4 h" as a row: its box
-  # (lit while on), its words, its key at the right
-  local box=$ICON_BOX_OFF ink=$INK_MUTED
-  [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] && box=$ICON_BOX_ON ink=$INK_ACCENT_TEXT
-  printf '\n%s' "$(screen_row "$ink$box" 'change every 4 h' "${INK_MUTED}r$INK_OFF" "$W")"
+# ── the settings: how often it changes by itself, from which pictures, in what order ──
+rotation() {   # off · 1h · 4h · daily (an earlier version's "on" was every 4 hours)
+  local r; r=$(kawa-state get wallpaper-rotate 2>/dev/null)
+  case $r in 1h|4h|daily) printf '%s' "$r" ;; on) printf 4h ;; *) printf off ;; esac
+}
+order() { local r; r=$(kawa-state get wallpaper-order 2>/dev/null); [[ $r == shuffle ]] && printf shuffle || printf turn; }
+from() { local r; r=$(kawa-state get wallpaper-from 2>/dev/null); [[ $r == @(masters|scenes) ]] && printf '%s' "$r" || printf both; }
+# option ICON LABEL KEY CHOSEN VALUE=WORDS… — a setting as a row of options: its icon at column 1, its label at column 4,
+# every value in sight from a column of their own, the chosen one's dot in accent_text and its words strong, the others'
+# hollow, their words muted; its key a tile at the row's end, as far in as a value's
+option() {
+  local icon=$1 label=$2 key=$3 chosen=$4 p v w row used=0 pad n=0 cols=(15 12 9 7)
+  local on=$'\xf3\xbf\x80\x8c' off=$'\xf3\xbf\x80\x8d'     # (the cells U+FF00C and U+FF00D: a dot, 6 px round, and its ring)
+  shift 4
+  printf -v row ' %s%s%s  %-18s' "$INK_MUTED" "$icon" "$INK_OFF" "$label"
+  for p; do
+    v=${p%%=*} w=${p#*=}
+    if [[ $v == "$chosen" ]]; then row+="$INK_ACCENT_TEXT$on$INK_OFF $INK_STRONG$w$INK_OFF"
+    else row+="$INK_FAINT$off$INK_OFF $INK_MUTED$w$INK_OFF"; fi
+    # (each value in its column: the dots stand one over the other, row to row)
+    printf -v w '%*s' $((cols[n] - 2 - ${#w})) ''; row+=$w; used=$((used + cols[n])); n=$((n + 1))
+  done
+  pad=$(( W - 1 - 4 - 18 - used - 3 )); ((pad < 0)) && pad=0     # (its tile ends on the values' column, as the counts do)
+  printf '%s%*s%s\n' "$row" "$pad" '' "$(screen_tile "$key" "$INK_MUTED")"
+}
+keys() {   # the settings' block, under the list (a blank row over it)
+  printf '\n'
+  option "$ICON_HOURGLASS" "change by itself" r "$(rotation)" off=off 1h='1 h' 4h='4 h' daily=daily
+  option "$ICON_ORDER" order o "$(order)" turn='in turn' shuffle=shuffle
+  option "$ICON_PICTURE" from s "$(from)" masters='old masters' scenes=scenes both=both
+}
+cycle() {   # cycle KEY NOW VALUE… — the next value after NOW, kept
+  local key=$1 now=$2 v next=""; shift 2
+  next=$1
+  while (($#)); do v=$1; shift; [[ $v == "$now" && $# -gt 0 ]] && { next=$1; break; }; done
+  kawa-state set "$key" "$next"
 }
 
 case ${1:-menu} in
   --rotate)
     case ${2:-} in
-      on|off) v=$2 ;;
-      toggle) v=on; [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] && v=off ;;
-      *) echo "usage: kawa-wallpaper --rotate on|off|toggle" >&2; exit 2 ;;
-    esac
-    kawa-state set wallpaper-rotate "$v" ;;
-  --keys)      # the picker's last line again (after its switch was turned)
+      off|1h|4h|daily) kawa-state set wallpaper-rotate "$2" ;;
+      cycle) cycle wallpaper-rotate "$(rotation)" off 1h 4h daily ;;
+      *) echo "usage: kawa-wallpaper --rotate off|1h|4h|daily|cycle" >&2; exit 2 ;;
+    esac ;;
+  --order)
+    case ${2:-} in
+      turn|shuffle) kawa-state set wallpaper-order "$2" ;;
+      cycle) cycle wallpaper-order "$(order)" turn shuffle ;;
+      *) echo "usage: kawa-wallpaper --order turn|shuffle|cycle" >&2; exit 2 ;;
+    esac ;;
+  --from)
+    case ${2:-} in
+      masters|scenes|both) kawa-state set wallpaper-from "$2" ;;
+      cycle) cycle wallpaper-from "$(from)" masters scenes both ;;
+      *) echo "usage: kawa-wallpaper --from masters|scenes|both|cycle" >&2; exit 2 ;;
+    esac ;;
+  --keys)      # the settings' block again (after one was changed)
     keys ;;
-  --next)      # the timer's: the pack's next picture for this theme (after the one shown), when on
-    [[ $(kawa-state get wallpaper-rotate 2>/dev/null) == on ]] || exit 0
+  --next)      # the timer's, every hour: when the time set has passed since the last change, the next picture
+    # of the set chosen, for this theme: after the one shown, or any other but it
+    case $(rotation) in 1h) every=3600 ;; 4h) every=14400 ;; daily) every=86400 ;; *) exit 0 ;; esac
+    last=$(kawa-state get wallpaper-changed 2>/dev/null) || last=0
+    [[ $last =~ ^[0-9]+$ ]] || last=0
+    ((EPOCHSECONDS - last >= every - 120)) || exit 0          # (the timer's own minute of slack, and a little)
     cur=$(cat "$STATE_DIR/wallpaper-$THEME" 2>/dev/null)
     [[ $cur == default || -z $cur ]] && cur=$(resolve default)
-    have=()
-    for name in "${L_NAMES[@]}"; do source_of "pack:$name" && have+=("$name"); done
+    have=() set=$(from)
+    for name in "${L_NAMES[@]}"; do
+      [[ $set == masters && ${L_SEC[$name]} != "old masters" ]] && continue
+      [[ $set == scenes && ${L_SEC[$name]} == "old masters" ]] && continue
+      source_of "pack:$name" && have+=("$name")
+    done
     ((${#have[@]})) || exit 0
     next=${have[0]}
-    for i in "${!have[@]}"; do [[ pack:${have[i]} == "$cur" ]] && next=${have[(i + 1) % ${#have[@]}]}; done
+    if [[ $(order) == shuffle ]] && ((${#have[@]} > 1)); then
+      next=$cur; while [[ pack:$next == "$cur" || $next == "$cur" ]]; do next=${have[RANDOM % ${#have[@]}]}; done
+    else
+      for i in "${!have[@]}"; do [[ pack:${have[i]} == "$cur" ]] && next=${have[(i + 1) % ${#have[@]}]}; done
+    fi
     exec "$0" --set "pack:$next" ;;
   --restore)
     # a choice not there now (deleted, or on a drive not plugged in yet) shows the default,
@@ -621,6 +717,7 @@ case ${1:-menu} in
     [[ -n ${WAYLAND_DISPLAY:-} ]] && kawa-wash go 8>&-
     ((r == 0)) || { echo "kawa-wallpaper: cannot show '$c' (not there, or not a picture file)" >&2; exit 1; }
     printf '%s\n' "$c" >"$STATE_DIR/wallpaper-$THEME"
+    kawa-state set wallpaper-changed "$EPOCHSECONDS" 2>/dev/null   # (changing by itself counts from here, a pick of yours too)
     if [[ $c == pack:* && -n ${L_PAIR[${c#pack:}]:-} && ${L_PAIR[${c#pack:}]} != - ]]; then   # the same place, other theme
       other=dark; [[ $THEME == dark ]] && other=light
       printf 'pack:%s\n' "${L_PAIR[${c#pack:}]}" >"$STATE_DIR/wallpaper-$other"
@@ -657,8 +754,8 @@ case ${1:-menu} in
     dir=$PREVIEWS/$screen-$KAWA_CELL-$C_GROUND
     order=$(mktemp "$XDG_RUNTIME_DIR/kawa-wallpaper-warm.XXXXXX") || exit 1
     for ((d = 0; d < ${#list[@]}; d++)); do
-      i=$((pos - 1 + d)); ((i < ${#list[@]})) && printf '%s\0' "${list[i]%%$'\t'*}"
-      i=$((pos - 1 - d)); ((d > 0 && i >= 0)) && printf '%s\0' "${list[i]%%$'\t'*}"
+      i=$((pos - 1 + d)); ((i < ${#list[@]})) && [[ ${list[i]%%$'\t'*} != "$LABEL" ]] && printf '%s\0' "${list[i]%%$'\t'*}"
+      i=$((pos - 1 - d)); ((d > 0 && i >= 0)) && [[ ${list[i]%%$'\t'*} != "$LABEL" ]] && printf '%s\0' "${list[i]%%$'\t'*}"
     done >"$order"
     setsid "$0" --warm "$order" </dev/null >/dev/null 2>&1 &   # its own group: closing stops all of it
     warm=$!
@@ -668,19 +765,24 @@ case ${1:-menu} in
     sel=$(for r in "${list[@]}"; do printf '%s\n' "$r"; done | fzf --ansi --no-sort --no-input --height=100% --no-clear \
       --delimiter=$'\t' --with-nth=3.. --header="$(screen_heading "$ICON_PICTURE" wallpaper "$W")"$'\n ' \
       --with-shell='bash -c' \
-      --preview="printf -v r '%*s' \$((FZF_PREVIEW_COLUMNS - 2)) ''; printf ' %s%s%s\n' '$INK_STITCH' \"\${r// /$STITCH}\" '$INK_OFF'; f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\$((FZF_PREVIEW_LINES - 1)).six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
-      --preview-window='down,19,border-none,noinfo,~1' \
+      --preview="printf '\n'; f=$pdir/{2}.\${FZF_PREVIEW_COLUMNS}x\${FZF_PREVIEW_LINES}.six; [ -s \"\$f\" ] && exec cat \"\$f\"; exec $self --preview {1}" \
+      --preview-window='down,17,border-none,noinfo' \
       --footer="$(keys)" \
-      --bind="r:execute-silent($self --rotate toggle)+transform-footer($self --keys)" \
-      --bind="click-footer:transform:[ \"\$FZF_CLICK_FOOTER_LINE\" = 2 ] && echo 'execute-silent($self --rotate toggle)+transform-footer($self --keys)'" \
+      --bind="r:execute-silent($self --rotate cycle)+transform-footer($self --keys)" \
+      --bind="o:execute-silent($self --order cycle)+transform-footer($self --keys)" \
+      --bind="s:execute-silent($self --from cycle)+transform-footer($self --keys)" \
+      --bind="click-footer:transform:case \"\$FZF_CLICK_FOOTER_LINE\" in 2) w='--rotate';; 3) w='--order';; 4) w='--from';; *) exit 0;; esac; echo \"execute-silent($self \$w cycle)+transform-footer($self --keys)\"" \
+      --bind="down:down+transform:[[ {1} == $LABEL ]] && echo down" \
+      --bind="up:up+transform:[[ {1} == $LABEL ]] && echo up" \
+      --bind="focus:transform:[[ {1} == $LABEL ]] && echo down" \
+      --bind="home:first,end:last" \
       --bind="load:pos($pos)+unbind(load)") || exit 0
     # (load, not start: start comes before the list has arrived, and pos past what has arrived
-    # yet lands short; once only)
-    printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
+    # yet lands short; once only. A section's label is passed by: a move onto it goes on, whatever made it)
+    [[ ${sel%%$'\t'*} == "$LABEL" ]] || printf '%s\n' "${sel%%$'\t'*}" >"$out" ;;
   --preview)   # fzf's preview, when its sixel is not drawn yet: drawn now, and the pane's size noted
-    # (the pane's first line is the picker's rule — the content's first column to its last, as
-    # the heading's: fzf's own border ran a column past each end — so the picture has one less)
-    c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x$(( ${FZF_PREVIEW_LINES:-0} - 1 ))
+    c=${2:-} cell=${KAWA_CELL:-} area=${FZF_PREVIEW_COLUMNS:-}x${FZF_PREVIEW_LINES:-0}
+    [[ $c == "$LABEL" ]] && exit 0                     # (a section's label, on its way past)
     read -r _ screen < <(outputs)
     # (quiet: fzf shows a preview's stderr in the pane — a picture it cannot read, cut short
     # or not a picture at all, gets the plain "no preview" line instead of ImageMagick's words)

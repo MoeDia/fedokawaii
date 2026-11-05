@@ -4,8 +4,8 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
 
     kawa-downloads           the menu (a click on the mark): downloads (its arrow) — a row each, its
                              source's glyph, its name, how much of how much, the percent; a
-                             click opens where it lands (Steam: its downloads page) · the
-                             foot: torrents (the search), while that window is not open
+                             click opens where it lands · the
+                             last row: torrents (the search, its key t), while that window is not open
     kawa-downloads list      one line a download, tab-separated: SOURCE NAME DONE TOTAL WHERE
                              (bytes; TOTAL 0: not known yet)
     kawa-downloads bar       the bar's mark (waybar JSON): the percent of them all (bytes
@@ -21,46 +21,54 @@ mark (hidden while nothing comes in), its menu, and one notice as each download 
                              ("active") while its menu is open (kawa-drop.open)
     kawa-downloads watch     the session's watcher (autostart): woken by the kernel (inotify)
                              as a download starts or ends, it pokes the mark (SIGRTMIN+21) and
-                             says each finished one; while any runs it looks every 2 s, idle
-                             it sleeps until the next
+                             says each finished one, and what Torrents' engine has left for it
+                             (STATE/said.*: the engine has no way to the screen of its own); while
+                             any runs it looks every 2 s, idle it sleeps until the next
     kawa-downloads notice SOURCE NAME BYTES WHERE    a finished download's notice (the one
                              layout: its name, then "SOURCE · SIZE · click to open it");
                              a click opens WHERE
     kawa-downloads open SOURCE WHERE                 that: its folder in yazi, the file
-                             under the cursor (Steam: its downloads page)
+                             under the cursor
+    kawa-downloads failed NAME WHAT                  a download that cannot go on (a full disk): a
+                             critical notice with its name and what went wrong
 
 The sources, each read where it already keeps its state (nothing asked of a running program):
-  torrent  Torrents (torrra), while its window is open: kawa-torrra writes what it downloads
-           to $XDG_RUNTIME_DIR/kawa-downloads/torrra.PID every 2 s, and gives each finished
-           one its notice itself (a torrent's file staying put says nothing)
+  torrent  Torrents' engine (kawa-torrents), with or without its window: it writes what it downloads
+           to $XDG_RUNTIME_DIR/kawa-downloads/torrent.PID every 2 s, and each finished one once to
+           STATE/said.PID.N for the watcher to say (a torrent's file staying put says nothing)
   jobs     any other long job (an archive packed, a PDF tool) the same way: NAME.PID in that
            folder, one line a file — NAME DONE TOTAL WHERE — while it runs
-  Brave    a .crdownload file in Brave's download folder: its size is what has come; how
-           much will come, from Brave's own list (History, read without its lock)
-  Steam    a game in steamapps/downloading of each of Steam's libraries: how far, from its
-           appmanifest (BytesDownloaded of BytesToDownload)
+  browser  a .crdownload file in Helium's download folder, or where it was told to save: its size
+           is what has come; how much will come, from the browser itself — its downloads API, by
+           way of the desktop's small extension (~/.local/share/fedokawaii/browser), which runs
+           this script as its native messaging host (its History holds no row while one runs)
+  yt-dlp, curl, wget, aria2c  in a terminal: the kernel wakes the watcher as one starts
+           (inotify on the program's file); what comes is the file it writes, once 1 MB is
+           there; how much will come is theirs alone to know: the mark, no percent
 Exit: 0 · 1 it could not be done · 2 wrong use.
 """
 import ctypes
+import fcntl
 import json
 import os
 import re
 import select
 import signal
-import sqlite3
 import subprocess
 import sys
 import time
 
 HOME = os.path.expanduser("~")
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
-STATE = os.path.join(RUN, "kawa-downloads")                  # torrra.PID: kawa-torrra's
-BRAVE = os.path.join(HOME, ".config/BraveSoftware/Brave-Origin/Default")
-STEAM = os.path.join(HOME, ".local/share/Steam")
+STATE = os.path.join(RUN, "kawa-downloads")                  # torrent.PID: kawa-torrents' engine's
+BROWSER = os.path.join(HOME, ".config/net.imput.helium/Default")
+TOTALS = os.path.join(STATE, "browser.totals")               # the browser's word: TOTAL<TAB>FILE a line
+TOOLS = ("yt-dlp", "curl", "wget", "wget2", "aria2c")        # what fetches in a terminal
+TOOL_MIN = 1000000                                           # a tool's file counts from here (a page, an API's answer: no)
 SIGNAL = 21                                                  # the bar's mark: SIGRTMIN+21
 BUSY = 2.0                                                   # seconds between looks while one runs
 WIDTH = 30                                                   # a name's columns in the menu
-GLYPH = {"torrent": "download", "Brave": "link", "Steam": "gamepad", "file": "archive"}
+GLYPH = {"torrent": "@magnet", "browser": "@globe", "file": "@box"}   # (panel-art.txt)
 
 
 def icons():
@@ -86,7 +94,7 @@ def size(n):
 
 # ── the sources ─────────────────────────────────────────────────────────────────────────────
 def torrents():
-    """Every job's list in STATE, SOURCE.PID (kawa-torrra's torrra.PID: its torrents; any other
+    """Every job's list in STATE, SOURCE.PID (the engine's torrent.PID: its torrents; any other
     long job — an archive packed, a PDF tool — the same four columns under its own name);
     one whose process is gone is taken away."""
     out = []
@@ -94,12 +102,12 @@ def torrents():
         names = os.listdir(STATE)
     except OSError:
         return out
-    for n in names:
+    for n in sorted(names):
         m = re.fullmatch(r"([a-z][a-z0-9-]*)\.(\d+)", n)
         if not m:
             continue
         p = os.path.join(STATE, n)
-        src = "torrent" if m.group(1) == "torrra" else m.group(1)
+        src = m.group(1)
         if not os.path.exists(f"/proc/{m.group(2)}"):
             try:
                 os.remove(p)
@@ -117,82 +125,111 @@ def torrents():
     return out
 
 
-def brave_folder():
-    """Brave's download folder: the one set in its settings, else Brave's own, ~/Downloads."""
+def browser_folder():
+    """The browser's download folder: the one set in its settings, else its own, ~/Downloads."""
     try:
-        with open(os.path.join(BRAVE, "Preferences"), encoding="utf-8") as f:
+        with open(os.path.join(BROWSER, "Preferences"), encoding="utf-8") as f:
             d = json.load(f).get("download", {}).get("default_directory")
     except (OSError, ValueError, AttributeError):
         d = None
     return d or os.path.join(HOME, "Downloads")
 
 
-def brave(folder):
+def totals():
+    """What the browser said of each download: {its file: how big it will be}."""
+    out = {}
     try:
-        parts = [n for n in os.listdir(folder) if n.endswith(".crdownload")]
+        with open(TOTALS, encoding="utf-8") as f:
+            for line in f:
+                t, _, p = line.rstrip("\n").partition("\t")
+                if p and t.lstrip("-").isdigit():
+                    out[p] = int(t)
     except OSError:
-        return []
-    if not parts:
-        return []
-    known = {}
-    try:   # (immutable: read as it is on disk, past the lock Brave holds while it runs)
-        db = sqlite3.connect(f"file:{os.path.join(BRAVE, 'History')}?immutable=1", uri=True)
-        for cur, target, total in db.execute(
-                "SELECT current_path, target_path, total_bytes FROM downloads WHERE state = 0"):
-            known[cur] = (target, total)
-        db.close()
-    except sqlite3.Error:
         pass
+    return out
+
+
+def browser(folder):
+    known = totals()
+    try:
+        parts = {os.path.join(folder, n) for n in os.listdir(folder) if n.endswith(".crdownload")}
+    except OSError:
+        parts = set()
+    parts |= {p + ".crdownload" for p in known if os.path.exists(p + ".crdownload")}   # (saved elsewhere)
     out = []
-    for n in parts:
-        p = os.path.join(folder, n)
+    for p in sorted(parts):
         try:
             done = os.stat(p).st_size
         except OSError:
             continue
-        target, total = known.get(p, ("", 0))
-        target = target or p[:-len(".crdownload")]
-        out.append(("Brave", os.path.basename(target), done, max(total or 0, 0), target))
+        target = p[:-len(".crdownload")]
+        out.append(("browser", os.path.basename(target), done, max(known.get(target, 0), 0), target))
     return out
 
 
-def steam_libraries():
-    try:
-        with open(os.path.join(STEAM, "steamapps/libraryfolders.vdf"), encoding="utf-8") as f:
-            return [os.path.join(p, "steamapps") for p in re.findall(r'"path"\s+"([^"]*)"', f.read())]
-    except OSError:
-        return []
+def host():
+    """The browser's word, by Chromium's native messaging (a length, then JSON; it starts this
+    for each word): the download's file and how big it will be, into TOTALS, those that ended out."""
+    raw = sys.stdin.buffer.read(4)
+    if len(raw) < 4:
+        return 1
+    msg = json.loads(sys.stdin.buffer.read(int.from_bytes(raw, "little")))
+    os.makedirs(STATE, mode=0o700, exist_ok=True)
+    with open(TOTALS + ".lock", "w", encoding="utf-8") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        known = totals()
+        known[msg["file"]] = int(msg["total"])
+        with open(TOTALS + ".new", "w", encoding="utf-8") as f:
+            for p, t in known.items():
+                if p == msg["file"] or os.path.exists(p + ".crdownload"):
+                    f.write(f"{t}\t{p}\n")
+        os.replace(TOTALS + ".new", TOTALS)
+    sys.stdout.buffer.write((2).to_bytes(4, "little") + b"{}")
+    sys.stdout.buffer.flush()
+    return 0
 
 
-def acf(path):
-    try:
-        with open(path, encoding="utf-8", errors="replace") as f:
-            text = f.read()
-    except OSError:
-        return {}
+def tool_pids():
+    """Each download tool at work: {pid: its name}."""
     out = {}
-    for k, v in re.findall(r'"(\w+)"\s+"([^"]*)"', text):
-        out.setdefault(k, v)
+    for pid in os.listdir("/proc"):
+        if pid.isdigit():
+            try:
+                with open(f"/proc/{pid}/comm", encoding="utf-8") as f:
+                    name = f.read().strip()
+            except OSError:
+                continue
+            if name in TOOLS:
+                out[pid] = name
     return out
 
 
-def steam(libs):
+def tools():
+    """What those are writing: a file of yours, open for writing, past TOOL_MIN."""
     out = []
-    for lib in libs:
+    for pid, name in tool_pids().items():
         try:
-            ids = [i for i in os.listdir(os.path.join(lib, "downloading")) if i.isdigit()]
+            fds = os.listdir(f"/proc/{pid}/fd")
         except OSError:
             continue
-        for i in ids:
-            a = acf(os.path.join(lib, f"appmanifest_{i}.acf"))
-            done, total = int(a.get("BytesDownloaded", "0") or 0), int(a.get("BytesToDownload", "0") or 0)
-            if total and done < total:
-                out.append(("Steam", a.get("name", i), done, total, i))
+        for fd in fds:
+            try:
+                path = os.readlink(f"/proc/{pid}/fd/{fd}")
+                with open(f"/proc/{pid}/fdinfo/{fd}", encoding="utf-8") as f:
+                    flags = int(re.search(r"^flags:\s*(\d+)", f.read(), re.M).group(1), 8)
+                if not flags & 3 or not path.startswith(HOME + "/") or path.startswith(os.path.join(HOME, ".cache", "")):
+                    continue
+                done = os.stat(path).st_size
+            except (OSError, AttributeError, ValueError):
+                continue
+            if done >= TOOL_MIN:
+                target = path[:-5] if path.endswith(".part") else path
+                out.append((name, os.path.basename(target), done, 0, target))
     return out
 
 
-def scan(folder, libs):
-    return torrents() + brave(folder) + steam(libs)
+def scan(folder):
+    return torrents() + browser(folder) + tools()
 
 
 # ── what they show ─────────────────────────────────────────────────────────────────────────
@@ -203,33 +240,42 @@ def percent(items):
     return int(100 * sum(d for d, _ in known) / sum(t for _, t in known))
 
 
-def ink(name):
-    """A colour of the theme now (colors.sh, written anew by every theme switch), read as it is
-    needed — the mark looks every 2 s while anything comes in, so a switch shows at once; None:
+def inks():
+    """The colours of the theme now (colors.sh, written anew by every theme switch), read as they are
+    needed — the mark looks every 2 s while anything comes in, so a switch shows at once; empty:
     no theme at hand."""
+    out = {}
     try:
         with open(os.path.join(HOME, ".config/fedokawaii/current/colors.sh"), encoding="utf-8") as f:
             for line in f:
-                if line.startswith(name + "="):
-                    return line.split("=", 1)[1].split()[0].strip('"')
+                if line.startswith("C_") and "=" in line:
+                    k, v = line.split("=", 1)
+                    out[k] = v.split()[0].strip('"') if v.split() else ""
     except OSError:
         pass
-    return None
+    return out
 
 
 def bar_json(items, ic, frame=0, lit=False):
     """The mark: its frame (0: at rest), the percent after it, "active" while its menu is open.
     The percent is drawn in the mark too: its tray fills from the left (dl_fill_N, 5 % a step:
-    a column's bottom pixel, then its top), laid before the mark with no advance of its own —
-    in the level display's teal, in strong while the tile is lit (its icon is teal then)."""
+    a column's bottom pixel, then its top), laid before the mark with no advance of its own — in
+    a meter's inks (design-system: asagi; the 17th–18th step flame, the 19th–20th accent, so its
+    last columns redden), each laid over the one before; in strong while the tile is lit (its
+    icon is teal then)."""
     if not items:
         return '{"text":""}'
     p = percent(items)
     n = min(20, p // 5) if p else 0
-    fill, col = ic.get(f"dl_fill_{n}"), ink("C_STRONG" if lit else "C_TEAL")
-    under = f"<span color='#{col}'>{fill}</span>" if n and fill and col else ""
+    c, under = inks() if n else {}, ""
+    # (the last steps first: asagi lies over the flame, the flame over the accent)
+    for name, last in [("C_STRONG", n)] if lit else [("C_ACCENT", n)] * (n > 18) + [("C_FLAME", min(n, 18))] * (n > 16) + [("C_TEAL", min(n, 16))]:
+        if n and c.get(name) and ic.get(f"dl_fill_{last}"):
+            under += f"<span color='#{c[name]}'>{ic[f'dl_fill_{last}']}</span>"
     # (icons.sh's bar_dl_N, no space, before a value: exactly 8 px from its ink to the value's)
-    text = ic[f"dl_{frame}"] if p is None else f'{under}{ic[f"bar_dl_{frame}"]}{p}<span fgalpha=\'55%\'>%</span>'
+    # (under 10 % an unseen digit before it: the tile keeps its width as the percent grows)
+    pad = "<span fgalpha='1'>0</span>" if p is not None and p < 10 else ""
+    text = ic[f"dl_{frame}"] if p is None else f'{under}{ic[f"bar_dl_{frame}"]}{pad}{p}<span fgalpha=\'55%\'>%</span>'
     cls = ["downloading", "bare"] if p is None else ["downloading"]
     if lit:
         cls.append("active")
@@ -266,13 +312,13 @@ def follow():
         os._exit(0)
     for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
         signal.signal(sig, bye)
-    ic, folder, libs = icons(), brave_folder(), steam_libraries()
+    ic, folder = icons(), browser_folder()
     items, looked, frame, shown, woke, beat = [], 0.0, 0, None, True, time.monotonic()
     try:
         while True:
             now = time.monotonic()
             if woke or now - looked >= BUSY:
-                items, looked, woke = scan(folder, libs), now, False
+                items, looked, woke = scan(folder), now, False
             line = bar_json(items, ic, frame if items else 0, lit())
             if line != shown:
                 print(line, flush=True)
@@ -329,11 +375,11 @@ def short(name, torrent=False):
     return cut[:at] if at >= WIDTH // 2 else cut
 
 
-def torrra_open():
-    """Torrents' window is open (it holds kawa-torrra's lock)."""
+def torrents_open():
+    """Torrents' window is open (it holds a lock on this file while it is)."""
     import fcntl
     try:
-        with open(os.path.join(RUN, "kawa-torrra.lock"), "a") as f:
+        with open(os.path.join(RUN, "kawa-torrents.window"), "a") as f:
             fcntl.flock(f, fcntl.LOCK_EX | fcntl.LOCK_NB)
             return False
     except BlockingIOError:
@@ -348,27 +394,23 @@ def detached(cmd):
 
 
 def open_it(source, where):
-    if source == "Steam":
-        detached(["xdg-open", "steam://open/downloads"])
-        return
     # the file itself under yazi's cursor once it is there, else the folder it comes into
     detached(["kawa-term", "yazi", where if os.path.exists(where) else os.path.dirname(where)])
 
 
 def menu():
-    ic = icons()
-    items = scan(brave_folder(), steam_libraries())
-    rows, acts = [f"part\t{ic['download']}\tdownloads"], [None]
+    items = scan(browser_folder())
+    rows, acts = ["part\t@arrow-down\tdownloads"], [None]
     for src, name, done, total, where in items:
         detail = f"{size(done)} of {size(total)}" if total else size(done)
         value = f"{int(100 * done / total)}%" if total else ""
-        rows.append("\t".join(("row", ic[GLYPH.get(src, "download")], short(name, src == "torrent"), detail, value)))
+        rows.append("\t".join(("row", GLYPH.get(src, "@arrow-down"), short(name, src == "torrent"), detail, value)))
         acts.append(("open", src, where))
     if not items:
-        rows.append(f"off\t{ic['download']}\tnothing downloading")
+        rows.append("off\t@arrow-down\tnothing downloading")
         acts.append(None)
-    if not torrra_open():
-        rows.append(f"key\t{ic['download']}\ttorrents")
+    if not torrents_open():
+        rows.append("row\t@magnet\ttorrents\t\t\tt")
         acts.append(("torrents",))
     sel = ["--select", "1"] if items else []
     r = subprocess.run(["kawa-menu", "--drop", "--index", *sel], input="\n".join(rows) + "\n",
@@ -380,7 +422,13 @@ def menu():
     if act and act[0] == "open":
         open_it(act[1], act[2])
     elif act and act[0] == "torrents":
-        detached(["kawa-term", "kawa-torrra", "--open"])
+        detached(["kawa-torrents", "--open"])
+    return 0
+
+
+def failed_notice(name, what):
+    ic = icons()
+    subprocess.run(["notify-send", "-a", "downloads", "-u", "critical", "--", f"{ic['download']}  {name}", what], capture_output=True, check=False)
     return 0
 
 
@@ -396,7 +444,7 @@ def notice(source, name, nbytes, where):
 
 
 # ── the watcher ─────────────────────────────────────────────────────────────────────────────
-IN_CLOSE_WRITE, IN_MOVED_FROM, IN_MOVED_TO = 0x8, 0x40, 0x80
+IN_OPEN, IN_CLOSE_WRITE, IN_MOVED_FROM, IN_MOVED_TO = 0x20, 0x8, 0x40, 0x80
 IN_CREATE, IN_DELETE, IN_ONLYDIR = 0x100, 0x200, 0x1000000
 CHANGES = IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ONLYDIR
 
@@ -404,14 +452,31 @@ CHANGES = IN_CREATE | IN_DELETE | IN_MOVED_FROM | IN_MOVED_TO | IN_ONLYDIR
 def finished(item):
     """Did the download that just left the list finish (not cancelled)?"""
     src, _, _, _, where = item
-    if src == "Brave":
+    if src == "browser":
         return os.path.exists(where) and not os.path.exists(where + ".crdownload")
-    if src == "Steam":
-        for lib in steam_libraries():
-            a = acf(os.path.join(lib, f"appmanifest_{where}.acf"))
-            if a:
-                return int(a.get("BytesDownloaded", "0") or 0) >= int(a.get("BytesToDownload", "0") or 0) > 0
-    return False                                             # (torrents: kawa-torrra says it)
+    if src in TOOLS:
+        return os.path.exists(where)
+    return False                                             # (torrents: the engine says it)
+
+
+def hear_engine():
+    """What Torrents' engine left for the desktop: each said, each taken away."""
+    try:
+        names = [n for n in os.listdir(STATE) if re.fullmatch(r"said\.\d+\.\d+", n)]
+    except OSError:
+        return
+    for n in sorted(names):
+        p = os.path.join(STATE, n)
+        try:
+            with open(p, encoding="utf-8") as f:
+                t = f.read().rstrip("\n").split("\t")
+            os.remove(p)
+        except OSError:
+            continue
+        if t[0] == "finished" and len(t) == 4:
+            detached([sys.argv[0], "notice", "torrent", t[1], t[2], t[3]])
+        elif t[0] == "failed" and len(t) == 3:
+            detached([sys.argv[0], "failed", t[1], t[2]])
 
 
 def watch():
@@ -421,36 +486,37 @@ def watch():
         print("kawa-downloads: no inotify", file=sys.stderr)
         return 1
     os.makedirs(STATE, mode=0o700, exist_ok=True)
-    folder, libs = brave_folder(), steam_libraries()
+    folder = browser_folder()
     watched = set()
 
     def add(path, mask=CHANGES):
         if path not in watched and libc.inotify_add_watch(fd, os.fsencode(path), mask) >= 0:
             watched.add(path)
 
-    def watches():   # (a Steam library's downloading/ comes and goes: watched once it is there)
+    def watches():
         add(STATE, CHANGES | IN_CLOSE_WRITE)
         add(folder)
-        for lib in libs:
-            add(lib, CHANGES | IN_CLOSE_WRITE)
-            add(os.path.join(lib, "downloading"))
+        for name in TOOLS:                                   # (a program starting opens its own file)
+            add(f"/usr/bin/{name}", IN_OPEN)
     ic = icons()
     before, shown = {}, None
     while True:
         watches()
-        items = scan(folder, libs)
+        hear_engine()
+        items = scan(folder)
         now = {(i[0], i[4]): i for i in items}
         for k, i in before.items():
             if k not in now and finished(i):
-                detached([sys.argv[0], "notice", i[0], i[1], str(i[3]), i[4]])
+                detached([sys.argv[0], "notice", i[0], i[1], str(i[3] or i[2]), i[4]])
         before = now
         b = bar_json(items, ic)
         if b != shown:
             shown = b
             subprocess.run(["kawa-dwlstatus", "--poke", str(SIGNAL)], stdout=subprocess.DEVNULL,
                            stderr=subprocess.DEVNULL, check=False)
-        # asleep until the kernel says something changed; while one runs, a look every 2 s
-        ready, _, _ = select.select([fd], [], [], BUSY if items else None)
+        # asleep until the kernel says something changed; while one runs, a look every 2 s — a
+        # tool at work too, whose file has not come to count yet
+        ready, _, _ = select.select([fd], [], [], BUSY if items or tool_pids() else None)
         if ready:
             os.read(fd, 65536)
             time.sleep(0.3)                                  # (a burst of changes: one look)
@@ -461,17 +527,19 @@ def watch():
 
 def main(a):
     cmd = a[0] if a else "menu"
+    if cmd.startswith("chrome-extension://"):                # (the browser's native messaging starts it so)
+        return host()
     if cmd in ("-h", "--help"):
         print(__doc__.strip())
         return 0
     if cmd == "menu" and len(a) <= 1:
         return menu()
     if cmd == "list" and len(a) == 1:
-        for i in scan(brave_folder(), steam_libraries()):
+        for i in scan(browser_folder()):
             print("\t".join(str(x) for x in i))
         return 0
     if cmd == "bar" and len(a) == 1:
-        print(bar_json(scan(brave_folder(), steam_libraries()), icons(), 0, lit()))
+        print(bar_json(scan(browser_folder()), icons(), 0, lit()))
         return 0
     if cmd == "bar" and a[1:] == ["--follow"]:
         return follow()
@@ -482,7 +550,9 @@ def main(a):
     if cmd == "open" and len(a) == 3:
         open_it(a[1], a[2])
         return 0
-    print("usage: kawa-downloads [menu|list|bar [--follow]|watch|notice SOURCE NAME BYTES WHERE|open SOURCE WHERE]"
+    if cmd == "failed" and len(a) == 3:
+        return failed_notice(a[1], a[2])
+    print("usage: kawa-downloads [menu|list|bar [--follow]|watch|notice SOURCE NAME BYTES WHERE|open SOURCE WHERE|failed NAME WHAT]"
           " (kawa-downloads --help)", file=sys.stderr)
     return 2
 

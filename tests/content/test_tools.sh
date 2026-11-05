@@ -8,13 +8,12 @@
 # or a key's widget, not a tool's first window, not :checkhealth lazy.
 # The real programs are the caller's (found on its PATH before the sandbox narrows it):
 #   FEDOKAWAII_BLESH     a ble.sh built at the pinned commit (else ~/.local/share/blesh)
-#   FEDOKAWAII_LAZYVIM   LazyVim's starter (else ~/.config/nvim, when it holds LazyVim)
-#   FEDOKAWAII_NVIM_DATA its plugins (~/.local/share/nvim's layout: lazy/, site/…)
+#   FEDOKAWAII_NVIM_DATA neovim's plugins (~/.local/share/nvim's layout: lazy/, site/…)
 # A part whose program is not at hand is skipped, and says so.
 . "$(dirname "$0")/lib.sh"
 BLESH_DIR=${FEDOKAWAII_BLESH:-$HOME/.local/share/blesh}
 BLESH_PIN=$(sed -n 's/^BLESH_COMMIT=//p' "$REPO/lib/upstream.sh")
-LAZYVIM=${FEDOKAWAII_LAZYVIM:-$HOME/.config/nvim} NVIM_DATA=${FEDOKAWAII_NVIM_DATA:-$HOME/.local/share/nvim}
+NVIM_DATA=${FEDOKAWAII_NVIM_DATA:-$HOME/.local/share/nvim}
 declare -A REAL=()
 for t in eza fd zoxide fzf lazygit nvim yazi git; do REAL[$t]=$(command -v "$t" 2>/dev/null); done
 blesh_ok() { [[ -r $BLESH_DIR/ble.sh ]] && [[ $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+${BLESH_PIN:0:7}" ]]; }
@@ -114,10 +113,9 @@ if [[ -n ${REAL[yazi]} ]]; then
 else skip "no yazi on PATH"; fi
 
 case_ "neovim (LazyVim): :checkhealth lazy has no WARNING or ERROR; a first file opens with no message"
-if [[ -n ${REAL[nvim]} && -f $LAZYVIM/lua/config/lazy.lua && -d $NVIM_DATA/lazy ]]; then
+if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   home; mkdir -p "$HOME/.config/nvim" "$HOME/.local/share"
-  cp -r "$LAZYVIM/." "$HOME/.config/nvim/"; rm -rf "$HOME/.config/nvim/.git"
-  cp -r "$REPO/configs/home/.config/nvim/." "$HOME/.config/nvim/"   # (the desktop's, over the starter: as setup)
+  cp -r "$REPO/configs/home/.config/nvim/." "$HOME/.config/nvim/"   # (the desktop's: as setup)
   ln -s "$NVIM_DATA" "$HOME/.local/share/nvim"
   (cd "$HOME/repos/demo" && timeout 120 nvim --headless '+checkhealth lazy' "+w! $TMP/health" +qa >"$TMP/nvim.out" 2>&1)
   eq "$(grep -E 'WARNING|ERROR' "$TMP/health")" "" "checkhealth lazy"
@@ -126,6 +124,55 @@ if [[ -n ${REAL[nvim]} && -f $LAZYVIM/lua/config/lazy.lua && -d $NVIM_DATA/lazy 
       local f = io.open('$TMP/msgs', 'w'); f:write(vim.api.nvim_exec2('messages', { output = true }).output)
       f:close(); vim.cmd('qa!') end, 3000)" >"$TMP/nvim.out" 2>&1)
   eq "$(cat "$TMP/msgs" "$TMP/nvim.out")" "" "messages at the first file"
-else skip "no nvim, or no LazyVim at $LAZYVIM with plugins at $NVIM_DATA (FEDOKAWAII_LAZYVIM, FEDOKAWAII_NVIM_DATA)"; fi
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless +Tutor "+lua io.open('$TMP/tutor', 'w'):write(vim.bo.filetype)" +qa >"$TMP/nvim.out" 2>&1)
+  eq "$(cat "$TMP/tutor" 2>/dev/null)" tutor "nvim +Tutor: the Learn book's first exercise ($(cut -c1-80 "$TMP/nvim.out"))"
+  case_ "neovim: a Markdown file's highlighter has no conceal_lines (a key costs half), a float that is no file keeps neovim's own; folds by indent"
+  printf '# t\n\n```python\nx = 1\n```\n' >"$HOME/repos/demo/b.md"
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless b.md "+lua vim.defer_fn(function()
+      local h = vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()]
+      local float = vim.api.nvim_create_buf(false, true)
+      vim.bo[float].buftype = 'nofile'
+      vim.api.nvim_buf_set_lines(float, 0, -1, false, { '\`\`\`python', 'x = 1', '\`\`\`' })
+      vim.treesitter.start(float, 'markdown')
+      local f = io.open('$TMP/md', 'w')
+      f:write(tostring(h and h._conceal_line or false), ' ', tostring(vim.treesitter.highlighter.active[float]._conceal_line), ' ', vim.wo.foldmethod)
+      f:close(); vim.cmd('qa!') end, 1500)" >"$TMP/nvim.out" 2>&1)
+  eq "$(cat "$TMP/md" 2>/dev/null)" "false true indent" "file, float, folds ($(cut -c1-120 "$TMP/nvim.out"))"
+  case_ "neovim's status line: the mode's tile, a % in a name kept a %, a deep path its last three parts with no ellipsis, the place; nothing on the first screen"
+  mkdir -p "$HOME/repos/demo/a/b/c/d"; : >"$HOME/repos/demo/a/b/c/d/100%.txt"
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless 'a/b/c/d/100%.txt' "+lua vim.defer_fn(function()
+      local render = require('config.statusline').render
+      local f = io.open('$TMP/line', 'w')
+      f:write(vim.o.statusline, '\n', render(), '\n')
+      vim.bo.filetype = 'snacks_dashboard'
+      f:write(render(), '\n'); f:close(); vim.cmd('qa!') end, 1000)" >"$TMP/nvim.out" 2>&1)
+  line=$(sed -n 2p "$TMP/line" 2>/dev/null)
+  eq "$(sed -n 1p "$TMP/line" 2>/dev/null)" "%!v:lua.require'config.statusline'.render()" "the option ($(cut -c1-120 "$TMP/nvim.out"))"
+  has "$line" "%#KawaStNormal# NORMAL "; has "$line" "c/d/"; lacks "$line" "b/c"; has "$line" "100%%.txt"; has "$line" "Top"; lacks "$line" "…"
+  eq "$(sed -n 3p "$TMP/line" 2>/dev/null)" "%#Normal#" "the first screen: no line"
+  case_ "neovim's status line in a narrow window: whole pieces go, the least needed first; never one cut in its middle (at 80 columns neovim's own cut left \"long.py<op 1:1\", at 60 no place at all)"
+  : >"$HOME/repos/demo/a/b/c/d/a-rather-long-file-name.txt"
+  (cd "$HOME/repos/demo" && timeout 60 nvim --headless 'a/b/c/d/a-rather-long-file-name.txt' "+lua vim.defer_fn(function()
+      vim.b.gitsigns_head = 'a-branch'
+      vim.b.gitsigns_status_dict = { added = 12, changed = 3, removed = 7 }
+      local f = io.open('$TMP/widths', 'w')
+      for _, w in ipairs({ 200, 100, 80, 70, 60, 50, 40, 30, 20, 17 }) do
+        vim.o.columns = w
+        local e = vim.api.nvim_eval_statusline(vim.o.statusline, { maxwidth = w })
+        f:write(w, ' ', e.width, ' ', e.str, '\n')
+      end
+      f:close(); vim.cmd('qa!') end, 1000)" >"$TMP/nvim.out" 2>&1)
+  eq "$(wc -l <"$TMP/widths" 2>/dev/null)" 10 "all ten widths ($(cut -c1-120 "$TMP/nvim.out"))"
+  while read -r w drawn rest; do
+    eq "$drawn" "$w" "$w columns: the line fills them exactly"
+    has "$rest" "NORMAL"; has "$rest" "1:1"; lacks "$rest" "<"; lacks "$rest" ">"; lacks "$rest" "…"
+    for piece in a-rather-long-file-name.txt a-branch; do   # each whole, or not there at all
+      case "$rest" in *"${piece:0:5}"*) has "$rest" "$piece" ;; esac
+    done
+  done <"$TMP/widths"
+  wide=$(sed -n 1p "$TMP/widths"); has "$wide" "a-branch"; has "$wide" "c/d/a-rather-long-file-name.txt"; has "$wide" "12"; has "$wide" "Top"
+  has "$(sed -n 5p "$TMP/widths")" "a-rather-long-file-name.txt"
+  lacks "$(sed -n 9p "$TMP/widths")" "a-rather"
+else skip "no nvim, or no plugins at $NVIM_DATA (FEDOKAWAII_NVIM_DATA)"; fi
 
 done_

@@ -3,7 +3,7 @@
 # the foot server the session keeps running (instant). footclient -N hands the window over
 # and returns at once, so its status says only whether the server took it — never how CMD ended.
 # The "open with" entries for yazi and neovim use it (Files, Editor), so anything that
-# opens a folder or a text file — Brave's "Show in folder", xdg-open, yazi — gets a window;
+# opens a folder or a text file — Helium's "Show in folder", xdg-open, yazi — gets a window;
 # so do the launcher's entries for terminal programs (Git, Disk usage, Tables…).
 #
 #   --app ID TITLE   the window's app-id and its first title (the bar shows it until CMD

@@ -150,7 +150,7 @@ args_eq kawa-dwlstatus 1 --poke 12
 
 case_ "one question per share: the portal hands out restore tokens, transient only (a screen is not asked twice)"
 mapfile -t envs < <(key "$D" Environment)
-eq "${envs[*]}" "XDPW_PERSIST_MODE=transient" "Brave's picker and its share joined by a token; never 'permanent'"
+eq "${envs[*]}" "XDPW_PERSIST_MODE=transient" "Helium's picker and its share joined by a token; never 'permanent'"
 grep -q '^Environment=XDPW_PERSIST_MODE=transient$' "$D" && _ok || _no "not one plain Environment= line"
 # the portal's own word for it (xdpw 0.7+, src/screencast/screencast.c): "transient" or
 # "permanent", anything else is "none" — a typo would quietly bring the second question back
@@ -168,11 +168,11 @@ for f in /opt/f44/bin/foot "$(command -v foot)"; do
   read -r ma mi <<<"$v"; [[ -n $ma ]] && ((ma > 1 || mi >= 24)) && { FOOT=$f; break; }
 done
 look; config .config/foot/foot.ini
-# the glass file, as theme.sh makes it (once: on, 0.92 — foot.ini's last include)
+# the glass file, as theme.sh makes it (once: on, 0.96 — foot.ini's last include)
 mkdir -p "$HOME/.local/state/fedokawaii"
-printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini" "[colors-dark]" "alpha=0.92" "[colors-light]" "alpha=0.92" \
+printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini" "[colors-dark]" "alpha=0.96" "[colors-light]" "alpha=0.96" \
   >"$HOME/.local/state/fedokawaii/foot-glass.ini"
-grep -q '^GLASS=\$STATE/foot-glass.ini$' "$REPO/theme.sh" && grep -q '"\[colors-dark\]" "alpha=0.92" "\[colors-light\]" "alpha=0.92"' "$REPO/theme.sh" \
+grep -q '^GLASS=\$STATE/foot-glass.ini$' "$REPO/theme.sh" && grep -q '"\[colors-dark\]" "alpha=0.96" "\[colors-light\]" "alpha=0.96"' "$REPO/theme.sh" \
   && _ok || _no "theme.sh no longer makes the glass file so"
 if [[ -n $FOOT ]]; then
   for m in dark light; do

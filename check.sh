@@ -185,7 +185,7 @@ reachable() {   # reachable HOST — any HTTP answer at all counts (CURL_RC: cur
 }
 CURL_RC=0
 for h in mirrors.fedoraproject.org download1.rpmfusion.org copr.fedorainfracloud.org \
-         brave-browser-rpm-release.s3.brave.com downloads.claude.ai codeberg.org \
+         download.copr.fedorainfracloud.org aus5.mozilla.org downloads.claude.ai codeberg.org \
          api.github.com github.com release-assets.githubusercontent.com raw.githubusercontent.com \
          lscr.io ghcr.io pypi.org files.pythonhosted.org; do
   if reachable "$h"; then pass "reachable: $h"

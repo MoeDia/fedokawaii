@@ -402,6 +402,15 @@ set_aside() {   # set_aside REL REPO-FILE → 0 when that version of REL was set
 # followed). The content arrives on stdin, read by cat — reopening /dev/stdin as the user
 # would be refused, root's pipe or file not being the user's to open.
 # shellcheck disable=SC2016  # expanded by the inner bash
+# nvim_off_lock — neovim's plugins not at the commit ~/.config/nvim/lazy-lock.json names, one a line
+# (lazy.nvim writes that file one plugin a line, in this form); nvim_at_lock — none of them
+nvim_off_lock() {
+  as_user bash -c 'while IFS=" " read -r name commit; do
+      [[ $(git -C "$HOME/.local/share/nvim/lazy/$name" rev-parse HEAD 2>/dev/null) == "$commit" ]] || printf "%s\n" "$name"
+    done < <(sed -n "s/^ *\"\([^\"]*\)\": *{.*\"commit\": *\"\([0-9a-f]*\)\".*/\1 \2/p" "$HOME/.config/nvim/lazy-lock.json")'
+}
+nvim_at_lock() { [[ -f $TARGET_HOME/.config/nvim/lazy-lock.json && -z $(nvim_off_lock) ]]; }
+
 USER_PUT_SH='t=$(mktemp "${2%/*}/.${2##*/}.XXXXXX") || exit 1
   if cat >"$t" && chmod "$1" "$t" && mv -fT -- "$t" "$2"; then exit 0; fi
   rm -f -- "$t"; exit 1'
@@ -429,9 +438,13 @@ write_file() {                      # write_file PATH [MODE] < content — never
 # the project's own top level: what a clone or download of it holds (tests/static checks it
 # against the repository), so that setup's end can tell the project's files from yours
 # shellcheck disable=SC2034  # (setup.sh reads it)
-PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh
+PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh iso
              lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes
              .claude CLAUDE.md .shellcheckrc ruff.toml)   # (the agents' brief and notes, the linters' rules: the project's own too)
+# what only the round that built fedokawaii needs, the temporary sudo rule's tool among it: never in a toolkit, neither
+# the ISO's nor one a clone of a release makes (the owner, 4 Nov 17:46, 21:34; tools/build-iso.sh, setup.sh install_toolkit)
+# shellcheck disable=SC2034  # (setup.sh reads it)
+ROUND_ONLY=(.claude CLAUDE.md tools/claude-loop.sh tools/start.sh tools/away.sh tools/master-brief.sh tools/review-gather.sh)
 # the boot's own arguments, on every boot entry (setup.sh's s_quiet_boot puts them there,
 # verify.sh checks them): the splash (rhgb), and nothing else on the screen from the power
 # button to the login — the kernel's messages only when they are critical (quiet loglevel=3;
@@ -441,7 +454,7 @@ PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf
 # amdgpu took the screen from it at 4.5 s — a mode change, the splash drawn a second time and
 # again after the switch to the real root: "Starting Fedora" seen three times. Without it
 # plymouth waits for the card's own driver (in the boot image, there by 4.5 s) and draws once.
-# split_lock_detect=off: a split lock (Steam's HTTP threads take one every few seconds) is
+# split_lock_detect=off: a split lock (a game's threads may take one every few seconds) is
 # trapped and the thread put to sleep 10 ms each time — a stutter for a warning nobody reads.
 # shellcheck disable=SC2034  # (setup.sh and verify.sh read it)
 BOOT_ARGS=(rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.global_cursor_default=0
@@ -527,7 +540,6 @@ validate_conf() {                   # prints one line per problem; empty = valid
   # (a number's digits are bounded before it is compared: bash's arithmetic wraps past 2^63, so
   # 18446744073709551760 would compare as 144)
   [[ $GPU =~ ^(auto|amd|intel)$ ]]              || echo "GPU must be auto, amd or intel (is '$GPU')"
-  [[ $STEAM =~ ^(yes|no)$ ]]                    || echo "STEAM must be yes or no (is '$STEAM')"
   [[ $SSH_SERVER =~ ^(yes|no)$ ]]               || echo "SSH_SERVER must be yes or no (is '$SSH_SERVER')"
   [[ $THEME =~ ^(dark|light)$ ]]                || echo "THEME must be dark or light (is '$THEME')"
   [[ $WALLPAPER_PACK =~ ^(yes|no)$ ]]           || echo "WALLPAPER_PACK must be yes or no (is '$WALLPAPER_PACK')"
@@ -562,6 +574,8 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $TFC_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "TFC_COMMIT must be the 40-character commit of $TFC_TAG"
   [[ $MAKO_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "MAKO_TAG must look like v1.11.0 (is '$MAKO_TAG')"
   [[ $MAKO_COMMIT =~ ^[0-9a-f]{40}$ ]]          || echo "MAKO_COMMIT must be the 40-character commit of $MAKO_TAG"
+  [[ $YAZI_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "YAZI_TAG must look like v26.9.1 (is '$YAZI_TAG')"
+  [[ $YAZI_COMMIT =~ ^[0-9a-f]{40}$ ]]          || echo "YAZI_COMMIT must be the 40-character commit of $YAZI_TAG"
   if [[ -z $USERNAME ]]; then :
   elif [[ ! $USERNAME =~ ^[A-Za-z0-9_][A-Za-z0-9_.-]*$ || $USERNAME =~ ^[0-9]+$ ]]; then echo "USERNAME '$USERNAME' is not a user name"
   elif [[ $USERNAME == root ]]; then echo "USERNAME cannot be root — name the desktop's own user, or leave it empty"
@@ -571,12 +585,12 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # fedokawaii.conf is read as data, never run as code: KEY="value" lines (a value in double or
 # single quotes, or a bare word; a # comment after it), only the settings below. Anything
 # else in it is reported as a problem, and the values are checked before anything runs.
-CONF_KEYS=(USERNAME GPU STEAM SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
+CONF_KEYS=(USERNAME GPU SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
-           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT)
+           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT YAZI_TAG YAZI_COMMIT)
 # settings an earlier version had, gone since: read past in a file not yet merged (update's
 # conf_merge takes their lines out) — SPOTIFY (Spotify's app, built here; its web player now)
-CONF_RETIRED=(SPOTIFY)
+CONF_RETIRED=(SPOTIFY STEAM)
 CONF_PROBLEMS=() CONF_SAID=() CONF_SEEN=()
 # one setting line: KEY="value", KEY='value' or KEY=value, then an optional # comment
 # (the value: BASH_REMATCH[3], [4] or [5], whichever matched)

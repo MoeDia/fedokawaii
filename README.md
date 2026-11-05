@@ -2,7 +2,7 @@
 
 *Fedora + kawaii (かわいい, "cute").* A reproducible dwl desktop on Fedora 44/45 from a
 minimal Server install: dark and retro, a little Japanese, drawn pixel by pixel. One tool
-per job, no Flatpak, every package verified, and a verifier that proves it. The helpers are
+per job, no Flatpak outside the play world, every package verified, and a verifier that proves it. The helpers are
 the `kawa-*` commands (川, *kawa*, river).
 
 ```
@@ -11,7 +11,7 @@ check.sh           is this machine ready for setup? read-only (setup runs it fir
 setup.sh           software: repos, drivers, dwl, apps (3 phases, resumes itself after reboots)
 theme.sh           every config, colour, keybinding, the boot menu (re-run any time; --check finds drift)
 verify.sh          proves the machine matches the manifest: nothing missing, nothing extra
-fedokawaii.conf    your settings (GPU, Steam, refresh rate, keyboard, city, theme…); anything
+fedokawaii.conf    your settings (GPU, refresh rate, keyboard, city, theme…); anything
                    else you change in a working copy and apply — see "Changing it" below
 
 lib/               shared shell: common.sh (output, steps, locks) · manifest.sh (every package,
@@ -20,7 +20,7 @@ lib/               shared shell: common.sh (output, steps, locks) · manifest.sh
                    hygiene.sh (nothing doubled or fighting: packages, services, leftovers)
 system/            what setup installs: `fedokawaii` (the system's control and its menu, Super+U),
                    the session launcher (with its rescue screen), greeter, snapshots around dnf,
-                   the performance profile, torrra's key wrapper, and the Prowlarr container
+                   the performance profile, and the Prowlarr container
                    (→ ~/.config/containers/systemd)
 src/               what is compiled or patched here: dwl/ (config.h — keys, colours — and dwl.patch: gaps,
                    full window borders, centred dialogs, Arabic-proof keys, the layout for the bar,
@@ -33,7 +33,7 @@ bin/               the kawa-* helpers (→ ~/.local/bin): menus, bar modules, th
                    the drives (kawa-drives: notices, the bar's mark, eject),
                    screen-share picker, backups (kawa-backup), watching together (kawa-together),
                    fetch, the popup window (kawa-term --float) and its pictures (kawa-sixel),
-                   brave-origin (Brave with screen-share sound)
+                   kawa-browser (Helium: warm, its call out of a shared screen's sound)
 configs/           what theme installs: home/ mirrors $HOME (foot, waybar, mako, gtk, qt, bash,
                    nvim, both themes, the pixel art, the icon font) · system/ mirrors /etc
 art/               source art: icons.txt (every icon, drawn as text) · signs.txt (the faces'
@@ -44,11 +44,12 @@ tools/             generators: build-fonts.py (Sumi UI and Sumi Term → system/
                    palette → every app, and the bar's ornaments) · build-cursors.py (the pointers)
 tests/             the self-tests: every helper, the engine and the installer, edge case by edge
                    case, against stand-ins for the hardware (bash tests/run.sh — see §6)
-docs/              the learning guide Super+U opens: fedokawaii-learn.md and Fedokawaii-Learn.pdf
-                   (every key and program, Python and Rust from zero to AI, then working with AI
-                   and Claude Code as a professional) · the full
-                   handbook, kept here as the reference: fedokawaii-guide.md, Fedokawaii-Guide.pdf ·
-                   build/ (how both PDFs and their real screenshots were made: docs/build/README.md)
+docs/              the Learn book (every key and program, Python and Rust from zero to AI, then
+                   working with AI and Claude Code as a professional): fedokawaii-learn.md, its
+                   PDF, and learn/ — the lessons Super+U opens, the book cut into pieces by
+                   tools/learn-pieces.py · fedokawaii-guide.md, the full handbook, the technical
+                   reference, in this repository alone · build/ (how the PDF and its real
+                   screenshots were made: docs/build/README.md)
 PACKAGES.md        what is installed, from where, and why
 ```
 
@@ -59,7 +60,7 @@ PACKAGES.md        what is installed, from where, and why
   ink text). The screen holds still while everything changes underneath, then the new theme
   arrives as a row of seigaiha wave crests with a dithered fringe — rising like dawn, or
   falling like nightfall. Terminals and everything in them, neovim, the bar, menus,
-  notifications, GTK, Qt, Brave (in its GTK mode), mpv, btop, zathura, the lock screen and the
+  notifications, GTK, Qt, Helium (in its GTK mode), mpv, btop, zathura, the lock screen and the
   wallpaper all follow, live. Every colour used for reading reaches 4.5 : 1; only decoration
   meant to recede sits lower.
 - **Two pixel faces and pixel icons**: *Sumi UI* — 東雲 Shinonome Gothic 16 Bold, Latin, kana
@@ -81,27 +82,27 @@ PACKAGES.md        what is installed, from where, and why
   screen's centre line and the time to the second — and while music plays, its spectrum
   spreads either side of it inside the scroll like wings. On the right a tile each: what is
   playing (a cassette whose reels turn, the title, the artist quieter), a timer, a kanji while
-  do-not-disturb (静) or screen sharing (共有) is on, a drive mark, downloads, Steam's gamepad
-  while it runs, the keyboard layout (US / AR), memory, volume, the monitor's brightness (when
+  do-not-disturb (静) or screen sharing (共有) is on, a drive mark, downloads, the keyboard layout (US / AR), memory, volume, the monitor's brightness (when
   it answers over DDC/CI), the weather — and the cat on the other corner's vermilion tile:
   quick settings.
   No tray.
 - **Level display**: the volume, microphone and brightness keys show a hi-fi level wedge of
   pixel columns at the bottom centre, updating in place while a key is held.
 - **Clipboard**: Super+V opens a small window with the clipboard history — text and pictures
-  (screenshots, Brave's *Copy image*), searchable, with the full text or the picture itself as
+  (screenshots, Helium's *Copy image*), searchable, with the full text or the picture itself as
   a preview, and Enter puts a picture back as a picture; a copy stays on the clipboard after
   the program it came from is closed.
-- **No window buttons**: dwl tiles and Super+Q closes, so no app (GTK or Brave) draws any.
+- **No window buttons**: dwl tiles and Super+Q closes, so no app (GTK or Helium) draws any.
 - **Books and notes**: Super+R lists every book in `~/Books` (PDF, EPUB, comics) with the
   page you stopped on, a reading bar and the cover — Enter reads it in zathura, Ctrl+A adds
   books from Downloads, Ctrl+D removes. Super+N opens `~/Notes/notes.md`, a dated diary of
   quick notes, and puts it away again; it saves as you type.
-- **Drawing**: *Sketch* in the launcher opens Xournal++ on a blank page the shape of the
-  screen, saved as you draw in `~/Pictures/Sketches`. A drawing tablet (an XP-Pen Star G430S
-  here) needs no driver: its pen draws with pressure, its lower button erases and its upper
-  one drags the page while held, and the pad keeps the screen's proportions.
-- **File dialogs**: every Open, Upload and Save as — Brave's too — is yazi in a floating
+- **Drawing**: *Sketch* in the launcher is FireAlpaca, the official Linux build, dressed as the desktop
+  (`src/kawa-firealpaca`: both moods, live) on a new page in `~/Pictures/Sketches`, with Sanzo Wada's 159
+  colours for a palette. A drawing tablet (an XP-Pen Star G430S here) needs no driver: its pen draws with
+  pressure, its lower button moves the page and its upper one takes a colour while held, and the pad keeps the
+  screen's proportions. Xournal++ stays for writing on and signing PDFs.
+- **File dialogs**: every Open, Upload and Save as — Helium's too — is yazi in a floating
   terminal, with its previews and keys — the one dialog (LibreOffice alone shows GTK's: it
   builds that dialog itself, without the portal).
 - **Office**: LibreOffice Writer, Calc and Impress open and edit Word, Excel and PowerPoint
@@ -141,6 +142,16 @@ PACKAGES.md        what is installed, from where, and why
   restart and power off as words;
   the GRUB menu is sumi ink with a hem of seigaiha waves fading upwards in a dither, at your
   monitor's native resolution; Terminus and the dark theme's 16 colours on the login console.
+
+## From the ISO: the whole of it in one go
+
+`fedokawaii-DATE-COMMIT.iso` from the [releases](https://github.com/MoeDia/fedokawaii/releases), written to a stick
+(`sudo dd if=fedokawaii-DATE-COMMIT.iso of=/dev/sdX bs=4M oflag=direct status=progress`; `lsblk` shows which sdX). Start
+from it: a menu, one page of questions (who, the disk, where), a confirmation that names the disk, and nothing
+asks again until the login screen. It needs UEFI, 4 GB of memory, a disk of 60 GB inside the PC, a wired network,
+AMD or Intel graphics, and says so on one screen if one is missing. Secure Boot may stay on. It is Fedora's own
+netinst with our screens over it: `bash tools/build-iso.sh` makes the same bytes again (`iso/inputs.sh` pins what
+goes in). The sections below are the same install by hand.
 
 ## 1 · Fedora Server installer — the settings that matter
 
@@ -213,18 +224,18 @@ tidy (`kawa-tidy`) — its settings, `~/.config/scriptorium`, kept in
 
 **Super+U** opens the system's own control (`fedokawaii` in a terminal; a numbered menu on a
 text console): how it stands, and every piece of upkeep, each with what is due beside it.
-It reminds you — from what it already knows, never from the network — when the update season
-comes round (every 90 days), when a new Fedora has settled (60 days after its release), and
-a month before yours ends.
+It reminds you — from what it already knows, never from the network — when updates have waited
+two weeks, when a new Fedora has settled (7 days after its release), and 90, 30 and 7 days before
+yours ends.
 
 | Command | Does |
 |---|---|
-| `fedokawaii update` (or `update`) | the season's update: snapshot → `dnf upgrade` (detached, so nothing can cut it off) → the manifest, this machine's drivers and firmware, nothing doubled or fighting, the desktop's pinned tools, GE-Proton, torrra, Prowlarr, neovim's plugins → verify; a part that fails is reported and the rest goes on |
-| `fedokawaii pull` (Super+U → update fedokawaii) | fedokawaii itself from GitHub: the one clone, `~/repos/fedokawaii`, fast-forwarded, then the update run from it and repair if verify still finds something; the repository is public: no sign-in, no token |
-| `fedokawaii upgrade` | move to the next Fedora once it has settled: checks RPM Fusion, the COPRs, room and every library dwl needs first; snapshot; `dnf system-upgrade`; the rest by itself after the restart |
+| `fedokawaii update` (Super+U → update) | the one button, everything from A to Z: fedokawaii itself from GitHub's newest release, Fedora's packages, the desktop's pinned tools, torrents, Prowlarr, neovim's plugins, firmware listed. Stored once, proven in a copy of the system, a pinned snapshot, the same transaction on the running one, verify and the desktop's start; red in the copy: the culprit found by halves and held; red on the running system: the system before it back at the next start. A new Fedora comes through it too: a test VM first, then told, then the next press moves (one restart); red anywhere, Fedora stays as it was and says why |
+| `fedokawaii upgrade [--now]` | the same run without the "press again" (`--now`: without waiting for the new Fedora to settle) |
+| `fedokawaii pull` (change → update fedokawaii) | a working copy's way: the one clone, `~/repos/fedokawaii`, fast-forwarded from GitHub, then the update run from it, repair if verify still finds something. From then on that machine follows its copy, not the releases; the repository is public: no sign-in, no token |
 | `fedokawaii verify` (or `verify`) | full check, including your running session |
-| `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 700 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
-| `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrra, Prowlarr, drifted configs — and verify again; offline, what needs no network |
+| `fedokawaii report [--quick \| --perf]` | the health report: `~/fedokawaii-report.txt`, about 680 checks in 29 areas (29: performance, every threshold a FAIL) — the verdict, the findings (each with what to do), every area's table, the logs, and a line per check to `diff` two runs; every program proved to run, not only installed. Made once by itself after the first start; a few minutes (`--quick`: without the timed tests); send it with any question |
+| `fedokawaii repair` (or `repair`) | verify, then fix what can be fixed by itself — packages, drivers and firmware, anything doubled or fighting, services, your session, release tools, torrents, Prowlarr, drifted configs — and verify again; offline, what needs no network |
 | `fedokawaii theme` · `fedokawaii drift` | apply the configs again (dwl rebuilt only if needed) · list files that differ |
 | `fedokawaii status` · `snapshots` · `log` · `settings` · `remind` | how it stands (the last backup's day among it) · the snapshots · the last log · `fedokawaii.conf` · the season |
 | `fedokawaii backup` (or `kawa-backup`; quick settings → backup) | your home — minus `~/Downloads`, caches and what can be downloaded again — to the drive `BACKUP_TARGET` names in `fedokawaii.conf` (it counts as soon as *settings* saves it), with restic; `kawa-backup restore PATH` brings a file or folder back into `~/Restored/`; a notice when the last backup is older than `BACKUP_REMIND_DAYS` (7) |
@@ -245,8 +256,8 @@ toolkit), never in the toolkit itself, so every update keeps the change (handboo
 | `fedokawaii apply` | ShellCheck's advice, every script parsed, the copy made the toolkit (your saved settings merged in), then the theme — or repair, when packages or system parts changed |
 
 Files the theme never writes are yours to edit in place: `~/.bashrc.d/local.sh`,
-`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. The learning guide
-(**Super+U** → *learn*) teaches every program by exercises, then Python and Rust up to a
+`~/.config/dwl/autostart.local.sh`, `~/.config/nvim/lua/plugins/local.lua`. The lessons
+(**Super+U** → *learning* → *lessons*) teach every program by exercises, then Python and Rust up to a
 transformer, fine-tuning and an agent, then working with AI as a professional: how a language
 model works, asking well, agents and their risks, and Claude Code from the daily loop to your
 own hooks, skills and subagents (Part VI, chapters 67–72, every exercise answered in
@@ -260,14 +271,14 @@ glossary are appendices D and E.
 
 ## 4 · First login, once
 
-- **Prowlarr**: nothing to do — it is wired to torrra (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
+- **Prowlarr**: nothing to do — it is wired to Torrents (its key's master copy is `~/.config/fedokawaii/secrets.sh`; Prowlarr gets
   it as a podman secret), its eight usual sites are in, and its page asks for no login (it answers on this computer only):
   `prowlarr` (or *Prowlarr* in the launcher) starts it on demand and opens <http://localhost:9696> (handbook §20.1).
 - **Backups**: name your USB drive or external disk in `fedokawaii.conf` (`BACKUP_TARGET`, Super+U → settings), put a
   password in `~/.config/fedokawaii/secrets.sh` (`RESTIC_PASSWORD="…"` — keep a copy of it elsewhere: without it the backup
   cannot be read), plug the drive in, quick settings → *backup* (handbook §37.6).
-- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). It is Spotify's web player in a Brave app window;
-  Theme switched on Widevine in Brave for it, and the bar's now-playing and meter follow it (handbook §15.4).
+- **Spotify**: *Spotify* in the launcher → sign in (free or Premium). It is Spotify's web player in a Helium app window;
+  setup fetched Widevine from Google for it, and the bar's now-playing and meter follow it (handbook §15.4).
 - **Syncplay** (watching a film with friends, in step): nothing to set — Theme started
   `~/.config/syncplay.ini` (the public server syncplay.pl, your name, a room of your own); **W** on a
   film in yazi, or *Syncplay* in the launcher, asks for the room (handbook §15.7).
@@ -275,8 +286,8 @@ glossary are appendices D and E.
 - **Agents** (herdr): several Claude Code sessions in one window — *Agents* in the launcher, **Ctrl+B a** for
   each new one, **Ctrl+B Shift+G** for a git worktree of its own; the sidebar marks the one that needs you
   (handbook §44.3).
-- **Brave Origin**: nothing to set — Theme put it in GTK mode, so it wears the palette and follows
-  the dark/light switch, and starts it so a screen share can carry the computer's sound.
+- **Helium**: nothing to set — Theme answered its first start and put it in GTK mode, so it wears the
+  palette and follows the dark/light switch; a screen share carries the computer's sound, never the call.
 
 ## 5 · Kernels and the boot menu
 

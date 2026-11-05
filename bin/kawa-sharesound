@@ -1,0 +1,374 @@
+#!/usr/bin/python3
+"""kawa-sharesound — what the others hear of this computer, without hearing themselves.
+
+    kawa-sharesound portal        a screen share began (the screen-sharing portal's exec_before):
+                                  the watcher up for as long as it lasts
+    kawa-sharesound on [APP]      the row in quick settings: a microphone of its own, "share
+                                  sound", is the default input while it is on: your microphone
+                                  plus the desktop's sound, or APP's alone — for any program that
+                                  can only send a microphone
+    kawa-sharesound off           your own microphone back as the default input
+    kawa-sharesound state         off, desktop or the APP's name
+    kawa-sharesound apps          the programs making sound now, one a line
+    kawa-sharesound menu          the row's menu: off · the desktop's sound · each program
+    kawa-sharesound watch         the watcher itself (started by the two above; not for hands)
+
+A browser shares a whole screen's sound by recording the default output's monitor (Chromium:
+media/audio/pulse/pulse_loopback_manager.cc). That monitor holds what the browser plays too, so
+in a call the others would hear themselves: measured, Chromium's echo canceller does not take it
+out here. So while a browser records a monitor, that stream records a mix of its own instead
+(kawa_share_mix: an output nothing plays), and every stream is linked to the mix as well as to
+your speakers (PipeWire's links: nothing moves, nothing is added to what you hear) but those the
+others must not get:
+  · a browser's live sound: a call and a page's WebAudio ask for a short buffer (10.7 ms
+    measured, 512 samples at 48 kHz); a film or a song in a tab asks for a long one (21.3 ms), so
+    it stays in the share. Chromium's streams carry nothing else to tell them apart
+  · all the sound of a program that records the share microphone (it is the call)
+Nothing of this exists while nothing is shared: no process, no node. Asleep on PipeWire's own
+events (pw-link --monitor) while it does. Its state: $XDG_RUNTIME_DIR/kawa-sharesound/.
+Exit: 0 · 1 PipeWire did not do it · 2 wrong use.
+"""
+import json
+import os
+import select
+import signal
+import subprocess
+import sys
+import time
+
+RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
+STATE = os.path.join(RUN, "kawa-sharesound")
+MODE, BEFORE, PID = (os.path.join(STATE, n) for n in ("mode", "before", "watch.pid"))
+MIX, MIC = "kawa_share_mix", "kawa_share_mic"
+BROWSERS = {"helium"}                                        # (application.process.binary)
+LIVE = 0.015                                                 # a stream's buffer at most this long (s): live
+SETTLE = 0.08                                                # a burst of PipeWire's events: one look
+
+
+ACTED = [False]                                              # (a look changed something: another soon)
+
+
+def run(*cmd):
+    ACTED[0] = True
+    return subprocess.run(cmd, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, check=False).returncode
+
+
+def graph():
+    """PipeWire's objects: nodes by id, each with its props and ports, and the links."""
+    try:
+        out = subprocess.run(["pw-dump"], capture_output=True, text=True, check=True, timeout=5).stdout
+        objs = json.loads(out)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return None
+    g = {"nodes": {}, "links": set(), "linked": [], "default": ""}
+    clients = {o["id"]: o["info"]["props"] for o in objs if o.get("type") == "PipeWire:Interface:Client"}
+    for o in objs:
+        if o.get("type") == "PipeWire:Interface:Node":
+            p = o["info"]["props"]
+            # (a PipeWire client's name and process are on its client, a PulseAudio one's on its node too)
+            g["nodes"][o["id"]] = {"id": o["id"], "props": {**clients.get(p.get("client.id"), {}), **p}, "out": {}, "in": {}}
+    for o in objs:
+        if o.get("type") == "PipeWire:Interface:Port":
+            p = o["info"]["props"]
+            n = g["nodes"].get(p.get("node.id"))
+            if n is not None:
+                n["out" if o["info"]["direction"] == "output" else "in"][p.get("port.name", "")] = o["id"]
+        elif o.get("type") == "PipeWire:Interface:Link":
+            i = o["info"]
+            g["links"].add((i["output-port-id"], i["input-port-id"]))
+            g["linked"].append((i["output-node-id"], i["input-node-id"]))
+        elif o.get("type") == "PipeWire:Interface:Metadata" and o["props"].get("metadata.name") == "default":
+            for m in o.get("metadata", []):
+                if m.get("key") == "default.audio.source":
+                    g["default"] = (m.get("value") or {}).get("name", "")
+    return g
+
+
+def named(g, name):
+    return next((n for n in g["nodes"].values() if n["props"].get("node.name") == name), None)
+
+
+def is_a(n, cls):
+    return n["props"].get("media.class") == cls
+
+
+def buffer_of(n):
+    """A stream's buffer in seconds, from node.latency (N/RATE); None when it asks for none."""
+    try:
+        a, b = str(n["props"].get("node.latency", "")).split("/")
+        return int(a) / int(b)
+    except ValueError:
+        return None
+
+
+def plays(n):
+    """A program's own stream, going where streams go: not one wired by hand, nor half of a loopback."""
+    p = n["props"]
+    return (is_a(n, "Stream/Output/Audio") and str(p.get("node.autoconnect", "true")).lower() != "false"
+            and "node.link-group" not in p)
+
+
+def live_in_browser(n):
+    b = buffer_of(n)
+    return n["props"].get("application.process.binary") in BROWSERS and b is not None and b <= LIVE
+
+
+def app(n):
+    p = n["props"]
+    return p.get("application.name") or p.get("application.process.binary") or p.get("node.name", "")
+
+
+def mode():
+    try:
+        with open(MODE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def create(name, cls, what):
+    """A node of our own, staying when this command has ended (object.linger): an output nothing
+    plays, or a microphone, never chosen by itself (priority 0)."""
+    props = (f"{{ factory.name=support.null-audio-sink node.name={name} media.class={cls} "
+             f"node.description=\"{what}\" audio.position=[ FL FR ] object.linger=true "
+             "priority.session=0 priority.driver=0 node.virtual=true monitor.channel-volumes=false }")
+    return run("pw-cli", "create-node", "adapter", props) == 0
+
+
+def side(port):
+    """Which channels of a stereo node a port feeds: FL, FR; a mono or other port both."""
+    end = port.rsplit("_", 1)[-1].upper()[-1:]
+    return ["FL"] if end == "L" else ["FR"] if end == "R" else ["FL", "FR"]
+
+
+def wire(g, source, dest, prefix, want):
+    """Links from SOURCE's ports (by name PREFIX) to DEST's playback/input ports: the pairs wanted
+    into WANT, as port ids."""
+    for name, pid in source["out"].items():
+        if not name.startswith(prefix):
+            continue
+        for ch in side(name):
+            for dn in (f"playback_{ch}", f"input_{ch}"):
+                if dn in dest["in"]:
+                    want.add((pid, dest["in"][dn]))
+
+
+def settle(g):
+    """One look: PipeWire as it should be now. → True while the watcher is still needed."""
+    m = mode()
+    caps = [n for n in g["nodes"].values() if is_a(n, "Stream/Input/Audio")
+            and str(n["props"].get("stream.capture.sink", "")).lower() == "true"
+            and n["props"].get("application.process.binary") in BROWSERS]
+    sharing = any("xdg-desktop-portal-wlr" == n["props"].get("node.name") or
+                  n["props"].get("node.name", "").startswith("xdg-desktop-portal-wlr")
+                  for n in g["nodes"].values())
+    mix, mic = named(g, MIX), named(g, MIC)
+    if not (caps or m):
+        if mix:
+            run("pw-cli", "destroy", str(mix["id"]))
+        if mic:
+            run("pw-cli", "destroy", str(mic["id"]))
+        return sharing
+    if not mix:
+        create(MIX, "Audio/Sink", "share")
+    if m and not mic:
+        create(MIC, "Audio/Source/Virtual", "share sound")
+    if not mix or (m and not mic):
+        return True                                          # (their ports' events bring the next look)
+    # the browser's recording: from the mix (as the sound panel moves a stream: target.object)
+    for c in caps:
+        if str(c["props"].get("target.object", "")) != MIX and (mix["id"], c["id"]) not in g["linked"]:
+            run("pw-metadata", str(c["id"]), "target.object", MIX)
+    # who records what we make: their own sound stays out
+    readers = {n: None for a, n in g["linked"] if a in (mix["id"], (mic or {}).get("id"))}
+    pids = {g["nodes"][n]["props"].get("application.process.id") for n in readers if n in g["nodes"]
+            and g["nodes"][n]["props"].get("application.process.binary") not in BROWSERS}
+    want = set()
+    for n in g["nodes"].values():
+        if not plays(n) or live_in_browser(n):
+            continue
+        if n["props"].get("application.process.id") in pids:
+            continue
+        if m not in ("", "desktop") and app(n) != m:
+            continue
+        wire(g, n, mix, "output_", want)
+    if mic:
+        wire(g, mix, mic, "monitor_", want)
+        src = named(g, read_before())
+        if src:
+            wire(g, src, mic, "capture_", want)
+    have = {pair for pair in g["links"] if pair[1] in (set(mix["in"].values()) | (set(mic["in"].values()) if mic else set()))}
+    for a, b in want - have:
+        run("pw-link", str(a), str(b))
+    for a, b in have - want:
+        run("pw-link", "-d", str(a), str(b))
+    return True
+
+
+def read_before():
+    try:
+        with open(BEFORE, encoding="utf-8") as f:
+            return f.read().strip()
+    except OSError:
+        return ""
+
+
+def watch():
+    os.makedirs(STATE, mode=0o700, exist_ok=True)
+    try:
+        with open(PID, encoding="utf-8") as f:
+            os.kill(int(f.read().strip()), 0)
+        return 0                                             # (one is up)
+    except (OSError, ValueError):
+        pass
+    with open(PID, "w", encoding="utf-8") as f:
+        f.write(str(os.getpid()))
+    mon = subprocess.Popen(["pw-link", "-m", "-l"], stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+
+    def bye(*_):
+        mon.terminate()
+        try:
+            os.unlink(PID)
+        except OSError:
+            pass
+        os._exit(0)
+    for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+        signal.signal(sig, bye)
+    fd = mon.stdout.fileno()
+    began = time.monotonic()
+    while True:
+        g = graph()
+        if g is None:
+            bye()
+        # (a share's first seconds: the portal's own node may not be there yet)
+        if not settle(g) and time.monotonic() - began > 3:
+            bye()
+        ready, _, _ = select.select([fd], [], [], 0.1 if ACTED[0] else 2.0)   # (2 s: mode() changed by a command)
+        ACTED[0] = False
+        if ready:
+            if not os.read(fd, 65536):
+                bye()                                        # (PipeWire went away)
+            time.sleep(SETTLE)
+            while select.select([fd], [], [], 0)[0]:
+                if not os.read(fd, 65536):
+                    bye()
+
+
+def watcher():
+    """The watcher started, on its own, whatever becomes of who asked."""
+    subprocess.Popen([sys.argv[0], "watch"], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+
+
+def on(what):
+    os.makedirs(STATE, mode=0o700, exist_ok=True)
+    g = graph()
+    if g is None:
+        return 1
+    # your microphone, once: what the share microphone adds to the sound
+    if g["default"] and g["default"] != MIC:
+        with open(BEFORE, "w", encoding="utf-8") as f:
+            f.write(g["default"])
+    with open(MODE, "w", encoding="utf-8") as f:
+        f.write(what)
+    if not named(g, MIC):
+        create(MIC, "Audio/Source/Virtual", "share sound")
+    watcher()
+    for _ in range(40):                                      # (its node is there within a moment)
+        g = graph()
+        n = named(g, MIC) if g else None
+        if n:
+            return 0 if run("kawa-quick", "--do", "input", str(n["id"])) == 0 else 1
+        time.sleep(0.05)
+    return 1
+
+
+def off():
+    g = graph()
+    try:
+        os.unlink(MODE)
+    except OSError:
+        pass
+    if g:
+        old = named(g, read_before())
+        if old:
+            run("kawa-quick", "--do", "input", str(old["id"]))
+        settle(g)
+    return 0
+
+
+def state():
+    print(mode() or "off")
+    return 0
+
+
+def sounding():
+    """The programs making sound now, each once, in the order PipeWire lists them."""
+    g = graph()
+    seen = []
+    for n in (g or {"nodes": {}})["nodes"].values():
+        a = app(n)
+        if plays(n) and a and a not in seen:
+            seen.append(a)
+    return seen
+
+
+def apps():
+    print("\n".join(sounding()))
+    return 0
+
+
+def glyphs():
+    """icons.sh's glyphs by name (kawa-downloads's reading of it)."""
+    out = {}
+    with open(os.path.join(os.path.expanduser("~"), ".config/fedokawaii/icons.sh"), encoding="utf-8") as f:
+        for line in f:
+            if line.startswith("ICON_") and "=$'" in line:
+                k, v = line.split("=", 1)
+                out[k[5:].lower()] = bytes(int(h, 16) for h in v[2:v.index("'", 2)].split("\\x")[1:]).decode()
+    return out
+
+
+def menu():
+    ic, m = glyphs(), mode()
+    choices = [("off", "off"), ("desktop", "the desktop's sound")] + [(a, a) for a in sounding()]
+    if m and m not in [c[0] for c in choices]:
+        choices.append((m, m))                               # (the program chosen, silent just now)
+    rows = [f"part\t{ic['speaker']}\tshare sound"]
+    for key, name in choices:
+        rows.append("\t".join(("row", ic["mic"] if key == "off" else ic["speaker"], name, "", "on" if key == (m or "off") else "")))
+    r = subprocess.run(["kawa-menu", "--drop", "--index"], input="\n".join(rows) + "\n", capture_output=True, text=True, check=False)
+    try:
+        key = choices[int(r.stdout.strip()) - 1][0]
+    except (ValueError, IndexError):
+        return 0
+    return off() if key == "off" else on(key)
+
+
+def main(a):
+    cmd = a[0] if a else ""
+    if cmd in ("-h", "--help"):
+        print(__doc__.strip())
+        return 0
+    if cmd == "portal" and len(a) == 1:
+        watcher()
+        return 0
+    if cmd == "watch" and len(a) == 1:
+        return watch()
+    if cmd == "on" and len(a) <= 2:
+        return on(a[1] if len(a) == 2 else "desktop")
+    if cmd == "off" and len(a) == 1:
+        return off()
+    if cmd == "state" and len(a) == 1:
+        return state()
+    if cmd == "apps" and len(a) == 1:
+        return apps()
+    if cmd == "menu" and len(a) == 1:
+        return menu()
+    print("usage: kawa-sharesound portal|on [APP]|off|state|apps|menu (kawa-sharesound --help)", file=sys.stderr)
+    return 2
+
+
+if __name__ == "__main__":
+    signal.signal(signal.SIGPIPE, signal.SIG_DFL)   # a pipe closed early (| head) ends it quietly
+    sys.exit(main(sys.argv[1:]))

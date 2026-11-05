@@ -10,7 +10,7 @@
 #   fedokawaii pull        fedokawaii itself from GitHub: your clone (~/repos/fedokawaii)
 #                          brought to GitHub's newest, then the update from it, and repair if
 #                          anything is left (the repository is public: no sign-in, no token)
-#   fedokawaii upgrade     move to the next Fedora release, once it has settled
+#   fedokawaii upgrade     the update, then the move to the next Fedora (the update's second press)
 #   fedokawaii upgrade --now   the same, without waiting for it to settle
 #   fedokawaii verify      prove everything is installed right (changes nothing)
 #   fedokawaii repair      find what broke and put it right (offline too, as far as it can)
@@ -21,9 +21,9 @@
 #   fedokawaii log         the last run's log
 #   fedokawaii settings    fedokawaii.conf (keyboard, refresh rate, city…), applied by update
 #   fedokawaii remind [every DAYS | wait DAYS | on | off | check]
-#                          the reminder of the update season (default: every 90 days) — and
+#                          the reminder of the update season (default: every 14 days) — and
 #                          of a backup older than BACKUP_REMIND_DAYS (fedokawaii.conf)
-#   fedokawaii guide       the learning guide (the PDF; on a text console, its text)
+#   fedokawaii learn       the lessons: their window (kawa-learn); on a text console, the next as text
 #   fedokawaii freesync    whether FreeSync works, now: a line a screen, from the card itself
 #   fedokawaii report [--quick | --perf]   the health report: ~/fedokawaii-report.txt, one
 #                          file to hand on (--perf: every interaction timed, again and again)
@@ -79,7 +79,7 @@ fi
 [[ $BACKUP_REMIND_DAYS =~ ^[0-9]{1,3}$ ]] || BACKUP_REMIND_DAYS=7   # (fedokawaii.conf edited by hand into no number)
 
 # ── settings: how often, and how long to let a new Fedora settle ───────────────────────
-EVERY=90 WAIT=60 REMIND=yes
+EVERY=14 WAIT=7 REMIND=yes
 load_conf() {
   local k v
   [[ -r $CONF ]] || return 0
@@ -141,10 +141,10 @@ running_job() {   # → the menu's entry whose run holds the lock (setup.sh writ
   # once it holds it), empty for a run that names none; status 1: nothing runs
   busy || return 1
   local j=""; read -r j <"$STATE/lock" 2>/dev/null
-  case $j in update|after-dnf) echo update ;; repair) echo repair ;; upgrade|after-upgrade) echo upgrade ;; *) echo "" ;; esac
+  case $j in update|after-dnf|upgrade|after-upgrade) echo update ;; repair) echo repair ;; *) echo "" ;; esac
 }
 running_words() {   # running_words JOB → what runs, as the status says it
-  case $1 in update) echo 'an update' ;; repair) echo 'a repair' ;; upgrade) echo 'an upgrade' ;; *) echo 'an update or a repair' ;; esac
+  case $1 in update) echo 'an update' ;; repair) echo 'a repair' ;; *) echo 'an update or a repair' ;; esac
 }
 
 # Fedora's releases. Yours: its end of support is in os-release (SUPPORT_END, kept current
@@ -211,7 +211,11 @@ v_next() {
     soon)     printf 'Fedora %s · due about %s' "$n" "$(date -d "@$r" '+%b %Y')" ;;
     unknown)  printf 'Fedora %s · may be out by now' "$n" ;;
     settling) printf 'Fedora %s · offered %s' "$n" "$(inn "$from")" ;;
-    ready)    printf 'Fedora %s · ready to move to' "$n" ;;
+    ready)    # (what the update knows of it: lib/move.sh's verdicts, in the update's own folder)
+              if [[ -s $STATE/update/move-red-$n ]] || [[ $(head -c3 "$STATE/update/preflight-$n" 2>/dev/null) == red ]]; then printf 'Fedora %s · waits: it failed a check' "$n"
+              elif [[ $(cat "$STATE/update/move-told" 2>/dev/null) == "$n" ]]; then printf 'Fedora %s · this press moves to it' "$n"
+              elif [[ -s $STATE/update/preflight-$n ]]; then printf 'Fedora %s · green in the test VM' "$n"
+              else printf 'Fedora %s · the next press tries it' "$n"; fi ;;
   esac
 }
 last_done() {   # the last update that reached its end — a run that stopped (a power cut, a
@@ -250,7 +254,7 @@ status_kv() {
     printf 'next\037%s\n' "$(v_next)"
   else printf 'release\037%s\n' 'unknown: /etc/os-release unreadable'; fi
   # the last move between releases, for the two months after it
-  if read -r t from to res < <(read_rec last-upgrade) && num "$t" && ((now - t < 60 * DAY)); then
+  if read -r t from to res < <(read_rec update/last-upgrade) && num "$t" && ((now - t < 60 * DAY)); then
     case $res in
       failed) printf 'moved\037to Fedora %s failed · %s\n' "$to" "$(day "$t")" ;;
       ok)     printf 'moved\037Fedora %s → %s · %s\n' "$from" "$to" "$(day "$t")" ;;
@@ -612,18 +616,19 @@ pull() {   # git pull, then the update from the clone, repair if verify still fi
 
 told_move() {   # the outcome of a move to a new Fedora, told once (at the first login after it)
   local t from to res told
-  read -r t from to res < <(read_rec last-upgrade) || return 0
+  read -r t from to res < <(read_rec update/last-upgrade) || return 0
   num "$t" || return 0
   ((now - t < 60 * DAY)) || return 0               # (a lost cache never re-tells an old move)
   told=$(cat "$CACHE/move-told" 2>/dev/null)
   [[ $told == "$t" ]] && return 0
   case $res in
-    failed) notify-send -a desktop -u critical -- "${ICON_RESTART:-·}  upkeep" "the move to Fedora $to did not complete — Fedora $from is as it was (what happened: sudo dnf system-upgrade log)" ;;
+    failed) notify-send -a desktop -u critical -- "${ICON_RESTART:-·}  upkeep" "the move to Fedora $to did not complete — Fedora $from is as it was (Super+U → update tells why)" ;;
     ok)     notify-send -a desktop -- "${ICON_RESTART:-·}  upkeep" "Fedora $to is in place — the move finished" ;;
     *)      notify-send -a desktop -- "${ICON_RESTART:-·}  upkeep" "Fedora $to is in place — some parts need a look: Super+U → status" ;;
   esac 2>/dev/null && { mkdir -p "$CACHE"; printf '%s\n' "$t" >"$CACHE/move-told"; }
   return 0
 }
+eol_tier() { local d=$(( ($1 - now) / DAY )); if ((d < 7)); then echo 7; elif ((d < 30)); then echo 30; else echo 90; fi; }   # (told at 90, 30 and 7 days before the end: design §5 row 33)
 remind() {   # remind [check] — once a day at most: an update due, a release ready or ending
   local d st n r from e how msg="" seen
   # (one look at a time: the session's timer and the look at login may meet — one notice)
@@ -635,8 +640,10 @@ remind() {   # remind [check] — once a day at most: an update due, a release r
   seen=$(cat "$NOTICE" 2>/dev/null)
   if [[ ${1:-} == check || $seen != "$(date +%F)" ]]; then   # (the backup's reminder below keeps its own day)
     d=$(due_at); read -r st n r from < <(next_state); read -r e how < <(eol_of "$(ver)")
-    if [[ $how == exact ]] && ((e < now + 30 * DAY)); then msg="Fedora $(ver)'s support ends $(day "$e") — move to Fedora $n (Super+U)"
-    elif [[ $st == ready ]]; then msg="Fedora $n has settled — the move to it is ready (Super+U)"
+    if [[ $how == exact ]] && ((e < now + 90 * DAY)) && [[ $(eol_tier "$e") != "$(cat "$CACHE/eol-told" 2>/dev/null)" ]]; then
+      msg="Fedora $(ver)'s support ends $(day "$e") — press update (Super+U) to move to Fedora $n"
+      [[ ${1:-} == check ]] || { mkdir -p "$CACHE"; eol_tier "$e" >"$CACHE/eol-told"; }
+    elif [[ $st == ready ]]; then msg="Fedora $n has settled — press update (Super+U): it is tried in a test VM, then moved to"
     elif ((d <= now)); then msg="the update season is here: $(( (now - d) / DAY + EVERY )) days since the last update (Super+U)"
     fi
     if [[ -n $msg ]]; then
@@ -684,27 +691,19 @@ fi
 SECTIONS=(system update snapshots backups learning)
 tab_icon() {   # tab_icon SECTION → its pixel icon
   case $1 in
-    system) printf '%s' "${ICON_SEC_SYSTEM:-·}" ;; update) printf '%s' "${ICON_SEC_UPDATE:-·}" ;;
-    snapshots) printf '%s' "${ICON_CAMERA:-·}" ;; backups) printf '%s' "${ICON_SEC_BACKUPS:-·}" ;;
-    learning) printf '%s' "${ICON_MORTARBOARD:-·}" ;;
+    system) printf '%s' "${ICON_TAB_SYSTEM:-·}" ;; update) printf '%s' "${ICON_TAB_UPDATE:-·}" ;;
+    snapshots) printf '%s' "${ICON_TAB_SNAPSHOTS:-·}" ;; backups) printf '%s' "${ICON_TAB_BACKUPS:-·}" ;;
+    learning) printf '%s' "${ICON_TAB_LEARNING:-·}" ;;
   esac
 }
-# what is not built yet: a row in the faint ink that says "soon", its pane what it will be
-SOON='chess|typing'
 PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
 # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
 # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
 # section's, rows: all of them
 rows() {
-  local only=${1:-} d st n r from l t p f w R=${INK_ACCENT_TEXT:-} O=${INK_OFF:-} upd up ver_ snap bk nxt
-  d=$(due_at); read -r st n r from < <(next_state)
+  local only=${1:-} d l t p f w R=${INK_ACCENT_TEXT:-} O=${INK_OFF:-} upd ver_ snap bk
+  d=$(due_at)
   if ((d <= now)); then upd="${R}due$O"; else upd=$(inn "$d"); fi
-  case $st in
-    ready)    up="${R}ready$O" ;;
-    settling) up=$(inn "$from") ;;
-    soon)     up=$(date -d "@$r" '+%b %Y') ;;
-    *)        up="may be out" ;;   # (as status says it: its day passed, not seen out yet)
-  esac
   ver_=""
   if l=$(read_rec last-verify); then
     read -r t p f w <<<"$l"
@@ -720,11 +719,6 @@ rows() {
   local dv=${BACKUP_TARGET%/fedokawaii-backup}; dv=${dv%/}; dv=${dv##*[/:]}
   if [[ -z $BACKUP_TARGET ]]; then dv="${R}none$O"; elif ((${#dv} > 23)); then dv=""; fi
   local run; run=$(running_job) && run=${run:-update}
-  # (fedokawaii itself: when the clone was last pulled from GitHub)
-  local pl="" pt pr
-  if read -r pt pr _ 2>/dev/null <"$PULL_REC" && num "$pt"; then pl=$(ago "$pt"); [[ $pr == ok ]] || pl="$R$pl$O"; fi
-  # (a release that cannot be read is not guessed at: no Fedora 0, no move to Fedora 1)
-  if (($(ver))); then nxt="Fedora $n"; else nxt="the next Fedora"; fi
   # (change and keys open screens of their own: only on the desktop, not on a text console)
   local desk=""; [[ -n ${WAYLAND_DISPLAY:-} ]] && desk=1
   # (the row of the run going on: the hourglass in place of its icon, "running" in vermilion)
@@ -736,25 +730,36 @@ rows() {
   e system    repair    "${ICON_KIT:-·}"        repair                 ""
   e system    drift     "${ICON_BRANCH:-·}"     drift                  ""
   [[ -n $desk ]] && e system change "${ICON_CODE:-·}" "change the desktop" ""
+  if [[ -n $desk ]]; then
+    local w=""; IFS= read -r w 2>/dev/null </run/kawa-asobi/state; case $w in front|away) w=running ;; frozen) w=asleep ;; *) w="" ;; esac
+    e system  asobi     "${ICON_KOMA:-·}"       asobi                  "$w"
+  fi
   e system    theme     "${ICON_THEME:-·}"      "the theme, anew"      ""
   e system    settings  "${ICON_SLIDERS:-·}"    settings               ""
   e system    remind    "${ICON_BELL:-·}"       reminders              "$([[ $REMIND == yes ]] && echo "every $EVERY days" || echo off)"
   e system    log       "${ICON_NOTE:-·}"       log                    ""
   e update    update    "${ICON_DOWNLOAD:-·}"   update                 "$upd"
-  e update    pull      "${ICON_TORII_SMALL:-·}" fedokawaii            "$pl"
-  e update    upgrade   "${ICON_UPGRADE:-·}"    "$nxt"                 "$up"
-  e update    held      "${ICON_LOCK:-·}"       held                   "$(held_count)"
+  e update    held      "${ICON_LOCK:-·}"       "held back"            "$(n=$(held_count); printf '%s' "${n:-none}")"
   e snapshots snapshots "${ICON_UNDO:-·}"       "go back"              "$snap"
   e snapshots file      "${ICON_FILE:-·}"       "a file, back"         ""
   e backups   backup    "${ICON_ARCHIVE:-·}"    "back up now"          "$bk"
   e backups   restore   "${ICON_UNPACK:-·}"     restore                ""
   e backups   drive     "${ICON_USB:-·}"        "the drive"            "$dv"
   e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
+  e backups   stick     "${ICON_USB:-·}"        "the installer"        ""
   e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
-  e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
-  e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
-  e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
+  e learning  learn     "${ICON_BOOK:-·}"       lessons                "$(learn_place)"
+  [[ -n $desk ]] && e learning chess "${ICON_KNIGHT:-·}" chess ""
+  [[ -n $desk ]] && e learning typing "${ICON_KEYBOARD:-·}" typing ""   # (it draws in foot: not on a text console)
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
+  return 0
+}
+# how far the lessons are: the file kawa-learn keeps — DONE<TAB>TOTAL<TAB>NEXT<TAB>ITS MINUTES<TAB>MINUTES LEFT;
+# read, never a program started (the row is drawn at every look at the menu)
+LEARN_PLACE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/learn.place
+learn_place() {
+  local d t _
+  IFS=$'\t' read -r d t _ 2>/dev/null <"$LEARN_PLACE" && num "$d" && num "$t" && printf '%s of %s' "$d" "$t"
   return 0
 }
 # what the updates hold back: "NAME VERSION<TAB>WHY", a line a family (lib/common.sh's
@@ -819,7 +824,7 @@ tab_next() {   # tab_next +1|-1 → the section beside the one shown
 # The list and the pane, in a window W columns wide inside fzf's margins (FZF_COLUMNS, which
 # fzf tells every command it runs): the pane takes PANE columns at the right, the list the
 # rest. Each row screen.sh's: its icon, two columns, its name, the value right-aligned two columns
-# short of the list's edge; what is not built yet in the faint ink, "soon". The menu asks for its rows
+# short of the list's edge. The menu asks for its rows
 # again once fzf is up and whenever the window changes size, so the column is right however
 # late the window gets its final size.
 PANE=50
@@ -830,15 +835,13 @@ PANE=50
 HG_FRAMES="${ICON_HG_0:-·} ${ICON_HG_1:-·} ${ICON_HG_2:-·} ${ICON_HG_3:-·} ${ICON_HG_3:-·} ${ICON_HG_4:-·}"
 fit_rows() {
   local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
+  # (W: the list's columns but one — its band ends a column past a row's, the value as far in as the icon, §4)
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
-  # (two columns short of the list's edge: the air the row has at its left, inside the cursor's band)
-  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 4))
+  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 3))
   run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
-    if [[ $a == @($SOON) ]]; then
-      row=$(screen_row "${INK_FAINT:-}$g" "${INK_FAINT:-}$l${INK_OFF:-}" "${INK_FAINT:-}soon${INK_OFF:-}" "$W")
-    else row=$(screen_row "$g" "$l" "$m" "$W"); fi
+    row=$(screen_row "$g" "$l" "$m" "$W")
     fr=""
     for f in $HG_FRAMES; do
       if [[ $a == "${run:-}" ]]; then fr+=$'\t'$(screen_row "$f" "$l" "$m" "$W"); else fr+=$'\t'$row; fi
@@ -878,18 +881,18 @@ tick() {
 # 45 characters a line, two columns in from the heading (as rows are), and 15 lines: nothing ever
 # wraps or scrolls away
 explain() {
-  local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
+  local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
+  [[ $a == @(status|update|held|verify|repair|snapshots|file|backup|restore|drive|carry|stick|bring|theme|drift|change|settings|remind|log|keys|learn|asobi|chess|typing) ]] || return 0
   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
   case $a in
-    status|update|upgrade|verify|repair|remind) kv=$(status_kv) ;;
+    status|update|verify|repair|remind) kv=$(status_kv) ;;
     *) kv=$(j=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$j")") ;;
   esac
   pick() {   # pick 'KEY|KEY…' [ROOM] → those lines of the status (with their continuations), less
-    # what the list beside it says already (next: the upgrade's row; due's "in N days": update's).
+    # what the list beside it says already (due's "in N days": update's).
     # More than ROOM lines (the rare ones all at once): the routine ones make way — the kernel
     # unless a restart waits for it, the disk unless it runs low, the release, its support —
     # never one that asks something of you: the pane never scrolls
@@ -910,6 +913,39 @@ explain() {
     return 0
   }
   say() { local l; for l; do printf '   %s%s%s\n' "$G" "$l" "$O"; done; }   # (muted, three columns in)
+  learn_cover() {   # the book's cover (tools/build-cover.py) over the words: as tall as they leave room for, never
+    # the pane's last row (a picture touching it scrolls the window: fzf #2544), its left edge on the words' column.
+    # Drawn once for a cell, a room and a mood's ground, then kept: the pane follows the cursor
+    local pic=$TK/docs/learn/cover-thumb.png cell=${KAWA_CELL:-} room=$(( ${FZF_PREVIEW_LINES:-0} - 3 - 5 )) cw ch h w six C_GROUND=""
+    [[ $cell =~ ^[1-9][0-9]*x[1-9][0-9]*$ && -r $pic ]] && ((room >= 6)) || return 0
+    # shellcheck source=/dev/null
+    . "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
+    cw=${cell%x*} ch=${cell#*x}
+    h=$(( room * ch / 6 * 6 )) w=$(( h * 336 / 475 ))
+    six=$CACHE/learn-cover.$cell.$room.$C_GROUND.$(stat -c %Y -- "$pic").six
+    if [[ ! -s $six ]]; then
+      mkdir -p -- "$CACHE" 2>/dev/null
+      rm -f -- "$CACHE"/learn-cover.*.six 2>/dev/null                   # (another size's, another mood's: one kept)
+      LC_ALL=C magick -size "$(( 3 * cw + w ))x$h" "xc:#$C_GROUND" \( "$pic" -resize "${w}x${h}!" \) -geometry "+$(( 3 * cw ))+0" -composite png:- 2>/dev/null \
+        | kawa-sixel "$C_GROUND" >"$six.$$" && mv -f -- "$six.$$" "$six"
+      rm -f -- "$six.$$"
+    fi
+    [[ -s $six ]] || return 0
+    cat -- "$six"; printf '\n\n'                                         # (the picture leaves the cursor on its last row)
+  }
+  learn_rows() {   # the lessons: how far, the next (its name in pieces at its words, never cut), how long is left
+    local d="" t="" nx="" m="" lf="" h l
+    IFS=$'\t' read -r d t nx m lf 2>/dev/null <"$LEARN_PLACE"
+    num "$d" && num "$t" || { kawa-learn --place >/dev/null 2>&1; IFS=$'\t' read -r d t nx m lf 2>/dev/null <"$LEARN_PLACE"; }
+    num "$d" && num "$t" || return 0
+    printf '   %s%-9s%s %s of %s\n' "$G" stamped "$O" "$d" "$t"
+    if [[ -n $nx ]]; then
+      h=next; while IFS= read -r l; do printf '   %s%-9s%s %s\n' "$G" "$h" "$O" "$l"; h=""; done < <(fold -sw 34 <<<"$nx" | sed 's/ *$//')
+      printf '   %s%-9s%s %s min\n' "$G" takes "$O" "$m"
+      if num "$lf" && ((lf >= 60)); then printf '   %s%-9s%s %s h\n' "$G" left "$O" "$((lf / 60))"; fi
+    fi
+    echo
+  }
   drive_rows() {   # the backups' drive (kawa-backup drive: never opens one) as the status's rows: its
     # name — a path or an address in pieces at its / and : (or spaces), never cut — where it is,
     # and the last backup
@@ -935,21 +971,14 @@ explain() {
     if t=$(last_backup); then v="$(day "$t") · $(ago "$t")"; else v="none yet"; fi
     printf '   %s%-9s%s %s\n\n' "$G" backup "$O" "$v"
   }
-  soon() { local l; printf '   %snot yet%s\n\n' "$F" "$O"; for l; do printf '   %s%s%s\n' "$F" "$l" "$O"; done; }
   case $a in
     status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' \
                     $(( ${FZF_PREVIEW_LINES:-0} - 3 )) ;;   # (the room under the heading)
-    update)    pick 'running|updated|due'
-               say "a snapshot first, then everything: Fedora's" \
-                   "packages, the desktop's own tools, the" \
-                   "checks. nothing updates by itself." ;;
-    pull)      pick 'running'
-               say "fedokawaii itself, from GitHub — then the" \
-                   "update from it. your changes are kept." ;;
-    upgrade)   pick 'running|release|support|moved'
-               say "the move to a new Fedora, once it has" \
-                   "settled ($WAIT days): a snapshot, the" \
-                   "download, a restart — 20 to 40 minutes." ;;
+    update)    pick 'running|next|moved|updated|due'
+               say "everything, proven in a copy first: fedokawaii" \
+                   "itself, Fedora's packages, the desktop's own" \
+                   "tools — and a new Fedora, once a test VM has" \
+                   "shown it works. nothing updates by itself." ;;
     verify)    pick 'running|verified'
                say "everything checked against the toolkit." \
                    "changes nothing." ;;
@@ -967,6 +996,9 @@ explain() {
                say "what is yours alone, to a drive, under a" \
                    "password you choose, read back after: then" \
                    "you can wipe this computer." ;;
+    stick)     pick 'running'
+               say "this desktop's installer, on a USB stick:" \
+                   "written, read back, ready for a fresh install." ;;
     bring)     pick 'running'
                say "after a fresh install: all of it back from" \
                    "that drive. nothing new is replaced." ;;
@@ -989,9 +1021,6 @@ explain() {
     log)       pick 'running'
                say "what every update, repair and verify did," \
                    "the newest last. your password first." ;;
-    guide)     pick 'running'
-               say "the Learn book: how this desktop works," \
-                   "and how to keep it well." ;;
     held)      # (each: its name and version, why under it — cut at a word, never an ellipsis)
                local h w
                while IFS=$'\t' read -r h w; do
@@ -1017,10 +1046,18 @@ explain() {
     drive)     pick 'running'; drive_rows
                say "the drive your backups go to. enter: another," \
                    "from the drives plugged in." ;;
-    chess)     soon "chess from the first move to 1800: games," \
-                    "puzzles, lessons." ;;
-    typing)    soon "touch typing, finger by finger, to 100 words" \
-                    "a minute." ;;
+    asobi)     say "the play world: Steam and Bottles in a user of" \
+                   "their own, on a screen of their own, your" \
+                   "desktop safe behind it. Super+G goes in, and" \
+                   "back; only the drop folder is shared." ;;
+    learn)     pick 'running'; learn_cover; learn_rows ;;
+    chess)     pick 'running'
+               say "chess from the first move to 1800: a lesson," \
+                   "two games with their reviews, ten minutes of" \
+                   "puzzles, day after day. enter: today's." ;;
+    typing)    say "touch typing, finger by finger, to 100 words" \
+                   "a minute." ""
+               while IFS= read -r l; do say "$l"; done < <(kawa-typing --status 2>/dev/null) ;;
   esac
 }
 
@@ -1065,13 +1102,13 @@ job_head() {
   local w n=$1
   on_console && return 0
   w=$(screen_width) || return 0
-  case $1 in remind) n=reminders ;; guide) n=learn ;; keys) n=keybindings ;; file) n="a file, back" ;; esac
+  case $1 in remind) n=reminders ;; keys) n=keybindings ;; file) n="a file, back" ;; esac
   printf '\n  %s\n\n' "$(screen_heading "$(icon_of "$1")" "$n" "$w")"
 }
 # the entries that run a job — dnf, a backup, an edit, or root's password asked: in Super+U's
 # popup they are handed to a window of their own (hand), which a click elsewhere, another
 # window or Super+U again never closes
-JOBS='update|pull|upgrade|verify|repair|theme|drift|snapshots|file|backup|restore|drive|carry|bring|settings|log'
+JOBS='update|verify|repair|theme|drift|snapshots|file|backup|restore|drive|carry|stick|bring|settings|log'
 hand() {   # hand ACTION — the job in a dialog window, on its own: the popup closes behind it
   setsid -f "$0" --job "$1" >/dev/null 2>&1 </dev/null
 }
@@ -1101,8 +1138,6 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
   case $a in
     status)    status_rows; rc=0 ;;
     update)    as_root update; rc=$? ;;
-    pull)      pull; rc=$? ;;
-    upgrade)   as_root upgrade; rc=$? ;;
     verify)    as_root verify; rc=$? ;;
     repair)    as_root repair; rc=$? ;;
     snapshots) snapshots; rc=$? ;;
@@ -1111,20 +1146,24 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     restore)   backup_back; rc=$? ;;
     drive)     backup_drive; rc=$? ;;
     carry)     kawa-carry pack; rc=$? ;;
+    stick)     kawa-stick; rc=$? ;;
     bring)     kawa-carry back; rc=$? ;;
     theme)     as_root theme; rc=$? ;;
     drift)     as_root drift; rc=$? ;;
     settings)  edit_settings; rc=$? ;;
-    remind)    case $REMIND:$EVERY in yes:60) EVERY=90 ;; yes:90) EVERY=120 ;; yes:120) REMIND=no ;; *) REMIND=yes EVERY=60 ;; esac
+    remind)    case $REMIND:$EVERY in yes:14) EVERY=30 ;; yes:30) EVERY=60 ;; yes:60) REMIND=no ;; *) REMIND=yes EVERY=14 ;; esac
                save_conf; return 0 ;;
     log)       log_view; return 0 ;;   # (as `fedokawaii log`)
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
+    asobi)     setsid -f kawa-asobi --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own window)
     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
-    guide)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
-                 local why; why=$(guide 2>&1) || notify-send -a desktop -u critical -- "${ICON_TORII:-·}  learn" "${why#  }"
+    typing)    setsid -f kawa-term --float --once typing --dialog typing 80x39 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;
+    chess)     setsid -f kawa-chess --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (a window of its own)
+    learn)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
+                 local why; why=$(learn 2>&1) || notify-send -a desktop -u critical -- "${ICON_BOOK:-·}  lessons" "${why#  }"
                  return 0
                fi
-               guide && return 0; rc=1 ;;   # (a handbook that cannot open says why, and waits)
+               learn && return 0; rc=1 ;;   # (lessons that cannot open say why, and wait)
     *)         return 0 ;;
   esac
   pause "$rc" "$a"
@@ -1140,7 +1179,7 @@ freesync() {   # FreeSync as the card has it this moment (kawa-display --vrr: DR
   # and VRR_ENABLED, not dwl's word), the setting beside it, and where the monitor shows it
   local s l name cap now say
   s=$(cat "${XDG_CONFIG_HOME:-$HOME/.config}/fedokawaii/vrr" 2>/dev/null)
-  case $s in always) say="always on" ;; off) say="off" ;; *) say="in games (on while a window is full screen)" ;; esac
+  case $s in always) say="always on" ;; off) say="off" ;; *) say="on while a window is full screen" ;; esac
   l=$(kawa-display --vrr) || { echo "FreeSync: the graphics card could not be asked (the line above says why)"; return 1; }
   while IFS=$'\t' read -r name cap now; do
     if [[ $cap != yes ]]; then
@@ -1151,7 +1190,7 @@ freesync() {   # FreeSync as the card has it this moment (kawa-display --vrr: DR
       echo "FreeSync: $name — offered, off this moment · setting: $say"
     fi
   done <<<"$l"
-  echo "(the card's own state, this moment. In a game, full screen: Super+X — quick settings' FreeSync reads \"games · on\" — and a monitor whose menu shows the refresh rate shows the game's frame rate there, not 144: FreeSync at work)"
+  echo "(the card's own state, this moment. With a window full screen, quick settings' FreeSync (Super+X) says on: the refresh follows its frames)"
   grep -q $'\tyes\t' <<<"$l" || [[ $s == off ]]
 }
 snapshots() {   # the snapshots of / — read from the disk by kawa-snap, as root, so the list is
@@ -1329,26 +1368,27 @@ backup_drive() {   # another drive for the backups, from those plugged in (kawa-
   ((rc == 4)) && return 0                         # (none plugged in, or none picked: said by it)
   return "$rc"
 }
-guide() {   # the learning guide: the PDF in zathura on the desktop; on a text console, its text
-  # (the full handbook, docs/Fedokawaii-Guide.pdf, is the repository's reference: never opened here)
-  local pdf=$TK/docs/Fedokawaii-Learn.pdf md=$TK/docs/fedokawaii-learn.md
-  if [[ -z ${WAYLAND_DISPLAY:-} && -r $md ]]; then less -- "$md"; return 0; fi
-  [[ -r $pdf ]] || { echo "  the learning guide is missing: $pdf — fedokawaii repair puts it back" >&2; return 1; }
-  command -v zathura >/dev/null || { echo "  zathura is not installed (fedokawaii repair puts it back) — the learning guide: $pdf" >&2; return 1; }
-  setsid -f zathura "$pdf" >/dev/null 2>&1 </dev/null
+learn() {   # the lessons: a window of their own on the desktop, tiled — what a lesson asks you to
+  # type goes in the terminal beside it; on a text console, the next one as text
+  [[ -r $TK/docs/learn/index.tsv ]] || { echo "  the lessons are missing: $TK/docs/learn — fedokawaii repair puts them back" >&2; return 1; }
+  command -v kawa-learn >/dev/null || { echo "  kawa-learn is missing — fedokawaii repair puts it back" >&2; return 1; }
+  if [[ -z ${WAYLAND_DISPLAY:-} ]]; then KAWA_LEARN=$TK/docs/learn kawa-learn --text; return; fi
+  setsid -f kawa-term --app kawa-learn lessons kawa-learn >/dev/null 2>&1 </dev/null
 }
 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
   local self pop="" listen=() launch=""
+  # (the cell's size in pixels, for the lessons' cover: fzf tells a preview its columns, never its pixels)
+  [[ -n ${KAWA_CELL:-} || -z ${WAYLAND_DISPLAY:-} ]] || { KAWA_CELL=$(kawa-cell 2>/dev/null) && export KAWA_CELL; }
   self=$(printf '%q' "$0")
   # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own; the
   # popup is warm — kawa-warm reads its list again through fzf's socket as it shows)
   if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then
     pop="|$JOBS" listen=(--listen="${XDG_RUNTIME_DIR:-/tmp}/fedokawaii-menu.sock")
-    # (what opens a window of its own — the guide, the key sheet, the settings — starts it
+    # (what opens a window of its own — the lessons, the key sheet, the settings — starts it
     # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
     # never a blank terminal first; the list starts afresh behind the scenes)
-    launch="guide|keys|change) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
+    launch="learn|keys|change|asobi|chess|typing) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
     rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
   fi
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
@@ -1376,7 +1416,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   [[ ${KAWA_WARM:-} == system ]] && away="execute-silent(kawa-warm --away system)+"
   fit_items | fzf --read0 --ansi --no-sort --no-input --gutter-raw=' ' \
     --height=100% --delimiter=$'\t' --with-nth=2 --tiebreak=index "${listen[@]}" \
-    --header="$(tabs system)" --header-first \
+    --header="$(tabs system)" --header-first --footer=$'\n'"$(screen_keys enter open '' tab next '' esc close '')" \
     --preview="k=$(printf '%q' "$PANE_KEPT")/{1}.\$FZF_PREVIEW_COLUMNS; [ -e $(printf '%q' "$PANE_KEPT")/on ] && [ -s \"\$k\" ] && exec cat \"\$k\"; exec $self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
     --bind="tab:execute-silent($self --tab +1)+$go,btab:execute-silent($self --tab -1)+$go" \
@@ -1384,7 +1424,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
     --bind="click-header:execute-silent($self --tab click \$FZF_CLICK_HEADER_COLUMN \$FZF_CLICK_HEADER_LINE)+$go" \
     --bind="j:down,k:up,l:execute-silent($self --tab +1)+$go,h:execute-silent($self --tab -1)+$go,q:${away}abort" \
     --bind="esc,ctrl-c,ctrl-g,ctrl-q:${away}abort" \
-    --bind="enter:transform:case {1} in $PANE_ONLY|$SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+    --bind="enter:transform:case {1} in $PANE_ONLY) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys|chess${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
   local rc=$?; rm -f -- "$FK_TAB"; return "$rc"
 }
 
@@ -1394,7 +1434,7 @@ ascii() {   # for a text console whose font may lack them: plain stand-ins
 menu_plain() {   # no fzf, or a text console: numbered, nothing but bash
   local acts=() names=() s a g l m i c
   while IFS=$'\t' read -r s a g l m; do
-    [[ $a == @($PANE_ONLY|$SOON) ]] && continue   # (what is not built yet, or only a pane: not offered)
+    [[ $a == @($PANE_ONLY) ]] && continue   # (only a pane: not offered)
     acts+=("$a"); names+=("$l")
   done < <(rows | sed 's/\x1b\[[0-9;]*m//g')
   while :; do
@@ -1434,7 +1474,7 @@ case ${1:-} in
   --job)      job_window "${2:-}" ;;                                # (hand's: the job's window)
   --job-run)  BACK="closes this window"; unset FEDOKAWAII_POPUP; run "${2:-}" ;;            # (inside it)
   # (a word more than a command takes is a slip, never ignored: `upgrade now` is no --now)
-  status|update|pull|verify|repair|theme|drift|snapshots|backup|log|settings|guide|copy|diff|apply)
+  status|update|pull|verify|repair|theme|drift|snapshots|backup|log|settings|learn|copy|diff|apply)
               (($# == 1)) || { echo "fedokawaii $1 takes nothing more (\"$2\") — fedokawaii help" >&2; exit 2; } ;;&
   upgrade)    [[ $# == 1 || ( $# == 2 && $2 == --now ) ]] || { echo "usage: fedokawaii upgrade [--now]" >&2; exit 2; }
               as_root upgrade ${2:+"$2"} ;;
@@ -1458,7 +1498,7 @@ case ${1:-} in
                 WAIT=$((10#$3)); save_conf; echo "a new release is offered $WAIT days after it is out" ;;
       *)        echo "usage: fedokawaii remind [check | every DAYS | wait DAYS | on | off]" >&2; exit 2 ;;
     esac ;;
-  guide)      guide ;;
+  learn)      learn ;;
   freesync)   (($# == 1)) || { echo "fedokawaii freesync takes nothing more — fedokawaii help" >&2; exit 2; }
               freesync ;;
   report)     [[ $# == 1 || ( $# == 2 && $2 == @(--quick|--perf) ) ]] || { echo "usage: fedokawaii report [--quick | --perf]" >&2; exit 2; }

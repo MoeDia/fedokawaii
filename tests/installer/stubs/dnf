@@ -10,7 +10,6 @@ repos() {   # the enabled repositories, one id per line
   printf '%s\n' fedora updates
   if has installed rpmfusion-free-release; then printf '%s\n' rpmfusion-free rpmfusion-free-updates; fi
   if has installed rpmfusion-nonfree-release; then printf '%s\n' rpmfusion-nonfree rpmfusion-nonfree-updates; fi
-  [[ -f /etc/yum.repos.d/brave-browser.repo ]] && echo brave-browser
   [[ -f /etc/yum.repos.d/claude-code.repo ]] && echo claude-code
   cat "$FKH/coprs" 2>/dev/null
   return 0
@@ -23,6 +22,7 @@ hook() {   # hook install|remove NAME
             if [[ $1 == install ]] && ! grep -q '^greetd:' /etc/passwd; then
               echo 'greetd:x:968:968:greetd:/var/lib/greetd:/sbin/nologin' >>/etc/passwd; echo 'greetd:x:968:' >>/etc/group
             fi ;;
+    gamemode) if [[ $1 == install ]] && ! grep -q '^gamemode:' /etc/group; then echo 'gamemode:x:969:' >>/etc/group; fi ;;   # (its sysusers: the group GameMode's nice limit belongs to)
     mpv-mpris) f=/etc/mpv/scripts/mpris.so ;;
     mesa-vulkan-drivers-freeworld) f=/usr/share/vulkan/icd.d/radeon_icd.x86_64.json ;;
     mesa-vulkan-drivers) f=/usr/share/vulkan/icd.d/intel_icd.x86_64.json ;;
@@ -64,7 +64,9 @@ case "$a" in
       if has copr-nochroot "$c"; then
         printf 'Chroot not found in the given Copr project (fedora-44-x86_64).\nYou can choose one of the available chroots explicitly:\n fedora-43-x86_64\n' >&2; exit 1
       fi
-      add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
+      add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"
+      printf '[copr]\ngpgcheck=1\n' >"/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:${c/\//:}.repo"; exit 0;;   # (the plugin's own file: verify asks for its signatures)
+  *" advisory list "*) printf '['; sep=""; while read -r x; do printf '%s{"name":"%s","type":"security"}' "$sep" "$x"; sep=,; done < <(cat "$FKH/advisories" 2>/dev/null); printf ']\n'; exit 0 ;;
   *" offline clean "*|*" system-upgrade clean "*|*" clean metadata "*) exit 0;;
   *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); [[ -s $FKH/pending ]] && r=100
       ((r == 100)) && printf 'bash.x86_64 5.3-1 updates\nkernel-core.x86_64 6.19-1 updates\n'; exit "$r";;
@@ -73,14 +75,18 @@ case "$a" in
   *" --store="*)
       net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       [[ -f $FKH/store-fail ]] && { echo "Failed to download packages" >&2; exit 1; }
+      # (the move to a new Fedora: its own set, $FKH/pending-move; $FKH/move-erase: it resolves only with --allowerasing)
+      list=$FKH/pending; if [[ $a == *--releasever=* ]]; then list=$FKH/pending-move
+        [[ -f $FKH/move-erase && $a != *--allowerasing* ]] && { echo "Problem: package foo requires libbar.so.1" >&2; exit 1; }
+      fi
       [[ -f $FKH/store-try-fail && $a == *"/update/try "* ]] && { echo "Problem: cannot install the best update candidate" >&2; exit 1; }
       d=$(sed -n 's/.*--store=\([^ ]*\).*/\1/p' <<<"$*")
-      want=" "; for x in "$@"; do [[ $x == -* || $x == upgrade ]] || want+="$x "; done
+      want=" "; for x in "$@"; do [[ $x == -* || $x == upgrade || $x == distro-sync ]] || want+="$x "; done
       # (--exclude=A,B: those names left out, as dnf5(8)'s list option)
       ex=" $(sed -n 's/.*--exclude=\([^ ]*\).*/\1/p' <<<"$*" | tr , ' ') "
       rows=$(while read -r n o v; do
                [[ -n $v ]] || continue; [[ $want == " " || $want == *" $n "* ]] || continue; [[ $ex == *" $n "* ]] && continue
-               has versionlock "$n-$v" || echo "$n $o $v"; done < <(cat "$FKH/pending" 2>/dev/null))
+               has versionlock "$n-$v" || echo "$n $o $v"; done < <(cat "$list" 2>/dev/null))
       [[ -n $rows ]] || { echo "Nothing to do."; exit 0; }
       mkdir -p "$d/packages"; sep=""
       { printf '{"version":"1.0","rpms":['
@@ -132,7 +138,7 @@ case "$a" in
   *" --installed "*"%{from_repo}"*)
       p=${*: -1}; has installed "$p" || exit 0
       # ($FKH/from-stored: put in by the update button — dnf5 records @stored_transaction(REPO))
-      case $p in brave-origin) r=brave-browser ;; claude-code) r=claude-code ;; *) r=fedora ;; esac
+      case $p in helium-bin) r=copr:copr.fedorainfracloud.org:imput:helium ;; claude-code) r=claude-code ;; *) r=fedora ;; esac
       if [[ -f $FKH/from-stored ]]; then echo "@stored_transaction($r)"; else echo "$r"; fi; exit 0;;
   *" --releasever="*" repoquery "*)
       net_on || { echo "Failed to download metadata" >&2; exit 1; }
@@ -207,7 +213,8 @@ case "$a" in
         [[ $p == kernel-core-[0-9]* && -f $FKH/kernels ]] && sed -i "/^${p#kernel-core-}\$/d" "$FKH/kernels"   # (a kernel's version gone)
       done; exit 0;;
   *" system-upgrade download "*) net_on || exit 1; [[ $a == *--assumeno* ]] && { echo "would remove: foo"; exit 1; }; exit "$(rcfor sysup 0)";;
-  *" system-upgrade reboot "*) exit "$(rcfor reboot 0)";;
+  # ($FKH/reboot-terms: as a real shutdown does, the service that asked gets its TERM)
+  *" system-upgrade reboot "*) [[ -f $FKH/reboot-terms ]] && { kill -TERM "$PPID"; sleep 0.2; }; exit "$(rcfor reboot 0)";;
   *" upgrade "*)
       net_on || { echo "Curl error (6): Could not resolve host" >&2; exit 1; }
       # $FKH/fail-dnf-upgrade = N: cut off half-way N times, each leaving packages twice — on

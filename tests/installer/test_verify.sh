@@ -2,7 +2,7 @@
 # tests/installer/test_verify.sh — verify.sh on a finished install (the fake machine): every check
 # passes on a sound system (exit 0); warnings never fail it (exit 0, counted); each failure is
 # named and makes exit 3; --pre-finalize (setup's gate) leaves out what comes after it; misuse
-# is exit 2. Then the recent ones by name: the firewall (a warning when firewalld is off), the
+# is exit 2. Then the recent ones by name: the firewall (tests/installer/test_net.sh has the rest), the
 # render node of the card the desktop is built for (Intel's graphics first, AMD's second),
 # the boot checks skipped while the theme could not make the boot menu, a laptop's backlight
 # as brightness control, a dual boot's menu, the user units Fedora's presets enable, the ROCm
@@ -25,15 +25,15 @@ read -r t p f w <"$W/var/lib/fedokawaii/last-verify"
 has "$OUT" "✔  all " ; has "$OUT" "manifest packages installed"
 has "$OUT" "✔  no lpf, nothing it left (Spotify is its web player)"
 has "$OUT" "✔  user unit wireplumber.service enabled"; has "$OUT" "✔  hardware decode: H264High"
-has "$OUT" "✔  torrent port 6881 open"; has "$OUT" "✔  firewall: ssh open, no cockpit"; has "$OUT" "✔  sshd: keys only, no root (SSH_SERVER=yes)"
+has "$OUT" "✔  the firewall: only the list's doors"; has "$OUT" "✔  sshd: keys only, no root"
 has "$OUT" "✔  ROCm SMI library for btop (librocm_smi64.so.1.0)"
-fkh sshd-camel; V; has "$OUT" "✔  sshd: keys only, no root (SSH_SERVER=yes)" "OpenSSH 10.5 (Fedora 45) prints PermitRootLogin as written"; rm -f "$FKH/sshd-camel"
+fkh sshd-camel; V; has "$OUT" "✔  sshd: keys only, no root" "OpenSSH 10.5 (Fedora 45) prints PermitRootLogin as written"; rm -f "$FKH/sshd-camel"
 has "$OUT" "✔  restic runs (backups to another disk: kawa-backup)"   # (the exclude list is the theme's: test_theme.sh)
 has "$OUT" "✔  Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔  syncplay runs without a window"
 has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔  shutdown waits 30 s at most for your services"
 has "$OUT" "✔  your own systemd runs (user@$FK_UID)"; has "$OUT" "✔  every user's systemd left as it came, but the shutdown's wait"
-has "$OUT" "✔  the sound card never naps (no click at a volume change)"; has "$OUT" "✔  a restart waits for Steam to close properly (25 s at most)"
+has "$OUT" "✔  the sound card never naps (no click at a volume change)"
 
 case_ "your own systemd: not running, or a drop-in for every user@ beside the shutdown's (4 Nov: it kept dia's manager from starting): each said"
 cp "$FKH/units" "$FKH/units.keep"; sed -i "/^active user@$FK_UID\.service\$/d" "$FKH/units"
@@ -41,8 +41,8 @@ echo x >"$W/etc/systemd/system/user@.service.d/50-walls.conf"
 V; eq "$RC" 3; has "$OUT" "✘  your own systemd runs (user@$FK_UID)"; has "$OUT" "✘  every user's systemd left as it came, but the shutdown's wait"
 rm -f "$W/etc/systemd/system/user@.service.d/50-walls.conf"; mv -f "$FKH/units.keep" "$FKH/units"
 
-case_ "…the same once the update button put brave-origin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
-fkh from-stored; V; has "$OUT" "✔  brave-origin from brave-browser (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
+case_ "…the same once the update button put helium-bin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
+fkh from-stored; V; has "$OUT" "✔  helium-bin from copr:copr.fedorainfracloud.org:imput:helium (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
 case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
 back built
 fk bash -c 'c=/home/fkuser/.local/share/containers/storage/overlay; runuser -u fkuser -- mkdir -p "$c/l1/diff/app" && : >"$c/l1/diff/app/Prowlarr.dll" && chown -R 100910:100910 "$c/l1"'   # (podman's own folders: yours)
@@ -71,20 +71,17 @@ fkh prowlarr-auth forms; V; eq "$RC" 3
 has "$OUT" "✘  Prowlarr's page opens with no login — authentication: forms, its page answered 302"; rm -f "$FKH/prowlarr-auth"
 
 # ── warnings: never a failure ────────────────────────────────────────────────
-case_ "warnings only (no firewall running, no AV1 decoding, GE-Proton not yet, Syncplay and ble.sh not yet, a driver package missing): exit 0"
+case_ "warnings only (no AV1 decoding, Syncplay and ble.sh not yet, a driver package missing): exit 0"
 back built
-fkh firewalld-down
 printf '      VAProfileH264High   : VAEntrypointVLD\n      VAProfileHEVCMain   : VAEntrypointVLD\n' >"$FKH/vainfo-renderD128"
-rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton"
 rm -f "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh"
 fkh kmsg '[ 3.1] iwlwifi 0000:00:14.3: Direct firmware load for iwlwifi-so-a0-gf-a0-89.ucode failed with error -2'
 fkh fwfiles "iwlwifi-mvm-firmware /usr/lib/firmware/iwlwifi-so-a0-gf-a0-89.ucode.xz"
 V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "!  no firewall running (firewalld)"; lacks "$OUT" "torrent port 6881"; lacks "$OUT" "firewall: no ssh"
-has "$OUT" "!  no AV1 hardware decode"; has "$OUT" "!  GE-Proton not installed yet"
+has "$OUT" "!  no AV1 hardware decode"
 has "$OUT" "!  driver packages this machine needs — iwlwifi-mvm-firmware"
 has "$OUT" "!  Syncplay not installed yet"; has "$OUT" "!  ble.sh not installed yet"
-has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 5)) && _ok || _no "$w warnings recorded"
+has "$OUT" "warning(s)"; read -r _ _ _ w <"$W/var/lib/fedokawaii/last-verify"; ((w >= 4)) && _ok || _no "$w warnings recorded"
 case_ "the yazi file dialog not built: a failure — apps could not open or save a file"
 back built
 rm -f "$W/usr/local/libexec/xdg-desktop-portal-termfilechooser"
@@ -100,8 +97,9 @@ case_ "a damaged system: each failure named in place and in the list at the end,
 back built
 fkh_del installed grubby man-db                                           # the base tools, gone
 fkh_add installed nano; fkh_add userinstalled "htop User"; fkh_add installed htop   # forbidden; extra
+fkh_add installed systemd-import-keys; fkh_add userinstalled "systemd-import-keys User"; echo "systemd-import-keys systemd-container" >"$FKH/obsoletes"   # (split off a manifest package: not his, as on Fedora 45)
 fkh_del units "global-enabled wireplumber.service"                         # Fedora's preset undone
-fkh fw-services dhcpv6-client ssh cockpit                                  # cockpit open (closed whatever SSH_SERVER says)
+fkh firewalld-down                                                         # no firewall running
 fkh kernels "6.18.1-200.fc44.x86_64" "6.18.2-200.fc44.x86_64" "6.18.44-fc-v114"
 rm -f "$FKH/vainfo-renderD128"                                             # no VA-API driver
 fkh scrub-status $'Scrub started: x\nError summary:    csum=3\n  Corrected:      0\n  Uncorrectable:  3'
@@ -117,9 +115,9 @@ has "$(line "✘  missing packages")" grubby; has "$(line "✘  missing packages
 has "$OUT" "✘  forbidden packages present — nano"; has "$(line "✘  forbidden packages present")" systemd-oomd-defaults
 has "$OUT" "✘  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✘  shutdown waits 30 s at most for your services"
 has "$OUT" "✘  the sound card never naps (no click at a volume change) — /etc/modprobe.d/fedokawaii-audio.conf missing"
-has "$OUT" "✘  installed outside the manifest — htop"
+has "$OUT" "✘  installed outside the manifest — htop"; lacks "$(line "✘  installed outside the manifest")" systemd-import-keys
 has "$OUT" "✘  user unit wireplumber.service enabled"
-has "$OUT" "✘  firewall: ssh open, no cockpit"
+has "$OUT" "✘  the firewall: firewalld is not running"
 has "$OUT" "✘  one kernel (two at most while a new one settles in)"
 has "$OUT" "✘  hardware decode — vainfo found no VA-API driver on /dev/dri/renderD128"
 has "$OUT" "✘  the last scrub found errors"
@@ -179,7 +177,7 @@ case_ "--pre-finalize (setup's gate): the login and snapshots not yet looked at;
 back built; rm -f "$W/etc/systemd/system/display-manager.service" "$W/var/lib/fedokawaii/last-verify"
 fkh_del units "enabled greetd.service" "enabled snapper-timeline.timer" "enabled snapper-cleanup.timer"
 V --pre-finalize; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapshots"
+has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapper config for /" "the snapshots' section left out (the play world's own snapshots are another check)"; lacks "$OUT" "baseline snapshot"   # (not the word alone: a home on Btrfs has a line on ~/Downloads and snapshots)
 [[ ! -e $W/var/lib/fedokawaii/last-verify ]] && _ok || _no "the gate's run was recorded for the menu"
 V; eq "$RC" 3 "without --pre-finalize those are failures"; has "$OUT" "✘  the login is no login manager at all"
 case_ "misuse: an unknown option, not root, setup not started (exit 2); --help (0)"
@@ -248,20 +246,6 @@ sed -i 's/Enabled: no/Enabled: yes/; s/(preferred)/(preferred, current)/' "$W/us
 V; has "$OUT" "✘  kawa-mem running"; has "$OUT" "✘  kawa-nowplaying running"; has "$OUT" "✔  refresh 144 Hz = best available ≤"
 lacks "$OUT" "every screen is dark"
 
-case_ "\"Share\" (the loopback of ~/.config/pipewire): found by its node name in PipeWire's list — WirePlumber 0.5's wpctl status shows a loopback under Filters by node.name, never \"Share\""
-back built; fkh procs "/usr/local/bin/dwl"
-cat >"$FKH/pw-dump" <<'J'
-[ { "id": 32, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink.out", "media.class": "Stream/Output/Audio", "node.description": "Share", "node.link-group": "loopback-1904-27" } } },
-  { "id": 33, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "share_sink", "media.class": "Audio/Sink", "node.description": "Share", "node.link-group": "loopback-1904-27" } } } ]
-J
-V; has "$OUT" "✔  \"Share\" output for calls (PipeWire node share_sink, an Audio/Sink"
-case_ "…its file not loaded (only the playback half, or nothing): a failure"
-cat >"$FKH/pw-dump" <<'J'
-[ { "id": 50, "type": "PipeWire:Interface:Node", "info": { "props": { "node.name": "alsa_output.pci-0000_0c_00.4.analog-stereo", "media.class": "Audio/Sink", "node.description": "Share-alike speakers" } } } ]
-J
-V; has "$OUT" "✘  \"Share\" output for calls"
-rm -f "$FKH/pw-dump"; V; has "$OUT" "✘  \"Share\" output for calls" "PipeWire not running: no Share"
-
 # ── Wi-Fi ────────────────────────────────────────────────────────────────────
 case_ "a Wi-Fi radio NetworkManager does not manage: a failure"
 back built; hw_wifi; fkh nm-devices "ethernet:connected" "wifi:unmanaged"
@@ -295,15 +279,15 @@ printf 'linux /vmlinuz rootflags=subvol="root/.snapshots/371/snapshot" quiet\n' 
 V; eq "$RC" 3; has "$OUT" "✘  the boot menu's snapshots — it names root/.snapshots/371/snapshot, no longer on the disk — fedokawaii repair lists them again"
 rm -f "$W/boot/grub2/grub-btrfs.cfg"; V; has "$OUT" "✔  $n"
 
-# ── Brave ────────────────────────────────────────────────────────────────────
-case_ "Brave Origin: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
+# ── the browser ────────────────────────────────────────────────────────────────────
+case_ "Helium: started hidden, it is 'started' when its DevTools port answers — and nothing of it is left running"
 back built; V
-has "$OUT" "✔  Brave Origin starts (headless: its DevTools port answers)"
-p=$(cat "$FKH/brave-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "Brave left running after the check (pid ${p:-none})"
-case_ "Brave Origin that cannot start: a failure, said at once (not after the full minute)"
-fkh brave broken; t0=$SECONDS; V; eq "$RC" 3
-has "$OUT" "✘  Brave Origin starts (headless: its DevTools port answers)"
-((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a Brave that had exited"
-rm -f "$FKH/brave"
+has "$OUT" "✔  Helium starts (headless: its DevTools port answers)"
+p=$(cat "$FKH/browser-pid" 2>/dev/null); [[ -n $p ]] && ! kill -0 "$p" 2>/dev/null && _ok || _no "the browser left running after the check (pid ${p:-none})"
+case_ "A browser that cannot start: a failure, said at once (not after the full minute)"
+fkh browser broken; t0=$SECONDS; V; eq "$RC" 3
+has "$OUT" "✘  Helium starts (headless: its DevTools port answers)"
+((SECONDS - t0 < 50)) && _ok || _no "waited $((SECONDS - t0)) s for a browser that had exited"
+rm -f "$FKH/browser"
 
 done_

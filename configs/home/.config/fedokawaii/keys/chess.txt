@@ -1,0 +1,25 @@
+# chess (learning in Super+U): today's plan, lessons, puzzles, your games, your progress
+# source: configs/home/.local/lib/fedokawaii/kawa-chess (Home.key, MoveInput, Game.key, Session.key, Review.key)
+── chess: on the board ────────────────────────────────────────────
+Nf3 exd5 O-O            type a move: lower case and no x are fine
+Enter                   play what is typed, or what the cursor is on
+↑ ↓ ← →                 the keyboard's place on the board
+a click, or a drag      pick up a piece, put it down
+?                       a hint: the lantern on the piece, again the arrow
+t                       marks on your pieces in danger, on or off
+Esc                     let go of what is in hand; then the game's menu
+q r b n                 which piece a pawn becomes (Enter: the queen)
+── chess: the lists ───────────────────────────────────────────────
+Tab / Shift+Tab         the next tab, the one before
+← / →                   the same
+↑ / ↓                   the row before, the row after
+Enter                   do what the row says
+Esc                     back; on the first screen, away
+── chess: in a lesson ─────────────────────────────────────────────
+Enter or Space          on to the next page
+←                       the page before
+↑ / ↓                   scroll a long page
+── chess: in a review ─────────────────────────────────────────────
+← / →                   walk the game; walk the better line
+Enter                   choose your worst move; on to the next moment
+Esc                     show the answer; skip what is left to write

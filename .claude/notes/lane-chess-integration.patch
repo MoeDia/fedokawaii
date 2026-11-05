@@ -1,0 +1,206 @@
+diff --git a/PACKAGES.md b/PACKAGES.md
+index 644d96af..dd4fc37a 100644
+--- a/PACKAGES.md
++++ b/PACKAGES.md
+@@ -56,6 +56,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
+ | Files | yazi + 7zip + file | GH (musl) + F | 7-Zip: archive previews and extraction; `file`: types |
+ | Office | LibreOffice Writer · Calc · Impress + libreoffice-gtk3 · hunspell-en · hunspell-ar | F | open and edit Word, Excel and PowerPoint files (and OpenDocument), the defaults for them (a `.csv` stays VisiData's); drawn by GTK 3, so it follows the theme; English and Arabic spelling — Arabic is its right-to-left language here (`/etc/dconf`, Theme). Only these three: no Base, Draw or Math; Java and the offline help are never taken as weak dependencies |
+ | Reading | zathura (+ mupdf, cb) | F | PDF, EPUB, CBZ; the books window's comic covers and page counts come from 7z (Files' 7zip; a RAR comic's from unrar) |
++| Chess | stockfish | F | the opponent and the reviewer of the chess course (`kawa-chess`, Super+U → learning): it runs only while it is needed |
+ | PDF tools | qpdf · poppler-utils · ghostscript · xournalpp | F | merge, split, rotate, password · images and text out · compress · annotate and sign |
+ | Text from pictures (OCR) | tesseract (+ English, Arabic) | F | scans and screenshots to text, and searchable PDFs |
+ | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |
+diff --git a/docs/design-system.md b/docs/design-system.md
+index fc86224b..e7722b8a 100644
+--- a/docs/design-system.md
++++ b/docs/design-system.md
+@@ -590,6 +590,7 @@ numbers here against its files.
+ | files | Super+E | yazi (`configs/home/.config/yazi/`) | T22 |
+ | help | Super+/ | `bin/kawa-help` | T23 |
+ | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
++| chess: the board (sixels), its men, its panel | Super+U → learning, the launcher | `bin/kawa-chess`, `.local/lib/fedokawaii/kawa-chess`, `.local/share/fedokawaii/chess` (inks: `tools/build-chess-inks.py`) | T25b |
+ 
+ ## 15. The grill list
+ 
+diff --git a/lib/manifest.sh b/lib/manifest.sh
+index b91d5745..6a0e39a1 100755
+--- a/lib/manifest.sh
++++ b/lib/manifest.sh
+@@ -123,6 +123,7 @@ PKG_LOOK=(
+   terminus-fonts-console          # the text console's font (Terminus bold, theme.sh)
+ )
+ PKG_APPS=(
++  stockfish             # chess: the opponent and the reviewer of kawa-chess (Super+U → learning), its net inside the binary
+   brave-origin claude-code                          # browser, AI (vendor repos)
+   gh                                                # GitHub from the terminal: sign in once (gh auth login),
+                                                     #   then clone, pull requests, issues, releases
+diff --git a/system/fedokawaii b/system/fedokawaii
+index 2eacdc8e..cb65c96c 100755
+--- a/system/fedokawaii
++++ b/system/fedokawaii
+@@ -690,7 +690,7 @@ tab_icon() {   # tab_icon SECTION → its pixel icon
+   esac
+ }
+ # what is not built yet: a row in the faint ink that says "soon", its pane what it will be
+-SOON='chess|typing'
++SOON='typing'
+ PANE_ONLY='held'   # (an entry that is its pane alone: enter does nothing)
+ # every entry: SECTION<TAB>ACTION<TAB>ICON<TAB>NAME<TAB>VALUE (the value at the right, muted — or
+ # in the vermilion when it needs you: due, ready, to fix, no backup); rows SECTION: that
+@@ -752,7 +752,7 @@ rows() {
+   e backups   carry     "${ICON_TAKE_OUT:-·}"   "before you wipe"      ""
+   e backups   bring     "${ICON_UNDO:-·}"       "bring back"           ""
+   e learning  guide     "${ICON_BOOK:-·}"       lessons                ""
+-  e learning  chess     "${ICON_KNIGHT:-·}"     chess                  ""
++  [[ -n $desk ]] && e learning chess "${ICON_KNIGHT:-·}" chess ""
+   e learning  typing    "${ICON_KEYBOARD:-·}"   typing                 ""
+   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
+   return 0
+@@ -880,7 +880,7 @@ tick() {
+ explain() {
+   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} F=${INK_FAINT:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
+   # (nothing, or something unknown: nothing to explain)
+-  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|$SOON) ]] || return 0
++  [[ $a == @(status|update|pull|upgrade|held|verify|repair|snapshots|file|backup|restore|drive|carry|bring|theme|drift|change|settings|remind|log|keys|guide|chess|$SOON) ]] || return 0
+   printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
+   # (the whole status only for the entries that show more than whether a run is going on:
+   # the pane follows the cursor, so the others stay instant)
+@@ -1017,8 +1017,10 @@ explain() {
+     drive)     pick 'running'; drive_rows
+                say "the drive your backups go to. enter: another," \
+                    "from the drives plugged in." ;;
+-    chess)     soon "chess from the first move to 1800: games," \
+-                    "puzzles, lessons." ;;
++    chess)     pick 'running'
++               say "chess from the first move to 1800: a lesson," \
++                   "two games with their reviews, ten minutes of" \
++                   "puzzles, day after day. enter: today's." ;;
+     typing)    soon "touch typing, finger by finger, to 100 words" \
+                     "a minute." ;;
+   esac
+@@ -1120,6 +1122,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
+     log)       log_view; return 0 ;;   # (as `fedokawaii log`)
+     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
+     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
++    chess)     setsid -f kawa-chess --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (a window of its own)
+     guide)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
+                  local why; why=$(guide 2>&1) || notify-send -a desktop -u critical -- "${ICON_TORII:-·}  learn" "${why#  }"
+                  return 0
+@@ -1348,7 +1351,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
+     # (what opens a window of its own — the guide, the key sheet, the settings — starts it
+     # without fzf giving up the screen, then puts the popup away: dwl fades it off as it is,
+     # never a blank terminal first; the list starts afresh behind the scenes)
+-    launch="guide|keys|change) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
++    launch="guide|keys|change|chess) echo 'execute-silent($self --run {1})+execute-silent(kawa-warm system)' ;; "
+     rm -f -- "${listen[0]#--listen=}"              # (one killed outright left it: fzf would not start)
+   fi
+   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
+@@ -1384,7 +1387,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
+     --bind="click-header:execute-silent($self --tab click \$FZF_CLICK_HEADER_COLUMN \$FZF_CLICK_HEADER_LINE)+$go" \
+     --bind="j:down,k:up,l:execute-silent($self --tab +1)+$go,h:execute-silent($self --tab -1)+$go,q:${away}abort" \
+     --bind="esc,ctrl-c,ctrl-g,ctrl-q:${away}abort" \
+-    --bind="enter:transform:case {1} in $PANE_ONLY|$SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
++    --bind="enter:transform:case {1} in $PANE_ONLY|$SOON) ;; ${launch}remind) echo 'execute-silent($self --run {1})+reload-sync($self --items)' ;; change|keys|chess${pop}) echo '${away}become($self --run {1})' ;; *) echo 'execute($self --run {1})+reload-sync($self --items)' ;; esac" >/dev/null
+   local rc=$?; rm -f -- "$FK_TAB"; return "$rc"
+ }
+ 
+diff --git a/tests/engine/test_menu.sh b/tests/engine/test_menu.sh
+index 661b0c5c..4129462c 100755
+--- a/tests/engine/test_menu.sh
++++ b/tests/engine/test_menu.sh
+@@ -126,14 +126,14 @@ done
+ has "$(row update)" "in 80 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 90 days"
+ lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; has "$(row upgrade)" "Fedora 45"
+ case_ "rows: what is not built yet in the faint ink, its value 'soon' — never a dead entry"
+-for a in chess typing; do
++for a in typing; do
+   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
+   has "$l" $'\e[38;5;22m' "$a: faint"; [[ $(plain "$l") == *" soon" ]] && _ok || _no "$a: no soon: $(plain "$l")"
+   has "$(plain "$(fedokawaii --explain "$a")")" "not yet" "$a: the pane says so"
+ done
+ case_ "rows: away from the desktop (a text console, ssh) — change, keys and the to-do are screens of the desktop"
+ eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
+-eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide chess typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
++eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "guide typing " "(the to-do is the notes' window: the desktop's, as change and keys)"
+ case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
+ eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update pull upgrade held "
+ eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
+@@ -213,13 +213,13 @@ case_ "…nor a way in by name: --run todo runs nothing, --explain todo is empty
+ fresh; stub kawa-notes
+ WAYLAND_DISPLAY=wayland-1 fedokawaii --run todo </dev/null; not_called 'kawa-notes'
+ eq "$(fedokawaii --explain todo 2>&1)" ""
+-has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY|\$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys\${pop}) echo '\${away}become("
++has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY|\$SOON) ;; \${launch}remind) echo 'execute-silent(\$self --run {1})+reload-sync(\$self --items)' ;; change|keys|chess\${pop}) echo '\${away}become("
+ case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the guide, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
+ fresh; stub fzf 'cat >/dev/null; exit 130'
+ on_tty "" fedokawaii --popup >/dev/null
+-called "enter:transform:case \\{1\\} in held\\|chess\\|typing\\) ;; guide\\|keys\\|change\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+-called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
+-reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|chess\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\) echo .become\('
++called "enter:transform:case \\{1\\} in held\\|typing\\) ;; guide\\|keys\\|change\\|chess\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
++called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|chess\|update\|pull\|upgrade\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|settings\|log\) echo .become\('
++reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\|typing\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\|chess\) echo .become\('
+ called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
+ case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
+ reset_calls; KAWA_WARM=system on_tty "" fedokawaii --popup >/dev/null
+diff --git a/tests/look/fixtures/launched.txt b/tests/look/fixtures/launched.txt
+index b4656f2a..694fcc3f 100644
+--- a/tests/look/fixtures/launched.txt
++++ b/tests/look/fixtures/launched.txt
+@@ -45,6 +45,7 @@ prowlarr               kawa-prowlarr                           prowlarr
+ # the desktop's own helpers that open a window of their own
+ kawa-backup            kawa-backup                             kawa-backup
+ kawa-books             kawa-books                              kawa-books
++kawa-chess             kawa-chess                              kawa-chess
+ kawa-clip              kawa-clip                               kawa-clip
+ kawa-git               kawa-git                                kawa-git
+ kawa-notes             kawa-notes                              kawa-notes
+diff --git a/tests/look/fixtures/not-launched.txt b/tests/look/fixtures/not-launched.txt
+index ad5c5e5a..06edf93b 100644
+--- a/tests/look/fixtures/not-launched.txt
++++ b/tests/look/fixtures/not-launched.txt
+@@ -138,6 +138,7 @@ zathura-cb                      zathura's comics part
+ qpdf                            a command: PDF tools
+ poppler-utils                   commands: PDF tools
+ ghostscript                     a command: PDF compression
++stockfish                       kawa-chess runs it, only while it is needed
+ tesseract                       a command: text from scans
+ tesseract-langpack-eng          tesseract's English
+ tesseract-langpack-ara          tesseract's Arabic
+diff --git a/tests/look/test_launcher.sh b/tests/look/test_launcher.sh
+index 54d04d5b..f7183a57 100644
+--- a/tests/look/test_launcher.sh
++++ b/tests/look/test_launcher.sh
+@@ -100,7 +100,7 @@ eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords
+ case_ "every listed entry: a window program's own icon, or one of our pixel icons (X-Fedokawaii-Icon)"
+ OFFICIAL=" com.github.xournalpp.xournalpp steam "
+ OURS="footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
+-  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-wallpaper:picture kawa-backup:archive
++  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-chess:knight kawa-wallpaper:picture kawa-backup:archive
+   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
+   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
+   kawa-prowlarr:search spotify:music whatsapp:speech"
+diff --git a/tests/static/fixtures/programs.txt b/tests/static/fixtures/programs.txt
+index eed66e0e..15ad056d 100644
+--- a/tests/static/fixtures/programs.txt
++++ b/tests/static/fixtures/programs.txt
+@@ -54,6 +54,7 @@ sleep               minimal   coreutils
+ sort                minimal   coreutils
+ stat                minimal   coreutils
+ stdbuf              minimal   coreutils
++stockfish           manifest  stockfish         # kawa-chess (lib engine.py): /usr/bin/stockfish, Fedora 45 updates
+ stty                minimal   coreutils
+ sync                minimal   coreutils
+ tail                minimal   coreutils
+diff --git a/tools/packages.evidence b/tools/packages.evidence
+index 6449cb93..6cacbd7d 100644
+--- a/tools/packages.evidence
++++ b/tools/packages.evidence
+@@ -122,6 +122,7 @@ python3-pem|fedora|https://packages.fedoraproject.org/search?query=python3-pem|2
+ python3-pyOpenSSL|fedora|https://packages.fedoraproject.org/search?query=python3-pyOpenSSL|2026-10-14|manifest 2026-10-14
+ python3-pillow|fedora|https://packages.fedoraproject.org/pkgs/python-pillow/python3-pillow/|2026-11-01|python3-pillow-12.3.0 (from python-pillow), Fedora 44 updates (dnf info): the shots measured by tools/regress and px.py
+ python3-pyte|fedora|https://packages.fedoraproject.org/pkgs/python-pyte/python3-pyte/|2026-10-27|python3-pyte-0.8.2-15.fc44 (from python-pyte), installed from Fedora 44's own repo: the self-tests' terminal screen
++stockfish|fedora|https://packages.fedoraproject.org/pkgs/stockfish/stockfish/|2026-11-04|F45 updates: stockfish 19-1.fc45 (mdapi.fedoraproject.org/f45/pkg/stockfish, dnf --releasever=45 repoquery; UCI_Elo 1320–3190, Skill Level 0–20 by its own `uci`); net embedded (99 MB binary)
+ systemd-container|fedora|https://packages.fedoraproject.org/pkgs/systemd/systemd-container/|2026-11-01|F44 (dnf5 repoquery: fedora + updates, 259.10-1.fc44 on this PC; /usr/bin/systemd-nspawn — the update's candidate)
+ wlrctl|fedora|https://packages.fedoraproject.org/pkgs/wlrctl/wlrctl/|2026-10-27|wlrctl-0.2.2-6.fc44 (upstream git.sr.ht/~brocellous/wlrctl), in Fedora 44, 45 and Rawhide: the self-tests' pointer (zwlr_virtual_pointer_v1, which dwl offers)
+ python3-twisted|fedora|https://packages.fedoraproject.org/pkgs/python-twisted/python3-twisted/fedora-44.html|2026-10-20|F44

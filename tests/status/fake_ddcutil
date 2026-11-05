@@ -2,7 +2,10 @@
 # fake ddcutil (from the display review's kit, review12/B): monitors on the I2C buses in
 # $DDC_BUSES ("5 7"); a bus in $DDC_DEAD answers detect as "Invalid display" (DDC/CI off) and
 # nothing else. Each monitor's level is in $DDC/b<bus> (70 if none), its maximum in
-# $DDC/max<bus> (100 if none). Every call takes $DDC_DELAY seconds (0) and is logged to $DDC/log.
+# $DDC/max<bus> (100 if none). Other codes: $DDC/c<bus>.<CODE> holds the value ("50": continuous,
+# "x0b": a choice; none: no answer), and a file $DDC/reads.<CODE> with lines "WRITTEN ANSWER" makes
+# a written value read back as something else. Every call takes $DDC_DELAY seconds (0) and is
+# logged to $DDC/log.
 st=$DDC
 echo "$(date +%s.%N) $$ $*" >>"$st/log"
 [[ ${DDC_DELAY:-0} != 0 ]] && /bin/sleep "$DDC_DELAY"
@@ -31,5 +34,15 @@ case " $* " in
     live "$bus" || { echo "Display not found" >&2; exit 1; }
     set -- "$@"; while [[ $1 != setvcp ]]; do shift; done
     [[ $3 =~ ^[0-9]+$ ]] && echo "$3" >"$st/b$bus" ;;
+  *" getvcp "*)
+    live "$bus" || { echo "Display not found" >&2; exit 1; }
+    set -- "$@"; while [[ $1 != getvcp ]]; do shift; done
+    v=$(cat "$st/c$bus.$2" 2>/dev/null) || exit 1
+    case $v in x*) echo "VCP $2 SNC $v" ;; *) echo "VCP $2 C $v 100" ;; esac ;;
+  *" setvcp "*)
+    live "$bus" || { echo "Display not found" >&2; exit 1; }
+    set -- "$@"; while [[ $1 != setvcp ]]; do shift; done
+    v=$3; [[ -r $st/reads.$2 ]] && { a=$(awk -v w="$3" '$1 == w { print $2 }' "$st/reads.$2"); v=${a:-$v}; }
+    echo "$v" >"$st/c$bus.$2" ;;
   *) echo "ddcutil stub: $*" >&2; exit 1 ;;
 esac

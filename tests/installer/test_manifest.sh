@@ -2,12 +2,12 @@
 # tests/installer/test_manifest.sh — lib/manifest.sh, the single source of truth: no package
 # both wanted and forbidden, none listed twice, the base tools a Minimal Install lacks listed
 # (tar, grubby, diffutils, man-db — and what the scripts call: python3, glib2, fontconfig),
-# retired ones out of the lists, systemd-oomd's rules kept out, Steam's only with STEAM=yes,
+# retired ones out of the lists, systemd-oomd's rules kept out, the play world's always in,
 # the GPU's by GPU, what upstream and the hardware recorded counted in, the user units verify
 # checks. Pure: no fake machine.
 FK_PURE=1 . "$(dirname "$0")/lib.sh"
 sandbox
-m() { ( STATE_DIR=$TMP/state; STEAM=${STEAM:-yes}; . "$REPO/lib/manifest.sh"; eval "$1" ); }
+m() { ( STATE_DIR=$TMP/state; . "$REPO/lib/manifest.sh"; eval "$1" ); }
 all() { m "manifest_all ${1:-amd}"; }
 
 case_ "every list parses; the manifest for AMD and for Intel"
@@ -42,7 +42,7 @@ case_ "forbidden by the names Fedora's packages have, not by their commands (rpm
 f=$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"')
 has "$f" SwayNotificationCenter; grep -qx swaync <<<"$f" && _no "swaync is a command: its package is SwayNotificationCenter" || _ok
 case_ "lazygit from its own release, pinned like yazi (its COPR is no longer kept): no package, no COPR"
-lacks "$(all amd)" lazygit; eq "$(m 'echo "${COPRS[*]}"')" "ilyaz/LACT zzahkaboom24/grub-btrfs"
+lacks "$(all amd)" lazygit; eq "$(m 'echo "${COPRS[*]}"')" "ilyaz/LACT zzahkaboom24/grub-btrfs imput/helium"
 has "$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')" lazygit
 u=$( . "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" )
 grep -qE '^lazygit\|jesseduffield/lazygit\|v[0-9.]+\|lazygit_[0-9.]+_linux_x86_64\.tar\.gz\|[0-9a-f]{64}\|lazygit$' <<<"$u" && _ok || _no "lazygit not pinned in lib/upstream.sh"
@@ -65,12 +65,12 @@ case_ "Syncplay's own needs are listed (Fedora's Twisted with TLS, pyOpenSSL, ce
 for p in python3-twisted python3-twisted+tls python3-pyOpenSSL python3-certifi python3-pem; do grep -qxF "$p" <<<"$a" || _no "$p not in the manifest"; done; _ok
 lacks "$(all amd)" $'\nsyncplay\n'; lacks "$(all amd)" pyside
 
-case_ "STEAM=no: Steam's packages out; yes: in"
-STEAM=no; has "$(all amd)" mpv; lacks "$(all amd)" steam; lacks "$(all amd)" ntsync-autoload
-STEAM=yes; has "$(all amd)" steam; has "$(all amd)" ntsync-autoload
-case_ "a game controller: Steam's rules for it (steam-devices) listed with Steam, never assumed to come along"
-grep -qx steam-devices <<<"$(all amd)" && _ok || _no "steam-devices not in the manifest"
-STEAM=no; grep -qx steam-devices <<<"$(all amd)" && _no "steam-devices without Steam" || _ok; STEAM=yes
+case_ "the play world's packages — Flatpak, gamescope, GameMode, ntsync, the controllers' rules (steam-devices) — are always in, listed, never assumed to come along; Steam and MangoHud are retired, never listed"
+a=$(all amd); has "$a" mpv
+for p in flatpak gamescope gamemode ntsync-autoload steam-devices; do grep -qx "$p" <<<"$a" || _no "$p not in the manifest"; done; _ok
+r=$(m 'printf "%s\n" "${RETIRED_PKGS[@]}"')
+for p in steam mangohud; do grep -qx "$p" <<<"$r" && _ok || _no "$p not retired"; grep -qx "$p" <<<"$a" && _no "$p in the manifest" || _ok; done
+grep -qx flatpak <<<"$(m 'printf "%s\n" "${FORBIDDEN_PKGS[@]}"')" && _no "flatpak forbidden (the play world's user has its own)" || _ok
 
 case_ "what lib/upstream.sh and lib/hardware.sh recorded belongs to the manifest"
 mkdir -p "$TMP/state"; echo openssl3-libs >"$TMP/state/upstream-libs"; printf '%s\n' iwlwifi-mvm-firmware amd-ucode-firmware >"$TMP/state/hardware-pkgs"
@@ -84,8 +84,8 @@ has "$(m 'printf "%s\n" "${SVC_SYSTEM[@]}"')" greetd.service; has "$(m 'echo "${
 case_ "every name is a plain package name (no stray spaces, no comment glued on)"
 bad=$(all amd | grep -vE '^[A-Za-z0-9][A-Za-z0-9._+-]*$' || true); eq "$bad" ""
 case_ "the vendor repositories: HTTPS, and the Claude key's fingerprint is 40 hex digits"
-has "$(m 'echo $BRAVE_REPO_URL $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "https://"
+has "$(m 'echo $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "https://"
 [[ $(m 'echo $CLAUDE_KEY_FPR') =~ ^[0-9A-F]{40}$ ]] && _ok || _no "fingerprint"
-lacks "$(m 'echo $BRAVE_REPO_URL $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "http:"
+lacks "$(m 'echo $CLAUDE_REPO_BASEURL $CLAUDE_KEY_URL')" "http:"
 
 done_

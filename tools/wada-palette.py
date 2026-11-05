@@ -118,12 +118,17 @@ def dark():
     p["accent_text"] = p["accent_hi"]
     RECIPE["dark.accent_text"] = RECIPE["dark.accent_hi"]
     p["text_on_accent"] = p["lo"]                 # (Wada's Black on the vermilion: 4.5 : 1 and over)
-    # what is selected — a menu's row under the cursor, quick settings' item, GTK's and Qt's
-    # selection: the same deep lacquer in both themes (漆, one grammar), the strongest cream on it
-    # (7.3 : 1; the vermilion held black words at 5.1 only — the owner's 19:19 complaint)
-    p["select"] = w("Vandyke Red", "dark.select")
+    # the keyboard's place on a row (the owner's page, 4 Nov, 00f RIGHT): a 12 % tint of the seal's red
+    # and a 2 px edge of it, the strongest ink on it (13 : 1) — a red "on" icon and a red value keep
+    # their red there, which the full lacquer swallowed; every other ink stays its own
+    p["select"] = mix(p["ground"], "Jasper Red", 0.12, "dark.select")
+    p["select_hi"] = mix(p["ground"], "Jasper Red", 0.24, "dark.select_hi")   # (held down by the pointer)
+    p["select_edge"] = p["accent"]
     p["text_on_select"] = p["strong"]
-    p["select_lo"] = mix("Vandyke Red", p["text_on_select"], 0.3, "dark.select_lo")   # (unlit: 3.7 : 1 under the lit)
+    # the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there): the
+    # same deep lacquer in both themes (漆, one grammar), the strongest cream on it (8 : 1)
+    p["lacquer"] = w("Vandyke Red", "dark.lacquer")
+    p["text_on_lacquer"] = p["strong"]
     p["lit"], p["lit_text"], p["lit_hi"], p["lit_lo"] = p["text"], p["ground"], p["strong"], p["muted"]
     p["urgent_text"] = p["lo"]
     p["asagi"] = mix("Venice Green", "Ecru", 0.25, "dark.asagi")
@@ -164,14 +169,22 @@ def light():
     p["accent_lo"] = mix("Brick Red", "Vandyke Red", 0.5, "light.accent_lo")
     p["accent_text"] = w("Brick Red", "light.accent_text")
     p["text_on_accent"] = p["key"]
-    p["select"] = w("Vandyke Red", "light.select")   # (the dark theme's lacquer: 8.5 : 1 under the key's cream)
-    p["text_on_select"] = p["key"]
-    p["select_lo"] = mix("Vandyke Red", p["text_on_select"], 0.3, "light.select_lo")
+    p["select"] = mix(p["ground"], "Brick Red", 0.12, "light.select")   # (as the dark's: the seal's own red)
+    p["select_hi"] = mix(p["ground"], "Brick Red", 0.24, "light.select_hi")
+    p["select_edge"] = p["accent"]
+    p["text_on_select"] = p["strong"]
+    p["lacquer"] = w("Vandyke Red", "light.lacquer")   # (the dark theme's lacquer: 8.5 : 1 under the key's cream)
+    p["text_on_lacquer"] = p["key"]
     p["lit"], p["lit_text"], p["lit_hi"], p["lit_lo"] = p["text"], p["key"], p["muted"], p["strong"]
     p["urgent_text"] = p["key"]
     p["asagi"] = mix("Light Porcelain Green", "Dusky Green", 0.45, "light.asagi")
     p["flame"] = w("Brick Red", "light.flame")
     p["gold"] = w("Yellow Ocher", "light.gold")
+    # the old masters' ramp (tools/build-masters.py): the ink thinned toward the paper, warm, as the
+    # dark's three art tones are (three inks: this ramp, the seal's red, gold)
+    p["art_ink"] = mix(p["strong"], p["lo"], 0.30, "light.art_ink")
+    p["art_umber"] = mix(p["strong"], p["lo"], 0.65, "light.art_umber")
+    p["art_olive"] = mix(p["lo"], p["edge2"], 0.50, "light.art_olive")
     p["red"], p["green"], p["yellow"] = w("Brick Red"), w("Cossack Green"), w("Orange Citrine")
     p["blue"], p["purple"], p["teal"] = w("Blue"), w("Dark Soft Violet"), w("Dusky Green")
     p["bred"], p["bgreen"], p["byellow"] = w("Vandyke Red"), w("Diamine Green"), w("Sepia")
@@ -219,7 +232,7 @@ def sheet(P, out):
 
 
 DOC_TOKENS = ("ground", "surface", "view", "key", "edge", "edge2", "hi", "lo", "faint", "muted", "text", "strong",
-              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "select", "text_on_select", "select_lo", "asagi",
+              "accent", "accent_hi", "accent_lo", "accent_text", "text_on_accent", "select", "select_hi", "select_edge", "text_on_select", "lacquer", "text_on_lacquer", "asagi",
               "flame",
               "gold", "lit", "lit_text", "paper_folder", "paper_git", "paper_time")
 DOC_TERM = ("red", "green", "yellow", "blue", "purple", "teal", "bred", "bgreen", "byellow", "bblue", "bpurple", "bteal")

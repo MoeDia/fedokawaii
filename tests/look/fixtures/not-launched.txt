@@ -19,6 +19,7 @@ man-db                          man, in a shell; the change menu opens the manua
 tar                             a command
 grubby                          kernel arguments, set by setup
 NetworkManager                  a service (Network is nmtui)
+firewalld                       a service (system/net-allow.list makes its rules)
 sudo                            a command
 bash-completion                 the shell's tab completion
 tuned                           a service: the performance profile
@@ -46,6 +47,8 @@ inih-devel                      the build
 systemd-container               the update's copy of the system runs in it (systemd-nspawn): no window
 systemd-devel                   the build
 cairo-devel                     the build (the desktop's mako)
+rust                            the build (the desktop's yazi)
+cargo                           the build (the desktop's yazi)
 pango-devel                     the build (the desktop's mako)
 gdk-pixbuf2-devel               the build (the desktop's mako)
 greetd                          the login manager
@@ -56,10 +59,11 @@ python3-gobject                 a library (the login screen, the panels)
 gtk3                            a library
 gtk4                            a library (satty)
 libadwaita                      a library (satty)
+plymouth-plugin-label           the boot splash (a script theme needs it on F45)
 plymouth-plugin-script          the boot splash
 # ── media, graphics, drivers ──
 ffmpeg                          a command (ffprobe too)
-mpv                             the player: films open in it (Files, Brave); with nothing to play it shows nothing — hidden
+mpv                             the player: films open in it (Files, Helium); with nothing to play it shows nothing — hidden
 mpv-mpris                       mpv's part: the bar's now-playing and the media keys
 yt-dlp                          a command: mpv plays links through it
 nodejs24                        yt-dlp's JavaScript runtime; neovim's language servers
@@ -137,11 +141,13 @@ zathura-pdf-mupdf               zathura's PDF part: PDFs open in it (Books, File
 zathura-cb                      zathura's comics part
 qpdf                            a command: PDF tools
 poppler-utils                   commands: PDF tools
+nss                             a library: FireAlpaca's web view (Sketch)
 ghostscript                     a command: PDF compression
+stockfish                       kawa-chess runs it, only while it is needed
 tesseract                       a command: text from scans
 tesseract-langpack-eng          tesseract's English
 tesseract-langpack-ara          tesseract's Arabic
-imv                             the image viewer: pictures open in it (Files, Brave); its package's entry stays
+imv                             the image viewer: pictures open in it (Files, Helium); its package's entry stays
 ImageMagick                     commands: conversions (magick)
 ImageMagick-heic                ImageMagick's HEIC part
 python3-twisted                 Syncplay's library
@@ -171,6 +177,7 @@ fuse3                           restic mount's helper (fusermount3): Super+U →
 libdnf5-plugin-actions          dnf's snapshot hook
 grub-btrfs                      the snapshots in the boot menu
 podman                          Prowlarr's container
+rb_libtorrent-python3           a library: Torrents' engine (kawa-torrents)
 libvirt-daemon-kvm              the virtual machines' engine (the games VM; the test VMs)
 virt-install                    makes a virtual machine (tools/vm-create.sh)
 edk2-ovmf                       a virtual machine's UEFI firmware
@@ -178,9 +185,10 @@ swtpm                           a virtual machine's TPM (Windows 11)
 swtpm-tools                     swtpm's set-up
 passt                           a virtual machine's network
 qemu-img                        a virtual machine's disk images
-# ── games' parts ──
-gamescope                       a command games are started with
-mangohud                        the games' overlay
+# ── the play world's parts (kawa-asobi: Super+G) ──
+flatpak                         the play world's programs, per user, in its own home
+gamemode                        the card at full clocks while the world plays
+gamescope                       the world's compositor, on the card itself
 ntsync-autoload                 a kernel module
 steam-devices                   controllers' rules
 # ── release binaries' parts ──
@@ -188,6 +196,7 @@ satty                           the screenshot's editor: it opens on a capture (
 # ── the desktop's own helpers ──
 kawa-bar                        the bar's buttons
 kawa-brightness                 the brightness keys and slider
+kawa-browser                    the browser's starter: Super+B, links, the web apps go through it
 kawa-calendar                   a menu: the bar's date (Super+C)
 kawa-cell                       a part of the windows' pictures
 kawa-clipfiles                  files on the clipboard: yazi's Ctrl+C / Ctrl+V
@@ -198,10 +207,9 @@ kawa-downloads                  a menu: the bar's download mark
 kawa-drives                     a menu: the bar's drives, the drive's notice
 kawa-dwlstatus                  the bar's status
 kawa-foryou                     what only you can do: a notice at login and Super+U's first row
-kawa-game                       game mode: Steam's watch in the bar runs it
 kawa-glass                      a switch: Super+U → transparency
 kawa-help                       a menu: Super+/
-kawa-hush                       notices held back while sharing or gaming
+kawa-hush                       notices held back while sharing or while the play world is in front
 kawa-idle                       what happens while you are away
 kawa-lock                       the lock: Super+Escape
 kawa-mem                        the bar's memory
@@ -217,6 +225,7 @@ kawa-quick                      quick settings (the bar's cat); its windows have
 kawa-record                     Super+Shift+R, the bar's 録 mark
 kawa-refresh                    Super+Ctrl+R: the desktop's own programs anew
 kawa-screenshot                 Print, Shift+Print, Super+Print, quick settings' screenshot
+kawa-sharesound                 sound in a share: the portal starts it, quick settings' row
 kawa-share                      the screen share's chooser
 kawa-shrink                     a menu: Super+Z, yazi's Alt+S
 kawa-sixel                      a part of the windows' pictures
@@ -226,8 +235,11 @@ kawa-term                       the terminal windows' opener
 kawa-theme                      dark ⇄ light: quick settings' theme
 kawa-timer                      a menu: the bar's time
 kawa-carry                      your own things across a wipe: Super+U → backups
+kawa-stick                      the installer on a USB stick: Super+U → backups
 kawa-tidy                       the home kept clean: its timer runs it
 kawa-warm                       the warm windows (notes, clipboard, system): their keys, in dwl
 kawa-wash                       the theme switch's and a new wallpaper's transition: dwl draws it
 kawa-volume                     the volume keys
 kawa-weather                    a menu: the bar's weather
+kbd                             chvt: the screen back on the desktop when the play world ends
+xprop                           FreeSync held on in the play world's gamescope (kawa-asobi-world)

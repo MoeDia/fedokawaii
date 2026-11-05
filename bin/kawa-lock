@@ -62,9 +62,9 @@ keep() {
     "${cmd[@]}" </dev/null >/dev/null 2>&1 8>&-; rc=$?
     read -r t1 _ </proc/uptime
     [[ -e $locked ]] && ever=1
-    if ((rc == 0)); then rm -f "$locked"; say "unlocked"; exit 0; fi
+    if ((rc == 0)); then rm -f "$locked"; kawa-rgb unlock 2>/dev/null; say "unlocked"; exit 0; fi
     if ((!ever)); then say "locker exited rc=$rc before it locked"; exit 1; fi
-    if ! pgrep -xu "$UID" dwl >/dev/null; then rm -f "$locked"; say "locker exited rc=$rc — the desktop has ended"; exit 0; fi
+    if ! pgrep -xu "$UID" dwl >/dev/null; then rm -f "$locked"; kawa-rgb unlock 2>/dev/null; say "locker exited rc=$rc — the desktop has ended"; exit 0; fi
     say "locker exited rc=$rc — the desktop stays locked: started again"
     if ((${t1%.*} - ${t0%.*} < 10)); then quick=$((quick + 1)); else quick=0; fi
     if ((quick == 3)); then                          # (the command without -m and the module's path)
@@ -81,13 +81,14 @@ screens() {
     echo off >"$run/kawa-screens"; say "screens off"; wlopm --off '*'
   elif wlopm --on '*'; then
     echo "${2:-on}" >"$run/kawa-screens"; say "screens ${2:-on}"
+    setsid -f kawa-display --monitor </dev/null >/dev/null 2>&1   # (the monitor's own menu, and its level to the bar)
   else
     touch -c "$run/kawa-screens"                # (still "off", noted anew: the lock's next input tries again)
     say "screens on failed (wlopm)"; return 1
   fi
 }
 case ${1:-} in
-  --up) : >"$locked"; say "lock up"; exit 0 ;;        # gtklock's --lock-command: every screen locked
+  --up) : >"$locked"; kawa-rgb lock 2>/dev/null; say "lock up"; exit 0 ;;   # gtklock's --lock-command: every screen locked (the lights dim)
   --screens) [[ ${2:-} == @(on|off) ]] || { echo "usage: kawa-lock --screens on|off" >&2; exit 2; }
              screens "$2"; exit ;;
   --resumed) screens on resumed

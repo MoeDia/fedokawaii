@@ -9,12 +9,12 @@
 #         fedokawaii-boot-good holds the new kernel, takes it out, makes the one before the default
 #   pass  the new kernel starts: the desktop marks it good — its trial over (the counting off, its
 #         arguments out, the watchdog off), the update's snapshot back to snapper's cleanup
-#   bash tools/vm-inject/probation.sh [VM] [REPO] [fail|pass]…   (VM f44; REPO this repository)
+#   bash tools/vm-inject/probation.sh VM [REPO] [fail|pass]…   (REPO this repository)
 # Out: a line a case on stdout, everything in /dev/shm/r27/probation-VM/. Exit 0 every case held ·
 # 1 one did not · 2 the VM could not run.
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
-vm=${1:-f44} src=${2:-$(cd "$here/.." && pwd)}; shift 2 2>/dev/null || shift $#
+vm=${1:?VM} src=${2:-$(cd "$here/.." && pwd)}; shift 2 2>/dev/null || shift $#
 cases=("$@"); ((${#cases[@]})) || cases=(fail pass)
 out=/dev/shm/r27/probation-$vm; rm -rf "$out"; mkdir -p "$out"
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }

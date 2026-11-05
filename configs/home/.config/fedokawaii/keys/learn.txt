@@ -1,0 +1,17 @@
+# the lessons (Super+U → learning → lessons): the Learn book, cut into pieces done one by one
+# source: bin/kawa-learn (key_list, key_page)
+── lessons: the list ──────────────────────────────────────────────
+↑ / ↓                   the lesson before / after
+← / → / Tab             the part before / after
+Enter                   open it
+Space                   stamp it, or take its stamp off
+/                       find in every lesson's words (Esc ends it)
+b                       the whole book, as a PDF
+Esc / q                 close
+── lesson: its page ───────────────────────────────────────────────
+↑ / ↓ / the wheel       a line
+Space / PgUp / PgDn     a page
+Enter                   a page; at its end the stamp, then the next lesson
+s                       the solutions, under each exercise
+← / →                   the lesson before / after
+Esc / q                 back to the list

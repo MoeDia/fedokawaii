@@ -109,11 +109,6 @@ static const Rule rules[] = {
 	{ "=kawa-dialog",         NULL,       0,            1,           -1 },
 	{ "=lxqt-policykit-agent", NULL,      0,            1,           -1 },
 	{ "=imv",                 NULL,       0,            1,           -1 },
-	/* Steam: its small windows (sign in, settings, friends, news, the update box) float,
-	 * centred on the screen you are on; the library window — titled exactly "Steam" —
-	 * tiles. Games (app-id steam_app_…) are not Steam's: they open where you are */
-	{ "=steam",               NULL,       0,            1,           -1 },
-	{ "=steam",               "=Steam",   0,            0,           -1 },
 	/* no catch-all { NULL, NULL, … } rule: dwl applies every rule that matches, in
 	 * order, so a catch-all at the end would un-float everything above it */
 };
@@ -174,7 +169,7 @@ static const enum libinput_config_tap_button_map button_map = LIBINPUT_CONFIG_TA
 /* commands */
 static const char *termcmd[]     = { "footclient", NULL };
 static const char *menucmd[]     = { "kawa-menu", "--launcher", NULL };   /* the torii's: one menu at a time */
-static const char *browsercmd[]  = { "brave-origin", NULL };
+static const char *browsercmd[]  = { "kawa-browser", NULL };
 static const char *filescmd[]    = { "footclient", "yazi", NULL };
 
 /* A key added or changed here belongs in the help sheet too: configs/home/.config/fedokawaii/
@@ -201,6 +196,8 @@ static const Key keys[] = {
 	{ MODKEY,          XKB_KEY_n,                 warm,             {.v = "notes"} },
 	{ MODKEY,          XKB_KEY_u,                 warm,             {.v = "system"} },
 	{ MODKEY|SHIFT,    XKB_KEY_u,                 spawn,            SHCMD("kawa-config") },
+	/* the play world on its own VT (ASOBI, kawa-asobi); the same chord in there comes back */
+	{ MODKEY,          XKB_KEY_g,                 spawn,            SHCMD("kawa-asobi enter") },
 	{ MODKEY|SHIFT,    XKB_KEY_n,                 spawn,            SHCMD("makoctl dismiss -a") },
 	{ MODKEY,          XKB_KEY_Escape,            spawn,            SHCMD("kawa-lock --sleep") },
 	{ MODKEY|SHIFT,    XKB_KEY_e,                 spawn,            SHCMD("kawa-power") },
@@ -269,9 +266,8 @@ static const Key keys[] = {
 	{ MODKEY|SHIFT,    XKB_KEY_comma,             tagmon,           {.i = WLR_DIRECTION_LEFT} },
 	{ MODKEY|SHIFT,    XKB_KEY_period,            tagmon,           {.i = WLR_DIRECTION_RIGHT} },
 	/* ── session ── */
-	/* log out without the menu (the one way out: no Ctrl+Alt+BackSpace) — Steam closed properly
-	   first, as the power menu's log out does (its saves to Steam Cloud); then dwl, as kawa-power ends it */
-	{ MODKEY|CTRL|SHIFT, XKB_KEY_q,               spawn,            SHCMD("kawa-steam --quit logout; exec pkill -xu \"$(id -u)\" dwl") },
+	/* log out without the menu (the one way out: no Ctrl+Alt+BackSpace): dwl ended, as kawa-power ends it */
+	{ MODKEY|CTRL|SHIFT, XKB_KEY_q,               spawn,            SHCMD("exec pkill -xu \"$(id -u)\" dwl") },
 	/* the text consoles: logind gives the first six one (NAutoVTs=6); past them only a black screen */
 #define CHVT(n) { CTRL|WLR_MODIFIER_ALT, XKB_KEY_F##n, chvt, {.ui = (n)} }
 	CHVT(1), CHVT(2), CHVT(3), CHVT(4), CHVT(5), CHVT(6),

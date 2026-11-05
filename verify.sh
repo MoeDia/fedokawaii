@@ -32,6 +32,7 @@ source "$REPO_DIR/lib/manifest.sh"
 source "$REPO_DIR/lib/upstream.sh"
 source "$REPO_DIR/lib/hygiene.sh"
 source "$REPO_DIR/lib/hardware.sh"
+source "$REPO_DIR/lib/net.sh"
 read_conf "$REPO_DIR/fedokawaii.conf"
 [[ -f $STATE_DIR/user ]] || { echo "setup has not started — nothing to verify yet (try: check)" >&2; exit 2; }
 TARGET_USER=$(head -n1 "$STATE_DIR/user" | tr -d '[:space:]'); TARGET_HOME=$(getent passwd "$TARGET_USER" | cut -d: -f6)
@@ -74,6 +75,9 @@ check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=n
 # no boot image, no splash; setup.sh's editor_policy)
 check "vi → nvim (a script: dracut never follows it into nvim)" bash -c '[[ ! -L /usr/local/bin/vi && -x /usr/local/bin/vi ]] && grep -qx "exec nvim \"\$@\"" /usr/local/bin/vi'
 check "i2c-dev loaded (monitor brightness over DDC/CI)" test -d /sys/module/i2c_dev
+# (the theme's: not there yet at the build's gate. The system's, from boot, whatever your session does: 4 Nov, the cooler's display stayed dark after a reboot)
+((THEMED)) && check "the lights' one tool is running (kawa-rgb)" systemctl is-active --quiet kawa-rgb.service
+((THEMED)) && check "the lights' one tool starts at every boot" systemctl is-enabled --quiet kawa-rgb.service
 
 # ── packages ─────────────────────────────────────────────────────────────────
 section "packages (lib/manifest.sh)"
@@ -141,13 +145,18 @@ if ui=$(dnf repoquery --userinstalled --qf '%{name} %{reason}\n' 2>/dev/null) &&
   ui=$(awk 'NF < 2 || tolower($0) ~ / (external )?user$/ { print $1 }' <<<"$ui")
 elif ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) && [[ -n $ui ]]; then :; else ui=""; fi
 if [[ -n $ui ]]; then
-  # (the manifest by its names, and by the names its packages have now — Fedora renames some)
-  extras=$(comm -23 <(sort -u <<<"$ui") <({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
-                                             rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u) \
-           | grep -v '^kernel' | tr '\n' ' ')
+  # (the manifest by its names, and by the names its packages have now — Fedora renames some; what
+  # split off one of them reads "user" too, dnf hands it the reason of what it obsoletes: Fedora 45's
+  # systemd-import-keys, from systemd-container)
+  ours=$({ cat "$STATE_DIR/baseline-userinstalled" 2>/dev/null; printf '%s\n' "${WANT[@]}" "${standin[@]}"
+           rpm -q --qf '%{NAME}\n' --whatprovides "${WANT[@]}" 2>/dev/null | grep -v ' '; } | sort -u)
+  extras=""
+  while IFS= read -r p; do
+    grep -qxF -- "$ours" < <(rpm -q --qf '[%{OBSOLETENAME}\n]' "$p" 2>/dev/null) || extras+="$p "
+  done < <(comm -23 <(sort -u <<<"$ui") <(echo "$ours") | grep -v '^kernel')
   if [[ -z $extras ]]; then pass "nothing user-installed beyond the manifest"; else fail "installed outside the manifest" "$extras"; fi
 else fail "nothing user-installed beyond the manifest" "dnf repoquery failed"; fi
-check "no Flatpak, no Snap"                            bash -c 'command -v dnf && ! command -v flatpak && ! command -v snap'
+check "no Snap, and no Flatpak outside the play world"  bash -c 'command -v dnf && ! command -v snap && [[ -z $(flatpak remotes --system --columns=name 2>/dev/null) ]]'
 check "one editor (no vim, nano, emacs)"               bash -c 'command -v nvim && ! command -v vim && ! command -v nano && ! command -v emacs'
 # nothing doubled, nothing fighting (lib/hygiene.sh) — repair puts each of these right
 d=$(hy_duplicates)
@@ -179,7 +188,7 @@ else warn "left behind by a stopped run" "$(tr '\n' ' ' <<<"$d")— repair clear
 section "repositories & dnf"
 # (dnf's JSON: its table may cut a long repository id short — a COPR's are)
 enabled=$(repos_enabled) || enabled=""
-for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree rpmfusion-nonfree-updates brave-browser claude-code; do
+for r in fedora updates rpmfusion-free rpmfusion-free-updates rpmfusion-nonfree rpmfusion-nonfree-updates claude-code; do
   check "repo $r enabled" grep -qx "$r" <<<"$enabled"
 done
 for c in "${COPRS[@]}"; do
@@ -188,9 +197,10 @@ for c in "${COPRS[@]}"; do
 done
 # (a package the update button put in records its origin as @stored_transaction(REPO): the
 # stored transaction was resolved from REPO, and its signature checked before it went in)
-for pr in brave-origin:brave-browser claude-code:claude-code; do
-  check "${pr%%:*} from ${pr#*:} (gpgcheck=1)" \
-    bash -c "o=\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*}); o=\${o#@stored_transaction(}; test \"\${o%)}\" = ${pr#*:} && grep -qx gpgcheck=1 /etc/yum.repos.d/${pr#*:}.repo"
+for pr in helium-bin:copr:copr.fedorainfracloud.org:imput:helium claude-code:claude-code; do
+  r=${pr#*:} f=/etc/yum.repos.d/${r/#copr:/_copr:}.repo
+  check "${pr%%:*} from $r (gpgcheck=1)" \
+    bash -c "o=\$(dnf repoquery --installed --qf '%{from_repo}' ${pr%%:*}); o=\${o#@stored_transaction(}; test \"\${o%)}\" = $r && grep -qx gpgcheck=1 $f"
 done
 check "dnf max_parallel_downloads=$DNF_PARALLEL"       test "$(dnfopt max_parallel_downloads)" = "$DNF_PARALLEL"
 check "dnf fastestmirror on"                           grep -qxiE '1|true' <<<"$(dnfopt fastestmirror)"
@@ -369,7 +379,7 @@ else info "NTFS drives open with ntfs-3g (this kernel has no ntfs3)"; fi
 section "compositor & login"
 check "dwl $DWL_TAG installed"                         U bash -c "/usr/local/bin/dwl -v 2>&1 | grep -q '${DWL_TAG#v}'"
 check "dwl at the pinned commit"                       test "$(U git -C "$TARGET_HOME/.local/src/dwl" rev-parse HEAD 2>/dev/null)" = "$DWL_COMMIT"
-check "dwl built with XWayland (Steam, X11 apps)"      U bash -c 'ldd /usr/local/bin/dwl | grep -q libxcb'
+check "dwl built with XWayland (X11 apps)"      U bash -c 'ldd /usr/local/bin/dwl | grep -q libxcb'
 # (the whole patch, as theme.sh tests it: it would come off cleanly — fed on stdin, as root
 # reads the toolkit's copy)
 dwl_patched() { U git -C "$TARGET_HOME/.local/src/dwl" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; }
@@ -414,6 +424,13 @@ else
   check "notices: the desktop's mako ${MAKO_TAG:-?} (src/mako/mako.patch) runs" U bash -c '"$1" --help >/dev/null 2>&1 && grep -q shadow-color "$1"' _ "$mk"
   check "mako.service starts the desktop's mako (its drop-in)" grep -qx "ExecStart=$mk" /usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf
 fi
+# the files: the desktop's yazi (setup.sh: build_yazi — src/yazi/yazi.patch, the pinned tag)
+yz=$TARGET_HOME/.local/bin/yazi
+if [[ ! -x $yz ]]; then
+  fail "the desktop's yazi not built: no file manager, no file dialog" "update or repair builds it"
+else
+  check "files: the desktop's yazi ${YAZI_TAG:-?} (src/yazi/yazi.patch) runs" U bash -c '[[ $("$1" --version 2>/dev/null) == *"Patch  : fedokawaii"* ]]' _ "$yz"
+fi
 # the file dialog: yazi through xdg-desktop-portal-termfilechooser, which setup.sh builds — the
 # only one (portals.conf names no other), so not built means apps have no file dialog at all
 tfc=/usr/local/libexec/xdg-desktop-portal-termfilechooser
@@ -436,7 +453,6 @@ for s in "${svcs[@]}"; do
 done
 for s in "${SVC_USER_GLOBAL[@]}"; do check "user unit $s enabled" bash -c "systemctl --global is-enabled $s | grep -qx enabled"; done
 check "tuned profile fedokawaii (always-plugged desktop)" bash -c 'tuned-adm active 2>/dev/null | grep -q fedokawaii'
-check "no LLMNR (names on the network: mDNS only)"   grep -qx 'LLMNR=no' /etc/systemd/resolved.conf.d/90-fedokawaii.conf
 check "zram: half the RAM, zstd (from the next start)" grep -qx 'compression-algorithm = zstd' /etc/systemd/zram-generator.conf
 check "Wi-Fi power saving off"                         test -f /etc/NetworkManager/conf.d/90-fedokawaii.conf
 check "Bluetooth dongle power saving off (btusb)"      grep -qx 'options btusb enable_autosuspend=0' /etc/modprobe.d/fedokawaii-btusb.conf
@@ -447,7 +463,7 @@ if ! grep -qx 'options snd_hda_intel power_save=0' /etc/modprobe.d/fedokawaii-au
 elif [[ -r /sys/module/snd_hda_intel/parameters/power_save && $(cat /sys/module/snd_hda_intel/parameters/power_save) != 0 ]]; then
   fail "the sound card never naps (no click at a volume change)" "snd_hda_intel power_save is $(cat /sys/module/snd_hda_intel/parameters/power_save) now — repair sets 0"
 else pass "the sound card never naps (no click at a volume change)"; fi
-[[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
+check "ntsync ready for Proton (/dev/ntsync)"          test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
 # (your own systemd: the sound, the portals, your services. A drop-in for every user@ once kept it from
 # starting at all, the desktop's with it, 4 Nov: "Failed to allocate manager object")
@@ -457,7 +473,6 @@ check "every user's systemd left as it came, but the shutdown's wait" \
 check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernation=no' /etc/systemd/sleep.conf.d/90-fedokawaii.conf
 check "every sleep locked first (the Sleep key is dwl's)"    grep -qx 'HandleSuspendKey=ignore' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'
-check "a restart waits for Steam to close properly (25 s at most)" grep -qx 'InhibitDelayMaxSec=25' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 # the pace of a start and a shut down, a clean system and home (setup.sh: s_pace, s_clean)
 check "a system service has 15 s to stop, one of yours 10 s" \
   bash -c "grep -qx 'DefaultTimeoutStopSec=15s' /etc/systemd/system.conf.d/90-fedokawaii.conf && grep -qx 'DefaultTimeoutStopSec=10s' /etc/systemd/user.conf.d/90-fedokawaii.conf"
@@ -471,7 +486,7 @@ check "no Desktop, Public or Templates made for nothing (xdg-user-dirs)" \
   bash -c 'for k in DESKTOP PUBLICSHARE TEMPLATES; do grep -qxE "XDG_${k}_DIR=\"(\\\$HOME/?|${1//./\\.}/?)\"" "$1/.config/user-dirs.dirs" || exit 1; done' _ "$TARGET_HOME"
 check "nothing of an older version in your home, no program's folder in its old place" U bash "$REPO_DIR/bin/kawa-tidy" --check leftovers
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
-# torrents: one key, in secrets.sh only; Prowlarr takes it, torrra gets it from kawa-torrra
+# torrents: one key, in secrets.sh only; Prowlarr takes it, kawa-torrents reads it there
 # shellcheck disable=SC2016  # expanded by the user's bash, after sourcing the file
 pkey=$(U bash -c '. "$1" >/dev/null 2>&1; printf %s "${PROWLARR_API_KEY:-}"' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" 2>/dev/null) || pkey=""
 prowlarr_get() {   # prowlarr_get PATH — the key goes to curl on stdin, never as an argument
@@ -509,7 +524,7 @@ else fail "Prowlarr's page opens with no login" "authentication: ${pauth:-?}, it
 check "Prowlarr's files are yours (~/.config/prowlarr)" bash -c '[[ -d $1 && -z $(find "$1" ! -user "$2" -print -quit) ]]' _ "$TARGET_HOME/.config/prowlarr" "$TARGET_USER"
 # the usual public indexers setup adds (system/prowlarr-indexers.py): each there, by its
 # definition (switched off by you counts: yours to decide)
-ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/system/prowlarr-indexers.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr '[:upper:]' '[:lower:]' | sort)
+ix_want=$(sed -n 's/^INDEXERS = \[\(.*\)/\1/p; /^            (/p' "$REPO_DIR/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py" | grep -o '("[A-Za-z0-9]*"' | tr -d '("' | tr '[:upper:]' '[:lower:]' | sort)
 ix_have=$(prowlarr_get indexer 2>/dev/null | jq -r '.[].definitionName // empty' 2>/dev/null | tr '[:upper:]' '[:lower:]' | sort)
 ix_miss=$(comm -23 <(printf '%s\n' "$ix_want") <(printf '%s\n' "$ix_have") | paste -sd ' ')
 nidx=$(prowlarr_get indexer 2>/dev/null | jq '[.[] | select(.enable)] | length' 2>/dev/null) || nidx=0
@@ -524,27 +539,35 @@ if [[ $(stat -f -c %T "$TARGET_HOME") == btrfs ]]; then
   if btrfs subvolume show "$TARGET_HOME/Downloads" >/dev/null 2>&1; then pass "~/Downloads kept out of /home's snapshots (own subvolume)"
   else warn "~/Downloads is inside /home's snapshots" "a deleted download keeps its space until the last snapshot holding it expires"; fi
 fi
-# the firewall's ports — when firewalld runs (Fedora's, from @core). Without it (taken out, or
-# switched off) nothing filters at all: setup says so and goes on (s_ssh, torrent_port), and
-# so does this — a warning, never a failure that would stop setup's gate for good
-fw=1; firewall-cmd -q --state 2>/dev/null || fw=0
-if ((fw)); then
-  ports=$(firewall-cmd --list-ports 2>/dev/null) || ports="(firewalld not answering)"
-  fwsvc=$(firewall-cmd --list-services 2>/dev/null) || fwsvc="(firewalld not answering)"
-  check "torrent port 6881 open (tcp + udp)"           bash -c "grep -q 6881/tcp <<<'$ports' && grep -q 6881/udp <<<'$ports'"
-  check "LocalSend's port $LOCALSEND_PORT open (tcp + udp)" bash -c "grep -q $LOCALSEND_PORT/tcp <<<'$ports' && grep -q $LOCALSEND_PORT/udp <<<'$ports'"
+
+# ── the network ──────────────────────────────────────────────────────────────
+section "the network (system/net-allow.list)"
+# the firewall against the list, saved and running: a difference is named, and fails
+netw=$(net_firewall_wrong)
+if [[ -z $netw ]]; then pass "the firewall: only the list's doors (world: $(net_doors world | paste -sd' ' -) · LAN: $(net_doors lan | paste -sd' ' -))"
+else while IFS= read -r l; do fail "the firewall: $l" "repair puts it back"; done <<<"$netw"; fi
+netw=$(net_sysctl_wrong)
+if [[ -z $netw ]]; then pass "the kernel's network settings in force (no redirects, no source routing, strict paths)"
+else while IFS= read -r l; do fail "the kernel's network settings: $l" "repair puts them back"; done <<<"$netw"; fi
+netw=$(net_dns_wrong)
+if [[ -z $netw ]]; then pass "names go over TLS; no LLMNR, no mDNS"
+else while IFS= read -r l; do fail "names: $l" "repair puts it back"; done <<<"$netw"; fi
+[[ ! -f $NET_NAMES_LOCAL ]] || warn "names: this network lets no outside DNS through, so its own answers, in plain" "back over TLS by itself, the moment Cloudflare or Quad9 can be reached"
+# (a stray socket is behind the firewall all the same: said, never a failure — any program may open one)
+netw=$(net_strays)
+if [[ -z $netw ]]; then pass "what listens: only the list's doors"
+else warn "listening, not on the list: $(paste -sd' ' - <<<"$netw")" "the firewall keeps these closed; add a door to system/net-allow.list only if one is meant"; fi
+[[ $(sysctl -n net.ipv4.ip_forward 2>/dev/null) == 0 && $(sysctl -n net.ipv6.conf.all.forwarding 2>/dev/null) == 0 ]] \
+  && pass "no forwarding: this machine is no router" \
+  || warn "forwarding is on" "a program turned it on; the firewall still forwards nothing"
+if ssh_wanted; then
+  check "sshd on (a key in authorized_keys), at every boot" bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
 else
-  warn "no firewall running (firewalld)" "nothing filters connections from outside; the ports of torrra (6881) and LocalSend ($LOCALSEND_PORT) are open anyway"
+  check "sshd off (no key in authorized_keys, or SSH_SERVER=no)" bash -c '! systemctl is-enabled --quiet sshd.service && ! systemctl is-active --quiet sshd.service'
 fi
-if [[ $SSH_SERVER == no ]]; then
-  check "sshd off (SSH_SERVER=no)"                     bash -c '! systemctl is-enabled --quiet sshd.service'
-  ((fw)) && check "firewall: no ssh / cockpit"         bash -c "[[ '$fwsvc' != *'not answering'* ]] && ! grep -qwE 'ssh|cockpit' <<<'$fwsvc'"
-else
-  check "sshd on (SSH_SERVER=yes), at every boot"      bash -c 'systemctl is-enabled --quiet sshd.service && systemctl is-active --quiet sshd.service'
-  # (any case: OpenSSH 10.5 — Fedora 45 — prints its keywords as written, "PermitRootLogin no")
-  check "sshd: keys only, no root (SSH_SERVER=yes)"    bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
-  ((fw)) && check "firewall: ssh open, no cockpit"     bash -c "[[ '$fwsvc' != *'not answering'* ]] && grep -qw ssh <<<'$fwsvc' && ! grep -qw cockpit <<<'$fwsvc'"
-fi
+# (any case: OpenSSH 10.5 — Fedora 45 — prints its keywords as written, "PermitRootLogin no")
+command -v sshd >/dev/null \
+  && check "sshd: keys only, no root"                  bash -c 'c=$(sshd -T 2>/dev/null) && grep -qix "passwordauthentication no" <<<"$c" && grep -qix "kbdinteractiveauthentication no" <<<"$c" && grep -qix "permitrootlogin no" <<<"$c"'
 
 # ── upstream binaries ────────────────────────────────────────────────────────
 section "upstream binaries (lib/upstream.sh)"
@@ -580,6 +603,16 @@ case $(up_tag localsend) in
     check "localsend starts it (~/.local/bin/localsend)" test "$(readlink -f "$TARGET_HOME/.local/bin/localsend")" = "$(localsend_dir)/localsend_app" ;;
   *) fail "LocalSend is not the pinned $LOCALSEND_TAG" "update and repair put it in" ;;
 esac
+# FireAlpaca, the official build (setup carries on without it: update and repair fetch it)
+firealpaca_libs_ok() {   # (ldd runs as you, on your file)
+  U test -x "$(firealpaca_dir)/usr/bin/FireAlpaca" && [[ -z $(missing_libs "$(firealpaca_dir)/usr/bin/FireAlpaca") ]]
+}
+case $(up_tag firealpaca) in
+  "") warn "FireAlpaca not installed yet" "update and repair fetch it (Sketch waits till then)" ;;
+  *) check "FireAlpaca $(up_tag firealpaca) finds every library it needs" firealpaca_libs_ok
+     ((THEMED)) && check "Sketch is dressed for the desktop (kawa-firealpaca, the mood's sheet)" \
+       test -s "$TARGET_HOME/.local/lib/fedokawaii/kawa-firealpaca.so" -a -s "$TARGET_HOME/.config/fedokawaii/current/firealpaca.qss" ;;
+esac
 # ble.sh, from its pinned source (setup carries on without it: the shell is plain bash meanwhile)
 case $(up_tag blesh) in
   "") warn "ble.sh not installed yet" "update and repair fetch it (till then the shell types without colours or suggestions)" ;;
@@ -588,19 +621,13 @@ case $(up_tag blesh) in
 esac
 check "UDEV Gothic NF v2.2.0, the terminal's face (its four files as pinned)" \
   bash -c 'for e; do f=${e%%|*}; [[ $(sha256sum "'"$FACES_DIR"'/$f" 2>/dev/null | cut -d" " -f1) == "${e#*|}" ]] || exit 1; done' _ "${TERM_FACE_FILES[@]}"
-# (GE-Proton comes from GitHub, and setup carries on without it: Steam has its own Proton)
-if [[ $STEAM == yes ]]; then
-  if [[ -z $(up_tag ge-proton) ]]; then warn "GE-Proton not installed yet" "Steam's own Proton works meanwhile — update tries again"
-  else check "GE-Proton $(up_tag ge-proton)" test -d "$(proton_dir)/$(up_tag ge-proton)"; fi
-fi
 
 # ── applications (do they actually start?) ──────────────────────────────────
 section "applications"
-# Brave, hidden (no screen needed), in a profile of its own: started is when its DevTools port
-# answers — the browser process up and serving. (Not --dump-dom: Brave Origin's headless mode
-# keeps running without ever carrying it out.) Its whole process group is ended after
-check "Brave Origin starts (headless: its DevTools port answers)" \
-  U bash -c 'd=$(mktemp -d); setsid brave-origin --headless --disable-gpu --user-data-dir="$d" --remote-debugging-port=0 about:blank >/dev/null 2>&1 & p=$! r=1
+# The browser, hidden (no screen needed), in a profile of its own: started is when its DevTools
+# port answers — the browser process up and serving. Its whole process group is ended after
+check "Helium starts (headless: its DevTools port answers)" \
+  U bash -c 'd=$(mktemp -d); setsid kawa-browser --headless --disable-gpu --user-data-dir="$d" --remote-debugging-port=0 about:blank >/dev/null 2>&1 & p=$! r=1
     for _ in $(seq 60); do
       if [[ -s $d/DevToolsActivePort ]]; then
         curl -s --max-time 5 "http://127.0.0.1:$(head -n1 "$d/DevToolsActivePort")/json/version" | grep -c "\"Browser\"" >/dev/null && r=0; break
@@ -608,6 +635,8 @@ check "Brave Origin starts (headless: its DevTools port answers)" \
       kill -0 "$p" 2>/dev/null || break; sleep 1
     done
     kill -- -"$p" 2>/dev/null; sleep 1; kill -9 -- -"$p" 2>/dev/null; rm -rf "$d"; exit $r'
+if [[ -r /usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64/libwidevinecdm.so ]]; then pass "Widevine in place (Spotify's web player)"
+else warn "Widevine is not in place: Spotify's web player cannot play" "update fetches it again"; fi
 check "Claude Code runs"                               U timeout 20 claude --version
 # herdr (Agents), started as its launcher entry starts it — on a terminal of its own (a
 # pseudo-terminal, 120×36: herdr refuses one of no size), from ~/repos, with your config —
@@ -650,10 +679,13 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
 }
 # (its config and its launcher entry come with the theme)
 ((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
-check "LazyVim plugins installed"                      test -d "$TARGET_HOME/.local/share/nvim/lazy/LazyVim"
-check "torrra $TORRRA_VERSION loads (Python 3.13, libtorrent, Textual)" U "$TARGET_HOME/.local/share/uv/tools/torrra/bin/python" -I -c 'import sys, importlib.metadata as m, torrra, libtorrent, torrra.app; assert sys.version_info[:2] == (3, 13) and m.version("torrra") == sys.argv[1]' "$TORRRA_VERSION"
-check "torrra runs through kawa-torrra" U bash -c 'test -f /etc/profile.d/kawa-torrra.sh && kawa-torrra --version </dev/null'
-check "torrra uses Prowlarr, and no key in its config" bash -c 'grep -qx "default = \"prowlarr\"" "$1" && ! grep -q api_key "$1"' _ "$TARGET_HOME/.config/torrra/config.toml"
+check "neovim's plugins at the commits of their lock (lazy-lock.json)" nvim_at_lock
+# (its program and its socket come with the theme; setup's own step checks it from the repository before that)
+((THEMED)) && check "Torrents whole, on Fedora's python3 and libtorrent" U "$TARGET_HOME/.local/bin/kawa-torrents" --check
+((THEMED)) && check "Torrents' engine is started by its socket" U systemctl --user cat kawa-torrents.socket
+if [[ -e $TARGET_HOME/.local/share/torrra || -e $TARGET_HOME/.local/share/uv/tools/torrra || -e /usr/local/bin/kawa-torrra ]]; then
+  fail "torrra is gone" "an older setup's files are left — fedokawaii repair takes them out"
+else pass "torrra is gone (nothing an older setup left)"; fi
 check "mpv in the bar and on the media keys (mpv-mpris)" test -f /etc/mpv/scripts/mpris.so
 check "yt-dlp can answer YouTube's challenges (Node.js ≥ 20)" bash -c 'v=$(node --version 2>/dev/null) || exit 1; v=${v#v}; ((${v%%.*} >= 20))'
 check "lazygit runs"                                   U lazygit --version
@@ -662,9 +694,21 @@ check "qalc runs"                                      U qalc -t 1+1
 # Python and Rust to learn with (setup.sh s_dev): uv's CPython, rustup's stable, neovim's servers
 check "Python: uv's CPython"                           U uv python find --managed-python
 check "Rust: cargo, rust-analyzer, clippy, rustfmt (rustup)" U bash -c 'for b in cargo rust-analyzer cargo-clippy rustfmt; do test -x ~/.local/share/cargo/bin/$b || exit 1; done'
-check "neovim's Python and Rust servers (basedpyright, ruff, codelldb)" U bash -c 'for b in basedpyright ruff codelldb; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
+check "neovim's servers and formatters (Mason: Python, Rust's debugger, Lua, TOML, shell)" U bash -c 'for b in basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
 check "restic runs (backups to another disk: kawa-backup)" U restic version
-[[ $STEAM == yes ]] && check "game mode's tuned profile"  test -s /etc/tuned/profiles/fedokawaii-game/tuned.conf
+# ── the play world (lib/asobi.sh): a user that can touch nothing of yours, its walls, its programs
+section "the play world"
+check "asobi: no wheel, no password, no shell"          bash -c '[[ " $(id -nG asobi) " != *" wheel "* && $(passwd -S asobi | cut -d" " -f2) == L && $(getent passwd asobi | cut -d: -f7) == */nologin ]]'
+check "asobi cannot read your home, nor sudo"           bash -c '! runuser -u asobi -- test -r "$1" && ! runuser -u asobi -- sudo -n true 2>/dev/null' _ "$TARGET_HOME"
+check "its home a Btrfs subvolume of its own, its alone" bash -c 'btrfs subvolume show /home/asobi >/dev/null && [[ $(stat -c %a:%U /home/asobi) == 700:asobi ]]'
+check "its snapshots (clean, as installed, among them)" bash -c 'btrfs subvolume show /home/.asobi/snapshots/clean >/dev/null && [[ $(stat -c %a /home/.asobi/snapshots) == 700 ]]'
+check "the drop folder, shared by the two of you"       bash -c '[[ $(stat -c %a:%G /home/.asobi/drop) == 2770:asobi-drop ]]'
+check "Steam and Bottles, per user, in its home"        bash -c 'a=$(cd / && runuser -u asobi -- env HOME=/home/asobi flatpak --user list --app --columns=application); [[ $a == *com.valvesoftware.Steam* && $a == *com.usebottles.bottles* ]]'
+check "its session unit, its PAM file, its polkit rule" bash -c 'systemd-analyze verify kawa-asobi.service >/dev/null 2>&1; test -s /etc/systemd/system/kawa-asobi.service && test -s /etc/pam.d/kawa-asobi && test -s /etc/polkit-1/rules.d/60-kawa-asobi.rules'
+check "Super+G out of the world (its keyboard)"         test -s /etc/xkb/symbols/kawa-asobi
+# (its walls on its own manager alone: on every user@ they kept yours from starting, 4 Nov 2026)
+check "its walls on its own manager, none on yours"     bash -c 'u=$(id -u asobi) && [[ -s /etc/systemd/system/user@$u.service.d/50-kawa-asobi.conf && ! -e /etc/systemd/system/user@.service.d/50-kawa-asobi.conf && $(systemctl show -P ProtectHome "user@$(id -u "$1").service") == no ]]' _ "$TARGET_USER"
+check "your own manager is running"                     bash -c 'systemctl is-active --quiet "user@$(id -u "$1").service"' _ "$TARGET_USER"
 
 # ── snapshots ────────────────────────────────────────────────────────────────
 if ((PRE == 0)); then
@@ -673,6 +717,11 @@ if ((PRE == 0)); then
   # (yours to delete when space runs short — the next move to a Fedora takes a new one)
   if [[ $(snapper -c root list 2>/dev/null) == *"fedokawaii baseline"* ]]; then pass "baseline snapshot exists"
   else warn "no baseline snapshot" "deleted? the next move to a new Fedora takes one; or now: sudo snapper -c root create -d \"fedokawaii baseline\""; fi
+  # (the local AI fixer: on a machine with its card, its runtime and model whole — hashes at each run, sizes here)
+  if [[ ! -x /usr/local/sbin/kawa-fixer ]]; then warn "the local AI fixer: its program is missing" "fedokawaii repair puts it in"
+  elif fx=$(/usr/local/sbin/kawa-fixer status --home "$TARGET_HOME" 2>&1); then pass "the local AI fixer ($fx)"
+  elif [[ $fx == *"no graphics card"* ]]; then info "the local AI fixer: $fx"
+  else warn "the local AI fixer: $fx" "fedokawaii repair puts it in"; fi
   check "pre/post snapshot around every dnf run"       test -x /usr/local/sbin/kawa-snap -a -f /etc/dnf/libdnf5-plugins/actions.d/fedokawaii-snapper.actions
   # (grub-btrfs comes from a COPR: while that has no build for this Fedora, warned above; its list
   # names each snapshot by its place on the disk — one no longer there cannot start)
@@ -748,25 +797,21 @@ else
   check "GTK and the portal follow the theme (prefer-$mode)" grep -q "prefer-$mode" <<<"$(U gsettings get org.gnome.desktop.interface color-scheme 2>&1)"
   gtk=Fedokawaii; [[ $mode == dark ]] && gtk=Fedokawaii-dark
   check "GTK 3 theme $gtk (adw-gtk3 + the palette)"    grep -q "'$gtk'" <<<"$(U gsettings get org.gnome.desktop.interface gtk-theme 2>&1)"
-  check "no window buttons in title bars (GTK, Brave)"  grep -qx "':'" <<<"$(U gsettings get org.gnome.desktop.wm.preferences button-layout 2>&1)"
+  check "no window buttons in title bars (GTK, Helium)"  grep -qx "':'" <<<"$(U gsettings get org.gnome.desktop.wm.preferences button-layout 2>&1)"
   check "folders open in yazi, text in neovim"         test "$(U xdg-mime query default inode/directory) $(U xdg-mime query default text/plain)" = "kawa-files.desktop kawa-edit.desktop"
-  check "links open in Brave Origin"                   test "$(U xdg-mime query default x-scheme-handler/https)" = brave-origin.desktop
+  check "links open in Helium"                         test "$(U xdg-mime query default x-scheme-handler/https)" = helium.desktop
   check "file dialogs → yazi (FileChooser: termfilechooser, the only one)" \
     grep -qx 'org.freedesktop.impl.portal.FileChooser=termfilechooser' "$TARGET_HOME/.config/xdg-desktop-portal/wlroots-portals.conf"
   check "the file dialog runs kawa-pick (executable)" \
     bash -c 'grep -qx "cmd=$1/.local/bin/kawa-pick" "$1/.config/xdg-desktop-portal-termfilechooser/config" && test -x "$1/.local/bin/kawa-pick"' _ "$TARGET_HOME"
-  check "Brave starts with screen-share sound (launcher entry → ~/.local/bin/brave-origin)" \
-    grep -q "^Exec=$TARGET_HOME/.local/bin/brave-origin" "$TARGET_HOME/.local/share/applications/brave-origin.desktop"
-  if [[ -r /usr/share/applications/com.brave.Origin.desktop ]]; then   # (brave/brave-browser#52193)
-    check "Brave listed once in the launcher (its second entry hidden)" \
-      bash -c 'sed -n "/^\[Desktop Entry\]/,/^\[/p" "$1" | grep -qx NoDisplay=true' _ "$TARGET_HOME/.local/share/applications/com.brave.Origin.desktop"
-  fi
-  # set once by Theme; what you choose in Brave afterwards is yours, so only a note
-  if jq -e '((.extensions.theme.id // "") != "" or .extensions.theme.system_theme == 1) and .brave.new_tab_page.background.type == "color"' \
-       "$TARGET_HOME/.config/BraveSoftware/Brave-Origin/Default/Preferences" >/dev/null 2>&1; then
-    pass "Brave in the desktop's colours (GTK mode, ground-coloured new tab)"
-  else warn "Brave not in the desktop's colours" "your choice in Brave — or Settings → Appearance → Theme → GTK"; fi
-  check "magnet links and .torrent files open in torrra" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
+  check "Helium starts with screen-share sound (launcher entry → ~/.local/bin/kawa-browser)" \
+    grep -q "^Exec=$TARGET_HOME/.local/bin/kawa-browser" "$TARGET_HOME/.local/share/applications/helium.desktop"
+  # set once by Theme; what you choose in Helium afterwards is yours, so only a note
+  if jq -e '.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true' \
+       "$TARGET_HOME/.config/net.imput.helium/Default/Preferences" >/dev/null 2>&1; then
+    pass "Helium in the desktop's colours (GTK mode, its compact layout)"
+  else warn "Helium not in the desktop's colours" "your choice in Helium — or Settings → Appearance → Theme → GTK"; fi
+  check "magnet links and .torrent files open in Torrents" test "$(U xdg-mime query default x-scheme-handler/magnet) $(U xdg-mime query default application/x-bittorrent)" = "kawa-torrents.desktop kawa-torrents.desktop"
   check "GTK 3 themes find adw-gtk3"                   bash -c 'for t in "" -dark; do f=$(sed -n "s|.*url(\"file://\([^\"]*\)\").*|\1|p" "$1/Fedokawaii$t/gtk-3.0/gtk.css"); [[ -r $f ]] || exit 1; done' _ "$TARGET_HOME/.local/share/themes"
   check "monospace and Sumi Term → UDEV Gothic NF"      U bash -c '[[ $(fc-match monospace) == *"UDEV Gothic NF"* && $(fc-match "Sumi Term") == *"UDEV Gothic NF"* ]]'
   check "Arabic → Noto Naskh Arabic"                   grep -q Naskh <<<"$(U fc-match 'sans-serif:lang=ar' 2>&1)"
@@ -791,6 +836,8 @@ else
   check "clipboard and wallpaper windows (fzf ≥ 0.68)" bash -c 'v=$(fzf --version 2>/dev/null) || exit 1; IFS=. read -r a b _ <<<"${v%% *}"; ((a > 0 || b >= 68))'
   check "wallpaper previews (ImageMagick draws sixels)" bash -c 'magick -size 2x2 xc:black sixel:- | grep -q "^.P"'
   art=$TARGET_HOME/.local/share/fedokawaii
+  check "the screensaver's scene, both themes (saver-scene.txt, its painting, the sleeper, the flames, its seal)" \
+    bash -c 'for t in dark light; do [[ -s $1/$t/saver-scene.txt && -s $1/$t/saver-seal.png ]] || exit 1; for f in $(sed -n "s/^\(wall\|patch\|anim\) \([^ ]*\).*/\2/p" "$1/$t/saver-scene.txt"); do [[ -s $1/$t/$f ]] || exit 1; done; done' _ "$art"
   check "the lock screen's scenes, both themes (lock-scene.png and .txt, the flames)" \
     bash -c 'for t in dark light; do for f in lock-scene.png lock-scene.txt lock-flame.png; do [[ -s $1/$t/$f ]] || exit 1; done; done' _ "$art"
   if [[ $WALLPAPER_PACK == yes ]]; then
@@ -804,7 +851,7 @@ else
   fi
   check "music meter (cava) runs"                      U timeout 5 cava -v
   ((BOOT_SKIPPED)) || check "boot menu theme installed" bash -c 'test -s /boot/grub2/themes/sumi/theme.txt && grep -q grub2/themes/sumi/theme.txt /boot/grub2/grub.cfg'
-  ((BOOT_SKIPPED)) || check "boot splash: the sumi theme (starting Fedora)" bash -c '[[ $(plymouth-set-default-theme) == sumi ]] && test -s /usr/share/plymouth/themes/sumi/sumi.script'
+  ((BOOT_SKIPPED)) || check "boot splash: the sumi theme (the demon)" bash -c '[[ $(plymouth-set-default-theme) == sumi ]] && test -s /usr/share/plymouth/themes/sumi/sumi.script'
   # (in every kernel's boot image, where Plymouth reads it — whatever the boot menu's part
   # did: a dracut that failed leaves images with Plymouth's text themes only. Repair: the
   # theme run makes them again)
@@ -835,13 +882,6 @@ if pgrep -u "$TARGET_UID" -x dwl >/dev/null; then
   ((xdpw_was)) || U systemctl --user stop --no-block xdg-desktop-portal-wlr.service 2>/dev/null
   check "file dialog portal (FileChooser ${fcv#u })"     bash -c '[[ $1 =~ ^u\ ([0-9]+)$ ]] && ((BASH_REMATCH[1] >= 3))' _ "$fcv"
   check "screen sharing portal: screens + windows"     test "$scs" = "u 3"
-  # "Share" (~/.config/pipewire/pipewire.conf.d/60-share.conf) asked for by its node name, in
-  # PipeWire's own list: a loopback's nodes share a node.link-group, and WirePlumber 0.5's
-  # wpctl status lists such nodes under "Filters" by node.name ("share_sink"), never by their
-  # description — grepping its output for "Share" failed with the output there
-  check "\"Share\" output for calls (PipeWire node share_sink, an Audio/Sink; \"Monitor of Share\" is its microphone)" \
-    jq -e 'any(.[]; .type == "PipeWire:Interface:Node" and .info.props["node.name"] == "share_sink"
-                   and .info.props["media.class"] == "Audio/Sink")' <<<"$(U pw-dump 2>/dev/null)"   # (no PipeWire: no input, jq -e fails)
   if ((THEMED)); then
     WD=$(find "/run/user/$TARGET_UID" -maxdepth 1 -name 'wayland-*' ! -name '*.lock' -printf '%f\n' -quit)
     for p in waybar kawa-panel mako foot swaybg swayidle udiskie kawa-dwlstatus lxqt-policykit-agent; do

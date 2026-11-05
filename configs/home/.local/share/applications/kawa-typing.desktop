@@ -1,0 +1,12 @@
+[Desktop Entry]
+# Touch typing, finger by finger, to 100 words a minute (kawa-typing): a terminal program, the keyboard and the hands
+# drawn in the terminal itself. Its icon: ours (the launcher draws it: X-Fedokawaii-Icon).
+Type=Application
+Name=Typing
+GenericName=Touch typing course
+Comment=Touch typing from the home row to 100 words a minute
+X-Fedokawaii-Icon=keyboard
+Exec=@HOME@/.local/bin/kawa-term --float --once typing --dialog typing 80x39 -- @HOME@/.local/bin/kawa-typing
+Terminal=false
+Categories=Education;
+Keywords=typing;touch;keyboard;wpm;speed;lessons;learn;

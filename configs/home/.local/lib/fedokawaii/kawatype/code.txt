@@ -1,0 +1,184 @@
+# The code of the course, ours: a [language] heading, then blocks separated by a blank line. Each block is
+# real and runs; a leading indent is the editor's work and is not typed.
+[bash]
+for f in *.txt; do
+    wc -l "$f"
+done
+
+if [[ -f ~/.bashrc ]]; then
+    source ~/.bashrc
+fi
+
+count=$(ls | wc -l)
+echo "there are $count files here"
+
+name=${1:-world}
+printf 'hello, %s\n' "$name"
+
+mkdir -p ~/notes && cd ~/notes
+touch "$(date +%F).md"
+
+grep -rn "TODO" src/ | sort | head -n 20
+
+find . -name '*.log' -mtime +7 -delete
+
+while read -r line; do
+    echo "${line^^}"
+done < input.txt
+
+backup() {
+    tar czf "$1.tar.gz" "$1"
+}
+backup photos
+
+ps aux | awk '{print $2, $11}' | sort -n
+
+[git]
+git status --short
+git add -p
+git commit -m "fix the first line of the lesson"
+
+git switch -c new-idea
+git push -u origin new-idea
+
+git log --oneline --graph -n 15
+
+git diff HEAD~1 -- docs/
+git restore --staged notes.md
+
+git fetch origin
+git rebase origin/main
+
+git stash push -m "half done"
+git stash list
+git stash pop
+
+git blame -L 10,20 bin/kawa-menu
+
+git tag -a v1.0 -m "the first one"
+git show v1.0 --stat
+
+[python]
+def greet(name):
+    return f"hello, {name}"
+
+print(greet("mina"))
+
+with open("notes.txt") as f:
+    lines = [line.strip() for line in f]
+print(len(lines))
+
+squares = {n: n ** 2 for n in range(10)}
+print(squares[7])
+
+class Lantern:
+    def __init__(self, lit=False):
+        self.lit = lit
+
+    def toggle(self):
+        self.lit = not self.lit
+
+words = "the quick brown fox".split()
+words.sort(key=len, reverse=True)
+print(", ".join(words))
+
+try:
+    value = int(input("a number: "))
+except ValueError as err:
+    print("not a number:", err)
+
+import json
+data = json.loads('{"wpm": 100, "acc": 0.98}')
+print(data["wpm"] * 5)
+
+def wpm(chars, seconds):
+    return (chars - 1) / 5 / (seconds / 60)
+
+for i, word in enumerate(words, start=1):
+    if i % 2 == 0:
+        print(i, word)
+
+[rust]
+fn main() {
+    println!("hello, world");
+}
+
+fn add(a: i32, b: i32) -> i32 {
+    a + b
+}
+
+let words = vec!["ink", "seal", "scroll"];
+for w in &words {
+    println!("{}", w.len());
+}
+
+struct Point {
+    x: f64,
+    y: f64,
+}
+
+impl Point {
+    fn norm(&self) -> f64 {
+        (self.x * self.x + self.y * self.y).sqrt()
+    }
+}
+
+let total: u32 = (1..=10).filter(|n| n % 2 == 0).sum();
+
+match name.as_str() {
+    "ink" => println!("black"),
+    _ => println!("unknown"),
+}
+
+fn read(path: &str) -> std::io::Result<String> {
+    std::fs::read_to_string(path)
+}
+
+let mut seen = HashMap::new();
+*seen.entry(key).or_insert(0) += 1;
+
+if let Some(first) = words.first() {
+    println!("{first}");
+}
+
+[c]
+#include <stdio.h>
+
+int main(void) {
+    printf("hello, world\n");
+    return 0;
+}
+
+int add(int a, int b) {
+    return a + b;
+}
+
+for (int i = 0; i < 10; i++) {
+    sum += a[i];
+}
+
+struct point {
+    int x;
+    int y;
+};
+
+struct point p = { .x = 1, .y = 2 };
+
+if (p == NULL) {
+    perror("malloc");
+    exit(1);
+}
+
+char *s = malloc(n + 1);
+memcpy(s, src, n);
+s[n] = '\0';
+
+while (*s != '\0') {
+    s++;
+}
+
+#define MAX(a, b) ((a) > (b) ? (a) : (b))
+
+int fd = open(path, O_RDONLY);
+ssize_t n = read(fd, buf, sizeof buf);
+close(fd);

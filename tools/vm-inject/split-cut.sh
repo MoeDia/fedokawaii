@@ -15,13 +15,13 @@
 # restores a snapshot from before the split (no --with-home: his files stay today's). For a
 # failure: the old layout, Downloads and VM back in root, split.failed with the reason, and
 # setup.sh --layout does not arm the same split again.
-#   bash tools/vm-inject/split-cut.sh [VM] [STEP…]   (VM f44; STEPs: none part-home copied-home
+#   bash tools/vm-inject/split-cut.sh VM [STEP…]   (STEPs: none part-home copied-home
 #                     copied-log copied-fk moved snapshots fstab fail-copied-home fail-fstab)
 # Out: a table on stdout, each case's log in /dev/shm/r27/split-cut/STEP.log.
 # Exit 0 every case ended whole · 1 one did not · 2 the VM could not run.
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
-vm=${1:-f44}; shift 2>/dev/null || true
+vm=${1:?VM}; shift
 steps=("$@"); ((${#steps[@]})) || steps=(none part-home copied-home copied-log copied-fk moved snapshots fstab fail-copied-home fail-fstab)
 out=/dev/shm/r27/split-cut; mkdir -p "$out"
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }

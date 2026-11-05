@@ -1,0 +1,17 @@
+#!/usr/bin/python3
+"""kawa-typing — touch typing in the terminal (Super+U, learning → typing). kawa-typing --help says how; the program is
+~/.local/lib/fedokawaii/kawatype."""
+import os
+import sys
+
+# (its compiled code kept with the caches, never beside its sources: nothing stray in ~/.local/lib)
+if os.environ.get('PYTHONDONTWRITEBYTECODE'):
+    sys.dont_write_bytecode = True
+else:
+    sys.pycache_prefix = os.path.join(os.environ.get('XDG_CACHE_HOME') or os.path.expanduser('~/.cache'), 'fedokawaii', 'pyc')
+sys.path[0:1] = [os.path.expanduser('~/.local/lib/fedokawaii')]     # (instead of the folder of every other command)
+here = os.path.dirname(os.path.dirname(os.path.realpath(__file__)))
+sys.path.insert(0, os.path.join(here, 'configs/home/.local/lib/fedokawaii'))      # (from the repository: tests, the kit)
+from kawatype.app import main   # noqa: E402
+
+sys.exit(main(sys.argv[1:]))

@@ -27,7 +27,7 @@ copy; sed -i -e 's/XKB_KEY_j,                 focusstack,       {.i = +1}/XKB_KE
   -e 's/XKB_KEY_k,                 focusstack,       {.i = -1}/XKB_KEY_k, focusstack, {.i = +1}/' "$CH"
 says "Super+J / K (Super+j) is 'focus next / previous', but config.h does focusstack:-1"
 case_ "… the browser key running something else"
-copy; sed -i 's/"brave-origin", NULL/"firefox", NULL/' "$CH"; says "config.h does spawn:firefox"
+copy; sed -i 's/"kawa-browser", NULL/"firefox", NULL/' "$CH"; says "config.h does spawn:firefox"
 case_ "… the layouts in another order (Super+Y would arrange in columns)"
 copy; python3 -I - "$CH" <<'EOF'
 import sys; p = sys.argv[1]; s = open(p).read()
@@ -47,8 +47,8 @@ copy; rm "$W/bin/kawa-calendar"; says "config.h runs kawa-calendar, which is not
 case_ "… a row reworded so it no longer says what the key does"
 copy; sed -i 's/^Super+F                 fullscreen/Super+F                 float/' "$KB"; says "Super+F says 'float', not 'fullscreen'"
 case_ "… a new row the check does not know yet"
-copy; sed -i 's/^Super+Tab               previous workspace/&\nSuper+G                 something new/' "$KB"
-says "'Super+G' — a row this check does not know"
+copy; sed -i 's/^Super+Tab               previous workspace/&\nSuper+I                 something new/' "$KB"
+says "'Super+I' — a row this check does not know"
 case_ "… a key that opens a window repeated while held (spawnheld): pressed fast it would flicker, presses lost"
 copy; sed -i 's/XKB_KEY_r,                 spawn,  /XKB_KEY_r,                 spawnheld,/' "$CH"
 says "config.h does spawnheld:kawa-books"

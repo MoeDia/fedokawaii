@@ -57,11 +57,11 @@ return {
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", { link = "Comment" })
-          -- what is selected (the completion menu's row, the wild menu's): the desktop's lacquer
-          -- with the strongest cream on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
+          -- what is selected (the completion menu's row, the wild menu's): the seal's tint with the
+          -- strongest ink on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
           local sel = vim.o.background == "light"
-            and { bg = "#82241f", fg = "#f8f3d8" }
-            or { bg = "#82241f", fg = "#f5ecc2" }
+            and { bg = "#e2d0ae", fg = "#121b1b" }
+            or { bg = "#2e1f19", fg = "#f5ecc2" }
           vim.api.nvim_set_hl(0, "PmenuSel", sel)
           vim.api.nvim_set_hl(0, "WildMenu", sel)
           -- the first screen (look.lua) as a text screen: the heading's icon vermilion, its
@@ -95,6 +95,31 @@ return {
             vim.api.nvim_set_hl(0, "DiagnosticFloating" .. k, { fg = t.text })
             vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, { sp = c, underline = true })
           end
+          -- the status line (lua/config/statusline.lua): a tile in the mode's ink, the branch and
+          -- the place on the key's ground, the words between in the muted ink on the line's own
+          local p = ({
+            dark = { ground = "#181715", line = "#221e1a", key = "#221e1a", text = "#e7cfa1", muted = "#cab596", accent = "#eb5324", teal = "#82c1b4", yellow = "#e2b540", blue = "#a7d4e4", red = "#eb5324", on_accent = "#111314" },
+            light = { ground = "#e8e3c2", line = "#dfcc9c", key = "#f8f3d8", text = "#122625", muted = "#586459", accent = "#a84222", teal = "#00726a", yellow = "#986f2d", blue = "#006eb8", red = "#a84222", on_accent = "#f8f3d8" },
+          })[vim.o.background == "light" and "light" or "dark"]
+          local function set(name, spec) vim.api.nvim_set_hl(0, "KawaSt" .. name, spec) end
+          local function tile(name, ink)
+            set(name, { bg = ink, fg = ink == p.accent and p.on_accent or p.ground, bold = true })
+          end
+          tile("Normal", p.accent); tile("Insert", p.teal); tile("Visual", p.yellow)
+          tile("Replace", p.red); tile("Command", p.blue); tile("Terminal", p.teal)
+          vim.api.nvim_set_hl(0, "StatusLine", { bg = p.line, fg = p.muted })
+          vim.api.nvim_set_hl(0, "StatusLineNC", { bg = p.line, fg = p.muted })
+          set("Key", { bg = p.key, fg = p.text })
+          set("Quiet", { bg = p.line, fg = p.muted })
+          set("File", { bg = p.line, fg = p.muted })
+          set("Changed", { bg = p.line, fg = p.text, bold = true })
+          set("Root", { bg = p.line, fg = p.teal })
+          set("Recording", { bg = p.line, fg = p.accent, bold = true })
+          set("Debug", { bg = p.line, fg = p.yellow })
+          set("Added", { bg = p.line, fg = p.teal })
+          set("Modified", { bg = p.line, fg = p.yellow })
+          set("Removed", { bg = p.line, fg = p.accent })
+          for k, c in pairs(d) do set(k, { bg = p.line, fg = c }) end
         end,
       })
     end,
@@ -105,46 +130,4 @@ return {
     },
   },
   { "LazyVim/LazyVim", opts = { colorscheme = "gruvbox" } },
-  -- the statusline in the same colours (lualine's own "gruvbox" theme has gruvbox's stock
-  -- ones): made from the palette for the ground Neovim has, and again when that changes
-  {
-    "nvim-lualine/lualine.nvim",
-    opts = function(_, opts)
-      local P = {
-        dark = { ground = "#181715", bar = "#1c1916", key = "#221e1a", text = "#e7cfa1", muted = "#cab596", accent = "#eb5324", teal = "#82c1b4", yellow = "#e2b540", blue = "#a7d4e4", red = "#eb5324", on_accent = "#111314" },
-        light = { ground = "#e8e3c2", bar = "#ecdfb3", key = "#f8f3d8", text = "#122625", muted = "#586459", accent = "#a84222", teal = "#00726a", yellow = "#986f2d", blue = "#006eb8", red = "#a84222", on_accent = "#f8f3d8" },
-      }
-      local function theme()
-        local p = P[vim.o.background] or P.dark
-        local function mode(c)
-          return { a = { bg = c, fg = c == p.accent and p.on_accent or p.ground, gui = "bold" }, b = { bg = p.key, fg = p.text },
-                   c = { bg = "NONE", fg = p.muted } }
-        end
-        -- (the line's middle on the terminal's own see-through ground, as the text above it)
-        local quiet = { bg = "NONE", fg = p.muted }
-        return { normal = mode(p.accent), insert = mode(p.teal), visual = mode(p.yellow),
-                 replace = mode(p.red), command = mode(p.blue), terminal = mode(p.teal),
-                 inactive = { a = quiet, b = quiet, c = quiet } }
-      end
-      opts.options = opts.options or {}
-      opts.options.theme = theme()
-      -- plain: no powerline separators (the pixel font has other glyphs at their code points)
-      -- and no icons (the Nerd Font's would stand among the pixel ones); no clock (the bar's)
-      opts.options.section_separators = { left = "", right = "" }
-      opts.options.component_separators = { left = "", right = "" }
-      opts.options.icons_enabled = false
-      opts.sections = opts.sections or {}
-      opts.sections.lualine_z = {}
-      vim.api.nvim_create_autocmd("ColorScheme", {
-        group = vim.api.nvim_create_augroup("kawa_lualine", { clear = true }),
-        callback = function()
-          local ok, lualine = pcall(require, "lualine")
-          if ok then
-            opts.options.theme = theme()
-            lualine.setup(opts)
-          end
-        end,
-      })
-    end,
-  },
 }

@@ -193,9 +193,9 @@ setup; cava_frames 10; step "$(P mpv Playing '' film.mkv "$FILM")"
 eq "$(pics "$(bar)")" 01 "the 10th frame moves it"
 setup; cava_frames 41 0; step "$(P mpv Playing '' film.mkv "$FILM")"
 eq "$(pics "$(bar)")" 0 "silence: the picture stands still"
-setup; cava_frames 9; step "$(P brave.instance1234 Playing Channel 'A video' '' "$(art 1280 720)")"
+setup; cava_frames 9; step "$(P chromium.instance1234 Playing Channel 'A video' '' "$(art 1280 720)")"
 eq "$(pics "$(bar)")" 0 "a video in a browser (a wide picture): 9 frames, it waits"
-setup; cava_frames 10; step "$(P brave.instance1234 Playing Channel 'A video' '' "$(art 1280 720)")"
+setup; cava_frames 10; step "$(P chromium.instance1234 Playing Channel 'A video' '' "$(art 1280 720)")"
 eq "$(pics "$(bar)")" 01 "… and the 10th frame moves it, as mpv's"
 case_ "a frame that is not 16 bands of 0–9 (a band of 10, 11 or 12 too): ignored — a frame of nines, the top, is drawn"
 setup; printf '%s\n' "1;2;3;" "10;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" "1;1;1;1;1;1;1;1;1;1;1;11;1;1;1;1;" "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;12;" "13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;13;" "1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" "a;b;c;d;e;f;g;h;i;j;k;l;m;n;o;p;" "-1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;1;" "9;9;9;9;9;9;9;9;9;9;9;9;9;9;9;9;" >"$NP/frames"
@@ -238,21 +238,21 @@ kind 0 "a video with a square picture: the address says video" mpv "$FILM" "$(ar
 kinds_check
 case_ "any other player (a browser): a video or sound by its picture — a PNG file wider than 5:4 (width×4 above height×5) is a video's frame, any other shape, or no picture to read, is sound; its address means nothing"
 setup
-kind 0 "brave.instance1234, a 1280×720 picture: the television" brave.instance1234 '' "$(art 1280 720)"
-kind a "a 640×640 sleeve: the cassette" brave.instance1234 '' "$(art 640 640)"
-kind a "a portrait 720×1280 picture: the cassette" brave.instance1234 '' "$(art 720 1280)"
-kind a "exactly 5:4 (1280×1024): not wide, the cassette" brave.instance1234 '' "$(art 1280 1024)"
-kind 0 "a hair wider than 5:4 (1281×1024): the television" brave.instance1234 '' "$(art 1281 1024)"
+kind 0 "chromium.instance1234, a 1280×720 picture: the television" chromium.instance1234 '' "$(art 1280 720)"
+kind a "a 640×640 sleeve: the cassette" chromium.instance1234 '' "$(art 640 640)"
+kind a "a portrait 720×1280 picture: the cassette" chromium.instance1234 '' "$(art 720 1280)"
+kind a "exactly 5:4 (1280×1024): not wide, the cassette" chromium.instance1234 '' "$(art 1280 1024)"
+kind 0 "a hair wider than 5:4 (1281×1024): the television" chromium.instance1234 '' "$(art 1281 1024)"
 kind 0 "firefox.instance99, 1920×1080: the same (any player that is not mpv)" firefox.instance99 '' "$(art 1920 1080)"
-kind a "no picture at all: the cassette" brave.instance1234
-kind a "a picture on the web (http): not read, the cassette" brave.instance1234 '' https://i.ytimg.com/vi/abc/maxresdefault.jpg
-kind a "a picture file that is not there: the cassette" brave.instance1234 '' "file://$TMP/no-such.png"
-: >"$TMP/empty.png"; kind a "an empty picture file: the cassette" brave.instance1234 '' "file://$TMP/empty.png"
-printf '\x89PNG\r\n\x1a\n' >"$TMP/cut.png"; kind a "a picture cut off after its signature: the cassette" brave.instance1234 '' "file://$TMP/cut.png"
+kind a "no picture at all: the cassette" chromium.instance1234
+kind a "a picture on the web (http): not read, the cassette" chromium.instance1234 '' https://i.ytimg.com/vi/abc/maxresdefault.jpg
+kind a "a picture file that is not there: the cassette" chromium.instance1234 '' "file://$TMP/no-such.png"
+: >"$TMP/empty.png"; kind a "an empty picture file: the cassette" chromium.instance1234 '' "file://$TMP/empty.png"
+printf '\x89PNG\r\n\x1a\n' >"$TMP/cut.png"; kind a "a picture cut off after its signature: the cassette" chromium.instance1234 '' "file://$TMP/cut.png"
 kind a "vlc playing a .mkv (only mpv's address is read): the cassette" vlc "$FILM"
-kind a "a video's address and a square picture, in a browser: the picture decides" brave.instance1234 "$FILM" "$(art 640 640)"
+kind a "a video's address and a square picture, in a browser: the picture decides" chromium.instance1234 "$FILM" "$(art 640 640)"
 python3 -I -c 'from PIL import Image; import sys; Image.new("RGB", (1280, 720)).save(sys.argv[1], "WEBP")' "$TMP/wide.webp"
-kind a "a wide picture that is not a PNG (WebP): its bytes there are not a size — the cassette" brave.instance1234 '' "file://$TMP/wide.webp"
+kind a "a wide picture that is not a PNG (WebP): its bytes there are not a size — the cassette" chromium.instance1234 '' "file://$TMP/wide.webp"
 kinds_check
 case_ "the next track is of the other kind: the picture follows it (a song, a video, a song again)"
 setup
@@ -343,12 +343,12 @@ eq "$(grep -c "\"playing\"" "$TMP/wing-left")" 1 "thirty frames alike: one drawn
 case_ "stopped, or no title yet: hidden"
 setup; step "$(P spotify Stopped A Song)" "$(P spotify Stopped A Song)"
 eq "$(last "$(bar)")" "|"
-setup; step "$(P brave Playing 'Some Channel' '')" "$(P brave Playing 'Some Channel' '')"
+setup; step "$(P chromium Playing 'Some Channel' '')" "$(P chromium Playing 'Some Channel' '')"
 eq "$(last "$(bar)")" "|"
 
 # ── several players ──────────────────────────────────────────────────────────
-case_ "music plays, then a video in a Brave tab (a wide picture) is paused: the music stays on the bar, its cassette"
-setup; bv=$(P brave.instance42 Paused 'Some Channel' 'A video' '' "$(art 1280 720)")
+case_ "music plays, then a video in a Helium tab (a wide picture) is paused: the music stays on the bar, its cassette"
+setup; bv=$(P chromium.instance42 Paused 'Some Channel' 'A video' '' "$(art 1280 720)")
 step "$(P spotify Playing Artist Song)" "$(P spotify Playing Artist Song)"
 step "$bv" "$bv" "$(P spotify Playing Artist Song)"
 out=$(bar)
@@ -486,7 +486,7 @@ waitfor 3 eval '! alive "$NP/pids" "$NP/cava.pids" "$NP/pwmeta.pids"' && _ok || 
 keys() { printf '%s\n' "$@" >"$NP/players"; }
 acted() { cat "$NP/acted" 2>/dev/null; }
 case_ "play-pause with music playing and a video paused (the video started first): the music"
-setup; keys "$(P brave.instance42 Paused Ch Video)" "$(P spotify Playing A Song)"
+setup; keys "$(P chromium.instance42 Paused Ch Video)" "$(P spotify Playing A Song)"
 rc 0 kawa-nowplaying play-pause
 eq "$(acted)" "play-pause spotify"
 case_ "next / previous: to the player that plays"
@@ -496,13 +496,13 @@ case_ "two playing: the one the bar shows"
 setup; keys "$(P mpv Playing '' film)" "$(P spotify Playing A Song)"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
 kawa-nowplaying play-pause; eq "$(acted)" "play-pause spotify"
 case_ "nothing playing: the one the bar shows (the last paused), not the first player"
-setup; keys "$(P brave Paused Ch Video)" "$(P spotify Paused A Song)"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
+setup; keys "$(P chromium Paused Ch Video)" "$(P spotify Paused A Song)"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
 kawa-nowplaying play-pause; eq "$(acted)" "play-pause spotify"
 case_ "the bar's player has quit since: playerctl's own pick"
-setup; keys "$(P brave Paused Ch Video)"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
-rc 0 kawa-nowplaying play-pause; eq "$(acted)" "play-pause brave"
+setup; keys "$(P chromium Paused Ch Video)"; echo spotify >"$XDG_RUNTIME_DIR/kawa-nowplaying.player"
+rc 0 kawa-nowplaying play-pause; eq "$(acted)" "play-pause chromium"
 case_ "the bar not running (no file): a playing one, else playerctl's own pick"
-setup; keys "$(P brave Paused Ch Video)" "$(P mpv Playing '' film)"
+setup; keys "$(P chromium Paused Ch Video)" "$(P mpv Playing '' film)"
 kawa-nowplaying play-pause; eq "$(acted)" "play-pause mpv"
 case_ "no player at all: could not (1)"
 setup

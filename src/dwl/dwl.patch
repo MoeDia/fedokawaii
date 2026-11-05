@@ -2350,7 +2350,7 @@
  
 +/* A window's capture (a window shared: the portal's ext-image-copy-capture session on its
 + * foreign-toplevel source) is drawn by wlroots into an output of its own, and only where
-+ * there is damage. A second session on the same window — Brave's share, while its picker's
++ * there is damage. A second session on the same window — Helium's share, while its picker's
 + * preview still runs — starts with no frame drawn for it, and asks for one with nothing
 + * damaged: none came until the window changed (other windows opened, it was retiled), so the
 + * share stayed empty. Each time a session asks for a frame with damage of its own pending (its

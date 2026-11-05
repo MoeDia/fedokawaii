@@ -3,7 +3,7 @@
 # answers as cliphist 0.7 does (fake_cliphist.py): text with newlines, tabs and leading
 # dashes, a huge copy, pictures of every kind Go reads, binary data, a broken picture, an
 # empty history, and wl-copy or cliphist missing; and what is kept of each copy (--store,
-# behind wl-paste --watch): a screenshot, Brave's "Copy image", spreadsheet cells, a secret,
+# behind wl-paste --watch): a screenshot, Helium's "Copy image", spreadsheet cells, a secret,
 # copies too big, the hundredth. fzf, wl-paste and the window are stand-ins; the previews are
 # drawn for real (ImageMagick, kawa-sixel) and read back pixel by pixel.
 . "$(dirname "$0")/lib.sh"
@@ -42,11 +42,11 @@ binary | python3 -I "$C/fake_cliphist.py" store
 raw=$(kawa-clip --list); out=$(rows <<<"$raw")
 case_ "the list: newest first, each row its cliphist id, a tab, and what it shows"
 eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "6 5 4 3 2 1 "
-case_ "a row as every text screen's (screen.sh): a space, the glyph in muted, two spaces, the name; a value right-aligned at the window's 76th column, muted"
-eq "$(grep $'^4\t' <<<"$raw" | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 76
+case_ "a row as every text screen's (screen.sh): a space, the glyph in muted, two spaces, the name; a value right-aligned at the window's 75th column (a column inside the band, as the glyph is), muted"
+eq "$(grep $'^4\t' <<<"$raw" | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 75
 has "$raw" $'4\t \e[38;5;21m'"$ICON_PICTURE"$'\e[0m  png picture  '
 grep -Eqa $'^3\t {1,2}\e\\[38;5;21m'"$ICON_CLIPBOARD"$'\e\\[0m  日本語' <<<"$raw" && _ok || _no "a text row: its glyph in muted, two spaces, the text — in $(grep -a '^3' <<<"$raw")"
-eq "$(FZF_COLUMNS=60 kawa-clip --list | grep $'^4\t' | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 58 "a reload: fzf's width less a column each side"
+eq "$(FZF_COLUMNS=60 kawa-clip --list | grep $'^4\t' | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 57 "a reload: fzf's width less a column each side, and the value's own inset"
 has "$out" $'1\tline one line two with tab line three' "newlines and tabs read as spaces"
 has "$out" $'2\t-rf --no-preserve-root /' "a leading dash is just text"
 has "$out" $'3\t日本語 العربية $(touch '"$TMP"'/pwned) `id`'
@@ -258,7 +258,7 @@ case_ "… a copy over our own 20 MiB: not kept at all (as before)"
 python3 -I -c 'import sys; sys.stdout.buffer.write(b"x" * (21 << 20))' >"$TMP/stdin"; offer 'text/plain;charset=utf-8'
 n0=$(ls "$CLIP_DB" | wc -l); rc 0 store; eq "$(ls "$CLIP_DB" | wc -l)" "$n0"; eq "$(ls "$B" 2>/dev/null | wc -l)" 0
 
-case_ "Brave's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
+case_ "Helium's Copy image (the picture, its <img> tag and its link — wl-paste hands over the link): the picture"
 store_setup
 magick -size 640x480 xc:'#7fb8b0' png:- >"$TMP/cat.png"
 offer text/html image/png text/plain 'text/plain;charset=utf-8'
@@ -463,7 +463,7 @@ FZF_MATCH_COUNT=0 bash -c "$c"; eq "$(cur)" "$WIN " "(with bash as \$SHELL)"
 bind focus 1 >/dev/null 2>&1; FZF_MATCH_COUNT=2 sh -c "$c"; eq "$(kawa-clip --held)" 1 "matches: left as it is"
 case_ "… fzf listens on its socket, for the history's reload"
 has "$(cat "$FZF_ARGS")" "--listen=$XDG_RUNTIME_DIR/kawa-clip.sock"
-has "$(cat "$FZF_ARGS")" "super+z  "$'\e[38;5;21m'"shrink" "its last line names the key (§7)"
+has "$(cat "$FZF_ARGS")" "$(bash -c 'INK_MUTED=$'"'"'\e[38;5;21m'"'"' INK_OFF=$'"'"'\e[0m'"'"'; . "$1"; screen_tile super+z' _ "$REPO/configs/home/.config/fedokawaii/screen.sh") "$'\e[38;5;21mshrink' "its last line names the key, a tile (§7)"
 lacks "$(cat "$FZF_ARGS")" "enter copy" "nothing obvious (§7)"
 case_ "a new copy while it is open (--store): the window's list reloaded, the cursor on the newest"
 stub curl

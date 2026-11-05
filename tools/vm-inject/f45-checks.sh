@@ -8,7 +8,7 @@
 #            fonts.conf): Sumi UI and the icons themselves, Sumi Term and monospace → UDEV Gothic NF,
 #            sans-serif → Noto Sans; Sumi UI drawn without smoothing
 #   tty1     no kmscon on tty1 (setup resumes on tty1: its autologin is a getty's)
-#   prowlarr started as a torrra search starts it (on demand: no [Install]), its /ping answering
+#   prowlarr started as a search in Torrents starts it (on demand: no [Install]), its /ping answering
 #            within two minutes, stopped again
 #   repos    no repository file of Fedora's (/usr/share/dnf5/repos.d, from 45 on) shadowed by a copy
 #            of the same name in /etc/yum.repos.d — a copy there overrides the whole file
@@ -21,7 +21,7 @@
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
 vm=${1:-f45} src=${2:-$(cd "$here/.." && pwd)}
-out=/dev/shm/r27/f45-checks; rm -rf "$out"; mkdir -p "$out"
+out=${FK_CHECKS_OUT:-/dev/shm/r27/f45-checks}; rm -rf "$out"; mkdir -p "$out"
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 { bash "$here/vm-snap.sh" "$vm" start && run --wait 600 && run --repo "$src"; } >"$out/start.log" 2>&1 \
   || { echo "f45-checks: the VM $vm could not be reached (start.log)" >&2; exit 2; }

@@ -1,0 +1,12 @@
+[Desktop Entry]
+# ASOBI 遊び, the play world (kawa-asobi) in a small window: enter, close, snapshot, reset, disk use,
+# the drop folder. Its icon: our pixel koma, a spinning top (the launcher draws it: X-Fedokawaii-Icon).
+Type=Application
+Name=ASOBI
+GenericName=The play world
+Comment=Steam and Windows programs in a user of their own, on a screen of their own (Super+G)
+X-Fedokawaii-Icon=koma
+Exec=@HOME@/.local/bin/kawa-asobi --window
+Terminal=false
+Categories=Game;
+Keywords=asobi;games;game;play;steam;bottles;windows;proton;controller;

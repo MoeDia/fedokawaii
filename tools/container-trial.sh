@@ -17,7 +17,7 @@
 # The stages (a progress line each, with its time):
 #   1 podman and space · 2 the image · 3 the container: a Server-like base (the tools a Minimal
 #   Install has), the repository copied in, a desktop user · 4 tools/check-packages (static) ·
-#   5 setup.sh --trial: every package step for real (repositories, RPM Fusion, Brave, Claude
+#   5 setup.sh --trial: every package step for real (repositories, RPM Fusion, Claude
 #   Code, COPRs, every list, the release downloads, checksummed) — boot, GPU, login and
 #   display steps skipped and named · 6 tools/check-packages --live: every name, repository,
 #   version, conflict, duplicate, obsolete, signature, against dnf itself · 7 the same run
@@ -135,7 +135,7 @@ s_again() {
   return 0
 }
 # a set of applications taken out, so a run has something to install again
-APPS_OUT="libreoffice-impress xournalpp openrgb qrencode"
+APPS_OUT="libreoffice-impress xournalpp qrencode"
 s_killed() {
   q "dnf -y remove $APPS_OUT >/dev/null 2>&1"; marks_out
   # (in the background inside the container; killed as soon as dnf is in its transaction)

@@ -1,0 +1,9 @@
+connector HDMI-A-1 (/sys/class/drm/card0-HDMI-A-1), DDC bus 5, kernel 7.2.13-200.fc44.x86_64, his setting: off
+EDID: AMD VSDB and range limits as DRM reads them:
+Min: 48 Max: 144 
+
+freesync fps   card now       presents ms (p5 p50 p95) monitor's own Hz (each second)
+games    100   yes/on         8.96 9.99 10.97        143.90 143.90 143.90 143.90 143.90 143.90 143.90 143.90
+games    60    yes/on         15.93 16.67 17.34      143.90 143.90 143.90 143.90 143.90 143.90 143.90 143.90
+games    40    yes/on         23.79 25.00 26.23      143.90 143.90 143.90 143.90 143.90 143.90 143.90 143.90
+off      100   yes/off        6.94 6.95 13.89        143.90 143.90 143.90 143.90 143.90 143.90 143.90 143.90

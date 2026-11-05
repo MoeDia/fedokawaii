@@ -40,6 +40,9 @@ UPM, PX = 1400, 100               # Sumi UI's grid: a 14 px em, 100 units per pi
 ASC, DESC = 1200, -200            # its line: 12 up, 2 down — mixing the fonts keeps the line
 FIRST = 0xFE000                   # Supplementary Private Use Area A: each icon at FIRST + its place
 TWIN = 0xFE800                    # its bar twin at TWIN + the same place: a range of its own
+CELLS = 0xFF000                   # whole terminal cells at fixed places, for what cannot read icons.sh (a
+                                  # patched yazi, its Lua, a script): the frame's ring (art/icons.txt, cp=) and
+                                  # the keycaps: U+FF000 + a key's ASCII code, its ends U+FF001 and U+FF002 (§7)
 BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of the grid)
 MIDDLE = 5                        # an icon's middle in pixels above the baseline: the middle of
                                   # Sumi UI's capitals (10 px tall on it)
@@ -58,6 +61,9 @@ def parse(text, src="icons.txt"):
             settings = {}
             for o in opts:
                 k, _, v = o.partition("=")
+                if k == "cp" and re.fullmatch(r"[0-9A-F]{5}", v):   # a place of its own (CELLS, below)
+                    settings[k] = int(v, 16)
+                    continue
                 if k not in ("adv", "x") or not re.fullmatch(r"-?\d+", v):
                     sys.exit(f"{src}:{n}: bad setting {o!r}")
                 settings[k] = int(v)
@@ -202,6 +208,8 @@ def write_sh(icons):
         "# shellcheck shell=bash disable=SC2034",
     ]
     for ic in icons:
+        if ic["code"] >= CELLS:              # (a cell: its place is fixed, no name needed)
+            continue
         b = chr(ic["code"]).encode()
         esc = "".join(f"\\x{c:02x}" for c in b)
         var = "ICON_" + ic["name"].upper().replace("-", "_")
@@ -268,6 +276,32 @@ def right_air(ic):
     return ic["adv"] - ic["x"] - max(r.rindex("#") for r in ic["rows"] if "#" in r) - 1
 
 
+def key_cells():
+    """The keycaps' middles (docs/design-system.md §7 Keys): every ASCII sign a whole terminal cell, 8 × 20 — the
+    tile's top (row 1) and its bottom with its lip (rows 17, 18), the sign from Sumi UI's own pixels, its ink
+    centred in the cell, the capitals on rows 4–13. In one ink, on any ground: never a filled block, so tiles on
+    two rows running stand 2 px apart (a row's two free rows, 0 and 19)."""
+    from PIL import ImageFont
+    face = ImageFont.truetype(str(ROOT / "system/fonts/SumiUI.ttf"), 14)
+    out = []
+    for c in range(0x20, 0x7F):
+        grid = [["."] * 8 for _ in range(20)]
+        for x in range(8):
+            grid[1][x] = grid[17][x] = grid[18][x] = "#"
+        if c != 0x20:
+            mask = face.getmask(chr(c), mode="1")
+            w, h = mask.size
+            left, top = face.getbbox(chr(c))[:2]
+            ox, oy = (8 - w) // 2, top - 12 + 12 + 2          # (the em's row 0 on the cell's row 2)
+            for y in range(h):
+                for x in range(w):
+                    if mask.getpixel((x, y)) and 0 <= y + oy < 17 and 0 <= x + ox < 8:
+                        grid[y + oy][x + ox] = "#"
+        out.append({"name": f"key-{c:02x}", "rows": ["".join(r) for r in grid], "line": 0, "adv": 8, "x": 0,
+                    "w": 8, "h": 20, "twin": True, "code": CELLS + c})
+    return out
+
+
 def twins(icons):
     """the bar twins (ICON_BAR_*): every icon again with no air either side — its ink from the
     pen, its advance its ink's width. Each icon's code is FIRST + its place in icons.txt, its
@@ -278,11 +312,13 @@ def twins(icons):
         return min(cols), max(cols)
     if len(icons) > TWIN - FIRST:
         sys.exit(f"icons.txt: {len(icons)} icons — more than the {TWIN - FIRST} before the twins' range")
+    fixed = [{**ic, "code": ic["cp"], "twin": True} for ic in icons if "cp" in ic]   # (cells: no number, no twin)
+    icons = [ic for ic in icons if "cp" not in ic]
     for k, ic in enumerate(icons):
         ic["code"] = FIRST + k
     return icons + [{**ic, "name": ic["name"] + "-bar", "x": -ink(ic)[0],
                      "adv": ink(ic)[1] - ink(ic)[0] + 1, "twin": True, "code": TWIN + k}
-                    for k, ic in enumerate(icons) if not ic["name"].startswith("gap")]
+                    for k, ic in enumerate(icons) if not ic["name"].startswith("gap")] + fixed + key_cells()
 
 
 def main():

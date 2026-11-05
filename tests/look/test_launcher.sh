@@ -38,13 +38,12 @@ has "$(cat "$REPO/configs/home/.config/waybar/config.jsonc")" '"on-click": "sets
 case_ "every program a person opens has a listed entry (fixtures/launched.txt); all else installed says why not (fixtures/not-launched.txt)"
 FX=$REPO/tests/look/fixtures
 names() { grep -v '^#' "$1" | awk 'NF { print $1 }'; }
-# what the toolkit installs: the manifest (both GPUs, with Steam), the release binaries,
-# LocalSend and Syncplay (lib/upstream.sh), torrra (uv tool) and Prowlarr (a container), the helpers
-installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STEAM=yes STATE_DIR=/nonexistent
+# what the toolkit installs: the manifest (both GPUs), the release binaries,
+# LocalSend and Syncplay (lib/upstream.sh), Prowlarr (a container), the helpers
+installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STATE_DIR=/nonexistent
   manifest_all amd; printf "%s\n" "${PKG_GPU_intel[@]}"; for u in "${UPSTREAM[@]}"; do echo "${u%%|*}"; done' _ "$REPO"
   grep -q '^LOCALSEND_TAG=' "$REPO/lib/upstream.sh" && echo localsend
   grep -q '^SYNCPLAY_TAG=' "$REPO/lib/upstream.sh" && echo syncplay
-  grep -q 'uv tool install .*torrra' "$REPO/setup.sh" && echo torrra
   [[ -f $REPO/system/prowlarr.container ]] && echo prowlarr
   for b in "$REPO"/bin/kawa-*; do echo "${b##*/}"; done)
 installed=$(LC_ALL=C sort -u <<<"$installed")
@@ -98,12 +97,12 @@ PY
 eq "$out" "3 3 0 None" "the launcher matches what a program is and its keywords too (Network: wifi; System monitor: task manager), its name first"
 
 case_ "every listed entry: a window program's own icon, or one of our pixel icons (X-Fedokawaii-Icon)"
-OFFICIAL=" com.github.xournalpp.xournalpp steam "
-OURS="footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
-  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-wallpaper:picture kawa-backup:archive
+OFFICIAL=" com.github.xournalpp.xournalpp "
+OURS="kawa-asobi:koma kawa-typing:keyboard footclient:terminal kawa-edit:code kawa-files:folder kawa-agents:agents kawa-git:branch
+  kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-learn:mortarboard kawa-chess:knight kawa-wallpaper:picture kawa-backup:archive
   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
-  kawa-prowlarr:search spotify:music whatsapp:speech"
+  kawa-prowlarr:search spotify:music whatsapp:speech kawa-sketch:brush"
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Icon) n=${f##*/}
@@ -117,7 +116,6 @@ for s in $OURS; do
   eq "$(key "$A/${s%%:*}.desktop" X-Fedokawaii-Icon)" "${s#*:}" "${s%%:*}: its icon"
 done
 eq "$(grep -l '^X-Fedokawaii-Kanji=' "$A"/*.desktop 2>/dev/null)" "" "no kanji seal left (§13)"
-eq "$(key "$A/kawa-sketch.desktop" Icon)" com.github.xournalpp.xournalpp "Sketch: Xournal++'s own (it is Xournal++)"
 case_ "the pictures: an app's own icon at its native 16 px (design-system §3), forced to it; a terminal program's pixel icon (a name icons.sh defines and the icon font draws, no two entries alike) in the icon column in accent_text, no box round it"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 out=$(python3 -I - "$REPO" $OURS <<'PY'
@@ -149,8 +147,8 @@ has "$(sed -n '/    def list(self):/,/return self.cache/p' "$P")" 'a.pic = (ic[a
 lacks "$(cat "$P")" '"窓"' "no kanji for a window any more"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
-eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://open.spotify.com" "Spotify: a Brave app window"
-eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: a Brave app window"
+eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/kawa-browser --app=https://open.spotify.com" "Spotify: a Helium app window"
+eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/kawa-browser --app=https://web.whatsapp.com" "WhatsApp: a Helium app window"
 
 case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), the launcher's icons from GTK's own theme (Adwaita, then hicolor)"
 bad=$(grep -rli papirus "$REPO"/{configs,bin,lib,tools,system,theme.sh,setup.sh,verify.sh} 2>/dev/null | grep -v '__pycache__' \

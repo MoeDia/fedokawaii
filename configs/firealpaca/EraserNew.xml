@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<Root>
+    <Brushes>
+        <Brush type="erase" name="Eraser" R="12" alpha="1" pressWidth="true" pressTrans="false" softEdge="false" option0="0" />
+        <Brush type="erase" name="Eraser, wide" R="40" alpha="1" pressWidth="true" pressTrans="false" softEdge="false" option0="0" />
+        <Brush type="erase" name="Eraser, soft" R="50" minR="0.6" alpha="1" pressWidth="true" pressTrans="true" softEdge="true" option0="0" />
+    </Brushes>
+    <Groups />
+    <Active index="0" scrollPos="0" />
+    <Version ver="1" />
+</Root>

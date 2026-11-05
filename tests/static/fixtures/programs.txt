@@ -39,6 +39,7 @@ ls                  minimal   coreutils
 mkdir               minimal   coreutils
 mktemp              minimal   coreutils
 mkfifo              minimal   coreutils
+split               minimal   coreutils
 mv                  minimal   coreutils
 numfmt              minimal   coreutils
 paste               minimal   coreutils
@@ -54,6 +55,7 @@ sleep               minimal   coreutils
 sort                minimal   coreutils
 stat                minimal   coreutils
 stdbuf              minimal   coreutils
+stockfish           manifest  stockfish         # kawa-chess (lib engine.py): /usr/bin/stockfish, Fedora 44 updates
 stty                minimal   coreutils
 sync                minimal   coreutils
 tail                minimal   coreutils
@@ -101,7 +103,7 @@ systemd-nspawn      manifest  systemd-container
 wf-recorder         manifest  wf-recorder
 losetup             minimal   util-linux-core   # f44
 renice              minimal   util-linux-core   # f44
-tuned-adm           manifest  tuned              # kawa-game: the game's profile and back
+tuned-adm           manifest  tuned              # setup: the fedokawaii profile; verify and the report ask which is active
 ionice              minimal   util-linux        # @core (kawa-wallpaper: its background drawing at idle priority)
 setsid              minimal   util-linux-core   # f44
 lsblk               minimal   util-linux        # @core (not in -core, f44)
@@ -229,7 +231,7 @@ shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
 restic              manifest  restic
 fusermount3         manifest  fuse3             # f44: /usr/bin/fusermount3 (Super+U → restore: a backup unmounted)
-brave-origin        manifest  brave-origin      # (Brave's own repo)
+helium              manifest  helium-bin        # (its COPR, imput/helium)
 claude              manifest  claude-code       # (Anthropic's own repo; herdr's Ctrl+B a)
 7z                  manifest  7zip              # f44: /usr/bin/7z only (no 7zz)
 zstd                manifest  zstd              # f44: /usr/bin/zstd (.tar.zst: kawa-file)
@@ -241,14 +243,13 @@ rg                  manifest  ripgrep
 # ── there through a dependency of a manifest package ─────────────────────────────────────
 gio                 dep       glib2 NetworkManager   # libnm; gtk4 and waybar too
 gsettings           dep       glib2 NetworkManager
-gdbus               dep       glib2 NetworkManager   # kawa-steam --guard: logind's warning before a shutdown
+gdbus               dep       glib2 NetworkManager   # the report: the file dialog's end-to-end row (FC-04)
 fc-match            dep       fontconfig foot   # libfontconfig; waybar, mako too
 fc-list             dep       fontconfig foot   # the report: the Arabic fonts
 python3             dep       python3 tuned     # tuned is a python program (firewalld, @core, too)
 
 # ── yazi and the rest from their releases, and what setup builds ─────────────────────────
 satty               upstream  -
-yazi                upstream  -
 ya                  upstream  -
 bluetui             upstream  -
 lazygit             upstream  -                 # (its release; the COPR dejan/lazygit is no longer kept)
@@ -256,7 +257,9 @@ herdr               upstream  -                 # (its release: Claude Code sess
 localsend           built     install_localsend # lib/upstream.sh: its release, a folder (~/.local/share/localsend), linked from ~/.local/bin
 kawa-clipkeep       built     kawa-clipkeep     # theme.sh, from src/kawa-clipkeep
 kawa-saver          built     kawa-saver        # theme.sh, from src/kawa-saver (swayidle starts it)
+kawa-rgb            built     kawa-rgb          # theme.sh, from src/kawa-rgb (a service of the system's)
 dwl                 built     DWL_TAG           # setup.sh, from codeberg + src/dwl
+yazi                built     YAZI_TAG          # setup.sh, from GitHub + src/yazi
 vi                  built     /usr/local/bin/vi # setup.sh: a script that runs nvim (yazi's ${EDITOR:-vi})
 syncplay            built     install_syncplay  # setup.sh (lib/upstream.sh): its pinned source, a starter in ~/.local/bin
 ble-attach          built     install_blesh     # setup.sh (lib/upstream.sh): ble.sh's commands, built from its
@@ -285,5 +288,4 @@ wayland-info        manifest  wayland-utils      # wayland-utils: the report lis
                                                  # with it where it is installed (guarded)
 desktop-file-validate optional -                 # desktop-file-utils: the report validates the launcher's
                                                  # entries with it where it is installed (guarded)
-steam               optional  -                  # with STEAM=yes only (PKG_GAMING, RPM Fusion nonfree): every call is guarded
 tesseract           manifest  tesseract          # Super+Shift+Print: a region's text (kawa-screenshot text)

@@ -39,6 +39,9 @@ for n in /sys/class/drm/renderD*; do
   [[ $v =~ ^[0-9]+$ ]] || v=0
   ((v > most)) && most=$v gpu=(WLR_RENDERER=gles2 "WLR_RENDER_DRM_DEVICE=/dev/dri/${n##*/}")
 done
+# (KAWA_HL_NODE=/dev/dri/renderD129: another card, when that one is busy: a local model on it starves a
+# kit's first frames for a minute, and the bar is not there when a check looks)
+[[ -n ${KAWA_HL_NODE:-} ]] && gpu=(WLR_RENDERER=gles2 "WLR_RENDER_DRM_DEVICE=$KAWA_HL_NODE")
 if ((asan)); then
   tree=$(dirname "$(realpath "$bin")") abuild=/tmp/hl-dwl-asan
   rm -rf "$abuild" && mkdir -p "$abuild" || exit 2
@@ -82,7 +85,7 @@ echo \$? >"$rt/status"
 kill \$PPID
 EOF
 chmod +x "$rt/inside.sh"
-env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" WLR_BACKENDS=headless "${gpu[@]}" \
+env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS XDG_RUNTIME_DIR="$rt" KAWA_RGB_ROOT="$rt/no-lights" WLR_BACKENDS=headless "${gpu[@]}" \
   WLR_LIBINPUT_NO_DEVICES=1 WLR_HEADLESS_OUTPUTS=1 \
   DWL_FRAMELOG="$rt/frames.log" ASAN_OPTIONS="log_path=$rt/asan:detect_leaks=1" \
   timeout "$limit" "${fence[@]}" "$bin" -s "$rt/inside.sh" >"$rt/dwl.log" 2>&1

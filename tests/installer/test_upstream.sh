@@ -1,20 +1,19 @@
 #!/usr/bin/env bash
 # tests/installer/test_upstream.sh — lib/upstream.sh: the desktop's pinned tools from GitHub
-# releases (satty, yazi, bluetui, lazygit, herdr), the terminal's face, the desktop's face and GE-Proton,
+# releases (satty, yazi, bluetui, lazygit, herdr), the terminal's face and the desktop's face,
 # in the fake machine with fake releases. Each is fetched, checked against its pinned SHA-256
 # and put in the user's home by the user; a second run finds it in place; a download that
 # differs by a byte, is cut off half-way or cannot happen at all changes nothing; a library
-# the binary needs is installed from whichever package provides it now; GE-Proton follows its
-# newest release and keeps the two newest. Syncplay and ble.sh come from their pinned commits:
-# fetched and built by the user, put in only once they load. LocalSend's release is a folder,
-# kept whole.
+# the binary needs is installed from whichever package provides it now. Syncplay and ble.sh
+# come from their pinned commits: fetched and built by the user, put in only once they load.
+# LocalSend's release is a folder, kept whole.
 . "$(dirname "$0")/lib.sh"
 H=/home/fkuser
 LIB=/home/fkuser/fedokawaii/lib
 # up CODE — bash CODE with lib/common.sh and lib/upstream.sh loaded, as setup has them (root,
 # the desktop user fkuser, a private temp folder): output in $OUT, status in $RC
 up() {
-  fkrun bash -c 'set -u; LOG_FILE=/var/log/fk-upstream.log; . "$1/common.sh"; . "$1/upstream.sh"
+  fkrun bash -c 'set -u; IFS=$(printf "\n\t"); LOG_FILE=/var/log/fk-upstream.log; . "$1/common.sh"; . "$1/upstream.sh"   # (setup.sh'"'"'s IFS)
     export TARGET_USER=fkuser TARGET_HOME=/home/fkuser TARGET_UID=31000 TARGET_GID=31000 STATE_DIR=/var/lib/fedokawaii
     REPO_DIR=$1/..; make_tmp; eval "$2"' _ "$LIB" "$1"
 }
@@ -34,9 +33,9 @@ eq "$(cat "$W$H/.local/share/fedokawaii/upstream/satty")" v0.22.0
 eq "$(fk stat -c %U "$H/.local/share/fedokawaii/upstream/satty")" fkuser
 case_ "a second run: in place, nothing downloaded"
 reset_calls; up "install_upstream_bin $satty"; eq "$RC" 0; has "$OUT" "satty v0.22.0 — in place"; not_called 'curl'
-case_ "yazi (a zip with two binaries in a folder): both installed"
+case_ "ya (a zip with two binaries in a folder): the one it asks for, yazi itself built here (build_yazi)"
 up 'install_upstream_bin "${UPSTREAM[1]}"'; eq "$RC" 0
-[[ -x $W$H/.local/bin/yazi && -x $W$H/.local/bin/ya ]] && _ok || _no "yazi or ya missing"
+[[ ! -e $W$H/.local/bin/yazi && -x $W$H/.local/bin/ya ]] && _ok || _no "ya missing, or the release's yazi installed"
 case_ "bluetui (the release file is the binary itself, no archive): installed under the tool's name"
 up 'install_upstream_bin "${UPSTREAM[2]}"'; eq "$RC" 0
 has "$OUT" "verified: bluetui-x86_64-linux-musl"; has "$OUT" "✔ bluetui v0.8.2 → ~/.local/bin (bluetui)"
@@ -90,7 +89,7 @@ back start; fkh ldd-missing "satty libssl.so.3"; fkh provides "libssl.so.3()(64b
 up "install_upstream_bin $satty"; eq "$RC" 0
 has "$OUT" "satty needs libssl.so.3()(64bit)"; pkg_has openssl3-libs && _ok || _no "openssl3-libs not installed"
 eq "$(cat "$W/var/lib/fedokawaii/upstream-libs")" openssl3-libs
-fkrun bash -c '. /home/fkuser/fedokawaii/lib/manifest.sh; STEAM=yes STATE_DIR=/var/lib/fedokawaii manifest_all amd'
+fkrun bash -c '. /home/fkuser/fedokawaii/lib/manifest.sh; STATE_DIR=/var/lib/fedokawaii manifest_all amd'
 has "$OUT" openssl3-libs "the manifest counts it (verify never takes it for something you added)"
 case_ "…none provides it: nothing installed (exit 1)"
 back start; fkh ldd-missing "satty libssl.so.3"
@@ -300,62 +299,56 @@ back start; fkh net off
 up 'install_blesh'; eq "$RC" 1; has "$OUT" "attempt 3/3 failed"; has "$OUT" "could not fetch ble.sh ${BLESH:0:7}"
 [[ ! -e $bd && ! -e $bt ]] && _ok || _no "something installed while offline"
 
-# ── GE-Proton ────────────────────────────────────────────────────────────────
-pd=$W$H/.local/share/Steam/compatibilitytools.d
-ge_release() {   # ge_release NAME [TOP-FOLDER] — a newer release on the fake GitHub
-  local n=$1 top=${2:-$1} r=$TMP/ge-$1
-  rm -rf "$r"; mkdir -p "$r/$top"; echo '"compatibilitytools" { }' >"$r/$top/compatibilitytool.vdf"
-  tar -czf "$dl/$n.tar.gz" -C "$r" "$top"; (cd "$dl" && sha512sum "$n.tar.gz" >"${n%-x86_64}.sha512sum.all")
-  { echo "0000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000  GE-ProtonX-aarch64.tar.gz"
-    cat "$dl/${n%-x86_64}.sha512sum.all"; } >"$dl/$n.sha512sum"
-  printf '{"tag_name":"%s","assets":[{"name":"%s.sha512sum","browser_download_url":"https://github.com/x/%s.sha512sum"},{"name":"%s.tar.gz","browser_download_url":"https://github.com/x/%s.tar.gz"},{"name":"GE-ProtonX-aarch64.tar.gz","browser_download_url":"https://github.com/x/GE-ProtonX-aarch64.tar.gz"}]}\n' \
-    "${n%-x86_64}" "$n" "$n" "$n" "$n" >"$FKH/ge.json"
-}
-case_ "install_ge_proton: the newest release, checked against its own SHA-512, unpacked by you, tag recorded"
-back start; up 'install_ge_proton'; eq "$RC" 0
-[[ -f $pd/GE-Proton10-25/compatibilitytool.vdf ]] && _ok || _no "not unpacked"
-eq "$(fk stat -c %U "$H/.local/share/Steam/compatibilitytools.d/GE-Proton10-25")" fkuser
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton")" GE-Proton10-25
-case_ "…in place: nothing downloaded; a folder another tool put there is recorded as it is"
-reset_calls; up 'install_ge_proton'; has "$OUT" "GE-Proton10-25 — in place"; not_called 'curl.*tar.gz'
-rm -f "$W$H/.local/share/fedokawaii/upstream/ge-proton"; up 'install_ge_proton'
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton")" GE-Proton10-25 "recorded again"
-case_ "a newer release (the -x86_64 naming of GE-Proton 11): installed, the newest two kept — by version, not by text"
-mkdir -p "$pd/GE-Proton9-27" "$pd/GE-Proton10-9"; fk chown -R fkuser:fkuser "$H/.local/share/Steam"
-ge_release GE-Proton11-1-x86_64
-up 'install_ge_proton'; eq "$RC" 0
-eq "$(ls "$pd" | sort -V | tr '\n' ' ')" "GE-Proton10-25 GE-Proton11-1-x86_64 "
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton")" GE-Proton11-1-x86_64
-case_ "its checksum not matching: refused, nothing changed (exit 1)"
-back start; up 'install_ge_proton'; ge_release GE-Proton10-26; printf 'x' >>"$dl/GE-Proton10-26.tar.gz"
-up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "checksum mismatch — refused"
-eq "$(ls "$pd" | tr '\n' ' ')" "GE-Proton10-25 "
-case_ "GitHub not reachable, or no x86_64 file in the release: said, nothing changed (exit 1)"
-fkh net off; up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "GitHub not reachable for GE-Proton"
-rm -f "$FKH/net"; fkh ge.json '{"tag_name":"GE-Proton12-1","assets":[{"name":"GE-Proton12-1-aarch64.tar.gz","browser_download_url":"https://x/a.tar.gz"},{"name":"GE-Proton12-1-aarch64.sha512sum","browser_download_url":"https://x/a.sha512sum"}]}'
-up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "no GE-Proton release file for x86_64"
-fkh ge.json 'this is not JSON'; up 'install_ge_proton'; eq "$RC" 1
-up 'set -e; install_ge_proton'; eq "$RC" 1; has "$OUT" "no GE-Proton release file" "not JSON (a Wi-Fi sign-in page), under set -e as setup runs it: said plainly"
-eq "$(ls "$pd" | tr '\n' ' ')" "GE-Proton10-25 "
-case_ "unpacking cut off half-way (a power cut, a full home): nothing half-made is left to pass for installed"
-# (your tar stops with Steam's file not yet written, once, while $FKH/cut-unpack is there)
-cut_tar() { stub tar 'case " $* " in *" -xf - "*) /usr/bin/tar "$@"
-  [ -f /var/lib/fkh/cut-unpack ] && { rm -f /var/lib/fkh/cut-unpack; find "$2" -name compatibilitytool.vdf -delete; exit 2; } ;;
-  *) exec /usr/bin/tar "$@" ;; esac'; fkh cut-unpack; }
-back start; cut_tar; up 'set -e; install_ge_proton'; [[ $RC != 0 ]] && _ok || _no "a cut-off unpack ended 0 (under set -e, as setup runs it)"
-[[ -z $(ls "$pd" 2>/dev/null) ]] && _ok || _no "left in compatibilitytools.d: $(ls -A "$pd" | tr '\n' ' ')"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" "" "nothing recorded"
-up 'install_ge_proton'; eq "$RC" 0; lacks "$OUT" "in place"
-[[ -f $pd/GE-Proton10-25/compatibilitytool.vdf ]] && _ok || _no "the next run did not put it in whole"
-case_ "…the same where errexit is off (repair calls it under ||): failed, said, nothing recorded"
-back start; cut_tar; up 'install_ge_proton || echo "FAILED"'; has "$OUT" "FAILED"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" "" "nothing recorded"
-[[ -z $(ls "$pd" 2>/dev/null) ]] && _ok || _no "left in compatibilitytools.d: $(ls -A "$pd" | tr '\n' ' ')"
-rm -f "$STUBS/tar"
-case_ "an archive holding two top folders (or none with Steam's file): refused"
-ge_release GE-Proton10-27; r=$TMP/two; mkdir -p "$r/GE-Proton10-27" "$r/GE-ProtonX"; : >"$r/GE-Proton10-27/compatibilitytool.vdf"
-tar -czf "$dl/GE-Proton10-27.tar.gz" -C "$r" .; (cd "$dl" && sha512sum GE-Proton10-27.tar.gz >GE-Proton10-27.sha512sum)
-up 'install_ge_proton'; eq "$RC" 1; has "$OUT" "did not hold one GE-Proton folder"
+# ── FireAlpaca: an official AppImage, one address, unpacked by you ───────────────────────
+case_ "install_firealpaca: the pinned file, unpacked whole in its folder, yours; its version recorded; again: in place"
+back start; fav=$(. "$REPO/lib/upstream.sh"; echo "$FIREALPACA_VERSION")
+up "install_firealpaca"; eq "$RC" 0 "$OUT"
+has "$OUT" "verified: FireAlpaca.AppImage"
+fa=$H/.local/share/fedokawaii/firealpaca/app
+eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca $fav" "runs from its folder"
+eq "$(fk stat -c %U "$fa/usr/bin/FireAlpaca")" fkuser
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/firealpaca")" "$fav"
+[[ ! -e $W$fa.new ]] && _ok || _no "the unpacking folder left behind"
+reset_calls; up "install_firealpaca"; eq "$RC" 0; has "$OUT" "FireAlpaca $fav — in place"
+case_ "their page moved on (one address, the newest): a newer version is taken, and said; the file is checked by what it is"
+cp "$dl/linux" "$TMP/fa.pinned"; fake_firealpaca 99.0.0 >"$dl/linux"
+rm -f "$W$H/.local/share/fedokawaii/upstream/firealpaca"
+up "install_firealpaca"; eq "$RC" 0 "$OUT"; has "$OUT" "their page now serves 99.0.0"
+eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0"
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/firealpaca")" 99.0.0
+case_ "a different file of the same or an older version: refused, what works stays"
+fake_firealpaca "$fav" >"$dl/linux"; printf '# changed\n' >>"$dl/linux"
+rm -f "$W$H/.local/share/fedokawaii/upstream/firealpaca"
+up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
+eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0" "the working copy stays"
+[[ ! -e $W$fa.new ]] && _ok || _no "the unpacking folder left behind"
+fake_firealpaca 1.0.0 >"$dl/linux"; up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
+cp "$TMP/fa.pinned" "$dl/linux"
+
+# ── Widevine: Google's module, by way of Mozilla's update service ───────────────────────────
+wv=$W/usr/local/lib/fedokawaii-widevine
+case_ "install_widevine: Google's module, the three files in their places, not one more (a .crx3 is a zip behind a header)"
+back start; rm -rf "$wv"; widevine_release 4.10.1 "$dl"; reset_calls; up "install_widevine"; eq "$RC" 0 "$OUT"
+has "$OUT" "✔ Widevine 4.10.1 → /usr/local/lib/fedokawaii-widevine"
+called 'curl.*aus5.mozilla.org/update/3/GMP/999.0/.*update.xml'; called 'curl.*edgedl.me.gvt1.com/.*w-4.10.1.crx3'
+eq "$(cd "$wv" && find . -type f | sort | tr '\n' ' ')" "./LICENSE ./_platform_specific/linux_x64/libwidevinecdm.so ./manifest.json "
+eq "$(jq -r .version "$wv/manifest.json")" 4.10.1
+[[ ! -e $W/usr/local/lib/outside && ! -e $wv.new ]] && _ok || _no "a stray beside it"
+case_ "…the version already there: nothing downloaded"
+reset_calls; up "install_widevine"; eq "$RC" 0; has "$OUT" "Widevine 4.10.1 — in place"; not_called 'edgedl.me.gvt1.com'
+case_ "…a newer one: put in its place, whole"
+widevine_release 4.10.2 "$dl"; up "install_widevine"; eq "$RC" 0; eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
+has "$(cat "$wv/_platform_specific/linux_x64/libwidevinecdm.so")" "cdm 4.10.2"
+case_ "…a package that is not the one announced: refused, the one there kept"
+widevine_release 4.10.3 "$dl"; printf x >>"$dl/w-4.10.3.crx3"; up "install_widevine"; eq "$RC" 1; has "$OUT" "SHA-512 is not the one announced — refused"
+eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
+case_ "…an answer naming another server, or none: refused"
+widevine_release 4.10.3 "$dl"; sed -i 's#https://edgedl.me.gvt1.com#https://evil.example#' "$dl/update.xml"; up "install_widevine"; eq "$RC" 1
+has "$OUT" "names no module of Google's"
+echo '<updates/>' >"$dl/update.xml"; up "install_widevine"; eq "$RC" 1; has "$OUT" "names no module of Google's"
+case_ "…no network: said, the one there kept; setup goes on (s_widevine: never a reason to stop)"
+widevine_release 4.10.2 "$dl"; fkh net off; up "install_widevine"; eq "$RC" 1; has "$OUT" "does not answer"; eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
+up 'eval "$(sed -n "/^contained() {/,/^}/p;/^s_widevine() {/,/^}/p" "$REPO_DIR/setup.sh")"; s_widevine'; eq "$RC" 0; has "$OUT" "Widevine is not installed yet"; rm -f "$FKH/net"
 
 # ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
 case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"

@@ -3,10 +3,9 @@
 # then go on without it: setup.sh's prowlarr_up (setup, update, repair, the Fedora move) and
 # the `prowlarr` shell command (its web page). A start that fails is stopped again: left
 # alone, the unit's Restart=on-failure would try it every 10 s until the next boot.
-# (kawa-torrra and verify already stop it: tests/engine/test_torrra.sh, tests/installer.)
-# Then setup.sh's other torrent steps, as functions: torrra_up (torrra at its pinned version
-# with its libraries at the versions it was released with, uv's own `torrra` kept off your
-# PATH, the load probe that verify shares) and torrent_port (the firewall, never reloaded).
+# (the window's own: tests/engine/test_torrents.sh; verify's: tests/installer.)
+# Then setup.sh's other torrent steps, as functions: torrents_up (the program whole on Fedora's
+# Python, and all an older setup's torrra left taken out, its list handed over first).
 . "$(dirname "$0")/lib.sh"
 KEY=a1b2c3d4e5f60718293a4b5c6d7e8f90
 
@@ -80,7 +79,7 @@ case_ "…a start that fails: said (a notice too), stopped again (never left ret
 sh_world; : >"$TMP/start-fails"; pw; eq "$RC" 1
 has "$OUT" "Prowlarr did not start"; has "$OUT" "journalctl --user -u prowlarr"
 called '^systemctl --user stop --no-block prowlarr.service'; not_called xdg-open; not_called systemd-run
-called '^notify-send -a torrra -u critical -- .*  Prowlarr did not start'
+called '^notify-send -a torrents -u critical -- .*  Prowlarr did not start'
 case_ "prowlarr stop: asleep now, its planned sleep called off"
 sh_world; : >"$TMP/active"; pw stop; eq "$RC" 0; called '^systemctl --user stop prowlarr.service'; [[ ! -e $TMP/active ]] && _ok || _no "still running"
 called '^systemctl --user stop prowlarr-idle.timer'
@@ -95,7 +94,7 @@ pw bogus; eq "$RC" 2; has "$OUT" "usage: kawa-prowlarr"
 case_ "the shell's prowlarr and the launcher entry both go through kawa-prowlarr"
 grep -q 'Exec=@HOME@/.local/bin/kawa-prowlarr$' "$REPO/configs/home/.local/share/applications/kawa-prowlarr.desktop" && _ok || _no "the launcher entry"
 
-# ── setup's indexers (system/prowlarr-indexers.py), against a stand-in Prowlarr ─────
+# ── setup's indexers (kawa-torrents' prowlarr.py add), against a stand-in Prowlarr ─────
 # a small HTTP server speaking Prowlarr's API: the indexers it has ($TMP/have.json), the
 # schema of every known one, POST (which fails its connection test for names in $TMP/unreachable)
 # and PUT ?forceSave; every request logged to $TMP/api.log with the key it carried
@@ -145,6 +144,11 @@ class H(BaseHTTPRequestHandler):
         self.note(json.dumps({"id": body.get("id"), "enable": body.get("enable")}))
         h = [body if i["id"] == body["id"] else i for i in have()]; json.dump(h, open(f"{T}/have.json", "w"))
         self.send(202, body)
+    def do_DELETE(self):
+        self.note()
+        i = int(self.path.rsplit("/", 1)[1])
+        json.dump([x for x in have() if x["id"] != i], open(f"{T}/have.json", "w"))
+        self.send(200, {})
 s = HTTPServer(("127.0.0.1", 0), H)
 open(f"{T}/port", "w").write(str(s.server_address[1]))
 s.serve_forever()
@@ -154,32 +158,36 @@ PY
   for _ in {1..100}; do [[ -s $TMP/port ]] && break; /bin/sleep 0.05; done
   URL=http://127.0.0.1:$(cat "$TMP/port")
 }
-ix() { OUT=$(printf %s "${1:-k3y}" | python3 -I "$REPO/system/prowlarr-indexers.py" "$URL" 2>&1); RC=$?; }
+ix() { OUT=$(printf %s "${1:-k3y}" | KAWA_PROWLARR_URL=$URL python3 -I "$REPO/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py" add 2>&1); RC=$?; }
 log_of() { grep "^$1" "$TMP/api.log"; }
 
-case_ "a new Prowlarr: the eight added, each with its priority, the profile, no tags, the schema's settings (its presets left out)"
+case_ "a new Prowlarr: the seven added, each with its priority, the profile, no tags, the schema's settings (its presets left out)"
 api_world; ix; eq "$RC" 0 "$OUT"
-eq "$(log_of POST | wc -l)" 8
-for e in nyaasi:1 SubsPlease:5 tokyotosho:10 thepiratebay:10 yts:10 Knaben:15 limetorrents:20 torrentdownloads:25; do
+eq "$(log_of POST | wc -l)" 7
+for e in nyaasi:1 SubsPlease:5 thepiratebay:10 yts:10 Knaben:15 limetorrents:20 torrentdownloads:25; do
   has "$(log_of POST)" "\"definitionName\": \"${e%:*}\", \"enable\": true, \"priority\": ${e#*:}, \"appProfileId\": 7, \"tags\": [], \"presets\": false}"
 done
 lacks "$(cat "$TMP/api.log")" eztv "a Cloudflare site added"
+lacks "$(cat "$TMP/api.log")" tokyotosho "Tokyo Toshokan: Cloudflare since"
 eq "$(grep -c 'key=k3y' "$TMP/api.log")" "$(wc -l <"$TMP/api.log")" "every request carried the key"
 case_ "run again (every update): nothing added, said so"
-ix; eq "$RC" 0; has "$OUT" "all 8 in place"; eq "$(log_of POST | wc -l)" 8 "no second POST"
+ix; eq "$RC" 0; has "$OUT" "all 7 in place"; eq "$(log_of POST | wc -l)" 7 "no second POST"
 case_ "one you have (renamed, switched off): left as it is — matched by its kind, any letter case"
 api_world; echo '[{"id": 1, "name": "My Nyaa", "definitionName": "NyaaSi", "enable": false}]' >"$TMP/have.json"
-ix; eq "$RC" 0; lacks "$(log_of POST)" '"nyaasi"'; eq "$(log_of POST | wc -l)" 7
+ix; eq "$RC" 0; lacks "$(log_of POST)" '"nyaasi"'; eq "$(log_of POST | wc -l)" 6
 has "$(cat "$TMP/have.json")" '"name": "My Nyaa", "definitionName": "NyaaSi", "enable": false'
-case_ "a site Prowlarr cannot reach now: saved switched off, then switched on without the test — the rest go on"
+case_ "Tokyo Toshokan, where an older setup added it: taken out (its searches fail on Cloudflare's challenge, its page warns)"
+api_world; echo '[{"id": 9, "name": "Tokyo Toshokan", "definitionName": "tokyotosho", "enable": true}]' >"$TMP/have.json"
+ix; eq "$RC" 0 "$OUT"; has "$OUT" "Tokyo Toshokan: taken out"; has "$(log_of DELETE)" "/api/v1/indexer/9"; lacks "$(cat "$TMP/have.json")" tokyotosho
+case_ "a site Prowlarr cannot reach from here: saved rested, the rest go on — no warning on its page, tried again at each tend"
 api_world; echo "yts limetorrents" >"$TMP/unreachable"
-ix; eq "$RC" 0 "$OUT"; has "$OUT" "yts: added (not reachable just now"
-has "$(log_of PUT)" "forceSave=true"; eq "$(log_of PUT | wc -l)" 2
-eq "$(python3 -c 'import json,sys; print(sum(1 for i in json.load(open(sys.argv[1])) if i["enable"]))' "$TMP/have.json")" 8 "all eight switched on"
-case_ "a first start, Prowlarr's list of sites not fetched yet: fetched there and then (its IndexerDefinitionUpdate, waited for), then all eight added"
+ix; eq "$RC" 0 "$OUT"; has "$OUT" "yts: added, rested"
+eq "$(python3 -c 'import json,sys; print(sum(1 for i in json.load(open(sys.argv[1])) if i["enable"]))' "$TMP/have.json")" 5 "five switched on"
+eq "$(wc -l <"$HOME/.local/state/fedokawaii/torrents/rested")" 2 "both noted"
+case_ "a first start, Prowlarr's list of sites not fetched yet: fetched there and then (its IndexerDefinitionUpdate, waited for), then all added"
 api_world; : >"$TMP/no-defs"
 ix; eq "$RC" 0 "$OUT"; has "$(log_of POST)" '"name": "IndexerDefinitionUpdate"'
-has "$(cat "$TMP/api.log")" "GET /api/v1/command/31"; eq "$(log_of 'POST /api/v1/indexer' | wc -l)" 8
+has "$(cat "$TMP/api.log")" "GET /api/v1/command/31"; eq "$(log_of 'POST /api/v1/indexer' | wc -l)" 7
 case_ "…its list complete already: not asked again"
 api_world; ix; lacks "$(cat "$TMP/api.log")" "IndexerDefinitionUpdate"
 case_ "a wrong key: refused, said, exit 2, nothing added"
@@ -187,133 +195,63 @@ api_world; ix wrong; eq "$RC" 2; has "$OUT" "refused (401)"; not_called POST; [[
 case_ "Prowlarr not answering: said, exit 2"
 api_world; kill "$FAKE_PID"; wait "$FAKE_PID" 2>/dev/null; ix; eq "$RC" 2; has "$OUT" "did not answer"
 case_ "setup runs it with the key on stdin (never on a command line), and goes on whatever it says"
-grep -q 'printf %s "$key" | as_user python3 -I "$REPO_DIR/system/prowlarr-indexers.py"' "$REPO/setup.sh" && _ok || _no "setup's line changed"
-case_ "verify knows the same eight"
-has "$(sed -n '/^INDEXERS = /,/]$/p' "$REPO/system/prowlarr-indexers.py")" '("torrentdownloads", 25)'
+grep -q 'printf %s "$key" | as_user python3 -I "$REPO_DIR/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py" add' "$REPO/setup.sh" && _ok || _no "setup's line changed"
+case_ "verify knows the same seven"
+has "$(sed -n '/^INDEXERS = /,/]$/p' "$REPO/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py")" '("torrentdownloads", 25)'
+case_ "the page: what fails rested before it opens (no warning on it)"
+grep -q 'kawa-torrents tend' "$REPO/bin/kawa-prowlarr" && _ok || _no "kawa-prowlarr opens the page without tending"
 
-# ── setup.sh's torrra_up ─────────────────────────────────────────────────────
-# a venv of the real python3 with the stand-in torrra (fixtures/torrra: its screens fail to
-# load while $FAKE_TEXTUAL_BROKEN exists); the two system files it installs pointed into
-# the test's folder; uv a stand-in that records where it would put its `torrra`
-D=$(cd "$(dirname "$0")" && pwd)
-TV=$(sed -n 's/^TORRRA_VERSION=//p' "$REPO/lib/upstream.sh")
+# ── setup.sh's torrents_up ───────────────────────────────────────────────────
+# the program checked as it stands in the repository; an older setup's torrra taken out, with its list handed
+# over first; the system files pointed into the test's folder
 tu_world() {
   sandbox; stub sleep; stub restorecon
-  V=$HOME/.local/share/uv/tools/torrra SYS=$TMP/sys
-  local pyv; pyv=$(python3 -c 'import sys; print(f"python{sys.version_info[0]}.{sys.version_info[1]}")')
-  mkdir -p "$V/bin" "$V/lib/$pyv/site-packages" "$SYS/usr/local/bin" "$SYS/etc/profile.d" "$HOME/.local/bin"
-  ln -s "$(command -v python3)" "$V/bin/python"; : >"$V/bin/torrra"
-  printf 'home = %s\ninclude-system-site-packages = false\n' "$(dirname "$(command -v python3)")" >"$V/pyvenv.cfg"
-  cp -r "$D/fixtures/torrra/." "$V/lib/$pyv/site-packages/"
-  printf 'Metadata-Version: 2.1\nName: torrra\nVersion: %s\n' "$TV" >"$V/lib/$pyv/site-packages/torrra-2.5.1.dist-info/METADATA"
-  python3 -I "$D/fixtures/pins.py" "$REPO/system/torrra-constraints.txt" "$V/lib/$pyv/site-packages"   # (each library at its pin)
-  sed -n '/^torrra_from_pipx() {/,/^}/p; /^torrra_up() {/,/^}/p' "$REPO/setup.sh" >"$TMP/tu.sh"
-  sed -i -e "s|/usr/local/bin/kawa-torrra|$SYS/usr/local/bin/kawa-torrra|g" \
-         -e "s|/etc/profile.d/kawa-torrra.sh|$SYS/etc/profile.d/kawa-torrra.sh|g" "$TMP/tu.sh"
-  # (both rewrites made, and no path of this machine's own left in it)
-  { grep -q "$SYS/usr/local/bin/kawa-torrra" "$TMP/tu.sh" && grep -q "$SYS/etc/profile.d/kawa-torrra.sh" "$TMP/tu.sh" \
-      && ! grep -Eq '(^|[ "=])/(usr|etc)/' "$TMP/tu.sh"; } || { echo "fixture: torrra_up's system paths not pointed into the test" >&2; exit 1; }
-  stub uv 'printf %s "${UV_TOOL_BIN_DIR:-}" >"'"$TMP"'/uv-bin-dir"
-case " $* " in *" tool install "*) rm -f "${FAKE_TEXTUAL_BROKEN:-/nonexistent}"; python3 -I "'"$D/fixtures/pins.py"'" "'"$REPO/system/torrra-constraints.txt"'" "'"$V/lib/$pyv/site-packages"'"
-  b=${UV_TOOL_BIN_DIR:-$HOME/.local/bin}; mkdir -p "$b"; ln -sfn "'"$V"'/bin/torrra" "$b/torrra" ;; esac'
-  unset FAKE_TEXTUAL_BROKEN
+  stub uv 'case "$*" in "tool uninstall torrra") rm -rf "$HOME/.local/share/uv/tools/torrra" ;; esac'
+  SYS=$TMP/sys; mkdir -p "$SYS/usr/local/bin" "$SYS/etc/profile.d" "$HOME/.local/bin"
+  sed -n '/^torrents_cmd() {/p; /^torrra_out() {/,/^}/p; /^torrents_up() {/,/^}/p' "$REPO/setup.sh" >"$TMP/tu.sh"
+  sed -i -e "s|/usr/local/bin/kawa-torrra|$SYS/usr/local/bin/kawa-torrra|g" -e "s|/etc/profile.d/kawa-torrra.sh|$SYS/etc/profile.d/kawa-torrra.sh|g" "$TMP/tu.sh"
+  { grep -q "$SYS/usr/local/bin/kawa-torrra" "$TMP/tu.sh" && ! grep -Eq '(^|[ "=])/(usr|etc)/' "$TMP/tu.sh"; } || { echo "fixture: torrents_up's system paths not pointed into the test" >&2; exit 1; }
 }
 tu() {   # → $OUT, $RC
   OUT=$(LOG_FILE=$TMP/fk.log STATE_DIR=$TMP/state REPO_DIR=$REPO TARGET_HOME=$HOME TARGET_USER=$(id -un) \
-        TARGET_UID=$(id -u) TARGET_GID=$(id -g) TORRRA_VENV=.local/share/uv/tools/torrra TORRRA_BIN=.local/share/uv/tool-bin TORRRA_VERSION=$TV \
-        bash -c 'set -Eeuo pipefail; . "$1/lib/common.sh"; . "$2"; as_user() { "$@"; }; torrra_up' _ "$REPO" "$TMP/tu.sh" 2>&1); RC=$?
+        TARGET_UID=$(id -u) TARGET_GID=$(id -g) bash -c 'set -Eeuo pipefail; shopt -s extglob; . "$1/lib/common.sh"; . "$2"; as_user() { "$@"; }; torrents_up' _ "$REPO" "$TMP/tu.sh" 2>&1); RC=$?
 }
-C=$REPO/system/torrra-constraints.txt
+old_torrra() {   # what an older setup left: uv's tool, its settings, its cache, its list, its wrapper and hook
+  V=$HOME/.local/share/uv/tools/torrra
+  mkdir -p "$V/bin" "$HOME/.local/share/uv/tool-bin" "$HOME/.config/torrra" "$HOME/.cache/torrra" "$HOME/.local/share/torrra"
+  : >"$HOME/.local/share/uv/tool-bin/torrra"; : >"$HOME/.config/torrra/config.toml"; : >"$HOME/.cache/torrra/cache.db"
+  : >"$SYS/usr/local/bin/kawa-torrra"; : >"$SYS/etc/profile.d/kawa-torrra.sh"
+  python3 -I -c 'import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+c.execute("CREATE TABLE torrents (magnet_uri TEXT PRIMARY KEY, title TEXT, source TEXT, is_paused BOOLEAN DEFAULT 0, is_notified BOOLEAN DEFAULT 0, file_priorities TEXT, save_path TEXT)")
+c.execute("INSERT INTO torrents VALUES (?,?,?,0,1,?,NULL)", ("magnet:?xt=urn:btih:" + "ab" * 20, "A Film", "Knaben", "[4, 0]"))
+c.commit()' "$HOME/.local/share/torrra/torrra.db"
+}
 
-case_ "torrra_up, torrra working: nothing installed — an old \`torrra\` link in ~/.local/bin taken out"
-tu_world; ln -s "$V/bin/torrra" "$HOME/.local/bin/torrra"
-tu; eq "$RC" 0 "$OUT"; not_called '^uv'
-[[ ! -e $HOME/.local/bin/torrra && ! -L $HOME/.local/bin/torrra ]] && _ok || _no "the raw torrra is still on your PATH"
-[[ -x $SYS/usr/local/bin/kawa-torrra ]] && _ok || _no "kawa-torrra not installed"
-case_ "…a torrra of your own there (a script, a link elsewhere) is left alone"
-tu_world; printf '#!/bin/sh\n' >"$HOME/.local/bin/torrra"; tu; eq "$RC" 0; [[ -f $HOME/.local/bin/torrra ]] && _ok || _no "your script went"
-tu_world; ln -s /bin/true "$HOME/.local/bin/torrra"; tu; [[ -L $HOME/.local/bin/torrra ]] && _ok || _no "your link went"
-case_ "torrra_up, Textual broken under torrra: the load probe sees it — installed again, with the pinned libraries"
-tu_world; export FAKE_TEXTUAL_BROKEN=$TMP/textual-broken; : >"$FAKE_TEXTUAL_BROKEN"
-tu; eq "$RC" 0 "$OUT"
-called "^uv tool install --force --python 3.13 --constraints $C torrra==$TV$"
-case_ "…its Python 3.13 fetched by uv python install first (Fedora's uv: Python downloads manual)"
-called "^uv python install 3.13$"
-grep -n 'uv python install 3.13\|uv tool install --force' "$REPO/setup.sh" | head -n 2 | grep -q 'python install' && _ok || _no "uv python install not before uv tool install"
-case_ "…and uv's own \`torrra\` kept in uv's folder, never on your PATH"
-eq "$(cat "$TMP/uv-bin-dir" 2>/dev/null)" "$HOME/.local/share/uv/tool-bin"
-[[ ! -e $HOME/.local/bin/torrra && ! -L $HOME/.local/bin/torrra ]] && _ok || _no "uv linked torrra into ~/.local/bin"
-case_ "an earlier setup's pipx install: taken out, then installed by uv"
-tu_world; P=$HOME/.local/share/pipx; mkdir -p "$P/venvs/torrra/bin" "$P/bin"; ln -s "$P/venvs/torrra/bin/torrra" "$P/bin/torrra"
-mv "$V" "$TMP/uvgone"; stub uv 'mkdir -p "'"$V"'"; cp -a "'"$TMP/uvgone"'/." "'"$V"'/"'
-tu; eq "$RC" 0 "$OUT"; [[ ! -e $P ]] && _ok || _no "pipx's folder left"; called "^uv tool install --force --python 3.13 --constraints $C torrra==$TV$"
-unset FAKE_TEXTUAL_BROKEN
-case_ "torrra_up, a library not at its pin (Textual 8.0.1, before ansi-dark): installed again, at the pins"
-tu_world; s=$(ls -d "$V"/lib/python*/site-packages); rm -rf "$s"/textual-*.dist-info; mkdir -p "$s/textual-8.0.1.dist-info"
-printf 'Metadata-Version: 2.1\nName: textual\nVersion: 8.0.1\n' >"$s/textual-8.0.1.dist-info/METADATA"
-tu; eq "$RC" 0 "$OUT"; called "^uv tool install --force --python 3.13 --constraints $C torrra==$TV$"
-[[ -d $s/textual-8.2.8.dist-info && ! -d $s/textual-8.0.1.dist-info ]] && _ok || _no "Textual not at its pin after the install"
-case_ "torrra_up, broken and not mended by the install: said, not passed over"
-tu_world; stub uv; export FAKE_TEXTUAL_BROKEN=$TMP/textual-broken; : >"$FAKE_TEXTUAL_BROKEN"
-tu; eq "$RC" 1; has "$OUT" "is installed but does not load"; unset FAKE_TEXTUAL_BROKEN
-
-case_ "torrra_up's settings: the downloads folder, Prowlarr the default at its address, no key; the desktop's theme (fedokawaii) in place of torrra's own and the ones earlier setups chose — a theme you chose kept"
-for t in none gruvbox textual-dark ansi-dark ansi-light nord; do
-  tu_world; CFGT=$HOME/.config/torrra/config.toml; mkdir -p "${CFGT%/*}"
-  if [[ $t == none ]]; then : >"$CFGT"; else printf '[general]\ntheme = "%s"\n\n[indexers.prowlarr]\napi_key = "a1b2c3d4e5f60718293a4b5c6d7e8f90"\n' "$t" >"$CFGT"; fi
-  tu; eq "$RC" 0 "$t: $OUT"
-  w=fedokawaii; [[ $t == nord ]] && w=nord
-  got=$(python3 -I -c 'import sys, tomllib, json; c = tomllib.load(open(sys.argv[1], "rb")); print(c["general"]["theme"], c["general"]["download_path"] == sys.argv[2], c["indexers"]["default"], c["indexers"]["prowlarr"].get("url"), "api_key" in c["indexers"]["prowlarr"])' "$CFGT" "$HOME/Downloads")
-  eq "$got" "$w True prowlarr http://127.0.0.1:9696 False" "$t"
+case_ "torrents_up, nothing old: the program checked, nothing else"
+tu_world; tu; eq "$RC" 0 "$OUT"; not_called '^uv'
+case_ "an older setup's torrra: its list handed over first, then all of it gone — its Python 3.13 too"
+tu_world; old_torrra; tu; eq "$RC" 0 "$OUT"
+has "$OUT" "taken out"
+got=$(python3 -I -c 'import json, sys; d = json.load(open(sys.argv[1])); print(len(d), d[0]["name"], d[0]["told"], d[0]["priorities"])' "$HOME/.local/state/fedokawaii/torrents/inherited.json" 2>&1)
+eq "$got" "1 A Film True [4, 0]" "the engine's to add at its next start"
+called '^uv tool uninstall torrra$'; called '^uv python uninstall 3.13$'
+for f in "$HOME/.config/torrra" "$HOME/.cache/torrra" "$HOME/.local/share/torrra" "$HOME/.local/share/uv/tool-bin/torrra" "$SYS/usr/local/bin/kawa-torrra" "$SYS/etc/profile.d/kawa-torrra.sh"; do
+  [[ ! -e $f ]] && _ok || _no "$f is left"
 done
-case_ "the constraints: torrra's libraries at the versions it was released with; libtorrent and certifi free"
-[[ -f $C ]] && _ok || _no "no $C"
-bad=$(grep -Ev '^(#|$)' "$C" 2>/dev/null | grep -Ev '^[a-z0-9][a-z0-9._-]*==[0-9][0-9A-Za-z.+-]*$'); eq "$bad" "" "not NAME==VERSION: $bad"
-for p in textual==8.2.8 rich==14.2.0 httpx==0.28.1 click==8.3.1; do grep -qx "$p" "$C" 2>/dev/null && _ok || _no "$p not pinned"; done
-for p in libtorrent certifi torrra; do grep -Eq "^$p==" "$C" 2>/dev/null && _no "$p pinned" || _ok; done
-case_ "the update moves libtorrent (uv tool upgrade: the install's own pins kept)"
-grep -q 'uv tool upgrade torrra' "$REPO/setup.sh" && _ok || _no "the update's libtorrent step changed"
+case_ "run again (every update): nothing to do, the list not read twice"
+rm -f "$HOME/.local/state/fedokawaii/torrents/inherited.json"; : >"$CALLS"; tu; eq "$RC" 0 "$OUT"; not_called '^uv'
+[[ ! -e $HOME/.local/state/fedokawaii/torrents/inherited.json ]] && _ok || _no "taken over a second time"
+case_ "an earlier setup's pipx install and a link of it in ~/.local/bin: gone; a torrra of your own there left alone"
+tu_world; P=$HOME/.local/share/pipx; mkdir -p "$P/venvs/torrra/bin" "$P/bin"; ln -s "$P/venvs/torrra/bin/torrra" "$P/bin/torrra"; ln -s "$P/venvs/torrra/bin/torrra" "$HOME/.local/bin/torrra"
+tu; eq "$RC" 0 "$OUT"; [[ ! -e $P ]] && _ok || _no "pipx's folder left"; [[ ! -e $HOME/.local/bin/torrra && ! -L $HOME/.local/bin/torrra ]] && _ok || _no "the link stays"
+tu_world; printf '#!/bin/sh\n' >"$HOME/.local/bin/torrra"; tu; eq "$RC" 0 "$OUT"; [[ -f $HOME/.local/bin/torrra ]] && _ok || _no "your script went"
+case_ "torrra's list unreadable: said, and nothing taken out"
+tu_world; old_torrra; printf 'not a database, not at all, long enough to be read as one and fail\n%.0s' 1 2 3 >"$HOME/.local/share/torrra/torrra.db"
+tu; eq "$RC" 1; has "$OUT" "could not be read"; [[ -d $HOME/.local/share/uv/tools/torrra && -e $HOME/.local/share/torrra/torrra.db ]] && _ok || _no "removed all the same"
+case_ "the program does not load (Fedora's libtorrent gone): said, not passed over"
+tu_world; mkdir -p "$TMP/broken"; printf 'raise ImportError("no libtorrent here")\n' >"$TMP/broken/libtorrent.py"
+PYTHONPATH=$TMP/broken tu; eq "$RC" 1; has "$OUT" "does not load"
 
-case_ "verify's load check sees a broken Textual too (it loads torrra's screens)"
-tu_world
-vp=$(sed -n "s|.*uv/tools/torrra/bin/python\" -I -c '\\([^']*\\)' \"\$TORRRA_VERSION\".*|\\1|p" "$REPO/verify.sh")
-[[ -n $vp ]] && _ok || _no "verify's torrra check not found"
-if python3 -c 'import sys; sys.exit(sys.version_info[:2] != (3, 13))'; then
-  "$V/bin/python" -I -c "$vp" "$TV" 2>/dev/null && _ok || _no "a working torrra fails verify's check"
-else _ok; fi
-: >"$TMP/textual-broken"
-FAKE_TEXTUAL_BROKEN=$TMP/textual-broken "$V/bin/python" -I -c "$vp" "$TV" 2>/dev/null && _no "a broken Textual passes verify's check" || _ok
-
-# ── setup.sh's open_ports (torrra's 6881, LocalSend's 53317) ──────────────────────────────────────────────────
-# firewalld: its saved ports in $TMP/fw-perm, its running ones in $TMP/fw-run; a reload
-# makes the running ones the saved ones (dropping what was added only while it runs)
-tp_world() {
-  sandbox
-  { grep '^OPEN_PORTS=' "$REPO/setup.sh"; sed -n '/^open_ports() {/,/^}/p' "$REPO/setup.sh"; } >"$TMP/tp.sh"
-  : >"$TMP/fw-perm"; : >"$TMP/fw-run"
-  stub firewall-cmd 'f="$TMP/fw-run"; for a in "$@"; do [ "$a" = --permanent ] && f="$TMP/fw-perm"; done
-for a in "$@"; do case $a in
-  --state) [ -e "$TMP/fw-down" ] && exit 252; exit 0 ;;
-  --query-port=*) grep -qx "${a#--query-port=}" "$f"; exit $? ;;
-  --add-port=*) echo "${a#--add-port=}" >>"$f" ;;
-  --reload) cp "$TMP/fw-perm" "$TMP/fw-run" ;;
-esac; done'
-}
-tp() { OUT=$(LOG_FILE=$TMP/fk.log bash -c 'set -Eeuo pipefail; . "$1/lib/common.sh"; LOCALSEND_PORT=53317; . "$2"; open_ports' _ "$REPO" "$TMP/tp.sh" 2>&1); RC=$?; }
-both() { printf '%s\n' 6881/tcp 6881/udp 53317/tcp 53317/udp; }
-
-case_ "open_ports, 6881 open already (saved and running): nothing changed, firewalld not reloaded"
-tp_world; both >"$TMP/fw-perm"; both >"$TMP/fw-run"; tp; eq "$RC" 0 "$OUT"
-not_called 'add-port'; not_called 'reload'
-case_ "open_ports, closed: opened, saved and running, without a reload"
-tp_world; tp; eq "$RC" 0 "$OUT"
-eq "$(sort "$TMP/fw-perm" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp "; eq "$(sort "$TMP/fw-run" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp "
-not_called 'reload'
-case_ "open_ports, saved but not running (another rule added at run time stays): opened while it runs"
-tp_world; both >"$TMP/fw-perm"; echo 8080/tcp >"$TMP/fw-run"; tp; eq "$RC" 0
-has "$(cat "$TMP/fw-run")" "8080/tcp" "a rule added while firewalld runs was dropped"; has "$(cat "$TMP/fw-run")" "6881/udp"
-not_called '\-\-permanent \-\-add-port'
-case_ "open_ports, firewalld not running: said, nothing done"
-tp_world; : >"$TMP/fw-down"; tp; eq "$RC" 0; has "$OUT" "firewalld is not running"; not_called 'port'
 
 done_

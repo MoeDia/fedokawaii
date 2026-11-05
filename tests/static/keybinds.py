@@ -7,8 +7,8 @@ config.h: keys[] (with TAGKEYS and CHVT expanded), buttons[], axes[]. keybinds.t
 sections of dwl's keys (launch, screenshots, windows, workspaces, sound/music/monitor, session);
 the terminal's and the drives' sections are other programs' keys and are left out. A help line
 names its keys as "Super+J / K", "Super+1…9", "Super+] / Super+[", "Volume · Mute · Mic"…
-Two keys of the sheet are not dwl's own: Alt+Shift (the keyboard layout: XKB's option, from
-fedokawaii.conf) and Right Shift+F12 (MangoHud's toggle_hud) — each checked where it is set.
+One key of the sheet is not dwl's own: Alt+Shift (the keyboard layout: XKB's option, from
+fedokawaii.conf) — checked where it is set.
 """
 import pathlib
 import re
@@ -132,11 +132,6 @@ def check(repo):
             conf = (repo / "fedokawaii.conf").read_text()
             if not re.search(r"^KB_TOGGLE=.*alt_shift_toggle", conf, re.M):
                 problems.append(f"keybinds.txt:{n}: Alt+Shift — fedokawaii.conf's KB_TOGGLE is not grp:alt_shift_toggle")
-            continue
-        if spec == "Right Shift+F12":
-            mh = (repo / "configs/home/.config/MangoHud/MangoHud.conf").read_text()
-            if not re.search(r"^toggle_hud=Shift_R\+F12\s*$", mh, re.M):
-                problems.append(f"keybinds.txt:{n}: Right Shift+F12 — MangoHud.conf's toggle_hud is not Shift_R+F12")
             continue
         keys = expand(spec)
         if keys is None:

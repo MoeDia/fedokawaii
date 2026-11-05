@@ -1,18 +1,43 @@
 #!/bin/bash
-# firewall-cmd of the fake Fedora: $FKH/firewalld-down = not running; services in $FKH/fw-services
+# firewall-cmd of the fake Fedora. Its saved rules are the machine's files (/etc/firewalld); its
+# running ones a copy of them made at --reload ($FKH/fw-run), the default zone in $FKH/fw-default.
+# $FKH/firewalld-down = not running; $FKH/fw-bad = --check-config refuses the files
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 [[ -f $FKH/firewalld-down ]] && { echo "FirewallD is not running" >&2; exit 252; }
-[[ -f $FKH/fw-services ]] || printf '%s\n' dhcpv6-client ssh cockpit >"$FKH/fw-services"
+R=$FKH/fw-run
+default() { cat "$FKH/fw-default" 2>/dev/null || echo FedoraServer; }
+arg() { local a; for a in "${ARGS[@]}"; do [[ $a == "--$1="* ]] && { printf '%s\n' "${a#*=}"; return 0; }; done; return 1; }
+ARGS=("$@")
+list_all() {     # the running zone as firewall-cmd --list-all prints it
+  local f=$R/zones/$1.xml t z
+  [[ -f $f ]] || { echo "Error: INVALID_ZONE: $1" >&2; exit 112; }
+  z=$(sed '/<rule/,/<\/rule>/d' "$f")     # (a rich rule's source and port are no zone's)
+  t=$(sed -n 's/.*<zone target="\([^"]*\)".*/\1/p' <<<"$z"); [[ -n $t ]] || t=default
+  printf '%s\n  target: %s\n' "$1" "$t"
+  printf '  sources: %s\n' "$(sed -n 's/.*<source address="\([^"]*\)".*/\1/p' <<<"$z" | paste -sd' ' -)"
+  printf '  services: %s\n' "$(sed -n 's/.*<service name="\([^"]*\)".*/\1/p' <<<"$z" | paste -sd' ' -)"
+  printf '  ports: %s\n' "$(sed -n 's/.*<port port="\([^"]*\)" protocol="\([^"]*\)".*/\1\/\2/p' <<<"$z" | paste -sd' ' -)"
+  if grep -q '<forward/>' "$f"; then echo '  forward: yes'; else echo '  forward: no'; fi
+  echo '  masquerade: no'
+  printf '  rich rules:\n'
+  awk -F'"' '/<rule /{ r="\trule family=\"" $2 "\"" }
+    /<source /&& r != "" { r=r " source address=\"" $2 "\"" }
+    /<port /&& r != "" { r=r " port port=\"" $2 "\" protocol=\"" $4 "\"" }
+    /<accept\/>/&& r != "" { r=r " accept" }
+    /<\/rule>/{ print r; r="" }' "$f"
+}
 case " $* " in
   *" --state "*) exit 0 ;;
-  *" --get-default-zone "*) echo FedoraServer ;;
-  *" --query-service="*) s=$(sed -n 's/.*--query-service=\([^ ]*\).*/\1/p' <<<"$*"); has fw-services "$s" || exit 1 ;;
-  *" --remove-service="*) del fw-services "$(sed -n 's/.*--remove-service=\([^ ]*\).*/\1/p' <<<"$*")" ;;
-  *" --add-service="*) add fw-services "$(sed -n 's/.*--add-service=\([^ ]*\).*/\1/p' <<<"$*")" ;;
-  *" --query-port="*) has fw-ports "$(sed -n 's/.*--query-port=\([^ ]*\).*/\1/p' <<<"$*")" || exit 1 ;;
-  *" --add-port="*) for x in "$@"; do [[ $x == --add-port=* ]] && add fw-ports "${x#--add-port=}"; done ;;
-  *" --list-ports "*) tr '\n' ' ' <"$FKH/fw-ports" 2>/dev/null; echo ;;
-  *" --list-services "*) tr '\n' ' ' <"$FKH/fw-services"; echo ;;
+  *" --check-config "*) [[ ! -f $FKH/fw-bad ]] || { echo "Error: INVALID_ZONE" >&2; exit 112; } ;;
+  *" --reload "*) rm -rf "$R"; mkdir -p "$R"; cp -r /etc/firewalld/zones /etc/firewalld/policies "$R/" ;;
+  *" --get-default-zone "*) default ;;
+  *" --set-default-zone="*) arg set-default-zone >"$FKH/fw-default" ;;
+  *" --get-zone-of-interface="*) default ;;
+  # (allow-host-ipv6: firewalld's own, there unless $FKH/no-allow-host-ipv6)
+  *" --info-policy="*) p=$(arg info-policy)
+    if [[ $p == allow-host-ipv6 && ! -f $FKH/no-allow-host-ipv6 ]] || [[ -f $R/policies/$p.xml ]]; then echo "$p (active)"
+    else echo "Error: INVALID_POLICY: $p" >&2; exit 154; fi ;;
+  *" --list-all "*) list_all "$(arg zone || default)" ;;
 esac
 exit 0

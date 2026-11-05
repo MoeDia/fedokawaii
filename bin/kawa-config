@@ -130,7 +130,7 @@ yours_menu() {
 # syncthing serve --no-browser &" ;;
     3) yours "neovim plugins" "neovim reads it at its next start" "$HOME/.config/nvim/lua/plugins/local.lua" \
 "-- ~/.config/nvim/lua/plugins/local.lua — yours: LazyVim reads every file in lua/plugins/
--- (the theme writes only colorscheme.lua there). Each plugin, or a change to one, is a table:
+-- (the theme never writes this one). Each plugin, or a change to one, is a table:
 -- https://www.lazyvim.org/configuration/plugins
 return {
   -- { \"folke/zen-mode.nvim\", cmd = \"ZenMode\" },
@@ -144,7 +144,7 @@ learn_menu() {
   local rows=() urls=() i sec page
   l() { rows+=("$(line row "$1" "$2" "$3")"); urls+=("$4"); }
   rows+=("$(line part "$ICON_MORTARBOARD" learn)"); urls+=(-)
-  l "$ICON_BOOK"     'learning guide' 'programs, Python, Rust'  guide
+  l "$ICON_BOOK"     lessons         'programs, Python, Rust'   lessons
   l "$ICON_KEYBOARD" keys            "this desktop's: Super+/"  keys
   l "$ICON_TERMINAL" bash            'The Linux Command Line'   https://linuxcommand.org/tlcl.php
   l "$ICON_TERMINAL" ShellCheck      'what each finding means'  https://www.shellcheck.net/wiki/
@@ -160,7 +160,7 @@ learn_menu() {
   i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1 \
         --title "what each part is written in") || return 0
   case ${urls[i]} in
-    guide) exec fedokawaii guide ;;
+    lessons) exec fedokawaii learn ;;
     keys)  exec kawa-help ;;
     man:*) read -r sec page <<<"${urls[i]#man:}"; exec kawa-term man "$sec" "$page" ;;
     *)     setsid -f xdg-open "${urls[i]}" >/dev/null 2>&1 ;;
@@ -198,7 +198,7 @@ row history   "$ICON_BRANCH"    history        "commit, undo, push (lazygit)"
 row apply     "$ICON_DOWNLOAD"  apply          "the copy becomes the desktop"
 row pull      "$ICON_CLOUD"     'update fedokawaii' "GitHub's newest, then applied"
 heading_row "$ICON_BOOK" help
-row learn     "$ICON_BOOK"      learn          "the guide, manuals, wikis"
+row learn     "$ICON_BOOK"      learn          "the lessons, manuals, wikis"
 n=$(pending)
 title="change · ${COPY/#$HOME/\~}"
 if [[ ! -d $COPY ]]; then title+=" · made on first use"

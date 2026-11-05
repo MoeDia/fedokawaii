@@ -47,6 +47,8 @@ echo "stdin: $(readlink /proc/$$/fd/0 || echo closed)" >>"$W/gammastep.stdin"
   *) echo "makoctl: not stubbed: $*" >&2; exit 1 ;;
 esac'
   stub systemctl; stub systemd-run          # (a timed quiet time's end: logged, nothing really scheduled)
+  stub kawa-rgb 'if [ "$1" = state ]; then cat "$TMP/rgb-state"; else [ "$(cat "$TMP/rgb-state")" = on ] && echo off >"$TMP/rgb-state" || echo on >"$TMP/rgb-state"; fi'
+  echo on >"$TMP/rgb-state"
   stub kawa-theme '[ "$1" = toggle ] || exit 2
 cd "$HOME/.config/fedokawaii" && if [ "$(readlink current)" = themes/dark ]; then ln -sfn themes/light current; else ln -sfn themes/dark current; fi'
   stub kawa-drives '[ "$1" = list ] && cat "$W/drives"'
@@ -75,11 +77,13 @@ case_ "--state: every key, in order, one KEY<TAB>VALUE a line"
 out=$(state); rc 0 quick --state
 keys=$(cut -f1 <<<"$out" | tr '\n' ',')
 if ((NS)); then
-  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,"
-else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,nettype,network,"; fi
+  eq "$keys" "theme,brightness,night,vrr,wallpaper,sound,muted,nettype,network,bluetooth,devices,drives,backup,dnd,saver,record,vrrnow,uptime,rgb,sharesound,"
+else has "$keys" "theme,brightness,night,vrr,wallpaper,sound,muted,nettype,network,"; fi
 eq "$(grep -vc $'^[a-z]*\t' <<<"$out")" 0 "every line a key, a tab, a value"
+case_ "the lights: their switch, on or off, kept by kawa-rgb"
+eq "$(st rgb)" on; rc 0 quick --do rgb; called '^kawa-rgb toggle$'; eq "$(st rgb)" off; rc 0 quick --do rgb; eq "$(st rgb)" on
 eq "$(st theme)" dark; eq "$(st nettype)" ethernet; eq "$(st network)" wired
-eq "$(st brightness)" 70%; eq "$(st sound)" 62%; eq "$(st wallpaper)" default; eq "$(st vrr)" "in games"
+eq "$(st brightness)" 70%; eq "$(st sound)" 62%; eq "$(st wallpaper)" default; eq "$(st vrr)" "full screen"
 eq "$(st night)" off; eq "$(st dnd)" off; eq "$(st drives)" none; eq "$(st backup)" never
 eq "$(st weather)" "" "no weather: the bar shows it, right above the panel"
 not_called '^kawa-weather' "the panel never asks for it"
@@ -98,7 +102,7 @@ printf '/dev/sdb1\t/dev/sdb\tSANDISK EXTREME PRO\t58G\texfat\t\n' >"$W/drives"; 
 case_ "the sound muted, no output at all; no DDC/CI monitor; a picture of your own on the wallpaper"
 setup; echo 'Volume: 0.40 [MUTED]' >"$W/vol"; : >"$W/bright"; mkdir -p "$HOME/.local/state/fedokawaii"
 echo "$HOME/Pictures/Wallpapers/my beach photo, from the long summer.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
-eq "$(st sound)" muted; eq "$(st brightness)" "no DDC/CI"; eq "$(st wallpaper)" "my beach photo, from the long summer"
+eq "$(st sound)" 40%; eq "$(st muted)" on "its level kept, muted beside it"; eq "$(st brightness)" "no DDC/CI"; eq "$(st wallpaper)" "my beach photo, from the long summer"
 echo pack:mishima-mist >"$HOME/.local/state/fedokawaii/wallpaper-dark"; eq "$(st wallpaper)" mishima-mist
 stub wpctl 'exit 1'; eq "$(st sound)" "no output"
 case_ "a name with a tab or a line break in it: one line still"
@@ -180,7 +184,7 @@ case_ "bluetui comes from lib/upstream.sh, pinned (a static x86_64 binary, v0.8.
 e=$(. "$REPO/lib/upstream.sh"; printf '%s\n' "${UPSTREAM[@]}" | grep '^bluetui|')
 eq "$(cut -d'|' -f2-4,6 <<<"$e")" "pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|bluetui"
 [[ $(cut -d'|' -f5 <<<"$e") =~ ^[0-9a-f]{64}$ ]] && _ok || _no "no SHA-256 pinned"
-m() { (STEAM=yes; . "$REPO/lib/manifest.sh"; eval "$1"); }
+m() { (. "$REPO/lib/manifest.sh"; eval "$1"); }
 lacks " $(m 'manifest_all amd' | tr '\n' ' ') " " blueman "; has " $(m 'manifest_all amd' | tr '\n' ' ') " " bluez "
 has " $(m 'echo "${FORBIDDEN_PKGS[*]}"') " " blueman "; has " $(m 'echo "${RETIRED_PKGS[*]}"') " " blueman "
 has "$(grep -E '^bluetui ' "$REPO/tests/static/fixtures/programs.txt")" "upstream"
@@ -376,9 +380,9 @@ setup; rc 2 kawa-quick dnd extra; rc 2 kawa-quick dnd sound; eq "$(fz_n)" 0 "no 
 has "$(kawa-quick --help)" "kawa-quick dnd" "--help names it"
 case_ "theme: kawa-theme toggle, and the state follows"
 setup; rc 0 quick --do theme; called '^kawa-theme toggle$'; eq "$(st theme)" light
-case_ "FreeSync: in games → always → off → in games, written where dwl reads it"
+case_ "FreeSync: full screen → always → off → full screen, written where dwl reads it"
 setup; a=$(st vrr); quick --do vrr; b=$(st vrr); quick --do vrr; c=$(st vrr); quick --do vrr; d=$(st vrr)
-eq "$a / $b / $c / $d" "in games / always / off / in games"
+eq "$a / $b / $c / $d" "full screen / always / off / full screen"
 eq "$(cat "$HOME/.config/fedokawaii/vrr")" games
 grep -q '%s/.config/fedokawaii/vrr' "$REPO/src/dwl/dwl.patch" && _ok || _no "dwl reads another file"
 case_ "FreeSync: dwl told at once (SIGUSR1: it reads the file again) — only a dwl that catches it"

@@ -16,7 +16,7 @@ eq "$r" 0
 has "$(line release "$out")" "Fedora 44"
 has "$(line updated "$out")" "none since setup"
 has "$(line verified "$out")" "not yet"
-has "$(line due "$out")" "in 60 days" "the season counts from setup (30 days ago, every 90)"
+has "$(line due "$out")" "now" "the season counts from setup (30 days ago, every 14)"
 has "$(line kernel "$out")" "6.17.1-300.fc44.x86_64"
 has "$(line disk "$out")" "641 GB free of 2.0 TB"
 has "$(line backup "$out")" "no drive · quick settings → backup"; lacks "$(line backup "$out")" "BACKUP_TARGET" "(no setting's name on the screen)"
@@ -30,11 +30,11 @@ out=$(fedokawaii status 2>&1); r=$?
 eq "$r" 0; has "$out" "none since setup"; lacks "$out" "No such file"
 
 # ── updates recorded ─────────────────────────────────────────────────────────
-case_ "an update 10 days ago: its day, and the next one in 80 days"
+case_ "an update 10 days ago: its day, and the next one in 4 days"
 fresh; rec last-update "$(ago_s 10) ok"; rec last-update-done "$(ago_s 10)"
 out=$(fedokawaii status)
 has "$(line updated "$out")" "$(date -d "@$(ago_s 10)" '+%-d %b %Y') · 10 days ago"
-has "$(line due "$out")" "in 80 days"
+has "$(line due "$out")" "in 4 days"
 case_ "an update with parts left, one whose checks failed: said under it"
 rec last-update "$(ago_s 1) partial"; has "$(fedokawaii status)" "some parts left for the next one"
 rec last-update "$(ago_s 1) checks"; has "$(fedokawaii status)" "verify found problems: repair"
@@ -94,8 +94,8 @@ out=$(fedokawaii status); has "$out" "snapshot 41 undoes it"; lacks "$out" "stop
 printf '%s restored\nthe update broke something\n' "$(ago_s 0)" >"$R/state/update/report"
 out=$(fedokawaii status); has "$out" "undone at restart"; (( $(widest "$out") <= 44 )) && _ok || _no "too wide: $out"
 case_ "an old install (no last-update-done record): a finished last-update counts"
-fresh; rec last-update "$(ago_s 20) ok"
-has "$(line due "$(fedokawaii status)")" "in 70 days"
+fresh; rec last-update "$(ago_s 10) ok"
+has "$(line due "$(fedokawaii status)")" "in 4 days"
 
 case_ "corrupt records: garbage, empty, a cut-off line, binary — read as none, quietly"
 for bad in "garbage here" "" "17" $'\x01\x02\xff\xfe' "$(ago_s 3)"; do
@@ -108,7 +108,7 @@ for bad in "garbage here" "" "17" $'\x01\x02\xff\xfe' "$(ago_s 3)"; do
 done
 case_ "a record from a clock that ran ahead never puts the season off"
 fresh; rec last-update-done $(( $(date +%s) + 400 * DAY ))
-has "$(line due "$(fedokawaii status)")" "in 90 days"
+has "$(line due "$(fedokawaii status)")" "in 14 days"
 
 # ── verify's outcome ─────────────────────────────────────────────────────────
 case_ "verify's outcome: passed, passed with warnings, things to fix"
@@ -166,22 +166,27 @@ has "$(line support "$(fedokawaii status)")" "ended 1 Jan 2026 — move on"
 case_ "no SUPPORT_END: estimated (about)"
 sed -i '/^SUPPORT_END/d' "$R/os-release"
 has "$(line support "$(fedokawaii status)")" "until about"
-case_ "the next release out 70 days ago (recorded by an update): ready to move"
-fresh; rec release-45 "$(ago_s 70)"
-has "$(line next "$(fedokawaii status)")" "Fedora 45 · ready to move to"
-case_ "out 10 days ago: offered once settled (60 days)"
-rec release-45 "$(ago_s 10)"; has "$(line next "$(fedokawaii status)")" "offered in 50 days"
+case_ "the next release out, settled: what the update's next press does with it (lib/move.sh's verdicts)"
+fresh; rec release-45 "$(ago_s 70)"; mkdir -p "$R/state/update"
+has "$(line next "$(fedokawaii status)")" "Fedora 45 · the next press tries it"
+printf 'green %s abc\n\n' "$(ago_s 0)" >"$R/state/update/preflight-45"; has "$(line next "$(fedokawaii status)")" "Fedora 45 · green in the test VM"
+echo 45 >"$R/state/update/move-told"; has "$(line next "$(fedokawaii status)")" "Fedora 45 · this press moves to it"
+printf 'red %s abc\nfoot does not take its config\n' "$(ago_s 0)" >"$R/state/update/move-red-45"; has "$(line next "$(fedokawaii status)")" "Fedora 45 · waits: it failed a check"
+rm -f "$R/state/update/move-red-45" "$R/state/update/move-told"
+printf 'red %s abc\nverify: 2 red\n' "$(ago_s 0)" >"$R/state/update/preflight-45"; has "$(line next "$(fedokawaii status)")" "Fedora 45 · waits: it failed a check"
+case_ "out 3 days ago: offered once settled (7 days)"
+fresh; rec release-45 "$(ago_s 3)"; has "$(line next "$(fedokawaii status)")" "offered in 4 days"
 case_ "os-release unreadable: no made-up release or dates"
 fresh; rm -f "$R/os-release"
 out=$(fedokawaii status 2>&1); r=$?
 eq "$r" 0; lacks "$out" "Fedora 0"; lacks "$out" "Fedora 1 "
 has "$(line release "$out")" "unknown"
 case_ "a move between releases: told for two months, then not"
-fresh; rec last-upgrade "$(ago_s 3) 43 44 ok"
+fresh; mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 43 44 ok"
 has "$(line moved "$(fedokawaii status)")" "Fedora 43 → 44 ·"
-rec last-upgrade "$(ago_s 3) 43 44 failed"; has "$(line moved "$(fedokawaii status)")" "to Fedora 44 failed"
-rec last-upgrade "$(ago_s 3) 43 44 partial"; has "$(line moved "$(fedokawaii status)")" "· repair"
-rec last-upgrade "$(ago_s 61) 43 44 ok"; lacks "$(fedokawaii status)" "moved"
+mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 43 44 failed"; has "$(line moved "$(fedokawaii status)")" "to Fedora 44 failed"
+mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 43 44 partial"; has "$(line moved "$(fedokawaii status)")" "· repair"
+mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 61) 43 44 ok"; lacks "$(fedokawaii status)" "moved"
 
 # ── a run going on (root's lock) ─────────────────────────────────────────────
 case_ "an update running now (its lock held): said first, and in the menu"
@@ -193,7 +198,7 @@ eq "$(head -n1 <<<"$out")" "running   an update or a repair, now" "(the keys' co
 has "$(grep -m1 '^update' <<<"$(plain "$(fedokawaii --rows update)")")" "running"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 case_ "a run that names itself in the lock (setup.sh's mode): the words say which, its own row shows it"
-for m in repair:repair:'a repair' after-dnf:update:'an update' after-upgrade:upgrade:'an upgrade'; do
+for m in repair:repair:'a repair' after-dnf:update:'an update' after-upgrade:update:'an update'; do
   IFS=: read -r mode row words <<<"$m"
   fresh; printf '%s\n' "$mode" >"$R/state/lock"
   ( exec 9<"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
@@ -222,13 +227,13 @@ eq "$r" 0; has "$out" "release"
 # ── reminders ────────────────────────────────────────────────────────────────
 case_ "remind check: nothing due"
 fresh; rec last-update-done "$(ago_s 10)"; rec last-update "$(ago_s 10) ok"
-has "$(fedokawaii remind check)" "nothing due — the next update in 80 days"
+has "$(fedokawaii remind check)" "nothing due — the next update in 4 days"
 eq "$(fedokawaii remind)" "$(fedokawaii remind check)" "check is the default"
 case_ "remind check: due — how long since the last update"
 rec last-update-done "$(ago_s 95)"; has "$(fedokawaii remind check)" "the update season is here: 95 days since the last update"
 case_ "remind check: a new Fedora has settled"
 rec release-45 "$(ago_s 70)"; has "$(fedokawaii remind check)" "Fedora 45 has settled"
-case_ "remind check: support ends within a month comes first"
+case_ "remind check: support ends within 90 days comes first (told at 90, 30 and 7 days)"
 sed -i "s/^SUPPORT_END=.*/SUPPORT_END=$(date -d '+20 days' +%F)/" "$R/os-release"
 has "$(fedokawaii remind check)" "Fedora 44's support ends"
 
@@ -267,7 +272,7 @@ has "$(line backup "$(fedokawaii status)")" "none yet"; [[ -d $TMP/pwned ]] && _
 case_ "remind check: no backup for 7 days (BACKUP_REMIND_DAYS) — said, after the season's line, naming the drive"
 fresh; setting BACKUP_TARGET KINGSTON; backed_up 7
 out=$(fedokawaii remind check)
-eq "$(grep -c . <<<"$out")" 2; has "$(head -n1 <<<"$out")" "nothing due"
+eq "$(grep -c . <<<"$out")" 2; has "$(head -n1 <<<"$out")" "the update season is here"
 has "$(tail -n1 <<<"$out")" "the last backup was 7 days ago — plug in KINGSTON, then quick settings → backup"
 backed_up 6; eq "$(grep -c . <<<"$(fedokawaii remind check)")" 1 "6 days: not yet"
 rm -f "$HOME/.local/state/fedokawaii/last-backup"; has "$(fedokawaii remind check)" "no backup yet — plug in KINGSTON"
@@ -304,11 +309,11 @@ fresh; setting BACKUP_TARGET "\$(touch $TMP/ran)"; fedokawaii status >/dev/null;
 [[ ! -e $TMP/ran ]] && _ok || _no "a setting was run"
 
 case_ "a move's outcome: told once at the next login, critical when it failed"
-fresh; rec last-upgrade "$(ago_s 0) 43 44 failed"; rec last-update-done "$(ago_s 0)"
+fresh; mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 0) 43 44 failed"; rec last-update-done "$(ago_s 0)"
 fedokawaii remind quiet; called 'notify-send -a desktop -u critical -- .*  upkeep the move to Fedora 44 did not complete'
 reset_calls; fedokawaii remind quiet; not_called 'notify-send'
-fresh; rec last-upgrade "$(ago_s 1) 43 44 ok"; fedokawaii remind quiet; called 'Fedora 44 is in place — the move finished'
-fresh; rec last-upgrade "$(ago_s 90) 43 44 ok"; fedokawaii remind quiet; not_called 'in place'
+fresh; mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 1) 43 44 ok"; fedokawaii remind quiet; called 'Fedora 44 is in place — the move finished'
+fresh; mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 90) 43 44 ok"; fedokawaii remind quiet; not_called 'in place'
 
 case_ "remind settings: every, wait, on, off — saved, read back"
 fresh
@@ -335,7 +340,7 @@ has "$(fedokawaii remind check 2>&1)" "the update season is here: 40 days" "EVER
 rec last-update-done "$(ago_s 40)"; reset_calls; fedokawaii remind quiet; not_called 'notify-send' "REMIND=no on the last line, without a newline"
 case_ "upkeep.conf garbage or out of range: the defaults"
 printf 'EVERY=3\nWAIT=999\nREMIND=maybe\n$(touch x)\n' >"$HOME/.config/fedokawaii/upkeep.conf"
-rec last-update-done "$(ago_s 40)"; has "$(fedokawaii remind check)" "nothing due — the next update in 50 days"
+rec last-update-done "$(ago_s 10)"; has "$(fedokawaii remind check)" "nothing due — the next update in 4 days"
 
 # ── the look outside: whether the next Fedora is out (once a day, never waited on) ──
 wait_for() { local _; for _ in $(seq 1 50); do [[ -e $1 ]] && return 0; sleep 0.05; done; return 1; }
@@ -345,7 +350,7 @@ stub curl 'printf "HTTP/2 200\r\nlast-modified: Tue, 14 Apr 2026 10:00:00 GMT\r\
 fedokawaii status >/dev/null
 wait_for "$HOME/.cache/fedokawaii/release-45" && _ok || _no "release-45 not recorded"
 called 'curl -fsSI --proto =https --max-time 10 https://dl.fedoraproject.org/pub/fedora/linux/releases/45/'
-has "$(line next "$(fedokawaii status)")" "Fedora 45 · ready to move to" "released in April + a week, settled 60 days"
+has "$(line next "$(fedokawaii status)")" "Fedora 45 · the next press tries it" "released in April + a week, settled 7 days"
 case_ "…and not again the same day"
 reset_calls; fedokawaii status >/dev/null; sleep 0.3; not_called 'curl'
 case_ "offline (or not out yet): nothing recorded, no noise, no wait"

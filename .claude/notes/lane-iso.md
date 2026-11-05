@@ -1,0 +1,78 @@
+# lane-iso — T56, T57: the installer ISO (state: see the list; ends with DONE when finished)
+
+## State (updated as it goes)
+- Built: `tools/build-iso.sh`, `iso/` (kickstart, GRUB menu, screens), `tools/build-iso-art.py`, `tools/iso-shot.py` (reads the console exactly), `tools/vm-iso-test.sh` (the proof), `tests/installer/test_iso_tools.sh`.
+- Proven by boots in the VM: firmware picture → themed menu (Secure Boot on and off; off: no black window, on: GRUB's terminal black for its seconds, nothing can change that under Secure Boot) → splash on the same ground → our form, drawn on VT 8 → Anaconda silent on tty1 → progress from its own lines → first start → setup on one screen. Two builds of one commit: the same bytes.
+- Found on the way and fixed here (they matter beyond the ISO, main: see Merge):
+  1. F45's Plymouth 26 crashes (SEGV in script.so) on every script theme without a label plugin + font: our splash becomes a text boot. `plymouth-plugin-label` in PKG_SESSION.
+  2. RPM Fusion's F45 release package keeps its key under /usr/share/pki: setup.sh stopped at 2.1 on a clean F45. Fixed.
+  3. bluez came as a dependency on F45 and setup's clean-up took it: manifest_mark before the gate. gtklock's PAM file written before gtklock was installed: lock_pam after it.
+  4. The splash's ground was the old #0f0e0c: now #181715.
+- The memory rule (owner 18:15, below): VMs 4 GiB, one at a time, enforced by `mem_guard`. My first run was already going at 6 GiB when I read it; it was left to finish its last minutes, every later VM is 4 GiB.
+- `bin/kawa-carry` is main's (T54b 4): I had written another before seeing it, and removed mine.
+
+## Where this lane stands (23:37; if restarted, go on from here; the older paragraph below is history)
+PC restarted 23:24 (froze after 22:06). Owner's rule since: **one VM at a time on the whole PC**, no image generation while a VM runs. `mem_guard` in vm-iso-test.sh waits for any other qemu to end; the guard pauses under 4 GiB, stops under 1.5 GiB. lane-updates holds the slot until about 00:30.
+- **The old disk image of r27-iso was deleted:** the 23:28 scrub found an uncorrectable block in it. Not evidence. Run 3 (slow line + reset in phase 3) therefore never finished: the rehearsal below covers it.
+- **Queued: the rehearsal**, unit `fk-iso-reh1` (`systemd-run --user`, `~/VM/iso/proof/vmi.sh` = the lane's own libvirt; `~/VM/iso/proof/start-reh1.sh`): ISO `~/VM/iso/reh1/fedokawaii-20261104-69000dd.iso` from `train-head` 69000dd5 (pinned as refs/iso/rehearsal; every lane merged, NOT tested), tools frozen at `~/VM/iso/frozen/reh1`, `whole` with `FK_RESET_PHASE=3 FK_SLOW_BEFORE=2 --no-sb`. Log `~/VM/iso/reh1/run.log`, stages `~/VM/iso/vm/r27-iso/run/log`. Failures go to lane-integrate with the commit (they asked).
+- Manual virsh: `~/VM/iso/proof/vmi.sh virsh -c qemu:///session …` (`mkdir -p /run/user/1000/fk-iso` after a reboot).
+- **Final:** lane-integrate tells me when the real merges are in; main merges from there. Then `bash tools/iso-final.sh COMMIT` (no carry argument any more, it makes the drive), from the FINAL main only (owner 21:34), then `--release`. DONE only after that. lane-integrate lets lane-iso through its gate ahead of DONE, logged as an exception (its message, 23:35).
+- The Learn piece `.claude/notes/iso-learn-piece.md` is not placed yet: nothing in docs/learn/pieces covers installing from the stick (main or lane-learning, T63).
+
+## Where this lane stood (20:20)
+**Main reboots the PC about 20:25 (PID 1 stuck since 19:51, a kernel oops at 19:15, checksum errors): every ISO built before that reboot is suspect: rebuild before trusting one.** Run 2's VM dies with the reboot: its disk is of no use, so after it start over with `run` (a wiped disk) or, for the install over a finished disk, after a finished run. /dev/shm is gone: matrix frames and the pack picker are in ~/VM/iso/proof/.
+Run 1 green (`iso-runs.md`). The refusals green; the stick's check found its own bug (fixed: `images/eltorito.img`), to be re-run: `bash tools/vm-iso-test.sh matrix ISO DIR`. Run 2 (`over`: a whole run over the finished disk of run 1, the reset in phase 2, a slow line in phase 1; tools frozen in ~/VM/iso/frozen/run2, ISO ~/VM/iso/run2) started 19:43; PID 1 froze at 19:51 (inbox 20:07) and took virsh with it. Next, in order: Run 2 (or again if the PC restarted: `FK_RESET_PHASE=2 FK_SLOW_BEFORE=2 bash <frozen>/tools/vm-iso-test.sh over r27-iso ISO`), `facts`, `carry-save r27-iso ~/VM/iso/carry.qcow2`; then the final build from main + lane-integrate, `run … --no-sb --usb ~/VM/iso/carry.qcow2`, `path`, `midway`, `gh release`. Always run the proofs from a frozen copy (`git archive`): bash reads a running script from disk. Review pack: `.claude/review/next/` (60-… frames; /dev/shm/r27-iso/pack.py picks them).
+
+## What main must do to merge
+Merge lane-iso (new: `iso/`, `tools/build-iso.sh`, `tools/build-iso-art.py`, `tools/iso-shot.py`, `tools/vm-iso-test.sh`, `bin/kawa-stick`, tests; touches `setup.sh`, `lib/manifest.sh`, `lib/common.sh` PROJECT_TOP, `system/fedokawaii` (one row, backups → the installer), `system/plymouth/sumi/sumi.script`, packages.evidence, PACKAGES.md, README, fixtures). **Before the PC's first boot on F45: `plymouth-plugin-label` must be installed** (apply or update after the merge), or that boot is a text boot with a backtrace on screen.
+
+**The ISO that ships:** when every lane is in, tag the commit `vYYYY.MM.DD`, push the tag (the update button adopts only v… tags, lane-updates), then:
+```
+bash tools/build-iso.sh --ref vYYYY.MM.DD --out ~/VM/iso/out      # 2 min; needs xorriso, mtools, cpio, python3-pillow (on this PC now, not in the manifest: a builder's tools)
+bash tools/vm-iso-test.sh run r27-iso ~/VM/iso/out/fedokawaii-*.iso --no-sb --usb ~/VM/iso/carry.qcow2     # about 50 min, 4 GiB
+bash tools/vm-iso-test.sh path r27-iso ~/VM/iso/carry.qcow2       # his things back, the update button, verify
+gh release create vYYYY.MM.DD ~/VM/iso/out/fedokawaii-*.iso ~/VM/iso/out/fedokawaii-*.iso.sha256 --title "fedokawaii YYYY.MM.DD" --notes "the installer: README, From the ISO"
+```
+`kawa-stick` (Super+U → backups → the installer) takes the release's asset from GitHub by these names.
+
+**For the owner, before the wipe (only he can):** the rehearsal: write the stick, start from it once (F11 on his MSI board), look at the menu, the splash and the form, press F2, hold the power button. Nothing is touched before the form's last page. It is the one thing a VM cannot show: his firmware, amdgpu, his monitor. Two minutes.
+
+**Ledger lines (this lane does not edit the ledger):** r27-60 T56, r27-61 T57: see `.claude/notes/iso-runs.md`.
+
+## OWNER 17:46 — THE FINAL FRESH INSTALL (shapes the end of the round)
+When the round is done he WIPES this PC and does one last brand-new install from our ISO. Nothing may be tied to this install.
+1. The ISO (T56–T57) is the real deliverable: install → a complete, coherent fedokawaii desktop with zero manual steps after; everything the round built must come from the repo/ISO, nothing from this PC's state.
+2. Round tooling never ships: no ~/repos worktrees, lanes, r27-conductor, r27 units or the temporary sudo rule in the installed system (T62); include fk-remote only if it belongs in the product.
+3. Self-contained and self-sustaining: the ONE Super+U update button updates everything (packages, Fedora releases, fedokawaii itself), with snapshots/rollback and the local AI fixer; where fedokawaii's own updates come from follows the decision already in CLAUDE.md.
+4. Carry-over across the wipe: a "before you wipe" step (Super+U) that backs up his own data to a drive (~/Notes and the to-do, ~/blasphemous-save-backup-20261022, ~/.config/fedokawaii/secrets.sh, the browser profile, anything else that is his), and a restore step at the first boot of the fresh install. Prove the round trip in a VM.
+5. The final proof (T57) is exactly his path: build the ISO, install it in a VM, restore a test backup, press the update button, all green.
+6. Flatpak: allowed ONLY inside asobi (his answer 17:46); nothing Flatpak in his own account or on the desktop.
+
+## OWNER 18:15 — memory
+The PC is at 26 of 31 GB RAM with 21 agents. Your VMs: at most 4 GB RAM each, shut them down as soon as a test ends, never two of yours at once.
+
+## OWNER VERDICT 2026-11-04 20:00 on your render 60-installer-menu.png: comment
+[Claude, art direction while the owner is away; his verdicts win] Too small for a 1080p screen and too plain for the owner's "themed like Omarchy" ask: the menu is ~200 px wide with UI-size text in a black void. (1) Scale it: menu text at 2x, rows 40+ px, centred block about a third of the screen wide; (2) make it part of the world: the dark lock's painting (lane-ink's M1 Hannya in the torch-lit hall, dimmed to ~25 %) as the backdrop, the menu on a solid ink plate with the 2 px red edge highlight; (3) one line of help under it (↑↓ choose · enter go) and the version at the bottom right in muted ink; (4) the same art and type in GRUB, the Anaconda/kickstart progress screen and Plymouth, so the whole install reads as one piece.
+
+## OWNER VERDICT 2026-11-04 20:00 on your render 61-installer-splash.png: comment
+[Claude, art direction while the owner is away; his verdicts win] The splash reads as almost empty: a tiny torii and a 6 px word. Use the M1 Hannya (or the angel in the light mood) at real size, centred, the word "fedokawaii" in the UI face at 2-3x under it, and a slim progress line instead of three dots.
+
+## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
+
+## OWNER VERDICT 2026-11-04 21:35 on your render final-iso: comment
+OWNER 21:34 — THE FINAL ISO: "make sure the final ISO has everything updated and installs Fedora 45 only, the newest everything, fully stable."
+- Built from the FINAL merged main (after lane-integrate's last merge and main's apply), never from a stale branch; rebuild if main moves.
+- Fedora 45 only: the F45 release repos + F45 updates enabled at build time, so every package is the newest stable update on the day it is built (no F44 package, no updates-testing, no rawhide, no COPR unless the repo needs one and it is pinned to F45); the latest stable F45 kernel only (one kernel).
+- Everything fedokawaii ships comes from the repo at that commit: themes, the new lock (lane-ink M1/M2), the menus, the apps, ASOBI, Helium (with its Widevine fetch at first boot), the update button, the snapshots, the AI fixer; the round's own tooling never ships (no lanes, conductor, temporary sudo rule).
+- Proof before it is called final: install it in a fresh VM unattended, first boot to the desktop, press the update button (nothing left to update or only same-day updates), log in and out, lock and unlock, restore a test backup; record the time and the result in the inbox.
+- Name it with the date and commit; write its sha256 beside it.
+
+## OWNER VERDICT 2026-11-04 21:41 on your render fedora-45-only: comment
+OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.

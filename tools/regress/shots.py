@@ -24,8 +24,14 @@
                                hairline's x and colour, the shadow's column after the right one,
                                the gaps — then the right window's bottom-right corner, 7 × 4
                                pixels as letters (its hairline, the corner left out, the shadow)
-Exit 0 · 1 a check's own "no" (differ) · 2 misuse or an unreadable shot.
+  shots.py tv ICONS DIR…       the television frame by frame: each DIR's f-NANOSECONDS.png, the bar's
+                               right in time order, held to ICONS' (art/icons.txt) tv-0…tv-3 —
+                               four pictures and no other, exactly the art's pixels moving, in
+                               order, six a second. Exit 1 with what broke.
+Exit 0 · 1 a check's own "no" (differ, tv) · 2 misuse or an unreadable shot.
 """
+import glob
+import os
 import sys
 
 import numpy as np
@@ -102,12 +108,14 @@ def bar(f, fibre):
     """The bar's tiles, rows, gaps and clock as numbers (see the module's doc)."""
     im = load(f)
     fib = {tuple(int(v) for v in c) for c in np.asarray(Image.open(fibre).convert("RGB")).reshape(-1, 3)}
-    row = im[13]
+    # (a tile's columns: its top hairline or its middle row, never the ground — art may hold the
+    # ground's colour on the middle row, the demon's mouth; the hairline leaves out its corners)
+    in_tile = (im[13] != GROUND).any(axis=1) | (im[3] != GROUND).any(axis=1)
     out, tiles, x = [], [], 0
     while x < im.shape[1]:
-        if (row[x] != GROUND).any():
+        if in_tile[x]:
             x0 = x
-            while x < im.shape[1] and (row[x] != GROUND).any():
+            while x < im.shape[1] and in_tile[x]:
                 x += 1
             tiles.append((x0, x - 1))
         else:
@@ -172,6 +180,95 @@ def frames(f, y):
     return out
 
 
+def art(path, names):
+    """Pictures of art/icons.txt by name: {name: list of rows of . and #}."""
+    out, name = {}, None
+    with open(path, encoding="utf8") as f:
+        for line in f:
+            line = line.rstrip("\n")
+            if line.startswith("@"):
+                name = line[1:].split()[0]
+                name = name if name in names else None
+                if name:
+                    out[name] = []
+            elif name and line and set(line) <= {".", "#"}:
+                out[name].append(line)
+            elif not line:
+                name = None
+    return out
+
+
+def tv(icons, folder, label):
+    """The faults of one run of tools/regress/tv-frames.sh, and its measured line."""
+    frames = art(icons, {f"tv-{i}" for i in range(4)})
+    if len(frames) != 4:
+        return [f"tv-frames: {icons} has {len(frames)} of the television's four frames"], ""
+    shots = sorted(glob.glob(os.path.join(folder, "f-*.png")), key=lambda f: int(os.path.basename(f)[2:-4]))
+    if len(shots) < 30:
+        return [f"tv-frames ({label}): {len(shots)} shots"], ""
+    times = [int(os.path.basename(f)[2:-4]) / 1e6 for f in shots]
+    pics = [np.asarray(Image.open(f).convert("RGB"), dtype=np.int16) for f in shots]
+    # (the first tile of the strip, what plays, from the last shot — under load the module may come
+    # late: the shots before it have no such tile; the memory, the wings and the rest move as they please)
+    run = np.flatnonzero((pics[-1][3] != pics[-1][1, 2]).any(axis=1))
+    if not len(run):
+        return [f"tv-frames ({label}): no tile on the bar's right"], ""
+    end = run[np.flatnonzero(np.diff(run) > 1)[0]] if (np.diff(run) > 1).any() else run[-1]
+    width = end - run[0] + 1
+    here = [k for k, a in enumerate(pics) if a[3, run[0] + 1:end].tolist() == pics[-1][3, run[0] + 1:end].tolist()]
+    times = [times[k] for k in here]
+    pics = [pics[k][:, run[0]:run[0] + width] for k in here]
+    if len(pics) < 30:
+        return [f"tv-frames ({label}): {len(pics)} shots of its tile"], ""
+    seen, seq = [], []
+    for a in pics:
+        for i, u in enumerate(seen):
+            if np.array_equal(a, u):
+                seq.append(i)
+                break
+        else:
+            seen.append(a)
+            seq.append(len(seen) - 1)
+    faults = []
+    if len(seen) != 4:
+        moved = np.argwhere(np.any(np.any(np.stack(seen) != seen[0], axis=0), axis=-1))
+        where = f"x {moved[:, 1].min()}–{moved[:, 1].max()}, y {moved[:, 0].min()}–{moved[:, 0].max()}" if len(moved) else "nothing moved"
+        return [f"tv-frames ({label}): {len(seen)} different pictures, not 4 ({where})"], ""
+
+    def art_diff(i, j):
+        return {(r, c) for r, row in enumerate(frames[f"tv-{i}"]) for c, v in enumerate(row) if v != frames[f"tv-{j}"][r][c]}
+
+    def pic_diff(i, j):
+        return {(int(r), int(c)) for r, c in np.argwhere(np.any(seen[i] != seen[j], axis=-1))}
+
+    # the art's frames these four pictures are: the one turn that fits, every pair of pictures
+    # differing in exactly the art's pixels, one place on the bar for all of them
+    turn = None
+    for t in range(4):
+        d0, p0 = art_diff(t, (t + 1) % 4), pic_diff(0, 1)
+        if len(d0) != len(p0) or not d0:
+            continue
+        dy, dx = min(p0)[0] - min(d0)[0], min(p0, key=lambda q: q[1])[1] - min(d0, key=lambda q: q[1])[1]
+        if all(pic_diff(i, j) == {(r + dy, c + dx) for r, c in art_diff((i + t) % 4, (j + t) % 4)} for i in range(4) for j in range(4)):
+            turn = t
+            break
+    if turn is None:
+        faults.append(f"tv-frames ({label}): the four pictures are not the art's: what moves is not what art/icons.txt draws")
+    # in order: each new picture the next one round. A slow shot, or waybar drawing two lines of a
+    # burst as one on a busy machine, may miss a frame now and then: one in ten; never a step back
+    changes = [(times[k], seq[k - 1], seq[k]) for k in range(1, len(seq)) if seq[k] != seq[k - 1]]
+    steps = [(c[2] - c[1]) % 4 for c in changes]
+    if any(st == 3 for st in steps):
+        faults.append(f"tv-frames ({label}): a step back: {steps}")
+    if sum(st == 2 for st in steps) * 10 > max(len(steps), 10):
+        faults.append(f"tv-frames ({label}): frames missed too often: {steps}")
+    dwell = sorted(b[0] - a[0] for a, b in zip(changes, changes[1:], strict=False))
+    med = dwell[len(dwell) // 2] if dwell else 0
+    if not 120 <= med <= 220:
+        faults.append(f"tv-frames ({label}): a frame lasts {med:.0f} ms (six a second is 167)")
+    return faults, f"{label}: {len(shots)} shots, {len(changes)} changes, {med:.0f} ms a frame"
+
+
 def main(argv):
     if len(argv) < 3:
         sys.exit(__doc__)
@@ -210,6 +307,14 @@ def main(argv):
         print("\n".join(frames(argv[2], int(argv[3]))))
     elif cmd == "bar":
         print("\n".join(bar(argv[2], argv[3])))
+    elif cmd == "tv":
+        faults, said = [], []
+        for d in argv[3:]:
+            f, line = tv(argv[2], d, os.path.basename(d.rstrip("/")))
+            faults += f
+            said.append(line)
+        print("\n".join(faults) if faults else f"tv-frames: held — the art's four frames, in order, no stray pixel · {' · '.join(said)}")
+        return 1 if faults else 0
     else:
         sys.exit(__doc__)
     return 0

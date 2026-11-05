@@ -50,6 +50,8 @@ sandbox() {   # sandbox — every test file starts here (call again for a clean 
   # through any test that sets PATH itself (2 Nov: test_report_rows' latency run put ten "timing"
   # notices on his screen through the real notify-send)
   export WAYLAND_DISPLAY=wayland-0 DBUS_SESSION_BUS_ADDRESS=unix:path=$TMP/run/bus
+  # (never his lights: a script under test calling the real kawa-rgb acts on a tree that is not there)
+  export KAWA_RGB_ROOT=$TMP/rgb
   unset DISPLAY WAYLAND_SOCKET
   # the scripts under test come straight from the repository; anything they call is a stub first
   export PATH="$STUBS:$REPO/bin:/usr/local/bin:/usr/bin:/bin"
@@ -76,9 +78,9 @@ config() {
       case $f in
         *.ttf|*.otf|*.png) cp "$f" "$HOME/${f#"$REPO/configs/home/"}" ;;
         *) sed -e "s|@HOME@|$HOME|g" -e "s|@MONITOR_HZ@|144|g" -e "s|@WEATHER_CITY@|Sharjah|g" \
-               -e "s|@NIGHT_LIGHT@|25.35:55.40|g" -e "s|@ICON_CHEVRON_RIGHT@|>|g" \
+               -e "s|@NIGHT_LIGHT@|25.35:55.40|g" -e "s|@ICON_CHEVRON_RIGHT@|>|g" -e "s|@ICON_BAND_EDGE@|>|g" \
                -e "s|^@MPV_SCALING@\$|# scaling: mpv's own defaults|" -e "s|@UID@|$UID|g" \
-               -e "s|@BTOP_BOXES@|cpu mem net proc|g" -e "s|@BTOP_GPU@|gpu0|g" \
+               -e "s|@BTOP_BOXES@|cpu gpu0 mem proc|g" -e "s|@BTOP_GPU@|gpu0|g" \
                "$f" >"$HOME/${f#"$REPO/configs/home/"}"
            [[ -x $f ]] && chmod +x "$HOME/${f#"$REPO/configs/home/"}" ;;
       esac

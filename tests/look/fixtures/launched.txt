@@ -17,7 +17,7 @@ NetworkManager-tui     kawa-network                            nmtui
 foot                   footclient                              footclient
 wiremix                kawa-mixer                              wiremix
 lact                   pkg:io.github.ilya_zlobintsev.LACT.desktop
-brave-origin           pkg:brave-origin.desktop
+helium-bin             pkg:helium.desktop
 claude-code            kawa-agents                             herdr
 libreoffice-writer     pkg:libreoffice-writer.desktop
 libreoffice-calc       pkg:libreoffice-calc.desktop
@@ -29,9 +29,7 @@ kawa-calc              kawa-calc                               kawa-calc
 btop                   btop                                    btop
 visidata               kawa-tables                             vd
 gdu                    kawa-disk                               gdu
-openrgb                pkg:org.openrgb.OpenRGB.desktop
 restic                 kawa-backup                             restic
-steam                  steam                                   steam
 # release binaries (lib/upstream.sh)
 yazi                   kawa-files                              yazi
 bluetui                kawa-bluetooth                          bluetui
@@ -40,17 +38,20 @@ herdr                  kawa-agents                             herdr
 localsend              localsend                               localsend
 syncplay               syncplay                                kawa-together
 # installed by setup.sh another way
-torrra                 kawa-torrents                           kawa-torrra
 prowlarr               kawa-prowlarr                           prowlarr
 # the desktop's own helpers that open a window of their own
+kawa-asobi             kawa-asobi                              kawa-asobi
+kawa-torrents          kawa-torrents                           kawa-torrents
 kawa-backup            kawa-backup                             kawa-backup
 kawa-books             kawa-books                              kawa-books
+kawa-chess             kawa-chess                              kawa-chess
 kawa-clip              kawa-clip                               kawa-clip
 kawa-git               kawa-git                                kawa-git
+kawa-learn             kawa-learn                              kawa-learn
 kawa-notes             kawa-notes                              kawa-notes
 kawa-prowlarr          kawa-prowlarr                           kawa-prowlarr
 kawa-sketch            kawa-sketch                             kawa-sketch
+kawa-typing            kawa-typing                             kawa-typing
 kawa-file              kawa-file                               kawa-file
-kawa-steam             steam                                   kawa-steam
 kawa-together          syncplay                                kawa-together
 kawa-wallpaper         kawa-wallpaper                          kawa-wallpaper

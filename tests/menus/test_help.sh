@@ -23,7 +23,7 @@ for l in open(sys.argv[1], encoding="utf-8").read().splitlines():
 case_ "the sheet: every line but the blank ones, a field to filter in (bare, as the launcher's: no prompt of its own), sized to its content, 24 lines, no cursor (info rows are only read)"
 setup; answer esc; rc 0 kawa-help
 eq "$(fz_rows | grep -c .)" "$(grep -cv '^[[:space:]]*$' "$K")"
-has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --fuzzy --lines 24' "a field, bare"
+has "$(cat "$REPO/bin/kawa-help")" 'kawa-menu --prompt "" --ghost "a key or a word" --fuzzy --caps --lines 24' "a field, bare but for its ghost; the keys keycaps"
 eq "$(fz_arg prompt)" ""; eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" 24; eq "$(fz_arg select)" ""
 eq "$(fz_arg fuzzy)" set "what is typed finds by its letters in order too (\"wpa\": the wallpaper picker)"
 eq "$(fz_rows | sed -n 2p)" "info		Super+Return	terminal (foot)" "line 1 is a binding, not a heading"
@@ -91,21 +91,21 @@ parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }
 ALL="launch screenshots windows workspaces sound, music, monitor terminal drives session drawing tablet "
 case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
 keys_setup; answer esc; rc 0 kawa-help
-eq "$(parts)" "${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix yazi zathura "
+eq "$(parts)" "${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim sketch system torrents typing visidata wallpaper wiremix yazi zathura "
 case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
 keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
-eq "$(parts)" "yazi ${ALL}bluetui books btop clipboard gdu lazygit mpv notes to-do nvim system torrra visidata wallpaper wiremix zathura "
+eq "$(parts)" "yazi ${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim sketch system torrents typing visidata wallpaper wiremix zathura "
 eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
 case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
-for t in nvim:nvim lazygit:lazygit vd:visidata torrra:torrra; do
+for t in nvim:nvim lazygit:lazygit vd:visidata; do
   keys_setup; focus foot "${t%%:*}"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "titled ${t%%:*}"
 done
 for t in "~/repos/fedokawaii" "btop2" "Yazi"; do
   keys_setup; focus footclient "$t"; answer esc; kawa-help; eq "$(parts | cut -d' ' -f1)" launch "titled $t"
 done
-case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, Torrents torrra, zathura, mpv; Brave: the desktop's first"
-for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata kawa-torrents:torrra org.pwmt.zathura:zathura mpv:mpv brave-origin:launch; do
+case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, Torrents its own, zathura, mpv; Helium: the desktop's first"
+for t in warm-notes:notes warm-clip:clipboard warm-system:system kawa-git:lazygit kawa-disk:gdu kawa-tables:visidata kawa-torrents:torrents org.pwmt.zathura:zathura mpv:mpv helium:launch; do
   keys_setup; focus "${t%%:*}" "a title"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "app id ${t%%:*}"
 done
@@ -129,8 +129,8 @@ eq "$(fz_rows | grep -c '^info')" "$want"
 eq "$(fz_rows | grep -c -e 'source:' -e '^info		# ')" 0 "a sheet's notes shown"
 eq "$(fz_rows | awk -F'\t' '$1 == "part" { print $3 "=" $2 }' | sort -u | grep -E '^(yazi|nvim|lazygit|btop|wiremix|bluetui|visidata|gdu|zathura|mpv)=' | tr '\n' ' ')" \
   "bluetui=$ICON_BLUETOOTH btop=$ICON_CPU gdu=$ICON_USAGE lazygit=$ICON_BRANCH mpv=$ICON_MONITOR nvim=$ICON_CODE visidata=$ICON_SHEET wiremix=$ICON_SLIDERS yazi=$ICON_FOLDER zathura=$ICON_PAGES "
-eq "$(fz_rows | awk -F'\t' '$1 == "part" { print $3 "=" $2 }' | sort -u | grep -E '^(notes|to-do|clipboard|wallpaper|books|system)=' | tr '\n' ' ')" \
-  "books=$ICON_BOOK clipboard=$ICON_CLIPBOARD notes=$ICON_NOTE system=$ICON_SEC_SYSTEM to-do=$ICON_TODO wallpaper=$ICON_PICTURE " "our own screens"
+eq "$(fz_rows | awk -F'\t' '$1 == "part" { print $3 "=" $2 }' | sort -u | grep -E '^(notes|to-do|clipboard|wallpaper|books|system|lessons|lesson)=' | tr '\n' ' ')" \
+  "books=$ICON_BOOK clipboard=$ICON_CLIPBOARD lesson=$ICON_MORTARBOARD lessons=$ICON_MORTARBOARD notes=$ICON_NOTE system=$ICON_SEC_SYSTEM to-do=$ICON_TODO wallpaper=$ICON_PICTURE " "our own screens"
 eq "$(fz_rows | awk -F'\t' '$1 == "part" && $2 == "'"$ICON_KEYCAP"'"' | wc -l)" 0 "a program's part under the keycap (a part of your own)"
 case_ "each program's sheet in the sheet's own columns: notes on top (#: the version, its command, its sources), the rules ending in column 67, each description at 24"
 for k in "$SHEETS"/*.txt; do

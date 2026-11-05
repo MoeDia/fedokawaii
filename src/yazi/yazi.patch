@@ -1,0 +1,1680 @@
+src/yazi/yazi.patch — the desktop's yazi (setup.sh: build_yazi), against YAZI_TAG/YAZI_COMMIT (fedokawaii.conf).
+yazi 26.9.1 draws its pop-ups in Rust: rounded, their titles in the rule, theme.toml reaching only their colours. Here every
+one of them (rename and the other inputs, trash and the other confirms, help, which, open with, completion, tasks, notices) is
+§4's panel drawn in whole cells of Sumi Icons Term (yazi-fm/src/frame.rs), with §7's heading inside, its keys as tiles; never a
+rounded frame, from Lua either; a confirm fits what it says; its files named under their folder. `yazi --version`: Patch.
+Regenerate: tools/yazi-patch.sh.
+
+diff --git a/yazi-actor/src/app/quit.rs b/yazi-actor/src/app/quit.rs
+index 4d1cb82..86468e3 100644
+--- a/yazi-actor/src/app/quit.rs
++++ b/yazi-actor/src/app/quit.rs
+@@ -34,7 +34,7 @@ impl Actor for Quit {
+ 				Self::wait_probe(),
+ 			);
+ 
+-			Raterm::stop();
++			Raterm::goodbye();
+ 			process::exit(opt.code);
+ 		});
+ 
+diff --git a/yazi-actor/src/confirm/arrow.rs b/yazi-actor/src/confirm/arrow.rs
+index bc75ccb..e0a61be 100644
+--- a/yazi-actor/src/confirm/arrow.rs
++++ b/yazi-actor/src/confirm/arrow.rs
+@@ -16,10 +16,14 @@ impl Actor for Arrow {
+ 		let confirm = &mut cx.core.confirm;
+ 
+ 		let area = cx.core.mgr.area(confirm.position);
+-		let len = confirm.list.line_count(area.width);
++		let width = area.width.saturating_sub(8);
++		let len = confirm.list.line_count(width);
++		// (the rows the list has: the panel less its ring, heading, words and keys — yazi-fm's Confirm)
++		let body = confirm.body.line_count(area.width.saturating_sub(6)) as u16;
++		let rows = area.height.saturating_sub(2 + 2 + if body > 0 { body + 1 } else { 0 } + 2);
+ 
+ 		let old = confirm.offset;
+-		confirm.offset = form.step.add(confirm.offset, len, area.height as _, 0, 0);
++		confirm.offset = form.step.add(confirm.offset, len, rows as _, 0, 0);
+ 
+ 		succ!(render!(old != confirm.offset));
+ 	}
+diff --git a/yazi-actor/src/help/toggle.rs b/yazi-actor/src/help/toggle.rs
+index 3311c86..05267a4 100644
+--- a/yazi-actor/src/help/toggle.rs
++++ b/yazi-actor/src/help/toggle.rs
+@@ -1,5 +1,5 @@
+ use anyhow::Result;
+-use ratatui_core::layout::Margin;
++use ratatui_core::layout::Rect;
+ use yazi_config::popup::Help;
+ use yazi_macro::{render, succ};
+ use yazi_parser::help::ToggleForm;
+@@ -18,7 +18,13 @@ impl Actor for Toggle {
+ 	fn act(cx: &mut Ctx, form: Self::Form) -> Result<Data> {
+ 		let position = Help::position();
+ 		let area = cx.mgr.area(position);
+-		let input_area = area.inner(Margin::new(1, 1));
++		// (the search line of yazi-fm's Help: the panel's content at its names' column, the count's room left)
++		let input_area = Rect {
++			x:      area.x + 3 + 4,
++			y:      area.y + 3,
++			width:  area.width.saturating_sub(6 + 4 + 7),
++			height: 1,
++		};
+ 
+ 		let help = &mut cx.help;
+ 		help.visible = true;
+diff --git a/yazi-binding/src/elements/border.rs b/yazi-binding/src/elements/border.rs
+index cbb76a2..36a78ea 100644
+--- a/yazi-binding/src/elements/border.rs
++++ b/yazi-binding/src/elements/border.rs
+@@ -5,6 +5,19 @@ use ratatui_widgets::borders::Borders;
+ use super::{Area, Edge};
+ use crate::elements::{Line, Spatial};
+ 
++/// The desktop's frame in whole terminal cells (fedokawaii, docs/design-system.md §7, Sumi Icons Term: tools/build-icons.py CELLS):
++/// §4's hairline on the cells' inner edges, its corners left out. Every frame a plugin or a pop-up draws.
++pub const RING: ratatui_core::symbols::border::Set = ratatui_core::symbols::border::Set {
++	top_left:          "\u{FF003}",
++	top_right:         "\u{FF005}",
++	bottom_left:       "\u{FF008}",
++	bottom_right:      "\u{FF00A}",
++	vertical_left:     "\u{FF006}",
++	vertical_right:    "\u{FF007}",
++	horizontal_top:    "\u{FF004}",
++	horizontal_bottom: "\u{FF009}",
++};
++
+ // Type
+ const PLAIN: u8 = 0;
+ const ROUNDED: u8 = 1;
+@@ -28,7 +41,7 @@ pub struct Border {
+ impl Border {
+ 	pub fn compose(lua: &Lua) -> mlua::Result<Value> {
+ 		let new = lua.create_function(|_, (_, edge): (Table, Edge)| {
+-			Ok(Self { edge, r#type: ratatui_widgets::borders::BorderType::Rounded, ..Default::default() })
++			Ok(Self { edge, r#type: ratatui_widgets::borders::BorderType::Plain, ..Default::default() })
+ 		})?;
+ 
+ 		let border = lua.create_table_from([
+@@ -68,6 +81,9 @@ impl Widget for Border {
+ 			.border_type(self.r#type)
+ 			.border_style(self.style)
+ 			.merge_borders(self.merge);
++		if self.r#type == ratatui_widgets::borders::BorderType::Plain && self.edge.0 == Borders::ALL {
++			block = block.border_set(RING);
++		}
+ 
+ 		for title in self.titles {
+ 			block = match title {
+@@ -96,7 +112,8 @@ impl UserData for Border {
+ 
+ 		methods.add_function("type", |_, (ud, value): (AnyUserData, u8)| {
+ 			ud.borrow_mut::<Self>()?.r#type = match value {
+-				ROUNDED => ratatui_widgets::borders::BorderType::Rounded,
++				// (never rounded, §4: a plugin's asking gets the square one)
++				ROUNDED => ratatui_widgets::borders::BorderType::Plain,
+ 				DOUBLE => ratatui_widgets::borders::BorderType::Double,
+ 				THICK => ratatui_widgets::borders::BorderType::Thick,
+ 				QUADRANT_INSIDE => ratatui_widgets::borders::BorderType::QuadrantInside,
+diff --git a/yazi-binding/src/elements/table.rs b/yazi-binding/src/elements/table.rs
+index a1e1524..418fe8d 100644
+--- a/yazi-binding/src/elements/table.rs
++++ b/yazi-binding/src/elements/table.rs
+@@ -146,6 +146,15 @@ impl Widget for Table {
+ 		let mut state = self.state;
+ 		StatefulWidget::render(table, rect, buf, &mut state);
+ 		Self::render_overlays(rect, buf, &self.rows, &columns, state.offset());
++
++		// (fedokawaii, docs/design-system.md §1: the cursor's 2 px edge in the seal's slot, at the band's first cell)
++		if let Some(i) = state.selected() {
++			let above: u16 = self.rows[state.offset().min(i)..i].iter().map(|r| r.height_with_margin()).sum();
++			let y = rect.y.saturating_add(above);
++			if y < rect.bottom() && let Some(cell) = buf.cell_mut((rect.x, y)) {
++				cell.set_symbol("▎").set_fg(ratatui_core::style::Color::Indexed(16));
++			}
++		}
+ 	}
+ }
+ 
+diff --git a/yazi-config/preset/keymap-default.toml b/yazi-config/preset/keymap-default.toml
+index 8ad79c9..532f826 100644
+--- a/yazi-config/preset/keymap-default.toml
++++ b/yazi-config/preset/keymap-default.toml
+@@ -6,12 +6,12 @@
+ [mgr]
+ 
+ keymap = [
+-	{ on = "<Esc>", run = "escape",             desc = "Exit visual mode, clear selection, or cancel search" },
+-	{ on = "<C-[>", run = "escape",             desc = "Exit visual mode, clear selection, or cancel search" },
+-	{ on = "q",     run = "quit",               desc = "Quit the process" },
+-	{ on = "Q",     run = "quit --no-cwd-file", desc = "Quit without outputting cwd-file" },
+-	{ on = "<C-c>", run = "close",              desc = "Close the current tab, or quit if it's last" },
+-	{ on = "<C-z>", run = "suspend",            desc = "Suspend the process" },
++	{ on = "<Esc>", run = "escape",             desc = "Clear the marks, stop marking, cancel a search" },
++	{ on = "<C-[>", run = "escape",             desc = "Clear the marks, stop marking, cancel a search" },
++	{ on = "q",     run = "quit",               desc = "Quit" },
++	{ on = "Q",     run = "quit --no-cwd-file", desc = "Quit, the shell stays in its folder" },
++	{ on = "<C-c>", run = "close",              desc = "Close this tab (the last one: quit)" },
++	{ on = "<C-z>", run = "suspend",            desc = "Back to the shell, for now" },
+ 
+ 	# Hop around
+ 	{ on = "k",      run = "arrow prev", desc = "Previous file" },
+@@ -24,144 +24,144 @@ keymap = [
+ 	{ on = "<Home>",     run = "arrow top", desc = "Go to top" },
+ 	{ on = "<End>",      run = "arrow bot", desc = "Go to bottom" },
+ 
+-	{ on = "<C-u>", run = "arrow -50%",  desc = "Move cursor up half page" },
+-	{ on = "<C-d>", run = "arrow 50%",   desc = "Move cursor down half page" },
+-	{ on = "<C-b>", run = "arrow -100%", desc = "Move cursor up one page" },
+-	{ on = "<C-f>", run = "arrow 100%",  desc = "Move cursor down one page" },
++	{ on = "<C-u>", run = "arrow -50%",  desc = "Up half a page" },
++	{ on = "<C-d>", run = "arrow 50%",   desc = "Down half a page" },
++	{ on = "<C-b>", run = "arrow -100%", desc = "Up a page" },
++	{ on = "<C-f>", run = "arrow 100%",  desc = "Down a page" },
+ 
+-	{ on = "<S-PageUp>",   run = "arrow -50%",  desc = "Move cursor up half page" },
+-	{ on = "<S-PageDown>", run = "arrow 50%",   desc = "Move cursor down half page" },
+-	{ on = "<PageUp>",     run = "arrow -100%", desc = "Move cursor up one page" },
+-	{ on = "<PageDown>",   run = "arrow 100%",  desc = "Move cursor down one page" },
++	{ on = "<S-PageUp>",   run = "arrow -50%",  desc = "Up half a page" },
++	{ on = "<S-PageDown>", run = "arrow 50%",   desc = "Down half a page" },
++	{ on = "<PageUp>",     run = "arrow -100%", desc = "Up a page" },
++	{ on = "<PageDown>",   run = "arrow 100%",  desc = "Down a page" },
+ 
+ 	# Navigation
+-	{ on = "h", run = "leave", desc = "Back to the parent directory" },
+-	{ on = "l", run = "enter", desc = "Enter the child directory" },
++	{ on = "h", run = "leave", desc = "Up to the folder above" },
++	{ on = "l", run = "enter", desc = "Into the folder" },
+ 
+-	{ on = "<Left>",  run = "leave", desc = "Back to the parent directory" },
+-	{ on = "<Right>", run = "enter", desc = "Enter the child directory" },
++	{ on = "<Left>",  run = "leave", desc = "Up to the folder above" },
++	{ on = "<Right>", run = "enter", desc = "Into the folder" },
+ 
+-	{ on = "H", run = "back",    desc = "Back to previous directory" },
+-	{ on = "L", run = "forward", desc = "Forward to next directory" },
++	{ on = "H", run = "back",    desc = "Back to the folder before" },
++	{ on = "L", run = "forward", desc = "Forward again" },
+ 
+ 	# Toggle
+-	{ on = "<Space>", run = [ "toggle", "arrow 1" ], desc = "Toggle the current selection state" },
+-	{ on = "<C-a>",   run = "toggle_all --state=on", desc = "Select all files" },
+-	{ on = "<C-r>",   run = "toggle_all",            desc = "Invert selection of all files" },
++	{ on = "<Space>", run = [ "toggle", "arrow 1" ], desc = "Mark this file, or unmark it" },
++	{ on = "<C-a>",   run = "toggle_all --state=on", desc = "Mark all" },
++	{ on = "<C-r>",   run = "toggle_all",            desc = "Mark the others instead" },
+ 
+ 	# Visual mode
+-	{ on = "v", run = "visual_mode",         desc = "Enter visual mode (selection mode)" },
+-	{ on = "V", run = "visual_mode --unset", desc = "Enter visual mode (unset mode)" },
++	{ on = "v", run = "visual_mode",         desc = "Mark as the cursor moves" },
++	{ on = "V", run = "visual_mode --unset", desc = "Unmark as the cursor moves" },
+ 
+ 	# Seeking
+-	{ on = "K", run = "seek -5", desc = "Seek up 5 units in the preview" },
+-	{ on = "J", run = "seek 5",  desc = "Seek down 5 units in the preview" },
++	{ on = "K", run = "seek -5", desc = "Scroll the preview up" },
++	{ on = "J", run = "seek 5",  desc = "Scroll the preview down" },
+ 
+ 	# Spotting
+-	{ on = "<Tab>", run = "spot", desc = "Spot hovered file" },
++	{ on = "<Tab>", run = "spot", desc = "A file's facts" },
+ 
+ 	# Operation
+-	{ on = "o",         run = "open",                        desc = "Open selected files" },
+-	{ on = "O",         run = "open --interactive",          desc = "Open selected files interactively" },
+-	{ on = "<Enter>",   run = "open",                        desc = "Open selected files" },
+-	{ on = "<S-Enter>", run = "open --interactive",          desc = "Open selected files interactively" },
+-	{ on = "y",         run = "yank",                        desc = "Yank selected files (copy)" },
+-	{ on = "x",         run = "yank --cut",                  desc = "Yank selected files (cut)" },
+-	{ on = "p",         run = "paste",                       desc = "Paste yanked files" },
+-	{ on = "P",         run = "paste --force",               desc = "Paste yanked files (overwrite if the destination exists)" },
+-	{ on = "-",         run = "link",                        desc = "Symlink the absolute path of yanked files" },
+-	{ on = "_",         run = "link --relative",             desc = "Symlink the relative path of yanked files" },
+-	{ on = "<C-->",     run = "hardlink",                    desc = "Hardlink yanked files" },
+-	{ on = "Y",         run = "unyank",                      desc = "Cancel the yank status" },
+-	{ on = "X",         run = "unyank",                      desc = "Cancel the yank status" },
+-	{ on = "d",         run = "remove",                      desc = "Trash selected files" },
+-	{ on = "D",         run = "remove --permanently",        desc = "Permanently delete selected files" },
+-	{ on = "a",         run = "create",                      desc = "Create a file (ends with / for directories)" },
+-	{ on = "A",         run = "bulk_create",                 desc = "Bulk create files" },
+-	{ on = "r",         run = "rename --cursor=before_ext",  desc = "Rename selected file(s)" },
+-	{ on = ";",         run = "shell --interactive",         desc = "Run a shell command" },
+-	{ on = ":",         run = "shell --block --interactive", desc = "Run a shell command (block until finishes)" },
+-	{ on = ".",         run = "hidden toggle",               desc = "Toggle the visibility of hidden files" },
+-	{ on = "s",         run = "search --via=fd",             desc = "Search files by name via fd" },
+-	{ on = "S",         run = "search --via=rg",             desc = "Search files by content via ripgrep" },
+-	{ on = "<C-s>",     run = "escape --search",             desc = "Cancel the ongoing search" },
+-	{ on = "z",         run = "plugin fzf",                  desc = "Jump to a file/directory via fzf" },
+-	{ on = "Z",         run = "plugin zoxide",               desc = "Jump to a directory via zoxide" },
++	{ on = "o",         run = "open",                        desc = "Open" },
++	{ on = "O",         run = "open --interactive",          desc = "Open with: pick the program" },
++	{ on = "<Enter>",   run = "open",                        desc = "Open" },
++	{ on = "<S-Enter>", run = "open --interactive",          desc = "Open with: pick the program" },
++	{ on = "y",         run = "yank",                        desc = "Copy the file(s), for p" },
++	{ on = "x",         run = "yank --cut",                  desc = "Move the file(s), for p" },
++	{ on = "p",         run = "paste",                       desc = "Paste here" },
++	{ on = "P",         run = "paste --force",               desc = "Paste here, over the same names" },
++	{ on = "-",         run = "link",                        desc = "Link here to what was copied" },
++	{ on = "_",         run = "link --relative",             desc = "Link here, a relative path" },
++	{ on = "<C-->",     run = "hardlink",                    desc = "Hard link here" },
++	{ on = "Y",         run = "unyank",                      desc = "Forget what was copied" },
++	{ on = "X",         run = "unyank",                      desc = "Forget what was copied" },
++	{ on = "d",         run = "remove",                      desc = "To the trash" },
++	{ on = "D",         run = "remove --permanently",        desc = "Delete for good" },
++	{ on = "a",         run = "create",                      desc = "New file (ending in /: a folder)" },
++	{ on = "A",         run = "bulk_create",                 desc = "New files, many at once" },
++	{ on = "r",         run = "rename --cursor=before_ext",  desc = "Rename" },
++	{ on = ";",         run = "shell --interactive",         desc = "Run a command" },
++	{ on = ":",         run = "shell --block --interactive", desc = "Run a command, wait for it" },
++	{ on = ".",         run = "hidden toggle",               desc = "Hide the dotfiles, or show them" },
++	{ on = "s",         run = "search --via=fd",             desc = "Search by name (fd)" },
++	{ on = "S",         run = "search --via=rg",             desc = "Search inside the files (ripgrep)" },
++	{ on = "<C-s>",     run = "escape --search",             desc = "Stop the search" },
++	{ on = "z",         run = "plugin fzf",                  desc = "Jump to a file or folder (fzf)" },
++	{ on = "Z",         run = "plugin zoxide",               desc = "Jump to a folder you use (zoxide)" },
+ 
+ 	# Linemode
+-	{ on = [ "m", "s" ], run = "linemode size",        desc = "Linemode: size" },
+-	{ on = [ "m", "p" ], run = "linemode permissions", desc = "Linemode: permissions" },
+-	{ on = [ "m", "b" ], run = "linemode btime",       desc = "Linemode: btime" },
+-	{ on = [ "m", "m" ], run = "linemode mtime",       desc = "Linemode: mtime" },
+-	{ on = [ "m", "o" ], run = "linemode owner",       desc = "Linemode: owner" },
+-	{ on = [ "m", "n" ], run = "linemode none",        desc = "Linemode: none" },
++	{ on = [ "m", "s" ], run = "linemode size",        desc = "The list's column: size" },
++	{ on = [ "m", "p" ], run = "linemode permissions", desc = "The list's column: rights" },
++	{ on = [ "m", "b" ], run = "linemode btime",       desc = "The list's column: created" },
++	{ on = [ "m", "m" ], run = "linemode mtime",       desc = "The list's column: changed" },
++	{ on = [ "m", "o" ], run = "linemode owner",       desc = "The list's column: owner" },
++	{ on = [ "m", "n" ], run = "linemode none",        desc = "The list's column: none" },
+ 
+ 	# Copy
+-	{ on = [ "c", "c" ], run = "copy path",             desc = "Copy file path" },
+-	{ on = [ "c", "C" ], run = "copy url",              desc = "Copy file URL" },
+-	{ on = [ "c", "d" ], run = "copy dirpath",          desc = "Copy directory path" },
+-	{ on = [ "c", "D" ], run = "copy dirurl",           desc = "Copy directory URL" },
+-	{ on = [ "c", "f" ], run = "copy filename",         desc = "Copy filename" },
+-	{ on = [ "c", "n" ], run = "copy name_without_ext", desc = "Copy filename without extension" },
++	{ on = [ "c", "c" ], run = "copy path",             desc = "Copy its path" },
++	{ on = [ "c", "C" ], run = "copy url",              desc = "Copy its address" },
++	{ on = [ "c", "d" ], run = "copy dirpath",          desc = "Copy the folder's path" },
++	{ on = [ "c", "D" ], run = "copy dirurl",           desc = "Copy the folder's address" },
++	{ on = [ "c", "f" ], run = "copy filename",         desc = "Copy its name" },
++	{ on = [ "c", "n" ], run = "copy name_without_ext", desc = "Copy its name, no extension" },
+ 
+ 	# Filter
+-	{ on = "f", run = "filter --smart", desc = "Filter files" },
++	{ on = "f", run = "filter --smart", desc = "Filter the list" },
+ 
+ 	# Find
+-	{ on = "/", run = "find --smart",            desc = "Find next file" },
+-	{ on = "?", run = "find --previous --smart", desc = "Find previous file" },
++	{ on = "/", run = "find --smart",            desc = "Find, forward" },
++	{ on = "?", run = "find --previous --smart", desc = "Find, backward" },
+ 	{ on = "n", run = "find_arrow",              desc = "Next found" },
+ 	{ on = "N", run = "find_arrow --previous",   desc = "Previous found" },
+ 
+ 	# Sorting
+-	{ on = [ ",", "m" ], run = [ "sort mtime --reverse=no", "linemode mtime" ],  desc = "Sort by modified time" },
+-	{ on = [ ",", "M" ], run = [ "sort mtime --reverse=yes", "linemode mtime" ], desc = "Sort by modified time (reverse)" },
+-	{ on = [ ",", "b" ], run = [ "sort btime --reverse=no", "linemode btime" ],  desc = "Sort by birth time" },
+-	{ on = [ ",", "B" ], run = [ "sort btime --reverse=yes", "linemode btime" ], desc = "Sort by birth time (reverse)" },
++	{ on = [ ",", "m" ], run = [ "sort mtime --reverse=no", "linemode mtime" ],  desc = "Sort by when it changed" },
++	{ on = [ ",", "M" ], run = [ "sort mtime --reverse=yes", "linemode mtime" ], desc = "Sort by when it changed, the other way" },
++	{ on = [ ",", "b" ], run = [ "sort btime --reverse=no", "linemode btime" ],  desc = "Sort by when it was made" },
++	{ on = [ ",", "B" ], run = [ "sort btime --reverse=yes", "linemode btime" ], desc = "Sort by when it was made, the other way" },
+ 	{ on = [ ",", "e" ], run = "sort extension --reverse=no",                    desc = "Sort by extension" },
+-	{ on = [ ",", "E" ], run = "sort extension --reverse=yes",                   desc = "Sort by extension (reverse)" },
++	{ on = [ ",", "E" ], run = "sort extension --reverse=yes",                   desc = "Sort by extension, the other way" },
+ 	{ on = [ ",", "a" ], run = "sort alphabetical --reverse=no",                 desc = "Sort alphabetically" },
+-	{ on = [ ",", "A" ], run = "sort alphabetical --reverse=yes",                desc = "Sort alphabetically (reverse)" },
+-	{ on = [ ",", "n" ], run = "sort natural --reverse=no",                      desc = "Sort naturally" },
+-	{ on = [ ",", "N" ], run = "sort natural --reverse=yes",                     desc = "Sort naturally (reverse)" },
++	{ on = [ ",", "A" ], run = "sort alphabetical --reverse=yes",                desc = "Sort alphabetically, the other way" },
++	{ on = [ ",", "n" ], run = "sort natural --reverse=no",                      desc = "Sort by name, 2 before 10" },
++	{ on = [ ",", "N" ], run = "sort natural --reverse=yes",                     desc = "Sort by name, 2 before 10, the other way" },
+ 	{ on = [ ",", "s" ], run = [ "sort size --reverse=no", "linemode size" ],    desc = "Sort by size" },
+-	{ on = [ ",", "S" ], run = [ "sort size --reverse=yes", "linemode size" ],   desc = "Sort by size (reverse)" },
+-	{ on = [ ",", "r" ], run = "sort random --reverse=no",                       desc = "Sort randomly" },
++	{ on = [ ",", "S" ], run = [ "sort size --reverse=yes", "linemode size" ],   desc = "Sort by size, the other way" },
++	{ on = [ ",", "r" ], run = "sort random --reverse=no",                       desc = "Sort at random" },
+ 
+ 	# Goto
+ 	{ on = [ "g", "h" ],       run = "cd ~",             desc = "Go home" },
+ 	{ on = [ "g", "c" ],       run = "cd ~/.config",     desc = "Go to ~/.config" },
+ 	{ on = [ "g", "d" ],       run = "cd ~/Downloads",   desc = "Go to ~/Downloads" },
+-	{ on = [ "g", "t" ],       run = "plugin trash",     desc = "Go to trash bin" },
+-	{ on = [ "g", "<Space>" ], run = "cd --interactive", desc = "Jump interactively" },
+-	{ on = [ "g", "f" ],       run = "follow",           desc = "Follow hovered symlink" },
++	{ on = [ "g", "t" ],       run = "plugin trash",     desc = "Go to the trash" },
++	{ on = [ "g", "<Space>" ], run = "cd --interactive", desc = "Jump by letters" },
++	{ on = [ "g", "f" ],       run = "follow",           desc = "Go where this link points" },
+ 
+ 	# Tabs
+-	{ on = [ "t", "t" ], run = "tab_create --current",     desc = "Create a new tab in CWD" },
+-	{ on = [ "t", "r" ], run = "tab_rename --interactive", desc = "Rename current tab" },
++	{ on = [ "t", "t" ], run = "tab_create --current",     desc = "A new tab, here" },
++	{ on = [ "t", "r" ], run = "tab_rename --interactive", desc = "Rename this tab" },
+ 
+-	{ on = "1", run = "tab_switch 0", desc = "Switch to first tab" },
+-	{ on = "2", run = "tab_switch 1", desc = "Switch to second tab" },
+-	{ on = "3", run = "tab_switch 2", desc = "Switch to third tab" },
+-	{ on = "4", run = "tab_switch 3", desc = "Switch to fourth tab" },
+-	{ on = "5", run = "tab_switch 4", desc = "Switch to fifth tab" },
+-	{ on = "6", run = "tab_switch 5", desc = "Switch to sixth tab" },
+-	{ on = "7", run = "tab_switch 6", desc = "Switch to seventh tab" },
+-	{ on = "8", run = "tab_switch 7", desc = "Switch to eighth tab" },
+-	{ on = "9", run = "tab_switch 8", desc = "Switch to ninth tab" },
++	{ on = "1", run = "tab_switch 0", desc = "Tab 1" },
++	{ on = "2", run = "tab_switch 1", desc = "Tab 2" },
++	{ on = "3", run = "tab_switch 2", desc = "Tab 3" },
++	{ on = "4", run = "tab_switch 3", desc = "Tab 4" },
++	{ on = "5", run = "tab_switch 4", desc = "Tab 5" },
++	{ on = "6", run = "tab_switch 5", desc = "Tab 6" },
++	{ on = "7", run = "tab_switch 6", desc = "Tab 7" },
++	{ on = "8", run = "tab_switch 7", desc = "Tab 8" },
++	{ on = "9", run = "tab_switch 8", desc = "Tab 9" },
+ 
+-	{ on = "[", run = "tab_switch -1 --relative", desc = "Switch to previous tab" },
+-	{ on = "]", run = "tab_switch 1 --relative",  desc = "Switch to next tab" },
++	{ on = "[", run = "tab_switch -1 --relative", desc = "The tab before" },
++	{ on = "]", run = "tab_switch 1 --relative",  desc = "The tab after" },
+ 
+-	{ on = "{", run = "tab_swap -1", desc = "Swap current tab with previous tab" },
+-	{ on = "}", run = "tab_swap 1",  desc = "Swap current tab with next tab" },
++	{ on = "{", run = "tab_swap -1", desc = "Swap with the tab before" },
++	{ on = "}", run = "tab_swap 1",  desc = "Swap with the tab after" },
+ 
+ 	# Tasks
+-	{ on = "w", run = "tasks:show", desc = "Show task manager" },
++	{ on = "w", run = "tasks:show", desc = "Tasks" },
+ 
+ 	# Help
+-	{ on = "~",    run = "help", desc = "Open help" },
+-	{ on = "<F1>", run = "help", desc = "Open help" },
++	{ on = "~",    run = "help", desc = "These keys" },
++	{ on = "<F1>", run = "help", desc = "These keys" },
+ ]
+ 
+ [tasks]
+diff --git a/yazi-config/src/popup/help.rs b/yazi-config/src/popup/help.rs
+index 4cfdc2f..91d771f 100644
+--- a/yazi-config/src/popup/help.rs
++++ b/yazi-config/src/popup/help.rs
+@@ -4,6 +4,6 @@ pub struct Help;
+ 
+ impl Help {
+ 	pub fn position() -> Position {
+-		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 80, height: 25 })
++		Position::new(Origin::Center, Offset { x: 0, y: 0, width: 96, height: 31 })
+ 	}
+ }
+diff --git a/yazi-config/src/popup/options.rs b/yazi-config/src/popup/options.rs
+index 7b2587b..38ceb3c 100644
+--- a/yazi-config/src/popup/options.rs
++++ b/yazi-config/src/popup/options.rs
+@@ -41,7 +41,8 @@ impl ConfirmCfg {
+ 			position,
+ 			title: Line::raw(title),
+ 			body: body.map(|b| Paragraph::new(b).wrap(Wrap { trim: false })).unwrap_or_default(),
+-			list: list.map(|l| Paragraph::new(l).wrap(Wrap { trim: false })).unwrap_or_default(),
++			// (a row a name: one too long for the panel loses its end, never a second line under the icons)
++			list: list.map(Paragraph::new).unwrap_or_default(),
+ 		}
+ 	}
+ 
+@@ -49,7 +50,7 @@ impl ConfirmCfg {
+ 		Self::new(
+ 			Self::replace_number(&YAZI.confirm.trash_title, files.len()),
+ 			YAZI.confirm.trash_position(),
+-			None,
++			Self::folder_of(files),
+ 			Self::truncate_files(files, 100),
+ 		)
+ 	}
+@@ -58,7 +59,7 @@ impl ConfirmCfg {
+ 		Self::new(
+ 			Self::replace_number(&YAZI.confirm.delete_title, files.len()),
+ 			YAZI.confirm.delete_position(),
+-			None,
++			Self::folder_of(files),
+ 			Self::truncate_files(files, 100),
+ 		)
+ 	}
+@@ -93,7 +94,7 @@ impl ConfirmCfg {
+ 		let mut lines = Vec::with_capacity(len.min(max + 1));
+ 		for (i, s) in it.into_iter().enumerate() {
+ 			if i >= max {
+-				lines.push(format!("... and {} more", len - max));
++				lines.push(format!("and {} more", len - max));
+ 				break;
+ 			}
+ 			lines.push(s.to_strand().into_string_lossy());
+@@ -105,7 +106,7 @@ impl ConfirmCfg {
+ 		let mut lines = Vec::with_capacity(files.len().min(max + 1));
+ 		for (i, f) in files.iter().enumerate() {
+ 			if i >= max {
+-				lines.push(Line::raw(format!("... and {} more", files.len() - max)));
++				lines.push(Line::raw(format!("and {} more", files.len() - max)));
+ 				break;
+ 			}
+ 
+@@ -114,8 +115,35 @@ impl ConfirmCfg {
+ 				lines[i].push_span(Span::styled(icon.text, icon.style));
+ 				lines[i].push_span(" ");
+ 			}
+-			lines[i].push_span(f.url.to_strand().into_string_lossy());
++			// (their folder is said once above them, when they share one: the names alone)
++			let path = f.url.to_strand().into_string_lossy();
++			let name = Self::same_folder(files).then(|| path.rsplit('/').next()).flatten();
++			lines[i].push_span(name.map(str::to_owned).unwrap_or_else(|| Self::home_as_tilde(&path)));
+ 		}
+ 		Some(lines.into())
+ 	}
++
++	fn home_as_tilde(path: &str) -> String {
++		match std::env::var("HOME").ok().and_then(|h| path.strip_prefix(&h).map(str::to_owned)) {
++			Some(rest) if rest.is_empty() || rest.starts_with('/') => format!("~{rest}"),
++			_ => path.to_owned(),
++		}
++	}
++
++	fn parent(f: &File) -> Option<String> {
++		f.url.to_strand().into_string_lossy().rsplit_once('/').map(|(dir, _)| dir.to_owned())
++	}
++
++	fn same_folder(files: &[File]) -> bool {
++		let first = files.first().and_then(Self::parent);
++		first.is_some() && files.iter().all(|f| Self::parent(f) == first)
++	}
++
++	fn folder_of(files: &[File]) -> Option<Text<'static>> {
++		if !Self::same_folder(files) {
++			return None;
++		}
++		let dir = files.first().and_then(Self::parent)?;
++		Some(Text::raw(if dir.is_empty() { "/".to_owned() } else { Self::home_as_tilde(&dir) }))
++	}
+ }
+diff --git a/yazi-config/src/popup/pick.rs b/yazi-config/src/popup/pick.rs
+index ed32d5d..9d65ed9 100644
+--- a/yazi-config/src/popup/pick.rs
++++ b/yazi-config/src/popup/pick.rs
+@@ -13,7 +13,7 @@ pub struct Pick {
+ }
+ 
+ impl Pick {
+-	pub const BORDER: u16 = 2;
++	pub const BORDER: u16 = 4; // (the ring's two rows, the heading and its row of paper)
+ 
+ 	fn max_height(&self, len: usize) -> u16 {
+ 		self.open_offset.height.min(Self::BORDER.saturating_add(len as u16))
+diff --git a/yazi-core/src/help/help.rs b/yazi-core/src/help/help.rs
+index 93193eb..bc7a7c7 100644
+--- a/yazi-core/src/help/help.rs
++++ b/yazi-core/src/help/help.rs
+@@ -1,3 +1,5 @@
++use std::collections::HashMap;
++
+ use anyhow::Result;
+ use ratatui_widgets::block::Padding;
+ use yazi_binding::position::Position;
+@@ -22,6 +24,9 @@ pub struct Help {
+ 	pub offset: usize,
+ 	pub cursor: usize,
+ 	pub height: u16,
++
++	// fedokawaii: a second key for the same deed, beside the first on its row: what it does → its keys
++	pub also: HashMap<String, Vec<ChordArc>>,
+ }
+ 
+ impl Help {
+@@ -45,6 +50,18 @@ impl Help {
+ 			self.bindings = Self::filter_chords(&KEYMAP.chords(self.layer), kw);
+ 		}
+ 
++		// One row a deed: the keys that do the same thing stand on the first one's row
++		self.also.clear();
++		let mut seen = HashMap::new();
++		self.bindings.retain(|c| {
++			let desc = c.desc_or_run().into_owned();
++			if seen.insert(desc.clone(), ()).is_none() {
++				return true;
++			}
++			self.also.entry(desc).or_default().push(c.clone());
++			false
++		});
++
+ 		render!(self.scroll(0));
+ 	}
+ 
+@@ -76,7 +93,8 @@ impl Help {
+ }
+ 
+ impl Help {
+-	pub fn padding(&self) -> Padding { Padding::new(1, 1, 1, 1) }
++	// (the search line of yazi-fm's Help, as Input's field)
++	pub fn padding(&self) -> Padding { Padding::new(7, 3, 3, 1) }
+ 
+ 	// --- Bindings
+ 	pub fn window(&self) -> &[ChordArc] {
+@@ -98,8 +116,8 @@ impl Scrollable for Help {
+ 	fn total(&self) -> usize { self.bindings.len() }
+ 
+ 	fn limit(&self) -> usize {
+-		let p = self.padding();
+-		self.height.saturating_sub(p.top + /* input */ 1 + /* divider */ 1 + p.bottom) as usize
++		// (the ring's two rows, the heading and its paper, the search line and its paper)
++		self.height.saturating_sub(2 + 2 + 2) as usize
+ 	}
+ 
+ 	fn cursor_mut(&mut self) -> &mut usize { &mut self.cursor }
+diff --git a/yazi-core/src/input/input.rs b/yazi-core/src/input/input.rs
+index ae0071c..6a09e62 100644
+--- a/yazi-core/src/input/input.rs
++++ b/yazi-core/src/input/input.rs
+@@ -16,7 +16,9 @@ pub struct Input {
+ impl Input {
+ 	pub(crate) fn focus(&self) -> bool { self.main.visible || self.alt.is_some() }
+ 
+-	pub fn padding(&self) -> Padding { Padding::new(1, 1, 1, 1) }
++	// (the field of yazi-fm's Input: the ring and its paper, three columns, the row's icon, four more; under the
++	// ring, the heading and its paper, three rows)
++	pub fn padding(&self) -> Padding { Padding::new(7, 3, 3, 1) }
+ 
+ 	pub(crate) fn position(&self) -> Option<Position> {
+ 		if self.main.visible {
+diff --git a/yazi-core/src/notify/level.rs b/yazi-core/src/notify/level.rs
+index 168b7cf..a2b58c6 100644
+--- a/yazi-core/src/notify/level.rs
++++ b/yazi-core/src/notify/level.rs
+@@ -17,8 +17,8 @@ impl MessageLevel {
+ 	pub fn icon(self) -> Arc<String> {
+ 		match self {
+ 			Self::Info => THEME.notify.icon_info.load_full(),
+-			Self::Warn => THEME.notify.icon_info.load_full(),
+-			Self::Error => THEME.notify.icon_info.load_full(),
++			Self::Warn => THEME.notify.icon_warn.load_full(),
++			Self::Error => THEME.notify.icon_error.load_full(),
+ 		}
+ 	}
+ 
+diff --git a/yazi-core/src/notify/message.rs b/yazi-core/src/notify/message.rs
+index be887e6..5f6907d 100644
+--- a/yazi-core/src/notify/message.rs
++++ b/yazi-core/src/notify/message.rs
+@@ -46,9 +46,10 @@ impl PartialEq for Message {
+ 
+ impl Message {
+ 	pub fn width(&self) -> usize {
+-		let icon_width = self.level.icon().width() + /* Space */ 1;
++		// (the ring and its paper, two columns a side; the heading's icon, its air, a stretch of rule)
++		let heading = /* Icon */ 2 + /* Air */ 2 + self.title_width + /* Rule */ 4;
+ 
+-		self.content_width.max(self.title_width + icon_width) + NOTIFY_BORDER as usize
++		self.content_width.max(heading) + NOTIFY_BORDER as usize
+ 	}
+ 
+ 	pub fn height(&self, width: u16) -> usize {
+@@ -56,6 +57,7 @@ impl Message {
+ 			.wrap(ratatui_widgets::paragraph::Wrap { trim: false })
+ 			.line_count(width.saturating_sub(NOTIFY_BORDER));
+ 
+-		lines + NOTIFY_BORDER as usize
++		// (the ring's two rows, the heading and its row of paper)
++		lines + 4
+ 	}
+ }
+diff --git a/yazi-core/src/notify/mod.rs b/yazi-core/src/notify/mod.rs
+index 9600ddb..63497e6 100644
+--- a/yazi-core/src/notify/mod.rs
++++ b/yazi-core/src/notify/mod.rs
+@@ -1,4 +1,4 @@
+ yazi_macro::mod_flat!(level message notify option);
+ 
+-pub(crate) const NOTIFY_BORDER: u16 = 2;
++pub(crate) const NOTIFY_BORDER: u16 = 6;
+ pub(crate) const NOTIFY_SPACING: u16 = 1;
+diff --git a/yazi-core/src/tasks/mod.rs b/yazi-core/src/tasks/mod.rs
+index f0da52b..0cadf4e 100644
+--- a/yazi-core/src/tasks/mod.rs
++++ b/yazi-core/src/tasks/mod.rs
+@@ -2,4 +2,4 @@ yazi_macro::mod_flat!(file option prework tasks);
+ 
+ pub(crate) const TASKS_BORDER: u16 = 2;
+ pub(crate) const TASKS_PADDING: u16 = 2;
+-pub const TASKS_PERCENT: u16 = 80;
++pub const TASKS_PERCENT: u16 = 60;
+diff --git a/yazi-fm/src/cmp/cmp.rs b/yazi-fm/src/cmp/cmp.rs
+index 4971175..4d795ab 100644
+--- a/yazi-fm/src/cmp/cmp.rs
++++ b/yazi-fm/src/cmp/cmp.rs
+@@ -1,13 +1,15 @@
+ use std::path::MAIN_SEPARATOR_STR;
+ 
+ use ratatui_core::{buffer::Buffer, layout::Rect, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType, list::{List, ListItem}};
++use ratatui_widgets::list::{List, ListItem};
+ use yazi_binding::position::{Offset, Position};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ use yazi_shared::strand::StrandLike;
+ use yazi_term::TERM;
+ 
++use crate::frame;
++
+ pub(crate) struct Cmp<'a> {
+ 	core: &'a Core,
+ }
+@@ -55,11 +57,7 @@ impl Widget for Cmp<'_> {
+ 			area.height = rect.height.saturating_sub(area.y).min(area.height);
+ 		}
+ 
+-		yazi_widgets::clear::Clear::default().render(area, buf);
+-		List::new(items)
+-			.block(
+-				Block::bordered().border_type(BorderType::Rounded).border_style(THEME.cmp.border.get()),
+-			)
+-			.render(area, buf);
++		let inner = frame::ring(area, buf, THEME.cmp.border.get().into());
++		List::new(items).render(inner, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/body.rs b/yazi-fm/src/confirm/body.rs
+index a8afeb1..5574b1d 100644
+--- a/yazi-fm/src/confirm/body.rs
++++ b/yazi-fm/src/confirm/body.rs
+@@ -1,37 +1,25 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, style::Styled, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::Borders};
++use ratatui_core::{buffer::Buffer, layout::{Alignment, Rect}, style::Styled, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
+ pub(crate) struct Body<'a> {
+-	core:   &'a Core,
+-	border: bool,
++	core: &'a Core,
+ }
+ 
+ impl<'a> Body<'a> {
+-	pub(crate) fn new(core: &'a Core, border: bool) -> Self { Self { core, border } }
++	pub(crate) fn new(core: &'a Core) -> Self { Self { core } }
+ }
+ 
+ impl Widget for Body<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let confirm = &self.core.confirm;
+ 
+-		// Inner area
+-		let inner = area.inner(Margin::new(1, 0));
+-
+-		// Border
+-		let block = if self.border {
+-			Block::new().borders(Borders::BOTTOM).border_style(THEME.confirm.border.get())
+-		} else {
+-			Block::new()
+-		};
+-
++		// A paragraph at the heading's column (§7), never centred
+ 		confirm
+ 			.body
+ 			.clone()
+-			.alignment(ratatui_core::layout::Alignment::Center)
+-			.block(block)
++			.alignment(Alignment::Left)
+ 			.style(THEME.confirm.body.get().derive(Styled::style(&confirm.body)))
+-			.render(inner, buf);
++			.render(area, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/buttons.rs b/yazi-fm/src/confirm/buttons.rs
+index 9049d5b..95639a2 100644
+--- a/yazi-fm/src/confirm/buttons.rs
++++ b/yazi-fm/src/confirm/buttons.rs
+@@ -1,21 +1,15 @@
+-use ratatui_core::{buffer::Buffer, layout::{Constraint, Rect}, text::Span, widgets::Widget};
+-use ratatui_widgets::paragraph::Paragraph;
+-use yazi_config::THEME;
++use ratatui_core::{buffer::Buffer, layout::Rect, widgets::Widget};
+ 
+-pub(crate) struct Buttons;
++use crate::frame;
+ 
+-impl Widget for Buttons {
+-	fn render(self, area: Rect, buf: &mut Buffer) {
+-		let chunks =
+-			ratatui_core::layout::Layout::horizontal([Constraint::Fill(1), Constraint::Fill(1)])
+-				.split(area);
+-		let labels = THEME.confirm.btn_labels.load();
++/// The choice as two of §7's keys, at the heading's column: "[y]  trash    [n]  keep".
++pub(crate) struct Buttons<'a> {
++	pub(crate) yes: &'a str,
++}
+ 
+-		Paragraph::new(Span::raw(&labels[0]).style(THEME.confirm.btn_yes.get()))
+-			.centered()
+-			.render(chunks[0], buf);
+-		Paragraph::new(Span::raw(&labels[1]).style(THEME.confirm.btn_no.get()))
+-			.centered()
+-			.render(chunks[1], buf);
++impl Widget for Buttons<'_> {
++	fn render(self, area: Rect, buf: &mut Buffer) {
++		let no = if self.yes == "quit" { "stay" } else { "keep" };
++		frame::keys_line(&[("y", self.yes.trim_end_matches('?')), ("n", no)]).render(area, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/confirm.rs b/yazi-fm/src/confirm/confirm.rs
+index 3ff88e8..4368f6c 100644
+--- a/yazi-fm/src/confirm/confirm.rs
++++ b/yazi-fm/src/confirm/confirm.rs
+@@ -1,8 +1,9 @@
+-use ratatui_core::{buffer::Buffer, layout::{Alignment, Constraint, Layout, Margin, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::Line, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
++use crate::frame;
++
+ pub(crate) struct Confirm<'a> {
+ 	core: &'a Core,
+ }
+@@ -14,33 +15,34 @@ impl<'a> Confirm<'a> {
+ impl Widget for Confirm<'_> {
+ 	fn render(self, _: Rect, buf: &mut Buffer) {
+ 		let confirm = &self.core.confirm;
+-		let area = self.core.mgr.area(confirm.position);
+-
+-		yazi_widgets::clear::Clear::default().render(area, buf);
+-
+-		Block::bordered()
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.confirm.border.get())
+-			.title(confirm.title.clone().style(THEME.confirm.title.get().derive(confirm.title.style)))
+-			.title_alignment(Alignment::Center)
+-			.render(area, buf);
+-
+-		let body_border = confirm.list.line_count(area.width) != 0;
+-		let body_height = confirm.body.line_count(area.width) as u16;
+-
+-		let chunks = Layout::vertical([
+-			Constraint::Length(if body_height == 0 {
+-				0
+-			} else {
+-				body_height.saturating_add(body_border as u16)
+-			}),
+-			Constraint::Fill(1),
+-			Constraint::Length(1),
+-		])
+-		.split(area.inner(Margin::new(0, 1)));
+-
+-		super::Body::new(self.core, body_border).render(chunks[0], buf);
+-		super::List::new(self.core).render(chunks[1], buf);
+-		super::Buttons.render(chunks[2], buf);
++		let room = self.core.mgr.area(confirm.position);
++
++		// The panel fits what it says (§4): the ring, the heading and its paper, the words, the list, the keys
++		let width = room.width.saturating_sub(6);
++		let body = confirm.body.line_count(width) as u16;
++		let list = confirm.list.line_count(width.saturating_sub(2)) as u16;
++		let chrome = 2 + 2 + if body > 0 { body + 1 } else { 0 } + if list > 0 { 1 } else { 0 } + 1;
++		let shown = list.min(room.height.saturating_sub(chrome));
++		let height = (chrome + shown).min(room.height);
++		let area = Rect { y: room.y + (room.height - height) / 2, height, ..room };
++
++		let title = confirm.title.clone().style(THEME.confirm.title.get().derive(confirm.title.style));
++		let word = title.spans.first().and_then(|s| s.content.split_whitespace().next()).unwrap_or("").to_owned();
++		let icon = match word.as_str() {
++			"overwrite" => frame::I_FILE,
++			"quit" => frame::I_DOOR,
++			_ => frame::I_TRASH,
++		};
++		let inner = frame::frame(area, buf, THEME.confirm.border.get().into(), icon, Line::from(title.spans));
++
++		let mut y = inner.y;
++		if body > 0 {
++			super::Body::new(self.core).render(Rect { y, height: body, ..inner }, buf);
++			y += body + 1;
++		}
++		if shown > 0 {
++			super::List::new(self.core).render(Rect { y, height: shown, ..inner }, buf);
++		}
++		super::Buttons { yes: &word }.render(Rect { y: inner.bottom().saturating_sub(1), height: 1, ..inner }, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/confirm/list.rs b/yazi-fm/src/confirm/list.rs
+index 5418ac9..2855017 100644
+--- a/yazi-fm/src/confirm/list.rs
++++ b/yazi-fm/src/confirm/list.rs
+@@ -1,8 +1,10 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::{StatefulWidget, Widget}};
+-use ratatui_widgets::{block::Block, borders::Borders, paragraph::Wrap, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
++use ratatui_core::{buffer::Buffer, layout::Rect, widgets::{StatefulWidget, Widget}};
++use ratatui_widgets::scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
++use crate::frame;
++
+ pub(crate) struct List<'a> {
+ 	core: &'a Core,
+ }
+@@ -12,13 +14,9 @@ impl<'a> List<'a> {
+ }
+ 
+ impl Widget for List<'_> {
+-	fn render(self, mut area: Rect, buf: &mut Buffer) {
+-		// List content area
+-		let inner = area.inner(Margin::new(2, 0));
+-
+-		// Bottom border
+-		let block = Block::new().borders(Borders::BOTTOM).border_style(THEME.confirm.border.get());
+-		block.clone().render(area.inner(Margin::new(1, 0)), buf);
++	fn render(self, area: Rect, buf: &mut Buffer) {
++		// Rows at their column (§7: icon at 1, name at 4); the place in a long list a hairline at the content's end
++		let inner = Rect { x: area.x + 1, width: area.width.saturating_sub(2), ..area };
+ 
+ 		let list = self
+ 			.core
+@@ -26,19 +24,17 @@ impl Widget for List<'_> {
+ 			.list
+ 			.clone()
+ 			.scroll((self.core.confirm.offset as u16, 0))
+-			.block(block)
+-			.style(THEME.confirm.list.get())
+-			.wrap(Wrap { trim: false });
++			.style(THEME.confirm.list.get());
+ 
+-		// Vertical scrollbar
+ 		let lines = list.line_count(inner.width);
+-		if lines >= inner.height as usize {
+-			area.height = area.height.saturating_sub(1);
+-			Scrollbar::new(ScrollbarOrientation::VerticalRight).render(
+-				area,
+-				buf,
+-				&mut ScrollbarState::new(lines).position(self.core.confirm.offset),
+-			);
++		if lines > area.height as usize {
++			Scrollbar::new(ScrollbarOrientation::VerticalRight)
++				.begin_symbol(None)
++				.end_symbol(None)
++				.track_symbol(None)
++				.thumb_symbol("▕")
++				.thumb_style(frame::MUTED)
++				.render(area, buf, &mut ScrollbarState::new(lines).position(self.core.confirm.offset));
+ 		}
+ 
+ 		list.render(inner, buf);
+diff --git a/yazi-fm/src/frame.rs b/yazi-fm/src/frame.rs
+new file mode 100644
+index 0000000..7d562b3
+--- /dev/null
++++ b/yazi-fm/src/frame.rs
+@@ -0,0 +1,124 @@
++// The desktop's pop-ups (fedokawaii, docs/design-system.md §4, §7): one frame for all of them, nothing in its
++// rule. The ring is §4's hairline drawn in whole terminal cells of Sumi Icons Term (tools/build-icons.py, CELLS):
++// square, its corners left out, 16 px clear of the content on every side. Inside it §7's heading — the icon in
++// accent_text, two columns, the name in strong, a space, the rule in edge2 — and a row of paper.
++// The inks are foot's slots past the sixteen (tools/build-themes.py), so a pop-up follows a theme switch.
++use ratatui_core::{buffer::Buffer, layout::Rect, style::{Color, Style}, text::{Line, Span}, widgets::Widget};
++use ratatui_widgets::block::Block;
++use yazi_binding::elements::RING;
++use yazi_widgets::clear::Clear;
++
++const fn ink(slot: u8) -> Style { Style::new().fg(Color::Indexed(slot)) }
++
++pub(crate) const RULE: Style = ink(19);
++pub(crate) const ICON: Style = ink(20);
++pub(crate) const MUTED: Style = ink(21);
++pub(crate) const FAINT: Style = ink(22);
++pub(crate) const STRONG: Style = ink(23);
++pub(crate) const EDGE: Style = ink(16);
++
++// Sumi Icons, as icons.sh names them (an icon's place never moves: tools/build-icons.py)
++pub(crate) const I_CHEVRON: &str = "\u{FE027}";
++pub(crate) const I_WINDOW: &str = "\u{FE02E}";
++pub(crate) const I_TERMINAL: &str = "\u{FE02F}";
++pub(crate) const I_HOURGLASS: &str = "\u{FE030}";
++pub(crate) const I_FOLDER: &str = "\u{FE031}";
++pub(crate) const I_FILE: &str = "\u{FE03D}";
++pub(crate) const I_DOOR: &str = "\u{FE021}";
++pub(crate) const I_KEYCAP: &str = "\u{FE084}";
++pub(crate) const I_PEN: &str = "\u{FE098}";
++pub(crate) const I_SEARCH: &str = "\u{FE0BA}";
++pub(crate) const I_TRASH: &str = "\u{FF00B}";
++
++/// The ring only: its inside, one row in and three columns in.
++pub(crate) fn ring(area: Rect, buf: &mut Buffer, style: Style) -> Rect {
++	Clear::default().render(area, buf);
++	Block::bordered().border_set(RING).border_style(style).render(area, buf);
++	Rect {
++		x:      area.x.saturating_add(3),
++		y:      area.y.saturating_add(1),
++		width:  area.width.saturating_sub(6),
++		height: area.height.saturating_sub(2),
++	}
++}
++
++/// The ring and the heading: the area under the heading and its row of paper.
++pub(crate) fn frame<'a>(area: Rect, buf: &mut Buffer, style: Style, icon: &'a str, name: Line<'a>) -> Rect {
++	let inner = ring(area, buf, style);
++	heading(inner, buf, icon, name);
++	Rect {
++		y: inner.y.saturating_add(2),
++		height: inner.height.saturating_sub(2),
++		..inner
++	}
++}
++
++fn heading<'a>(area: Rect, buf: &mut Buffer, icon: &'a str, name: Line<'a>) {
++	if area.height == 0 {
++		return;
++	}
++	let used = 3 + name.width() + 1;
++	let rule = (area.width as usize).saturating_sub(used);
++	let mut spans = vec![Span::styled(icon, ICON), Span::raw("  ")];
++	spans.extend(name.spans.into_iter().map(|s| Span::styled(s.content, STRONG.patch(s.style))));
++	spans.push(Span::raw(" "));
++	spans.push(Span::styled("─".repeat(rule), RULE));
++	Line::from(spans).render(Rect { height: 1, ..area }, buf);
++}
++
++/// A row of the content, the keys' row, cut to the content's own width (never into the ring).
++pub(crate) fn row(area: Rect, y: u16) -> Rect { Rect { y: area.y.saturating_add(y), height: 1, ..area } }
++
++/// A key as §7 draws it: a tile of whole cells (U+FF000 + its ASCII code, its two ends) in the ink it is given.
++pub(crate) fn keycap(word: &str) -> String {
++	let mut s = String::with_capacity(word.len() * 4 + 8);
++	s.push('\u{FF001}');
++	for c in word.chars() {
++		s.push(if c.is_ascii() && !c.is_ascii_control() { char::from_u32(0xFF000 + c as u32).unwrap_or(c) } else { c });
++	}
++	s.push('\u{FF002}');
++	s
++}
++
++/// What yazi calls a key ("<C-q>", "<Enter>", "<S-Tab>", "g") in the desktop's words ("ctrl+q", "enter", "shift+tab", "g").
++pub(crate) fn key_word(key: &str) -> String {
++	let Some(mut rest) = key.strip_prefix('<').and_then(|s| s.strip_suffix('>')) else {
++		return key.to_owned();
++	};
++	let mut out = String::new();
++	loop {
++		let (word, tail) = match rest.split_at_checked(2) {
++			Some(("C-", t)) => ("ctrl+", t),
++			Some(("A-", t)) => ("alt+", t),
++			Some(("S-", t)) => ("shift+", t),
++			Some(("D-", t)) => ("super+", t),
++			_ => break,
++		};
++		out.push_str(word);
++		rest = tail;
++	}
++	out.push_str(&rest.to_lowercase());
++	out
++}
++
++/// A word to be read starts lower case (§2), a name of two capitals stays as it is ("Open" → "open", "PDF" → "PDF").
++pub(crate) fn lower_first(s: &str) -> String {
++	let mut it = s.chars();
++	match (it.next(), it.next()) {
++		(Some(a), Some(b)) if a.is_uppercase() && !b.is_uppercase() => a.to_lowercase().chain([b]).chain(it).collect(),
++		_ => s.to_owned(),
++	}
++}
++
++/// The keys of a choice: "[y]  trash    [n]  keep".
++pub(crate) fn keys_line(pairs: &[(&str, &str)]) -> Line<'static> {
++	let mut spans = Vec::with_capacity(pairs.len() * 3);
++	for (i, (key, what)) in pairs.iter().enumerate() {
++		if i > 0 {
++			spans.push(Span::raw("    "));
++		}
++		spans.push(Span::raw(keycap(key)));
++		spans.push(Span::styled(format!(" {what}"), MUTED));
++	}
++	Line::from(spans)
++}
+diff --git a/yazi-fm/src/help/bindings.rs b/yazi-fm/src/help/bindings.rs
+index a234040..95871fe 100644
+--- a/yazi-fm/src/help/bindings.rs
++++ b/yazi-fm/src/help/bindings.rs
+@@ -1,8 +1,10 @@
+-use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Rect}, widgets::Widget};
++use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Rect}, text::{Line, Span}, widgets::Widget};
+ use ratatui_widgets::list::{List, ListItem};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
++use crate::frame;
++
+ pub(super) struct Bindings<'a> {
+ 	core: &'a Core,
+ }
+@@ -18,26 +20,52 @@ impl Widget for Bindings<'_> {
+ 			return;
+ 		}
+ 
+-		// Chord
+-		let col1: Vec<_> =
+-			bindings.iter().map(|c| ListItem::new(c.on()).style(THEME.help.chord.get())).collect();
++		// Chord: each key its tile (§7), at the rows' icon column
++		let col1: Vec<_> = bindings
++			.iter()
++			.map(|c| {
++				let tiles = |c: &yazi_config::keymap::ChordArc| -> String {
++					c.on.iter().map(|k| frame::keycap(&frame::key_word(&k.to_string()))).collect()
++				};
++				let mut keys = tiles(c);
++				if let Some(more) = self.core.help.also.get(c.desc_or_run().as_ref()) {
++					for m in more {
++						keys.push(' ');
++						keys.push_str(&tiles(m));
++					}
++				}
++				ListItem::new(Line::from(Span::raw(keys))).style(THEME.help.chord.get())
++			})
++			.collect();
+ 
+ 		// Action
+ 		let col2: Vec<_> = bindings
+ 			.iter()
+-			.map(|c| ListItem::new(c.desc_or_run()).style(THEME.help.action.get()))
++			.map(|c| ListItem::new(frame::lower_first(&c.desc_or_run())).style(THEME.help.action.get()))
+ 			.collect();
+ 
+-		let chunks =
+-			layout::Layout::horizontal([Constraint::Length(20), Constraint::Fill(1)]).split(area);
++		// (as far in from the cursor's right end as from its left: a column of the content each side)
++		let chunks = layout::Layout::horizontal([Constraint::Length(32), Constraint::Fill(1)]).split(Rect {
++			x: area.x + 1,
++			width: area.width.saturating_sub(2),
++			..area
++		});
+ 
++		// The cursor's fill: a cell past the content each side (§4), its edge in the seal's red
+ 		let cursor = self.core.help.rel_cursor() as u16;
+-		buf.set_style(
+-			Rect { x: area.x, y: area.y + cursor, width: area.width, height: 1 },
+-			THEME.help.hovered.get(),
+-		);
++		let band = Rect {
++			x:      area.x.saturating_sub(1),
++			y:      area.y + cursor,
++			width:  area.width.saturating_add(2),
++			height: 1,
++		};
++		buf.set_style(band, THEME.help.hovered.get());
+ 
+ 		List::new(col1).render(chunks[0], buf);
+ 		List::new(col2).render(chunks[1], buf);
++		buf.set_style(band, THEME.help.hovered.get());
++		if let Some(cell) = buf.cell_mut((band.x, band.y)) {
++			cell.set_symbol("▎").set_fg(frame::EDGE.fg.unwrap_or_default());
++		}
+ 	}
+ }
+diff --git a/yazi-fm/src/help/help.rs b/yazi-fm/src/help/help.rs
+index 221481a..433986d 100644
+--- a/yazi-fm/src/help/help.rs
++++ b/yazi-fm/src/help/help.rs
+@@ -1,10 +1,9 @@
+-use ratatui_core::{buffer::Buffer, layout::{Alignment, Constraint, Layout, Rect}, symbols::merge::MergeStrategy, widgets::Widget};
+-use ratatui_widgets::{block::{Block, Padding}, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::{Line, Span}, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+-use yazi_shim::ratatui::Padable;
+ 
+ use super::Bindings;
++use crate::frame;
+ 
+ pub(crate) struct Help<'a> {
+ 	core: &'a Core,
+@@ -18,33 +17,38 @@ impl Widget for Help<'_> {
+ 	fn render(self, _: Rect, buf: &mut Buffer) {
+ 		let help = &self.core.help;
+ 		let area = self.core.mgr.area(help.position);
+-		let padding = help.padding();
+-
+-		yazi_widgets::clear::Clear::default().render(area, buf);
+-
+-		Block::bordered()
+-			.title(format!("{}.help", help.layer))
+-			.title_alignment(Alignment::Center)
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.help.border.get())
+-			.render(area, buf);
+-
+-		let chunks =
+-			Layout::vertical([Constraint::Length(1), Constraint::Length(1), Constraint::Fill(1)])
+-				.split(area.padding(Padding { left: 0, right: 0, ..padding }));
+-
+-		// Input
+-		help.input.render(chunks[0].padding(Padding { top: 0, bottom: 0, ..padding }), buf);
+-
+-		// Divider
+-		Block::bordered()
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.help.border.get())
+-			.merge_borders(MergeStrategy::Fuzzy)
+-			.render(chunks[1], buf);
+-
+-		// Bindings
+-		Bindings::new(self.core)
+-			.render(chunks[2].padding(Padding { top: 0, bottom: 0, ..padding }), buf);
++		let n = help.bindings.len();
++		let layer = match help.layer.to_string().as_str() {
++			"mgr" => "files".to_owned(),
++			other => other.to_owned(),
++		};
++
++		let inner = frame::frame(
++			area,
++			buf,
++			THEME.help.border.get().into(),
++			frame::I_KEYCAP,
++			Line::from(vec![Span::raw("keys"), Span::styled(format!("  {layer}"), frame::MUTED)]),
++		);
++
++		// §7's search line: the chevron at the rows' icon column, what is typed — or its ghost, faint — at their
++		// names', the count at the last column
++		let line = frame::row(inner, 0);
++		Line::styled(frame::I_CHEVRON, frame::ICON).render(Rect { x: line.x + 1, width: 3, ..line }, buf);
++		let field = Rect { x: line.x + 4, width: line.width.saturating_sub(4 + 7), ..line };
++		// (a cell past the cursor, which stands before its first letter)
++		if help.input.value().is_empty() {
++			Line::styled("a key or a word", frame::FAINT).render(Rect { x: field.x + 1, ..field }, buf);
++		}
++		help.input.render(field, buf);
++		Line::styled(n.to_string(), frame::MUTED)
++			.right_aligned()
++			.render(Rect { width: line.width.saturating_sub(1), ..line }, buf);
++
++		// Bindings: under a row of paper
++		Bindings::new(self.core).render(
++			Rect { y: inner.y + 2, height: inner.height.saturating_sub(2), ..inner },
++			buf,
++		);
+ 	}
+ }
+diff --git a/yazi-fm/src/input/input.rs b/yazi-fm/src/input/input.rs
+index 6a0b211..a1cd60b 100644
+--- a/yazi-fm/src/input/input.rs
++++ b/yazi-fm/src/input/input.rs
+@@ -1,12 +1,13 @@
+ use std::path::Path;
+ 
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, text::Line, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::{Line, Span}, widgets::Widget};
+ use yazi_config::{Icon, THEME};
+ use yazi_core::Core;
+ use yazi_fs::{cha::{Cha, ChaKind}, file::File};
+ use yazi_shim::path::CROSS_SEPARATOR;
+ 
++use crate::frame;
++
+ pub(crate) struct Input<'a> {
+ 	core: &'a mut Core,
+ }
+@@ -44,20 +45,31 @@ impl<'a> Input<'a> {
+ impl Widget for Input<'_> {
+ 	fn render(self, _: Rect, buf: &mut Buffer) {
+ 		let outer = self.core.mgr.area(self.core.input.main.position);
+-		yazi_widgets::clear::Clear::default().render(outer, buf);
+ 
+-		let mut block = Block::bordered()
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.input.border.get())
+-			.title(Line::styled(&self.core.input.main.title, THEME.input.title.get()));
++		let heading = match self.core.input.main.name.as_str() {
++			"cd" => frame::I_FOLDER,
++			"shell" => frame::I_TERMINAL,
++			"filter" | "find" | "search" => frame::I_SEARCH,
++			_ => frame::I_PEN,
++		};
++		let title = self.core.input.main.title.clone();
++		let inner = frame::frame(
++			outer,
++			buf,
++			THEME.input.border.get().into(),
++			heading,
++			Line::from(Span::styled(title, THEME.input.title.get())),
++		);
+ 
+-		if let Some(i) = self.icon() {
+-			block = block.title_bottom(Line::raw(format!("{} ", i.text)).style(i.style).right_aligned());
++		// The field a row of §7: the icon of what is typed at column 1, the words at column 4
++		let field = Rect { x: inner.x.saturating_add(4), width: inner.width.saturating_sub(4), height: 1, ..inner };
++		match self.icon() {
++			Some(i) => Line::raw(i.text.clone()).style(i.style),
++			None => Line::styled(frame::I_CHEVRON, frame::ICON),
+ 		}
+-		block.render(outer, buf);
++		.render(Rect { x: inner.x.saturating_add(1), width: 3, height: 1, ..inner }, buf);
+ 
+-		let inner = outer.inner(Margin::new(1, 1));
+-		self.core.input.main.repos(inner);
+-		self.core.input.main.render(inner, buf);
++		self.core.input.main.repos(field);
++		self.core.input.main.render(field, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/main.rs b/yazi-fm/src/main.rs
+index 31afc1b..c30a7bf 100644
+--- a/yazi-fm/src/main.rs
++++ b/yazi-fm/src/main.rs
+@@ -6,7 +6,7 @@ extern crate self as yazi_fm;
+ 
+ yazi_macro::mod_pub!(app cmp confirm help input mgr notify pick spot tasks which);
+ 
+-yazi_macro::mod_flat!(dispatcher executor logs panic renderer root router signals);
++yazi_macro::mod_flat!(dispatcher executor frame logs panic renderer root router signals);
+ 
+ #[tokio::main]
+ async fn main() -> anyhow::Result<()> {
+diff --git a/yazi-fm/src/notify/notify.rs b/yazi-fm/src/notify/notify.rs
+index 8e25037..9404b22 100644
+--- a/yazi-fm/src/notify/notify.rs
++++ b/yazi-fm/src/notify/notify.rs
+@@ -1,7 +1,9 @@
+ use ratatui_core::{buffer::Buffer, layout::{self, Constraint, Offset, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType, paragraph::{Paragraph, Wrap}};
++use ratatui_widgets::paragraph::{Paragraph, Wrap};
+ use yazi_core::{Core, notify::Message};
+ 
++use crate::frame;
++
+ pub(crate) struct Notify<'a> {
+ 	core: &'a Core,
+ }
+@@ -44,17 +46,15 @@ impl Widget for Notify<'_> {
+ 				tiles[i].offset(Offset { x: (100 - m.percent) as i32 * tiles[i].width as i32 / 100, y: 0 });
+ 			rect.width -= rect.x - tiles[i].x;
+ 
+-			yazi_widgets::clear::Clear::default().render(rect, buf);
+-			Paragraph::new(m.content.as_str())
+-				.wrap(Wrap { trim: false })
+-				.block(
+-					Block::bordered()
+-						.border_type(BorderType::Rounded)
+-						.title(format!("{} {}", m.level.icon(), m.title))
+-						.title_style(m.level.style())
+-						.border_style(m.level.style()),
+-				)
+-				.render(rect, buf);
++			let icon = m.level.icon();
++			let inner = frame::frame(
++				rect,
++				buf,
++				m.level.style().into(),
++				icon.as_str(),
++				ratatui_core::text::Line::raw(frame::lower_first(&m.title)),
++			);
++			Paragraph::new(m.content.as_str()).wrap(Wrap { trim: false }).render(inner, buf);
+ 		}
+ 	}
+ }
+diff --git a/yazi-fm/src/pick/list.rs b/yazi-fm/src/pick/list.rs
+index 6704d2a..836aaa8 100644
+--- a/yazi-fm/src/pick/list.rs
++++ b/yazi-fm/src/pick/list.rs
+@@ -1,9 +1,11 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::{StatefulWidget, Widget}};
++use ratatui_core::{buffer::Buffer, layout::Rect, widgets::{StatefulWidget, Widget}};
+ use ratatui_widgets::{list::ListItem, scrollbar::{Scrollbar, ScrollbarOrientation, ScrollbarState}};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ use yazi_widgets::Scrollable;
+ 
++use crate::frame;
++
+ pub(crate) struct List<'a> {
+ 	core: &'a Core,
+ }
+@@ -16,24 +18,42 @@ impl Widget for List<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let pick = &self.core.pick;
+ 
+-		// Vertical scrollbar
++		// The place in a long list: a hairline at the content's end
+ 		if pick.total() > pick.limit() {
+-			Scrollbar::new(ScrollbarOrientation::VerticalRight).render(
+-				area,
+-				buf,
+-				&mut ScrollbarState::new(pick.total()).position(pick.cursor),
+-			);
++			Scrollbar::new(ScrollbarOrientation::VerticalRight)
++				.begin_symbol(None)
++				.end_symbol(None)
++				.track_symbol(None)
++				.thumb_symbol("▕")
++				.thumb_style(frame::MUTED)
++				.render(area, buf, &mut ScrollbarState::new(pick.total()).position(pick.cursor));
+ 		}
+ 
+-		// List content
+-		let inner = area.inner(Margin::new(1, 0));
+-		let items = pick.window().map(|(i, v)| {
+-			if i == pick.cursor {
+-				ListItem::new(format!(" {v}")).style(THEME.pick.active.get())
+-			} else {
+-				ListItem::new(format!("  {v}")).style(THEME.pick.inactive.get())
++		// Rows at §7's names' column; the cursor's fill a cell past the content each side, its edge in the seal's red
++		let mut band = None;
++		let items = pick
++			.window()
++			.map(|(i, v)| {
++				let v = frame::lower_first(v);
++				if i == pick.cursor {
++					band = Some(Rect {
++						x:      area.x.saturating_sub(1),
++						y:      area.y + (i - pick.offset) as u16,
++						width:  area.width + 2,
++						height: 1,
++					});
++					ListItem::new(format!(" {v}")).style(THEME.pick.active.get())
++				} else {
++					ListItem::new(format!(" {v}")).style(THEME.pick.inactive.get())
++				}
++			})
++			.collect::<Vec<_>>();
++		Widget::render(ratatui_widgets::list::List::new(items), area, buf);
++		if let Some(band) = band {
++			buf.set_style(band, THEME.pick.active.get());
++			if let Some(cell) = buf.cell_mut((band.x, band.y)) {
++				cell.set_symbol("▎").set_fg(frame::EDGE.fg.unwrap_or_default());
+ 			}
+-		});
+-		Widget::render(ratatui_widgets::list::List::new(items), inner, buf);
++		}
+ 	}
+ }
+diff --git a/yazi-fm/src/pick/pick.rs b/yazi-fm/src/pick/pick.rs
+index 730a5ee..a921eef 100644
+--- a/yazi-fm/src/pick/pick.rs
++++ b/yazi-fm/src/pick/pick.rs
+@@ -1,9 +1,8 @@
+-use ratatui_core::{buffer::Buffer, layout::{Margin, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::Line, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+ 
+-use crate::pick::List;
++use crate::{frame, pick::List};
+ 
+ pub(crate) struct Pick<'a> {
+ 	core: &'a Core,
+@@ -18,14 +17,14 @@ impl Widget for Pick<'_> {
+ 		let pick = &self.core.pick;
+ 		let area = self.core.mgr.area(pick.position);
+ 
+-		yazi_widgets::clear::Clear::default().render(area, buf);
++		let inner = frame::frame(
++			area,
++			buf,
++			THEME.pick.border.get().into(),
++			frame::I_WINDOW,
++			Line::raw(pick.title().to_owned()),
++		);
+ 
+-		Block::bordered()
+-			.title(pick.title())
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.pick.border.get())
+-			.render(area, buf);
+-
+-		List::new(self.core).render(area.inner(Margin::new(0, 1)), buf);
++		List::new(self.core).render(inner, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/tasks/tasks.rs b/yazi-fm/src/tasks/tasks.rs
+index 3b60adc..f1878b4 100644
+--- a/yazi-fm/src/tasks/tasks.rs
++++ b/yazi-fm/src/tasks/tasks.rs
+@@ -1,9 +1,8 @@
+-use ratatui_core::{buffer::Buffer, layout::{self, Alignment, Constraint, Rect}, text::Line, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::Rect, text::Line, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::{Core, tasks::TASKS_PERCENT};
+ 
+-use crate::tasks::List;
++use crate::{frame, tasks::List};
+ 
+ pub(crate) struct Tasks<'a> {
+ 	core: &'a mut Core,
+@@ -12,36 +11,33 @@ pub(crate) struct Tasks<'a> {
+ impl<'a> Tasks<'a> {
+ 	pub(crate) fn new(core: &'a mut Core) -> Self { Self { core } }
+ 
+-	pub(super) fn area(area: Rect) -> Rect {
+-		let chunk = layout::Layout::vertical([
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-			Constraint::Percentage(TASKS_PERCENT),
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-		])
+-		.split(area)[1];
+-
+-		layout::Layout::horizontal([
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-			Constraint::Percentage(TASKS_PERCENT),
+-			Constraint::Percentage((100 - TASKS_PERCENT) / 2),
+-		])
+-		.split(chunk)[1]
++	/// (fedokawaii, docs/design-system.md §7: a pop-up fits what it says) the ring, the heading and its paper, then a task's three
++	/// rows, the last one's gap left out; "none" one row, in a panel of its own width.
++	pub(super) fn area(area: Rect, tasks: u16) -> Rect {
++		let most = (area.width.saturating_mul(TASKS_PERCENT) / 100, area.height.saturating_mul(TASKS_PERCENT) / 100);
++		let (width, rows) = if tasks == 0 { (40.min(most.0), 1) } else { (most.0, tasks.saturating_mul(3) - 1) };
++		let height = rows.saturating_add(4).min(most.1);
++		Rect {
++			x: area.x + (area.width - width) / 2,
++			y: area.y + (area.height - height) / 2,
++			width,
++			height,
++		}
+ 	}
+ }
+ 
+ impl Widget for Tasks<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+-		let area = Self::area(area);
+-
+-		yazi_widgets::clear::Clear::default().render(area, buf);
++		let area = Self::area(area, self.core.tasks.snaps.len() as u16);
+ 
+-		let block = Block::bordered()
+-			.title(Line::styled("Tasks", THEME.tasks.title.get()))
+-			.title_alignment(Alignment::Center)
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.tasks.border.get());
+-		(&block).render(area, buf);
++		let inner = frame::frame(
++			area,
++			buf,
++			THEME.tasks.border.get().into(),
++			frame::I_HOURGLASS,
++			Line::styled("tasks", THEME.tasks.title.get()),
++		);
+ 
+-		List::new(self.core).render(block.inner(area), buf);
++		List::new(self.core).render(inner, buf);
+ 	}
+ }
+diff --git a/yazi-fm/src/which/cand.rs b/yazi-fm/src/which/cand.rs
+index f6db60c..bc06a82 100644
+--- a/yazi-fm/src/which/cand.rs
++++ b/yazi-fm/src/which/cand.rs
+@@ -1,6 +1,8 @@
+ use ratatui_core::{buffer::Buffer, layout::Rect, text::{Line, Span}, widgets::Widget};
+ use yazi_config::{THEME, keymap::Chord};
+ 
++use crate::frame;
++
+ pub(super) struct Cand<'a> {
+ 	cand:  &'a Chord,
+ 	times: usize,
+@@ -17,23 +19,17 @@ impl<'a> Cand<'a> {
+ impl Widget for Cand<'_> {
+ 	fn render(self, area: Rect, buf: &mut Buffer) {
+ 		let keys = self.keys();
+-		let mut spans = Vec::with_capacity(10);
+-		let separator = &**THEME.which.separator.load();
+-
+-		// Padding
+-		spans.push(Span::raw(" ".repeat(10usize.saturating_sub(keys.join("").len()))));
++		let mut spans = Vec::with_capacity(4);
+ 
+-		// First key
+-		spans.push(Span::styled(keys[0].clone(), THEME.which.cand.get()));
++		// Each key its tile (§7), what it does muted two columns on
++		for (i, k) in keys.iter().enumerate() {
++			let style = if i == 0 { THEME.which.cand.get() } else { THEME.which.rest.get() };
++			spans.push(Span::styled(frame::keycap(&frame::key_word(k)), style));
++		}
+ 
+-		// Rest keys
+-		spans.extend(keys.iter().skip(1).map(|k| Span::styled(k, THEME.which.rest.get())));
+-
+-		// Separator
++		let separator = &**THEME.which.separator.load();
+ 		spans.push(Span::styled(separator, THEME.which.separator_style.get()));
+-
+-		// Description
+-		spans.push(Span::styled(self.cand.desc_or_run(), THEME.which.desc.get()));
++		spans.push(Span::styled(frame::lower_first(&self.cand.desc_or_run()), THEME.which.desc.get()));
+ 
+ 		Line::from(spans).render(area, buf);
+ 	}
+diff --git a/yazi-fm/src/which/which.rs b/yazi-fm/src/which/which.rs
+index 456d2d8..61b6881 100644
+--- a/yazi-fm/src/which/which.rs
++++ b/yazi-fm/src/which/which.rs
+@@ -1,12 +1,11 @@
+-use ratatui_core::{buffer::Buffer, layout::{Constraint, Layout, Rect}, widgets::Widget};
+-use ratatui_widgets::{block::Block, borders::BorderType};
++use ratatui_core::{buffer::Buffer, layout::{Constraint, Layout, Rect}, style::Style, widgets::Widget};
+ use yazi_config::THEME;
+ use yazi_core::Core;
+-use yazi_widgets::clear::Clear;
+ 
+ use super::Cand;
++use crate::frame;
+ 
+-const PADDING_X: u16 = 1;
++const PADDING_X: u16 = 0;
+ const PADDING_Y: u16 = 1;
+ 
+ pub(crate) struct Which<'a> {
+@@ -28,7 +27,7 @@ impl Widget for Which<'_> {
+ 		let height = area.height.min(which.cands.len().div_ceil(cols) as u16 + PADDING_Y * 2);
+ 		let area = Rect {
+ 			x: PADDING_X.min(area.width),
+-			y: area.height.saturating_sub(height + PADDING_Y * 2),
++			y: area.height.saturating_sub(height + PADDING_Y), // (its last row the panes' last: no stub of a rail under it)
+ 			width: area.width.saturating_sub(PADDING_X * 2),
+ 			height,
+ 		};
+@@ -38,14 +37,8 @@ impl Widget for Which<'_> {
+ 			return;
+ 		}
+ 
+-		Clear::default().render(area, buf);
+-		let block = Block::bordered()
+-			.style(THEME.which.mask.get())
+-			.border_type(BorderType::Rounded)
+-			.border_style(THEME.which.border.get());
+-		block.as_ref().render(area, buf);
+-
+-		let inner = block.inner(area);
++		let border: Style = THEME.which.border.get().into();
++		let inner = frame::ring(area, buf, border);
+ 		let chunks = {
+ 			use Constraint::*;
+ 			Layout::horizontal(match cols {
+diff --git a/yazi-plugin/src/utils/spot.rs b/yazi-plugin/src/utils/spot.rs
+index 085ea50..eb16277 100644
+--- a/yazi-plugin/src/utils/spot.rs
++++ b/yazi-plugin/src/utils/spot.rs
+@@ -14,20 +14,17 @@ impl Utils {
+ 			let mut table = yazi_binding::elements::Table::try_from(&table)?;
+ 
+ 			let area = table.area();
+-			table.set_area(area.padding(ratatui_widgets::block::Padding::uniform(1)));
++			table.set_area(area.padding(ratatui_widgets::block::Padding::new(3, 3, 1, 1))); // (§4's 16 px clear of the ring)
+ 
+ 			lock.data = vec![
+ 				Renderable::Clear(Default::default()).with_area(area),
+ 				Renderable::Border(yazi_binding::elements::Border {
+ 					area,
+ 					edge: Edge(ratatui_widgets::borders::Borders::ALL),
+-					r#type: ratatui_widgets::borders::BorderType::Rounded,
++					r#type: ratatui_widgets::borders::BorderType::Plain,
+ 					style: THEME.spot.border.get().into(),
+ 					merge: Default::default(),
+-					titles: vec![(
+-						ratatui_widgets::block::TitlePosition::Top,
+-						ratatui_core::text::Line::raw("Spot").centered().style(THEME.spot.title.get()),
+-					)],
++					titles: vec![],
+ 				}),
+ 				Renderable::Table(Box::new(table)),
+ 			];
+diff --git a/yazi-tui/src/raterm.rs b/yazi-tui/src/raterm.rs
+index 7f69036..3c1cafa 100644
+--- a/yazi-tui/src/raterm.rs
++++ b/yazi-tui/src/raterm.rs
+@@ -70,7 +70,19 @@ impl Raterm {
+ 		})
+ 	}
+ 
+-	pub fn stop() {
++	pub fn stop() { Self::stop_(true) }
++
++	/// The last thing yazi does (fedokawaii): where the window ends with it — a terminal started for it by foot, the file
++	/// dialog — its page stays up, the cursor hidden, so the window closes with its words and never as an empty page.
++	/// Typed in a shell, the shell's screen comes back as ever.
++	pub fn goodbye() {
++		let ends = std::env::var_os("KAWA_PICK").is_some()
++			|| std::fs::read_to_string(format!("/proc/{}/comm", std::os::unix::process::parent_id()))
++				.is_ok_and(|c| c.trim_end() == "foot");
++		Self::stop_(!ends)
++	}
++
++	fn stop_(leave: bool) {
+ 		let state = STATE.get();
+ 		if !state.started {
+ 			return EMULATOR.stop();
+@@ -78,10 +90,12 @@ impl Raterm {
+ 
+ 		_ = writef!(
+ 			TTY.writer(),
+-			"{}{PopKeyboardFlags}{DisableDrop}{DisableDrag}{}{}{DisableColorSchemeUpdates}{DisableFocusChange}{DisableClipboard}{DisableBracketedPaste}{ShowCursor}{LeaveAlternateScreen}",
++			"{}{PopKeyboardFlags}{DisableDrop}{DisableDrag}{}{}{DisableColorSchemeUpdates}{DisableFocusChange}{DisableClipboard}{DisableBracketedPaste}{}{}",
+ 			If(state.mouse, DisableMouseCapture),
+ 			RestoreCursorStyle { blink: EMULATOR.cursor_blink.get(), shape: EMULATOR.cursor_shape.get() },
+ 			If(state.title, SetTitle("")),
++			If(leave, ShowCursor),
++			If(leave, LeaveAlternateScreen),
+ 		);
+ 
+ 		STATE.set(RatermState::default());
+diff --git a/yazi-version/src/lib.rs b/yazi-version/src/lib.rs
+index 3473a31..c9444dd 100644
+--- a/yazi-version/src/lib.rs
++++ b/yazi-version/src/lib.rs
+@@ -17,6 +17,7 @@ pub fn version_full() -> String {
+ 	let mut s = String::new();
+ 
+ 	writeln!(s, "    Version: {}", version_long()).ok();
++	writeln!(s, "    Patch  : fedokawaii").ok();
+ 	writeln!(s, "    Debug  : {}", cfg!(debug_assertions)).ok();
+ 	#[rustfmt::skip]
+ 	writeln!(s, "    Triple : {} ({OS}-{ARCH})", env!("VERGEN_RUSTC_HOST_TRIPLE")).ok();

@@ -2,7 +2,7 @@
 # tests/engine/test_configs.sh — the two system files that are settings, not scripts:
 # prowlarr.container (the rootless Prowlarr quadlet) and tuned.conf (the performance profile).
 # Each is read as its program reads it, and checked against what setup.sh, verify.sh and
-# kawa-torrra expect of it: the same names, the same port, the same key.
+# kawa-torrents expect of it: the same names, the same port, the same key.
 . "$(dirname "$0")/lib.sh"
 sandbox
 Q=$REPO/system/prowlarr.container T=$REPO/system/tuned.conf
@@ -15,14 +15,14 @@ val() { units "$Q" | sed -n "s/^$1=//p"; }
 case_ "prowlarr.container: four sections, no [Install] (it runs only when wanted)"
 eq "$(grep -o '^\[[A-Za-z]*\]' "$Q" | tr '\n' ' ')" "[Unit] [Container] [Quadlet] [Service] "
 case_ "every key is one Podman 5's quadlet knows, in its section"
-known=" Image ContainerName UserNS User Group Tmpfs NoNewPrivileges Timezone PublishPort Volume Secret Environment "
+known=" Image ContainerName UserNS User Group Tmpfs NoNewPrivileges Timezone PublishPort Network DNS Volume Secret Environment "
 known+="HealthCmd HealthInterval HealthRetries HealthTimeout HealthOnFailure HealthStartupCmd HealthStartupInterval HealthStartupRetries Notify "
 while IFS= read -r l; do
   k=${l%%=*}
   case $k in
     Container.*) [[ $known == *" ${k#Container.}"[[:space:]]* ]] && _ok || _no "not a [Container] key: $k" ;;
     Quadlet.DefaultDependencies) _ok ;;
-    Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec|Service.TimeoutStopSec) _ok ;;  # [Service] goes to systemd as is
+    Unit.Description|Service.Restart|Service.RestartSec|Service.TimeoutStartSec|Service.TimeoutStopSec|Service.SuccessExitStatus) _ok ;;  # [Service] goes to systemd as is
     *) _no "unexpected key: $k" ;;
   esac
 done < <(units "$Q")
@@ -36,7 +36,7 @@ eq "$(sed -n 's/^Image=//p' "$Q")" "lscr.io/linuxserver/prowlarr:latest"
 grep -q "prowlarr_image() { sed -n 's/^Image=//p' \"\$REPO_DIR/system/prowlarr.container\"; }" "$REPO/setup.sh" && _ok || _no "setup.sh no longer reads the image from here"
 case_ "Prowlarr answers on this computer only (127.0.0.1), on the port everything else uses"
 eq "$(val Container.PublishPort)" "127.0.0.1:9696:9696"
-grep -q '127.0.0.1:9696' "$REPO/system/kawa-torrra" && _ok || _no "kawa-torrra asks another port"
+grep -q '127.0.0.1:9696' "$REPO/configs/home/.local/lib/fedokawaii/kawa-torrents/prowlarr.py" && _ok || _no "kawa-torrents asks another port"
 grep -q 'http://127.0.0.1:9696/ping' "$REPO/verify.sh" && _ok || _no "verify asks another port"
 for k in HealthCmd HealthStartupCmd; do has "$(val Container.$k)" "http://127.0.0.1:9696/ping"; done
 case_ "the API key: the podman secret setup makes, handed in as Prowlarr's own variable — never a file here"
@@ -55,6 +55,8 @@ case_ "a web page that asks for no login (it answers on 127.0.0.1 only: External
 has "$(val Container.Environment)" "PROWLARR__AUTH__METHOD=External"; has "$(val Container.Environment)" "PROWLARR__AUTH__REQUIRED=DisabledForLocalAddresses"
 lacks "$(val Container.Environment)" "Forms"
 eq "$(val Container.PublishPort)" "127.0.0.1:9696:9696" "this computer only — what makes no login safe"
+eq "$(val Container.DNS)" "169.254.1.1" "one nameserver, this machine's resolver: names over TLS (a second would be asked in plain)"
+eq "$(val Container.Network)" "pasta:--dns-forward,169.254.1.1" "the forwarder's address pinned"
 has "$(val Container.Environment)" "PROWLARR__LOG__ANALYTICSENABLED=False"
 
 case_ "tuned.conf: read as tuned reads it (INI), the parent profile, the desktop's values"

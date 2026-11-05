@@ -1,0 +1,9 @@
+#!/bin/bash
+# rpmdb of the fake Fedora: $FKH/rpmdb-damaged — --verifydb fails until --rebuilddb has run ·
+# $FKH/rpmdb-norebuild — the rebuild fails too
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in
+  *" --verifydb "*) [[ ! -e $FKH/rpmdb-damaged ]] ;;
+  *" --rebuilddb "*) [[ -e $FKH/rpmdb-norebuild ]] && exit 1; rm -f "$FKH/rpmdb-damaged"; exit 0 ;;
+esac

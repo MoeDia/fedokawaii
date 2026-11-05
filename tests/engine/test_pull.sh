@@ -98,8 +98,6 @@ case_ "GitHub not answering: said, nothing runs as root"
 fresh; export FEDOKAWAII_ORIGIN=https://example.invalid/fedokawaii.git
 out=$(timeout 60 fedokawaii pull 2>&1 </dev/null); eq "$?" 1; has "$out" "GitHub does not answer"; eq "$(front_calls)" ""
 
-case_ "pull is a job: in Super+U's popup it goes to a window of its own"
-fresh; stub setsid; FEDOKAWAII_POPUP=yes fedokawaii --run pull </dev/null; called "^setsid -f .*--job pull"
 case_ "an update or repair running (root's lock): said at once, git untouched"
 fresh; ( exec 9>"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done

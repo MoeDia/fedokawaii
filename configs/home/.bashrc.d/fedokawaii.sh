@@ -154,8 +154,8 @@ __kawa_head() {
   local _ mood=''
   { IFS= read -r _; IFS= read -r _; IFS= read -r mood; } 2>/dev/null <"$HOME/.config/fedokawaii/current/colors.sh"
   if [[ $mood == THEME=light ]]; then
-    __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_KANNON $ICON_HEAD_KANNON_2"
-    ((__kawa_ok)) || __i_head="$ICON_HEAD_KANNON_OPEN $ICON_HEAD_KANNON_OPEN_2"
+    __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_ANGEL $ICON_HEAD_ANGEL_2"
+    ((__kawa_ok)) || __i_head="$ICON_HEAD_ANGEL_OPEN $ICON_HEAD_ANGEL_OPEN_2"
   else
     __c_head=$__c_mark __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
     ((__kawa_ok)) || __i_head="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
@@ -174,7 +174,7 @@ __kawa_w() {
 
 # __kawa_blk PAPER INK TEXT — a block of the line: the stamp edge from the block before (its
 # paper over this one's; the first, the line's own edge over the ground), then TEXT between a
-# space either side on PAPER (foot's colours: 26–29 the papers, 24 the lacquer)
+# space either side on PAPER (foot's colours: 26–29 the papers, 31 the lacquer)
 __kawa_blk() {
   if [[ -z $__kawa_prev ]]; then __kawa_line+=$'\001\e[38;5;'"$1"$';49m\002'"$__i_cap0"
   else __kawa_line+=$'\001\e[38;5;'"$__kawa_prev;48;5;$1"$'m\002'"$__i_cap"; fi
@@ -219,7 +219,7 @@ __kawa_layout() {
     __kawa_line="$__c_head$__i_head$__c_off " __kawa_prev=''
     __kawa_blk 27 30 "$above$place"
     [[ -n $git ]] && __kawa_blk 28 30 "$__i_branch$git"
-    [[ -n $code ]] && __kawa_blk 24 25 "$code"                 # (the lacquer and its cream: 7.9 : 1 and more)
+    [[ -n $code ]] && __kawa_blk 31 32 "$code"                 # (the lacquer and its cream: 7.9 : 1 and more)
     [[ -n $took$jobs ]] && __kawa_blk 29 30 "$took${took:+${jobs:+  }}$jobs"
     __kawa_line+=$'\001\e[38;5;'"$__kawa_prev"$';49m\002'"$__i_cap"$'\001\e[0m\002'" $__c_mark$__i_mark$__c_off "
     return 0
@@ -443,7 +443,7 @@ alias dwl-log='less +G ~/.cache/dwl.log'
 # Asked for with -p, a preset is yours.
 #   layout  boxes                       needs (columns × rows, btop's own minimums)
 #                                       with the card's box · on a machine without one
-#   all     cpu  gpu  mem  net  proc    80 × 35             80 × 24
+#   all     cpu  gpu  mem  proc         80 × 35             80 × 24
 #   0       cpu  mem  net  proc         80 × 24             80 × 24
 #   1       cpu over gpu over proc      66 × 35             —
 #   2       cpu over proc               60 × 24             60 × 24

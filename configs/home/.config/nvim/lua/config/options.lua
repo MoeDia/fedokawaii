@@ -3,6 +3,24 @@
 -- wherever it was made (config/clipboard.lua: why)
 require("config.clipboard").setup()
 
+-- The command line and the messages: nvim's own ui2 (0.12), no plugin in between, and no row given
+-- up for them: a message comes and goes above the status line, the command line opens over it,
+-- and what is there to be read (:ls, :registers, a shell command's output) stays in a pager, q closes.
+-- (a neovim without it keeps its plain command line; tests/content/test_notes.sh holds the installed
+-- one to having it, so an update that drops it is caught, not lived with)
+local messages = { target = "msg", targets = { list_cmd = "pager", shell_out = "pager", shell_err = "pager" } }
+if pcall(function() require("vim._core.ui2").enable({ msg = messages }) end) then vim.o.cmdheight = 0 end
+-- The status line, from the first frame on (config/statusline.lua)
+require("config.statusline").setup()
+
+-- Typing in a Markdown file (config/markdown.lua), set up with the first such file, before snacks'
+-- quickfile starts treesitter for the first frame
+vim.api.nvim_create_autocmd({ "BufReadPre", "BufNewFile" }, {
+  pattern = { "*.md", "*.markdown" },
+  once = true,
+  callback = function() require("config.markdown").setup() end,
+})
+
 -- The window's title names the program in front, for Super+/ (kawa-help shows its keys first):
 -- "nvim", or what runs in the terminal buffer in front (lazygit from Space g g). nvim puts the
 -- title it found back as it ends (foot's title stack), so yazi or lazygit that started it is

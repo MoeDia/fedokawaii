@@ -1,0 +1,39 @@
+# /etc/systemd/system/kawa-asobi.service — ASOBI 遊び, the play world: a session of user asobi on
+# VT 8, started on demand (Super+G: kawa-asobi enter), the desktop running on behind it. PAM makes
+# it a real seat session, so the card, the keyboard, the sound and the controller follow the VT in
+# front (logind, uaccess). No authentication happens: systemd opens the session itself, for a user
+# whose password is locked. Everything of the world itself runs in that user's own manager, behind
+# one set of walls (user@ASOBI_UID.service.d/50-kawa-asobi.conf, written from system/asobi/walls.conf).
+[Unit]
+Description=ASOBI: the play world
+# (Conflicts= alone would stop the one and start the other at once: an order, whichever way, has the stop go
+# first. Only here: lib/asobi.sh leaves it out of Bottles' copy, both ways would be a cycle for a stop of both.
+# No order with the world's user@: kawa-asobi-root poststop ends that manager and waits, and an After= would have
+# it wait in turn for this unit, 10 s lost at each close)
+Conflicts=getty@tty8.service kawa-asobi-bottles.service
+After=getty@tty8.service systemd-user-sessions.service kawa-asobi-bottles.service
+StartLimitIntervalSec=0
+
+[Service]
+Type=simple
+User=asobi
+WorkingDirectory=/home/asobi
+PAMName=kawa-asobi
+# (the VT for PAM and logind alone: nothing here holds the terminal, gamescope's session takes it through
+# logind, and systemd's TTY resets would hang up the leader at every command of the unit)
+TTYPath=/dev/tty8
+StandardInput=null
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=kawa-asobi
+UtmpIdentifier=tty8
+UtmpMode=user
+Environment=KAWA_ASOBI_FACE=steam
+ExecStartPre=+/usr/local/sbin/kawa-asobi-root prestart
+ExecStart=/usr/local/bin/kawa-asobi-session
+ExecStop=+/usr/local/sbin/kawa-asobi-root close
+ExecStopPost=+/usr/local/sbin/kawa-asobi-root poststop
+TimeoutStopSec=45
+# (Fedora's default for a stop too slow is abort: a core dump of each helper, written to disk for nothing)
+TimeoutStopFailureMode=terminate
+Restart=no

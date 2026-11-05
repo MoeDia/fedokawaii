@@ -21,12 +21,12 @@ PKG_BASE=(
                         #   the menus answer a hover and a click from their first frame)
   diffutils man-db      # diff/cmp: the copy against the toolkit, the checks · man: the manuals
                         #   the change menu opens (both usually there; listed, never assumed)
-  tar grubby            # tar: the release archives, GE-Proton, the C helpers' builds · grubby:
+  tar grubby            # tar: the release archives, the C helpers' builds · grubby:
                         #   kernel arguments (amdgpu, the console palette). Neither is in a
                         #   Minimal Install's @core: tar is @standard's, and the installer
                         #   adds grubby only for a UEFI boot — a BIOS install has none
-  NetworkManager sudo   # in @core already: listed so they are marked as yours, and dnf's
-                        # clean-up (autoremove) can never take the network or sudo
+  NetworkManager sudo firewalld   # in @core already: listed so they are marked as yours, and dnf's
+                        # clean-up (autoremove) can never take the network, sudo or the firewall
   NetworkManager-tui    # nmtui
   bash-completion       # tab completion for every CLI below
   neovim                # the only editor
@@ -53,11 +53,11 @@ PKG_MEDIA=(
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
   unrar                 # RAR archives and .cbr comics (nonfree): Fedora's 7-Zip reads no RAR (kawa-file, kawa-books)
 )
-# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64- and 32-bit. RPM Fusion's
+# Vulkan: Fedora's own driver (RADV on AMD, ANV on Intel), 64-bit (the play world's games bring their
+# own, 32-bit too, in their Flatpak runtime). RPM Fusion's
 # freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
-# and Brave decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
-# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2): installing Steam's 32-bit one
-# took the 64-bit one out again
+# and Helium decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
+# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2)
 PKG_GPU_COMMON=(mesa-dri-drivers mesa-vulkan-drivers vulkan-loader linux-firmware)
 PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
              rocm-smi)   # the ROCm SMI library: btop reads the card through it (load, memory, heat, watts)
@@ -79,17 +79,19 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
   cairo-devel pango-devel gdk-pixbuf2-devel   # …and mako (the notices, with src/mako/mako.patch):
                                               #   drawn with cairo and Pango, its icons through
                                               #   gdk-pixbuf; Wayland and sd-bus as above
+  rust cargo            # …and yazi (the files, with src/yazi/yazi.patch): setup.sh's build_yazi. Fedora's, updated with
+                        #   the system; your own Rust to learn with is rustup's, apart (below)
 )
-# dwl's config.mk ships XWayland commented out; Steam and other X11 apps need it on
+# dwl's config.mk ships XWayland commented out; X11 apps need it on
 # (and pixman: dwl.patch damages a window capture's output itself — capturesession; GLES 2:
 # its dissolve, a shader of its own — the headers come with wlroots-devel's own requirement)
 DWL_MAKE=(XWAYLAND=-DXWAYLAND "XLIBS=xcb xcb-icccm pixman-1 glesv2")
 PKG_SESSION=(greetd greetd-selinux xorg-x11-server-Xwayland    # the login manager, X11 apps
   cage python3-gobject gtk3                                     # the login screen: kawa-greet (GTK) in cage, a kiosk compositor
-  plymouth-plugin-script)                                       # the boot splash (the "sumi" Plymouth theme is a script)
+  plymouth-plugin-script plymouth-plugin-label)                 # the boot splash (the "sumi" Plymouth theme is a script); the label: Plymouth 26's script plugin crashes without text rendering (4 Nov, F45: ply_console_viewer_hide on NULL)
 PKG_DESKTOP=(
-  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Brave and Steam; ALSA for
-                                                          #   programs that open it directly: games)
+  pipewire wireplumber pipewire-pulseaudio pipewire-alsa  # audio (Pulse API for Helium; ALSA for programs
+                                                          #   that open it directly)
   pipewire-utils                                          # pw-dump: the audio popup lists outputs/inputs from it
   wiremix playerctl cava                                  # per-app mixer (a terminal window), media keys, the bar's music meter
                                                           #   (sound processing, an equaliser: PipeWire's own modules — no package)
@@ -123,7 +125,8 @@ PKG_LOOK=(
   terminus-fonts-console          # the text console's font (Terminus bold, theme.sh)
 )
 PKG_APPS=(
-  brave-origin claude-code                          # browser, AI (vendor repos)
+  stockfish             # chess: the opponent and the reviewer of kawa-chess (Super+U → learning), its net inside the binary
+  helium-bin claude-code                            # browser (its COPR: helium.computer), AI (vendor repo)
   gh                                                # GitHub from the terminal: sign in once (gh auth login),
                                                     #   then clone, pull requests, issues, releases
   libreoffice-writer libreoffice-calc libreoffice-impress
@@ -136,6 +139,8 @@ PKG_APPS=(
   zathura zathura-pdf-mupdf zathura-cb              # PDF / EPUB / comic book reader (the books window's
                                                     #   covers and page counts: 7z, below)
   qpdf poppler-utils xournalpp                      # PDF tools, annotation and signing
+  nss                                               # what FireAlpaca's own bundle takes from the system (its web view;
+                                                    #   the program itself: lib/upstream.sh, Sketch)
   ghostscript                                       #   PDF compression (`gs`)
   tesseract tesseract-langpack-eng tesseract-langpack-ara   # text from scans and pictures (OCR)
   imv ImageMagick ImageMagick-heic qalculate        # images, conversions (phone HEIC photos too), `qalc`
@@ -160,7 +165,6 @@ PKG_APPS=(
                                                     #   (lazygit, the git TUI: lib/upstream.sh)
   ShellCheck                                        # explains what is wrong in a shell script: fedokawaii apply
                                                     #   reads the ones you changed (and neovim's bash server, §17.15)
-  openrgb                                           # RGB lighting (fan speeds: the motherboard's firmware)
   snapper libdnf5-plugin-actions                    # snapshots; actions = pre/post snapshot around every dnf run
   grub-btrfs                                        # the snapshots in the boot menu (its COPR: no Fedora package)
   restic fuse3                                      # backups to another disk (kawa-backup); fuse3: a backup
@@ -168,8 +172,8 @@ PKG_APPS=(
   uv rustup                                         # Python and Rust to learn with: uv installs a current
                                                     #   CPython and its packages, rustup-init the stable Rust
                                                     #   (+ rust-analyzer, clippy, rustfmt) — both in your home (setup.sh: s_dev)
-  podman                                            # Prowlarr container (torrra: uv tool, on uv's own Python 3.13 —
-                                                    #   libtorrent has wheels only up to 3.13: setup.sh torrra_up)
+  podman                                            # Prowlarr's container
+  rb_libtorrent-python3                             # torrents: the engine of kawa-torrents, on Fedora's python3
 )
 PKG_VIRT=(              # virtual machines: the games VM (Windows with the graphics card passed
                         #   through: libvirt + QEMU/KVM, OVMF's UEFI and Secure Boot, swtpm's TPM 2.0
@@ -178,34 +182,38 @@ PKG_VIRT=(              # virtual machines: the games VM (Windows with the graph
                         #   nothing runs until a VM is started
   libvirt-daemon-kvm virt-install edk2-ovmf passt swtpm swtpm-tools qemu-img
 )
-PKG_GAMING=(steam gamescope mangohud
-            ntsync-autoload    # /dev/ntsync at boot: Proton's faster Windows synchronisation
-            steam-devices)     # the rules that let Steam (and Proton's games) open a controller:
-                               #   Steam brings it today — listed, never assumed
+PKG_ASOBI=(flatpak                # the world's programs, per user, in its own home: Steam, Bottles (lib/asobi.sh)
+           kbd                    # chvt: the screen back on the desktop when the world ends
+           xprop                  # FreeSync held on in gamescope (GAMESCOPE_VRR_ENABLED, kawa-asobi-world)
+           gamescope gamemode     # its compositor, on the card itself; the card at full clocks while it plays
+           ntsync-autoload        # /dev/ntsync at boot: Proton's faster Windows synchronisation
+           steam-devices)         # Valve's own rules for controllers (ValveSoftware/steam-devices, Fedora's
+                                  #   package): Steam in its Flatpak cannot install them, the host must
 
 # ── dropped from the manifest: Update hands them back to dnf as dependencies, so they
 #    are no longer "yours" and dnf autoremove clears them when nothing needs them. Move a
 #    package here when you take it out of the lists above ───────────────────────────────
 RETIRED_PKGS=(unzip mediainfo    # unzip: 7zip opens zips too · mediainfo: ffprobe does its job
+              openrgb               # the lights are kawa-rgb's (src/kawa-rgb); its rule gave the session every I2C bus
               pavucontrol blueman   # the mixer and the pairing window are terminal programs now: wiremix, bluetui
               lazygit               # its COPR is no longer kept: lazygit comes from its release (lib/upstream.sh)
               solaar liquidctl      # nothing here to drive: a mouse on a receiver needs no app; no liquid cooler
               abiword gnumeric sc-im   # office is LibreOffice now: Writer, Calc (and VisiData for CSV)
               papirus-icon-theme       # every app shows its own icon now (hicolor), not an icon pack's
               bsdtar                   # the books window's comics: 7z lists and opens them (one archive tool)
-              gamemode                 # game mode is kawa-game's (tuned owns the CPU and the card's level)
+              steam mangohud           # gaming moved into the play world (its own Flatpak); no overlay
               easyeffects calf      # one sound-processing stack, PipeWire's own: an equaliser if you want
                                     #   one (filter-chain's param_eq) — handbook §15.6
               python3-fonttools     # the faces are the repo's own files now (system/fonts): nothing to build
               fuzzel                # the launcher and every menu are kawa-panel's (its sums worked out as you type)
-              pipx python3.13       # uv installs torrra now, on a Python 3.13 of its own (one Python tool: uv)
-              lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Brave app window
+              pipx python3.13       # (for torrra, gone: kawa-torrents runs on Fedora's python3 and libtorrent)
+              lpf-spotify-client lpf spotify-client)   # Spotify is its web player in a Helium app window
                                                        #   now; lpf's account and folder: setup.sh, lpf_leftovers_out
 
 # ── never present after setup (removed, replaced, or out of scope) ─────────
 FORBIDDEN_PKGS=(
   nano nano-default-editor vim-minimal vim-enhanced vim-default-editor emacs   # editors: neovim only
-  firefox chromium brave-browser                                               # browsers: Brave Origin only
+  firefox chromium brave-browser brave-origin brave-keyring                    # browsers: Helium only
   alacritty kitty xterm konsole gnome-terminal                                 # terminals: foot only
   rofi wofi wmenu bemenu                                                       # launchers: kawa-panel's only
   tuigreet gtkgreet wlogout fastfetch neofetch                                 # replaced: kawa-greet, kawa-panel menus, own fetch
@@ -231,7 +239,6 @@ SVC_SYSTEM_amd=(lactd.service)
 SVC_USER_GLOBAL=(pipewire.socket pipewire-pulse.socket wireplumber.service)   # (Fedora's presets enable them; verify checks)
 
 # ── vendor repositories ────────────────────────────────────────────────────
-BRAVE_REPO_URL="https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo"
 CLAUDE_REPO_BASEURL="https://downloads.claude.ai/claude-code/rpm/stable"
 CLAUDE_KEY_URL="https://downloads.claude.ai/keys/claude-code.asc"
 CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
@@ -241,8 +248,8 @@ CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 RPMFUSION_FREE_FPR="E9A491A3DE247814E7E067EAE06F8ECDD651FF2E"
 RPMFUSION_NONFREE_FPR="79BDB88F9BBF73910FD4095B6A2AF96194843C65"
 # (grub-btrfs: zzahkaboom24's COPR builds 4.14 for Fedora 43 and 44 — kylegospo's stopped at 38)
-COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs)
-copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; esac; }   # what each COPR brings
+COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs imput/helium)
+copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; imput/helium) echo helium-bin ;; esac; }   # what each COPR brings
 
 # waiting PART → what waits for a repository to catch up with this Fedora, one name per line
 # (setup.sh records it; update and repair try again and clear it): "rpmfusion" — RPM Fusion's
@@ -262,7 +269,7 @@ manifest_all() {
   printf '%s\n' "${PKG_BASE[@]}" "${PKG_RELEASE[@]}" "${PKG_MEDIA[@]}" \
     "${PKG_GPU_COMMON[@]}" "${!gpu_pkgs}" "${PKG_BUILD[@]}" "${PKG_SESSION[@]}" \
     "${PKG_DESKTOP[@]}" "${PKG_LOOK[@]}" "${PKG_APPS[@]}" "${PKG_VIRT[@]}"
-  [[ $STEAM == yes ]] && printf '%s\n' "${PKG_GAMING[@]}"
+  printf '%s\n' "${PKG_ASOBI[@]}"
   # libraries a release binary needed that Fedora stopped pulling in by itself (say
   # openssl3-libs, once Fedora 45 moved to OpenSSL 4): installed and recorded by lib/upstream.sh
   cat "${STATE_DIR:-/var/lib/fedokawaii}/upstream-libs" 2>/dev/null || true

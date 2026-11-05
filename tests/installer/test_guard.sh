@@ -28,6 +28,20 @@ tx() {
 guard() { OUT=$(bash "$G" "$1" <"$TMP/replies" 2>"$TMP/err"); RC=$?; ERR=$(cat "$TMP/err"); }
 stopped() { jq -r 'select(.op == "stop") | .args.message' <<<"$OUT" 2>/dev/null; }
 
+case_ "needs_record under setup's IFS (newline and tab, no space): a row for each library our builds load, its package, its role"
+bash -c '
+  set -Eeuo pipefail; IFS=$(printf "\n\t")
+  . "$1/lib/guard.sh"
+  DWL_WLROOTS=0.20 STATE_DIR=$2
+  wlr_home() { echo /kept; }
+  built_files() { [[ $1 == build ]] && echo /x/dwl; return 0; }
+  as_user() { printf "\tlibfoo.so.1 => /usr/lib64/libfoo.so.1 (0x1)\n\tlibkept.so.2 => /kept/lib/libkept.so.2 (0x2)\n"; }
+  rpm() { echo foo-libs; }
+  manifest_all() { :; }
+  write_file() { cat >"$1"; }
+  needs_record' _ "$REPO" "$TMP"; eq "$?" 0
+eq "$(cat "$TMP/needs")" $'wlroots 0.20\nlibfoo.so.1 foo-libs build'
+
 case_ "pre: a manifest package removed — stopped before anything changes, its name and the way on said"
 tx "greetd E OUT 0.10" "bash U IN 5.3" "bash O OUT 5.2" >"$TMP/replies"; guard pre
 eq "$RC" 0; m=$(stopped); has "$m" "nothing was changed"; has "$m" "it removes greetd, which the desktop is built from"

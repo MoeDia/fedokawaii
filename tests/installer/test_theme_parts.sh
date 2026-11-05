@@ -3,7 +3,7 @@
 # kawa-clipkeep and kawa-saver (built like dwl: one that does not build stops the run), and the
 # boot menu and console, the one part that runs contained — when it cannot be made the run goes
 # on and says so, and --check counts it as optional (exit 4) until what it failed on changes
-# (exit 3); once made, the mark goes. Then mpv's scaling on an APU and Steam's overlay with STEAM=no.
+# (exit 3); once made, the mark goes. Then mpv's scaling on an APU, and no game overlay or Steam entry.
 . "$(dirname "$0")/lib.sh"
 H=/home/fkuser
 TK=/usr/local/lib/fedokawaii
@@ -30,6 +30,9 @@ has "$OUT" "the boot menu and console were not themed"
 [[ -s $W/var/lib/fedokawaii/boot.failed ]] && _ok || _no "no boot.failed mark"
 [[ -f $W$H/.config/foot/foot.ini && -x $W$H/.local/bin/kawa-clipkeep ]] && _ok || _no "the rest of the theme was not applied"
 [[ -x $W$H/.local/bin/kawa-saver && -f $W$H/.local/lib/fedokawaii/kawa-lockmod.so ]] && _ok || _no "the screensaver and the lock screen's module were not built"
+eq "$(fk stat -c %U /usr/local/bin/kawa-rgb)" root "the lights' tool is root's (a service of the system's)"
+[[ -f $W/etc/systemd/system/kawa-rgb.service && -f $W/etc/systemd/system/kawa-rgb-sleep.service && -f $W/etc/fedokawaii/rgb.conf ]] && _ok || _no "the lights' units or colours are missing"
+grep -q 'enabled kawa-rgb.service' "$FKH/units" && grep -q 'enabled kawa-rgb-sleep.service' "$FKH/units" && _ok || _no "the lights' units are not enabled"
 eq "$(fk stat -c %U /var/lib/fedokawaii/boot.failed)" root "the boot mark is root's (nothing of yours decides it)"
 
 case_ "--check while nothing it depends on changed: exit 4 — in sync, it listed as not made here"
@@ -140,60 +143,61 @@ case_ "BOOT_MENU_SECONDS=0: Fedora's hidden menu back"
 theme
 has "$(cat "$FKH/grubenv")" "menu_auto_hide=2"
 
-case_ "an APU (512 MB of shared memory) and STEAM=no: mpv's own scaling, no game overlay config"
-back plain; hw_apu; tconf 's/^STEAM=.*/STEAM="no"/'
+case_ "an APU (512 MB of shared memory): mpv's own scaling; no game overlay config, no Steam entry (gaming is the play world's)"
+back plain; hw_apu
 theme; eq "$RC" 0
 lacks "$(grep '^profile=' "$W$H/.config/mpv/mpv.conf")" "high-quality"
 has "$(cat "$W$H/.config/mpv/mpv.conf")" "# scaling: mpv's own defaults"
-[[ ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok || _no "MangoHud config or Steam's entry installed with STEAM=no"
+[[ ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok || _no "MangoHud config or Steam's entry installed"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"'
 
 
-case_ "Spotify and WhatsApp: their web apps in Brave app windows (our icons); the older entry for Spotify's app and lpf's hidden ones replaced or retired"
+case_ "Spotify and WhatsApp: their web apps in Helium app windows (our icons); the older entry for Spotify's app and lpf's hidden ones replaced or retired"
 back plain; a=$W$H/.local/share/applications; mkdir -p "$a"
 printf '[Desktop Entry]\n# Spotify (lpf)\nName=Spotify\nExec=spotify --ozone-platform=wayland %%U\n' >"$a/spotify.desktop"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do printf '[Desktop Entry]\n# with lpf-spotify-client\nName=%s\nNoDisplay=true\n' "$e" >"$a/$e.desktop"; done
 printf '[Desktop Entry]\n# mine\nName=lpf\n' >"$a/lpf-mine.desktop"
 fk_perms; theme; eq "$RC" 0
-eq "$(sed -n 's/^Exec=//p' "$a/spotify.desktop")" "$H/.local/bin/brave-origin --app=https://open.spotify.com"
+eq "$(sed -n 's/^Exec=//p' "$a/spotify.desktop")" "$H/.local/bin/kawa-browser --app=https://open.spotify.com"
 eq "$(sed -n 's/^X-Fedokawaii-Icon=//p' "$a/spotify.desktop")" "music" "our icon (music), the launcher draws it"
 eq "$(grep -c '^Icon=' "$a/spotify.desktop")" 0 "no picture of its own"
 lacks "$(cat "$a/spotify.desktop")" "MimeType" "no spotify: links (nothing here opens them)"
-eq "$(sed -n 's/^Exec=//p' "$a/whatsapp.desktop")" "$H/.local/bin/brave-origin --app=https://web.whatsapp.com" "WhatsApp: WhatsApp Web in a Brave app window"
+eq "$(sed -n 's/^Exec=//p' "$a/whatsapp.desktop")" "$H/.local/bin/kawa-browser --app=https://web.whatsapp.com" "WhatsApp: WhatsApp Web in a Helium app window"
 eq "$(sed -n 's/^X-Fedokawaii-Icon=//p' "$a/whatsapp.desktop")" "speech" "WhatsApp: our icon (speech), the launcher draws it"
 eq "$(grep -c '^Icon=' "$a/whatsapp.desktop")" 0 "WhatsApp: no picture of its own"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do [[ ! -e $a/$e.desktop ]] && _ok || _no "$e.desktop left"; done
 has "$OUT" "lpf-spotify-client.desktop (retired)"; [[ -e $a/lpf-mine.desktop ]] && _ok || _no "an entry of yours taken"
 theme --check; lacks "$OUT" "lpf" "in sync without lpf's entries"
 grep -qx 'NoDisplay=true' "$a/qt6ct.desktop" && _ok || _no "qt6ct.desktop not hidden in the home"
-case_ "Brave: Widevine switched on once (Spotify's web player needs it) while Brave is closed; switched off in Brave later, it stays off"
-back plain; ls="$W$H/.config/BraveSoftware/Brave-Origin/Local State"
-mkdir -p "${ls%/*}"; echo '{"brave":{"origin":{"free_tier_accepted":true}}}' >"$ls"; fk_perms
-theme; eq "$(jq -c .brave "$ls")" '{"origin":{"free_tier_accepted":true},"widevine_opted_in":true}' "on, the rest as it was"
-has "$OUT" "Widevine on"
-jq '.brave.widevine_opted_in = false' "$ls" >"$ls.n" && cat "$ls.n" >"$ls" && rm "$ls.n"
-theme; eq "$(jq .brave.widevine_opted_in "$ls")" false "your choice kept"
-theme --check; lacks "$OUT" "Widevine"
-back plain; rm -rf "$W$H/.config/BraveSoftware"; theme
-eq "$(jq -c . "$W$H/.config/BraveSoftware/Brave-Origin/Local State")" '{"brave":{"widevine_opted_in":true}}' "before Brave's first start"
-
-case_ "Brave Origin's two launcher entries: its own runs the wrapper; the second (com.brave.Origin) hidden as Brave meant it (brave/brave-browser#52193)"
+case_ "the browser's launcher entry runs the wrapper (screen-share sound), every Exec of it; an earlier browser's entries and starter retired"
 back plain
-printf '[Desktop Entry]\nName=Brave Origin\nIcon=brave-origin\nExec=/usr/bin/brave-origin-stable %%U\n\n[Desktop Action new-window]\nName=New Window\nExec=/usr/bin/brave-origin-stable\n' \
-  >"$W/usrshare/applications/brave-origin.desktop"
-printf '[Desktop Entry]\nName=Brave Origin\nExec=/usr/bin/brave-origin-stable %%U\n\n[Desktop Action new-private-window]\nName=New Private Window\nExec=/usr/bin/brave-origin-stable --incognito\nNoDisplay=true\n' \
-  >"$W/usrshare/applications/com.brave.Origin.desktop"
-theme; eq "$RC" 0
+printf '[Desktop Entry]\nName=Helium\nIcon=helium\nExec=helium %%U\n\n[Desktop Action new-window]\nName=New Window\nExec=helium\n\n[Desktop Action new-private-window]\nExec=helium --incognito\n' \
+  >"$W/usrshare/applications/helium.desktop"
 u=$W$H/.local/share/applications
-has "$(cat "$u/brave-origin.desktop")" "Exec=$H/.local/bin/brave-origin %U"
-lacks "$(cat "$u/brave-origin.desktop")" "NoDisplay" "the entry you launch stays listed"
-eq "$(sed -n 2p "$u/com.brave.Origin.desktop")" "NoDisplay=true" "hidden in its [Desktop Entry]"
-eq "$(grep -c '^NoDisplay=' "$u/com.brave.Origin.desktop")" 1 "the misplaced line gone"
-has "$(cat "$u/com.brave.Origin.desktop")" "Exec=$H/.local/bin/brave-origin --incognito"
+mkdir -p "$W$H/.local/bin" "$u"; printf '#!/bin/sh\n# Brave Origin\n' >"$W$H/.local/bin/brave-origin"; printf 'Exec=%s/.local/bin/brave-origin\n' "$H" >"$u/brave-origin.desktop"; fk_perms
+theme; eq "$RC" 0
+has "$(cat "$u/helium.desktop")" "Exec=$H/.local/bin/kawa-browser %U"
+has "$(cat "$u/helium.desktop")" "Exec=$H/.local/bin/kawa-browser --incognito"
+[[ ! -e $W$H/.local/bin/brave-origin && ! -e $u/brave-origin.desktop ]] && _ok || _no "Brave's starter or entry stayed"
 eq "$(grep '^X-Fedokawaii-Icon=' "$u/kawa-prowlarr.desktop")" "X-Fedokawaii-Icon=search" "Prowlarr's page: its icon (search), the launcher draws it"
-theme --check; lacks "$OUT" "com.brave.Origin" "in sync once made"
-rm -f "$u/com.brave.Origin.desktop"
-theme --check; has "$OUT" "com.brave.Origin.desktop" "a missing copy is drift"
+theme --check; lacks "$OUT" "helium.desktop" "in sync once made"
+rm -f "$u/helium.desktop"
+theme --check; has "$OUT" "helium.desktop" "a missing copy is drift"
+
+case_ "the browser's first start answered before it runs: GTK colours, compact, square, its first-start page done, once; your choice afterwards stays"
+back plain; pf=$W$H/.config/net.imput.helium/Default/Preferences; rm -rf "$W$H/.config/net.imput.helium"; theme
+eq "$(jq -c '[.extensions.theme.system_theme,.helium.completed_onboarding,.helium.services.user_consented,.helium.browser.layout,.helium.browser.rounded_frame,.helium.browser.show_avatar_button]' "$pf")" '[1,true,true,1,false,false]'
+eq "$(stat -c %a "$pf")" 600 "private, as Chromium keeps it"
+jq '.helium.browser.layout = 2 | .extensions.theme.system_theme = 0' "$pf" >"$pf.n" && cat "$pf.n" >"$pf" && rm "$pf.n"
+theme; eq "$(jq -c '[.helium.browser.layout,.extensions.theme.system_theme]' "$pf")" '[2,0]' "your choice kept"
+
+case_ "old windows never come back: a start opens one new window; a profile that brought them back (T31a, one evening) moves once; your choice afterwards stays"
+back plain; pf=$W$H/.config/net.imput.helium/Default/Preferences; rm -rf "$W$H/.config/net.imput.helium"; theme
+eq "$(jq -c .session.restore_on_startup "$pf")" 5 "a new profile"
+jq '.session.restore_on_startup = 1' "$pf" >"$pf.n" && cat "$pf.n" >"$pf" && rm "$pf.n"
+theme; eq "$(jq -c .session.restore_on_startup "$pf")" 1 "set in Helium after the mark: yours"
+find "$W" -type f -name 'browser-*' -delete
+theme; eq "$(jq -c .session.restore_on_startup "$pf")" 5 "this evening's profile, its mark older than this list: moved, once"
 
 case_ "the key that shows the hidden boot menu (and its snapshots): verify fails when 12_menu_auto_hide is gone or GRUB_TIMEOUT_STYLE is set"
 fkrun bash "$TK/verify.sh"; has "$OUT" "✔  Shift (Esc/F8) at power-on shows the boot menu"; has "$OUT" "✔  nothing takes that key away"

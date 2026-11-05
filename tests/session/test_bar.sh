@@ -315,8 +315,8 @@ done
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
-print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-weather", "kawa-tag", "kawa-timer", "kawa-quick", "kawa-steam")])' "$REPO/bin/kawa-panel")" \
-  "kawa-calendar:[19] kawa-drives:[13] kawa-weather:[18] kawa-tag:[9] kawa-timer:[] kawa-quick:[12] kawa-steam:None" "the panel pokes each dropdown's button with its module's signal (the timer's: woken; do not disturb's: the mode tile's +12; Steam has no button on the bar now)"
+print(*[f"{c}:{k.poke_sigs("menu " + c)}" for c in ("kawa-calendar", "kawa-drives", "kawa-weather", "kawa-tag", "kawa-timer", "kawa-quick", "kawa-nothing")])' "$REPO/bin/kawa-panel")" \
+  "kawa-calendar:[19] kawa-drives:[13] kawa-weather:[18] kawa-tag:[9] kawa-timer:[] kawa-quick:[12] kawa-nothing:None" "the panel pokes each dropdown's button with its module's signal (the timer's: woken; do not disturb's: the mode tile's +12; a menu with no button on the bar: none)"
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
 sys.modules["gi"] = None
 l = m.SourceFileLoader("kp", sys.argv[1]); k = u.module_from_spec(u.spec_from_loader("kp", l)); l.exec_module(k)
@@ -378,7 +378,7 @@ for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
 sys.exit(bad)
 EOF
 
-case_ "the mood's head: drawn (build-themes FACES, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
+case_ "the mood's head: cut in ink (tools/ink_heads.py, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
 for th in dark light; do
   for f in face face-open; do
     eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "22 20 6" "$th/$f.png: 22 × 20 with alpha"

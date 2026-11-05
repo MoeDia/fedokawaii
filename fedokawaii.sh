@@ -12,7 +12,7 @@
 #      all      setup, with the theme applied automatically near the end
 #      verify   prove the system matches the manifest (read-only)
 #      update   the season's update (snapshot first; packages, the desktop's tools, checks)
-#      upgrade  move to the next Fedora release once it has settled (upgrade --now: now)
+#      upgrade  the update, then the move to the next Fedora without "press again" (upgrade --now: not settled yet either)
 #      repair   find what broke and fix it
 #      drift    list config files that differ from the repo (read-only)
 #      status   show setup progress
@@ -111,7 +111,7 @@ apply_copy() {
   # runs theme itself); the handbook, tools, tests and these notes only travel with the copy
   for f in "${changed[@]}"; do
     case $f in
-      src/mako/*|src/syncplay/*) sys=1 ;;          # (built by setup, not theme: repair puts them in)
+      src/mako/*|src/syncplay/*|src/yazi/*) sys=1 ;;   # (built by setup, not theme: repair puts them in)
       configs/*|bin/*|src/*|art/*|theme.sh*) theme=1 ;;
       docs/*|tools/*|tests/*|.claude/*|*.md*|verify.sh*|check.sh*|fedokawaii.sh*) ;;
       *) sys=1 ;;
@@ -160,7 +160,7 @@ dry_packages() {   # the manifest's packages not installed yet, and the release 
   gpu=$(cat "$STATE_DIR/gpu" 2>/dev/null) || gpu=""
   [[ -n $gpu ]] || { if [[ $GPU != auto ]]; then gpu=$GPU; else gpu=$(hw_gpu); fi; }
   [[ $gpu == @(amd|intel) ]] || { log "GPU: '$gpu' — setup builds for amd or intel only (check says more)"; gpu=amd; }
-  while IFS= read -r p; do [[ -n $p ]] && ! rpm -q "$p" >/dev/null 2>&1 && miss+=("$p"); done < <(STEAM=$STEAM manifest_all "$gpu")
+  while IFS= read -r p; do [[ -n $p ]] && ! rpm -q "$p" >/dev/null 2>&1 && miss+=("$p"); done < <(manifest_all "$gpu")
   if ((${#miss[@]})); then log "would install ${#miss[@]} package(s) (the $gpu build): $(IFS=' '; echo "${miss[*]}")"
   else ok "every package of the manifest is installed"; fi
   [[ -n $user ]] || return 0
@@ -216,8 +216,9 @@ dry_run() {
 # systemd.exec(5) SELinuxContext=: ignored without SELinux; one it cannot set fails the unit,
 # loudly (229/SELINUX_CONTEXT) — never a run in initrc_t again; setup.sh's u_start checks it too)
 UPDATE_UNIT=fedokawaii-update.service
-update_unit() {
-  local d=$STATE_DIR/update log pid rc
+update_unit() {   # update_unit [--upgrade [--now]] — the same unit, the same run (lib/move.sh)
+  local d=$STATE_DIR/update log pid rc a=("$@")
+  ((${#a[@]})) || a=(--update)
   log=$d/run.log
   if ! systemctl is-active --quiet "$UPDATE_UNIT"; then
     systemctl reset-failed "$UPDATE_UNIT" 2>/dev/null || true
@@ -225,7 +226,7 @@ update_unit() {
     systemd-run --quiet --unit="$UPDATE_UNIT" --description="Fedokawaii: the update (Super+U → update)" \
       -p StandardOutput="append:$log" -p StandardError="append:$log" -p SELinuxContext=system_u:system_r:unconfined_service_t:s0 \
       --setenv=FK_TERM="${TERM:-}" --setenv=LANG="${LANG:-C.UTF-8}" \
-      /usr/bin/bash "$REPO_DIR/setup.sh" --update || die "the update could not start on its own (systemd-run)"
+      /usr/bin/bash "$REPO_DIR/setup.sh" "${a[@]}" || die "the update could not start on its own (systemd-run)"
   fi
   pid=$(systemctl show -p MainPID --value "$UPDATE_UNIT" 2>/dev/null) || pid=0
   if [[ $pid =~ ^[1-9][0-9]*$ ]]; then tail -n +1 -f --pid="$pid" "$log"; else cat -- "$log"; fi
@@ -254,8 +255,7 @@ act() {
             bash "$REPO_DIR/theme.sh" --user "$user" --check ;;
     verify) bash "$REPO_DIR/verify.sh" ;;
     update) update_unit ;;
-    upgrade) if [[ ${2:-} == --now ]]; then bash "$REPO_DIR/setup.sh" --upgrade --now
-             else bash "$REPO_DIR/setup.sh" --upgrade; fi ;;
+    upgrade) if [[ ${2:-} == --now ]]; then update_unit --upgrade --now; else update_unit --upgrade; fi ;;
     repair) bash "$REPO_DIR/setup.sh" --repair ;;
     status) bash "$REPO_DIR/setup.sh" --status ;;
     conf)   # conf [FILE] — FILE (an edited copy) checked, and only then made the settings

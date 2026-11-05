@@ -4,10 +4,10 @@
 # --idle: the first key or move ends the screensaver and brings up the lock, the key itself
 # going nowhere; the screensaver switched off in quick settings, the lock at once). Away 30
 # minutes: the screens dark. Nothing of it while a video or a sound plays:
-#   · a video in Brave or mpv (and any program that asks the compositor not to idle, the
+#   · a video in Helium or mpv (and any program that asks the compositor not to idle, the
 #     Wayland idle-inhibit protocol) holds the idle timer itself: swayidle never fires;
 #   · a sleep or idle lock in logind (systemd-inhibit --what=idle) and anything playing over
-#     MPRIS (playerctl: music in Brave, mpv, a player) are checked here — while either holds,
+#     MPRIS (playerctl: music in Helium, mpv, a player) are checked here — while either holds,
 #     it waits, a look every 30 s (a sleep in between: no CPU), and goes on when they end.
 #   kawa-idle away   15 min: the screensaver, then the lock
 #   kawa-idle dark   30 min: the screens dark (kawa-lock --screens off)

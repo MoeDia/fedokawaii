@@ -64,13 +64,13 @@ copy
 (cd "$G" && python3 tools/build-cursors.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
 same
 
-case_ "build-art.py on a copy: the lock's and the boot's pictures, the saver's letters, gtklock's words, byte for byte"
+case_ "build-art.py on a copy: the lock's and the boot's pictures, gtklock's words, byte for byte"
 copy
 (cd "$G" && python3 tools/build-art.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
 same
-d=$(diff -rq "$REPO/system/plymouth" "$G/system/plymouth" 2>&1; cmp "$REPO/src/kawa-saver/glyphs.h" "$G/src/kawa-saver/glyphs.h" 2>&1
+d=$(diff -rq "$REPO/system/plymouth" "$G/system/plymouth" 2>&1
     cmp "$REPO/art/gtklock.mo" "$G/art/gtklock.mo" 2>&1)
-eq "${d//$G\//copy:}" "" "the boot splash, the saver's letters or gtklock's words differ from build-art.py's"
+eq "${d//$G\//copy:}" "" "the boot splash or gtklock's words differ from build-art.py's"
 
 # ── icons ────────────────────────────────────────────────────────────────────────────────
 ICONS=$REPO/configs/home/.config/fedokawaii/icons.sh
@@ -160,7 +160,7 @@ for t in @HOME@ @UID@ @MONITOR_HZ@; do has "$fills" "$t" "render() does not fill
 while IFS=: read -r f n tok; do
   [[ $tok == @DEFAULT_AUDIO_SINK@ || $tok == @DEFAULT_AUDIO_SOURCE@ || $tok == @DEFAULT_SINK@ || $tok == @DEFAULT_SOURCE@ ]] && continue
   grep -qxF -- "$tok" <<<"$fills" && _ok || _no "${f#"$REPO"/}:$n: $tok is never filled in"
-done < <(grep -rnoE '@[A-Z][A-Z0-9_]*@' "$REPO/configs/home" --exclude='*.ttf' --exclude='*.png')
+done < <(grep -rnoE '@[A-Z][A-Z0-9_]*@' "$REPO/configs/home" --exclude='*.ttf' --exclude='*.png' --exclude='*.six')
 case_ "@MPV_SCALING@ stands on a line of its own (render() replaces only a whole line)"
 while IFS=: read -r f n line; do
   [[ $line == @MPV_SCALING@ ]] && _ok || _no "${f#"$REPO"/}:$n: $line"
@@ -175,8 +175,8 @@ out=$(python3 "$S/keybinds.py" "$REPO")
 while IFS= read -r ln; do [[ -n $ln ]] && _no "$ln"; done <<<"$out"
 eq "$out" ""
 case_ "… and the check is not blind: a key the sheet promises but dwl lacks is caught"
-mkdir -p "$TMP/kb/src/dwl" "$TMP/kb/configs/home/.config/fedokawaii" "$TMP/kb/configs/home/.config/MangoHud"
-cp "$REPO/fedokawaii.conf" "$TMP/kb/"; cp "$REPO/configs/home/.config/MangoHud/MangoHud.conf" "$TMP/kb/configs/home/.config/MangoHud/"
+mkdir -p "$TMP/kb/src/dwl" "$TMP/kb/configs/home/.config/fedokawaii"
+cp "$REPO/fedokawaii.conf" "$TMP/kb/"
 grep -v 'XKB_KEY_Print,             spawn,            SHCMD("kawa-screenshot full")' "$REPO/src/dwl/config.h" >"$TMP/kb/src/dwl/config.h"
 cp "$REPO/configs/home/.config/fedokawaii/keybinds.txt" "$TMP/kb/configs/home/.config/fedokawaii/"
 has "$(python3 "$S/keybinds.py" "$TMP/kb")" "Shift+Print"

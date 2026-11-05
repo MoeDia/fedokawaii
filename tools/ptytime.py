@@ -59,11 +59,15 @@ def one(cmd, cols, rows, settle, timeout):
             if first is None:
                 first = now
             last = now
-            # (answer the terminal queries a TUI waits for: device attributes, cursor position)
+            # (answer the terminal queries a TUI waits for: device attributes, cursor position,
+            # the colour query's DSR — nvim waits 100 ms for that at its start, 1 s for DA1 at its
+            # end; unanswered, T04 read its own silence as 148 ms to VeryLazy, a real foot's 40)
             if b"\x1b[c" in data or b"\x1b[0c" in data:
                 os.write(fd, b"\x1b[?62;22c")
             if b"\x1b[6n" in data:
                 os.write(fd, b"\x1b[1;1R")
+            if b"\x1b[5n" in data:
+                os.write(fd, b"\x1b[0n")
         else:
             if os.waitpid(pid, os.WNOHANG)[0]:
                 done = True

@@ -1,7 +1,7 @@
 [Desktop Entry]
 # CSV and TSV files open in VisiData (vd), in a terminal window of its own (kawa-term,
 # app-id kawa-tables; the default for text/csv and text/tab-separated-values in
-# ~/.config/mimeapps.list): a download from Brave, xdg-open, yazi's O. "Tables" in the
+# ~/.config/mimeapps.list): a download from Helium, xdg-open, yazi's O. "Tables" in the
 # launcher too, in place of visidata's own entry (hidden: it would ask the launcher for a
 # terminal): with no file, vd lists the home folder — Enter on a CSV, TSV, JSON or SQLite
 # file opens it. Excel files (.xlsx, .ods) open in LibreOffice Calc — vd would need

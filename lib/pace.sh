@@ -9,7 +9,7 @@
 #                       seconds ("-": not in the journal). GREETER: from the kernel's start to the
 #                       login screen (greetd started); SESSION: from your password to the
 #                       desktop's session up (dwl-session.target); SHUTDOWN: from "powering
-#                       down"/"rebooting" to the journal's end (Steam's wait before it is not
+#                       down"/"rebooting" to the journal's end (a program's wait before it is not
 #                       counted: logind waits for it first); TIMEOUTS: the units that reached
 #                       their stop time-out and were killed, comma-separated
 #   pace_table N        the same as a table, with the limits below

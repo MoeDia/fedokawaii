@@ -1,0 +1,7 @@
+// /etc/xkb/rules/kawa-asobi — the keyboard inside the play world (gamescope, by its XKB_DEFAULT_RULES).
+// The desktop's own rules plus one option; the desktop itself never reads this file.
+! include %S/evdev
+! option = symbols
+  kawa:return = +kawa-asobi(return)
+! option = types
+  kawa:return = +kawa-asobi(return)

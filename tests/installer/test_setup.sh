@@ -34,7 +34,7 @@ pkg_has nano && _no "nano still there" || _ok
 pkg_has systemd-oomd-defaults && _no "systemd-oomd-defaults still there (its kill would take the whole session)" || _ok
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-btusb.conf" 2>/dev/null)" "options btusb enable_autosuspend=0" "the Bluetooth dongle never sleeps"
 eq "$(grep -v '^#' "$W/etc/modprobe.d/fedokawaii-audio.conf" 2>/dev/null)" "options snd_hda_intel power_save=0" "the sound card's codec never naps (no click as it wakes)"
-eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=25 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock, a restart for Steam to close"
+eq "$(grep -v '^#' "$W/etc/systemd/logind.conf.d/90-fedokawaii.conf" 2>/dev/null | tr '\n' ' ')" "[Login] HandleSuspendKey=ignore HandleSuspendKeyLongPress=ignore HandleHibernateKey=ignore HandleHibernateKeyLongPress=ignore InhibitDelayMaxSec=25 " "the Sleep key left to dwl (locked first), any sleep waiting for the lock"
 # (Node 22, which neovim brings through tree-sitter-cli's recommendation, never taken as a weak
 # dependency — set before the first install, and dnf reads it back so)
 has "$(cat "$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf")" "exclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*"
@@ -55,10 +55,12 @@ for b in rhgb quiet loglevel=3 rd.udev.log_level=3 systemd.show_status=false vt.
 done
 eq "$(grep -v '^#' "$W/etc/profile.d/fedokawaii-console.sh" 2>/dev/null)" "[ \"\$TERM\" = linux ] && [ -t 1 ] && printf '\\033[?25h'" \
   "a login on a text console shows the cursor the boot hides"
-has "$(cat "$FKH/fw-services")" "ssh" "SSH_SERVER=yes (as shipped) opens ssh in the firewall"; lacks "$(cat "$FKH/fw-services")" "cockpit" "cockpit closed, whatever SSH_SERVER says"
-not_called 'firewall-cmd\] .*--reload' "the firewall is changed in place, never reloaded (a reload drops other programs' rules)"
-grep -qx 'enabled sshd.service' "$FKH/units" && _ok || _no "sshd not enabled (SSH_SERVER=yes)"
+case_ "phase 1: inbound SSH and the firewall (lib/net.sh, tests/installer/test_net.sh): no key in authorized_keys, so no sshd; rules for keys only; every door as the list says"
+grep -qx 'enabled sshd.service' "$FKH/units" && _no "sshd enabled with no key" || _ok
 has "$(cat "$W/etc/ssh/sshd_config.d/40-fedokawaii.conf" 2>/dev/null)" "PasswordAuthentication no" "keys only"
+lacks "$(cat "$W/etc/firewalld/zones/kawa-lan.xml" 2>/dev/null)" 'port="22"' "no sshd, no door"
+has "$(cat "$W/etc/firewalld/zones/public.xml" 2>/dev/null)" 'target="DROP"'; eq "$(cat "$FKH/fw-default")" public
+has "$(cat "$W/etc/systemd/resolved.conf.d/90-fedokawaii.conf" 2>/dev/null)" "LLMNR=no"
 reboot_world; keep phase2
 
 case_ "phase 2 (resumed by the unit after the restart): repositories, the GPU's drivers, media"
@@ -74,9 +76,9 @@ eq "$(state hardware-pkgs)" amd-ucode-firmware
 reboot_world; keep phase3
 
 case_ "phase 3: dwl and the desktop, the gate, then the login enabled last and the resume unit gone"
-# (GitHub refusing GE-Proton's release list once, the file dialog's first build failing, and
-# LazyVim's plugin clones failing the first time: none stops the build, the gate tries again)
-fkh fail-curl-ge-api 1; fkh fail-meson 1; fkh fail-nvim-plugins 1
+# (the file dialog's first build failing, and LazyVim's plugin clones failing the first time:
+# none stops the build, the gate tries again)
+fkh fail-meson 1; fkh fail-nvim-plugins 1
 # (garbage the end sweeps: the download the clone was unpacked from, twelve theme runs' backups)
 B=$W/home/fkuser/.local/state/fedokawaii/backup
 for i in $(seq -w 1 12); do mkdir -p "$B/202601${i}-120000"; done; mkdir -p "$W/home/fkuser/Downloads"; : >"$W/home/fkuser/Downloads/fedokawaii.zip"; touch -d '1 hour ago' "$W/home/fkuser/Downloads/fedokawaii.zip"   # (downloaded before it was unpacked)
@@ -89,6 +91,7 @@ grep -qx 'enabled greetd.service' "$FKH/units" && _ok || _no "greetd not enabled
 g=" $(fk id -nG fkuser) "; has "$g" " video "; has "$g" " render "; lacks "$g" " input " "never in the input group (every key readable)"
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "Fedora's every-session boot-success timer still on: with linger any boot would count" || _ok
 [[ -s $W/var/lib/fedokawaii/input-group-out ]] && _ok || _no "not recorded: a later update would look again"
+has "$(cat "$W/etc/systemd/system/fedokawaii-scrub.service" 2>/dev/null)" "ExecStopPost=/usr/bin/bash /usr/local/lib/fedokawaii/setup.sh --scrub-said" "the scrub says what it found"
 has "$(cat "$W/etc/systemd/system/user@.service.d/fedokawaii.conf" 2>/dev/null)" $'[Service]\nTimeoutStopSec=30s' "shutdown never waits long on your services"
 has "$(cat "$W/etc/systemd/system/greetd.service.d/fedokawaii.conf")" "Conflicts=getty@tty1.service kmsconvt@tty1.service" "greetd holds tty1 against agetty and Fedora 45's kmscon"
 has "$(cat "$W/etc/systemd/system/plymouth-quit.service.d/fedokawaii.conf")" "ExecStart=-/usr/bin/plymouth quit --retain-splash" "the splash leaves its last frame for greetd, no black between"
@@ -112,12 +115,12 @@ has "$ru" $'Type=oneshot'; has "$ru" "After=graphical.target network-online.targ
 grep -qx 'enabled fedokawaii-report.service' "$FKH/units" && _ok || _no "fedokawaii-report.service not enabled"
 [[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
 for t in satty yazi ya bluetui lazygit herdr; do [[ -x $W/home/fkuser/.local/bin/$t ]] || _no "$t not installed"; done; _ok
-eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton" 2>/dev/null)" GE-Proton10-25
+[[ ! -e $W/home/fkuser/.local/share/Steam && ! -e $W/home/fkuser/.local/share/fedokawaii/upstream/ge-proton ]] && _ok || _no "Steam's folder or GE-Proton's record in your home (gaming is the play world's)"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)" "Syncplay (3.07c) at its pinned commit, with our patch"
 [[ -x $W/home/fkuser/.local/bin/syncplay && -f $W/home/fkuser/.local/share/fedokawaii/syncplay/syncplay/client.py ]] && _ok || _no "Syncplay not installed"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/blesh" 2>/dev/null)" "$(. "$REPO/lib/upstream.sh"; echo "$BLESH_COMMIT")" "ble.sh (3.07e) at its pinned commit"
 [[ -f $W/home/fkuser/.local/share/blesh/ble.sh ]] && _ok || _no "ble.sh not installed"
-# Spotify is its web player (a Brave app window): nothing of lpf's, no step of its own
+# Spotify is its web player (a Helium app window): nothing of lpf's, no step of its own
 pkg_has lpf || pkg_has lpf-spotify-client || pkg_has spotify-client && _no "lpf or a Spotify package installed" || _ok
 lacks "$(ls "$W/var/lib/fedokawaii")" "Spotify" "no Spotify step"
 # (the clone setup was started from: gone at the end — the toolkit has all of it)
@@ -130,20 +133,23 @@ eq "$(ls "$B" | wc -l)" 10 "ten theme backups kept: $(ls "$B" | tr '\n' ' ')"
 # the sweep before the baseline (a snapshot keeps every cached download for good)
 c=$(grep -n '\[dnf\] clean packages' "$W/var/lib/fkh/calls.log" | tail -n1 | cut -d: -f1); b=$(grep -n 'fedokawaii baseline' "$W/var/lib/fkh/calls.log" | tail -n1 | cut -d: -f1)
 [[ -n $c && -n $b ]] && ((c < b)) && _ok || _no "dnf's packages cleaned at line [$c], the baseline taken at [$b]"
-case_ "torrra: installed by uv tool (its own Python 3.13) with its pinned libraries, uv's own command off your PATH; 6881 open"
-called "uv\] tool install --force --python 3.13 --constraints .*/system/torrra-constraints.txt torrra=="
+case_ "Torrents: Fedora's libtorrent in the manifest, the program checked, no Python of its own; 6881 open"
+pkg_has rb_libtorrent-python3 && _ok || _no "rb_libtorrent-python3 not installed"
+not_called "uv\] tool install"
 case_ "Rust preinstalled for you (3.09b): rustup-init as you, stable with rust-analyzer, clippy and rustfmt, in CARGO_HOME (~/.local/share/cargo)"
 called "^fkuser\[rustup-init\] -y --no-modify-path --default-toolchain stable --profile minimal -c rust-analyzer,clippy,rustfmt$"
 [[ -x $W/home/fkuser/.local/share/cargo/bin/rust-analyzer && -d $W/home/fkuser/.local/share/rustup/toolchains ]] && _ok || _no "not in ~/.local/share/cargo and ~/.local/share/rustup"
 called "uv\] python install"
-[[ -L $W/home/fkuser/.local/share/uv/tool-bin/torrra && ! -e $W/home/fkuser/.local/bin/torrra && ! -L $W/home/fkuser/.local/bin/torrra ]] \
-  && _ok || _no "uv's torrra is in ~/.local/bin"
-eq "$(sort "$FKH/fw-ports" | tr '\n' ' ')" "53317/tcp 53317/udp 6881/tcp 6881/udp " "torrra's port and LocalSend's"
-case_ "the gate's second tries: GE-Proton, the yazi file dialog and LazyVim's plugins, each put in place there"
-has "$OUT" "GE-Proton is not installed yet"; has "$OUT" "no file dialog yet: termfilechooser did not build"
-has "$OUT" "✔ GE-Proton10-25 → Steam compatibilitytools.d"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
-called "nvim\] --headless \+Lazy! install"
+case_ "the gate's second tries: the yazi file dialog and LazyVim's plugins, each put in place there"
+has "$OUT" "no file dialog yet: termfilechooser did not build"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
+called "nvim\] --headless \+Lazy! restore \+Lazy! clean \+qa"
 [[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
+case_ "neovim: the desktop's own config and lock in place before the plugins, each plugin at the lock's commit; no starter fetched, nothing floats"
+cmp -s "$REPO/configs/home/.config/nvim/lazy-lock.json" "$W/home/fkuser/.config/nvim/lazy-lock.json" && _ok || _no "the lock is not the shipped one"
+[[ -f $W/home/fkuser/.config/nvim/init.lua && ! -e $W/home/fkuser/.config/nvim/.neoconf.json ]] && _ok || _no "the shipped config is not what is there"
+eq "$(cat "$W/home/fkuser/.local/share/nvim/lazy/lazy.nvim/.git/fk-commit")" \
+   "$(sed -n 's/.*"lazy.nvim".*"commit": "\([0-9a-f]*\)".*/\1/p' "$REPO/configs/home/.config/nvim/lazy-lock.json")" "lazy.nvim at the lock's commit"
+not_called 'LazyVim/starter'; not_called 'Lazy! sync'; not_called 'Lazy! update'
 case_ "after the build: verify passes (exit 0), and setup run again only says so"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  verified"
 reset_calls; fkrun bash "$TK/setup.sh"; eq "$RC" 0; has "$OUT" "already built"      # (the clone is gone: the toolkit's)

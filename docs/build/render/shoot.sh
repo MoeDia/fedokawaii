@@ -182,7 +182,7 @@ session() {
     XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=dwl XDG_CURRENT_DESKTOP=wlroots
     XKB_DEFAULT_LAYOUT=us,ara XKB_DEFAULT_OPTIONS=grp:alt_shift_toggle
     GDK_BACKEND=wayland,x11 QT_QPA_PLATFORM="wayland;xcb" QT_QPA_PLATFORMTHEME=qt6ct
-    EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=brave-origin XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
+    EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=kawa-browser XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
     STUB_STATE="$SH/state" XDG_STATE_HOME="$SH/state/xdg-state"
     # WirePlumber 0.5.18 (/opt/f44) must not pick up Ubuntu's 0.4 files in /usr/share
     WIREPLUMBER_DATA_DIR="$F44/share/wireplumber" WIREPLUMBER_CONFIG_DIR="$F44/share/wireplumber"
@@ -264,10 +264,6 @@ session() {
   waitfor 10 "mako on the bus" k busctl --user status org.freedesktop.Notifications
   waitfor 10 "the foot server socket" compgen -G "$X/foot-$wl.sock"
 
-  # Steam running and ready (the bar's gamepad): two sleeping processes named as Steam's
-  mkdir -p "$X/fake-steam"; cp /bin/sleep "$X/fake-steam/steam"; cp /bin/sleep "$X/fake-steam/steamwebhelper"
-  chown -R "$K:$K" "$X/fake-steam"
-  k "$X/fake-steam/steam" 3600 & k "$X/fake-steam/steamwebhelper" 3600 &
   say "$T: waybar"
   WB_T0=$SECONDS
   k waybar >"$LT/waybar.log" 2>&1 &
@@ -401,16 +397,13 @@ shot_menus() {
   menu_keys menu-help-filter "volume" k kawa-help   # (typed: only the bindings it finds, under their parts)
   menu menu-change     k kawa-config
   menu menu-drives     k kawa-drives       # the drives (the bar's drive mark): stubs/lsblk's stick and disk
-  menu menu-steam      k kawa-steam --menu # (stubs/steam: installed)
   # the downloads (the bar's download mark): a torrent in Torrents' list (the session panel's
-  # pid stands for its window), a Brave download in ~/Downloads, a Steam game
-  k sh -c 'p=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads" ~/Downloads ~/.local/share/Steam/steamapps/downloading/1145360
+  # pid stands for its window), a browser download in ~/Downloads
+  k sh -c 'p=$(cat "$XDG_RUNTIME_DIR/kawa-panel.pid"); mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads" ~/Downloads
     printf "%s\t%s\t%s\t%s\n" "Big.Buck.Bunny.2008.1080p.BluRay.x264" 2684354560 4294967296 "$HOME/Downloads/Big.Buck.Bunny.2008.1080p.BluRay.x264" "ubuntu-24.04.1-desktop-amd64.iso" 912680550 6203355136 "$HOME/Downloads/ubuntu-24.04.1-desktop-amd64.iso" >"$XDG_RUNTIME_DIR/kawa-downloads/torrra.$p"
-    head -c 31457280 /dev/zero >~/Downloads/handbook-scans.zip.crdownload
-    printf "\"libraryfolders\"\n{\n\t\"0\"\n\t{\n\t\t\"path\"\t\t\"%s\"\n\t}\n}\n" "$HOME/.local/share/Steam" >~/.local/share/Steam/steamapps/libraryfolders.vdf
-    printf "\"AppState\"\n{\n\t\"name\"\t\t\"Hades\"\n\t\"BytesToDownload\"\t\t\"15032385536\"\n\t\"BytesDownloaded\"\t\t\"11274289152\"\n}\n" >~/.local/share/Steam/steamapps/appmanifest_1145360.acf'
+    head -c 31457280 /dev/zero >~/Downloads/handbook-scans.zip.crdownload'
   menu menu-downloads  k kawa-downloads
-  k sh -c 'rm -rf "$XDG_RUNTIME_DIR/kawa-downloads" ~/Downloads/handbook-scans.zip.crdownload ~/.local/share/Steam/steamapps/downloading/1145360 ~/.local/share/Steam/steamapps/appmanifest_1145360.acf'
+  k sh -c 'rm -rf "$XDG_RUNTIME_DIR/kawa-downloads" ~/Downloads/handbook-scans.zip.crdownload'
   # shrink (Super+Z) on a picture and a PDF: every part; then a size of one's own, typed
   install -m 644 -o "$K" "$OT/wallpaper.png" "$SH/state/holiday.png"
   python3 -I -c 'import sys; from PIL import Image; Image.new("RGB", (595, 842), "white").save(sys.argv[1])' "$SH/state/scan.pdf"
@@ -423,7 +416,7 @@ shot_menus() {
   menu menu-file       k kawa-file "$SH/state/scan.pdf" "$SH/state/photos.zip"
   menu_keys menu-file-level "-k Down -k Return" k kawa-file "$SH/state/photos"
   # share (the screen-share portal's chooser): a screen, two windows
-  menu menu-share      k sh -c 'printf "%s\n" "Monitor: HEADLESS-1 Headless output" "Window: notes.md — nvim (a1b2c3d4)" "Window: Weekly sync — Brave (e5f6a7b8)" | kawa-share'
+  menu menu-share      k sh -c 'printf "%s\n" "Monitor: HEADLESS-1 Headless output" "Window: notes.md — nvim (a1b2c3d4)" "Window: Weekly sync — Helium (e5f6a7b8)" | kawa-share'
   menu menu-weather    k kawa-weather --menu   # the week (the bar's weather): stubs/curl's Open-Meteo forecast
   # … and as it is after three hours offline: the same days, their age said above them
   k sh -c 'touch -d "-3 hours" "$HOME/.cache/kawa-weather.json" && echo offline >"$HOME/.cache/kawa-weather.failed"'
@@ -464,7 +457,7 @@ shot_notify() {
   notice notify-normal k notify-send -a desktop -i "$thumb" "$icons  Screenshot copied" "${pic##*/}"
   rm -f "$pic" "$thumb"
   # an application's notice with a Papirus icon, title and a two-line body
-  notice notify-app k notify-send -a "Brave Origin" -i brave-browser "Download complete" \
+  notice notify-app k notify-send -a Helium -i helium "Download complete" \
     "fedora-44-x86_64-netinst.iso was saved to Downloads (1.1 GB)"
   # critical: what autostart's keep() sends when a helper keeps crashing
   notice notify-critical k notify-send -u critical "waybar keeps stopping" \

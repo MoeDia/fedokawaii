@@ -34,5 +34,5 @@ window.kawa #messages { opacity: 0; }
 window.kawa #input-field { min-width: 1px; min-height: 1px; font-size: 1px; letter-spacing: 0; padding: 0;
   color: transparent; caret-color: transparent; border: none; }
 window.kawa #input-field selection { background: none; color: transparent; }
-/* the login's one line of words (an expiring password, a session that will not start) */
-window.kawa #error-label { color: #f5ecc2; }
+/* the login's one line of words (an expiring password, a session that will not start): over a painting, its own halo */
+window.kawa #error-label { color: #f5ecc2; text-shadow: 0 0 3px #181715, 0 0 3px #181715, 0 0 2px #181715, 1px 1px 1px #181715, -1px -1px 1px #181715; }

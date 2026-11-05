@@ -22,6 +22,7 @@ esac'
   stub setsid '[ "$1" = -f ] && shift; exec "$@"'
   stub zathura; stub gio; stub kawa-term; stub kawa-cell 'echo 9x21'
   : >"$FZF_PICK"
+  export KAWA_LEARN_BOOK=$TMP/no-learn-book.pdf     # (the PC's own toolkit is no part of a made-up library)
 }
 MAGICK=$(command -v magick) FD=$(command -v fd fdfind 2>/dev/null | head -n1)
 # the plain card's ground as sixel gives it (whole percents): the theme's C_EDGE (dark, the sandbox's)
@@ -94,7 +95,7 @@ has "$(field 2 <<<"$r" | plain)" "$ICON_READ$(times "$ICON_READ_OFF" 9)       37
 eq "$(field 3 <<<"$r")" "read 3 days ago"; eq "$(field 5 <<<"$r")" 37
 case_ "new: no meter (not begun), 'new', what it is"
 r=$(row "New Comic.cbz")
-[[ $(field 2 <<<"$r" | plain) =~ New\ Comic\ {45}new$ ]] && _ok || _no "not the title, its column's spaces, a blank meter, then new: [$(field 2 <<<"$r" | plain)]"
+[[ $(field 2 <<<"$r" | plain) =~ New\ Comic\ {44}new\ $ ]] && _ok || _no "not the title, its column's spaces, a blank meter, then new: [$(field 2 <<<"$r" | plain)]"
 lacks "$(field 2 <<<"$r")" "$ICON_READ_OFF" "no meter for a book not begun"
 has "$(field 4 <<<"$r")" "cbz · 3 pages · " "the pictures counted, not the text file"
 case_ "the order: being read, most recent first; then the new ones, newest first"
@@ -117,7 +118,7 @@ eq "$(kawa-books --rows | widths)" "61 "
 case_ "a title longer than its column is cut at a word's end — never with …"
 mk pdf "$B/$(printf 'word %.0s' {1..30}).pdf" 1
 t=$(FZF_COLUMNS=85 kawa-books --rows | grep 'word word' | field 2 | plain)
-[[ $t =~ ^\ .\ \ word\ word\ word\ {23}new$ ]] && _ok || _no "the last whole word, then the column's spaces: [$t]"; lacks "$t" "…"
+[[ $t =~ ^\ .\ \ word\ word\ word\ {22}new\ $ ]] && _ok || _no "the last whole word, then the column's spaces: [$t]"; lacks "$t" "…"
 
 case_ "a name that is not UTF-8 (an old zip's), in a real UTF-8 locale: listed, the rest too"
 if locale_of en_US; then L=$LOC
@@ -143,7 +144,7 @@ for t in "family 👨‍👩‍👧 photos:16" "thumbs 👍🏽 up:12" "❤️ h
   r=$(FZF_COLUMNS=100 kawa-books --rows | grep -F -- "$B/${t%:*}.pdf"$'\t' | field 2 | plain)
   r=${r# *  }                                         # (the row's indent and glyph)
   pad=${r#"${t%:*}"}; pad=${pad%%[!\ ]*}
-  eq "${#pad}" $((32 + 2 + 10 + 2 + 6 - ${t##*:})) "${t%:*}: its padding (title column 32, 2 spaces, no meter: new, then the mark's column)"
+  eq "${#pad}" $((31 + 2 + 10 + 2 + 9 + 1 - ${t##*:})) "${t%:*}: its padding (title column 31, 2 spaces, no meter, no mark in a library none begun, the row's last column)"
 done
 
 case_ "no books, ~/Books missing: an empty list, the folder made"
@@ -153,11 +154,11 @@ case_ "one book"
 mk epub "$B/Only.epub" meta
 eq "$(kawa-books --rows | wc -l)" 1
 
-case_ "zathura's memory missing, empty, corrupt or locked: the books, all new"
+case_ "zathura's memory missing, empty, corrupt or locked: the books all unread — a library with none begun has no \"new\" on every row"
 setup; library; rm -f "$DB"
-eq "$(kawa-books --rows | grep -c '  new')" 10
+eq "$(kawa-books --rows | wc -l)" 10; eq "$(kawa-books --rows | grep -c '  new')" 0
 printf 'not a database' >"$DB"
-eq "$(kawa-books --rows 2>&1 | grep -c '  new')" 10
+eq "$(kawa-books --rows 2>&1 | wc -l)" 10; eq "$(kawa-books --rows 2>&1 | grep -c '  new')" 0
 rm -f "$DB"; mk sqlite "$DB" "$B/Reading Now.pdf" 86 "$(now)"
 python3 -I -c 'import sqlite3, sys, time
 c = sqlite3.connect(sys.argv[1]); c.execute("BEGIN EXCLUSIVE"); c.execute("UPDATE fileinfo SET page = 1"); time.sleep(4)' "$DB" & held=$!
@@ -239,21 +240,34 @@ case_ "a comic whose pages have glob characters in their names: its first page"
 mk cbz "$B/glob.cbz" 'p[1].png' 'q*2.png' 'r?3.png'      # (as a pattern, p[1].png would be p1.png)
 lacks "$(cover "$B/glob.cbz" | sixel_info | jget colours)" "$CARD"
 
-case_ "the pane: cover centred between the rule and the window's frame (a column off the pane's middle: the window's own 16 px past the pane's end), the words under it, inside the pane"
+case_ "the pane: the cover centred to the pixel between the rule and the window's hairline (fzf's margin and foot's padding past the pane's end) and between the pane's top and its foot, the words centred under it, inside the pane"
 for size in "36 24" "36 26" "50 30" "21 9" "40 12"; do
   read -r cols lines <<<"$size"
   out=$(cover "$B/Reading Now.pdf" "$cols" "$lines"); info=$(sixel_info <<<"$out")
   w=$(jget width <<<"$info"); h=$(jget raster 3 <<<"$info"); bb=$(jget bbox <<<"$info")
-  read -r x0 _ x1 _ < <(tr -d '[],' <<<"$bb")
+  read -r x0 y0 x1 _ < <(tr -d '[],' <<<"$bb")
   a=$(( 2 * 9 - (9 - 1) / 2 - 1 ))                       # the rule's right edge → the first column
+  r=$(( 9 + 8 ))                                         # the last column → the hairline
   ((w <= cols * 9)) && _ok || _no "$size: the picture ($w px) is wider than the pane"
-  L=$(( a + x0 )) R=$(( cols * 9 - x1 ))
-  (( L - R - 2 * 9 <= 1 && R + 2 * 9 - L <= 1 )) && _ok || _no "$size: the paper left ($L px) and right ($R px) of the cover: not a column off the middle"
+  L=$(( a + x0 )) R=$(( cols * 9 - x1 + r ))
+  (( L == R )) && _ok || _no "$size: the paper left ($L px) and right ($R px) of the cover"
   (( x1 <= cols * 9 )) && _ok || _no "$size: the cover passes the pane's edge"
   after=$(jrepr after <<<"$info")
   text=$(python3 -I -c 'import sys,ast; print(ast.literal_eval(sys.argv[1]))' "$after" | plain)
-  rows=$(( (h + 20) / 21 + $(wc -l <<<"$text") - 1 ))
+  lead=0; ((lines >= 16)) && lead=1                      # (a tall pane: its first line at once, an empty one: never fzf's "Loading ..")
+  y0=$(( y0 + lead * 21 ))
+  n=$(wc -l <<<"$text"); tr=$(( (h + 20) / 21 + lead ))
+  rows=$(( tr + n - 1 ))
   ((rows <= lines)) && _ok || _no "$size: $rows rows in a pane of $lines"
+  # (above the cover as much paper as under the words; each line of them on the cover's middle, within half a cell)
+  below=$(( (lines - tr - n + 1) * 21 + 1 ))
+  (( y0 == below )) && _ok || _no "$size: the paper above the cover ($y0 px) and under the words ($below px)"
+  while IFS= read -r l; do
+    [[ -n $l ]] || continue
+    t=${l#"${l%%[! ]*}"}; pad=$(( ${#l} - ${#t} ))
+    d=$(( 2 * pad * 9 + ${#t} * 9 - x0 - x1 )); ((d < 0)) && d=$(( -d ))
+    (( d <= 9 )) && _ok || _no "$size: [$l] is off the cover's middle by $d half px"
+  done <<<"$text"
   python3 -I -c 'import sys, unicodedata
 for l in sys.stdin.read().splitlines():
     w = sum(2 if unicodedata.east_asian_width(c) in "WF" else 1 for c in l)
@@ -305,6 +319,20 @@ sleep 0.3; kill -KILL -- -"$pg" 2>/dev/null; wait "$pg" 2>/dev/null
 touch -d '-2 minutes' "$K"/cover.*
 kawa-books --tui
 eq "$(ls -A "$K")" "pages.json" "nothing but the page counts left"
+
+# ── the desktop's own book ───────────────────────────────────────────────────
+setup; library
+case_ "the Learn book: always on the shelf under its own name, its cover its first page, opened as any book; never in the trash; none in the toolkit, no row"
+mkdir -p "$TMP/toolkit"; mk pdf "$TMP/toolkit/Fedokawaii-Learn.pdf" 400
+before=$(kawa-books --rows | wc -l)
+export KAWA_LEARN_BOOK=$TMP/toolkit/Fedokawaii-Learn.pdf
+rows=$(kawa-books --rows); eq "$(wc -l <<<"$rows")" "$((before + 1))" "one row more"
+l=$(grep -F -- "$KAWA_LEARN_BOOK"$'\t' <<<"$rows"); has "$(plain <<<"$l" | field 2)" "fedokawaii — learn"; has "$l" "400 pages"
+lacks "$(plain <<<"$l" | field 2)" "Fedokawaii-Learn" "the file's name is not its title"
+lacks "$(cover "$KAWA_LEARN_BOOK" | sixel_info | jget colours)" "$CARD"
+reset_calls; rc 0 kawa-books --remove "$KAWA_LEARN_BOOK"; not_called "^gio trash"; called "^notify-send .*the learn book stays"; [[ -f $KAWA_LEARN_BOOK ]] && _ok || _no "the book went"
+rc 0 kawa-books --open "$KAWA_LEARN_BOOK"; called "^zathura -- $KAWA_LEARN_BOOK$"
+rm -f "$KAWA_LEARN_BOOK"; eq "$(kawa-books --rows | wc -l)" "$before" "no book in the toolkit: no row, nothing said"
 
 # ── read, remove, add ────────────────────────────────────────────────────────
 case_ "enter: zathura opens the book (where it was, or on the page found by name)"
@@ -359,7 +387,7 @@ called "^kawa-term --float --once books books 104x29 -- $REPO/bin/kawa-books --t
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"
-has "$(cat "$FZF_ARGS")" "--ghost=~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
+has "$(cat "$FZF_ARGS")" "--ghost= ~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
 has "$(cat "$FZF_ARGS")" "--bind=enter:become($REPO/bin/kawa-books --open {1} {5})"
 case_ "inside, no books yet: the title says how to add some"
 setup; kawa-books --tui; has "$(cat "$FZF_ARGS")" "none in ~/Books yet — ctrl+a adds some"

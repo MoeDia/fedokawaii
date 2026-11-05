@@ -1,0 +1,11 @@
+# typing (Super+U, learning): touch typing, the keyboard and the hands in the terminal
+# source: configs/home/.local/lib/fedokawaii/kawatype/app.py (Home.key, LessonScreen.key, Result.key)
+── typing: Super+U → learning ─────────────────────────────────────
+Enter                   go on: the next thing, on every screen
+Tab / ← / →             the tabs: course, practice, progress
+↑ / ↓ (j / k)           the one before / after
+Esc                     out of a lesson (it is kept); back; close
+Backspace               take a letter back (from the sentences on)
+Tab, in a lesson        answer the eye
+Ctrl+K                  quiet the next key's light, or bring it back
+r                       after a lesson: the same one again

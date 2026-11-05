@@ -5,10 +5,11 @@ fkh_log() { printf '%s[%s] %s\n' "$(id -un 2>/dev/null)" "${0##*/}" "$*" >>"$FKH
 # fkh_cut — $FKH/cut-at = N (and $FKH/cut-sig: KILL, the default — a power cut —, TERM, a stop
 # from outside — systemctl stop or a shutdown signals the unit's every process, so its whole
 # process group here — or INT, a Ctrl+C, to setup.sh alone): at the Nth stub call the setup.sh
-# this call runs under is stopped, the stub with it. Only the run this stub belongs to: its own ancestor.
+# this call runs under is stopped, the stub with it. Only the run this stub belongs to: its own ancestor,
+# the outermost (a call inside $(…) has a forked setup.sh above it, and a Ctrl+C reaches the real one too).
 # $FKH/cut-on = a regex instead: the first call matching it ("STUB] ARGS…") is the one
 fkh_cut() {
-  local n p=$$ sig pg
+  local n p=$$ sig pg top=
   if [[ -f $FKH/cut-on ]]; then
     [[ $1 =~ $(cat "$FKH/cut-on") ]] || return 0
     rm -f "$FKH/cut-on"; n="on $1"
@@ -20,14 +21,13 @@ fkh_cut() {
   fi
   sig=$(cat "$FKH/cut-sig" 2>/dev/null || echo KILL)
   while ((p > 1)); do
-    if tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -q 'setup\.sh'; then
-      echo "cut at stub call $n (${0##*/}) by SIG$sig" >>"$FKH/cut.log"
-      if [[ $sig == @(KILL|TERM) ]]; then pg=$(awk '{ print $5 }' "/proc/$p/stat"); kill -"$sig" -- "-$pg"
-      else kill -"$sig" "$p"; sleep 2; fi
-      return 0
-    fi
-    p=$(awk '{ print $4 }' "/proc/$p/stat" 2>/dev/null) || return 0
+    tr '\0' ' ' <"/proc/$p/cmdline" 2>/dev/null | grep -qE '(^|[ /])setup\.sh( |$)' && top=$p
+    p=$(awk '{ print $4 }' "/proc/$p/stat" 2>/dev/null) || break
   done
+  [[ -n $top ]] || return 0
+  echo "cut at stub call $n (${0##*/}) by SIG$sig" >>"$FKH/cut.log"
+  if [[ $sig == @(KILL|TERM) ]]; then pg=$(awk '{ print $5 }' "/proc/$top/stat"); kill -"$sig" -- "-$pg"
+  else kill -"$sig" "$top"; sleep 2; fi
 }
 net_on() { [[ $(cat "$FKH/net" 2>/dev/null) != off ]]; }
 has() { [[ -f $FKH/$1 ]] && grep -qxF -- "$2" "$FKH/$1"; }

@@ -121,15 +121,16 @@ hw_discrete_amd && MPV_SCALING="profile=high-quality              # ewa_lanczoss
 
 # the pointer of every list (the fzf options file): the icon font's chevron
 CHEVRON=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_CHEVRON_RIGHT")
+BAND_EDGE=$(. "$REPO_DIR/configs/home/.config/fedokawaii/icons.sh" && printf '%s' "$ICON_BAND_EDGE")
 
 # btop's box for the discrete AMD card: its number in ROCm SMI's order (lib/hardware.sh,
 # hw_btop_gpu) — and no card's box at all without one
-BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu mem net proc"   # (the graphics card inside the cpu box: show_gpu_info)
+BTOP_GPU=$(hw_btop_gpu); BTOP_BOXES="cpu ${BTOP_GPU:+$BTOP_GPU }mem proc"
 
 render() {      # render SRC → stdout, with fedokawaii.conf values (and the chevron) filled in
   sed -e "s|@HOME@|$TARGET_HOME|g" -e "s|@MONITOR_HZ@|$MONITOR_HZ|g" \
       -e "s|@WEATHER_CITY@|$WEATHER_CITY|g" -e "s|@NIGHT_LIGHT@|$NIGHT_LIGHT|g" \
-      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" \
+      -e "s|@ICON_CHEVRON_RIGHT@|$CHEVRON|g" -e "s|@ICON_BAND_EDGE@|$BAND_EDGE|g" -e "s|^@MPV_SCALING@\$|$MPV_SCALING|" -e "s|@UID@|$TARGET_UID|g" \
       -e "s|@BTOP_BOXES@|$BTOP_BOXES|g" -e "s|@BTOP_GPU@|${BTOP_GPU:-gpu0}|g" "$1"
 }
 
@@ -144,6 +145,12 @@ uinstall() {
   U bash -c "$USER_PUT_SH" _ "$1" "$3" <"$2"
 }
 
+# the local AI fixer's kept edits (lib/fixer.sh), over what was just rendered: a theme run never
+# undoes one, and "in sync" stays true with one in place
+fix_kept() {
+  [[ -n $(compgen -G '/var/lib/fedokawaii/update/fixes/*.json') && -x /usr/local/sbin/kawa-fixer ]] || return 0
+  /usr/local/sbin/kawa-fixer rendered --fixes /var/lib/fedokawaii/update/fixes --home "$TARGET_HOME" --file "$1" --text "$2" || log "the fixer's kept edits could not be laid over $1"
+}
 # place SRC DEST user|root — install only when the rendered content differs.
 # Mode comes from content, not repo permission bits (web uploads drop them).
 place() {
@@ -151,8 +158,9 @@ place() {
   TOTAL=$((TOTAL + 1))
   tmp=$(mktemp)
   case ${src#"$REPO_DIR/"} in      # (the path inside the repo: wherever the repo itself lives)
-    *.ttf|*.otf|*.png|*/cursors/*) cp "$src" "$tmp" ;;   # binary: byte for byte, never through sed
+    *.ttf|*.otf|*.png|*.six|*/cursors/*) cp "$src" "$tmp" ;;   # binary: byte for byte, never through sed
     *) render "$src" >"$tmp"
+       fix_kept "$dst" "$tmp"
        [[ $(head -c2 "$src") == '#!' ]] && mode=0755 ;;
   esac
   if [[ -f $dst ]] && cmp -s "$tmp" "$dst" && [[ $(stat -c %a "$dst") == "${mode#0}" ]]; then rm -f "$tmp"; return 0; fi
@@ -170,7 +178,6 @@ place() {
 # ── 1. home tree ─────────────────────────────────────────────────────────────
 while IFS= read -r -d '' f; do
   rel=${f#"$REPO_DIR/configs/home/"}
-  [[ $STEAM != yes && ( $rel == .config/MangoHud/* || $rel == .local/share/applications/steam.desktop ) ]] && continue   # the game overlay, Steam's entry: with Steam only
   set_aside "$rel" "$f" && continue        # repair took it out (it broke something): until it changes
   place "$f" "$TARGET_HOME/$rel" user
 done < <(find "$REPO_DIR/configs/home" -type f -print0 | sort -z)
@@ -241,12 +248,23 @@ retire() {   # retire FILE PATTERN
 #   ~/.config/gtk-3.0/gtk.css — GTK 3 colours now live in the Fedokawaii themes; the old
 #   file would pin one palette over both
 retire .config/gtk-3.0/gtk.css 'current/gtk3.css'
+#   LazyVim's starter, which setup no longer fetches: the desktop ships its own init.lua
+retire .config/nvim/.gitignore 'tt\.\*'
+retire .config/nvim/.neoconf.json 'neodev'
+retire .config/nvim/LICENSE 'Apache License'
+retire .config/nvim/README.md 'A starter template for'
+retire .config/nvim/stylua.toml 'column_width = 120'
+retire .config/nvim/lua/plugins/example.lua 'just an example spec'
 #   ~/.local/share/applications/calf.desktop — hid Calf's JACK host, which came with EasyEffects
 #   (both retired: PipeWire's own modules do their job)
 retire .local/share/applications/calf.desktop "Calf's JACK host"
 #   ~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf — the clean mic (WebRTC noise
 #   suppression on the microphone): taken out at the owner's word (2026-10-27)
 retire .config/pipewire/pipewire.conf.d/60-clean-mic.conf 'libpipewire-module-echo-cancel'
+#   ~/.config/pipewire/pipewire.conf.d/60-share.conf — the "Share" output, one more loopback running
+#   all the time: kawa-sharesound links what a share needs for just as long (a PipeWire that read it
+#   keeps the node until its next start, which the desktop's lists never show)
+retire .config/pipewire/pipewire.conf.d/60-share.conf 'share_sink'
 #   ~/.bashrc.d/scriptorium.sh — this project's old name: a second prompt and its aliases
 retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
@@ -266,6 +284,11 @@ retire .config/spotify-player/theme.toml 'spotify_player'
 #   Agents once: the desktop's own seals (current/apps) took their place
 retire .local/share/fedokawaii/icons/yazi.png ''
 retire .local/share/fedokawaii/icons/herdr.png ''
+# (gaming left this account for the play world, lib/asobi.sh: the host's game mode and its overlay)
+retire .local/bin/kawa-steam 'kawa-steam'
+retire .local/bin/kawa-game 'kawa-game'
+retire .config/MangoHud/MangoHud.conf ''
+retire .local/share/applications/steam.desktop 'kawa-steam'
 #   ~/.local/share/icons/default/index.theme — made the old pointers (Fedokawaii) the default;
 #   the folder is now a link to the Sumi pointers of the theme in use (2c)
 retire .local/share/icons/default/index.theme 'Inherits=Fedokawaii'
@@ -284,6 +307,10 @@ for LPF_ENTRY in lpf lpf-gui lpf-notify lpf-spotify-client; do retire ".local/sh
 retire .config/fuzzel/fuzzel.ini 'fedokawaii/current/fuzzel.ini'
 retire .local/share/fonts/SumiSealInk.ttf ''
 retire .local/share/fonts/SumiSealPaper.ttf ''
+for _m in dark light; do   # (the screensaver's whole-pixel pictures: it shows the lock's painting now)
+  retire ".local/share/fedokawaii/$_m/saver-scene.ppm" ''
+  retire ".local/share/fedokawaii/$_m/saver-flame.ppm" ''
+done
 for OLD_THEME in dark light; do
   retire ".config/fedokawaii/themes/$OLD_THEME/fuzzel.ini" ''
   for OLD_PIC in stitch hem seam-end patch patch-beni patch-asagi clock washi; do
@@ -504,7 +531,7 @@ boot_and_console() {
   rm -rf "$GT"
 
   # the boot splash (Plymouth's script plugin, system/plymouth/sumi): after the menu, the same
-  # ink and torii with "starting Fedora", and the lock screen's box should a disk ask
+  # ink, the lock's demon and our name over a slim line, and the lock screen's box should a disk ask
   # for its password. It lives in the boot images, so a change remakes them (dracut, ~1 min) —
   # last of all, below: should dracut fail, the menu, the console and the rest are in place
   SPLASH_DIR=/usr/share/plymouth/themes/sumi SPLASH_CHANGED=0
@@ -692,113 +719,84 @@ DWL_SUM=${DWL_SUM%% *}
 dwl_current() { [[ -x /usr/local/bin/dwl && $(cat "$DWL_MARK" 2>/dev/null) == "$DWL_SUM" ]]; }
 TOTAL=$((TOTAL + 1))
 
-# ── 4a. Brave: sound with a shared screen ────────────────────────────────────
-# Sharing a screen or a window in a call can carry the computer's sound too — Chromium's
-# PulseAudio loopback for screen sharing, off by default and no longer a brave://flags
-# switch (Brave clears it from its Local State), so ~/.local/bin/brave-origin starts Brave
-# with it. Super+B and a shell find that first in PATH; links that start Brave go through
-# its launcher entry, so Brave's own entry is copied to ~/.local/share/applications with
-# its Exec lines pointing there — made again whenever Brave's own entry changes.
-# The package also ships com.brave.Origin.desktop, the name the portals look Brave up by. Its
-# NoDisplay=true sits in the wrong section (brave/brave-browser#52193), so the launcher would
-# list Brave twice, once without the screen-share sound: its copy here is hidden as meant.
-for BRAVE_ENTRY in brave-origin.desktop:show com.brave.Origin.desktop:hide; do
-  BRAVE_SYS_DESKTOP=/usr/share/applications/${BRAVE_ENTRY%:*}
-  BRAVE_USR_DESKTOP=$TARGET_HOME/.local/share/applications/${BRAVE_ENTRY%:*}
-  [[ -r $BRAVE_SYS_DESKTOP ]] || continue
+# ── 4a. The browser: sound with a shared screen ──────────────────────────────
+# ~/.local/bin/kawa-browser starts Helium so that a shared screen carries the computer's sound
+# (its header says all it sets; Helium's own wrapper has no flags file). Super+B and a shell find
+# that first in PATH; links go through its launcher entry, so Helium's own entry is copied to
+# ~/.local/share/applications with its Exec lines pointing there — made again whenever Helium's
+# own entry changes.
+BROWSER_SYS_DESKTOP=/usr/share/applications/helium.desktop
+BROWSER_USR_DESKTOP=$TARGET_HOME/.local/share/applications/helium.desktop
+if [[ -r $BROWSER_SYS_DESKTOP ]]; then
   TOTAL=$((TOTAL + 1))
   BT=$(mktemp)
-  sed -E "s#^Exec=/usr/bin/brave-origin-stable( |\$)#Exec=$TARGET_HOME/.local/bin/brave-origin\1#" \
-    "$BRAVE_SYS_DESKTOP" \
-    | awk -v hide="$([[ ${BRAVE_ENTRY#*:} == hide ]] && echo 1)" \
-        'hide && /^NoDisplay=/ { next } { print } hide && $0 == "[Desktop Entry]" { print "NoDisplay=true" }' >"$BT"
-  if cmp -s "$BT" "$BRAVE_USR_DESKTOP"; then :
-  elif ((CHECK)); then DRIFT+=("$BRAVE_USR_DESKTOP (Brave's launcher entry: screen-share sound)")
+  sed -E "s#^Exec=helium( |\$)#Exec=$TARGET_HOME/.local/bin/kawa-browser\1#" "$BROWSER_SYS_DESKTOP" >"$BT"
+  if cmp -s "$BT" "$BROWSER_USR_DESKTOP"; then :
+  elif ((CHECK)); then DRIFT+=("$BROWSER_USR_DESKTOP (the browser's launcher entry: screen-share sound)")
   else
-    uinstall 0644 "$BT" "$BRAVE_USR_DESKTOP"
-    CHANGED+=("$BRAVE_USR_DESKTOP (Brave starts with screen-share sound)")
-  fi
-  rm -f "$BT"
-done
-
-# ── 4c. Brave: the desktop's colours ─────────────────────────────────────────
-# Brave's GTK theme mode paints its tab strip, toolbar, menus and dialogs from
-# the GTK 3 theme kawa-theme switches (Fedokawaii / Fedokawaii-dark, which carry a few rules
-# for Brave alone) and follows every switch live; web pages follow the portal's dark/light.
-# The new-tab page gets the ground colour as CSS light-dark(), so it switches by itself.
-# Both are settings of each profile (its Preferences, rewritten by Brave while it runs):
-# set only while Brave is closed, and before its first start too — once per profile (and
-# again only if the desktop's colours change): what you choose in Brave afterwards stays.
-BRAVE_DIR="$TARGET_HOME/.config/BraveSoftware/Brave-Origin"
-# shellcheck source=/dev/null
-ground() { ( . "$REPO_DIR/configs/home/.config/fedokawaii/themes/$1/colors.sh" && printf '%s' "$C_GROUND" ); }
-BRAVE_NTP="light-dark(#$(ground light), #$(ground dark))"
-# The new tab is kept to its search box: Brave draws its widgets (the stats card above
-# all) for dark pictures, and on paper they would be grey on grey.
-BRAVE_SET='(if (.extensions.theme.id // "") == "" then .extensions.theme.system_theme = 1 else . end)
-  | .brave.new_tab_page.background = {type: "color", random: false, selected_value: $ntp}
-  | .brave.new_tab_page.show_stats = false | .brave.new_tab_page.hide_all_widgets = true'
-# (a theme you install from the Web Store replaces GTK mode — Brave then drops it: left be)
-BRAVE_OK='((.extensions.theme.id // "") != "" or .extensions.theme.system_theme == 1)
-  and .brave.new_tab_page.background.type == "color" and .brave.new_tab_page.background.selected_value == $ntp
-  and .brave.new_tab_page.hide_all_widgets == true'
-BRAVE_MARK="$BRAVE_NTP · widgets off"         # what the marker below records (a new one: set again)
-BRAVE_PREFS=()
-for BP in "$BRAVE_DIR"/Default/Preferences "$BRAVE_DIR"/Profile\ */Preferences; do
-  [[ -f $BP ]] && BRAVE_PREFS+=("$BP")
-done
-((${#BRAVE_PREFS[@]})) || BRAVE_PREFS=("$BRAVE_DIR/Default/Preferences")   # before the first start
-for BP in "${BRAVE_PREFS[@]}"; do
-  TOTAL=$((TOTAL + 1))
-  BM="$STATE/brave-$(printf '%s' "$BP" | sha1sum | cut -c1-12)"     # set once: the colours it got
-  if [[ -s $BP ]] && jq -e --arg ntp "$BRAVE_NTP" "$BRAVE_OK" "$BP" >/dev/null 2>&1; then
-    ((CHECK)) || [[ $(cat "$BM" 2>/dev/null) == "$BRAVE_MARK" ]] || { printf '%s\n' "$BRAVE_MARK" | U tee "$BM" >/dev/null; }
-    continue
-  fi
-  [[ $(cat "$BM" 2>/dev/null) == "$BRAVE_MARK" ]] && continue          # changed in Brave since: yours
-  if ((CHECK)); then DRIFT+=("$BP (Brave not in the desktop's colours)")
-  elif U brave-origin --is-open; then
-    log "Brave is open: its colours are set by the next Theme run (or Settings → Appearance → Theme → GTK)"
-  else
-    BT=$(mktemp)
-    if [[ -s $BP ]]; then
-      if ! jq --arg ntp "$BRAVE_NTP" "$BRAVE_SET" "$BP" >"$BT" 2>/dev/null; then
-        log "Brave's Preferences does not read as JSON — left alone ($BP)"; rm -f "$BT"; continue
-      fi
-    else
-      jq -n --arg ntp "$BRAVE_NTP" "$BRAVE_SET" >"$BT"
-    fi
-    uinstall 0600 "$BT" "$BP"; rm -f "$BT"
-    printf '%s\n' "$BRAVE_MARK" | U tee "$BM" >/dev/null
-    CHANGED+=("$BP (Brave: the desktop's colours, a ground-coloured new tab)")
-  fi
-done
-# Widevine, Brave's player for protected media — Spotify's web player (the launcher's Spotify)
-# plays nothing without it: switched on once, as brave://settings switches it (its Local
-# State: brave.widevine_opted_in), while Brave is closed and before its first start too.
-# Switched off in Brave afterwards, it stays off (the marker says it was set once).
-BRAVE_LS="$BRAVE_DIR/Local State" BWM=$STATE/brave-widevine
-TOTAL=$((TOTAL + 1))
-if [[ -s $BRAVE_LS ]] && jq -e '.brave.widevine_opted_in == true' "$BRAVE_LS" >/dev/null 2>&1; then
-  ((CHECK)) || [[ -e $BWM ]] || U touch "$BWM"
-elif [[ -e $BWM ]]; then :                                            # switched off in Brave since: yours
-# (Brave open: its starter, ~/.local/bin/brave-origin, switches it on before Brave's next start
-# — Brave writes Local State again as it closes, so nothing may write it now; no drift either)
-elif U brave-origin --is-open; then
-  ((CHECK)) || log "Brave is open: Widevine goes on at its next start (its starter switches it on) — close Brave and start it again"
-elif ((CHECK)); then DRIFT+=("$BRAVE_LS (Widevine off: Spotify's web player cannot play)")
-else
-  BT=$(mktemp)
-  if [[ ! -s $BRAVE_LS ]]; then jq -n '.brave.widevine_opted_in = true' >"$BT"
-  elif ! jq '.brave.widevine_opted_in = true' "$BRAVE_LS" >"$BT" 2>/dev/null; then
-    log "Brave's Local State does not read as JSON — Widevine left as it is ($BRAVE_LS)"; : >"$BT"
-  fi
-  if [[ -s $BT ]]; then
-    uinstall 0600 "$BT" "$BRAVE_LS"; U touch "$BWM"
-    CHANGED+=("$BRAVE_LS (Brave: Widevine on, for Spotify's web player)")
+    uinstall 0644 "$BT" "$BROWSER_USR_DESKTOP"
+    CHANGED+=("$BROWSER_USR_DESKTOP (the browser starts with screen-share sound)")
   fi
   rm -f "$BT"
 fi
+retire .local/bin/brave-origin 'Brave Origin'
+# (the night the browser changed, stale names led to it until this ran: a link, nothing else)
+if [[ -L /usr/bin/brave-origin-stable ]]; then R rm -f /usr/bin/brave-origin-stable || true; fi
+retire .local/share/applications/brave-origin.desktop 'brave'
+retire .local/share/applications/com.brave.Origin.desktop 'brave'
+
+# ── 4c. The browser: the desktop's colours, its first start ──────────────────
+# Chromium's GTK theme mode paints Helium's tab strip, toolbar, menus and dialogs from the GTK
+# theme (Fedokawaii / -dark: the .chromium rules there are for the browser alone) and follows
+# every switch live; web pages follow the portal's dark/light. The layout is Helium's compact one
+# (the address and the tabs on one row: more page on one monitor), square, no profile or puzzle
+# button (what a key or its menu reaches stays in its menu). Its first-start page is answered:
+# Helium's services on (its web store, uBlock's lists, the spelling dictionaries, all through its
+# anonymous proxy: helium.computer). Its seed colour, what its own pages and focus rings are made
+# from, the desktop's shu (#C73E1D, as Chromium keeps it: a signed ARGB number), never its blue. Old
+# windows never come back: a start opens one new window (restore_on_startup 5, his word of 4 Nov,
+# after windows of an earlier session flooded a login). These are settings of each profile (its Preferences, rewritten
+# by Helium while it runs): set only while it is closed, and before its first start too — once per
+# profile (and again only if this list changes): what you choose in Helium afterwards stays.
+BROWSER_DIR="$TARGET_HOME/.config/net.imput.helium"
+BROWSER_SET='.extensions.theme.system_theme = 1
+  | .helium.completed_onboarding = true | .helium.services.user_consented = true | .helium.services.schema_version = 1
+  | .helium.browser.layout = 1 | .helium.browser.rounded_frame = false
+  | .helium.browser.show_avatar_button = false | .helium.browser.show_extensions_button = false
+  | .browser.theme.user_color2 = -3719651 | .browser.theme.is_grayscale2 = false
+  | .ntp.shortcust_visible = false | .session.restore_on_startup = 5'
+BROWSER_OK='.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true and .helium.browser.layout == 1 and .session.restore_on_startup == 5'
+BROWSER_MARK="compact · square · GTK · shu · services on · no old windows"      # what the marker below records (a new one: set again)
+BROWSER_PREFS=()
+for BP in "$BROWSER_DIR"/Default/Preferences "$BROWSER_DIR"/Profile\ */Preferences; do
+  [[ -f $BP ]] && BROWSER_PREFS+=("$BP")
+done
+((${#BROWSER_PREFS[@]})) || BROWSER_PREFS=("$BROWSER_DIR/Default/Preferences")   # before the first start
+for BP in "${BROWSER_PREFS[@]}"; do
+  TOTAL=$((TOTAL + 1))
+  BM="$STATE/browser-$(printf '%s' "$BP" | sha1sum | cut -c1-12)"     # set once: what it got
+  if [[ -s $BP ]] && jq -e "$BROWSER_OK" "$BP" >/dev/null 2>&1; then
+    ((CHECK)) || [[ $(cat "$BM" 2>/dev/null) == "$BROWSER_MARK" ]] || { printf '%s\n' "$BROWSER_MARK" | U tee "$BM" >/dev/null; }
+    continue
+  fi
+  [[ $(cat "$BM" 2>/dev/null) == "$BROWSER_MARK" ]] && continue          # changed in Helium since: yours
+  if ((CHECK)); then DRIFT+=("$BP (the browser not in the desktop's colours)")
+  elif U kawa-browser --is-open; then
+    log "the browser is open: its colours and layout are set by the next Theme run"
+  else
+    BT=$(mktemp)
+    if [[ -s $BP ]]; then
+      if ! jq "$BROWSER_SET" "$BP" >"$BT" 2>/dev/null; then
+        log "the browser's Preferences does not read as JSON — left alone ($BP)"; rm -f "$BT"; continue
+      fi
+    else
+      jq -n "$BROWSER_SET" >"$BT"
+    fi
+    uinstall 0600 "$BT" "$BP"; rm -f "$BT"
+    printf '%s\n' "$BROWSER_MARK" | U tee "$BM" >/dev/null
+    CHANGED+=("$BP (the browser: the desktop's colours, its compact layout)")
+  fi
+done
 
 # ── 4d. Syncplay: watching together ──────────────────────────────────────────
 # ~/.config/syncplay.ini is Syncplay's own: it writes the whole file again whenever you change
@@ -915,21 +913,43 @@ else
   esac
 fi
 
+# ── 4f. FireAlpaca (Sketch): what it starts from ─────────────────────────────
+# Once (state: firealpaca-seed), into the folder it keeps its own files in: Wada's palette, the few
+# brushes, the panels laid out, its settings (no Alpaca and pixiv buttons on the canvas, a new canvas
+# the screen's shape on white paper). It writes all of them again as you work: after this they are
+# yours, and a file already there (FireAlpaca started before) is left as it is.
+FA_SEED=$REPO_DIR/configs/firealpaca
+FA_HOME=$TARGET_HOME/.local/share/FireAlpaca/FireAlpaca
+FA_DONE=$TARGET_HOME/.local/state/fedokawaii/firealpaca-seed
+TOTAL=$((TOTAL + 1))
+if [[ ! -e $FA_DONE ]]; then
+  if ((CHECK)); then DRIFT+=("$FA_HOME (FireAlpaca's starting files not there yet)")
+  else
+    for f in "$FA_SEED"/*; do
+      [[ -e $FA_HOME/${f##*/} ]] || U cat -- "$f" | uinstall 0644 /dev/stdin "$FA_HOME/${f##*/}"
+    done
+    U bash -c 'mkdir -p "${1%/*}" && : >"$1"' _ "$FA_DONE"
+    CHANGED+=("$FA_HOME (Wada's palette, the brushes, the panels: FireAlpaca's starting files)")
+  fi
+fi
+
 # ── 4b. the desktop's own C helpers (src/, built with the tools that build dwl) ──
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
 #   kawa-saver     the screensaver (and the lock behind it: away 15 minutes, kawa-idle)
 #   kawa-lockmod   the lock screen's keys and wake guard (a gtklock module, GTK 3's headers)
+#   kawa-firealpaca  FireAlpaca dressed as the desktop (loaded into it by kawa-sketch; no Qt headers)
+#   kawa-rgb       every light, one steady red: a service of the system's (root takes the built file)
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
-TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod)
-tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/kawa-lockmod.so" ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
+TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod kawa-firealpaca)
+((DWL_MINE == 0)) || TOOLS+=(kawa-rgb)        # (the system's own, as dwl: the desktop user's to build)
+tool_dest() { case $1 in kawa-lockmod|kawa-firealpaca) echo "$TARGET_HOME/.local/lib/fedokawaii/$1.so" ;; kawa-rgb) echo /usr/local/bin/kawa-rgb ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
 tool_sum() { local s x f=() d=$REPO_DIR/src/$1
   for x in "$d/Makefile" "$d"/*.c "$d"/*.h "$d"/*.xml; do [[ -f $x ]] && f+=("$x"); done
   s=$(cat "${f[@]}" | sha256sum); printf '%s' "${s%% *}"; }
 tool_current() { [[ -f $(tool_dest "$1") && $(cat "$STATE/$1.sha256" 2>/dev/null) == "$(tool_sum "$1")" ]]; }
 TOTAL=$((TOTAL + ${#TOOLS[@]}))
-
 if ((CHECK)); then
   # the boot menu and console, the part the theme run carries on without (it says so): one it
   # could not make is a warning, not drift — else verify's final check would stop setup on it
@@ -986,7 +1006,14 @@ for t in "${TOOLS[@]}"; do
   tar -C "$REPO_DIR/src/$t" -cf - . | U tar -C "$VB" -xf - --no-same-owner   # (unpacked by you)
   # (what root hands on goes through a pipe, never through a file in your folder)
   U make -s -C "$VB" O="$VB" >>"$LOG_FILE" 2>&1 || { U rm -rf "$VB"; die "$t failed to build from src/$t — see $LOG_FILE"; }
-  U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$(tool_dest "$t")"
+  if [[ $(tool_dest "$t") == /usr/local/bin/* ]]; then
+    # (a service of the system's: root takes the one file in, as it does dwl)
+    R env TARGET_USER="$TARGET_USER" TARGET_HOME="$TARGET_HOME" TARGET_UID="$TARGET_UID" \
+      bash -c '. "$1/lib/common.sh"; take_built "$2" "$3" 0755' _ "$REPO_DIR" "$VB/$t" "$(tool_dest "$t")" \
+      || die "$t failed to install — see $LOG_FILE"
+  else
+    U cat -- "$VB/$t" | uinstall 0755 /dev/stdin "$(tool_dest "$t")"
+  fi
   tool_sum "$t" | uinstall 0644 /dev/stdin "$STATE/$t.sha256"
   CHANGED+=("$(tool_dest "$t") (built)")
   U rm -rf "$VB"
@@ -994,16 +1021,24 @@ done
 
 # ── 5. derived state ─────────────────────────────────────────────────────────
 if changed /etc/dconf/; then R dconf update; ok "dconf defaults compiled"; fi
+# the lights: the tool, its units, its colours changed, or the service not enabled (it was, once)
+if changed kawa-rgb || changed /etc/fedokawaii/rgb.conf || ! R systemctl is-enabled --quiet kawa-rgb.service; then
+  R systemctl daemon-reload
+  R systemctl enable --quiet kawa-rgb.service kawa-rgb-sleep.service
+  R systemctl restart kawa-rgb.service
+  ok "the lights: one steady red (kawa-rgb)"
+fi
 # new rules or the icon font: its folder touched first — a font rewritten in place leaves the
 # folder's mtime as it was, and fontconfig would go on serving the cache of the old one
 if changed /.local/share/fonts/; then U touch "$TARGET_HOME/.local/share/fonts"; fi
 if changed /fontconfig/ || changed /.local/share/fonts/; then U fc-cache -f; fi
 # (a face replaced under the running bar and notices: they start again — session_fonts_reload)
 if changed /.local/share/fonts/; then session_fonts_reload; fi
-# the colourscheme plugin is fetched the first time its spec appears — install only: the
-# plugins you have stay at their versions (they move with update, which keeps the old ones)
-if changed /nvim/lua/plugins/ && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then
-  U timeout 900 nvim --headless '+Lazy! install' +qa >>"$LOG_FILE" 2>&1 && ok "neovim plugins installed (colourscheme)"
+# neovim's plugins when their list or their lock changed: each at the lock's commit, what is off
+# the list gone (the lock is this toolkit's: tested together, setup.sh nvim_restore)
+if { changed /nvim/lua/plugins/ || changed /nvim/lazy-lock.json; } && [[ -f $TARGET_HOME/.config/nvim/init.lua ]]; then
+  U timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' '+Lazy! load nvim-treesitter' '+lua require("config.prefetch").sync()' +qa >>"$LOG_FILE" 2>&1 \
+    && ok "neovim's plugins at their lock's commits, its parsers as listed"
 fi
 # API keys live only here, read into the environment by the shell: yours alone (600)
 SECRETS=$TARGET_HOME/.config/fedokawaii/secrets.sh
@@ -1040,7 +1075,7 @@ if [[ $WALLPAPER_PACK == yes ]]; then
 fi
 # GTK, libadwaita and the portal take the theme from your dconf settings, not a file
 U kawa-theme settings || log "GTK settings follow the theme at your next login (no user D-Bus now)"
-# the prompt, aliases and torrra come from ~/.bashrc.d, which Fedora's ~/.bashrc reads; one
+# the prompt and aliases come from ~/.bashrc.d, which Fedora's ~/.bashrc reads; one
 # that does not (replaced by hand, or by a dotfiles tool) gets Fedora's few lines added
 if ! grep -qs 'bashrc.d' "$TARGET_HOME/.bashrc"; then
   U tee -a "$TARGET_HOME/.bashrc" >/dev/null <<'RC' || die "could not add ~/.bashrc.d to ~/.bashrc"
@@ -1118,4 +1153,8 @@ else
 fi
 # the backups: the newest ten runs kept (each folder holds only what that run replaced)
 prune_theme_backups U >/dev/null
+# (the fixer's kept edits on what setup, not this run, writes: /etc's files — lib/fixer.sh)
+if [[ -n $(compgen -G '/var/lib/fedokawaii/update/fixes/*.json') && -x /usr/local/sbin/kawa-fixer ]]; then
+  R /usr/local/sbin/kawa-fixer reapply --fixes /var/lib/fedokawaii/update/fixes --home "$TARGET_HOME" --root / >>"$LOG_FILE" 2>&1 || log "the fixer's kept edits could not be laid over /etc's files"
+fi
 T=$(mktemp); date '+%F %T' >"$T"; uinstall 0644 "$T" "$STATE/theme-applied"; rm -f "$T"

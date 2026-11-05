@@ -12,7 +12,7 @@ config .config/fedokawaii/env
 # a stand-in that is something you see: its start is stamped in $TMP/acts
 seen() { stub "$1" "echo \"$1 \$(date +%s%N)\" >>\"\$TMP/acts\"${2:+; $2}"; }
 slow() { stub "$1" "sleep $2${3:+; $3}"; }   # a stand-in that only takes its time
-for p in fuzzel footclient kawa-panel wtype kawa-osd steam notify-send; do seen "$p"; done
+for p in fuzzel footclient kawa-panel wtype kawa-osd notify-send; do seen "$p"; done
 seen playerctl; seen wpctl 'echo "Volume: 0.50"'
 slow nmcli 1; slow bluetoothctl 1; slow curl 3; slow busctl 1; slow pw-dump 1 'echo "[]"'; slow udisksctl 1
 slow makoctl 0.01

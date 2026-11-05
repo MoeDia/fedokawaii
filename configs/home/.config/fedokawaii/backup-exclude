@@ -10,18 +10,8 @@
 @HOME@/Downloads
 @HOME@/.cache
 @HOME@/.local/share/Trash
-# Steam: the games (Steam downloads them again) and the shader caches — the saves of Windows
-# games (steamapps/compatdata) and Steam's own settings stay in
-@HOME@/.local/share/Steam/steamapps/common
-@HOME@/.local/share/Steam/steamapps/downloading
-@HOME@/.local/share/Steam/steamapps/shadercache
-@HOME@/.local/share/Steam/steamapps/temp
-@HOME@/.local/share/Steam/ubuntu12_32
-@HOME@/.local/share/Steam/ubuntu12_64
-# GE-Proton: update fetches it
-@HOME@/.local/share/Steam/compatibilitytools.d
-# uv's Pythons and torrra's environment (setup and update make them), neovim's plugins and language servers (update
-# fetches them; ~/.config/nvim/lazy-lock.json, which is backed up, holds their versions)
+# uv's Pythons (setup and update make them), neovim's plugins and language servers (update
+# fetches them, at the versions of ~/.config/nvim/lazy-lock.json, which is the desktop's own)
 @HOME@/.local/share/uv
 @HOME@/.local/share/nvim/lazy
 @HOME@/.local/share/nvim/mason
@@ -31,12 +21,12 @@
 @HOME@/.local/share/fedokawaii/upstream
 @HOME@/.local/share/fedokawaii/wallpapers
 # the browser's caches (its bookmarks, passwords and settings stay in)
-@HOME@/.config/BraveSoftware/*/*/Cache
-@HOME@/.config/BraveSoftware/*/*/Code Cache
-@HOME@/.config/BraveSoftware/*/*/GPUCache
-@HOME@/.config/BraveSoftware/*/*/Service Worker/CacheStorage
-@HOME@/.config/BraveSoftware/*/*/DawnGraphiteCache
-@HOME@/.config/BraveSoftware/*/*/DawnWebGPUCache
-@HOME@/.config/BraveSoftware/*/ShaderCache
+@HOME@/.config/net.imput.helium/*/Cache
+@HOME@/.config/net.imput.helium/*/Code Cache
+@HOME@/.config/net.imput.helium/*/GPUCache
+@HOME@/.config/net.imput.helium/*/Service Worker/CacheStorage
+@HOME@/.config/net.imput.helium/*/DawnGraphiteCache
+@HOME@/.config/net.imput.helium/*/DawnWebGPUCache
+@HOME@/.config/net.imput.helium/ShaderCache
 # a backup of a backup: what restore put back is already in one
 @HOME@/Restored

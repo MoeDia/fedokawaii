@@ -1,0 +1,9 @@
+# /etc/systemd/system/kawa-asobi-watch.service — while the play world runs: which VT is in front
+# (kawa-asobi-root watch: a world with a game in it is frozen behind the desktop, thawed in front).
+[Unit]
+Description=ASOBI: freezes the world behind the desktop, thaws it in front
+# (the session unit starts it, and kawa-asobi-root poststop stops it)
+
+[Service]
+Type=simple
+ExecStart=/usr/local/sbin/kawa-asobi-root watch

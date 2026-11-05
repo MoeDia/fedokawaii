@@ -1,0 +1,13 @@
+#!/bin/bash
+# sysctl of the fake Fedora: -p FILE puts FILE's network keys in force ($FKH/sysctl-now, as the file
+# says; the file a key of another machine, $FKH/sysctl-now.d/KEY, overrides); -n KEY reads them
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+case " $* " in
+  *" -p "*) cp -- "${!#}" "$FKH/sysctl-now" ;;
+  *" -n "*) k=${!#}
+    [[ -f $FKH/sysctl-now.d/$k ]] && { cat "$FKH/sysctl-now.d/$k"; exit 0; }
+    case $k in net.ipv4.ip_forward|net.ipv6.conf.all.forwarding) echo 0; exit 0 ;; esac
+    awk -v k="$k" -F' *= *' '$1 !~ /^#/ && NF == 2 { g = $1; gsub(/\./, "\\.", g); gsub(/\*/, "[^.]*", g); if (k ~ "^" g "$") v = $2 } END { if (v == "") exit 1; print v }' "$FKH/sysctl-now" 2>/dev/null || exit 255 ;;
+esac
+exit 0

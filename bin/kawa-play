@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kawa-play — videos and music open in the mpv window already open: what you open (Enter in
-# yazi, a download in Brave, any xdg-open) replaces what plays there, so one window serves
+# yazi, a download in Helium, any xdg-open) replaces what plays there, so one window serves
 # the evening. A film opened while Syncplay's player is open goes to that one: Syncplay sees
 # the new file and tells the room. With no mpv open, a new window.
 #

@@ -4,8 +4,8 @@
 # then runs. Away: no key, click or move for MIN minutes — dwl's own count (ext-idle-notify,
 # through swayidle, read only: nothing is drawn, nothing locks), which a playing video's idle
 # inhibitor holds back — and at that moment no microphone running (a call: PipeWire's source node
-# in use; the bar's visualizer listens to a sink's monitor, not a source) and no game (Steam's
-# reaper). His session found as the bar's (waybar's environment); a new session (a login, a
+# in use; the bar's visualizer listens to a sink's monitor, not a source) and the desktop in front
+# (the play world on its VT: he is playing, whatever dwl counts). His session found as the bar's (waybar's environment); a new session (a login, a
 # restart) is followed. Logs one line a change to stderr.
 #   bash tools/away.sh [--min M] [--hours H] -- COMMAND [ARG…]
 #     --min    minutes without input (default 30)
@@ -46,8 +46,8 @@ while ((SECONDS < end)); do
       say "watching his session (waybar $bar): $min min without input"
     fi
   fi
-  if [[ -e $flag ]] && ! mic_open && ! pgrep -x reaper >/dev/null; then
-    say "away: $min min without input, no call, no game — running: $*"
+  if [[ -e $flag ]] && ! mic_open && [[ $(cat /sys/class/tty/tty0/active 2>/dev/null) == tty1 ]]; then
+    say "away: $min min without input, no call, the desktop in front — running: $*"
     kill "$probe" 2>/dev/null
     probe=""
     "$@"

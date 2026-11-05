@@ -58,8 +58,8 @@ on-button-left=invoke-default-action
 [app-name=drives urgency=critical]
 default-timeout=0
 
-# a finished download (kawa-downloads: a torrent, Brave's, a Steam game): 8 s, and a click
-# opens it — the file under yazi's cursor, or Steam's downloads
+# a finished download (kawa-downloads: a torrent, Helium's): 8 s, and a click opens it — the
+# file under yazi's cursor
 [app-name=downloads]
 default-timeout=8000
 on-button-left=invoke-default-action
@@ -111,7 +111,7 @@ group-by=none
 [mode=sharing urgency=critical]
 invisible=0
 
-# while a game runs (game mode: kawa-game): the same rules
+# while the play world is in front (kawa-hush on game, from kawa-asobi-root): the same rules
 [mode=game]
 invisible=1
 group-by=none

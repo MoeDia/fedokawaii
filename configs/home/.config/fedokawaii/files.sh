@@ -4,7 +4,7 @@
 # shellcheck shell=bash
 
 # free_name PATH [dir] — PATH while nothing is there, else the next free "name (1).ext", "name (2).ext"…
-# beside it, as Brave names a second download: nothing is ever written over (dir: a folder's
+# beside it, as Helium names a second download: nothing is ever written over (dir: a folder's
 # name, never split at a dot — "v1.2 (1)", not "v1 (1).2")
 free_name() {
   local dir=${1%/*} stem=${1##*/} ext="" n=1

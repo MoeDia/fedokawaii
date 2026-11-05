@@ -1,10 +1,11 @@
 #!/usr/bin/env bash
 # kawa-calendar — click the date (or Super+C): this month as a dropdown, a grid of the panel's
-# (kawa-menu; docs/design-system.md): the calendar icon and the month, the weekdays, six weeks of days —
-# today stamped, the days of the months either side dim — and three keys under it: previous,
-# next, today — paged in place, the same window redrawn at once (kawa-menu --stay). Paging
-# keeps the cursor on the key that paged; Esc or a click elsewhere closes
-# it. Weeks start on Monday. No arguments (--help: this text).
+# (kawa-menu; docs/design-system.md): the month's flower (the twelve of the hanafuda) and its name, the
+# weekdays, six weeks of days — today a filled seal, Sunday in the seal's red and Saturday in indigo as a
+# Japanese calendar has them, the days of the months either side dim — and its keys in the footer:
+# ← previous, → next, t today (or a click on them), paged in place, the same window redrawn at
+# once (kawa-menu --stay); Esc or a click elsewhere closes it. Weeks start on Monday. No arguments
+# (--help: this text).
 set -u
 case ${1:-} in
   "") ;;
@@ -19,7 +20,7 @@ sel=()                                  # (opened clean; after paging, on the ke
 while :; do
   # today read once: at midnight a second reading could be the next day (the 1st marked
   # in the month just ending, or no day marked at all)
-  now=$(date +%Y-%m-%d) || exit 1
+  read -r now week < <(date '+%Y-%m-%d %V') || exit 1
   # the month (short and in English, like every date on the desktop: "Oct 2026"), its last
   # day and the last of the month before — one date for all three (a page is drawn at once)
   m="${now%-*}-01 $off month"
@@ -29,19 +30,22 @@ while :; do
 
   rows=()
   line() { local IFS=$'\t'; rows+=("$*"); }
-  line part "$ICON_CALENDAR" "$mname $year"
-  for w in Mo Tu We Th Fr Sa Su; do line cell "$w" head; done
+  # (the week it is, at the heading's end, where the month holds today)
+  line part "@month-$month" "$mname $year" "${today:+week $week}"
+  for w in Mo Tu We Th Fr; do line cell "$w" head; done
+  line cell Sa head-sat; line cell Su head-sun
   # six weeks always (the grid never changes height as it pages): the month before's last
   # days, this month's, then the next one's first, those two dim
   for ((d = 10#$before - lead + 2; d <= 10#$before; d++)); do line cell "$d" dim; done
   for ((d = 1; d <= 10#$days; d++)); do
-    if [[ $d == "$today" ]]; then line cell "$d" today; else line cell "$d"; fi
+    case $(( (lead - 1 + d - 1) % 7 )) in 5) w=sat ;; 6) w=sun ;; *) w="" ;; esac
+    if [[ $d == "$today" ]]; then line cell "$d" today; else line cell "$d" $w; fi
   done
   for ((d = 1; ${#rows[@]} < 1 + 7 + 42; d++)); do line cell "$d" dim; done
   k=${#rows[@]}                                   # (the keys' lines: previous, next, today)
-  line key "$ICON_CHEVRON_LEFT" previous
-  line key "$ICON_CHEVRON_RIGHT" next
-  line key "$ICON_CALENDAR" today
+  line hint 'Left|h' previous
+  line hint 'Right|l' next
+  line hint t today
 
   # (--stay: a key answers and the dropdown stays — the next month drawn in its place, no
   # close and open between; a click while it comes is done on it)

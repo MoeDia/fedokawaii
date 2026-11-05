@@ -6,6 +6,8 @@
 # hidden files always shown, dotfiles too (the owner, 27 Oct) — here and in the file dialog,
 # which reads this same file (kawa-pick); `.` puts them away for the moment
 show_hidden = true
+# the list's two columns, how big and how old (init.lua's Linemode:kawa)
+linemode = "kawa"
 
 [plugin]
 # a PDF's preview through kawa-pdf (yazi's own, but a locked PDF says so in the desktop's
@@ -17,6 +19,43 @@ prepend_previewers = [
   { mime = "application/{rar,vnd.rar,x-rar,x-rar-compressed}", run = "kawa-rar" },
 ]
 prepend_preloaders = [ { mime = "application/pdf", run = "kawa-pdf" } ]
+# how many a folder holds, for the list's size column, without the cursor having been over it (its own group: mime's still run)
+prepend_fetchers = [ { url = "local://*/", run = "kawa-count", prio = "low", group = "kawa-count" } ]
+
+# yazi's own list of previewers (yazi-default.toml, 26.9.1), two of them ours: a folder's rows with the desktop's words for what
+# is not there yet (kawa-folder) and, for what yazi has no picture of — a binary, an empty file —, a card of its facts
+# (kawa-card): the pane always shows something
+previewers = [
+  { mime = "folder/*", run = "kawa-folder" },
+  { mime = "text/*", run = "code" },
+  { mime = "application/{mbox,javascript,wine-extension-ini}", run = "code" },
+  { mime = "application/{json,ndjson}", run = "json" },
+  { mime = "image/{avif,hei?,jxl}", run = "magick" },
+  { mime = "image/svg+xml", run = "svg" },
+  { mime = "image/*", run = "image" },
+  { mime = "video/*", run = "video" },
+  { mime = "application/pdf", run = "pdf" },
+  { mime = "application/{zip,rar,7z*,tar,gzip,xz,zstd,bzip*,lzma,compress,archive,cpio,arj,xar,ms-cab*}", run = "archive" },
+  { mime = "application/{debian*-package,redhat-package-manager,rpm,android.package-archive}", run = "archive" },
+  { url = "*.{AppImage,appimage}", run = "archive" },
+  { mime = "application/{iso9660-image,qemu-disk,ms-wim,apple-diskimage}", run = "archive" },
+  { mime = "application/virtualbox-{vhd,vhdx}", run = "archive" },
+  { url = "*.{img,fat,ext,ext2,ext3,ext4,squashfs,ntfs,hfs,hfsx}", run = "archive" },
+  { mime = "font/*", run = "font" },
+  { mime = "application/ms-opentype", run = "font" },
+  { mime = "vfs/*", run = "vfs" },
+  { mime = "trash/**", run = "trash" },
+  { mime = "null/*", run = "null" },
+  { url = "*", run = "kawa-card" },
+]
+
+# Tab's pop-up: the card's facts in the pop-ups' frame, for all but what only yazi can sum: a virtual file system's, the trash's
+spotters = [
+  { mime = "vfs/*", run = "vfs" },
+  { mime = "trash/**", run = "trash" },
+  { url = "*", run = "kawa-card" },
+  { url = "*/", run = "kawa-card" },
+]
 
 [opener]
 # File tools (Super+D's): unpack, list, test — unrar inside, a password asked in place
@@ -28,3 +67,38 @@ prepend_rules = [
   { url = "*.{rar,cbr,RAR,CBR}", use = "file-tools" },
   { mime = "application/{rar,vnd.rar,x-rar,x-rar-compressed}", use = "file-tools" },
 ]
+
+# The pop-ups (the patched yazi, src/yazi/yazi.patch: §4's frame, §7's heading inside it): their words lower case, no
+# colon, a heading's; their rooms fitted. Rename's field lies over the name it renames: four rows up from under the row
+# (the ring, the heading, its paper), two columns out (the frame's own three, less the list's cell).
+[input]
+cd_title      = "go to"
+cd_offset     = [ 0, 4, 64, 5 ]
+create_title  = [ "new file", "new folder" ]
+create_offset = [ 0, 4, 64, 5 ]
+rename_title  = "rename"
+rename_offset = [ -2, -4, 64, 5 ]
+filter_title  = "filter"
+filter_offset = [ 0, 4, 64, 5 ]
+find_title    = [ "find next", "find previous" ]
+find_offset   = [ 0, 4, 64, 5 ]
+search_title  = "search with {n}"
+search_offset = [ 0, 4, 64, 5 ]
+shell_title   = [ "run", "run and wait" ]
+shell_offset  = [ 0, 4, 64, 5 ]
+
+[confirm]
+trash_title      = "trash {n} file{s}?"
+trash_offset     = [ 0, 0, 76, 26 ]
+delete_title     = "delete {n} file{s} for good?"
+delete_offset    = [ 0, 0, 76, 26 ]
+overwrite_title  = "overwrite?"
+overwrite_body   = "this one is there already:"
+overwrite_offset = [ 0, 0, 76, 13 ]
+quit_title       = "quit?"
+quit_body        = "tasks are still running (w shows them)"
+quit_offset      = [ 0, 0, 76, 18 ]
+
+[pick]
+open_title  = "open with"
+open_offset = [ -2, 1, 46, 12 ]

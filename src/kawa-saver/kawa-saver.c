@@ -1,34 +1,34 @@
 /*
- * kawa-saver — the screensaver: the lock's own scene, asleep (the owner, 4 Nov: "an upgrade to match the
- * new design").
+ * kawa-saver — the screensaver: the lock's own painting, asleep (the owner, 4 Nov: "an upgrade to match the
+ * new design"; one world with the lock; 19:11: a painting, never pixels).
  *
  *   kawa-saver         now (a look at it: any input ends it, nothing locks)
  *   kawa-saver --idle  away 15 minutes (kawa-idle, from swayidle: never while something
- *                      plays): the screensaver, with the lock under it — kawa-lock starts as
- *                      the saver shows, and dwl keeps the saver over the lock screen (its own
- *                      layer, for this program alone), so the first key or move only lifts
- *                      the sleep off a lock already there: no wait, no frame held.
- *                      A key pressed before the lock is up waits for it, so neither that key
+ *                      plays): the screensaver, with the lock under it — kawa-lock starts once
+ *                      the painting covers the screen, and dwl keeps the saver over the lock
+ *                      screen (its own layer, for this program alone). The first key or move only
+ *                      wakes the world: the fires leap, the dark lifts, and the painting opens from
+ *                      the figure's place outwards, soft-edged, onto the lock already there: the figure
+ *                      is in it. A key pressed before the lock is up waits for it, so neither that key
  *                      nor any after it reaches a window. Already locked (a lock you asked
  *                      for, then away): the saver over it. Switched off in quick settings
  *                      (~/.local/state/fedokawaii/saver: on, or off): the lock at once.
  *                      Should it not be able to show, it locks all the same.
  *
- * The mood's scene, dimmed, gate shut (saver-scene.ppm: tools/build-saver.py, from the lock's own
- * pictures), drawn on a grid of dots as big as a pixel of the wallpapers' pixel art (3 px at
- * 1080p, 4 at 1440p, 6 at 4K). Alive, quietly: the torches' flames (the lock's own frames, 8 a
- * second, the two out of step), embers rising from them on the dark, gold dust falling on the light;
- * the time on a small patch (the day's seal, as the bar's clock, and "09:41 PM", in the design
- * system's own letters: glyphs.h) in another corner every minute.
+ * What it shows is world.h's: the painting with no figure, the shade over it breathing with the fires, the lock's
+ * own flames, smoke and embers on the dark, gold dust and petals on the light, the time a small seal stamped
+ * somewhere else in the middle every minute. Twelve steps a second. Each is a layer of its own here (a subsurface,
+ * scaled up smooth by the compositor where it is small), so a step recomputes almost nothing and sends almost nothing.
  *
  * Any key, click, scroll or move of the pointer ends it — and goes nowhere else: it holds the
- * keyboard while it shows (a layer on top of everything, the bar too), and it waits for the
- * key or button to be let go before it leaves, so neither press nor release reaches a window.
- * It answers at once: dwl fades it away (180 ms) as it leaves.
- * Without --idle it ends too when the desktop locks (kawa-lock); it stays one at a time.
+ * keyboard while it shows (a layer on top of everything, the bar too), and without a lock it waits
+ * for the key or button to be let go before it leaves, so neither press nor release reaches a window.
+ * Without --idle it ends too when the desktop locks (kawa-lock); it stays one at a time. With the
+ * screens dark (away 30 minutes) nothing is drawn or computed at all: no frames asked for, no steps.
  *
- * 8 MB a 1080p screen or so, almost no CPU (12 steps a second, only the dots that changed are drawn).
- * Built by theme.sh (src/kawa-saver/Makefile). Exit: 0 · 1 it could not show (said on stderr) · 2 wrong use.
+ * About 20 MB, near no CPU, a little of the GPU only where something moved. render.c draws the same world to files, for
+ * the tests and the renders. Built by theme.sh (src/kawa-saver/Makefile).
+ * Exit: 0 · 1 it could not show (said on stderr) · 2 wrong use.
  */
 #define _GNU_SOURCE
 #include <errno.h>
@@ -36,45 +36,32 @@
 #include <limits.h>
 #include <poll.h>
 #include <signal.h>
-#include <stdbool.h>
-#include <stdint.h>
-#include <math.h>
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <sys/file.h>
 #include <sys/mman.h>
 #include <sys/stat.h>
 #include <sys/wait.h>
-#include <time.h>
 #include <unistd.h>
 #include <wayland-client.h>
 #include "wlr-layer-shell-unstable-v1-client-protocol.h"
-#include "glyphs.h"
+#include "viewporter-client-protocol.h"
+#include "world.h"
 
-/* ── the palette (current/saver.conf) ───────────────────────────────────────────────── */
-enum { GROUND, SURFACE, EDGE2, THREAD, SHADE, TEXT, ACCENT, ACCENT_TEXT, NCOL };
-static const char *colour_names[NCOL] = {
-	"ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text",
-};
-static uint32_t pal[NCOL];
+#define DARK_MS 1000     /* a frame asked for and not given for so long: the screens are dark */
+#define WOKEN_MS 1000    /* screens lit by the key: the monitor finds its signal, then the world wakes (with WAKE_MS, inside dwl's SAVER_GUARD_MS, whatever lit them) */
 
-#define TILE 16         /* what is redrawn at once, in dots */
-#define SEAL 24         /* a seal, as the panels draw it: the kanji (14) with 4 of paper and 1 of frame round it */
-#define GAP GLYPH_COL   /* a gap, as the panels keep: a column of the letters */
-#define NSPARK 28       /* the embers, the gold dust */
-#define FLAME_MS 125    /* a flame's frame */
-
-struct buffer {
+struct shm_picture {
 	struct wl_buffer *wl;
-	uint32_t *px;
+	void *map;
 	size_t size;
 	bool busy;
-	uint8_t *dirty;     /* the tiles this picture has not been given yet */
 };
 
-struct rect { int x, y, w, h; };
-struct spark { bool live; float x, y, vx, vy; int age, life, px, py; };
+/* a layer on a screen: a subsurface, and how it is scaled */
+struct sub {
+	struct wl_surface *surface;
+	struct wl_subsurface *subsurface;
+	struct wp_viewport *viewport;
+};
 
 struct output {
 	struct wl_list link;
@@ -83,50 +70,41 @@ struct output {
 	int scale;
 	struct wl_surface *surface;
 	struct zwlr_layer_surface_v1 *layer;
+	struct wp_viewport *viewport;
 	int lw, lh;
 	bool configured, closed, waiting_frame, ready;
-	/* the picture, and the grid of dots it shows */
-	int W, H, bs, cw, ch, tw, th;
-	struct buffer buf[2];
-	uint32_t *under;    /* the scene on this screen's grid (a colour a dot) */
-	uint32_t *dots;     /* what shows: the scene, the flames, the sparks and the clock over it */
-	int ox, oy;         /* the scene's corner on the grid */
-	struct spark sparks[NSPARK];
-	struct rect clock;
-	int clock_min, corner;
-	unsigned rng;
+	double asked_at;    /* when the frame waited for was asked for */
+	struct sub shade, haze, air, seal, anims[MAXANIM];
 };
-
-/* the mood's pictures (tools/build-saver.py) and lock-scene.txt's words */
-static struct {
-	int w, h;
-	unsigned char *rgb;
-	int fw, fh, frames, nflames, fx[4], fy[4];
-	unsigned char *flame;   /* its frames side by side, the key colour where nothing is */
-	bool dust;              /* the light mood: dust falling, not embers rising */
-	uint32_t spark[3];      /* a spark's ink as it lives: young, grown, old */
-} art;
 
 static struct wl_display *display;
 static struct wl_compositor *compositor;
+static struct wl_subcompositor *subcompositor;
 static struct wl_shm *shm;
+static struct wp_viewporter *viewporter;
 static struct zwlr_layer_shell_v1 *layer_shell;
 static struct wl_seat *seat;
 static struct wl_keyboard *keyboard;
 static struct wl_pointer *pointer;
 static struct wl_list outputs;
-static long tick;                         /* steps since the start */
-static int pace = 80;                     /* ms a step */
-static unsigned seed;
-static bool leaving;                      /* input came: gone once every key and button is up (with --idle: once the lock is) */
+static bool leaving;                      /* input came: gone once every key and button is up (with --idle: once the world has woken) */
 static bool idle_mode;                    /* --idle: the lock behind it */
-static pid_t lock_pid;                    /* kawa-lock, started as it shows (--idle) */
+static pid_t lock_pid;                    /* kawa-lock, started as it covers the screen (--idle) */
 static bool lock_started;
+static bool falling = true;               /* it comes over the screen */
+static double fall_at, wake_at, wake_from;   /* when they began; the time no wake begins before */
+static float front;                       /* how far from the figure's place it has opened, in pixels */
 static int held;                          /* keys and buttons down */
 static double leave_at;
 static bool moved_base;
 static double base_x, base_y;
 static volatile sig_atomic_t stop;
+
+static struct shm_picture pic_paint, pic_open, pic_shade, pic_haze, pic_air, pic_seal;
+static struct shm_picture *pic_frames[MAXANIM];
+static float front_was;
+static uint8_t *open_tiles;
+static bool seal_waits;
 
 static double now_ms(void)
 {
@@ -135,238 +113,74 @@ static double now_ms(void)
 	return (double)ts.tv_sec * 1e3 + (double)ts.tv_nsec / 1e6;
 }
 
-static unsigned rnd(struct output *o, unsigned n)
+static time_t real_time(void)
 {
-	o->rng = o->rng * 1103515245u + 12345u;
-	return n ? (o->rng >> 8) % n : 0;
+	return time(NULL);
 }
 
-/* ── the dots ───────────────────────────────────────────────────────────────────────── */
-static void dirty(struct output *o, int x, int y, int w, int h)
-{
-	if (x < 0) w += x, x = 0;
-	if (y < 0) h += y, y = 0;
-	if (x + w > o->cw) w = o->cw - x;
-	if (y + h > o->ch) h = o->ch - y;
-	if (w <= 0 || h <= 0)
-		return;
-	for (int ty = y / TILE; ty <= (y + h - 1) / TILE; ty++)
-		for (int tx = x / TILE; tx <= (x + w - 1) / TILE; tx++)
-			for (int b = 0; b < 2; b++)
-				if (o->buf[b].dirty)
-					o->buf[b].dirty[ty * o->tw + tx] = 1;
-}
-
-static void put(struct output *o, int x, int y, uint32_t c)
-{
-	if (x < 0 || y < 0 || x >= o->cw || y >= o->ch)
-		return;
-	size_t i = (size_t)y * (size_t)o->cw + (size_t)x;
-	if (o->dots[i] != c) {
-		o->dots[i] = c;
-		dirty(o, x, y, 1, 1);
-	}
-}
-
-static uint32_t under(struct output *o, int x, int y)
-{
-	return o->under[(size_t)y * (size_t)o->cw + (size_t)x];
-}
-
-static bool on_clock(struct output *o, int x, int y)
-{
-	struct rect *r = &o->clock;
-	return r->w && x >= r->x && x < r->x + r->w && y >= r->y && y < r->y + r->h;
-}
-
-static void fill(struct output *o, int x, int y, int w, int h, uint32_t c)
-{
-	for (int j = y; j < y + h; j++)
-		for (int i = x; i < x + w; i++)
-			put(o, i, j, c);
-}
-
-static const struct glyph *glyph_of(const char *ch, size_t n)
-{
-	for (size_t i = 0; i < sizeof glyphs / sizeof *glyphs; i++)
-		if (strlen(glyphs[i].ch) == n && !memcmp(glyphs[i].ch, ch, n))
-			return &glyphs[i];
-	return NULL;
-}
-
-static void draw_glyph(struct output *o, const struct glyph *g, int x, int y, uint32_t c)
-{
-	for (int r = 0; r < GLYPH_H; r++)
-		for (int b = 0; b < g->w; b++)
-			if (g->rows[r] >> (g->w - 1 - b) & 1)
-				put(o, x + b, y + r, c);
-}
-
-/* the ink's box inside the glyph's cell (a seal centres its ink) */
-static void ink(const struct glyph *g, int *x0, int *y0, int *x1, int *y1)
-{
-	*x0 = g->w, *y0 = GLYPH_H, *x1 = -1, *y1 = -1;
-	for (int r = 0; r < GLYPH_H; r++)
-		for (int b = 0; b < g->w; b++)
-			if (g->rows[r] >> (g->w - 1 - b) & 1) {
-				if (b < *x0) *x0 = b;
-				if (b > *x1) *x1 = b;
-				if (r < *y0) *y0 = r;
-				if (r > *y1) *y1 = r;
-			}
-}
-
-/* ── the flames ─────────────────────────────────────────────────────────────────────── */
-static void flames_step(struct output *o)
-{
-	int frame = (int)(tick * pace / FLAME_MS);
-	for (int i = 0; i < art.nflames; i++) {
-		int f = (frame + 3 * i) % art.frames;
-		for (int y = 0; y < art.fh; y++)
-			for (int x = 0; x < art.fw; x++) {
-				int dx = o->ox + art.fx[i] + x, dy = o->oy + art.fy[i] + y;
-				if (dx < 0 || dy < 0 || dx >= o->cw || dy >= o->ch || on_clock(o, dx, dy))
-					continue;
-				const unsigned char *p = art.flame + 3 * ((size_t)y * (size_t)art.fw * (size_t)art.frames
-						+ (size_t)f * (size_t)art.fw + (size_t)x);
-				bool none = p[0] == 255 && p[1] == 0 && p[2] == 255;
-				put(o, dx, dy, none ? under(o, dx, dy) : 0xff000000u | (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2]);
-			}
-	}
-}
-
-/* ── the sparks: embers rising from the torches, dust falling through the sky ─────────── */
-static void spark_new(struct output *o, struct spark *s)
-{
-	s->live = true, s->age = 0, s->px = s->py = -1;
-	if (art.dust) {
-		s->x = (float)rnd(o, (unsigned)o->cw), s->y = (float)rnd(o, (unsigned)o->ch / 2);
-		s->vx = ((float)rnd(o, 40) - 20) / 200.0f, s->vy = 0.12f + (float)rnd(o, 20) / 100.0f;
-		s->life = 90 + (int)rnd(o, 120);
-	} else {
-		int i = art.nflames ? (int)rnd(o, (unsigned)art.nflames) : 0;
-		s->x = (float)(o->ox + (art.nflames ? art.fx[i] + (int)rnd(o, (unsigned)art.fw) : (int)rnd(o, (unsigned)o->cw)));
-		s->y = (float)(o->oy + (art.nflames ? art.fy[i] + art.fh / 3 : o->ch - 1));
-		s->vx = ((float)rnd(o, 40) - 20) / 100.0f, s->vy = -0.35f - (float)rnd(o, 50) / 100.0f;
-		s->life = 40 + (int)rnd(o, 70);
-	}
-}
-
-static void sparks_step(struct output *o)
-{
-	for (int i = 0; i < NSPARK; i++) {
-		struct spark *s = &o->sparks[i];
-		if (!s->live) {
-			if (rnd(o, 40) == 0)
-				spark_new(o, s);
-			continue;
-		}
-		if (s->px >= 0 && !on_clock(o, s->px, s->py))
-			put(o, s->px, s->py, under(o, s->px, s->py));
-		if (++s->age > s->life) {
-			s->live = false;
-			continue;
-		}
-		s->vx += ((float)rnd(o, 21) - 10) / 400.0f;   /* (the air moves it) */
-		s->x += s->vx, s->y += s->vy;
-		s->px = (int)s->x, s->py = (int)s->y;
-		if (s->px < 0 || s->py < 0 || s->px >= o->cw || s->py >= o->ch) {
-			s->live = false;
-			continue;
-		}
-		if (!on_clock(o, s->px, s->py))
-			put(o, s->px, s->py, art.spark[3 * s->age / (s->life + 1)]);
-	}
-}
-
-/* the clock: a small patch — its seal the day's (月 … 日, as the bar's clock) and the time in text,
- * centred in it; wday as localtime counts it (Sunday 0) */
-static void draw_clock(struct output *o, const char *t, int wday)
-{
-	struct rect r = o->clock;
-	fill(o, r.x, r.y, r.w, r.h, pal[SURFACE]);
-	fill(o, r.x, r.y, r.w, 1, pal[EDGE2]);
-	fill(o, r.x, r.y + r.h - 1, r.w, 1, pal[EDGE2]);
-	fill(o, r.x, r.y, 1, r.h, pal[EDGE2]);
-	fill(o, r.x + r.w - 1, r.y, 1, r.h, pal[EDGE2]);
-	const struct glyph *g = glyph_of(saver_days + 3 * (wday % 7), 3);
-	int cw = SEAL + GAP + GLYPH_COL * (int)strlen(t), x = r.x + (r.w - cw) / 2, y = r.y + (r.h - SEAL) / 2;
-	if (g) {
-		int x0, y0, x1, y1;
-		ink(g, &x0, &y0, &x1, &y1);
-		draw_glyph(o, g, x + (SEAL - (x1 - x0 + 1)) / 2 - x0, y + (SEAL - (y1 - y0 + 1)) / 2 - y0, pal[ACCENT_TEXT]);
-	}
-	x += SEAL + GAP, y += (SEAL - GLYPH_H) / 2 + 1;
-	for (const char *p = t; *p; p++) {
-		const struct glyph *c = glyph_of(p, 1);
-		if (c)
-			draw_glyph(o, c, x, y, pal[TEXT]);
-		x += GLYPH_COL;
-	}
-}
-
-static void clock_step(struct output *o)
-{
-	time_t now = time(NULL);
-	struct tm tm;
-	localtime_r(&now, &tm);
-	if (tm.tm_min == o->clock_min && o->clock.w)
-		return;
-	char t[16];
-	strftime(t, sizeof t, "%I:%M %p", &tm);
-	struct rect old = o->clock;
-	int w = 8 + SEAL + GAP + GLYPH_COL * (int)strlen(t) + 8, h = SEAL + 8, m = 16;
-	o->corner = (o->corner + 1) % 4;      /* (another corner every minute) */
-	o->clock = (struct rect){ o->corner & 1 ? o->cw - w - m : m, o->corner & 2 ? o->ch - h - m : m, w, h };
-	o->clock_min = tm.tm_min;
-	if (old.w)
-		for (int y = old.y; y < old.y + old.h; y++)
-			for (int x = old.x; x < old.x + old.w; x++)
-				if (!on_clock(o, x, y))
-					put(o, x, y, under(o, x, y));
-	draw_clock(o, t, tm.tm_wday);
-}
-
-static void step(struct output *o)
-{
-	flames_step(o);
-	sparks_step(o);
-	clock_step(o);
-}
-
-/* ── the screens ────────────────────────────────────────────────────────────────────── */
+/* ── the pictures, shared with the compositor ───────────────────────────────────────── */
 static void buffer_release(void *data, struct wl_buffer *b)
 {
 	(void)b;
-	((struct buffer *)data)->busy = false;
+	((struct shm_picture *)data)->busy = false;
 }
 static const struct wl_buffer_listener buffer_listener = { .release = buffer_release };
-static uint32_t buffer_format = WL_SHM_FORMAT_XRGB8888;
 
-static bool make_buffer(struct output *o, struct buffer *b)
+static bool shm_make(struct shm_picture *s, int w, int h)
 {
-	int stride = o->W * 4;
-	b->size = (size_t)stride * (size_t)o->H;
+	int stride = w * 4;
+	s->size = (size_t)stride * (size_t)h;
 	int fd = memfd_create("kawa-saver", MFD_CLOEXEC);
-	if (fd < 0 || ftruncate(fd, (off_t)b->size) < 0) {
+	if (fd < 0 || ftruncate(fd, (off_t)s->size) < 0) {
 		if (fd >= 0) close(fd);
 		return false;
 	}
-	b->px = mmap(NULL, b->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
-	if (b->px == MAP_FAILED) {
+	s->map = mmap(NULL, s->size, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (s->map == MAP_FAILED) {
 		close(fd);
-		b->px = NULL;
+		s->map = NULL;
 		return false;
 	}
-	struct wl_shm_pool *pool = wl_shm_create_pool(shm, fd, (int32_t)b->size);
-	b->wl = wl_shm_pool_create_buffer(pool, 0, o->W, o->H, stride, buffer_format);
+	struct wl_shm_pool *pool = wl_shm_create_pool(shm, fd, (int32_t)s->size);
+	s->wl = wl_shm_pool_create_buffer(pool, 0, w, h, stride, WL_SHM_FORMAT_ARGB8888);
 	wl_shm_pool_destroy(pool);
 	close(fd);
-	wl_buffer_add_listener(b->wl, &buffer_listener, b);
-	b->dirty = malloc((size_t)o->tw * (size_t)o->th);
-	if (!b->dirty)
+	wl_buffer_add_listener(s->wl, &buffer_listener, s);
+	return true;
+}
+
+/* a strip's frames: one buffer each, in one pool, read-only once written: only attached */
+static bool frames_make(struct anim *a, struct shm_picture **out)
+{
+	size_t one = (size_t)a->w * (size_t)a->h * 4, all = one * (size_t)a->n;
+	int fd = memfd_create("kawa-saver", MFD_CLOEXEC);
+	if (fd < 0 || ftruncate(fd, (off_t)all) < 0) {
+		if (fd >= 0) close(fd);
 		return false;
-	memset(b->dirty, 1, (size_t)o->tw * (size_t)o->th);   /* a new picture: all of it */
+	}
+	uint32_t *map = mmap(NULL, all, PROT_READ | PROT_WRITE, MAP_SHARED, fd, 0);
+	if (map == MAP_FAILED) {
+		close(fd);
+		return false;
+	}
+	/* (each frame a run of its own: the strip's rows are side by side) */
+	for (int f = 0; f < a->n; f++)
+		for (int y = 0; y < a->h; y++)
+			memcpy(map + (size_t)f * (size_t)a->w * (size_t)a->h + (size_t)y * (size_t)a->w,
+					a->frames + (size_t)y * (size_t)a->w * (size_t)a->n + (size_t)f * (size_t)a->w, (size_t)a->w * 4);
+	free(a->frames);
+	a->frames = NULL;
+	struct shm_picture *p = calloc((size_t)a->n, sizeof *p);
+	if (!p)
+		return false;
+	struct wl_shm_pool *pool = wl_shm_create_pool(shm, fd, (int32_t)all);
+	for (int f = 0; f < a->n; f++) {
+		p[f].size = one;
+		p[f].wl = wl_shm_pool_create_buffer(pool, (int32_t)(one * (size_t)f), a->w, a->h, a->w * 4, WL_SHM_FORMAT_ARGB8888);
+	}
+	wl_shm_pool_destroy(pool);
+	close(fd);
+	*out = p;
 	return true;
 }
 
@@ -378,79 +192,192 @@ static void frame_done(void *data, struct wl_callback *cb, uint32_t t)
 }
 static const struct wl_callback_listener frame_listener = { .done = frame_done };
 
-/* what changed since this picture was last shown, into it, and shown */
-static void flush(struct output *o)
+/* the painting on this screen, scaled to cover it: the scale, and where its corner lies (of another shape: its middle) */
+static double cover(const struct output *o, double *ox, double *oy)
 {
-	if (!o->ready || o->waiting_frame || o->closed)
-		return;
-	struct buffer *b = !o->buf[0].busy ? &o->buf[0] : &o->buf[1];
-	if (b->busy)
-		return;
-	if (!b->wl && !make_buffer(o, b))
-		return;
-	bool any = false;
-	for (int ty = 0; ty < o->th; ty++)
-		for (int tx = 0; tx < o->tw; tx++) {
-			if (!b->dirty[ty * o->tw + tx])
-				continue;
-			b->dirty[ty * o->tw + tx] = 0;
-			any = true;
-			int x0 = tx * TILE, y0 = ty * TILE;
-			for (int y = y0; y < y0 + TILE && y < o->ch; y++)
-				for (int x = x0; x < x0 + TILE && x < o->cw; x++) {
-					uint32_t c = o->dots[(size_t)y * (size_t)o->cw + (size_t)x];
-					int px = x * o->bs, py = y * o->bs;
-					for (int j = py; j < py + o->bs && j < o->H; j++) {
-						uint32_t *row = b->px + (size_t)j * (size_t)o->W;
-						for (int i = px; i < px + o->bs && i < o->W; i++)
-							row[i] = c;
-					}
-				}
-			wl_surface_damage_buffer(o->surface, x0 * o->bs, y0 * o->bs, TILE * o->bs, TILE * o->bs);
-		}
-	if (!any)
-		return;
-	wl_surface_attach(o->surface, b->wl, 0, 0);
-	b->busy = true;
-	struct wl_callback *cb = wl_surface_frame(o->surface);
-	wl_callback_add_listener(cb, &frame_listener, o);
-	o->waiting_frame = true;
-	wl_surface_commit(o->surface);
+	double k = fmax((double)o->lw / art.w, (double)o->lh / art.h);
+	*ox = (o->lw - k * art.w) / 2, *oy = (o->lh - k * art.h) / 2;
+	return k;
 }
 
-/* the grid for this screen, once its size is known */
-static bool setup(struct output *o)
+/* a subsurface over the painting, X Y W H of it in the painting's pixels (a small picture scaled up smooth), input passing through it */
+static void sub_make(struct output *o, struct sub *s, int x, int y, int w, int h)
 {
-	o->W = o->lw * o->scale, o->H = o->lh * o->scale;
-	int L = o->W > o->H ? o->W : o->H, S = o->W > o->H ? o->H : o->W;
-	int a = (L + 639) / 640, b = (S + 359) / 360;
-	o->bs = a > b ? a : b;
-	if (o->bs < 2)
-		o->bs = 2;
-	o->cw = (o->W + o->bs - 1) / o->bs, o->ch = (o->H + o->bs - 1) / o->bs;
-	o->tw = (o->cw + TILE - 1) / TILE, o->th = (o->ch + TILE - 1) / TILE;
-	size_t n = (size_t)o->cw * (size_t)o->ch;
-	o->under = calloc(n, sizeof *o->under);
-	o->dots = calloc(n, sizeof *o->dots);
-	if (!o->under || !o->dots)
-		return false;
-	o->rng = seed ^ (o->global * 2654435761u);
-	o->clock_min = -1;
-	/* the scene centred on the grid (a screen of another shape: cut, or the ground round it) */
-	o->ox = (o->cw - art.w) / 2, o->oy = (o->ch - art.h) / 2;
-	for (int y = 0; y < o->ch; y++)
-		for (int x = 0; x < o->cw; x++) {
-			int sx = x - o->ox, sy = y - o->oy;
-			uint32_t c = pal[SHADE];
-			if (sx >= 0 && sy >= 0 && sx < art.w && sy < art.h) {
-				const unsigned char *p = art.rgb + 3 * ((size_t)sy * (size_t)art.w + (size_t)sx);
-				c = 0xff000000u | (uint32_t)p[0] << 16 | (uint32_t)p[1] << 8 | p[2];
-			}
-			o->under[(size_t)y * (size_t)o->cw + (size_t)x] = o->dots[(size_t)y * (size_t)o->cw + (size_t)x] = c;
-		}
-	wl_surface_set_buffer_scale(o->surface, o->scale);
+	double ox, oy, k = cover(o, &ox, &oy);
+	s->surface = wl_compositor_create_surface(compositor);
+	s->subsurface = wl_subcompositor_get_subsurface(subcompositor, s->surface, o->surface);
+	s->viewport = wp_viewporter_get_viewport(viewporter, s->surface);
+	wl_subsurface_set_desync(s->subsurface);
+	wl_subsurface_set_position(s->subsurface, (int)(ox + x * k), (int)(oy + y * k));
+	wp_viewport_set_destination(s->viewport, (int)(w * k), (int)(h * k));
+	struct wl_region *none = wl_compositor_create_region(compositor);
+	wl_surface_set_input_region(s->surface, none);
+	wl_region_destroy(none);
+}
+
+static void sub_show(struct sub *s, struct wl_buffer *b, int x, int y, int w, int h)
+{
+	wl_surface_attach(s->surface, b, 0, 0);
+	wl_surface_damage_buffer(s->surface, x, y, w, h);
+	wl_surface_commit(s->surface);
+}
+
+/* the layers on this screen, from the bottom up */
+static void output_setup(struct output *o)
+{
+	sub_make(o, &o->shade, 0, 0, art.w, art.h);
+	for (int i = 0; i < art.na; i++)
+		sub_make(o, &o->anims[i], art.anims[i].x, art.anims[i].y, art.anims[i].w, art.anims[i].h);
+	if (art.haze)
+		sub_make(o, &o->haze, 0, 0, art.w, art.h);
+	sub_make(o, &o->air, 0, 0, art.w, art.h);
+	sub_make(o, &o->seal, 0, 0, sealp.w, sealp.h);
+	/* (the painting: its part that fits this screen's shape, on all of it) */
+	double ox, oy, k = cover(o, &ox, &oy);
+	o->viewport = wp_viewporter_get_viewport(viewporter, o->surface);
+	wp_viewport_set_source(o->viewport, wl_fixed_from_double(-ox / k), wl_fixed_from_double(-oy / k),
+			wl_fixed_from_double(o->lw / k), wl_fixed_from_double(o->lh / k));
+	wp_viewport_set_destination(o->viewport, o->lw, o->lh);
 	o->ready = true;
-	return true;
+}
+
+/* over a lock it hides all of it (nothing under it is drawn, the lock asked for no frames); while
+ * it opens the lock shows through */
+static void opaque(bool on)
+{
+	struct output *o;
+	wl_list_for_each(o, &outputs, link) {
+		if (!o->ready || o->closed)
+			continue;
+		if (on) {
+			struct wl_region *r = wl_compositor_create_region(compositor);
+			wl_region_add(r, 0, 0, o->lw, o->lh);
+			wl_surface_set_opaque_region(o->surface, r);
+			wl_region_destroy(r);
+		} else {
+			wl_surface_set_opaque_region(o->surface, NULL);
+		}
+	}
+}
+
+/* every screen asked for a frame long ago and got none: dark (the screens off), nothing to draw for */
+static bool screens_dark(double t)
+{
+	struct output *o;
+	bool any = false;
+	wl_list_for_each(o, &outputs, link) {
+		if (!o->ready || o->closed)
+			continue;
+		if (!o->waiting_frame || t - o->asked_at < DARK_MS)
+			return false;
+		any = true;
+	}
+	return any;
+}
+
+/* the world's pictures of a step, to the screens */
+static void show_step(double t)
+{
+	struct output *o;
+	wl_list_for_each(o, &outputs, link) {
+		if (!o->ready || o->closed)
+			continue;
+		sub_show(&o->shade, pic_shade.wl, 0, 0, shade.w, shade.h);
+		if (falling)                          /* (the rest once the painting covers the screen) */
+			goto clock;
+		for (int i = 0; i < art.na; i++)
+			sub_show(&o->anims[i], pic_frames[i][art.anims[i].frame].wl, 0, 0, art.anims[i].w, art.anims[i].h);
+		if (art.haze) {
+			wl_surface_attach(o->haze.surface, pic_haze.wl, 0, 0);
+			for (int k = 0; k < art.nt; k++)
+				wl_surface_damage_buffer(o->haze.surface, haze_rect[k][0], haze_rect[k][1], haze_rect[k][2], haze_rect[k][3]);
+			wl_surface_commit(o->haze.surface);
+		}
+		wl_surface_attach(o->air.surface, pic_air.wl, 0, 0);
+		for (int k = 0; k < nair_was; k++)
+			wl_surface_damage_buffer(o->air.surface, air_was[k].x, air_was[k].y, air_was[k].w, air_was[k].h);
+		for (int k = 0; k < nair_now; k++)
+			wl_surface_damage_buffer(o->air.surface, air_now[k].x, air_now[k].y, air_now[k].w, air_now[k].h);
+		wl_surface_commit(o->air.surface);
+		if (seal_changed || seal_waits) {
+			double ox, oy, k = cover(o, &ox, &oy);
+			wl_subsurface_set_position(o->seal.subsurface, (int)(ox + seal_x * k), (int)(oy + seal_y * k));
+			sub_show(&o->seal, pic_seal.wl, 0, 0, sealp.w, sealp.h);
+			wl_surface_commit(o->surface);    /* (the seal's new place is its parent's to take) */
+		}
+clock:
+		if (!o->waiting_frame) {              /* (the clock of it all: no frames given, no steps taken) */
+			struct wl_callback *cb = wl_surface_frame(o->shade.surface);
+			wl_callback_add_listener(cb, &frame_listener, o);
+			o->waiting_frame = true;
+			o->asked_at = t;
+			wl_surface_commit(o->shade.surface);
+		}
+	}
+}
+
+static void take_a_step(double t)
+{
+	tick++;
+	world_step(t, waking || falling ? front : 0);
+	if (seal_changed && falling)
+		seal_waits = true;                /* (stamped as the painting comes: shown once it has) */
+	show_step(t);
+	if (!falling)
+		seal_waits = false;
+}
+
+/* the painting at the front's place: the changed tiles only, the buffer the other one (the painting itself stays whole) */
+static void show_open(void)
+{
+	if (pic_open.busy)
+		return;
+	int tw = (art.w + TILE - 1) / TILE, th = (art.h + TILE - 1) / TILE;
+	memset(open_tiles, 0, (size_t)tw * (size_t)th);
+	paint_open(pic_paint.map, pic_open.map, open_tiles, front, front_was);
+	front_was = front;
+	struct output *o;
+	wl_list_for_each(o, &outputs, link) {
+		if (!o->ready || o->closed)
+			continue;
+		wl_surface_attach(o->surface, pic_open.wl, 0, 0);
+		for (int y = 0; y < th; y++)
+			for (int x = 0; x < tw; x++) {
+				if (!open_tiles[y * tw + x])
+					continue;
+				int e = x;
+				while (e < tw && open_tiles[y * tw + e])
+					e++;
+				wl_surface_damage_buffer(o->surface, x * TILE, y * TILE, (e - x) * TILE, TILE);
+				x = e;
+			}
+		wl_surface_commit(o->surface);
+	}
+	pic_open.busy = true;
+}
+
+static float front_max(void)
+{
+	float w = fmaxf((float)art.cx, (float)(art.w - art.cx)), h = fmaxf((float)art.cy, (float)(art.h - art.cy));
+	return hypotf(w, h) + RAMP_PX + 2;   /* (wholly open at the far corner) */
+}
+
+static void wake_begin(double t)
+{
+	waking = true;
+	wake_at = t;
+	front = front_was = 0;
+	if (!pic_open.map) {                      /* (all of the painting, once: from here it opens) */
+		shm_make(&pic_open, art.w, art.h);
+		memcpy(pic_open.map, pic_paint.map, pic_open.size);
+	}
+	struct output *o;
+	wl_list_for_each(o, &outputs, link)       /* (the seal lifts at once) */
+		if (o->ready && !o->closed) {
+			wl_surface_attach(o->seal.surface, NULL, 0, 0);
+			wl_surface_commit(o->seal.surface);
+		}
+	opaque(false);
 }
 
 static void layer_configure(void *data, struct zwlr_layer_surface_v1 *l, uint32_t serial,
@@ -476,12 +403,14 @@ static const struct zwlr_layer_surface_v1_listener layer_listener = {
 static void lock_start(void);
 static void leave_now(void)
 {
-	if (!leaving) {
-		leaving = true;
-		leave_at = now_ms();
-		if (idle_mode && !lock_started)
-			lock_start();             /* (not up yet: the cloth stays until it is) */
-	}
+	if (leaving)
+		return;
+	leaving = true;
+	leave_at = now_ms();
+	/* (screens dark, lit by this very input: the monitor shows nothing for a moment yet) */
+	wake_from = leave_at + (screens_dark(leave_at) ? WOKEN_MS : 0);
+	if (idle_mode && !lock_started)
+		lock_start();                     /* (not up yet: the painting stays until it is) */
 }
 static void kb_keymap(void *d, struct wl_keyboard *k, uint32_t f, int32_t fd, uint32_t s)
 {
@@ -501,6 +430,8 @@ static void kb_key(void *d, struct wl_keyboard *k, uint32_t s, uint32_t t, uint3
 	(void)d, (void)k, (void)s, (void)t, (void)key;
 	if (state == WL_KEYBOARD_KEY_STATE_PRESSED) {
 		held++;
+		if (leaving)
+			wake_from = 0;                /* (a second key: no more waiting) */
 		leave_now();
 	} else if (held > 0) {
 		held--;
@@ -522,7 +453,7 @@ static const struct wl_keyboard_listener keyboard_listener = {
 static void pt_enter(void *d, struct wl_pointer *p, uint32_t serial, struct wl_surface *s, wl_fixed_t x, wl_fixed_t y)
 {
 	(void)d, (void)s;
-	wl_pointer_set_cursor(p, serial, NULL, 0, 0);   /* no pointer over the cloth */
+	wl_pointer_set_cursor(p, serial, NULL, 0, 0);   /* no pointer over the painting */
 	if (!moved_base) {
 		moved_base = true;
 		base_x = wl_fixed_to_double(x), base_y = wl_fixed_to_double(y);
@@ -612,6 +543,10 @@ static void global_add(void *data, struct wl_registry *r, uint32_t name, const c
 	(void)data;
 	if (!strcmp(iface, wl_compositor_interface.name) && version >= 4) {
 		compositor = wl_registry_bind(r, name, &wl_compositor_interface, 4);
+	} else if (!strcmp(iface, wl_subcompositor_interface.name)) {
+		subcompositor = wl_registry_bind(r, name, &wl_subcompositor_interface, 1);
+	} else if (!strcmp(iface, wp_viewporter_interface.name)) {
+		viewporter = wl_registry_bind(r, name, &wp_viewporter_interface, 1);
 	} else if (!strcmp(iface, wl_shm_interface.name)) {
 		shm = wl_registry_bind(r, name, &wl_shm_interface, 1);
 	} else if (!strcmp(iface, zwlr_layer_shell_v1_interface.name)) {
@@ -673,11 +608,13 @@ static bool wanted(void)
 	return strncmp(v, "off", 3) != 0;
 }
 
-/* --idle: the lock, started as the saver shows — under it, so the first input only washes
- * the cloth away from over a lock already up (dwl keeps the saver over the lock: its own
- * scene layer, LyrSaver). kawa-lock returns once every screen is locked (lock_up: it has) */
+/* --idle: the lock, started as the painting covers the screen — under it, so the first input only
+ * opens the painting onto a lock already up (dwl keeps the saver over the lock: its own scene
+ * layer, LyrSaver). kawa-lock returns once every screen is locked (lock_up: it has) */
 static void lock_start(void)
 {
+	if (lock_started)
+		return;
 	lock_started = true;
 	pid_t pid = fork();
 	if (pid == 0) {
@@ -706,96 +643,6 @@ static int fail(const char *what)
 	return 1;
 }
 
-static bool read_palette(void)
-{
-	char p[PATH_MAX], line[256];
-	const char *home = getenv("HOME");
-	snprintf(p, sizeof p, "%s/.config/fedokawaii/current/saver.conf", home ? home : "");
-	FILE *f = fopen(p, "r");
-	if (!f) {
-		fprintf(stderr, "kawa-saver: %s: %s (fedokawaii repair puts it back)\n", p, strerror(errno));
-		return false;
-	}
-	unsigned have = 0;
-	while (fgets(line, sizeof line, f)) {
-		char *eq = strchr(line, '=');
-		if (line[0] == '#' || !eq)
-			continue;
-		*eq = 0;
-		for (int i = 0; i < NCOL; i++)
-			if (!strcmp(line, colour_names[i])) {
-				pal[i] = 0xff000000u | (uint32_t)strtoul(eq + 1, NULL, 16);
-				have |= 1u << i;
-			}
-	}
-	fclose(f);
-	if (have != (1u << NCOL) - 1) {
-		fprintf(stderr, "kawa-saver: %s lacks a colour (fedokawaii repair puts it back)\n", p);
-		return false;
-	}
-	return true;
-}
-
-/* a P6 picture (tools/build-saver.py writes them): its bytes, its size */
-static unsigned char *read_ppm(const char *path, int *w, int *h)
-{
-	FILE *f = fopen(path, "r");
-	int max = 0;
-	if (!f)
-		return NULL;
-	unsigned char *px = NULL;
-	if (fscanf(f, "P6 %d %d %d", w, h, &max) == 3 && max == 255 && *w > 0 && *h > 0 && fgetc(f) != EOF) {
-		size_t n = 3 * (size_t)*w * (size_t)*h;
-		px = malloc(n);
-		if (px && fread(px, 1, n, f) != n) {
-			free(px);
-			px = NULL;
-		}
-	}
-	fclose(f);
-	return px;
-}
-
-/* the mood's scene: its pictures, and lock-scene.txt's words for the flames */
-static bool read_art(void)
-{
-	char dir[PATH_MAX], cur[PATH_MAX], link[64], p[PATH_MAX + 32], line[256];
-	const char *home = getenv("HOME");
-	snprintf(cur, sizeof cur, "%s/.config/fedokawaii/current", home ? home : "");
-	ssize_t n = readlink(cur, link, sizeof link - 1);
-	if (n <= 0)
-		return false;
-	link[n] = 0;
-	const char *mood = strrchr(link, '/');
-	mood = mood ? mood + 1 : link;
-	art.dust = !strcmp(mood, "light");
-	snprintf(dir, sizeof dir, "%s/.local/share/fedokawaii/%s", home ? home : "", mood);
-	snprintf(p, sizeof p, "%s/saver-scene.ppm", dir);
-	if (!(art.rgb = read_ppm(p, &art.w, &art.h)))
-		return false;
-	snprintf(p, sizeof p, "%s/lock-scene.txt", dir);
-	FILE *f = fopen(p, "r");
-	if (!f)
-		return false;
-	int fw = 0, fh = 0, frames = 0;
-	while (fgets(line, sizeof line, f)) {
-		if (sscanf(line, "frames %d %d %d", &fw, &fh, &frames) == 3) ;
-		else if (art.nflames < 4 && sscanf(line, "flame %d %d", &art.fx[art.nflames], &art.fy[art.nflames]) == 2)
-			art.nflames++;
-	}
-	fclose(f);
-	int w = 0, h = 0;
-	snprintf(p, sizeof p, "%s/saver-flame.ppm", dir);
-	if (art.nflames && frames > 0 && (art.flame = read_ppm(p, &w, &h)) && w == fw * frames && h == fh)
-		art.fw = fw, art.fh = fh, art.frames = frames;
-	else
-		art.nflames = 0;
-	art.spark[0] = art.dust ? pal[ACCENT_TEXT] : pal[TEXT];
-	art.spark[1] = art.dust ? pal[THREAD] : pal[ACCENT_TEXT];
-	art.spark[2] = art.dust ? pal[EDGE2] : pal[ACCENT];
-	return true;
-}
-
 static void usage(void)
 {
 	fputs("usage: kawa-saver [--idle] [--seed N] [--pace MS]\n", stderr);
@@ -804,21 +651,23 @@ static void usage(void)
 
 int main(int argc, char **argv)
 {
-	seed = (unsigned)time(NULL) ^ (unsigned)getpid();
+	unsigned seed = (unsigned)time(NULL) ^ (unsigned)getpid();
 	for (int i = 1; i < argc; i++) {
 		if (!strcmp(argv[i], "--idle")) idle_mode = true;
 		else if (!strcmp(argv[i], "--seed") && i + 1 < argc) seed = (unsigned)strtoul(argv[++i], NULL, 10);
 		else if (!strcmp(argv[i], "--pace") && i + 1 < argc) pace = atoi(argv[++i]);   /* (renders: a faster clock) */
 		else if (!strcmp(argv[i], "-h") || !strcmp(argv[i], "--help")) {
-			puts("kawa-saver — the screensaver (sashiko stitched across every screen); any input ends it.\n"
+			puts("kawa-saver — the screensaver: the lock's painting asleep; any input ends it.\n"
 			     "  kawa-saver         now (nothing locks)\n"
-			     "  kawa-saver --idle  away 15 minutes (kawa-idle): the screensaver, the lock behind it as it\n"
-			     "                     ends (switched off in quick settings: the lock at once)");
+			     "  kawa-saver --idle  away 15 minutes (kawa-idle): the screensaver, the lock under it: the first\n"
+			     "                     input wakes the world onto it (switched off in quick settings: the lock at once)");
 			return 0;
 		} else usage();
 	}
 	if (pace < 1 || pace > 1000)
 		usage();
+	rng = seed ? seed : 1;
+	world_time = real_time;
 	if (locked() && !idle_mode)
 		return 0;                         /* a look while locked: the lock is over everything */
 	/* (--idle while locked already — a lock you asked for, then away: the saver over it) */
@@ -831,10 +680,11 @@ int main(int argc, char **argv)
 		execlp("kawa-lock", "kawa-lock", (char *)NULL);   /* switched off: the lock alone */
 		return fail("kawa-lock could not start");
 	}
-	if (!read_palette())
+	const char *home = getenv("HOME");
+	if (!read_palette(home))
 		return fail("no colours (fedokawaii repair puts saver.conf back)");
-	if (!read_art())
-		return fail("no scene (fedokawaii repair puts saver-scene.ppm back)");
+	if (!read_art(home))
+		return fail("no scene (fedokawaii repair puts saver-scene.txt back)");
 	display = wl_display_connect(NULL);
 	if (!display)
 		return fail("no Wayland session to show it on");
@@ -845,8 +695,24 @@ int main(int argc, char **argv)
 	wl_registry_add_listener(registry, &registry_listener, NULL);
 	wl_display_roundtrip(display);
 	wl_display_roundtrip(display);
-	if (!compositor || !shm || !layer_shell)
-		return fail("the compositor lacks layer-shell or shared memory");
+	if (!compositor || !subcompositor || !shm || !layer_shell || !viewporter)
+		return fail("the compositor lacks layer-shell, subsurfaces, viewports or shared memory");
+	if (!world_setup())
+		return fail("out of memory");
+	/* the pictures: the painting whole, what opens (the painting not yet there: all clear), the layers */
+	if (!shm_make(&pic_paint, art.w, art.h) || !shm_make(&pic_open, art.w, art.h) || !shm_make(&pic_shade, shade.w, shade.h)
+			|| !shm_make(&pic_haze, haze.w, haze.h) || !shm_make(&pic_air, air.w, air.h) || !shm_make(&pic_seal, sealp.w, sealp.h))
+		return fail("out of memory");
+	if (!paint_read(pic_paint.map))
+		return fail("no painting (fedokawaii repair puts it back)");
+	shade.px = pic_shade.map, haze.px = pic_haze.map, air.px = pic_air.map, sealp.px = pic_seal.map;
+	open_tiles = calloc((size_t)((art.w + TILE - 1) / TILE) * (size_t)((art.h + TILE - 1) / TILE), 1);
+	if (!open_tiles)
+		return fail("out of memory");
+	air_setup();
+	for (int i = 0; i < art.na; i++)
+		if (!frames_make(&art.anims[i], &pic_frames[i]))
+			return fail("out of memory");
 	struct output *o;
 	wl_list_for_each(o, &outputs, link) {
 		o->surface = wl_compositor_create_surface(compositor);
@@ -863,43 +729,99 @@ int main(int argc, char **argv)
 	wl_display_roundtrip(display);
 	int shown = 0;
 	wl_list_for_each(o, &outputs, link)
-		if (o->configured && !o->closed && o->lw > 0 && o->lh > 0 && setup(o))
+		if (o->configured && !o->closed && o->lw > 0 && o->lh > 0) {
+			output_setup(o);
 			shown++;
+		}
 	if (!shown)
 		return fail("no screen took it");
-	if (idle_mode) {
-		wl_display_roundtrip(display);    /* (its first frame shown before the lock comes) */
-		lock_start();
-	}
 	struct pollfd pfd = { .fd = wl_display_get_fd(display), .events = POLLIN };
-	double next = now_ms();
+	double next = now_ms(), next_look = next + 1000, lock_due = 0;
+	fall_at = next;
+	front = front_was = front_max();
+	/* (nothing of it there yet: the first picture is clear, the desktop still showing) */
+	wl_list_for_each(o, &outputs, link)
+		if (o->ready) {
+			wl_surface_attach(o->surface, pic_open.wl, 0, 0);
+			wl_surface_damage_buffer(o->surface, 0, 0, art.w, art.h);
+			wl_surface_commit(o->surface);
+		}
 	while (!stop) {
 		double t = now_ms();
+		bool dark = screens_dark(t);
+		bool any = false;
+		wl_list_for_each(o, &outputs, link)
+			any |= o->ready && !o->closed;
+		if (!any) {                       /* (every screen gone, the monitor off its cable: it has nowhere to be; the lock comes all the same) */
+			if (idle_mode)
+				lock_start();
+			break;
+		}
+		if (falling) {                    /* (the painting closes over the screen, the middle last) */
+			double f = (t - fall_at) / FALL_MS;
+			if (f >= 1 || leaving) {
+				falling = false;
+				front = 0;
+				/* (the painting itself under it all now, the same pixels: nothing to send; the other's memory back) */
+				wl_list_for_each(o, &outputs, link)
+					if (o->ready && !o->closed) {
+						wl_surface_attach(o->surface, pic_paint.wl, 0, 0);
+						wl_surface_damage_buffer(o->surface, 0, 0, art.w, art.h);
+						wl_surface_commit(o->surface);
+					}
+				wl_buffer_destroy(pic_open.wl);
+				munmap(pic_open.map, pic_open.size);
+				pic_open = (struct shm_picture){ 0 };
+				opaque(true);
+				lock_due = t + 40;        /* (a frame or two shown first) */
+			} else {
+				front = (float)((1 - spring(f)) * front_max());
+				show_open();
+			}
+		}
+		if (lock_due && t >= lock_due) {
+			lock_due = 0;
+			if (idle_mode)
+				lock_start();
+		}
 		if (leaving) {
-			/* gone once the lock is up (it has the keyboard from then: with it no key or
-			 * button is waited for) or, without a lock, every key and button is up again
-			 * (none reaches a window) — whole until then; dwl dissolves its last picture
-			 * away over what it covered, cell by cell (dwl.patch: layeranims) */
-			if (idle_mode ? lock_up() : held == 0)
-				break;
+			/* gone once the world has woken (the lock is up, it has the keyboard from then: with
+			 * it no key or button is waited for) or, without a lock, every key and button is up again
+			 * (none reaches a window) — then dwl dissolves what is left of it away */
+			if (!idle_mode) {
+				if (held == 0)
+					break;
+			} else if (!waking) {
+				if (lock_up() && !falling && t >= wake_from) {
+					wake_begin(t);
+					next = t;             /* (a step at once: the fires leap) */
+				}
+			} else {
+				double f = (t - wake_at) / WAKE_MS;
+				wake_p = f >= 1 ? 1.0f : (float)spring(f);
+				front = wake_p * front_max();
+				show_open();
+				/* (the shade opens with it, every frame) */
+				shade_step(front);
+				wl_list_for_each(o, &outputs, link)
+					if (o->ready && !o->closed)
+						sub_show(&o->shade, pic_shade.wl, 0, 0, shade.w, shade.h);
+				if (f >= 1)
+					break;
+			}
 			if (t - leave_at > (idle_mode ? 15000 : 3000))
 				break;                    /* (a key that never comes up, a lock that hangs) */
 		}
-		if (!leaving && t >= next) {
+		if (!idle_mode && t >= next_look) {
+			next_look = t + 1000;
+			if (locked())
+				break;                    /* locked meanwhile: the lock is over it all */
+		}
+		if (!dark && t >= next) {
 			next += pace;
 			if (next < t) next = t + pace;
-			tick++;
-			if (!idle_mode && tick % (1000 / pace + 1) == 0 && locked())
-				break;                    /* locked meanwhile: the lock is over it all */
-			wl_list_for_each(o, &outputs, link)
-				if (o->ready && !o->closed) {
-					step(o);
-					flush(o);
-				}
+			take_a_step(t);
 		}
-		wl_list_for_each(o, &outputs, link)
-			if (o->ready && !o->closed)
-				flush(o);                 /* (a frame done since: what waited goes out) */
 		while (wl_display_prepare_read(display) != 0)
 			if (wl_display_dispatch_pending(display) < 0)
 				goto out;
@@ -907,7 +829,9 @@ int main(int argc, char **argv)
 			wl_display_cancel_read(display);
 			break;
 		}
-		int wait = leaving ? 8 : (int)(next - now_ms());
+		int wait = falling || waking ? 4 : leaving ? 8 : dark ? 1000 : (int)(next - now_ms());
+		if (lock_due && wait > 8)
+			wait = 8;
 		if (poll(&pfd, 1, wait < 0 ? 0 : wait) > 0) {
 			if (wl_display_read_events(display) < 0)
 				break;

@@ -1,10 +1,16 @@
 #!/bin/bash
-# nvim --headless '+Lazy! sync': LazyVim's plugins appear (unless $FKH/rc-nvim says otherwise)
+# nvim --headless '+Lazy! restore': the plugins of the lock appear, each at its commit (unless
+# $FKH/rc-nvim says otherwise)
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 r=$(rcfor nvim 0); ((r == 0)) || exit "$r"
 # ($FKH/fail-nvim-plugins = N: the first N runs end well, but GitHub let the clones fail)
-if [[ " $* " == *"Lazy! sync"* || " $* " == *"Lazy! install"* ]] && ! countdown nvim-plugins; then mkdir -p "$HOME/.local/share/nvim/lazy/LazyVim"; fi
+if [[ " $* " == *"Lazy! restore"* ]] && ! countdown nvim-plugins; then
+  while IFS=' ' read -r name commit; do
+    d=$HOME/.local/share/nvim/lazy/$name
+    mkdir -p "$d/.git"; echo "ref: refs/heads/main" >"$d/.git/HEAD"; echo "$commit" >"$d/.git/fk-commit"   # (the stub git's HEAD)
+  done < <(sed -n 's/^ *"\([^"]*\)": *{.*"commit": *"\([0-9a-f]*\)".*/\1 \2/p' "$HOME/.config/nvim/lazy-lock.json" 2>/dev/null)
+fi
 [[ " $* " == *colors_name* ]] && printf gruvbox
 # (+MasonInstall NAME…: each tool's command in Mason's bin, as Mason links them)
 if [[ " $* " == *MasonInstall* ]]; then

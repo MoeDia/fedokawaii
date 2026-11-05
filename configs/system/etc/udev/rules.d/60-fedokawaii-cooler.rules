@@ -1,0 +1,4 @@
+# installed by theme.sh — the cooler's display (1a2c:4184) calls itself a keyboard and a mouse and
+# has no keys. Libinput leaves it out, so dwl has no ghost devices; kawa-rgb still reaches its
+# hidraw node to show the temperature.
+ACTION!="remove", SUBSYSTEM=="input", ATTRS{idVendor}=="1a2c", ATTRS{idProduct}=="4184", ENV{LIBINPUT_IGNORE_DEVICE}="1"

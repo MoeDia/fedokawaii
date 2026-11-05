@@ -19,7 +19,8 @@ row() {
   rest=${rest% | *}; printf '%s' "${rest% | *}"
 }
 # run NAME — the row run as the report runs it (its variables), its output in OUT, status in RC
-mkdir -p "$TMP/tk" "$TMP/state"; cp "$REPO/fedokawaii.conf" "$TMP/tk/"
+mkdir -p "$TMP/tk/lib" "$TMP/tk/system" "$TMP/state"; cp "$REPO/fedokawaii.conf" "$TMP/tk/"
+cp "$REPO/lib/net.sh" "$TMP/tk/lib/"; cp "$REPO/system/net-allow.list" "$REPO/system/sysctl-net.conf" "$TMP/tk/system/"
 run() {
   OUT=$(TK=$TMP/tk STATE=$TMP/state U=$USER UH=$HOME UIDN=$UID DWL=${DWL:-} WB=${WB:-} QUICK=0 RT=$XDG_RUNTIME_DIR \
         timeout 20 bash -c "$(row "$1")" 2>&1 </dev/null); RC=$?
@@ -61,42 +62,42 @@ run "RES-03 waybar's children"; eq "$RC" 0 "$OUT"
 stub ps "echo '   6000      60 S    sleep 1000'"
 run "RES-03 waybar's children"; eq "$RC" 1
 
-case_ "BRV-02: Steam's own GPU process (--disable-gpu) is not Brave's"
+case_ "BRV-02: another Chromium program's GPU process (--disable-gpu) is not the browser's"
 stub ps "cat <<'EOF'
-/home/u/.local/share/Steam/ubuntu12_64/steamwebhelper --type=gpu-process --disable-gpu --use-gl=disabled
-/opt/brave.com/brave-origin/brave --type=gpu-process --ozone-platform=wayland --use-angle=vulkan
+/opt/discord/Discord --type=gpu-process --disable-gpu --use-gl=disabled
+/opt/helium/helium --type=gpu-process --ozone-platform=wayland --use-angle=vulkan
 EOF"
-run "BRV-02 Brave draws with the GPU"; eq "$RC" 0 "$OUT"
+run "BRV-02 the browser draws with the GPU"; eq "$RC" 0 "$OUT"
 
-case_ "NET-07: the ports as firewalld lists them (the first one too); NET-09: mDNS and Steam's Remote Play are no strangers, LLMNR is (it is off)"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "dhcpv6-client mdns ssh" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 0 "$OUT"
-stub firewall-cmd 'case "$*" in --state) echo running ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/udp 53317/tcp 53317/udp" ;; *--list-services*) echo "ssh mdns cockpit" ;; esac'
-run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "closed: 6881/tcp"; has "$OUT" "cockpit open"
+case_ "NET-07: the firewall against the list, its difference named (lib/net.sh: test_net.sh has the rest)"
+stub firewall-cmd 'exit 252'
+run "NET-07 the firewall"; eq "$RC" 1; has "$OUT" "firewalld is not running"
+case_ "the network's rows read as shell (a stray quote would make a row say nothing)"
+for n in "NET-07 the firewall" "NET-08 sshd only where it can be used" "NET-09 what listens" "NET-20 no LLMNR" "NET-21 names go over TLS" "NET-25 mDNS" "NET-26 the kernel's network settings"; do
+  bash -n -c "$(row "$n")" 2>/dev/null && _ok || _no "$n does not parse"
+done
+has "$(row "LS-01 LocalSend and its port")" "--zone=kawa-lan --query-port=53317/udp" "LocalSend's door is the LAN's"
+case_ "NET-09: only what the list names; a stranger on every address is a finding (5355, LLMNR: off on this desktop), loopback never"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=13))
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
 udp UNCONN 0 0 0.0.0.0:5353 0.0.0.0:* users:((\"avahi-daemon\",pid=880,fd=12))
 udp UNCONN 0 0 [::]:5355 [::]:* users:((\"systemd-resolve\",pid=666,fd=14))
 EOF"
-run "NET-09 what listens"; eq "$RC" 1 "LLMNR is off on this desktop: 5355 on every address is a finding"
+run "NET-09 what listens"; eq "$RC" 1 "LLMNR is off on this desktop: 5355 on every address is a finding"; has "$OUT" "5355/tcp systemd-resolve"
 stub ss "cat <<'EOF'
 tcp LISTEN 0 4096 127.0.0.53%lo:53 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=19))
+tcp LISTEN 0 4096 127.0.0.1:43587 0.0.0.0:* users:((\"steam\",pid=2370,fd=46))
 tcp LISTEN 0 128 0.0.0.0:27036 0.0.0.0:* users:((\"steam\",pid=2370,fd=134))
 udp UNCONN 0 0 *:27036 *:* users:((\"steam\",pid=2370,fd=132))
-udp UNCONN 0 0 0.0.0.0:5353 0.0.0.0:* users:((\"avahi-daemon\",pid=880,fd=12))
+udp UNCONN 0 0 224.0.0.251:5353 0.0.0.0:* users:((\"steamwebhelper\",pid=880,fd=12))
+udp UNCONN 0 0 [fe80::1]%enp8s0:546 [::]:* users:((\"NetworkManager\",pid=883,fd=28))
+tcp LISTEN 0 5 0.0.0.0:8737 0.0.0.0:* users:((\"python3\",pid=883,fd=3))
 EOF"
 run "NET-09 what listens"; eq "$RC" 0 "$OUT"
-stub ss "echo 'tcp LISTEN 0 128 0.0.0.0:27036 0.0.0.0:* users:((\"nc\",pid=9,fd=3))'"
-run "NET-09 what listens"; eq "$RC" 1 "27036 is Steam's alone"
 run "NET-20 no LLMNR"; eq "$RC" 0 "$OUT"
 stub ss "echo 'udp UNCONN 0 0 0.0.0.0:5355 0.0.0.0:* users:((\"systemd-resolve\",pid=666,fd=12))'"
 run "NET-20 no LLMNR"; eq "$RC" 1
-case_ "NET-21: Steam's 27036 opened in the firewall is a finding"
-stub firewall-cmd 'case "$*" in --state|-q\ --state) exit 0 ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp 27036/udp" ;; *--list-services*) echo "mdns" ;; esac'
-run "NET-21 Steam's 27036 stays closed"; eq "$RC" 1 "$OUT"
-stub firewall-cmd 'case "$*" in --state|-q\ --state) exit 0 ;; --get-default-zone) echo public ;; *--list-ports*) echo "6881/tcp" ;; *--list-services*) echo "mdns" ;; esac'
-run "NET-21 Steam's 27036 stays closed"; eq "$RC" 0 "$OUT"
 
 case_ "RES-03: the volume module follows PipeWire (long-running, as nowplaying, mem and timer)"
 WB=4242
@@ -170,22 +171,22 @@ for t in dark light; do mkdir -p "$HOME/.config/fedokawaii/themes/$t"; : >"$HOME
 run "THEME-21 both themes have the same files"; eq "$RC" 0 "$OUT"
 : >"$HOME/.config/fedokawaii/themes/dark/only-dark.conf"; run "THEME-21 both themes have the same files"; eq "$RC" 1 "$OUT"
 
-case_ "BAK-06: the exclude list leaves out the cache, Downloads and Steam"
-mkdir -p "$HOME/.config/fedokawaii"; printf '%s\n' "$HOME/.cache" "$HOME/Downloads" "$HOME/.local/share/Steam" >"$HOME/.config/fedokawaii/backup-exclude"
+case_ "BAK-06: the exclude list leaves out the cache and Downloads"
+mkdir -p "$HOME/.config/fedokawaii"; printf '%s\n' "$HOME/.cache" "$HOME/Downloads" >"$HOME/.config/fedokawaii/backup-exclude"
 run "BAK-06 the backup leaves out what comes again"; eq "$RC" 0 "$OUT"
 printf '%s\n' "$HOME/.cache" >"$HOME/.config/fedokawaii/backup-exclude"; run "BAK-06 the backup leaves out what comes again"; eq "$RC" 1
 
 case_ "PERF-02, PERF-08: the sample PERF-01 leaves — the desktop's wake-ups and the bar's CPU judged, apps listed only"
 WB=4242; printf '%s\n' "4242	0.30	4.0	60000	waybar" "5350	0.01	0.3	3500	bash /home/u/.local/bin/kawa-mem" \
-  "5351	0.02	1.0	3500	bash /home/u/.local/bin/kawa-timer bar" "7000	9.00	900.0	900000	/opt/brave.com/brave-origin/brave --type=renderer" >"/tmp/fk-perf-sample.$UID"
-run "PERF-02 the desktop's wake-ups"; eq "$RC" 0 "$OUT"; has "$OUT" "app    /opt/brave.com"
+  "5351	0.02	1.0	3500	bash /home/u/.local/bin/kawa-timer bar" "7000	9.00	900.0	900000	/opt/helium/helium --type=renderer" >"/tmp/fk-perf-sample.$UID"
+run "PERF-02 the desktop's wake-ups"; eq "$RC" 0 "$OUT"; has "$OUT" "app    /opt/helium"
 run "PERF-08 the bar at rest"; eq "$RC" 0 "$OUT"; has "$OUT" "0.33 % in all"
 printf '%s\n' "4242	2.50	40.0	60000	waybar" >"/tmp/fk-perf-sample.$UID"
 run "PERF-02 the desktop's wake-ups"; eq "$RC" 1 "40 a second is too many"; has "$OUT" "TOO MANY"
 run "PERF-08 the bar at rest"; eq "$RC" 1 "2.5 % of a core"
 rm -f "/tmp/fk-perf-sample.$UID"; run "PERF-02 the desktop's wake-ups"; eq "$RC" 1 "no sample: a finding, never a pass"; WB=""
 case_ "PERF-03: each helper under its limit; an app is listed, never judged"
-stub ps "printf '%s\n' ' 90000 waybar' ' 3000 bash /h/.local/bin/kawa-mem' ' 2500000 /opt/brave.com/brave-origin/brave'"
+stub ps "printf '%s\n' ' 90000 waybar' ' 3000 bash /h/.local/bin/kawa-mem' ' 2500000 /opt/helium/helium'"
 run "PERF-03 every session process's memory (RSS)"; eq "$RC" 0 "$OUT"; has "$OUT" "app"
 stub ps "printf '%s\n' ' 300000 waybar'"; run "PERF-03 every session process's memory (RSS)"; eq "$RC" 1; has "$OUT" "OVER"
 rm -f "$STUBS/ps"
@@ -213,7 +214,7 @@ has "$(row "PERF-09 every interaction, again and again (p95, spread)")" '[ "$PER
 case_ "PERF-05: the bar's process tree counted"
 WB=$$; run "PERF-05 the bar's processes"; eq "$RC" 0 "$OUT"; has "$OUT" "processes under waybar"; WB=""
 
-case_ "the last rows of the round: XDG-02, STATE-05, HUSH-01/02, FONT-16, GAME-21, UPK-22, BOOT-46"
+case_ "the last rows of the round: XDG-02, STATE-05, HUSH-01/02, FONT-16, UPK-22, BOOT-46"
 for d in bash less python node sqlite; do mkdir -p "$HOME/.local/state/$d"; done
 run "XDG-02 the history folders are there, yours"; eq "$RC" 0 "$OUT"; rmdir "$HOME/.local/state/node"
 run "XDG-02 the history folders are there, yours"; eq "$RC" 1
@@ -230,6 +231,12 @@ PATH=$TMP/sb:$PATH run "HUSH-01 notices held while a screen is shared"; eq "$RC"
 sed -i '/exec_after/d' "$HOME/.config/xdg-desktop-portal-wlr/config"; PATH=$TMP/sb:$PATH run "HUSH-01 notices held while a screen is shared"; eq "$RC" 1
 printf '[mode=do-not-disturb]\n[mode=sharing]\n[mode=game]\n' >"$HOME/.config/mako/config"; run "HUSH-02 mako's hush modes"; eq "$RC" 0 "$OUT"
 printf '[mode=do-not-disturb]\n' >"$HOME/.config/mako/config"; run "HUSH-02 mako's hush modes"; eq "$RC" 1
+stub pgrep 'exit 1'; stub pw-dump 'echo "[]"'     # (no share running; the play world's state from kawa-asobi)
+stub makoctl 'printf "default\ngame\n"'; stub kawa-asobi 'echo off'
+run "HUSH-03 no hush left on"; eq "$RC" 1 "the game hush stuck on: the play world is not in front"
+stub kawa-asobi 'echo front'; run "HUSH-03 no hush left on"; eq "$RC" 0 "the game hush while the play world is in front: its reason holds"; has "$OUT" "the play world in front: yes"
+stub makoctl 'printf "default\n"'; stub kawa-asobi 'echo off'; run "HUSH-03 no hush left on"; eq "$RC" 0 "no hush on"
+stub makoctl 'printf "default\nsharing\n"'; run "HUSH-03 no hush left on"; eq "$RC" 1 "the sharing hush with no share running"
 mkdir -p "$TMP/tk/lib" "$TMP/tk/system"; cp "$REPO/lib/upstream.sh" "$TMP/tk/lib/"; cp "$REPO/system/fedokawaii-latency" "$TMP/tk/system/"
 mkdir -p "$HOME/.local/share/fedokawaii/upstream"
 # (the terminal's face: four stand-ins in a folder of their own, the toolkit's copy pinned to them)
@@ -240,17 +247,14 @@ run "FONT-17 the terminal's face at its pin"; eq "$RC" 0 "$OUT"
 printf x >>"$F/UDEVGothicNF-Bold.ttf"; run "FONT-17 the terminal's face at its pin"; eq "$RC" 1 "a file changed"
 printf 'face %s\n' UDEVGothicNF-Bold.ttf >"$F/UDEVGothicNF-Bold.ttf"; mkdir -p "$HOME/.local/share/fonts/JetBrainsMonoNerd"
 run "FONT-17 the terminal's face at its pin"; eq "$RC" 1 "the Nerd Font before it still there"; rm -rf "$HOME/.local/share/fonts/JetBrainsMonoNerd"
-d=$HOME/.local/share/Steam/compatibilitytools.d; mkdir -p "$d/GE-Proton11-11" "$d/GE-Proton11-10"; echo GE-Proton11-11 >"$HOME/.local/share/fedokawaii/upstream/ge-proton"
-run "GAME-21 GE-Proton: the recorded one there, two kept at most"; eq "$RC" 0 "$OUT"; mkdir -p "$d/GE-Proton11-9"
-run "GAME-21 GE-Proton: the recorded one there, two kept at most"; eq "$RC" 1 "three kept"
 run "UPK-22 the timing harness is the toolkit's and runs"; eq "$RC" 0 "$OUT"
 
 case_ "every row the report adds this round parses as checks() splits it (mode, level, seven fields)"
-for n in $(grep -oE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|GAME-(19|2[01])|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT" | sort -u); do
+for n in $(grep -oE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT" | sort -u); do
   l=$(grep -E "^$n " "$RPT"); f=${l#* | }; m=${f%% | *}; f=${f#* | }; v=${f%% | *}
   [[ $m =~ ^(user|ses|root)(\+full)?(\+solo)?(/[0-9]+)?$ && $v =~ ^(fail|warn|info)$ ]] && _ok || _no "$n: mode [$m] level [$v]"
 done
-eq "$(grep -cE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|GAME-(19|2[01])|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT")" 124 "124 rows added this round"
+eq "$(grep -cE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT")" 119 "119 rows added this round"
 eq "$(grep -oE '^[A-Z0-9]+-[0-9]+[a-z]? ' "$RPT" | sort | uniq -d)" "" "no ID twice"
 
 case_ "SLP-10: the check's own shell (its command line names the keeper) is no keeper"

@@ -28,6 +28,7 @@ setup() {
   argv gtklock "$FAKE_LOCK"
   argv wlopm
   stub logger
+  stub kawa-rgb; stub kawa-display
   MOD=$HOME/.local/lib/fedokawaii/kawa-lockmod.so   # (theme.sh builds it: src/kawa-lockmod)
   mkdir -p "${MOD%/*}"; : >"$MOD"
   # pkill -xu UID gtklock: this sandbox's stand-ins only (SIGTERM, as the real one sends)
@@ -56,9 +57,12 @@ case_ "… it runs under its keeper, and the journal says the lock is up"
 keeping && _ok || _no "no keeper holds the lock"
 [[ -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && _ok || _no "not marked locked"
 called '^logger -t kawa-lock -- lock up$'
-case_ "the password: gtklock ends well, the keeper with it — unlocked, said so, and the next press locks anew"
+called '^kawa-rgb lock$'
+not_called '^kawa-rgb unlock$'
+case_ "the password: gtklock ends well, the keeper with it — unlocked, said so, the lights back, and the next press locks anew"
 unlock
 called '^logger -t kawa-lock -- unlocked$'
+called '^kawa-rgb unlock$'
 [[ ! -e $XDG_RUNTIME_DIR/kawa-lock.locked ]] && _ok || _no "still marked locked after the password"
 rc 0 kawa-lock; eq "$(locks)" 2 "a new lock"; unlock
 
@@ -152,6 +156,7 @@ kill -KILL "$(lastlock)"
 waitfor '! keeping' || _no "the keeper outlived the desktop"
 eq "$(locks)" 1
 called '^logger -t kawa-lock -- locker exited rc=137 — the desktop has ended$'
+called '^kawa-rgb unlock$'
 
 case_ "the machine wakes (swayidle's after-resume): the screens lit, the journal says whether it is locked"
 setup
@@ -177,6 +182,7 @@ rc 0 kawa-lock --screens off; rc 0 kawa-lock --screens on
 args_eq wlopm 1 --off '*'; args_eq wlopm 2 --on '*'
 eq "$(tr '\n' '|' <"$TMP/notes")" "note: off|note: off|" "off before the dark; on only once lit"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-screens")" on
+waitfor 'grep -q "^kawa-display --monitor$" "$CALLS"' && _ok || _no "lit: the monitor's menu not looked at"
 rc 2 kawa-lock --screens; rc 2 kawa-lock --screens dim
 case_ "--screens on when wlopm fails: the note stays dark, written anew (the lock's next input tries again) and it says so"
 setup
@@ -318,8 +324,8 @@ setup; stub systemctl
 KAWA_LOCK_SLEEP=1 kawa-lock; /bin/sleep 1.5; not_called '^systemctl'
 case_ "the key and the power menu's lock ask for it (--sleep); the power menu's sleep and the Sleep key do not wait"
 grep -q 'XKB_KEY_Escape, *spawn, *SHCMD("kawa-lock --sleep")' "$REPO/src/dwl/config.h" && _ok || _no "Super+Escape"
-grep -q '1) exec kawa-lock --sleep ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu lock"
-grep -q '2) sleep_now ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu sleep"
+grep -q '0) exec kawa-lock --sleep ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu lock"
+grep -q '1) sleep_now ;;' "$REPO/bin/kawa-power" && _ok || _no "power menu sleep"
 grep -q 'sleep) sleep_now; exit ;;' "$REPO/bin/kawa-power" && _ok || _no "the Sleep key (kawa-power sleep)"
 grep -q 'kawa-lock --now || ' "$REPO/bin/kawa-power" && _ok || _no "kawa-power sleeps only once kawa-lock has locked (on dark screens)"
 
@@ -426,7 +432,7 @@ eq "$(locks)" 1
 case_ "the machine awake again: swayidle's after-resume tells the journal (the health report reads it)"
 grep -qF "  after-resume 'kawa-lock --resumed' \\" "$REPO/configs/home/.config/dwl/autostart.sh" && _ok || _no "no after-resume line"
 
-case_ "the scene (build-lock.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; the line of words' rows clear of every edge; gtklock's own line hidden only under the module"
+case_ "the scene (build-ink.py → lock-scene.txt): the marks and the caret readable wherever they fall, ≥ 3 : 1 on every pixel under them; the flames inside the picture; the line of words' rows on the painting, its own halo; gtklock's own line hidden only under the module"
 for t in dark light; do
   out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
 import sys
@@ -456,16 +462,13 @@ if "flame" in kv:
     for fx, fy in (map(int, f) for f in kv["flame"]):
         assert 0 <= fx and fx + fw <= w and 0 <= fy and fy + fh <= h, f"a flame at {fx},{fy} outside"
     print(len(kv["flame"]), "flames inside")
-# the line of words (what PAM says) is centred in its rows: on each, across the widest line (60
-# characters at most — max-width-chars — ≈ 140 of the picture's pixels), the field's own colour is
-# the commonest — no mortar, no cloud's edge, no rim runs through the words
-from collections import Counter
+# the line of words (what PAM says) is centred in its rows, low on the painting: a painting has no flat
+# field, so the words carry their own halo (gtklock.css: window.kawa #error-label, text-shadow)
 wy0, wy1 = map(int, kv["words"][0])
-cx = w // 2
 assert 0 <= wy0 <= wy1 < h and wy1 - wy0 >= 4, f"words {wy0} {wy1}"
-field = Counter(px[x, y] for y in range(wy0, wy1 + 1) for x in range(cx - 70, cx + 70)).most_common(1)[0][0]
-edges = [y for y in range(wy0, wy1 + 1) if Counter(px[x, y] for x in range(cx - 70, cx + 70)).most_common(1)[0][0] != field]
-print("words clear" if not edges else f"words CROSSED on rows {edges}")
+css = open(f"{d}/../../../../.config/fedokawaii/themes/{d.rstrip('/').rsplit('/', 1)[1]}/gtklock.css").read()
+rule = [l for l in css.splitlines() if l.startswith("window.kawa #error-label")]
+print("words clear" if rule and "text-shadow" in rule[0] else "words CROSSED: no halo in gtklock.css")
 PY
 )
   has "$out" "marks " "$t: $out"; lacks "$out" "UNDER" "$t"
@@ -475,6 +478,30 @@ PY
   grep -q '^window.kawa #input-field {' "$css" && _ok || _no "$t: gtklock's line not hidden under the module"
   grep -q '^#input-field {' "$css" && _ok || _no "$t: without the module the line has no look of its own"
   grep -q 'transition: none;' "$css" && _ok || _no "$t: a transition could ease gtklock's line in for frames"
+done
+case_ "the gate (tools/build-ink.py): its frames side by side, shut first, each different, the last the scene's own; the row of marks inside it, on the gate's own dark"
+for t in dark light; do
+  out=$(python3 -I - "$REPO/configs/home/.local/share/fedokawaii/$t" <<'PY' 2>&1
+import sys
+from PIL import Image, ImageChops
+d = sys.argv[1]
+kv = {}
+for line in open(f"{d}/lock-scene.txt"):
+    w = line.split("#")[0].split()
+    if w: kv.setdefault(w[0], []).append(w[1:])
+x, y, w, h, n = map(int, kv["gate"][0])
+strip = Image.open(f"{d}/lock-gate.png").convert("RGB")
+scene = Image.open(f"{d}/lock-scene.png").convert("RGB")
+assert strip.size == (w * n, h), f"strip {strip.size}, gate {w} {h} {n}"
+frames = [strip.crop((i * w, 0, (i + 1) * w, h)) for i in range(n)]
+assert all(ImageChops.difference(a, b).getbbox() for a, b in zip(frames, frames[1:])), "two frames alike"
+assert not ImageChops.difference(frames[-1], scene.crop((x, y, x + w, y + h))).getbbox(), "the scene is not the gate open"
+rx, ry, pitch, rn = map(int, kv["row"][0])
+assert x <= rx - 1 and rx + pitch * rn + 1 < x + w and y <= ry - 1 and ry + 1 < y + h, "the row outside the gate"
+print("gate ok")
+PY
+)
+  eq "$out" "gate ok" "$t"
 done
 m=$REPO/src/kawa-lockmod/kawa-lockmod.c
 grep -q 'gtk_style_context_add_class(gtk_widget_get_style_context(win->window), "kawa");' "$m" && _ok || _no "the module does not mark its windows"

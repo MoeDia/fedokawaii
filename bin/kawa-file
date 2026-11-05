@@ -26,6 +26,7 @@
 #   sign        write or draw on it · sign by hand (Xournal++, on a copy) · draw your signature
 #                once (kept in ~/.local/share/fedokawaii/signature.png) · stamp it on a page's
 #                corner · check its digital signatures (pdfsig)
+#   torrents    a .torrent file: download it · copy its magnet link
 #   pack        anything chosen into .zip (to share), .7z or .tar.zst, zip and 7z with a
 #                password too (AES-256; 7z hides the names as well); then the compression: fast,
 #                balanced, smallest or a level you type — the last one per format remembered
@@ -208,7 +209,8 @@ if [[ ${1:-} == --list ]]; then
   done)
   [[ -n $rows ]] || rows=$'-\t'"$(screen_row "$ICON_CROSS" "nothing to show: a wrong password, or it is damaged" "" "$W")"
   export FZF_DEFAULT_OPTS_FILE=$HOME/.config/fedokawaii/fzf.opts; unset FZF_DEFAULT_OPTS
-  fzf --ansi --no-sort --no-clear --height=100% --delimiter=$'\t' --with-nth=2 --ghost="type to filter" \
+  # (--no-clear: the window ends here, and rolls up with its words, never as a blank page: tools/regress/float-exit.sh)
+  fzf --ansi --no-sort --height=100% --no-clear --delimiter=$'\t' --with-nth=2 --ghost="type to filter" \
     --header="$(screen_heading "$ICON_FILE" "$name" "$W"; printf '\n ')" <<<"$rows" >/dev/null
   exit 0
 fi
@@ -313,6 +315,12 @@ if ((np + ${#shut[@]})); then
     row drawsig  "$ICON_NOTE" "draw your signature" "$([[ -s $SIG ]] && echo "again, to replace it" || echo "once, kept for stamping")"
   fi
   row verify "$ICON_CHECK" "check its signatures" "digital ones"
+fi
+torrents=(); for f in "${items[@]}"; do [[ -f $f && $f == *.torrent ]] && torrents+=("$f"); done
+if ((${#torrents[@]})); then
+  part "$ICON_DOWNLOAD" torrents
+  row t-add "$ICON_DOWNLOAD" "download it" "in Torrents"
+  ((${#torrents[@]} == 1)) && row t-magnet "$ICON_MAGNET" "copy its magnet link" "to the clipboard"
 fi
 part "$ICON_ARCHIVE" pack
 row zip    "$ICON_ARCHIVE" zip "to share: opens anywhere"
@@ -605,7 +613,7 @@ annotate() {   # annotate TAIL WHAT
 draw_signature() {
   local x=$work/signature.xopp w h
   need_xpp
-  # a page of 400 × 150 points, plain: Xournal++'s own format (gzipped XML, as kawa-sketch writes it)
+  # a page of 400 × 150 points, plain: Xournal++'s own format (gzipped XML)
   printf '%s\n' '<?xml version="1.0" standalone="no"?>' '<xournal creator="fedokawaii kawa-file" fileversion="4">' \
     '<title>Xournal++ document - see https://xournalpp.github.io/</title>' \
     '<page width="400.00" height="150.00"><background type="solid" color="#ffffffff" style="plain"/><layer/></page>' \
@@ -700,5 +708,8 @@ case $act in
   drawsig) draw_signature; ((np == 1)) && stamp ;;
   stamp)  stamp ;;
   verify) verify ;;
+  t-add)  setsid -f kawa-torrents --open "${torrents[@]}" >/dev/null 2>&1 </dev/null ;;
+  t-magnet) if kawa-torrents magnet "${torrents[0]}" >"$LOG" 2>&1; then notify-send -a desktop -- "$ICON_MAGNET  magnet link copied" "${torrents[0]##*/}"
+            else oops "its magnet link could not be read" "${torrents[0]##*/}"; fi ;;
 esac
 exit 0

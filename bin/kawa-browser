@@ -1,0 +1,111 @@
+#!/usr/bin/env bash
+# ~/.local/bin/kawa-browser — the browser: Helium (Chromium's engine, Google's services out, uBlock
+# inside, its own Fedora repository: lib/manifest.sh), started so that sharing does what it does on
+# Windows. Super+B, links (Theme points the desktop's helium.desktop here), the web apps and
+# `kawa-browser` in a shell all start it this way; everything else reaches it unchanged — a feature
+# list of your own is joined to this one, not replaced by it. Its wrapper has no flags file to
+# hold these (/opt/helium/helium-wrapper: it only sets the library path), so they are here.
+# The sound of a share:
+#   a screen or a window  the computer's sound (Chromium's PulseAudio loopback for screen sharing,
+#                  off by default: PulseaudioLoopbackForScreenShare), its switch on from the first
+#                  (--system-audio-capture-default_checked, Chromium's own spelling). While it is
+#                  shared kawa-sharesound leaves the browser's live sound — the call — out, so
+#                  nobody hears themselves come back
+#   a tab          that tab's sound (Chromium's own, nothing needed)
+# Video through the GPU (VA-API, mesa-va-drivers-freeworld): a call's camera and a shared screen
+# are encoded by the card, not the processor (AcceleratedVideoEncoder — WebRTC's H.264/VP9/AV1 on
+# the card's encoder: a share stays smooth while something heavy runs), and videos are decoded
+# there and handed to the compositor without a copy (AcceleratedVideoDecodeLinuxGL, …ZeroCopyGL:
+# Chromium's VA-API path on Wayland). chrome://gpu lists them under "Video Acceleration
+# Information". A share is always taken through the portal and PipeWire, by Chromium's own choice
+# under Wayland — DMA-BUF frames straight from dwl's GPU buffers, up to the portal's max_fps (60).
+# To see it at work in a call: chrome://webrtc-internals → the call's outbound-rtp (video) stats:
+# encoderImplementation "ExternalEncoder" (VA-API; "libvpx"/"OpenH264" = the processor),
+# framesPerSecond near what the call asks, qualityLimitationReason "none".
+# The microphone's level is never moved by a call: WebRtcAllowInputVolumeAdjustment off — else
+# Chromium's gain control turns the system's microphone volume up and down as you speak (Meet
+# always asks for it), pumping the level every other program records at; its own gain inside the
+# call still works. A --disable-features of your own is joined to this one.
+# The password store is pinned to Chromium's basic one — no keyring runs here — so that a keyring
+# a package brings later can never leave every login and cookie saved before it unreadable. (A
+# --password-store of your own comes after it: Chromium keeps a switch's last value.)
+# Warm, as the desktop's other windows are: `kawa-browser --warm` (autostart, at login) starts it with
+# no window, and it stays through the closing of its last one, so that a press is a word on its own
+# socket and the window is there (measured with the machine under load 40: its page in 130–210 ms
+# against 1.2–1.8 s from nothing; at rest 0.2 % of a core, some 300 MB). What keeps it is a private
+# DevTools pipe no program can reach (--remote-debugging-pipe, on a fifo only it holds: no port), as
+# --no-startup-window alone ends at once on Linux. Its disk cache held to 1 GB by itself: kawa-tidy
+# leaves a browser that is running alone.
+set -u
+conf=${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium
+# Open with this profile? Chromium's own mark — SingletonLock, a link to HOST-PID — whose process
+# is alive; a crash's stale mark is no open browser, nor is one of another home. The one check for
+# whatever must not write its files under it: `kawa-browser --is-open` (0 open, 1 not) — Theme and
+# kawa-tidy ask it; its colours and Widevine below too
+is_open() { local o; o=$(readlink -- "$conf/SingletonLock" 2>/dev/null) && kill -0 "${o##*-}" 2>/dev/null; }
+[[ ${1:-} == --is-open ]] && { is_open; exit; }
+# The warm start, read here before anything is added to the arguments, never reaches the press
+# below: a press starts a warm browser, so a warm start arriving there would start itself without
+# end (4 Nov: --load-extension came to stand first, --warm was missed, and each login ran a chain
+# of these, thousands a second, each ending in a window).
+warm=""; [[ ${1:-} == --warm ]] && { warm=1; shift; }
+feat=PulseaudioLoopbackForScreenShare,AcceleratedVideoEncoder,AcceleratedVideoDecodeLinuxGL,AcceleratedVideoDecodeLinuxZeroCopyGL args=() rest=""
+off=WebRtcAllowInputVolumeAdjustment
+for a in "$@"; do                           # (after --, Chromium reads no switches: nor here)
+  if [[ -z $rest && $a == --enable-features=* ]]; then feat+=",${a#--enable-features=}"
+  elif [[ -z $rest && $a == --disable-features=* ]]; then off+=",${a#--disable-features=}"
+  else [[ $a == -- ]] && rest=1; args+=("$a"); fi
+done
+b=/usr/bin/helium
+[[ -x $b ]] || { echo "kawa-browser: Helium is not installed (sudo dnf install helium-bin)" >&2; exit 127; }
+# Widevine (Spotify's web player plays nothing without it): the module the toolkit keeps
+# (setup.sh: install_widevine, from Google's own server), named to Helium where Chromium looks for
+# it, its hint file. Helium's own updater may name a newer one there: left be while that one is
+# there. Only with the browser closed, as Chromium reads it at its start and may write it
+cdm=/usr/local/lib/fedokawaii-widevine hint=$conf/WidevineCdm/latest-component-updated-widevine-cdm
+if [[ -r $cdm/manifest.json && ! -s $hint ]] && ! is_open; then
+  mkdir -p -- "${hint%/*}" && printf '{"Path":"%s"}' "$cdm" >"$hint"
+fi
+# The desktop's small extension (~/.local/share/fedokawaii/browser: how big a download will be, for
+# the bar) and the program it tells (Chromium's native messaging: a file in the profile, kept as it
+# should be here: its path is this home's)
+ext=$HOME/.local/share/fedokawaii/browser host=$conf/NativeMessagingHosts/fedokawaii.downloads.json
+if [[ -r $ext/manifest.json ]]; then
+  args=("--load-extension=$ext" "${args[@]}")
+  j='{"name":"fedokawaii.downloads","description":"downloads, for the bar","path":"'$HOME'/.local/bin/kawa-downloads","type":"stdio","allowed_origins":["chrome-extension://mnilamabopllcgmiodochnjmpkiohpie/"]}'
+  if [[ $(cat "$host" 2>/dev/null) != "$j" ]]; then mkdir -p -- "${host%/*}" && printf '%s' "$j" >"$host"; fi
+fi
+# (--hide-crash-restore-bubble: a browser that died never asks to bring old windows back)
+flags=("--enable-features=$feat" "--disable-features=$off" --password-store=basic --system-audio-capture-default_checked --disk-cache-size=1073741824 --hide-crash-restore-bubble)
+if [[ -n $warm ]]; then
+  is_open && exit 0
+  run=${XDG_RUNTIME_DIR:-/tmp}/kawa-browser.pipe.$$
+  mkfifo -m 600 -- "$run" && exec 3<>"$run" 4>/dev/null || exit 1
+  rm -f -- "$run"
+  exec "$b" "${flags[@]}" --remote-debugging-pipe --no-startup-window "${args[@]}"
+fi
+# word ARG… — the running browser told as a second start of it would (Chromium's process singleton:
+# START, the folder, the command line): the window at once, no 300 MB program loaded to say it
+word() {
+  python3 -I -S -c 'import os, socket, sys
+s = socket.socket(socket.AF_UNIX); s.settimeout(5); s.connect(sys.argv[1])
+s.sendall(b"START\0" + os.getcwd().encode() + b"\0" + b"\0".join(os.fsencode(a) for a in sys.argv[2:]) + b"\0")
+s.shutdown(socket.SHUT_WR); sys.exit(0 if s.recv(8).startswith(b"ACK") else 1)' "$conf/SingletonSocket" "$b" "$@" 2>/dev/null
+}
+# what opens a window goes through the warm browser, started now if it is not up; what asks for a
+# profile, a port, a batch job or the program's own answers goes as it is
+plain=1
+for a in "${args[@]}"; do
+  case $a in --user-data-dir*|--headless*|--remote-debugging*|--version|--help|-h|--dump-dom*|--print-to-pdf*|--screenshot*|--no-startup-window) plain="" ;; esac
+done
+if [[ -n $plain ]]; then
+  # (no display, no window: a shell on a text console, or a test or a tool kept away from the
+  # desktop, must not reach the browser in the session through its socket)
+  [[ -n ${WAYLAND_DISPLAY:-}${DISPLAY:-} ]] || { echo "kawa-browser: no display here, no window opened" >&2; exit 1; }
+  if ! is_open; then
+    setsid "$0" --warm </dev/null >/dev/null 2>&1 & p=$!
+    for _ in {1..200}; do { is_open && [[ -S $conf/SingletonSocket ]]; } && break; kill -0 "$p" 2>/dev/null || break; sleep 0.05; done
+  fi
+  is_open && word "${args[@]}" && exit 0
+fi
+exec "$b" "${flags[@]}" "${args[@]}"

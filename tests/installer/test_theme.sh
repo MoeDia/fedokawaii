@@ -29,7 +29,16 @@ echo 'my own notes' >"$W$H/.config/sc-im/mine.sc"
 mkdir -p "$W$H/.config/pipewire/pipewire.conf.d"
 printf '%s\n' '# ~/.config/pipewire/pipewire.conf.d/60-clean-mic.conf — the clean mic' 'context.modules = [ { name = libpipewire-module-echo-cancel } ]' \
   >"$W$H/.config/pipewire/pipewire.conf.d/60-clean-mic.conf"
-fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player" "$H/.config/pipewire"
+# …and gaming's, which left this account for the play world: Steam's helper, game mode's, the
+# overlay's config and Steam's launcher entry, each still ours
+mkdir -p "$W$H/.config/MangoHud" "$W$H/.local/bin" "$W$H/.local/share/applications"
+printf '%s\n' '#!/usr/bin/env bash' '# kawa-steam — Steam, shown and hidden from the bar' >"$W$H/.local/bin/kawa-steam"
+printf '%s\n' '#!/usr/bin/env bash' '# kawa-game — game mode' >"$W$H/.local/bin/kawa-game"
+printf '%s\n' 'fps' >"$W$H/.config/MangoHud/MangoHud.conf"
+printf '%s\n' '[Desktop Entry]' 'Name=Steam' 'Exec=kawa-steam %U' >"$W$H/.local/share/applications/steam.desktop"
+chown -R "$FK_UID:$FK_UID" "$W$H/.local/share/applications"   # (his, as a real home's: the theme writes in it as him)
+fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player" "$H/.config/pipewire" "$H/.config/MangoHud" \
+  "$H/.local/bin/kawa-steam" "$H/.local/bin/kawa-game" "$H/.local/share/applications/steam.desktop"
 
 # ── the first run ────────────────────────────────────────────────────────────
 case_ "first run: every file of configs/home, bin/ and configs/system in place (exit 0)"
@@ -91,7 +100,14 @@ pw=$W$H/.config/pipewire/pipewire.conf.d
 [[ ! -e $pw/60-clean-mic.conf ]] && _ok || _no "60-clean-mic.conf is still there"
 has "$(cat "$b/.config/pipewire/pipewire.conf.d/60-clean-mic.conf" 2>/dev/null)" "libpipewire-module-echo-cancel" "kept in the backup"
 has "$OUT" "60-clean-mic.conf (retired)"
-[[ -s $pw/50-quality.conf && -s $pw/60-share.conf ]] && _ok || _no "the folder lost 50-quality.conf or 60-share.conf"
+[[ -s $pw/50-quality.conf ]] && _ok || _no "the folder lost 50-quality.conf"
+
+case_ "gaming left this account (lib/asobi.sh has it): Steam's and game mode's helpers, the overlay's config and Steam's entry, still ours, into the backup"
+[[ ! -e $W$H/.local/bin/kawa-steam && ! -e $W$H/.local/bin/kawa-game && ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok \
+  || _no "left: $(ls -d "$W$H"/.local/bin/kawa-{steam,game} "$W$H"/.config/MangoHud "$W$H"/.local/share/applications/steam.desktop 2>/dev/null | tr '\n' ' ')"
+[[ -f $b/.local/bin/kawa-steam && -f $b/.local/bin/kawa-game && -f $b/.config/MangoHud/MangoHud.conf && -f $b/.local/share/applications/steam.desktop ]] && _ok \
+  || _no "not in the backup ($b)"
+has "$OUT" "kawa-steam (retired)"; has "$OUT" "kawa-game (retired)"; has "$OUT" "MangoHud.conf (retired)"; has "$OUT" "steam.desktop (retired)"
 
 case_ "the pointers: both Sumi themes, their other names made as links, the default one the theme's"
 miss="" n=0
@@ -120,11 +136,22 @@ eq "$(sed -n 's/^chat\(In\|Out\)\(put\)FontFamily=//p' "$W$H/.config/mpv/script-
 has "$(grep '^osd-font=' "$W$H/.config/mpv/mpv.conf")" '"UDEV Gothic NF"' "the same as mpv's own"
 eq "$(fk stat -c '%U %a' "$H/.config/syncplay.ini")" "fkuser 600"
 
-case_ "Xournal++ (Sketch): the pen's lower button the eraser, its upper one the hand"
+case_ "Xournal++: the pen's lower button the eraser, its upper one the hand"
 xpp=$W$H/.config/xournalpp/settings.xml
 grep -q 'name="stylus"><attribute name="tool" type="string" value="eraser"' "$xpp" && _ok || _no "button 1: $(cat "$xpp" 2>/dev/null)"
 grep -q 'name="stylus2"><attribute name="tool" type="string" value="hand"' "$xpp" && _ok || _no "button 2: $(cat "$xpp" 2>/dev/null)"
 eq "$(fk stat -c %U "$H/.config/xournalpp/settings.xml")" fkuser
+
+case_ "FireAlpaca (Sketch): its skin built, its starting files there, yours, once"
+[[ -f $W$H/.local/lib/fedokawaii/kawa-firealpaca.so ]] && _ok || _no "kawa-firealpaca.so not built"
+fa=$W$H/.local/share/FireAlpaca/FireAlpaca
+for f in Palette.ini BrushNew.xml EraserNew.xml Config.ini Initialize.ini Language.ini; do
+  cmp -s "$fa/$f" "$REPO/configs/firealpaca/$f" && _ok || _no "$f is not the repo's"
+done
+eq "$(fk stat -c %U "$H/.local/share/FireAlpaca/FireAlpaca/Palette.ini")" fkuser
+[[ -e $W$H/.local/state/fedokawaii/firealpaca-seed ]] && _ok || _no "not recorded as done"
+[[ -s $W$H/.local/share/fedokawaii/firealpaca/blank.mdp && -s $W$H/.local/share/fedokawaii/firealpaca/icons/tool_brush.png ]] && _ok || _no "the blank page or the masks are not there"
+echo "my palette" >"$fa/Palette.ini"       # (it writes them itself from here on: the second run leaves them)
 
 # ── the second run, and --check ──────────────────────────────────────────────
 case_ "a second run: nothing changes, it says so, no new backup folder — and your theme switch stays"
@@ -252,7 +279,7 @@ for st in running idle suspended; do
 done
 a=$(cat "$REPO/configs/home/.config/dwl/autostart.sh")
 has "$a" 'if [ -e "$HOME/.local/state/fedokawaii/sound-restart" ]; then' "the login takes it up"
-[[ $(grep -n 'sound-restart' <<<"$a" | head -n1 | cut -d: -f1) -lt $(grep -n '^kawa-display' <<<"$a" | cut -d: -f1) ]] && _ok || _no "the login's restart comes after something else started"
+[[ $(grep -n 'sound-restart' <<<"$a" | head -n1 | cut -d: -f1) -lt $(grep -n '^kawa-display' <<<"$a" | head -n1 | cut -d: -f1) ]] && _ok || _no "the login's restart comes after something else started"
 case_ "…no clean mic in the sound server (the usual run), or no sound server at all: no call to wpctl, no restart"
 pwdump "alsa_input.pci-0000_15_00.6.analog-stereo"; fkh pw-dump "$(sed 's/clean_mic/gone/g' "$FKH/pw-dump")"; reset_calls
 theme; eq "$RC" 0; not_called 'wpctl\]'; not_called 'systemctl\] --user restart pipewire'

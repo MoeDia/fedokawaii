@@ -95,14 +95,21 @@ if ((repo_art)); then
   for f in "$HOME/.local/share/fonts"/*; do [[ ${f##*/} == SumiIcons* ]] || ln -s "$f" "$h/.local/share/fonts/"; done
   cp "$repo"/configs/home/.local/share/fonts/SumiIcons*.ttf "$h/.local/share/fonts/"
   cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
-  cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$h/.config/fedokawaii/"
+  cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$repo/configs/home/.config/fedokawaii/panel-art.txt" "$h/.config/fedokawaii/"
   mkdir -p "$h/.bashrc.d" && cp "$repo/configs/home/.bashrc.d/fedokawaii.sh" "$h/.bashrc.d/"
   # (fzf.opts as theme.sh writes it: its prompt's chevron filled in)
-  sed "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
+  sed -e "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
+      -e "s|@ICON_BAND_EDGE@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_BAND_EDGE")|g" \
     "$repo/configs/home/.config/fedokawaii/fzf.opts" >"$h/.config/fedokawaii/fzf.opts"
   cp -a "$repo/configs/home/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
   rm -rf "$h/.config/waybar" "$h/.config/mako"
   cp -a "$repo/configs/home/.config/waybar" "$repo/configs/home/.config/mako" "$h/.config/"
+  # (foot's colours: the repository's block in place of the installed one — a text screen's band and inks)
+  python3 -I -c 'import re, sys
+new = re.search(r"# >>> colours.*?# <<< colours", open(sys.argv[1]).read(), re.S).group(0)
+t = open(sys.argv[2]).read()
+open(sys.argv[2], "w").write(re.sub(r"# >>> colours.*?# <<< colours", lambda _: new, t, flags=re.S))' \
+    "$repo/configs/home/.config/foot/foot.ini" "$h/.config/foot/foot.ini" || exit 2
 else
   ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
 fi
@@ -158,7 +165,10 @@ kawa-dwlstatus <&0 >/dev/null 2>&1 &
 mako >/dev/null 2>&1 &
 foot --server --log-no-syslog >/dev/null 2>&1 &   # (never in his journal: dwl going first leaves foot "Broken pipe")
 waybar >"$K/waybar.log" 2>&1 &
+# (the bar drawn before a scene looks: 3 s on a free machine; a busy card can hold its first frame a minute)
 sleep 3
+for _ in \$(seq 240); do grep -q 'Bar configured' "$K/waybar.log" 2>/dev/null && break; sleep 0.25; done
+sleep 0.5
 fail=0
 for s in ${scenes[*]}; do
   case \$s in

@@ -13,7 +13,6 @@ amiri-fonts|fedora|https://packages.fedoraproject.org/search?query=amiri-fonts|2
 bash-completion|fedora|https://packages.fedoraproject.org/search?query=bash-completion|2026-10-14|manifest 2026-10-14
 bat|fedora|https://packages.fedoraproject.org/search?query=bat|2026-10-14|manifest 2026-10-14
 bluez|fedora|https://packages.fedoraproject.org/search?query=bluez|2026-10-14|manifest 2026-10-14
-brave-origin|brave-browser|https://brave.com/origin/linux/|2026-10-20|dnf config-manager addrepo --from-repofile=https://brave-browser-rpm-release.s3.brave.com/brave-browser.repo; key brave-core.asc (the .repo file)
 btop|fedora|https://packages.fedoraproject.org/search?query=btop|2026-10-14|manifest 2026-10-14
 cage|fedora|https://packages.fedoraproject.org/search?query=cage|2026-10-14|manifest 2026-10-14
 cava|fedora|https://packages.fedoraproject.org/search?query=cava|2026-10-14|manifest 2026-10-14
@@ -29,11 +28,13 @@ eza|fedora|https://packages.fedoraproject.org/pkgs/rust-eza/eza/fedora-44-update
 fd-find|fedora|https://packages.fedoraproject.org/search?query=fd-find|2026-10-14|manifest 2026-10-14
 ffmpeg|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14
 file|fedora|https://packages.fedoraproject.org/search?query=file|2026-10-14|manifest 2026-10-14
+flatpak|fedora|https://packages.fedoraproject.org/pkgs/flatpak/flatpak/fedora-44-updates.html|2026-11-04|flatpak-1.18.4 in Fedora 44 updates (dnf repoquery); the play world's, per user — no system-wide remote
 fontconfig|fedora|https://packages.fedoraproject.org/search?query=fontconfig|2026-10-14|manifest 2026-10-14
 foot|fedora|https://packages.fedoraproject.org/search?query=foot|2026-10-14|manifest 2026-10-14
 fuse3|fedora|https://packages.fedoraproject.org/pkgs/fuse3/fuse3/|2026-11-01|F44 3.18.3-1.fc44, F45 3.18.3-1.fc45 (/usr/bin/fusermount3: rpm -qf here) — restic mount, Super+U → restore
 fwupd|fedora|https://packages.fedoraproject.org/search?query=fwupd|2026-10-14|manifest 2026-10-14
 fzf|fedora|https://packages.fedoraproject.org/search?query=fzf|2026-10-14|manifest 2026-10-14
+gamemode|fedora|https://packages.fedoraproject.org/pkgs/gamemode/gamemode/fedora-44.html|2026-11-04|gamemode-1.8.2 in Fedora 44 (dnf repoquery); the play world's: the card at full clocks while it plays
 gamescope|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gamescope-3.16.22 in Fedora 44 Everything (official mirror)
 gammastep|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gammastep-2.0.11 in Fedora 44 Everything (official mirror)
 gcc|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/g/|2026-10-20|gcc-16.0.1 in Fedora 44 Everything (official mirror)
@@ -59,6 +60,7 @@ gtk3|fedora|https://packages.fedoraproject.org/search?query=gtk3|2026-10-14|mani
 gtk3-devel|fedora|https://packages.fedoraproject.org/search?query=gtk3-devel|2026-10-14|manifest 2026-10-14
 gtk4|fedora|https://packages.fedoraproject.org/search?query=gtk4|2026-10-14|manifest 2026-10-14
 gtklock|fedora|https://packages.fedoraproject.org/search?query=gtklock|2026-10-14|manifest 2026-10-14
+helium-bin|copr:imput/helium|https://copr.fedorainfracloud.org/coprs/imput/helium/|2026-11-04|the official COPR (helium.computer → github.com/imputnet/helium-linux): gpgcheck=1, key 07BCFCA30AC7E51BCFEDFFF74A3186EA47912C39, F44 and F45 chroots; 0.20.3.1 = Chromium 156.0.8078.79
 hunspell-ar|fedora|https://packages.fedoraproject.org/search?query=hunspell-ar|2026-10-14|manifest 2026-10-14
 hunspell-en|fedora|https://packages.fedoraproject.org/search?query=hunspell-en|2026-10-14|manifest 2026-10-14
 ImageMagick|fedora|https://packages.fedoraproject.org/search?query=ImageMagick|2026-10-14|manifest 2026-10-14
@@ -67,6 +69,7 @@ imv|fedora|https://packages.fedoraproject.org/search?query=imv|2026-10-14|manife
 inih-devel|fedora|https://packages.fedoraproject.org/search?query=inih-devel|2026-10-14|manifest 2026-10-14
 intel-media-driver|rpmfusion-nonfree|https://admin.rpmfusion.org/pkgdb/package/nonfree/intel-media-driver/|2026-10-14|manifest 2026-10-14
 jq|fedora|https://packages.fedoraproject.org/search?query=jq|2026-10-14|manifest 2026-10-14
+kbd|fedora|https://packages.fedoraproject.org/pkgs/kbd/kbd/fedora-44.html|2026-11-04|kbd-2.9.0 in Fedora 44 updates (dnf repoquery); chvt: the screen back on the desktop when the play world ends
 lact|copr:ilyaz/LACT|https://copr.fedorainfracloud.org/coprs/ilyaz/LACT/|2026-10-20|lact-0.10.1-1 in the fedora-44-x86_64 chroot
 libadwaita|fedora|https://packages.fedoraproject.org/search?query=libadwaita|2026-10-14|manifest 2026-10-14
 libasan|updates|https://packages.fedoraproject.org/pkgs/gcc/libasan/|2026-10-27|libasan-16.2.1-2.fc44 (from gcc), dnf info on this PC: the Address Sanitizer runtime (tools/hl-dwl.sh --asan)
@@ -88,7 +91,6 @@ lxqt-policykit|fedora|https://packages.fedoraproject.org/search?query=lxqt-polic
 make|fedora|https://packages.fedoraproject.org/search?query=make|2026-10-14|manifest 2026-10-14
 mako|fedora|https://packages.fedoraproject.org/search?query=mako|2026-10-14|manifest 2026-10-14
 man-db|fedora|https://packages.fedoraproject.org/search?query=man-db|2026-10-14|manifest 2026-10-14
-mangohud|fedora|https://packages.fedoraproject.org/search?query=mangohud|2026-10-14|manifest 2026-10-14
 mesa-dri-drivers|fedora|https://packages.fedoraproject.org/search?query=mesa-dri-drivers|2026-10-14|manifest 2026-10-14
 mesa-va-drivers-freeworld|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14
 mesa-vulkan-drivers|fedora|https://packages.fedoraproject.org/search?query=mesa-vulkan-drivers|2026-10-14|manifest 2026-10-14
@@ -97,13 +99,14 @@ mpv|fedora|https://packages.fedoraproject.org/search?query=mpv|2026-10-14|manife
 mpv-mpris|fedora|https://packages.fedoraproject.org/search?query=mpv-mpris|2026-10-14|manifest 2026-10-14
 neovim|fedora|https://packages.fedoraproject.org/search?query=neovim|2026-10-14|manifest 2026-10-14
 NetworkManager|fedora|https://packages.fedoraproject.org/search?query=NetworkManager|2026-10-14|manifest 2026-10-14
+firewalld|fedora|https://packages.fedoraproject.org/search?query=firewalld|2026-11-04|manifest 2026-11-04
 NetworkManager-tui|fedora|https://packages.fedoraproject.org/search?query=NetworkManager-tui|2026-10-14|manifest 2026-10-14
 nodejs24|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/|2026-10-20|F44 (nodejs24 by its own name; nodejs is 22)
 nodejs24-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-bin/|2026-10-20|F44
 nodejs24-npm-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-npm-bin/fedora-44.html|2026-10-20|F44
+nss|fedora|https://packages.fedoraproject.org/search?query=nss|2026-11-04|manifest 2026-11-04 (rpm -q on F44: nss, Fedora Project)
 ntfs-3g|fedora|https://packages.fedoraproject.org/search?query=ntfs-3g|2026-10-14|manifest 2026-10-14
 ntsync-autoload|fedora|https://packages.fedoraproject.org/pkgs/wine/ntsync-autoload/fedora-44.html|2026-10-20|F44
-openrgb|fedora|https://packages.fedoraproject.org/search?query=openrgb|2026-10-14|manifest 2026-10-14
 pciutils|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/p/|2026-10-20|pciutils-3.14.0 in Fedora 44 Everything (official mirror)
 pipewire|fedora|https://packages.fedoraproject.org/search?query=pipewire|2026-10-14|manifest 2026-10-14
 pipewire-alsa|fedora|https://packages.fedoraproject.org/search?query=pipewire-alsa|2026-10-14|manifest 2026-10-14
@@ -112,6 +115,7 @@ pipewire-utils|fedora|https://packages.fedoraproject.org/search?query=pipewire-u
 pixman-devel|fedora|https://packages.fedoraproject.org/search?query=pixman-devel|2026-10-14|manifest 2026-10-14
 pkgconf-pkg-config|fedora|https://packages.fedoraproject.org/search?query=pkgconf-pkg-config|2026-10-14|manifest 2026-10-14
 playerctl|fedora|https://packages.fedoraproject.org/search?query=playerctl|2026-10-14|manifest 2026-10-14
+plymouth-plugin-label|fedora|https://packages.fedoraproject.org/pkgs/plymouth/plymouth-plugin-label/|2026-11-04|the crash its absence causes on F45: coredump in the VM, 4 Nov
 plymouth-plugin-script|fedora|https://packages.fedoraproject.org/search?query=plymouth-plugin-script|2026-10-14|manifest 2026-10-14
 podman|fedora|https://packages.fedoraproject.org/search?query=podman|2026-10-14|manifest 2026-10-14
 poppler-utils|fedora|https://packages.fedoraproject.org/search?query=poppler-utils|2026-10-14|manifest 2026-10-14
@@ -122,6 +126,7 @@ python3-pem|fedora|https://packages.fedoraproject.org/search?query=python3-pem|2
 python3-pyOpenSSL|fedora|https://packages.fedoraproject.org/search?query=python3-pyOpenSSL|2026-10-14|manifest 2026-10-14
 python3-pillow|fedora|https://packages.fedoraproject.org/pkgs/python-pillow/python3-pillow/|2026-11-01|python3-pillow-12.3.0 (from python-pillow), Fedora 44 updates (dnf info): the shots measured by tools/regress and px.py
 python3-pyte|fedora|https://packages.fedoraproject.org/pkgs/python-pyte/python3-pyte/|2026-10-27|python3-pyte-0.8.2-15.fc44 (from python-pyte), installed from Fedora 44's own repo: the self-tests' terminal screen
+stockfish|fedora|https://packages.fedoraproject.org/pkgs/stockfish/stockfish/|2026-11-04|F44 updates: stockfish 19-1.fc44 (dnf info; UCI_Elo 1320–3190, Skill Level 0–20 by its own `uci`); net embedded (99 MB binary)
 systemd-container|fedora|https://packages.fedoraproject.org/pkgs/systemd/systemd-container/|2026-11-01|F44 (dnf5 repoquery: fedora + updates, 259.10-1.fc44 on this PC; /usr/bin/systemd-nspawn — the update's candidate)
 wlrctl|fedora|https://packages.fedoraproject.org/pkgs/wlrctl/wlrctl/|2026-10-27|wlrctl-0.2.2-6.fc44 (upstream git.sr.ht/~brocellous/wlrctl), in Fedora 44, 45 and Rawhide: the self-tests' pointer (zwlr_virtual_pointer_v1, which dwl offers)
 python3-twisted|fedora|https://packages.fedoraproject.org/pkgs/python-twisted/python3-twisted/fedora-44.html|2026-10-20|F44
@@ -130,16 +135,18 @@ qalculate|fedora|https://packages.fedoraproject.org/search?query=qalculate|2026-
 qpdf|fedora|https://packages.fedoraproject.org/search?query=qpdf|2026-10-14|manifest 2026-10-14
 qrencode|fedora|https://packages.fedoraproject.org/search?query=qrencode|2026-10-14|manifest 2026-10-14
 qt6ct|fedora|https://packages.fedoraproject.org/search?query=qt6ct|2026-10-14|manifest 2026-10-14
+rb_libtorrent-python3|fedora|https://packages.fedoraproject.org/pkgs/rb_libtorrent/rb_libtorrent-python3/|2026-11-04|2.0.11-5.fc44 in Fedora 44 (dnf info); 2.0.11-9.fc45 in Fedora 45 (.claude/notes/f45-changes.md): built for the system Python
 restic|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|restic-0.18.1 in Fedora 44 Everything (official mirror)
 ripgrep|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|ripgrep-14.1.1 in Fedora 44 Everything (official mirror)
 rocm-smi|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/r/|2026-10-20|rocm-smi-7.1.1 in Fedora 44 Everything (official mirror)
 rpmfusion-free-release|rpmfusion-free|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14 — rpmfusion-free (https://download1.rpmfusion.org/free/fedora/rpmfusion-free-release-44.noarch.rpm)
 rpmfusion-nonfree-release|rpmfusion-nonfree|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14 — rpmfusion-nonfree (https://download1.rpmfusion.org/nonfree/fedora/rpmfusion-nonfree-release-44.noarch.rpm)
+rust|fedora|https://packages.fedoraproject.org/pkgs/rust/rust/|2026-11-04|F44 updates: rust 1.99.1-2.fc44 (dnf info); yazi's build (rust-version 1.95 in its Cargo.toml)
+cargo|fedora|https://packages.fedoraproject.org/pkgs/rust/cargo/|2026-11-04|F44 updates: cargo 1.99.1-2.fc44 (dnf info); yazi's build
 rustup|fedora|https://packages.fedoraproject.org/search?query=rustup|2026-10-14|manifest 2026-10-14
 ShellCheck|fedora|https://packages.fedoraproject.org/search?query=ShellCheck|2026-10-14|manifest 2026-10-14
 slurp|fedora|https://packages.fedoraproject.org/search?query=slurp|2026-10-14|manifest 2026-10-14
 snapper|fedora|https://packages.fedoraproject.org/search?query=snapper|2026-10-14|manifest 2026-10-14
-steam|rpmfusion-nonfree|https://rpmfusion.org/Configuration|2026-10-14|manifest 2026-10-14
 steam-devices|fedora|https://packages.fedoraproject.org/search?query=steam-devices|2026-10-14|manifest 2026-10-14
 sudo|fedora|https://packages.fedoraproject.org/search?query=sudo|2026-10-14|manifest 2026-10-14
 swaybg|fedora|https://packages.fedoraproject.org/search?query=swaybg|2026-10-14|manifest 2026-10-14
@@ -159,7 +166,6 @@ unrar|rpmfusion-nonfree|https://download1.rpmfusion.org/nonfree/fedora/releases/
 upstream:ble.sh|github:akinomyoga/ble.sh|https://github.com/akinomyoga/ble.sh/commit/d81fd54feb0d996fdff20dca27eaf0201f7015cc|2026-10-14|a commit fetched by its hash is its own pin
 upstream:bluetui|github:pythops/bluetui|https://github.com/pythops/bluetui/releases/download/v0.8.2/bluetui-x86_64-linux-musl|2026-10-21|sha256 b476ee473cb4… matches the pin (downloaded and measured; the newest release)
 upstream:dwl|codeberg:dwl/dwl|https://codeberg.org/dwl/dwl/releases/tag/v0.9|2026-10-21|v0.9 (2026-09-20) is the newest release, for wlroots 0.20 — setup itself refuses a tag that does not resolve to DWL_COMMIT
-upstream:ge-proton|github:GloriousEggroll/proton-ge-custom|https://github.com/GloriousEggroll/proton-ge-custom/releases|2026-10-14|follows the newest release, checked against its own .sha512sum
 upstream:herdr|github:herdrdev/herdr|https://github.com/herdrdev/herdr/releases/download/v0.9.5/herdr-linux-x86_64|2026-10-21|sha256 14d9e8bc8b4a… matches the pin (downloaded and measured; the newest release)
 upstream:lazygit|github:jesseduffield/lazygit|https://github.com/jesseduffield/lazygit/releases/download/v0.66.2/lazygit_0.66.2_linux_x86_64.tar.gz|2026-10-21|sha256 158efc9ddfa1… matches the pin (downloaded and measured, and the release's checksums.txt; the newest release)
 upstream:localsend|github:localsend/localsend|https://github.com/localsend/localsend/releases/download/v1.18.2/LocalSend-1.18.2-linux-x86-64.tar.gz|2026-10-21|sha256 287690a9a8eb… matches the pin (downloaded and measured; the newest release, its files as 1.18.0's)
@@ -167,7 +173,6 @@ upstream:udev-gothic|github:yuru7/udev-gothic|https://github.com/yuru7/udev-goth
 upstream:satty|github:gabm/Satty|https://github.com/gabm/Satty/releases/download/v0.22.0/satty-x86_64-unknown-linux-gnu.tar.gz|2026-10-21|sha256 eb7a028c4a5c… matches the pin (downloaded and measured; the newest release)
 upstream:syncplay|github:Syncplay/syncplay|https://github.com/Syncplay/syncplay/releases/tag/v1.7.6|2026-10-21|tag v1.7.6 = 993232ab095b (git ls-remote); the newest release
 upstream:termfilechooser|github:hunkyburrito/xdg-desktop-portal-termfilechooser|https://github.com/hunkyburrito/xdg-desktop-portal-termfilechooser/releases/tag/v1.4.3|2026-10-21|tag v1.4.3 peels to cb8cec0b30aa (git ls-remote); the newest release
-upstream:torrra|pypi|https://pypi.org/project/torrra/2.5.1/|2026-10-21|2.5.1 on PyPI, the newest; libtorrent 2.1.1 has wheels up to Python 3.13 (uv's 3.13 for it)
 upstream:yazi|github:sxyazi/yazi|https://github.com/sxyazi/yazi/releases/download/v26.9.1/yazi-x86_64-unknown-linux-musl.zip|2026-10-21|sha256 9b9c39decccf… matches the pin (downloaded and measured; the newest release)
 usbutils|fedora|https://packages.fedoraproject.org/search?query=usbutils|2026-10-14|manifest 2026-10-14
 uv|fedora|https://packages.fedoraproject.org/search?query=uv|2026-10-14|manifest 2026-10-14
@@ -193,6 +198,7 @@ xdg-user-dirs|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/E
 xdg-utils|fedora|https://mirrors.seas.harvard.edu/fedora/linux/releases/44/Everything/x86_64/os/Packages/x/|2026-10-20|xdg-utils-1.2.1 in Fedora 44 Everything (official mirror)
 xorg-x11-server-Xwayland|fedora|https://packages.fedoraproject.org/search?query=xorg-x11-server-Xwayland|2026-10-14|manifest 2026-10-14
 xournalpp|fedora|https://packages.fedoraproject.org/search?query=xournalpp|2026-10-14|manifest 2026-10-14
+xprop|fedora|https://packages.fedoraproject.org/pkgs/xprop/xprop/|2026-11-05|xprop-1.2.8-6.fc45 from fedora (dnf repoquery); FreeSync held on in gamescope (kawa-asobi-world)
 yt-dlp|fedora|https://packages.fedoraproject.org/search?query=yt-dlp|2026-10-14|manifest 2026-10-14
 zathura|fedora|https://packages.fedoraproject.org/search?query=zathura|2026-10-14|manifest 2026-10-14
 zathura-cb|fedora|https://packages.fedoraproject.org/search?query=zathura-cb|2026-10-14|manifest 2026-10-14

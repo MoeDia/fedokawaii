@@ -16,7 +16,7 @@ their contrast. This script is the only place the colours are written down; it r
       colors.sh  waybar.css  foot.ini            the ~/.config/fedokawaii/current
       mako  qt6ct.conf  qt6ct-colors.conf          link that kawa-theme switches
       btop.theme  zathurarc  imv  gtklock.css  mpv.conf  wiremix.toml
-      dwl.colors  panel.conf  saver.conf
+      dwl.colors  panel.conf  saver.conf  firealpaca.conf  firealpaca.qss  firealpaca-*.png
       kami-{tile,red,fibre,seal,scroll}.png        (the bar's washi tiles: 紙 kami)
   configs/home/.config/foot/foot.ini              the [colors-dark] / [colors-light] block
   configs/home/.config/gtk-4.0/gtk.css            both themes, chosen by GTK's media query
@@ -24,7 +24,7 @@ their contrast. This script is the only place the colours are written down; it r
   configs/home/.config/nvim/lua/plugins/colorscheme.lua   gruvbox remapped to both palettes
 
 A few files cannot include a generated one (dwl's config.h is compiled in; mpv's subtitles,
-satty, MangoHud, fetch and the scripts' fallbacks hold literal colours): each run checks that
+satty, fetch and the scripts' fallbacks hold literal colours): each run checks that
 every colour written in them is one of the palettes' (COPIES below), and stops if not.
 
 Outputs are committed, so installing needs no Python. Run again after changing a colour.
@@ -48,6 +48,9 @@ _spec = _iu.spec_from_file_location("wada_palette", pathlib.Path(__file__).with_
 _wada = _iu.module_from_spec(_spec)
 _spec.loader.exec_module(_wada)
 P, KAMI, TILE, EDITOR = _wada.palette()
+_spec = _iu.spec_from_file_location("firealpaca_skin", pathlib.Path(__file__).with_name("firealpaca_skin.py"))
+_skin = _iu.module_from_spec(_spec)         # (FireAlpaca's skin: its sheet, its inks, its pictures)
+_spec.loader.exec_module(_skin)
 NAMES = {"dark": "sumi (ink)", "light": "washi (paper)"}
 
 
@@ -68,6 +71,7 @@ def colors_sh(m, p):
              f"THEME={m}"]
     lines += [f"C_{k.upper()}={p[k]}" for k in keys]
     lines.append(f"C_TEAL={p['asagi']}   # asagi: the level display")
+    lines.append(f"C_FLAME={p['flame']}   # a meter over 80 %")
     wing = " ".join(_mixc(p["accent_lo"], p["accent"], i / 9) for i in range(10))
     lines.append(f'C_WING="{wing}"   # the music meter (the clock\'s wings): 1 … 10 px, accent_lo rising to accent')
     lines.append(f'C_ANSI="{" ".join(ansi(p))}"   # the 16 terminal colours (theme.sh: console palette)')
@@ -279,109 +283,6 @@ def lock_scroll(m, fill, rule, s=2):
     return png(w * s, h * s, _scaled(c, s))
 
 
-# the mood's head on the bar's end tile (quick settings' own: a demon by night, an angel by day), a
-# woodblock's crest (the owner, 4 Nov: "less colours, more conventional, more RED; monotone, classic
-# Japanese"): 22 × 20, the tile's paper rows whole — R the seal's red, K the black ink, W the
-# cream of the demon's eyes and teeth; N the angel's nimbus in the red, '.' the paper shows through.
-# Each drawn as its left half, mirrored when built (a mask is symmetric to the pixel). Dark: an oni,
-# roaring while quick settings is open; light: a Kannon, opening her eyes and smiling.
-FACES = {
-    "dark": ("""
-.R.........
-.RR........
-.RRR.......
-..RRR...RRR
-...RRRRRRRR
-...RRRRRRRK
-...RKKRRRRK
-..RRRRKKKRR
-..RRWWRKKKK
-..RRWKKRRRR
-..RRRRRRRRK
-...RRRRRRKK
-...RRRRRRRR
-..RRKKKKKKK
-..RRKWKKKKK
-..RRKWWKKKK
-..RRKKKKKWK
-...RRKKKWWK
-...RRRRRRRR
-.....RRRRRR
-""", """
-.R.........
-.RR........
-.RRR.......
-..RRR...RRR
-...RRRRRRRR
-...RRRRRRRK
-...RKKRRRRK
-..RRRRKKKRR
-..RWWWWKKKK
-..RRWWKRRRR
-..RRRRRRRRK
-...RRRRRRKK
-..RRKKKKKKK
-..RRKWKKKKK
-..RRKWWKKKK
-..RRKWKKKKK
-..RRKKKKKKK
-..RRKKKKKWK
-...RRKKKWWK
-....RRRRRRR
-"""),
-    "light": ("""
-.......NNNN
-.....NN...K
-....N....KK
-...N.....KK
-..N....KKKK
-..N..KKKKKK
-.N..KKKKKK.
-.N..KKKK...
-.N.KKKK...R
-.N.KKK.....
-N..KK..KKK.
-N..KK......
-.N.KK......
-.N.KK......
-..NKK....RR
-...KKK.....
-NN.KKKK....
-.NKKKKKK...
-N.KKKKKKKKK
-NNKKKKKKKKK
-""", """
-.......NNNN
-.....NN...K
-....N....KK
-...N.....KK
-..N....KKKK
-..N..KKKKKK
-.N..KKKKKK.
-.N..KKKK...
-.N.KKKK...R
-.N.KKK.....
-N..KK..K.K.
-N..KK..KKK.
-.N.KK......
-.N.KK......
-..NKK...R..
-...KKK...RR
-NN.KKKK....
-.NKKKKKK...
-N.KKKKKKKKK
-NNKKKKKKKKK
-"""),
-}
-
-
-def head(m, p, half):
-    """The bar's head as a PNG: its half mirrored, in its inks, the tile's paper through the rest."""
-    ink = {"R": p["accent"], "N": p["accent"], "K": p["lo"] if m == "dark" else p["strong"], "W": p["strong"]}
-    rows = [r + r[::-1] for r in half.strip("\n").split("\n")]
-    return png(len(rows[0]), len(rows), [[_rgb(ink[c]) if c != "." else (0, 0, 0, 0) for c in r] for r in rows])
-
-
 # the weather on the bar (kawa-weather --bar's class sky-NAME): its sky drawn, 14 × 14, laid on the
 # weather tile's paper (rows 3–16, as a 14 px line's em; 8 px from the paper's edge, the value 8
 # after) — a few inks of the palette, as the weather's pictures may have (design-system §13): S the
@@ -562,13 +463,12 @@ def ornaments(m, p):
         "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
         "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
-        "face.png": head(m, p, FACES[m][0]),
-        "face-open.png": head(m, p, FACES[m][1]),
         **{f"sky-{n}.png": sky(m, p, a) for n, a in SKY.items()},
         "kami-scroll.png": kami_scroll(m, fill),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
         "lock-scroll.png": lock_scroll(m, fill, k["rule"]),
         "lock-fibre.png": kami_fibre(m, fill, 2),
+        **_skin.pictures(png, ROOT, m, p, k),
     }
 
 
@@ -604,7 +504,7 @@ def foot_block():
         out += [f"bright{i}={a[8 + i]}" for i in range(8)]
         # the desktop's own four, past the sixteen, for every list in a terminal (fzf.opts,
         # VisiData) and the shell's prompt: 16 the vermilion (accent), 17 the words on it,
-        # 24 the fill of what is selected (select: the lacquer), 25 the words on it (fzf's bg+
+        # 24 the fill of what is selected (select: the seal's 12 % tint), 25 the words on it (fzf's bg+
         # and fg+), 18 the soft fill under the pointer, 19 the stitched rules (edge2:
         # a heading's ╌, as in the panels), and the text screens' own inks (docs/design-system.md
         # §7, ~/.config/fedokawaii/screen.sh): 20 accent_text (a heading's kanji), 21 muted (a
@@ -617,6 +517,11 @@ def foot_block():
         # paper_* tokens) and the ink its words take on them (30)
         out += [f"{27 + i}={p['paper_' + k]}" for i, k in enumerate(("folder", "git", "time"))]
         out += [f"30={p['lo'] if m == 'dark' else p['strong']}"]
+        # (31, 32: the lacquer and its cream: a failed command's code in the prompt)
+        out += [f"31={p['lacquer']}", f"32={p['text_on_lacquer']}"]
+        # 33 the hairline of what floats (§4: dark, text at 50 %; light, strong at 84 %), for a frame a text
+        # screen draws itself: the ring of yazi's pop-ups (the patched yazi, its theme.toml)
+        out += [f"33={_mixc(p['ground'], p['text'], 0.5) if m == 'dark' else _mixc(p['ground'], p['strong'], 0.84)}"]
     out.append("# <<< colours")
     return "\n".join(out)
 
@@ -646,9 +551,14 @@ summary-icon-color=#{p['accent_text']}
 progress-color=over #{p['asagi']}40
 format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>
 
-# critical: the hairline in vermilion (the main config keeps these on screen until dismissed)
+# critical: what needs you (the main config keeps these on screen until dismissed) — the hairline in vermilion, a
+# 3 px bar of it inside the left one, the title's icon in a filled seal, and the key that takes it away
 [urgency=critical]
 border-color=#{p['accent']}
+left-edge=3 #{p['accent']}
+summary-icon-seal=#{p['accent']}
+summary-icon-color=#{p['text_on_accent']}
+format=<span foreground="#{p['strong']}" line_height="20480">%s</span>\\n<span line_height="20480">%b</span>\\n<span line_height="20480"><span background="#{p['edge']}" foreground="#{p['strong']}"> super </span> <span background="#{p['edge']}" foreground="#{p['strong']}"> shift </span> <span background="#{p['edge']}" foreground="#{p['strong']}"> n </span><span foreground="#{p['muted']}"> dismiss</span></span>
 
 # several notices from one app, folded into one card: the count beside the title, muted
 [grouped]
@@ -663,7 +573,7 @@ format=<span foreground="#{p['strong']}" line_height="20480">\U000FE044 not open
 
 def gtk_vars(m, p):
     v = p["view"]
-    return [("accent_color", p["accent_text"]), ("accent_bg_color", p["select"]), ("accent_fg_color", p["text_on_select"]),
+    return [("accent_color", p["accent_text"]), ("accent_bg_color", p["lacquer"]), ("accent_fg_color", p["text_on_lacquer"]),
             ("window_bg_color", p["ground"]), ("window_fg_color", p["text"]),
             ("view_bg_color", v), ("view_fg_color", p["text"]),
             ("headerbar_bg_color", p["surface"]), ("headerbar_fg_color", p["text"]),
@@ -690,7 +600,7 @@ SQUARE_NOTE = ["/* The desktop's parts (docs/design-system.md), as far as GTK dr
                "   would leave a gap inside that border. Every window, dialog, decoration and popover",
                "   fills its border exactly. A button is a key — the key fill in a 1 px edge frame;",
                "   under the pointer only its words and icon turn accent_text, no box; pressed or",
-               "   switched on it is filled with the lacquer (select), its ink text_on_select, as a dialog's default",
+               "   switched on it is filled with the lacquer, its ink text_on_lacquer, as a dialog's default",
                "   button always is. A check box or a radio button is the panels' check: □, and ▣",
                "   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the",
                "   words in a field — is filled with the lacquer, cream on it; the text cursor is vermilion.",
@@ -769,9 +679,9 @@ def gtk3_theme(m, p):
     out += [f"@define-color {k:<26}#{v};" for k, v in gtk_vars(m, p)]
     out += [f"@define-color {'kawa_' + k:<26}#{p[k]};" for k in KAWA]
     out += ["",
-            "/* Brave (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
-            "   strip, toolbar and menus (its address bar keeps Brave's own). Chromium gives every",
-            "   style node it reads the class .chromium, so the rules below reach Brave only: its",
+            "/* Helium (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab",
+            "   strip, toolbar and menus (its address bar keeps Helium's own). Chromium gives every",
+            "   style node it reads the class .chromium, so the rules below reach Helium only: its",
             "   accent (checked boxes, the selected row) is the lacquer rather than a dull blend,",
             "   its tooltips are the palette's, and its tab strip stays the same when the window is",
             "   not focused. */",
@@ -779,7 +689,8 @@ def gtk3_theme(m, p):
             "treeview.view.cell.chromium:selected:focus { background-color: @accent_bg_color; color: @accent_fg_color; }",
             "tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }",
             "tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }",
-            "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }"]
+            "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }",
+            "window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }"]
     out += ["", *SQUARE_NOTE, *square_rules(3)]
     return "\n".join(out) + "\n"
 
@@ -834,15 +745,15 @@ QT_ROLES = ["WindowText", "Button", "Light", "Midlight", "Dark", "Mid", "Text", 
 def qt_colors(m, p):
     """Qt's palette roles, each one of the panels' tokens (docs/design-system.md): the window
     on the ground as GTK's; buttons and fields the key fill, their bevels and frames the
-    edges (flat: no shade darker than the stitch); what is selected filled with the lacquer
-    (select), cream on it; links accent_text, visited ones the dim vermilion; words not there yet faint;
+    edges (flat: no shade darker than the stitch); what is selected filled with the lacquer,
+    cream on it; links accent_text, visited ones the dim vermilion; words not there yet faint;
     a disabled window's words faint and its selection the edge, muted on it."""
     fg = p["text"]      # (the words of a window, as GTK's: text in both moods, Lc ≥ 75)
     base = {
         "WindowText": fg, "Button": p["key"], "Light": p["edge2"], "Midlight": p["edge"],
         "Dark": p["edge2"], "Mid": p["edge"], "Text": fg, "BrightText": p["text_on_accent"],
         "ButtonText": fg, "Base": p["key"], "Window": p["ground"], "Shadow": p["edge2"],
-        "Highlight": p["select"], "HighlightedText": p["text_on_select"],
+        "Highlight": p["lacquer"], "HighlightedText": p["text_on_lacquer"],
         "Link": p["accent_text"], "LinkVisited": p["accent_lo"],
         "AlternateBase": p["surface"], "NoRole": p["ground"], "ToolTipBase": p["surface"],
         "ToolTipText": fg, "PlaceholderText": p["faint"],
@@ -862,32 +773,35 @@ def qt_colors(m, p):
         return ", ".join(vals)
     return (f"# {header('~/.config/fedokawaii/current/qt6ct-colors.conf', NAMES[m] + ' colours for Qt (qt6ct)')}\n"
             "[ColorScheme]\n"
-            f"active_colors={line(fg, p['select'], p['text_on_select'])}\n"
+            f"active_colors={line(fg, p['lacquer'], p['text_on_lacquer'])}\n"
             f"disabled_colors={line(p['faint'], p['edge'], p['muted'])}\n"
-            f"inactive_colors={line(fg, p['select'], p['text_on_select'])}\n")
+            f"inactive_colors={line(fg, p['lacquer'], p['text_on_lacquer'])}\n")
 
 
 def btop_theme(m, p):
     box = p["edge2"] if m == "dark" else p["edge"]
-    start = p["edge"] if m == "dark" else p["ansi0"]
     t = {
-        "main_bg": p["ground"], "main_fg": p["text"], "title": p["strong"], "hi_fg": p["accent_text"],
+        # (title: btop's rules are full of its keys' words, "menu", "filter", "pause", each with a key letter in hi_fg: all
+        # of them stepping back, the numbers and the graphs in front; red only where it means something: the ramp's top)
+        "main_bg": p["ground"], "main_fg": p["text"], "title": p["muted"], "hi_fg": p["faint"],
         "selected_bg": p["select"], "selected_fg": p["text_on_select"],
         "inactive_fg": p["faint"], "graph_text": p["muted"], "meter_bg": p["edge"] if m == "dark" else p["ansi0"],
         "proc_misc": p["asagi"],
         "cpu_box": box, "mem_box": box, "net_box": box, "proc_box": box, "div_line": p["edge"],
-        "temp_start": p["green"], "temp_mid": p["yellow"], "temp_end": p["accent"],
-        "cpu_start": p["green"], "cpu_mid": p["yellow"], "cpu_end": p["accent"],
-        "free_start": box, "free_mid": p["teal"], "free_end": p["bteal"],
-        "cached_start": box, "cached_mid": p["blue"], "cached_end": p["bblue"],
-        "available_start": box, "available_mid": p["green"], "available_end": p["bgreen"],
-        "used_start": box, "used_mid": p["yellow"], "used_end": p["accent"],
-        "download_start": start, "download_mid": p["blue"], "download_end": p["bblue"],
-        "upload_start": start, "upload_mid": p["purple"], "upload_end": p["bpurple"],
-        "process_start": p["green"], "process_mid": p["yellow"], "process_end": p["accent"],
+        # what rises toward alarm, one ramp: asagi, the seal's gold, the seal's red (every meter of the desktop, §4)
+        "temp_start": p["asagi"], "temp_mid": p["yellow"], "temp_end": p["accent"],
+        "cpu_start": p["asagi"], "cpu_mid": p["yellow"], "cpu_end": p["accent"],
+        "used_start": p["asagi"], "used_mid": p["yellow"], "used_end": p["accent"],
+        "process_start": p["asagi"], "process_mid": p["yellow"], "process_end": p["accent"],
+        # what is good to have much of, one calm ink; the network's two ways, two
+        "free_start": p["asagi"], "free_mid": p["asagi"], "free_end": p["asagi"],
+        "cached_start": p["asagi"], "cached_mid": p["asagi"], "cached_end": p["asagi"],
+        "available_start": p["asagi"], "available_mid": p["asagi"], "available_end": p["asagi"],
+        "download_start": p["asagi"], "download_mid": p["asagi"], "download_end": p["asagi"],
+        "upload_start": p["yellow"], "upload_mid": p["yellow"], "upload_end": p["yellow"],
     }
     out = [f"# {header('~/.config/fedokawaii/current/btop.theme', NAMES[m] + ' colours for btop')}",
-           "# Gradients run matcha → yamabuki → vermilion: calm when idle, warm under load."]
+           "# One ramp for what rises: asagi → gold → the seal's red, calm when idle, warm under load."]
     out += [f'theme[{k}]="#{v}"' for k, v in t.items()]
     return "\n".join(out) + "\n"
 
@@ -978,7 +892,7 @@ window {{ background-color: {ink('ground')}; }}
   background: none; border: none; border-bottom: 2px solid #{k['rule']}; border-radius: 0;
 }}
 #input-field:focus {{ border-bottom-color: {ink('muted')}; }}
-#input-field selection {{ background-color: {ink('select')}; color: {ink('text_on_select')}; }}
+#input-field selection {{ background-color: {ink('lacquer')}; color: {ink('text_on_lacquer')}; }}
 /* the scene (window.kawa): gtklock's line takes the keys, unseen — no scroll, no words, nothing
    typed shows here: the scene draws the marks and the caret */
 window.kawa #window-box {{ border-image: none; border-width: 0; background: none; padding: 0; min-width: 0; }}
@@ -986,8 +900,8 @@ window.kawa #messages {{ opacity: 0; }}
 window.kawa #input-field {{ min-width: 1px; min-height: 1px; font-size: 1px; letter-spacing: 0; padding: 0;
   color: transparent; caret-color: transparent; border: none; }}
 window.kawa #input-field selection {{ background: none; color: transparent; }}
-/* the login's one line of words (an expiring password, a session that will not start) */
-window.kawa #error-label {{ color: {ink('strong')}; }}
+/* the login's one line of words (an expiring password, a session that will not start): over a painting, its own halo */
+window.kawa #error-label {{ color: {ink('strong')}; text-shadow: 0 0 3px {ink('ground')}, 0 0 3px {ink('ground')}, 0 0 2px {ink('ground')}, 1px 1px 1px {ink('ground')}, -1px -1px 1px {ink('ground')}; }}
 """
 
 
@@ -1149,8 +1063,8 @@ return {{
           -- the picker's counts ("12/403"): in the comments' quiet ink, not the faint one
           -- gruvbox gives them (close to the ground itself)
           vim.api.nvim_set_hl(0, "SnacksPickerTotals", {{ link = "Comment" }})
-          -- what is selected (the completion menu's row, the wild menu's): the desktop's lacquer
-          -- with the strongest cream on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
+          -- what is selected (the completion menu's row, the wild menu's): the seal's tint with the
+          -- strongest ink on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
           local sel = vim.o.background == "light"
             and {{ bg = "#{P['light']['select']}", fg = "#{P['light']['text_on_select']}" }}
             or {{ bg = "#{P['dark']['select']}", fg = "#{P['dark']['text_on_select']}" }}
@@ -1187,6 +1101,30 @@ return {{
             vim.api.nvim_set_hl(0, "DiagnosticFloating" .. k, {{ fg = t.text }})
             vim.api.nvim_set_hl(0, "DiagnosticUnderline" .. k, {{ sp = c, underline = true }})
           end
+          -- the status line (lua/config/statusline.lua): a tile in the mode's ink, the branch and
+          -- the place on the key's ground, the words between in the muted ink on the line's own
+          local p = ({{
+{statusline_palettes()}
+          }})[vim.o.background == "light" and "light" or "dark"]
+          local function set(name, spec) vim.api.nvim_set_hl(0, "KawaSt" .. name, spec) end
+          local function tile(name, ink)
+            set(name, {{ bg = ink, fg = ink == p.accent and p.on_accent or p.ground, bold = true }})
+          end
+          tile("Normal", p.accent); tile("Insert", p.teal); tile("Visual", p.yellow)
+          tile("Replace", p.red); tile("Command", p.blue); tile("Terminal", p.teal)
+          vim.api.nvim_set_hl(0, "StatusLine", {{ bg = p.line, fg = p.muted }})
+          vim.api.nvim_set_hl(0, "StatusLineNC", {{ bg = p.line, fg = p.muted }})
+          set("Key", {{ bg = p.key, fg = p.text }})
+          set("Quiet", {{ bg = p.line, fg = p.muted }})
+          set("File", {{ bg = p.line, fg = p.muted }})
+          set("Changed", {{ bg = p.line, fg = p.text, bold = true }})
+          set("Root", {{ bg = p.line, fg = p.teal }})
+          set("Recording", {{ bg = p.line, fg = p.accent, bold = true }})
+          set("Debug", {{ bg = p.line, fg = p.yellow }})
+          set("Added", {{ bg = p.line, fg = p.teal }})
+          set("Modified", {{ bg = p.line, fg = p.yellow }})
+          set("Removed", {{ bg = p.line, fg = p.accent }})
+          for k, c in pairs(d) do set(k, {{ bg = p.line, fg = c }}) end
         end,
       }})
     end,
@@ -1197,47 +1135,6 @@ return {{
     }},
   }},
   {{ "LazyVim/LazyVim", opts = {{ colorscheme = "gruvbox" }} }},
-  -- the statusline in the same colours (lualine's own "gruvbox" theme has gruvbox's stock
-  -- ones): made from the palette for the ground Neovim has, and again when that changes
-  {{
-    "nvim-lualine/lualine.nvim",
-    opts = function(_, opts)
-      local P = {{
-{lualine_palettes()}
-      }}
-      local function theme()
-        local p = P[vim.o.background] or P.dark
-        local function mode(c)
-          return {{ a = {{ bg = c, fg = c == p.accent and p.on_accent or p.ground, gui = "bold" }}, b = {{ bg = p.key, fg = p.text }},
-                   c = {{ bg = "NONE", fg = p.muted }} }}
-        end
-        -- (the line's middle on the terminal's own see-through ground, as the text above it)
-        local quiet = {{ bg = "NONE", fg = p.muted }}
-        return {{ normal = mode(p.accent), insert = mode(p.teal), visual = mode(p.yellow),
-                 replace = mode(p.red), command = mode(p.blue), terminal = mode(p.teal),
-                 inactive = {{ a = quiet, b = quiet, c = quiet }} }}
-      end
-      opts.options = opts.options or {{}}
-      opts.options.theme = theme()
-      -- plain: no powerline separators (the pixel font has other glyphs at their code points)
-      -- and no icons (the Nerd Font's would stand among the pixel ones); no clock (the bar's)
-      opts.options.section_separators = {{ left = "", right = "" }}
-      opts.options.component_separators = {{ left = "", right = "" }}
-      opts.options.icons_enabled = false
-      opts.sections = opts.sections or {{}}
-      opts.sections.lualine_z = {{}}
-      vim.api.nvim_create_autocmd("ColorScheme", {{
-        group = vim.api.nvim_create_augroup("kawa_lualine", {{ clear = true }}),
-        callback = function()
-          local ok, lualine = pcall(require, "lualine")
-          if ok then
-            opts.options.theme = theme()
-            lualine.setup(opts)
-          end
-        end,
-      }})
-    end,
-  }},
 }}
 """
 
@@ -1261,14 +1158,16 @@ def lua_table(rows, indent):
                      for r in rows)
 
 
-def lualine_palettes():
+def statusline_palettes():
     out = []
     for m, p in P.items():
         blue = p["bblue"] if m == "dark" else p["blue"]
-        vals = [("ground", p["ground"]), ("bar", p["surface"]), ("key", p["key"]), ("text", p["text"]),
+        # (the line's ground: gruvbox's bg2 slot of each mood, what its StatusLine always showed)
+        line = p["key"] if m == "dark" else p["edge"]
+        vals = [("ground", p["ground"]), ("line", line), ("key", p["key"]), ("text", p["text"]),
                 ("muted", p["muted"]), ("accent", p["accent"]), ("teal", p["asagi"]), ("yellow", p["yellow"]),
                 ("blue", blue), ("red", p["red"]), ("on_accent", p["text_on_accent"])]
-        out.append(f"        {m} = {{ " + ", ".join(f'{k} = "#{v}"' for k, v in vals) + " },")
+        out.append(f"            {m} = {{ " + ", ".join(f'{k} = "#{v}"' for k, v in vals) + " },")
     return "\n".join(out)
 
 
@@ -1276,7 +1175,7 @@ def lualine_palettes():
 COPIES = ["bin/kawa-books", "bin/kawa-notes", "bin/kawa-clip", "bin/kawa-menu", "bin/kawa-lock",
           "bin/kawa-wallpaper", "bin/kawa-screenshot", "bin/kawa-record", "bin/fetch", "src/dwl/config.h",
           "configs/home/.config/mpv/mpv.conf", "configs/home/.config/satty/config.toml",
-          "configs/home/.config/MangoHud/MangoHud.conf", "configs/home/.config/lazygit/config.yml"]
+          "configs/home/.config/lazygit/config.yml"]
 
 
 def check_copies():
@@ -1304,25 +1203,32 @@ def panel_conf(m, p):
     """kawa-panel, quick settings: it draws itself (every square and segment on the pixel grid),
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
     it (KAMI: the hairline and the shadow's two rows, each with its own opacity: rrggbbaa)."""
-    keys = ("ground", "surface", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent",
-            "accent_text", "accent_hi", "select", "text_on_select", "select_lo", "asagi", "flame")
+    keys = ("ground", "surface", "key", "edge", "edge2", "lo", "faint", "muted", "text", "strong", "accent",
+            "accent_text", "accent_hi", "accent_lo", "text_on_accent", "select", "select_hi", "select_edge", "text_on_select",
+            "asagi", "flame", "gold")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
-    frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1]}
+    frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1], "dim": (0x11, 0x13, 0x14, 0x66)}
+    # (sand: a running timer's bar; ai: a Saturday's indigo; the dim: Wada's Black at 40 %, a dialog's, in either mood)
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
             + "".join(f"{k}={p[k]}\n" for k in keys)
+            + f"sand={p['gold'] if m == 'dark' else p['yellow']}\nai={p['blue'] if m == 'dark' else p['bblue']}\n"
             + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
 
 
 def saver_conf(m, p):
-    """kawa-saver, the screensaver: it draws dot by dot (C), so it takes the colours by name —
-    the ground, the sashiko's thread and its shadow (art_olive and lo on the ink — the thread is
-    art, not words: it keeps its tone when the words' roles move — blue and edge on the paper),
-    the seals' vermilion (accent: a stamp; accent_text: the clock's 時), its clock's panel."""
+    """kawa-saver, the screensaver: it draws its air and its seal itself (C), so it takes the colours by name — the
+    air's (embers cooling, smoke, on the ink; gold dust and cherry petals, a Wada coral paled, on the paper), its seal's: the
+    ink, the ink struck (it cools), the digits cut out of it; the shade over the sleeping painting (the painting's own black; on the paper, the gold
+    hour: a warm brown)."""
     dark = m == "dark"
-    c = dict(p, thread=p["art_olive"] if dark else p["blue"], shade=p["lo"] if dark else p["edge"])
-    keys = ("ground", "surface", "edge2", "thread", "shade", "text", "accent", "accent_text")
+    c = {"spark_hot": p["strong"], "spark": p["flame"], "spark_cool": p["accent"], "spark_dim": p["accent_lo"],
+         "drift": p["art_kinari"], "drift_lo": p["art_umber"], "seal": _wada.mix(p["accent"], p["accent_lo"], 0.5), "seal_hot": p["accent"],
+         "seal_cut": "0b0a09", "shade": "0b0a09"} if dark else \
+        {"spark_hot": p["hi"], "spark": p["gold"], "spark_cool": p["yellow"], "spark_dim": p["lo"],
+         "drift": _wada.mix(_wada.W["Coral Red"], p["key"], 0.62), "drift_lo": p["accent"], "seal": p["accent"], "seal_hot": p["accent_hi"],
+         "seal_cut": p["key"], "shade": _wada.W["Vandyke Brown"]}
     return (f"# {header('~/.config/fedokawaii/current/saver.conf', 'the screensaver in ' + NAMES[m])}\n"
-            + "".join(f"{k}={c[k]}\n" for k in keys))
+            + "".join(f"{k}={v}\n" for k, v in c.items()))
 
 
 def dwl_colors(m, p):
@@ -1341,7 +1247,7 @@ def dwl_colors(m, p):
     ink = min(inks, key=lambda c: sum(int(c[i:i + 2], 16) for i in (0, 2, 4)))
     return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
             f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
-            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['select']}ff\n")
+            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['lacquer']}ff\n")
 
 
 FILES = {
@@ -1350,6 +1256,7 @@ FILES = {
     "zathurarc": zathurarc, "imv": imv, "gtklock.css": gtklock_css,
     "qt6ct.conf": qt6ct_conf, "mpv.conf": mpv_conf, "wiremix.toml": wiremix,
     "panel.conf": panel_conf, "dwl.colors": dwl_colors, "saver.conf": saver_conf,
+    "firealpaca.conf": _skin.conf, "firealpaca.qss": _skin.sheet,
 }
 
 

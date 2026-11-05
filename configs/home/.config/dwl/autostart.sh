@@ -44,6 +44,12 @@ systemctl --user start fedokawaii-remind.timer 2>/dev/null
 systemctl --user start kawa-tidy.timer 2>/dev/null
 # the wallpaper every 4 hours (Super+W: "a new one every 4 hours", off unless switched on)
 systemctl --user start kawa-wallpaper-next.timer 2>/dev/null
+# Torrents' engine: its socket with the session; the engine itself at once only when downloads were left
+# unfinished (the mark it keeps while any is), else at the first window or link
+systemctl --user start kawa-torrents.socket 2>/dev/null
+if [ -e "${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/torrents/unfinished" ]; then
+  systemctl --user --no-block start kawa-torrents.service 2>/dev/null
+fi
 # GRUB's hidden menu: this boot counts as successful once the desktop has run two minutes
 # (the timer stops with the session: one that ends sooner leaves the boot unmarked)
 systemctl --user start grub-boot-success.timer 2>/dev/null
@@ -92,8 +98,9 @@ kawa-display </dev/null                            # resolution + refresh rate
 kawa-theme apply </dev/null                        # dark or light: GTK/Qt settings, wallpaper
 kawa-state restore </dev/null                      # what you set, as you left it, before the bar draws
                                                    #   (do not disturb, Bluetooth, brightness; kawa-state)
+kawa-display --monitor </dev/null >/dev/null 2>&1 &  # the monitor's own menu, its true level to the bar (DDC/CI is slow)
+kawa-rgb unlock </dev/null >/dev/null 2>&1           # (a session that died locked left the lights dim)
 kawa-night restore </dev/null                      # night light: as you last left it (on or off, its warmth)
-kawa-game restore </dev/null &                     # a session ended mid-game: the desktop's tuned profile back
 kawa-glass ensure </dev/null                       # the terminal's glass file, there before foot starts (foot.ini
                                                    #   includes it: foot refuses its config without it)
 keep waybar </dev/null >"$HOME/.cache/waybar.log" 2>&1 &
@@ -127,19 +134,16 @@ keep /usr/libexec/lxqt-policykit-agent </dev/null &   # auth dialogs (an app ask
 keep udiskie </dev/null &                          # drives: open when plugged in (~/.config/udiskie, kawa-drives)
 keep kawa-drives watch </dev/null &               # the bar's USB mark and ~/Drives, on every change
 keep kawa-downloads watch </dev/null &            # the bar's download mark, and a notice as one finishes
+{ sleep 8; keep kawa-browser --warm; } </dev/null >/dev/null 2>&1 &   # the browser, no window: Super+B a word to it (after the login's rush)
 keep kawa-clipkeep </dev/null &                   # a copy outlives the app it came from
 kawa-carry hint </dev/null &                       # a fresh install, the drive with your things plugged in: said once
 keep wl-paste --watch kawa-clip --store </dev/null &   # clipboard history (Super+V): text and pictures
-kawa-steam --warm </dev/null &                    # Steam, quietly, a minute in (its menu turns it off; STEAM=no: nothing)
-keep kawa-steam --watch </dev/null &              # game mode while a Steam game runs (until gaming moves into its VM: T35)
-kawa-steam --guard </dev/null &                   # Steam closed properly before a restart or shut down,
-                                                   #   whoever asks (its saves to Steam Cloud; STEAM=no: nothing)
 
 # away 15 minutes: the screensaver, the lock behind it (the first key or move ends the one
 # and brings up the other; the screensaver switched off in quick settings: the lock at once);
 # away 30 minutes: the screens dark (the outputs stay, so windows stay where they are; a key
 # wakes them). Never while something plays (kawa-idle): a video holds the idle timer itself
-# (Brave and mpv ask the compositor: idle-inhibit), music and anything holding logind's idle
+# (Helium and mpv ask the compositor: idle-inhibit), music and anything holding logind's idle
 # lock make kawa-idle wait until they end. Sleep is yours to ask for: the power menu, or a lock
 # (Super+Escape) left locked for 90 s (kawa-lock --sleep). Every sleep is dark and locked
 # first (so swayidle, which does it, is never given up on: see keep); as the machine wakes the

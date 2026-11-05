@@ -1,7 +1,6 @@
 #!/usr/bin/env bash
-# tests/look/test_calc.sh — kawa-calc, the launcher's Calculator: the answer shows as you type
-# (the real qalc works it out), Enter copies it and keeps the line above, a word alone or a
-# qalc command is never sent, Esc closes. Typed on a terminal of its own (script).
+# tests/look/test_calc.sh — the calculator (kawa-panel's Calc) and the launcher's sums, driven with a stand-in ui; kawa-calc
+# --answer with the real qalc: a word alone or a qalc command is never sent.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
 need qalc python3
@@ -11,35 +10,12 @@ setup() {
   argv wl-copy 'cat >"$FAKE_TMP/clip"'
   stub wl-paste '[ "$1" = --list-types ] && [ -e "$FAKE_TMP/clip" ] && echo "text/plain;charset=utf-8"'
 }
-# typed KEYS… — each argument typed after the one before has been answered (0.8 s), then Esc
-typed() {
-  local k
-  { for k; do printf '%b' "$k"; /bin/sleep 0.8; done; printf '\e'; /bin/sleep 0.3; } \
-    | python3 -I "$REPO/tests/lib/pty_run.py" --stdin --cols 64 --rows 13 --timeout 30 -- kawa-calc 2>&1 | tr -d '\r'
-}
-plain() { sed 's/\x1b\[[0-9;?]*[A-Za-z]//g; s/\x1b[78]//g' <<<"$1"; }
-
 setup
-case_ "a conversion: its answer as it is typed; the heading is the calculator's icon, calculator"
-. "$REPO/configs/home/.config/fedokawaii/icons.sh"
-out=$(plain "$(typed '5 ft to cm')"); has "$out" "$ICON_CALC  calculator"; has "$out" "$ICON_EQUALS  152.4 cm"
-lacks "$out" "算" "no kanji (§13)"
-case_ "Enter: the answer copied, the line kept above, said on the last line"
-out=$(plain "$(typed '6*7' '\r')"); eq "$(cat "$TMP/clip" 2>/dev/null)" 42; has "$out" "6*7 = 42"; has "$out" "copied: 42"
-case_ "a word alone, or one of qalc's commands: no answer (never sent: exit would end qalc)"
-setup; out=$(plain "$(typed 'steam' '\x15exit 5' '\x152+2')"); lacks "$out" "$ICON_EQUALS  0"; has "$out" "$ICON_EQUALS  4"
-case_ "Backspace takes a letter back; the answer follows"
-out=$(plain "$(typed '2*30' '\x7f')"); has "$out" "$ICON_EQUALS  6"
-case_ "each key one frame (a synchronised update), never cleared first; the last line its own key alone (§7), the answer's copy at its right"
-raw=$(typed '1+1' '\x7f'); has "$raw" $'\e[?2026h'; has "$raw" $'\e[?2026l'; lacks "$raw" $'\e[2J'
-has "$(plain "$raw")" "ctrl+q  qalc's prompt"; lacks "$(plain "$raw")" "esc close"; lacks "$(plain "$raw")" "enter copy"; lacks "$raw" "↑"
-has "$(plain "$raw")" "copy" "the answer's copy"
-has "$raw" "   "$'\e[38;5;20m'"$ICON_CHEVRON_RIGHT"$'\e[0m  1+1' "the line typed: the chevron (accent_text) at the rows' icon column, the words at their names'"
-case_ "a shorter answer over a longer one: the rest of its line erased before the copy's column (the kit saw \"152.4 cm005083516811 s*c\")"
-raw=$(typed '5 ft to c' 'm'); has "$raw" "152.4 cm"$'\e[0m\e[K\e[' "(the answer, its ink's end, the erase, then the jump to copy)"
 case_ "a percentage in words: \"15% of 2400\" is qalc's 15% * 2400 (qalc alone: rem(15, 1 B))"
 eq "$(kawa-calc --answer '15% of 2400')" 360; eq "$(kawa-calc --answer '120 * 15% of 10')" 180
-rc 1 kawa-calc --answer steam
+rc 1 kawa-calc --answer hello
+case_ "every figure, never qalc's power of ten: 2^64 as it is"
+eq "$(kawa-calc --answer '2^64')" 18446744073709551616
 # the launcher (kawa-panel's): its Panel driven with a stand-in ui that notes what it is asked
 lp() {
   local G=$TMP/gi; mkdir -p "$G/gi/repository"
@@ -67,17 +43,58 @@ class UI:
     def calc(self, m): self.calls.append(f"calc {m.query}")
     def copy_answer(self, text): self.calls.append(f"copy {text}")
     def copy_answer_of(self, m, q): self.calls.append(f"copy-of {q}")
+    def copy_quiet(self, text): self.calls.append(f"quiet {text}")
+    def calc_now_(self, m, q): self.calls.append(f"now {q}")
     def start(self, app): self.calls.append(f"start {app.id}")
     def command(self, text): self.calls.append(f"command {text}")
-apps = [kp.App("brave-origin.desktop", "Brave Origin", "Web browser", ["internet"], None, None),
+apps = [kp.App("helium.desktop", "Helium", "Web browser", ["internet"], None, None),
         kp.App("kawa-calc.desktop", "Calculator", "Sums and conversions", ["math"], "calc", None)]
 u = UI(); p = kp.Panel(u)
 def typed(text):
     for c in text: p.typed("space" if c == " " else c, c)
-p.request("launcher", kp.Launcher(apps, {}), None)
+if sys.argv[3].startswith("#calc"):
+    p.request("calc", kp.Calc(), None)
+else:
+    p.request("launcher", kp.Launcher(apps, {}), None)
 exec(sys.argv[3])
 PY
 }
+# the calculator (kawa-panel's Calc): a panel as the launcher, its own keys
+pc() { lp "#calc
+def typed(text):
+    for c in text: p.key('space' if c == ' ' else c, c)
+def ans(q, a):
+    m = p.state; m.calc = (q, a); m.pending = None; p.answered(m)
+$1"; }
+case_ "kawa-calc: the panel's calculator, asked as the launcher is; nothing of a terminal left in it"
+stub kawa-menu 'echo "kawa-menu $*" >>"$FAKE_TMP/menu"'; rc 0 kawa-calc; eq "$(cat "$TMP/menu")" "kawa-menu --calc"
+has "$(cat "$REPO/bin/kawa-menu")" 'ask "toggle calc"'; has "$(cat "$REPO/configs/home/.local/share/applications/kawa-calc.desktop")" "Exec=@HOME@/.local/bin/kawa-calc"
+lacks "$(cat "$REPO/bin/kawa-calc")" "stty"; lacks "$(cat "$REPO/configs/home/.local/share/applications/kawa-calc.desktop")" "kawa-term"
+case_ "a sum typed: asked of qalc as it is typed, the line and the answer in their marks, the size never moves"
+eq "$(pc 'typed("5 ft to cm"); print([c for c in u.calls if c.startswith("calc")][-1]); s0 = p.size; ans("5 ft to cm", "152.4 cm")
+print([m[5] for m in p.marks if m[0] == "answer"], [m[6] for m in p.marks if m[0] == "input"], p.size == s0)')" \
+  "$(printf '%s\n' 'calc 5 ft to cm' "['152.4 cm'] ['5 ft to cm'] True")"
+case_ "an answer's figures: all of them while the row holds them (2^64's twenty), past that the power of ten, a unit kept, never a number cut; the panel's qalc asked for every figure"
+eq "$(pc 'for a in ("18446744073709551616", "152.4 cm", "AED 440.70", "0xFF", "2/3", "1000000000000000000000000000000000 g", "-2037035976334486086268445688409378161051468393665936250636140449354381299763336706183397376", "0.00000000003333333333"): print(kp.figures(a))')" \
+  "$(printf '%s\n' 18446744073709551616 '152.4 cm' 'AED 440.70' 0xFF 2/3 '1E33 g' -2.037035976E90 3.333333333E-11)"
+has "$(cat "$REPO/bin/kawa-panel")" '"-s", "exp off"]'
+case_ "opens clean: no cursor on a row, what it can do in faint until there is a sum; the heading the calculator's icon (§13: no kanji)"
+eq "$(pc 'print(p.focus, [h[:2] for h in p.heads], [m[4] for m in p.marks if m[0] == "hint"][:2], [m[3] for m in p.marks if m[0] == "hint"][:2])')" "None [('calc', 'calculator')] ['15% of 2400', '120 usd to aed'] ['equals', 'convert']"
+case_ "Enter: the answer copied without a notice (the panel says it), kept below, the line clean, the panel still there"
+eq "$(pc 'typed("6*7"); ans("6*7", "42"); p.key("Return"); print(u.calls[-1], p.visible, repr(p.state.query), [(i.name, i.value) for i in p.items], [m[5:] for m in p.marks if m[0] == "answer"], p.focus)')" \
+  "quiet 42 True '' [('6*7', '42')] [('42', '42')] None"
+case_ "Enter before its answer came: asked at once, done when it comes — never the earlier answer"
+eq "$(pc 'typed("5 ft"); ans("5 ft", "1.524 m"); u.calc = lambda m: setattr(m, "pending", m.query); typed(" to cm"); p.key("Return"); print(u.calls[-1]); ans("5 ft to cm", "152.4 cm"); print(u.calls[-1], [(i.name, i.value) for i in p.items][0])')" \
+  "$(printf '%s\n' 'now 5 ft to cm' "quiet 152.4 cm ('5 ft to cm', '152.4 cm')")"
+case_ "the session's sums: the newest first, Down goes to them, Enter copies one and comes back to the line; Up on the line takes the last back; a new panel keeps them, its line clean"
+eq "$(pc 'kp.Calc.done = []; typed("1+1"); ans("1+1", "2"); p.key("Return"); typed("2+2"); ans("2+2", "4"); p.key("Return")
+print([i.name for i in p.items]); p.key("Down"); print(p.focus); p.key("Return"); print(u.calls[-1], p.focus, p.state.copied); p.key("Down"); p.key("Down"); print(p.focus); p.key("Up"); p.key("Up"); print(p.focus)
+p.key("Up"); print(p.state.query); p.key("Escape"); print(p.visible); p.request("calc", kp.Calc(), None); print(repr(p.state.query), [i.name for i in p.items], p.visible)')" \
+  "$(printf '%s\n' "['2+2', '1+1']" d0 'quiet 4 None 4' d1 None 2+2 False "'' ['2+2', '1+1'] True")"
+case_ "Backspace and Ctrl+U on the line; Ctrl+Q closes it and opens qalc's own prompt in a window of its own; the same sum twice kept once"
+eq "$(pc 'typed("2*30"); p.key("BackSpace"); print(p.state.query); p.key("u"); print(repr(p.state.query)); p.key("q"); print(p.visible, u.calls[-1][:44])')" \
+  "$(printf '%s\n' '2*3' "''" 'False launch setsid -f -- kawa-term --float --once')"
+eq "$(pc 'kp.Calc.done = []; typed("1+1"); ans("1+1", "2"); p.key("Return"); typed("1+1"); ans("1+1", "2"); p.key("Return"); print(len(kp.Calc.done))')" 1
 case_ "the launcher: a sum typed is worked out as it is typed (ui.calc, each letter); its answer, once come, the first row — Enter copies it (the notice says so, with it)"
 eq "$(lp 'typed("15% of 2400"); print([c for c in u.calls if c.startswith("calc")][-1]); m = p.state; m.calc = (m.query, "360"); p.answered(m)
 print(p.items[0].key, p.items[0].name, p.items[0].value, p.focus); p.key("Return"); print(u.calls[-1], p.visible)')" \
@@ -102,20 +119,20 @@ eq "$(lp 'typed("5 ft"); m = p.state; m.calc = ("5 ft", "1.524 m"); m.pending = 
 src=$(sed -n '/    def calc_ask(m):/,/    def calc_start():/p' "$REPO/bin/kawa-panel")
 has "$src" 'qc["settle"] = GLib.timeout_add(SETTLE, settled, m, q)' "asked when the typing settles"
 has "$(sed -n '/^    SETTLE = /p' "$REPO/bin/kawa-panel")" "SETTLE = 250"
-has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" 'panel.ui.copy_answer(money(a))' "Enter's answer copied when it comes"
+has "$(sed -n '/    def calc_line(stream, res):/,/    def calc_end/p' "$REPO/bin/kawa-panel")" 'panel.ui.copy_answer(figures(money(a)))' "Enter's answer copied when it comes"
 setup; argv notify-send; rm -f "$TMP/clip"
 src=$(sed -n '/        def copy_answer(self, text):/,/^$/p' "$REPO/bin/kawa-panel" | python3 -c 'import sys, re; t = sys.stdin.read(); print(re.search(r"\"bash\", \"-c\", (.*?), \"_\", text\]", t, re.S).group(1))')
 script=$(python3 -c 'import ast, sys; print("".join(ast.literal_eval("(" + sys.argv[1] + ")")))' "$src")
 bash -c "$script" _ 360; eq "$(cat "$TMP/clip" 2>/dev/null)" 360 "the answer on the clipboard"; called notify-send "copied 360"
 case_ "the launcher: an entry picked (a click or Enter) starts it; text that finds nothing runs as a command"
-eq "$(lp 'typed("brav"); print([i.name for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' "['Brave Origin']" 'start brave-origin.desktop False')"
+eq "$(lp 'typed("heli"); print([i.name for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' "['Helium']" 'start helium.desktop False')"
 eq "$(lp 'typed("math"); print([i.name for i in p.items])')" "['Calculator']" "found by its keywords"
 eq "$(lp 'typed("htop -d 5"); print([i.key for i in p.items]); p.key("Return"); print(u.calls[-1], p.visible)')" "$(printf '%s\n' '[]' 'command htop -d 5 False')"
 lacks "$(cat "$REPO/bin/kawa-menu")" "fuzzel" "kawa-menu --launcher asks the panel, nothing else"
 has "$(cat "$REPO/bin/kawa-menu")" "toggle launcher"
-case_ "Esc closes (exit 0); misuse is 2"
-rc 0 typed ''; rc 2 kawa-calc --frob
+case_ "misuse is 2"
+rc 2 kawa-calc --frob
 case_ "without qalc: said, exit 1"
-hide qalc; out=$(kawa-calc 2>&1); eq "$?" 1; has "$out" "qalc is missing"
+hide qalc; out=$(kawa-calc --answer 1+1 2>&1); eq "$?" 1; has "$out" "qalc is missing"
 
 done_

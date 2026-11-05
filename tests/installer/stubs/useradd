@@ -1,0 +1,24 @@
+#!/bin/bash
+# useradd of the fake Fedora: the entries in the fake /etc/passwd, group and shadow (locked), from
+# the options setup gives (--home-dir, --shell, --comment; the rest — no home, -K — changes nothing)
+. /usr/local/bin/_lib.sh
+fkh_log "$*"
+r=$(rcfor useradd 0); ((r == 0)) || exit "$r"
+home="" shell=/bin/bash comment="" name=""
+while (($#)); do
+  case $1 in
+    --home-dir|-d) home=$2; shift ;;
+    --shell|-s) shell=$2; shift ;;
+    --comment|-c) comment=$2; shift ;;
+    -K|-G|-g|-u) shift ;;
+    -*) ;;
+    *) name=$1 ;;
+  esac; shift
+done
+[[ -n $name ]] || { echo "useradd: no user name" >&2; exit 2; }
+grep -q "^$name:" /etc/passwd && { echo "useradd: user '$name' already exists" >&2; exit 9; }
+id=3300; while cut -d: -f3 /etc/passwd /etc/group | grep -qx "$id"; do id=$((id + 1)); done
+echo "$name:x:$id:$id:$comment:${home:-/home/$name}:$shell" >>/etc/passwd
+echo "$name:x:$id:" >>/etc/group
+touch /etc/shadow; echo "$name:!:20000:0:99999:7:::" >>/etc/shadow
+exit 0

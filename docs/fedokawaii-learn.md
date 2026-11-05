@@ -7,6 +7,8 @@ kanji: "1=始 2=端 3=誤 4=窓 5=品 6=写 7=起 8=守 9=言 10=探 11=歩 12=�
 
 # How to read this book
 
+<!-- book -->
+
 This book is the practical one. It teaches by doing: a short example, what you should see,
 then an exercise of your own. The full handbook — how every part of the desktop is built and
 why — stays in the project's repository on GitHub (`docs/fedokawaii-guide.md`), for the day
@@ -14,6 +16,31 @@ you want to know how something works inside. This book is about *using* it.
 
 It has six parts. Read Part I first if you have never typed a command. After that, go where
 you need to: each chapter stands on its own and says what it expects you to know.
+
+<!-- /book -->
+
+<!-- lesson
+These lessons are the Learn book cut into pieces you do one by one, in the order that teaches
+best: what a piece needs always comes before it. Each takes a few minutes, and each is done
+beside a terminal (**Super+Enter** opens one next to this window): a short example, what you
+should see, then an exercise of your own.
+
+| Key | Does |
+|---|---|
+| **Enter** | turns the page; at a lesson's end, stamps it; once more, the next lesson |
+| **↑ ↓**, the wheel | a line |
+| **s** | in an exercise lesson, the worked solutions |
+| **Esc** | back to the list, where the seal marks the next lesson |
+| **/** (in the list) | finds a word in every lesson |
+| **Space** (in the list) | stamps a lesson you already know, or takes a stamp off |
+
+Go in order if you have never typed a command. After that, go where you need to: the list says
+what each lesson needs. (Part VI comes before Part V here: Rust is learnt with what it teaches.)
+The full handbook — how every part of the desktop is built and why —
+stays in the project's repository (`docs/fedokawaii-guide.md`), for the day you want to know how
+something works inside. These lessons are about *using* it.
+-->
+
 
 | Part | You learn | Chapters |
 |---|---|---|
@@ -61,11 +88,24 @@ Each chapter ends with exercises, graded by stars:
 | ★★★ | a small project: you decide how | half an hour |
 | ★★★★ | a challenge: it stretches what the chapter taught | an evening |
 
+<!-- book -->
+
 Every exercise says what you should see when it works. In Parts IV, V and VI, every exercise has
 a worked solution at the back — appendix B for Python, C for Rust, D for working with AI, under
 the exercise's number — with the output it printed. Try for real before you look: the struggle is where the learning
 happens; the solution is there to check, or to unstick you after twenty honest minutes. Keep a line for each one you finish in
 your notes (**Super+N**): `- [x] 10.3 every PDF I own`. Watching that list grow is half the fun.
+
+<!-- /book -->
+
+<!-- lesson
+Every exercise says what you should see when it works. Each chapter's ★ and ★★ are its *practice*,
+a lesson like the others. Its ★★★ and ★★★★ are its *projects*: when you have the time, never counted
+and never in your way — they are where proficiency comes from. In Parts IV, V and VI every exercise has
+a worked solution, with the output it printed, under **s**. Try for real before you look: the
+struggle is where the learning happens; the solution is there to check, or to unstick you after
+twenty honest minutes.
+-->
 
 ### Three rules that make learning fast
 
@@ -393,7 +433,7 @@ everything else is faster once your hands know them.
 |---|---|
 | **Super+Return** | a terminal |
 | **Super+Space** | the launcher: type a program's name, Enter |
-| **Super+B** · **Super+E** | the browser (Brave) · the files (yazi) |
+| **Super+B** · **Super+E** | the browser (Helium) · the files (yazi) |
 | **Super+Q** | close the window |
 | **Super+J** · **Super+K** | focus the next · previous window |
 | **Super+Shift+Return** | move this window to the first, largest place |
@@ -438,6 +478,24 @@ With two monitors, **Super+,** and **Super+.** move the focus left and right, an
 | **Super+Shift+N** | dismiss every notice |
 | **Alt+Shift** | switch the keyboard layout (us / ar) |
 | **Ctrl+Alt+F2…F6** | a text console, should the desktop ever freeze (**Ctrl+Alt+F1** back) |
+
+## 4.5 How things move
+
+Everything here moves on purpose, like water: it starts from rest, flows and settles. Each kind of
+movement means one thing, so after a day you read them without thinking:
+
+| You see | It means | Where |
+|---|---|---|
+| a window rising to its place and settling, or sinking away | a window arriving, or leaving | every window |
+| the whole screen sliding sideways, like a fusuma on its track | a place left for another: to a higher number it goes left, to a lower one right | **Super+1** to **Super+9** |
+| something unrolling behind a lacquer rod | something opened; it rolls up again as it goes | every menu, **Super+U**, **Super+N**, **Super+V**, a lesson |
+| a quiet thing dissolving, in square pixels | a message passing | a notice, the level display |
+| a red seal pressed down for a moment | a choice made | the workspace's seal, a lesson stamped |
+| ink bleeding across the whole screen | the whole picture changing | a new wallpaper, dark to light (**Super+Shift+W**) |
+
+Nothing ever waits for a movement: a key or a click acts at once on where things are going. Press
+**Super+2**, **Super+3**, **Super+1** as fast as you like: you are never held up, and nothing is
+lost on the way.
 
 ### Exercises
 
@@ -510,10 +568,12 @@ typing filters a long list. A screen with a key of its own shows it on its last 
 what it does, and its state — and nothing else there: Super+/ has all the rest.
 
 **The wallpaper picker** (**Super+W**) lists the theme's pictures, with the one under the cursor
-shown underneath, as the screen will show it. Hold ↓ to run through them; **Enter** sets one,
-**Esc** leaves everything as it was. Its own key is on its last line — *r  change every 4 h  off*:
-**r** (or a click on that line) turns it on, and from then on the pack's next picture goes up
-every four hours of a session, by itself. It stays as you left it across logins.
+shown underneath, as the screen will show it, the list in its sections with the old masters near
+the top. Hold ↓ to run through them; **Enter** sets one, **Esc** leaves everything as it was. Under
+the list are its settings, every value in sight, each with its key (or a click on its row):
+**r** *change by itself* — off, every hour, every 4 hours, daily; **o** *order* — in turn or
+shuffled; **s** *from* — the old masters, the scenes, or both. They stay as you left them across
+logins.
 
 **The one transition.** A theme switch (**Super+Shift+W**) and a new wallpaper share one
 transition: the old screen fades away over a third of a second, drawn at every refresh of the
@@ -646,7 +706,7 @@ the clipboard. The notice opens it when you click it.
 
 **6.1 ★ Annotate.** **Super+Print**, drag over this window, put an arrow (**z**) and a number
 marker (**m**), **Enter**. Paste it into a note (**Super+N** cannot hold pictures — paste it into
-a Brave chat or email instead).
+a chat in the browser or email instead).
 
 *Expected:* the marked-up picture appears where you paste.
 
@@ -697,12 +757,12 @@ the clipboard in turn.
 
 ## 7.1 The launcher
 
-**Super+Space** (or the torii). Type a few letters — `bra` for Brave, `ste` for Steam, `syn` for
+**Super+Space** (or the torii). Type a few letters — `hel` for Helium, `as` for ASOBI, `syn` for
 Syncplay — and **Enter**. The programs you start most rise to the top. **Shift+Delete** makes one
 forget its rank.
 
-Each entry has its icon: a window program shows its own (Brave, Steam, LibreOffice); every other
-entry — the terminal programs, the pages in Brave — one of the desktop's own **pixel icons**, in
+Each entry has its icon: a window program shows its own (Helium, LibreOffice); every other
+entry — the terminal programs, the pages in Helium — one of the desktop's own **pixel icons**, in
 the theme's red: a terminal for Terminal, a pair of brackets for the Editor, a folder for Files,
 a branch for Git, a page for Notes, a clipboard, a calculator, a wrench for the file tools, a
 picture for the wallpapers, a chip for the system monitor — after a week you find them by their
@@ -714,9 +774,10 @@ icon and *copy* at its right. **Enter** copies it: a notice says *copied*, the a
 
 ## 7.2 The calculator
 
-*Calculator* in the launcher (**Super+Space**, `calc`): type a sum, a percentage or a
-conversion and the answer shows as you type; **Enter** copies it. **↑** brings back the sum
-before, **Ctrl+U** clears, **Esc** closes.
+*Calculator* in the launcher (**Super+Space**, `calc`), a small panel over whatever you are doing:
+type a sum, a percentage or a conversion and the answer shows large as you type; **Enter** copies
+it and keeps the sum below. **↑** brings back the sum before, **↓** goes down to the session's sums
+(**Enter** copies one), **Ctrl+U** clears, **Ctrl+Q** opens qalc's own prompt, **Esc** closes.
 
 | You type | You see |
 |---|---|
@@ -727,13 +788,13 @@ before, **Ctrl+U** clears, **Esc** closes.
 
 ## 7.3 The downloads centre
 
-Anything that downloads — Brave, Steam, a torrent — shows in the bar's download mark as one
+Anything that downloads — the browser, a torrent, curl or yt-dlp in a terminal — shows in the bar's download mark as one
 percent. Click it for the list: each download with its source, size and progress; a click opens
 where it lands. A notice says when each one finishes.
 
 ### Exercises
 
-**7.1 ★ No mouse.** Start Brave, yazi and btop from the launcher alone.
+**7.1 ★ No mouse.** Start Helium, yazi and btop from the launcher alone.
 
 **7.2 ★ Quick sums.** In the calculator: how many seconds in a week (`1 week to s`)?
 
@@ -744,7 +805,7 @@ terminal.
 
 *Expected:* the notice *15% of 2400 = 360 · copied*, and `360` pasted.
 
-**7.3 ★★ Watch it arrive.** Download a Fedora image's checksum file in Brave
+**7.3 ★★ Watch it arrive.** Download a Fedora image's checksum file in Helium
 (`https://fedoraproject.org`) and watch the bar's mark, then click the finished notice.
 
 *Expected:* the mark appears while it downloads and goes when it is done; the notice opens
@@ -754,9 +815,9 @@ terminal.
 
 > **In this chapter**
 >
-> - update the whole system in one step
+> - update the whole system in one step, a new Fedora too
 > - check its health, and repair what is wrong
-> - go back in time with snapshots
+> - go back in time with snapshots, keep a copy with backups
 >
 > **You need:** chapter 4.
 
@@ -767,7 +828,7 @@ it. Each entry shows its state beside it — when the update is due, whether ver
 the pane on the right tells more about the one under the cursor. What is still being built says
 *soon*.
 
-<!-- fig:system | Super+U: the status on the dark theme, the move to the next Fedora on the light. -->
+<!-- fig:system | Super+U: the status on the dark theme, the update on the light. -->
 
 ## 8.1 The entries you will use
 
@@ -776,14 +837,14 @@ the pane on the right tells more about the one under the cursor. What is still b
 | system | status | how things stand, on one page | when curious |
 | system | verify | every check; changes nothing | after something odd |
 | system | repair | verify, then put right what it found | when verify fails |
-| update | update | everything up to date: Fedora, Brave, Claude Code, the desktop's tools, neovim's plugins — with a snapshot first | each season, when it says *due* |
-| update | fedokawaii | the desktop itself, newest from GitHub | when you hear of a change |
-| update | Fedora N | the move to the next release | once it says *ready* |
-| snapshots | go back | the list of snapshots of the system, and one brought back | before and after a risky change |
+| update | update | everything up to date, from A to Z: section 8.4 | when it says *due* |
+| update | held | what the update holds back, and why | when its report names one |
+| snapshots | go back | the list of snapshots of the system, and one brought back: it becomes the system at the next start, your files stay | when something broke |
+| snapshots | a file, back | a file or folder of yours as it was: a copy lands in `~/Restored` | when something is lost |
 | backups | back up now | your home to the backup drive | weekly |
 | backups | restore | your files as a backup holds them: pick a file, a folder or several — a copy lands in `~/Restored`, never over what is there | when something is lost |
 | backups | the drive | which drive your backups go to, whether it is plugged in, how full, and the last backup; Enter picks another | once, then when it changes |
-| learning | lessons | this book | |
+| learning | lessons | this book, cut into short lessons you do one by one | every day |
 
 From a terminal: `update`, `verify`, `repair`, `snaps`, and `fedokawaii report` (below).
 
@@ -792,26 +853,26 @@ From a terminal: `update`, `verify`, `repair`, `snaps`, and `fedokawaii report` 
 > **Word — snapshot.** A frozen picture of every file at one moment. It costs almost no space
 > (it shares unchanged data with the live files) and lets you copy any file back as it was.
 
-Snapshots are taken by themselves: of your files (/home) every hour; of the system around every
-package install and before every update. Two everyday uses:
+Snapshots are taken by themselves: of your files (/home) every hour; of the system before every
+update. Old ones go by their own rules, and the one an update may need stays until a start has
+proven that update. To see them:
 
 ```text
 $ snaps
  # │ Type   │ Pre # │ Date                     │ Description
 ───┼────────┼───────┼──────────────────────────┼────────────────────────
 57 │ single │       │ Mon 20 Oct 2026 10:00:01 │ before update 2026-10-20
-58 │ pre    │       │ Mon 20 Oct 2026 10:12:40 │ dnf install htop
-59 │ post   │    58 │ Mon 20 Oct 2026 10:12:52 │ dnf install htop
+58 │ single │       │ Tue 21 Oct 2026 19:12:40 │ before my experiment
 ```
 
 *(for example; shortened)*
 
 | You want | Do |
 |---|---|
-| undo one package install | `sudo snapper -c root undochange 58..59`, then reboot and `verify` |
 | a file of yours as it was an hour ago | Super+U → snapshots → **a file, back**: pick the hour, then the file or folder (Space marks several, q takes the folder you are in) — a copy lands in `~/Restored`, beside what you have now; no password |
 | a mark before a risky change | `sudo snapper -c root create -p -d "before my experiment"` (prints its number) |
-| everything back to that mark | `sudo snapper -c root undochange NUMBER..0`, then reboot |
+| the whole system back to a snapshot | Super+U → snapshots → **go back**, its number: it becomes the system at the next start; your files stay as they are |
+| the system you went back from | the same list, **old**: going back can itself be undone |
 
 > **Careful.** `~/Downloads` is not in the snapshots: move what you keep out of it.
 
@@ -820,6 +881,157 @@ $ snaps
 When something is wrong and you want help, `fedokawaii report` writes
 `~/fedokawaii-report.txt`: hundreds of checks, each with an ID and a verdict. Search it for
 `FAIL` (in neovim: `/FAIL`). Give that file to whoever helps you — or to Claude Code.
+
+## 8.4 The update button, from A to Z
+
+**Super+U → update → update** is the one way anything on this machine gets updated. You never run
+dnf. Nothing updates by itself: a quiet notice comes when updates have waited two weeks, when a new
+Fedora has settled, and 90, 30 and 7 days before your Fedora's support ends. Press it and go on
+working; the window only shows the run, so closing it stops nothing.
+
+| Step | What happens | If it goes wrong |
+|---|---|---|
+| fedokawaii itself | its newest release from GitHub, checked in a fake machine first | that release stays out; the update goes on with the one you have |
+| may it start | no other package manager at work, room on the disk, rpm's own database whole; every check run, so that what is red already is not blamed on the update | it says why and stops: nothing has changed |
+| fetch | every package downloaded and resolved once | the network went: nothing has changed; press it again |
+| a copy first | a copy of the system receives those packages, and is checked | the package that broke it is found by trying halves of the set, and held back; the rest goes on, and your system never saw it |
+| snapshot | the system as it is now, kept until a start has proven the update | it stops: no change without a way back |
+| the transaction | that same set, on the running system; the power button waits | a power cut: at the next start it is finished if every package went in, else the system before it comes back |
+| the desktop | the desktop's own tools, neovim's plugins, the theme | each part on its own: the report names what failed, the next press tries again |
+| the checks | every check again, and the desktop started out of sight: the bar measured, the lock up | the set is held back, and the system before it comes back at the next start |
+| the report | one line in a notice; the whole in the update's pane and its log | |
+
+A held package is tried again at every press, and let go when a newer version passes. When a local
+model can mend what stopped it (a config option a new version renamed), it tries that in a copy
+first; what it cannot mend stays held, and said: section 8.7.
+
+The desktop's own steps are the one part the copy does not try: its new packages, firmware, the
+pinned tools and the theme go in after the transaction, on the running system. The checks after them
+judge them all the same, and a red undoes them with the update.
+
+An update you stop by hand leaves its unit *failed* in `systemctl --failed` until the next press
+clears it: expected, nothing to do.
+
+**A new kernel** is on trial at the next start: three starts to reach the desktop, and if it cannot,
+the kernel before it comes back by itself, and the new one is held until a newer one comes.
+
+**A new Fedora comes through the same button.** A press that ends with this Fedora up to date looks
+at the next one, seven days after its release. It is tried in a test VM first: a fresh Fedora with
+this whole desktop installed on it, about an hour in the background, your system untouched. Then the
+report says *press update again*, and never restarts without that. The next press tries the whole
+move in a copy of your system, takes a snapshot, downloads, tells you, and restarts into Fedora's own
+installation: 20 to 40 minutes on a text screen, leave it on. The start after that judges it before
+the login: the release, every package, the desktop rebuilt and started. Anything red and the system
+before it comes back, with one more restart, and *Fedora N waits* says why; it is tried again after
+a month, or with a newer fedokawaii.
+
+> **Honestly.** A new Fedora that changes something big (a new wlroots under dwl, say) may be beyond
+> what the test VM and the local model can get through. Then this machine stays on the Fedora that
+> works, and says so well before its support ends: time to have it ported.
+
+## 8.5 Snapshots and backups: two different things
+
+A **snapshot** is an undo on this disk. A **backup** is a copy on another drive. A snapshot is no
+help when the disk dies; a backup is what is left then.
+
+| What happened | Use |
+|---|---|
+| an update or a change broke the system | snapshots → go back |
+| you deleted or spoiled a file an hour ago | snapshots → a file, back |
+| the disk died, or the machine is gone | backups → restore, on the new one |
+
+**When the desktop will not start**, the login's console says so and names two commands:
+`fedokawaii repair` (finds what broke and fixes it) and `fedokawaii snapshots` (the same *go back*).
+
+**When nothing starts at all**, hold Shift at power-on for the boot menu: *snapshots* lists the
+latest ones. One started from there runs as it was, on a layer in memory, and nothing it does stays.
+If it works, Super+U → snapshots → go back makes it the system.
+
+Your files are never part of the system's snapshots: going back leaves `/home` as it is. Going back
+is itself undone with *old*.
+
+## 8.6 When a notice asks for you
+
+Almost never. These are the few that do:
+
+| The notice | What it means | What to do |
+|---|---|---|
+| *held: mesa 26.1* | that version broke something; you keep the one before | nothing: a newer one is tried at each press |
+| *a security fix waits among the held* | a version held back carries a security fix | press update again in a few days; a fixed version usually follows |
+| *the update broke something: the system before it comes back at the next start* | it was undone | restart when you like |
+| *the last update was cut off* | a power cut; it has been finished or undone | read the line; press update when you like |
+| *Fedora N waits: …* | the new Fedora failed a check; you stay | nothing, unless the end of support is near and it still waits: then have it looked at |
+| *only N free on /* | not enough room to update safely | delete what you can, then press update again |
+
+## 8.7 The local model: what it can and cannot do
+
+An update sometimes makes a program refuse a config file of ours: an option renamed, moved to another
+section, a value written differently. Before that package is held back, the update asks a language model
+on this PC's own graphics card. It reads the program's complaint and the new version's documentation and
+proposes a small edit. No internet, no account, no cost. The model is loaded for that minute and gone
+afterwards, from the card and from memory.
+
+It has no hands. Its answer is one short form, *in this file, this exact text becomes that text*, and plain
+code decides what happens to it:
+
+| the rule | what it stops |
+|---|---|
+| only the config files of the program at fault, never a secret | an answer touching anything else |
+| a new option must exist in the new version's documentation or in the program itself | an invented option |
+| a command, a download or a new path can only be carried over from what the old line said | a changelog steering it into running something |
+| the option the changelog names as the replacement, if it names one | a neighbour that also passes the check |
+| deleting a line only if the new version's changelog says the option is gone | silencing the error |
+| tried on a copy of the system; the program's own check and every check of the update must pass | a fix that breaks something else |
+| two wrong answers, then it stops | going round in circles |
+
+What passes is kept and named in the report (*mended: foot.ini*). A fix stays in force through every later
+update and is dropped by itself once fedokawaii has caught up. If the update is undone later, its fix leaves
+with it, each file as it was: the older version would refuse the new text.
+
+| it mends | it never touches: held and said at once, the model not even loaded |
+|---|---|
+| a renamed option, or section | a library that changed its name, a package conflict, a failing package script |
+| an option moved to another section | a kernel or boot image (the trial of a new kernel handles those) |
+| a value written differently | dwl and wlroots: that is C code, not a config |
+| a renamed CSS property, in both moods at once | our own programs, and everything fedokawaii pins |
+| several of these in one file | Neovim's config: it is code, and a check cannot see a meaning flipped |
+
+> **Honestly.** It only sees what a program complains about. A program that silently ignores an option it no
+> longer knows gives no complaint: yazi does, waybar's JSON keys are not checked at all. A fix can pass every
+> check and still be slightly worse than what it replaced; that is why each one is named in the report. It needs
+> the card's memory free: with a game holding the card, the package waits for the next press. And it works per
+> failure: a release that changes something big is beyond it, as section 8.4 says.
+
+*held: foot — the fixer: the docs do not say* in a report means nothing is broken and that package waits. The
+next press tries again, and a newer version often brings its own fix. A move to a new Fedora goes the same way:
+the fix is proven with the whole move in the copy, comes into force after the restart, and is said at the login.
+
+## 8.8 The doors: who can reach this machine
+
+> **Word — port.** A numbered door on a computer, from 1 to 65535: a program *listens* at a port,
+> and others connect to it.
+
+Your PC has an address the whole internet can reach (its public IPv6 address), so what stands
+between it and the world is the firewall. Nothing is open by accident here: every door is one line
+of one file (`system/net-allow.list`), the firewall is made from that file, and `verify` fails if
+the two ever differ.
+
+| Who knocks | What they meet |
+|---|---|
+| the internet | silence, not even an answer to a ping. One door: torrents (6881), so that other peers can reach you while you download |
+| your home network (private addresses: your phone, your other computer) | torrents, LocalSend (53317), the remote page (8737, with its token); anything else is refused at once |
+| this computer | what it runs for itself: names (53), Prowlarr (9696), the update's local fixer (11434). These listen on this machine alone |
+
+**SSH is off** while no key is in `~/.ssh/authorized_keys`: passwords are never accepted, so with no
+key nobody could log in, and nothing listens. Put a key there and run `fedokawaii repair`: it comes
+on, for your home network only.
+
+**The router.** Programs like to ask a router to open a port for them (UPnP, NAT-PMP). Here the
+firewall stops that request on its way out: nothing opens a door behind your back.
+
+**Names.** Turning `fedoraproject.org` into an address goes encrypted (TLS) to Cloudflare, or to
+Quad9 when Cloudflare cannot answer, so your provider cannot read which sites you look up. A network
+that blocks this costs the privacy, never the names: they still resolve.
 
 ### Exercises
 
@@ -831,17 +1043,23 @@ When something is wrong and you want help, `fedokawaii report` writes
 
 *Expected:* a list of checks ending in *passed*, or the few to fix with what to do.
 
-**8.3 ★★ A safe experiment.** Make a mark (`sudo snapper -c root create -p -d "before cowsay"`),
-install a toy (`sudo dnf install cowsay`), run `cowsay hi`, then put everything back to your mark
-(`sudo snapper -c root undochange NUMBER..0`, with the number the first command printed) and
-reboot.
+**8.3 ★★ A safe experiment.** Make a mark (`sudo snapper -c root create -p -d "before my test"`), then
+leave a trace in the system (`sudo touch /etc/my-test`). Go back to your mark: Super+U → snapshots →
+go back, the number the first command printed, then restart.
 
-*Expected:* after the reboot, `cowsay` answers `command not found`, and `verify` passes.
+*Expected:* `ls /etc/my-test` says *No such file*, a file you made in your home meanwhile is still
+there, and *old* in the same list would bring the trace back.
 
 **8.4 ★★ A lost file.** Make `~/Documents/test.txt`, wait for the next hourly snapshot (or
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.
 
 *Expected:* `cat ~/Documents/test.txt` shows it again.
+
+**8.5 ★★ Be a stranger.** Run `sudo bash /usr/local/lib/fedokawaii/tools/portscan.sh` (five minutes).
+It scans every port of this machine from the far end of a cable, once as a neighbour and once as a
+stranger on the internet.
+
+*Expected:* a table, ending in `✔ exactly the list's doors`.
 
 # Part III — The programs
 
@@ -1080,6 +1298,7 @@ runs **LazyVim**, a ready-made setup: a file finder, language servers, lazygit i
 | save · save and quit · quit without saving | `:w` · `:wq` · `:q!` (or **Ctrl+S** to save) |
 | undo · redo | `u` · **Ctrl+R** |
 | *recording @q* at the bottom | press `q` once |
+| a message went by too fast | `g<` shows the last ones again |
 
 > **Word — mode.** In *Normal* mode, keys are commands; in *Insert* mode (`i`), keys type text.
 > **Esc** always goes back to Normal.
@@ -1203,7 +1422,7 @@ commit it in lazygit (**a**, **c**).
 *Expected:* the file disappears on `main` and returns on `idea`.
 
 **14.4 ★★★ On GitHub.** Create the repository on GitHub with `gh repo create`, push, and open
-it in Brave (`gh repo view --web`).
+it in Helium (`gh repo view --web`).
 
 # 15. btop: the machine
 
@@ -1215,14 +1434,14 @@ doing, and which program is to blame. Click the bar's memory, or run `btop`.
 | Keys | Does |
 |---|---|
 | **1** · **2** · **3** · **4** | the processor, memory, network, process boxes on / off |
-| **f** | filter the processes: type `brave` |
+| **f** | filter the processes: type `helium` |
 | **e** | show processes as a tree |
 | **↑** **↓** then **t** · **k** | end a process politely · kill it at once |
 | **p** | cycle layout presets |
 | **m** · **o** | menu · options |
 
 On AMD it shows the graphics card's load, memory, heat and watts: watch it while a game or a
-training run (chapter 28) works.
+training run (chapter 44) works.
 
 ### Exercises
 
@@ -1267,14 +1486,15 @@ film; agree on a room name; one person's pause pauses both. **Enter** in mpv cha
 
 **16.3 ★★ Together.** Watch a short film with a friend through Syncplay.
 
-# 17. Brave: the web
+# 17. Helium: the web
 
-**Best at:** the web, privately, with ads and trackers blocked. **Super+B**.
+**Best at:** the web, privately: ads and trackers blocked with nothing to install (uBlock lives inside
+it). **Super+B**: it is already running, with no window, so the window is there at once.
 
 | Keys | Does |
 |---|---|
 | **Ctrl+L** | the address bar: type a search or an address |
-| **Ctrl+T** · **Ctrl+W** · **Ctrl+Shift+T** | new tab · close · reopen the last closed |
+| **Ctrl+T** · **Ctrl+W** · **Ctrl+Shift+T** | new tab · close · reopen the last closed (a whole closed window too) |
 | **Ctrl+Shift+A** | search your open tabs |
 | **Ctrl+F** · **Ctrl+J** · **Ctrl+H** | find in page · downloads · history |
 | **Ctrl+Shift+N** | private window |
@@ -1283,6 +1503,16 @@ film; agree on a room name; one person's pause pauses both. **Enter** in mpv cha
 For the developer: the developer tools' *Console* runs JavaScript on any page; *Network* shows
 every request a page makes — the fastest way to learn how a website talks to its server.
 
+**Sharing with sound, in Meet, the Discord website or any call in it.** Share the **entire screen**
+or a **window**: *Share with system audio* is already on, and the others hear your computer: a film
+in mpv, a song, a video in another tab. They never hear themselves: while you share, the call's own
+sound is kept out of what is sent. Share a **tab**: they hear that tab alone. For a program that can
+only send a microphone: quick settings → *share sound* gives it a microphone that carries your voice
+and the desktop's sound, or one program's. Its own sound stays out there too.
+
+Downloads show on the bar: its arrow, the tray filling, the percent. Spotify and WhatsApp in the
+launcher are its windows too, signed in once.
+
 ### Exercises
 
 **17.1 ★ Tab search.** Open ten tabs, then find one with **Ctrl+Shift+A**.
@@ -1290,25 +1520,49 @@ every request a page makes — the fastest way to learn how a website talks to i
 **17.2 ★★ Look inside.** On any page, **F12** → *Network*, reload: which request is the
 largest?
 
-# 18. Steam: games
+# 18. ASOBI: the play world
 
-**Best at:** Windows games on Linux through Proton. The gamepad in the bar shows Steam is on;
-right-click it for its menu.
+**Best at:** playing, with nothing of yours in reach. ASOBI (遊び, *play*) is a second user on this
+machine, `asobi`, on a screen of its own. Every game lives there: Steam, Proton, your saves, and
+Bottles for other Windows programs, each in its Flatpak sandbox on top. It cannot read your home, it
+cannot use `sudo`, it reaches the Internet and nothing of this house.
 
-| Launch option (right-click a game → Properties) | Does |
+**Super+G** goes in. The world starts on demand: gamescope takes the card, at your monitor's 1080p and
+144 Hz with FreeSync, and shows Steam's gamepad UI; your controller and your sound follow you there.
+**Super+G** in there comes back, and your desktop never stopped. Behind the desktop a game is frozen
+exactly where it was and costs nothing but its memory; Steam alone goes on working, so a download
+finishes. Closing Steam from its own menu ends the world, and the *close* row below does the same. The
+first time, Steam asks you to sign in: yours to do, nothing here stores it. The crossed-out signal at the
+top of Steam's screen only says its sandbox cannot see this machine's network settings: it is online.
+
+Everything else is one small window: Super+U → system → **asobi**.
+
+| Row | Does |
 |---|---|
-| `gamemoderun %command%` | the processor tuned for the game |
-| `mangohud %command%` | the overlay: frames per second, temperatures (**Right Shift+F12**) |
-| `gamescope -W 2560 -H 1440 -r 144 -f -- %command%` | the game in its own compositor, fixed size and rate |
+| enter | the same as Super+G |
+| bottles | the world with Bottles in front instead of Steam (one at a time: Steam closes first) |
+| close | the world ended: Steam closes properly, its saves go to its cloud |
+| snapshot now | the world as it is, kept: it costs no room until the world changes |
+| reset to a snapshot | the world exactly as it was then; what it replaced stays as `before-reset` |
+| disk use | what the world holds, and what is free |
+| drop folder | `~/Drop`: the one folder you share. Put a file there, the world finds it there |
 
-If a game will not start: Properties → Compatibility → force a Proton version (GE-Proton is
-installed). ProtonDB (`protondb.com`) lists what others did for each game.
+The snapshot called **clean** is the world as it was installed, and it never goes: whatever a Windows
+program did in there, a reset ends it. These are not your system's snapshots (Super+U → snapshots) and
+not your backups: the world's home is left out of both, games come again from Steam.
+
+If a game will not start: in Steam's game page, the gear → Properties → Compatibility → force a Proton
+version. ProtonDB (`protondb.com`) lists what others did for each game.
 
 ### Exercises
 
-**18.1 ★ The overlay.** Add `mangohud %command%` to a game and find its frame rate.
+**18.1 ★ In and out.** Press Super+G, wait for Steam, press it again. Run `kawa-asobi state` on the
+desktop: what does it say, and what does it say with a game running?
 
-**18.2 ★★ Compare.** Play a minute with and without `gamemoderun` and compare the frame rate.
+**18.2 ★★ The one door.** Put a text file in `~/Drop`. In Bottles, open it with Notepad. Now try
+to find your home from there.
+
+**18.3 ★★ Undo a world.** Take a snapshot, install something small in Bottles, then reset. Is it gone?
 
 # 19. torrra: torrents
 
@@ -1339,7 +1593,7 @@ The `S:L` column is seeders:leechers: more seeders, faster. The bar's download m
 | Tool | Opens with | Best at |
 |---|---|---|
 | notes | **Super+N** | one Markdown file, a heading per day: type at once, saved as you type |
-| books | **Super+R** | your PDFs, EPUBs and comics; **Ctrl+A** brings books in from Downloads |
+| books | **Super+R** | your PDFs, EPUBs and comics, and this book; **Ctrl+A** brings books in from Downloads |
 | zathura | opening a PDF | reading; **Ctrl+R** recolours the page to the theme |
 | VisiData | `vd file.csv` | tables: sort (`[` `]`), select rows by a pattern (`|`), sum, group (**Shift+F**) |
 | jq | `jq . file.json` | reading and reshaping JSON |
@@ -1378,6 +1632,50 @@ copy) and pages 1–2 of another PDF, merge them into one file, rotate its secon
 with a password, and shrink it.
 
 *Expected:* zathura asks for the password; `ls -l` shows the shrunk file smaller.
+
+## 20.2 Drawing: Sketch
+
+**Sketch** in the launcher (**Super+Space**, type `sketch`) is FireAlpaca, a real painting program, on a new
+page the shape of the screen: `~/Pictures/Sketches/sketch DATE.mdp`, ready to draw on.
+
+**Your first drawing, in two minutes.** Put the pen near the pad: the circle on the page is the brush, its size
+the line at full pressure. Draw. Press harder for a thicker line, lift off gently for a point. The first brush, *Fude*
+(a Japanese writing brush), swells and thins by itself at a stroke's start and end. **Ctrl+Z** takes a stroke back,
+**Ctrl+S** keeps the file, and that is all you need for today.
+
+| the pen | on the page | over anything else |
+|---|---|---|
+| the tip | draws; press harder for a thicker line | a left click |
+| the lower button, held, the tip dragged | the hand: moves the page | the right button |
+| the upper button, held, the tip touching | the eyedropper: takes the colour under it | the middle button |
+
+| key | does | key | does |
+|---|---|---|---|
+| **B** · **E** | brush · eraser | **Ctrl+Z** · **Ctrl+Y** | undo · redo |
+| **Space**, drag | the hand | **Ctrl+0** | the whole page in the window |
+| **Ctrl+Alt**, drag | brush size | **Ctrl++** · **Ctrl+-** | zoom |
+| **I** | eyedropper | **G** · **N** | bucket · fill |
+| **Tab** | every panel away, and back | **Ctrl+Shift+N** | a new layer |
+| **F2** · **F3** · **F4** | the navigator · brush sizes · brush preview | **F5** · **F6** · **F7** | colour history · a reference picture · the status line |
+
+**Colours.** The palette holds all 159 colours of Sanzo Wada's *A Dictionary of Color Combinations*, in the book's
+order; pick one and its name shows under the palette. **Layers** are on the right: each is a sheet of glass. Draw
+the lines on one and the colour on a layer under it, and you can change one without touching the other.
+*Protect Alpha* paints only where the layer already has paint, *Clipping* paints only inside the layer below.
+
+**Keep it, or send it.** **Ctrl+S** keeps the `.mdp`, FireAlpaca's own file with every layer in it (**Enter** on it in
+yazi opens it again); *File → Export* makes a PNG to send. Open and Save are the desktop's own dialog, the same yazi
+as everywhere. FireAlpaca also saves as you work, into its own backup folder: *File → Open the Auto Backup
+Folder*.
+
+**Why this and not Xournal++?** Xournal++ is for writing on pages and PDFs (it still signs your PDFs, **Super+D**). A
+drawing wants more: brushes that behave like ink, pencil and watercolour, layers with blend modes and clipping,
+rulers that snap (parallel, radial, perspective), symmetry, filters, even frame-by-frame animation.
+
+**When something looks wrong.** The colours and panels follow the desktop, dark or light, even while it is open.
+A panel gone? **Tab**, or *Window* in the menu. All of this is in **Super+/** while you draw. The pen draws without pressure? It is the brush: click its small gear, then
+tick *Size by Pressure*. Everything in a mess: delete `~/.local/share/FireAlpaca` and `~/.local/state/fedokawaii/firealpaca-seed`,
+then run `fedokawaii theme`: you are back at the start, with your drawings untouched.
 
 # 21. Claude Code and herdr: AI agents
 
@@ -1501,7 +1799,7 @@ plan.
 
 **How each lesson works.** A concept in plain words; three to six tiny programs, each with what
 it prints under *You should see*; the mistakes beginners make, with the real error message; then
-exercises from ★ to ★★★★, with worked solutions in appendices B and C. Type every example. Then
+exercises from ★ to ★★★★, each with a worked solution. Type every example. Then
 change one thing and predict what it will print before you run it — that habit, more than any
 other, is what makes a programmer.
 
@@ -6889,7 +7187,7 @@ source (`docs/fedokawaii-learn.md` in the toolkit).
 >
 > **You need:** level 5 (chapters 37–39).
 
-Level 6 turns everything you know toward data and, from chapter 42, machine learning. Before any
+Level 6 turns everything you know toward data and, from chapter 43, machine learning. Before any
 library, do the whole job once by hand: it is the only way to understand what pandas or NumPy
 then do for you, and many small jobs need nothing more.
 
@@ -8546,7 +8844,7 @@ Hello, world!
 | `cargo clippy` | advice: simpler, more idiomatic ways to write what you wrote |
 | `cargo fmt` | format the code (neovim does it on save) |
 | `cargo add NAME` | add a crate from crates.io |
-| `cargo doc --open` | the documentation of your project and every crate it uses, in Brave |
+| `cargo doc --open` | the documentation of your project and every crate it uses, in Helium |
 
 ## 48.2 In neovim
 
@@ -14468,7 +14766,7 @@ are made. **PyO3** is the bridge; **maturin** builds it.
 ```text
 $ cd ~/repos
 $ uvx maturin new --bindings pyo3 fastwords && cd fastwords
-  ✨ Done! New project created fastwords
+  Done! New project created fastwords
 ```
 
 *(`uvx` runs a Python tool without installing it. maturin lays out a Rust crate that builds into a
@@ -14510,7 +14808,7 @@ Build it into the project's `.venv` and try it:
 
 ```text
 $ uv run --with maturin maturin develop --release --uv
-🛠 Installed fastwords-0.1.0
+Installed fastwords-0.1.0
 $ uv run python
 >>> import fastwords
 >>> fastwords.dot([1, 2, 3], [4, 5, 6])
@@ -14605,6 +14903,8 @@ Part VI fits beside any week from week 3 on: one chapter a week, its exercises o
 project — by week 9 you are building with an agent the way chapter 72 describes, and every
 checkpoint after that is a chance to practise it.
 
+<!-- cut -->
+
 ### Where to go next
 
 | You liked | Next |
@@ -14628,7 +14928,7 @@ the work. This part teaches that first, and Claude Code with it. Chapters 67–6
 true of any model and any agent. Chapters 70–71 are Claude Code itself, from the daily loop to
 your own hooks, skills and subagents. Chapter 72 is the craft: how professionals use all of it
 on real projects, and how to keep learning when the tools move on. Every chapter ends with
-exercises; appendix D has a worked answer for each.
+exercises, each with a worked answer.
 
 > **Careful.** Commands and key names in chapters 70–71 are Claude Code's as of October 2026.
 > If one has changed, `/help` inside Claude Code and the documentation (`code.claude.com/docs`)

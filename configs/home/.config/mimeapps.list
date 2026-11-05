@@ -1,17 +1,17 @@
-# ~/.config/mimeapps.list — what opens what (xdg-open, Brave's downloads, yazi, GTK apps).
+# ~/.config/mimeapps.list — what opens what (xdg-open, Helium's downloads, yazi, GTK apps).
 # Folders and text open in a terminal window (Files, Editor in ~/.local/share/applications);
 # change one with: xdg-mime default APP.desktop TYPE  (it rewrites this file — theme.sh's
 # --check then lists it, and running Theme puts this version back)
 [Default Applications]
-# the web: Brave Origin
-x-scheme-handler/http=brave-origin.desktop
-x-scheme-handler/https=brave-origin.desktop
-x-scheme-handler/about=brave-origin.desktop
-x-scheme-handler/unknown=brave-origin.desktop
-text/html=brave-origin.desktop
-application/xhtml+xml=brave-origin.desktop
-application/x-extension-htm=brave-origin.desktop
-application/x-extension-html=brave-origin.desktop
+# the web: Helium
+x-scheme-handler/http=helium.desktop
+x-scheme-handler/https=helium.desktop
+x-scheme-handler/about=helium.desktop
+x-scheme-handler/unknown=helium.desktop
+text/html=helium.desktop
+application/xhtml+xml=helium.desktop
+application/x-extension-htm=helium.desktop
+application/x-extension-html=helium.desktop
 # folders: yazi in a terminal window
 inode/directory=kawa-files.desktop
 # text and code: neovim in a terminal window
@@ -132,7 +132,7 @@ application/vnd.ms-powerpoint=libreoffice-impress.desktop
 application/vnd.oasis.opendocument.presentation=libreoffice-impress.desktop
 # CSV and TSV: VisiData in a terminal window (Tables in ~/.local/share/applications). `file`
 # names a CSV text/csv but a TSV text/plain, so from xdg-open a .tsv goes to neovim; from
-# Brave and the GTK programs (GLib types by name) both come here
+# Helium and the GTK programs (GLib types by name) both come here
 text/csv=kawa-tables.desktop
 text/tab-separated-values=kawa-tables.desktop
 # handwritten notes and PDF annotation: Xournal++
@@ -154,7 +154,7 @@ application/x-bzip2=kawa-files.desktop
 application/x-bzip2-compressed-tar=kawa-files.desktop
 application/x-rar=kawa-files.desktop
 application/vnd.rar=kawa-files.desktop
-# torrents: magnet links and .torrent files download in torrra (Torrents)
+# torrents: magnet links and .torrent files go to Torrents (kawa-torrents)
 x-scheme-handler/magnet=kawa-torrents.desktop
 application/x-bittorrent=kawa-torrents.desktop
 

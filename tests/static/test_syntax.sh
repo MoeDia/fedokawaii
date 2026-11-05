@@ -32,7 +32,7 @@ for f in "${PY[@]}"; do
   out=$(python3 -I -c 'import sys; compile(open(sys.argv[1], encoding="utf-8").read(), sys.argv[1], "exec")' "$f" 2>&1) && _ok || _no "$f: $out"
 done
 has "${SH[*]}" lib/common.sh; has "${SH[*]}" system/start-dwl; has "${SH[*]}" configs/home/.config/dwl/autostart.sh
-has "${SH[*]}" configs/home/.bashrc.d/fedokawaii.sh; has "${SH[*]}" setup.sh; has "${SH[*]}" system/kawa-torrra.profile.sh; has "${SH[*]}" system/fedokawaii-report
+has "${SH[*]}" configs/home/.bashrc.d/fedokawaii.sh; has "${SH[*]}" setup.sh; has "${SH[*]}" system/fedokawaii-report
 
 case_ "every shell file parses (bash -n)"
 for f in "${SH[@]}" "${SOURCED[@]}"; do
@@ -63,7 +63,7 @@ if [[ -x $RUFF ]]; then
     if [[ $f == *.py ]]; then PYALL+=("$f")
     elif [[ ${f##*/} != *.* ]]; then first=""; read -r first <"$f" 2>/dev/null; [[ $first == '#!'*python3* ]] && PYALL+=("$f"); fi
   done < <(find bin system tools tests docs configs -type f -print0)
-  ((${#PYALL[@]} >= 70)) && _ok || _no "only ${#PYALL[@]} Python files found (76 on 2 Nov)"
+  ((${#PYALL[@]} >= 60)) && _ok || _no "only ${#PYALL[@]} Python files found (68 on 4 Nov)"
   out=$("$RUFF" check --no-cache --force-exclude --output-format concise "${PYALL[@]}" 2>&1) && _ok || _no "${out:0:600}"
 else skipped "no ruff here (LazyVim's Python extra installs it with mason)"; fi
 
@@ -106,7 +106,7 @@ quiet() {   # quiet PROGRAM ARG… — with no display and no session bus (and /
 }
 
 case_ "the desktop's mako (src/mako/mako.patch: setup.sh builds it) reads its config with both themes (makoctl reload would take it) — Fedora's would refuse its options"
-m=""; [[ -x /usr/local/bin/mako ]] && grep -q shadow-color /usr/local/bin/mako && m=/usr/local/bin/mako
+m=""; [[ -x /usr/local/bin/mako ]] && grep -q left-edge /usr/local/bin/mako && m=/usr/local/bin/mako   # (built from today's patch)
 if [[ -n $m ]]; then
   for t in dark light; do
     ln -sfn "themes/$t" "$HOME/.config/fedokawaii/current"
@@ -134,6 +134,9 @@ except Exception: pass
 print("; ".join(bad))' 2>&1)
   eq "$out" "" "$t: GTK's word on style.css"
 done
+
+case_ "setup.sh's IFS has no space: a read of two or more words in it and its libraries names its own IFS"
+eq "$(cd "$REPO" && grep -nE "(^|[^=[:alnum:]_'])read -r [A-Za-z_]+ [A-Za-z_]+" setup.sh lib/*.sh | grep -v 'IFS=')" ""
 
 case_ "foot reads its config with both themes (foot --check-config), the see-through ground on and off"
 if f=$(real foot); then
@@ -199,7 +202,7 @@ else skipped "the terminal's face is not installed here — fedokawaii repair pu
 case_ "the clean mic is gone: no script, config, library, report or handbook names it — but theme.sh's retirement and kawa-state's RETIRED list"
 GONE='clean.?mic|clean_mic|60-clean-mic'
 left=$(cd "$REPO" && grep -rIniE "$GONE" bin system configs lib setup.sh verify.sh docs/*.md PACKAGES.md 2>/dev/null \
-       | grep -v '^bin/kawa-state:[0-9]*:RETIRED=(cleanmic)' || true)
+       | grep -v '^bin/kawa-state:[0-9]*:RETIRED=(cleanmic ' || true)
 eq "$left" "" "still named in: ${left:0:300}"
 left=$(sed -e '/^# ── 6b\./,/^run_boot/d' -e '/60-clean-mic\.conf/d' "$REPO/theme.sh" | grep -niE "$GONE" || true)
 eq "$left" "" "theme.sh names it outside its retirement: ${left:0:300}"

@@ -7,15 +7,14 @@
 # yazi's theme and layout code, the fonts' pixel metrics every alignment is measured with —
 # so an update never moves them: what was installed is what stays, file for file, and a
 # download that differs by a single byte is refused. Downloads come straight from the
-# release page (no GitHub API, so no rate limit to run into). The one exception is
-# GE-Proton, which follows its newest release: games are what it is for, and it changes
-# nothing else (the newest two are kept, so a game pinned to the older one still starts).
+# release page (no GitHub API, so no rate limit to run into).
 
 # shellcheck disable=SC2034  # UPSTREAM is iterated by setup.sh and verify.sh
 #          name             repo                     tag        file in the release                                   sha-256                                                            binaries → ~/.local/bin
 UPSTREAM=(
   "satty|gabm/Satty|v0.22.0|satty-x86_64-unknown-linux-gnu.tar.gz|eb7a028c4a5ce331c2f355add8e2b807a7d697fe4495f7e1965786a4f6bcd5b8|satty"
-  "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|yazi ya"
+  # (ya, yazi's helper, from its release; yazi itself is built here with the desktop's patch: setup.sh, build_yazi)
+  "yazi|sxyazi/yazi|v26.9.1|yazi-x86_64-unknown-linux-musl.zip|9b9c39decccf8cb0ff53a7d637d38f8a79d93bbd0099f4ea9c619ef6bb392f5d|ya"
   # (Bluetooth pairing in a terminal; its release file is the binary itself, static — measured 2026-10-16)
   "bluetui|pythops/bluetui|v0.8.2|bluetui-x86_64-linux-musl|b476ee473cb4f7a48cd75d440e991bedc835ff5ac704aac1f1992f8e826222fd|bluetui"
   # (0.66.2, 2026-10-16: fixes only — measured 2026-10-21, the same as the release's checksums.txt)
@@ -49,13 +48,9 @@ TERM_FACE_FILES=(
 # own system user. FACES_OLD: where the pixel font before them lay (Fusion Pixel)
 FACES_DIR=/usr/local/share/fonts/fedokawaii
 FACES_OLD=/usr/local/share/fonts/fusion-pixel
-# (its files were GE-ProtonN-M.tar.gz; since GE-Proton 11 there is one per architecture:
-# GE-ProtonN-M-x86_64.tar.gz beside -aarch64 — either form is taken, never the aarch64 one)
-GE_PROTON_REPO="GloriousEggroll/proton-ge-custom"; GE_PROTON_ASSET='^GE-Proton[0-9]+-[0-9]+(-x86_64)?\.tar\.gz$'
-# torrra (from PyPI, with uv tool) is held at this version: kawa-torrra hands it the Prowlarr
-# key by replacing three methods of its settings class, so a newer torrra is taken only
-# after that has been checked against it.
-TORRRA_VERSION=2.5.1
+# Widevine, by way of Firefox's update service: install_widevine says why it is not pinned
+WIDEVINE_UPDATE=https://aus5.mozilla.org/update/3/GMP/999.0/20261001000000/Linux_x86_64-gcc3/en-US/release/Linux/default/default/update.xml
+WIDEVINE_DIR=/usr/local/lib/fedokawaii-widevine
 # Syncplay (watching together: kawa-together starts it) runs from its own source, held at the
 # v1.7.6 tag's commit as the file dialog's is: Fedora's package would bring PySide6 and 27 Qt
 # modules for a window the terminal way never opens. It is pure Python, so its syncplay/
@@ -81,19 +76,28 @@ SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syn
 # network (Wi-Fi or cable): no account, no cloud. Its Linux release is a folder (the app, its
 # libraries, its data), kept whole in ~/.local/share/localsend; ~/.local/bin/localsend points
 # into it. Its ports (tcp: the files · udp: devices finding each other) are open in the
-# firewall (setup.sh, open_ports). 1.18.2 (fixes: 1.17 and older devices found again, a peer's
+# firewall (system/net-allow.list). 1.18.2 (fixes: 1.17 and older devices found again, a peer's
 # redirect never followed, its server restarted when it stops) — measured 2026-10-21, the same
 # files and libraries as 1.18.0's
 LOCALSEND_TAG=v1.18.2
 LOCALSEND_ASSET=LocalSend-1.18.2-linux-x86-64.tar.gz
 LOCALSEND_SHA256=287690a9a8eb6da9c83cc97b3e3030ac67daf32a7331fcf307d0939300658d16
-LOCALSEND_PORT=53317
+# FireAlpaca (drawing: Sketch in the launcher, kawa-sketch): the official Linux build, from PGN Inc.'s own
+# page (firealpaca.com/download: a Qt 6 AppImage for "Ubuntu 23.04, Fedora 36, Debian 12 or later"). Free
+# for any use; its terms forbid passing it on, so it comes from them at every install, never from this
+# repository or the ISO. Unpacked whole into its folder: started from there it needs no FUSE and starts at
+# once. Its page has one address, always the newest build: the pin is the build the skin was proven on, and
+# a newer one of theirs is taken when that is what the address now serves (the skin reaches it through
+# Qt's public functions, and leaves what it does not know as drawn); anything else is refused.
+# (measured 2026-11-04: 131 381 752 bytes, X-AppImage-Version 2.16.3, Linux notes 2026-09-15)
+FIREALPACA_URL=https://firealpaca.com/download/linux
+FIREALPACA_VERSION=2.16.3
+FIREALPACA_SHA256=aa32b81f66df4c3480cddaa8e5c9447d680f0425bf2fb03e2435ab48308fb0df
 BLESH_REPO=https://github.com/akinomyoga/ble.sh.git
 BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 
 up_state_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/upstream"; }
 up_tag()       { as_user cat -- "$(up_state_dir)/$1" 2>/dev/null | head -c 200 || true; }   # (yours: read as you)
-proton_dir()   { echo "$TARGET_HOME/.local/share/Steam/compatibilitytools.d"; }
 
 record_tag() {   # (every write into the home is the user's own: user_put)
   as_user mkdir -p "$(up_state_dir)"
@@ -206,6 +210,83 @@ install_localsend() {   # the pinned release, whole, into ~/.local/share/localse
   ok "LocalSend $LOCALSEND_TAG → ~/.local/share/localsend (localsend)"
 }
 localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
+
+firealpaca_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/firealpaca/app"; }
+firealpaca_current() { [[ -n $(up_tag firealpaca) && -x $(firealpaca_dir)/usr/bin/FireAlpaca ]]; }
+install_firealpaca() {   # the official build, unpacked by you into its folder, whole: never half of two
+  local dir file sum ver work; dir=$(firealpaca_dir)
+  if firealpaca_current && [[ -z $(missing_libs "$dir/usr/bin/FireAlpaca") ]]; then
+    log "FireAlpaca $(up_tag firealpaca) — in place"; return 0
+  fi
+  REL_DIR=$(mktemp -d "$KAWA_TMP/rel.XXXXXX"); file=$REL_DIR/FireAlpaca.AppImage
+  retry 3 10 "${CURL[@]}" -o "$file" "$FIREALPACA_URL" || { log "download failed: $FIREALPACA_URL"; rm -rf "$REL_DIR"; return 1; }
+  sum=$(sha256sum "$file" | cut -d' ' -f1)
+  work=$dir.new
+  as_user rm -rf -- "$work" && as_user mkdir -p -- "$work" || { rm -rf "$REL_DIR"; return 1; }
+  as_user tee "$work/FireAlpaca.AppImage" <"$file" >/dev/null && as_user chmod 0755 "$work/FireAlpaca.AppImage" \
+    && as_user bash -c 'cd "$1" && ./FireAlpaca.AppImage --appimage-extract >/dev/null 2>&1' _ "$work" \
+    || { as_user rm -rf -- "$work"; rm -rf "$REL_DIR"; log "FireAlpaca could not be unpacked (is the disk full?)"; return 1; }
+  rm -rf "$REL_DIR"
+  ver=$(as_user sed -n 's/^X-AppImage-Version=//p' "$work/squashfs-root/FireAlpaca.desktop" 2>/dev/null)
+  if [[ $sum != "$FIREALPACA_SHA256" ]]; then
+    # (their page has moved on: newer than the pin and FireAlpaca's own shape, or refused)
+    if [[ -z $ver || $ver == "$FIREALPACA_VERSION" || $(printf '%s\n%s\n' "$FIREALPACA_VERSION" "$ver" | sort -V | tail -n 1) != "$ver" ]]; then
+      as_user rm -rf -- "$work"; log "FireAlpaca.AppImage: its SHA-256 is not the pinned one, and it is not a newer version — refused"; return 1
+    fi
+    log "FireAlpaca: their page now serves $ver (the skin was proven on $FIREALPACA_VERSION) — taken"
+  else
+    log "verified: FireAlpaca.AppImage"
+  fi
+  as_user test -x "$work/squashfs-root/usr/bin/FireAlpaca" \
+    || { as_user rm -rf -- "$work"; log "usr/bin/FireAlpaca not found inside the AppImage"; return 1; }
+  if [[ -n $(missing_libs "$work/squashfs-root/usr/bin/FireAlpaca") ]]; then
+    log "FireAlpaca is missing: $(missing_libs "$work/squashfs-root/usr/bin/FireAlpaca" | tr '\n' ' ')"; as_user rm -rf -- "$work"; return 1
+  fi
+  as_user rm -rf -- "$dir" && as_user mv -T -- "$work/squashfs-root" "$dir" || { as_user rm -rf -- "$work"; return 1; }
+  as_user rm -rf -- "$work"
+  record_tag firealpaca "$ver"
+  ok "FireAlpaca $ver → ~/.local/share/fedokawaii/firealpaca/app (Sketch)"
+}
+
+# Widevine: Google's module for protected media (Spotify's web player plays nothing without it).
+# Helium ships none (its site: Google licenses it to partners) and loads it from the folder its
+# hint file names (kawa-browser writes that). Never in this repository or the ISO: fetched here,
+# for this computer, from Google's own server, at the address and SHA-512 that Mozilla's update
+# service gives Firefox (the version in its address, 999, asks for the newest it knows); looked at
+# by every update. In its own folder under /usr/local/lib, as the component's layout has it.
+install_widevine() {
+  local d url sum ver have
+  d=$(mktemp -d "$KAWA_TMP/rel.XXXXXX")
+  retry 3 10 "${CURL[@]}" -o "$d/update.xml" "$WIDEVINE_UPDATE" || { log "Widevine: Mozilla's update service does not answer"; rm -rf "$d"; return 1; }
+  IFS=' ' read -r url sum ver < <(python3 -I -c 'import sys, xml.etree.ElementTree as E
+for a in E.parse(sys.argv[1]).getroot().iter("addon"):
+    if a.get("id") == "gmp-widevinecdm" and a.get("hashFunction") == "sha512":
+        print(a.get("URL"), a.get("hashValue"), a.get("version"))' "$d/update.xml" 2>/dev/null) || true
+  [[ $url == https://edgedl.me.gvt1.com/* || $url == https://www.google.com/dl/* ]] && [[ $sum =~ ^[0-9a-f]{128}$ && $ver =~ ^[0-9.]+$ ]] \
+    || { log "Widevine: the update service's answer names no module of Google's"; rm -rf "$d"; return 1; }
+  have=$(jq -r .version "$WIDEVINE_DIR/manifest.json" 2>/dev/null) || have=""
+  if [[ $have == "$ver" ]]; then log "Widevine $ver — in place"; rm -rf "$d"; return 0; fi
+  retry 3 10 "${CURL[@]}" -o "$d/w.crx3" "$url" || { log "Widevine: download failed: $url"; rm -rf "$d"; return 1; }
+  [[ $(sha512sum "$d/w.crx3" | cut -d' ' -f1) == "$sum" ]] || { log "Widevine $ver: its SHA-512 is not the one announced — refused"; rm -rf "$d"; return 1; }
+  # (a .crx3 is a zip behind a header of its own; only these three files are taken from it)
+  python3 -I -c 'import io, os, sys, zipfile
+b = open(sys.argv[1], "rb").read()
+if b[:4] != b"Cr24": sys.exit(1)
+z = zipfile.ZipFile(io.BytesIO(b[12 + int.from_bytes(b[8:12], "little"):]))
+for n in ("manifest.json", "LICENSE", "_platform_specific/linux_x64/libwidevinecdm.so"):
+    p = os.path.join(sys.argv[2], n)
+    os.makedirs(os.path.dirname(p), exist_ok=True)
+    open(p, "wb").write(z.read(n))' "$d/w.crx3" "$d/x" 2>/dev/null \
+    && [[ $(jq -r .version "$d/x/manifest.json" 2>/dev/null) == "$ver" ]] \
+    || { log "Widevine $ver: the package does not hold what it should — refused"; rm -rf "$d"; return 1; }
+  # the new folder made beside the old one, then put in its place: never half of each
+  rm -rf -- "$WIDEVINE_DIR.new" && cp -r --no-preserve=all -- "$d/x" "$WIDEVINE_DIR.new" \
+    && chmod 0755 "$WIDEVINE_DIR.new/_platform_specific/linux_x64/libwidevinecdm.so" \
+    && rm -rf -- "$WIDEVINE_DIR" && mv -T -- "$WIDEVINE_DIR.new" "$WIDEVINE_DIR" \
+    || { log "could not write $WIDEVINE_DIR (is the disk full?)"; rm -rf "$d"; return 1; }
+  rm -rf "$d"
+  ok "Widevine $ver → $WIDEVINE_DIR"
+}
 
 retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record says we put there) and its record
   local n
@@ -416,57 +497,4 @@ install_blesh() {
   blesh_warm
   record_tag blesh "$BLESH_COMMIT"
   ok "ble.sh ${BLESH_COMMIT:0:7} (the shell's colours, suggestions and menus) → ~/.local/share/blesh"
-}
-
-# GE-Proton: its newest release (the GitHub API names it; its own .sha512sum file — the one
-# for that very file — checks it). The newest two are kept, so a game pinned to the
-# previous one still starts. Returns 1, having changed nothing, when GitHub cannot be
-# reached or the file does not check out. Its folder is named as the archive names it.
-install_ge_proton() {
-  local json tag url sumurl dir want got file name top part
-  dir=$(proton_dir)
-  json=$("${CURL[@]}" -H 'Accept: application/vnd.github+json' \
-         "https://api.github.com/repos/$GE_PROTON_REPO/releases/latest") || { log "GitHub not reachable for GE-Proton"; return 1; }
-  # the checksum file is the one named like the archive (…-x86_64.sha512sum); a release with
-  # a single checksum file of another name is taken only when it is the only one there
-  IFS=$'\t' read -r tag url sumurl < <(jq -r --arg re "$GE_PROTON_ASSET" '
-    .tag_name as $t | (.assets | map(select(.name | test($re))) | first) as $a
-    | ($a.name // "" | sub("\\.tar\\.gz$"; ".sha512sum")) as $sn
-    | (.assets | map(select(.name | test("\\.sha512sum$")))) as $sums
-    | ($sums | map(select(.name == $sn)) | first // (if ($sums | length) == 1 then $sums[0] else null end)) as $s
-    | [$t, ($a.browser_download_url // ""), ($s.browser_download_url // "")] | @tsv' <<<"$json") || true
-  # (an answer that is not JSON — a Wi-Fi sign-in page — reads as no release: said below)
-  [[ -n ${tag:-} && -n ${url:-} && -n ${sumurl:-} ]] || { log "no GE-Proton release file for x86_64 found"; return 1; }
-  file=${url##*/}; name=${file%.tar.gz}
-  if [[ -d $dir/$name || -d $dir/$tag ]]; then   # (put there before, or by another tool: recorded)
-    if [[ -d $dir/$name ]]; then record_tag ge-proton "$name"; else record_tag ge-proton "$tag"; fi
-    log "$name — in place"; return 0
-  fi
-  # the line for this file, or the file's only hash
-  want=$("${CURL[@]}" "$sumurl") || { log "GE-Proton's checksum file not reachable"; return 1; }
-  want=$({ grep -F -- "$file" <<<"$want" || printf '%s\n' "$want"; } | grep -oE '\b[0-9a-f]{128}\b' | sed -n 1p; exit "${PIPESTATUS[1]}") \
-    || { log "GE-Proton's checksum file holds no SHA-512 for $file"; return 1; }
-  REL_DIR=$(mktemp -d "$KAWA_TMP/rel.XXXXXX")
-  retry 3 10 "${CURL[@]}" -o "$REL_DIR/ge.tar.gz" "$url" || { log "GE-Proton download failed"; return 1; }
-  got=$(sha512sum "$REL_DIR/ge.tar.gz" | cut -d' ' -f1)
-  [[ $got == "$want" ]] || { log "GE-Proton $file: checksum mismatch — refused"; return 1; }
-  mkdir -p "$REL_DIR/x"; tar -xzf "$REL_DIR/ge.tar.gz" -C "$REL_DIR/x" --no-same-owner
-  # its one top folder (GE-Proton11-9-x86_64/, or GE-Proton10-25/ before), with Steam's file in it
-  top=$(find "$REL_DIR/x" -mindepth 1 -maxdepth 1 -type d -name 'GE-Proton*' -printf '%f\n')
-  [[ -n $top && $top != *$'\n'* && -f $REL_DIR/x/$top/compatibilitytool.vdf ]] \
-    || { log "the GE-Proton archive did not hold one GE-Proton folder with compatibilitytool.vdf"; return 1; }
-  # unpacked by you into a folder of its own, then moved into place in one step: a power cut or
-  # a full disk half-way leaves nothing half-made that a later run would take for installed
-  # (each step checked: repair calls this where errexit is off)
-  part=$dir/.fedokawaii-unpack
-  if ! { as_user mkdir -p "$dir" && as_user rm -rf -- "$part" && as_user mkdir -- "$part" \
-         && tar -C "$REL_DIR/x" -cf - "$top" | as_user tar -C "$part" -xf - --no-same-owner \
-         && as_user mv -T -- "$part/$top" "$dir/$top"; }; then
-    as_user rm -rf -- "$part"; log "GE-Proton could not be unpacked into $dir (is the disk full?)"; return 1
-  fi
-  as_user rm -rf -- "$part"
-  as_user find "$dir" -mindepth 1 -maxdepth 1 -type d -name 'GE-Proton*' -printf '%f\n' | sort -V | head -n -2 \
-    | while read -r old; do as_user rm -rf "${dir:?}/$old"; log "removed old $old"; done
-  record_tag ge-proton "$top"; rm -rf "$REL_DIR"
-  ok "$top → Steam compatibilitytools.d"
 }

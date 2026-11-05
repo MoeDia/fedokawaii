@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+# /usr/local/bin/kawa-asobi-session — the play world's session leader, as user asobi on its VT
+# (kawa-asobi.service, which holds the seat session): everything of the world runs in the user's own
+# manager, one set of walls around all of it (user@UID.service.d/50-kawa-asobi.conf): its sound, its
+# portals, and kawa-asobi-world.service, this session's gamescope and Steam. When that ends, so does
+# this, the unit, and the world; the desktop comes back (kawa-asobi-root poststop).
+#
+# Closed from outside by kawa-asobi-root close (the unit's ExecStop).
+set -u
+systemctl --user set-environment "XDG_SESSION_ID=${XDG_SESSION_ID:-}" "XDG_SEAT=${XDG_SEAT:-seat0}" \
+  "XDG_VTNR=${XDG_VTNR:-8}" XDG_SESSION_TYPE=wayland XDG_CURRENT_DESKTOP=gamescope \
+  "KAWA_ASOBI_FACE=${KAWA_ASOBI_FACE:-steam}" || exit 1
+# (however it ended is the world's own journal's to say: gamescope aborts on its way out as a habit, and a
+# session that dies at once is told by kawa-asobi-root poststop)
+systemctl --user start --wait kawa-asobi-world.service
+exit 0
