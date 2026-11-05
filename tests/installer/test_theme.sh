@@ -36,6 +36,7 @@ printf '%s\n' '#!/usr/bin/env bash' '# kawa-steam — Steam, shown and hidden fr
 printf '%s\n' '#!/usr/bin/env bash' '# kawa-game — game mode' >"$W$H/.local/bin/kawa-game"
 printf '%s\n' 'fps' >"$W$H/.config/MangoHud/MangoHud.conf"
 printf '%s\n' '[Desktop Entry]' 'Name=Steam' 'Exec=kawa-steam %U' >"$W$H/.local/share/applications/steam.desktop"
+chown -R "$FK_UID:$FK_UID" "$W$H/.local/share/applications"   # (his, as a real home's: the theme writes in it as him)
 fk chown -hR fkuser:fkuser "$H/.config/presenterm" "$H/.config/sc-im" "$H/.config/spotify-player" "$H/.config/pipewire" "$H/.config/MangoHud" \
   "$H/.local/bin/kawa-steam" "$H/.local/bin/kawa-game" "$H/.local/share/applications/steam.desktop"
 
