@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 02:43 (Dubai)
+# round 28 pulse · Fri 06 03:12 (Dubai)
 
-pace: 2/99 done (2%) · time used 2% · ahead -0.2 h · ETA Tue 10 07:43 · left 91 · blocked 0 · owner 6
-alerts: quiet for 49 min
-run: conductor active · passes 1 (oldest 49 min) · last activity 49 min ago · commits since start 8 · hold False
-machine: load 0.95 0.67 0.39/12 · mem free 26.8 GB · disk free 605 GB · up 2.5 h · cpu tccd1 45° · cpu tctl 52° · gpu edge 38° · gpu junction 30° · gpu mem 52° · ssd composite 36° · ssd sensor 1 37° · ssd sensor 2 36°
+pace: 2/99 done (2%) · time used 3% · ahead -0.7 h · ETA Wed 11 06:37 · left 91 · blocked 0 · owner 6
+alerts: none
+run: conductor active · passes 1 (oldest 78 min) · last activity 18 min ago · commits since start 8 · hold False
+machine: load 0.58 0.84 0.82/12 · mem free 27.3 GB · disk free 605 GB · up 3.0 h · cpu tccd1 36° · cpu tctl 46° · gpu edge 38° · gpu junction 31° · gpu mem 52° · ssd composite 38° · ssd sensor 1 37° · ssd sensor 2 37°
 dark: True (active) · pulse timer active
-tokens since start: out 101,221 · in 172 · cache write 223,790 · cache read 14,637,841 · msgs 84 · out last 6 h 101,221
+tokens since start: out 103,283 · in 186 · cache write 228,911 · cache read 14,925,121 · msgs 90 · out last 6 h 103,283
 
 ## now / blocked / owner
 - [now] f03 train-f45 onto main: the tree is Fedora 45 only (the PC stays on 44, nothing applied); read test_upgrade's and test_toolkit_move's reds first — ledger r27-note-f45-merge
