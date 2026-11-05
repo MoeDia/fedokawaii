@@ -134,22 +134,29 @@ def network_reason(wait=30):
     return "no answer: this PC has a network, but Fedora's servers do not answer it."
 
 
+def wait_page(s, icon, words):
+    """A page with one thing going on: the crest, its heading; the row under it for a meter."""
+    top = max(1, (s.rows - s.head - 2) // 2)
+    head = top + s.head
+    s.clear()
+    s.crest(top)
+    s.heading(head, icon, words)
+    return head
+
+
 def check_stick(s):
-    """The check asked for in the boot menu, on this screen: every file of the ISO's tree against the sum
-    made at the build (fk-sums; a sum over sectors can fail a good stick: tools/build-iso.sh)."""
+    """Every file of the ISO's tree against the sum made at the build (fk-sums; a sum over sectors can fail a
+    good stick: tools/build-iso.sh), on this screen. On every install, before the disk is touched: stage 2
+    goes on reading the stick long after this, and damage met then would be met with the disk gone."""
     def damaged(why):
-        refuse(s, "cross", "this stick is damaged", why + " write it again.")
+        refuse(s, "cross", "this stick is damaged", why + " no disk was touched. write it again.")
 
     dev = run("blkid", "-L", VOLID).stdout.strip()
     mnt = "/tmp/fk-stick"
     os.makedirs(mnt, exist_ok=True)
     if not dev or run("mount", "-o", "ro", dev, mnt).returncode != 0:
         damaged("it cannot be read.")
-    top = max(1, (s.rows - s.head - 2) // 2)
-    head = top + s.head
-    s.clear()
-    s.crest(top)
-    s.heading(head, "hg-0", "checking this stick")
+    head = wait_page(s, "hg-0", "checking this stick")
     try:
         with open(f"{mnt}/fk-sums", encoding="utf-8") as f:
             files = [line.rstrip("\n").split("  ", 1) for line in f]
@@ -615,12 +622,17 @@ def clear_disk(s, name):
     then has nothing to walk. On a disk with years of Btrfs subvolumes and snapshots it would destroy
     each in turn (blivet, its clearpart), a path nothing proves; a blank disk is the one it is proven on."""
     disk = f"/dev/{name}"
-    parts = run("lsblk", "-nrpo", "NAME", disk).stdout.split()
+    parts = [line.split() for line in run("lsblk", "-nrpo", "NAME,TYPE", disk).stdout.splitlines() if line.strip()]
     with open(ERASED, "w", encoding="ascii") as f:
         f.write(name)
-    for dev in reversed(parts):             # (the deepest first; the disk itself is the list's first)
+    for dev, kind in reversed(parts):       # (the deepest first; the disk itself is the list's first)
         run("swapoff", dev)
-        run("wipefs", "-a", "-f", dev)
+        if kind in ("lvm", "crypt"):        # (what holds a partition open; once closed, no path to wipe)
+            run("dmsetup", "remove", "--retry", dev)
+        elif kind.startswith("raid"):
+            run("mdadm", "--stop", dev)
+        else:
+            run("wipefs", "-a", "-f", dev)
     run("udevadm", "settle", "--timeout=30")
     for _ in range(5):
         run("blockdev", "--rereadpt", disk)
@@ -633,48 +645,49 @@ def clear_disk(s, name):
            f"{disk} is in use by something on this PC ({' '.join(left) or 'its signature'}). it may be partly erased.")
 
 
+def metadata_answers(repo):
+    """A mirror really serves this repository's metadata: what Anaconda reads first, with the disk already
+    blank. The metalink server answering says nothing of the mirrors it names; a single reset connection
+    (seen from here on 4 Nov) is no reason to turn the PC off: three tries, five mirrors each."""
+    for attempt in range(3):
+        if attempt:
+            time.sleep(5)
+        names = run("curl", "-sS", "--max-time", "30",
+                    f"https://mirrors.fedoraproject.org/metalink?repo={repo}&arch=x86_64").stdout
+        for url in re.findall(r"<url [^>]*>(https://[^<]+/repomd\.xml)</url>", names)[:5]:
+            r = run("curl", "-sSfL", "--max-time", "20", url)
+            if r.returncode == 0 and "<repomd" in r.stdout:
+                return True
+    return False
+
+
 def before_the_disk(s):
     """Every check that can still say no while the disk is as it was: Anaconda only gets to its own after
-    this point (%pre runs first, then the kickstart is parsed, then the repositories, the packages)."""
+    this point (%pre runs first, then the kickstart is parsed, then the repositories, the packages). No
+    dry run of the packages: %packages names only what the release's tree holds, and that tree never changes."""
     try:
         from pykickstart.parser import KickstartParser
         from pykickstart.version import makeVersion
         KickstartParser(makeVersion(), errorsAreFatal=True, followIncludes=True).readKickstart("/run/install/ks.cfg")
     except Exception as e:              # (whatever the parser raises is this page's reason)
         refuse(s, "cross", "this stick is damaged", f"its install file does not read: {e}")
+    wait_page(s, "globe", "asking Fedora's mirrors")
     for repo in (f"fedora-{RELEASE}", f"updates-released-f{RELEASE}"):
-        r = run("curl", "-sSf", "-o", "/dev/null", "--max-time", "20",
-                f"https://mirrors.fedoraproject.org/metalink?repo={repo}&arch=x86_64")
-        if r.returncode != 0:
-            refuse(s, "ethernet", "no answer", f"Fedora's servers do not answer for {repo}. nothing was touched: start again in a while.")
+        if not metadata_answers(repo):
+            refuse(s, "ethernet", "no answer", f"no mirror of Fedora serves {repo} now. no disk was touched: start again in a while.")
 
 
-def payload_ok():
-    """What the install reads later, as it was built: the toolkit, and the installer's own image, read
-    from the stick only from here on. Checked before the disk is touched."""
-    def sum_of(path):
-        h = hashlib.sha256()
-        with open(path, "rb") as f:
+def toolkit_ok():
+    """The toolkit as it was built, in memory by now: said before any question. The stick's own files are
+    read after them, all of them (check_stick): a minute no one should wait before a first question."""
+    h = hashlib.sha256()
+    try:
+        with open(os.path.join(HERE, "toolkit.tar.xz"), "rb") as f:
             for chunk in iter(lambda: f.read(1 << 20), b""):
                 h.update(chunk)
-        return h.hexdigest()
-
-    mnt = "/tmp/fk-stick"
-    try:
         with open(os.path.join(HERE, "toolkit.sha256"), encoding="ascii") as f:
-            if f.read().split()[0] != sum_of(os.path.join(HERE, "toolkit.tar.xz")):
-                return False
-        os.makedirs(mnt, exist_ok=True)
-        dev = run("blkid", "-L", VOLID).stdout.strip()
-        if run("mount", "-o", "ro", dev, mnt).returncode != 0:
-            return False
-        try:
-            with open(f"{mnt}/fk-sums", encoding="utf-8") as f:
-                sums = dict(reversed(line.rstrip("\n").split("  ", 1)) for line in f)
-            return sums["./images/install.img"] == sum_of(f"{mnt}/images/install.img")
-        finally:
-            run("umount", mnt)
-    except (OSError, KeyError, ValueError):
+            return f.read().split()[0] == h.hexdigest()
+    except (OSError, IndexError):
         return False
 
 
@@ -682,21 +695,24 @@ def main():
     signal.signal(signal.SIGINT, signal.SIG_IGN)
     s = Screen()
     with open("/proc/cmdline", encoding="utf-8") as f:
-        if "fk.check" in f.read().split():
-            check_stick(s)
+        asked = "fk.check" in f.read().split()      # (the menu's line: the stick first, before anything)
+    if asked:
+        check_stick(s)
     ds = checks(s)
-    if not payload_ok():
+    if not toolkit_ok():
         refuse(s, "cross", "this stick is damaged",
-               "the files on it are not as they were built. write it again.")
+               "the files on it are not as they were built. no disk was touched. write it again.")
     form = Form(s, ds, geo())
     form.run()
     write_answers(form)
+    if not asked:
+        check_stick(s)
+    before_the_disk(s)
     # the one owner of the screen from here on (Omarchy's lesson): a daemon, its files closed
     # (pykickstart's warning: otherwise the installation appears hung)
     subprocess.Popen([sys.executable, os.path.join(HERE, "progress.py")],  # noqa: S603
                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
                      close_fds=True, start_new_session=True)
-    before_the_disk(s)
     clear_disk(s, form.disk)
     s.close()
 

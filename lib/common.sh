@@ -441,6 +441,10 @@ write_file() {                      # write_file PATH [MODE] < content — never
 PROJECT_TOP=(PACKAGES.md README.md art bin check.sh configs docs fedokawaii.conf fedokawaii.sh iso
              lib setup.sh src system tests theme.sh tools verify.sh .git .gitignore .gitattributes
              .claude CLAUDE.md .shellcheckrc ruff.toml)   # (the agents' brief and notes, the linters' rules: the project's own too)
+# what only the round that built fedokawaii needs, the temporary sudo rule's tool among it: never in a toolkit, neither
+# the ISO's nor one a clone of a release makes (the owner, 4 Nov 17:46, 21:34; tools/build-iso.sh, setup.sh install_toolkit)
+# shellcheck disable=SC2034  # (setup.sh reads it)
+ROUND_ONLY=(.claude CLAUDE.md tools/claude-loop.sh tools/start.sh tools/away.sh tools/master-brief.sh tools/review-gather.sh)
 # the boot's own arguments, on every boot entry (setup.sh's s_quiet_boot puts them there,
 # verify.sh checks them): the splash (rhgb), and nothing else on the screen from the power
 # button to the login — the kernel's messages only when they are critical (quiet loglevel=3;

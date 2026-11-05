@@ -74,9 +74,9 @@ reproducible() {
 
 # ── the toolkit ──────────────────────────────────────────────────────────────
 say "the toolkit"
-# (what the system needs, not the round's own notes and tooling)
-git -C "$repo" archive --format=tar "$commit" -- . ':(exclude).claude' ':(exclude)CLAUDE.md' \
-  ':(exclude)tools/claude-loop.sh' ':(exclude)tools/start.sh' | xz -T1 -6 --check=crc32 >"$work/toolkit.tar.xz"
+# (what the system needs, not the round's own notes and tooling: lib/common.sh ROUND_ONLY)
+eval "$(sed -n '/^ROUND_ONLY=(/,/)$/p' "$work/src/lib/common.sh")"
+git -C "$repo" archive --format=tar "$commit" -- . "${ROUND_ONLY[@]/#/:(exclude)}" | xz -T1 -6 --check=crc32 >"$work/toolkit.tar.xz"
 
 # ── stage 2's files: images/product.img ─────────────────────────────────────
 say "images/product.img"
@@ -113,7 +113,8 @@ print(" ".join("vt.default_%s=%s" % (n, ",".join(str(int(c[o:o + 2], 16)) for c 
                for n, o in (("red", 0), ("grn", 2), ("blu", 4))))
 PY
 )
-sed -i "s|@APPEND@|${BOOT_ARGS[*]} $pal|" "$p/questions.py"
+# (and the release and the stick's name, one truth: iso/inputs.sh)
+sed -i -e "s|@APPEND@|${BOOT_ARGS[*]} $pal|" -e "s|^RELEASE = .*|RELEASE = \"$ISO_RELEASE\"|" -e "s|^VOLID = .*|VOLID = \"$ISO_VOLID\"|" "$p/questions.py"
 # (a release of fedokawaii: the update button knows which one this is, and takes the next)
 git -C "$repo" describe --tags --exact-match --match 'v*' "$commit" 2>/dev/null >"$p/toolkit-release" || : >"$p/toolkit-release"
 reproducible "$work/product" "$work/product.cpio"

@@ -14,6 +14,7 @@
 #   bash tools/vm-iso-test.sh say NAME [WORDS]         what the console says, read exactly; with WORDS: are they there
 #   bash tools/vm-iso-test.sh install NAME [PASSWORD]  the questions answered through the screens
 #   bash tools/vm-iso-test.sh watch NAME DIR [SECONDS] the display as PNGs, one each time it changes, until stopped
+#   bash tools/vm-iso-test.sh guard NAME               the PC first: short of memory the VM waits, shorter still it goes
 #   bash tools/vm-iso-test.sh run NAME ISO [--…]       one whole run: create, install, setup, login, verify, timed
 #   bash tools/vm-iso-test.sh whole NAME ISO QCOW2 [--…] the owner's path, the final proof: a run with a drive of his
 #                                                      things in, then the update button, the lock, the log out, the facts
@@ -25,6 +26,7 @@
 #   bash tools/vm-iso-test.sh session NAME             at its keyboard: locked and unlocked, logged out and in
 #   bash tools/vm-iso-test.sh path NAME QCOW2          after a run: his things back, the update button, verify
 #   bash tools/vm-iso-test.sh facts NAME               what a run left: hash in logs, strays, firmware, the splash…
+#   bash tools/vm-iso-test.sh carry-make QCOW2         the same drive made here, no VM (kawa-carry from this tree, mke2fs -d)
 #   bash tools/vm-iso-test.sh carry-save NAME QCOW2    test files packed by kawa-carry to a new USB drive
 #   bash tools/vm-iso-test.sh carry-check NAME QCOW2   brought back from it (a VM made with --usb QCOW2), compared
 # A run's record lands in ~/VM/iso/vm/NAME/run/ (its log, the screens, verify's output), a line per stage.
@@ -40,11 +42,16 @@ TEST_PASSWORD=${FK_TEST_PASSWORD:-kawaii-test}
 die() { echo "vm-iso-test: $*" >&2; exit 1; }
 # (the PC is shared: a VM starts only with room for it and 3 GiB to spare, and never beside another of
 # this tool's: a global OOM killed every VM on 4 Nov 18:15; the owner's rule since: one at a time, 4 GiB)
+# (the owner again, 23:24, after the freeze: one VM at a time on the whole PC, whoever's: this one waits its turn)
 mem_guard() {
-  local name=$1 want have
+  local name=$1 want have others waited=0
   if "${VIRSH[@]}" list --name | grep -E '^r27-iso' | grep -qvxF "$name"; then
     die "another VM of this lane is running: $("${VIRSH[@]}" list --name | grep -E '^r27-iso' | tr '\n' ' ')"
   fi
+  while others=$(pgrep -a -x qemu-system-x86 | grep -oE 'guest=[^,]+' | grep -vxF "guest=$name" | tr '\n' ' ') && [[ -n $others ]]; do
+    ((waited % 300 == 0)) && echo "vm-iso-test: $(date +%T) one VM at a time: waiting for $others" >&2
+    sleep 20; waited=$((waited + 20))
+  done
   want=$(sed -n "s|.*<memory unit='MiB'>\([0-9]*\)<.*|\1|p" "$V/$name/domain.xml")
   for _ in $(seq 180); do
     have=$(awk '/^MemAvailable/ { print int($2 / 1024) }' /proc/meminfo)
@@ -247,6 +254,27 @@ do_watch() {   # the display as PNGs, one each time it changes
 
 # one whole run, through the real screens: the times are from the first boot to the login screen
 stage() { printf '%s %6d s  %s\n' "$(date +%T)" "$((SECONDS - T0))" "$*" | tee -a "$R/log"; }
+# the PC first (a global OOM at 18:15, the freeze at 22:06): under 4 GiB available or 13 GiB of swap used the VM is paused
+# until there is room again; under 1.5 GiB it goes, and its run with it. Ends with the VM.
+do_guard() {
+  local name=$1 avail used state paused=0 log=$V/$1/run/log
+  while sleep 15; do
+    state=$("${VIRSH[@]}" domstate "$name" 2>/dev/null) || return 0
+    [[ $state == "shut off" ]] && return 0
+    read -r avail used < <(awk '/^MemAvailable/ { a = $2 } /^SwapFree/ { f = $2 } /^SwapTotal/ { t = $2 } END { print int(a / 1024), int((t - f) / 1024) }' /proc/meminfo)
+    if ((avail < 1536)); then
+      printf '%s      the memory guard: %s MiB available, %s MiB of swap used: the VM stopped\n' "$(date +%T)" "$avail" "$used" >>"$log"
+      "${VIRSH[@]}" destroy "$name" >/dev/null 2>&1
+      return 0
+    elif ((!paused && (avail < 4096 || used > 13312))); then
+      printf '%s      the memory guard: %s MiB available, %s MiB of swap used: the VM paused\n' "$(date +%T)" "$avail" "$used" >>"$log"
+      "${VIRSH[@]}" suspend "$name" >/dev/null 2>&1 && paused=1
+    elif ((paused && avail >= 6144 && used <= 13312)); then
+      printf '%s      the memory guard: %s MiB available again: the VM goes on\n' "$(date +%T)" "$avail" >>"$log"
+      "${VIRSH[@]}" resume "$name" >/dev/null 2>&1 && paused=0
+    fi
+  done
+}
 do_run() {
   local name=$1 iso=$2; shift 2
   do_create "$name" "$iso" "$@" || return 1
@@ -256,6 +284,7 @@ do_run() {
   "${VIRSH[@]}" start "$name" >/dev/null || return 1
   stage "started: $(sha256sum "$iso" | cut -c1-16)"
   setsid -f bash "$0" watch "$name" "$R/screens" 3 >/dev/null 2>&1 </dev/null
+  setsid -f bash "$0" guard "$name" >/dev/null 2>&1 </dev/null
   do_install "$name" || { stage "RED: the questions"; return 1; }
   stage "questions answered"
   do_follow "$name"
@@ -308,6 +337,8 @@ do_follow() {
   do_shot "$name" "$R/login.png"
   stage "the login screen: $R/login.png"
   vm_ssh "$name" 'sudo cat /var/log/fedokawaii.log' >"$R/setup.log" 2>&1
+  # (the greeter is the lock's twin: its gate too, shut until Tab)
+  do_keys "$name" "<tab>"; sleep 1.5
   do_keys "$name" "$TEST_PASSWORD" "<enter>"
   sleep 25
   do_shot "$name" "$R/desktop.png"
@@ -320,6 +351,13 @@ do_follow() {
 # the owner's carry-over across a wipe, through a USB drive of the VM's (a qcow2 under ~/VM/iso/): test files
 # of each kind in the home, packed with main's kawa-carry; on the next VM, brought back, every file compared
 CARRY_PASSWORD=carry-test
+# (what a home holds for the test: run in that home, the sums on its output)
+carry_things='cd ~; mkdir -p Notes Documents blasphemous-save-backup-20261022 .ssh .config/net.imput.helium/Default .config/fedokawaii
+    echo "- [ ] the list" >Notes/todo.md; echo "مرحبا 日本語" >"Documents/العربية 日本語.txt"
+    head -c 5000000 /dev/urandom >Documents/big.bin; echo save >blasphemous-save-backup-20261022/savegame
+    echo key >.ssh/id_test; chmod 600 .ssh/id_test; printf "%s\n" "{}" >.config/net.imput.helium/Default/Preferences
+    printf "export TEST_KEY=carried\n" >.config/fedokawaii/secrets.sh; chmod 600 .config/fedokawaii/secrets.sh
+    find Notes Documents blasphemous-save-backup-20261022 .ssh/id_test .config/net.imput.helium .config/fedokawaii/secrets.sh -type f -print0 | sort -z | xargs -0 sha256sum'
 carry_env='export XDG_RUNTIME_DIR=/run/user/$(id -u) DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$(id -u)/bus; export PATH=$HOME/.local/bin:$PATH'
 do_carry_save() {
   local name=$1 img=$2
@@ -330,17 +368,32 @@ do_carry_save() {
     d=$(lsblk -dnpo NAME,TRAN | awk "\$2 == \"usb\" { print \$1; exit }"); [ -n "$d" ]
     sudo mkfs.ext4 -q -L FKCARRY -E root_owner=$(id -u):$(id -g) "$d"; sudo udevadm settle
     for i in 1 2 3 4 5 6 7 8 9 10; do lsblk -nro LABEL,MOUNTPOINT | grep -q "^FKCARRY /" && break; sleep 2; done
-    cd ~; mkdir -p Notes Documents blasphemous-save-backup-20261022 .ssh .config/net.imput.helium/Default
-    echo "- [ ] the list" >Notes/todo.md; echo "مرحبا 日本語" >"Documents/العربية 日本語.txt"
-    head -c 5000000 /dev/urandom >Documents/big.bin; echo save >blasphemous-save-backup-20261022/savegame
-    echo key >.ssh/id_test; chmod 600 .ssh/id_test; printf "%s\n" "{}" >.config/net.imput.helium/Default/Preferences
-    printf "export TEST_KEY=carried\n" >.config/fedokawaii/secrets.sh; chmod 600 .config/fedokawaii/secrets.sh
-    find Notes Documents blasphemous-save-backup-20261022 .ssh/id_test .config/net.imput.helium .config/fedokawaii/secrets.sh -type f -print0 | sort -z | xargs -0 sha256sum >/tmp/carry.sums' || return 1
+    '"$carry_things"' >/tmp/carry.sums' || return 1
   vm_ssh "$name" "$carry_env; RESTIC_PASSWORD=$CARRY_PASSWORD kawa-carry pack </dev/null" || return 1
   vm_ssh "$name" 'cat /tmp/carry.sums' >"$img.sums" || return 1
   vm_ssh "$name" 'sudo sync'
   "${VIRSH[@]}" detach-disk "$name" sdz --live >/dev/null
   [[ -s $img.sums ]]
+}
+# the drive without a VM, so that a proof needs one install, not two: this tree's kawa-carry in a throw-away home, the
+# folder it writes as an ext4 that mke2fs fills unprivileged (his uid and the installed test user's are both 1000)
+do_carry_make() {
+  local img=$1 root t raw rc=0
+  root=$(cd "$here/.." && pwd)
+  t=$(mktemp -d "$HOME/VM/iso/carry.XXXXXX") || return 1
+  mkdir -p "$t/home/.config/fedokawaii" "$t/drive"
+  cp "$root/configs/home/.config/fedokawaii/icons.sh" "$root/configs/home/.config/fedokawaii/carry.list" "$t/home/.config/fedokawaii/"
+  # (nothing of this session in it: no display, no bus, no state of mine)
+  local fence=(env -u WAYLAND_DISPLAY -u DISPLAY -u XDG_STATE_HOME -u XDG_CONFIG_HOME -u XDG_DATA_HOME
+    DBUS_SESSION_BUS_ADDRESS=unix:path=/nonexistent XDG_CACHE_HOME="$t/home/.cache" HOME="$t/home")
+  "${fence[@]}" bash -c "$carry_things" >"$img.sums" || rc=1
+  ((rc)) || "${fence[@]}" KAWA_CARRY_SETTINGS="$root/fedokawaii.conf" RESTIC_PASSWORD="$CARRY_PASSWORD" \
+    bash "$root/bin/kawa-carry" pack "$t/drive" </dev/null || rc=1
+  raw=$t/drive.raw
+  ((rc)) || mke2fs -q -F -t ext4 -L FKCARRY -d "$t/drive" -E root_owner="$(id -u):$(id -g)" "$raw" 6G || rc=1
+  ((rc)) || qemu-img convert -f raw -O qcow2 "$raw" "$img" || rc=1
+  chmod -R u+w "$t"; rm -rf "$t"
+  ((rc == 0)) && [[ -s $img && -s $img.sums ]]
 }
 do_carry_check() {
   local name=$1 img=$2
@@ -414,6 +467,7 @@ do_session() {
   do_keys "$name" "<down>" "<down>" "<enter>"
   wait_for "$name" 30 "! pgrep -u $TEST_USER -x dwl" || { stage "RED: log out left the session up"; do_shot "$name" "$R/no-logout.png"; return 1; }
   sleep 12; do_shot "$name" "$R/greeter.png"
+  do_keys "$name" "<tab>"; sleep 1.5
   do_keys "$name" "$TEST_PASSWORD" "<enter>"
   wait_for "$name" 60 "pgrep -u $TEST_USER -x waybar" || { stage "RED: no desktop after logging in again"; do_shot "$name" "$R/no-login.png"; return 1; }
   sleep 8; do_shot "$name" "$R/desktop-again.png"
@@ -447,6 +501,12 @@ do_whole() {
   do_run "$name" "$iso" --usb "$img" "$@" || { stage "RED: the run"; return 1; }
   do_path "$name" "$img" || { stage "RED: the path"; return 1; }
   do_session "$name" || return 1
+  # (the other half of his trip: the installed system packs, to a new drive; the one brought back from goes out first)
+  "${VIRSH[@]}" detach-disk "$name" sdb --live >/dev/null || { stage "RED: the drive would not come out"; return 1; }
+  sleep 3
+  do_carry_save "$name" "$R/carry-new.qcow2" >"$R/carry-new.log" 2>&1 || { stage "RED: packing on the installed system: $R/carry-new.log"; return 1; }
+  stage "his things packed to a new drive: $(tail -n1 "$R/carry-new.log" | cut -c1-60)"
+  rm -f "$R/carry-new.qcow2"
   do_facts "$name" >"$R/facts.txt" 2>&1
   stage "GREEN: the whole path. the facts: $R/facts.txt"
 }
@@ -506,7 +566,20 @@ do_facts() {
     printf "kernel, initramfs: "; ls -s --block-size=M /boot/initramfs-*.img | tr "\n" " "; echo
     printf "fonts in it: "; sudo lsinitrd 2>/dev/null | grep -E "\.(ttf|otf)$" | sed "s/.* //" | tr "\n" " "; echo
     printf "ssh enabled: "; systemctl is-enabled sshd 2>/dev/null
-    printf "disk: "; findmnt -no SOURCE / | cut -c1-40; sudo btrfs subvolume list / | wc -l'
+    printf "the splash'"'"'s label plugin: "; rpm -q plymouth-plugin-label
+    printf "firewall: "; sudo firewall-cmd --get-default-zone 2>/dev/null | tr "\n" " "; sudo firewall-cmd --list-services 2>/dev/null | tr "\n" " "; sudo firewall-cmd --list-ports 2>/dev/null; echo
+    printf "disk: "; findmnt -no SOURCE / | cut -c1-40; sudo btrfs subvolume list / | wc -l
+    printf "the release in the toolkit: "; cat /var/lib/fedokawaii/toolkit-release 2>/dev/null; echo
+    printf "round tooling: units %s, sudo rule %s, polkit rule %s, worktrees %s\n" "$(systemctl --user list-unit-files 2>/dev/null | grep -c "^r27-")" \
+      "$(ls /etc/sudoers.d/90-claude-temp 2>/dev/null | wc -l)" "$(ls /etc/polkit-1/rules.d/00-fedokawaii-round.rules 2>/dev/null | wc -l)" "$(ls -d ~/repos/fk-* 2>/dev/null | wc -l)"
+    printf "in user@.service.d (his, all users): "; ls /etc/systemd/system/user@.service.d/ 2>/dev/null | tr "\n" " "; echo
+    printf "the browser: "; rpm -q helium-bin; printf "its Widevine: "; jq -r .version /usr/local/lib/fedokawaii-widevine/manifest.json 2>/dev/null || echo none
+    printf "the play world: "; id asobi 2>/dev/null | cut -d" " -f1; sudo flatpak --system list --columns=application 2>/dev/null | tr "\n" " "; echo
+    printf "Flatpaks in this account: "; flatpak --user list 2>/dev/null | wc -l
+    printf "snapshots: "; sudo snapper list-configs 2>/dev/null | sed 1,2d | cut -d" " -f1 | tr "\n" " "; rpm -q grub-btrfs
+    printf "the fixer: "; ls /usr/local/sbin/kawa-fixer 2>/dev/null || echo none
+    printf "the apps: "; for a in kawa-chess kawa-typing kawa-torrents kawa-panel kawa-carry kawa-stick; do command -v "$a" >/dev/null 2>&1 || PATH=$HOME/.local/bin:$PATH command -v "$a" >/dev/null 2>&1 && printf "%s " "$a" || printf "%s:MISSING " "$a"; done; echo
+    printf "the lock: "; ls /usr/local/lib/fedokawaii/configs/home/.local/share/fedokawaii/dark/lock-scene.png ~/.local/share/fedokawaii/dark/lock-scene.png 2>/dev/null | wc -l'
 }
 
 # the cases that end before a disk is touched, each in a small VM of its own, one after the other: what
@@ -535,12 +608,38 @@ do_matrix() {
     do_say "$n" >"$dir/$c.txt" 2>/dev/null
     cp "$V/$n/say.png" "$dir/$c.png" 2>/dev/null
     "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
+    untouched "$n" "$c" "$dir"
+  }
+  # (a refusal leaves the disk as it was: not one cluster of the blank image written)
+  untouched() {
+    if qemu-img map -f qcow2 --output=json "$V/$1/disk.qcow2" | grep -q '"data": true'; then
+      printf 'RED          %s: something was written to its disk\n' "$2" | tee -a "$3/matrix.txt"
+    fi
   }
   [[ -n ${FK_MATRIX_FROM:-} ]] || one disk-20g "no disk large enough" -- --disk 20
   [[ -n ${FK_MATRIX_FROM:-} ]] || one no-network "no network" -- --no-net
   one bios "without UEFI" -- --bios --cd-first
   one ram-3g "not enough memory" -- --ram 3000
   one stick-check "a new home" "<down>" "<enter>" --
+  # a stick with one byte wrong, in a file nothing reads before the check (the 32-bit loader): after the questions, before the disk
+  local bad=$dir/damaged.iso lba t0=$SECONDS
+  cp --reflink=auto "$iso" "$bad" || return 1
+  lba=$(xorriso -no_rc -indev "$iso" -find /EFI/BOOT/BOOTIA32.EFI -exec report_lba -- 2>/dev/null | awk '/^Report layout/ { next } /BOOTIA32/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+$/) { print $i; exit } }')
+  [[ $lba =~ ^[0-9]+$ ]] || { echo "vm-iso-test: no address for the file to damage" >&2; return 1; }
+  printf 'X' | dd of="$bad" bs=1 seek=$((lba * 2048 + 4096)) conv=notrunc status=none
+  do_create "$n" "$bad" --cpus 2 --port 2242 >/dev/null || return 1
+  mem_guard "$n"
+  "${VIRSH[@]}" start "$n" >/dev/null || return 1
+  if do_install "$n" && wait_words "$n" "this stick is damaged" 300 2>/dev/null; then
+    printf 'green %4d s  damaged: "this stick is damaged", after the questions\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  else
+    printf 'RED   %4d s  damaged: no "this stick is damaged"\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  fi
+  do_say "$n" >"$dir/damaged.txt" 2>/dev/null
+  cp "$V/$n/say.png" "$dir/damaged.png" 2>/dev/null
+  "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
+  untouched "$n" damaged "$dir"
+  rm -f "$bad"
   "${VIRSH[@]}" undefine "$n" --nvram >/dev/null 2>&1
   rm -rf "${V:?}/$n"
   grep -c green "$dir/matrix.txt"
@@ -570,6 +669,8 @@ case $cmd in
   path) name_ok "${1:-}"; do_path "$@" ;;
   whole) name_ok "${1:-}"; [[ $# -ge 3 ]] || exit 2; do_whole "$@" ;;
   facts) name_ok "${1:-}"; do_facts "$1" ;;
+  guard) name_ok "${1:-}"; do_guard "$1" ;;
+  carry-make) [[ $# -eq 1 ]] || exit 2; do_carry_make "$1" ;;
   carry-save) name_ok "${1:-}"; do_carry_save "$@" ;;
   carry-check) name_ok "${1:-}"; do_carry_check "$@" ;;
   *) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 2 ;;
