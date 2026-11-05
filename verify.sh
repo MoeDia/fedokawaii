@@ -75,9 +75,9 @@ check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=n
 # no boot image, no splash; setup.sh's editor_policy)
 check "vi → nvim (a script: dracut never follows it into nvim)" bash -c '[[ ! -L /usr/local/bin/vi && -x /usr/local/bin/vi ]] && grep -qx "exec nvim \"\$@\"" /usr/local/bin/vi'
 check "i2c-dev loaded (monitor brightness over DDC/CI)" test -d /sys/module/i2c_dev
-check "the lights' one tool is running (kawa-rgb)" systemctl is-active --quiet kawa-rgb.service
-# (the system's, from boot, whatever your session does: 4 Nov, the cooler's display stayed dark after a reboot)
-check "the lights' one tool starts at every boot" systemctl is-enabled --quiet kawa-rgb.service
+# (the theme's: not there yet at the build's gate. The system's, from boot, whatever your session does: 4 Nov, the cooler's display stayed dark after a reboot)
+((THEMED)) && check "the lights' one tool is running (kawa-rgb)" systemctl is-active --quiet kawa-rgb.service
+((THEMED)) && check "the lights' one tool starts at every boot" systemctl is-enabled --quiet kawa-rgb.service
 
 # ── packages ─────────────────────────────────────────────────────────────────
 section "packages (lib/manifest.sh)"
@@ -610,7 +610,7 @@ firealpaca_libs_ok() {   # (ldd runs as you, on your file)
 case $(up_tag firealpaca) in
   "") warn "FireAlpaca not installed yet" "update and repair fetch it (Sketch waits till then)" ;;
   *) check "FireAlpaca $(up_tag firealpaca) finds every library it needs" firealpaca_libs_ok
-     check "Sketch is dressed for the desktop (kawa-firealpaca, the mood's sheet)" \
+     ((THEMED)) && check "Sketch is dressed for the desktop (kawa-firealpaca, the mood's sheet)" \
        test -s "$TARGET_HOME/.local/lib/fedokawaii/kawa-firealpaca.so" -a -s "$TARGET_HOME/.config/fedokawaii/current/firealpaca.qss" ;;
 esac
 # ble.sh, from its pinned source (setup carries on without it: the shell is plain bash meanwhile)

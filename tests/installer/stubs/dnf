@@ -64,7 +64,8 @@ case "$a" in
       if has copr-nochroot "$c"; then
         printf 'Chroot not found in the given Copr project (fedora-44-x86_64).\nYou can choose one of the available chroots explicitly:\n fedora-43-x86_64\n' >&2; exit 1
       fi
-      add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"; exit 0;;
+      add coprs "copr:copr.fedorainfracloud.org:${c/\//:}"
+      printf '[copr]\ngpgcheck=1\n' >"/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:${c/\//:}.repo"; exit 0;;   # (the plugin's own file: verify asks for its signatures)
   *" advisory list "*) printf '['; sep=""; while read -r x; do printf '%s{"name":"%s","type":"security"}' "$sep" "$x"; sep=,; done < <(cat "$FKH/advisories" 2>/dev/null); printf ']\n'; exit 0 ;;
   *" offline clean "*|*" system-upgrade clean "*|*" clean metadata "*) exit 0;;
   *" check-upgrade "*) net_on || exit 1; r=$(rcfor check-upgrade 0); [[ -s $FKH/pending ]] && r=100

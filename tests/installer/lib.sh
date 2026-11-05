@@ -492,6 +492,7 @@ asobi_world() {
   mkdir -p "$W/etc/pam.d" "$W/etc/polkit-1/rules.d" "$W/etc/xkb/symbols" "$W/etc/systemd/system"
   cp "$REPO/system/asobi/kawa-asobi.pam" "$W/etc/pam.d/kawa-asobi"; cp "$REPO/system/asobi/xkb-symbols" "$W/etc/xkb/symbols/kawa-asobi"
   cp "$REPO/system/asobi/kawa-asobi.service" "$W/etc/systemd/system/kawa-asobi.service"
+  mkdir -p "$W/etc/systemd/system/user@$au.service.d"; printf '[Service]\nProtectHome=tmpfs\n' >"$W/etc/systemd/system/user@$au.service.d/50-kawa-asobi.conf"   # (its walls: its manager's alone)
   sed 's/DESK_USER/fkuser/g' "$REPO/system/asobi/kawa-asobi.rules" >"$W/etc/polkit-1/rules.d/60-kawa-asobi.rules"
 }
 built() {

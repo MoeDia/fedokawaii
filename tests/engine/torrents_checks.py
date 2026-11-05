@@ -629,7 +629,7 @@ def inherit():
     # killed the moment the list is consumed: each torrent on disk by then (torrra's own list is gone for good; lane-torrents' master, 4 Nov)
     dead = "ef" * 20
     with open(os.path.join(STATE, "inherited.json"), "w", encoding="utf-8") as f:
-        json.dump([{"magnet": "magnet:?xt=urn:btih:" + dead, "name": "killed at once"}], f)
+        json.dump([{"magnet": "magnet:?xt=urn:btih:" + dead, "name": "killed at once", "told": True}], f)
     e = spawn_engine()
     for _ in range(500):
         if not os.path.exists(os.path.join(STATE, "inherited.json")):
