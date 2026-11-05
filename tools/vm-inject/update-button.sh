@@ -4,12 +4,12 @@
 # fedokawaii-update.service → its output followed, its exit status back), a second press while it
 # runs (root's front, and the menu's own as the user: both only follow, nothing started twice),
 # then a run that stops (another dnf5 running): its status non-zero, said.
-#   bash tools/vm-inject/update-button.sh [VM] [REPO]   (VM f44b; REPO this repository)
+#   bash tools/vm-inject/update-button.sh [VM] [REPO]   (VM f45; REPO this repository)
 # Out: a line a check on stdout, everything in /dev/shm/r27/update-button-VM/. Exit 0 all held ·
 # 1 one did not · 2 the VM could not run.
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
-vm=${1:-f44b} src=${2:-$(cd "$here/.." && pwd)}
+vm=${1:-f45} src=${2:-$(cd "$here/.." && pwd)}
 out=/dev/shm/r27/update-button-$vm; rm -rf "$out"; mkdir -p "$out"; log=$out/run.log
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 bad=0

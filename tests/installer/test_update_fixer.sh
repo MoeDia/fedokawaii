@@ -46,7 +46,7 @@ EOS
 }
 FOOTRED='foot does not take its config — err: foot.ini:5: [main].utempter: not a valid option'
 fixer_set() { back built; reset_calls; stand_in; fkh fixer-says "$1"
-  pending "bash 5.2-1.fc44 5.3-1.fc44" "foot 1.24-1.fc44 1.25-1.fc44" "zlib 1.3-1.fc44 1.3.1-1.fc44"
+  pending "bash 5.2-1.fc45 5.3-1.fc45" "foot 1.24-1.fc45 1.25-1.fc45" "zlib 1.3-1.fc45 1.3.1-1.fc45"
   fkh_add installed bash foot zlib; fkh cand-red foot; fkh cand-red-why "$FOOTRED"; rm -f "$FKH/fixer-case"; }
 
 case_ "a config refused in the copy: the fixer first; its fix proven: kept, nothing held, the whole set goes in"
@@ -57,13 +57,13 @@ called 'kawa-fixer\] run /var/lib/fedokawaii/update/fix/case.json --out /var/lib
 called 'kawa-fixer\] keep /var/lib/fedokawaii/update/fix/out.json --fixes /var/lib/fedokawaii/update/fixes.new'
 [[ -s $U/fixes/fix-1.json && ! -e $U/fixes.new && ! -e $U/fix-new ]] && _ok || _no "the fix not in force, settled: $(ls "$U")"
 not_called 'versionlock exclude foot'; [[ -s $U/holds ]] && _no "a hold was recorded: $(cat "$U/holds")" || _ok
-grep -q '^foot 1.25-1.fc44$' "$FKH/evr" && _ok || _no "foot did not go in: $(cat "$FKH/evr")"
+grep -q '^foot 1.25-1.fc45$' "$FKH/evr" && _ok || _no "foot did not go in: $(cat "$FKH/evr")"
 has "$(cat "$U/report")" "fixed foot.ini in 1 try"; has "$(sed -n 2p "$U/report")" "mended: foot.ini"
 has "$OUT" "the local AI fixer tries: $FOOTRED"
 case_ "…what it was given: the failure, the versions, the copy's paths, the desktop's user"
 C=$FKH/fixer-case
 has "$(jq -r '.why[0]' "$C")" "foot does not take its config"
-eq "$(jq -c '.packages[0]' "$C")" '{"name":"foot","old":"1.24-1.fc44","new":"1.25-1.fc44"}'
+eq "$(jq -c '.packages[0]' "$C")" '{"name":"foot","old":"1.24-1.fc45","new":"1.25-1.fc45"}'
 eq "$(jq -r '.root' "$C")" /run/fedokawaii/top/root.cand; eq "$(jq -r '.home' "$C")" /run/fedokawaii/top/home.cand/fkuser
 eq "$(jq -r '.home_in' "$C")" /home/fkuser; eq "$(jq -r '.user' "$C")" fkuser; eq "$(jq -r '.user_home' "$C")" /home/fkuser; eq "$(jq -r '.old_root' "$C")" /
 case_ "…its runner: a program in the copy as the desktop's user, no network, the home's copy at /home"
@@ -83,30 +83,30 @@ reset_calls; up; eq "$RC" 0; not_called 'kawa-fixer\] run'; called 'kawa-fixer\]
 
 case_ "no fix: held at the version that broke it, the report says so and why, the rest goes in"
 fixer_set held; up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
-eq "$(report)" ok; has "$(sed -n 2p "$U/report")" "held: foot 1.25-1.fc44"
-called 'versionlock exclude foot-1.25-1.fc44'; not_called 'kawa-fixer\] keep'
+eq "$(report)" ok; has "$(sed -n 2p "$U/report")" "held: foot 1.25-1.fc45"
+called 'versionlock exclude foot-1.25-1.fc45'; not_called 'kawa-fixer\] keep'
 has "$(cat "$U/report")" "the fixer: held: foot: the docs do not say"
-grep -q '^zlib 1.3.1-1.fc44$' "$FKH/evr" && _ok || _no "the rest did not go in"
+grep -q '^zlib 1.3.1-1.fc45$' "$FKH/evr" && _ok || _no "the rest did not go in"
 [[ -z $(compgen -G "$U/fixes/*.json") ]] && _ok || _no "a fix was kept"
 
 case_ "its fix passes its own check but not the whole candidate: not kept, held, said, the home's copy made anew"
 fixer_set fixed-red; up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
-not_called 'kawa-fixer\] keep'; called 'versionlock exclude foot-1.25-1.fc44'
+not_called 'kawa-fixer\] keep'; called 'versionlock exclude foot-1.25-1.fc45'
 has "$(cat "$U/report")" "passed its own check, not the whole system"
 eq "$(grep -c 'btrfs\] subvolume snapshot /home ' "$CALLS")" 2 "a clean copy after a fix that was not kept"
 
 case_ "a failure of another kind never reaches it: no model, no extra copy, held as ever"
-back built; reset_calls; stand_in; fkh fixer-says fixed; pending "bash 5.2-1.fc44 5.3-1.fc44" "mesa 26.0-1.fc44 26.1-1.fc44"
+back built; reset_calls; stand_in; fkh fixer-says fixed; pending "bash 5.2-1.fc45 5.3-1.fc45" "mesa 26.0-1.fc45 26.1-1.fc45"
 fkh_add installed bash mesa; fkh cand-red mesa; rm -f "$FKH/cand-red-why"
-up; eq "$RC" 0; called 'kawa-fixer\] names'; not_called 'kawa-fixer\] run'; called 'versionlock exclude mesa-26.1-1.fc44'
+up; eq "$RC" 0; called 'kawa-fixer\] names'; not_called 'kawa-fixer\] run'; called 'versionlock exclude mesa-26.1-1.fc45'
 
 case_ "no fixer on this machine yet: held and told as before; the steps then put it in"
-fixer_set fixed; rm -f "$W/usr/local/sbin/kawa-fixer"; up; eq "$RC" 0; called 'versionlock exclude foot-1.25-1.fc44'; not_called 'kawa-fixer\] (names|run)'
+fixer_set fixed; rm -f "$W/usr/local/sbin/kawa-fixer"; up; eq "$RC" 0; called 'versionlock exclude foot-1.25-1.fc45'; not_called 'kawa-fixer\] (names|run)'
 called 'kawa-fixer\] install --home /home/fkuser'
 
 case_ "no home's copy (before the split): the fixer says it could not run, held"
 fixer_set fixed; del mounts /home 2>/dev/null; sed -i '\|^/home$|d' "$FKH/mounts"; up; eq "$RC" 0
-not_called 'kawa-fixer\] run'; called 'versionlock exclude foot-1.25-1.fc44'; has "$(cat "$U/report")" "no copy of the home"
+not_called 'kawa-fixer\] run'; called 'versionlock exclude foot-1.25-1.fc45'; has "$(cat "$U/report")" "no copy of the home"
 fkh_add mounts /home
 
 case_ "the update red on the running system after all: its fix taken out again with it"
@@ -118,16 +118,16 @@ EOS
 up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
 called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'
 [[ ! -e $U/fixes/fix-1.json && ! -e $U/fix-new ]] && _ok || _no "the fix stayed after the update was undone: $(find "$U/fixes" -type f 2>/dev/null | tr '\n' ' ')"
-called 'versionlock exclude .*foot-1.25-1.fc44'
+called 'versionlock exclude .*foot-1.25-1.fc45'
 
 case_ "a fix proven by a run that ended before its package went in: never in force, asked anew"
-fixer_set fixed; mkdir -p "$U/fixes.new"; echo '{}' >"$U/fixes.new/stale.json"; pending "bash 5.2-1.fc44 5.3-1.fc44"; rm -f "$FKH/cand-red"
+fixer_set fixed; mkdir -p "$U/fixes.new"; echo '{}' >"$U/fixes.new/stale.json"; pending "bash 5.2-1.fc45 5.3-1.fc45"; rm -f "$FKH/cand-red"
 up; eq "$RC" 0; [[ ! -e $U/fixes.new/stale.json && ! -e $U/fixes/stale.json ]] && _ok || _no "a stale fix came into force"
 
 case_ "a run cut with a copy of the home left: the next one removes it first"
 back built; reset_calls; stand_in; fkh fixer-says fixed
 fkh_add subvolumes /run/fedokawaii/top/root.cand; mkdir -p "$W/run/fedokawaii/top/root.cand"
-pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash
+pending "bash 5.2-1.fc45 5.3-1.fc45"; fkh_add installed bash
 up; eq "$RC" 0; grep -qx /run/fedokawaii/top/home.cand "$FKH/subvolumes" && _no "left behind" || _ok
 
 # ── the move to the next Fedora: the same fixer, on the whole move's transaction in the copy ──────
@@ -139,17 +139,17 @@ move_set() { back built; reset_calls; stand_in; fkh fixer-says "$1"
   printf '#!/bin/sh\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$W/usr/local/sbin/kawa-snap"; chmod 755 "$W/usr/local/sbin/kawa-snap"
   printf '#!/bin/sh\n. /usr/local/bin/_lib.sh\nfkh_log "$*"\nexit 0\n' >"$W/usr/local/bin/notify-send"; chmod 755 "$W/usr/local/bin/notify-send"
   printf 'root=UUID=1 ro rootflags=subvol=root\n' >"$W/etc/kernel/cmdline"
-  echo '<repomd/>' >"$FKH/dl/repomd.xml"; echo $(( $(date +%s) - 30 * 86400 )) >"$W/var/lib/fedokawaii/release-45"
-  fkh pending-move "foot 1.24-1.fc44 1.25-1.fc45" "fedora-release-common 44-1 45-1"
+  echo '<repomd/>' >"$FKH/dl/repomd.xml"; echo $(( $(date +%s) - 30 * 86400 )) >"$W/var/lib/fedokawaii/release-46"
+  fkh pending-move "foot 1.24-1.fc45 1.25-1.fc46" "fedora-release-common 45-1 46-1"
   fkh_add installed foot; fkh cand-red foot; fkh cand-red-why "$FOOTRED"; rm -f "$FKH/fixer-case"; }
-whole() { osr 45; { echo "foot 1.25-1.fc45"; echo "fedora-release-common 45-1"; } >>"$FKH/evr"; fkh_add installed fedora-release-common; }
+whole() { osr 46; { echo "foot 1.25-1.fc46"; echo "fedora-release-common 46-1"; } >>"$FKH/evr"; fkh_add installed fedora-release-common; }
 
 case_ "the move red in the copy for a config of ours: the fixer on the whole move's transaction, the copy again, then the move goes on"
 move_set fixed; tk --upgrade --now; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
 called 'kawa-fixer\] names --why-file /var/lib/fedokawaii/update/why$'
 called 'kawa-fixer\] run /var/lib/fedokawaii/update/fix/case.json --out /var/lib/fedokawaii/update/fix/out.json'
 called 'kawa-fixer\] keep /var/lib/fedokawaii/update/fix/out.json --fixes /var/lib/fedokawaii/update/fixes.new'
-eq "$(jq -c '.packages[0]' "$FKH/fixer-case")" '{"name":"foot","old":"1.24-1.fc44","new":"1.25-1.fc45"}'
+eq "$(jq -c '.packages[0]' "$FKH/fixer-case")" '{"name":"foot","old":"1.24-1.fc45","new":"1.25-1.fc46"}'
 eq "$(grep -c 'systemd-nspawn\] .*--setenv=FK_MOVE=1 .* /run/fk-check$' "$CALLS")" 3 "the checks as for a move: red, the fix's whole copy, green"
 called 'dnf\] -y system-upgrade reboot'
 case_ "…its edit waits for the start after the move: not in force before it; the home's copy gone before the restart"
@@ -158,7 +158,7 @@ has "$(cat "$U/move-mended")" "fixed foot.ini in 1 try"
 d=$(grep -n 'btrfs\] subvolume delete .*home.cand' "$CALLS" | tail -n1 | cut -d: -f1); r=$(grep -n 'system-upgrade reboot' "$CALLS" | head -n1 | cut -d: -f1)
 ((d < r)) && _ok || _no "the home's copy still there at the restart ($d, $r)"
 keep moved
-case_ "…after the restart, on Fedora 45: in force before the theme, on the system after it, said at the login"
+case_ "…after the restart, on Fedora 46: in force before the theme, on the system after it, said at the login"
 whole; reset_calls; tk --after-upgrade; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 [[ -s $U/fixes/fix-1.json && ! -e $U/fixes.new && ! -e $U/fix-new && ! -e $U/move-mended && ! -e $U/move ]] && _ok || _no "not settled: $(ls "$U")"
 called 'kawa-fixer\] reapply --fixes /var/lib/fedokawaii/update/fixes --home /home/fkuser --root /'
@@ -167,13 +167,13 @@ case_ "…whole, but the desktop does not start on it: the fix out again with th
 back moved; whole; fkh session-red "not running: waybar"; reset_calls; tk --after-upgrade
 called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'
 called 'kawa-snap\] restore'; [[ ! -e $U/fixes/fix-1.json && ! -e $U/fix-new && ! -e $U/move-mended ]] && _ok || _no "the fix stayed: $(ls "$U")"
-case_ "no fix for the move: Fedora 45 waits, its reasons say what the fixer said, nothing armed"
+case_ "no fix for the move: Fedora 46 waits, its reasons say what the fixer said, nothing armed"
 move_set held; tk --upgrade --now; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
-has "$OUT" "Fedora 45 waits: foot does not take its config"; has "$(cat "$U/move-red-45")" "the fixer: held: foot: the docs do not say"
+has "$OUT" "Fedora 46 waits: foot does not take its config"; has "$(cat "$U/move-red-46")" "the fixer: held: foot: the docs do not say"
 not_called 'system-upgrade'; [[ ! -e $U/move && ! -e $U/move-mended ]] && _ok || _no "armed all the same"
-case_ "its fix passes its own check, not the whole move: Fedora 45 waits, said, nothing kept"
+case_ "its fix passes its own check, not the whole move: Fedora 46 waits, said, nothing kept"
 move_set fixed-red; tk --upgrade --now; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
-has "$(cat "$U/move-red-45")" "passed its own check, not the whole system"; not_called 'kawa-fixer\] keep'; not_called 'system-upgrade'
+has "$(cat "$U/move-red-46")" "passed its own check, not the whole system"; not_called 'kawa-fixer\] keep'; not_called 'system-upgrade'
 
 case_ "the real program as root: its server runs as the desktop's user with no network, a home's file written as its owner"
 back built

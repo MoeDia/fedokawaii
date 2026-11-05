@@ -16,7 +16,7 @@ here). podman runs containers as you, never as root.
 
 | Command | Does |
 |---|---|
-| `podman run --rm -it fedora:44 bash` | a throw-away Fedora, gone when you `exit` |
+| `podman run --rm -it fedora:45 bash` | a throw-away Fedora, gone when you `exit` |
 | `podman run --rm -it python:3.14 python` | a Python of another version, for a minute |
 | `podman ps -a` · `podman images` | running and stopped containers · the images kept |
 | `podman run --rm -v ~/practice:/w:Z -w /w python:3.14 python script.py` | run a script of yours inside |

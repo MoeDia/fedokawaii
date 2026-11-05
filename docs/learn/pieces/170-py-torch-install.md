@@ -16,10 +16,10 @@ optional: no
 
 ## 44.1 where things stand (October 2026)
 
-| Piece | State on Fedora 44 |
+| Piece | State on Fedora 45 |
 |---|---|
 | the card's driver | `amdgpu`, in the kernel: nothing to install |
-| ROCm, AMD's computing stack | Fedora packages it (`rocm-*`, version 7.1); AMD's own list of supported systems does not include Fedora |
+| ROCm, AMD's computing stack | Fedora packages it (`rocm-*`, version 7.2); AMD's own list of supported systems does not include Fedora |
 | PyTorch for ROCm | PyTorch's official wheels, `download.pytorch.org/whl/rocm7.2` (PyTorch 2.14), carry their own copy of ROCm 7.2 and include the RX 9060 XT (`gfx1200`, RDNA 4) — so Fedora's ROCm packages are not needed for PyTorch |
 | btop | shows the card's load, memory, heat and watts while you train (through `rocm-smi`, installed) |
 

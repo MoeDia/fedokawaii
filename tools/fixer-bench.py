@@ -254,7 +254,7 @@ exec env -u WAYLAND_DISPLAY -u DISPLAY -u SWAYSOCK -u NVIM DBUS_SESSION_BUS_ADDR
     os.chmod(runner, 0o755)
     why = case.get("why") or f"{case['prog']} does not take its config"
     pkgs = case.get("pkgs") or [case["prog"]]
-    spec = {"why": [why], "packages": [{"name": n, "old": "1.0-1.fc44", "new": "2.0-1.fc45"} for n in pkgs],
+    spec = {"why": [why], "packages": [{"name": n, "old": "1.0-1.fc45", "new": "2.0-1.fc46"} for n in pkgs],
             "runner": [runner], "home": home, "home_in": home, "root": root, "root_in": root, "old_root": old,
             "budget_s": 1200, "user_home": home}
     # (a case is only worth its name if the program takes the file before the breakage, and refuses it after)

@@ -158,7 +158,7 @@ printf '/etc/a.rpmnew\n' >"$R/state/rpmnew"; has "$(fedokawaii status)" "1 confi
 # ── Fedora's releases ────────────────────────────────────────────────────────
 case_ "support known from os-release: the day, and how far"
 fresh; out=$(fedokawaii status)
-has "$(line support "$out")" "until 19 May 2027 · in"
+has "$(line support "$out")" "until 8 Dec 2027 · in"
 has "$(line next "$out")" "Fedora 46"
 case_ "support ended: move on"
 sed -i 's/^SUPPORT_END=.*/SUPPORT_END=2026-01-01/' "$R/os-release"
@@ -183,7 +183,7 @@ eq "$r" 0; lacks "$out" "Fedora 0"; lacks "$out" "Fedora 1 "
 has "$(line release "$out")" "unknown"
 case_ "a move between releases: told for two months, then not"
 fresh; mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 45 46 ok"
-has "$(line moved "$(fedokawaii status)")" "Fedora 46 → 46 ·"
+has "$(line moved "$(fedokawaii status)")" "Fedora 45 → 46 ·"
 mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 45 46 failed"; has "$(line moved "$(fedokawaii status)")" "to Fedora 46 failed"
 mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 45 46 partial"; has "$(line moved "$(fedokawaii status)")" "· repair"
 mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 61) 45 46 ok"; lacks "$(fedokawaii status)" "moved"
