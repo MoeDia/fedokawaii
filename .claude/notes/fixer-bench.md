@@ -6,8 +6,8 @@ the live session and other lanes' headless runs. Everything at nice 15, ionice i
 ## Runtime: llama.cpp b12110 (v0.9.0), its Vulkan release build
 Source: github.com/ggml-org/llama.cpp/releases/tag/b12110 (published 4 Nov 2026, the build of v0.9.0), file
 `llama-b12110-bin-ubuntu-vulkan-x64.tar.gz`, sha256 a5d74194…59b0 from GitHub's own digest, checked after the download.
-It runs as it comes on Fedora 44 (`ldd`: nothing missing; only `vulkan-loader` and `mesa-vulkan-drivers`, both in the manifest's
-PKG_GPU_COMMON). Server and libraries in ~/.local/lib/fedokawaii/llama-b12110: 84 MB.
+It runs as it comes on Fedora 44 (`ldd`: nothing missing). From the system it takes libvulkan and Mesa's driver (PKG_GPU_COMMON), libgomp (through gcc, in PKG_BUILD),
+libssl and libcrypto, libstdc++, glibc 2.34 or newer (`readelf -d`, `rpm -q --whatprovides`). It has not run on Fedora 45 yet. Server and libraries in ~/.local/lib/fedokawaii/llama-b12110: 84 MB.
 - `MESA_VK_DEVICE_SELECT=1002:7590!` (Mesa's own device-select layer, in mesa-vulkan-drivers): this card alone is Vulkan0, measured
   with `llama-server --list-devices`.
 - ROCm rejected, on these grounds: the release's HIP build (`…-ubuntu-rocm-10.0-x64`) links libamdhip64.so.7, librocblas.so.5,
