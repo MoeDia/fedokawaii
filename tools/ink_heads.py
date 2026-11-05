@@ -91,7 +91,6 @@ class Cut:
 
     def image(self, amount=.55, radius=.75):
         """smooth at its own size, sharpened as a retoucher would: RGBA, alpha premultiplied on the way"""
-        s = self.ss
         pm = self.rgb * self.a[..., None]
         out = []
         for ch in (pm[..., 0], pm[..., 1], pm[..., 2], self.a):
