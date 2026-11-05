@@ -24,6 +24,7 @@ ROWS = (
     (('lctrl', 5, 0, '', ''), ('lsuper', 5, 4, '', ''), ('lalt', 5, 4, '', ''), ('space', 25, 5, '', ''),
      ('ralt', 5, 5, '', ''), ('fn', 5, 5, '', ''), ('menu', 5, 9, '', ''), ('rctrl', 5, 9, '', '')),
 )
+WIDER = 4
 HOME = {0: 'a', 1: 's', 2: 'd', 3: 'f', 6: 'j', 7: 'k', 8: 'l', 9: ';', 4: 'space', 5: 'space'}
 
 
@@ -60,6 +61,20 @@ def needs(ch, thumb=5):
     return out
 
 
-def centre(name):
+def box(name):
+    """the key's left edge, its row and its width, in pixels at ×1. Fifteen keys of 20 across, and 4 more in each row's widest:
+    304, so the keyboard is whole cells at ×1, ×2 and ×3 (38, 76, 114), even ones, and a window centres it to the pixel"""
     x, r, w, _, _, _ = PLACE[name]
-    return x * 5 + w * 5 // 2, r * 20 + 10
+    left, width = x * 5, w * 5
+    if name == 'space':
+        width += WIDER
+    elif r == 4 and x > PLACE['space'][0]:
+        left += WIDER
+    elif r < 4 and left + width == 300:
+        width += WIDER
+    return left, r, width
+
+
+def centre(name):
+    left, r, width = box(name)
+    return left + width // 2, r * 20 + 10

@@ -38,8 +38,31 @@ def sub(pattern, repl, already=None, flags=0):
 
 
 SYS = 'system/fedokawaii'
-edit(SYS, 'typing leaves SOON', lambda s: (lambda m: s if m and 'typing' not in m[1] else None if not m else
-     s[:m.start(1)] + '|'.join(a for a in m[1].split('|') if a != 'typing') + s[m.end(1):])(re.search(r"^SOON='([^']*)'", s, re.M)))
+
+
+def leave_soon(s):
+    m = re.search(r"^SOON='([^']*)'", s, re.M)
+    if not m:       # (gone already, with its last name)
+        return s if '$SOON' not in s else None
+    return s[:m.start(1)] + '|'.join(a for a in m[1].split('|') if a != 'typing') + s[m.end(1):]
+
+
+def sweep_soon(s):
+    """nothing left that is not built yet: the "soon" rows' machinery goes with its last name (left in, fzf's case would read
+    `held|)`, a syntax error: Enter would do nothing in the whole of Super+U)"""
+    if not re.search(r"^SOON=''", s, re.M):
+        return s
+    s = re.sub(r"^(# what is not built yet[^\n]*\n)?SOON=''[^\n]*\n", '', s, flags=re.M)
+    s = re.sub(r'''^( *)if \[\[ \$a == @\(\$SOON\) \]\]; then\n[^\n]*\n *else row=(\$\(screen_row "\$g" "\$l" "\$m" "\$W"\)); fi\n''', r'\1row=\2\n', s, flags=re.M)
+    s = s.replace('|$SOON', '')
+    s = s.replace('# (what is not built yet, or only a pane: not offered)', '# (only a pane: not offered)')
+    s = s.replace('; what is not built yet in the faint ink, "soon"', '')
+    return s
+
+
+edit(SYS, 'typing leaves SOON', leave_soon)
+edit(SYS, 'nothing is "soon" any more: its machinery goes', sweep_soon)
+edit('tests/engine/test_menu.sh', 'and its test', lambda s: s.replace(r'in \$PANE_ONLY|\$SOON) ;;', r'in \$PANE_ONLY) ;;') if '$SOON' not in open(SYS).read() else s)
 edit(SYS, 'its row, on the desktop', sub(r'''^ *(?:command -v kawa-typing >/dev/null && )?e learning\s+typing\s+"\$\{ICON_KEYBOARD:-·\}"\s+typing\s+""[^\n]*$''',
      lambda m: '''  [[ -n $desk ]] && e learning typing "${ICON_KEYBOARD:-·}" typing ""   # (it draws in foot: not on a text console)''',
      '[[ -n $desk ]] && e learning typing', re.M))
@@ -48,8 +71,9 @@ edit(SYS, 'its pane', sub(r'''^    typing\)    soon "touch typing, finger by fin
                    "a minute." ""
                while IFS= read -r l; do say "$l"; done < <(kawa-typing --status 2>/dev/null) ;;
 ''', 'kawa-typing --status', re.M))
+edit(SYS, 'no pane says "not yet" any more', lambda s: s if re.search(r'^\s+\w+\)\s+soon "', s, re.M) else re.sub(r'^ *soon\(\) \{[^\n]*\}\n', '', s, flags=re.M))
 edit(SYS, 'enter opens it, the warm window goes back', sub(r'''launch="([^)"]*)\) echo''', r'''launch="\1|typing) echo''', '|typing) echo', 0))
-OPEN = "    typing)    setsid -f kawa-term --float --once typing --dialog typing 79x38 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;\n"
+OPEN = "    typing)    setsid -f kawa-term --float --once typing --dialog typing 80x39 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;\n"
 edit(SYS, 'how it opens', sub(r'''^(    keys\)      setsid -f kawa-help [^\n]*\n)''', lambda m: m[1] + OPEN, 'kawa-term --float --once typing', re.M))
 
 MENU = 'tests/engine/test_menu.sh'
@@ -103,8 +127,8 @@ edit(DOC, '§2 its display size', sub(r'''The lock's(\s+)quote is not set in a f
      'The words typed in the typing app'))
 APP = """- **The typing app** (`kawa-typing`, sixel tiles in foot, §4's parts in pixels). One stage on every screen: one column, the keyboard
   (his K617, 61 keys) and the hands (the demon's on the dark, the angel's on the light) at its foot, on the same pixels on home,
-  in a lesson and on its result; what the screen is about stands over them, a row of words between; the window 79 × 38. One
-  drawing, on a grid where a key is 20 × 20 — a row, the em on its rows 3–16, the capitals on 5–14 — shown whole at ×1, ×2 or ×3,
+  in a lesson and on its result; what the screen is about stands over them, a row of words between; the window 80 × 39. One
+  drawing, on a grid where a key is 20 × 20, each row's widest 4 more (the keyboard 304 across: whole cells at every multiple) — a row, the em on its rows 3–16, the capitals on 5–14 — shown whole at ×1, ×2 or ×3,
   whichever the window has room for; a window too small loses the hands, then the keyboard. A finger's colour is its nail's and
   the lit key's: Wada's four papers (§1: little `paper_mark`, ring `paper_folder`, middle `paper_git`, index `paper_time`, the
   same on both hands), a thumb `gold`; on them the ink of the prompt's papers. Typed words `faint`; a wrong one on the lacquer
