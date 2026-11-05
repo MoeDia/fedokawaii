@@ -22,8 +22,8 @@ C	14	programs	git, lazygit and GitHub	branch
 C	15	programs	btop: the machine	cpu
 C	20	programs	notes, books and the small tools	note
 C	16	programs	mpv, yt-dlp and Syncplay: video and sound	tv-0
-C	17	programs	Brave: the web	globe
-C	18	programs	Steam: games	gamepad
+C	17	programs	Helium: the web	globe
+C	18	programs	ASOBI: the play world	koma
 C	19	programs	torrra: torrents	download
 C	22	programs	podman: containers	box-on
 C	21	programs	Claude Code and herdr: AI agents	agents
@@ -116,8 +116,8 @@ L	notes-pdfs	036-notes-pdfs.md	30	programs	20	notes, books, PDFs	2	desks-session
 L	sketch	037-sketch.md	31	programs	20	drawing: Sketch	4	notes-pdfs	20.2 drawing: Sketch
 L	small-tools-practice	038-small-tools-practice.md	32	programs	20	practice	16	sketch	
 L	mpv-moves	039-mpv-moves.md	33	programs	16	video and sound	12	desks-session	
-L	brave-moves	040-brave-moves.md	34	programs	17	the web	8	desks-session	
-L	steam-moves	041-steam-moves.md	35	programs	18	games	14	desks-session	
+L	helium-moves	040-helium-moves.md	34	programs	17	the web	8	desks-session	
+L	asobi-moves	041-asobi-moves.md	35	programs	18	games	14	desks-session	
 L	torrra-moves	042-torrra-moves.md	36	programs	19	torrents	2	desks-session	
 L	podman-moves	043-podman-moves.md	37	programs	22	containers	7	time-savers	
 L	agents-moves	044-agents-moves.md	38	programs	21	agents, a quick start	8	git-moves	

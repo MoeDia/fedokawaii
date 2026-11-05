@@ -83,10 +83,10 @@ sketch | drawing: Sketch | 2
 x
 chapter 16 mpv | mpv, yt-dlp and Syncplay: video and sound | tv-0 | needs 4
 mpv-moves | video and sound | 0 x
-chapter 17 brave | Brave: the web | globe | needs 4
-brave-moves | the web | 0 x
-chapter 18 steam | Steam: games | gamepad | needs 4
-steam-moves | games | 0 x
+chapter 17 helium | Helium: the web | globe | needs 4
+helium-moves | the web | 0 x
+chapter 18 asobi | ASOBI: the play world | koma | needs 4
+asobi-moves | games | 0 x
 chapter 19 torrra | torrra: torrents | download | needs 4
 torrra-moves | torrents | 0 x
 chapter 22 podman | podman: containers | box-on | needs 2

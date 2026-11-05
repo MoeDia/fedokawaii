@@ -1,5 +1,5 @@
 ---
-id: steam-moves
+id: asobi-moves
 title: games
 part: programs
 chapter: 18
@@ -18,7 +18,8 @@ cannot use `sudo`, it reaches the Internet and nothing of this house.
 **Super+G** in there comes back, and your desktop never stopped. Behind the desktop a game is frozen
 exactly where it was and costs nothing but its memory; Steam alone goes on working, so a download
 finishes. Closing Steam from its own menu ends the world, and the *close* row below does the same. The
-first time, Steam asks you to sign in: yours to do, nothing here stores it.
+first time, Steam asks you to sign in: yours to do, nothing here stores it. The crossed-out signal at the
+top of Steam's screen only says its sandbox cannot see this machine's network settings: it is online.
 
 Everything else is one small window: Super+U → system → **asobi**.
 
