@@ -75,6 +75,27 @@ back built
 mkdir -p "$W/home/fkuser/.config/systemd/user"; : >"$W/home/fkuser/.config/systemd/user/fk-remote.service"
 step net_firewall; eq "$RC" 0 "$OUT"; has "$(zone kawa-lan)" 'port="8737"'; lacks "$(zone public)" 8737
 
+case_ "the page's own rule in the card's zone (its installer, the owner's 4 Nov: keep it there): kept as it stands, nothing reloaded, verify content; every other rule goes; with the page gone it goes"
+rule() {     # rule FAMILY SOURCE PORT: a rich rule in zone public, saved and running, as firewalld writes one
+  local x="  <rule family=\"$1\">\n    <source address=\"$2\"/>\n    <port port=\"$3\" protocol=\"tcp\"/>\n    <accept/>\n  </rule>\n</zone>"
+  sed -i "s|</zone>|$x|" "$W/etc/firewalld/zones/public.xml" "$FKH/fw-run/zones/public.xml"
+}
+rule ipv4 10.62.79.0/24 8737; before=$(zone public)
+: >"$CALLS"; step net_firewall; eq "$RC" 0 "$OUT"; not_called 'firewall-cmd\] .*--reload'; eq "$(zone public)" "$before" "kept, to the byte"
+V; has "$OUT" "✔  the firewall: only the list's doors"; lacks "$OUT" "holds rules of its own"
+rule ipv6 fd00:1:2::/48 8737; before=$(zone public)
+: >"$CALLS"; step net_firewall; eq "$RC" 0 "$OUT"; not_called 'firewall-cmd\] .*--reload'; eq "$(zone public)" "$before" "IPv6's the same"
+for r in 'ipv4 8.8.8.0/24 8737' 'ipv4 0.0.0.0/0 8737' 'ipv4 10.0.0.0/4 8737' 'ipv6 2001:db8::/32 8737' 'ipv4 10.62.79.0/24 22'; do
+  back built; mkdir -p "$W/home/fkuser/.config/systemd/user"; : >"$W/home/fkuser/.config/systemd/user/fk-remote.service"
+  step net_firewall; eq "$RC" 0 "$OUT"
+  IFS=' ' read -r a b c <<<"$r"; rule "$a" "$b" "$c"
+  V; eq "$RC" 3 "$r"; has "$OUT" "✘  the firewall: zone public holds rules of its own"
+  : >"$CALLS"; step net_firewall; eq "$RC" 0 "$OUT"; called 'firewall-cmd\] .*--reload'; lacks "$(zone public)" '<rule' "$r goes"
+done
+back built; rule ipv4 10.62.79.0/24 8737
+V; eq "$RC" 3 "no page"; has "$OUT" "zone public holds rules of its own"
+: >"$CALLS"; step net_firewall; eq "$RC" 0 "$OUT"; lacks "$(zone public)" '<rule' "no page, no rule"; called 'firewall-cmd\] .*--reload'
+
 case_ "SSH: a key in authorized_keys opens the LAN's door and only that; a comment is no key; SSH_SERVER=no closes it whatever the keys"
 back built
 fk runuser -u fkuser -- bash -c 'mkdir -p /home/fkuser/.ssh; printf "# my keys\n\n" >/home/fkuser/.ssh/authorized_keys'

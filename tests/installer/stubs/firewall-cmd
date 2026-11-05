@@ -10,16 +10,22 @@ default() { cat "$FKH/fw-default" 2>/dev/null || echo FedoraServer; }
 arg() { local a; for a in "${ARGS[@]}"; do [[ $a == "--$1="* ]] && { printf '%s\n' "${a#*=}"; return 0; }; done; return 1; }
 ARGS=("$@")
 list_all() {     # the running zone as firewall-cmd --list-all prints it
-  local f=$R/zones/$1.xml t
+  local f=$R/zones/$1.xml t z
   [[ -f $f ]] || { echo "Error: INVALID_ZONE: $1" >&2; exit 112; }
-  t=$(sed -n 's/.*<zone target="\([^"]*\)".*/\1/p' "$f"); [[ -n $t ]] || t=default
+  z=$(sed '/<rule/,/<\/rule>/d' "$f")     # (a rich rule's source and port are no zone's)
+  t=$(sed -n 's/.*<zone target="\([^"]*\)".*/\1/p' <<<"$z"); [[ -n $t ]] || t=default
   printf '%s\n  target: %s\n' "$1" "$t"
-  printf '  sources: %s\n' "$(sed -n 's/.*<source address="\([^"]*\)".*/\1/p' "$f" | paste -sd' ' -)"
-  printf '  services: %s\n' "$(sed -n 's/.*<service name="\([^"]*\)".*/\1/p' "$f" | paste -sd' ' -)"
-  printf '  ports: %s\n' "$(sed -n 's/.*<port port="\([^"]*\)" protocol="\([^"]*\)".*/\1\/\2/p' "$f" | paste -sd' ' -)"
+  printf '  sources: %s\n' "$(sed -n 's/.*<source address="\([^"]*\)".*/\1/p' <<<"$z" | paste -sd' ' -)"
+  printf '  services: %s\n' "$(sed -n 's/.*<service name="\([^"]*\)".*/\1/p' <<<"$z" | paste -sd' ' -)"
+  printf '  ports: %s\n' "$(sed -n 's/.*<port port="\([^"]*\)" protocol="\([^"]*\)".*/\1\/\2/p' <<<"$z" | paste -sd' ' -)"
   if grep -q '<forward/>' "$f"; then echo '  forward: yes'; else echo '  forward: no'; fi
   echo '  masquerade: no'
-  printf '  rich rules:\n'; sed -n 's/^ *<rule.*/\trule family="ipv4"/p' "$f"
+  printf '  rich rules:\n'
+  awk -F'"' '/<rule /{ r="\trule family=\"" $2 "\"" }
+    /<source /&& r != "" { r=r " source address=\"" $2 "\"" }
+    /<port /&& r != "" { r=r " port port=\"" $2 "\" protocol=\"" $4 "\"" }
+    /<accept\/>/&& r != "" { r=r " accept" }
+    /<\/rule>/{ print r; r="" }' "$f"
 }
 case " $* " in
   *" --state "*) exit 0 ;;
