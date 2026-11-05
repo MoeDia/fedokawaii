@@ -4753,3 +4753,5 @@ Mac: tell owner to `sudo rm /etc/sudoers.d/90-claude-temp` on the Mac if present
 ##     pass 1's rest (the polkit dialog live, the torrents TUI with T29); pass 2 waits for T19p. T39 from r27-39-audit. T30 needs a pty
 ##     that answers DA1/OSC 11 (r27-30-baseline).
 ## (7) The next login brings the two dwl fixes (r27-dwl-noxwayland, -termburst); the crashnote writes "TIME PID" then.
+## >>> ROUND 28 (6 Nov 00:42, the inbox): the 20:58 block above no longer holds: no apply on this PC, no Fedora 45 on it. The plan: .claude/notes/r28-plan.tsv.
+- r28-note-f01 00:52 (6 Nov, main) the owner's round-28 brief and addendum read mid-pass (they landed at 00:42 and 00:43 with r28-track, r28-pulse and r28-dark; fk-remote retired): the plan written, 99 rows by day, read by r28-track --md; both inbox blocks marked. CLAUDE.md cut from 49.8 KB to 12.7 KB: round 27's digest moved word for word to .claude/notes/r27-digest.md, round 28's rules in its place, so each pass costs less. S4's apply and S5 are off by the brief's rule 4; S0 (the RAM) stays open as o02, his.
