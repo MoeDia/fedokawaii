@@ -95,3 +95,12 @@ Costs, honestly: two to three times the RAM, closed source, X11 only.
 - The program's own tool cursors (`:/images_cursor`, black and white for any canvas) are still its own: they must read over any picture, and a mask's one ink cannot.
 - "#1" is the palette group's name: its setting did not take from the file.
 - `tests/static/test_contrast.sh` fails on `the prompt: the mood's head on the ground` on this branch's base: not this lane's (T19q).
+
+## OWNER VERDICT 2026-11-04 21:31 on your render final-sprint: comment
+OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii project fully". Deadline 23:30. Order of the night (relayed by Claude):
+1. 21:30–22:30 every lane: finish the most valuable COMPLETE part of its task, test it, push, end its notes with a line DONE and a handover (what main must apply, what is left). No new scope. Never fake done.
+2. lane-integrate: merge each DONE lane at once (master review, full offline suite), in this priority: ink, pixels, appsui, updates, iso, asobi, art, chess, typing, torrents, learning, firealpaca, nvim, fixer, hardware, network, saver.
+3. main: 22:45 at the latest merge lane-integrate, then APPLY on the PC (he is here, screen takeover allowed; a notice on his page first) and check the desktop, the lock (lane-ink's M1 / M2) and the menus live.
+4. main ~23:00: the Fedora 45 upgrade through the update button (snapshot first, btrfs scrub after; he decided to go ahead), unless the apply left something broken.
+5. lane-iso: build and prove the final Fedora 45 ISO from merged main in its VM as soon as main has the merge, in parallel.
+6. 23:30: main writes the owner's summary: what is done and proven, what is left (kept open in the plan for the next round), how to roll back.
