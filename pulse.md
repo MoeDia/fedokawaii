@@ -1,9 +1,9 @@
-# round 28 pulse · Fri 06 02:13 (Dubai)
+# round 28 pulse · Fri 06 02:43 (Dubai)
 
-pace: 2/99 done (2%) · time used 2% · ahead 0.3 h · ETA Mon 09 08:27 · left 91 · blocked 0 · owner 6
-alerts: 32 errors in 2 h
-run: conductor active · passes 1 (oldest 19 min) · last activity 19 min ago · commits since start 8 · hold False
-machine: load 0.06 0.17 0.35/12 · mem free 27.4 GB · disk free 605 GB · up 2.0 h · cpu tccd1 38° · cpu tctl 43° · gpu edge 36° · gpu junction 30° · gpu mem 52° · ssd composite 44° · ssd sensor 1 44° · ssd sensor 2 47°
+pace: 2/99 done (2%) · time used 2% · ahead -0.2 h · ETA Tue 10 07:43 · left 91 · blocked 0 · owner 6
+alerts: quiet for 49 min
+run: conductor active · passes 1 (oldest 49 min) · last activity 49 min ago · commits since start 8 · hold False
+machine: load 0.95 0.67 0.39/12 · mem free 26.8 GB · disk free 605 GB · up 2.5 h · cpu tccd1 45° · cpu tctl 52° · gpu edge 38° · gpu junction 30° · gpu mem 52° · ssd composite 36° · ssd sensor 1 37° · ssd sensor 2 36°
 dark: True (active) · pulse timer active
 tokens since start: out 101,221 · in 172 · cache write 223,790 · cache read 14,637,841 · msgs 84 · out last 6 h 101,221
 
@@ -33,10 +33,6 @@ tokens since start: out 101,221 · in 172 · cache write 223,790 · cache read 1
 ## repairs
 
 ## errors (2 h)
-- #4  0x00007facaef55681 __libc_start_call_main (libc.so.6 + 0x3681)
-- #5  0x00007facaef55798 __libc_start_main@@GLIBC_2.34 (libc.so.6 + 0x3798)
-- #6  0x000055629df704d5 _start (bwrap + 0x44d5)
-- ELF object binary architecture: AMD x86-64
 
 steering received: none
 options: none yet
