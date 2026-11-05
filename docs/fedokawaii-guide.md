@@ -15103,11 +15103,7 @@ In the file itself a conflict looks like this — here `main` and the branch `la
 changed one alias:
 
 ```text
-<<<<<<< HEAD
 alias ll='eza -lah'
-=======
-alias ll='eza -la --git'
->>>>>>> laptop
 ```
 
 Above `=======` is your side (`HEAD`, the branch you are on), below it the incoming one. The

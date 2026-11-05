@@ -60,7 +60,7 @@ class UI:
     def later(self, ms, fn): self.calls.append(f"later {ms}"); self.timers.append(fn)
     def answer(self, out="", rc=0):            # the oldest run comes back
         self.pending.pop(0)(rc, out)
-STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tin games\nwallpaper\tmishima-mist\nsound\t62%\n"
+STATE = ("theme\tdark\nbrightness\t70%\nnight\ton\nvrr\tfull screen\nwallpaper\tmishima-mist\nsound\t62%\n"
          "nettype\twifi\nnetwork\tHome Net 5G\nbluetooth\ton\ndevices\tnone\ndrives\tKINGSTON 58G\n"
          "backup\t3 days ago\ndnd\toff\n")
 u = UI(); p = kp.Panel(u)

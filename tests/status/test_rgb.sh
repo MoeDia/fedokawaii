@@ -13,7 +13,8 @@ make -s -C "$REPO/src/kawa-rgb" O="$TMP" CFLAGS="-O1 -g" 2>&1 | grep -v '^$' && 
 machine() {   # a fresh machine in $M: every device there, screen on, the switch never touched
   M=$(mktemp -d "$TMP/m.XXXXXX")
   mkdir -p "$M"/{dev,etc/fedokawaii,var/lib/fedokawaii-greeter,var/lib/kawa-rgb,run/kawa-rgb}
-  mkdir -p "$M"/sys/class/{hidraw,i2c-dev/i2c-6/device,hwmon/hwmon4,drm/card0-HDMI-A-1}
+  mkdir -p "$M"/sys/class/{hidraw,i2c-dev/i2c-6/device,hwmon/hwmon4,drm/card0-HDMI-A-1,tty/tty0}
+  echo tty1 >"$M/sys/class/tty/tty0/active"
   cat >"$M/etc/fedokawaii/rgb.conf" <<'EOF'
 # a comment
 motherboard 200 10 0
@@ -164,11 +165,28 @@ eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ff
 K unlock; echo disconnected >"$M/sys/class/drm/card0-HDMI-A-1/status"; secs 2.5; eq "$(now_of keyboard)" 0,0,0 "the monitor gone from the cable: off"
 stop
 
-case_ "the monitor switched off: out quickly (the owner, 19:26: a delay): at most 3 steps after a look ten times a second"
+case_ "the monitor switched off: out quickly (the owner, 19:26: a delay): a look ten times a second, 250 ms to be sure, two steps"
 machine; start; secs 2; echo Off >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; t0=$(date +%s%N)
 while [[ $(now_of keyboard) != 0,0,0 ]] && (($(date +%s%N) - t0 < 3000000000)); do /bin/sleep 0.02; done
-ms=$((($(date +%s%N) - t0) / 1000000)); ((ms <= 900)) && _ok || _no "out after $ms ms"
+ms=$((($(date +%s%N) - t0) / 1000000)); ((ms <= 1100)) && _ok || _no "out after $ms ms"
 stop
+
+case_ "a modeset's moment of off: no light moves, nothing sent, the display keeps its number"
+blip() { echo Off >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; /bin/sleep "$1"; echo On >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; /bin/sleep 0.4; }
+still() {   # (nothing but the display's number since a=$(sizes))
+  eq "$(sizes)" "$a" "nothing sent to the lights"; eq "$(col keyboard | sort -u)" 255,0,0 "the keyboard never moved"
+  eq "$(awk '{ print $2 }' "$M/trace" | sort -u)" full "its status never moved"
+  eq "$(tail -c 64 "$M/dev/hidraw6" | head -c 6 | od -An -tx1 | tr -d ' \n')" 07ffff000601 "the display kept its number"
+}
+machine; start; secs 3; a=$(sizes); blip 0.12; blip 0.12; still; stop
+
+case_ "the way back from the play world (4 Nov: off 170 ms after the console changed, for up to 380 ms): the same"
+machine; start; secs 3; a=$(sizes); echo tty8 >"$M/sys/class/tty/tty0/active"; secs 1
+echo tty1 >"$M/sys/class/tty/tty0/active"; /bin/sleep 0.17; blip 0.38; still; stop
+
+case_ "…but a screen that stays off right after that goes out, and a console's change alone does nothing"
+machine; start; secs 3; echo tty8 >"$M/sys/class/tty/tty0/active"; /bin/sleep 0.17; echo Off >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; secs 1
+eq "$(state)" "lights full" "not yet"; secs 2.5; eq "$(now_of keyboard)" 0,0,0 "out"; eq "$(state)" "lights off, screens off"; stop
 
 case_ "a sleep: out at once and the unit waits for it; awake: back"
 machine; start; secs 1.5; a=$(date +%s%N); K sleep; b=$(date +%s%N)

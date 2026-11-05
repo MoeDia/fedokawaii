@@ -7,7 +7,9 @@ cut (`docs/learn/syllabus.txt`, `tools/learn-pieces.py`), and the book's update 
 ## The lights
 
 Every light in your PC is one steady red: the Gigabyte logo, the fans and the hub, the cooler, the keyboard.
-They do not move, and while nothing changes they cost no CPU and no bus traffic. They change on four events:
+They do not move, and while nothing changes they are sent nothing: the program behind them used 0.07 % of one core
+and 2.4 MB over ten minutes, and its only traffic is one small report a second to the cooler's display. The lights
+change on four events:
 
 | When | They |
 |---|---|

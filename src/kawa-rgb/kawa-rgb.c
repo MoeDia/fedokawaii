@@ -8,7 +8,8 @@
  * they are sent nothing. It changes on events only:
  *
  *   the lock screen up     a fade to about 30 %
- *   screens off, a sleep   out, quickly (it looks ten times a second)
+ *   screens off, a sleep   out, quickly (it looks ten times a second; a modeset's moment of off,
+ *                          as on the way back from the play world, moves nothing)
  *   unlocked, awake        back to full
  *   the switch             on or off for everything (quick settings), kept across reboots, in the
  *                          hardware's memory too: off is off from power-on
@@ -58,7 +59,9 @@
 #define FADE_MS 125                 /* a step of a fade: 8 a second, the card's register takes 9 */
 #define IDLE_MS 100                 /* a look at the screens and the switch while nothing moves */
 #define FADE_STEP 0.125             /* of the whole way, a step: the lock's fade, about a second */
-#define OUT_STEP 0.34               /* going out with the screens: three steps */
+#define OUT_STEP 0.5                /* going out with the screens: two steps */
+#define OFF_HOLD 0.25               /* off this long counts: a modeset says off for a moment */
+#define VT_HOLD 2.0                 /* …and for this long after the console in front changed: 120 to 380 ms */
 #define GAMMA 2.2                   /* LEDs are linear, the eye is not: a level is what it looks */
 
 /* ── the machine's paths ─────────────────────────────────────────────────────────── */
@@ -572,6 +575,21 @@ static bool screens_on(void)
     }
     return false;
 }
+/* The console in front has changed: on the way back a compositor lights its outputs anew, all off
+ * and then on (the play world's return, 4 Nov: 170 ms after the change, off for 120 to 380 ms) */
+static int vt_fd = -1;
+static bool vt_changed(void)
+{
+    static char was[16];
+    char now[16];
+    ssize_t r = vt_fd < 0 ? -1 : pread(vt_fd, now, sizeof now - 1, 0);
+    if (r <= 0)
+        return false;
+    now[r] = 0;
+    bool changed = was[0] && strcmp(now, was);
+    memcpy(was, now, sizeof was);
+    return changed;
+}
 static double clock_s(clockid_t c)
 {
     struct timespec t;
@@ -653,6 +671,9 @@ static int run(const char *trace_path)
     double next_display = 0, next_check = 0, next_scan = 0;
     bool on = switched_on(), was_on = on;
     double level = -1;              /* where the fade is: at the first look, it goes there at once */
+    double off_since = -1;          /* since when no screen has been on */
+    double vt_at = -VT_HOLD;        /* when the console in front last changed */
+    vt_fd = open(at("/sys/class/tty/tty0/active"), O_RDONLY | O_CLOEXEC);
 
     screens_find();
     for (size_t i = 0; i < NLIGHTS; i++)
@@ -677,8 +698,16 @@ static int run(const char *trace_path)
         /* what it should look like now */
         on = switched_on();
         bool lit = screens_on(), asleep = sleeping();
-        double target = !on || !lit || asleep ? 0 : locked() ? dim_level : 1;
-        const char *word = !on ? "switched off" : asleep ? "off, asleep" : !lit ? "off, screens off" : target < 1 ? "dim" : "full";
+        if (lit)
+            off_since = -1;
+        else if (off_since < 0)
+            off_since = now;
+        if (vt_changed())
+            vt_at = now;
+        /* (the way back from the play world: every light and the display dipped for a second, 4 Nov) */
+        bool dark = !lit && (level < 0 || (now - off_since >= OFF_HOLD && now - vt_at >= VT_HOLD));
+        double target = !on || dark || asleep ? 0 : locked() ? dim_level : 1;
+        const char *word = !on ? "switched off" : asleep ? "off, asleep" : dark ? "off, screens off" : target < 1 ? "dim" : "full";
         double step = target == 0 ? OUT_STEP : FADE_STEP;
         if (level < 0 || asleep || fabs(target - level) <= step)
             level = target;
