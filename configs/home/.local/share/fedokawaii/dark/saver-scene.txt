@@ -14,4 +14,4 @@ torch 112 178 560   # a fire: its middle, how far its pool reaches
 torch 1792 175 560   # a fire: its middle, how far its pool reaches
 ceiling 40   # what stops the smoke
 seal 168 228 68 92   # saver-seal.png, its alpha: the seal, then the ten digits
-lock 832a58877fc5c1e5   # the lock's art it was built from (tests/look/test_saver.sh)
+lock 328f4eb917776b10   # the lock's art it was built from (tests/look/test_saver.sh)
