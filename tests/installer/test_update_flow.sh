@@ -435,7 +435,24 @@ case_ "verify that cannot run before the update: no baseline, nothing changed"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; printf '#!/bin/bash\nexit 1\n' >"$W/usr/local/lib/fedokawaii/verify.sh"
 up; eq "$RC" 1; has "$OUT" "the checks themselves could not run (verify: exit 1) — nothing changed"; not_called 'dnf\] -y -C replay'
 case_ "a held package with a security advisory: the report and its notice say so"
-back built; reset_calls; printf 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa did not start\n' >"$U/holds"; fkh advisories FEDORA-2026-abc
+back built; reset_calls; mkdir -p "$U"; printf 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa did not start\n' >"$U/holds"; fkh advisories FEDORA-2026-abc
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$(sed -n 2p "$U/report")" "a security fix waits among the held: 1"; called 'dnf\] -q advisory list --security --updates --contains-pkgs=mesa --json'
+case_ "what is his through a press, the theme's own back: his settings, secrets.sh and autostart.local.sh as he has them, a file of the theme's as this toolkit has it"
+back built; themed_home; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"
+c=$W/home/fkuser/.config; sed -i 's/^TIMEZONE=.*/TIMEZONE="Asia\/Dubai"/' "$W$TK/fedokawaii.conf"
+mkdir -p "$c/fedokawaii"; printf 'RESTIC_PASSWORD="his"\n' >"$c/fedokawaii/secrets.sh"; chmod 600 "$c/fedokawaii/secrets.sh"; printf 'his-own-thing &\n' >"$c/dwl/autostart.local.sh"
+theirs=$(cat "$c/dwl/autostart.sh"); printf 'changed by hand\n' >>"$c/dwl/autostart.sh"
+fk_perms; up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; eq "$(report)" ok
+has "$(cat "$W$TK/fedokawaii.conf")" 'TIMEZONE="Asia/Dubai"'; has "$(cat "$c/fedokawaii/secrets.sh")" 'RESTIC_PASSWORD="his"'; eq "$(stat -c %a "$c/fedokawaii/secrets.sh")" 600
+eq "$(cat "$c/dwl/autostart.local.sh")" 'his-own-thing &'; eq "$(cat "$c/dwl/autostart.sh")" "$theirs" "the theme's file back"
+case_ "the monthly scrub: at its end, what it found is said, kept until clicked; a clean one or none: nothing"
+back built; mkdir -p "$W/home/fkuser/.local/bin"; printf '#!/bin/sh\necho "$*" >>"$HOME/.foryou"\n' >"$W/home/fkuser/.local/bin/kawa-foryou"; chmod 755 "$W/home/fkuser/.local/bin/kawa-foryou"; rm -f "$W/home/fkuser/.foryou"; fk_perms
+scrub() { fkrun bash "$TK/setup.sh" --scrub-said; eq "$RC" 0 "$OUT"; }
+fkh scrub-status $'Scrub started: x\nError summary:    csum=3\n  Corrected:      0\n  Uncorrectable:  3'; scrub
+has "$(cat "$W/home/fkuser/.foryou")" "add disk-damage the disk's check found 3 damaged places"; has "$(cat "$W/home/fkuser/.foryou")" "quick settings → backup"
+rm -f "$W/home/fkuser/.foryou"; fkh scrub-status $'Scrub started: x\nError summary:    csum=2\n  Corrected:      2\n  Uncorrectable:  0'; scrub
+has "$(cat "$W/home/fkuser/.foryou")" "the disk's check repaired damage"
+rm -f "$W/home/fkuser/.foryou"; fkh scrub-status $'Scrub started: x\nError summary:    no errors found'; scrub; [[ ! -e $W/home/fkuser/.foryou ]] && _ok || _no "said on a clean scrub"
+rm -f "$FKH/scrub-status"; scrub; [[ ! -e $W/home/fkuser/.foryou ]] && _ok || _no "said with no scrub at all"
 
 done_

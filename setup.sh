@@ -45,6 +45,7 @@ for a in "$@"; do
     --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;  --layout) MODE=layout ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
     --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;  --boot-good) MODE=boot-good ;;
+    --scrub-said) MODE=scrub-said ;;
     --trial) MODE=trial ;;     # (tools/container-trial.sh's, inside its container only)
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
@@ -98,6 +99,7 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
 fi
 if [[ $MODE == @(kernels|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
   exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0
+elif [[ $MODE == scrub-said ]]; then :                # (reads a status and leaves a notice: never in anyone's way)
 elif [[ $MODE == @(after-dnf|boot-good) ]]; then   # (after a dnf run, a start marked good: waits for an update or repair to end first)
   exec 9<>"$STATE_DIR/lock"; flock 9
 else take_lock "$STATE_DIR/lock"; fi
@@ -2139,8 +2141,9 @@ snapper_limits() {
 }
 
 # s_scrub — once a month, every block of the Btrfs file system read back and checked
-# against its checksum (btrfs scrub): a disk that starts to fail shows up in verify long
-# before a file is lost. Idle I/O priority, so the desktop never waits on it.
+# against its checksum (btrfs scrub): a disk that starts to fail shows up long before a file
+# is lost, in a notice kept until clicked (scrub_said) and in verify. Idle I/O priority, so the
+# desktop never waits on it.
 s_scrub() {
   [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]] || { log "/ is not Btrfs — no scrub"; return 0; }
   write_file /etc/systemd/system/fedokawaii-scrub.service <<'UNIT'
@@ -2153,6 +2156,7 @@ ConditionPathIsMountPoint=/
 Type=oneshot
 # -B: wait for the end (so the journal has the result) · -c 3: idle I/O, the desktop first
 ExecStart=/usr/bin/btrfs scrub start -B -c 3 /
+ExecStopPost=/usr/bin/bash /usr/local/lib/fedokawaii/setup.sh --scrub-said
 Nice=19
 UNIT
   write_file /etc/systemd/system/fedokawaii-scrub.timer <<'UNIT'
@@ -2171,6 +2175,17 @@ WantedBy=timers.target
 UNIT
   systemctl daemon-reload
   systemctl enable --now fedokawaii-scrub.timer
+}
+scrub_said() {   # what a scrub found, said once, only when it found something (the scrub's unit, at its end)
+  local sc bad
+  sc=$(btrfs scrub status / 2>/dev/null) || return 0
+  [[ $sc == *"Error summary"* && $sc != *"no errors found"* ]] || return 0
+  bad=$(sed -n 's/^ *Uncorrectable: *\([0-9]*\).*/\1/p' <<<"$sc" | sed -n 1p)
+  if ((${bad:-0} > 0)); then
+    as_user kawa-foryou add disk-damage "the disk's check found $bad damaged places" "copy what you keep to another drive now: quick settings → backup"
+  else
+    as_user kawa-foryou add disk-damage "the disk's check repaired damage" "the disk or the memory may be failing: make a backup soon: quick settings → backup"
+  fi
 }
 # s_report — the machine's health in one file (fedokawaii-report: ~/fedokawaii-report.txt),
 # made by itself once, at the first start of the finished desktop: it waits for your session,
@@ -3428,6 +3443,7 @@ case $MODE in
   repair) do_repair; exit 0 ;;
   update-resume) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_boot; exit 0 ;;
   boot-good) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_probation_close; exit 0 ;;
+  scrub-said) [[ $(phase) == 'done' ]] && on_the_system || exit 0; scrub_said || log "the scrub's notice could not be left"; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            # (a restore cut short after its exchange: finished first — its snapshots back, its default)
            /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"

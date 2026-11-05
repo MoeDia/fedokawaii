@@ -63,6 +63,8 @@ FK_INNER='set -e; W=$1; shift
   mkdir -p "$W/.usr/bin" "$W/.usr/share"
   for d in bin share; do mount --bind "/usr/$d" "$W/.usr/$d"; mount -o remount,bind,ro "$W/.usr/$d"; done
   mount --bind "$W/usrbin" /usr/bin; mount --bind "$W/usrshare" /usr/share
+  # (the folder of the rpm database and of the offline store: of the fake machine, up_rpmdb copies and replaces it)
+  mkdir -p "$W/usrsysimage/rpm"; mount --bind "$W/usrsysimage" /usr/lib/sysimage
   # a Python library of this machine taken away for one run ($FKH/py-hide: a test that moves
   # its stand-in away too): an unreadable empty folder over it, wherever Python keeps it
   if [[ -f $W/var/lib/fkh/py-hide ]]; then
@@ -527,7 +529,7 @@ built() {
   fake_cmd "$W/usrbin/agreety"
   mkdir -p "$W/etc/greetd" "$W/etc/systemd/system/greetd.service.d" "$W/etc/profile.d" "$W/etc/NetworkManager/conf.d" "$W/etc/dnf/libdnf5.conf.d" \
     "$W/etc/yum.repos.d" "$W/usr/local/sbin" "$W/etc/dnf/libdnf5-plugins/actions.d" "$W/etc/mpv/scripts"
-  printf '[default_session]\ncommand = "env $(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet fkuser"\n' >"$W/etc/greetd/fedokawaii.toml"
+  printf '[terminal]\nvt = 1\n\n[default_session]\ncommand = "env $(/usr/local/bin/start-dwl --gpu) \\"XCURSOR_THEME=Sumi-$(cat /var/lib/fedokawaii-greeter/theme)\\" systemd-cat -t kawa-greet cage -d -s -- /usr/local/bin/kawa-greet fkuser"\n' >"$W/etc/greetd/fedokawaii.toml"
   echo dark >"$W/var/lib/fedokawaii-greeter/theme"
   printf '[Unit]\nConflicts=getty@tty1.service kmsconvt@tty1.service\nAfter=getty@tty1.service kmsconvt@tty1.service plymouth-quit-wait.service systemd-user-sessions.service\nStartLimitIntervalSec=60\nStartLimitBurst=5\nOnFailure=fedokawaii-login-failed.service\n\n[Service]\nExecStart=\nExecStart=/usr/bin/greetd --config /etc/greetd/fedokawaii.toml\nRestart=always\nRestartSec=2\n' >"$W/etc/systemd/system/greetd.service.d/fedokawaii.conf"
   mkdir -p "$W/etc/systemd/system/plymouth-quit.service.d"

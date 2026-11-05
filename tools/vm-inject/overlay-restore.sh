@@ -10,7 +10,7 @@
 # from home), kawa-snap list marks S booted; after `kawa-snap restore S` (no --with-home) and a
 # start: / the root subvolume again, still no mark, his files the same, the layout flat, the
 # one-time entry gone.
-#   bash tools/vm-inject/overlay-restore.sh VM
+#   [INJ_BASE=moved] bash tools/vm-inject/overlay-restore.sh VM   (INJ_BASE: another state to start from)
 # Out: a summary on stdout, the log in /dev/shm/r27/overlay-restore.log. Exit 0 whole · 1 not · 2 the VM.
 # shellcheck disable=SC2015  # (A && yes || no: yes only prints, it never fails)
 set -u
@@ -21,16 +21,19 @@ run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 chk() { local o; o=$(run "$1" 2>&1); printf '$ %s\n%s\n' "$1" "$o" >>"$log"; printf '%s' "$o"; }
 restart() { run 'sudo systemctl reboot' >>"$log" 2>&1; sleep 25; run --wait 900 >>"$log" 2>&1; }
 bad=0; no() { echo "  ✘ $*"; bad=1; }; yes() { echo "  ✔ $*"; }
-{ bash "$here/vm-snap.sh" "$vm" revert built && bash "$here/vm-snap.sh" "$vm" start && run --wait 600; } >>"$log" 2>&1 \
+{ bash "$here/vm-snap.sh" "$vm" revert "${INJ_BASE:-built}" && bash "$here/vm-snap.sh" "$vm" start && run --wait 600; } >>"$log" 2>&1 \
   || { echo "overlay-restore: the VM did not start" >&2; exit 2; }
 { run --repo && run 'sudo cp -a ~/fedokawaii/. /usr/local/lib/fedokawaii/ && sudo install -m 755 ~/fedokawaii/system/kawa-snap /usr/local/sbin/kawa-snap'; } >>"$log" 2>&1 \
   || { echo "overlay-restore: the toolkit could not go in" >&2; exit 2; }
 # the flat layout first (the PC's from now on)
-[[ $(chk 'sudo bash /usr/local/lib/fedokawaii/setup.sh --layout >/dev/null 2>&1; sudo fedokawaii-split state') == armed ]] \
-  || { echo "overlay-restore: the split was not armed" >&2; exit 2; }
-restart || { echo "overlay-restore: no start after the split" >&2; exit 2; }
-[[ $(chk 'sudo bash /usr/local/lib/fedokawaii/setup.sh --layout >/dev/null 2>&1; sudo fedokawaii-split state') == flat ]] \
-  && yes "the layout flat, its old copies cleaned" || no "the layout: not flat"
+layout() { chk 'sudo bash /usr/local/lib/fedokawaii/setup.sh --layout >/dev/null 2>&1; sudo fedokawaii-split state'; }
+st=$(layout)
+if [[ $st != flat ]]; then   # (INJ_BASE=moved starts flat already)
+  [[ $st == armed ]] || { echo "overlay-restore: the split was not armed" >&2; exit 2; }
+  restart || { echo "overlay-restore: no start after the split" >&2; exit 2; }
+  st=$(layout)
+fi
+[[ $st == flat ]] && yes "the layout flat, its old copies cleaned" || no "the layout: not flat"
 # S, then the running system moves on: a mark in it, his files in /home
 S=$(chk 'sudo snapper -c root create -t single -p -d overlay-restore' | tr -dc 0-9)
 run 'echo live | sudo tee /etc/fk-marker >/dev/null; mkdir -p ~/today; head -c 1M /dev/urandom >~/today/f; sync' >>"$log" 2>&1
