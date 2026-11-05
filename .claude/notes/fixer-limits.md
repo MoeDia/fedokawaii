@@ -56,6 +56,8 @@ In the configs of: foot, mako, mpv, greetd, the bar's and the lock's CSS, yazi.
   which is the right answer.
 - A release upgrade (Fedora 45 to 46) can change more than it can follow; it works per failure, it is not a porter.
   The test VM decides first, and a red VM keeps the PC on the working release.
+- It trusts its model only by its checksum, read twice before any verdict: the same wrong answer twice and the file is fetched again; two
+  different answers mean this PC's memory or disk, not the file: held, said, nothing removed (measured on this PC, 4 Nov: fixer-bench.md).
 - After a restore by hand to a snapshot from before a fix, the older program may refuse the newer text until the next
   update brings the program back. Rare; the next press clears it.
 

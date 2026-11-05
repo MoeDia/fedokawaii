@@ -508,8 +508,9 @@ replayed in parts); the previous EFI files kept (`EFI/fedora/*.prev`); /boot and
     after the key check; the checks it must pass are outside its reach (B6 #13).
 18. *The fixer invents an option.* — Any key not in the new version's man page/`--help`/default
     config is rejected before it is tried (B6 #11).
-19. *The model file is huge and may be corrupt.* — Checksum-pinned; missing or wrong → the fixer
-    is skipped, said; never downloaded during a run that needs it urgently.
+19. *The model file is huge and may be corrupt.* — Checksum-pinned, read twice before a verdict; missing
+    or wrong → the fixer is skipped, said; never downloaded during a run that needs it urgently. Two
+    different answers are this machine's memory or disk (seen on the PC, 4 Nov): said, the file stays.
 20. *GitHub serves a broken or hostile toolkit.* — A broken one: only release tags, only forward, its
     own checks in a fake machine before the re-exec, the system before it kept; anything red → the
     installed toolkit, said (rows 28). A hostile one: as built (4 Nov) no signature — no signing key

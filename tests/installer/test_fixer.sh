@@ -373,6 +373,14 @@ s = importlib.util.spec_from_loader("kf", importlib.machinery.SourceFileLoader("
 m = importlib.util.module_from_spec(s); s.loader.exec_module(m)
 m.MODEL.update(json.loads(os.environ["PIN_MODEL"])); m.RUNTIME.update(json.loads(os.environ.get("PIN_RT", "{}")))
 m.LOAD_S = 8
+if os.environ.get("PIN_READS"):   # (what the next reads of a file answer: a word, eio, or real: the file itself)
+    reads, real = iter(os.environ["PIN_READS"].split()), m.sha256_file
+    def read(p):
+        r = next(reads, "real")
+        if r == "eio":
+            raise OSError(5, "Input/output error", p)
+        return real(p) if r == "real" else r
+    m.sha256_file = read
 sys.argv = ["kawa-fixer"] + sys.argv[2:]
 sys.exit(m.main())' "$F")
 pinned() { "${PIN[@]}" "$@"; }   # pinned CMD… — kawa-fixer with the pins of this test: its model $MFILE, its runtime in the home
@@ -424,6 +432,17 @@ if unshare --user --map-current-user --net true 2>/dev/null; then
   sleep 0.3; ! pgrep -f "$RT/llama-server" >/dev/null && _ok || _no "the server outlived the run"
   eq "$(find "$XDG_RUNTIME_DIR" -maxdepth 1 -name 'fixer.*' | wc -l)" 0
 
+  case_ "one read is no verdict: read wrong once, or refused once by the disk's checksum, the run goes on, the file stays"
+  again() { fresh; jq --arg h "$UH" '. + {user_home: $h}' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"; }
+  again; PIN_READS="wrong real" run_server; eq "$RC" 0 "$OUT"; eq "$(j .verdict)" fixed; [[ -e $MFILE ]] && _ok || _no "the file went for one bad read"
+  again; PIN_READS="eio real" run_server; eq "$RC" 0 "$OUT"; eq "$(j .verdict)" fixed; [[ -e $MFILE ]] && _ok || _no "the file went for one read error"
+  case_ "two different answers: this PC's memory or disk, not the file: held, said, the file stays (12 GB are not fetched for it)"
+  again; PIN_READS="wrong other" run_server; eq "$RC" 3; eq "$(j .class)" absent; has "$OUT" "reads differently each time"; [[ -e $MFILE ]] && _ok || _no "the file went for a machine's fault"
+  OUT=$(PIN_READS="wrong other" pinned status --full --home "$UH"); eq "$?" 3; has "$OUT" "reads differently each time"
+  case_ "the same wrong answer twice, or the same read error: the file really is damaged: held, said, removed for the next press"
+  again; PIN_READS="wrong wrong" run_server; eq "$RC" 3; eq "$(j .class)" absent; has "$OUT" "damaged"; [[ ! -e $MFILE ]] && _ok || _no "the damaged file stayed"; printf 'tiny model' >"$MFILE"
+  again; PIN_READS="eio eio" run_server; eq "$RC" 3; has "$OUT" "damaged"; [[ ! -e $MFILE ]] && _ok || _no "the unreadable file stayed"; printf 'tiny model' >"$MFILE"
+
   case_ "a runtime that dies while loading, or never loads: held, nothing left"
   fresh; jq --arg h "$UH" '. + {user_home: $h}' "$C/case.json" >"$C/c2" && mv "$C/c2" "$C/case.json"
   mv "$RT/llama-server" "$RT/real"; printf '#!/bin/sh\nexit 3\n' >"$RT/llama-server"; chmod +x "$RT/llama-server"; run_server; eq "$RC" 3; eq "$(j .class)" runtime; has "$OUT" "stopped while loading"
@@ -462,6 +481,12 @@ if unshare --user --map-current-user --net true 2>/dev/null; then
   IH=$TMP/ih2; mkdir -p "$IH"; PIN_RT=$(jq -cn '{tag: "b12110", url: "http://x/rt", sha: "bad"}')
   if OUT=$(PATH=$STUBS:$PATH pinned install --home "$IH" 2>&1); then _no "a wrong file was taken"; else _ok; fi; has "$OUT" "checksum"
   [[ ! -e $IH/.local/lib/fedokawaii/llama-b12110 ]] && _ok || _no "a wrong runtime is in place"
+  case_ "a download that reads two ways: nothing in place, kept, and the next press takes it (this PC's fault, no second 12 GB)"
+  IH=$TMP/ih4; mkdir -p "$IH/.local/lib/fedokawaii/llama-b12110"; cp "$S/llama-server" "$IH/.local/lib/fedokawaii/llama-b12110/"
+  PIN_RT=$(jq -cn --arg s "$RS" '{tag: "b12110", url: "http://x/rt", sha: $s}'); P=$IH/.local/share/fedokawaii/models/m.gguf
+  if OUT=$(PATH=$STUBS:$PATH PIN_READS="wrong other" pinned install --home "$IH" 2>&1); then _no "a file that reads two ways was taken"; else _ok; fi; has "$OUT" "reads differently each time"
+  [[ -e $P.part && ! -e $P ]] && _ok || _no "not kept, or in place: $(ls -A "${P%/*}")"
+  OUT=$(PATH=$STUBS:$PATH pinned install --home "$IH"); eq "$?" 0 "$OUT"; [[ -e $P && ! -e $P.part ]] && _ok || _no "the next press did not take it: $(ls -A "${P%/*}")"
   case_ "no card here: the install says so, and takes nothing"
   rm -rf "$TMP/sysfs"; mkdir -p "$TMP/sysfs"; IH=$TMP/ih3; mkdir -p "$IH"; OUT=$(PATH=$STUBS:$PATH pinned install --home "$IH"); eq "$?" 0; has "$OUT" "no graphics card"; [[ ! -e $IH/.local/lib/fedokawaii ]] && _ok || _no "installed without a card"
 else

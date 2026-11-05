@@ -190,6 +190,10 @@ class ModelError(Exception):
 
 
 # ── the card ────────────────────────────────────────────────────────────────────────────────────
+DAMAGED = "its model file is damaged (its checksum differs); the next update fetches it again"
+UNSTEADY = "its model file reads differently each time: this PC's memory or disk, not the file (kept)"
+
+
 def sysfs_cards(base="/sys/class/drm"):
     """every card with its own memory: (path, pci ids, total, used, its driver)"""
     base = os.environ.get("KAWA_FIXER_SYSFS", base)
@@ -240,6 +244,24 @@ def sha256_file(path):
     return h.hexdigest()
 
 
+# (a verdict costs 12 GB, and one read is no proof. 4 Nov: this file, at rest, hashed right, then wrong
+# two minutes later, right again after: the machine's memory, Btrfs's checksums failing beside it)
+def pin_state(path, sha):
+    """the file against its pin → "" it is · "damaged" the same wrong answer twice · "unsteady" two answers"""
+    def read():
+        try:
+            return sha256_file(path)
+        except OSError as e:   # (EIO: Btrfs's own checksum refused a block)
+            return str(e)
+    first = read()
+    if first == sha:
+        return ""
+    again = read()
+    if again == sha:
+        return ""
+    return "damaged" if again == first else "unsteady"
+
+
 def missing(home, full=False):
     """what keeps the fixer from running, in plain words ("" = ready)"""
     p = paths(home)
@@ -249,9 +271,8 @@ def missing(home, full=False):
         return "its runtime is not installed"
     if not os.path.isfile(p["model"]) or os.path.getsize(p["model"]) != MODEL["size"]:
         return "its model is not installed"
-    if full and sha256_file(p["model"]) != MODEL["sha"]:
-        return "its model file is damaged (its checksum differs); the next update fetches it again"
-    return ""
+    state = pin_state(p["model"], MODEL["sha"]) if full else ""
+    return {"": "", "damaged": DAMAGED, "unsteady": UNSTEADY}[state]
 
 
 def fetch(url, sha, dest):
@@ -259,9 +280,12 @@ def fetch(url, sha, dest):
     os.makedirs(os.path.dirname(dest), exist_ok=True)
     part = dest + ".part"
     subprocess.run(["curl", "-fsSL", "-C", "-", "--retry", "5", "--retry-delay", "5", "-o", part, url], check=True)
-    if sha256_file(part) != sha:
+    state = pin_state(part, sha)
+    if state == "damaged":
         os.unlink(part)
         raise RuntimeError(f"{os.path.basename(dest)}: its checksum differs from the pin")
+    if state:   # (kept: the next press finds it whole, curl has nothing to add, and reads it again)
+        raise RuntimeError(f"{os.path.basename(dest)}: it reads differently each time: this PC's memory or disk")
     os.replace(part, dest)
 
 
@@ -1154,7 +1178,7 @@ def run_case(case, sock, out_path, logdir, server_args):
         if not sock:
             gone = missing(case.get("user_home", place.home), full=True)
             if gone:
-                if "damaged" in gone:
+                if gone == DAMAGED:
                     os.unlink(paths(case.get("user_home", place.home))["model"])
                 raise Held("absent", f"the fixer cannot run: {gone}")
             server = Server(case.get("user_home", place.home), case.get("user"), f"{logdir}/server.log" if logdir else None,

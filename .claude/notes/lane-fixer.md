@@ -4,12 +4,11 @@ Branch lane-fixer, worktree ~/repos/fk-fixer. Scratch: ~/.cache/r27-fixer (a sub
 snapshots; deleted at the end). Everything GPU at nice 15 + ionice idle, the server on its own network namespace.
 
 ## For main, not about the fixer
-Kernel log, 19:15:04: BUG in vma_interval_tree_remove (exit_mmap of Helium's ThreadPoolAudio, UID 1000), "Fixing recursive fault but
-reboot is needed!"; tainted 132 (D + S: S = CPU out of spec, from boot). Helium segfaulted at a wild address at 18:38. The model's process is
-not in it (no amdgpu reset, no ring timeout in the log since 17:45). The next restart clears it; said in the inbox. Worth a look at the
-cold-boot test: memtest or the BIOS's CPU/RAM profile if it comes back (T01's random restart may be the same family).
+This PC's memory has a bad bit (bit 61, measured at 23:49, the inbox's VERDICT; main owns it from here, and holds the press and the ISO for it). tools/ram-check.c is the test to repeat after the BIOS change: three copies, ten minutes (a "right" counts only for its size).
+Every number below is from that machine. The fixer is safe under it: a flip can only spoil an answer, which then fails the rails or the check.
 
 ## Status (newest first)
+- STATUSLINE
 - 21:50 after the reboot (healthy machine, up since 21:17): lane-updates 23067f78 merged here (one conflict, lib/cand-check.sh: one list of config checks now, test_cand_check 23/0 with 2 new cases).
   test_fixer 323/0, test_syntax 830/0; test_tools red only on lane-updates' release-move.sh:23 state_has (told them); test_update_fixer and test_update_flow waiting for the installer lock.
   The first f7 run was stopped by me: the bench started the server without the fixer's --reasoning-budget 1500 (29/29 right that way, kept as f7-nobudget). Fixed (the bench's default is now the update's own), f7 again from 21:49.
@@ -72,7 +71,19 @@ Also useful in your F45 VM: `python3 -I /usr/local/sbin/kawa-fixer checks --user
 mpv, nvim, greetd take our configs as they are.
 
 ## What main must do to merge and apply
-(filled in as it is built)
+1. Merge lane-fixer (it holds lane-updates up to e6b28bce). lane-updates' next push touches tests/installer/lib.sh and fixes test_update_flow's reds: merge it after, no conflict expected with mine.
+2. `fedokawaii apply`: install_fixer puts /usr/local/sbin/kawa-fixer in; the runtime and the model are already in ~/.local (no download). `sudo -u dia /usr/local/sbin/kawa-fixer status --full` must say "ready". On a fresh install on this card it downloads 12.1 GB (about 6 minutes here), never a reason to stop.
+3. In the plan: T47 done but for the two lines below. Ledger lines for r27-51 are below.
+4. After the move to Fedora 45, on the PC, 3 minutes on the card, nothing else touched: `python3 -B -I tools/fixer-bench.py --self --only foot-utempter,hold-conflict --work /tmp/fixer-f45`. The runtime has not run on Fedora 45 yet; its libraries are all system sonames (libvulkan, libssl.so.3, libgomp via gcc in PKG_BUILD, libstdc++), and a miss ends held and told.
+
+## Not done, plainly
+- **Row 13, tools/vm-inject/fixer-candidate.sh, has never been run.** The real nspawn path of up_fix (the candidate's container, the home's copy, the fix on the running system after the theme) is proven by stand-ins only (test_update_fixer). No VM for this lane; it is in lane-updates' chain-rows.sh, hours away at best: see "row 13" in their notes. Until that line says green, this is the fixer's one open proof. If it fails, the failure ends in "held + told" by construction (up_fix's caller is `up_fix || up_hold`).
+- No real package failure has gone through the whole button with the real model: the bench runs the real model and the programs' real checks on broken copies of our real configs; the VM row runs the real button with a stand-in model. The two halves meet in lib/fixer.sh, which test_update_fixer covers with stand-ins.
+- Next round, small: `status` says "ready" from files alone; a runtime whose libraries went missing after an update shows only when a fix is needed (held and told, safe, but late). `llama-server --version` as the owner of the file would close it.
+
+## Ledger lines (main: paste as r27-51)
+- r27-51 T47 the local AI fixer: runtime llama.cpp b12110, its Vulkan release (github.com/ggml-org/llama.cpp/releases/tag/b12110, sha256 from GitHub's digest); model gpt-oss-20b MXFP4 (huggingface.co/openai/gpt-oss-20b, Apache-2.0; ggml-org's conversion @ 15dcfc7e, sha256 from the LFS record); ROCm rejected (the HIP build needs ROCm 10.0, Fedora has 7.1.1, --list-devices dumps core: measured), Ollama rejected (a wrapper and a service). Built: system/kawa-fixer, lib/fixer.sh, hooks in update, move, theme, verify; book 8.7. VERIFIED on the PC: final harness, three seeds, 87 runs: 52 of 54 must-fix right, 21 of 21 holds held, none wrong (.claude/notes/fixer-bench.md); Qwen3.5-9B one seed 18 of 18, 5 times slower: gpt-oss stays, Qwen documented; the run from nothing SELFLINE; frames with the model generating at 91 t/s: build p99 1.6 ms (0.93 at rest), max 4.9 ms (5.4), dropped 23 (25); card back to idle. Tests TESTLINE. OPEN: row 13 (never run), not yet run on Fedora 45. Limits: .claude/notes/fixer-limits.md.
+- r27-extra (lane-fixer): the model is read twice before a verdict; tools/ram-check.c, which found the bad bit.
 
 ## Open questions
 none
