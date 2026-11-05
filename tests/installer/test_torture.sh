@@ -44,7 +44,7 @@ lib() { OUT=$(LOG_FILE=/dev/null STATE_DIR=$TMP/state bash -c '. "$1/lib/common.
 sandbox
 case_ "every fedokawaii.conf key fuzzed: refused by its name, or valid — never a shell error, never a number that wraps"
 mapfile -t KEYS < <(sed -n 's/^\([A-Z_]*\)=.*/\1/p' "$REPO/fedokawaii.conf")
-eq "${#KEYS[@]}" 22 "the keys of fedokawaii.conf"
+eq "${#KEYS[@]}" 24 "the keys of fedokawaii.conf"
 FUZZ=("" " " "a b" "日本語" "مدينة" '$(touch /tmp/fk-pwned)' '`id`' 'x;rm -rf /' "../../etc/passwd" "-1" "0" \
       "18446744073709551760" "99999999999999999999999" "$(printf 'x%.0s' {1..3000})" $'tab\there' "yes " "AMD" "v0.9 " "\\")
 STRICT=" GPU SSH_SERVER THEME WALLPAPER_PACK BOOT_MENU_SECONDS MONITOR_HZ DNF_PARALLEL TIMEZONE NIGHT_LIGHT KB_LAYOUTS KB_TOGGLE BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT YAZI_TAG YAZI_COMMIT "
