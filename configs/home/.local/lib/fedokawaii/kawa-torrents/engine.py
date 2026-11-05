@@ -400,6 +400,7 @@ class Engine:
         except (OSError, ValueError) as e:
             say(f"inherited.json could not be read: {e}")
             return
+        failed = False
         for it in items:
             try:
                 atp = lt.parse_magnet_uri(it["magnet"])
@@ -412,8 +413,11 @@ class Engine:
                 if it.get("name"):
                     atp.name = it["name"]
                 self.give_trackers(atp)
+                resume = lt.write_resume_data_buf(atp)
                 h = self.ses.add_torrent(atp)
                 i = self.remember(h)
+                # (on disk before inherited.json goes: the alert's own copy may never come, and torrra's list is gone)
+                write_file(os.path.join(STATE, i + ".resume"), resume)
                 if it.get("told"):
                     self.meta["told"][i] = 1
                 if it.get("source"):
@@ -421,10 +425,16 @@ class Engine:
                 self.dirty = True
                 h.save_resume_data(SAVE_FLAGS)
                 self.saving += 1
-            except (RuntimeError, ValueError, KeyError, TypeError) as e:
+            except (OSError, RuntimeError, ValueError, KeyError, TypeError) as e:
                 say(f"an inherited torrent could not be added: {e}")
+                failed = True
         self.save_state()
-        os.remove(path)
+        # (one not safely on disk: the whole list again at the next start, those already in are the same torrents)
+        if not failed:
+            try:
+                os.remove(path)
+            except OSError as e:
+                say(f"inherited.json could not be removed: {e}")
 
     def remember(self, h):
         i = tid(h)

@@ -25,7 +25,8 @@ Timezone=local
 PublishPort=127.0.0.1:9696:9696
 # names through this machine's resolver, over TLS like all of them (lib/net.sh): pasta's forwarder as the
 # only nameserver (Podman's default adds the servers themselves behind it: plain DNS, seen by a sniff);
-# its address pinned, not left to Podman's default
+# its address pinned, not left to Podman's default. So an ISP's NXDOMAIN for a tracker site (measured 4 Nov:
+# www.torrentdownloads.pro from the router's resolver) does not reach it: the system asks 1.1.1.1 and 9.9.9.9
 Network=pasta:--dns-forward,169.254.1.1
 DNS=169.254.1.1
 Volume=%h/.config/prowlarr:/config:Z
@@ -34,10 +35,6 @@ Environment=PROWLARR__AUTH__METHOD=External PROWLARR__AUTH__REQUIRED=DisabledFor
 # its page's warning "Allowed Hosts is not configured": it answers to these two names and no other (a web page
 # elsewhere that rebinds a name of its own to 127.0.0.1 gets HTTP 400: tried); the debug log it writes by default: off
 Environment=PROWLARR__SERVER__ALLOWEDHOSTS=localhost,127.0.0.1 PROWLARR__LOG__LEVEL=info
-# Sites by name through public resolvers: an ISP's answers NXDOMAIN for some (measured 4 Nov: www.torrentdownloads.pro
-# from the one this PC is handed; an answer from 1.1.1.1, 8.8.8.8, 9.9.9.9). For this container alone, not the system
-DNS=1.1.1.1
-DNS=9.9.9.9
 # health: a quick check every 2 s while it starts (systemd counts it started once it
 # answers), then one every 5 minutes; three misses in a row restart it
 HealthCmd=curl -fsS -o /dev/null --max-time 10 http://127.0.0.1:9696/ping

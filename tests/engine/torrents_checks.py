@@ -626,6 +626,22 @@ def inherit():
     e = spawn_engine(idle=1)
     eq(e.proc.wait(15), 0, "the engine ends by itself")
     assert not os.path.exists(os.path.join(STATE, "unfinished")), "nothing unfinished for the next login"
+    # killed the moment the list is consumed: each torrent on disk by then (torrra's own list is gone for good; lane-torrents' master, 4 Nov)
+    dead = "ef" * 20
+    with open(os.path.join(STATE, "inherited.json"), "w", encoding="utf-8") as f:
+        json.dump([{"magnet": "magnet:?xt=urn:btih:" + dead, "name": "killed at once"}], f)
+    e = spawn_engine()
+    for _ in range(500):
+        if not os.path.exists(os.path.join(STATE, "inherited.json")):
+            break
+        time.sleep(0.01)
+    e.proc.kill()
+    e.proc.wait(5)
+    assert not os.path.exists(os.path.join(STATE, "inherited.json")), "consumed"
+    assert os.path.exists(os.path.join(STATE, dead + ".resume")), "on disk before the list went"
+    e = spawn_engine(idle=1)
+    eq(e.proc.wait(15), 0, "back at the next start, and it ends by itself")
+    assert os.path.exists(os.path.join(STATE, dead + ".resume")), "still there"
 
 
 def socket_started():

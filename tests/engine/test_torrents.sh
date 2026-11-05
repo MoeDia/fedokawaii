@@ -74,7 +74,7 @@ sandbox
 case_ "Prowlarr's container: its warning's causes dealt with, for good (no warning on its page: its health list empty, 4 Nov)"
 c=$(cat "$REPO/system/prowlarr.container")
 has "$c" 'PROWLARR__SERVER__ALLOWEDHOSTS=localhost,127.0.0.1' "Allowed Hosts set"
-has "$c" 'DNS=1.1.1.1' "public resolvers for its sites"
+lacks "$c" 'DNS=1.1.1.1' "its names through this machine's resolver, which asks 1.1.1.1 and 9.9.9.9 over TLS (test_configs)"
 has "$c" 'PublishPort=127.0.0.1:9696:9696' "on this computer only"
 
 case_ "the engine's unit: socket-started, walled in, your keys out of its sight"
