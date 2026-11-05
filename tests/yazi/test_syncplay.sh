@@ -380,7 +380,7 @@ has "$e" "Exec=$HOME/.local/bin/kawa-term kawa-together %f"
 lacks "$e" "MimeType=" "it would compete with mpv for films"
 case_ "yazi: W watches the hovered film together (the real yazi: test_yazi.sh)"
 has "$(cat "$HOME/.config/yazi/keymap.toml")" 'on = "W",          run = "shell --orphan -- kawa-term kawa-together %h"'
-lacks "$(cat "$REPO/configs/home/.config/yazi/yazi.toml")" "[opener]" "the desktop's yazi.toml holds no opener: W is keymap.toml's alone"
+lacks "$(cat "$REPO/configs/home/.config/yazi/yazi.toml")" "kawa-together" "the desktop's yazi.toml has no opener for it: W is keymap.toml's alone"
 case_ "W on a folder: Syncplay starts with no film (the room's is found by name)"
 mkdir -p "$TMP/a folder"
 printf '[client_settings]\nroom = film-night\n' >"$INI"

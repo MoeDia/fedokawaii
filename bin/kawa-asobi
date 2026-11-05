@@ -61,7 +61,7 @@ case ${1:-} in
          . "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; bottles; exit ;;
   close) systemctl stop --no-ask-password --quiet "$STEAM_UNIT" "$BOTTLES_UNIT"; exit ;;
   state) state; exit 0 ;;
-  --window) exec kawa-term --float --once asobi asobi 66x12 -- "$0" ;;
+  --window) exec kawa-term --float --once asobi asobi 66x13 -- "$0" ;;
 esac
 
 # shellcheck source=/dev/null

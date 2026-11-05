@@ -566,7 +566,8 @@ up_boot() {
       up_tell "the move to Fedora $to was undone" "back on Fedora $from as it was (snapshot $s)"
     fi
   fi
-  [[ $(up_was) == replay ]] || return 0
+  # (not in an update, yet its fixes on the list: an undo the disk refused last time, tried again)
+  [[ $(up_was) == replay ]] || { fixes_undo; return 0; }
   local n; n=$(cat "$UPD/snap" 2>/dev/null) || n=""
   if up_never_began; then
     up_phase end

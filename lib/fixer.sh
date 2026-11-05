@@ -45,12 +45,15 @@ fixes_commit() {
 }
 # fixes_undo — the update did not stay: its fixes out again, each file as it was; fixes_settled: it stayed
 fixes_undo() {
-  local n
+  local n left=()
   [[ -s $UPD/fix-new && -x $FIXER ]] || return 0
   while IFS= read -r n; do
-    "$FIXER" unapply "$UP_FIXES/$n" --home "$TARGET_HOME" --root / || log "the fixer's edit $n could not be taken back"
+    "$FIXER" unapply "$UP_FIXES/$n" --home "$TARGET_HOME" --root / \
+      || { log "the fixer's edit $n could not be taken back: tried again at the next start"; left+=("$n"); }
   done <"$UPD/fix-new"
-  rm -f -- "$UPD/fix-new"
+  if ((${#left[@]})); then   # (no room for even this: the whole list stays, an edit already back is no work)
+    { printf '%s\n' "${left[@]}" >"$UPD/fix-new.tmp" && mv -f -- "$UPD/fix-new.tmp" "$UPD/fix-new"; } 2>/dev/null || true
+  else rm -f -- "$UPD/fix-new"; fi
 }
 fixes_settled() { rm -f -- "$UPD/fix-new"; }
 # fixes_apply — the same on the running system, after the theme: /etc's too (a home's file written

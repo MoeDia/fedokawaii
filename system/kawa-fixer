@@ -30,6 +30,7 @@
 #             it · old_root  the system before it (the docs' old text; "/" in the updater)
 #   home_in   HOME as the runner sees it         budget_s  the wall clock for the whole case
 import argparse
+import contextlib
 import difflib
 import glob
 import gzip
@@ -968,6 +969,10 @@ def write_keep(path, text):
         except OSError:
             pass
         os.replace(tmp, path)
+    except OSError:
+        with contextlib.suppress(OSError):   # (a full disk: no half-written stray beside his file)
+            os.unlink(tmp)
+        raise
     finally:
         if drop:
             os.seteuid(0)
@@ -1276,18 +1281,30 @@ def reapply(fixes, home, root):
 
 
 def unapply(record, home, root):
-    """an update undone: its fix out again (the old version would refuse it), each file as it was before"""
+    """an update undone: its fix out again (the old version would refuse it), each file as it was before.
+    A file that cannot be put back (a full disk), or a record that cannot be read: 1, the record kept, so
+    the undo is tried again at the next start"""
+    if not os.path.exists(record):
+        return 0
     place = Place({"home": home, "root": root, "old_root": root})
     try:
-        data = json.load(open(record))
-    except (OSError, ValueError):
-        data = {}
+        with open(record, encoding="utf8") as f:
+            data = json.load(f)
+    except (OSError, ValueError) as e:
+        print(f"{os.path.basename(record)}: could not be read: {e}", file=sys.stderr)
+        return 1
+    failed = 0
     for shown, text in data.get("before", {}).items():
         f = place.real(shown)
         if os.path.isfile(f) and not NEVER.search(os.path.realpath(f)):
-            write_keep(f, text)
-    if os.path.exists(record):
-        os.unlink(record)
+            try:
+                write_keep(f, text)
+            except OSError as e:
+                print(f"{shown}: could not be put back: {e}", file=sys.stderr)
+                failed += 1
+    if failed:
+        return 1
+    os.unlink(record)
     return 0
 
 
