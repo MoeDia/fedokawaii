@@ -243,6 +243,26 @@ eq "$(cat "$M/var/lib/kawa-rgb/card")" f00014 "the card's memory back"
 K toggle; eq "$(K state)" off; K toggle; eq "$(K state)" on; stop
 lacks "$(cat "$M/out")" "kawa-rgb: card"
 
+case_ "a boot with the switch off (r28-f05): no light, no digit, through everything that lights them"
+machine; K off; blocks "$M/dev/hidraw1" 1 255 0 0; start; secs 2.5
+ex=$(python3 -I -c 'import sys
+d = open(sys.argv[1], "rb").read()
+i = d.rfind(bytes.fromhex("0603b60000"))
+print("%02x" % d[i + 21])' "$M/dev/hidraw1"); eq "$ex" 16 "the keyboard's memory, lit before: off"
+eq "$(cat "$M/var/lib/kawa-rgb/card")" 000000 "the card's memory"
+K lock; secs 1; K unlock; secs 1
+echo Off >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; secs 1; echo On >"$M/sys/class/drm/card0-HDMI-A-1/dpms"; secs 1
+a=$(date +%s%N); K sleep; b=$(date +%s%N)
+((b - a < 1000000000)) && _ok || _no "the sleep's unit waited $(((b - a) / 1000000)) ms for nothing"
+eq "$(state)" "lights off, asleep"; K wake; secs 1; eq "$(state)" "lights switched off"
+rm -r "$M/sys/class/hidraw/hidraw1" "$M/dev/hidraw1"; secs 3
+hid hidraw9 0000258A 00000049 usb-0000:15:00.4-3/input1; blocks "$M/dev/hidraw9" 1 255 0 0; secs 3
+has "$(K status)" "keyboard ok"; stop
+eq "$(tail -c 382 "$M/dev/hidraw9" | head -c 7 | od -An -tx1 | tr -d ' \n')" 080a7a01000000 "replugged: its live frame dark"
+for l in motherboard keyboard card; do eq "$(col "$l" | sort -u)" 0,0,0 "$l never lit"; done
+eq "$(col display | sort -u)" -1 "no digit shown"
+eq "$(od -An -v -tx1 -w64 "$M/dev/hidraw6" | cut -c1-18 | tr -d ' ' | sort -u)" 07ffff0a0a0a "the display only told it is out"
+
 case_ "a device failing (a write error) is let go, and found again"
 machine; rm "$M/dev/hidraw1"; ln -s /dev/full "$M/dev/hidraw1"; start; secs 3
 has "$(K status)" "keyboard missing"; has "$(K status)" "motherboard ok"

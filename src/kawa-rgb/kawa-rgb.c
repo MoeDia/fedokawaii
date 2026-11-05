@@ -707,7 +707,7 @@ static int run(const char *trace_path)
         /* (the way back from the play world: every light and the display dipped for a second, 4 Nov) */
         bool dark = !lit && (level < 0 || (now - off_since >= OFF_HOLD && now - vt_at >= VT_HOLD));
         double target = !on || dark || asleep ? 0 : locked() ? dim_level : 1;
-        const char *word = !on ? "switched off" : asleep ? "off, asleep" : dark ? "off, screens off" : target < 1 ? "dim" : "full";
+        const char *word = asleep ? "off, asleep" : !on ? "switched off" : dark ? "off, screens off" : target < 1 ? "dim" : "full";
         double step = target == 0 ? OUT_STEP : FADE_STEP;
         if (level < 0 || asleep || fabs(target - level) <= step)
             level = target;
