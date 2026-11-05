@@ -449,6 +449,11 @@ elif [[ -r /sys/module/snd_hda_intel/parameters/power_save && $(cat /sys/module/
 else pass "the sound card never naps (no click at a volume change)"; fi
 [[ $STEAM == yes ]] && check "ntsync ready for Proton (/dev/ntsync)" test -c /dev/ntsync
 check "linger on (update, repair, verify reach your services)" test -f "/var/lib/systemd/linger/$TARGET_USER"
+# (your own systemd: the sound, the portals, your services. A drop-in for every user@ once kept it from
+# starting at all, the desktop's with it, 4 Nov: "Failed to allocate manager object")
+check "your own systemd runs (user@$TARGET_UID)"          systemctl is-active --quiet "user@$TARGET_UID.service"
+check "every user's systemd left as it came, but the shutdown's wait" \
+  bash -c '[[ "$(ls -A /etc/systemd/system/user@.service.d)" == fedokawaii.conf ]]'
 check "sleep is suspend only (no hibernation)"           grep -qx 'AllowHibernation=no' /etc/systemd/sleep.conf.d/90-fedokawaii.conf
 check "every sleep locked first (the Sleep key is dwl's)"    grep -qx 'HandleSuspendKey=ignore' /etc/systemd/logind.conf.d/90-fedokawaii.conf
 check "shutdown waits 30 s at most for your services"  grep -qx 'TimeoutStopSec=30s' '/etc/systemd/system/user@.service.d/fedokawaii.conf'

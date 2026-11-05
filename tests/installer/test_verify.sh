@@ -32,7 +32,14 @@ has "$OUT" "✔  restic runs (backups to another disk: kawa-backup)"   # (the ex
 has "$OUT" "✔  Syncplay v1.7.6 loads (Fedora's python3, Twisted with TLS, certifi, pem)"; has "$OUT" "✔  syncplay runs without a window"
 has "$OUT" "✔  user in video, render"; lacks "$OUT" "input, render"
 has "$OUT" "✔  Bluetooth dongle power saving off (btusb)"; has "$OUT" "✔  shutdown waits 30 s at most for your services"
+has "$OUT" "✔  your own systemd runs (user@$FK_UID)"; has "$OUT" "✔  every user's systemd left as it came, but the shutdown's wait"
 has "$OUT" "✔  the sound card never naps (no click at a volume change)"; has "$OUT" "✔  a restart waits for Steam to close properly (25 s at most)"
+
+case_ "your own systemd: not running, or a drop-in for every user@ beside the shutdown's (4 Nov: it kept dia's manager from starting): each said"
+cp "$FKH/units" "$FKH/units.keep"; sed -i "/^active user@$FK_UID\.service\$/d" "$FKH/units"
+echo x >"$W/etc/systemd/system/user@.service.d/50-walls.conf"
+V; eq "$RC" 3; has "$OUT" "✘  your own systemd runs (user@$FK_UID)"; has "$OUT" "✘  every user's systemd left as it came, but the shutdown's wait"
+rm -f "$W/etc/systemd/system/user@.service.d/50-walls.conf"; mv -f "$FKH/units.keep" "$FKH/units"
 
 case_ "…the same once the update button put brave-origin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
 fkh from-stored; V; has "$OUT" "✔  brave-origin from brave-browser (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
