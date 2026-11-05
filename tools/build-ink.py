@@ -397,16 +397,16 @@ def compose_dark(wall_ink, wall_tone, fire, plate, fig_ink, fig_alpha):
     for tx, ty in TORCHES:
         glow = np.maximum(glow, np.exp(-(np.hypot(xx - tx, yy - ty) / 150) ** 2))
     wall = np.clip(wall + hexc("c8641e") * (glow * .30)[..., None], 0, 1)
-    hot = ramp(np.clip((plate - .30) / .62, 0, 1), HOT)
-    a = ndi.gaussian_filter(fire.astype(np.float32), 1.0)[..., None]
-    wall = wall * (1 - a) + hot * a
-    wall = lay(wall, plaque_dark())
+    # the plate's own flames burn out in the bloom: tools/build-ink.py's kaen stands there, alive
+    for (fx, fy), (ex, ey) in zip(((112, 190), (1792, 188)), ((62, 86), (62, 86))):
+        off = np.clip(1.5 * np.exp(-((xx - fx) / ex) ** 2 - ((yy - fy) / ey) ** 2), 0, 1)[..., None]
+        wall = wall * (1 - off) + hexc("f6d79a") * off
     # the figure: the same paper, always lit enough to carve it out of the dark, falling away towards the foot
     foot = np.clip((yy - 880) / 260, 0, 1)
     fl = np.clip((.86 + light * .25) * (1 - .52 * foot), 0, 1)
     fig = ramp(fl, NIGHT) * (1 - fig_ink[..., None]) + SUMI * fig_ink[..., None]
     a = fig_alpha[..., None]
-    return wall * (1 - a) + fig * a, wall
+    return lay(wall * (1 - a) + fig * a, plaque_dark()), wall     # (the board hangs in front of the mane: no strand over the words)
 
 
 def dark_layers():
@@ -423,7 +423,7 @@ def dark_frame(L, o, a=None, flames=True):
     mk_i, mk_a, _ = demon_mask(L["a"] if a is None else a, L["m"], o)
     bk_i, bk_a = L["back"]
     fr_i, fr_l = L["front"]
-    ink = bk_i * (1 - mk_a) + mk_i * mk_a
+    ink = np.clip(bk_i * (1 - mk_a) + mk_i, 0, 1)      # (mk_i is already weighed by its cover: a second time left a pale seam under the chin)
     ink = np.maximum(ink, fr_i * mk_a) * (1 - fr_l * mk_a)
     alpha = np.maximum(np.maximum(bk_a, mk_a), fr_i)
     wall_i, wall_t, fire, plate = L["wall"]
@@ -455,33 +455,37 @@ def lettered(text, size, vertical=False, pitch=None):
 
 
 def plaque_dark():
-    """a stone tablet between the horns, the quote cut in and gilded: (rgb, alpha) at final size, its corner"""
-    size, pitch = 40, 46
+    """a temple's name board between the horns, black lacquer, the quote cut in and gilded: (rgb, alpha) at final
+    size, its corner"""
+    size, pitch = 46, 54
     t = lettered(QUOTES["dark"], size, pitch=pitch)
     tw, th = t.shape[1], t.shape[0]
-    W, H = tw + 3 * 42, th + 3 * 8
+    W, H = tw + 3 * 22, th + 3 * 2
     W -= W % 3
     H -= H % 3
     x0, y0 = (W - tw) // 2, (H - th) // 2
     letters = np.zeros((H, W), np.float32)
     letters[y0:y0 + th, x0:x0 + tw] = t
     yy, xx = np.mgrid[0:H, 0:W].astype(np.float32)
-    tone = .62 - .16 * ie.blur(letters, 8) + .10 * np.sin(xx / 330 + yy / 90)
-    ink = ie.engrave(np.clip(tone, 0, 1), pitch=10, ride=12, angle=24, key_s=2.2)
+    # the lacquer: fine lines over black, a shade lighter, gone round the letters
+    hatch = ie.lines((xx * .55 + yy * .83) / 10, .30) * (1 - np.clip(ie.blur(letters, 10) * 2.4, 0, 1))
+    rgb = np.ones((H, W, 3), np.float32) * hexc("100d0a")
+    rgb = rgb * (1 - hatch[..., None]) + hexc("3a2c1c") * hatch[..., None]
+    gold = hexc("efc465")
     edge = np.zeros((H, W), bool)
-    edge[:6], edge[-6:], edge[:, :6], edge[:, -6:] = True, True, True, True
-    edge[15:18, 15:-15], edge[-18:-15, 15:-15], edge[15:-15, 15:18], edge[15:-15, -18:-15] = True, True, True, True
-    ink = np.maximum(ink * (1 - letters), edge.astype(np.float32))
-    # the cut: dark down its upper left, the gilt in it, a lit line at its lower right
+    edge[:9], edge[-9:], edge[:, :9], edge[:, -9:] = True, True, True, True
+    hair = np.zeros((H, W), bool)
+    hair[18:21, 18:-18], hair[-21:-18, 18:-18], hair[18:-18, 18:21], hair[18:-18, -21:-18] = True, True, True, True
+    rgb[edge] = hexc("8d6f39")
+    rgb[hair] = hexc("c9a55c")
+    # the cut: dark up its upper left, a lit line at its lower right, the gilt in it
     cut = np.clip(ndi.shift(letters, (-4, -4), order=0) - letters, 0, 1)
     lit = np.clip(ndi.shift(letters, (3, 3), order=0) - letters, 0, 1)
-    rgb = np.ones((H, W, 3), np.float32) * hexc("9a8664")
-    rgb = rgb * (1 - ie.blur(lit, .5)[..., None]) + hexc("d9c79a") * ie.blur(lit, .5)[..., None]
-    rgb = rgb * (1 - ink[..., None]) + SUMI * ink[..., None]
-    rgb = rgb * (1 - cut[..., None]) + SUMI * cut[..., None]
-    rgb = rgb * (1 - letters[..., None]) + hexc("efc465") * letters[..., None]
+    rgb = rgb * (1 - cut[..., None]) + hexc("040302") * cut[..., None]
+    rgb = rgb * (1 - lit[..., None]) + hexc("6d5429") * lit[..., None]
+    rgb = rgb * (1 - letters[..., None]) + gold * letters[..., None]
     out = np.dstack([ie.reduce3(rgb[..., i]) for i in range(3)])
-    return out, np.ones(out.shape[:2], np.float32), (SW // 2 - out.shape[1] // 2, 20)
+    return out, np.ones(out.shape[:2], np.float32), (SW // 2 - out.shape[1] // 2, 18)
 
 
 def plaque_light():
@@ -551,26 +555,73 @@ def gate_strip(frames, path, keep=None):
     return x0, y0, x1 - x0, y1 - y0, len(frames)
 
 
-def flame_frames(plate, fire, box, stops=None, n=8, lines=None, line_ink=None):
-    """a fire cut from its plate, licking: n looped frames (rgb, alpha) of `box` x y w h; the root at the box's foot stays.
-    lines: the plate's own ink on it, in line_ink"""
-    x, y, w, h = box
-    hot = ramp(np.clip((plate[y:y + h, x:x + w] - .30) / .62, 0, 1), stops or HOT)
-    if lines is not None:
-        li = lines[y:y + h, x:x + w, None]
-        hot = hot * (1 - li) + line_ink * li
-    a0 = ndi.gaussian_filter(fire.astype(np.float32), .6)[y:y + h, x:x + w]
-    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
-    up = np.clip((h - yy) / h, 0, 1)
+def kaen(w, h, inks, line, seed, n=12):
+    """a fire as the old masters draw Fudo's aura: tongues with hooked tips, in flat inks cut one inside the other, a line
+    round it and fine lines down its tongues; n looped frames (rgb, alpha) of w x h, its root at the foot's middle.
+    inks: edge to heart, four"""
+    S = 4
+    W_, H_ = w * S, h * S
+    rng = np.random.default_rng(seed)
+    count = 7
+    T = []
+    for i in range(count):
+        q = (i + .5) / count * 2 - 1
+        T.append(dict(q=q, L=(1 - .46 * abs(q) ** 1.3) * rng.uniform(.84, 1.0), wid=rng.uniform(.9, 1.2), hook=(1 if rng.random() < .5 else -1) * rng.uniform(.8, 1.3),
+                      ph=rng.uniform(0, 6.28), ph2=rng.uniform(0, 6.28), amp=rng.uniform(.8, 1.2)))
+    T.sort(key=lambda t: abs(t["q"]), reverse=True)     # (the middle's tongues over the outer ones)
+    cols = [hexc(i) for i in inks]
+    ln = hexc(line)
     out = []
+
+    def spine(t, ph, ll):
+        L = (h - 8) * S * t["L"] * ll * (1 + .06 * math.sin(2 * ph + t["ph"]))
+        pts = []
+        for u in np.linspace(0, 1, 9):
+            x = W_ / 2 + t["q"] * w * .33 * S * (1 - .30 * u) * (.30 + 1.1 * u ** .6)
+            x += w * .10 * S * u ** 1.4 * (t["amp"] * math.sin(ph + t["ph"] + u * 2.6) + .42 * math.sin(2 * ph + t["ph2"] + u * 4.2))
+            x += t["hook"] * w * .15 * S * u ** 3.6
+            pts.append((x, H_ - 5 * S - L * u))
+        return dr.spline(pts, 8)
+
+    def tongue(c, wid):
+        """narrow where it leaves the cup, full a quarter of the way up, a point at its tip"""
+        u = np.linspace(0, 1, len(c))
+        prof = np.where(u < .24, .40 + .60 * np.sin(u / .24 * math.pi / 2), (1 - (u - .24) / .76) ** .82 * .98 + .02)[:, None] * wid / 2
+        nn = dr.normals(c)
+        return np.vstack([c + nn * prof, (c - nn * prof)[::-1]])
+
     for k in range(n):
         ph = 2 * math.pi * k / n
-        dx = up ** 1.3 * (6.5 * np.sin(ph + yy / 15) + 3.0 * np.sin(2 * ph + yy / 7 + 1.2))
-        dy = up * (5 + 5 * math.sin(2 * ph + .7))
-        sy, sx = yy + dy, xx - dx
-        rgb = np.stack([ndi.map_coordinates(hot[..., i], [sy, sx], order=1, mode="nearest") for i in range(3)], 2)
-        a = np.clip((ndi.map_coordinates(a0, [sy, sx], order=1, mode="constant") - .5) * 2.4 + .5, 0, 1)
-        out.append((rgb, a))
+        lay_ = []
+        for lw, ll in ((1.0, 1.0), (.66, .82), (.40, .62), (.22, .42)):
+            im = Image.new("L", (W_, H_), 0)
+            d = ImageDraw.Draw(im)
+            for t in T:
+                poly = tongue(spine(t, ph, ll), w * .30 * S * t["wid"] * lw)
+                d.polygon([(float(a_), float(b_)) for a_, b_ in poly], fill=255)
+            m = np.asarray(im, dtype=np.float32) / 255
+            lay_.append(ndi.gaussian_filter(m, S * .7) > .5)       # (the crotches rounded: one body, not sticks)
+        rgb = np.ones((H_, W_, 3), np.float32) * cols[0]
+        for i in (1, 2, 3):
+            rgb[lay_[i]] = cols[i]
+        # fine lines down the tongues, on the edge's and the second ink only
+        im = Image.new("L", (W_, H_), 0)
+        d = ImageDraw.Draw(im)
+        for t in T:
+            c = spine(t, ph, .94)
+            nn = dr.normals(c)
+            for off in (-.075, .075):
+                lo = c + nn * off * w * S * (1 - np.linspace(0, 1, len(c)))[:, None] ** .8
+                seg = lo[int(len(lo) * .18):int(len(lo) * .86)]
+                d.line([(float(a_), float(b_)) for a_, b_ in seg], fill=255, width=max(int(S * .75), 1))
+        fine = (np.asarray(im, dtype=np.float32) > 127) & lay_[0] & ~lay_[2]
+        edge = lay_[0] & ~ndi.binary_erosion(lay_[0], iterations=int(S * 1.15))
+        rgb[fine] = rgb[fine] * .35 + ln * .65
+        rgb[edge] = ln
+        fr = np.dstack([ie.reduce3(rgb[..., i], S) for i in range(3)])
+        al = ie.reduce3(lay_[0].astype(np.float32), S)
+        # (a colour's edge pixels: no pale fringe from the cover's own black)
+        out.append((fr, al))
     return out
 
 
@@ -694,7 +745,7 @@ FIG_POLY = [(340, 2120), (312, 1600), (380, 800), (472, 400), (660, 200), (952, 
             (2085, 728), (2112, 732), (2104, 762), (2126, 738), (2134, 755), (2064, 850), (2084, 890), (2092, 922), (2062, 952), (2032, 1010), (2022, 1050),
             (2002, 1078), (1988, 1120), (1998, 1180), (1972, 1232), (1905, 1285), (1885, 1400), (1965, 1535), (2040, 1538), (2092, 1538), (2112, 1568),
             (2152, 1588), (2152, 1642), (2140, 1672), (2120, 1702), (2050, 1684), (1962, 1692), (1925, 1705), (1895, 1760), (1880, 1848), (2100, 2600),
-            (2100, 3380), (1912, 3520), (1520, 3540), (1088, 3808), (600, 3728), (280, 3460), (400, 3220), (620, 3160), (660, 2860), (792, 2480), (680, 2080),
+            (2100, 3150), (1854, 3231), (1915, 3327), (1923, 3442), (1885, 3512), (1520, 3540), (1088, 3808), (600, 3728), (280, 3460), (400, 3220), (620, 3160), (660, 2860), (792, 2480), (680, 2080),
             (792, 1720), (600, 1720), (540, 1920)]
 # the staff, from under the lily to its knob (the plate's own line, redrawn where the banderole hid it)
 STAFF = ((2212, 250), (2102, 1812))
@@ -708,7 +759,7 @@ def angel_figure():
     """the plate's line kept and strengthened to the sea's weight, its paper filled: (ink, silhouette, lily's ink) at final size"""
     g = np.asarray(Image.open(GAB_SRC).convert("L"), dtype=np.float32) / 255
     flat = g / np.maximum(ie.blur(g, 120), .2)
-    ink = np.clip((.76 - flat) / .2, 0, 1)
+    ink = np.clip((.80 - flat) / .2, 0, 1)
     H, W = g.shape
     pm = Image.new("1", (W, H), 0)
     ImageDraw.Draw(pm).polygon(FIG_POLY, fill=1)
@@ -729,19 +780,21 @@ def angel_figure():
     sizes = ndi.sum(np.ones_like(lab), lab, np.arange(1, n + 1))
     ink = ink * ((sizes >= 140)[np.maximum(lab - 1, 0)] | (lab == 0))
     # the line's weight: the burin's cut, a little wider, for the final size
-    heavy = ndi.grey_dilation(ink, size=(3, 3))
+    heavy = np.maximum(ink, ndi.grey_dilation(np.clip((ink - .55) / .45, 0, 1), size=(3, 3)))
     # the lily on the staff's head
     lily = np.zeros_like(ink)
     lily[30:262, 2135:2285] = heavy[30:262, 2135:2285]
-    def fit(a):
+    def fit(a, crisp=True):
         w, h = int(W * AS * 3), int(H * AS * 3)
         b = np.asarray(Image.fromarray((np.clip(a, 0, 1) * 255).astype(np.uint8)).resize((w, h), Image.LANCZOS), dtype=np.float32) / 255
+        if crisp:                           # a line is ink or paper at the working size: a grey pixel only at its edge
+            b = np.clip((b - .26) / .18, 0, 1)
         out = np.zeros((SH * 3, SW * 3), np.float32)
         x, y = AX * 3, AY * 3
         y1, x1 = min(y + h, SH * 3), min(x + w, SW * 3)
         out[y:y1, x:x1] = b[:y1 - y, :x1 - x]
         return ie.reduce3(out)
-    return fit(heavy * keep), fit(sil.astype(np.float32)), fit(lily)
+    return fit(heavy * keep), fit(sil.astype(np.float32), crisp=False), fit(lily)
 
 
 def setting_light(name="bl-1103"):
@@ -767,8 +820,9 @@ def setting_light(name="bl-1103"):
     fire = np.zeros((SH, SW), bool)
     glow = np.zeros((SH, SW), np.float32)
     raw_ink = ink.copy()
-    for (fx, fy), (ex, ey) in zip(LANTERNS, ((56, 72), (56, 96))):
-        off = np.clip(1.4 * np.exp(-((xx - fx) / ex) ** 2 - ((yy - fy) / ey) ** 2), 0, 1)
+    for (fx, fy), (ex, ey), oy, rim in zip(LANTERNS, ((76, 118), (84, 124)), (-30, -30), (176 + (xx - 358) * .386, 205 - (xx - 1500) * .27)):
+        # (only above the cup's rim: the torch's head stays cut clean)
+        off = np.clip(1.6 * np.exp(-((xx - fx) / ex) ** 2 - ((yy - fy - oy) / ey) ** 2), 0, 1) * np.clip((rim - yy) / 6, 0, 1)
         glow = np.maximum(glow, np.exp(-(np.hypot(xx - fx, (yy - fy) * .9) / 215) ** 2))
         ink = ink * (1 - off)
         wash = wash * (1 - off[..., None]) + hexc("f8e4ac") * off[..., None]
@@ -804,7 +858,7 @@ def sakura():
     a, b, c = [Image.new("L", (W, H), 0) for _ in range(3)]
     da, db, dc = [ImageDraw.Draw(i) for i in (a, b, c)]
     rng = np.random.default_rng(11)
-    for x, y, r in ((560, 300, 12), (690, 92, 15), (470, 560, 11), (700, 480, 13), (610, 690, 15), (780, 300, 10), (1330, 560, 13),
+    for x, y, r in ((520, 372, 12), (690, 92, 15), (470, 560, 11), (700, 480, 13), (610, 690, 15), (780, 300, 10), (1330, 560, 13),
                     (1290, 118, 12), (1440, 460, 15), (1360, 700, 11), (1600, 330, 10), (1630, 640, 14)):
         blossom(db, da, dc, rng, x * 3, y * 3, r * 3)
     return [ie.reduce3(np.asarray(i, dtype=np.float32) / 255) for i in (a, b, c)]
@@ -924,15 +978,16 @@ def scroll_plate(q):
         d = ImageDraw.Draw(im)
         d.rounded_rectangle([xr - sz, yc - sz, xr + sz, yc + sz], 12, fill=255)
         shu = np.asarray(im, dtype=np.float32) / 255
+        P.lit = np.maximum(P.lit, shu)      # (no line of the roll through the seal's cut)
         # what the seal says: a sakura, cut out of the red, inside a hairline
         im = Image.new("L", (W, H), 0)
         d = ImageDraw.Draw(im)
         d.rounded_rectangle([xr - sz + 9, yc - sz + 9, xr + sz - 9, yc + sz - 9], 7, outline=255, width=4)
         for k in range(5):
             th = -math.pi / 2 + k / 5 * 2 * math.pi
-            pts = [(t * 44, math.sin(t * math.pi) * 21) for t in np.linspace(0, 1, 12)] + [(38, 0)] + [(t * 44, -math.sin(t * math.pi) * 21) for t in np.linspace(1, 0, 12)]
-            d.polygon([(xr + 6 * math.cos(th) + a_ * math.cos(th) - b_ * math.sin(th), yc + 6 * math.sin(th) + a_ * math.sin(th) + b_ * math.cos(th)) for a_, b_ in pts], fill=255)
-        d.ellipse([xr - 6, yc - 6, xr + 6, yc + 6], fill=0)
+            pts = [(t * 45, math.sin(t * math.pi) ** .8 * 15) for t in np.linspace(0, 1, 12)] + [(36, 0)] + [(t * 45, -math.sin(t * math.pi) ** .8 * 15) for t in np.linspace(1, 0, 12)]
+            d.polygon([(xr + 5 * math.cos(th) + a_ * math.cos(th) - b_ * math.sin(th), yc + 5 * math.sin(th) + a_ * math.sin(th) + b_ * math.cos(th)) for a_, b_ in pts], fill=255)
+        d.ellipse([xr - 5, yc - 5, xr + 5, yc + 5], fill=0)
         shu = shu * (1 - np.asarray(im, dtype=np.float32) / 255)
     tone = np.where(P.mask, P.tone, 1.0)
     ink = ie.engrave(tone, pitch=12, ride=20, angle=70, key_s=1.6)
@@ -942,15 +997,20 @@ def scroll_plate(q):
     return tuple(ie.reduce3(a) for a in (ink, alpha, gold, shu))
 
 
-CREST = ((0, 1040), (520, 1040), (640, 1012), (760, 1001), (880, 992), (1000, 998), (1120, 992), (1240, 1004), (1340, 1012), (1500, 1040), (1920, 1040))
+# the crest she stands behind: traced on the plate's own thick line, then snapped to its ink, so no cut shows
+CREST = ((640, 944), (660, 943), (680, 935), (700, 927), (735, 921), (755, 921), (775, 928), (795, 940), (815, 953), (835, 962), (870, 974), (900, 985),
+         (950, 997), (1000, 1010), (1060, 1030), (1100, 1043), (1190, 1053), (1300, 1060))
 
 
 def light_layers():
     ink, wash, fire, Ls, line, raw_ink = setting_light()
     fig_i, fig_a, lily = angel_figure()
     body = np.ones((SH, SW, 3), np.float32) * PAPER
-    shade = np.clip(ie.blur(fig_i, 5.0) * 2.0, 0, 1)[..., None]
-    body = body * (1 - .74 * shade) + (AI2 * (1 - shade) + AI * shade) * (.74 * shade)
+    # the second block, ai: flat shapes with a clean edge where the plate's hatching lies thick, never a glow round a line
+    dens = ie.blur(fig_i, 5.5)
+    for lo, tone, ink_ in ((.27, .34, AI2), (.45, .50, AI2), (.62, .62, AI)):
+        m = np.clip((dens - lo) * 36, 0, 1)[..., None]
+        body = body * (1 - m * tone) + ink_ * (m * tone)
     base = wash * (1 - ink[..., None] * .96) + line * ink[..., None] * .96
     ring = paste_box(halo_ring(), (HEAD[0] - 200, HEAD[1] - 200), (SH, SW))
     base = base * (1 - ring[..., None]) + GOLD * ring[..., None]
@@ -959,8 +1019,15 @@ def light_layers():
     # the sea in front: the plate's own, from a line of its foam: she rises out of it
     yy, xx = np.mgrid[0:SH, 0:SW].astype(np.float32)
     c = dr.spline(CREST, 24)
-    cy = np.interp(np.arange(SW), c[:, 0], c[:, 1]).astype(np.float32)
-    front = np.clip(yy - cy[None, :], 0, 1)
+    cy = np.interp(np.arange(SW), c[:, 0], c[:, 1])
+    for x in range(640, 1300):
+        y0 = int(cy[x]) - 4
+        hit = np.nonzero(raw_ink[y0:y0 + 9, x] > .5)[0]
+        if len(hit):
+            cy[x] = y0 + hit[0]
+    cy = ndi.median_filter(cy, size=5).astype(np.float32)
+    cy[:640], cy[1300:] = 1200, 1200
+    front = np.clip(yy - cy[None, :] + 1, 0, 1)
     return {"base": base, "ink": ink, "raw_ink": raw_ink, "wash": wash, "fire": fire, "Ls": Ls, "fig_i": fig_i, "fig_a": fig_a, "lily": lily, "body": body, "sakura": sk, "front": front}
 
 
@@ -999,7 +1066,7 @@ def light_frame(L, q, flames=False, a_ink=None, rays=None):
 
 SHARE = ROOT / "configs/home/.local/share/fedokawaii"
 OPENINGS = (0, .18, .4, .64, .88, 1.1, 1.3)     # the jaw's frames, shut first
-DARK_ROW = (872, 834, 23, 8)
+DARK_ROW = (886, 830, 23, 7)
 
 
 def build_dark(out):
@@ -1008,18 +1075,17 @@ def build_dark(out):
     frames = [dark_frame(L, o, flames=False) for o in OPENINGS]
     save(frames[-1], out / "lock-scene.png")
     gate = gate_strip(frames, out / "lock-gate.png")
-    _, _, fire, plate = L["wall"]
-    fbox = (68, 98, 92, 176)
-    write_rgba(flame_frames(plate, fire, fbox), out / "lock-flame.png")
+    write_rgba(kaen(*FIRE_DARK, DARK_FIRE_INKS, "4a1006", 41), out / "lock-flame.png")
     ember_marks(out / "lock-marks.png")
     left, right = (0, 0, 560, 760), (SW - 560, 0, 560, 760)
     write_rgba(light_frames(left, TORCHES[0], .40, "0a0604", 3), out / "lock-light-l.png")
     write_rgba(light_frames(right, TORCHES[1], .40, "0a0604", 8), out / "lock-light-r.png")
     write_rgba(glint_frames(44, -1), out / "lock-eye-l.png")
     write_rgba(glint_frames(44, 1), out / "lock-eye-r.png")
-    scene_txt(out / "lock-scene.txt", gate, (92, 176, 8), [(68, 98), (1743, 98)], (22, 32, 8), DARK_ROW, (972, 1000),
+    fw, fh = FIRE_DARK
+    scene_txt(out / "lock-scene.txt", gate, (fw, fh, 12), [(112 - fw // 2, 271 - fh), (1792 - fw // 2, 268 - fh)], (22, 32, 8), DARK_ROW, (972, 1000),
               [("light-l", *left, 6, 150), ("light-r", *right, 6, 190), ("eye-l", 868 - 22, 560 - 22, 44, 44, 8, 120), ("eye-r", 1052 - 22, 558 - 22, 44, 44, 8, 135)],
-              ("embers", 36, "f8b25c", "b4431a"), [(90, 110, 50, 70), (1765, 110, 50, 70)],
+              ("embers", 36, "f8b25c", "b4431a"), [(82, 96, 60, 70), (1762, 94, 60, 70)],
               ("f68c50", "f5ecc2", "82241f"), "82c1b4", "f8b25c", "070708")
     return L, frames
 
@@ -1058,12 +1124,10 @@ def build_light(out):
     frames = [light_frame(L, q) for q in SCROLL_Q]
     save(frames[-1], out / "lock-scene.png")
     gate = gate_strip(frames, out / "lock-gate.png", keep=(LIGHT_ROW[0] - 20, LIGHT_ROW[1] - 40, LIGHT_ROW[0] + LIGHT_ROW[2] * LIGHT_ROW[3] + 20, LIGHT_ROW[1] + 40))
-    # the fire: the left one's lines, licking; it stands on both cups
-    ys, xs = np.nonzero(L["fire"])
-    fw, fh = int(xs.max() - xs.min() + 40), int(ys.max() - ys.min() + 34)
-    fx, fy = int(xs.min() - 20), int(ys.min() - 26)
-    write_rgba(flame_frames(np.clip(L["Ls"] * 1.08, 0, 1), L["fire"], (fx, fy, fw, fh), stops=LIGHT_HOT, lines=L["raw_ink"], line_ink=hexc("6a1f0c")), out / "lock-flame.png")
-    right = (fx + RIGHT_CUP[0] - LEFT_CUP[0], fy + RIGHT_CUP[1] - LEFT_CUP[1])
+    fw, fh = FIRE_LIGHT
+    write_rgba(kaen(fw, fh, LIGHT_FIRE_INKS, "3a0f08", 57), out / "lock-flame.png")
+    fx, fy = LEFT_CUP[0] - fw // 2, LEFT_CUP[1] + 4 - fh
+    right = (RIGHT_CUP[0] - fw // 2, RIGHT_CUP[1] + 4 - fh)
     brush_marks(out / "lock-marks.png", SUMI_L)
     boxl, boxr = (120, 0, 620, 520), (1180, 0, 620, 520)
     write_rgba(light_frames(boxl, LANTERNS[0], .24, "5c4a2c", 5, R=330, calm=60), out / "lock-light-l.png")
@@ -1075,15 +1139,17 @@ def build_light(out):
         r = paste_box(halo_rays(k / 10), hbox[:2], (SH, SW)) * (1 - np.clip(L["fig_a"] + L["fig_i"], 0, 1))
         rays.append((np.ones((400, 400, 3), np.float32) * GOLD, r[y0:y0 + 400, x0:x0 + 400]))
     write_rgba(rays, out / "lock-halo.png")
-    scene_txt(out / "lock-scene.txt", gate, (fw, fh, 8), [(fx, fy), right], (26, 40, 8), LIGHT_ROW, LIGHT_WORDS,
+    scene_txt(out / "lock-scene.txt", gate, (fw, fh, 12), [(fx, fy), right], (26, 40, 8), LIGHT_ROW, LIGHT_WORDS,
               [("light-l", *boxl, 6, 170), ("light-r", *boxr, 6, 210), ("halo", x0, y0, 400, 400, 10, 150)],
               ("petals", 34, "eab0b4", "c98189"), [],
               ("1a1818", "1a1818", "96865e"), "00726a", "a84222", "f3ead3")
     return L, frames
 
 
-# the fire in flat inks, as a block cuts them: shu, orange, gold, the pale heart
-LIGHT_HOT = ((0, "b5301c"), (.46, "b5301c"), (.47, "ea7a2a"), (.70, "ea7a2a"), (.71, "f6c25e"), (.90, "f6c25e"), (.91, "fff3cc"), (1, "fff3cc"))
+# the fires in flat inks, as a block cuts them: shu, orange, gold, the pale heart; each one's box
+LIGHT_FIRE_INKS = ("b5301c", "ea7a2a", "f6c25e", "fff3cc")
+DARK_FIRE_INKS = ("c23c14", "ee7a26", "ffc55e", "fff4d2")
+FIRE_LIGHT, FIRE_DARK = (132, 176), (120, 186)
 LEFT_CUP, RIGHT_CUP = (385, 188), (1527, 195)   # where the fires stand: the middle of each cup's rim
 LIGHT_WORDS = (1040, 1070)
 

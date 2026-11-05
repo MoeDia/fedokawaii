@@ -460,7 +460,7 @@ if "flame" in kv:
 # field, so the words carry their own halo (gtklock.css: window.kawa #error-label, text-shadow)
 wy0, wy1 = map(int, kv["words"][0])
 assert 0 <= wy0 <= wy1 < h and wy1 - wy0 >= 4, f"words {wy0} {wy1}"
-css = open(f"{d}/../../../.config/fedokawaii/themes/{d.rstrip('/').rsplit('/', 1)[1]}/gtklock.css").read()
+css = open(f"{d}/../../../../.config/fedokawaii/themes/{d.rstrip('/').rsplit('/', 1)[1]}/gtklock.css").read()
 rule = [l for l in css.splitlines() if l.startswith("window.kawa #error-label")]
 print("words clear" if rule and "text-shadow" in rule[0] else "words CROSSED: no halo in gtklock.css")
 PY
