@@ -287,7 +287,7 @@ world() {   # world fresh|built [--themed]
   printf '%s\n' "global-enabled pipewire.socket" "global-enabled pipewire-pulse.socket" "global-enabled wireplumber.service" \
     "global-enabled grub-boot-success.timer" \
     "enabled sshd.service" "active sshd.service" "enabled firewalld.service" "active firewalld.service" \
-    "enabled fstrim.timer" "static dnf5-makecache.timer" >"$FKH/units"
+    "active user@$FK_UID.service" "enabled fstrim.timer" "static dnf5-makecache.timer" >"$FKH/units"
   # (dnf5-makecache: Fedora's, static, on by its package's own link; the socket: the theme's, a user unit)
   printf '%s\n' dnf5-makecache.timer kawa-torrents.socket >"$FKH/unitfiles"
   fake_cmd "$W/usrbin/nano"; fake_cmd "$W/usrbin/vi"     # (nano, vim-minimal: in a Minimal Install)
