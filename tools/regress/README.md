@@ -76,33 +76,33 @@ they break.
 | r24-9 | Super+N rapid: every press toggles | tools/regress/warm-rapid.sh · tests/menus/test_hotkeys.sh "pressed fast, every press counts" · tests/menus/test_hotkeys.sh "the warm keys (Super+N, Super+V, Super+U)" |
 | r24-10 | screen recording in quick settings | tests/menus/test_quick.sh "record: on while kawa-record" |
 | r24-11 | calendar previous, next, today: every press, no glitch | tests/menus/test_calendar.sh "December → next → January" · tests/menus/test_calendar.sh "the cursor stays on the key that paged" · tests/menus/test_panel.sh "--stay (the calendar's months)" |
-| r24-3 r27-21-bug6b r27-bug-6b | the calculator's and the launcher's answers: no flicker, the footer whole | tools/regress/launcher-calc.sh · tests/look/test_calc.sh "each key one frame" · tests/look/test_calc.sh "bug 6 (the answer's row flickered" · tests/content/test_notes.sh "nothing written over the footer while typing" |
-| r24-17 r25-11b | live calculator and currency in the launcher; the notice shows the copied result | tests/look/test_calc.sh "a conversion: its answer as it is typed" · tests/look/test_calc.sh "the launcher: a sum typed" · tests/regress/test_keys.sh "a currency conversion" |
+| r24-3 r27-21-bug6b r27-bug-6b | the calculator's and the launcher's answers: no flicker, the footer whole | tools/regress/launcher-calc.sh · tests/look/test_calc.sh "bug 6, the rest (seen frame" · tests/look/test_calc.sh "bug 6 (the answer's row flickered" · tests/content/test_notes.sh "nothing written over the footer while typing" |
+| r24-17 r25-11b | live calculator and currency in the launcher; the notice shows the copied result | tests/look/test_calc.sh "the launcher: a sum typed is worked out" · tests/look/test_calc.sh "the launcher: a sum typed" · tests/regress/test_keys.sh "a currency conversion" |
 | r24-5 | no duck or sheep: every launcher entry a custom pixel icon | tests/look/test_launcher.sh "every listed entry: a window program's own icon" |
 | r24-6 r24-8c r27-bug-15 r27-bug-17 r27-16 | text screens: a blank row after the heading and input; no dashed rule anywhere; one grammar | tests/content/test_configs.sh "fzf.opts: one blank line" · tests/engine/test_menu.sh "the tab bar, a heading over the list" · tests/regress/test_gone.sh "no dashed rule" |
 | r27-bug-6c | the clipboard's exit never flashes "terminated" | tools/regress/warm-exit.sh · tests/content/test_clip.sh "in the warm window (KAWA_WARM=clip)" |
-| r27-bug-16 | Super+R aligned and spaced | tests/content/test_books.sh "every row is exactly the list's width" · tests/content/test_books.sh "the pane: cover centred" |
-| r25-2 r27-dec-8 | Super+W: the current one marked, the 4-hour toggle a key at the bottom, whole | tests/look/test_wallpaper.sh "the cursor starts on the current choice" · tests/look/test_wallpaper.sh "every 4 hours: the picker's key r" |
-| r24-20 | wallpapers rotate every 4 h, 100 at least | tests/look/test_wallpaper.sh "--next (its timer, every 4 hours)" · tests/regress/test_counts.sh "a hundred wallpapers" |
+| r27-bug-16 | Super+R aligned and spaced | tests/content/test_books.sh "every row is exactly the list's width" · tests/content/test_books.sh "the pane: the cover centred" |
+| r25-2 r27-dec-8 | Super+W: the current one marked, the 4-hour toggle a key at the bottom, whole | tests/look/test_wallpaper.sh "the cursor starts on the current choice" · tests/look/test_wallpaper.sh "--next (its timer, every hour)" |
+| r24-20 | wallpapers rotate every 4 h, 100 at least | tests/look/test_wallpaper.sh "--next (its timer, every hour): n" · tests/regress/test_counts.sh "a hundred wallpapers" |
 | r25-x1 | menus see-through like the terminal | tests/menus/test_panel.sh "the ground as see-through as the terminal's" |
 | r25-5 r27-15b | notices: alignment, spacing, icon and text; our mako pinned | tests/static/test_notices.sh "every notify-send" · tests/static/test_syntax.sh "the desktop's mako" · tests/static/test_design_doc.sh "§14" |
 | r27-1427-4 | a key to switch the monitor off, in quick settings | tests/menus/test_quick.sh "screenoff: every screen dark" |
-| r27-1427-9 r27-more-4 r27-1919-5 | quick settings: a proper menu, every row its own picture, on the grid to the pixel | tests/menus/test_panel.sh "the items, in order: the two meters" · tests/menus/test_panel.sh "every picture a row (or a meter) can wear" · tests/menus/test_panel.sh "the grid (docs/design-system.md §3)" · open T19q: his verdict on the plain menu |
+| r27-1427-9 r27-more-4 r27-1919-5 | quick settings: a proper menu, every row its own picture, on the grid to the pixel | tests/menus/test_panel.sh "the items, in order: the two levels" · tests/menus/test_panel.sh "every picture a row or a level can wear i" · tests/menus/test_panel.sh "the grid (docs/design-system.md §3–" · open T19q: his verdict on the plain menu |
 | r27-led-2323 r27-19k-3 r27-19k-7 | the mon sheet, then the dial | gone T19q: Super+X from nothing, his note of 4 Nov 17:00 |
 | r27-17b | the desktop items of 14:27: the clean mic out, the screen-off key, the small us/ar | tests/static/test_syntax.sh "the clean mic is gone" · tests/menus/test_quick.sh "screenoff: every screen dark" · tests/session/test_dwlstatus.sh "Caps Lock (owner, 14:27)" |
-| r27-1919-6 r27-19k-2 | what is highlighted has contrast: WCAG measured, both moods | tests/static/test_contrast.sh "tools/contrast.py: every pair" · tests/static/test_contrast.sh "every menu's selected row is the lacquer" · tools/regress/menu-cursor.sh |
+| r27-1919-6 r27-19k-2 | what is highlighted has contrast: WCAG measured, both moods | tests/static/test_contrast.sh "tools/contrast.py: every pair" · tests/static/test_contrast.sh "every menu's selected row is the seal's" · tools/regress/menu-cursor.sh |
 | r27-19m r27-19m-b1 r27-19m-p1 r27-19m-p1-tui r27-19m-gtk-default r27-inbox-2347 r27-1919-7 r27-inbox-2352b | the words by APCA; every surface measured | tests/static/test_contrast.sh "tools/contrast.py --apca" · tools/regress/gallery.sh |
 | r27-inbox-2352a | 100+ sources for the design | record: .claude/notes/design-research.md |
 | r27-also-2 r27-23-help r27-23-sheets r27-23-own r27-23-fix1 r27-23-fix2 | Super+/ comprehensive, fuzzy, the active program's keys first | tests/menus/test_help.sh "a program the shell named in the title" · tests/menus/test_help.sh "one of ours by its app id" · tests/menus/test_panel.sh "--fuzzy (Super+/)" · tests/content/test_shell.sh "a program with a key sheet names its window" |
 | r27-23-scroll r27-23-fix3 r27-23-wheelcheck r27-23-live | a long list moves by whole lines; one mouse notch, one move | tools/regress/wheel-notch.sh · tests/menus/test_panel.sh "no line is cut at either edge" · tests/menus/test_panel.sh "one mouse notch, one move" |
 | r27-23-live-2 | the same, live | record: a live check of the row above |
 | r27-53-panel-start | the panel's start | record: a measurement, 6 ms, nothing to cut (tools/perf.sh keeps the protocol) |
-| r24-24a r26-10 r26-fu-6 r27-bug-1 | saver → lock after a long absence: no frozen picture, no cut | tools/regress/saver-lock.sh · tests/session/test_dwl_anim.sh "after a long time away (the screens dark)" · tests/look/test_saver.sh "--idle: the lock started as the saver shows" |
+| r24-24a r26-10 r26-fu-6 r27-bug-1 | saver → lock after a long absence: no frozen picture, no cut | tools/regress/saver-lock.sh · tests/session/test_dwl_anim.sh "after a long time away (the screens dark)" · tests/look/test_saver.sh "--idle: the lock started once the painting" |
 | r24-24b r25-6b r26-23 | the old thin lock | gone T20: the lock was redrawn (r27-20-*) |
 | r24-45 | the saver follows the theme | tests/look/test_saver.sh "its colours: the theme's saver.conf" |
-| r27-19m-saver | no kanji seals on the saver but the day's | tests/look/test_saver.sh "the seals are the night's own pictures" |
-| r27-one-3 | lock, greeter and saver in one grammar | tests/engine/test_greeter.sh "the lock's twin" · tests/look/test_lock.sh "the scene (build-lock.py" |
-| r27-bug-4a r27-dec-4a r27-dec-4b r27-dec-4c r27-dec-4d r27-20-dark r27-20-light r27-20-light-built r27-20-wire r27-20-wire-3 r27-20-nit5 r27-20-nits r27-20-fix-1 r27-20-fix-2 r27-20-proto r27-20-live | the lock's scene: no date, time or buttons; the mouth, the torches, one quote; its own caret, blinking | tools/regress/lock-screens.sh · tools/regress/lock-start.sh · tests/look/test_lock.sh "the scene (build-lock.py" · tests/look/test_lock.sh "the layout: every id gtklock reads" |
+| r27-19m-saver | no kanji seals on the saver but the day's | gone T19q: the saver redone from the lock's painting; tests/regress/test_gone.sh holds the kanji |
+| r27-one-3 | lock, greeter and saver in one grammar | tests/engine/test_greeter.sh "the lock's twin" · tests/look/test_lock.sh "the scene (build-ink.py → lo" |
+| r27-bug-4a r27-dec-4a r27-dec-4b r27-dec-4c r27-dec-4d r27-20-dark r27-20-light r27-20-light-built r27-20-wire r27-20-wire-3 r27-20-nit5 r27-20-nits r27-20-fix-1 r27-20-fix-2 r27-20-proto r27-20-live | the lock's scene: no date, time or buttons; the mouth, the torches, one quote; its own caret, blinking | tools/regress/lock-screens.sh · tools/regress/lock-start.sh · tests/look/test_lock.sh "the scene (build-ink.py → lo" · tests/look/test_lock.sh "the layout: every id gtklock reads" |
 | r27-bug-4b r27-20-wire-2 | a wrong password reports fast | tests/regress/test_lock.sh "a wrong password reports fast" · tests/engine/test_greeter.sh "a wrong password: the session cancelled" |
 | r27-lock5-1 | lock: screens off after 5 s, any key lights them onto the lock | tools/regress/lock-screens.sh · tests/look/test_lock.sh "the screens (kawa-lockmod)" |
 | r26-fu-9 | a lock that fails never kills another gtklock: only its keeper's child | tests/regress/test_lock.sh "only its keeper's own gtklock" |
@@ -182,13 +182,13 @@ they break.
 | r24-33 r27-1427-2 | no clean mic: nothing left of it | tests/static/test_syntax.sh "the clean mic is gone" · tests/status/test_configs.sh "the clean mic is taken out" · tests/session/test_state.sh "a setting the desktop no longer has" |
 | r24-36 | recording: pause, 3-2-1, resume, one file | tests/look/test_record.sh "pause again: 3, 2, 1" · tests/look/test_record.sh "stopped after a pause" |
 | r24-37 | the capture and read-text keys on a 61-key board | tests/regress/test_keys.sh "the capture keys" · tests/look/test_screenshot.sh "text: the region read" |
-| r24-27 | a window share is solid: one question, one menu for Brave's two requests | tests/menus/test_share.sh "Brave's two requests for one window share" · tests/look/test_units.sh "one question per share" |
-| r24-15 r25-9a | torrents: no pip error, torrra at its pins, themed | tests/engine/test_prowlarr.sh "an earlier setup's pipx install" · tests/engine/test_prowlarr.sh "torrra_up, a library not at its pin" · tests/engine/test_torrra.sh "the desktop's theme, fedokawaii" |
+| r24-27 | a window share is solid: one question, one menu for Brave's two requests | tests/menus/test_share.sh "Helium's two requests for one window shar" · tests/look/test_units.sh "one question per share" |
+| r24-15 r25-9a | torrents: no pip error, torrra at its pins, themed | tests/engine/test_prowlarr.sh "an earlier setup's pipx install" · gone T29: torra left, kawa-torrents is the desktop's own |
 | r25-9b | neovim themed | tests/content/test_tools.sh "neovim (LazyVim)" |
 | r27-33 r27-bug-12a r27-bug-12b r27-bug-12c r27-more-1 r27-more-2 r27-more-3 r27-more-6 r27-1427-5 r27-1427-6 | torrents overhauled, "failed to resolve", the notice once, Prowlarr's warning | open T29: lane-torrents |
 | r27-29s r27-29s-fix1 r27-inbox-1822a r27-53-mpvdumps | Syncplay and its mpv as one: closing either closes both, no core dumps | tests/yazi/test_syncplay.sh "the launcher's Syncplay" · tests/yazi/test_syncplay.sh "the syncplay installed runs on a Python without PySide6" |
-| r27-bug-13a r27-bug-13b | Brave's download: the percent, no odd icon | tests/status/test_downloads.sh "Brave: a .crdownload" · tests/status/test_downloads.sh "a finished download's notice" |
-| r27-53-brave | one check whether Brave is open | tests/content/test_brave.sh "--is-open" |
+| r27-bug-13a r27-bug-13b | Brave's download: the percent, no odd icon | tests/status/test_downloads.sh "the browser: a .crdownload —" · tests/status/test_downloads.sh "a finished download's notice" |
+| r27-53-brave | one check whether Brave is open | gone T31a: Brave left, kawa-browser is one file |
 | r27-1427-3a r27-1427-3b r27-1427-3c r27-1427-3d | a better browser, trial and migration | open T31a: lane-research2's notes, the trial is main's |
 | r24-1 r27-49-hang r27-49-E1 r27-49-E2 r27-49-E3 r27-49-E4 r27-49-B1 r27-49-B2 | the update never sticks: dnf's end read by polling, a stop from outside said | tests/installer/test_update_flow.sh "stopped from outside while it fetches" · tests/installer/test_update_flow.sh "stopped from outside before its transaction began" · tools/vm-inject/update-green.sh · tools/vm-inject/update-button.sh |
 | r27-upd-1 r27-upd-7 r27-upd-10 r27-49a r27-49c r27-49-merge r27-45-merge | one press: snapshot, update, verify, keep or roll back, a short report | tests/installer/test_update_flow.sh "a green update: stored once" · tests/engine/test_status.sh "a kept update whose desktop items were red before it" |
@@ -208,7 +208,7 @@ they break.
 | r27-52b r27-52b-fix r27-52b-fstab r27-52b-pc | the flat layout: a split cut at any step ends whole | tests/engine/test_split.sh "a file a process holds open" · tests/engine/test_snap.sh "the flat layout (fedokawaii-split)" · tools/vm-inject/split-cut.sh |
 | r27-52-file r27-52-restore r27-52-restore-sf r27-52-R4-sf1 r27-52-pc | a file back, a backup back, the drive | tests/engine/test_menu.sh "the drive: its row's value" · tests/content/test_backup.sh "mount DIR: the backups opened read-only" |
 | r27-found-2 r27-tools | tests leave no core dump, no shell probe left behind | tests/installer/test_report.sh "as you: the commands meant for your session" · tests/run.sh |
-| r27-found-3 | a Fedora "out" only when it is out | tests/installer/test_upgrade.sh "Fedora 45 not out yet" |
+| r27-found-3 | a Fedora "out" only when it is out | tests/installer/test_upgrade.sh "Fedora 46 not out (its relea" |
 | r27-found-4 r25-11a r26-13 r27-inst-1 r26-fu-10 r27-5 | a clean install really works | tests/installer/test_torture.sh "fedokawaii selftest on the finished install" · tools/vm-smoke.sh |
 | r27-pkg-evidence | every package's evidence | tests/installer/test_torture.sh "tools/check-packages: the manifest clean" |
 | r27-verify-dark | verify with the screens dark: no false alarm | tests/installer/test_verify.sh "every screen dark" |
@@ -247,7 +247,7 @@ they break.
 | r27-iso-2 r27-iso-3 r27-iso-4 r27-iso-5 r27-iso-7 r27-iso-9 r27-iso-10 | the installer ISO | open T56: lane-iso |
 | r27-iso-6 r27-iso-8 | the ISO proven and released | open T57: lane-iso |
 | r27-rule-2 | his remote page keeps working through every change | manual: after an apply, open http://THE-PC:8737 with his token (fk-remote.service is his own, outside the repo) |
-| r27-19q | his first design review: the prompt's head, the lantern, the plain Super+X, the hop, the strip, the lock's gate | tools/regress/lock-gate.sh · tests/content/test_shell.sh "foot: a new window's prompt" · tests/menus/test_panel.sh "the items, in order: the two meters" · open T19q: pack 2 with him |
+| r27-19q | his first design review: the prompt's head, the lantern, the plain Super+X, the hop, the strip, the lock's gate | tools/regress/lock-gate.sh · tests/content/test_shell.sh "foot: a new window's prompt" · tests/menus/test_panel.sh "the items, in order: the two levels" · open T19q: pack 2 with him |
 | r27-19q-6-rail | the workspace move's rail, and rapid switching clean | tools/regress/rail.sh · tools/regress/bar-burst.sh |
 | r27-19q-6-lacquer | the rail and the rod in lacquer; a switch takes each window's place at that moment | tools/regress/rail.sh |
 | r27-kernel-oops | a kernel oops on the PC, its cause not established | record: an event of the PC's, RAM or memory pressure under the lanes' load |
@@ -264,3 +264,8 @@ they break.
 | r27-run-5 | the whole suite, verify, the regression set, push | open T61: tools/prepush.sh is it |
 | r27-run-6 | the round's finish | open T62: not begun |
 | r27-run-7 r27-run-12 | the Learn book correct after every change | open T63: at his word |
+| r27-20r | Super+Ctrl+R redraws the desktop from scratch, nothing of his lost, a hung bar or panel made new | tools/regress/refresh.sh |
+| r27-flood | Helium's login: one hidden window, one starter, each press of its key one window | tools/regress/browser-login.sh |
+| r27-sprint-1 | the clock keeps its seconds; a double switch leaves no window behind; floats roll up with their words | tests/session/test_bar.sh "the time: the clock and its menu's light" · tools/regress/float-exit.sh · tools/regress/rail.sh |
+| r27-flips r27-freeze r27-session-cut r27-wedge | the night of 4 Nov: the wrong bits, the freeze, the session cut, PID 1 stuck | record: events and their findings; the RAM check itself is T59's (tools/ram-check.c) |
+| r27-note-train | what the lanes brought keeps holding: the bar after the play world, the downloads' fill, the lessons' grid and cover, the editor's start, the power dialog, the saver's ways out, Sketch's pen, Torrents' and typing's windows at every size | tools/regress/bar-cycles.sh · tools/regress/downloads-fill.sh · tools/regress/downloads-tools.sh · tools/regress/learn-cover.sh · tools/regress/learn-grid.sh · tools/regress/nvim-start.sh · tools/regress/power-dialog.sh · tools/regress/saver-dark.sh · tools/regress/saver-keys.sh · tools/regress/sketch-pen.sh · tools/regress/torrents.sh · tools/regress/typing.sh |
