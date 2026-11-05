@@ -2412,10 +2412,13 @@ clone_done() {
     e=${e##*/}
     if [[ -v top[$e] ]]; then own+=("$e"); else other+=("$e"); fi
   done < <(find "$d" -mindepth 1 -maxdepth 1 -print0)
+  # (a clone: what install_toolkit leaves out by design is no difference, and git's checks below still hold those files)
+  local round_only=()
+  if [[ -e $d/.git ]]; then for e in "${ROUND_ONLY[@]}"; do round_only+=(--exclude="${e##*/}"); done; fi
   if [[ -n $(find "$d" -path "$d/.git" -prune -o ! -type f ! -type d -print -quit) ]]; then why="it holds links"
   elif ! cmp -s "$d/fedokawaii.conf" "$STATE_DIR/conf-from-copy.conf" && ! cmp -s "$d/fedokawaii.conf" "$TOOLKIT/fedokawaii.conf"; then
     why="its fedokawaii.conf changed after this run read it"
-  elif [[ -n $(diff -rq --exclude=.git --exclude=__pycache__ --exclude=fedokawaii.conf "$d" "$TOOLKIT" 2>&1) ]]; then
+  elif [[ -n $(diff -rq --exclude=.git --exclude=__pycache__ --exclude=fedokawaii.conf "${round_only[@]}" "$d" "$TOOLKIT" 2>&1) ]]; then
     why="it differs from the toolkit"
   elif [[ -e $d/.git ]]; then
     if [[ -n $(as_user git -C "$d" status --porcelain --untracked-files=normal -- . ':!fedokawaii.conf' 2>&1) ]]; then why="git has changes in it"

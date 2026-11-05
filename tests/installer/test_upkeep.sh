@@ -426,6 +426,7 @@ g=(git -c safe.directory='*' -c user.name=t -c user.email=t@t -C "$W$H/fedokawai
 rm -f "$W$H/fedokawaii/idea.txt"; chown -R "$FK_UID:$FK_UID" "$W$H/fedokawaii"
 fkrun bash $H/fedokawaii/setup.sh --repair
 has "$OUT" "~/fedokawaii: git has commits or tags not on GitHub — the whole folder is kept, packed"
+lacks "$OUT" "it differs from the toolkit"
 a=$(ls "$W"/home/fkuser/.local/state/fedokawaii/started-from-*.tar.gz 2>/dev/null | tail -n1)
 tar -tzf "$a" | grep -q 'fedokawaii/.git/refs/heads/mine' && _ok || _no "the branch is not in the pack"
 [[ ! -e $W$H/fedokawaii ]] && _ok || _no "the clone is still there"

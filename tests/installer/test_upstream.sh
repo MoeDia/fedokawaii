@@ -348,7 +348,7 @@ has "$OUT" "names no module of Google's"
 echo '<updates/>' >"$dl/update.xml"; up "install_widevine"; eq "$RC" 1; has "$OUT" "names no module of Google's"
 case_ "…no network: said, the one there kept; setup goes on (s_widevine: never a reason to stop)"
 widevine_release 4.10.2 "$dl"; fkh net off; up "install_widevine"; eq "$RC" 1; has "$OUT" "does not answer"; eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
-up "s_widevine"; eq "$RC" 0; has "$OUT" "Widevine is not installed yet"; rm -f "$FKH/net"
+up 'eval "$(sed -n "/^contained() {/,/^}/p;/^s_widevine() {/,/^}/p" "$REPO_DIR/setup.sh")"; s_widevine'; eq "$RC" 0; has "$OUT" "Widevine is not installed yet"; rm -f "$FKH/net"
 
 # ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
 case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"
