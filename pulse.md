@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 01:12 (Dubai)
+# round 28 pulse · Fri 06 01:42 (Dubai)
 
-pace: 1/99 done (1%) · time used 1% · ahead 0.3 h · ETA Sun 08 18:29 · left 92 · blocked 0 · owner 6
+pace: 1/99 done (1%) · time used 1% · ahead -0.2 h · ETA Tue 10 17:02 · left 92 · blocked 0 · owner 6
 alerts: 32 errors in 2 h
-run: conductor active · passes 1 (oldest 17 min) · last activity 17 min ago · commits since start 5 · hold False
-machine: load 1.12 1.00 0.99/12 · mem free 27.1 GB · disk free 605 GB · up 1.0 h · cpu tccd1 47° · cpu tctl 54° · gpu edge 39° · gpu junction 32° · gpu mem 53° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 36°
+run: conductor active · passes 1 (oldest 47 min) · last activity 1 min ago · commits since start 6 · hold False
+machine: load 0.91 0.83 0.86/12 · mem free 27.0 GB · disk free 605 GB · up 1.5 h · cpu tccd1 60° · cpu tctl 53° · gpu edge 38° · gpu junction 31° · gpu mem 52° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
 dark: True (active) · pulse timer active
-tokens since start: out 78,351 · in 104 · cache write 147,353 · cache read 12,934,948 · msgs 52 · out last 6 h 78,351
+tokens since start: out 93,092 · in 142 · cache write 184,990 · cache read 13,900,226 · msgs 70 · out last 6 h 93,092
 
 ## now / blocked / owner
 - [now] f02 the train onto main: every lane merged, its last reds fixed, the installer area green, main fast-forwarded and pushed — suite running: ~/.[…].log; all passed: merge train-head into main (ledger r28-note-f02). No apply: rule 4
@@ -20,6 +20,7 @@ tokens since start: out 78,351 · in 104 · cache write 147,353 · cache read 12
 - f01 the plan: this file; both inbox blocks marked; CLAUDE.md cut to what a pass needs (the r27 digest moved to .claude/notes/r27-digest.md, word for word) (Fri 06 00:52)
 
 ## commits
+- Fri 01:41 471c5eab a clone's round-only files are no difference from the toolkit: git's own reason is said; the Widevine case runs setup's own s_widevine
 - Fri 00:54 1498acb4 CLAUDE.md: a pass waits for its own long job in one loop, it never ends just to look again
 - Fri 00:53 36f53935 the ledger: what the train's reds were (five real bugs fixed on train-head), the run's hand-over to the conductor
 - Fri 00:53 47b2f1b7 the fake machine answers rpm -qa and the fixer's CSS check; the undo case sets up its own red
