@@ -1379,7 +1379,7 @@ learn() {   # the lessons: a window of their own on the desktop, tiled — what 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)
   local self pop="" listen=() launch=""
   # (the cell's size in pixels, for the lessons' cover: fzf tells a preview its columns, never its pixels)
-  [[ -n ${KAWA_CELL:-} ]] || { KAWA_CELL=$(kawa-cell 2>/dev/null) && export KAWA_CELL; }
+  [[ -n ${KAWA_CELL:-} || -z ${WAYLAND_DISPLAY:-} ]] || { KAWA_CELL=$(kawa-cell 2>/dev/null) && export KAWA_CELL; }
   self=$(printf '%q' "$0")
   # (in Super+U's popup a job, too, ends the menu: it is handed to a window of its own; the
   # popup is warm — kawa-warm reads its list again through fzf's socket as it shows)
