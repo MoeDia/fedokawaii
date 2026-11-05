@@ -26,8 +26,13 @@ screen() {   # the connected screen's card and connector, from sysfs (numbers ca
 case ${1:-} in
   --stop)
     [[ $FACE == steam ]] || exit 0
-    timeout 25 flatpak run --command=steam "$STEAM" -shutdown >/dev/null 2>&1
-    for ((i = 0; i < 80; i++)); do pgrep -u "$(id -u)" -x steam >/dev/null || exit 0; sleep 0.25; done
+    # (Valve's own tool, down the running Steam's pipe. A "flatpak run --command=steam -shutdown" is a sandbox of its own:
+    # in another PID namespace steam.sh's is_steam_running finds nothing, the request never arrives, and the unit's SIGKILL
+    # ends Steam unclean, its cloud not told: "didn't shutdown cleanly" at each next start, seen 4 Nov 2026)
+    data=$HOME/.var/app/$STEAM
+    HOME=$data timeout 10 "$data/.local/share/Steam/ubuntu12_32/steam-runtime/amd64/usr/bin/steam-runtime-steam-remote" -shutdown >/dev/null 2>&1 \
+      || echo "kawa-asobi-world: Steam could not be asked to close: it ends unclean" >&2
+    for ((i = 0; i < 140; i++)); do pgrep -u "$(id -u)" -x steam >/dev/null || exit 0; sleep 0.25; done
     exit 0 ;;
   --inside)
     # (portals and the D-Bus services draw on gamescope's own display)
@@ -55,10 +60,12 @@ hz=144
 # shellcheck source=/dev/null
 [[ -r /etc/fedokawaii/asobi.conf ]] && . /etc/fedokawaii/asobi.conf
 export XKB_DEFAULT_RULES=kawa-asobi XKB_DEFAULT_LAYOUT=us XKB_DEFAULT_OPTIONS=kawa:return
+# (Steam's face: Steam in charge of what is shown and how. Bottles': windows of any size, at a whole multiple and
+# crisp, never a blurred enlargement)
+face=(-e); [[ $FACE == steam ]] || face=(-S integer -F nearest)
 # (a proof's headless run has no card to take: tools/asobi-proof.sh)
-steam=(); [[ $FACE == steam ]] && steam=(-e)
 if [[ ${KAWA_ASOBI_BACKEND:-drm} == headless ]]; then
-  exec gamescope --backend headless -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" "${steam[@]}" -- "$0" --inside
+  exec gamescope --backend headless -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" "${face[@]}" -- "$0" --inside
 fi
 exec gamescope --backend drm -W 1920 -H 1080 -w 1920 -h 1080 -r "$hz" --adaptive-sync \
-  --prefer-output "$connector" --prefer-vk-device "$dev" "${steam[@]}" -- "$0" --inside
+  --prefer-output "$connector" --prefer-vk-device "$dev" "${face[@]}" -- "$0" --inside
