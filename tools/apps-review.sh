@@ -80,7 +80,7 @@ key a; nap 0.5; text 'notes/plan.pdf'; nap 0.4; shot y-create; key Escape; nap 0
 key asciitilde; nap 0.8; shot y-help; key Escape; nap 0.3; key Escape; nap 0.5
 key g; nap 0.7; shot y-which; key Escape; nap 0.5
 key w; nap 0.5; shot y-tasks; key Escape; nap 0.5
-key o; nap 0.6; shot y-pick; key Escape; nap 0.5
+key O; nap 0.6; shot y-pick; key Escape; nap 0.5
 chord logo q; nap 0.6
 footclient -a float -T yazi -W 117x51 -- yazi "$D" >/dev/null 2>&1 &
 nap 2; key j j; nap 0.8; shot y-half; chord logo q; nap 0.6

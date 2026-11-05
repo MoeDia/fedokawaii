@@ -1289,6 +1289,20 @@ def calc_kind(typed):
     return "convert" if re.search(r"\s(?:to|in)\s", typed) else "equals"
 
 
+FIGURES = 20                         # the most the answer's row holds at the display size (2^64 does)
+
+
+def figures(a):
+    """An answer as its row says it: every figure (qalc's "exp off": 2^64 is 18446744073709551616, never 1.844674407E19) while they
+    fit the row, past that the power of ten, never a number with its end gone. A unit stays."""
+    m = re.match(r"(-?)([0-9]+(?:\.[0-9]+)?)((?: .*)?)$", a)
+    if not m or len(m[2]) <= FIGURES:
+        return a
+    from decimal import Decimal              # (here: the panel starts without it)
+    head, _, power = f"{Decimal(m[2]):.9E}".partition("E")
+    return f"{m[1]}{head.rstrip('0').rstrip('.')}E{power.lstrip('+')}{m[3]}"
+
+
 def layout_calc(m):
     x0, w = BORDER + PAD, INNER
     y = x0
@@ -2765,7 +2779,7 @@ def main(argv):
 
     def calc_start():
         try:
-            p = Gio.Subprocess.new(["qalc", "-s", "upxrates 7", "-t", "-s", "color 0", "-s", "unicode 0"],
+            p = Gio.Subprocess.new(["qalc", "-s", "upxrates 7", "-t", "-s", "color 0", "-s", "unicode 0", "-s", "exp off"],
                                    Gio.SubprocessFlags.STDIN_PIPE | Gio.SubprocessFlags.STDOUT_PIPE
                                    | Gio.SubprocessFlags.STDERR_MERGE)
         except GLib.Error:
@@ -2808,9 +2822,9 @@ def main(argv):
         if qc["copy"] == q:
             qc["copy"] = None
             if good:
-                panel.ui.copy_answer(money(a))
+                panel.ui.copy_answer(figures(money(a)))
         if good:
-            m.calc = (q, money(a))
+            m.calc = (q, figures(money(a)))
             if m.pending == q:
                 m.pending = None
             panel.answered(m)
