@@ -3,8 +3,9 @@
 pace: 0/0 done (0%) · time used 0% · ahead None h · ETA — · left 0 · blocked 0 · owner 0
 alerts: 32 errors in 2 h
 run: conductor active · passes 1 (oldest 27 min) · last activity 2 min ago · commits since start 0 · hold False
-machine: load 0.94 0.97 0.84/12 · mem free 26.9 GB · disk free 605 GB · up 0.5 h · cpu tccd1 52° · cpu tctl 62° · gpu edge 43° · gpu junction 36° · gpu mem 56° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 41°
+machine: load 0.94 0.97 0.84/12 · mem free 26.9 GB · disk free 605 GB · up 0.5 h · cpu tccd1 45° · cpu tctl 62° · gpu edge 44° · gpu junction 36° · gpu mem 56° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 41°
 dark: True (active) · pulse timer active
+tokens since start: out 9,815 · in 20 · cache write 16,722 · cache read 2,184,375 · msgs 10 · out last 6 h 9,815
 
 ## now / blocked / owner
 
