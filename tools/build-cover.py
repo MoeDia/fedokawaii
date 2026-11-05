@@ -189,6 +189,7 @@ def angel(a):
 ink_a, sil_a = np.clip(angel(ink_a) * 1.5, 0, 1), angel(sil)        # (his finest lines, reduced, kept black)
 HX, HY = AX + 1363 * AS, AY + 500 * AS     # her head, on Schongauer's plate
 sky *= 1 - smooth(0, .35, ndi.gaussian_filter(sil_a, 26 * K)) * (1 - night)    # around her the sky's lines thin out
+sky *= 1 - smooth(0, .10, ndi.gaussian_filter(ink_a, 16 * K)) * (1 - night)     # and never cross her banderole: it is paper too
 
 # the sky is cut: indigo-grey by day, sumi by night
 over(mix(AI2 * .85, SUMI, smooth(.02, .35, night)), hatch(sky))
@@ -408,12 +409,12 @@ page.save(dest / "cover.jpg", quality=88, optimize=True, progressive=True, subsa
 if args.out:
     page.save(dest / "cover.png")
 else:
-    # Super+U's pane: a small picture, drawn once (bin/kawa-learn-cover)
+    # what Super+U's pane draws its picture from (system/fedokawaii learn_cover)
     page.resize((336, 475), Image.LANCZOS).save(dest / "cover-thumb.png", optimize=True)
 if args.pdf:
     # the cover alone as a PDF: the JPEG as it is, on the book's page
     jpg = (dest / "cover.jpg").read_bytes()
-    w_pt, h_pt = 595.92, 842.88
+    w_pt, h_pt = 594.96, 841.92    # (the book's own pages)
     c = f"q {w_pt} 0 0 {h_pt} 0 0 cm /I Do Q".encode()
     objs = [b"<< /Type /Catalog /Pages 2 0 R >>", b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
             f"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 {w_pt} {h_pt}] /Contents 4 0 R /Resources << /XObject << /I 5 0 R >> >> >>".encode(),

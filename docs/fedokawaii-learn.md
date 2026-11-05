@@ -1593,7 +1593,7 @@ The `S:L` column is seeders:leechers: more seeders, faster. The bar's download m
 | Tool | Opens with | Best at |
 |---|---|---|
 | notes | **Super+N** | one Markdown file, a heading per day: type at once, saved as you type |
-| books | **Super+R** | your PDFs, EPUBs and comics; **Ctrl+A** brings books in from Downloads |
+| books | **Super+R** | your PDFs, EPUBs and comics, and this book; **Ctrl+A** brings books in from Downloads |
 | zathura | opening a PDF | reading; **Ctrl+R** recolours the page to the theme |
 | VisiData | `vd file.csv` | tables: sort (`[` `]`), select rows by a pattern (`|`), sum, group (**Shift+F**) |
 | jq | `jq . file.json` | reading and reshaping JSON |

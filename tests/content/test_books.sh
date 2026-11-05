@@ -22,6 +22,7 @@ esac'
   stub setsid '[ "$1" = -f ] && shift; exec "$@"'
   stub zathura; stub gio; stub kawa-term; stub kawa-cell 'echo 9x21'
   : >"$FZF_PICK"
+  export KAWA_LEARN_BOOK=$TMP/no-learn-book.pdf     # (the PC's own toolkit is no part of a made-up library)
 }
 MAGICK=$(command -v magick) FD=$(command -v fd fdfind 2>/dev/null | head -n1)
 # the plain card's ground as sixel gives it (whole percents): the theme's C_EDGE (dark, the sandbox's)
@@ -318,6 +319,20 @@ sleep 0.3; kill -KILL -- -"$pg" 2>/dev/null; wait "$pg" 2>/dev/null
 touch -d '-2 minutes' "$K"/cover.*
 kawa-books --tui
 eq "$(ls -A "$K")" "pages.json" "nothing but the page counts left"
+
+# ── the desktop's own book ───────────────────────────────────────────────────
+setup; library
+case_ "the Learn book: always on the shelf under its own name, its cover its first page, opened as any book; never in the trash; none in the toolkit, no row"
+mkdir -p "$TMP/toolkit"; mk pdf "$TMP/toolkit/Fedokawaii-Learn.pdf" 400
+before=$(kawa-books --rows | wc -l)
+export KAWA_LEARN_BOOK=$TMP/toolkit/Fedokawaii-Learn.pdf
+rows=$(kawa-books --rows); eq "$(wc -l <<<"$rows")" "$((before + 1))" "one row more"
+l=$(grep -F -- "$KAWA_LEARN_BOOK"$'\t' <<<"$rows"); has "$(plain <<<"$l" | field 2)" "fedokawaii — learn"; has "$l" "400 pages"
+lacks "$(plain <<<"$l" | field 2)" "Fedokawaii-Learn" "the file's name is not its title"
+lacks "$(cover "$KAWA_LEARN_BOOK" | sixel_info | jget colours)" "$CARD"
+reset_calls; rc 0 kawa-books --remove "$KAWA_LEARN_BOOK"; not_called "^gio trash"; called "^notify-send .*the learn book stays"; [[ -f $KAWA_LEARN_BOOK ]] && _ok || _no "the book went"
+rc 0 kawa-books --open "$KAWA_LEARN_BOOK"; called "^zathura -- $KAWA_LEARN_BOOK$"
+rm -f "$KAWA_LEARN_BOOK"; eq "$(kawa-books --rows | wc -l)" "$before" "no book in the toolkit: no row, nothing said"
 
 # ── read, remove, add ────────────────────────────────────────────────────────
 case_ "enter: zathura opens the book (where it was, or on the page found by name)"

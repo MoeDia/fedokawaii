@@ -609,6 +609,13 @@ The PDFs and the Learning section's pieces use the same parts in print: headings
 ruled with the solid rule, square corners everywhere; each piece shows its place (piece n of N,
 done ✓).
 
+**The cover** (`tools/build-cover.py`, its parts in `art/cover/SOURCES.md`) is the one page with no pixel face: a full-bleed
+engraving, the angel and the demon facing each other across the two moods, Hokusai's wave and sakura between them, the title
+in EB Garamond on a cartouche with the red hanko. Drawn once, for all three places it shows: the book's first page (A4, 200 dpi);
+Super+R's cover pane, where the book is always on the shelf, as the book's own first page; Super+U → learning → lessons, over
+the **Facts**: its left edge on the words' column, its top level with the list's first row, one row of paper under it. It is never
+recoloured for a mood: it holds both.
+
 ## 11. Motion
 
 Fluid like water, calm, Japanese, with movement in it (the owner, 4 Nov 17:48, 18:12): **springs**, never a bezier: a thing
