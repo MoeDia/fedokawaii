@@ -599,7 +599,7 @@ def case_readonly():
 
 # ── every size ───────────────────────────────────────────────────────────────
 def case_sizes():
-    sizes = ((8, 3), (12, 4), (20, 5), (30, 8), (38, 9), (40, 14), (60, 20), (70, 24), (79, 38), (84, 31), (100, 32), (130, 48), (200, 50), (236, 52))
+    sizes = ((8, 3), (12, 4), (20, 5), (30, 8), (38, 9), (40, 14), (60, 20), (70, 24), (80, 39), (84, 31), (100, 32), (130, 48), (200, 50), (236, 52))
     bad = []
     for cols, rows in sizes:
         fresh(lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
@@ -839,7 +839,7 @@ def case_screens():
     """every row of every tab opened, typed in and left; every stage opened; the pages with data on them"""
     down = b'\x1b[1;1:1B'
     bad = []
-    for size in ((79, 38), (60, 21), (130, 49)):
+    for size in ((80, 39), (60, 21), (130, 49)):
         demo_state()
         p = start(size)
         for _ in range(3):
@@ -991,7 +991,7 @@ def case_quiet():
 def case_mouse():
     """the pointer on the tabs and the rows (§5: hover is the cursor, a click is Enter)"""
     fresh()
-    p = start((79, 38))
+    p = start((80, 39))
     n = len(p.out)
     p.send(b'\x1b[<35;10;7M')        # (over the third row)
     p.pump(0.1)
@@ -1001,7 +1001,7 @@ def case_mouse():
     report('a click on a row goes', d['lesson'] == 'home.fj.meet', str(d['lesson']))
     st = finish(p)
     fresh()
-    p = start((79, 38))
+    p = start((80, 39))
     n = len(p.out)
     p.send(b'\x1b[<0;15;2M\x1b[<0;15;2m')   # (a click on the next tab's icon: the course tab takes columns 2–10, then a gap of 3)
     p.pump(0.2)
@@ -1081,7 +1081,7 @@ def case_verdict_of_a_check():
     for lid, want in (('sent.check', 'first sentences: yours.'), ('speed.30.check', '30 wpm: yours.')):
         fresh(baseline=999, lessons={'home.fj.meet': {'seals': 0, 'best': 0, 'tries': 1}})
         a = A.App(NoTerminal(), {'seed': 3})
-        a.size = (79, 38, 8, 20)
+        a.size = (80, 39, 8, 20)
         ls = A.LessonScreen(a, course.BY_ID[lid])
         a.screen = ls
         ls.layout()
@@ -1162,6 +1162,21 @@ def case_geometry():
                 a.screen.draw()
                 look('result', cols, rows, cw, ch)
     canvas.Picture.send = real_send
+    # its own window: an even width and an odd height (every popup's, centred to the pixel: test_term_float), the keyboard in it
+    # at ×2 with equal margins, and whole cells at every multiple
+    with open(os.path.join(HERE, '..', '..', 'configs/home/.local/share/applications/kawa-typing.desktop')) as f:
+        m = re.search(r'--dialog typing (\d+)x(\d+)', f.read())
+    cols, rows = int(m[1]), int(m[2])
+    a.size = (cols, rows, 8, 20)
+    pl = A.Stage(a)
+    if cols % 2 or not rows % 2:
+        bad.add(f'the window {cols}x{rows}: not even by odd')
+    if (pl.scale, pl.with_hands) != (2, True) or pl.pic_x * 2 + pl.pic_w != cols or pl.pic_w * 8 != art.KEY_W * 2:
+        bad.add(f'the window {cols}x{rows}: the keyboard at ×{pl.scale}, from column {pl.pic_x}, {pl.pic_w} wide')
+    if any(art.KEY_W * k % 8 for k in (1, 2, 3)):
+        bad.add('the keyboard not whole cells at every multiple')
+    if A.CALENDAR_WEEKS * A.CALENDAR_PITCH - 2 != art.KEY_W:
+        bad.add('the days calendar not from edge to edge of the keyboard')
     seen, short = set(), []       # (one line for each screen in each window, the first thing wrong there)
     for b_ in sorted(bad):
         k = b_.split(':')[0]

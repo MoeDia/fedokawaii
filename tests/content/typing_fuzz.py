@@ -137,7 +137,7 @@ def start(rng, seed, size):
 def round_(seed, events):
     """a program played for that many events; one that ended by itself (Esc on the tabs) is started again"""
     rng = random.Random(seed)
-    size = rng.choice(((rng.randint(1, 300), rng.randint(1, 90)), (100, 33), (60, 20), (84, 31), (130, 48)))
+    size = rng.choice(((rng.randint(1, 300), rng.randint(1, 90)), (80, 39), (100, 33), (60, 20), (84, 31), (130, 48)))
     p = start(rng, seed, size)
     plain_mode = rng.random() < 0.2
     for _ in range(events):

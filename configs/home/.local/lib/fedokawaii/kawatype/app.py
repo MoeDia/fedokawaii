@@ -21,7 +21,7 @@ DAY_MINUTES = 20
 TEXT_LINES = 5          # (the text in view at most: the line just typed, the one under way, three to come)
 FEED_RATE, FEED_SECONDS = 42.0, 0.16   # (the paper feeding a line: a spring with no overshoot)
 ANSWER_STEP = 0.07      # (the hands' answer to a result: a pose each)
-CALENDAR_WEEKS = 43     # (at the keyboard's width on 8 px cells: its 600 px whole, a seal 12 px, 2 of air)
+CALENDAR_WEEKS, CALENDAR_PITCH = 34, 9      # (× the multiple: a seal 7, 2 of air, the keyboard's 304 from edge to edge)
 SEAL_ON, SEAL_OFF = '●', '○'
 TABS = ('course', 'practice', 'progress')
 TAB_ICONS = {'course': 'MORTARBOARD', 'practice': 'BRUSH', 'progress': 'USAGE'}
@@ -376,9 +376,6 @@ class Screen:
         room = max(room, 0)
         burnt = 0 if done is None else round(room * max(min(done, 1), 0))
         s += fg(ACCENT_TEXT) + '─' * burnt + fg(EDGE2) + '─' * (room - burnt) + OFF
-        place = getattr(self, 'place', None)
-        if not tail and room and place and place.half_end and w == place.W:      # (the rule's end on the keyboard's edge)
-            s = s.removesuffix('─' + OFF) + '╴' + OFF
         if tail:
             s += ' ' + tail + OFF
         self.at(row, x0, s)
@@ -410,11 +407,9 @@ class Stage:
         self.x = (cols - self.W) // 2
         self.pic_x = (cols - self.pic_w) // 2
         spare = rows - 1 - self.pic_rows - self.ABOVE
-        self.pic_y = self.ABOVE + spare // 2 if spare > 0 else rows - 1 - self.pic_rows
+        self.pic_y = self.ABOVE + (spare + 1) // 2 if spare > 0 else rows - 1 - self.pic_rows
         self.words_y = (self.pic_y - 2 if self.pic_y - 2 >= over_words else self.pic_y - 1) if self.scale else rows - 1
         self.key_rows = math.ceil(art.KEY_H * self.scale / self.ch)   # (the keyboard's alone: where the hands begin)
-        # (×1 and ×3 end half a cell into the column's last: a rule that ends with them ends there too)
-        self.half_end = bool(self.scale) and (self.pic_w * self.cw - art.KEY_W * self.scale) * 2 == self.cw
 
     def picture(self, hands=True):
         """the keyboard and the hands at rest, painted, not yet sent → (Picture, Keyboard, Hands or None)"""
@@ -795,7 +790,7 @@ class Home(Screen):
             self.cal_y = pl.pic_y + pl.key_rows
             self.cal_rows = pl.pic_rows - pl.key_rows if pl.with_hands else 0
             px = art.KEY_W * pl.scale
-            pitch = max((px + 2) // CALENDAR_WEEKS, 9)
+            pitch = CALENDAR_PITCH * pl.scale
             self.cal_tall = math.ceil(7 * pitch / ch)
             if self.cal_rows >= self.cal_tall + 1:
                 self.cal = canvas.Picture(px, self.cal_tall * ch, (cw, ch))
@@ -886,19 +881,17 @@ class Home(Screen):
         p = self.cal
         p.clear()
         ink = art.INK
-        pitch = self.cal_pitch
+        pitch, k = self.cal_pitch, self.place.scale
         days = {time.strftime('%Y-%m-%d', time.localtime(r['d'])) for r in history}
         now = time.time()
-        weeks = min(53, (p.w + 2) // pitch)
-        back = time.localtime(now).tm_wday + (weeks - 1) * 7
-        left = p.w + 2 - weeks * pitch
-        size = pitch - 2
+        back = time.localtime(now).tm_wday + (CALENDAR_WEEKS - 1) * 7
+        size = pitch - 2 * k
         for i in range(back + 1):
             lt = time.localtime(now - (back - i) * 86400)
             on = time.strftime('%Y-%m-%d', lt) in days
-            x, y = left + i // 7 * pitch, lt.tm_wday * pitch
-            p.fill(x + 1, y, size - 2, size, ink['accent'] if on else ink['edge'])
-            p.fill(x, y + 1, size, size - 2, ink['accent'] if on else ink['edge'])
+            x, y = i // 7 * pitch, lt.tm_wday * pitch
+            p.fill(x + k, y, size - 2 * k, size, ink['accent'] if on else ink['edge'])
+            p.fill(x, y + k, size, size - 2 * k, ink['accent'] if on else ink['edge'])
 
 
 # ── a lesson ─────────────────────────────────────────────────────────────────

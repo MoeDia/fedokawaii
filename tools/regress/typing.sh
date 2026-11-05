@@ -20,10 +20,12 @@ cat >"$out/play.sh" <<PLAY
 export XDG_STATE_HOME=\$HOME/.local/state
 mkdir -p "\$XDG_STATE_HOME/fedokawaii/typing"
 echo '{"baseline":40}' >"\$XDG_STATE_HOME/fedokawaii/typing/progress.json"
-for size in 79x38 60x21 130x49; do
-  footclient -a float -T typing -W \$size -- kawa-typing "$out/text" >/dev/null 2>"\$KIT_OUT/err.log" &
-  nap 1.2; shot rest-\$size
-  if [[ \$size == 79x38 ]]; then
+up() { local _; for _ in \$(seq 150); do [[ -s "$out/up" ]] && break; nap 0.1; done; nap 0.5; }   # (its first frame, however loaded the PC)
+for size in 80x39 60x21 130x49; do
+  rm -f "$out/up"
+  footclient -a float -T typing -W \$size -- kawa-typing --trace "$out/up" "$out/text" >/dev/null 2>"\$KIT_OUT/err.log" &
+  up; shot rest-\$size
+  if [[ \$size == 80x39 ]]; then
     wf-recorder -y -c ffv1 -f "$out/rec-\$(basename "\$KIT_OUT").mkv" >/dev/null 2>&1 & rec=\$!
     nap 0.6
     wtype -s 300 -d 100 -- "Tea began as a medicine and grew into a"
@@ -34,21 +36,23 @@ for size in 79x38 60x21 130x49; do
   key Escape; nap 0.4
 done
 printf '%s' 'tea began as a medicine and grew' >"$out/short"
-footclient -a float -T typing -W 79x38 -- kawa-typing "$out/short" >/dev/null 2>>"\$KIT_OUT/err.log" &
-nap 1.2
+rm -f "$out/up"
+footclient -a float -T typing -W 80x39 -- kawa-typing --trace "$out/up" "$out/short" >/dev/null 2>>"\$KIT_OUT/err.log" &
+up
 wtype -s 300 -d 40 -- 'tea began as a medicine and grew'
 nap 1.0
 shot practice-result
 key Escape; nap 0.3; key Escape; nap 0.4
 # home, a lesson, its result: the same place
-footclient -a float -T typing -W 79x38 -- kawa-typing >/dev/null 2>>"\$KIT_OUT/err.log" &
-nap 1.2
+footclient -a float -T typing -W 80x39 -- kawa-typing >/dev/null 2>>"\$KIT_OUT/err.log" &
+nap 3
 shot stage-home
-key Return; nap 1.0
+key Return; nap 2.5
 shot stage-lesson
 key Escape; nap 0.5; key Escape; nap 0.3; key Escape; nap 0.4
-footclient -a float -T typing -W 79x38 -- kawa-typing "$out/text" >/dev/null 2>>"\$KIT_OUT/err.log" &
-nap 1.2
+rm -f "$out/up"
+footclient -a float -T typing -W 80x39 -- kawa-typing --trace "$out/up" "$out/text" >/dev/null 2>>"\$KIT_OUT/err.log" &
+up
 kawa-theme \$( [[ "\$KIT_OUT" == */dark ]] && echo light || echo dark ) >/dev/null 2>&1
 nap 1.6
 shot switched
@@ -94,7 +98,7 @@ def keyboard_at(name, k=2):
                 return x, y
     return None
 
-for size, k in (('79x38', 2), ('60x21', 1), ('130x49', 3)):
+for size, k in (('80x39', 2), ('60x21', 1), ('130x49', 3)):
     im = Image.open(f'{d}/rest-{size}.png').convert('RGB')
     W, H = im.size
     px = im.load()
@@ -108,7 +112,7 @@ for size, k in (('79x38', 2), ('60x21', 1), ('130x49', 3)):
     x1 = max(x for y in range(y0, y1) for x in range(x0, W) if near(px[x, y], inks['key'], 1))
     # (each key's frame is a pixel × k in from its cell; the fill's box is that much inside the keyboard's)
     kb_left = x0 - k
-    want_w = 300 * k              # (the last key of a row ends on the column's edge)
+    want_w = 304 * k              # (the last key of a row ends on the column's edge)
     if x1 + k + 1 - kb_left != want_w:     # (its frame, k pixels past the fill)
         no(size, f'keyboard {x1 + k + 1 - kb_left} px wide, want {want_w}')
     # keys on their pitch: along the number row's face, a frame every 20 × k
@@ -126,19 +130,21 @@ for size, k in (('79x38', 2), ('60x21', 1), ('130x49', 3)):
         if not 0 <= lead <= 2 * min(k, 2):
             no(size, f'the text starts {lead} px from the keyboard\'s edge')
     # on the cell grid: 8 px from the window's text area (foot's pad of 8, a hairline: the window's own left edge found)
-    win = next((x for x in range(W) if not near(px[x, H // 2], inks['ground'], 3)), None)
+    # (found walking left from the keyboard: over a kit's ground that has gone, the window's own glass is another colour)
+    inside = px[kb_left - 4, y0 + 8 * k]
+    win = next((x for x in range(kb_left - 4, -1, -1) if not near(px[x, y0 + 8 * k], inside, 3)), None)
     if win is not None and (kb_left - (win + 1 + 8)) % 8:
         no(size, f'the keyboard off the cell grid: {kb_left - win - 9} from the window\'s text')
     # the hands, under it, inside its width
-    hand = [x for y in range(y1 + 8 * k, min(y1 + 90 * k, H - 30)) for x in range(W) if near(px[x, y], inks['accent_lo' if th == 'dark' else 'key'], 3) and win < x < W]
+    hand = [x for y in range(y1 + 8 * k, min(y1 + 90 * k, H - 30)) for x in range(kb_left - 40, min(kb_left + 344 * k, W)) if near(px[x, y], inks['accent_lo' if th == 'dark' else 'key'], 3)]
     if not hand:
         no(size, 'no hands')
-    elif min(hand) < kb_left or max(hand) > kb_left + 300 * k:
+    elif min(hand) < kb_left or max(hand) > kb_left + 304 * k:
         no(size, f'the hands stick out: {min(hand) - kb_left}..{max(hand) - kb_left}')
     # the next key (T: shift and t) lit in its finger's paper, and that finger too
     for token in ('paper_time', 'paper_mark'):
-        n_kb = sum(1 for y in range(y0, y1) for x in range(kb_left, kb_left + 300 * k, 2) if near(px[x, y], inks[token], 2))
-        n_h = sum(1 for y in range(y1, min(y1 + 90 * k, H)) for x in range(kb_left, kb_left + 300 * k, 2) if near(px[x, y], inks[token], 2))
+        n_kb = sum(1 for y in range(y0, y1) for x in range(kb_left, kb_left + 304 * k, 2) if near(px[x, y], inks[token], 2))
+        n_h = sum(1 for y in range(y1, min(y1 + 90 * k, H)) for x in range(kb_left, kb_left + 304 * k, 2) if near(px[x, y], inks[token], 2))
         if not n_kb:
             no(size, f'{token}: no key lit')
         if not n_h:
@@ -164,13 +170,13 @@ if any(near(v, inks['key'], 0) for v in have) and not near(inks['key'], other['k
     pass
 
 # one stage: the keyboard's box on home, in a lesson, on the rest shots of the same size
-places = {n: keyboard_at(n) for n in ('stage-home', 'stage-lesson', 'practice-result', 'rest-79x38')}
+places = {n: keyboard_at(n) for n in ('stage-home', 'stage-lesson', 'practice-result', 'rest-80x39')}
 if None in places.values() or len(set(places.values())) != 1:
     no('the keyboard moves between the screens:', places)
 
 # every recorded frame: a tile blank for a frame is a square all ground, between two frames that have it inked
 # (the box: what the rest shot has over the keyboard, measured there, so a change of size cannot move it off the text)
-im = Image.open(f'{d}/rest-79x38.png').convert('RGB')
+im = Image.open(f'{d}/rest-80x39.png').convert('RGB')
 pts = [(a, b) for b in range(40, im.size[1]) for a in range(im.size[0]) if near(im.getpixel((a, b)), inks['key'], 1)]
 x, y1 = min(q[0] for q in pts) - 2, min(q[1] for q in pts) - 4
 W, H = 600, 192

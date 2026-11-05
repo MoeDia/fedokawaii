@@ -10,7 +10,7 @@ import os
 from . import canvas, keys
 
 HERE = os.path.dirname(os.path.abspath(__file__))
-KEY_W, KEY_H = 300, 100          # the keyboard, 15 × 5 keys of 20 px
+KEY_W, KEY_H = 304, 100          # the keyboard, 15 × 5 keys of 20 px, each row's widest 4 more (keys.box)
 HANDS_H = 84                     # the strip the hands stand in, under it: 12 of headroom, for a finger reaching
 PALM_X, PALM_Y = 38, 12          # (where the palm's grid lies on the strip)
 MIRROR = 270                     # the hands' mirror (twice the home row's middle: a–; on x 45 and 225)
@@ -144,11 +144,10 @@ class Keyboard:
 
     def key_rows(self, name):
         """the key's 20 rows at 1×: its face, frame and lip, its legend centred by its ink"""
-        x, r, width, finger, _, _ = keys.PLACE[name]
-        w = width * 5
+        left, _, w = keys.box(name)
         down = name in self.down
         look = self.look(name)
-        face_w = w if x * 5 + w == KEY_W else w - 1      # (a column of air between keys; the last of a row ends on the column's edge)
+        face_w = w if left + w == KEY_W else w - 1      # (a column of air between keys; the last of a row ends on the column's edge)
         rows = [bytearray(w) for _ in range(20)]
         top = 1 if down else 0
         for y in range(top, 18 + top):
@@ -173,14 +172,14 @@ class Keyboard:
         return rows
 
     def paint_key(self, pic, name, k, ox=0, oy=0):
-        x, r, width, _, _, _ = keys.PLACE[name]
+        left, r, width = keys.box(name)
         rows = self.key_rows(name)
         out = []
         for row in rows:
             s = canvas.scale_row(row, k)
             out += [[(0, s)]] * k
-        pic.clear(ox + x * 5 * k, oy + r * 20 * k, width * 5 * k, 20 * k)
-        pic.spans(ox + x * 5 * k, oy + r * 20 * k, out)
+        pic.clear(ox + left * k, oy + r * 20 * k, width * k, 20 * k)
+        pic.spans(ox + left * k, oy + r * 20 * k, out)
 
     def paint(self, pic, k, ox=0, oy=0):
         for name in keys.PLACE:
