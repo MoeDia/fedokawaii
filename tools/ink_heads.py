@@ -174,7 +174,7 @@ def oni(W, H, o, chin, mask_h):
     for sgn in (-1, 1):
         roots = [(278, 410), (262, 500), (272, 610), (292, 720)]
         ends = [(52, 300), (14, 500), (34, 720), (150, 900)]
-        for (rx, ry), (ex, ey) in zip(roots, ends):
+        for (rx, ry), (ex, ey) in zip(roots, ends, strict=True):
             sx, sy = T(512 + sgn * (rx - 512), ry)
             tx, ty = T(512 + sgn * (ex - 512), ey)
             tx, ty = min(max(tx, .5), W - .5), min(ty, H - .5)
@@ -292,7 +292,7 @@ def oni(W, H, o, chin, mask_h):
     up = [(352, 708), (400, 730), (455, 752), (512, 762), (569, 752), (624, 730), (672, 708)]   # the upper teeth's top, the lip's under edge
     low = [(672, 708), (640, 795), (585, 840), (512, 852), (439, 840), (384, 795), (352, 708)]  # the lower lip's upper edge
     upT = Ts(up)
-    lowT = [(x, y + dj * min(1, max(0, (172 - abs(ux - 512)) / 60))) for (x, y), (ux, _) in zip(Ts(low), low)]
+    lowT = [(x, y + dj * min(1, max(0, (172 - abs(ux - 512)) / 60))) for (x, y), (ux, _) in zip(Ts(low), low, strict=True)]
     P.fill(np.array(upT + lowT[1:-1]), SHU if o > 1 else SUMI, clip)
     # the upper teeth: a bright band under the lip, cut into teeth; the fangs long over what is below
     band = 34 * k
@@ -455,7 +455,7 @@ def oni_bar(roar):
     P.fill(poly, PAPER)
     clip = P._mask(poly)
     for sgn in (-1, 1):
-        def X(x):
+        def X(x, sgn=sgn):
             return 11 + sgn * x
         # the socket black, the plate, the pupil
         P.dot(X(3.5), 9.0, 3.2, SUMI, 2.4, sgn * math.radians(-14), clip)
@@ -556,7 +556,6 @@ def angel_cut(W, H, ks, hx, hy, ring, eyes):
     yy, xx = np.mgrid[0:H * P.ss, 0:W * P.ss].astype(np.float32)
     d = np.hypot((xx + .5) / P.ss - cx, (yy + .5) / P.ss - cy)
     clip = ~((yy / P.ss > cy) & (d > ring))
-    rng = np.random.default_rng(3)
 
     def lock(p0, p1, w0, w1, amp=20, waves=2.4, phase=0.0, curl=1):
         p0, p1 = np.array(p0, float), np.array(p1, float)
@@ -777,7 +776,7 @@ def write_glyphs():
     for icon, rows in GLYPHS.items():
         for suffix, cut in (("", (0, 16)), ("-2", (16, 24))):
             block = f"@{icon}{suffix}\n" + "\n".join(r[cut[0]:cut[1]] for r in rows) + "\n"
-            text, n = re.subn(rf"^@{re.escape(icon)}{re.escape(suffix)}\n(?:[.#]+\n)+", lambda _: block, text, flags=re.M)
+            text, n = re.subn(rf"^@{re.escape(icon)}{re.escape(suffix)}\n(?:[.#]+\n)+", lambda _, b=block: b, text, flags=re.M)
             if n != 1:
                 raise SystemExit(f"art/icons.txt: @{icon}{suffix} found {n} times")
     ICONS.write_text(text, encoding="utf-8")

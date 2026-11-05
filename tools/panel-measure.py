@@ -82,7 +82,7 @@ def quick(a, table, th, ground, cursor=None):
         sp = spans(xs, gap=6)
         ixs = [v for v in xs if x0 <= v < x0 + 28]
         left.append(min(ixs) - x0)
-        iys = [int(q) for q, v in zip(ys, xs) if x0 <= v < x0 + 28]
+        iys = [int(q) for q, v in zip(ys, xs, strict=True) if x0 <= v < x0 + 28]
         cys.append((min(iys) + max(iys)) / 2 - y)
         nxs = [v for v in xs if x0 + 28 <= v < x0 + 36]
         names.append(min(nxs) - x0 if nxs else None)
@@ -184,7 +184,8 @@ def power(a, table, th, conf):
 
 def calendar(a, table, th, conf, ground):
     s = f"the calendar ({th})"
-    rgb = lambda k: tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
+    def rgb(k):
+        return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
     x0_, y0_, x1_, y1_ = box_of(a, ground)
     W = 362
     want(table, s, "the frame's top y", y0_, 33)
@@ -195,7 +196,7 @@ def calendar(a, table, th, conf, ground):
     for label, col, ink_ in (("Saturday", 5, "ai"), ("Sunday", 6, "accent_text")):
         cx = x0_ + 17 + col * 48
         xs, ys = ink(a, cx, y0_ + 45, 40, 20, [ground2])
-        cols = {colour(a, int(x), int(y)) for x, y in zip(xs, ys)}
+        cols = {colour(a, int(x), int(y)) for x, y in zip(xs, ys, strict=True)}
         want(table, s, f"{label}'s head in its ink", rgb(ink_) in cols, True)
     # today: a filled seal 20 × 20, centred in its cell
     acc = rgb("accent")
@@ -217,12 +218,12 @@ def calendar(a, table, th, conf, ground):
 
 def rows_of(a, table, s, fx, fy, keys, ground):
     """A menu's rows at y (from the frame's top): the marks' or the values' end from the band's right, the pictures' start from its left."""
-    x0, W = fx + X0, None
 
 
 def notice(a, table, th, conf, ground):
     s = f"the critical notice ({th})"
-    rgb = lambda k: tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
+    def rgb(k):
+        return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
     x0_, y0_, x1_, y1_ = box_of(a, ground, 28)
     want(table, s, "the right hairline x", x1_ - 1, 1911)
     want(table, s, "the top hairline y", y0_, 33)
@@ -235,7 +236,8 @@ def notice(a, table, th, conf, ground):
 
 def system(a, table, th, conf, ground):
     s = f"Super+U ({th})"
-    rgb = lambda k: tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
+    def rgb(k):
+        return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
     # the band: the row under the cursor, its tint and edge; the value's inset
     h, w = a.shape[:2]
     reg = a[:, :, :]
@@ -259,7 +261,8 @@ def main():
     for th in ("dark", "light"):
         d = os.path.join(raw, th)
         conf = dict(ln.strip().split("=") for ln in open(f"configs/home/.config/fedokawaii/themes/{th}/panel.conf") if "=" in ln and not ln.startswith("#"))
-        rgb = lambda k: tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
+        def rgb(k, conf=conf):
+            return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
         a = load(f"{d}/quick.png")
         g = colour(a, 1600, 300)              # (the panel's own ground over the kit's)
         quick(a, table, th, g)
