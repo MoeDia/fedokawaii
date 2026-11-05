@@ -111,10 +111,10 @@ deps: T03  · model: main (design, VM creation), sub:sonnet (tests/installer/tes
 files: lib/manifest.sh (new PKG_VIRT: libvirt-daemon-kvm, qemu-kvm, virt-install, edk2-ovmf, swtpm, guestfs-tools/libguestfs-tools-c, virt-viewer not needed; verify: user in libvirt group), setup.sh (s_virt: libvirtd socket activation, no autostart of VMs), tools/vm-create.sh, tools/vm-snap.sh, tools/vm-run.sh, tools/vm-smoke.sh, tools/vm-ks/*.ks, docs: a Learn piece stub (T50 finishes), tests/installer/test_vm_tools.sh
 approach:
 - Official sources first: Fedora Server 44 netinst/boot ISO URL + checksum from getfedora/fedoraproject (dnf `fedora-release` for the current version), Kickstart reference (pykickstart docs), virt-install man page, libvirt snapshot docs. Packages via the manifest and `sudo fedokawaii repair` (never dnf by hand), VM storage under `~/VM/harness/` (one folder: disk, nvram, logs).
-- vm-create.sh NAME: unattended Fedora 44 Server minimal (kickstart over the netinst: UEFI, GPT, the real PC's layout — /boot/efi vfat, /boot XFS outside Btrfs, Btrfs root with subvols root/home like setup.sh expects, 60 G, 8 G RAM, 6 vCPU, virtio-gpu, serial console logged to `~/VM/harness/NAME.serial`), a `dia`-like user with the ssh key of the harness; `--release 45|rawhide` variant for pre-flights (T46).
+- vm-create.sh NAME: unattended Fedora 45 Server minimal (kickstart over the netinst: UEFI, GPT, the real PC's layout — /boot/efi vfat, /boot XFS outside Btrfs, Btrfs root with subvols root/home like setup.sh expects, 60 G, 8 G RAM, 6 vCPU, virtio-gpu, serial console logged to `~/VM/harness/NAME.serial`), a `dia`-like user with the ssh key of the harness; `--release 45|rawhide` variant for pre-flights (T46).
 - vm-snap.sh NAME save|revert|list (virsh snapshot, internal or external with qcow2), vm-run.sh NAME CMD… (ssh, exit status back, output to a file), vm-smoke.sh NAME: the repo rsynced in, `fedokawaii.sh setup` to the end through its reboots (watch the serial + phase file), theme, verify (parse PASS/FAIL), then the desktop start: greetd with `[initial_session]`, wait for `dwl-session.target`, grim via vm-run, a non-black screenshot with the bar's known pixels (tools/px.py), waybar/kawa-panel/mako processes present; the result as one line + the log path.
-- Time budget: the first full smoke is the real measurement; keep a base snapshot "fresh-f44" to revert to.
-accept: `tools/vm-create.sh f44` → a VM that boots to a login in < 15 min unattended; `vm-smoke.sh f44` runs setup/theme/verify from the current repo with verify ≥ the PC's count minus hardware-only checks (each skip named) and the desktop screenshot passing; `vm-snap.sh revert` returns to fresh-f44 in < 1 min; test_vm_tools.sh covers argument/handling paths with stubs; ledger notes the Fedora ISO URL+checksum used.
+- Time budget: the first full smoke is the real measurement; keep a base snapshot "fresh-f45" to revert to.
+accept: `tools/vm-create.sh f45` → a VM that boots to a login in < 15 min unattended; `vm-smoke.sh f45` runs setup/theme/verify from the current repo with verify ≥ the PC's count minus hardware-only checks (each skip named) and the desktop screenshot passing; `vm-snap.sh revert` returns to fresh-f44 in < 1 min; test_vm_tools.sh covers argument/handling paths with stubs; ledger notes the Fedora ISO URL+checksum used.
 
 ### T06 — the one early notice to the owner: the physical step for the gaming VM  [done 2026-10-27 see ledger r27-6]
 deps: —  · model: main  · ledger: r27-6
@@ -638,12 +638,12 @@ approach:
 - Decide vmtouch vs a plain read loop by the measured CPU/time; the list is a config the owner can trim.
 accept: `fincore` shows the list resident after login; app cold starts (T04's list) re-measured: p50 improved (numbers), no memory pressure (free -m: available stays > 20 GiB), no CPU spike at login > 5 s; opt-out setting documented.
 
-### T41 — kernel 7.2 and Fedora 44 tuning, each measured — redone on Fedora 45 once the PC is on it (T46)  [wip — in lane-system (prepared without reboots) since 4 Nov 18:47; lane-integrate merges it; before: todo]
+### T41 — kernel 7.2 and Fedora 45 tuning, each measured (T46 moves the PC there)  [wip — in lane-system (prepared without reboots) since 4 Nov 18:47; lane-integrate merges it; before: todo]
 (the master's trace check, 1 Nov 02:00) "kdump if sensible" decided here with its cost (the crashkernel reservation, measured), one ledger line.
 (The owner, 2026-10-31 23:55: "fedora 45 will be released 3rd nov … leverage the new update fully, OPTIMIZE THE SYSTEM INTENSELY FOR THAT and harden it". Fedora 45's final: target 3 Nov 2026 after two no-go slips — reported by Phoronix "Fedora 45 Hits A Second NO-GO" and linuxiac (the official fedorapeople schedule page refused the fetch, 1 Nov); confirm from fedoraproject.org / the repos on the day. Read its release notes and change set first (kernel, dnf5, systemd, Mesa, toolchain, new defaults) and take what measurably helps this PC; harden with what it adds.)
 deps: T04  · model: main  · ledger: r27-45
 files: lib/common.sh (BOOT_ARGS), setup.sh (s_tuning: sysctls, tuned profile, I/O scheduler udev rule for NVMe, zram size/algorithm, amdgpu params only with evidence, scheduler knobs (sched_autogroup? EEVDF options) each with a before/after number), system/tuned.conf, tests/installer/test_setup_hw.sh, .claude/notes/tuning-r27.md
-approach: the boot-args batch includes `efi_pstore.pstore_disable=0` (T01b: a kernel panic leaves its log in EFI vars, systemd-pstore archives it); candidates from kernel docs/Fedora 44 release notes only; one change at a time with T04's tools (latency p95, frame intervals under load, app starts, boot time); keep only what measurably helps or costs nothing and adds stability; split_lock_detect=off and the simpledrm blacklist re-justified (or dropped) with the same evidence.
+approach: the boot-args batch includes `efi_pstore.pstore_disable=0` (T01b: a kernel panic leaves its log in EFI vars, systemd-pstore archives it); candidates from kernel docs/Fedora 45 release notes only; one change at a time with T04's tools (latency p95, frame intervals under load, app starts, boot time); keep only what measurably helps or costs nothing and adds stability; split_lock_detect=off and the simpledrm blacklist re-justified (or dropped) with the same evidence.
 accept: tuning-r27.md: a table (change, source, before, after, kept/dropped); the kept set in the installer and applied through apply (verify checks); boot time not worse.
 
 ### T42 — a perfectly clean, structured system: the layout defined, strays removed, a verify check that finds them  [wip — in lane-system (prepared without reboots) since 4 Nov 18:47; lane-integrate merges it; before: todo]
@@ -821,11 +821,11 @@ accept: ≥ 3 clean runs to a login screen with verify green inside, install tim
 ## Phase 9 — the end of the round (CLAUDE.md START step 7 and 8)
 
 ### T58 — the research round: official docs of everything touched, done against the grain fixed  [todo]
-deps: T57  · model: sub:sonnet (one digest per project: dwl/wlroots 0.20, foot, waybar 0.15, gtklock 4, greetd, plymouth, yazi 26, mako 1.11, pipewire/wireplumber, libvirt/QEMU, FireAlpaca, OpenRGB, Stockfish, dnf5, snapper, grub-btrfs, Fedora 44 notes), main (the fixes)  · ledger: r27-62
+deps: T57  · model: sub:sonnet (one digest per project: dwl/wlroots 0.20, foot, waybar 0.15, gtklock 4, greetd, plymouth, yazi 26, mako 1.11, pipewire/wireplumber, libvirt/QEMU, FireAlpaca, OpenRGB, Stockfish, dnf5, snapper, grub-btrfs, Fedora 45 notes), main (the fixes)  · ledger: r27-62
 files: .claude/notes/research-round.md, the touched configs/scripts/tests per finding
 approach:
 - One subagent per project with a fixed brief (the project's official docs URL, our config/script paths, "list where we go against the documented way or miss a feature"), returning a short digest; the main agent decides and fixes.
-- Fedora 44's release notes and the kernel 7.2 notes read for anything that changes our assumptions (dnf5 behaviour, systemd, Mesa, amdgpu).
+- Fedora 45's release notes and the kernel 7.2 notes read for anything that changes our assumptions (dnf5 behaviour, systemd, Mesa, amdgpu).
 accept: .claude/notes/research-round.md: per project "what we do · what the docs say · changed/kept why"; fixes committed with tests.
 
 ### T59 — maniac testing: every app, menu, key, combination, edge case, both themes, load, crashes; reboots; the cold power-off test last  [todo]
@@ -869,7 +869,7 @@ accept: (when asked) the PDF rebuilt with real shots, the pieces regenerated, ka
 | monitor on → workspace 1 (per-output state, hotplug/DPMS, regression) | T02 |
 | verification toolbox, frame log inside dwl, headless on the real GPU | T03 |
 | performance baseline ("numbers before") | T04 |
-| VM harness (unattended F44, snapshot/revert, setup/theme/verify, desktop smoke, serial logs) | T05 |
+| VM harness (unattended F45, snapshot/revert, setup/theme/verify, desktop smoke, serial logs) | T05 |
 | the early physical-step notice (second cable; BIOS needs nothing) | T06 |
 | fonts reselected (UI + terminal, official sources, rendered in our surfaces) | T07 |
 | Wada palette informing the whole design system | T08 |
@@ -909,7 +909,7 @@ accept: (when asked) the PDF rebuilt with real shots, the pieces regenerated, ka
 | monitor: FreeSync proven, DDC/CI menu set by us, colour profile only if measured, re-apply at boot/wake | T38 |
 | network security audit + port scan from the VM + verify checks | T39 |
 | RAM caching of apps | T40 |
-| kernel 7.2 / Fedora 44 tuning, each measured | T41 |
+| kernel 7.2 / Fedora 45 tuning, each measured | T41 |
 | perfectly clean structure: layout defined, strays moved, verify STRUCT, documented | T42 |
 | update research 300+ sources | T43 |
 | update design argued as a skeptic (every failure mode incl. /boot outside Btrfs) | T44 |

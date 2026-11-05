@@ -1,6 +1,6 @@
 # CLAUDE.md — working on fedokawaii (read this first, every session)
 
-Fedokawaii turns Fedora 44 Server (minimal) into a retro-Japanese pixel desktop on **dwl**
+Fedokawaii turns Fedora 45 Server (minimal) into a retro-Japanese pixel desktop on **dwl**
 (patched), for one owner: Mohamed Eldoush (PC user `dia`, GitHub MoeDia). His PC: Ryzen
 (iGPU) + Gigabyte RX 9060 XT, one 1080p 144 Hz monitor (HDMI-A-1), XP-Pen tablet. You run
 **on that PC itself**: this clone is the working copy (`~/repos/fedokawaii`), the live
@@ -8,6 +8,7 @@ install is what `fedokawaii apply` made from it.
 
 ## The owner's standing rules (never break)
 - Zero fallbacks; one tool per job; TUI over GUI. Performance and RAM are paramount.
+- **Fedora 45 only** (his decision, 2026-11-04 21:40): `FEDORA_RELEASE` in `lib/common.sh`; no word for an earlier release in the tree (`tests/static/test_release.sh`). The PC itself stays on 44 this round.
 - Pixel-perfect in **both** themes (dark and light). Follow `docs/design-system.md`.
 - Never truncate with "…" anywhere (cut at a word, or fit).
 - Never ask the owner — decide yourself, say what you decided. (He asked for this.)

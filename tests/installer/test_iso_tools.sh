@@ -270,7 +270,7 @@ bash -n "$REPO/iso/screens/post.sh" && _ok || _no "post.sh"
 
 case_ "the VM's tool: only its own VMs, no device to be given, a VM only with memory to spare"
 out=$(bash "$REPO/tools/vm-iso-test.sh" create fk-f45 /nonexistent 2>&1); eq "$?" 2 "$out"
-out=$(bash "$REPO/tools/vm-iso-test.sh" destroy fk-f44 2>&1); eq "$?" 2 "$out"
+out=$(bash "$REPO/tools/vm-iso-test.sh" destroy fk-f45 2>&1); eq "$?" 2 "$out"
 has "$(cat "$REPO/tools/vm-iso-test.sh")" "mem_guard"
 lacks "$(grep -n 'source file\|source dev' "$REPO/tools/vm-iso-test.sh")" "/dev/"
 

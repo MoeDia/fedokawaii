@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/installer/test_torture.sh — the installer attacked as a fresh Fedora 44 install meets it,
+# tests/installer/test_torture.sh — the installer attacked as a fresh Fedora 45 install meets it,
 # in the fake machine (tests/installer/lib.sh). Every warning, ✘ or shell error is a failure.
 #
 #   the parts, no machine: every fedokawaii.conf key fuzzed (empty, spaces, unicode, a command,
@@ -110,7 +110,7 @@ case $a in
                     case $n in wiremix|gdu) ;; ffmpeg|mesa-va-drivers-freeworld|libheif-freeworld) echo "$n|1.0-1|rpmfusion-free|$n" ;;
                       unrar|intel-media-driver) echo "$n|1.0-1|rpmfusion-nonfree|$n" ;; helium-bin) echo "$n|1.0-1|copr:copr.fedorainfracloud.org:imput:helium|$n" ;; claude-code) echo "$n|1.0-1|claude-code|$n" ;;
                       lact) echo "lact|0.10.1-1|copr:copr.fedorainfracloud.org:ilyaz:LACT|lact" ;; grub-btrfs) echo "grub-btrfs|4.14-1|copr:copr.fedorainfracloud.org:zzahkaboom24:grub-btrfs|grub-btrfs" ;;
-                      *) echo "$n|1.0-1.fc44|fedora|$n" ;; esac; done ;;
+                      *) echo "$n|1.0-1.fc45|fedora|$n" ;; esac; done ;;
 esac
 exit 0
 EOF
@@ -144,10 +144,10 @@ case $1 in
     case $c in
       *"rpm -qa | sort"*) printf 'bash\nqrencode\n' ;;
       *"rpm -qa | wc -l"*) echo 812 ;;
-      *os-release*) echo 44 ;;
+      *os-release*) echo 45 ;;
       *"bash /root/fedokawaii/setup.sh --trial"*)
         n=$(cat "$CT/trialruns" 2>/dev/null || echo 0); echo $((n + 1)) >"$CT/trialruns"
-        echo "── Fedokawaii container trial · Fedora 44 · kawa"; echo "✔ T1 dnf5 tuning · 2s"
+        echo "── Fedokawaii container trial · Fedora 45 · kawa"; echo "✔ T1 dnf5 tuning · 2s"
         case $((n + 1)) in
           # (1 setup · 2 again · 3 the one killed · 4 after it · 5 the 404 mirror · 6 without it · 7 stale ·
           #  8 locked · 9 a checksum refused · 10 GitHub unreachable · 11 the downloads again)
@@ -176,7 +176,7 @@ asme() { setpriv --reuid=31000 --regid=31000 --clear-groups env HOME="$CT/home" 
 o=$(asme bash "$CT/repo/tools/container-trial.sh" 2>&1); r=$?
 o2=$(HOME=$CT/home bash "$REPO/tools/container-trial.sh" 2>&1); eq "$?" 2 "root refused"; has "$o2" "run it as yourself, not root"
 eq "$r" 0 "$o"
-for s in "podman and space" "the Fedora 44 image" "the container (Server-like base" "check-packages: the manifest" "setup --trial: every package step" \
+for s in "podman and space" "the Fedora 45 image" "the container (Server-like base" "check-packages: the manifest" "setup --trial: every package step" \
          "check-packages --live" "run again: idempotent" "killed mid-transaction" "a repository answering 404" "stale metadata" "held by another dnf" "release downloads"; do
   has "$o" "$s"
 done

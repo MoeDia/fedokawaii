@@ -5,7 +5,7 @@
 # fixed paths pointed into it (nothing else changed), so they run anywhere, as anyone.
 #
 #   engine_world        after sandbox: $R (root's side), `fedokawaii` (system/fedokawaii) first
-#                       on PATH, a finished install of Fedora 44, sudo running the rest as you
+#                       on PATH, a finished install of Fedora 45, sudo running the rest as you
 #   front_world         $R/toolkit/fedokawaii.sh is the real front (fedokawaii.sh), with
 #                       stand-ins for setup.sh, theme.sh, check.sh and verify.sh
 #   rec NAME LINE       one of root's records
@@ -43,10 +43,10 @@ engine_world() {
     "s|/var/log/fedokawaii.log|$R/fedokawaii.log|g"
   # (the update's own unit never this machine's: none runs — anything else asked of systemctl as before)
   stub systemctl 'case "$*" in *fedokawaii-update.service*) exit 3 ;; esac; exec /usr/bin/systemctl "$@"'
-  # a finished install: Fedora 44, set up 30 days ago
+  # a finished install: Fedora 45, set up 30 days ago
   echo 'done' >"$R/state/phase"; touch -d "@$(ago_s 30)" "$R/state/phase"
   echo "$USER" >"$R/state/user"
-  printf 'NAME="Fedora Linux"\nID=fedora\nVERSION_ID=44\nSUPPORT_END=2027-05-19\n' >"$R/os-release"
+  printf 'NAME="Fedora Linux"\nID=fedora\nVERSION_ID=45\nSUPPORT_END=2027-12-08\n' >"$R/os-release"
   export FEDOKAWAII_OS_RELEASE=$R/os-release
   # the toolkit: what the engine reads of it (its front is a stand-in unless front_world)
   cp "$REPO/fedokawaii.conf" "$R/toolkit/"; cp "$REPO/lib/common.sh" "$R/toolkit/lib/"   # (the engine reads settings with its parser)
@@ -71,8 +71,8 @@ EOF
   stub sudo '[ -e "$FK_R/sudo-refused" ] && { echo "Sorry, user may not run sudo on this computer." >&2; exit 1; }
 [ "$1" = -v ] && exit 0
 exec "$@"'
-  stub rpm 'case "$*" in *"--last kernel-core"*) printf "kernel-core-%s  Thu 01 Oct 2026 10:00:00 AM +04\n" "$(cat "$FK_R/newest-kernel" 2>/dev/null || echo 6.17.1-300.fc44.x86_64)" ;; esac'
-  stub uname 'echo 6.17.1-300.fc44.x86_64'
+  stub rpm 'case "$*" in *"--last kernel-core"*) printf "kernel-core-%s  Thu 01 Oct 2026 10:00:00 AM +04\n" "$(cat "$FK_R/newest-kernel" 2>/dev/null || echo 6.17.1-300.fc45.x86_64)" ;; esac'
+  stub uname 'echo 6.17.1-300.fc45.x86_64'
   # df -B1 --output=size,avail / → the fixture's disk (2 TB, 641 GB free unless told)
   stub df 'printf "        1B-blocks          Avail\n%s\n" "$(cat "$FK_R/df" 2>/dev/null || echo "2000000000000 641000000000")"'
   stub snapper 'printf " # | Type   | Pre # | Date | User | Cleanup | Description\n---+--------+-------+------+------+---------+------------\n0  | single |       |      | root |         | current\n1  | single |       | Thu  | root |         | fedokawaii baseline\n"'

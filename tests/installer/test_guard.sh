@@ -20,7 +20,7 @@ pkgfile() { printf '%s\n' "${@:2}" >"$TMP/cache/fedora-x/packages/$1.rpm"; }
 tx() {
   local l n a d v arr=()
   for l; do read -r n a d v <<<"$l"
-    arr+=("$(jq -cn --arg n "$n" --arg a "$a" --arg d "$d" --arg v "$v" '{name: $n, arch: "x86_64", version: $v, release: "1.fc44", action: $a, direction: $d, location: ("Packages/x/" + $n + "-" + $v + ".rpm")}')")
+    arr+=("$(jq -cn --arg n "$n" --arg a "$a" --arg d "$d" --arg v "$v" '{name: $n, arch: "x86_64", version: $v, release: "1.fc45", action: $a, direction: $d, location: ("Packages/x/" + $n + "-" + $v + ".rpm")}')")
   done
   jq -cn --argjson p "[$(IFS=,; echo "${arr[*]}")]" '{op: "reply", requested_op: "get", domain: "trans_packages", status: "OK", return: $p}'
   jq -cn --arg c "$TMP/cache" '{op: "reply", requested_op: "get", domain: "conf", status: "OK", return: [{key: "cachedir", value: $c}]}'

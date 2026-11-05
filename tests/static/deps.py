@@ -14,7 +14,7 @@ openers and previewers run: FIXTURES/yazi-builtin.txt).
 
 Each must be one of: bin/ or system/ (the desktop's own), lib/upstream.sh's table, built by
 setup.sh (dwl, the C helpers), or in FIXTURES/programs.txt — a package lib/manifest.sh
-installs (MANIFEST_PKGS lists them) or a package of a Fedora 44 Minimal Install.
+installs (MANIFEST_PKGS lists them) or a package of a Fedora 45 Minimal Install.
 """
 import json
 import pathlib

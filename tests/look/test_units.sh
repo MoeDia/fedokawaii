@@ -162,9 +162,9 @@ fi
 # ── foot ─────────────────────────────────────────────────────────────────────
 case_ "foot.ini: foot itself accepts it, in both themes (and the palettes it switches between)"
 FOOT=""
-for f in /opt/f44/bin/foot "$(command -v foot)"; do
+for f in "$(command -v foot)"; do
   [[ -x $f ]] || continue
-  v=$(LD_LIBRARY_PATH=/opt/f44/lib "$f" --version 2>/dev/null | sed -n 's/^foot version: \([0-9]*\)\.\([0-9]*\).*/\1 \2/p')
+  v=$("$f" --version 2>/dev/null | sed -n 's/^foot version: \([0-9]*\)\.\([0-9]*\).*/\1 \2/p')
   read -r ma mi <<<"$v"; [[ -n $ma ]] && ((ma > 1 || mi >= 24)) && { FOOT=$f; break; }
 done
 look; config .config/foot/foot.ini
@@ -177,12 +177,12 @@ grep -q '^GLASS=\$STATE/foot-glass.ini$' "$REPO/theme.sh" && grep -q '"\[colors-
 if [[ -n $FOOT ]]; then
   for m in dark light; do
     ln -sfn "themes/$m" "$HOME/.config/fedokawaii/current"
-    out=$(LD_LIBRARY_PATH=/opt/f44/lib "$FOOT" --check-config 2>&1); r=$?
+    out=$("$FOOT" --check-config 2>&1); r=$?
     eq "$r" 0 "$m: $(grep -v 'not a UTF-8 locale' <<<"$out" | head -n 3)"
   done
   case_ "foot.ini: without the glass file foot refuses its whole config — so each login makes it first (kawa-glass ensure, before foot --server)"
   mv "$HOME/.local/state/fedokawaii/foot-glass.ini" "$TMP/glass.away"
-  LD_LIBRARY_PATH=/opt/f44/lib "$FOOT" --check-config >/dev/null 2>&1 && _no "foot took it without the file: the ensure is no longer needed" || _ok
+  "$FOOT" --check-config >/dev/null 2>&1 && _no "foot took it without the file: the ensure is no longer needed" || _ok
   mv "$TMP/glass.away" "$HOME/.local/state/fedokawaii/foot-glass.ini"
 else
   echo "  (skipped foot --check-config: no foot ≥ 1.24 here)"

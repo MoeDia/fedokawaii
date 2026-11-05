@@ -1,4 +1,4 @@
-# wiremix 0.11.0 (Fedora wiremix-0.11.0-1.fc44): the PipeWire mixer (quick settings, Super+A)
+# wiremix 0.11.0 (Fedora wiremix-0.11.0-2.fc45): the PipeWire mixer (quick settings, Super+A)
 # command: wiremix --version; wiremix --help
 # source: /usr/share/doc/wiremix/wiremix.toml and README.md (installed; identical to https://github.com/tsowell/wiremix/tree/v0.11.0)
 # ours: configs/home/.config/fedokawaii/themes/dark/wiremix.toml and light/wiremix.toml (Esc closes the mixer; enforce_max_volume)

@@ -150,10 +150,10 @@ EOF
   chmod -R a+rX "$SH/media"
 }
 
-build_filechooser() {   # lib/filechooser.c against /opt/f44's GTK 3 → $SH/bin/kawa-filechooser
+build_filechooser() {   # lib/filechooser.c against /opt/fk-stack's GTK 3 → $SH/bin/kawa-filechooser
   install -d -m 755 "$SH/bin"
-  PKG_CONFIG_PATH=$F44/lib/pkgconfig gcc -O2 -Wall -o "$SH/bin/kawa-filechooser" "$R/lib/filechooser.c" \
-    $(PKG_CONFIG_PATH=$F44/lib/pkgconfig pkg-config --cflags --libs gtk+-3.0) -Wl,-rpath,$F44/lib \
+  PKG_CONFIG_PATH=$STACK/lib/pkgconfig gcc -O2 -Wall -o "$SH/bin/kawa-filechooser" "$R/lib/filechooser.c" \
+    $(PKG_CONFIG_PATH=$STACK/lib/pkgconfig pkg-config --cflags --libs gtk+-3.0) -Wl,-rpath,$STACK/lib \
     2>"$LOG/filechooser-build.log" || warn "filechooser.c did not build (see $LOG/filechooser-build.log)"
 }
 
@@ -207,14 +207,14 @@ EOF
   install -d -m 755 -o "$K" -g "$K" "$SH/state"
   cat >"$SH/state/os-release" <<'EOF'
 NAME="Fedora Linux"
-VERSION="44 (Server Edition)"
+VERSION="45 (Server Edition)"
 RELEASE_TYPE=stable
 ID=fedora
-VERSION_ID=44
-PLATFORM_ID="platform:f44"
-PRETTY_NAME="Fedora Linux 44 (Server Edition)"
+VERSION_ID=45
+PLATFORM_ID="platform:f45"
+PRETTY_NAME="Fedora Linux 45 (Server Edition)"
 ANSI_COLOR="0;38;2;60;110;180"
-CPE_NAME="cpe:/o:fedoraproject:fedora:44"
+CPE_NAME="cpe:/o:fedoraproject:fedora:45"
 HOME_URL="https://fedoraproject.org/"
 VARIANT="Server Edition"
 VARIANT_ID=server
@@ -238,7 +238,7 @@ outer_apps() {
     [[ $t == dark || $t == light ]] || die "unknown theme '$t' (dark|light)"
     [[ -d $KH/.config/fedokawaii/themes/$t ]] || die "$KH/.config/fedokawaii/themes/$t missing — run theme.sh --user $K"
   done
-  for b in $F44/bin/{waybar,mako,makoctl,foot,footclient,wireplumber,wpctl} sway swaymsg grim swaybg \
+  for b in $STACK/bin/{waybar,mako,makoctl,foot,footclient,wireplumber,wpctl} sway swaymsg grim swaybg \
            wtype pipewire pw-cli pw-dump dbus-daemon notify-send jq setpriv unshare git curl unzip gcc pkg-config \
            ffmpeg btop zathura python3.13; do
     command -v "$b" >/dev/null || miss+=("$b")
@@ -383,8 +383,8 @@ home_setup() {   # what the user's home holds for the shots (all inside the over
   # the demo repository (shoot.sh's: staged, modified, untracked, ahead), now in the overlay
   demo_repo >/dev/null 2>&1
   # the user's font cache, current (written into the overlay)
-  setpriv --reuid="$KUID" --regid="$KGID" --init-groups env HOME="$KH" LD_LIBRARY_PATH="$F44/lib" \
-    "$F44/bin/fc-cache" "$KH/.local/share/fonts" >/dev/null 2>&1
+  setpriv --reuid="$KUID" --regid="$KGID" --init-groups env HOME="$KH" LD_LIBRARY_PATH="$STACK/lib" \
+    "$STACK/bin/fc-cache" "$KH/.local/share/fonts" >/dev/null 2>&1
 }
 
 demo_repo() {   # (replaces shoot.sh's) ~/repos/fedokawaii with a history: the repo's files committed
@@ -790,16 +790,16 @@ shot_system() {   # Super+U: the system's control (fedokawaii), from records as 
   : >"$st/lock"
   chmod -R a+rX "$st"
   mkdir -p /var/lib/fedokawaii && mount --bind "$st" /var/lib/fedokawaii || { warn "$T: no stand-in records"; return; }
-  # what a Fedora 44 machine answers (only for this window: the stand-ins are on its PATH alone)
+  # what a Fedora 45 machine answers (only for this window: the stand-ins are on its PATH alone)
   cat >"$sb/uname" <<'EOF'
 #!/bin/sh
-[ "$1" = -r ] && { echo 6.19.6-200.fc44.x86_64; exit 0; }
+[ "$1" = -r ] && { echo 6.19.6-200.fc45.x86_64; exit 0; }
 exec /usr/bin/uname "$@"
 EOF
   cat >"$sb/rpm" <<'EOF'
 #!/bin/sh
-echo "kernel-core-6.19.6-200.fc44.x86_64            Thu 03 Sep 2026 10:12:41 AM +04"
-echo "kernel-core-6.18.12-200.fc44.x86_64           Wed 05 Aug 2026 09:31:07 AM +04"
+echo "kernel-core-6.19.6-200.fc45.x86_64            Thu 03 Sep 2026 10:12:41 AM +04"
+echo "kernel-core-6.18.12-200.fc45.x86_64           Wed 05 Aug 2026 09:31:07 AM +04"
 EOF
   cat >"$sb/df" <<'EOF'
 #!/bin/sh
@@ -828,7 +828,7 @@ EOF
 shot_share() {   # the screen-share picker: kawa-share fed what xdg-desktop-portal-wlr 0.8.4 sends
   local lines=$'Monitor: DP-1 Dell U2723QE\nMonitor: HDMI-A-1 LG HDR 4K\nWindow: Brave — Meet (0x1a)\nWindow: foot — ~/repos (0x2b)\n'
   printf '%s' "$lines" >"$W/share-input"; chown "$K:$K" "$W/share-input"
-  menu app-share k env PATH="$SH/share-bin:$SH/stubs:$F44/bin:$KH/.local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin" \
+  menu app-share k env PATH="$SH/share-bin:$SH/stubs:$STACK/bin:$KH/.local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin" \
     sh -c 'bash ${APPS_SHARE_TRACE:+-x} "$(command -v kawa-share)" <"$1"' sh "$W/share-input"
   [[ -f $LT/app-share.log ]] && mv -f "$LT/app-share.log" "$LT/share.log"
 }
@@ -850,7 +850,7 @@ EOF
   chmod 755 "$SH/torrra-bin/systemctl"
   # as the launcher entry starts it (kawa-term kawa-torrra --open): the search screen
   TAPP=app-torrra
-  k env PATH="$SH/torrra-bin:$SH/stubs:$F44/bin:$KH/.local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin" \
+  k env PATH="$SH/torrra-bin:$SH/stubs:$STACK/bin:$KH/.local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin" \
     KAWA_TORRRA_VENV="$SH/torrra-venv" footclient -E -a "$TAPP" -D "$KH" -- "$SH/bin/kawa-torrra" --open >>"$LT/torrra.log" 2>&1 &
   TPID=$!
   waitfor 10 "the torrra window" win_geom "$TAPP" || { kill "$fp"; return; }

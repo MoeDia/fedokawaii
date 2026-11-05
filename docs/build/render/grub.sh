@@ -2,7 +2,7 @@
 # render/grub.sh OUT.png — the boot menu, drawn by GRUB itself: the theme theme.sh installed
 # (/boot/grub2/themes/sumi, for a 1920x1080 screen) on a GRUB 2.12 rescue CD booted in QEMU
 # with UEFI firmware (OVMF), and the screen taken from QEMU's monitor while the countdown runs.
-# The entries are the ones Fedora 44's grub.cfg lists on this desktop right after an update:
+# The entries are the ones Fedora's grub.cfg lists on this desktop right after an update:
 # the new kernel, the one before it (kept until the new one has started once; setup keeps no
 # rescue entry), and the firmware settings.
 # Needs: grub-mkrescue with the x86_64-efi modules, xorriso, mtools, qemu-system-x86_64, OVMF,
@@ -26,8 +26,8 @@ set theme=($root)/boot/grub/themes/sumi/theme.txt
 export theme
 set timeout_style=menu
 set timeout=300
-menuentry 'Fedora Linux (7.0.12-201.fc44.x86_64) 44 (Forty Four)' { true }
-menuentry 'Fedora Linux (7.0.10-200.fc44.x86_64) 44 (Forty Four)' { true }
+menuentry 'Fedora Linux (7.2.15-300.fc45.x86_64) 45 (Forty Five)' { true }
+menuentry 'Fedora Linux (7.2.13-300.fc45.x86_64) 45 (Forty Five)' { true }
 menuentry 'UEFI Firmware Settings' { fwsetup }
 EOF
 grub-mkrescue -o "$W/grub.iso" "$W/iso" >/dev/null 2>&1

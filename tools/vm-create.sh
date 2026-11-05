@@ -7,12 +7,12 @@
 # networking with the guest's ssh on a local port, a virtio GPU (dwl draws there), the serial
 # console logged. Its files live in ~/VM/harness/NAME/; the finished install becomes
 # base.qcow2 (never written again) and every run uses an overlay over it (tools/vm-snap.sh).
-#   bash tools/vm-create.sh NAME [--release 44] [--port 2222] [--ram 8192] [--cpus 6] [--disk 60]
+#   bash tools/vm-create.sh NAME [--release 45] [--port 2222] [--ram 8192] [--cpus 6] [--disk 60]
 # The guest: user dia with no password at all (locked: the harness key, ~/VM/harness/id_ed25519,
 # and sudo without one); nothing of the owner's (his password, keys) ever goes in.
 # Exit 0 ready (ssh answers) · 1 the install failed (the serial log says why) · 2 misuse.
 set -u
-name="" release=44 port=2222 ram=8192 cpus=6 disk=60
+name="" release=45 port=2222 ram=8192 cpus=6 disk=60
 while (($#)); do
   case $1 in
     --release) release=$2; shift 2 ;;
@@ -25,7 +25,7 @@ while (($#)); do
     *) name=$1; shift ;;
   esac
 done
-[[ $name =~ ^[a-z0-9-]+$ ]] || { echo "usage: bash tools/vm-create.sh NAME [--release 44] [--port 2222]" >&2; exit 2; }
+[[ $name =~ ^[a-z0-9-]+$ ]] || { echo "usage: bash tools/vm-create.sh NAME [--release 45] [--port 2222]" >&2; exit 2; }
 H=$HOME/VM/harness
 D=$H/$name
 [[ -e $D ]] && { echo "vm-create: $D exists — tools/vm-snap.sh $name destroy first" >&2; exit 2; }

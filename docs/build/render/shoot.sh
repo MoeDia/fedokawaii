@@ -7,17 +7,17 @@
 #                                   bar menus notify term lock (default: all)
 #   SHOOT_NAMES="menu-file*"        of the menus, only those whose shot's name matches (a glob)
 #
-# The apps are the real ones at Fedora 44's versions (built into /opt/f44 by build.sh),
+# The apps are the real ones at Fedora's versions (built into /opt/fk-stack by build.sh),
 # run as the test user with the configs theme.sh installed, in a headless sway (standing
 # in for dwl). Every theme gets a fresh session inside its own PID + mount + UTS namespace
-# (hostname "fedokawaii", a Fedora 44 os-release): when the theme is done the namespace
+# (hostname "fedokawaii", a Fedora 45 os-release): when the theme is done the namespace
 # ends and takes every process it started with it. Shots → shots/<theme>/, logs →
 # logs/<theme>/, a summary of what the apps printed → logs/warnings.txt.
 set -uo pipefail
 SELF=$(readlink -f "$0")
 R=${SELF%/*}
 K=${SHOOT_USER:-kawau}
-F44=/opt/f44
+STACK=/opt/fk-stack
 X=/tmp/xdg-kawa                    # the session's XDG_RUNTIME_DIR
 SH=/tmp/shoot-kawa                 # stubs, helpers, state: readable by $K ($R may not be)
 OUT=$R/shots LOG=$R/logs
@@ -44,7 +44,7 @@ outer() {
     [[ $t == dark || $t == light ]] || die "unknown theme '$t' (dark|light)"
     [[ -d $KH/.config/fedokawaii/themes/$t ]] || die "$KH/.config/fedokawaii/themes/$t missing — run theme.sh --user $K"
   done
-  for b in $F44/bin/{waybar,mako,makoctl,foot,footclient,swaylock,wireplumber,wpctl} \
+  for b in $STACK/bin/{waybar,mako,makoctl,foot,footclient,swaylock,wireplumber,wpctl} \
            sway swaymsg grim swaybg wtype pipewire pw-cli pw-dump dbus-daemon notify-send jq setpriv unshare; do
     command -v "$b" >/dev/null || miss+=("$b")
   done
@@ -61,14 +61,14 @@ outer() {
   install -d -m 755 -o "$K" -g "$K" "$SH/state"
   cat >"$SH/state/os-release" <<'EOF'
 NAME="Fedora Linux"
-VERSION="44 (Server Edition)"
+VERSION="45 (Server Edition)"
 RELEASE_TYPE=stable
 ID=fedora
-VERSION_ID=44
-PLATFORM_ID="platform:f44"
-PRETTY_NAME="Fedora Linux 44 (Server Edition)"
+VERSION_ID=45
+PLATFORM_ID="platform:f45"
+PRETTY_NAME="Fedora Linux 45 (Server Edition)"
 ANSI_COLOR="0;38;2;60;110;180"
-CPE_NAME="cpe:/o:fedoraproject:fedora:44"
+CPE_NAME="cpe:/o:fedoraproject:fedora:45"
 HOME_URL="https://fedoraproject.org/"
 VARIANT="Server Edition"
 VARIANT_ID=server
@@ -79,8 +79,8 @@ EOF
   # user's font cache fresh (the real tools: /usr/local/bin may hold test stand-ins)
   [[ -x /usr/bin/dconf ]] && /usr/bin/dconf update 2>/dev/null
   setpriv --reuid="$KUID" --regid="$KGID" --init-groups env HOME="$KH" /usr/bin/fc-cache "$KH/.local/share/fonts" >/dev/null 2>&1
-  [[ -x $F44/bin/fc-cache ]] && setpriv --reuid="$KUID" --regid="$KGID" --init-groups \
-    env HOME="$KH" LD_LIBRARY_PATH="$F44/lib" "$F44/bin/fc-cache" "$KH/.local/share/fonts" >/dev/null 2>&1
+  [[ -x $STACK/bin/fc-cache ]] && setpriv --reuid="$KUID" --regid="$KGID" --init-groups \
+    env HOME="$KH" LD_LIBRARY_PATH="$STACK/lib" "$STACK/bin/fc-cache" "$KH/.local/share/fonts" >/dev/null 2>&1
 
   demo_repo
 
@@ -176,17 +176,17 @@ session() {
   rm -rf "$X"; install -d -m 700 -o "$K" -g "$K" "$X"
   KENV=(
     HOME="$KH" USER="$K" LOGNAME="$K" SHELL=/bin/bash LANG=C.UTF-8 TZ=Asia/Dubai
-    PATH="$SH/stubs:$F44/bin:$KH/.local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
-    LD_LIBRARY_PATH="$F44/lib" TERMINFO_DIRS="$F44/share/terminfo:/usr/share/terminfo"
+    PATH="$SH/stubs:$STACK/bin:$KH/.local/bin:/usr/local/sbin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin"
+    LD_LIBRARY_PATH="$STACK/lib" TERMINFO_DIRS="$STACK/share/terminfo:/usr/share/terminfo"
     XDG_RUNTIME_DIR="$X" DBUS_SESSION_BUS_ADDRESS="unix:path=$X/bus"
     XDG_SESSION_TYPE=wayland XDG_SESSION_DESKTOP=dwl XDG_CURRENT_DESKTOP=wlroots
     XKB_DEFAULT_LAYOUT=us,ara XKB_DEFAULT_OPTIONS=grp:alt_shift_toggle
     GDK_BACKEND=wayland,x11 QT_QPA_PLATFORM="wayland;xcb" QT_QPA_PLATFORMTHEME=qt6ct
     EDITOR=nvim VISUAL=nvim TERMINAL=foot BROWSER=kawa-browser XCURSOR_THEME=Adwaita XCURSOR_SIZE=24
     STUB_STATE="$SH/state" XDG_STATE_HOME="$SH/state/xdg-state"
-    # WirePlumber 0.5.18 (/opt/f44) must not pick up Ubuntu's 0.4 files in /usr/share
-    WIREPLUMBER_DATA_DIR="$F44/share/wireplumber" WIREPLUMBER_CONFIG_DIR="$F44/share/wireplumber"
-    # glib comes from /opt/f44 too: GSettings must still find the system's dconf backend,
+    # WirePlumber 0.5.18 (/opt/fk-stack) must not pick up Ubuntu's 0.4 files in /usr/share
+    WIREPLUMBER_DATA_DIR="$STACK/share/wireplumber" WIREPLUMBER_CONFIG_DIR="$STACK/share/wireplumber"
+    # glib comes from /opt/fk-stack too: GSettings must still find the system's dconf backend,
     # or GTK quietly falls back to Adwaita instead of adw-gtk3
     GIO_EXTRA_MODULES=/usr/lib/x86_64-linux-gnu/gio/modules
   )
@@ -458,7 +458,7 @@ shot_notify() {
   rm -f "$pic" "$thumb"
   # an application's notice with a Papirus icon, title and a two-line body
   notice notify-app k notify-send -a Helium -i helium "Download complete" \
-    "fedora-44-x86_64-netinst.iso was saved to Downloads (1.1 GB)"
+    "fedora-45-x86_64-netinst.iso was saved to Downloads (1.1 GB)"
   # critical: what autostart's keep() sends when a helper keeps crashing
   notice notify-critical k notify-send -u critical "waybar keeps stopping" \
     "it was restarted 4 times in a minute; see ~/.cache/dwl.log"

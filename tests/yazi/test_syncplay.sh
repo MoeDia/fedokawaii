@@ -426,7 +426,7 @@ play; eq "$(pos)" 2; bye
 VER=$("$MPV" --no-config --version | head -n1 | grep -oE '[0-9]+\.[0-9]+' | head -n1)
 if [[ -z $SP ]]; then printf '  – skipped: syncplay is not installed (the real session)\n'; done_; exit; fi
 if [[ $(printf '%s\n' "$VER" 0.38 | sort -V | head -n1) != 0.38 ]]; then
-  printf '  – skipped: mpv %s is older than 0.38 (the real session; Fedora 44 has 0.41)\n' "$VER"; done_; exit
+  printf '  – skipped: mpv %s is older than 0.38 (the real session; Fedora 45 has 0.41)\n' "$VER"; done_; exit
 fi
 if [[ -z $FFMPEG ]]; then printf '  – skipped: ffmpeg is not installed (it makes the films)\n'; done_; exit; fi
 SPD=$(dirname "$(readlink -f "$SP")")

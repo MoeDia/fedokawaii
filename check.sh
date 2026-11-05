@@ -38,9 +38,9 @@ section "platform"
 source /etc/os-release
 check "x86_64 CPU ($(uname -m))"                   test "$(uname -m)" = x86_64
 if [[ ${ID:-} != fedora ]]; then fail "Fedora Linux" "this is ${PRETTY_NAME:-unknown}"
-elif ((VERSION_ID < 44)); then fail "Fedora $VERSION_ID" "too old — needs 44 or 45 (dnf5, wlroots 0.20). Upgrade or reinstall"
-elif [[ ${REDHAT_BUGZILLA_PRODUCT_VERSION:-} == rawhide ]]; then warn "Fedora Rawhide ($VERSION_ID)" "Fedora's development branch, changing every day — tested on the releases 44 and 45"
-elif ((VERSION_ID > 45)); then warn "Fedora $VERSION_ID" "newer than tested (44/45): setup can build dwl only if this release has its wlroots (network, below)"
+elif ((VERSION_ID < FEDORA_RELEASE)); then fail "Fedora $VERSION_ID" "too old — fedokawaii is made for Fedora $FEDORA_RELEASE. Install that"
+elif [[ ${REDHAT_BUGZILLA_PRODUCT_VERSION:-} == rawhide ]]; then warn "Fedora Rawhide ($VERSION_ID)" "Fedora's development branch, changing every day — tested on the release $FEDORA_RELEASE"
+elif ((VERSION_ID > FEDORA_RELEASE)); then warn "Fedora $VERSION_ID" "newer than tested ($FEDORA_RELEASE): setup can build dwl only if this release has its wlroots (network, below)"
 else pass "Fedora $VERSION_ID (supported)"; fi
 # the starting point: the installer's Custom Operating System (Fedora's core, no edition named:
 # os-release has no VARIANT_ID — what the handbook picks) or Server's Minimal Install. Any other
@@ -201,7 +201,7 @@ if [[ -f /usr/local/lib/fedokawaii-wlroots-$DWL_WLROOTS/cflags ]]; then
   pass "wlroots $DWL_WLROOTS: dwl's own copy is kept"
 elif w=$(dnf -q repoquery --whatprovides "pkgconfig(wlroots-$DWL_WLROOTS)" --qf '%{name}-%{version}\n' 2>/dev/null); then
   if [[ -n $w ]]; then pass "wlroots $DWL_WLROOTS in this Fedora ($(head -n1 <<<"$w")) — dwl $DWL_TAG builds"
-  else fail "wlroots $DWL_WLROOTS is not in Fedora $VERSION_ID" "dwl $DWL_TAG needs it: install Fedora 44 or 45, then move up with fedokawaii upgrade"; fi
+  else fail "wlroots $DWL_WLROOTS is not in Fedora $VERSION_ID" "dwl $DWL_TAG needs it: install Fedora $FEDORA_RELEASE, then move up with fedokawaii upgrade"; fi
 else warn "could not ask the repositories for wlroots $DWL_WLROOTS" "offline? setup checks again when it builds dwl"; fi
 # …and the COPR (LACT): one not built for this release yet — a new Fedora's first days — is
 # only a warning: setup leaves its packages out, and update or repair add them once it is built

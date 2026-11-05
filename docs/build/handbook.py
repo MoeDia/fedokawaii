@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The machinery docs/build/learn.py prints the Learn book with: Markdown and REAL renders
-($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora 44's versions) to a PDF."""
+($FEDOKAWAII_SCRATCH/real/shots/{dark,light}: the real apps at Fedora's versions) to a PDF."""
 import re
 import os
 import sys

@@ -1,7 +1,7 @@
 ---
 title: "Fedokawaii — the handbook"
 subtitle: "Learning Linux on a hand-drawn Fedora desktop, from the first USB stick to how it all works"
-date: "October 2026 · Fedora 44 / 45 · dwl 0.9 · wlroots 0.20"
+date: "November 2026 · Fedora 45 · dwl 0.9 · wlroots 0.20"
 ---
 
 <!-- fig:desktop-dark | The desktop on the dark theme: the bar on top, a terminal with the prompt, fetch and a listing. -->
@@ -269,8 +269,8 @@ around it.
 
 | Layer | What it is | On this machine | See it (you will run these in ch. 11) |
 |---|---|---|---|
-| kernel | Linux itself, plus its drivers (modules) | the Fedora kernel package | `uname -r` → `7.2.8-200.fc44.x86_64` (for example) |
-| distribution | the kernel and everything around it, as one tested release | Fedora Linux 44 or 45 | `cat /etc/fedora-release` → `Fedora release 44 (Forty Four)` |
+| kernel | Linux itself, plus its drivers (modules) | the Fedora kernel package | `uname -r` → `7.2.15-300.fc45.x86_64` (for example) |
+| distribution | the kernel and everything around it, as one tested release | Fedora Linux 45 | `cat /etc/fedora-release` → `Fedora release 45 (Forty Five)` |
 | desktop | the programs that draw windows and take input | dwl, waybar, mako, kawa-panel, foot | `dwl -v` → `dwl v0.9-dirty` (*dirty*: built with this desktop's patch) |
 
 The same kernel runs phones, servers and supercomputers. What makes this machine a desktop
@@ -292,8 +292,8 @@ Microsoft Windows 11 Pro 10.0.26100
 
 | Column | It means |
 |---|---|
-| `Caption` | the name of the whole system — like *Fedora Linux 44* |
-| `Version` | the version of its core: Windows 11 still has kernel version 10.0 — like `7.2.8` for Linux |
+| `Caption` | the name of the whole system — like *Fedora Linux 45* |
+| `Version` | the version of its core: Windows 11 still has kernel version 10.0 — like `7.2.15` for Linux |
 
 The name of the whole and the version of its kernel are two different things — on Windows
 and on Linux alike.
@@ -306,13 +306,13 @@ Cloud, CoreOS and IoT, with Atomic desktops, Spins and Labs beside them. This de
 from the **Server** installer, choosing **Custom Operating System** (§4.2) instead of the Server
 edition itself: the smallest set that boots, logs in and connects to a network — Fedora's
 `@core` package group — and adds everything else on purpose. A system installed that way
-belongs to no edition: it calls itself plain *Fedora Linux 44*.
+belongs to no edition: it calls itself plain *Fedora Linux 45*.
 
 | Fact | Value |
 |---|---|
 | a new release | about every six months, aimed at April and October |
 | support for each release | until four weeks after the release two later: about thirteen months |
-| recent releases | Fedora 43 on 28 October 2025, Fedora 44 on 28 April 2026; Fedora 45 is in beta in October 2026 |
+| recent releases | Fedora 43 on 28 October 2025, 44 on 28 April 2026, 45 on 3 November 2026 |
 | where the date is written | `grep SUPPORT_END /etc/os-release` |
 
 > **Word — upstream.** The project that writes a program, as opposed to the distributions that
@@ -480,12 +480,11 @@ AMD x86_64 systems*, download two files: the *DVD* image, and the checksum file 
 
 | File | What it is |
 |---|---|
-| `Fedora-Server-dvd-x86_64-44-1.7.iso` | the installer image, the *DVD ISO* — the one with everything on it |
-| `Fedora-Server-44-1.7-x86_64-CHECKSUM` | a small text file of fingerprints, one per image |
+| `Fedora-Server-dvd-x86_64-45-1.4.iso` | the installer image, the *DVD ISO* — the one with everything on it |
+| `Fedora-Server-45-1.4-x86_64-CHECKSUM` | a small text file of fingerprints, one per image |
 
 Both land in your *Downloads* folder. (If the page offers a newer release, take that one and
-read its number wherever this book says 44. The desktop is made for 44 and 45 alike; a box
-headed *On Fedora 45* marks each place where 45 looks different.)
+read its number wherever this book says 45.)
 
 > **Word — checksum.** A short fingerprint computed from every byte of a file. Change one byte
 > and the fingerprint changes completely. Like the two check digits in an IBAN, which catch a
@@ -502,8 +501,8 @@ PS C:\Users\you> cd ~\Downloads
 PS C:\Users\you\Downloads> Get-FileHash -Algorithm SHA256 .\Fedora-Server-dvd*.iso | Format-List
 
 Algorithm : SHA256
-Hash      : 85837793BFA36DB6BC709B4CECD2EC116951B87D9C53C3D95EB2FAC8DCF7CF1F
-Path      : C:\Users\you\Downloads\Fedora-Server-dvd-x86_64-44-1.7.iso
+Hash      : FCC0F623708DDBD7656DF152510BA018BAD618BFC99879E73809255FB11A48FF
+Path      : C:\Users\you\Downloads\Fedora-Server-dvd-x86_64-45-1.4.iso
 ```
 
 | You typed | It means |
@@ -516,8 +515,8 @@ Now open the CHECKSUM file in Notepad. Among the lines for other images is the o
 yours (one line in the file, broken here to fit the page):
 
 ```text
-SHA256 (Fedora-Server-dvd-x86_64-44-1.7.iso) =
-85837793bfa36db6bc709b4cecd2ec116951b87d9c53c3d95eb2fac8dcf7cf1f
+SHA256 (Fedora-Server-dvd-x86_64-45-1.4.iso) =
+fcc0f623708ddbd7656df152510ba018bad618bfc99879e73809255fb11a48ff
 ```
 
 PowerShell writes the hash in capitals; the file in small letters. They are **the same** hash:
@@ -553,7 +552,7 @@ whether it may make changes: *Yes*.
 *Select .iso file*. Choose **Select .iso file**, then *Next*.
 
 **4.** On *Write Options*, click *Select…* beside *Selected file* and pick
-`Fedora-Server-dvd-x86_64-44-1.7.iso` in *Downloads*. Under *USB Drive*, pick your stick —
+`Fedora-Server-dvd-x86_64-45-1.4.iso` in *Downloads*. Under *USB Drive*, pick your stick —
 check its name and size.
 
 **5.** Click **Write**. An *Erase confirmation* asks once more: the entire device will be
@@ -641,8 +640,8 @@ Advanced options → UEFI Firmware Settings → Restart*. In the firmware's sett
 **UEFI:**. Secure Boot may stay on: Fedora's start-up programs are signed (ch. 29
 explains how).
 
-**What you should see:** a dark screen with a short menu — *Install Fedora 44*, *Test this
-media & install Fedora 44* and *Troubleshooting*. That is the installer's start, and ch.
+**What you should see:** a dark screen with a short menu — *Install Fedora 45*, *Test this
+media & install Fedora 45* and *Troubleshooting*. That is the installer's start, and ch.
 4 goes on from there.
 
 > **On Windows.** The boot menu is a one-time choice, like *Use a device* on Windows'
@@ -687,20 +686,19 @@ The installer stick starts with a short menu:
 
 | Entry | What it does |
 |---|---|
-| *Install Fedora 44* | starts the installer at once |
-| *Test this media & install Fedora 44* | first reads the whole stick and checks it, then starts the installer — chosen by itself after 60 seconds |
-| *Troubleshooting -->* | more entries, among them *Install Fedora 44 in basic graphics mode*, for a screen that stays black |
+| *Install Fedora 45* | starts the installer at once |
+| *Test this media & install Fedora 45* | first reads the whole stick and checks it, then starts the installer — chosen by itself after 60 seconds |
+| *Troubleshooting -->* | more entries, among them *Install Fedora 45 in basic graphics mode*, for a screen that stays black |
 
-Choose **Test this media & install Fedora 44** this once (the arrow keys, then **Enter**). A
+Choose **Test this media & install Fedora 45** this once (the arrow keys, then **Enter**). A
 stick that passed Media Writer's check rarely fails, but this check is free.
 
-The first screen says **WELCOME TO FEDORA 44.** and asks *What language would you like to
+The first screen says **WELCOME TO FEDORA 45.** and asks *What language would you like to
 use during the installation process?* Choose *English* and *English (United States)*, then
 *Continue*.
 
-> **On Fedora 45.** The menu reads *Install Fedora 45* and the first screen *WELCOME TO
-> FEDORA 45.*; every other screen in this chapter is the same, word for word, in another
-> typeface. Fedora 45's new web-based installer is for its Atomic desktops, not for Server.
+> Fedora 45's new web-based installer is for its Atomic desktops, not for Server: this is the
+> installer you get.
 
 The next screen is the centre of the installer: **INSTALLATION SUMMARY**.
 
@@ -774,7 +772,7 @@ settings (§8.2).
 Back on the hub, the spoke reads *Custom partitioning selected*.
 
 > **If the disk held Linux before** (an earlier Fedora, a first try at this install), its old
-> parts are listed under that system's name — *Fedora Linux 44 for x86_64*, or *New Fedora 44
+> parts are listed under that system's name — *Fedora Linux 45 for x86_64*, or *New Fedora 45
 > Installation* for mount points made on a try that was cut short. Delete every such group as
 > in step 3 until the bottom left reads *Available space* almost equal to *Total space*;
 > **Click here to create them automatically** only fills free space, and says *not enough
@@ -825,9 +823,8 @@ Password:
 
 *(for example: the name before `login:` is the machine's name)*
 
-> **On Fedora 45.** The same `login:` line, in a font of its own: the console is drawn by
-> **kmscon**, a program, instead of by the kernel (§11.1). Everything in this chapter works
-> on it as written.
+> The console is drawn by **kmscon**, a program, instead of by the kernel (§11.1). Everything in
+> this chapter works on it as written.
 
 The last line is the **prompt**: the computer is waiting for a command.
 
@@ -1170,7 +1167,7 @@ fedokawaii.conf
 
 platform
   ✔ x86_64 CPU (x86_64)
-  ✔ Fedora 44 (supported)
+  ✔ Fedora 45 (supported)
   ✔ Fedora's minimal base (Custom Operating System, no edition)
 …
 ✔ READY for setup — 44 checks passed, 1 warning(s)
@@ -1280,7 +1277,7 @@ The login screen is where Part II begins (ch. 6).
 On screen, each step starts with a line such as `── 1.4 full system update` and ends with
 `✔ 1.4 full system update`, after the time; the commands it runs scroll by in between. After a restart the
 first line is the header again, with the new phase:
-`── Fedokawaii setup · Fedora 44 · phase 2 · you · with theme`.
+`── Fedokawaii setup · Fedora 45 · phase 2 · you · with theme`.
 
 
 How long it takes depends mostly on your connection: every phase downloads before it builds,
@@ -1322,7 +1319,7 @@ sudo tail -f /var/log/fedokawaii.log         # the log as it grows; Ctrl+C stops
 Halfway through, *status* prints (with your user name in place of *you*):
 
 ```text
-phase 2 · user you · Fedora 44 · theme with setup
+phase 2 · user you · Fedora 45 · theme with setup
   ✔ 1.0 readiness check
   ✔ 1.1 record user-installed packages
   ✔ 1.2 dnf5 tuning
@@ -1462,7 +1459,7 @@ lines, below the reason:
 ```
 
 There is no login prompt on tty1 itself: **Alt+F2** switches to the second console, where you
-log in. (On a text console, **Alt+F2** does what **Ctrl+Alt+F2** does. On Fedora 45 the second console is kmscon's, which takes only the Ctrl+Alt keys: **Ctrl+Alt+F1** comes back.) If the build was already in place and only its last check failed, the lines say
+log in. (The second console is kmscon's, which takes only the Ctrl+Alt keys: **Ctrl+Alt+F1** comes back.) If the build was already in place and only its last check failed, the lines say
 instead: *Restart the computer, log in, then run: fedokawaii repair*.
 
 **Part I, looking back.**
@@ -1545,9 +1542,10 @@ straight back — press **Ctrl+Alt+F2**, log in on the text console there, and r
 **How it works: the console's look.** The text console under the login screen (tty1, where setup ran) always uses the dark theme's 16
 colours (set as the kernel parameters `vt.default_red`, `vt.default_grn` and
 `vt.default_blu`, sixteen numbers each) and Terminus bold — 8×16, the size of Fedora's own console font (240 × 67 characters at 1080p),
-and 16×32 from 2160p up, where 8×16 is too small to read. On Fedora 44 the spare consoles (**Ctrl+Alt+F2…F6**) look the same; Fedora 45 runs
-kmscon there — a console that runs as an ordinary program instead of inside the kernel — which
-keeps its own colours and font (`/etc/kmscon/kmscon.conf`). To see the palette the kernel was
+and 16×32 from 2160p up, where 8×16 is too small to read. The spare consoles (**Ctrl+Alt+F2…F6**) run
+kmscon — a console that runs as an ordinary program instead of inside the kernel — which
+keeps its own colours and font (`/etc/kmscon/kmscon.conf`). (fedokawaii's own ISO leaves kmscon
+out, and a machine moved up from an earlier Fedora never had it: there they look the same.) To see the palette the kernel was
 given (the first number is the red of the ink ground, `0f` in hex):
 
 ```sh
@@ -3140,12 +3138,13 @@ a command is written after `$ `; on your screen you type it after `›`. Do not 
 > split as foot and bash here. The console, full-screen text with no windows at all, has no
 > everyday Windows counterpart: you met it at the login.
 
-On Fedora 44 the consoles are drawn by the kernel itself. Fedora 45 moves them to **kmscon**,
+Fedora's consoles are drawn by **kmscon**,
 a console that runs as an ordinary program and draws through KMS (§31.1), with
 its own font and colours; greetd keeps tty1 for itself (its drop-in declares a conflict with
-`kmsconvt@tty1.service`), so the login looks the same on both.
+`kmsconvt@tty1.service`). (fedokawaii's own ISO leaves kmscon out, and a machine moved up from an
+earlier Fedora never had it: there the kernel draws them.)
 
-> **On Fedora 45.** `tty` on **Ctrl+Alt+F2** prints a PTY — `/dev/pts/0`, say — not
+> `tty` on **Ctrl+Alt+F2** prints a PTY — `/dev/pts/0`, say — not
 > `/dev/tty2`: kmscon is a terminal emulator, like foot, with a PTY for each console.
 
 ## 11.2 The shell's words
@@ -6582,7 +6581,7 @@ hands only by use.
 
 | When | Do | Why |
 |---|---|---|
-| day 1 | `nvim --clean +Tutor`, about 30 minutes; then, in the same neovim, `:Tutor vim-02-beginner` (neovim 0.11.3 and later; Fedora 44 has 0.12). Inside LazyVim `:Tutor` is switched off | the official lessons, in plain neovim without LazyVim's changes, exactly as written (`vimtutor` belongs to Vim, which is not installed) |
+| day 1 | `nvim --clean +Tutor`, about 30 minutes; then, in the same neovim, `:Tutor vim-02-beginner` (neovim 0.11.3 and later; Fedora 45 has 0.12). Inside LazyVim `:Tutor` is switched off | the official lessons, in plain neovim without LazyVim's changes, exactly as written (`vimtutor` belongs to Vim, which is not installed) |
 | week 1 | the first hour above, again each day: moving, typing, `x`, `dd`, `u`, `:w`, `:q` | until you stop reaching for the mouse and the arrows |
 | week 2 | the grammar: `dw`, `cw`, `ciw`, `ci"`, `dt)` — and `.` | every verb you know multiplies with every motion |
 | week 3 | Space Space, Space /, Space e, buffers and splits | moving between files as quickly as within one |
@@ -7605,16 +7604,16 @@ the cursor (§10.3).
 **Checksums.** To check a download against the checksum its website publishes:
 
 ```sh
-sha256sum Fedora-Server-dvd-x86_64-44-1.7.iso                               # prints it
-echo 'PASTED-CHECKSUM  Fedora-Server-dvd-x86_64-44-1.7.iso' | sha256sum -c  # OK or FAILED
-sha256sum -c --ignore-missing Fedora-Server-44-1.7-x86_64-CHECKSUM          # a checksum file
+sha256sum Fedora-Server-dvd-x86_64-45-1.4.iso                               # prints it
+echo 'PASTED-CHECKSUM  Fedora-Server-dvd-x86_64-45-1.4.iso' | sha256sum -c  # OK or FAILED
+sha256sum -c --ignore-missing Fedora-Server-45-1.4-x86_64-CHECKSUM          # a checksum file
 ```
 
 Two spaces go between the checksum and the name. A signed checksum file adds a warning about
 "improperly formatted lines" — its signature — which is harmless; the `OK` is what counts:
 
 ```text
-Fedora-Server-dvd-x86_64-44-1.7.iso: OK
+Fedora-Server-dvd-x86_64-45-1.4.iso: OK
 sha256sum: WARNING: … lines are improperly formatted
 ```
 
@@ -8165,7 +8164,7 @@ only by asking the kernel.
 
 ```text
 $ uname -r
-7.2.8-200.fc44.x86_64
+7.2.15-300.fc45.x86_64
 $ echo "$XDG_CURRENT_DESKTOP"
 wlroots
 ```
@@ -8174,7 +8173,7 @@ wlroots
 
 | You typed | It means |
 |---|---|
-| `uname -r` | the running kernel's version: Linux 7.2.8, Fedora's build 200, for Fedora 44 |
+| `uname -r` | the running kernel's version: Linux 7.2.15, Fedora's build 300, for Fedora 45 |
 | `echo "$XDG_CURRENT_DESKTOP"` | the session's name for itself, set when you log in (§29.8) |
 
 > **On Windows.** The layers are the same with other names: the firmware, the NT kernel and its
@@ -8237,7 +8236,7 @@ desktop built itself, under `/usr/local`, belong to none.
 
 ```text
 $ rpm -qf /usr/bin/foot
-foot-…fc44.x86_64
+foot-…fc45.x86_64
 $ rpm -qf /usr/local/bin/dwl
 file /usr/local/bin/dwl is not owned by any package
 ```
@@ -8374,7 +8373,7 @@ The folders that matter, each with an example from this machine:
 | `/etc` | system settings, as text | `/etc/greetd/fedokawaii.toml`, `/etc/dnf/libdnf5.conf.d/` |
 | `/var` | data that changes as the system runs: logs, caches, databases | `/var/log/journal`, `/var/lib/fedokawaii`, `/var/cache/libdnf5` |
 | `/home` | each user's own folder | `/home/you` (`~`) |
-| `/boot` | the kernels, their initramfs images (the start-up's first stage, ch. 29) and GRUB; `/boot/efi` is the EFI partition | `/boot/vmlinuz-7.2.8-200.fc44.x86_64` |
+| `/boot` | the kernels, their initramfs images (the start-up's first stage, ch. 29) and GRUB; `/boot/efi` is the EFI partition | `/boot/vmlinuz-7.2.15-300.fc45.x86_64` |
 | `/run` | runtime state, in memory, gone at shutdown | `/run/user/1000` (your `$XDG_RUNTIME_DIR`: the Wayland and D-Bus sockets) |
 | `/tmp` | temporary files, in memory (tmpfs), emptied at each start | yazi's previews |
 | `/proc` | the kernel's view of processes and settings, made up as you read it | `/proc/cmdline`, `/proc/1234/status` |
@@ -8598,9 +8597,9 @@ bin  dev   home  lib64  mnt    proc  run   srv   tmp  var
 ```text
 $ cat /etc/os-release
 NAME="Fedora Linux"
-VERSION="44 (Forty Four)"
+VERSION="45 (Forty Five)"
 …
-PRETTY_NAME="Fedora Linux 44 (Forty Four)"
+PRETTY_NAME="Fedora Linux 45 (Forty Five)"
 …
 ```
 
@@ -8903,7 +8902,7 @@ does not ask again. Fedora's `/etc/sudoers` allows it to the `wheel` group with 
 with `sudo visudo`, which checks the file before it saves it, so a slip cannot lock you out; for
 any other system file, `sudoedit FILE` opens a copy in neovim as you and puts it in place as
 root. Fedora still ships the original sudo; a proposal to switch to sudo-rs, a Rust rewrite,
-was drafted for Fedora 44 but has not been accepted.
+has been drafted but not accepted.
 
 > **On Windows.** The UAC prompt that dims the screen is the same idea: an administrator works
 > as an ordinary user and confirms each time more power is needed. Here the confirmation is
@@ -9878,12 +9877,12 @@ A package is one file, `NAME-VERSION-RELEASE.ARCH.rpm`.
 
 ```text
 $ rpm -q mpv
-mpv-0.41.0-5.fc44.x86_64
+mpv-0.41.0-10.fc45.x86_64
 ```
 
 The name, version, release and architecture together (the **NEVRA**, with an *epoch* in front
-when one is set) identify it exactly: `mpv-0.41.0-5.fc44.x86_64` is mpv 0.41.0, Fedora's fifth
-build of it, for Fedora 44, for 64-bit PCs.
+when one is set) identify it exactly: `mpv-0.41.0-10.fc45.x86_64` is mpv 0.41.0, Fedora's tenth
+build of it, for Fedora 45, for 64-bit PCs.
 
 | Part | Holds | See it with |
 |---|---|---|
@@ -9898,7 +9897,7 @@ dnf's job. Asking rpm is always safe:
 
 | Question | Command | Answer, for example |
 |---|---|---|
-| which package owns this file? | `rpm -qf /usr/bin/foot` | `foot-…fc44.x86_64` |
+| which package owns this file? | `rpm -qf /usr/bin/foot` | `foot-…fc45.x86_64` |
 | which files are in this package? | `rpm -ql greetd` | `/etc/greetd/config.toml`, `/usr/bin/greetd`, `/usr/lib/systemd/system/greetd.service`, … |
 | what is it, and from whom? | `rpm -qi ffmpeg-libs` | `Name : ffmpeg-libs` … `Vendor : RPM Fusion` … |
 | have its files changed since? | `rpm -V greetd` | nothing when they are as packaged; a line per changed file otherwise |
@@ -10016,7 +10015,7 @@ Not every dependency is a must, and dnf remembers why each package is there:
 The install reason is how `dnf autoremove` knows what may go: dependencies that nothing
 user-installed needs any more. Setup marks every manifest package *User*, so the clean-up can
 never take one (§38.1). Packages a group brought in carry the reason *Group*: a new release may
-add some (kmscon arrives with Fedora 45's `core` group), and `verify` counts them as Fedora's.
+add some (kmscon arrived with Fedora 45's `core` group), and `verify` counts them as Fedora's.
 
 ## 27.5 Keys and gpgcheck
 
@@ -10041,11 +10040,10 @@ includepkgs=claude-code
 `gpgcheck` (DNF 5's preferred name is `pkg_gpgcheck`) makes dnf refuse a package whose
 signature does not match. `includepkgs` limits what this repository may install to the one
 package. Setup checks the key's fingerprint against the one in `lib/manifest.sh` before
-trusting it; Fedora's own keys come with Fedora, in `/etc/pki/rpm-gpg/`.
+trusting it; Fedora's own keys come with Fedora, in `/usr/share/pki/rpm-gpg/`.
 
-> **On Fedora 45.** `ls /usr/share/dnf5/repos.d/` lists Fedora's own repository files, and
-> its keys are in `/usr/share/pki/rpm-gpg/`: Fedora 45 moved both out of `/etc`. The files
-> setup adds — Claude Code's, Helium's, the COPRs' — stay in `/etc/yum.repos.d/`.
+> `ls /usr/share/dnf5/repos.d/` lists Fedora's own repository files and RPM Fusion's, and its keys are in
+> `/usr/share/pki/rpm-gpg/`. The files setup adds — Claude Code's, Helium's, the COPRs' — stay in `/etc/yum.repos.d/`.
 
 *Read more:* [Enforcing signature checking by default](https://fedoraproject.org/wiki/Changes/Enforcing_signature_checking_by_default).
 
@@ -10152,7 +10150,7 @@ mpv                                   the player                           Fedor
 $ command -v mpv
 /usr/bin/mpv
 $ rpm -qf /usr/bin/mpv
-mpv-0.41.0-5.fc44.x86_64
+mpv-0.41.0-10.fc45.x86_64
 ```
 
 **2. What it needs.** mpv needs ffmpeg's decoding library, among many others. A library
@@ -10176,7 +10174,7 @@ ffmpeg`), which provides the same soname, so mpv uses it without being rebuilt:
 
 ```text
 $ rpm -q --whatprovides 'libavcodec.so.62()(64bit)'
-ffmpeg-libs-8.1.1-1.fc44.x86_64
+ffmpeg-libs-9.0.2-1.fc45.x86_64
 $ dnf repoquery --installed --qf '%{name}  %{from_repo}\n' mpv ffmpeg-libs
 ffmpeg-libs  rpmfusion-free-updates
 mpv  fedora
@@ -10188,7 +10186,7 @@ mpv  fedora
 
 ```sh
 rpm -q --requires ffmpeg-libs | grep '^libva'    # libva.so.2, libva-drm.so.2, …
-rpm -qf /usr/lib64/libva.so.2                     # libva-…fc44.x86_64
+rpm -qf /usr/lib64/libva.so.2                     # libva-…fc45.x86_64
 ```
 
 **5. The driver: a runtime link, not a dependency.** libva loads its driver *when it runs*,
@@ -10204,10 +10202,10 @@ libva info: va_openDriver() returns 0
 vainfo: VA-API version: 1.23 (libva 2.23.0)
 vainfo: Driver version: Mesa Gallium driver 26.0.6 for AMD Radeon RX 6700 XT (radeonsi, navi22, …)
 $ rpm -qf /usr/lib64/dri-freeworld/radeonsi_drv_video.so
-mesa-va-drivers-freeworld-26.0.6-1.fc44.x86_64
+mesa-va-drivers-freeworld-26.0.6-1.fc45.x86_64
 ```
 
-*(for example)* Since Fedora 44, Fedora's own VA-API drivers sit inside `mesa-dri-drivers`, in
+*(for example)* Fedora's own VA-API drivers sit inside `mesa-dri-drivers`, in
 `/usr/lib64/dri/`, with H.264 and HEVC switched off. RPM Fusion's freeworld build installs
 beside them into `/usr/lib64/dri-freeworld/`, a folder Fedora's libva provides for exactly
 this, and libva opens it first. Further down `vainfo` lists `VAProfileH264High`,
@@ -10224,8 +10222,8 @@ $ lspci -k -d ::0300
 	Kernel driver in use: amdgpu
 	Kernel modules: amdgpu
 $ rpm -q --whatprovides 'kmod(amdgpu.ko)'
-kernel-modules-7.2.7-200.fc44.x86_64
-kernel-modules-7.2.8-200.fc44.x86_64
+kernel-modules-7.2.7-200.fc45.x86_64
+kernel-modules-7.2.15-300.fc45.x86_64
 ```
 
 *(for example, shortened: the full name is* Navi 22 [Radeon RX 6700/6700 XT/6750 XT / 6800M/6850M
@@ -10236,7 +10234,7 @@ files at start-up:
 
 ```text
 $ rpm -qf /usr/lib/firmware/amdgpu/aldebaran_mec.bin.xz
-amd-gpu-firmware-20260916-1.fc44.noarch
+amd-gpu-firmware-20260916-1.fc45.noarch
 ```
 
 (`aldebaran_*` is the first file in the folder; each GPU loads its own, named after its chip.)
@@ -10317,7 +10315,7 @@ lists if its copy is old; that too only reads.
 
 ```text
 $ rpm -qf /usr/bin/foot
-foot-…fc44.x86_64
+foot-…fc45.x86_64
 $ rpm -qf ~/.bashrc
 file /home/you/.bashrc is not owned by any package
 ```
@@ -10337,7 +10335,7 @@ Installed packages
 Name            : mpv
 …
 Version         : 0.41.0
-Release         : 5.fc44
+Release         : 5.fc45
 Architecture    : x86_64
 …
 From repository : fedora
@@ -10693,8 +10691,8 @@ $ systemctl cat greetd
 [Unit]
 …
 # /etc/systemd/system/greetd.service.d/fedokawaii.conf
-# installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (Fedora 45 runs
-# kmscon there, earlier releases agetty)
+# installed by setup.sh: greetd reads fedokawaii.toml, and owns tty1 alone (kmscon runs there
+# on a Fedora Server installed by hand, agetty on any other)
 [Unit]
 Conflicts=getty@tty1.service kmsconvt@tty1.service
 After=getty@tty1.service kmsconvt@tty1.service
@@ -10872,16 +10870,16 @@ short while after an update brings a new kernel:
 
 ```text
 $ sudo ls /boot/loader/entries
-3f9c…e1-7.2.8-200.fc44.x86_64.conf
+3f9c…e1-7.2.15-300.fc45.x86_64.conf
 ```
 
 The long prefix is the machine's ID (`/etc/machine-id`). One entry, shortened:
 
 ```ini
-title Fedora Linux (7.2.8-200.fc44.x86_64) 44 (…)
-version 7.2.8-200.fc44.x86_64
-linux /vmlinuz-7.2.8-200.fc44.x86_64
-initrd /initramfs-7.2.8-200.fc44.x86_64.img
+title Fedora Linux (7.2.15-300.fc45.x86_64) 45 (…)
+version 7.2.15-300.fc45.x86_64
+linux /vmlinuz-7.2.15-300.fc45.x86_64
+initrd /initramfs-7.2.15-300.fc45.x86_64.img
 options root=UUID=… ro rootflags=subvol=root rhgb quiet amdgpu.ppfeaturemask=0xfff7ffff …
 ```
 
@@ -10957,7 +10955,7 @@ given are a file:
 
 ```text
 $ cat /proc/cmdline
-BOOT_IMAGE=(hd0,gpt2)/vmlinuz-7.2.8-200.fc44.x86_64 root=UUID=… ro rootflags=subvol=root rhgb …
+BOOT_IMAGE=(hd0,gpt2)/vmlinuz-7.2.15-300.fc45.x86_64 root=UUID=… ro rootflags=subvol=root rhgb …
 ```
 
 *(for example, shortened: the line goes on with `quiet amdgpu.ppfeaturemask=0xfff7ffff
@@ -11162,7 +11160,7 @@ It runs one desktop at a time: started again while the desktop runs (typed in a 
 another console), it says so and stops. Each login keeps the log of the session before as
 `~/.cache/dwl.log.old` — what dwl said before a crash.
 
-> **On Fedora 45.** `start-dwl` typed on a console of kmscon's (**Ctrl+Alt+F2**…) first asks
+> `start-dwl` typed on a console of kmscon's (**Ctrl+Alt+F2**…) first asks
 > kmscon to hand over the screen, through `kmscon-launch-gui`; when the desktop ends, kmscon
 > takes the screen back and shows that console again.
 
@@ -12591,8 +12589,8 @@ These words come up throughout this Part. The ones Part IV taught are there for 
 
 | Term | Plain meaning |
 |---|---|
-| update | newer versions of the packages of the release you have: Fedora 44 stays 44 |
-| upgrade, the move | going to the next release, 44 → 45: nearly every package is replaced in one go |
+| update | newer versions of the packages of the release you have: Fedora 45 stays 45 |
+| upgrade, the move | going to the next release, 45 → 46: nearly every package is replaced in one go |
 | kernel | the core of Linux, which drives the hardware (§2.1); each new one is installed beside the one before, which goes once the new one has proven itself (§29.5) |
 | transaction | one `dnf` run that installs, updates or removes a set of packages together (ch. 27) |
 | SELinux | Fedora's mandatory access control (ch. 34): rules in the kernel that limit what each program may touch, even when it runs as root. *Enforcing* means the rules are applied, not only logged; `getenforce` says which |
@@ -12655,16 +12653,16 @@ something still needs you, 4 (drift) in sync but for the boot menu and console, 
 
 ```text
 $ fedokawaii status
-release   Fedora 44
-support   until 2 Jun 2027 · in 230 days
-next      Fedora 45 · due about Oct 2026
-updated   17 Jul 2026 · 90 days ago
+release   Fedora 45
+support   until 8 Dec 2027 · in 399 days
+next      Fedora 46 · due about Apr 2027
+updated   6 Aug 2026 · 90 days ago
 due       now · every 90 days
 verified  179 checks passed · 90 days ago
 …         (then the running kernel and the free disk space)
 ```
 
-*(for example: Fedora 44 in mid-October 2026, ninety days after an update)*
+*(for example: Fedora 45 in early November 2026, ninety days after an update)*
 
 An update that stopped before its end (a power cut, no network) is not counted: `updated` keeps
 the last one that finished, and a line under it says `tried 16 Oct, stopped: see the log`.
@@ -12714,7 +12712,7 @@ verdict at the end:
 $ fedokawaii verify
 …
 system
-  ✔ Fedora 44 (44 or newer)
+  ✔ Fedora 45 (45 or newer)
   ✔ SELinux enforcing
   ✔ / is Btrfs
   …
@@ -12740,7 +12738,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 
 | Area | Checks |
 |---|---|
-| system | `fedokawaii.conf` valid · Fedora ≥ 44 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/Downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
+| system | `fedokawaii.conf` valid · Fedora ≥ 45 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/Downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
 | packages (lib/manifest.sh) | every manifest package installed · no lpf, nor what it left (it built Spotify's old app: a warning until update and repair take it out) · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
 | zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
 | repositories & dnf | RPM Fusion, Helium, Claude Code, COPRs · all seven DNF values |
@@ -12923,7 +12921,7 @@ the background:
 
 | Would otherwise | Here |
 |---|---|
-| DNF fetches package lists every three hours or so (its *makecache* timer: ten minutes after boot, then three hours after each run, plus up to an hour at random) | off: lists are fetched when you update (`dnf upgrade --refresh`). The timer is *masked*, not just disabled — Fedora 44 ships it switched on by a link of its own package, which `disable` cannot undo; `systemctl is-enabled dnf5-makecache.timer` says `masked` (`systemctl unmask` would undo it) |
+| DNF fetches package lists every three hours or so (its *makecache* timer: ten minutes after boot, then three hours after each run, plus up to an hour at random) | off: lists are fetched when you update (`dnf upgrade --refresh`). The timer is *masked*, not just disabled — Fedora 45 ships it switched on by a link of its own package, which `disable` cannot undo; `systemctl is-enabled dnf5-makecache.timer` says `masked` (`systemctl unmask` would undo it) |
 | neovim's plugin manager looks for new plugin versions | off (`checker = { enabled = false }` in `lua/config/lazy.lua`); plugins move only with an update, which keeps the old versions first |
 | Prowlarr's image is replaced as soon as a new one appears | fetched by an update only; its next start uses it |
 | tldr refreshes its pages | at most once a quarter, and only when you run it |
@@ -12979,7 +12977,7 @@ everything that needs its new version, security fixes too.
    behaviour without changing its name shows only there; if it does not start, it is rebuilt;
 2. the C helpers and the release tools find their libraries; the login screen and the panel
    load the GTK they ask for;
-3. a new Python (3.14 → 3.15): torrra and Syncplay checked against it;
+3. a new Python (3.15 → 3.16): torrra and Syncplay checked against it;
 4. a new kernel: its boot image made, the boot's arguments on its entry (two kernels are kept,
    the one before stays until the new one has reached the desktop: §29.5);
 5. a new foot: its own config check;
@@ -12991,9 +12989,9 @@ cannot start, the login never shows a black screen: the rescue screen says so an
 
 ## 36.5 A new Fedora — upgrade
 
-A new Fedora comes about every six months, in April and October (Fedora 43 on 28 October 2025,
-Fedora 44 on 28 April 2026); each is supported for about thirteen, until four weeks after the
-release two later — Fedora 44 until 2 June 2027. The menu shows your release's date from
+A new Fedora comes about every six months, in April and October (44 on 28 April 2026,
+Fedora 45 on 3 November 2026); each is supported for about thirteen, until four weeks after the
+release two later — Fedora 45 until 8 December 2027. The menu shows your release's date from
 Fedora's own record of it, the line `SUPPORT_END=YYYY-MM-DD` in `/etc/os-release`
 (`grep SUPPORT_END /etc/os-release` shows it), and offers the move when it is sensible:
 
@@ -13027,7 +13025,7 @@ installed in a special start before anything else runs. `fedokawaii upgrade` put
 above around these two commands of dnf's, so you never type them yourself:
 
 ```sh
-sudo dnf system-upgrade download --releasever=45   # all of Fedora 45; nothing installed yet
+sudo dnf system-upgrade download --releasever=46   # all of Fedora 46; nothing installed yet
 sudo dnf system-upgrade reboot                      # restart into the installation
 ```
 
@@ -13972,7 +13970,7 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
   package or config. `--sandbox` adds the installer's torture suite, run in a fake machine of
   its own from your clone's tests: nothing of this machine is touched. The report has the
   same rows (INS-01 to INS-05, PKG-19, PKG-20).
-- **`fedokawaii trial`** runs the package steps for real in a throw-away Fedora 44 container
+- **`fedokawaii trial`** runs the package steps for real in a throw-away Fedora 45 container
   (podman, as you, no sudo), then attacks them: run again (it must change nothing), killed in
   the middle of an install, a repository that answers 404, a month-old cache, another dnf
   holding the database, a download whose checksum is wrong, GitHub unreachable. It takes 20
@@ -14144,13 +14142,13 @@ $ fedokawaii
 
   FEDOKAWAII
 
-  release  Fedora 44
+  release  Fedora 45
   support  until 2 Jun 2027 - in 230 days
   …
 
    1  status
    2  update
-   3  upgrade to Fedora 45
+   3  upgrade to Fedora 46
    4  verify
    5  repair
    6  snapshots
@@ -14169,7 +14167,7 @@ $ fedokawaii
 Type **5** and **Enter** for *repair*. Afterwards a key brings the list back; **q** leaves it.
 **Ctrl+Alt+F1** returns to the first console, where the login is.
 
-> **On Fedora 45.** **Ctrl+Alt+F3** shows a console drawn by kmscon (§11.1), a program rather
+> **Ctrl+Alt+F3** shows a console drawn by kmscon (§11.1), a program rather
 > than the kernel. Should kmscon itself fail to start, systemd puts the kernel's own console
 > there instead, with the same `login:` line.
 
@@ -16131,7 +16129,7 @@ on (`uv python upgrade`, `rustup update`), and `repair` puts back what is missin
 | What | Where | Check it |
 |---|---|---|
 | **uv** — Python's versions, projects and libraries | Fedora's package; its Pythons in `~/.local/share/uv` | `uv --version` |
-| a current CPython, uv's own | `python3.14` in `~/.local/bin` — `python3` stays Fedora's, the desktop's | `uv python list --only-installed` |
+| a current CPython, uv's own | `python3.15` in `~/.local/bin` — `python3` stays Fedora's, the desktop's | `uv python list --only-installed` |
 | **rustup** — Rust's toolchains: the stable `cargo`, `rustc`, and `rust-analyzer`, `clippy`, `rustfmt` | `~/.local/share/cargo/bin` (`CARGO_HOME`; on your PATH, the session's too) | `cargo --version` |
 | neovim's side: basedpyright and ruff (Python), rust-analyzer (Rust), debugpy and codelldb (the debugger), Cargo.toml's crates | Mason, `~/.local/share/nvim/mason` | `:Mason` in neovim |
 
@@ -17179,7 +17177,7 @@ commands themselves are in appendix D.
 | UID | the number the kernel knows a user by: yours is 1000, root's is 0 (§24.1) |
 | umask | the permission bits taken away from every file and folder you create (§24.2) |
 | unit | anything systemd manages, described by one small file: `.service`, `.timer`, `.mount`… (§28.1) |
-| update · upgrade | newer packages of the release you have · the move to the next release, 44 → 45 (ch. 35) |
+| update · upgrade | newer packages of the release you have · the move to the next release, 45 → 46 (ch. 35) |
 | upstream | the project that writes a program; Fedora, which packages it, is downstream (§2.2) |
 | upstream (git) | the remote branch yours follows, such as `origin/main` (§41.1) |
 | user manager | your own systemd, `user@1000.service`, which runs your services (§28.2) |
@@ -17259,9 +17257,9 @@ written in C: an expectation, not yet a rule.
 | Release | Out | Supported until |
 |---|---|---|
 | 42 | 15 April 2025 | ended 27 May 2026 † |
-| 43 | 28 October 2025 | four weeks after Fedora 45 comes out; the schedule's date is 9 December 2026 † |
-| **44** — this desktop | 28 April 2026 | 2 June 2027 |
-| 45 | **not out yet**: beta 15 September 2026, release due 20 October 2026 (27 October and 3 November held in reserve †) | about thirteen months |
+| 43 | 28 October 2025 | 16 December 2026, four weeks after Fedora 45 comes out (the schedule's date) † |
+| 44 | 28 April 2026 | 2 June 2027 |
+| **45** — this desktop | 3 November 2026 | 8 December 2027 |
 
 A release is supported until four weeks after the one two later comes out (§36.5).
 `grep SUPPORT_END /etc/os-release` shows the date your own system was given.
@@ -17279,9 +17277,9 @@ What changed from Fedora 41 to 45, and what it means here:
 | 45 | `ptrace` restricted (`kernel.yama.ptrace_scope=1`) unless debugging tools are installed | `gdb -p PID` or `strace -p PID` on a running program needs `yama-ptrace-enable`, which Fedora's gdb and strace are meant to bring |
 | 45 | oo7 replaces GNOME Keyring as the desktops' password store | the manifest lists no keyring: nothing changes |
 | 45 | a kernel panic shows a QR code that opens an explanation page | scan it with a phone; the trace travels in the link, not to Fedora's server |
-| 45 | Fedora's own repository files move from `/etc/yum.repos.d` to `/usr/share/dnf5/repos.d` (accepted) | a file you edited in `/etc` stays, and wins |
+| 45 | Fedora's own repository files move from `/etc/yum.repos.d` to `/usr/share/dnf5/repos.d` | a file you edited in `/etc` stays, and wins |
 
-Fedora 45 also brings Python 3.15, GCC 16.2, glibc 2.44 and Go 1.27 (beta, September 2026).
+Fedora 45 also brings Python 3.15, GCC 16.2, glibc 2.44 and Go 1.27.
 
 ## F.3 The Linux desktop
 
@@ -17487,7 +17485,7 @@ the kernel are written, has no such checks.
 
 - Kernel: [kernel.org, Releases](https://kernel.org/releases.html) · [LWN, Development statistics for 6.19](https://lwn.net/Articles/1057302/) · [7.0](https://lwn.net/Articles/1066723/) · [7.1](https://lwn.net/Articles/1077425/) · [7.2](https://lwn.net/Articles/1088776/) · [LWN, Kernel release status, 15 April 2026](https://lwn.net/Articles/1067746/) · [12 August 2026](https://lwn.net/Articles/1088534/) · [LWN, Linux 7.2-rc1](https://lwn.net/Articles/1079892/) · [LWN, Linux 7.2.2](https://lwn.net/Articles/1091120/) · [Phoronix, Linux 7.2 released](https://www.phoronix.com/news/Linux-7.2-Released) · [Phoronix, Linux 7.3-rc7](https://phoronix.com/news/Linux-7.3-rc7-Released) · [Phoronix, Nova in 7.3](https://www.phoronix.com/news/NVIDIA-Nova-Rust-Linux-7.3)
 - Rust: [LWN, The state of the kernel Rust experiment](https://lwn.net/Articles/1050174) · [rust: conclude the Rust experiment (patch)](https://patchew.org/linux/20251213000042.23072-1-ojeda@kernel.org)
-- Fedora: [Announcing Fedora Linux 44](https://fedoramagazine.org/announcing-fedora-linux-44/) · [Announcing Fedora Linux 45 Beta](https://fedoramagazine.org/announcing-fedora-linux-45-beta/) · [Fedora docs: Fedora 45 release milestone](https://gitlab.com/fedora/docs/fedora-linux-documentation/release-notes/-/milestones/7) · [Accepted changes for Fedora 45](https://fedoraproject.org/wiki/Category:ChangeAcceptedF45) · [F43](https://fedoraproject.org/wiki/Category:ChangeAcceptedF43) · [F44](https://fedoraproject.org/wiki/Category:ChangeAcceptedF44) · [SwitchToDnf5](https://www.fedoraproject.org/wiki/Changes/SwitchToDnf5) · [Unify bin and sbin](https://fedoraproject.org/wiki/Changes/Unify_bin_and_sbin) · [WaylandOnlyGNOME](https://fedoraproject.org/wiki/Changes/WaylandOnlyGNOME) · [RPM 6.0](https://fedoraproject.org/wiki/Changes/RPM-6.0) · [UseKmsconVTConsole](https://fedoraproject.org/wiki/Changes/UseKmsconVTConsole) · [Enforcing signature checking](https://fedoraproject.org/wiki/Changes/Enforcing_signature_checking_by_default) · [Restrict ptrace](https://fedoraproject.org/wiki/Changes/Restrict_ptrace_by_default) · [oo7](https://fedoraproject.org/wiki/Changes/oo7_Secrets_Service_Provider) · [DrmPanicFrontend](https://fedoraproject.org/wiki/Changes/DrmPanicFrontend) · [RelocateRpmRepoConfigsToUsr](https://fedoraproject.org/wiki/Changes/RelocateRpmRepoConfigsToUsr) · [Fedora schedule issue #218 (the EOL rule)](https://pagure.io/fedora-pgm/schedule/issue/218) · [endoflife.date, Fedora](https://raw.githubusercontent.com/endoflife-date/endoflife.date/master/products/fedora.md) · [Warp2Search, Fedora 45 Final Freeze](https://www.warp2search.net/story/fedora-45-final-freeze-october-20-release-date-set-as-trackers-clear/)
+- Fedora: [Announcing Fedora Linux 45](https://fedoramagazine.org/announcing-fedora-linux-45/) · [Fedora docs: Fedora 45 release milestone](https://gitlab.com/fedora/docs/fedora-linux-documentation/release-notes/-/milestones/7) · [Accepted changes for Fedora 45](https://fedoraproject.org/wiki/Category:ChangeAcceptedF45) · [F43](https://fedoraproject.org/wiki/Category:ChangeAcceptedF43) · [SwitchToDnf5](https://www.fedoraproject.org/wiki/Changes/SwitchToDnf5) · [Unify bin and sbin](https://fedoraproject.org/wiki/Changes/Unify_bin_and_sbin) · [WaylandOnlyGNOME](https://fedoraproject.org/wiki/Changes/WaylandOnlyGNOME) · [RPM 6.0](https://fedoraproject.org/wiki/Changes/RPM-6.0) · [UseKmsconVTConsole](https://fedoraproject.org/wiki/Changes/UseKmsconVTConsole) · [Enforcing signature checking](https://fedoraproject.org/wiki/Changes/Enforcing_signature_checking_by_default) · [Restrict ptrace](https://fedoraproject.org/wiki/Changes/Restrict_ptrace_by_default) · [oo7](https://fedoraproject.org/wiki/Changes/oo7_Secrets_Service_Provider) · [DrmPanicFrontend](https://fedoraproject.org/wiki/Changes/DrmPanicFrontend) · [RelocateRpmRepoConfigsToUsr](https://fedoraproject.org/wiki/Changes/RelocateRpmRepoConfigsToUsr) · [Fedora schedule issue #218 (the EOL rule)](https://pagure.io/fedora-pgm/schedule/issue/218) · [endoflife.date, Fedora](https://raw.githubusercontent.com/endoflife-date/endoflife.date/master/products/fedora.md) · [Warp2Search, Fedora 45 Final Freeze](https://www.warp2search.net/story/fedora-45-final-freeze-october-20-release-date-set-as-trackers-clear/)
 - Desktop: [release.gnome.org (feed)](https://release.gnome.org/atom.xml) · [GNOME 48](https://release.gnome.org/48/) · [The X11 GNOME session removal](https://blogs.gnome.org/alatiera/2025/06/08/the-x11-session-removal/) · [The Register, GNOME 50](https://theregister.com/2026/03/19/gnome_50/) · [KDE, Going all-in on a Wayland future](https://blogs.kde.org/2025/11/26/going-all-in-on-a-wayland-future/) · [LWN, KDE Plasma 6.8 released](https://lwn.net/Articles/1100429/) · [KDE's 6th Megarelease](https://kde.org/announcements/megarelease/6/) · [LWN, Fedora xorg-x11-server 21.1.23](https://lwn.net/Articles/1076049/) · [FreeBSD VuXML, xorg-server 21.1.24](https://vuxml.freebsd.org/freebsd/d6354a08-7ad4-11f1-a315-589cfc10a551.html) · [The Register, XLibre](https://www.theregister.com/2025/06/10/xlibre_new_xorg_fork/) · [F43 X11Libre proposal, withdrawn](https://discussion.fedoraproject.org/t/f43-change-proposal-x11libre-system-wide/156330/67) · [dwl releases](https://codeberg.org/dwl/dwl/releases) · [Phoronix, wlroots 0.20 and Sway 1.12-rc1](https://www.phoronix.com/news/wlroots-0.20-Sway-1.12-rc1) · [NVIDIA, open-source GPU kernel modules](https://developer.nvidia.com/blog/nvidia-transitions-fully-towards-open-source-gpu-kernel-modules/) · [NVIDIA, deprecation schedule](https://forums.developer.nvidia.com/t/unix-graphics-feature-deprecation-schedule/60588/13) · [nouveau and NVK news](https://nouveau.freedesktop.org/) · [Collabora, 12 years of Wayland colour management](https://collabora.com/news-and-blog/news-and-events/12-years-of-incubating-wayland-color-management.html) · [StatCounter, desktop OS share](https://gs.statcounter.com/os-market-share/desktop/worldwide/) · [StatCounter, about](https://gs.statcounter.com/about) · [GamingOnLinux, Steam survey September 2026](https://www.gamingonlinux.com/2026/10/steam-survey-for-september-2026-shows-a-drop-in-linux-with-simplified-chinese-rising/) · [KitGuru, March 2026 record](https://www.kitguru.net/gaming/joao-silva/steamos-propels-linux-to-record-5-33-share-in-latest-steam-survey/)
 - Gaming: [Proton 11.0-2 (Valve, GitHub)](https://github.com/ValveSoftware/Proton/releases/tag/proton-11.0-2) · [Phoronix, Proton 11.0-1](https://phoronix.com/news/Proton-11.0-1) · [Digital Citizen, SteamOS 3.8](https://www.digitalcitizen.life/steamos-3-8-adds-steam-machine-support-as-valves-new-gaming-pc-nears-launch/) · [Game Informer, Steam Deck prices](https://gameinformer.com/2026/05/27/valve-just-raised-the-price-of-the-steam-deck-by-hundreds-of-dollars) · [Phoronix, Steam Machine announced](https://www.phoronix.com/news/Steam-Machines-Frame-2026) · [Notebookcheck, Steam Machine price and date](https://notebookcheck.net/Steam-Machine-release-date-and-price-officially-confirmed.1326720.0.html) · [Epic, Easy Anti-Cheat for Linux](https://onlineservices.epicgames.com/en-US/news/epic-online-services-launches-anti-cheat-support-for-linux-mac-and-steam-deck) · [GamingOnLinux, EA Javelin](https://gamingonlinux.com/2026/03/ea-javelin-anticheat-job-listing-mentions-future-support-for-linux-and-proton) · [GamingOnLinux, anti-cheat list](https://www.gamingonlinux.com/anticheat/vendor/ricochet-anti-cheat)
 - AI and industry: [GitHub, the Copilot app](https://github.blog/2026-06-02-github-copilot-app-the-agent-native-desktop-experience/) · [Linux kernel, AI coding assistants](https://docs.kernel.org/7.0/process/coding-assistants.html) · [Fedora Council, AI-assisted contributions policy](https://communityblog.fedoraproject.org/council-policy-proposal-policy-on-ai-assisted-contributions/) · [LWN, Dirk and Linus discuss AI](https://lwn.net/Articles/1073761/) · [Anthropic, donating MCP](https://anthropic.com/news/donating-the-model-context-protocol-and-establishing-of-the-agentic-ai-foundation) · [Agentic AI Foundation, news](https://aaif.io/news/) · [MCP 2026-07-28 changelog](https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/docs/specification/2026-07-28/changelog.mdx) · [OpenAI, gpt-oss](https://openai.com/blog/introducing-gpt-oss) · [Google, Gemma 4](https://opensource.googleblog.com/2026/03/gemma-4-expanding-the-gemmaverse-with-apache-20.html) · [BLS, Software developers](https://www.bls.gov/ooh/computer-and-information-technology/software-developers.htm) · [FRED, Software development postings on Indeed](https://fred.stlouisfed.org/graph/?g=1X1Pw) · [Indeed Hiring Lab, June 2026](https://www.hiringlab.org/blog/us-labor-market-snapshot-june-2026/) · [Stanford Digital Economy Lab, February 2026](https://digitaleconomy.stanford.edu/news/canaries-interest-rates-and-timinga-more-on-recent-drivers-of-employment-changes-for-young-workers) · [WEF, Future of Jobs Report 2025](https://www.weforum.org/reports/the-future-of-jobs-report-2025/digest) · [Linux Foundation, 2026 State of Tech Talent](https://training.linuxfoundation.org/blog/just-released-2026-state-of-tech-talent-report/)
@@ -17505,7 +17503,7 @@ section — the language surveys, *Where things stand* — are listed where they
 | boot | [Boot Loader Specification](https://uapi-group.org/specifications/specs/boot_loader_specification/) · [Secure Boot on Fedora](https://fedoraproject.org/wiki/Secureboot) · [microcode loader](https://docs.kernel.org/arch/x86/microcode.html) · [dracut.conf(5)](https://manpages.opensuse.org/Leap-16.0/dracut/dracut.conf.5.en.html) |
 | systemd | [systemd man pages](https://www.freedesktop.org/software/systemd/man/latest/) · [systemd-analyze(1)](https://www.mankier.com/1/systemd-analyze) · [loginctl(1)](https://man7.org/linux/man-pages/man1/loginctl.1.html) · [desktop environments and systemd](https://systemd.io/DESKTOP_ENVIRONMENTS/) |
 | files and processes | [file-hierarchy(7)](https://www.man7.org/linux/man-pages/man7/file-hierarchy.7.html) · [inode(7)](https://manpages.debian.org/trixie/manpages/inode.7.en.html) · [signal(7)](https://man7.org/linux/man-pages/man7/signal.7.html) · [GNU coreutils 9.0 news](https://lwn.net/Articles/870372) · [Btrfs documentation](https://btrfs.readthedocs.io/en/stable/) |
-| packages | [rpm.org](https://rpm.org/documentation.html) · [rpmkeys(8)](https://rpm.org/docs/6.1.x/man/rpmkeys.8) · [RPM 6.0 release notes](https://rpm.org/releases/6.0.0) · [dnf5.conf(5)](https://dnf5.readthedocs.io/en/latest/dnf5.conf.5.html) · [repoquery](https://dnf5.readthedocs.io/en/latest/commands/repoquery.8.html) · [history](https://dnf5.readthedocs.io/en/latest/commands/history.8.html) · [mpv-libs in Fedora 44](https://packages.fedoraproject.org/pkgs/mpv/mpv-libs/fedora-44.html) · [mesa-dri-drivers in Fedora 44](https://packages.fedoraproject.org/pkgs/mesa/mesa-dri-drivers/fedora-44.html) · [amd-gpu-firmware](https://packages.fedoraproject.org/pkgs/linux-firmware/amd-gpu-firmware/fedora-44-updates.html) · [RPM Fusion's mesa-freeworld](https://github.com/rpmfusion/mesa-freeworld/blob/master/mesa-freeworld.spec) |
+| packages | [rpm.org](https://rpm.org/documentation.html) · [rpmkeys(8)](https://rpm.org/docs/6.1.x/man/rpmkeys.8) · [RPM 6.0 release notes](https://rpm.org/releases/6.0.0) · [dnf5.conf(5)](https://dnf5.readthedocs.io/en/latest/dnf5.conf.5.html) · [repoquery](https://dnf5.readthedocs.io/en/latest/commands/repoquery.8.html) · [history](https://dnf5.readthedocs.io/en/latest/commands/history.8.html) · [mpv-libs in Fedora 45](https://packages.fedoraproject.org/pkgs/mpv/mpv-libs/) · [mesa-dri-drivers in Fedora 45](https://packages.fedoraproject.org/pkgs/mesa/mesa-dri-drivers/) · [amd-gpu-firmware](https://packages.fedoraproject.org/pkgs/linux-firmware/amd-gpu-firmware/) · [RPM Fusion's mesa-freeworld](https://github.com/rpmfusion/mesa-freeworld/blob/master/mesa-freeworld.spec) |
 | graphics | [Wayland architecture](https://wayland.freedesktop.org/architecture) · [wlr-layer-shell](https://wayland.app/protocols/wlr-layer-shell-unstable-v1) · [Intel xe GPUs](https://dgpu-docs.intel.com/overview/supported-hardware/xe-driver-gpus.html) · [AMDVLK discontinued](https://www.phoronix.com/news/AMDVLK-Discontinued) · [Mesa](https://docs.mesa3d.org/) |
 | sound, devices, network | [PipeWire](https://docs.pipewire.org/) · [pipewire-pulse(1)](https://docs.pipewire.org/page_man_pipewire-pulse_1.html) · [WirePlumber](https://pipewire.pages.freedesktop.org/wireplumber/) · [NetworkManager](https://networkmanager.dev/docs/) · [firewalld](https://firewalld.org/documentation/) |
 | buses and specifications | [D-Bus](https://dbus.freedesktop.org/doc/dbus-specification.html) · [portals.conf](https://github.com/flatpak/xdg-desktop-portal/blob/1.18.0/doc/portals-conf.rst) · [Desktop Notifications](https://specifications.freedesktop.org/notification-spec/latest/) · [MPRIS](https://specifications.freedesktop.org/mpris/latest) · [XDG Base Directory](https://specifications.freedesktop.org/basedir/latest/) |

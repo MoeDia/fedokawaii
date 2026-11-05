@@ -6,7 +6,7 @@
 #                    seeking back in from the end keeps the spot again; Q at the end drops it
 #   kawa-ipc.lua     every player answers on $XDG_RUNTIME_DIR/mpv-<pid>.sock (kawa-theme
 #                    reaches it there), gone when it quits; a player with its own socket keeps it
-# Skipped (not failed) where mpv is not installed. Fedora 44's mpv 0.41 also reads the whole
+# Skipped (not failed) where mpv is not installed. Fedora 45's mpv 0.41 also reads the whole
 # mpv.conf without a complaint; an older mpv (the test sandbox's) only runs the scripts.
 . "$(dirname "$0")/../lib/harness.sh"
 D=$(cd "$(dirname "$0")" && pwd)
@@ -124,7 +124,7 @@ if [[ $(printf '%s\n' "$VER" 0.38 | sort -V | head -n1) == 0.38 ]]; then   # (lo
        "$m: every controller colour taken (none replacing the others)"
   done
   eq "$(grep -E '\]\[(e|w)\]' "$TMP/mpv.log")" "" "no error or warning from either file"
-else printf '  – skipped: mpv %s has no load-config-file yet (0.38 and later: Fedora 44 has 0.41)\n' "$VER"; fi
+else printf '  – skipped: mpv %s has no load-config-file yet (0.38 and later: Fedora 45 has 0.41)\n' "$VER"; fi
 bye
 [[ ! -e $SOCK ]] && _ok || _no "the socket stayed after mpv quit"
 
@@ -139,7 +139,7 @@ case_ "XDG_RUNTIME_DIR unset: no socket, no error (mpv plays on)"
   --script="$SCRIPTS/kawa-ipc.lua" --log-file="$TMP/mpv2.log" "$TONE"); rc=$?
 eq "$rc" 0; lacks "$(grep -i kawa_ipc "$TMP/mpv2.log")" "rror"
 
-# ── the whole mpv.conf, with Fedora 44's mpv ─────────────────────────────────────────────
+# ── the whole mpv.conf, with Fedora 45's mpv ─────────────────────────────────────────────
 case_ "mpv.conf and the theme's colours load without a complaint (mpv 0.41)"
 if [[ $(printf '%s\n' "$VER" 0.41 | sort -V | head -n1) == 0.41 ]]; then
   "$MPV" --config-dir="$HOME/.config/mpv" --no-terminal --ao=null --vo=null --idle=no --frames=1 \
@@ -149,7 +149,7 @@ if [[ $(printf '%s\n' "$VER" 0.41 | sort -V | head -n1) == 0.41 ]]; then
         "$TMP/mpv3.log" | head -n 5)" ""
   lacks "$(grep -iE 'kawa_(resume|ipc)' "$TMP/mpv3.log")" "rror" "the scripts load with the whole config"
 else
-  printf '  – skipped: mpv %s is older than Fedora 44'"'"'s 0.41 (its options would be refused)\n' "$VER"
+  printf '  – skipped: mpv %s is older than Fedora 45'"'"'s 0.41 (its options would be refused)\n' "$VER"
 fi
 
 done_
