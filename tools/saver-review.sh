@@ -76,8 +76,22 @@ for mood in dark light; do
   cp "$src/.config/fedokawaii/themes/$mood/saver.conf" "$h/.config/fedokawaii/themes/$mood/"
   ln -s "themes/$mood" "$h/.config/fedokawaii/current"
   ln -s "$src/.local/share/fedokawaii" "$h/.local/share/fedokawaii"
+  # (what the world opens onto: the lock as a key finds it, its gate shut: lock-scene.png is the gate open)
+  python3 -I - "$src/.local/share/fedokawaii/$mood" "$W/under-$mood.png" <<'PY' || { echo "saver-review: no lock to open onto ($mood)" >&2; exit 2; }
+import sys
+from PIL import Image
+d, out = sys.argv[1:]
+im = Image.open(f"{d}/lock-scene.png").convert("RGB")
+for line in open(f"{d}/lock-scene.txt", encoding="utf-8"):
+    w = line.split("#")[0].split()
+    if w and w[0] == "gate":
+        x, y, gw, gh = map(int, w[1:5])
+        g = Image.open(f"{d}/lock-gate.png").convert("RGBA").crop((0, 0, gw, gh))
+        im.paste(g, (x, y), g)
+im.save(out)
+PY
   env -i HOME="$h" TZ="${TZ:-Asia/Dubai}" PATH=/usr/bin "$W/b/kawa-saver-render" "$r" --steps 120 --every 1 --wake --frames 1 --clock 09:41 \
-    --under "$src/.local/share/fedokawaii/$mood/lock-scene.png" >/dev/null || { echo "saver-review: the renderer failed ($mood)" >&2; exit 2; }
+    --under "$W/under-$mood.png" >/dev/null || { echo "saver-review: the renderer failed ($mood)" >&2; exit 2; }
   python3 -I "$here/saver-review.py" "$r" "$outdir/saver-$mood-wake.png" "$outdir/saver-$mood.webp" || exit 2
   rm -rf "$r"
 done
