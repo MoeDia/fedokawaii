@@ -6,8 +6,8 @@
 fkh_log "$*"
 in=$(cat); r=free; [[ $in == *nonfree* ]] && r=nonfree
 d=$(mktemp -d) || exit 1
-mkdir -p "$d/etc/pki/rpm-gpg"
-printf -- '-----BEGIN PGP PUBLIC KEY BLOCK-----\nrpmfusion-%s\n-----END PGP PUBLIC KEY BLOCK-----\n' "$r" >"$d/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-$r-fedora-2020"
-ln -s "RPM-GPG-KEY-rpmfusion-$r-fedora-2020" "$d/etc/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-$r-fedora-44"
-tar -czf - -C "$d" ./etc; rc=$?
+mkdir -p "$d/usr/share/pki/rpm-gpg"
+printf -- '-----BEGIN PGP PUBLIC KEY BLOCK-----\nrpmfusion-%s\n-----END PGP PUBLIC KEY BLOCK-----\n' "$r" >"$d/usr/share/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-$r-fedora-2020"
+ln -s "RPM-GPG-KEY-rpmfusion-$r-fedora-2020" "$d/usr/share/pki/rpm-gpg/RPM-GPG-KEY-rpmfusion-$r-fedora-45"
+tar -czf - -C "$d" ./usr; rc=$?
 rm -rf "$d"; exit "$rc"

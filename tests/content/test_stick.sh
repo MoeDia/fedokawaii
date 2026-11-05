@@ -17,17 +17,37 @@ setup() {
   stub udisksctl
 }
 
-case_ "a USB drive big enough is named, and written only after enter: read back, switched off"
+case_ "a USB drive big enough is named, chosen by its number, and written only after enter: read back, switched off"
 setup
-out=$(printf '\n' | kawa-stick 2>&1); eq "$?" 0 "$out"
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 0 "$out"
 has "$out" "SanDisk"; lacks "$out" "Lexar"; lacks "$out" "tiny"; has "$out" "safe to unplug"
 /usr/bin/cmp -s "$HOME/Downloads/fedokawaii-20261104.iso" "$WORLD/stick" && _ok || _no "the stick differs"
 called "udisksctl power-off -b /dev/sdb"; called "udisksctl unmount -b /dev/sdb1"
 
 case_ "any other key leaves it alone: nothing written"
 setup
-out=$(printf 'x' | kawa-stick 2>&1); eq "$?" 4 "$out"
+out=$(printf '1x' | kawa-stick 2>&1); eq "$?" 4 "$out"
 [[ ! -e $WORLD/stick ]] && _ok || _no "written without enter"; not_called "^dd "
+
+case_ "enter alone, one drive plugged in: nothing is picked, nothing written"
+setup
+out=$(printf '\n\n' | kawa-stick 2>&1); eq "$?" 4 "$out"
+[[ ! -e $WORLD/stick ]] && _ok || _no "written on a bare enter"; not_called "^dd "
+
+case_ "never the drive of your backups: by its label, by a folder on it; never a drive of your things: named so, or with the folder on it"
+drive() {   # drive LABEL MOUNT — the one USB drive plugged in
+  export LSBLK='{"blockdevices":[{"name":"/dev/sdb","size":32000000000,"model":"Backup","tran":"usb","type":"disk","label":null,"mountpoint":null,"children":[{"name":"/dev/sdb1","size":32000000000,"model":null,"tran":null,"type":"part","label":"'"$1"'","mountpoint":"'"$2"'"}]}]}'
+}
+setup; stub kawa-backup 'echo MYBACKUP'; drive MYBACKUP ""
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 4 "$out"; has "$out" "your backups"; not_called "^dd "; lacks "$out" "Backup"
+setup; stub kawa-backup 'echo /run/media/me/DRIVE/backup'; drive DRIVE /run/media/me/DRIVE
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 4 "$out"; not_called "^dd "
+setup; stub kawa-backup 'echo sftp:me@host:/x'; drive FKCARRY ""
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 4 "$out"; not_called "^dd "
+setup; stub kawa-backup; mkdir -p "$TMP/m/fedokawaii-carry"; drive THINGS "$TMP/m"
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 4 "$out"; not_called "^dd "
+setup; stub kawa-backup 'echo MYBACKUP'; mkdir -p "$TMP/m"; drive OTHER "$TMP/m"
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 0 "$out"; has "$out" "safe to unplug"
 
 case_ "never a disk inside the PC; no USB drive: said"
 setup
@@ -44,7 +64,7 @@ has "$out" "not as it was built"; [[ ! -e $WORLD/stick ]] && _ok || _no "written
 case_ "a stick that gives back something else is told"
 setup
 stub cmp 'exit 1'
-out=$(printf '\n' | kawa-stick 2>&1); eq "$?" 1 "$out"
+out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 1 "$out"
 has "$out" "take another"
 
 case_ "several: chosen by its number; a wrong key leaves all alone"

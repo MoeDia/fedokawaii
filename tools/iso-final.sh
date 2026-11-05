@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 # tools/iso-final.sh — the installer that ships, in one command: built from one commit, proven in a fresh VM, released.
-#   bash tools/iso-final.sh COMMIT                 the build, the owner's whole path (tools/vm-iso-test.sh whole), the refusals
+#   bash tools/iso-final.sh COMMIT                 the build, the owner's whole path (tools/vm-iso-test.sh whole), the refusals,
+#                                                  a second install over the finished disk, its snapshots on it (over)
 #   bash tools/iso-final.sh --release COMMIT       after a green proof of that commit: its tag pushed, the GitHub release
 # It tags the commit vYYYY.MM.DD (its own date) here before the build, for the toolkit in the ISO to know which release it is;
 # the tag leaves this PC only with --release, because the update button adopts every v… tag it finds on GitHub. The tools run
@@ -46,5 +47,10 @@ cp -a "$HOME/VM/iso/vm/r27-iso/run" "$dir/run" 2>/dev/null
 "${vm[@]}" matrix "$iso" "$dir/matrix" >/dev/null; n=$(grep -c '^green' "$dir/matrix/matrix.txt")
 reds=$(grep -c '^RED' "$dir/matrix/matrix.txt")
 ((reds == 0)) || { say "RED: the refusals, $reds of them: $dir/matrix/matrix.txt"; exit 1; }
+# (his PC, a second time over what is on it: years of snapshots, the power pulled, a slow line: the same disk)
+FK_RESET_PHASE=2 FK_SLOW_BEFORE=2 "${vm[@]}" over r27-iso "$iso"; rc=$?
+cp -a "$HOME/VM/iso/vm/r27-iso/run/log" "$dir/run/log-over" 2>/dev/null
+"${vm[@]}" stop r27-iso >/dev/null 2>&1
+((rc == 0)) || { say "RED: the install over a finished disk, exit $rc: $dir/run/log-over"; exit 1; }
 printf '%s\n' "$iso" >"$dir/green"
-say "GREEN: the whole path and $n refusals, $(sed -n 's/^.*verify after the update: //p' "$dir/run/log" | tail -n1): $iso"
+say "GREEN: the whole path, $n refusals, the install over a finished disk, $(sed -n 's/^.*verify after the update: //p' "$dir/run/log" | tail -n1): $iso"

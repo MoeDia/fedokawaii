@@ -28,7 +28,10 @@ lacks "$(cat "$g")" nomodeset
 lacks "$(cat "$g")" rd.live.check "the check runs on our screen: %pre"
 has "$(grep -c 'initrd /images/pxeboot/initrd.img /images/pxeboot/fedokawaii-boot.img' "$g")" 2 "loaded before the menu, once again for the check"
 has "$(cat "$REPO/tools/build-iso.sh")" "console=tty1" "any other console forces Plymouth's details (and the status lines)"
-has "$(cat "$REPO/tools/build-iso.sh")" "':(exclude).claude'" "the round's notes never ship"
+has "$(cat "$REPO/tools/build-iso.sh")" 's|^RELEASE = .*|RELEASE = ' "the release: one truth, iso/inputs.sh"
+has "$(cat "$REPO/tools/build-iso.sh")" '${ROUND_ONLY[@]/#/:(exclude)}' "the round's notes never ship"
+has "$(cat "$REPO/setup.sh")" 'for b in "${ROUND_ONLY[@]}"; do rm -rf' "nor by a toolkit a clone of a release makes"
+for f in .claude CLAUDE.md tools/start.sh; do has "$(sed -n '/^ROUND_ONLY=(/,/)$/p' "$REPO/lib/common.sh")" "$f"; done
 for c in fkinstall fkcheck fkoff; do [[ -s $A/grub/icons/$c.png ]] && _ok || _no "no words for $c"; done
 
 case_ "the console font: 256 glyphs, ASCII on its own numbers, the blank where the console erases"
@@ -133,14 +136,47 @@ elif case == "clear":
         calls.append(cmd)
         out = ""
         if cmd[0] == "lsblk":
-            out = "/dev/nvme0n1\n" if ("blockdev", "--rereadpt", "/dev/nvme0n1") in calls else "/dev/nvme0n1\n/dev/nvme0n1p1\n/dev/nvme0n1p2\n"
+            out = "/dev/nvme0n1 disk\n" if ("blockdev", "--rereadpt", "/dev/nvme0n1") in calls else "/dev/nvme0n1 disk\n/dev/nvme0n1p1 part\n/dev/nvme0n1p2 part\n/dev/mapper/vg-root lvm\n/dev/nvme0n1p3 part\n/dev/md127 raid1\n"
+            if "NAME" in cmd and "NAME,TYPE" not in cmd:
+                out = "".join(line.split()[0] + "\n" for line in out.splitlines())
         return types.SimpleNamespace(stdout=out, returncode=0)
     q.run = rec_run
     q.ERASED = sys.argv[4] + "/erased"
     q.clear_disk(None, "nvme0n1")
     wiped = [c[-1] for c in calls if c[0] == "wipefs" and c[1] == "-a"]
-    assert wiped == ["/dev/nvme0n1p2", "/dev/nvme0n1p1", "/dev/nvme0n1"], wiped
+    assert wiped == ["/dev/nvme0n1p3", "/dev/nvme0n1p2", "/dev/nvme0n1p1", "/dev/nvme0n1"], wiped
     assert ("blockdev", "--rereadpt", "/dev/nvme0n1") in calls, calls
+    assert ("dmsetup", "remove", "--retry", "/dev/mapper/vg-root") in calls and ("mdadm", "--stop", "/dev/md127") in calls, calls
+    assert calls.index(("mdadm", "--stop", "/dev/md127")) < calls.index(("wipefs", "-a", "-f", "/dev/nvme0n1p3")), calls
+elif case == "before":
+    # the mirrors: the metalink server answering is not enough; one reset connection is no refusal
+    good = '<url protocol="https" type="https" location="DE" preference="100">https://m1.example/f/repodata/repomd.xml</url>'
+    bad = '<url protocol="rsync" type="rsync">rsync://m2.example/f/repodata/repomd.xml</url>'
+    q.time = types.SimpleNamespace(sleep=lambda _: None, monotonic=lambda: 0.0)
+    def world(metalink, repomd):
+        def fake(*cmd, timeout=None):
+            url = cmd[-1]
+            if "metalink" in url:
+                return types.SimpleNamespace(stdout=metalink.pop(0) if len(metalink) > 1 else metalink[0], returncode=0)
+            return types.SimpleNamespace(stdout=repomd, returncode=0 if repomd else 22)
+        q.run = fake
+    world([good], "<?xml?><repomd>")
+    assert q.metadata_answers("fedora-45")
+    world([good], "")
+    assert not q.metadata_answers("fedora-45"), "a mirror that serves nothing"
+    world([good], "<html>a captive portal</html>")
+    assert not q.metadata_answers("fedora-45"), "a page that is not metadata"
+    world([bad], "<repomd>")
+    assert not q.metadata_answers("fedora-45"), "only a mirror we do not read"
+    world(["", good], "<repomd>")
+    assert q.metadata_answers("fedora-45"), "the second try"
+elif case == "order":
+    # the disk is the last thing: every file of the stick, the mirrors, then the erase
+    import inspect
+    src = inspect.getsource(q.main)
+    assert src.index("write_answers(form)") < src.index("if not asked:") < src.index("before_the_disk(s)") < src.index("progress.py") < src.index("clear_disk(s, form.disk)"), src
+    assert "stop_progress" in inspect.getsource(q.refuse)
+    assert '"hg-0", "checking this stick"' in inspect.getsource(q.check_stick) and "fk-sums" in inspect.getsource(q.check_stick)
 elif case == "answers":
     os.chdir(sys.argv[4])
     class S:
@@ -159,6 +195,9 @@ case_ "the disks: inside the PC only; never a USB drive, a stick, a card, this I
 python3 -I -B "$TMP/q.py" "$A" "$REPO" disks && _ok || _no "the disks"
 case_ "the form: no default among several disks, the one that fits when one does"
 python3 -I -B "$TMP/q.py" "$A" "$REPO" form && _ok || _no "the form"
+case_ "before the erase: every file of the stick, a mirror that serves metadata for both repositories; the disk last"
+python3 -I -B "$TMP/q.py" "$A" "$REPO" before && _ok || _no "the mirrors"
+python3 -I -B "$TMP/q.py" "$A" "$REPO" order && _ok || _no "the order"
 case_ "the words of a name, a password, this PC's name"
 python3 -I -B "$TMP/q.py" "$A" "$REPO" names && _ok || _no "the names"
 case_ "what the kickstart reads: the hash and no password, this disk alone cleared, the file root's"

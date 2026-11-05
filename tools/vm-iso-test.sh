@@ -566,6 +566,8 @@ do_facts() {
     printf "kernel, initramfs: "; ls -s --block-size=M /boot/initramfs-*.img | tr "\n" " "; echo
     printf "fonts in it: "; sudo lsinitrd 2>/dev/null | grep -E "\.(ttf|otf)$" | sed "s/.* //" | tr "\n" " "; echo
     printf "ssh enabled: "; systemctl is-enabled sshd 2>/dev/null
+    printf "the splash'"'"'s label plugin: "; rpm -q plymouth-plugin-label
+    printf "firewall: "; sudo firewall-cmd --get-default-zone 2>/dev/null | tr "\n" " "; sudo firewall-cmd --list-services 2>/dev/null | tr "\n" " "; sudo firewall-cmd --list-ports 2>/dev/null; echo
     printf "disk: "; findmnt -no SOURCE / | cut -c1-40; sudo btrfs subvolume list / | wc -l
     printf "the release in the toolkit: "; cat /var/lib/fedokawaii/toolkit-release 2>/dev/null; echo
     printf "round tooling: units %s, sudo rule %s, polkit rule %s, worktrees %s\n" "$(systemctl --user list-unit-files 2>/dev/null | grep -c "^r27-")" \
@@ -606,12 +608,38 @@ do_matrix() {
     do_say "$n" >"$dir/$c.txt" 2>/dev/null
     cp "$V/$n/say.png" "$dir/$c.png" 2>/dev/null
     "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
+    untouched "$n" "$c" "$dir"
+  }
+  # (a refusal leaves the disk as it was: not one cluster of the blank image written)
+  untouched() {
+    if qemu-img map -f qcow2 --output=json "$V/$1/disk.qcow2" | grep -q '"data": true'; then
+      printf 'RED          %s: something was written to its disk\n' "$2" | tee -a "$3/matrix.txt"
+    fi
   }
   [[ -n ${FK_MATRIX_FROM:-} ]] || one disk-20g "no disk large enough" -- --disk 20
   [[ -n ${FK_MATRIX_FROM:-} ]] || one no-network "no network" -- --no-net
   one bios "without UEFI" -- --bios --cd-first
   one ram-3g "not enough memory" -- --ram 3000
   one stick-check "a new home" "<down>" "<enter>" --
+  # a stick with one byte wrong, in a file nothing reads before the check (the 32-bit loader): after the questions, before the disk
+  local bad=$dir/damaged.iso lba t0=$SECONDS
+  cp --reflink=auto "$iso" "$bad" || return 1
+  lba=$(xorriso -no_rc -indev "$iso" -find /EFI/BOOT/BOOTIA32.EFI -exec report_lba -- 2>/dev/null | awk '/^Report layout/ { next } /BOOTIA32/ { for (i = 1; i <= NF; i++) if ($i ~ /^[0-9]+$/) { print $i; exit } }')
+  [[ $lba =~ ^[0-9]+$ ]] || { echo "vm-iso-test: no address for the file to damage" >&2; return 1; }
+  printf 'X' | dd of="$bad" bs=1 seek=$((lba * 2048 + 4096)) conv=notrunc status=none
+  do_create "$n" "$bad" --cpus 2 --port 2242 >/dev/null || return 1
+  mem_guard "$n"
+  "${VIRSH[@]}" start "$n" >/dev/null || return 1
+  if do_install "$n" && wait_words "$n" "this stick is damaged" 300 2>/dev/null; then
+    printf 'green %4d s  damaged: "this stick is damaged", after the questions\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  else
+    printf 'RED   %4d s  damaged: no "this stick is damaged"\n' "$((SECONDS - t0))" | tee -a "$dir/matrix.txt"
+  fi
+  do_say "$n" >"$dir/damaged.txt" 2>/dev/null
+  cp "$V/$n/say.png" "$dir/damaged.png" 2>/dev/null
+  "${VIRSH[@]}" destroy "$n" >/dev/null 2>&1
+  untouched "$n" damaged "$dir"
+  rm -f "$bad"
   "${VIRSH[@]}" undefine "$n" --nvram >/dev/null 2>&1
   rm -rf "${V:?}/$n"
   grep -c green "$dir/matrix.txt"
