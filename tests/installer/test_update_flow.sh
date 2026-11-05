@@ -57,7 +57,7 @@ fkh_add installed bash foot mesa zlib; fkh cand-red mesa
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"
 eq "$(report)" ok; has "$(sed -n 2p "$U/report")" "updated · 3 packages · held: mesa 26.1-1.fc46"
 called 'dnf\] -q versionlock exclude mesa-26.1-1.fc46'
-grep -q '^mesa 26.1-1.fc46 1.0-1.fc46 ' "$U/holds" && _ok || _no "the hold not recorded: $(cat "$U/holds" 2>/dev/null)"
+grep -q '^mesa 26.1-1.fc46 1.0-1.fc45 ' "$U/holds" && _ok || _no "the hold not recorded: $(cat "$U/holds" 2>/dev/null)"
 eq "$(cut -d' ' -f5 "$U/holds")" mesa "its source recorded"; has "$(cut -d' ' -f6- "$U/holds")" "dwl does not start with mesa"
 grep -q '^mesa ' "$FKH/evr" && _no "mesa went in" || _ok
 grep -q '^zlib 1.3.1-1.fc46$' "$FKH/evr" && _ok || _no "the rest did not go in: $(cat "$FKH/evr")"

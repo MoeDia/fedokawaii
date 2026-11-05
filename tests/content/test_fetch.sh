@@ -60,7 +60,7 @@ out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora 45"; lacks "
 printf 'NAME="Fedora Linux"\n' >"$R/usr/lib/os-release"
 out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " fedora"$'\n' "no version: no trailing space"
 printf 'VERSION_ID=46\n' >"$R/usr/lib/os-release"
-out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " linux 45"
+out=$(F neko 2>&1 | sed 's/\x1b\[[0-9;]*m//g'); has "$out" " linux 46"
 
 case_ "no USER, no session (a TTY, ssh): the rest still there"
 setup; out=$(env -u USER -u XDG_SESSION_DESKTOP "$TMP/fetch" neko | sed 's/\x1b\[[0-9;]*m//g')
