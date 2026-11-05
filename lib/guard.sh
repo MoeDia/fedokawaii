@@ -55,7 +55,7 @@ needs_record() {
     printf 'wlroots %s\n' "$DWL_WLROOTS"
     for role in wlroots build tool; do
       while IFS= read -r f; do
-        while read -r so path; do
+        while IFS=' ' read -r so path; do
           [[ $path == "$kept"/* ]] && continue                       # (dwl's own copies)
           [[ $so =~ ^(ld-linux|libc|libm|libdl|libpthread|librt)[.-] ]] && continue   # (glibc's: for good)
           pkg=$(rpm -qf --qf '%{NAME}\n' "$path" 2>/dev/null | sed -n 1p) || pkg=""   # (none owns it: not Fedora's)

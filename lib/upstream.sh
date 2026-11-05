@@ -258,7 +258,7 @@ install_widevine() {
   local d url sum ver have
   d=$(mktemp -d "$KAWA_TMP/rel.XXXXXX")
   retry 3 10 "${CURL[@]}" -o "$d/update.xml" "$WIDEVINE_UPDATE" || { log "Widevine: Mozilla's update service does not answer"; rm -rf "$d"; return 1; }
-  read -r url sum ver < <(python3 -I -c 'import sys, xml.etree.ElementTree as E
+  IFS=' ' read -r url sum ver < <(python3 -I -c 'import sys, xml.etree.ElementTree as E
 for a in E.parse(sys.argv[1]).getroot().iter("addon"):
     if a.get("id") == "gmp-widevinecdm" and a.get("hashFunction") == "sha512":
         print(a.get("URL"), a.get("hashValue"), a.get("version"))' "$d/update.xml" 2>/dev/null) || true

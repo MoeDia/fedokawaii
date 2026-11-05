@@ -13,7 +13,7 @@ LIB=/home/fkuser/fedokawaii/lib
 # up CODE — bash CODE with lib/common.sh and lib/upstream.sh loaded, as setup has them (root,
 # the desktop user fkuser, a private temp folder): output in $OUT, status in $RC
 up() {
-  fkrun bash -c 'set -u; LOG_FILE=/var/log/fk-upstream.log; . "$1/common.sh"; . "$1/upstream.sh"
+  fkrun bash -c 'set -u; IFS=$(printf "\n\t"); LOG_FILE=/var/log/fk-upstream.log; . "$1/common.sh"; . "$1/upstream.sh"   # (setup.sh'"'"'s IFS)
     export TARGET_USER=fkuser TARGET_HOME=/home/fkuser TARGET_UID=31000 TARGET_GID=31000 STATE_DIR=/var/lib/fedokawaii
     REPO_DIR=$1/..; make_tmp; eval "$2"' _ "$LIB" "$1"
 }
