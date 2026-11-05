@@ -355,6 +355,16 @@ serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' 'utmp-
 FX=$C/fixes; kf keep "$C/out.json" --fixes "$FX" >/dev/null; rec=$(compgen -G "$FX/*.json"); has "$(jq -r '.before["~/.config/foot/foot.ini"]' "$rec")" "utempter=none"
 kf unapply "$rec" --home "$H" --root "$R"; eq "$(conf)" "$before"; [[ ! -e $rec ]] && _ok || _no "the record stayed"
 rc 0 kf unapply "$rec" --home "$H" --root "$R"
+case_ "…and when it cannot be: a file that cannot be written, a record that cannot be read: said, 1, the record kept for the next try, no stray beside the file"
+serve_stub; fresh; before=$(conf); answer "$(edit "$FOOT" 'utempter=none' 'utmp-helper=none')"; fixer; eq "$RC" 0
+FX=$C/fixes; kf keep "$C/out.json" --fixes "$FX" >/dev/null; rec=$(compgen -G "$FX/*.json")
+d=$(dirname "$(find "$H" -name foot.ini | head -n1)"); chmod 555 "$d"
+out=$(kf unapply "$rec" --home "$H" --root "$R" 2>&1); r=$?; chmod 755 "$d"
+eq "$r" 1 "$out"; has "$out" "could not be put back"; [[ -e $rec ]] && _ok || _no "the record went with the undo not done"
+lacks "$(ls -A "$d")" ".fixer." "a half-written file left"
+kf unapply "$rec" --home "$H" --root "$R"; eq "$(conf)" "$before" "the next try puts it back"; [[ ! -e $rec ]] && _ok || _no "the record stayed"
+echo '{not json' >"$FX/broken.json"; out=$(kf unapply "$FX/broken.json" --home "$H" --root "$R" 2>&1); eq "$?" 1 "$out"; has "$out" "could not be read"; [[ -e $FX/broken.json ]] && _ok || _no "an unreadable record went"
+rm -f "$FX/broken.json"
 
 case_ "a kept deletion stays in force across runs, though its old text is gone"
 fresh; FX=$C/fixes; mkdir -p "$FX"; printf '{"edits":[{"file":"~/.config/foot/foot.ini","search":"utempter=none\\n","replace":""}]}' >"$FX/1.json"

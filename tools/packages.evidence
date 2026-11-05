@@ -198,6 +198,7 @@ xdg-user-dirs|fedora|https://packages.fedoraproject.org/pkgs/xdg-user-dirs/xdg-u
 xdg-utils|fedora|https://packages.fedoraproject.org/pkgs/xdg-utils/xdg-utils/|2026-11-04|xdg-utils-1.2.1-6.fc45 from fedora (dnf repoquery)
 xorg-x11-server-Xwayland|fedora|https://packages.fedoraproject.org/search?query=xorg-x11-server-Xwayland|2026-10-14|manifest 2026-10-14
 xournalpp|fedora|https://packages.fedoraproject.org/search?query=xournalpp|2026-10-14|manifest 2026-10-14
+xprop|fedora|https://packages.fedoraproject.org/pkgs/xprop/xprop/|2026-11-05|xprop-1.2.8-6.fc45 from fedora (dnf repoquery); FreeSync held on in gamescope (kawa-asobi-world)
 yt-dlp|fedora|https://packages.fedoraproject.org/search?query=yt-dlp|2026-10-14|manifest 2026-10-14
 zathura|fedora|https://packages.fedoraproject.org/search?query=zathura|2026-10-14|manifest 2026-10-14
 zathura-cb|fedora|https://packages.fedoraproject.org/search?query=zathura-cb|2026-10-14|manifest 2026-10-14

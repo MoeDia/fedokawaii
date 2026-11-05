@@ -26,7 +26,7 @@ declare -A TOGGLE=(
   [Super+Shift+s]=picker [Super+Shift+a]=picker [Super+Shift+x]=picker
 )
 # keys that open nothing to toggle: each press its own new window, or an action
-NOT_TOGGLES=" Super+Return Super+b Super+e Super+Shift+w Super+Shift+n Super+Escape XF86Sleep
+NOT_TOGGLES=" Super+g Super+Return Super+b Super+e Super+Shift+w Super+Shift+n Super+Escape XF86Sleep
   XF86Suspend Shift+Print XF86AudioMute XF86AudioMicMute XF86AudioPlay XF86AudioNext
   XF86AudioPrev Super+Ctrl+Shift+q Super+z Super+Shift+r Super+Shift+f Super+Shift+p "
 # Super+d: File tools' menu, on a PDF copied (a stand-in clipboard below; the rest: test_file).

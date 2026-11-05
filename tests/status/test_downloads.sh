@@ -157,11 +157,10 @@ torrent_list "$live" $'Big.Buck.Bunny.2008.1080p\t2500000000\t5000000000\t'"$D/B
 dl Celeste 0 1200000000
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 1'
 kawa-downloads; rows=$(cat "$TMP/menu.in")
-eq "$rows" "part	$ICON_DOWNLOAD	downloads
-row	$ICON_DOWNLOAD	Celeste	0 B of 1.2 GB	0%
-row	$ICON_DOWNLOAD	Big Buck Bunny 2008 1080p	2.5 GB of 5.0 GB	50%
-row	$ICON_LINK	Celeste	0 B of 1.2 GB	0%
-key	$ICON_DOWNLOAD	torrents"
+eq "$rows" "part	@arrow-down	downloads
+row	@magnet	Big Buck Bunny 2008 1080p	2.5 GB of 5.0 GB	50%
+row	@globe	Celeste	0 B of 1.2 GB	0%
+row	@magnet	torrents			t"
 called '^kawa-menu --drop --index --select 1$'
 case_ "…a click on a torrent: its folder in yazi (the file under the cursor once it is there)"
 called "^kawa-term yazi $D\$"
@@ -175,7 +174,7 @@ exec 8>"$XDG_RUNTIME_DIR/kawa-torrents.window"; flock -n 8
 stub kawa-menu 'cat >"$TMP/menu.in"'; kawa-downloads; lacks "$(cat "$TMP/menu.in")" "torrents"; exec 8>&-
 case_ "…nothing downloading: said, and nothing to put the cursor on"
 world; stub kawa-menu 'cat >"$TMP/menu.in"'; kawa-downloads
-eq "$(sed -n 2p "$TMP/menu.in")" "off	$ICON_DOWNLOAD	nothing downloading"; called '^kawa-menu --drop --index$'
+eq "$(sed -n 2p "$TMP/menu.in")" "off	@arrow-down	nothing downloading"; called '^kawa-menu --drop --index$'
 case_ "…dismissed: nothing opens"
 not_called '^kawa-term'; not_called '^xdg-open'
 
@@ -186,7 +185,7 @@ sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"
 torrent_list "$live" $'ubuntu-24.04.1-desktop-amd64.iso\t1\t2\t'"$D" $'Album.Name.5.1.FLAC\t1\t2\t'"$D" $'The.Seven.Samurai.1954.1080p.BluRay.x264\t1\t2\t'"$D"
 printf '%s\t1\t2\t%s\n' photos-2026.tar.zst "$D" a_very_long_file_name_without_any_spaces_at_all.pdf "$D" >"$XDG_RUNTIME_DIR/kawa-downloads/pack.$live"
 stub kawa-menu 'cat >"$TMP/menu.in"; echo 0'
-kawa-downloads; names=$(awk -F'\t' '$1 == "row" { print $3 }' "$TMP/menu.in" | sort)
+kawa-downloads; names=$(awk -F'\t' '$1 == "row" && $3 != "torrents" { print $3 }' "$TMP/menu.in" | sort)
 eq "$names" "$(printf '%s\n' "Album Name 5.1.FLAC" "The Seven Samurai 1954 1080p" a_very_long_file_name_without photos-2026.tar.zst ubuntu-24.04.1-desktop-amd64 | sort)"
 case_ "what Torrents' engine left for the desktop: each said, each taken away, nothing else in that folder touched"
 world; sleep 600 & live=$!; on_exit "kill $live 2>/dev/null"

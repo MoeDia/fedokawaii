@@ -34,7 +34,7 @@ case $1 in
          *) printf '{"verdict":"held"}' >"$4"; echo "held: foot: the docs do not say"; exit 3 ;;
        esac ;;
   keep) mkdir -p "$4"; echo '{}' >"$4/fix-1.json"; echo kept ;;
-  unapply) rm -f "$2" ;;
+  unapply) [[ -e $FKH/fixer-no-undo ]] && exit 1; rm -f "$2" ;;
   reapply) echo "kept fixes: 1 in place, 0 dropped" ;;
   status) echo ready ;;
 esac
@@ -119,6 +119,13 @@ up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
 called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'
 [[ ! -e $U/fixes/fix-1.json && ! -e $U/fix-new ]] && _ok || _no "the fix stayed after the update was undone: $(find "$U/fixes" -type f 2>/dev/null | tr '\n' ' ')"
 called 'versionlock exclude .*foot-1.25-1.fc45'
+
+case_ "…an undo the disk refuses (full, an I/O error): said, on the list, tried again at the next start"
+fixer_set fixed; mkdir -p "$U"; rm -rf "$U/fixes" "$U/fix-new"; rm -f "$U/holds"; fkh fixer-no-undo
+up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"; has "$OUT" "could not be taken back: tried again at the next start"
+eq "$(cat "$U/fix-new" 2>/dev/null)" "fix-1.json" "still on the list"; [[ -e $U/fixes/fix-1.json ]] && _ok || _no "its record went"
+rm -f "$FKH/fixer-no-undo"; reset_calls; fkrun bash "$TK/setup.sh" --update-resume
+called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'; [[ ! -e $U/fix-new ]] && _ok || _no "the list stayed"
 
 case_ "a fix proven by a run that ended before its package went in: never in force, asked anew"
 fixer_set fixed; mkdir -p "$U/fixes.new"; echo '{}' >"$U/fixes.new/stale.json"; pending "bash 5.2-1.fc45 5.3-1.fc45"; rm -f "$FKH/cand-red"

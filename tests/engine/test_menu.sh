@@ -211,7 +211,7 @@ has "$(cat "$(command -v fedokawaii)")" "enter:transform:case {1} in \$PANE_ONLY
 case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the run, which hands it on); the lessons, the key sheet and the settings start without fzf giving up the screen, then the popup is put away (dwl fades it off: never a blank terminal); a plain menu, neither"
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
-called "enter:transform:case \\{1\\} in held\\|typing\\) ;; learn\\|keys\\|change\\|asobi\\|chess\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
+called "enter:transform:case \\{1\\} in held\\) ;; learn\\|keys\\|change\\|asobi\\|chess\\|typing\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
 called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|chess\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|carry\|stick\|bring\|settings\|log\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\|chess\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
@@ -223,8 +223,8 @@ called "echo .execute-silent\\(kawa-warm --away system\\)\\+become\\("
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
 w=$(widest "$(entries "$(FZF_COLUMNS=120 fedokawaii --rows)")"); eq "$w" 66
 w=$(widest "$(entries "$(FZF_COLUMNS=98 fedokawaii --rows)")"); eq "$w" 44 "the 100-column window (98 inside fzf's margins): 44"
-w=$(widest "$(entries "$(FZF_COLUMNS=40 fedokawaii --rows)")"); eq "$w" 38 "a narrow window keeps the 38"
-w=$(widest "$(entries "$(FZF_COLUMNS=garbage fedokawaii --rows </dev/null)")"); eq "$w" 38
+w=$(widest "$(entries "$(FZF_COLUMNS=40 fedokawaii --rows)")"); eq "$w" 37 "a narrow window keeps the 38: the value's end a column in"
+w=$(widest "$(entries "$(FZF_COLUMNS=garbage fedokawaii --rows </dev/null)")"); eq "$w" 37
 case_ "rows at their widest: a release that settles in 180 days, an update in a year"
 fedokawaii remind wait 180 >/dev/null; fedokawaii remind every 365 >/dev/null
 rec release-46 "$(ago_s 0)"; rec last-update-done "$(ago_s 0)"
@@ -574,7 +574,7 @@ magick -size 336x475 xc:#b5381f "$R/toolkit/docs/learn/cover-thumb.png"
 rm -rf "$XDG_CACHE_HOME/fedokawaii"; pane() { KAWA_CELL=${1:-8x20} FZF_PREVIEW_LINES=${2:-20} fedokawaii --explain learn; }
 out=$(pane); has "$out" $'\eP' "the picture"; has "$out" $'"1;1;193;240' "24 + 169 wide, 240 high (twelve rows: 20 less the heading's three, the words' five)"
 one=$(ls "$XDG_CACHE_HOME"/fedokawaii/learn-cover.*); eq "$(wc -l <<<"$one")" 1 "kept"
-stub magick 'echo drawn again >&2; exit 1'; eq "$(pane | md5sum)" "$(md5sum <<<"$out")" "drawn once: the second look reads it"
+stub magick 'echo drawn again >&2; exit 1'; eq "$(pane)" "$out" "drawn once: the second look reads it"
 unstub magick 2>/dev/null || rm -f "$STUBS/magick"
 pane 10x21 >/dev/null; eq "$(ls "$XDG_CACHE_HOME"/fedokawaii/learn-cover.* | wc -l)" 1 "another cell's replaces it: one kept"
 out=$(pane 8x20 7); lacks "$out" $'\eP' "a pane too low: the words alone"
@@ -636,18 +636,18 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, nineteen numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, eighteen numbered entries; q, Q, Enter and end of input all leave"
 console
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
 has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 45"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  go back"
-has "$out" "11  a file, back"; has "$out" "12  back up now"; has "$out" "13  restore"; has "$out" "14  the drive"; has "$out" "15  before you wipe"; has "$out" "16  bring back"; has "$out" "17  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
+has "$out" "11  a file, back"; has "$out" "12  back up now"; has "$out" "13  restore"; has "$out" "14  the drive"; has "$out" "15  before you wipe"; has "$out" "16  the installer"; has "$out" "17  bring back"; has "$out" "18  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-console; out=$(printf '0\n20\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–19, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+console; out=$(printf '0\n19\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–18, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 console; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
@@ -656,10 +656,10 @@ case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=km
 out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
 console; stub fzf 'cat >/dev/null; exit 130'
-out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "19  lessons"; lacks "$out" "·"; not_called '^fzf'
+out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "18  lessons"; lacks "$out" "·"; not_called '^fzf'
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 console; stub fzf 'exit 2'
-out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "19  lessons"
+out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "18  lessons"
 case_ "fzf menu: Esc closes it (exit 0)"
 stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"

@@ -1157,7 +1157,7 @@ run() {   # run ACTION — in the menu's window: the work, its outcome, a key ba
     change)    setsid -f kawa-config >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own menu, by the bar)
     asobi)     setsid -f kawa-asobi --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (its own window)
     keys)      setsid -f kawa-help >/dev/null 2>&1 </dev/null; return 0 ;;     # (the sheet, by the bar)
-    typing)    setsid -f kawa-term --float --once typing --dialog typing 79x38 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;
+    typing)    setsid -f kawa-term --float --once typing --dialog typing 80x39 -- kawa-typing >/dev/null 2>&1 </dev/null; return 0 ;;
     chess)     setsid -f kawa-chess --window >/dev/null 2>&1 </dev/null; return 0 ;;   # (a window of its own)
     learn)     if [[ ${FEDOKAWAII_POPUP:-} == yes ]]; then   # (the popup gone: why it did not open, in a notice)
                  local why; why=$(learn 2>&1) || notify-send -a desktop -u critical -- "${ICON_BOOK:-·}  lessons" "${why#  }"
