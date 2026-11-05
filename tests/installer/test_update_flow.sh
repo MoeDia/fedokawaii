@@ -435,7 +435,7 @@ case_ "verify that cannot run before the update: no baseline, nothing changed"
 back built; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"; printf '#!/bin/bash\nexit 1\n' >"$W/usr/local/lib/fedokawaii/verify.sh"
 up; eq "$RC" 1; has "$OUT" "the checks themselves could not run (verify: exit 1) — nothing changed"; not_called 'dnf\] -y -C replay'
 case_ "a held package with a security advisory: the report and its notice say so"
-back built; reset_calls; printf 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa did not start\n' >"$U/holds"; fkh advisories FEDORA-2026-abc
+back built; reset_calls; mkdir -p "$U"; printf 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa did not start\n' >"$U/holds"; fkh advisories FEDORA-2026-abc
 up; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; has "$(sed -n 2p "$U/report")" "a security fix waits among the held: 1"; called 'dnf\] -q advisory list --security --updates --contains-pkgs=mesa --json'
 case_ "what is his through a press, the theme's own back: his settings, secrets.sh and autostart.local.sh as he has them, a file of the theme's as this toolkit has it"
 back built; themed_home; reset_calls; pending "bash 5.2-1.fc44 5.3-1.fc44"
