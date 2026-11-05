@@ -49,7 +49,7 @@ if os.path.exists("/run/fk-stub.sock"):
     os.unlink("/run/fk-stub.sock")
 S("/run/fk-stub.sock", H).serve_forever()
 PY
-# the package: its update makes foot refuse selection-target= (a rename, as a real one would): its
+# the package: its update makes foot refuse selection-target=both (a value renamed, as a real one could): its
 # scriptlet puts this wrapper over foot, in the copy and on the system alike
 run 'cat | sudo tee /usr/local/sbin/fk-foot-wrap >/dev/null; sudo chmod 755 /usr/local/sbin/fk-foot-wrap' <<'SH'
 #!/bin/bash
@@ -58,8 +58,8 @@ cat >/usr/bin/foot <<'WRAP'
 #!/bin/bash
 case " $* " in
   *" --check-config "*)
-    if grep -q "^selection-target=" "$HOME/.config/foot/foot.ini"; then
-      echo " err: config.c:1: $HOME/.config/foot/foot.ini:1: [main].selection-target: clipboard: not a valid option: selection-target" >&2
+    if grep -q "^selection-target=both" "$HOME/.config/foot/foot.ini"; then
+      echo " err: config.c:1: $HOME/.config/foot/foot.ini:1: [main].selection-target: both: not a valid option: selection-target" >&2
       exit 230
     fi
     exit 0 ;;
@@ -76,18 +76,18 @@ setup_run() {   # setup_run ANSWER — this press's stand-in, the wrapper over t
        sudo chmod 755 /usr/local/sbin/kawa-fixer; sleep 1' >>"$log" 2>&1
 }
 run 'sudo fk-inject-pkg fk-inject-a 1.1 post=/usr/local/sbin/fk-foot-wrap' >>"$log" 2>&1
-FIX='{"verdict":"fix","reason":"selection-target was renamed","edits":[{"file":"~/.config/foot/foot.ini","search":"selection-target=clipboard","replace":"selection-target=both"}]}'
+FIX='{"verdict":"fix","reason":"selection-target no longer takes both","edits":[{"file":"~/.config/foot/foot.ini","search":"selection-target=both","replace":"selection-target=primary"}]}'
 
 setup_run "$FIX"; press update; facts >>"$log" 2>&1
 ok "the update's run ends well"                       '[[ $INJ_RC == 0 ]]'
 ok "the package went in, not held"                    '[[ $(run "rpm -q --qf %{version} fk-inject-a") == 1.1 ]]'
 ok "the report says what the fixer did"               'run "sudo grep -q \"fixed foot.ini\" '$U'/report"'
 ok "the fix is kept in the updater's memory"          'run "sudo ls '$U'/fixes/ | grep -q json"'
-ok "the fix is on the running system"                 'run "grep -q ^selection-target=both ~/.config/foot/foot.ini"'
+ok "the fix is on the running system"                 'run "grep -q ^selection-target=primary ~/.config/foot/foot.ini"'
 ok "the program takes it"                             'run "foot --check-config"'
 ok "the candidate and the home's copy are gone"       '[[ $(run "sudo btrfs subvolume list / | grep -cE \"root.cand|home.cand\"") == 0 ]]'
 run 'sudo bash /usr/local/lib/fedokawaii/fedokawaii.sh theme' >>"$log" 2>&1
-ok "a theme run does not undo it"                     'run "grep -q ^selection-target=both ~/.config/foot/foot.ini"'
+ok "a theme run does not undo it"                     'run "grep -q ^selection-target=primary ~/.config/foot/foot.ini"'
 ok "and still says in sync"                           'run "sudo bash ~/fedokawaii/theme.sh --user dia --check"'
 
 # the second: the same breakage, the stand-in refuses — held and told, nothing kept
@@ -98,5 +98,5 @@ setup_run '{"verdict":"cannot_fix","reason":"the documentation does not show a n
 ok "no fix: the run ends well"                        '[[ $INJ_RC == 0 ]]'
 ok "the package is held"                              '[[ $(run "rpm -q --qf %{version} fk-inject-a") == 1.0 ]] && run "sudo grep -q fk-inject-a '$U'/holds"'
 ok "the report says why"                              'run "sudo grep -q \"the fixer: held\" '$U'/report"'
-ok "the config untouched"                             'run "grep -q ^selection-target=clipboard ~/.config/foot/foot.ini"'
+ok "the config untouched"                             'run "grep -q ^selection-target=both ~/.config/foot/foot.ini"'
 exit "$INJ_BAD"

@@ -3756,10 +3756,9 @@ cannot see what you copied (`[security] osc52=copy-enabled`).
 
 **Pitfalls.**
 
-* Every selection replaces the clipboard (`selection-target=clipboard`) and lands in the
-  clipboard history (Super+V). Middle-click pastes the *primary* selection — a second,
-  older clipboard that holds whatever was last selected — which foot itself no longer fills;
-  use Ctrl+Shift+V.
+* Every selection replaces the clipboard (`selection-target=both`) and lands in the
+  clipboard history (Super+V). Foot fills the *primary* selection as well, so a middle
+  click pastes what was last selected, as Ctrl+Shift+V does.
 * All Super+Return windows live in one server process. If it ever stops, they all close
   together; a new server starts within a second, but the windows do not come back. For
   something that must not be cut off — a long copy, an upgrade — start the plain **Foot**
