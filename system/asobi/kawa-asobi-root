@@ -178,7 +178,7 @@ poststop() {
   # (dead before it got going, or within seconds of its start, not asked to close: said, never a silent nothing)
   local born=""; read -r born 2>/dev/null <"$RUN/born"
   [[ -e $RUN/closing || ( -n $born && $(($(date +%s) - born)) -ge 20 ) ]] \
-    || as_desk notify-send -a asobi -u critical -- "asobi" "the world would not start: journalctl -t kawa-asobi" 2>/dev/null
+    || as_desk bash -c '. "$HOME/.config/fedokawaii/icons.sh" 2>/dev/null; notify-send -a asobi -u critical -- "${ICON_KOMA:-·}  asobi" "the world would not start: journalctl -t kawa-asobi"' 2>/dev/null
   rm -f "$RUN/closing" "$RUN/born"
   # (the screen first, as the world's last act: the desktop back at once, the rest behind it)
   [[ $(front_vt) == "$WORLD_VT" ]] && chvt "$DESK_VT"

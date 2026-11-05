@@ -20,8 +20,8 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | the seal (vermilion) | Jasper Red | Brick Red (a softer, older red) |
 | fire and metal | torchlight: Apricot Orange; old brass: Isabella | gold leaf: Yellow Ocher |
 | lit | a cold teal: Venice Green toward Ecru | a deep porcelain teal |
-| art | demons and warriors after Kuniyoshi and Hokusai, pixel-drawn | tennin (angels), clouds and lotus after Buddhist painting |
-| the lock | a castle wall, three pools of torchlight, carved battles of oni and tennin, the samurai demon facing you: his mouth is the gate | the same battle in the sky of an old screen, between bands of gold mist, two hanging lanterns, Marishiten: the sutra in her hands is the gate |
+| art (the lock and the heads are engraved paintings, everything else stays pixel art) | an engraved Hannya, carved war in a torch-lit hall | Schongauer's angel in an indigo wash over Hokusai's kind of sea |
+| the lock | an engraved Hannya mask, facing you, in a torch-lit hall of carved war: his jaw is the gate | Schongauer's engraved angel over the waves, between carved pillars and their torches: the scroll on her staff is the gate |
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
 | the head (quick settings' tile on the bar, the prompt, fetch, the lock: one character sheet, docs/art/heads.md; owner, 4 Nov: "more RED, classic Japanese", "badass samurai, EPIC": detail by line, not by colour) | a demon of the red companies: red lacquer, sumi, bone, kuwagata horns, laced lames: his teeth locked 吽, he roars 阿 while its panel is open and in the prompt when a command failed | Marishiten, the samurai's goddess of light: sumi on gofun, red only in the urna and lips, a nimbus of blades, a war-crown: her eyes closed, open while the panel is open and in the prompt when a command failed |
 
@@ -44,7 +44,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `edge` | `2d251e` Black → Pale Raw Umber 0.32 | `dfcc9c` Sulpher Yellow → Isabella Color 0.45 | a tile's or key's 1 px frame at rest; an unlit meter segment; the terminal's black |
 | `edge2` | `3c2f22` Black → Pale Raw Umber 0.48 | `d7bc8c` Sulpher Yellow → Maple 0.62 | a heading's rule (§4, §7) |
 | `hi` | `4a3826` Black → Pale Raw Umber 0.62 | `ffffff` White | pixel art's light ink (stone, paper, the files' and drives' pictures) |
-| `lo` | `111314` Black | `96865e` Isabella Color → Deep Slate Green 0.25 | pixel art's shadow ink; the screensaver's thread shadow (dark) |
+| `lo` | `111314` Black | `96865e` Isabella Color → Deep Slate Green 0.25 | pixel art's shadow ink; the screensaver's dark (dark) |
 | `faint` | `907e5d` Light Brownish Olive → Ecru 0.25 | `8b917f` text → ground 0.6 | what is not there yet ("none"), an empty workspace's numeral |
 | `muted` | `cab596` Ecru → Ivory Buff 0.2 | `586459` text → ground 0.36 | secondary words: values, a key's action, the layout's mark |
 | `text` | `e7cfa1` Ecru → Ivory Buff 0.9 | `122625` Deep Slate Green → Black 0.3 | names, rows, body |
@@ -394,10 +394,30 @@ content, inside its margin of one cell:
   column (1), what is typed — or the ghost words saying what the list holds, `faint` — at their
   names' (4); the count right-aligned to the last column, `muted`. A short list has none (Super+U,
   Super+W): its letters are free for its own keys.
-- **Meter** (a quantity in a row: Super+R's reading): ten segments, a cell each (Sumi Icons' `read`
-  and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in characters) — done
-  solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the cursor's row
-  strips the inks, the shapes still say it. Nothing yet: no meter at all.
+- **Meter** (a quantity in a row: Super+R's reading, a torrent's progress): ten segments, a cell each
+  (Sumi Icons' `read` and `read-off`, 6 × 10 on the cell's 8 px pitch — the panel's meter in
+  characters) — done solid in `accent_text` (`muted` once complete), to do hollow in `edge2`; the
+  segment part-way (`read-1` … `read-7`) keeps `read-off`'s frame and comes in by the Bayer matrix of
+  every dissolve (§11), a seventh more with each; the cursor's row strips the inks, the shapes still
+  say it. Nothing yet: no meter at all.
+- **Torrents** (`kawa-torrents`, its two tabs): the list in parts (downloading, paused, finished: a
+  heading each, how many and how much at the end of its rule; at the tabs' right end what comes and goes,
+  the last 16 seconds of it in the music's columns, §8), newest first; each row its state's icon (§5: it moves while bytes come; the
+  antenna television while it plays; the hourglass while it is looked for, asked of a site or
+  checked; ✘ with what stopped it, in words), its name as words (a torrent's dots read as spaces, never "…"), then
+  right-aligned, two columns apart, each one edge down its part so the digits stack: the meter, the percent, the
+  speed, the time left (its unit a letter: 45 s, 12 m, 3.2 h, 2 d), the size — the size last on every row. Words
+  that stand instead of numbers end in the time's place; a finished row keeps only what it sends, in the speed's
+  column, and its size.
+  Fewer columns as the window narrows: the size goes first (under 104 columns), then the time left (84), the meter
+  (62), the speed (44); the percent stays. From 132 columns its details stand beside the list (a
+  rail, a free column, 60 wide; the keyboard in them leaves a band of `edge` on the list's row, as
+  Files does); narrower, they fill the window. Its pieces a cloth of meter segments, three lines on a
+  tall window, one on a small. What could be added stands over the list in the
+  magnet's icon (the clipboard's link, a .torrent just downloaded). Find: the Search line, then a
+  row a result: its kind's icon, its name, then as they fit the site, its age and its size, last the
+  seedling (`sprout`) and how many share it; none: `faint`, last. Opened again while its window stands
+  elsewhere, the window asks for you (§5: a bell, its workspace `asagi` on the bar).
 - **Cursor**: the row's cells tinted `select` (§4) from the cursor's column to the one beyond the content; that column
   holds its edge, a glyph of Sumi Icons Term (`band-edge`: 2 px of the cell's 8, the line's 20 rows, in `accent`: fzf's
   pointer); the words `text_on_select`, every other ink its own (fzf's `bg+ 24`, `fg+ 25`, `pointer 16`, no `:strip`).
@@ -493,6 +513,33 @@ content, inside its margin of one cell:
   end (the first key is a word, never a command), the pen's room kept as the notes' however
   long the list; esc gives the list, where space ticks, and an item left with no words goes;
   its footer names the keys of the moment.
+- **The lessons** (Super+U → learning → lessons, the launcher's Lessons: `bin/kawa-learn`; a window tiled beside a
+  terminal, because a lesson is done by typing, from a narrow tile to the whole screen). The list: **Tabs**, the book's
+  parts, with the place (`12 of 259`, `muted`) at the list's last column; a chapter a **Heading**, its number `muted`
+  before its name, once one of its lessons is stamped `n of m` `muted` after the rule; a lesson a **Row**: its mark in
+  the icon column (✓ `muted` stamped, the seal `accent_text` on the next, nothing else), its number right-aligned on
+  columns 4–6 (`faint`; stamped `muted`), its name from column 9 (`text`; stamped `muted`), the time right-aligned
+  (`muted`; stamped `faint`). Projects (a chapter's ★★★ and ★★★★: when you have the time, never counted, never "next"):
+  a star in the number's place, words `muted`. From 99 columns of content the pane, 50 as Super+U's: the lesson's
+  **Heading**, its **Facts** (lesson, stamped, takes, needs), the sections it holds, its stamp or the ring waiting for it,
+  and at the pane's foot two **Meters** and what is left. `/` a **Search line** in the tabs' place: found by words in every
+  lesson, a lesson's name first. It opens on the next lesson, the one thing to do.
+  A lesson: a page of 88 columns at most, centred; its **Heading** (the chapter's icon, the name — with the section's
+  number when it is one section —, the rule `accent` as far as you have read, `edge2` the rest, the place `muted`), a
+  row of paper that never scrolls, the words, a row of paper, the screen's own keys (`enter  stamp it`, `enter
+  next: NAME`, `s  solutions  on`) on the last line. Paragraphs at column 0, `**strong**` in `strong`, an aside
+  (`*…*`) `muted` italic, a word of code on the band (`ansi0`, §1). A section: its number `muted` in a heading's icon
+  place, its name `strong`, the rule. A box (a new word, a checkpoint, careful, in this chapter): its icon `accent_text`
+  at column 0, its words from 3. A list at column 1, its words from 3. Code: a rail `│` `edge2` at column 0, the code from
+  2 in bat's colours (its theme "ansi": the palette), what you type `strong` and what the computer answers `muted`, a
+  line too long going on under `↳` `faint`, nothing cut. A table: the head `muted`, the solid rule, columns two apart;
+  too narrow for columns, each row a small block. An exercise: its number `muted`, its stars `accent_text` (Sumi Icons'
+  `star`, one cell: UDEV Gothic's ★ takes two and overlaps what follows), its name `strong`. Under the last words the
+  stamp's place: the ring in `edge2`, Enter stamps it (§11) — the mood's seal in `accent`, 56 × 56 in one ink, its
+  halves mirrored (`docs/learn/seals.txt`: the oni, the lotus over water; a sixel, so the theme's words reach it through
+  foot's mode 2031). A lesson opening unrolls in the window (§11): its rows come from the top behind a rod (`▂` in `select`,
+  a row wide, in the characters' grain), any key ending it at once. Nothing asks the mouse of a page (the terminal's
+  selection stays yours; the wheel comes as arrows).
 - **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
   ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
   spill into one blank cell only): the demon in the vermilion ink (`accent_text`, foot's slot 20) in the dark mood, the angel in the words' ink in the
@@ -592,22 +639,64 @@ the tiles of a group, 12 px between groups.
   translation; no date, no time, no buttons, no hint. The scene is drawn at whole pixels (×3 on 1080p),
   centred, its edges' own colour round it (kawa-lockmod). A wrong password says so at once (the marks
   scatter, the gate shakes 3 px twice — §11), and the line is empty again.
+- **Lock** (gtklock + kawa-lockmod; one painting per mood, never the wallpaper, 1920 × 1080, `tools/build-ink.py`; the
+  owner, 4 Nov 19:11 and 21:40: "drop this pixelated act", "super solid and beautiful"; sources: `art/ink/SOURCES.md`).
+  One engraver's hand: every line one ink, cut at 3 × and reduced, washes laid flat under the lines, no blur, nothing
+  empty. Dark (his master M1): the engraved Hannya at the middle, facing you, long ringed horns, the mane in fine lines
+  of light, brow and cheeks cut with scrolls, a robe's collar; behind it a hall of carved stone, angels and demons at
+  war, two torches, warm paper falling into black; the quote gilded on a stone tablet between the horns. His jaw is
+  the gate (seven frames, `lock-gate.png`, `gate` in `lock-scene.txt`): shut he grins, the secret key opens it, the
+  password burns in his throat, each character a small drawn fire (`lock-marks.png`, the newest eight in sight,
+  23 px apart; their shape in `asagi` while Caps Lock is on), the caret a bar as tall as a mark; Enter shuts it on them.
+  Light (his master M2): Schongauer's angel, her line kept and strengthened, in an indigo wash with the gold ring
+  behind her head, rising out of the sea between two great waves and two carved pillars whose figures hold burning
+  torches, clouds in curling scrolls, sakura; the quote on a print's title slip with its red seal. The banderole she
+  held is the scroll, rolled on her staff (seven frames, the same way): sealed with a red hanko at rest; unrolled by
+  the secret key, gold columns on its paper, each character one stroke of the brush in its column; rolled and sealed
+  again on Enter.
+  Its life (`anim`, `frames` and `sparks` in `lock-scene.txt`): the fires licking (a strip, 8 frames a second, the two
+  out of step), a veil of one dark ink thin and thick over the stone as they breathe (ink stays ink, the paper falls
+  and rises: never a colour laid on the carvings), the fire seen in the demon's pupils, embers rising; the angel's
+  rays turning, petals falling. All of it asleep while the screens are dark.
+  One quote per mood (§0) in a brush's own hand (Yuji Boku), no translation; no date, no time, no buttons, no hint.
+  Shown pixel for pixel on 1080p, smooth on any other size, centred, the mood's ground round it. A wrong password says
+  so at once (the marks scatter, the gate shakes twice — §11), and the line is empty again. What PAM says is one line
+  of words low on the painting, its own halo round its letters.
 - **Login** (greetd + kawa-greet): the same scene as the lock — the first lock of the day — and
   into the desktop by the greeter → session motion (§11).
-- **Screensaver** (kawa-saver): a cloth the screen's size on the mood's ground — hitomezashi sewn
-  line by line in a quiet thread (`muted` on the dark, `blue` on the light, each dot's shadow a dot
-  down and right), on a grid of dots as big as a pixel of the wallpapers; the time on a `surface`
-  patch framed in running stitch. Away (`--idle`) it lies over the lock, which comes up under it
-  as it starts: any input dissolves it off the lock screen at once.
+- **Screensaver** (kawa-saver): the lock's own painting, asleep: `lock-scene.png` itself, and over it one patch, the figure at rest (`saver-lids.png`: the mask's eyes shut, re-cut by the lock's own engraver; the angel's shut, her head bowed, her halo down to a trace). `saver-scene.txt`: tools/build-saver.py. The dark lies over it, deep on the dark mood, the gold hour on the light, open round the
+  fires and breathing with them, and the sleeper has its own dim light, breathing slower (a little over 7 s); the lock's own flames burn in it; on the dark, smoke curls off each flame up to the beam and embers
+  rise, cooling; on the light, gold dust hangs in the air and petals fall. Twelve steps a second, each thing a layer of its own, the
+  small ones scaled up smooth by the compositor. The time is a seal, 168 × 228 px, cut from worn stone, its digits
+  (12-hour, two rows of two) cut out: the painting shows faintly through them. Every minute it is struck at another third of the frame (`spot`, clear of the figure, in turn across the frame, a little aside each time) in the hot ink, and cools in a second. Away (`--idle`) the
+  lock comes up under it once the painting covers the screen; the first key or move wakes the world (§11), no key reaches anything.
+  The screens dark: no step, no frame, no CPU.
 - **Boot**: GRUB's menu and the boot splash (plymouth) in Sumi UI ×2 on the mood's ground, the
   vermilion seal and the same frame; the installer's screens likewise.
+- **The installer** (`iso/`, always the dark mood: nobody has chosen one yet): the boot menu's torii exactly
+  where the splash has it, so it stays still from the menu on; its words PNG (Secure Boot loads no font), three
+  lines, a 2 px bar counting down under a panel of the same width. Then the Linux console on a VT of its
+  own: Sumi UI ×2 as a font, a 14 × 28 cell, §7's grammar in those cells on a page 72 columns wide, centred:
+  torii (7 × 4 cells) and name, a heading with its rule, rows one column in, the lacquer on the row with the
+  cursor, reaching one column beyond the page each side; what must be read at once in `text`, what is not
+  there yet in `faint`. One page for all the questions, one for the disk, one for each refusal; progress is a
+  word, a count at the right edge and a meter of cells, and the heading's icon is the hourglass, turning.
 
 ## 10. The books and the Learn pieces
 
-The PDFs and the Learning section's pieces use the same parts in print: headings as icon + name
-+ rule, the palette's ink and paper, Sumi UI for headings and labels at whole multiples, tables
-ruled with the solid rule, square corners everywhere; each piece shows its place (piece n of N,
-done ✓).
+The Learn book has two forms from one source (`docs/fedokawaii-learn.md`): the lessons, its pieces in the
+order that teaches best (`docs/learn/syllabus.txt`; cut by `tools/learn-pieces.py`; §7 the lessons), and its
+PDF (`docs/build/learn.py`), the same parts in print: headings as icon + name + rule, the palette's ink and
+paper, Sumi UI for headings and labels at whole multiples, tables ruled with the solid rule, square corners
+everywhere. Each lesson shows its place (`12 of 259`, stamped ✓). `docs/fedokawaii-guide.md`, the technical
+reference, stays in the repository and has no PDF.
+
+**The cover** (`tools/build-cover.py`, its parts in `art/cover/SOURCES.md`) is the one page with no pixel face: a full-bleed
+engraving, the angel and the demon facing each other across the two moods, Hokusai's wave and sakura between them, the title
+in EB Garamond on a cartouche with the red hanko. Drawn once, for all three places it shows: the book's first page (A4, 200 dpi);
+Super+R's cover pane, where the book is always on the shelf, as the book's own first page; Super+U → learning → lessons, over
+the **Facts**: its left edge on the words' column, its top level with the list's first row, one row of paper under it. It is never
+recoloured for a mood: it holds both.
 
 **The cover** (`tools/build-cover.py`, its parts in `art/cover/SOURCES.md`) is the one page with no pixel face: a full-bleed
 engraving, the angel and the demon facing each other across the two moods, Hokusai's wave and sakura between them, the title
@@ -639,9 +728,11 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 | a wrong password | the gate opens again, the embers (motes) scatter and fade, the gate shakes 3 px twice | 240 |
 | login → desktop | the scene dissolves into the desktop; the bar's tiles stamp in from left to right, 30 ms apart | 900 |
 | a theme switch · a new wallpaper | the wash (dwl's own, asked through kawa-wash: the screen as it was laid over everything, the change made under it): five drops of the new mood's darkest ink land on the old picture and bleed out along a paper grain in 3 px pixels, a wet rim at their edge; the pointer's picture changes the moment the wash reaches it | 1200 |
-| the screensaver leaves | dissolves off | 180 |
+| the screensaver comes | the painting closes over the desktop from the edges to the figure's place, a soft edge 150 px wide, on a spring | 1200 |
+| a key wakes the world | the seal lifts, the fires leap, the dark lifts and the painting opens from the figure's place outwards, soft-edged, on a spring, onto the lock already under it: the same painting, the figure's eyes open; screens lit by that key, 1000 first while the monitor finds its signal | 440 |
+| the screensaver leaves (no lock under it, the last of its air over one) | dissolves off | 180 |
 | a screen back (switched on at its button, or woken after it dropped off the cable asleep) | its first picture is the whole desktop: black (the monitor is finding the signal) until its wallpaper and its bar are back and done drawing — 100 ms without a new frame of theirs — never seen being built | 1000 at most |
-| a stamp (the workspace seal) | down: the seal 1 px larger all round in `accent_hi`; then as it was, in `accent` | 60 |
+| a stamp (the workspace seal, a lesson stamped) | down: the seal 1 px larger all round in `accent_hi`; then as it was, in `accent` | 60 |
 | icons that move (§13) | their frames in a loop, only while the state holds | 6–8 a second |
 
 - Every frame is drawn at every refresh of the screen (144 a second here) for the moment it
@@ -654,6 +745,10 @@ another, a scroll is something opened and put away, a dissolve is a message pass
 - The dissolve is a threshold against a 4 × 4 Bayer matrix in 3 px blocks, done in the private
   wlroots' GLES2 texture shader (a flag on the scene node), so any window, panel or layer can
   dissolve at no cost.
+- The lights in the case do not move (the owner, 4 Nov 18:45: the card's logo cannot stay in step with the others, so
+  no animation across devices): one steady red, a value per device so they look the same by eye, matched by the owner
+  (`/etc/fedokawaii/rgb.conf`). They change on events only, a second's fade each way: the lock screen to about 30 % of
+  how they look, screens off or a sleep to dark (a sleep at once), unlocked or awake back to full (`src/kawa-rgb`).
 
 ## 12. Windows
 
@@ -675,6 +770,9 @@ another, a scroll is something opened and put away, a dissolve is a message pass
   **16 px** grid, in 1 px strokes, an instrument's 32 wide, a seal tile's 40 × 40, the seals, the keys' pictures, the months' flowers) are
   drawn by kawa-panel pixel for pixel in the theme's inks: `#` the row's ink (`muted` at rest, `strong` on or under the
   cursor), `%` a level's (lit from below), one letter a role for a second ink. Every one centred by its ink.
+- **A program's pictures** (FireAlpaca's tool strip and panels: `art/firealpaca-icons.txt`, 18, 20 and 24 px, the sizes its
+  own files have): one ink, masses solid, painted in its state's ink as it is shown (`text`, `faint` disabled, `text_on_select`
+  checked): a mask, so a mood needs no second set.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
   from the palette only.
@@ -695,7 +793,7 @@ another, a scroll is something opened and put away, a dissolve is a message pass
   between a triptych's sheets, no face cut by an edge, the subject in the middle where the print
   allows, and a calm top: the first 14 rows of the picture (42 px, the bar's) one ink, fading into the
   picture over the next 24, as the band a printer wiped across the top of the block (ichimonji-bokashi).
-  The two heads stand in until lane-ink's painting gives their icons (`docs/art/heads.md`).
+  The two heads are one character sheet at every size (`docs/art/heads.md`).
 
 ## 14. Surfaces and their owners
 
@@ -721,7 +819,11 @@ numbers here against its files.
 | the calculator | the launcher's Calculator | `bin/kawa-panel` (`Calc`), `bin/kawa-calc` | T19s |
 | the system monitor | the bar's memory, the launcher | btop (`configs/home/.config/btop/btop.conf`, its theme from `tools/build-themes.py`) | T19s |
 | help | Super+/ | `bin/kawa-help` | T23 |
+| torrents | the launcher, a magnet link, the bar's mark | `bin/kawa-torrents` (`.local/lib/fedokawaii/kawa-torrents`) | T29 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
+| the lessons | Super+U → learning, the launcher | `bin/kawa-learn`, cut by `tools/learn-pieces.py` | T27 |
+| the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
+| Sketch (FireAlpaca): its menus, panels, lists, meters, tool strip, both moods | the launcher | `src/kawa-firealpaca` (loaded into it), `tools/firealpaca_skin.py` (its sheet, inks and pictures, in `themes/`), `art/firealpaca-icons.txt`, `art/firealpaca-parts.txt`, `configs/firealpaca/` | T28 |
 
 ## 15. The grill list
 

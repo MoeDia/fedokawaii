@@ -62,12 +62,13 @@ g = {"__name__": "bi", "__file__": root + "/tools/build-icons.py"}
 exec(compile(src, "build-icons", "exec"), g)
 text = open(root + "/art/icons.txt").read()
 before = {ic["name"]: ic["code"] for ic in g["twins"](g["parse"](text))}
-after = {ic["name"]: ic["code"] for ic in g["twins"](g["parse"](text + "\n@zz-new\n" + "#." * 6 + "\n" + ".#" * 6 + "\n"))}
+grown = g["twins"](g["parse"](text + "\n@zz-new\n" + "#." * 6 + "\n" + ".#" * 6 + "\n"))
+after = {ic["name"]: ic["code"] for ic in grown}
 moved = [n for n in before if after[n] != before[n]]
 codes = list(after.values())
 print("moved:", moved[:5], "twice:", len(codes) - len(set(codes)),
-      "ranges:", all(g["FIRST"] <= c < g["TWIN"] for n, c in after.items() if not n.endswith("-bar")),
-      all(c >= g["TWIN"] for n, c in after.items() if n.endswith("-bar")))
+      "ranges:", all(g["FIRST"] <= ic["code"] < g["TWIN"] for ic in grown if not ic.get("twin")),   # (a cell's own code, as a twin's: past the numbered ones)
+      all(ic["code"] >= g["TWIN"] for ic in grown if ic.get("twin")))
 PYAPPEND
 )
 eq "$out" "moved: [] twice: 0 ranges: True True"

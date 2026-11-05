@@ -234,13 +234,13 @@ def demon_back():
         P.cut(dr.outline(black, 8))
     # hair falling in front of the shoulders, from behind the jaw, the join hidden
     for sgn in (-1, 1):
-        for j in range(26):
+        for _ in range(26):
             x, y = U(1536 + sgn * rng.uniform(430, 760), rng.uniform(1900, 2500))
             dr.lock(P, rng, x, y, math.pi / 2 - sgn * rng.uniform(.0, .55), rng.uniform(520, 1080) * K, rng.integers(3, 7), rng.uniform(30, 80) * K,
                     rng.uniform(12, 26) * K, sgn * rng.uniform(.4, 1.1), sgn * rng.uniform(.2, .9) * rng.choice((-1, 1)))
     # lit strands over the lapels' tops: the mane falls in front of the robe
     for sgn in (-1, 1):
-        for j in range(46):
+        for _ in range(46):
             x, y = U(1536 + sgn * lit.uniform(420, 860), lit.uniform(2050, 2480))
             n, a, p_ = 18, math.pi / 2 - sgn * lit.uniform(-.1, .5), np.array([x, y], float)
             L, turn, pts = lit.uniform(420, 1000) * K, sgn * lit.uniform(.2, 1.0), []
@@ -271,7 +271,8 @@ def demon_front(fbox):
     fw, fh = fx1 - fx0, fy1 - fy0
     CX = DX
     for sgn in (-1, 1):
-        st = lambda a: a if sgn > 0 else math.pi - a
+        def st(a, sgn=sgn):
+            return a if sgn > 0 else math.pi - a
         # the brow: cloud scrolls climbing from the knot between the eyes to the hairline
         dr.flame(P, (CX + sgn * .02 * fw, fy0 + .44 * fh), (CX + sgn * .23 * fw, fy0 + .10 * fh), bow=.20 * sgn, width=130 * K, lines=3, w=9 * K)
         dr.flame(P, (CX + sgn * .09 * fw, fy0 + .40 * fh), (CX + sgn * .38 * fw, fy0 + .25 * fh), bow=-.12 * sgn, width=70 * K, lines=2, w=8 * K)
@@ -397,7 +398,7 @@ def compose_dark(wall_ink, wall_tone, fire, plate, fig_ink, fig_alpha):
         glow = np.maximum(glow, np.exp(-(np.hypot(xx - tx, yy - ty) / 150) ** 2))
     wall = np.clip(wall + hexc("c8641e") * (glow * .30)[..., None], 0, 1)
     # the plate's own flames burn out in the bloom: tools/build-ink.py's kaen stands there, alive
-    for (fx, fy), (ex, ey) in zip(((112, 190), (1792, 188)), ((62, 86), (62, 86))):
+    for (fx, fy), (ex, ey) in zip(((112, 190), (1792, 188)), ((62, 86), (62, 86)), strict=True):
         off = np.clip(1.5 * np.exp(-((xx - fx) / ex) ** 2 - ((yy - fy) / ey) ** 2), 0, 1)[..., None]
         wall = wall * (1 - off) + hexc("f6d79a") * off
     # the figure: the same paper, always lit enough to carve it out of the dark, falling away towards the foot
@@ -691,11 +692,11 @@ def ember_marks(path, n=8, w=22, h=32):
         rng = np.random.default_rng(300 + k)
         lean = rng.uniform(-3.2, 3.2)
         W_, H_ = w * S_, h * S_
-        def shape(scale):
+        def shape(scale, lean=lean):
             pts = [(0, 0), (-5.2 * scale, -4.6 * scale), (-3.6 * scale + lean * .2, -11 * scale), (-1.5 * scale + lean * .5, -15 * scale),
                    (lean * .9, -22 * scale), (2.8 * scale + lean * .5, -14 * scale), (4.8 * scale + lean * .2, -9 * scale), (5.0 * scale, -3.6 * scale), (0, 0)]
             return dr.spline([(w / 2 + a * 1.25, h - 3 + b * 1.14) for a, b in pts], 10) * S_
-        def fill(scale, dy=0.0):
+        def fill(scale, dy=0.0, W_=W_, H_=H_):
             im = Image.new("L", (W_, H_), 0)
             ImageDraw.Draw(im).polygon([(float(a), float(b - dy * S_)) for a, b in shape(scale)], fill=255)
             return np.asarray(im.resize((w, h), Image.LANCZOS), dtype=np.float32) / 255
@@ -819,7 +820,7 @@ def setting_light(name="bl-1103"):
     fire = np.zeros((SH, SW), bool)
     glow = np.zeros((SH, SW), np.float32)
     raw_ink = ink.copy()
-    for (fx, fy), (ex, ey), oy, rim in zip(LANTERNS, ((76, 118), (84, 124)), (-30, -30), (176 + (xx - 358) * .386, 205 - (xx - 1500) * .27)):
+    for (fx, fy), (ex, ey), oy, rim in zip(LANTERNS, ((76, 118), (84, 124)), (-30, -30), (176 + (xx - 358) * .386, 205 - (xx - 1500) * .27), strict=True):
         # (only above the cup's rim: the torch's head stays cut clean)
         off = np.clip(1.6 * np.exp(-((xx - fx) / ex) ** 2 - ((yy - fy - oy) / ey) ** 2), 0, 1) * np.clip((rim - yy) / 6, 0, 1)
         glow = np.maximum(glow, np.exp(-(np.hypot(xx - fx, (yy - fy) * .9) / 215) ** 2))

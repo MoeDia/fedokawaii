@@ -114,7 +114,7 @@ WORDS
   for s in "${SURFACES[@]}"; do
     IFS='|' read -r name open keys close <<<"$s"
     [[ -z $only || ,$only, == *",$name,"* ]] || continue
-    printf 'RV_BEFORE=$(rv_grab)\n%s\nnap 0.9\n%s\nnap 0.5\nrv_still "$RV_BEFORE"\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
+    printf 'RV_BEFORE=$(rv_grab)\n%s\nnap 0.9\n%s\nnap 0.5\n rv_still "$RV_BEFORE"\nshot %s\n%s\nnap 0.8\n' "$open" "$keys" "$name" "$close"
   done
 } >"$W/play.sh"
 # (the kit's ground is swaybg's; now and then, seen under load only, its picture goes and dwl's dark root shows — swaybg
