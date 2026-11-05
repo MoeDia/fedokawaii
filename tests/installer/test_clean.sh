@@ -41,18 +41,18 @@ reboot_world; keep phase2
 case_ "phase 2: RPM Fusion's release packages from RPM Fusion's own server, checked against its pinned keys, installed by dnf checking them again"
 resume --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 pkg_has rpmfusion-free-release && pkg_has rpmfusion-nonfree-release && _ok || _no "the release packages are not installed"
-called 'curl\] .*https://download1\.rpmfusion\.org/free/fedora/rpmfusion-free-release-44\.noarch\.rpm'
+called 'curl\] .*https://download1\.rpmfusion\.org/free/fedora/rpmfusion-free-release-45\.noarch\.rpm'
 not_called 'mirrors\.rpmfusion\.org' "the mirror list is never asked while RPM Fusion's own server answers"
-called 'rpmkeys\] -K .*rpmfusion-free-release-44\.noarch\.rpm'; called 'rpmkeys\] -K .*rpmfusion-nonfree-release-44\.noarch\.rpm'
+called 'rpmkeys\] -K .*rpmfusion-free-release-45\.noarch\.rpm'; called 'rpmkeys\] -K .*rpmfusion-nonfree-release-45\.noarch\.rpm'
 called 'rpm\] --import .*RPM-GPG-KEY-rpmfusion-free-fedora-2020'
-called 'dnf\] -y install --setopt=localpkg_gpgcheck=1 /.*rpmfusion-free-release-44\.noarch\.rpm /.*rpmfusion-nonfree-release-44\.noarch\.rpm'
+called 'dnf\] -y install --setopt=localpkg_gpgcheck=1 /.*rpmfusion-free-release-45\.noarch\.rpm /.*rpmfusion-nonfree-release-45\.noarch\.rpm'
 not_called 'dnf\] -y install https://' "dnf never fetches them itself (one dead mirror once stopped setup there)"
 has "$OUT" "0 retried · 0 warning(s) · 0 failed"
 
 case_ "…RPM Fusion's own server not answering: its mirror list instead, said in one line — still checked"
 back phase2; reset_calls; fkh unreachable download1.rpmfusion.org
 resume --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-called 'curl\] .*https://mirrors\.rpmfusion\.org/free/fedora/rpmfusion-free-release-44\.noarch\.rpm'
+called 'curl\] .*https://mirrors\.rpmfusion\.org/free/fedora/rpmfusion-free-release-45\.noarch\.rpm'
 has "$OUT" "did not come from download1.rpmfusion.org — the next source"
 called 'rpmkeys\] -K'; pkg_has rpmfusion-free-release && _ok || _no "not installed from the mirror list"
 lacks "$OUT" "attempt 1/"
@@ -60,7 +60,7 @@ lacks "$OUT" "attempt 1/"
 case_ "…a release package not signed by RPM Fusion (a mirror's own file): refused from every source, nothing installed, exit 1 naming why"
 back phase2; reset_calls; fkh rpm-badsig
 resume --no-reboot; eq "$RC" 1
-has "$OUT" "does not carry RPM Fusion's signature"; has "$OUT" "RPM Fusion's release packages for Fedora 44 could not be fetched"
+has "$OUT" "does not carry RPM Fusion's signature"; has "$OUT" "RPM Fusion's release packages for Fedora 45 could not be fetched"
 pkg_has rpmfusion-free-release && _no "an unsigned release package was installed" || _ok
 not_called 'dnf\] -y install --setopt=localpkg_gpgcheck=1'
 

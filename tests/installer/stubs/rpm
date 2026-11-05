@@ -11,7 +11,7 @@ if [[ " $* " == *" -qp "* ]]; then
     [[ $f == *.rpm ]] || continue
     n=${f##*/}; n=${n%.rpm}; n=${n%.*}; n=${n%-*}; n=${n%-*}
     src=$(awk -v n="$n" '$1 == n { print $2; exit }' "$FKH/srpms" 2>/dev/null)
-    printf '%s %s-1.0-1.fc44.src.rpm\n' "$n" "${src:-$n}"
+    printf '%s %s-1.0-1.fc45.src.rpm\n' "$n" "${src:-$n}"
   done; exit 0
 fi
 qf="" wp=0 last=0 list=0 names=()
@@ -32,12 +32,12 @@ for n in "${names[@]}"; do
     echo "package $n is not installed"; miss=$((miss+1)); continue
   fi
   if [[ $n == wlroots-devel && $qf == '%{version}' ]] && has installed wlroots-devel; then printf '0.20.2'; continue; fi
-  # (a package's version: $FKH/evr "NAME EVR", else 1.0-1.fc44 — and NAME-EVR is installed when it is that)
+  # (a package's version: $FKH/evr "NAME EVR", else 1.0-1.fc45 — and NAME-EVR is installed when it is that)
   if [[ $qf == '%{evr}'* ]]; then has installed "$n" || { miss=$((miss+1)); continue; }
-    v=$(awk -v n="$n" '$1 == n { print $2; exit }' "$FKH/evr" 2>/dev/null); printf '%s\n' "${v:-1.0-1.fc44}"; continue; fi
+    v=$(awk -v n="$n" '$1 == n { print $2; exit }' "$FKH/evr" 2>/dev/null); printf '%s\n' "${v:-1.0-1.fc45}"; continue; fi
   if ((!wp)) && [[ -z $qf && $n =~ ^(.+)-([0-9][^-]*-[^-]+)$ ]] && has installed "${BASH_REMATCH[1]}"; then
     v=$(awk -v n="${BASH_REMATCH[1]}" '$1 == n { print $2; exit }' "$FKH/evr" 2>/dev/null)
-    [[ ${v:-1.0-1.fc44} == "${BASH_REMATCH[2]}" ]] && { echo "$n.x86_64"; continue; }
+    [[ ${v:-1.0-1.fc45} == "${BASH_REMATCH[2]}" ]] && { echo "$n.x86_64"; continue; }
     echo "package $n is not installed"; miss=$((miss+1)); continue
   fi
   if ((wp)); then p=$(provider "$n") || { echo "no package provides $n"; miss=$((miss+1)); continue; }
@@ -45,6 +45,6 @@ for n in "${names[@]}"; do
   if ((list)); then awk -v p="$p" '$1 == p { print $2 }' "$FKH/files" 2>/dev/null; continue; fi
   # (what it obsoletes: $FKH/obsoletes "NAME OLD")
   if [[ $qf == *OBSOLETENAME* ]]; then awk -v p="$p" '$1 == p { print $2 }' "$FKH/obsoletes" 2>/dev/null; continue; fi
-  if [[ -n $qf ]]; then printf '%s\n' "$p"; else echo "$p-1.0-1.fc44.x86_64"; fi
+  if [[ -n $qf ]]; then printf '%s\n' "$p"; else echo "$p-1.0-1.fc45.x86_64"; fi
 done
 exit $miss

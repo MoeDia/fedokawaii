@@ -2,16 +2,16 @@
 
 One tool per job. The authoritative list is `lib/manifest.sh` (packages) and `lib/upstream.sh`
 (release binaries); `verify.sh` proves the machine matches them exactly. Every name was checked
-for **Fedora 44 and 45** on 15 Oct 2026 (LibreOffice's parts and the dictionaries on 17 Oct), and
-every Fedora one again on 21 Oct 2026 in Fedora 44 and in Rawhide (46) — each is in both; the
-release downloads re-measured that day, each the newest release but ble.sh (a commit: §27.7 of
+for **Fedora 45** on 4 Nov 2026 (`dnf repoquery --releasever=45`, Fedora's repositories, RPM Fusion's
+and the COPRs'; the vendors' repositories, which name no release, as they were); the
+release downloads were re-measured on 21 Oct 2026, each the newest release but ble.sh (a commit: §27.7 of
 the guide says why). No Snap, no fallbacks; Flatpak only in the play world (its own user's).
 
 Where each name was seen, and when, is `tools/packages.evidence` (a source URL and a date per package and per
 release download). `bash tools/check-packages` audits the list anywhere (a name twice, wanted and forbidden,
 no evidence, evidence older than 60 days); `--live` on Fedora asks dnf itself (missing, renamed, obsoleted,
 two vendors, one transaction for all, one command from two packages, every repository signed), and
-`tools/container-trial.sh` (`fedokawaii trial`) runs it, and the real package steps, in a clean Fedora 44 container.
+`tools/container-trial.sh` (`fedokawaii trial`) runs it, and the real package steps, in a clean Fedora 45 container.
 
 Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C** COPR · **GH** GitHub release (pinned: an exact version and its SHA-256, measured here) · **uv** (uv tool) · **podman**
 
@@ -63,7 +63,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Text from pictures (OCR) | tesseract (+ English, Arabic) | F | scans and screenshots to text, and searchable PDFs |
 | Images | imv + ImageMagick (+ -heic) + libheif-freeworld | F + RF | convert, resize, compress — phone (HEIC) photos too; ImageMagick also draws the pixel art, the wallpapers and the boot menu background |
 | QR codes | qrencode | F | a link or Wi-Fi details as a QR code, in the terminal or as a PNG |
-| Screen recording | wf-recorder | F | Super+Shift+R (`kawa-record`): the whole screen or a region (slurp) to `~/Videos/Recordings/*.mp4`, the desktop's sound or none; H.264 encoded on the card (VA-API, `h264_vaapi`: RPM Fusion's ffmpeg and mesa-va-drivers-freeworld), the bar's 録 and its time while it runs. gpu-screen-recorder is only in COPRs for Fedora 44, so not used |
+| Screen recording | wf-recorder | F | Super+Shift+R (`kawa-record`): the whole screen or a region (slurp) to `~/Videos/Recordings/*.mp4`, the desktop's sound or none; H.264 encoded on the card (VA-API, `h264_vaapi`: RPM Fusion's ffmpeg and mesa-va-drivers-freeworld), the bar's 録 and its time while it runs. gpu-screen-recorder is only in COPRs, so not used |
 | Calculator | qalc (`qalculate`) | F | "Calculator" in the launcher: `kawa-calc`, a floating panel of `kawa-panel`, the answer as you type from one qalc it asks line by line, Enter copies; Ctrl+Q is qalc's own prompt in a window of its own. The launcher answers sums and conversions too, as you type, from a qalc of its own (started on the first one, ended after two idle minutes) |
 | Video | mpv + mpv-mpris + yt-dlp + nodejs24 (+ -bin, -npm-bin) | F | mpv-mpris: mpv in the bar and on the media keys; Node.js: yt-dlp's JavaScript runtime for YouTube, and npm for Mason's language servers |
 | Watching together | Syncplay 1.7.6 (no window) | git (GitHub, pinned commit) + F | its source at the v1.7.6 tag's commit with two fixes of ours (src/syncplay/syncplay.patch: mpv waited for at the start, the window closed with mpv), run by Fedora's python3 with python3-twisted (+tls) · python3-pyOpenSSL · python3-certifi · python3-pem (lib/upstream.sh); Fedora's syncplay package is left out: it brings PySide6 and 27 Qt modules for a window never used. `kawa-together`: a small form (server, room, name, password, film; your last choice ready, Enter rejoins it), then Syncplay beside mpv; pause, seek, ready and chat reach friends through a public server (syncplay.pl) |
@@ -71,7 +71,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Music | Spotify's web player | — (Helium) | open.spotify.com in a Helium app window (`spotify.desktop`), free or Premium; Widevine fetched from Google for this computer (`install_widevine`); Helium's MPRIS: the bar's now-playing and meter, the media keys |
 | Torrents | kawa-torrents (ours) on libtorrent + Prowlarr | F + podman | our own engine and window (bin/kawa-torrents) on Fedora's python3 and `rb_libtorrent-python3`: no Python of its own, no Textual; a socket-started engine that goes on with the window closed |
 | Git | git + lazygit + delta (`git-delta`) | F + GH + F | lazygit from its own release, pinned like yazi (its COPR is no longer kept); delta draws its diffs (syntax colours in the terminal's own palette, line numbers, side by side in a wide window); lazygit also opens inside neovim (Space g g) |
-| Python and Rust (learning) | uv · rustup | F | uv 0.12 (Fedora 44): a current CPython in your home (`python3.14`, beside Fedora's `python3`, which the desktop's scripts keep), `uv pip`, `uv venv`, `uv run`; rustup 1.29 (Fedora 44): setup runs `rustup-init` for you — stable Rust with rust-analyzer, clippy and rustfmt in `~/.local/share/cargo/bin` (CARGO_HOME). neovim's side (basedpyright, ruff, debugpy, codelldb) from Mason. Update moves all of it on |
+| Python and Rust (learning) | uv · rustup | F | uv 0.13 (Fedora 45): a current CPython in your home (`python3.15`, beside Fedora's `python3`, which the desktop's scripts keep), `uv pip`, `uv venv`, `uv run`; rustup 1.29 (Fedora 45): setup runs `rustup-init` for you — stable Rust with rust-analyzer, clippy and rustfmt in `~/.local/share/cargo/bin` (CARGO_HOME). neovim's side (basedpyright, ruff, debugpy, codelldb) from Mason. Update moves all of it on |
 | Script checking | ShellCheck | F | `fedokawaii apply` reads the scripts you changed with it; every finding has a page (SC number) that explains it |
 | System monitor | btop (+ rocm-smi on AMD) | F | rocm-smi is the ROCm SMI library btop opens to read the card: load, memory, heat and watts in the CPU box, and a GPU box on **5** |
 | Tables in the terminal | visidata (`vd`) | F | `vd file.csv`: CSV, TSV, JSON and SQLite — sort, sum, filter, group, save; the default for CSV and TSV files (a `.xlsx` needs python3-openpyxl, which is not installed: Excel files are LibreOffice Calc's) |
@@ -79,7 +79,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Search / view | ripgrep · fd-find · bat | F | rg and fd also power LazyVim's pickers |
 | Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
-| Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 43, 44 and 45 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
+| Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 45 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
 | Backups | restic · fuse3 | F | your home to a USB drive, an external disk or a restic address, deduplicated and encrypted; `kawa-backup` runs it (quick settings → backup) — nothing on a timer, the drive may not be plugged in; Super+U → restore opens a backup read-only (`restic mount`: fuse3) to pick files from it, or puts all of it back after a new disk |
 | Containers | podman | F | for Prowlarr |
 | GPU | Mesa freeworld VA-API · LACT · rocm-smi | RF + C + F | amdgpu feature mask for LACT; rocm-smi: the library btop reads the card through (AMD only); while RPM Fusion is behind this Fedora's Mesa, or the COPR has no build for it, they wait (recorded, Fedora's drivers standing in) and update or repair adds them |

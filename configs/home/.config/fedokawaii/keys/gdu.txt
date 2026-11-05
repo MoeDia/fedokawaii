@@ -1,4 +1,4 @@
-# gdu 5.32.0 (Fedora gdu-5.32.0-3.fc44): what fills the disk
+# gdu 5.32.0 (Fedora gdu-5.32.0-4.fc45): what fills the disk
 # command: gdu --version
 # source: https://github.com/dundee/gdu/blob/v5.32.0/tui/show.go (its help window; all 27 lines also found in the installed binary) and tui/keys.go (the key handling)
 # source: /usr/share/doc/gdu/README.md (installed; identical to the tag's)

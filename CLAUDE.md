@@ -1,6 +1,6 @@
 # CLAUDE.md — working on fedokawaii (read this first, every session)
 
-Fedokawaii turns Fedora 44 Server (minimal) into a retro-Japanese pixel desktop on **dwl**
+Fedokawaii turns Fedora 45 Server (minimal) into a retro-Japanese pixel desktop on **dwl**
 (patched), for one owner: Mohamed Eldoush (PC user `dia`, GitHub MoeDia). His PC: Ryzen
 (iGPU) + Gigabyte RX 9060 XT, one 1080p 144 Hz monitor (HDMI-A-1), XP-Pen tablet. You run
 **on that PC itself**: this clone is the working copy (`~/repos/fedokawaii`), the live
@@ -8,6 +8,8 @@ install is what `fedokawaii apply` made from it.
 
 ## The owner's standing rules (never break)
 - Zero fallbacks; one tool per job; TUI over GUI. Performance and RAM are paramount.
+- **Fedora 45 only** (his decision, 2026-11-04 21:40): `FEDORA_RELEASE` in `lib/common.sh`; no code path, package
+  name, repository URL or word for an earlier release (`tests/static/test_release.sh` fails on one).
 - Pixel-perfect in **both** themes (dark and light). Follow `docs/design-system.md`.
 - Never truncate with "…" anywhere (cut at a word, or fit).
 - Never ask the owner — decide yourself, say what you decided. (He asked for this.)
@@ -223,8 +225,8 @@ animation's frames checked at 144 Hz, input-to-screen latency for keys, menus an
 app start times, RAM/CPU/GPU tracked, crashes hunted; numbers before and after in the ledger.
 
 **Everything trickles into the installer** (added 19:45): every change must be made by
-setup/theme/apply from a clean Fedora 44 (VM-proven at the end, as before), never by hand on the
-PC. Use what kernel 7.2 and Fedora 44 offer for performance and stability (scheduler, memory,
+setup/theme/apply from a clean Fedora 45 (VM-proven at the end, as before), never by hand on the
+PC. Use what kernel 7.2 and Fedora 45 offer for performance and stability (scheduler, memory,
 I/O and GPU features, sensible sysctls and boot arguments — each measured, none on faith).
 Neovim: faster start-up and editing (measure `nvim --startuptime`, lazy-load, cut plugins that
 cost more than they give). Finally **harden and optimise the repo once more**: dead code out,
@@ -470,7 +472,7 @@ work, not many screens. Write it into `docs/design-system.md` first (grid, type 
 frames, colour roles from the Wada palette, icon grammar, motion), then rebuild every surface
 from it, then audit them side by side in both themes until they are indistinguishable in grammar.
 
-Release upgrades (Fedora 44 → 45 → 46 …) go through the same single **update** item: VM
+Release upgrades (Fedora 45 → 46 → 47 …) go through the same single **update** item: VM
 pre-flight first, then the real machine, rollback on failure, AI fixer for what breaks. Be
 honest in the Learning piece: a release that changes something big (wlroots for dwl, say) may
 be beyond the local model; then the PC safely stays on the working release and tells him well
@@ -537,7 +539,7 @@ On "START" (each pass):
 6. **Design is the heart of this round** (see "Design: an artwork" below).
 7. **After the plan is done:** (a) a **research round** — go to the official docs and upstream
    sources of everything touched (dwl/wlroots, foot, waybar, gtklock, greetd, plymouth, yazi,
-   mako, pipewire, Steam, FireAlpaca, OpenRGB, Stockfish, Fedora 44 notes …), find what you
+   mako, pipewire, Steam, FireAlpaca, OpenRGB, Stockfish, Fedora 45 notes …), find what you
    missed or did against the grain, fix it; (b) **maniac testing**: every app, menu, key,
    combination and edge case, both themes, aggressive load, try to crash everything; reboots
    (`sudo systemctl reboot`, as in 4) and a cold boot — power-off test last of all, with

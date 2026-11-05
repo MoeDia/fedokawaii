@@ -79,22 +79,22 @@ reset_calls; rc 0 fedokawaii update; called '^sudo bash .*fedokawaii.sh update'
 
 case_ "held: what the updates hold back — its count on the row, each with why in the pane (a kernel's packages as one); enter does nothing"
 fresh; mkdir -p "$R/state/update"
-printf '%s\n' 'mesa 26.1-1.fc44 26.0-1.fc44 2026-11-01 mesa the desktop does not start' \
-  'kernel-core 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 kernel did not reach the desktop in three starts' \
-  'kernel-modules 7.2.13-200.fc44 7.2.11-200.fc44 2026-11-01 kernel did not reach the desktop in three starts' >"$R/state/update/holds"
+printf '%s\n' 'mesa 26.1-1.fc45 26.0-1.fc45 2026-11-01 mesa the desktop does not start' \
+  'kernel-core 7.2.13-200.fc45 7.2.11-200.fc45 2026-11-01 kernel did not reach the desktop in three starts' \
+  'kernel-modules 7.2.13-200.fc45 7.2.11-200.fc45 2026-11-01 kernel did not reach the desktop in three starts' >"$R/state/update/holds"
 [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 2" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 out=$(plain "$(fedokawaii --explain held)")
-has "$out" "mesa 26.1-1.fc44"; has "$out" "the desktop does not start"; has "$out" "kernel 7.2.13-200.fc44"; lacks "$out" "kernel-modules"
+has "$out" "mesa 26.1-1.fc45"; has "$out" "the desktop does not start"; has "$out" "kernel 7.2.13-200.fc45"; lacks "$out" "kernel-modules"
 has "$out" "did not reach the desktop in three"; lacks "$out" "…"; lacks "$out" "not yet"
 (( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"   # (under its heading: the pane's own rule)
 rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *"held back"*" none" ]] && _ok || _no "none held: the row says so: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 has "$(plain "$(fedokawaii --explain held)")" "nothing held back."
 case_ "…sixty held at once (a whole set): the row counts sixty, the pane names three, then how many more"
 fresh; mkdir -p "$R/state/update"
-for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc44 1.0-1.fc44 2026-11-01 p$i the desktop does not start"; done >"$R/state/update/holds"
+for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc45 1.0-1.fc45 2026-11-01 p$i the desktop does not start"; done >"$R/state/update/holds"
 [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 60" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 out=$(plain "$(fedokawaii --explain held)")
-has "$out" "p03 1.1-1.fc44"; lacks "$out" "p04"; has "$out" "and 57 more."; lacks "$out" "…"
+has "$out" "p03 1.1-1.fc45"; lacks "$out" "p04"; has "$out" "and 57 more."; lacks "$out" "…"
 (( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"
 rm -f "$R/state/update/holds"
 case_ "an update running as a unit of its own: a press follows it — its output so far, its status; no password"
@@ -227,12 +227,12 @@ w=$(widest "$(entries "$(FZF_COLUMNS=40 fedokawaii --rows)")"); eq "$w" 38 "a na
 w=$(widest "$(entries "$(FZF_COLUMNS=garbage fedokawaii --rows </dev/null)")"); eq "$w" 38
 case_ "rows at their widest: a release that settles in 180 days, an update in a year"
 fedokawaii remind wait 180 >/dev/null; fedokawaii remind every 365 >/dev/null
-rec release-45 "$(ago_s 0)"; rec last-update-done "$(ago_s 0)"
+rec release-46 "$(ago_s 0)"; rec last-update-done "$(ago_s 0)"
 out=$(allrows)
 has "$(row update)" "in 365 days"
 (( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "too wide: $(plain "$out")"
 case_ "rows: due, ready (the kanji's vermilion: they need you), reminders off"
-fresh; rec last-update-done "$(ago_s 200)"; rec release-45 "$(ago_s 100)"
+fresh; rec last-update-done "$(ago_s 200)"; rec release-46 "$(ago_s 100)"
 out=$(allrows)
 has "$(grep '^update' <<<"$out")" $'\e[38;5;20mdue'
 fedokawaii remind off >/dev/null; has "$(row remind)" "off"
@@ -274,7 +274,7 @@ fresh
 ( exec 9>"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
 mkdir -p "$R/state/update"; rec update/last-upgrade "$(ago_s 3) 43 44 partial"; rec last-update "$(ago_s 0) stopped"; rec last-update-done "$(ago_s 100)"
-rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc44.x86_64 >"$R/newest-kernel"
+rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc45.x86_64 >"$R/newest-kernel"
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
@@ -319,7 +319,7 @@ eq "$(fedokawaii --explain 2>&1)" ""; eq "$(fedokawaii --explain bogus 2>&1)" ""
 outcome() { tty_free fedokawaii --run "$1" </dev/null 2>&1 | tail -n3; }   # (the outcome's row, a blank line, the footer)
 case_ "status: shown, then finished"
 fresh; out=$(tty_free fedokawaii --run status </dev/null 2>&1)
-has "$out" $'\e[H\e[2J'; has "$out" "release   Fedora 44"; has "$out" "finished"; has "$out" "any key goes back to the menu"
+has "$out" $'\e[H\e[2J'; has "$out" "release   Fedora 45"; has "$out" "finished"; has "$out" "any key goes back to the menu"
 case_ "the outcome line says what each exit status means"
 for a in update verify repair theme drift; do
   echo 0 >"$R/rc-$a"; has "$(outcome "$a")" "finished" "$a 0"
@@ -640,7 +640,7 @@ case_ "plain menu: the status, nineteen numbered entries; q, Q, Enter and end of
 console
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
-has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 44"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  go back"
+has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 45"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  go back"
 has "$out" "11  a file, back"; has "$out" "12  back up now"; has "$out" "13  restore"; has "$out" "14  the drive"; has "$out" "15  before you wipe"; has "$out" "16  bring back"; has "$out" "17  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
 case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)

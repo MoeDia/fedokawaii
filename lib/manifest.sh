@@ -3,10 +3,8 @@
 # lib/manifest.sh — the single source of truth.
 # setup.sh installs exactly these lists; verify.sh proves exactly these lists
 # are present, the FORBIDDEN ones are absent, and nothing else was added.
-# Every name verified on packages.fedoraproject.org / RPM Fusion / vendor repos
-# for Fedora 44 and 45 (2026-10-14; tar, grubby, wiremix, visidata, gdu, rocm-smi,
-# Syncplay's Python libraries 2026-10-16; LibreOffice's parts and the hunspell dictionaries
-# 2026-10-17). One tool per job — see PACKAGES.md.
+# Every name verified against Fedora 45's own repositories, RPM Fusion's and the vendors'
+# (dnf repoquery --releasever=45, 2026-11-04). One tool per job — see PACKAGES.md.
 
 # ── phase 1 ─────────────────────────────────────────────────────────────────
 PKG_BASE=(
@@ -47,7 +45,7 @@ PKG_MEDIA=(
   yt-dlp                # downloader (mpv plays links through it); ffprobe (ffmpeg) inspects media
   nodejs24 nodejs24-bin nodejs24-npm-bin
                         # YouTube: yt-dlp answers its JavaScript challenges in Node.js (~/.config/yt-dlp/config);
-                        # Node 24 by its own name on F44 and F45 ("nodejs" is 22 there); -bin: the plain `node`,
+                        # Node 24 by its own name ("nodejs" is 22); -bin: the plain `node`,
                         # npm-bin: the plain `npm`, which neovim's Mason installs language servers with
   libva-utils           # vainfo — used by verify.sh
   libheif-freeworld     # HEVC for HEIF: iPhone photos (.heic) open in imv, yazi and ImageMagick
@@ -57,7 +55,7 @@ PKG_MEDIA=(
 # own, 32-bit too, in their Flatpak runtime). RPM Fusion's
 # freeworld build of it adds only Vulkan's own H.264/HEVC video, which nothing here uses (mpv
 # and Helium decode through VA-API: mesa-va-drivers-freeworld), and its 64- and 32-bit packages
-# have clashed over a shared file (Fedora 44, Mesa 26.1/26.2)
+# have clashed over a shared file (Mesa 26.1/26.2)
 PKG_GPU_COMMON=(mesa-dri-drivers mesa-vulkan-drivers vulkan-loader linux-firmware)
 PKG_GPU_amd=(amd-gpu-firmware mesa-va-drivers-freeworld lact
              rocm-smi)   # the ROCm SMI library: btop reads the card through it (load, memory, heat, watts)
@@ -231,7 +229,7 @@ FORBIDDEN_PKGS=(
   ffmpeg-free                                                                  # RPM Fusion ffmpeg only
   mesa-vulkan-drivers-freeworld                                                # Vulkan: Fedora's own (PKG_GPU_COMMON)
 )
-FORBIDDEN_amd=(mesa-va-drivers)                                                 # VA-API: the freeworld build only (mesa-va-drivers: before F44)
+FORBIDDEN_amd=(mesa-va-drivers)                                                 # VA-API: the freeworld build only
 
 # ── services ────────────────────────────────────────────────────────────────
 SVC_SYSTEM=(greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer)
@@ -243,11 +241,10 @@ CLAUDE_REPO_BASEURL="https://downloads.claude.ai/claude-code/rpm/stable"
 CLAUDE_KEY_URL="https://downloads.claude.ai/keys/claude-code.asc"
 CLAUDE_KEY_FPR="31DDDE24DDFAB679F42D7BD2BAA929FF1A7ECACE"
 # RPM Fusion's signing keys, free and nonfree: one each since 2020, for every Fedora from 33 on
-# (the release packages of 44 and 45 name the same for 44 to 47 and Rawhide — measured
-# 2026-10-21). setup.sh checks the release packages it fetches against them before installing
+# (Fedora 45's release packages name the same for 45 to 47 and Rawhide). setup.sh checks the release packages it fetches against them before installing
 RPMFUSION_FREE_FPR="E9A491A3DE247814E7E067EAE06F8ECDD651FF2E"
 RPMFUSION_NONFREE_FPR="79BDB88F9BBF73910FD4095B6A2AF96194843C65"
-# (grub-btrfs: zzahkaboom24's COPR builds 4.14 for Fedora 43 and 44 — kylegospo's stopped at 38)
+# (grub-btrfs: zzahkaboom24's COPR builds 4.14 for Fedora 45 — kylegospo's stopped at 38)
 COPRS=(ilyaz/LACT zzahkaboom24/grub-btrfs imput/helium)
 copr_pkgs() { case $1 in ilyaz/LACT) echo lact ;; zzahkaboom24/grub-btrfs) echo grub-btrfs ;; imput/helium) echo helium-bin ;; esac; }   # what each COPR brings
 

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/installer/lib.sh — what the installer's tests share: a fake Fedora 44 Server to run
+# tests/installer/lib.sh — what the installer's tests share: a fake Fedora 45 Server to run
 # setup.sh, theme.sh, verify.sh and check.sh in, as root, without touching this machine.
 #
 #   world fresh|built       a fresh sandbox with a fake machine in $W: this machine's /etc copied
@@ -217,8 +217,8 @@ world() {   # world fresh|built [--themed]
   else echo "wheel:x:3010:fkuser" >>"$W/etc/group"; fi
   rm -f "$W/etc/os-release"
   # (as the installer's Custom Operating System writes it — the handbook's choice: no edition)
-  printf '%s\n' 'NAME="Fedora Linux"' 'VERSION="44 (Forty Four)"' 'ID=fedora' 'VERSION_ID=44' \
-    'PRETTY_NAME="Fedora Linux 44 (Forty Four)"' 'SUPPORT_END=2027-05-19' >"$W/etc/os-release"
+  printf '%s\n' 'NAME="Fedora Linux"' 'VERSION="45 (Forty Five)"' 'ID=fedora' 'VERSION_ID=45' \
+    'PRETTY_NAME="Fedora Linux 45 (Forty Five)"' 'SUPPORT_END=2027-12-08' >"$W/etc/os-release"
   mkdir -p "$W/etc/default"
   printf '%s\n' 'GRUB_TIMEOUT=5' 'GRUB_DISTRIBUTOR="$(sed '"'"'s, release .*$,,g'"'"' /etc/system-release)"' \
     'GRUB_DEFAULT=saved' 'GRUB_DISABLE_SUBMENU=true' 'GRUB_TERMINAL_OUTPUT="console"' \
@@ -274,7 +274,7 @@ world() {   # world fresh|built [--themed]
   echo '/* wlroots */' >"$W/usr/local/fkh-sys/include/wlroots-0.20/wlr/backend.h"
   cp -L "$(ldconfig -p 2>/dev/null | awk '/libz\.so\.1 / { print $NF; exit }')" "$W/usr/local/fkh-sys/lib64/libwlroots-0.20.so" 2>/dev/null \
     || cp -L /lib/x86_64-linux-gnu/libz.so.1 "$W/usr/local/fkh-sys/lib64/libwlroots-0.20.so"
-  # the package world: Fedora 44 Server's Minimal Install (UEFI: grubby is there), everything
+  # the package world: Fedora 45 Server's Minimal Install (UEFI: grubby is there), everything
   # the manifest names available, and the release's own firmware and drivers
   printf '%s\n' bash sudo NetworkManager kernel-core grub2-tools grubby dnf5 firewalld openssh-server \
     nano nano-default-editor vim-minimal dracut-config-rescue linux-firmware systemd >"$FKH/installed"
@@ -305,9 +305,10 @@ world() {   # world fresh|built [--themed]
   [[ $kind == built ]] && built "$themed"
   fk_perms
 }
-# fedora_release N — the fake machine as Fedora N Server instead (44 as made): its os-release;
-# from 45 on, kmscon (the core group's) drawing the consoles — `kmscon CMD…` runs CMD as a
-# kmscon console's login does, under a parent process named kmscon
+# fedora_release N — the fake machine as a fresh Fedora N Server instead: its os-release; from 45
+# on, kmscon (the core group's) drawing the consoles — `kmscon CMD…` runs CMD as a kmscon console's
+# login does, under a parent process named kmscon. (As made it is Fedora 45 with agetty's consoles,
+# as the ISO's kickstart leaves it and as a machine that moved up from an earlier Fedora has them.)
 fedora_release() {
   sed -i -E "s/^VERSION=\"[0-9]+/VERSION=\"$1/; s/^VERSION_ID=.*/VERSION_ID=$1/; s/^PRETTY_NAME=\"Fedora Linux [0-9]+/PRETTY_NAME=\"Fedora Linux $1/" "$W/etc/os-release"
   if (($1 >= 45)); then

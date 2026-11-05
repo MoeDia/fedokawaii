@@ -4,7 +4,7 @@
 # shell (~/.bashrc.d), waybar's exec and clicks, mako's actions, the launcher entries, yazi's
 # keymaps and plugins (and yazi's own openers and previews), dwl's keys, the systemd units and
 # the other configs must come from bin/ or system/, lib/upstream.sh, setup's own builds, a
-# package lib/manifest.sh installs, or a Fedora 44 Minimal Install (fixtures/programs.txt says
+# package lib/manifest.sh installs, or a Fedora 45 Minimal Install (fixtures/programs.txt says
 # which, package by package). The same for every launcher entry mimeapps.list names.
 # First, the reader itself (shcmds.py): what it must and must not take for a program.
 . "$(dirname "$0")/../lib/harness.sh"
@@ -131,7 +131,7 @@ for pair in text/plain=kawa-edit.desktop inode/directory=kawa-files.desktop imag
   grep -qxF "$pair" "$ma" && _ok || _no "mimeapps.list lacks $pair"
 done
 case_ "GIO (gio open, every GTK program) reads each default exactly as mimeapps.list says"
-GIO=$( [[ -x /opt/f44/bin/gio ]] && echo /opt/f44/bin/gio || command -v gio 2>/dev/null)
+GIO=$(command -v gio 2>/dev/null)
 if [[ -n $GIO ]]; then
   config .config/mimeapps.list .local/share/applications
 cp "$REPO/bin/kawa-term" "$REPO/bin/kawa-play" "$REPO/bin/kawa-torrents" "$HOME/.local/bin/"   # (an entry whose program is missing is skipped)
@@ -142,7 +142,6 @@ cp "$REPO/bin/kawa-term" "$REPO/bin/kawa-play" "$REPO/bin/kawa-torrents" "$HOME/
     printf '[Desktop Entry]\nType=Application\nName=%s\nExec=/bin/true %%f\n' "$d" >"$TMP/sys/applications/$d"
   done < <(grep -v '^#' "$S/fixtures/desktop-files.txt")
   gio_env=(env XDG_DATA_DIRS="$TMP/sys")
-  [[ $GIO == /opt/f44/* ]] && gio_env+=(LD_LIBRARY_PATH=/opt/f44/lib)
   n=0
   while IFS='=' read -r mime app; do
     n=$((n + 1))

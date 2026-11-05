@@ -8,12 +8,8 @@
 . "$(dirname "$0")/../lib/harness.sh"
 S=$(cd "$(dirname "$0")" && pwd)
 skipped() { printf '  – skipped: %s\n' "$1"; }
-# a program from the machine — first the Fedora 44 build in /opt/f44 where there is one (the
-# test sandbox: its own system's foot is older than Fedora's and knows fewer keys)
-real() {
-  [[ -x /opt/f44/bin/$1 ]] && { printf '/opt/f44/bin/%s' "$1"; return 0; }
-  PATH=$ORIG_PATH command -v "$1" 2>/dev/null
-}
+# a program from the machine
+real() { PATH=$ORIG_PATH command -v "$1" 2>/dev/null; }
 ORIG_PATH=$PATH
 sandbox
 config .                                         # every config, rendered (theme.sh's render())
@@ -99,9 +95,8 @@ fi
 
 # ── the programs' own readers ────────────────────────────────────────────────────────────
 # (no display and no session bus: each reads its config, then stops where it would connect)
-quiet() {   # quiet PROGRAM ARG… — with no display and no session bus (and /opt/f44's libraries)
+quiet() {   # quiet PROGRAM ARG… — with no display and no session bus
   local e=(env -u WAYLAND_DISPLAY -u DISPLAY -u DBUS_SESSION_BUS_ADDRESS "XDG_RUNTIME_DIR=$XDG_RUNTIME_DIR")
-  [[ $1 == /opt/f44/* ]] && e+=(LD_LIBRARY_PATH=/opt/f44/lib)
   "${e[@]}" timeout 20 "$@"
 }
 

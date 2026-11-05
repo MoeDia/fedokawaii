@@ -29,7 +29,7 @@ n=$(grep -c 'curl\] .*mirrors.fedoraproject.org' "$CALLS"); ((n >= 3 && n <= 7))
 rm -f "$FKH/net"
 
 case_ "update: packages left twice by a transaction cut off half-way — tidied before anything else, then the update goes through"
-back built; echo "kernel-core-6.19.2-200.fc44.x86_64" >"$FKH/dups"; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash
+back built; echo "kernel-core-6.19.2-200.fc45.x86_64" >"$FKH/dups"; fkh pending "bash 5.2-1.fc45 5.3-1.fc45"; fkh_add installed bash
 tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"
 called 'dnf\] -y remove --duplicates'; eq "$(cat "$FKH/dups")" "" "no package left twice"
 has "$OUT" "update done"
@@ -195,21 +195,27 @@ case_ "repair: Fedora's every-session boot-success timer on again (a fresh prese
 back built; fkh_add units "global-enabled grub-boot-success.timer"
 tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
+case_ "repair: neovim's Python tools after a new Fedora's Python (their venv's python dangles): installed anew, once"
+back built; v=$W/home/fkuser/.local/share/nvim/mason/packages/debugpy/venv/bin; mkdir -p "$v"; ln -s /usr/bin/python3.0 "$v/python"; reset_calls
+tk --repair; has "$OUT" "neovim's Python tools ran on an earlier Fedora's Python"; called 'nvim\] .*MasonInstall basedpyright ruff debugpy codelldb'
+back built; v=$W/home/fkuser/.local/share/nvim/mason/packages/debugpy/venv/bin; mkdir -p "$v"; ln -s /bin/sh "$v/python"; reset_calls
+tk --repair; lacks "$OUT" "neovim's Python tools ran on"; not_called 'MasonInstall'
+
 case_ "repair: a new kernel (waiting for its restart) without its boot image gets one (dracut --kver), and verify passes after"
-back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"
+back built; fkh kernels "99.1.1-200.fc45.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc45.x86_64"
 mkdir -p "$W/etc/dracut.conf.d"; echo 'force_drivers+=" xfs vfat "' >"$W/etc/dracut.conf.d/fedokawaii.conf"   # (the images' drivers in place: no rebuild of all)
-tk --repair; has "$OUT" "kernel 99.1.1-200.fc44.x86_64 has no boot image (initramfs) — dracut makes it now"
-called 'dracut\] -f --kver 99.1.1-200.fc44.x86_64'
-[[ -s $W/boot/initramfs-99.1.1-200.fc44.x86_64.img ]] && _ok || _no "no image made"
+tk --repair; has "$OUT" "kernel 99.1.1-200.fc45.x86_64 has no boot image (initramfs) — dracut makes it now"
+called 'dracut\] -f --kver 99.1.1-200.fc45.x86_64'
+[[ -s $W/boot/initramfs-99.1.1-200.fc45.x86_64.img ]] && _ok || _no "no image made"
 has "$OUT" "problem(s) before, 0 now"
 case_ "update: the same, counted among the parts that failed when dracut cannot"
-back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"; fkh rc-dracut 1
-tk --update; has "$OUT" "dracut could not make the boot image for 99.1.1-200.fc44.x86_64"
+back built; fkh kernels "99.1.1-200.fc45.x86_64" "$(uname -r)"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc45.x86_64"; fkh rc-dracut 1
+tk --update; has "$OUT" "dracut could not make the boot image for 99.1.1-200.fc45.x86_64"
 has "$OUT" "not updated this time"; has "$OUT" "the kernels' boot images (dracut)"; rm -f "$FKH/rc-dracut"
 case_ "repair: /boot not mounted (no vmlinuz either): said, nothing written into the empty folder"
-back built; fkh kernels "99.1.1-200.fc44.x86_64" "$(uname -r)"
-tk --repair; has "$OUT" "no /boot/vmlinuz-99.1.1-200.fc44.x86_64 — is /boot mounted?"
-not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-99.1.1-200.fc44.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
+back built; fkh kernels "99.1.1-200.fc45.x86_64" "$(uname -r)"
+tk --repair; has "$OUT" "no /boot/vmlinuz-99.1.1-200.fc45.x86_64 — is /boot mounted?"
+not_called 'dracut\] -f --kver'; [[ ! -e $W/boot/initramfs-99.1.1-200.fc45.x86_64.img ]] && _ok || _no "an image written beside a missing kernel"
 
 case_ "repair: each package change a service of its own (closing the window cuts none in half); what only asks dnf stays in the window"
 back built; fkh_del installed bat; fkh_add installed systemd-oomd-defaults; reset_calls
@@ -219,10 +225,10 @@ called 'systemd-run\] .*-p RemainAfterExit=yes .* /usr/bin/dnf -y remove .*syste
 not_called 'systemd-run\] .* /usr/bin/dnf .*repoquery'; called '^root\[dnf\] -q (--setopt=[^ ]*\.skip_if_unavailable=0 )+repoquery --available --whatprovides bat$'
 has "$OUT" "(as fedokawaii-dnf-"
 case_ "update: the manifest's install after the upgrade is detached too"
-back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash; reset_calls
+back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc45 5.3-1.fc45"; fkh_add installed bash; reset_calls
 tk --update; called 'systemd-run\] .* /usr/bin/dnf -y -C replay /var/lib/fedokawaii/update/tx'; not_called 'systemd-run\] .*stdbuf'; called 'systemd-run\] .* /usr/bin/dnf -y install bat$'
 case_ "update: dnf's unit never waited for through the bus (systemd's own scriptlets reload it mid-transaction: a lost signal waited for ever) — its end read by asking, then the unit cleared"
-back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc44 5.3-1.fc44"; fkh_add installed bash; reset_calls
+back built; fkh_del installed bat; fkh pending "bash 5.2-1.fc45 5.3-1.fc45"; fkh_add installed bash; reset_calls
 tk --update; eq "$RC" 0 "$(tail -n3 <<<"$OUT")"; not_called 'systemd-run\] .*--wait'; not_called 'systemd-run\] .*--collect'
 called 'systemctl\] show -p ActiveState -p SubState -p ExecMainCode -p ExecMainStatus fedokawaii-dnf-[0-9]+-[0-9]+\.service$'
 called 'systemctl\] reset-failed fedokawaii-dnf-'; grep -q '^ended fedokawaii-dnf-' "$FKH/units" && _no "an ended unit left: $(grep '^ended' "$FKH/units")" || _ok
@@ -279,7 +285,7 @@ tk --update; has "$OUT" "the next one in 30 days"
 printf 'EVERY=400\n' >"$W/home/fkuser/.config/fedokawaii/upkeep.conf"
 tk --update; has "$OUT" "the next one in 14 days" "out of bounds: the default"
 
-case_ "repair: dnf's metadata timer on again (static, as Fedora 44 ships it) — masked again, never a bare disable"
+case_ "repair: dnf's metadata timer on again (static, as Fedora 45 ships it) — masked again, never a bare disable"
 back built; sed -i 's/^masked dnf5-makecache.timer$/static dnf5-makecache.timer/' "$FKH/units"
 reset_calls; tk --repair
 called 'systemctl\] mask dnf5-makecache.timer'; not_called 'disable --now dnf5-makecache'
@@ -299,17 +305,17 @@ lacks "$OUT" "config already exists"
 
 # ── one kernel ───────────────────────────────────────────────────────────────
 case_ "repair from the rescue screen (the newest kernel runs, its desktop never started: no boot_success): the one before stays, the way back"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=0
-echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc44.x86_64"; : >"$W/boot/initramfs-6.18.1-200.fc44.x86_64.img"
+back built; fkh kernels "6.18.1-200.fc45.x86_64" "$(uname -r)"; grubenv boot_success=0
+echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc45.x86_64"; : >"$W/boot/initramfs-6.18.1-200.fc45.x86_64.img"
 reset_calls; tk --repair; not_called 'remove kernel'
 has "$OUT" "the kernel before $(uname -r) stays as the way back"
 reset_calls; tk --update; not_called 'remove kernel' "nor does an update"
 case_ "repair: the kernel before the running newest — removed (all its packages), no repository asked; the start-up timer in place"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; rm -f "$W/etc/systemd/system/fedokawaii-kernels.timer"
+back built; fkh kernels "6.18.1-200.fc45.x86_64" "$(uname -r)"; rm -f "$W/etc/systemd/system/fedokawaii-kernels.timer"
 grubenv boot_success=1                 # (this start has reached the desktop)
-echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc44.x86_64"; : >"$W/boot/initramfs-6.18.1-200.fc44.x86_64.img"
+echo vmlinuz >"$W/boot/vmlinuz-6.18.1-200.fc45.x86_64"; : >"$W/boot/initramfs-6.18.1-200.fc45.x86_64.img"
 reset_calls; tk --repair
-called "dnf\] -y --disable-repo=\* remove kernel-6.18.1-200.fc44.x86_64 kernel-core-6.18.1-200.fc44.x86_64 kernel-modules-6.18.1-200.fc44.x86_64 kernel-modules-core-6.18.1-200.fc44.x86_64$"
+called "dnf\] -y --disable-repo=\* remove kernel-6.18.1-200.fc45.x86_64 kernel-core-6.18.1-200.fc45.x86_64 kernel-modules-6.18.1-200.fc45.x86_64 kernel-modules-core-6.18.1-200.fc45.x86_64$"
 eq "$(cat "$FKH/kernels")" "$(uname -r)" "one kernel left"
 [[ -f $W/etc/systemd/system/fedokawaii-kernels.timer ]] && _ok || _no "no start-up timer"
 grep -qx "enabled fedokawaii-kernels.timer" "$FKH/units" && _ok || _no "timer not enabled"
@@ -327,31 +333,31 @@ case_ "repair: an fstab whose Btrfs lines lack noatime — written with it (find
 back built; printf 'UUID=7ea4 / btrfs subvol=root,compress=zstd:1,relatime 0 0\nUUID=AB12 /boot ext4 defaults 1 2\n' >"$W/etc/fstab"
 tk --repair; has "$(cat "$W/etc/fstab")" $'subvol=root,compress=zstd:1,noatime'; lacks "$OUT" "does not verify"
 case_ "repair or update with a new kernel not yet running: both kept, said — nothing removed"
-back built; fkh kernels "$(uname -r)" "99.1.1-200.fc44.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc44.x86_64"; : >"$W/boot/initramfs-99.1.1-200.fc44.x86_64.img"
+back built; fkh kernels "$(uname -r)" "99.1.1-200.fc45.x86_64"; echo vmlinuz >"$W/boot/vmlinuz-99.1.1-200.fc45.x86_64"; : >"$W/boot/initramfs-99.1.1-200.fc45.x86_64.img"
 reset_calls; tk --repair; not_called 'remove kernel'
-has "$OUT" "kernel 99.1.1-200.fc44.x86_64 is installed and waits for a restart"
+has "$OUT" "kernel 99.1.1-200.fc45.x86_64 is installed and waits for a restart"
 called 'dracut\] -f --regenerate-all'   # (the boot images made again once: /boot's drivers new in them)
 reset_calls; tk --update; not_called 'remove kernel'; not_called 'dracut\] -f --regenerate-all'
 case_ "…and what they write for the kernels: the start-up unit never in a boot-menu snapshot; every boot image mounts /boot and the ESP itself (xfs, vfat: dracut)"
 grep -q '^ConditionKernelCommandLine=!systemd.volatile$' "$W/etc/systemd/system/fedokawaii-kernels.service" && _ok || _no "the unit runs in a snapshot boot too"
 grep -q '^force_drivers+=" xfs vfat "$' "$W/etc/dracut.conf.d/fedokawaii.conf" && _ok || _no "no dracut drivers: $(cat "$W/etc/dracut.conf.d/fedokawaii.conf" 2>&1)"
 case_ "the start-up run (a quarter of an hour in): only once this start reached the desktop (boot_success=1) — then the one before goes"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=0
+back built; fkh kernels "6.18.1-200.fc45.x86_64" "$(uname -r)"; grubenv boot_success=0
 reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
 has "$OUT" "this start has not reached the desktop for two minutes"
 grubenv boot_success=1; tk --kernels; eq "$RC" 0
-called 'remove kernel-6.18.1-200.fc44.x86_64'; eq "$(cat "$FKH/kernels")" "$(uname -r)"
+called 'remove kernel-6.18.1-200.fc45.x86_64'; eq "$(cat "$FKH/kernels")" "$(uname -r)"
 case_ "the start-up run: kernels a restore left in /boot without modules go (kernel-install remove) — once this start reached the desktop"
 back built; fkh kernels "$(uname -r)"; mkdir -p "$W/boot/loader/entries"
-printf 'title Fedora\nversion 5.0.1-100.fc44.x86_64\n' >"$W/boot/loader/entries/x-5.0.1-100.fc44.x86_64.conf"
+printf 'title Fedora\nversion 5.0.1-100.fc45.x86_64\n' >"$W/boot/loader/entries/x-5.0.1-100.fc45.x86_64.conf"
 printf 'title Fedora\nversion %s\n' "$(uname -r)" >"$W/boot/loader/entries/x-$(uname -r).conf"
 grubenv boot_success=0; reset_calls; tk --kernels; eq "$RC" 0; not_called 'kernel-install\] remove'
 grubenv boot_success=1; reset_calls; tk --kernels; eq "$RC" 0
-called 'kernel-install\] remove 5.0.1-100.fc44.x86_64'; not_called "kernel-install\\] remove $(uname -r)"
+called 'kernel-install\] remove 5.0.1-100.fc45.x86_64'; not_called "kernel-install\\] remove $(uname -r)"
 has "$OUT" "has no modules in this system"; [[ -f $W/boot/loader/entries/x-$(uname -r).conf ]] && _ok || _no "the running kernel's entry went"
 case_ "the start-up run in a snapshot started from the boot menu (/ a snapshot, or systemd.volatile=overlay): no kernel rule runs — the system's own kernels stay in /boot"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=1; mkdir -p "$W/boot/loader/entries"
-printf 'title Fedora\nversion 5.0.1-100.fc44.x86_64\n' >"$W/boot/loader/entries/x-5.0.1-100.fc44.x86_64.conf"
+back built; fkh kernels "6.18.1-200.fc45.x86_64" "$(uname -r)"; grubenv boot_success=1; mkdir -p "$W/boot/loader/entries"
+printf 'title Fedora\nversion 5.0.1-100.fc45.x86_64\n' >"$W/boot/loader/entries/x-5.0.1-100.fc45.x86_64.conf"
 fkh fsroot-_ /root/.snapshots/41/snapshot; reset_calls; tk --kernels; eq "$RC" 0
 not_called 'remove kernel'; not_called 'kernel-install\] remove'; not_called 'grubby\] --set-default'
 rm -f "$FKH/fsroot-_"; c=$(cat "$W/proc/cmdline"); echo "$c systemd.volatile=overlay" >"$W/proc/cmdline"
@@ -360,12 +366,12 @@ echo "$c" >"$W/proc/cmdline"
 case_ "the start-up run under a kernel the system has no modules for (a restore cut in its instant): the newest whole kernel that has them made the default, said"
 back built; k=$(uname -r); fkh kernels "$k"; echo vmlinuz >"$W/boot/vmlinuz-$k"; echo img >"$W/boot/initramfs-$k.img"
 mkdir -p "$W/boot/loader/entries"; printf 'title Fedora\nversion %s\n' "$k" >"$W/boot/loader/entries/x-$k.conf"
-printf '#!/bin/sh\n[ "$1" = -r ] && { echo 9.9.9-1.fc44.x86_64; exit 0; }\nexec /usr/bin/uname "$@"\n' >"$W/usr/local/bin/uname"; chmod 755 "$W/usr/local/bin/uname"
+printf '#!/bin/sh\n[ "$1" = -r ] && { echo 9.9.9-1.fc45.x86_64; exit 0; }\nexec /usr/bin/uname "$@"\n' >"$W/usr/local/bin/uname"; chmod 755 "$W/usr/local/bin/uname"
 reset_calls; tk --kernels; eq "$RC" 0
-called "grubby\] --set-default /boot/vmlinuz-$k"; has "$OUT" "kernel 9.9.9-1.fc44.x86_64 has no modules in this system — $k is the default again"
+called "grubby\] --set-default /boot/vmlinuz-$k"; has "$OUT" "kernel 9.9.9-1.fc45.x86_64 has no modules in this system — $k is the default again"
 rm -f "$W/usr/local/bin/uname"
 case_ "the start-up run while another run holds the lock, or before setup has finished: nothing, quietly"
-back built; fkh kernels "6.18.1-200.fc44.x86_64" "$(uname -r)"; grubenv boot_success=1
+back built; fkh kernels "6.18.1-200.fc45.x86_64" "$(uname -r)"; grubenv boot_success=1
 echo 3 >"$W/var/lib/fedokawaii/phase"; reset_calls; tk --kernels; eq "$RC" 0; not_called 'remove kernel'
 
 # ── run from a folder of yours: it becomes the toolkit, then goes ──────────────────────────

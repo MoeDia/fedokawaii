@@ -1,4 +1,4 @@
-# mpv 0.41.0 (Fedora mpv-0.41.0-5.fc44): videos and music (Enter on a film in yazi; Syncplay's player is this one too)
+# mpv 0.41.0 (Fedora mpv-0.41.0-10.fc45): videos and music (Enter on a film in yazi; Syncplay's player is this one too)
 # command: mpv --version
 # source: https://github.com/mpv-player/mpv/blob/v0.41.0/etc/input.conf (the default bindings; identical to /usr/share/doc/mpv/input.conf and to the text baked into /usr/bin/mpv)
 # source: https://github.com/mpv-player/mpv/blob/v0.41.0/DOCS/man/input.rst (key sequences), select.rst (g s, g a, g p, g b) and stats.rst (i, I, ?)
