@@ -26,13 +26,15 @@
 #                fonts, the theme folders (what build-icons.py and build-themes.py just wrote),
 #                Sumi UI (build-fonts.py's), waybar's and mako's configs, the text screens'
 #                grammar (screen.sh, fzf.opts), the shell's prompt
+#     --tree     DIR (tools/kit-tree.sh makes it) the tree with nothing applied: DIR/home in place
+#                of the installed home, DIR/bin's dwl, mako and yazi, the repository's fonts
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" tui_wait=3 play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" tui_wait=3 play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0 tree=""
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -48,6 +50,7 @@ while (($#)); do
     --bin) bin=$(realpath "$2"); shift 2 ;;
     --dwl) dwl_bin=$(realpath "$2"); shift 2 ;;
     --repo-art) repo_art=1; shift ;;
+    --tree) tree=$(realpath "$2"); bin=$tree/bin dwl_bin=$tree/bin/dwl; shift 2 ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
     *) scenes+=("$1"); shift ;;
@@ -61,6 +64,12 @@ K=$(mktemp -d /tmp/kit.XXXXXX)
 trap 'rm -rf "$K"' EXIT
 h=$K/home
 mkdir -p "$h/.config" "$h/.cache" "$h/.local/state" "$h/.local/share"
+home_from_tree() {
+  cp -a "$tree/home/." "$h/"
+  grep -rlIZ /home/fkuser "$h" | xargs -0 -r sed -i "s|/home/fkuser|$h|g"
+  [[ -d $HOME/.local/share/nvim ]] && ln -s "$HOME/.local/share/nvim" "$h/.local/share/nvim"
+}
+home_from_install() {
 # what theme.sh put in ~/.config (the repo names it), and the shell's own files
 for f in "$repo"/configs/home/.config/*; do
   f=${f##*/}
@@ -113,6 +122,8 @@ open(sys.argv[2], "w").write(re.sub(r"# >>> colours.*?# <<< colours", lambda _: 
 else
   ln -s "$HOME/.local/share/fonts" "$h/.local/share/fonts"
 fi
+}
+if [[ -n $tree ]]; then home_from_tree; else home_from_install; fi
 if [[ -n $themes ]]; then
   [[ -d $themes/.config/fedokawaii/themes ]] || { echo "kit: --themes: no build-themes tree at $themes" >&2; exit 2; }
   cp -a "$themes/.config/fedokawaii/themes/." "$h/.config/fedokawaii/themes/"
@@ -137,10 +148,11 @@ done
   echo '<?xml version="1.0"?><!DOCTYPE fontconfig SYSTEM "urn:fontconfig:fonts.dtd"><fontconfig>'
   echo '<include ignore_missing="yes">/etc/fonts/fonts.conf</include>'
   [[ -n $fontdir ]] && echo "<dir>$fontdir</dir>"
-  if ((repo_art)); then   # (the repository's Sumi UI, the installed one left out)
+  if ((repo_art)) || [[ -n $tree ]]; then   # (the repository's Sumi UI, the installed one left out)
     echo "<selectfont><rejectfont><glob>/usr/local/share/fonts/fedokawaii/SumiUI.ttf</glob></rejectfont></selectfont>"
     echo "<dir>$repo/system/fonts</dir>"
   fi
+  [[ -n $tree ]] && echo "<include>$repo/system/60-fedokawaii-pixel.conf</include>"
   echo "<cachedir>$K/fc-cache</cachedir>"
   for f in "${fonts[@]}"; do
     printf '<match target="pattern"><test name="family"><string>%s</string></test><edit name="family" mode="prepend" binding="strong"><string>%s</string></edit></match>\n' "${f%%=*}" "${f#*=}"

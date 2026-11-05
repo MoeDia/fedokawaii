@@ -2,8 +2,8 @@ id	day	status	task	when	note
 f01	Fri 6	done	the plan: this file; both inbox blocks marked; CLAUDE.md cut to what a pass needs (the r27 digest moved to .claude/notes/r27-digest.md, word for word)	Fri 06 00:52	
 f02	Fri 6	done	the train onto main: every lane merged, its last reds fixed, the installer area green, main fast-forwarded and pushed	Fri 6 Nov 01:53	main 08a38934; installer area green; one real bug fixed on the way (a clone read as "differs from the toolkit"). No apply
 f03	Fri 6	done	train-f45 onto main: the tree is Fedora 45 only (the PC stays on 44, nothing applied); read test_upgrade's and test_toolkit_move's reds first	Fri 6 Nov 03:39	no apply; 164 files: 162 green, the 2 stale sweep expectations fixed and re-run green; ledger r28-note-f03
-f04	Fri 6	now	the kit renders the tree with nothing applied: dwl, mako, yazi built into a scratch prefix, a throw-away home from theme.sh; one bar and one menu shot in both moods		the PC's installed desktop is older than main and stays so
-f05	Fri 6	todo	kawa-rgb off keeps everything dark across reboots, by reading its code and a test with no light lit; make it so if not		r28-dark calls it
+f04	Fri 6	done	the kit renders the tree with nothing applied: dwl, mako, yazi built into a scratch prefix, a throw-away home from theme.sh; one bar and one menu shot in both moods	Fri 6 Nov 03:45	tools/kit-tree.sh + kit.sh --tree; dwl, mako, yazi from the tree; C helpers and wlroots stay the PC's; bar and launcher shot in both moods
+f05	Fri 6	now	kawa-rgb off keeps everything dark across reboots, by reading its code and a test with no light lit; make it so if not		r28-dark calls it
 f06	Fri 6	todo	a clean-install smoke of main in the Fedora 45 VM (tools/vm-smoke.sh, own unit): the baseline before round 28's changes		one VM at a time
 f07	Fri 6	todo	options (a) window open and close: 3 motions behind a dwl switch, filmstrips from headless frames: a1-window.jpg		
 f08	Fri 6	todo	options (b) the workspace move: 3 motions, filmstrips: b1-workspace.jpg		
