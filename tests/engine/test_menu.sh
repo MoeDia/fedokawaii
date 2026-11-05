@@ -87,7 +87,7 @@ out=$(plain "$(fedokawaii --explain held)")
 has "$out" "mesa 26.1-1.fc44"; has "$out" "the desktop does not start"; has "$out" "kernel 7.2.13-200.fc44"; lacks "$out" "kernel-modules"
 has "$out" "did not reach the desktop in three"; lacks "$out" "…"; lacks "$out" "not yet"
 (( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"   # (under its heading: the pane's own rule)
-rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *held ]] && _ok || _no "a count with none held"
+rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *"held back"*" none" ]] && _ok || _no "none held: the row says so: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 has "$(plain "$(fedokawaii --explain held)")" "nothing held back."
 case_ "…sixty held at once (a whole set): the row counts sixty, the pane names three, then how many more"
 fresh; mkdir -p "$R/state/update"
@@ -116,12 +116,12 @@ out=$(WAYLAND_DISPLAY=wayland-1 allrows)
 lacks "$(plain "$out")" "╌" "no dashed line anywhere"
 case_ "never again: no to-do in Super+U — it lives in Super+N alone (owner 1 Nov 22:27: \"to-do should NOT be in learning\")"
 lacks "$(plain "$out")" "to-do"; [[ -z $(grep "^todo"$'\t' <<<"$out") ]] && _ok || _no "a todo row: $(grep "^todo" <<<"$out")"
-case_ "rows: each entry a column in, its icon, two columns, its name; the value right-aligned two columns short of the list's edge, muted"
+case_ "rows: each entry a column in, its icon, two columns, its name; the value right-aligned a column in from the row's end (as far in as the icon, the band's symmetry), muted"
 for a in update snapshots remind; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
   [[ $l =~ ^" "$'\e[38;5;21m'.$'\e[0m'"  "[a-z] ]] && _ok || _no "$a: $l"
   [[ $l == *$'\e[38;5;21m'*[!\ ]$'\e[0m' ]] && _ok || _no "$a: the value muted, at the end: $l"
-  eq "$(widest "$l")" 38 "$a: the value's last letter in the list's last column"
+  eq "$(widest "$l")" 37 "$a: the value's last letter a column in from the row's 38"
 done
 has "$(row update)" "in 4 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 14 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; eq "$(row upgrade)" "" "the move is the update's: no row of its own"
@@ -136,14 +136,14 @@ case_ "the tab bar, a heading over the list (a cell further out): the section sh
 t=$(fedokawaii --tabs update)
 eq "$(wc -l <<<"$t")" 3 "three lines"; eq "$(sed -n 3p <<<"$t")" " " "the third a row of paper"
 l1=$(sed -n 1p <<<"$t"); l2=$(sed -n 2p <<<"$t")
-[[ $l1 == $'\e[38;5;21m'"$ICON_SEC_SYSTEM"* ]] && _ok || _no "the first tab not at the bar's first column (a heading's): $(plain "$l1")"
-has "$l1" $'\e[38;5;20m'"$ICON_SEC_UPDATE"$'\e[0m  \e[38;5;23mupdate\e[0m' "update shown: icon accent, name strong"
-has "$l1" $'\e[38;5;21m'"$ICON_SEC_SYSTEM"$'\e[0m    \e[38;5;20m' "system: its icon alone, muted, two columns, then three of paper"
-has "$l1" $'\e[0m   \e[38;5;21m'"$ICON_CAMERA" "three columns after the name shown"
+[[ $l1 == $'\e[38;5;21m'"$ICON_TAB_SYSTEM"* ]] && _ok || _no "the first tab not at the bar's first column (a heading's): $(plain "$l1")"
+has "$l1" $'\e[38;5;20m'"$ICON_TAB_UPDATE"$'\e[0m  \e[38;5;23mupdate\e[0m' "update shown: icon accent, name strong"
+has "$l1" $'\e[38;5;21m'"$ICON_TAB_SYSTEM"$'\e[0m    \e[38;5;20m' "system: its icon alone, muted, two columns, then three of paper"
+has "$l1" $'\e[0m   \e[38;5;21m'"$ICON_TAB_SNAPSHOTS" "three columns after the name shown"
 lacks "$(plain "$l1")" "system" "no name for a tab not shown"
 eq "$(plain "$l2")" "        ▔▔▔▔▔▔" "the line: under the name shown alone (6 columns), at its column"
 has "$l2" $'\e[38;5;16m▔' "the line in the accent"
-eq "$(plain "$(fedokawaii --tabs learning | head -n1)")" "$ICON_SEC_SYSTEM    $ICON_SEC_UPDATE    $ICON_CAMERA    $ICON_SEC_BACKUPS    $ICON_MORTARBOARD  learning" "the last shown: no paper after it"
+eq "$(plain "$(fedokawaii --tabs learning | head -n1)")" "$ICON_TAB_SYSTEM    $ICON_TAB_UPDATE    $ICON_TAB_SNAPSHOTS    $ICON_TAB_BACKUPS    $ICON_TAB_LEARNING  learning" "the last shown: no paper after it"
 case_ "a job running: its row again in each frame of the hourglass turning (fields 4–9 after the name: 0 1 2 3 3 4), only its icon changed; every other row the same picture in each; none running: all alike"
 printf 'repair\n' >"$R/state/lock"
 ( exec 9<"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
@@ -368,14 +368,14 @@ has "$out" "fedokawaii baseline"; has "$out" "dnf install htop"; eq "$(grep -c '
 has "$out" "the system before the last restore"
 # aligned SCREEN WORD — on a terminal: SCREEN's first row holding WORD starts its icon one cell in
 # from the heading's (a list under its heading, design-system §7: Super+U's grid, heading x 25, rows
-# x 33), and ends where the heading's rule ends (each row a line of its own)
+# x 33), and ends a cell in from the heading's rule's end (each row a line of its own)
 aligned() {
   local h r lh lr; h=$(grep -m1 '─' <<<"$1"); r=$(grep -m1 -- "$2" <<<"$1")
   lh=${h%%[! ]*} lr=${r%%[! ]*}
   eq "${#lr}" "$((${#lh} + 1))" "the icon one cell in from the heading's: [$r] [$h]"
-  eq "$(LC_ALL=C.UTF-8 wc -L <<<"$r")" "$(LC_ALL=C.UTF-8 wc -L <<<"$h")" "ending where the rule ends: [$r] [$h]"
+  eq "$(($(LC_ALL=C.UTF-8 wc -L <<<"$r") + 1))" "$(LC_ALL=C.UTF-8 wc -L <<<"$h")" "ending a cell in from the rule's end: [$r] [$h]"
 }
-case_ "snapshots on a terminal: a row a line, the icon one cell in from the heading's, the date ending where its rule ends"
+case_ "snapshots on a terminal: a row a line, the icon one cell in from the heading's, the date's end one cell in from its rule's"
 fresh; snaplist; out=$(plain "$(on_tty $'\n' fedokawaii --run snapshots)")
 aligned "$out" "fedokawaii baseline"; aligned "$out" "the system before the last restore"
 eq "$(grep -c -E 'baseline|htop|last restore' <<<"$out")" 3 "three rows, three lines"
@@ -623,7 +623,7 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, seventeen numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, nineteen numbered entries; q, Q, Enter and end of input all leave"
 console
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
@@ -633,8 +633,8 @@ case_ "plain menu: a number runs its entry, then the menu again"
 out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-console; out=$(printf '0\n18\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–17, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+console; out=$(printf '0\n20\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–19, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 console; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
@@ -643,10 +643,10 @@ case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=km
 out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
 console; stub fzf 'cat >/dev/null; exit 130'
-out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "17  lessons"; lacks "$out" "·"; not_called '^fzf'
+out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "19  lessons"; lacks "$out" "·"; not_called '^fzf'
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 console; stub fzf 'exit 2'
-out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "17  lessons"
+out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "19  lessons"
 case_ "fzf menu: Esc closes it (exit 0)"
 stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"

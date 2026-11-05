@@ -27,6 +27,11 @@ for f in "$repo"/bin/*; do ln -s "$f" "$W/bin/"; done
 ln -s "$repo/system/fedokawaii" "$W/bin/fedokawaii"
 # (nothing the shots press may reach the machine: the power dialog's second press stands in here; the PC is shared)
 for c in systemctl loginctl reboot poweroff shutdown; do printf '#!/bin/sh\nexit 0\n' >"$W/bin/$c"; chmod +x "$W/bin/$c"; done
+# (held down by the pointer: wlrctl only clicks; a copy that draws the cursor pressed while a file says so, for one shot)
+rm "$W/bin/kawa-panel"
+sed 's|it.key == panel.pressed)|it.key == panel.pressed or (focused and os.path.exists(os.environ["XDG_RUNTIME_DIR"] + "/rv-pressed")))|' "$repo/bin/kawa-panel" >"$W/bin/kawa-panel"
+chmod +x "$W/bin/kawa-panel"
+grep -q rv-pressed "$W/bin/kawa-panel" || { echo "panel-review: the panel's pressed look has moved" >&2; exit 2; }
 rm "$W/bin/kawa-quick"
 cat >"$W/bin/kawa-quick" <<STUB
 #!/usr/bin/env bash
@@ -56,6 +61,7 @@ SURFACES=(
   "quick|setsid -f kawa-quick|:|key Escape"
   "quick-cursor|setsid -f kawa-quick|key Down Down Down Down|key Escape"
   "quick-meter|setsid -f kawa-quick|key Down|key Escape"
+  "quick-pressed|touch \$XDG_RUNTIME_DIR/rv-pressed; setsid -f kawa-quick|key Down Down Down Down|key Escape; rm -f \$XDG_RUNTIME_DIR/rv-pressed"
   "power|setsid -f kawa-power|:|key Escape"
   "power-shut|setsid -f kawa-power|key Right Right Right Right|key Escape"
   "power-ask|setsid -f kawa-power|key Right Right Right Right Return|key Escape"
@@ -75,7 +81,6 @@ SURFACES=(
   "downloads-busy|rv_downloads|:|key Escape; rv_downloads_end"
   "dnd|setsid -f kawa-quick dnd|:|key Escape"
   "drives|setsid -f kawa-drives|:|key Escape"
-  "weather|setsid -f kawa-weather|:|key Escape"
   "notice-critical|notify-send -a desktop -u critical -- \"\$ICON_DRIVE  backup\" 'the drive is full — nothing was backed up'|:|makoctl dismiss -a"
   "system|chord logo u|:|key Escape"
   "system-1|chord logo u; nap 2; key Tab|:|key Escape"
