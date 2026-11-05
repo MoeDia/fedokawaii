@@ -10,6 +10,9 @@
 # · zone kawa-lan, bound to the private address ranges (a zone with sources comes before the
 #   card's): the list's lan and world doors, the rest refused out loud, pings answered.
 # · policy kawa-no-upnp: no program on this machine asks the router to open a port.
+# · the remote page's own rule stays in zone public where its installer and the owner put it
+#   (4 Nov: "keep it there"): the page's port from a private range. Zone kawa-lan comes first and
+#   holds the door anyway, so it lets in nothing new; any other rule there is not the list's.
 
 NET_ZONE_LAN=kawa-lan
 NET_POLICY=kawa-no-upnp
@@ -50,6 +53,42 @@ _net_ports_xml() {
   local p
   while IFS= read -r p; do printf '  <port port="%s" protocol="%s"/>\n' "${p%/*}" "${p#*/}"; done < <(net_doors "$1")
 }
+# _net_private ADDRESS[/PREFIX] → inside one of NET_LAN_SOURCES?
+_net_private() {
+  local n=128 min
+  [[ $1 != */* ]] || n=${1##*/}
+  [[ $n =~ ^[0-9]+$ ]] || return 1
+  case ${1%/*} in
+    10.*) min=8 ;;
+    172.1[6-9].*|172.2[0-9].*|172.3[01].*) min=12 ;;
+    192.168.*|169.254.*) min=16 ;;
+    f[cd]*:*) min=7 ;;
+    fe[89ab]?:*) min=10 ;;
+    *) return 1 ;;
+  esac
+  ((n >= min))
+}
+# _net_page_rule LINE → is this rich rule (as firewall-cmd prints it) the remote page's own?
+_net_page_rule() {
+  local d re
+  _net_on remote || return 1
+  d=$(awk '/^[0-9]/ && $3 == "remote" { print $1 }' "$REPO_DIR/system/net-allow.list")
+  re='^[[:space:]]*rule family="ipv[46]" source address="([^"]+)" port port="'"${d%/*}"'" protocol="'"${d#*/}"'" accept$'
+  [[ $1 =~ $re ]] && _net_private "${BASH_REMATCH[1]}"
+}
+# _net_page_rules_xml → the page's own rules of the saved zone public, as firewalld writes them
+_net_page_rules_xml() {
+  local f=/etc/firewalld/zones/public.xml line
+  [[ -f $f ]] || return 0
+  while IFS= read -r line; do
+    _net_page_rule "$line" || continue
+    sed -E 's|^rule family="([^"]+)" source address="([^"]+)" port port="([^"]+)" protocol="([^"]+)" accept$|  <rule family="\1">\n    <source address="\2"/>\n    <port port="\3" protocol="\4"/>\n    <accept/>\n  </rule>|' <<<"$line"
+  done < <(awk -F'"' '/<rule /{ r="rule family=\"" $2 "\"" }
+    /<source /&& r != "" { r=r " source address=\"" $2 "\"" }
+    /<port /&& r != "" { r=r " port port=\"" $2 "\" protocol=\"" $4 "\"" }
+    /<accept\/>/&& r != "" { r=r " accept" }
+    /<\/rule>/{ print r; r="" }' "$f")
+}
 # net_fw_file REL → what /etc/firewalld/REL holds
 net_fw_file() {
   local s
@@ -59,6 +98,7 @@ net_fw_file() {
       printf '<zone target="DROP">\n  <short>The world</short>\n'
       printf '  <description>Fedokawaii: what the internet meets. Nothing answers but the world doors of system/net-allow.list.</description>\n'
       _net_ports_xml world
+      _net_page_rules_xml
       printf '</zone>\n' ;;
     "zones/$NET_ZONE_LAN.xml")
       printf '<zone>\n  <short>The home network</short>\n'
@@ -85,7 +125,7 @@ _net_fw_files() { printf '%s\n' zones/public.xml "zones/$NET_ZONE_LAN.xml" "poli
 _net_field() { sed -n "s/^[[:space:]]*$1:[[:space:]]*//p" | tr ' ' '\n' | sed '/^$/d' | LC_ALL=C sort -u | paste -sd' ' -; }
 # net_firewall_wrong — the firewall against the list: saved files and running rules alike
 net_firewall_wrong() {
-  local f z all want have i
+  local f z all want have i line
   firewall-cmd -q --state 2>/dev/null || { echo "firewalld is not running"; return 0; }
   systemctl is-enabled --quiet firewalld.service || echo "firewalld is not on for every boot"
   while IFS= read -r f; do
@@ -106,7 +146,10 @@ net_firewall_wrong() {
     [[ $have == no ]] || echo "zone $z forwards"
     have=$(_net_field masquerade <<<"$all")
     [[ $have == no ]] || echo "zone $z masquerades"
-    grep -q '^[[:space:]]*rule' <<<"$all" && echo "zone $z holds rules of its own"
+    while IFS= read -r line; do
+      [[ $z == public ]] && _net_page_rule "$line" && continue
+      echo "zone $z holds rules of its own"; break
+    done < <(sed -n '/^[[:space:]]*rule/p' <<<"$all")
     if [[ $z == "$NET_ZONE_LAN" ]]; then
       have=$(_net_field sources <<<"$all")
       want=$(printf '%s\n' "${NET_LAN_SOURCES[@]}" | LC_ALL=C sort -u | paste -sd' ' -)

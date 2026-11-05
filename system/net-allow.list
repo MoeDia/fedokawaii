@@ -5,6 +5,7 @@
 #
 # WHERE  world  anyone on the internet (and the LAN)
 #        lan    private addresses only: the firewall's zone kawa-lan (lib/net.sh, NET_LAN_SOURCES)
+#               (the remote page's own rule in zone public is kept too: lib/net.sh says why)
 #        local  this computer only: bound to its loopback, no firewall needed
 #        shut   a program binds it on every address; the firewall keeps it closed
 # WHEN   always
