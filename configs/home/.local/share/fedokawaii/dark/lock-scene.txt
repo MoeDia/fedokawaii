@@ -1,19 +1,22 @@
-# lock-scene.txt — where kawa-lockmod draws on lock-scene.png, in its pixels (each shown
-# N × N on the screen, N whole: the most the screen holds). tools/build-lock.py writes it.
-size 640 360
-ground 181715   # round the scene: its edges' commonest colour
-gate 250 227 140 117 5   # lock-gate.png: its frames side by side, shut first: where they lie, each's size, how many
-frames 26 44 8   # lock-flame.png: the frames side by side, 8 a second
-flame 93 84   # a flame's frame, its top-left
-flame 521 84   # a flame's frame, its top-left
-row 295 263 7 8   # the password: the first mark's middle, the pitch, how many in sight
-mark f68c50 f5ecc2 82241f   # a mark: its arms, its middle, its corners
-caps 82c1b4   # the arms while Caps Lock is on
-caret f68c50   # a bar as tall as a mark at the next place, once a second
-plate 320 180 120   # what shakes at a wrong password: its middle, its radius
-words 344 354   # the line of words (what PAM says): the rows it is centred in
-anim light-l 0 46 214 269 6 180   # lock-NAME.png: a looped strip with alpha, a frame every MS
-anim light-r 426 46 214 269 6 180   # lock-NAME.png: a looped strip with alpha, a frame every MS
-anim smoke-l 93 44 26 56 8 170   # lock-NAME.png: a looped strip with alpha, a frame every MS
-anim smoke-r 521 44 26 56 8 190   # lock-NAME.png: a looped strip with alpha, a frame every MS
-sparks embers 26 f68c50 82241f   # particles: how many, their young ink and their old
+# lock-scene.txt: where kawa-lockmod draws on lock-scene.png, in its pixels: a painting, shown whole
+# (tools/build-ink.py writes it; lock-scene.png is the gate open, the strips lie over it).
+size 1920 1080
+ground 070708   # round the painting on another screen's shape
+gate 708 561 492 411 7   # lock-gate.png: its frames side by side, shut first: where they lie, each's size, how many
+frames 120 186 12   # lock-flame.png: the frames side by side, 8 a second
+flame 52 85   # a flame's frame, its top-left
+flame 1732 82   # a flame's frame, its top-left
+markscale 2   # the caret's width, a spark, the shake
+marks 22 32 8   # lock-marks.png: mark i is the strip's i % N
+row 886 830 23 7   # the password: the first mark's middle, the pitch, how many in sight
+mark f68c50 f5ecc2 82241f   # a mark's main ink (its look is the strip's)
+caps 82c1b4   # the marks' ink while Caps Lock is on
+caret f8b25c   # a bar as tall as a mark at the next place, once a second
+words 972 1000   # the line of words (what PAM says): the rows it is centred in
+anim light-l 0 0 560 760 6 150   # lock-NAME.png: a looped strip with alpha, a frame every MS
+anim light-r 1360 0 560 760 6 190   # lock-NAME.png: a looped strip with alpha, a frame every MS
+anim eye-l 846 538 44 44 8 120   # lock-NAME.png: a looped strip with alpha, a frame every MS
+anim eye-r 1030 536 44 44 8 135   # lock-NAME.png: a looped strip with alpha, a frame every MS
+sparks embers 36 f8b25c b4431a   # particles: how many, their young ink and their old
+spawn 82 96 60 70   # where they are born
+spawn 1762 94 60 70   # where they are born
