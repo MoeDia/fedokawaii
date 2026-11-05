@@ -18,7 +18,7 @@ Branch `lane-chess`. State at the end of this file. `kawa-chess` runs, plays, te
 | `docs/learn/chess/` | README.md (the Learn piece) · curriculum.md (365 days, written from the syllabus) · ladder.md (the measured levels) · SOURCES.md |
 | `.claude/notes/chess-research.md` | the research digest, cited (105 pages fetched) |
 | `tools/` | build-chess-inks.py · build-chess-puzzles.py · build-chess-curriculum.py · check-chess-lessons.py · chess-ladder.py · chess-gallery.sh |
-| `tests/content/` | test_chess_rules.sh · test_chess.sh · test_chess_destroy.sh · chess_pty.py chess_lib.py fake_stockfish.py chess_walk.py chess_sweep.py chess_fuzz.py chess_games.py chess_puzzles200.py |
+| `tests/content/` | test_chess_rules.sh · test_chess.sh · test_chess_year.sh · test_chess_destroy.sh · chess_pty.py chess_lib.py fake_stockfish.py chess_walk.py chess_sweep.py chess_ghost.py chess_year.py chess_fuzz.py chess_games.py chess_puzzles200.py |
 
 theme.sh needs **no change**: its home tree installs configs/home/ as it is, bin/* goes to ~/.local/bin.
 
@@ -33,9 +33,10 @@ lane-integrate's train (`train-head`, gate-fix 86c8c9f) already holds this lane 
    `tools/packages.evidence` "F45 updates: stockfish 19-1.fc45 (mdapi.fedoraproject.org/f45/pkg/stockfish, dnf --releasever=45
    repoquery; …", `tests/static/fixtures/programs.txt` "… /usr/bin/stockfish, Fedora 45 updates". Checked at 23:44: Fedora 45 has
    stockfish 19-1.fc45, the same 19 every test here played against.
-3. `fedokawaii apply` in its turn installs stockfish (dnf) and the files. Look at it: Super+U → learning → chess.
-4. `tests/content/` here run with the stand-in engine anywhere, and with the real one once stockfish is on PATH (or `KAWA_TEST_STOCKFISH=PATH`).
-5. Plan: mark T25a, T25b, T25c from the ledger lines below; master-trace r27-dec-9a–h.
+3. The patch's row for docs/design-system.md §14 ("chess: the board (sixels), its men, its panel …") is not in the train yet (checked 23:53): add it.
+4. `fedokawaii apply` in its turn installs stockfish (dnf) and the files. Look at it: Super+U → learning → chess.
+5. `tests/content/` here run with the stand-in engine anywhere, and with the real one once stockfish is on PATH (or `KAWA_TEST_STOCKFISH=PATH`).
+6. Plan: mark T25a, T25b, T25c from the ledger lines below; master-trace r27-dec-9a–h.
 
 For a tree that has no train: the whole patch still applies on main b0656c4 (checked 23:30); on a tree with lane-pixels or
 lane-appsui, `system/fedokawaii` conflicts in its SOON line and the learning rows: no chess in SOON, `[[ -n $desk ]] && e learning chess …`.
@@ -52,7 +53,7 @@ Not done here, on purpose (other lanes' or main's files, or his word): the desig
 
 Others: Sixel, not sextants: a 40 px square would be 10 × 6 blocks in two inks a cell; sixels are 0.4–1.3 ms a frame in Python (bytes.translate + big ints), 18–23 MB RSS, foot at 7 ticks and the app at 12 over 8 s of play with two animated moves. Cell-aligned squares (40/80/120 px = 5×2, 10×4, 15×6 cells), one drawing on a 40-grid at ×1 ×2 ×3 (×3 is the wallpapers' pixel). DEC 2031 for the theme switch, no polling. Lessons live in one file (154 `place` calls in theme.sh would cost a second).
 
-r27-extra, for his veto: the ladder's ten faces (kodama to shuten-doji), sparks on a capture, the toppling king, a seal stamped on the year when a day is done, the squares drill.
+r27-extra, for his veto: the ladder's ten faces (kodama, an old cedar with its rope and a sprout; tanuki with his leaf; kappa with his dish; karakasa, the one-eyed umbrella on its geta; the fox mask; tengu; yuki-onna; oni; hannya; shuten-doji in fire, three horns and a third eye), sparks on a capture, the toppling king, a seal stamped on the year when a day is done, the squares drill.
 
 ## Lines for the ledger
 
