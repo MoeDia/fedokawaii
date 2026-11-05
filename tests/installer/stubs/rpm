@@ -14,13 +14,15 @@ if [[ " $* " == *" -qp "* ]]; then
     printf '%s %s-1.0-1.fc44.src.rpm\n' "$n" "${src:-$n}"
   done; exit 0
 fi
-qf="" wp=0 last=0 list=0 names=()
+qf="" wp=0 last=0 list=0 all=0 root="" names=()
 while (($#)); do
   case $1 in
-    -q) ;; -ql|-l|--list) list=1 ;; --qf|--queryformat) qf=$2; shift ;; --whatprovides) wp=1 ;; --last) last=1 ;; --import) exit 0 ;;
+    -q) ;; -qa|-a) all=1 ;; --root=*) root=${1#--root=} ;; -ql|-l|--list) list=1 ;; --qf|--queryformat) qf=$2; shift ;; --whatprovides) wp=1 ;; --last) last=1 ;; --import) exit 0 ;;
     -*) ;; *) names+=("$1") ;;
   esac; shift
 done
+# -qa: every package, of this machine or of a --root that is there (none in one that is not)
+if ((all)); then [[ -n $root && ! -e $root ]] || cat "$FKH/installed" 2>/dev/null; exit 0; fi
 if ((last)); then printf 'kernel-core-%s                Thu 01 Oct 2026\n' "$(cat "$FKH/newest-kernel" 2>/dev/null || uname -r)"; exit 0; fi
 miss=0
 for n in "${names[@]}"; do

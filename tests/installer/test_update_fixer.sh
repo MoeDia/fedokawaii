@@ -110,18 +110,19 @@ not_called 'kawa-fixer\] run'; called 'versionlock exclude foot-1.25-1.fc44'; ha
 fkh_add mounts /home
 
 case_ "the update red on the running system after all: its fix taken out again with it"
-fixer_set fixed; mkdir -p "$U"; rm -rf "$U/fixes" "$U/fix-new"
 # (red on the system alone: a check that fails once the fix is in force)
-cat >>"$W$TK/lib/update.sh" <<'EOS'
+red_on_system() { cat >>"$W$TK/lib/update.sh" <<'EOS'
 u_check() { up_phase check; echo "the desktop does not start: a red only the running system shows" >"$UPD/why"; return 1; }
 EOS
+}
+fixer_set fixed; mkdir -p "$U"; rm -rf "$U/fixes" "$U/fix-new"; red_on_system
 up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"
 called 'kawa-fixer\] unapply /var/lib/fedokawaii/update/fixes/fix-1.json --home /home/fkuser --root /'
 [[ ! -e $U/fixes/fix-1.json && ! -e $U/fix-new ]] && _ok || _no "the fix stayed after the update was undone: $(find "$U/fixes" -type f 2>/dev/null | tr '\n' ' ')"
 called 'versionlock exclude .*foot-1.25-1.fc44'
 
 case_ "…an undo the disk refuses (full, an I/O error): said, on the list, tried again at the next start"
-fixer_set fixed; mkdir -p "$U"; rm -rf "$U/fixes" "$U/fix-new"; rm -f "$U/holds"; fkh fixer-no-undo
+fixer_set fixed; mkdir -p "$U"; rm -rf "$U/fixes" "$U/fix-new"; rm -f "$U/holds"; fkh fixer-no-undo; red_on_system
 up; eq "$RC" 0 "$(tail -n4 <<<"$OUT")"; has "$OUT" "could not be taken back: tried again at the next start"
 eq "$(cat "$U/fix-new" 2>/dev/null)" "fix-1.json" "still on the list"; [[ -e $U/fixes/fix-1.json ]] && _ok || _no "its record went"
 rm -f "$FKH/fixer-no-undo"; reset_calls; fkrun bash "$TK/setup.sh" --update-resume

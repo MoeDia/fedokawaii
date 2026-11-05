@@ -165,6 +165,8 @@ fake_pylibs() {
   for m in $(grep -ohE 'require_version\("\w+"' "$REPO/system/kawa-greet" "$REPO/bin/kawa-panel" | cut -d'"' -f2 | sort -u); do
     : >"$FK_PYLIBS/gi/repository/$m.py"
   done
+  # (what the fixer's CSS check asks of Gtk: a stylesheet it reads without a word)
+  printf 'class CssProvider:\n    def connect(self, *a):\n        pass\n    def load_from_path(self, p):\n        pass\n' >"$FK_PYLIBS/gi/repository/Gtk.py"
 }
 
 pkg_has() { grep -qxF -- "$1" "$FKH/installed"; }
