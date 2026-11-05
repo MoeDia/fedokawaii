@@ -82,3 +82,6 @@ OWNER 21:30 — FINAL SPRINT: "you have 2 hours, finish the whole fedokawaii pro
 
 ## OWNER VERDICT 2026-11-04 21:41 on your render fedora-45-only: comment
 OWNER 21:40 — FEDORA 45 ONLY: "ditch Fedora 44, we are fully for 45 now." From now on fedokawaii supports Fedora 45 only: no F44 code paths, no "works on both 44 and 45" branches, no F44 package names or repo URLs anywhere (setup.sh, the installer, the ISO kickstart, the update button, tests, docs, CLAUDE.md, the plan). The PC goes to 45 tonight through the update button (snapshot first, scrub after), and the ISO is F45 only. lane-f45: turn your "both 44 and 45" patches into F45-only ones. lane-integrate and lane-review: reject anything that adds F44 support back.
+
+## OWNER VERDICT 2026-11-04 21:46 on your render bar-clock-seconds: comment
+OWNER 21:46: the top bar's clock KEEPS ITS SECONDS. Claude's earlier note (17:24 / 18:00, "drop the seconds") is withdrawn — the owner wants the seconds shown. If they were removed, put them back.
