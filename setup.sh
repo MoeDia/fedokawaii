@@ -2761,7 +2761,8 @@ manifest_sync() {
   fi
   manifest_mark "${want[@]}"
   # retired: handed back to dnf (dnf autoremove clears them when nothing needs them)
-  local back=("${RETIRED_PKGS[@]}")
+  local back=("${RETIRED_PKGS[@]}") ui
+  ui=$(dnf repoquery --userinstalled --qf '%{name}\n' 2>/dev/null) || ui=""
   for p in "${back[@]}"; do
     if grep -qx "$p" <<<"$ui" && ! grep -qx "$p" "$STATE_DIR/baseline-userinstalled"; then run dnf -y mark dependency "$p" || true; fi
   done

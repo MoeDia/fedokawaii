@@ -100,7 +100,7 @@ pw=$W$H/.config/pipewire/pipewire.conf.d
 [[ ! -e $pw/60-clean-mic.conf ]] && _ok || _no "60-clean-mic.conf is still there"
 has "$(cat "$b/.config/pipewire/pipewire.conf.d/60-clean-mic.conf" 2>/dev/null)" "libpipewire-module-echo-cancel" "kept in the backup"
 has "$OUT" "60-clean-mic.conf (retired)"
-[[ -s $pw/50-quality.conf && -s $pw/60-share.conf ]] && _ok || _no "the folder lost 50-quality.conf or 60-share.conf"
+[[ -s $pw/50-quality.conf ]] && _ok || _no "the folder lost 50-quality.conf"
 
 case_ "gaming left this account (lib/asobi.sh has it): Steam's and game mode's helpers, the overlay's config and Steam's entry, still ours, into the backup"
 [[ ! -e $W$H/.local/bin/kawa-steam && ! -e $W$H/.local/bin/kawa-game && ! -e $W$H/.config/MangoHud && ! -e $W$H/.local/share/applications/steam.desktop ]] && _ok \

@@ -588,6 +588,7 @@ EOF
 eq "$(last_dir)" "$HOME/Drives"
 
 # ── the keys' names in yazi's own help ───────────────────────────────────────────────────
+if "$YAZI" --version 2>/dev/null | grep -q 'Patch  : fedokawaii'; then   # (help's words in lower case: the patched build's)
 case_ "~ lists the desktop's keys with their words"
 out=$(y 120x40 <<'EOF'
 wait a.txt
@@ -604,6 +605,7 @@ EOF
 )
 has "$out" "into the folder, or open the file(s)"; has "$out" "drives: open or eject one"
 has "$out" "go to your drives (~/Drives: one per open drive)"
+fi
 
 # ── a film: W watches it together ──────────────────────────────────────────────────────
 case_ "W on a film: Syncplay in a terminal window of its own (kawa-term kawa-together FILE)"
@@ -620,6 +622,7 @@ quit
 EOF
 called "^kawa-term kawa-together $TMP/films/our film's night\.mkv$"; not_called '^xdg-open'
 eq "$(last_dir)" "$TMP/films" "yazi stays"
+if "$YAZI" --version 2>/dev/null | grep -q 'Patch  : fedokawaii'; then   # (help's words in lower case: the patched build's)
 case_ "~ lists W with its words"
 out=$(CWD=$TMP/films y 120x40 <<'EOF'
 wait night.mkv
@@ -635,6 +638,7 @@ quit
 EOF
 )
 has "$out" "watch it together (Syncplay)"
+fi
 # ── the file dialog (kawa-pick): its own yazi, Enter and Esc, its title ─────────────────
 # (the dialog's yazi as kawa-pick runs it inside its window; the answer lands in $TMP/pk)
 pick() {   # pick MODE DIR [SIZE] — driven by the steps on stdin

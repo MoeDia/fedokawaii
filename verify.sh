@@ -680,8 +680,9 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
 # (its config and its launcher entry come with the theme)
 ((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
 check "neovim's plugins at the commits of their lock (lazy-lock.json)" nvim_at_lock
-check "Torrents whole, on Fedora's python3 and libtorrent" U "$TARGET_HOME/.local/bin/kawa-torrents" --check
-check "Torrents' engine is started by its socket" U systemctl --user cat kawa-torrents.socket
+# (its program and its socket come with the theme; setup's own step checks it from the repository before that)
+((THEMED)) && check "Torrents whole, on Fedora's python3 and libtorrent" U "$TARGET_HOME/.local/bin/kawa-torrents" --check
+((THEMED)) && check "Torrents' engine is started by its socket" U systemctl --user cat kawa-torrents.socket
 if [[ -e $TARGET_HOME/.local/share/torrra || -e $TARGET_HOME/.local/share/uv/tools/torrra || -e /usr/local/bin/kawa-torrra ]]; then
   fail "torrra is gone" "an older setup's files are left — fedokawaii repair takes them out"
 else pass "torrra is gone (nothing an older setup left)"; fi
