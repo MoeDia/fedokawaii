@@ -179,9 +179,9 @@ back built; fkh_add units "global-enabled grub-boot-success.timer"
 tk --repair; called 'systemctl\] --global disable grub-boot-success.timer'
 grep -qx "global-enabled grub-boot-success.timer" "$FKH/units" && _no "still on for every session" || _ok
 case_ "repair: neovim's Python tools after a new Fedora's Python (their venv's python dangles): installed anew, once"
-back built; v=$U/.local/share/nvim/mason/packages/debugpy/venv/bin; mkdir -p "$v"; ln -s /usr/bin/python3.0 "$v/python"; reset_calls
+back built; v=$W/home/fkuser/.local/share/nvim/mason/packages/debugpy/venv/bin; mkdir -p "$v"; ln -s /usr/bin/python3.0 "$v/python"; reset_calls
 tk --repair; has "$OUT" "neovim's Python tools ran on an earlier Fedora's Python"; called 'nvim\] .*MasonInstall basedpyright ruff debugpy codelldb'
-back built; v=$U/.local/share/nvim/mason/packages/debugpy/venv/bin; mkdir -p "$v"; ln -s /bin/sh "$v/python"; reset_calls
+back built; v=$W/home/fkuser/.local/share/nvim/mason/packages/debugpy/venv/bin; mkdir -p "$v"; ln -s /bin/sh "$v/python"; reset_calls
 tk --repair; lacks "$OUT" "neovim's Python tools ran on"; not_called 'MasonInstall'
 
 case_ "repair: a new kernel (waiting for its restart) without its boot image gets one (dracut --kver), and verify passes after"
