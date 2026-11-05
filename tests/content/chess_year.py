@@ -22,8 +22,10 @@ import progress as PR  # noqa: E402
 import puzzles as P  # noqa: E402
 import review as RV  # noqa: E402
 import store as S  # noqa: E402
+import ui as U  # noqa: E402
 
 DATA = REPO / "configs/home/.local/share/fedokawaii/chess"
+USUAL_PANEL = 40      # (the panel's content in the usual window, 126 x 33: no row may lose a word there)
 
 
 def known_checks():
@@ -80,7 +82,9 @@ def read_year(root, say):
             for r in (450.0, 1100.0, 1950.0):
                 pr.game["r"], pr.puzzle["r"] = r, r + 200
                 course.bank_starts.clear()
-                it.value(pr)
+                drawn = "".join(x[0] if isinstance(x, tuple) else x for x in U.Row(it.icon, it.label, it.value(pr)).spans(USUAL_PANEL))
+                if it.label not in drawn:
+                    say(f"day {day}: {it.label!r} does not fit its row in the usual window, beside {it.value(pr)!r}")
                 words = it.details(pr) + it.details(pr, face=True)
                 if it.kind not in ("lesson",) and not words:
                     say(f"day {day}: {it.key}: nothing to say on the row")

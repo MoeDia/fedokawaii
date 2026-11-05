@@ -5,7 +5,7 @@ Lines are lists of spans; a Row carries what a click or Enter on it means.
 """
 import re
 
-from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG
+from term import ACCENT, ACCENT_TEXT, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG
 
 PIECE_MIN_ROWS = 18        # 320 px + the frame: the smallest board
 _ICON = re.compile(r"^ICON_([A-Z0-9_]+)=\$'((?:\\x[0-9a-f]{2})+)'", re.M)
@@ -131,23 +131,38 @@ class Face:
 
 
 def tile(key):
-    """A key on a text screen (§7): a cell-high tile, its letters and a cell either side."""
-    return (f" {key} ", STRONG, EDGE)
+    """A key on a text screen (§7 Keys): whole cells of Sumi Icons Term, U+FF001, then U+FF000 + each letter's ASCII
+    code, then U+FF002: its frame, its lip and its letters one ink, no fill."""
+    return ("\U000ff001" + "".join(chr(0xff000 + ord(c)) for c in key) + "\U000ff002", MUTED)
+
+
+class Hits(list):
+    """A line that answers the mouse: its spans, and hits: (first column, one past its last, the event a click there is)."""
+
+    def __init__(self):
+        super().__init__()
+        self.hits = []
 
 
 def keys_line(w, *pairs):
     """A screen's own keys on its last line (§7): the key a tile, what it does muted, its state strong, two cells
-    between them; as many of them, the first ones, as the panel has room for."""
-    out, used = [], 0
+    between them; as many of them, the first ones, as the panel has room for. Each is its key or a click: the tile and
+    its words; "< >" a half for each way."""
+    out, used = Hits(), 0
     for p in pairs:
         need = len(p[0]) + 3 + len(p[1]) + (2 + len(p[2]) if len(p) > 2 else 0) + (2 if out else 0)
         if used + need > w:
             break
+        at = used + 2 if out else used
         if out:
             out.append("  ")
         out += [tile(p[0]), " ", (p[1], MUTED)]
         if len(p) > 2:
             out += ["  ", (p[2], STRONG)]
+        if p[0] == "< >":
+            out.hits += [(at, at + 3, ("key", "left")), (at + 3, used + need, ("key", "right"))]
+        else:
+            out.hits.append((at, used + need, ("key", p[0]) if len(p[0]) > 1 else ("text", p[0])))
         used += need
     return out
 

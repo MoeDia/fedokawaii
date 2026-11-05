@@ -1,17 +1,19 @@
 #!/usr/bin/env bash
-# tools/chess-gallery.sh [--theme dark|light] [--sf PATH] [--out DIR] — kawa-chess's screens as the desktop draws them: a
-# headless dwl (tools/kit.sh) in a throw-away home, the repository's files, positions set up from fixtures; PNGs of every
-# screen at the sizes that matter, to be looked at and measured. Nothing of the session is touched.
+# tools/chess-gallery.sh [--theme dark|light] [--sf PATH] [--out DIR] [--repo-art] — kawa-chess's screens as the desktop draws
+# them: a headless dwl (tools/kit.sh) in a throw-away home, the repository's files, positions set up from fixtures; PNGs of every
+# screen at the sizes that matter, to be looked at and measured. --repo-art: the tree's own fonts and themes (kit.sh's), for
+# what is not applied yet. Nothing of the session is touched.
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark sf=$(command -v stockfish || true) out=""
+theme=dark sf=$(command -v stockfish || true) out="" art=()
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
     --sf) sf=$2; shift 2 ;;
     --out) out=$2; shift 2 ;;
-    *) echo "usage: chess-gallery.sh [--theme dark|light] [--sf PATH] [--out DIR]" >&2; exit 2 ;;
+    --repo-art) art=(--repo-art); shift ;;
+    *) echo "usage: chess-gallery.sh [--theme dark|light] [--sf PATH] [--out DIR] [--repo-art]" >&2; exit 2 ;;
   esac
 done
 out=${out:-/dev/shm/r27/chess/$theme}
@@ -99,4 +101,4 @@ say "err: $(tail -3 $HOME/err.log 2>/dev/null | tr '\n' ' ')"
 say "crash: $(tail -30 $ST/crash.log 2>/dev/null)"
 PLAY
 } >"$play"
-bash "$here/kit.sh" --theme "$theme" --time 420 --out "$out" --play "$play" play
+bash "$here/kit.sh" --theme "$theme" "${art[@]}" --time 420 --out "$out" --play "$play" play

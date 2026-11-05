@@ -126,7 +126,7 @@ THEME_NAMES = (
     ("backRankMate", "the back rank"), ("fork", "forks"), ("pin", "pins"), ("skewer", "skewers"),
     ("discoveredAttack", "discovered attacks"), ("discoveredCheck", "discovered checks"), ("doubleCheck", "double checks"),
     ("capturingDefender", "removing the guard"), ("deflection", "deflection"), ("attraction", "attraction"),
-    ("clearance", "clearance"), ("interference", "interference"), ("intermezzo", "the move in between"),
+    ("clearance", "clearance"), ("interference", "interference"), ("intermezzo", "in-between moves"),
     ("xRayAttack", "x-rays"), ("trappedPiece", "trapped pieces"), ("sacrifice", "sacrifices"), ("quietMove", "quiet moves"),
     ("defensiveMove", "only moves"), ("advancedPawn", "advanced pawns"), ("promotion", "promotion"),
     ("attackingF2F7", "f2 and f7"), ("kingsideAttack", "attacking the king"), ("exposedKing", "the bare king"),
@@ -134,7 +134,7 @@ THEME_NAMES = (
     ("bodenMate", "Boden's mate"), ("dovetailMate", "the dovetail"), ("hookMate", "the hook"),
     ("doubleBishopMate", "two bishops"), ("pawnEndgame", "pawn endings"), ("rookEndgame", "rook endings"),
     ("bishopEndgame", "bishop endings"), ("knightEndgame", "knight endings"), ("queenEndgame", "queen endings"),
-    ("queenRookEndgame", "queen and rook endings"), ("zugzwang", "zugzwang"), ("opening", "in the opening"),
+    ("queenRookEndgame", "Q and R endings"), ("zugzwang", "zugzwang"), ("opening", "in the opening"),
     ("middlegame", "in the middlegame"), ("endgame", "in the ending"),
 )
 

@@ -110,8 +110,8 @@ Level band 400–700. Milestone by its end: level 550, puzzle rating 750. Exam: 
 | 22 | the back rank | Steps Method 1, mate; Lichess theme backRankMate | mate in one |
 | 23 | mate in one | Polgár, Chess: 5334 Problems (mates in one); Steps Method 1 | the back rank |
 | 24 | the ladder | Silman, Complete Endgame Course, part one (the staircase) | mate in one |
-| 25 | king and queen against a king | Silman, Complete Endgame Course, part one (the box) | the back rank |
-| 26 | king and rook against a king | Silman, Complete Endgame Course, part one (the box, opposition) | mate in one |
+| 25 | king and queen against king | Silman, Complete Endgame Course, part one (the box) | the back rank |
+| 26 | king and rook against king | Silman, Complete Endgame Course, part one (the box, opposition) | mate in one |
 | 27 | do not stalemate | Silman, Complete Endgame Course, part one (stalemate awareness) | the back rank |
 | 28 | — | — | mate in one |
 
@@ -448,7 +448,7 @@ Level band 812–1112.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
-| 99 | the Arabian and Anastasia's mate | Lichess themes arabianMate, anastasiaMate; Polgár, Chess: 5334 Problems | smothered mate |
+| 99 | Arabian and Anastasia mates | Lichess themes arabianMate, anastasiaMate; Polgár, Chess: 5334 Problems | smothered mate |
 | 100 | Boden's mate and two bishops | Lichess themes bodenMate, doubleBishopMate; Polgár, Chess: 5334 Problems | the Arabian mate |
 | 101 | the dovetail and the hook | Lichess themes dovetailMate, hookMate | Anastasia's mate |
 | 102 | — | — | Boden's mate |
@@ -699,7 +699,7 @@ Level band 1025–1325.
 | 155 | a budget for the clock | Heisman, on time management and slow games | mixed |
 | 156 | your own errors | Heisman, on review; Howard 2012 (games and coaching, not hours) | only moves |
 | 157 | the last check | Heisman, Everyone's 2nd Chess Book; Steps Method's three questions | quiet moves |
-| 158 | — | — | the move in between |
+| 158 | — | — | in-between moves |
 | 159 | — | — | mixed |
 | 160 | — | — | only moves |
 | 161 | — | — | quiet moves |
@@ -761,7 +761,7 @@ Level band 1075–1375.
 | 169 | see it in your head | Steps Method, Thinking ahead; Yusupov, Build Up Your Chess (solve without moving the pieces) | mate in three |
 | 170 | forcing lines | Yusupov, Build Up Your Chess; Lichess theme sacrifice | sacrifices |
 | 171 | count to quiet | Yusupov, Build Up Your Chess; Heisman, counting | quiet moves |
-| 172 | — | — | the move in between |
+| 172 | — | — | in-between moves |
 | 173 | — | — | mate in three |
 | 174 | — | — | sacrifices |
 | 175 | — | — | quiet moves |
@@ -791,11 +791,11 @@ Level band 1100–1400.
 |---|---|---|---|
 | 176 | their threat first | Heisman, Is it safe?; Lichess theme defensiveMove | only moves |
 | 177 | the counterattack | Seirawan, Winning Chess Tactics; Steps Method 3 | only moves |
-| 178 | the move in between | Lichess theme intermezzo; Steps Method 3 | the move in between |
+| 178 | the move in between | Lichess theme intermezzo; Steps Method 3 | in-between moves |
 | 179 | — | — | the bare king |
 | 180 | — | — | only moves |
 | 181 | — | — | only moves |
-| 182 | — | — | the move in between |
+| 182 | — | — | in-between moves |
 
 | game | kind | start | you | clock | goal | measured by |
 |---|---|---|---|---|---|---|
@@ -1039,8 +1039,8 @@ Level band 1300–1600.
 |---|---|---|---|
 | 232 | the plan of the Italian | Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move | in the opening |
 | 233 | against the Sicilian | Seirawan, Winning Chess Openings | in the middlegame |
-| 234 | against the Caro-Kann and French | Seirawan, Winning Chess Openings | in the opening |
-| 235 | the plan of the Queen's Gambit Declined | Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move | in the middlegame |
+| 234 | the Caro-Kann and the French | Seirawan, Winning Chess Openings | in the opening |
+| 235 | the Queen's Gambit Declined | Seirawan, Winning Chess Openings; Chernev, Logical Chess: Move by Move | in the middlegame |
 | 236 | — | — | in the opening |
 | 237 | — | — | in the middlegame |
 | 238 | — | — | in the opening |
@@ -1219,16 +1219,16 @@ Level band 1425–1725.
 
 ## Week 40: what do they want? (days 274–280)
 
-Level band 1450–1750. Milestone by its end: level 1600, puzzle rating 1850. Exam: only moves, quiet moves, the move in between, equality, in the opening, around 1700.
+Level band 1450–1750. Milestone by its end: level 1600, puzzle rating 1850. Exam: only moves, quiet moves, in-between moves, equality, in the opening, around 1700.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
 | 274 | what do they want? | Heisman, Is it safe?; Yusupov, Build Up Your Chess | only moves |
 | 275 | prophylaxis | Yusupov, Build Up Your Chess; Seirawan, Winning Chess Strategies | quiet moves |
-| 276 | the piece doing nothing | Silman, Complete Endgame Course; Seirawan, Winning Chess Strategies | the move in between |
+| 276 | the piece doing nothing | Silman, Complete Endgame Course; Seirawan, Winning Chess Strategies | in-between moves |
 | 277 | — | — | only moves |
 | 278 | — | — | quiet moves |
-| 279 | — | — | the move in between |
+| 279 | — | — | in-between moves |
 | 280 | — | — | only moves |
 
 | game | kind | start | you | clock | goal | measured by |
@@ -1285,7 +1285,7 @@ Level band 1500–1800.
 
 | day | lesson | its source | puzzles |
 |---|---|---|---|
-| 288 | playing with the isolated pawn | Seirawan, Winning Chess Strategies | in the middlegame |
+| 288 | with the isolated pawn | Seirawan, Winning Chess Strategies | in the middlegame |
 | 289 | playing against it | Seirawan, Winning Chess Strategies | advanced pawns |
 | 290 | hanging pawns | Seirawan, Winning Chess Strategies | quiet moves |
 | 291 | — | — | in the middlegame |
@@ -1441,10 +1441,10 @@ Level band 1587–1887.
 | day | lesson | its source | puzzles |
 |---|---|---|---|
 | 323 | queen endings | Silman, Complete Endgame Course, part six | queen endings |
-| 324 | heavy pieces together | Lichess theme queenRookEndgame; Seirawan, Winning Chess Endings | queen and rook endings |
+| 324 | heavy pieces together | Lichess theme queenRookEndgame; Seirawan, Winning Chess Endings | Q and R endings |
 | 325 | — | — | the bare king |
 | 326 | — | — | queen endings |
-| 327 | — | — | queen and rook endings |
+| 327 | — | — | Q and R endings |
 | 328 | — | — | the bare king |
 | 329 | — | — | queen endings |
 

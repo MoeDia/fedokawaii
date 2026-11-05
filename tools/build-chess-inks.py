@@ -113,6 +113,9 @@ def inks(p, mood):
     o["face_g"] = mix("Rainette Green", "Cossack Green", 0.35)
     o["face_h"] = mix("Cossack Green", "Black", 0.2)
     o["face_b"] = W["Olympic Blue"]
+    o["face_n"] = mix("Black", "Olympic Blue", 0.5)
+    o["face_u"] = mix("Vandyke Brown", "Pale Raw Umber", 0.5)
+    o["face_i"] = mix("Rainette Green", "Sulpher Yellow", 0.2)
     return o
 
 

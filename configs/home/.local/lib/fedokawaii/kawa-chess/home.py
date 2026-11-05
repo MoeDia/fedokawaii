@@ -15,7 +15,7 @@ from puzzles import SESSION, Bank, Session, Vision
 from review import Replay, Review, goal_met
 from syllabus import opponent
 from term import ACCENT, ACCENT_TEXT, FAINT, MUTED, STRONG, TEAL
-from ui import Face, Row, footed, heading, icon, keys_line, window, wrap
+from ui import Face, Hits, Row, footed, heading, icon, keys_line, window, wrap
 
 TABS = (("today", "KNIGHT"), ("lessons", "BOOK"), ("puzzles", "STORM"), ("games", "SHEET"), ("progress", "USAGE"))
 # a day done, on the year: the scroll opens, the seal comes down from high to near to its place, then the board again
@@ -205,8 +205,8 @@ class Home(Screen):
 
     # ── the panel ─────────────────────────────────────────────────────────────────────────────
     def _tabs(self, w):
-        """Three lines: the tabs, the line under the one shown, a row of paper (§7 Tabs)."""
-        line, under = [], []
+        """Three lines: the tabs, the line under the one shown, a row of paper (§7 Tabs). A click on one goes there."""
+        line, under = Hits(), []
         cur = 0
         for i, (name, ic) in enumerate(TABS):
             if i:
@@ -216,15 +216,18 @@ class Home(Screen):
             if i == self.tab:
                 line += [(icon(ic), ACCENT_TEXT), "  ", (name, STRONG)]
                 under += ["   ", ("▔" * len(name), ACCENT)]
+                line.hits.append((cur, cur + 3 + len(name), ("tab", i)))
                 cur += 3 + len(name)
             else:
                 line.append((icon(ic), MUTED))
                 line.append(" ")
                 under.append("  ")
+                line.hits.append((cur, cur + 2, ("tab", i)))
                 cur += 2
         if cur > w:                      # (narrow: the shown tab's icon and name alone)
             name, ic = TABS[self.tab]
-            line = [(icon(ic), ACCENT_TEXT), "  ", (name[:max(0, w - 3)], STRONG)]
+            line = Hits()
+            line += [(icon(ic), ACCENT_TEXT), "  ", (name[:max(0, w - 3)], STRONG)]
             under = ["   ", ("▔" * min(len(name), max(0, w - 3)), ACCENT)]
         return [line, under, ""]
 
@@ -366,6 +369,12 @@ class Home(Screen):
             self.pr.save()
             self.stamp_t = time.monotonic()
             self.stamp_phase = STAMP[0][1]
+
+    def go_tab(self, i):
+        self.message = ""
+        self.stamp_t = self.stamp_phase = None
+        if i != self.tab:
+            self._tab(i - self.tab)
 
     def click_row(self, i):
         lines = self.panel(self.app.layout.pw, self.app.layout.ph)
