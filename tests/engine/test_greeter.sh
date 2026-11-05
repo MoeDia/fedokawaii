@@ -168,12 +168,12 @@ grep -qF '"PrepareForSleep"' "$REPO/system/kawa-greet" && _ok || _no "the greete
 
 case_ "the lock's twin: the same scene (lock-scene.txt and its pictures, both moods), all of it on the screen, centred — no date, no time, no keys"
 eq "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" scene "$REPO/configs/home/.local/share/fedokawaii")" \
-  "dark 640 360 7 1 2 640 (3.0, 0, 0) (2.1333333333333333, 0, 0) (2.0, 0, 40)
-light 640 360 7 1 2 640 (3.0, 0, 0) (2.1333333333333333, 0, 0) (2.0, 0, 40)"
+  "dark 1920 1080 7 2 2 1920 (1.0, 0, 0) (0.7111111111111111, 0, 0) (0.6666666666666666, 0, 40)
+light 1920 1080 8 2 2 1920 (1.0, 0, 0) (0.7111111111111111, 0, 0) (0.6666666666666666, 0, 40)"
 case_ "…markscale read from the scene, as the lock reads it"
 mkdir -p "$TMP/ms"; cp -r "$REPO/configs/home/.local/share/fedokawaii/dark" "$REPO/configs/home/.local/share/fedokawaii/light" "$TMP/ms/"
-for t in dark light; do echo "markscale 3" >>"$TMP/ms/$t/lock-scene.txt"; done
-has "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" scene "$TMP/ms")" "dark 640 360 7 3 2 640"
+for t in dark light; do sed -i "/^markscale /d" "$TMP/ms/$t/lock-scene.txt"; echo "markscale 3" >>"$TMP/ms/$t/lock-scene.txt"; done
+has "$(python3 -I "$G/drive.py" "$REPO/system/kawa-greet" "$TMP/theme" scene "$TMP/ms")" "dark 1920 1080 7 3 2 1920"
 g=$REPO/system/kawa-greet
 lacks "$(cat "$g")" 'Gtk.Button(' "no keys"; lacks "$(cat "$g")" 'strftime' "no date or time"
 grep -q 'self.get_style_context().add_class("kawa")' "$g" && _ok || _no "its window not marked: gtklock.css would show the line"

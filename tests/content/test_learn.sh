@@ -221,7 +221,7 @@ eq "$(pdfimages -f 1 -l 1 -list "$pdf" | awk 'NR>2{print $4"x"$5}')" "1654x2340"
 eq "$(pdfinfo "$pdf" | awk '/^Title/{$1="";print}' | sed 's/^ *//')" "Fedokawaii — learn"
 [[ $(pdfinfo -f 1 -l 2 "$pdf" | awk '/^Page +[12] size/{print $4 "x" $6}' | sort -u | wc -l) == 1 ]] && _ok || _no "the cover's page is not the book's size"
 grep -q "docs/learn/cover.jpg" "$REPO/docs/build/handbook.py" && _ok || _no "a rebuild of the book would lose the cover"
-grep -q "ink-ridges-night\|FEDOKAWAII_COVER" "$REPO/docs/build/handbook.py" "$REPO/docs/build/README.md" && _no "the old cover is still named" || _ok
+grep -q "FEDOKAWAII_COVER\|cover.*ink-ridges-night\|ink-ridges-night.*cover" "$REPO/docs/build/handbook.py" "$REPO/docs/build/README.md" && _no "the old cover is still named" || _ok
 case_ "ten seconds of anything: keys, the mouse, sizes from one cell to the whole screen — no Traceback"
 out=$(pty 118x40 '!fuzz' 10 "$RANDOM" 2>&1); r=$?; ((r == 0)) && _ok || _no "exit $r: ${out: -600}"
 
