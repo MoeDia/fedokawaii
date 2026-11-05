@@ -26,7 +26,7 @@ export LC_ALL=C.UTF-8 PATH=/usr/sbin:/usr/bin:/usr/local/sbin:/usr/local/bin
 [[ $EUID -eq 0 ]] || { echo "run as root" >&2; exit 2; }
 OUT=${ASOBI_PROOF_OUT:-/dev/shm/r27/asobi-proof}; mkdir -p "$OUT"
 HOLDER=asobi-proof-holder
-WHO=asobi W=/home/asobi DROP=/home/.asobi/drop SNAPS=/home/.asobi/snapshots
+WHO=asobi W=/home/asobi DROP=/home/.asobi/drop SNAPS=/home/.asobi/snapshots STEAM_DATA=/home/asobi/.var/app/com.valvesoftware.Steam
 DESK=$(head -n1 /var/lib/fedokawaii/user | tr -d '[:space:]'); DESK_UID=$(id -u "$DESK"); DESK_HOME=$(getent passwd "$DESK" | cut -d: -f6)
 UID_W=$(id -u "$WHO") || { echo "no user $WHO: the world is not installed" >&2; exit 1; }
 fails=0
@@ -369,6 +369,7 @@ vt2_proof() {
   for _ in {1..120}; do systemctl is-active --quiet kawa-asobi-bottles.service && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && ! pgrep -u "$WHO" -x steam >/dev/null && break; sleep 0.5; done
   ok "Bottles up, Steam gone, $(( ($(date +%s%N) - t) / 1000000 )) ms after asking"
   holds "Steam closed"                   bash -c '! pgrep -u asobi -x steam'
+  never "Steam closed clean (its own mark: no .crash)" test -e "$STEAM_DATA/.local/share/Steam/.crash"
   holds "Bottles running"                systemctl is-active --quiet kawa-asobi-bottles.service
   sleep 8
   holds "VT 8 in front"                  test "$(cat /sys/class/tty/tty0/active)" = tty8
@@ -389,11 +390,11 @@ vt2_proof() {
 }
 # a controller is the seat's: yours on the desktop, the world's while it is in front; and Steam's own exit, no one closing it
 seat_proof() {
-  local dead=asobi-proof-deadman t ev="" pad ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
+  local dead=asobi-proof-deadman t ev="" ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
   bar_shown bar-before || return
-  python3 -I "$(dirname "$0")/uinput-key.py" --pad 95 & pad=$!
-  trap 'kill "$pad" 2>/dev/null; screen_back' EXIT
+  python3 -I "$(dirname "$0")/uinput-key.py" --pad 95 & PAD=$!
+  trap 'kill "$PAD" 2>/dev/null; screen_back' EXIT
   systemd-run --quiet --unit="$dead" --collect --on-active=90 bash -c 'chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service'
   for _ in {1..40}; do
     for t in /sys/class/input/event*; do [[ $(cat "$t/device/name" 2>/dev/null) == fedokawaii-check-pad ]] && ev=/dev/input/${t##*/}; done
@@ -421,17 +422,20 @@ seat_proof() {
   holds "kawa-asobi enter"               "${ask[@]}" enter
   sleep 3
   holds "in front again"                 test "$(cat /sys/class/tty/tty0/active)" = tty8
-  inside_user env "DBUS_SESSION_BUS_ADDRESS=unix:path=/run/user/$UID_W/bus" timeout 25 flatpak run --command=steam com.valvesoftware.Steam -shutdown >/dev/null 2>&1
+  # (what Steam's own menu does: Steam ends by itself; everything after it is the world's own chain)
+  sleep 12
   t=$(date +%s%N)
+  inside_user env "HOME=$STEAM_DATA" "$STEAM_DATA/.local/share/Steam/ubuntu12_32/steam-runtime/amd64/usr/bin/steam-runtime-steam-remote" -shutdown >/dev/null 2>&1
   for _ in {1..160}; do systemctl is-active --quiet kawa-asobi.service || break; sleep 0.25; done
   never "the world ended by itself"      systemctl is-active --quiet kawa-asobi.service
-  ok "$(( ($(date +%s%N) - t) / 1000000 )) ms after Steam's exit returned"
+  ok "the desktop back $(( ($(date +%s%N) - t) / 1000000 )) ms after Steam's exit"
+  never "Steam ended clean (its own mark: no .crash)" test -e "$STEAM_DATA/.local/share/Steam/.crash"
   holds "the desktop in front"           test "$(cat /sys/class/tty/tty0/active)" = tty1
   holds "the state says off"             test "$(cat /run/kawa-asobi/state)" = off
   never "nothing of it left"             pgrep -u "$WHO"
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || chvt 1
   systemctl stop "$dead.timer" 2>/dev/null
-  kill "$pad" 2>/dev/null
+  kill "$PAD" 2>/dev/null
   bar_shown bar-closed
 }
 # a picture of the world's screen, as gamescope takes it, to $OUT/NAME.png
@@ -531,7 +535,7 @@ windows_proof() {
 # Steam to start it and ends at once.
 #   sudo ASOBI_PROOF_GAME=Blasphemous/Blasphemous.exe bash tools/asobi-proof.sh proton
 proton_proof() {
-  local dead=asobi-proof-deadman t game=${ASOBI_PROOF_GAME:-} pfx=asobi-proof-pfx exe id apps=$W/.var/app/com.valvesoftware.Steam/.local/share/Steam/steamapps
+  local dead=asobi-proof-deadman t game=${ASOBI_PROOF_GAME:-} pfx=asobi-proof-pfx exe id apps=$STEAM_DATA/.local/share/Steam/steamapps
   local ask=(runuser -u "$DESK" -- env "XDG_RUNTIME_DIR=/run/user/$DESK_UID" "HOME=$DESK_HOME" "$DESK_HOME/.local/bin/kawa-asobi")
   [[ -n $game ]] || { no "ASOBI_PROOF_GAME names no game"; return; }
   exe=${game##*/}; exe=${exe:0:15}
@@ -539,8 +543,9 @@ proton_proof() {
   [[ $id =~ ^[0-9]+$ ]] || { no "no such game in the world's library"; return; }
   [[ $(cat /sys/class/tty/tty0/active) == tty1 ]] || { no "the desktop is not in front: not now"; return; }
   bar_shown bar-before || return
-  trap 'rm -f "$apps/common/${game%%/*}/steam_appid.txt"; screen_back' EXIT
-  runuser -u "$WHO" -- sh -c 'echo "$1" >"$2"' _ "$id" "$apps/common/${game%%/*}/steam_appid.txt"
+  APPID_FILE=$apps/common/${game%%/*}/steam_appid.txt
+  trap 'rm -f "$APPID_FILE"; screen_back' EXIT
+  runuser -u "$WHO" -- sh -c 'echo "$1" >"$2"' _ "$id" "$APPID_FILE"
   systemd-run --quiet --unit="$dead" --collect --on-active=170 bash -c 'chvt 1; systemctl stop kawa-asobi.service; systemctl stop kawa-asobi-bottles.service'
   holds "kawa-asobi bottles"             "${ask[@]}" bottles
   for t in {1..80}; do [[ $(cat /run/kawa-asobi/state 2>/dev/null) == front ]] && pgrep -u "$WHO" -f 'com.usebottles.bottles|/bottles' >/dev/null && break; sleep 0.5; done
@@ -581,7 +586,7 @@ proton_proof() {
   ok "closed in $(( ($(date +%s%N) - t) / 1000000 )) ms"
   never "nothing of it left"             pgrep -u "$WHO"
   systemctl stop "$dead.timer" 2>/dev/null
-  rm -rf "$W/.var/app/com.valvesoftware.Steam/.cache/$pfx" "$apps/common/${game%%/*}/steam_appid.txt"
+  rm -rf "$STEAM_DATA/.cache/$pfx" "$APPID_FILE"
   bar_shown bar-closed
 }
 

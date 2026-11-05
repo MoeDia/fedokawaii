@@ -26,8 +26,13 @@ screen() {   # the connected screen's card and connector, from sysfs (numbers ca
 case ${1:-} in
   --stop)
     [[ $FACE == steam ]] || exit 0
-    timeout 25 flatpak run --command=steam "$STEAM" -shutdown >/dev/null 2>&1
-    for ((i = 0; i < 80; i++)); do pgrep -u "$(id -u)" -x steam >/dev/null || exit 0; sleep 0.25; done
+    # (Valve's own tool, down the running Steam's pipe. A "flatpak run --command=steam -shutdown" is a sandbox of its own:
+    # in another PID namespace steam.sh's is_steam_running finds nothing, the request never arrives, and the unit's SIGKILL
+    # ends Steam unclean, its cloud not told: "didn't shutdown cleanly" at each next start, seen 4 Nov 2026)
+    data=$HOME/.var/app/$STEAM
+    HOME=$data timeout 10 "$data/.local/share/Steam/ubuntu12_32/steam-runtime/amd64/usr/bin/steam-runtime-steam-remote" -shutdown >/dev/null 2>&1 \
+      || echo "kawa-asobi-world: Steam could not be asked to close: it ends unclean" >&2
+    for ((i = 0; i < 140; i++)); do pgrep -u "$(id -u)" -x steam >/dev/null || exit 0; sleep 0.25; done
     exit 0 ;;
   --inside)
     # (portals and the D-Bus services draw on gamescope's own display)
