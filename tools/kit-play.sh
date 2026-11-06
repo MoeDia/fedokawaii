@@ -29,9 +29,11 @@ nap()   { sleep "$1"; }
 say()   { printf '%s\n' "$*" >>"$KIT_OUT/play.log"; }
 ready() {
   ( printf 'a\n' | kawa-menu >/dev/null 2>&1 & )
-  local _ seen=0
+  local _
+  # (taken: its answer fifo there, its request gone. An idle panel takes the request between two looks: watching for
+  # the request to come and go missed it, and the wait ran its 120 s, the kit's whole time)
   for _ in $(seq 2400); do
-    if compgen -G "$XDG_RUNTIME_DIR/kawa-menu.*.req" >/dev/null; then seen=1; elif ((seen)); then break; fi
+    compgen -G "$XDG_RUNTIME_DIR/kawa-menu.*.out" >/dev/null && ! compgen -G "$XDG_RUNTIME_DIR/kawa-menu.*.req" >/dev/null && break
     sleep 0.05
   done
   sleep 0.5; key Escape; sleep 0.8
