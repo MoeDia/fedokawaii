@@ -3,7 +3,7 @@
 # shellcheck shell=bash
 # cols TEXT — how many columns TEXT takes in a menu: what a terminal counts (wc -L: a kanji or
 # kana two, every other letter one). The desktop's faces draw exactly that (Sumi UI: an 8 px
-# column a letter, 16 a wide one; Sumi Term: 10 and 20 — tools/build-fonts.py)
+# column a letter, 16 a wide one; Sumi Term: 8 and 16 — tools/build-fonts.py)
 cols() {
   LC_ALL=C.UTF-8 wc -L <<<"$1"
 }
