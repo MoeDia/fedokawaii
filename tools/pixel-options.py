@@ -232,7 +232,8 @@ def ken(page, mood, x0, x1, y, flip=False):
     inks = metal(mood)
     spine, temper, edge = (t["ink"], t["brass_lo"], t["brass_hi"]) if mood == "dark" else (t["tile"], t["ink"], t["tile"])
     n = x1 - x0 + 1
-    px = lambda i, d, c: page.putpixel((x1 - i if flip else x0 + i, y + d), c)
+    def px(i, d, c):
+        page.putpixel((x1 - i if flip else x0 + i, y + d), c)
     for d in (-1, 0, 1):                                # the pommel
         px(0, d, inks["#"])
         px(1, d, inks["h" if d < 0 else "#"])
@@ -250,7 +251,7 @@ def ken(page, mood, x0, x1, y, flip=False):
         px(i, -1, spine)
         px(i, 0, edge if (i // 6) % 2 else temper)      # the temper line: a slow wave along the middle row
         px(i, 1, edge)
-    for i, (top, foot) in zip(range(point, n), ((-1, 1), (-1, 1), (-1, 1), (-2, 0), (-2, 0), (-2, 0), (-2, -1), (-2, -2))):
+    for i, (top, foot) in zip(range(point, n), ((-1, 1), (-1, 1), (-1, 1), (-2, 0), (-2, 0), (-2, 0), (-2, -1), (-2, -2)), strict=False):
         for d in range(top, foot + 1):                  # the point, rising to its tip
             px(i, d, spine if d == top else edge)
 

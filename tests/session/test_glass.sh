@@ -44,6 +44,24 @@ case_ "… and off: alpha ff (opaque again)"
 has "$(tr -d '\0' <"$TMP/pty.out")" $'\e]11;rgba:0f/0e/0c/ff\e\\'
 kill_bg
 
+case_ "neovim, the editor, keeps its solid ground: no alpha sent to its terminal; the notes page's neovim is told as the rest"
+setup; kawa-glass on >/dev/null
+mkdir -p "$TMP/fake"; printf '#!/bin/bash\nsleep 30\n' >"$TMP/fake/nvim"; chmod +x "$TMP/fake/nvim"
+stub pgrep 'case "$*" in *"-x foot"*) echo 4242 ;; "-P 4242") cat "'"$TMP"'/kid" ;; *) exit 1 ;; esac'
+python3 -I "$REPO/tests/lib/pty_run.py" --flush --timeout 40 -- "$TMP/fake/nvim" 31.74 >"$TMP/pty.out" 2>/dev/null & BG_PIDS+=($!)
+for ((i = 0; i < 200; i++)); do kid=$(/usr/bin/pgrep -f '^/bin/bash .*fake/nvim 31\.74$' | head -n1); [[ -n $kid ]] && break; nap 0.02; done
+echo "$kid" >"$TMP/kid"; nap 0.1
+eq "$(cat "/proc/$kid/comm")" nvim "(the stand-in, the terminal's foreground)"
+rc 0 kawa-glass apply; nap 0.3
+lacks "$(tr -d '\0' <"$TMP/pty.out")" $'\e]11;'
+kill_bg
+python3 -I "$REPO/tests/lib/pty_run.py" --flush --timeout 40 -- "$TMP/fake/nvim" -u .config/fedokawaii/notes.lua 31.75 >"$TMP/pty.out" 2>/dev/null & BG_PIDS+=($!)
+for ((i = 0; i < 200; i++)); do kid=$(/usr/bin/pgrep -f '^/bin/bash .*notes\.lua 31\.75$' | head -n1); [[ -n $kid ]] && break; nap 0.02; done
+echo "$kid" >"$TMP/kid"; nap 0.1
+rc 0 kawa-glass apply; seen f5
+has "$(tr -d '\0' <"$TMP/pty.out")" $'\e]11;rgba:0f/0e/0c/f5\e\\'
+kill_bg
+
 case_ "a new shell in foot is told as it starts (the server read the setting at login); elsewhere, nothing"
 setup; config .bashrc.d/fedokawaii.sh .config/readline/inputrc
 printf '%s\n' 'for rc in ~/.bashrc.d/*; do [ -f "$rc" ] && . "$rc"; done; unset rc' >"$HOME/.bashrc"

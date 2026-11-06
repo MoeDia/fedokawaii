@@ -134,15 +134,25 @@ return {
       -- solid: the terminal's ground with no see-through (OSC 11 with foot's [alpha]); a theme
       -- switch brings the see-through back in foot, and neovim hears it as a new colour scheme.
       -- Here, not in init: the notes page reads init and keeps the see-through ground.
-      local function solid()
-        vim.api.nvim_ui_send("\27]11;[100]" .. (vim.o.background == "light" and "#e8e3c2" or "#181715") .. "\27\\")
+      local function ground(percent)
+        local colour = vim.o.background == "light" and "#e8e3c2" or "#181715"
+        vim.api.nvim_ui_send("\27]11;[" .. percent .. "]" .. colour .. "\27\\")
       end
-      local glass = vim.api.nvim_create_augroup("kawa_solid", { clear = true })
-      vim.api.nvim_create_autocmd({ "UIEnter", "VimResume", "ColorScheme" }, { group = glass, callback = solid })
-      -- OSC 111: foot's own ground again
+      local solid = vim.api.nvim_create_augroup("kawa_solid", { clear = true })
+      vim.api.nvim_create_autocmd({ "UIEnter", "VimResume", "ColorScheme" }, {
+        group = solid,
+        callback = function() ground(100) end,
+      })
+      -- Leaving or suspended: the see-through you chose (Super+U → transparency, kawa-glass's file;
+      -- foot's own reset would bring the one it started with)
       vim.api.nvim_create_autocmd({ "VimLeavePre", "VimSuspend" }, {
-        group = glass,
-        callback = function() vim.api.nvim_ui_send("\27]111\27\\") end,
+        group = solid,
+        callback = function()
+          local f = io.open(vim.fn.expand("~/.local/state/fedokawaii/foot-glass.ini"))
+          local alpha = f and f:read("*a"):match("alpha=([%d.]+)") or "1"
+          if f then f:close() end
+          ground(math.floor(tonumber(alpha) * 100 + 0.5))
+        end,
       })
       require("gruvbox").setup(opts)
       vim.cmd.colorscheme("gruvbox")

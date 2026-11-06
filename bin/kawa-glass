@@ -33,6 +33,16 @@ save() {    # save ALPHA — written whole, then moved into place (foot never re
     "# Super+U → transparency). 1 is opaque. Read by foot.ini's last include." \
     "[colors-dark]" "alpha=$1" "[colors-light]" "alpha=$1" >"$F.$$" && mv -f "$F.$$" "$F"
 }
+# solid PID — neovim, the editor, is on this program's terminal now: its ground stays solid, and it
+# sets what you chose when it ends (its colorscheme.lua). The notes page is see-through as the rest
+solid() {
+  local st fg
+  st=$(<"/proc/$1/stat") 2>/dev/null || return 1
+  read -r -a st <<<"${st##*) }"
+  fg=${st[5]}                                # (tpgid: the terminal's foreground process group)
+  ((fg > 0)) && [[ $(<"/proc/$fg/comm") == nvim ]] 2>/dev/null || return 1
+  [[ $(tr '\0' ' ' <"/proc/$fg/cmdline") != *fedokawaii/notes.lua* ]]
+}
 # apply — OSC 11 with the alpha to every terminal of foot's: the theme's ground (unchanged),
 # its new alpha, on each pseudo-terminal a foot process has a program on
 apply() {
@@ -50,6 +60,7 @@ apply() {
       t=$(readlink "/proc/$c/fd/0" 2>/dev/null) || continue
       [[ $t == /dev/pts/* && -z ${seen[$t]:-} ]] || continue
       seen[$t]=1
+      solid "$c" && continue
       # shellcheck disable=SC1003  # (the string terminator: ESC and a backslash)
       printf '\e]11;rgba:%s/%s/%s/%s\e\\' "$r" "$gg" "$b" "$A" >"$t" 2>/dev/null
     done
