@@ -311,4 +311,8 @@ has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'
 grep -q '^+	washdrop();                       /\* (under the lock: nothing to wash) \*/' "$P" && _ok || _no "locking drops it"
 grep -q '^+	punchprog = washprog = 0;' "$P" && grep -q '^+	washend(m);' "$P" && _ok || _no "GPU reset, monitor gone"
 
+# the stepped clock (tools/motion-exact.sh) only in a test build: nothing of it in the shipped dwl's make
+[[ $(grep -c '^+#ifdef ANIM_STEPCLOCK' "$P") == 2 ]] && _ok || _no "the stepped clock's two places, each behind ANIM_STEPCLOCK"
+grep -q 'ANIM_STEPCLOCK' "$REPO/lib/manifest.sh" "$REPO/setup.sh" "$REPO/theme.sh" && _no "the stepped clock in a real build" || _ok
+
 done_

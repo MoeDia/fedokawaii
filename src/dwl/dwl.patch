@@ -2396,7 +2396,7 @@
  void
  rendermon(struct wl_listener *listener, void *data)
  {
-@@ -2322,16 +3683,113 @@ rendermon(struct wl_listener *listener,
+@@ -2322,16 +3683,117 @@ rendermon(struct wl_listener *listener,
  	 * generally at the output's refresh rate (e.g. 60Hz). */
  	Monitor *m = wl_container_of(listener, m, frame);
  	struct timespec now;
@@ -2446,6 +2446,10 @@
 +			 * one shown — every step of an animation then lands exactly a refresh apart,
 +			 * however early or late in the frame dwl got to draw it */
 +			double t = now.tv_sec * 1000.0 + now.tv_nsec / 1e6, at = t;
++#ifdef ANIM_STEPCLOCK
++			t = at = nowms();     /* (the stepped time as it is, no refresh to land on) */
++			m->shown_ms = 0;
++#endif
 +			if (m->shown_ms > 0 && m->refresh_ms > 0 && t - m->shown_ms < 1000)
 +				at = m->shown_ms + m->refresh_ms * ceil((t - m->shown_ms) / m->refresh_ms + 1e-3);
 +			animframe(m, at, held);
@@ -2511,7 +2515,7 @@
  void
  requestdecorationmode(struct wl_listener *listener, void *data)
  {
-@@ -2365,31 +3823,143 @@ void
+@@ -2365,31 +3827,143 @@ void
  resize(Client *c, struct wlr_box geo, int interact)
  {
  	struct wlr_box *bbox;
@@ -2563,8 +2567,7 @@
 +	 * its animation shows of it: a new place mid-animation is followed, never jumped from) */
 +	applyframe(c);
 +}
- 
--	client_set_size(c, c->geom.width - 2 * c->bw, c->geom.height - 2 * c->bw);
++
 +/* the frame's seven pieces for a window w × h with a frame of o px (1, or 0: none) — its four
 + * hairlines, then the shadow's two rows under it and its column at its right (applyframe) */
 +void
@@ -2622,7 +2625,8 @@
 +		wlr_box_intersection(&vis, &vis, &a);
 +		wlr_box_intersection(&viss, &viss, &a);
 +	}
-+
+ 
+-	client_set_size(c, c->geom.width - 2 * c->bw, c->geom.height - 2 * c->bw);
 +	wlr_scene_node_set_position(&c->scene->node, c->geom.x + dx, c->geom.y + dy);
 +	wlr_scene_node_set_position(&c->scene_surface->node, c->bw, c->bw);
 +	for (j = 0; j < 7; j++) {   /* (the shadow's parts, 4–6, lie outside the window: their own cut) */
@@ -2668,7 +2672,7 @@
  }
  
  void
-@@ -2433,6 +4003,7 @@ run(char *startup_cmd)
+@@ -2433,6 +4007,7 @@ run(char *startup_cmd)
  	if (fd_set_nonblock(STDOUT_FILENO) < 0)
  		close(STDOUT_FILENO);
  
@@ -2676,7 +2680,7 @@
  	printstatus();
  
  	/* At this point the outputs are initialized, choose initial selmon based on
-@@ -2492,12 +4063,20 @@ setfloating(Client *c, int floating)
+@@ -2492,12 +4067,20 @@ setfloating(Client *c, int floating)
  {
  	Client *p = client_get_parent(c);
  	c->isfloating = floating;
@@ -2700,7 +2704,7 @@
  	arrange(c->mon);
  	printstatus();
  }
-@@ -2505,17 +4084,22 @@ setfloating(Client *c, int floating)
+@@ -2505,17 +4088,22 @@ setfloating(Client *c, int floating)
  void
  setfullscreen(Client *c, int fullscreen)
  {
@@ -2725,7 +2729,7 @@
  	} else {
  		/* restore previous size instead of arrange for floating windows since
  		 * client positions are set by the user and cannot be recalculated */
-@@ -2530,10 +4114,26 @@ setlayout(const Arg *arg)
+@@ -2530,10 +4118,26 @@ setlayout(const Arg *arg)
  {
  	if (!selmon)
  		return;
@@ -2754,7 +2758,7 @@
  	strncpy(selmon->ltsymbol, selmon->lt[selmon->sellt]->symbol, LENGTH(selmon->ltsymbol));
  	arrange(selmon);
  	printstatus();
-@@ -2550,6 +4150,16 @@ setmfact(const Arg *arg)
+@@ -2550,6 +4154,16 @@ setmfact(const Arg *arg)
  	f = arg->f < 1.0f ? arg->f + selmon->mfact : arg->f - 1.0f;
  	if (f < 0.1 || f > 0.9)
  		return;
@@ -2771,7 +2775,7 @@
  	selmon->mfact = f;
  	arrange(selmon);
  }
-@@ -2561,6 +4171,8 @@ setmon(Client *c, Monitor *m, uint32_t n
+@@ -2561,6 +4175,8 @@ setmon(Client *c, Monitor *m, uint32_t n
  
  	if (oldmon == m)
  		return;
@@ -2780,7 +2784,7 @@
  	c->mon = m;
  	c->prev = c->geom;
  
-@@ -2574,7 +4186,8 @@ setmon(Client *c, Monitor *m, uint32_t n
+@@ -2574,7 +4190,8 @@ setmon(Client *c, Monitor *m, uint32_t n
  		setfullscreen(c, c->isfullscreen); /* This will call arrange(c->mon) */
  		setfloating(c, c->isfloating);
  	}
@@ -2790,7 +2794,7 @@
  }
  
  void
-@@ -2602,9 +4215,25 @@ setsel(struct wl_listener *listener, voi
+@@ -2602,9 +4219,25 @@ setsel(struct wl_listener *listener, voi
  void
  setup(void)
  {
@@ -2817,7 +2821,7 @@
  
  	for (i = 0; i < (int)LENGTH(sig); i++)
  		sigaction(sig[i], &sa, NULL);
-@@ -2615,6 +4244,8 @@ setup(void)
+@@ -2615,6 +4248,8 @@ setup(void)
  	 * clients from the Unix socket, managing Wayland globals, and so on. */
  	dpy = wl_display_create();
  	event_loop = wl_display_get_event_loop(dpy);
@@ -2826,7 +2830,7 @@
  
  	/* The backend is a wlroots feature which abstracts the underlying input and
  	 * output hardware. The autocreate option will choose the most suitable
-@@ -2713,6 +4344,7 @@ setup(void)
+@@ -2713,6 +4348,7 @@ setup(void)
  	 * https://drewdevault.com/2018/07/29/Wayland-shells.html
  	 */
  	wl_list_init(&clients);
@@ -2834,7 +2838,7 @@
  	wl_list_init(&fstack);
  
  	xdg_shell = wlr_xdg_shell_create(dpy, 6);
-@@ -2728,6 +4360,9 @@ setup(void)
+@@ -2728,6 +4364,9 @@ setup(void)
  	wl_signal_add(&idle_inhibit_mgr->events.new_inhibitor, &new_idle_inhibitor);
  
  	session_lock_mgr = wlr_session_lock_manager_v1_create(dpy);
@@ -2844,7 +2848,7 @@
  	wl_signal_add(&session_lock_mgr->events.new_lock, &new_session_lock);
  	locked_bg = wlr_scene_rect_create(layers[LyrBlock], sgeom.width, sgeom.height,
  			(float [4]){0.1f, 0.1f, 0.1f, 1.0f});
-@@ -2764,6 +4399,21 @@ setup(void)
+@@ -2764,6 +4403,21 @@ setup(void)
  	 * HiDPI support). Scaled cursors will be loaded with each output. */
  	cursor_mgr = wlr_xcursor_manager_create(NULL, 24);
  	setenv("XCURSOR_SIZE", "24", 1);
@@ -2866,7 +2870,7 @@
  
  	/*
  	 * wlr_cursor *only* displays an image on screen. It does not move around
-@@ -2780,6 +4430,11 @@ setup(void)
+@@ -2780,6 +4434,11 @@ setup(void)
  	wl_signal_add(&cursor->events.button, &cursor_button);
  	wl_signal_add(&cursor->events.axis, &cursor_axis);
  	wl_signal_add(&cursor->events.frame, &cursor_frame);
@@ -2878,7 +2882,7 @@
  
  	cursor_shape_mgr = wlr_cursor_shape_manager_v1_create(dpy, 1);
  	wl_signal_add(&cursor_shape_mgr->events.request_set_shape, &request_set_cursor_shape);
-@@ -2847,6 +4502,13 @@ spawn(const Arg *arg)
+@@ -2847,6 +4506,13 @@ spawn(const Arg *arg)
  	}
  }
  
@@ -2892,7 +2896,7 @@
  void
  startdrag(struct wl_listener *listener, void *data)
  {
-@@ -2879,38 +4541,2372 @@ tagmon(const Arg *arg)
+@@ -2879,40 +4545,2389 @@ tagmon(const Arg *arg)
  		setmon(sel, dirtomon(arg->i), 0);
  }
  
@@ -3178,7 +3182,7 @@
 +	struct wlr_box g;
 +	double f;
 +	if (!m)
- 		return;
++		return;
 +	if (c->mon != m)
 +		setmon(c, m, m->tagset[m->seltags]);
 +	c->tags = m->tagset[m->seltags];
@@ -3209,9 +3213,7 @@
 +	clock_gettime(CLOCK_MONOTONIC, &now);
 +	return (now.tv_sec - warmpend.at.tv_sec) * 1000 + (now.tv_nsec - warmpend.at.tv_nsec) / 1000000;
 +}
- 
--	if (n > m->nmaster)
--		mw = m->nmaster ? (int)roundf(m->w.width * m->mfact) : 0;
++
 +void
 +warm(const Arg *arg)
 +{
@@ -3349,6 +3351,21 @@
 +nowms(void)
 +{
 +	struct timespec t;
++#ifdef ANIM_STEPCLOCK
++	/* a test build only (tools/motion-exact.sh): $XDG_RUNTIME_DIR/dwl-stepclock, when there, is the
++	 * time every animation reads, so a driver steps them 1/60 s a frame and takes each with screencopy */
++	char path[256], buf[64];
++	FILE *f;
++	snprintf(path, sizeof(path), "%s/dwl-stepclock", getenv("XDG_RUNTIME_DIR"));
++	if ((f = fopen(path, "r"))) {
++		size_t n = fread(buf, 1, sizeof(buf) - 1, f);
++		fclose(f);
++		if (n) {
++			buf[n] = '\0';
++			return atof(buf);
++		}
++	}
++#endif
 +	clock_gettime(CLOCK_MONOTONIC, &t);
 +	return t.tv_sec * 1000.0 + t.tv_nsec / 1e6;
 +}
@@ -3827,7 +3844,7 @@
 +				.box = { x, y, r->width, r->height },
 +				.color = { color[0], color[1], color[2], color[3] },
 +				.blend_mode = WLR_RENDER_BLEND_MODE_PREMULTIPLIED });
-+		return;
+ 		return;
 +	}
 +	if (node->type != WLR_SCENE_NODE_BUFFER || !(b = wlr_scene_buffer_from_node(node))->buffer
 +			|| color[0] <= 0)
@@ -3861,7 +3878,9 @@
 +	}
 +	return sh;
 +}
-+
+ 
+-	if (n > m->nmaster)
+-		mw = m->nmaster ? (int)roundf(m->w.width * m->mfact) : 0;
 +/* a program of the two, linked (0: it would not build) */
 +static GLuint
 +glprogram(const char *vs, const char *fs)
@@ -4182,11 +4201,7 @@
  	wl_list_for_each(c, &clients, link) {
 -		if (!VISIBLEON(c, m) || c->isfloating || c->isfullscreen)
 +		if (!c->anim || c->mon != m)
- 			continue;
--		if (i < m->nmaster) {
--			resize(c, (struct wlr_box){.x = m->w.x, .y = m->w.y + my, .width = mw,
--				.height = (m->w.height - my) / (MIN(n, m->nmaster) - i)}, 0);
--			my += c->geom.height;
++			continue;
 +		if (held) {                /* (the hold's end asks for the next frame itself) */
 +			c->animt0 += now - c->animlast;
 +			c->animlast = now;
@@ -4201,10 +4216,7 @@
 +		if (now - c->animt0 >= animlen(c->anim)) {
 +			slid |= c->anim != AnimOpen && c->anim != AnimUnroll;
 +			animstop(c);
- 		} else {
--			resize(c, (struct wlr_box){.x = m->w.x + mw, .y = m->w.y + ty,
--				.width = m->w.width - mw, .height = (m->w.height - ty) / (n - i)}, 0);
--			ty += c->geom.height;
++		} else {
 +			applyframe(c);
 +			clientdissolve(c);
 +			left = 1;
@@ -4236,7 +4248,11 @@
 +			}
 +	wl_list_for_each_safe(r, rtmp, &rails, link) {
 +		if (r->mon != m)
-+			continue;
+ 			continue;
+-		if (i < m->nmaster) {
+-			resize(c, (struct wlr_box){.x = m->w.x, .y = m->w.y + my, .width = mw,
+-				.height = (m->w.height - my) / (MIN(n, m->nmaster) - i)}, 0);
+-			my += c->geom.height;
 +		if (held) {
 +			r->t0 += now - r->last;
 +			r->last = now;
@@ -4245,12 +4261,16 @@
 +		r->last = now;
 +		if (now - r->t0 >= anim_tag_ms) {
 +			railfree(r);
-+		} else {
+ 		} else {
+-			resize(c, (struct wlr_box){.x = m->w.x + mw, .y = m->w.y + ty,
+-				.width = m->w.width - mw, .height = (m->w.height - ty) / (n - i)}, 0);
+-			ty += c->geom.height;
 +			r->p = (now - r->t0 - r->wave) / (anim_tag_ms - anim_tag_wave);
 +			r->p = r->p < 0 ? 0 : r->p > 1 ? 1 : r->p;
 +			railplace(r);
 +			left = 1;
-+		}
+ 		}
+-		i++;
 +	}
 +	left |= washframe(m, now, held);
 +	if (slid)                          /* the pointer: over what is there now */
@@ -4312,9 +4332,9 @@
 +		int x2 = MAX(k->box.x + k->box.width, part.x + part.width);
 +		int y2 = MAX(k->box.y + k->box.height, part.y + part.height);
 +		k->box = (struct wlr_box){ x1, y1, x2 - x1, y2 - y1 };
-+	}
-+}
-+
+ 	}
+ }
+ 
 +/* a scroll's rod (jiku) while it moves, on its foot: y its top in parent, w the scroll's width: a
 + * lacquer bar a little wider than the scroll, ink caps at its ends, a of its opacity */
 +static void
@@ -5050,9 +5070,8 @@
 +		if (w->noise[(size_t)cy * w->gw + cx] < p) {
 +			washcursor = 0;
 +			cursorload();
- 		}
--		i++;
- 	}
++		}
++	}
 +	if (!(pass = wlr_renderer_begin_buffer_pass(drw, w->dis.buf, NULL))) {
 +		washend(m);
 +		return 0;
@@ -5280,10 +5299,12 @@
 +		fprintf(stderr, "vrr: %s %s\n", m->wlr_output->name, want ? "on" : "off");
 +	}
 +	wlr_output_state_finish(&state);
- }
- 
++}
++
  void
-@@ -2961,6 +6957,9 @@ void
+ togglefloating(const Arg *arg)
+ {
+@@ -2961,6 +6976,9 @@ void
  unlocksession(struct wl_listener *listener, void *data)
  {
  	SessionLock *lock = wl_container_of(listener, lock, unlock);
@@ -5293,7 +5314,7 @@
  	destroylock(lock, 1);
  }
  
-@@ -2968,7 +6967,20 @@ void
+@@ -2968,7 +6986,20 @@ void
  unmaplayersurfacenotify(struct wl_listener *listener, void *data)
  {
  	LayerSurface *l = wl_container_of(listener, l, unmap);
@@ -5314,7 +5335,7 @@
  	l->mapped = 0;
  	wlr_scene_node_set_enabled(&l->scene->node, 0);
  	if (l == exclusive_focus)
-@@ -2977,6 +6989,14 @@ unmaplayersurfacenotify(struct wl_listen
+@@ -2977,6 +7008,14 @@ unmaplayersurfacenotify(struct wl_listen
  		arrangelayers(l->mon);
  	if (l->layer_surface->surface == seat->keyboard_state.focused_surface)
  		focusclient(focustop(selmon), 1);
@@ -5329,7 +5350,7 @@
  	motionnotify(0, NULL, 0, 0, 0, 0);
  }
  
-@@ -2985,12 +7005,27 @@ unmapnotify(struct wl_listener *listener
+@@ -2985,12 +7024,27 @@ unmapnotify(struct wl_listener *listener
  {
  	/* Called when the surface is unmapped, and should no longer be shown. */
  	Client *c = wl_container_of(listener, c, unmap);
@@ -5357,7 +5378,7 @@
  
  	if (client_is_unmanaged(c)) {
  		if (c == exclusive_focus) {
-@@ -3110,10 +7145,12 @@ updatemons(struct wl_listener *listener,
+@@ -3110,10 +7164,12 @@ updatemons(struct wl_listener *listener,
  	}
  
  	if (selmon && selmon->wlr_output->enabled) {
@@ -5370,7 +5391,7 @@
  		focusclient(focustop(selmon), 1);
  		if (selmon->lock_surface) {
  			client_notify_enter(selmon->lock_surface->surface,
-@@ -3168,16 +7205,298 @@ urgent(struct wl_listener *listener, voi
+@@ -3168,16 +7224,298 @@ urgent(struct wl_listener *listener, voi
  void
  view(const Arg *arg)
  {
@@ -5674,7 +5695,7 @@
  void
  virtualkeyboard(struct wl_listener *listener, void *data)
  {
-@@ -3231,8 +7550,12 @@ xytonode(double x, double y, struct wlr_
+@@ -3231,8 +7569,12 @@ xytonode(double x, double y, struct wlr_
  					wlr_scene_buffer_from_node(node))->surface;
  	}
  
@@ -5688,7 +5709,7 @@
  }
  
  void
-@@ -3279,6 +7602,23 @@ activatex11(struct wl_listener *listener
+@@ -3279,6 +7621,23 @@ activatex11(struct wl_listener *listener
  		wlr_xwayland_surface_activate(c->surface.xwayland, 1);
  }
  
@@ -5712,7 +5733,7 @@
  void
  associatex11(struct wl_listener *listener, void *data)
  {
-@@ -3293,8 +7633,9 @@ configurex11(struct wl_listener *listene
+@@ -3293,8 +7652,9 @@ configurex11(struct wl_listener *listene
  {
  	Client *c = wl_container_of(listener, c, configure);
  	struct wlr_xwayland_surface_configure_event *event = data;
@@ -5723,7 +5744,7 @@
  		wlr_xwayland_surface_configure(c->surface.xwayland,
  				event->x, event->y, event->width, event->height);
  		return;
-@@ -3325,6 +7666,7 @@ createnotifyx11(struct wl_listener *list
+@@ -3325,6 +7685,7 @@ createnotifyx11(struct wl_listener *list
  	LISTEN(&xsurface->events.destroy, &c->destroy, destroynotify);
  	LISTEN(&xsurface->events.dissociate, &c->dissociate, dissociatex11);
  	LISTEN(&xsurface->events.request_activate, &c->activate, activatex11);
