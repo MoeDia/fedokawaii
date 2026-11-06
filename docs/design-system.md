@@ -186,6 +186,9 @@ word, Lc 41 dark, 24 light) — and tests/static/test_contrast.sh fails under an
   foot's 20 px line (`line-height=20px`) its ascent and descent round to 16 + 4: the baseline
   16 px down, capitals on rows 4–15 (their middle the line's); foot draws box drawing itself,
   so `─` is one pixel on the line's row 10, the same row as a panel's rule (§4).
+  Chosen over Iosevka, JetBrains Mono, Maple, Commit Mono and Monaspace by render trials
+  (`.claude/notes/r28-font.md`): the only one with the 8 × 20 cell, Japanese and the Nerd glyphs
+  in one stable file.
 - No scaling anywhere at 1080p: dwl's monitors at scale 1; nothing sets GDK_SCALE,
   GDK_DPI_SCALE, QT_SCALE_FACTOR or Xft.dpi — sizes are the pixels written here.
 - Words are lower case (proper names keep theirs: Fedora, Bluetooth, LG ULTRAGEAR).
