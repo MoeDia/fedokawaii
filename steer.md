@@ -68,3 +68,10 @@ So the real-time headless recording drops or compresses frames. For every motion
 4. Check that the options really differ: compare each pair's frame sequences; if two look nearly the same, fix the motion or the recording before shipping, and say so in the plan.
 5. Add a one-image frame strip per option (<set>-<n>-<mood>-strip.png, every frame of the opening with its time in ms) so he can see the steps.
 c is already picked (omori): re-record omori this way once, as c-2 with the slow version, so he can confirm it.
+
+## S6 2026-11-06 17:50
+The owner (17:43): with the PC dark, the CPU cooler's display blinks "99" about once a second. It must be dark too, whenever ~/.config/fedokawaii/dark exists and whenever the RGB is switched off. A small task: do it next.
+- Find what makes the blink (kawa-rgb's cooler feeder stopped, so the display shows its own no-signal blink? a stale or malformed frame? the "off" frame read as 99?) from kawa-rgb's code and the protocol notes (lane-hardware's section 9, src/kawa-rgb).
+- Make "kawa-rgb off" blank the display for good: the protocol's blank/off frame if it has one, or a blank frame sent at whatever rate keeps it blank. Remember Report 5 and the ISP bootloader: only the known selectors, from the allow-list.
+- If the display cannot be blanked, say so in the plan (blocked, with the evidence) and make it show the real temperature steadily, never blinking.
+- Prove it with nothing else lit, and keep it dark across reboots (r28-dark calls "kawa-rgb off" every 30 minutes).
