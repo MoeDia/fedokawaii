@@ -1,0 +1,48 @@
+# tools/prompt-options.mock — the body of the kit's mock screen (prompt-options.py puts the glyphs' names first)
+. ~/.config/fedokawaii/icons.sh
+printf '\e[?25l\e[2J\e[H'
+fg() { printf '\e[38;5;%sm' "$1"; }; bg() { printf '\e[48;5;%sm' "$1"; }; ground() { printf '\e[49m'; }; off() { printf '\e[0m'; }
+ink() { fg 30; }
+mark() { off; printf ' \e[38;5;20m%s  \e[0m' "$ICON_CHEVRON_RIGHT"; }
+br=$ICON_BRANCH
+title() { printf '\e[38;5;244m  %s\e[0m\n' "$1"; }
+
+# dark: the demon in lacquer on the paper; light: the angel in the words' ink
+[[ $MOOD == dark ]] && { H=$ICON_HEAD_ONI; H2=$ICON_HEAD_ONI_2; R=$ICON_HEAD_ONI_ROAR; R2=$ICON_HEAD_ONI_ROAR_2; hink=31; nowc=20; } \
+  || { H=$ICON_HEAD_ANGEL; H2=$ICON_HEAD_ANGEL_2; R=$ICON_HEAD_ANGEL_OPEN; R2=$ICON_HEAD_ANGEL_OPEN_2; hink=30; nowc=''; }
+head_ok() { printf '%s %s' "$H" "$H2"; }; head_bad() { printf '%s %s' "$R" "$R2"; }
+
+# now: the head outside, the round tongues
+now() { local h=$1; shift; [[ -n $nowc ]] && fg $nowc; $h; off; printf ' '
+  fg 27; ground; printf '%s' "$ICON_CAP_STAMP_START"; bg 27; ink; printf ' repos/fedokawaii '
+  fg 27; bg 28; printf '%s' "$ICON_CAP_STAMP"; ink; printf ' %s  main* ' "$br"; local p=28
+  if (($#)); then fg 28; bg 31; printf '%s' "$ICON_CAP_STAMP"; fg 32; printf ' %s ' "$1"; p=31
+    fg 31; bg 29; printf '%s' "$ICON_CAP_STAMP"; ink; printf ' %s ' "$2"; p=29; fi
+  fg $p; ground; printf '%s' "$ICON_CAP_STAMP"; mark; [[ -n ${3-} ]] || :; }
+
+# 1 tanzaku: the head a square of its own on the first paper, hairlines between
+one() { local h=$1; shift; fg 27; ground; printf '%s' "$t_start"; bg 27; fg $hink; $h; ink; printf '%s' "$t_join"; printf ' repos/fedokawaii %s' "$t_join"
+  bg 28; ink; printf ' %s  main* ' "$br"; local p=28
+  if (($#)); then printf '%s' "$t_join"; bg 31; fg 32; printf ' %s ' "$1"; fg 30; printf '%s' "$t_join"; bg 29; ink; printf ' %s ' "$2"; p=29; fi
+  fg $p; ground; printf '%s' "$t_end"; mark; }
+
+# 2 obi
+two() { local h=$1; shift; fg 27; ground; printf '%s' "$o_start"; bg 27; fg $hink; $h; ink; printf '  repos/fedokawaii '
+  fg 27; bg 28; printf '%s' "$o_fold"; ink; printf ' %s  main* ' "$br"; local p=28
+  if (($#)); then fg 28; bg 31; printf '%s' "$o_fold"; fg 32; printf ' %s ' "$1"
+    fg 31; bg 29; printf '%s' "$o_fold"; ink; printf ' %s ' "$2"; p=29; fi
+  fg $p; ground; printf '%s' "$o_end"; mark; }
+
+# 3 rakkan: the seal centred on the head (a cell either side), then plain joins
+three() { local h=$1; shift; fg 31; ground; printf '%s' "$r_start"; bg 31; fg 32; $h
+  fg 31; bg 27; printf '%s' "$r_end"; ink; printf ' repos/fedokawaii '
+  bg 28; ink; printf ' %s  main* ' "$br"; local p=28
+  if (($#)); then bg 31; fg 32; printf ' %s ' "$1"; bg 29; ink; printf ' %s ' "$2"; p=29; fi
+  fg $p; ground; printf '%s' "$t_end"; mark; }
+
+for o in 'now:now' 'one:1 tanzaku' 'two:2 obi' 'three:3 rakkan'; do
+  f=${o%%:*}; title "${o#*:}"
+  "$f" head_ok; printf 'ls\n\n'
+  "$f" head_bad 127 '4.2s  1 job'; printf 'make\n\n'
+done
+sleep 60
