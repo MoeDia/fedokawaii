@@ -26,6 +26,7 @@
 #                fonts, the theme folders (what build-icons.py and build-themes.py just wrote),
 #                Sumi UI (build-fonts.py's), waybar's and mako's configs, the text screens'
 #                grammar (screen.sh, fzf.opts), the shell's prompt
+#     --wall     FILE, a picture of the screen's size, in place of the flat ground
 #     --tree     DIR (tools/kit-tree.sh makes it) the tree with nothing applied: DIR/home in place
 #                of the installed home, DIR/bin's dwl, mako and yazi, the repository's fonts
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
@@ -34,7 +35,7 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/.." && pwd)
-theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" tui_wait=3 play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0 tree=""
+theme=dark out="" fontdir="" fonts=() edits=() scenes=() themes="" tui="" tui_wait=3 play="" limit=120 bin="" dwl_bin=$HOME/.local/src/dwl/dwl repo_art=0 tree="" wall=""
 while (($#)); do
   case $1 in
     --theme) theme=$2; shift 2 ;;
@@ -50,6 +51,7 @@ while (($#)); do
     --bin) bin=$(realpath "$2"); shift 2 ;;
     --dwl) dwl_bin=$(realpath "$2"); shift 2 ;;
     --repo-art) repo_art=1; shift ;;
+    --wall) wall=$(realpath "$2"); shift 2 ;;
     --tree) tree=$(realpath "$2"); bin=$tree/bin dwl_bin=$tree/bin/dwl; shift 2 ;;
     -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
     -*) echo "kit: unknown option $1" >&2; exit 2 ;;
@@ -173,7 +175,7 @@ cd "\$HOME"
 kawa-dwlstatus <&0 >/dev/null 2>&1 &
 # (the theme's own ground under everything, as its plain wallpaper is before the pack: a light
 # surface's dark hairline shows against paper, not lost in the sumi of dwl's root)
-. "\$HOME/.config/fedokawaii/current/colors.sh" && swaybg -c "#\$C_GROUND" >/dev/null 2>&1 &
+. "\$HOME/.config/fedokawaii/current/colors.sh" && swaybg ${wall:+-i "$wall" -m fill} -c "#\$C_GROUND" >/dev/null 2>&1 &
 mako >/dev/null 2>&1 &
 foot --server --log-no-syslog >/dev/null 2>&1 &   # (never in his journal: dwl going first leaves foot "Broken pipe")
 waybar >"$K/waybar.log" 2>&1 &
