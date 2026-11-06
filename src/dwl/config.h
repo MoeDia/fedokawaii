@@ -60,6 +60,10 @@ static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
  * screen; never a full-screen window; unlocked, the lock screen dissolves off the desktop (locking: at
  * once). 0: everything at once */
 static const int animations                = 1;
+static const int anim_motion               = MotionHop; /* how a window comes and goes, with its ms:
+                                                    * MotionHop 450/400 · MotionSeal 150/110, a stamp ·
+                                                    * MotionShoji 190/150, a door parting in whole
+                                                    * pixels · MotionKasumi 220/170, cell by cell */
 static const unsigned int anim_open_ms     = 450;  /* a window opening */
 static const int anim_hop_low              = 120;  /* px below its place it starts */
 static const double anim_hop_small         = 0.18; /* how much smaller it starts */

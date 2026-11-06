@@ -279,6 +279,15 @@ grep -A2 'if (washcursor && cursor->x >= m->m.x' <(added washframe) | grep -q 'w
 has "$(added washend)" 'if (washcursor && !washing()) {'
 case_ "the fifo: \"wash cover PATH\", \"wash go\", \"wash drop\"; locking drops it; a GPU reset and a monitor going end it"
 has "$(sed -n '/^+warmcmd(/,/^+}/p' "$P")" 'washcmd(line + 5);'
+case_ "a window's motion is one switch: the hop stands, seal, shoji and kasumi a word away; shoji cuts whole pixels, kasumi uses the dissolve's cells"
+for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
+  grep -q '^static const int anim_motion *= MotionHop;' <<<"$c" && _ok || _no "anim_motion, the hop"
+done
+grep -q '^+enum { MotionHop, MotionSeal, MotionShoji, MotionKasumi };' "$P" && _ok || _no "the four motions"
+c=$(added shojishow)
+has "$c" 'wlr_scene_buffer_set_source_box(d->node, &(struct wlr_fbox){ x, 0, cw, h });'; has "$c" 'wlr_scene_buffer_set_dest_size(d->node, cw, h);'
+grep -q '^+				16.0 \* cellease(c->animp));' "$P" && grep -q '^+				moncell(g->mon), 16.0 \* (1.0 - cellease(t)));' "$P" && _ok || _no "kasumi comes and goes by the cells"
+
 c=$(added washcmd)
 has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'
 grep -q '^+	washdrop();                       /\* (under the lock: nothing to wash) \*/' "$P" && _ok || _no "locking drops it"
