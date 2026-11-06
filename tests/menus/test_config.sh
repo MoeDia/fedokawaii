@@ -20,7 +20,7 @@ PARTS=(src/dwl/config.h configs/home/.config/fedokawaii/keybinds.txt configs/hom
   tools/build-icons.py lib/manifest.sh PACKAGES.md fedokawaii.conf setup.sh fedokawaii.sh)
 setup() {
   menus_sandbox
-  W=$TMP/world TK=$TMP/toolkit VL=$TMP/varlib COPY=$HOME/repos/fedokawaii; export W TK COPY
+  W=$TMP/world TK=$TMP/toolkit VL=$TMP/varlib COPY=$HOME/dojo/fedokawaii; export W TK COPY
   mkdir -p "$W" "$VL"
   local f; for f in "${PARTS[@]}"; do mkdir -p "$(dirname "$TK/$f")"; printf '# %s\n' "$f" >"$TK/$f"; done
   printf 'print("drawn")\n' >"$TK/tools/build-themes.py"; cp "$TK/tools/build-themes.py" "$TK/tools/build-icons.py"
@@ -69,21 +69,21 @@ eq "$(fz_rows | grep -vc -e '^part	' -e '^row	')" 0 "nothing but parts and rows 
 eq "$(fz_rows | grep '^row' | awk -F'\t' 'NF != 4' )" "" "every row: its icon, its name, its note"
 eq "$(fz_rows | grep -F "	menus, launcher	" | cut -f4)" "their grid and doing (kawa-panel)"
 eq "$(fz_arg select)" 1 "the cursor's first key on the first entry, not its heading"
-eq "$(title)" "change · ~/repos/fedokawaii · made on first use"
+eq "$(title)" "change · ~/dojo/fedokawaii · made on first use"
 eq "$(fz_arg width)" ""; eq "$(fz_arg lines)" ""; fits
 not_called '^fedokawaii copy' "nothing made by just looking"
 case_ "a copy the same as the toolkit: nothing to apply"
-setup; copy_made; answer esc; config_; eq "$(title)" "change · ~/repos/fedokawaii"
+setup; copy_made; answer esc; config_; eq "$(title)" "change · ~/dojo/fedokawaii"
 case_ "a copy with 21 files changed and 3 new: 24 not applied, and the title still one line"
 setup; copy_made
 for i in {1..30}; do echo "edit $i" >>"$COPY/${PARTS[i % 21]}"; echo "x" >"$COPY/new$i.txt"; done
 rm "$COPY"/new{4..30}.txt
-answer esc; config_; eq "$(title)" "change · ~/repos/fedokawaii · 24 not applied"; fits
+answer esc; config_; eq "$(title)" "change · ~/dojo/fedokawaii · 24 not applied"; fits
 case_ "the settings file: as made (or as last applied) it is no change; edited it is one"
 setup; copy_made; echo 'WEATHER_CITY="Tokyo"' >>"$TK/fedokawaii.conf"
-answer esc; config_; eq "$(title)" "change · ~/repos/fedokawaii" "the menu changed the toolkit's: the copy's untouched one is not counted"
+answer esc; config_; eq "$(title)" "change · ~/dojo/fedokawaii" "the menu changed the toolkit's: the copy's untouched one is not counted"
 echo 'NIGHT_LIGHT="1:2"' >>"$COPY/fedokawaii.conf"
-answer esc; config_; eq "$(title)" "change · ~/repos/fedokawaii · 1 not applied"
+answer esc; config_; eq "$(title)" "change · ~/dojo/fedokawaii · 1 not applied"
 case_ "a copy elsewhere (FEDOKAWAII_COPY), with spaces and Japanese in its path"
 setup; COPY="$HOME/my work/設定 copy"; copy_made; answer esc; FEDOKAWAII_COPY=$COPY config_
 eq "$(title)" "change · ~/my work/設定 copy"
@@ -92,7 +92,7 @@ eq "$(title)" "change · ~/my work/設定 copy"
 case_ "a part, no copy yet: the copy is made first (a notice says where), then the file opened in it"
 setup; answer "pick launcher"; config_
 called '^fedokawaii copy'
-called 'notify-send -a desktop -- .*  change your working copy: ~/repos/fedokawaii — made from the toolkit'
+called 'notify-send -a desktop -- .*  change your working copy: ~/dojo/fedokawaii — made from the toolkit'
 called "^footclient -T change · menus, launcher -D $COPY -- nvim -O -- bin/kawa-panel$"
 eq "$(fz_n)" 1 "closed unchanged: nothing to apply, no second menu"
 case_ "the copy cannot be made (git missing, so the engine fails): a notice, no editor"

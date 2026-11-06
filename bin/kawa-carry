@@ -96,7 +96,7 @@ pack() {
     mkdir -p "$repo" || die "$repo cannot be made"
     restic -r "$repo" init >/dev/null || die "the drive's folder could not be made ready"
   fi
-  restic -r "$repo" backup --tag carry --tag "home:$HOME" --exclude 'repos/fk-*' --exclude '.cache' -- "${items[@]/#/$HOME/}" \
+  restic -r "$repo" backup --tag carry --tag "home:$HOME" --exclude 'dojo/fk-*' --exclude '.cache' -- "${items[@]/#/$HOME/}" \
     || die "it did not all go: nothing is safe yet — see above"
   say "reading all of it back"
   restic -r "$repo" check --read-data >/dev/null 2>&1 || die "the drive gave back something else: use another drive"

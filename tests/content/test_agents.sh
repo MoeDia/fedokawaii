@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # tests/content/test_agents.sh — Agents in the launcher: herdr 0.9.5 (lib/upstream.sh) in a
 # terminal window of its own. Its launcher entry (footclient with its own app-id and title,
-# starting in ~/repos), its config read as herdr 0.9.5 reads it (only keys it knows, only
+# starting in ~/dojo), its config read as herdr 0.9.5 reads it (only keys it knows, only
 # colour names it knows — an unknown one is no error to herdr, just its cyan — and what it
 # draws readable in foot's dark and light palettes), and, when this machine has the pinned
-# herdr, the real one started as the entry starts it: on a terminal of its own, from ~/repos,
+# herdr, the real one started as the entry starts it: on a terminal of its own, from ~/dojo,
 # with this config (its server up there, the window's side attached, Ctrl+B a starting
 # Claude Code in the pane's folder, every word it draws 4.5:1 or more in both palettes).
 . "$(dirname "$0")/lib.sh"
@@ -18,12 +18,12 @@ CFG=$HOME/.config/herdr/config.toml
 ENTRY=$HOME/.local/share/applications/kawa-agents.desktop
 
 # ── the launcher entry ───────────────────────────────────────────────────────
-case_ "kawa-agents.desktop: herdr in a footclient window of its own (app-id kawa-agents, titled Agents), started in ~/repos"
-eq "$(sed -n 's/^Exec=//p' "$ENTRY")" "footclient -N -a kawa-agents -T Agents -D $HOME/repos -- herdr"
+case_ "kawa-agents.desktop: herdr in a footclient window of its own (app-id kawa-agents, titled Agents), started in ~/dojo"
+eq "$(sed -n 's/^Exec=//p' "$ENTRY")" "footclient -N -a kawa-agents -T Agents -D $HOME/dojo -- herdr"
 eq "$(sed -n 's/^Terminal=//p' "$ENTRY")" false "it opens its own window: no second terminal around it"
 eq "$(sed -n 's/^Name=//p' "$ENTRY")" Agents
-case_ "kawa-agents.desktop: ~/repos, where it starts, is a folder the Theme run makes"
-has "$(cat "$REPO/theme.sh")" '"$TARGET_HOME/repos"'
+case_ "kawa-agents.desktop: ~/dojo, where it starts, is a folder the Theme run makes"
+has "$(cat "$REPO/lib/common.sh")" 'DIR_DOJO=dojo'; has "$(cat "$REPO/theme.sh")" '"${HOME_DIRS[@]/#/$TARGET_HOME/}"'
 
 # ── the config, as herdr 0.9.5 reads it ──────────────────────────────────────
 # every key herdr 0.9.5 knows that this config may set (its config reference,
@@ -64,9 +64,9 @@ EOF
 eq "$out" ""
 case_ "config.toml: pinned — herdr never asks herdr.dev for a newer herdr or newer agent rules; no first-run tour; no sound"
 eq "$(python3 -I -c 'import sys, tomllib; c = tomllib.load(open(sys.argv[1], "rb")); print(c["update"]["version_check"], c["update"]["manifest_check"], c["onboarding"], c["ui"]["sound"]["enabled"])' "$CFG")" "False False False False"
-case_ "config.toml: Ctrl+B a opens Claude Code in a pane; worktrees beside the projects (~/repos/worktrees)"
+case_ "config.toml: Ctrl+B a opens Claude Code in a pane; worktrees beside the projects (~/dojo/worktrees)"
 eq "$(python3 -I -c 'import sys, tomllib; c = tomllib.load(open(sys.argv[1], "rb")); k = c["keys"]["command"][0]; print(k["key"], k["type"], k["command"], c["worktrees"]["directory"])' "$CFG")" \
-   "prefix+a pane claude ~/repos/worktrees"
+   "prefix+a pane claude ~/dojo/worktrees"
 
 # the colours: the terminal theme, and every override a colour name herdr knows (its names,
 # and the palette entry each one draws with: what herdr 0.9.5 writes for it, measured)
@@ -116,7 +116,7 @@ eq "$out" ""
 if [[ -z $REAL_HERDR ]]; then
   skip "herdr 0.9.5 is not on this machine's PATH (the pinned release: lib/upstream.sh)"
 else
-  mkdir -p "$HOME/repos/project" "$TMP/bin"; ln -s "$REAL_HERDR" "$TMP/bin/herdr"
+  mkdir -p "$HOME/dojo/project" "$TMP/bin"; ln -s "$REAL_HERDR" "$TMP/bin/herdr"
   # Claude Code: a stand-in that says where it was started, and stays (as Claude does)
   stub claude 'pwd >"$TMP/claude.cwd"; echo "stand-in Claude"; sleep 30'
   H_ENV=(env -i HOME="$HOME" PATH="$TMP/bin:$STUBS:/usr/bin:/bin" TMP="$TMP" CALLS="$CALLS" TERM=foot SHELL=/bin/sh LANG=C.UTF-8)
@@ -124,18 +124,18 @@ else
   case_ "herdr 0.9.5 reads config.toml without a word (herdr config check)"
   out=$("${H_ENV[@]}" herdr config check 2>&1); r=$?
   eq "$r ${out,,}" "0 config: ok"
-  case_ "herdr, started on a terminal of its own from ~/repos: its server up there, the window's side attached; Ctrl+B a starts Claude Code in the folder of the pane you are on"
+  case_ "herdr, started on a terminal of its own from ~/dojo: its server up there, the window's side attached; Ctrl+B a starts Claude Code in the folder of the pane you are on"
   # (the shell in the first pane goes into a project; then Ctrl+B a; then Ctrl+B alone, so the
   # PREFIX badge is drawn too)
-  (cd "$HOME/repos" && "${H_ENV[@]}" python3 -I "$REPO/tests/lib/pty_run.py" --cols 120 --rows 30 --timeout 12 \
+  (cd "$HOME/dojo" && "${H_ENV[@]}" python3 -I "$REPO/tests/lib/pty_run.py" --cols 120 --rows 30 --timeout 12 \
      --send 3 'cd project\r' --send 4.5 '\x02' --send 5 'a' --send 7.5 '\x02' --hangup 9 -- herdr) \
     >"$TMP/herdr.out" 2>&1
   L=$HOME/.config/herdr
   has "$(cat "$L/herdr-client.log" 2>/dev/null)" "endpoint handshake succeeded" "the window's side never attached: $(tail -n 3 "$L/herdr-client.log" 2>/dev/null)"
-  has "$(cat "$L/herdr-server.log" 2>/dev/null)" "created startup workspace cwd=$HOME/repos"
-  eq "$(cat "$TMP/claude.cwd" 2>/dev/null)" "$HOME/repos/project" "Claude Code was not started in the pane's folder"
+  has "$(cat "$L/herdr-server.log" 2>/dev/null)" "created startup workspace cwd=$HOME/dojo"
+  eq "$(cat "$TMP/claude.cwd" 2>/dev/null)" "$HOME/dojo/project" "Claude Code was not started in the pane's folder"
   case_ "herdr's window title: Agents · the workspace (the bar shows it)"
-  has "$(cat "$TMP/herdr.out")" $'\e]0;Agents · repos'
+  has "$(cat "$TMP/herdr.out")" $'\e]0;Agents · dojo'
   case_ "herdr, drawn with this config: every word 4.5:1 or more on its background, in foot's dark and light palettes (only its dividing lines are faint)"
   out=$(python3 -I - "$TMP/herdr.out" "$FOOT" <<'EOF' 2>&1
 import re, sys

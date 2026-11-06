@@ -40,8 +40,8 @@ printf '%s\n' '#!/bin/bash' 'case "$1 $2" in' \
   '*) exec /usr/local/bin/dnf "$@" ;;' 'esac' >"$W/usr/local/sbin/dnf"
 printf '%s\n' '#!/bin/bash' '[ "$1" = -qf ] && { case $2 in *qwebengine*) echo qt6-qtwebengine-6.10.0-1.fc45.x86_64 ;; *) echo waybar-0.14.0-1.fc45.x86_64 ;; esac; exit 0; }' 'exec /usr/local/bin/rpm "$@"' >"$W/usr/local/sbin/rpm"
 chmod 755 "$W"/usr/local/sbin/{coredumpctl,dnf,rpm}
-fk bash -c 'mkdir -p /home/fkuser/.cache/oops /home/fkuser/.local/share/containers/storage/overlay/x /home/fkuser/Downloads
-            touch /home/fkuser/Downloads/rooted; chown 0:0 /home/fkuser/Downloads/rooted
+fk bash -c 'mkdir -p /home/fkuser/.cache/oops /home/fkuser/.local/share/containers/storage/overlay/x /home/fkuser/downloads
+            touch /home/fkuser/downloads/rooted; chown 0:0 /home/fkuser/downloads/rooted
             touch /home/fkuser/.cache/oops/{a,b,c} /home/fkuser/.local/share/containers/storage/overlay/x/{1,2}
             chown -R fkuser:fkuser /home/fkuser/.cache /home/fkuser/.local
             chown 0:0 /home/fkuser/.cache/oops/{a,b,c}
@@ -166,13 +166,13 @@ v=$(sed -n '/^  FAIL  verify: /,/^  [A-Z]/p' <<<"$REP"); n=$(grep -c '^         
 has "$v" "FAIL  verify: $n checks failed" "verify's count is its ✘ lines"; lacks "$v" "checks failed:" "verify's closing count is no failed check"
 lacks "$a" "UPK-06"; grep -qP "^ok\t3\. the install's log\tUPK-06 the install's last run has no ✘ \([0-9]+ in earlier runs" <<<"$REP" && _ok || _no "UPK-06: $(grep 'UPK-06' <<<"$REP" | head -n 2)"
 
-case_ "files in your home: root's found and grouped by folder, ~/Downloads too; podman's storage counted apart, by design"
+case_ "files in your home: root's found and grouped by folder, ~/downloads too; podman's storage counted apart, by design"
 a=$(area "24. disks and snapshots")
 has "$a" "WARN  SEC-03 4 files in your home belong to root"
 lacks "$a" "another user"
 b=$(sed -n '/^── files in your home not yours/,/^── /p' <<<"$REP")
 grep -qP '^ +3  root\t~/\.cache/oops$' <<<"$b" && _ok || _no "root's files not grouped by folder: $b"
-grep -qP '^ +1  root\t~/Downloads$' <<<"$b" && _ok || _no "your Downloads folder not searched: $b"
+grep -qP '^ +1  root\t~/downloads$' <<<"$b" && _ok || _no "your downloads folder not searched: $b"
 has "$b" "podman's storage (~/.local/share/containers/storage): 3 files of podman's containers' own (subordinate) ids — by design"
 lacks "$(grep -P '^ +[0-9]+  ' <<<"$b")" "containers"
 

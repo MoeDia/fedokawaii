@@ -10,8 +10,8 @@
 
 home() {   # home — a fresh home with the toolkit's home file (KAWA_TOOLKIT)
   sandbox
-  export KAWA_TOOLKIT=$TMP/toolkit; mkdir -p "$KAWA_TOOLKIT/system"
-  cp "$REPO/system/fedokawaii-home.sh" "$KAWA_TOOLKIT/system/"
+  export KAWA_TOOLKIT=$TMP/toolkit; mkdir -p "$KAWA_TOOLKIT/system" "$KAWA_TOOLKIT/lib"
+  cp "$REPO/system/fedokawaii-home.sh" "$KAWA_TOOLKIT/system/"; cp "$REPO/lib/common.sh" "$KAWA_TOOLKIT/lib/"
   stub systemd-tmpfiles; stub uv 'rm -rf "$HOME/.cache/uv/big"'; stub pgrep 'exit 1'
   T=$REPO/bin/kawa-tidy
 }
@@ -54,6 +54,32 @@ tidy --check dirs; eq "$RC" 1; has "$OUT" "~/Desktop: empty"; has "$OUT" "~/Publ
 tidy; eq "$RC" 0 "$OUT"
 [[ ! -e $HOME/Desktop && -f $HOME/Public/song.txt && -d $HOME/Templates && -d $HOME/Documents ]] && _ok || _no "$(ls "$HOME")"
 called "^systemd-tmpfiles --user --clean$"
+
+home
+case_ "your home's old folders: renamed whole, or poured in with a taken name kept and named; what remembers a path follows; the empty ones go"
+mkdir -p "$HOME/.config" "$HOME/Downloads/in" "$HOME/Notes" "$HOME/Books" "$HOME/repos/p/.git" "$HOME/Pictures/Screenshots" "$HOME/Pictures/Wallpapers" "$HOME/Pictures/Sketches" "$HOME/Videos/Recordings" "$HOME/Music" "$HOME/Documents" "$HOME/captures"
+echo d >"$HOME/Downloads/in/f"; echo n >"$HOME/Notes/notes.md"; echo b >"$HOME/Books/a.pdf"; echo s >"$HOME/Pictures/Screenshots/one.png"; echo w >"$HOME/Pictures/Wallpapers/mine.png"
+echo k >"$HOME/Pictures/Sketches/k.mdp"; echo r >"$HOME/Videos/Recordings/r.mp4"; echo old >"$HOME/Videos/Recordings/same"; echo new >"$HOME/captures/same"; echo mine >"$HOME/Documents/report.ods"
+mkdir -p "$HOME/.local/state/fedokawaii" "$HOME/.local/share/zathura"; echo "$HOME/Pictures/Wallpapers/mine.png" >"$HOME/.local/state/fedokawaii/wallpaper-light"
+python3 -I -B - "$HOME/.local/share/zathura/bookmarks.sqlite" "$HOME/Books/a.pdf" <<'SQL_END'
+import sqlite3, sys
+c = sqlite3.connect(sys.argv[1])
+for t in ("bookmarks", "fileinfo", "jumplist", "quickmarks"):
+    c.execute(f"CREATE TABLE {t} (file TEXT, page INTEGER)")
+    c.execute(f"INSERT INTO {t} VALUES (?, 7)", (sys.argv[2],))
+c.commit()
+SQL_END
+printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PICTURES_DIR="$HOME/captures"\nXDG_VIDEOS_DIR="$HOME/captures"\nXDG_MUSIC_DIR="$HOME/"\nXDG_DOCUMENTS_DIR="$HOME/Documents"\n' >"$HOME/.config/user-dirs.dirs"
+tidy; eq "$RC" 0 "$OUT"
+eq "$(cat "$HOME/downloads/in/f")$(cat "$HOME/notes/notes.md")$(cat "$HOME/books/a.pdf")$(cat "$HOME/captures/one.png")$(cat "$HOME/captures/r.mp4")" dnbsr
+[[ -d $HOME/dojo/p/.git && -f $HOME/notes/sketches/k.mdp && -f $HOME/.local/share/fedokawaii/wallpapers/mine.png ]] && _ok || _no "$(ls -R "$HOME")"
+[[ ! -e $HOME/Downloads && ! -e $HOME/Notes && ! -e $HOME/Books && ! -e $HOME/repos && ! -e $HOME/Pictures && ! -e $HOME/Music ]] && _ok || _no "$(ls "$HOME")"
+eq "$(cat "$HOME/.local/state/fedokawaii/wallpaper-light")" "$HOME/.local/share/fedokawaii/wallpapers/mine.png"
+eq "$(python3 -I -B -c 'import sqlite3,sys; c=sqlite3.connect(sys.argv[1]); print(*[c.execute(f"SELECT file FROM {t}").fetchone()[0] for t in ("bookmarks","fileinfo","jumplist","quickmarks")])' "$HOME/.local/share/zathura/bookmarks.sqlite")" "$HOME/books/a.pdf $HOME/books/a.pdf $HOME/books/a.pdf $HOME/books/a.pdf"
+eq "$(cat "$HOME/captures/same")$(cat "$HOME/Videos/Recordings/same")" newold "a name taken: neither overwritten"
+tidy --check leftovers; eq "$RC" 1; has "$OUT" "~/Videos/Recordings: belongs in ~/captures"
+[[ -f $HOME/Documents/report.ods ]] && _ok || _no "your Documents went"
+tidy --check dirs; has "$OUT" "~/Documents: xdg-user-dirs would make it again"; has "$OUT" "~/Videos: yours"
 
 home
 case_ "leftovers: Scriptorium's state, logs and helpers out; its settings kept aside, nothing else of the home touched"

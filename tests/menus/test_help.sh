@@ -101,7 +101,7 @@ for t in nvim:nvim lazygit:lazygit vd:visidata; do
   keys_setup; focus foot "${t%%:*}"; answer esc; kawa-help
   eq "$(parts | cut -d' ' -f1)" "${t#*:}" "titled ${t%%:*}"
 done
-for t in "~/repos/fedokawaii" "btop2" "Yazi"; do
+for t in "~/dojo/fedokawaii" "btop2" "Yazi"; do
   keys_setup; focus footclient "$t"; answer esc; kawa-help; eq "$(parts | cut -d' ' -f1)" launch "titled $t"
 done
 case_ "one of ours by its app id: the notes (the to-do beside them), the clipboard, Super+U, Git lazygit, Disk usage gdu, Tables visidata, Torrents its own, zathura, mpv; Helium: the desktop's first"

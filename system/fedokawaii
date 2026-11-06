@@ -7,7 +7,7 @@
 #                          numbered menu)
 #   fedokawaii status      how it stands, as text — instant, from what is known
 #   fedokawaii update      the season's update: packages, the desktop's own tools, checks
-#   fedokawaii pull        fedokawaii itself from GitHub: your clone (~/repos/fedokawaii)
+#   fedokawaii pull        fedokawaii itself from GitHub: your clone (~/dojo/fedokawaii)
 #                          brought to GitHub's newest, then the update from it, and repair if
 #                          anything is left (the repository is public: no sign-in, no token)
 #   fedokawaii upgrade     the update, then the move to the next Fedora (the update's second press)
@@ -36,7 +36,7 @@
 #                          refused downloads): ~/fedokawaii-trial.txt, one file to send (podman)
 #
 # Changing the desktop itself (handbook, chapter 42) — in your working copy, never the toolkit:
-#   fedokawaii copy        make it, once: ~/repos/fedokawaii — the clone pull keeps current
+#   fedokawaii copy        make it, once: ~/dojo/fedokawaii — the clone pull keeps current
 #   fedokawaii keep FILE…  a config you changed in place (~/.config/…), copied into the copy
 #   fedokawaii diff        what the copy would change in the toolkit (changes nothing)
 #   fedokawaii apply       the copy checked, made the toolkit, applied (sudo)
@@ -397,7 +397,7 @@ unapplied() {
 }
 
 # ── your working copy: where the desktop is changed (handbook, chapter 42) ──────────────────────
-COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
+COPY=${FEDOKAWAII_COPY:-$HOME/dojo/fedokawaii}
 need_copy() { [[ -f $COPY/setup.sh && -f $COPY/fedokawaii.sh ]] || { echo "no working copy at $COPY — fedokawaii copy makes one" >&2; return 1; }; }
 copy_make() {   # the toolkit, copied once into a folder of yours, as a git repository
   local n
@@ -495,7 +495,7 @@ copy_apply() {   # the copy applied: ShellCheck's advice on the scripts you chan
 }
 
 # ── the clone: the toolkit's source, kept in one place, updated from GitHub ─────────────────
-# ~/repos/fedokawaii (COPY) is a git clone of the project's public repository (ORIGIN,
+# ~/dojo/fedokawaii (COPY) is a git clone of the project's public repository (ORIGIN,
 # github.com/MoeDia/fedokawaii: no sign-in, no token). fedokawaii pull brings
 # it up to GitHub's newest, then runs the update from it (the clone becomes the toolkit) and,
 # when verify still finds something, repair — one run, root's part through sudo; what it did
@@ -564,7 +564,7 @@ clone_ready() {
   echo "  ${COPY/#$HOME/\~} is now a clone of GitHub's repository"
 }
 # adopt DIR — setup's, update's or repair's last step (as you): the clone they were run from
-# becomes ~/repos/fedokawaii, unless that is a clone already (0: moved; 1: left to setup)
+# becomes ~/dojo/fedokawaii, unless that is a clone already (0: moved; 1: left to setup)
 adopt() {
   local d=$1
   [[ $d != "$COPY" ]] && has_origin "$d" || return 1

@@ -12,7 +12,7 @@ fresh() {
   mkdir -p "$R/toolkit/configs/home/.config/waybar"
   printf '{ "home": "@HOME@/x" }\n' >"$R/toolkit/configs/home/.config/waybar/config"
   printf '# hello\n' >"$R/toolkit/configs/home/.config/foot/notes and todo.sh"
-  C=$HOME/repos/fedokawaii
+  C=$HOME/dojo/fedokawaii
 }
 ident() { git config --global user.name "Kawa Tester"; git config --global user.email kawa@example.org; }
 
@@ -48,15 +48,15 @@ fresh; mkdir -p "$C"; echo "my notes" >"$C/notes.txt"
 out=$(fedokawaii copy 2>&1); eq "$?" 1; has "$out" "no working copy at $C"; has "$out" "FEDOKAWAII_COPY"
 eq "$(ls "$C")" "notes.txt" "nothing added to your folder"
 case_ "copy at a path with spaces and Japanese (FEDOKAWAII_COPY)"
-fresh; ident; export FEDOKAWAII_COPY="$HOME/my repos/設定 copy"
+fresh; ident; export FEDOKAWAII_COPY="$HOME/my dojo/設定 copy"
 out=$(fedokawaii copy 2>&1); eq "$?" 0; [[ -f "$FEDOKAWAII_COPY/setup.sh" ]] && _ok || _no "not made"
 has "$(git -C "$FEDOKAWAII_COPY" log --oneline)" "as installed"
 unset FEDOKAWAII_COPY
 case_ "copy into a folder you cannot write: it fails (exit 1), no half copy is called done"
 if ((EUID)); then
-  fresh; mkdir -p "$HOME/repos"; chmod 555 "$HOME/repos"
+  fresh; mkdir -p "$HOME/dojo"; chmod 555 "$HOME/dojo"
   out=$(fedokawaii copy 2>&1); eq "$?" 1; lacks "$out" "your working copy: $C — change it there"
-  chmod 755 "$HOME/repos"
+  chmod 755 "$HOME/dojo"
 else _ok; fi
 
 # ── keep ─────────────────────────────────────────────────────────────────────

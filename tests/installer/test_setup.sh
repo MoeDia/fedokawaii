@@ -81,8 +81,8 @@ case_ "phase 3: dwl and the desktop, the gate, then the login enabled last and t
 fkh fail-meson 1; fkh fail-nvim-plugins 1
 # (garbage the end sweeps: the download the clone was unpacked from, twelve theme runs' backups)
 B=$W/home/fkuser/.local/state/fedokawaii/backup
-for i in $(seq -w 1 12); do mkdir -p "$B/202601${i}-120000"; done; mkdir -p "$W/home/fkuser/Downloads"; : >"$W/home/fkuser/Downloads/fedokawaii.zip"; touch -d '1 hour ago' "$W/home/fkuser/Downloads/fedokawaii.zip"   # (downloaded before it was unpacked)
-chown "$FK_UID:$FK_UID" "$W/home/fkuser/.local"; chown -R "$FK_UID:$FK_UID" "$W/home/fkuser/.local/state" "$W/home/fkuser/Downloads"
+for i in $(seq -w 1 12); do mkdir -p "$B/202601${i}-120000"; done; mkdir -p "$W/home/fkuser/downloads"; : >"$W/home/fkuser/downloads/fedokawaii.zip"; touch -d '1 hour ago' "$W/home/fkuser/downloads/fedokawaii.zip"   # (downloaded before it was unpacked)
+chown "$FK_UID:$FK_UID" "$W/home/fkuser/.local"; chown -R "$FK_UID:$FK_UID" "$W/home/fkuser/.local/state" "$W/home/fkuser/downloads"
 resume --no-reboot; eq "$RC" 0
 eq "$(state phase)" "done"
 has "$OUT" "✔ 3.13 verify gate"; has "$OUT" "✔  verified"
@@ -128,7 +128,7 @@ lacks "$(ls "$W/var/lib/fedokawaii")" "Spotify" "no Spotify step"
 [[ ! -e $W$CLONE ]] && _ok || _no "the clone ~/fedokawaii is still there"
 has "$OUT" "~/fedokawaii removed: the toolkit has all of it"
 [[ -x $W$TK/setup.sh ]] && _ok || _no "the toolkit went with it"
-[[ ! -e $W/home/fkuser/Downloads/fedokawaii.zip && -d $W/home/fkuser/Downloads ]] && _ok || _no "the download it came from is still there (or Downloads went with it)"
+[[ ! -e $W/home/fkuser/downloads/fedokawaii.zip && -d $W/home/fkuser/downloads ]] && _ok || _no "the download it came from is still there (or downloads went with it)"
 eq "$(ls "$B" | wc -l)" 10 "ten theme backups kept: $(ls "$B" | tr '\n' ' ')"
 [[ -d $B/20260112-120000 && -d $B/20260103-120000 && ! -e $B/20260102-120000 && ! -e $B/20260101-120000 ]] && _ok || _no "not the newest kept: $(ls "$B" | tr '\n' ' ')"
 # the sweep before the baseline (a snapshot keeps every cached download for good)
@@ -177,14 +177,14 @@ case_ "a working copy fedokawaii copy made (its .git knows the settings it was m
 back phase3; mkdir -p "$W$CLONE/.git"; : >"$W$CLONE/.git/fedokawaii-conf-base"; chown -R "$FK_UID:$FK_UID" "$W$CLONE/.git"
 resume --no-reboot; [[ -d $W$CLONE ]] && _ok || _no "your working copy was removed"
 has "$OUT" "~/fedokawaii kept: it is your working copy"
-case_ "a git clone of GitHub's (its origin known): moved to ~/repos/fedokawaii — the one clone fedokawaii pull updates"
+case_ "a git clone of GitHub's (its origin known): moved to ~/dojo/fedokawaii — the one clone fedokawaii pull updates"
 back phase3; rm -rf "$W$CLONE/.git"; git -C "$W$CLONE" init -q; git -C "$W$CLONE" remote add origin https://github.com/MoeDia/fedokawaii.git; printf '[remote "origin"]\n\turl = https://github.com/MoeDia/fedokawaii.git\n' >>"$W$CLONE/.git/config"   # (the fake git writes no config: has_origin reads it)
 chown -R "$FK_UID:$FK_UID" "$W$CLONE/.git"
 resume --no-reboot; eq "$(state phase)" "done"
-[[ ! -e $W$CLONE && -d $W/home/fkuser/repos/fedokawaii/.git ]] && _ok || _no "the clone was not moved into place"
-has "$OUT" "~/fedokawaii moved to ~/repos/fedokawaii"
-[[ -f $W/home/fkuser/repos/fedokawaii/.git/config ]] && _ok || _no "its history did not move with it"   # (git here is the fake machine's: the address itself is test_pull's)
-rm -rf "$W/home/fkuser/repos/fedokawaii"
+[[ ! -e $W$CLONE && -d $W/home/fkuser/dojo/fedokawaii/.git ]] && _ok || _no "the clone was not moved into place"
+has "$OUT" "~/fedokawaii moved to ~/dojo/fedokawaii"
+[[ -f $W/home/fkuser/dojo/fedokawaii/.git/config ]] && _ok || _no "its history did not move with it"   # (git here is the fake machine's: the address itself is test_pull's)
+rm -rf "$W/home/fkuser/dojo/fedokawaii"
 case_ "phase 3 run from the clone (as setup is started again by hand): the clone goes after the final check, which runs from the toolkit"
 back phase3; reset_calls
 setup --no-reboot; eq "$RC" 0 "$(grep -E '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"

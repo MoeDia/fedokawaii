@@ -47,14 +47,14 @@ rm -f "$W/etc/systemd/system/user@.service.d/50-walls.conf"; mv -f "$FKH/units.k
 
 case_ "…the same once the update button put helium-bin and claude-code in (dnf5 records @stored_transaction(REPO) as their origin)"
 fkh from-stored; V; has "$OUT" "✔  helium-bin from copr:copr.fedorainfracloud.org:imput:helium (gpgcheck=1)"; has "$OUT" "✔  claude-code from claude-code (gpgcheck=1)"; rm -f "$FKH/from-stored"
-case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/Downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
+case_ "your home: a root-owned file in ~/.cache (a program run as root with your HOME) or ~/downloads (its own subvolume) fails, named; podman's storage (its containers' own ids) does not"
 back built
 fk bash -c 'c=/home/fkuser/.local/share/containers/storage/overlay; runuser -u fkuser -- mkdir -p "$c/l1/diff/app" && : >"$c/l1/diff/app/Prowlarr.dll" && chown -R 100910:100910 "$c/l1"'   # (podman's own folders: yours)
-V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  no root-owned files in your home (nor anyone else's; ~/.cache and ~/Downloads included)"
+V; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  no root-owned files in your home (nor anyone else's; ~/.cache and ~/downloads included)"
 fk bash -c 'runuser -u fkuser -- mkdir -p /home/fkuser/.cache/mesa_shader_cache && : >/home/fkuser/.cache/mesa_shader_cache/index'
 V; eq "$RC" 3; has "$OUT" "✘  files in your home that are not yours: root ~/.cache/mesa_shader_cache/index"
-back built; fk bash -c 'mkdir -p /home/fkuser/Downloads && chown fkuser: /home/fkuser/Downloads && : >/home/fkuser/Downloads/x.torrent'
-V; has "$OUT" "✘  files in your home that are not yours: root ~/Downloads/x.torrent"
+back built; fk bash -c 'mkdir -p /home/fkuser/downloads && chown fkuser: /home/fkuser/downloads && : >/home/fkuser/downloads/x.torrent'
+V; has "$OUT" "✘  files in your home that are not yours: root ~/downloads/x.torrent"
 back built; V
 
 case_ "Prowlarr not running: verify says it starts it, and why that may take a while, before it waits"
@@ -181,7 +181,7 @@ case_ "--pre-finalize (setup's gate): the login and snapshots not yet looked at;
 back built; rm -f "$W/etc/systemd/system/display-manager.service" "$W/var/lib/fedokawaii/last-verify"
 fkh_del units "enabled greetd.service" "enabled snapper-timeline.timer" "enabled snapper-cleanup.timer"
 V --pre-finalize; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
-has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapper config for /" "the snapshots' section left out (the play world's own snapshots are another check)"; lacks "$OUT" "baseline snapshot"   # (not the word alone: a home on Btrfs has a line on ~/Downloads and snapshots)
+has "$OUT" "✔  the login is greetd's alone"; lacks "$OUT" "greetd.service enabled"; lacks "$OUT" "snapper config for /" "the snapshots' section left out (the play world's own snapshots are another check)"; lacks "$OUT" "baseline snapshot"   # (not the word alone: a home on Btrfs has a line on ~/downloads and snapshots)
 [[ ! -e $W/var/lib/fedokawaii/last-verify ]] && _ok || _no "the gate's run was recorded for the menu"
 V; eq "$RC" 3 "without --pre-finalize those are failures"; has "$OUT" "✘  the login is no login manager at all"
 case_ "misuse: an unknown option, not root, setup not started (exit 2); --help (0)"

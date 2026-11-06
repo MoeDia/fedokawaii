@@ -2,10 +2,10 @@
 # kawa-git — "Git" in the launcher: your repositories, the one you worked in last at the top;
 # Enter opens lazygit in it. A text screen (docs/design-system.md §7): the branch, repositories, a row
 # each — its folder, its branch right-aligned — type to filter, Esc closes.
-# A repository is a folder with a .git in it, in ~/repos (three levels down) or your home
+# A repository is a folder with a .git in it, in ~/dojo (three levels down) or your home
 # (three levels, not in hidden folders), found with fd; "last" is when git last touched it
 # (the time of its .git folder). With none yet, the screen says how to get one: c clones one
-# into ~/repos from its address, n starts a new one there (git init) — either then opens.
+# into ~/dojo from its address, n starts a new one there (git init) — either then opens.
 #
 #   kawa-git          the picker, in this terminal (the launcher's entry gives it a window of
 #                     its own: kawa-term, app-id kawa-git)
@@ -25,10 +25,10 @@ case ${1:-} in
 esac
 for p in git fd; do command -v "$p" >/dev/null || { echo "kawa-git: $p is missing — fedokawaii repair puts it back" >&2; exit 1; }; done
 
-# repos — every repository's folder, the last used first
-repos() {
+# dojo — every repository's folder, the last used first
+dojo() {
   local d
-  { [[ -d $HOME/repos ]] && fd --hidden --no-ignore --type d --max-depth 4 --prune '^\.git$' "$HOME/repos"
+  { [[ -d $HOME/dojo ]] && fd --hidden --no-ignore --type d --max-depth 4 --prune '^\.git$' "$HOME/dojo"
     fd --hidden --no-ignore --type d --max-depth 3 --prune '^\.git$' "$HOME"; } 2>/dev/null \
     | while IFS= read -r d; do
         d=${d%/}; d=${d%/.git}
@@ -36,13 +36,13 @@ repos() {
         printf '%s\t%s\n' "$(stat -c %Y -- "$d/.git")" "$d"
       done | sort -t$'\t' -k1,1nr -k2,2 | cut -f2 | awk '!seen[$0]++'
 }
-if [[ ${1:-} == --list ]]; then repos; exit 0; fi
+if [[ ${1:-} == --list ]]; then dojo; exit 0; fi
 
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/screen.sh"
-SHOWN=\~/repos                                     # (as the screen writes it: a tilde, not your home's path)
+SHOWN=\~/dojo                                     # (as the screen writes it: a tilde, not your home's path)
 
 # branch DIR — its branch, from .git/HEAD (detached: the commit's first 7)
 branch() {
@@ -59,7 +59,7 @@ rows() {
   else
     while IFS= read -r d; do
       [[ -n $d ]] && printf '%s\t%s\n' "$d" "$(screen_row "$ICON_BRANCH" "${d/#"$HOME"/\~}" "$(branch "$d")" "$2")"
-    done <<<"${KAWA_GIT_REPOS-$(repos)}"
+    done <<<"${KAWA_GIT_REPOS-$(dojo)}"
   fi
 }
 heading() {   # heading KIND W
@@ -107,19 +107,19 @@ clone() {
   url=$(ask "clone a repository" "its address, as its page shows it: https://github.com/someone/project") || return 0
   name=${url%/}; name=${name##*[/:]}; name=${name%.git}
   [[ -n $name && $name != .* ]] || { said "no repository name in that address"; return 0; }
-  [[ ! -e $HOME/repos/$name ]] || { said "$SHOWN/$name is there already"; return 0; }
-  mkdir -p -- "$HOME/repos" || { said "cannot make $SHOWN"; return 0; }
+  [[ ! -e $HOME/dojo/$name ]] || { said "$SHOWN/$name is there already"; return 0; }
+  mkdir -p -- "$HOME/dojo" || { said "cannot make $SHOWN"; return 0; }
   printf '\n'
-  git clone -- "$url" "$HOME/repos/$name" || { said "git could not clone it (above: why)"; return 0; }
-  open "$HOME/repos/$name"
+  git clone -- "$url" "$HOME/dojo/$name" || { said "git could not clone it (above: why)"; return 0; }
+  open "$HOME/dojo/$name"
 }
 init() {
   local name
   name=$(ask "a new repository" "its name: a folder of that name in $SHOWN") || return 0
   [[ $name =~ ^[[:alnum:]][[:alnum:]._-]*$ ]] || { said "a name of letters, digits, . _ - (no spaces, no /)"; return 0; }
-  [[ ! -e $HOME/repos/$name ]] || { said "$SHOWN/$name is there already"; return 0; }
-  mkdir -p -- "$HOME/repos/$name" && git init -q -- "$HOME/repos/$name" || { said "git could not make it"; return 0; }
-  open "$HOME/repos/$name"
+  [[ ! -e $HOME/dojo/$name ]] || { said "$SHOWN/$name is there already"; return 0; }
+  mkdir -p -- "$HOME/dojo/$name" && git init -q -- "$HOME/dojo/$name" || { said "git could not make it"; return 0; }
+  open "$HOME/dojo/$name"
 }
 none() {
   local got
@@ -131,7 +131,7 @@ none() {
   done
 }
 
-KAWA_GIT_REPOS=$(repos); export KAWA_GIT_REPOS        # (found once: each resize lays them out again)
+KAWA_GIT_REPOS=$(dojo); export KAWA_GIT_REPOS        # (found once: each resize lays them out again)
 [[ -n $KAWA_GIT_REPOS ]] || none
 got=$(pick list --ghost="type to filter") || exit 0
 open "${got%%$'\t'*}"

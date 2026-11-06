@@ -123,7 +123,7 @@ def volume(n, t):
     g.rect(bx + cone, 0, bx + cone + t - 1, n - 1)
     ax = bx + cone
     for r in (n * .26, n * .42, n * .58):
-        g.ring(ax + 1, c, r + .5, t, keep=lambda x, y, a=ax: x > a + t and abs(y - c) <= r * .78)
+        g.ring(ax + 1, c, r + .5, t, keep=lambda x, y, a=ax, r=r: x > a + t and abs(y - c) <= r * .78)
     return G(p for p in g if p[0] < w), w
 
 
@@ -169,8 +169,8 @@ def ink(font, ch):
     d = ImageDraw.Draw(im)
     d.fontmode = "1"
     d.text((8, 20), ch, font=font, fill=1, anchor="ls")
-    l, _, r, _ = im.getbbox()
-    return l - 8, r - 8
+    left, _, r, _ = im.getbbox()
+    return left - 8, r - 8
 
 
 def length(font, s):
@@ -178,8 +178,8 @@ def length(font, s):
     n = 0
     for ch in s:
         if ch in NARROW:
-            l, r = ink(font, ch)
-            n += r - l + 1
+            left, r = ink(font, ch)
+            n += r - left + 1
         else:
             n += round(font.getlength(ch))
     return n
@@ -223,8 +223,8 @@ class Bar:
         font = font or self.f
         start = x
         for ch in s:
-            l = ink(font, ch)[0] if ch in NARROW else 0
-            self.d.text((x - l, self.base()), ch, font=font, fill=rgb(c), anchor="ls")
+            left = ink(font, ch)[0] if ch in NARROW else 0
+            self.d.text((x - left, self.base()), ch, font=font, fill=rgb(c), anchor="ls")
             x += length(font, ch)
         return x - start
 
@@ -336,7 +336,7 @@ class Bar:
         return rod_w
 
     def brocade(self, x, w):
-        k, red, dark = self.k, rgb(self.p["lacquer"]), rgb(self.k["rod_dk"])
+        k, red = self.k, rgb(self.p["lacquer"])
         gold = rgb(k["gold"])
         for y in range(TOP, self.hb + 1):
             for i in range(w):

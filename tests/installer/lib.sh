@@ -558,7 +558,7 @@ built() {
   printf '[Journal]\nSystemMaxUse=500M\n' >"$W/etc/systemd/journald.conf.d/40-fedokawaii.conf"
   printf '[Coredump]\nMaxUse=1G\nExternalSizeMax=1G\nProcessSizeMax=1G\n' >"$W/etc/systemd/coredump.conf.d/40-fedokawaii.conf"
   cp "$REPO/system/fedokawaii-home.sh" "$W/etc/profile.d/fedokawaii-home.sh"
-  mkdir -p "$W/home/fkuser/.config"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
+  mkdir -p "$W/home/fkuser/.config"; mkdir -p "$W/home/fkuser/downloads" "$W/home/fkuser/captures"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\nXDG_DOCUMENTS_DIR="$HOME/"\nXDG_MUSIC_DIR="$HOME/"\nXDG_DOWNLOAD_DIR="$HOME/downloads"\nXDG_PICTURES_DIR="$HOME/captures"\nXDG_VIDEOS_DIR="$HOME/captures"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
   mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=25\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/claude-code.repo"; cp "$W/etc/yum.repos.d/claude-code.repo" "$W/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:imput:helium.repo"
@@ -641,7 +641,7 @@ built() {
   mkdir -p "$U/.local/bin" "$U/.local/share/fedokawaii/upstream" \
     "$W/usr/local/share/fonts/fedokawaii" \
     "$U/.local/src/dwl/.git" "$U/.config/fedokawaii" "$U/.config/containers/systemd" \
-    "$U/.config/prowlarr" "$U/.config/nvim" "$U/.local/state/fedokawaii" "$U/Downloads" "$U/.local/share/nvim/lazy/LazyVim"
+    "$U/.config/prowlarr" "$U/.config/nvim" "$U/.local/state/fedokawaii" "$U/downloads" "$U/.local/share/nvim/lazy/LazyVim"
   local name tag bins b f
   while IFS='|' read -r name _ tag _ _ bins; do
     for b in $bins; do printf '#!/bin/sh\necho "%s %s"\n' "$b" "$tag" >"$U/.local/bin/$b"; chmod 755 "$U/.local/bin/$b"; done

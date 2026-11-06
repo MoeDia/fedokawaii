@@ -69,16 +69,16 @@ if ((VERSION_ID >= FEDORA_RELEASE)); then
 fi
 check "SELinux enforcing"                              test "$(getenforce 2>/dev/null)" = Enforcing
 check "/ is Btrfs"                                     test "$(findmnt -no FSTYPE /)" = btrfs
-# every file in your home is yours — ~/.cache, and ~/Downloads (its own Btrfs subvolume, where
+# every file in your home is yours — ~/.cache, and ~/downloads (its own Btrfs subvolume, where
 # -xdev would stop) included. Root's would come from a program run as root with your HOME,
 # another id's from an archive unpacked as root keeping its owners. The one exception, by
 # design: rootless podman's storage, whose image layers belong to the containers' own ids
 # (your subordinate ids: Prowlarr's thousands of files)
-hstarts=("$TARGET_HOME"); for d in .cache Downloads; do [[ -d $TARGET_HOME/$d && ! -L $TARGET_HOME/$d ]] && hstarts+=("$TARGET_HOME/$d"); done
+hstarts=("$TARGET_HOME"); for d in .cache "$DIR_DOWNLOADS"; do [[ -d $TARGET_HOME/$d && ! -L $TARGET_HOME/$d ]] && hstarts+=("$TARGET_HOME/$d"); done
 notmine=$(find "${hstarts[@]}" -xdev \
             -path "$TARGET_HOME/.local/share/containers/storage" -prune -o ! -user "$TARGET_USER" -printf '%u %p\n' 2>/dev/null \
           | sort -u | head -n 3 | sed "s|$TARGET_HOME|~|" | paste -sd ',' | sed 's/,/, /g')
-if [[ -z $notmine ]]; then pass "no root-owned files in your home (nor anyone else's; ~/.cache and ~/Downloads included)"
+if [[ -z $notmine ]]; then pass "no root-owned files in your home (nor anyone else's; ~/.cache and ~/downloads included)"
 else fail "files in your home that are not yours: $notmine" "a program ran as root with your HOME — send the report (sudo fedokawaii-report)"; fi
 check "user in video, render"                          bash -c "id -nG $TARGET_USER | tr ' ' '\n' | grep -cxE 'video|render' | grep -qx 2"
 check "EDITOR=nvim system-wide"                        grep -qx 'export EDITOR=nvim' /etc/profile.d/editor.sh
@@ -493,8 +493,13 @@ check "Btrfs mounted noatime (fstab)"                    bash -c '! awk '\''!/^[
 check "the journal at most 500 MB, crash dumps at most 1 GB" \
   bash -c "grep -qx 'SystemMaxUse=500M' /etc/systemd/journald.conf.d/40-fedokawaii.conf && grep -qx 'MaxUse=1G' /etc/systemd/coredump.conf.d/40-fedokawaii.conf"
 check "programs keep their files in place (/etc/profile.d/fedokawaii-home.sh)" cmp -s "$REPO_DIR/system/fedokawaii-home.sh" /etc/profile.d/fedokawaii-home.sh
-check "no Desktop, Public or Templates made for nothing (xdg-user-dirs)" \
-  bash -c 'for k in DESKTOP PUBLICSHARE TEMPLATES; do grep -qxE "XDG_${k}_DIR=\"(\\\$HOME/?|${1//./\\.}/?)\"" "$1/.config/user-dirs.dirs" || exit 1; done' _ "$TARGET_HOME"
+# (a standard folder with something in it is yours: it may keep its name, setup's user_dirs)
+check "your home's folders are in place, and no other made for nothing (xdg-user-dirs)" \
+  bash -c 'h=$1; shift; while (($#)); do v=$(sed -n "s/^XDG_${1%%:*}_DIR=\"\(.*\)\"\$/\1/p" "$h/.config/user-dirs.dirs"); v=${v/#\$HOME/$h}; v=${v%/}
+    case ${1#*:} in
+      none:*) [[ $v == "$h" || ( -n $(ls -A -- "$v" 2>/dev/null) ) ]] || exit 1 ;;
+      *) [[ $v == "$h/${1#*:}" && -d $v ]] || exit 1 ;;
+    esac; shift; done' _ "$TARGET_HOME" "${HOME_XDG[@]}" "${HOME_XDG_NONE[@]/:/:none:}"
 check "nothing of an older version in your home, no program's folder in its old place" U bash "$REPO_DIR/bin/kawa-tidy" --check leftovers
 check "secrets.sh private (yours, chmod 600)"          bash -c '[[ ! -e $1 ]] || [[ $(stat -c "%a %U" "$1") == "600 $2" ]]' _ "$TARGET_HOME/.config/fedokawaii/secrets.sh" "$TARGET_USER"
 # torrents: one key, in secrets.sh only; Prowlarr takes it, kawa-torrents reads it there
@@ -547,8 +552,8 @@ if [[ $dbb == sqlite ]]; then pass "podman database: sqlite (ready for Podman 6)
 else warn "podman database: ${dbb:-unknown}" "Podman 6 (Fedora 45) reads only sqlite — podman system migrate --migrate-db"; fi
 if [[ $(stat -f -c %T "$TARGET_HOME") == btrfs ]]; then
   # shellcheck disable=SC2088  # literal ~ in labels
-  if btrfs subvolume show "$TARGET_HOME/Downloads" >/dev/null 2>&1; then pass "~/Downloads kept out of /home's snapshots (own subvolume)"
-  else warn "~/Downloads is inside /home's snapshots" "a deleted download keeps its space until the last snapshot holding it expires"; fi
+  if btrfs subvolume show "$TARGET_HOME/$DIR_DOWNLOADS" >/dev/null 2>&1; then pass "~/$DIR_DOWNLOADS kept out of /home's snapshots (own subvolume)"
+  else warn "~/$DIR_DOWNLOADS is inside /home's snapshots" "a deleted download keeps its space until the last snapshot holding it expires"; fi
 fi
 
 # ── the network ──────────────────────────────────────────────────────────────

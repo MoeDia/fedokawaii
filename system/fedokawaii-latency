@@ -438,7 +438,7 @@ def pty_first(argv, cwd=None, size=2000, limit_s=5):
 
 def terminal_apps():
     for name, argv, cwd, limit in (("btop's first frame", ["btop"], None, 500),
-                                   ("lazygit's first frame", ["lazygit"], f"{HOME}/repos/fedokawaii", 400)):
+                                   ("lazygit's first frame", ["lazygit"], f"{HOME}/dojo/fedokawaii", 400)):
         if not have(argv[0]) or (cwd and not os.path.isdir(cwd)):
             continue
         s = [m for m in (pty_first(argv, cwd) for _ in range(3)) if m]

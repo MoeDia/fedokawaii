@@ -46,8 +46,8 @@ hide_tab_bar_when_single_tab = true
 
 [worktrees]
 # a new worktree (Ctrl+B Shift+G) is a folder beside your projects, not one hidden in the
-# home: ~/repos/worktrees/<project>/<branch>
-directory = "~/repos/worktrees"
+# home: ~/dojo/worktrees/<project>/<branch>
+directory = "~/dojo/worktrees"
 
 # Ctrl+B a: Claude Code in a pane of its own, in the folder the pane you are on is in. It
 # opens zoomed (the whole window); Ctrl+B z shows it beside the others. It closes when

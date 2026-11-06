@@ -28,8 +28,8 @@ home() {   # home — Fedora's ~/.bashrc, the desktop's shell and tool settings,
     '            . "$rc"' '        fi' '    done' 'fi' 'unset rc' >"$HOME/.bashrc"
   local t; for t in "${!REAL[@]}"; do [[ -n ${REAL[$t]} ]] && ln -s "${REAL[$t]}" "$STUBS/$t"; done
   stub bat 'cat "$@"'                      # (the previews' highlighter: not under test here)
-  mkdir -p "$HOME/repos/demo"
-  git -C "$HOME/repos/demo" init -q -b main; echo hi >"$HOME/repos/demo/a.txt"
+  mkdir -p "$HOME/dojo/demo"
+  git -C "$HOME/dojo/demo" init -q -b main; echo hi >"$HOME/dojo/demo/a.txt"
 }
 # shell LINE… — a bash -i 100 columns wide in the home; each LINE typed once its prompt is
 # up and the screen has been still for a second (ble.sh draws its prompt more than once as it
@@ -68,23 +68,23 @@ if blesh_ok; then
   case_ "aliases and functions resolve: ls, ll, lt (eza), cd and cdi (zoxide); each runs cleanly"
   if [[ -n ${REAL[eza]} && -n ${REAL[zoxide]} && -n ${REAL[fd]} ]]; then
     shell 'type -t ls ll lt cd cdi | paste -sd " "' 'ls; ll >/dev/null; lt >/dev/null; echo listed' \
-          'fd a.txt repos'
+          'fd a.txt dojo'
     has "$(cat "$TMP/text")" "alias alias alias function function"
-    has "$(cat "$TMP/text")" "listed"; has "$(cat "$TMP/text")" "repos/demo/a.txt" "fd finds the file"
+    has "$(cat "$TMP/text")" "listed"; has "$(cat "$TMP/text")" "dojo/demo/a.txt" "fd finds the file"
     eq "$(alarms "$TMP/text")" ""
   else skip "eza, fd or zoxide not on PATH"; fi
 
-  case_ "zoxide: cd learns a folder — cd demo from home goes back to ~/repos/demo"
+  case_ "zoxide: cd learns a folder — cd demo from home goes back to ~/dojo/demo"
   if [[ -n ${REAL[zoxide]} ]]; then
-    shell 'cd repos/demo' 'cd ~' 'cd demo; echo "AT $PWD"'
-    has "$(cat "$TMP/text")" "AT $HOME/repos/demo"
+    shell 'cd dojo/demo' 'cd ~' 'cd demo; echo "AT $PWD"'
+    has "$(cat "$TMP/text")" "AT $HOME/dojo/demo"
     eq "$(alarms "$TMP/text")" ""
   else skip "no zoxide on PATH"; fi
 
   case_ "fzf: Ctrl+R, Ctrl+T and Alt+C bound through ble.sh; ** after cd; Ctrl+T's lister and the popups' look work"
   if [[ -n ${REAL[fzf]} && -n ${REAL[fd]} ]]; then
     shell 'ble-bind -P | grep -E "fzf-history-widget|fzf-file-widget|__fzf_cd__"' 'complete -p cd' \
-          'cd repos; FZF_CTRL_T_OPTS+=" --filter=a.txt" __fzf_select__; echo; cd ~'
+          'cd dojo; FZF_CTRL_T_OPTS+=" --filter=a.txt" __fzf_select__; echo; cd ~'
     has "$(cat "$TMP/text")" "-x C-r fzf-history-widget"; has "$(cat "$TMP/text")" "-x C-t fzf-file-widget"
     has "$(cat "$TMP/text")" "M-c 'ble/util/eval-stdout \"__fzf_cd__\"'"
     has "$(cat "$TMP/text")" "complete -o filenames -F _fzf_dir_completion cd"
@@ -96,8 +96,8 @@ else
 fi
 
 # ── the tools' first start ────────────────────────────────────────────────────
-# first ARGS… — the program's first window, 100×30, in ~/repos/demo; q typed after 4 s
-first() { (cd "$HOME/repos/demo" && TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 100 --rows 30 --timeout 20 \
+# first ARGS… — the program's first window, 100×30, in ~/dojo/demo; q typed after 4 s
+first() { (cd "$HOME/dojo/demo" && TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" --cols 100 --rows 30 --timeout 20 \
             --send 4 q -- "$@" >"$TMP/raw" 2>&1); RC=$?; text <"$TMP/raw" >"$TMP/text"; }
 case_ "lazygit's first start: the repository at once (no welcome popup to close), nothing warns"
 if [[ -n ${REAL[lazygit]} ]]; then
@@ -117,18 +117,18 @@ if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   home; mkdir -p "$HOME/.config/nvim" "$HOME/.local/share"
   cp -r "$REPO/configs/home/.config/nvim/." "$HOME/.config/nvim/"   # (the desktop's: as setup)
   ln -s "$NVIM_DATA" "$HOME/.local/share/nvim"
-  (cd "$HOME/repos/demo" && timeout 120 nvim --headless '+checkhealth lazy' "+w! $TMP/health" +qa >"$TMP/nvim.out" 2>&1)
+  (cd "$HOME/dojo/demo" && timeout 120 nvim --headless '+checkhealth lazy' "+w! $TMP/health" +qa >"$TMP/nvim.out" 2>&1)
   eq "$(grep -E 'WARNING|ERROR' "$TMP/health")" "" "checkhealth lazy"
   has "$(cat "$TMP/health")" "luarocks disabled"
-  (cd "$HOME/repos/demo" && timeout 60 nvim --headless a.txt "+lua vim.defer_fn(function()
+  (cd "$HOME/dojo/demo" && timeout 60 nvim --headless a.txt "+lua vim.defer_fn(function()
       local f = io.open('$TMP/msgs', 'w'); f:write(vim.api.nvim_exec2('messages', { output = true }).output)
       f:close(); vim.cmd('qa!') end, 3000)" >"$TMP/nvim.out" 2>&1)
   eq "$(cat "$TMP/msgs" "$TMP/nvim.out")" "" "messages at the first file"
-  (cd "$HOME/repos/demo" && timeout 60 nvim --headless +Tutor "+lua io.open('$TMP/tutor', 'w'):write(vim.bo.filetype)" +qa >"$TMP/nvim.out" 2>&1)
+  (cd "$HOME/dojo/demo" && timeout 60 nvim --headless +Tutor "+lua io.open('$TMP/tutor', 'w'):write(vim.bo.filetype)" +qa >"$TMP/nvim.out" 2>&1)
   eq "$(cat "$TMP/tutor" 2>/dev/null)" tutor "nvim +Tutor: the Learn book's first exercise ($(cut -c1-80 "$TMP/nvim.out"))"
   case_ "neovim: a Markdown file's highlighter has no conceal_lines (a key costs half), a float that is no file keeps neovim's own; folds by indent"
-  printf '# t\n\n```python\nx = 1\n```\n' >"$HOME/repos/demo/b.md"
-  (cd "$HOME/repos/demo" && timeout 60 nvim --headless b.md "+lua vim.defer_fn(function()
+  printf '# t\n\n```python\nx = 1\n```\n' >"$HOME/dojo/demo/b.md"
+  (cd "$HOME/dojo/demo" && timeout 60 nvim --headless b.md "+lua vim.defer_fn(function()
       local h = vim.treesitter.highlighter.active[vim.api.nvim_get_current_buf()]
       local float = vim.api.nvim_create_buf(false, true)
       vim.bo[float].buftype = 'nofile'
@@ -139,8 +139,8 @@ if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
       f:close(); vim.cmd('qa!') end, 1500)" >"$TMP/nvim.out" 2>&1)
   eq "$(cat "$TMP/md" 2>/dev/null)" "false true indent" "file, float, folds ($(cut -c1-120 "$TMP/nvim.out"))"
   case_ "neovim's status line: the mode's tile, a % in a name kept a %, a deep path its last three parts with no ellipsis, the place; nothing on the first screen"
-  mkdir -p "$HOME/repos/demo/a/b/c/d"; : >"$HOME/repos/demo/a/b/c/d/100%.txt"
-  (cd "$HOME/repos/demo" && timeout 60 nvim --headless 'a/b/c/d/100%.txt' "+lua vim.defer_fn(function()
+  mkdir -p "$HOME/dojo/demo/a/b/c/d"; : >"$HOME/dojo/demo/a/b/c/d/100%.txt"
+  (cd "$HOME/dojo/demo" && timeout 60 nvim --headless 'a/b/c/d/100%.txt' "+lua vim.defer_fn(function()
       local render = require('config.statusline').render
       local f = io.open('$TMP/line', 'w')
       f:write(vim.o.statusline, '\n', render(), '\n')
@@ -151,8 +151,8 @@ if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   has "$line" "%#KawaStNormal# NORMAL "; has "$line" "c/d/"; lacks "$line" "b/c"; has "$line" "100%%.txt"; has "$line" "Top"; lacks "$line" "…"
   eq "$(sed -n 3p "$TMP/line" 2>/dev/null)" "%#Normal#" "the first screen: no line"
   case_ "neovim's status line in a narrow window: whole pieces go, the least needed first; never one cut in its middle (at 80 columns neovim's own cut left \"long.py<op 1:1\", at 60 no place at all)"
-  : >"$HOME/repos/demo/a/b/c/d/a-rather-long-file-name.txt"
-  (cd "$HOME/repos/demo" && timeout 60 nvim --headless 'a/b/c/d/a-rather-long-file-name.txt' "+lua vim.defer_fn(function()
+  : >"$HOME/dojo/demo/a/b/c/d/a-rather-long-file-name.txt"
+  (cd "$HOME/dojo/demo" && timeout 60 nvim --headless 'a/b/c/d/a-rather-long-file-name.txt' "+lua vim.defer_fn(function()
       vim.b.gitsigns_head = 'a-branch'
       vim.b.gitsigns_status_dict = { added = 12, changed = 3, removed = 7 }
       local f = io.open('$TMP/widths', 'w')

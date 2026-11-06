@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # kawa-config — Super+Shift+U (or "change the desktop" in the Super+U menu): change the desktop itself,
 # part by part. Each part opens the file behind it in neovim — in your working copy
-# (~/repos/fedokawaii, made from the toolkit on first use), never in the toolkit — and when
+# (~/dojo/fedokawaii, made from the toolkit on first use), never in the toolkit — and when
 # the editor closes, applies it if you say so. Also: the files that are yours alone (the
 # theme never writes them), what changed, its history, and where to learn each language.
 # The same work as fedokawaii copy · diff · apply (handbook, chapter 42). No arguments
@@ -15,7 +15,7 @@ esac
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/icons.sh"
 TK=/usr/local/lib/fedokawaii
-COPY=${FEDOKAWAII_COPY:-$HOME/repos/fedokawaii}
+COPY=${FEDOKAWAII_COPY:-$HOME/dojo/fedokawaii}
 # the menus: the panel's line format (kawa-menu; docs/design-system.md) — a part under its
 # kanji, a row its icon, its name and a note in a column of its own; sized to their content
 line() { local IFS=$'\t'; printf '%s\n' "$*"; }

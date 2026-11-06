@@ -140,12 +140,12 @@ printf '1792454291 checks\n' >"$TMP/state/last-update"; printf '1792454291\n' >"
 run "UPK-03 the toolkit and the install"; lacks "$OUT" "invalid date"; has "$OUT" "last-update: 2026-"; has "$OUT" " checks"
 
 case_ "UPK-05, SEC-10: a token written into the clone's address is a finding (and never printed)"
-mkdir -p "$HOME/repos"; git init -q "$HOME/repos/fedokawaii"
-git -C "$HOME/repos/fedokawaii" remote add origin "https://ghp_secretvalue123456789@github.com/MoeDia/fedokawaii.git"
-run "UPK-05 the clone (~/repos/fedokawaii)"; lacks "$OUT" "ghp_secret"
+mkdir -p "$HOME/dojo"; git init -q "$HOME/dojo/fedokawaii"
+git -C "$HOME/dojo/fedokawaii" remote add origin "https://ghp_secretvalue123456789@github.com/MoeDia/fedokawaii.git"
+run "UPK-05 the clone (~/dojo/fedokawaii)"; lacks "$OUT" "ghp_secret"
 run "SEC-10 no token in a git address"; eq "$RC" 1
-git -C "$HOME/repos/fedokawaii" remote set-url origin https://github.com/MoeDia/fedokawaii.git
-run "UPK-05 the clone (~/repos/fedokawaii)"; eq "$RC" 0 "$OUT"; run "SEC-10 no token in a git address"; eq "$RC" 0 "$OUT"
+git -C "$HOME/dojo/fedokawaii" remote set-url origin https://github.com/MoeDia/fedokawaii.git
+run "UPK-05 the clone (~/dojo/fedokawaii)"; eq "$RC" 0 "$OUT"; run "SEC-10 no token in a git address"; eq "$RC" 0 "$OUT"
 case_ "UPK-09: the last pull's record"
 printf '%s ok abc1234\n' "$(date +%s)" >"$HOME/.local/state/fedokawaii/last-pull"; run "UPK-09 the last pull"; eq "$RC" 0 "$OUT"
 printf '%s failed abc1234\n' "$(date +%s)" >"$HOME/.local/state/fedokawaii/last-pull"; run "UPK-09 the last pull"; eq "$RC" 1
@@ -171,8 +171,8 @@ for t in dark light; do mkdir -p "$HOME/.config/fedokawaii/themes/$t"; : >"$HOME
 run "THEME-21 both themes have the same files"; eq "$RC" 0 "$OUT"
 : >"$HOME/.config/fedokawaii/themes/dark/only-dark.conf"; run "THEME-21 both themes have the same files"; eq "$RC" 1 "$OUT"
 
-case_ "BAK-06: the exclude list leaves out the cache and Downloads"
-mkdir -p "$HOME/.config/fedokawaii"; printf '%s\n' "$HOME/.cache" "$HOME/Downloads" >"$HOME/.config/fedokawaii/backup-exclude"
+case_ "BAK-06: the exclude list leaves out the cache and downloads"
+mkdir -p "$HOME/.config/fedokawaii"; printf '%s\n' "$HOME/.cache" "$HOME/downloads" >"$HOME/.config/fedokawaii/backup-exclude"
 run "BAK-06 the backup leaves out what comes again"; eq "$RC" 0 "$OUT"
 printf '%s\n' "$HOME/.cache" >"$HOME/.config/fedokawaii/backup-exclude"; run "BAK-06 the backup leaves out what comes again"; eq "$RC" 1
 

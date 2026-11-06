@@ -128,7 +128,7 @@ ini=$W$H/.config/syncplay.ini
 s=$(cat "$ini" 2>/dev/null)
 has "$s" "host = syncplay.pl"; has "$s" "port = 8999"; has "$s" "name = fkuser"
 grep -qE '^room = fkuser-[0-9a-f]{4}$' "$ini" && _ok || _no "no room of your own: $(grep '^room' "$ini")"
-has "$s" "playerpath = /usr/bin/mpv"; has "$s" "mediasearchdirectories = ['$H/Videos', '$H/Downloads']"
+has "$s" "playerpath = /usr/bin/mpv"; has "$s" "mediasearchdirectories = ['$H/downloads']"
 has "$s" "checkforupdatesautomatically = False"
 has "$s" "chatinputfontfamily = UDEV Gothic NF"; has "$s" "chatoutputfontfamily = UDEV Gothic NF"
 eq "$(sed -n 's/^chat\(In\|Out\)\(put\)FontFamily=//p' "$W$H/.config/mpv/script-opts/syncplayintf.conf" | sort -u)" "UDEV Gothic NF" \

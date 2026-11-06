@@ -50,5 +50,5 @@ def sheet_of(shots, rows, out):
 
 
 if __name__ == "__main__":
-    for rows, out in zip(SHEETS, sys.argv[2:]):
+    for rows, out in zip(SHEETS, sys.argv[2:], strict=False):
         sheet_of(sys.argv[1], rows, out)

@@ -8,7 +8,6 @@ kawa-panel. The top row is today's dialog from the kit (its shots, as tools/regr
 import importlib.util
 import math
 import pathlib
-import re
 import sys
 
 from PIL import Image, ImageDraw, ImageFont
@@ -141,7 +140,7 @@ def rod(g, x, y, h):
         bands = [p["art_ink"], p["art_umber"], p["art_olive"], mix(p["art_olive"], p["hi"], .4), p["art_olive"], p["art_umber"], p["art_ink"]]
     widths = [1, 2, 3, 2, 3, 2, 1]
     a = x
-    for c, w in zip(bands, widths):
+    for c, w in zip(bands, widths, strict=False):
         g.box(a, y, w, h, c)
         a += w
     gold, deep = g.c("gold"), mix(g.c("gold"), p["lo"] if g.m == "dark" else p["art_ink"], .45)
@@ -215,7 +214,7 @@ def tanzaku(g, on, asked):
     cw = W - BAND - 3 - 6 - 7
     y = y0 + 7
     keys = "lsord"
-    for i, (pic, word, k) in enumerate(ACTIONS):
+    for i, (pic, word, _k) in enumerate(ACTIONS):
         if i == 3:                                 # what cannot be undone stands below a wave
             for a in range(cx + 2, cx + cw - 2, 8):
                 g.box(a, y + 5, 4, 1, "edge2")
@@ -254,7 +253,7 @@ def umebachi(g, on, asked):
         st = "asked" if asked == i else "on" if on == i else "rest"
         if st != "rest":                           # the torch's glow / the angel's halo round it, a checker
             halo = "accent_lo" if g.m == "dark" else "edge2"
-            g.disc(px, py, r + 4, halo, keep=lambda x, y: (x + y) % 2 == 0 and math.hypot(x - px, y - py) > r)
+            g.disc(px, py, r + 4, halo, keep=lambda x, y, px=px, py=py: (x + y) % 2 == 0 and math.hypot(x - px, y - py) > r)
         if st == "rest":
             g.disc(px, py, r, "edge2")
             g.disc(px, py, r - 2, "key")
@@ -283,7 +282,6 @@ OPTIONS = [("1 jiku", jiku, lambda b: (b[1] + 8, b[1] + 118)),
 
 
 def main(dark, light, out):
-    cells = []
     today = {}
     for m, path in (("dark", dark), ("light", light)):
         today[m] = Image.open(path).convert("RGB").crop((739, 443, 1181, 638))
@@ -310,7 +308,7 @@ def main(dark, light, out):
         # twice: the first armed in the dark, the first at rest in the light
         z0, z1 = part(boxes[0])
         zoom = Image.new("RGB", (1920, (z1 - z0) * 2), (0, 0, 0))
-        for i, (im, x) in enumerate(((row[1], 8), (row[2], 968))):
+        for im, x in ((row[1], 8), (row[2], 968)):
             zoom.paste(im.crop((0, z0, CELL[0], z1)).resize((CELL[0] * 2, (z1 - z0) * 2), Image.NEAREST), (x, 0))
         rows.append(zoom)
     total = sum(r.height + 2 for r in rows)

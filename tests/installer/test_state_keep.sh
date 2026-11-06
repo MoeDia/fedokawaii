@@ -19,7 +19,7 @@ put .local/state/fedokawaii/night 'on 3500'
 put .local/state/fedokawaii/saver off
 put .local/state/fedokawaii/foot-glass.ini '[colors-dark]' alpha=1 '[colors-light]' alpha=1
 put .local/state/fedokawaii/wallpaper-dark pack:yoru-03
-put .local/state/fedokawaii/wallpaper-light "$H/Pictures/Wallpapers/mine.png"
+put .local/state/fedokawaii/wallpaper-light "$H/.local/share/fedokawaii/wallpapers/mine.png"
 put .config/fedokawaii/vrr always
 put .local/state/wireplumber/default-nodes '[default-nodes]' 'default.configured.audio.sink=alsa_output.usb-DAC' 'default.configured.audio.source=alsa_input.usb-Mic'
 put .local/state/wireplumber/stream-properties '[stream-properties]' 'Output/Audio:media.role:Music={"volume":0.42,"mute":false}'

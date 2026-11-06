@@ -1,19 +1,26 @@
 #!/bin/bash
 # xdg-user-dirs-update of the fake Fedora: logged; its exit status from $FKH/rc-xdg-user-dirs-update (0).
-# As the real one: ~/.config/user-dirs.dirs written (--set NAME PATH: that entry; a path that is
-# your home itself is "none"), then every entry not "none" made as a folder
+# As the real one: --set NAME PATH writes that entry alone, makes nothing (a path that is your home
+# itself is "none"). With no arguments: an entry whose folder is gone becomes "none"; an entry not
+# written yet gets its default, and that folder is made
 . /usr/local/bin/_lib.sh
 fkh_log "$*"
 r=$(rcfor xdg-user-dirs-update 0); ((r == 0)) || exit "$r"
 f=$HOME/.config/user-dirs.dirs; mkdir -p "${f%/*}"
-declare -A d=([DESKTOP]=Desktop [DOWNLOAD]=Downloads [TEMPLATES]=Templates [PUBLICSHARE]=Public
+declare -A d=()
+declare -A def=([DESKTOP]=Desktop [DOWNLOAD]=Downloads [TEMPLATES]=Templates [PUBLICSHARE]=Public
               [DOCUMENTS]=Documents [MUSIC]=Music [PICTURES]=Pictures [VIDEOS]=Videos)
 if [[ -f $f ]]; then
   while IFS= read -r l; do
     [[ $l =~ ^XDG_([A-Z]+)_DIR=\"\$HOME/?(.*)\"$ ]] && d[${BASH_REMATCH[1]}]=${BASH_REMATCH[2]}
   done <"$f"
 fi
-if [[ ${1:-} == --set ]]; then p=${3#"$HOME"}; d[$2]=${p#/}; fi
+if [[ ${1:-} == --set ]]; then p=${3#"$HOME"}; d[$2]=${p#/}
+else
+  for k in "${!def[@]}"; do
+    if [[ ! -v d[$k] ]]; then d[$k]=${def[$k]}; mkdir -p "$HOME/${d[$k]}"
+    elif [[ -n ${d[$k]} && ! -d $HOME/${d[$k]} ]]; then d[$k]=""; fi
+  done
+fi
 { for k in "${!d[@]}"; do printf 'XDG_%s_DIR="$HOME/%s"\n' "$k" "${d[$k]}"; done; } | sort >"$f"
-for k in "${!d[@]}"; do [[ -n ${d[$k]} ]] && mkdir -p "$HOME/${d[$k]}"; done
 exit 0

@@ -132,7 +132,7 @@ fresh; out=$(front conf 2>&1); eq "$?" 0; has "$out" "every value is valid"
 
 # ── from a working copy on a finished install ────────────────────────────────
 copy_world() {   # $W: a working copy, made from the toolkit (its front is the same one, pointed at $R)
-  W=$TMP/home/repos/fedokawaii; mkdir -p "$W"
+  W=$TMP/home/dojo/fedokawaii; mkdir -p "$W"
   cp -a "$R/toolkit/." "$W/"
   mkdir -p "$W/.git"; cp "$R/toolkit/fedokawaii.conf" "$W/.git/fedokawaii-conf-base"
   F=$W/fedokawaii.sh

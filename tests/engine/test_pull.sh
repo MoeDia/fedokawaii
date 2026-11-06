@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/engine/test_pull.sh — fedokawaii pull: the one clone (~/repos/fedokawaii) brought to
+# tests/engine/test_pull.sh — fedokawaii pull: the one clone (~/dojo/fedokawaii) brought to
 # GitHub's newest (a local bare repository stands in for it), then the update run from it
 # through sudo, and repair when verify still finds something; a working copy made by
 # `fedokawaii copy` turned into the clone (packed first when it holds anything of yours);
@@ -8,7 +8,7 @@
 
 fresh() {
   sandbox; engine_world; stub notify-send
-  C=$HOME/repos/fedokawaii
+  C=$HOME/dojo/fedokawaii
   git config --global user.name "Kawa Tester"; git config --global user.email kawa@example.org
   git config --global init.defaultBranch main
   # GitHub: a bare repository holding the toolkit's files (its front the stand-in)
@@ -68,7 +68,7 @@ case_ "the copy's place holding something else: refused, how to go on said"
 fresh; mkdir -p "$C"; echo x >"$C/notes"
 out=$(fedokawaii pull 2>&1); eq "$?" 1; has "$out" "something else"; eq "$(front_calls)" ""
 
-case_ "setup's clone adopted (--adopt): moved to ~/repos/fedokawaii, its origin the public address — a token in it and an old one in secrets.sh dropped"
+case_ "setup's clone adopted (--adopt): moved to ~/dojo/fedokawaii, its origin the public address — a token in it and an old one in secrets.sh dropped"
 fresh; D=$HOME/fedokawaii; git clone -q "$O" "$D"
 git -C "$D" remote set-url origin "https://x-access-token:ghp_abcdefghijklmnopqrstuvwxyz0123@github.com/MoeDia/fedokawaii.git"
 S=$HOME/.config/fedokawaii/secrets.sh; mkdir -p "${S%/*}"
@@ -78,7 +78,7 @@ out=$(fedokawaii --adopt "$D" </dev/null 2>&1); eq "$?" 0 "$out"
 eq "$(git -C "$C" remote get-url origin)" "file://$O"
 lacks "$(cat "$C/.git/config")" "ghp_" "no token in .git/config"
 lacks "$(cat "$S")" "FEDOKAWAII_GITHUB_TOKEN"; has "$(cat "$S")" "PROWLARR_API_KEY=abc"; eq "$(stat -c %a "$S")" 600
-case_ "adopt declines when ~/repos/fedokawaii is a clone already (setup then tidies its folder as before)"
+case_ "adopt declines when ~/dojo/fedokawaii is a clone already (setup then tidies its folder as before)"
 D3=$HOME/third; git clone -q "$O" "$D3"
 fedokawaii --adopt "$D3" </dev/null >/dev/null 2>&1; eq "$?" 1; [[ -d $D3 ]] && _ok || _no "moved anyway"
 case_ "adopt over an uncommitted copy of the toolkit's files: replaced, nothing packed; over a changed one: packed"

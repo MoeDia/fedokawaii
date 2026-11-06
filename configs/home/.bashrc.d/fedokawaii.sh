@@ -81,8 +81,8 @@ unset -f __kawa_glass
 # The mood's head, then one short line of paper blocks, a strip of stamps — the stamp edge of each
 # reaching into the next — and only a block's colour tells what it is:
 #
-#   oni [repos/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
-#   oni [repos/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
+#   oni [dojo/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
+#   oni [dojo/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
 #
 #   head     the demon in the vermilion ink in the dark mood, the angel in sumi in the light one (the bar's crest
 #            in one ink, three cells, the line's whole height): where a command line starts;
@@ -521,7 +521,7 @@ _fzf_compgen_path() { fd --hidden --exclude .git . "$1"; }        # what **<Tab>
 _fzf_compgen_dir()  { fd --type d --hidden --exclude .git . "$1"; }
 
 # zoxide — `cd` learns the folders you go to: `cd proj` goes to the best match for "proj"
-# from anywhere (~/repos/project), `cd re pro` matches both words in order, `cdi` picks
+# from anywhere (~/dojo/project), `cd re pro` matches both words in order, `cdi` picks
 # from the list in fzf. A real path still works exactly like cd. yazi's `Z` uses the same list.
 # Its shell code is written once to ~/.cache/fedokawaii/zoxide.bash and read from there — a
 # new shell starts no extra process for it; written again after any package change (the

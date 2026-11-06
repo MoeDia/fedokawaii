@@ -111,8 +111,8 @@ https://example.com/a b?q=\"x\"&y='z'
 --enable-features=X" "(after --, Chromium takes nothing as a switch: not joined either)"
 B ''; eq "$(got | wc -l)" 8 "an empty argument kept"
 [[ ! -e nope && ! -e $TMP/nope ]] && _ok || _no "an argument ran"
-case_ "--help and --version are Helium's (not the launcher's)"
-B --help; eq "$(got | tail -n +8)" "--help"
+case_ "--version is Helium's; --help the launcher's own (Helium's only opens a manual page it does not ship)"
+rm -f "$ARGS"; has "$(B --help)" "kawa-browser"; eq "$(got)" ""
 B --version; eq "$(got | tail -n +8)" "--version"
 
 case_ "Helium's own exit status comes back"
@@ -195,7 +195,7 @@ B; eq "$(tr '\0' '|' <"$TMP/word")" "START|$TMP|$R/usr/bin/helium|" "a window"; 
 B "https://a.example/x y"; eq "$(tr '\0' '|' <"$TMP/word")" "START|$TMP|$R/usr/bin/helium|https://a.example/x y|" "a link"
 B --app=https://open.spotify.com; eq "$(tr '\0' '|' <"$TMP/word")" "START|$TMP|$R/usr/bin/helium|--app=https://open.spotify.com|" "a web app"
 case_ "…what asks for its own profile, a port, a batch job or the program's answers goes as it is"
-for a in --user-data-dir=/x --headless --remote-debugging-port=0 --version --help --dump-dom; do
+for a in --user-data-dir=/x --headless --remote-debugging-port=0 --version --dump-dom; do
   rm -f "$ARGS"; B "$a"; has "$(got)" "$a" "$a: started"
 done
 case_ "…the browser gone with its socket left (a crash): started anew, not lost"

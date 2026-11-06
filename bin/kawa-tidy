@@ -4,8 +4,8 @@
 # desktop left behind, every cache within its limit, old temporary files aged out.
 #
 #   kawa-tidy              the tidy, in this order: the moves below; the standard folders the
-#                          desktop does not use (Desktop, Public, Templates) taken away while
-#                          empty; the leftovers below; systemd-tmpfiles' ageing of ~/.cache
+#                          desktop does not use (Desktop, Documents, Music, Pictures, Public,
+#                          Templates, Videos) taken away while empty; the leftovers below; systemd-tmpfiles' ageing of ~/.cache
 #                          (~/.config/user-tmpfiles.d/fedokawaii.conf); each cache over its
 #                          limit trimmed, the way the table below says
 #   kawa-tidy --weekly     the same, when the last tidy is a week old (kawa-tidy.timer asks
@@ -19,8 +19,9 @@
 #                          Exit 0 all is in place, 1 something is not (named)
 #
 # Never touched: anything you made. A move goes only where nothing is yet (two histories are
-# joined, yours first); a folder already in both places stays and is named by --check
-# dotfiles; a standard folder with something in it stays; only the exact leftovers listed
+# joined, yours first; your home's old folders are poured into the new ones, a name taken there
+# stays where it was, named by --check leftovers); a folder already in both places stays and is
+# named by --check dotfiles; a standard folder with something in it stays; only the exact leftovers listed
 # below go; a cache is only ever a cache (made again when needed).
 # Exit: 0 done · 1 something could not be done (said) · 2 wrong use.
 # shellcheck disable=SC2088  # (a ~ in a message is the reader's: never expanded)
@@ -46,6 +47,13 @@ MOVES=(
   ".visidata|$VD_DIR|dir"
   ".npm|$NPM_CONFIG_CACHE|cache"
 )
+# your home's old folders (lib/common.sh: HOME_MOVES) → the new ones: renamed whole while nothing
+# is there yet (~/Downloads, a subvolume, stays one), else poured in file by file
+# shellcheck source=/dev/null disable=SC2034  # (LOG_FILE is read by common.sh)
+home_moves() { (LOG_FILE=/dev/null; . "$TK/lib/common.sh" >/dev/null && printf '%s\n' "${HOME_MOVES[@]}"); }
+mapfile -t HOME_TABLE < <(home_moves)
+((${#HOME_TABLE[@]})) || { echo "kawa-tidy: $TK/lib/common.sh cannot be read — fedokawaii repair puts it back" >&2; exit 1; }
+for e in "${HOME_TABLE[@]}"; do MOVES+=("${e%%|*}|$HOME/${e#*|}|into"); done
 NPM_OWN=(_cacache _npx _logs _update-notifier-last-checked _prebuilds)
 # what may stay at the top of your home, and why (anything else is named by --check dotfiles)
 ALLOWED=(
@@ -69,7 +77,7 @@ LEFTOVERS=(
 )
 # the standard folders the desktop does not use: set to your home in ~/.config/user-dirs.dirs
 # (xdg-user-dirs' "none"), so nothing makes them again (setup.sh: user_dirs)
-UNUSED_DIRS=(Desktop Public Templates)
+UNUSED_DIRS=(Desktop Documents Music Pictures Public Templates Videos)
 # the caches: PATH|LIMIT (MB)|HOW|what — clear: emptied when over; oldest: the oldest files out
 # until under 80 % of it; uv: uv cache prune (what no environment uses), then emptied if still
 # over; browser: emptied when over and the browser is closed; own: the program keeps it within its
@@ -91,6 +99,19 @@ say() { printf '%s\n' "$*"; SAID=1; }
 mb() { du -sm --apparent-size -- "$1" 2>/dev/null | cut -f1; }   # (the files' own sizes: what Btrfs compresses is still that much to a program)
 tilde() { printf '%s' "${1/#$HOME/\~}"; }
 
+follow() {   # follow OLD NEW — what remembers a path by name: the wallpaper set, zathura's pages
+  local f db=${XDG_DATA_HOME:-$HOME/.local/share}/zathura/bookmarks.sqlite
+  for f in "$STATE"/wallpaper-*; do [[ -f $f ]] && sed -i "s|^$1/|$2/|" -- "$f"; done
+  [[ -f $db ]] || return 0
+  python3 -I -B - "$db" "$1/" "$2/" <<'SQL_END'
+import sqlite3, sys
+db, old, new = sys.argv[1:]
+c = sqlite3.connect(db)
+for table in ("bookmarks", "fileinfo", "jumplist", "quickmarks"):
+    c.execute(f"UPDATE OR IGNORE {table} SET file = ? || substr(file, ?) WHERE substr(file, 1, ?) = ?", (new, len(old) + 1, len(old), old))
+c.commit()
+SQL_END
+}
 moves() {
   local e old new how f rc=0
   for e in "${MOVES[@]}"; do
@@ -107,6 +128,19 @@ moves() {
         [[ -e $new ]] && continue                     # (in both places: --check dotfiles names it)
         mkdir -p -- "${new%/*}" && mv -- "$old" "$new" || { rc=1; continue; }
         say "$(tilde "$old") → $(tilde "$new")" ;;
+      into)
+        if [[ ! -e $new ]]; then
+          mkdir -p -- "${new%/*}" && mv -T -- "$old" "$new" || { rc=1; continue; }
+        else
+          for f in "$old"/* "$old"/.[!.]* "$old"/..?*; do
+            [[ -e $f || -L $f ]] || continue
+            [[ -e $new/${f##*/} || -L $new/${f##*/} ]] && continue   # (the name taken: --check leftovers names the folder)
+            mv -- "$f" "$new/" || rc=1
+          done
+          rmdir -- "$old" 2>/dev/null
+        fi
+        follow "$old" "$new" || rc=1
+        say "$(tilde "$old") → $(tilde "$new")" ;;
       cache)
         for f in "${NPM_OWN[@]}"; do rm -rf -- "${old:?}/$f"; done
         rmdir -- "$old" 2>/dev/null && say "$(tilde "$old") (npm's cache) gone: npm keeps it in $(tilde "$new")" ;;
@@ -114,10 +148,11 @@ moves() {
   done
   return "$rc"
 }
-disabled() {   # disabled NAME — the folder is set to your home in user-dirs.dirs (none)
-  local key
-  case $1 in Desktop) key=DESKTOP ;; Public) key=PUBLICSHARE ;; Templates) key=TEMPLATES ;; esac
-  grep -qxE "XDG_${key}_DIR=\"(\\\$HOME/?|${HOME//./\\.}/?)\"" "$XDG_CONFIG_HOME/user-dirs.dirs" 2>/dev/null
+disabled() {   # disabled NAME — user-dirs.dirs sets that entry elsewhere: to your home (none), or ~/captures
+  local key v
+  case $1 in Public) key=PUBLICSHARE ;; *) key=${1^^} ;; esac
+  v=$(sed -n "s/^XDG_${key}_DIR=\"\(.*\)\"$/\1/p" "$XDG_CONFIG_HOME/user-dirs.dirs" 2>/dev/null); v=${v%/}
+  [[ -n $v && $v != "\$HOME/$1" && $v != "$HOME/$1" ]]
 }
 unused_dirs() {
   local d
@@ -200,7 +235,7 @@ check() {
         if [[ -z $(ls -A -- "$HOME/$n") ]]; then echo "~/$n: empty, made for nothing — kawa-tidy takes it away"; bad=1
         else echo "~/$n: yours (something is in it), kept"; fi
       done
-      ((bad)) || echo "no folder made for nothing (Desktop, Public, Templates: none)" ;;
+      ((bad)) || echo "no folder made for nothing (${UNUSED_DIRS[*]}: none)" ;;
     caches)
       for e in "${CACHES[@]}"; do
         IFS='|' read -r p lim how what <<<"$e"

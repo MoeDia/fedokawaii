@@ -803,7 +803,7 @@ done
 # something (a room given with -r, its window's settings). So only what is missing or empty
 # is filled in here: Syncplay's public server (syncplay.pl, port 8999, its default), your
 # login name, a room of your own (name-xxxx: tell it to your friends, or agree on another),
-# mpv as the player, ~/Videos and ~/Downloads to find the room's file in by its name, and no
+# mpv as the player, ~/downloads to find the room's file in by its name, and no
 # update checks (dnf brings new versions), and its words on the film (chat, "connected to…")
 # in mpv's own on-screen font — Syncplay's default, sans-serif, counts as unset, so they never
 # change font a second after the film opens (mpv's script-opts/syncplayintf.conf sets the same
@@ -818,7 +818,7 @@ path, user, home, check = sys.argv[1], sys.argv[2], sys.argv[3], sys.argv[4] == 
 want = {("server_data", "host"): "syncplay.pl", ("server_data", "port"): "8999",
         ("client_settings", "name"): user, ("client_settings", "room"): f"{user}-{secrets.token_hex(2)}",
         ("client_settings", "playerpath"): "/usr/bin/mpv",
-        ("client_settings", "mediasearchdirectories"): repr([home + "/Videos", home + "/Downloads"]),
+        ("client_settings", "mediasearchdirectories"): repr([home + "/downloads"]),
         ("general", "checkforupdatesautomatically"): "False",
         ("gui", "chatinputfontfamily"): "UDEV Gothic NF", ("gui", "chatoutputfontfamily"): "UDEV Gothic NF"}
 cfg = configparser.RawConfigParser(strict=False)        # (as Syncplay reads it: a doubled %% stays)
@@ -1052,10 +1052,9 @@ GLASS=$STATE/foot-glass.ini
 [[ -f $GLASS ]] || uinstall 0644 <(printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini — the terminal's see-through ground (kawa-glass;" \
   "# Super+U → transparency). 1 is opaque. Read by foot.ini's last include." \
   "[colors-dark]" "alpha=0.96" "[colors-light]" "alpha=0.96") "$GLASS"
-# (~/repos: where your projects go — and where Agents, herdr, opens: its launcher entry
+# (~/dojo: where your projects go — and where Agents, herdr, opens: its launcher entry
 # starts there, and a window cannot start in a folder that is not)
-U mkdir -p "$TARGET_HOME/Pictures/Wallpapers" "$TARGET_HOME/Pictures/Screenshots" "$TARGET_HOME/.local/share/fedokawaii" \
-  "$TARGET_HOME/repos"
+U mkdir -p "$TARGET_HOME/.local/share/fedokawaii/wallpapers" "${HOME_DIRS[@]/#/$TARGET_HOME/}"
 # the drawn wallpaper and the old lock's picture, from before (the wallpapers are the pack's
 # and your own, at full quality; the lock draws its own): their files go
 U rm -f "$TARGET_HOME"/.local/share/fedokawaii/{dark,light}/{pattern,scene,lock}.{xpm,png} \

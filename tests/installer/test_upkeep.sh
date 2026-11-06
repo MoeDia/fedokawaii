@@ -177,11 +177,11 @@ called "dracut\\] -f --kver $(uname -r)"; [[ -s $W/boot/initramfs-$(uname -r).im
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "$(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"
 case_ "repair, on the owner's machine as found (19 Oct): root's file in the home (an older report's), the first-start report's unit gone — handed back, put back and enabled; verify passes"
 back built
-fk bash -c 'mkdir -p /home/fkuser/Downloads; echo old >/home/fkuser/Downloads/fedokawaii-report.txt; chown 0:0 /home/fkuser/Downloads/fedokawaii-report.txt'
+fk bash -c 'mkdir -p /home/fkuser/downloads; echo old >/home/fkuser/downloads/fedokawaii-report.txt; chown 0:0 /home/fkuser/downloads/fedokawaii-report.txt'
 rm -f "$W/etc/systemd/system/fedokawaii-report.service"; sed -i '/^enabled fedokawaii-report\.service$/d' "$FKH/units"
-fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘  files in your home that are not yours: root ~/Downloads/fedokawaii-report.txt"; has "$OUT" "✘  the health report runs once, on the first start"
+fkrun bash "$TK/verify.sh"; eq "$RC" 3; has "$OUT" "✘  files in your home that are not yours: root ~/downloads/fedokawaii-report.txt"; has "$OUT" "✘  the health report runs once, on the first start"
 tk --repair
-eq "$(fk stat -c %U /home/fkuser/Downloads/fedokawaii-report.txt)" fkuser "the file handed back"
+eq "$(fk stat -c %U /home/fkuser/downloads/fedokawaii-report.txt)" fkuser "the file handed back"
 has "$OUT" "your home: 1 file(s) of root's handed back to you"
 has "$(cat "$W/etc/systemd/system/fedokawaii-report.service" 2>/dev/null)" "ExecStart=/usr/local/bin/fedokawaii-report --boot"
 grep -qx 'enabled fedokawaii-report.service' "$FKH/units" && _ok || _no "the report's unit not enabled"
@@ -301,7 +301,7 @@ back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snappe
 reset_calls; tk --home-snapshots; eq "$?" 0
 called 'snapper\] --no-dbus -c home create-config /home'; called 'snapper\] --no-dbus -c home set-config'
 [[ -f $W/etc/snapper/configs/home ]] && _ok || _no "no config for /home"
-u=$(<"$W/etc/systemd/system/fedokawaii-home-snapshots.service")
+u=$(<"$REPO/setup.sh")   # (the unit as setup writes it: this fake machine is flat already, s_layout's step has nothing to arm)
 has "$u" 'ConditionPathIsMountPoint=/home'; has "$u" 'ConditionPathExists=!/etc/snapper/configs/home'; has "$u" 'Before=fedokawaii-report.service'
 case_ "repair before setup's own end made the snapshot configs: the missing one made (/home too), an existing one never again"
 back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snapper-configs"
@@ -398,15 +398,15 @@ has "$OUT" "~/src/fedokawaii-main.zip removed: the download it came from"; has "
 [[ ! -e $W$H/src && -x $W$TK/setup.sh ]] && _ok || _no "left: $(ls -A "$W$H/src" 2>&1)"
 r=$(grep -n 'removed: the toolkit' <<<"$OUT" | cut -d: -f1); l=$(grep -n 'sound (PipeWire' <<<"$OUT" | head -n1 | cut -d: -f1)   # (its own line; the summary after names it again)
 [[ -n $r && -n $l ]] && ((r > l)) && _ok || _no "removed at line [$r], the last repair (sound) at [$l]"
-case_ "update started from a clone in your home: gone at its end too; ~/Downloads, where its zip was, stays"
-back built; clone_at $H/fedokawaii; mkdir -p "$W$H/Downloads"; : >"$W$H/Downloads/fedokawaii.zip"; older "$W$H/Downloads/fedokawaii.zip"; chown -R "$FK_UID:$FK_UID" "$W$H/Downloads"
+case_ "update started from a clone in your home: gone at its end too; ~/downloads, where its zip was, stays"
+back built; clone_at $H/fedokawaii; mkdir -p "$W$H/downloads"; : >"$W$H/downloads/fedokawaii.zip"; older "$W$H/downloads/fedokawaii.zip"; chown -R "$FK_UID:$FK_UID" "$W$H/downloads"
 fkrun bash $H/fedokawaii/setup.sh --update
-[[ ! -e $W$H/fedokawaii && ! -e $W$H/Downloads/fedokawaii.zip && -d $W$H/Downloads && -d $W$H ]] && _ok || _no "the clone or its zip left (or Downloads, your home gone)"
+[[ ! -e $W$H/fedokawaii && ! -e $W$H/downloads/fedokawaii.zip && -d $W$H/downloads && -d $W$H ]] && _ok || _no "the clone or its zip left (or downloads, your home gone)"
 has "$OUT" "~/fedokawaii removed"
-case_ "…a newer download of it in ~/Downloads (fetched since): it stays"
-back built; clone_at $H/fedokawaii; mkdir -p "$W$H/Downloads"; : >"$W$H/Downloads/fedokawaii.zip"; touch -d '1 hour' "$W$H/Downloads/fedokawaii.zip"; chown -R "$FK_UID:$FK_UID" "$W$H/Downloads"
+case_ "…a newer download of it in ~/downloads (fetched since): it stays"
+back built; clone_at $H/fedokawaii; mkdir -p "$W$H/downloads"; : >"$W$H/downloads/fedokawaii.zip"; touch -d '1 hour' "$W$H/downloads/fedokawaii.zip"; chown -R "$FK_UID:$FK_UID" "$W$H/downloads"
 fkrun bash $H/fedokawaii/setup.sh --repair
-[[ ! -e $W$H/fedokawaii && -f $W$H/Downloads/fedokawaii.zip ]] && _ok || _no "the newer download went (or the clone stayed)"
+[[ ! -e $W$H/fedokawaii && -f $W$H/downloads/fedokawaii.zip ]] && _ok || _no "the newer download went (or the clone stayed)"
 case_ "fedokawaii apply from your own git clone (--toolkit, the copy kept elsewhere): the clone is never removed"
 back built; clone_at $H/code/fedokawaii
 mkdir -p "$W$H/code/fedokawaii/tools/__pycache__"; : >"$W$H/code/fedokawaii/tools/__pycache__/x.cpython-314.pyc"
@@ -421,21 +421,21 @@ gitrepo() {   # gitrepo DIR — DIR a git repository with everything committed a
     && git init -q --bare "$W$H/origin.git" && "${g[@]}" remote add origin "$W$H/origin.git" && "${g[@]}" push -q origin main
   chown -R "$FK_UID:$FK_UID" "$W$1" "$W$H/origin.git"; fkh real-git
 }
-case_ "repair from a clone of GitHub's, with no clone in ~/repos yet: moved there whole (its history, a branch of yours) — the one clone fedokawaii pull updates"
+case_ "repair from a clone of GitHub's, with no clone in ~/dojo yet: moved there whole (its history, a branch of yours) — the one clone fedokawaii pull updates"
 back built; clone_at $H/fedokawaii; gitrepo $H/fedokawaii
 g=(git -c safe.directory='*' -c user.name=t -c user.email=t@t -C "$W$H/fedokawaii")
 "${g[@]}" branch mine; chown -R "$FK_UID:$FK_UID" "$W$H/fedokawaii"
 fkrun bash $H/fedokawaii/setup.sh --repair
-has "$OUT" "~/fedokawaii moved to ~/repos/fedokawaii"
-[[ ! -e $W$H/fedokawaii && -f $W$H/repos/fedokawaii/setup.sh ]] && _ok || _no "not moved into place"
-git -c safe.directory='*' -C "$W$H/repos/fedokawaii" rev-parse -q --verify mine >/dev/null && _ok || _no "the branch did not move with it"
+has "$OUT" "~/fedokawaii moved to ~/dojo/fedokawaii"
+[[ ! -e $W$H/fedokawaii && -f $W$H/dojo/fedokawaii/setup.sh ]] && _ok || _no "not moved into place"
+git -c safe.directory='*' -C "$W$H/dojo/fedokawaii" rev-parse -q --verify mine >/dev/null && _ok || _no "the branch did not move with it"
 lacks "$OUT" "removed: the toolkit has all of it"
-case_ "repair from a second clone, ~/repos/fedokawaii a clone already: a branch of yours not pushed — packed first, then removed"
+case_ "repair from a second clone, ~/dojo/fedokawaii a clone already: a branch of yours not pushed — packed first, then removed"
 back built; clone_at $H/fedokawaii; gitrepo $H/fedokawaii
-# (the clone already in ~/repos: a copy of this one as pushed — copied, not cloned: git out here
+# (the clone already in ~/dojo: a copy of this one as pushed — copied, not cloned: git out here
 # refuses to read the fake user's origin.git, an owner it does not know)
-mkdir -p "$W$H/repos"; cp -a "$W$H/fedokawaii" "$W$H/repos/fedokawaii"; chown -R "$FK_UID:$FK_UID" "$W$H/repos"
-grep -q '^\[remote "origin"\]' "$W$H/repos/fedokawaii/.git/config" && _ok || _no "the fixture's clone in ~/repos has no origin"
+mkdir -p "$W$H/dojo"; cp -a "$W$H/fedokawaii" "$W$H/dojo/fedokawaii"; chown -R "$FK_UID:$FK_UID" "$W$H/dojo"
+grep -q '^\[remote "origin"\]' "$W$H/dojo/fedokawaii/.git/config" && _ok || _no "the fixture's clone in ~/dojo has no origin"
 g=(git -c safe.directory='*' -c user.name=t -c user.email=t@t -C "$W$H/fedokawaii")
 "${g[@]}" checkout -qb mine && echo idea >"$W$H/fedokawaii/idea.txt" && "${g[@]}" add idea.txt && "${g[@]}" commit -qm idea && "${g[@]}" checkout -q main
 rm -f "$W$H/fedokawaii/idea.txt"; chown -R "$FK_UID:$FK_UID" "$W$H/fedokawaii"
@@ -460,10 +460,10 @@ back built; clone_at $H/stuff; echo mine >"$W$H/stuff/my-notes.txt"; chown "$FK_
 fkrun bash $H/stuff/setup.sh --repair
 [[ -f $W$H/stuff/my-notes.txt && ! -e $W$H/stuff/setup.sh && ! -e $W$H/stuff/lib ]] && _ok || _no "in it now: $(ls "$W$H/stuff" | tr '\n' ' ')"
 has "$OUT" "~/stuff: the project's files removed; the rest is yours and stays (my-notes.txt)"
-case_ "the project unpacked straight into ~/Downloads (a standard folder): nothing removed, said"
-back built; clone_at $H/Downloads
-fkrun bash $H/Downloads/setup.sh --repair
-[[ -f $W$H/Downloads/setup.sh ]] && _ok || _no "removed from ~/Downloads"; has "$OUT" "~/Downloads kept: it is one of your standard folders"
+case_ "the project unpacked straight into ~/downloads (a standard folder): nothing removed, said"
+back built; clone_at $H/downloads
+fkrun bash $H/downloads/setup.sh --repair
+[[ -f $W$H/downloads/setup.sh ]] && _ok || _no "removed from ~/downloads"; has "$OUT" "~/downloads kept: it is one of your standard folders"
 case_ "repair on Fedora's one-subvolume layout: a snapshot first, then the split armed for the next start (the link itself: test_split and the VM — this fake machine's / is not its own)"
 back built; touch "$FKH/nested"; reset_calls; tk --repair
 called "snapper\] -c root create -t single .*before the disk's new layout"; has "$OUT" "/usr/local/sbin/fedokawaii-split arm"

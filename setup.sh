@@ -1818,16 +1818,16 @@ torrents_up() {
   torrra_out
 }
 
-# ~/Downloads as its own btrfs subvolume, so /home's snapshots leave it out: the space of
+# ~/downloads as its own btrfs subvolume, so /home's snapshots leave it out: the space of
 # a deleted download comes back at once, not when the last snapshot holding it expires.
 # Made only while the folder is still empty (and before snapper's /home config exists).
 downloads_subvolume() {
-  local d=$TARGET_HOME/Downloads mode=755
+  local d=$TARGET_HOME/$DIR_DOWNLOADS mode=755
   [[ $(stat -f -c %T "$TARGET_HOME") == btrfs ]] && command -v btrfs >/dev/null || return 0
   btrfs subvolume show "$d" >/dev/null 2>&1 && return 0
   if [[ -e $d ]]; then
     mode=$(stat -c %a "$d")
-    as_user rmdir -- "$d" 2>/dev/null || { log "your Downloads folder already holds files — it stays inside /home's snapshots"; return 0; }
+    as_user rmdir -- "$d" 2>/dev/null || { log "your downloads folder already holds files — it stays inside /home's snapshots"; return 0; }
   fi
   # made by you (a subvolume is yours to make in your own folder): root touches nothing there
   run as_user btrfs subvolume create "$d"
@@ -1949,21 +1949,24 @@ ExternalSizeMax=1G
 ProcessSizeMax=1G
 EOF
   run journalctl --vacuum-size=500M
-  user_dirs
   run as_user bash "$REPO_DIR/bin/kawa-tidy" --move
+  user_dirs
 }
 install_home_env() { install -D -m 0644 "$REPO_DIR/system/fedokawaii-home.sh" /etc/profile.d/fedokawaii-home.sh; }
-# user_dirs — the standard folders the desktop uses (Documents, Downloads, Music, Pictures,
-# Videos: xdg-user-dirs). Desktop, Public and Templates are set to your home itself, the
-# spec's "none", so no program makes them again; kawa-tidy takes one away while it is empty
-# (one with something in it is yours: it stays, and keeps its name)
+# user_dirs — your home's folders (lib/common.sh: HOME_DIRS), and xdg-user-dirs told: a program's
+# downloads go to ~/downloads, its pictures and videos to ~/captures. The other standard folders
+# are set to your home itself, the spec's "none", so no program makes them again; kawa-tidy takes
+# one away while it is empty (one with something in it is yours: it stays, and keeps its name).
+# The folders first: xdg-user-dirs-update resets an entry whose folder is not there to "none"
 user_dirs() {
   local e d
-  for e in DESKTOP:Desktop PUBLICSHARE:Public TEMPLATES:Templates; do
+  for d in "${HOME_DIRS[@]}"; do run as_user mkdir -p "$TARGET_HOME/$d"; done
+  for e in "${HOME_XDG_NONE[@]}"; do
     d=$TARGET_HOME/${e#*:}
     [[ -d $d && -n $(ls -A -- "$d" 2>/dev/null) ]] && continue
     run as_user xdg-user-dirs-update --set "${e%%:*}" "$TARGET_HOME"
   done
+  for e in "${HOME_XDG[@]}"; do run as_user xdg-user-dirs-update --set "${e%%:*}" "$TARGET_HOME/${e#*:}"; done
   run as_user xdg-user-dirs-update
 }
 # neovim's plugins at the commits of the desktop's own lazy-lock.json (configs/home/.config/nvim:
@@ -2385,14 +2388,14 @@ dnf_unneeded_out() {   # dependencies nothing needs any more (a build step's, a 
 # started from (your clone of the project, or where you unpacked a download) goes — the
 # toolkit holds all of it now, and `fedokawaii copy` makes a working copy whenever you want to
 # change something — with the download it came from (NAME.zip or NAME.tar.gz beside it or in
-# ~/Downloads, unless that one is newer) and the folder it stood in when that is left empty.
+# ~/downloads, unless that one is newer) and the folder it stood in when that is left empty.
 # Nothing of yours goes with it:
 #   · anything that may be your own — files that differ from the toolkit, a fedokawaii.conf
 #     changed after the run read it, in git a change, an untracked file, a stash, a commit on
 #     any branch or a tag not on GitHub — and the whole folder is first packed into
 #     ~/.local/state/fedokawaii/started-from-TIME.tar.gz (should that fail, nothing is removed)
 #   · a folder that is not the project's alone (other things beside the project's files, as
-#     when a download was unpacked straight into ~/Downloads): only the project's own files go
+#     when a download was unpacked straight into ~/downloads): only the project's own files go
 #   · never: a working copy (`fedokawaii copy`'s, or git with other worktrees), a standard
 #     folder, a mount point, the toolkit, anything outside your home
 # Everything is removed as you, never as root: nothing can lead it outside your home.
@@ -2404,24 +2407,23 @@ clone_done() {
   rm -f "$STATE_DIR/started-from"; STARTED_FROM=""
   [[ -n $d && -d $d && ! -L $d && $d == "$TARGET_HOME"/?* && $d != "$TOOLKIT" ]] || return 0
   [[ -f $d/setup.sh && -f $d/fedokawaii.sh && -f $d/lib/manifest.sh ]] || return 0
-  case ${d#"$TARGET_HOME"/} in
-    Documents|Downloads|Music|Pictures|Videos|Books|Notes|repos|Drives)
-      log "${d/#$TARGET_HOME/\~} kept: it is one of your standard folders — the project's files in it are yours to tidy"; return 0 ;;
-  esac
+  if home_folder "${d#"$TARGET_HOME"/}"; then
+    log "${d/#$TARGET_HOME/\~} kept: it is one of your standard folders — the project's files in it are yours to tidy"; return 0
+  fi
   if mountpoint -q -- "$d" || [[ -n $(find "$d" -mindepth 1 -xdev -type d -exec mountpoint -q {} \; -print -quit 2>/dev/null) ]]; then
     log "${d/#$TARGET_HOME/\~} kept: a drive is mounted in it"; return 0
   fi
-  if [[ $d == "$TARGET_HOME/repos/fedokawaii" || -f $d/.git/fedokawaii-conf-base ]]; then
+  if [[ $d == "$TARGET_HOME/$DIR_DOJO/fedokawaii" || -f $d/.git/fedokawaii-conf-base ]]; then
     log "${d/#$TARGET_HOME/\~} kept: it is your working copy (fedokawaii copy)"; return 0
   fi
   # (moved, another worktree of it would lose its way: kept where it is)
   if [[ -e $d/.git ]] && (($(as_user git -C "$d" worktree list 2>/dev/null | wc -l) > 1)); then
     log "${d/#$TARGET_HOME/\~} kept: git has other worktrees of it"; return 0
   fi
-  # a clone of GitHub's repository (git knows its origin) becomes ~/repos/fedokawaii — the one
+  # a clone of GitHub's repository (git knows its origin) becomes ~/dojo/fedokawaii — the one
   # clone fedokawaii pull keeps current, never cloned again by hand (fedokawaii --adopt, as you:
   # an older working copy there packed first; its address set to the public repository's, no
-  # token). ~/repos/fedokawaii a clone already: this one goes, below
+  # token). ~/dojo/fedokawaii a clone already: this one goes, below
   if [[ -d $d/.git && ! -L $d/.git ]] && as_user git -C "$d" remote get-url origin >/dev/null 2>&1 \
      && as_user /usr/local/bin/fedokawaii --adopt "$d"; then
     [[ $REPO_DIR != "$d" ]] || REPO_DIR=$TOOLKIT
@@ -2454,7 +2456,7 @@ clone_done() {
   name=${d##*/} parent=${d%/*}
   local downloads=() unpacked
   unpacked=$(stat -c %Z -- "$d")
-  for a in "$parent/$name".{zip,tar.gz,tgz} "$TARGET_HOME/Downloads/$name".{zip,tar.gz,tgz}; do
+  for a in "$parent/$name".{zip,tar.gz,tgz} "$TARGET_HOME/$DIR_DOWNLOADS/$name".{zip,tar.gz,tgz}; do
     [[ -f $a && ! -L $a ]] && (($(stat -c %Y -- "$a") <= unpacked)) && downloads+=("$a")
   done
   if [[ -n $why ]]; then
@@ -2483,9 +2485,9 @@ clone_done() {
     as_user rm -f -- "$a" && log "${a/#$TARGET_HOME/\~} removed: the download it came from"
   done
   # the folder it stood in, now empty: gone too — never your home, a hidden one, or one of
-  # the desktop's standard folders (Downloads, Documents…, ~/repos, ~/Drives — never Desktop,
-  # Public or Templates: none on this desktop, user_dirs)
-  case ${parent##*/} in Documents|Downloads|Music|Pictures|Videos|Books|Notes|repos|Drives|.*) return 0 ;; esac
+  # the desktop's standard folders (~/downloads, ~/dojo…, ~/Drives — never Desktop, Public or
+  # Templates: none on this desktop, user_dirs)
+  { [[ ${parent##*/} == .* ]] || home_folder "${parent##*/}"; } && return 0
   if [[ $parent != "$TARGET_HOME" && -d $parent && ! -L $parent && -z $(ls -A -- "$parent") ]]; then
     as_user rmdir -- "$parent" && log "${parent/#$TARGET_HOME/\~} removed: empty once it was gone"
   fi
@@ -3228,14 +3230,14 @@ r_user() {       # the user's session plumbing: linger and its stop, the bus, gr
   as_user systemctl --user reset-failed || true
 }
 # home_back — files of root's in your home handed back to you (a program once run as root with
-# your HOME: an older health report wrote ~/Downloads/fedokawaii-report.txt so). podman's
+# your HOME: an older health report wrote ~/downloads/fedokawaii-report.txt so). podman's
 # storage keeps its containers' own ids; nothing outside your home, no link followed: find
 # walks it itself, and -execdir changes each file from its own folder
-# (~/Downloads and ~/.cache may be Btrfs subvolumes of their own, where -xdev stops: each is
-# walked too — verify's own starts; the report it once missed was ~/Downloads')
+# (~/downloads and ~/.cache may be Btrfs subvolumes of their own, where -xdev stops: each is
+# walked too — verify's own starts; the report it once missed was ~/downloads')
 home_back() {
   local n d starts=("$TARGET_HOME")
-  for d in .cache Downloads; do [[ -d $TARGET_HOME/$d && ! -L $TARGET_HOME/$d ]] && starts+=("$TARGET_HOME/$d"); done
+  for d in .cache "$DIR_DOWNLOADS"; do [[ -d $TARGET_HOME/$d && ! -L $TARGET_HOME/$d ]] && starts+=("$TARGET_HOME/$d"); done
   n=$(find "${starts[@]}" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 -print 2>/dev/null | sort -u | grep -c .) || true
   ((n)) || return 0
   find "${starts[@]}" -xdev -path "$TARGET_HOME/.local/share/containers/storage" -prune -o -user 0 \

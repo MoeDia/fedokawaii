@@ -353,6 +353,26 @@ as_user() {
     DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$TARGET_UID/bus" \
     "${_HOME_ENV[@]}" "$@"
 }
+# the folders of your home, all lower-case, the bare minimum: downloads; captures (screenshots
+# and recordings); notes (Super+N); books (Super+R); dojo (your projects, the lessons' exercises)
+DIR_DOWNLOADS=downloads DIR_CAPTURES=captures DIR_NOTES=notes DIR_BOOKS=books DIR_DOJO=dojo
+HOME_DIRS=("$DIR_DOWNLOADS" "$DIR_CAPTURES" "$DIR_NOTES" "$DIR_BOOKS" "$DIR_DOJO")
+# shellcheck disable=SC2034  # (for the scripts that source this file)
+# xdg-user-dirs: KEY:FOLDER the programs are told, and KEY:NAME of each standard folder that does
+# not exist here (set to your home itself: the spec's "none", so nothing makes it again)
+HOME_XDG=("DOWNLOAD:$DIR_DOWNLOADS" "PICTURES:$DIR_CAPTURES" "VIDEOS:$DIR_CAPTURES")
+# shellcheck disable=SC2034  # (for the scripts that source this file)
+HOME_XDG_NONE=(DESKTOP:Desktop PUBLICSHARE:Public TEMPLATES:Templates DOCUMENTS:Documents MUSIC:Music)
+# an existing home's folders → where they go now, OLD|NEW (kawa-tidy moves them)
+HOME_MOVES=("Downloads|$DIR_DOWNLOADS" "Notes|$DIR_NOTES" "Books|$DIR_BOOKS" "repos|$DIR_DOJO"
+  "Pictures/Screenshots|$DIR_CAPTURES" "Videos/Recordings|$DIR_CAPTURES"
+  "Pictures/Sketches|$DIR_NOTES/sketches" "Pictures/Wallpapers|.local/share/fedokawaii/wallpapers")
+# home_folder NAME — one of those folders, in its new name or its old one (never a project's own)
+home_folder() {
+  local e
+  for e in "${HOME_DIRS[@]}" "${HOME_MOVES[@]%%[/|]*}" Documents Music Drives; do [[ $1 == "$e" ]] && return 0; done
+  return 1
+}
 # home_env HOME → NAME=VALUE, one a line: the variables of system/fedokawaii-home.sh (the XDG
 # folders, CARGO_HOME, the history files…) for that home — what every shell and the session
 # have, so a program setup runs as you (rustup, npm, uv) puts its files where yours would

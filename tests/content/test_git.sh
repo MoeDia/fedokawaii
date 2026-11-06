@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/content/test_git.sh — kawa-git, the launcher's Git: the repositories in ~/repos and the
+# tests/content/test_git.sh — kawa-git, the launcher's Git: the repositories in ~/dojo and the
 # home (real git, real fd), the last used first, none from hidden folders; the picker a §7
 # screen whose Enter opens lazygit in the chosen one; with none, the screen that says how to
 # get one — c clones (a real clone, from a local repository), n starts one (git init) — and
@@ -30,28 +30,28 @@ hdr() { kawa-git --heading "$1" 76 | head -n1; }                            # hd
 plain() { sed 's/\x1b\[[0-9;]*m//g'; }
 
 setup
-repo "$HOME/repos/old" '-5 days'
-repo "$HOME/repos/new" '-1 hour'
-repo "$HOME/repos/group/deep" '-2 days'
+repo "$HOME/dojo/old" '-5 days'
+repo "$HOME/dojo/new" '-1 hour'
+repo "$HOME/dojo/group/deep" '-2 days'
 repo "$HOME/project" '-3 days'
 repo "$HOME/.cache/tool/src" '-1 minute'               # (a tool's, in a hidden folder)
 repo "$HOME/.local/share/nvim/lazy/plugin" '-1 minute'
-mkdir -p "$HOME/repos/notone/sub"
-"$GIT" -C "$HOME/repos/new" checkout -q -b feature
+mkdir -p "$HOME/dojo/notone/sub"
+"$GIT" -C "$HOME/dojo/new" checkout -q -b feature
 
-case_ "--list: every repository in ~/repos and the home, the last used first; none in hidden folders, each once"
-eq "$(kawa-git --list | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/repos/new ~/repos/group/deep ~/project ~/repos/old "
+case_ "--list: every repository in ~/dojo and the home, the last used first; none in hidden folders, each once"
+eq "$(kawa-git --list | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/dojo/new ~/dojo/group/deep ~/project ~/dojo/old "
 
 case_ "the picker: a §7 screen — the branch icon, repositories, a row each with its branch — Enter opens lazygit in the one chosen"
-echo "$HOME/repos/new" >"$TMP/fzf.pick"
-out=$(run); eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/repos/new"
+echo "$HOME/dojo/new" >"$TMP/fzf.pick"
+out=$(run); eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/dojo/new"
 args=$(cat "$TMP/fzf.args.1")
 heading_ok "$(hdr list)" 76
 lacks "$args" "enter open"; lacks "$args" "esc close"; lacks "$args" "--footer" "nothing obvious on its last line (§7)"
 has "$(hdr list)" "$ICON_BRANCH"; lacks "$(hdr list)" "庫" "no kanji (§13)"; has "$args" "--with-nth=2"
 has "$args" "--bind=start,resize:reload-sync["; has "$args" "+transform-header["
-first=$(head -n1 "$TMP/fzf.in.1" | plain); has "$first" "~/repos/new"; has "$first" "feature"
-eq "$(cut -f1 "$TMP/fzf.in.1" | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/repos/new ~/repos/group/deep ~/project ~/repos/old "
+first=$(head -n1 "$TMP/fzf.in.1" | plain); has "$first" "~/dojo/new"; has "$first" "feature"
+eq "$(cut -f1 "$TMP/fzf.in.1" | sed "s|^$HOME|~|" | tr '\n' ' ')" "~/dojo/new ~/dojo/group/deep ~/project ~/dojo/old "
 
 case_ "laid out at the width fzf asks for (a tiled window resized): the heading and each row's branch at the last column"
 for w in 40 120; do
@@ -74,41 +74,41 @@ has "$args" "--footer="$'\n'"$(tile c) "$'\e[38;5;21mclone\e[0m   '"$(tile n) "$
 has "$args" "--bind=c:pos(1)+accept,n:pos(2)+accept"
 has "$(plain <"$TMP/fzf.in.1")" "clone one"; has "$(plain <"$TMP/fzf.in.1")" "start a new one"
 
-case_ "n: a new repository, its name typed, made in ~/repos (git init) — and lazygit opens in it"
+case_ "n: a new repository, its name typed, made in ~/dojo (git init) — and lazygit opens in it"
 echo init >"$TMP/fzf.pick"
 run --send 1 'my-project\r' >/dev/null
-[[ -d $HOME/repos/my-project/.git ]] && _ok || _no "no ~/repos/my-project/.git"
-eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/repos/my-project"
+[[ -d $HOME/dojo/my-project/.git ]] && _ok || _no "no ~/dojo/my-project/.git"
+eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/dojo/my-project"
 
 case_ "n with a name that is no folder name, or one there already: said, nothing made, nothing opened"
 for bad in 'a b' '../up' '.hidden' 'taken'; do
-  setup; mkdir -p "$HOME/repos/taken"; echo init >"$TMP/fzf.pick"   # (a folder, no repository)
+  setup; mkdir -p "$HOME/dojo/taken"; echo init >"$TMP/fzf.pick"   # (a folder, no repository)
   out=$(run --send 1 "$bad\\r" --send 2 'x' | plain)
   [[ $bad == taken ]] && has "$out" "is there already" || has "$out" "a name of letters"
   [[ ! -e $TMP/lazygit.pwd ]] && _ok || _no "[$bad] opened"
 done
-[[ ! -e $HOME/up && ! -e $HOME/repos/.hidden ]] && _ok || _no "a bad name made a folder"
+[[ ! -e $HOME/up && ! -e $HOME/dojo/.hidden ]] && _ok || _no "a bad name made a folder"
 
 setup
 "$GIT" init -q --bare "$TMP/src/proj.git"
-case_ "c: a clone from its address into ~/repos/NAME — and lazygit opens in it"
+case_ "c: a clone from its address into ~/dojo/NAME — and lazygit opens in it"
 echo clone >"$TMP/fzf.pick"
 run --send 1 "file://$TMP/src/proj.git\\r" >/dev/null
-[[ -d $HOME/repos/proj/.git ]] && _ok || _no "no ~/repos/proj"
-eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/repos/proj"
+[[ -d $HOME/dojo/proj/.git ]] && _ok || _no "no ~/dojo/proj"
+eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/dojo/proj"
 case_ "c with an address git cannot clone: said, nothing opened"
 setup; echo clone >"$TMP/fzf.pick"
 out=$(run --send 1 "file://$TMP/src/nothere.git\\r" --send 3 'x' | plain)
-has "$out" "git could not clone it"; [[ ! -e $TMP/lazygit.pwd && ! -e $HOME/repos/nothere ]] && _ok || _no "opened, or a folder left"
+has "$out" "git could not clone it"; [[ ! -e $TMP/lazygit.pwd && ! -e $HOME/dojo/nothere ]] && _ok || _no "opened, or a folder left"
 
 if [[ -n $REAL_FZF ]]; then
   case_ "the real fzf ($("$REAL_FZF" --version | cut -d' ' -f1)): n and c pick their rows on the empty screen"
   setup; stub fzf "exec '$REAL_FZF' \"\$@\""
   run --send 1 'n' --send 2 'from-key\r' >/dev/null
-  eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/repos/from-key"
+  eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/dojo/from-key"
   setup; stub fzf "exec '$REAL_FZF' \"\$@\""; "$GIT" init -q --bare "$TMP/src/k.git"
   run --send 1 'c' --send 2 "file://$TMP/src/k.git\\r" >/dev/null
-  eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/repos/k"
+  eq "$(cat "$TMP/lazygit.pwd" 2>/dev/null)" "$HOME/dojo/k"
 else
   skip "no fzf here: the keys c and n not tried in the real one"
 fi
