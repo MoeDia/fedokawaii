@@ -254,8 +254,28 @@ for n in $(grep -oE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|K
   l=$(grep -E "^$n " "$RPT"); f=${l#* | }; m=${f%% | *}; f=${f#* | }; v=${f%% | *}
   [[ $m =~ ^(user|ses|root)(\+full)?(\+solo)?(/[0-9]+)?$ && $v =~ ^(fail|warn|info)$ ]] && _ok || _no "$n: mode [$m] level [$v]"
 done
-eq "$(grep -cE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT")" 119 "119 rows added this round"
+eq "$(grep -cE '^(UPK-(09|1[0-9]|20)|BOOT-3[1-5]|LOGIN-1[678]|DWL-(18|19)|KEY-1[12]|THEME-(19|20|21)|GPU-(09|1[01])|RES-1[2368]|SYS-1[4-9]|PERF-0[1-9]|NET-2[0-5]|AUD-15|SLP-1[2-6]|UI-1[45]|BAR-2[2-7]|CLIP-12|FONT-15|MIME-0[89]|PKG-1[56]|UNIT-11|DISK-1[67]|SEC-1[012]|X11-04|NIGHT-0[123]|WALL-0[34]|SPOT-08|BAK-06|LOGIN-19|SLP-2[01]|XDG-0[1-3]|UPK-2[12]|BOOT-46|AUD-21|FONT-1[67]|GIT-01|CALC-01|HUSH-0[1-3]|DL-03|STATE-05|REC-04|OCR-02|BAR-28|PANEL-01|FETCH-03|UI-16|THEME-22|UPK-20|APP-09|REC-01|DISK-18|DEV-01|NVIM-02|PKG-1[78]|MON-08) ' "$RPT")" 116 "116 rows added this round"
 eq "$(grep -oE '^[A-Z0-9]+-[0-9]+[a-z]? ' "$RPT" | sort | uniq -d)" "" "no ID twice"
+
+case_ "BOOT-22: the start that made the disk's layout keeps no shutdown in its journal; any other start does"
+SPLITU=$TMP/split-unit; : >"$SPLITU"
+stub journalctl "case \" \$* \" in *' -u fedokawaii-split '*) cat '$SPLITU' ;; *' -b -1 '*) echo 'Finished dnf5-offline-transaction.service' ;; *) echo 'Reached target Reboot' ;; esac"
+run "BOOT-22 the last starts ended cleanly"; eq "$RC" 1 "a start that just ends: a crash"; has "$OUT" "boot -1: no shutdown"
+echo 'Starting fedokawaii-split.service' >"$SPLITU"
+run "BOOT-22 the last starts ended cleanly"; eq "$RC" 0 "$OUT"; has "$OUT" "boot -1: the disk's new layout"
+: >"$SPLITU"; stub journalctl "case \" \$* \" in *' -u fedokawaii-split '*) ;; *) echo 'Stopped target local-fs.target - Local File Systems.' ;; esac"
+run "BOOT-22 the last starts ended cleanly"; eq "$RC" 0 "a shutdown whose journal ends as the disks unmount: $OUT"
+stub journalctl "cat '$J'"
+
+case_ "RES-04: a pipe of the report's own, just ending, is no zombie; anyone else's is"
+bash -c 'exec -a fedokawaii-report sleep 60' & OWN=$!
+sleep 60 & ELSE=$!
+stub ps "case \" \$* \" in *' -eo '*) cat '$TMP/zombies' ;; *' -o comm= '*) echo bash ;; *' -o ppid= '*) echo 1 ;; esac"
+printf 'ZN 11 %s tee\n' "$OWN" >"$TMP/zombies"
+run "RES-04 zombies and stopped processes"; eq "$RC" 0 "$OUT"
+printf 'ZN 12 %s crash\n' "$ELSE" >>"$TMP/zombies"
+run "RES-04 zombies and stopped processes"; eq "$RC" 1; has "$OUT" "crash"; lacks "$OUT" "tee"
+kill "$OWN" "$ELSE" 2>/dev/null; wait "$OWN" "$ELSE" 2>/dev/null
 
 case_ "SLP-10: the check's own shell (its command line names the keeper) is no keeper"
 run "SLP-10 the lock's keeper"; eq "$RC" 0 "$OUT"; has "$OUT" "keepers 0"

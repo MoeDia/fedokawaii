@@ -2192,8 +2192,8 @@ scrub_said() {   # what a scrub found, said once, only when it found something (
 }
 # s_report — the machine's health in one file (fedokawaii-report: ~/fedokawaii-report.txt),
 # made by itself once, at the first start of the finished desktop: it waits for your session,
-# reads everything (the install, verify, the journal, the session's parts, the network, the
-# timings) and leaves the verdict at the file's top. Again at any time: `fedokawaii report`.
+# reads everything (the install, verify, the journal, the session's parts, the network)
+# and leaves the verdict at the file's top. Again at any time: `fedokawaii report`.
 # Once only: the marker it leaves when it ends (/var/lib/fedokawaii/report-first.done) keeps it
 # from the starts after. Type=exec: however long it waits for you, the start itself is over.
 s_report() {
