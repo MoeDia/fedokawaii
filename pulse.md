@@ -1,15 +1,16 @@
-# round 28 pulse · Sat 07 01:14 (Dubai)
+# round 28 pulse · Sat 07 01:44 (Dubai)
 
-pace: 59/151 done (39%) · time used 25% · ahead 14.3 h · ETA Sun 08 12:27 · left 84 · blocked 1 · owner 7
+pace: 66/160 done (41%) · time used 25% · ahead 16.0 h · ETA Sun 08 10:38 · left 86 · blocked 1 · owner 7
 alerts: 1 blocked
-run: conductor active · passes 1 (oldest 1 min) · last activity 1 min ago · commits since start 82 · hold False
-machine: load 0.07 0.60 0.78/12 · mem free 27.2 GB · disk free 612 GB · up 25.0 h · cpu tccd1 37° · cpu tctl 45° · gpu edge 41° · gpu junction 35° · gpu mem 56° · ssd composite 39° · ssd sensor 1 40° · ssd sensor 2 41°
+run: conductor active · passes 1 (oldest 5 min) · last activity 5 min ago · commits since start 90 · hold False
+machine: load 0.02 0.30 0.88/12 · mem free 27.1 GB · disk free 611 GB · up 25.5 h · cpu tccd1 41° · cpu tctl 43° · gpu edge 36° · gpu junction 31° · gpu mem 52° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 38°
 dark: True (active) · pulse timer active
-tokens since start: out 1,671,265 · in 2,546 · cache write 5,229,696 · cache read 98,148,452 · msgs 1208 · out last 6 h 363,911
+tokens since start: out 1,761,981 · in 2,684 · cache write 5,569,620 · cache read 101,198,399 · msgs 1276 · out last 6 h 454,627
+out by model: last 6 h claude-opus-5-5 439,856 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862 · since start claude-opus-5-5 1,747,210 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
-- [now] f25 the daily system designed: a day is one Part 1 lesson and one Part 2 lesson, 30 minutes together; each lesson one idea, one exercise, one check; the format and its parser — r28-hayyoth.md: Part 2 rebuilds a small real tool from zero by hand; progress is a dated record of days done
+- [now] dsat daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why — 
 - [owner] c1b his eyes on the cooler's display with the PC dark: no 99 (S6) — only he can see it; assumed: dark. If it still blinks: the steady real temperature instead (S6)
 - [owner] o01 his picks on the options pack, relayed by Claude; each pick built, the others dropped — assumed meanwhile: my strongest, each in r28-questionnaire.md part A
 - [owner] o02 the RAM: restart, Delete, F7, OC, DRAM Frequency DDR5-4800, F10; then ram-check three copies for 20 minutes — still 5600 MT/s on 6 Nov; wrong bits measured, ledger r27-note-flips-2; say it before he installs anything built here
@@ -19,26 +20,26 @@ tokens since start: out 1,671,265 · in 2,546 · cache write 5,229,696 · cache 
 - [owner] o06 triad, his private repo fluvia4ai/triad: a read-only deploy key's public key posted for him, added with his OK; installed by default, self-updating, taught in Part 1 — the last line, owner 00:24
 
 ## last done
-- f23 neovim: his own minimal config: lazy.nvim and a handful of hand-picked plugins, every line commented for the lessons; start-up measured; lock file (Fri 6 Nov 22:24)
-- f23b neovim's new config in the words: Guide ch. 17 and its other mentions (46), Learn's pieces 031 and 045, docs/build/render's nvim steps, the glossary; keys that went: s, H, L, ] f, Space c a, Space c r, Space t, Space s r, bufferline, mini.ai, Space u f (Fri 6 Nov 22:33)
-- m7 P1 separators: 4 new game-like variants, 4 to 7, on the real screens, both moods, 1:1 PNG (S4) (Fri 6 Nov 22:37)
-- f24 neovim: no transparency while it runs, the notes page unharmed; tests (the bigger font: f24b) (Fri 6 Nov 22:47)
-- f24b neovim: a bigger font by default: foot has no escape for its size (man foot-ctlseqs, upstream master), so foot 1.28.0 built with src/foot/foot.patch as mako is: a private OSC calling its own font-size change, neovim sends it on start, resume, and resets on leave, suspend; the notes page not; pin, build, kit-tree, tests, manifest (Sat 7 Nov 00:41)
-- f24c foot: build_foot proven on Fedora 45 in a VM (real build at the pin, the -devel packages from the manifest, foot first on the session PATH, neovim 18 px); one VM at a time, never beside image generation (Sat 7 Nov 01:12)
+- m8 P5 accents: 4 new game-like variants, 4 to 7, both moods, 1:1 PNG, MP4 by m1's rules for what moves (S4) (Sat 7 Nov 01:27)
+- s11a the plan: a column "model" (opus, sonnet, haiku; default sonnet) on every open row by S11's rules; the two rows named m10 get different ids (Sat 7 Nov 01:33)
+- s11b r27-lane-loop passes --model from the now row, effort medium (low for haiku); the old line commented beside it; tested on one pass; a pass failed on a cheaper model sends the row back to opus (S11) (Sat 7 Nov 01:36)
+- s11c .claude/notes/r28-brief.md, under 150 lines: the rules, the current task, where things are; read at a pass's start instead of the long notes; big files by grep and line ranges; two or three tiny related rows may share a pass, never a big one (S11) (Sat 7 01:37)
+- s11d tests: per task only the checks for what changed; the full suite and a full VM install once a day and before the ISO is cut, written into the brief, with the daily rows in the plan (S11) (Sat 7 Nov 01:38)
+- s11e ~/.local/bin/r28-track: pulse.md's tokens line also splits output tokens by model (message.model), last 6 hours and since the start; its CLI and page keep working; restarted (S11) (Sat 7 Nov 01:45)
 
 ## commits
-- Sat 01:12 5b42d16e f24c done: foot's real build proven on Fedora 45, neovim 18 px in the VM; f25 now
-- Sat 00:41 eb4186a9 f24b: the regress list names its checks as items.py reads them
-- Sat 00:41 6578ef90 f24b done: neovim's font 2 px bigger, foot 1.28.0 built with a private escape; f24c now
-- Fri 22:53 800514d5 f24: a transparency toggle leaves neovim solid, and it ends on the choice; ruff clean again
-- Fri 22:48 a5f26a2f f24 done: neovim's ground is solid while it runs, the notes page see-through; f24b now
-- Fri 22:37 436446f4 m7 done: P1 separators 4 to 7, waku, kusari, ken, kizami, both moods; f24 now
-- Fri 22:33 a24ea0c1 f23b done: the Guide, Learn and the render steps say neovim's new config
-- Fri 22:22 342b4797 f23 done: neovim is his own minimal config, LazyVim gone; f23b now
+- Sat 01:38 978ceb5a s11e done: pulse tokens split by model; dsat now
+- Sat 01:38 d011900c s11d done: per-task checks, daily full suite and VM rows (dsat..dtue); s11e now
+- Sat 01:37 08d13bc4 s11c done: the pass brief (.claude/notes/r28-brief.md); s11d now
+- Sat 01:36 ec3f96ec s11b done: each pass's model from the plan's now row; s11c now
+- Sat 01:33 ac08d887 s11a: the plan's model column itself, the stray m10 copy dropped
+- Sat 01:33 e4569d01 s11a done: a model column on every open row; Monday's m10 is m10n; s11b now
+- Sat 01:31 8d491cba m8 done: P5 accents 4 to 7, zeni, bikkuri, shuriken, chochin, measured; S11 in the plan; s11a now
+- Sat 01:17 6fa94966 f25 done: the daily lessons' format and parser; S10 in the plan; m8 now
 
 ## repairs
 
 ## errors (2 h)
 
-steering received: S3 S4 S5 S6 S7 S8 S9 S10
+steering received: S4 S5 S6 S7 S8 S9 S10 S11
 options: a1-window.jpg, b1-workspace.jpg, c1-scroll.jpg, d1-prompt.jpg, e1-lock.jpg, e2-lock.jpg, f1-bar.jpg, g1-power.jpg, h1-menus.jpg, h2-menus.jpg, i1-helium.jpg
