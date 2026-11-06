@@ -206,6 +206,7 @@ they break.
 | r27-upd-19 r27-52a-vm2 r27-52b-vm | every failure injected in the VM | open T49: tools/vm-inject |
 | r27-52a r27-52a-restore r27-52a-fix | a whole-system restore cut at any step ends whole | tests/engine/test_snap.sh "finish: a restore cut after its exchange" · tests/installer/test_upkeep.sh "the start-up run: kernels a restore left in /boot" · tools/vm-inject/restore-cut.sh |
 | r27-52b r27-52b-fix r27-52b-fstab r27-52b-pc | the flat layout: a split cut at any step ends whole | tests/engine/test_split.sh "a file a process holds open" · tests/engine/test_snap.sh "the flat layout (fedokawaii-split)" · tools/vm-inject/split-cut.sh |
+| r28-f06f | a read-only subvolume in /home (the world's clean snapshot) never stops the split, and stays read-only; a smoke verifies after setup's last reboot | tests/engine/test_split.sh "a read-only subvolume inside /home" |
 | r27-52-file r27-52-restore r27-52-restore-sf r27-52-R4-sf1 r27-52-pc | a file back, a backup back, the drive | tests/engine/test_menu.sh "the drive: its row's value" · tests/content/test_backup.sh "mount DIR: the backups opened read-only" |
 | r27-found-2 r27-tools | tests leave no core dump, no shell probe left behind | tests/installer/test_report.sh "as you: the commands meant for your session" · tests/run.sh |
 | r27-found-3 | a Fedora "out" only when it is out | tests/installer/test_upgrade.sh "Fedora 46 not out (its relea" |

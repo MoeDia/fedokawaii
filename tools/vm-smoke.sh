@@ -2,7 +2,8 @@
 # tools/vm-smoke.sh — the whole install proven in a test VM (tools/vm-create.sh), from the
 # fresh Fedora to a running desktop, the way the owner installs (README §2): this repository's
 # tracked files (as in the working tree) copied in, `sudo bash fedokawaii.sh all` — setup with the
-# theme, through its own reboots (it resumes on tty1) — then the desktop started (greetd's
+# theme, through its own reboots (it resumes on tty1) and the start after them, which makes the
+# disk's flat layout (fedokawaii-split) — then the desktop started (greetd's
 # initial session: no password anywhere), verify run with it up (its session checks too, as on
 # the PC), and the desktop looked at: dwl, the bar and the notices running, a screenshot that
 # is not black and has the bar on it. In this VM a check that needs real hardware (video
@@ -64,7 +65,25 @@ while :; do
     finish red "setup stopped in phase ${ph:-?} — $out/setup-tail.log"
   fi
 done
-note "setup done in $(( (SECONDS - t0) / 60 )) min"
+# ("done" comes 15 s before setup's last reboot, and the start after it makes the flat layout and
+# restarts again: verify before those two saw the machine nobody will ever use — on 6 Nov it hid a
+# split that failed on every install. Waited for: each boot that still has a reboot coming.)
+boot() { run 'cat /proc/sys/kernel/random/boot_id' 2>/dev/null; }
+coming() { run 'pgrep -f "[f]edokawaii.sh|[s]etup.sh" >/dev/null || test -e /system-update' 2>/dev/null; }
+while :; do
+  ((SECONDS > deadline)) && finish red "the starts after setup not over after $limit min"
+  id=$(boot) || { sleep 10; continue; }
+  coming; rc=$?
+  ((rc == 255)) && { sleep 10; continue; }   # (ssh gone: that reboot has begun)
+  ((rc == 0)) || break
+  note "a reboot to come: waiting"
+  while n=$(boot); [[ -z $n || $n == "$id" ]]; do
+    ((SECONDS > deadline)) && finish red "the reboot after setup did not come in $limit min"
+    sleep 10
+  done
+done
+run 'systemctl is-system-running --wait >/dev/null; true' >/dev/null 2>&1
+note "setup done, its last start up, in $(( (SECONDS - t0) / 60 )) min"
 run 'sudo cat /var/log/fedokawaii.log' >"$out/setup.log" 2>&1
 # the desktop: greetd's initial session, as on the PC (CLAUDE.md START §4), never a password
 run 'f=/etc/greetd/fedokawaii.toml; sudo cp -a $f /root/fk.bak && printf "\n[initial_session]\ncommand = \"/usr/local/bin/start-dwl\"\nuser = \"dia\"\n" | sudo tee -a $f >/dev/null && sudo rm -f /run/greetd.run && sudo systemctl restart greetd; sleep 20; sudo cp -a /root/fk.bak $f' \

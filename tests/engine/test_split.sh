@@ -15,7 +15,7 @@ fresh() {   # a Fedora layout: root with /home (his file), /var/log, the snapsho
   echo his >"$T/root/home/dia/notes.txt"; echo log >"$T/root/var/log/boot.log"
   printf 'UUID=ab12\t/\tbtrfs\tsubvol=root,compress=zstd:1\t0 0\nUUID=cd34 /boot xfs defaults 0 0\n' >"$T/root/etc/fstab"
   # (subvolumes: folders whose inode is in REG — a rename keeps it, as Btrfs does)
-  : >"$REG"; for d in "$T/root" "$T/root/.snapshots" "$T/root/.snapshots/1/snapshot"; do stat -c %i "$d" >>"$REG"; done
+  : >"$REG"; : >"$REG.ro"; for d in "$T/root" "$T/root/.snapshots" "$T/root/.snapshots/1/snapshot"; do stat -c %i "$d" >>"$REG"; done
   pointed "$REPO/system/fedokawaii-split" "$STUBS/fedokawaii-split" \
     's|\[\[ \$EUID -eq 0 \]\]|[[ ${FK_EUID:-0} -eq 0 ]]|' \
     "s|^D=/var/lib/fedokawaii/split |D=$D |" "s|^F=/var/lib/fedokawaii/split.failed |F=$TMP/split.failed |" \
@@ -36,6 +36,10 @@ fresh() {   # a Fedora layout: root with /home (his file), /var/log, the snapsho
 esac'
   stub mountpoint "[ \"\$2\" = \"$T\" ]"
   stub mount; stub umount; stub restorecon; stub plymouth; stub journalctl; stub systemctl; stub kawa-snap
+  # (mv: the real one, which a read-only subvolume refuses, as the kernel does: $REG.ro holds their inodes)
+  stub mv 'for s; do [ "$s" != -T ] && [ "$s" != --no-copy ] && break; done
+if [ -e "$s" ] && grep -qx "$(stat -c %i "$s")" '"$REG"'.ro 2>/dev/null; then echo "mv: Read-only file system" >&2; exit 1; fi
+exec /usr/bin/mv "$@"'
   # (cp: the real one — and FK_GROW, a file a process appends to while the folder is copied)
   stub cp '/usr/bin/cp "$@"; r=$?; [ -n "${FK_GROW:-}" ] && echo more >>"$FK_GROW"; exit $r'
   stub btrfs 'reg='"$REG"' top='"$T"'
@@ -43,6 +47,8 @@ is() { [ -e "$1" ] && grep -qx "$(stat -c %i "$1")" "$reg"; }
 case "$1 $2" in
   "filesystem usage") printf "    Free (estimated):\t\t%s\t(min: 1)\n" "${FK_FREE:-500000000000}" ;;
   "filesystem sync") ;;
+  "property get") grep -qx "$(stat -c %i "$5")" "$reg.ro" 2>/dev/null && echo ro=true || echo ro=false ;;
+  "property set") i=$(stat -c %i "$5") || exit 1; sed -i "/^$i\$/d" "$reg.ro" 2>/dev/null; [ "$7" = true ] && echo "$i" >>"$reg.ro"; exit 0 ;;
   "subvolume show") is "$3" || exit 1 ;;
   "subvolume create") mkdir "$3" && stat -c %i "$3" >>"$reg" || exit 1 ;;
   "subvolume delete") shift 2; [ "$1" = --commit-after ] && shift; i=$(stat -c %i "$1") && rm -rf "$1" && sed -i "/^$i\$/d" "$reg" ;;
@@ -136,6 +142,32 @@ eq "$(. "$REPO/lib/pace.sh"; pace_fstab <<<"$f")" "$f"
 has "$(cat "$T/log/fedokawaii-split.log" 2>&1)" "the disk's new layout is made"
 # (the boot menu's list made again before the restart: it named root/.snapshots/N — seen on the PC, 1 Nov)
 called '^kawa-snap boot'; has "$(cat "$T/log/fedokawaii-split.log" 2>&1)" "the boot menu's snapshots listed again"
+# a read-only subvolume in /home, as the world's clean snapshot is (found 6 Nov on a fresh Fedora 45:
+# EROFS put the whole split back, every install stayed nested)
+rosub() {
+  mkdir -p "$T/root/home/.asobi/snapshots/clean"   # (empty: cp -x leaves a subvolume's folder empty, the stand-in cannot)
+  mkdir -p "$T/root/home/asobi"; stat -c %i "$T/root/home/asobi" >>"$REG"
+  stat -c %i "$T/root/home/.asobi/snapshots/clean" >>"$REG"; stat -c %i "$T/root/home/.asobi/snapshots/clean" >>"$REG.ro"
+}
+isro() { grep -qx "$(stat -c %i "$1" 2>/dev/null)" "$REG.ro"; }
+case_ "…a read-only subvolume inside /home: moved, read-only again in the new home"
+fresh; rosub; fedokawaii-split arm >/dev/null 2>&1; fedokawaii-split run >/dev/null 2>&1; eq "$?" 0
+[[ ! -e $TMP/split.failed ]] && _ok || _no "put back: $(cat "$TMP/split.failed" 2>&1)"
+isro "$T/home/.asobi/snapshots/clean" && _ok || _no "left writable"
+[[ -d $T/home/asobi ]] && _ok || _no "the writable one not moved"
+case_ "…a failure after it moved: back in root, read-only"
+fresh; rosub; fedokawaii-split arm >/dev/null 2>&1; echo fail-moved >"$D/cut"; fedokawaii-split run >/dev/null 2>&1
+has "$(cat "$TMP/split.failed")" "a failure made at moved"; 
+isro "$T/root/home/.asobi/snapshots/clean" && _ok || _no "left writable"
+[[ ! -e $T/home ]] && _ok || _no "the new home left at the top"; [[ $(cat "$TMP/split.failed") != *"left behind"* ]] && _ok || _no "$(cat "$TMP/split.failed")"
+case_ "…a failure while it is writable: put back, read-only"
+fresh; rosub; fedokawaii-split arm >/dev/null 2>&1; echo fail-ro-writable >"$D/cut"; fedokawaii-split run >/dev/null 2>&1
+has "$(cat "$TMP/split.failed")" "a failure made at ro-writable"; isro "$T/root/home/.asobi/snapshots/clean" && _ok || _no "left writable"
+case_ "…a cut while it is writable: the next start makes it read-only again, then moves it"
+fresh; rosub; fedokawaii-split arm >/dev/null 2>&1; d=$T/root/home/.asobi/snapshots/clean
+echo .asobi/snapshots/clean >"$D/ro"; sed -i "/^$(stat -c %i "$d")\$/d" "$REG.ro"; isro "$d" && _no "still read-only" || _ok
+fedokawaii-split run >/dev/null 2>&1; eq "$?" 0; [[ ! -e $TMP/split.failed ]] && _ok || _no "put back: $(cat "$TMP/split.failed" 2>&1)"
+isro "$T/home/.asobi/snapshots/clean" && _ok || _no "left writable"
 case_ "…a file a process holds open and appends to while /var/log is copied (plymouth's boot.log): copied as it was, compared by neither the listing nor the sample"
 fresh; sleep 30 3>>"$T/root/var/log/boot.log" & holder=$!   # (fewer than 64 files: the sample takes every one)
 fedokawaii-split arm >/dev/null 2>&1; FK_GROW=$T/root/var/log/boot.log fedokawaii-split run >/dev/null 2>&1; eq "$?" 0

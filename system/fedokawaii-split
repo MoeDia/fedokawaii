@@ -12,7 +12,8 @@
 #   fedokawaii-split run     fedokawaii-split.service, in that mode: each folder copied into a
 #                            new subvolume (reflinks: the data is shared, not written twice) and
 #                            compared with it, file by file; the subvolumes inside /home
-#                            (Downloads, VM) and the snapshots moved, never copied; fstab told;
+#                            (Downloads, VM, the world's) and the snapshots moved, never copied, a
+#                            read-only one read-only again after it; fstab told;
 #                            then the machine restarts. A cut (power, crash) at any step: the next
 #                            start goes on from there. A failure: all of it put back as it was,
 #                            the reason in the log and in /var/lib/fedokawaii/split.failed
@@ -198,10 +199,37 @@ end() {   # end — the boot menu's snapshots listed again, the log kept where /
   rm -f /system-update; rm -rf "$D"; synced; sync
   systemctl reboot; exit 0
 }
+# move_home FROM TO REL — a subvolume from one home to the other. One that is read-only (the world's
+# snapshots, /home/.asobi/snapshots/*) cannot change folder as it is: its ".." would be written, the
+# kernel says EROFS. So it is writable for the move, and its name is kept in $D/ro first:
+# a cut between the two, the next start makes it read-only again (ro_again)
+move_home() {
+  local s=$1/$3 d=$2/$3 ro=0 r=0
+  mkdir -p "${d%/*}" || return 1
+  if [[ $(btrfs property get -t subvol "$s" ro 2>/dev/null) == ro=true ]]; then
+    ro=1
+    { printf '%s\n' "$3" >>"$D/ro" && sync -f "$D"; } || return 1
+    btrfs property set -t subvol "$s" ro false || return 1
+    power_cut ro-writable
+  fi
+  mv -T --no-copy "$s" "$d" || { r=1; d=$s; }
+  ((ro)) && { btrfs property set -t subvol "$d" ro true || r=1; }
+  return "$r"
+}
+ro_again() {
+  local rel p
+  [[ -s $D/ro ]] || return 0
+  while IFS= read -r rel; do
+    for p in "$top/home/$rel" "$top/$T/home/$rel"; do
+      sub "$p" && { btrfs property set -t subvol "$p" ro true || say "$p could not be made read-only again"; }
+    done
+  done <"$D/ro"
+}
 # back WHY — all of it put back as it was: the old fstab, the snapshots and the subvolumes from
 # /home back inside root, the copies gone; the reason kept; the old layout starts next
 back() {
   local p rel e left=""
+  rm -f "$D/cut"   # (the VM's proof: one failure; putting back makes no second)
   msg "the layout stays as it was: $*"
   # (the fstab kept before the rewrite, only when it is whole: a / line on Btrfs)
   if [[ -f $D/fstab ]]; then
@@ -216,9 +244,10 @@ back() {
   if sub "$top/home"; then
     while IFS= read -r p; do
       rel=${p#home/}; [[ $p == home/?* ]] || continue
-      { mkdir -p "$top/$T/home/${rel%/*}" && mv -T --no-copy "$top/$p" "$top/$T/home/$rel"; } || left+=" home/$rel"
+      move_home "$top/home" "$top/$T/home" "$rel" || left+=" home/$rel"
     done < <(below home)
   fi
+  ro_again
   for e in "${LAYOUT[@]:0:3}"; do
     for p in "$top/${e%%:*}" "$top/${e%%:*}.part"; do
       sub "$p" && { gone "$p" || left+=" ${p##*/}"; }
@@ -234,6 +263,7 @@ if ! top_mounted 2>>"$LOG"; then
                    cat "$LOG" >>/var/log/fedokawaii-split.log 2>/dev/null; rm -f /system-update; rm -rf "$D"; systemctl reboot; exit 0; }
   exit 1
 fi
+ro_again
 ((n <= 3)) || back "three starts did not finish it"
 
 # 1. copies: each folder into NAME.part, compared, then named NAME (a NAME is whole)
@@ -273,7 +303,7 @@ for e in "${LAYOUT[@]:0:3}"; do copy "${e%%:*}" "${e#*:}"; done
 while IFS= read -r p; do
   rel=${p#"$T"/home/}; [[ $p == "$T"/home/?* ]] || continue
   if [[ -e $top/home/$rel ]]; then rmdir "$top/home/$rel" 2>/dev/null || back "home/$rel is not empty in the new home"; fi
-  { mkdir -p "$top/home/${rel%/*}" && mv -T --no-copy "$top/$p" "$top/home/$rel"; } || back "home/$rel could not be moved"
+  move_home "$top/$T/home" "$top/home" "$rel" || back "home/$rel could not be moved"
   say "home/$rel moved"
 done < <(below "$T")
 synced

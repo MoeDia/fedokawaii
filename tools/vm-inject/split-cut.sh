@@ -5,6 +5,7 @@
 # one-subvolume layout, a full fedokawaii install), gets this repository's toolkit, his files in
 # /home (a plain file, a name with a space, one with a newline, a hard-linked pair, a symlink, a
 # fifo, a NOCOW file, an xattr, 64 MiB of noise), a file in ~/Downloads and in ~/VM (subvolumes),
+# a read-only subvolume in /home as the world's clean snapshot is (ROSNAP: read-only and whole after),
 # then setup.sh --layout arms the split and the VM restarts with $D/cut = STEP (a power cut at STEP
 # in the first start) or fail-STEP (a failure there: all of it put back).
 # Asserted after the VM is up again: his files with their checksums, the hard link, the fifo; for a
@@ -16,13 +17,14 @@
 # failure: the old layout, Downloads and VM back in root, split.failed with the reason, and
 # setup.sh --layout does not arm the same split again.
 #   bash tools/vm-inject/split-cut.sh VM [STEP…]   (STEPs: none part-home copied-home
-#                     copied-log copied-fk moved snapshots fstab fail-copied-home fail-fstab)
+#                     copied-log copied-fk ro-writable moved snapshots fstab fail-copied-home
+#                     fail-ro-writable fail-fstab)
 # Out: a table on stdout, each case's log in /dev/shm/r27/split-cut/STEP.log.
 # Exit 0 every case ended whole · 1 one did not · 2 the VM could not run.
 set -u
 here=$(cd "$(dirname "$0")/.." && pwd)
 vm=${1:?VM}; shift
-steps=("$@"); ((${#steps[@]})) || steps=(none part-home copied-home copied-log copied-fk moved snapshots fstab fail-copied-home fail-fstab)
+steps=("$@"); ((${#steps[@]})) || steps=(none part-home copied-home copied-log copied-fk ro-writable moved snapshots fstab fail-copied-home fail-ro-writable fail-fstab)
 out=/dev/shm/r27/split-cut; mkdir -p "$out"
 run() { bash "$here/vm-run.sh" "$vm" "$@"; }
 log=/dev/null
@@ -35,7 +37,8 @@ restart() { run 'sudo systemctl reboot' >>"$log" 2>&1; sleep 25; run --wait 900 
 files='cd ~ && find splitdata Downloads/split VM/split -printf "%y %s %p\n" 2>&1 | sort
        find splitdata Downloads/split VM/split -type f -print0 2>/dev/null | sort -z | xargs -0 sha256sum
        stat -c "%h %n" splitdata/plain; getfattr -n user.fk --only-values splitdata/plain 2>&1; echo
-       [ -p splitdata/fifo ] && [ -L splitdata/symlink ] && echo fifo-and-link'
+       [ -p splitdata/fifo ] && [ -L splitdata/symlink ] && echo fifo-and-link
+       sudo cat /home/.rosplit/snap/f; sudo btrfs property get -t subvol /home/.rosplit/snap ro'
 make_files='set -e; cd ~; mkdir -p splitdata; printf "a\n" >splitdata/plain; printf "b\n" >"splitdata/with space"
   printf "c\n" >"splitdata/new
 line"; ln splitdata/plain splitdata/hardlink; ln -s plain splitdata/symlink; mkfifo splitdata/fifo
@@ -44,6 +47,8 @@ line"; ln splitdata/plain splitdata/hardlink; ln -s plain splitdata/symlink; mkf
   head -c 64M /dev/urandom >splitdata/noise
   btrfs subvolume show Downloads >/dev/null 2>&1 || { rmdir Downloads 2>/dev/null || true; btrfs subvolume create Downloads; }
   btrfs subvolume show VM >/dev/null 2>&1 || btrfs subvolume create VM
+  sudo mkdir -p /home/.rosplit; sudo btrfs subvolume create /home/.rosplit/w >/dev/null; echo world | sudo tee /home/.rosplit/w/f >/dev/null
+  sudo btrfs subvolume snapshot -r /home/.rosplit/w /home/.rosplit/snap >/dev/null; sudo btrfs subvolume delete /home/.rosplit/w >/dev/null
   mkdir -p Downloads/split VM/split; head -c 4M /dev/urandom >Downloads/split/d; head -c 4M /dev/urandom >VM/split/v; sync'
 # shellcheck disable=SC2016
 failed='sudo cat /var/lib/fedokawaii/split.failed; sudo btrfs subvolume list / | sed -n "s/.* path //p"
