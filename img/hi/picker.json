@@ -1,0 +1,510 @@
+[
+ {
+  "set": "a",
+  "title": "Window open and close",
+  "kind": "motion",
+  "provisional": 2,
+  "moods": [
+   "dark"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today: the hop",
+    "text": "450/400 ms",
+    "files": [
+     "a-0-dark.mp4",
+     "a-0-dark.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "seal",
+    "text": "a stamp, 150/110 ms",
+    "files": [
+     "a-1-dark.mp4",
+     "a-1-dark.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "shoji",
+    "text": "a door parting in whole pixels, 190/150 ms",
+    "files": [
+     "a-2-dark.mp4",
+     "a-2-dark.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "kasumi",
+    "text": "cell by cell, 220/170 ms",
+    "files": [
+     "a-3-dark.mp4",
+     "a-3-dark.png"
+    ]
+   }
+  ],
+  "note": "Real tiled windows by the key, the new one the lower window on the right, beside two others; real dwl builds, recorded headless, the bar cropped off. The png is the opening at half its time, the crop 1280 by 720 of the middle of the screen."
+ },
+ {
+  "set": "b",
+  "title": "A workspace move",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "dark"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today: the strip",
+    "text": "450 ms",
+    "files": [
+     "b-0-dark.mp4",
+     "b-0-dark.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "hayate",
+    "text": "a gust, 220 ms",
+    "files": [
+     "b-1-dark.mp4",
+     "b-1-dark.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "kakejiku",
+    "text": "a hanging scroll, top to bottom, 420 ms",
+    "files": [
+     "b-2-dark.mp4",
+     "b-2-dark.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "fusuma",
+    "text": "the doors part over the next room, 300 ms",
+    "files": [
+     "b-3-dark.mp4",
+     "b-3-dark.png"
+    ]
+   }
+  ],
+  "note": "Two moves there and back. Real dwl builds, recorded headless; the bar is cropped off."
+ },
+ {
+  "set": "c",
+  "title": "A menu, panel or warm window coming and going",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "dark"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today: the rod",
+    "text": "300/240 ms",
+    "files": [
+     "c-0-dark.mp4",
+     "c-0-dark.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "kakejiku",
+    "text": "two rods and silk edges, 380/280 ms",
+    "files": [
+     "c-1-dark.mp4",
+     "c-1-dark.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "omori",
+    "text": "a weight falls and bounces twice, 460/240 ms",
+    "files": [
+     "c-2-dark.mp4",
+     "c-2-dark.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "makimono",
+    "text": "a handscroll parting from the middle, 340/260 ms",
+    "files": [
+     "c-3-dark.mp4",
+     "c-3-dark.png"
+    ]
+   }
+  ],
+  "note": "Super+V. Real dwl builds, recorded headless."
+ },
+ {
+  "set": "d",
+  "title": "The prompt, the head inside the ribbon",
+  "kind": "still",
+  "provisional": 3,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "head outside, round tongues",
+    "files": [
+     "d-0-dark.png",
+     "d-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "tanzaku",
+    "text": "a poem slip, hairlines between papers",
+    "files": [
+     "d-1-dark.png",
+     "d-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "obi",
+    "text": "a silk band, swallowtail ends, slanted folds",
+    "files": [
+     "d-2-dark.png",
+     "d-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "rakkan",
+    "text": "the head a carved red seal, plain joins",
+    "files": [
+     "d-3-dark.png",
+     "d-3-light.png"
+    ]
+   }
+  ],
+  "note": "Real foot; each shows a good command and a failed one."
+ },
+ {
+  "set": "e",
+  "title": "The dark lock",
+  "kind": "still",
+  "provisional": 3,
+  "moods": [
+   "dark"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "a gilded plaque between the horns",
+    "files": [
+     "e-0-dark.jpg"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "hengaku",
+    "text": "a great lintel carved with waves and meander",
+    "files": [
+     "e-1-dark.jpg"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "mon",
+    "text": "an arch on two legs framing the head, old gilt",
+    "files": [
+     "e-2-dark.jpg"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "hashira",
+    "text": "letters 226 px cut into the reliefs, right to left",
+    "files": [
+     "e-3-dark.jpg"
+    ]
+   }
+  ],
+  "note": "Full 1920 by 1080, JPEG. The light lock is entry e2; the files of both are e-N-MOOD.jpg."
+ },
+ {
+  "set": "e2",
+  "title": "The light lock",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "a paper title slip",
+    "files": [
+     "e-0-light.jpg"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "hengaku",
+    "text": "a stone beam between the pillars, indigo in the cuts",
+    "files": [
+     "e-1-light.jpg"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "mon",
+    "text": "an arch from pillar to pillar, behind her",
+    "files": [
+     "e-2-light.jpg"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "hashira",
+    "text": "tablets on the pillars' feet",
+    "files": [
+     "e-3-light.jpg"
+    ]
+   }
+  ],
+  "note": "Full 1920 by 1080, JPEG; picked apart from the dark lock."
+ },
+ {
+  "set": "f",
+  "title": "The bigger bar",
+  "kind": "still",
+  "provisional": 3,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "paper 20, icons 12, windows from y 33",
+    "files": [
+     "f-0-dark.png",
+     "f-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "jiku",
+    "text": "paper 24, icons 16, lacquer rods, windows from y 37",
+    "files": [
+     "f-1-dark.png",
+     "f-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "makimono",
+    "text": "paper 26, icons 18, a red cord, windows from y 40",
+    "files": [
+     "f-2-dark.png",
+     "f-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "jikusaki",
+    "text": "paper 30, icons 20, gold finials, big hours, windows from y 44",
+    "files": [
+     "f-3-dark.png",
+     "f-3-light.png"
+    ]
+   }
+  ],
+  "note": "Options are drawn mock-ups; today's is the real bar in the kit, so it lights fewer modules. In makimono's light mood the rolls read slate: a colour slip, they would be paper."
+ },
+ {
+  "set": "g",
+  "title": "The power menu",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "five seals, 402 wide",
+    "files": [
+     "g-0-dark.png",
+     "g-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "jiku",
+    "text": "a scroll between two rods, 458 wide",
+    "files": [
+     "g-1-dark.png",
+     "g-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "tanzaku",
+    "text": "a list with keys beside a slip, 344 by 275",
+    "files": [
+     "g-2-dark.png",
+     "g-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "umebachi",
+    "text": "the plum crest, a round window, 381 across",
+    "files": [
+     "g-3-dark.png",
+     "g-3-light.png"
+    ]
+   }
+  ],
+  "note": "Each file: at rest on the left, at the second press on the right. Options are drawn mock-ups; today's is real."
+ },
+ {
+  "set": "h1",
+  "title": "Super+U tightened",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "819 by 380, eight rows empty",
+    "files": [
+     "h1-0-dark.png",
+     "h1-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "ichimai",
+    "text": "one sheet, shut tight, 707 by 280",
+    "files": [
+     "h1-1-dark.png",
+     "h1-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "daifuku",
+    "text": "a merchant's ledger, every tab named on a rail, 803 by 240",
+    "files": [
+     "h1-2-dark.png",
+     "h1-2-light.png"
+    ]
+   }
+  ],
+  "note": "Options are mock-ups in real foot; the cursor band differs from today's on purpose."
+ },
+ {
+  "set": "h2",
+  "title": "Super+R tightened",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "851 by 600, half of it empty",
+    "files": [
+     "h2-0-dark.png",
+     "h2-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "hon",
+    "text": "the book beside the list, 707 by 360",
+    "files": [
+     "h2-1-dark.png",
+     "h2-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "okuzuke",
+    "text": "a colophon: the book on top, the shelf under, 547 by 400",
+    "files": [
+     "h2-2-dark.png",
+     "h2-2-light.png"
+    ]
+   }
+  ],
+  "note": "Options are mock-ups in real foot, with the Learn book's real cover."
+ },
+ {
+  "set": "i",
+  "title": "Helium's theme",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "the real browser now",
+    "files": [
+     "i-0-dark.png",
+     "i-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "tsuitate",
+    "text": "address above, tabs below, 2 keys each side",
+    "files": [
+     "i-1-dark.png",
+     "i-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "mokuroku",
+    "text": "tabs a list at the left, 3 keys each side",
+    "files": [
+     "i-2-dark.png",
+     "i-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "noren",
+    "text": "tabs under a band of waves, 3 keys each side",
+    "files": [
+     "i-3-dark.png",
+     "i-3-light.png"
+    ]
+   }
+  ],
+  "note": "The real browser at 960 by 600. The ring and the new tab card on the third tab come from the shot; noren's blue ring is a slip. 1 and 2 follow the mood live; 3 has to be swapped."
+ }
+]

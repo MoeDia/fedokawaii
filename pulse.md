@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 15:13 (Dubai)
+# round 28 pulse · Fri 06 15:43 (Dubai)
 
-pace: 30/112 done (27%) · time used 15% · ahead 12.1 h · ETA Sun 08 04:33 · left 76 · blocked 0 · owner 6
+pace: 30/112 done (27%) · time used 15% · ahead 11.6 h · ETA Sun 08 06:19 · left 76 · blocked 0 · owner 6
 alerts: none
-run: conductor active · passes 1 (oldest 0 min) · last activity 0 min ago · commits since start 43 · hold False
-machine: load 0.27 0.73 0.87/12 · mem free 27.4 GB · disk free 612 GB · up 15.0 h · cpu tccd1 38° · cpu tctl 46° · gpu edge 41° · gpu junction 35° · gpu mem 56° · ssd composite 48° · ssd sensor 1 48° · ssd sensor 2 54°
+run: conductor active · passes 1 (oldest 30 min) · last activity 2 min ago · commits since start 43 · hold False
+machine: load 0.34 0.70 0.72/12 · mem free 27.0 GB · disk free 612 GB · up 15.5 h · cpu tccd1 38° · cpu tctl 45° · gpu edge 40° · gpu junction 35° · gpu mem 56° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
 dark: True (active) · pulse timer active
-tokens since start: out 770,868 · in 1,272 · cache write 2,457,054 · cache read 48,903,186 · msgs 604 · out last 6 h 458,636
+tokens since start: out 822,673 · in 1,352 · cache write 2,567,162 · cache read 52,956,536 · msgs 636 · out last 6 h 510,441
 
 ## now / blocked / owner
 - [now] f16b the picker pack (steer S1): ~/.local/share/r28/img/hi/: one file per option and mood, stills 1:1, motions MP4 60 fps, picker.json, 90 MB at most, seen in the pulse — re-rendering what exists, no new design
@@ -38,5 +38,5 @@ tokens since start: out 770,868 · in 1,272 · cache write 2,457,054 · cache re
 
 ## errors (2 h)
 
-steering received: S1
+steering received: S1 S2 S3
 options: a1-window.jpg, b1-workspace.jpg, c1-scroll.jpg, d1-prompt.jpg, e1-lock.jpg, e2-lock.jpg, f1-bar.jpg, g1-power.jpg, h1-menus.jpg, h2-menus.jpg, i1-helium.jpg
