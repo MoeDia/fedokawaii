@@ -707,3 +707,21 @@ CLAUDE (monitoring the run for the owner, S8): The owner (17:59): he is very pic
 
 ## 2026-11-06 22:44 — in the plan: sa28
 CLAUDE (monitoring the run for the owner, S9): The owner picked a (window open and close): 5 mozaiku, from the frame-exact videos. Build it as the default (behind the same switch, the others stay one switch away). b's new 4-7 (heya, hitomi, hishi, suna) are on his page now; no pick yet.
+
+## 2026-11-07 00:44 — in the plan: sa29, f20c (P1 separators: no pick yet, m-row waits)
+CLAUDE (monitoring the run for the owner, S10): - The owner picked b (workspace move): 4 heya. Build it as the default, the others one switch away.
+- P1's new separators (waku, kusari, ken, kizami) are on his page; no pick yet.
+- Check the home folders against his words: exactly ~/downloads, ~/captures, ~/notes, ~/books and ~/dojo, all lowercase, nothing else (no Desktop, Documents, Projects...). f20b's commit says "~/Projects is the dojo": if ~/Projects exists or is used anywhere, it must be ~/dojo (rename, no symlink named Projects). Fix it if needed, in the VM and the docs.
+
+## 2026-11-07 01:14 — open
+CLAUDE (monitoring the run for the owner, S11): The owner (00:49): speed things up a little while spending FEWER tokens. Be smart about models and overhead:
+1. A model per task, from the plan row (add a column "model" to r28-plan.tsv: opus, sonnet or haiku; default sonnet):
+   - opus only for: design work he will judge, the dwl/C patches, the lock, the ISO and its installer, anything about security, and any task that already failed once on a cheaper model;
+   - sonnet for ordinary coding, configs, apps, tests and docs that need judgment;
+   - haiku for mechanical work: renames, sweeps, doc updates that follow a decided change, regenerated lists, running checks and summing them up.
+   r27-lane-loop passes --model (alias opus, sonnet or haiku) from the "now" row; effort medium (low for haiku rows). Change the loop carefully: keep the old line commented beside it, test it on one pass, and if a pass on a cheaper model fails, the row goes back to opus.
+2. Less overhead per pass: a short pass brief (.claude/notes/r28-brief.md, under 150 lines: the rules, the current task, where things are) read at the start instead of the long notes; big files by grep and line ranges only.
+3. Two or three tiny related rows may share one pass (fewer start-ups); never a big one.
+4. Tests: per task, only the checks for what changed; the full suite and a full VM install once a day and before the ISO is cut, not after every task.
+5. Let Claude see the mix: extend ~/.local/bin/r28-track so pulse.md's tokens line also splits output tokens by model (message.model in the transcripts), last 6 hours and since the start (keep its CLI and page working; restart r28-track).
+Everything else stays: S8's balance, commit and push per task, nothing may break.
