@@ -75,3 +75,6 @@ The owner (17:43): with the PC dark, the CPU cooler's display blinks "99" about 
 - Make "kawa-rgb off" blank the display for good: the protocol's blank/off frame if it has one, or a blank frame sent at whatever rate keeps it blank. Remember Report 5 and the ISP bootloader: only the known selectors, from the allow-list.
 - If the display cannot be blanked, say so in the plan (blocked, with the evidence) and make it show the real temperature steadily, never blinking.
 - Prove it with nothing else lit, and keep it dark across reboots (r28-dark calls "kawa-rgb off" every 30 minutes).
+
+## S7 2026-11-06 17:55
+The owner (17:51): "reduce the transparency effect a little". Everywhere translucency is used (terminals, menus, panels, quick settings, notifications, the launcher; nvim already has none), make it a little more opaque: roughly 6 to 8 points more alpha (for example 0.85 becomes 0.92), one shared value per mood from the theme, not per app. Show it in the next pack as set T ("Transparency", still, dark and light): n 0 today and n 1 the new value on the same real screen, so he can confirm.
