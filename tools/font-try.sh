@@ -29,7 +29,7 @@ if [[ $kind == ui ]]; then
     --edit "mako/config:s/Noto Kufi Arabic 16px/Noto Kufi Arabic ${px}px/")
 else
   scenes=(term) args=(--font "Sumi Term=$family"
-    --edit "foot/foot.ini:s/Sumi Term:pixelsize=20/Sumi Term:pixelsize=$px/g"
+    --edit "foot/foot.ini:s/Sumi Term:pixelsize=[0-9]*/Sumi Term:pixelsize=$px/g"
     --edit "foot/foot.ini:s/^line-height=.*/line-height=${line}px/"
     --edit "foot/foot.ini:s/^font-size-adjustment=.*/font-size-adjustment=${px}px/")
 fi

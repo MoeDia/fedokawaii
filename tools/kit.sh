@@ -157,10 +157,18 @@ done
   [[ -n $tree ]] && echo "<include>$repo/system/60-fedokawaii-pixel.conf</include>"
   echo "<cachedir>$K/fc-cache</cachedir>"
   for f in "${fonts[@]}"; do
-    printf '<match target="pattern"><test name="family"><string>%s</string></test><edit name="family" mode="prepend" binding="strong"><string>%s</string></edit></match>\n' "${f%%=*}" "${f#*=}"
+    printf '<match target="pattern"><test name="family"><string>%s</string></test><edit name="family" mode="prepend_first" binding="strong"><string>%s</string></edit></match>\n' "${f%%=*}" "${f#*=}"
   done
   echo '</fontconfig>'
 } >"$K/fonts.conf"
+# (--font: first in the list, before what an alias put there: plain prepend lands behind the system's
+# Sumi Term alias, today's face drawn without a word. So each one is asked of fontconfig as the apps will)
+kit_fc() { HOME=$h XDG_CONFIG_HOME=$h/.config XDG_CACHE_HOME=$h/.cache XDG_DATA_HOME=$h/.local/share FONTCONFIG_FILE=$K/fonts.conf "$@"; }
+for f in "${fonts[@]}"; do
+  [[ -n $(kit_fc fc-list "${f#*=}" family) ]] || { echo "kit: --font $f: no such family in the kit" >&2; exit 2; }
+  [[ $(kit_fc fc-match -f '%{file}' "${f%%=*}") == "$(kit_fc fc-match -f '%{file}' "${f#*=}")" ]] \
+    || { echo "kit: --font $f: ${f%%=*} is still drawn with $(kit_fc fc-match -f '%{family}' "${f%%=*}")" >&2; exit 2; }
+done
 
 # Super+U's window: the size kawa-warm opens it at (the installed one: what the desktop runs)
 sys_size=$(sed -n 's/^ *system) .*size=\([0-9]*x[0-9]*\) .*/\1/p' "$(command -v kawa-warm)")
