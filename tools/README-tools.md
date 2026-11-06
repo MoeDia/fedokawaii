@@ -45,3 +45,4 @@ Rules: timing comes from the frame log only (a recorder perturbs frames); big re
 and are deleted; nothing here touches the live session except `perf.sh`/`shot.sh` (they drive or
 read it), `hotplug-test.sh` (another card, root), `vrr-proof.sh` and `monitor-power-test.sh` (his real screen).
 | `prompt-options.py`, `prompt-options.mock` | the prompt's options with the head inside the ribbon, in real foot from a throw-away glyph font (r28 f10): the sheet d1-prompt.jpg | `python3 tools/prompt-options.py gen DIR`, the kit's tui scene per mood, then `sheet DIR OUT` |
+| `lock-options.py` | the lock's options, the quote cut into the wall of the real painting, torchlit, nothing built into the lock (r28 f11): the sheets e1-lock.jpg, e2-lock.jpg | `python3 tools/lock-options.py render DIR`, then `sheet DIR MOOD OUT` per mood |
