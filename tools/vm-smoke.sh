@@ -90,6 +90,12 @@ run 'f=/etc/greetd/fedokawaii.toml; sudo cp -a $f /root/fk.bak && printf "\n[ini
   || finish red "the session could not be started"
 procs=$(run 'for p in dwl waybar mako; do pgrep -u dia -x $p >/dev/null && printf "%s " $p; done')
 note "running: ${procs:-nothing}"
+# (the first report waits for that session: two reports at once, or a verify beside it, would only
+# time each other; 10 min at most, as its checks are bounded)
+run 'timeout 600 bash -c "until sudo test -e /var/lib/fedokawaii/report-first.done; do sleep 5; done"' \
+  || finish red "the first report not done 10 min after the session (running: ${procs:-nothing})"
+run 'sudo cat /home/dia/fedokawaii-report.txt' >"$out/first-report.txt" 2>&1
+note "first report: $(grep -m1 '^VERDICT' "$out/first-report.txt")"
 # (verify with the session up, as on the PC: its session checks — the bar, the portals, sound — run too)
 run 'sudo fedokawaii verify' >"$out/verify.log" 2>&1
 vrc=$?

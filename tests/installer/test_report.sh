@@ -200,6 +200,37 @@ has "$REP" "FAIL  lib/manifest.sh is missing from the toolkit: the packages are 
 has "$REP" "FAIL  the toolkit has no bin/"
 grep -q '^VERDICT: BROKEN' <<<"$REP" && _ok || _no "not BROKEN"
 
+case_ "the first start: waits for the first login however long, the done mark only when it ended"
+back ready
+M=$W/var/lib/fedokawaii/report-first.done
+[[ ! -e $M ]] && _ok || _no "a report by hand left the first start's mark"
+# (dwl's 70th look, past the old 5 minutes: the machine shuts down during the wait)
+cat >"$W/usr/local/bin/pgrep" <<'STUB'
+#!/bin/bash
+[[ " $* " == *" -x dwl "* ]] || exit 1
+n=$(($(cat /var/lib/fkh/looks 2>/dev/null) + 1)); echo "$n" >/var/lib/fkh/looks
+((n < 70)) || kill -TERM "$(cat /var/lib/fkh/reportpid)"
+exit 1
+STUB
+chmod 755 "$W/usr/local/bin/pgrep"
+fkrun bash -c 'echo $$ >/var/lib/fkh/reportpid; exec bash /usr/local/bin/fedokawaii-report --boot'
+eq "$(cat "$FKH/looks")" 70 "it kept looking for the session"
+[[ ! -e $W$R ]] && _ok || _no "it gave up on the session and wrote a report"
+[[ ! -e $M ]] && _ok || _no "a shutdown during the wait left the mark: no report at the next start"
+# (the login comes at the third look)
+cat >"$W/usr/local/bin/pgrep" <<'STUB'
+#!/bin/bash
+[[ " $* " == *" -x dwl "* ]] || exit 1
+n=$(($(cat /var/lib/fkh/looks 2>/dev/null) + 1)); echo "$n" >/var/lib/fkh/looks
+((n < 3)) && exit 1
+echo 1
+STUB
+rm -f "$FKH/looks" "$FKH/reportpid"
+report --boot; eq "$RC" 0 "exit"
+[[ -s $W$R ]] && _ok || _no "no report after the login"
+lacks "$REP" "no desktop session is running"
+[[ -e $M ]] && _ok || _no "no mark after the report ended"
+
 case_ "misuse: exit 2; --help: the header"
 report --nonsense; eq "$RC" 2; has "$OUT" "usage: fedokawaii-report [--quick | --perf]"
 report --help; eq "$RC" 0; has "$OUT" "sudo fedokawaii-report --quick"

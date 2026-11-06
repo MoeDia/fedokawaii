@@ -2194,8 +2194,8 @@ scrub_said() {   # what a scrub found, said once, only when it found something (
 # made by itself once, at the first start of the finished desktop: it waits for your session,
 # reads everything (the install, verify, the journal, the session's parts, the network, the
 # timings) and leaves the verdict at the file's top. Again at any time: `fedokawaii report`.
-# Once only: the marker it leaves (/var/lib/fedokawaii/report-first.done) keeps it from the
-# starts after.
+# Once only: the marker it leaves when it ends (/var/lib/fedokawaii/report-first.done) keeps it
+# from the starts after. Type=exec: however long it waits for you, the start itself is over.
 s_report() {
   write_file /etc/systemd/system/fedokawaii-report.service <<'UNIT'
 # installed by setup.sh — the health report, once, at the first start of the finished desktop
@@ -2206,11 +2206,9 @@ Wants=network-online.target
 ConditionPathExists=!/var/lib/fedokawaii/report-first.done
 
 [Service]
-Type=oneshot
+Type=exec
 ExecStart=/usr/local/bin/fedokawaii-report --boot
-ExecStartPost=/usr/bin/touch /var/lib/fedokawaii/report-first.done
 Nice=10
-TimeoutStartSec=15min
 
 [Install]
 WantedBy=graphical.target

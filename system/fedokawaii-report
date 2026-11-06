@@ -66,8 +66,8 @@ FIND=$TMP/findings BODY=$TMP/body.0
 
 # ── the desktop session (when one is running): its environment, to ask its programs ───────
 DWLPID=$(pgrep -u "$U" -x dwl | head -n1)
-if ((BOOT)); then                        # the first start: give the desktop up to 5 minutes
-  for _ in $(seq 60); do DWLPID=$(pgrep -u "$U" -x dwl | head -n1); [[ -n $DWLPID ]] && break; sleep 5; done
+if ((BOOT)); then                        # the first start: wait for your first login, however long
+  until [[ -n $DWLPID ]]; do sleep 5; DWLPID=$(pgrep -u "$U" -x dwl | head -n1); done
   sleep 20                               # (and its autostart time to settle)
 fi
 WBPID=$(pgrep -u "$U" -x waybar | head -n1)
@@ -1715,6 +1715,8 @@ took=$(ms_since "$START")
 } | sed -E 's/((password|passwd|passphrase|secret|token|api[_-]?key|psk|RESTIC_PASSWORD)[A-Za-z_]*[[:space:]]*[=:][[:space:]]*)[^[:space:]]+/\1●●●/Ig; s/(Bearer[[:space:]]+)[^[:space:]]+/\1●●●/Ig; s/(X-Api-Key:[[:space:]]*)[^[:space:]"]+/\1●●●/Ig' >"$TMP/report"
 install -m 0600 -o "$U" -g "$(id -gn "$U")" "$TMP/report" "$OUT"
 echo "fedokawaii-report: $OUT ($(wc -l <"$OUT") lines) — $( ((FAILS)) && echo "BROKEN: $FAILS failures, $WARNS warnings" || { ((WARNS)) && echo "works, $WARNS warnings" || echo healthy; })"
+# (the first start's mark, only now: a shutdown during the wait or the checks runs it again next start)
+((BOOT)) && touch "$STATE/report-first.done"
 # run from a stick: a copy beside the script too, to carry back
 here=$(cd "$(dirname "$0")" && pwd)
 # (in your home already the file is there: one file, never a second one of root's)
