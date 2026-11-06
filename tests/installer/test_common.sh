@@ -141,6 +141,11 @@ has "$OUT" "another Fedokawaii run (an update, a repair, setup or Theme) is goin
 eq "$(cat "$TMP/lock")" repair "the holder's name kept"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
 lib "take_lock '$TMP/lock'; echo got"; has "$OUT" got "free again"
+case_ "take_lock: the lock lives in a small process, children never carry it (each one a SELinux denial
+  on a domain change, a daemon would keep the lock), held all through the run, free soon after"
+lib "take_lock '$TMP/lock'; /bin/sh -c '[ -e /proc/self/fd/9 ] && echo carried || echo clean'; flock -n '$TMP/lock' true && echo stolen || echo held"
+has "$OUT" clean; has "$OUT" held; lacks "$OUT" carried; lacks "$OUT" stolen
+free=0; for _ in {1..30}; do flock -n "$TMP/lock" true 2>/dev/null && { free=1; break; }; /bin/sleep 0.1; done; eq "$free" 1 "free within 3 s of the run's end"
 case_ "take_lock on a folder of yours: opened read-only, never truncated or replaced"
 mkdir -p "$TMP/d"; echo keep >"$TMP/d/x"; lib "take_lock '$TMP/d'; echo got"; has "$OUT" got; eq "$(cat "$TMP/d/x")" keep
 

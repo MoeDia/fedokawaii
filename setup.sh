@@ -98,10 +98,10 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
   find "$STATE_DIR" -name 'done.*' -printf '  ✔ %f\n' | sed 's/done\.//' | sort; exit 0
 fi
 if [[ $MODE == @(kernels|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
-  exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0
+  exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0; lock_hand_over
 elif [[ $MODE == scrub-said ]]; then :                # (reads a status and leaves a notice: never in anyone's way)
 elif [[ $MODE == @(after-dnf|boot-good) ]]; then   # (after a dnf run, a start marked good: waits for an update or repair to end first)
-  exec 9<>"$STATE_DIR/lock"; flock 9
+  exec 9<>"$STATE_DIR/lock"; flock 9; lock_hand_over
 else take_lock "$STATE_DIR/lock"; fi
 printf '%s\n' "$MODE" 2>/dev/null >"$STATE_DIR/lock" || true   # (which run holds it: the system menu marks its row — a full disk says so below)
 make_tmp
@@ -2590,7 +2590,7 @@ dnf_settle() {
   prev=$(systemctl list-units --plain --no-legend --state=running 'fedokawaii-dnf-*.service' 2>/dev/null | awk 'NR == 1 { print $1 }')
   [[ -n $prev ]] || return 0
   _out "${C_DIM}$(_ts) ▸ the package transaction a run before started ($prev) is still going — followed to its end${C_RESET}"
-  journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null 9>&- &
+  journalctl -f -n 20 -o cat -u "$prev" 2>/dev/null &
   f=$!
   # (three hours at most — a whole release's download on a slow line fits in them: one that
   # has not ended by then is stuck, and is named, never waited on for ever)
@@ -2606,11 +2606,11 @@ dnf_detached() {   # dnf_detached ARG… — dnf ARG…, detached from this sess
   unit=fedokawaii-dnf-$(date +%s)-$$
   if [[ ${RUN_SHOWN:-} == 1 ]]; then _out "${C_DIM}    (as $unit)${C_RESET}"   # (run said the command already)
   else _out "${C_DIM}$(_ts) \$ dnf $*  (as $unit)${C_RESET}"; fi
-  journalctl -f -n 0 -o cat -u "$unit.service" 2>/dev/null 9>&- &
+  journalctl -f -n 0 -o cat -u "$unit.service" 2>/dev/null &
   FOLLOWER=$!
   if systemd-run --quiet --unit="$unit" --service-type=exec -p RemainAfterExit=yes -p TimeoutStopSec=10min \
        -p StandardOutput=journal -p StandardError=journal -p SyslogIdentifier=fedokawaii-dnf \
-       -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@" 9>&-; then rc=$(dnf_end "$unit.service")
+       -E LC_ALL=C.UTF-8 /usr/bin/dnf "$@"; then rc=$(dnf_end "$unit.service")
   else rc=$?                                        # (it never started: systemd-run's own status —
     # or systemd itself crashed before it, in an earlier transaction: nothing answers it, and its
     # journal, read without it, says so)

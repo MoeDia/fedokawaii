@@ -69,6 +69,7 @@ up_toolkit() {   # → back here: this toolkit goes on · else it is replaced an
   record toolkit-release "$tag"; echo "$tag" | write_file "$UPD/toolkit-moved" 0644
   hdr "fedokawaii $tag: the rest of this update from it"
   trap - EXIT; rm -rf -- "$d" "$KAWA_TMP"
+  lock_free
   if [[ $MODE == upgrade ]]; then exec /usr/bin/bash "$TOOLKIT/setup.sh" --upgrade ${UPGRADE_FLAG:+"$UPGRADE_FLAG"}; fi
   exec /usr/bin/bash "$TOOLKIT/setup.sh" --update
 }
@@ -412,7 +413,7 @@ UP_POWER=""
 up_power_hold() {
   [[ -z $UP_POWER ]] || return 0
   systemd-inhibit --what=shutdown:sleep:handle-power-key:handle-suspend-key:handle-hibernate-key:handle-lid-switch \
-    --who=fedokawaii --why="an update is being installed: it says when it is done" --mode=block tail --pid=$$ -f /dev/null >/dev/null 2>&1 9>&- &
+    --who=fedokawaii --why="an update is being installed: it says when it is done" --mode=block tail --pid=$$ -f /dev/null >/dev/null 2>&1 &
   UP_POWER=$!
 }
 up_power_free() {

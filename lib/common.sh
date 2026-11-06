@@ -533,7 +533,17 @@ take_lock() {                       # take_lock FILE|DIR (a few seconds' grace: 
   # never wipes the name the one holding it wrote there — setup.sh's mode, the menu's row)
   if [[ -d $1 ]]; then exec 9<"$1"; else exec 9<>"$1"; fi
   flock -w 5 9 || die "another Fedokawaii run (an update, a repair, setup or Theme) is going on — wait for it to finish"
+  lock_hand_over
 }
+lock_hand_over() {                  # the lock taken on fd 9 moves to a small process that lives as long as this run
+  # (bash can't mark a descriptor close-on-exec: every child would inherit it, each SELinux domain
+  # change is then a denial — restorecon, ip, usermod …, 57 in one install — and a daemon started
+  # by a run would keep the lock after it. waitpid sleeps on a pidfd: it is gone the moment the run is)
+  waitpid $$ </dev/null >/dev/null 2>&1 &
+  LOCK_HOLDER=$!
+  exec 9>&-
+}
+lock_free() { kill "$LOCK_HOLDER" 2>/dev/null && wait "$LOCK_HOLDER" 2>/dev/null || true; }   # (before exec into a new toolkit: it takes the lock itself)
 KAWA_TMP="" FOLLOWER=""
 make_tmp() {                        # private temp dir, removed on any exit (and dnf's follower stopped)
   KAWA_TMP=$(mktemp -d "${TMPDIR:-/var/tmp}/fedokawaii.XXXXXX")
