@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 18:44 (Dubai)
+# round 28 pulse · Fri 06 19:14 (Dubai)
 
-pace: 45/145 done (31%) · time used 18% · ahead 12.8 h · ETA Sun 08 08:01 · left 92 · blocked 1 · owner 7
+pace: 45/145 done (31%) · time used 19% · ahead 12.3 h · ETA Sun 08 09:32 · left 92 · blocked 1 · owner 7
 alerts: 1 blocked
-run: conductor active · passes 1 (oldest 19 min) · last activity 15 min ago · commits since start 64 · hold False
-machine: load 0.32 0.20 0.19/12 · mem free 27.1 GB · disk free 612 GB · up 18.5 h · cpu tccd1 38° · cpu tctl 61° · gpu edge 40° · gpu junction 35° · gpu mem 55° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 38°
+run: conductor active · passes 1 (oldest 49 min) · last activity 5 min ago · commits since start 64 · hold False
+machine: load 0.01 0.04 0.11/12 · mem free 27.3 GB · disk free 612 GB · up 19.0 h · cpu tccd1 38° · cpu tctl 46° · gpu edge 40° · gpu junction 35° · gpu mem 56° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
 dark: True (active) · pulse timer active
-tokens since start: out 1,301,460 · in 1,982 · cache write 4,007,193 · cache read 75,871,228 · msgs 938 · out last 6 h 613,439
+tokens since start: out 1,305,301 · in 1,994 · cache write 4,015,983 · cache read 76,563,438 · msgs 943 · out last 6 h 558,939
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
