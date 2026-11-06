@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 01:44 (Dubai)
+# round 28 pulse · Sat 07 02:14 (Dubai)
 
-pace: 66/160 done (41%) · time used 25% · ahead 16.0 h · ETA Sun 08 10:38 · left 86 · blocked 1 · owner 7
+pace: 66/160 done (41%) · time used 26% · ahead 15.5 h · ETA Sun 08 11:47 · left 86 · blocked 1 · owner 7
 alerts: 1 blocked
-run: conductor active · passes 1 (oldest 5 min) · last activity 5 min ago · commits since start 90 · hold False
-machine: load 0.02 0.30 0.88/12 · mem free 27.1 GB · disk free 611 GB · up 25.5 h · cpu tccd1 41° · cpu tctl 43° · gpu edge 36° · gpu junction 31° · gpu mem 52° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 38°
+run: conductor active · passes 1 (oldest 35 min) · last activity 35 min ago · commits since start 90 · hold False
+machine: load 0.04 0.10 0.24/12 · mem free 27.2 GB · disk free 611 GB · up 26.0 h · cpu tccd1 35° · cpu tctl 40° · gpu edge 35° · gpu junction 30° · gpu mem 51° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 36°
 dark: True (active) · pulse timer active
-tokens since start: out 1,761,981 · in 2,684 · cache write 5,569,620 · cache read 101,198,399 · msgs 1276 · out last 6 h 454,627
-out by model: last 6 h claude-opus-5-5 439,856 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862 · since start claude-opus-5-5 1,747,210 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862
+tokens since start: out 1,761,981 · in 2,684 · cache write 5,569,620 · cache read 101,198,399 · msgs 1276 · out last 6 h 351,797
+out by model: last 6 h claude-opus-5-5 337,026 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862 · since start claude-opus-5-5 1,747,210 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
