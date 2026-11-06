@@ -64,6 +64,15 @@ copy
 (cd "$G" && python3 tools/build-cursors.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
 same
 
+case_ "build-lockmap.py on a copy: the lock's maps, byte for byte; 4 worlds a mood, on the lock's grid"
+copy
+(cd "$G" && python3 tools/build-lockmap.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+same
+for f in dark/lock-map-shiro dark/lock-map-kozan dark/lock-map-suichu dark/lock-map-kaji \
+  light/lock-map-haru light/lock-map-kumo light/lock-map-yu light/lock-map-yuki; do
+  has "$(python3 -c 'import sys; from PIL import Image; print(Image.open(sys.argv[1]).size)' "$REPO/configs/home/.local/share/fedokawaii/$f.png")" "(640, 360)"
+done
+
 case_ "build-samurai.py on a copy: the lock's samurai, byte for byte; both have every reaction, within their cell"
 copy
 (cd "$G" && python3 tools/build-samurai.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
