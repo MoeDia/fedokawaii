@@ -12,7 +12,7 @@ optional: no
 
 | Keys | Does |
 |---|---|
-| **Tab** | completes a name: type `cd Doc` then Tab, it becomes `cd Documents/` |
+| **Tab** | completes a name: type `cd dow` then Tab, it becomes `cd downloads/` |
 | **Up** · **Down** | earlier commands; type the start first (`git`) and Up finds only those |
 | **Ctrl+R** | search every command you ever ran (fzf): type a few letters, Enter |
 | **→** or **End** | take the grey suggestion the shell offers as you type |
@@ -43,16 +43,16 @@ $ tldr mkdir
 
 ### exercises
 
-**2.1 ★ A small tree.** Make `~/practice/a/b/c` in one command (`mkdir -p`), then go into `c`
+**2.1 ★ A small tree.** Make `~/dojo/practice/a/b/c` in one command (`mkdir -p`), then go into `c`
 using Tab to complete each name.
 
-*Expected:* the prompt ends in `c`; `pwd` prints `/home/you/practice/a/b/c`.
+*Expected:* the prompt ends in `c`; `pwd` prints `/home/you/dojo/practice/a/b/c`.
 
 **2.2 ★ History.** Press **Ctrl+R**, type `mkdir`, and run the command you typed in 2.1 again.
 
 *Expected:* no error (`-p` does not mind that the folders exist).
 
-**2.3 ★★ Count.** `ls ~/Pictures/Screenshots | wc -l` counts your screenshots. Take one with
+**2.3 ★★ Count.** `ls ~/captures | wc -l` counts your screenshots. Take one with
 **Print** (drag a box), then count again.
 
 *Expected:* one more than before. `|` sends what `ls` prints into `wc -l`, which counts lines.

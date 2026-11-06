@@ -35,9 +35,9 @@ here; every later chapter uses it.
 ## 24.2 a new project
 
 ```text
-$ cd ~/repos
+$ cd ~/dojo
 $ uv init hello
-Initialized project `hello` at `/home/you/repos/hello`
+Initialized project `hello` at `/home/you/dojo/hello`
 $ cd hello
 $ ls -a
 .  ..  .git  .gitignore  main.py  pyproject.toml  .python-version  README.md

@@ -15,7 +15,7 @@ anywhere, like `rg` or `bat`. uv makes the layout:
 
 ```text
 $ uv init --package wordfreq
-Initialized project `wordfreq` at `/home/you/repos/wordfreq`
+Initialized project `wordfreq` at `/home/you/dojo/wordfreq`
 $ find wordfreq -type f | sort
 wordfreq/.python-version
 wordfreq/README.md
@@ -68,7 +68,7 @@ $ cd wordfreq && echo "the cat and the hat and the bat" | uv run -q wordfreq -n 
 ```text
 $ uv tool install --editable .
 Installed 1 executable: wordfreq
-$ cd ~ && wordfreq -n 3 ~/Notes/notes.md
+$ cd ~ && wordfreq -n 3 ~/notes/notes.md
 ```
 
 `uv tool install` puts the command in `~/.local/bin`, which is on your `PATH` — it now works from

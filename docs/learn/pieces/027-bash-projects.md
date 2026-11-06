@@ -9,4 +9,4 @@ optional: yes
 ---
 
 **9.3 ★★★ A daily line.** Write a function `today` that prints the date, the weather line
-(`kawa-weather`), and how many lines your notes file has (`wc -l < ~/Notes/notes.md`).
+(`kawa-weather`), and how many lines your notes file has (`wc -l < ~/notes/notes.md`).

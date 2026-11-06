@@ -19,7 +19,7 @@ here). podman runs containers as you, never as root.
 | `podman run --rm -it fedora:45 bash` | a throw-away Fedora, gone when you `exit` |
 | `podman run --rm -it python:3.14 python` | a Python of another version, for a minute |
 | `podman ps -a` · `podman images` | running and stopped containers · the images kept |
-| `podman run --rm -v ~/practice:/w:Z -w /w python:3.14 python script.py` | run a script of yours inside |
+| `podman run --rm -v ~/dojo/practice:/w:Z -w /w python:3.14 python script.py` | run a script of yours inside |
 | `podman image prune` | delete images no container uses |
 
 ### exercises
@@ -29,5 +29,5 @@ here). podman runs containers as you, never as root.
 
 *Expected:* `cowsay` exists only inside; on your desktop, `command not found`.
 
-**22.2 ★★ Your script inside.** Run `~/practice/oops.py` (fixed) in the `python:3.14` container
+**22.2 ★★ Your script inside.** Run `~/dojo/practice/oops.py` (fixed) in the `python:3.14` container
 with `-v`.

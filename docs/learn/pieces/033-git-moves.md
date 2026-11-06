@@ -60,13 +60,13 @@ lazygit does the work on your own machine; **gh** talks to GitHub.
 
 ## 14.4 use cases
 
-- every project in `~/repos` is a repository: the prompt shows its branch and changes
+- every project in `~/dojo` is a repository: the prompt shows its branch and changes
 - an experiment on a branch: if it works, merge; if not, delete the branch
 - `git log -p FILE`: why a line is the way it is
 
 ### exercises
 
-**14.1 ★ First commit.** `mkcd ~/repos/hello`, `git init`, make `README.md` with one line,
+**14.1 ★ First commit.** `mkcd ~/dojo/hello`, `git init`, make `README.md` with one line,
 commit it in lazygit (**a**, **c**).
 
 *Expected:* lazygit's commits panel (**4**) shows one commit.

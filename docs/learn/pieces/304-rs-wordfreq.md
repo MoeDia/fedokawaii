@@ -102,7 +102,7 @@ Options:
   -n, --top <TOP>          how many words to show [default: 10]
       --min-len <MIN_LEN>  ignore words shorter than this [default: 1]
   -h, --help               Print help
-$ cargo run -q --release -- -n 5 --min-len 5 ~/repos/fedokawaii/docs/fedokawaii-guide.md
+$ cargo run -q --release -- -n 5 --min-len 5 ~/dojo/fedokawaii/docs/fedokawaii-guide.md
 $ cargo run -q -- /nope
 Error: "/nope: No such file or directory (os error 2)"
 ```
@@ -114,5 +114,5 @@ Install it as a command of your own, in cargo's own `bin` folder (on your `PATH`
 
 ```text
 $ cargo install --path .
-$ wordfreq -n 3 ~/Notes/notes.md
+$ wordfreq -n 3 ~/notes/notes.md
 ```

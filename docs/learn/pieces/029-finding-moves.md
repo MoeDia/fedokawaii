@@ -25,7 +25,7 @@ optional: no
 | `fd -e pdf . ~` | every PDF in your home |
 | `fd -t d conf` | folders only |
 | `fd -S +500m . ~` | files over 500 MB |
-| `rg "rice" ~/Notes` | every line holding *rice*, with file and line number |
+| `rg "rice" ~/notes` | every line holding *rice*, with file and line number |
 | `rg -i -t py "todo"` | ignore case, only Python files |
 | `rg -l word` · `rg -C 2 word` | file names only · two lines of context around each match |
 | `nvim "$(fzf)"` | pick a file by typing, edit it |
@@ -35,8 +35,8 @@ In every fzf list: words in any order narrow it; `'word` exact; `^start` and `en
 
 ## 10.2 use cases
 
-- `rg -i "invoice" ~/Documents -l` — which files mention invoices
-- `fd -e mkv . ~/Videos -x du -h` — every film and its size
+- `rg -i "invoice" ~/notes -l` — which files mention invoices
+- `fd -e mkv . ~/downloads -x du -h` — every film and its size
 - in a code project, `rg "def train"` finds where a function is defined in a second
 
 ### exercises
@@ -47,7 +47,7 @@ In every fzf list: words in any order narrow it; `'word` exact; `^start` and `en
 
 **10.2 ★ Grep your notes.** `rg -i` a word you wrote in your notes.
 
-*Expected:* `~/Notes/notes.md`, then the line number and the line.
+*Expected:* `~/notes/notes.md`, then the line number and the line.
 
 **10.3 ★★ Pick and edit.** In your home, `nvim "$(fd -e md | fzf)"`.
 

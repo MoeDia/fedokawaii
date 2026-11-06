@@ -45,7 +45,7 @@ preferences (`/memory` shows them).
 
 ### exercises
 
-**70.1 ★ The modes.** Start `claude` in `~/repos/hello`, press **Shift+Tab** until each mode has
+**70.1 ★ The modes.** Start `claude` in `~/dojo/hello`, press **Shift+Tab** until each mode has
 shown once, and ask in plan mode for a change. Confirm nothing changed with `git status`.
 
 *You should see:* a plan, and `nothing to commit, working tree clean`.

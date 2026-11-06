@@ -21,7 +21,7 @@ repeated from bash; a task you do twice by hand is a one-line command the third 
 
 | Move | Example | Does |
 |---|---|---|
-| pipe `|` | `ls ~/Pictures | wc -l` | one program's output into the next |
+| pipe `|` | `ls ~/captures | wc -l` | one program's output into the next |
 | redirect `>` · `>>` | `date >> ~/log.txt` | output into a file: replace · append |
 | `&&` · `||` | `mkdir x && cd x` | the second only if the first worked · only if it failed |
 | `$( … )` | `echo "today is $(date +%A)"` | a command's output, in the middle of another |
@@ -42,20 +42,20 @@ touches it. Every new terminal reads it.
 ## 9.2 use cases
 
 - rename a hundred photos by their date in one loop
-- a `backup-notes` function that copies `~/Notes` to a USB stick
+- a `backup-notes` function that copies `~/notes` to a USB stick
 - `history | rg ffmpeg` to find that clever command from last month
 
 ### exercises
 
 **9.1 ★ mkcd.** Add the `mkcd` function above to `~/.bashrc.d/local.sh`, open a new terminal,
-and run `mkcd ~/practice/new`.
+and run `mkcd ~/dojo/practice/new`.
 
-*Expected:* the prompt shows `~/practice/new` at once.
+*Expected:* the prompt shows `~/dojo/practice/new` at once.
 
 **9.2 ★★ Count by kind.** How many files of each kind are in your pictures?
 
 ```sh
-fd -t f . ~/Pictures | sed 's/.*\.//' | sort | uniq -c | sort -rn
+fd -t f . ~/captures | sed 's/.*\.//' | sort | uniq -c | sort -rn
 ```
 
 *Expected:* lines such as `     42 png`, the most common first. Read it as a sentence: list the

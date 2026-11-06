@@ -18,7 +18,7 @@ optional: no
 ## 70.1 starting
 
 ```text
-$ cd ~/repos/hello
+$ cd ~/dojo/hello
 $ git status                       # start clean: every change after this is the agent's
 $ claude
 ```

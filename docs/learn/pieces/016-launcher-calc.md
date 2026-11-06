@@ -70,4 +70,4 @@ terminal.
 (`https://fedoraproject.org`) and watch the bar's mark, then click the finished notice.
 
 *Expected:* the mark appears while it downloads and goes when it is done; the notice opens
-`~/Downloads`.
+`~/downloads`.

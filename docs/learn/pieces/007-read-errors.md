@@ -59,13 +59,13 @@ do not fix it"*. You learn more from the explanation than from a fix.
 
 ### exercises
 
-**3.1 ★ Break it on purpose.** Run `cd Nowhere`, `lss`, and `cat ~/Pictures`. Read each
+**3.1 ★ Break it on purpose.** Run `cd Nowhere`, `lss`, and `cat ~/captures`. Read each
 message.
 
 *Expected:* `No such file or directory`, `command not found`, `Is a directory`.
 
-**3.2 ★★ Find the line.** Save this as `~/practice/oops.py` (in neovim: `nvim
-~/practice/oops.py`, **i**, type, **Esc**, `:wq`), run `python3 ~/practice/oops.py`, and fix it
+**3.2 ★★ Find the line.** Save this as `~/dojo/practice/oops.py` (in neovim: `nvim
+~/dojo/practice/oops.py`, **i**, type, **Esc**, `:wq`), run `python3 ~/dojo/practice/oops.py`, and fix it
 from the message alone:
 
 ```python

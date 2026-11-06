@@ -102,7 +102,7 @@ if ((SANDBOX)); then
     o=$(runuser -u "$U" -- bash "$t" 2>&1); r=$?
     tail -n 3 <<<"$o" | while IFS= read -r l; do info "$l"; done
     ((r == 0)) && pass "the torture suite passed" || fail "the torture suite" "its lines above; the whole: bash $t"
-  else warn "no clone with the tests at ~/repos/fedokawaii" "fedokawaii copy makes one"; fi
+  else warn "no clone with the tests at ~/dojo/fedokawaii" "fedokawaii copy makes one"; fi
   section "never again (every issue the owner reported: tools/regress/README.md)"
   if [[ -f $TK/tests/run.sh && -f $TK/tools/regress/run.sh ]]; then
     o=$(cd "$TK" && runuser -u "$U" -- env HOME="$h" bash tests/run.sh regress 2>&1); r=$?

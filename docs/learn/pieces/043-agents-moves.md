@@ -16,7 +16,7 @@ chore. You stay the author: you read every change before you keep it.
 
 | In a terminal | Does |
 |---|---|
-| `cd ~/repos/hello && claude` | start it in a project |
+| `cd ~/dojo/hello && claude` | start it in a project |
 | type a request, **Enter** | it plans, asks, then works |
 | **Esc** | stop it at once |
 | **Shift+Tab** | switch modes: ask before edits · accept edits · plan only |
@@ -41,7 +41,7 @@ professionally.
 
 ### exercises
 
-**21.1 ★ Explain.** In `~/repos/fedokawaii`, ask Claude Code: *"explain bin/kawa-weather to a
+**21.1 ★ Explain.** In `~/dojo/fedokawaii`, ask Claude Code: *"explain bin/kawa-weather to a
 beginner, step by step — do not change anything"*.
 
 **21.2 ★★ Two at once.** In herdr, run one agent writing tests for your `hello` project while

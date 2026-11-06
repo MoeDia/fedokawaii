@@ -10,7 +10,7 @@ optional: no
 
 **20.1 ★ A to-do.** In your notes, write `- [ ] finish chapter 20`. Later, make it `- [x]`.
 
-**20.2 ★★ A table.** Save a few expenses as `~/practice/money.csv` (`date,item,amount`), open it
+**20.2 ★★ A table.** Save a few expenses as `~/dojo/practice/money.csv` (`date,item,amount`), open it
 in VisiData, sort by amount, and find the total (on the amount column: **z+** then *sum*).
 
 **20.3 ★★ JSON.** `curl -s "https://api.github.com/repos/neovim/neovim" | jq .stargazers_count`

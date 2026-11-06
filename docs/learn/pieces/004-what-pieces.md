@@ -27,8 +27,8 @@ A **file** is a named piece of stored data: a photo, a song, a letter, a program
 
 | Thing | Example on this desktop | What it is |
 |---|---|---|
-| a file | `~/Notes/notes.md` | your notes: plain text |
-| a folder | `~/Pictures/Screenshots` | where screenshots land |
+| a file | `~/notes/notes.md` | your notes: plain text |
+| a folder | `~/captures` | where screenshots land |
 | your home | `~` = `/home/you` | everything that is yours |
 | the top of everything | `/` | every file on the computer sits somewhere below it |
 
@@ -37,7 +37,7 @@ A **file** is a named piece of stored data: a photo, a song, a letter, a program
 A **path** is a file's address: the folders you walk through to reach it, separated by `/`.
 
 ```text
-/home/you/Notes/notes.md
+/home/you/notes/notes.md
 │ │    │   │     └── the file
 │ │    │   └── a folder inside your home
 │ │    └── your home folder
@@ -46,8 +46,8 @@ A **path** is a file's address: the folders you walk through to reach it, separa
 ```
 
 > **Word — absolute and relative path.** An *absolute* path starts at `/` (or `~`) and works
-> from anywhere. A *relative* path starts where you are: standing in your home, `Notes/notes.md`
-> means `/home/you/Notes/notes.md`. `..` means "one folder up", `.` means "here".
+> from anywhere. A *relative* path starts where you are: standing in your home, `notes/notes.md`
+> means `/home/you/notes/notes.md`. `..` means "one folder up", `.` means "here".
 
 ## 1.3 programs and commands
 
@@ -56,7 +56,7 @@ and `ls` (lists files) are programs. A **command** is a line you type to run one
 **arguments** — words that tell it what to work on — and **options**, which start with `-`.
 
 ```text
-ls  -l  ~/Pictures
+ls  -l  ~/captures
 │   │   └── an argument: which folder
 │   └── an option: the long listing
 └── the program
@@ -87,13 +87,13 @@ they are the two tools that work on everything.
 
 ### exercises
 
-**1.1 ★ Name the parts.** In the command `cp -r ~/Pictures /run/media/stick`, which word is
+**1.1 ★ Name the parts.** In the command `cp -r ~/captures /run/media/stick`, which word is
 the program, which the option, which the arguments?
 
 *Expected:* the program is `cp` (copy), `-r` is an option (recursive: folders too), the two
 paths are arguments: from where, to where.
 
-**1.2 ★ Absolute or relative?** Which of these work from any folder: `~/Notes`, `Notes`,
-`/etc/hosts`, `../Music`?
+**1.2 ★ Absolute or relative?** Which of these work from any folder: `~/notes`, `notes`,
+`/etc/hosts`, `../books`?
 
-*Expected:* `~/Notes` and `/etc/hosts` (absolute); the other two depend on where you stand.
+*Expected:* `~/notes` and `/etc/hosts` (absolute); the other two depend on where you stand.

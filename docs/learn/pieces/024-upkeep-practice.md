@@ -23,10 +23,10 @@ go back, the number the first command printed, then restart.
 *Expected:* `ls /etc/my-test` says *No such file*, a file you made in your home meanwhile is still
 there, and *old* in the same list would bring the trace back.
 
-**8.4 ★★ A lost file.** Make `~/Documents/test.txt`, wait for the next hourly snapshot (or
+**8.4 ★★ A lost file.** Make `~/notes/test.txt`, wait for the next hourly snapshot (or
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.
 
-*Expected:* `cat ~/Documents/test.txt` shows it again.
+*Expected:* `cat ~/notes/test.txt` shows it again.
 
 **8.5 ★★ Be a stranger.** Run `sudo bash /usr/local/lib/fedokawaii/tools/portscan.sh` (five minutes).
 It scans every port of this machine from the far end of a cable, once as a neighbour and once as a

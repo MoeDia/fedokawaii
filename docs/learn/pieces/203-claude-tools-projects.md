@@ -21,7 +21,7 @@ correctness" at work.
 <!-- /solution -->
 
 **71.6 ★★★★ A morning report.** A script `~/.local/bin/morning` that pipes the last day's
-`journalctl -p warning`, `dnf check-update` and `git -C ~/repos/fedokawaii status -s` into
+`journalctl -p warning`, `dnf check-update` and `git -C ~/dojo/fedokawaii status -s` into
 `claude -p`, asking for a ten-line summary of what needs you today. Run it from a systemd user
 timer at 09:00 and send the result with `notify-send`.
 
@@ -35,7 +35,7 @@ set -u
 {
   echo "## warnings since yesterday"; journalctl --since yesterday -p warning --no-pager -q | tail -n 200
   echo "## updates";                  dnf -q check-update 2>/dev/null | head -n 50
-  echo "## repository";               git -C ~/repos/fedokawaii status -s | head -n 30
+  echo "## repository";               git -C ~/dojo/fedokawaii status -s | head -n 30
 } | claude -p "Summarise what needs my attention today in at most ten short lines, \
 most important first. Plain text, no preamble." > "$XDG_RUNTIME_DIR/morning.txt" \
   && notify-send -a morning "早 · morning" "$(cat "$XDG_RUNTIME_DIR/morning.txt")"

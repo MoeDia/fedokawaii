@@ -27,7 +27,7 @@ this book are a ready source):
 ```text
 {"q": "How do I open a terminal on Fedokawaii?", "a": "Super+Return opens foot, the terminal."}
 {"q": "How do I take a screenshot of a region?", "a": "Press Print and drag a box; it is saved and copied."}
-{"q": "Where do my notes live?", "a": "In ~/Notes/notes.md; Super+N opens them."}
+{"q": "Where do my notes live?", "a": "In ~/notes/notes.md; Super+N opens them."}
 ```
 
 ## 46.2 the code

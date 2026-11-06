@@ -129,7 +129,7 @@ print("".join(chars[i] for i in model.generate(start, 600)[0].tolist()))
 ```
 
 ```text
-$ uv run chargpt.py ~/repos/fedokawaii/docs/fedokawaii-guide.md
+$ uv run chargpt.py ~/dojo/fedokawaii/docs/fedokawaii-guide.md
 962,051 characters, 246 different; 3,318,518 parameters
 step     0  train 5.663  val 5.661
 step   500  train 2.012  val 2.087

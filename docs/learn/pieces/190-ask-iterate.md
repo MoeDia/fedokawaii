@@ -71,7 +71,7 @@ Form: the diff, then a two-line test I can paste to try both runs.
 
 **68.2 ★★ Example versus description.** Ask for five commit messages for made-up changes, first
 described ("short, present tense, area first"), then shown three real ones from `git log
---oneline` of `~/repos/fedokawaii`. Compare.
+--oneline` of `~/dojo/fedokawaii`. Compare.
 
 *You should see:* the shown style matched far more closely than the described one (68.2).
 

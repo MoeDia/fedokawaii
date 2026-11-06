@@ -46,7 +46,7 @@ if __name__ == "__main__":
 ```
 
 ```text
-$ uv run flash.py ~/Notes/japanese.txt
+$ uv run flash.py ~/notes/japanese.txt
 water → mizu
   ✓
 book → hono

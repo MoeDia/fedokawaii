@@ -42,7 +42,7 @@ chapter 8) and success can be checked (a test). Missing either, turn it down.
 
 ### exercises
 
-**69.1 ★ Trace the loop.** Give Claude Code a small task in `~/repos/hello` ("add a function
+**69.1 ★ Trace the loop.** Give Claude Code a small task in `~/dojo/hello` ("add a function
 `greet(name)` with a test, run the tests"). Watch it and write down each tool it uses, in order,
 under the labels gather, act, check.
 

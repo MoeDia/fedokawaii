@@ -34,7 +34,7 @@ $ snaps
 | the whole system back to a snapshot | Super+U → snapshots → **go back**, its number: it becomes the system at the next start; your files stay as they are |
 | the system you went back from | the same list, **old**: going back can itself be undone |
 
-> **Careful.** `~/Downloads` is not in the snapshots: move what you keep out of it.
+> **Careful.** `~/downloads` is not in the snapshots: move what you keep out of it.
 
 ## 8.3 the health report
 

@@ -11,13 +11,13 @@ optional: no
 ## 47.3 the agent
 
 ```python
-# agent.py — a notes assistant: Claude searches and adds to ~/Notes/notes.md through two tools
+# agent.py — a notes assistant: Claude searches and adds to ~/notes/notes.md through two tools
 import datetime
 from pathlib import Path
 
 import anthropic
 
-NOTES = Path.home() / "Notes" / "notes.md"
+NOTES = Path.home() / "notes" / "notes.md"
 client = anthropic.Anthropic()
 
 TOOLS = [

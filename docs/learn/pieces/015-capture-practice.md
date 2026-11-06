@@ -20,20 +20,20 @@ the first.
 *Expected:* the first word, though you copied two others since.
 
 **6.3 ★★ Under 500 KB.** Take a full screenshot (**Shift+Print**), then **Super+Z** → *chat*.
-Check both sizes: `ls -lh ~/Pictures/Screenshots | tail -2`.
+Check both sizes: `ls -lh ~/captures | tail -2`.
 
 *Expected:* the shrunk copy is under 500 KB.
 
 **6.4 ★★ A 20-second demo.** Record yourself (**Super+Shift+R**, whole screen, no sound) opening
 the launcher, starting btop and closing it; stop, and click the notice.
 
-*Expected:* the recording plays in mpv; it is in `~/Videos/Recordings`.
+*Expected:* the recording plays in mpv; it is in `~/captures`.
 
 **6.5 ★ Read the screen.** Open any picture with text in it (a screenshot of this page will do),
 press **Super+Shift+Print** (or **Super+Shift+X**), drag over a line of text, and paste it into a
 note.
 
-*Expected:* the line arrives as text you can edit; nothing was saved in `~/Pictures`.
+*Expected:* the line arrives as text you can edit; nothing was saved in `~/captures`.
 
 **6.6 ★★ A pause in the middle.** Record a region, pause it with **Super+Shift+P** for ten
 seconds while you open something private, resume, and stop.

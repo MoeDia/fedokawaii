@@ -140,8 +140,8 @@ A **file** is a named piece of stored data: a photo, a song, a letter, a program
 
 | Thing | Example on this desktop | What it is |
 |---|---|---|
-| a file | `~/Notes/notes.md` | your notes: plain text |
-| a folder | `~/Pictures/Screenshots` | where screenshots land |
+| a file | `~/notes/notes.md` | your notes: plain text |
+| a folder | `~/captures` | where screenshots land |
 | your home | `~` = `/home/you` | everything that is yours |
 | the top of everything | `/` | every file on the computer sits somewhere below it |
 
@@ -150,7 +150,7 @@ A **file** is a named piece of stored data: a photo, a song, a letter, a program
 A **path** is a file's address: the folders you walk through to reach it, separated by `/`.
 
 ```text
-/home/you/Notes/notes.md
+/home/you/notes/notes.md
 │ │    │   │     └── the file
 │ │    │   └── a folder inside your home
 │ │    └── your home folder
@@ -159,8 +159,8 @@ A **path** is a file's address: the folders you walk through to reach it, separa
 ```
 
 > **Word — absolute and relative path.** An *absolute* path starts at `/` (or `~`) and works
-> from anywhere. A *relative* path starts where you are: standing in your home, `Notes/notes.md`
-> means `/home/you/Notes/notes.md`. `..` means "one folder up", `.` means "here".
+> from anywhere. A *relative* path starts where you are: standing in your home, `notes/notes.md`
+> means `/home/you/notes/notes.md`. `..` means "one folder up", `.` means "here".
 
 ## 1.3 Programs and commands
 
@@ -169,7 +169,7 @@ and `ls` (lists files) are programs. A **command** is a line you type to run one
 **arguments** — words that tell it what to work on — and **options**, which start with `-`.
 
 ```text
-ls  -l  ~/Pictures
+ls  -l  ~/captures
 │   │   └── an argument: which folder
 │   └── an option: the long listing
 └── the program
@@ -200,16 +200,16 @@ they are the two tools that work on everything.
 
 ### Exercises
 
-**1.1 ★ Name the parts.** In the command `cp -r ~/Pictures /run/media/stick`, which word is
+**1.1 ★ Name the parts.** In the command `cp -r ~/captures /run/media/stick`, which word is
 the program, which the option, which the arguments?
 
 *Expected:* the program is `cp` (copy), `-r` is an option (recursive: folders too), the two
 paths are arguments: from where, to where.
 
-**1.2 ★ Absolute or relative?** Which of these work from any folder: `~/Notes`, `Notes`,
-`/etc/hosts`, `../Music`?
+**1.2 ★ Absolute or relative?** Which of these work from any folder: `~/notes`, `notes`,
+`/etc/hosts`, `../books`?
 
-*Expected:* `~/Notes` and `/etc/hosts` (absolute); the other two depend on where you stand.
+*Expected:* `~/notes` and `/etc/hosts` (absolute); the other two depend on where you stand.
 
 # 2. Your first ten minutes in the terminal
 
@@ -250,7 +250,7 @@ $ pwd
 
 ```text
 $ ls
-Books  Documents  Downloads  Music  Notes  Pictures  repos  Videos
+books  captures  dojo  downloads  Drives  notes
 ```
 
 *(list: what is here; your list may differ)*
@@ -259,7 +259,7 @@ Books  Documents  Downloads  Music  Notes  Pictures  repos  Videos
 $ mkdir practice
 $ cd practice
 $ pwd
-/home/you/practice
+/home/you/dojo/practice
 ```
 
 *(make a folder, change into it, check)*
@@ -289,7 +289,7 @@ $ pwd
 
 | Keys | Does |
 |---|---|
-| **Tab** | completes a name: type `cd Doc` then Tab, it becomes `cd Documents/` |
+| **Tab** | completes a name: type `cd dow` then Tab, it becomes `cd downloads/` |
 | **Up** · **Down** | earlier commands; type the start first (`git`) and Up finds only those |
 | **Ctrl+R** | search every command you ever ran (fzf): type a few letters, Enter |
 | **→** or **End** | take the grey suggestion the shell offers as you type |
@@ -320,16 +320,16 @@ $ tldr mkdir
 
 ### Exercises
 
-**2.1 ★ A small tree.** Make `~/practice/a/b/c` in one command (`mkdir -p`), then go into `c`
+**2.1 ★ A small tree.** Make `~/dojo/practice/a/b/c` in one command (`mkdir -p`), then go into `c`
 using Tab to complete each name.
 
-*Expected:* the prompt ends in `c`; `pwd` prints `/home/you/practice/a/b/c`.
+*Expected:* the prompt ends in `c`; `pwd` prints `/home/you/dojo/practice/a/b/c`.
 
 **2.2 ★ History.** Press **Ctrl+R**, type `mkdir`, and run the command you typed in 2.1 again.
 
 *Expected:* no error (`-p` does not mind that the folders exist).
 
-**2.3 ★★ Count.** `ls ~/Pictures/Screenshots | wc -l` counts your screenshots. Take one with
+**2.3 ★★ Count.** `ls ~/captures | wc -l` counts your screenshots. Take one with
 **Print** (drag a box), then count again.
 
 *Expected:* one more than before. `|` sends what `ls` prints into `wc -l`, which counts lines.
@@ -389,13 +389,13 @@ do not fix it"*. You learn more from the explanation than from a fix.
 
 ### Exercises
 
-**3.1 ★ Break it on purpose.** Run `cd Nowhere`, `lss`, and `cat ~/Pictures`. Read each
+**3.1 ★ Break it on purpose.** Run `cd Nowhere`, `lss`, and `cat ~/captures`. Read each
 message.
 
 *Expected:* `No such file or directory`, `command not found`, `Is a directory`.
 
-**3.2 ★★ Find the line.** Save this as `~/practice/oops.py` (in neovim: `nvim
-~/practice/oops.py`, **i**, type, **Esc**, `:wq`), run `python3 ~/practice/oops.py`, and fix it
+**3.2 ★★ Find the line.** Save this as `~/dojo/practice/oops.py` (in neovim: `nvim
+~/dojo/practice/oops.py`, **i**, type, **Esc**, `:wq`), run `python3 ~/dojo/practice/oops.py`, and fix it
 from the message alone:
 
 ```python
@@ -636,7 +636,7 @@ entry, **Ctrl+X** forgets them all.
 
 | Press | Takes | Then |
 |---|---|---|
-| **Print** | a region: drag a box (**Esc** gives up) | saved to `~/Pictures/Screenshots` and copied |
+| **Print** | a region: drag a box (**Esc** gives up) | saved to `~/captures` and copied |
 | **Shift+Print** | the whole screen | saved and copied |
 | **Super+Print** | a region, opened in satty to mark it up | **Enter** copies, **Ctrl+S** saves |
 | **Super+Shift+Print** | a region's **text**, read by tesseract (English and Arabic) | the text copied, nothing saved |
@@ -670,7 +670,7 @@ stop.
 
 | What | Where |
 |---|---|
-| the recordings | `~/Videos/Recordings/2026-10-20_14-05-31.mp4` (the date and time it started) |
+| the recordings | `~/captures/2026-10-20_14-05-31.mp4` (the date and time it started) |
 | the format | MP4, the picture encoded by the graphics card (H.264), the sound AAC |
 
 Use it for a bug report, a short tutorial for a friend, or to watch your own coding session
@@ -716,20 +716,20 @@ the first.
 *Expected:* the first word, though you copied two others since.
 
 **6.3 ★★ Under 500 KB.** Take a full screenshot (**Shift+Print**), then **Super+Z** → *chat*.
-Check both sizes: `ls -lh ~/Pictures/Screenshots | tail -2`.
+Check both sizes: `ls -lh ~/captures | tail -2`.
 
 *Expected:* the shrunk copy is under 500 KB.
 
 **6.4 ★★ A 20-second demo.** Record yourself (**Super+Shift+R**, whole screen, no sound) opening
 the launcher, starting btop and closing it; stop, and click the notice.
 
-*Expected:* the recording plays in mpv; it is in `~/Videos/Recordings`.
+*Expected:* the recording plays in mpv; it is in `~/captures`.
 
 **6.5 ★ Read the screen.** Open any picture with text in it (a screenshot of this page will do),
 press **Super+Shift+Print** (or **Super+Shift+X**), drag over a line of text, and paste it into a
 note.
 
-*Expected:* the line arrives as text you can edit; nothing was saved in `~/Pictures`.
+*Expected:* the line arrives as text you can edit; nothing was saved in `~/captures`.
 
 **6.6 ★★ A pause in the middle.** Record a region, pause it with **Super+Shift+P** for ten
 seconds while you open something private, resume, and stop.
@@ -809,7 +809,7 @@ terminal.
 (`https://fedoraproject.org`) and watch the bar's mark, then click the finished notice.
 
 *Expected:* the mark appears while it downloads and goes when it is done; the notice opens
-`~/Downloads`.
+`~/downloads`.
 
 # 8. Looking after it: Super+U
 
@@ -874,7 +874,7 @@ $ snaps
 | the whole system back to a snapshot | Super+U → snapshots → **go back**, its number: it becomes the system at the next start; your files stay as they are |
 | the system you went back from | the same list, **old**: going back can itself be undone |
 
-> **Careful.** `~/Downloads` is not in the snapshots: move what you keep out of it.
+> **Careful.** `~/downloads` is not in the snapshots: move what you keep out of it.
 
 ## 8.3 The health report
 
@@ -1050,10 +1050,10 @@ go back, the number the first command printed, then restart.
 *Expected:* `ls /etc/my-test` says *No such file*, a file you made in your home meanwhile is still
 there, and *old* in the same list would bring the trace back.
 
-**8.4 ★★ A lost file.** Make `~/Documents/test.txt`, wait for the next hourly snapshot (or
+**8.4 ★★ A lost file.** Make `~/notes/test.txt`, wait for the next hourly snapshot (or
 `sudo snapper -c home create -p`), delete the file, then copy it back from the snapshot.
 
-*Expected:* `cat ~/Documents/test.txt` shows it again.
+*Expected:* `cat ~/notes/test.txt` shows it again.
 
 **8.5 ★★ Be a stranger.** Run `sudo bash /usr/local/lib/fedokawaii/tools/portscan.sh` (five minutes).
 It scans every port of this machine from the far end of a cable, once as a neighbour and once as a
@@ -1084,7 +1084,7 @@ repeated from bash; a task you do twice by hand is a one-line command the third 
 
 | Move | Example | Does |
 |---|---|---|
-| pipe `|` | `ls ~/Pictures | wc -l` | one program's output into the next |
+| pipe `|` | `ls ~/captures | wc -l` | one program's output into the next |
 | redirect `>` · `>>` | `date >> ~/log.txt` | output into a file: replace · append |
 | `&&` · `||` | `mkdir x && cd x` | the second only if the first worked · only if it failed |
 | `$( … )` | `echo "today is $(date +%A)"` | a command's output, in the middle of another |
@@ -1105,27 +1105,27 @@ touches it. Every new terminal reads it.
 ## 9.2 Use cases
 
 - rename a hundred photos by their date in one loop
-- a `backup-notes` function that copies `~/Notes` to a USB stick
+- a `backup-notes` function that copies `~/notes` to a USB stick
 - `history | rg ffmpeg` to find that clever command from last month
 
 ### Exercises
 
 **9.1 ★ mkcd.** Add the `mkcd` function above to `~/.bashrc.d/local.sh`, open a new terminal,
-and run `mkcd ~/practice/new`.
+and run `mkcd ~/dojo/practice/new`.
 
-*Expected:* the prompt shows `~/practice/new` at once.
+*Expected:* the prompt shows `~/dojo/practice/new` at once.
 
 **9.2 ★★ Count by kind.** How many files of each kind are in your pictures?
 
 ```sh
-fd -t f . ~/Pictures | sed 's/.*\.//' | sort | uniq -c | sort -rn
+fd -t f . ~/captures | sed 's/.*\.//' | sort | uniq -c | sort -rn
 ```
 
 *Expected:* lines such as `     42 png`, the most common first. Read it as a sentence: list the
 files, keep what follows the last dot, sort, count each run, sort by the count.
 
 **9.3 ★★★ A daily line.** Write a function `today` that prints the date, the weather line
-(`kawa-weather`), and how many lines your notes file has (`wc -l < ~/Notes/notes.md`).
+(`kawa-weather`), and how many lines your notes file has (`wc -l < ~/notes/notes.md`).
 
 # 10. Finding anything: fzf, fd, ripgrep
 
@@ -1148,7 +1148,7 @@ files, keep what follows the last dot, sort, count each run, sort by the count.
 | `fd -e pdf . ~` | every PDF in your home |
 | `fd -t d conf` | folders only |
 | `fd -S +500m . ~` | files over 500 MB |
-| `rg "rice" ~/Notes` | every line holding *rice*, with file and line number |
+| `rg "rice" ~/notes` | every line holding *rice*, with file and line number |
 | `rg -i -t py "todo"` | ignore case, only Python files |
 | `rg -l word` · `rg -C 2 word` | file names only · two lines of context around each match |
 | `nvim "$(fzf)"` | pick a file by typing, edit it |
@@ -1158,8 +1158,8 @@ In every fzf list: words in any order narrow it; `'word` exact; `^start` and `en
 
 ## 10.2 Use cases
 
-- `rg -i "invoice" ~/Documents -l` — which files mention invoices
-- `fd -e mkv . ~/Videos -x du -h` — every film and its size
+- `rg -i "invoice" ~/notes -l` — which files mention invoices
+- `fd -e mkv . ~/downloads -x du -h` — every film and its size
 - in a code project, `rg "def train"` finds where a function is defined in a second
 
 ### Exercises
@@ -1170,7 +1170,7 @@ In every fzf list: words in any order narrow it; `'word` exact; `^start` and `en
 
 **10.2 ★ Grep your notes.** `rg -i` a word you wrote in your notes.
 
-*Expected:* `~/Notes/notes.md`, then the line number and the line.
+*Expected:* `~/notes/notes.md`, then the line number and the line.
 
 **10.3 ★★ Pick and edit.** In your home, `nvim "$(fd -e md | fzf)"`.
 
@@ -1180,7 +1180,7 @@ In every fzf list: words in any order narrow it; `'word` exact; `^start` and `en
 `fd -t f -S +100m . ~ -x du -h | sort -h | tail -5`.
 
 **10.5 ★★★ A finder of your own.** Write a function `nf` (*note find*) that runs
-`rg -i "$1" ~/Notes` and, if nothing is found, says *nothing about $1*.
+`rg -i "$1" ~/notes` and, if nothing is found, says *nothing about $1*.
 
 # 11. Moving and reading: zoxide, eza, bat, tldr
 
@@ -1210,11 +1210,11 @@ and jumps by a word. `ls`, `ll` and `lt` are **eza**. `cat` is **bat**.
 
 ### Exercises
 
-**11.1 ★ Teach zoxide.** `cd ~/Documents`, `cd /`, then `cd doc`.
+**11.1 ★ Teach zoxide.** `cd ~/notes`, `cd /`, then `cd doc`.
 
-*Expected:* you are back in `~/Documents`.
+*Expected:* you are back in `~/notes`.
 
-**11.2 ★ A tree.** `lt ~/repos` once you have a project (chapter 24).
+**11.2 ★ A tree.** `lt ~/dojo` once you have a project (chapter 24).
 
 **11.3 ★★ Clean-up hunt.** `gdu ~`: find the biggest folder in your home and decide whether it
 should stay. **q** quits.
@@ -1258,11 +1258,11 @@ dialog here.
 
 - sort a holiday's photos: select by range, cut, paste into a new folder
 - rename 30 episode files at once with **r** and neovim's `:%s` (chapter 13)
-- clean `~/Downloads`: sort by size (**,** then **s**), trash the big ones you watched
+- clean `~/downloads`: sort by size (**,** then **s**), trash the big ones you watched
 
 ### Exercises
 
-**12.1 ★ Three moves.** In `~/practice`, make a folder `pics/` (**a**, `pics/`), copy two
+**12.1 ★ Three moves.** In `~/dojo/practice`, make a folder `pics/` (**a**, `pics/`), copy two
 screenshots into it (**y**, then **p** inside it).
 
 **12.2 ★★ Rename many.** Select three files, press **r**: in neovim, change all three names at
@@ -1341,7 +1341,7 @@ every *tea* into *coffee* with one command, then undo it, then do it with `*`, `
 
 *Expected:* the same result both ways; the second teaches you the dot.
 
-**13.3 ★★ Project search.** In `~/repos/fedokawaii`, **Space /**, type `kawa-notes`.
+**13.3 ★★ Project search.** In `~/dojo/fedokawaii`, **Space /**, type `kawa-notes`.
 
 *Expected:* every file that mentions it, with a preview; Enter jumps there.
 
@@ -1404,13 +1404,13 @@ lazygit does the work on your own machine; **gh** talks to GitHub.
 
 ## 14.4 Use cases
 
-- every project in `~/repos` is a repository: the prompt shows its branch and changes
+- every project in `~/dojo` is a repository: the prompt shows its branch and changes
 - an experiment on a branch: if it works, merge; if not, delete the branch
 - `git log -p FILE`: why a line is the way it is
 
 ### Exercises
 
-**14.1 ★ First commit.** `mkcd ~/repos/hello`, `git init`, make `README.md` with one line,
+**14.1 ★ First commit.** `mkcd ~/dojo/hello`, `git init`, make `README.md` with one line,
 commit it in lazygit (**a**, **c**).
 
 *Expected:* lazygit's commits panel (**4**) shows one commit.
@@ -1593,7 +1593,7 @@ The `S:L` column is seeders:leechers: more seeders, faster. The bar's download m
 | Tool | Opens with | Best at |
 |---|---|---|
 | notes | **Super+N** | one Markdown file, a heading per day: type at once, saved as you type |
-| books | **Super+R** | your PDFs, EPUBs and comics, and this book; **Ctrl+A** brings books in from Downloads |
+| books | **Super+R** | your PDFs, EPUBs and comics, and this book; **Ctrl+A** brings books in from `~/downloads` |
 | zathura | opening a PDF | reading; **Ctrl+R** recolours the page to the theme |
 | VisiData | `vd file.csv` | tables: sort (`[` `]`), select rows by a pattern (`|`), sum, group (**Shift+F**) |
 | jq | `jq . file.json` | reading and reshaping JSON |
@@ -1620,7 +1620,7 @@ ghostscript on a PDF you copied, and Super+D (§6.5) runs the qpdf and poppler c
 
 **20.1 ★ A to-do.** In your notes, write `- [ ] finish chapter 20`. Later, make it `- [x]`.
 
-**20.2 ★★ A table.** Save a few expenses as `~/practice/money.csv` (`date,item,amount`), open it
+**20.2 ★★ A table.** Save a few expenses as `~/dojo/practice/money.csv` (`date,item,amount`), open it
 in VisiData, sort by amount, and find the total (on the amount column: **z+** then *sum*).
 
 **20.3 ★★ JSON.** `curl -s "https://api.github.com/repos/neovim/neovim" | jq .stargazers_count`
@@ -1643,7 +1643,7 @@ chore. You stay the author: you read every change before you keep it.
 
 | In a terminal | Does |
 |---|---|
-| `cd ~/repos/hello && claude` | start it in a project |
+| `cd ~/dojo/hello && claude` | start it in a project |
 | type a request, **Enter** | it plans, asks, then works |
 | **Esc** | stop it at once |
 | **Shift+Tab** | switch modes: ask before edits · accept edits · plan only |
@@ -1668,7 +1668,7 @@ professionally.
 
 ### Exercises
 
-**21.1 ★ Explain.** In `~/repos/fedokawaii`, ask Claude Code: *"explain bin/kawa-weather to a
+**21.1 ★ Explain.** In `~/dojo/fedokawaii`, ask Claude Code: *"explain bin/kawa-weather to a
 beginner, step by step — do not change anything"*.
 
 **21.2 ★★ Two at once.** In herdr, run one agent writing tests for your `hello` project while
@@ -1687,7 +1687,7 @@ here). podman runs containers as you, never as root.
 | `podman run --rm -it fedora:45 bash` | a throw-away Fedora, gone when you `exit` |
 | `podman run --rm -it python:3.14 python` | a Python of another version, for a minute |
 | `podman ps -a` · `podman images` | running and stopped containers · the images kept |
-| `podman run --rm -v ~/practice:/w:Z -w /w python:3.14 python script.py` | run a script of yours inside |
+| `podman run --rm -v ~/dojo/practice:/w:Z -w /w python:3.14 python script.py` | run a script of yours inside |
 | `podman image prune` | delete images no container uses |
 
 ### Exercises
@@ -1697,7 +1697,7 @@ here). podman runs containers as you, never as root.
 
 *Expected:* `cowsay` exists only inside; on your desktop, `command not found`.
 
-**22.2 ★★ Your script inside.** Run `~/practice/oops.py` (fixed) in the `python:3.14` container
+**22.2 ★★ Your script inside.** Run `~/dojo/practice/oops.py` (fixed) in the `python:3.14` container
 with `-v`.
 
 # Part IV — Python, for the age of AI
@@ -1790,9 +1790,9 @@ here; every later chapter uses it.
 ## 24.2 A new project
 
 ```text
-$ cd ~/repos
+$ cd ~/dojo
 $ uv init hello
-Initialized project `hello` at `/home/you/repos/hello`
+Initialized project `hello` at `/home/you/dojo/hello`
 $ cd hello
 $ ls -a
 .  ..  .git  .gitignore  main.py  pyproject.toml  .python-version  README.md
@@ -4883,7 +4883,7 @@ installs packages, writes the lock file, runs your code inside the venv:
 
 ```text
 $ uv init --app expenses
-Initialized project `expenses` at `/home/you/repos/expenses`
+Initialized project `expenses` at `/home/you/dojo/expenses`
 $ ls expenses
 README.md  main.py  pyproject.toml
 $ cat expenses/pyproject.toml
@@ -6952,7 +6952,7 @@ anywhere, like `rg` or `bat`. uv makes the layout:
 
 ```text
 $ uv init --package wordfreq
-Initialized project `wordfreq` at `/home/you/repos/wordfreq`
+Initialized project `wordfreq` at `/home/you/dojo/wordfreq`
 $ find wordfreq -type f | sort
 wordfreq/.python-version
 wordfreq/README.md
@@ -7005,7 +7005,7 @@ $ cd wordfreq && echo "the cat and the hat and the bat" | uv run -q wordfreq -n 
 ```text
 $ uv tool install --editable .
 Installed 1 executable: wordfreq
-$ cd ~ && wordfreq -n 3 ~/Notes/notes.md
+$ cd ~ && wordfreq -n 3 ~/notes/notes.md
 ```
 
 `uv tool install` puts the command in `~/.local/bin`, which is on your `PATH` — it now works from
@@ -7759,7 +7759,7 @@ def bar(n: int, most: int, width: int = 30) -> str:
     return "█" * max(1, round(n / most * width))
 
 def main() -> None:
-    path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "Notes" / "notes.md"
+    path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "notes" / "notes.md"
     counts = lines_per_day(path.read_text(encoding="utf-8"))
     if not counts:
         print("no dated notes yet")
@@ -7844,7 +7844,7 @@ if __name__ == "__main__":
 ```
 
 ```text
-$ uv run flash.py ~/Notes/japanese.txt
+$ uv run flash.py ~/notes/japanese.txt
 water → mizu
   ✓
 book → hono
@@ -8424,7 +8424,7 @@ print("".join(chars[i] for i in model.generate(start, 600)[0].tolist()))
 ```
 
 ```text
-$ uv run chargpt.py ~/repos/fedokawaii/docs/fedokawaii-guide.md
+$ uv run chargpt.py ~/dojo/fedokawaii/docs/fedokawaii-guide.md
 962,051 characters, 246 different; 3,318,518 parameters
 step     0  train 5.663  val 5.661
 step   500  train 2.012  val 2.087
@@ -8451,7 +8451,7 @@ book's style.
 
 *Expected:* 0.3 repeats safe phrases (`the the`, tables of `| **`); 1.5 invents words.
 
-**45.2 ★★ Your voice.** Train it on your own notes, or on a book from `~/Books` converted to
+**45.2 ★★ Your voice.** Train it on your own notes, or on a book from `~/books` converted to
 text (`pdftotext book.pdf book.txt`).
 
 **45.3 ★★ Bigger.** `D = 384`, `LAYERS = 6`. Watch the card's memory in btop, and the
@@ -8486,7 +8486,7 @@ this book are a ready source):
 ```text
 {"q": "How do I open a terminal on Fedokawaii?", "a": "Super+Return opens foot, the terminal."}
 {"q": "How do I take a screenshot of a region?", "a": "Press Print and drag a box; it is saved and copied."}
-{"q": "Where do my notes live?", "a": "In ~/Notes/notes.md; Super+N opens them."}
+{"q": "Where do my notes live?", "a": "In ~/notes/notes.md; Super+N opens them."}
 ```
 
 ## 46.2 The code
@@ -8639,13 +8639,13 @@ capable)*
 ## 47.3 The agent
 
 ```python
-# agent.py — a notes assistant: Claude searches and adds to ~/Notes/notes.md through two tools
+# agent.py — a notes assistant: Claude searches and adds to ~/notes/notes.md through two tools
 import datetime
 from pathlib import Path
 
 import anthropic
 
-NOTES = Path.home() / "Notes" / "notes.md"
+NOTES = Path.home() / "notes" / "notes.md"
 client = anthropic.Anthropic()
 
 TOOLS = [
@@ -8778,14 +8778,14 @@ you, or run it yourself)*
 ## 48.1 A project
 
 ```text
-$ cd ~/repos && cargo new hello-rs && cd hello-rs
+$ cd ~/dojo && cargo new hello-rs && cd hello-rs
 $ lt
 .
 ├── Cargo.toml
 └── src
    └── main.rs
 $ cargo run
-   Compiling hello-rs v0.1.0 (/home/you/repos/hello-rs)
+   Compiling hello-rs v0.1.0 (/home/you/dojo/hello-rs)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.4s
      Running `target/debug/hello-rs`
 Hello, world!
@@ -14370,7 +14370,7 @@ Options:
   -n, --top <TOP>          how many words to show [default: 10]
       --min-len <MIN_LEN>  ignore words shorter than this [default: 1]
   -h, --help               Print help
-$ cargo run -q --release -- -n 5 --min-len 5 ~/repos/fedokawaii/docs/fedokawaii-guide.md
+$ cargo run -q --release -- -n 5 --min-len 5 ~/dojo/fedokawaii/docs/fedokawaii-guide.md
 $ cargo run -q -- /nope
 Error: "/nope: No such file or directory (os error 2)"
 ```
@@ -14382,7 +14382,7 @@ Install it as a command of your own, in cargo's own `bin` folder (on your `PATH`
 
 ```text
 $ cargo install --path .
-$ wordfreq -n 3 ~/Notes/notes.md
+$ wordfreq -n 3 ~/notes/notes.md
 ```
 
 ### Exercises
@@ -14720,7 +14720,7 @@ and call it as if it were Python. This is how `tokenizers`, `pydantic-core`, `po
 are made. **PyO3** is the bridge; **maturin** builds it.
 
 ```text
-$ cd ~/repos
+$ cd ~/dojo
 $ uvx maturin new --bindings pyo3 fastwords && cd fastwords
   Done! New project created fastwords
 ```
@@ -15043,7 +15043,7 @@ answer says it does not exist; if the model explains it confidently, you have ca
 (67.6).
 
 **67.5 ★★★ Watch the window fill.** In a new Claude Code session, run `/context`. Ask it to read
-three large files of `~/repos/fedokawaii`, then run `/context` again. Then `/clear` and look once
+three large files of `~/dojo/fedokawaii`, then run `/context` again. Then `/clear` and look once
 more.
 
 *You should see:* the messages part of the context grow with every file, and go back to almost
@@ -15146,7 +15146,7 @@ before it becomes a wrong program.
 
 **68.2 ★★ Example versus description.** Ask for five commit messages for made-up changes, first
 described ("short, present tense, area first"), then shown three real ones from `git log
---oneline` of `~/repos/fedokawaii`. Compare.
+--oneline` of `~/dojo/fedokawaii`. Compare.
 
 *You should see:* the shown style matched far more closely than the described one (68.2).
 
@@ -15157,7 +15157,7 @@ questions; keep the `SPEC.md` it writes.
 someone else.
 
 **68.4 ★★★ Correct or restart?** Ask for something deliberately vague ("a script that tidies my
-Downloads"). Correct it three times in the same session. Then `/clear` and write one request with
+downloads"). Correct it three times in the same session. Then `/clear` and write one request with
 everything you learnt. Compare the two results and the time each took.
 
 *You should see:* the single better request matching or beating the corrected one, in less time
@@ -15242,7 +15242,7 @@ chapter 8) and success can be checked (a test). Missing either, turn it down.
 
 ### Exercises
 
-**69.1 ★ Trace the loop.** Give Claude Code a small task in `~/repos/hello` ("add a function
+**69.1 ★ Trace the loop.** Give Claude Code a small task in `~/dojo/hello` ("add a function
 `greet(name)` with a test, run the tests"). Watch it and write down each tool it uses, in order,
 under the labels gather, act, check.
 
@@ -15280,7 +15280,7 @@ cleaning 300 photos into folders by date.
 ## 70.1 Starting
 
 ```text
-$ cd ~/repos/hello
+$ cd ~/dojo/hello
 $ git status                       # start clean: every change after this is the agent's
 $ claude
 ```
@@ -15377,7 +15377,7 @@ preferences (`/memory` shows them).
 
 ### Exercises
 
-**70.1 ★ The modes.** Start `claude` in `~/repos/hello`, press **Shift+Tab** until each mode has
+**70.1 ★ The modes.** Start `claude` in `~/dojo/hello`, press **Shift+Tab** until each mode has
 shown once, and ask in plan mode for a change. Confirm nothing changed with `git status`.
 
 *You should see:* a plan, and `nothing to commit, working tree clean`.
@@ -15579,7 +15579,7 @@ ask: *"use the reviewer subagent on the current diff"*.
 *You should see:* the bug found, with file and line.
 
 **71.6 ★★★★ A morning report.** A script `~/.local/bin/morning` that pipes the last day's
-`journalctl -p warning`, `dnf check-update` and `git -C ~/repos/fedokawaii status -s` into
+`journalctl -p warning`, `dnf check-update` and `git -C ~/dojo/fedokawaii status -s` into
 `claude -p`, asking for a ten-line summary of what needs you today. Run it from a systemd user
 timer at 09:00 and send the result with `notify-send`.
 
@@ -21909,7 +21909,7 @@ stop?* A short spec from the answers:
 
 **68.4 ★★★ Correct or restart?** A typical log: the vague request took three corrections (it
 deleted files you wanted, sorted by the wrong date, ignored subfolders) and about 15 minutes. The
-single request — *"move files older than 30 days from ~/Downloads into ~/Downloads/old/YYYY-MM by
+single request — *"move files older than 30 days from ~/downloads into ~/downloads/old/YYYY-MM by
 their modification date; never delete; skip subfolders; print what it moved; dry run first with
 --dry-run"* — was right the first time in about 3. The second request is the first plus
 everything the corrections taught you.
@@ -22075,7 +22075,7 @@ set -u
 {
   echo "## warnings since yesterday"; journalctl --since yesterday -p warning --no-pager -q | tail -n 200
   echo "## updates";                  dnf -q check-update 2>/dev/null | head -n 50
-  echo "## repository";               git -C ~/repos/fedokawaii status -s | head -n 30
+  echo "## repository";               git -C ~/dojo/fedokawaii status -s | head -n 30
 } | claude -p "Summarise what needs my attention today in at most ten short lines, \
 most important first. Plain text, no preamble." > "$XDG_RUNTIME_DIR/morning.txt" \
   && notify-send -a morning "早 · morning" "$(cat "$XDG_RUNTIME_DIR/morning.txt")"

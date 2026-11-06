@@ -71,6 +71,6 @@ every *tea* into *coffee* with one command, then undo it, then do it with `*`, `
 
 *Expected:* the same result both ways; the second teaches you the dot.
 
-**13.3 ★★ Project search.** In `~/repos/fedokawaii`, **Space /**, type `kawa-notes`.
+**13.3 ★★ Project search.** In `~/dojo/fedokawaii`, **Space /**, type `kawa-notes`.
 
 *Expected:* every file that mentions it, with a preview; Enter jumps there.

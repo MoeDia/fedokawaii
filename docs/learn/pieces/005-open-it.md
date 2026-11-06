@@ -43,7 +43,7 @@ $ pwd
 
 ```text
 $ ls
-Books  Documents  Downloads  Music  Notes  Pictures  repos  Videos
+books  captures  dojo  downloads  Drives  notes
 ```
 
 *(list: what is here; your list may differ)*
@@ -52,7 +52,7 @@ Books  Documents  Downloads  Music  Notes  Pictures  repos  Videos
 $ mkdir practice
 $ cd practice
 $ pwd
-/home/you/practice
+/home/you/dojo/practice
 ```
 
 *(make a folder, change into it, check)*

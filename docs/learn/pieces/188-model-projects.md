@@ -9,7 +9,7 @@ optional: yes
 ---
 
 **67.5 ★★★ Watch the window fill.** In a new Claude Code session, run `/context`. Ask it to read
-three large files of `~/repos/fedokawaii`, then run `/context` again. Then `/clear` and look once
+three large files of `~/dojo/fedokawaii`, then run `/context` again. Then `/clear` and look once
 more.
 
 *You should see:* the messages part of the context grow with every file, and go back to almost

@@ -18,7 +18,7 @@ and call it as if it were Python. This is how `tokenizers`, `pydantic-core`, `po
 are made. **PyO3** is the bridge; **maturin** builds it.
 
 ```text
-$ cd ~/repos
+$ cd ~/dojo
 $ uvx maturin new --bindings pyo3 fastwords && cd fastwords
   Done! New project created fastwords
 ```

@@ -12,7 +12,7 @@ optional: no
 
 *Expected:* 0.3 repeats safe phrases (`the the`, tables of `| **`); 1.5 invents words.
 
-**45.2 ★★ Your voice.** Train it on your own notes, or on a book from `~/Books` converted to
+**45.2 ★★ Your voice.** Train it on your own notes, or on a book from `~/books` converted to
 text (`pdftotext book.pdf book.txt`).
 
 **45.3 ★★ Bigger.** `D = 384`, `LAYERS = 6`. Watch the card's memory in btop, and the

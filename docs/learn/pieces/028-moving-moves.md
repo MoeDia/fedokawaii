@@ -32,11 +32,11 @@ and jumps by a word. `ls`, `ll` and `lt` are **eza**. `cat` is **bat**.
 
 ### exercises
 
-**11.1 ★ Teach zoxide.** `cd ~/Documents`, `cd /`, then `cd doc`.
+**11.1 ★ Teach zoxide.** `cd ~/notes`, `cd /`, then `cd doc`.
 
-*Expected:* you are back in `~/Documents`.
+*Expected:* you are back in `~/notes`.
 
-**11.2 ★ A tree.** `lt ~/repos` once you have a project (chapter 24).
+**11.2 ★ A tree.** `lt ~/dojo` once you have a project (chapter 24).
 
 **11.3 ★★ Clean-up hunt.** `gdu ~`: find the biggest folder in your home and decide whether it
 should stay. **q** quits.

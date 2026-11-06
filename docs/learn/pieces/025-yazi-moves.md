@@ -47,11 +47,11 @@ dialog here.
 
 - sort a holiday's photos: select by range, cut, paste into a new folder
 - rename 30 episode files at once with **r** and neovim's `:%s` (chapter 13)
-- clean `~/Downloads`: sort by size (**,** then **s**), trash the big ones you watched
+- clean `~/downloads`: sort by size (**,** then **s**), trash the big ones you watched
 
 ### exercises
 
-**12.1 ★ Three moves.** In `~/practice`, make a folder `pics/` (**a**, `pics/`), copy two
+**12.1 ★ Three moves.** In `~/dojo/practice`, make a folder `pics/` (**a**, `pics/`), copy two
 screenshots into it (**y**, then **p** inside it).
 
 **12.2 ★★ Rename many.** Select three files, press **r**: in neovim, change all three names at

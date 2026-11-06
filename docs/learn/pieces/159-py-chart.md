@@ -44,7 +44,7 @@ def bar(n: int, most: int, width: int = 30) -> str:
     return "█" * max(1, round(n / most * width))
 
 def main() -> None:
-    path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "Notes" / "notes.md"
+    path = Path(sys.argv[1]) if len(sys.argv) > 1 else Path.home() / "notes" / "notes.md"
     counts = lines_per_day(path.read_text(encoding="utf-8"))
     if not counts:
         print("no dated notes yet")

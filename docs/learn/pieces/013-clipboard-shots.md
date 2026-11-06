@@ -32,7 +32,7 @@ entry, **Ctrl+X** forgets them all.
 
 | Press | Takes | Then |
 |---|---|---|
-| **Print** | a region: drag a box (**Esc** gives up) | saved to `~/Pictures/Screenshots` and copied |
+| **Print** | a region: drag a box (**Esc** gives up) | saved to `~/captures` and copied |
 | **Shift+Print** | the whole screen | saved and copied |
 | **Super+Print** | a region, opened in satty to mark it up | **Enter** copies, **Ctrl+S** saves |
 | **Super+Shift+Print** | a region's **text**, read by tesseract (English and Arabic) | the text copied, nothing saved |
@@ -66,7 +66,7 @@ stop.
 
 | What | Where |
 |---|---|
-| the recordings | `~/Videos/Recordings/2026-10-20_14-05-31.mp4` (the date and time it started) |
+| the recordings | `~/captures/2026-10-20_14-05-31.mp4` (the date and time it started) |
 | the format | MP4, the picture encoded by the graphics card (H.264), the sound AAC |
 
 Use it for a bug report, a short tutorial for a friend, or to watch your own coding session

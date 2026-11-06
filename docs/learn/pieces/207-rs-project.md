@@ -37,14 +37,14 @@ you, or run it yourself)*
 ## 48.1 a project
 
 ```text
-$ cd ~/repos && cargo new hello-rs && cd hello-rs
+$ cd ~/dojo && cargo new hello-rs && cd hello-rs
 $ lt
 .
 ├── Cargo.toml
 └── src
    └── main.rs
 $ cargo run
-   Compiling hello-rs v0.1.0 (/home/you/repos/hello-rs)
+   Compiling hello-rs v0.1.0 (/home/you/dojo/hello-rs)
     Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.4s
      Running `target/debug/hello-rs`
 Hello, world!

@@ -59,7 +59,7 @@ installs packages, writes the lock file, runs your code inside the venv:
 
 ```text
 $ uv init --app expenses
-Initialized project `expenses` at `/home/you/repos/expenses`
+Initialized project `expenses` at `/home/you/dojo/expenses`
 $ ls expenses
 README.md  main.py  pyproject.toml
 $ cat expenses/pyproject.toml

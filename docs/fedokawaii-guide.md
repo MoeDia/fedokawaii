@@ -1352,8 +1352,8 @@ What that means for you now:
 
 The removal is the very last thing setup does, after the final check has passed and nothing
 reads the folder any more. The download it came from goes with it (`fedokawaii-main.zip` or
-`.tar.gz` beside it or in `~/Downloads`, unless you have downloaded a newer one since), and so
-does the folder it stood in if that is now empty (never your home, `~/Downloads` or another
+`.tar.gz` beside it or in `~/downloads`, unless you have downloaded a newer one since), and so
+does the folder it stood in if that is now empty (never your home, `~/downloads` or another
 standard folder). Everything is removed as you, never as root. Nothing of yours is lost:
 
 | the folder | what happens |
@@ -1361,7 +1361,7 @@ standard folder). Everything is removed as you, never as root. Nothing of yours 
 | exactly the project, as cloned or unpacked | removed |
 | it holds something that may be yours — a file you added or changed, a changed `fedokawaii.conf`, in git a change, a stash, or a commit or tag on any branch not on GitHub | packed whole into `~/.local/state/fedokawaii/started-from-DATE.tar.gz` (`tar -xzf` it to look inside), then removed; if the pack cannot be written, kept, and the log says why |
 | the project unpacked among other things of yours (say `~/stuff`) | only the project's own files go; the rest stays |
-| a standard folder (`~/Downloads`, `~/Documents`…), one with a drive mounted in it, a git clone with other worktrees, or the working copy `fedokawaii copy` made | kept, and the log says why |
+| a standard folder (`~/downloads`, `~/notes`…), one with a drive mounted in it, a git clone with other worktrees, or the working copy `fedokawaii copy` made | kept, and the log says why |
 
 A terminal still inside the removed folder is left in a folder that is gone: `cd ~`. An
 `update` or a `repair` run from a fresh clone ends the same way (that run alone: one that
@@ -2241,7 +2241,7 @@ one menu is open at a time: another menu's key closes the one on screen and open
 The windows that show more than a list are small terminal windows of their own rather than
 menus, all in one look — a heading across the top (the part's kanji, its name, then a dashed
 stitch to the edge), a search line where there is something to search (its empty field says
-how the list stands: *newest first*, *~/Books*), the list (each row a small glyph, the name,
+how the list stands: *newest first*, *~/books*), the list (each row a small glyph, the name,
 and what is worth knowing about it at the right, quieter), a pane beside or below it, and the
 keys along the bottom: the wallpaper picker (**Super+W**,
 the wallpaper itself shown as you move — §9.2), the clipboard history (**Super+V** —
@@ -2579,7 +2579,7 @@ Each theme remembers its own wallpaper. The choices:
     are fetched for your own use. A picture dropped from a later list is deleted from your pack
     the next time it is fetched.
 
-* **your own** — anything in `~/Pictures/Wallpapers`, shown as it is on either theme. One that is not there at login (deleted, or on a drive not plugged in yet) leaves the theme's default up meanwhile; the choice is kept and comes back with the picture.
+* **your own** — anything in `~/.local/share/fedokawaii/wallpapers`, shown as it is on either theme. One that is not there at login (deleted, or on a drive not plugged in yet) leaves the theme's default up meanwhile; the choice is kept and comes back with the picture.
 
 Every picture is shown at full quality on each monitor. It is scaled to **cover** the screen
 exactly — no bars at the sides — and what sticks out is cropped:
@@ -2631,7 +2631,7 @@ time; `kawa-wallpaper --cache` draws them again (or the next login does, in the 
    `kawa-theme light` in a terminal).
 2. **Super+W** chooses a wallpaper **for the theme you are on**; each theme remembers its own.
    Pictures of a day / night pair set the other theme too.
-3. For your own pictures, put them in `~/Pictures/Wallpapers`; they appear in the same menu,
+3. For your own pictures, put them in `~/.local/share/fedokawaii/wallpapers`; they appear in the same menu,
    on both themes.
 
 **What you learnt**
@@ -2639,12 +2639,12 @@ time; `kawa-wallpaper --cache` draws them again (or the next login does, in the 
 - **Super+Shift+W** switches every program between dark and light at once; the choice outlasts a restart.
 - **Super+W** picks a wallpaper for the theme you are on; **Esc** leaves everything as it was.
 - Each theme remembers its own wallpaper; a ◐ day / night pair sets both.
-- Your own pictures go in `~/Pictures/Wallpapers`, and show on both themes.
+- Your own pictures go in `~/.local/share/fedokawaii/wallpapers`, and show on both themes.
 
 **Check yourself**
 
 1. You chose a wallpaper on the dark theme, then switch to light. Does it follow? → *no: each theme keeps its own — unless it is one of a ◐ pair*
-2. Where do your own wallpapers go? → *`~/Pictures/Wallpapers`*
+2. Where do your own wallpapers go? → *`~/.local/share/fedokawaii/wallpapers`*
 3. A wallpaper is wider than your screen. What happens to it? → *it is scaled to cover the screen exactly and cropped — from the middle, or from the top for a picture whose subject sits high*
 
 # 10. Files and folders
@@ -2667,14 +2667,14 @@ next chapter uses the same map.
 Here is a file:
 
 ```text
-/home/you/Documents/tenancy.pdf
+/home/you/notes/tenancy.pdf
 ```
 
 Read it from the left: start at the top of everything (`/`), go into the folder `home`, then
-`you`, then `Documents`; the last part is the file itself.
+`you`, then `notes`; the last part is the file itself.
 
 > **Word — path.** The address of a file or folder: the folders to pass through, each followed
-> by `/`, then the name. `/home/you/Documents/tenancy.pdf` is a path.
+> by `/`, then the name. `/home/you/notes/tenancy.pdf` is a path.
 
 The rule: on Linux, everything sits in **one tree** that starts at `/`, called *root*. There
 are no drive letters. A USB stick appears as one more folder inside the tree
@@ -2686,9 +2686,9 @@ are no drive letters. A USB stick appears as one more folder inside the tree
 ├── usr/              the programs
 ├── home/
 │   └── you/          your home: ~
-│       ├── Documents/
-│       ├── Downloads/
-│       └── Pictures/
+│       ├── books/
+│       ├── downloads/
+│       └── notes/
 └── run/media/you/    where USB sticks open
 ```
 
@@ -2697,7 +2697,7 @@ Part IV draws the whole tree (§23.2). One folder in it is yours:
 > **Word — home folder.** Your own folder, `/home/you`, written `~` for short. Everything you
 > keep goes inside it. Outside it you can read most things and change almost nothing.
 
-`~` is the path you will type most: `~/Documents`, `~/Downloads`, `~/Pictures/Wallpapers`.
+`~` is the path you will type most: `~/notes`, `~/downloads`, `~/.local/share/fedokawaii/wallpapers`.
 
 > **On Windows.** `C:\Users\you` is `/home/you` here. Paths use `/`, not `\`, and there is no
 > `C:` or `E:`: one tree from `/`, sticks included. Names are case-sensitive — `Notes` and
@@ -2709,10 +2709,10 @@ inside `/home/you`:
 
 | Path | Kind | Means |
 |---|---|---|
-| `/home/you/Documents` | absolute | your Documents folder, from anywhere |
-| `~/Documents` | absolute: `~` is `/home/you` | the same folder, shorter |
-| `Documents` | relative | `Documents` inside the folder you are in — here, the same again |
-| `..` | relative | the folder one level up: from `~/Documents`, that is `~` |
+| `/home/you/notes` | absolute | your notes folder, from anywhere |
+| `~/notes` | absolute: `~` is `/home/you` | the same folder, shorter |
+| `notes` | relative | `notes` inside the folder you are in — here, the same again |
+| `..` | relative | the folder one level up: from `~/notes`, that is `~` |
 
 Three more things about names:
 
@@ -2740,15 +2740,14 @@ A short, fixed layout makes them quick to find, to back up and to clean:
 
 | Folder | For | Why |
 |---|---|---|
-| `~/repos/` | every git repository, one folder each | the prompt shows the branch and changes there; lazygit and neovim find the project from the folder. The Fedokawaii clone can stay at `~/fedokawaii` (§5.1) |
-| `~/Documents/` | papers, letters, spreadsheets, PDFs you keep | one place for everything you would hate to lose |
-| `~/Pictures/` · `~/Videos/` · `~/Music/` | what you keep of each kind | the standard folders; file dialogs and yazi know them |
-| `~/Downloads/` | arrivals only | not in snapshots — move what you keep into one of the folders above, delete the rest |
-| `~/Books/` | books and comics, in folders of your own if you like | the books window reads it (§16.2); its Ctrl+A moves books here from `~/Downloads` and `~/Documents` |
-| `~/Notes/` | `notes.md` (Super+N), and any other notes you start | plain Markdown: searchable with `rg`, readable anywhere (§16.3) |
+| `~/dojo/` | every git repository, one folder each | the prompt shows the branch and changes there; lazygit and neovim find the project from the folder. Your exercises go here too, in `~/dojo/practice` |
+| `~/captures/` | screenshots and recordings | Print, Shift+Print and the recorder save here; file dialogs and yazi know it |
+| `~/downloads/` | arrivals only | not in snapshots — move what you keep into `~/notes` or `~/books`, delete the rest |
+| `~/books/` | books and comics, in folders of your own if you like | the books window reads it (§16.2); its Ctrl+A moves books here from `~/downloads` |
+| `~/notes/` | `notes.md` (Super+N), any other notes you start, and the papers you keep | plain Markdown: searchable with `rg`, readable anywhere (§16.3) |
 
 Snapshots are not backups: they live on the same disk (ch. 37). Every folder in this table
-but `~/Downloads` goes to your backup drive with quick settings → *backup* (§37.6).
+but `~/downloads` goes to your backup drive with quick settings → *backup* (§37.6).
 
 **Your home, the whole map.** What your home holds once the desktop has been in use for a
 while, and who writes each part. The hidden folders (a dot first) belong to the programs: you
@@ -2757,16 +2756,12 @@ program's own files.
 
 ```text
 ~                          /home/you
-├── Books/                 books and comics (Super+R, §16.2)
-├── Documents/             what you keep
-├── Downloads/             arrivals — outside every snapshot
+├── books/                 books and comics (Super+R, §16.2)
+├── captures/              Print, Shift+Print, satty's Ctrl+S, mpv's s, recordings (§12.2)
+├── dojo/                  your git repositories and exercises; fedokawaii/ is the working copy (§42.4)
+├── downloads/             arrivals — outside every snapshot
 ├── Drives/                a link to each open USB stick, disk or SD card (§13.3)
-├── Music/  Videos/        what you keep of each kind
-├── Notes/notes.md         your notes (Super+N, §16.3)
-├── Pictures/
-│   ├── Screenshots/       Print, Shift+Print, satty's Ctrl+S, mpv's s (§12.2)
-│   └── Wallpapers/        your own wallpapers (§9.2)
-├── repos/                 your git repositories; fedokawaii/ is the working copy (§42.4)
+├── notes/notes.md         your notes (Super+N, §16.3), and the papers you keep
 ├── .bashrc  .bashrc.d/    the shell: Fedora's file, and the desktop's beside it (ch. 25)
 ├── .config/               every program's settings; fedokawaii/ holds the desktop's own,
 │                          and secrets.sh, your keys
@@ -2819,13 +2814,13 @@ the one the terminal uses in ch. 11.
 
 **1.** Press **Super+E**. yazi opens in your home.
 
-**2.** Make a folder: press **a**, type `practice/` and press **Enter**. A box headed *new file*
+**2.** Make a folder: move onto `dojo` with **j** / **k**, press **l** to go in, press **a**, type `practice/` and press **Enter**. A box headed *new file*
 takes the name; the `/` at its end makes a folder rather than a file. `practice` appears in the
 list. Move onto it with **j** / **k** and press **l** to go in: it is empty.
 
-**3.** Copy a file into it. Press **h** to go back to your home, then **.** to show the hidden
-files. Move to `.bashrc` — your shell's settings — and press **y** (copy). Move back to
-`practice`, go in (**l**) and press **p** (paste). A copy of `.bashrc` is there now; the
+**3.** Copy a file into it. Press **h** twice to go back to your home, then **.** to show the hidden
+files. Move to `.bashrc` — your shell's settings — and press **y** (copy). Go back into
+`dojo`, then `practice` (**l**) and press **p** (paste). A copy of `.bashrc` is there now; the
 original is untouched.
 
 **4.** Rename the copy: press **r**. A box headed *rename* holds the name, right over the row. **Ctrl+E**, then
@@ -2836,9 +2831,9 @@ no longer hidden.
 file is gone from the list.
 
 **6.** Bring it back: **g t** opens the trash. Move to `bashrc.txt`, press **O** and choose
-*Restore selected files*. Press **g h**, go into `practice`: it is back.
+*Restore selected files*. Press **g h**, go into `dojo`, then `practice`: it is back.
 
-**7.** Press **.** to hide the hidden files again, and **q** to close yazi. Leave `~/practice` as
+**7.** Press **.** to hide the hidden files again, and **q** to close yazi. Leave `~/dojo/practice` as
 it is: the terminal starts there.
 
 *If the trash is empty in step 6:* you pressed **D**, not **d**, and answered **y** — see below.
@@ -2955,7 +2950,7 @@ in Helium opens yazi too, as the file dialog (§10.4, §14.3).
   files are written for (§27.7).
 * Search results (s, S) are a temporary list; Esc leaves it, Ctrl+S stops a search still running.
 
-A key of your own, as an example — `g` then `r` to go to `~/repos`. Add its line to the list
+A key of your own, as an example — `g` then `r` to go to `~/dojo`. Add its line to the list
 in `configs/home/.config/yazi/keymap.toml` in your working copy (Super+Shift+U → *files*),
 then apply:
 
@@ -2966,7 +2961,7 @@ prepend_keymap = [
   { on = "<Enter>",    run = "plugin smart-enter", desc = "Into the folder, or open the file(s)" },
   { on = "M",          run = "plugin drives",          desc = "Drives: open or eject one" },
   { on = [ "g", "m" ], run = "plugin drives -- media", desc = "Go to the open drives" },
-  { on = [ "g", "r" ], run = "cd ~/repos",             desc = "Go to ~/repos" },   # yours
+  { on = [ "g", "r" ], run = "cd ~/dojo",             desc = "Go to ~/dojo" },   # yours
 ]
 ```
 
@@ -2991,14 +2986,14 @@ in), the keys that matter along the bottom. It starts in the folder the program 
 One program keeps a dialog of its own: LibreOffice, which builds its *Open* and *Save*
 windows itself. They are GTK's, drawn in the desktop's theme (§16.4).
 
-Folders opened from anywhere — a download's *Show in folder*, `xdg-open ~/Pictures` — open in
+Folders opened from anywhere — a download's *Show in folder*, `xdg-open ~/captures` — open in
 yazi too, in a window of its own, as **Super+E** does. How the dialog is wired is
 §32.3.
 
 <!-- fig:app-filechooser | The file dialog an upload opens: yazi in a floating window, the PDF under the cursor previewed. -->
 
 **Try this.** In Helium, press **Ctrl+O** (open a file). The dialog opens, *open file* in its top
-rule. Go into `practice`, put the cursor on `bashrc.txt` and press **Enter**: Helium shows the
+rule. Go into `dojo`, then `practice`, put the cursor on `bashrc.txt` and press **Enter**: Helium shows the
 file's text. **Ctrl+W** closes that tab.
 
 ### Keys in the dialog
@@ -3007,7 +3002,7 @@ file's text. **Ctrl+W** closes that tab.
 |---|---|---|---|
 | move · into a folder · back | ↑ ↓ (or j k) · → or Enter (l) · ← (h) | the same | the same |
 | choose | **Enter** on a file | **Enter** on a folder, or **q** in the one you are in | **Enter** on the file the program suggested (it is already there, under its name; **r** renames it first) |
-| jump | **z** a few letters of a name below here · **Z** a folder you use often · **g Space** a path, `~/Downloads` say · **g d** your drives | the same | the same |
+| jump | **z** a few letters of a name below here · **Z** a folder you use often · **g Space** a path, `~/downloads` say · **g d** your drives | the same | the same |
 | a USB stick, disk or SD card | **M**: the drives; **Enter** on one goes there (ch. 13) | the same | the same |
 | several at once | **Space** marks each, then **Enter** (where the program accepts several) | Space, then Enter | — |
 | save into another folder | — | — | go there and press **Enter** on the folder |
@@ -3080,7 +3075,7 @@ The defaults are in `~/.config/mimeapps.list`, which Theme manages
 
 **What you learnt**
 
-- A path names a file from the top of the tree: `/home/you/Documents/tenancy.pdf`; `~` is your home, `..` the folder above.
+- A path names a file from the top of the tree: `/home/you/notes/tenancy.pdf`; `~` is your home, `..` the folder above.
 - Names that start with a dot are hidden; names are case-sensitive.
 - In yazi: **a** makes, **y** / **p** copy and paste, **r** renames, **d** sends to the trash, **g t** opens it.
 - Every program's *Open*, *Upload* and *Save as* is yazi too.
@@ -3088,7 +3083,7 @@ The defaults are in `~/.config/mimeapps.list`, which Theme manages
 
 **Check yourself**
 
-1. What does `~/Downloads` stand for? → *`/home/you/Downloads`*
+1. What does `~/downloads` stand for? → *`/home/you/downloads`*
 2. How do you see the hidden files in yazi? → *press `.` — again to hide them*
 3. Where does a file go after **d** in yazi, and after **D**? → *d: to the trash, where O → Restore brings it back · D: nowhere — it is gone*
 
@@ -3196,10 +3191,10 @@ The torii starts the line, green; `~` is the folder you are in; `›` is where y
 empty line sets each entry apart from the output above it — except in a window under 10 rows
 high (the spiral's smallest tiles), where every row is needed for what you type.
 
-**After a command that failed**, in `~/practice`:
+**After a command that failed**, in `~/dojo/practice`:
 
 ```text
-⛩ practice  1  › 
+⛩ dojo/practice  1  › 
 ```
 
 The torii turns vermilion and the exit status, `1`, stands in vermilion beside it: the last
@@ -3209,10 +3204,10 @@ Pressing Enter on an empty line runs nothing, so it changes neither.
 **In a git repository with changes**, after a command that took 4.2 seconds and succeeded:
 
 ```text
-⛩ repos/site  ⑂ main*  4.2s  › 
+⛩ dojo/site  ⑂ main*  4.2s  › 
 ```
 
-You are in `site`, inside `repos`; on the branch `main`, and the `*` says something in it is
+You are in `site`, inside `dojo`; on the branch `main`, and the `*` says something in it is
 not committed yet (git is ch. 41); the command succeeded (a green torii) and took 4.2 s.
 
 <!-- fig:terminal | A real terminal: the prompt per command — a green torii after commands that worked, a vermilion one with the code after one that failed, a command that took over three seconds — fetch, and ls in a git repository with changes. -->
@@ -3220,7 +3215,7 @@ not committed yet (git is ch. 41); the command succeeded (a green torii) and too
 | Part | Shows |
 |---|---|
 | torii | green when the last command worked, vermilion when it failed |
-| folder | the one you are in, in the strongest ink, after the one above it in a faint ink (`repos/site`; at home `~`, at the root `/`) — the whole path is the window's title, on the bar |
+| folder | the one you are in, in the strongest ink, after the one above it in a faint ink (`dojo/site`; at home `~`, at the root `/`) — the whole path is the window's title, on the bar |
 | git | the branch mark, the branch, and `*` when anything is not committed — one `git status` call, parsed in bash |
 | the outcome | the exit code in vermilion when it failed; the time it took, muted, when that was 3 s or more (`4.2s`, `1m05s`) |
 | jobs | `jobs 1`, muted, while a program waits in the background (§26.3) |
@@ -3280,7 +3275,7 @@ in your home.
 
 ```text
 $ ls
-Documents  Downloads  fedokawaii  Music  Pictures  practice  Videos
+books  captures  dojo  downloads  Drives  notes
 ```
 
 *(for example)*
@@ -3296,21 +3291,21 @@ more; both are in ch. 18. Everything below works the same with a plain `ls`.
 **Try this — step 3.** Go into your practice folder.
 
 ```text
-$ cd practice
+$ cd dojo/practice
 $ pwd
-/home/you/practice
+/home/you/dojo/practice
 $ ls
 bashrc.txt
 ```
 
 | You typed | It means |
 |---|---|
-| `cd practice` | *change directory*: into `practice` — a relative path, looked for in the working folder |
-| `pwd` | you are in `/home/you/practice`; the prompt now shows `~/practice` |
+| `cd dojo/practice` | *change directory*: into `dojo`, then `practice` — a relative path, looked for in the working folder |
+| `pwd` | you are in `/home/you/dojo/practice`; the prompt now shows `~/dojo/practice` |
 | `ls` | the one file in it: the copy you made in yazi (§10.3) |
 
-*If you see `zoxide: no match found`:* there is no `practice` here — you skipped the yazi steps.
-`mkdir -p ~/practice` makes it (step 4 explains `-p`), and `cd practice` works; `ls` then shows
+*If you see `zoxide: no match found`:* there is no `dojo/practice` here — you skipped the yazi steps.
+`mkdir -p ~/dojo/practice` makes it (step 4 explains `-p`), and `cd dojo/practice` works; `ls` then shows
 nothing.
 
 Here `cd` does one more thing: it remembers the folders you visit, and later takes you to one
@@ -3351,13 +3346,13 @@ The quotes keep `Tokyo, Kyoto, Osaka` together as one piece of text; §11.6 says
 ```text
 $ cd trips/japan
 $ pwd
-/home/you/practice/trips/japan
+/home/you/dojo/practice/trips/japan
 $ cd ..
 $ pwd
-/home/you/practice/trips
+/home/you/dojo/practice/trips
 $ cd -
 $ pwd
-/home/you/practice/trips/japan
+/home/you/dojo/practice/trips/japan
 ```
 
 | You typed | It means |
@@ -3370,8 +3365,8 @@ $ pwd
 
 ## 11.5 Copy, move and remove
 
-The second half of the quarter hour. You are in `~/practice/trips/japan`; if not,
-`cd ~/practice/trips/japan` takes you there.
+The second half of the quarter hour. You are in `~/dojo/practice/trips/japan`; if not,
+`cd ~/dojo/practice/trips/japan` takes you there.
 
 **Try this — step 7.** Copy a file, then rename the copy.
 
@@ -3450,14 +3445,14 @@ $ pwd
 /home/you
 ```
 
-Leave `~/practice` as it is: Part IV practises there too.
+Leave `~/dojo/practice` as it is: Part IV practises there too.
 
 ## 11.6 The anatomy of a command
 
 Every command line you will meet has the same parts. Take this one:
 
 ```sh
-ls -l --sort=size ~/Downloads    # your downloads, one per line, smallest first
+ls -l --sort=size ~/downloads    # your downloads, one per line, smallest first
 ```
 
 | Part | Kind | Here |
@@ -3465,7 +3460,7 @@ ls -l --sort=size ~/Downloads    # your downloads, one per line, smallest first
 | `ls` | the command: the program to run | list a folder |
 | `-l` | a short option: one letter after one `-` | the long form: one line per file, with details |
 | `--sort=size` | a long option: a word after `--`, here with a value after `=` | sort by size |
-| `~/Downloads` | an argument: what to act on | the folder to list |
+| `~/downloads` | an argument: what to act on | the folder to list |
 
 > **Word — option.** A word starting with `-` or `--` that changes how a command works: `-l`,
 > `--sort=size`. Short ones can be joined: `-la` is `-l` and `-a` together.
@@ -3473,15 +3468,15 @@ ls -l --sort=size ~/Downloads    # your downloads, one per line, smallest first
 Many options come in both forms, one letter and one word: `ls -a` and `ls --all` are the same.
 Joined short options save typing; long ones read better in a script.
 
-> **Word — argument.** What a command acts on, usually a file or a folder: `~/Downloads` in
-> `ls ~/Downloads`. Most commands take several, separated by spaces.
+> **Word — argument.** What a command acts on, usually a file or a folder: `~/downloads` in
+> `ls ~/downloads`. Most commands take several, separated by spaces.
 
 That last point — *separated by spaces* — is why a name with a space needs quotes.
 
 **Try this.** Make folders with and without quotes, then tidy up.
 
 ```text
-$ cd ~/practice
+$ cd ~/dojo/practice
 $ mkdir bank statements
 $ ls
 bank  statements  trips  bashrc.txt
@@ -3516,8 +3511,8 @@ git-upload-pack
 `ls /usr/bin` lists the folder of programs — over two thousand names. `grep ^git` keeps only
 the lines that start (`^`) with *git*.
 
-> **In everyday terms.** `ls -l --sort=size ~/Downloads` reads like an instruction: the command
-> is the verb (*list*), the argument what to act on (*my Downloads*), the options how (*with
+> **In everyday terms.** `ls -l --sort=size ~/downloads` reads like an instruction: the command
+> is the verb (*list*), the argument what to act on (*my downloads*), the options how (*with
 > details, by size*). A pipe passes the result on, and `grep ^git` works like a filter on a
 > spreadsheet column: only the names starting with *git* stay.
 
@@ -3587,7 +3582,7 @@ formats, 8 system administration — `man 5 systemd.timer` is the file format, n
 
 ## 11.8 Typing less: Tab, suggestions, history and Ctrl+R
 
-A few keys save most of your typing. Try each in `~/practice`.
+A few keys save most of your typing. Try each in `~/dojo/practice`.
 
 **Tab completes names.** Type the start of a file or folder name and press **Tab**: the shell
 finishes it.
@@ -3597,11 +3592,11 @@ finishes it.
 | `cat tr`, Tab | `cat trips/` — the only name starting with *tr* |
 | `ja`, Tab | `cat trips/japan/` |
 | `p`, Tab | `cat trips/japan/plan.txt` — the only file left; **Enter** runs it |
-| `ls ~/D`, Tab | two names fit: `Documents/  Downloads/` are listed under the line, at the first Tab — a menu |
-| Tab again | the menu's first choice, `Documents/`, filled in vermilion and put on the line; **Enter** keeps it |
+| `ls ~/do`, Tab | two names fit: `dojo/  downloads/` are listed under the line, at the first Tab — a menu |
+| Tab again | the menu's first choice, `dojo/`, filled in vermilion and put on the line; **Enter** keeps it |
 
 In the menu, Tab and the arrow keys move, typing more letters narrows it, and **Esc** closes
-it. Completion ignores case here: `ls ~/d` and Tab finds the same three. Tab also completes
+it. Completion ignores case here: `ls ~/DO` and Tab finds the same two. Tab also completes
 the names of commands, and the options of many of them after `--`.
 
 **The grey suggestion.** As you type, the rest of an earlier command that starts the same way
@@ -3637,7 +3632,7 @@ it exact.
 $ mkdir -p trips/kyoto
 $ cd trips/kyoto
 $ pwd
-/home/you/practice/trips/kyoto
+/home/you/dojo/practice/trips/kyoto
 ```
 
 Type the second line as `cd ` and **Alt+.** — not by hand. Then `cd ..`, **Ctrl+R**, type
@@ -3736,7 +3731,7 @@ a quick look at something without disturbing the tiling. In programs that use th
 themselves (btop, yazi, lazygit), hold **Shift** while dragging to select text anyway.
 
 **Tip:** to keep a long output, press Ctrl+Shift+G and save it from neovim with
-`:w ~/Documents/output.txt`.
+`:w ~/notes/output.txt`.
 
 ### A notice when a long command ends
 
@@ -3960,7 +3955,7 @@ in a window that will not let you select it. Small text reads best: it is taken 
 screen's size. *no text found* means the region held none tesseract could read.
 
 While you drag, everything outside the box is dimmed and the box is edged in vermilion. Print
-and Shift+Print do two things at once: they save the picture in `~/Pictures/Screenshots/`, and
+and Shift+Print do two things at once: they save the picture in `~/captures/`, and
 put it on the clipboard, ready to paste. A notice, *screenshot copied*, shows a small square
 cut from the picture and the file's name.
 
@@ -3976,7 +3971,7 @@ second get `-2`, `-3` after the time. The folder is set as `SCREENSHOT_DIR` in
 look for the file:
 
 ```text
-$ ls ~/Pictures/Screenshots
+$ ls ~/captures
 2026-10-16_09-12-03.png
 ```
 
@@ -3996,7 +3991,7 @@ Then open a chat or a mail in Helium and press **Ctrl+V**: the picture is pasted
 same key again counts **録 3**, **録 2**, **録 1** on the bar, a second each, and records on. The
 parts become one file when it stops (ffmpeg joins them as they are, nothing encoded again).
 
-The file is `~/Videos/Recordings/2026-10-16_09-12-03.mp4` (the moment it started), and its
+The file is `~/captures/2026-10-16_09-12-03.mp4` (the moment it started), and its
 path is on the clipboard, ready to paste into a chat's file box or a terminal. *With sound*
 records what the computer plays (the default output), never the microphone.
 
@@ -4025,7 +4020,7 @@ annotating).
 | 1 … 5 | colour: vermilion, yellow, green, indigo, paper |
 | Ctrl+Z · Ctrl+Y | undo · redo |
 | **Enter** | **copy to the clipboard and close** |
-| **Ctrl+S** | **save to `~/Pictures/Screenshots/` and close** |
+| **Ctrl+S** | **save to `~/captures/` and close** |
 | Ctrl+Shift+S | save under a name you choose, and close |
 | Esc | close without keeping anything |
 
@@ -4036,7 +4031,7 @@ is fetched from GitHub, so an install made offline may lack it), Super+Print sav
 plain shot, and its notice says so (*not annotated: satty is missing*). Once online,
 **Super+U** → *repair* fetches it.
 
-**Tip:** screenshots pile up; `fd -e png --changed-before 30d . ~/Pictures/Screenshots`
+**Tip:** screenshots pile up; `fd -e png --changed-before 30d . ~/captures`
 lists those older than a month, and adding `-X rm` deletes them.
 
 **Read more:** [Satty's README](https://github.com/gabm/Satty#readme), for version 0.22, the one
@@ -4048,7 +4043,7 @@ installed here.
 2. In satty, the arrow is ready: drag to draw. **t** for text, **m** for numbered markers,
    **1…5** for colours, Ctrl+Z to undo.
 3. Press **Enter**: the picture is copied and satty closes. (Ctrl+S saves it to
-   `~/Pictures/Screenshots/` instead.)
+   `~/captures/` instead.)
 4. Paste with **Ctrl+V** in Helium, a chat, or Claude Code. **Super+V** brings back earlier
    copies, pictures included.
 
@@ -4081,7 +4076,7 @@ The result lands beside the original — `holiday (email).jpg` — and on the cl
 a photo was taken, and the like, is stripped from it. In yazi, **Alt+S** does the same with the
 files you selected, without copying first. Nothing is overwritten, and a PDF that would come
 out no smaller is left as it is. A copied picture that has no file of its own (a screenshot,
-an image copied in Helium) gets one in `~/Pictures`: `copied DATE (chat).jpg`.
+an image copied in Helium) gets one in `~/captures`: `copied DATE (chat).jpg`.
 
 **An earlier copy.** With the clipboard history open (**Super+V**, §12.1), Super+Z works on
 the entry under the cursor instead of on what the clipboard holds now. The menu opens over
@@ -4096,7 +4091,7 @@ a text entry, Super+Z only says *nothing to shrink*.
 another computer on the same network — the same Wi-Fi or cable — with no account and no
 cloud: like AirDrop, between any of them. Install the LocalSend app on the phone (App Store,
 Google Play or F-Droid), open it on both, and the devices find each other; pick the files and
-the device. What arrives here goes to `~/Downloads` (its settings can change that). The
+the device. What arrives here goes to `~/downloads` (its settings can change that). The
 firewall lets it through from the home network only (port 53317), and nothing leaves your network.
 
 ## 12.8 Archives and PDFs: Super+D
@@ -4133,7 +4128,7 @@ own, and UAE PASS signs in its own app. *check its signatures* still reads such 
 
 - **Ctrl+C** / **Ctrl+V** everywhere; **Ctrl+Shift+C** / **V** in the terminal, where selecting also copies.
 - A copy outlives the program it came from, and **Super+V** brings back earlier ones.
-- **Print** takes a region, **Shift+Print** the whole screen: saved in `~/Pictures/Screenshots` and copied.
+- **Print** takes a region, **Shift+Print** the whole screen: saved in `~/captures` and copied.
 - **Super+Print** opens satty: **Enter** copies, **Ctrl+S** saves.
 - In yazi, **Ctrl+C** / **Ctrl+X** / **Ctrl+V** copy, cut and paste whole files.
 - **Super+Z** makes what you copied small enough to send; **LocalSend** sends files to a phone.
@@ -4141,7 +4136,7 @@ own, and UAE PASS signs in its own app. *check its signatures* still reads such 
 **Check yourself**
 
 1. Why does Ctrl+C not copy in the terminal? → *there it stops the running program; copy with Ctrl+Shift+C, or by selecting*
-2. Where do Print's screenshots go? → *into `~/Pictures/Screenshots`, and onto the clipboard*
+2. Where do Print's screenshots go? → *into `~/captures`, and onto the clipboard*
 3. You pressed Enter in satty. Is there a file? → *no: Enter only copies; Ctrl+S saves*
 4. A 6 MB photo for a mail: what are the keys? → *Ctrl+C on it in yazi, Super+Z, "email": then Ctrl+V in the mail*
 
@@ -4510,10 +4505,10 @@ remember it.
   its seal 話 (WhatsApp makes no Linux app, so no WhatsApp icon is installed): type
   `whatsapp` in the launcher, scan its code once with your phone (WhatsApp → *Linked
   devices*), and Helium keeps it linked. Its messages arrive as the desktop's notices.
-* **Git** lists your repositories — every folder with a `.git` in `~/repos` or your home,
+* **Git** lists your repositories — every folder with a `.git` in `~/dojo` or your home,
   the one you worked in last at the top, each with its branch — and **Enter** opens lazygit
   in the one you pick (ch. 41). With none yet, it says so and offers two keys: **c** clones
-  one into `~/repos` from its address (as its page shows it), **n** starts a new one there
+  one into `~/dojo` from its address (as its page shows it), **n** starts a new one there
   (`git init`); lazygit then opens in it.
 
 | Keys | Does |
@@ -4601,7 +4596,7 @@ back.
    folder you last uploaded from (§10.4).
 2. Find the file: ↑ ↓ and → ← through the folders — or **z** and a few letters of its name
    to jump to it below this folder, **Z** and a word to jump to a folder you use often, or
-   **g Space** and `~/Downloads`, Enter, for Downloads.
+   **g Space** and `~/downloads`, Enter, for your downloads.
 3. Press **Enter** on it. For several files (where the site takes several), **Space** on each,
    then Enter. **Esc** cancels.
 
@@ -4734,7 +4729,7 @@ It opens **floating**, on the theme's ground colour.
 **Try this.** Look through the screenshots you took in ch. 12.
 
 ```sh
-imv ~/Pictures/Screenshots/      # every picture in the folder
+imv ~/captures/      # every picture in the folder
 ```
 
 The first picture opens in a floating window. **→** shows the next one, **+** zooms in, **a**
@@ -4798,7 +4793,7 @@ still shows a picture); on a discrete AMD card (2 GB of video memory or more) it
 the high-quality filters (`profile=high-quality`). It smooths
 motion to the monitor's refresh rate, starts at 80 % volume (up to 150 %), loads subtitles
 whose names resemble the video's, prefers English then Arabic for sound and subtitles, and
-saves screenshots as PNG in `~/Pictures/Screenshots`.
+saves screenshots as PNG in `~/captures`.
 
 It **remembers where you stopped** — and a film watched to the end opens at the beginning next
 time, not on its last frame (`scripts/kawa-resume.lua`). Its on-screen text, controller and
@@ -4830,10 +4825,10 @@ downloads into the current folder; `yt-dlp -F URL` lists the formats; `yt-dlp -x
 --audio-format mp3 URL` keeps only the sound (ffmpeg does the conversion).
 
 **Try this.** Keep only the sound of a talk you are allowed to keep, as an MP3 in your
-*Music* folder. Copy the video's address in Helium (Ctrl+L, Ctrl+C), then:
+*downloads* folder. Copy the video's address in Helium (Ctrl+L, Ctrl+C), then:
 
 ```sh
-cd ~/Music
+cd ~/downloads
 yt-dlp -x --audio-format mp3 'LINK'    # LINK: paste it with Ctrl+Shift+V
 ```
 
@@ -5150,7 +5145,7 @@ terminal window opens with a small form, the cursor on its first row:
   ⛓  server               syncplay.pl:8999 · public
   ⌂  room                                  you-3f9a
   ☺  name                                       you
-  ▤  film                     ~/Videos/the film.mkv
+  ▤  film                     ~/downloads/the film.mkv
 
 enter choose  ·  esc cancel
 ```
@@ -5194,7 +5189,7 @@ where the film is, and the spot you saved watching alone stays as it was.
 | room | the rooms you used, newest first | type the name your friends use, take the `+ … · new` row |
 | name | the names you used | the same way |
 | password | (only for a server that is not public) | **Enter** asks again; nothing shows as you type; **Enter** alone: it has none |
-| film | the file dialog (yazi) opens | choose the film; **Esc** there: no film, mpv opens empty and finds the room's film by its name in `~/Videos` or `~/Downloads` |
+| film | the file dialog (yazi) opens | choose the film; **Esc** there: no film, mpv opens empty and finds the room's film by its name in `~/downloads` |
 
 Typing also narrows the list: `club` keeps only the rooms with those letters, in that order. **Esc** goes back
 to the form without a change; **Esc** in the form closes the window, nothing started. Back in
@@ -5282,7 +5277,7 @@ fitted to the window, one per row; the status and command bars are hidden until 
 
 **Try this.** Open a PDF, find a word in it, and read it in the theme's colours.
 
-1. In yazi, go to a PDF in `~/Downloads` or `~/Documents` — a bank statement, say — and press
+1. In yazi, go to a PDF in `~/downloads` or `~/notes` — a bank statement, say — and press
    **Enter**. zathura opens it, the page fitted to the window.
 2. Type `/`, a word you know is in it, and Enter: the first match is marked. **n** goes to the
    next one.
@@ -5329,9 +5324,9 @@ the manifest, so the print dialog can save to a file but may list no printers.
 
 ## 16.2 Your library: books (Super+R)
 
-<!-- fig:books | The books window (Super+R). Dark: the ones being read first, each with its page and a bar, the cover of the one under the cursor beside. Light: adding books (Ctrl+A) from Downloads and Documents. -->
+<!-- fig:books | The books window (Super+R). Dark: the ones being read first, each with its page and a bar, the cover of the one under the cursor beside. Light: adding books (Ctrl+A) from `~/downloads`. -->
 
-**Super+R** opens your library: every book in **`~/Books`** (and its folders) — PDF, EPUB,
+**Super+R** opens your library: every book in **`~/books`** (and its folders) — PDF, EPUB,
 MOBI, FB2, XPS and comic books (CBZ, CBR, CB7) — in a small floating window, the ones you
 are reading at the top, the most recent first. Each line shows how far in you are — a bar
 (vermilion while reading, teal once finished) and, at the right, one of four marks:
@@ -5351,14 +5346,14 @@ not already say it — and its title only when the list had to cut it short.
 |---|---|
 | type | search by title |
 | Enter | read it in zathura — it opens on the page where you stopped (§16.1) |
-| Ctrl+A | add books: every book in `~/Downloads` and `~/Documents` is listed; **Tab** marks several, **Enter** moves them into `~/Books`, **Esc** goes back |
+| Ctrl+A | add books: every book in `~/downloads` is listed; **Tab** marks several, **Enter** moves them into `~/books`, **Esc** goes back |
 | Ctrl+D | remove it: the file goes to the trash (yazi: **g t** brings it back) |
 | Esc | close |
 
 **Try this.** Put a PDF in your library, read a little, and come back to your page.
 
-1. **Super+R**, then **Ctrl+A**: the books in `~/Downloads` and `~/Documents`
-   are listed. Move to one and press **Enter**: it moves into `~/Books`, and the library comes
+1. **Super+R**, then **Ctrl+A**: the books in `~/downloads`
+   are listed. Move to one and press **Enter**: it moves into `~/books`, and the library comes
    back with the book in it, marked `new`.
 2. **Enter** on it opens it in zathura. Type `5G` to go to page 5, then **q**.
 3. **Super+R** again: the book is at the top, marked `5/120` for a book of 120 pages, with
@@ -5372,12 +5367,12 @@ window only reads it. Page counts and covers are worked out once per book and ke
 
 | What | Where |
 |---|---|
-| your books | **`~/Books/`** — folders inside it are fine |
+| your books | **`~/books/`** — folders inside it are fine |
 | the page you are on, per book | `~/.local/share/zathura/bookmarks.sqlite` (zathura's; read, never written) |
 | covers and page counts | `~/.cache/kawa-books/` — safe to delete, drawn again when needed |
 | the window | `~/.local/bin/kawa-books` (Super+R) |
 
-**Tips.** Folders inside `~/Books` (`~/Books/Japanese`, `~/Books/Work`) keep a large library
+**Tips.** Folders inside `~/books` (`~/books/Japanese`, `~/books/Work`) keep a large library
 tidy; the search matches titles anywhere in it. A book moved to another folder keeps its
 page: the window finds it by its name and opens it there. In zathura, **Ctrl+r** turns the
 pages into the theme's colours for reading at night (§16.1).
@@ -5387,7 +5382,7 @@ pages into the theme's colours for reading at night (§16.1).
 <!-- fig:notes | The notes window (Super+N): one file, a heading per day, open at the end and ready to type. -->
 
 **Super+N** opens your notes in a small floating window; **Super+N again** puts them away.
-It is one plain file, **`~/Notes/notes.md`**, that reads top to bottom like a diary: the
+It is one plain file, **`~/notes/notes.md`**, that reads top to bottom like a diary: the
 first time you open it on a day, that day's date becomes a heading, and the window opens at
 the end of the file. **You can type at once** — there is no key to press first. Write
 anything — a phone number, a command, a thought — and press Super+N; it is saved as you type,
@@ -5408,7 +5403,7 @@ one for good, and its key starts it again.
 3. **Super+N** puts the window away. There is nothing to save: it was saved as you typed.
 
 ```text
-$ tail -3 ~/Notes/notes.md
+$ tail -3 ~/notes/notes.md
 ## 2026-10-16 · Fri
 
 buy a SIM card for Japan
@@ -5420,7 +5415,7 @@ buy a SIM card for Japan
 
 | What | Where |
 |---|---|
-| your notes | **`~/Notes/notes.md`** — plain Markdown, one file |
+| your notes | **`~/notes/notes.md`** — plain Markdown, one file |
 | the window | `~/.local/bin/kawa-notes` (Super+N): neovim, the desktop's editor, dressed as a page — the heading 記 *notes* and its stitch across the top, and a quiet line along the bottom with the file and the keys, like every text screen; no line numbers, the text four columns in (`~/.config/fedokawaii/notes.lua`) |
 
 Underneath, the window is neovim, the desktop's editor. You need none of its keys to write
@@ -5439,12 +5434,12 @@ Markdown is optional in your notes, but it makes them quicker to scan later:
 | `- [ ] call the bank` | a to-do; `- [x]` once it is done |
 | `**bold**` | what matters |
 
-**Tips.** To find something from any terminal: `rg -i rice ~/Notes`. Notes are plain text in
+**Tips.** To find something from any terminal: `rg -i rice ~/notes`. Notes are plain text in
 your home, so the snapshots of `/home` keep their history too (§37.2). Want a separate file
-for a project? Start one in `~/Notes` from neovim (`:e ~/Notes/japan-trip.md`) — in the
+for a project? Start one in `~/notes` from neovim (`:e ~/notes/japan-trip.md`) — in the
 notes window too, where it saves itself as you type, its name in the line along the bottom; Super+N
 always opens `notes.md`. Add a line from a terminal while the window is open —
-`echo '- call the bank' >> ~/Notes/notes.md` — and it appears in the window at once: changes
+`echo '- call the bank' >> ~/notes/notes.md` — and it appears in the window at once: changes
 made elsewhere (another editor, a sync tool) are taken in, and typing carries on.
 
 ## 16.4 Documents: Xournal++, LibreOffice and the PDF tools
@@ -5487,7 +5482,7 @@ formatting toolbar's *Right-to-Left* button turns the paragraph around.
 **Try this.** Turn a Word file into a PDF without opening it, then look at the result:
 
 ```sh
-cd ~/Documents
+cd ~/notes
 libreoffice --headless --convert-to pdf "Offer letter.docx"   # writes Offer letter.pdf here
 zathura --fork "Offer letter.pdf"                             # the PDF; q closes it
 ```
@@ -5638,7 +5633,7 @@ does that in the terminal, on a file of any size, and opens at once: **Enter** o
 **Try this.** Make a small CSV, open it, then sort, sum and filter one column.
 
 ```text
-$ cd ~/practice
+$ cd ~/dojo/practice
 $ printf 'city,temp,day\nSharjah,41,Mon\nDubai,40,Tue\nAjman,38,Wed\n' > weather.csv
 $ vd weather.csv
 ```
@@ -5703,8 +5698,8 @@ reference* lists every key) and `man vd`.
 
 - **Enter** on a PDF or e-book opens zathura: `/` searches, **Ctrl+R** recolours, **q** closes
   and the page is remembered.
-- **Super+R** is your library in `~/Books`; **Ctrl+A** brings books in from Downloads.
-- **Super+N** is one diary file, `~/Notes/notes.md`: type at once, and it saves itself; **Super+N** again puts it away.
+- **Super+R** is your library in `~/books`; **Ctrl+A** brings books in from `~/downloads`.
+- **Super+N** is one diary file, `~/notes/notes.md`: type at once, and it saves itself; **Super+N** again puts it away.
 - LibreOffice opens and edits Word, Excel and PowerPoint files; `libreoffice --headless
   --convert-to pdf` converts them; `qpdf` picks, joins and counts pages.
 - Impress shows slides with **F5**; `qalc` calculates with units and money.
@@ -5713,7 +5708,7 @@ reference* lists every key) and `man vd`.
 
 **Check yourself**
 
-1. Where do your notes live, and how do you save them? → *in `~/Notes/notes.md`; they save themselves as you type*
+1. Where do your notes live, and how do you save them? → *in `~/notes/notes.md`; they save themselves as you type*
 2. Which command makes a new PDF of pages 1 to 3 of `report.pdf`? → *`qpdf report.pdf --pages . 1-3 -- part.pdf`*
 3. What does `-t` change in `qalc -t '75 km/h to mph'`? → *only the result is printed, not the question*
 
@@ -6528,7 +6523,7 @@ here needs a Lua rock, so `:checkhealth lazy` asks for neither luarocks nor Lua 
 
 ## 17.21 A daily workflow
 
-1. **Super+Return**, the project's folder (`~/repos/notes` — a folder name alone changes into
+1. **Super+Return**, the project's folder (`~/dojo/notes` — a folder name alone changes into
    it, §18.1), then `nvim`.
 2. On the start screen, `s` brings back the files you had open here last time; or Space Space
    for a file, `r` for a recent one.
@@ -6662,7 +6657,7 @@ are `~/.config/blesh/init.sh` (§18.3). A handful of small tools make it quicker
 | Tool | Job | Replaces |
 |---|---|---|
 | **fzf** | find by typing a few letters of anything: history, files, folders | scrolling, `Ctrl+R`'s one-match-at-a-time search, long paths |
-| **zoxide** | `cd` remembers the folders you use and jumps to them by a word | typing `cd ../../repos/project` |
+| **zoxide** | `cd` remembers the folders you use and jumps to them by a word | typing `cd ../../dojo/project` |
 | **eza** | `ls`, with folders first, sizes you can read, each file's git state, trees | `ls -la`, `tree` |
 | **tldr** | the five commands you actually wanted, with examples | reading a whole man page |
 | **ble.sh** | colours, suggestions and a menu while you type, as the fish shell has them | typing a long command blind |
@@ -6675,13 +6670,13 @@ are `~/.config/blesh/init.sh` (§18.3). A handful of small tools make it quicker
 | **Ctrl+T** | pick a file or folder below here (previewed: a file's start, a folder's tree) and insert its path where you are typing |
 | **Alt+C** | pick a folder below here and go into it |
 | `nvim **`, then Tab | fuzzy completion for any command: `**` + Tab opens fzf for that argument |
-| **`cd proj`** | jumps to the folder you use most whose name matches *proj*, from anywhere (`~/repos/project`); `cd re pro` matches both words in order; a real path still works exactly as always |
+| **`cd proj`** | jumps to the folder you use most whose name matches *proj*, from anywhere (`~/dojo/project`); `cd re pro` matches both words in order; a real path still works exactly as always |
 | `cdi` | the folders zoxide knows, in fzf |
 | Tab | complete, ignoring case; when there are several choices, a menu — Tab and the arrows move, typing narrows, Esc closes |
 | → or End · Ctrl+→ | take the grey suggestion · one word of it |
 | Ctrl+Left / Right | move by word |
 | Ctrl+Backspace · Ctrl+Delete | delete a word backwards · forwards |
-| Alt+. | insert the last argument of the previous command (press again for the one before): after `mkdir ~/repos/notes`, typing `cd` and Alt+. gives `cd ~/repos/notes` |
+| Alt+. | insert the last argument of the previous command (press again for the one before): after `mkdir ~/dojo/notes`, typing `cd` and Alt+. gives `cd ~/dojo/notes` |
 | a folder name on its own | changes into it (`autocd`) |
 | `**` in a path | any depth of folders: `ls **/*.pdf` (`globstar`) |
 
@@ -6713,27 +6708,27 @@ the list, matched loosely:
 
 **1.** In your home, type `bat ` — with a space — and press **Ctrl+T**. A list of the files and
 folders below your home opens, with a preview of the highlighted one beside it. Type `notes`, move to
-`Notes/notes.md`, and press **Enter**: the line now reads `bat Notes/notes.md`. Enter once
+`notes/notes.md`, and press **Enter**: the line now reads `bat notes/notes.md`. Enter once
 more, and bat shows your notes with line numbers.
 
 **2.** Go to your notes folder once, then somewhere else, then back by a word:
 
 ```text
-$ cd ~/Notes
+$ cd ~/notes
 $ cd /tmp
 $ cd not
 $ pwd
-/home/you/Notes
+/home/you/notes
 ```
 
 | You typed | It means |
 |---|---|
-| `cd ~/Notes` | an ordinary `cd`; zoxide notes the folder as you arrive |
+| `cd ~/notes` | an ordinary `cd`; zoxide notes the folder as you arrive |
 | `cd /tmp` | anywhere else |
 | `cd not` | there is no `not` in `/tmp`, so zoxide jumps to the folder you have used whose name matches |
 
 **Pitfalls.** `cd` here is zoxide's: a name that is not a folder where you are is looked up
-among the folders you have used, so `cd notes` typed in the wrong place lands in `~/repos/notes`
+among the folders you have used, so `cd notes` typed in the wrong place lands in `~/dojo/notes`
 if that is the *notes* you use most. Check the prompt before running something destructive there.
 A misspelt name is not corrected either: `cd Dcouments` answers *zoxide: no match found* — Tab
 completes the name instead, and the colours show it: a folder that exists is underlined as you
@@ -6856,9 +6851,9 @@ so your lines will differ: what matters is their shape.
 
 ```text
 $ fd -e pdf . ~
-/home/you/Documents/Tenancy contract.pdf
-/home/you/Documents/Bank statement October.pdf
-/home/you/Books/statement.pdf
+/home/you/notes/Tenancy contract.pdf
+/home/you/notes/Bank statement October.pdf
+/home/you/books/statement.pdf
 ```
 
 *(for example)* `-e pdf` keeps one extension, `.` matches any name, and `~` says where to look.
@@ -6869,8 +6864,8 @@ fd skips hidden folders and whatever a `.gitignore` leaves out.
 **2.** Where a word appears in your notes.
 
 ```text
-$ rg -i rice ~/Notes
-/home/you/Notes/notes.md
+$ rg -i rice ~/notes
+/home/you/notes/notes.md
 3:rice cooker: compare prices
 8:Rice, two kilos
 ```
@@ -6883,14 +6878,14 @@ $ rg -i rice ~/Notes
 **3.** Jump to a folder by one word of its name, from anywhere.
 
 ```text
-$ cd ~/Books
+$ cd ~/books
 $ cd /etc
 $ cd boo
 $ pwd
-/home/you/Books
+/home/you/books
 ```
 
-zoxide learnt `~/Books` when you went there; from `/etc`, `boo` is not a folder, so it jumps.
+zoxide learnt `~/books` when you went there; from `/etc`, `boo` is not a folder, so it jumps.
 In yazi, **Z** and the same word does the same (§10.3).
 
 *If you see `zoxide: no match found`:* you have not been to that folder yet in a terminal —
@@ -6903,7 +6898,7 @@ cd ~
 nvim "$(fzf)"      # a list of every file below here; type, then Enter
 ```
 
-fzf lists the files below your home; type `notes`, choose `Notes/notes.md` and press Enter:
+fzf lists the files below your home; type `notes`, choose `notes/notes.md` and press Enter:
 neovim opens it. `:q` closes it. `$( … )` is replaced by what the command inside it prints —
 here the name you chose — and the quotes round it keep a name with spaces whole (quoting:
 ch. 25).
@@ -6914,9 +6909,9 @@ ch. 25).
 
 ```text
 $ du -xh -d1 ~ | sort -h | tail -5
-1.4G	/home/you/Videos
+1.4G	/home/you/captures
 2.2G	/home/you/.cache
-3.1G	/home/you/Documents
+3.1G	/home/you/notes
 19G	/home/you/.local
 26G	/home/you
 ```
@@ -6929,8 +6924,8 @@ $ du -xh -d1 ~ | sort -h | tail -5
 | `| sort -h` | `|` hands those lines to `sort`, which puts them smallest first, reading `G` as more than `M` |
 | `| tail -5` | keeps the last five: the biggest |
 
-The last line is your whole home. `~/Downloads` is missing: it is a subvolume of its own,
-which `-x` steps over (§38.2) — `du -sh ~/Downloads` measures it alone.
+The last line is your whole home. `~/downloads` is missing: it is a subvolume of its own,
+which `-x` steps over (§38.2) — `du -sh ~/downloads` measures it alone.
 
 *If you see `du: invalid maximum depth 'l'`:* the option is `-d1`, with the digit one.
 
@@ -6944,7 +6939,7 @@ which `-x` steps over (§38.2) — `du -sh ~/Downloads` measures it alone.
 **Check yourself**
 
 1. Which command lists every PDF below your home? → *`fd -e pdf . ~`*
-2. How do you find which note mentions *visa*, whatever its case? → *`rg -i visa ~/Notes`*
+2. How do you find which note mentions *visa*, whatever its case? → *`rg -i visa ~/notes`*
 3. Why can `cd notes` land in a folder you did not mean? → *zoxide jumps to the matching folder you use most when there is no `notes` where you are*
 
 # 19. Do it yourself: what websites charge for
@@ -6980,7 +6975,7 @@ scan or a bank statement stays yours. Most recipes are one command and finish in
 
 ## 19.1 Before you start
 
-* Open a terminal (**Super+Return**) and go to the folder with the files: `cd ~/Documents`,
+* Open a terminal (**Super+Return**) and go to the folder with the files: `cd ~/notes`,
   or, once you have been there, a word of its name (`cd docs`, §18.2). In yazi, **c d** copies
   the folder's path; paste it after `cd ` with Ctrl+Shift+V.
 * Names with spaces go in quotes, as in the examples: `"Tenancy contract.pdf"`. Tab completes
@@ -6995,7 +6990,7 @@ new file, and check the result. Here, a tenancy contract and its Ejari certifica
 PDF:
 
 ```text
-$ cd ~/Documents
+$ cd ~/notes
 $ qpdf --empty --pages "Tenancy contract.pdf" "Ejari certificate.pdf" -- "Tenancy, complete.pdf"
 $ qpdf --show-npages "Tenancy, complete.pdf"
 14
@@ -7005,7 +7000,7 @@ $ qpdf --show-npages "Tenancy, complete.pdf"
 
 | You typed | It means |
 |---|---|
-| `cd ~/Documents` | go where the files are |
+| `cd ~/notes` | go where the files are |
 | `qpdf --empty --pages A B -- C` | start from nothing, take every page of A, then of B, and write C; the originals stay as they were |
 | `qpdf --show-npages C` | check: the new file has the pages of both |
 
@@ -7272,7 +7267,7 @@ magick signature-photo.jpg -colorspace gray -level 25%,75% -fuzz 30% -transparen
 ```
 
 If grey specks of paper remain, raise `-fuzz` to 40%; if the strokes break up, lower it.
-Keep `signature.png` somewhere private, such as `~/Documents`.
+Keep `signature.png` somewhere private, such as `~/notes`.
 
 **2.** Start Xournal++ and choose **File → Annotate PDF**.
 
@@ -7502,7 +7497,7 @@ keep:
 | Want | Command |
 |---|---|
 | the best version, into this folder | `yt-dlp 'LINK'` |
-| into `~/Videos` | `yt-dlp -P ~/Videos 'LINK'` |
+| into `~/downloads` | `yt-dlp -P ~/downloads 'LINK'` |
 | no larger than 1080p | `yt-dlp -S res:1080 'LINK'` |
 | only the sound, as MP3 | `yt-dlp -x --audio-format mp3 'LINK'` |
 | only 1:30–2:10 of it | `yt-dlp --download-sections '*1:30-2:10' 'LINK'` |
@@ -7518,13 +7513,13 @@ without a full `update`.
 
 **Record the screen** with **Super+Shift+R** (§12.2) — or by hand, with wf-recorder itself,
 for the options the key does not offer. **Ctrl+C** in its terminal stops it and finishes the
-file; keep recordings in `~/Videos`:
+file; keep recordings in `~/captures`:
 
 ```sh
-wf-recorder -f ~/Videos/screen-$(date +%F-%H%M).mp4                      # the whole screen
-wf-recorder -g "$(slurp)" -f ~/Videos/clip.mp4                           # drag a region first
-wf-recorder -g "$(slurp)" -a -f ~/Videos/howto.mp4                       # … with your microphone
-wf-recorder -g "$(slurp)" --audio=@DEFAULT_MONITOR@ -f ~/Videos/demo.mp4 # … with what you hear
+wf-recorder -f ~/captures/screen-$(date +%F-%H%M).mp4                      # the whole screen
+wf-recorder -g "$(slurp)" -f ~/captures/clip.mp4                           # drag a region first
+wf-recorder -g "$(slurp)" -a -f ~/captures/howto.mp4                       # … with your microphone
+wf-recorder -g "$(slurp)" --audio=@DEFAULT_MONITOR@ -f ~/captures/demo.mp4 # … with what you hear
 ```
 
 With two monitors and no region, it asks which one to record; `-g "$(slurp -o)"` lets you
@@ -7824,12 +7819,12 @@ or `max_retries` in `~/.config/torrra/config.toml` yourself and yours stays.
 | Ctrl+T · ? · Ctrl+Q | another colour theme · every key · quit |
 
 Results are sorted by **seeders** — the number of people sharing the whole file — highest
-first; more seeders means faster and more certain. Downloads go to **`~/Downloads`**, which is
+first; more seeders means faster and more certain. Downloads go to **`~/downloads`**, which is
 its own Btrfs subvolume, so a film you delete gives its space back at once rather than living
 on in snapshots.
 
 **Tip:** when you are done with a torrent, **D** removes it and deletes its files in one
-step. Move anything you keep out of `~/Downloads` — nothing there is in a snapshot.
+step. Move anything you keep out of `~/downloads` — nothing there is in a snapshot.
 
 **Try this** (once Prowlarr has an indexer, §20.1). Download a Linux image — the legal way to
 watch torrents work.
@@ -7908,7 +7903,7 @@ terminal, or as a notice when torrra was opened from the launcher or a link:
 | no such file: … | the .torrent file was moved or deleted before torrra opened it — download it again |
 | not a magnet link or a .torrent file: … | only magnet links, http(s) links to a torrent, and files ending in .torrent open in torrra |
 | a search finds nothing although indexers are set | test them in Prowlarr (**Indexers → Test All**); one may be down or need FlareSolverr |
-| a download stops growing and stays *Stalled* | the disk may be full — torrra does not say so, and `~/Downloads` shares the disk with the whole system. `fedokawaii status` shows the free space; make room, then close torrra and open it again: the download carries on |
+| a download stops growing and stays *Stalled* | the disk may be full — torrra does not say so, and `~/downloads` shares the disk with the whole system. `fedokawaii status` shows the free space; make room, then close torrra and open it again: the download carries on |
 
 **Read more:** [torrra's usage guide](https://torrra.readthedocs.io/en/stable/usage.html) (for
 version 2.5.1, the one installed), [Prowlarr's indexer pages](https://wiki.servarr.com/prowlarr/indexers)
@@ -7919,7 +7914,7 @@ and the [magnet link format](https://bittorrent.org/beps/bep_0009.html).
 - Prowlarr searches your indexers; torrra searches through it, downloads and seeds.
 - Setup gave Prowlarr eight public indexers; *Prowlarr* in the launcher (or `prowlarr`) opens its page.
 - Prowlarr sleeps 30 minutes after its last use; `prowlarr stop` puts it to sleep at once.
-- Downloads go to `~/Downloads` and run only while torrra's window is open.
+- Downloads go to `~/downloads` and run only while torrra's window is open.
 - **D** removes a torrent and its files; a ratio or time limit stops seeding.
 - When something is wrong, torrra's wrapper says what is missing.
 
@@ -8405,11 +8400,11 @@ The whole picture, place by place, with who writes there and what may go:
 | `~/.local/share` | program data: uv's Pythons, podman's images, the trash, neovim's plugins and Mason tools, the lock screen's pictures and the wallpaper pack | the programs themselves | no, not as a whole; see §38.1 and §38.2 for the parts you can trim |
 | `~/.local/state/fedokawaii/` | theme stamps, each theme's wallpaper choice, `backup/<time>/`, `last-backup` (when kawa-backup last ran, for the menus), `together/` (the servers, rooms, names and server passwords you used watching together, §15.7) | Theme, `update` and the session | the old folders in `backup/` — the theme itself keeps only its newest 10 |
 | `~/.cache` | logs, previews, the scaled wallpapers, the clipboard history, launcher counts | the programs | yes, piece by piece; every program rebuilds its part (§38.2) |
-| `~/Downloads` | what Helium, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
-| `~/Pictures/Screenshots` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | the screenshot tools | yes, whenever you like |
-| `~/Pictures/Wallpapers` | your own wallpapers, shown on both themes | you | yes |
-| `~/Books` | your library: what the books window (Super+R) lists | you (and its Ctrl+A) | yes, book by book — Ctrl+D in the window sends one to the trash |
-| `~/Notes/notes.md` | your notes (Super+N) | you | only if you mean it: it is your writing |
+| `~/downloads` | what Helium, torrra and yt-dlp fetch | the programs | yes — and its space comes back at once: it is its own Btrfs subvolume, outside every snapshot |
+| `~/captures` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | the screenshot tools | yes, whenever you like |
+| `~/.local/share/fedokawaii/wallpapers` | your own wallpapers, shown on both themes | you | yes |
+| `~/books` | your library: what the books window (Super+R) lists | you (and its Ctrl+A) | yes, book by book — Ctrl+D in the window sends one to the trash |
+| `~/notes/notes.md` | your notes (Super+N) | you | only if you mean it: it is your writing |
 
 ## 23.4 Mounts
 
@@ -8471,13 +8466,13 @@ shares the film's blocks until one of them changes. Three things follow from cop
 > after it. Not a backup: it lives on the same disk.
 
 A **subvolume** is a folder with its own tree, snapshotted as a whole; a snapshot never
-reaches into a subvolume nested inside it. That is why `~/Downloads` is one (§37.2): it is left
+reaches into a subvolume nested inside it. That is why `~/downloads` is one (§37.2): it is left
 out of `/home`'s snapshots, so a deleted download frees its space at once. The top folder of
 every subvolume has inode number 256 (inodes below):
 
 ```sh
-sudo btrfs subvolume list /    # root, home, home/you/Downloads, and the snapshots
-stat -c %i ~/Downloads         # 256
+sudo btrfs subvolume list /    # root, home, home/you/downloads, and the snapshots
+stat -c %i ~/downloads         # 256
 ```
 
 Ch. 37 puts snapshots to work: what is snapshotted, when, and how to undo with one.
@@ -8541,7 +8536,7 @@ a new kernel. A script brings only itself and `/bin/sh`.
 ## 23.7 Practice: a walk through the tree
 
 Six short tasks check each idea of this chapter on your own machine. They only read, except in
-`~/practice`, the folder from ch. 11, where one link is made.
+`~/dojo/practice`, the folder from ch. 11, where one link is made.
 
 **1.** Look at the top of the tree.
 
@@ -8553,7 +8548,7 @@ bin  dev   home  lib64  mnt    proc  run   srv   tmp  var
 
 *You should see* about twenty names, among them `etc`, `home` and `usr`.
 
-*If you see your own folders (Documents, Downloads…):* you typed `ls` without the `/`.
+*If you see your own folders (books, captures…):* you typed `ls` without the `/`.
 
 **2.** Ask which system this is.
 
@@ -8594,9 +8589,9 @@ copy, and snapshots would grow apart from reads alone).
 
 ```text
 $ ls -a ~
-.bashrc.d  .local   Documents   Music     practice   .bash_logout  .bashrc
-.cache     Books    Downloads   Notes     Videos     .bash_profile
-.config    fedokawaii           Pictures
+.bashrc.d  .local   captures    downloads  notes     .bash_logout  .bashrc
+.cache     books    dojo        Drives               .bash_profile
+.config
 ```
 
 *(for example)* Every name that starts with a dot is hidden from a plain `ls`: settings, caches,
@@ -8608,7 +8603,7 @@ you installed from (§5.5).
 **5.** Make a symbolic link to the trip plan from ch. 11, then break it, and mend it.
 
 ```text
-$ cd ~/practice
+$ cd ~/dojo/practice
 $ ln -s trips/japan/plan.txt japan.txt
 $ cat japan.txt
 Tokyo, Kyoto, Osaka
@@ -8660,7 +8655,7 @@ no name. `readlink` prints where a symbolic link points.
 
 1. Where would you find the system's DNF settings, and where your own foot settings? →
    *`/etc/dnf/…` · `~/.config/foot/foot.ini`*
-2. Why does deleting a download free its space at once, despite the snapshots? → *`~/Downloads`
+2. Why does deleting a download free its space at once, despite the snapshots? → *`~/downloads`
    is its own subvolume, left out of `/home`'s snapshots*
 3. You rename the file a symbolic link points at. What happens to the link? → *it dangles: it
    still holds the old path*
@@ -8775,11 +8770,11 @@ is §34.2):
 | `x` | run it as a program | enter it and reach what is inside | 1 |
 
 **Changing them, by letters.** `chmod` takes *who* (`u` the owner, `g` the group, `o` others,
-`a` all), then `+` or `-`, then the letters. A worked example in `~/practice`, with `ls -l`
+`a` all), then `+` or `-`, then the letters. A worked example in `~/dojo/practice`, with `ls -l`
 after each step:
 
 ```text
-$ cd ~/practice
+$ cd ~/dojo/practice
 $ echo hello > note.txt
 $ command ls -l note.txt
 -rw-rw-r--. 1 you you 6 … note.txt
@@ -8912,7 +8907,7 @@ Use `sudo` for the one command that needs it, and nothing else.
 
 ## 24.6 Practice: permissions by hand
 
-Five tasks, in `~/practice`. Only the practice files change.
+Five tasks, in `~/dojo/practice`. Only the practice files change.
 
 **1.** Ask who you are.
 
@@ -8929,7 +8924,7 @@ type your shell runs as (§34.2).
 **2.** Give one file three sets of permissions in turn.
 
 ```text
-$ cd ~/practice
+$ cd ~/dojo/practice
 $ echo hello > perm.txt
 $ chmod 644 perm.txt; command ls -l perm.txt
 -rw-r--r--. 1 you you 6 … perm.txt
@@ -8942,7 +8937,7 @@ $ chmod 755 perm.txt; command ls -l perm.txt
 *You should see* `644` as everyone reads, `600` as only you, `755` as everyone may run it.
 
 *If you see `chmod: cannot access 'perm.txt': No such file or directory`:* you are not in
-`~/practice`; `cd ~/practice` first.
+`~/dojo/practice`; `cd ~/dojo/practice` first.
 
 **3.** Make a script that will not run until it may.
 
@@ -9084,7 +9079,7 @@ printenv EDITOR                         # prints nvim     — how git and sudoed
 ```sh
 grep -q autocd ~/.bashrc.d/fedokawaii.sh; echo $?   # 0 — found
 grep -q zsh ~/.bashrc.d/fedokawaii.sh; echo $?      # 1 — not found
-mkdir -p ~/practice/tmp && cd ~/practice/tmp        # && runs the cd only if mkdir succeeded
+mkdir -p ~/dojo/practice/tmp && cd ~/dojo/practice/tmp        # && runs the cd only if mkdir succeeded
 grep -q zsh ~/.bashrc.d/fedokawaii.sh || echo none  # || runs the echo only after a failure
 ```
 
@@ -9111,8 +9106,8 @@ history | awk '{print $4}' | sort | uniq -c | sort -rn | head -5
 **Redirection.**
 
 ```sh
-ls ~/Downloads > ~/practice/list.txt   # > writes the output into a file, replacing what it held
-date >> ~/practice/list.txt            # >> adds to its end instead
+ls ~/downloads > ~/dojo/practice/list.txt   # > writes the output into a file, replacing what it held
+date >> ~/dojo/practice/list.txt            # >> adds to its end instead
 ls /nope 2> /dev/null                  # 2> sends the error messages away; /dev/null discards them
 ```
 
@@ -9202,7 +9197,7 @@ way, and there were no results.
 | 2 | standard error | the terminal, even when output is redirected |
 
 ```sh
-ls ~/Books > books.txt          # 1 into a file
+ls ~/books > books.txt          # 1 into a file
 ls /nope 2> /dev/null           # 2 thrown away
 journalctl -b 2>&1 | wc -l      # 2 joined to 1, then counted
 ```
@@ -9373,7 +9368,7 @@ $ bash -n ~/.local/bin/space
 $ space
  412G /
  412G /home
-$ space ~/Documents
+$ space ~/notes
  412G /home
 $ space ~/nowhere
 space: /home/you/nowhere is not a folder
@@ -9391,10 +9386,10 @@ disk mounted at `/home`; a folder that does not exist ends the script with statu
 then ask ShellCheck.
 
 ```text
-$ mkdir ~/practice/'old notes'
-$ space ~/practice/'old notes'
-/home/you/.local/bin/space: line 9: [: /home/you/practice/old: binary operator expected
-df: /home/you/practice/old: No such file or directory
+$ mkdir ~/dojo/practice/'old notes'
+$ space ~/dojo/practice/'old notes'
+/home/you/.local/bin/space: line 9: [: /home/you/dojo/practice/old: binary operator expected
+df: /home/you/dojo/practice/old: No such file or directory
 df: notes: No such file or directory
 $ shellcheck ~/.local/bin/space
 
@@ -9430,7 +9425,7 @@ df -h --output=avail,target "$1" | tail -n +2
 
 ```text
 $ shellcheck ~/.local/bin/space
-$ space ~/practice/'old notes'
+$ space ~/dojo/practice/'old notes'
  412G /home
 ```
 
@@ -9511,7 +9506,7 @@ Editing* chapter is readline (`man bash` holds the same text). fzf's keys and se
 **Check yourself**
 
 1. What does `2> /dev/null` do? → *it throws away the error messages, stream 2*
-2. Why did `space ~/practice/'old notes'` fail before the fix? → *the bare `$1` was split at the
+2. Why did `space ~/dojo/practice/'old notes'` fail before the fix? → *the bare `$1` was split at the
    space into two words*
 3. Why does a variable set without `export` not reach a program you start? → *only exported
    variables are copied into a new process's environment*
@@ -9665,7 +9660,7 @@ unit of your user manager.
 You may raise your own programs' niceness; lowering it needs root:
 
 ```sh
-nice -n 19 tar -cf big.tar ~/Videos      # start at the lowest priority
+nice -n 19 tar -cf big.tar ~/captures      # start at the lowest priority
 renice -n 10 -p 2310                     # lower the priority of process 2310
 ps -o pid,ni,args -C btop                # the NI column
 ```
@@ -12701,7 +12696,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 
 | Area | Checks |
 |---|---|
-| system | `fedokawaii.conf` valid · Fedora ≥ 45 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/Downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
+| system | `fedokawaii.conf` valid · Fedora ≥ 45 · SELinux enforcing · Btrfs root · every file in your home yours (`~/.cache` and `~/downloads` included; podman's container storage, owned by its containers' ids, aside) · groups · neovim as the editor · i2c-dev |
 | packages (lib/manifest.sh) | every manifest package installed · no lpf, nor what it left (it built Spotify's old app: a warning until update and repair take it out) · what waits for RPM Fusion or a COPR to catch up with this Fedora (a warning) · a package Fedora no longer has (a warning) |
 | zero redundancy | none of the forbidden ones · nothing user-installed beyond the pre-setup record and the manifest · no Flatpak or Snap · one editor · no package installed twice · `dnf check` clean · no service that fights the desktop's own (a second login manager, power-profiles-daemon, a second notification daemon…) · the login greetd's alone · dependencies nothing needs (a warning) · configuration files an update could not merge (a warning) · nothing left behind by a stopped run |
 | repositories & dnf | RPM Fusion, Helium, Claude Code, COPRs · all seven DNF values |
@@ -12710,7 +12705,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | GPU & media | hardware video decoding · Vulkan · btop's view of an AMD card (the ROCm SMI library) · ffmpeg encoders |
 | drivers and firmware | every package this hardware needs (microcode, Wi-Fi, sound DSP, missing firmware, Intel's video decoding beside an AMD card; one missing is a warning: update and repair install it) · microcode loaded at boot · every network, display, sound and USB device held by a driver · Wi-Fi managed by NetworkManager · device firmware updates, when fwupd knows of any (shown, never a fault) · udisks answers, so drives open · which driver opens NTFS |
 | compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock's quick wrong-password answer (its PAM file) and its words without its module · the yazi file dialog built and known to the portals |
-| services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/Downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
+| services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
 | upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh |
 | applications | Helium actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
@@ -12845,7 +12840,7 @@ the list in the log); `dnf repoquery --unneeded` shows any that are left (§38.1
 ### Fedokawaii itself: update fedokawaii (pull)
 
 New versions of fedokawaii come from its GitHub repository, `MoeDia/fedokawaii` (public).
-There is one clone of it on the machine, `~/repos/fedokawaii` — the same folder chapter 42
+There is one clone of it on the machine, `~/dojo/fedokawaii` — the same folder chapter 42
 calls the working copy — and you never delete it or clone again:
 
 ```text
@@ -12854,8 +12849,8 @@ Super+U → update fedokawaii        (or: fedokawaii pull)
 
 | Step | What happens |
 |---|---|
-| the clone | `~/repos/fedokawaii` brought to GitHub's newest (`git fetch`, then a fast-forward). Your uncommitted changes there are kept; if you committed something GitHub does not have, it stops and says so (rebase in lazygit, then pull again) |
-| the update | `sudo bash ~/repos/fedokawaii/fedokawaii.sh update`: the clone becomes the toolkit (your saved settings merged in), then the whole season's update (§36.2) |
+| the clone | `~/dojo/fedokawaii` brought to GitHub's newest (`git fetch`, then a fast-forward). Your uncommitted changes there are kept; if you committed something GitHub does not have, it stops and says so (rebase in lazygit, then pull again) |
+| the update | `sudo bash ~/dojo/fedokawaii/fedokawaii.sh update`: the clone becomes the toolkit (your saved settings merged in), then the whole season's update (§36.2) |
 | repair | only when verify still finds something after the update |
 | the record | the run's output in `~/.local/state/fedokawaii/pull.log`, root's part in `/var/log/fedokawaii.log` too; a notice says how it ended, and the menu's row shows when it last ran |
 
@@ -12866,7 +12861,7 @@ one, and an old `FEDOKAWAII_GITHUB_TOKEN` line in `secrets.sh` is dropped.
 
 **The first time.** Clone once more the way you always have, and run the update from that
 clone (`sudo bash fedokawaii.sh update`). At its end, instead of being deleted, the clone is
-**moved** to `~/repos/fedokawaii` (its address set to the public one; an older
+**moved** to `~/dojo/fedokawaii` (its address set to the public one; an older
 working copy there is packed into `~/.local/state/fedokawaii/` first if it held anything of
 yours). From then on: **Super+U → update fedokawaii**. A working copy made by `fedokawaii copy`
 is turned into the clone by the first pull the same way.
@@ -12874,7 +12869,7 @@ is turned into the clone by the first pull the same way.
 | Problem | What to do |
 |---|---|
 | "GitHub refused …" / "run fedokawaii pull in a terminal once" | the token is missing or expired: run `fedokawaii pull` in a terminal; it asks again |
-| "your commits and GitHub's went apart" | lazygit in `~/repos/fedokawaii`: rebase your commits on `origin/main`, then pull |
+| "your commits and GitHub's went apart" | lazygit in `~/dojo/fedokawaii`: rebase your commits on `origin/main`, then pull |
 | the menu's row is vermilion | the last pull did not end well: `~/.local/state/fedokawaii/pull.log` says why |
 
 ## 36.4 Between seasons
@@ -13069,7 +13064,7 @@ and nearly free: Btrfs never writes over old blocks, so the snapshot keeps point
 while the live files move on (§23.5). One
 file, three steps:
 
-| Time | What happens | `~/Documents/expenses.ods` now | in the 10:00 snapshot |
+| Time | What happens | `~/notes/expenses.ods` now | in the 10:00 snapshot |
 |---|---|---|---|
 | 10:00 | the hourly snapshot of `/home` is taken | 40 rows | 40 rows — the same blocks, no extra space |
 | 10:20 | you delete a month by mistake, and save | 30 rows | still 40 rows |
@@ -13101,7 +13096,7 @@ snapshots:
 | Config | Covers | Snapshots kept in |
 |---|---|---|
 | `root` | `/` — the system, `/etc`, `/usr`, `/var` | `/.snapshots/` |
-| `home` | `/home` (only when it is its own Btrfs subvolume, as the installer makes it) — **except** `~/Downloads` | `/home/.snapshots/` |
+| `home` | `/home` (only when it is its own Btrfs subvolume, as the installer makes it) — **except** `~/downloads` | `/home/.snapshots/` |
 
 **Try this.** List the snapshots of `/` — `snaps` is the desktop's short name for
 `sudo snapper -c root list`:
@@ -13177,7 +13172,7 @@ c..... /usr/lib/sysimage/rpm/rpmdb.sqlite
 |---|---|
 | undo one DNF transaction | `sudo snapper -c root undochange 41..42`, reboot, `verify` (§37.5) |
 | one system file as it was | `sudo snapper -c root undochange 41..42 /etc/some.conf` |
-| one of your files as it was | copy it out of the snapshot: `sudo ls /home/.snapshots/57/snapshot/$USER/` to find it, then `sudo cp -a /home/.snapshots/57/snapshot/$USER/Documents/letter.odt ~/Documents/` (`-a` keeps you as its owner) |
+| one of your files as it was | copy it out of the snapshot: `sudo ls /home/.snapshots/57/snapshot/$USER/` to find it, then `sudo cp -a /home/.snapshots/57/snapshot/$USER/notes/letter.odt ~/notes/` (`-a` keeps you as its owner) |
 | a file deleted by mistake | the same, from the newest hourly snapshot that still has it |
 | the whole system back to an earlier state | **Super+U → snapshots**, its number, `yes`, restart — or `sudo kawa-snap restore 41`. The snapshot itself becomes the system (§37.5); the one it replaces is kept, and `restore old` brings it back |
 | only the files changed since then | `sudo snapper -c root undochange 41..0` — every file changed since 41 goes back, in the running system |
@@ -13211,21 +13206,21 @@ were taken, so deleting a large file frees nothing until the last snapshot holdi
 
 | Step | Space used |
 |---|---|
-| you save a 4 GB video in `~/Videos` | 4 GB |
+| you save a 4 GB video in `~/captures` | 4 GB |
 | the hourly snapshot of `/home` is taken | still 4 GB: the snapshot shares the same blocks |
 | you delete the video | still 4 GB: the snapshot holds it |
 | the last snapshot holding it is cleaned up — up to two months later if a monthly one caught it, sooner when space is short | 4 GB free again |
 
 **Not in any snapshot:**
 
-* `~/Downloads` — its own subvolume (setup made it while the folder was empty; `verify` warns
+* `~/downloads` — its own subvolume (setup made it while the folder was empty; `verify` warns
   if it is not). A Btrfs snapshot never includes a subvolume nested inside it.
 * `/boot` and `/boot/efi` — separate partitions; the previous kernel is the safety net (§29.5).
 * everything else in your home **is** in the `home` snapshots: `~/.cache`,
   podman's images. Deleting them frees their space only as the snapshots holding them expire.
 
-To keep another big folder out the way `~/Downloads` is, make it a subvolume while it is
-still empty — as yourself, with no `sudo`, the way setup made `~/Downloads`:
+To keep another big folder out the way `~/downloads` is, make it a subvolume while it is
+still empty — as yourself, with no `sudo`, the way setup made `~/downloads`:
 
 ```sh
 btrfs subvolume create ~/Games   # a new, empty subvolume, owned by you
@@ -13264,7 +13259,7 @@ snapshots hold more than half of it (snapper's default `SPACE_LIMIT`). The clean
 day and never removes a snapshot younger than an hour (snapper's `NUMBER_MIN_AGE` and
 `TIMELINE_MIN_AGE`, 3600 seconds). The baseline stays until you delete it — or until the next
 Fedora: a move takes a new baseline for the new release, and the old one then ages out with
-the numbered ones. `~/Downloads` is a subvolume of its own (when it was still empty at setup;
+the numbered ones. `~/downloads` is a subvolume of its own (when it was still empty at setup;
 `verify` warns otherwise), so downloads stay out of `/home`'s snapshots: the space of a
 deleted download comes back at once.
 
@@ -13287,7 +13282,7 @@ set it.
 The chapter on one page. snapper keeps snapshots of `/` and `/home`: one every hour, thinned
 out over time; one before each update and each move; the *fedokawaii baseline*; and a **pre /
 post pair around every dnf transaction**. A snapshot costs almost nothing until files change
-after it. `~/Downloads`, `/boot` and `/boot/efi` are not in them (§37.2).
+after it. `~/downloads`, `/boot` and `/boot/efi` are not in them (§37.2).
 
 | Command | Does |
 |---|---|
@@ -13438,7 +13433,7 @@ over, so the second backup is short where the first was long.
 was:
 
 ```text
-$ kawa-backup restore ~/Documents/expenses.ods
+$ kawa-backup restore ~/notes/expenses.ods
   Summary: Restored 1 files/dirs (6 B) in 0:00
   restored: /home/you/Restored/2026-10-16-110312/expenses.ods
 ```
@@ -13465,7 +13460,7 @@ already known to your shell — and it reads the drive directly:
 ```sh
 export RESTIC_REPOSITORY=$(kawa-backup where) RESTIC_PASSWORD   # the drive plugged in
 restic snapshots                    # every backup: id, date, what it holds
-restic ls latest ~/Documents        # the files the newest backup holds below a folder
+restic ls latest ~/notes        # the files the newest backup holds below a folder
 restic find expenses.ods            # which backups hold a file of that name
 restic diff 1d979833 5c2e7a10       # what changed between two backups (ids from the list)
 restic stats                        # how much the backups hold
@@ -13475,15 +13470,15 @@ These change nothing in the backups. Leave the rest — a backup, `forget`, `pru
 which folders to leave out and how many backups to keep.
 
 **What is left out, and why.** The whole of your home goes, except what is listed in
-`~/.config/fedokawaii/backup-exclude`. First `~/Downloads`, by the same rule as the snapshots
+`~/.config/fedokawaii/backup-exclude`. First `~/downloads`, by the same rule as the snapshots
 (§37.2): it holds arrivals — torrents, ISO files, installers — which are big and can be
-fetched again. Move what you keep into `~/Documents` or another folder (§10.2), and the next
+fetched again. Move what you keep into `~/notes` or another folder (§10.2), and the next
 backup has it.
 
 The rest is what a program would download again by itself: `~/.cache` and the browser's
 caches; the trash; neovim's plugins, torrra's Python environment, Prowlarr's
 container image, the desktop's release binaries and the wallpaper pack (the update fetches
-each again); and `~/Restored` itself. To change the list — say, to back up `~/Downloads`
+each again); and `~/Restored` itself. To change the list — say, to back up `~/downloads`
 after all, delete its line — change it in your working copy and apply (chapter 42).
 
 > **Careful.** Lose the password and the backup is lost with it: restic cannot open the
@@ -13603,9 +13598,9 @@ would free. Ask Btrfs:
 | Command | Shows |
 |---|---|
 | `sudo btrfs filesystem usage /` | the real picture: *Free (estimated)*, and *Device unallocated* |
-| `sudo btrfs filesystem du -s ~/Downloads` | how much of a folder is its own and how much is shared with snapshots |
-| `du -xh --max-depth=1 ~ | sort -h | tail` | the biggest folders in your home (`-x` stays on one subvolume, so it skips `~/Downloads`; run it there separately) |
-| `fd -HI -S +1g . ~` | single files of 1 GB or more (`-H`: hidden ones too; `-I`: also those a `.gitignore` hides, such as build folders in `~/repos`) |
+| `sudo btrfs filesystem du -s ~/downloads` | how much of a folder is its own and how much is shared with snapshots |
+| `du -xh --max-depth=1 ~ | sort -h | tail` | the biggest folders in your home (`-x` stays on one subvolume, so it skips `~/downloads`; run it there separately) |
+| `fd -HI -S +1g . ~` | single files of 1 GB or more (`-H`: hidden ones too; `-I`: also those a `.gitignore` hides, such as build folders in `~/dojo`) |
 
 **Try this.** Ask Btrfs how full the disk is, then how much of two folders is their own:
 
@@ -13616,16 +13611,16 @@ Overall:
     Device allocated:            212.02GiB
     Device unallocated:          719.49GiB
     Free (estimated):            741.22GiB      (min: 381.47GiB)
-$ sudo btrfs filesystem du -s ~/Downloads
+$ sudo btrfs filesystem du -s ~/downloads
      Total   Exclusive  Set shared  Filename
-  38.40GiB    38.40GiB       0.00B  /home/you/Downloads
+  38.40GiB    38.40GiB       0.00B  /home/you/downloads
 ```
 
 *(for example; shortened)*
 
 *Free (estimated)* is roughly what you can still write. *Device unallocated* is space Btrfs
 has not yet handed to data or metadata (see *balance* below). *Exclusive* is what deleting the
-folder would free at once: all of `~/Downloads`, which no snapshot holds; in a folder the `home` snapshots hold too, the
+folder would free at once: all of `~/downloads`, which no snapshot holds; in a folder the `home` snapshots hold too, the
 rest is shared with them and comes back only as they expire.
 
 ### What fills it: gdu
@@ -13640,10 +13635,10 @@ $ gdu ~
  gdu ~ Use arrow keys to navigate, press ? for help
  --- /home/you ---
    61.2 GiB ████████████████████▏▏/.local
-   38.4 GiB ████████████▌         ▏/Downloads
-    2.0 GiB ▋                     ▏/Videos
+   38.4 GiB ████████████▌         ▏/downloads
+    2.0 GiB ▋                     ▏/captures
   496.0 MiB ▏                     ▏/.cache
-   24.0 MiB ▏                     ▏/Documents
+   24.0 MiB ▏                     ▏/notes
  Total disk usage: 102.1 GiB Apparent size: 102.1 GiB Items: 48231 Sorting by: size desc
 ```
 
@@ -13771,7 +13766,7 @@ Once a season, with the update (§36.2):
 | once a year | **Super+U** → upgrade, once the menu offers the next Fedora (§36.5) |
 | drop unneeded dependencies | nothing to do: the update does it (`dnf repoquery --unneeded` shows what is left) |
 | look at the space | `sudo btrfs filesystem usage /`, then `gdu ~` for what grew |
-| sort the downloads | move keepers out of `~/Downloads`, delete the rest; same for `~/Pictures/Screenshots` |
+| sort the downloads | move keepers out of `~/downloads`, delete the rest; same for `~/captures` |
 | empty the trash | **g t** in yazi → *Empty trash bin*, or `gio trash --empty` |
 | prune snapshots you made by hand | `snaps`, then `sudo snapper -c root delete N` |
 | trim the journal | `sudo journalctl --rotate --vacuum-time=4weeks` |
@@ -13987,7 +13982,7 @@ fedokawaii-report: /home/you/fedokawaii-report.txt (4120 lines) — works, 3 war
 | the boot menu has the wrong size | after changing monitors: **Super+U** → *theme, applied again* |
 | a wallpaper-pack picture is missing | `kawa-wallpaper --pack` when online |
 | the theme key does nothing | run `kawa-theme` in a terminal: it says why. "current is a folder, not a link" (a backup or sync tool copied it): **Super+U** → *theme, applied again* |
-| Print does nothing, or "Screenshot not saved" | `ls -ld ~/Pictures/Screenshots` — it must be a folder you can write to |
+| Print does nothing, or "Screenshot not saved" | `ls -ld ~/captures` — it must be a folder you can write to |
 | Super+Print saves a plain shot: *not annotated: satty is missing* | satty is fetched from GitHub, so an install made offline may lack it: once online, **Super+U** → *repair* |
 | the screen stays locked with no scene on it (the lock program crashed) | Ctrl+Alt+F2, log in, then `WAYLAND_DISPLAY=wayland-0 kawa-lock` and type your password at the desktop again; Ctrl+Alt+F1 goes back to it |
 | SELinux denial | `sudo ausearch -m avc -ts recent`; never disable SELinux |
@@ -14658,8 +14653,8 @@ Type `lazygit` inside any git repository, press **Space g g** in neovim (it open
 the repository of the current file), or use `:` then `lazygit` in yazi. Started in a folder that
 is not a repository, it asks *Create a new git repository?* — `y`, then Enter for git's default
 branch name: the way to start keeping a folder under git
-(`mkdir -p ~/repos/notes && cd ~/repos/notes && lazygit`). A repository that already exists on a
-website comes with `git clone URL ~/repos/NAME`. Everything lazygit does is an ordinary git
+(`mkdir -p ~/dojo/notes && cd ~/dojo/notes && lazygit`). A repository that already exists on a
+website comes with `git clone URL ~/dojo/NAME`. Everything lazygit does is an ordinary git
 command, listed in its command log, so `git`, the prompt (§11.3) and neovim see the same thing.
 
 ## 41.4 The screen
@@ -14732,7 +14727,7 @@ so the frames and the selected line follow the editor there.
 
 ## 41.6 A first commit, step by step
 
-Say you keep notes in `~/repos/notes` and have just written
+Say you keep notes in `~/dojo/notes` and have just written
 `ideas.md`.
 
 1. Start `lazygit` in the folder (or Space g g in neovim). *Files* lists `ideas.md` with `??`:
@@ -14765,17 +14760,17 @@ uncommitted, a step that goes wrong can be taken back with **z**, or from the re
 
 ## 41.7 Practice: a first commit of your own
 
-Ten minutes in a repository you can throw away, `~/repos/practice`, typing git's own commands —
+Ten minutes in a repository you can throw away, `~/dojo/git-practice`, typing git's own commands —
 the ones lazygit runs for you. Set your name first (§41.2). The
 hashes you see will differ from these: each commit's hash includes your name and the time.
 
 **1.** Make a folder and turn it into a repository.
 
 ```text
-$ mkdir -p ~/repos/practice
-$ cd ~/repos/practice
+$ mkdir -p ~/dojo/git-practice
+$ cd ~/dojo/git-practice
 $ git init
-Initialized empty Git repository in /home/you/repos/practice/.git/
+Initialized empty Git repository in /home/you/dojo/git-practice/.git/
 ```
 
 *If you see `Reinitialized existing Git repository`:* the folder was a repository already. No
@@ -14790,7 +14785,7 @@ $ git status --short
 ```
 
 `??`: a new file, never stored. *If you see `fatal: not a git repository`:* you are in another
-folder — `cd ~/repos/practice` first.
+folder — `cd ~/dojo/git-practice` first.
 
 **3.** Stage the file, then commit it.
 
@@ -15415,19 +15410,19 @@ PKG_APPS=(
 
 ## 42.4 The working copy
 
-The working copy is `~/repos/fedokawaii`: the toolkit as a folder of your own, kept as a git
+The working copy is `~/dojo/fedokawaii`: the toolkit as a folder of your own, kept as a git
 repository. You change it, and **apply** makes it the desktop's. (To keep the copy somewhere
 else, set `FEDOKAWAII_COPY=/that/folder` in `~/.bashrc.d/local.sh`. That reaches `fedokawaii`
 in a terminal only: **Super+Shift+U**, started by dwl, never reads `~/.bashrc.d` and keeps
-`~/repos/fedokawaii`.)
+`~/dojo/fedokawaii`.)
 
 **Try this.** Make the copy, then ask for it again.
 
 ```text
 $ fedokawaii copy
-  your working copy: /home/you/repos/fedokawaii — change it there (fedokawaii change), then: …
+  your working copy: /home/you/dojo/fedokawaii — change it there (fedokawaii change), then: …
 $ fedokawaii copy
-  your working copy: /home/you/repos/fedokawaii
+  your working copy: /home/you/dojo/fedokawaii
 ```
 
 *(shortened)* The first run copies the toolkit and commits it unchanged; every later run only
@@ -15437,8 +15432,8 @@ and leaves that first commit to you (§41.2).
 
 | Step | Command, or Super+Shift+U | What it does |
 |---|---|---|
-| 1. make it, once | `fedokawaii copy` (the menu makes it on first use) | copies the toolkit to `~/repos/fedokawaii` and commits it unchanged: a point you can always return to |
-| 2. change | a part in the menu, or `nvim ~/repos/fedokawaii/FILE` | the menu opens the part's file in neovim, in a window of its own, with the copy as the project (**Space f f** finds any file in it) |
+| 1. make it, once | `fedokawaii copy` (the menu makes it on first use) | copies the toolkit to `~/dojo/fedokawaii` and commits it unchanged: a point you can always return to |
+| 2. change | a part in the menu, or `nvim ~/dojo/fedokawaii/FILE` | the menu opens the part's file in neovim, in a window of its own, with the copy as the project (**Space f f** finds any file in it) |
 | 3. look | `fedokawaii diff` · *what changed* | every line the copy changes against the toolkit, in a pager; `q` closes |
 | 4. apply | `fedokawaii apply` · *apply* | the copy becomes the desktop's (§42.7) |
 | 5. keep | *history* (lazygit in the copy) | commit with a line that says why, and push (§42.8) |
@@ -15532,7 +15527,7 @@ take `-u critical` out of its line in `bin/kawa-drives` (**Super+Shift+U → dri
 file; when it asks, choose *later*). Run the area again:
 
 ```text
-$ cd ~/repos/fedokawaii
+$ cd ~/dojo/fedokawaii
 $ bash tests/run.sh drives
   ✘ pulled out while open: a critical notice — no call matching [notify-send -a drives -u crit…
   ✘ an old eject mark does not hide a real pull-out — no call matching [critical] — calls: not…
@@ -15593,7 +15588,7 @@ first step it asks for your password once (sudo) and lists the files that differ
 | `docs/`, `tools/`, `*.md`, `verify.sh`, `check.sh`, `fedokawaii.sh` | nothing more | they travel with the toolkit; `verify.sh` is used at the next check |
 | nothing | nothing | it says so |
 
-Run from the copy with `sudo bash ~/repos/fedokawaii/fedokawaii.sh theme`, `update` or
+Run from the copy with `sudo bash ~/dojo/fedokawaii/fedokawaii.sh theme`, `update` or
 `repair`, the theme, update and repair also make the copy the toolkit first, in the same way.
 `fedokawaii theme` from the menu re-applies the toolkit as it is.
 
@@ -15623,7 +15618,7 @@ was made, no key takes it back, and a reinstall would not have it. Keeping it ta
 **Try this.** Read the copy's history from any folder.
 
 ```text
-$ git -C ~/repos/fedokawaii log --oneline
+$ git -C ~/dojo/fedokawaii log --oneline
 4f1c2d9 dwl: gaps 12 px, wider for the 1440p screen
 9e07b31 fedokawaii as installed (2026-10-16)
 ```
@@ -15727,7 +15722,7 @@ rather than removing it — unless it was already user-installed before setup:
 
 - A file is yours alone — the theme never writes it — or the toolkit's, changed in the
   working copy and applied.
-- The working copy, `~/repos/fedokawaii`, is the toolkit as a git repository of your own;
+- The working copy, `~/dojo/fedokawaii`, is the toolkit as a git repository of your own;
   **Super+Shift+U** opens each part of it by name.
 - A config tried in place goes into the copy with `fedokawaii keep`; `fedokawaii diff` shows
   what apply would change.
@@ -15768,7 +15763,7 @@ the trade stand in October 2026.
 | one small step, then check | each step shows whether you understood the last | `bash -n script` · `fedokawaii diff` · `fedokawaii verify` |
 | type examples, never paste them | your hands learn the shapes: brackets, quotes, `fi` | the examples in this chapter |
 | read the manual first, then search | the manual is right for your version; a search result may be for another | `man 5 foot.ini` before a web search |
-| write down what you learnt | you will need it again in a month | `~/Notes/notes.md` (**Super+N**): one line per thing learnt |
+| write down what you learnt | you will need it again in a month | `~/notes/notes.md` (**Super+N**): one line per thing learnt |
 | ask an AI to *explain*, not only to *write* | you learn from the explanation; you only get used to the code | §44.2 |
 | one language at a time | two new syntaxes at once blur together | finish §43.2's step 1 before step 2 |
 
@@ -15803,7 +15798,7 @@ The order below suits this desktop: each step uses what you learnt in the one be
 | 5 | one of **Rust** or **Go** | fast, safe programs; command-line tools; servers | Rust: the most admired language for years. Go: the language of containers and cloud tools | add `rust cargo` or `golang` to the manifest when you start (chapter 42) |
 | beside | **C**, only to read | dwl, the kernel, most of Linux | `config.h` is C; reading it is enough at first | `src/dwl/config.h` |
 | beside | **Lua** | neovim, yazi, mpv scripts | small: learnt in an afternoon | `~/.config/nvim/lua/plugins/local.lua` |
-| beside | **Markdown, JSON, TOML, YAML** | notes, configs, data files | every tool reads one of them | `~/Notes/notes.md`, `waybar/config.jsonc` |
+| beside | **Markdown, JSON, TOML, YAML** | notes, configs, data files | every tool reads one of them | `~/notes/notes.md`, `waybar/config.jsonc` |
 
 Each language's first program, runnable here:
 
@@ -15858,7 +15853,7 @@ things matter more than before:
 Step 1 of the table ends in `bin/kawa-weather`: the script behind the weather in the bar and
 the week that drops down under it (§6.5). It is about 200 lines long, a quarter of them
 comments, and most of the rest use one of the five ideas below, one idea each. Run it, then
-open it beside this page with `bat ~/repos/fedokawaii/bin/kawa-weather`.
+open it beside this page with `bat ~/dojo/fedokawaii/bin/kawa-weather`.
 
 ```text
 $ kawa-weather
@@ -15965,7 +15960,7 @@ are in the bash manual (§43.5), and their comments say what they are for. Its s
 | **process** | a program while it runs, with its own number (PID) | `pgrep -a waybar` → `1234 waybar` | §26.1 |
 | **signal** | a short message to a process: stop, reload, … | `pkill -USR2 waybar` makes the bar re-read its files | §26.2 |
 | **standard input / output / error** | the three streams every program has: what it reads, what it prints, where its errors go | `ls /nope 2>/dev/null` hides the error (stream 2) | §25.2 |
-| **pipe** `|` | one program's output becomes the next one's input | `ls ~/Books | wc -l` counts your books | §25.1 |
+| **pipe** `|` | one program's output becomes the next one's input | `ls ~/books | wc -l` counts your books | §25.1 |
 | **redirection** `>` `>>` | output into a file, replacing it or adding to it | `date >> ~/log.txt` adds a line | §25.1 |
 | **exit status** | a number each program ends with: 0 means success | `grep -q x file; echo $?` → `0` or `1` | §25.1 |
 | **variable** · **environment variable** | a named value; an *exported* one is passed to every program started after it | `export EDITOR=nvim` → git opens neovim | §25.3 |
@@ -16100,7 +16095,7 @@ Pip is uv's: `uv add requests` in a project (or `uv pip install` in a `.venv`), 
 `sudo pip`. A new project, then neovim:
 
 ```text
-$ cd ~/repos && uv init hello && cd hello && uv add requests
+$ cd ~/dojo && uv init hello && cd hello && uv add requests
 $ nvim main.py
 ```
 
@@ -16183,7 +16178,7 @@ and `claude -p "question"` answers once and exits, which makes it usable in pipe
 `journalctl -b -p err | claude -p "what stands out here?"`.
 
 **Recommended.** Use plan mode for anything touching this repository or the system, read the
-plan, then let it work. Run `claude` in your working copy, `~/repos/fedokawaii`, to ask about
+plan, then let it work. Run `claude` in your working copy, `~/dojo/fedokawaii`, to ask about
 the desktop itself — it can read the scripts and this book (`docs/`). For colours that follow the theme, `/theme` → the
 *ANSI colours only* variant of dark or light.
 
@@ -16203,14 +16198,14 @@ Claude Code reads the files in the folder you start it in, so start it in your w
 **Try this.** Check that nothing is uncommitted, then start it.
 
 ```text
-$ cd ~/repos/fedokawaii
+$ cd ~/dojo/fedokawaii
 $ git status --short
 $ claude
 ```
 
 | You typed | It means |
 |---|---|
-| `cd ~/repos/fedokawaii` | the folder it may read: the desktop's scripts, configs and this book |
+| `cd ~/dojo/fedokawaii` | the folder it may read: the desktop's scripts, configs and this book |
 | `git status --short` | no output: nothing uncommitted, so any change it makes is one step from undone |
 | `claude` | starts the assistant here; the first time, you sign in (§44.1) |
 
@@ -16250,9 +16245,9 @@ release, pinned (Appendix A), and does not update itself.
 ### Starting it
 
 *Agents* in the launcher (**Super+Space**, type `agents`), or `herdr` in any terminal. It opens in
-a window of its own, beside your editor, not as a popup; the bar names it *Agents · repos* —
+a window of its own, beside your editor, not as a popup; the bar names it *Agents · dojo* —
 *Agents*, then the workspace you are on. The first start shows one workspace with one pane: a
-shell, in `~/repos`, where your projects are (`cd fedokawaii` takes you into your working
+shell, in `~/dojo`, where your projects are (`cd fedokawaii` takes you into your working
 copy). From then on it opens as you left it.
 
 Closing the window does not stop the agents. herdr runs them in a server of its own in the
@@ -16290,7 +16285,7 @@ When an agent in another tab or workspace finishes or asks you something, a noti
 
 **Try this.** Two agents on the toolkit, one reading, one explaining.
 
-1. *Agents* in the launcher. In the shell (it starts in `~/repos`), `cd fedokawaii`.
+1. *Agents* in the launcher. In the shell (it starts in `~/dojo`), `cd fedokawaii`.
 2. **Ctrl+B a**: Claude Code starts in a pane of its own, filling the window. Ask it *"Read
    `bin/kawa-weather` and explain how it caches. Do not edit anything."*
 3. **Ctrl+B a** again: a second Claude, in the same folder. Ask it *"Which tests cover
@@ -16308,7 +16303,7 @@ of its own; each agent works in its own, and the branches meet only when you mer
 
 1. In a workspace that is a git repository (your working copy), **Ctrl+B Shift+G**.
 2. Type a branch name, `fix-weather` say, and **Enter**. herdr makes the folder
-   `~/repos/worktrees/fedokawaii/fix-weather` (a new branch, from where you are) and opens it
+   `~/dojo/worktrees/fedokawaii/fix-weather` (a new branch, from where you are) and opens it
    as a workspace of its own, under the first one in the sidebar.
 3. **Ctrl+B a** there: this Claude works only in that folder.
 
@@ -16374,7 +16369,7 @@ everything lives, the keys, the commands by job, the terms, and the sources.
 # A. Software, and why each piece
 
 The full table is `PACKAGES.md`, in the project and in your working copy
-(`~/repos/fedokawaii/PACKAGES.md`); these are the choices worth knowing. Adding or taking out
+(`~/dojo/fedokawaii/PACKAGES.md`); these are the choices worth knowing. Adding or taking out
 a package is §42.11.
 
 | Job | Tool | Why this one |
@@ -16452,14 +16447,13 @@ follow the XDG folders (§23.3): settings in `~/.config`, data in `~/.local/shar
 
 | Path | What | Notes |
 |---|---|---|
-| `~/Documents/` · `~/Pictures/` · `~/Videos/` · `~/Music/` | what you keep | the standard folders: file dialogs and yazi know them |
-| `~/Downloads/` | arrivals: Helium, torrra and yt-dlp save here | its own Btrfs subvolume, outside every snapshot (§37.2) |
-| `~/Books/` | your library — the books window lists it (Super+R, §16.2) | folders inside are fine |
-| `~/Notes/notes.md` | your notes (Super+N, §16.3) | plain Markdown |
-| `~/Pictures/Screenshots/` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | |
-| `~/Pictures/Wallpapers/` | your own wallpapers, on both themes | |
+| `~/downloads/` | arrivals: Helium, torrra and yt-dlp save here | its own Btrfs subvolume, outside every snapshot (§37.2) |
+| `~/books/` | your library — the books window lists it (Super+R, §16.2) | folders inside are fine |
+| `~/notes/notes.md` | your notes (Super+N, §16.3) | plain Markdown |
+| `~/captures/` | Print, Shift+Print, satty's Ctrl+S, mpv's `s`, recordings | |
+| `~/.local/share/fedokawaii/wallpapers/` | your own wallpapers, on both themes | |
 | `~/Drives/` | a link to each open drive, by its name (§13.3) | always there; empty when no drive is open |
-| `~/repos/` | your git repositories; `~/repos/fedokawaii` is the working copy (§42.4) | |
+| `~/dojo/` | your git repositories; `~/dojo/fedokawaii` is the working copy (§42.4) | |
 | `~/.config/fedokawaii/secrets.sh` | API keys, as `export NAME=value` (and Prowlarr's, deliberately without `export`); the backup's password, `RESTIC_PASSWORD` (§37.6) | yours, mode 600; nothing else holds a key |
 
 The standard folders were made at setup by `xdg-user-dirs-update`, which records them in
@@ -16467,7 +16461,7 @@ The standard folders were made at setup by `xdg-user-dirs-update`, which records
 
 ```text
 $ xdg-user-dir DOWNLOAD
-/home/you/Downloads
+/home/you/downloads
 ```
 
 ## B.2 Each program's files
@@ -16478,21 +16472,21 @@ $ xdg-user-dir DOWNLOAD
 | upkeep (Super+U) | `~/.config/fedokawaii/upkeep.conf` (the season) · `~/.config/systemd/user/fedokawaii-remind.{timer,service}` (the reminder) | — | `~/.cache/fedokawaii/` (when the next Fedora came out, the day of the last reminder) |
 | foot and bash | `~/.config/foot/foot.ini` · `~/.bashrc.d/fedokawaii.sh` · `~/.config/readline/inputrc` | `~/.local/state/bash/history` · zoxide's folders: `~/.local/share/zoxide/` | `~/.cache/fedokawaii/` (fzf's and zoxide's shell code) |
 | the clipboard | — | `~/.cache/cliphist/db` (the history) | |
-| books and notes | — | `~/Books/` · `~/Notes/` | `~/.cache/kawa-books/` (covers, page counts) |
+| books and notes | — | `~/books/` · `~/notes/` | `~/.cache/kawa-books/` (covers, page counts) |
 | neovim | `~/.config/nvim/` (`init.lua`, `lazy-lock.json`, `lua/config/`, `lua/plugins/` from Theme, §17.19; yours beside them: `lua/plugins/local.lua`) | `~/.local/share/nvim/` (plugins in `lazy/`, Mason's tools in `mason/`) | `~/.local/state/nvim/` (undo history, swap files, logs) |
 | lazygit | `~/.config/lazygit/config.yml` | — | `~/.local/state/lazygit/` |
 | yazi (files and dialogs) | `~/.config/yazi/theme.toml`, `init.lua`, `keymap.toml`, `plugins/drives.yazi/`, `plugins/smart-enter.yazi/` · the dialog's keys: `~/.config/fedokawaii/yazi-pick/` · `~/.config/xdg-desktop-portal-termfilechooser/config` | the trash: `~/.local/share/Trash/` | `~/.local/state/yazi/` |
 | drives (udiskie, kawa-drives) | `~/.config/udiskie/config.yml` | — | which drives are open: `$XDG_RUNTIME_DIR/kawa-drives/` (cleared at each login) |
 | zathura | `~/.config/zathura/zathurarc` | `~/.local/share/zathura/bookmarks.sqlite` (each book's page, bookmarks) | |
 | mpv and yt-dlp | `~/.config/mpv/` (`mpv.conf`, `scripts/`) · `~/.config/yt-dlp/config` | — | `~/.local/state/mpv/` (where each video stopped) |
-| torrra (torrents) | `~/.config/torrra/config.toml` — Prowlarr's address, the download folder, colours; never the key | the program: `~/.local/share/uv/tools/torrra/` · downloads: `~/Downloads/` | |
+| torrra (torrents) | `~/.config/torrra/config.toml` — Prowlarr's address, the download folder, colours; never the key | the program: `~/.local/share/uv/tools/torrra/` · downloads: `~/downloads/` | |
 | Prowlarr | `~/.config/containers/systemd/prowlarr.container` (how it runs) · its key: `secrets.sh` | `~/.config/prowlarr/` (its database: indexers, history) · the image: `~/.local/share/containers/` | `journalctl --user -u prowlarr` |
 | Helium | `~/.config/HeliumSoftware/Helium-Origin/` (profile, settings, extensions) | the same folder | `~/.cache/HeliumSoftware/` |
 | Spotify | Helium's profile (`~/.config/HeliumSoftware/Helium-Origin/`: the sign-in, as for any site); its launcher entry `~/.local/share/applications/spotify.desktop` (Theme's) | | Helium's cache |
 | LibreOffice | `~/.config/libreoffice/` (its profile: your Tools → Options, recent files, your dictionary words); the Arabic default in `/etc/dconf` (Theme's) | | |
 | btop | `~/.config/btop/btop.conf` | | |
 | quick settings | its colours: `~/.config/fedokawaii/current/panel.conf` (Theme's) | — | `~/.config/fedokawaii/vrr` (the FreeSync setting) |
-| LocalSend | its own settings, inside its data folder | the program: `~/.local/share/localsend/` (`~/.local/bin/localsend` points there) · what arrives: `~/Downloads/` | |
+| LocalSend | its own settings, inside its data folder | the program: `~/.local/share/localsend/` (`~/.local/bin/localsend` points there) · what arrives: `~/downloads/` | |
 | gh (GitHub) | `~/.config/gh/` (your sign-in, made by `gh auth login`) | | |
 | Xournal++ | `~/.config/xournalpp/` | | |
 | VisiData · gdu | `~/.config/visidata/config.py` · `~/.config/gdu/gdu.yaml` | `~/.local/share/visidata/` | |
@@ -16650,20 +16644,20 @@ something — copy, move, delete, install — act at once: read the example befo
 
 | Command | Does | Example |
 |---|---|---|
-| `ls` · `ll` · `lt` | list a folder (eza here): plain · everything with sizes and git state · as a tree | `ll ~/Documents` |
+| `ls` · `ll` · `lt` | list a folder (eza here): plain · everything with sizes and git state · as a tree | `ll ~/notes` |
 | `command ls -l` | coreutils' own long listing, with permissions and link counts | `command ls -l /usr/local/bin` |
-| `cd` · `cdi` | change folder; zoxide jumps by a remembered word · pick one in fzf | `cd repos` |
+| `cd` · `cdi` | change folder; zoxide jumps by a remembered word · pick one in fzf | `cd dojo` |
 | `pwd` | print the current folder | `pwd` |
-| `mkdir -p` | make a folder and any parents | `mkdir -p ~/Documents/2026/tax` |
-| `cp` · `cp -a` | copy · copy keeping owner, times and links | `cp -a ~/Notes /mnt/backup/` |
-| `mv` | move or rename | `mv report.pdf ~/Documents/` |
+| `mkdir -p` | make a folder and any parents | `mkdir -p ~/notes/2026/tax` |
+| `cp` · `cp -a` | copy · copy keeping owner, times and links | `cp -a ~/notes /mnt/backup/` |
+| `mv` | move or rename | `mv report.pdf ~/notes/` |
 | `rm` · `rmdir` | delete files · delete an empty folder (no undo; prefer the trash) | `rm -i old.txt` |
 | `gio trash` | move to the trash instead | `gio trash old.txt` · `gio trash --empty` |
-| `ln -s` | make a symbolic link | `ln -s ~/Books/manual.pdf ~/Documents/` |
+| `ln -s` | make a symbolic link | `ln -s ~/books/manual.pdf ~/notes/` |
 | `touch` | create an empty file, or update its time | `touch notes.md` |
 | `stat` | every detail of one file: inode, links, permissions, times | `stat -c '%a %U %s %n' ~/.bashrc` |
 | `realpath` · `readlink -f` | the full path, links resolved | `realpath ~/.config/fedokawaii/current` |
-| `yazi` | the file manager (Super+E) | `yazi ~/Downloads` |
+| `yazi` | the file manager (Super+E) | `yazi ~/downloads` |
 
 ## D.2 Viewing
 
@@ -16674,16 +16668,16 @@ something — copy, move, delete, install — act at once: read the example befo
 | `less` | page through: Space, `b`, `/word`, `n`, `q` | `less ~/.cache/dwl.log` |
 | `head` · `tail` | the first · last lines | `tail -n 40 ~/.cache/dwl.log` |
 | `tail -f` | follow a growing file; Ctrl+C stops | `sudo tail -f /var/log/fedokawaii.log` |
-| `file` | what kind of file it really is | `file ~/Downloads/*` |
-| `wc` | count lines, words, bytes | `wc -l ~/Notes/notes.md` |
+| `file` | what kind of file it really is | `file ~/downloads/*` |
+| `wc` | count lines, words, bytes | `wc -l ~/notes/notes.md` |
 | `nvim -R` | open read-only in neovim | `nvim -R /etc/greetd/fedokawaii.toml` |
-| `vd` | a CSV, TSV, JSON or SQLite file as a table: sort, sum, filter (§16.7) | `vd ~/Downloads/statement.csv` |
+| `vd` | a CSV, TSV, JSON or SQLite file as a table: sort, sum, filter (§16.7) | `vd ~/downloads/statement.csv` |
 
 ## D.3 Searching
 
 | Command | Does | Example |
 |---|---|---|
-| `fd` | find files by name (regex; `-g` for a glob), fast, skipping hidden and ignored ones | `fd -e pdf . ~/Documents` |
+| `fd` | find files by name (regex; `-g` for a glob), fast, skipping hidden and ignored ones | `fd -e pdf . ~/notes` |
 | `find` | find files by any property | `find ~ -xdev -size +1G` |
 | `rg` | search inside files (ripgrep) | `rg -n 'kawa-[a-z]+' ~/.config/waybar` |
 | `grep` | search lines in a file or a pipe | `grep -i error ~/.cache/waybar.log` |
@@ -16711,9 +16705,9 @@ something — copy, move, delete, install — act at once: read the example befo
 
 | Command | Does | Example |
 |---|---|---|
-| `tar -czf` · `tar -xzf` | pack into · unpack from a gzip-compressed tar | `tar -czf notes.tar.gz ~/Notes` |
+| `tar -czf` · `tar -xzf` | pack into · unpack from a gzip-compressed tar | `tar -czf notes.tar.gz ~/notes` |
 | `tar -tf` | list what is inside | `tar -tf notes.tar.gz | head` |
-| `7z a` · `7z x` · `7z l` | make · extract · list 7z, zip and most other formats | `7z x ~/Downloads/photos.zip -o"$HOME/Pictures/trip"` |
+| `7z a` · `7z x` · `7z l` | make · extract · list 7z, zip and most other formats | `7z x ~/downloads/photos.zip -o"$HOME/captures/trip"` |
 | `sha256sum` | the fingerprint of a file, to compare with a published one | `sha256sum fedora.iso` |
 
 ## D.6 Processes
@@ -16725,7 +16719,7 @@ something — copy, move, delete, install — act at once: read the example befo
 | `kill` | send a signal (TERM by default) to a PID | `kill 4120` · `kill -USR2 4120` |
 | `pkill` | the same, by name | `pkill -USR2 waybar` (reloads the bar) |
 | `top` · `btop` | live view of CPU, memory and processes | `btop` |
-| `nice` · `renice` | start at · change to a lower priority | `nice -n 19 7z a big.7z ~/Videos` |
+| `nice` · `renice` | start at · change to a lower priority | `nice -n 19 7z a big.7z ~/captures` |
 | `jobs` · `fg` · `bg` | this shell's jobs | after **Ctrl+Z**: `bg` |
 | `timeout` | stop a command after a time | `timeout 10 ping fedoraproject.org` |
 | `watch` | run a command again every two seconds | `watch -n 5 free -h` |
@@ -16747,7 +16741,7 @@ something — copy, move, delete, install — act at once: read the example befo
 | `systemd-cgls` · `systemd-cgtop` | the cgroup tree · live use per group | `systemd-cgtop` |
 | `loginctl` | sessions, users, linger | `loginctl session-status` |
 | `busctl` | D-Bus: names, objects, calls | `busctl --user list | grep mpris` |
-| `systemd-run --user` | run a command as a unit of its own | `systemd-run --user --scope 7z a big.7z ~/Videos` |
+| `systemd-run --user` | run a command as a unit of its own | `systemd-run --user --scope 7z a big.7z ~/captures` |
 
 ## D.8 Packages
 
@@ -16793,7 +16787,7 @@ something — copy, move, delete, install — act at once: read the example befo
 | `lsblk` | disks and partitions as a tree | `lsblk -o NAME,SIZE,FSTYPE,MOUNTPOINTS` |
 | `findmnt` | what is mounted where, as a tree | `findmnt -no OPTIONS /` |
 | `df -h` | space per file system (on Btrfs, ask Btrfs: §38.2) | `df -h / /boot` |
-| `du -sh` | space a folder's files use | `du -sh ~/Videos` |
+| `du -sh` | space a folder's files use | `du -sh ~/captures` |
 | `gdu` | the same, walked: what is inside, largest first (§38.2) | `gdu ~` |
 | `btrfs filesystem usage` | the real space on Btrfs | `sudo btrfs filesystem usage /` |
 | `btrfs subvolume list` | the subvolumes and snapshots | `sudo btrfs subvolume list /` |
@@ -16848,9 +16842,9 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-wallpaper` | the wallpaper picker for the current theme (Super+W) | `kawa-wallpaper` |
 | `kawa-volume` | volume up or down by a step, mute, the microphone's mute — with the level display | `kawa-volume up 2` · `kawa-volume mic` |
 | `kawa-brightness` | the monitors' own backlight over DDC/CI: a step or a level | `kawa-brightness 40` · `kawa-brightness +10` |
-| `kawa-screenshot` | a region or the whole screen to the clipboard and `~/Pictures/Screenshots`; `edit` opens it in satty | `kawa-screenshot edit` |
+| `kawa-screenshot` | a region or the whole screen to the clipboard and `~/captures`; `edit` opens it in satty | `kawa-screenshot edit` |
 | `kawa-drives` | the drives menu · list them · open or eject one | `kawa-drives list` · `kawa-drives eject /dev/sdb1` |
-| `kawa-backup` | your home to the backup drive (restic): back up, list, restore, check | `kawa-backup restore ~/Notes` |
+| `kawa-backup` | your home to the backup drive (restic): back up, list, restore, check | `kawa-backup restore ~/notes` |
 | `kawa-weather` | the weather where you are, one line · the week, as the bar's dropdown | `kawa-weather --menu` |
 | `kawa-play` | a video, song or link in the mpv window already open · in a new one | `kawa-play --new film.mkv` |
 | `kawa-together` | watch a file with friends (Syncplay) | `kawa-together film.mkv` |
@@ -16867,7 +16861,7 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-timer` | a timer or a stopwatch beside the bar's time (a click on the time); the bell and a chime when it ends | `kawa-timer start 25` · `kawa-timer cancel` |
 | `kawa-quick` | quick settings (Super+X) · how each tile stands · one tile's action | `kawa-quick --state` · `kawa-quick --do night` |
 | `kawa-config` | the change menu: a part of the desktop to edit in your working copy (Super+Shift+U, ch. 42) | `kawa-config` |
-| `kawa-clipfiles` | files on the clipboard, as yazi's Ctrl+C, Ctrl+X and Ctrl+V do | `kawa-clipfiles copy a.pdf` · `kawa-clipfiles paste ~/Documents` |
+| `kawa-clipfiles` | files on the clipboard, as yazi's Ctrl+C, Ctrl+X and Ctrl+V do | `kawa-clipfiles copy a.pdf` · `kawa-clipfiles paste ~/notes` |
 | `kawa-cell` | the terminal's character cell in pixels; no answer from the terminal: nothing printed, exit 1 — never a guess | `kawa-cell` → `12x26` |
 | `kawa-menu` | one small menu in the desktop's look: each line of its input is a choice, the chosen one is printed | `kawa-menu --title pick < list.txt` |
 
@@ -16907,7 +16901,7 @@ commands themselves are in appendix D.
 | API · HTTP · JSON | a program's way in for other programs · how the web asks and answers · text that holds data (§43.4) |
 | apply | make the working copy the toolkit and put it in place: `fedokawaii apply` (§42.7) |
 | archive | one file holding a whole folder, often compressed: `.zip`, `.tar.gz` (§3.5) |
-| argument | what a command acts on, usually a file or folder: `~/Downloads` in `ls ~/Downloads` (§11.6) |
+| argument | what a command acts on, usually a file or folder: `~/downloads` in `ls ~/downloads` (§11.6) |
 | autoremove | `dnf autoremove`: removes the dependencies no user-installed package needs any more (ch. 38) |
 | AVC | *access vector cache*, the part of SELinux that decides; a *denied* AVC in the audit log is a refusal (§34.3) |
 | backend (portal) | the program that carries out a portal's request: wlr, gtk or termfilechooser (§32.2) |
@@ -17045,7 +17039,7 @@ commands themselves are in appendix D.
 | PAM | the library every login uses to check a password and open a session (§29.8) |
 | partition | a fixed part of a disk used as if it were a disk of its own; Windows' *C:* is one (§4.2) |
 | patch | a file of line changes applied to a program's source before it is built or installed: `src/dwl/dwl.patch` (§5.4), `src/syncplay/syncplay.patch` (§15.7) |
-| path | the address of a file or folder: `/home/you/Documents/tenancy.pdf` (§10.1) |
+| path | the address of a file or folder: `/home/you/notes/tenancy.pdf` (§10.1) |
 | `PATH` | the folders searched, in order, for a command typed by its name (§25.1) |
 | peer · seeder · leecher | a computer sharing a torrent · one that has all of it · one still downloading (ch. 20) |
 | permissions | who may read (r), write (w) and run (x) a file (§24.2) |
@@ -17154,7 +17148,7 @@ commands themselves are in appendix D.
 | window (neovim) | a view onto a buffer: two windows can show two files, or two places in one (ch. 17) |
 | WirePlumber | PipeWire's session manager: it picks defaults and connects programs to devices (§31.8) |
 | wlroots | the library dwl is built on (§31.3) |
-| working copy | `~/repos/fedokawaii`: your own git copy of the toolkit, where the desktop is changed (§42.4) |
+| working copy | `~/dojo/fedokawaii`: your own git copy of the toolkit, where the desktop is changed (§42.4) |
 | working folder | the folder a terminal is "in"; a name without a full path is looked for there (§11.4) |
 | working tree | the files as they are on disk now, with edits not yet committed (§41.1) |
 | workspace | a separate set of windows, one set at a time on a screen; dwl calls them tags (§6.4) |
