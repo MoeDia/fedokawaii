@@ -23,7 +23,7 @@ Effort medium (low for haiku). A cheaper pass that fails: the row goes back to o
 
 ## Tests (S11)
 Per task: only the checks for what changed (`bash tests/<area>/test_x.sh`). Full suite (`bash tests/run.sh`, ~15 min)
-and a full VM install once a day and before the ISO is cut (daily rows in the plan), not after every task.
+and a full VM install once a day and before the ISO is cut (daily rows dsat, dsun, dmon, dtue in the plan), not after every task.
 
 ## Hard rules (the owner's)
 - Fedora 45 only (`FEDORA_RELEASE` in lib/common.sh); this PC stays on 44. Zero fallbacks, one tool per job, TUI over GUI.
