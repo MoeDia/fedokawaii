@@ -17,4 +17,11 @@ case_ "no dashed rule in any text screen, menu or sheet"
 found=$(/usr/bin/grep -P '[\x{2504}-\x{250b}\x{254c}-\x{254f}]' <<<"$lines" | /usr/bin/grep -vE '^bin/kawa-panel:.*(BOX|box)')
 if [[ -z $found ]]; then _ok; else while IFS= read -r x; do _no "${x:0:140}"; done <<<"$found"; fi
 item r27-bug-17 "no ┄ ╌ ┈ line in bin/, system/, lib/, configs/home"
+case_ "sketching stays gone: no FireAlpaca, no Sketch, no tablet in the desktop, dwl or the lessons"
+found=$(/usr/bin/grep -iE 'firealpaca|kawa-sketch|xp-?pen|drawing tablet' <<<"$lines" | /usr/bin/grep -vE '^(lib/upstream\.sh|theme\.sh):')
+if [[ -z $found ]]; then _ok; else while IFS= read -r x; do _no "${x:0:140}"; done <<<"$found"; fi
+/usr/bin/grep -qE 'wlr_tablet|zwp_tablet' "$REPO/src/dwl/dwl.patch" && _no "dwl still takes the pen" || _ok
+/usr/bin/grep -qE '^L.sketch.' "$REPO/docs/learn/index.tsv" && _no "the lesson is still in the index" || _ok
+item r28-d2 "nothing of Sketch left to start, build, fetch or teach"
+
 done_

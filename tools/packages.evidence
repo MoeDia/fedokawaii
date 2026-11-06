@@ -104,7 +104,6 @@ NetworkManager-tui|fedora|https://packages.fedoraproject.org/search?query=Networ
 nodejs24|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24/|2026-11-04|nodejs24-1:24.18.0-4.fc45 from fedora (dnf repoquery)
 nodejs24-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-bin/|2026-11-04|nodejs24-bin-1:24.18.0-4.fc45 from fedora (dnf repoquery)
 nodejs24-npm-bin|fedora|https://packages.fedoraproject.org/pkgs/nodejs24/nodejs24-npm-bin/|2026-11-04|nodejs24-npm-bin-2:11.16.0-1.24.18.0.4.fc45 from fedora (dnf repoquery)
-nss|fedora|https://packages.fedoraproject.org/pkgs/nss/nss/|2026-11-05|nss-3.131.0-1.fc45 from fedora (dnf repoquery)
 ntfs-3g|fedora|https://packages.fedoraproject.org/search?query=ntfs-3g|2026-10-14|manifest 2026-10-14
 ntsync-autoload|fedora|https://packages.fedoraproject.org/pkgs/wine/ntsync-autoload/|2026-11-04|ntsync-autoload-11.20-1.fc45 from updates (dnf repoquery)
 pciutils|fedora|https://packages.fedoraproject.org/pkgs/pciutils/pciutils/|2026-11-04|pciutils-3.15.0-2.fc45 from fedora (dnf repoquery)

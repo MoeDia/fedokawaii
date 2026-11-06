@@ -102,7 +102,7 @@ OURS="kawa-asobi:koma kawa-typing:keyboard footclient:terminal kawa-edit:code ka
   kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-learn:mortarboard kawa-chess:knight kawa-wallpaper:picture kawa-backup:archive
   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
-  kawa-prowlarr:search spotify:music whatsapp:speech kawa-sketch:brush"
+  kawa-prowlarr:search spotify:music whatsapp:speech"
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Icon) n=${f##*/}

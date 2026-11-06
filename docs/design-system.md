@@ -41,7 +41,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 |---|---|---|---|
 | `ground` | `181715` Black → Vandyke Brown 0.13 | `e8e3c2` Sulpher Yellow → Neutral Gray 0.2 | the screens' ground: terminals, panels, menus, the launcher — all at kawa-glass's see-through (0.92) |
 | `surface` | `1c1916` Black → Vandyke Brown 0.2 | `ecdfb3` Sulpher Yellow → Isabella Color 0.18 | a solid ground: notices, the level display, tooltips |
-| `view` | `1c1916` | `f7f1d1` Sulpher Yellow → White 0.25 | a toolkit's list or canvas ground (GTK views, FireAlpaca's panels) |
+| `view` | `1c1916` | `f7f1d1` Sulpher Yellow → White 0.25 | a toolkit's list or canvas ground (GTK views) |
 | `key` | `221e1a` Black → Pale Raw Umber 0.2 | `f8f3d8` Sulpher Yellow → White 0.35 | a tile's or key's fill at rest |
 | `edge` | `2d251e` Black → Pale Raw Umber 0.32 | `dfcc9c` Sulpher Yellow → Isabella Color 0.45 | a tile's or key's 1 px frame at rest; an unlit meter segment; the terminal's black |
 | `edge2` | `3c2f22` Black → Pale Raw Umber 0.48 | `d7bc8c` Sulpher Yellow → Maple 0.62 | a heading's rule (§4, §7) |
@@ -779,9 +779,6 @@ state stepped by a small rule, not a long drawn loop: it costs little and never 
   **16 px** grid, in 1 px strokes, an instrument's 32 wide, a seal tile's 40 × 40, the seals, the keys' pictures, the months' flowers) are
   drawn by kawa-panel pixel for pixel in the theme's inks: `#` the row's ink (`muted` at rest, `strong` on or under the
   cursor), `%` a level's (lit from below), one letter a role for a second ink. Every one centred by its ink.
-- **A program's pictures** (FireAlpaca's tool strip and panels: `art/firealpaca-icons.txt`, 18, 20 and 24 px, the sizes its
-  own files have): one ink, masses solid, painted in its state's ink as it is shown (`text`, `faint` disabled, `text_on_select`
-  checked): a mask, so a mood needs no second set.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
   from the palette only.
@@ -832,7 +829,6 @@ numbers here against its files.
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
 | the lessons | Super+U → learning, the launcher | `bin/kawa-learn`, cut by `tools/learn-pieces.py` | T27 |
 | the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
-| Sketch (FireAlpaca): its menus, panels, lists, meters, tool strip, both moods | the launcher | `src/kawa-firealpaca` (loaded into it), `tools/firealpaca_skin.py` (its sheet, inks and pictures, in `themes/`), `art/firealpaca-icons.txt`, `art/firealpaca-parts.txt`, `configs/firealpaca/` | T28 |
 
 ## 15. The grill list
 

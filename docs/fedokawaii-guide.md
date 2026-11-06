@@ -2403,7 +2403,7 @@ ordinary one, and a critical one with its vermilion border.
 | critical — the vermilion border | until you click it |
 
 The desktop's own notices are titled in lower case, as its menus are — *backup*, *upkeep*,
-*sketch*, *workspaces* — with a name kept as it is spelt (*Brave*, *Bluetooth*). When a key
+*workspaces* — with a name kept as it is spelt (*Brave*, *Bluetooth*). When a key
 needs a program that is not there, its notice names it and says how to mend it: *zathura is
 missing — fedokawaii repair puts it back* (§35.1).
 
@@ -2765,7 +2765,6 @@ program's own files.
 ├── Notes/notes.md         your notes (Super+N, §16.3)
 ├── Pictures/
 │   ├── Screenshots/       Print, Shift+Print, satty's Ctrl+S, mpv's s (§12.2)
-│   ├── Sketches/          the drawings of Sketch (§16.4)
 │   └── Wallpapers/        your own wallpapers (§9.2)
 ├── repos/                 your git repositories; fedokawaii/ is the working copy (§42.4)
 ├── .bashrc  .bashrc.d/    the shell: Fedora's file, and the desktop's beside it (ch. 25)
@@ -2888,7 +2887,7 @@ Those seven keys are most of daily use. The whole list follows; **~** shows it i
 On a folder, Enter goes into it (yazi's own Enter would open the folder in neovim:
 `~/.config/yazi/plugins/smart-enter.yazi`). With files selected (Space), Enter opens all of
 them; otherwise the one under the cursor. A Xournal++ note (`.xopp`) opens in Xournal++ —
-yazi would otherwise take it for a gzip archive — and a sketch (`.mdp`) in FireAlpaca. On a file, Enter uses the first *opener* — a command
+yazi would otherwise take it for a gzip archive. On a file, Enter uses the first *opener* — a command
 yazi runs to open a file — for the file's type (its MIME type, such as `image/png`,
 §10.5): text and JSON open in neovim inside the same window (`:q` brings
 you back to yazi); an archive is unpacked next to itself (yazi's *Extract here*, with 7-Zip);
@@ -4478,7 +4477,7 @@ remember it.
   | Backup | restic onto the backup drive (kawa-backup) | `backup` |
   | Agents · Torrents · Syncplay | herdr · torrra · Syncplay (ch. 20, §15.7) | `claude` · `torrent` · `together` |
 
-  The rest — Helium, LibreOffice, Xournal++, FireAlpaca (Sketch), Easy Effects, LocalSend,
+  The rest — Helium, LibreOffice, Xournal++, Easy Effects, LocalSend,
   LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
@@ -5263,7 +5262,7 @@ light switch like every mpv.
 >
 > - read and search PDFs and e-books, in a library that remembers your page
 > - keep a diary of notes that saves itself as you type
-> - draw on a blank page with a tablet's pen, or write on a PDF
+> - write on a PDF and sign it
 > - open and edit Word, Excel and PowerPoint files, convert them, and present slides
 > - calculate with units and money; sort, sum and filter a CSV in the terminal
 >
@@ -5454,41 +5453,6 @@ made elsewhere (another editor, a sync tool) are taken in, and typing carries on
 highlighter (Ctrl+Shift+H), text (Ctrl+Shift+T) and eraser (Ctrl+Shift+E). It saves your
 marks in a separate `.xopp` file and never changes the PDF; *File → Export as PDF* writes a
 new PDF with the marks in it — that is the file to send.
-
-**Drawing: Sketch.** *Sketch* in the launcher (`kawa-sketch`) is **FireAlpaca**, the official Linux build
-(`lib/upstream.sh`: a Qt 6.5 AppImage from firealpaca.com, unpacked whole into
-`~/.local/share/fedokawaii/firealpaca/app`; its terms forbid passing it on, so it always comes from them), on a
-new page the shape of the screen, `~/Pictures/Sketches/sketch DATE.mdp`. It is closed, runs on X11 only, and has no
-theme files, so `src/kawa-firealpaca` (loaded into it by `kawa-sketch`, no Qt headers) dresses it through Qt's public
-functions: the mood's style sheet and inks (`themes/*/firealpaca.qss`, `.conf`, written by
-`tools/firealpaca_skin.py`), its own lists and sliders recoloured by widget class as they are drawn, Sumi UI in place of
-its fixed face, our 86 masks in place of its pictures (`art/firealpaca-icons.txt`), its hand-placed panels moved onto
-the grid, Open and Save through `kawa-pick`, and the mood followed while it runs. What is on the canvas, the files and
-the pen are never touched. `KAWA_FA_PLAIN=1 kawa-sketch` shows it as it comes. Once, `theme.sh` gives it its starting
-files (`configs/firealpaca/`: Wada's 159 colours, a few brushes, the panels, a white page 1920 × 1080); then they are
-its own. The free edition's page of news and advertising at every start does not come up and is not fetched: the
-owner's choice (4 Nov), told of its terms (they forbid "acts that bring detriment" to its makers; the ad-free edition
-has no Linux build); `KAWA_FA_PLAIN=1` brings it back with the rest. *File → Export* makes a PNG or PSD, and Super+Z
-(§12.6) makes it small.
-
-**The drawing tablet** — an XP-Pen Star G430S here, or any other — needs no driver: Fedora's kernel knows it, and it works
-the moment it is plugged in. dwl hands the pen to Xwayland as a tablet (tablet-v2), and Qt reads it as a stylus with
-pressure: `tools/regress/sketch-pen.sh` proves the path, 2, 8 and 16 px at pressure 0.10, 0.50 and 1.00. Its two side
-buttons do what FireAlpaca gives them, and Xournal++ keeps its own settings:
-
-| on the pen | in Sketch (FireAlpaca) | in Xournal++ | over anything else |
-|---|---|---|---|
-| the tip | draws | draws | a left click |
-| the lower button, held | the hand: drag the page | the eraser | the right button |
-| the upper button, held | the eyedropper | the hand | the middle button |
-
-The pad is 4 × 3 inches; the screen is wider (16:9), so the pad keeps the screen's proportions —
-a circle drawn is round on screen: the pad's whole width is the screen's width, its top three
-quarters are the screen's height, and its bottom quarter keeps the pen on the screen's bottom
-edge (rest your hand there). The
-G430S has no buttons of its own on the pad. Theme sets the two buttons in Xournal++'s own
-settings once, where they were at Xournal++'s *nothing*; from then on they are yours —
-another tool chosen in *Edit → Preferences → Stylus* stays as you set it.
 
 **LibreOffice** is the office suite: **Writer** for letters and documents, **Calc** for
 spreadsheets, **Impress** for slides (§16.5). Each is in the launcher (type `writer`, `calc`
@@ -5741,7 +5705,6 @@ reference* lists every key) and `man vd`.
   and the page is remembered.
 - **Super+R** is your library in `~/Books`; **Ctrl+A** brings books in from Downloads.
 - **Super+N** is one diary file, `~/Notes/notes.md`: type at once, and it saves itself; **Super+N** again puts it away.
-- *Sketch* is a blank page for a tablet's pen (with pressure) or the mouse, kept in `~/Pictures/Sketches`.
 - LibreOffice opens and edits Word, Excel and PowerPoint files; `libreoffice --headless
   --convert-to pdf` converts them; `qpdf` picks, joins and counts pages.
 - Impress shows slides with **F5**; `qalc` calculates with units and money.
@@ -15558,7 +15521,7 @@ lists the areas:
 | `menus` | quick settings, the sound panel and the brightness slider (`kawa-panel`, `kawa-quick`), the power menu, the calendar, Super+/, Super+Shift+U |
 | `look` | the theme switch, the wallpapers, the lock, screenshots |
 | `session` | the autostart, the workspaces in the bar, the floating windows, what each key means |
-| `content` | the clipboard, backups, books, notes, `kawa-shrink`, `kawa-sketch`, the shell's prompt |
+| `content` | the clipboard, backups, books, notes, `kawa-shrink`, the shell's prompt |
 | `yazi` | yazi, mpv and `kawa-play`, Syncplay |
 | `engine` | `fedokawaii`: the menu, `status`, `copy`, `keep`, `diff`; the login screen, Prowlarr, torrra |
 | `installer` | setup, theme, verify, update and repair, against a stand-in machine |
@@ -16436,7 +16399,7 @@ a package is §42.11.
 | tables | VisiData (LibreOffice Calc for Excel files) | a CSV opens at once, sorts, sums and filters like a spreadsheet, in the terminal's colours |
 | disk usage | gdu | what fills a folder, largest first, in a window you can walk |
 | pictures and PDFs to send | ImageMagick · Ghostscript · `kawa-shrink` (this repository) | Super+Z: a size for a mail or a chat, or another kind (JPEG, WebP, PNG), in two keys — the two tools were already here for previews and PDFs |
-| drawing | Xournal++ · `kawa-sketch` ("Sketch") | one pen program for notes, PDFs and sketches; the tablet's pressure makes the line thicker |
+| marks on PDFs | Xournal++ | writes on and signs a PDF, the marks in their own file until you export |
 | files to and from a phone | LocalSend (its pinned release) | AirDrop between any devices on your own network, no account, no cloud; Fedora does not package it |
 | GitHub | gh | make, clone and push repositories, pull requests and releases from the terminal; its sign-in serves git too |
 | AI agents side by side | herdr (its pinned release) | several Claude Code sessions in one window, each marked working, blocked or idle, with a worktree per task; its own multiplexer, so no tmux beside it — Claude Squad, the other candidate, needs tmux |
@@ -16495,7 +16458,6 @@ follow the XDG folders (§23.3): settings in `~/.config`, data in `~/.local/shar
 | `~/Notes/notes.md` | your notes (Super+N, §16.3) | plain Markdown |
 | `~/Pictures/Screenshots/` | Print, Shift+Print, satty's Ctrl+S, mpv's `s` | |
 | `~/Pictures/Wallpapers/` | your own wallpapers, on both themes | |
-| `~/Pictures/Sketches/` | drawings made with Sketch (§16.4), as Xournal++ files | |
 | `~/Drives/` | a link to each open drive, by its name (§13.3) | always there; empty when no drive is open |
 | `~/repos/` | your git repositories; `~/repos/fedokawaii` is the working copy (§42.4) | |
 | `~/.config/fedokawaii/secrets.sh` | API keys, as `export NAME=value` (and Prowlarr's, deliberately without `export`); the backup's password, `RESTIC_PASSWORD` (§37.6) | yours, mode 600; nothing else holds a key |
@@ -16532,7 +16494,7 @@ $ xdg-user-dir DOWNLOAD
 | quick settings | its colours: `~/.config/fedokawaii/current/panel.conf` (Theme's) | — | `~/.config/fedokawaii/vrr` (the FreeSync setting) |
 | LocalSend | its own settings, inside its data folder | the program: `~/.local/share/localsend/` (`~/.local/bin/localsend` points there) · what arrives: `~/Downloads/` | |
 | gh (GitHub) | `~/.config/gh/` (your sign-in, made by `gh auth login`) | | |
-| Sketch (Xournal++) | `~/.config/xournalpp/` | `~/Pictures/Sketches/` | |
+| Xournal++ | `~/.config/xournalpp/` | | |
 | VisiData · gdu | `~/.config/visidata/config.py` · `~/.config/gdu/gdu.yaml` | `~/.local/share/visidata/` | |
 | tldr | its colours and refresh in `~/.bashrc.d/fedokawaii.sh` | | `~/.cache/tldr/` (the pages) |
 | GTK, Qt, pointers | `~/.config/gtk-4.0/` · `~/.config/qt6ct/` · `/etc/dconf` | `~/.local/share/themes/Fedokawaii*` · `~/.local/share/icons/default` (a link to the pointers in use, in `/usr/share/icons`) | |
@@ -16894,7 +16856,6 @@ The keys and the bar run these; each also works typed in a terminal, and each sa
 | `kawa-together` | watch a file with friends (Syncplay) | `kawa-together film.mkv` |
 | `kawa-git` | the launcher's *Git*: your repositories, lazygit in the one picked (or clone one, start one) | `kawa-git --list` |
 | `kawa-books` · `kawa-notes` · `kawa-clip` · `kawa-shrink` | the books, notes, clipboard and shrink windows (Super+R, N, V, Z) | `kawa-books` |
-| `kawa-sketch` | a blank page in Xournal++ for the pen | `kawa-sketch` |
 | `kawa-term` · `kawa-term --float` | a command in a new terminal window · in a small floating one | `kawa-term btop` |
 | `kawa-display` | every monitor at its best refresh rate (≤ `MONITOR_HZ`) | `kawa-display` |
 | `kawa-prowlarr` | Prowlarr's web page (it starts when asked, sleeps after) · asleep now | `kawa-prowlarr stop` |

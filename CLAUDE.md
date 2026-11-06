@@ -2,7 +2,7 @@
 
 Fedokawaii turns Fedora 45 Server (minimal) into a retro-Japanese pixel desktop on **dwl**
 (patched), for one owner: Mohamed Eldoush (PC user `dia`, GitHub MoeDia). His PC: Ryzen
-(iGPU) + Gigabyte RX 9060 XT, one 1080p 144 Hz monitor (HDMI-A-1), XP-Pen tablet. You run
+(iGPU) + Gigabyte RX 9060 XT, one 1080p 144 Hz monitor (HDMI-A-1). You run
 **on that PC itself**: this clone is the working copy (`~/repos/fedokawaii`), the live
 install is what `fedokawaii apply` made from it.
 

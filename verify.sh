@@ -394,7 +394,7 @@ check "dwl built with XWayland (X11 apps)"      U bash -c 'ldd /usr/local/bin/dw
 # (the whole patch, as theme.sh tests it: it would come off cleanly — fed on stdin, as root
 # reads the toolkit's copy)
 dwl_patched() { U git -C "$TARGET_HOME/.local/src/dwl" apply --reverse --check - <"$REPO_DIR/src/dwl/dwl.patch" >/dev/null 2>&1; }
-check "dwl.patch applied (keys, gaps, frames, centring, layout, the pen, the theme's borders)" dwl_patched
+check "dwl.patch applied (keys, gaps, frames, centring, layout, the theme's borders)" dwl_patched
 check "dwl's own wlroots $DWL_WLROOTS kept"             wlr_kept
 check "dwl finds every library (its wlroots: its own)"  U bash -c 'l=$(ldd /usr/local/bin/dwl) && ! grep -q "not found" <<<"$l" && grep -qF "$1/lib/libwlroots" <<<"$l"' _ "$(wlr_home)"
 check "dwl's own wlroots finds every library"           U bash -c 'for f in "$1"/lib/*.so*; do [[ -L $f ]] && continue; l=$(ldd "$f") && ! grep -q "not found" <<<"$l" || exit 1; done' _ "$(wlr_home)"
@@ -618,16 +618,6 @@ case $(up_tag localsend) in
       localsend_libs_ok
     check "localsend starts it (~/.local/bin/localsend)" test "$(readlink -f "$TARGET_HOME/.local/bin/localsend")" = "$(localsend_dir)/localsend_app" ;;
   *) fail "LocalSend is not the pinned $LOCALSEND_TAG" "update and repair put it in" ;;
-esac
-# FireAlpaca, the official build (setup carries on without it: update and repair fetch it)
-firealpaca_libs_ok() {   # (ldd runs as you, on your file)
-  U test -x "$(firealpaca_dir)/usr/bin/FireAlpaca" && [[ -z $(missing_libs "$(firealpaca_dir)/usr/bin/FireAlpaca") ]]
-}
-case $(up_tag firealpaca) in
-  "") warn "FireAlpaca not installed yet" "update and repair fetch it (Sketch waits till then)" ;;
-  *) check "FireAlpaca $(up_tag firealpaca) finds every library it needs" firealpaca_libs_ok
-     ((THEMED)) && check "Sketch is dressed for the desktop (kawa-firealpaca, the mood's sheet)" \
-       test -s "$TARGET_HOME/.local/lib/fedokawaii/kawa-firealpaca.so" -a -s "$TARGET_HOME/.config/fedokawaii/current/firealpaca.qss" ;;
 esac
 # ble.sh, from its pinned source (setup carries on without it: the shell is plain bash meanwhile)
 case $(up_tag blesh) in

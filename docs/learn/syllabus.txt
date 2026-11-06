@@ -79,7 +79,6 @@ chapter 15 btop | btop: the machine | cpu | needs 4
 btop-moves | btop | 0 x
 chapter 20 small-tools | notes, books and the small tools | note | needs 4
 notes-pdfs | notes, books, PDFs | 0 1
-sketch | drawing: Sketch | 2
 x
 chapter 16 mpv | mpv, yt-dlp and Syncplay: video and sound | tv-0 | needs 4
 mpv-moves | video and sound | 0 x

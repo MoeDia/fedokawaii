@@ -82,17 +82,6 @@ SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syn
 LOCALSEND_TAG=v1.18.2
 LOCALSEND_ASSET=LocalSend-1.18.2-linux-x86-64.tar.gz
 LOCALSEND_SHA256=287690a9a8eb6da9c83cc97b3e3030ac67daf32a7331fcf307d0939300658d16
-# FireAlpaca (drawing: Sketch in the launcher, kawa-sketch): the official Linux build, from PGN Inc.'s own
-# page (firealpaca.com/download: a Qt 6 AppImage for "Ubuntu 23.04, Fedora 36, Debian 12 or later"). Free
-# for any use; its terms forbid passing it on, so it comes from them at every install, never from this
-# repository or the ISO. Unpacked whole into its folder: started from there it needs no FUSE and starts at
-# once. Its page has one address, always the newest build: the pin is the build the skin was proven on, and
-# a newer one of theirs is taken when that is what the address now serves (the skin reaches it through
-# Qt's public functions, and leaves what it does not know as drawn); anything else is refused.
-# (measured 2026-11-04: 131 381 752 bytes, X-AppImage-Version 2.16.3, Linux notes 2026-09-15)
-FIREALPACA_URL=https://firealpaca.com/download/linux
-FIREALPACA_VERSION=2.16.3
-FIREALPACA_SHA256=aa32b81f66df4c3480cddaa8e5c9447d680f0425bf2fb03e2435ab48308fb0df
 BLESH_REPO=https://github.com/akinomyoga/ble.sh.git
 BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 
@@ -211,43 +200,6 @@ install_localsend() {   # the pinned release, whole, into ~/.local/share/localse
 }
 localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
 
-firealpaca_dir() { echo "$TARGET_HOME/.local/share/fedokawaii/firealpaca/app"; }
-firealpaca_current() { [[ -n $(up_tag firealpaca) && -x $(firealpaca_dir)/usr/bin/FireAlpaca ]]; }
-install_firealpaca() {   # the official build, unpacked by you into its folder, whole: never half of two
-  local dir file sum ver work; dir=$(firealpaca_dir)
-  if firealpaca_current && [[ -z $(missing_libs "$dir/usr/bin/FireAlpaca") ]]; then
-    log "FireAlpaca $(up_tag firealpaca) — in place"; return 0
-  fi
-  REL_DIR=$(mktemp -d "$KAWA_TMP/rel.XXXXXX"); file=$REL_DIR/FireAlpaca.AppImage
-  retry 3 10 "${CURL[@]}" -o "$file" "$FIREALPACA_URL" || { log "download failed: $FIREALPACA_URL"; rm -rf "$REL_DIR"; return 1; }
-  sum=$(sha256sum "$file" | cut -d' ' -f1)
-  work=$dir.new
-  as_user rm -rf -- "$work" && as_user mkdir -p -- "$work" || { rm -rf "$REL_DIR"; return 1; }
-  as_user tee "$work/FireAlpaca.AppImage" <"$file" >/dev/null && as_user chmod 0755 "$work/FireAlpaca.AppImage" \
-    && as_user bash -c 'cd "$1" && ./FireAlpaca.AppImage --appimage-extract >/dev/null 2>&1' _ "$work" \
-    || { as_user rm -rf -- "$work"; rm -rf "$REL_DIR"; log "FireAlpaca could not be unpacked (is the disk full?)"; return 1; }
-  rm -rf "$REL_DIR"
-  ver=$(as_user sed -n 's/^X-AppImage-Version=//p' "$work/squashfs-root/FireAlpaca.desktop" 2>/dev/null)
-  if [[ $sum != "$FIREALPACA_SHA256" ]]; then
-    # (their page has moved on: newer than the pin and FireAlpaca's own shape, or refused)
-    if [[ -z $ver || $ver == "$FIREALPACA_VERSION" || $(printf '%s\n%s\n' "$FIREALPACA_VERSION" "$ver" | sort -V | tail -n 1) != "$ver" ]]; then
-      as_user rm -rf -- "$work"; log "FireAlpaca.AppImage: its SHA-256 is not the pinned one, and it is not a newer version — refused"; return 1
-    fi
-    log "FireAlpaca: their page now serves $ver (the skin was proven on $FIREALPACA_VERSION) — taken"
-  else
-    log "verified: FireAlpaca.AppImage"
-  fi
-  as_user test -x "$work/squashfs-root/usr/bin/FireAlpaca" \
-    || { as_user rm -rf -- "$work"; log "usr/bin/FireAlpaca not found inside the AppImage"; return 1; }
-  if [[ -n $(missing_libs "$work/squashfs-root/usr/bin/FireAlpaca") ]]; then
-    log "FireAlpaca is missing: $(missing_libs "$work/squashfs-root/usr/bin/FireAlpaca" | tr '\n' ' ')"; as_user rm -rf -- "$work"; return 1
-  fi
-  as_user rm -rf -- "$dir" && as_user mv -T -- "$work/squashfs-root" "$dir" || { as_user rm -rf -- "$work"; return 1; }
-  as_user rm -rf -- "$work"
-  record_tag firealpaca "$ver"
-  ok "FireAlpaca $ver → ~/.local/share/fedokawaii/firealpaca/app (Sketch)"
-}
-
 # Widevine: Google's module for protected media (Spotify's web player plays nothing without it).
 # Helium ships none (its site: Google licenses it to partners) and loads it from the folder its
 # hint file names (kawa-browser writes that). Never in this repository or the ISO: fetched here,
@@ -295,6 +247,11 @@ retire_upstream() {   # UPSTREAM_RETIRED out: each binary (only one its record s
     as_user rm -f -- "$TARGET_HOME/.local/bin/$n" "$(up_state_dir)/$n" || return 1
     log "$n — no longer part of the desktop: taken out of ~/.local/bin"
   done
+  # FireAlpaca (Sketch, out at the owner's word, 2026-11-06): the program's whole folder and its skin
+  [[ -n $(up_tag firealpaca) ]] || return 0
+  as_user rm -rf -- "$TARGET_HOME/.local/share/fedokawaii/firealpaca" || return 1
+  as_user rm -f -- "$TARGET_HOME/.local/lib/fedokawaii/kawa-firealpaca.so" "$(up_state_dir)/firealpaca" || return 1
+  log "FireAlpaca — no longer part of the desktop: its folder and its skin taken out"
 }
 
 install_term_face() {   # UDEV Gothic NF → FACES_DIR, its four files as pinned; the Nerd Font before it gone

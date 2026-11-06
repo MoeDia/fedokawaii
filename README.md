@@ -97,11 +97,7 @@ PACKAGES.md        what is installed, from where, and why
   page you stopped on, a reading bar and the cover — Enter reads it in zathura, Ctrl+A adds
   books from Downloads, Ctrl+D removes. Super+N opens `~/Notes/notes.md`, a dated diary of
   quick notes, and puts it away again; it saves as you type.
-- **Drawing**: *Sketch* in the launcher is FireAlpaca, the official Linux build, dressed as the desktop
-  (`src/kawa-firealpaca`: both moods, live) on a new page in `~/Pictures/Sketches`, with Sanzo Wada's 159
-  colours for a palette. A drawing tablet (an XP-Pen Star G430S here) needs no driver: its pen draws with
-  pressure, its lower button moves the page and its upper one takes a colour while held, and the pad keeps the
-  screen's proportions. Xournal++ stays for writing on and signing PDFs.
+- **PDFs**: Xournal++ writes on and signs them.
 - **File dialogs**: every Open, Upload and Save as — Helium's too — is yazi in a floating
   terminal, with its previews and keys — the one dialog (LibreOffice alone shows GTK's: it
   builds that dialog itself, without the portal).

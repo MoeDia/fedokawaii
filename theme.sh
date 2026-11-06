@@ -270,6 +270,12 @@ retire .bashrc.d/scriptorium.sh 'scriptorium'
 #   ~/.local/bin/kawa-audio — the old fuzzel sound menu: the sound panel (kawa-panel --sound)
 #   took its place, and a copy left in ~/.local/bin would still answer to its name
 retire .local/bin/kawa-audio 'kawa-audio — the sound menu'
+#   Sketch — FireAlpaca and the tablet's pen: taken out at the owner's word (2026-11-06), he sketches on
+#   paper. What was installed for it goes; ~/.local/share/FireAlpaca (its own files, its backups of
+#   your drawings) and your drawings stay yours
+retire .local/bin/kawa-sketch 'FireAlpaca'
+retire .local/share/applications/kawa-sketch.desktop 'kawa-sketch'
+retire .config/fedokawaii/keys/sketch.txt 'FireAlpaca'
 #   ~/.local/bin/kawa-veil — the old theme and wallpaper transitions: kawa-wash (dwl draws it) is the
 #   one transition now (design-system §11)
 retire .local/bin/kawa-veil 'usage: kawa-veil'
@@ -855,96 +861,17 @@ else
   esac
 fi
 
-# ── 4e. Xournal++ (Sketch): the pen's two buttons ────────────────────────────
-# A tablet's pen has two buttons on its side (the XP-Pen Star G430S's P01: the lower one is
-# "button 1", the upper "button 2"). Xournal++ leaves both doing nothing until told, in its
-# own settings.xml — which it writes whole again at every change. So once, a button still at
-# Xournal++'s own "nothing" is given its tool here: the lower one erases while held, the
-# upper one holds the page to drag it (the hand). After that (state: xournalpp-pen) the
-# buttons are yours: a tool you choose — "nothing" too — stays as it is.
-XPP_XML=$TARGET_HOME/.config/xournalpp/settings.xml
-XPP_DONE=$TARGET_HOME/.local/state/fedokawaii/xournalpp-pen
-TOTAL=$((TOTAL + 1))
-if [[ -e $XPP_DONE ]]; then :
-elif [[ -L $XPP_XML ]]; then
-  log "$XPP_XML is a link — Xournal++'s settings left as they are"
-elif XP=$(U python3 -I - "$XPP_XML" "$CHECK" <<'PY'
-import os, sys, xml.etree.ElementTree as ET
-path, check = sys.argv[1], sys.argv[2] == "1"
-want = {"stylus": "eraser", "stylus2": "hand"}          # (Xournal++'s names: button 1, button 2)
-try:
-    tree = ET.parse(path); root = tree.getroot()
-except FileNotFoundError:
-    root = ET.Element("settings"); tree = ET.ElementTree(root)
-except ET.ParseError:
-    sys.exit(4)
-if root.tag != "settings":
-    sys.exit(4)
-bc = root.find("data[@name='buttonConfig']")
-if bc is None:
-    bc = ET.SubElement(root, "data", name="buttonConfig")
-gaps = []
-for button, tool in want.items():
-    d = bc.find(f"data[@name='{button}']")
-    if d is None:
-        d = ET.SubElement(bc, "data", name=button)
-    a = d.find("attribute[@name='tool']")
-    if a is not None and a.get("value", "none") != "none":
-        continue                                         # (yours: chosen in its preferences)
-    gaps.append(button)
-    if a is None:
-        a = ET.SubElement(d, "attribute", name="tool", type="string")
-    a.set("type", "string"); a.set("value", tool)
-print(", ".join(f"{b} → {want[b]}" for b in gaps))
-if check or not gaps:
-    sys.exit(3 if gaps else 0)
-os.makedirs(os.path.dirname(path), exist_ok=True)
-tmp = path + ".kawa"
-tree.write(tmp, encoding="UTF-8", xml_declaration=True)
-os.replace(tmp, path)
-PY
-); then
-  [[ -n $XP ]] && CHANGED+=("$XPP_XML (the pen's buttons: $XP)")
-  ((CHECK)) || U bash -c 'mkdir -p "${1%/*}" && : >"$1"' _ "$XPP_DONE"
-else
-  case $? in
-    3) DRIFT+=("$XPP_XML (the pen's buttons: $XP not set)") ;;
-    *) log "$XPP_XML does not read as Xournal++'s settings — left as it is" ;;
-  esac
-fi
-
-# ── 4f. FireAlpaca (Sketch): what it starts from ─────────────────────────────
-# Once (state: firealpaca-seed), into the folder it keeps its own files in: Wada's palette, the few
-# brushes, the panels laid out, its settings (no Alpaca and pixiv buttons on the canvas, a new canvas
-# the screen's shape on white paper). It writes all of them again as you work: after this they are
-# yours, and a file already there (FireAlpaca started before) is left as it is.
-FA_SEED=$REPO_DIR/configs/firealpaca
-FA_HOME=$TARGET_HOME/.local/share/FireAlpaca/FireAlpaca
-FA_DONE=$TARGET_HOME/.local/state/fedokawaii/firealpaca-seed
-TOTAL=$((TOTAL + 1))
-if [[ ! -e $FA_DONE ]]; then
-  if ((CHECK)); then DRIFT+=("$FA_HOME (FireAlpaca's starting files not there yet)")
-  else
-    for f in "$FA_SEED"/*; do
-      [[ -e $FA_HOME/${f##*/} ]] || U cat -- "$f" | uinstall 0644 /dev/stdin "$FA_HOME/${f##*/}"
-    done
-    U bash -c 'mkdir -p "${1%/*}" && : >"$1"' _ "$FA_DONE"
-    CHANGED+=("$FA_HOME (Wada's palette, the brushes, the panels: FireAlpaca's starting files)")
-  fi
-fi
-
 # ── 4b. the desktop's own C helpers (src/, built with the tools that build dwl) ──
 #   kawa-clipkeep  keeps a copy on the clipboard after the app it came from is closed
 #   kawa-saver     the screensaver (and the lock behind it: away 15 minutes, kawa-idle)
 #   kawa-lockmod   the lock screen's keys and wake guard (a gtklock module, GTK 3's headers)
-#   kawa-firealpaca  FireAlpaca dressed as the desktop (loaded into it by kawa-sketch; no Qt headers)
 #   kawa-rgb       every light, one steady red: a service of the system's (root takes the built file)
 # Built as you whenever their sources change; the hash of what each was built from is
 # kept beside the state, so a re-run knows without rebuilding. Parts of the desktop like
 # dwl: one that does not build stops the theme run.
-TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod kawa-firealpaca)
+TOOLS=(kawa-clipkeep kawa-saver kawa-lockmod)
 ((DWL_MINE == 0)) || TOOLS+=(kawa-rgb)        # (the system's own, as dwl: the desktop user's to build)
-tool_dest() { case $1 in kawa-lockmod|kawa-firealpaca) echo "$TARGET_HOME/.local/lib/fedokawaii/$1.so" ;; kawa-rgb) echo /usr/local/bin/kawa-rgb ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
+tool_dest() { case $1 in kawa-lockmod) echo "$TARGET_HOME/.local/lib/fedokawaii/$1.so" ;; kawa-rgb) echo /usr/local/bin/kawa-rgb ;; *) echo "$TARGET_HOME/.local/bin/$1" ;; esac; }
 tool_sum() { local s x f=() d=$REPO_DIR/src/$1
   for x in "$d/Makefile" "$d"/*.c "$d"/*.h "$d"/*.xml; do [[ -f $x ]] && f+=("$x"); done
   s=$(cat "${f[@]}" | sha256sum); printf '%s' "${s%% *}"; }

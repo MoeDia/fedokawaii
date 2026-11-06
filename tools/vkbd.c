@@ -1,6 +1,6 @@
 // tools/vkbd.c — one virtual keyboard that lives as long as its stdin, for headless runs of X11 programs (wtype's
 // keyboard comes and goes with each key, and Xwayland never keeps up): "k NAME" a key, "c MODS NAME" with mods
-// (1 shift, 4 ctrl, 8 alt, 64 logo), "t TEXT" letters. Built by tools/regress/sketch-pen.sh.
+// (1 shift, 4 ctrl, 8 alt, 64 logo), "t TEXT" letters.
 #define _GNU_SOURCE
 #include <stdio.h>
 #include <stdlib.h>

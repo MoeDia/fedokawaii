@@ -136,23 +136,6 @@ eq "$(sed -n 's/^chat\(In\|Out\)\(put\)FontFamily=//p' "$W$H/.config/mpv/script-
 has "$(grep '^osd-font=' "$W$H/.config/mpv/mpv.conf")" '"UDEV Gothic NF"' "the same as mpv's own"
 eq "$(fk stat -c '%U %a' "$H/.config/syncplay.ini")" "fkuser 600"
 
-case_ "Xournal++: the pen's lower button the eraser, its upper one the hand"
-xpp=$W$H/.config/xournalpp/settings.xml
-grep -q 'name="stylus"><attribute name="tool" type="string" value="eraser"' "$xpp" && _ok || _no "button 1: $(cat "$xpp" 2>/dev/null)"
-grep -q 'name="stylus2"><attribute name="tool" type="string" value="hand"' "$xpp" && _ok || _no "button 2: $(cat "$xpp" 2>/dev/null)"
-eq "$(fk stat -c %U "$H/.config/xournalpp/settings.xml")" fkuser
-
-case_ "FireAlpaca (Sketch): its skin built, its starting files there, yours, once"
-[[ -f $W$H/.local/lib/fedokawaii/kawa-firealpaca.so ]] && _ok || _no "kawa-firealpaca.so not built"
-fa=$W$H/.local/share/FireAlpaca/FireAlpaca
-for f in Palette.ini BrushNew.xml EraserNew.xml Config.ini Initialize.ini Language.ini; do
-  cmp -s "$fa/$f" "$REPO/configs/firealpaca/$f" && _ok || _no "$f is not the repo's"
-done
-eq "$(fk stat -c %U "$H/.local/share/FireAlpaca/FireAlpaca/Palette.ini")" fkuser
-[[ -e $W$H/.local/state/fedokawaii/firealpaca-seed ]] && _ok || _no "not recorded as done"
-[[ -s $W$H/.local/share/fedokawaii/firealpaca/blank.mdp && -s $W$H/.local/share/fedokawaii/firealpaca/icons/tool_brush.png ]] && _ok || _no "the blank page or the masks are not there"
-echo "my palette" >"$fa/Palette.ini"       # (it writes them itself from here on: the second run leaves them)
-
 # ── the second run, and --check ──────────────────────────────────────────────
 case_ "a second run: nothing changes, it says so, no new backup folder — and your theme switch stays"
 ln -sfn themes/dark "$W$H/.config/fedokawaii/current"        # (kawa-theme: you switched to dark,
@@ -202,14 +185,6 @@ s=$(cat "$ini")
 has "$s" "host = films.example.org"; has "$s" "name = Mo"; has "$s" "room = Friday%%night"
 has "$s" "playerpath = /usr/bin/mpv"
 theme --check; eq "$RC" 0
-
-case_ "Xournal++'s settings, once set, are yours (it rewrites them itself): a tool you choose — nothing too — stays"
-[[ -e $W$H/.local/state/fedokawaii/xournalpp-pen ]] && _ok || _no "not recorded as done"
-sed -i -e 's/value="eraser"/value="pen"/' -e 's/value="hand"/value="none"/' "$xpp"
-theme --check; eq "$RC" 0 "no drift: yours"
-theme; eq "$RC" 0
-grep -q 'name="stylus"><attribute name="tool" type="string" value="pen"' "$xpp" && _ok || _no "your choice was overwritten"
-grep -q 'name="stylus2"><attribute name="tool" type="string" value="none"' "$xpp" && _ok || _no "your 'nothing' was overwritten"
 
 case_ "the pointers before Sumi: Fedokawaii removed, its default kept in the backup, default a link again"
 o=$W$H/.local/share/icons

@@ -16,7 +16,7 @@ their contrast. This script is the only place the colours are written down; it r
       colors.sh  waybar.css  foot.ini            the ~/.config/fedokawaii/current
       mako  qt6ct.conf  qt6ct-colors.conf          link that kawa-theme switches
       btop.theme  zathurarc  imv  gtklock.css  mpv.conf  wiremix.toml
-      dwl.colors  panel.conf  saver.conf  firealpaca.conf  firealpaca.qss  firealpaca-*.png
+      dwl.colors  panel.conf  saver.conf
       kami-{tile,red,fibre,seal,scroll}.png        (the bar's washi tiles: 紙 kami)
   configs/home/.config/foot/foot.ini              the [colors-dark] / [colors-light] block
   configs/home/.config/gtk-4.0/gtk.css            both themes, chosen by GTK's media query
@@ -48,9 +48,6 @@ _spec = _iu.spec_from_file_location("wada_palette", pathlib.Path(__file__).with_
 _wada = _iu.module_from_spec(_spec)
 _spec.loader.exec_module(_wada)
 P, KAMI, TILE, EDITOR = _wada.palette()
-_spec = _iu.spec_from_file_location("firealpaca_skin", pathlib.Path(__file__).with_name("firealpaca_skin.py"))
-_skin = _iu.module_from_spec(_spec)         # (FireAlpaca's skin: its sheet, its inks, its pictures)
-_spec.loader.exec_module(_skin)
 NAMES = {"dark": "sumi (ink)", "light": "washi (paper)"}
 
 
@@ -468,7 +465,6 @@ def ornaments(m, p):
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew
         "lock-scroll.png": lock_scroll(m, fill, k["rule"]),
         "lock-fibre.png": kami_fibre(m, fill, 2),
-        **_skin.pictures(png, ROOT, m, p, k),
     }
 
 
@@ -1256,7 +1252,6 @@ FILES = {
     "zathurarc": zathurarc, "imv": imv, "gtklock.css": gtklock_css,
     "qt6ct.conf": qt6ct_conf, "mpv.conf": mpv_conf, "wiremix.toml": wiremix,
     "panel.conf": panel_conf, "dwl.colors": dwl_colors, "saver.conf": saver_conf,
-    "firealpaca.conf": _skin.conf, "firealpaca.qss": _skin.sheet,
 }
 
 

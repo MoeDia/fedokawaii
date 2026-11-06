@@ -4,7 +4,7 @@
  *  that close when they lose the focus, windows shown once drawn, games that
  *  take the keyboard, FreeSync, keybindings that ignore the Arabic layout, the keyboard
  *  layout for the bar, menus that close on a click outside, the pointers loaded again
- *  when the theme switches, the borders in the theme's colours, a drawing tablet's pen as a pen,
+ *  when the theme switches, the borders in the theme's colours,
  *  windows that unroll, roll up and slide).
  *  Installed by theme.sh into ~/.local/src/dwl/config.h, then rebuilt.
  *  Keybinding reference: Super+/

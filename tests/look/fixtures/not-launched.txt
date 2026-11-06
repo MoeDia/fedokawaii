@@ -141,7 +141,6 @@ zathura-pdf-mupdf               zathura's PDF part: PDFs open in it (Books, File
 zathura-cb                      zathura's comics part
 qpdf                            a command: PDF tools
 poppler-utils                   commands: PDF tools
-nss                             a library: FireAlpaca's web view (Sketch)
 ghostscript                     a command: PDF compression
 stockfish                       kawa-chess runs it, only while it is needed
 tesseract                       a command: text from scans

@@ -40,9 +40,9 @@ has "$(fz_rows)" "part	$ICON_SPEAKER	sound, music, monitor	"
 eq "$(fz_rows | grep -c '^part')" "$(grep -c '^─' "$K")"
 case_ "each part's icon follows the first word of its name: launch the small torii, screenshots the camera, windows the window, workspaces the tile, sound the speaker, terminal the terminal, drives the drive, session the power icon, drawing the brush — the sheet's own nine, in order (yazi's keys are its own sheet's)"
 eq "$(fz_rows | grep '^part' | cut -f2 | tr '\n' ' ')" \
-  "$ICON_TORII_SMALL $ICON_CAMERA $ICON_WINDOW $ICON_TILE $ICON_SPEAKER $ICON_TERMINAL $ICON_DRIVE $ICON_POWER $ICON_BRUSH " \
-  "launch, screenshots, windows, workspaces, sound, terminal, drives, session, drawing tablet"
-eq "$(fz_rows | grep '^part' | cut -f2 | sort -u | wc -l)" 9 "no two parts share an icon"
+  "$ICON_TORII_SMALL $ICON_CAMERA $ICON_WINDOW $ICON_TILE $ICON_SPEAKER $ICON_TERMINAL $ICON_DRIVE $ICON_POWER " \
+  "launch, screenshots, windows, workspaces, sound, terminal, drives, session"
+eq "$(fz_rows | grep '^part' | cut -f2 | sort -u | wc -l)" 8 "no two parts share an icon"
 case_ "a part of your own: the keycap"
 setup; printf '%s\n' '── my keys ──' 'Super+F12               mine' >"$K"; answer esc; kawa-help
 eq "$(fz_rows | head -n1)" "part	$ICON_KEYCAP	my keys	" "a name the sheet does not know: the keycap, not an icon of another part"
@@ -88,13 +88,13 @@ focus() {   # focus APPID TITLE — the focused window as kawa-dwlstatus keeps i
   printf '{"text":"<span line_height='"'"'14336'"'"'>%s</span>","class":["l0","r1"]}\n' "$2" >"$D/title.json"
 }
 parts() { fz_rows | awk -F'\t' '$1 == "part" && !seen[$3]++ { printf "%s ", $3 }'; }
-ALL="launch screenshots windows workspaces sound, music, monitor terminal drives session drawing tablet "
+ALL="launch screenshots windows workspaces sound, music, monitor terminal drives session "
 case_ "no window focused (no files yet): the desktop's sheet first, then every program's, by its file's name"
 keys_setup; answer esc; rc 0 kawa-help
-eq "$(parts)" "${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim sketch system torrents typing visidata wallpaper wiremix yazi zathura "
+eq "$(parts)" "${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim system torrents typing visidata wallpaper wiremix yazi zathura "
 case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
 keys_setup; focus footclient "Yazi: ~/downloads"; answer esc; kawa-help
-eq "$(parts)" "yazi ${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim sketch system torrents typing visidata wallpaper wiremix zathura "
+eq "$(parts)" "yazi ${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim system torrents typing visidata wallpaper wiremix zathura "
 eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
 case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"
 for t in nvim:nvim lazygit:lazygit vd:visidata; do

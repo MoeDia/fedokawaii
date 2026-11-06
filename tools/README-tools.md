@@ -15,8 +15,6 @@
 | `vpointer.c` | a virtual pointer that sends what a real mouse wheel sends (axis_discrete) or a touchpad's part — wlrctl's scroll is a touchpad's only; for a headless dwl | build: its header (wayland-scanner + cc, the XML in `tools/protocols/`) · `vpointer wheel N` · `finger DY` · `move X Y` |
 | `asobi-proof.sh` | the play world's promises tried for real, from inside (root): `walls`, `reset`, and on the real screen, with a dead man's switch, `vt`, `vt2`, `cycles` | `sudo bash tools/asobi-proof.sh walls` |
 | `asobi-step.sh` | setup's `s_asobi` alone, or one of `lib/asobi.sh`'s functions, from this tree | `sudo bash tools/asobi-step.sh asobi_system` |
-| `build-firealpaca.py`, `firealpaca_skin.py` | FireAlpaca's masks and starting files; its sheet, inks and pictures (read by `build-themes.py`) | `python3 tools/build-firealpaca.py` |
-| `fake-tablet.py` | for `regress/sketch-pen.sh`: a private dwl given a tablet of nothing through a FIFO | that check builds it |
 | `vkbd.c` | one virtual keyboard that stays, for a play with an X11 program (Xwayland never keeps up with wtype's, whose keyboard comes and goes): its protocol in `protocols/` | build it as `vpointer.c` |
 | `hotplug-test.sh` | a real monitor unplug/replug on the free GPU (root) with X11 windows (`xconf.c`) | `sudo bash tools/hotplug-test.sh [DWL]` (`CYCLES=N`) |
 | `vrr-proof.sh` | FreeSync on the real screen: the card (DRM), dwl's presents, the monitor's own word at 100, 60, 40 fps and with it off (a full-screen picture for a minute: a notice first) | `bash tools/vrr-proof.sh [OUTDIR]` |

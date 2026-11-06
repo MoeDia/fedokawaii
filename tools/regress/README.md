@@ -238,7 +238,7 @@ they break.
 | r27-dec-9a r27-dec-9b r27-dec-9c r27-dec-9d r27-dec-9e r27-dec-9f r27-dec-9g r27-dec-9h | the chess app | open T25c: lane-chess, its tests come with it |
 | r27-dec-10a r27-dec-10b r27-dec-10c r27-dec-10d | the typing app | open T26c: lane-typing, its tests come with it |
 | r27-dec-11a r27-dec-11b r27-dec-11c | the Learning section, the Guide PDF gone | open T27: lane-learning |
-| r27-dec-12a r27-dec-12b r27-dec-12c r27-dec-12d | FireAlpaca | open T28: lane-firealpaca |
+| r27-dec-12a r27-dec-12b r27-dec-12c r27-dec-12d | FireAlpaca | gone d2: the owner sketches on paper (S2, 6 Nov) |
 | r27-dec-13a r27-dec-13b r27-dec-13c r27-rgb-1 r27-rgb-2 r27-rgb-3 | RGB, all in our red | open T36: lane-hardware |
 | r27-mon-1 r27-mon-2 r27-mon-3 r27-mon-4 r27-mon-5 | the monitor | open T38: lane-hardware |
 | r27-inbox-1826 | the refresh key | open T20r: not begun |
@@ -269,7 +269,7 @@ they break.
 | r27-flood | Helium's login: one hidden window, one starter, each press of its key one window | tools/regress/browser-login.sh |
 | r27-sprint-1 | the clock keeps its seconds; a double switch leaves no window behind; floats roll up with their words | tests/session/test_bar.sh "the time: the clock and its menu's light" · tools/regress/float-exit.sh · tools/regress/rail.sh |
 | r27-flips r27-freeze r27-session-cut r27-wedge | the night of 4 Nov: the wrong bits, the freeze, the session cut, PID 1 stuck | record: events and their findings; the RAM check itself is T59's (tools/ram-check.c) |
-| r27-note-train | what the lanes brought keeps holding: the bar after the play world, the downloads' fill, the lessons' grid and cover, the editor's start, the power dialog, the saver's ways out, Sketch's pen, Torrents' and typing's windows at every size | tools/regress/bar-cycles.sh · tools/regress/downloads-fill.sh · tools/regress/downloads-tools.sh · tools/regress/learn-cover.sh · tools/regress/learn-grid.sh · tools/regress/nvim-start.sh · tools/regress/power-dialog.sh · tools/regress/saver-dark.sh · tools/regress/saver-keys.sh · tools/regress/sketch-pen.sh · tools/regress/torrents.sh · tools/regress/typing.sh |
+| r27-note-train | what the lanes brought keeps holding: the bar after the play world, the downloads' fill, the lessons' grid and cover, the editor's start, the power dialog, the saver's ways out, Torrents' and typing's windows at every size | tools/regress/bar-cycles.sh · tools/regress/downloads-fill.sh · tools/regress/downloads-tools.sh · tools/regress/learn-cover.sh · tools/regress/learn-grid.sh · tools/regress/nvim-start.sh · tools/regress/power-dialog.sh · tools/regress/saver-dark.sh · tools/regress/saver-keys.sh · tools/regress/torrents.sh · tools/regress/typing.sh |
 | r28-f06c | snapper's configs made and set without D-Bus: no SELinux denial at setup's end, the running daemon restarted | tests/installer/test_upkeep.sh "repair before setup's own end made the snapshot configs" · tools/vm-smoke.sh |
 | r28-f06h | the first report waits for the first login however long, never holds the start, and is marked done only when it ended | tests/installer/test_report.sh "the first start: waits" · tests/installer/test_setup.sh · tools/vm-smoke.sh |
 | r28-f06d | setup's lock lives in a small process: no child carries fd 9 (no SELinux denial on a domain change, no daemon keeps the lock), held through the run, free soon after | tests/installer/test_common.sh "take_lock: the lock lives in a small process" · tools/vm-smoke.sh |
@@ -280,3 +280,4 @@ they break.
 | r28-f20 | no script or config the desktop ships names an old home folder; only kawa-tidy and its table in lib/common.sh do | tests/static/test_home.sh |
 | r28-d1 | the head is the Fedora logo, bloody in dark, lighty in light, in the bar, the prompt, fetch and the masthead; no old head on those surfaces | tests/static/test_heads.sh |
 | r28-c1 | with the lights off the cooler's display is told it is out once a second, not every ten: left alone its firmware blinks a 99 | tests/status/test_rgb.sh |
+| r28-d2 | sketching gone: no FireAlpaca, no Sketch, no tablet in the desktop, dwl or the lessons | tests/regress/test_gone.sh "sketching stays gone" |

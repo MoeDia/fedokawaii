@@ -33,7 +33,7 @@ part_icon() {
   case ${1%%[^a-z-]*} in
     launch) K=$ICON_TORII_SMALL ;; screenshots) K=$ICON_CAMERA ;; windows) K=$ICON_WINDOW ;; workspaces) K=$ICON_TILE ;;
     sound) K=$ICON_SPEAKER ;; terminal) K=$ICON_TERMINAL ;; files|yazi) K=$ICON_FOLDER ;; drives) K=$ICON_DRIVE ;;
-    session) K=$ICON_POWER ;; drawing|sketch) K=$ICON_BRUSH ;;
+    session) K=$ICON_POWER ;;
     nvim) K=$ICON_CODE ;; lazygit) K=$ICON_BRANCH ;; btop) K=$ICON_CPU ;; wiremix) K=$ICON_SLIDERS ;;
     bluetui) K=$ICON_BLUETOOTH ;; visidata) K=$ICON_SHEET ;; gdu) K=$ICON_USAGE ;; zathura) K=$ICON_PAGES ;;
     torrents) K=$ICON_DOWNLOAD ;;   # (visidata: vd.txt's parts are headed by the program's full name)
@@ -90,7 +90,7 @@ here() {
   case $app in
     warm-notes) s=notes ;; warm-clip) s=clip ;; warm-system) s=system ;;
     kawa-git) s=lazygit ;; kawa-disk) s=gdu ;; kawa-tables) s=vd ;; kawa-torrents) s=torrents ;; kawa-learn) s=learn ;;
-    org.pwmt.zathura) s=zathura ;; mpv) s=mpv ;; FireAlpaca) s=sketch ;;
+    org.pwmt.zathura) s=zathura ;; mpv) s=mpv ;;
   esac
   # a terminal's title names the program in front: the shell's hook, yazi, nvim (and what runs in
   # its terminal buffer) title it themselves — nvim opened from yazi or lazygit too; quick

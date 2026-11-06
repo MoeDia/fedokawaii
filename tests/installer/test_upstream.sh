@@ -117,6 +117,15 @@ case_ "…a presenterm of your own (no record of ours): left alone; a second run
 printf '#!/bin/sh\n' >"$W$H/.local/bin/presenterm"; fk chown fkuser:fkuser "$H/.local/bin/presenterm"
 up retire_upstream; eq "$RC" 0; lacks "$OUT" "no longer part"
 [[ -e $W$H/.local/bin/presenterm ]] && _ok || _no "yours was taken"
+case_ "retire_upstream: FireAlpaca's folder, its skin and its record out; its own files (your drawings' backups) stay"
+fa=$H/.local/share/fedokawaii/firealpaca
+fk mkdir -p "$fa/app/usr/bin" "$H/.local/lib/fedokawaii" "$H/.local/share/FireAlpaca/FireAlpaca"
+fk touch "$fa/blank.mdp" "$H/.local/lib/fedokawaii/kawa-firealpaca.so" "$H/.local/share/FireAlpaca/FireAlpaca/backup.mdp"
+echo 2.16.3 >"$W$H/.local/share/fedokawaii/upstream/firealpaca"; fk chown -hR fkuser:fkuser "$H/.local"
+up retire_upstream; eq "$RC" 0; has "$OUT" "FireAlpaca — no longer part of the desktop"
+[[ ! -e $W$fa && ! -e $W$H/.local/lib/fedokawaii/kawa-firealpaca.so && ! -e $W$H/.local/share/fedokawaii/upstream/firealpaca ]] && _ok || _no "something of it stayed"
+[[ -e $W$H/.local/share/FireAlpaca/FireAlpaca/backup.mdp ]] && _ok || _no "its own files went too"
+up retire_upstream; eq "$RC" 0; lacks "$OUT" "FireAlpaca"
 
 # ── what is written into the home ────────────────────────────────────────────
 case_ "record_tag: a link planted where the tag goes is replaced, never followed (root's file untouched)"
@@ -298,32 +307,6 @@ case_ "offline: three tries (the pause stubbed), then said; nothing installed (e
 back start; fkh net off
 up 'install_blesh'; eq "$RC" 1; has "$OUT" "attempt 3/3 failed"; has "$OUT" "could not fetch ble.sh ${BLESH:0:7}"
 [[ ! -e $bd && ! -e $bt ]] && _ok || _no "something installed while offline"
-
-# ── FireAlpaca: an official AppImage, one address, unpacked by you ───────────────────────
-case_ "install_firealpaca: the pinned file, unpacked whole in its folder, yours; its version recorded; again: in place"
-back start; fav=$(. "$REPO/lib/upstream.sh"; echo "$FIREALPACA_VERSION")
-up "install_firealpaca"; eq "$RC" 0 "$OUT"
-has "$OUT" "verified: FireAlpaca.AppImage"
-fa=$H/.local/share/fedokawaii/firealpaca/app
-eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca $fav" "runs from its folder"
-eq "$(fk stat -c %U "$fa/usr/bin/FireAlpaca")" fkuser
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/firealpaca")" "$fav"
-[[ ! -e $W$fa.new ]] && _ok || _no "the unpacking folder left behind"
-reset_calls; up "install_firealpaca"; eq "$RC" 0; has "$OUT" "FireAlpaca $fav — in place"
-case_ "their page moved on (one address, the newest): a newer version is taken, and said; the file is checked by what it is"
-cp "$dl/linux" "$TMP/fa.pinned"; fake_firealpaca 99.0.0 >"$dl/linux"
-rm -f "$W$H/.local/share/fedokawaii/upstream/firealpaca"
-up "install_firealpaca"; eq "$RC" 0 "$OUT"; has "$OUT" "their page now serves 99.0.0"
-eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0"
-eq "$(cat "$W$H/.local/share/fedokawaii/upstream/firealpaca")" 99.0.0
-case_ "a different file of the same or an older version: refused, what works stays"
-fake_firealpaca "$fav" >"$dl/linux"; printf '# changed\n' >>"$dl/linux"
-rm -f "$W$H/.local/share/fedokawaii/upstream/firealpaca"
-up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
-eq "$(fk "$fa/usr/bin/FireAlpaca" 2>&1)" "firealpaca 99.0.0" "the working copy stays"
-[[ ! -e $W$fa.new ]] && _ok || _no "the unpacking folder left behind"
-fake_firealpaca 1.0.0 >"$dl/linux"; up "install_firealpaca"; eq "$RC" 1; has "$OUT" "its SHA-256 is not the pinned one"
-cp "$TMP/fa.pinned" "$dl/linux"
 
 # ── Widevine: Google's module, by way of Mozilla's update service ───────────────────────────
 wv=$W/usr/local/lib/fedokawaii-widevine

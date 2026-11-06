@@ -34,6 +34,6 @@ optional: no
 | memory | how much the programs use (`5.2G`); vermilion past 85 % | btop |
 | volume · brightness | speaker and bulb, with the level | the sound panel · the brightness meter |
 | weather | the sky and the temperature where you are | |
-| the Fedora head (bloody by night, lighty by day) | quick settings | quick settings |
+| the face (a demon by night, an angel by day) | quick settings | quick settings |
 
 <!-- fig:menus | Quick settings, power, the calendar and the sound panel, on both themes. -->
