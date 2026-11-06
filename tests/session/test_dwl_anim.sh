@@ -93,12 +93,12 @@ grep -q 'wlr_scene_node_for_each_buffer(&c->scene_surface->node, fadebuffer, &a)
   && grep -q 'animdrop(c);' <(added animstop) && _ok || _no "clienthide"
 
 case_ "the dissolve's buffer: ARGB8888, linear, from dwl's own allocator, made anew when the window changes size, dropped at the end (and with the renderer on a GPU reset); GLES 2 only (dissolveok), dwl linked with glesv2"
-f=$(added dissolvebegin)
+f=$(added dissolvebegin; added dissolvebuffer)
 grep -q 'uint64_t linear = DRM_FORMAT_MOD_LINEAR;' <<<"$f" && grep -q '.format = DRM_FORMAT_ARGB8888' <<<"$f" \
   && grep -q 'wlr_allocator_create_buffer(alloc, w, h, &fmt)' <<<"$f" && grep -q 'd->node->point_accepts_input = ghostinput;' <<<"$f" \
-  && grep -q 'wlr_buffer_drop(d->buf);' <(added dissolveend) && grep -q 'return drw && wlr_renderer_is_gles2(drw);' <(added dissolveok) \
+  && grep -q 'wlr_buffer_drop(d->buf);' <(added dissolveend) && grep -q 'wlr_buffer_drop(d->mos);' <(added dissolveend) && grep -q 'return drw && wlr_renderer_is_gles2(drw);' <(added dissolveok) \
   && grep -q 'animations && dissolveok() && !locked' <(added animok) \
-  && grep -q '^+	punchprog = washprog = 0;$' "$P" \
+  && grep -q '^+	punchprog = washprog = combprog = 0;$' "$P" \
   && grep -q '"XLIBS=xcb xcb-icccm pixman-1 glesv2"' "$REPO/lib/manifest.sh" && grep -q 'XLIBS="xcb xcb-icccm pixman-1 glesv2"' "$REPO/tools/hl-dwl.sh" \
   && _ok || _no "the buffer's life"
 
@@ -283,10 +283,18 @@ case_ "a window's motion is one switch: the hop stands, seal, shoji and kasumi a
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
   grep -q '^static const int anim_motion *= MotionHop;' <<<"$c" && _ok || _no "anim_motion, the hop"
 done
-grep -q '^+enum { MotionHop, MotionSeal, MotionShoji, MotionKasumi };' "$P" && _ok || _no "the four motions"
+grep -q '^+enum { MotionHop, MotionSeal, MotionShoji, MotionKasumi, ' "$P" && grep -q '^+	MotionMado, MotionMozaiku, MotionKushi, MotionMon };' "$P" && _ok || _no "the eight motions"
 c=$(added shojishow)
 has "$c" 'wlr_scene_buffer_set_source_box(d->node, &(struct wlr_fbox){ x, 0, cw, h });'; has "$c" 'wlr_scene_buffer_set_dest_size(d->node, cw, h);'
 grep -q '^+				16.0 \* cellease(c->animp));' "$P" && grep -q '^+				moncell(g->mon), 16.0 \* (1.0 - cellease(t)));' "$P" && _ok || _no "kasumi comes and goes by the cells"
+
+case_ "the game-like ones cut whole pixels: mado and mon crop, mozaiku's big pixels sampled and shown at a whole number, kushi's rows the wallpapers' cells; each closes through the same function"
+c=$(added mozaikushow)
+has "$c" '.filter_mode = WLR_SCALE_FILTER_NEAREST'; has "$c" '(double)w / k, (double)h / k'; has "$c" 'wlr_scene_buffer_set_dest_size(d->node, w, h);'
+has "$(added cropshow)" 'wlr_scene_buffer_set_dest_size(d->node, cw, ch);'
+has "$(added gameshow)" 'kushishow(d, pass, ox, oy, w, h, moncell(m), f);'
+has "$(added monshow)" 'int step = 4 * cell'
+has "$(added ghostapply)" 'anim_motion == MotionMon ? 1.0 - t * t : 1.0 - t'
 
 case_ "a workspace's motion is one switch: the strip stands, hayate, the scroll and the doors a word away; the doors part over the next room, nothing crossing"
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
@@ -309,7 +317,7 @@ grep -q '^+					scrollopen(1.0 - (from < 0 ? 0 : from)));' "$P" && _ok || _no "a
 c=$(added washcmd)
 has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'
 grep -q '^+	washdrop();                       /\* (under the lock: nothing to wash) \*/' "$P" && _ok || _no "locking drops it"
-grep -q '^+	punchprog = washprog = 0;' "$P" && grep -q '^+	washend(m);' "$P" && _ok || _no "GPU reset, monitor gone"
+grep -q '^+	punchprog = washprog = combprog = 0;' "$P" && grep -q '^+	washend(m);' "$P" && _ok || _no "GPU reset, monitor gone"
 
 # the stepped clock (tools/motion-exact.sh) only in a test build: nothing of it in the shipped dwl's make
 [[ $(grep -c '^+#ifdef ANIM_STEPCLOCK' "$P") == 2 ]] && _ok || _no "the stepped clock's two places, each behind ANIM_STEPCLOCK"

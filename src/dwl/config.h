@@ -63,7 +63,11 @@ static const int animations                = 1;
 static const int anim_motion               = MotionHop; /* how a window comes and goes, with its ms:
                                                     * MotionHop 450/400 · MotionSeal 150/110, a stamp ·
                                                     * MotionShoji 190/150, a door parting in whole
-                                                    * pixels · MotionKasumi 220/170, cell by cell */
+                                                    * pixels · MotionKasumi 220/170, cell by cell ·
+                                                    * MotionMado 260/190, a JRPG's window from a line ·
+                                                    * MotionMozaiku 300/220, a Super Famicom's mosaic ·
+                                                    * MotionKushi 240/180, two combs of rows, interlaced ·
+                                                    * MotionMon 300/200, a castle's gate in clunks */
 static const unsigned int anim_open_ms     = 450;  /* a window opening */
 static const int anim_hop_low              = 120;  /* px below its place it starts */
 static const double anim_hop_small         = 0.18; /* how much smaller it starts */

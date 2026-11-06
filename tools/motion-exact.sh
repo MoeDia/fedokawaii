@@ -21,6 +21,10 @@ a 0 MotionHop 450 400
 a 1 MotionSeal 150 110
 a 2 MotionShoji 190 150
 a 3 MotionKasumi 220 170
+a 4 MotionMado 260 190
+a 5 MotionMozaiku 300 220
+a 6 MotionKushi 240 180
+a 7 MotionMon 300 200
 b 0 TagStrip 450 450 48
 b 1 TagHayate 220 220 0
 b 2 TagScroll 420 420 48
