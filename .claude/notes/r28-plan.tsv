@@ -44,39 +44,49 @@ m1	Fri 6	done	motion videos frame-exact (S5): a test-only hook steps dwl's anima
 m2	Fri 6	done	c-2 omori re-recorded by m1 with its slow video and strip, measured, for his confirmation (S5)	Fri 6 Nov 18:03	his pick c: 2 omori (S4); measured open 467 / close 250 ms against 460 / 240, both moods, for his confirmation in m10's pack; hi/ 90 MB, over budget until m10 clears
 m3	Fri 6	done	(a) window open and close: 4 new game-like motions, 4 to 7, behind the dwl switch, integer-crisp, cheap (S4)	Fri 6 Nov 18:11	MotionMado 260/190 (a line, then opens), MotionMozaiku 300/220, MotionKushi 240/180, MotionMon 300/200, one switch; measured dark 267/200, 300/233, 250/183, 300/200; provisional until his pick
 m4	Fri 6	done	(a) the videos by m1: a-0 and a-4 to a-7, measured, pairs differ, strips (S4, S5)	Fri 6 Nov 18:17	whole window now, 802x1046; hi/ 113 MB until m10 clears a-1 to a-3 and the old sets
-m5	Fri 6	now	(b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4)		ideas: room scroll, iris wipe, diamond tiles, pixel slide with dust
-m6	Fri 6	todo	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)		
-m7	Fri 6	todo	P1 separators: 4 new game-like variants, 4 to 7, on the real screens, both moods, 1:1 PNG (S4)		ideas: 8-bit border ornament, pixel links, katana rule, HUD segments
-m8	Fri 6	todo	P5 accents: 4 new game-like variants, 4 to 7, both moods, 1:1 PNG, MP4 by m1's rules for what moves (S4)		ideas: spinning coin, "!" pop, shuriken, flickering lantern, level-up sparkle
-m9	Fri 6	todo	P4 n 4: tairyoku with a better colour combination, dark and light (S4)		his pick P4: 1 tairyoku
-m10	Fri 6	todo	the pack: picker.json sets a, b, P1, P5 (0 and 4 to 7, "measured" per motion), P4 n 4, c-2; a, b, P1, P5 options 1 to 3 and decided sets cleared; hi/ 90 MB at most; seen in the pulse (S4, S5)		before the lock pack
-l4b	Fri 6	todo	the lock pack again (S2): set L by l4's note (keep the marks row at 243 as l3 proved it, or widen ROW); motion by m1 where it fits; picker.json; seen in the pulse		after m10, S4: the lock matters most, take the time
-d1c	Fri 6	todo	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth, the ISO's crest and console, cover art, the old lock's leftovers, Guide and Learn text; each with the Fedora head or the world's other art; design system; tests		the old lock's files go with sa31 if the old lock still needs them
-d2	Fri 6	todo	sketching gone (S2): FireAlpaca, kawa-sketch, its key, tablet-specific support: packages, configs, menus, lessons, tests, inventory; he sketches on paper		the owner's hardware line in CLAUDE.md follows
-d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built
-d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins while the menu is open, stops when it closes, cheap, follows the mood; CPU measured		the gear takes the quick-settings click and glyph; the Fedora head stays on the bar (S2 wants both): a tile of its own
-d5	Fri 6	todo	Super+U's dense info lines (S2): "updated ..." and the like better spaced, easy to read and absorb; measured, both moods		with sa13
+c1	Fri 6	done	the cooler's display dark, not blinking a 99, whenever the RGB is off or ~/.config/fedokawaii/dark exists (S6)	Fri 6 Nov 18:24	found: frames 1 per 10 s (URB counter), the firmware blinks between them; now 1 a second in the repo's kawa-rgb, and live by r28-cooler; 33 URBs in 30 s; his eyes: c1b
+d2	Fri 6	now	sketching gone (S2): FireAlpaca, kawa-sketch, its key, tablet-specific support: packages, configs, menus, lessons, tests, inventory; he sketches on paper		the owner's hardware line in CLAUDE.md follows
+m5	Fri 6	todo	(b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4)		ideas: room scroll, iris wipe, diamond tiles, pixel slide with dust
 f20b	Fri 6	todo	home folders: the Guide and Learn say the new folders (~/dojo, ~/downloads …), PDFs rebuilt; a VM proof of the move and of a clean home		
 f21	Fri 6	todo	the programming font by real render trials (Iosevka, JetBrains Mono, Maple Mono, Commit Mono, Monaspace, Nerd glyphs, official sources): a sheet, the choice written with why		
+m6	Fri 6	todo	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)		
 f22	Fri 6	todo	that font in the installer: pinned with its checksum (lib/upstream.sh), foot, width tables, tests		
 f23	Fri 6	todo	neovim: his own minimal config: lazy.nvim and a handful of hand-picked plugins, every line commented for the lessons; start-up measured; lock file		
+m7	Fri 6	todo	P1 separators: 4 new game-like variants, 4 to 7, on the real screens, both moods, 1:1 PNG (S4)		ideas: 8-bit border ornament, pixel links, katana rule, HUD segments
 f24	Fri 6	todo	neovim: no transparency while it runs, a bigger font by default, the notes page unharmed; tests		
 f25	Fri 6	todo	the daily system designed: a day is one Part 1 lesson and one Part 2 lesson, 30 minutes together; each lesson one idea, one exercise, one check; the format and its parser		r28-hayyoth.md: Part 2 rebuilds a small real tool from zero by hand; progress is a dated record of days done
+m8	Fri 6	todo	P5 accents: 4 new game-like variants, 4 to 7, both moods, 1:1 PNG, MP4 by m1's rules for what moves (S4)		ideas: spinning coin, "!" pop, shuriken, flickering lantern, level-up sparkle
 f26	Fri 6	todo	kawa-learn rebuilt on it: today's pair, progress, next, in Super+U's Learning; both moods, many sizes; tests		
 f27	Fri 6	todo	the book retired: Learn PDF, its build and every entry that opens it gone; its content kept as the source of the lessons; tests		
+m9	Fri 6	todo	P4 n 4: tairyoku with a better colour combination, dark and light (S4)		his pick P4: 1 tairyoku
 sa01	Sat 7	todo	Part 1 syllabus, day by day, paired with Part 2's so they complement each other		
 sa02	Sat 7	todo	Part 1 lessons: using it, keys, menus		
+tr1	Fri 6	todo	translucency a little more opaque, 6 to 8 points more alpha, one shared value per mood from the theme, every surface that has it (S7)		
 sa03	Sat 7	todo	Part 1 lessons: updates, snapshots, backups, keeping it healthy		
 sa04	Sat 7	todo	Part 1 lessons: ASOBI, Helium used efficiently (a short chapter)		triad's lessons wait for triad
+tr2	Fri 6	todo	set T, Transparency, still, dark and light: n 0 today, n 1 the new value on the same real screen, for the next pack (S7)		
 sa05	Sat 7	todo	Part 2 lessons: Python, first steps, tiny steps with repetition		
 sa06	Sat 7	todo	Part 2 lessons: Python, functions, files, errors		
+m10	Mon 9	todo	network: tools/portscan.sh and tools/net-proof.sh against the VM		
 sa07	Sat 7	todo	Part 2 lessons: debugging, the important one		
 sa08	Sat 7	todo	Part 2 lessons: git properly		
+l4b	Fri 6	todo	the lock pack again (S2): set L by l4's note (keep the marks row at 243 as l3 proved it, or widen ROW); motion by m1 where it fits; picker.json; seen in the pulse		after m10, S4: the lock matters most, take the time
 sa09	Sat 7	todo	Part 2 lessons: testing, deployment basics, basic security, reading docs		
 sa10	Sat 7	todo	Part 2 lessons: Rust, first steps		
+d1c	Fri 6	todo	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth, the ISO's crest and console, cover art, the old lock's leftovers, Guide and Learn text; each with the Fedora head or the world's other art; design system; tests		the old lock's files go with sa31 if the old lock still needs them
 sa11	Sat 7	todo	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo		
 sa12	Sat 7	todo	every lesson's check run by a test; order and pairing proven		
+d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built
+sa17	Sat 7	todo	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest		
+sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests		
+d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins while the menu is open, stops when it closes, cheap, follows the mood; CPU measured		the gear takes the quick-settings click and glyph; the Fedora head stays on the bar (S2 wants both): a tile of its own
+sa19	Sat 7	todo	Helium configured and optimised: settings, flags, a solid symmetrical minimal toolbar, a few essential extensions beyond uBlock Origin, chosen from official sources; Proton Pass among the pre-installed extensions (S2)		
+sa21	Sat 7	todo	Stoat (the Discord replacement) checked at its official source, installed by the installer, manifest rows		
+d5	Fri 6	todo	Super+U's dense info lines (S2): "updated ..." and the like better spaced, easy to read and absorb; measured, both moods		with sa13
+sa22	Sat 7	todo	Stoat themed; every web app (WhatsApp and the like) removed; launcher and tests		
+sa23	Sat 7	todo	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has		
 sa13	Sat 7	todo	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		his pick h1: 1 ichimai (S2)
+sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes		
 sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)
 sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods		
 sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35
@@ -84,14 +94,7 @@ sa15c	Sat 7	todo	the selection marker built: his pick P2 1 yubi, the bobbing poi
 sa15d	Sat 7	todo	corners and frames built: his pick P3 3 kanagu, every panel, both moods (S4)		
 sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volume, brightness, battery, downloads (S4)		
 sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2
-sa17	Sat 7	todo	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest		
-sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests		
-sa19	Sat 7	todo	Helium configured and optimised: settings, flags, a solid symmetrical minimal toolbar, a few essential extensions beyond uBlock Origin, chosen from official sources; Proton Pass among the pre-installed extensions (S2)		
 sa20	Sat 7	todo	Helium themed: his pick i 2 mokuroku, made far more TUI-feeling: lines, toolbar and left tab section heavily redone; following the switch; in the installer; tests		S2
-sa21	Sat 7	todo	Stoat (the Discord replacement) checked at its official source, installed by the installer, manifest rows		
-sa22	Sat 7	todo	Stoat themed; every web app (WhatsApp and the like) removed; launcher and tests		
-sa23	Sat 7	todo	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has		
-sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes		
 sa25	Sat 7	todo	the bar bigger: one set of metrics, icons drawn at real size, right hinting, no scaling; every gap measured		his pick f: 3 jikusaki; icons very clean, well spaced, super accurate, tight (S2)
 sa26	Sat 7	todo	the bar's clock in a scroll with bigger dominant ends, seconds kept, no band; regress bar checks		his pick f: 3 jikusaki (S2)
 sa27	Sat 7	todo	dwl: menus open and close as his pick c 2 omori, under ASan headless, frames looked at		S4
@@ -134,9 +137,10 @@ t01	Tue 10	todo	the whole suite on the final tree
 t02	Tue 10	todo	the final ISO built twice, compared, checksummed		
 t03	Tue 10	todo	the final VM install from it: verify, desktop smoke, a day's lessons, the update button		
 t04	Tue 10	todo	r28-handover.md: what is done, what waits for him, how to install; push; the hold file and the conductor stopped		rule 9
+c1b	Tue 10	owner	his eyes on the cooler's display with the PC dark: no 99 (S6)		only he can see it; assumed: dark. If it still blinks: the steady real temperature instead (S6)
 o01	Tue 10	owner	his picks on the options pack, relayed by Claude; each pick built, the others dropped		assumed meanwhile: my strongest, each in r28-questionnaire.md part A
 o02	Tue 10	owner	the RAM: restart, Delete, F7, OC, DRAM Frequency DDR5-4800, F10; then ram-check three copies for 20 minutes		still 5600 MT/s on 6 Nov; wrong bits measured, ledger r27-note-flips-2; say it before he installs anything built here
 o03	Tue 10	owner	Phase E: his answers to the questionnaire applied: the last edit of the repo		then the ISO again
 o04	Tue 10	owner	the ISO installed on his PC: fedokawaii lives there on Fedora 45, self-maintaining until Fedora 46		the VM cannot show his firmware: the rehearsal first
-o05	Tue 10	owner	T62: r28-track, r28-pulse, r28-dark, the round's sudo and polkit rules and linger removed, never in the ISO		
+o05	Tue 10	owner	T62: r28-track, r28-pulse, r28-dark, r28-cooler, the round's sudo and polkit rules and linger removed, never in the ISO		
 o06	Tue 10	owner	triad, his private repo fluvia4ai/triad: a read-only deploy key's public key posted for him, added with his OK; installed by default, self-updating, taught in Part 1		the last line, owner 00:24

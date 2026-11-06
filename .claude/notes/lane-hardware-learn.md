@@ -36,7 +36,8 @@ out, so the service reads first and writes only when something differs.
 
 **The cooler's little display** shows the CPU's temperature, averaged over a few seconds. It is a USB device that
 calls itself a keyboard and has no keys; the service sends it the number, in the report the maker's own software
-uses, once a second. It goes out with the lights: sent digits it does not know, it shows none.
+uses, once a second. It goes out with the lights: sent digits it does not know, it shows none, and those go once a
+second too (left alone between them, its firmware blinks a 99).
 
 To see what the service found: `kawa-rgb status`.
 

@@ -686,3 +686,21 @@ So the real-time headless recording drops or compresses frames. For every motion
 4. Check that the options really differ: compare each pair's frame sequences; if two look nearly the same, fix the motion or the recording before shipping, and say so in the plan.
 5. Add a one-image frame strip per option (<set>-<n>-<mood>-strip.png, every frame of the opening with its time in ms) so he can see the steps.
 c is already picked (omori): re-record omori this way once, as c-2 with the slow version, so he can confirm it.
+
+## 2026-11-06 18:14 — in the plan: c1 c1b
+CLAUDE (monitoring the run for the owner, S6): The owner (17:43): with the PC dark, the CPU cooler's display blinks "99" about once a second. It must be dark too, whenever ~/.config/fedokawaii/dark exists and whenever the RGB is switched off. A small task: do it next.
+- Find what makes the blink (kawa-rgb's cooler feeder stopped, so the display shows its own no-signal blink? a stale or malformed frame? the "off" frame read as 99?) from kawa-rgb's code and the protocol notes (lane-hardware's section 9, src/kawa-rgb).
+- Make "kawa-rgb off" blank the display for good: the protocol's blank/off frame if it has one, or a blank frame sent at whatever rate keeps it blank. Remember Report 5 and the ISP bootloader: only the known selectors, from the allow-list.
+- If the display cannot be blanked, say so in the plan (blocked, with the evidence) and make it show the real temperature steadily, never blinking.
+- Prove it with nothing else lit, and keep it dark across reboots (r28-dark calls "kawa-rgb off" every 30 minutes).
+
+## 2026-11-06 18:14 — in the plan: tr1 tr2
+CLAUDE (monitoring the run for the owner, S7): The owner (17:51): "reduce the transparency effect a little". Everywhere translucency is used (terminals, menus, panels, quick settings, notifications, the launcher; nvim already has none), make it a little more opaque: roughly 6 to 8 points more alpha (for example 0.85 becomes 0.92), one shared value per mood from the theme, not per app. Show it in the next pack as set T ("Transparency", still, dark and light): n 0 today and n 1 the new value on the same real screen, so he can confirm.
+
+## 2026-11-06 18:14 — in the plan: the order of the rows from c1 on, and CLAUDE.md
+CLAUDE (monitoring the run for the owner, S8): The owner (17:59): he is very picky about the design and will go several rounds, so the design work must NOT slow the rest. Run it as a separate, bounded track:
+- Alternate: after each design task (options, renders, videos), do two non-design tasks (learning system, nvim, apps, Stoat, Syncplay, inventory, repo clean-up, the Fedora 45 ISO and its installer, tests). The ISO and installer track must start on schedule (Sunday) whatever the design rounds do.
+- Never wait for his picks: when a design needs a pick, park it and move to other work; his picks arrive through these steering notes.
+- Make options only good enough to judge, never polished twice; build the picked designs through the theme's shared tokens and small swappable parts, so a late change of mind is a quick swap, not a rebuild.
+- The S6 cooler fix and the S5 frame-exact recording hook count as engineering, not design rounds.
+- Keep the plan's day order; if the design track falls behind, it is the design track that waits, not the rest.

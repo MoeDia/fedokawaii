@@ -29,7 +29,8 @@
  *
  * The cooler's display (1a2c:4184, the "SEMICO keyboard", no keys of its own) shows the CPU's
  * temperature: the report its vendor's software sends (07 ff ff, then the digits), once a second,
- * the one thing sent while nothing else changes. Off with the lights: digits it does not know.
+ * the one thing sent while nothing else changes. Off with the lights: digits it does not know, at
+ * the same rate (left alone between them, its firmware blinks a 99 of its own: the owner, 6 Nov).
  *
  * Protocol facts, none of their code: OpenRGB (the MSI and Gigabyte controllers), fizzctl (K617),
  * JL DGT 1.0.0 (the display). KAWA_RGB_ROOT prefixes every path, and regular files take the
@@ -521,13 +522,13 @@ static void disp_tick(double now)
     disp_again = 0;
     disp_send((uint8_t)(v / 100), (uint8_t)(v / 10 % 10), (uint8_t)(v % 10));
 }
-/* out with the lights: no digit it knows, so no digit lit, and it stays so; told again now and then,
- * should it ever be reset meanwhile (a write that fails, a replug: at once) */
+/* out with the lights: no digit it knows, so no digit lit; told once a second, as the digits are,
+ * or its firmware takes over and blinks (a write that fails, a replug: at once) */
 static void disp_out(double now)
 {
     if (disp_open(now) && now >= disp_again) {
         disp_send(DISP_NONE, DISP_NONE, DISP_NONE);
-        disp_again = disp_fd >= 0 ? now + 10 : 0;
+        disp_again = disp_fd >= 0 ? now + 1 : 0;
     }
 }
 

@@ -279,3 +279,4 @@ they break.
 | r28-f19 | an old home's folders move to ~/downloads ~/captures ~/notes ~/books ~/dojo, nothing overwritten, what remembers a path follows; xdg-user-dirs set, no other folder made | tests/content/test_tidy.sh "your home's old folders" · tests/installer/test_verify.sh |
 | r28-f20 | no script or config the desktop ships names an old home folder; only kawa-tidy and its table in lib/common.sh do | tests/static/test_home.sh |
 | r28-d1 | the head is the Fedora logo, bloody in dark, lighty in light, in the bar, the prompt, fetch and the masthead; no old head on those surfaces | tests/static/test_heads.sh |
+| r28-c1 | with the lights off the cooler's display is told it is out once a second, not every ten: left alone its firmware blinks a 99 | tests/status/test_rgb.sh |

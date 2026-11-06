@@ -58,3 +58,5 @@ Mock-ups, to be fixed in whichever option is built; say if any of them is worse 
   assumed: yes, with your OK when you are back; until then it is not in the tree.
 
 - **d1, the Fedora logo altered (bloody, lighty).** Fedora's trademark terms for a changed mark were not read in this pass. Assumed: it is your own desktop, on your own PC, as you asked. If the ISO is ever published, read Fedora's logo rules first.
+
+- c1b: with the PC dark, is the cooler's display fully dark now, no 99 blinking? assumed: yes (it gets the blank once a second since 6 Nov 18:3x; nothing here can see it).
