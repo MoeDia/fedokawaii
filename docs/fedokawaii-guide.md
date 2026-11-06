@@ -2774,9 +2774,9 @@ program's own files.
 └── .cache/                what can be made again: logs, previews, scaled wallpapers
 ```
 
-Fedora's standard folders tool (`xdg-user-dirs`) would also make `Desktop/`, `Public/` and
-`Templates/`; nothing on this desktop uses them, so setup sets each to "none" (your home
-itself, in `~/.config/user-dirs.dirs`) and none is made again. One left empty from before
+Fedora's standard folders tool (`xdg-user-dirs`) would also make `Desktop/`, `Documents/`, `Music/`,
+`Public/` and `Templates/`; nothing on this desktop uses them, so setup sets each to "none" (your home
+itself, in `~/.config/user-dirs.dirs`) and none is made again; its `Projects/` is `~/dojo`. One left empty from before
 goes with the weekly tidy; one with something in it is yours and stays.
 
 **A clean home.** Nothing else sits at the top of your home but bash's own files (`.bashrc`,

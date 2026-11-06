@@ -11,4 +11,8 @@ hits=$(cd "$REPO" && /usr/bin/grep -rnIE '(~|\$HOME|\$\{HOME\}|%h|@HOME@|/home/[
 [[ -z $hits ]] && _ok || _no "$(wc -l <<<"$hits") line(s):
 $(head -n 20 <<<"$hits")"
 
+case_ "xdg-user-dirs 0.20's Projects is the dojo, and an old ~/Projects moves there"
+has "$(cat "$REPO/lib/common.sh")" '"PROJECTS:$DIR_DOJO"'
+has "$(cat "$REPO/lib/common.sh")" '"Projects|$DIR_DOJO"'
+
 done_

@@ -360,11 +360,11 @@ HOME_DIRS=("$DIR_DOWNLOADS" "$DIR_CAPTURES" "$DIR_NOTES" "$DIR_BOOKS" "$DIR_DOJO
 # shellcheck disable=SC2034  # (for the scripts that source this file)
 # xdg-user-dirs: KEY:FOLDER the programs are told, and KEY:NAME of each standard folder that does
 # not exist here (set to your home itself: the spec's "none", so nothing makes it again)
-HOME_XDG=("DOWNLOAD:$DIR_DOWNLOADS" "PICTURES:$DIR_CAPTURES" "VIDEOS:$DIR_CAPTURES")
+HOME_XDG=("DOWNLOAD:$DIR_DOWNLOADS" "PICTURES:$DIR_CAPTURES" "VIDEOS:$DIR_CAPTURES" "PROJECTS:$DIR_DOJO")
 # shellcheck disable=SC2034  # (for the scripts that source this file)
 HOME_XDG_NONE=(DESKTOP:Desktop PUBLICSHARE:Public TEMPLATES:Templates DOCUMENTS:Documents MUSIC:Music)
 # an existing home's folders → where they go now, OLD|NEW (kawa-tidy moves them)
-HOME_MOVES=("Downloads|$DIR_DOWNLOADS" "Notes|$DIR_NOTES" "Books|$DIR_BOOKS" "repos|$DIR_DOJO"
+HOME_MOVES=("Downloads|$DIR_DOWNLOADS" "Notes|$DIR_NOTES" "Books|$DIR_BOOKS" "repos|$DIR_DOJO" "Projects|$DIR_DOJO"
   "Pictures/Screenshots|$DIR_CAPTURES" "Videos/Recordings|$DIR_CAPTURES"
   "Pictures/Sketches|$DIR_NOTES/sketches" "Pictures/Wallpapers|.local/share/fedokawaii/wallpapers")
 # home_folder NAME — one of those folders, in its new name or its old one (never a project's own)

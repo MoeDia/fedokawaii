@@ -282,3 +282,4 @@ they break.
 | r28-c1 | with the lights off the cooler's display is told it is out once a second, not every ten: left alone its firmware blinks a 99 | tests/status/test_rgb.sh |
 | r28-d2 | sketching gone: no FireAlpaca, no Sketch, no tablet in the desktop, dwl or the lessons | tests/regress/test_gone.sh "sketching stays gone" |
 | r28-d2b | the to-do's heading wears its own tanzaku after d1's new icon numbers; the saver's scene built on the lock's art as it is | tests/content/test_notes.sh · tests/look/test_saver.sh |
+| r28-f20b | xdg-user-dirs' Projects is the dojo, an old ~/Projects moves there | tests/static/test_home.sh "Projects is the dojo" |
