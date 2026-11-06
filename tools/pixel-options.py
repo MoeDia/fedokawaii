@@ -6,6 +6,7 @@ P5 small accents; PA all together, the favourite; P2m, P4m, P5m what moves, as M
 
     python3 tools/pixel-options.py WORK HI  # WORK/wall-MOOD.png, WORK/MOOD/{quick,notice}.png, HI/{h1-1,g-1,f-3}-MOOD.png → HI/P?-N-MOOD.png, HI/PA-MOOD.png
     python3 tools/pixel-options.py games WORK HI     # S4, the game-like options: HI/P1-{4..7}-MOOD.png, nothing else rewritten
+    python3 tools/pixel-options.py accents WORK HI   # S4, the game-like accents: HI/P5-{4..7}-MOOD.png, HI/P5m-{4..7}-MOOD: .mp4, -slow.mp4, -strip.png, .png; prints "measured"; exit 1: a video off by over a frame
     python3 tools/pixel-options.py motions WORK HI   # HI/P2m-1-MOOD, P4m-N-MOOD, P5m-2-MOOD, P5m-3-MOOD: .mp4 and a key frame .png
     python3 tools/pixel-options.py picker HI         # HI/picker.json: the sets P1 to P5 and their motions, after the motions of S1
     # (the kit: quick by a play, kawa-quick then the pointer at 1672 216, the row hovered; notice by its scene, alone)
@@ -692,9 +693,117 @@ def petal(page, t, x, y, pose, ground, eaten=0):
                 page.putpixel((x + i, y + j), {"h": t["accent_hi"], "o": t["accent"], "s": t["flame_lo"]}[c])
 
 
+# the game-like ones: each draws at its sites what a state says, so a state is all a frame needs
+ZENI_AT = ((288, 134), (888, 183), (1674, 58))      # the focused row's end; after a notice's title; after quick settings' title
+BIKKURI_AT = ((1188, 46), (298, 152))               # through the critical notice's top rim; at "4 to fix"
+SHURIKEN = (402, 99, 721)                           # along the title's rule, from x to x, into the window's right rim
+CHOCHIN_AT = ((684, 61), (1184, 163))               # hanging from a rim
+SQUASH = (".#######.",
+          "#hoooooo#",
+          ".#hoooo#.",
+          "..#####..",
+          ".........",
+          "...###...",
+          "...###...")
+BANG = ("..#####..",) + (".#hoooo#.",) * 4 + ("..#hoo#..",) * 4 + ("...###...", ".........",
+       "...###...", "..#hoo#..", "..#hoo#..", "...###...")     # the bar and its dot apart: a "!", never an hourglass
+STRETCH = BANG[:1] + (".#hoooo#.",) * 5 + BANG[5:9] + ("..#hoo#..",) + BANG[9:]
+RAYS = ((-5, 4, -2, 0), (13, 4, 2, 0), (-3, -3, -1, -1), (11, -3, 1, -1))     # x, y, a step: the four sparks of the pop
+LANTERN = (7, 9, 11, 13, 13, 13, 13, 13, 13, 13, 11, 9, 7)  # the paper's widths
+# the flame's levels and how long each stays, by hand: never a beat; 4 s
+FLICKER = ((2, 22), (3, 6), (2, 14), (1, 4), (2, 30), (3, 4), (1, 6), (0, 3), (2, 18), (3, 10), (2, 40), (1, 5), (2, 24), (3, 5), (1, 3), (2, 46))
+
+
+def zeni(page, mood, x, y, turn):
+    """A coin with a square hole, a turn being 8 poses: the same 13 rows narrowing about its middle; the hole shows what is behind."""
+    m = metal(mood)
+    c = math.cos(turn * math.pi / 4)
+    for j in range(13):
+        dy = j - 6
+        half = max(math.sqrt(42.25 - dy * dy) * abs(c), 1.0 if abs(dy) < 6 else 0.0)
+        edge = math.floor(half)
+        for dx in range(-edge, edge + 1):
+            if abs(c) > 0.5 and abs(dy) <= 1 and abs(dx) <= 1:      # (square, its sides whole at any turn it shows)
+                continue
+            lit, shade = (dx == -edge, dx == edge) if c >= 0 else (dx == edge, dx == -edge)
+            ink = "h" if lit else "l" if shade else "#"
+            page.putpixel((x + 6 + dx, y + j), m[ink])
+
+
+def bikkuri(page, t, x, y, state):
+    """A "!" bursting through what wants him: squash, stretch, settle; the sparks fly out with the stretch."""
+    pose, rays = state
+    if pose is None:
+        return
+    rows = {"squash": SQUASH, "stretch": STRETCH, "bang": BANG}[pose]
+    foot = y + 15                                   # all of them stand on the same line
+    inks = {"#": t["outline"], "h": t["accent_hi"], "o": t["accent"]}
+    bitmap(page, x, foot - len(rows), rows, inks)
+    for rx, ry, sx, sy in RAYS[:rays and 4]:
+        for k in (0, 1):
+            page.putpixel((x + rx + sx * (rays - 1) + k * sx // 2, y + ry + sy * (rays - 1) + k * sy), t["accent_hi"])
+
+
+def shuriken(page, mood, t, x, y, angle, eaten=0):
+    """Four skewed blades about a hole, any angle, whole pixels; eaten of 4: a dissolve."""
+    hi, lo = (t["brass_hi"], t["ink"]) if mood == "dark" else (t["tile"], t["brass_lo"])
+    for j in range(-6, 7):
+        for i in range(-6, 7):
+            r = math.hypot(i, j)
+            if r < 1.2:
+                continue
+            u = (math.atan2(j, i) / (math.pi / 2) - angle) % 1
+            reach = 6.6 - 4.4 * u / 0.28 if u < 0.28 else 2.2 + 4.4 * (u - 0.28) / 0.72
+            if r <= reach and (x + i + (y + j) * 3) % 4 >= eaten:
+                page.putpixel((x + i, y + j), hi if u < 0.5 else lo)
+
+
+def chochin(page, mood, t, x, y, level, sway=0):
+    """A paper lantern on a string: the flame a ring of colours widening with the level, a palette's change and no more."""
+    ramp = (t["flame_lo"], t["accent"], t["flame"], t["flame_hi"]) if mood == "dark" else (t["flame_lo"], t["accent"], t["accent_hi"], t["flame_hi"])
+    m = metal(mood)
+    mid = x + 6 + sway
+    for j in range(3):
+        page.putpixel((x + 6, y + j), m["#"])
+    for i in range(-3, 4):
+        page.putpixel((mid + i, y + 3), m["h"] if i < 0 else m["#"])
+        page.putpixel((mid + i, y + 17), m["h"] if i < 0 else m["#"])
+    for j, width in enumerate(LANTERN):
+        for i in range(-(width // 2), width // 2 + 1):
+            d = math.hypot(i, (j - 6) * 0.85)
+            shade = 3 if d < level * 1.6 else 2 if d < level * 1.6 + 2.5 else 1 if d < 6 else 0
+            if j % 3 == 2:                          # the ribs
+                shade = max(shade - 1, 0)
+            page.putpixel((mid + i, y + 4 + j), ramp[shade])
+    for j in range(18, 22):
+        page.putpixel((mid, y + j), t["accent"] if j < 20 else m["#"])
+
+
 def p5(page, mood, n, phase=None):
     t = {k: rgb(v) for k, v in TOKENS[mood].items()}
-    if n == 1:                                      # mon: at the end of a title, where its rule starts; the rule steps aside
+    if n == 4:                                      # zeni
+        for x, y in ZENI_AT:
+            zeni(page, mood, x, y, 0 if phase is None else phase)
+    elif n == 5:                                    # bikkuri
+        for x, y in BIKKURI_AT:
+            bikkuri(page, t, x, y, ("bang", 0) if phase is None else phase)
+    elif n == 6:                                    # shuriken: on the way, a trail on the rule; home, in the rim
+        _, y, x1 = SHURIKEN
+        x, angle, trail, sparks, eaten, shake = (x1, 0.12, 0, 0, 0, 0) if phase is None else phase
+        if x is None:
+            return
+        shuriken(page, mood, t, x + shake, y, angle, eaten)
+        for k in range(trail):
+            page.putpixel((x - 10 - k * 6, y), t["accent_hi"])
+            page.putpixel((x - 11 - k * 6, y), t["accent_hi"])
+        for k in range(sparks):
+            for sx, sy in ((-1, -1), (-1, 1), (-2, 0)):
+                page.putpixel((x + sx * (3 + 2 * k), y + sy * (6 + k)), t["brass_hi"] if mood == "dark" else t["accent"])
+    elif n == 7:                                    # chochin
+        level, sway = (2, 0) if phase is None else phase
+        for x, y in CHOCHIN_AT:
+            chochin(page, mood, t, x, y, level, sway)
+    elif n == 1:                                      # mon: at the end of a title, where its rule starts; the rule steps aside
         at = []
         for x0, _, y in rules(page, mood, (20, 60, 725, 130)):
             for x in range(x0, x0 + 12):
@@ -836,6 +945,127 @@ def motions(work, hi):
         clip(frames, CROP_U, hi / f"P5m-3-{m}", 130)
 
 
+# ---- the game-like accents, by m1's rules: real speed, a quarter of it, a strip, measured from the video itself
+
+CROP_NOTICE = (784, 40, 1232, 270)
+CROP_WHOLE = (8, 52, 736, 348)                      # Super+U, to its right rim
+
+
+def zeni_states():
+    spin = [(k % 8, 4) for k in range(16)]          # two turns, 67 ms a pose, then at rest; 4 s
+    return ("the spin", spin + [(0, 176)], len(spin), CROP_U, (280, 126, 304, 156))
+
+
+def bikkuri_states():
+    pop = [(("squash", 0), 3), (("stretch", 1), 4), (("stretch", 2), 3), (("bang", 3), 3), (("bang", 0), 90), (("squash", 0), 3)]
+    return ("the pop", (pop + [((None, 0), 134)]), 6, CROP_NOTICE, (1178, 40, 1204, 66))
+
+
+def shuriken_states():
+    x0, _, x1 = SHURIKEN
+    fly = []
+    for f in range(24):                             # 13 px a frame, a blade's turn in 12 frames; the trail grows out behind it
+        fly.append(((x0 + (x1 - x0) * f // 23, (f // 2) * 0.17 % 1, min(f, 3), 0, 0, 0), 1))
+    home = [((x1, 0.12, 0, 1, 0, 1), 2), ((x1, 0.12, 0, 2, 0, -1), 2), ((x1, 0.12, 0, 3, 0, 1), 2), ((x1, 0.12, 0, 0, 0, 0), 120)]
+    gone = [((x1, 0.12, 0, 0, e, 0), 4) for e in (1, 2, 3)]
+    return ("the throw", fly + home + gone + [((None, 0, 0, 0, 0, 0), 78)], len(fly) + 3, CROP_WHOLE, (394, 84, 732, 114))
+
+
+def chochin_states():
+    out, at = [], 0
+    for level, hold in FLICKER:                     # the sway: a pixel aside, every 2 s
+        out.append(((level, 1 if 60 <= at % 120 < 90 else 0), hold))
+        at += hold
+    return ("a flicker", out, 4, CROP_WHOLE, (672, 58, 708, 90))
+
+
+ACCENTS = {4: zeni_states, 5: bikkuri_states, 6: shuriken_states, 7: chochin_states}
+
+
+def encode(pages, out, times=1):
+    """pages: (a crop 1:1, frames); at 2x, nearest neighbour, TIMES as long."""
+    w, h = pages[0][0].width * 2, pages[0][0].height * 2
+    enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", "60", "-i", "-",
+                            "-vf", "scale=in_range=pc:out_range=tv,format=yuv420p", "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "14",
+                            "-color_range", "tv", "-r", "60", "-movflags", "+faststart", str(out)], stdin=subprocess.PIPE)
+    for im, hold in pages:
+        raw = im.resize((w, h), Image.NEAREST).tobytes()
+        for _ in range(hold * times):
+            enc.stdin.write(raw)
+    enc.stdin.close()
+    if enc.wait():
+        sys.exit(f"{out}: ffmpeg failed")
+
+
+def changes_in(video, size):
+    """The frames of a video differing from the frame before: its numbers."""
+    w, h = size[0] * 2, size[1] * 2
+    raw = subprocess.run(["ffmpeg", "-v", "error", "-i", str(video), "-f", "rawvideo", "-pix_fmt", "rgb24", "-fps_mode", "passthrough", "-"], capture_output=True, check=True).stdout
+    a = np.frombuffer(raw, np.uint8).reshape(-1, h, w, 3).astype(np.int16)
+    return [i + 1 for i, d in enumerate(np.abs(a[1:] - a[:-1]).max(axis=3)) if (d > 24).sum() >= 4]
+
+
+def strip_of(pages, box, crop, out):
+    """Every pose of the event, with its ms: a box at 3x or 2x, in rows."""
+    font = ImageFont.truetype(FONT, 13)
+    n = 3 if box[2] - box[0] < 100 else 2           # (a long box: two to a row)
+    w, h = (box[2] - box[0]) * n, (box[3] - box[1]) * n
+    per = max(min(1800 // (w + 8), len(pages)), 1)
+    rows = -(-len(pages) // per)
+    sheet = Image.new("RGB", (per * (w + 8) + 8, rows * (h + 26) + 8), (40, 36, 32))
+    ink = ImageDraw.Draw(sheet)
+    at = 0
+    for k, (im, hold) in enumerate(pages):
+        part = im.crop((box[0] - crop[0], box[1] - crop[1], box[2] - crop[0], box[3] - crop[1])).resize((w, h), Image.NEAREST)
+        x, y = 8 + k % per * (w + 8), 8 + k // per * (h + 26)
+        sheet.paste(part, (x, y))
+        ink.text((x, y + h + 3), f"{round(at * 1000 / 60)} ms", font=font, fill=(226, 216, 194))
+        at += hold
+    sheet.save(out, optimize=True)
+
+
+def accents(work, hi):
+    hi = pathlib.Path(hi)
+    bad = 0
+    for m in MOODS:
+        ground = base(work, hi, m)
+        for n, states in ACCENTS.items():
+            page = ground.copy()
+            p5(page, m, n)
+            save(page, hi / f"P5-{n}-{m}.png")
+            what, frames, event, crop, box = states()
+            memo = {}
+            once = []
+            for state, hold in frames:
+                if repr(state) not in memo:
+                    page = ground.copy()
+                    p5(page, m, n, state)
+                    memo[repr(state)] = page.crop(crop)
+                once.append((memo[repr(state)], hold))
+            pages = once * 2
+            stem = hi / f"P5m-{n}-{m}"
+            encode(pages, str(stem) + ".mp4")
+            encode(pages, str(stem) + "-slow.mp4", 4)
+            still = np.asarray(ground.crop(crop)).astype(np.int16)
+            key = max(range(event), key=lambda k: np.abs(np.asarray(once[k][0]).astype(np.int16) - still).sum())
+            once[key][0].save(str(stem) + ".png", optimize=True)
+            strip_of(once[:event + 1], box, crop, str(stem) + "-strip.png")
+            designed, at = [], 0
+            for a, b in zip(pages, pages[1:], strict=False):
+                at += a[1]
+                if a[0] is not b[0]:
+                    designed.append(at)
+            seen = changes_in(str(stem) + ".mp4", once[0][0].size)
+            ms = (sum(h for _, h in once[:event])) * 1000 / 60
+            first = [c for c in seen if c <= sum(h for _, h in once[:event])]
+            span = (first[-1] if first else 0) * 1000 / 60
+            off = abs(span - ms) > 1000 / 60 or len(seen) != len(designed) or any(abs(a - b) > 1 for a, b in zip(seen, designed, strict=False))
+            bad += off
+            print(f"P5m-{n}-{m} measured: {what} {span:.0f} ms (designed {ms:.0f}), {len(seen)} changed frames (designed {len(designed)}) in {sum(h for _, h in pages)}" + (" OFF" if off else ""))
+    if bad:
+        sys.exit(f"{bad} videos off")
+
+
 def picker(hi):
     path = pathlib.Path(hi) / "picker.json"
     old = [e for e in json.loads(path.read_text()) if not e["set"].startswith("P")]
@@ -872,6 +1102,8 @@ if __name__ == "__main__":
         zoom(*sys.argv[2:])
     elif sys.argv[1] == "games":
         games(*sys.argv[2:])
+    elif sys.argv[1] == "accents":
+        accents(*sys.argv[2:])
     elif sys.argv[1] == "motions":
         motions(*sys.argv[2:])
     elif sys.argv[1] == "picker":

@@ -713,7 +713,7 @@ CLAUDE (monitoring the run for the owner, S10): - The owner picked b (workspace 
 - P1's new separators (waku, kusari, ken, kizami) are on his page; no pick yet.
 - Check the home folders against his words: exactly ~/downloads, ~/captures, ~/notes, ~/books and ~/dojo, all lowercase, nothing else (no Desktop, Documents, Projects...). f20b's commit says "~/Projects is the dojo": if ~/Projects exists or is used anywhere, it must be ~/dojo (rename, no symlink named Projects). Fix it if needed, in the VM and the docs.
 
-## 2026-11-07 01:14 — open
+## 2026-11-07 01:14 — in the plan: s11a s11b s11c s11d s11e
 CLAUDE (monitoring the run for the owner, S11): The owner (00:49): speed things up a little while spending FEWER tokens. Be smart about models and overhead:
 1. A model per task, from the plan row (add a column "model" to r28-plan.tsv: opus, sonnet or haiku; default sonnet):
    - opus only for: design work he will judge, the dwl/C patches, the lock, the ISO and its installer, anything about security, and any task that already failed once on a cheaper model;
