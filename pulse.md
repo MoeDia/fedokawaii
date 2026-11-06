@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 10:13 (Dubai)
+# round 28 pulse · Fri 06 10:43 (Dubai)
 
-pace: 13/107 done (12%) · time used 10% · ahead 2.4 h · ETA Mon 09 04:02 · left 88 · blocked 0 · owner 6
+pace: 13/107 done (12%) · time used 10% · ahead 1.9 h · ETA Mon 09 08:00 · left 88 · blocked 0 · owner 6
 alerts: 4 errors in 2 h
-run: conductor active · passes 1 (oldest 17 min) · last activity 12 min ago · commits since start 21 · hold False
-machine: load 1.35 1.18 0.96/12 · mem free 19.4 GB · disk free 620 GB · up 10.0 h · cpu tccd1 70° · cpu tctl 67° · gpu edge 43° · gpu junction 33° · gpu mem 54° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 42°
+run: conductor active · passes 1 (oldest 48 min) · last activity 16 min ago · commits since start 21 · hold False
+machine: load 3.50 1.61 1.11/12 · mem free 19.4 GB · disk free 620 GB · up 10.5 h · cpu tccd1 68° · cpu tctl 70° · gpu edge 44° · gpu junction 33° · gpu mem 54° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 38°
 dark: True (active) · pulse timer active
-tokens since start: out 324,377 · in 612 · cache write 1,058,981 · cache read 26,265,769 · msgs 291 · out last 6 h 153,034
+tokens since start: out 331,782 · in 632 · cache write 1,076,912 · cache read 27,440,807 · msgs 300 · out last 6 h 160,439
 
 ## now / blocked / owner
 - [now] f06i the first report on the fresh F45 says BROKEN, 15 failures, 20 warnings, run with no session (~/VM/harness/f45/smoke-20261106-090130/first-report.txt). Sort them: needs a session, needs hardware, real. Suspects: FONT-02 Sumi UI not crisp, DISK-06 snapper, LOGIN-19 and SLP-20 power keys, UPK-21 and KEY-11 Super+U, kawa-browser and kawa-stick --help, FETCH-01 ble.sh. Fix the real ones, name the rest — with a session: 20 failures, 22 warnings, ~/VM/harness/f45/r28-f06h/after.txt
