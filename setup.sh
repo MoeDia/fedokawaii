@@ -42,7 +42,7 @@ for a in "$@"; do
   case $a in
     --resume) RESUMED=1 ;;
     --update) MODE=update ;;  --repair) MODE=repair ;;  --status) MODE=status ;;  --reset) MODE=reset ;;
-    --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;  --layout) MODE=layout ;;
+    --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;  --layout) MODE=layout ;;  --home-snapshots) MODE=home-snapshots ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
     --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;  --boot-good) MODE=boot-good ;;
     --scrub-said) MODE=scrub-said ;;
@@ -97,7 +97,7 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
   echo "phase $(cat "$STATE_DIR/phase" 2>/dev/null || echo 1) · user $(cat "$STATE_DIR/user" 2>/dev/null || echo '(not chosen yet)') · Fedora $VERSION_ID · theme $([[ -f $STATE_DIR/with-theme ]] && echo 'with setup' || echo separate)"
   find "$STATE_DIR" -name 'done.*' -printf '  ✔ %f\n' | sed 's/done\.//' | sort; exit 0
 fi
-if [[ $MODE == @(kernels|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
+if [[ $MODE == @(kernels|home-snapshots|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
   exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0; lock_hand_over
 elif [[ $MODE == scrub-said ]]; then :                # (reads a status and leaves a notice: never in anyone's way)
 elif [[ $MODE == @(after-dnf|boot-good) ]]; then   # (after a dnf run, a start marked good: waits for an update or repair to end first)
@@ -2209,6 +2209,8 @@ ConditionPathExists=!/var/lib/fedokawaii/report-first.done
 Type=exec
 ExecStart=/usr/local/bin/fedokawaii-report --boot
 Nice=10
+# (its theme round trip starts the session's new swaybg: it outlives the report)
+KillMode=process
 
 [Install]
 WantedBy=graphical.target
@@ -2255,6 +2257,25 @@ Type=oneshot
 ExecStart=/usr/local/sbin/fedokawaii-split run
 FailureAction=reboot
 UNIT
+  # (the first start on the flat layout: /home's own snapper config, there before the first report)
+  write_file /etc/systemd/system/fedokawaii-home-snapshots.service <<UNIT
+# installed by setup.sh — /home's snapshots, once it is a subvolume of its own
+[Unit]
+Description=Fedokawaii: /home's snapper config, after the disk's new layout
+ConditionPathIsMountPoint=/home
+ConditionPathExists=!/etc/snapper/configs/home
+ConditionKernelCommandLine=!systemd.volatile
+After=local-fs.target
+Before=fedokawaii-report.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash $TOOLKIT/setup.sh --home-snapshots
+
+[Install]
+WantedBy=multi-user.target
+UNIT
+  systemctl is-enabled --quiet fedokawaii-home-snapshots.service || systemctl enable --quiet fedokawaii-home-snapshots.service
   mkdir -p /etc/systemd/system/system-update.target.wants
   ln -sfn ../fedokawaii-split.service /etc/systemd/system/system-update.target.wants/fedokawaii-split.service
   restorecon -R /usr/local/sbin /etc/systemd/system 2>/dev/null || true
@@ -3465,6 +3486,10 @@ case $MODE in
              /usr/local/sbin/fedokawaii-split clean || log "the old copies under the new mounts could not be removed (sudo fedokawaii-split clean says why)"
            fi
            exit 0 ;;
+  home-snapshots) [[ $(phase) == 'done' ]] && on_the_system || exit 0
+                  [[ $(/usr/local/sbin/fedokawaii-split state) == flat* ]] || exit 0
+                  { snapper_configs && snapper_limits; } || exit 1
+                  exit 0 ;;
   layout) [[ $(phase) == 'done' ]] || die "the build is not finished — setup arms the layout at its end"
           on_the_system || die "this start is not the system itself (a snapshot from the boot menu?) — nothing changed"
           s_layout; exit $? ;;

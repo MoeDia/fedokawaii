@@ -37,6 +37,7 @@
 # --no-startup-window alone ends at once on Linux. Its disk cache held to 1 GB by itself: kawa-tidy
 # leaves a browser that is running alone.
 set -u
+[[ ${1:-} != @(--help|-h) ]] || { sed -nE '2,7s/^# ?//p' "$0"; exit 0; }   # (Helium's own --help only opens a manual page it does not ship)
 conf=${XDG_CONFIG_HOME:-$HOME/.config}/net.imput.helium
 # Open with this profile? Chromium's own mark — SingletonLock, a link to HOST-PID — whose process
 # is alive; a crash's stale mark is no open browser, nor is one of another home. The one check for

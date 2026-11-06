@@ -296,6 +296,13 @@ back built; sed -i '/makecache.timer$/d' "$FKH/units"
 reset_calls; tk --repair
 called 'systemctl\] mask dnf5-makecache.timer'; called 'systemctl\] mask dnf-makecache.timer'
 grep -qx "masked dnf-makecache.timer" "$FKH/units" && _ok || _no "dnf4's timer not masked ahead"
+case_ "the first start on the flat layout: /home's snapper config made by the unit, its limits set, before the first report"
+back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snapper-configs"
+reset_calls; tk --home-snapshots; eq "$?" 0
+called 'snapper\] --no-dbus -c home create-config /home'; called 'snapper\] --no-dbus -c home set-config'
+[[ -f $W/etc/snapper/configs/home ]] && _ok || _no "no config for /home"
+u=$(<"$W/etc/systemd/system/fedokawaii-home-snapshots.service")
+has "$u" 'ConditionPathIsMountPoint=/home'; has "$u" 'ConditionPathExists=!/etc/snapper/configs/home'; has "$u" 'Before=fedokawaii-report.service'
 case_ "repair before setup's own end made the snapshot configs: the missing one made (/home too), an existing one never again"
 back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snapper-configs"
 reset_calls; tk --repair

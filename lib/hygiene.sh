@@ -30,6 +30,7 @@ CONFLICT_SERVICES=(
   # whenever an install or a package enabled them
   "ModemManager.service|the desktop's memory and wake-ups: no modem here, yet it probes every serial and USB port"
   "cockpit.socket|the closed firewall: a server's browser console (its port stays shut here)"
+  "nfs-client.target|the desktop's start: network folders (NFS) a desktop never mounts"
   "iscsid.socket|the desktop's memory: network disks (iSCSI) a desktop never mounts"
   "multipathd.service|the desktop's memory: multipath storage, a server's (it locks its memory in RAM)"
   "atd.service|systemd's timers: at's queue, a second scheduler"

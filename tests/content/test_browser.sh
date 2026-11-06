@@ -26,6 +26,9 @@ SYS=--system-audio-capture-default_checked
 CACHE="--disk-cache-size=1073741824
 --hide-crash-restore-bubble"
 
+case_ "--help answers itself (Helium's opens a manual page it does not ship): the browser never started"
+setup 2>/dev/null; out=$(B --help 2>&1); eq "$?" 0 "$out"; has "$out" "kawa-browser"
+
 case_ "the copy looks only under the made-up root"
 setup
 eq "$(grep -c "$R" "$TMP/kawa-browser")" "$(tail -n +2 "$REPO/bin/kawa-browser" | grep -cE '/usr/bin/|/usr/local/lib/')"

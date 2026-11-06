@@ -309,11 +309,21 @@ run "SEC-04 world-writable files in your home"; eq "$RC" 0 "$OUT"
 touch "$HOME/open"; chmod 666 "$HOME/open"
 run "SEC-04 world-writable files in your home"; eq "$RC" 1; rm -f "$HOME/open"
 
+case_ "DWL-08: a screen with no adaptive sync has nothing to follow (a VM's, dwl's own line says so)"
+mkdir -p "$HOME/.cache"; echo 'vrr: Virtual-1 has no adaptive sync' >"$HOME/.cache/dwl.log"
+run "DWL-08 FreeSync: a round trip"; eq "$RC" 0 "$OUT"; has "$OUT" "no adaptive sync"; rm -f "$HOME/.cache/dwl.log"
+
+case_ "KEY-11 and FONT-02: the rows follow the desktop (the warm system window; Sumi Term the alias of UDEV Gothic NF)"
+has "$(row "KEY-11 Super+U is the system menu")" 'warm'
+has "$(row "FONT-02 the dot faces are crisp")" 'UDEV Gothic NF'
+
 case_ "FETCH-01: the shell asked on a terminal of its own (python's pty: no util-linux-script on a Server install) — never stopped, never without a terminal"
 mkdir -p "$HOME/.local/share/blesh"
 printf '[[ -t 0 && -t 1 ]] && BLE_VERSION=0.4.0\n' >"$HOME/.bashrc"
 run "FETCH-01 the prompt (ble.sh)"; eq "$RC" 0 "$OUT"; has "$OUT" "BLE=0.4.0"
 lacks "$(row "FETCH-01 the prompt (ble.sh)")" "script -" "util-linux-script is no package of the desktop's"
+printf '[[ -t 0 && -t 1 ]] && BLE_VERSION=0.4.0\nprintf "\\033]133;C\\033\\\\"\n' >"$HOME/.bashrc"
+run "FETCH-01 the prompt (ble.sh)"; eq "$RC" 0 "$OUT"   # (ble.sh's OSC 133 mark sits right before the answer)
 printf 'echo "ble.sh: syntax error near x"\nBLE_VERSION=0.4.0\n' >"$HOME/.bashrc"
 run "FETCH-01 the prompt (ble.sh)"; eq "$RC" 1
 rm -f "$HOME/.bashrc"

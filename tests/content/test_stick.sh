@@ -17,6 +17,9 @@ setup() {
   stub udisksctl
 }
 
+case_ "--help answers (KEY-03), nothing touched"
+setup; out=$(kawa-stick --help 2>&1); eq "$?" 0 "$out"; has "$out" "kawa-stick [ISO]"
+
 case_ "a USB drive big enough is named, chosen by its number, and written only after enter: read back, switched off"
 setup
 out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 0 "$out"

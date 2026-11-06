@@ -111,6 +111,7 @@ cmp -s "$W$TK/system/fedokawaii-report" "$W/usr/local/bin/fedokawaii-report" && 
 ru=$(cat "$W/etc/systemd/system/fedokawaii-report.service" 2>/dev/null)
 has "$ru" "ExecStart=/usr/local/bin/fedokawaii-report --boot" "the unit runs the report in its first-start mode"
 has "$ru" "ConditionPathExists=!/var/lib/fedokawaii/report-first.done" "once only: the marker it leaves"
+has "$ru" "KillMode=process" "what the report started in the session (the theme round trip's swaybg) outlives it"
 has "$ru" "Type=exec" "the start never waits for the report"; lacks "$ru" "ExecStartPost" "the mark when it ends, never when it starts"; lacks "$ru" "TimeoutStartSec"; has "$ru" "After=graphical.target network-online.target"; has "$ru" "WantedBy=graphical.target"
 grep -qx 'enabled fedokawaii-report.service' "$FKH/units" && _ok || _no "fedokawaii-report.service not enabled"
 [[ -x $W/usr/local/bin/dwl && -s $W/usr/local/lib/fedokawaii-wlroots-0.20/cflags ]] && _ok || _no "dwl or its wlroots not in place"
