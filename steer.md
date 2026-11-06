@@ -78,3 +78,11 @@ The owner (17:43): with the PC dark, the CPU cooler's display blinks "99" about 
 
 ## S7 2026-11-06 17:55
 The owner (17:51): "reduce the transparency effect a little". Everywhere translucency is used (terminals, menus, panels, quick settings, notifications, the launcher; nvim already has none), make it a little more opaque: roughly 6 to 8 points more alpha (for example 0.85 becomes 0.92), one shared value per mood from the theme, not per app. Show it in the next pack as set T ("Transparency", still, dark and light): n 0 today and n 1 the new value on the same real screen, so he can confirm.
+
+## S8 2026-11-06 18:00
+The owner (17:59): he is very picky about the design and will go several rounds, so the design work must NOT slow the rest. Run it as a separate, bounded track:
+- Alternate: after each design task (options, renders, videos), do two non-design tasks (learning system, nvim, apps, Stoat, Syncplay, inventory, repo clean-up, the Fedora 45 ISO and its installer, tests). The ISO and installer track must start on schedule (Sunday) whatever the design rounds do.
+- Never wait for his picks: when a design needs a pick, park it and move to other work; his picks arrive through these steering notes.
+- Make options only good enough to judge, never polished twice; build the picked designs through the theme's shared tokens and small swappable parts, so a late change of mind is a quick swap, not a rebuild.
+- The S6 cooler fix and the S5 frame-exact recording hook count as engineering, not design rounds.
+- Keep the plan's day order; if the design track falls behind, it is the design track that waits, not the rest.
