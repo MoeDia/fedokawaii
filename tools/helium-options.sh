@@ -64,7 +64,7 @@ case $OPTION in
 esac
 INSIDE
 export REAL_HOME=$HOME
-# (one dwl a shot: after wtype's keyboard has gone, a browser started in the same dwl showed no window)
+# (one dwl a shot: a clean start for each)
 for MOOD in ${MOODS:-dark light}; do
   for OPTION in ${OPTIONS:-now tsuitate mokuroku noren}; do
     export MOOD OPTION
