@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 08:13 (Dubai)
+# round 28 pulse · Fri 06 08:43 (Dubai)
 
-pace: 8/103 done (8%) · time used 8% · ahead 0.0 h · ETA Mon 09 22:06 · left 89 · blocked 0 · owner 6
+pace: 8/103 done (8%) · time used 8% · ahead -0.5 h · ETA Tue 10 04:10 · left 89 · blocked 0 · owner 6
 alerts: none
-run: conductor active · passes 1 (oldest 1 min) · last activity 0 min ago · commits since start 16 · hold False
-machine: load 0.80 1.23 0.93/12 · mem free 19.4 GB · disk free 628 GB · up 8.0 h · cpu tccd1 36° · cpu tctl 46° · gpu edge 38° · gpu junction 31° · gpu mem 52° · ssd composite 43° · ssd sensor 1 43° · ssd sensor 2 45°
+run: conductor active · passes 1 (oldest 31 min) · last activity 30 min ago · commits since start 16 · hold False
+machine: load 1.32 1.26 1.26/12 · mem free 18.9 GB · disk free 627 GB · up 8.5 h · cpu tccd1 40° · cpu tctl 57° · gpu edge 41° · gpu junction 32° · gpu mem 53° · ssd composite 41° · ssd sensor 1 42° · ssd sensor 2 44°
 dark: True (active) · pulse timer active
-tokens since start: out 205,057 · in 420 · cache write 675,589 · cache read 20,665,002 · msgs 198 · out last 6 h 101,774
+tokens since start: out 209,729 · in 428 · cache write 683,626 · cache read 20,863,467 · msgs 202 · out last 6 h 106,446
 
 ## now / blocked / owner
 - [now] f06d the fresh F45 install has 69 other denials, all harmless so far: 51 are setup's lock (fd 9) inherited by children (restorecon, ip, usermod, passwd, sshd, pasta...), 12 load_policy reading /dev/tty1, 6 ldconfig reading the state folder as its cwd. Close fd 9 for children or set it close-on-exec; say what remains — found in f06c
