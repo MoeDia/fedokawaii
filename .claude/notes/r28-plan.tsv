@@ -50,8 +50,8 @@ d2b	Fri 6	done	two reds found in d2's suite, both at HEAD before it: tests/conte
 m5	Fri 6	done	(b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4)	Fri 6 Nov 20:23	TagHeya 360, TagHitomi 420, TagHishi 440, TagSuna 340, one switch; measured dark 367, 433, 450, 333; provisional until his pick
 f20b	Fri 6	todo	home folders: the Guide and Learn say the new folders (~/dojo, ~/downloads …), PDFs rebuilt; a VM proof of the move and of a clean home		
 f21	Fri 6	todo	the programming font by real render trials (Iosevka, JetBrains Mono, Maple Mono, Commit Mono, Monaspace, Nerd glyphs, official sources): a sheet, the choice written with why		
-m6	Fri 6	now	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)		
-f22	Fri 6	todo	that font in the installer: pinned with its checksum (lib/upstream.sh), foot, width tables, tests		
+m6	Fri 6	done	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)	Fri 6 Nov 20:33	measured, open = close: b-0 450, b-4 367, b-5 433, b-6 450, b-7 333 ms; pairs 0.37 to 1.16; hi/ 173 MB until m10 clears; the pack row m10, lost in c1's reorder, restored
+f22	Fri 6	now	that font in the installer: pinned with its checksum (lib/upstream.sh), foot, width tables, tests		
 f23	Fri 6	todo	neovim: his own minimal config: lazy.nvim and a handful of hand-picked plugins, every line commented for the lessons; start-up measured; lock file		
 m7	Fri 6	todo	P1 separators: 4 new game-like variants, 4 to 7, on the real screens, both moods, 1:1 PNG (S4)		ideas: 8-bit border ornament, pixel links, katana rule, HUD segments
 f24	Fri 6	todo	neovim: no transparency while it runs, a bigger font by default, the notes page unharmed; tests		
@@ -68,6 +68,7 @@ sa04	Sat 7	todo	Part 1 lessons: ASOBI, Helium used efficiently (a short chapter)
 tr2	Fri 6	todo	set T, Transparency, still, dark and light: n 0 today, n 1 the new value on the same real screen, for the next pack (S7)		
 sa05	Sat 7	todo	Part 2 lessons: Python, first steps, tiny steps with repetition		
 sa06	Sat 7	todo	Part 2 lessons: Python, functions, files, errors		
+m10	Fri 6	todo	the pack: picker.json sets a, b, P1, P5 (0 and 4 to 7, "measured" per motion), P4 n 4, c-2; a, b, P1, P5 options 1 to 3 and decided sets cleared; hi/ 90 MB at most; seen in the pulse (S4, S5)		before the lock pack
 m10	Mon 9	todo	network: tools/portscan.sh and tools/net-proof.sh against the VM		
 sa07	Sat 7	todo	Part 2 lessons: debugging, the important one		
 sa08	Sat 7	todo	Part 2 lessons: git properly		
