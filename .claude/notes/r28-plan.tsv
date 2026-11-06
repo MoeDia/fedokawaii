@@ -16,8 +16,8 @@ f06i	Fri 6	done	the first report on the fresh F45 says BROKEN, 15 failures, 20 w
 f06j	Fri 6	todo	the first report's own noise: its full run flips the theme light and back and cycles FreeSync in front of the first login (should --boot skip those rows?); BOOT-22 says boot -1 had no shutdown on a fresh install (the split's boot, its journal moved?); RES-04 catches the report's own tee and grep; PERF-01 read 10.85 % once just after the flip, 0.1 % a minute later		seen in smoke-20261106-102815, smoke-20261106-100120
 f07	Fri 6	done	options (a) window open and close: 3 motions behind a dwl switch, filmstrips from headless frames: a1-window.jpg	Fri 6 Nov 11:02	a1-window.jpg: seal, shoji, kasumi behind anim_motion; the hop stays until a pick
 f08	Fri 6	done	options (b) the workspace move: 3 motions, filmstrips: b1-workspace.jpg	Fri 6 Nov 11:13	b1-workspace.jpg: hayate, kakejiku, fusuma behind anim_tag_motion; the strip stays until a pick
-f09	Fri 6	now	options (c) menus as a real hanging scroll, rods, paper, edges, drawn through dwl's border system: 3 motions, filmstrips: c1-scroll.jpg		
-f10	Fri 6	todo	options (d) the prompt: the new icon inside the pastel ribbon, elegant and refined: 3, both moods: d1-prompt.jpg		
+f09	Fri 6	done	options (c) menus as a real hanging scroll, rods, paper, edges, drawn through dwl's border system: 3 motions, filmstrips: c1-scroll.jpg	Fri 6 Nov 11:33	c1-scroll.jpg: kakejiku, omori, makimono behind anim_scroll_motion; the rod stays until a pick
+f10	Fri 6	now	options (d) the prompt: the new icon inside the pastel ribbon, elegant and refined: 3, both moods: d1-prompt.jpg		
 f11	Fri 6	todo	options (e) the lock: the quote engraved into a far richer wall, torches and the M1 Hannya / M2 angel kept: 2 or 3, both moods: e1-lock.jpg		3 image tries at most; no VM running
 f12	Fri 6	todo	options (f) the bar: bigger, icons at real size, crisp, the clock in a scroll with dominant ends, seconds kept, fully floating: 3, both moods: f1-bar.jpg		
 f13	Fri 6	todo	options (g) the power menu: 3 layouts, both moods: g1-power.jpg		

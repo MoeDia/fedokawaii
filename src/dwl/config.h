@@ -77,6 +77,12 @@ static const unsigned int anim_tag_ms      = 450;  /* a workspace move, all of i
 static const unsigned int anim_tag_wave    = 48;   /* …ms between the first window's start and the last's */
 static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving off the
                                                     * desktop once the password is right */
+static const int anim_scroll_motion        = ScrollRod; /* how a menu, a panel, a warm window comes and
+                                                    * goes, with anim_unroll_ms, anim_rollup_ms and
+                                                    * the kawa-panel row below: ScrollRod 300/240 ·
+                                                    * ScrollKakejiku 380/280, two rods and silk edges ·
+                                                    * ScrollOmori 460/240, a weight, falling, bouncing ·
+                                                    * ScrollMakimono 340/260, parting from the middle */
 static const unsigned int anim_unroll_ms   = 300;  /* a warm window shown (Super+U, N, V):
                                                     * it unrolls from its top edge, its rod
                                                     * (the frame's foot) travelling down */

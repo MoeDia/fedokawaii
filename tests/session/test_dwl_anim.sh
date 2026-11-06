@@ -236,9 +236,9 @@ case_ "put away: a ghost of it rolls up into its top edge over anim_rollup_ms â€
 f=$(added warmhide)
 grep -q 'ghostscroll(c, f);' <<<"$f" && grep -q 'wlr_scene_node_set_enabled(&c->scene->node, 0);' <<<"$f" && grep -q 'animdrop(c);' <<<"$f" \
   && grep -q 'dissolveshow(&g->dis, pass, 0, 0, 1, 16.0);' <(added ghostscroll) && grep -q 'g->ms = anim_rollup_ms;' <(added ghostscroll) \
-  && grep -q 'g->t0 = g->last = nowms() - (1.0 - cbrt(f < 0 ? 0 : f > 1 ? 1 : f)) \* g->ms;' <(added ghostscroll) \
-  && grep -q 'int hv = (int)lround(g->h \* (1.0 - animease(t))), ih = MAX(hv - 2 \* g->o, 0);' <(added ghostapply) \
-  && grep -q 'wlr_scene_buffer_set_source_box(g->dis.node, &(struct wlr_fbox){ 0, 0,' <(added ghostapply) \
+  && grep -q 'g->t0 = g->last = nowms() - scrollshutat(f) \* g->ms;' <(added ghostscroll) \
+  && grep -q 'int hv = side ? g->h : (int)lround(g->h \* scrollshut(t)), ih = MAX(hv - 2 \* g->o, 0);' <(added ghostapply) \
+  && grep -q 'wlr_scene_buffer_set_source_box(g->dis.node, &(struct wlr_fbox){ ix, 0, iw, ih });' <(added ghostapply) \
   && grep -q 'f = c->rolling ? ghostopen(c->rolling) : 0;' "$P" && grep -q 'g->of->rolling = NULL;' <(added ghostfree) \
   && _ok || _no "the roll-up"
 lacks "$(sed -n '/^+warmshow(Client \*c)$/,/^+}/p;/^ warmshow(Client \*c)$/,/^ }/p' "$P")" "ghostclient" "shown: never a ghost"
@@ -295,6 +295,16 @@ done
 grep -q '^+enum { TagStrip, TagHayate, TagScroll, TagFusuma };' "$P" && _ok || _no "the four motions"
 c=$(added railplace); has "$c" 'if (anim_tag_motion == TagScroll) {'
 grep -q '^+					wlr_scene_node_raise_to_top(&c->scene->node);$' "$P" && grep -q "^+			} else if (!before && after && (anim_tag_motion != TagFusuma || !leaving)) {" "$P" && _ok || _no "the room left over the next; the next closes in only when nothing leaves"
+
+case_ "a scroll's motion is one switch: the rod stands, kakejiku, omori and makimono a word away, all four sites by one ease; a scroll put away mid-way goes from where it is"
+for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
+  grep -q '^static const int anim_scroll_motion *= ScrollRod;' <<<"$c" && _ok || _no "anim_scroll_motion, the rod"
+done
+grep -q '^+enum { ScrollRod, ScrollKakejiku, ScrollOmori, ScrollMakimono };' "$P" && _ok || _no "the four motions"
+c=$(added scrollrods); has "$c" 'rodbar(d, parent, 11, 1, y, x0 + wv - MIN(wv / 2, ROD_T), h, -1, a);'; has "$c" 'rodbar(d, parent, 11, 0, x, foot, w, -1, a);'
+has "$(added dissolveend)" 'for (int i = 0; i < (int)LENGTH(d->rod); i++)'
+has "$(added warmhide)" 'f = c->anim == AnimUnroll ? scrollopen(c->animp) : 1.0;'
+grep -q '^+					scrollopen(1.0 - (from < 0 ? 0 : from)));' "$P" && _ok || _no "a panel put away mid-way: from where it is"
 
 c=$(added washcmd)
 has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'
