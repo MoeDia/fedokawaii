@@ -54,7 +54,7 @@ end
 
 local where = os.getenv("KAWA_NOTES_WHERE") or "~/notes/notes.md"   -- (shown as it is: the footer is a float, no statusline's %)
 local ICON_NOTE = "\243\190\128\188" -- Sumi Icons: note (U+FE03C), as in icons.sh
-local ICON_TODO = "\243\190\131\140" -- the to-do's tanzaku (U+FE0CC)
+local ICON_TODO = "\243\190\131\138" -- Sumi Icons: todo (U+FE0CA), as in icons.sh: the tanzaku
 local BOX = { [false] = "\243\190\128\179", [true] = "\243\190\128\178" }   -- box-off (U+FE033), box-on (U+FE032)
 local TODO = os.getenv("KAWA_TODO") or vim.fn.expand("~/notes/todo.md")
 
