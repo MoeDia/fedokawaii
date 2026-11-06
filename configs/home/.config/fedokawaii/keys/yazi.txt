@@ -3,7 +3,7 @@
 # source: https://github.com/sxyazi/yazi/blob/v26.9.1/yazi-config/preset/keymap-default.toml (all 254 key rows also found in the installed binary)
 # ours: configs/home/.config/yazi/keymap.toml (Enter, Ctrl+C / X / V, W, M, g d, Alt+Enter, Alt+S, Alt+F) and yazi.toml (show_hidden)
 # ours: configs/home/.config/fedokawaii/yazi-pick/keymap.toml and its kawa-pick plugin (the file dialog)
-# note: the preset's Ctrl+C (close the tab, quit) is copy here, Enter (open) is smart-enter, g d (~/Downloads) is ~/Drives
+# note: the preset's Ctrl+C (close the tab, quit) is copy here, Enter (open) is smart-enter, g d (~/downloads) is ~/Drives
 ── yazi: moving ───────────────────────────────────────────────────
 j / k                   next / previous file (arrow keys too)
 h / l                   up to the parent folder / into the folder

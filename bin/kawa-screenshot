@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kawa-screenshot [region|full|edit|text] — grim + slurp, copied to clipboard and
-# saved to ~/Pictures/Screenshots. "edit" opens the capture in satty for annotation.
+# saved to ~/captures. "edit" opens the capture in satty for annotation.
 # "text" reads the region's words instead (tesseract, English and Arabic): the text goes on
 # the clipboard, its first words in the notice; nothing is saved.
 #

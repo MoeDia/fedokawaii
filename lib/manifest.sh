@@ -101,7 +101,7 @@ PKG_DESKTOP=(
   ddcutil wtype                                           # monitor brightness over DDC/CI · bar clicks → Super+1…9
   wl-clipboard cliphist grim slurp gammastep libnotify    # clipboard, screenshots, night light, notify-send
   xdg-desktop-portal-wlr xdg-desktop-portal-gtk           # screencast/screenshot + settings (dark/light), print, open with
-  xdg-utils xdg-user-dirs udiskie lxqt-policykit          # xdg-open, ~/Pictures…, USB automount, auth dialogs
+  xdg-utils xdg-user-dirs udiskie lxqt-policykit          # xdg-open, ~/captures…, USB automount, auth dialogs
   udisks2                                                 # what udiskie asks to mount (only a weak dependency brings it otherwise)
   exfatprogs dosfstools ntfs-3g                           # drives: check, repair and name exFAT and FAT sticks and
                                                           #   SD cards; NTFS opens whatever NTFS driver the kernel has

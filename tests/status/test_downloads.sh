@@ -5,10 +5,10 @@
 # the bar's mark, the menu and what a click on it opens, the one notice of a finished
 # download, and the watcher: woken by the kernel as a download starts or ends, quiet between.
 . "$(dirname "$0")/lib.sh"
-D=$HOME/Downloads B=$HOME/.config/net.imput.helium/Default
+D=$HOME/downloads B=$HOME/.config/net.imput.helium/Default
 world() {
   sandbox
-  D=$HOME/Downloads B=$HOME/.config/net.imput.helium/Default
+  D=$HOME/downloads B=$HOME/.config/net.imput.helium/Default
   mkdir -p "$D" "$B"
   stub kawa-term; stub xdg-open; stub kawa-menu
 }

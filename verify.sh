@@ -655,10 +655,10 @@ if [[ -r /usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64/libwide
 else warn "Widevine is not in place: Spotify's web player cannot play" "update fetches it again"; fi
 check "Claude Code runs"                               U timeout 20 claude --version
 # herdr (Agents), started as its launcher entry starts it — on a terminal of its own (a
-# pseudo-terminal, 120×36: herdr refuses one of no size), from ~/repos, with your config —
+# pseudo-terminal, 120×36: herdr refuses one of no size), from ~/dojo, with your config —
 # but in a home of its own for the two seconds, so it neither attaches to the agents you
 # have running nor leaves a server behind: your config clean to herdr itself (no unknown
-# key, no wrong type), ~/repos there, its server up in the folder it was started from, and
+# key, no wrong type), ~/dojo there, its server up in the folder it was started from, and
 # the window's side attached to it. (Your login names your folders outright — XDG_CONFIG_HOME
 # and the rest, /etc/profile.d/fedokawaii-home.sh — and herdr goes by them before HOME: kept,
 # this check would talk to your own server instead, your agents' — they go for its run)
@@ -666,7 +666,7 @@ herdr_starts() {
   U bash -c 'unset XDG_CONFIG_HOME XDG_DATA_HOME XDG_STATE_HOME XDG_CACHE_HOME
     d=$(mktemp -d /tmp/fk-herdr.XXXXXX) r=1
     mkdir -p "$d/.config/herdr" "$d/repos" && cp ~/.config/herdr/config.toml "$d/.config/herdr/" \
-      && test -d ~/repos && HOME=$d herdr config check >/dev/null 2>&1 \
+      && test -d ~/dojo && HOME=$d herdr config check >/dev/null 2>&1 \
       && (cd "$d/repos" && HOME=$d TERM=xterm-256color timeout -k 2 15 python3 -I -c "
 import fcntl, os, pty, select, signal, struct, termios, time
 pid, fd = pty.fork()
@@ -694,7 +694,7 @@ os.kill(pid, signal.SIGTERM); os.waitpid(pid, 0)" >/dev/null 2>&1 </dev/null; tr
     HOME=$d herdr server stop >/dev/null 2>&1; rm -rf "$d"; exit $r'
 }
 # (its config and its launcher entry come with the theme)
-((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/repos, a window attached)" herdr_starts
+((THEMED)) && check "herdr starts (Agents: your config clean, its server up in ~/dojo, a window attached)" herdr_starts
 check "neovim's plugins at the commits of their lock (lazy-lock.json)" nvim_at_lock
 # (its program and its socket come with the theme; setup's own step checks it from the repository before that)
 ((THEMED)) && check "Torrents whole, on Fedora's python3 and libtorrent" U "$TARGET_HOME/.local/bin/kawa-torrents" --check

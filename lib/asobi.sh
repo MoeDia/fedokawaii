@@ -44,7 +44,7 @@ asobi_drop() {
   usermod -a -G "$ASOBI_GROUP" "$TARGET_USER"     # (from the next login)
   install -d -m 0755 -o root -g root "$ASOBI_ROOT"
   install -d -m 0700 -o root -g root "$ASOBI_SNAPS"
-  # (a subvolume of its own too, as ~/Downloads is: what passes through it stays out of /home's snapshots)
+  # (a subvolume of its own too, as ~/downloads is: what passes through it stays out of /home's snapshots)
   if ! btrfs subvolume show "$ASOBI_DROP" >/dev/null 2>&1 && { [[ ! -e $ASOBI_DROP ]] || rmdir -- "$ASOBI_DROP" 2>/dev/null; }; then
     run btrfs subvolume create "$ASOBI_DROP"
   fi

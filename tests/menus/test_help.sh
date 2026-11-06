@@ -34,7 +34,7 @@ has "$(fz_rows)" "info		Super+1…9	"
 case_ "every part under its icon and name: what follows a colon or is in brackets at the heading's end"
 eq "$(fz_rows | grep -vc -e '^part	' -e '^info	')" 0 "nothing but parts and info rows (the panel spaces its parts)"
 eq "$(fz_rows | head -n1)" "part	$ICON_TORII_SMALL	launch	" "the sheet starts with its first heading"
-has "$(fz_rows)" "part	$ICON_CAMERA	screenshots	clipboard + ~/Pictures/Screenshots"
+has "$(fz_rows)" "part	$ICON_CAMERA	screenshots	clipboard + ~/captures"
 has "$(fz_rows)" "part	$ICON_DRIVE	drives	USB sticks, disks, SD cards"
 has "$(fz_rows)" "part	$ICON_SPEAKER	sound, music, monitor	"
 eq "$(fz_rows | grep -c '^part')" "$(grep -c '^─' "$K")"
@@ -93,7 +93,7 @@ case_ "no window focused (no files yet): the desktop's sheet first, then every p
 keys_setup; answer esc; rc 0 kawa-help
 eq "$(parts)" "${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim sketch system torrents typing visidata wallpaper wiremix yazi zathura "
 case_ "yazi in a terminal (it titles itself \"Yazi: …\"): its keys first, then the desktop's, then the rest"
-keys_setup; focus footclient "Yazi: ~/Downloads"; answer esc; kawa-help
+keys_setup; focus footclient "Yazi: ~/downloads"; answer esc; kawa-help
 eq "$(parts)" "yazi ${ALL}asobi bluetui books btop chess clipboard gdu lazygit lessons lesson mpv notes to-do nvim sketch system torrents typing visidata wallpaper wiremix zathura "
 eq "$(fz_rows | head -n2 | tail -n1)" "$(printf 'info\t\tj / k\tnext / previous file (arrow keys too)')" "its first row under its first part"
 case_ "a program the shell named in the title (nvim, lazygit, vd): its keys first; a folder as the title, or a program with no sheet: the desktop's first"

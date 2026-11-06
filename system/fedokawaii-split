@@ -12,7 +12,7 @@
 #   fedokawaii-split run     fedokawaii-split.service, in that mode: each folder copied into a
 #                            new subvolume (reflinks: the data is shared, not written twice) and
 #                            compared with it, file by file; the subvolumes inside /home
-#                            (Downloads, VM, the world's) and the snapshots moved, never copied, a
+#                            (downloads, VM, the world's) and the snapshots moved, never copied, a
 #                            read-only one read-only again after it; fstab told;
 #                            then the machine restarts. A cut (power, crash) at any step: the next
 #                            start goes on from there. A failure: all of it put back as it was,
@@ -299,7 +299,7 @@ copy() {   # copy NAME PATH
 }
 for e in "${LAYOUT[@]:0:3}"; do copy "${e%%:*}" "${e#*:}"; done
 
-# 2. the subvolumes inside root's /home (Downloads, VM …) into home — moved, never copied
+# 2. the subvolumes inside root's /home (downloads, VM …) into home — moved, never copied
 while IFS= read -r p; do
   rel=${p#"$T"/home/}; [[ $p == "$T"/home/?* ]] || continue
   if [[ -e $top/home/$rel ]]; then rmdir "$top/home/$rel" 2>/dev/null || back "home/$rel is not empty in the new home"; fi

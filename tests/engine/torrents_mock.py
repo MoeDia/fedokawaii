@@ -16,7 +16,7 @@ from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 
 NOW = int(time.time())
 DAY = 86400
-D = os.path.join(os.path.expanduser("~"), "Downloads")
+D = os.path.join(os.path.expanduser("~"), "downloads")
 
 
 def row(i, name, word, done=0, total=0, down=0, up=0, peers=0, seeds=0, known=0, added=0, at=0, err="", meta=True, source="", stream=None):

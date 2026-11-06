@@ -8,9 +8,9 @@
 . "$(dirname "$0")/lib.sh"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"
 
-setup() {   # setup — a fresh sandbox with an empty ~/Books; fzf, zathura, gio as stand-ins
+setup() {   # setup — a fresh sandbox with an empty ~/books; fzf, zathura, gio as stand-ins
   sandbox; unset LOCPATH
-  B=$HOME/Books DB=$XDG_DATA_HOME/zathura/bookmarks.sqlite K=$XDG_CACHE_HOME/kawa-books
+  B=$HOME/books DB=$XDG_DATA_HOME/zathura/bookmarks.sqlite K=$XDG_CACHE_HOME/kawa-books
   mkdir -p "$B" "${DB%/*}"
   export FZF_ARGS=$TMP/fzf.args FZF_IN=$TMP/fzf.in FZF_PICK=$TMP/fzf.pick
   # fzf: the add list (--multi) answers with the lines of $FZF_PICK it was offered;
@@ -147,9 +147,9 @@ for t in "family 👨‍👩‍👧 photos:16" "thumbs 👍🏽 up:12" "❤️ h
   eq "${#pad}" $((31 + 2 + 10 + 2 + 9 + 1 - ${t##*:})) "${t%:*}: its padding (title column 31, 2 spaces, no meter, no mark in a library none begun, the row's last column)"
 done
 
-case_ "no books, ~/Books missing: an empty list, the folder made"
+case_ "no books, ~/books missing: an empty list, the folder made"
 setup; rmdir "$B"
-eq "$(kawa-books --rows)" ""; [[ -d $B ]] && _ok || _no "~/Books not made"
+eq "$(kawa-books --rows)" ""; [[ -d $B ]] && _ok || _no "~/books not made"
 case_ "one book"
 mk epub "$B/Only.epub" meta
 eq "$(kawa-books --rows | wc -l)" 1
@@ -356,28 +356,28 @@ stub gio 'exit 1'
 rc 0 kawa-books --remove "$B/Done Book.pdf"
 called 'notify-send -a desktop -- .*  books could not move Done Book.pdf to the trash'
 
-case_ "ctrl+a: books in Downloads and Documents listed (no Desktop on this desktop); the marked ones moved in; a taken name gets (2)"
+case_ "ctrl+a: books in ~/downloads listed; the marked ones moved in; a taken name gets (2)"
 setup; mk pdf "$B/Taken.pdf" 1
-mkdir -p "$HOME/Downloads/sub" "$HOME/Documents"
-mk pdf "$HOME/Downloads/Taken.pdf" 2; mk epub "$HOME/Downloads/sub/Deep.epub" meta
-mk pdf "$HOME/Documents/a.b.c.pdf" 1; printf x >"$HOME/Documents/not a book.txt"
+mkdir -p "$HOME/downloads/sub"
+mk pdf "$HOME/downloads/Taken.pdf" 2; mk epub "$HOME/downloads/sub/Deep.epub" meta
+mk pdf "$HOME/downloads/a.b.c.pdf" 1; printf x >"$HOME/downloads/not a book.txt"
 if [[ -z $FD ]]; then skip "no fd here: Ctrl+A not tried"; else
 stub fd "exec '$FD' \"\$@\""
-printf '%s\n' "~/Downloads/Taken.pdf" "~/Downloads/sub/Deep.epub" >"$FZF_PICK"
+printf '%s\n' "~/downloads/Taken.pdf" "~/downloads/sub/Deep.epub" >"$FZF_PICK"
 kawa-books --add
 offered=$(cut -f2 "$FZF_IN.add" | plain | sed 's/^ [^ ]*  //' | sort | tr '\n' '|')   # (§7: a column in, the glyph, two)
-eq "$offered" "~/Documents/a.b.c.pdf|~/Downloads/Taken.pdf|~/Downloads/sub/Deep.epub|"
-[[ -f "$B/Taken (2).pdf" && -f $B/Deep.epub && -f $B/Taken.pdf && ! -e $HOME/Downloads/Taken.pdf ]] && _ok \
+eq "$offered" "~/downloads/Taken.pdf|~/downloads/a.b.c.pdf|~/downloads/sub/Deep.epub|"
+[[ -f "$B/Taken (2).pdf" && -f $B/Deep.epub && -f $B/Taken.pdf && ! -e $HOME/downloads/Taken.pdf ]] && _ok \
   || _no "moved wrong: $(ls "$B" | tr '\n' '|')"
-[[ -f $HOME/Documents/a.b.c.pdf ]] && _ok || _no "an unmarked book was moved"
+[[ -f $HOME/downloads/a.b.c.pdf ]] && _ok || _no "an unmarked book was moved"
 [[ -s $FZF_ARGS ]] && _ok || _no "the library did not come back"
 case_ "ctrl+a, a third of the same name: (3); a name with dots keeps its extension"
-mk pdf "$HOME/Downloads/Taken.pdf" 3; mk pdf "$B/a.b.c.pdf" 1
-printf '%s\n' "~/Downloads/Taken.pdf" "~/Documents/a.b.c.pdf" >"$FZF_PICK"; kawa-books --add
+mk pdf "$HOME/downloads/Taken.pdf" 3; mk pdf "$B/a.b.c.pdf" 1
+printf '%s\n' "~/downloads/Taken.pdf" "~/downloads/a.b.c.pdf" >"$FZF_PICK"; kawa-books --add
 [[ -f "$B/Taken (3).pdf" && -f "$B/a.b.c (2).pdf" ]] && _ok || _no "$(ls "$B" | tr '\n' '|')"
 case_ "ctrl+a, Esc: nothing moved"
-mk pdf "$HOME/Downloads/Keep.pdf" 1; : >"$FZF_PICK"; kawa-books --add
-[[ -f $HOME/Downloads/Keep.pdf ]] && _ok || _no "moved on Esc"
+mk pdf "$HOME/downloads/Keep.pdf" 1; : >"$FZF_PICK"; kawa-books --add
+[[ -f $HOME/downloads/Keep.pdf ]] && _ok || _no "moved on Esc"
 fi
 
 # ── the window ───────────────────────────────────────────────────────────────
@@ -387,12 +387,12 @@ called "^kawa-term --float --once books books 104x29 -- $REPO/bin/kawa-books --t
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"
-has "$(cat "$FZF_ARGS")" "--ghost= ~/Books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
+has "$(cat "$FZF_ARGS")" "--ghost= ~/books"; lacks "$(cat "$FZF_ARGS")" "10 in" "the count is fzf's, beside the search"
 has "$(cat "$FZF_ARGS")" "--bind=enter:become($REPO/bin/kawa-books --open {1} {5})"
 case_ "inside, no books yet: the title says how to add some"
-setup; kawa-books --tui; has "$(cat "$FZF_ARGS")" "none in ~/Books yet — ctrl+a adds some"
+setup; kawa-books --tui; has "$(cat "$FZF_ARGS")" "none in ~/books yet — ctrl+a adds some"
 case_ "a home with a space, an accent and a quote: the keys' commands still find the script and the book"
-setup; odd_home kawa-books; B=$HOME/Books; mk pdf "$B/One.pdf" 3
+setup; odd_home kawa-books; B=$HOME/books; mk pdf "$B/One.pdf" 3
 "$HOME/.local/bin/kawa-books" --tui
 pcmd=$(grep -F -- "--preview=" "$FZF_ARGS"); pcmd=${pcmd#--preview=}
 q=$(printf '%q' "$B/One.pdf")

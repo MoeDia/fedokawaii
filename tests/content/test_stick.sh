@@ -6,9 +6,9 @@
 
 setup() {
   sandbox
-  WORLD=$TMP/w; mkdir -p "$WORLD" "$HOME/Downloads"; export WORLD
-  head -c 3000000 /dev/urandom >"$HOME/Downloads/fedokawaii-20261104.iso"
-  (cd "$HOME/Downloads" && sha256sum fedokawaii-20261104.iso >fedokawaii-20261104.iso.sha256)
+  WORLD=$TMP/w; mkdir -p "$WORLD" "$HOME/downloads"; export WORLD
+  head -c 3000000 /dev/urandom >"$HOME/downloads/fedokawaii-20261104.iso"
+  (cd "$HOME/downloads" && sha256sum fedokawaii-20261104.iso >fedokawaii-20261104.iso.sha256)
   export LSBLK='{"blockdevices":[{"name":"/dev/nvme0n1","size":1000204886016,"model":"Lexar","tran":"nvme","type":"disk"},{"name":"/dev/sdb","size":32000000000,"model":"SanDisk  ","tran":"usb","type":"disk"},{"name":"/dev/sdc","size":1000000,"model":"tiny","tran":"usb","type":"disk"}]}'
   stub lsblk 'case " $* " in *" -J "*) printf "%s" "$LSBLK" ;; *) printf "%s\n%s1\n" "$4" "$4" ;; esac'
   stub sudo 'exec "$@"'
@@ -24,7 +24,7 @@ case_ "a USB drive big enough is named, chosen by its number, and written only a
 setup
 out=$(printf '1\n' | kawa-stick 2>&1); eq "$?" 0 "$out"
 has "$out" "SanDisk"; lacks "$out" "Lexar"; lacks "$out" "tiny"; has "$out" "safe to unplug"
-/usr/bin/cmp -s "$HOME/Downloads/fedokawaii-20261104.iso" "$WORLD/stick" && _ok || _no "the stick differs"
+/usr/bin/cmp -s "$HOME/downloads/fedokawaii-20261104.iso" "$WORLD/stick" && _ok || _no "the stick differs"
 called "udisksctl power-off -b /dev/sdb"; called "udisksctl unmount -b /dev/sdb1"
 
 case_ "any other key leaves it alone: nothing written"
@@ -60,7 +60,7 @@ has "$out" "no USB drive"; not_called "^dd "
 
 case_ "an ISO that is not as it was built is told, and nothing written"
 setup
-printf 'x' >>"$HOME/Downloads/fedokawaii-20261104.iso"
+printf 'x' >>"$HOME/downloads/fedokawaii-20261104.iso"
 out=$(printf '\n' | kawa-stick 2>&1); eq "$?" 1 "$out"
 has "$out" "not as it was built"; [[ ! -e $WORLD/stick ]] && _ok || _no "written"
 

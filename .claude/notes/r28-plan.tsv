@@ -30,7 +30,19 @@ f17	Fri 6	done	research: the YouTuber Hayyoth (design and work philosophy), one 
 f18	Fri 6	done	research: "Anthropic says .md files are dead, HTML is next" against Anthropic's own docs, one paragraph, adopted only where it helps	Fri 6 Nov 13:19	r28-md-html.md; not in Anthropic's memory docs; nothing adopted; CLAUDE.md stays
 f19	Fri 6	done	home folders: ~/downloads ~/captures ~/notes ~/books ~/dojo named once in lib/common.sh; theme.sh, xdg-user-dirs and the move of an existing home's folders; tests	Fri 6 Nov 15:12	names and moves in lib/common.sh; kawa-tidy moves an old home; ~/repos now ~/dojo everywhere in code; wallpapers in ~/.local/share/fedokawaii/wallpapers, sketches in ~/notes/sketches (decided); not yet in a VM
 f16b	Fri 6	done	the picker pack (steer S1): ~/.local/share/r28/img/hi/: one file per option and mood, stills 1:1, motions MP4 60 fps, picker.json, 90 MB at most, seen in the pulse	Fri 6 Nov 15:45	pushed: on pulse under img/hi/, 77 files, 37 MB, picker.json 11 entries (e dark, e2 light); a-c real dwl builds; his picks come as S2
-f20	Fri 6	now	home folders: every bin/kawa-* and config follows; no Desktop, Documents, Music, Pictures, Videos, Templates, Public; grep and tests hold it		kawa-wallpaper, -screenshot, -record, -notes, -books, -sketch, -shrink, -stick, -downloads, -backup, env: still the old names; tidy already moves them, so f20 before any build
+f20	Fri 6	done	home folders: every bin/kawa-* and config follows; no Desktop, Documents, Music, Pictures, Videos, Templates, Public; grep and tests hold it	Fri 6 Nov 16:12	every script, config and test on the new names; tests/static/test_home.sh holds it; carry.list and Ctrl+A in books lost ~/Documents
+p1	Fri 6	now	P1 and P2 options (S3): separators and rules, the list selection marker; 1-3 plus n 0, on real screens, both moods, 1:1 PNG, integer scaling		accents on the crisp style, not the old pixel look
+p2	Fri 6	todo	P3 and P4 options (S3): panel corners and frames, meters as HP/MP bars; same rules		consistent with rakkan, jikusaki, jiku, ichimai, hon, mokuroku
+p3	Fri 6	todo	P5 options (S3): small accents; one all-together sheet per mood; the bobbing pointer and filling meter as MP4s; picker.json sets P1 to P5 in hi/, seen in the pulse		
+l1	Fri 6	todo	the lock (S2): a small retro Japanese pixel samurai, male (dark), gentle female (light): sprites for typing starts, each key, deleting, Enter right, Enter wrong; frames looked at		quality over speed; 3 tries an image
+l2	Fri 6	todo	the lock (S2): full, fun, dense metroidvania-map walls: 4 dark, 4 light, each a distinct variant		
+l3	Fri 6	todo	the lock (S2): the samurai reacting in the real lock (headless, a test build): state only, never the password; frames at 144 Hz		the build itself is sa31
+l4	Fri 6	todo	the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse		
+d1	Fri 6	todo	no demon or angel anywhere but the wallpapers (S2): a Fedora logo head, "bloody" in dark, "lighty" in light, drawn by hand; in the bar and the prompt; every old head out; design system; tests		
+d2	Fri 6	todo	sketching gone (S2): FireAlpaca, kawa-sketch, its key, tablet-specific support: packages, configs, menus, lessons, tests, inventory; he sketches on paper		the owner's hardware line in CLAUDE.md follows
+d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built
+d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins while the menu is open, stops when it closes, cheap, follows the mood; CPU measured		
+d5	Fri 6	todo	Super+U's dense info lines (S2): "updated ..." and the like better spaced, easy to read and absorb; measured, both moods		with sa13
 f20b	Fri 6	todo	home folders: the Guide and Learn say the new folders (~/dojo, ~/downloads …), PDFs rebuilt; a VM proof of the move and of a clean home		
 f21	Fri 6	todo	the programming font by real render trials (Iosevka, JetBrains Mono, Maple Mono, Commit Mono, Monaspace, Nerd glyphs, official sources): a sheet, the choice written with why		
 f22	Fri 6	todo	that font in the installer: pinned with its checksum (lib/upstream.sh), foot, width tables, tests		
@@ -51,25 +63,25 @@ sa09	Sat 7	todo	Part 2 lessons: testing, deployment basics, basic security, read
 sa10	Sat 7	todo	Part 2 lessons: Rust, first steps		
 sa11	Sat 7	todo	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo		
 sa12	Sat 7	todo	every lesson's check run by a test; order and pairing proven		
-sa13	Sat 7	todo	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		provisional until a pick
-sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		provisional until a pick
+sa13	Sat 7	todo	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		his pick h1: 1 ichimai (S2)
+sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)
 sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods		
-sa16	Sat 7	todo	the power menu built: strongest option, the others one switch away		provisional until a pick
+sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2
 sa17	Sat 7	todo	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest		
 sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests		
-sa19	Sat 7	todo	Helium configured and optimised: settings, flags, a solid symmetrical minimal toolbar, a few essential extensions beyond uBlock Origin, chosen from official sources		
-sa20	Sat 7	todo	Helium themed heavily in our dark and light DNA, following the switch; in the installer; tests		provisional until a pick
+sa19	Sat 7	todo	Helium configured and optimised: settings, flags, a solid symmetrical minimal toolbar, a few essential extensions beyond uBlock Origin, chosen from official sources; Proton Pass among the pre-installed extensions (S2)		
+sa20	Sat 7	todo	Helium themed: his pick i 2 mokuroku, made far more TUI-feeling: lines, toolbar and left tab section heavily redone; following the switch; in the installer; tests		S2
 sa21	Sat 7	todo	Stoat (the Discord replacement) checked at its official source, installed by the installer, manifest rows		
 sa22	Sat 7	todo	Stoat themed; every web app (WhatsApp and the like) removed; launcher and tests		
 sa23	Sat 7	todo	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has		
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes		
-sa25	Sat 7	todo	the bar bigger: one set of metrics, icons drawn at real size, right hinting, no scaling; every gap measured		provisional until a pick
-sa26	Sat 7	todo	the bar's clock in a scroll with bigger dominant ends, seconds kept, no band; regress bar checks		provisional until a pick
-sa27	Sat 7	todo	dwl: menus open and close as the hanging scroll, under ASan headless, frames looked at		provisional until a pick
-sa28	Sat 7	todo	dwl: window open and close built		provisional until a pick
-sa29	Sat 7	todo	dwl: the workspace move built		provisional until a pick
-sa30	Sat 7	todo	the prompt built, elegant, the icon inside the ribbon; test_shell		provisional until a pick
-sa31	Sat 7	todo	the lock built: the engraved quote, the richer wall; the greeter's twin; lock checks in the kit		provisional until a pick
+sa25	Sat 7	todo	the bar bigger: one set of metrics, icons drawn at real size, right hinting, no scaling; every gap measured		his pick f: 3 jikusaki; icons very clean, well spaced, super accurate, tight (S2)
+sa26	Sat 7	todo	the bar's clock in a scroll with bigger dominant ends, seconds kept, no band; regress bar checks		his pick f: 3 jikusaki (S2)
+sa27	Sat 7	todo	dwl: menus open and close as the hanging scroll, under ASan headless, frames looked at		provisional: he picks a b c from the videos
+sa28	Sat 7	todo	dwl: window open and close built		provisional: he picks a b c from the videos
+sa29	Sat 7	todo	dwl: the workspace move built		provisional: he picks a b c from the videos
+sa30	Sat 7	todo	the prompt built: his pick d 3 rakkan, the head a Fedora logo (d1), the icon inside the ribbon; test_shell		S2
+sa31	Sat 7	todo	the lock built from his pick of set L (l1 to l4), the greeter its twin; lock checks in the kit; VM proof: a real ext-session-lock, unlock never breaks, the password never shown or logged		S2 replaces e, e2; his pick pending: strongest meanwhile
 sa32	Sat 7	todo	motion performance measured on the real GPU headless: workspace moves and window spawns, dwl's frame log, before and after numbers in the ledger		
 sa33	Sat 7	todo	a clean-install smoke of main in the Fedora 45 VM: Friday and Saturday's work whole		one VM at a time
 su01	Sun 8	todo	repo: the target structure on one page: every top folder, what belongs where, what goes; nothing moved yet		

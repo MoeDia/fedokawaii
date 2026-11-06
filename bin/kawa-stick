@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # kawa-stick — the installer on a USB stick, for the day this PC is installed fresh (Super+U → backups).
 #
-#   kawa-stick [ISO]   the ISO given, or the newest fedokawaii-*.iso in ~/Downloads, or the newest
+#   kawa-stick [ISO]   the ISO given, or the newest fedokawaii-*.iso in ~/downloads, or the newest
 #                      release's from GitHub (fetched there); its sum checked; the USB drives big enough
 #                      for it (never a disk inside the PC, never the drive of your backups or of your things),
 #                      by number, even one; the one chosen named, and erased only after enter; written, read
@@ -23,24 +23,24 @@ say() { printf '  %s\n' "$@"; }
 die() { printf '  %s%s%s\n' "$INK_ACCENT_TEXT" "$*" "$INK_OFF" >&2; exit 1; }
 human() { numfmt --to=si --suffix=B -- "$1" | sed -E 's/([0-9])([A-Za-z])/\1 \2/'; }
 
-fetch() {   # fetch → the newest release's ISO and its sum in ~/Downloads, its path printed
+fetch() {   # fetch → the newest release's ISO and its sum in ~/downloads, its path printed
   local j url name
-  mkdir -p "$HOME/Downloads"
-  j=$(curl -sSf --max-time 30 "$RELEASES") || die "GitHub does not answer, and ~/Downloads holds no installer"
+  mkdir -p "$HOME/downloads"
+  j=$(curl -sSf --max-time 30 "$RELEASES") || die "GitHub does not answer, and ~/downloads holds no installer"
   url=$(jq -r '[.assets[] | select(.name | test("^fedokawaii-.*\\.iso$"))][0].browser_download_url // empty' <<<"$j")
   [[ -n $url ]] || die "the newest release has no installer in it"
   name=${url##*/}
   say "$name, from GitHub" >&2
-  curl -fL --progress-bar -C - -o "$HOME/Downloads/$name" "$url" >&2 || die "the download stopped; again carries on from there"
-  curl -sSfL -o "$HOME/Downloads/$name.sha256" "$url.sha256" || die "its checksum could not be fetched"
-  printf '%s\n' "$HOME/Downloads/$name"
+  curl -fL --progress-bar -C - -o "$HOME/downloads/$name" "$url" >&2 || die "the download stopped; again carries on from there"
+  curl -sSfL -o "$HOME/downloads/$name.sha256" "$url.sha256" || die "its checksum could not be fetched"
+  printf '%s\n' "$HOME/downloads/$name"
 }
 
 iso=${1:-}
 (($# <= 1)) || { echo "usage: kawa-stick [ISO]" >&2; exit 2; }
 printf '\n  %s\n\n' "$(screen_heading "${ICON_USB:-·}" "the installer on a stick" "$W")"
 if [[ -z $iso ]]; then
-  iso=$(compgen -G "$HOME/Downloads/fedokawaii-*.iso" | LC_ALL=C sort | tail -n1)
+  iso=$(compgen -G "$HOME/downloads/fedokawaii-*.iso" | LC_ALL=C sort | tail -n1)
   [[ -n $iso ]] || iso=$(fetch) || exit 1
 fi
 [[ -f $iso ]] || die "$iso is not there"

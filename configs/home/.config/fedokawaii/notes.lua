@@ -52,11 +52,11 @@ do
   end
 end
 
-local where = os.getenv("KAWA_NOTES_WHERE") or "~/Notes/notes.md"   -- (shown as it is: the footer is a float, no statusline's %)
+local where = os.getenv("KAWA_NOTES_WHERE") or "~/notes/notes.md"   -- (shown as it is: the footer is a float, no statusline's %)
 local ICON_NOTE = "\243\190\128\188" -- Sumi Icons: note (U+FE03C), as in icons.sh
 local ICON_TODO = "\243\190\131\140" -- the to-do's tanzaku (U+FE0CC)
 local BOX = { [false] = "\243\190\128\179", [true] = "\243\190\128\178" }   -- box-off (U+FE033), box-on (U+FE032)
-local TODO = os.getenv("KAWA_TODO") or vim.fn.expand("~/Notes/todo.md")
+local TODO = os.getenv("KAWA_TODO") or vim.fn.expand("~/notes/todo.md")
 
 local function colours()
   -- the theme's inks (colors.sh, written by tools/build-themes.py): the current one's, or —
@@ -144,7 +144,7 @@ vim.api.nvim_create_autocmd("User", {
 
 -- a page rather than code: no line numbers, signs, folds or spell marks; four columns of
 -- margin (where a list row's glyph stands: the margin, the cursor's column, two spaces); long lines wrapped at words. Another file
--- opened in the window (:e ~/Notes/japan-trip.md) is a page too, its name in the footer
+-- opened in the window (:e ~/notes/japan-trip.md) is a page too, its name in the footer
 local notes = vim.api.nvim_get_current_buf()
 -- (the page shows what was typed: no markdown highlighting, so none of its conceal — a "[ ]", a
 -- link's address, "**" stay as written (the master, 2 Nov); tree-sitter's stop brings the old
@@ -570,7 +570,7 @@ end
 
 -- ── the to-do (owner 2026-10-25 18:48): a page beside the notes — dead simple: things to do,
 -- each with a box; done ones struck through; nothing else (no dates, no reminders). One file,
--- ~/Notes/todo.md, a line a thing: "[ ] call the bank", "[x] buy rice" (readable anywhere). The
+-- ~/notes/todo.md, a line a thing: "[ ] call the bank", "[x] buy rice" (readable anywhere). The
 -- page draws the box over those four characters — on the notes' text column, the words two
 -- columns after it, as a list row's glyph and name stand (docs/design-system.md §7). Tab (not
 -- typing) turns from one page to the other. The to-do opens as the notes do: typing, on a fresh

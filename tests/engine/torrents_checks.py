@@ -79,7 +79,7 @@ def swarm_():
 
 
 def downloaded(name):
-    return os.path.join(HOME, "Downloads", name)
+    return os.path.join(HOME, "downloads", name)
 
 
 def same_tree(a, b):
@@ -215,8 +215,8 @@ def keep_and_remove():
     c.ask({"op": "remove", "id": t3.hash})
     c.wait(lambda: t3.hash not in c.rows, 5, "off the list")
     time.sleep(0.3)
-    strays = [n for n in os.listdir(os.path.join(HOME, "Downloads")) if n not in ("to.keep",)]
-    eq(strays, [], "nothing else left in Downloads")
+    strays = [n for n in os.listdir(os.path.join(HOME, "downloads")) if n not in ("to.keep",)]
+    eq(strays, [], "nothing else left in ~/downloads")
     meta = json.load(open(os.path.join(STATE, "state.json")))
     eq(meta["told"].get(t2.hash), None, "nothing kept of it")
     c.close()
@@ -1183,14 +1183,14 @@ def offers():
     clip = os.path.join(TMP, "clip")
     with open(clip, "w") as f:
         f.write(f"magnet:?xt=urn:btih:{H}&dn=From.The.Clipboard")
-    d = os.path.join(HOME, "Downloads")
+    d = os.path.join(HOME, "downloads")
     os.makedirs(d, exist_ok=True)
     open(os.path.join(d, "A.Fresh.One.torrent"), "w").close()
     w = window(30, 116)
     w.has("in the clipboard", 5)
     s = w.screen
     assert s.find("From The Clipboard"), s.dump()
-    assert s.find("in Downloads") and s.find("A Fresh One"), s.dump()
+    assert s.find("in ~/downloads") and s.find("A Fresh One"), s.dump()
     y = row_of(w, "in the clipboard")
     assert s.cells[y][0][2] == 24, "the cursor on it"
     w.keys("\r")
@@ -1200,15 +1200,15 @@ def offers():
     w.settle(0.2)
     assert not s.find("in the clipboard"), "offered once\n" + s.dump()
     w.keys("g")
-    y = row_of(w, "in Downloads")
+    y = row_of(w, "in ~/downloads")
     w.hover(y, 20)
     w.keys("x")
-    assert not s.find("in Downloads"), "x: not now\n" + s.dump()
+    assert not s.find("in ~/downloads"), "x: not now\n" + s.dump()
     # back in the window: a focus event looks again: the same is not offered twice
     os.write(w.fd, b"\x1b[O")
     os.write(w.fd, b"\x1b[I")
     w.settle(0.5)
-    assert not s.find("in the clipboard") and not s.find("in Downloads"), "not offered again\n" + s.dump()
+    assert not s.find("in the clipboard") and not s.find("in ~/downloads"), "not offered again\n" + s.dump()
     # a link on the clipboard while the add line opens: it is on the line already
     w.keys("a")
     w.settle(0.3)

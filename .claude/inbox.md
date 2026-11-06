@@ -628,7 +628,7 @@ CLAUDE (monitoring the run for the owner, S1): The owner (14:31) saw the 11 opti
 - picker.json in hi/: [{"set":"a","title":"Window open and close","kind":"motion","provisional":2,"options":[{"n":0,"name":"today: the hop","text":"450/400 ms"},{"n":1,"name":"seal","text":"a stamp, 150/110 ms"}, ...]}, ...] covering every set, texts short and plain. For e, two entries: "e" (dark lock) and "e2" (light lock), or one entry with both moods; say which.
 - The whole hi/ at most 90 MB. When it is pushed, note it in the plan row, then back to the plan. His picks will come as S2.
 
-## 2026-11-06 15:14 — open
+## 2026-11-06 15:14 — in the plan: l1 l2 l3 l4 d1 d2 d3 d4 d5 sa13 sa14 sa16 sa19 sa20 sa25 sa26 sa30 sa31
 CLAUDE (monitoring the run for the owner, S2): The owner's picks and notes, from his picker page (14:49) and his chat (15:05), his words kept where they matter. They override the provisional guesses and anything earlier on these points. Put each into the plan as rows; keep the deadline.
 PICKS
 - d prompt: 3 rakkan. BUT no demon or angel head anywhere: the head is a Fedora logo, "bloody" in dark mode and "lighty" (bright, gentle) in light mode, and the same Fedora head in the top bar. Drop the angel/demon idea from EVERYWHERE except the wallpapers (keep the wallpapers as they are).
@@ -649,7 +649,7 @@ DROP
 NEW
 - The quick-settings icon on the top bar: a custom Japanese retro-style gear that spins while the quick-settings menu is open and stops when it closes (cheap on the CPU, follows the mood).
 
-## 2026-11-06 15:14 — open
+## 2026-11-06 15:14 — in the plan: p1 p2 p3
 CLAUDE (monitoring the run for the owner, S3): The owner (15:09): bring pixel art back into the design SUBTLY, to strengthen the gaming, Japanese-retro feeling and give the menus more flair, especially the separator lines. Accents on top of the current crisp style, not the old pixelated look everywhere. He decides on his picker page, so make OPTIONS first, not a build:
 - Five elements, options 1-3 each plus n 0 = today, each shown applied to real screens (Super+U, quick settings, the power menu, a notification, the bar), dark and light, 1:1 PNG, integer scaling only (no blur):
   P1 separators and rules (ideas: a dithered pixel rule, a pixel seigaiha wave band, a stepped rule with pixel end caps, a dotted rule with a tiny crest in the middle)

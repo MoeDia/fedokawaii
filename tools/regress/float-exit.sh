@@ -15,12 +15,12 @@ out=$(mktemp -d /dev/shm/regress-float.XXXXXX)
 sed "s|@REPO@|$repo|" >"$out/play.sh" <<'PLAY'
 REPO=@REPO@
 export PATH="$KIT_OUT/stub:$PATH"
-mkdir -p "$KIT_OUT/stub" "$HOME/Books" "$HOME/repos/demo"
+mkdir -p "$KIT_OUT/stub" "$HOME/books" "$HOME/dojo/demo"
 printf '#!/bin/sh\nexit 0\n' >"$KIT_OUT/stub/zathura"; chmod +x "$KIT_OUT/stub/zathura"
 rm -rf "$HOME/.config/yazi"; cp -a "$REPO/configs/home/.config/yazi" "$HOME/.config/yazi"
 cp "$REPO/configs/home/.config/fedokawaii/screen.sh" "$HOME/.config/fedokawaii/screen.sh"
-for b in One Two Three; do cp "$REPO/docs/Fedokawaii-Learn.pdf" "$HOME/Books/$b.pdf"; done
-git -C "$HOME/repos/demo" init -q 2>/dev/null
+for b in One Two Three; do cp "$REPO/docs/Fedokawaii-Learn.pdf" "$HOME/books/$b.pdf"; done
+git -C "$HOME/dojo/demo" init -q 2>/dev/null
 panel; nap 0.5
 rec() { wf-recorder -y -c ffv1 -f "$KIT_OUT/$1.mkv" >/dev/null 2>&1 & R=$!; nap 0.8; }
 end() { nap 1.1; kill -INT "$R"; wait "$R" 2>/dev/null; nap 0.3; }

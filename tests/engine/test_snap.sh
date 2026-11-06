@@ -169,7 +169,7 @@ disk() {   # a Fedora layout: root (kernel 6.18.0, marked "now"), its snapshots 
   "subvolume snapshot") cp -a "$3" "$4" ;;
   "subvolume delete") shift 2; [ "$1" = -R ] && { echo "delete -R" >>"'"$TMP"'/recursive"; shift; }; [ "$1" = --commit-after ] && shift; rm -rf "$1" ;;
   "subvolume list") [ -d "$4/.snapshots/1" ] && echo "ID 260 gen 9 top level 256 path <FS_TREE>/${4##*/}/.snapshots"
-                    [ -f "$4/home/dia/Downloads/film.mkv" ] && echo "ID 258 gen 9 top level 256 path <FS_TREE>/${4##*/}/home/dia/Downloads" ;;
+                    [ -f "$4/home/dia/downloads/film.mkv" ] && echo "ID 258 gen 9 top level 256 path <FS_TREE>/${4##*/}/home/dia/downloads" ;;
   "filesystem sync") ;;
   "subvolume show") case $3 in */top/home) [ -z "${FK_HOME_INSIDE:-}" ] || exit 1 ;; *) [ -e "$3" ] || exit 1 ;; esac
                     printf "\tCreation time:\t\t2026-10-16 08:00:00 +0000\n" ;;
@@ -184,14 +184,14 @@ disk; out=$(kawa-snap list); eq "$?" 0
 eq "$(sed -n 1p <<<"$out")" $'1\tsingle\t2026-10-11 09:00:00\tfedokawaii baseline\t-'
 eq "$(sed -n 2p <<<"$out")" $'41\tpre\t2026-10-14 09:00:00\tdnf install a & b\t-'
 FK_FSROOT=/root/.snapshots/41/snapshot kawa-snap list | grep -q $'^41\t.*\tbooted$' && _ok || _no "booted not marked"
-case_ "a subvolume inside /home (~/Downloads, before the flat layout): moved across, the folders above it made as they were"
-disk; mkdir -p "$T/root/home/dia/Downloads"; chmod 700 "$T/root/home/dia"; echo film >"$T/root/home/dia/Downloads/film.mkv"
+case_ "a subvolume inside /home (~/downloads, before the flat layout): moved across, the folders above it made as they were"
+disk; mkdir -p "$T/root/home/dia/downloads"; chmod 700 "$T/root/home/dia"; echo film >"$T/root/home/dia/downloads/film.mkv"
 kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0
-eq "$(cat "$T/root/home/dia/Downloads/film.mkv" 2>&1)" film; [[ ! -e $T/root.old/home/dia/Downloads ]] && _ok || _no "left in root.old"
+eq "$(cat "$T/root/home/dia/downloads/film.mkv" 2>&1)" film; [[ ! -e $T/root.old/home/dia/downloads ]] && _ok || _no "left in root.old"
 eq "$(stat -c %a "$T/root/home/dia")" 700 "home/dia made with another mode"
 case_ "…the snapshot has an empty folder in its place: it gives way"
-disk; mkdir -p "$T/root/home/dia/Downloads" "$T/root/.snapshots/41/snapshot/home/dia/Downloads"; echo film >"$T/root/home/dia/Downloads/film.mkv"
-kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0; eq "$(cat "$T/root/home/dia/Downloads/film.mkv" 2>&1)" film
+disk; mkdir -p "$T/root/home/dia/downloads" "$T/root/.snapshots/41/snapshot/home/dia/downloads"; echo film >"$T/root/home/dia/downloads/film.mkv"
+kawa-snap restore 41 --with-home >/dev/null 2>&1; eq "$?" 0; eq "$(cat "$T/root/home/dia/downloads/film.mkv" 2>&1)" film
 case_ "a kernel put back that kernel-install then leaves in /boot on the way out (an entry without its token): said, nothing else changed"
 disk; stub chroot 'r=$1; shift; case "$1 $2" in
   "kernel-install add") : >"'"$B"'/vmlinuz-$3"; : >"'"$B"'/loader/entries/$3.conf"; exit 0 ;;

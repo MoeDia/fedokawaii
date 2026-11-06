@@ -18,7 +18,7 @@
 #   PDFs       email (150 dpi pictures) · smallest (72 dpi) · print (300 dpi), through
 #              Ghostscript; a PDF that would come out no smaller is left as it was
 # The result goes beside the original ("holiday (email).jpg"; a copied picture with no file
-# into ~/Pictures), never over anything — a result shrunk again is a new file again — and onto
+# into ~/captures), never over anything — a result shrunk again is a new file again — and onto
 # the clipboard (and so to the top of the history, under its cursor), ready for Ctrl+V: one
 # picture as the picture itself (a mail or a chat takes it so), anything else as files. A
 # notice says what came of it: "4.2 MB → 912 KB". Metadata (where a photo was taken) goes.
@@ -55,8 +55,8 @@ uris() {    # the files a text/uri-list on stdin names (file:// links), those th
   done
 }
 nofile() {  # nofile IMAGE-TYPE — a picture with no file, on stdin: named "copied DATE", and its
-  local name f   # results go into ~/Pictures
-  mkdir -p "$HOME/Pictures"
+  local name f   # results go into ~/captures
+  mkdir -p "$HOME/captures"
   printf -v name 'copied %(%Y-%m-%d %H.%M.%S)T.%s' -1 "${1#image/}"
   f="$work/${name/.jpeg/.jpg}"
   cat >"$f" && [[ -s $f ]] && files+=("$f") NOFILE=1
@@ -144,9 +144,9 @@ esac
 
 # ── the work ────────────────────────────────────────────────────────────────────────────
 out=() before=0 after=0 failed=0 same=0
-place() {   # place SRC LABEL EXT → where the result goes: beside it ("NAME (LABEL).EXT"), or ~/Pictures
+place() {   # place SRC LABEL EXT → where the result goes: beside it ("NAME (LABEL).EXT"), or ~/captures
   local d=${1%/*} n=${1##*/}
-  [[ ${NOFILE:-} ]] && d=$HOME/Pictures
+  [[ ${NOFILE:-} ]] && d=$HOME/captures
   n=${n%.*}; [[ -n $2 ]] && n+=" ($2)"
   free_name "$d/$n.$3"
 }

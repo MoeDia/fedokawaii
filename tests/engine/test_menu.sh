@@ -406,9 +406,9 @@ homesnaps() {
   rm -rf -- "$S"; mkdir -p "$S"
   for n in 7:"$(date -u +%F) 00:00:00" 6:"$(date -u -d yesterday +%F) 12:00:00" 3:"$(date -u -d '-5 days' +%F) 09:30:00"; do
     d=${n#*:} n=${n%%:*} h=$S/$n/snapshot/${HOME##*/}
-    mkdir -p "$h/Documents/old project"
+    mkdir -p "$h/notes/old project"
     printf '<?xml version="1.0"?>\n<snapshot>\n  <type>single</type>\n  <num>%s</num>\n  <date>%s</date>\n  <description>timeline</description>\n  <cleanup>timeline</cleanup>\n</snapshot>\n' "$n" "$d" >"$S/$n/info.xml"
-    echo "notes as at $n" >"$h/Documents/notes.md"; echo "plan $n" >"$h/Documents/old project/plan.txt"
+    echo "notes as at $n" >"$h/notes/notes.md"; echo "plan $n" >"$h/notes/old project/plan.txt"
   done
   mkdir -p "$S/9"                                   # (a number with no snapshot in it: left out)
   : >"$TMP/pick"
@@ -427,19 +427,19 @@ has "$out" "copied into"; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _n
 has "$out" "~/Restored — what is there now stays as it is"
 aligned "$out" "7    00:00"; aligned "$out" "3    09:30"; eq "$(grep -c -E '(7|6|3)    [0-9]{2}:[0-9]{2}' <<<"$out")" 3 "a row a line"
 case_ "…a number: the dialog in that snapshot's home, its heading the moment; the file copied into ~/Restored/DATE/, the one now untouched"
-fresh; homesnaps; mkdir -p "$HOME/Documents"; echo "notes now" >"$HOME/Documents/notes.md"
-echo "@/Documents/notes.md" >"$TMP/pick"; out=$(TZ=UTC on_tty $'6\n' fedokawaii --run file)
+fresh; homesnaps; mkdir -p "$HOME/notes"; echo "notes now" >"$HOME/notes/notes.md"
+echo "@/notes/notes.md" >"$TMP/pick"; out=$(TZ=UTC on_tty $'6\n' fedokawaii --run file)
 called "^kawa-pick --inside back ${HOME%/*}/.snapshots/6/snapshot/${HOME##*/} "; called "^env as it was yesterday at 12:00 | ${HOME%/*}/.snapshots/6/snapshot/${HOME##*/}$"
-r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes as at 6"; eq "$(cat "$HOME/Documents/notes.md")" "notes now" "the one there now"
+r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes as at 6"; eq "$(cat "$HOME/notes/notes.md")" "notes now" "the one there now"
 [[ ${r#"$HOME/Restored/"} =~ ^[0-9]{4}-[0-9]{2}-[0-9]{2}-[0-9]{6}/notes\.md$ ]] && _ok || _no "where: $r"
-has "$out" "as it was yesterday at 12:00, into ~/Restored/"; has "$out" "Documents/notes.md"
+has "$out" "as it was yesterday at 12:00, into ~/Restored/"; has "$out" "notes/notes.md"
 [[ -w $r ]] && _ok || _no "not yours to change: $(stat -c %A "$r")"
 case_ "…today's and an older one: the heading says at, or on DAY at"
-fresh; homesnaps; echo "@/Documents/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null; called "^env as it was at 00:00 | "
-fresh; homesnaps; echo "@/Documents/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'3\n' fedokawaii --run file >/dev/null
+fresh; homesnaps; echo "@/notes/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null; called "^env as it was at 00:00 | "
+fresh; homesnaps; echo "@/notes/notes.md" >"$TMP/pick"; TZ=UTC on_tty $'3\n' fedokawaii --run file >/dev/null
 called "^env as it was on $(date -u -d '-5 days' '+%-d %b') at 09:30 | "
 case_ "…a folder and two of one name: each copied whole, the second beside the first as the desktop names a second file — \"notes (1).md\" (never over it)"
-fresh; homesnaps; printf '%s\n' "@/Documents/old project" "@/Documents/notes.md" "@/Documents/notes.md" >"$TMP/pick"
+fresh; homesnaps; printf '%s\n' "@/notes/old project" "@/notes/notes.md" "@/notes/notes.md" >"$TMP/pick"
 TZ=UTC on_tty $'7\n' fedokawaii --run file >/dev/null
 d=$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 -type d); eq "$(cat "$d/old project/plan.txt")" "plan 7"
 eq "$(cat "$d/notes.md")" "notes as at 7"; eq "$(cat "$d/notes (1).md")" "notes as at 7"; eq "$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 | grep -c .)" 1 "one folder for one taking"
@@ -471,7 +471,7 @@ backups() {
   stub kawa-backup 'case $1 in
   times) cat "'"$TMP"'/times" ;;
   mount) [ -e "'"$TMP"'/mount-fails" ] && { echo "restic: wrong password or no key found" >&2; exit 1; }
-         for id in a1a1a1a1 b2b2b2b2 c3c3c3c3; do mkdir -p "$2/ids/$id'"$HOME"'/Documents"; echo "notes in $id" >"$2/ids/$id'"$HOME"'/Documents/notes.md"; done
+         for id in a1a1a1a1 b2b2b2b2 c3c3c3c3; do mkdir -p "$2/ids/$id'"$HOME"'/notes"; echo "notes in $id" >"$2/ids/$id'"$HOME"'/notes/notes.md"; done
          g="'"$TMP"'/unmounted.${2##*/}"; while [ ! -e "$g" ]; do sleep 0.05; done; rm -f "$g" ;;
   drive) cat "'"$TMP"'/drive" ;;
   pick)  exit 4 ;;
@@ -491,11 +491,11 @@ has "$out" "3    08:15"; has "$out" "$(date -u -d '-5 days' '+%-d %b')"
 aligned "$out" "1    09:00"; aligned "$out" "3    08:15"; eq "$(grep -c -E '[123]    [0-9]{2}:[0-9]{2}' <<<"$out")" 3 "a row a line"
 not_called '^kawa-backup mount'; not_called '^kawa-pick'; [[ -e $HOME/Restored ]] && _no "a folder made for nothing" || _ok
 case_ "…a number: that backup opened read-only, the dialog in its copy of your home under the moment; the file into ~/Restored, the one now untouched; the backup closed, nothing left"
-fresh; backups; mkdir -p "$HOME/Documents"; echo "notes now" >"$HOME/Documents/notes.md"; echo "@/Documents/notes.md" >"$TMP/pick"
+fresh; backups; mkdir -p "$HOME/notes"; echo "notes now" >"$HOME/notes/notes.md"; echo "@/notes/notes.md" >"$TMP/pick"
 out=$(plain "$(TZ=UTC on_tty $'2\n' fedokawaii --run restore)")
 called "^kawa-backup mount $XDG_RUNTIME_DIR/fedokawaii-backup\.[A-Za-z0-9]+$"; called "^env as it was yesterday at 21:00 \| $XDG_RUNTIME_DIR/fedokawaii-backup\.[A-Za-z0-9]+/ids/b2b2b2b2$HOME$"
-r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes in b2b2b2b2"; eq "$(cat "$HOME/Documents/notes.md")" "notes now" "the one there now"
-has "$out" "as it was yesterday at 21:00, into ~/Restored/"; has "$out" "Documents/notes.md"; has "$out" "opening the backup"
+r=$(find "$HOME/Restored" -name notes.md); eq "$(cat "$r")" "notes in b2b2b2b2"; eq "$(cat "$HOME/notes/notes.md")" "notes now" "the one there now"
+has "$out" "as it was yesterday at 21:00, into ~/Restored/"; has "$out" "notes/notes.md"; has "$out" "opening the backup"
 called '^fusermount3 -u'; eq "$(mounts_left)" "" "the mount and the dialog's folder gone"
 case_ "…all of it back in place is not offered (restic's restore still replaces a file where the backup has a folder, and resets folders' dates: the master's T48 verdict 4) — a number goes to the dialog, nothing else"
 fresh; backups; out=$(plain "$(TZ=UTC on_tty $'3\n' fedokawaii --run restore)"); lacks "$out" "all of it back"; lacks "$out" "in place"; not_called 'everything'

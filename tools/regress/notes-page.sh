@@ -93,8 +93,8 @@ for th in dark light; do
   { [[ -n $lua ]] && printf 'cp %q "$HOME/.config/fedokawaii/notes.lua"\n' "$(realpath "$lua")"
     printf 'rec=%q\n' "$out/$th.mkv"
     cat <<'PLAY'
-mkdir -p "$HOME/Notes"
-printf '# notes\n\n## 2026-10-31 · Sat\n\nthe first day\n\n## 2026-11-01 · Sun\n\nrenew the passport\nbuy rice\n' >"$HOME/Notes/notes.md"
+mkdir -p "$HOME/notes"
+printf '# notes\n\n## 2026-10-31 · Sat\n\nthe first day\n\n## 2026-11-01 · Sun\n\nrenew the passport\nbuy rice\n' >"$HOME/notes/notes.md"
 warm
 nap 3
 chord logo n
@@ -126,9 +126,9 @@ PLAY
   # shellcheck disable=SC2016  # (the play's own $HOME, expanded inside the kit)
   { [[ -n $lua ]] && printf 'cp %q "$HOME/.config/fedokawaii/notes.lua"\n' "$(realpath "$lua")"
     cat <<'PLAY'
-mkdir -p "$HOME/Notes"
+mkdir -p "$HOME/notes"
 { for i in $(seq 1 30); do printf '## 2026-10-%02d · Day\n\nline one of day %s\n\n' "$i" "$i"; done
-  printf '## %s\n\nalready written today\n' "$(LC_ALL=C date '+%Y-%m-%d · %a')"; } >"$HOME/Notes/notes.md"
+  printf '## %s\n\nalready written today\n' "$(LC_ALL=C date '+%Y-%m-%d · %a')"; } >"$HOME/notes/notes.md"
 chord logo n
 nap 3
 shot cold
@@ -143,9 +143,9 @@ PLAY
   # shellcheck disable=SC2016  # (the play's own $HOME, expanded inside the kit)
   { [[ -n $lua ]] && printf 'cp %q "$HOME/.config/fedokawaii/notes.lua"\n' "$(realpath "$lua")"
     cat <<'PLAY'
-mkdir -p "$HOME/Notes"
-printf '# notes\n\n## 2026-11-01 · Sun\n\nthe first day\n' >"$HOME/Notes/notes.md"
-for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+mkdir -p "$HOME/notes"
+printf '# notes\n\n## 2026-11-01 · Sun\n\nthe first day\n' >"$HOME/notes/notes.md"
+for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/notes/todo.md"
 warm
 nap 3
 chord logo n

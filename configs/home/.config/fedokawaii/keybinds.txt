@@ -20,7 +20,7 @@ Super+Shift+U           change the desktop, part by part
 Super+Escape            lock screen (then sleep after 90 s)
 Super+Shift+E           power menu
 Sleep key               locked first, then asleep
-── screenshots (clipboard + ~/Pictures/Screenshots) ───────────────
+── screenshots (clipboard + ~/captures) ───────────────────────────
 Print                   region
 Shift+Print             full screen
 Super+Print             region → annotate (Enter copies)
@@ -29,7 +29,7 @@ Super+Shift+S           region (no Print key)
 Super+Shift+F           full screen (no Print key)
 Super+Shift+A           region → annotate (no Print key)
 Super+Shift+X           region → its text (no Print key)
-Super+Shift+R           record the screen (again: stop) → ~/Videos/Recordings
+Super+Shift+R           record the screen (again: stop) → ~/captures
 Super+Shift+P           pause the recording (again: 3, 2, 1 on the bar, on)
 ── windows ────────────────────────────────────────────────────────
 Super+Q                 close window

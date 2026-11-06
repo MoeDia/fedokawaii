@@ -20,7 +20,7 @@ setup() {
   unset WAYLAND_DISPLAY FAKE_SWAYBG
   SHARE=$HOME/.local/share/fedokawaii; PACK=$SHARE/wallpapers CACHE=$HOME/.cache/fedokawaii
   SCREENS=$CACHE/wallpaper-screens PREVIEWS=$CACHE/wallpaper-previews
-  STATE=$HOME/.local/state/fedokawaii WP=$HOME/Pictures/Wallpapers
+  STATE=$HOME/.local/state/fedokawaii WP=$HOME/.local/share/fedokawaii/wallpapers
   export KAWA_SYSFS=$TMP/sys; mkdir -p "$KAWA_SYSFS/class/drm"   # (no monitor the kernel lists)
   # swaybg: keeps its arguments; loads its pictures as swaybg does (each opened, read and
   # closed — a copy kept as $TMP/seen/CALL-N.png), then waits on the compositor (in poll) for

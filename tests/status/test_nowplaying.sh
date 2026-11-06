@@ -18,7 +18,7 @@ setup() {
 # P INSTANCE STATUS ARTIST TITLE [URL [ART]] — a player as playerctl's format prints it: six
 # fields, its address (xesam:url) and its picture's address (mpris:artUrl) empty unless given
 P() { printf '%s\x1f%s\x1f%s\x1f%s\x1f%s\x1f%s' "$1" "$2" "$3" "$4" "${5:-}" "${6:-}"; }
-FILM=file:///home/dia/Videos/film.mkv                 # a video's address, as mpv gives it
+FILM=file:///home/dia/downloads/film.mkv                 # a video's address, as mpv gives it
 step() {   # step EMIT [PLAYER…] — the follow stream prints EMIT ("" = no player); the players then
   local n; n=$(printf '%02d' $(($(find "$NP/steps" -name '*.emit' | wc -l) + 1)))
   printf '%s\n' "$1" >"$NP/steps/$n.emit"; shift
@@ -207,7 +207,7 @@ eq "$(grep -c '"playing"' "$TMP/wing-left")" 1 "one frame drawn in the left wing
 eq "$(last "$(cat "$TMP/wing-left")") $(last "$(cat "$TMP/wing-right")")" "playing|$(EQ 9 9 9 9 9 9 9 9) playing|$(EQ 9 9 9 9 9 9 9 9)" "the frame of nines: the top of the range"
 
 case_ "no artist (a video): the television and just the title — no rule"
-setup; step "$(P mpv Playing '' 'holiday.mkv' file:///home/dia/Videos/holiday.mkv)"
+setup; step "$(P mpv Playing '' 'holiday.mkv' file:///home/dia/downloads/holiday.mkv)"
 out=$(bar); eq "$(last "$out")" "playing|${ICON_BAR_TV_0}holiday.mkv"; lacks "$out" "$ICON_NP_RULE" "no artist, no rule"
 
 # ── a video or sound ─────────────────────────────────────────────────────────
@@ -226,14 +226,14 @@ kinds_check() {
 case_ "mpv: a video or sound by the file's address — an audio file's extension (mp3 flac ogg oga opus m4a wav aac wma ape alac aiff mka, in any case) or no address is sound, any other address a video; its picture is never looked at"
 setup
 kind 0 "a .mkv file: the television" mpv "$FILM"
-for e in mp4 webm avi mov; do kind 0 "a .$e file: the television" mpv "file:///home/dia/Videos/clip.$e"; done
+for e in mp4 webm avi mov; do kind 0 "a .$e file: the television" mpv "file:///home/dia/downloads/clip.$e"; done
 kind 0 "a web address (a stream): the television" mpv 'https://www.youtube.com/watch?v=abc'
 kind 0 "a second mpv window (mpv.instance4242): the same" mpv.instance4242 "$FILM"
 kind a "no address: the cassette" mpv
-for e in mp3 flac ogg oga opus m4a wav aac wma ape alac aiff mka; do kind a "a .$e file: the cassette" mpv "file:///home/dia/Music/song.$e"; done
-kind a "capitals (SONG.FLAC): the cassette" mpv file:///home/dia/Music/SONG.FLAC
-kind a "a name with spaces (%20): the cassette" mpv 'file:///home/dia/Music/My%20Song.mp3'
-kind a "a song with a wide cover: the address says song" mpv file:///home/dia/Music/song.flac "$(art 1280 720)"
+for e in mp3 flac ogg oga opus m4a wav aac wma ape alac aiff mka; do kind a "a .$e file: the cassette" mpv "file:///home/dia/downloads/song.$e"; done
+kind a "capitals (SONG.FLAC): the cassette" mpv file:///home/dia/downloads/SONG.FLAC
+kind a "a name with spaces (%20): the cassette" mpv 'file:///home/dia/downloads/My%20Song.mp3'
+kind a "a song with a wide cover: the address says song" mpv file:///home/dia/downloads/song.flac "$(art 1280 720)"
 kind 0 "a video with a square picture: the address says video" mpv "$FILM" "$(art 640 640)"
 kinds_check
 case_ "any other player (a browser): a video or sound by its picture — a PNG file wider than 5:4 (width×4 above height×5) is a video's frame, any other shape, or no picture to read, is sound; its address means nothing"
@@ -256,14 +256,14 @@ kind a "a wide picture that is not a PNG (WebP): its bytes there are not a size 
 kinds_check
 case_ "the next track is of the other kind: the picture follows it (a song, a video, a song again)"
 setup
-step "$(P mpv Playing '' one.flac file:///home/dia/Music/one.flac)"
-step "$(P mpv Playing '' two.mkv file:///home/dia/Videos/two.mkv)"
-step "$(P mpv Playing '' three.mp3 file:///home/dia/Music/three.mp3)"
+step "$(P mpv Playing '' one.flac file:///home/dia/downloads/one.flac)"
+step "$(P mpv Playing '' two.mkv file:///home/dia/downloads/two.mkv)"
+step "$(P mpv Playing '' three.mp3 file:///home/dia/downloads/three.mp3)"
 eq "$(pics "$(bar)")" a0a "the cassette, the television, the cassette"
 case_ "…the same name, now a video (mpv: its address is part of what makes a track new): the television"
 setup
-step "$(P mpv Playing '' film file:///home/dia/Music/film.flac)"
-step "$(P mpv Playing '' film file:///home/dia/Videos/film.mkv)"
+step "$(P mpv Playing '' film file:///home/dia/downloads/film.flac)"
+step "$(P mpv Playing '' film file:///home/dia/downloads/film.mkv)"
 eq "$(pics "$(bar)")" a0 "the cassette, then the television"
 
 case_ "paused: the same picture as playing, standing still at its first frame (no pause sign) — the cassette for sound —, the title, the rule and the artist, class paused, the wings empty, cava stopped"

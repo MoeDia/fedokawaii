@@ -39,10 +39,10 @@ record() { mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\t1 B\tKINGSTON\n
 notice() { grep '^notify-send' "$CALLS" | tail -n1; }     # the last notice
 # the home's own files for a backup: Arabic, Japanese and spaced names, 50 MB of random bytes
 home_files() {
-  mkdir -p "$HOME/Documents/ملف جديد" "$HOME/Documents/sub dir/deeper" "$HOME/Downloads" "$HOME/.cache/thumbs"
-  echo one >"$HOME/Documents/ملف جديد/日本語 ファイル.txt"; echo two >"$HOME/Documents/sub dir/deeper/a b.txt"
-  echo three >"$HOME/Documents/report.ods"; echo four >"$HOME/Downloads/keep me.pdf"; echo five >"$HOME/.cache/thumbs/t.png"
-  head -c 52428800 /dev/urandom >"$HOME/Documents/big.bin"
+  mkdir -p "$HOME/notes/ملف جديد" "$HOME/notes/sub dir/deeper" "$HOME/downloads" "$HOME/.cache/thumbs"
+  echo one >"$HOME/notes/ملف جديد/日本語 ファイル.txt"; echo two >"$HOME/notes/sub dir/deeper/a b.txt"
+  echo three >"$HOME/notes/report.ods"; echo four >"$HOME/downloads/keep me.pdf"; echo five >"$HOME/.cache/thumbs/t.png"
+  head -c 52428800 /dev/urandom >"$HOME/notes/big.bin"
 }
 
 # ── without restic: the words ────────────────────────────────────────────────
@@ -200,42 +200,42 @@ has "$(cat "$HOME/.cache/fedokawaii/backup.log")" "snapshot "
 R=(restic -r "$DRIVE/fedokawaii-backup"); export RESTIC_PASSWORD="correct horse"
 case_ "what is in it: the documents, with their names as they were; not the downloads, not the cache"
 ls_=$("${R[@]}" ls latest 2>/dev/null)
-has "$ls_" "$HOME/Documents/ملف جديد/日本語 ファイル.txt"; has "$ls_" "$HOME/Documents/sub dir/deeper/a b.txt"
-lacks "$ls_" "$HOME/Downloads" "Downloads is left out (arrivals: outside the snapshots too)"
+has "$ls_" "$HOME/notes/ملف جديد/日本語 ファイル.txt"; has "$ls_" "$HOME/notes/sub dir/deeper/a b.txt"
+lacks "$ls_" "$HOME/downloads" "downloads is left out (arrivals: outside the snapshots too)"
 lacks "$ls_" "$HOME/.cache/" "the cache is on the exclude list"
 case_ "list: the backups, with their ids"
 out=$(kawa-backup list 2>&1); eq "$?" 0; has "$out" "1 snapshots"; has "$out" "$HOME"
 id=$(sed -n 's/^\([0-9a-f]\{8\}\)  .*/\1/p' <<<"$out" | head -n1); [[ $id =~ ^[0-9a-f]{8}$ ]] && _ok || _no "no id in: $out"
 
 case_ "restore one file: into ~/Restored/<date>/, byte for byte; the original untouched"
-echo changed >"$HOME/Documents/report.ods"
-out=$(kawa-backup restore "$HOME/Documents/report.ods" 2>&1); eq "$?" 0 "$out"
+echo changed >"$HOME/notes/report.ods"
+out=$(kawa-backup restore "$HOME/notes/report.ods" 2>&1); eq "$?" 0 "$out"
 f=$(find "$HOME/Restored" -type f -name report.ods); [[ -n $f ]] && _ok || _no "nothing restored: $out"
-eq "$(cat "$f")" three; eq "$(cat "$HOME/Documents/report.ods")" changed; has "$out" "restored: $HOME/Restored/"
+eq "$(cat "$f")" three; eq "$(cat "$HOME/notes/report.ods")" changed; has "$out" "restored: $HOME/Restored/"
 case_ "restore a folder, by a relative path from inside the home, with Arabic and Japanese and spaces: every byte the same"
-rm -r "$HOME/Documents/ملف جديد"
-out=$(cd "$HOME/Documents" && kawa-backup restore "ملف جديد" 2>&1); eq "$?" 0 "$out"
+rm -r "$HOME/notes/ملف جديد"
+out=$(cd "$HOME/notes" && kawa-backup restore "ملف جديد" 2>&1); eq "$?" 0 "$out"
 d=$(find "$HOME/Restored" -type d -name "ملف جديد" | head -n1); [[ -n $d ]] && _ok || _no "the folder did not come back: $out"
 eq "$(cat "$d/日本語 ファイル.txt")" one
-out=$(kawa-backup restore "$HOME/Documents/big.bin" 2>&1); eq "$?" 0
-cmp -s "$(find "$HOME/Restored" -type f -name big.bin | head -n1)" "$HOME/Documents/big.bin" && _ok || _no "50 MB came back different"
+out=$(kawa-backup restore "$HOME/notes/big.bin" 2>&1); eq "$?" 0
+cmp -s "$(find "$HOME/Restored" -type f -name big.bin | head -n1)" "$HOME/notes/big.bin" && _ok || _no "50 MB came back different"
 case_ "restore by a snapshot's id; a path that is not in the backup: said, no empty folder left"
-rc 0 kawa-backup restore "$HOME/Documents/sub dir/deeper/a b.txt" "$id"
-out=$(kawa-backup restore "$HOME/Downloads/keep me.pdf" 2>&1); eq "$?" 1 "a download was never backed up"; has "$out" "in that backup"
+rc 0 kawa-backup restore "$HOME/notes/sub dir/deeper/a b.txt" "$id"
+out=$(kawa-backup restore "$HOME/downloads/keep me.pdf" 2>&1); eq "$?" 1 "a download was never backed up"; has "$out" "in that backup"
 n=$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 | wc -l)
-out=$(kawa-backup restore "$HOME/Documents/never-was.txt" 2>&1); eq "$?" 1; has "$out" "not in that backup: $HOME/Documents/never-was.txt"
+out=$(kawa-backup restore "$HOME/notes/never-was.txt" 2>&1); eq "$?" 1; has "$out" "not in that backup: $HOME/notes/never-was.txt"
 eq "$(find "$HOME/Restored" -mindepth 1 -maxdepth 1 | wc -l)" "$n" "no folder left behind"
-out=$(kawa-backup restore "$HOME/Documents/report.ods" deadbeef 2>&1); eq "$?" 1 "an id that is no snapshot"
+out=$(kawa-backup restore "$HOME/notes/report.ods" deadbeef 2>&1); eq "$?" 1 "an id that is no snapshot"
 rc 2 kawa-backup restore "$HOME/x" "not an id"; rc 2 kawa-backup restore /
 
 case_ "a second backup: only what changed goes over (a few KiB, not 50 MB), two snapshots"
-reset_calls; echo six >"$HOME/Documents/new.txt"
+reset_calls; echo six >"$HOME/notes/new.txt"
 rc 0 kawa-backup; n=$(notice)
 has "$n" "backed up"; lacks "$n" "MiB new" "the big file is not added again"; has "$n" "iB new"
 has "$(kawa-backup list)" "2 snapshots"
-case_ "Downloads wanted as well: its line deleted from the exclude list, and the next backup has it"
-sed -i '\|/Downloads$|d' "$HOME/.config/fedokawaii/backup-exclude"
-rc 0 kawa-backup; has "$("${R[@]}" ls latest 2>/dev/null)" "$HOME/Downloads/keep me.pdf"
+case_ "downloads wanted as well: its line deleted from the exclude list, and the next backup has it"
+sed -i '\|/downloads$|d' "$HOME/.config/fedokawaii/backup-exclude"
+rc 0 kawa-backup; has "$("${R[@]}" ls latest 2>/dev/null)" "$HOME/downloads/keep me.pdf"
 case_ "times (Super+U → restore's list): every backup, newest first — its id, its time as restic has it, the home it holds"
 out=$(kawa-backup times 2>&1); eq "$?" 0 "$out"; eq "$(grep -c . <<<"$out")" 3 "three backups: $out"
 IFS=$'\t' read -r tid ttime tpath <<<"$(sed -n 1p <<<"$out")"
@@ -246,9 +246,9 @@ case_ "mount DIR: the backups opened read-only (FUSE) — the home inside each u
 if [[ -c /dev/fuse ]] && command -v fusermount3 >/dev/null; then
   m=$W/mnt; mkdir -p "$m"; kawa-backup mount "$m" 2>"$W/mount.err" & mp=$!
   for _ in $(seq 1 300); do [[ -d $m/ids/$id ]] && break; sleep 0.1; done
-  eq "$(cat "$m/ids/$id$HOME/Documents/report.ods" 2>/dev/null)" three "a file of the first backup, read inside it"
+  eq "$(cat "$m/ids/$id$HOME/notes/report.ods" 2>/dev/null)" three "a file of the first backup, read inside it"
   out=$(kawa-backup 2>&1); eq "$?" 1 "a backup while one is open for a restore"; has "$out" "the backup is open for a restore (Super+U → restore) — close that window first"
-  { echo x >"$m/ids/$id$HOME/Documents/new.txt"; } 2>/dev/null && _no "written into a backup" || _ok
+  { echo x >"$m/ids/$id$HOME/notes/new.txt"; } 2>/dev/null && _no "written into a backup" || _ok
   fusermount3 -u "$m"; wait "$mp"; eq "$?" 0 "restic ends with the unmount: $(cat "$W/mount.err")"
   mountpoint -q "$m" && _no "still mounted" || _ok
 else skip "no FUSE here: mount is not tried"; fi
@@ -271,7 +271,7 @@ echo unplugged >"$W/drive"; reset_calls; rc 1 kawa-backup; has "$(notice)" "KING
 echo closed >"$W/drive"; reset_calls; rc 0 kawa-backup; called '^kawa-drives open /dev/sdb1$'; has "$(notice)" "backed up"
 
 case_ "two at once: the second says a backup is running already (the lock), and does not start restic"
-head -c 125829120 /dev/urandom >"$HOME/Documents/bigger.bin"; reset_calls
+head -c 125829120 /dev/urandom >"$HOME/notes/bigger.bin"; reset_calls
 kawa-backup >"$W/first.out" 2>&1 & first=$!
 # (waiting for its first notice, sent once it holds the lock — a probe of the lock would take it
 # for a moment, and could be what the first run finds)
@@ -280,7 +280,7 @@ out=$(kawa-backup 2>&1); eq "$?" 1 "the second run"; has "$out" "a backup is run
 wait "$first"; eq "$?" 0 "the first run: $(tail -n 2 "$W/first.out" | tr '\n' '|')"
 eq "$(grep -c '· backed up ' "$CALLS")" 1 "one backup, one done-notice"
 case_ "killed halfway (Super+Q, a power cut), then run again: the stale lock goes, the backup ends; prune and check still run"
-echo more >"$HOME/Documents/more.txt"; head -c 62914560 /dev/urandom >"$HOME/Documents/third.bin"
+echo more >"$HOME/notes/more.txt"; head -c 62914560 /dev/urandom >"$HOME/notes/third.bin"
 kawa-backup >/dev/null 2>&1 & p=$!
 for _ in $(seq 1 100); do [[ -n $(ls "$DRIVE/fedokawaii-backup/locks" 2>/dev/null) ]] && break; sleep 0.05; done
 pkill -KILL -P "$p" restic 2>/dev/null; kill -KILL "$p" 2>/dev/null; wait "$p" 2>/dev/null

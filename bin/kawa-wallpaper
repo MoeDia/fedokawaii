@@ -25,7 +25,7 @@
 #   the pack  pictures listed in ~/.local/share/fedokawaii/wallpapers.list, fetched from
 #             GitHub (checked by SHA-256) and kept as they came. Some come in pairs (the
 #             same place by day and by night): choosing one sets both themes.
-#   your own  anything in ~/Pictures/Wallpapers, on either theme
+#   your own  anything in ~/.local/share/fedokawaii/wallpapers, on either theme
 # Every picture is shown at full quality on each monitor: scaled with a Lanczos filter (the
 # sharpest clean one) to cover the screen exactly, and cropped to it — from the middle, or
 # the side the list names (a picture whose subject is high up keeps its top). The pack's
@@ -66,7 +66,7 @@ if [[ ${1:-menu} == menu ]]; then
   trap 'rm -f "$pick"' EXIT
   kawa-term --float --once wallpaper wallpaper "${WIN_COLS}x37" -- "$0" --tui "$pick" || exit 0
 fi
-WALLPAPER_DIR=$HOME/Pictures/Wallpapers
+WALLPAPER_DIR=$HOME/.local/share/fedokawaii/wallpapers
 TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}    # (the desktop's own pictures come with it; the tests point it elsewhere)
 # shellcheck source=/dev/null
 . "$HOME/.config/fedokawaii/env"

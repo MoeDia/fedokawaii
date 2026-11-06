@@ -121,7 +121,7 @@ fresh; mkdir -p "$T/root/home/dia/.config"; echo x >"$T/root/home/dia/.config/y"
 FK_FLAT=1 fedokawaii-split clean; eq "$?" 0
 [[ -z $(ls -A "$T/root/home") && -z $(ls -A "$T/root/var/log") ]] && _ok || _no "left: $(ls -A "$T/root/home" "$T/root/var/log")"
 case_ "…a subvolume still inside the old /home: that copy left whole, said"
-fresh; mkdir "$T/root/home/dia/Downloads"; stat -c %i "$T/root/home/dia/Downloads" >>"$REG"
+fresh; mkdir "$T/root/home/dia/downloads"; stat -c %i "$T/root/home/dia/downloads" >>"$REG"
 out=$(FK_FLAT=1 fedokawaii-split clean 2>&1); eq "$?" 0; has "$out" "a subvolume is still inside the old /home"
 eq "$(cat "$T/root/home/dia/notes.txt")" his; [[ -z $(ls -A "$T/root/var/log") ]] && _ok || _no "the old /var/log not removed"
 case_ "…not flat: nothing removed"

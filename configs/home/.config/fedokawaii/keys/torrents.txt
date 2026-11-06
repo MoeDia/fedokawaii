@@ -25,7 +25,7 @@ q                       close the window
 ── torrents: adding ───────────────────────────────────────────────
 Enter                   add what is on the line
 Ctrl+O                  pick a .torrent in yazi
-x                       an offer from the clipboard or Downloads: not now
+x                       an offer from the clipboard or ~/downloads: not now
 ── torrents: its files ────────────────────────────────────────────
 Space                   keep it or skip it
 a / n / i               keep all / none / the other way round

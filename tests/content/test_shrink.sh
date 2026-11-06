@@ -115,12 +115,12 @@ case_ "files copied in yazi (Ctrl+C): those"
 setup
 kawa-clipfiles copy "$A/screen.png"
 rc 0 shrink "	WebP"; [[ -s $A/screen.webp ]] && _ok || _no "not done"
-case_ "a picture copied (a screenshot, an image in Helium): the result kept in ~/Pictures"
+case_ "a picture copied (a screenshot, an image in Helium): the result kept in ~/captures"
 setup
 wl-copy --type image/png <"$A/screen.png"
 rc 0 shrink "chat	under 500 KB"
-f=$(ls "$HOME/Pictures" 2>/dev/null)
-[[ $f =~ ^copied\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9.]{8}\ \(chat\)\.jpg$ ]] && _ok || _no "in ~/Pictures: [$f]"
+f=$(ls "$HOME/captures" 2>/dev/null)
+[[ $f =~ ^copied\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9.]{8}\ \(chat\)\.jpg$ ]] && _ok || _no "in ~/captures: [$f]"
 eq "$(cat "$CB.type")" image/jpeg
 case_ "nothing copied, text, or a file that is neither: said, no menu, exit 1"
 setup; shrink "chat"; eq "$?" 1; called 'notify-send .*nothing to shrink'; [[ ! -e $TMP/menu.args ]] && _ok || _no "a menu opened"
@@ -171,33 +171,33 @@ wl-copy --type image/jpeg <"$A/beach.jpg"                  # (the clipboard: ano
 open_window; cursor 1
 rc 0 shrink "chat	under 500 KB"
 has "$(head -n1 "$TMP/menu.rows")" "	1 picture · $(awk -v b="$(size "$A/screen.png")" 'BEGIN { if (b < 1000000) printf "%d KB", b / 1000 + 0.5; else printf "%.1f MB", b / 1000000 }')"
-f=$(ls "$HOME/Pictures" 2>/dev/null)
-[[ $f =~ ^copied\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9.]{8}\ \(chat\)\.jpg$ ]] && _ok || _no "in ~/Pictures: [$f]"
-eq "$(dims "$HOME/Pictures/$f")" "1200 900" "the screenshot's size (the beach photo is 3200×2400, and 1600 at most after)"
-eq "$(cat "$CB.type")" image/jpeg; cmp -s "$CB.data" "$HOME/Pictures/$f" && _ok || _no "the clipboard holds something else"
+f=$(ls "$HOME/captures" 2>/dev/null)
+[[ $f =~ ^copied\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9.]{8}\ \(chat\)\.jpg$ ]] && _ok || _no "in ~/captures: [$f]"
+eq "$(dims "$HOME/captures/$f")" "1200 900" "the screenshot's size (the beach photo is 3200×2400, and 1600 at most after)"
+eq "$(cat "$CB.type")" image/jpeg; cmp -s "$CB.data" "$HOME/captures/$f" && _ok || _no "the clipboard holds something else"
 close_window
 
 case_ "… converted again, and again (a result of Super+Z is a picture like any other): a new file each time"
 hist_setup; WATCH=1; export WATCH
 put <"$A/screen.png"
 open_window; cursor 1
-rc 0 shrink "chat	under 500 KB"; r1=$HOME/Pictures/$(ls "$HOME/Pictures" | head -n1)
+rc 0 shrink "chat	under 500 KB"; r1=$HOME/captures/$(ls "$HOME/captures" | head -n1)
 until_newest_is "$r1" && _ok || _no "the result is not in the history"
 for _ in {1..40}; do grep -q '^curl ' "$CALLS" && break; sleep 0.05; done   # (the watcher, then the window poked)
 called "^curl .*--unix-socket $XDG_RUNTIME_DIR/kawa-clip.sock .*reload\\(.*kawa-clip --list\\)\\+first"
 cursor "$(newest)"                                           # (fzf: reload, the cursor on the top one)
 rc 0 shrink "	WebP"
-r2=$(ls "$HOME/Pictures"/*.webp 2>/dev/null); [[ -s $r2 ]] && _ok || _no "no WebP: $(ls "$HOME/Pictures" | tr '\n' '|')"
+r2=$(ls "$HOME/captures"/*.webp 2>/dev/null); [[ -s $r2 ]] && _ok || _no "no WebP: $(ls "$HOME/captures" | tr '\n' '|')"
 eq "$(file -b --mime-type "$r2")" image/webp; eq "$(cat "$CB.type")" image/webp
 until_newest_is "$r2" && _ok || _no "the WebP is not in the history"
 cursor "$(newest)"
 rc 0 shrink "chat	under 500 KB"
-eq "$(ls "$HOME/Pictures" | wc -l)" 3 "three results, none over another: $(ls "$HOME/Pictures" | tr '\n' '|')"
-r3=$(ls -t "$HOME/Pictures" | head -n1); eq "$(file -b --mime-type "$HOME/Pictures/$r3")" image/jpeg
-cmp -s "$CB.data" "$HOME/Pictures/$r3" && _ok || _no "the third is not on the clipboard"
+eq "$(ls "$HOME/captures" | wc -l)" 3 "three results, none over another: $(ls "$HOME/captures" | tr '\n' '|')"
+r3=$(ls -t "$HOME/captures" | head -n1); eq "$(file -b --mime-type "$HOME/captures/$r3")" image/jpeg
+cmp -s "$CB.data" "$HOME/captures/$r3" && _ok || _no "the third is not on the clipboard"
 case_ "… the same choice twice on the same entry: two files, the second numbered"
 cursor 1; rc 0 shrink "	PNG"; rc 0 shrink "	PNG"
-eq "$(find "$HOME/Pictures" -maxdepth 1 -name '*.png' | wc -l)" 2
+eq "$(find "$HOME/captures" -maxdepth 1 -name '*.png' | wc -l)" 2
 unset WATCH; close_window
 
 case_ "Super+V open, the cursor on text: nothing to shrink — even with a picture on the clipboard"
@@ -206,7 +206,7 @@ printf 'just words' | put; wl-copy --type image/png <"$A/screen.png"
 open_window; cursor 1
 shrink "chat"; eq "$?" 1
 called 'notify-send .*nothing to shrink.*the entry under the cursor'; [[ ! -e $TMP/menu.args ]] && _ok || _no "a menu opened"
-eq "$(ls "$HOME/Pictures" 2>/dev/null)" ""
+eq "$(ls "$HOME/captures" 2>/dev/null)" ""
 case_ "… the search matching nothing (no cursor), or an entry forgotten meanwhile: the same"
 kawa-clip --focus "$WIN"; shrink "chat"; eq "$?" 1
 cursor 99; shrink "chat"; eq "$?" 1
@@ -226,7 +226,7 @@ put <"$A/screen.png"; open_window; cursor 1
 MENU_HOOK='touch "$TMP/close"; sleep 0.3' rc 0 shrink "	JPEG"
 wait "$WIN" 2>/dev/null
 [[ ! -e $XDG_RUNTIME_DIR/kawa-clip.current ]] && _ok || _no "the window's file stayed"
-eq "$(find "$HOME/Pictures" -maxdepth 1 -name '*.jpg' | wc -l)" 1
+eq "$(find "$HOME/captures" -maxdepth 1 -name '*.jpg' | wc -l)" 1
 
 case_ "a window gone without a word (killed: its file left): ignored — the clipboard it is"
 hist_setup
@@ -234,7 +234,7 @@ printf 'just words' | put; wl-copy --type image/png <"$A/screen.png"
 sh -c 'exit 0' & dead=$!; wait "$dead"
 printf '%s 1\n' "$dead" >"$XDG_RUNTIME_DIR/kawa-clip.current"
 rc 1 kawa-clip --held
-rc 0 shrink "	WebP"; eq "$(find "$HOME/Pictures" -maxdepth 1 -name 'copied *.webp' | wc -l)" 1 "the clipboard's picture, as WebP"
+rc 0 shrink "	WebP"; eq "$(find "$HOME/captures" -maxdepth 1 -name 'copied *.webp' | wc -l)" 1 "the clipboard's picture, as WebP"
 case_ "… its pid now another program's: ignored too"
 sleep 30 & other=$!; on_exit "kill $other 2>/dev/null"
 printf '%s 1\n' "$other" >"$XDG_RUNTIME_DIR/kawa-clip.current"
@@ -245,10 +245,10 @@ case_ "its keys: Super+Z (dwl), Alt+S in yazi"
 case_ "Super+Z with yazi focused: its selection (or the file under its cursor), through yazi itself — not the clipboard"
 setup; mkdir -p "$XDG_RUNTIME_DIR/dwl-bar"; stub ya
 cp /bin/sleep "$TMP/yazi"; "$TMP/yazi" 30 & yp=$!
-printf '{"text":"Yazi: Pictures"}\n' >"$XDG_RUNTIME_DIR/dwl-bar/title.json"
-printf '%s\t%s\t%s\n' "$yp" 1700000000.100 "$HOME/Pictures" >"$XDG_RUNTIME_DIR/kawa-yazi.111"
+printf '{"text":"Yazi: captures"}\n' >"$XDG_RUNTIME_DIR/dwl-bar/title.json"
+printf '%s\t%s\t%s\n' "$yp" 1700000000.100 "$HOME/captures" >"$XDG_RUNTIME_DIR/kawa-yazi.111"
 printf '%s\t%s\t%s\n' "$yp" 1700000000.050 "$HOME/Other" >"$XDG_RUNTIME_DIR/kawa-yazi.222"
-printf '%s\t%s\t%s\n' 999999 1700000009.000 "$HOME/Pictures" >"$XDG_RUNTIME_DIR/kawa-yazi.333"
+printf '%s\t%s\t%s\n' 999999 1700000009.000 "$HOME/captures" >"$XDG_RUNTIME_DIR/kawa-yazi.333"
 rc 0 kawa-shrink; called '^ya emit-to 111 shell kawa-shrink %s --orphan$'; not_called '^wl-paste'
 [[ ! -e $XDG_RUNTIME_DIR/kawa-yazi.333 ]] && _ok || _no "a closed yazi's record left"
 case_ "…another window focused: the clipboard, as before"

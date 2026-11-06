@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # kawa-record — screen recording (Super+Shift+R): the whole screen or a region, with the
 # desktop's sound or without, encoded on the graphics card (wf-recorder: H.264 through VA-API,
-# the sound AAC) into ~/Videos/Recordings/YYYY-MM-DD_HH-MM-SS.mp4.
+# the sound AAC) into ~/captures/YYYY-MM-DD_HH-MM-SS.mp4.
 #
 #   kawa-record          not recording: a menu under the bar — whole screen or a region, sound
 #                        or none — then it starts. Recording: it stops (the same key)
@@ -31,7 +31,7 @@ case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"
 RUN=${XDG_RUNTIME_DIR:-}
 [[ -n $RUN && -d $RUN && -w $RUN ]] || { echo "kawa-record: no runtime folder (not logged in to the desktop?)" >&2; exit 1; }
 STATE=$RUN/kawa-record LOG=$RUN/kawa-record.log
-DIR=$HOME/Videos/Recordings
+DIR=$HOME/captures
 SIG=22                                             # (the bar's custom/record module)
 
 # the recording that runs: "PID START FILE MODE" of a run still alive → PID START FILE MODE

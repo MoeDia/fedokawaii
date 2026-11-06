@@ -28,10 +28,10 @@ home() {   # home — a fresh home with the shell's files (Fedora's ~/.bashrc re
   printf '%s\n' 'for rc in ~/.bashrc.d/*; do [ -f "$rc" ] && . "$rc"; done; unset rc' >"$HOME/.bashrc"
   stub zoxide 'case $1 in init) printf "%s\n" "__zoxide_z() { builtin cd \"\$@\"; }" "cd() { __zoxide_z \"\$@\"; }" ;; esac'
   stub eza; stub bat
-  mkdir -p "$HOME/repos/fedokawaii/configs/home/.config" "$HOME/日本語のフォルダ" \
+  mkdir -p "$HOME/dojo/fedokawaii/configs/home/.config" "$HOME/日本語のフォルダ" \
            "$HOME/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide"
-  git -C "$HOME/repos/fedokawaii" init -q -b main
-  echo a >"$HOME/repos/fedokawaii/a"; git -C "$HOME/repos/fedokawaii" add a; echo b >"$HOME/repos/fedokawaii/b"
+  git -C "$HOME/dojo/fedokawaii" init -q -b main
+  echo a >"$HOME/dojo/fedokawaii/a"; git -C "$HOME/dojo/fedokawaii" add a; echo b >"$HOME/dojo/fedokawaii/b"
 }
 # fn CODE — CODE in an interactive shell of the home, one a command has run in (__kawa_ran:
 # a fresh window, whose width is asked of its terminal, has its own case below)
@@ -88,7 +88,7 @@ lacks "$(lay 19)" "…"; [[ $(lay 19) == "I I I "?*" I 2 I I  " ]] && _ok || _no
 
 # ── real prompts at every tile's width ────────────────────────────────────────
 for c in $WIDTHS; do
-  H=$(headers "$c" 'cd ~/repos/fedokawaii/configs/home/.config' '(exit 3)' 'cd ~/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide' \
+  H=$(headers "$c" 'cd ~/dojo/fedokawaii/configs/home/.config' '(exit 3)' 'cd ~/a-folder-whose-name-is-far-longer-than-any-small-tile-is-wide' \
       'cd ~/日本語のフォルダ' '__kawa_t0=$((__kawa_t0 - 4200000))')
   case_ "$c columns: every prompt one short line, never as wide as the window; the code after a failure kept while the folder can make room"
   eq "$(wc -l <<<"$H")" 6 "six prompts: $H"
@@ -100,12 +100,12 @@ for c in $WIDTHS; do
   [[ $(sed -n 2p <<<"$H") == *'.config'* ]] && _ok || _no "the folder: [$(sed -n 2p <<<"$H")]"
 done
 case_ "deep in a repository: the folder and the one above it, the branch while there is room"
-eq "$(headers 80 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p)" "I I I home/.config I I  main* I I  exit"
-eq "$(headers 24 'cd ~/repos/fedokawaii/configs/home/.config' | sed -n 2p | tr -d '\r' | sed 's/ *$//')" "I I I .config I I  exit" "24 columns (the typed word ends on the last column: the terminal's wrap mark taken off)"
+eq "$(headers 80 'cd ~/dojo/fedokawaii/configs/home/.config' | sed -n 2p)" "I I I home/.config I I  main* I I  exit"
+eq "$(headers 24 'cd ~/dojo/fedokawaii/configs/home/.config' | sed -n 2p | tr -d '\r' | sed 's/ *$//')" "I I I .config I I  exit" "24 columns (the typed word ends on the last column: the terminal's wrap mark taken off)"
 
 # ── laid out anew when the width changes (ble.sh runs the prompt command again) ──
 case_ "a second run under the same prompt (ble.sh's line number unchanged) only lays the line out for the new width — its result and time kept, nothing printed"
-out=$(fn '_ble_edit_lineno=7; COLUMNS=156; cd ~/repos/fedokawaii/configs/home/.config
+out=$(fn '_ble_edit_lineno=7; COLUMNS=156; cd ~/dojo/fedokawaii/configs/home/.config
   __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 4200000 )); (exit 3); __kawa_prompt >"$TMP/o1"; a=$__kawa_line
   COLUMNS=24; (exit 0); __kawa_prompt >"$TMP/o2"; b=$__kawa_line
   COLUMNS=156; __kawa_prompt >"$TMP/o3"; c=$__kawa_line
@@ -152,9 +152,9 @@ out=$(TERM=foot bash -ic "COLUMNS=50 _ble_app_winsize=(95 30) _ble_canvas_y=3 _b
   __kawa_reflow && printf ' %s %s' \"\$_ble_canvas_y\" \"\$_ble_canvas_x\"" 2>/dev/null)
 eq "$out" "\$'CLEAR\\E[3J' 0 0" "the screen cleared, then its scrollback (3J after the clear: foot brings no row of the old heading back down)"; rm -f "$HOME/sleeps"
 case_ "an entry once its command runs (ble.sh's final prompt): the same line, its torii's colour and all — the history a column of them"
-got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=120; __kawa_prompt >/dev/null; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; [[ $__kawa_final == $'"'"'\n'"'"'"$__kawa_line" ]] && echo same')
+got=$(fn 'cd ~/dojo/fedokawaii; COLUMNS=120; __kawa_prompt >/dev/null; __kawa_t0=$(( ${EPOCHREALTIME/[.,]/} - 10 )); (exit 3); __kawa_prompt >/dev/null; [[ $__kawa_final == $'"'"'\n'"'"'"$__kawa_line" ]] && echo same')
 eq "$got" same "the blank line, then the line itself"
-got=$(fn 'cd ~/repos/fedokawaii; COLUMNS=188; __kawa_prompt >/dev/null; a=$__kawa_final; _ble_edit_lineno=1 __kawa_lineno=1 COLUMNS=20 __kawa_prompt; [[ $a != "$__kawa_final" ]] && echo relaid')
+got=$(fn 'cd ~/dojo/fedokawaii; COLUMNS=188; __kawa_prompt >/dev/null; a=$__kawa_final; _ble_edit_lineno=1 __kawa_lineno=1 COLUMNS=20 __kawa_prompt; [[ $a != "$__kawa_final" ]] && echo relaid')
 eq "$got" relaid "a change of width lays the final form out again too"
 lacks "$(fn 'COLUMNS=80; __kawa_prompt >/dev/null; printf %s "$__kawa_final"')" $'\e]133;A' "no second prompt mark (foot's prompt jumps, and a typed session, count them)"
 case_ "ble.sh shows it: prompt_ps1_final names it (set once ble.sh is loaded)"
@@ -174,7 +174,7 @@ if [[ -n $BLESH_PIN && $(bash "$BLESH_DIR/ble.sh" --version 2>/dev/null) == *"+$
     home; mkdir -p "$HOME/.local/share"; cp -a "$BLESH_DIR" "$HOME/.local/share/blesh"
     # (exit 3) run at the first width; the window resized; then the header as it stands
     # (the line the prompt shows: what a command typed next still sees of it)
-    out=$(cd "$HOME/repos/fedokawaii/configs/home/.config" && LANG=C.UTF-8 TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" \
+    out=$(cd "$HOME/dojo/fedokawaii/configs/home/.config" && LANG=C.UTF-8 TERM=foot python3 -I "$REPO/tests/lib/pty_run.py" \
       --cols "${from%x*}" --rows "${from#*x}" --timeout 60 --quiet 1 --each '\x1b]133;A' --line '(exit 3)' --line-resize "$to" \
       --line 'printf "LINE[%s] C=%s\\n" "$__kawa_line" "$COLUMNS"' --line exit -- bash -i 2>&1)
     h=$(grep -a -o 'LINE\[.*\] C=[0-9]*' <<<"$out" | tail -n1 | sed 's/\x01\|\x02//g; s/\x1b\[[0-9;]*m//g' | plain)
@@ -265,7 +265,7 @@ if [[ -n $REAL_LAZYGIT ]]; then
     mkdir -p "$XDG_STATE_HOME/lazygit"
     printf 'startuppopupversion: 99\nlastversion: %s\n' "$("$REAL_LAZYGIT" --version | sed -n 's/.*version=\([0-9.]*\),.*/\1/p')" \
       >"$XDG_STATE_HOME/lazygit/state.yml"
-    out=$(python3 -I "$YD/drive.py" --size "$s" --cwd "$HOME/repos/fedokawaii" -- "$REAL_LAZYGIT" 2>&1 <<'EOF'
+    out=$(python3 -I "$YD/drive.py" --size "$s" --cwd "$HOME/dojo/fedokawaii" -- "$REAL_LAZYGIT" 2>&1 <<'EOF'
 wait Status
 settle
 screen

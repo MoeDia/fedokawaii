@@ -149,7 +149,7 @@ class App:
         self.into_files = None                     # Enter on a row whose files have not come yet
         self.play_added = False                    # v on a result: play what is being added
         self.synced = False                        # the engine has said what it has
-        self.offers = []                           # what could be added: the clipboard's, the Downloads folder's
+        self.offers = []                           # what could be added: the clipboard's, ~/downloads'
         self.declined = set()
         self.frame_n = 0
         self.last_anim = 0.0
@@ -809,7 +809,7 @@ class App:
 
     def draw_offer(self, item, w, selected):
         o = item["offer"]
-        where = "in the clipboard" if o["from"] == "clipboard" else "in Downloads"
+        where = "in the clipboard" if o["from"] == "clipboard" else "in ~/downloads"
         value = "enter adds  x not now"
         if w < 60:
             value = "enter adds"

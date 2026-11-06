@@ -4,7 +4,7 @@
 # back up when the drive is plugged in (quick settings → backup, Super+U → backup, the drive's
 # own notice), and a reminder comes when the last one is older than BACKUP_REMIND_DAYS.
 #
-#   kawa-backup                  back up now: your home, minus ~/Downloads, caches and what can
+#   kawa-backup                  back up now: your home, minus ~/downloads, caches and what can
 #                                be downloaded again (~/.config/fedokawaii/backup-exclude), to
 #                                BACKUP_TARGET. None yet, in a terminal: the drives plugged in
 #                                to pick from — the one picked saved as BACKUP_TARGET, as
@@ -292,7 +292,7 @@ restore() {   # restore PATH [SNAPSHOT] — into ~/Restored/<date>/, never over 
   local p=$1 snap=${2:-latest} dir parent name out rc
   [[ $p == /* ]] || p=$PWD/$p
   p=${p%/}
-  [[ -n $p && $p != / ]] || { err "restore takes a file or a folder of yours: kawa-backup restore ~/Documents/report.ods"; return 2; }
+  [[ -n $p && $p != / ]] || { err "restore takes a file or a folder of yours: kawa-backup restore ~/notes/notes.md"; return 2; }
   [[ $snap =~ ^([0-9a-f]{8,64}|latest)$ ]] || { err "SNAPSHOT is an id from kawa-backup list (or latest), not \"$snap\""; return 2; }
   open_repo || return 1
   parent=${p%/*}; name=${p##*/}; [[ -n $parent ]] || parent=/

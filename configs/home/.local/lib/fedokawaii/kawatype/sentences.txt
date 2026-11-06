@@ -170,7 +170,7 @@ symbols	Regex: ^fedora$ matches exactly one word (no more).
 symbols	Rated 4* out of 5*: "good, but pricey!"
 signs	x = (a + b) * [c - d] / 2
 signs	if a < b and b > c: print(a)
-signs	path = ~/repos/fedokawaii/bin/
+signs	path = ~/dojo/fedokawaii/bin/
 signs	foo_bar = {"key": "value", "n": 3}
 signs	cat notes.md | grep -v "^#" > out.txt
 signs	git log --oneline -n 20 | less

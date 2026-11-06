@@ -126,13 +126,13 @@ def torrents():
 
 
 def browser_folder():
-    """The browser's download folder: the one set in its settings, else its own, ~/Downloads."""
+    """The browser's download folder: the one set in its settings, else its own, ~/downloads."""
     try:
         with open(os.path.join(BROWSER, "Preferences"), encoding="utf-8") as f:
             d = json.load(f).get("download", {}).get("default_directory")
     except (OSError, ValueError, AttributeError):
         d = None
-    return d or os.path.join(HOME, "Downloads")
+    return d or os.path.join(HOME, "downloads")
 
 
 def totals():

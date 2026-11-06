@@ -1,13 +1,13 @@
-# ~/.config/fedokawaii/backup-exclude — what kawa-backup leaves out of your home: ~/Downloads,
+# ~/.config/fedokawaii/backup-exclude — what kawa-backup leaves out of your home: ~/downloads,
 # caches, and what a program downloads again by itself. Everything else in your home is backed
 # up. One pattern a line, restic's way: a path (the home filled in), or * for any name; a line
 # starting with # is a comment. Changing it: in your working copy
 # (configs/home/.config/fedokawaii/backup-exclude, then fedokawaii apply), never here — the
 # theme writes this file.
-# ~/Downloads: arrivals — torrents, ISO files, installers — big, and fetched again; it is
+# ~/downloads: arrivals — torrents, ISO files, installers — big, and fetched again; it is
 # outside the snapshots for the same reason (its own subvolume, §37.2). What you keep, move
-# into ~/Documents and the like. To back it up as well, delete the line below
-@HOME@/Downloads
+# into ~/notes or ~/dojo. To back it up as well, delete the line below
+@HOME@/downloads
 @HOME@/.cache
 @HOME@/.local/share/Trash
 # uv's Pythons (setup and update make them), neovim's plugins and language servers (update

@@ -2,7 +2,7 @@
 # tests/look/test_record.sh — kawa-record: Super+Shift+R asks whole screen or a region, sound
 # or none, records with wf-recorder on the graphics card (H.264 through VA-API), shows its red dot and
 # the time in the bar while it runs, and the same key (or the mark's click) stops it: the file
-# in ~/Videos/Recordings, its path on the clipboard, a notice whose click opens it.
+# in ~/captures, its path on the clipboard, a notice whose click opens it.
 # wf-recorder is a stand-in that keeps its arguments, writes a file and ends on SIGINT.
 . "$(dirname "$0")/../lib/harness.sh"
 . "$(dirname "$0")/lib.sh"
@@ -10,7 +10,7 @@ need flock python3
 
 setup() {
   look
-  VID=$HOME/Videos/Recordings
+  VID=$HOME/captures
   # kawa-menu --drop --index: the line picked ($TMP/pick), or dismissed (none)
   argv kawa-menu 'cat >"$FAKE_TMP/menu.in"; [ -s "$FAKE_TMP/pick" ] || exit 1; cat "$FAKE_TMP/pick"'
   argv slurp 'echo "10,20 640x480"'
@@ -65,7 +65,7 @@ case_ "stopped: its path on the clipboard, a notice (click: open)"
 until_ '[[ $(ncalls notify-send) -ge 1 ]]'
 f=$(find "$VID" -name '*.mp4'); [[ -s $f ]] && _ok || _no "no file"
 eq "$(cat "$TMP/clip")" "$f"
-n=$(args_of notify-send 1); has "$n" "-A"; has "$n" "default=open"; has "$n" "recording saved · its path copied"; has "$n" "~/Videos/Recordings/"
+n=$(args_of notify-send 1); has "$n" "-A"; has "$n" "default=open"; has "$n" "recording saved · its path copied"; has "$n" "~/captures/"
 
 # ── run: the choices ─────────────────────────────────────────────────────────────────────
 setup

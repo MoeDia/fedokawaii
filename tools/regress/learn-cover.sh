@@ -14,7 +14,7 @@ out=$(mktemp -d /dev/shm/regress-cover.XXXXXX)
 mkdir -p "$out/bin"
 sed "s|^TK=/usr/local/lib/fedokawaii\$|TK=$repo|" "$repo/system/fedokawaii" >"$out/bin/fedokawaii"; chmod +x "$out/bin/fedokawaii"
 cat >"$out/play.sh" <<PLAY
-mkdir -p "\$HOME/.local/state/fedokawaii" "\$HOME/Books"
+mkdir -p "\$HOME/.local/state/fedokawaii" "\$HOME/books"
 printf 'how-to-read\t2026-11-01\n' >"\$HOME/.local/state/fedokawaii/learn"
 footclient -a float -T system -W 100x22 -- env KAWA_LEARN=$repo/docs/learn $out/bin/fedokawaii --popup >/dev/null 2>&1 &
 nap 2.5

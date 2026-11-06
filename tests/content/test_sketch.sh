@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# tests/content/test_sketch.sh — kawa-sketch: a new sketch in ~/Pictures/Sketches, FireAlpaca's own
+# tests/content/test_sketch.sh — kawa-sketch: a new sketch in ~/notes/sketches, FireAlpaca's own
 # blank page, never over an earlier one; FireAlpaca started dressed (the library, X11, the file by
 # name); one running: it is asked. FireAlpaca and the library are stand-ins. tools/regress/sketch-pen.sh
 # is the real thing, off the screen: the pen's pressure through to the stroke, both moods.
@@ -14,25 +14,25 @@ chmod 755 "$app"
 : >"$HOME/.local/lib/fedokawaii/kawa-firealpaca.so"
 cp "$REPO/configs/home/.local/share/fedokawaii/firealpaca/blank.mdp" "${app%/usr/bin/*}/../blank.mdp"
 export QT_QPA_PLATFORMTHEME=qt6ct QT_QPA_PLATFORM='wayland;xcb'
-case_ "a new sketch: ~/Pictures/Sketches/sketch DATE.mdp, the blank page, opened in FireAlpaca"
+case_ "a new sketch: ~/notes/sketches/sketch DATE.mdp, the blank page, opened in FireAlpaca"
 rc 0 kawa-sketch
-f=$(ls "$HOME/Pictures/Sketches")
+f=$(ls "$HOME/notes/sketches")
 [[ $f =~ ^sketch\ [0-9]{4}-[0-9]{2}-[0-9]{2}\ [0-9]{2}\.[0-9]{2}\.mdp$ ]] && _ok || _no "named [$f]"
-cmp -s "$HOME/Pictures/Sketches/$f" "$REPO/configs/home/.local/share/fedokawaii/firealpaca/blank.mdp" && _ok || _no "not the blank page"
-has "$(cat "$TMP/app.log")" "KAWA_FA_OPEN=$HOME/Pictures/Sketches/$f "
+cmp -s "$HOME/notes/sketches/$f" "$REPO/configs/home/.local/share/fedokawaii/firealpaca/blank.mdp" && _ok || _no "not the blank page"
+has "$(cat "$TMP/app.log")" "KAWA_FA_OPEN=$HOME/notes/sketches/$f "
 case_ "it starts dressed: the library, X11 (its build has no other), no theme plugin of another Qt; nothing on its command line"
 has "$(cat "$TMP/app.log")" "LD_PRELOAD=$HOME/.local/lib/fedokawaii/kawa-firealpaca.so"
 has "$(cat "$TMP/app.log")" "QT_QPA_PLATFORM=xcb "
 has "$(cat "$TMP/app.log")" "THEME=unset ARGS="
 case_ "again within the minute: a new one beside it, (1) — never over the first"
-echo drawn >"$HOME/Pictures/Sketches/$f"
-rc 0 kawa-sketch; eq "$(ls "$HOME/Pictures/Sketches" | grep -c '(1)\.mdp$')" 1
-eq "$(cat "$HOME/Pictures/Sketches/$f")" drawn "the first as drawn"
+echo drawn >"$HOME/notes/sketches/$f"
+rc 0 kawa-sketch; eq "$(ls "$HOME/notes/sketches" | grep -c '(1)\.mdp$')" 1
+eq "$(cat "$HOME/notes/sketches/$f")" drawn "the first as drawn"
 case_ "a file named: that file, by its whole path; none made"
-n=$(ls "$HOME/Pictures/Sketches" | wc -l); : >"$TMP/app.log"
+n=$(ls "$HOME/notes/sketches" | wc -l); : >"$TMP/app.log"
 echo x >"$TMP/old one.mdp"; (cd "$TMP" && rc 0 kawa-sketch "old one.mdp")
 has "$(cat "$TMP/app.log")" "KAWA_FA_OPEN=$TMP/old one.mdp "
-eq "$(ls "$HOME/Pictures/Sketches" | wc -l)" "$n"
+eq "$(ls "$HOME/notes/sketches" | wc -l)" "$n"
 case_ "a file that is not there: said, exit 1"
 kawa-sketch "$TMP/nothing.mdp"; eq "$?" 1; called 'notify-send -a desktop -- .*  sketch no such file'
 case_ "one running: it is asked (the request whole, in one step); no second start"

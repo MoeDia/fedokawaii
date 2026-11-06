@@ -14,7 +14,7 @@ STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or os.path.join(HOME, ".lo
 RUN = os.environ.get("XDG_RUNTIME_DIR") or f"/run/user/{os.getuid()}"
 SOCK = os.path.join(RUN, "kawa-torrents.sock")     # (kawa-torrents.socket: systemd holds it, the engine starts on demand)
 WINDOW = os.path.join(RUN, "kawa-torrents.window")  # the window holds a lock on this while it is open
-DOWNLOADS = os.path.join(HOME, "Downloads")
+DOWNLOADS = os.path.join(HOME, "downloads")
 
 # ── a link ──────────────────────────────────────────────────────────────────────────────────
 _MAGNET = re.compile(r"magnet:\?[^\s\"'<>\\`]+", re.I)

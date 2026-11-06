@@ -33,8 +33,8 @@ cat >"$KIT_OUT/dump.txt"
 DUMP_END
 chmod +x "$HOME/dump"
 panel; nap 1; at 1900 1070
-mkdir -p "$HOME/repos/demo" "$HOME/Wide/日本語のフォルダ" "$HOME/Wide/مجلد عربي" "$HOME/Wide/🎉 emoji" "$HOME/Wide/combining é ñ ü" "$HOME/Wide/a very long folder name that goes on and on and on and on and on and on and on"
-(cd "$HOME/repos/demo" && git init -q && echo x >a && git add a && git -c user.name=t -c user.email=t@t commit -qm first)
+mkdir -p "$HOME/dojo/demo" "$HOME/Wide/日本語のフォルダ" "$HOME/Wide/مجلد عربي" "$HOME/Wide/🎉 emoji" "$HOME/Wide/combining é ñ ü" "$HOME/Wide/a very long folder name that goes on and on and on and on and on and on and on"
+(cd "$HOME/dojo/demo" && git init -q && echo x >a && git add a && git -c user.name=t -c user.email=t@t commit -qm first)
 : >"$HOME/pick"
 cmd() {
   case $1 in
@@ -47,9 +47,9 @@ cmd() {
     system)    set -- fedokawaii --popup ;;
     yazi)      set -- yazi "$HOME" ;;
     wide)      set -- yazi "$HOME/Wide" ;;
-    lazygit)   set -- sh -c "cd $HOME/repos/demo && exec lazygit" ;;
+    lazygit)   set -- sh -c "cd $HOME/dojo/demo && exec lazygit" ;;
     btop)      set -- btop ;;
-    nvim)      set -- nvim "$HOME/repos/demo/a" ;;
+    nvim)      set -- nvim "$HOME/dojo/demo/a" ;;
     wiremix)   set -- wiremix ;;
     *)         set -- sh -c "echo no program $1; exec sleep 60" ;;
   esac

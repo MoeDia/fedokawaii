@@ -101,12 +101,12 @@ case_ "one drive: its name and size, whole"
 printf '/dev/sdb1\t/dev/sdb\tSANDISK EXTREME PRO\t58G\texfat\t\n' >"$W/drives"; eq "$(st drives)" "SANDISK EXTREME PRO 58G"
 case_ "the sound muted, no output at all; no DDC/CI monitor; a picture of your own on the wallpaper"
 setup; echo 'Volume: 0.40 [MUTED]' >"$W/vol"; : >"$W/bright"; mkdir -p "$HOME/.local/state/fedokawaii"
-echo "$HOME/Pictures/Wallpapers/my beach photo, from the long summer.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
+echo "$HOME/.local/share/fedokawaii/wallpapers/my beach photo, from the long summer.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
 eq "$(st sound)" 40%; eq "$(st muted)" on "its level kept, muted beside it"; eq "$(st brightness)" "no DDC/CI"; eq "$(st wallpaper)" "my beach photo, from the long summer"
 echo pack:mishima-mist >"$HOME/.local/state/fedokawaii/wallpaper-dark"; eq "$(st wallpaper)" mishima-mist
 stub wpctl 'exit 1'; eq "$(st sound)" "no output"
 case_ "a name with a tab or a line break in it: one line still"
-setup; mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\n' "$HOME/Pictures/a"$'\t'"b.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
+setup; mkdir -p "$HOME/.local/state/fedokawaii"; printf '%s\n' "$HOME/captures/a"$'\t'"b.jpg" >"$HOME/.local/state/fedokawaii/wallpaper-dark"
 eq "$(st wallpaper)" "a b"; eq "$(state | grep -c .)" "$(state | cut -f1 | grep -c '^[a-z]*$')"
 
 # ── the network ────────────────────────────────────────────────────────────────────────

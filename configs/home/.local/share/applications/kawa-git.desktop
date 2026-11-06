@@ -1,7 +1,7 @@
 [Desktop Entry]
 # Your repositories (kawa-git) in a terminal window of its own (kawa-term, app-id kawa-git),
 # tiled: the one you worked in last first, Enter opens lazygit in it. With none yet, it says
-# how to get one — clone one into ~/repos, or start a new one — and opens lazygit there. Its
+# how to get one — clone one into ~/dojo, or start a new one — and opens lazygit there. Its
 # icon: our pixel branch (the launcher draws it: X-Fedokawaii-Icon).
 Type=Application
 Name=Git

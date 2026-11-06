@@ -12,7 +12,7 @@
 setup() {   # setup — a fresh sandbox; the window writes $TYPED into $NOTES_FILE, as neovim
             # saves it: a fresh line opened under the end, what was typed on it
   sandbox; unset LOCPATH KAWA_NOTES
-  export N=$HOME/Notes/notes.md NOTES_FILE=$HOME/Notes/notes.md TYPED='\n'   # (nothing typed)
+  export N=$HOME/notes/notes.md NOTES_FILE=$HOME/notes/notes.md TYPED='\n'   # (nothing typed)
   stub kawa-warm
   stub date 'echo "2026-10-16 · Fri"'
   window() { [ -f "$NOTES_FILE" ] && printf "$TYPED" >>"$NOTES_FILE"; }
@@ -29,7 +29,7 @@ case_ "Super+N's own command (kawa-notes): the warm page shown or put away — k
 setup
 rc 0 kawa-notes
 called "^kawa-warm notes\$"; [[ ! -e $N ]] && _ok || _no "the press touched the notes"
-case_ "first time: ~/Notes made, today's heading"
+case_ "first time: ~/notes made, today's heading"
 setup; kawa-notes --today
 eq "$(cat "$N"; printf x)" "$H"$'\n\nx'
 case_ "...put away without writing: no heading left behind, an empty file"
@@ -97,7 +97,7 @@ setup; mkdir -p "${N%/*}"; printf 'secret\n' >"$N"; chmod 600 "$N"; TYPED='more\
 shown; eq "$(stat -c %a "$N")" 600
 
 case_ "the folder cannot be made (a file in its place): fails"
-setup; : >"$HOME/Notes"
+setup; : >"$HOME/notes"
 rc 1 kawa-notes --today
 case_ "a full disk while tidying: the notes stay as they were saved, no stray file"
 setup; mkdir -p "${N%/*}"; printf 'precious\n' >"$N"; TYPED='\n\n\n'; stub sync 'exit 1'
@@ -149,7 +149,7 @@ done
 # ── inside the window ────────────────────────────────────────────────────────
 case_ "inside: neovim on the notes, notes.lua its whole configuration (not LazyVim: instant), listening for kawa-warm"
 setup; stub nvim 'printf "%s\n" "$@" >"$HOME/nvim.args"; env >"$HOME/nvim.env"'
-export KAWA_NOTES="$HOME/Notes/50% off.md"
+export KAWA_NOTES="$HOME/notes/50% off.md"
 kawa-notes --inside
 eq "$(cat "$HOME/nvim.args")" "-n
 -i
@@ -159,8 +159,8 @@ $XDG_RUNTIME_DIR/kawa-notes.nvim
 -u
 $HOME/.config/fedokawaii/notes.lua
 --
-$HOME/Notes/50% off.md"
-has "$(cat "$HOME/nvim.env")" "KAWA_NOTES_WHERE=~/Notes/50% off.md"
+$HOME/notes/50% off.md"
+has "$(cat "$HOME/nvim.env")" "KAWA_NOTES_WHERE=~/notes/50% off.md"
 lacks "$(cat "$HOME/nvim.env")" "KAWA_NOTES_ICON=" "(the heading is the kanji's: no icon handed over)"
 case_ "inside, shown as it starts (its key started it: kawa-warm --open): today's note at once"
 kawa-notes --inside --shown
@@ -182,7 +182,7 @@ else
   # (the window's neovim, on its socket — kawa-notes.nvim: keys are typed in through it)
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""     # (the page alone, without LazyVim)
   ask() {   # ask LUA-EXPR [FILE] — the value, from neovim set up as the window sets it up
-    KAWA_NOTES_WHERE='~/Notes/50% off.md' nvim --headless \
+    KAWA_NOTES_WHERE='~/notes/50% off.md' nvim --headless \
       -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua io.stdout:write(vim.inspect($1))" -c 'qa!' -- "${2:-$TMP/n.md}" 2>/dev/null
   }
   case_ "notes.lua: a page — no numbers, signs or spell marks, the words four columns in behind the vermilion margin rule, lines wrapped at words"
@@ -193,7 +193,7 @@ else
   has "$(ask vim.o.tabline)" "%#KawaGround#  %#KawaIcon#$ICON_NOTE%#KawaGround#  %#KawaName#notes %#KawaStitch#───"
   eq "$(ask 'vim.api.nvim_strwidth(vim.api.nvim_eval_statusline(vim.o.tabline, {use_tabline = true}).str)')" 80 "(the rule to two columns short of the edge: the row full)"
   eq "$(ask '{vim.o.showtabline, vim.wo.winbar}')" '{ 2, "%#KawaGround# " }'
-  eq "$(ask '(function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= "" then t[#t + 1] = (vim.o.lines - c.row) .. ":" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)()')" '{ "1:  ~/Notes/50% off.md  ·  saved as you go  ·  super+n puts it away", "2:" }'
+  eq "$(ask '(function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= "" then t[#t + 1] = (vim.o.lines - c.row) .. ":" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)()')" '{ "1:  ~/notes/50% off.md  ·  saved as you go  ·  super+n puts it away", "2:" }'
   eq "$(ask '{vim.o.laststatus, vim.o.cmdheight, vim.o.scrolloff}')" "{ 0, 0, 5 }"
   case_ "notes.lua: the page shows what was typed — a \"[ ]\", a link's address, \"**\" as written (markdown's own conceal off: the master, 2 Nov); a day's \"## \" alone hidden"
   printf '%s\n' '[ ] a task' '[a link](https://example.org/x)' '**bold** and `code`' '## 2026-11-01 · Sun' >"$TMP/c2.md"
@@ -211,7 +211,7 @@ else
     -c 'qa!' -- "$TMP/e.md" 2>/dev/null)" "6/6" "(the paper under the new last line at once)"
   case_ "notes.lua: a start on a day already written (Super+N with no warm window: -c kawa_notes_shown) — the page laid under the new last line, the pen above the floats with paper ahead (the master, 2 Nov)"
   printf '%s\n' '# notes' '' "## $(LC_ALL=C date '+%Y-%m-%d · %a')" '' 'already written today' >"$TMP/w.md"
-  eq "$(KAWA_NOTES_WHERE='~/Notes/w.md' nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
+  eq "$(KAWA_NOTES_WHERE='~/notes/w.md' nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
     -c 'lua vim.cmd("redraw") local r = -1 for _, m in ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_get_namespaces().kawa_paper, 0, -1, { details = true })) do if m[4].virt_lines then r = m[2] end end io.stdout:write(tostring(r == vim.api.nvim_buf_line_count(0) - 1) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5))' \
     -c 'qa!' -- "$TMP/w.md" 2>/dev/null)" "true true" "(the page under the last line; the pen five rows above the window's foot)"
   case_ "notes.lua: the page opens on a day's line, never mid-day (the master, 2 Nov) — the latest day that leaves the pen its five rows above: yesterday's when today is short, today's own when today fills them; a today too long for the page: the pen keeps its room below"
@@ -220,7 +220,7 @@ else
   { cat "$TMP/d.md"; for i in $(seq 1 5); do echo "today, line $i"; done; } >"$TMP/d3.md"
   { cat "$TMP/d.md"; for i in $(seq 1 40); do echo "today, line $i"; done; } >"$TMP/d2.md"
   for f in d d3 d2; do
-    KAWA_NOTES_WHERE="~/Notes/$f.md" nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
+    KAWA_NOTES_WHERE="~/notes/$f.md" nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
       -c 'lua vim.cmd("redraw") io.stdout:write(vim.fn.getline("w0") .. " " .. tostring(vim.fn.winline() > 5) .. " " .. tostring(vim.fn.winline() <= vim.fn.winheight(0) - 5) .. "|")' \
       -c 'qa!' -- "$TMP/$f.md" 2>/dev/null
   done >"$TMP/today"
@@ -252,7 +252,7 @@ VIEWLUA
   view() {   # view FILE KEYS… — each step's line: KEY still|jumped A->B room|row N
     local f=$1; shift
     : >"$TMP/view.out"
-    VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/view.out KAWA_NOTES_WHERE='~/Notes/v.md' \
+    VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/view.out KAWA_NOTES_WHERE='~/notes/v.md' \
       nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/view.lua" -- "$f" >/dev/null 2>&1
     cat "$TMP/view.out"
   }
@@ -302,7 +302,7 @@ vim.defer_fn(function() step(1, vim.fn.line("w0")) end, 200)
 SCROLLLUA
   scrolls() {   # scrolls FILE KEYS… — the top line's change at each step after the first, then the pen's rows (VDUMP="N …": then the pen and those lines)
     local f=$1; shift
-    VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/scroll.out KAWA_NOTES_WHERE='~/Notes/v.md' \
+    VKEYS=$(IFS='|'; echo "$*") VOUT=$TMP/scroll.out KAWA_NOTES_WHERE='~/notes/v.md' \
       nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c "luafile $TMP/scroll.lua" -- "$f" >/dev/null 2>&1
     cat "$TMP/scroll.out"
   }
@@ -329,7 +329,7 @@ SCROLLLUA
   diary "$TMP/v.md"
   eq "$(VDUMP="156 157" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))hello" '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:kawa_notes_hidden()' 'lua:kawa_notes_shown()' 'q' 'r' | cut -d'|' -f3)" " 157:3 156=hello 157=qr"
   case_ "...a look in the to-do, then Super+N away and back: the to-do's place never lands in the notes"
-  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/notes/todo.md"
   diary "$TMP/v.md"
   eq "$(VDUMP="46 127" scrolls "$TMP/v.md" '<Tab>' 'abc' '<ScrollWheelUp>' '<ScrollWheelUp>' 'lua:kawa_notes_hidden()' 'lua:kawa_notes_shown()' 'q' 'r' | cut -d'|' -f3)" " 127:3 46= 127=qr" "(the notes' line 46 — the item's number in the to-do — untouched; the words on the fresh line)"
   case_ "...a look, then a click: the pen goes where the pointer is — the line the same click picks after the same scroll in normal mode (putting it back first scrolled the page under the pointer: verdict 8's must-fix 2)"
@@ -352,7 +352,7 @@ SCROLLLUA
   diary "$TMP/v.md"; got=$(VMODE=1 VDUMP="156" scrolls "$TMP/v.md" "$(printf 'x<CR>%.0s' $(seq 1 30))" '<Esc>' "$dbl" | cut -d'|' -f3)
   eq "$got" " 156:1 156= mode=n" "(normal mode, no Visual: $got)"
   case_ "...the same in the to-do: a look, a click on the heading, the next key on the item typed"
-  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/notes/todo.md"
   diary "$TMP/v.md"
   eq "$(VDUMP="40 46" scrolls "$TMP/v.md" '<Tab>' 'abc' '<ScrollWheelUp>' '<ScrollWheelUp>' '<LeftMouse><20,0>' 'q' | cut -d'|' -f3)" " 46:9 40=[ ] thing 40 46=[ ] abcq"
   case_ "...a look, then the middle button (in typing neovim pastes at the cursor, not at the pointer): the words at the pen, as with no look (verdict 9: they went into line 147)"
@@ -376,12 +376,12 @@ SCROLLLUA
   diary "$TMP/v.md"
   eq "$(VDUMP="152" scrolls "$TMP/v.md" "$(printf 'hello world<CR>%.0s' $(seq 1 29))hello world" '<ScrollWheelUp>' '<Esc>' | cut -d'|' -f3)" " 152:11 152=hello world"
   case_ "...and on a to-do longer than the page (tab, esc, then Ctrl+Y twice): the list moves up each time"
-  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/notes/todo.md"
   diary "$TMP/v.md"
   eq "$(scrolls "$TMP/v.md" '<Tab>' '<Esc>' '<C-y>' '<C-y>' | cut -d'|' -f1)" "0 -1 -1 "
   case_ "...a line typed in long notes, then tab into that to-do: the pen on the fresh item, the last line, and his words go into it (the master, verdict 5's must-fix 1: the notes' remembered top walked the pen up to item 41)"
   diary "$TMP/v.md"
-  eq "$(KAWA_NOTES_WHERE='~/Notes/v.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
+  eq "$(KAWA_NOTES_WHERE='~/notes/v.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
 vim.o.lines = 40; vim.o.columns = 64
 kawa_notes_shown(); vim.cmd("redraw")
 vim.api.nvim_input("a line of today<CR>")
@@ -400,16 +400,16 @@ vim.defer_fn(function()
 end, 250)' -- "$TMP/v.md" 2>/dev/null)" "46/46 [ ] new one | [ ] thing 41"
   case_ "notes.lua: the page moves by lines — smoothscroll off: it cut a wrapped line at the top and drew neovim's <<< over the margin (the master, verdict 3's must-fix 1)"
   { cat "$TMP/v.md"; for i in 1 2 3; do echo "a long line $i that runs well past the right edge of this page and wraps onto a second row, then a third row of paper"; done; } >"$TMP/w2.md"
-  eq "$(KAWA_NOTES_WHERE='~/Notes/w2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
+  eq "$(KAWA_NOTES_WHERE='~/notes/w2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua kawa_notes_shown()' \
     -c 'lua vim.cmd("redraw") local t = "" for r = 1, 6 do for c = 1, 64 do t = t .. vim.fn.screenstring(r, c) end end io.stdout:write(tostring(vim.wo.smoothscroll) .. " " .. vim.fn.winsaveview().skipcol .. " " .. tostring(t:find("<<<", 1, true) == nil))' \
     -c 'qa!' -- "$TMP/w2.md" 2>/dev/null)" "false 0 true" "(smoothscroll off, no line cut at the top, no <<< anywhere on the first rows)"
   case_ "notes.lua: a to-do longer than the page — tab opens it with the fresh item and the pen above the floats, three rows of paper ahead; a Return and esc keep it so (the master, 2 Nov: verdict 2's must-fix 2)"
-  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/Notes/todo.md"
+  for i in $(seq 1 45); do echo "[ ] thing $i"; done >"$HOME/notes/todo.md"
   diary "$TMP/v.md"
   eq "$(view "$TMP/v.md" '<Tab>' 'abc<CR>' '<Esc>' | awk '{print $NF}' | tr '\n' ' ')" "room room room "
   case_ "notes.lua: lines typed with Returns each keep their rule — one rule mark a line, the paper's mark of its own (a cleared namespace gave the paper's old id to a rule, and moving the paper took a typed line's rule: the kit's frames, 2 Nov)"
   printf '%s\n' '# notes' '' '## 2026-11-01 · Sun' '' 'buy rice' >"$TMP/r2.md"
-  eq "$(KAWA_NOTES_WHERE='~/Notes/r2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
+  eq "$(KAWA_NOTES_WHERE='~/notes/r2.md' nvim --headless -n -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'lua
 kawa_notes_shown()
 vim.api.nvim_input("line one<CR>line two<CR>line three<CR>")
 vim.defer_fn(function()
@@ -519,18 +519,18 @@ io.stdout:write(a .. " " .. b .. " " .. c)' -c 'qa!' -- "$TMP/i.md" 2>/dev/null)
   out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' 'hello' --hangup +3 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
   eq "$(cat "$N" 2>/dev/null)" "$H"$'\n\nfirst\nhello world'; lacks "$out" "really want to write"
-  case_ "another file opened in the window (:e ~/Notes/trip.md): a page too — its name in the footer, saved as you go"
+  case_ "another file opened in the window (:e ~/notes/trip.md): a page too — its name in the footer, saved as you go"
   printf '%s\n\nfirst\n' "$H" >"$N"
   ( for _ in {1..200}; do [[ -S $XDG_RUNTIME_DIR/kawa-notes.nvim ]] && break; sleep 0.05; done; sleep 0.5
-    "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-send '<Esc>:e ~/Notes/trip.md<CR>ibuy a SIM card' ) & bg=$!
+    "$REAL_NVIM" --server "$XDG_RUNTIME_DIR/kawa-notes.nvim" --remote-send '<Esc>:e ~/notes/trip.md<CR>ibuy a SIM card' ) & bg=$!
   out=$(python3 -I "$REPO/tests/lib/pty_run.py" --timeout 20 --answer 'saved as you go' '' --hangup +2.5 -- kawa-notes --inside --shown | tr -d '\0')
   wait "$bg"
-  eq "$(cat "$HOME/Notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
+  eq "$(cat "$HOME/notes/trip.md" 2>&1)" "buy a SIM card" "(closed by Super+Q: nothing lost)"
   eq "$(cat "$N")" "$H"$'\n\nfirst' "(the notes as they were)"
-  out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/Notes/trip.md' \
+  out=$(nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' -c 'e ~/notes/trip.md' \
     -c "lua io.stdout:write(vim.inspect({vim.api.nvim_eval_statusline(vim.o.tabline, {use_tabline = true}).str, (function() local t = {} for _, w in ipairs(vim.api.nvim_list_wins()) do local c = vim.api.nvim_win_get_config(w) if c.relative ~= \"\" then t[#t + 1] = (vim.o.lines - c.row) .. \":\" .. vim.api.nvim_buf_get_lines(vim.api.nvim_win_get_buf(w), 0, 1, false)[1] end end table.sort(t) return t end)(), vim.wo.number, vim.wo.foldcolumn, vim.wo.wrap}))" \
     -c 'qa!' -- "$N" 2>/dev/null)
-  has "$out" "  $ICON_NOTE  notes ───"; has "$out" "  ~/Notes/trip.md  ·  saved as you go"; has "$out" 'false, "0", true }'
+  has "$out" "  $ICON_NOTE  notes ───"; has "$out" "  ~/notes/trip.md  ·  saved as you go"; has "$out" 'false, "0", true }'
   # the warm page: put away (kawa-warm --hidden) and shown again the next day (--shown),
   # through its socket as kawa-warm does — saved and tidied as it goes, today's note as it shows
   case_ "warm: put away — saved and tidied; shown the next day — its heading, the cursor under it, typing"
@@ -559,7 +559,7 @@ io.stdout:write(a .. " " .. b .. " " .. c)' -c 'qa!' -- "$TMP/i.md" 2>/dev/null)
   eq "$(cat "$N")" $'one\nfrom the phone'
   ours
 
-  # the to-do beside the notes (owner 18:48): the page drawn from ~/Notes/todo.md, its keys
+  # the to-do beside the notes (owner 18:48): the page drawn from ~/notes/todo.md, its keys
   todo_steps() {   # todo_steps — the steps, one line of what each shows
     cat >"$TMP/todo.lua" <<'TODOLUA'
 local function out(s) io.stdout:write(s .. "\n") end
@@ -610,7 +610,7 @@ TODOLUA
   setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua; config .config/nvim/lua/config/clipboard.lua
   stub nvim "exec '$REAL_NVIM' --clean \"\$@\""
   out=$(todo_steps)
-  has "$out" "first: todo.md [ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0 1,4 i   ~/Notes/todo.md  ·  esc: the list  ·  tab: the notes" "(empty: one item, its box, typing)"
+  has "$out" "first: todo.md [ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0 1,4 i   ~/notes/todo.md  ·  esc: the list  ·  tab: the notes" "(empty: one item, its box, typing)"
   has "$out" "typed: [ ] buy rice|[ ] call the bank ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_OFF}KawaIcon+3@1.0"
   case_ "...space ticks: the box filled and muted, the words muted and struck through (KawaDone); space again unticks"
   has "$out" "ticked: [ ] buy rice|[x] call the bank ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_ON}KawaMuted+3@1.0 KawaDone@1.4-17"
@@ -625,15 +625,15 @@ TODOLUA
   has "$out" "enter mid-words: [ ] tea|[ ] ou|[x] call the bank!" "(no space left either side of the cut)"
   case_ "...its heading (the tanzaku, to-do, the rule) and footer; tab turns to the notes and back"
   has "$out" "heading: %#KawaGround#  %#KawaIcon#$ICON_TODO%#KawaGround#  %#KawaName#to-do %#KawaStitch#───"
-  has "$out" "footer:   ~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
+  has "$out" "footer:   ~/notes/todo.md  ·  space ticks  ·  tab: the notes"
   has "$out" "tab: notes.md at the end: true" "(the notes again at their end, as they open)"
   case_ "...with items it opens the same: a fresh one at the end, typing; esc gives the list — the fresh one, left with no words, gone — and the footer's keys change with it"
-  has "$out" "reopened: todo.md [ ] tea|[ ] ou|[x] call the bank!|[ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_OFF}KawaIcon+3@1.0 ${ICON_BOX_ON}KawaMuted+3@2.0 KawaDone@2.4-18 ${ICON_BOX_OFF}KawaIcon+3@3.0 4,4 i   ~/Notes/todo.md  ·  esc: the list  ·  tab: the notes"
-  has "$out" "left: [ ] tea|[ ] ou|[x] call the bank! 3,4 n   ~/Notes/todo.md  ·  space ticks  ·  tab: the notes"
+  has "$out" "reopened: todo.md [ ] tea|[ ] ou|[x] call the bank!|[ ]  ${ICON_BOX_OFF}KawaIcon+3@0.0 ${ICON_BOX_OFF}KawaIcon+3@1.0 ${ICON_BOX_ON}KawaMuted+3@2.0 KawaDone@2.4-18 ${ICON_BOX_OFF}KawaIcon+3@3.0 4,4 i   ~/notes/todo.md  ·  esc: the list  ·  tab: the notes"
+  has "$out" "left: [ ] tea|[ ] ou|[x] call the bank! 3,4 n   ~/notes/todo.md  ·  space ticks  ·  tab: the notes"
   has "$out" "typing on the to-do, tab turns it: notes.md"
   has "$out" "typing on the notes, tab turns it: todo.md, the notes keep no tab: true" "(the notes open typing: a tab there turns the page, never goes into the text)"
   case_ "...saved as you go, an item left empty tidied away as the window goes"
-  eq "$(cat "$HOME/Notes/todo.md")" $'[ ] tea\n[ ] ou\n[x] call the bank!'
+  eq "$(cat "$HOME/notes/todo.md")" $'[ ] tea\n[ ] ou\n[x] call the bank!'
   ours
 fi
 

@@ -1,18 +1,18 @@
 #!/usr/bin/env bash
 # kawa-notes — Super+N: your notes, in a small floating window; Super+N again puts it away
 # (a warm window: kawa-warm keeps it running, so it shows in the frame).
-# One plain file, ~/Notes/notes.md, read top to bottom like a diary: each day you write
+# One plain file, ~/notes/notes.md, read top to bottom like a diary: each day you write
 # something starts with its date as a heading, and the window opens at the end, ready to
 # type. It is neovim (the desktop's editor, its keys and colours), saving as you type —
 # whichever way the window goes, nothing is lost. A day you opened but wrote nothing under
 # leaves no heading behind.
 #
-# Beside the notes, a page of things to do (~/Notes/todo.md): tab turns to it and back — its
+# Beside the notes, a page of things to do (~/notes/todo.md): tab turns to it and back — its
 # only way in (the owner, 1 Nov: the to-do lives in Super+N alone, never in Super+U).
 # (Its own parts: --inside [--shown], what runs in the window; --today, today's heading;
 # --tidy, the end of the file tidied — the page runs these two as it shows and goes.)
 set -u
-NOTES=${KAWA_NOTES:-$HOME/Notes/notes.md}
+NOTES=${KAWA_NOTES:-$HOME/notes/notes.md}
 SOCK=${XDG_RUNTIME_DIR:?}/kawa-notes.nvim     # the page's neovim listens here (kawa-warm: --shown/--hidden)
 today=$(LC_ALL=C date '+%Y-%m-%d · %a')     # (English day names: any locale)
 HEAD="## $today"
@@ -37,7 +37,7 @@ case ${1:-} in
       nvim -n -i NONE --listen "$SOCK" -u ~/.config/fedokawaii/notes.lua "${first[@]}" -- "$NOTES"
     "$0" --tidy; exit 0 ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
-  *) echo "usage: kawa-notes   (Super+N: your notes, ~/Notes/notes.md; tab: the to-do beside them)" >&2; exit 2 ;;
+  *) echo "usage: kawa-notes   (Super+N: your notes, ~/notes/notes.md; tab: the to-do beside them)" >&2; exit 2 ;;
 esac
 
 # notes written on Windows end their lines in CR LF: what is added here does the same (the

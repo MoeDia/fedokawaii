@@ -166,13 +166,11 @@ files = []
 dirs = [
 	{ name = ".config", text = "\U000FE024 " },
 	{ name = ".git", text = "\U000FE02A " },
-	{ name = "Desktop", text = "\U000FE02E " },
-	{ name = "Documents", text = "\U000FE03C " },
-	{ name = "Downloads", text = "\U000FE042 " },
-	{ name = "Music", text = "\U000FE00B " },
-	{ name = "Pictures", text = "\U000FE01D " },
-	{ name = "Public", text = "\U000FE02B " },
-	{ name = "Videos", text = "\U000FE01C " },
+	{ name = "books", text = "\U000FE03B " },
+	{ name = "captures", text = "\U000FE01D " },
+	{ name = "dojo", text = "\U000FE03F " },
+	{ name = "downloads", text = "\U000FE042 " },
+	{ name = "notes", text = "\U000FE03C " },
 ]
 exts = [
 	# images

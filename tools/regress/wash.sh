@@ -133,9 +133,9 @@ EOF
 
 # ── the wallpaper picker (Super+W): closed on its own page, dissolving over the wash ──
 cat >"$out/play.sh" <<PLAY
-mkdir -p "\$HOME/Pictures/Wallpapers"
-cp $out/old.png "\$HOME/Pictures/Wallpapers/a-old.png"; cp $out/new.png "\$HOME/Pictures/Wallpapers/b-new.png"
-kawa-wallpaper --set "\$HOME/Pictures/Wallpapers/a-old.png" >/dev/null 2>&1; nap 1
+mkdir -p "\$HOME/.local/share/fedokawaii/wallpapers"
+cp $out/old.png "\$HOME/.local/share/fedokawaii/wallpapers/a-old.png"; cp $out/new.png "\$HOME/.local/share/fedokawaii/wallpapers/b-new.png"
+kawa-wallpaper --set "\$HOME/.local/share/fedokawaii/wallpapers/a-old.png" >/dev/null 2>&1; nap 1
 chord logo w; nap 3; key Down; nap 0.8
 shot open
 wf-recorder -y -f $out/rec-\$KIT_THEME.mkv -c ffv1 >/dev/null 2>&1 & rec=\$!

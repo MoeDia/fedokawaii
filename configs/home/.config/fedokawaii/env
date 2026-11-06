@@ -3,5 +3,5 @@
 MONITOR_HZ=@MONITOR_HZ@
 WEATHER_CITY="@WEATHER_CITY@"
 NIGHT_LIGHT="@NIGHT_LIGHT@"
-WALLPAPER_DIR="$HOME/Pictures/Wallpapers"
-SCREENSHOT_DIR="$HOME/Pictures/Screenshots"
+WALLPAPER_DIR="$HOME/.local/share/fedokawaii/wallpapers"
+SCREENSHOT_DIR="$HOME/captures"

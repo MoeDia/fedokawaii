@@ -11,7 +11,7 @@ out=$(mktemp -d /dev/shm/regress-glass.XXXXXX)
 [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$out"' EXIT
 cat >"$out/play.sh" <<'PLAY_END'
 panel; nap 0.5
-mkdir -p "$HOME/repos/demo"; (cd "$HOME/repos/demo" && git init -q && echo x >a && git add a && git -c user.name=t -c user.email=t@t commit -qm first)
+mkdir -p "$HOME/dojo/demo"; (cd "$HOME/dojo/demo" && git init -q && echo x >a && git add a && git -c user.name=t -c user.email=t@t commit -qm first)
 printf 'a line of notes\nand another\n' >"$HOME/page.md"
 pkill -x -P "$PPID" swaybg 2>/dev/null
 swaybg -c '#ffffff' >/dev/null 2>&1 &
@@ -26,7 +26,7 @@ run nvim   nvim "$HOME/page.md"
 run yazi   yazi "$HOME"
 run git    kawa-git
 run clip   kawa-clip --tui
-run lazygit sh -c "cd $HOME/repos/demo && exec lazygit"
+run lazygit sh -c "cd $HOME/dojo/demo && exec lazygit"
 run btop   btop
 run prompt bash -i
 PLAY_END

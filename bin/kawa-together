@@ -12,7 +12,7 @@
 #   password  only for a server that is not on Syncplay's public list: asked the first time
 #             you choose that server, never shown, remembered for it (Enter on the row: change)
 #   film      FILE, or one chosen in the file dialog (cancelled there: none). With none, mpv
-#             opens empty and finds the room's film by its name in ~/Videos or ~/Downloads
+#             opens empty and finds the room's film by its name in ~/downloads
 #
 # Then Syncplay (without its window) runs in that terminal: it shows the room's news and
 # takes Syncplay's commands (help lists them); the film plays in mpv beside it.

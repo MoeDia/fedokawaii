@@ -13,7 +13,7 @@ need magick flock
 
 setup() {
   look
-  SHOTS=$HOME/Pictures/Screenshots
+  SHOTS=$HOME/captures
   magick -size 300x100 gradient:red-blue "$TMP/shot.png"
   # slurp: a region, or Esc ($TMP/esc), or held at a gate ($TMP/gate.slurp.use)
   argv slurp '[ -e "$FAKE_TMP/gate.slurp.use" ] && { : >"$FAKE_TMP/gate.slurp.in"; while [ ! -e "$FAKE_TMP/gate.slurp" ]; do [ -d "$FAKE_TMP" ] || exit 1; /bin/sleep 0.02; done; }
@@ -105,15 +105,15 @@ setup; exec 8>"$XDG_RUNTIME_DIR/kawa-screenshot.lock"; flock 8
 rc 0 kawa-screenshot; eq "$(ncalls slurp)" 0; exec 8>&-
 
 # ── the folder ───────────────────────────────────────────────────────────────
-case_ "the Screenshots folder missing: made"
+case_ "the captures folder missing: made"
 setup
-rm -rf "$HOME/Pictures"
+rm -rf "$HOME/captures"
 rc 0 kawa-screenshot full
 [[ -s $F ]] && _ok || _no "not saved"
 
 case_ "a folder with a space and unicode in its name"
 setup
-d="$HOME/Pictures/my shots 写真"
+d="$HOME/captures/my shots 写真"
 sed -i "s|^SCREENSHOT_DIR=.*|SCREENSHOT_DIR=\"$d\"|" "$HOME/.config/fedokawaii/env"
 rc 0 kawa-screenshot full
 [[ -s $d/2026-10-16_09-30-05.png ]] && _ok || _no "not saved in the folder with a space"

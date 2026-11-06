@@ -24,8 +24,8 @@ PrivateTmp=yes
 ProtectSystem=strict
 ProtectHome=tmpfs
 # (+: this one line outside the walls below, so that they find what they name)
-ExecStartPre=+/usr/bin/mkdir -p %h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
-BindPaths=%h/Downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
+ExecStartPre=+/usr/bin/mkdir -p %h/downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
+BindPaths=%h/downloads %S/fedokawaii/torrents %C/kawa-torrents %t/kawa-downloads
 BindReadOnlyPaths=%h/.local/bin/kawa-torrents %h/.local/lib/fedokawaii/kawa-torrents
 RestrictAddressFamilies=AF_UNIX AF_INET AF_INET6 AF_NETLINK
 RestrictNamespaces=yes
