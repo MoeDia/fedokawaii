@@ -26,7 +26,7 @@ MANUAL_MOST = 5     # (plan T52: a written reason it cannot be automated, five a
 
 # Ledger lines that are records by their very name: a run's verdict, an apply, a push, an event,
 # a master's review (what it found has its own -fix line, with its own row). README.md says so.
-RECORD = re.compile(r"""^r27$ | ^r27-(suites?|push|apply|event|boot|tidy|shm|note|f45-job|away-proof)(\b|-) | ^r27-inbox$
+RECORD = re.compile(r"""^r27$ | ^r27-(suites?|push|apply|event|boot|tidy|shm|note|f45-job|away-proof)(\b|-) | ^r27-inbox$ | ^r28-note(\b|-)
                         | -master(-\d+|-efh(-\d+)?)?$ | -R\d+b?$ | -review\d*$ | -baseline$ | -digest$ | -research$
                         | -facts$ | -hunt$ | -weighed$ | -owner$ | -asan$""", re.X)
 
@@ -68,7 +68,7 @@ def ledger_items(repo):
         for line in f:
             if line.startswith("## "):
                 section = line
-            m = re.match(r"- (r2[567](?:-[-a-zA-Z0-9./]*[a-zA-Z0-9])?)", line)
+            m = re.match(r"- (r2[5678](?:-[-a-zA-Z0-9./]*[a-zA-Z0-9])?)", line)
             if m:
                 want.add(m.group(1))
             elif section.startswith("## r24 ") and re.match(r"\d|Report", line):
@@ -86,7 +86,7 @@ def trace_items(repo):
     if not os.path.exists(path):
         return set()
     with open(path, encoding="utf8") as f:
-        return {m.group(1) for m in (re.match(r"\| (r2[4-7]-[\w-]+) \|", ln) for ln in f) if m}
+        return {m.group(1) for m in (re.match(r"\| (r2[4-8]-[\w-]+) \|", ln) for ln in f) if m}
 
 
 def wanted(repo):

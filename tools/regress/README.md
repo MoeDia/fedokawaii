@@ -1,7 +1,7 @@
 # Never again — every item the owner ever reported, and what guards it
 
 "Not one issue he ever reported may come back" (owner, 26 Oct 01:48). This file is the list: every
-item of the ledger (`.claude/notes/02-LEDGER.md`, r24 → r27) and every row of the master's trace
+item of the ledger (`.claude/notes/02-LEDGER.md`, r24 → r28) and every row of the master's trace
 (`.claude/notes/master-trace.md`) has a row here, and each row names what holds it.
 
 How it stays true: `tests/regress/test_list.sh` (`tools/regress/items.py check`) fails when an item
@@ -23,7 +23,7 @@ adds its row here with the line.
 
 **Records by their name** need no row, because `items.py` knows them: a master's verdict (`*-master*`, `*-R3`:
 what it found has its own `-fix` line), a run of the suite, a push, an apply, an event of the PC's
-(`r27-suite*`, `r27-push*`, `r27-apply*`, `r27-event`, `r27-boot*`, `r27-tidy*`), research and
+(`r27-suite*`, `r27-push*`, `r27-apply*`, `r27-event`, `r27-boot*`, `r27-tidy*`), a note of round 28 (`r28-note-*`), research and
 baselines (`*-digest`, `*-research`, `*-baseline`, `*-facts`, `*-hunt`), an ASan run (`*-asan`).
 
 **Run them:** `bash tests/run.sh regress` · `bash tools/regress/run.sh --bin bin --repo-art` ·
