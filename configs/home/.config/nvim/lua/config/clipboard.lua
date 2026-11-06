@@ -1,5 +1,5 @@
 -- ~/.config/nvim/lua/config/clipboard.lua — the desktop's clipboard and the editor's, each in its
--- place (the editor and the notes window both use it). With nvim's "unnamedplus" (LazyVim's
+-- place (the editor and the notes window both use it). With nvim's "unnamedplus" (a common
 -- default) every x, dd or cw put what it took out on the desktop's clipboard: a link copied in
 -- the browser was gone after one deleted letter, and Super+V's history filled with them.
 -- So: what you copy (y) goes to the desktop's clipboard as well; what you delete or change

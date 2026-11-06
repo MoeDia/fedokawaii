@@ -147,7 +147,7 @@ for l in tr_TR ar_EG; do
 done
 
 # ── inside the window ────────────────────────────────────────────────────────
-case_ "inside: neovim on the notes, notes.lua its whole configuration (not LazyVim: instant), listening for kawa-warm"
+case_ "inside: neovim on the notes, notes.lua its whole configuration (not the editor's: instant), listening for kawa-warm"
 setup; stub nvim 'printf "%s\n" "$@" >"$HOME/nvim.args"; env >"$HOME/nvim.env"'
 export KAWA_NOTES="$HOME/notes/50% off.md"
 kawa-notes --inside
@@ -180,7 +180,7 @@ if [[ -z $REAL_NVIM ]]; then
 else
   setup; rm -f "$STUBS/nvim"; config .config/fedokawaii/notes.lua; config .config/nvim/lua/config/clipboard.lua
   # (the window's neovim, on its socket — kawa-notes.nvim: keys are typed in through it)
-  stub nvim "exec '$REAL_NVIM' --clean \"\$@\""     # (the page alone, without LazyVim)
+  stub nvim "exec '$REAL_NVIM' --clean \"\$@\""     # (the page alone, without the editor's config)
   ask() {   # ask LUA-EXPR [FILE] — the value, from neovim set up as the window sets it up
     KAWA_NOTES_WHERE='~/notes/50% off.md' nvim --headless \
       -c 'luafile ~/.config/fedokawaii/notes.lua' -c "lua io.stdout:write(vim.inspect($1))" -c 'qa!' -- "${2:-$TMP/n.md}" 2>/dev/null
@@ -454,8 +454,8 @@ io.stdout:write(a .. " " .. b .. " " .. c)' -c 'qa!' -- "$TMP/i.md" 2>/dev/null)
   eq "$(clip 'normal dd' 'normal p')" "from the browser / sfrom the browserecond line|third line" "p after a copy elsewhere: that copy (a line's part: put in after the cursor)"
   eq "$(clip 'normal yy' 'normal jdd' 'normal p')" "first line| / first line|third line|second line" "yy: to the desktop (a whole line: its end with it); dd then p: the line moved (the editor's own)"
   eq "$(clip 'normal yy' 'normal "+p')" "first line| / first line|first line|second line|third line" '"+p: the desktop'"'"'s, as asked'
-  has "$(cat "$REPO/configs/home/.config/nvim/lua/config/options.lua")" 'require("config.clipboard").setup()' "the editor (LazyVim) the same"
-  case_ "notes.lua: writes without waiting for the disk, and never reformats the page (LazyVim's autoformat off)"
+  has "$(cat "$REPO/configs/home/.config/nvim/lua/config/options.lua")" 'require("config.clipboard").setup()' "the editor the same"
+  case_ "notes.lua: writes without waiting for the disk, and never reformats the page (the editor's autoformat off)"
   eq "$(ask '{vim.o.fsync, vim.b.autoformat}')" "{ false, false }"
   hl() { nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
     -c "lua local h = vim.api.nvim_get_hl(0, {name='$1'}); io.stdout:write(string.format('%06x %06x', h.fg or 0, h.bg or 0))" \

@@ -1,5 +1,5 @@
 -- ~/.config/fedokawaii/notes.lua — the notes window (kawa-notes, Super+N): neovim as a page.
--- Neovim's whole configuration in that window (nvim -u): not LazyVim and its forty plugins,
+-- Neovim's whole configuration in that window (nvim -u): not the editor's config and its plugins,
 -- which took most of a second to start for a page of text — so the window has its text the
 -- moment it appears, and goes as fast. Kept from the editor: its colours (the gruvbox
 -- palette of ~/.config/nvim/lua/plugins/colorscheme.lua, read from there), the clipboard as
@@ -35,7 +35,7 @@ vim.o.showcmd = false
 vim.o.ruler = false
 vim.o.shortmess = vim.o.shortmess .. "WFcsS"
 -- the editor's colours: gruvbox with the desktop's palette, as the editor's plugin spec
--- sets it up (its init, then its options) — from the plugin LazyVim keeps; plain colours
+-- sets it up (its init, then its options) — from the plugin the editor keeps; plain colours
 -- where it is not installed yet
 do
   local dir = vim.fn.stdpath("data") .. "/lazy/gruvbox.nvim"

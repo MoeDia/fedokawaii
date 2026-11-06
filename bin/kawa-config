@@ -114,7 +114,7 @@ yours_menu() {
   i=$({ line part "$ICON_USER" 'yours alone'
         line row "$ICON_TERMINAL" 'shell additions' 'aliases, functions, exports'
         line row "$ICON_HOURGLASS" autostart 'programs at every login'
-        line row "$ICON_CODE" 'neovim plugins' 'LazyVim specs'
+        line row "$ICON_CODE" 'neovim plugins' 'lazy.nvim specs'
         # shellcheck disable=SC2088  # a ~ shown, not expanded
         line row "$ICON_FOLDER" 'your scripts' '~/.local/bin, in yazi'; } | kawa-menu --index --select 1 \
         --title "the theme never writes these") || return 0
@@ -129,9 +129,9 @@ yours_menu() {
 # theme never writes here). End each program that keeps running with &, or the next waits:
 # syncthing serve --no-browser &" ;;
     3) yours "neovim plugins" "neovim reads it at its next start" "$HOME/.config/nvim/lua/plugins/local.lua" \
-"-- ~/.config/nvim/lua/plugins/local.lua — yours: LazyVim reads every file in lua/plugins/
+"-- ~/.config/nvim/lua/plugins/local.lua — yours: lazy.nvim reads every file in lua/plugins/
 -- (the theme never writes this one). Each plugin, or a change to one, is a table:
--- https://www.lazyvim.org/configuration/plugins
+-- https://lazy.folke.io/spec
 return {
   -- { \"folke/zen-mode.nvim\", cmd = \"ZenMode\" },
 }" ;;
@@ -154,7 +154,7 @@ learn_menu() {
   l "$ICON_FILE"     foot            'man foot.ini'             'man:5 foot.ini'
   l "$ICON_FILE"     mako            'man mako'                 'man:5 mako'
   l "$ICON_FOLDER"   yazi            'its documentation'        https://yazi-rs.github.io/docs/
-  l "$ICON_CODE"     LazyVim         'plugins, keys, extras'    https://www.lazyvim.org
+  l "$ICON_CODE"     lazy.nvim       "neovim's plugins"         https://lazy.folke.io
   l "$ICON_CODE"     Lua             'Programming in Lua'       https://www.lua.org/pil/contents.html
   l "$ICON_THEME"    "GTK's CSS"     'what GTK 3 understands'   https://docs.gtk.org/gtk3/css-overview.html
   i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --select 1 \

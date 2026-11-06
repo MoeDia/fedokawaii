@@ -1967,7 +1967,7 @@ user_dirs() {
 nvim_restore() {
   run as_user env "${GIT_ENV[@]}" timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' +qa
 }
-s_lazyvim() {   # (the config comes first, as the theme will install it: it names the plugins and their commits)
+s_nvim_plugins() {   # (the config comes first, as the theme will install it: it names the plugins and their commits)
   if [[ ! -f $TARGET_HOME/.config/nvim/init.lua ]]; then
     as_user mkdir -p "$TARGET_HOME/.config/nvim"
     as_user cp -r "$REPO_DIR/configs/home/.config/nvim/." "$TARGET_HOME/.config/nvim/"
@@ -1992,11 +1992,11 @@ s_dev() {
   dev_mason || rc=1
   return "$rc"
 }
-# Mason's tools, every one of them here (LazyVim would fetch the rest at a first file, from the
-# network, in the background; lua/plugins/lean.lua: no longer)
-MASON_TOOLS="basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo"
-dev_mason() {   # neovim's tools (Mason loaded first — LazyVim loads it on demand — then :MasonInstall,
-                # which waits when headless), and the parsers (config/prefetch.lua: as lean.lua lists them)
+# Mason's tools, every one of them here (nothing fetches one at a first file, from the
+# network, in the background)
+MASON_TOOLS="basedpyright ruff debugpy codelldb lua-language-server taplo"
+dev_mason() {   # neovim's tools (Mason loaded first — it loads on demand — then :MasonInstall,
+                # which waits when headless), and the parsers (config/prefetch.lua lists them)
   [[ -f $TARGET_HOME/.config/nvim/init.lua ]] || return 0
   run as_user env PATH="$TARGET_HOME/.local/share/cargo/bin:$TARGET_HOME/.local/bin:$PATH" "${GIT_ENV[@]}" timeout 900 \
     nvim --headless '+Lazy! load mason.nvim' "+MasonInstall $MASON_TOOLS" \
@@ -2526,7 +2526,7 @@ phase3() {
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
   step "3.08 Prowlarr + torrents (wired together)"     s_torrents
-  step "3.09 LazyVim + plugins (at the lock's commits)" s_lazyvim
+  step "3.09 neovim's plugins (at the lock's commits)" s_nvim_plugins
   step "3.09b Python (uv) and Rust (rustup) to learn with" s_dev
   step "3.10 the play world: asobi (Steam, Bottles)"   s_asobi
   step "3.11 groups"                                   s_groups
@@ -3415,7 +3415,7 @@ do_repair() {
 # in a container: on a real machine it would be half a setup.
 TRIAL_SKIPPED=("1.3 boot menu" "1.5b performance: tuned profile, Wi-Fi" "1.6b a quiet boot" "1.7 inbound SSH"
   "2.2 GPU kernel argument (its packages are installed below)" "2.2b this machine's firmware" "3.02 dwl build"
-  "3.03 login: greetd (its packages are installed below)" "3.07b-3.09b source builds, Prowlarr, LazyVim, uv/rustup"
+  "3.03 login: greetd (its packages are installed below)" "3.07b-3.09b source builds, Prowlarr, neovim's plugins, uv/rustup"
   "3.11 groups" "3.12 theme" "3.12b one kernel" "3.13 verify gate" "3.14 login, snapshots, baseline")
 trial_pass() {   # trial_pass CMD ARG… — a booted machine's command: run, and a failure said, never fatal
   command "$@" >/dev/null 2>&1 || log "trial: '$*' needs a booted machine — passed over"

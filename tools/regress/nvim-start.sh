@@ -12,7 +12,7 @@
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
 repo=$(cd "$here/../.." && pwd)
-[[ -d $HOME/.local/share/nvim/lazy/LazyVim ]] || { echo "no neovim plugins here"; exit 2; }
+[[ -d $HOME/.local/share/nvim/lazy/snacks.nvim ]] || { echo "no neovim plugins here"; exit 2; }
 sb=$(mktemp -d "${TMPDIR:-/tmp}/regress-nvim.XXXXXX")
 trap 'rm -rf "$sb"' EXIT
 python3 -B "$repo/tools/nvim-bench.py" sandbox "$sb" --link --config this="$repo/configs/home/.config/nvim" || exit 2

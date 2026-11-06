@@ -146,7 +146,7 @@ PKG_APPS=(
                                                     #   extra (+tls brings service-identity, idna), certifi (Fedora's CA
                                                     #   list), pem. Not the syncplay package: PySide6 and 27 Qt modules with it
   qrencode wf-recorder                              # QR codes · screen recordings
-  btop bat ripgrep fd-find                          # monitor, pager; rg/fd also power LazyVim pickers
+  btop bat ripgrep fd-find                          # monitor, pager; rg/fd also power neovim's finder
   git-delta                                         # lazygit's diffs: syntax-coloured, line-numbered (delta)
   visidata                                          # tables in the terminal: vd opens CSV, TSV, JSON and
                                                     #   SQLite (sort, sum, filter, group — Excel files are
@@ -157,7 +157,7 @@ PKG_APPS=(
   zstd                                              # .tar.zst archives (kawa-file, through tar -I)
   eza zoxide tldr                                   # the shell: ls with git status and trees · a cd that
                                                     #   learns your folders (yazi's Z too) · tldr examples
-  tree-sitter-cli                                   # parser builder required by LazyVim's nvim-treesitter
+  tree-sitter-cli                                   # parser builder required by nvim-treesitter
                                                     #   (lazygit, the git TUI: lib/upstream.sh)
   ShellCheck                                        # explains what is wrong in a shell script: fedokawaii apply
                                                     #   reads the ones you changed (and neovim's bash server, §17.15)

@@ -167,7 +167,7 @@ setup; copy_made; answer "pick 	history	"; config_; called "^footclient -N -D $C
 setup; copy_made; answer "pick update fedokawaii"; config_; called '^kawa-term --float --once pull --dialog update fedokawaii 100x33 -- bash -c .* _ fedokawaii pull$'
 case_ "yours alone: each file made the first time with a word of what it is for, then opened"
 for p in "shell additions:.bashrc.d/local.sh:Fedora's ~/.bashrc reads every" "autostart:.config/dwl/autostart.local.sh:run at every login" \
-         "neovim plugins:.config/nvim/lua/plugins/local.lua:LazyVim reads every file"; do
+         "neovim plugins:.config/nvim/lua/plugins/local.lua:lazy.nvim reads every file"; do
   IFS=: read -r name f words <<<"$p"
   setup; answer "pick yours alone" "pick $name"; config_
   has "$(cat "$HOME/$f" 2>/dev/null)" "$words" "$f"

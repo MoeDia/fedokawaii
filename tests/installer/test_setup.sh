@@ -76,7 +76,7 @@ eq "$(state hardware-pkgs)" amd-ucode-firmware
 reboot_world; keep phase3
 
 case_ "phase 3: dwl and the desktop, the gate, then the login enabled last and the resume unit gone"
-# (the file dialog's first build failing, and LazyVim's plugin clones failing the first time:
+# (the file dialog's first build failing, and neovim's plugin clones failing the first time:
 # none stops the build, the gate tries again)
 fkh fail-meson 1; fkh fail-nvim-plugins 1
 # (garbage the end sweeps: the download the clone was unpacked from, twelve theme runs' backups)
@@ -141,16 +141,16 @@ case_ "Rust preinstalled for you (3.09b): rustup-init as you, stable with rust-a
 called "^fkuser\[rustup-init\] -y --no-modify-path --default-toolchain stable --profile minimal -c rust-analyzer,clippy,rustfmt$"
 [[ -x $W/home/fkuser/.local/share/cargo/bin/rust-analyzer && -d $W/home/fkuser/.local/share/rustup/toolchains ]] && _ok || _no "not in ~/.local/share/cargo and ~/.local/share/rustup"
 called "uv\] python install"
-case_ "the gate's second tries: the yazi file dialog and LazyVim's plugins, each put in place there"
+case_ "the gate's second tries: the yazi file dialog and neovim's plugins, each put in place there"
 has "$OUT" "no file dialog yet: termfilechooser did not build"; has "$OUT" "file dialogs: yazi (termfilechooser v1.4.3)"
 called "nvim\] --headless \+Lazy! restore \+Lazy! clean \+qa"
-[[ -d $W/home/fkuser/.local/share/nvim/lazy/LazyVim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "LazyVim or the file dialog missing"
+[[ -d $W/home/fkuser/.local/share/nvim/lazy/snacks.nvim && -x $W/usr/local/libexec/xdg-desktop-portal-termfilechooser ]] && _ok || _no "neovim's plugins or the file dialog missing"
 case_ "neovim: the desktop's own config and lock in place before the plugins, each plugin at the lock's commit; no starter fetched, nothing floats"
 cmp -s "$REPO/configs/home/.config/nvim/lazy-lock.json" "$W/home/fkuser/.config/nvim/lazy-lock.json" && _ok || _no "the lock is not the shipped one"
 [[ -f $W/home/fkuser/.config/nvim/init.lua && ! -e $W/home/fkuser/.config/nvim/.neoconf.json ]] && _ok || _no "the shipped config is not what is there"
 eq "$(cat "$W/home/fkuser/.local/share/nvim/lazy/lazy.nvim/.git/fk-commit")" \
    "$(sed -n 's/.*"lazy.nvim".*"commit": "\([0-9a-f]*\)".*/\1/p' "$REPO/configs/home/.config/nvim/lazy-lock.json")" "lazy.nvim at the lock's commit"
-not_called 'LazyVim/starter'; not_called 'Lazy! sync'; not_called 'Lazy! update'
+not_called 'Lazy! sync'; not_called 'Lazy! update'
 case_ "after the build: verify passes (exit 0), and setup run again only says so"
 fkrun bash "$TK/verify.sh"; eq "$RC" 0 "verify: $(grep '✘' <<<"$OUT" | head -n3 | tr '\n' '|')"; has "$OUT" "✔  verified"
 reset_calls; fkrun bash "$TK/setup.sh"; eq "$RC" 0; has "$OUT" "already built"      # (the clone is gone: the toolkit's)

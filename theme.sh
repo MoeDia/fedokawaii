@@ -255,6 +255,12 @@ retire .config/nvim/LICENSE 'Apache License'
 retire .config/nvim/README.md 'A starter template for'
 retire .config/nvim/stylua.toml 'column_width = 120'
 retire .config/nvim/lua/plugins/example.lua 'just an example spec'
+#   LazyVim itself: the config is his own now, these files would ask for what is gone
+retire .config/nvim/lua/plugins/dev.lua 'LazyVim'
+retire .config/nvim/lua/plugins/lean.lua 'LazyVim'
+retire .config/nvim/lua/plugins/look.lua 'LazyVim'
+retire .config/nvim/after/ftplugin/sh.lua 'LazyVim'
+retire .config/nvim/lazyvim.json 'extras'
 #   ~/.local/share/applications/calf.desktop — hid Calf's JACK host, which came with EasyEffects
 #   (both retired: PipeWire's own modules do their job)
 retire .local/share/applications/calf.desktop "Calf's JACK host"

@@ -36,7 +36,7 @@ local function path()
   if full:sub(1, #cwd + 1) == cwd .. "/" then
     name = full:sub(#cwd + 2)
   else
-    local root = LazyVim.root.get({ normalize = true })
+    local root = require("config.root").get()
     if full:sub(1, #root + 1) == root .. "/" then name = full:sub(#root + 2) end
   end
   local parts = vim.split(name, "/", { plain = true })
@@ -47,19 +47,21 @@ end
 
 -- the project's name, when it is not the folder neovim was started in
 local function root()
-  local r = LazyVim.root.get({ normalize = true })
+  local r = require("config.root").get()
   if r == vim.uv.cwd() then return "" end
   return "%#KawaStRoot# " .. FOLDER .. " " .. text(vim.fs.basename(r))
 end
 
+-- (the Nerd Font's marks, a space after each)
+local DIAGNOSTIC = { Error = "\u{f057} ", Warn = "\u{f071} ", Info = "\u{f05a} ", Hint = "\u{f0eb} " }
+local GIT = { added = "\u{f0fe} ", modified = "\u{f14b} ", removed = "\u{f146} " }
 local SEVERITY = { { "ERROR", "Error" }, { "WARN", "Warn" }, { "INFO", "Info" }, { "HINT", "Hint" } }
 local function diagnostics()
   local counts = vim.diagnostic.count(0)
-  local icons = LazyVim.config.icons.diagnostics
   local out = ""
   for _, d in ipairs(SEVERITY) do
     local n = counts[vim.diagnostic.severity[d[1]]]
-    if n then out = out .. "%#KawaSt" .. d[2] .. "#" .. icons[d[2]] .. n .. " " end
+    if n then out = out .. "%#KawaSt" .. d[2] .. "#" .. DIAGNOSTIC[d[2]] .. n .. " " end
   end
   return out == "" and "" or " " .. out
 end
@@ -68,11 +70,10 @@ end
 local function changes()
   local g = vim.b.gitsigns_status_dict
   if not g then return "" end
-  local icons = LazyVim.config.icons.git
   local out = ""
-  if (g.added or 0) > 0 then out = out .. "%#KawaStAdded#" .. icons.added .. g.added .. " " end
-  if (g.changed or 0) > 0 then out = out .. "%#KawaStModified#" .. icons.modified .. g.changed .. " " end
-  if (g.removed or 0) > 0 then out = out .. "%#KawaStRemoved#" .. icons.removed .. g.removed .. " " end
+  if (g.added or 0) > 0 then out = out .. "%#KawaStAdded#" .. GIT.added .. g.added .. " " end
+  if (g.changed or 0) > 0 then out = out .. "%#KawaStModified#" .. GIT.modified .. g.changed .. " " end
+  if (g.removed or 0) > 0 then out = out .. "%#KawaStRemoved#" .. GIT.removed .. g.removed .. " " end
   return out
 end
 
@@ -89,16 +90,9 @@ local function on_progress(ev)
   vim.cmd.redrawstatus()
 end
 
--- where the cursor is, in the file's symbols (Trouble's, from the first server that has them)
-local symbols
-local function here()
-  if not (symbols and vim.b.trouble_lualine ~= false and symbols.has()) then return "" end
-  return " " .. symbols.get()
-end
-
 -- A window too narrow for the whole line loses whole pieces, the least needed first, and never one
 -- cut in its middle (neovim's own cut, %<, left "kawa.py<op   1:1" at 80 columns, no place at 60)
-local GIVE_WAY = { "here", "busy", "root", "dap", "kind", "dir", "changes", "branch", "where", "diagnostics", "rec", "name", "place" }
+local GIVE_WAY = { "busy", "root", "dap", "kind", "dir", "changes", "branch", "where", "diagnostics", "rec", "name", "place" }
 
 -- the cells a piece takes: colours, the fill and a %'s escape take none
 local function cells(s)
@@ -107,7 +101,7 @@ end
 
 local function join(p)
   return p.tile .. p.branch .. p.root .. p.diagnostics .. "%#KawaStQuiet#" .. p.kind .. " " .. p.dir .. p.name
-    .. "%#KawaStQuiet#" .. p.here .. "%=" .. p.busy .. p.rec .. p.dap .. p.changes .. p.where .. p.place
+    .. "%#KawaStQuiet#%=" .. p.busy .. p.rec .. p.dap .. p.changes .. p.where .. p.place
 end
 
 function M.render()
@@ -129,7 +123,6 @@ function M.render()
     kind = vim.bo.filetype ~= "" and " " .. text(vim.bo.filetype) or "",
     dir = dir,
     name = name,
-    here = here(),
     busy = busy ~= "" and "%#KawaStQuiet#" .. text(busy) .. " " or "",
     rec = rec ~= "" and "%#KawaStRecording#recording @" .. rec .. " " or "",
     dap = dap ~= "" and "%#KawaStDebug# " .. text(dap) .. " " or "",
@@ -149,7 +142,7 @@ function M.render()
 end
 
 function M.setup()
-  -- (no 'showcmd': it has no row here, and in this line it flashed LazyVim's "gj" at every j — a
+  -- (no 'showcmd': it has no row here, and in this line it flashed a pending key at every j — a
   -- frame of its own before the key's; which-key shows what a pending key can become)
   vim.o.showcmd = false
   vim.o.statusline = "%!v:lua.require'config.statusline'.render()"
@@ -162,21 +155,9 @@ function M.setup()
     group = group, pattern = { "GitSignsUpdate", "DapProgressUpdate" }, callback = function() vim.cmd.redrawstatus() end,
   })
   vim.api.nvim_create_autocmd("LspProgress", { group = group, callback = on_progress })
-  vim.api.nvim_create_autocmd("LspAttach", {
-    group = group,
-    callback = function(ev)
-      local client = vim.lsp.get_client_by_id(ev.data.client_id)
-      if symbols or not (client and client:supports_method("textDocument/documentSymbol")) then return end
-      symbols = require("trouble").statusline({
-        mode = "symbols", groups = {}, title = false, filter = { range = true },
-        format = "{kind_icon}{symbol.name:Normal}", hl_group = "KawaStQuiet",
-      })
-    end,
-  })
   -- the command line opens on this line's own row: the same rows are left for the text, so nothing
   -- above moves, and no row stays empty the rest of the time. Both options in one step, in the same
   -- frame (ui2 would close its window a tick later: a frame of this line one row too high)
-  if vim.o.cmdheight ~= 0 then return end   -- (a neovim without ui2: its own row, nothing to lend)
   local function rows(height, status)
     if vim.v.event.cmdlevel ~= 1 then return end   -- (Ctrl+R = inside a command line: the outer one stays)
     vim.cmd("noautocmd set cmdheight=" .. height)

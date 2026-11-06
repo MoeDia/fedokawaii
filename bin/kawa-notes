@@ -22,7 +22,7 @@ case ${1:-} in
   --today|--tidy) ;;
   --inside)                               # in the window: neovim
     # as a page, a text screen's heading and footer, with notes.lua as its whole configuration
-    # (not LazyVim: the window has its text as it appears; notes.lua says), at the end of
+    # (not the editor's: the window has its text as it appears; notes.lua says), at the end of
     # the file, on a fresh line, typing. No swap file (-n): every change is in the file
     # itself at once, and a window closed under neovim (Super+Q) would leave one behind —
     # and with it a "Found a swap file" question in the next window. No ShaDa (-i NONE): the

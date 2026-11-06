@@ -184,7 +184,7 @@ they break.
 | r24-37 | the capture and read-text keys on a 61-key board | tests/regress/test_keys.sh "the capture keys" · tests/look/test_screenshot.sh "text: the region read" |
 | r24-27 | a window share is solid: one question, one menu for Brave's two requests | tests/menus/test_share.sh "Helium's two requests for one window shar" · tests/look/test_units.sh "one question per share" |
 | r24-15 r25-9a | torrents: no pip error, torrra at its pins, themed | tests/engine/test_prowlarr.sh "an earlier setup's pipx install" · gone T29: torra left, kawa-torrents is the desktop's own |
-| r25-9b | neovim themed | tests/content/test_tools.sh "neovim (LazyVim)" |
+| r25-9b | neovim themed | tests/content/test_tools.sh "neovim: :checkhealth" |
 | r27-33 r27-bug-12a r27-bug-12b r27-bug-12c r27-more-1 r27-more-2 r27-more-3 r27-more-6 r27-1427-5 r27-1427-6 | torrents overhauled, "failed to resolve", the notice once, Prowlarr's warning | open T29: lane-torrents |
 | r27-29s r27-29s-fix1 r27-inbox-1822a r27-53-mpvdumps | Syncplay and its mpv as one: closing either closes both, no core dumps | tests/yazi/test_syncplay.sh "the launcher's Syncplay" · tests/yazi/test_syncplay.sh "the syncplay installed runs on a Python without PySide6" |
 | r27-bug-13a r27-bug-13b | Brave's download: the percent, no odd icon | tests/status/test_downloads.sh "the browser: a .crdownload —" · tests/status/test_downloads.sh "a finished download's notice" |
@@ -283,3 +283,4 @@ they break.
 | r28-d2 | sketching gone: no FireAlpaca, no Sketch, no tablet in the desktop, dwl or the lessons | tests/regress/test_gone.sh "sketching stays gone" |
 | r28-d2b | the to-do's heading wears its own tanzaku after d1's new icon numbers; the saver's scene built on the lock's art as it is | tests/content/test_notes.sh · tests/look/test_saver.sh |
 | r28-f20b | xdg-user-dirs' Projects is the dojo, an old ~/Projects moves there | tests/static/test_home.sh "Projects is the dojo" |
+| r28-f23 | his own neovim config: the lock is the handful and no more, every spec pinned, no word of LazyVim; start, Python servers, folds, first frame as before | tests/content/test_configs.sh "his own config, minimal" · tools/regress/nvim-start.sh |

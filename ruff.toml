@@ -1,4 +1,4 @@
-# ruff — the Python linter neovim already runs (LazyVim's Python extra, mason's ruff):
+# ruff — the Python linter neovim already runs (mason's ruff):
 # the rules tests/static/test_syntax.sh holds every Python file of the repository to
 extend-exclude = [".claude"]                  # (design drafts kept as evidence, never run)
 

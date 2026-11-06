@@ -61,7 +61,7 @@ if [[ -x $RUFF ]]; then
   done < <(find bin system tools tests docs configs -type f -print0)
   ((${#PYALL[@]} >= 60)) && _ok || _no "only ${#PYALL[@]} Python files found (68 on 4 Nov)"
   out=$("$RUFF" check --no-cache --force-exclude --output-format concise "${PYALL[@]}" 2>&1) && _ok || _no "${out:0:600}"
-else skipped "no ruff here (LazyVim's Python extra installs it with mason)"; fi
+else skipped "no ruff here (mason installs it)"; fi
 
 case_ "the shell inside the configs is clean for shellcheck (as sh, -S warning)"
 if command -v shellcheck >/dev/null; then

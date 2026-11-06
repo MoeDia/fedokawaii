@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """tools/nvim-bench.py — Neovim as the desktop runs it, timed in a pseudo-terminal that answers as
-foot does: to first output, to LazyVim's VeryLazy, to the last draw of the first full screen, to
+foot does: to first output, to lazy.nvim's VeryLazy, to the last draw of the first full screen, to
 its exit; each plugin's own load time; and each key's time to its redraw.
 
 A pty that answers nothing is not a terminal: nvim waits 100 ms for the answer to its colour query
@@ -765,7 +765,7 @@ def cmd_check(args):
     n = sum(1 for f in frames_of(raw) if b"editor" in f)
     say(n == 1, f"the first screen is drawn once, not again when the plugins come ({n})")
     say(r["messages"] == "", f"a start says nothing: {r['messages'][:60]!r}")
-    say(not any(r["plugins"].get(p) for p in ("nvim-lspconfig", "mason.nvim", "gitsigns.nvim")),
+    say(not any(r["plugins"].get(p) for p in ("mason.nvim", "gitsigns.nvim")),
         "the first screen loads no server, no Mason, no git")
     raw = []
     r = one_start(root, variant, "txt", raw=raw)
@@ -773,7 +773,7 @@ def cmd_check(args):
     text = next((i for i, f in enumerate(fr) if b"prose" in f), -1)
     line = next((i for i, f in enumerate(fr) if b"NORMAL" in f), -2)
     say(text == line, f"a file's first frame has its status line ({text}, {line})")
-    say(not any(r["plugins"].get(p) for p in ("nvim-lspconfig", "mason.nvim")),
+    say(not any(r["plugins"].get(p) for p in ("mason.nvim", "nvim-dap")),
         "a text file loads no server and no Mason")
     r = one_start(root, variant, "py", dump_ms=4000)
     say(sorted(r["clients"]) == ["basedpyright", "ruff"], f"a Python file has its servers ({r['clients']})")

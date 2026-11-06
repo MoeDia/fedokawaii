@@ -1,4 +1,4 @@
--- ~/.config/nvim/lua/plugins/colorscheme.lua — added on top of the LazyVim starter.
+-- ~/.config/nvim/lua/plugins/colorscheme.lua — the colours.
 -- gruvbox.nvim with its palette remapped to the desktop's colours: on the dark theme ink
 -- ground and paper text (gruvbox's dark/bright colours), on the light theme paper ground
 -- and ink text (its light/faded colours). The ground itself is left to the terminal
@@ -64,7 +64,7 @@ return {
             or { bg = "#2e1f19", fg = "#f5ecc2" }
           vim.api.nvim_set_hl(0, "PmenuSel", sel)
           vim.api.nvim_set_hl(0, "WildMenu", sel)
-          -- the first screen (look.lua) as a text screen: the heading's icon vermilion, its
+          -- the first screen (snacks.lua) as a text screen: the heading's icon vermilion, its
           -- name in the text's ink, the stitch in edge2; the rows' glyphs vermilion, their
           -- names the text, their keys and the start's time muted
           local t = vim.o.background == "light"
@@ -83,7 +83,7 @@ return {
           -- note asagi, a hint muted; the message's words muted at the line's end, the words' own
           -- ink in the float (vermilion marks, never carries a sentence: no red on sumi reads).
           -- The base Diagnostic* groups keep the severity's ink on purpose: only what links to
-          -- them (lualine's counts, Trouble's and Telescope's marks — short marks) draws with them
+          -- them (the status line's counts: short marks) draws with them
           local d = vim.o.background == "light"
             and { Error = "#a84222", Warn = "#986f2d", Info = "#00726a", Hint = "#586459" }
             or { Error = "#f47b58", Warn = "#e2b540", Info = "#82c1b4", Hint = "#cab596" }
@@ -128,6 +128,10 @@ return {
       transparent_mode = true,
       italic = { strings = false, emphasis = false, comments = false, operators = false, folds = false },
     },
+    -- the plugin's own settings, then these colours switched on: before the first frame
+    config = function(_, opts)
+      require("gruvbox").setup(opts)
+      vim.cmd.colorscheme("gruvbox")
+    end,
   },
-  { "LazyVim/LazyVim", opts = { colorscheme = "gruvbox" } },
 }

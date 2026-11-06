@@ -28,7 +28,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | Terminal | foot (server + footclient) | F | |
 | Shell | bash + bash-completion · ble.sh | F + git (pinned commit) | native prompt, OSC 7 / 133 for foot; ble.sh (the Bash Line Editor) types for it: the line coloured as you type, a grey suggestion from your history, a completion menu — in the terminal's 16 colours, so it follows the theme |
 | Shell helpers | fzf · zoxide · eza · bat · tldr | F | Ctrl+R / Ctrl+T / Alt+C · a `cd` that learns your folders · `ls` with git status and trees · `cat` in syntax colours · `tldr` examples |
-| Editor | neovim + LazyVim + tree-sitter-cli | F + git | nano / vim-minimal are **removed** |
+| Editor | neovim + its own minimal config + tree-sitter-cli | F + git | nano / vim-minimal are **removed** |
 | Browser | Helium (`helium-bin`) | C | Chromium's engine, Google's services out, uBlock inside; its own COPR (imput/helium, F45, signed); in GTK mode, so it wears the palette; warm at login (`kawa-browser`) |
 | AI | Claude Code | V (`downloads.claude.ai`, key fingerprint checked) | |
 | AI agents side by side | herdr | GH (static, SHA-256 pinned) | several Claude Code sessions in panes of one terminal window (launcher → *Agents*), each marked working, blocked or idle in a sidebar; a git worktree per task on one key; a notice (mako) when one finishes or asks. Its own multiplexer and server, so no tmux; Claude Squad (needs tmux, AGPL, last release August 2026) was the other candidate. Its update and rule-download checks are off: it stays the pinned release |
@@ -74,7 +74,7 @@ Source: **F** Fedora · **RF** RPM Fusion · **V** vendor repo (signed) · **C**
 | System monitor | btop (+ rocm-smi on AMD) | F | rocm-smi is the ROCm SMI library btop opens to read the card: load, memory, heat and watts in the CPU box, and a GPU box on **5** |
 | Tables in the terminal | visidata (`vd`) | F | `vd file.csv`: CSV, TSV, JSON and SQLite — sort, sum, filter, group, save; the default for CSV and TSV files (a `.xlsx` needs python3-openpyxl, which is not installed: Excel files are LibreOffice Calc's) |
 | Disk usage | gdu | F | `gdu ~`: what fills a folder, largest first; **d** deletes |
-| Search / view | ripgrep · fd-find · bat | F | rg and fd also power LazyVim's pickers |
+| Search / view | ripgrep · fd-find · bat | F | rg and fd also power neovim's finder |
 | Performance | tuned | F | the `fedokawaii` profile: throughput-performance for an always-plugged desktop |
 | Fetch | `fetch` (own, pure bash) | repo | ten pixel pictures; replaces fastfetch |
 | Snapshots | snapper · grub-btrfs | F + C | Timeshift can't use Fedora's subvolume names; grub-btrfs (COPR `zzahkaboom24/grub-btrfs`, 4.14 for Fedora 45 — Fedora has no package; kylegospo's COPR stopped at 38) lists the newest ten "before" snapshots in the boot menu, made again by `kawa-snap boot` (no grub-btrfsd daemon); `kawa-snap restore` swaps one in as the system |
@@ -152,7 +152,7 @@ before setup started plus the manifest — anything else is reported by name.
 | hunspell-en, hunspell-ar | spelling in English and Arabic, as you type in LibreOffice |
 | terminus-fonts-console | a crisp, larger font on the text console (login, Ctrl+Alt+F2…) |
 | greetd-selinux | without it SELinux can block the login on Fedora |
-| tree-sitter-cli | required by LazyVim's nvim-treesitter (`main` branch) |
+| tree-sitter-cli | required by nvim-treesitter (`main` branch) |
 | ShellCheck | changing the desktop's scripts yourself (chapter 42 of the handbook): it catches the mistakes bash lets through |
 | libnotify | `notify-send`, used by the helpers |
 | gtk4, libadwaita | runtime libraries of the satty binary |

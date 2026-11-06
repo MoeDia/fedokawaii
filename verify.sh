@@ -700,7 +700,7 @@ check "qalc runs"                                      U qalc -t 1+1
 # Python and Rust to learn with (setup.sh s_dev): uv's CPython, rustup's stable, neovim's servers
 check "Python: uv's CPython"                           U uv python find --managed-python
 check "Rust: cargo, rust-analyzer, clippy, rustfmt (rustup)" U bash -c 'for b in cargo rust-analyzer cargo-clippy rustfmt; do test -x ~/.local/share/cargo/bin/$b || exit 1; done'
-check "neovim's servers and formatters (Mason: Python, Rust's debugger, Lua, TOML, shell)" U bash -c 'for b in basedpyright ruff debugpy codelldb lua-language-server stylua shfmt taplo; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
+check "neovim's servers and formatters (Mason: Python, Rust's debugger, Lua, TOML)" U bash -c 'for b in basedpyright ruff debugpy codelldb lua-language-server taplo; do test -x ~/.local/share/nvim/mason/bin/$b || exit 1; done'
 check "restic runs (backups to another disk: kawa-backup)" U restic version
 # ── the play world (lib/asobi.sh): a user that can touch nothing of yours, its walls, its programs
 section "the play world"

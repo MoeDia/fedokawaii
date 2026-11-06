@@ -2,7 +2,7 @@
 # tests/content/test_tools.sh — the shell and its everyday tools as the machine has them, not
 # stand-ins: an interactive bash in a terminal of its own (pty_run.py) reading Fedora's
 # ~/.bashrc, ~/.bashrc.d/fedokawaii.sh and the real ble.sh at lib/upstream.sh's commit, with
-# the real eza, fd, zoxide and fzf; then lazygit, yazi and neovim (LazyVim, its plugins) on
+# the real eza, fd, zoxide and fzf; then lazygit, yazi and neovim (its plugins) on
 # their first start. Nothing may say a warning or an error: not the shell's start (the first
 # one builds ble.sh's caches and says only that; the second says nothing at all), not an alias
 # or a key's widget, not a tool's first window, not :checkhealth lazy.
@@ -112,7 +112,7 @@ if [[ -n ${REAL[yazi]} ]]; then
   has "$(cat "$TMP/text")" "a.txt"; eq "$(alarms "$TMP/text")" ""
 else skip "no yazi on PATH"; fi
 
-case_ "neovim (LazyVim): :checkhealth lazy has no WARNING or ERROR; a first file opens with no message"
+case_ "neovim: :checkhealth lazy has no WARNING or ERROR; a first file opens with no message"
 if [[ -n ${REAL[nvim]} && -d $NVIM_DATA/lazy ]]; then
   home; mkdir -p "$HOME/.config/nvim" "$HOME/.local/share"
   cp -r "$REPO/configs/home/.config/nvim/." "$HOME/.config/nvim/"   # (the desktop's: as setup)

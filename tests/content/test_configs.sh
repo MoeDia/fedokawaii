@@ -337,16 +337,17 @@ print(text == want, len(d))
 PY
 )
 has "$out" "True True"; has "$out" "True $(sed -n 's/^ *"\([^"]*\)": *{.*"commit": *"\([0-9a-f]*\)".*/\1 \2/p' "$LOCK" | wc -l)"
-case_ "what lean.lua takes off is not in the lock (a plugin off and pinned would be fetched for nothing)"
-off=$(sed -n 's/^ *{ "\([^"]*\)", enabled = false },.*/\1/p' "$NV/lua/plugins/lean.lua")
-[[ -n $off ]] && _ok || _no "lean.lua names none"
-for o in $off; do lacks "$(cat "$LOCK")" "\"${o##*/}\":"; done
-case_ "nothing floats: no starter fetched, no Lazy! sync or update; every plugin step is Lazy! restore"
+case_ "his own config, minimal: the lock is the handful and no more, and no line asks for LazyVim"
+eq "$(sed -n 's/^ *"\([^"]*\)": *{.*/\1/p' "$LOCK" | tr '\n' ' ')" "gitsigns.nvim gruvbox.nvim iron.nvim lazy.nvim mason.nvim nvim-dap nvim-dap-ui nvim-nio nvim-treesitter snacks.nvim which-key.nvim "
+lacks "$(grep -rl 'LazyVim\.\|lazyvim' "$NV" 2>/dev/null)" "nvim"
+case_ "every plugin a spec names is in the lock (a plugin not pinned would float)"
+for s in $(grep -rhoE '"[A-Za-z][A-Za-z0-9_-]*/[A-Za-z0-9_.-]+"' "$NV/lua/plugins" | grep -v '^"text/' | tr -d '"'); do has "$(cat "$LOCK")" "\"${s##*/}\":"; done
+case_ "nothing floats: no Lazy! sync or update; every plugin step is Lazy! restore"
 for f in setup.sh theme.sh; do
-  lacks "$(cat "$REPO/$f")" "LazyVim/starter"; lacks "$(cat "$REPO/$f")" "Lazy! sync"; lacks "$(cat "$REPO/$f")" "Lazy! update"; lacks "$(cat "$REPO/$f")" "Lazy! install"
+  lacks "$(cat "$REPO/$f")" "Lazy! sync"; lacks "$(cat "$REPO/$f")" "Lazy! update"; lacks "$(cat "$REPO/$f")" "Lazy! install"
   has "$(cat "$REPO/$f")" "'+Lazy! restore' '+Lazy! clean'"
 done
-case_ "Mason: setup installs what verify asks for (LazyVim's own ensure_installed no longer runs)"
+case_ "Mason: setup installs what verify asks for (nothing else fetches them)"
 tools=$(sed -n 's/^MASON_TOOLS="\(.*\)"$/\1/p' "$REPO/setup.sh")
 [[ -n $tools ]] && _ok || _no "no MASON_TOOLS in setup.sh"
 has "$(cat "$REPO/verify.sh")" "for b in $tools; do test -x ~/.local/share/nvim/mason/bin/"
@@ -365,8 +366,8 @@ for n in Normal Insert Visual Replace Command Terminal Error Warn Info Hint; do
   esac
 done
 eq "$missing" ""
-case_ "the parsers: setup's step reads lean.lua's list, one list; the languages taught are in it"
-parsers=$(sed -n '/opts.ensure_installed = {/,/}/p' "$NV/lua/plugins/lean.lua")
+case_ "the parsers: setup's step reads prefetch.lua's list, one list; the languages taught are in it"
+parsers=$(sed -n '/^local PARSERS = {/,/}/p' "$NV/lua/config/prefetch.lua")
 for l in python rust bash lua markdown markdown_inline json toml; do has "$parsers" "\"$l\""; done
 for l in tsx typescript javascript html xml; do lacks "$parsers" "\"$l\""; done
 has "$(cat "$REPO/setup.sh")" "require(\"config.prefetch\").sync()"
