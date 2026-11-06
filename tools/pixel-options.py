@@ -1,13 +1,19 @@
 #!/usr/bin/env python3
 """tools/pixel-options.py — the owner's pixel accents, as options (r28 S3): the real screens (the kit's shots and the picked
 mock-ups, the picker pack's) on one 1:1 page per option and mood, the option's pixels drawn on them, one for one: no scaling.
-Nothing here is applied to the desktop. P1 separators and rules, P2 the selection marker, P3 corners and frames, P4 the meters.
+Nothing here is applied to the desktop. P1 separators and rules, P2 the selection marker, P3 corners and frames, P4 the meters,
+P5 small accents; PA all together, the favourite; P2m, P4m, P5m what moves, as MP4s at 2x (x264's 4:2:0 keeps a colour's edge whole only at 2x).
 
-    python3 tools/pixel-options.py WORK HI  # WORK/wall-MOOD.png, WORK/MOOD/{quick,notice}.png, HI/{h1-1,g-1,f-3}-MOOD.png → HI/P?-N-MOOD.png
+    python3 tools/pixel-options.py WORK HI  # WORK/wall-MOOD.png, WORK/MOOD/{quick,notice}.png, HI/{h1-1,g-1,f-3}-MOOD.png → HI/P?-N-MOOD.png, HI/PA-MOOD.png
+    python3 tools/pixel-options.py motions WORK HI   # HI/P2m-1-MOOD, P4m-N-MOOD, P5m-2-MOOD, P5m-3-MOOD: .mp4 and a key frame .png
+    python3 tools/pixel-options.py picker HI         # HI/picker.json: the sets P1 to P5 and their motions, after the motions of S1
     # (the kit: quick by a play, kawa-quick then the pointer at 1672 216, the row hovered; notice by its scene, alone)
     python3 tools/pixel-options.py zoom PAGE X Y W H N OUT  # a part of a page, N times, nearest neighbour: to look at
 """
+import json
+import math
 import pathlib
+import subprocess
 import sys
 
 import numpy as np
@@ -226,24 +232,29 @@ def kagi(page, t, x0, y0, x1, y1):
             page.putpixel((x + sx, y + sy), t["accent"])
 
 
-def p2(page, mood, n):
-    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
-    # the selected row of each list: Super+U's and quick settings' measured; the power menu's tile, the bar's tag and the notice's title from their shots
+def selected(page, mood):
+    """The selected row of each list, Super+U's and quick settings' measured; the power menu's tile, the bar's tag and the notice's title from their shots."""
     rows = []
     for box, at in (SUPER_U, QUICK):
         w = box[2] - box[0], box[3] - box[1]
         rows.append(band(page, mood, (at[0], at[1], at[0] + w[0], at[1] + w[1])))
-    print(mood, "bands", [tuple(int(v) for v in r) for r in rows])
-    words = [(rows[0][0] + 40, 56), (rows[1][0] + 33, 30)]   # (each band's label: its first column, its width)
     tile = (POWER[1][0] + 38, POWER[1][1] + 20, POWER[1][0] + 102, POWER[1][1] + 84)
     tag = (64, 6, 98, 34)
     title = (NOTICE[1][0] + 16, NOTICE[1][1] + 120, NOTICE[1][0] + 76, NOTICE[1][1] + 140)
+    return rows, tile, tag, title
+
+
+def p2(page, mood, n, bob=0):
+    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
+    rows, tile, tag, title = selected(page, mood)
+    print(mood, "bands", [tuple(int(v) for v in r) for r in rows])
+    words = [(rows[0][0] + 40, 56), (rows[1][0] + 33, 30)]   # (each band's label: its first column, its width)
     if n == 1:
         for x0, y0, _, y1 in rows:
-            pointer(page, t, x0 - 11, (y0 + y1) // 2 - 4)     # (in the gutter, at the row's red edge: never on its icon)
-        pointer(page, t, tile[0] + 28, tile[1] - 12, "down")
-        pointer(page, t, tag[0] + 13, tag[3] + 2, "up")
-        pointer(page, t, title[0] - 11, title[1] + 6)
+            pointer(page, t, x0 - 11 + bob, (y0 + y1) // 2 - 4)     # (in the gutter, at the row's red edge: never on its icon)
+        pointer(page, t, tile[0] + 28, tile[1] - 12 + bob, "down")
+        pointer(page, t, tag[0] + 13, tag[3] + 2 - bob, "up")
+        pointer(page, t, title[0] - 11 + bob, title[1] + 6)
     elif n == 2:
         for (_, _, _, y1), (x, w) in zip(rows, words, strict=True):
             fude(page, t, x, x + w + 8, y1 - 2)
@@ -470,7 +481,7 @@ def label(page, x, y, words, ink, anchor="ls"):
     d.text((x, y + 14), words, font=ImageFont.truetype(FONT, 14), fill=ink, anchor=anchor)
 
 
-def p4(page, mood, n):
+def p4(page, mood, n, levels=(0.62, 0.15, 0.38)):
     t = {k: rgb(v) for k, v in TOKENS[mood].items()}
     draw = (segments, tairyoku, hishi, katana)[n]
     ground = np.asarray(page.crop((1568, 108, 1640, 124))).astype(np.int16)    # the word's own colour, off the shot
@@ -487,29 +498,232 @@ def p4(page, mood, n):
     ImageDraw.Draw(page).rectangle((x, y, x + w - 1, y + h - 1), fill=paper, outline=rule)
     for cx, cy, _, _ in corners((x, y, x + w - 1, y + h - 1)):
         page.putpixel((cx, cy), page.getpixel((cx + (-1 if cx == x else 1), cy)))
-    for k, (name, level, value) in enumerate((("volume", 0.62, "62%"), ("battery", 0.15, "15%"), ("downloads", 0.38, "38% · 3 min"))):
+    left = round((1 - levels[2]) * 5)
+    got = f"{round(levels[2] * 100)}% · {left} min" if left else "done"
+    for k, (name, level, value) in enumerate((("volume", levels[0], f"{round(levels[0] * 100)}%"), ("battery", levels[1], f"{round(levels[1] * 100)}%"), ("downloads", levels[2], got))):
         top = y + 16 + 40 * k
         label(page, x + 16, top, name, text)
         label(page, x + 336, top, value, text, "rs")
         if name == "battery":                       # (low, by the same fire)
             f = dict(t, asagi=t["flame"], asagi_hi=t["flame_hi"], asagi_lo=t["flame_lo"])
             draw(page, f, x + 16, top + 21, level)
+        elif name == "downloads":                   # (nearly done is no danger: no fire)
+            f = dict(t, flame=t["asagi"], flame_hi=t["asagi_hi"], flame_lo=t["asagi_lo"])
+            draw(page, f, x + 16, top + 21, level)
         else:
             draw(page, t, x + 16, top + 21, level)
+
+
+# ---- P5, small accents
+
+GLINT = ((),
+         (".h.",
+          "hoh",
+          ".h."),
+         ("..h..",
+          "..o..",
+          "hoooh",
+          "..o..",
+          "..h.."),
+         ("...h...",
+          "...h...",
+          "...o...",
+          "hhooohh",
+          "...o...",
+          "...h...",
+          "...h..."))
+PETAL = (("..hh.",
+          ".hoo.",
+          "ooos.",
+          ".s..."),
+         ("..hhh.",
+          "ooooos",
+          ".sss.."),
+         (".hh..",
+          ".ooh.",
+          ".sooo",
+          "...s."))
+SWAY = (0, 1, 2, 1)                                 # the petal's poses, in turn: it tumbles
+
+
+def glint(page, t, mood, x, y, size):
+    """A sparkle on a thing's corner, centred on it: brass in the dark, the seal's red on paper, where brass doesn't show."""
+    rows = GLINT[size]
+    inks = {"h": t["brass_hi"], "o": t["brass"]} if mood == "dark" else {"h": t["accent_hi"], "o": t["accent"]}
+    if size:
+        bitmap(page, x - len(rows[0]) // 2, y - len(rows) // 2, rows, inks)
+
+
+def petal(page, t, x, y, pose, ground, eaten=0):
+    """A falling petal, behind whatever is written: only the window's own ground takes it."""
+    for j, row in enumerate(PETAL[pose]):
+        for i, c in enumerate(row):
+            if c == "." or (x + y + i * 3 + j) % 4 < eaten:
+                continue
+            if max(abs(a - b) for a, b in zip(page.getpixel((x + i, y + j)), ground, strict=True)) <= 20:
+                page.putpixel((x + i, y + j), {"h": t["accent_hi"], "o": t["accent"], "s": t["flame_lo"]}[c])
+
+
+def p5(page, mood, n, phase=None):
+    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
+    if n == 1:                                      # mon: at the end of a title, where its rule starts; the rule steps aside
+        at = []
+        for x0, _, y in rules(page, mood, (20, 60, 725, 130)):
+            for x in range(x0, x0 + 12):
+                page.putpixel((x, y), page.getpixel((x, y - 2)))
+            at.append((x0, y - 3))
+        print(mood, "mon on the rule", at)
+        for x, y in at + [(922, 85), (882, 187), (1675, 61)]:
+            bitmap(page, x, y, CREST, {"#": t["accent"]})
+    elif n == 2:                                    # kirari: on the corner of what has the focus
+        rows, tile, tag, _ = selected(page, mood)
+        size = 3 if phase is None else phase
+        for _, y0, x1, _ in rows:
+            glint(page, t, mood, int(x1), int(y0), size)
+        glint(page, t, mood, tile[2], tile[1], size)
+        glint(page, t, mood, tag[2] - 1, tag[1] - 2, size)   # (the tile's own corner)
+    elif n == 3:                                    # hanabira: a petal or two, one come to rest on a window's rim
+        ground = page.getpixel((700, 320))
+        if phase is None:
+            petal(page, t, 668, 262, 0, ground)
+            petal(page, t, 596, 334, 1, ground)
+            petal(page, t, 1140, 232, 2, page.getpixel((1180, 240)))
+            petal(page, t, 1700, 186, 0, page.getpixel((1700, 196)))
+        else:
+            x, y, pose, eaten = phase
+            petal(page, t, x, y, pose, ground, eaten)
+
+
+# ---- all together: the favourite
+
+def together(page, mood):
+    """mon's rules, the pointer, the chest's fittings, the HP bar, a glint. (Not P5's crest: the rule has one.)"""
+    p1(page, mood, 3)
+    p4(page, mood, 1)
+    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
+    metal = {"h": t["brass_hi"], "o": t["brass"], "s": t["brass_lo"], "#": t["outline"]}
+    p3(page, mood, 3)
+    x, y, w, h = LEVELS
+    for c in corners((x, y, x + w - 1, y + h - 1)):
+        stamp(page, c, KANAGU, metal)
+    p2(page, mood, 1)
+    p5(page, mood, 2)
 
 
 def main(work, hi):
     for m in MOODS:
         for n in range(4):
-            for name, fn in (("P1", p1), ("P2", p2), ("P3", p3), ("P4", p4)):
+            for name, fn in (("P1", p1), ("P2", p2), ("P3", p3), ("P4", p4), ("P5", p5)):
                 page = base(work, hi, m)
                 if n or name == "P4":
                     fn(page, m, n)
-                out = pathlib.Path(hi) / f"{name}-{n}-{m}.png"
-                page.save(out, optimize=True)
-                print(out.name, page.size, out.stat().st_size)
-                if out.stat().st_size > 3_000_000:
-                    sys.exit(f"{out}: over 3 MB")
+                save(page, pathlib.Path(hi) / f"{name}-{n}-{m}.png")
+        page = base(work, hi, m)
+        together(page, m)
+        save(page, pathlib.Path(hi) / f"PA-{m}.png")
+
+
+def save(page, out):
+    page.save(out, optimize=True)
+    print(out.name, page.size, out.stat().st_size)
+    if out.stat().st_size > 3_000_000:
+        sys.exit(f"{out}: over 3 MB")
+
+
+# ---- what moves: drawn frame by frame, no screen; each a list of (a page's crop, how many frames at 60)
+
+CROP_U = (8, 52, 648, 348)                          # Super+U, its list and its column
+CROP_LEVELS = (784, 254, 1168, 428)                 # the mock-up of the levels
+
+
+def ease(u):
+    return 1 - (1 - min(u, 1.0)) ** 3
+
+
+def clip(frames, crop, base_out, key):
+    """frames: pages' crops at 2x, nearest neighbour, into BASE.mp4; frame KEY of them into BASE.png, 1:1."""
+    w, h = (crop[2] - crop[0]) * 2, (crop[3] - crop[1]) * 2
+    enc = subprocess.Popen(["ffmpeg", "-y", "-v", "error", "-f", "rawvideo", "-pix_fmt", "rgb24", "-s", f"{w}x{h}", "-r", "60", "-i", "-",
+                            "-vf", "scale=in_range=pc:out_range=tv,format=yuv420p", "-an", "-c:v", "libx264", "-preset", "slow", "-crf", "14",
+                            "-color_range", "tv", "-r", "60", "-movflags", "+faststart", str(base_out) + ".mp4"], stdin=subprocess.PIPE)
+    count = 0
+    for page, hold in frames:
+        im = page.crop(crop)
+        if count <= key < count + hold:
+            im.save(str(base_out) + ".png", optimize=True)
+        raw = im.resize((w, h), Image.NEAREST).tobytes()
+        for _ in range(hold):
+            enc.stdin.write(raw)
+        count += hold
+    enc.stdin.close()
+    if enc.wait():
+        sys.exit(f"{base_out}: ffmpeg failed")
+    print(pathlib.Path(str(base_out) + ".mp4").name, count, "frames", pathlib.Path(str(base_out) + ".mp4").stat().st_size)
+
+
+def motions(work, hi):
+    hi = pathlib.Path(hi)
+    for m in MOODS:
+        ground = base(work, hi, m)
+        frames = []
+        for k in range(27):                         # a pose held 9 frames (150 ms), whole pixels, out and back; 4 seconds
+            page = ground.copy()
+            p2(page, m, 1, (0, 1, 2, 1)[k % 4])
+            frames.append((page, 9))
+        clip(frames, CROP_U, hi / f"P2m-1-{m}", 0)
+        for n in range(4):
+            ground = base(work, hi, m)
+            frames = []
+            for f in range(270):                    # up to the top, into the fire, back to its level; the download steady; 4.5 s
+                s = f / 60
+                vol = ease(s / 1.5) if s < 1.5 else 1.0 if s < 1.9 else 1 - 0.38 * ease((s - 1.9) / 0.7)
+                page = ground.copy()
+                p4(page, m, n, (vol, 0.15, min(s / 3.4, 1.0)))
+                frames.append((page, 1))
+            clip(frames, CROP_LEVELS, hi / f"P4m-{n}-{m}", 75)
+        ground = base(work, hi, m)
+        frames = []
+        for size, hold in ((1, 4), (2, 4), (3, 6), (2, 4), (1, 4), (0, 138)) * 2:   # a glint, 22 frames, then rest; 4 seconds
+            page = ground.copy()
+            p5(page, m, 2, size)
+            frames.append((page, hold))
+        clip(frames, CROP_U, hi / f"P5m-2-{m}", 8)
+        frames = []
+        for f in range(330):                        # down at 55 px a second, swaying, tumbling; a rest on the rim; dissolving
+            page = ground.copy()
+            y = min(112 + f * 55 // 60, 334)
+            x = 628 + round(9 * math.sin(f / 22))
+            eaten = max(0, (f - 290) // 10)
+            done = y >= 334
+            p5(page, m, 3, (x if not done else 628 + round(9 * math.sin(241 / 22)), y, 1 if done else SWAY[f // 12 % 4], eaten))
+            frames.append((page, 1))
+        clip(frames, CROP_U, hi / f"P5m-3-{m}", 130)
+
+
+def picker(hi):
+    path = pathlib.Path(hi) / "picker.json"
+    old = [e for e in json.loads(path.read_text()) if not e["set"].startswith("P")]
+    def still(st, title, provisional, names, note):
+        return {"set": st, "title": title, "kind": "still", "provisional": provisional, "moods": list(MOODS),
+                "options": [{"n": n, "name": name, "text": text, "files": [f"{st}-{n}-{m}.png" for m in MOODS]} for n, (name, text) in enumerate(names)], "note": note}
+    def moving(st, title, provisional, names, note):
+        return {"set": st, "title": title, "kind": "motion", "provisional": provisional, "moods": list(MOODS),
+                "options": [{"n": n, "name": name, "text": text, "files": [f"{st}-{n}-{m}.{e}" for m in MOODS for e in ("mp4", "png")]} for n, name, text in names], "note": note}
+    pages = "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
+    new = [
+        still("P1", "Rules and separators", 3, (("today", "a plain line"), ("kasumi", "dithered mist"), ("nami", "a band of seigaiha"), ("mon", "stepped caps, a crest")), pages),
+        still("P2", "The selection marker", 1, (("today", "the band and its red edge"), ("yubi", "a JRPG pointer in the gutter"), ("fude", "a brush stroke under the label"), ("kagi", "corner brackets")), pages),
+        moving("P2m", "The pointer bobbing", 1, ((1, "yubi", "whole pixels, 150 ms a pose"),), "Super+U at 2x, the png 1:1. The other markers stand still."),
+        still("P3", "Corners and frames", 3, (("today", "a plain frame"), ("kakko", "quotation brackets"), ("kaidan", "a dialog box's stairs"), ("kanagu", "a chest's brass fittings")), pages + " The power menu keeps its rods."),
+        still("P4", "Meters", 1, (("today", "40 segments"), ("tairyoku", "an HP bar"), ("hishi", "20 lozenges on a cord"), ("katana", "the blade the scale")), pages + " Volume, battery and downloads are a mock-up panel: the shots hold none of them."),
+        moving("P4m", "The meters filling", 1, ((0, "today", "40 segments"), (1, "tairyoku", "an HP bar"), (2, "hishi", "20 lozenges"), (3, "katana", "the blade")), "The mock-up panel at 2x, the png 1:1. Volume runs into the fire and back."),
+        still("P5", "Small accents", 2, (("today", "none"), ("mon", "a crest ending a title"), ("kirari", "a sparkle on the focus"), ("hanabira", "a falling petal")), pages),
+        moving("P5m", "The accents that move", 2, ((2, "kirari", "a glint every 2 seconds"), (3, "hanabira", "falls behind the words, rests, dissolves")), "Super+U at 2x, the png 1:1."),
+        {"set": "PA", "title": "All together", "kind": "still", "provisional": 1, "moods": list(MOODS),
+         "options": [{"n": 1, "name": "the favourite", "text": "mon, yubi, kanagu, tairyoku, kirari", "files": [f"PA-{m}.png" for m in MOODS]}], "note": pages + " A provisional number here is only the favourite."},
+    ]
+    at = next(i for i, e in enumerate(old) if e["kind"] != "motion")
+    path.write_text(json.dumps(old[:at] + new + old[at:], ensure_ascii=False, indent=1) + "\n")
 
 
 def zoom(src, x, y, w, h, n, out):
@@ -520,5 +734,9 @@ def zoom(src, x, y, w, h, n, out):
 if __name__ == "__main__":
     if sys.argv[1] == "zoom":
         zoom(*sys.argv[2:])
+    elif sys.argv[1] == "motions":
+        motions(*sys.argv[2:])
+    elif sys.argv[1] == "picker":
+        picker(*sys.argv[2:])
     else:
         main(*sys.argv[1:])
