@@ -1139,7 +1139,16 @@ return {{
         local colour = vim.o.background == "light" and "#{P['light']['ground']}" or "#{P['dark']['ground']}"
         vim.api.nvim_ui_send("\\27]11;[" .. percent .. "]" .. colour .. "\\27\\\\")
       end
+      -- bigger: the font this many pixels over foot.ini's, 0 foot.ini's (src/foot/foot.patch's
+      -- escape; a terminal without it ignores it). This window's alone. Sent here, not at UIEnter:
+      -- the first frame is already this size (the terminal's UI attaches before the config runs).
+      local function bigger(px) vim.api.nvim_ui_send("\\27]7700;" .. px .. "\\27\\\\") end
       local solid = vim.api.nvim_create_augroup("kawa_solid", {{ clear = true }})
+      bigger(2)
+      vim.api.nvim_create_autocmd("VimResume", {{
+        group = solid,
+        callback = function() bigger(2) end,
+      }})
       vim.api.nvim_create_autocmd({{ "UIEnter", "VimResume", "ColorScheme" }}, {{
         group = solid,
         callback = function() ground(100) end,
@@ -1153,6 +1162,7 @@ return {{
           local alpha = f and f:read("*a"):match("alpha=([%d.]+)") or "1"
           if f then f:close() end
           ground(math.floor(tonumber(alpha) * 100 + 0.5))
+          bigger(0)
         end,
       }})
       require("gruvbox").setup(opts)

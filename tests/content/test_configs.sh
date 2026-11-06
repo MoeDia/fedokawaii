@@ -372,7 +372,7 @@ for l in python rust bash lua markdown markdown_inline json toml; do has "$parse
 for l in tsx typescript javascript html xml; do lacks "$parsers" "\"$l\""; done
 has "$(cat "$REPO/setup.sh")" "require(\"config.prefetch\").sync()"
 
-case_ "neovim: its ground is solid while it runs, the see-through he chose back when it ends or is suspended, in both moods and after a theme switch; the notes page reads init alone and stays see-through"
+case_ "neovim: its font 2 px bigger and its ground solid while it runs, the see-through he chose back when it ends or is suspended, in both moods and after a theme switch; the notes page reads init alone and stays see-through"
 if command -v nvim >/dev/null; then
   mkdir -p "$TMP/glasshome/.local/state/fedokawaii"; printf '[colors-dark]\nalpha=0.96\n' >"$TMP/glasshome/.local/state/fedokawaii/foot-glass.ini"
   out=$(HOME=$TMP/glasshome nvim --clean --headless -c "lua
@@ -384,7 +384,7 @@ if command -v nvim >/dev/null; then
     s.init()
     local function say(what) io.stdout:write(what, ': ', table.concat(sent, ' '), '\n'); sent = {} end
     vim.cmd('silent! doautocmd UIEnter'); say('init alone')
-    s.config(nil, s.opts)
+    s.config(nil, s.opts); say('config')
     vim.o.background = 'dark'; sent = {}
     vim.cmd('doautocmd UIEnter'); say('enter')
     vim.cmd('doautocmd VimSuspend'); say('suspend')
@@ -393,10 +393,11 @@ if command -v nvim >/dev/null; then
     vim.cmd('doautocmd ColorScheme'); say('switch')
     vim.cmd('doautocmd VimLeavePre'); say('leave')" -c 'qa!' 2>&1)
   has "$out" "init alone: "$'\n'
+  has "$out" "config: E]7700;2EB"
   has "$out" "enter: E]11;[100]#181715EB"
-  has "$out" "suspend: E]11;[96]#181715EB"
-  has "$out" "resume: E]11;[100]#181715EB"
+  has "$out" "suspend: E]11;[96]#181715EB E]7700;0EB"
+  has "$out" "resume: E]7700;2EB E]11;[100]#181715EB"
   has "$out" "switch: E]11;[100]#e8e3c2EB"
-  has "$out" "leave: E]11;[96]#e8e3c2EB"
+  has "$out" "leave: E]11;[96]#e8e3c2EB E]7700;0EB"
 fi
 done_

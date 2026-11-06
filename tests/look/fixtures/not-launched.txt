@@ -47,6 +47,9 @@ inih-devel                      the build
 systemd-container               the update's copy of the system runs in it (systemd-nspawn): no window
 systemd-devel                   the build
 cairo-devel                     the build (the desktop's mako)
+fcft-devel                      the build (the desktop's foot)
+tllist-devel                    the build (the desktop's foot)
+utf8proc-devel                  the build (the desktop's foot)
 rust                            the build (the desktop's yazi)
 cargo                           the build (the desktop's yazi)
 pango-devel                     the build (the desktop's mako)

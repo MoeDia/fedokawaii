@@ -77,6 +77,11 @@ back built; rm -rf "$W/home/fkuser/.local/share/fedokawaii/syncplay" "$W/home/fk
 tk --repair; called 'git\] .*clone .*Syncplay'; has "$OUT" "✔ Syncplay v1.7.6 (no window)"
 [[ -x $W/home/fkuser/.local/bin/syncplay ]] && _ok || _no "syncplay not put back"
 eq "$(cat "$W/home/fkuser/.local/share/fedokawaii/upstream/syncplay")" "$(. "$REPO/lib/upstream.sh"; syncplay_pin)"
+case_ "the terminal's foot off its pin: the update builds it; in place: left alone"
+back built; reset_calls; tk --update; eq "$RC" 0; not_called 'git\] .*clone .*foot'
+back built; echo stale >"$W/usr/local/bin/foot.built"; reset_calls
+tk --update; eq "$RC" 0 "$(grep -E '✘|failed' <<<"$OUT" | head -n3 | tr '\n' '|')"; called 'git\] .*clone .*foot'
+eq "$(cat "$W/usr/local/bin/foot.built")" "$( { printf '%s\n' "$(conf_val FOOT_TAG)" "$(conf_val FOOT_COMMIT)"; cat "$REPO/src/foot/foot.patch"; } | sha256sum | cut -d' ' -f1)" "the record of the build"
 case_ "the notices' mako off its pin (a toolkit with a new patch): the update builds it before the theme writes its config; in place: left alone"
 back built; reset_calls; tk --update; eq "$RC" 0; not_called 'git\] .*clone .*mako'
 back built; echo stale >"$W/usr/local/bin/mako.built"; reset_calls

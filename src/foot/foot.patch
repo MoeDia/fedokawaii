@@ -1,0 +1,79 @@
+src/foot/foot.patch — the desktop's foot (setup.sh: build_foot), against FOOT_TAG/FOOT_COMMIT
+(fedokawaii.conf). One private escape, for a program to size the window's font, as foot has none
+(man foot-ctlseqs):
+  ESC ] 7700 ; N ESC \    the font N pixels over foot.ini's, 0 to 32; no N or 0: foot.ini's.
+                          From foot.ini, not from the size now, so sending it twice is harmless;
+                          anything else is ignored, as any terminal ignores an escape it lacks.
+Neovim sends it (configs/home/.config/nvim/lua/plugins/colorscheme.lua).
+
+diff --git a/osc.c b/osc.c
+index 05281d0e..e92f6041 100644
+--- a/osc.c
++++ b/osc.c
+@@ -1676,6 +1676,18 @@ osc_dispatch(struct terminal *term)
+         osc_flash(term);
+         break;
+ 
++    case 7700: {
++        /* fedokawaii: the font N pixels over foot.ini's, 0 to 32; nothing or 0: foot.ini's */
++        char *end;
++        long px = strtol(string, &end, 10);
++        if (string[0] != '\0' && (!isdigit(string[0]) || *end != '\0' || px > 32)) {
++            UNHANDLED();
++            break;
++        }
++        term_font_size_over_conf(term, px);
++        break;
++    }
++
+     case 777: {
+         /*
+          * OSC 777 is an URxvt generic escape used to send commands to
+diff --git a/terminal.c b/terminal.c
+index beee1f9f..19db86a5 100644
+--- a/terminal.c
++++ b/terminal.c
+@@ -2351,6 +2351,31 @@ term_font_size_reset(struct terminal *term)
+     return load_fonts_from_conf(term);
+ }
+ 
++bool
++term_font_size_over_conf(struct terminal *term, int px)
++{
++    if (px == 0)
++        return load_fonts_from_conf(term);
++
++    const struct config *conf = term->conf;
++    const float dpi = term->font_is_sized_by_dpi ? term->font_dpi : 96.;
++
++    for (size_t i = 0; i < 4; i++) {
++        const struct config_font_list *font_list = &conf->fonts[i];
++
++        for (size_t j = 0; j < font_list->count; j++) {
++            const struct config_font *font = &font_list->arr[j];
++            int conf_px = font->px_size > 0
++                ? font->px_size : (int)(font->pt_size * dpi / 72.);
++
++            term->font_sizes[i][j] = (struct config_font){
++                .pt_size = font->pt_size, .px_size = conf_px + px};
++        }
++    }
++
++    return reload_fonts(term, true);
++}
++
+ bool
+ term_fractional_scaling(const struct terminal *term)
+ {
+diff --git a/terminal.h b/terminal.h
+index 32145cac..420250c9 100644
+--- a/terminal.h
++++ b/terminal.h
+@@ -863,6 +863,7 @@ bool term_update_scale(struct terminal *term);
+ bool term_font_size_increase(struct terminal *term);
+ bool term_font_size_decrease(struct terminal *term);
+ bool term_font_size_reset(struct terminal *term);
++bool term_font_size_over_conf(struct terminal *term, int px);
+ bool term_font_dpi_changed(struct terminal *term, float old_scale);
+ void term_font_subpixel_changed(struct terminal *term);
+ int term_font_baseline(const struct terminal *term);

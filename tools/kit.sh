@@ -28,7 +28,7 @@
 #                grammar (screen.sh, fzf.opts), the shell's prompt
 #     --wall     FILE, a picture of the screen's size, in place of the flat ground
 #     --tree     DIR (tools/kit-tree.sh makes it) the tree with nothing applied: DIR/home in place
-#                of the installed home, DIR/bin's dwl, mako and yazi, the repository's fonts
+#                of the installed home, DIR/bin's dwl, mako, foot and yazi, the repository's fonts
 #     SCENE      bar · notice · launcher · term · quick (Super+X) · system (Super+U; system:N its
 #                tab N after the first, shot as system-N.png) · tui (--tui) · play (--play) · full (default: bar notice term full)
 # Shots → OUT (default /dev/shm/r27/kit/THEME)/SCENE.png. Exit 0 · 1 a scene failed · 2 misuse.

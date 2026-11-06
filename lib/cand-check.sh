@@ -58,7 +58,7 @@ print(c["terminal"]["vt"] and shlex.split(c["default_session"]["command"])[0])
 if [[ ${1:-} == --before ]]; then configs; exit 0; fi
 # our own builds find every library they link (a move to a new Fedora: not asked — they are rebuilt
 # after it, and the test VM has shown that they build there: lib/move.sh)
-[[ -z ${FK_MOVE:-} ]] && for f in /usr/local/bin/dwl /usr/local/bin/mako /usr/local/lib/fedokawaii-wlroots-*/lib/*.so* \
+[[ -z ${FK_MOVE:-} ]] && for f in /usr/local/bin/dwl /usr/local/bin/{mako,foot,footclient} /usr/local/lib/fedokawaii-wlroots-*/lib/*.so* \
          /usr/local/libexec/xdg-desktop-portal-termfilechooser \
          "$home"/.local/bin/{kawa-clipkeep,kawa-saver,satty,yazi,ya,lazygit} "$home"/.local/lib/fedokawaii/kawa-lockmod.so; do
   [[ -f $f && ! -L $f ]] || continue

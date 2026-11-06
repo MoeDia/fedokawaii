@@ -77,6 +77,8 @@ PKG_BUILD=(             # kept installed: theme.sh rebuilds dwl (config.h, patch
   cairo-devel pango-devel gdk-pixbuf2-devel   # …and mako (the notices, with src/mako/mako.patch):
                                               #   drawn with cairo and Pango, its icons through
                                               #   gdk-pixbuf; Wayland and sd-bus as above
+  fcft-devel tllist-devel utf8proc-devel   # …and foot (the terminal, with src/foot/foot.patch): its font
+                                           #   library, its list macros, grapheme clusters
   rust cargo            # …and yazi (the files, with src/yazi/yazi.patch): setup.sh's build_yazi. Fedora's, updated with
                         #   the system; your own Rust to learn with is rustup's, apart (below)
 )

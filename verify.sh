@@ -435,6 +435,13 @@ else
   check "notices: the desktop's mako ${MAKO_TAG:-?} (src/mako/mako.patch) runs" U bash -c '"$1" --help >/dev/null 2>&1 && grep -q shadow-color "$1"' _ "$mk"
   check "mako.service starts the desktop's mako (its drop-in)" grep -qx "ExecStart=$mk" /usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf
 fi
+# the terminal: the desktop's foot (setup.sh: build_foot — src/foot/foot.patch, the pinned tag)
+ft=/usr/local/bin/foot
+if [[ ! -x $ft || ! -x ${ft}client ]]; then
+  fail "the desktop's foot not built: neovim keeps foot.ini's size" "update or repair builds it"
+else
+  check "terminal: the desktop's foot ${FOOT_TAG:-?} (src/foot/foot.patch) runs" U bash -c '"$1" --version 2>/dev/null | grep -q "^foot version: $2 "' _ "$ft" "${FOOT_TAG:-}"
+fi
 # the files: the desktop's yazi (setup.sh: build_yazi — src/yazi/yazi.patch, the pinned tag)
 yz=$TARGET_HOME/.local/bin/yazi
 if [[ ! -x $yz ]]; then

@@ -609,6 +609,8 @@ validate_conf() {                   # prints one line per problem; empty = valid
   [[ $TFC_COMMIT =~ ^[0-9a-f]{40}$ ]]           || echo "TFC_COMMIT must be the 40-character commit of $TFC_TAG"
   [[ $MAKO_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "MAKO_TAG must look like v1.11.0 (is '$MAKO_TAG')"
   [[ $MAKO_COMMIT =~ ^[0-9a-f]{40}$ ]]          || echo "MAKO_COMMIT must be the 40-character commit of $MAKO_TAG"
+  [[ $FOOT_TAG =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]    || echo "FOOT_TAG must look like 1.28.0 (is '$FOOT_TAG')"
+  [[ $FOOT_COMMIT =~ ^[0-9a-f]{40}$ ]]          || echo "FOOT_COMMIT must be the 40-character commit of $FOOT_TAG"
   [[ $YAZI_TAG =~ ^v[0-9]+\.[0-9]+(\.[0-9]+)?$ ]] || echo "YAZI_TAG must look like v26.9.1 (is '$YAZI_TAG')"
   [[ $YAZI_COMMIT =~ ^[0-9a-f]{40}$ ]]          || echo "YAZI_COMMIT must be the 40-character commit of $YAZI_TAG"
   if [[ -z $USERNAME ]]; then :
@@ -622,7 +624,7 @@ validate_conf() {                   # prints one line per problem; empty = valid
 # else in it is reported as a problem, and the values are checked before anything runs.
 CONF_KEYS=(USERNAME GPU SSH_SERVER MONITOR_HZ KB_LAYOUTS KB_TOGGLE TIMEZONE WEATHER_CITY
            NIGHT_LIGHT THEME WALLPAPER_PACK BOOT_MENU_SECONDS DNF_PARALLEL BACKUP_TARGET
-           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT YAZI_TAG YAZI_COMMIT)
+           BACKUP_REMIND_DAYS DWL_TAG DWL_COMMIT DWL_WLROOTS TFC_TAG TFC_COMMIT MAKO_TAG MAKO_COMMIT FOOT_TAG FOOT_COMMIT YAZI_TAG YAZI_COMMIT)
 # settings an earlier version had, gone since: read past in a file not yet merged (update's
 # conf_merge takes their lines out) — SPOTIFY (Spotify's app, built here; its web player now)
 CONF_RETIRED=(SPOTIFY STEAM)

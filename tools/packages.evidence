@@ -207,3 +207,6 @@ zstd|fedora|https://packages.fedoraproject.org/pkgs/zstd/zstd/|2026-11-04|zstd-1
 cairo-devel|fedora|https://packages.fedoraproject.org/search?query=cairo-devel|2026-10-27|manifest 2026-10-27 (mako's build)
 pango-devel|fedora|https://packages.fedoraproject.org/search?query=pango-devel|2026-10-27|manifest 2026-10-27 (mako's build)
 gdk-pixbuf2-devel|fedora|https://packages.fedoraproject.org/search?query=gdk-pixbuf2-devel|2026-10-27|manifest 2026-10-27 (mako's build)
+fcft-devel|fedora|https://packages.fedoraproject.org/search?query=fcft-devel|2026-11-06|manifest 2026-11-06 (foot's build)
+tllist-devel|fedora|https://packages.fedoraproject.org/search?query=tllist-devel|2026-11-06|manifest 2026-11-06 (foot's build)
+utf8proc-devel|fedora|https://packages.fedoraproject.org/search?query=utf8proc-devel|2026-11-06|manifest 2026-11-06 (foot's build)

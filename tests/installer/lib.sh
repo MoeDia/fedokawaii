@@ -541,7 +541,7 @@ built() {
   printf '[Journal]\nSystemMaxUse=500M\n' >"$W/etc/systemd/journald.conf.d/40-fedokawaii.conf"
   printf '[Coredump]\nMaxUse=1G\nExternalSizeMax=1G\nProcessSizeMax=1G\n' >"$W/etc/systemd/coredump.conf.d/40-fedokawaii.conf"
   cp "$REPO/system/fedokawaii-home.sh" "$W/etc/profile.d/fedokawaii-home.sh"
-  mkdir -p "$W/home/fkuser/.config"; mkdir -p "$W/home/fkuser/downloads" "$W/home/fkuser/captures"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\nXDG_DOCUMENTS_DIR="$HOME/"\nXDG_MUSIC_DIR="$HOME/"\nXDG_DOWNLOAD_DIR="$HOME/downloads"\nXDG_PICTURES_DIR="$HOME/captures"\nXDG_VIDEOS_DIR="$HOME/captures"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
+  mkdir -p "$W/home/fkuser/.config"; mkdir -p "$W/home/fkuser/downloads" "$W/home/fkuser/captures" "$W/home/fkuser/dojo"; printf 'XDG_DESKTOP_DIR="$HOME/"\nXDG_PUBLICSHARE_DIR="$HOME/"\nXDG_TEMPLATES_DIR="$HOME/"\nXDG_DOCUMENTS_DIR="$HOME/"\nXDG_MUSIC_DIR="$HOME/"\nXDG_DOWNLOAD_DIR="$HOME/downloads"\nXDG_PICTURES_DIR="$HOME/captures"\nXDG_VIDEOS_DIR="$HOME/captures"\nXDG_PROJECTS_DIR="$HOME/dojo"\n' >"$W/home/fkuser/.config/user-dirs.dirs"
   mkdir -p "$W/etc/systemd/logind.conf.d"; printf '[Login]\nHandleSuspendKey=ignore\nHandleSuspendKeyLongPress=ignore\nHandleHibernateKey=ignore\nHandleHibernateKeyLongPress=ignore\nInhibitDelayMaxSec=25\n' >"$W/etc/systemd/logind.conf.d/90-fedokawaii.conf"
   printf '[main]\nmax_parallel_downloads=10\nfastestmirror=True\nminrate=5k\ntimeout=20\ninstallonly_limit=2\ndefaultyes=True\nexclude_from_weak=nodejs,nodejs22*,PackageKit,java-*-openjdk-headless,libreoffice-help-*\n' >"$W/etc/dnf/libdnf5.conf.d/90-fedokawaii.conf"
   printf '[x]\ngpgcheck=1\n' >"$W/etc/yum.repos.d/claude-code.repo"; cp "$W/etc/yum.repos.d/claude-code.repo" "$W/etc/yum.repos.d/_copr:copr.fedorainfracloud.org:imput:helium.repo"
@@ -573,6 +573,9 @@ built() {
   chmod 755 "$W/usr/local/bin/mako"
   printf '%s\n' "[Service]" "ExecStart=" "ExecStart=/usr/local/bin/mako" >"$W/usr/local/lib/systemd/user/mako.service.d/fedokawaii.conf"
   { printf '%s\n' "$(conf_val MAKO_TAG)" "$(conf_val MAKO_COMMIT)"; cat "$REPO/src/mako/mako.patch"; } | sha256sum | cut -d' ' -f1 >"$W/usr/local/bin/mako.built"
+  # the terminal's foot, as build_foot leaves it: both binaries, the record of what they were built from
+  for b in foot footclient; do printf '#!/bin/sh\necho "%s version: %s -pgo"\n' "$b" "$(conf_val FOOT_TAG)" >"$W/usr/local/bin/$b"; chmod 755 "$W/usr/local/bin/$b"; done
+  { printf '%s\n' "$(conf_val FOOT_TAG)" "$(conf_val FOOT_COMMIT)"; cat "$REPO/src/foot/foot.patch"; } | sha256sum | cut -d' ' -f1 >"$W/usr/local/bin/foot.built"
   # the files' yazi, as build_yazi leaves it: the binary (its patch's mark) and the record of what it was built from
   mkdir -p "$W/home/fkuser/.local/bin" "$W/home/fkuser/.local/share/fedokawaii/upstream"
   printf '#!/bin/sh\necho "Yazi"; echo "    Version: 26.9.1"; echo "    Patch  : fedokawaii"\n' >"$W/home/fkuser/.local/bin/yazi"

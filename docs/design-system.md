@@ -820,6 +820,7 @@ numbers here against its files.
 | quick settings, sound, the bar's dropdowns, the power dialog | the right end, Super+X, Super+A, Super+Shift+E | `bin/kawa-panel` + `panel-art.txt` (state: `bin/kawa-quick`) | T13, lane-pixels |
 | the bar | — | `configs/home/.config/waybar/`, `bin/kawa-bar` | T14 |
 | windows' frames; notices; the level display; tooltips | — | `src/dwl/`; `src/mako/mako.patch` (the desktop's mako: the frame, the title's icon ink, the hanging indent, no "…") + mako's `config`; `bin/kawa-osd` | T15 |
+| neovim's font, 2 px over the terminal's (18 of 16; rows 23 px, 44 of them, 8 px left under the last at full height: only 24 px fits exactly, too big) | — | `src/foot/foot.patch` (the escape `OSC 7700;N`) + `configs/home/.config/nvim/lua/plugins/colorscheme.lua` (the notes page not) | f24b |
 | books, wallpapers, clipboard, the launcher | Super+R, W, V, Space | `bin/kawa-books`, `bin/kawa-wallpaper`, `bin/kawa-clip`, `bin/kawa-menu` | T16 |
 | art: wallpapers (the old masters as pixel art), the lock's scenes, quick settings' face | — | `tools/build-masters.py` (art/masters), `tools/build-art.py`, art/icons.txt (oni, tennin) | T18 |
 | motion | — | `src/dwl/`, the private wlroots, `src/kawa-saver` | T19 |

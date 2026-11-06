@@ -11,6 +11,9 @@ if [[ $1 == compile && $3 == */mako/build ]]; then
   printf '#!/bin/sh\n# shadow-color summary-icon-color hanging-indent\necho "Usage: mako [options...]"\n' >"$3/mako"
   chmod 755 "$3/mako"
 fi
+if [[ $1 == compile && $3 == */foot/build ]]; then
+  for b in foot footclient; do printf '#!/bin/sh\necho "%s version: 1.28.0 -pgo"\n' "$b" >"$3/$b"; chmod 755 "$3/$b"; done
+fi
 if [[ $1 == install ]]; then
   d=""; while (($#)); do [[ $1 == --destdir ]] && d=$2; shift; done
   mkdir -p "$d/usr/local/libexec" "$d/usr/local/lib/systemd/user" "$d/usr/local/share/dbus-1/services" "$d/usr/local/share/xdg-desktop-portal/portals"

@@ -255,7 +255,7 @@ conf_merge() {
       if [[ -v tv[$k] && ${tv[$k]} != "$v" ]]; then
         if ((had)) && [[ -v lv[$k] ]]; then
           if [[ ${lv[$k]} == "$v" ]]; then win=toolkit; else win=copy; fi
-        elif [[ $k == DWL_* || $k == TFC_* || $k == MAKO_* ]]; then win=copy
+        elif [[ $k == DWL_* || $k == TFC_* || $k == MAKO_* || $k == FOOT_* ]]; then win=copy
         else win=toolkit; fi
         if [[ $win == toolkit ]]; then line=${tl[$k]}; else taken+=("$k=\"$v\" (was \"${tv[$k]}\")"); fi
       fi
@@ -1634,6 +1634,55 @@ s_mako() {
   ((CONTAINED_RC == 0)) || log "notices still Fedora's mako: the desktop's did not build (why: above, or $LOG_FILE) — its config needs it; update or repair build it"
 }
 
+# ── the terminal: foot, built here (the pinned tag, src/foot/foot.patch) ─────────────
+# Fedora's foot has no escape for its font's size, and neovim's bigger font needs one (the patch
+# says it). Built as you from the tag that must resolve to the pinned commit, foot and footclient
+# copied to /usr/local/bin by root, first on the session's PATH. Fedora's foot package stays: its
+# terminfo. If it fails nothing is installed: Fedora's foot ignores the escape, neovim keeps
+# foot.ini's size, verify says so as a failure, and update and repair build it again. A foot server
+# already running stays what it is until the next session: its windows go with it.
+FOOT_REPO=https://codeberg.org/dnkl/foot.git
+FOOT_BIN=/usr/local/bin/foot
+foot_sum() {   # what the build was made from: the pins and the patch
+  { printf '%s\n' "${FOOT_TAG:-}" "${FOOT_COMMIT:-}"; cat "$REPO_DIR/src/foot/foot.patch"; } | sha256sum | cut -d' ' -f1
+}
+foot_current() {   # built at FOOT_TAG with the patch, and runs
+  [[ -x $FOOT_BIN && -x ${FOOT_BIN}client && $(cat "$FOOT_BIN.built" 2>/dev/null) == "$(foot_sum)" ]] || return 1
+  as_user "$FOOT_BIN" --version >/dev/null 2>&1
+}
+build_foot() {
+  local src=$TARGET_HOME/.local/src/foot
+  [[ ${FOOT_TAG:-} =~ ^[0-9]+\.[0-9]+\.[0-9]+$ && ${FOOT_COMMIT:-} =~ ^[0-9a-f]{40}$ ]] \
+    || die "fedokawaii.conf: FOOT_TAG must look like 1.28.0, FOOT_COMMIT be its 40-character commit"
+  { command -v meson >/dev/null && pkg-config --exists fcft tllist libutf8proc fontconfig pixman-1 xkbcommon wayland-client wayland-cursor wayland-protocols; } \
+    || die "meson or a library foot builds with is missing (lib/manifest.sh, PKG_BUILD) — update installs them"
+  as_user mkdir -p "$TARGET_HOME/.local/src"
+  checkout_sound "$src"
+  [[ -d $src/.git ]] || retry 3 10 as_user git "${GIT_NET[@]}" clone --quiet "$FOOT_REPO" "$src" || die "could not clone $FOOT_REPO"
+  retry 3 10 as_user git -C "$src" "${GIT_NET[@]}" fetch --quiet --tags --force || die "could not fetch $FOOT_REPO"
+  [[ $(as_user git -C "$src" rev-parse "$FOOT_TAG^{commit}") == "$FOOT_COMMIT" ]] \
+    || die "foot's tag $FOOT_TAG does not point at the pinned commit $FOOT_COMMIT — refusing to build"
+  as_user git -C "$src" checkout --quiet --force "$FOOT_COMMIT"
+  as_user git -C "$src" clean -fdxq
+  as_user git -C "$src" apply - <"$REPO_DIR/src/foot/foot.patch" || die "src/foot/foot.patch does not apply to foot $FOOT_TAG"
+  # -Dwerror=false: a newer compiler's new warning must not fail a pinned release · terminfo and
+  # the themes from Fedora's package, no man pages (no scdoc), no tests
+  as_user meson setup "$src/build" "$src" --prefix=/usr/local --buildtype=release -Db_lto=true -Dwerror=false \
+    -Ddocs=disabled -Dthemes=false -Dtests=false -Dterminfo=disabled -Dgrapheme-clustering=enabled >>"$LOG_FILE" 2>&1
+  as_user meson compile -C "$src/build" >>"$LOG_FILE" 2>&1
+  [[ -f $src/build/foot && -f $src/build/footclient ]] || die "the foot build did not make its binaries"
+  as_user "$src/build/foot" --version >/dev/null 2>&1 || die "the foot just built does not run"
+  take_built "$src/build/foot" "$FOOT_BIN" 0755 || die "could not install $FOOT_BIN"
+  take_built "$src/build/footclient" "${FOOT_BIN}client" 0755 || die "could not install ${FOOT_BIN}client"
+  foot_sum >"$FOOT_BIN.built"
+  foot_current || die "foot $FOOT_TAG is not in place after installing it"
+  ok "terminal: foot $FOOT_TAG with its font escape (src/foot/foot.patch)"
+}
+s_foot() {
+  contained build_foot
+  ((CONTAINED_RC == 0)) || log "terminal still Fedora's foot: the desktop's did not build (why: above, or $LOG_FILE) — neovim keeps foot.ini's size; update or repair build it"
+}
+
 # ── the files: yazi, built here (the pinned tag, src/yazi/yazi.patch) ─────────────────
 # yazi draws its pop-ups in Rust: rounded, their titles in the rule; its theme reaches their colours and no more. The patch makes
 # each of them §4's panel with §7's heading (docs/design-system.md). Built as you with Fedora's cargo, from the tag that must
@@ -2522,6 +2571,7 @@ phase3() {
   step "3.07 upstream binaries (checksummed)"          s_upstream
   step "3.07b file dialog: yazi (termfilechooser ${TFC_TAG:-})" s_filechooser
   step "3.07b2 notices: mako ${MAKO_TAG:-} (pinned, the desktop's frame)" s_mako
+  step "3.07b2a terminal: foot ${FOOT_TAG:-} (pinned, its font escape)" s_foot
   step "3.07b3 files: yazi ${YAZI_TAG:-} (pinned, the desktop's pop-ups)" s_yazi
   step "3.07c Syncplay $SYNCPLAY_TAG (pinned commit, no window)" s_syncplay
   step "3.07e ble.sh ${BLESH_COMMIT:0:7} (pinned commit: the shell's typing)" s_blesh
@@ -2908,6 +2958,7 @@ update_steps() {
   if ! tfc_current; then step_on "the yazi file dialog" build_filechooser; fi
   # (before the theme: its notices' config is written for this mako — an older one would not start)
   if ! mako_current; then step_on "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" build_mako; fi
+  if ! foot_current; then step_on "the terminal's foot (${FOOT_TAG:-}, its font escape)" build_foot; fi
   if ! yazi_current; then step_on "yazi (${YAZI_TAG:-}, the desktop's pop-ups)" build_yazi; fi
   # (libtorrent comes with dnf, Fedora's own: only checked here)
   step_on "torrents" torrents_up
@@ -3044,7 +3095,7 @@ libs_ready() {   # libs_ready N [--disablerepo=…] — the libraries our own bu
   local f so kept provided missing=() hard=0 caps list
   local -A users=() core=()
   kept=$(wlr_home)/lib
-  for f in /usr/local/bin/dwl "$kept"/*.so* /usr/local/libexec/xdg-desktop-portal-termfilechooser /usr/local/bin/mako \
+  for f in /usr/local/bin/dwl "$kept"/*.so* /usr/local/libexec/xdg-desktop-portal-termfilechooser /usr/local/bin/{mako,foot,footclient} \
            "$TARGET_HOME"/.local/bin/{kawa-clipkeep,kawa-saver,satty,yazi,ya,lazygit} \
            "$TARGET_HOME"/.local/lib/fedokawaii/kawa-lockmod.so; do
     [[ -f $f ]] || continue
@@ -3322,6 +3373,7 @@ r_dev() {   # what s_dev puts in place, added when missing (nothing moved on: up
 }
 r_filechooser() { tfc_current || build_filechooser; }   # the yazi file dialog, built if missing or not TFC_TAG
 r_mako() { mako_current || build_mako; }                # the notices' mako, built if missing, not MAKO_TAG or its patch changed
+r_foot() { foot_current || build_foot; }                # the terminal's foot, the same
 r_yazi() { yazi_current || build_yazi; }                # yazi, built if missing, not YAZI_TAG or its patch changed
 r_theme() {      # every config back as the repo has it, dwl and the C helpers rebuilt if needed —
   # only where the theme was chosen: a "Setup only" machine keeps its own configs
@@ -3362,6 +3414,7 @@ heal_all() {
   ((net)) && heal "release binaries, fonts, Syncplay, ble.sh" r_upstream
   ((net)) && heal "the yazi file dialog (termfilechooser ${TFC_TAG:-})" r_filechooser
   ((net)) && heal "the notices' mako (${MAKO_TAG:-}, the desktop's frame)" r_mako
+  ((net)) && heal "the terminal's foot (${FOOT_TAG:-}, its font escape)" r_foot
   ((net)) && heal "yazi (${YAZI_TAG:-}, the desktop's pop-ups)" r_yazi
   heal "torrents (its program, Fedora's libtorrent)" torrents_up
   ((net)) && heal "neovim's plugins (at their lock's commits)" r_nvim

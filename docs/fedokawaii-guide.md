@@ -3678,8 +3678,9 @@ in two cells. Ctrl++ and Ctrl+- change the size 2 px at a time (16, 18, 20 px: a
 letters stay as they are; no blur — dwl draws none, and it would cost the graphics card for
 nothing). **Super+U → transparency** turns it off or on again: every open terminal follows at
 once, and so does every one opened after (`kawa-glass on`, `off` or `toggle` does the same from
-a terminal). Neovim is the exception: its ground is solid while it runs, and what you chose comes
-back when it ends. The setting is yours, in `~/.local/state/fedokawaii/foot-glass.ini`; the theme
+a terminal). Neovim is the exception: its ground is solid while it runs and its font 2 pixels
+bigger (that window's alone: Ctrl+0 brings it back should neovim ever be killed), and what you
+chose comes back when it ends or is suspended. The setting is yours, in `~/.local/state/fedokawaii/foot-glass.ini`; the theme
 makes it once and never writes it again. foot reads it as part of its settings and refuses to
 start without it, so should it ever be gone, the next login makes it again (on) before the
 terminal starts (`kawa-glass ensure`). Its cost: the compositor blends the wallpaper under
