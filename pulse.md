@@ -1,11 +1,11 @@
-# round 28 pulse · Fri 06 13:43 (Dubai)
+# round 28 pulse · Fri 06 14:14 (Dubai)
 
-pace: 29/110 done (26%) · time used 13% · ahead 13.1 h · ETA Sat 07 23:56 · left 75 · blocked 0 · owner 6
+pace: 29/110 done (26%) · time used 14% · ahead 12.6 h · ETA Sun 08 01:46 · left 75 · blocked 0 · owner 6
 alerts: 39 errors in 2 h
-run: conductor active · passes 1 (oldest 23 min) · last activity 20 min ago · commits since start 42 · hold False
-machine: load 0.02 0.14 0.16/12 · mem free 27.3 GB · disk free 612 GB · up 13.5 h · cpu tccd1 37° · cpu tctl 45° · gpu edge 40° · gpu junction 34° · gpu mem 54° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 39°
+run: conductor active · passes 1 (oldest 54 min) · last activity 0 min ago · commits since start 42 · hold False
+machine: load 0.41 0.74 0.64/12 · mem free 27.3 GB · disk free 612 GB · up 14.0 h · cpu tccd1 45° · cpu tctl 48° · gpu edge 42° · gpu junction 35° · gpu mem 56° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 41°
 dark: True (active) · pulse timer active
-tokens since start: out 746,362 · in 1,198 · cache write 2,364,691 · cache read 45,679,624 · msgs 572 · out last 6 h 544,957
+tokens since start: out 749,346 · in 1,206 · cache write 2,371,183 · cache read 45,952,675 · msgs 575 · out last 6 h 513,324
 
 ## now / blocked / owner
 - [now] f19 home folders: ~/downloads ~/captures ~/notes ~/books ~/dojo named once in lib/common.sh; theme.sh, xdg-user-dirs and the move of an existing home's folders; tests — 
