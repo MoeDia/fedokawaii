@@ -109,9 +109,9 @@ def _compact(row):
     return out + (str(gap) if gap else "")
 
 
-# the ladder: who sits across the board at each level — from a harmless tree spirit to the oni's king
+# the ladder: who sits across the board at each level — from a harmless tree spirit, past the spirits, to the swords and the shogun
 LADDER = ((550, "kodama"), (700, "tanuki"), (850, "kappa"), (1000, "karakasa"), (1150, "kitsune"), (1300, "tengu"),
-          (1500, "yuki-onna"), (1700, "oni"), (1900, "hannya"), (9999, "shuten-doji"))
+          (1500, "yuki-onna"), (1700, "ronin"), (1900, "sohei"), (9999, "shogun"))
 
 
 def opponent(elo):

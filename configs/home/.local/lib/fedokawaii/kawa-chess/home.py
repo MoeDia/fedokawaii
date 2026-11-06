@@ -575,7 +575,7 @@ class FreeSetup(Screen):
 
     def panel(self, w, h):
         rows = [Row("USER", "colour", "white" if self.colour == 0 else "black" if self.colour == 1 else "either", tag="colour"),
-                Row("ONI", "level", self.LEVELS[self.level], tag="level"),
+                Row("KNIGHT", "level", self.LEVELS[self.level], tag="level"),
                 Row("CHEVRON_RIGHT", "begin", tag="begin")]
         self._rows = rows
         level = self.LEVELS[self.level]

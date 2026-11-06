@@ -79,7 +79,10 @@ eq "$out" "$(printf '%s\n' 'dark (288, 300) True True' 'light (288, 300) True Tr
 eq "$(sed -n 's/^HEAD_CELLS=\([0-9]*\) HEAD_LINES=\([0-9]*\) FACTS_AT=\([0-9]*\).*/\1 \2 \3/p' "$REPO/bin/fetch")" "36 15 42" "bin/fetch: 36 × 8 = 288, 15 × 20 = 300, the facts at 2 + 36 + 3 + 1"
 
 case_ "no old head on the head's surfaces"
-for f in bin/kawa-bar bin/fetch bin/kawa-theme configs/home/.bashrc.d/fedokawaii.sh configs/home/.config/waybar/config.jsonc configs/home/.config/fedokawaii/icons.sh art/icons.txt; do
+for f in bin/kawa-bar bin/fetch bin/kawa-theme configs/home/.bashrc.d/fedokawaii.sh configs/home/.config/waybar/config.jsonc configs/home/.config/fedokawaii/icons.sh art/icons.txt \
+         configs/home/.local/lib/fedokawaii/kawa-chess/syllabus.py configs/home/.local/lib/fedokawaii/kawa-chess/home.py \
+         configs/home/.local/lib/fedokawaii/kawa-chess/play.py configs/home/.local/share/fedokawaii/chess/faces.txt \
+         docs/learn/chess/README.md docs/learn/seals.txt; do
   out=$(grep -n -i -E 'demon|angel|\boni\b|tennin|HEAD_ONI|ICON_ONI' "$REPO/$f" | grep -v -E 'head-(oni|angel)' || true)
   eq "$out" "" "$f"
 done

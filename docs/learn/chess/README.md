@@ -32,7 +32,7 @@ Super+/ shows all of this while chess is in front.
 
 ## The levels, and what the numbers mean
 
-Your opponents sit on a ladder from a tree spirit (kodama) to the king of the oni (shuten-doji). A level is this program's
+Your opponents sit on a ladder from a tree spirit (kodama) past a wandering ronin and a warrior monk to the shogun. A level is this program's
 own number: Stockfish's own limit from 1320 up, and below that a drawn lot among its moves, measured engine against engine
 (`ladder.md`). **It is not a chess.com rating.** Nothing can honestly convert it. The level follows your results, so you
 should score about half; test games are a level above.

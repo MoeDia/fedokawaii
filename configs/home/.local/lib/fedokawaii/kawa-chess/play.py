@@ -422,7 +422,7 @@ class Game(Screen):
         vink = STRONG if turn else MUTED
         if left is not None and left < 30:
             vink = ACCENT_TEXT
-        ic = hg or ("USER" if side == self.me else "ONI")
+        ic = hg or ("USER" if side == self.me else "KNIGHT")
         return Row(ic, name, clock, ink=ink, value_ink=vink)
 
     def _moves(self, w, room):

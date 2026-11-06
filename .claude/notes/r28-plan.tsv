@@ -39,7 +39,19 @@ l2	Fri 6	done	the lock (S2): full, fun, dense metroidvania-map walls: 4 dark, 4 
 l3	Fri 6	done	the lock (S2): the samurai reacting in the real lock (headless, a test build): state only, never the password; frames at 144 Hz	Fri 6 Nov 17:24	the build itself is sa31; in the module behind a `samurai X Y` scene line, no scene has it yet; tools/lock-samurai-proof.sh: every frame matched, times right; the unlock waits 0.71 s dark, 1.14 s light; real PAM, real keys, dark screens and marks placement still sa31
 l4	Fri 6	blocked	the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse	Fri 6 Nov 17:32	BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the diff widen ROW's bottom from 259 to 260 (sparks reach y 259), or keep the row at 243 as l3 proved it; then run lock-picker.sh. hi/ untouched, e and e2 still there. sa31 waits on this
 d1	Fri 6	done	no demon or angel anywhere but the wallpapers (S2): a Fedora logo head, "bloody" in dark, "lighty" in light, drawn by hand; in the bar and the prompt; every old head out; design system; tests	Fri 06 Nov 17:43	bar, prompt, fetch, masthead; the other surfaces d1b; the Fedora mark's terms in the questionnaire
-d1b	Fri 6	now	the rest of the demon and angel out, wallpapers kept (S2): saver, greeter, plymouth, the ISO's crest and console, cover art, typing art, the kawa-fixer, seals, chess's oni rung, the old lock's leftovers (lock-gate, lock.ui, build-lock, build-heads, art/heads.txt), Guide and Learn text; each replaced with the Fedora head or the world's other art; design system; tests		from d1's sweep: git grep -i -E 'demon|angel|oni|tennin'
+d1b	Fri 6	done	the demon and angel out, first slice (S2): chess's rungs and icon, the lesson's seal; the rest is d1c	Fri 6 Nov 17:50	ronin, sohei, shogun for oni, hannya, shuten-doji, the panel's blank ONI icon (lost in d1) now KNIGHT; the seal a kabuto; Learn PDF's sentence rebuilt with d1c
+m1	Fri 6	now	motion videos frame-exact (S5): a test-only hook steps dwl's animation clock 1/60 s a frame, screencopy takes each; real speed and -slow (quarter speed), open and close twice with a rest, -strip.png with ms; a measuring tool (changed frames, durations within one frame of the design; pairs of options compared)		real-time headless recording compressed every motion: S5 measured seal 50 ms of 150
+m2	Fri 6	todo	c-2 omori re-recorded by m1 with its slow video and strip, measured, for his confirmation (S5)		his pick c: 2 omori (S4)
+m3	Fri 6	todo	(a) window open and close: 4 new game-like motions, 4 to 7, behind the dwl switch, integer-crisp, cheap (S4)		ideas: JRPG window from a line, mosaic, scanline wipe, battle flash, metroidvania door
+m4	Fri 6	todo	(a) the videos by m1: a-0 and a-4 to a-7, measured, pairs differ, strips (S4, S5)		
+m5	Fri 6	todo	(b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4)		ideas: room scroll, iris wipe, diamond tiles, pixel slide with dust
+m6	Fri 6	todo	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)		
+m7	Fri 6	todo	P1 separators: 4 new game-like variants, 4 to 7, on the real screens, both moods, 1:1 PNG (S4)		ideas: 8-bit border ornament, pixel links, katana rule, HUD segments
+m8	Fri 6	todo	P5 accents: 4 new game-like variants, 4 to 7, both moods, 1:1 PNG, MP4 by m1's rules for what moves (S4)		ideas: spinning coin, "!" pop, shuriken, flickering lantern, level-up sparkle
+m9	Fri 6	todo	P4 n 4: tairyoku with a better colour combination, dark and light (S4)		his pick P4: 1 tairyoku
+m10	Fri 6	todo	the pack: picker.json sets a, b, P1, P5 (0 and 4 to 7, "measured" per motion), P4 n 4, c-2; a, b, P1, P5 options 1 to 3 and decided sets cleared; hi/ 90 MB at most; seen in the pulse (S4, S5)		before the lock pack
+l4b	Fri 6	todo	the lock pack again (S2): set L by l4's note (keep the marks row at 243 as l3 proved it, or widen ROW); motion by m1 where it fits; picker.json; seen in the pulse		after m10, S4: the lock matters most, take the time
+d1c	Fri 6	todo	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth, the ISO's crest and console, cover art, the old lock's leftovers, Guide and Learn text; each with the Fedora head or the world's other art; design system; tests		the old lock's files go with sa31 if the old lock still needs them
 d2	Fri 6	todo	sketching gone (S2): FireAlpaca, kawa-sketch, its key, tablet-specific support: packages, configs, menus, lessons, tests, inventory; he sketches on paper		the owner's hardware line in CLAUDE.md follows
 d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built
 d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins while the menu is open, stops when it closes, cheap, follows the mood; CPU measured		the gear takes the quick-settings click and glyph; the Fedora head stays on the bar (S2 wants both): a tile of its own
@@ -67,6 +79,10 @@ sa12	Sat 7	todo	every lesson's check run by a test; order and pairing proven
 sa13	Sat 7	todo	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		his pick h1: 1 ichimai (S2)
 sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)
 sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods		
+sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35
+sa15c	Sat 7	todo	the selection marker built: his pick P2 1 yubi, the bobbing pointer; cheap, frames looked at (S4)		
+sa15d	Sat 7	todo	corners and frames built: his pick P3 3 kanagu, every panel, both moods (S4)		
+sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volume, brightness, battery, downloads (S4)		
 sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2
 sa17	Sat 7	todo	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest		
 sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests		
@@ -78,9 +94,9 @@ sa23	Sat 7	todo	Syncplay TUI in our theme: who joined, left, is ready, a ready t
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes		
 sa25	Sat 7	todo	the bar bigger: one set of metrics, icons drawn at real size, right hinting, no scaling; every gap measured		his pick f: 3 jikusaki; icons very clean, well spaced, super accurate, tight (S2)
 sa26	Sat 7	todo	the bar's clock in a scroll with bigger dominant ends, seconds kept, no band; regress bar checks		his pick f: 3 jikusaki (S2)
-sa27	Sat 7	todo	dwl: menus open and close as the hanging scroll, under ASan headless, frames looked at		provisional: he picks a b c from the videos
-sa28	Sat 7	todo	dwl: window open and close built		provisional: he picks a b c from the videos
-sa29	Sat 7	todo	dwl: the workspace move built		provisional: he picks a b c from the videos
+sa27	Sat 7	todo	dwl: menus open and close as his pick c 2 omori, under ASan headless, frames looked at		S4
+sa28	Sat 7	todo	dwl: window open and close built		his pick from a 0, 4 to 7 pending (m4); strongest meanwhile
+sa29	Sat 7	todo	dwl: the workspace move built		his pick from b 0, 4 to 7 pending (m6); strongest meanwhile
 sa30	Sat 7	todo	the prompt built: his pick d 3 rakkan, the head a Fedora logo (d1), the icon inside the ribbon; test_shell		S2
 sa31	Sat 7	todo	the lock built from his pick of set L (l1 to l4), the greeter its twin; lock checks in the kit; VM proof: a real ext-session-lock, unlock never breaks, the password never shown or logged		S2 replaces e, e2; his pick pending: strongest meanwhile
 sa32	Sat 7	todo	motion performance measured on the real GPU headless: workspace moves and window spawns, dwl's frame log, before and after numbers in the ledger		
