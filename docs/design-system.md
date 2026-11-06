@@ -713,6 +713,9 @@ track, a menu **unrolls** like a hanging scroll behind its rod, a quiet thing **
 3 px pixel), a choice is **stamped**. Each kind means one thing: a rise is a window arriving, the strip is a place left for
 another, a scroll is something opened and put away, a dissolve is a message passing.
 
+**Alive by a rule:** a new thing that stays alive on the screen for a long time (a flame, a creature, a screensaver's life) is a small
+state stepped by a small rule, not a long drawn loop: it costs little and never repeats the same way. The motions below answer one event and stay as they are.
+
 | what | how | ms |
 |---|---|---|
 | a window opens | rises from 120 px below its place on a spring (7.5 rad, damping 0.72), past it by a few px, and settles; 82 % of its size at first, whole with the same spring; clear within its first 18 % | 450 |
@@ -844,3 +847,6 @@ What an exacting art director checks on every surface, in both moods, before it 
    or misaligned.
 9. The two moods side by side: each its own world (§0), the parts identical.
 10. Cost: no new process or polling where an event exists; RAM and frame time measured.
+11. Whose is it: hide the name and it is still this desktop; a part that could be anybody's
+    default is not finished (§0).
+12. Take it away: remove each part in turn; if the surface still does its work, the part stays out.
