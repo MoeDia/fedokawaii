@@ -2,10 +2,9 @@
 # fetch — a small, cute system summary in the spirit of pfetch and nerdfetch: one of
 # ten pixel pictures drawn for this desktop, beside one icon line per fact.
 #
-#   fetch            the mood's own face: an oni (a demon's mask) in the dark theme, a tennin
-#                    (an angel, haloed) in the light — the world the desktop lives in
+#   fetch            the mood's own head: the Fedora logo, bloody in the dark theme, lighty in the light
 #   fetch random     one of the pictures at random
-#   fetch NAME       that one: oni, tennin, neko (beckoning cat), daruma, torii (sunset over
+#   fetch NAME       that one: bloody, lighty, neko (beckoning cat), daruma, torii (sunset over
 #                    the sea), pc (a beige computer showing Mt Fuji), fuji (dawn over the
 #                    mountain), onigiri, chochin (a paper lantern), cassette, kitsune (a fox
 #                    mask) or ramen
@@ -13,8 +12,8 @@
 # The pictures are real pixel art: two pixels per character cell, drawn with half
 # blocks in 24-bit colour, which foot renders gap-free. Every colour in them is one of
 # the desktop's own (tools/build-themes.py), and each has an ink outline or its own
-# background, so it reads on the dark and the light theme alike. The two heads have more to
-# say than that: engraved portraits (tools/ink_heads.py), foot draws them pixel for pixel, a sixel of
+# background, so it reads on the dark and the light theme alike. The two heads are larger
+# (tools/build-head.py), foot draws them pixel for pixel, a sixel of
 # 288 × 300, 36 cells × 15 lines, the eight facts beside them, in their middle. The icons are the desktop's own (Sumi Icons); the
 # text uses the terminal's 16 colours.
 # Pure bash reading /proc and /etc: nothing to install, prints in a few milliseconds.
@@ -222,7 +221,7 @@ ART_ramen=(
   ".....OOrrrrrrOO....."
   ".....OOOOOOOOOO....."
 )
-NAMES=(oni tennin neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
+NAMES=(bloody lighty neko daruma torii pc fuji onigiri chochin cassette kitsune ramen)
 
 rgb() { printf -v "$1" '%d;%d;%d' "0x${2:0:2}" "0x${2:2:2}" "0x${2:4:2}"; }
 
@@ -234,7 +233,7 @@ sixel_head() {      # sixel_head dark|light — the head's sixel, as it comes; i
   local i; for ((i = 0; i < HEAD_LINES; i++)); do LOGO+=(""); done
 }
 picture() {   # picture NAME — two pixel rows → one line of ▀ / ▄ cells (fg = upper, bg = lower)
-  case $1 in oni) sixel_head dark; return ;; tennin) sixel_head light; return ;; esac
+  case $1 in bloody) sixel_head dark; return ;; lighty) sixel_head light; return ;; esac
   local -n art="ART_$1"
   local -A pal=()
   local kv y x top bot t b line
@@ -297,7 +296,7 @@ INFO=(
 THEME=dark
 # shellcheck source=/dev/null
 [[ -r $HOME/.config/fedokawaii/current/colors.sh ]] && . "$HOME/.config/fedokawaii/current/colors.sh"
-if (($#)); then pick=$1; elif [[ $THEME == light ]]; then pick=tennin; else pick=oni; fi
+if (($#)); then pick=$1; elif [[ $THEME == light ]]; then pick=lighty; else pick=bloody; fi
 [[ $pick == random ]] && pick=${NAMES[RANDOM % ${#NAMES[@]}]}
 [[ " ${NAMES[*]} " == *" $pick "* && $# -le 1 ]] || { echo "fetch: pictures are: ${NAMES[*]}" >&2; exit 2; }
 [[ $TERM == foot* || ${COLORTERM:-} == truecolor || ${COLORTERM:-} == 24bit ]] && picture "$pick"

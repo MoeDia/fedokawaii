@@ -81,8 +81,8 @@ S=$'\e[38;5;27;49m'"$ICON_CAP_STAMP_START"
 C() { printf '\e[38;5;%s;48;5;%sm%s' "$1" "$2" "$ICON_CAP_STAMP"; }
 B() { printf '\e[38;5;%s;48;5;%sm %s ' "$2" "$1" "$3"; }
 END() { printf '\e[38;5;%s;49m%s\e[0m \e[38;5;20m%s \e[0m ' "$1" "$ICON_CAP_STAMP" "$ICON_CHEVRON_RIGHT"; }
-# (the mood's head: the demon in the dark, red; it roars when the last command failed)
-HEAD="$ICON_HEAD_ONI $ICON_HEAD_ONI_2" ROAR="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
+# (the mood's head: bloody in the dark, red; the blood runs when the last command failed)
+HEAD="$ICON_HEAD_BLOODY $ICON_HEAD_BLOODY_2" ROAR="$ICON_HEAD_BLOODY_RUN $ICON_HEAD_BLOODY_RUN_2"
 MARK=$'\e[38;5;20m'"$HEAD"$'\e[0m '"$S"
 case_ "foot: a new window's prompt — the mood's head, then a strip of stamps: the line's edge, the folder on its paper (27), the stamp edge between and at the end, the › in vermilion and its second half, a space"
 eq "$(wc -l <<<"$H")" 7 "seven prompts: $(plain "$H")"

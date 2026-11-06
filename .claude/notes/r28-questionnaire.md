@@ -56,3 +56,5 @@ Mock-ups, to be fixed in whichever option is built; say if any of them is worse 
   assumed: yes, before the ISO; the run touches nothing on this PC.
 - D2. triad, your private repo fluvia4ai/triad: may a read-only deploy key be added, its public key posted for you?
   assumed: yes, with your OK when you are back; until then it is not in the tree.
+
+- **d1, the Fedora logo altered (bloody, lighty).** Fedora's trademark terms for a changed mark were not read in this pass. Assumed: it is your own desktop, on your own PC, as you asked. If the ISO is ever published, read Fedora's logo rules first.

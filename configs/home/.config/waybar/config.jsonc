@@ -10,7 +10,7 @@
 //   right:  now playing · a timer (while one runs) · recording (while one runs) · the quiet
 //           bell or the sharing monitor · drives · downloads (while one runs) · the keyboard
 //           layout (click: the next) · memory · volume · brightness · weather, a tile each ·
-//           the mood's face (quick settings: a demon by night, an angel by day) on the other end's vermilion tile
+//           the mood's head (quick settings: the Fedora logo, bloody by night, lighty by day) on the other end's vermilion tile
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
 // there. Its style reloads by itself when style.css or the theme's waybar.css changes
@@ -172,7 +172,7 @@
   "custom/timer": { "exec": "kawa-timer bar timer", "return-type": "json", "restart-interval": 5, "tooltip": false,
                     "exec-on-event": false, "on-click": "setsid -f kawa-timer" },
 
-  // the mood's face (quick settings, kawa-panel): the oni roars, the tennin smiles while they are open
+  // the mood's head (quick settings, kawa-panel): the blood runs, the light spreads while they are open
   "custom/menu": { "exec": "kawa-bar cat", "return-type": "json", "signal": 15, "tooltip": false,
                    "exec-on-event": false, "on-click": "kawa-quick" }
 }

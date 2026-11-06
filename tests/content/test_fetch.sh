@@ -110,7 +110,7 @@ def add(v):
 add(wp.palette())
 names = re.search(r"^NAMES=\(([^)]*)\)", src, re.M).group(1).split()
 arts = dict(re.findall(r"^ART_(\w+)=\(\n(.*?)\n\)", src, re.M | re.S))
-heads = {"oni", "tennin"}   # (their pictures are sixels: tools/ink_heads.py)
+heads = {"bloody", "lighty"}   # (their pictures are sixels: tools/build-head.py)
 print("names", " ".join(sorted(set(names) - heads)) == " ".join(sorted(arts)))
 for n in arts:
     rows = re.findall(r'"([^"]*)"', arts[n])
@@ -125,7 +125,7 @@ eq "$(grep -cE '^[a-z]+ 16 True True ok$' "$TMP/art.txt")" 10 "$(grep -vE ' 16 T
 case_ "the two heads: a sixel of 288 × 300, the room made before it, the cursor back, the eight facts by column beside it, in its middle"
 mkdir -p "$HOME/.local/share/fedokawaii"
 cp -r "$REPO/configs/home/.local/share/fedokawaii/dark" "$REPO/configs/home/.local/share/fedokawaii/light" "$HOME/.local/share/fedokawaii/"
-for n in oni tennin; do
+for n in bloody lighty; do
   out=$(F "$n")
   has "$out" $'\eP0;1;0q"1;1;288;300' "$n: the sixel, its size"
   has "$out" $'\e[15A\e7\e[3G\eP' "$n: the room, the place saved, the picture from column 3"
@@ -133,23 +133,23 @@ for n in oni tennin; do
   eq "$(grep -c $'\e\\[42G' <<<"$out")" 8 "$n: the eight facts"
   lacks "$out" "38;2;" "$n: no half blocks"
 done
-eq "$(TERM=xterm F oni | grep -c $'\eP')" 0 "another terminal: the facts alone, no sixel"
+eq "$(TERM=xterm F bloody | grep -c $'\eP')" 0 "another terminal: the facts alone, no sixel"
 case_ "each picture drawn: 8 lines of 20 cells, two pixels per cell in 24-bit colour"
 for n in neko daruma torii pc fuji onigiri chochin cassette kitsune ramen; do
   out=$(F "$n")
   eq "$(grep -c $'\e\\[0;38;2;\\|\e\\[38;2;' <<<"$out")" 8 "$n"
   lacks "$out" "38;2;;" "$n: a colour missing"
 done
-case_ "no name: the mood's own face — the oni in the dark theme, the tennin in the light (THEME in the theme's colors.sh); random: one of the twelve, every time (30 runs)"
-eq "$(F)" "$(F oni)" "the dark theme: the oni"
+case_ "no name: the mood's own face — bloody in the dark theme, lighty in the light (THEME in the theme's colors.sh); random: one of the twelve, every time (30 runs)"
+eq "$(F)" "$(F bloody)" "the dark theme: bloody"
 mkdir -p "$HOME/.config/fedokawaii/current" && printf 'THEME=light\n' >"$HOME/.config/fedokawaii/current/colors.sh"
-eq "$(F)" "$(F tennin)" "the light theme: the tennin"
+eq "$(F)" "$(F lighty)" "the light theme: lighty"
 rm -f "$HOME/.config/fedokawaii/current/colors.sh"
 bad=0; for _ in {1..30}; do r=$(F random); [[ $(grep -c $'38;2;' <<<"$r") == 8 || $r == *$'\eP0;1;0q'* ]] || bad=$((bad + 1)); done
 eq "$bad" 0
 
 case_ "misuse and help"
-rc 2 F nyan; has "$(F nyan 2>&1)" "pictures are: oni tennin neko daruma"
+rc 2 F nyan; has "$(F nyan 2>&1)" "pictures are: bloody lighty neko daruma"
 rc 2 F neko extra
 rc 0 F --help; has "$(F --help)" "fetch NAME"
 

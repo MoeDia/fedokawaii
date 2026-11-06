@@ -8,8 +8,8 @@ br=$ICON_BRANCH
 title() { printf '\e[38;5;244m  %s\e[0m\n' "$1"; }
 
 # dark: the demon in lacquer on the paper; light: the angel in the words' ink
-[[ $MOOD == dark ]] && { H=$ICON_HEAD_ONI; H2=$ICON_HEAD_ONI_2; R=$ICON_HEAD_ONI_ROAR; R2=$ICON_HEAD_ONI_ROAR_2; hink=31; nowc=20; } \
-  || { H=$ICON_HEAD_ANGEL; H2=$ICON_HEAD_ANGEL_2; R=$ICON_HEAD_ANGEL_OPEN; R2=$ICON_HEAD_ANGEL_OPEN_2; hink=30; nowc=''; }
+[[ $MOOD == dark ]] && { H=$ICON_HEAD_BLOODY; H2=$ICON_HEAD_BLOODY_2; R=$ICON_HEAD_BLOODY_RUN; R2=$ICON_HEAD_BLOODY_RUN_2; hink=31; nowc=20; } \
+  || { H=$ICON_HEAD_LIGHTY; H2=$ICON_HEAD_LIGHTY_2; R=$ICON_HEAD_LIGHTY_OPEN; R2=$ICON_HEAD_LIGHTY_OPEN_2; hink=30; nowc=''; }
 head_ok() { printf '%s %s' "$H" "$H2"; }; head_bad() { printf '%s %s' "$R" "$R2"; }
 
 # now: the head outside, the round tongues

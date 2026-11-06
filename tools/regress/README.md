@@ -61,7 +61,7 @@ they break.
 | r26-17 r26-18 r26-19 | the bar's variants he chose from | record: mock-ups, settled by his pick of kami (r26-20) |
 | r27-found-1 | no waybar zombies: nothing sends SIGUSR2 | tests/static/test_barreload.sh "no program, config, installer step" |
 | r27-53-timer | the bar's idle cost: the clock's loop starts no process | tests/menus/test_timer.sh "the bar's loop starts no process" |
-| r27-19k-4 | the weather and the sections drawn anew; the head's picture on the bar | tests/status/test_weather.sh "every sky the bar can show has its picture" · tests/session/test_bar.sh "the mood's head: cut in ink" · tools/regress/bar-geometry.sh |
+| r27-19k-4 | the weather and the sections drawn anew; the head's picture on the bar | tests/status/test_weather.sh "every sky the bar can show has its picture" · tests/session/test_bar.sh "the mood's head: the Fedora logo" · tools/regress/bar-geometry.sh |
 | r27-1919-1 r27-dec-4g | the bar's far right: demon in dark, angel in light, serious art | open T19q: lane-art redraws them (his verdict of 4 Nov 17:16); today tests/session/test_bar.sh holds the file |
 | r27-1919-2 | every custom icon alive, unique | open T19q: his design review; the drawn icons' checks are tests/static/test_generated.sh |
 | r27-1919-4 r27-19k-5 | the to-do's own icon | tests/content/test_notes.sh "its heading (the tanzaku, to-do, the rule)" |
@@ -278,3 +278,4 @@ they break.
 | r28-f06j | the first report shows nothing on the first login (as --quick); BOOT-22 knows the split's start and a shutdown ending at the disks; RES-04 skips the report's own pipes; PERF-01 looks again while the machine settles | tests/installer/test_report.sh "the first start: waits" · tests/installer/test_report_rows.sh "BOOT-22" · tests/installer/test_report_rows.sh "RES-04" |
 | r28-f19 | an old home's folders move to ~/downloads ~/captures ~/notes ~/books ~/dojo, nothing overwritten, what remembers a path follows; xdg-user-dirs set, no other folder made | tests/content/test_tidy.sh "your home's old folders" · tests/installer/test_verify.sh |
 | r28-f20 | no script or config the desktop ships names an old home folder; only kawa-tidy and its table in lib/common.sh do | tests/static/test_home.sh |
+| r28-d1 | the head is the Fedora logo, bloody in dark, lighty in light, in the bar, the prompt, fetch and the masthead; no old head on those surfaces | tests/static/test_heads.sh |

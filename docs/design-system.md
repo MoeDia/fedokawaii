@@ -25,7 +25,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
 | the lock's samurai (owner, 6 Nov; art/samurai.txt, tools/build-samurai.py: 72 × 64 cells, the lock's grid, whole pixels; states idle, start, ready, three cuts in turn for a key, delete, right, wrong: never which key; the right one plays before the unlock, 0.71 s dark, 1.14 s light) | a small man in red lacquer and indigo, a brass kuwagata: he shouts, cuts with a flame's arc, is knocked to one knee when wrong, leaps with the blade high when right | a gentle woman in white and vermilion, black hair tied, her blade and scabbard slim and unlined: petals where he has sparks; she bows when right, kneels with a tear and smiles again when wrong |
 | the lock's maps (owner, 6 Nov; rooms laid by hand in tools/build-lockmap.py, props in art/lockmap.txt: 640 × 360, the lock's grid, whole pixels; a letter a room on 16 × 10; the corner's map is the world's own rooms; his room Z the same in all 8, floor at row 318, the rope and two posts, joined by doors only; no demon, no angel) | shiro, the castle at night; kozan, the mine; suichu, the sunken temple; kaji, the sword forge in the volcano | haru, a spring town under cherry trees; kumo, pavilions in the clouds under a rainbow; yu, the hot-spring mountain; yuki, the snow shrine |
-| the head (quick settings' tile on the bar, the prompt, fetch, the lock: one character sheet, docs/art/heads.md; owner, 4 Nov: "more RED, classic Japanese", "badass samurai, EPIC": detail by line, not by colour) | a demon of the red companies: red lacquer, sumi, bone, kuwagata horns, laced lames: his teeth locked 吽, he roars 阿 while its panel is open and in the prompt when a command failed | Marishiten, the samurai's goddess of light: sumi on gofun, red only in the urna and lips, a nimbus of blades, a war-crown: her eyes closed, open while the panel is open and in the prompt when a command failed |
+| the head (quick settings' tile on the bar, the prompt, fetch, the masthead; owner, 6 Nov: no demon or angel anywhere but the wallpapers; docs/art/heads.md, `tools/build-head.py`) | the Fedora logo, bloody: blood-red, bone f, a wet gloss, blood hanging under it; open: it runs, a drop lets go | the Fedora logo, lighty: bright sky, white f, soft gold points of light; open: the light spreads |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
 typed (sources: kotobank — デジタル大辞泉, 精選版 日本国語大辞典; the earliest uses 1252 and 1729).
@@ -276,9 +276,9 @@ screen and the bar's paper share one rhythm.
   is 20 × 20.
 - **Quick settings** (Super+X, the head on the bar — the owner, 4 Nov: "over-engineered, a simpler way; forget this
   circle", then "way too simple, improve"): a list with presence. The masthead (§3), a title plate as on a printed book's cover: the mood's head, shut until
-  its scroll lands, then awake (the demon's mouth, the angel's eyes); its name; how long the machine has been up; and at
-  its right end the mood's pattern, two moods, not a recolour: the demon's uroko, the triangle scales the Noh Hannya wears, the angel's seigaiha, the
-  waves she stands over, each dissolving through an ordered dither toward the words. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
+  its scroll lands, then open (the blood runs, the light spreads); its name; how long the machine has been up; and at
+  its right end the mood's pattern, two moods, not a recolour: uroko, the triangle scales, in the dark, seigaiha, the
+  waves, in the light, each dissolving through an ordered dither toward the words. The two levels as instruments. Then the rows under their labels: screen (theme, night light, do not disturb,
   screensaver, freesync, wallpaper), sound (share sound, while kawa-quick reports it), connect (network, Bluetooth, devices
   while it is on, drives, backup), capture (screenshot, record, read text), power (the lights while kawa-quick reports them,
   screen off, power). Each row its own
@@ -544,8 +544,8 @@ content, inside its margin of one cell:
   selection stays yours; the wheel comes as arrows).
 - **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
   ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
-  spill into one blank cell only): the demon in the vermilion ink (`accent_text`, foot's slot 20) in the dark mood, the angel in the words' ink in the
-  light; the demon roars, the angel looks up, when the last command failed; a switch of mood reaches an open terminal
+  spill into one blank cell only): bloody in the vermilion ink (`accent_text`, foot's slot 20) in the dark mood, lighty in the terminal's bright blue (slot 12) in the
+  light; the blood runs, the light spreads, when the last command failed; a switch of mood reaches an open terminal
   at its next prompt. The blocks: three papers of Wada's combination #300 (Cream Yellow, Turquoise Green, Calamine Blue:
   `tools/wada-palette.py`'s paper_* tokens, foot's colours 27–29, their ink 30, the same papers in both moods), words
   at 9.5 : 1 and more (APCA Lc 68 and more): the folder (the one above it too), the branch and its changes, the time of a
@@ -596,7 +596,7 @@ the tiles of a group, 12 px between groups.
 | do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
 | the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (14 × 14, a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 8 px in on the line's rows, the temperature 8 px after it |
-| quick settings | the right end's vermilion tile: the demon's head (dark) or the angel's face (light), its emblem |
+| quick settings | the right end's tile: the Fedora head, bloody (dark) or lighty (light), its emblem |
 | lit | under the pointer, or while what it opened is on screen: `asagi` at once (a vermilion tile: `accent_hi`) |
 
 ## 9. Notices, the level display, the lock, login, screensaver, boot

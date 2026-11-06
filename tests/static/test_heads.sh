@@ -1,18 +1,19 @@
 #!/usr/bin/env bash
-# tests/static/test_heads.sh — the two heads, cut in ink at every size (tools/ink_heads.py, docs/art/heads.md; the
-# owner, 4 Nov 19:12: no pixel art for the heads): each file its size and alpha, smooth, its ink inside its air, its
-# states apart; the prompt's glyphs one ink and what the tool holds; fetch's sixels read back, the room fetch makes.
+# tests/static/test_heads.sh — the head: the Fedora logo, bloody and lighty (tools/build-head.py, docs/art/heads.md; the
+# owner, 6 Nov): each file its size and alpha, whole inks, its states apart; the prompt's glyphs one ink and what the tool
+# writes; fetch's sixels read back at whole pixels; nothing left of the old heads.
 . "$(dirname "$0")/../lib/harness.sh"
 sandbox
 
-case_ "the pictures: size, alpha, ink inside its air, smooth (never pixel art), the two states apart"
+case_ "the pictures: size, alpha, ink inside its air, few inks (pixel art), the two states apart, the moods apart"
 out=$(python3 -I -B - "$REPO" <<'PY'
 import sys
 import numpy as np
 from PIL import Image
 themes = f"{sys.argv[1]}/configs/home/.config/fedokawaii/themes"
-for mood in ("dark", "light"):
-    for name, size, floor in (("face", (22, 20), 40), ("head-48", (48, 48), 150), ("head-56", (56, 56), 200)):
+for name, size, most in (("face", (22, 20), 12), ("head-48", (48, 48), 12)):
+    shut = {}
+    for mood in ("dark", "light"):
         states = []
         for suffix in ("", "-open"):
             n = f"{mood}/{name}{suffix}.png"
@@ -21,39 +22,40 @@ for mood in ("dark", "light"):
                 print("SIZE", n, im.mode, im.size); continue
             a = np.asarray(im)
             states.append(a)
-            rows = np.nonzero(a[..., 3].max(1) > 32)[0]
+            rows = np.nonzero(a[..., 3].max(1))[0]
             if name == "face" and (rows[0] < 1 or rows[-1] > 18):
                 print("AIR", n, rows[0], rows[-1])
-            inks = len({tuple(p) for p in a.reshape(-1, 4)})
-            if inks < floor:
-                print("FLAT", n, inks)
-            if not (a[..., 3] == 0).any() or not (a[..., 3] == 255).any():
+            if set(np.unique(a[..., 3])) != {0, 255}:
                 print("ALPHA", n)
+            if len({tuple(p) for p in a.reshape(-1, 4)}) > most:
+                print("INKS", n)
         if len(states) == 2 and (states[0] == states[1]).all():
             print("SAME", mood, name)
+        shut[mood] = states[0]
+    if (shut["dark"] == shut["light"]).all():
+        print("MOODS", name)
 print("pictures done")
 PY
 )
 eq "$out" "pictures done"
 
-case_ "the prompt's glyphs: one ink, 24 × 20, a row of air above and below, the demon symmetric, in the fonts' source as the tool holds them"
+case_ "the prompt's glyphs: one ink, 24 × 20, a row of air above and below, its states apart, in the fonts' source as the tool writes them"
 G=$TMP/gen; mkdir -p "$G"; cp -r "$REPO"/{tools,art} "$G/"
 out=$(cd "$G" && python3 -I -B - <<'PY'
-import importlib.util, pathlib
-sp = importlib.util.spec_from_file_location("ih", "tools/ink_heads.py")
-ih = importlib.util.module_from_spec(sp); sp.loader.exec_module(ih)
-for name, rows in ih.GLYPHS.items():
-    if len(rows) != 20 or {len(r) for r in rows} != {24} or set("".join(rows)) - set(".#"):
+import importlib.util
+sp = importlib.util.spec_from_file_location("bh", "tools/build-head.py")
+bh = importlib.util.module_from_spec(sp); sp.loader.exec_module(bh)
+rows = {name: bh.glyph(*how) for name, how in bh.GLYPHS.items()}
+for name, r in rows.items():
+    if len(r) != 20 or {len(x) for x in r} != {24} or set("".join(r)) - set(".#"):
         print("SHAPE", name)
-    ink = [y for y, r in enumerate(rows) if "#" in r]
+    ink = [y for y, x in enumerate(r) if "#" in x]
     if ink[0] < 1 or ink[-1] > 18:
         print("AIR", name, ink[0], ink[-1])
-    if "oni" in name and any(r != r[::-1] for r in rows):
-        print("MIRROR", name)
-for a, b in (("head-oni", "head-oni-roar"), ("head-angel", "head-angel-open")):
-    if ih.GLYPHS[a] == ih.GLYPHS[b]:
+for a, b in (("head-bloody", "head-bloody-run"), ("head-lighty", "head-lighty-open")):
+    if rows[a] == rows[b]:
         print("SAME", a)
-ih.write_glyphs()
+bh.write_glyphs()
 print("glyphs done")
 PY
 )
@@ -61,21 +63,24 @@ eq "$out" "glyphs done"
 d=$(diff -q "$REPO/art/icons.txt" "$G/art/icons.txt" 2>&1)
 [[ -z $d ]] && _ok || _no "$d"
 
-case_ "fetch's sixels: 288 × 300, read back: few inks, the figure opaque, the terminal's own ground through the rest, the angel's gold kept; fetch's room for them"
+case_ "fetch's sixels: 288 × 300, as the tool makes them, in blocks of 6 × 6; fetch's room for them"
 out=$(python3 -I -B - "$REPO" <<'PY'
 import importlib.util, pathlib, sys
-import numpy as np
 repo = pathlib.Path(sys.argv[1])
-sp = importlib.util.spec_from_file_location("ih", repo / "tools/ink_heads.py")
-ih = importlib.util.module_from_spec(sp); sp.loader.exec_module(ih)
+sp = importlib.util.spec_from_file_location("bh", repo / "tools/build-head.py")
+bh = importlib.util.module_from_spec(sp); sp.loader.exec_module(bh)
 for mood in ("dark", "light"):
-    im = ih.portrait_of(repo / f"configs/home/.local/share/fedokawaii/{mood}/head.six")
-    a = np.asarray(im)
-    inks = {tuple(p[:3]) for p in a.reshape(-1, 4) if p[3]}
-    warm = any(int(r) - int(b) > 60 for r, g, b in inks)
-    print(mood, im.size, len(inks) <= 32, 0.2 < (a[..., 3] > 0).mean() < 0.95, warm == (mood == "light"))
+    six = (repo / f"configs/home/.local/share/fedokawaii/{mood}/head.six").read_text(encoding="ascii")
+    im = bh.fetch_picture(mood)
+    print(mood, im.size, six == bh.sixel(im), six.startswith('\x1bP0;1;0q"1;1;288;300'))
 PY
 )
-eq "$out" "$(printf '%s\n' 'dark (288, 300) True True True' 'light (288, 300) True True True')"
+eq "$out" "$(printf '%s\n' 'dark (288, 300) True True' 'light (288, 300) True True')"
 eq "$(sed -n 's/^HEAD_CELLS=\([0-9]*\) HEAD_LINES=\([0-9]*\) FACTS_AT=\([0-9]*\).*/\1 \2 \3/p' "$REPO/bin/fetch")" "36 15 42" "bin/fetch: 36 × 8 = 288, 15 × 20 = 300, the facts at 2 + 36 + 3 + 1"
+
+case_ "no old head on the head's surfaces"
+for f in bin/kawa-bar bin/fetch bin/kawa-theme configs/home/.bashrc.d/fedokawaii.sh configs/home/.config/waybar/config.jsonc configs/home/.config/fedokawaii/icons.sh art/icons.txt; do
+  out=$(grep -n -i -E 'demon|angel|\boni\b|tennin|HEAD_ONI|ICON_ONI' "$REPO/$f" | grep -v -E 'head-(oni|angel)' || true)
+  eq "$out" "" "$f"
+done
 done_

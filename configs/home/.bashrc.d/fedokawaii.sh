@@ -81,12 +81,12 @@ unset -f __kawa_glass
 # The mood's head, then one short line of paper blocks, a strip of stamps — the stamp edge of each
 # reaching into the next — and only a block's colour tells what it is:
 #
-#   oni [dojo/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
-#   oni [dojo/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
+#   head [dojo/fedokawaii | ⑂ main* ] ›  ls             in foot: the blocks on their papers
+#   head [dojo/fedokawaii | ⑂ main* | 2 | 4.2s ] ›      it failed (exit 2, after 4.2 s)
 #
-#   head     the demon in the vermilion ink in the dark mood, the angel in sumi in the light one (the bar's crest
+#   head     the Fedora logo: bloody in the vermilion ink in the dark mood, lighty in the terminal's bright blue in the light one (the bar's crest
 #            in one ink, three cells, the line's whole height): where a command line starts;
-#            the demon roars, the angel looks up, when the last command failed
+#            the blood runs, the light spreads, when the last command failed
 #   folder   the one you are in, after the one above it (~ at home, / at the root), on Cream
 #            Yellow — the whole path is the window's title, in the bar
 #   branch   in git, on Turquoise Green: its mark, the branch, * when anything is not committed
@@ -154,11 +154,11 @@ __kawa_head() {
   local _ mood=''
   { IFS= read -r _; IFS= read -r _; IFS= read -r mood; } 2>/dev/null <"$HOME/.config/fedokawaii/current/colors.sh"
   if [[ $mood == THEME=light ]]; then
-    __c_head=$'\001\e[39m\002' __i_head="$ICON_HEAD_ANGEL $ICON_HEAD_ANGEL_2"
-    ((__kawa_ok)) || __i_head="$ICON_HEAD_ANGEL_OPEN $ICON_HEAD_ANGEL_OPEN_2"
+    __c_head=$'\001\e[94m\002' __i_head="$ICON_HEAD_LIGHTY $ICON_HEAD_LIGHTY_2"
+    ((__kawa_ok)) || __i_head="$ICON_HEAD_LIGHTY_OPEN $ICON_HEAD_LIGHTY_OPEN_2"
   else
-    __c_head=$__c_mark __i_head="$ICON_HEAD_ONI $ICON_HEAD_ONI_2"
-    ((__kawa_ok)) || __i_head="$ICON_HEAD_ONI_ROAR $ICON_HEAD_ONI_ROAR_2"
+    __c_head=$__c_mark __i_head="$ICON_HEAD_BLOODY $ICON_HEAD_BLOODY_2"
+    ((__kawa_ok)) || __i_head="$ICON_HEAD_BLOODY_RUN $ICON_HEAD_BLOODY_RUN_2"
   fi
 }
 

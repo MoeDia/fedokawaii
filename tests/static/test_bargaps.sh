@@ -185,7 +185,7 @@ for sel in ("#custom-layout", "#custom-title"):
 # right the padding is 8 less the last glyph's air (the right slice: the hairline, the shadow)
 L = lambda s, ink: 1 + box(s)[0][3] + ink
 R = lambda s, ink: ink + box(s)[0][1]
-for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("oni"), IR("oni")), ("#custom-menu", IL("tennin"), IR("tennin")),
+for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("face"), IR("face")),
                   ("#custom-tag1", IL("ws-1"), IR("ws-1")), ("#custom-tag4", IL("ws-4"), IR("ws-4")),
                   ("#custom-volume", 0, air("%")[1]), ("#custom-mem", 0, air("G")[1]),
                   ("#custom-kb", air("u")[0], air("s")[1]), ("#custom-kb", air("U")[0], air("S")[1]),   # (us, and US with Caps Lock)

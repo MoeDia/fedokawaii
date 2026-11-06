@@ -33,10 +33,10 @@ c=json.loads(p.strip_jsonc(open(sys.argv[2]).read())); print(c[sys.argv[3]][sys.
 case_ "the items at rest: the torii, the cat, the date DD∕MM∕YYYY (its slashes Sumi UI's own ∕, in vermilion), the day's kanji"
 setup; setrun
 eq "$(kawa-bar torii)" "{\"text\":\"$ICON_TORII\"}"
-eq "$(kawa-bar cat)" "{\"text\":\"$ICON_ONI\"}" "the dark mood: the demon's face"
+eq "$(kawa-bar cat)" "{\"text\":\"$ICON_FACE\"}" "the dark mood: the head's unseen glyph"
 # (the light mood: the angel's — the theme's own colors.sh says which mood: THEME)
 sed -i 's/^THEME=dark$/THEME=light/' "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
-eq "$(kawa-bar cat)" "{\"text\":\"$ICON_TENNIN\"}" "the light mood: the angel's face"
+eq "$(kawa-bar cat)" "{\"text\":\"$ICON_FACE\"}" "the light mood: the same glyph, the theme's own picture"
 sed -i 's/^THEME=light$/THEME=dark/' "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
 . "$HOME/.config/fedokawaii/current/colors.sh"; SL="<span color='#$C_ACCENT_TEXT'>∕</span>"
 eq "$(LC_ALL=tr_TR.UTF-8 kawa-bar date)" "{\"text\":\"$(date +%d)$SL$(date +%m)$SL$(date +%Y)\"}" "today, in figures whatever the language"
@@ -82,7 +82,7 @@ rm -f "$R"/kawa-*.open
 
 case_ "lit: the cat smiles, the others take the class \"active\"; a module's own line keeps its classes"
 alive; p=$P; echo "$p" >"$R/kawa-panel.open"
-eq "$(kawa-bar cat)" "{\"text\":\"$ICON_ONI_OPEN\",\"class\":\"active\"}"
+eq "$(kawa-bar cat)" "{\"text\":\"$ICON_FACE_OPEN\",\"class\":\"active\"}"
 echo "$p" >"$R/kawa-panel-brightness.open"
 eq "$(kawa-bar brightness -- echo '{"text":"x","class":"a"}')" '{"text":"x","class":["a","active"]}'
 eq "$(kawa-bar brightness -- echo '{"text":"x","class":["a","count"]}')" '{"text":"x","class":["active","a","count"]}'
@@ -156,10 +156,10 @@ printf '#!/bin/bash\necho $$ >"$XDG_RUNTIME_DIR/kawa-panel.open"\nkawa-dwlstatus
 "$TMP/bin/kawa-panel" & kp=$!; BG_PIDS+=("$kp")
 until_ '[[ -s $R/kawa-panel.open ]]'; nap 0.2
 eq "$(pokes)" "15" "the cat poked (the mode tile not: it has a dropdown of its own)"
-eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_ONI_OPEN\",\"class\":\"active\"}" "lit while it runs"
+eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_FACE_OPEN\",\"class\":\"active\"}" "lit while it runs"
 kill -9 "$kp"; wait "$kp" 2>/dev/null
 kawa-dwlstatus --poke 15; pokes >/dev/null  # the next poke, whoever sends it: the module runs again
-eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_ONI\"}" "dark: its marker is left, its pid dead"
+eq "$(sh -c "$cat_ex")" "{\"text\":\"$ICON_FACE\"}" "dark: its marker is left, its pid dead"
 case_ "the panel killed with kill -9 under a dropdown: its button dark at the next run (the marker's pid dead)"
 alive; p=$P; echo "$p kawa-calendar" >"$R/kawa-drop.open"
 . "$HOME/.config/fedokawaii/current/colors.sh"; SL="<span color='#$C_ACCENT_TEXT'>∕</span>"
@@ -378,7 +378,7 @@ for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
 sys.exit(bad)
 EOF
 
-case_ "the mood's head: cut in ink (tools/ink_heads.py, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
+case_ "the mood's head: the Fedora logo (tools/build-head.py, 22 × 20) for both themes, its open frame while quick settings is open, the paper's rows whole, over the tile's fibre"
 for th in dark light; do
   for f in face face-open; do
     eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "22 20 6" "$th/$f.png: 22 × 20 with alpha"

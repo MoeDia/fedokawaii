@@ -323,7 +323,7 @@ eq "$(py 'i = kp.icons(); need = ["torii_small", "calc", "window"] + [f"bri_{n}"
 # ── opening and closing ───────────────────────────────────────────────────────────────
 case_ "its key opens it: it shows, the bar's cat lights, the state is read"
 eq "$(py 'fresh(); p.request(); print(", ".join(u.calls))')" "show, light quick on, run kawa-quick --state, later 340"
-case_ "as its scroll lands its head wakes (the demon's mouth opens, the angel's eyes): once, this opening's alone; asleep at every open"
+case_ "as its scroll lands its head wakes (the blood runs, the light spreads): once, this opening's alone; asleep at every open"
 eq "$(py 'fresh(); p.request(); a = p.woke; u.drawn.clear(); u.timers.pop(0)(); print(a, p.woke, u.drawn)
 p.close("chosen"); p.request(); print(p.woke)')" "$(printf '%s\n' "False True ['all']" False)"
 eq "$(py 'fresh(); p.request(); w = u.timers.pop(0); p.close("chosen"); w(); print(p.woke); p.request(); w2 = u.timers.pop(0); w(); print(p.woke); w2(); print(p.woke)')" "$(printf '%s\n' False False True)" "a timer of an earlier opening wakes nothing"

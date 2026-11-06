@@ -36,7 +36,7 @@ after an odd number, closed after an even one.
 
 Quick settings is a menu with presence (the owner, 4 Nov: "way too simple, improve"; docs/design-system.md §4):
 the masthead — a title plate: the mood's head, waking as its scroll lands, the name, how long the machine has
-been up, the mood's pattern (the demon's scales, the angel's waves) dissolving toward them —, then the levels and
+been up, the mood's pattern (scales, waves) dissolving toward them —, then the levels and
 the rows, a row a thing, under their labels:
     the levels    brightness and sound, instruments: a lantern whose glow rises with the brightness, a temple
                   bell whose ripples spread with the sound; ← → or a click or a drag on the meter set
@@ -2402,20 +2402,18 @@ def main(argv):
 
     pics = read_pics()                # the panels' own pictures (panel-art.txt)
     drawn = {}                        # … each as drawn so far, in its inks: (name, ink, level) → a surface
-    heads = {}                        # the mood's head, shut and open (head-48*.png, or head-32*.png)
+    heads = {}                        # the mood's head, shut and open (head-48*.png)
 
     def restyle():
         pal.clear()
         pal.update(colours(os.path.join(CURRENT, "panel.conf")))
         drawn.clear()
         heads.clear()
-        for k, names in (("shut", ("head-48.png", "head-32.png")), ("open", ("head-48-open.png", "head-32-open.png"))):
-            for f in names:                       # (the ink head at menu size, once it is there)
-                try:
-                    heads[k] = cairo.ImageSurface.create_from_png(os.path.join(CURRENT, f))
-                    break
-                except (OSError, cairo.Error):
-                    pass
+        for k, f in (("shut", "head-48.png"), ("open", "head-48-open.png")):
+            try:
+                heads[k] = cairo.ImageSurface.create_from_png(os.path.join(CURRENT, f))
+            except (OSError, cairo.Error):
+                pass
 
     restyle()
 

@@ -58,7 +58,7 @@ i{{font:normal 16px/20px "Sumi Icons Term"}}
 .head+.row{{background:#{p["select"]};color:#{p["text_on_select"]};box-shadow:inset 2px 0 #{p["select_edge"]}}}
 </style><main><img src="head.png"><div class="find"><em>&gt;</em>search or a place<u>/</u></div>
 <div class="head"><i>{icon("ICON_BRANCH")}</i>today<s></s></div>{rows}</main>""")
-    shutil.copy(THEMES / mood / "head-56.png", d / "head.png")
+    shutil.copy(THEMES / mood / "head-48.png", d / "head.png")
     (d / "manifest.json").write_text(json.dumps({"manifest_version": 3, "name": "fedokawaii new tab", "version": "1",
                                                  "chrome_url_overrides": {"newtab": "ntp.html"}}))
 
