@@ -12,7 +12,7 @@ optional: no
 >
 > - make a project with its own Python and libraries (uv)
 > - edit with completion and errors shown as you type (neovim)
-> - run, test on every save, debug with breakpoints
+> - run, test with one key, debug with breakpoints
 > - commit and push (lazygit, GitHub)
 
 Professional programmers repeat one loop all day: *edit → run → test → commit*. Set it up once
@@ -23,8 +23,8 @@ here; every later chapter uses it.
 | Tool | Job |
 |---|---|
 | **uv** | makes a project, picks its Python, installs its libraries into the project's own folder, runs it |
-| **neovim** (LazyVim) | the editor: completion, errors as you type, formatting, tests, the debugger |
-| **pytest** | runs your tests — from neovim, once or on every save |
+| **neovim** | the editor: completion, errors as you type, formatting, tests, the debugger |
+| **pytest** | runs your tests — from neovim, with one key |
 | **ruff** | finds mistakes and formats the code (neovim runs it on save) |
 | **git**, **lazygit**, **gh** | history, and GitHub |
 

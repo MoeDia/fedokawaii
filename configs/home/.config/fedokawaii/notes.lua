@@ -191,9 +191,6 @@ local function page()
   vim.opt_local.winbar = "%#KawaGround# "
   foot_text = is_todo and todo_footer(name, vim.api.nvim_get_mode().mode:sub(1, 1) == "i") or footer_of(name)
   foot_rows(foot_text)
-  -- (LazyVim formats a file on every write when a formatter knows it — the Markdown extra
-  -- does: here that would rewrite the page under your fingers, key by key)
-  vim.b[b].autoformat = false
 end
 -- the paper's rules (T21, .claude/notes/notes-notebook.md): every line ruled across the whole
 -- row (line_hl_group: wrapped rows too), the page below the last line ruled to its foot

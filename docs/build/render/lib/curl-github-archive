@@ -1,5 +1,5 @@
 #!/bin/bash
-# apps.sh, LazyVim install only: curl, except for GitHub source tarballs
+# apps.sh, neovim's install only: curl, except for GitHub source tarballs
 # (https://github.com/OWNER/REPO/archive/REV.tar.gz, how nvim-treesitter fetches a parser's
 # grammar), which this sandbox's proxy refuses (403) while git works. Those are made with git
 # instead — `git archive` of the same revision, with the directory name GitHub gives it

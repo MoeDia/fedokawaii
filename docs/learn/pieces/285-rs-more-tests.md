@@ -93,5 +93,5 @@ running 1 test
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 ```
 
-`cargo test NAME` runs only the tests whose names contain NAME; in neovim, **Space t t** runs a
-file's tests and **Space t w** runs them on every save (chapter 48).
+`cargo test NAME` runs only the tests whose names contain NAME; in neovim, **Space r t** runs them
+all (chapter 48).

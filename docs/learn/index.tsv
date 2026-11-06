@@ -122,7 +122,7 @@ L	podman-moves	042-podman-moves.md	36	programs	22	containers	7	time-savers
 L	agents-moves	043-agents-moves.md	37	programs	21	agents, a quick start	8	git-moves	
 L	why-python-rust	044-why-python-rust.md	38	python	23	why Python and Rust	4		
 L	loop-project	045-loop-project.md	39	python	24	the tools, and a new project	3	nvim-moves git-moves	24.1 the tools, and what each does|24.2 a new project
-L	loop-edit	046-loop-edit.md	40	python	24	edit, test, debug	3	loop-project	24.3 edit in neovim|24.4 test on every save|24.5 debug: look inside a running program
+L	loop-edit	046-loop-edit.md	40	python	24	edit, test, debug	3	loop-project	24.3 edit in neovim|24.4 test after every change|24.5 debug: look inside a running program
 L	loop-commit	047-loop-commit.md	41	python	24	commit, and the whole loop	12	loop-edit	24.6 commit and push|24.7 the whole loop, on one card
 L	py-two-ways	048-py-two-ways.md	42	python	25	two ways to run Python	5	loop-commit	25.1 two ways to run Python
 L	py-arithmetic	049-py-arithmetic.md	43	python	25	numbers and arithmetic	6	py-two-ways	25.2 numbers and arithmetic

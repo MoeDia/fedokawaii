@@ -1280,15 +1280,15 @@ once with `:%s/^/2026-/`, then `:wq`.
 >
 > - edit without getting stuck: modes, save, quit, undo
 > - the grammar that makes editing fast: verb + motion
-> - LazyVim's Space menu: files, search, git, code
+> - the Space menu: files, search, git, code
 >
 > **You need:** chapter 2.
 
 **Best at:** editing text — notes, settings, code — faster than any mouse, with the same keys
 everywhere: your notes window (**Super+N**), man pages and git messages all open in it. Here it
-runs **LazyVim**, a ready-made setup: a file finder, language servers, lazygit inside.
+runs a small config of its own: a file finder, language servers, lazygit inside.
 
-<!-- fig:app-nvim | neovim with LazyVim: the file tree, a file, and the status line with the mode. -->
+<!-- fig:app-nvim | neovim: the file tree, a file, and the status line with the mode. -->
 
 ## 13.1 Never stuck
 
@@ -1309,7 +1309,6 @@ runs **LazyVim**, a ready-made setup: a file finder, language servers, lazygit i
 |---|---|
 | `i` · `a` · `o` | type before the cursor · after it · on a new line below |
 | `w` · `b` · `0` · `$` · `gg` · `G` | next word · back a word · line start · end · first · last line |
-| `s` and two letters | **flash**: jump anywhere visible by a label |
 | `dd` · `yy` · `p` | cut · copy a line · paste |
 | `ciw` · `ci"` · `dap` | change this word · inside the quotes · delete a paragraph |
 | `.` | repeat the last change — the most useful key |
@@ -1317,7 +1316,7 @@ runs **LazyVim**, a ready-made setup: a file finder, language servers, lazygit i
 | `:%s/old/new/g` | replace everywhere in the file |
 | **Space Space** · **Space /** | find a file · search text in the whole project |
 | **Space e** · **Space g g** | the file tree · lazygit |
-| `gd` · `K` · **Space c a** · **Space c r** | go to the definition · its documentation · a fix · rename everywhere |
+| `gd` · `K` · `gra` · `grn` | go to the definition · its documentation · a fix · rename everywhere |
 
 The grammar: a **verb** (`d` delete, `c` change, `y` copy) + a **motion** or **object** (`w` a
 word, `ip` a paragraph, `i(` inside brackets). `d3w` deletes three words; `yi"` copies what is
@@ -1326,8 +1325,8 @@ inside the quotes. Learn five verbs and five objects, and you have twenty-five c
 ## 13.3 Use cases
 
 - edit any setting: `nvim ~/.bashrc.d/local.sh`
-- write code with completion, errors underlined as you type, and a test runner (chapter 24)
-- change a word everywhere in a project: **Space s r**
+- write code with completion, errors underlined as you type, and your tests a key away (chapter 24)
+- change a word everywhere in a project: **Space /**, the word, **Ctrl+Q**, then `:cdo s/old/new/g | update`
 
 ### Exercises
 
@@ -1765,7 +1764,7 @@ other, is what makes a programmer.
 >
 > - make a project with its own Python and libraries (uv)
 > - edit with completion and errors shown as you type (neovim)
-> - run, test on every save, debug with breakpoints
+> - run, test with one key, debug with breakpoints
 > - commit and push (lazygit, GitHub)
 >
 > **You need:** chapters 13 and 14.
@@ -1778,8 +1777,8 @@ here; every later chapter uses it.
 | Tool | Job |
 |---|---|
 | **uv** | makes a project, picks its Python, installs its libraries into the project's own folder, runs it |
-| **neovim** (LazyVim) | the editor: completion, errors as you type, formatting, tests, the debugger |
-| **pytest** | runs your tests — from neovim, once or on every save |
+| **neovim** | the editor: completion, errors as you type, formatting, tests, the debugger |
+| **pytest** | runs your tests — from neovim, with one key |
 | **ruff** | finds mistakes and formats the code (neovim runs it on save) |
 | **git**, **lazygit**, **gh** | history, and GitHub |
 
@@ -1823,35 +1822,31 @@ Installed 5 packages in 12ms
 $ nvim .
 ```
 
-Python support is set up already: the language servers (basedpyright and ruff), formatting on
-save, the test runner and the debugger load with the first `.py` file. In one:
+Python support is set up already: the language servers (basedpyright and ruff) and formatting on
+save start with the first `.py` file. In one:
 
 | Keys | Does |
 |---|---|
-| typing | completion appears; **Enter** takes it, **Ctrl+Space** asks for it |
-| `K` · `gd` · `gr` | the documentation of a name · its definition · everywhere it is used |
-| **]d** · **Space c d** | the next problem · the full text of this line's problem |
-| **Space c a** · **Space c r** | a fix the language server offers · rename everywhere |
+| typing | completion appears; **Ctrl+N** moves into it, **Ctrl+Y** takes the word |
+| `K` · `gd` · `grr` | the documentation of a name · its definition · everywhere it is used |
+| **]d** · **Ctrl+W d** | the next problem · the full text of this line's problem |
+| `gra` · `grn` | a fix the language server offers · rename everywhere |
 | **Space c f** | format the file (also on every save) |
 | **Space r f** | run this file (`uv run`: the project's `.venv`) |
+| **Space r t** | run the project's tests (`pytest`), in a terminal under the code; `q` closes it |
 | **Space r r** · **Space r c** · **Space r l** | a Python prompt (REPL) under the code · send it the cell (`# %%` lines part a file into cells) · the line |
-| **Space t t** · **Space t r** · **Space t w** | run this file's tests · the test under the cursor · run them on every save |
-| **Space t s** · **Space t o** | the test summary · the last test's output |
 | **Space d b** · **Space d c** | a breakpoint here · run with the debugger |
-| **Space t d** | debug the test under the cursor |
-| **Space d i** · **Space d O** · **Space d o** | step into · over · out of |
+| **Space d n** · **Space d i** · **Space d o** | the next line · step into · out of |
 | **Space d u** · **Space d t** | the debugger's panels · stop it |
-| **Space c v** | choose the project's `.venv` (when a project has more than one) |
 | **Space g g** | lazygit |
-| **Ctrl+/** | a terminal at the bottom, and back |
+| **Space f t** | a terminal at the bottom, and back |
 
-## 24.4 Test on every save
+## 24.4 Test after every change
 
-Open a test file and press **Space t w**: neovim now runs its tests every time you save
-(**Ctrl+S**), in a fraction of a second, and marks each test in the margin — ✓ green, ✗ red, the
-failure's message beside the line. **Space t s** keeps the summary open on the right. Green
-means your last change kept everything working. This loop — change, save, glance at the
-margin — is the fastest way to learn a language there is. **Space t w** again stops watching.
+Change a line, save (**Ctrl+S**), press **Space r t**: pytest runs in a terminal under the code,
+in a fraction of a second, and prints each failure with its message. `q` closes it, and you are
+back where you were. Green means your last change kept everything working. This loop — change,
+save, one key, read — is the fastest way to learn a language there is.
 
 ## 24.5 Debug: look inside a running program
 
@@ -1859,7 +1854,7 @@ When a result is wrong and you cannot see why, stop the program in the middle an
 
 1. Cursor on a line inside the function, **Space d b**: a red dot in the margin.
 2. **Space d c**: the program runs and stops there; the panels show every variable's value.
-3. **Space d O** steps one line; watch the values change. **Space d t** stops.
+3. **Space d n** steps one line; watch the values change. **Space d t** stops.
 
 ## 24.6 Commit and push
 
@@ -1880,7 +1875,7 @@ $ gh repo create hello --private --source . --push
 | a library | `uv add numpy` |
 | edit | `nvim .` · **Space Space** a file |
 | run | **Space r f** |
-| test on save | **Space t w** in a test file |
+| test | **Space r t** |
 | debug | **Space d b**, **Space d c** |
 | commit · push | **Space g g**, **a**, **c**, **P** |
 
@@ -1891,7 +1886,7 @@ $ gh repo create hello --private --source . --push
 
 *Expected:* `1 passed`.
 
-**24.2 ★★ Red, then green.** Watch the test file (**Space t w**), change the test to `1 + 1 == 3`, save: see it fail,
+**24.2 ★★ Red, then green.** Change the test to `1 + 1 == 3`, save, **Space r t**: see it fail,
 read the message, put it back.
 
 *Expected:* the failure shows `assert 2 == 3` — pytest prints both sides.
@@ -5468,7 +5463,7 @@ and `low(limit)` (products below `limit`, sorted by name).
 > - testing errors, many cases at once, and temporary files
 > - test first: red, green, tidy
 >
-> **You need:** chapter 34, and chapter 24's loop (Space t w).
+> **You need:** chapter 34, and chapter 24's loop (Space r t).
 
 ## 35.1 Why tests
 
@@ -5512,7 +5507,7 @@ $ uv run pytest -q
 ```
 
 *(each `.` is a test that passed. In a uv project, `uv add --dev pytest` once; in neovim,
-**Space t t** runs them, **Space t w** on every save)*
+**Space r t** runs them)*
 
 ## 35.3 Reading a failure
 
@@ -7728,7 +7723,7 @@ that a *blinker* (three in a row) flips between horizontal and vertical.
 > **You need:** levels 1–5 (chapters 25–39).
 
 Each project is one file and one test file, in a project of its own (`uv init`, `uv add --dev
-pytest`). Watch the test file (**Space t w**) before you write the first line.
+pytest`). Run the tests (**Space r t**) after every function you write.
 
 ## 42.1 Your writing, as a chart
 
@@ -8804,24 +8799,21 @@ Hello, world!
 
 ## 48.2 In neovim
 
-Rust support is set up already: **rust-analyzer** runs with the first `.rs` file. Types appear
-beside each `let` in grey, errors are underlined as you type, `K` shows any function's
-documentation and `gd` jumps into the standard library's own source. **Space c a** offers the
-fixes the compiler suggests.
+Rust support is set up already: **rust-analyzer** runs with the first `.rs` file. Errors are
+underlined as you type, `K` shows any function's documentation and `gd` jumps into the standard
+library's own source. `gra` offers the fixes the compiler suggests.
 
 | Keys | Does |
 |---|---|
 | **Space r f** · **Space r c** | `cargo run` · `cargo check`, in a terminal under the code |
 | **Space r t** · **Space r l** | `cargo test` · `cargo clippy` |
-| **Space r r** | rust-analyzer's runnables: pick a test, a binary or an example to run |
-| **Space t t** · **Space t r** · **Space t w** | this file's tests · the one under the cursor · on every save |
-| **Space d b** · **Space d c** | a breakpoint · run with the debugger (codelldb), as in chapter 24 |
+| **Space d b** · **Space d c** | a breakpoint · run with the debugger (codelldb), as in chapter 24; it asks which program of `target/debug/` (`cargo build` makes it) |
 
 ## 48.3 Check on every save
 
 Every save (**Ctrl+S**) runs clippy over the project: its findings appear in the code as you
-work, no command needed. For the tests, **Space t w** in a file with tests: they run on every
-save too, ✓ or ✗ in the margin.
+work, no command needed. For the tests, **Space r t**: `cargo test`, in a terminal under the
+code.
 
 ## 48.4 Reading the compiler
 
@@ -13443,8 +13435,8 @@ running 1 test
 test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
 ```
 
-`cargo test NAME` runs only the tests whose names contain NAME; in neovim, **Space t t** runs a
-file's tests and **Space t w** runs them on every save (chapter 48).
+`cargo test NAME` runs only the tests whose names contain NAME; in neovim, **Space r t** runs them
+all (chapter 48).
 
 ## 59.6 Crates from crates.io
 

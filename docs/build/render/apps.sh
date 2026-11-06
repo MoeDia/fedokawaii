@@ -22,7 +22,7 @@
 #
 # Fetched once into apps-cache/ (GitHub releases / git; kept between runs):
 #   opt/     yazi + ya (latest release, as lib/upstream.sh), lazygit, neovim, tree-sitter
-#   nvim/    LazyVim's plugins, tree-sitter parsers and Mason tools (~/.local/share/nvim)
+#   nvim/    neovim's plugins, tree-sitter parsers and Mason tools (~/.local/share/nvim)
 #   media/   the test video (ffmpeg) and the demo files
 # Also used: btop and zathura from apt, mpv 0.41 (../media/mpv041/AppDir), torrra 2.5.1
 # (../media/venv313), Brave Origin (../brave/root/opt/brave.com/brave-origin).
@@ -50,7 +50,7 @@ NETENV=(HTTPS_PROXY="${HTTPS_PROXY:-}" https_proxy="${HTTPS_PROXY:-}" NO_PROXY="
         no_proxy="${NO_PROXY:-}" CURL_CA_BUNDLE=$CA GIT_SSL_CAINFO=$CA SSL_CERT_FILE=$CA)
 
 # ──────────────────────────────────────────────────────────────────────────────────────
-# outer: checks, downloads, staging, LazyVim's install, one namespace per theme, summary
+# outer: checks, downloads, staging, neovim's plugins, one namespace per theme, summary
 # ──────────────────────────────────────────────────────────────────────────────────────
 latest_tag() {   # latest_tag OWNER/REPO — the newest vX.Y.Z tag (git: the API is not reachable here)
   git ls-remote --tags --refs "https://github.com/$1.git" 2>/dev/null | awk '{print $2}' \
@@ -264,9 +264,9 @@ outer_apps() {
   want filechooser && build_filechooser
   if want herdr; then fetch_herdr || die "herdr could not be fetched"; fi
   if want nvim; then
-    say "LazyVim: plugins, parsers, tools (as $K, in a scratch home)"
+    say "neovim: plugins, parsers, tools (as $K, in a scratch home)"
     timeout -k 10 1500 unshare --pid --fork --kill-child --mount --mount-proc --propagation private \
-      -- "$SELF" --prep-nvim || warn "the LazyVim install ended with status $?"
+      -- "$SELF" --prep-nvim || warn "neovim's install ended with status $?"
   fi
   local rc=0
   for t in "${themes[@]}"; do
@@ -307,43 +307,34 @@ mount_home() {   # mount_home TAG — /home/$K becomes a copy-on-write view (wri
   chown --reference="$KH" "$u/upper"; chmod --reference="$KH" "$u/upper"
   mount -t overlay overlay -o "lowerdir=$KH,upperdir=$u/upper,workdir=$u/work" "$KH" || die "overlay on $KH failed"
   mount --bind "$C/opt" "$SH/opt" || die "bind $C/opt failed"
-  # LazyVim's plugins, parsers and Mason's tools, kept between runs (~/.local/share/nvim)
-  install -d -o "$K" -g "$K" "$C/nvim" "$C/nvim/share" "$C/nvim/config"
+  # neovim's plugins, parsers and Mason's tools, kept between runs (~/.local/share/nvim)
+  install -d -o "$K" -g "$K" "$C/nvim" "$C/nvim/share"
   for d in "$KH/.local" "$KH/.local/share" "$KH/.local/share/nvim"; do
     [[ -d $d ]] || install -d -o "$K" -g "$K" "$d"
   done
   mount --bind "$C/nvim/share" "$KH/.local/share/nvim" || die "bind nvim data failed"
-  # LazyVim's starter, as setup.sh's s_lazyvim lays it out (cp -rn: the repo's files stay)
-  if [[ ! -f $KH/.config/nvim/init.lua ]]; then
-    cp -r --update=none "$C/lazyvim-starter/." "$KH/.config/nvim/" && rm -rf "$KH/.config/nvim/.git"
-    cp --update=none "$C/nvim/config"/*.json "$KH/.config/nvim/" 2>/dev/null
-    chown -R "$K:$K" "$KH/.config/nvim"
-  fi
 }
 
-ku() {   # ku CMD… — as the user, without the session (for the LazyVim install)
+ku() {   # ku CMD… — as the user, without the session (for neovim's install)
   setpriv --reuid="$KUID" --regid="$KGID" --init-groups -- env -i HOME="$KH" USER="$K" LOGNAME="$K" \
     SHELL=/bin/bash LANG=C.UTF-8 TERM=xterm-256color XDG_RUNTIME_DIR="$SH/prep-run" \
     PATH="$SH/prep-bin:$SH/opt/bin:$KH/.local/bin:/usr/sbin:/usr/bin:/sbin:/bin:/usr/local/bin" "${NETENV[@]}" "$@"
 }
 
-prep_nvim() {   # LazyVim + plugins, as setup.sh does it (`nvim --headless '+Lazy! sync' +qa`), and
-  local L=$LOG/nvim-prep.log    # what its first interactive start would then fetch: parsers, Mason tools
-  [[ -d $C/lazyvim-starter/lua ]] || git clone -q --depth 1 https://github.com/LazyVim/starter "$C/lazyvim-starter" \
-    || die "could not clone LazyVim/starter"
+prep_nvim() {   # the repo's config at its lock, as setup.sh does it (nvim_restore), the parsers
+  local L=$LOG/nvim-prep.log    # config/prefetch.lua lists and the Mason tool a shot shows (dev_mason)
   mount_home prep
   install -d -m 700 -o "$K" -g "$K" "$SH/prep-run"
   install -d -m 755 "$SH/prep-bin"      # nvim-treesitter's tarballs through git (lib/curl-github-archive)
   install -m 755 "$SH/lib/curl-github-archive" "$SH/prep-bin/curl"
   : >"$L"
   {
-    echo "== nvim --headless '+Lazy! sync' +qa"
-    ku timeout 900 nvim --headless '+Lazy! sync' +qa 2>&1
+    echo "== nvim --headless '+Lazy! restore' '+Lazy! clean' +qa"
+    ku timeout 900 nvim --headless '+Lazy! restore' '+Lazy! clean' +qa 2>&1
     echo "exit $?"
-    # the parsers LazyVim asks nvim-treesitter for (its first start would build them), and the
-    # Mason tools its config installs (stylua, shfmt) plus lua_ls — with every job awaited
+    # every job awaited
     echo "== tree-sitter parsers"
-    ku timeout 900 nvim --headless -c "luafile $SH/lib/nvim-prep.lua" 2>&1
+    ku timeout 900 nvim --headless '+Lazy! load nvim-treesitter' '+lua require("config.prefetch").sync()' +qa 2>&1
     echo "exit $?"
     echo "== Mason"
     ku env APPS_MASON_REGISTRY_TAG="$(git ls-remote --tags --refs https://github.com/mason-org/mason-registry.git \
@@ -351,8 +342,6 @@ prep_nvim() {   # LazyVim + plugins, as setup.sh does it (`nvim --headless '+Laz
       timeout 900 nvim --headless -c "luafile $SH/lib/nvim-mason.lua" 2>&1
     echo "exit $?"
   } >>"$L"
-  cp -f "$KH/.config/nvim/lazy-lock.json" "$KH/.config/nvim/lazyvim.json" "$C/nvim/config/" 2>/dev/null
-  chown -R "$K:$K" "$C/nvim/config"
   du -sh "$C/nvim/share" >>"$L" 2>&1
 }
 
@@ -519,7 +508,7 @@ nvim_quit() {   # out of any popup, picker or explorer; nothing is written
   term_close -k Escape -s 150 -k Escape -s 150 -k Escape -s 150 ":qa!" -k Return
 }
 
-shot_nvim() {   # Neovim + LazyVim with the repo's gruvbox spec: a script of the repo, no explorer
+shot_nvim() {   # Neovim with the repo's config: a script of the repo, no explorer
   nvim_open nvim '+call cursor(44, 1)' '+normal! zt' bin/kawa-theme || return
   capture nvim "$TAPP" 2.0 25
   nvim_quit

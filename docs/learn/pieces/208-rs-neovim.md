@@ -10,24 +10,21 @@ optional: no
 
 ## 48.2 in neovim
 
-Rust support is set up already: **rust-analyzer** runs with the first `.rs` file. Types appear
-beside each `let` in grey, errors are underlined as you type, `K` shows any function's
-documentation and `gd` jumps into the standard library's own source. **Space c a** offers the
-fixes the compiler suggests.
+Rust support is set up already: **rust-analyzer** runs with the first `.rs` file. Errors are
+underlined as you type, `K` shows any function's documentation and `gd` jumps into the standard
+library's own source. `gra` offers the fixes the compiler suggests.
 
 | Keys | Does |
 |---|---|
 | **Space r f** · **Space r c** | `cargo run` · `cargo check`, in a terminal under the code |
 | **Space r t** · **Space r l** | `cargo test` · `cargo clippy` |
-| **Space r r** | rust-analyzer's runnables: pick a test, a binary or an example to run |
-| **Space t t** · **Space t r** · **Space t w** | this file's tests · the one under the cursor · on every save |
-| **Space d b** · **Space d c** | a breakpoint · run with the debugger (codelldb), as in chapter 24 |
+| **Space d b** · **Space d c** | a breakpoint · run with the debugger (codelldb), as in chapter 24; it asks which program of `target/debug/` (`cargo build` makes it) |
 
 ## 48.3 check on every save
 
 Every save (**Ctrl+S**) runs clippy over the project: its findings appear in the code as you
-work, no command needed. For the tests, **Space t w** in a file with tests: they run on every
-save too, ✓ or ✗ in the margin.
+work, no command needed. For the tests, **Space r t**: `cargo test`, in a terminal under the
+code.
 
 ## 48.4 reading the compiler
 

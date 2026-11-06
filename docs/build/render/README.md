@@ -214,7 +214,7 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 | shot | how |
 |---|---|
 | `app-yazi` | `footclient yazi ~/Documents/notes.md` (a folder, a PDF, a PNG, the notes previewed) |
-| `app-nvim` | `nvim bin/kawa-theme` in the demo repo, LazyVim starter + the repo's colorscheme spec; second start (the first is a warm-up) |
+| `app-nvim` | `nvim bin/kawa-theme` in the demo repo, with the repo's config; second start (the first is a warm-up) |
 | `app-lazygit` | lazygit in the demo repo; its one-time intro popup closed with Enter, `setup.sh` selected |
 | `app-nvim-whichkey` | `bin/kawa-theme` as in `app-nvim`, Space pressed: which-key's leader menu |
 | `app-nvim-picker` | Space Space (Snacks file picker, ripgrep's file list) with `wall` typed, `bin/kawa-wallpaper` previewed |
@@ -238,7 +238,7 @@ and bind-mounted over `/etc/dconf/db/local` (this sandbox's `local.d` still hold
 
 Fetched once into `apps-cache/` (kept): yazi (latest release, as lib/upstream.sh),
 lazygit, neovim, tree-sitter (GitHub releases, newest tags via `git ls-remote`: the API is
-not reachable); LazyVim's plugins, parsers and Mason tools (`apps-cache/nvim/share`, bind-
+not reachable); neovim's plugins, parsers and lua_ls from Mason (`apps-cache/nvim/share`, bind-
 mounted as `~/.local/share/nvim`). nvim-treesitter's GitHub tarballs and Mason's
 "latest registry" API call are refused by this sandbox's proxy, so the one-time install uses
 `lib/curl-github-archive` (the same tarball made with `git archive`) and `lib/nvim-mason.lua`

@@ -1,4 +1,4 @@
--- apps.sh: Mason's registry and the tools LazyVim's first start installs (nvim --headless).
+-- apps.sh: Mason's registry and the one tool a shot shows, lua_ls (nvim --headless).
 -- Mason asks the GitHub API (or api.mason-registry.dev) for the registry's latest release;
 -- neither is reachable from this sandbox, so that one answer is given here
 -- (APPS_MASON_REGISTRY_TAG, the newest tag `git ls-remote` lists). The registry itself and
@@ -18,7 +18,7 @@ if tag and tag ~= "" then
 end
 local mr = require("mason-registry")
 local ok_update = false
-for attempt = 1, 2 do         -- (LazyVim's own refresh may have started before the answer above)
+for attempt = 1, 2 do         -- (Mason's own refresh may have started before the answer above)
   local done = false
   mr.update(function(success)
     ok_update, done = success, true
@@ -31,7 +31,7 @@ for _, s in ipairs(mr.sources.list or {}) do
   local src = s:get()
   out("registry: " .. src:get_display_name())
 end
-local want = { "stylua", "shfmt", "lua-language-server" }
+local want = { "lua-language-server" }
 local pending = 0
 for _, name in ipairs(want) do
   local ok, p = pcall(mr.get_package, name)
@@ -39,10 +39,6 @@ for _, name in ipairs(want) do
     out(name .. ": not in the registry")
   elseif p:is_installed() then
     out(name .. ": installed")
-  elseif p:is_installing() then    -- LazyVim's config already started it (its ensure_installed)
-    pending = pending + 1
-    p:once("install:success", function() out(name .. ": installed") pending = pending - 1 end)
-    p:once("install:failed", function() out(name .. ": FAILED") pending = pending - 1 end)
   else
     pending = pending + 1
     p:install({}, function(success, err)

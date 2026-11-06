@@ -1200,7 +1200,7 @@ The setup's work also reaches below the programs, into how the kernel starts:
 |---|---|---|---|
 | `fedokawaii.sh` | the menu for the install | runs the others; nothing of its own | the front desk |
 | `check.sh` | **readiness** | nothing — is this Fedora, online, on Btrfs, with room to work? | the pre-flight check |
-| `setup.sh` | **software** | repositories, packages, drivers, kernel arguments, the dwl binary and its session launcher, services, the performance profile, snapshots — and what software needs before it can run: the LazyVim starter, the Prowlarr container file and key, torrra's settings and its key wrapper | the builder |
+| `setup.sh` | **software** | repositories, packages, drivers, kernel arguments, the dwl binary and its session launcher, services, the performance profile, snapshots — and what software needs before it can run: neovim's plugins, the Prowlarr container file and key, torrra's settings and its key wrapper | the builder |
 | `theme.sh` | **look and configuration** | every file it ships under `~/.config` and `~/.local` (`bin/kawa-*`, `share/fedokawaii`, `share/applications`, `share/themes`, fonts), `~/.bashrc.d`, the pixel art, `/etc/dconf` defaults, the boot menu theme and `/etc/default/grub`, the console font and colours, dwl rebuilt from `src/dwl/config.h`, two C helpers built from `src/`, Helium's colours (set once in its profile) and its launcher entries (so a screen share can carry sound, and Helium is listed once) | the decorator |
 | `verify.sh` | **proof** | nothing of yours — checks against the manifest and the repository; it only wakes Prowlarr to ask it, and writes its result to `/var/lib/fedokawaii/last-verify` | the inspector |
 | `system/fedokawaii` | **upkeep** — the system's own control, installed as the `fedokawaii` command (Super+U) | nothing itself: it reads the records and runs the scripts above through `sudo` (§35.1) | the caretaker |
@@ -1305,7 +1305,7 @@ The phases, step by step:
 |---|---|---|
 | **1** | readiness check → record what is installed → DNF tuning → boot-menu and two-kernel policy → full update → base tools → the performance profile → remove nano, vim, rescue kernel → SSH policy → **reboot** | the record lets `verify.sh` spot anything extra later; tuning first so the big update downloads ten at a time; update before any third-party repository so RPM Fusion matches the base libraries; SSH closed before the first reboot, so a run that stops early never leaves it open |
 | **2** | RPM Fusion (its two release packages from its own server — its mirror list only if that does not answer — each checked against RPM Fusion's signing key before it is installed), Helium, Claude Code (key fingerprint checked), COPRs → GPU drivers → this machine's drivers and firmware → full ffmpeg and media tools → **reboot** | drivers before the programs that use them, so nothing pulls the wrong variant; the reboot activates the GPU kernel argument. Near a new release RPM Fusion can be a few days behind Fedora's Mesa, and a COPR may have no build yet: what waits is left out with a note, Fedora's own drivers stand in, and `update` or `repair` adds it later (`verify` warns meanwhile) |
-| **3** | build tools → dwl (pinned commit + patch) → greetd login → desktop → fonts and toolkit themes → apps → release binaries → the yazi file dialog → Prowlarr + torrra → LazyVim → the play world → groups → theme (if chosen) → **verify gate** → enable the login, snapshots, baseline | the login is enabled last, only after verification, so a failure never leaves you at a black screen |
+| **3** | build tools → dwl (pinned commit + patch) → greetd login → desktop → fonts and toolkit themes → apps → release binaries → the yazi file dialog → Prowlarr + torrra → neovim's plugins → the play world → groups → theme (if chosen) → **verify gate** → enable the login, snapshots, baseline | the login is enabled last, only after verification, so a failure never leaves you at a black screen |
 
 What takes tty1 is `fedokawaii-resume.service`, a *systemd unit*: a small file that tells
 systemd what to start at boot. While setup holds tty1 there is no login there. To see how far
@@ -5719,7 +5719,7 @@ reference* lists every key) and `man vd`.
 > - open, change, save and quit a file without getting stuck
 > - edit with a small grammar: a verb, a count, a motion
 > - find files and text, and work on several files at once
-> - let LazyVim's language tools check and tidy your code
+> - let the language servers check and tidy your code
 >
 > **You need:** ch. 11 (the terminal) and §16.3 (notes: neovim already).
 
@@ -5738,7 +5738,7 @@ few letters you can count, repeat and combine.
 > copy and paste: `y` and `p` do (§17.8), and Ctrl+Shift+V
 > pastes while you type.
 
-<!-- fig:app-nvim | Neovim with LazyVim, the palette's gruvbox on the terminal's own see-through ground, on a shell script. -->
+<!-- fig:app-nvim | Neovim, the palette's gruvbox on the terminal's own see-through ground, on a shell script. -->
 
 **Learn in this order.** The first sections are a course; the rest is reference to come back
 to. Read them with neovim open beside the book, one step a day.
@@ -5762,11 +5762,10 @@ of them. Each later one ends with `:q!` — quit without saving — so the file 
 time. `/tmp` is emptied when the computer restarts: if the file has gone, type it again.
 
 Neovim is the only editor here (`nvim`, `vi`, `$EDITOR`, the man pages, yazi's Enter). It runs
-**LazyVim**, a ready-made set of add-ons that setup put in `~/.config/nvim`
-(§17.19). Started without a file, it shows a start screen — 編 *editor* over a list, as every
-text screen here — with one-key actions: `f`
-find file, `n` new file, `g` find text, `r` recent, `c` config, `s` restore the last session in
-this folder, `x` extras, `l` plugins, `q` quit.
+a small config of its own in `~/.config/nvim`, every line of it commented (§17.19): neovim's own
+keys wherever it has them, and eleven plugins for what it has not. Started without a file, it
+shows a start screen — 編 *editor* over a list, as every text screen here — with one-key actions:
+`f` find file, `n` new file, `g` find text, `r` recent, `c` config, `l` plugins, `q` quit.
 
 **Terms.** You need only *mode* today. The others come back where they are used; this table is
 here to look back at.
@@ -5779,11 +5778,11 @@ here to look back at.
 | tab | a whole layout of windows — not one file each, as in a browser |
 | operator · motion · text object | a verb (`d` delete) · a move (`w` to the next word) · a named piece of text (`iw` this word) |
 | register | one of neovim's clipboards, named by a character: `a` … `z`, and `+` for the desktop's |
-| leader | the key that starts LazyVim's own commands: Space |
-| plugin | an add-on written in Lua; LazyVim is a collection of them, installed and updated by lazy.nvim |
+| leader | the key that starts this config's own commands: Space |
+| plugin | an add-on written in Lua; lazy.nvim installs them and loads each when it is needed |
 | picker | a search window: type, choose from the list, see a preview |
 | language server · LSP | a separate program that understands one language and answers neovim's questions — where is this defined, what is wrong here · the protocol they speak (*Language Server Protocol*) |
-| treesitter | a parser in neovim that reads the structure of code — functions, strings, comments — for colours, folds and text objects; LazyVim installs the parsers for common languages |
+| treesitter | a parser in neovim that reads the structure of code — functions, strings, comments — for colours and for selecting by structure; the parsers are built for the languages `lua/config/prefetch.lua` lists |
 | formatter | a program that rewrites a file's layout (indentation, spacing) without changing what it does |
 | quickfix list | a list of places — file and line — to step through, such as search results |
 
@@ -5799,10 +5798,10 @@ status line, each in a colour of its own. Esc leaves every other mode for Normal
 | Visual | VISUAL, yellow | selecting text, to act on it | `v`, `V`, Ctrl+V |
 | Command-line | COMMAND, blue | typing a command after `:`, or a search after `/`; Enter runs it, Esc drops it | `:` or `/` |
 | Replace | REPLACE, red | typing over the existing text | `R` |
-| Terminal | TERMINAL, teal | in a shell inside neovim; Esc Esc, quickly, stops typing into it | Ctrl+/ (again to hide it) |
+| Terminal | TERMINAL, teal | in a shell inside neovim; Esc Esc, quickly, stops typing into it; then `q` hides it | Space f t |
 
-`:` opens the command line on the last row, in the status line's place, with suggestions above it
-(Tab completes); a search with `/` does the same.
+`:` opens the command line on the last row, in the status line's place (Tab lists what could
+come next, and completes); a search with `/` does the same.
 
 **Try this.** Type the practice file. In a terminal:
 
@@ -5838,9 +5837,8 @@ call the bank
 | **Esc** | back to Normal mode: keys are commands again |
 | `:wq` Enter | `:` opens the command line, `w` writes the file, `q` quits |
 
-If a small menu of words pops up while you type, **Enter** takes a word from it instead of
-starting a new line: press **Ctrl+E** to close the menu first (§17.16). If neovim
-adds a closing `"` as you type the first one, type on: your own closing `"` steps over it.
+A small menu of words pops up as you type. Nothing in it is chosen until you ask, so type on:
+**Enter** still starts a new line (§17.16).
 
 ## 17.2 Never stuck
 
@@ -5860,9 +5858,9 @@ Whatever happened, one of these gets you out of it:
 | *Found a swap file* on opening a file | a neovim crashed while editing it: `R` recovers the unsaved text — save it, and answer `D` (delete the old swap file) the next time the question comes. (A file open in another running neovim opens anyway, with the warning *W325*: save it in one place only) |
 | *readonly* or *Permission denied* on a system file | `:q!`, then `sudoedit /etc/the-file` in the shell: your own neovim edits a copy, and sudo puts it in place (§24.3) |
 
-**Tip:** undo survives closing the file — LazyVim keeps the undo history on disk, so `u` the
-next morning still takes back yesterday's edits. Space s u lists the whole history to pick a
-point from.
+**Tip:** undo survives closing the file — the undo history is kept on disk, so `u` the next
+morning still takes back yesterday's edits. `g-` and `g+` walk through every state the file has
+been in, even those a plain `u` can no longer reach.
 
 **Try this.** Make trouble on purpose, and get out of it. `nvim /tmp/practice.txt`, then:
 
@@ -5893,8 +5891,8 @@ cp /usr/local/lib/fedokawaii/docs/fedokawaii-guide.md /tmp/long.txt   # a copy t
 nvim /tmp/long.txt
 ```
 
-Spend ten minutes on each block below, in order, and do every key at least five times. Plain
-text files wrap long lines and underline spelling mistakes in red (Space u s hides them).
+Spend ten minutes on each block below, in order, and do every key at least five times. Long
+lines stay on one row and run off the window's edge (`:set wrap` folds them into view).
 
 *Moving.* Arrows work, but h j k l sit under your right hand, and the hand never leaves the
 keys.
@@ -5910,7 +5908,6 @@ keys.
 | `}` · `{` | to the next · previous blank line: a paragraph at a time |
 | `%` | to the matching bracket |
 | Ctrl+O · Ctrl+I | back · forward to where you were before a jump |
-| `s`, a letter or two, a label | **flash**: every visible place with those letters gets a one-letter label; type it to land there |
 
 The numbers in the left margin count lines **from the cursor**: the line you are on shows its
 real number, every other line how far away it is. Any move takes a count in front — `5j` goes
@@ -6008,7 +6005,7 @@ gives you a new command with every verb. A verb typed twice acts on the whole li
 
 | Verb | Does | Twice: the whole line |
 |---|---|---|
-| `d` | delete (a cut: the text goes to the clipboard) | `dd` |
+| `d` | delete (a cut: `p` puts it back; the desktop's clipboard stays as it was) | `dd` |
 | `c` | change: delete, then type in its place | `cc` |
 | `y` | yank: copy | `yy` |
 | `>` · `<` | indent · outdent | `>>` · `<<` |
@@ -6066,8 +6063,7 @@ few chosen places:
 
 Two changes, but `coffee` typed once. `:q!` when you are done.
 
-**Tip:** `f` and `t` are LazyVim's (flash): they look past the end of the line too, highlight
-every possible target, and pressing `f` again moves on to the next one.
+**Tip:** `f` and `t` stay on the line. `;` repeats the last one, onward; `,` goes back.
 
 ## 17.6 Text objects
 
@@ -6081,18 +6077,15 @@ verb, or `v` to select:
 | `w` · `W` | the word | the word and a space |
 | `s` · `p` | the sentence · the paragraph | with the space · the blank line after it |
 | `"` · `'` | inside the quotes | with the quotes |
-| `(` `[` `{` `<`, or `b` for the nearest | inside the brackets | with the brackets |
-| `q` | inside the nearest quotes of any kind | with them |
+| `(` `[` `{` `<`; `b` is `(`, `B` is `{` | inside the brackets | with the brackets |
+| `` ` `` | inside the backticks | with them |
 | `t` | inside an HTML or XML tag | with the tags |
-| `a` | an argument between commas | with its comma |
-| `f` · `c` | the body of a function · a class (in code that treesitter can read) | the whole function · class |
-| `g` | the whole file | the whole file |
 
 `daw` deletes a word and its space; `yi"` copies a quoted path without its quotes; `dap`
-deletes a paragraph; `yag` copies the whole file. LazyVim's mini.ai adds `q`, `a`, `f`, `c` and
-`g`, and makes all of them look ahead: `ci"` works from the start of the line, before the
-quotes. It adds a few more as well — `u` a function call, `d` a number, `o` a block, an *if* or
-a loop; pause after `vi` and the key panel lists them all.
+deletes a paragraph. The quote objects look ahead: `ci"` works from the start of the line, before
+the quotes. Brackets do not: for `ci(` the cursor must be inside them. In code, select by
+structure instead: in Visual mode `an` grows the selection to the next larger piece the parser
+sees (a call, a statement, a function), and `in` takes it back.
 
 **Try this.** `nvim /tmp/practice.txt`, then:
 
@@ -6104,11 +6097,6 @@ a loop; pause after `vi` and the key panel lists them all.
 | `u`, `u` | both lines as they were |
 
 `:q!` when you are done.
-
-**Surround** comes with an extra, `coding.mini-surround` (switch it on in `:LazyExtras`, below).
-Then `gsaiw"` puts quotes round a word — `gsa`, an object, the character — and `gsa` works on a
-selection too; `gsd"` removes the quotes round the cursor; `gsr"'` turns double quotes into
-single ones.
 
 ## 17.7 Visual mode and block mode
 
@@ -6124,7 +6112,6 @@ name.
 | `>` · `<` | indent · outdent; the selection stays, so press again for more |
 | `u` · `U` · `~` | lower case · upper case · switch case |
 | `J` · `gc` | join the lines · comment them out or back in |
-| Alt+J · Alt+K | move the selected lines down · up (a single line too, in Normal mode) |
 | `p` · `P` | replace the selection with the clipboard; `P` leaves the clipboard as it was |
 | Ctrl+A · `g` Ctrl+A | add one to every number · count up down the selection: a column of `0`s becomes 1, 2, 3 … |
 | `:` | a command for the selected lines (`:'<,'>` appears) |
@@ -6139,8 +6126,8 @@ down (`j`, or `3j`) and across. With a block selected:
 * `c` replaces the block's contents on every line; `d` deletes the column; `r` and a character
   fills it.
 
-LazyVim lets the cursor go past the end of short lines in block mode, so a block can be as wide
-as the longest line. (foot's own paste is Ctrl+Shift+V, so Ctrl+V reaches neovim.)
+The cursor may go past the end of short lines in block mode (`virtualedit=block`), so a block
+can be as wide as the longest line. (foot's own paste is Ctrl+Shift+V, so Ctrl+V reaches neovim.)
 
 **Try this.** Turn the practice file into a checklist. `nvim /tmp/practice.txt`, then `gg`,
 **Ctrl+V**, `4j` — a thin block down all five lines — `I`, type `- [ ] ` (a space at the end),
@@ -6161,19 +6148,20 @@ One `u` takes all five back. `:q!` when you are done.
 Neovim keeps several clipboards, called *registers*, each
 named by one character. To use one, type `"` and its name before the command: `"ayy` copies the
 line into register `a`, `"ap` pastes it back. Typing `"` alone — or Ctrl+R in Insert mode —
-shows a popup of what each register holds; Space s " lists them in the picker, and `:reg a0`
-prints only `a` and `0`.
+shows a popup of what each register holds; `:reg` lists them all, and `:reg a0` prints only `a`
+and `0`.
 
-**Here, the plain commands use the desktop's clipboard.** LazyVim sets `clipboard=unnamedplus`
-(except in an SSH session), so `y`, `d`, `c`, `x` and `p` all go through the system clipboard:
-a line yanked in neovim pastes into Helium with Ctrl+V, a link copied in Helium pastes in neovim
-with `p`, and every yank lands in the clipboard history (Super+V, §12.1) — and, thanks to
-`kawa-clipkeep`, stays on the clipboard after neovim closes. `"+y` and `"+p`, the way plain Vim
-reaches the clipboard, work too and do exactly the same.
+**Here, a copy reaches the desktop, and a delete does not.** `y` goes to the desktop's clipboard
+as well: a line yanked in neovim pastes into Helium with Ctrl+V, lands in the clipboard history
+(Super+V, §12.1) and, thanks to `kawa-clipkeep`, stays there after neovim closes. `d`, `c` and `x`
+stay in the editor, so one deleted letter never costs you the link you copied a minute ago. `p`
+puts in whatever was copied last, anywhere: a link copied in Helium pastes with `p`, or else what
+you last yanked or deleted here. `"+y` and `"+p`, the way plain Vim reaches the clipboard, work
+too.
 
 | Register | Holds |
 |---|---|
-| `"` (unnamed) and `+` | the last yank or delete — here, the system clipboard |
+| `"` (unnamed) · `+` | the last yank or delete, in the editor · the desktop's clipboard |
 | `0` | the last **yank** only; deletes leave it alone, so `"0p` pastes what you copied even after deleting since |
 | `1` … `9` | the last nine deletions of a line or more, newest first |
 | `-` | the last deletion within a line (`dw`, `x`) |
@@ -6182,9 +6170,7 @@ reaches the clipboard, work too and do exactly the same.
 | `*` | the primary selection (select, then middle-click) |
 | `/` · `:` · `.` · `%` | the last search · the last command · the last text typed · this file's name |
 
-**Tip:** since deletes go to the clipboard, a `dd` replaces the link you copied in Helium a minute
-ago. It is still in Super+V; to keep it on the clipboard, delete with `"_d`, or paste your last
-yank with `"0p`.
+**Tip:** after a yank and a delete, a plain `p` puts in the delete; `"0p` still has the yank.
 
 **Try this.** A register of your own, then the desktop's clipboard. `nvim /tmp/practice.txt`:
 
@@ -6278,35 +6264,35 @@ delete, `normal` and any keys, `normal @a` a macro; `:v` picks the lines that do
 ## 17.10 Files, buffers and windows
 
 Every file you open becomes a *buffer* and stays open until you
-close it; once there are two or more, LazyVim lists them along the top. A *window* is a view
-onto a buffer: splitting the screen shows two files side by side, or two places in one.
+close it; Space `,` lists them. A *window* is a view onto a buffer: splitting the screen shows two
+files side by side, or two places in one.
 
-To see the difference: `:e notes.md`, then `:e todo.md` — two buffers in one window; Shift+H
-brings *notes* back. Space | splits the window, and both halves show *notes* (two places in one
-file); Shift+L in one half shows *todo* there. Space w d closes a window, but its buffer stays
+To see the difference: `:e notes.md`, then `:e todo.md` — two buffers in one window; `[b`
+brings *notes* back. Ctrl+W `v` splits the window, and both halves show *notes* (two places in one
+file); `]b` in one half shows *todo* there. Ctrl+W `q` closes a window, but its buffer stays
 open until Space b d.
 
 | Keys | Does |
 |---|---|
 | Space Space · Space f r | find a file in the project · a recent file |
-| Space , · Space b b | the open buffers · back to the one before |
-| Shift+H · Shift+L | previous · next buffer |
-| Space b d · Space b o | close this buffer · close all the others |
+| Space , · `:b#` | the open buffers · back to the one before |
+| `[b` · `]b` | previous · next buffer |
+| Space b d | close this buffer (the window stays) |
 | `:e path` | open a file by its path; Tab completes |
-| Space - · Space \| | split: a new window below · to the right |
+| Ctrl+W `s` · Ctrl+W `v` | split: a new window below · to the right |
 | Ctrl+H · J · K · L | to the window on the left · below · above · on the right |
-| Ctrl+↑ · ↓ · ← · → | make the window taller · shorter · narrower · wider |
-| Space w d · Space w m | close the window (the file stays open) · zoom it to the whole screen and back |
+| Ctrl+W `+` · `-` · `>` · `<` | make the window taller · shorter · wider · narrower |
+| Ctrl+W `q` · Ctrl+W `o` | close the window (the file stays open) · close all the others |
 | Ctrl+W `=` | make all windows the same size |
-| Space Tab Tab · Space Tab d | a new tab, a whole new layout of windows · close it |
+| `:tabnew` · `gt` · `:tabclose` | a new tab, a whole new layout of windows · the next tab · close it |
 
-<!-- fig:nvim-split | Two windows side by side, two shell scripts, the file explorer on the left and the open buffers listed along the top. -->
+<!-- fig:nvim-split | Two windows side by side, two shell scripts, the file explorer on the left. -->
 
 ## 17.11 Finding
 
-Space Space opens the *picker*, LazyVim's search window: a line to type in, the matches under
-it, a preview of the file beside them. It matches loosely — `brc` finds `bashrc`. The same window serves every
-search in LazyVim (files, text, buffers, help, keys), with the same keys:
+Space Space opens the *picker*, the search window of the snacks plugin: a line to type in, the
+matches under it, a preview of the file beside them. It matches loosely — `brc` finds `bashrc`. The same window serves every
+search here (files, text, buffers, help, keys, problems), with the same keys:
 
 | Keys in a picker | Does |
 |---|---|
@@ -6322,9 +6308,8 @@ search in LazyVim (files, text, buffers, help, keys), with the same keys:
 
 <!-- fig:nvim-picker | The file picker (Space Space): the typed letters, the matching files, a preview of the one selected. -->
 
-The "project" (LazyVim calls it the *root*) is the folder the language server works in, or else
-the nearest folder above the file that holds `.git` (a git repository) or `lua`, or else the
-folder neovim was started in.
+The "project" is the nearest folder above the file that holds `.git` (a git repository), or else
+the folder neovim was started in.
 
 ## 17.12 The file tree
 
@@ -6336,37 +6321,29 @@ for it, `q` closes the tree and `?` lists the rest.
 
 ## 17.13 The leader key
 
-Most of LazyVim's own commands start with **Space**, the *leader*. Press it
-and wait a moment: a panel in the lower right lists what can follow, in groups — `f` files, `s`
-search, `g` git, `c` code, `b` buffers, `w` windows, `u` interface switches, `x` problem lists,
-`q` quitting and sessions. Press a letter to go down a level, Backspace to come back up, Esc to
-give up. The same panel helps after `g`, `z`, `[`, `]` and `"`, and Space s k searches every key
+This config's own commands start with **Space**, the *leader*. Press it
+and wait a moment: a panel lists what can follow, in groups — `f` find, `g` git, `c` code,
+`b` buffer, `r` run, `d` debug, `q` quit. Press a letter to go down a level, Backspace to come back up, Esc to
+give up. The same panel helps after `g`, `z`, `[`, `]` and `"`, and Space f k searches every key
 by its description — type *split* or *comment*.
 
 <!-- fig:nvim-whichkey | The key panel after Space: the groups that can follow, in the palette. -->
 
 | Keys | Does |
 |---|---|
-| Space Space · Space f f | find a file in the project |
-| Space / · Space s w | search the project's text · the word under the cursor (or the selection) everywhere |
-| Space , · Space f r | the open buffers · recent files |
-| Space f c · Space f n | a file of neovim's own config · a new empty file |
+| Space Space · Space f r | find a file in the project · recent files |
+| Space / · Space , | search the project's text · the open buffers |
 | Space e | the file tree |
 | Space g g | lazygit, in a floating window (ch. 41) |
-| Space g b · Space g f · Space g l | the history of this line · of this file · of the project |
-| Space b d | close the buffer |
-| Space - · Space \| · Space w d | split below · split right · close the window |
+| Space f t | a terminal under the code; the same key hides it |
+| Space b d · Space q q | close the buffer · quit everything |
 | Space c f | format the file, or the selection |
-| Space c a · Space c r | code actions · rename a symbol everywhere |
-| Space c d · Space x x | the problems on this line · all problems, in a list |
-| Space s r | search and replace across files |
-| Space s k · Space s h | search the keys · the help pages |
-| Space s " · Space s u | the registers · the undo history |
-| Space u w · Space u s · Space u l | line wrap · spelling · line numbers, on or off |
-| Space u f · Space u F | formatting on save, on or off: everywhere · this file |
-| Space q s · Space q q | restore the last session in this folder · quit everything |
-| Space l · Space c m | plugins (Lazy) · tools (Mason) |
-| Space ? | the keys that belong to this buffer only |
+| Space f d · Space f k · Space f h | every problem · every key · neovim's help, each in a picker |
+| Space l | the plugins (Lazy) |
+| Space r … · Space d … | run and debug your code (§43.7) |
+
+Neovim's own keys need no Space: `gr` and a letter speak to the language server (§17.15), `]` and
+`[` step through things: `]b` buffers, `]d` problems, `]q` a list of places, `]h` changed blocks.
 
 ## 17.14 Search and replace across a project
 
@@ -6377,24 +6354,14 @@ place around it, and Enter goes there.
 
 <!-- fig:nvim-grep | Space /: every line in the project containing the typed text, the place previewed beside it. -->
 
-To change text in many files, Space s r opens **grug-far**, a replace form in a window of its
-own:
+To change text in many files, make a list of the places, then change each one:
 
-1. Type what to find on the *Search* line. Matches from every file appear underneath as you
-   type.
-2. Move down to *Replace* (Esc, then `j`, or Tab in Normal mode) and type the new text. The
-   results show each line as it will be — nothing is written yet.
-3. *Files Filter* starts with the current file's extension (`*.sh` when you came from
-   `setup.sh`; empty when you came from a script without one, such as those in `bin/`): clear
-   it to search every file, or write your own (`*.md`). *Flags* takes ripgrep's
-   options: `-i` to ignore case, `-w` for whole words, `--hidden` for hidden files.
-4. In Normal mode, `\r` — backslash, then r; backslash is LazyVim's *local leader* — writes every
-   replacement into the files. `g?` lists the other keys, `\c` closes the form.
+1. Space /, type what to find, and Ctrl+Q: every match goes into the *quickfix list* — neovim's
+   list of places to step through — and it opens under the code.
+2. `:cdo s/old/new/g | update` replaces in each listed line and saves each file.
 
-The classic way works too: Space /, then Ctrl+Q puts every match in the *quickfix list* —
-neovim's list of places to step through — and
-`:cdo s/old/new/g | update` replaces in each listed line and saves each file. `]q` and `[q`
-step through the list; Space x q shows it.
+`]q` and `[q` step through the list by hand; `:copen` shows it again, and `:cclose` hides it. A
+name in code has a better way, one that knows what the name means: `grn` (§17.15).
 
 **Tip:** run a project-wide replace in a git repository with everything committed first: lazygit
 then shows exactly what changed, and discarding takes it all back (ch. 41).
@@ -6402,111 +6369,106 @@ then shows exactly what changed, and discarding takes it all back (ch. 41).
 ## 17.15 Language servers
 
 A *language server* is a helper program that understands one language:
-where a name is defined, where it is used, what is wrong. Neovim talks to it and shows the
+where a name is defined, where it is used, what is wrong. Neovim talks to it itself and shows the
 answers — a problem is underlined, with a short note at the end of the line and a sign in the
-margin. LazyVim brings one for Lua (the language of neovim's config) from the start; others come
-with *extras* and Mason (below). Space c l shows which servers serve the current file.
+margin. Here four kinds of file have one, each starting with its first file: Python (basedpyright
+and ruff), Rust (rust-analyzer), Lua (lua-language-server), TOML (taplo). `:checkhealth vim.lsp`
+shows which servers serve the current file.
 
 <!-- fig:nvim-lsp | A language server at work: a problem underlined with its note, and the documentation that K shows. -->
 
 | Keys | Does |
 |---|---|
-| `gd` · `gr` | go to where the name under the cursor is defined · list every place it is used |
-| `K` | the documentation of the name under the cursor (Ctrl+F · Ctrl+B scroll it) |
-| `gK` · Ctrl+K in Insert mode | the parameters of the function being called |
+| `gd` · `grr` | go to where the name under the cursor is defined · list every place it is used |
+| `K` | the documentation of the name under the cursor (`K` again goes into it, `q` closes it) |
 | Ctrl+O | back to where you were before `gd` |
-| Space c a | code actions: the fixes the server offers here |
-| Space c r | rename the symbol everywhere it is used |
-| `]d` · `[d` | next · previous problem (`]e` `[e` errors only, `]w` `[w` warnings) |
-| Space c d | the full text of the problems on this line |
-| Space x x · Space s d | every problem, in a list · in the picker |
-| Space s s | jump to a function, heading or other symbol in this file |
-| Space u h | the grey hints the server writes into the code (types, parameter names), on or off |
+| `gra` | code actions: the fixes the server offers here |
+| `grn` | rename the symbol everywhere it is used |
+| `gri` · `grt` | the implementation · the definition of its type |
+| `]d` · `[d` | next · previous problem |
+| Ctrl+W `d` | the full text of the problems on this line |
+| Space f d | every problem, in a picker |
+| `gO` | this file's symbols, in a list: functions, headings |
 
-*For this desktop's shell scripts*:
-
-1. `:Mason`, type `/bash` and Enter to find **bash-language-server**, press `i`. (It is an npm
-   package; `:checkhealth mason` says whether npm is found.)
-2. Open a shell script. The server checks it with ShellCheck (installed with the desktop: the
-   server finds it by itself), completes variable names and finds a function's definition with
-   `gd`.
-3. Try it: a line `echo $1` gets a note — *Double quote to prevent globbing and word
-   splitting*, ShellCheck's SC2086, the quoting rule of
-   §25.4; `echo "$1"` clears it. Every finding has a
-   page that explains it: [shellcheck.net/wiki/SC2086](https://www.shellcheck.net/wiki/SC2086).
+*Shell scripts* have ShellCheck, without a server (installed with the desktop). `:!shellcheck %`
+runs it on the file you are in, and `q` closes what it says. A line `echo $1` gets a note —
+*Double quote to prevent globbing and word splitting*, SC2086, the quoting rule of
+§25.4; `echo "$1"` clears it. Every finding has a
+page that explains it: [shellcheck.net/wiki/SC2086](https://www.shellcheck.net/wiki/SC2086).
 
 ## 17.16 Completion
 
-While you type, a menu offers what could come next: names from the language
-server, file paths (after `./`, `~/` or `/`), snippets (small templates with blanks to fill in,
-such as a whole `for` loop), and words from the open files. A box
-beside it shows the documentation of the highlighted entry.
+While you type, a menu offers what could come next, by neovim's own *autocomplete*: the language
+server's names first, then words from this file, the other windows and the open buffers. A box
+beside it shows the details of the highlighted entry. Nothing is chosen until you ask, so typing
+straight on, and Enter, do what they would without it.
 
 | Keys in Insert mode | Does |
 |---|---|
-| ↑ ↓ or Ctrl+P · Ctrl+N | move in the menu |
-| Enter · Ctrl+Y | take the highlighted entry |
+| Ctrl+N · Ctrl+P (or ↓ ↑) | move in the menu; the word goes in as you move |
+| Ctrl+Y | take the highlighted entry, and what the server adds to it: an import, a snippet |
 | Ctrl+E | close the menu and keep typing |
-| Ctrl+Space | open the menu yourself; again for the documentation |
-| Tab · Shift+Tab | in an inserted snippet: to its next · previous blank to fill in |
-| Ctrl+B · Ctrl+F | scroll the documentation |
+| Ctrl+X Ctrl+F · Ctrl+X Ctrl+L | complete a file path · a whole line |
+| Tab · Shift+Tab | in an inserted snippet (a small template with blanks): to its next · previous blank |
 
 On the command line (after `:`), Tab completes commands and file names.
 
 ## 17.17 Formatting
 
-LazyVim tidies a file's layout — indentation, spacing, line breaks — **each time
-you save it**, when it has a formatter for the type (conform.nvim runs them; stylua, for Lua,
-comes installed). Shell scripts are the exception here: `after/ftplugin/sh.lua` turns formatting
-on save off for them, because shfmt would re-indent and re-align them, this desktop's own
-scripts among them.
+Python (ruff), Rust (rustfmt) and TOML (taplo) are tidied — indentation, spacing, line breaks —
+**each time you save**, by their language servers. Shell scripts and Lua keep the layout you gave
+them.
 
 | Keys or command | Does |
 |---|---|
-| Space c f | format now: the file, or the selection — a shell script too, when you ask |
-| Space u f | formatting on save on or off, everywhere |
-| Space u F | the same for this file only (shell scripts start at off) |
-| `:ConformInfo` | which formatters apply to this file, and whether they are installed |
+| Space c f | format now: the file, or the selection, when its language server can (Lua's can, too) |
+| `:noautocmd w` | save this once without formatting |
 
-## 17.18 Extras and Mason: adding a language
+## 17.18 Mason: adding a language
 
-Language support comes in *extras*: `:LazyExtras` (or
-`x` on the start screen) lists them; move to one, press `x` to switch it on or off, and restart
-neovim. The choice is kept in `~/.config/nvim/lazyvim.json`, which is yours.
+Servers and tools install through **Mason** (`:Mason`), which downloads them into neovim's data
+folder — binaries, PyPI and npm packages alike (Node.js is installed) — and puts them on neovim's
+`PATH`. In the Mason window: `i` install, `u` update, `U` update all, `X` remove, Ctrl+F show one
+language's tools only, `g?` help. setup and `update` keep six there: basedpyright, ruff, debugpy,
+codelldb, lua-language-server and taplo.
 
-| Extra | Brings |
-|---|---|
-| `lang.markdown` | for notes: a language server for links and headings, Markdown checks, headings and tables drawn in place (Space u m), a live preview in the browser (Space c p) |
-| `lang.python` · `lang.json` · `lang.yaml` · `lang.toml` | each language's server, and its formatter where it has one |
-| `coding.mini-surround` | the `gs` keys for quotes and brackets (above) |
+A new language takes a tool and three lines. For shell scripts, install **bash-language-server**
+(`:MasonInstall bash-language-server`), then tell neovim about it in your own file:
 
-The servers and tools then install through **Mason** (`:Mason`, or Space c m), which downloads
-them into neovim's data folder — binaries, PyPI and npm packages alike (Node.js is installed). In
-the Mason window: `i` install, `u` update, `U` update all, `X` remove, Ctrl+F show one language's
-tools only, `g?` help.
+```lua
+-- ~/.config/nvim/lua/plugins/local.lua — yours
+vim.lsp.config("bashls", { cmd = { "bash-language-server", "start" }, filetypes = { "sh" }, root_markers = { ".git" } })
+vim.lsp.enable("bashls")
+return {}
+```
 
-## 17.19 How LazyVim is set up here
+The next neovim starts it with the first shell script. `:help lsp-quickstart` says the rest.
 
-**LazyVim** is a ready-made configuration for neovim: a collection of plugins and settings,
-installed by lazy.nvim. The desktop ships its own files for it in `~/.config/nvim`, and Theme
-manages only those:
+## 17.19 How neovim is set up here
+
+The whole config is a few small files in `~/.config/nvim`, written to be read: a comment over
+every line says what it does and why. It is a good first thing to read in Lua.
 
 | File | Does |
 |---|---|
-| `init.lua` | starts lazy.nvim, and with it LazyVim |
+| `init.lua` | where neovim starts: the leader key, then each file below, in order |
 | `lazy-lock.json` | every plugin's exact commit, tested together; it moves only with the desktop itself |
-| `lua/config/lazy.lua` | LazyVim's starter file, with the background check for new versions and the watching of these files switched off, and the plugins to import |
-| `lua/config/options.lua` · `clipboard.lua` | the window's title; the desktop's clipboard and the editor's, each in its place (§17.8) |
+| `lua/config/options.lua` | how the editor behaves, each option with its reason |
+| `lua/config/keymaps.lua` | the keys; each line a key, what it does, and the words the Space panel shows |
+| `lua/config/autocmds.lua` | what happens by itself: a file reopens where you left it, a copy flashes, the servers start |
+| `lua/config/lazy.lua` | lazy.nvim, the plugin manager: no looking for new versions, no watching these files |
+| `lua/config/lsp.lua` | the language servers (§17.15), the problems' look, formatting on save (§17.17) |
+| `lua/config/clipboard.lua` | the desktop's clipboard and the editor's, each in its place (§17.8) |
 | `lua/config/statusline.lua` | the bottom line, without a plugin: there in the first frame, drawn with the key that changed it |
-| `lua/config/prefetch.lua` | what plugins would fetch at their first use, fetched by setup and `update` instead: the parsers `lean.lua` lists, blink.cmp's library |
-| `lua/plugins/lean.lua` | what LazyVim brings and this desktop leaves off or loads later, each with its reason |
+| `lua/config/markdown.lua` · `root.lua` · `run.lua` | typing in Markdown without stalls · the project's folder · running your code in a terminal |
+| `lua/config/prefetch.lua` | the parsers, fetched by setup and `update`, never at a first use |
 | `lua/plugins/colorscheme.lua` | the remapped gruvbox, which follows the dark and light theme by itself (§40.2) |
-| `lua/plugins/look.lua` | the start screen as a text screen of the desktop's: 編 *editor*, the actions in lower case |
-| `lua/plugins/dev.lua` | Python and Rust: running a file, the REPL, tests and the debugger (§43) |
-| `after/ftplugin/sh.lua` | keeps shell scripts from being reformatted on save (§17.17) |
+| `lua/plugins/snacks.lua` | the start screen, the finder, the tree, lazygit, the terminal, the indent line |
+| `lua/plugins/editor.lua` | treesitter, git's signs in the margin, the Space panel, Mason |
+| `lua/plugins/repl.lua` · `debug.lua` · `after/ftplugin/` | the REPL · the debugger · the Space r keys of Python and Rust (§43.7) |
 
-Everything else in the folder is yours: your own plugins and settings go beside them
-(*Pitfalls*, in §17.22).
+These are the desktop's: Theme puts them back when they change (§42.2). Your own plugins and
+settings go in a file beside them, `lua/plugins/local.lua` (*Pitfalls*, in §17.22).
 
 ## 17.20 Keeping it updated and healthy
 
@@ -6515,9 +6477,9 @@ then `Lazy! clean` for what is no longer listed) and checks each one. That file 
 the plugins were tested together at those commits, and they move when the desktop itself brings a
 new one, never on their own. Inside neovim, `:Lazy` (Space l) shows them; `R` restores the versions
 in the lock file. `U` and `S` there would move them past it, until the next `update` or apply puts
-them back. `update` also brings Mason's tools to their newest. Space L shows LazyVim's changelog.
+them back. `update` also brings Mason's tools to their newest.
 `:checkhealth` explains anything that does not work: every plugin and tool reports OK, WARNING
-or ERROR, with advice. `:LazyHealth` loads every plugin first, so none is skipped. (lazy.nvim's
+or ERROR, with advice. (lazy.nvim's
 *luarocks* support is off — `rocks = { enabled = false }` in `lua/config/lazy.lua`: no plugin
 here needs a Lua rock, so `:checkhealth lazy` asks for neither luarocks nor Lua 5.1.)
 
@@ -6525,12 +6487,12 @@ here needs a Lua rock, so `:checkhealth lazy` asks for neither luarocks nor Lua 
 
 1. **Super+Return**, the project's folder (`~/dojo/notes` — a folder name alone changes into
    it, §18.1), then `nvim`.
-2. On the start screen, `s` brings back the files you had open here last time; or Space Space
-   for a file, `r` for a recent one.
-3. Work. Ctrl+S saves; Space / finds anything in the project; Shift+H and Shift+L move between
+2. On the start screen, `f` for a file, `r` for a recent one: it opens with the cursor where you
+   left it.
+3. Work. Ctrl+S saves; Space / finds anything in the project; `[b` and `]b` move between
    the open files; `gd` and `K` explain code.
 4. Space g g: read the diff, stage, commit, push (ch. 41); `q` returns to the editor.
-5. Space q q quits. The session of this folder is saved by itself, ready for step 2 tomorrow.
+5. Space q q quits.
 
 ## 17.22 A learning path
 
@@ -6539,38 +6501,34 @@ hands only by use.
 
 | When | Do | Why |
 |---|---|---|
-| day 1 | `nvim --clean +Tutor`, about 30 minutes; then, in the same neovim, `:Tutor vim-02-beginner` (neovim 0.11.3 and later; Fedora 45 has 0.12). Inside LazyVim `:Tutor` is switched off | the official lessons, in plain neovim without LazyVim's changes, exactly as written (`vimtutor` belongs to Vim, which is not installed) |
+| day 1 | `nvim +Tutor`, about 30 minutes; then, in the same neovim, `:Tutor vim-02-beginner` (neovim 0.11.3 and later; Fedora 45 has 0.12) | the official lessons (`vimtutor` belongs to Vim, which is not installed) |
 | week 1 | the first hour above, again each day: moving, typing, `x`, `dd`, `u`, `:w`, `:q` | until you stop reaching for the mouse and the arrows |
 | week 2 | the grammar: `dw`, `cw`, `ciw`, `ci"`, `dt)` — and `.` | every verb you know multiplies with every motion |
 | week 3 | Space Space, Space /, Space e, buffers and splits | moving between files as quickly as within one |
 | week 4 | visual block, `:%s`, one macro a day on real work | the keys that save hours |
-| afterwards | one new key a week, from the Space panel or Space s k | small steps stay learnt |
+| afterwards | one new key a week, from the Space panel or Space f k | small steps stay learnt |
 
 **Pitfalls.**
 
-* LazyVim changes a few keys of plain Vim: `s` and `S` are flash (Vim's `s` is `cl`), Shift+H
-  and Shift+L switch buffers (in Vim they move to the top and bottom of the screen), Ctrl+H/J/K/L
-  move between windows, and `K` shows documentation. Tutorials written for Vim mean the plain
-  keys; `nvim --clean` has them.
-* With the completion menu open, **Enter takes the highlighted entry** instead of starting a new
-  line. Ctrl+E closes the menu first.
-* Markdown, plain text and commit messages wrap long lines — `j` and `k` then move by screen
-  line — and check spelling: `]s` · `[s` jump between mistakes, `z=` offers corrections, `zg`
-  adds the word to your list, Space u s turns the checking off.
+* This config changes a few keys of plain Vim: Ctrl+H/J/K/L move between windows, and Ctrl+S
+  saves. Tutorials written for Vim mean the plain keys; `nvim --clean` has them.
+* Long lines stay on one row everywhere, Markdown included: `:set wrap` folds them into view (`j`
+  and `k` then still move by file line; `gj` and `gk` by screen line).
+* Spelling is off. `:set spell` turns it on: `]s` · `[s` jump between mistakes, `z=` offers
+  corrections, `zg` adds the word to your list.
 * Hidden files do not show in Space Space or Space / — the dotfiles of a dotfiles repository
   included. Alt+H in the picker, `H` in the tree.
-* `lang.markdown` also corrects Markdown files on save where its checker finds problems. For a
-  file whose layout must stay as it is — this handbook's source, say — Space u F turns it off.
-* Do not set `background` yourself, and leave Space u b alone: neovim learns light or dark from
-  foot and changes with the theme.
-* Your own plugins and settings go in `lua/plugins/*.lua` and `lua/config/*.lua`; only the three
-  files named in §17.19 are managed by Theme (`lua/config/lazy.lua` among
-  them, so leave that one to the repository). A setting of your own, for example:
+* Do not set `background` yourself: neovim learns light or dark from foot and changes with the
+  theme.
+* Your own plugins and settings go in `lua/plugins/local.lua`: the desktop ships no file of that
+  name, so Theme leaves it alone (the files named in §17.19 are the desktop's). A setting of your
+  own, for example:
 
 ```lua
--- ~/.config/nvim/lua/config/options.lua — yours; LazyVim reads it at start
-vim.opt.relativenumber = false   -- the margin shows plain line numbers
-vim.opt.wrap = true              -- long lines wrap in every file, not only in text
+-- ~/.config/nvim/lua/plugins/local.lua — yours; lazy.nvim reads it at start
+vim.o.relativenumber = false   -- the margin shows plain line numbers
+vim.o.wrap = true              -- long lines wrap in every file
+return {}                      -- the plugins of your own, if any, go in this table
 ```
 
 **Cheat sheet.**
@@ -6583,14 +6541,13 @@ vim.opt.wrap = true              -- long lines wrap in every file, not only in t
 | move by character · word · to the line's start, end | `h` `j` `k` `l` · `w` `b` `e` · `0` `$` |
 | top · bottom of the file · line 42 | `gg` · `G` · `42G` |
 | half a screen down · up | Ctrl+D · Ctrl+U |
-| jump to anything on screen | `s`, a letter or two, the label |
 | back · forward along your jumps | Ctrl+O · Ctrl+I |
 | type before · after · at the line's start · end · on a new line | `i` · `a` · `I` · `A` · `o` `O` |
 | delete a character · a line · to the line's end | `x` · `dd` · `D` |
 | change a word · inside quotes · inside brackets | `ciw` · `ci"` · `ci(` |
 | copy a line · a paragraph · paste | `yy` · `yip` · `p` `P` |
 | indent · comment out a line | `>>` · `gcc` |
-| move a line down · up | Alt+J · Alt+K |
+| move a line down · up | `:m +1` · `:m -2` |
 | select characters · lines · a block | `v` · `V` · Ctrl+V |
 | search · next · previous · the word under the cursor | `/text` · `n` · `N` · `*` |
 | replace in the whole file | `:%s/old/new/g` (`gc` to confirm each) |
@@ -6599,20 +6556,20 @@ vim.opt.wrap = true              -- long lines wrap in every file, not only in t
 | fold · unfold · open every fold | `zc` · `zo` · `zR` |
 | find a file · text · an open buffer | Space Space · Space / · Space , |
 | the file tree · lazygit | Space e · Space g g |
-| previous · next buffer · close it | Shift+H · Shift+L · Space b d |
-| split below · right · move between · close | Space - · Space \| · Ctrl+H/J/K/L · Space w d |
-| definition · uses · documentation · rename | `gd` · `gr` · `K` · Space c r |
-| next problem · all problems | `]d` · Space x x |
-| format · code action | Space c f · Space c a |
-| replace across the project | Space s r |
-| every key | Space, then wait · Space s k |
-| plugins · tools · diagnosis | `:Lazy` · `:Mason` · `:checkhealth` |
+| previous · next buffer · close it | `[b` · `]b` · Space b d |
+| split below · right · move between · close | Ctrl+W `s` · Ctrl+W `v` · Ctrl+H/J/K/L · Ctrl+W `q` |
+| definition · uses · documentation · rename | `gd` · `grr` · `K` · `grn` |
+| next problem · all problems | `]d` · Space f d |
+| format · code action | Space c f · `gra` |
+| replace across the project | Space /, Ctrl+Q, `:cdo s/old/new/g \| update` |
+| every key | Space, then wait · Space f k |
+| plugins · tools · diagnosis | Space l · `:Mason` · `:checkhealth` |
 
 **Read more:** inside neovim, `:help` — `:help usr_toc` is the user manual chapter by chapter,
 and `:help text-objects`, `:help registers`, `:help pattern` and `:help lsp` go straight to a
-topic (the same pages are at [neovim.io/doc/user](https://neovim.io/doc/user/)). LazyVim's keys,
-plugin by plugin: [lazyvim.org/keymaps](https://www.lazyvim.org/keymaps), with the extras under
-*Extras* on the same site. Mason:
+topic (the same pages are at [neovim.io/doc/user](https://neovim.io/doc/user/)). The plugin
+manager: [lazy.folke.io](https://lazy.folke.io). The finder and the tree:
+[github.com/folke/snacks.nvim](https://github.com/folke/snacks.nvim). Mason:
 [github.com/mason-org/mason.nvim](https://github.com/mason-org/mason.nvim).
 
 **What you learnt**
@@ -9288,7 +9245,7 @@ bash -n ~/.local/bin/myscript     # check the syntax without running it
 shellcheck ~/.local/bin/myscript  # explain likely mistakes
 ```
 
-ShellCheck is the same checker neovim's bash language server uses (§17.15).
+In neovim, `:!shellcheck %` runs it on the file you are in (§17.15).
 
 > **On Windows.** There the ending decides: `.bat`, `.ps1`, `.exe`. Here the first line and
 > the `x` permission decide, and a script needs no ending at all: `kawa-theme` and `start-dwl`
@@ -12707,7 +12664,7 @@ cat /var/lib/fedokawaii/last-verify    # → 1792039927 179 0 1
 | compositor & login | dwl version and pinned commit, XWayland, its own wlroots and every library, the patch (keys, gaps, frames, centring, layout) · the session launcher and its keyboard layouts · the greetd SELinux module, the login screen (kawa-greet in cage, for you) and its look for both themes · greetd alone on tty1, after the splash, and a login screen that cannot start said on tty1 · the pixel font crisp for every account · the lock's quick wrong-password answer (its PAM file) and its words without its module · the yazi file dialog built and known to the portals |
 | services | greetd, Bluetooth, snapper timers, fstrim, PipeWire · the tuned profile · Wi-Fi power saving off · the Bluetooth dongle's power saving off · ntsync · linger · shutdown's 30 s for your services · `secrets.sh` private · Prowlarr: its key in `secrets.sh`, its container file current, its start waiting on nothing online (no `podman-user-wait-network-online.service`), running, answering, taking the key, its files yours, the usual eight indexers (a warning when one is missing) · podman's database · `~/downloads` outside the snapshots · the SSH policy and firewall ports (6881 for torrents, 53317 for LocalSend) |
 | upstream binaries (lib/upstream.sh) | present, every library resolves, `--version` runs · the desktop's face, Sumi UI, and the terminal's, UDEV Gothic NF · LocalSend · Syncplay · ble.sh |
-| applications | Helium actually starts · Claude Code · LazyVim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
+| applications | Helium actually starts · Claude Code · neovim · torrra loads and runs through its wrapper, with no key in its config · mpv in the bar · yt-dlp's JavaScript runtime · lazygit · qalc · restic |
 | snapshots | a snapper config for `/` · the baseline snapshot (a warning when it is gone) · a snapshot pair around every DNF run · the snapshots' bounds · the monthly Btrfs scrub, and what the last one found |
 | theme | every file in sync · dwl built from `config.h` · foot accepts its config · waybar config parses · GTK and the portal follow the current theme · no window buttons · default programs · Helium in the desktop's colours · Qt palette · fonts resolve (Arabic, Japanese, Chinese, Korean) · the desktop's face Sumi UI, sharp at 14 px, and the terminal's Sumi Term, UDEV Gothic NF at 16 px, smoothed · mpv's colours · the lock screen's pictures for both themes · the two C helpers built · the clipboard window · the wallpaper pack · the Sumi pointers · the yazi file dialog · cava · the boot menu theme · the boot splash (*starting Fedora*), and in every kernel's boot image (`lsinitrd`) |
 | live session | bar, notifications, terminal server, wallpaper, idle, automount, status readers, polkit agent, clipboard history and keeper, the update reminder · the graphical session known to systemd · the file-dialog and screen-sharing portals · the "Share" sound devices (PipeWire's node `share_sink`) · the refresh rate is the best available · a monitor answers DDC/CI · night light (shown, never a fault: it is yours to switch off) |
@@ -12809,7 +12766,7 @@ every 60, 90 or 120 days, then off.
 | nothing doubled or fighting | packages left twice removed; what `dnf check` finds brought in line; services that fight the desktop's own switched off; the login made greetd's again; dependencies nothing needs removed; what a stopped run left cleared. Configuration files an update could not merge are listed in `/var/lib/fedokawaii/rpmnew`, never touched | each on its own |
 | the desktop's own parts | dwl's wlroots, the pinned tools and fonts (§27.7), the file dialog | each on its own: one that fails — GitHub down, say — is reported, the rest goes on, and the next update tries it again |
 | torrra · Prowlarr | libtorrent to its newest under torrra; Prowlarr's newest image, then started and checked | |
-| neovim's plugins | each at the commit of the lock this toolkit brings (`Lazy! restore`), what is off the list gone (`Lazy! clean`), the parsers as `lean.lua` lists them, then each plugin checked against the lock | one that is not: reported, the update goes on |
+| neovim's plugins | each at the commit of the lock this toolkit brings (`Lazy! restore`), what is off the list gone (`Lazy! clean`), the parsers as `prefetch.lua` lists them, then each plugin checked against the lock | one that is not: reported, the update goes on |
 | verify | every check, the outcome recorded for the menu | |
 
 Every later package change of the update — the manifest's installs, a swap, a removal,
@@ -14887,10 +14844,9 @@ Stage the first hunk only, and *Files* shows `MM local.sh`: one change staged, o
 <!-- fig:lazygit-stage | Staging by hunk: the unstaged changes on one side, the staged ones on the other, the selected hunk highlighted. -->
 
 In this view **d** removes the selected change **from the file** (in the staged pane, it
-unstages it); **E** opens the hunk in neovim to edit it before staging. Neovim can stage too,
-from inside the file: the coloured bars in the margin mark changed lines, `]h` · `[h` jump
-between hunks, Space g h s stages the hunk under the cursor, Space g h r resets it, and Space
-g h p shows what changed.
+unstages it); **E** opens the hunk in neovim to edit it before staging. Neovim shows the same
+hunks from inside the file: the coloured bars in the margin mark changed lines, and `]h` · `[h`
+jump between them.
 
 ## 41.9 Commit, amend, undo
 
@@ -15183,7 +15139,7 @@ lines), **Space**, **Esc**, **c** — see *Staging part of a file*, above.
 asks where the new branch should start. For a single commit from the middle: cherry-pick it to
 the other branch (above), then **d** drops it here.
 
-**Recommended.** From inside neovim (Space g g), lazygit is set up by LazyVim itself: it takes the
+**Recommended.** From inside neovim (Space g g), lazygit is set up by neovim's snacks plugin: it takes the
 editor's colours, and **e** opens the file in that same neovim instead of starting a second one.
 Started on its own, `e` runs neovim inside lazygit's window and returns when you quit it. Commit
 small and often, with a message that says why: `bar: show seconds` reads better in a year than
@@ -15291,7 +15247,7 @@ will undo it.
 |---|---|---|
 | `~/.bashrc.d/local.sh` (any name but `fedokawaii.sh`) | your aliases, functions and `export`s. Fedora's `~/.bashrc` reads every file in `~/.bashrc.d` by name, so `local.sh` comes after `fedokawaii.sh`, and what you set there wins | by every new terminal |
 | `~/.config/dwl/autostart.local.sh` | programs to start at every login. End each one that keeps running with `&` | at the next login (its output goes to `~/.cache/dwl.log`) |
-| `~/.config/nvim/lua/plugins/*.lua`, all but `colorscheme.lua` | LazyVim plugins, and changes to the ones it has | at neovim's next start |
+| `~/.config/nvim/lua/plugins/local.lua` | your own neovim plugins and settings (§17.22) | at neovim's next start |
 | `~/.local/bin/` — names the desktop does not use there (`kawa-…`, `fetch`, `kawa-browser`, the release tools such as `yazi`, `torrra`) | your own scripts, on your `PATH` | at once |
 | the right-hand column of the table in §42.2 | each program's own settings: `mpv/input.conf`, `cava/config`… | by that program |
 
@@ -15333,7 +15289,7 @@ fedokawaii drift      # the managed configs that differ from the toolkit (change
 
 | Managed by Theme (edit in the working copy) | Yours (edit in place) |
 |---|---|
-| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/lua/config/lazy.lua`, `nvim/lua/plugins/colorscheme.lua`, `dev.lua` and `look.lua` beside it, `nvim/after/ftplugin/sh.lua`, `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Helium settings Theme makes — its colours and its launcher entry, §5.3) |
+| `foot/foot.ini`, `mako/config`, `waybar/`, `btop/btop.conf`, `lazygit/config.yml`, `bat/config`, `mpv/mpv.conf` and `mpv/scripts/kawa-*.lua`, `yt-dlp/config`, `zathura/zathurarc`, `satty/config.toml`, `yazi/yazi.toml`, `yazi/theme.toml`, `yazi/init.lua`, `yazi/keymap.toml` and `yazi/plugins/` (drives, smart-enter, kawa-pdf), `udiskie/config.yml`, `nvim/` (`init.lua`, `lazy-lock.json`, `lua/config/`, `lua/plugins/` but for `local.lua`, `after/ftplugin/`: §17.19), `visidata/config.py`, `readline/inputrc`, `gdu/gdu.yaml`, `mimeapps.list`, `xdg-terminals.list`, the portal files (`xdg-desktop-portal/`, `xdg-desktop-portal-wlr/`, `xdg-desktop-portal-termfilechooser/`), the pointers in `~/.local/share/icons/`, `pipewire/pipewire.conf.d/60-share.conf`, `~/.bashrc.d/fedokawaii.sh`, `blesh/init.sh`, `dwl/autostart.sh`, the launcher entries in `~/.local/share/applications` | every other file in `~/.config/nvim`, `mpv/input.conf`, `cava/config`, `~/.config/fedokawaii/secrets.sh`, `~/.config/torrra/config.toml`, `~/.config/syncplay.ini`, the browser and Steam profiles (except the two Helium settings Theme makes — its colours and its launcher entry, §5.3) |
 
 ## 42.3 Where each thing lives
 
@@ -15397,7 +15353,7 @@ font=Sumi Term:pixelsize=16,Sumi Icons Term:pixelsize=16
 ```
 
 ```lua
--- Lua — a table describes a plugin to LazyVim
+-- Lua — a table describes a plugin to lazy.nvim
 return { { "folke/zen-mode.nvim", cmd = "ZenMode" } }
 ```
 
@@ -15433,7 +15389,7 @@ and leaves that first commit to you (§41.2).
 | Step | Command, or Super+Shift+U | What it does |
 |---|---|---|
 | 1. make it, once | `fedokawaii copy` (the menu makes it on first use) | copies the toolkit to `~/dojo/fedokawaii` and commits it unchanged: a point you can always return to |
-| 2. change | a part in the menu, or `nvim ~/dojo/fedokawaii/FILE` | the menu opens the part's file in neovim, in a window of its own, with the copy as the project (**Space f f** finds any file in it) |
+| 2. change | a part in the menu, or `nvim ~/dojo/fedokawaii/FILE` | the menu opens the part's file in neovim, in a window of its own, with the copy as the project (**Space Space** finds any file in it) |
 | 3. look | `fedokawaii diff` · *what changed* | every line the copy changes against the toolkit, in a pager; `q` closes |
 | 4. apply | `fedokawaii apply` · *apply* | the copy becomes the desktop's (§42.7) |
 | 5. keep | *history* (lazygit in the copy) | commit with a line that says why, and push (§42.8) |
@@ -16089,7 +16045,7 @@ on (`uv python upgrade`, `rustup update`), and `repair` puts back what is missin
 | **uv** — Python's versions, projects and libraries | Fedora's package; its Pythons in `~/.local/share/uv` | `uv --version` |
 | a current CPython, uv's own | `python3.15` in `~/.local/bin` — `python3` stays Fedora's, the desktop's | `uv python list --only-installed` |
 | **rustup** — Rust's toolchains: the stable `cargo`, `rustc`, and `rust-analyzer`, `clippy`, `rustfmt` | `~/.local/share/cargo/bin` (`CARGO_HOME`; on your PATH, the session's too) | `cargo --version` |
-| neovim's side: basedpyright and ruff (Python), rust-analyzer (Rust), debugpy and codelldb (the debugger), Cargo.toml's crates | Mason, `~/.local/share/nvim/mason` | `:Mason` in neovim |
+| neovim's side: basedpyright and ruff (Python), taplo (TOML), lua-language-server (Lua), debugpy and codelldb (the debugger) | Mason, `~/.local/share/nvim/mason` | `:Mason` in neovim |
 
 Pip is uv's: `uv add requests` in a project (or `uv pip install` in a `.venv`), never
 `sudo pip`. A new project, then neovim:
@@ -16099,8 +16055,8 @@ $ cd ~/dojo && uv init hello && cd hello && uv add requests
 $ nvim main.py
 ```
 
-Neovim finds the project's `.venv` by itself (basedpyright reads its libraries; tests, the
-debugger and the REPL run its Python). For Rust, `cargo new hello-rs`, then `nvim
+Neovim finds the project's `.venv` by itself (basedpyright reads its libraries; the debugger
+and the REPL run its Python, and `uv run` the file and the tests). For Rust, `cargo new hello-rs`, then `nvim
 src/main.rs`: rust-analyzer checks with clippy each time you save. In both, errors and
 warnings stand at the end of their line, after a ■, in the theme's inks — an error vermilion,
 a warning yellow, a note asagi — and the file is formatted as it is saved (ruff format,
@@ -16109,15 +16065,14 @@ rustfmt).
 | Keys (Space, then…) | Python | Rust |
 |---|---|---|
 | `r f` | run this file (`uv run`) | `cargo run` |
-| `r r` | the REPL, open or hide | rust-analyzer's runnables: pick a test, a binary, an example |
+| `r r` | the REPL, open or hide | — |
 | `r c` | run the cell under the cursor: a `# %%` line starts a cell, as in Jupyter | `cargo check` |
-| `r n` · `r l` · `r s` | the cell, then the next · the line · the selection (visual mode) | — · `cargo clippy` · — |
-| `r t` | — | `cargo test` |
-| `t t` · `t r` · `t s` | tests: the file · the nearest · the summary | the same |
-| `d b` · `d c` · `d u` | a breakpoint · run to it, then continue · the debugger's panels | the same |
-| `t d` | the nearest test, under the debugger | the same |
+| `r n` · `r s` | the cell, then the next · the selection (visual mode) | — |
+| `r l` | the line | `cargo clippy` |
+| `r t` | the tests: `pytest` | `cargo test` |
+| `d b` · `d c` · `d u` | a breakpoint · run to it, then continue · the debugger's panels | the same; `d c` asks which program of `target/debug/`, `cargo build` made it |
+| `d n` · `d i` · `d o` · `d t` | the next line · step in · step out · end it | the same |
 | `g g` | lazygit, inside neovim | the same |
-| `c v` | the project's Python, when it has more than one | — |
 
 Space alone shows them (which-key), each with its name. In lazygit, **Ctrl+K** in the files
 panel makes a commit in the *Conventional Commits* form — its type from a menu (*feat*, *fix*,
@@ -16424,7 +16379,7 @@ report.
 | poppler-utils | `pdftotext`, `pdfinfo`, `pdftoppm`, `pdfunite` and their kin | text out of a PDF, pages to pictures (ch. 19) |
 | 7zip | `7z`: zip, 7z, ISO and RAR archives | packing and unpacking (§19.10) |
 | libdnf5-plugin-actions | runs a command before and after each DNF transaction | the *pre* and *post* snapshot around every install (`kawa-snap`, §37.2) |
-| tree-sitter-cli · ShellCheck | builds the parsers neovim colours code with · finds mistakes in shell scripts | LazyVim's syntax colours (ch. 17) · `shellcheck script` explains a mistake (§25.6), and `fedokawaii apply` reads the scripts you changed |
+| tree-sitter-cli · ShellCheck | builds the parsers neovim colours code with · finds mistakes in shell scripts | neovim's syntax colours (ch. 17) · `shellcheck script` explains a mistake (§25.6), and `fedokawaii apply` reads the scripts you changed |
 | fwupd | `fwupdmgr`: firmware for the SSD, motherboard and dock, from the LVFS | *update* lists what is new; `fwupdmgr update` applies it when you choose (§30.1) |
 | tuned | sets the processor, disks and network for a desktop that is always plugged in | the *fedokawaii* profile (§30.4) |
 | steam-devices · ntsync-autoload | the rules that open a controller to the seat's user · `/dev/ntsync` at boot | a gamepad works in the play world · Proton's faster Windows synchronisation (ch. 21) |
@@ -17004,7 +16959,7 @@ commands themselves are in appendix D.
 | language server · LSP | a separate program that understands one language and answers the editor's questions · the protocol it speaks (ch. 17) |
 | launcher | the box that starts a program by its name: Super+Space (§14.1) |
 | layer shell | the Wayland protocol for bars, notifications, menus and wallpapers (§31.4) |
-| leader | the key that starts LazyVim's own commands: Space (ch. 17) |
+| leader | the key that starts neovim's own commands here: Space (ch. 17) |
 | libinput | the library that reads keyboards, mice and touchpads for the compositor (§30.2) |
 | libva | the VA-API library: programs' way to the GPU's video decoder (§27.8) |
 | linger | your own systemd manager kept running with nobody logged in (§28.2) |
@@ -17050,7 +17005,7 @@ commands themselves are in appendix D.
 | pipe · redirection | one command's output into the next command · output into a file, or input from one (§25.1) |
 | PipeWire | the sound server: it carries every program's sound, and a screen share's picture (§14.4) |
 | pipewire-pulse | PipeWire's PulseAudio-compatible server, for programs that speak PulseAudio (§31.8) |
-| plugin (neovim) | an add-on written in Lua; LazyVim is a collection of them (ch. 17) |
+| plugin (neovim) | an add-on written in Lua; lazy.nvim installs them (ch. 17) |
 | polkit | the service that decides whether a user may ask another service for something privileged (§24.4) |
 | polkit agent | the session program that asks for your password for polkit: `lxqt-policykit-agent` (§24.4) |
 | poll | to ask again and again, on a timer, whether something has changed (§40.9) |
@@ -17122,7 +17077,7 @@ commands themselves are in appendix D.
 | toolkit | the installed copy of the project, `/usr/local/lib/fedokawaii`, which root runs for every update (§5.5) |
 | torrent | a set of files shared piece by piece among many computers (ch. 20) |
 | transaction | one dnf run that installs, updates or removes a set of packages together (§27.2) |
-| treesitter | a parser in neovim that reads the structure of code, for colours and text objects (ch. 17) |
+| treesitter | a parser in neovim that reads the structure of code, for colours and selecting by structure (ch. 17) |
 | TTY | a terminal device in the kernel; `/dev/tty1` is the first console (§11.1) |
 | tuned · profile | the service that applies a set of kernel and hardware settings · one such set, here `fedokawaii` (§30.4) |
 | type | what kind of value something is: a number, text, a list (§43.2) |

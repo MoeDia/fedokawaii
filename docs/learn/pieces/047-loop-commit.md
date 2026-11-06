@@ -27,7 +27,7 @@ $ gh repo create hello --private --source . --push
 | a library | `uv add numpy` |
 | edit | `nvim .` · **Space Space** a file |
 | run | **Space r f** |
-| test on save | **Space t w** in a test file |
+| test | **Space r t** |
 | debug | **Space d b**, **Space d c** |
 | commit · push | **Space g g**, **a**, **c**, **P** |
 
@@ -38,7 +38,7 @@ $ gh repo create hello --private --source . --push
 
 *Expected:* `1 passed`.
 
-**24.2 ★★ Red, then green.** Watch the test file (**Space t w**), change the test to `1 + 1 == 3`, save: see it fail,
+**24.2 ★★ Red, then green.** Change the test to `1 + 1 == 3`, save, **Space r t**: see it fail,
 read the message, put it back.
 
 *Expected:* the failure shows `assert 2 == 3` — pytest prints both sides.

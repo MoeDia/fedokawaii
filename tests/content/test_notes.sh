@@ -455,8 +455,8 @@ io.stdout:write(a .. " " .. b .. " " .. c)' -c 'qa!' -- "$TMP/i.md" 2>/dev/null)
   eq "$(clip 'normal yy' 'normal jdd' 'normal p')" "first line| / first line|third line|second line" "yy: to the desktop (a whole line: its end with it); dd then p: the line moved (the editor's own)"
   eq "$(clip 'normal yy' 'normal "+p')" "first line| / first line|first line|second line|third line" '"+p: the desktop'"'"'s, as asked'
   has "$(cat "$REPO/configs/home/.config/nvim/lua/config/options.lua")" 'require("config.clipboard").setup()' "the editor the same"
-  case_ "notes.lua: writes without waiting for the disk, and never reformats the page (the editor's autoformat off)"
-  eq "$(ask '{vim.o.fsync, vim.b.autoformat}')" "{ false, false }"
+  case_ "notes.lua: writes without waiting for the disk"
+  eq "$(ask '{vim.o.fsync}')" "{ false }"
   hl() { nvim --headless -c 'luafile ~/.config/fedokawaii/notes.lua' \
     -c "lua local h = vim.api.nvim_get_hl(0, {name='$1'}); io.stdout:write(string.format('%06x %06x', h.fg or 0, h.bg or 0))" \
     -c 'qa!' -- "$TMP/n.md" 2>/dev/null; }

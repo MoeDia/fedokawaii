@@ -13,7 +13,7 @@ optional: no
 > - four programs you will actually use, each with tests that run in a blink
 
 Each project is one file and one test file, in a project of its own (`uv init`, `uv add --dev
-pytest`). Watch the test file (**Space t w**) before you write the first line.
+pytest`). Run the tests (**Space r t**) after every function you write.
 
 ## 42.1 your writing, as a chart
 

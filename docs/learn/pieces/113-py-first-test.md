@@ -57,4 +57,4 @@ $ uv run pytest -q
 ```
 
 *(each `.` is a test that passed. In a uv project, `uv add --dev pytest` once; in neovim,
-**Space t t** runs them, **Space t w** on every save)*
+**Space r t** runs them)*

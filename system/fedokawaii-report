@@ -252,7 +252,7 @@ sound | ses | fail | wpctl | wpctl status | grep -q Audio | PipeWire answers, wi
 cava | user | fail | cava | cava -v | prints its version | -
 playerctl | user | fail | playerctl | playerctl --version | prints its version | -
 wiremix | user | fail | wiremix | wiremix --version | prints its version | -
-neovim | user/50 | fail | nvim | o=$(timeout 40 nvim --headless -c 'lua vim.defer_fn(function() io.stdout:write(vim.fn.execute("messages")) vim.cmd("qa!") end, 1500)' 2>&1); r=$?; printf '%s\n' "$o"; [ $r = 0 ] && ! grep -qE 'E[0-9]+:|Error|error' <<<"$o" | starts with its config (LazyVim) and no error in :messages | -
+neovim | user/50 | fail | nvim | o=$(timeout 40 nvim --headless -c 'lua vim.defer_fn(function() io.stdout:write(vim.fn.execute("messages")) vim.cmd("qa!") end, 1500)' 2>&1); r=$?; printf '%s\n' "$o"; [ $r = 0 ] && ! grep -qE 'E[0-9]+:|Error|error' <<<"$o" | starts with its config and no error in :messages | -
 yazi's config | user | fail | python3 | for f in ~/.config/yazi/*.toml; do python3 -c 'import sys, tomllib; tomllib.load(open(sys.argv[1], "rb"))' "$f" || exit 1; echo "$f: ok"; done | every TOML file in ~/.config/yazi parses | run: fedokawaii apply
 lazygit's config | user | fail | python3 | python3 -c 'import sys, yaml; yaml.safe_load(open(sys.argv[1])); print("ok")' ~/.config/lazygit/config.yml | config.yml parses | run: fedokawaii apply
 btop | user | fail | btop | btop --version && awk '!/^[[:space:]]*(#|$)/ && !/^[a-z_]+ = /{print "bad line " NR ": " $0; bad=1} END{exit bad}' ~/.config/btop/btop.conf | prints its version; btop.conf is all "key = value" lines | -
