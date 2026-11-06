@@ -1,0 +1,2 @@
+a1-window.jpg Window open and close, 3 motions at 144 Hz (ms on each frame): seal, a stamp 150/110 ms; shoji, a door parting 190/150 ms; kasumi, cell by cell 220/170 ms. Now: the hop, 450/400 ms.
+b1-workspace.jpg A workspace move, 3 motions at 144 Hz (ms on each frame; room colours for the demo): hayate, a gust 220 ms; kakejiku, a hanging scroll 420 ms; fusuma, the doors part over the next room 300 ms. Top row, now: the strip, 450 ms.
