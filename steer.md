@@ -89,3 +89,8 @@ The owner (17:59): he is very picky about the design and will go several rounds,
 
 ## S9 2026-11-06 22:40
 The owner picked a (window open and close): 5 mozaiku, from the frame-exact videos. Build it as the default (behind the same switch, the others stay one switch away). b's new 4-7 (heya, hitomi, hishi, suna) are on his page now; no pick yet.
+
+## S10 2026-11-07 00:40
+- The owner picked b (workspace move): 4 heya. Build it as the default, the others one switch away.
+- P1's new separators (waku, kusari, ken, kizami) are on his page; no pick yet.
+- Check the home folders against his words: exactly ~/downloads, ~/captures, ~/notes, ~/books and ~/dojo, all lowercase, nothing else (no Desktop, Documents, Projects...). f20b's commit says "~/Projects is the dojo": if ~/Projects exists or is used anywhere, it must be ~/dojo (rename, no symlink named Projects). Fix it if needed, in the VM and the docs.
