@@ -86,3 +86,6 @@ The owner (17:59): he is very picky about the design and will go several rounds,
 - Make options only good enough to judge, never polished twice; build the picked designs through the theme's shared tokens and small swappable parts, so a late change of mind is a quick swap, not a rebuild.
 - The S6 cooler fix and the S5 frame-exact recording hook count as engineering, not design rounds.
 - Keep the plan's day order; if the design track falls behind, it is the design track that waits, not the rest.
+
+## S9 2026-11-06 22:40
+The owner picked a (window open and close): 5 mozaiku, from the frame-exact videos. Build it as the default (behind the same switch, the others stay one switch away). b's new 4-7 (heya, hitomi, hishi, suna) are on his page now; no pick yet.
