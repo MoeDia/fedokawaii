@@ -64,6 +64,16 @@ copy
 (cd "$G" && python3 tools/build-cursors.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
 same
 
+case_ "build-samurai.py on a copy: the lock's samurai, byte for byte; both have every reaction, within their cell"
+copy
+(cd "$G" && python3 tools/build-samurai.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+same
+for m in dark light; do
+  for s in idle start ready key0 key1 key2 delete right wrong; do
+    has "$(cat "$REPO/configs/home/.local/share/fedokawaii/$m/lock-samurai.txt")" "$s "
+  done
+done
+
 case_ "build-art.py on a copy: the lock's and the boot's pictures, gtklock's words, byte for byte"
 copy
 (cd "$G" && python3 tools/build-art.py) >"$TMP/log" 2>&1 && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
