@@ -30,3 +30,15 @@ DROP
 - Sketching and drawing: remove FireAlpaca, its shortcut, the tablet-specific support, all of it (packages, configs, menus, keybinds, lessons, tests, the inventory). He sketches on paper.
 NEW
 - The quick-settings icon on the top bar: a custom Japanese retro-style gear that spins while the quick-settings menu is open and stops when it closes (cheap on the CPU, follows the mood).
+
+## S3 2026-11-06 15:15
+The owner (15:09): bring pixel art back into the design SUBTLY, to strengthen the gaming, Japanese-retro feeling and give the menus more flair, especially the separator lines. Accents on top of the current crisp style, not the old pixelated look everywhere. He decides on his picker page, so make OPTIONS first, not a build:
+- Five elements, options 1-3 each plus n 0 = today, each shown applied to real screens (Super+U, quick settings, the power menu, a notification, the bar), dark and light, 1:1 PNG, integer scaling only (no blur):
+  P1 separators and rules (ideas: a dithered pixel rule, a pixel seigaiha wave band, a stepped rule with pixel end caps, a dotted rule with a tiny crest in the middle)
+  P2 the selection marker in lists (ideas: a JRPG-style pixel pointer that bobs, a pixel brush-stroke underline, pixel corner brackets around the row)
+  P3 panel corners and frames (ideas: pixel bracket corners, a one-pixel-stepped frame like an old game's dialog box, small pixel ornaments at the corners)
+  P4 meters (volume, brightness, battery, downloads) as pixel HP/MP-style bars
+  P5 small accents (a tiny pixel crest by a title, a pixel sparkle on focus, a falling pixel petal)
+  plus one "all together" sheet per mood with your favourite combination.
+- Motions among them (the bobbing pointer, a filling meter) as short MP4s, like S1's.
+- picker.json entries (sets P1 to P5, kind still or motion) in ~/.local/share/r28/img/hi/ beside S1's pack. Order: S1's motion videos first, then this, then the lock (S2) when it is ready. Keep it consistent with his picks (rakkan, jikusaki, jiku, ichimai, hon, mokuroku).
