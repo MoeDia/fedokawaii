@@ -1022,7 +1022,8 @@ def nvim_colorscheme():
 -- gruvbox.nvim with its palette remapped to the desktop's colours: on the dark theme ink
 -- ground and paper text (gruvbox's dark/bright colours), on the light theme paper ground
 -- and ink text (its light/faded colours). The ground itself is left to the terminal
--- (transparent_mode): the see-through one every text screen has, the wallpaper faintly behind.
+-- (transparent_mode), and while neovim runs that ground is solid: code is read, not looked
+-- through. foot's see-through ground comes back when neovim ends or is suspended.
 -- No italics: Sumi Term has one upright face, and a slanted copy of a dot font smears.
 -- 'background' is never set here: Neovim asks foot
 -- which ground it has, and foot tells it again when kawa-theme switches (DEC mode 2031),
@@ -1131,6 +1132,19 @@ return {{
     }},
     -- the plugin's own settings, then these colours switched on: before the first frame
     config = function(_, opts)
+      -- solid: the terminal's ground with no see-through (OSC 11 with foot's [alpha]); a theme
+      -- switch brings the see-through back in foot, and neovim hears it as a new colour scheme.
+      -- Here, not in init: the notes page reads init and keeps the see-through ground.
+      local function solid()
+        vim.api.nvim_ui_send("\\27]11;[100]" .. (vim.o.background == "light" and "#{P['light']['ground']}" or "#{P['dark']['ground']}") .. "\\27\\\\")
+      end
+      local glass = vim.api.nvim_create_augroup("kawa_solid", {{ clear = true }})
+      vim.api.nvim_create_autocmd({{ "UIEnter", "VimResume", "ColorScheme" }}, {{ group = glass, callback = solid }})
+      -- OSC 111: foot's own ground again
+      vim.api.nvim_create_autocmd({{ "VimLeavePre", "VimSuspend" }}, {{
+        group = glass,
+        callback = function() vim.api.nvim_ui_send("\\27]111\\27\\\\") end,
+      }})
       require("gruvbox").setup(opts)
       vim.cmd.colorscheme("gruvbox")
     end,

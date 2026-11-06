@@ -5738,7 +5738,7 @@ few letters you can count, repeat and combine.
 > copy and paste: `y` and `p` do (§17.8), and Ctrl+Shift+V
 > pastes while you type.
 
-<!-- fig:app-nvim | Neovim, the palette's gruvbox on the terminal's own see-through ground, on a shell script. -->
+<!-- fig:app-nvim | Neovim, the palette's gruvbox on the terminal's ground, solid while it runs, on a shell script. -->
 
 **Learn in this order.** The first sections are a course; the rest is reference to come back
 to. Read them with neovim open beside the book, one step a day.

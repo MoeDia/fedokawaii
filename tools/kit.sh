@@ -69,7 +69,9 @@ mkdir -p "$h/.config" "$h/.cache" "$h/.local/state" "$h/.local/share"
 home_from_tree() {
   cp -a "$tree/home/." "$h/"
   grep -rlIZ /home/fkuser "$h" | xargs -0 -r sed -i "s|/home/fkuser|$h|g"
-  [[ -d $HOME/.local/share/nvim ]] && ln -s "$HOME/.local/share/nvim" "$h/.local/share/nvim"
+  # (the tree's home has its own empty nvim folder from theme.sh: a link beside it reached nothing,
+  # and the editor had neovim's default colours)
+  [[ -d $HOME/.local/share/nvim ]] && rm -rf "$h/.local/share/nvim" && ln -s "$HOME/.local/share/nvim" "$h/.local/share/nvim"
 }
 home_from_install() {
 # what theme.sh put in ~/.config (the repo names it), and the shell's own files

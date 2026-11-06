@@ -372,4 +372,30 @@ for l in python rust bash lua markdown markdown_inline json toml; do has "$parse
 for l in tsx typescript javascript html xml; do lacks "$parsers" "\"$l\""; done
 has "$(cat "$REPO/setup.sh")" "require(\"config.prefetch\").sync()"
 
+case_ "neovim: its ground is solid while it runs, foot's see-through back when it ends or is suspended, in both moods and after a theme switch; the notes page reads init alone and stays see-through"
+if command -v nvim >/dev/null; then
+  out=$(nvim --clean --headless -c "lua
+    local sent = {}
+    vim.api.nvim_ui_send = function(s) sent[#sent + 1] = (s:gsub('\27', 'E'):gsub('\\\\', 'B')) end
+    package.loaded.gruvbox = { setup = function() end }
+    vim.cmd.colorscheme = function() end
+    local s = dofile('$NV/lua/plugins/colorscheme.lua')[1]
+    s.init()
+    local function say(what) io.stdout:write(what, ': ', table.concat(sent, ' '), '\n'); sent = {} end
+    vim.cmd('silent! doautocmd UIEnter'); say('init alone')
+    s.config(nil, s.opts)
+    vim.o.background = 'dark'; sent = {}
+    vim.cmd('doautocmd UIEnter'); say('enter')
+    vim.cmd('doautocmd VimSuspend'); say('suspend')
+    vim.cmd('doautocmd VimResume'); say('resume')
+    vim.o.background = 'light'; sent = {}
+    vim.cmd('doautocmd ColorScheme'); say('switch')
+    vim.cmd('doautocmd VimLeavePre'); say('leave')" -c 'qa!' 2>&1)
+  has "$out" "init alone: "$'\n'
+  has "$out" "enter: E]11;[100]#181715EB"
+  has "$out" "suspend: E]111EB"
+  has "$out" "resume: E]11;[100]#181715EB"
+  has "$out" "switch: E]11;[100]#e8e3c2EB"
+  has "$out" "leave: E]111EB"
+fi
 done_
