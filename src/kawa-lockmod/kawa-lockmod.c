@@ -31,6 +31,13 @@
  *  `markscale M` (default 1), for a scene drawn pixel for pixel: the caret, the sparks, a cross, the
  *  scatter's steps and the shake drawn M times the size round their points, the sparks M times as fast.
  *
+ *  The samurai (the owner, 6 Nov: "reacts, super active, while he types"), only with `samurai X Y` in
+ *  lock-scene.txt: the cell's top-left in the scene. lock-samurai.png's frames, lock-samurai.txt's
+ *  states and times: idle, start for the first key, one of three cuts in turn for each next one (the
+ *  order of the keys, never which), delete, wrong; the right one plays before gtklock unlocks (a hook on
+ *  the application's shutdown, ahead of gtklock's handler, for as long as its frames and no longer).
+ *  One timer, a frame's own time: nothing wakes between frames, nothing at all with the screens dark.
+ *
  *  gtklock's own line stays for the keys, unseen from its
  *  first frame (its box at opacity 0; current/gtklock.css: window.kawa, no transitions), its
  *  words never shown. No date, no time, no keys: the scene is the lock. Anything the system
@@ -245,6 +252,8 @@ static struct {
 	int cx, cy, cr;                       /* the plate */
 	int wy0, wy1;                         /* the rows the line of words is centred in */
 	ink ground, arms, core, corner, caps, caret;
+	cairo_surface_t *sam;                 /* the samurai's frames, row by row */
+	int sx, sy, scw, sch, scols;          /* his cell's top-left, its size, the frames in a row */
 } S;
 
 #define STEP_US (48 * 1000)               /* a step of the wrong password's 240 ms */
@@ -280,10 +289,53 @@ static gboolean hexink(const char *s, ink *c)
 	return TRUE;
 }
 
+/* ── the samurai's states (lock-samurai.txt: build-samurai.py's words) ─────────────────── */
+enum { SAM_IDLE, SAM_START, SAM_READY, SAM_KEY0, SAM_KEY1, SAM_KEY2, SAM_DELETE, SAM_RIGHT, SAM_WRONG, SAM_STATES };
+#define SAM_FRAMES 8
+static const char *const sam_names[SAM_STATES] = { "idle", "start", "ready", "key0", "key1", "key2", "delete", "right", "wrong" };
+static struct { gboolean loop; int n, frame[SAM_FRAMES], ms[SAM_FRAMES]; } sam_st[SAM_STATES];
+
+static gboolean sam_load(const char *dir)
+{
+	char path[PATH_MAX], line[256];
+	g_snprintf(path, sizeof path, "%s/lock-samurai.txt", dir);
+	FILE *f = fopen(path, "re");
+	if (!f)
+		return FALSE;
+	while (fgets(line, sizeof line, f)) {
+		if (sscanf(line, "cell %d %d %d", &S.scw, &S.sch, &S.scols) == 3)
+			continue;
+		char *save = NULL, *name = strtok_r(line, " \n", &save), *kind = strtok_r(NULL, " \n", &save), *t;
+		for (int i = 0; name && kind && i < SAM_STATES; i++) {
+			if (strcmp(name, sam_names[i]))
+				continue;
+			sam_st[i].loop = !strcmp(kind, "loop");
+			while (sam_st[i].n < SAM_FRAMES && (t = strtok_r(NULL, " \n", &save)) &&
+					sscanf(t, "%d:%d", &sam_st[i].frame[sam_st[i].n], &sam_st[i].ms[sam_st[i].n]) == 2)
+				sam_st[i].n++;
+		}
+	}
+	fclose(f);
+	for (int i = 0; i < SAM_STATES; i++)
+		if (!sam_st[i].n)
+			return FALSE;
+	if (S.scw <= 0 || S.sch <= 0 || S.scols <= 0)
+		return FALSE;
+	g_snprintf(path, sizeof path, "%s/lock-samurai.png", dir);
+	S.sam = cairo_image_surface_create_from_png(path);
+	if (cairo_surface_status(S.sam) != CAIRO_STATUS_SUCCESS) {
+		cairo_surface_destroy(S.sam);
+		S.sam = NULL;
+		return FALSE;
+	}
+	return TRUE;
+}
+
 static gboolean scene_load(const char *dir)
 {
 	char path[PATH_MAX], line[256], a[16], b[16], c[16], name[32];
 	int ok = 0;
+	gboolean samurai = FALSE;
 	g_strlcpy(scene_dir, dir, sizeof scene_dir);
 	g_snprintf(path, sizeof path, "%s/lock-scene.txt", dir);
 	FILE *f = fopen(path, "re");
@@ -318,6 +370,7 @@ static gboolean scene_load(const char *dir)
 		else if (sscanf(line, "caret %15s", a) == 1) hexink(a, &S.caret);
 		else if (sscanf(line, "plate %d %d %d", &S.cx, &S.cy, &S.cr) == 3) ok |= 16;
 		else if (sscanf(line, "words %d %d", &S.wy0, &S.wy1) == 2) ok |= 32;
+		else if (sscanf(line, "samurai %d %d", &S.sx, &S.sy) == 2) samurai = TRUE;
 	}
 	fclose(f);
 	S.ms = MAX(S.ms, 1);
@@ -360,7 +413,7 @@ static gboolean scene_load(const char *dir)
 			return FALSE;
 		}
 	}
-	return TRUE;
+	return !samurai || sam_load(dir);
 }
 
 /* the scene's scale and corner on a widget W × H: all of it, the most the screen holds */
@@ -528,6 +581,7 @@ static gboolean gate_keys(struct Window *win, GdkEventKey *ev)
 }
 
 static gboolean life_load(gpointer data);
+static int sam, sam_f;                    /* the samurai's state, its frame */
 
 static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 {
@@ -593,6 +647,16 @@ static gboolean draw(GtkWidget *a, cairo_t *cr, gpointer data)
 		struct spark *sp = &S.spark[i];
 		if (sp->live)
 			dot(cr, sp->px, sp->py, sp->age * 2 < sp->life ? &S.young : &S.old);
+	}
+	if (S.sam) {
+		int f = sam_st[sam].frame[sam_f];
+		cairo_save(cr);
+		cairo_rectangle(cr, S.sx, S.sy, S.scw, S.sch);
+		cairo_clip(cr);
+		cairo_set_source_surface(cr, S.sam, S.sx - f % S.scols * S.scw, S.sy - f / S.scols * S.sch);
+		cairo_pattern_set_filter(cairo_get_source(cr), filter);
+		cairo_paint(cr);
+		cairo_restore(cr);
 	}
 	GtkWidget *e = win->input_field;
 	gboolean open = gate == GATE_OPEN;    /* the marks in the mouth while it is open… */
@@ -712,6 +776,64 @@ static gboolean life_tick(gpointer data)
 	return G_SOURCE_CONTINUE;
 }
 
+/* the samurai: a frame, then a timer for exactly its time; a state played once goes on to the next */
+static guint sam_src;
+static int sam_len, sam_cut;              /* the line's length; the cut the next key takes */
+static gboolean sam_trying;               /* a password with PAM: the line's clearing is no delete */
+static gboolean sam_step(gpointer data);
+static void sam_show(void)
+{
+	redraw_all(S.sx, S.sy, S.scw, S.sch);
+	sam_src = asleep ? 0 : g_timeout_add(sam_st[sam].ms[sam_f], sam_step, NULL);
+}
+static void sam_go(int state)
+{
+	if (!S.sam)
+		return;
+	if (sam_src)
+		g_source_remove(sam_src);
+	sam = state, sam_f = 0;
+	sam_show();
+}
+static gboolean sam_step(gpointer data)
+{
+	(void)data;
+	sam_src = 0;
+	if (++sam_f < sam_st[sam].n) {
+		sam_show();
+	} else if (sam_st[sam].loop) {
+		sam_f = 0;
+		sam_show();
+	} else if (sam == SAM_RIGHT) {
+		sam_f--;                          /* (the last pose, until gtklock is gone) */
+	} else {
+		sam_go(sam_len ? SAM_READY : SAM_IDLE);
+	}
+	return G_SOURCE_REMOVE;
+}
+static gboolean sam_wake(gpointer data)
+{
+	(void)data;
+	return G_SOURCE_REMOVE;
+}
+/* the application's shutdown, before gtklock's handler unlocks: a password was with PAM and no failure
+ * came, so it was right. Its frames, on this thread's own loop, for their time and not a moment more */
+static gboolean sam_right(GSignalInvocationHint *hint, guint n, const GValue *params, gpointer data)
+{
+	(void)hint, (void)n, (void)params, (void)data;
+	if (S.sam && sam_trying && !asleep) {
+		int ms = 0;
+		for (int i = 0; i < sam_st[SAM_RIGHT].n; i++)
+			ms += sam_st[SAM_RIGHT].ms[i];
+		gint64 end = g_get_monotonic_time() + ms * 1000;
+		sam_go(SAM_RIGHT);
+		g_timeout_add(ms + 1, sam_wake, NULL);
+		while (g_get_monotonic_time() < end)
+			g_main_context_iteration(NULL, TRUE);
+	}
+	return FALSE;
+}
+
 static gboolean caret_tick(gpointer data)
 {
 	(void)data;
@@ -756,7 +878,9 @@ static void scene_sleep(gboolean sleep)
 			g_source_remove(life_timer);
 		if (caret_timer)
 			g_source_remove(caret_timer);
-		flame_timer = life_timer = caret_timer = 0;
+		if (sam_src)
+			g_source_remove(sam_src);
+		flame_timer = life_timer = caret_timer = sam_src = 0;
 		return;
 	}
 	if (S.nflames)
@@ -764,6 +888,8 @@ static void scene_sleep(gboolean sleep)
 	if (life_loaded && (S.nanims || S.nsparks))
 		life_timer = g_timeout_add(40, life_tick, NULL);
 	caret_timer = g_timeout_add(500, caret_tick, NULL);
+	if (S.sam)
+		sam_show();
 	redraw_all(0, 0, S.w, S.h);
 }
 
@@ -797,6 +923,13 @@ static void on_changed(GtkEditable *e, gpointer data)
 			g_source_remove(l->flare_src);
 		l->flare_src = g_timeout_add(FLARE_US / 1000 + 1, flare_end, l);
 	}
+	if (!sam_trying && gtk_widget_has_focus(GTK_WIDGET(e))) {   /* (only that a key came: never which) */
+		if (len > sam_len)
+			sam_go(sam_len ? SAM_KEY0 + sam_cut++ % 3 : SAM_START);
+		else if (len < sam_len)
+			sam_go(SAM_DELETE);
+	}
+	sam_len = len;
 	l->typed = len;
 	caret_restart();
 	redraw_row(l);
@@ -871,6 +1004,7 @@ static void on_try(GtkEntry *e, gpointer data)   /* Enter: after gtklock's own h
 {
 	struct look *l = data;
 	l->tried = (int)gtk_entry_get_text_length(e);
+	sam_trying = TRUE;
 	if (l->words) {                       /* (its words come after this: the thread just began) */
 		int n[2];
 		bars_read(l, n, NULL);
@@ -886,6 +1020,8 @@ static void on_error(GObject *o, GParamSpec *p, gpointer data)   /* gtklock's er
 	if (!t || !*t)
 		return;
 	l->wrong = g_get_monotonic_time();
+	sam_trying = FALSE;
+	sam_go(SAM_WRONG);
 	if (!l->tick)
 		l->tick = gtk_widget_add_tick_callback(l->area, wrong_tick, l, NULL);
 	if (S.gn)                             /* (spat out: open again, the line empty) */
@@ -915,6 +1051,10 @@ void on_activation(struct GtkLock *gtklock, int id)
 	if (S.nflames)
 		flame_timer = g_timeout_add(1000 / 8, flames_tick, NULL);
 	caret_timer = g_timeout_add(500, caret_tick, NULL);
+	if (S.sam) {
+		sam_go(SAM_IDLE);
+		g_signal_add_emission_hook(g_signal_lookup("shutdown", G_TYPE_APPLICATION), 0, sam_right, NULL, NULL);
+	}
 }
 
 void on_window_create(struct GtkLock *gtklock, struct Window *win)
