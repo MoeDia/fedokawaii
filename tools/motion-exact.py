@@ -83,8 +83,8 @@ def measure(evs):
 def crop_of(box):
     if box is None:
         sys.exit("nothing moved")
-    cw = min(1280, (box[2] - box[0] + 81) // 2 * 2)
-    ch = min(720, (box[3] - box[1] + 81) // 2 * 2)
+    cw = min(1920, (box[2] - box[0] + 81) // 2 * 2)     # (everything that moved, however large: a window cut off looks still while its gate runs below the cut)
+    ch = min(1080 - TOP, (box[3] - box[1] + 81) // 2 * 2)
     cx = min(1920 - cw, max(0, (box[0] + box[2] - cw) // 2)) // 2 * 2
     cy = min(1080 - ch, max(TOP, (box[1] + box[3] - ch) // 2)) // 2 * 2
     return cw, ch, cx, cy
