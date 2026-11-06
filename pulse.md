@@ -1,9 +1,9 @@
-# round 28 pulse · Sat 07 02:14 (Dubai)
+# round 28 pulse · Sat 07 02:44 (Dubai)
 
-pace: 66/160 done (41%) · time used 26% · ahead 15.5 h · ETA Sun 08 11:47 · left 86 · blocked 1 · owner 7
-alerts: 1 blocked
-run: conductor active · passes 1 (oldest 35 min) · last activity 35 min ago · commits since start 90 · hold False
-machine: load 0.04 0.10 0.24/12 · mem free 27.2 GB · disk free 611 GB · up 26.0 h · cpu tccd1 35° · cpu tctl 40° · gpu edge 35° · gpu junction 30° · gpu mem 51° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 36°
+pace: 66/160 done (41%) · time used 26% · ahead 15.0 h · ETA Sun 08 12:55 · left 86 · blocked 1 · owner 7
+alerts: quiet for 65 min; 1 blocked
+run: conductor active · passes 1 (oldest 65 min) · last activity 65 min ago · commits since start 90 · hold False
+machine: load 1.02 1.00 0.81/12 · mem free 26.0 GB · disk free 611 GB · up 26.5 h · cpu tccd1 46° · cpu tctl 54° · gpu edge 39° · gpu junction 32° · gpu mem 52° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 37°
 dark: True (active) · pulse timer active
 tokens since start: out 1,761,981 · in 2,684 · cache write 5,569,620 · cache read 101,198,399 · msgs 1276 · out last 6 h 351,797
 out by model: last 6 h claude-opus-5-5 337,026 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862 · since start claude-opus-5-5 1,747,210 · claude-sonnet-5-5 7,909 · claude-haiku-5-5 6,862
