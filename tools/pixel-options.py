@@ -5,6 +5,7 @@ Nothing here is applied to the desktop. P1 separators and rules, P2 the selectio
 P5 small accents; PA all together, the favourite; P2m, P4m, P5m what moves, as MP4s at 2x (x264's 4:2:0 keeps a colour's edge whole only at 2x).
 
     python3 tools/pixel-options.py WORK HI  # WORK/wall-MOOD.png, WORK/MOOD/{quick,notice}.png, HI/{h1-1,g-1,f-3}-MOOD.png → HI/P?-N-MOOD.png, HI/PA-MOOD.png
+    python3 tools/pixel-options.py games WORK HI     # S4, the game-like options: HI/P1-{4..7}-MOOD.png, nothing else rewritten
     python3 tools/pixel-options.py motions WORK HI   # HI/P2m-1-MOOD, P4m-N-MOOD, P5m-2-MOOD, P5m-3-MOOD: .mp4 and a key frame .png
     python3 tools/pixel-options.py picker HI         # HI/picker.json: the sets P1 to P5 and their motions, after the motions of S1
     # (the kit: quick by a play, kawa-quick then the pointer at 1672 216, the row hovered; notice by its scene, alone)
@@ -157,6 +158,124 @@ def mon(page, x0, x1, y, ink, accent, flip=False, crest=True):
         bitmap(page, m - 3, y - 3, CREST, {"#": accent})
 
 
+# the game-like rules of S4 (4 to 7): whole tiles of an odd pitch, their number chosen so the margins come out equal: every rule is its own mirror
+
+def fit(n, pitch, tile, margin=0):
+    """k tiles, tile wide, pitch apart, centred in n pixels with at least margin each side: (k, the first tile's offset)."""
+    k = (n - 2 * margin - tile) // pitch + 1
+    if (n - tile - (k - 1) * pitch) % 2:
+        k -= 1
+    return k, (n - tile - (k - 1) * pitch) // 2
+
+
+def metal(mood):
+    """Brass as P3's kanagu has it, on either ground: the dark's stands out by itself, on paper it goes a step down."""
+    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
+    if mood == "dark":
+        return {"#": t["brass"], "h": t["brass_hi"], "l": t["brass_lo"], "r": t["accent"], "o": t["outline"]}
+    return {"#": t["brass_lo"], "h": t["brass"], "l": t["tile"], "r": t["accent"], "o": t["outline"]}
+
+
+STUD = ("..h..",
+        ".h#l.",
+        "h#r#l",
+        ".#ll.",
+        "..l..")
+STOP = ("h.",
+        "#h",
+        "##",
+        "#l",
+        "l.")
+
+
+def waku(page, mood, x0, x1, y):
+    """A JRPG window's border laid flat: two rails, a brass stud every 17 px, a stepped stop at each end; the stud at the middle alone holds the red."""
+    inks = metal(mood)
+    plain = {**inks, "r": inks["#"]}
+    n = x1 - x0 + 1
+    for x in range(x0 + 2, x1 - 1):
+        page.putpixel((x, y - 1), inks["h"])
+        page.putpixel((x, y + 1), inks["l"])
+    bitmap(page, x0, y - 2, STOP, inks)
+    bitmap(page, x1 - 1, y - 2, [r[::-1] for r in STOP], inks)
+    k, at = fit(n, 17, 5, 6)
+    for i in range(k):
+        heart = 2 * i - (k - 1) in (-1, 0, 1)
+        bitmap(page, x0 + at + 17 * i, y - 2, STUD, inks if heart else plain)
+
+
+RING = ("..hhh..",
+        ".h...#.",
+        "h.....l",
+        ".#...l.",
+        "..lll..")
+EDGE = (".hhhh.",
+        "#####l",
+        ".llll.")
+
+
+def kusari(page, mood, x0, x1, y):
+    """A chain: a ring seen from the front, a link seen edge on, in turn, each through the last; pinned to the rule's two ends by a wire, drawn taut."""
+    inks = metal(mood)
+    k, at = fit(x1 - x0 + 1, 9, 7, 2)
+    for x in list(range(x0, x0 + at + 1)) + list(range(x1 - at, x1 + 1)):
+        page.putpixel((x, y), inks["#"])
+    for i in range(k):
+        bitmap(page, x0 + at + 9 * i, y - 2, RING, inks)
+        if i < k - 1:
+            bitmap(page, x0 + at + 9 * i + 5, y - 1, EDGE, inks)
+
+
+def ken(page, mood, x0, x1, y, flip=False):
+    """The rule is a sword: pommel, a corded hilt, the guard, the collar, then a blade of whatever length the rule has, its temper line a wave, the point stepped up."""
+    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
+    inks = metal(mood)
+    spine, temper, edge = (t["ink"], t["brass_lo"], t["brass_hi"]) if mood == "dark" else (t["tile"], t["ink"], t["tile"])
+    n = x1 - x0 + 1
+    px = lambda i, d, c: page.putpixel((x1 - i if flip else x0 + i, y + d), c)
+    for d in (-1, 0, 1):                                # the pommel
+        px(0, d, inks["#"])
+        px(1, d, inks["h" if d < 0 else "#"])
+    for j, row in enumerate(("r.r.r.r.r.r.r.", ".#.#.#.#.#.#.#", "r.r.r.r.r.r.r.")):
+        for i, c in enumerate(row):
+            px(2 + i, j - 1, t["accent"] if c == "r" else inks["#"] if c == "#" else t["outline"])
+    for d in range(-2, 3):                              # the guard
+        px(16, d, inks["h"])
+        px(17, d, inks["#"] if d < 2 else inks["l"])
+    for d in (-1, 0, 1):                                # the collar
+        for i in (18, 19, 20):
+            px(i, d, inks["h" if d < 0 else "#"])
+    point = n - 8
+    for i in range(21, point):
+        px(i, -1, spine)
+        px(i, 0, edge if (i // 6) % 2 else temper)      # the temper line: a slow wave along the middle row
+        px(i, 1, edge)
+    for i, (top, foot) in zip(range(point, n), ((-1, 1), (-1, 1), (-1, 1), (-2, 0), (-2, 0), (-2, 0), (-2, -1), (-2, -2))):
+        for d in range(top, foot + 1):                  # the point, rising to its tip
+            px(i, d, spine if d == top else edge)
+
+
+def kizami(page, mood, x0, x1, y):
+    """A game's HUD, measured out: cells 5 by 3 with a lit top, every fifth from the middle a brass cell 5 rows tall, the red at the middle, a bracket at each end."""
+    inks = metal(mood)
+    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
+    k, at = fit(x1 - x0 + 1, 7, 5, 4)
+    for x, s in ((x0, 1), (x1, -1)):                    # the brackets
+        for d in range(-2, 3):
+            page.putpixel((x, y + d), inks["#"])
+        page.putpixel((x + s, y - 2), inks["h"])
+        page.putpixel((x + s, y + 2), inks["l"])
+    for i in range(k):
+        d = abs(2 * i - (k - 1))                        # from the middle, in half cells
+        cx = x0 + at + 7 * i
+        heart, major = d <= 1, d % 10 == (0 if k % 2 else 5)
+        lit, body, foot = (t["accent_hi"], t["accent"], t["accent"]) if heart else (inks["h"], inks["#"], inks["l"]) if major else (t["ink"], t["ink"], t["edge2"])
+        reach = 2 if heart or major else 1
+        for x in range(cx, cx + 5):
+            for r in range(-reach, reach + 1):
+                page.putpixel((x, y + r), lit if r == -reach else foot if r == reach else body)
+
+
 def p1(page, mood, n):
     t = {k: rgb(v) for k, v in TOKENS[mood].items()}
     lines = []
@@ -178,6 +297,14 @@ def p1(page, mood, n):
             kasumi(page, x0, x1, y, t["ink"], flip)
         elif n == 2:
             nami(page, x0, x1, y, t["ink"], flip)
+        elif n == 4:
+            waku(page, mood, x0, x1, y)
+        elif n == 5:
+            kusari(page, mood, x0, x1, y)
+        elif n == 6:
+            ken(page, mood, x0, x1, y, flip)
+        elif n == 7:
+            kizami(page, mood, x0, x1, y)
         else:
             mon(page, x0, x1, y, t["ink"], t["accent"], flip, crest=x1 - x0 > 100)
     return len(lines) + len(bar)
@@ -623,6 +750,14 @@ def main(work, hi):
         save(page, pathlib.Path(hi) / f"PA-{m}.png")
 
 
+def games(work, hi):
+    for m in MOODS:
+        for n in range(4, 8):
+            page = base(work, hi, m)
+            p1(page, m, n)
+            save(page, pathlib.Path(hi) / f"P1-{n}-{m}.png")
+
+
 def save(page, out):
     page.save(out, optimize=True)
     print(out.name, page.size, out.stat().st_size)
@@ -734,6 +869,8 @@ def zoom(src, x, y, w, h, n, out):
 if __name__ == "__main__":
     if sys.argv[1] == "zoom":
         zoom(*sys.argv[2:])
+    elif sys.argv[1] == "games":
+        games(*sys.argv[2:])
     elif sys.argv[1] == "motions":
         motions(*sys.argv[2:])
     elif sys.argv[1] == "picker":
