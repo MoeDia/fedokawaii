@@ -55,3 +55,16 @@ NEW OPTIONS (he wants them to feel more like a game, Japanese retro game in part
 - For a, b, P1 and P5: 4 NEW variants each, numbered 4 to 7 (keep n 0 = today; drop 1 to 3, he passed on them), in the same form as before: a and b as MP4 from real dwl builds plus a key-frame PNG, P1 and P5 as 1:1 PNG on the real screens, dark and light, plus MP4 for anything that moves.
 - Ideas only, your call: a: a JRPG window that grows out of a line from its centre, a mosaic/pixelate dissolve, a scanline wipe, a battle-start flash, a door that opens like a metroidvania door. b: a room-scroll like old adventure games, an iris wipe, a diamond-tile wipe, a fast pixel slide with a dust trail. P1: an 8-bit window-border ornament, a chain of tiny pixel links, a pixel katana as the rule, a HUD segment rule. P5: a spinning pixel coin, a "!" pop, a pixel shuriken, a lantern that flickers, a small level-up sparkle. Keep it crisp (integer scaling), cheap on the CPU, and consistent with his picks.
 - Into ~/.local/share/r28/img/hi/ with picker.json updated (sets a, b, P1, P5 with options 0 and 4 to 7; P4 with n 4 added). Order: these before the lock pack; the lock still matters most, take your time on it after.
+
+## S5 2026-11-06 17:45
+The owner (17:39): the motion videos must be SLOWER to judge and ACCURATE: "some of the animations looked identical to me, measure them properly". Claude measured the pack's MP4s (frame-to-frame difference at 60 fps, runs of changed frames) and they do not match the designs:
+- a: the openings last 3 frames for seal (50 ms, designed 150), 7 for shoji (117 ms, designed 190), broken 1-2 frame blips for kasumi (designed 220), 11 for today (183 ms, designed 450). The closings are missing in a-1 and a-2 (only the two openings show up).
+- b: hayate 7 frames (117 ms, designed 220), kakejiku 12 (200 ms, designed 420), fusuma 5-7 (about 100 ms, designed 300), today 12-17 (designed 450).
+- c: all four open in 13-17 frames (217-283 ms) although they are designed 300, 380, 460 and 340 ms, which is why they look alike.
+So the real-time headless recording drops or compresses frames. For every motion video from now on (the new a and b variants 4-7, and the today references a-0 and b-0):
+1. Render frame-exact, not by recording in real time: drive the animation clock deterministically (a test-only hook that steps dwl's animation time by exactly 1/60 s per frame and captures each frame with screencopy), so nothing is dropped.
+2. Two files per option: <set>-<n>-<mood>.mp4 at real speed and <set>-<n>-<mood>-slow.mp4 at a quarter of the speed (4 times slower). Open AND close, each twice, with a short rest between.
+3. Measure before shipping: per video, the frames that change and the open/close durations; they must match the designed ms within one frame. Write the measured values into picker.json per option ("measured": "open 190 ms / close 150 ms").
+4. Check that the options really differ: compare each pair's frame sequences; if two look nearly the same, fix the motion or the recording before shipping, and say so in the plan.
+5. Add a one-image frame strip per option (<set>-<n>-<mood>-strip.png, every frame of the opening with its time in ms) so he can see the steps.
+c is already picked (omori): re-record omori this way once, as c-2 with the slow version, so he can confirm it.
