@@ -2106,11 +2106,14 @@ s_gate() {
 # snapper_has NAME — snapper has a config NAME: its file, which is what snapper keeps (read
 # directly: list-configs is a table whose layout changes between snapper versions)
 snapper_has() { [[ -f /etc/snapper/configs/$1 ]]; }
-# snapper_configs — the configs for / and, when it is Btrfs, /home (setup's end, and repair)
+# snapper_configs — the configs for / and, when it is Btrfs, /home (setup's end, and repair).
+# Without D-Bus, here and in snapper_limits: both commands run `systemctl enable --now` on the
+# timeline's timer, and from inside snapperd the policy refuses its daemon-reload (an SELinux denial
+# each, and the timer not started); labels and later snapshots are the same (r28-f06c)
 snapper_configs() {
-  snapper_has root || run snapper -c root create-config / || return 1
+  snapper_has root || run snapper --no-dbus -c root create-config / || return 1
   if [[ $(findmnt -no FSTYPE /home) == btrfs ]]; then
-    snapper_has home || run snapper -c home create-config /home || return 1
+    snapper_has home || run snapper --no-dbus -c home create-config /home || return 1
   fi
   return 0
 }
@@ -2122,9 +2125,11 @@ snapper_limits() {
   for c in root home; do
     snapper_has "$c" || continue
     tl=yes; [[ $c == root ]] && snapper_has home && tl=no
-    run snapper -c "$c" set-config TIMELINE_CREATE=$tl NUMBER_LIMIT=4-20 NUMBER_LIMIT_IMPORTANT=4-10 TIMELINE_LIMIT_HOURLY=2-8 \
+    run snapper --no-dbus -c "$c" set-config TIMELINE_CREATE=$tl NUMBER_LIMIT=4-20 NUMBER_LIMIT_IMPORTANT=4-10 TIMELINE_LIMIT_HOURLY=2-8 \
       TIMELINE_LIMIT_DAILY=2-7 TIMELINE_LIMIT_WEEKLY=0 TIMELINE_LIMIT_MONTHLY=0-2 TIMELINE_LIMIT_YEARLY=0 FREE_LIMIT=0.2
   done
+  # a snapperd already up keeps the configs it read at its start: "Unknown config" for a new one
+  run systemctl try-restart snapperd.service || log "snapperd could not be restarted — sudo systemctl status snapperd says why; repair tries again"
   # your files' snapshots readable by you (Super+U → a file, back browses them as you, no
   # password): /home/.snapshots, 0750 root's as snapper makes it, given your group — read and
   # gone through, never written (the snapshots are read-only); never snapper's ALLOW_USERS,

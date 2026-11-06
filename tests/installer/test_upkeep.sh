@@ -299,7 +299,9 @@ grep -qx "masked dnf-makecache.timer" "$FKH/units" && _ok || _no "dnf4's timer n
 case_ "repair before setup's own end made the snapshot configs: the missing one made (/home too), an existing one never again"
 back built; rm -f "$W/etc/snapper/configs/home"; sed -i '/^home$/d' "$FKH/snapper-configs"
 reset_calls; tk --repair
-called 'snapper\] -c home create-config /home'; not_called 'snapper\] -c root create-config'
+called 'snapper\] --no-dbus -c home create-config /home'; not_called 'create-config /$'
+called 'snapper\] --no-dbus -c home set-config'; called 'systemctl\] try-restart snapperd.service'
+not_called 'snapper\] -c [a-z]* (create-config|set-config)'
 [[ -f $W/etc/snapper/configs/home ]] && _ok || _no "no config for /home"
 lacks "$OUT" "config already exists"
 
