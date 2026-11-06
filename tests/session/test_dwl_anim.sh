@@ -107,8 +107,8 @@ f=$(added applyframe)
 grep -q 'dx = tagdx(c);' <<<"$f" \
   && grep -q 'return x1 + (x0 - x1) \* spring(p, TAG_W, TAG_Z) + v \* springv(p, TAG_W, TAG_Z);' <(sed -n '/^+tagat(int x0, int x1, double v, double p)$/,/^+}/p' "$P") \
   && grep -q 'anim_tag_wave \* 0.5 \* (in + (dir > 0 ? n : 1.0 - n));' <(sed -n '/^+tagwave(Client \*c, int dir, int in)$/,/^+}/p' "$P") \
-  && grep -q 'return m->m.width + RAIL_CELLS \* moncell(m);' <(sed -n '/^+stripw(Monitor \*m)$/,/^+}/p' "$P") \
-  && grep -q ': kind == AnimSlide ? anim_slide_ms : anim_tag_ms;' "$P" && grep -q '^+		railstart(m, dir, was, now);' "$P" \
+  && grep -q 'return (anim_tag_motion == TagScroll ? m->m.height : m->m.width) + RAIL_CELLS \* moncell(m);' <(sed -n '/^+stripw(Monitor \*m)$/,/^+}/p' "$P") \
+  && grep -q ': kind == AnimSlide ? anim_slide_ms : anim_tag_ms;' "$P" && grep -q '^+			railstart(m, dir, was, now);' "$P" \
   && grep -q 'tagmove(c, after ? AnimIn : AnimOut, x, after ? 0 : (int)lround((double)(x + m->stripd) / w) \* w,' "$P" \
   && grep -q 'm->stripx0 = (int)lround(X) + dir \* stripw(m);' <(sed -n '/^+stripstart(Monitor \*m, int dir, uint32_t was)$/,/^+}/p' "$P") \
   && grep -q 'r->x1 = r->x0 + m->stripd;' "$P" \
@@ -287,6 +287,14 @@ grep -q '^+enum { MotionHop, MotionSeal, MotionShoji, MotionKasumi };' "$P" && _
 c=$(added shojishow)
 has "$c" 'wlr_scene_buffer_set_source_box(d->node, &(struct wlr_fbox){ x, 0, cw, h });'; has "$c" 'wlr_scene_buffer_set_dest_size(d->node, cw, h);'
 grep -q '^+				16.0 \* cellease(c->animp));' "$P" && grep -q '^+				moncell(g->mon), 16.0 \* (1.0 - cellease(t)));' "$P" && _ok || _no "kasumi comes and goes by the cells"
+
+case_ "a workspace's motion is one switch: the strip stands, hayate, the scroll and the doors a word away; the doors part over the next room, nothing crossing"
+for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
+  grep -q '^static const int anim_tag_motion *= TagStrip;' <<<"$c" && _ok || _no "anim_tag_motion, the strip"
+done
+grep -q '^+enum { TagStrip, TagHayate, TagScroll, TagFusuma };' "$P" && _ok || _no "the four motions"
+c=$(added railplace); has "$c" 'if (anim_tag_motion == TagScroll) {'
+grep -q '^+					wlr_scene_node_raise_to_top(&c->scene->node);$' "$P" && grep -q "^+			} else if (!before && after && (anim_tag_motion != TagFusuma || !leaving)) {" "$P" && _ok || _no "the room left over the next; the next closes in only when nothing leaves"
 
 c=$(added washcmd)
 has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'
