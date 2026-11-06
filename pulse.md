@@ -1,9 +1,9 @@
-# round 28 pulse · Fri 06 07:13 (Dubai)
+# round 28 pulse · Fri 06 07:43 (Dubai)
 
-pace: 8/103 done (8%) · time used 7% · ahead 1.0 h · ETA Mon 09 09:58 · left 89 · blocked 0 · owner 6
+pace: 8/103 done (8%) · time used 7% · ahead 0.5 h · ETA Mon 09 16:02 · left 89 · blocked 0 · owner 6
 alerts: none
-run: conductor active · passes 1 (oldest 126 min) · last activity 8 min ago · commits since start 16 · hold False
-machine: load 1.26 0.95 0.86/12 · mem free 26.6 GB · disk free 627 GB · up 7.0 h · cpu tccd1 46° · cpu tctl 52° · gpu edge 40° · gpu junction 31° · gpu mem 53° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
+run: conductor active · passes 1 (oldest 156 min) · last activity 38 min ago · commits since start 16 · hold False
+machine: load 0.12 0.61 0.80/12 · mem free 27.4 GB · disk free 627 GB · up 7.5 h · cpu tccd1 34° · cpu tctl 42° · gpu edge 37° · gpu junction 32° · gpu mem 52° · ssd composite 45° · ssd sensor 1 46° · ssd sensor 2 50°
 dark: True (active) · pulse timer active
 tokens since start: out 201,405 · in 408 · cache write 639,664 · cache read 20,460,788 · msgs 192 · out last 6 h 100,184
 
