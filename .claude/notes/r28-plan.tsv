@@ -25,8 +25,8 @@ f14	Fri 6	done	options (h) Super+U and Super+R tightened: 2 layouts each: h1-men
 f14b	Fri 6	done	the kit with --tree stopped after the power dialog's first shot: a play's key Right never returned, twice, both moods, exit 124 (f13). Run tools/regress/power-dialog.sh --tree ~/.cache/r28/kit-tree: a kit fault, or keys lost in the tree's dialog?	Fri 6 Nov 12:33	a kit fault: ready missed an idle panel's request, 120 s gone; no key lost; fixed, both moods 33 s
 f15	Fri 6	done	options (i) Helium's theme, a TUI of ours in both moods, a symmetrical toolbar: 3 sheets from a headless browser: i1-helium.jpg	Fri 6 Nov 12:44	i1-helium.jpg, one sheet of 3: tsuitate, mokuroku, noren; 3 tries, a focus ring and a tab card left in the shots (in the caption); if a build comes, tsuitate (provisional): follows the mood live, 2 + 2 keys
 f15b	Fri 6	done	a browser started in a headless dwl after wtype's keyboard had gone showed no window (f15, every time; one dwl a shot avoids it): a kit fault, or a dwl bug with a virtual keyboard that a real session could meet? Reproduce with a small client, headless only	12:47	a dwl bug: the seat kept no keyboard after a virtual one; fixed, Helium no longer segfaults
-f16	Fri 6	now	the pack published: captions.txt, 16 files and 300 KB at most, seen in the pulse; r28-questionnaire.md begun with every assumption so far		
-f17	Fri 6	todo	research: the YouTuber Hayyoth (design and work philosophy), one page; what fits goes into docs/design-system.md		no long detour
+f16	Fri 6	done	the pack published: captions.txt, 16 files and 300 KB at most, seen in the pulse; r28-questionnaire.md begun with every assumption so far	Fri 6 Nov 13:14	seen on pulse: 11 sheets and captions byte for byte, largest 296548 bytes; every caption names its provisional pick; questionnaire begun, 20 questions
+f17	Fri 6	now	research: the YouTuber Hayyoth (design and work philosophy), one page; what fits goes into docs/design-system.md		no long detour
 f18	Fri 6	todo	research: "Anthropic says .md files are dead, HTML is next" against Anthropic's own docs, one paragraph, adopted only where it helps		CLAUDE.md stays
 f19	Fri 6	todo	home folders: ~/downloads ~/captures ~/notes ~/books ~/dojo named once in lib/common.sh; theme.sh, xdg-user-dirs and the move of an existing home's folders; tests		
 f20	Fri 6	todo	home folders: every bin/kawa-* and config follows; no Desktop, Documents, Music, Pictures, Videos, Templates, Public; grep and tests hold it		
@@ -103,7 +103,7 @@ t01	Tue 10	todo	the whole suite on the final tree
 t02	Tue 10	todo	the final ISO built twice, compared, checksummed		
 t03	Tue 10	todo	the final VM install from it: verify, desktop smoke, a day's lessons, the update button		
 t04	Tue 10	todo	r28-handover.md: what is done, what waits for him, how to install; push; the hold file and the conductor stopped		rule 9
-o01	Tue 10	owner	his picks on the options pack, relayed by Claude; each pick built, the others dropped		assumed meanwhile: my strongest
+o01	Tue 10	owner	his picks on the options pack, relayed by Claude; each pick built, the others dropped		assumed meanwhile: my strongest, each in r28-questionnaire.md part A
 o02	Tue 10	owner	the RAM: restart, Delete, F7, OC, DRAM Frequency DDR5-4800, F10; then ram-check three copies for 20 minutes		still 5600 MT/s on 6 Nov; wrong bits measured, ledger r27-note-flips-2; say it before he installs anything built here
 o03	Tue 10	owner	Phase E: his answers to the questionnaire applied: the last edit of the repo		then the ISO again
 o04	Tue 10	owner	the ISO installed on his PC: fedokawaii lives there on Fedora 45, self-maintaining until Fedora 46		the VM cannot show his firmware: the rehearsal first
