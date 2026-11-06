@@ -1,15 +1,15 @@
-# round 28 pulse · Fri 06 21:44 (Dubai)
+# round 28 pulse · Fri 06 22:14 (Dubai)
 
-pace: 51/148 done (34%) · time used 21% · ahead 13.2 h · ETA Sun 08 10:48 · left 89 · blocked 1 · owner 7
+pace: 53/148 done (36%) · time used 22% · ahead 14.1 h · ETA Sun 08 09:55 · left 87 · blocked 1 · owner 7
 alerts: 1 blocked; 1 errors in 2 h
-run: conductor active · passes 1 (oldest 1 min) · last activity 0 min ago · commits since start 72 · hold False
-machine: load 0.13 0.63 0.60/12 · mem free 27.1 GB · disk free 612 GB · up 21.5 h · cpu tccd1 39° · cpu tctl 48° · gpu edge 41° · gpu junction 36° · gpu mem 56° · ssd composite 40° · ssd sensor 1 39° · ssd sensor 2 41°
+run: conductor active · passes 1 (oldest 26 min) · last activity 1 min ago · commits since start 74 · hold False
+machine: load 0.18 0.12 0.14/12 · mem free 27.2 GB · disk free 612 GB · up 22.0 h · cpu tccd1 39° · cpu tctl 47° · gpu edge 40° · gpu junction 35° · gpu mem 56° · ssd composite 44° · ssd sensor 1 43° · ssd sensor 2 46°
 dark: True (active) · pulse timer active
-tokens since start: out 1,423,085 · in 2,224 · cache write 4,462,498 · cache read 84,748,692 · msgs 1054 · out last 6 h 580,537
+tokens since start: out 1,487,157 · in 2,294 · cache write 4,647,126 · cache read 87,743,117 · msgs 1088 · out last 6 h 468,946
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
-- [now] f21b kit.sh --font "Sumi Term=X" draws today's face, silently: the system alias renames Sumi Term before the kit's match (10 trials came out identical, f21). The kit's match first, or say so; tools/font-try.sh term depends on it; a check that the face really changed — 
+- [now] f23 neovim: his own minimal config: lazy.nvim and a handful of hand-picked plugins, every line commented for the lessons; start-up measured; lock file — 
 - [owner] c1b his eyes on the cooler's display with the PC dark: no 99 (S6) — only he can see it; assumed: dark. If it still blinks: the steady real temperature instead (S6)
 - [owner] o01 his picks on the options pack, relayed by Claude; each pick built, the others dropped — assumed meanwhile: my strongest, each in r28-questionnaire.md part A
 - [owner] o02 the RAM: restart, Delete, F7, OC, DRAM Frequency DDR5-4800, F10; then ram-check three copies for 20 minutes — still 5600 MT/s on 6 Nov; wrong bits measured, ledger r27-note-flips-2; say it before he installs anything built here
@@ -19,22 +19,22 @@ tokens since start: out 1,423,085 · in 2,224 · cache write 4,462,498 · cache 
 - [owner] o06 triad, his private repo fluvia4ai/triad: a read-only deploy key's public key posted for him, added with his OK; installed by default, self-updating, taught in Part 1 — the last line, owner 00:24
 
 ## last done
-- d2 sketching gone (S2): FireAlpaca, kawa-sketch, its key, tablet-specific support: packages, configs, menus, lessons, tests, inventory; he sketches on paper (Fri 6 Nov 20:05)
-- d2b two reds found in d2's suite, both at HEAD before it: tests/content/test_notes.sh, the to-do's heading; tests/look/test_saver.sh, the scene's words to rebuild (tools/build-saver.py) (Fri 6 Nov 20:12)
 - m5 (b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4) (Fri 6 Nov 20:23)
 - f20b home folders: the Guide and Learn say the new folders (~/dojo, ~/downloads …), PDFs rebuilt; a VM proof of the move and of a clean home (Fri 6 Nov 21:42)
 - f21 the programming font by real render trials (Iosevka, JetBrains Mono, Maple Mono, Commit Mono, Monaspace, Nerd glyphs, official sources): a sheet, the choice written with why (Fri 6 Nov 20:42)
+- f21b kit.sh --font "Sumi Term=X" draws today's face, silently: the system alias renames Sumi Term before the kit's match (10 trials came out identical, f21). The kit's match first, or say so; tools/font-try.sh term depends on it; a check that the face really changed (Fri 6 Nov 21:45)
 - m6 (b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5) (Fri 6 Nov 20:33)
+- f22 that font in the installer: pinned with its checksum (lib/upstream.sh), foot, width tables, tests (Fri 6 Nov 21:47)
 
 ## commits
+- Fri 21:47 ec4d3fff f22 done: UDEV Gothic NF's pin checked against upstream, a stale cell width fixed; f23 now
+- Fri 21:45 d132cf2a f21b done: kit --font really changes the face, and refuses when it does not; f22 now
 - Fri 21:42 ffb928ed f20b done: docs on the new folders, proven in the VM; ~/Projects is the dojo; PDF left to f27; f21b now
 - Fri 20:48 aa379103 f20b: the Guide and Learn say the new home folders; lessons recut
 - Fri 20:43 d6a58891 regress list: the r28-d2b row's two checks with the list's separator; items.py check reads it again
 - Fri 20:43 a5aab313 f21 done: UDEV Gothic NF stays, by render trials in real foot, the sheet and the why; plan order repaired, f21b new; f20b now
 - Fri 20:33 277cd885 m6 done: b-0, b-4 to b-7 frame-exact, measured, pairs differ; the lost pack row m10 restored; f22 now
 - Fri 20:23 e777c7b9 m5 done: heya, hitomi, hishi, suna behind the switch, measured; m6 now
-- Fri 20:12 494efb4f d2b done: the to-do wears its tanzaku again, the saver built on the lock's art as it is; m5 now
-- Fri 20:06 e896a4d2 d2 done: sketching gone (S2): FireAlpaca, kawa-sketch, its lesson, the pen in dwl; d2b now
 
 ## repairs
 
