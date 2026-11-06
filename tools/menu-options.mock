@@ -1,0 +1,125 @@
+# tools/menu-options.mock LAYOUT COVER — a mock screen for the kit's real foot (menu-options.py's sheet, r28 f14):
+# u1 u2 Super+U, r1 r2 Super+R, in the real inks, icons and keycaps; nothing of bin/kawa-books or the menu changes.
+export LC_ALL=C.UTF-8
+. ~/.config/fedokawaii/icons.sh
+. ~/.config/fedokawaii/current/colors.sh
+. ~/.config/fedokawaii/screen.sh
+layout=$1 cover=$2
+printf '\e[?25l\e[2J\e[H'
+at() { printf '\e[%d;%dH' $(($1 + 1)) $(($2 + 1)); }
+
+# row R C W GLYPH NAME VALUE [INK] [band] — a list's row, its value as far from the band's end as its icon from the start
+row() {
+  local pad=$(($3 - 7 - ${#5} - ${#6}))
+  at "$1" "$2"
+  if [[ ${8-} == band ]]; then printf '\e[48;5;24m\e[38;5;25m  %s  %s%*s%s  \e[0m' "$4" "$5" "$pad" '' "$6"
+  else printf '  %s%s%s  %s%*s%s%s%s  ' "$INK_MUTED" "$4" "$INK_OFF" "$5" "$pad" '' "${7:-$INK_MUTED}" "$6" "$INK_OFF"; fi
+}
+list() {   # the system tab's nine rows, from row R at column C, W wide
+  local r=$1 c=$2 w=$3
+  row $r $c $w "$ICON_CPU" status "" "" band
+  row $((r + 1)) $c $w "$ICON_CHECK" verify "4 to fix" "$INK_ACCENT_TEXT"
+  row $((r + 2)) $c $w "$ICON_TOOLS" repair ""
+  row $((r + 3)) $c $w "$ICON_BRANCH" drift ""
+  row $((r + 4)) $c $w "$ICON_CODE" "change the desktop" ""
+  row $((r + 5)) $c $w "$ICON_THEME" "the theme, anew" ""
+  row $((r + 6)) $c $w "$ICON_SLIDERS" settings ""
+  row $((r + 7)) $c $w "$ICON_BELL" reminders "every 90 days"
+  row $((r + 8)) $c $w "$ICON_FILE" log ""
+}
+pane() {   # the status pane, from row R at column C
+  local r=$1 c=$2 l v i=0
+  while IFS='|' read -r l v; do
+    at $((r + i)) "$c"; printf '%s%s%s' "$INK_MUTED" "$l" "$INK_OFF"
+    at $((r + i)) $((c + 10)); printf '%s' "$v"
+    i=$((i + 1))
+  done <<'ROWS'
+release|Fedora 45
+support|until 19 May 2027 · in 194 days
+updated|1 Nov 2026 · 4 days ago
+|96 packages
+due|30 Jan 2027
+verified|4 to fix · yesterday (repair)
+kernel|7.2.13-200.fc45.x86_64
+backup|no drive · quick settings → backup
+disk|657 GB free of 997 GB
+ROWS
+}
+bookrow() {   # bookrow R W TITLE LIT MARK [band] — a book's row, as kawa-books --rows lays it out
+  local n=$4 i bar="" pad=$(($2 - 4 - 1 - ${#3} - 2 - 10 - 2 - 7 - 2))
+  for ((i = 0; i < 10; i++)); do
+    if ((n == 0)); then bar+=" "
+    elif ((i < n)); then bar+=$ICON_SEG
+    else bar+=$ICON_SEG_HOLLOW; fi
+  done
+  at "$1" 1
+  if [[ ${6-} == band ]]; then
+    printf '\e[48;5;24m\e[38;5;25m  %s  %s%*s  %s  %7s   \e[0m' "$ICON_BOOK" "$3" "$pad" '' "$bar" "$5"
+  else
+    printf '  %s%s%s  %s%*s  \e[38;5;20m%s\e[0m  %s%7s%s   ' "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "$3" "$pad" '' "$bar" "$INK_MUTED" "$5" "$INK_OFF"
+  fi
+}
+books() {   # the shelf, from row R, W wide
+  bookrow "$1" "$2" "fedokawaii — learn" 5 212/400 band
+  bookrow $(($1 + 1)) "$2" "My System" 2 88/412
+  bookrow $(($1 + 2)) "$2" "Hokusai Thirty-six Views" 0 new
+  bookrow $(($1 + 3)) "$2" "Touch Typing in Ten Hours" 0 new
+  bookrow $(($1 + 4)) "$2" "Bobby Fischer Teaches Chess" 0 new
+  bookrow $(($1 + 5)) "$2" "The Pragmatic Programmer" 0 new
+}
+search() {   # search R LAST — the search line, the count ending at column LAST
+  at "$1" 3; printf '%s%s%s' "$INK_ACCENT_TEXT" "$ICON_CHEVRON_RIGHT" "$INK_OFF"
+  at "$1" 6; printf '%s~/Books%s' "$INK_FAINT" "$INK_OFF"
+  at "$1" $(($2 - 2)); printf '%s6/6%s' "$INK_MUTED" "$INK_OFF"
+}
+picture() {   # picture R C W H [OX] — the cover in sixel, whole bands, on the paper, OX px in from the column
+  local ox=${5:-0}
+  at "$1" "$2"
+  magick -size "$((ox + $3))x$4" "xc:#$C_GROUND" \( "$cover" -resize "${3}x${4}!" \) -geometry "+$ox+0" -composite png:- 2>/dev/null | kawa-sixel "$C_GROUND"
+}
+vrule() {   # vrule C FROM TO — a pane's rule
+  local r
+  for ((r = $2; r <= $3; r++)); do at "$r" "$1"; printf '%s│%s' "$INK_STITCH" "$INK_OFF"; done
+}
+
+case $layout in
+  u1)   # ichimai, one sheet: today's grammar shut tight, 86 x 13
+    at 1 2; printf '%s%s%s  %ssystem%s' "$INK_ACCENT_TEXT" "$ICON_TAB_SYSTEM" "$INK_OFF" "$INK_STRONG" "$INK_OFF"
+    c=14; for i in "$ICON_TAB_UPDATE" "$ICON_TAB_SNAPSHOTS" "$ICON_TAB_BACKUPS" "$ICON_TAB_LEARNING"; do
+      at 1 $c; printf '%s%s%s' "$INK_MUTED" "$i" "$INK_OFF"; c=$((c + 5)); done
+    at 2 5; printf '%s▔▔▔▔▔▔%s' "$INK_ACCENT" "$INK_OFF"
+    at 1 36; screen_heading "$ICON_CPU" status 48
+    list 3 1 34
+    pane 3 39 ;;
+  u2)   # daifuku, a merchant's ledger: every tab named on a rail, three columns, no pane heading, 98 x 11
+    r=1; for t in "$ICON_TAB_SYSTEM|system" "$ICON_TAB_UPDATE|update" "$ICON_TAB_SNAPSHOTS|snapshots" "$ICON_TAB_BACKUPS|backups" "$ICON_TAB_LEARNING|learning"; do
+      at $r 2
+      if ((r == 1)); then printf '%s%s%s  %s%s%s' "$INK_ACCENT_TEXT" "${t%|*}" "$INK_OFF" "$INK_STRONG" "${t#*|}" "$INK_OFF"
+        at 2 5; printf '%s▔▔▔▔▔▔%s' "$INK_ACCENT" "$INK_OFF"
+      else printf '%s%s  %s%s' "$INK_MUTED" "${t%|*}" "${t#*|}" "$INK_OFF"; fi
+      r=$((r + 2))
+    done
+    vrule 15 1 9
+    list 1 17 32
+    vrule 50 1 9
+    pane 1 52 ;;
+  r1)   # hon, the book beside the list: today's two panes, fitted to the cover, 86 x 17, as wide as Super+U 1
+    at 1 2; screen_heading "$ICON_BOOK" books 54
+    search 2 56
+    books 3 56
+    at 15 2; screen_keys ctrl+a add '' ctrl+d remove ''
+    vrule 58 1 15
+    picture 1 60 192 270 6
+    at 15 61; printf '%spdf · 400 pages · 7.3 MB%s' "$INK_MUTED" "$INK_OFF" ;;
+  r2)   # okuzuke, a book's colophon: the book in hand on top, its facts beside it, the shelf under, 66 x 19
+    picture 1 2 128 180
+    at 1 20; printf '%sfedokawaii — learn%s' "$INK_STRONG" "$INK_OFF"
+    at 2 20; printf '%spdf · 400 pages · 7.3 MB%s' "$INK_MUTED" "$INK_OFF"
+    at 4 20; printf '\e[38;5;20m'; for i in 1 2 3 4 5; do printf '%s' "$ICON_SEG"; done; for i in 1 2 3 4 5; do printf '%s' "$ICON_SEG_HOLLOW"; done; printf '\e[0m  212/400'
+    at 5 20; printf '%sread yesterday%s' "$INK_MUTED" "$INK_OFF"
+    at 9 20; screen_keys ctrl+a add '' ctrl+d remove ''
+    at 11 2; screen_heading "$ICON_BOOK" books 62
+    search 12 64
+    books 13 64 ;;
+esac
+sleep 60
