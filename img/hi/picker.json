@@ -144,6 +144,389 @@
   "note": "Super+V. Real dwl builds, recorded headless."
  },
  {
+  "set": "P1",
+  "title": "Rules and separators",
+  "kind": "still",
+  "provisional": 3,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "a plain line",
+    "files": [
+     "P1-0-dark.png",
+     "P1-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "kasumi",
+    "text": "dithered mist",
+    "files": [
+     "P1-1-dark.png",
+     "P1-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "nami",
+    "text": "a band of seigaiha",
+    "files": [
+     "P1-2-dark.png",
+     "P1-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "mon",
+    "text": "stepped caps, a crest",
+    "files": [
+     "P1-3-dark.png",
+     "P1-3-light.png"
+    ]
+   }
+  ],
+  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
+ },
+ {
+  "set": "P2",
+  "title": "The selection marker",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "the band and its red edge",
+    "files": [
+     "P2-0-dark.png",
+     "P2-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "yubi",
+    "text": "a JRPG pointer in the gutter",
+    "files": [
+     "P2-1-dark.png",
+     "P2-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "fude",
+    "text": "a brush stroke under the label",
+    "files": [
+     "P2-2-dark.png",
+     "P2-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "kagi",
+    "text": "corner brackets",
+    "files": [
+     "P2-3-dark.png",
+     "P2-3-light.png"
+    ]
+   }
+  ],
+  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
+ },
+ {
+  "set": "P2m",
+  "title": "The pointer bobbing",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 1,
+    "name": "yubi",
+    "text": "whole pixels, 150 ms a pose",
+    "files": [
+     "P2m-1-dark.mp4",
+     "P2m-1-dark.png",
+     "P2m-1-light.mp4",
+     "P2m-1-light.png"
+    ]
+   }
+  ],
+  "note": "Super+U at 2x, the png 1:1. The other markers stand still."
+ },
+ {
+  "set": "P3",
+  "title": "Corners and frames",
+  "kind": "still",
+  "provisional": 3,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "a plain frame",
+    "files": [
+     "P3-0-dark.png",
+     "P3-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "kakko",
+    "text": "quotation brackets",
+    "files": [
+     "P3-1-dark.png",
+     "P3-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "kaidan",
+    "text": "a dialog box's stairs",
+    "files": [
+     "P3-2-dark.png",
+     "P3-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "kanagu",
+    "text": "a chest's brass fittings",
+    "files": [
+     "P3-3-dark.png",
+     "P3-3-light.png"
+    ]
+   }
+  ],
+  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. The power menu keeps its rods."
+ },
+ {
+  "set": "P4",
+  "title": "Meters",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "40 segments",
+    "files": [
+     "P4-0-dark.png",
+     "P4-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "tairyoku",
+    "text": "an HP bar",
+    "files": [
+     "P4-1-dark.png",
+     "P4-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "hishi",
+    "text": "20 lozenges on a cord",
+    "files": [
+     "P4-2-dark.png",
+     "P4-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "katana",
+    "text": "the blade the scale",
+    "files": [
+     "P4-3-dark.png",
+     "P4-3-light.png"
+    ]
+   }
+  ],
+  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. Volume, battery and downloads are a mock-up panel: the shots hold none of them."
+ },
+ {
+  "set": "P4m",
+  "title": "The meters filling",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "40 segments",
+    "files": [
+     "P4m-0-dark.mp4",
+     "P4m-0-dark.png",
+     "P4m-0-light.mp4",
+     "P4m-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "tairyoku",
+    "text": "an HP bar",
+    "files": [
+     "P4m-1-dark.mp4",
+     "P4m-1-dark.png",
+     "P4m-1-light.mp4",
+     "P4m-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "hishi",
+    "text": "20 lozenges",
+    "files": [
+     "P4m-2-dark.mp4",
+     "P4m-2-dark.png",
+     "P4m-2-light.mp4",
+     "P4m-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "katana",
+    "text": "the blade",
+    "files": [
+     "P4m-3-dark.mp4",
+     "P4m-3-dark.png",
+     "P4m-3-light.mp4",
+     "P4m-3-light.png"
+    ]
+   }
+  ],
+  "note": "The mock-up panel at 2x, the png 1:1. Volume runs into the fire and back."
+ },
+ {
+  "set": "P5",
+  "title": "Small accents",
+  "kind": "still",
+  "provisional": 2,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 0,
+    "name": "today",
+    "text": "none",
+    "files": [
+     "P5-0-dark.png",
+     "P5-0-light.png"
+    ]
+   },
+   {
+    "n": 1,
+    "name": "mon",
+    "text": "a crest ending a title",
+    "files": [
+     "P5-1-dark.png",
+     "P5-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "kirari",
+    "text": "a sparkle on the focus",
+    "files": [
+     "P5-2-dark.png",
+     "P5-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "hanabira",
+    "text": "a falling petal",
+    "files": [
+     "P5-3-dark.png",
+     "P5-3-light.png"
+    ]
+   }
+  ],
+  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
+ },
+ {
+  "set": "P5m",
+  "title": "The accents that move",
+  "kind": "motion",
+  "provisional": 2,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 2,
+    "name": "kirari",
+    "text": "a glint every 2 seconds",
+    "files": [
+     "P5m-2-dark.mp4",
+     "P5m-2-dark.png",
+     "P5m-2-light.mp4",
+     "P5m-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "hanabira",
+    "text": "falls behind the words, rests, dissolves",
+    "files": [
+     "P5m-3-dark.mp4",
+     "P5m-3-dark.png",
+     "P5m-3-light.mp4",
+     "P5m-3-light.png"
+    ]
+   }
+  ],
+  "note": "Super+U at 2x, the png 1:1."
+ },
+ {
+  "set": "PA",
+  "title": "All together",
+  "kind": "still",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 1,
+    "name": "the favourite",
+    "text": "mon, yubi, kanagu, tairyoku, kirari",
+    "files": [
+     "PA-dark.png",
+     "PA-light.png"
+    ]
+   }
+  ],
+  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. A provisional number here is only the favourite."
+ },
+ {
   "set": "d",
   "title": "The prompt, the head inside the ribbon",
   "kind": "still",
