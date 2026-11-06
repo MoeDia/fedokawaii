@@ -98,7 +98,7 @@ grep -q 'uint64_t linear = DRM_FORMAT_MOD_LINEAR;' <<<"$f" && grep -q '.format =
   && grep -q 'wlr_allocator_create_buffer(alloc, w, h, &fmt)' <<<"$f" && grep -q 'd->node->point_accepts_input = ghostinput;' <<<"$f" \
   && grep -q 'wlr_buffer_drop(d->buf);' <(added dissolveend) && grep -q 'wlr_buffer_drop(d->mos);' <(added dissolveend) && grep -q 'return drw && wlr_renderer_is_gles2(drw);' <(added dissolveok) \
   && grep -q 'animations && dissolveok() && !locked' <(added animok) \
-  && grep -q '^+	punchprog = washprog = combprog = 0;$' "$P" \
+  && grep -q '^+	punchprog = washprog = combprog = cutprog = 0;$' "$P" \
   && grep -q '"XLIBS=xcb xcb-icccm pixman-1 glesv2"' "$REPO/lib/manifest.sh" && grep -q 'XLIBS="xcb xcb-icccm pixman-1 glesv2"' "$REPO/tools/hl-dwl.sh" \
   && _ok || _no "the buffer's life"
 
@@ -300,7 +300,13 @@ case_ "a workspace's motion is one switch: the strip stands, hayate, the scroll 
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
   grep -q '^static const int anim_tag_motion *= TagStrip;' <<<"$c" && _ok || _no "anim_tag_motion, the strip"
 done
-grep -q '^+enum { TagStrip, TagHayate, TagScroll, TagFusuma };' "$P" && _ok || _no "the four motions"
+grep -q '^+enum { TagStrip, TagHayate, TagScroll, TagFusuma, ' "$P" && grep -q '^+	TagHeya, TagHitomi, TagHishi, TagSuna };' "$P" && _ok || _no "the eight motions"
+has "$(added tagat)" 'if (anim_tag_motion == TagHeya) '
+has "$(added tagsnap)" 'return (int)lround(x / cell) * cell;'
+grep -q '^+	if (anim_tag_motion == TagHeya)   /\* (rooms wall to wall: no rail) \*/$' "$P" && grep -q '^+		if (TAGRAIL)$' "$P" && _ok || _no "the rooms: wall to wall, no rail"
+has "$(added cutshow)" 'cropshow(&c->dis, pass, 0, 0, 0, 0, w, h);'
+grep -q '^+					if (TAGCUT) {   /\* (on or back from what of it is there) \*/$' "$P" && grep -q 'punchprog = washprog = combprog = cutprog = 0;' "$P" && _ok || _no "a cut turned back from where it is; its program gone with a GPU reset"
+has "$(added railplace)" 'wlr_scene_rect_set_size(r->dust[i], size, size);'
 c=$(added railplace); has "$c" 'if (anim_tag_motion == TagScroll) {'
 grep -q '^+					wlr_scene_node_raise_to_top(&c->scene->node);$' "$P" && grep -q "^+			} else if (!before && after && (anim_tag_motion != TagFusuma || !leaving)) {" "$P" && _ok || _no "the room left over the next; the next closes in only when nothing leaves"
 
@@ -317,7 +323,7 @@ grep -q '^+					scrollopen(1.0 - (from < 0 ? 0 : from)));' "$P" && _ok || _no "a
 c=$(added washcmd)
 has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'
 grep -q '^+	washdrop();                       /\* (under the lock: nothing to wash) \*/' "$P" && _ok || _no "locking drops it"
-grep -q '^+	punchprog = washprog = combprog = 0;' "$P" && grep -q '^+	washend(m);' "$P" && _ok || _no "GPU reset, monitor gone"
+grep -q '^+	punchprog = washprog = combprog = cutprog = 0;' "$P" && grep -q '^+	washend(m);' "$P" && _ok || _no "GPU reset, monitor gone"
 
 # the stepped clock (tools/motion-exact.sh) only in a test build: nothing of it in the shipped dwl's make
 [[ $(grep -c '^+#ifdef ANIM_STEPCLOCK' "$P") == 2 ]] && _ok || _no "the stepped clock's two places, each behind ANIM_STEPCLOCK"

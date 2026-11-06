@@ -29,6 +29,10 @@ b 0 TagStrip 450 450 48
 b 1 TagHayate 220 220 0
 b 2 TagScroll 420 420 48
 b 3 TagFusuma 300 300 0
+b 4 TagHeya 360 360 0
+b 5 TagHitomi 420 420 0
+b 6 TagHishi 440 440 0
+b 7 TagSuna 340 340 0
 c 2 ScrollOmori 460 240
 TABLE
 )

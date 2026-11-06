@@ -47,10 +47,10 @@ m4	Fri 6	done	(a) the videos by m1: a-0 and a-4 to a-7, measured, pairs differ, 
 c1	Fri 6	done	the cooler's display dark, not blinking a 99, whenever the RGB is off or ~/.config/fedokawaii/dark exists (S6)	Fri 6 Nov 18:24	found: frames 1 per 10 s (URB counter), the firmware blinks between them; now 1 a second in the repo's kawa-rgb, and live by r28-cooler; 33 URBs in 30 s; his eyes: c1b
 d2	Fri 6	done	sketching gone (S2): FireAlpaca, kawa-sketch, its key, tablet-specific support: packages, configs, menus, lessons, tests, inventory; he sketches on paper	Fri 6 Nov 20:05	dwl's pen out too; Xournal++ stays for PDFs; ~/.local/share/FireAlpaca is left on an old install
 d2b	Fri 6	done	two reds found in d2's suite, both at HEAD before it: tests/content/test_notes.sh, the to-do's heading; tests/look/test_saver.sh, the scene's words to rebuild (tools/build-saver.py)	Fri 6 Nov 20:12	d1's new icon numbers had left notes.lua's to-do icon on another's; saver hash only
-m5	Fri 6	now	(b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4)		ideas: room scroll, iris wipe, diamond tiles, pixel slide with dust
+m5	Fri 6	done	(b) the workspace move: 4 new game-like motions, 4 to 7, behind the dwl switch (S4)	Fri 6 Nov 20:23	TagHeya 360, TagHitomi 420, TagHishi 440, TagSuna 340, one switch; measured dark 367, 433, 450, 333; provisional until his pick
 f20b	Fri 6	todo	home folders: the Guide and Learn say the new folders (~/dojo, ~/downloads …), PDFs rebuilt; a VM proof of the move and of a clean home		
 f21	Fri 6	todo	the programming font by real render trials (Iosevka, JetBrains Mono, Maple Mono, Commit Mono, Monaspace, Nerd glyphs, official sources): a sheet, the choice written with why		
-m6	Fri 6	todo	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)		
+m6	Fri 6	now	(b) the videos by m1: b-0 and b-4 to b-7, measured, pairs differ, strips (S4, S5)		
 f22	Fri 6	todo	that font in the installer: pinned with its checksum (lib/upstream.sh), foot, width tables, tests		
 f23	Fri 6	todo	neovim: his own minimal config: lazy.nvim and a handful of hand-picked plugins, every line commented for the lessons; start-up measured; lock file		
 m7	Fri 6	todo	P1 separators: 4 new game-like variants, 4 to 7, on the real screens, both moods, 1:1 PNG (S4)		ideas: 8-bit border ornament, pixel links, katana rule, HUD segments

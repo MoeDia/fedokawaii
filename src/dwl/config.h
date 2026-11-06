@@ -76,7 +76,11 @@ static const int anim_fall                 = 64;   /* px it sinks */
 static const int anim_tag_motion           = TagStrip; /* how a workspace comes, with its ms and wave:
                                                     * TagStrip 450/48 · TagHayate 220/0, a gust ·
                                                     * TagScroll 420/48, a hanging scroll, top to
-                                                    * bottom · TagFusuma 300/0, the doors parting */
+                                                    * bottom · TagFusuma 300/0, the doors parting ·
+                                                    * TagHeya 360/0, a dungeon's next room, one speed ·
+                                                    * TagHitomi 420/0, an iris, closing and opening ·
+                                                    * TagHishi 440/0, diamond tiles, in a sweep ·
+                                                    * TagSuna 340/0, a stone thrown, shedding dust */
 static const unsigned int anim_tag_ms      = 450;  /* a workspace move, all of it */
 static const unsigned int anim_tag_wave    = 48;   /* …ms between the first window's start and the last's */
 static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving off the
