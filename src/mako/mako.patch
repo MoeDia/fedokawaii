@@ -1,5 +1,5 @@
 src/mako/mako.patch — the desktop's mako (setup.sh: build_mako), against MAKO_TAG/MAKO_COMMIT
-(fedokawaii.conf). Five style options, each off until the config sets it:
+(fedokawaii.conf). Six style options, each off until the config sets it:
   shadow-color=#RRGGBBAA #RRGGBBAA   the frame of everything that floats (docs/design-system.md
                                      §4): the border's corner pixels left out, and the shadow —
                                      two rows under the notice (the first from a pixel in to under
@@ -15,10 +15,12 @@ src/mako/mako.patch — the desktop's mako (setup.sh: build_mako), against MAKO_
   left-edge=SIZE #RRGGBB             what needs you (§9): a bar SIZE px wide inside the left hairline
   summary-icon-seal=#RRGGBB[AA]      … and the summary's icon stands in a filled seal, 18 px square on
                                      the title's row, its corners left out
+  kanagu-color=#RRGGBB x4            kanagu (docs/design-system.md §4): a 12 px brass chest fitting in each corner on the
+                                     hairline (lit edge, body, shade, rivet), the art of kawa-panel's KANAGU
 git apply reads past these lines to the first diff.
 
 diff --git a/config.c b/config.c
-index 817f7e9..405ce58 100644
+index 817f7e9..e8084d7 100644
 --- a/config.c
 +++ b/config.c
 @@ -253,6 +253,11 @@ bool apply_style(struct mako_style *target, const struct mako_style *style) {
@@ -33,10 +35,15 @@ index 817f7e9..405ce58 100644
  	if (style->spec.icons) {
  		target->icons = style->icons;
  		target->spec.icons = true;
-@@ -321,6 +326,28 @@ bool apply_style(struct mako_style *target, const struct mako_style *style) {
+@@ -321,6 +326,33 @@ bool apply_style(struct mako_style *target, const struct mako_style *style) {
  		target->spec.colors.text = true;
  	}
  
++	if (style->spec.kanagu) {
++		memcpy(target->colors.kanagu, style->colors.kanagu, sizeof(target->colors.kanagu));
++		target->spec.kanagu = true;
++	}
++
 +	if (style->spec.left_edge) {
 +		target->left_edge = style->left_edge;
 +		target->colors.left_edge = style->colors.left_edge;
@@ -62,7 +69,7 @@ index 817f7e9..405ce58 100644
  	if (style->spec.colors.border) {
  		target->colors.border = style->colors.border;
  		target->spec.colors.border = true;
-@@ -583,8 +610,40 @@ static bool apply_style_option(struct mako_style *style, const char *name,
+@@ -583,8 +615,51 @@ static bool apply_style_option(struct mako_style *style, const char *name,
  		return spec->padding;
  	} else if (strcmp(name, "border-size") == 0) {
  		return spec->border_size = parse_int_ge(value, &style->border_size, 0);
@@ -85,6 +92,17 @@ index 817f7e9..405ce58 100644
 +		}
 +		free(copy);
 +		return spec->left_edge = ok;
++	} else if (strcmp(name, "kanagu-color") == 0) {
++		// fedokawaii: "#RRGGBB" x 4, the corner fittings' lit edge, body, shade and rivet
++		char *copy = strdup(value), *save = NULL, *tok = copy ? strtok_r(copy, " ", &save) : NULL;
++		int n = 0;
++		while (tok != NULL && n < 4 && parse_color(tok, &style->colors.kanagu[n])) {
++			n++;
++			tok = strtok_r(NULL, " ", &save);
++		}
++		n = tok == NULL ? n : -1;
++		free(copy);
++		return spec->kanagu = (n == 4);
 +	} else if (strcmp(name, "shadow-color") == 0) {
 +		// fedokawaii: "#RRGGBBAA #RRGGBBAA", the shadow's first row and its second row and
 +		// column; set, the frame's four corner pixels are left out too
@@ -103,11 +121,12 @@ index 817f7e9..405ce58 100644
  	} else if (strcmp(name, "progress-color") == 0) {
  		return spec->colors.progress = parse_mako_color(value, &style->colors.progress);
  	} else if (strcmp(name, "icons") == 0) {
-@@ -906,6 +965,11 @@ int parse_config_arguments(struct mako_config *config, int argc, char **argv) {
+@@ -906,6 +981,12 @@ int parse_config_arguments(struct mako_config *config, int argc, char **argv) {
  		{"padding", required_argument, 0, 0},
  		{"border-size", required_argument, 0, 0},
  		{"border-color", required_argument, 0, 0},
 +		{"shadow-color", required_argument, 0, 0},
++		{"kanagu-color", required_argument, 0, 0},
 +		{"summary-icon-seal", required_argument, 0, 0},
 +		{"left-edge", required_argument, 0, 0},
 +		{"summary-icon-color", required_argument, 0, 0},
@@ -116,7 +135,7 @@ index 817f7e9..405ce58 100644
  		{"progress-color", required_argument, 0, 0},
  		{"icons", required_argument, 0, 0},
 diff --git a/include/config.h b/include/config.h
-index 4876989..3ca7220 100644
+index 4876989..8bae202 100644
 --- a/include/config.h
 +++ b/include/config.h
 @@ -39,12 +39,12 @@ enum mako_icon_location {
@@ -124,7 +143,7 @@ index 4876989..3ca7220 100644
  // structs are also mirrored.
  struct mako_style_spec {
 -	bool width, height, outer_margin, margin, padding, border_size, border_radius, font,
-+	bool width, height, outer_margin, margin, padding, border_size, border_radius, font, hanging_indent, left_edge,
++	bool width, height, outer_margin, margin, padding, border_size, border_radius, font, hanging_indent, left_edge, kanagu,
  		markup, format, text_alignment, actions, default_timeout, ignore_timeout,
  		icons, max_icon_size, icon_path, icon_border_radius, group_criteria_spec, invisible, history,
  		icon_location, max_visible, layer, output, anchor;
@@ -143,7 +162,7 @@ index 4876989..3ca7220 100644
  
  	bool icons;
  	int32_t max_icon_size;
-@@ -83,6 +85,10 @@ struct mako_style {
+@@ -83,6 +85,11 @@ struct mako_style {
  		uint32_t text;
  		uint32_t border;
  		struct mako_color progress;
@@ -151,6 +170,7 @@ index 4876989..3ca7220 100644
 +		uint32_t summary_icon; // fedokawaii: a summary's leading pixel icon (summary-icon-color)
 +		uint32_t summary_seal; // fedokawaii: the seal it stands in (summary-icon-seal)
 +		uint32_t left_edge; // fedokawaii: the bar's ink (left-edge)
++		uint32_t kanagu[4]; // fedokawaii: the corner fittings' lit edge, body, shade, rivet (kanagu-color)
  	} colors;
  
  	struct mako_criteria_spec group_criteria_spec;
@@ -191,7 +211,7 @@ index b556c1d..e9c0823 100644
  	case 'b':
  		*markup = notif->style.markup;
 diff --git a/render.c b/render.c
-index 8fed6d8..656dc87 100644
+index 8fed6d8..08c21c7 100644
 --- a/render.c
 +++ b/render.c
 @@ -161,6 +161,34 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
@@ -229,7 +249,7 @@ index 8fed6d8..656dc87 100644
  	PangoAttrList *attrs = NULL;
  	GError *error = NULL;
  	char *buf = NULL;
-@@ -271,6 +299,49 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
+@@ -271,6 +299,74 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
  
  	cairo_path_destroy(border_path);
  
@@ -276,10 +296,35 @@ index 8fed6d8..656dc87 100644
 +		cairo_fill(cairo);
 +	}
 +
++	// fedokawaii (docs/design-system.md §4): kanagu, a brass chest fitting in each corner on the
++	// hairline — 12 px square, one arm along each edge, a 2 px rivet in the crook (the art of
++	// kawa-panel's KANAGU: h lit, o brass, s shade, # rivet); it covers the corner pixel left out
++	if (style->spec.kanagu && notif_width >= 24 && notif_height >= 24) {
++		static const char *const art[12] = {
++			".hhhhhhhhhh.", "hoooooooooos", "hoooooooos..", "hoo##osss...", "hoo##os.....", "hooooos.....",
++			"hoosss......", "hoos........", "hoos........", "hos.........", "ho..........", ".s..........",
++		};
++		for (int k = 0; k < 4; k++) {
++			for (int j = 0; j < 12; j++) {
++				for (int i = 0; i < 12; i++) {
++					const char *at = strchr("hos#", art[j][i]);
++					if (art[j][i] == '.' || at == NULL) {
++						continue;
++					}
++					double px = k & 1 ? offset_x + notif_width - 1 - i : offset_x + i;
++					double py = k & 2 ? offset_y + notif_height - 1 - j : offset_y + j;
++					set_source_u32(cairo, style->colors.kanagu[at - "hos#"]);
++					cairo_rectangle(cairo, px * scale, py * scale, scale, scale);
++					cairo_fill(cairo);
++				}
++			}
++		}
++	}
++
  	if (icon != NULL) {
  		// Render icon
  		double xpos = -1;
-@@ -316,6 +387,13 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
+@@ -316,6 +412,13 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
  	}
  
  	// Render text
@@ -293,7 +338,7 @@ index 8fed6d8..656dc87 100644
  	set_source_u32(cairo, style->colors.text);
  	move_to(cairo,
  		offset_x + style->border_size + text_x,
-@@ -323,6 +401,8 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
+@@ -323,6 +426,8 @@ static int render_notification(cairo_t *cairo, struct mako_state *state, struct
  		scale);
  	pango_cairo_update_layout(cairo, layout);
  	pango_cairo_show_layout(cairo, layout);
@@ -302,7 +347,7 @@ index 8fed6d8..656dc87 100644
  
  	// Update hotspot with calculated location
  	if (hotspot != NULL) {
-@@ -480,5 +560,6 @@ void render(struct mako_surface *surface, struct pool_buffer *buffer, int scale,
+@@ -480,5 +585,6 @@ void render(struct mako_surface *surface, struct pool_buffer *buffer, int scale,
  	}
  
  	*rendered_width = max_width;

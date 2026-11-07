@@ -542,6 +542,8 @@ text-color=#{p['text']}
 border-color=#{hx(k['hair'])}
 shadow-color=#{hx(k['shadow'][0])} #{hx(k['shadow'][1])}
 summary-icon-color=#{p['accent_text']}
+# kanagu (P3): the brass chest fitting in each corner, as on the panels (lit edge, body, shade, rivet)
+kanagu-color={' '.join('#' + c for c in BRASS[m])}
 # an app's own progress (the hint "value"): mako fills the card from the left, under the
 # words — asagi, the meters' colour, thinned so the words keep their contrast
 progress-color=over #{p['asagi']}40

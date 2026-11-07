@@ -14,6 +14,8 @@ text-color=#122625
 border-color=#121b1bd7
 shadow-color=#3024176e #30241730
 summary-icon-color=#a84222
+# kanagu (P3): the brass chest fitting in each corner, as on the panels (lit edge, body, shade, rivet)
+kanagu-color=#ebcb79 #e2b540 #957d38 #f8f3d8
 # an app's own progress (the hint "value"): mako fills the card from the left, under the
 # words — asagi, the meters' colour, thinned so the words keep their contrast
 progress-color=over #00726a40

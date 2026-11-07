@@ -125,8 +125,8 @@ sa15c	Sat 7	done	the selection marker built: his pick P2 1 yubi, the bobbing poi
 sa15d	Sat 7	done	corners and frames built: his pick P3 3 kanagu, every panel, both moods (S4)	15:23 7 Nov	panels and level display only; tiles, windows, notices -> sa15d2	sonnet
 sa15d2	Sat 7	done	kanagu on bar tiles, dwl windows and notices (S4)	Sat 7 Nov 15:30	split: tiles are 20 px paper on a 4 2 3 2 border-image (a 12 px fitting does not fit: needs a 6 px variant, a design call), windows are dwl scene rects (scratch tree needed), notices are mako C; three rows	sonnet
 sa15d2a	Sat 7	done	kanagu on dwl windows: 4 corner fittings as scene rects over the 3 px border (scratch tree per dwl-tree-is-stale, headless frames both moods) (S4)	Sat 7 Nov 15:26	four 12 px buffers per window over the hairline, brass in dwl.colors; ghost, dissolve, hide follow; not on scroll roll-up ghosts (frame only)	sonnet
-sa15d2b	Sat 7	now	kanagu on mako notices: mako.patch draws the same KANAGU in the corners (S4)			sonnet
-sa15d2c	Sat 7	todo	kanagu on bar tiles: a 6 px variant for the 20 px paper, kami-*.png slices (S4)			sonnet
+sa15d2b	Sat 7	done	kanagu on mako notices: mako.patch draws the same KANAGU in the corners (S4)	Sat 7 Nov 15:29		sonnet
+sa15d2c	Sat 7	now	kanagu on bar tiles: a 6 px variant for the 20 px paper, kami-*.png slices (S4)			sonnet
 sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volume, brightness, battery, downloads (S4)			sonnet
 sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2	opus
 sa20	Sat 7	todo	Helium themed: his pick i 2 mokuroku, made far more TUI-feeling: lines, toolbar and left tab section heavily redone; following the switch; in the installer; tests		S2	opus
