@@ -4846,3 +4846,4 @@ r28-note-tr2: set T Transparency stills, n 0 = 0.96 (today, kawa-glass), n 1 = 0
 r28-sa05: Part 2 lessons days 1-12 (docs/lessons/wip, Python first steps); verified: lessons.parse + replay from empty dojo, each check fails before / passes after (Sat 7 Nov 12:11)
 r28-note-sa06: Part 2 lessons days 13-23 (docs/lessons/wip: functions to small-project); verified: lessons.parse + replay from empty dojo with days 1-12, each check fails before / passes after (2026-11-07 12:12)
 r28-note-sa07: Part 2 lessons days 24-28 (docs/lessons/wip: debugging-*); verified: lessons.parse + replay from empty dojo with days 1-23, each check fails before / passes after (2026-11-07 12:13)
+r28-note-sa08: Part 2 lessons days 29-33 (docs/lessons/wip: git-*); verified: lessons.parse + replay from empty dojo, each check fails before / passes after (2026-11-07 12:14)
