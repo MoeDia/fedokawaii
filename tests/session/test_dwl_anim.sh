@@ -117,9 +117,11 @@ grep -q 'dx = tagdx(c);' <<<"$f" \
   && ! grep -q 'animturn\|animrev\|anim_drift' "$P" \
   && _ok || _no "the strip"
 
-case_ "layer surfaces by namespace (config.h layeranims): the panels' menus and dialogs unroll over 300 ms and roll up over 240 (a menu mounted), a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
-for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -Eq '^	\{ "kawa-panel", +300, +240, +1, +1 \},' <<<"$c" && grep -Eq '^	\{ "kawa-dialog", +300, +240, +1, +0 \},' <<<"$c" \
+case_ "layer surfaces by namespace (config.h layeranims): the panels' menus and dialogs unroll over 460 ms (omori; config.def.h 300) and roll up over 240 (a menu mounted), a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
+for u in "460 $CH" "300"; do
+  if [[ $u == 300 ]]; then c=$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//'); else c=$(cat "${u#* }"); fi
+  u=${u%% *}
+  grep -Eq "^	\\{ \"kawa-panel\", +$u, +240, +1, +1 \\}," <<<"$c" && grep -Eq "^	\\{ \"kawa-dialog\", +$u, +240, +1, +0 \\}," <<<"$c" \
     && grep -Eq '^	\{ "notifications", +240, +200, +0, +0 \},' <<<"$c" \
     && grep -Eq '^	\{ "kawa-dim", +180, +120, +0, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-level", +0, +300, +0, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0, +0 \},' <<<"$c" \
     && _ok || _no "layeranims"
@@ -226,7 +228,7 @@ case_ "after a long time away (the screens dark): the first input lights them at
 grep -q '^+	woke = saverwake();$' "$P" && grep -Pzq '\+	if \(woke\)\n\+		saverkeys\(\);' "$P" && grep -q '^+#define SAVER_WAKE_MS 4000$' "$P" \
   && grep -q 'SAVER_GUARD_MS + (woke ? SAVER_WAKE_MS : 0)' "$P" && _ok || _no "wake, keys back, longer guard"
 case_ "a warm window (Super+U, N, V) shown unrolls from its top edge over anim_unroll_ms — its rod (the frame's foot: bottom hairline and shadow) travelling down, the picture cut above it (drawnheight, framelayout) — and one its key started unrolls as it maps"
-grep -q '^static const unsigned int anim_unroll_ms   = 300;' "$CH" && grep -q '^static const unsigned int anim_rollup_ms   = 240;' "$CH" \
+grep -q '^static const unsigned int anim_unroll_ms   = 460;' "$CH" && grep -q '^static const unsigned int anim_rollup_ms   = 240;' "$CH" \
   && grep -q 'return (int)lround(c->geom.height \* e);' <(added drawnheight) \
   && grep -q 'int w = c->geom.width, h = drawnheight(c), o = c->bw ? 1 : 0, j, dx = 0, dy = 0;' <(added applyframe) \
   && grep -q 'framelayout(w, h, o, r);' <(added applyframe) \
@@ -313,10 +315,9 @@ has "$(added railplace)" 'wlr_scene_rect_set_size(r->dust[i], size, size);'
 c=$(added railplace); has "$c" 'if (anim_tag_motion == TagScroll) {'
 grep -q '^+					wlr_scene_node_raise_to_top(&c->scene->node);$' "$P" && grep -q "^+			} else if (!before && after && (anim_tag_motion != TagFusuma || !leaving)) {" "$P" && _ok || _no "the room left over the next; the next closes in only when nothing leaves"
 
-case_ "a scroll's motion is one switch: the rod stands, kakejiku, omori and makimono a word away, all four sites by one ease; a scroll put away mid-way goes from where it is"
-for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -q '^static const int anim_scroll_motion *= ScrollRod;' <<<"$c" && _ok || _no "anim_scroll_motion, the rod"
-done
+case_ "a scroll's motion is one switch: omori (his pick c-2), the rod, kakejiku and makimono a word away, all four sites by one ease; a scroll put away mid-way goes from where it is"
+grep -q '^static const int anim_scroll_motion *= ScrollOmori;' "$CH" && _ok || _no "anim_scroll_motion, his pick c-2 omori (sa27)"
+grep -q '^static const int anim_scroll_motion *= ScrollRod;' <(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//') && _ok || _no "config.def.h: the rod"
 grep -q '^+enum { ScrollRod, ScrollKakejiku, ScrollOmori, ScrollMakimono };' "$P" && _ok || _no "the four motions"
 c=$(added scrollrods); has "$c" 'rodbar(d, parent, 11, 1, y, x0 + wv - MIN(wv / 2, ROD_T), h, -1, a);'; has "$c" 'rodbar(d, parent, 11, 0, x, foot, w, -1, a);'
 has "$(added dissolveend)" 'for (int i = 0; i < (int)LENGTH(d->rod); i++)'

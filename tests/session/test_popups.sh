@@ -31,7 +31,7 @@ has "$(fn ispanel)" '!strcmp(l->layer_surface->namespace, "kawa-panel")' '!strcm
 has "$(cat "$REPO/bin/kawa-panel")" 'def build_window(name="kawa-panel"):' 'GtkLayerShell.set_namespace(win, name)' 'win, area = build_window("kawa-dialog")' "(the names dwl knows the panel by: a menu, a dialog)"
 
 case_ "s12d: a menu stays a scroll while open (its rods and silk round it, mounted), a dialog draws its own"
-has "$(cat "$REPO/src/dwl/config.h")" '{ "kawa-panel",     300,   240,    1,     1 },' '{ "kawa-dialog",    300,   240,    1,     0 },'
+has "$(cat "$REPO/src/dwl/config.h")" '{ "kawa-panel",     460,   240,    1,     1 },' '{ "kawa-dialog",    460,   240,    1,     0 },'
 f=$(fn layermount)
 has "$f" 'anim_scroll_motion == ScrollRod' 'dissolveend(&l->mount);' 'k.box.width - 1, k.box.height - 2, 1.0, 1.0);'
 has "$(fn layerstop)" 'layermount(l);'

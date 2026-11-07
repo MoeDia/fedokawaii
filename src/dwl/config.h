@@ -85,13 +85,13 @@ static const unsigned int anim_tag_ms      = 450;  /* a workspace move, all of i
 static const unsigned int anim_tag_wave    = 48;   /* …ms between the first window's start and the last's */
 static const unsigned int anim_unlock_ms   = 420;  /* the lock screen dissolving off the
                                                     * desktop once the password is right */
-static const int anim_scroll_motion        = ScrollRod; /* how a menu, a panel, a warm window comes and
+static const int anim_scroll_motion        = ScrollOmori; /* (his pick c-2, sa27) how a menu, a panel, a warm window comes and
                                                     * goes, with anim_unroll_ms, anim_rollup_ms and
                                                     * the kawa-panel row below: ScrollRod 300/240 ·
                                                     * ScrollKakejiku 380/280, two rods and silk edges ·
                                                     * ScrollOmori 460/240, a weight, falling, bouncing ·
                                                     * ScrollMakimono 340/260, parting from the middle */
-static const unsigned int anim_unroll_ms   = 300;  /* a warm window shown (Super+U, N, V):
+static const unsigned int anim_unroll_ms   = 460;  /* a warm window shown (Super+U, N, V):
                                                     * it unrolls from its top edge, its rod
                                                     * (the frame's foot) travelling down */
 static const unsigned int anim_rollup_ms   = 240;  /* …put away: rolls up into its top edge */
@@ -108,8 +108,8 @@ static const unsigned int anim_wash_hold_ms = 3000; /* …a cover never told to 
  * the wallpaper, the wash): at once */
 static const LayerAnim layeranims[] = {
 	/* namespace        in ms  out ms  rolls  mounted */
-	{ "kawa-panel",     300,   240,    1,     1 },
-	{ "kawa-dialog",    300,   240,    1,     0 },
+	{ "kawa-panel",     460,   240,    1,     1 },
+	{ "kawa-dialog",    460,   240,    1,     0 },
 	{ "kawa-dim",       180,   120,    0,     0 },
 	{ "notifications",  240,   200,    0,     0 },
 	{ "kawa-level",     0,     300,    0,     0 },

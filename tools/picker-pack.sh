@@ -77,7 +77,7 @@ build() {
   case $st in
     a) sed -i "s/anim_motion  *= MotionHop;/anim_motion = $name;/; s/anim_open_ms  *= 450;/anim_open_ms = $a;/; s/anim_close_ms  *= 400;/anim_close_ms = $b;/" "$s/config.h" ;;
     b) sed -i "s/anim_tag_motion  *= TagStrip;/anim_tag_motion = $name;/; s/anim_tag_ms  *= 450;/anim_tag_ms = $a;/; s/anim_tag_wave  *= 48;/anim_tag_wave = $wave;/" "$s/config.h" ;;
-    c) sed -i "s/anim_scroll_motion  *= ScrollRod;/anim_scroll_motion = $name;/; s/anim_unroll_ms  *= 300;/anim_unroll_ms = $a;/; s/anim_rollup_ms  *= 240;/anim_rollup_ms = $b;/" "$s/config.h" ;;
+    c) sed -i "s/anim_scroll_motion  *= [A-Za-z]*;/anim_scroll_motion = $name;/; s/anim_unroll_ms  *= [0-9]*;/anim_unroll_ms = $a;/; s/anim_rollup_ms  *= [0-9]*;/anim_rollup_ms = $b;/" "$s/config.h" ;;
   esac
   make -C "$s" -j"$(nproc)" "${DWL_MAKE[@]}" "WLR_INCS=$(<"/usr/local/lib/fedokawaii-wlroots-$wlr/cflags")" \
     "WLR_LIBS=-L/usr/local/lib/fedokawaii-wlroots-$wlr/lib -lwlroots-$wlr -Wl,--disable-new-dtags,-rpath,/usr/local/lib/fedokawaii-wlroots-$wlr/lib" >"$W/build.log" 2>&1 \
