@@ -144,39 +144,50 @@ KANAGU_T = (".hhhhh",
             "hs....")
 K_FIT = len(KANAGU_T)
 K_PIC = (K_HAIR_T + K_FIT, K_FIT + 1, BAR_H - (K_HAIR_B - K_FIT + 1), K_FIT)   # the picture's slices: the corners wide enough for the fittings
+# The jikusaki bar (round 28, f12's pick 3; the switch is sa25d2): 39 rows — air 0–3, the hairline
+# on 4, the paper 5–34 (30: a 20-row line with 5 rows of paper above and below it), the hairline
+# on 35, the shadow 36–37; the clock's finials reach from row 1 to 38. The windows' tops on
+# y 44, as today's on 33 under the hairline on 24.
+K27 = {"h": BAR_H, "hair_t": K_HAIR_T, "top": K_TOP, "bot": K_BOT, "hair_b": K_HAIR_B}
+JIKUSAKI = {"h": 39, "hair_t": 4, "top": 5, "bot": 34, "hair_b": 35}
 
 
-def kami_tile(m, fill, w=16):
+def k_pic(g):
+    """A tile picture's slices (top right bottom left) on geometry g: the corners whole with their fittings."""
+    return (g["hair_t"] + K_FIT, K_FIT + 1, g["h"] - (g["hair_b"] - K_FIT + 1), K_FIT)
+
+
+def kami_tile(m, fill, w=16, g=K27):
     """A tile's picture, w px wide (the middle stretched by style.css): rows as above; the
     hairline in column 0 and w − 2, the shadow's column w − 1 — the frame of §4 to the pixel, as
     kawa-panel draws its panels' (the shadow's first row from a pixel in to under the right
     hairline, the second a pixel further right, the column from the right hairline's second row
     down) — and a brass fitting (KANAGU_T) in each corner. Only the paper's column inside the left
     hairline is in the picture (the background paints the rest); style.css lays it on as a
-    border-image sliced K_PIC (1 : 1 with border-image-width), so the corners are whole."""
+    border-image sliced k_pic(g) (1 : 1 with border-image-width), so the corners are whole."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
-    c = [[none] * w for _ in range(BAR_H)]
+    c = [[none] * w for _ in range(g["h"])]
     L, R = 0, w - 2                     # the hairline's columns
-    for y in range(K_TOP, K_BOT + 1):
+    for y in range(g["top"], g["bot"] + 1):
         c[y][L + 1] = _rgb(fill)
     for x in range(L + 1, R):           # the hairline, its corners left out
-        c[K_HAIR_T][x] = c[K_HAIR_B][x] = k["hair"]
-    for y in range(K_TOP, K_BOT + 1):
+        c[g["hair_t"]][x] = c[g["hair_b"]][x] = k["hair"]
+    for y in range(g["top"], g["bot"] + 1):
         c[y][L] = c[y][R] = k["hair"]
     for x in range(L + 1, R + 1):       # the shadow: a row from a pixel in to under the hairline,
-        c[K_HAIR_B + 1][x] = k["shadow"][0]
+        c[g["hair_b"] + 1][x] = k["shadow"][0]
     for x in range(L + 2, R + 2):       # a row a pixel further right,
-        c[K_HAIR_B + 2][x] = k["shadow"][1]
-    for y in range(K_TOP + 1, K_HAIR_B + 1):   # and the column from the hairline's second row
+        c[g["hair_b"] + 2][x] = k["shadow"][1]
+    for y in range(g["top"] + 1, g["hair_b"] + 1):   # and the column from the hairline's second row
         c[y][R + 1] = k["shadow"][1]
     ink = dict(zip("hos#", map(_rgb, BRASS[m]), strict=True))
-    for fx, fy, sx, sy in ((L, K_HAIR_T, 1, 1), (R, K_HAIR_T, -1, 1), (L, K_HAIR_B, 1, -1), (R, K_HAIR_B, -1, -1)):
+    for fx, fy, sx, sy in ((L, g["hair_t"], 1, 1), (R, g["hair_t"], -1, 1), (L, g["hair_b"], 1, -1), (R, g["hair_b"], -1, -1)):
         for j, line in enumerate(KANAGU_T):
             for i, ch in enumerate(line):
                 if ch != ".":
                     c[fy + sy * j][fx + sx * i] = ink[ch]
-    return png(w, BAR_H, c)
+    return png(w, g["h"], c)
 
 
 def kami_tip(m, fill, w=12):
@@ -263,6 +274,55 @@ def kami_scroll(m, fill, w=13):
             for x in range(rx, rx + 4):
                 c[y][x] = _rgb(k["gold"])
     return png(w, BAR_H, c)
+
+
+def kami_knob(m, fill, p, w=48, g=JIKUSAKI):
+    """The jikusaki bar's clock (f12's pick 3): the paper and its hairlines (a tile's rows) between
+    two brocade bands (一文字 ichimonji, 10 px: the lacquer, gold at its edges and in a lattice of
+    gold pixels), each band held by a rod with turned gold finials (軸先 jikusaki, 12 px)
+    standing three rows proud of the hairlines; the paper's shadow (two rows) under the paper and
+    the bands, between the rods. Light from the top left: each rod lit a column left of its
+    middle, each finial on its third column. Sliced 5 22 4 22 by style.css (the rod and its band
+    each side; the middle columns are the hairlines and the shadow's rows only, so they stretch
+    evenly); w px wide."""
+    k = KAMI[m]
+    none = (0, 0, 0, 0)
+    c = [[none] * w for _ in range(g["h"])]
+    rod, band = 12, 10
+    x0, x1 = rod + band, w - rod - band - 1          # the paper's first and last columns
+    for y in range(g["top"], g["bot"] + 1):
+        for x in range(x0, x1 + 1):
+            c[y][x] = _rgb(fill)
+    for x in range(rod, w - rod):                     # the hairlines (under the bands' gold too),
+        c[g["hair_t"]][x] = c[g["hair_b"]][x] = k["hair"]
+        c[g["hair_b"] + 1][x] = k["shadow"][0]        # the shadow's first row,
+        if x > rod:
+            c[g["hair_b"] + 2][x] = k["shadow"][1]    # its second a pixel further right
+    gold, dark = k["gold"], k["rod_dk"]
+    edge = _rgb(gold)
+    for bx in (rod, w - rod - band):                  # the bands
+        for y in range(g["hair_t"], g["hair_b"] + 1):
+            for i in range(band):
+                d = y - g["hair_t"]            # the motif: gold pixels in a lozenge lattice, 4 rows a step
+                lattice = (d % 4 == 2 and i in (2, band - 3)) or (d % 4 == 0 and i in (band // 2 - 1, band // 2))
+                c[y][bx + i] = edge if y in (g["hair_t"], g["hair_b"]) or i in (0, band - 1) or lattice else _rgb(p["lacquer"])
+    hi, lo = _rgb(_mixc(gold, "ffffff", .5)), _rgb(_mixc(gold, dark, .55))
+    prof = (8, 12, 12, 8, 6, 12, 6)                   # the turned finial, from its tip in
+    body = (None, None, "rod_dk", "rod", "rod_hi", "rod_hi", "rod", "rod", "rod", "rod_dk", None, None)
+    y0, y1 = g["hair_t"] - 3, g["hair_b"] + 3
+    for rx in (0, w - rod):                           # the rods
+        for y in range(y0, y1 + 1):
+            d = min(y - y0, y1 - y)
+            if d < len(prof):
+                wid = prof[d]
+                for i in range((rod - wid) // 2, (rod + wid) // 2):
+                    t = i - (rod - wid) // 2
+                    c[y][rx + i] = lo if t in (0, wid - 1) else hi if t == 2 or (d == 0 and t == 3) else edge
+            else:
+                for i, name in enumerate(body):
+                    if name:
+                        c[y][rx + i] = _rgb(k[name])
+    return png(w, g["h"], c)
 
 
 def lock_scroll(m, fill, rule, s=2):
