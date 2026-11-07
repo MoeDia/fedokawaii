@@ -26,6 +26,20 @@ for v in 3 4; do printf '[Settings]\ngtk-theme-name=%s\ngtk-font-name=Sumi UI 10
 export GSETTINGS_BACKEND=keyfile
 mkdir -p "$XDG_CONFIG_HOME/glib-2.0/settings"
 printf "[org/gnome/desktop/interface]\nfont-name='Sumi UI 10.5'\ngtk-theme='%s'\n" "$gtk" >"$XDG_CONFIG_HOME/glib-2.0/settings/keyfile"
+# (built, r28 sa20b: the desktop's own fonts (GTK's Noto Sans, dconf), its colour scheme, and the
+# portal that serves it to Helium, as the session has: the new tab follows the mood, the chrome's
+# Sumi UI comes from the theme alone)
+if [ "$OPTION" = built ]; then
+  for v in 3 4; do printf '[Settings]\ngtk-theme-name=%s\ngtk-font-name=Noto Sans 10.5\n' "$gtk" >"$XDG_CONFIG_HOME/gtk-$v.0/settings.ini"; done
+  printf "[org/gnome/desktop/interface]\nfont-name='Noto Sans 10.5'\ngtk-theme='%s'\ncolor-scheme='prefer-%s'\n" "$gtk" "$MOOD" >"$XDG_CONFIG_HOME/glib-2.0/settings/keyfile"
+  mkdir -p "$XDG_CONFIG_HOME/xdg-desktop-portal"
+  cp "$REPO/configs/home/.config/xdg-desktop-portal/wlroots-portals.conf" "$XDG_CONFIG_HOME/xdg-desktop-portal/"
+  export XDG_CURRENT_DESKTOP=wlroots
+  /usr/libexec/xdg-desktop-portal-gtk >"$OUT/$MOOD/portal-gtk.log" 2>&1 &
+  sleep 1
+  /usr/libexec/xdg-desktop-portal >"$OUT/$MOOD/portal.log" 2>&1 &
+  sleep 1
+fi
 cat >"$OUT/a.html" <<'PAGE'
 <!doctype html><title>the book of five rings</title>
 PAGE

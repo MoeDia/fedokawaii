@@ -711,7 +711,13 @@ def gtk3_theme(m, p):
             "tooltip.background.chromium { background-color: @popover_bg_color; border-color: @headerbar_border_color; }",
             "tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }",
             "headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }",
-            "window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }"]
+            "window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }",
+            "",
+            "/* Helium's chrome (tabs, address, menus) takes its font from a label it makes and never",
+            "   puts in a window (r28 sa20b): a label with no parent is in Sumi UI at 14 px, every",
+            "   label inside a window inherits as GTK's own default does, so GTK apps keep theirs. */",
+            'label { font-family: "Sumi UI"; font-size: 14px; }',
+            "* > label { font-family: inherit; font-size: inherit; }"]
     out += ["", *SQUARE_NOTE, *square_rules(3)]
     return "\n".join(out) + "\n"
 

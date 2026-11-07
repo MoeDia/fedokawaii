@@ -181,4 +181,12 @@ for c in "$REPO/configs/home/.local/share/themes/Fedokawaii/gtk-3.0/gtk.css" \
   grep -qE '^button\.default:not\(#kawa-square\):not\(#kawa-sq\)[^{]*:not\(:disabled\).*\{ .*background-color: (@accent_bg_color|var\(--accent-bg-color\))' "$c" && _ok || _no "$n: the default button not the accent"
 done
 
+case_ "Helium's chrome in Sumi UI (r28 sa20b): a label with no parent (the one Chromium reads its font from) is Sumi UI at 14 px, a label in a window inherits (GTK apps keep the desktop's font)"
+for c in "$REPO/configs/home/.local/share/themes/Fedokawaii/gtk-3.0/gtk.css" \
+         "$REPO/configs/home/.local/share/themes/Fedokawaii-dark/gtk-3.0/gtk.css"; do
+  css=$(cat "$c"); n=${c#"$REPO/configs/home/"}
+  has "$css" 'label { font-family: "Sumi UI"; font-size: 14px; }' "$n: no Sumi UI for Helium's chrome"
+  has "$css" '* > label { font-family: inherit; font-size: inherit; }' "$n: labels in windows not back to their parent's font"
+done
+
 done_

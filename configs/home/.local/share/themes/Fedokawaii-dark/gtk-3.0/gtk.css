@@ -49,6 +49,12 @@ tooltip.chromium * { color: @popover_fg_color; text-shadow: none; }
 headerbar.chromium:backdrop { background-color: @headerbar_bg_color; }
 window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @headerbar_bg_color; }
 
+/* Helium's chrome (tabs, address, menus) takes its font from a label it makes and never
+   puts in a window (r28 sa20b): a label with no parent is in Sumi UI at 14 px, every
+   label inside a window inherits as GTK's own default does, so GTK apps keep theirs. */
+label { font-family: "Sumi UI"; font-size: 14px; }
+* > label { font-family: inherit; font-size: inherit; }
+
 /* The desktop's parts (docs/design-system.md), as far as GTK draws them. Square, as the
    rest of the desktop: dwl draws each window's border, so a window's rounded corners
    and the shadow around it (client-side decorations: a margin outside the window)
