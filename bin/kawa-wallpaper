@@ -52,9 +52,9 @@ T0=${EPOCHREALTIME/[.,]/}
 # and -resize lose their "i" (kawa-sixel, kawa-clip and kawa-books do the same)
 magick() { LC_ALL=C command magick "$@"; }
 case ${1:-} in -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;; esac
-WIN_COLS=80 W=76            # the picker's window (kawa-term --float 80x37) and its rows' width: below
+WIN_COLS=88 W=84            # the picker's window (kawa-term --float 88x37) and its rows' width: below
 # Super+W: the picker window at once, before anything else is read (a second press while it
-# is open closes it, as fast: kawa-term --float --once). 80 × 37: the clipboard window's width, an
+# is open closes it, as fast: kawa-term --float --once). 88 × 37: the 88-column grid (docs/design-system.md), an
 # odd height (centred to the pixel, the tallest that fits under the bar): the list, its settings,
 # then a 17-row area for the picture — as far below the settings as above the window's hairline.
 # What was picked is put up once the window has closed (menu, below)
@@ -549,7 +549,7 @@ cache_status() {   # the report's and verify's look: complete and current?
 # picture its glyph and name, the theme's own marked "default" and one with a day/night pair ◐,
 # right-aligned in muted; under the list the settings, as options: every value in sight, the one
 # in force chosen, its key at the row's end (no input line: nothing to type, the letters are the
-# keys'). The window is fixed (kawa-term --float 80x37), so the rows' width is known: its columns
+# keys'). The window is fixed (kawa-term --float 88x37), so the rows' width is known: its columns
 # less two each side (fzf's margin and the cursor fill's: W, at the top)
 declare -A OWN_SUM=()
 current() {   # the choice shown now, as the list names it: the default's own picture is "default"

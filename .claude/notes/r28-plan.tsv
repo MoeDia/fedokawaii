@@ -116,8 +116,8 @@ sa13	Sat 7	done	menus as one unit: the grid measured and written (design-system)
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes			sonnet
 sa14	Sat 7	done	menus as one unit: Super+R, Super+V, Super+W to the same grid	Sat 7 Nov 14:31	Super+V only (clipboard 80x27 -> 88x27, rule 84); W and R split off as sa14w, sa14b	sonnet
 sa14r	Sat 7	done	regress README: rows for r28-sa04 and r28-tr1, line 65's check named as a case (items.py check clean)	Sat 7 Nov 14:32	rows added for r28-sa04, r28-sa14, r28-tr1 (sa14 had none); line 65 checks named; items.py check clean	haiku
-sa14w	Sat 7	now	Super+W wallpaper picker to the 88-column grid (WIN_COLS 80, W 76, 80x37 float; rows' cols)		split from sa14	sonnet
-sa14b	Sat 7	todo	Super+R books to the 88-column grid (104x29 float; cover maths, pane)		split from sa14	sonnet
+sa14w	Sat 7	done	Super+W wallpaper picker to the 88-column grid (WIN_COLS 80, W 76, 80x37 float; rows' cols)	Sat 7 14:39	88x37, rows 84; test_wallpaper 336 pass	sonnet
+sa14b	Sat 7	now	Super+R books to the 88-column grid (104x29 float; cover maths, pane)		split from sa14	sonnet
 sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods			sonnet
 sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35	sonnet
 sa15c	Sat 7	todo	the selection marker built: his pick P2 1 yubi, the bobbing pointer; cheap, frames looked at (S4)			opus

@@ -378,7 +378,7 @@ cachesetup() {
     printf 'light  %s  -  center  %s  https://x/%s.jpg  Test\n' "$n" "$(printf '%s' "$n" | sha256sum | cut -d' ' -f1)" "$n" >>"$SHARE/wallpapers.list"
     art "$PACK/light/$n.src" 960x540
   done
-  mkdir -p "$PREVIEWS"; echo "12x26 78x17" >"$PREVIEWS/geometry"
+  mkdir -p "$PREVIEWS"; echo "12x26 86x17" >"$PREVIEWS/geometry"
 }
 pngs() { find "$SCREENS/${1:-1920x1080}" -name '*.png' 2>/dev/null | wc -l; }
 sixes() { find "$PREVIEWS" -name '*.six' 2>/dev/null | wc -l; }
@@ -391,8 +391,8 @@ eq "$r" 0
 eq "$(pngs)" 5 "five drawings at 1920x1080"
 eq "$(sixes)" 5 "five previews"
 [[ -s $SCREENS/1920x1080/$(key_of d2).png ]] && _ok || _no "d2: no $(key_of d2).png"
-[[ -s $PREVIEWS/1920x1080-12x26-$GD/$(key_of d1).78x17.six ]] && _ok || _no "d1's preview: not where the picker looks (screen-cell-ground/KEY.COLSxROWS.six)"
-[[ -s $PREVIEWS/1920x1080-12x26-$GL/$(key_of l1 light).78x17.six ]] && _ok || _no "l1's preview: on its own theme's ground"
+[[ -s $PREVIEWS/1920x1080-12x26-$GD/$(key_of d1).86x17.six ]] && _ok || _no "d1's preview: not where the picker looks (screen-cell-ground/KEY.COLSxROWS.six)"
+[[ -s $PREVIEWS/1920x1080-12x26-$GL/$(key_of l1 light).86x17.six ]] && _ok || _no "l1's preview: on its own theme's ground"
 has "$out" "wallpaper cache: drawing 5 pictures for 1920x1080"
 has "$out" "wallpaper cache: 5 pictures drawn for 1920x1080 in"
 eq "$(size_of "$SCREENS/1920x1080/$(key_of d3).png")" 1920x1080
@@ -524,15 +524,15 @@ lacks "$(rows)" red-fuji "the other theme's pictures are not offered"
 
 case_ "the rows (design system §7): a column in, the glyph, two columns, the name; the value right-aligned in muted"
 d=$(plain | head -n1)
-eq "$d" " $ICON_TORII  ink-ridges-night$(printf '%*s' $((76 - 5 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' a column in from the last"
-eq "$(plain | grep -F "$ICON_THEME" | while IFS= read -r l; do printf '%s\n' "$(LC_ALL=C.UTF-8 wc -L <<<"$l")"; done | sort -u)" 75 "the ◐ marks: a column in from the last"
+eq "$d" " $ICON_TORII  ink-ridges-night$(printf '%*s' $((84 - 5 - 16 - 17)) '')current · default" "the default, shown now: 'current · default' a column in from the last"
+eq "$(plain | grep -F "$ICON_THEME" | while IFS= read -r l; do printf '%s\n' "$(LC_ALL=C.UTF-8 wc -L <<<"$l")"; done | sort -u)" 83 "the ◐ marks: a column in from the last"
 eq "$(grep -cF "$ICON_THEME" "$TMP/rows")" 2 "quay-night and old-pier-at-night have a pair"
 has "$(pics | sed -n 1p)" $'\e[38;5;21mcurrent · default' "the value in muted (palette 21)"
 has "$(pics | sed -n 1p)" $'\e[38;5;21m'"$ICON_TORII" "the glyph in muted"
 case_ "the sections: each under a label of its own — its words muted at the icons' column, the rule, how many; the default's first, the old masters next; a label the cursor passes by, nothing picked from it"
 lab=$(grep -a '^§' "$TMP/rows" | cut -f3 | sed 's/\x1b\[[0-9;]*m//g')
 eq "$(sed 's/ ─* / /' <<<"$lab" | sed 's/ *$//' | head -n 2)" "$(printf '%s\n' ' ink and brush 2' ' woodblock prints by night 1')" "(the fetched ones' sections, counted)"
-eq "$(grep -a '^§' "$TMP/rows" | cut -f3 | head -n1 | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 75 "a label's count on the values' column"
+eq "$(grep -a '^§' "$TMP/rows" | cut -f3 | head -n1 | sed 's/\x1b\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 83 "a label's count on the values' column"
 has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;21mink and brush' "muted"; has "$(grep -a '^§' "$TMP/rows" | head -n1)" $'\e[38;5;19m──' "the rule's ink"
 a=$(args_of fzf "$(ncalls fzf)")
 has "$a" 'down:down+transform:[[ {1} == § ]] && echo down'; has "$a" 'up:up+transform:[[ {1} == § ]] && echo up'; has "$a" 'focus:transform:[[ {1} == § ]] && echo down' "whatever moved the cursor there"
@@ -611,7 +611,7 @@ for v in off 1h 4h daily off; do
   rc 0 kawa-wallpaper --rotate cycle
 done
 eq "$(kawa-state get wallpaper-rotate)" off "round to off again"
-eq "$(foot | sed -n 2p | LC_ALL=C.UTF-8 wc -L)" 75 "a setting's tile ends on the values' column"
+eq "$(foot | sed -n 2p | LC_ALL=C.UTF-8 wc -L)" 83 "a setting's tile ends on the values' column"
 kawa-state set wallpaper-rotate on; has "$(foot | sed -n 2p)" $'\U000FF00C 4 h' "an earlier version's on: every 4 hours"; kawa-state unset wallpaper-rotate
 has "$(foot | sed -n 3p)" $'\U000FF00C in turn'; rc 0 kawa-wallpaper --order cycle; has "$(foot | sed -n 3p)" $'\U000FF00C shuffle'; rc 0 kawa-wallpaper --order cycle; eq "$(kawa-state get wallpaper-order)" turn
 has "$(foot | sed -n 4p)" $'\U000FF00C both'; rc 0 kawa-wallpaper --from masters; has "$(foot | sed -n 4p)" $'\U000FF00C old masters'; rc 0 kawa-wallpaper --from cycle; has "$(foot | sed -n 4p)" $'\U000FF00C scenes'; rc 0 kawa-wallpaper --from both
@@ -673,7 +673,7 @@ not_called '^fzf'
 # ── the preview pane ─────────────────────────────────────────────────────────
 # (the picker's previews always have the cell the window measured: --tui exports it; fzf
 # gives the pane's size)
-export KAWA_CELL=12x26 FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=17
+export KAWA_CELL=12x26 FZF_PREVIEW_COLUMNS=86 FZF_PREVIEW_LINES=17
 pane() {   # pane CHOICE — what the picker's preview command shows (fzf's own command line, run)
   local cmd; cmd=$(args_of fzf "$(ncalls fzf)" | sed -n 's/^--preview=//p')
   [[ -n $cmd ]] || { echo "no --preview"; return 1; }
@@ -698,11 +698,11 @@ out=$(kawa-wallpaper --preview pack:moon-road-ink 2>/dev/null); [[ $out == $'\eP
 out=$(FZF_PREVIEW_COLUMNS=1 FZF_PREVIEW_LINES=1 kawa-wallpaper --preview pack:moon-road-ink 2>"$TMP/err")
 eq "$(cat "$TMP/err")" "" "a tiny pane: no error"
 case_ "--preview notes the pane's size (the cache draws ahead for it)"
-eq "$(cat "$PREVIEWS/geometry")" "12x26 78x17"
+eq "$(cat "$PREVIEWS/geometry")" "12x26 86x17"
 case_ "the preview's own size: a whole fraction of the screen, centred across the pane and down to the window's hairline (as far as it lets: clear of its last line)"
-f=$PREVIEWS/1920x1080-12x26-$GD/$(key_of moon-road-ink).78x17.six
+f=$PREVIEWS/1920x1080-12x26-$GD/$(key_of moon-road-ink).86x17.six
 [[ -s $f ]] && _ok || _no "not kept where the picker's command looks"
-eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;788;390' "640×360 (a third of 1080p) at 148,56 in a 936×442 pane, the row of the pane's first line above the sixel"
+eq "$(head -c 40 "$f" | grep -ao '"1;1;[0-9]*;[0-9]*')" '"1;1;836;390' "640×360 (a third of 1080p) at 196,56 in a 1032×442 pane, the row of the pane's first line above the sixel"
 
 case_ "in the picker (a cache hit): the preview is a cat of its sixel — no kawa-wallpaper run, under 100 ms"
 setup; picker
@@ -710,7 +710,7 @@ setup; picker
 # be swapped for a stand-in that only says it ran)
 mkdir -p "$TMP/kbin"; cp "$REPO/bin/kawa-wallpaper" "$TMP/kbin/"
 art "$PACK/dark/ink-ridges-night.src" 960x540; art "$PACK/dark/moon-road-ink.src" 960x540
-mkdir -p "$PREVIEWS"; echo "12x24 78x17" >"$PREVIEWS/geometry"
+mkdir -p "$PREVIEWS"; echo "12x24 86x17" >"$PREVIEWS/geometry"
 kawa-wallpaper --cache >/dev/null 2>&1
 "$TMP/kbin/kawa-wallpaper" --tui "$TMP/out"
 KAWA_CELL=12x24 kawa-wallpaper --preview pack:moon-road-ink >"$TMP/want"
@@ -734,12 +734,12 @@ KAWA_CELL=12x24 pane "$WP/mine.png" >/dev/null
 "$TMP/kbin/kawa-wallpaper" --tui "$TMP/out"
 k=$(awk -F'\t' -v c="$WP/mine.png" '$1 == c { print $2 }' "$TMP/rows")
 [[ $k =~ ^mine\.[0-9a-f]{16}\.center$ ]] && _ok || _no "no key after it was read: [$k]"
-[[ -s $PREVIEWS/1920x1080-12x24-$GD/$k.78x17.six ]] && _ok || _no "its preview not kept"
+[[ -s $PREVIEWS/1920x1080-12x24-$GD/$k.86x17.six ]] && _ok || _no "its preview not kept"
 
 case_ "--warm (while the picker is open): every preview drawn ahead, nearest the cursor first"
 setup
 for n in a b c d e; do photo "$WP/$n.png"; done
-mkdir -p "$PREVIEWS"; echo "12x26 78x17" >"$PREVIEWS/geometry"
+mkdir -p "$PREVIEWS"; echo "12x26 86x17" >"$PREVIEWS/geometry"
 printf '%s\0' "$WP/c.png" "$WP/d.png" "$WP/b.png" "$WP/e.png" "$WP/a.png" >"$TMP/order"
 kawa-wallpaper --warm "$TMP/order"
 eq "$(find "$PREVIEWS" -name '*.six' | wc -l)" 5 "the five pictures"
@@ -747,13 +747,13 @@ before=$(find "$PREVIEWS" -name '*.six' -printf '%f %T@\n' | sort)
 kawa-wallpaper --preview "$WP/a.png" >/dev/null
 eq "$(find "$PREVIEWS" -name '*.six' -printf '%f %T@\n' | sort)" "$before" "showing one draws nothing new: it was ready"
 case_ "--warm waits for the pane's size (the first preview notes it); none for this cell: nothing"
-echo "9x21 78x17" >"$PREVIEWS/geometry"; rm -f "$PREVIEWS"/*/*.six
+echo "9x21 86x17" >"$PREVIEWS/geometry"; rm -f "$PREVIEWS"/*/*.six
 rc 1 kawa-wallpaper --warm "$TMP/order"
 eq "$(find "$PREVIEWS" -name '*.six' | wc -l)" 0
 
 case_ "a preview killed half-way (fzf kills one you moved on from): its half-made file cleared next time"
 setup
-photo "$WP/a.png"; mkdir -p "$PREVIEWS/x"; echo "12x26 78x17" >"$PREVIEWS/geometry"
+photo "$WP/a.png"; mkdir -p "$PREVIEWS/x"; echo "12x26 86x17" >"$PREVIEWS/geometry"
 : >"$PREVIEWS/x/abc.six.4242.tmp"; touch -d '5 minutes ago' "$PREVIEWS/x/abc.six.4242.tmp"
 : >"$PREVIEWS/x/def.six.4343.tmp"                    # (one being drawn right now: left alone)
 printf '%s\0' "$WP/a.png" >"$TMP/order"
