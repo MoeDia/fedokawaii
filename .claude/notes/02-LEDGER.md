@@ -4843,3 +4843,4 @@ r28-note-sa02	done	2026-11-07 12:05	11 Part 1 lessons, days 1 to 11, docs/lesson
 r28-note-sa03	done	2026-11-07 12:06	6 Part 1 lessons (days 22-26, 28) in docs/lessons/wip/; verified: lessons.parse on each, each proof run from repo root exit 0
 - r28-sa04 (done Sat 7 Nov 12:07): 7 Part 1 lessons, ASOBI and Helium (days 29-33, 45, 46), in docs/lessons/wip/; verified: lib/lessons.py parse ok, every proof exits 0; facts from the guide §21.1, §14.2 and bin/kawa-asobi --help
 r28-note-tr2: set T Transparency stills, n 0 = 0.96 (today, kawa-glass), n 1 = 0.99, dark and light on the real screen (kit, wallpaper, foot + Super+X); verified by looking at the frames (full-screen diff bbox 9,9-1911,1071); files img/hi/T-{0,1}-{dark,light}.png, t1-transparency.jpg (Sat 7 Nov 12:09)
+r28-sa05: Part 2 lessons days 1-12 (docs/lessons/wip, Python first steps); verified: lessons.parse + replay from empty dojo, each check fails before / passes after (Sat 7 Nov 12:11)
