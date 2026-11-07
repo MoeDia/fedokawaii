@@ -160,6 +160,18 @@ PLATE_OUT, PLATE_H = 10, 52          # … on a title plate 10 px out of the con
 PLATE_HEAD = (PLATE_H - 48) // 2     # … the head of 48 from the plate's corner: on the axis of the rows' icons, its right end the pictures' (x0 - 8 to x0 + 40)
 # yubi (his pick P2 1, S4): the cursor's marker, a JRPG pointer in the gutter left of the row, its tip 6 px
 # from the band; it bobs right in whole pixels, a pose every YUBI_MS: only its own 8 x 9 px drawn again
+KANAGU = (".hhhhhhhhhh.",       # a chest's fitting, one arm along each edge, a rivet in the crook (h lit, o brass, s shade, # rivet)
+          "hoooooooooos",
+          "hoooooooos..",
+          "hoo##osss...",
+          "hoo##os.....",
+          "hooooos.....",
+          "hoosss......",
+          "hoos........",
+          "hoos........",
+          "hos.........",
+          "ho..........",
+          ".s..........")
 YUBI = ("##......",                  # "#" the rim (yubi_rim), "o" the seal's red, "h" its lit edge
         "#o#.....",
         "#oh#....",
@@ -2905,6 +2917,15 @@ def main(argv):
         box(cr, x, y + t, t, h - 2 * t, name)
         box(cr, x + w - t, y + t, t, h - 2 * t, name)
 
+    def kanagu(cr, W, H):
+        """P3 (owner's pick, 6 Nov): a brass fitting off an old chest in each corner of a frame, on the hairline."""
+        ink = {"h": "kanagu_hi", "o": "kanagu", "s": "kanagu_lo", "#": "kanagu_rivet"}
+        for fx, fy, sx, sy in ((0, 0, 1, 1), (W - 1, 0, -1, 1), (0, H - 1, 1, -1), (W - 1, H - 1, -1, -1)):
+            for j, line in enumerate(KANAGU):
+                for i, c in enumerate(line):
+                    if c != ".":
+                        box(cr, fx + sx * i, fy + sy * j, 1, 1, ink[c])
+
     def text_layout(cr, s):
         lay = PangoCairo.create_layout(cr)
         PangoCairo.context_set_font_options(lay.get_context(), fo)
@@ -3233,6 +3254,7 @@ def main(argv):
         # the second a pixel further right) and a column at its right from its third row down
         cr.set_operator(cairo.OPERATOR_SOURCE)
         frame(cr, 0, 0, W, H, "hair", cut=True)
+        kanagu(cr, W, H)
         box(cr, HAIR, H, W - HAIR, 1, "shadow1")
         box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")
         box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")
@@ -3346,6 +3368,7 @@ def main(argv):
              "faint" if lvl["off"] else "muted", right=True)
         cr.set_operator(cairo.OPERATOR_SOURCE)
         frame(cr, 0, 0, W, H, "hair", cut=True)
+        kanagu(cr, W, H)
         box(cr, HAIR, H, W - HAIR, 1, "shadow1")
         box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")
         box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")
