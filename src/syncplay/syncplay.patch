@@ -31,8 +31,11 @@ ends both, the room is told you left, and nothing flashes in the window as it cl
    under a lock (the socket's thread and the reactor's both stop the client), and mpv's end
    awaited only off the reactor's thread.
 
-Made with git diff in a clone of the v1.7.6 tag; git apply reads from the first "diff" line on.
+7. Roster: the console shows who joined, left or changed ready as one coloured line (terminal palette:
+   cyan joined, red left, green ready, dim not ready, you in bold) and a bare Enter toggles your
+   ready state, as the GUI's button (syncplay/ui/consoleUI.py).
 
+Made with git diff in a clone of the v1.7.6 tag; git apply reads from the first "diff" line on.
 diff --git a/syncplay/client.py b/syncplay/client.py
 index 8942225..04e506e 100755
 --- a/syncplay/client.py
@@ -172,6 +175,60 @@ index 495111d..bec3ca7 100755
                  try:
                      self._client.ui.showErrorMessage(str(type(reason)))
                      self._client.ui.showErrorMessage(str(reason))
+diff --git a/syncplay/ui/consoleUI.py b/syncplay/ui/consoleUI.py
+index bff0c36..09f2432 100755
+--- a/syncplay/ui/consoleUI.py
++++ b/syncplay/ui/consoleUI.py
+@@ -19,6 +19,7 @@ class ConsoleUI(threading.Thread):
+         self.promptMode.set()
+         self._syncplayClient = None
+         self.uiMode = constants.CONSOLE_UI_MODE
++        self._roster = {}                     # (fedokawaii) name -> ready, as last shown
+         threading.Thread.__init__(self, name="ConsoleUI")
+ 
+     def addClient(self, client):
+@@ -45,7 +46,11 @@ class ConsoleUI(threading.Thread):
+                     self.PromptResult = data
+                     self.promptMode.set()
+                 elif self._syncplayClient:
+-                    self.executeCommand(data)
++                    if data.strip() == "":
++                        # (fedokawaii) a bare Enter is the GUI's ready button
++                        self._syncplayClient.toggleReady()
++                    else:
++                        self.executeCommand(data)
+         except EOFError:
+             pass
+ 
+@@ -88,7 +93,27 @@ class ConsoleUI(threading.Thread):
+                     self.showMessage(message, True)
+ 
+     def userListChange(self):
+-        pass
++        # (fedokawaii) who joined, who left, who is ready: one line in the terminal's own
++        # palette (green ready, dim not ready, red left, accent for you) at each change
++        client = self._syncplayClient
++        if not client:
++            return
++        ul = client.userlist
++        now = {u.username: u.isReady() for u in list(ul._users.values()) + [ul.currentUser] if u.username}
++        old, self._roster = self._roster, now
++        if not old:
++            return
++        you = ul.currentUser.username
++        out = []
++        for n, r in now.items():
++            if n not in old:
++                out.append("\033[36m+ {}\033[0m".format(n))
++            elif old[n] != r:
++                out.append("\033[32m● {} ready\033[0m".format(n) if r else "\033[2m○ {} not ready\033[0m".format(n))
++        out += ["\033[31m− {}\033[0m".format(n) for n in old if n not in now]
++        if out:
++            self.showMessage("  ".join(out) + "   [{}]".format(
++                " ".join(("\033[32m●\033[0m" if r else "\033[2m○\033[0m") + ("\033[1m" + n + "\033[0m" if n == you else n) for n, r in now.items())))
+ 
+     def addRoomToList(self):
+         pass
 diff --git a/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py b/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
 index 4d9fab3..d75d3ba 100644
 --- a/syncplay/vendor/python_mpv_jsonipc/python_mpv_jsonipc.py
