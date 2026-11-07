@@ -176,6 +176,7 @@ built_notices() {   # §4, §9: notices — the doc's numbers in mako's config, 
     has "$(cat "$REPO/configs/home/.config/fedokawaii/themes/$t/mako")" "summary-icon-color=#" "$t: the title's icon in its own ink"
   done
   for t in dark light; do has "$(cat "$REPO/configs/home/.config/fedokawaii/themes/$t/mako")" "kanagu-color=#" "$t: kanagu in the notice's corners"; done
+  has "$(cat "$REPO/tools/build-themes.py")" "KANAGU_T" "bar tiles: the 6 px kanagu"
   has "$(cat "$REPO/src/mako/mako.patch")" "shadow-color" "the desktop's mako draws them (src/mako/mako.patch)"
 }
 built_lessons() {   # §7: the page's 88 columns, the pane's 50 (Super+U's), the seal 56 × 56 mirrored, the star a cell

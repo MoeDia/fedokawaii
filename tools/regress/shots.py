@@ -122,7 +122,8 @@ def bar(f, fibre):
             x += 1
     def paper_of(a, b, ink_set):
         return [(c, y) for c in range(a, b + 1) for y in range(4, 24)
-                if tuple(int(v) for v in im[y, c]) not in ink_set]
+                if tuple(int(v) for v in im[y, c]) not in ink_set
+                and not (min(c - a + 1, b - c) <= 6 and min(y - 3, 24 - y) <= 5 and not (b - a) > 150)]   # (the brass fittings, 6 px in each corner, are no ink)
     for a, b in tiles:
         scroll = (b - a) > 150                       # (the clock: rods 4 px, no shadow column)
         L, R = (a + 3, b - 3) if scroll else (a, b - 1)   # (the scroll: the rods, 4 px, are its edges)
@@ -145,7 +146,9 @@ def bar(f, fibre):
                     parts.append([c, c])
             out.append("clock " + " ".join(f"{p0}-{p1}" for p0, p1 in parts)
                        + " gaps " + " ".join(str(q[0] - p[1] - 1) for p, q in zip(parts, parts[1:], strict=False)))
-    col = im[:, tiles[0][0] + 1]
+    t0 = tiles[0][0]
+    paper0 = tuple(int(v) for v in im[13, t0 + 1])
+    col = np.array([paper0 if tuple(int(v) for v in im[y, t0 + 7]) in fib else im[y, t0 + 7] for y in range(27)])   # (a column between the fittings; the fibres are paper)
     runs, y = [], 0
     while y < 27:
         y0 = y

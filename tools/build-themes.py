@@ -134,19 +134,32 @@ def _mixc(a, b, t):
                    for i in (0, 2, 4))
 
 
-def kami_tile(m, fill, w=12):
+# kanagu on the bar's tiles (P3, 6 px: the 20 px paper's size of the panels' 12): one arm along each
+# edge on the hairline, a rivet in the crook (h lit, o brass, s shade, # rivet); the corner pixel stays clear
+KANAGU_T = (".hhhhh",
+            "hoooos",
+            "hoo#s.",
+            "hoos..",
+            "hos...",
+            "hs....")
+K_FIT = len(KANAGU_T)
+K_PIC = (K_HAIR_T + K_FIT, K_FIT + 1, BAR_H - (K_HAIR_B - K_FIT + 1), K_FIT)   # the picture's slices: the corners wide enough for the fittings
+
+
+def kami_tile(m, fill, w=16):
     """A tile's picture, w px wide (the middle stretched by style.css): rows as above; the
-    hairline in column 0 and w − 2, the paper between, the shadow's column w − 1 — the frame of
-    §4 to the pixel, as kawa-panel draws its panels' (the shadow's first row from a pixel in to
-    under the right hairline, the second a pixel further right, the column from the right
-    hairline's second row down)."""
+    hairline in column 0 and w − 2, the shadow's column w − 1 — the frame of §4 to the pixel, as
+    kawa-panel draws its panels' (the shadow's first row from a pixel in to under the right
+    hairline, the second a pixel further right, the column from the right hairline's second row
+    down) — and a brass fitting (KANAGU_T) in each corner. Only the paper's column inside the left
+    hairline is in the picture (the background paints the rest); style.css lays it on as a
+    border-image sliced K_PIC (1 : 1 with border-image-width), so the corners are whole."""
     k = KAMI[m]
     none = (0, 0, 0, 0)
     c = [[none] * w for _ in range(BAR_H)]
     L, R = 0, w - 2                     # the hairline's columns
     for y in range(K_TOP, K_BOT + 1):
-        for x in range(L + 1, R):
-            c[y][x] = _rgb(fill)
+        c[y][L + 1] = _rgb(fill)
     for x in range(L + 1, R):           # the hairline, its corners left out
         c[K_HAIR_T][x] = c[K_HAIR_B][x] = k["hair"]
     for y in range(K_TOP, K_BOT + 1):
@@ -157,6 +170,12 @@ def kami_tile(m, fill, w=12):
         c[K_HAIR_B + 2][x] = k["shadow"][1]
     for y in range(K_TOP + 1, K_HAIR_B + 1):   # and the column from the hairline's second row
         c[y][R + 1] = k["shadow"][1]
+    ink = dict(zip("hos#", map(_rgb, BRASS[m])))
+    for fx, fy, sx, sy in ((L, K_HAIR_T, 1, 1), (R, K_HAIR_T, -1, 1), (L, K_HAIR_B, 1, -1), (R, K_HAIR_B, -1, -1)):
+        for j, line in enumerate(KANAGU_T):
+            for i, ch in enumerate(line):
+                if ch != ".":
+                    c[fy + sy * j][fx + sx * i] = ink[ch]
     return png(w, BAR_H, c)
 
 

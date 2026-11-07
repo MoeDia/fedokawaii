@@ -145,10 +145,13 @@ for th in ("dark", "light"):
         want(f"{th}/{n}: its height", im.size[1], height)
         hair = a(0, 10)
         if any(a(x, y)[3] for x in range(w) for y in (0, 1, 2)): bad.append(f"{th}/{n}: ink above the hairline")
-        if not (a(1, 3) == hair == a(w - 3, 3) == a(1, 24) == a(w - 2, 10) and not a(0, 3)[3] and not a(w - 2, 3)[3] and not a(0, 24)[3]):
+        if not (a(7, 3) == hair == a(7, 24) == a(w - 2, 10) and not a(0, 3)[3] and not a(w - 2, 3)[3] and not a(0, 24)[3]):
             bad.append(f"{th}/{n}: the hairline not on rows 3 and 24, columns 0 and {w - 2}, its corners left out")
-        fill = a(1, 4)
-        if not all(a(x, y) == fill for x in range(1, w - 2) for y in range(4, 24)): bad.append(f"{th}/{n}: more than one fill inside the hairline (a second frame)")
+        fill = a(1, 10)
+        if not all(a(1, y) == fill for y in range(9, 19)) or any(a(x, y)[3] for x in range(2, w - 2) for y in range(9, 19)):
+            bad.append(f"{th}/{n}: more than the paper's one column inside the hairline (the background paints the rest)")
+        if not (a(0, 3)[3] == 0 and a(1, 3) == a(w - 3, 3) != hair and a(5, 3)[3] and a(1, 4)[3] and a(5, 4)[3] and a(3, 5)[3] and a(2, 6)[3]):
+            bad.append(f"{th}/{n}: the brass fitting (6 px) not in the corner")
         s1, s2 = a(1, 25), a(2, 26)
         if not (s1[3] and s2[3] and not a(1, 26)[3] and a(w - 2, 25) == s1 and not a(w - 1, 25)[3] and a(w - 1, 26) == s2
                 and a(w - 1, 5) == s2 and not a(w - 1, 4)[3]):
@@ -170,7 +173,7 @@ for sel in tiles:
     p_, m_, b_, o = box(sel)
     kind = "kami-red.png" if sel == "#custom-torii" else "kami-tile.png"
     bi = o.get("border-image", "")
-    if kind not in bi or not bi.split(")")[1].strip().startswith("4 2 3 2"): bad.append(f"{sel}: border-image {bi}")
+    if kind not in bi or not bi.split(")")[1].strip().startswith("9 7 8 6 / 9px 7px 8px 6px"): bad.append(f"{sel}: border-image {bi}")
     want(f"{sel}: its border (the picture's slices)", b_, [4, 2, 3, 2])
     inner = sel == "#focused"
     # (what plays, whatever face draws it: a height, not padding round a line a fallback face makes taller)

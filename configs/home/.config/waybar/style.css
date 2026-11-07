@@ -57,7 +57,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   border-style: solid;
   border-color: transparent;
   border-width: 4px 2px 3px 2px;
-  border-image: url("../fedokawaii/current/kami-tile.png") 4 2 3 2 stretch;
+  border-image: url("../fedokawaii/current/kami-tile.png") 9 7 8 6 / 9px 7px 8px 6px stretch;
   background-color: @tile;
   background-image: url("../fedokawaii/current/kami-fibre.png");
   background-repeat: repeat;
@@ -72,7 +72,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 }
 /* the left end's vermilion tile: the torii, its emblem in the ground's ink */
 #custom-torii {
-  border-image: url("../fedokawaii/current/kami-red.png") 4 2 3 2 stretch;
+  border-image: url("../fedokawaii/current/kami-red.png") 9 7 8 6 / 9px 7px 8px 6px stretch;
   background-color: @kami-red;
   background-image: none;
   color: @strong-on-accent;
@@ -222,7 +222,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 
 /* a vermilion tile lit: its fill the brighter vermilion, the emblem keeps its ink */
 #custom-torii:hover, #custom-torii.active, #custom-menu:hover, #custom-menu.active {
-  border-image: url("../fedokawaii/current/kami-red-lit.png") 4 2 3 2 stretch;
+  border-image: url("../fedokawaii/current/kami-red-lit.png") 9 7 8 6 / 9px 7px 8px 6px stretch;
   background-color: @kami-red-lit;
 }
 /* on the seal: the other ink there is (never asagi on red) */
