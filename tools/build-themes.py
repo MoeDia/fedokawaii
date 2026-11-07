@@ -598,15 +598,16 @@ SQUARE_NOTE = ["/* The desktop's parts (docs/design-system.md), as far as GTK dr
                "   under the pointer only its words and icon turn accent_text, no box; pressed or",
                "   switched on it is filled with the lacquer, its ink text_on_lacquer, as a dialog's default",
                "   button always is. A check box or a radio button is the panels' check: □, and ▣",
-               "   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the",
-               "   words in a field — is filled with the lacquer, cream on it; the text cursor is vermilion.",
+               "   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row — changes",
+               "   colour (text_on_select, no band); the words in a field are filled with the lacquer,",
+               "   cream on it; the text cursor is vermilion.",
                "   GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts",
                "   as two ids and so outweighs the base theme's own rules, whatever their classes. */"]
 WIN = ["window", "window.csd", "window.solid-csd", "window.dialog", "window.popup", "decoration",
        ".csd decoration", ".titlebar", "headerbar", "messagedialog", "dialog", "popover", "menu", ".menu",
        ".context-menu", ".background.csd"]
 # the panels' inks the rules below use (gtk_vars gives the vermilion: accent_bg/fg_color)
-KAWA = ("key", "edge", "faint", "muted", "strong", "accent_text")
+KAWA = ("key", "edge", "faint", "muted", "strong", "accent_text", "text_on_select")
 # a key: every button but the flat ones (a toolbar's icons), a window's own, a link, a spin
 # button's arrows — and, filled with the accent, the default one
 KEY = ":not(.flat):not(.titlebutton):not(.link):not(.up):not(.down)"
@@ -656,7 +657,10 @@ def square_rules(gtk):
              f"{sel(['check', 'radio'], ':disabled')} {{ border-color: {c['faint']}; }}",
              f"{sel(['check', 'radio'], ':checked:disabled')} {{ background-color: {c['faint']}; }}",
              # what is selected, and the text cursor
-             f"{sel(rows, ':selected')}, {sel(['selection'])} {{ {fill} }}",
+             # (r28-sa15b2: a selected row changes colour, no band behind it; the words selected in a
+             # field keep the lacquer, they would vanish otherwise)
+             f"{sel(rows, ':selected')} {{ background-image: none; background-color: transparent; color: {c['text_on_select']}; }}",
+             f"{sel(['selection'])} {{ {fill} }}",
              f"{sel(['entry', 'textview', 'text'])} {{ caret-color: {accent}; }}"]
     if gtk == 4:   # (GTK 4 knows a focus the keyboard moved: the cursor, filled as in the panels)
         rules.append(f"button{w}{KEY}:focus-visible {{ {fill} outline: none; }}")

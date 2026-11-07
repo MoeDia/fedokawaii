@@ -34,6 +34,7 @@
 @define-color kawa_muted                #586459;
 @define-color kawa_strong               #121b1b;
 @define-color kawa_accent_text          #a84222;
+@define-color kawa_text_on_select       #713724;
 
 /* Helium (Chromium's GTK mode, theme.sh sets it) samples these same colours for its tab
    strip, toolbar and menus (its address bar keeps Helium's own). Chromium gives every
@@ -56,8 +57,9 @@ window.background.chromium:not(#kawa-square):not(#kawa-sq) { background-color: @
    under the pointer only its words and icon turn accent_text, no box; pressed or
    switched on it is filled with the lacquer, its ink text_on_lacquer, as a dialog's default
    button always is. A check box or a radio button is the panels' check: □, and ▣
-   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row, the
-   words in a field — is filled with the lacquer, cream on it; the text cursor is vermilion.
+   when chosen (an 8 px frame, the 4 px square in it). What is selected — a row — changes
+   colour (text_on_select, no band); the words in a field are filled with the lacquer,
+   cream on it; the text cursor is vermilion.
    GTK's CSS has no !important: each rule carries :not(#kawa-…) twice, which counts
    as two ids and so outweighs the base theme's own rules, whatever their classes. */
 *:not(#kawa-square):not(#kawa-sq) { border-radius: 0; }
@@ -76,5 +78,6 @@ check:not(#kawa-square):not(#kawa-sq):hover, radio:not(#kawa-square):not(#kawa-s
 check:not(#kawa-square):not(#kawa-sq):checked:hover, radio:not(#kawa-square):not(#kawa-sq):checked:hover { background-color: @kawa_accent_text; }
 check:not(#kawa-square):not(#kawa-sq):disabled, radio:not(#kawa-square):not(#kawa-sq):disabled { border-color: @kawa_faint; }
 check:not(#kawa-square):not(#kawa-sq):checked:disabled, radio:not(#kawa-square):not(#kawa-sq):checked:disabled { background-color: @kawa_faint; }
-row:not(#kawa-square):not(#kawa-sq):selected, treeview.view:not(#kawa-square):not(#kawa-sq):selected, iconview:not(#kawa-square):not(#kawa-sq):selected, flowboxchild:not(#kawa-square):not(#kawa-sq):selected, .view:not(#kawa-square):not(#kawa-sq):selected, selection:not(#kawa-square):not(#kawa-sq) { background-image: none; background-color: @accent_bg_color; color: @accent_fg_color; }
+row:not(#kawa-square):not(#kawa-sq):selected, treeview.view:not(#kawa-square):not(#kawa-sq):selected, iconview:not(#kawa-square):not(#kawa-sq):selected, flowboxchild:not(#kawa-square):not(#kawa-sq):selected, .view:not(#kawa-square):not(#kawa-sq):selected { background-image: none; background-color: transparent; color: @kawa_text_on_select; }
+selection:not(#kawa-square):not(#kawa-sq) { background-image: none; background-color: @accent_bg_color; color: @accent_fg_color; }
 entry:not(#kawa-square):not(#kawa-sq), textview:not(#kawa-square):not(#kawa-sq), text:not(#kawa-square):not(#kawa-sq) { caret-color: @accent_bg_color; }
