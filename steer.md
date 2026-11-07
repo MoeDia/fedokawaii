@@ -157,3 +157,13 @@ The owner (12:48), correcting S16: he does NOT use SQL at work (that was a mix-u
 2. Nothing outdated, anywhere in the lessons: check every lesson against the current official docs and tools as of November 2026 (current Python and uv, Rust 2024 edition, current PostgreSQL, psycopg 3 not psycopg2, modern CSS, modern JavaScript, HTMX 2), and end each lesson with a "checked against" line naming the doc and its version.
 3. The web track, more love: simple, solid websites, modern, minimal and quick. Semantic HTML; modern CSS without frameworks first (custom properties, flexbox, grid, container queries, :has(), nesting, clamp() type); a little modern JavaScript (modules, fetch, no var, no jQuery); HTMX with a small Python backend for interactivity; speed (tiny pages, few requests, optimised images, at most one web font) and accessibility basics; publishing a static site. Project-based: he builds his own personal site step by step across the track.
 4. He pointed again to the YouTuber Hayyoth: use your Hayyoth findings (r28-hayyoth.md) for the web track's look and teaching style.
+
+## S18 2026-11-07 12:55
+The owner (12:49): the learning in fedokawaii is SUPER important to him. He is a slow learner, learns by examples and practice, and dislikes complex words used without their definitions. Rules for every lesson (Part 1 and Part 2), applied to the lessons already written too:
+- Example first, then the idea: show a small working example, then explain it, then let him try a variation.
+- Practice is most of the lesson: about 2 parts doing, 1 part reading. Every lesson has a hands-on exercise with an expected result he can check himself, a hint, and the answer hidden until he asks.
+- One new idea per lesson; slow, tiny steps; repeat earlier ideas in later exercises so they stick (a short "remember?" warm-up from an earlier lesson).
+- Plain words. Any term he may not know gets a friendly one-line definition the first time it appears in that lesson, in a small box like "venv: a private folder of Python packages for one project", plus a glossary page that collects them all.
+- Short sentences, no jargon chains, no walls of text; real, relatable examples (his folders, his notes, his books, his desktop).
+- End each lesson with a 3-question check and one line on what comes next.
+Rewrite the lessons written so far to these rules before writing new ones. This track gets opus (design he will judge) and a final read-through for plain language.
