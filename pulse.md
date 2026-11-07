@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 05:44 (Dubai)
+# round 28 pulse · Sat 07 06:14 (Dubai)
 
-pace: 68/160 done (42%) · time used 29% · ahead 13.3 h · ETA Sun 08 17:52 · left 84 · blocked 1 · owner 7
+pace: 68/160 done (42%) · time used 30% · ahead 12.8 h · ETA Sun 08 18:59 · left 84 · blocked 1 · owner 7
 alerts: 1 blocked
-run: conductor active · passes 1 (oldest 10 min) · last activity 0 min ago · commits since start 92 · hold False
-machine: load 0.17 0.28 0.62/12 · mem free 19.0 GB · disk free 611 GB · up 29.5 h · cpu tccd1 34° · cpu tctl 44° · gpu edge 37° · gpu junction 31° · gpu mem 52° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 35°
+run: conductor active · passes 1 (oldest 40 min) · last activity 0 min ago · commits since start 92 · hold False
+machine: load 0.23 0.40 0.45/12 · mem free 19.1 GB · disk free 611 GB · up 30.0 h · cpu tccd1 44° · cpu tctl 43° · gpu edge 38° · gpu junction 31° · gpu mem 52° · ssd composite 37° · ssd sensor 1 38° · ssd sensor 2 37°
 dark: True (active) · pulse timer active
-tokens since start: out 1,770,155 · in 2,732 · cache write 5,698,701 · cache read 101,996,881 · msgs 1298 · out last 6 h 120,750
-out by model: last 6 h claude-opus-5-5 97,805 · claude-haiku-5-5 15,036 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 15,036 · claude-sonnet-5-5 7,909
+tokens since start: out 1,771,130 · in 2,746 · cache write 5,700,802 · cache read 102,188,160 · msgs 1303 · out last 6 h 110,259
+out by model: last 6 h claude-opus-5-5 86,339 · claude-haiku-5-5 16,011 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 16,011 · claude-sonnet-5-5 7,909
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
