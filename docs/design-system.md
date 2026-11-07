@@ -39,7 +39,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 
 | token | dark 鬼 | light 天 | role |
 |---|---|---|---|
-| `ground` | `181715` Black → Vandyke Brown 0.13 | `e8e3c2` Sulpher Yellow → Neutral Gray 0.2 | the screens' ground: terminals, panels, menus, the launcher — all at kawa-glass's see-through (0.92) |
+| `ground` | `181715` Black → Vandyke Brown 0.13 | `e8e3c2` Sulpher Yellow → Neutral Gray 0.2 | the screens' ground: terminals, panels, menus, the launcher — all at kawa-glass's see-through (0.99) |
 | `surface` | `1c1916` Black → Vandyke Brown 0.2 | `ecdfb3` Sulpher Yellow → Isabella Color 0.18 | a solid ground: notices, the level display, tooltips |
 | `view` | `1c1916` | `f7f1d1` Sulpher Yellow → White 0.25 | a toolkit's list or canvas ground (GTK views) |
 | `key` | `221e1a` Black → Pale Raw Umber 0.2 | `f8f3d8` Sulpher Yellow → White 0.35 | a tile's or key's fill at rest |
@@ -488,7 +488,7 @@ content, inside its margin of one cell:
   rule as from the hairline, as far under the pane's top as the last line of words over its foot; the words under it each centred
   on it, within half a cell. The terminal's cursor a thin bar where a list has a search line: it stands before a ghost's first
   letter, never on it.
-- Ground: `ground` at kawa-glass's 0.96 — the wallpaper faintly through, the words never. No blur.
+- Ground: `ground` at kawa-glass's 0.99 — the wallpaper faintly through, the words never. No blur.
 - Window padding: foot's 8 px; the screen keeps one cell of margin, then the cursor's column
   (fzf's pointer; two spaces where no fzf draws): the cursor's fill starts 16 px inside the
   window's hairline (x 17), column 0 one cell further (x 25), rows' icons at x 33 — a panel's pad,

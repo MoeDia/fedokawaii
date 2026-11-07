@@ -234,14 +234,14 @@ def icons(path=ICONS_SH):
 
 def glass():
     """The terminal's ground's alpha (kawa-glass: Super+U → transparency), which the panels
-    take too — on as it is made (0.96), a file without an alpha line: opaque."""
+    take too — on as it is made (0.99), a file without an alpha line: opaque."""
     try:
         with open(GLASS, encoding="utf-8") as f:
             for line in f:
                 if line.startswith("alpha="):
                     return max(0.0, min(1.0, float(line[6:])))
     except (OSError, ValueError):
-        return 0.96
+        return 0.99
     return 1.0
 
 

@@ -170,9 +170,9 @@ done
 look; config .config/foot/foot.ini
 # the glass file, as theme.sh makes it (once: on, 0.96 — foot.ini's last include)
 mkdir -p "$HOME/.local/state/fedokawaii"
-printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini" "[colors-dark]" "alpha=0.96" "[colors-light]" "alpha=0.96" \
+printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini" "[colors-dark]" "alpha=0.99" "[colors-light]" "alpha=0.96" \
   >"$HOME/.local/state/fedokawaii/foot-glass.ini"
-grep -q '^GLASS=\$STATE/foot-glass.ini$' "$REPO/theme.sh" && grep -q '"\[colors-dark\]" "alpha=0.96" "\[colors-light\]" "alpha=0.96"' "$REPO/theme.sh" \
+grep -q '^GLASS=\$STATE/foot-glass.ini$' "$REPO/theme.sh" && grep -q '"\[colors-dark\]" "alpha=0.99" "\[colors-light\]" "alpha=0.99"' "$REPO/theme.sh" \
   && _ok || _no "theme.sh no longer makes the glass file so"
 if [[ -n $FOOT ]]; then
   for m in dark light; do

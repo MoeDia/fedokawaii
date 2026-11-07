@@ -984,7 +984,7 @@ fi
 GLASS=$STATE/foot-glass.ini
 [[ -f $GLASS ]] || uinstall 0644 <(printf '%s\n' "# ~/.local/state/fedokawaii/foot-glass.ini — the terminal's see-through ground (kawa-glass;" \
   "# Super+U → transparency). 1 is opaque. Read by foot.ini's last include." \
-  "[colors-dark]" "alpha=0.96" "[colors-light]" "alpha=0.96") "$GLASS"
+  "[colors-dark]" "alpha=0.99" "[colors-light]" "alpha=0.99") "$GLASS"
 # (~/dojo: where your projects go — and where Agents, herdr, opens: its launcher entry
 # starts there, and a window cannot start in a folder that is not)
 U mkdir -p "$TARGET_HOME/.local/share/fedokawaii/wallpapers" "${HOME_DIRS[@]/#/$TARGET_HOME/}"

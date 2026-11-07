@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # kawa-glass — the terminal's see-through ground: the wallpaper shows a little through every
-# foot window (alpha 0.96: the text stays as it is, only the ground lets light through; no
+# foot window (alpha 0.99: the text stays as it is, only the ground lets light through; no
 # blur — dwl has none, and none is drawn). Super+U → transparency turns it on or off.
 #
 #   kawa-glass            on or off, as it is now
@@ -17,7 +17,7 @@
 # prompt) — the windows opened before the next login follow too.
 set -u
 F=$HOME/.local/state/fedokawaii/foot-glass.ini
-ON=0.96
+ON=0.99
 
 alpha() {   # → the saved alpha (none saved: on, as ensure makes it; a file without one: opaque)
   local l a=$ON
