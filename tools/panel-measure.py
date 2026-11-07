@@ -106,12 +106,19 @@ def quick(a, table, th, ground, cursor=None):
     # the masthead: the plate 10 px out of the content, the head in it, the words on the meter's first segment
     px, py = x0 - 10, fy + X0 - 10
     plate = colour(a, px + 62, py + 3)
-    ex, ey = ink(a, px - 3, py - 3, 402, 60, [ground])
-    want(table, s, "the plate's box, x0 +", (int(ex.min()) - x0, int(ex.max()) - x0 + 1), (-10, 386))
-    want(table, s, "the plate's rows and its lip", int(ey.max()) - int(ey.min()) + 1, 53)
-    want(table, s, "the air over the plate, under the panel's frame", int(ey.min()) - fy - 1, 6)
-    want(table, s, "the air left of the plate, inside the panel's frame", int(ex.min()) - (x0 - 17) - 1, 6)
-    want(table, s, "the air right of the plate, inside the panel's frame", (x0 - 17 + 409) - int(ex.max()) - 1, 6)
+    # (its box by runs from the panel's paper: the frame's brass corners, kanagu, stand in the box round it)
+    mid = fy + 1 + 26
+    hx = [x for x in range(fx + 1, fx + 409) if colour(a, x, mid) != ground]
+    vy = [y for y in range(fy + 1, fy + 80) if colour(a, x0 + 200, y) != ground]
+    pl, pr, t = hx[0], hx[-1], vy[0]
+    b = t
+    while colour(a, x0 + 200, b + 1) != ground:
+        b += 1
+    want(table, s, "the plate's box, x0 +", (pl - x0, pr - x0 + 1), (-10, 386))
+    want(table, s, "the plate's rows and its lip", b - t + 1, 53)
+    want(table, s, "the air over the plate, under the panel's frame", t - fy - 1, 6)
+    want(table, s, "the air left of the plate, inside the panel's frame", pl - fx - 1, 6)
+    want(table, s, "the air right of the plate, inside the panel's frame", fx + 409 - pr - 1, 6)
     xs, ys = ink(a, px + 1, py + 1, 57, 50, [plate])
     want(table, s, "the head: inside x0 - 8 … + 39, y inside the plate's frame", (bool(int(xs.min()) >= x0 - 8), bool(int(xs.max()) <= x0 + 39)), (True, True))
     xs, _ = ink(a, px + 58, py + 2, 100, 26, [plate])
@@ -173,32 +180,60 @@ def box_of(a, ground, top=28):
 
 
 def power(a, table, th, conf):
+    """The power dialog: a hanging scroll (sa16), its frame between two rods 14 wide, centred on the screen; five seal
+    tiles 64 square, 12 apart and 28 before restart (what asks twice stands apart); under each its word, under that
+    its key's cap; the foot centred."""
     s = f"the power dialog ({th})"
-    dimmed = colour(a, 3, 1076)
-    x0_, y0_, x1_, y1_ = box_of(a, dimmed, 40)                       # (the frame and its shadow)
-    W, H = 402, 154
-    want(table, s, "the frame's width (the hairlines)", x1_ - x0_ + 1 - 1, W)         # (a column of shadow)
-    want(table, s, "the frame's height (the hairlines)", y1_ - y0_ + 1 - 2, H)        # (two rows of shadow)
-    want(table, s, "centred across: left and right of the frame", x0_, 1920 - x0_ - W)
-    want(table, s, "centred down: above and below the frame", y0_, 1080 - y0_ - H)
-    fill = colour(a, x0_ + 17 + 32, y0_ + 17 + 1)                   # (the first tile, inked: the cursor)
-    want(table, s, "the tile under the cursor: inked", fill, tuple(int(conf["accent"][i:i + 2], 16) for i in (0, 2, 4)))
-    # the tiles: x0 + 76 k, 64 wide, 12 apart; the picture's ink centred, ±1
-    g = colour(a, x0_ + 6, y0_ + 6)
-    for k in range(5):
-        tx = x0_ + 17 + 76 * k
-        inner = colour(a, tx + 6, y0_ + 17 + 6)                     # (the tile's paper)
-        xs, ys = ink(a, tx + 6, y0_ + 17 + 6, 52, 52, [inner])
+    def rgb(k):
+        return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
+    hi = np.all(a == np.array(rgb("rod_hi"), dtype=np.int16), axis=2)
+    cols = [x for x in range(a.shape[1]) if hi[:, x].sum() >= 100]
+    rods = spans(cols, gap=1)
+    want(table, s, "two rods, their light 2 px wide", [r[1] - r[0] + 1 for r in rods], [2, 2])
+    if len(rods) != 2:
+        return
+    lx, rx = rods[0][0] - 6, rods[1][0] - 6                      # (a rod's bands: 1 2 3, then its light)
+    band = [colour(a, lx + i, 540) for i in range(14)]
+    names = ("rod_end", "rod_lo", "rod_lo", "rod", "rod", "rod", "rod_hi", "rod_hi", "rod", "rod", "rod", "rod_lo", "rod_lo", "rod_end")
+    want(table, s, "the left rod's bands", band == [rgb(n) for n in names], True)
+    want(table, s, "the right rod's bands", [colour(a, rx + i, 540) for i in range(14)] == [rgb(n) for n in names], True)
+    ys = np.nonzero(hi[:, rods[0][0]])[0]
+    fx, fy, W, H = lx + 14, int(ys.min()) - 2, rx - lx - 14, int(ys.max()) - int(ys.min()) + 1 + 4
+    want(table, s, "the rods either side of the frame, its hairlines between them", (colour(a, fx, 540) not in band, colour(a, fx + W - 1, 540) not in band), (True, True))
+    want(table, s, "centred across: left and right of the frame", fx, 1920 - fx - W)
+    want(table, s, "centred down: above and below the frame", fy, 1080 - fy - H)
+    cap = [y for y in range(fy - 10, fy + 2) if colour(a, lx + 7, y) in (rgb("cap"), rgb("cap_lo"), rgb("cap_hi"))]
+    want(table, s, "the rod's cap: its first row over the frame's", fy - cap[0] if cap else None, 6)
+    # the tiles: their row's first ink, 17 px in; then the five along their middle
+    g = colour(a, fx + 6, fy + 6)                                # (the scroll's paper)
+    xs, ys = ink(a, fx + 4, fy + 3, W - 8, H - 6, [g])
+    ty = int(ys.min())
+    want(table, s, "the tiles' top, from the frame's top (hairline + pad)", ty - fy, 17)
+    run = spans(ink(a, fx + 4, ty + 32, W - 8, 1, [g])[0], gap=1)
+    want(table, s, "five tiles, 64 wide", [r[1] - r[0] + 1 for r in run], [64] * 5)
+    want(table, s, "the air between them (restart apart)", [run[k + 1][0] - run[k][1] - 1 for k in range(len(run) - 1)], [12, 12, 28, 12])
+    want(table, s, "the row centred in the frame: air left, right", run[0][0] - fx, fx + W - 1 - run[-1][1])
+    if len(run) != 5:
+        return
+    want(table, s, "the tile under the cursor: inked", colour(a, run[0][0] + 5, ty + 5), rgb("accent"))
+    want(table, s, "the others blank: the key's paper in edge2's rim", all(colour(a, r[0] + 5, ty + 5) == rgb("key") and colour(a, r[0], ty + 32) == rgb("edge2") for r in run[1:]), True)
+    tops = set()
+    for k, (tx, _) in enumerate(run):
+        inner = colour(a, tx + 6, ty + 6)                         # (the tile's paper)
+        xs, ys = ink(a, tx + 6, ty + 6, 52, 52, [inner])
         dx = (int(xs.min()) + int(xs.max())) / 2 - (tx + 31.5)
-        dy = (int(ys.min()) + int(ys.max())) / 2 - (y0_ + 17 + 31.5)
+        dy = (int(ys.min()) + int(ys.max())) / 2 - (ty + 31.5)
         want(table, s, f"tile {k + 1}: its picture centred, within a pixel", (abs(dx) <= 1, abs(dy) <= 1), (True, True))
-        xs, _ = ink(a, tx - 6, y0_ + 17 + 64 + 8, 76, 20, [g])
+        xs, _ = ink(a, tx - 6, ty + 64 + 8, 76, 20, [g])
         dx = (int(xs.min()) + int(xs.max())) / 2 - (tx + 31.5)
         want(table, s, f"tile {k + 1}: its word centred under it, within a pixel", abs(dx) <= 1, True)
-        want(table, s, f"tile {k + 1}: its word within the tile's width", (int(xs.min()) >= tx - 1, int(xs.max()) <= tx + 64), (True, True))
-    xs, _ = ink(a, x0_ + 17, y0_ + 117, 368, 20, [g])
-    want(table, s, "the foot centred, within a pixel", abs((int(xs.min()) + int(xs.max())) / 2 - (x0_ + 17 + 183.5)) <= 1, True)
-    want(table, s, "the dim over the bar's rows: 40 % of Wada's Black", True, True)
+        want(table, s, f"tile {k + 1}: its word within the tile's width", (int(xs.min()) >= tx, int(xs.max()) <= tx + 63), (True, True))
+        xs, ys = ink(a, tx - 6, ty + 64 + 8 + 20, 76, 20, [g])
+        want(table, s, f"tile {k + 1}: its key's cap centred under the word, within a pixel", abs((int(xs.min()) + int(xs.max())) / 2 - (tx + 31.5)) <= 1, True)
+        tops.add(int(ys.min()) - ty)
+    want(table, s, "the caps on one row, its top from the tiles' (64 + 8, a row, the cap's 2)", sorted(tops), [64 + 8 + 20 + 2])
+    xs, _ = ink(a, fx + 17, ty + 64 + 8 + 40 + 8, W - 34, 20, [g])
+    want(table, s, "the foot centred, within a pixel", abs((int(xs.min()) + int(xs.max())) / 2 - (fx + (W - 1) / 2)) <= 1, True)
 
 
 def calendar(a, table, th, conf, ground):
