@@ -18,18 +18,11 @@ chmod 700 "$W/run"
 cp "$art/lock-samurai.png" "$art/lock-samurai.txt" "$W/art/"
 cp "$art/lock-map-$map.png" "$W/art/lock-scene.png"
 python3 -B -c 'import sys; from PIL import Image; Image.open(sys.argv[1]).convert("RGB").save(sys.argv[1])' "$W/art/lock-scene.png"
-cat >"$W/art/lock-scene.txt" <<'SCENE_EOF'
-size 640 360
-ground 000000
-markscale 1
-row 276 243 8 12
-mark f8b25c f5ecc2 82241f
-caps 82c1b4
-caret f8b25c
-plate 320 243 0
-words 340 356
-samurai 284 254
-SCENE_EOF
+case $mood in
+  dark) mark="f68c50 f5ecc2 82241f" caret=f8b25c ;;
+  light) mark="1a1818 1a1818 96865e" caret=a84222 ;;
+esac
+printf 'size 640 360\nground 000000\nmarkscale 1\nrow 276 243 8 12\nmark %s\ncaps 82c1b4\ncaret %s\nplate 320 243 0\nwords 340 356\nsamurai 284 254\n' "$mark" "$caret" >"$W/art/lock-scene.txt"
 : >"$W/gtklock.css"
 
 make -s -C "$repo/src/kawa-lockmod" O="$W/mod" CFLAGS="-O2 -pipe"
