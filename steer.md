@@ -150,3 +150,10 @@ The owner (12:43), in order of size:
    - Rust after the Python basics, with Rustlings-style tiny exercises.
    - Short units on the basics underneath: the command line, regex, HTTP and networking, data structures; git, testing, debugging and security as planned.
    - Order: Python and Bash first, then web and TUI frontends, then Rust. Write the track list into the lessons' table of contents.
+
+## S17 2026-11-07 12:55
+The owner (12:48), correcting S16: he does NOT use SQL at work (that was a mix-up); he learns it from zero. And more love for the web track.
+1. SQL with PostgreSQL, a full track like the others, from zero: Fedora's current PostgreSQL server installed, started on demand (not always running), a learning database, psql. Tiny steps: SELECT and WHERE, sorting, JOINs, GROUP BY, then designing tables, keys, indexes, transactions, backups; then Postgres from Python with psycopg 3. Drop "SQLite from Python because he knows SQL" from S16.
+2. Nothing outdated, anywhere in the lessons: check every lesson against the current official docs and tools as of November 2026 (current Python and uv, Rust 2024 edition, current PostgreSQL, psycopg 3 not psycopg2, modern CSS, modern JavaScript, HTMX 2), and end each lesson with a "checked against" line naming the doc and its version.
+3. The web track, more love: simple, solid websites, modern, minimal and quick. Semantic HTML; modern CSS without frameworks first (custom properties, flexbox, grid, container queries, :has(), nesting, clamp() type); a little modern JavaScript (modules, fetch, no var, no jQuery); HTMX with a small Python backend for interactivity; speed (tiny pages, few requests, optimised images, at most one web font) and accessibility basics; publishing a static site. Project-based: he builds his own personal site step by step across the track.
+4. He pointed again to the YouTuber Hayyoth: use your Hayyoth findings (r28-hayyoth.md) for the web track's look and teaching style.
