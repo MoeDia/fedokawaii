@@ -495,9 +495,9 @@ def build_ui(kind, face_path, cozette_path):
 
 def write_air(glyphs, cell, name):
     """width.sh's air tables (the bar's l/r classes): each printable ASCII letter's empty
-    columns before its ink and after it, 0–3 px."""
-    L = "".join(str(min(min(x for x, _ in glyphs[cp][1]), 3)) for cp in range(33, 127))
-    R = "".join(str(min(cell - 1 - max(x for x, _ in glyphs[cp][1]), 3)) for cp in range(33, 127))
+    columns before its ink and after it, 0–4 px."""
+    L = "".join(str(min(min(x for x, _ in glyphs[cp][1]), 4)) for cp in range(33, 127))
+    R = "".join(str(min(cell - 1 - max(x for x, _ in glyphs[cp][1]), 4)) for cp in range(33, 127))
     f = ROOT / "configs/home/.config/fedokawaii/width.sh"
     t = f.read_text()
     t2 = re.sub(rf"^{name}_L=\d+$", f"{name}_L=" + L, t, flags=re.M)

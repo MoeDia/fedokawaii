@@ -112,9 +112,9 @@ out=$(bar)
 json_lines "$out"; markup_ok "$out"
 eq "$(last "$out")" "playing|${ICON_BAR_CASSETTE_A}Plastic Love${ICON_NP_RULE}Mariya Takeuchi"
 eq "$(cat "$XDG_RUNTIME_DIR/kawa-nowplaying.player")" spotify "the player shown, kept for the keys"
-eq "$(tail -n 1 <<<"$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r3']" "its class: playing, and the last letter's own air (the i of Takeuchi: 3 px)"
+eq "$(tail -n 1 <<<"$out" | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r4']" "its class: playing, and the last letter's own air (the i of Takeuchi: 4 px)"
 setup; step "$(P mpv Playing '' 'holiday.mkv')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['playing', 'r1']" "no artist: the title's last letter (v: its column of air, as every letter's)"
-setup; step "$(P spotify Paused 'Cool' 'Song')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['paused', 'r3']" "paused; l (of Cool): 3 px of air"
+setup; step "$(P spotify Paused 'Cool' 'Song')"; eq "$(bar | tail -n 1 | python3 -c 'import json,sys; print(json.load(sys.stdin)["class"])')" "['paused', 'r4']" "paused; l (of Cool): 4 px of air"
 setup; step "$(P spotify Playing 'Mariya Takeuchi' 'Plastic Love')"; out=$(bar)
 has "$(tail -n 1 <<<"$out")" "\"${ICON_BAR_CASSETTE_A}<span line_height='14336'>Plastic Love<span color='#$(colour C_ACCENT_TEXT)'>${ICON_NP_RULE}</span><span color='#$(colour C_FAINT)'>Mariya Takeuchi</span></span>\"" "the rule in the accent text colour, the artist quieter than the title"
 

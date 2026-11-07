@@ -148,6 +148,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-title.l1 { padding-left: 9px; }   #custom-title.r1, #custom-nowplaying.r1 { padding-right: 9px; }
 #custom-title.l2 { padding-left: 8px; }   #custom-title.r2, #custom-nowplaying.r2 { padding-right: 8px; }
 #custom-title.l3 { padding-left: 7px; }   #custom-title.r3, #custom-nowplaying.r3 { padding-right: 7px; }
+#custom-title.r4, #custom-nowplaying.r4 { padding-right: 6px; }  /* (' , . 1 ] i l | } end on four) */
 
 /* ── the middle: the clock, a hanging scroll ───────────────────────────────────────── */
 /* DD∕MM∕YYYY · the day's kanji · HH:MM:SS AM, 18 px of air between them (each glyph's own air
@@ -209,7 +210,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-kb.other     { color: @blue; }           /* AR in blue */
 /* (its letters' own air, kawa-dwlstatus: width.sh's air) */
 #custom-kb.l1 { padding-left: 8px; }   #custom-kb.l2 { padding-left: 7px; }   #custom-kb.l3 { padding-left: 6px; }
-#custom-kb.r2 { padding-right: 8px; }  #custom-kb.r3 { padding-right: 7px; }
+#custom-kb.r2 { padding-right: 8px; }  #custom-kb.r3 { padding-right: 7px; }  #custom-kb.r4 { padding-right: 6px; }
 #custom-mem          { color: @muted; }
 #custom-mem.high     { color: @accent-text; }
 #custom-volume       { color: @text; }
