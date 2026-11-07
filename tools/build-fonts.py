@@ -12,7 +12,7 @@ puts it in /usr/local/share/fonts/fedokawaii, for every account — the login sc
         and the air tables of configs/home/.config/fedokawaii/width.sh, measured from it
     configs/home/.local/share/fonts/SumiUI16.ttf, SumiUI16-Bold.ttf   "Sumi UI 16": the bar's
         words, Shinonome Gothic 16 and 16 Bold on the bar's 20-row line (16 up, 4 down), the
-        same way; their air tables in width.sh (__AIR16_*, __AIR16B_*)
+        same way, its own signs and Latin Extended-A; their air tables in width.sh (__AIR16_*, __AIR16B_*)
 (The terminal's face, Sumi Term, is UDEV Gothic NF as it comes: lib/upstream.sh.)
 
 It is drawn for its one size and nothing else: every pixel of the source becomes one square
@@ -115,6 +115,32 @@ MARKS = {
 }
 # the face's own capitals made a row shorter for a mark (its Á É Í Ó Ú Ý Ñ): their letter, as is
 SHORT = {"A": "Á", "E": "É", "I": "Í", "O": "Ó", "U": "Ú", "Y": "Ý", "N": "Ñ"}
+# where the marks go on each face's rows: a letter is tall when its top row is "tall" or
+# above; a tall letter is cut down to start on row "goal"; a mark above a small letter starts
+# on row "small", above a tall one on row "cap" (or, None: ends on the row before "goal" less
+# one, the 14's rows 1–2 and 3–4), below on row "below"
+GEOM = {
+    "ui": dict(tall=4, goal=4, small=None, cap=None, below=13),
+    # the 16 as the face marks its own: è é ê ñ ë å over a small letter from row 1, over a
+    # capital from row 0 — the capital cut to rows 3–13 (its É Í Ü) — the mark's drawing its own
+    "ui16": dict(tall=3, goal=3, small=1, cap=0, below=14, short="AEIOUY",
+                 own={0x0300: "è", 0x0301: "é", 0x0302: "ê", 0x0303: "ñ", 0x0308: "ë", 0x030A: "å"},
+                 marks={0x0304: ["#####"], 0x0306: ["#...#", ".###."], 0x0307: ["#", "#"],
+                        0x030B: [".##.##", ".#..#.", "#..#.."], 0x030C: ["#...#", ".#.#.", "..#.."],
+                        0x0327: [".#.", ".#.", "#.."], 0x0328: ["#.", "#.", ".#"]},
+                 bar={0x142: {(2, 8), (4, 6)}, 0x141: {(0, 8), (2, 6), (3, 5)}, 0x111: {(4, 3), (5, 3)},
+                      0x126: {(x, 3) for x in range(1, 6)}, 0x127: {(0, 3), (2, 3), (3, 3)},
+                      0x166: {(1, 7), (2, 7), (4, 7), (5, 7)}, 0x167: {(2, 9), (4, 9)},
+                      0x13F: {(4, 7), (4, 8)}, 0x140: {(5, 7), (5, 8)}}),
+}
+GEOM["ui16b"] = dict(GEOM["ui16"],                   # (its upright strokes two across: the drawn marks too)
+                     marks={**{m: ["".join("#" if "#" in r[max(i - 1, 0):i + 1] else "." for i in range(len(r) + 1))
+                                   for r in a] for m, a in GEOM["ui16"]["marks"].items()},
+                            0x030B: ["..##.##", ".##.##.", "##.##.."]},
+                     bar={0x142: {(2, 8), (5, 6), (1, 9), (6, 5)}, 0x141: {(0, 8), (3, 6), (4, 5)},
+                          0x111: {(3, 3), (4, 3), (5, 3)}, 0x126: {(x, 3) for x in range(2, 6)},
+                          0x127: {(0, 3), (3, 3), (4, 3)}, 0x166: {(1, 7), (2, 7), (5, 7), (6, 7)},
+                          0x167: {(2, 9), (5, 9)}, 0x13F: {(4, 7), (5, 7), (4, 8), (5, 8)}, 0x140: {(6, 7), (6, 8)}})
 RUN_ON = "_\u2014\u2015\u2017\u203E\u2E3A\u2E3B\u23AF"   # the low line and the long dashes: run on into the next cell
 
 
@@ -258,7 +284,7 @@ def write_font(kind, glyphs, notice, licence, licence_url):
     return len(glyphs)
 
 
-def shorter(pix):
+def shorter(pix, goal=4):
     """A capital or a tall letter a row shorter — its top row 4, for a mark on rows 1–2: the
     row taken out is one that repeats the row above it, nearest the upper third (as the face
     makes its É); with none, the emptiest row of its middle."""
@@ -266,18 +292,27 @@ def shorter(pix):
     for x, y in pix:
         rows.setdefault(y, set()).add(x)
     top, bot = min(rows), max(rows)
-    if top >= 4:
+    if top >= goal:
         return set(pix)
     aim = top + (bot - top) / 3
     same = [y for y in range(top + 1, bot + 1) if rows.get(y, set()) == rows.get(y - 1, set())]
     cut = min(same, key=lambda y: (abs(y - aim), y)) if same else \
         min(range(top + 2, bot - 1), key=lambda y: (len(rows.get(y, ())), abs(y - aim)))
-    return {(x, y + 1 if y < cut else y) for x, y in pix if y != cut}
+    return shorter({(x, y + 1 if y < cut else y) for x, y in pix if y != cut}, goal)
 
 
-def mark_on(pix, mark, name):
-    """The letter's pixels with the mark (MARKS) on it."""
-    where, art = MARKS[mark]
+def narrower(pix):
+    """A letter a column narrower: the two neighbours nearest its middle that differ least, one."""
+    def colof(x):
+        return frozenset(y for x2, y in pix if x2 == x)
+    lo, hi = min(x for x, _ in pix), max(x for x, _ in pix)
+    x0 = min(range(lo + 1, hi - 1), key=lambda x: (len(colof(x) ^ colof(x + 1)), abs(x + 0.5 - (lo + hi) / 2)))
+    return {(x if x <= x0 else x - 1, y) for x, y in pix}
+
+
+def mark_on(pix, mark, name, g=GEOM["ui"], marks=MARKS):
+    """The letter's pixels with the mark (marks: MARKS, or the 16's) on it, on g's rows."""
+    where, art = marks[mark]
     w = len(art[0])
     xs = [x for x, _ in pix]
     if name in "ıIĳ":                               # (i: centred over its stem, as the face's í)
@@ -289,12 +324,14 @@ def mark_on(pix, mark, name):
     if where == "below":
         if mark == 0x0328:                           # (the ogonek: at the right foot)
             x0 = max(xs) - 1
-        y0 = 13
+        y0 = g["below"]
         out = set(pix)
     else:
-        tall = min(y for _, y in pix) <= 4
-        out = shorter(pix) if tall else set(pix)
-        y0 = (3 if tall else 5) - len(art)
+        tall = min(y for _, y in pix) <= g["tall"]
+        out = shorter(pix, g["goal"]) if tall else set(pix)
+        y0 = g["cap" if tall else "small"]
+        if y0 is None:
+            y0 = (g["goal"] - 1 if tall else g["goal"] + 1) - len(art)
     out |= {(x0 + i, y0 + j) for j, line in enumerate(art) for i, v in enumerate(line) if v == "#"}
     return out
 
@@ -302,8 +339,8 @@ def mark_on(pix, mark, name):
 def build_ui(kind, face_path, cozette_path):
     """Sumi UI: Shinonome Gothic 14 (regular), the signs drawn for it, Latin Extended-A composed
     from its own letters, and Cozette for what else a line holds (the doc string's list). Sumi
-    UI 16 (kind ui16, ui16b): Shinonome Gothic 16 or 16 Bold the same way, without the signs and
-    Latin Extended-A drawn for the 14 (Cozette has those)."""
+    UI 16 (kind ui16, ui16b): Shinonome Gothic 16 or 16 Bold the same way, its signs drawn for
+    it (art/signs.txt) and Latin Extended-A composed on its rows (GEOM)."""
     c = FACES[kind]
     size, cell, asc, desc, base = c["size"], c["cell"], c["asc"], c["desc"], c["base"]
     top = base - asc
@@ -346,36 +383,55 @@ def build_ui(kind, face_path, cozette_path):
     # (T among them: Ť Ţ are made from that T)
     for ch, rows in signs(kind, cell).items():
         glyphs[ord(ch)] = (cell, rows)
-    # 4. Latin Extended-A from the face's own letters (the 14's rows)
-    if kind == "ui":
-        dotless = {(x, y) for x, y in glyphs[ord("i")][1] if y > 4}
-        glyphs[0x131] = (cell, dotless)                  # ı
-        for cp in range(0x100, 0x180):
-            if cp in glyphs:
-                continue
-            d = unicodedata.decomposition(chr(cp)).split()
-            if len(d) != 2 or d[0].startswith("<"):
-                continue
-            b, m = chr(int(d[0], 16)), int(d[1], 16)
-            if m not in MARKS or ord(b) not in glyphs:
-                continue
-            if b in SHORT and MARKS[m][0] == "above" and ord(SHORT[b]) in glyphs:
-                letter = {(x, y) for x, y in glyphs[ord(SHORT[b])][1] if y >= 4}   # (the face's own, a row shorter)
-            elif b == "i" and MARKS[m][0] == "above":
-                letter, b = dotless, "ı"
-            else:
-                letter = glyphs[ord(b)][1]
-            if m == 0x030C and b in "dltL":              # (ď ľ ť Ľ: the caron a small stroke at the right)
-                x1 = max(x for x, y in letter if y <= 6) + 1
-                glyphs[cp] = (cell, set(letter) | {(min(x1 + (b == "L") * 2, cell - 1), 3), (min(x1 + (b == "L") * 2, cell - 1), 4)})
-                continue
-            if m == 0x0327 and b == "g":                 # (ģ: the comma turned, above)
-                glyphs[cp] = (cell, mark_on(letter, 0x0301, b))
-                continue
-            glyphs[cp] = (cell, mark_on(letter, m, b))
-        glyphs[0x142] = (cell, glyphs[ord("l")][1] | {(2, 8), (4, 6)})          # ł
-        glyphs[0x141] = (cell, glyphs[ord("L")][1] | {(1, 7), (2, 6)})          # Ł
-        glyphs[0x111] = (cell, glyphs[ord("d")][1] | {(3, 4), (4, 4), (5, 4)})  # đ
+    # 4. Latin Extended-A from the face's own letters, on its rows (GEOM)
+    g = GEOM[kind]
+    marks = dict(MARKS)
+    for m, src in g.get("own", {}).items():            # (the 16: the face's own marks, from its è é …)
+        pix = {(x, y) for x, y in glyphs[ord(src)][1] if y < g["small"] + 3}
+        x0, y0 = min(x for x, _ in pix), min(y for _, y in pix)
+        w, h = max(x for x, _ in pix) - x0 + 1, max(y for _, y in pix) - y0 + 1
+        marks[m] = ("above", ["".join("#" if (x0 + i, y0 + j) in pix else "." for i in range(w)) for j in range(h)])
+    for m, art in g.get("marks", {}).items():
+        marks[m] = (MARKS[m][0], art)
+    short = {k: v for k, v in SHORT.items() if k in g.get("short", SHORT)}
+    dotless = {(x, y) for x, y in glyphs[ord("i")][1] if y > g["tall"]}
+    glyphs[0x131] = (cell, dotless)                      # ı
+    for cp in range(0x100, 0x180):
+        if cp in glyphs:
+            continue
+        d = unicodedata.decomposition(chr(cp)).split()
+        if len(d) != 2 or d[0].startswith("<"):
+            continue
+        b, m = chr(int(d[0], 16)), int(d[1], 16)
+        if m not in marks or ord(b) not in glyphs:
+            continue
+        if b in short and marks[m][0] == "above" and ord(short[b]) in glyphs:
+            letter = {(x, y) for x, y in glyphs[ord(short[b])][1] if y >= g["goal"]}   # (the face's own, shorter)
+        elif b == "i" and marks[m][0] == "above":
+            letter, b = dotless, "ı"
+        else:
+            letter = glyphs[ord(b)][1]
+        if m == 0x030C and b in "dltL" and kind == "ui":  # (ď ľ ť Ľ: the caron a small stroke at the right)
+            x1 = min(max(x for x, y in letter if y <= 6) + 1 + (b == "L") * 2, cell - 1)
+            glyphs[cp] = (cell, set(letter) | {(x1, 3), (x1, 4)})
+            continue
+        if m == 0x030C and b in "dltL":                  # (the 16's: its apostrophe's three rows, a column
+            while max(x for x, y in letter if y <= 4) + 2 > cell - 1:   # of air before it — ď's bowl narrowed)
+                letter = narrower(letter)
+            x1 = max(x for x, y in letter if y <= 4) + 2
+            glyphs[cp] = (cell, set(letter) | {(x1, 1), (x1, 2), (x1, 3)})
+            continue
+        if m == 0x0327 and b == "g":                     # (ģ: the comma turned, above)
+            glyphs[cp] = (cell, mark_on(letter, 0x0301, b, g, marks))
+            continue
+        glyphs[cp] = (cell, mark_on(letter, m, b, g, marks))
+    bar = g.get("bar", {0x142: {(2, 8), (4, 6)}, 0x141: {(1, 7), (2, 6)}, 0x111: {(3, 4), (4, 4), (5, 4)}})
+    for cp, base_ch in ((0x142, "l"), (0x141, "L"), (0x111, "d"), (0x126, "H"), (0x127, "h"),
+                        (0x166, "T"), (0x167, "t"), (0x13F, "L"), (0x140, "l")):   # ł Ł đ, the 16's Ħ ħ Ŧ ŧ Ŀ ŀ
+        if cp in bar:
+            glyphs[cp] = (cell, glyphs[ord(base_ch)][1] | bar[cp])
+    if kind != "ui":
+        glyphs[0x110] = glyphs[0xD0]                     # Đ: the face's Ð
     # 5. Cozette: what else a line holds, one cell wide — its baseline (after its row 9) on
     # the face's (the 14's after row 12: a third row of descender, its y p g in Greek and
     # Cyrillic, cut), in the cell's middle
