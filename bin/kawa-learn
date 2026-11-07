@@ -116,12 +116,34 @@ def mix(a, b):
 TOKEN = re.compile(r"(`+)(.+?)\1|\*\*(.+?)\*\*|(?<![\w*])\*(?=[^\s*])(.+?)(?<=[^\s*])\*(?![\w*])", re.S)
 
 
+CHORD = re.compile(r"\b((?:(?:Super|Shift|Ctrl|Alt)\+)+(?:[A-Z][a-z]+|[A-Za-z0-9]|F\d+))(?![\w+])")
+CAP_NAME = {"escape": "esc", "return": "enter", "backspace": "bksp", "delete": "del"}
+
+
+def caps(s, sgr):
+    """plain words as runs, a chord (Super+Shift+Print) drawn as keycaps (§4, §7): whole cells of Sumi Icons Term,
+    one tile a key, their ends U+FF001 and U+FF002, the letters U+FF000 + the sign; muted, as every screen's keys"""
+    out, at = [], 0
+    for m in CHORD.finditer(s):
+        if m.start() > at:
+            out.append((s[at:m.start()], sgr))
+        tiles = ""
+        for k in m[1].split("+"):
+            k = k.lower() if len(k) > 1 else k
+            tiles += "\U000FF001" + "".join(chr(0xFF000 + ord(c)) for c in CAP_NAME.get(k, k)) + "\U000FF002"
+        out.append((tiles, mix(sgr, MUTED)))
+        at = m.end()
+    if at < len(s):
+        out.append((s[at:], sgr))
+    return out
+
+
 def inline(s, sgr=""):
-    """a paragraph's words as runs: **strong**, *aside*, `code` (nothing inside it read)"""
+    """a paragraph's words as runs: **strong**, *aside*, `code` (nothing inside it read); a chord its keycaps"""
     out, at = [], 0
     for m in TOKEN.finditer(s):
         if m.start() > at:
-            out.append((s[at:m.start()], sgr))
+            out.extend(caps(s[at:m.start()], sgr))
         if m[1]:
             out.append((m[2], mix(sgr, BAND)))
         elif m[3] is not None:
@@ -130,7 +152,7 @@ def inline(s, sgr=""):
             out.extend(inline(m[4], mix(sgr, MUTED + ";" + ITALIC)))
         at = m.end()
     if at < len(s):
-        out.append((s[at:], sgr))
+        out.extend(caps(s[at:], sgr))
     return out
 
 

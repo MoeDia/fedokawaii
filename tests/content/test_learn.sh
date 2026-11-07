@@ -217,4 +217,13 @@ has "$(cat "$REPO/bin/kawa-learn")" '"accent_hi" if hot else "accent" if done el
 case_ "ten seconds of anything: keys, the mouse, sizes from one cell to the whole screen — no Traceback"
 out=$(pty 118x40 '!fuzz' 10 "$RANDOM" 2>&1); r=$?; ((r == 0)) && _ok || _no "exit $r: ${out: -600}"
 
+case_ "a chord in a lesson's words is drawn as keycaps (ends U+FF001/U+FF002, letters U+FF000 + sign); code stays words"
+python3 -B -c '
+import importlib.machinery, importlib.util, sys
+ld = importlib.machinery.SourceFileLoader("kl", sys.argv[1]); sp = importlib.util.spec_from_loader("kl", ld); l = importlib.util.module_from_spec(sp); ld.exec_module(l)
+r = l.inline("Press Super+Escape or `Ctrl+C`.")
+assert r[1][0] == "\U000ff001" + "".join(chr(0xff000 + ord(c)) for c in "super") + "\U000ff002\U000ff001" + "".join(chr(0xff000 + ord(c)) for c in "esc") + "\U000ff002", r
+assert ("Ctrl+C", l.mix("", l.BAND)) in r, r
+' "$REPO/bin/kawa-learn" && _ok || _no "the chord's caps"
+
 done_
