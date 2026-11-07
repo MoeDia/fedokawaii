@@ -2,7 +2,7 @@
 id: rust-ownership
 title: Ownership, Rust's one big idea
 part: 2
-minutes: 20
+minutes: 19
 needs: [rust-variables]
 ---
 ## idea
