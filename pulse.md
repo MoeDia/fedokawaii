@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 15:45 (Dubai)
+# round 28 pulse · Sat 07 16:15 (Dubai)
 
-pace: 119/204 done (58%) · time used 39% · ahead 19.1 h · ETA Sun 08 17:28 · left 78 · blocked 0 · owner 7
-alerts: none
-run: conductor active · passes 1 (oldest 3 min) · last activity 0 min ago · commits since start 144 · hold False
-machine: load 0.73 0.71 0.63/12 · mem free 18.9 GB · disk free 610 GB · up 39.5 h · cpu tccd1 39° · cpu tctl 49° · gpu edge 41° · gpu junction 35° · gpu mem 56° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 41°
+pace: 119/204 done (58%) · time used 40% · ahead 18.6 h · ETA Sun 08 18:18 · left 78 · blocked 0 · owner 7
+alerts: usage limit hit 5× (last 2026-11-07T12:09 UTC)
+run: conductor active · passes 1 (oldest 0 min) · last activity 0 min ago · commits since start 144 · hold False
+machine: load 1.39 0.54 0.39/12 · mem free 18.8 GB · disk free 610 GB · up 40.0 h · cpu tccd1 60° · cpu tctl 64° · gpu edge 42° · gpu junction 35° · gpu mem 55° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
 dark: True (active) · pulse timer active
-tokens since start: out 2,333,250 · in 4,766 · cache write 8,441,546 · cache read 156,926,191 · msgs 2297 · out last 6 h 550,706
-out by model: last 6 h claude-sonnet-5-5 310,556 · claude-opus-5-5 220,970 · claude-haiku-5-5 19,180 · since start claude-opus-5-5 1,968,180 · claude-sonnet-5-5 318,465 · claude-haiku-5-5 46,605
+tokens since start: out 2,340,055 · in 4,802 · cache write 8,489,185 · cache read 158,465,035 · msgs 2315 · out last 6 h 489,172
+out by model: last 6 h claude-sonnet-5-5 304,226 · claude-opus-5-5 168,711 · claude-haiku-5-5 16,235 · since start claude-opus-5-5 1,974,985 · claude-sonnet-5-5 318,465 · claude-haiku-5-5 46,605
 
 ## now / blocked / owner
 - [now] sa16 the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone — S2
