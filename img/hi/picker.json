@@ -3,9 +3,10 @@
   "set": "a",
   "title": "Window open and close",
   "kind": "motion",
-  "provisional": 2,
+  "provisional": 5,
   "moods": [
-   "dark"
+   "dark",
+   "light"
   ],
   "options": [
    {
@@ -13,47 +14,82 @@
     "name": "today: the hop",
     "text": "450/400 ms",
     "files": [
+     "a-0-dark-strip.png",
      "a-0-dark.mp4",
-     "a-0-dark.png"
-    ]
+     "a-0-dark.png",
+     "a-0-light-strip.png",
+     "a-0-light.mp4",
+     "a-0-light.png"
+    ],
+    "measured": "open 450 ms / close 400 ms"
    },
    {
-    "n": 1,
-    "name": "seal",
-    "text": "a stamp, 150/110 ms",
+    "n": 4,
+    "name": "mado",
+    "text": "a line, then it opens, 260/190 ms",
     "files": [
-     "a-1-dark.mp4",
-     "a-1-dark.png"
-    ]
+     "a-4-dark-strip.png",
+     "a-4-dark.mp4",
+     "a-4-dark.png",
+     "a-4-light-strip.png",
+     "a-4-light.mp4",
+     "a-4-light.png"
+    ],
+    "measured": "open 267 ms / close 200 ms"
    },
    {
-    "n": 2,
-    "name": "shoji",
-    "text": "a door parting in whole pixels, 190/150 ms",
+    "n": 5,
+    "name": "mozaiku",
+    "text": "a mosaic dissolve, 300/220 ms",
     "files": [
-     "a-2-dark.mp4",
-     "a-2-dark.png"
-    ]
+     "a-5-dark-strip.png",
+     "a-5-dark.mp4",
+     "a-5-dark.png",
+     "a-5-light-strip.png",
+     "a-5-light.mp4",
+     "a-5-light.png"
+    ],
+    "measured": "open 300 ms / close 233 ms"
    },
    {
-    "n": 3,
-    "name": "kasumi",
-    "text": "cell by cell, 220/170 ms",
+    "n": 6,
+    "name": "kushi",
+    "text": "a comb of columns, 240/180 ms",
     "files": [
-     "a-3-dark.mp4",
-     "a-3-dark.png"
-    ]
+     "a-6-dark-strip.png",
+     "a-6-dark.mp4",
+     "a-6-dark.png",
+     "a-6-light-strip.png",
+     "a-6-light.mp4",
+     "a-6-light.png"
+    ],
+    "measured": "open 250 ms / close 183 ms"
+   },
+   {
+    "n": 7,
+    "name": "mon",
+    "text": "a crest flash, 300/200 ms",
+    "files": [
+     "a-7-dark-strip.png",
+     "a-7-dark.mp4",
+     "a-7-dark.png",
+     "a-7-light-strip.png",
+     "a-7-light.mp4",
+     "a-7-light.png"
+    ],
+    "measured": "open 300 ms / close 200 ms"
    }
   ],
-  "note": "Real tiled windows by the key, the new one the lower window on the right, beside two others; real dwl builds, recorded headless, the bar cropped off. The png is the opening at half its time, the crop 1280 by 720 of the middle of the screen."
+  "note": "Frame-exact videos from real dwl builds (a test hook steps the animation clock a 60th of a second); -strip.png shows the ms. His pick: 5 mozaiku."
  },
  {
   "set": "b",
   "title": "A workspace move",
   "kind": "motion",
-  "provisional": 1,
+  "provisional": 4,
   "moods": [
-   "dark"
+   "dark",
+   "light"
   ],
   "options": [
    {
@@ -61,93 +97,79 @@
     "name": "today: the strip",
     "text": "450 ms",
     "files": [
+     "b-0-dark-strip.png",
      "b-0-dark.mp4",
-     "b-0-dark.png"
-    ]
+     "b-0-dark.png",
+     "b-0-light-strip.png",
+     "b-0-light.mp4",
+     "b-0-light.png"
+    ],
+    "measured": "450 ms"
    },
    {
-    "n": 1,
-    "name": "hayate",
-    "text": "a gust, 220 ms",
+    "n": 4,
+    "name": "heya",
+    "text": "a room-scroll, 360 ms",
     "files": [
-     "b-1-dark.mp4",
-     "b-1-dark.png"
-    ]
+     "b-4-dark-strip.png",
+     "b-4-dark.mp4",
+     "b-4-dark.png",
+     "b-4-light-strip.png",
+     "b-4-light.mp4",
+     "b-4-light.png"
+    ],
+    "measured": "367 ms"
    },
    {
-    "n": 2,
-    "name": "kakejiku",
-    "text": "a hanging scroll, top to bottom, 420 ms",
+    "n": 5,
+    "name": "hitomi",
+    "text": "an iris wipe, 420 ms",
     "files": [
-     "b-2-dark.mp4",
-     "b-2-dark.png"
-    ]
+     "b-5-dark-strip.png",
+     "b-5-dark.mp4",
+     "b-5-dark.png",
+     "b-5-light-strip.png",
+     "b-5-light.mp4",
+     "b-5-light.png"
+    ],
+    "measured": "433 ms"
    },
    {
-    "n": 3,
-    "name": "fusuma",
-    "text": "the doors part over the next room, 300 ms",
+    "n": 6,
+    "name": "hishi",
+    "text": "a diamond-tile wipe, 440 ms",
     "files": [
-     "b-3-dark.mp4",
-     "b-3-dark.png"
-    ]
+     "b-6-dark-strip.png",
+     "b-6-dark.mp4",
+     "b-6-dark.png",
+     "b-6-light-strip.png",
+     "b-6-light.mp4",
+     "b-6-light.png"
+    ],
+    "measured": "450 ms"
+   },
+   {
+    "n": 7,
+    "name": "suna",
+    "text": "a fast slide with a dust trail, 340 ms",
+    "files": [
+     "b-7-dark-strip.png",
+     "b-7-dark.mp4",
+     "b-7-dark.png",
+     "b-7-light-strip.png",
+     "b-7-light.mp4",
+     "b-7-light.png"
+    ],
+    "measured": "333 ms"
    }
   ],
-  "note": "Two moves there and back. Real dwl builds, recorded headless; the bar is cropped off."
- },
- {
-  "set": "c",
-  "title": "A menu, panel or warm window coming and going",
-  "kind": "motion",
-  "provisional": 1,
-  "moods": [
-   "dark"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today: the rod",
-    "text": "300/240 ms",
-    "files": [
-     "c-0-dark.mp4",
-     "c-0-dark.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "kakejiku",
-    "text": "two rods and silk edges, 380/280 ms",
-    "files": [
-     "c-1-dark.mp4",
-     "c-1-dark.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "omori",
-    "text": "a weight falls and bounces twice, 460/240 ms",
-    "files": [
-     "c-2-dark.mp4",
-     "c-2-dark.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "makimono",
-    "text": "a handscroll parting from the middle, 340/260 ms",
-    "files": [
-     "c-3-dark.mp4",
-     "c-3-dark.png"
-    ]
-   }
-  ],
-  "note": "Super+V. Real dwl builds, recorded headless."
+  "note": "Frame-exact videos from real dwl builds; open = close. His pick: 4 heya."
  },
  {
   "set": "P1",
   "title": "Rules and separators",
   "kind": "still",
-  "provisional": 3,
+  "provisional": 4,
   "moods": [
    "dark",
    "light"
@@ -163,268 +185,49 @@
     ]
    },
    {
-    "n": 1,
-    "name": "kasumi",
-    "text": "dithered mist",
+    "n": 4,
+    "name": "waku",
+    "text": "a JRPG border's rails and studs",
     "files": [
-     "P1-1-dark.png",
-     "P1-1-light.png"
+     "P1-4-dark.png",
+     "P1-4-light.png"
     ]
    },
    {
-    "n": 2,
-    "name": "nami",
-    "text": "a band of seigaiha",
+    "n": 5,
+    "name": "kusari",
+    "text": "a chain of tiny links",
     "files": [
-     "P1-2-dark.png",
-     "P1-2-light.png"
+     "P1-5-dark.png",
+     "P1-5-light.png"
     ]
    },
    {
-    "n": 3,
-    "name": "mon",
-    "text": "stepped caps, a crest",
+    "n": 6,
+    "name": "ken",
+    "text": "the rule a sword",
     "files": [
-     "P1-3-dark.png",
-     "P1-3-light.png"
+     "P1-6-dark.png",
+     "P1-6-light.png"
+    ]
+   },
+   {
+    "n": 7,
+    "name": "kizami",
+    "text": "HUD cells",
+    "files": [
+     "P1-7-dark.png",
+     "P1-7-light.png"
     ]
    }
   ],
-  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
- },
- {
-  "set": "P2",
-  "title": "The selection marker",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "the band and its red edge",
-    "files": [
-     "P2-0-dark.png",
-     "P2-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "yubi",
-    "text": "a JRPG pointer in the gutter",
-    "files": [
-     "P2-1-dark.png",
-     "P2-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "fude",
-    "text": "a brush stroke under the label",
-    "files": [
-     "P2-2-dark.png",
-     "P2-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "kagi",
-    "text": "corner brackets",
-    "files": [
-     "P2-3-dark.png",
-     "P2-3-light.png"
-    ]
-   }
-  ],
-  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
- },
- {
-  "set": "P2m",
-  "title": "The pointer bobbing",
-  "kind": "motion",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 1,
-    "name": "yubi",
-    "text": "whole pixels, 150 ms a pose",
-    "files": [
-     "P2m-1-dark.mp4",
-     "P2m-1-dark.png",
-     "P2m-1-light.mp4",
-     "P2m-1-light.png"
-    ]
-   }
-  ],
-  "note": "Super+U at 2x, the png 1:1. The other markers stand still."
- },
- {
-  "set": "P3",
-  "title": "Corners and frames",
-  "kind": "still",
-  "provisional": 3,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "a plain frame",
-    "files": [
-     "P3-0-dark.png",
-     "P3-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "kakko",
-    "text": "quotation brackets",
-    "files": [
-     "P3-1-dark.png",
-     "P3-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "kaidan",
-    "text": "a dialog box's stairs",
-    "files": [
-     "P3-2-dark.png",
-     "P3-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "kanagu",
-    "text": "a chest's brass fittings",
-    "files": [
-     "P3-3-dark.png",
-     "P3-3-light.png"
-    ]
-   }
-  ],
-  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. The power menu keeps its rods."
- },
- {
-  "set": "P4",
-  "title": "Meters",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "40 segments",
-    "files": [
-     "P4-0-dark.png",
-     "P4-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "tairyoku",
-    "text": "an HP bar",
-    "files": [
-     "P4-1-dark.png",
-     "P4-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "hishi",
-    "text": "20 lozenges on a cord",
-    "files": [
-     "P4-2-dark.png",
-     "P4-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "katana",
-    "text": "the blade the scale",
-    "files": [
-     "P4-3-dark.png",
-     "P4-3-light.png"
-    ]
-   }
-  ],
-  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. Volume, battery and downloads are a mock-up panel: the shots hold none of them."
- },
- {
-  "set": "P4m",
-  "title": "The meters filling",
-  "kind": "motion",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "40 segments",
-    "files": [
-     "P4m-0-dark.mp4",
-     "P4m-0-dark.png",
-     "P4m-0-light.mp4",
-     "P4m-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "tairyoku",
-    "text": "an HP bar",
-    "files": [
-     "P4m-1-dark.mp4",
-     "P4m-1-dark.png",
-     "P4m-1-light.mp4",
-     "P4m-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "hishi",
-    "text": "20 lozenges",
-    "files": [
-     "P4m-2-dark.mp4",
-     "P4m-2-dark.png",
-     "P4m-2-light.mp4",
-     "P4m-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "katana",
-    "text": "the blade",
-    "files": [
-     "P4m-3-dark.mp4",
-     "P4m-3-dark.png",
-     "P4m-3-light.mp4",
-     "P4m-3-light.png"
-    ]
-   }
-  ],
-  "note": "The mock-up panel at 2x, the png 1:1. Volume runs into the fire and back."
+  "note": "1:1 on the real screens, both moods. His pick: 4 waku; not in the top bar, notices or power menu, and thin."
  },
  {
   "set": "P5",
   "title": "Small accents",
   "kind": "still",
-  "provisional": 2,
+  "provisional": 5,
   "moods": [
    "dark",
    "light"
@@ -440,73 +243,83 @@
     ]
    },
    {
-    "n": 1,
-    "name": "mon",
-    "text": "a crest ending a title",
+    "n": 4,
+    "name": "zeni",
+    "text": "a spinning coin",
     "files": [
-     "P5-1-dark.png",
-     "P5-1-light.png"
-    ]
+     "P5-4-dark.png",
+     "P5-4-light.png",
+     "P5m-4-dark-slow.mp4",
+     "P5m-4-dark-strip.png",
+     "P5m-4-dark.mp4",
+     "P5m-4-dark.png",
+     "P5m-4-light-slow.mp4",
+     "P5m-4-light-strip.png",
+     "P5m-4-light.mp4",
+     "P5m-4-light.png"
+    ],
+    "measured": "spin 1067 ms"
    },
    {
-    "n": 2,
-    "name": "kirari",
-    "text": "a sparkle on the focus",
+    "n": 5,
+    "name": "bikkuri",
+    "text": "a \"!\" pop",
     "files": [
-     "P5-2-dark.png",
-     "P5-2-light.png"
-    ]
+     "P5-5-dark.png",
+     "P5-5-light.png",
+     "P5m-5-dark-slow.mp4",
+     "P5m-5-dark-strip.png",
+     "P5m-5-dark.mp4",
+     "P5m-5-dark.png",
+     "P5m-5-light-slow.mp4",
+     "P5m-5-light-strip.png",
+     "P5m-5-light.mp4",
+     "P5m-5-light.png"
+    ],
+    "measured": "pop 1767 ms"
    },
    {
-    "n": 3,
-    "name": "hanabira",
-    "text": "a falling petal",
+    "n": 6,
+    "name": "shuriken",
+    "text": "a thrown shuriken",
     "files": [
-     "P5-3-dark.png",
-     "P5-3-light.png"
-    ]
+     "P5-6-dark.png",
+     "P5-6-light.png",
+     "P5m-6-dark-slow.mp4",
+     "P5m-6-dark-strip.png",
+     "P5m-6-dark.mp4",
+     "P5m-6-dark.png",
+     "P5m-6-light-slow.mp4",
+     "P5m-6-light-strip.png",
+     "P5m-6-light.mp4",
+     "P5m-6-light.png"
+    ],
+    "measured": "throw 500 ms"
+   },
+   {
+    "n": 7,
+    "name": "chochin",
+    "text": "a flickering lantern",
+    "files": [
+     "P5-7-dark.png",
+     "P5-7-light.png",
+     "P5m-7-dark-slow.mp4",
+     "P5m-7-dark-strip.png",
+     "P5m-7-dark.mp4",
+     "P5m-7-dark.png",
+     "P5m-7-light-slow.mp4",
+     "P5m-7-light-strip.png",
+     "P5m-7-light.mp4",
+     "P5m-7-light.png"
+    ],
+    "measured": "flicker 767 of 4 s"
    }
   ],
-  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet."
+  "note": "1:1 on the real screens, both moods; the motions are the P5m videos (and -slow, -strip)."
  },
  {
-  "set": "P5m",
-  "title": "The accents that move",
-  "kind": "motion",
-  "provisional": 2,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 2,
-    "name": "kirari",
-    "text": "a glint every 2 seconds",
-    "files": [
-     "P5m-2-dark.mp4",
-     "P5m-2-dark.png",
-     "P5m-2-light.mp4",
-     "P5m-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "hanabira",
-    "text": "falls behind the words, rests, dissolves",
-    "files": [
-     "P5m-3-dark.mp4",
-     "P5m-3-dark.png",
-     "P5m-3-light.mp4",
-     "P5m-3-light.png"
-    ]
-   }
-  ],
-  "note": "Super+U at 2x, the png 1:1."
- },
- {
-  "set": "PA",
-  "title": "All together",
+  "set": "P4",
+  "title": "Meters",
   "kind": "still",
   "provisional": 1,
   "moods": [
@@ -515,16 +328,49 @@
   ],
   "options": [
    {
-    "n": 1,
-    "name": "the favourite",
-    "text": "mon, yubi, kanagu, tairyoku, kirari",
+    "n": 4,
+    "name": "urushi",
+    "text": "tairyoku in gold and vermilion on lacquer (dark), ai and vermilion on washed paper (light)",
     "files": [
-     "PA-dark.png",
-     "PA-light.png"
+     "P4-4-dark.png",
+     "P4-4-light.png",
+     "P4m-4-dark.mp4",
+     "P4m-4-dark.png",
+     "P4m-4-light.mp4",
+     "P4m-4-light.png"
     ]
    }
   ],
-  "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. A provisional number here is only the favourite."
+  "note": "tairyoku is his pick; this is its better colour combination, 1:1 on the real screens; P4m-4 is the filling."
+ },
+ {
+  "set": "c",
+  "title": "A menu, panel or warm window coming and going",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "dark",
+   "light"
+  ],
+  "options": [
+   {
+    "n": 2,
+    "name": "omori",
+    "text": "a weight falls and bounces twice, 460/240 ms",
+    "files": [
+     "c-2-dark-slow.mp4",
+     "c-2-dark-strip.png",
+     "c-2-dark.mp4",
+     "c-2-dark.png",
+     "c-2-light-slow.mp4",
+     "c-2-light-strip.png",
+     "c-2-light.mp4",
+     "c-2-light.png"
+    ],
+    "measured": "open 467 ms / close 250 ms"
+   }
+  ],
+  "note": "His pick, re-recorded frame-exact with its slow video and strip, for him to confirm."
  },
  {
   "set": "L",
@@ -621,281 +467,5 @@
    }
   ],
   "note": "The real lock, headless, with a stand-in password: idle, the first key, a cut per key, delete, a wrong try, the right one, the unlock. 1920 by 1080, the png its fullest frame. The marks' place is not final."
- },
- {
-  "set": "d",
-  "title": "The prompt, the head inside the ribbon",
-  "kind": "still",
-  "provisional": 3,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "head outside, round tongues",
-    "files": [
-     "d-0-dark.png",
-     "d-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "tanzaku",
-    "text": "a poem slip, hairlines between papers",
-    "files": [
-     "d-1-dark.png",
-     "d-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "obi",
-    "text": "a silk band, swallowtail ends, slanted folds",
-    "files": [
-     "d-2-dark.png",
-     "d-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "rakkan",
-    "text": "the head a carved red seal, plain joins",
-    "files": [
-     "d-3-dark.png",
-     "d-3-light.png"
-    ]
-   }
-  ],
-  "note": "Real foot; each shows a good command and a failed one."
- },
- {
-  "set": "f",
-  "title": "The bigger bar",
-  "kind": "still",
-  "provisional": 3,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "paper 20, icons 12, windows from y 33",
-    "files": [
-     "f-0-dark.png",
-     "f-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "jiku",
-    "text": "paper 24, icons 16, lacquer rods, windows from y 37",
-    "files": [
-     "f-1-dark.png",
-     "f-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "makimono",
-    "text": "paper 26, icons 18, a red cord, windows from y 40",
-    "files": [
-     "f-2-dark.png",
-     "f-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "jikusaki",
-    "text": "paper 30, icons 20, gold finials, big hours, windows from y 44",
-    "files": [
-     "f-3-dark.png",
-     "f-3-light.png"
-    ]
-   }
-  ],
-  "note": "Options are drawn mock-ups; today's is the real bar in the kit, so it lights fewer modules. In makimono's light mood the rolls read slate: a colour slip, they would be paper."
- },
- {
-  "set": "g",
-  "title": "The power menu",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "five seals, 402 wide",
-    "files": [
-     "g-0-dark.png",
-     "g-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "jiku",
-    "text": "a scroll between two rods, 458 wide",
-    "files": [
-     "g-1-dark.png",
-     "g-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "tanzaku",
-    "text": "a list with keys beside a slip, 344 by 275",
-    "files": [
-     "g-2-dark.png",
-     "g-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "umebachi",
-    "text": "the plum crest, a round window, 381 across",
-    "files": [
-     "g-3-dark.png",
-     "g-3-light.png"
-    ]
-   }
-  ],
-  "note": "Each file: at rest on the left, at the second press on the right. Options are drawn mock-ups; today's is real."
- },
- {
-  "set": "h1",
-  "title": "Super+U tightened",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "819 by 380, eight rows empty",
-    "files": [
-     "h1-0-dark.png",
-     "h1-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "ichimai",
-    "text": "one sheet, shut tight, 707 by 280",
-    "files": [
-     "h1-1-dark.png",
-     "h1-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "daifuku",
-    "text": "a merchant's ledger, every tab named on a rail, 803 by 240",
-    "files": [
-     "h1-2-dark.png",
-     "h1-2-light.png"
-    ]
-   }
-  ],
-  "note": "Options are mock-ups in real foot; the cursor band differs from today's on purpose."
- },
- {
-  "set": "h2",
-  "title": "Super+R tightened",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "851 by 600, half of it empty",
-    "files": [
-     "h2-0-dark.png",
-     "h2-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "hon",
-    "text": "the book beside the list, 707 by 360",
-    "files": [
-     "h2-1-dark.png",
-     "h2-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "okuzuke",
-    "text": "a colophon: the book on top, the shelf under, 547 by 400",
-    "files": [
-     "h2-2-dark.png",
-     "h2-2-light.png"
-    ]
-   }
-  ],
-  "note": "Options are mock-ups in real foot, with the Learn book's real cover."
- },
- {
-  "set": "i",
-  "title": "Helium's theme",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "dark",
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "the real browser now",
-    "files": [
-     "i-0-dark.png",
-     "i-0-light.png"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "tsuitate",
-    "text": "address above, tabs below, 2 keys each side",
-    "files": [
-     "i-1-dark.png",
-     "i-1-light.png"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "mokuroku",
-    "text": "tabs a list at the left, 3 keys each side",
-    "files": [
-     "i-2-dark.png",
-     "i-2-light.png"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "noren",
-    "text": "tabs under a band of waves, 3 keys each side",
-    "files": [
-     "i-3-dark.png",
-     "i-3-light.png"
-    ]
-   }
-  ],
-  "note": "The real browser at 960 by 600. The ring and the new tab card on the third tab come from the shot; noren's blue ring is a slip. 1 and 2 follow the mood live; 3 has to be swapped."
  }
 ]
