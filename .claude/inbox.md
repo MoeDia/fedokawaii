@@ -725,3 +725,31 @@ CLAUDE (monitoring the run for the owner, S11): The owner (00:49): speed things 
 4. Tests: per task, only the checks for what changed; the full suite and a full VM install once a day and before the ISO is cut, not after every task.
 5. Let Claude see the mix: extend ~/.local/bin/r28-track so pulse.md's tokens line also splits output tokens by model (message.model in the transcripts), last 6 hours and since the start (keep its CLI and page working; restart r28-track).
 Everything else stays: S8's balance, commit and push per task, nothing may break.
+
+## 2026-11-07 09:45 — in the plan: s12a-s12e
+CLAUDE (monitoring the run for the owner, S12): The owner's picks and notes from his page (00:47), his words kept:
+- P1 separators: 4 waku. BUT "top bar, notifications, power menu: these places don't need a separator line; use it smartly and avoid it to keep things nicer and more tidy, and be very careful about its thickness, don't make it too thick."
+- Highlights, everywhere: no red background band behind the selected option, and no underline like the one under "status" in Super+U. A selected or highlighted item changes its colour only (as S4 said). "Be careful."
+- The quick-settings menu: "don't forget to give it some love like we discussed before" (round 27's ask), together with the spinning gear (S2).
+- c menus (omori): "the menu and all other similar menus should keep the scroll design even after the open, not switch back to the normal border; it needs to look consistent and legit." The scroll's rods and edges stay for as long as the menu is open, in every menu of that kind.
+- P5's new accents (zeni, bikkuri, shuriken, chochin) are on his page; no pick yet.
+- The lock (l4) is his top design item and has been blocked since Friday evening: retry it with a fresh approach, on opus, before Sunday's ISO work.
+
+## 2026-11-07 09:45 — in the plan: s13a, dsun2, dmon2, dtue2
+CLAUDE (monitoring the run for the owner, S13): Claude, watching the pulse (Sat 03:44):
+- All four daily rows (dsat, dsun, dmon, dtue) ran back to back on Saturday morning, about two hours each; the ETA slipped from Sun 11:47 to about Sun 22:30. Let dtue finish (do not kill a VM mid-install). Then add one new daily row for each remaining calendar day (Sun 8, Mon 9, Tue 10), each run only on its own day, Dubai time, and never one straight after another; the loop must not pick a daily row before its day. Go on with the plan.
+- S11's model mix is not biting yet: in the last 6 hours opus wrote 275k output tokens, haiku 11k, sonnet 8k. Check that the open rows really carry sonnet or haiku where S11's rules say (most coding, configs, apps, tests and docs are sonnet; sweeps, checks and runs like the daily suite are haiku), and that the loop really passes --model (look at message.model in the latest transcript). Opus stays for design he judges, dwl/C, the lock, the ISO/installer and security.
+
+## 2026-11-07 09:45 — in the plan: s14a
+CLAUDE (monitoring the run for the owner, S14): The owner (09:25): make up for the hours lost (the four daily suites back to back, and steering that waited for his Mac). Boost the pace a little more, still one agent at a time, still cheap:
+1. Long machine jobs (a VM install, the full suite, the ISO build, renders) run in the background as their own systemd user units (still one VM at a time). The pass starts the job, marks it "running" in the plan, and goes on with the next row that does not touch the same files or the VM; a later pass reads the result. No pass sits waiting on a VM.
+2. No idle time between passes: check the loop's sleep or back-off and the conductor's interval, and start the next pass as soon as one ends (keep the wait for a usage-limit reset).
+3. Daily rows run only on their own day (S13), and a daily run is skipped when the previous one passed less than 12 hours earlier with no system-level change since.
+4. Sonnet for every row S11 allows; by tonight the pulse's model split should show sonnet doing most of the rows.
+5. Target: the ETA back to Sunday noon or earlier. Nothing may break; S8's balance stays.
+
+## 2026-11-07 09:45 — in the plan: s15a
+CLAUDE (monitoring the run for the owner, S15): The owner (09:40): his Mac will sleep, so Claude's notes can arrive hours late, and he will change nothing on GitHub. Steer yourself:
+1. Order the work so nothing ever waits on him or on Claude. Rows that need a pick or a note are parked; there is always a next row that needs nobody (engineering, apps, learning, nvim, repo, ISO and installer, tests). A design row waiting for a pick: build the strongest option behind a switch (S8) and move on; swap when the pick comes.
+2. A self-audit every 6 passes (cheap, on haiku), the checks Claude would otherwise send by hand: (a) pace against the plan and the ETA trend; (b) no daily row before its day, no long job repeated; (c) the model mix (sonnet should carry most rows); (d) any pass over 90 minutes, any idle gap between passes; (e) a blocked row older than 6 hours gets one fresh attempt with a different approach; (f) the design track not crowding out the rest. Fix what it finds and note it in the plan.
+3. Claude's notes still arrive through steer.md whenever his Mac is awake. Treat them as his voice, never wait for them.

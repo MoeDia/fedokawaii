@@ -136,4 +136,8 @@ n=$(grep -c '^export ' "$REPO/system/fedokawaii-home.sh")
 m=$(bash -c '. "$1/lib/common.sh" 2>/dev/null; home_env /home/x' _ "$REPO" | grep -c '^[A-Z_]*=/home/x/')
 eq "$m" "$n"
 has "$(bash -c '. "$1/lib/common.sh" 2>/dev/null; home_env /home/x' _ "$REPO")" "RUSTUP_HOME=/home/x/.local/share/rustup"
+case_ "an old ~/Projects (xdg-user-dirs 0.20's) is poured into ~/dojo: no ~/Projects, no link"
+mkdir -p "$HOME/Projects/q/.git"
+tidy; eq "$RC" 0 "$OUT"
+[[ -d $HOME/dojo/q/.git && ! -e $HOME/Projects && ! -L $HOME/Projects ]] && _ok || _no "$(ls "$HOME")"
 done_
