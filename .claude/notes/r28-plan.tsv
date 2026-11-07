@@ -211,3 +211,4 @@ o04	Tue 10	owner	the ISO installed on his PC: fedokawaii lives there on Fedora 4
 o05	Tue 10	owner	T62: r28-track, r28-pulse, r28-dark, r28-cooler, the round's sudo and polkit rules and linger removed, never in the ISO			opus
 o06	Tue 10	owner	triad, his private repo fluvia4ai/triad: a read-only deploy key's public key posted for him, added with his OK; installed by default, self-updating, taught in Part 1		the last line, owner 00:24	opus
 sa26x	Sat 7	todo	fix tests/static/test_noellipsis.sh failing on bin/kawa-panel:166-169 (pixel-art dots read as "...")			sonnet
+s12c2r	Sat 7	todo	regress README rows for r28-sa15b2 and r28-sa15d2a (items.py check names them missing; found in s12c2)			haiku
