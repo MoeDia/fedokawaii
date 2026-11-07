@@ -20,5 +20,8 @@ has "$out" $'yazi\t' "a pinned release"; has "$out" "github.com/sxyazi/yazi rele
 has "$out" $'Steam\t-\tFlathub (in ASOBI)\tasobi' "a Flatpak of ASOBI"
 case_ "the aligned table and misuse"
 has "$("$INV")" "pinned; changes with the desktop" "the aligned form"
+case_ "what we changed and the menus of our own"
+mod=$("$INV" modified); has "$mod" "yazi" "a patched app"; has "$mod" "patched," "how"; has "$mod" "kawa-saver" "a program written here"
+men=$("$INV" menus); has "$men" "kawa-power" "a menu"; lacks "$men" "kawa-dwlstatus" "a script that only mentions menus"
 rc 2 "$INV" --x
 done_

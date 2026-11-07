@@ -1115,7 +1115,8 @@ log_view() {   # root's log at its end — less as you: a pager run as root woul
 }
 inventory_view() {   # the table, in less as you (-S: a row is never wrapped; q closes)
   command -v kawa-inventory >/dev/null || { echo "  kawa-inventory is missing — fedokawaii repair puts it back" >&2; return 1; }
-  kawa-inventory | sed 's/^/  /' | less -S
+  { kawa-inventory; printf '\n  what we changed or wrote\n\n'; kawa-inventory modified
+    printf '\n  the menus of our own\n\n'; kawa-inventory menus; } | sed 's/^/  /' | less -S
 }
 run() {   # run ACTION — in the menu's window: the work, its outcome, a key back to the menu
   local a=$1 rc=0

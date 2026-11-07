@@ -4,6 +4,8 @@
 # lib/upstream.sh and lib/asobi.sh, never a list of its own; versions from rpm and the pins.
 #   kawa-inventory         the table, aligned
 #   kawa-inventory --tsv   NAME<TAB>VERSION<TAB>FROM<TAB>UPDATED BY
+#   kawa-inventory modified   every program we changed or wrote: its patch or source, what it does
+#   kawa-inventory menus      every menu of our own: its script, what it opens (Super+U → system)
 set -u
 TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}
 STATE_DIR=${STATE_DIR:-/var/lib/fedokawaii}
@@ -45,8 +47,49 @@ rows() {
   done
 }
 
+# the first line of a script's or source's own description: "name — what it is", the name cut off
+describe() {   # describe FILE
+  local l
+  l=$(sed -n '1,6{/^#!/d;/^\/\*$/d;/^"""/!{/^[#*\/ ]/!d};/—/{s/^[#*\/" ]*[^—]*— *//;p;q}}' "$1")
+  [[ -n $l ]] || l=$(sed -n '1,8{s/^[#*\/" ]*//;/^[A-Za-z]/{p;q}}' "$1")
+  l=${l:0:120}; [[ ${#l} -lt 120 ]] || l=${l% *}
+  printf '%s' "${l%[,:;( ]}"
+}
+modified() {
+  local f d n hunks l
+  for f in "$TK"/src/*/*.patch; do
+    [[ -f $f ]] || continue
+    d=${f%/*}; n=${d##*/}
+    hunks=$(grep -c '^@@' "$f")
+    case $n in
+      dwl)  l="the compositor: gaps, frames, dissolve, lock and screen hooks, the desktop's keys" ;;
+      mako) l="the notices: the shadow frame, pixel icons in the summary, hanging indent" ;;
+      foot) l="one private escape (OSC 7700) so a program can size the window's font" ;;
+      syncplay) l="mpv connection retried, a clean close, Syncplay and its mpv closing as one" ;;
+      yazi) l="every pop-up drawn as the design system's panel, in whole cells, keys as tiles" ;;
+      *)    l=$(sed -n '2,12{/^[A-Za-z]/{s/^[^—]*— *//;p;q}}' "$f") ;;
+    esac
+    printf '%s\t%s\t%s\n' "$n" "patched, $hunks hunks" "$l"
+  done
+  for d in "$TK"/src/kawa-*/; do
+    n=${d%/}; n=${n##*/}
+    f=$(compgen -G "$d*.c" | sed -n 1p)
+    printf '%s\t%s\t%s\n' "$n" "written here (C)" "$(describe "$f")"
+  done
+}
+menus() {
+  local f n
+  for f in "$TK"/bin/kawa-*; do
+    grep -qE '^[^#]*([|;(]|^|do|then) *kawa-menu( |$)' "$f" 2>/dev/null || continue
+    n=${f##*/}; [[ $n == @(kawa-menu|kawa-panel) ]] && continue
+    printf '%s\t%s\n' "$n" "$(describe "$f")"
+  done
+}
+
 case ${1:-} in
+  modified) { printf 'WHAT\tHOW\tWHAT IT DOES\n'; modified; } | column -t -s $'\t' ;;
+  menus)    { printf 'MENU\tWHAT IT OPENS\n'; menus; } | column -t -s $'\t' ;;
   --tsv) rows ;;
   "")    rows | column -t -s $'\t' ;;
-  *)     echo "usage: kawa-inventory [--tsv]" >&2; exit 2 ;;
+  *)     echo "usage: kawa-inventory [--tsv|modified|menus]" >&2; exit 2 ;;
 esac
