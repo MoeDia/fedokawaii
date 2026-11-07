@@ -166,7 +166,7 @@ for th in ("dark", "light"):
         if __import__("os").path.exists(T + th + "/" + old): bad.append(f"{th}/{old}: still there")
     sc = Image.open(T + th + "/kami-scroll.png").convert("RGBA")
     want(f"{th}/kami-scroll.png: its height", sc.size[1], height)
-tiles = ["#custom-torii", "#custom-menu", "#focused"] + [f"#custom-tag{k}" for k in range(1, 10)] + \
+tiles = ["#custom-torii", "#custom-gear", "#custom-menu", "#focused"] + [f"#custom-tag{k}" for k in range(1, 10)] + \
         ["#custom-nowplaying", "#custom-timer", "#custom-record", "#custom-mode", "#custom-drives", "#custom-downloads",
          "#custom-kb", "#custom-mem", "#custom-volume", "#custom-brightness", "#custom-weather"]
 for sel in tiles:
@@ -232,7 +232,14 @@ want("the thump held 60 ms, then the seal (GTK 3's steps(1, start): two frames, 
 gap = lambda s: 1 + box(s)[1][3]
 for sel in [f"#custom-tag{k}" for k in range(2, 10)] + ["#custom-timer", "#custom-volume", "#custom-weather"]:
     want(f"→ {sel} (within a group)", gap(sel), 4)
-for sel in ("#custom-tag1", "#focused", "#custom-menu"):
+for sel in ("#custom-menu",):
+    want(f"→ {sel} (within a group: the gear's)", gap(sel), 4)
+# the gear: a picture, its 16 columns 8 px from the paper (the padding box one column in), the odd
+# pixel to the right as the head's; its 16 rows on the emblems' 6–21 (2 of paper above)
+gp = box("#custom-gear")[3].get("background-position", "").split(",")[0].split()
+want("#custom-gear: the paper → its ink", 1 + px(gp[0]), 8)
+want("#custom-gear: its rows (6–21)", 4 + px(gp[1]), 6)
+for sel in ("#custom-tag1", "#focused", "#custom-gear"):
     want(f"→ {sel} (between groups)", gap(sel), 12)
 want("the screen's left edge → the torii's hairline (x 8)", box("#custom-torii")[1][3], 8)
 want("the face's hairline → the screen's right edge (x 1911: 8 px of air, the shadow's column in them)", 1 + box("#custom-menu")[1][1], 8)

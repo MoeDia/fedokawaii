@@ -148,7 +148,7 @@ the tiles of a group, 12 px between groups" "the doc's gaps"
   has "$css" "#custom-tag1 { margin-left: 11px; }" "between groups: 11 and the shadow's column (12)"
   has "$doc" "the outer tiles' hairlines on x 8 and x 1911" "the doc's edges"
   has "$css" "#custom-torii { margin-left: 8px;" "the torii's hairline on x 8"
-  has "$css" "#custom-menu  { margin-left: 11px; margin-right: 7px; }" "the cat's on x 1911 (its shadow's column and 7 to the edge)"
+  has "$css" "#custom-menu  { margin-left: 3px; margin-right: 7px; }" "the head's on x 1911 (its shadow's column and 7 to the edge), 4 px after the gear's"
   lacks "$css" "kami-seal-narrow" "one seal for every numeral (10 × 10, §4)"
 }
 built_windows() {   # §4, §12: the windows' frame — the doc's numbers in dwl's config and colours

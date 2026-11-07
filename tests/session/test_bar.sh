@@ -301,7 +301,12 @@ sys.exit(bad)
 EOF
 eq "$(wbexec custom/volume on-click)" "kawa-quick sound"
 eq "$(wbexec custom/brightness on-click)" "kawa-quick brightness"
-eq "$(wbexec custom/menu on-click)" "kawa-quick" "the cat: quick settings, asked of the panel"
+eq "$(wbexec custom/gear on-click)" "kawa-quick" "the gear: quick settings, asked of the panel"
+python3 -I - "$REPO/configs/home/.config/waybar/config.jsonc" <<'EOF' && _ok || _no "the head has a click of its own: the gear's (d4)"
+import json, re, sys
+c = json.loads(re.sub(r"(?m)^\s*//.*$", "", open(sys.argv[1]).read()))
+sys.exit("on-click" in c["custom/menu"] or c["modules-right"][-2:] != ["custom/gear", "custom/menu"])
+EOF
 eq "$(wbexec custom/mode on-click)" "setsid -f kawa-quick dnd" "the mode tile: do not disturb's own dropdown, apart from the bar (a menu waits for its answer)"
 eq "$(wbexec custom/volume on-click-right) | $(wbexec custom/volume on-scroll-up) | $(wbexec custom/volume on-scroll-down)" "kawa-volume mute | kawa-volume up 2 | kawa-volume down 2"
 eq "$(wbexec custom/torii on-click)" "setsid -f kawa-menu --launcher"
@@ -309,7 +314,7 @@ eq "$(wbexec custom/weather on-click)" "setsid -f kawa-weather --menu"
 eq "$(wbexec custom/date on-click) $(wbexec custom/day on-click)" "setsid -f kawa-calendar setsid -f kawa-calendar"
 eq "$(wbexec custom/time on-click)" "setsid -f kawa-timer"
 case_ "each lit item's module answers the signal its opener pokes (the panel's: its panels, dropdowns and the launcher)"
-for m in custom/torii:20 custom/date:19 custom/day:19 custom/drives:13 custom/weather:18 custom/brightness:14 custom/menu:15 custom/mode:12 custom/layout:9; do
+for m in custom/torii:20 custom/date:19 custom/day:19 custom/drives:13 custom/weather:18 custom/brightness:14 custom/menu:15 custom/gear:15 custom/mode:12 custom/layout:9; do
   eq "$(wbexec "${m%:*}" signal)" "${m#*:}" "${m%:*}"
 done
 eq "$(python3 -I -B -c 'import importlib.machinery as m, importlib.util as u, sys
@@ -361,7 +366,7 @@ has "$(st urgent)" "color: @asagi;" "one asking for you: asagi"
 has "$(st selected)" "color: @seal-ink;" "where you are: on the seal, the paper's ink"
 has "$(st selected)" 'url("../fedokawaii/current/kami-seal.png")'
 has "$(grep -E '^\.tag \{' "$S_")" "color: @faint;" "an empty one: faint"
-for m in custom-torii custom-layout custom-menu custom-mem custom-volume custom-brightness custom-weather custom-drives custom-date custom-day custom-time custom-mode; do
+for m in custom-torii custom-layout custom-menu custom-gear custom-mem custom-volume custom-brightness custom-weather custom-drives custom-date custom-day custom-time custom-mode; do
   grep -q "#$m\.active" "$S_" && _ok || _no "#$m has no lit look"
 done
 python3 -I - "$S_" <<'EOF' && _ok || _no "see above"
@@ -370,10 +375,12 @@ css = re.sub(r"/\*.*?\*/", "", open(sys.argv[1]).read(), flags=re.S); bad = 0
 for sel, body in re.findall(r"([^{}]+)\{([^}]*)\}", css):
     if ".active" in sel:
         props = {p.split(":")[0].strip() for p in body.split(";") if ":" in p}
-        red = all(x.strip().startswith(("#custom-torii", "#custom-menu")) for x in sel.split(","))
+        red = all(x.strip().startswith("#custom-torii") for x in sel.split(","))
         # (lit: a word's ink — a vermilion tile's fill instead: its brighter picture and ground;
         # the mood's face its open frame, the lit fill being the shared rule's)
         if sel.strip() == "#custom-menu.active" and props == {"background-image"}: continue
+        # (the gear turns: its strip of poses, stepped)
+        if sel.strip() == "#custom-gear.active" and props == {"background-image", "animation"}: continue
         if props != ({"border-image", "background-color"} if red else {"color"}): print(sel.strip(), "changes", props); bad = 1
 sys.exit(bad)
 EOF
@@ -388,4 +395,21 @@ has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" 'url("../fedokawaii/current/face.
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 3px 0, 0 0;" "(29 px of box, 20 of paper: the odd pixel right)"
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "color: transparent;" "the emblem's glyph keeps the width, unseen"
 has "$(grep -E '^#custom-menu\.active \{' "$S_")" 'url("../fedokawaii/current/face-open.png")'
+
+case_ "quick settings' gear (d4, tools/build-gear.py): still at rest, four poses 40 rows apart while open, stepped (no frame between), both moods"
+for th in dark light; do
+  for f in gear gear-turn; do
+    eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "16 160 6" "$th/$f.png: 16 × 160 with alpha"
+  done
+done
+has "$(grep -A4 -E '^#custom-gear \{$' "$S_")" 'url("../fedokawaii/current/gear.png")'
+grep -A4 -E '^#custom-gear \{$' "$S_" | grep -q animation && _no "the gear turns at rest" || _ok
+has "$(grep -A3 -E '^#custom-gear\.active \{$' "$S_")" "animation: kawa-gear 500ms steps(4, start) infinite;" "four poses, 125 ms each, nothing between"
+has "$(grep -E '^@keyframes kawa-gear' "$S_")" "to { background-position: 7px -158px, 0 0; }" "4 × 40 rows up"
+setup; setrun
+gear_ex=$(wbexec custom/gear)
+eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_FACE\"}" "at rest: not lit"
+echo $$ >"$R/kawa-panel.open"
+eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_FACE\",\"class\":\"active\"}" "quick settings open: turning"
+rm -f "$R/kawa-panel.open"
 done_

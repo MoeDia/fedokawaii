@@ -10,7 +10,8 @@
 //   right:  now playing · a timer (while one runs) · recording (while one runs) · the quiet
 //           bell or the sharing monitor · drives · downloads (while one runs) · the keyboard
 //           layout (click: the next) · memory · volume · brightness · weather, a tile each ·
-//           the mood's head (quick settings: the Fedora logo, bloody by night, lighty by day) on the other end's vermilion tile
+//           quick settings' gear (brass; it turns while they are open) · the mood's head (the Fedora
+//           logo, bloody by night, lighty by day; its blood runs, its light spreads while they are open)
 // Network, Bluetooth, night light, theme… live in the quick-settings dropdown,
 // so the bar stays quiet. No tray: the desktop's own modules stand for what apps would put
 // there. Its style reloads by itself when style.css or the theme's waybar.css changes
@@ -60,7 +61,7 @@
     "group/focused"
   ],
   "modules-center": ["group/when"],
-  "modules-right": ["group/status", "custom/menu"],
+  "modules-right": ["group/status", "custom/gear", "custom/menu"],
   "group/status": { "orientation": "horizontal",
                     "modules": ["custom/nowplaying", "custom/timer", "custom/record", "custom/mode", "custom/drives", "custom/downloads", "custom/kb", "custom/mem", "custom/volume", "custom/brightness", "custom/weather"] },
   "group/when":   { "orientation": "horizontal", "modules": ["custom/wing-left", "custom/date", "custom/day", "custom/time", "custom/wing-right"] },
@@ -172,7 +173,10 @@
   "custom/timer": { "exec": "kawa-timer bar timer", "return-type": "json", "restart-interval": 5, "tooltip": false,
                     "exec-on-event": false, "on-click": "setsid -f kawa-timer" },
 
-  // the mood's head (quick settings, kawa-panel): the blood runs, the light spreads while they are open
-  "custom/menu": { "exec": "kawa-bar cat", "return-type": "json", "signal": 15, "tooltip": false,
-                   "exec-on-event": false, "on-click": "kawa-quick" }
+  // quick settings' gear (kawa-panel; tools/build-gear.py): it turns while they are open, still otherwise
+  "custom/gear": { "exec": "kawa-bar gear", "return-type": "json", "signal": 15, "tooltip": false,
+                   "exec-on-event": false, "on-click": "kawa-quick" },
+  // the mood's head, a tile of its own (no click: the gear's): the blood runs, the light spreads while
+  // quick settings are open
+  "custom/menu": { "exec": "kawa-bar cat", "return-type": "json", "signal": 15, "tooltip": false }
 }

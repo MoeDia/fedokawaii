@@ -618,7 +618,8 @@ the tiles of a group, 12 px between groups.
 | do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
 | the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (14 × 14, a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 8 px in on the line's rows, the temperature 8 px after it |
-| quick settings | the right end's tile: the Fedora head, bloody (dark) or lighty (light), its emblem |
+| quick settings | the gear's tile, 4 px before the right end's: a brass gear of eight teeth (16 × 16, the kanagu brass, `tools/build-gear.py`), still at rest, its hub a rivet; while quick settings are open it turns, a tooth in four poses of 125 ms (a picture stepped, nothing between: waybar 0.4 % of a core), its hub the seal's ink; under the pointer its first pose. The click is the gear's |
+| the head | the right end's tile: the Fedora head, bloody (dark) or lighty (light), its emblem; no click of its own; open with quick settings (the blood runs, the light spreads) |
 | lit | under the pointer, or while what it opened is on screen: `asagi` at once (a vermilion tile: `accent_hi`) |
 
 ## 9. Notices, the level display, the lock, login, screensaver, boot

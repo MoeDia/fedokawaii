@@ -7,6 +7,7 @@
    and its faint fibre inside: one frame, nothing inside it. tools/build-themes.py draws the
    pictures, per theme, exactly to their box —
      the torii               a vermilion tile at the left end (lit: the brighter vermilion)
+     the gear                quick settings' brass gear on its tile, turning while they are open
      the head                the mood's on the paper of the right end's tile
      the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
                              ink while it holds windows, asagi while it asks for you; the one
@@ -53,7 +54,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 /* ── a tile ─────────────────────────────────────────────────────────────────────────── */
 #custom-torii, .tag, #focused, #custom-nowplaying, #custom-timer, #custom-record,
 #custom-mode, #custom-drives, #custom-downloads, #custom-kb, #custom-mem, #custom-volume,
-#custom-brightness, #custom-weather, #custom-menu {
+#custom-brightness, #custom-weather, #custom-gear, #custom-menu {
   border-style: solid;
   border-color: transparent;
   border-width: 4px 2px 3px 2px;
@@ -78,7 +79,8 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   color: @strong-on-accent;
 }
 #custom-torii { margin-left: 8px; padding-right: 8px; }   /* (the torii's ink fills its 16 columns) */
-#custom-menu  { margin-left: 11px; margin-right: 7px; }   /* (its right hairline on x 1911) */
+#custom-gear  { margin-left: 11px; }
+#custom-menu  { margin-left: 3px; margin-right: 7px; }    /* (its right hairline on x 1911) */
 /* the mood's head (tools/build-head.py: 22 × 20, the paper's rows whole),
    on the tile's own paper over its fibre: across its 29 px box leaves an odd pixel — to the right, as
    every word's. The emblem's glyph keeps the tile's width, unseen */
@@ -89,6 +91,24 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   color: transparent;
 }
 #custom-menu.active { background-image: url("../fedokawaii/current/face-open.png"), url("../fedokawaii/current/kami-fibre.png"); }
+/* quick settings' gear (tools/build-gear.py: 16 × 16 poses 40 rows apart, so the paper's 20 rows only
+   ever hold one): at rest still, its hub a rivet; while they are open it turns, a tooth (45°) in four
+   poses of 125 ms, its hub the seal's ink — a picture stepped up 40 rows a pose, nothing redrawn
+   between; under the pointer its first pose, still (GTK 3 reads steps(4, start) as CSS's
+   steps(4, end): pose 1 first, each held its 125 ms). Its 16 columns on the 31 of paper: 8 to
+   the left, the odd pixel to the right, as the head's; its 16 rows on the emblems' 6–21 */
+#custom-gear {
+  background-image: url("../fedokawaii/current/gear.png"), url("../fedokawaii/current/kami-fibre.png");
+  background-repeat: no-repeat, repeat;
+  background-position: 7px 2px, 0 0;
+  color: transparent;
+}
+#custom-gear:hover { background-image: url("../fedokawaii/current/gear-turn.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-gear.active {
+  background-image: url("../fedokawaii/current/gear-turn.png"), url("../fedokawaii/current/kami-fibre.png");
+  animation: kawa-gear 500ms steps(4, start) infinite;
+}
+@keyframes kawa-gear { from { background-position: 7px 2px, 0 0; } to { background-position: 6px -158px, 0 0; } }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
 .tag { color: @faint; padding-right: 8px; }   /* (the numerals: 10 × 10, no air of their own) */
@@ -221,7 +241,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-date.active, #custom-day.active, #custom-time.active { color: @asagi; }
 
 /* a vermilion tile lit: its fill the brighter vermilion, the emblem keeps its ink */
-#custom-torii:hover, #custom-torii.active, #custom-menu:hover, #custom-menu.active {
+#custom-torii:hover, #custom-torii.active {
   border-image: url("../fedokawaii/current/kami-red-lit.png") 9 7 8 6 / 9px 7px 8px 6px stretch;
   background-color: @kami-red-lit;
 }
