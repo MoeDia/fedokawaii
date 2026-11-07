@@ -716,9 +716,9 @@ rows() {
   elif t=$(last_backup); then bk=$(ago "$t"); backup_late && bk="$R$(ago "$t")$O"
   else bk="${R}never$O"; fi
   # (the backups' drive by its name — a path or an address by its last part — shown only where it
-  # fits beside "the drive": 23 columns; the pane has the whole of it)
+  # fits beside "the drive": 17 columns, ichimai's list; the pane has the whole of it)
   local dv=${BACKUP_TARGET%/fedokawaii-backup}; dv=${dv%/}; dv=${dv##*[/:]}
-  if [[ -z $BACKUP_TARGET ]]; then dv="${R}none$O"; elif ((${#dv} > 23)); then dv=""; fi
+  if [[ -z $BACKUP_TARGET ]]; then dv="${R}none$O"; elif ((${#dv} > 17)); then dv=""; fi
   local run; run=$(running_job) && run=${run:-update}
   # (change and keys open screens of their own: only on the desktop, not on a text console)
   local desk=""; [[ -n ${WAYLAND_DISPLAY:-} ]] && desk=1
@@ -780,10 +780,10 @@ icon_of() {   # icon_of ACTION → its row's icon (a job window's heading)
 # starts on the first
 tab_now() { local t; t=$(cat -- "${FK_TAB:-/nonexistent}" 2>/dev/null); [[ " ${SECTIONS[*]} " == *" $t "* ]] && printf '%s' "$t" || printf system; }
 tab_set() { [[ -n ${FK_TAB:-} ]] && printf '%s\n' "$1" >"$FK_TAB"; return 0; }
-# tabs [SECTION] — the tab bar over the list, three lines: the section shown its icon in the
+# tabs [SECTION] — the tab bar over the list, two lines: the section shown its icon in the
 # accent's ink and its name strong, a vermilion line under them (▔: foot draws it at the top of
-# the next row — just under the words); the others their icon alone, muted, three columns
-# apart; then a row of paper. (The pane beside the list starts at the window's top: fzf gives
+# the next row — just under the words, the rest of that row the paper over the list); the others
+# their icon alone, muted, three columns apart. (The pane beside the list starts at the window's top: fzf gives
 # it the whole height, so the bar is as wide as the list — and the entry's heading in the pane
 # stands level with it.)
 TAB_GAP=3
@@ -806,7 +806,7 @@ tabs() {
     fi
   done
   top=${top%"$g"}; under=${under%"${under##*[! ]}"}   # (no paper after the last tab, or the line)
-  printf '%s\n%s\n \n' "${top% }" "$under"          # (and a row of paper under the bar)
+  printf '%s\n%s\n' "${top% }" "${under:- }"       # (ichimai: no row of paper more — the line's row is the air)
 }
 tab_at() {   # tab_at COLUMN → the tab drawn there (a click on the bar: fzf counts from 1, the
   # header's first column), nothing between them
@@ -836,11 +836,11 @@ PANE=50
 # (change-with-nth: the list redrawn, nothing read again, the pane left as it is)
 HG_FRAMES="${ICON_HG_0:-·} ${ICON_HG_1:-·} ${ICON_HG_2:-·} ${ICON_HG_3:-·} ${ICON_HG_3:-·} ${ICON_HG_4:-·}"
 fit_rows() {
-  local W=38 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
+  local W=33 s a g l m c=${FZF_COLUMNS:-} sec=${1:-$(tab_now)} run row f fr
   # (W: the list's columns but one — its band ends a column past a row's, the value as far in as the icon, §4)
   # (fzf's width; before fzf has drawn it says 0, so then the terminal's, less the margins)
   num "$c" && ((c > 0)) || { c=$(stty size </dev/tty 2>/dev/null) && c=$((${c#* } - 2)); } 2>/dev/null
-  num "$c" && ((c > PANE + 40)) && W=$((c - PANE - 3))
+  num "$c" && ((c > PANE + 30)) && W=$((c - PANE - 3))
   run=$(running_job) && run=${run:-update}
   while IFS=$'\t' read -r s a g l m; do
     row=$(screen_row "$g" "$l" "$m" "$W")
@@ -880,38 +880,48 @@ tick() {
 # the pane, a part of its own: the entry's heading (its icon, its name, the rule — level with
 # the list's first row), how things stand for it (its lines of the status: the key muted, a
 # column clear of the longest) and, for what is not plain from its name, what it does — at most
-# 45 characters a line, two columns in from the heading (as rows are), and 15 lines: nothing ever
+# 45 characters a line, two columns in from the heading (as rows are), and 13 lines: nothing ever
 # wraps or scrolls away
 explain() {
   local a=$1 O=${INK_OFF:-} G=${INK_MUTED:-} R=${INK_ACCENT_TEXT:-} kv pw=${FZF_PREVIEW_COLUMNS:-$PANE}
   # (nothing, or something unknown: nothing to explain)
   [[ $a == @(status|update|held|verify|repair|snapshots|file|backup|restore|drive|carry|stick|bring|theme|drift|change|settings|remind|log|inventory|keys|learn|asobi|chess|typing) ]] || return 0
-  printf '%s\n\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
+  printf '%s\n\n' "$(screen_heading "$(icon_of "$a")" "${2:-$a}" $((pw - 1)))"   # (level with the tab bar; its words with the list's first row)
   # (the whole status only for the entries that show more than whether a run is going on:
   # the pane follows the cursor, so the others stay instant)
   case $a in
     status|update|verify|repair|remind) kv=$(status_kv) ;;
     *) kv=$(j=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$j")") ;;
   esac
-  pick() {   # pick 'KEY|KEY…' [ROOM] → those lines of the status (with their continuations), less
+  pick() {   # pick 'KEY|KEY…' [ROOM [grouped]] → those lines of the status (with their continuations), less
     # what the list beside it says already (due's "in N days": update's).
     # More than ROOM lines (the rare ones all at once): the routine ones make way — the kernel
     # unless a restart waits for it, the disk unless it runs low, the release, its support —
-    # never one that asks something of you: the pane never scrolls
-    local k v on=0 i d last="" room=${2:-0} ks=() ls=()
+    # never one that asks something of you, then the count under updated: the pane never scrolls. grouped (the status): a row
+    # of paper between the release and its updates, the machine's health, your files — where
+    # the room holds them all, else none
+    local k v on=0 i d last="" room=${2:-0} ks=() ls=() out=() gp="" g
+    grp() { case ${1%+} in running) echo 0 ;; release|support|next|moved|updated|due) echo 1 ;;
+                       verified|dnf|kernel) echo 2 ;; backup|disk) echo 3 ;; *) echo 4 ;; esac; }
     while IFS=$'\037' read -r k v; do
       if [[ -n $k ]]; then if [[ "|$1|" == *"|$k|"* ]]; then on=1; else on=0; fi; last=$k; fi
       [[ $k == due ]] && v=${v% · in *}
-      ((on)) && { ks+=("$last"); ls+=("$(printf '   %s%-9s%s %s' "$G" "$k" "$O" "$v")"); }
+      ((on)) && { ks+=("${k:-$last+}"); ls+=("$(printf '   %s%-9s%s %s' "$G" "$k" "$O" "$v")"); }
     done <<<"$kv"
-    for d in kernel disk release support; do
+    for d in kernel disk release support updated+; do   # (KEY+: a line carrying KEY's on)
       ((room > 0 && ${#ls[@]} > room)) || break
       for i in "${!ks[@]}"; do
         [[ ${ks[i]} == "$d" && ${ls[i]} != *"restart for it"* && ${ls[i]} != *" · low" ]] && unset 'ks[i]' 'ls[i]'
       done
       ks=("${ks[@]}"); ls=("${ls[@]}")
     done
-    ((${#ls[@]})) && printf '%s\n' "${ls[@]}" ''
+    out=("${ls[@]}")
+    if [[ ${3:-} == grouped ]]; then
+      out=()
+      for i in "${!ls[@]}"; do g=$(grp "${ks[i]}"); [[ -n $gp && $g != "$gp" ]] && out+=(''); gp=$g; out+=("${ls[i]}"); done
+      ((room > 0 && ${#out[@]} > room)) && out=("${ls[@]}")
+    fi
+    ((${#out[@]})) && printf '%s\n' "${out[@]}" ''
     return 0
   }
   say() { local l; for l; do printf '   %s%s%s\n' "$G" "$l" "$O"; done; }   # (muted, three columns in)
@@ -955,7 +965,7 @@ explain() {
   }
   case $a in
     status)    pick 'running|release|support|moved|updated|due|verified|dnf|backup|kernel|disk|retired|compare' \
-                    $(( ${FZF_PREVIEW_LINES:-0} - 3 )) ;;   # (the room under the heading)
+                    $(( ${FZF_PREVIEW_LINES:-0} - 2 )) grouped ;;   # (the room under the heading)
     update)    pick 'running|next|moved|updated|due'
                say "everything, proven in a copy first: fedokawaii" \
                    "itself, Fedora's packages, the desktop's own" \
@@ -1012,10 +1022,10 @@ explain() {
                  printf '   %s\n' "$h"
                  ((${#w} <= 41)) || { w=${w:0:42}; w=${w% *}; }
                  say "$w"; echo
-               done < <(holds | head -n 3)
+               done < <(holds | head -n 2)
                h=$(held_count)
                if [[ -z $h ]]; then say "nothing held back."; echo
-               elif ((h > 3)); then say "and $((h - 3)) more."; echo; fi
+               elif ((h > 2)); then say "and $((h - 2)) more."; echo; fi
                say "held at its version — let go by itself" \
                    "once a newer one passes." ;;
     file)      pick 'running'
@@ -1407,7 +1417,7 @@ menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu t
   [[ ${KAWA_WARM:-} == system ]] && away="execute-silent(kawa-warm --away system)+"
   fit_items | fzf --read0 --ansi --no-sort --no-input --gutter-raw=' ' \
     --height=100% --delimiter=$'\t' --with-nth=2 --tiebreak=index "${listen[@]}" \
-    --header="$(tabs system)" --header-first --footer=$'\n'"$(screen_keys enter open '' tab next '' esc close '')" \
+    --header="$(tabs system)" --header-first \
     --preview="k=$(printf '%q' "$PANE_KEPT")/{1}.\$FZF_PREVIEW_COLUMNS; [ -e $(printf '%q' "$PANE_KEPT")/on ] && [ -s \"\$k\" ] && exec cat \"\$k\"; exec $self --explain {1} {3}" --preview-window="right,$PANE,border-none,noinfo,nowrap" \
     --bind="start:reload-sync($self --items)" --bind="resize:reload-sync($self --items)" \
     --bind="tab:execute-silent($self --tab +1)+$go,btab:execute-silent($self --tab -1)+$go" \
@@ -1448,7 +1458,7 @@ case ${1:-} in
                 menu_fzf; (($? == 2)) && menu_plain
               else menu_plain; fi
               exit 0 ;;
-  --window)   exec kawa-warm system ;;   # (Super+U's popup, warm: kawa-warm runs --popup in it, 100×22 — fzf's margin row, the tab bar's three, the pane's fifteen, the margin row: and every window centres to the pixel, its height even)
+  --window)   exec kawa-warm system ;;   # (Super+U's popup, warm: kawa-warm runs --popup in it, 88×15 (ichimai) — fzf's margin row, the tab bar's two, the system tab's eleven rows, the margin row; the list 36 columns (snapshots, the widest tab shown, ends 3 short of the pane), the pane 13 rows by 50)
   --rows)     fit_rows "${2:-}" ;;
   --items)    fit_items "${2:-}" ;;
   --tick)     tick ;;

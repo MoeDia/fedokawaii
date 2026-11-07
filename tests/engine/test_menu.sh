@@ -89,12 +89,12 @@ has "$out" "did not reach the desktop in three"; lacks "$out" "…"; lacks "$out
 (( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"   # (under its heading: the pane's own rule)
 rm -f "$R/state/update/holds"; [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *"held back"*" none" ]] && _ok || _no "none held: the row says so: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 has "$(plain "$(fedokawaii --explain held)")" "nothing held back."
-case_ "…sixty held at once (a whole set): the row counts sixty, the pane names three, then how many more"
+case_ "…sixty held at once (a whole set): the row counts sixty, the pane names two (ichimai's 13 rows), then how many more"
 fresh; mkdir -p "$R/state/update"
 for i in $(seq -w 1 60); do echo "p$i 1.1-1.fc45 1.0-1.fc45 2026-11-01 p$i the desktop does not start"; done >"$R/state/update/holds"
 [[ $(plain "$(fedokawaii --rows update | grep -m1 held)") == *" 60" ]] && _ok || _no "the count: $(plain "$(fedokawaii --rows update | grep -m1 held)")"
 out=$(plain "$(fedokawaii --explain held)")
-has "$out" "p03 1.1-1.fc45"; lacks "$out" "p04"; has "$out" "and 57 more."; lacks "$out" "…"
+has "$out" "p02 1.1-1.fc45"; lacks "$out" "p03"; has "$out" "and 58 more."; lacks "$out" "…"
 (( $(widest "$(sed 1d <<<"$out")") <= 45 )) && _ok || _no "too wide: $out"
 rm -f "$R/state/update/holds"
 case_ "an update running as a unit of its own: a press follows it — its output so far, its status; no password"
@@ -112,7 +112,7 @@ snapshots: snapshots file
 backups: backup restore drive carry stick bring 
 learning: learn chess typing keys "
 out=$(WAYLAND_DISPLAY=wayland-1 allrows)
-(( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "a row wider than 38: $(plain "$out")"
+(( $(widest "$(entries "$out")") <= 33 )) && _ok || _no "a row wider than 33: $(plain "$out")"
 lacks "$(plain "$out")" "╌" "no dashed line anywhere"
 case_ "never again: no to-do in Super+U — it lives in Super+N alone (owner 1 Nov 22:27: \"to-do should NOT be in learning\")"
 lacks "$(plain "$out")" "to-do"; [[ -z $(grep "^todo"$'\t' <<<"$out") ]] && _ok || _no "a todo row: $(grep "^todo" <<<"$out")"
@@ -121,7 +121,7 @@ for a in update snapshots remind; do
   l=$(cut -f2 <<<"$(grep "^$a"$'\t' <<<"$out")")
   [[ $l =~ ^" "$'\e[38;5;21m'.$'\e[0m'"  "[a-z] ]] && _ok || _no "$a: $l"
   [[ $l == *$'\e[38;5;21m'*[!\ ]$'\e[0m' ]] && _ok || _no "$a: the value muted, at the end: $l"
-  eq "$(widest "$l")" 37 "$a: the value's last letter a column in from the row's 38"
+  eq "$(widest "$l")" 32 "$a: the value's last letter a column in from the row's 33"
 done
 has "$(row update)" "in 4 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 14 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; eq "$(row upgrade)" "" "the move is the update's: no row of its own"
@@ -131,10 +131,10 @@ eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')
 case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
 eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update held "
 eq "$(fedokawaii --items system | tr -cd '\0' | wc -c)" "$(fedokawaii --rows system | wc -l)" "one item a row"
-case_ "the tab bar, a heading over the list (a cell further out): the section shown — its icon in the accent's ink, its name strong, a vermilion line under the name alone; the others their icon alone, muted; every icon two columns, every gap three; a row of paper"
+case_ "the tab bar, a heading over the list (a cell further out): the section shown — its icon in the accent's ink, its name strong, a vermilion line under the name alone; the others their icon alone, muted; every icon two columns, every gap three; two lines, no row of paper (ichimai: the line's row is the air)"
 . "$REPO/configs/home/.config/fedokawaii/icons.sh"   # (the icons the menu draws, by name)
 t=$(fedokawaii --tabs update)
-eq "$(wc -l <<<"$t")" 3 "three lines"; eq "$(sed -n 3p <<<"$t")" " " "the third a row of paper"
+eq "$(wc -l <<<"$t")" 2 "two lines"
 l1=$(sed -n 1p <<<"$t"); l2=$(sed -n 2p <<<"$t")
 [[ $l1 == $'\e[38;5;21m'"$ICON_TAB_SYSTEM"* ]] && _ok || _no "the first tab not at the bar's first column (a heading's): $(plain "$l1")"
 has "$l1" $'\e[38;5;20m'"$ICON_TAB_UPDATE"$'\e[0m  \e[38;5;23mupdate\e[0m' "update shown: icon accent, name strong"
@@ -222,15 +222,16 @@ called ',q:execute-silent\(kawa-warm --away system\)\+abort'
 called "echo .execute-silent\\(kawa-warm --away system\\)\\+become\\("
 case_ "rows: the mark at the right edge, wider with a wider window (FZF_COLUMNS)"
 w=$(widest "$(entries "$(FZF_COLUMNS=120 fedokawaii --rows)")"); eq "$w" 66
-w=$(widest "$(entries "$(FZF_COLUMNS=98 fedokawaii --rows)")"); eq "$w" 44 "the 100-column window (98 inside fzf's margins): 44"
-w=$(widest "$(entries "$(FZF_COLUMNS=40 fedokawaii --rows)")"); eq "$w" 37 "a narrow window keeps the 38: the value's end a column in"
-w=$(widest "$(entries "$(FZF_COLUMNS=garbage fedokawaii --rows </dev/null)")"); eq "$w" 37
+w=$(widest "$(entries "$(FZF_COLUMNS=98 fedokawaii --rows)")"); eq "$w" 44 "a 100-column window (98 inside fzf's margins): 44"
+w=$(widest "$(entries "$(FZF_COLUMNS=86 fedokawaii --rows)")"); eq "$w" 32 "ichimai's 88 columns (86 inside fzf's margins): 32, the list's 36 less the band's ends"
+w=$(widest "$(entries "$(FZF_COLUMNS=40 fedokawaii --rows)")"); eq "$w" 32 "a narrow window keeps the 33: the value's end a column in"
+w=$(widest "$(entries "$(FZF_COLUMNS=garbage fedokawaii --rows </dev/null)")"); eq "$w" 32
 case_ "rows at their widest: a release that settles in 180 days, an update in a year"
 fedokawaii remind wait 180 >/dev/null; fedokawaii remind every 365 >/dev/null
 rec release-46 "$(ago_s 0)"; rec last-update-done "$(ago_s 0)"
 out=$(allrows)
 has "$(row update)" "in 365 days"
-(( $(widest "$(entries "$out")") <= 38 )) && _ok || _no "too wide: $(plain "$out")"
+(( $(widest "$(entries "$out")") <= 33 )) && _ok || _no "too wide: $(plain "$out")"
 case_ "rows: due, ready (the kanji's vermilion: they need you), reminders off"
 fresh; rec last-update-done "$(ago_s 200)"; rec release-46 "$(ago_s 100)"
 out=$(allrows)
@@ -239,7 +240,7 @@ fedokawaii remind off >/dev/null; has "$(row remind)" "off"
 case_ "rows: a garbage snapshot count is not shown (nor makes the row too wide)"
 fresh; rec snapshots "$(printf 'x%.0s' {1..80})"
 lacks "$(row snapshots)" "xxx"
-(( $(widest "$(entries "$(allrows)")") <= 38 )) && _ok || _no "too wide"
+(( $(widest "$(entries "$(allrows)")") <= 33 )) && _ok || _no "too wide"
 case_ "rows: os-release unreadable: no made-up Fedora 1"
 rm -f "$R/os-release"; lacks "$(allrows)" "Fedora 1"; lacks "$(allrows)" "Fedora 0"
 # the backup's mark reads kawa-backup's record (~/.local/state/fedokawaii/last-backup) and the
@@ -256,7 +257,7 @@ backed_up 0; has "$(grep '^backup' <<<"$(fedokawaii --rows backups)")" $'\e[38;5
 case_ "rows: BACKUP_REMIND_DAYS=0 — never red, however old"
 fresh; setting BACKUP_TARGET KINGSTON; setting BACKUP_REMIND_DAYS 0; backed_up 400
 has "$(grep '^backup' <<<"$(fedokawaii --rows backups)")" $'\e[38;5;21m400 days ago'
-(( $(widest "$(entries "$(fedokawaii --rows backups)")") <= 38 )) && _ok || _no "too wide"
+(( $(widest "$(entries "$(fedokawaii --rows backups)")") <= 33 )) && _ok || _no "too wide"
 case_ "rows: a garbage record, or one holding a command: never, nothing run"
 printf 'rm -rf %s\tx\n' "$TMP/pwned" >"$HOME/.local/state/fedokawaii/last-backup"; mkdir -p "$TMP/pwned"
 has "$(grep '^backup' <<<"$(fedokawaii --rows backups)")" never; [[ -d $TMP/pwned ]] && _ok || _no "the record ran"
@@ -269,7 +270,7 @@ case_ "rows: the toolkit's settings unreadable: none, no error"
 rm -f "$R/toolkit/fedokawaii.conf"; out=$(fedokawaii --rows backups 2>&1); has "$(grep '^backup' <<<"$out")" none; lacks "$out" "No such file"
 
 # ── the right pane ───────────────────────────────────────────────────────────
-case_ "the pane, for every entry, with every record at its longest: its heading level with the tab bar, two rows of paper, then its lines level with the list's (three columns in), within the 16 rows fzf gives it (kawa-warm's 18 less fzf's margins) and ≤ 49 columns (the pane's last column paper)"
+case_ "the pane, for every entry, with every record at its longest: its heading level with the tab bar, a row of paper, then its lines level with the list's (three columns in), within the 13 rows fzf gives it (kawa-warm's 15 less fzf's margins) and ≤ 49 columns (the pane's last column paper)"
 fresh
 ( exec 9>"$R/state/lock"; flock 9; exec sleep 30 ) >/dev/null 2>&1 & holder=$!
 for _ in 1 2 3 4 5 6 7 8 9 10; do flock -n "$R/state/lock" true || break; sleep 0.1; done
@@ -279,19 +280,21 @@ echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-nam
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
 for a in status update verify repair snapshots backup theme drift change settings remind log inventory keys learn; do
-  out=$(FZF_PREVIEW_LINES=16 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")
-  (( $(wc -l <<<"$out") <= 16 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
+  out=$(FZF_PREVIEW_LINES=13 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")
+  (( $(wc -l <<<"$out") <= 13 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   heading_ok "$(sed -n 1p <<<"$out")" 49 "$a: the pane's heading (level with the tab bar)"
-  eq "$(sed -n 2,3p <<<"$out" | tr -d '\n')" "" "$a: two rows of paper under it"
-  [[ $(plain "$(sed -n 4p <<<"$out")") == "   "[!\ ]* ]] && _ok || _no "$a: its first line level with the list's first row, three columns in: $(sed -n 4p <<<"$out")"
+  eq "$(sed -n 2p <<<"$out")" "" "$a: a row of paper under it"
+  [[ $(plain "$(sed -n 3p <<<"$out")") == "   "[!\ ]* ]] && _ok || _no "$a: its first line level with the list's first row, three columns in: $(sed -n 3p <<<"$out")"
   (( $(widest "$out") <= 49 )) && _ok || _no "$a: a line of $(widest "$out")"
   has "$(plain "$out")" "running " "$a: the run going on is shown"
 done
 case_ "status at its fullest: the routine lines make way (kernel, disk, release, support — in that order), never one asking for you"
-rec last-after-dnf "$(ago_s 1) failed"   # (one line more than the 13 under the heading)
-out=$(plain "$(FZF_PREVIEW_LINES=16 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain status)")
-(( $(wc -l <<<"$out") <= 16 )) && _ok || _no "status: $(wc -l <<<"$out") lines"
-for k in running support moved updated due verified dnf backup kernel disk retired compare; do has "$out" "   $k " "status: $k kept"; done
+rec last-after-dnf "$(ago_s 1) failed"   # (more lines than the 11 under the heading)
+out=$(plain "$(FZF_PREVIEW_LINES=13 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain status)")
+(( $(wc -l <<<"$out") <= 13 )) && _ok || _no "status: $(wc -l <<<"$out") lines"
+for k in running moved updated due verified dnf backup kernel disk retired compare; do has "$out" "   $k " "status: $k kept"; done
+lacks "$out" "   support " "its support made way too"
+eq "$(sed -n '3,$p' <<<"$out" | grep -c '^$')" 0 "no room for the groups' paper: none"
 has "$(grep '^ *kernel ' <<<"$out")" "restart for it" "the kernel kept: a restart waits for it"
 has "$(grep '^ *disk ' <<<"$out")" "· low" "the disk kept: it runs low"
 lacks "$out" "   release " "the release made way (the kernel and the disk asking for you)"
@@ -299,10 +302,14 @@ out=$(plain "$(FZF_PREVIEW_LINES=40 WAYLAND_DISPLAY=wayland-1 fedokawaii --expla
 has "$out" "   release "; has "$out" "   support " "room enough (a taller pane): every line"
 out=$(plain "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --explain status)"); has "$out" "   release " "no fzf (no room said): every line"
 kill "$holder" 2>/dev/null; wait "$holder" 2>/dev/null
-case_ "status, routine: its room fits every line, nothing made way"
+case_ "status, routine: its room fits every line, nothing made way; a row of paper between the release and its updates, the machine's health, your files (h1: easier to absorb)"
 fresh; rec last-update-done "$(ago_s 10)"; rec last-verify "$(ago_s 1) 257 0 0"
-out=$(plain "$(FZF_PREVIEW_LINES=16 fedokawaii --explain status)")
+out=$(plain "$(FZF_PREVIEW_LINES=13 fedokawaii --explain status)")
 for k in release support updated due verified backup kernel disk; do has "$out" "   $k " "status: $k"; done
+(( $(wc -l <<<"$out") <= 13 )) && _ok || _no "status: $(wc -l <<<"$out") lines"
+eq "$(sed -n '3,$p' <<<"$out" | grep -c '^$')" 2 "two rows of paper between three groups"
+eq "$(grep -B1 '^   verified ' <<<"$out" | head -n1)" "" "a row of paper over the health"
+eq "$(grep -B1 '^   backup ' <<<"$out" | head -n1)" "" "a row of paper over your files"
 case_ "the pane never repeats the list beside it: the due day without its 'in N days' (update's row); the next Fedora in update's pane alone"
 fresh; rec last-update-done "$(ago_s 10)"
 for a in status update; do
@@ -536,7 +543,7 @@ case_ "the drive: its row's value the drive's name — a path or an address by i
 fresh; backups; setting BACKUP_TARGET KINGSTON; has "$(plain "$(row drive)")" "KINGSTON"
 setting BACKUP_TARGET /run/media/me/KINGSTON/fedokawaii-backup; has "$(plain "$(row drive)")" "the drive" ; [[ $(plain "$(row drive)") == *" KINGSTON" ]] && _ok || _no "$(plain "$(row drive)")"
 setting BACKUP_TARGET "sftp:you@nas:/backups"; [[ $(plain "$(row drive)") == *" backups" ]] && _ok || _no "$(plain "$(row drive)")"
-setting BACKUP_TARGET "/run/media/me/a drive label far too long to fit"; l=$(plain "$(row drive)"); lacks "$l" "fit" "no value cut short"; (( $(widest "$(cut -f2 <<<"$l")") <= 38 )) && _ok || _no "too wide: $l"
+setting BACKUP_TARGET "/run/media/me/a drive label far too long to fit"; l=$(plain "$(row drive)"); lacks "$l" "fit" "no value cut short"; (( $(widest "$(cut -f2 <<<"$l")") <= 33 )) && _ok || _no "too wide: $l"
 setting BACKUP_TARGET ""; has "$(grep -m1 "^drive"$'\t' <<<"$(allrows)")" $'\e[38;5;20mnone'
 reset_calls; out=$(tty_free fedokawaii --run drive </dev/null 2>&1); called '^kawa-backup pick$'
 case_ "restore: its pane says what it does — its own icon (not go back's)"

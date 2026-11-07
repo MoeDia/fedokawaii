@@ -473,17 +473,26 @@ content, inside its margin of one cell:
   `muted`; its key a tile at the row's end. The key cycles; a click on the row does too.
 - **Sections** of a long list (the wallpaper picker's sets): a row of their own the cursor passes by — the words `muted` at the
   icons' column, the rule on to the values' column, how many it holds `muted`.
-- **Tabs** (a screen of several sections: Super+U): three lines heading the list, at a
-  heading's column (one cell out from the rows, §3 indent) — the tabs, the line under the one
-  shown, a row of paper. The tab shown: its icon (16 × 16: a pagoda, a shoot, a camera on its legs, the storehouse,
+- **Tabs** (a screen of several sections: Super+U): two lines heading the list, at a
+  heading's column (one cell out from the rows, §3 indent) — the tabs, and the line under the one
+  shown (its row the air over the list: no row of paper more). The tab shown: its icon (16 × 16: a pagoda, a shoot, a camera on its legs, the storehouse,
   an open book) in `accent_text`, two columns, its name in `strong`, and under the name alone `▔` in `accent`, its
   ends flush with the letters'; the others their icon alone in `muted`. Every icon two columns, every gap three: 24 px of air
   between any two tabs. Tab / Shift+Tab, ← / → and a click change it. A pane beside the list
   starts its heading level with the tabs and its first line level with the list's first row.
-- **Footer**: a fixed screen with room to spare (Super+U) ends in its keys; any screen with a key of its own shows that
-  one on its last line — the key a tile (**Keys**), what it does in `muted`, its state in `strong`
-  (Super+U: `enter open  tab next  esc close`). The rest of the app's keys are in Super+/
-  (it knows the app).
+- **Footer**: any screen with a key of its own shows that one on its last line — the key a tile (**Keys**), what it does
+  in `muted`, its state in `strong`. Keys every list has (enter, tab, esc) are not one: a menu shut tight (Super+U,
+  ichimai) has no footer. The rest of the app's keys are in Super+/ (it knows the app).
+- **The menus' grid** (ichimai, one sheet — r28 sa13; the other menus follow it, sa14 on): the window is its content and
+  nothing more, measured in cells (8 × 20 px) from the inside out. Super+U: **88 × 15** cells, **723 × 320 px** —
+  fzf's margin row, the tab bar's 2, the longest tab's rows (system: 11), the margin row; the list **36** columns (its
+  rows 33: the value a column in from the band's end), the pane **50** (the lessons' too), its last column paper. The
+  window grows a row only for a row of content; the longest tab name shown (snapshots) ends 3 columns before the pane.
+  Measured (kit, both moods): hairline + foot's pad 10 px top and bottom, the tab icons' ink from y 31, the last row's
+  ink to y 287; the cursor's fill from x 17, the pane's rule to x 696. The pane holds 13 rows: its heading, a row of
+  paper, 11 lines; the status in three groups — the release and its updates, the machine's health, your files —
+  a row of paper between them where all fit, else none (the routine lines make way first: kernel, disk, release,
+  support, the count under updated; never one asking for you). A pane of several items shows two and "and N more".
 - **A picture in a screen** (Super+R's cover, Super+W's preview): centred to the pixel, both ways, between what is above and
   beside it and the window's own hairline (the pane's end, fzf's margin, foot's padding counted). Super+R: as far from the pane's
   rule as from the hairline, as far under the pane's top as the last line of words over its foot; the words under it each centred

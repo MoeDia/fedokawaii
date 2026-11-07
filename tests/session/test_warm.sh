@@ -68,7 +68,7 @@ setup; python3 -I -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys
 rc 0 kawa-warm --start
 for w in "warm-notes -T notes -W 64x40 -- $REPO/bin/kawa-warm --inside notes" \
          "warm-clip -T clipboard -W 80x27 -- $REPO/bin/kawa-warm --inside clip" \
-         "warm-system -T system -W 100x18 -- $REPO/bin/kawa-warm --inside system"; do
+         "warm-system -T system -W 88x15 -- $REPO/bin/kawa-warm --inside system"; do
   called "^footclient -a $w\$"
 done
 case_ "--open NAME (its key, none running): the window, shown as it starts"
@@ -131,7 +131,7 @@ not_called "^footclient --no-wait -a warm-system" "the system menu, showing: lef
 wait "$W" 2>/dev/null
 setup; out=$(kawa-warm --renew clip notes 2>&1); eq "$?" 2; has "$out" "the notes hold your page"; not_called '^footclient'
 setup; rc 0 kawa-warm --renew system
-called "^footclient --no-wait -a warm-system -T system -W 100x18 -- $REPO/bin/kawa-warm --inside system\$" "none running: opened, put away"
+called "^footclient --no-wait -a warm-system -T system -W 88x15 -- $REPO/bin/kawa-warm --inside system\$" "none running: opened, put away"
 
 case_ "--shown/--hidden: the clipboard and the menu marked shown and their lists read again (the menu's hourglass ticker started: it turns only while a job runs); the notes page told through its socket"
 setup; stub setsid; rc 0 kawa-warm --shown clip; called '^kawa-clip --poke$'

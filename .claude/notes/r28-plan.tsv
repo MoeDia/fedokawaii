@@ -112,9 +112,10 @@ sa21	Sat 7	done	Stoat (the Discord replacement) checked at its official source, 
 d5	Fri 6	todo	Super+U's dense info lines (S2): "updated ..." and the like better spaced, easy to read and absorb; measured, both moods		with sa13	opus
 sa22	Sat 7	done	Stoat themed; every web app (WhatsApp and the like) removed; launcher and tests	Sat 7 Nov 13:49	WhatsApp entry removed (retired on the PC by theme); Stoat entry (stoat.desktop, speech icon); Spotify kept: a music player, the bar and SPOT checks depend on it; Stoat in-app theme not automatable (Electron, no theme file)	sonnet
 sa23	Sat 7	done	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has	Sat 7 13:50	console roster line + Enter toggles ready (patch 7); applied at install, not on the live PC	sonnet
-sa13	Sat 7	now	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		his pick h1: 1 ichimai (S2)	opus
+sa13	Sat 7	done	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U	Sat 7 Nov 14:23 +0400	his pick h1 ichimai built: 88x15 (723x320, 66% of 819x380; 86 crowded the snapshots tab), 2-line tabs, no footer, status in 3 groups; grid in design-system §7; test_menu 737, test_warm 90, static pass; kit, 5 tabs x 2 moods	opus
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes			sonnet
-sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)	sonnet
+sa14	Sat 7	now	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)	sonnet
+sa14r	Sat 7	todo	regress README: rows for r28-sa04 and r28-tr1, line 65's check named as a case (items.py check clean)		found in sa13	haiku
 sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods			sonnet
 sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35	sonnet
 sa15c	Sat 7	todo	the selection marker built: his pick P2 1 yubi, the bobbing pointer; cheap, frames looked at (S4)			opus
