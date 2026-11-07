@@ -89,8 +89,8 @@ sa01	Sat 7	done	Part 1 syllabus, day by day, paired with Part 2's so they comple
 sa02	Sat 7	done	Part 1 lessons: using it, keys, menus	Sat 7 Nov 12:05	11 Part 1 lessons (days 1-11) in docs/lessons/wip/: parse, 11 proofs pass, one ask each; held in wip/ because lessons outside days.tsv break kawa-learn: the last row of each day moves them in with days.tsv	sonnet
 tr1	Fri 6	todo	translucency a little more opaque, 6 to 8 points more alpha, one shared value per mood from the theme, every surface that has it (S7)			sonnet
 sa03	Sat 7	done	Part 1 lessons: updates, snapshots, backups, keeping it healthy	Sat 7 Nov 12:06	6 Part 1 lessons, days 22-26 and 28 (snapshots, backups, updates, health-report, when-a-notice-asks, keeping-it-healthy) in wip/; all parse, all proofs exit 0; doors-and-security-1 (day 27) left to the security row	sonnet
-sa04	Sat 7	now	Part 1 lessons: ASOBI, Helium used efficiently (a short chapter)		triad's lessons wait for triad	sonnet
-tr2	Fri 6	todo	set T, Transparency, still, dark and light: n 0 today, n 1 the new value on the same real screen, for the next pack (S7)			sonnet
+sa04	Sat 7	done	Part 1 lessons: ASOBI, Helium used efficiently (a short chapter)	Sat 7 Nov 12:07	7 Part 1 lessons (days 29-33, 45, 46: asobi-first-look, asobi-daily-use, helium-keys, helium-search-tabs, helium-extensions-privacy, helium-reading-mode, asobi-review) in wip/; all parse, proofs exit 0	sonnet
+tr2	Fri 6	now	set T, Transparency, still, dark and light: n 0 today, n 1 the new value on the same real screen, for the next pack (S7)			sonnet
 sa05	Sat 7	todo	Part 2 lessons: Python, first steps, tiny steps with repetition			sonnet
 sa06	Sat 7	todo	Part 2 lessons: Python, functions, files, errors			sonnet
 m10	Fri 6	todo	the pack: picker.json sets a, b, P1, P5 (0 and 4 to 7, "measured" per motion), P4 n 4, c-2; a, b, P1, P5 options 1 to 3 and decided sets cleared; hi/ 90 MB at most; seen in the pulse (S4, S5)		before the lock pack	sonnet

@@ -4841,3 +4841,4 @@ r28-note-m9: P4 n 4 (S4), tairyoku's better colours, named urushi; decided: dark
 r28-note-sa01	done	2026-11-07 11:51	Part 1/Part 2 syllabus, 48 days, docs/lessons/syllabus.tsv; verified: awk check numbering and no repeated id
 r28-note-sa02	done	2026-11-07 12:05	11 Part 1 lessons, days 1 to 11, docs/lessons/wip/; verified: lessons.parse on each, each proof run from the repo root exit 0, test_learn 139 and test_lessons 47 pass
 r28-note-sa03	done	2026-11-07 12:06	6 Part 1 lessons (days 22-26, 28) in docs/lessons/wip/; verified: lessons.parse on each, each proof run from repo root exit 0
+- r28-sa04 (done Sat 7 Nov 12:07): 7 Part 1 lessons, ASOBI and Helium (days 29-33, 45, 46), in docs/lessons/wip/; verified: lib/lessons.py parse ok, every proof exits 0; facts from the guide §21.1, §14.2 and bin/kawa-asobi --help
