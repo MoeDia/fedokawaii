@@ -5739,7 +5739,7 @@ few letters you can count, repeat and combine.
 > copy and paste: `y` and `p` do (§17.8), and Ctrl+Shift+V
 > pastes while you type.
 
-<!-- fig:app-nvim | Neovim, the palette's gruvbox on the terminal's ground, solid while it runs, on a shell script. -->
+<!-- fig:app-nvim | Neovim, our own kawa scheme on the terminal's ground, solid while it runs, on a shell script. -->
 
 **Learn in this order.** The first sections are a course; the rest is reference to come back
 to. Read them with neovim open beside the book, one step a day.
@@ -6463,7 +6463,7 @@ every line says what it does and why. It is a good first thing to read in Lua.
 | `lua/config/statusline.lua` | the bottom line, without a plugin: there in the first frame, drawn with the key that changed it |
 | `lua/config/markdown.lua` · `root.lua` · `run.lua` | typing in Markdown without stalls · the project's folder · running your code in a terminal |
 | `lua/config/prefetch.lua` | the parsers, fetched by setup and `update`, never at a first use |
-| `lua/plugins/colorscheme.lua` | the remapped gruvbox, which follows the dark and light theme by itself (§40.2) |
+| `lua/plugins/colorscheme.lua` | kawa, our own colour scheme (`colors/kawa.lua`), which follows the dark and light theme by itself (§40.2) |
 | `lua/plugins/snacks.lua` | the start screen, the finder, the tree, lazygit, the terminal, the indent line |
 | `lua/plugins/editor.lua` | treesitter, git's signs in the margin, the Space panel, Mason |
 | `lua/plugins/repl.lua` · `debug.lua` · `after/ftplugin/` | the REPL · the debugger · the Space r keys of Python and Rust (§43.7) |
@@ -14239,7 +14239,7 @@ below read.
 | App | Reads the theme by | On a switch |
 |---|---|---|
 | foot (and everything in it: neovim, btop, yazi, lazygit, torrra, bat, nmtui, VisiData, gdu, the clipboard window) | both palettes in `foot.ini`; `include=` picks the one to start in | SIGUSR1 / SIGUSR2 to the foot server switches every window; neovim notices by itself |
-| neovim | gruvbox.nvim with the palette remapped; `background` is never forced | follows the terminal (DEC mode 2031) |
+| neovim | kawa, our own scheme (`colors/kawa.lua`, both moods); `background` is never forced | follows the terminal (DEC mode 2031) |
 | yazi, lazygit, bat, torrra, the clipboard window, nmtui | the terminal's 16 colours by name (yazi's `theme.toml`, lazygit's config, bat's `ansi` theme, torrra's `fedokawaii` (made by kawa-torrra from Textual's `ansi-dark`: right on both, the palettes keep "black" a shade of the ground), `NEWT_COLORS` for nmtui) | with foot, at once |
 | waybar | `@import` of `current/waybar.css` | SIGUSR2 (reload) |
 | the launcher, the menus, quick settings | `kawa-panel` reads `current/panel.conf` | it watches the link and draws again at once |

@@ -11,7 +11,7 @@ if [[ " $* " == *"Lazy! restore"* ]] && ! countdown nvim-plugins; then
     mkdir -p "$d/.git"; echo "ref: refs/heads/main" >"$d/.git/HEAD"; echo "$commit" >"$d/.git/fk-commit"   # (the stub git's HEAD)
   done < <(sed -n 's/^ *"\([^"]*\)": *{.*"commit": *"\([0-9a-f]*\)".*/\1 \2/p' "$HOME/.config/nvim/lazy-lock.json" 2>/dev/null)
 fi
-[[ " $* " == *colors_name* ]] && printf gruvbox
+[[ " $* " == *colors_name* ]] && printf kawa
 # (+MasonInstall NAME…: each tool's command in Mason's bin, as Mason links them)
 if [[ " $* " == *MasonInstall* ]]; then
   m=$HOME/.local/share/nvim/mason/bin; mkdir -p "$m"

@@ -845,7 +845,7 @@ else
   # (the backup itself is not checked: its drive may not be plugged in — fedokawaii status says when the last one was)
   check "the backup's exclude list in place (kawa-backup)" test -s "$TARGET_HOME/.config/fedokawaii/backup-exclude"
   check "Syncplay plays in mpv (~/.config/syncplay.ini)" grep -q '^playerpath = .*mpv$' "$TARGET_HOME/.config/syncplay.ini"
-  check "neovim colourscheme gruvbox (remapped)"       U sh -c 'timeout 60 nvim --headless "+lua io.write(vim.g.colors_name or \"\")" +qa 2>&1 | grep -q gruvbox'
+  check "neovim colourscheme kawa (our own)"       U sh -c 'timeout 60 nvim --headless "+lua io.write(vim.g.colors_name or \"\")" +qa 2>&1 | grep -q kawa'
   # both Sumi variants, each with its other names (left_ptr: a link that leads to a pointer),
   # and the default theme the one of the theme in use (kawa-theme keeps them together)
   check "Sumi pointers in place (both, with their X11 names; the default the theme's)" \

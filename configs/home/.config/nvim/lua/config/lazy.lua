@@ -17,7 +17,7 @@ require("lazy").setup({
   -- A plugin at the commit in the lock, not at a release: the lock alone decides.
   defaults = { version = false },
   -- A first start that has to install plugins already shows them in our colours.
-  install = { colorscheme = { "gruvbox" } },
+  install = { colorscheme = { "kawa" } },
   -- No looking for new versions: no network, no notices between your updates.
   checker = { enabled = false },
   -- No luarocks: none of these plugins needs one, and :checkhealth would complain of its lack.

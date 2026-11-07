@@ -1,8 +1,8 @@
 -- ~/.config/fedokawaii/notes.lua — the notes window (kawa-notes, Super+N): neovim as a page.
 -- Neovim's whole configuration in that window (nvim -u): not the editor's config and its plugins,
 -- which took most of a second to start for a page of text — so the window has its text the
--- moment it appears, and goes as fast. Kept from the editor: its colours (the gruvbox
--- palette of ~/.config/nvim/lua/plugins/colorscheme.lua, read from there), the clipboard as
+-- moment it appears, and goes as fast. Kept from the editor: its colours (the kawa scheme
+-- of ~/.config/nvim/colors/kawa.lua, with colorscheme.lua's additions), the clipboard as
 -- the editor keeps it (~/.config/nvim/lua/config/clipboard.lua: a copy goes to the desktop's,
 -- what you delete stays here), the mouse, undo that outlives the window, searches that ignore
 -- case. A text screen like every other one (docs/design-system.md §7, screen.sh): along the
@@ -34,19 +34,14 @@ vim.o.showmode = false
 vim.o.showcmd = false
 vim.o.ruler = false
 vim.o.shortmess = vim.o.shortmess .. "WFcsS"
--- the editor's colours: gruvbox with the desktop's palette, as the editor's plugin spec
--- sets it up (its init, then its options) — from the plugin the editor keeps; plain colours
--- where it is not installed yet
+-- the editor's colours: kawa (colors/kawa.lua of the editor's config), with what the editor's
+-- plugin spec adds on top of it; plain colours where the config is not there yet
 do
-  local dir = vim.fn.stdpath("data") .. "/lazy/gruvbox.nvim"
   local spec = vim.fn.stdpath("config") .. "/lua/plugins/colorscheme.lua"
-  if vim.uv.fs_stat(dir) and vim.uv.fs_stat(spec) then
-    vim.opt.rtp:prepend(dir)
+  if vim.uv.fs_stat(spec) then
     local ok = pcall(function()
-      local s = dofile(spec)[1]
-      s.init()
-      require("gruvbox").setup(s.opts)
-      vim.cmd.colorscheme("gruvbox")
+      dofile(spec)[1].init()
+      vim.cmd.colorscheme("kawa")
     end)
     if not ok then vim.cmd.colorscheme("default") end
   end

@@ -338,7 +338,7 @@ PY
 )
 has "$out" "True True"; has "$out" "True $(sed -n 's/^ *"\([^"]*\)": *{.*"commit": *"\([0-9a-f]*\)".*/\1 \2/p' "$LOCK" | wc -l)"
 case_ "his own config, minimal: the lock is the handful and no more, and no line asks for LazyVim"
-eq "$(sed -n 's/^ *"\([^"]*\)": *{.*/\1/p' "$LOCK" | tr '\n' ' ')" "gitsigns.nvim gruvbox.nvim iron.nvim lazy.nvim mason.nvim nvim-dap nvim-dap-ui nvim-nio nvim-treesitter snacks.nvim which-key.nvim "
+eq "$(sed -n 's/^ *"\([^"]*\)": *{.*/\1/p' "$LOCK" | tr '\n' ' ')" "gitsigns.nvim iron.nvim lazy.nvim mason.nvim nvim-dap nvim-dap-ui nvim-nio nvim-treesitter snacks.nvim which-key.nvim "
 lacks "$(grep -rl 'LazyVim\.\|lazyvim' "$NV" 2>/dev/null)" "nvim"
 case_ "every plugin a spec names is in the lock (a plugin not pinned would float)"
 for s in $(grep -rhoE '"[A-Za-z][A-Za-z0-9_-]*/[A-Za-z0-9_.-]+"' "$NV/lua/plugins" | grep -v '^"text/' | tr -d '"'); do has "$(cat "$LOCK")" "\"${s##*/}\":"; done
@@ -378,13 +378,12 @@ if command -v nvim >/dev/null; then
   out=$(HOME=$TMP/glasshome nvim --clean --headless -c "lua
     local sent = {}
     vim.api.nvim_ui_send = function(s) sent[#sent + 1] = (s:gsub('\27', 'E'):gsub('\\\\', 'B')) end
-    package.loaded.gruvbox = { setup = function() end }
     vim.cmd.colorscheme = function() end
     local s = dofile('$NV/lua/plugins/colorscheme.lua')[1]
     s.init()
     local function say(what) io.stdout:write(what, ': ', table.concat(sent, ' '), '\n'); sent = {} end
     vim.cmd('silent! doautocmd UIEnter'); say('init alone')
-    s.config(nil, s.opts); say('config')
+    s.config(); say('config')
     vim.o.background = 'dark'; sent = {}
     vim.cmd('doautocmd UIEnter'); say('enter')
     vim.cmd('doautocmd VimSuspend'); say('suspend')
