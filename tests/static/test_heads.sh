@@ -90,6 +90,22 @@ for f in bin/kawa-bar bin/fetch bin/kawa-theme configs/home/.bashrc.d/fedokawaii
 done
 done_
 
+case_ "no demon or angel outside the wallpapers (his note d, 6 Nov; dn01): no word for one in what ships, no file named for one"
+# the wallpapers keep theirs: their list, the masters' pictures and sources; the typing app's English word lists are words.
+# PENDING: the old lock's family, which d1d replaces (with sa31's lock): once a file is clean, its line goes.
+PENDING=(bin/kawa-lock configs/home/.config/fedokawaii/lock.ui src/kawa-lockmod/kawa-lockmod.c system/kawa-greet art/heads.txt art/ink/SOURCES.md)
+WORDS='\b(oni|onis|angels?|demons?|tennin|hannya|marishiten|akuma|tenshi)\b'
+mapfile -t files < <(cd "$REPO" && git ls-files bin configs system iso src lib art theme.sh setup.sh fedokawaii.sh verify.sh \
+  | grep -v -E '^art/masters/|^configs/home/\.local/share/fedokawaii/wallpapers\.list$|/kawatype/(words|sentences|passages)\.txt$')
+out=$(cd "$REPO" && grep -l -I -i -E "$WORDS" "${files[@]}" | grep -v -x -F -f <(printf '%s\n' "${PENDING[@]}") || true)
+eq "$out" "" "files that name a demon or angel"
+for f in "${PENDING[@]}"; do
+  grep -q -I -i -E "$WORDS" "$REPO/$f" && _ok || _no "$f is clean now: take it off PENDING"
+done
+out=$(cd "$REPO" && git ls-files | grep -v '^art/masters/' | grep -i -E '(^|[/_.-])(oni|angels?|demons?|tennin|hannya|marishiten)([/_.-]|$)' || true)
+eq "$out" "" "files named for a demon or angel"
+done_
+
 case_ "the boot splash and the ISO's crest are the head's own pixels, whole ×8 and ×5, and the splash's old painting is gone"
 [[ ! -e $REPO/system/plymouth/sumi/mask.png ]] && _ok || _no "mask.png is back"
 out=$(cd "$REPO" && python3 -I -B - <<'PY'
