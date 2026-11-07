@@ -701,10 +701,13 @@ has "$d" 'box(cr, HAIR, H, W - HAIR, 1, "shadow1")'; has "$d" 'box(cr, 2 * HAIR,
 has "$d" 'cr.translate(panel.ox, panel.oy)' "the frame's own place in the window"
 has "$d" 'box(cr, it.x, it.y, it.w, it.h, lk["fill"])' "the cursor: the row's place, the heading's own width"
 has "$d" 'yubi(cr, it.x - YUBI_X + YUBI_BOB[' "…yubi, the pointer, in the gutter at its left (P2 1)"
-case_ "a heading's pixels: its icon (accent_text) in the icon column, its name (strong) from cell 3, the rule — 1 px edge2, solid, on the row's row 10 — to the content's edge (8 px before a value, muted, at its end)"
+case_ "a heading's pixels: its icon (accent_text) in the icon column, its name (strong) from cell 3, the rule — waku (P1 4, S12): the 1 px edge2 rail on the row's row 10, a brass stop at each end, a stud every 17 px, centred — to the content's edge (8 px before a value, muted, at its end)"
 has "$d" 'row_icon(cr, x, y, ic.get(icon, icon), "accent_text")'
 has "$d" 'w = text(cr, x + HEAD_X, ty, name, "strong")'
-has "$d" 'box(cr, sx, y + 10, right - sx, 1, "edge2")'
+has "$d" 'waku(cr, sx, y + 10, right - sx)'
+has "$d" 'box(cr, x, y, n, 1, "edge2")'
+has "$d" 'k = (n - 12 - 3) // 17 + 1'
+has "$d" 'at = (n - 3 - (k - 1) * 17) // 2'
 has "$d" 'right -= text(cr, right, ty, value, "muted", right=True) + GAP'
 case_ "a meter's pixels (quick settings', the sound panel's and the brightness slider's): tairyoku, a trough 10 high in its rim, brass ends, the fill lit from above in the level's ink (gold or indigo, the fire past 80 %), a notch each quarter; hollow while muted; the cursor's tint changes no ink of it; no level: the words alone, at the row's right inset"
 has "$d" 'n = lit_of(pct, segs)'

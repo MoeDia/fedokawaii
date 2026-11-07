@@ -3112,11 +3112,29 @@ def main(argv):
             w += text(cr, x + w, ty, tail, "muted")
         return w
 
+    def waku(cr, x, y, n):
+        """A heading's rule (his pick P1 4, S12): a JRPG window's border laid flat, kept to the
+        grid's 1 px — the edge2 rail, a brass stop at each end, a brass stud every 17 px, in the
+        corners' kanagu inks; the studs centred so the rule is its own mirror."""
+        box(cr, x, y, n, 1, "edge2")
+        if n < 9:
+            return
+        for sx in (x, x + n - 1):
+            for d, ink in ((-1, "kanagu_hi"), (0, "kanagu"), (1, "kanagu_lo")):
+                box(cr, sx, y + d, 1, 1, ink)
+        k = (n - 12 - 3) // 17 + 1
+        if (n - 3 - (k - 1) * 17) % 2:
+            k -= 1
+        at = (n - 3 - (k - 1) * 17) // 2
+        for i in range(max(k, 0)):
+            cx = x + at + 17 * i
+            for dx, dy, ink in ((1, -1, "kanagu_hi"), (0, 0, "kanagu_hi"), (1, 0, "kanagu"), (2, 0, "kanagu_lo"), (1, 1, "kanagu_lo")):
+                box(cr, cx + dx, y + dy, 1, 1, ink)
+
     def heading(cr, icon, name, x, y, value=""):
         """A part of a panel or a menu (§4): its icon (12 px, accent_text) in the icon column at
-        the content's first cell, its name strong from cell 3, 8 px, then the rule — 1 px
-        edge2, solid, on the row's row 10 — to the content's right edge (or 8 px before a value
-        at its end, muted)."""
+        the content's first cell, its name strong from cell 3, 8 px, then the rule — waku, on
+        the row's row 10 — to the content's right edge (or 8 px before a value at its end, muted)."""
         right = panel.size[0] - PAD - BORDER
         ty = y + (ROW - LINE) // 2
         row_icon(cr, x, y, ic.get(icon, icon), "accent_text")
@@ -3125,7 +3143,7 @@ def main(argv):
             right -= text(cr, right, ty, value, "muted", right=True) + GAP
         sx = x + HEAD_X + w + GAP
         if right > sx:
-            box(cr, sx, y + 10, right - sx, 1, "edge2")
+            waku(cr, sx, y + 10, right - sx)
 
     def mark_(cr, m):
         """What a menu draws but does not offer: its title, a row not to be chosen, a month's

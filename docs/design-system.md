@@ -250,8 +250,11 @@ screen and the bar's paper share one rhythm.
   panel draws is opaque), the frame, 16 px of pad, content on the grid. Sized to its content in
   whole cells.
 - **Heading**: its icon (12 px) in `accent_text` in the icon column at the content's first cell,
-  its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — 1 px `edge2`, solid, on the
-  row's row 10 (the minus's), to the content's right edge. Air: §3. Every part of a panel opens
+  its name in `strong` from cell 3 (x 24), 8 px, then the **rule** — **waku** (owner's pick P1 4, S12): the
+  1 px `edge2` rail on the row's row 10 (the minus's), a 1 × 3 brass stop at each end, a brass stud (a plus, 3 × 3)
+  every 17 px, centred so the rule is its own mirror, in the corners' kanagu inks; never taller than 3 rows, no red —
+  to the content's right edge. Only a heading carries it: a section label's rule stays plain `edge2`; the bar, the
+  notices and the power menu draw none. Air: §3. Every part of a panel opens
   with one.
 - **Row** — one grammar everywhere: its picture in the icon column at cell 1 (x 8–23, centred by its ink), its name
   in `text` from cell 4 (x 32); at the right end, ending on the right inset (8 px in from the content's edge — a row is
