@@ -63,7 +63,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `text_on_select` | `f8a17a` f47b58 → f5ecc2 0.32 | `713724` a84222 → 121b1b 0.35 | … the name and picture of what is selected: a vermilion lifted to ≥ 7 : 1 on every ground (APCA Lc 60) |
 | `lacquer` | `82241f` Vandyke Red | `82241f` Vandyke Red | the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there) and a failed command's code in the prompt: the lacquer (漆), one in both moods |
 | `text_on_lacquer` | `f5ecc2` | `f8f3d8` | every ink on the lacquer |
-| `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
+| `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; something asking for you (a meter's gold and indigo: `hp*`, §4 Meter) |
 | `flame` | `f68c50` Apricot Orange | `a84222` Brick Red | fire: the torches and lanterns, a meter's segments over 80 % |
 | `gold` | `c5a56e` Isabella Color | `e2b540` Yellow Ocher | metal and leaf in art only (rod caps, a halo, a demon's eyes, the torches' brass) — never words |
 | `lit` | `e7cfa1` | `122625` | an inverted chip's fill: the editor's selection, a TUI's marked items |
@@ -225,8 +225,8 @@ screen and the bar's paper share one rhythm.
 | key | 20 high | 1 row | a key button: its 1 px frame inside the row |
 | keycap | 16 + 1 high | — | a key named (§4): rows 2–17 of its row, a lip on 18; 14 wide (a letter, a picture), a word its letters and 4 either side; 2 apart in a chord, 4 between two |
 | seal | 16 × 16 | 2 | a switch's state (§4): rows 2–17 of its row, at the right inset, or against the row's key, 2 px apart |
-| meter | 160 × 10 | 20 | 20 segments, each 6 × 10 px with 2 px of air (one a cell): 5 % a segment |
-| instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, 40 segments on the second row, from x 50 of the content to its right inset |
+| meter | 158 × 10 | 20 | tairyoku, an HP bar (owner's pick P4 1, colours of n 4 urushi, 7 Nov): a 1 px rim round a trough, 3 px of brass at each end, the fill (152 px between the brass) lit from above, a notch at each quarter; one pixel of fill per 0.66 % |
+| instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, the meter (318 px) on the second row, from x 50 of the content to its right inset |
 | masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
 | seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
@@ -294,14 +294,17 @@ screen and the bar's paper share one rhythm.
 - **Instrument** (a level, where it is the point: quick settings, the sound panel, the brightness): two rows, one choice. Its
   picture alive in the first columns — a chōchin whose glow (`flame`) rises rib by rib with the brightness, a temple bell
   (bonshō) whose ripples spread with the sound, stilled and struck through while muted —; its name, and its number
-  right-aligned at the top (`strong`, the unit `muted`); under them the meter, forty segments of the same 6 × 10, a tick
-  (`faint`) under each quarter. A click or a drag on the meter sets the level, the wheel anywhere on it ±5; a click on its
+  right-aligned at the top (`strong`, the unit `muted`); under them the meter, the same bar 318 px long, its notches
+  under no tick of its own. A click or a drag on the meter sets the level, the wheel anywhere on it ±5; a click on its
   words does what Enter does.
-- **Meter**: its icon and name as a row's, then 20 segments (§3), right-aligned before the value.
-  Lit segments `asagi`; from 80 % `flame`, from 90 % `accent` (it reddens as it rises); unlit `edge`. A level between
-  two segments lights the last one partly, from the bottom: every level has its own pixels. Muted: the lit segments
-  hollow (their 1 px outline). The cursor's tint changes no ink of it. A click or a drag anywhere on it sets the level. The
-  level display (kawa-osd) draws the same segments to the pixel.
+- **Meter** (tairyoku, owner's pick P4 1; colours n 4 urushi, 7 Nov): its icon and name as a row's, then the bar (158 × 10, §3),
+  right-aligned before the value. Trough `hp_trough` in a 1 px `hp_rim`, 3 px of brass (`kanagu_hi`, `kanagu`, `kanagu_lo`) at each end,
+  the fill 152 px between them: top row `hp_hi`, middle `hp`, two foot rows `hp_lo`, its front column `hp_hi`; past 80 % of the run
+  `hp_fire`, `hp_fire_hi`, `hp_fire_lo` (it reddens as it rises). Dark: maki-e, gold (`yellow`, `byellow`, the light mood's yellow) and vermilion on
+  black lacquer; light: a print, Hokusai's indigo (`bblue`, `blue`, `bteal`) and the seal's red on washed paper. A notch each quarter,
+  2 px at the top and the foot of the trough: `hp_rim` where unlit, `hp_trough` where the fill passes. Muted: the fill hollow (its top and
+  foot rows only). The cursor's tint changes no ink of it. A click or a drag anywhere on it sets the smallest level that lights the pixel under the
+  pointer (the brass: 0 or 100). The level display (kawa-osd) draws the same bar to the pixel.
 - **The sound panel**: sound — the level as quick settings has it, mute and the mixer as rows with their keys (m, x) ·
   output and input — a row a device under its own short name and picture (a screen, a jack, headphones, a microphone),
   the one in use with the hanko's dot · at the input's foot mute microphone and test mic (n, t).
@@ -353,7 +356,7 @@ screen and the bar's paper share one rhythm.
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |
 | busy | its icon moves (§13) | the same icon's frames | its icon moves |
 | asking for you | — | — | the workspace's numeral `asagi`; the window's hairline `asagi` |
-| high | a meter's top segments `flame`, then `accent` | the same | — |
+| high | a meter's last fifth `hp_fire` | the same | — |
 | failed | its mark (✘) `accent_text` in the icon column, the words `text` (§1: red carries no words) — a wrong password asked again: the title `MARK⇥words` | the same | — |
 
 Motion — how any of these changes over time — is §11.

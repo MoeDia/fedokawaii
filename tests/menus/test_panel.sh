@@ -80,9 +80,9 @@ def opened(mode, state):                       # the panel open in mode, its sta
     fresh(); p.request(mode); u.answer(state); u.calls.clear(); u.drawn.clear()
 def mid(key):                                  # the middle of an item's place
     it = p.item(key); return it.x + it.w // 2, it.y + it.h // 2
-def seg(key, j):                               # a point on a meter's j-th of twenty steps (0: the first): the level there is 5 * (j + 1)
-    it = p.item(key); k = 2 * j + 1 if it.big else j                  # (an instrument: forty segments, two a step; on its meter's row)
-    return p.slider_x(it) + k * kp.CELL + kp.SEG_W // 2, it.y + kp.ROW + 8 if it.big else it.y + it.h // 2
+def seg(key, j):                               # the point on a meter's j-th of twenty steps (0: the first): the last px of the fill of 5 * (j + 1) %, the level there
+    it = p.item(key); segs = kp.BIG_SEGS if it.big else kp.SEGS       # (an instrument: on its meter's row)
+    return p.slider_x(it) + kp.BRASS_W + kp.lit_of(5 * (j + 1), segs) - 1, it.y + kp.ROW + 8 if it.big else it.y + it.h // 2
 def air(key):                                  # a point in the air under an item: between two groups, or in the pad
     it = p.item(key); return it.x + it.w // 2, it.y + it.h + 1
 exec(sys.argv[3])
@@ -565,41 +565,44 @@ eq "$(py 'fresh(); p.hover(*mid("backup")); a = p.hot; p.refresh(); u.answer(STA
 case_ "a drag: the meter follows, the hot one does not move off it (nor the cursor)"
 eq "$(py 'opened("quick", STATE); b = seg("brightness", 9); p.hover(*b); p.press(*b); p.hover(*mid("night"), dragging=True); print(p.hot, p.focus)')" "brightness brightness"
 eq "$(py 'fresh(); p.press(5, 5); print(u.calls)')" "[]" "on the frame: nothing"
-case_ "a click on a meter's segments: the level through the segment under it (lit to its top: 5 % each, the first 5); a cell of air before the first: 0; off the segments (its icon, its name): not a level; a drag follows"
-eq "$(py 'fresh(); print([ (p.press(*seg("brightness", j)), p.state["brightness"])[1] for j in (0, 1, 9, 10, 19) ])')" "['5%', '10%', '50%', '55%', '100%']" "segment j is 5 · (j + 1) %: the first 5, the tenth 50, the eleventh 55, the twentieth 100"
+case_ "a click on a meter: the smallest level that lights the pixel under it; the brass or a cell of air before the run: 0; off the segments (its icon, its name): not a level; a drag follows"
+eq "$(py 'fresh(); print([ (p.press(*seg("brightness", j)), p.state["brightness"])[1] for j in (0, 1, 9, 10, 19) ])')" "['5%', '10%', '50%', '55%', '100%']" "the last pixel of the fill of 5 · (j + 1) %: the first 5, the tenth 50, the eleventh 55, the twentieth 100"
 eq "$(py 'fresh(); x, y = seg("brightness", 0); p.press(p.slider_x(p.item("brightness")) - 6, y); print(p.state["brightness"])')" 0% "a cell of air before the first segment: 0"
 eq "$(py 'fresh(); it = p.item("brightness"); p.press(it.x + 40, it.y + 5); p.press(it.x + 100, it.y + 5); print(p.state["brightness"], [c for c in u.calls if c.startswith("run")])')" "70% []" "off the segments (its icon, its name): nothing set"
 eq "$(py 'fresh(); p.press(*seg("sound", 0)); x, y = seg("sound", 9); p.hover(x, y, dragging=True); a = p.state["sound"]; p.hover(5, y + 200, dragging=True); b = p.state["sound"]; p.hover(900, y - 100, dragging=True); print(a, b, p.state["sound"])')" "50% 0% 100%" "a drag follows the pointer along the segments at any height; past either end: that end"
 eq "$(py 'fresh(); p.press(*seg("sound", 0)); p.release(); p.hover(*seg("sound", 19), dragging=True); print(p.state["sound"])')" 5% "let go: no more"
 
-case_ "the segments and the level, one rule both ways (quick settings', the sound panel's and the brightness slider's): a click lights through the segment under the pointer (to its top), the air before the first is 0"
+case_ "the meter and the level, one rule both ways (quick settings', the sound panel's and the brightness slider's): a click lights through the pixel under the pointer (the smallest level that does), the brass and the air before the run are 0"
 eq "$(py '
 bad = []
 for o in range(-20, 200):
     v = kp.level_at(o)
-    want = 0 if o < 0 else min(20, o // 8 + 1)       # the segments lit through the one under it
-    if kp.lit_of(v) != (want, 0): bad.append((o, v, kp.lit_of(v)))
-print(bad)')" "[]" "every pixel from 20 before the run to 40 after it: the segments lit are those through the pointer's"
-eq "$(py 'v = [kp.level_at(o) for o in range(-20, 200)]; print(all(a <= b for a, b in zip(v, v[1:])), max(b - a for a, b in zip(v, v[1:])), v[0], v[-1], kp.level_at(-1), kp.level_at(0), kp.level_at(7), kp.level_at(8), kp.level_at(159), kp.level_at(160), kp.level_at(500))')" \
-  "True 5 0 100 0 5 5 10 100 100 100" "never back; 5 % at each cell (8 px); the ends 0 and 100 exactly"
-eq "$(py 'print([kp.lit_of(v) for v in (0, 1, 4, 5, 42, 99, 100, 150)], kp.lit_of(None), kp.lit_of(-3))')" \
-  "[(0, 0), (0, 2), (0, 8), (1, 0), (8, 4), (19, 8), (20, 0), (20, 0)] (0, 0) (0, 0)" "5 % a segment, then two rows a percent into the next one (42 % = 8 whole and 4 rows)"
-eq "$(py 'print(len({kp.lit_of(v) for v in range(101)}))')" 101 "every level its own pixels: no two alike"
-eq "$(py 'print([kp.seg_ink(i) for i in (0, 15, 16, 17, 18, 19)])')" "['asagi', 'asagi', 'flame', 'flame', 'accent', 'accent']" "it reddens as it rises: the 17th–18th flame, the 19th–20th accent"
-eq "$(py 'print(kp.SEGS, kp.SEG_W, kp.SEG_H, kp.CELL, kp.SPAN, kp.SPAN == kp.SEGS * kp.CELL)')" "20 6 10 8 160 True" "twenty segments 6 × 10, one a cell"
-eq "$(py 'print(kp.lit_of(72, 40), kp.lit_of(100, 40), kp.lit_of(1, 40), kp.seg_ink(31, 40), kp.seg_ink(32, 40), kp.seg_ink(35, 40), kp.seg_ink(36, 40), kp.level_at(0, 40), kp.level_at(8, 40), kp.level_at(319, 40), kp.level_at(-1, 40), len({kp.lit_of(v, 40) for v in range(101)}))')" \
-  "(28, 8) (40, 0) (0, 4) asagi flame flame accent 3 5 100 0 101" "an instrument's forty segments: the same rule, the same ramp (from 80 % flame, from 90 % accent), 2.5 % each"
+    p_ = o - kp.BRASS_W
+    want = 0 if p_ < 0 else 100 if p_ >= kp.hp_inner() else None
+    n = kp.lit_of(v)
+    if want is None and not (n >= p_ + 1 and kp.lit_of(v - 1) < p_ + 1): bad.append((o, v, n))
+    if want is not None and v != want: bad.append((o, v))
+print(bad)')" "[]" "every pixel from 20 before the run to 40 after it: the fill lit reaches the pointer's pixel and one percent less does not"
+eq "$(py 'v = [kp.level_at(o) for o in range(-20, 200)]; print(all(a <= b for a, b in zip(v, v[1:])), v[0], v[-1], kp.level_at(-1), kp.level_at(2), kp.level_at(3), kp.level_at(154), kp.level_at(155), kp.level_at(500))')" \
+  "True 0 100 0 0 1 100 100 100" "never back; the brass and the air 0, the first pixel of the fill 1 %, its last 100"
+eq "$(py 'print([kp.lit_of(v) for v in (0, 1, 4, 5, 42, 99, 100, 150)], kp.lit_of(None), kp.lit_of(-3), kp.hp_inner(), kp.hp_inner(40))')" \
+  "[0, 2, 6, 8, 64, 150, 152, 152] 0 0 152 312" "a level lights its share of the 152 px between the brass (an instrument's 312), half up"
+eq "$(py 'print(len({kp.lit_of(v) for v in range(101)}), len({kp.lit_of(v, 40) for v in range(101)}))')" "101 101" "every level its own length: no two alike"
+eq "$(py 'print([kp.hp_ink(i)[0] for i in (0, 121, 122, 151)], [kp.hp_ink(i, 40)[0] for i in (249, 250, 311)])')" "['hp', 'hp', 'hp_fire', 'hp_fire'] ['hp', 'hp_fire', 'hp_fire']" "it reddens as it rises: past 80 % of the run the fire"
+eq "$(py 'print(kp.SEGS, kp.SEG_W, kp.SEG_H, kp.CELL, kp.SPAN, kp.SPAN == kp.SEGS * kp.CELL, kp.BRASS_W)')" "20 6 10 8 160 True 3" "the run: twenty cells of 8, a meter 158 px (an instrument's 318) and 10 high, 3 px of brass at each end"
+eq "$(py 'print(kp.lit_of(72, 40), kp.lit_of(100, 40), kp.lit_of(1, 40), kp.level_at(0, 40), kp.level_at(3, 40), kp.level_at(316, 40), kp.level_at(-1, 40))')" \
+  "225 312 3 0 1 100 0" "an instrument's: the same rule on 312 px"
 eq "$(py 'fresh(); out = []
 for k in ("brightness", "sound"):
     m = p.item(k); x0 = p.slider_x(m); y = m.y + kp.ROW + 8; out.append((x0, [p.meter_at(m, x0 + o, y=y) for o in (-9, -8, -1, 0, 7, 8, 319, 327, 328)], p.meter_at(m, x0 - 300, held=True), p.meter_at(m, x0 + 900, held=True), p.meter_at(m, x0 + 100, y=m.y + 5)))
-print(out[0] == out[1], *out[0])')" "True 67 [None, 0, 0, 3, 3, 5, 100, 100, None] 0 100 None" "quick settings' levels: the pointer counts from a cell before the run to a cell after it, on the meter's row (its name and number: no level); dragged, anywhere (an end held)"
+print(out[0] == out[1], *out[0])')" "True 67 [None, 0, 0, 0, 2, 2, 100, 100, None] 0 100 None" "quick settings' levels: the pointer counts from a cell before the run to a cell after it, on the meter's row (its name and number: no level); dragged, anywhere (an end held)"
 eq "$(py 'fresh(); print([[p.meter_at(p.item(k), *seg(k, j)[:1], y=seg(k, j)[1]) for j in range(20)] == [5 * (j + 1) for j in range(20)] for k in ("brightness", "sound")])')" "[True, True]" "a point on the j-th of twenty steps is 5 · (j + 1) %"
 eq "$(py 'opened("brightness", "brightness\t70%\n"); m = p.items[0]; x0 = p.slider_x(m); y = m.y + kp.ROW + 8; print(x0, [p.meter_at(m, x0 + o, y=y) for o in (-9, -8, -1, 0, 7, 8, 319, 327, 328)], p.meter_at(m, x0 - 300, held=True), p.meter_at(m, x0 + 900, held=True))')" \
-  "67 [None, 0, 0, 3, 3, 5, 100, 100, None] 0 100" "the brightness alone: the same instrument"
+  "67 [None, 0, 0, 0, 2, 2, 100, 100, None] 0 100" "the brightness alone: the same instrument"
 eq "$(py 'opened("sound", SOUND); m = p.item("sound"); x0 = p.slider_x(m); y = m.y + kp.ROW + 8; print(x0, [p.meter_at(m, x0 + o, y=y) for o in (-9, -8, -1, 0, 7, 8, 319, 327, 328)], p.meter_at(m, x0 - 300, held=True), p.meter_at(m, x0 + 900, held=True))')" \
-  "67 [None, 0, 0, 3, 3, 5, 100, 100, None] 0 100" "the sound panel's: the same"
+  "67 [None, 0, 0, 0, 2, 2, 100, 100, None] 0 100" "the sound panel's: the same"
 eq "$(py 'opened("sound", SOUND); m = p.item("sound"); print(p.slider_x(m) + (kp.BIG_SEGS - 1) * kp.CELL + kp.SEG_W == m.x + m.w - kp.RIGHT_IN)')" True "the last segment's ink on the row's right inset"
-eq "$(py 'print([callable(getattr(kp, n, None)) for n in ("lit_of", "seg_ink", "level_at", "snap")], hasattr(kp, "SEGS"))')" "[True, True, True, True] True" "the segments are the whole of the slider: what they light, in which ink, what a pointer on them means"
+eq "$(py 'print([callable(getattr(kp, n, None)) for n in ("lit_of", "hp_ink", "level_at", "snap")], hasattr(kp, "SEGS"))')" "[True, True, True, True] True" "the meter is the whole of the slider: what it lights, in which ink, what a pointer on them means"
 eq "$(py 'print([kp.snap(v, d) for v, d in ((62, 5), (62, -5), (60, 5), (60, -5), (0, -5), (98, 5), (100, 5))])')" \
   "[65, 60, 65, 55, 0, 100, 100]" "keys and the wheel: to the next multiple of 5"
 
@@ -612,7 +615,7 @@ for j in range(6, 20):
 print(all(shown), all(d == ["brightness"] for d in u.drawn), sum(c.startswith("run kawa-quick --do brightness") for c in u.calls))
 u.answer(); print(u.calls[-1]); p.release(); u.answer(); print(u.calls[-1])')" \
   "$(printf '%s\n' 'True True 1' 'run kawa-quick --do brightness 100' 'run kawa-quick --state')"
-eq "$(py 'fresh(); x, y = seg("brightness", 5); p.press(x, y); n = len(u.calls); p.hover(x + 1, y + 1, dragging=True); p.hover(x - 1, y, dragging=True); print(len(u.calls) - n)')" 0 "the same level again (the same segment): nothing redrawn, nothing sent"
+eq "$(py 'fresh(); x, y = seg("brightness", 5); p.press(x, y); n = len(u.calls); p.hover(x, y + 1, dragging=True); p.hover(x, y - 1, dragging=True); print(len(u.calls) - n)')" 0 "the same level again (the same pixel): nothing redrawn, nothing sent"
 eq "$(py 'fresh(); p.press(*seg("brightness", 9)); p.hover(0, 95, dragging=True); a = p.state["brightness"]; p.hover(600, 95, dragging=True); print(a, p.state["brightness"])')" "0% 100%" "dragged past either end: that end"
 
 case_ "no snapping back: a state read that comes back mid-drag, or was started before the last change, leaves the meter as set"
@@ -703,10 +706,11 @@ has "$d" 'row_icon(cr, x, y, ic.get(icon, icon), "accent_text")'
 has "$d" 'w = text(cr, x + HEAD_X, ty, name, "strong")'
 has "$d" 'box(cr, sx, y + 10, right - sx, 1, "edge2")'
 has "$d" 'right -= text(cr, right, ty, value, "muted", right=True) + GAP'
-case_ "a meter's pixels (quick settings', the sound panel's and the brightness slider's): segments of 6 × 10 a cell apart — lit in the level's ink (asagi, flame, accent), the next one partly from the bottom, unlit edge; hollow (an outline) while muted; the cursor's tint changes no ink of it; no level: the words alone, at the row's right inset"
-has "$d" 'full, part = lit_of(pct, segs)'
-has "$d" 'rows = SEG_H if i < full else part if i == full else 0'
-has "$d" 'frame(cr, x, top, SEG_W, rows, seg_ink(i, segs))'
+case_ "a meter's pixels (quick settings', the sound panel's and the brightness slider's): tairyoku, a trough 10 high in its rim, brass ends, the fill lit from above in the level's ink (gold or indigo, the fire past 80 %), a notch each quarter; hollow while muted; the cursor's tint changes no ink of it; no level: the words alone, at the row's right inset"
+has "$d" 'n = lit_of(pct, segs)'
+has "$d" 'body, hi, lo = hp_ink(i, segs)'
+has "$d" 'box(cr, sx, sy, w, SEG_H, "hp_rim")'
+has "$d" 'box(cr, sx + k, sy, 1, SEG_H, ink)' "the brass ends"
 has "$d" 'segments(cr, it.muted, sx, sy, pct, BIG_SEGS)' "an instrument's forty"
 has "$d" 'text(cr, right, ty, it.value, lk["value"], right=True)' "no level: the words alone, at the row's right inset"
 case_ "a row's pixels (§4): its picture in the 16 px column, centred by its ink, its name from cell 4, its value right-aligned a cell in from the band's end (or in a column of its own), its marks at the right end: keycaps, a seal"
@@ -760,9 +764,9 @@ case_ "one reading at a time: asked again meanwhile, read once more after"
 eq "$(py 'fresh(); p.refresh(); p.refresh(); p.refresh(); print(sum(c == "run kawa-quick --state" for c in u.calls)); u.answer(STATE); print(sum(c == "run kawa-quick --state" for c in u.calls))')" "$(printf '1\n2')"
 case_ "kawa-quick failing: the last state stays"
 eq "$(py 'fresh(); p.refresh(); u.answer("", 1); print(p.state["night"])')" on
-case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: the lit vermilion; yubi_rim: the pointer's rim; kanagu*: P3's brass corner fittings)"
+case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: the lit vermilion; yubi_rim: the pointer's rim; kanagu*: P3's brass corner fittings; hp*: P4's meter)"
 for m in dark light; do
-  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_hi','select_edge','text_on_select','asagi','flame','gold','sand','ai','yubi_rim','kanagu_hi','kanagu','kanagu_lo','kanagu_rivet','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
+  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_hi','select_edge','text_on_select','asagi','flame','gold','sand','ai','yubi_rim','kanagu_hi','kanagu','kanagu_lo','kanagu_rivet','hp','hp_hi','hp_lo','hp_fire','hp_fire_hi','hp_fire_lo','hp_trough','hp_rim','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
 done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —

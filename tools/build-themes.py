@@ -170,7 +170,7 @@ def kami_tile(m, fill, w=16):
         c[K_HAIR_B + 2][x] = k["shadow"][1]
     for y in range(K_TOP + 1, K_HAIR_B + 1):   # and the column from the hairline's second row
         c[y][R + 1] = k["shadow"][1]
-    ink = dict(zip("hos#", map(_rgb, BRASS[m])))
+    ink = dict(zip("hos#", map(_rgb, BRASS[m]), strict=True))
     for fx, fy, sx, sy in ((L, K_HAIR_T, 1, 1), (R, K_HAIR_T, -1, 1), (L, K_HAIR_B, 1, -1), (R, K_HAIR_B, -1, -1)):
         for j, line in enumerate(KANAGU_T):
             for i, ch in enumerate(line):
@@ -1261,6 +1261,15 @@ def check_copies():
 BRASS = {"dark": ("d6c09a", "c5a56e", "746346", "111314"), "light": ("ebcb79", "e2b540", "957d38", "f8f3d8")}   # P3 kanagu: the chest fittings in each corner (lit, body, shade, rivet)
 
 
+# P4 tairyoku (7 Nov, m9's urushi): dark, maki-e gold and vermilion on black lacquer; light, a print in Hokusai's indigo and the seal's red on washed
+# paper. Palette roles only: (body, top, foot) of the fill, the same of the fire past 80 %, the trough, its keyline
+def hp_inks(m, p):
+    q = P["light" if m == "dark" else "dark"]
+    if m == "dark":
+        return (p["yellow"], p["byellow"], q["yellow"], p["accent"], p["accent_hi"], p["lacquer"], p["lo"], p["edge2"])
+    return (p["bblue"], p["blue"], p["bteal"], p["accent"], p["accent_hi"], p["lacquer"], p["key"], p["lo"])
+
+
 def panel_conf(m, p):
     """kawa-panel, quick settings: it draws itself (every square and segment on the pixel grid),
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
@@ -1276,7 +1285,8 @@ def panel_conf(m, p):
             + "".join(f"{k}={p[k]}\n" for k in keys)
             + f"sand={p['gold'] if m == 'dark' else p['yellow']}\nai={p['blue'] if m == 'dark' else p['bblue']}\n"
             + f"yubi_rim={p['lo'] if m == 'dark' else p['key']}\n"
-            + "".join(f"{n}={v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), brass))
+            + "".join(f"{n}={v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), brass, strict=True))
+            + "".join(f"{n}={v}\n" for n, v in zip(("hp", "hp_hi", "hp_lo", "hp_fire", "hp_fire_hi", "hp_fire_lo", "hp_trough", "hp_rim"), hp_inks(m, p), strict=True))
             + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
 
 
@@ -1313,7 +1323,7 @@ def dwl_colors(m, p):
     return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
             f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
             f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['lacquer']}ff\n"
-            + "".join(f"{n} {v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), BRASS[m])))
+            + "".join(f"{n} {v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), BRASS[m], strict=True)))
 
 
 FILES = {

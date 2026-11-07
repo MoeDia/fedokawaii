@@ -405,36 +405,46 @@ def percent(v):
     return int(v[:-1]) if v.endswith("%") and v[:-1].isdigit() else None
 
 
-# ── a meter: twenty segments, one rule both ways (docs/design-system.md §4) ──────────────
-# Twenty segments, 6 × 10 px, one a cell (2 px of air between): 5 % each. A level lights its
-# whole segments and the next one partly, from the bottom, two rows a percent — every level has
-# its own pixels. Lit: asagi; the 17th–18th flame, the 19th–20th accent (it reddens as it rises);
-# unlit: edge. A click or a drag sets the level of the segment under the pointer, lit to its
-# top: a pointer `off` px into the run means level_at(off). kawa-osd draws the same segments.
+# ── a meter: tairyoku, the HP bar (docs/design-system.md §4) ──────────────────────────────
+# A trough 10 px high in a 1 px rim, the rods' brass at both ends (3 px), the fill lit from above
+# (a bright top row, a dark foot row, a bright front), a notch at each quarter. Its length is the
+# old twenty segments' run (158 px; an instrument's forty: 318), the fill the 152 (312) px between
+# the brass: every level its own length. Lit: the maki-e gold (dark) or Hokusai's indigo (light);
+# past 80 % of the run the fire, vermilion. A click or a drag sets the smallest level that lights
+# the pixel under the pointer: a pointer `off` px into the run means level_at(off). kawa-osd draws the
+# same bar.
+
+BRASS_W = 3                                # the brass at each end of a meter, px
+
+
+def hp_inner(segs=SEGS):
+    """The px between the brass: where the fill runs."""
+    return segs * CELL - (CELL - SEG_W) - 2 * BRASS_W
 
 
 def lit_of(pct, segs=SEGS):
-    """(whole segments, rows of the next one) a level lights: 5 % a segment (an instrument's 2.5 %),
-    its rows in proportion: 2 a percent, every level its own pixels."""
+    """How many px of the fill a level lights, half up: every level its own length."""
     if pct is None or pct <= 0:
-        return 0, 0
-    pct = min(100, pct)
-    return pct * segs // 100, (pct * segs % 100) * SEG_H // 100
+        return 0
+    return (hp_inner(segs) * min(100, pct) * 2 + 100) // 200
 
 
-def seg_ink(i, segs=SEGS):
-    """The ink a lit segment takes (i from 0): asagi; from 80 % flame, from 90 % accent."""
-    return "accent" if i >= segs * 9 // 10 else "flame" if i >= segs * 8 // 10 else "asagi"
+def hp_ink(i, segs=SEGS):
+    """The inks (body, top, foot) of the fill's i-th px from the left: the maki-e gold or indigo; the fire past 80 % of the run."""
+    return ("hp_fire", "hp_fire_hi", "hp_fire_lo") if i * 5 > hp_inner(segs) * 4 else ("hp", "hp_hi", "hp_lo")
 
 
 def level_at(off, segs=SEGS):
-    """The level a pointer `off` px right of the segments' left edge means: the segment under it
-    (or the air after it) lit to its top; left of the run 0, its end and beyond 100 (a drag past
-    either end holds that end)."""
-    o = int(off // 1)
-    if o < 0:
+    """The level a pointer `off` px right of the meter's left edge means: the smallest that lights the
+    px under it; the brass or the air before the run 0, the brass after it and beyond 100 (a drag
+    past either end holds that end)."""
+    p = int(off // 1) - BRASS_W
+    inner = hp_inner(segs)
+    if p < 0:
         return 0
-    return min(100, ((o // CELL + 1) * 100 + segs - 1) // segs)
+    if p >= inner:
+        return 100
+    return (100 * p + 50 + inner - 1) // inner
 
 
 def snap(now, d):
@@ -3320,21 +3330,29 @@ def main(argv):
         box(cr, x, y + 1, DOT, DOT - 2, name)
 
     def segments(cr, muted, sx, sy, pct, segs=SEGS):
-        """A meter's segments from sx, sy: lit to the level (the next one partly, from the bottom), its
-        ramp asagi → flame → accent, unlit edge; muted, the lit ones hollow. The cursor's tint changes
-        no ink of it (§4)."""
-        full, part = lit_of(pct, segs)
-        for i in range(segs):
-            x = sx + i * CELL
-            rows = SEG_H if i < full else part if i == full else 0
-            if rows < SEG_H:
-                box(cr, x, sy, SEG_W, SEG_H - rows, "edge")
-            if rows:
-                top = sy + SEG_H - rows
-                if muted and rows > 2:            # (hollow: its outline, the ground showing through)
-                    frame(cr, x, top, SEG_W, rows, seg_ink(i, segs))
-                else:
-                    box(cr, x, top, SEG_W, rows, seg_ink(i, segs))
+        """A meter (tairyoku) from sx, sy: the trough in its rim, the brass ends, the fill to the level
+        (§4); muted, the fill hollow. The cursor's tint changes no ink of it."""
+        inner, w = hp_inner(segs), segs * CELL - (CELL - SEG_W)
+        box(cr, sx, sy, w, SEG_H, "hp_rim")
+        box(cr, sx + 1, sy + 1, w - 2, SEG_H - 2, "hp_trough")
+        n = lit_of(pct, segs)
+        for i in range(n):
+            body, hi, lo = hp_ink(i, segs)
+            front = i == n - 1
+            if muted and not front and i:
+                box(cr, sx + BRASS_W + i, sy + 1, 1, 1, hi)
+                box(cr, sx + BRASS_W + i, sy + SEG_H - 2, 1, 1, lo)
+                continue
+            for j in range(SEG_H - 2):
+                box(cr, sx + BRASS_W + i, sy + 1 + j, 1, 1, hi if j == 0 or front else lo if j >= SEG_H - 4 else body)
+        for q in (1, 2, 3):                       # a notch each quarter, 2 px down from the rim and up from it
+            x = sx + BRASS_W + inner * q // 4
+            ink = "hp_rim" if inner * q // 4 >= n else "hp_trough"
+            box(cr, x, sy + 1, 1, 2, ink)
+            box(cr, x, sy + SEG_H - 3, 1, 2, ink)
+        for k, ink in enumerate(("kanagu_hi", "kanagu", "kanagu_lo")):
+            box(cr, sx + k, sy, 1, SEG_H, ink)
+            box(cr, sx + w - 1 - k, sy, 1, SEG_H, ink)
 
     def clock_words(s):
         """A time as the bar's timer says it: 04:05 · 24:59 · 1:02:03."""
@@ -3488,8 +3506,6 @@ def main(argv):
                 text(cr, right - pw - 2, ty, str(pct), "strong", right=True)
             sx, sy = Panel.slider_x(it), it.y + ROW + (ROW - SEG_H) // 2 - 2
             segments(cr, it.muted, sx, sy, pct, BIG_SEGS)
-            for i in range(0, BIG_SEGS + 1, BIG_SEGS // 4):     # (its scale: a tick each quarter, under the meter)
-                box(cr, min(sx + i * CELL, sx + (BIG_SEGS - 1) * CELL + SEG_W - 1), sy + SEG_H + 1, 1, 2, "faint")
         elif it.kind == "meter":
             pct = percent(it.value)
             row_icon(cr, it.x + GLYPH_X, it.y, ic.get(it.icon, it.icon) if it.icon else "", lk["glyph"])
