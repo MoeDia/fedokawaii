@@ -1,15 +1,14 @@
-# round 28 pulse · Sat 07 19:44 (Dubai)
+# round 28 pulse · Sat 07 20:14 (Dubai)
 
-pace: 143/223 done (64%) · time used 43% · ahead 20.9 h · ETA Sun 08 17:31 · left 72 · blocked 1 · owner 7
-alerts: 1 blocked; usage limit hit 5× (last 2026-11-07T12:09 UTC); 3 errors in 2 h
-run: conductor active · passes 1 (oldest 0 min) · last activity 0 min ago · commits since start 168 · hold False
-machine: load 0.75 0.69 0.57/12 · mem free 19.0 GB · disk free 610 GB · up 43.5 h · cpu tccd1 38° · cpu tctl 45° · gpu edge 40° · gpu junction 34° · gpu mem 54° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
+pace: 144/223 done (65%) · time used 44% · ahead 20.8 h · ETA Sun 08 18:07 · left 72 · blocked 0 · owner 7
+alerts: usage limit hit 5× (last 2026-11-07T12:09 UTC); 3 errors in 2 h
+run: conductor active · passes 1 (oldest 30 min) · last activity 7 min ago · commits since start 168 · hold False
+machine: load 0.02 0.17 0.29/12 · mem free 19.0 GB · disk free 610 GB · up 44.0 h · cpu tccd1 38° · cpu tctl 45° · gpu edge 41° · gpu junction 34° · gpu mem 55° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 42°
 dark: True (active) · pulse timer active
-tokens since start: out 2,748,290 · in 6,146 · cache write 9,966,114 · cache read 200,143,438 · msgs 2984 · out last 6 h 581,811
-out by model: last 6 h claude-opus-5-5 423,484 · claude-sonnet-5-5 138,064 · claude-haiku-5-5 20,263 · since start claude-opus-5-5 2,342,434 · claude-sonnet-5-5 345,969 · claude-haiku-5-5 59,887
+tokens since start: out 2,780,622 · in 6,222 · cache write 10,027,979 · cache read 204,005,239 · msgs 3022 · out last 6 h 563,835
+out by model: last 6 h claude-opus-5-5 441,135 · claude-sonnet-5-5 109,418 · claude-haiku-5-5 13,282 · since start claude-opus-5-5 2,374,766 · claude-sonnet-5-5 345,969 · claude-haiku-5-5 59,887
 
 ## now / blocked / owner
-- [blocked] sa20e Helium square address, TUI hairlines, square tab/hover card: Helium draws them itself (no pref, no GTK CSS); only a patched Helium build (a Chromium tree: tens of GB, hours) would do it — unblock: a Helium source build fits the budget and the disk (or Helium adds a square-frame option); from sa20b
 - [now] sa25d2b the jikusaki bar's widths: pad 10 (style.css paddings from Sumi UI 16's air, width.sh __AIR16_*), BAR_GAP 10 in build-icons (icons.sh), ws numerals 1-9 at 16-20 px in art/icons-bar.txt, seal 26 + thump 28 centred on them, the clock (knob ends, its parts 18 apart, kanji on x 960); test_bargaps' horizontal checks on Sumi UI 16 and icons-bar.txt (today still on 14 px Sumi UI / icons.txt) — from sa25d2
 - [owner] c1b his eyes on the cooler's display with the PC dark: no 99 (S6) — only he can see it; assumed: dark. If it still blinks: the steady real temperature instead (S6)
 - [owner] o01 his picks on the options pack, relayed by Claude; each pick built, the others dropped — assumed meanwhile: my strongest, each in r28-questionnaire.md part A
@@ -44,5 +43,5 @@ out by model: last 6 h claude-opus-5-5 423,484 · claude-sonnet-5-5 138,064 · c
 - [   107][  0.878589] (read_unsupported_feature      ) Turning off dynamic sleep and retrying
 - [   107][  1.299321] (read_unsupported_feature      ) busno=5, sleep-multiplier= 1.00, Retesting for unsupported feature 0xdd returned Error_Info[DDCRC_REPORTED_UNSUPPORTED in ddc_get_nontable_vcp_value_full]
 
-steering received: S19 S20 S21 S22 S23 S24 S25 S26
+steering received: S20 S21 S22 S23 S24 S25 S26 S27
 options: a1-window.jpg, b1-workspace.jpg, c1-scroll.jpg, d1-prompt.jpg, f1-bar.jpg, g1-power.jpg, h2-menus.jpg, t1-transparency.jpg
