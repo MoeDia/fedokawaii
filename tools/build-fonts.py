@@ -431,6 +431,16 @@ def build_ui(kind, face_path, cozette_path):
         if cp in bar:
             glyphs[cp] = (cell, glyphs[ord(base_ch)][1] | bar[cp])
     if kind != "ui":
+        # ĸ (k without its ascender), ŉ (an apostrophe over n), ſ (f without its bar), Ŋ ŋ (N, n
+        # with the stem run down into a hook, as the face's g)
+        glyphs[0x138] = (cell, {(x, y) for x, y in glyphs[ord("k")][1] if y >= 5})
+        glyphs[0x149] = (cell, {(x, y) for x, y in glyphs[ord("n")][1]} | {(x, y) for x in range(kind == "ui16b" and 2 or 1) for y in (1, 2, 3)})
+        stem = {x for x, y in glyphs[ord("f")][1] if y == 6}
+        glyphs[0x17F] = (cell, {(x, y) for x, y in glyphs[ord("f")][1] if y != 5 or x in stem})
+        hook = {(6, 14), (4, 15), (5, 15)} if kind == "ui16" else {(5, 14), (6, 14), (3, 15), (4, 15), (5, 15)}
+        glyphs[0x14A] = (cell, glyphs[ord("N")][1] | hook)
+        glyphs[0x14B] = (cell, glyphs[ord("n")][1] | hook)
+    if kind != "ui":
         glyphs[0x110] = glyphs[0xD0]                     # Đ: the face's Ð
     # 5. Cozette: what else a line holds, one cell wide — its baseline (after its row 9) on
     # the face's (the 14's after row 12: a third row of descender, its y p g in Greek and
