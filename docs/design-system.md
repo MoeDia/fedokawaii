@@ -59,7 +59,7 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
 | `select` | `181715` ground (no band) | `e8e3c2` ground (no band) | what is selected (§4): NO band — it is the ground itself; the cursor changes colour (`text_on_select`), it does not fill (the owner, 7 Nov 17:35) |
 | `select_hi` | `46271d` 181715 → Jasper Red 0.24 | `dcbd9b` e8e3c2 → Brick Red 0.24 | … held down by the pointer: 24 % |
-| `select_edge` | `eb5324` | `a84222` | … its 2 px edge at the row's left: the seal's red |
+| `select_edge` | `eb5324` | `a84222` | … yubi, the cursor's pointer in the gutter left of the row (the panels; a terminal list: its 2 px edge): the seal's red |
 | `text_on_select` | `f8a17a` f47b58 → f5ecc2 0.32 | `713724` a84222 → 121b1b 0.35 | … the name and picture of what is selected: a vermilion lifted to ≥ 7 : 1 on every ground (APCA Lc 60) |
 | `lacquer` | `82241f` Vandyke Red | `82241f` Vandyke Red | the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there) and a failed command's code in the prompt: the lacquer (漆), one in both moods |
 | `text_on_lacquer` | `f5ecc2` | `f8f3d8` | every ink on the lacquer |
@@ -346,7 +346,7 @@ screen and the bar's paper share one rhythm.
 |---|---|---|---|
 | rest | §4 | §7 | §8 |
 | hover (the pointer) | the cursor goes to the row under it — one light, never two | the same (a mouse click acts as Enter) | the tile lit: icon and words `asagi`; a vermilion tile's fill `accent_hi` |
-| cursor (the keyboard) | the row bare (no band), its 2 px edge `select_edge`, its name and picture `text_on_select`, every other ink its own; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, the pointer a 2 px glyph in 16) | — |
+| cursor (the keyboard) | the row bare (no band); yubi, a 6 × 9 px pointer (rim `yubi_rim`, body `select_edge`, lit edge `accent_hi`) 11 px left of the row, bobbing 0 1 2 1 px right, 150 ms a pose (only its 11 px of gutter drawn again); its name and picture `text_on_select`, every other ink its own; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, the pointer a 2 px glyph in 16) | — |
 | chosen | the vermilion dot (§4) | `●` in `accent_text`, in the value column | — |
 | on · off | §4's seal, inked or blank; a row's icon `strong` on, `muted` off | the words `strong` "on" · `faint` "off" | — |
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |

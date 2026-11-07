@@ -63,7 +63,7 @@ as it clicks), kept 8 px inside its output; opened by its key, under its own mod
 settings at the right end, the others under the volume and the brightness (fixed margins,
 measured on a 1920 px bar).
 
-One light (§5): the cursor — the seal's red, a 12 % tint and a 2 px edge — is the keyboard's place and the pointer's:
+One light (§5): the cursor — yubi, a bobbing pixel pointer in the gutter, the row's words in vermilion — is the keyboard's place and the pointer's:
 the item under the pointer takes it at once (no easing, also right after it opens), a key
 moves it from there. It is not there until a key or the pointer asks for it: the first arrow,
 Tab or Enter puts it on the first item, every open starts without it (nothing remembered from
@@ -158,7 +158,18 @@ WORD_X = 6 * CELL + 2                # … its words, on its meter's first segme
 HEAD_PIC_H = 2 * ROW                 # the masthead: two rows of the column, its words …
 PLATE_OUT, PLATE_H = 10, 52          # … on a title plate 10 px out of the content on three sides (6 from the panel's frame), a head of 48, 1 px of air and the frame high; its lip and 5 px of air under it
 PLATE_HEAD = (PLATE_H - 48) // 2     # … the head of 48 from the plate's corner: on the axis of the rows' icons, its right end the pictures' (x0 - 8 to x0 + 40)
-EDGE_W = 2                           # the cursor's edge: 2 px of the seal's red at the band's left
+# yubi (his pick P2 1, S4): the cursor's marker, a JRPG pointer in the gutter left of the row, its tip 6 px
+# from the band; it bobs right in whole pixels, a pose every YUBI_MS: only its own 8 x 9 px drawn again
+YUBI = ("##......",                  # "#" the rim (yubi_rim), "o" the seal's red, "h" its lit edge
+        "#o#.....",
+        "#oh#....",
+        "#ooh#...",
+        "#oooo#..",
+        "#ooo#...",
+        "#oo#....",
+        "#o#.....",
+        "##......")
+YUBI_X, YUBI_BOB, YUBI_MS = 11, (0, 1, 2, 1), 150   # its left from the band's left · the poses, out and back
 RIGHT_IN = CELL                      # a row's right inset: its value's ink ends this far inside the band —
                                      # the same as its icon's left inset (§4: the row is symmetric in its band)
 SEAL_W = 16                          # a switch's seal: 16 × 16, on the row's rows 2–17
@@ -1329,11 +1340,11 @@ def layout_calc(m):
 
 def look(it, focused, hot, pressed=False):
     """How an item is drawn (docs/design-system.md §4–§5) — the colours' names: fill (None:
-    none of its own), edge (the cursor's: 2 px at the band's left), frame (None: none), glyph (its
+    none of its own), edge (the cursor's: yubi in the gutter at its left), frame (None: none), glyph (its
     icon or picture), label (its name), value (its words; a meter's words when it has no level),
     detail (a menu row's second column).
-    The cursor — the keyboard's place, and the pointer's: one light, never two — gives a row a 2 px
-    edge of the seal's red at its left and turns its name and icon vermilion (no band behind them); a thing that
+    The cursor — the keyboard's place, and the pointer's: one light, never two — gives a row yubi,
+    the bobbing pointer, at its left and turns its name and icon vermilion (no band behind them); a thing that
     is on keeps its state, every other ink its own; held down by the pointer, the tint twice as deep. At rest: a row's icon muted, its name text (the one
     in use, a thing that is on: strong, its state strong); a key on its own fill in a 1 px frame; a
     footer's hint in muted."""
@@ -2518,8 +2529,8 @@ def main(argv):
             if not a:
                 return
             if items and view.get("size") == panel.win and not panel.view:
-                for it in items:
-                    a.queue_draw_area(it.x + panel.ox, it.y + panel.oy - panel.dy, it.w, it.h)
+                for it in items:                  # (a row's gutter too: yubi comes and goes there)
+                    a.queue_draw_area(it.x + panel.ox - YUBI_X, it.y + panel.oy - panel.dy, it.w + YUBI_X, it.h)
                 return
             if view.get("size") != panel.win:
                 view["size"] = panel.win
@@ -2531,6 +2542,8 @@ def main(argv):
         def show(self):
             self.hide()
             make_window().show_all()
+            bob[0] += 1
+            GLib.timeout_add(YUBI_MS, bobbed, bob[0])
 
         def later(self, ms, fn):
             GLib.timeout_add(ms, lambda: fn() and False)
@@ -2863,6 +2876,25 @@ def main(argv):
         col(cr, name)
         cr.rectangle(x, y, w, h)
         cr.fill()
+
+    bob = [0]                         # (the open window's: yubi's clock, one at a time)
+
+    def bobbed(n):
+        """yubi's next pose: its gutter drawn again while the window shows and the cursor is on a row."""
+        if n != bob[0] or not panel.visible:
+            return False
+        it = next((i for i in panel.items if i.key == panel.focus), None) if panel.focus is not None else None
+        a = view["area"]
+        if a and it and it.kind in ("row", "app", "meter"):
+            a.queue_draw_area(it.x - YUBI_X + panel.ox, it.y + panel.oy - panel.dy, YUBI_X, it.h)
+        return True
+
+    def yubi(cr, x, y):
+        """The pointer, pixel by pixel: its rim, the seal's red, its lit edge."""
+        for j, line in enumerate(YUBI):
+            for i, c in enumerate(line):
+                if c != ".":
+                    box(cr, x + i, y + j, 1, 1, {"#": "yubi_rim", "o": "select_edge", "h": "accent_hi"}[c])
 
     def frame(cr, x, y, w, h, name, t=1, cut=False):
         """A t px frame round x, y, w × h; cut: its four corner pixels left out (§4: the corner
@@ -3404,8 +3436,9 @@ def main(argv):
         if it.kind in ("row", "app", "meter"):
             if lk["fill"]:                        # (held down by the pointer: the ink goes to the strongest cream)
                 box(cr, it.x, it.y, it.w, it.h, lk["fill"])
-            if lk["edge"]:                        # (the cursor: its edge at the left; the words and picture change colour)
-                box(cr, it.x, it.y, EDGE_W, it.h, lk["edge"])
+            if lk["edge"]:                        # (the cursor: yubi in the gutter; the words and picture change colour)
+                yubi(cr, it.x - YUBI_X + YUBI_BOB[int(panel.ui.now() * 1000 / YUBI_MS) % len(YUBI_BOB)],
+                     it.y + it.h // 2 - len(YUBI) // 2)
         elif it.kind in ("key",):
             if lk["fill"]:
                 box(cr, it.x, it.y, it.w, it.h, lk["fill"])

@@ -176,7 +176,7 @@ print(*out)')" "@bonsho-0 @bonsho-1 @bonsho-1 @bonsho-2 @bonsho-2 @bonsho-3 @bon
 eq "$(py 'fresh(STATE.replace("70%", "no DDC/CI").replace("62%", "no output")); print(p.item("brightness").icon, p.item("brightness").value, "|", p.item("sound").icon, p.item("sound").value)')" "@lantern no DDC/CI | @bonsho-0 no output" "no level: the words, the picture at rest"
 eq "$(py 'fresh(); print([p.slider_x(i) + (kp.BIG_SEGS - 1) * kp.CELL + kp.SEG_W == i.x + i.w - kp.RIGHT_IN for i in p.items if i.kind == "meter"], [p.slider_x(i) == i.x + kp.WORD_X for i in p.items if i.kind == "meter"])')" "[True, True] [True, True]" "the last segment's ink on the right inset, the first under the words"
 case_ "the grid's own constants (quick settings', the sound panel's, the slider's and the menus')"
-eq "$(py 'print(kp.HEAD_H, kp.SECTION, kp.KEY_H, kp.METER_GAP, kp.GAP, kp.BIG_H, kp.BIG_SEGS, kp.PIC_W, kp.WORD_X, kp.EDGE_W, kp.RIGHT_IN, kp.SEAL_W, kp.QUICK_VALUE, kp.QUICK_MARKS, hasattr(kp, "GROUP"))')" "28 20 20 0 8 40 40 32 50 2 8 16 160 46 False" "a heading 28, 20 of air above one that is not first, keys 20, rows touching; an instrument two rows, forty segments; the cursor's edge 2, a row's right inset a cell"
+eq "$(py 'print(kp.HEAD_H, kp.SECTION, kp.KEY_H, kp.METER_GAP, kp.GAP, kp.BIG_H, kp.BIG_SEGS, kp.PIC_W, kp.WORD_X, kp.YUBI_X, kp.YUBI_BOB, kp.YUBI_MS, kp.RIGHT_IN, kp.SEAL_W, kp.QUICK_VALUE, kp.QUICK_MARKS, hasattr(kp, "GROUP"))')" "28 20 20 0 8 40 40 32 50 11 (0, 1, 2, 1) 150 8 16 160 46 False" "a heading 28, 20 of air above one that is not first, keys 20, rows touching; an instrument two rows, forty segments; yubi 11 px left of the row, bobbing 0 1 2 1 px, 150 ms a pose, a row's right inset a cell"
 
 # ── the rows' pictures and words ────────────────────────────────────────────────────────
 t() { py "fresh($1); i = p.item('$2'); print(i.glyph, '|', i.name, '|', i.value, '|', i.seal, '|', i.keys, '|', 'lit' if i.on else 'quiet')"; }
@@ -697,7 +697,7 @@ has "$d" 'frame(cr, 0, 0, W, H, "hair", cut=True)'
 has "$d" 'box(cr, HAIR, H, W - HAIR, 1, "shadow1")'; has "$d" 'box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")'; has "$d" 'box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")'
 has "$d" 'cr.translate(panel.ox, panel.oy)' "the frame's own place in the window"
 has "$d" 'box(cr, it.x, it.y, it.w, it.h, lk["fill"])' "the cursor: the row's place, the heading's own width"
-has "$d" 'box(cr, it.x, it.y, EDGE_W, it.h, lk["edge"])' "…its 2 px edge at the left"
+has "$d" 'yubi(cr, it.x - YUBI_X + YUBI_BOB[' "…yubi, the pointer, in the gutter at its left (P2 1)"
 case_ "a heading's pixels: its icon (accent_text) in the icon column, its name (strong) from cell 3, the rule — 1 px edge2, solid, on the row's row 10 — to the content's edge (8 px before a value, muted, at its end)"
 has "$d" 'row_icon(cr, x, y, ic.get(icon, icon), "accent_text")'
 has "$d" 'w = text(cr, x + HEAD_X, ty, name, "strong")'
@@ -760,9 +760,9 @@ case_ "one reading at a time: asked again meanwhile, read once more after"
 eq "$(py 'fresh(); p.refresh(); p.refresh(); p.refresh(); print(sum(c == "run kawa-quick --state" for c in u.calls)); u.answer(STATE); print(sum(c == "run kawa-quick --state" for c in u.calls))')" "$(printf '1\n2')"
 case_ "kawa-quick failing: the last state stays"
 eq "$(py 'fresh(); p.refresh(); u.answer("", 1); print(p.state["night"])')" on
-case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: the lit vermilion)"
+case_ "the colours: the theme's panel.conf, every name the drawing uses (surface: the level display's solid ground; accent_hi: the lit vermilion; yubi_rim: the pointer's rim)"
 for m in dark light; do
-  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_hi','select_edge','text_on_select','asagi','flame','gold','sand','ai','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
+  eq "$(py "c = kp.colours('$REPO/configs/home/.config/fedokawaii/themes/$m/panel.conf'); print(sorted(c) == sorted(['ground','surface','key','edge','edge2','lo','faint','muted','text','strong','accent','accent_text','accent_hi','accent_lo','text_on_accent','select','select_hi','select_edge','text_on_select','asagi','flame','gold','sand','ai','yubi_rim','hair','shadow1','shadow2','dim']), all(0 <= v <= 1 for t in c.values() for v in t), sorted(k for k, t in c.items() if len(t) == 4), sorted({len(t) for t in c.values()}))")" "True True ['dim', 'hair', 'shadow1', 'shadow2'] [3, 4]" "$m: the frame's hairline, its two shadows and a dialog's dim carry an alpha, the rest are plain"
 done
 case_ "a theme switch while it runs: kawa-theme's rename of the link over current is seen, and the new link's colours read (light after dark)"
 # (watch_theme with a stand-in Gio: the folder's events as GIO gives them for a rename —

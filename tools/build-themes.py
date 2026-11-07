@@ -1246,10 +1246,11 @@ def panel_conf(m, p):
             "asagi", "flame", "gold")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1], "dim": (0x11, 0x13, 0x14, 0x66)}
-    # (sand: a running timer's bar; ai: a Saturday's indigo; the dim: Wada's Black at 40 %, a dialog's, in either mood)
+    # (sand: a running timer's bar; ai: a Saturday's indigo; yubi_rim: the pointer's rim, the darkest ink on ink, the brightest paper on paper; the dim: Wada's Black at 40 %, a dialog's, in either mood)
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
             + "".join(f"{k}={p[k]}\n" for k in keys)
             + f"sand={p['gold'] if m == 'dark' else p['yellow']}\nai={p['blue'] if m == 'dark' else p['bblue']}\n"
+            + f"yubi_rim={p['lo'] if m == 'dark' else p['key']}\n"
             + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
 
 
