@@ -16,6 +16,7 @@ The folder (docs/lessons, flat):
         part: 2                        1 or 2
         minutes: 12                    5 to 25
         needs: [other-id]              optional: lessons of an earlier day, or Part 1 of this one
+        standard: 2                    optional: docs/lesson-standard.md's sections and rules (parse2)
         ---
         ## idea                        at most 200 words of prose (code not counted)
         ## exercise                    at most 120
@@ -58,6 +59,21 @@ FOLDER = re.compile(r"[a-z0-9][a-z0-9-]*")
 FILENAME = re.compile(r"[A-Za-z0-9_][A-Za-z0-9_.-]*(?:/[A-Za-z0-9_][A-Za-z0-9_.-]*)*")
 SECTIONS = ("idea", "exercise", "check", "answer")
 WORDS = {"idea": 200, "exercise": 120}
+# standard 2 (sb02, docs/lesson-standard.md): the order; remember and answer may be left out
+SECTIONS2 = ("remember", "example", "idea", "exercise", "check", "answer", "behind", "mistakes", "quiz",
+             "next", "checked")
+OPTIONAL2 = ("remember", "answer")
+WORDS2 = {"remember": 40, "example": 80, "idea": 200, "exercise": 250, "behind": 150, "mistakes": 120,
+          "next": 30}
+READING = ("example", "idea", "behind", "mistakes")   # what is read, not done
+READ_PER_MINUTE = 150   # a slow, careful reader: reading is a third of the minutes at most
+SENTENCE = 25           # words in one sentence at most: short sentences, no jargon chains
+TERM = 100              # a definition box: one line, this many columns at most
+TERM_FENCE = {"example", "idea", "exercise", "behind", "mistakes"}
+LEVELS = ("Warm-up:", "Real:", "Stretch:")
+KEYCAP = re.compile(r"\[\[([^\s\[\]+]+(?:\+[^\s\[\]+]+)*)\]\]")
+BARE_KEY = re.compile(r"\b(?:Super|Ctrl|Alt|Shift)\+\S")
+CHECKED = re.compile(r"- (.+), (\S+): (https?://\S+)")
 TITLE = 46
 LESSON_MINUTES = (5, 25)
 DAY_MINUTES = (25, 30)
@@ -77,7 +93,7 @@ def parse_front(lines, name):
         if row == "---":
             break
         key, colon, value = row.partition(": ")
-        if not colon or key not in ("id", "title", "part", "minutes", "needs") or key in front:
+        if not colon or key not in ("id", "title", "part", "minutes", "needs", "standard") or key in front:
             raise Fault(f"{name}:{i}: not a front matter line, or one said twice: {row}")
         front[key] = value.strip()
     else:
@@ -99,14 +115,17 @@ def parse_front(lines, name):
     needs = [n.strip() for n in needs[1:-1].split(",") if n.strip()]
     if not all(ID.fullmatch(n) for n in needs):
         raise Fault(f"{name}: a bad id in needs: {needs}")
+    if front.get("standard", "1") not in ("1", "2"):
+        raise Fault(f"{name}: standard is 1 or 2: {front['standard']}")
     return {"id": front["id"], "title": front["title"], "part": int(front["part"]),
-            "minutes": int(front["minutes"]), "needs": needs}, len(front) + 2
+            "minutes": int(front["minutes"]), "needs": needs,
+            "standard": int(front.get("standard", "1"))}, len(front) + 2
 
 
-def split_sections(lines, first, name):
+def split_sections(lines, first, name, order=SECTIONS, optional=("answer",)):
     """the sections, in their order, each a list of (line number, text); a fence's lines are never
-    a heading"""
-    sections, here, fence = {}, None, 0
+    a heading; an optional section may be left out, nothing else"""
+    sections, here, fence, at = {}, None, 0, 0
     for i, row in enumerate(lines[first:], first + 1):
         if fence:
             if row == "```":
@@ -115,20 +134,26 @@ def split_sections(lines, first, name):
             fence = i
         elif row.startswith("#"):
             m = re.fullmatch(r"## (\w+)", row)
-            want = SECTIONS[len(sections)] if len(sections) < len(SECTIONS) else None
-            if not m or m[1] != want:
-                raise Fault(f"{name}:{i}: {row}: the next heading can only be ## {want}")
+            want = []
+            for key in order[at:]:
+                want.append(key)
+                if key not in optional:
+                    break
+            if not m or m[1] not in want:
+                said = " or ".join(f"## {w}" for w in want) if want else "nothing"
+                raise Fault(f"{name}:{i}: {row}: the next heading can only be {said}")
+            at = order.index(m[1]) + 1
             here = sections[m[1]] = []
             continue
         if here is None:
             if row.strip():
-                raise Fault(f"{name}:{i}: words before ## idea")
+                raise Fault(f"{name}:{i}: words before ## {order[0]}")
             continue
         here.append((i, row))
     if fence:
         raise Fault(f"{name}:{fence}: a fence that does not end")
-    for want in SECTIONS[:3]:
-        if want not in sections:
+    for want in order:
+        if want not in optional and want not in sections:
             raise Fault(f"{name}: no ## {want}")
     return sections
 
@@ -208,12 +233,115 @@ def text_of(section):
     return "\n".join(row for _, row in section).strip("\n")
 
 
+def parse_quiz(section, name, count):
+    """a section that is one fenced quiz block of q:/a: pairs, COUNT of them (a range)"""
+    found, prose = fences(section)
+    at = section[0][0] if section else 0
+    if len(found) != 1 or found[0][1] != "quiz" or any(row.strip() for row in prose):
+        raise Fault(f"{name}:{at}: a quiz is one fenced quiz block and nothing else")
+    at, _, body = found[0]
+    pairs = []
+    for i, row in enumerate(body.split("\n"), at + 1):
+        key, colon, value = row.partition(": ")
+        if not colon or key not in ("q", "a") or not value.strip() or (key == "a") != (len(pairs) % 2 == 1):
+            raise Fault(f"{name}:{i}: a quiz is q: then a:, a line each: {row}")
+        pairs.append(value.strip())
+    if len(pairs) % 2 or len(pairs) // 2 not in count:
+        raise Fault(f"{name}:{at}: {len(pairs) // 2} questions, a quiz here has {count[0]} to {count[-1]}")
+    return [(pairs[n], pairs[n + 1]) for n in range(0, len(pairs), 2)]
+
+
+def prose_words(section):
+    return len(" ".join(fences(section)[1]).split())
+
+
+def plain_words(section, key, name):
+    """short sentences; every key drawn as a keycap, [[Super+R]]"""
+    _, prose = fences(section)
+    text = " ".join(prose)
+    for sentence in re.split(r"(?<=[.!?])\s+", text):
+        if len(sentence.split()) > SENTENCE:
+            raise Fault(f"{name}: ## {key}: a sentence of {len(sentence.split())} words, {SENTENCE} at most: "
+                        f"{' '.join(sentence.split()[:8])}")
+    bare = BARE_KEY.search(KEYCAP.sub("", text))
+    if bare:
+        raise Fault(f"{name}: ## {key}: a key is drawn as a keycap, [[{bare[0]}...]]: {bare[0]}")
+
+
+def parse2(lesson, lines, first, name):
+    """the rest of a standard-2 lesson (docs/lesson-standard.md)"""
+    sections = split_sections(lines, first, name, SECTIONS2, OPTIONAL2)
+    if lesson["needs"] and "remember" not in sections:
+        raise Fault(f"{name}: it needs {lesson['needs'][0]}: ## remember warms that up first")
+    terms = {}
+    for key, section in sections.items():
+        found, _ = fences(section)
+        words = prose_words(section)
+        if key in WORDS2 and key != "remember" and not words:
+            raise Fault(f"{name}: ## {key} is empty")
+        if key in WORDS2 and words > WORDS2[key]:
+            raise Fault(f"{name}: ## {key} is {words} words, {WORDS2[key]} at most")
+        if key not in ("check", "quiz", "remember", "answer", "checked"):
+            plain_words(section, key, name)
+        for at, info, body in found:
+            if info.split(" ")[0] != "term":
+                continue
+            term = info[5:].strip()
+            if key not in TERM_FENCE or not term or "\n" in body or not body.strip() or len(body) > TERM:
+                raise Fault(f"{name}:{at}: a term box is ```term NAME, one line of {TERM} columns at most, "
+                            f"in {', '.join(sorted(TERM_FENCE))}")
+            if term in terms:
+                raise Fault(f"{name}:{at}: {term} is defined twice")
+            terms[term] = body.strip()
+    reading = sum(prose_words(sections[k]) for k in READING)
+    if reading > lesson["minutes"] * READ_PER_MINUTE / 3:
+        raise Fault(f"{name}: {reading} words to read in {lesson['minutes']} minutes: 2 parts doing, 1 reading "
+                    f"({lesson['minutes'] * READ_PER_MINUTE // 3} words at most)")
+    found, _ = fences(sections["example"])
+    infos = [info for _, info, _ in found if not info.startswith("term")]
+    if len(infos) < 2 or infos[-1] != "output" or "output" in infos[:-1]:
+        raise Fault(f"{name}: ## example is working code first, then its ```output")
+    found, prose = fences(sections["exercise"])
+    hints = [body for _, info, body in found if info == "hint"]
+    if len(hints) != 2:
+        raise Fault(f"{name}: ## exercise has two ```hint fences, a nudge then a bigger one; the answer is the third")
+    starts = [row.split(" ")[0] for row in prose if row.split(" ")[0] in LEVELS]
+    if starts != list(LEVELS):
+        raise Fault(f"{name}: ## exercise goes Warm-up:, Real:, Stretch:, a paragraph each, in that order")
+    found, prose = fences(sections["behind"])
+    kinds = {info for _, info, _ in found}
+    if not {"picture", "peek"} <= kinds:
+        raise Fault(f"{name}: ## behind has a ```picture and a ```peek with a real tool")
+    items = [row for row in fences(sections["mistakes"])[1] if row.strip()]
+    if not 1 <= len(items) <= 4 or not all(row.startswith("- ") for row in items):
+        raise Fault(f"{name}: ## mistakes is 1 to 4 lines, each \"- \"")
+    next_rows = [row for _, row in sections["next"] if row.strip()]
+    if len(next_rows) != 1:
+        raise Fault(f"{name}: ## next is one line")
+    checked = [row for _, row in sections["checked"] if row.strip()]
+    bad = [row for row in checked if not CHECKED.fullmatch(row)]
+    if not checked or bad:
+        raise Fault(f"{name}: ## checked is lines of \"- DOC, VERSION: URL\": {bad[0] if bad else 'none'}")
+    lesson.update({
+        "remember": parse_quiz(sections["remember"], name, range(1, 3)) if "remember" in sections else [],
+        "example": text_of(sections["example"]), "idea": text_of(sections["idea"]),
+        "exercise": text_of(sections["exercise"]), "hints": hints, "terms": terms,
+        "behind": text_of(sections["behind"]), "mistakes": [row[2:] for row in items],
+        "quiz": parse_quiz(sections["quiz"], name, range(3, 4)), "next": next_rows[0],
+        "checked": [CHECKED.fullmatch(row).groups() for row in checked]})
+    return sections
+
+
 def parse(text, name="lesson"):
-    """a lesson's text as a dict: id title part minutes needs idea exercise check steps"""
+    """a lesson's text as a dict: id title part minutes needs standard idea exercise check steps;
+    standard 2 adds remember example hints terms behind mistakes quiz next checked"""
     if "…" in text:
         raise Fault(f"{name}: an ellipsis: never cut, cut at a word or fit")
     lines = text.split("\n")
     lesson, first = parse_front(lines, name)
+    if lesson["standard"] == 2:
+        sections = parse2(lesson, lines, first, name)
+        return finish(lesson, sections, name)
     sections = split_sections(lines, first, name)
     for key, most in WORDS.items():
         found, prose = fences(sections[key])
@@ -223,6 +351,11 @@ def parse(text, name="lesson"):
         if words > most:
             raise Fault(f"{name}: ## {key} is {words} words, {most} at most: one idea, tiny steps")
     lesson["idea"], lesson["exercise"] = text_of(sections["idea"]), text_of(sections["exercise"])
+    return finish(lesson, sections, name)
+
+
+def finish(lesson, sections, name):
+    """the check and, for a run check, the steps of its answer"""
     lesson["check"] = parse_check(sections["check"], name)
     if lesson["check"]["kind"] == "run":
         if "answer" not in sections:
@@ -285,7 +418,14 @@ def load(folder):
     lost = sorted(lessons.keys() - taught)
     if lost:
         raise Fault(f"{lost[0]} is in no day")
-    return {"days": days, "lessons": lessons}
+    glossary = {}   # term: (definition, the lesson that first defines it): one meaning for a word
+    for _, one, two in days:
+        for lid in (one, two):
+            for term, meaning in lessons[lid].get("terms", {}).items():
+                if term in glossary and glossary[term][0] != meaning:
+                    raise Fault(f"{lid}: {term} means another thing in {glossary[term][1]}: one meaning a word")
+                glossary.setdefault(term, (meaning, lid))
+    return {"days": days, "lessons": lessons, "glossary": glossary}
 
 
 def read_record(path):

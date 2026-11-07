@@ -169,6 +169,126 @@ printf '1\tpanel\tfirst-print\n2\tlater\tfirst-print\n' >"$L/days.tsv"; refused 
 fresh; rm "$L/days.tsv"; refused "days.tsv"
 rc 1 lessons "$TMP/no-such-folder"
 
+one_std2() {   # a standard-2 lesson (docs/lesson-standard.md), std-two, part 2, 15 minutes, needs panel
+  cat >"$L/std-two.md" <<'STD2_LESSON_END'
+---
+id: std-two
+title: a list keeps its order
+part: 2
+minutes: 15
+needs: [panel]
+standard: 2
+---
+## remember
+```quiz
+q: Which key opens the panel?
+a: Super+U
+```
+
+## example
+Three books, in the order you read them:
+
+```python
+books = ["Dune", "Emma", "Ubik"]
+print(books[0])
+```
+```output
+Dune
+```
+
+## idea
+A list holds values in order. The first one is number 0.
+
+```term list
+a row of values in one name, kept in the order you put them in
+```
+
+## exercise
+Warm-up: open the panel with [[Super+U]] and read the line it shows.
+
+Real: make the list of your three last books and print the second.
+
+Stretch: predict what books[-1] prints, then run it.
+
+```hint
+Count from 0, not from 1.
+```
+```hint
+The second book is books[1].
+```
+
+## check
+```check
+ask: Which number is the first value of a list?
+answer: 0
+proof: grep -q books config.h
+```
+
+## behind
+A list is one block of memory with a slot for each value.
+
+```picture
+books -> [ 0 | 1 | 2 ]
+```
+```peek
+python3 -c 'import sys; print(sys.getsizeof([]))'
+```
+
+## mistakes
+- Counting from 1: books[1] is the second book.
+
+## quiz
+```quiz
+q: What does books[0] print?
+a: Dune
+q: How many values does books hold?
+a: 3
+q: Which index is the last value?
+a: -1
+```
+
+## next
+Next: a dict, values found by a name.
+
+## checked
+- The Python Tutorial, 3.14: https://docs.python.org/3.14/tutorial/introduction.html#lists
+STD2_LESSON_END
+}
+fresh2() { fresh; one_std2; printf '1\tpanel\tfirst-print\n2\tpanel2\tstd-two\n' >"$L/days.tsv"; one_ask panel2 10; }
+
+case_ "standard 2: a lesson of every part is read, its parts come through, its terms make the glossary"
+fresh2; eq "$(lessons "$L")" "2 days, 4 lessons"
+out=$(python3 -B -c 'import json, sys; sys.path.insert(0, sys.argv[1] + "/lib"); import lessons
+c = lessons.load(sys.argv[2]); s = c["lessons"]["std-two"]
+print(json.dumps([s["standard"], s["remember"], s["hints"], s["terms"], s["mistakes"], len(s["quiz"]), s["next"],
+  s["checked"], s["check"]["kind"], c["glossary"], c["lessons"]["panel"]["standard"]]))' "$REPO" "$L")
+eq "$out" '[2, [["Which key opens the panel?", "Super+U"]], ["Count from 0, not from 1.", "The second book is books[1]."], {"list": "a row of values in one name, kept in the order you put them in"}, ["Counting from 1: books[1] is the second book."], 3, "Next: a dict, values found by a name.", [["The Python Tutorial", "3.14", "https://docs.python.org/3.14/tutorial/introduction.html#lists"]], "ask", {"list": ["a row of values in one name, kept in the order you put them in", "std-two"]}, 1]'
+
+case_ "standard 2: what breaks the standard is refused, with why"
+fresh2; swap "$L/std-two.md" "standard: 2" "standard: 3"; refused "standard is 1 or 2"
+fresh2; swap "$L/std-two.md" "## behind" "## mistakes"; refused "the next heading can only be ## answer or ## behind"
+fresh2; swap "$L/std-two.md" "## remember" "## idea"; refused "the next heading can only be ## remember or ## example"
+fresh2; python3 -B -I -c 'import sys; p = sys.argv[1]; t = open(p).read(); a = t.index("## remember"); open(p, "w").write(t[:a] + t[t.index("## example"):])' "$L/std-two.md"; refused "## remember warms that up"
+fresh2; swap "$L/std-two.md" '```output' '```text'; refused "then its \`\`\`output"
+fresh2; swap "$L/std-two.md" 'Stretch: predict' 'Then: predict'; refused "Warm-up:, Real:, Stretch:"
+fresh2; swap "$L/std-two.md" '```hint
+The second' '```text
+The second'; refused "two \`\`\`hint fences"
+fresh2; swap "$L/std-two.md" '```peek' '```sh'; refused "a \`\`\`picture and a \`\`\`peek"
+fresh2; swap "$L/std-two.md" 'q: Which index' 'q: Which index is it?
+a: -1
+q: Which index'; refused "4 questions, a quiz here has 3 to 3"
+fresh2; swap "$L/std-two.md" 'a: Dune' 'b: Dune'; refused "a quiz is q: then a:"
+fresh2; swap "$L/std-two.md" "Counting from 1:" "Counting from 1, books[1] is" ; swap "$L/std-two.md" "- Counting" "Counting"; refused '## mistakes is 1 to 4 lines'
+fresh2; swap "$L/std-two.md" "https://docs" "docs"; refused "## checked is lines of"
+fresh2; swap "$L/std-two.md" "with [[Super+U]]" "with Super+U"; refused "a key is drawn as a keycap"
+fresh2; swap "$L/std-two.md" "A list holds values in order." "$(printf 'word %.0s' {1..26})."; refused "a sentence of 27 words"
+fresh2; swap "$L/std-two.md" "kept in the order you put them in" "$(printf 'x%.0s' {1..101})"; refused "a term box is"
+fresh2; swap "$L/std-two.md" "minutes: 15" "minutes: 5"; swap "$L/panel2.md" "minutes: 10" "minutes: 20"; many="$(for n in {1..15}; do printf 'A list holds values in order, one by one. '; done)"
+swap "$L/std-two.md" "A list holds values in order." "$many"; swap "$L/std-two.md" "A list is one block" "$many A list is one block"; refused "words to read in 5 minutes"
+fresh2; sed 's/^id: std-two/id: std-three/; s/kept in the order you put them in/another meaning/' "$L/std-two.md" >"$L/std-three.md"
+one_ask panel3 10; printf '3\tpanel3\tstd-three\n' >>"$L/days.tsv"; refused "std-three: list means another thing in std-two"
+
 case_ "the record: dated lines, the first date kept, what cannot be read passed over, an old id uncounted"
 out=$(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1] + "/lib"); import lessons
 p = sys.argv[2] + "/state/days"; lessons.add_record(p, "a", "2026-11-08"); lessons.add_record(p, "b", "2026-11-09")

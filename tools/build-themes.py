@@ -1525,7 +1525,10 @@ def ntp_html():
         p = P[m]
         return (f"--ground:#{p['ground']};--text:#{p['text']};--strong:#{p['strong']};--muted:#{p['muted']};"
                 f"--faint:#{p['faint']};--edge:#{p['edge2']};--key:#{p['key']};--accent:#{p['accent_text']};--head:url(head-{m}.png)")
-    caps = lambda k: "".join(f"<span>{c}</span>" for c in k.split())
+
+    def caps(k):
+        return "".join(f"<span>{c}</span>" for c in k.split())
+
     rows = "".join(f'<div class="row"><i>{_icon(i)}</i><b>{n}</b><kbd>{caps(k)}</kbd></div>' for i, n, k in NTP_ROWS)
     return f"""<!doctype html>
 <!-- {header("~/.local/share/fedokawaii/browser/ntp.html", "Helium's new tab, both moods")} -->
