@@ -100,17 +100,20 @@ static const unsigned int anim_slide_ms    = 300;  /* tiled windows making room:
 static const unsigned int anim_wash_ms     = 1200; /* a theme switch, a new wallpaper: the
                                                     * ink bleeding the old picture away */
 static const unsigned int anim_wash_hold_ms = 3000; /* …a cover never told to go goes then */
-/* layer surfaces, by their namespace (§11): the panels' menus unroll and roll up, as a warm window;
+/* layer surfaces, by their namespace (§11): the panels' menus unroll and roll up, as a warm window,
+ * and stay a scroll while shown (mounted: the two rods and the silk round the frame, not
+ * ScrollRod's); a dialog (its seals) unrolls the same, its own rods drawn in it (sa16);
  * a notice dissolves in and out; the level display comes at once (with its key) and dissolves away;
  * the screensaver dissolves off into what it covered (it comes in its own way). Any other (the bar,
  * the wallpaper, the wash): at once */
 static const LayerAnim layeranims[] = {
-	/* namespace        in ms  out ms  rolls */
-	{ "kawa-panel",     300,   240,    1 },
-	{ "kawa-dim",       180,   120,    0 },
-	{ "notifications",  240,   200,    0 },
-	{ "kawa-level",     0,     300,    0 },
-	{ "kawa-saver",     0,     180,    0 },
+	/* namespace        in ms  out ms  rolls  mounted */
+	{ "kawa-panel",     300,   240,    1,     1 },
+	{ "kawa-dialog",    300,   240,    1,     0 },
+	{ "kawa-dim",       180,   120,    0,     0 },
+	{ "notifications",  240,   200,    0,     0 },
+	{ "kawa-level",     0,     300,    0,     0 },
+	{ "kawa-saver",     0,     180,    0,     0 },
 };
 
 /* tagging - TAGCOUNT must be no greater than 31 */

@@ -117,10 +117,11 @@ grep -q 'dx = tagdx(c);' <<<"$f" \
   && ! grep -q 'animturn\|animrev\|anim_drift' "$P" \
   && _ok || _no "the strip"
 
-case_ "layer surfaces by namespace (config.h layeranims): the panels' menus unroll over 300 ms and roll up over 240, a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
+case_ "layer surfaces by namespace (config.h layeranims): the panels' menus and dialogs unroll over 300 ms and roll up over 240 (a menu mounted), a notice 240 · 200, the level display at once and out 300, the saver out 180; any other at once"
 for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -Eq '^	\{ "kawa-panel", +300, +240, +1 \},' <<<"$c" && grep -Eq '^	\{ "notifications", +240, +200, +0 \},' <<<"$c" \
-    && grep -Eq '^	\{ "kawa-dim", +180, +120, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-level", +0, +300, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0 \},' <<<"$c" \
+  grep -Eq '^	\{ "kawa-panel", +300, +240, +1, +1 \},' <<<"$c" && grep -Eq '^	\{ "kawa-dialog", +300, +240, +1, +0 \},' <<<"$c" \
+    && grep -Eq '^	\{ "notifications", +240, +200, +0, +0 \},' <<<"$c" \
+    && grep -Eq '^	\{ "kawa-dim", +180, +120, +0, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-level", +0, +300, +0, +0 \},' <<<"$c" && grep -Eq '^	\{ "kawa-saver", +0, +180, +0, +0 \},' <<<"$c" \
     && _ok || _no "layeranims"
 done
 case_ "a scroll's rod (a lacquer bar, ink caps) leads every unroll and roll-up, the panels' and the warm windows', fading in and out, gone with it"
@@ -320,7 +321,7 @@ grep -q '^+enum { ScrollRod, ScrollKakejiku, ScrollOmori, ScrollMakimono };' "$P
 c=$(added scrollrods); has "$c" 'rodbar(d, parent, 11, 1, y, x0 + wv - MIN(wv / 2, ROD_T), h, -1, a);'; has "$c" 'rodbar(d, parent, 11, 0, x, foot, w, -1, a);'
 has "$(added dissolveend)" 'for (int i = 0; i < (int)LENGTH(d->rod); i++)'
 has "$(added warmhide)" 'f = c->anim == AnimUnroll ? scrollopen(c->animp) : 1.0;'
-grep -q '^+					scrollopen(1.0 - (from < 0 ? 0 : from)));' "$P" && _ok || _no "a panel put away mid-way: from where it is"
+grep -q '^+					scrollopen(1.0 - (from < 0 ? 0 : from)), l->la->mount);' "$P" && _ok || _no "a panel put away mid-way: from where it is"
 
 c=$(added washcmd)
 has "$c" 'wl_event_source_timer_update(washtimer, any ? anim_wash_hold_ms : 0);'; has "$c" 'washtimeout(NULL);'; has "$c" 'washdrop();'

@@ -2484,8 +2484,10 @@ def main(argv):
     # places it and maps it; the first after login costs no more than any other
     view = {"win": None, "area": None, "spare": None}
 
-    def build_window():
-        """A panel window, all but its place, title and size: its surface, its keys, its events."""
+    def build_window(name="kawa-panel"):
+        """A panel window, all but its place, title and size: its surface, its keys, its events.
+        name: what dwl knows it by — a menu (kawa-panel) stays a scroll while open, its rods round
+        it; a dialog (kawa-dialog) unrolls the same but draws its own rods (sa16)."""
         win = Gtk.Window()
         # a see-through ground, as the terminal's (a panel and a menu are text screens too):
         # an RGBA surface, painted whole by the drawing — the wallpaper shows a little through
@@ -2495,7 +2497,7 @@ def main(argv):
         win.set_app_paintable(True)
         see[0] = glass()
         GtkLayerShell.init_for_window(win)
-        GtkLayerShell.set_namespace(win, "kawa-panel")
+        GtkLayerShell.set_namespace(win, name)
         GtkLayerShell.set_layer(win, GtkLayerShell.Layer.OVERLAY)
         # the keyboard its own while open (exclusive): every key reaches it at once,
         # never a window behind — and dwl treats it as a menu: a click outside or a workspace
@@ -2539,8 +2541,11 @@ def main(argv):
         return False
 
     def make_window():
-        win, area = view["spare"] or build_window()
-        view["spare"] = None
+        if panel.rods:                           # (a dialog: a window of its own name; the spare kept)
+            win, area = build_window("kawa-dialog")
+        else:
+            win, area = view["spare"] or build_window()
+            view["spare"] = None
         GLib.timeout_add(200, spare)            # (the next one, once this one is drawn)
         win.set_title(TITLE[panel.mode])
         # under the bar, 8 px from it: under the click on its output (the output whose x it is),
