@@ -527,6 +527,102 @@
   "note": "1:1 on the real screens (Super+U, quick settings, the power menu, notices, the bar), nothing applied yet. A provisional number here is only the favourite."
  },
  {
+  "set": "L",
+  "title": "The lock, dark: his walls",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "dark"
+  ],
+  "options": [
+   {
+    "n": 1,
+    "name": "shiro",
+    "text": "a castle at night",
+    "files": [
+     "L-1-dark.mp4",
+     "L-1-dark.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "kozan",
+    "text": "a mine",
+    "files": [
+     "L-2-dark.mp4",
+     "L-2-dark.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "suichu",
+    "text": "a sunken temple",
+    "files": [
+     "L-3-dark.mp4",
+     "L-3-dark.png"
+    ]
+   },
+   {
+    "n": 4,
+    "name": "kaji",
+    "text": "a sword forge",
+    "files": [
+     "L-4-dark.mp4",
+     "L-4-dark.png"
+    ]
+   }
+  ],
+  "note": "The real lock, headless, with a stand-in password: idle, the first key, a cut per key, delete, a wrong try, the right one, the unlock. 1920 by 1080, the png its fullest frame. The marks' place is not final."
+ },
+ {
+  "set": "L2",
+  "title": "The lock, light: her walls",
+  "kind": "motion",
+  "provisional": 1,
+  "moods": [
+   "light"
+  ],
+  "options": [
+   {
+    "n": 1,
+    "name": "haru",
+    "text": "a spring town",
+    "files": [
+     "L2-1-light.mp4",
+     "L2-1-light.png"
+    ]
+   },
+   {
+    "n": 2,
+    "name": "kumo",
+    "text": "pavilions in the clouds",
+    "files": [
+     "L2-2-light.mp4",
+     "L2-2-light.png"
+    ]
+   },
+   {
+    "n": 3,
+    "name": "yu",
+    "text": "a hot-spring mountain",
+    "files": [
+     "L2-3-light.mp4",
+     "L2-3-light.png"
+    ]
+   },
+   {
+    "n": 4,
+    "name": "yuki",
+    "text": "a snow shrine",
+    "files": [
+     "L2-4-light.mp4",
+     "L2-4-light.png"
+    ]
+   }
+  ],
+  "note": "The real lock, headless, with a stand-in password: idle, the first key, a cut per key, delete, a wrong try, the right one, the unlock. 1920 by 1080, the png its fullest frame. The marks' place is not final."
+ },
+ {
   "set": "d",
   "title": "The prompt, the head inside the ribbon",
   "kind": "still",
@@ -574,94 +670,6 @@
    }
   ],
   "note": "Real foot; each shows a good command and a failed one."
- },
- {
-  "set": "e",
-  "title": "The dark lock",
-  "kind": "still",
-  "provisional": 3,
-  "moods": [
-   "dark"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "a gilded plaque between the horns",
-    "files": [
-     "e-0-dark.jpg"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "hengaku",
-    "text": "a great lintel carved with waves and meander",
-    "files": [
-     "e-1-dark.jpg"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "mon",
-    "text": "an arch on two legs framing the head, old gilt",
-    "files": [
-     "e-2-dark.jpg"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "hashira",
-    "text": "letters 226 px cut into the reliefs, right to left",
-    "files": [
-     "e-3-dark.jpg"
-    ]
-   }
-  ],
-  "note": "Full 1920 by 1080, JPEG. The light lock is entry e2; the files of both are e-N-MOOD.jpg."
- },
- {
-  "set": "e2",
-  "title": "The light lock",
-  "kind": "still",
-  "provisional": 1,
-  "moods": [
-   "light"
-  ],
-  "options": [
-   {
-    "n": 0,
-    "name": "today",
-    "text": "a paper title slip",
-    "files": [
-     "e-0-light.jpg"
-    ]
-   },
-   {
-    "n": 1,
-    "name": "hengaku",
-    "text": "a stone beam between the pillars, indigo in the cuts",
-    "files": [
-     "e-1-light.jpg"
-    ]
-   },
-   {
-    "n": 2,
-    "name": "mon",
-    "text": "an arch from pillar to pillar, behind her",
-    "files": [
-     "e-2-light.jpg"
-    ]
-   },
-   {
-    "n": 3,
-    "name": "hashira",
-    "text": "tablets on the pillars' feet",
-    "files": [
-     "e-3-light.jpg"
-    ]
-   }
-  ],
-  "note": "Full 1920 by 1080, JPEG; picked apart from the dark lock."
  },
  {
   "set": "f",
