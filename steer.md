@@ -242,3 +242,13 @@ The owner (13:11):
    - Editing happens with his normal Neovim on the host (only text files change); running happens inside the box.
    - Pages served inside open in Helium at localhost.
    - "dojo reset" rebuilds the box (tools, packages, the database) but NEVER deletes his project files; wiping files is a separate command that asks first.
+
+## S24 2026-11-07 13:20
+The owner (13:17):
+1. The dojo must be super solid and hard to break:
+   - a pinned, versioned base image built from Fedora's current release; rebuilt reproducibly; works offline once set up; survives system updates and reboots (proved in the VM);
+   - limits so a runaway program can never hurt the PC: memory, CPU, process count and disk caps, and time limits on the checkers;
+   - "dojo doctor": checks the box, the database and the mounts, fixes what it can by itself, and says in plain words what it did; run automatically when "dojo" starts if something looks wrong;
+   - stale containers and images cleaned automatically; its own tests in the suite (start, run Python, Bash, gcc with AddressSanitizer, cargo, psql, a web page on localhost, reset keeps his files).
+2. The top bar's font a little thicker: one weight step heavier, same size, crisp. Show it with the T pack as set "BW" (bar weight): n 0 today, n 1 the new weight, dark and light, so he can confirm.
+3. The lessons' steps: spell out every step as if he has never seen it: which window, which key, exactly what to type, and what he should see after each step ("press Space r; a panel opens at the bottom; it shows 'hello'"). Never skip an "obvious" step. But the THINKING must be challenging: easy to follow, hard to answer. Each lesson's exercises go warm-up, then real, then stretch, with puzzles that make him think (predict the output before running it, find the bug, fill in the missing line, choose between two designs and say why); hints come in layers (a nudge, then a bigger hint, then the answer). Drill the ideas until they stick (S19).
