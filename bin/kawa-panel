@@ -3250,10 +3250,9 @@ def main(argv):
             ty = y + (ROW - LINE) // 2
             right = x + w - RIGHT_IN
             tw = text(cr, right, ty, clock_words(left), "strong", right=True)
-            n = (right - tw - 2 * CELL - (x + CELL) + (CELL - SEG_W)) // CELL
-            lit = -(-n * left // tot)
-            for i in range(n):
-                box(cr, x + CELL + i * CELL, y + (ROW - SEG_H) // 2, SEG_W, SEG_H, "sand" if i < lit else "edge")
+            w_bar = right - tw - 2 * CELL - (x + CELL) + (CELL - SEG_W)
+            inner = w_bar - 2 * BRASS_W
+            meter_px(cr, False, x + CELL, y + (ROW - SEG_H) // 2, w_bar, -(-inner * left // tot), fire=False)
         elif k == "watch":                        # (a running stopwatch: its time, ticking)
             _, x, y, w, start = m
             ty = y + (ROW - LINE) // 2
@@ -3399,15 +3398,15 @@ def main(argv):
         box(cr, x + 1, y, DOT - 2, DOT, name)
         box(cr, x, y + 1, DOT, DOT - 2, name)
 
-    def segments(cr, muted, sx, sy, pct, segs=SEGS):
-        """A meter (tairyoku) from sx, sy: the trough in its rim, the brass ends, the fill to the level
-        (§4); muted, the fill hollow. The cursor's tint changes no ink of it."""
-        inner, w = hp_inner(segs), segs * CELL - (CELL - SEG_W)
+    def meter_px(cr, muted, sx, sy, w, n, fire=True):
+        """A meter (tairyoku) w px wide from sx, sy with n px of fill lit (§4): the trough in its rim,
+        the brass ends; muted, the fill hollow; fire=False, no red past 80 % (a bar that runs out). The
+        cursor's tint changes no ink of it."""
+        inner = w - 2 * BRASS_W
         box(cr, sx, sy, w, SEG_H, "hp_rim")
         box(cr, sx + 1, sy + 1, w - 2, SEG_H - 2, "hp_trough")
-        n = lit_of(pct, segs)
         for i in range(n):
-            body, hi, lo = hp_ink(i, segs)
+            body, hi, lo = ("hp_fire", "hp_fire_hi", "hp_fire_lo") if fire and i * 5 > inner * 4 else ("hp", "hp_hi", "hp_lo")
             front = i == n - 1
             if muted and not front and i:
                 box(cr, sx + BRASS_W + i, sy + 1, 1, 1, hi)
@@ -3423,6 +3422,10 @@ def main(argv):
         for k, ink in enumerate(("kanagu_hi", "kanagu", "kanagu_lo")):
             box(cr, sx + k, sy, 1, SEG_H, ink)
             box(cr, sx + w - 1 - k, sy, 1, SEG_H, ink)
+
+    def segments(cr, muted, sx, sy, pct, segs=SEGS):
+        """A level's meter from sx, sy (§4): the bar of segs cells, the fill to the level."""
+        meter_px(cr, muted, sx, sy, segs * CELL - (CELL - SEG_W), lit_of(pct, segs))
 
     def clock_words(s):
         """A time as the bar's timer says it: 04:05 · 24:59 · 1:02:03."""

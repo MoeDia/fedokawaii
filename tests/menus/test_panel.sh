@@ -710,9 +710,9 @@ has "$d" 'k = (n - 12 - 3) // 17 + 1'
 has "$d" 'at = (n - 3 - (k - 1) * 17) // 2'
 has "$d" 'right -= text(cr, right, ty, value, "muted", right=True) + GAP'
 case_ "a meter's pixels (quick settings', the sound panel's and the brightness slider's): tairyoku, a trough 10 high in its rim, brass ends, the fill lit from above in the level's ink (gold or indigo, the fire past 80 %), a notch each quarter; hollow while muted; the cursor's tint changes no ink of it; no level: the words alone, at the row's right inset"
-has "$d" 'n = lit_of(pct, segs)'
-has "$d" 'body, hi, lo = hp_ink(i, segs)'
+has "$d" 'meter_px(cr, muted, sx, sy, segs * CELL - (CELL - SEG_W), lit_of(pct, segs))'
 has "$d" 'box(cr, sx, sy, w, SEG_H, "hp_rim")'
+has "$d" 'meter_px(cr, False, x + CELL, y + (ROW - SEG_H) // 2, w_bar, -(-inner * left // tot), fire=False)' "the timer's sand bar is a tairyoku too, no fire (it runs out)"
 has "$d" 'box(cr, sx + k, sy, 1, SEG_H, ink)' "the brass ends"
 has "$d" 'segments(cr, it.muted, sx, sy, pct, BIG_SEGS)' "an instrument's forty"
 has "$d" 'text(cr, right, ty, it.value, lk["value"], right=True)' "no level: the words alone, at the row's right inset"
