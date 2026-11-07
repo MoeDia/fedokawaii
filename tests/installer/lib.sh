@@ -439,6 +439,10 @@ releases() {
   mkdir -p "$r/ls/lib" "$r/ls/data/flutter_assets/assets/img"; tool localsend_app "$lsv" "$r/ls/localsend_app"
   echo lib >"$r/ls/lib/libapp.so"; echo png >"$r/ls/data/flutter_assets/assets/img/logo-512.png"
   name=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET"); tar -czf "$FKH/dl/$name" -C "$r/ls" .
+  # Stoat: its release zip, an Electron folder (the app, a pak, a library)
+  mkdir -p "$r/st/Stoat-linux-x64/resources"; tool stoat-desktop "${STOAT_V:-$(. "$REPO/lib/upstream.sh"; echo "${STOAT_TAG#v}")}" "$r/st/Stoat-linux-x64/stoat-desktop"
+  echo pak >"$r/st/Stoat-linux-x64/resources.pak"; echo asar >"$r/st/Stoat-linux-x64/resources/app.asar"
+  name=$(. "$REPO/lib/upstream.sh"; echo "$STOAT_ASSET"); (cd "$r/st" && python3 -m zipfile -c "$FKH/dl/$name" Stoat-linux-x64)
   tar -czf "$FKH/dl/satty-x86_64-unknown-linux-gnu.tar.gz" -C "$r/satty" .
   (cd "$r/yazi" && python3 -m zipfile -c "$FKH/dl/yazi-x86_64-unknown-linux-musl.zip" yazi-x86_64-unknown-linux-musl)
   tar -czf "$FKH/dl/$lgfile" -C "$r/lg" LICENSE README.md lazygit
@@ -454,6 +458,8 @@ releases() {
     old=$(. "$REPO/lib/upstream.sh"; echo "$TERM_FACE_SUM"); sum=$(sha256sum "$FKH/dl/UDEVGothic_NF_v2.2.0.zip" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
     old=$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$LOCALSEND_ASSET")" | cut -d' ' -f1)
+    sed -i "s/$old/$sum/" "$f"
+    old=$(. "$REPO/lib/upstream.sh"; echo "$STOAT_SHA256"); sum=$(sha256sum "$FKH/dl/$(. "$REPO/lib/upstream.sh"; echo "$STOAT_ASSET")" | cut -d' ' -f1)
     sed -i "s/$old/$sum/" "$f"
   done
   pin_faces
@@ -645,6 +651,9 @@ built() {
   mkdir -p "$U/.local/share/localsend/lib"; printf '#!/bin/sh\necho localsend\n' >"$U/.local/share/localsend/localsend_app"
   chmod 755 "$U/.local/share/localsend/localsend_app"; ln -sfn ../share/localsend/localsend_app "$U/.local/bin/localsend"
   ( . "$REPO/lib/upstream.sh"; echo "$LOCALSEND_TAG" ) >"$U/.local/share/fedokawaii/upstream/localsend"
+  mkdir -p "$U/.local/share/stoat"; printf '#!/bin/sh\necho stoat\n' >"$U/.local/share/stoat/stoat-desktop"
+  chmod 755 "$U/.local/share/stoat/stoat-desktop"; ln -sfn ../share/stoat/stoat-desktop "$U/.local/bin/stoat"
+  ( . "$REPO/lib/upstream.sh"; echo "$STOAT_TAG" ) >"$U/.local/share/fedokawaii/upstream/stoat"
   mkdir -p "$W/usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64"; : >"$W/usr/local/lib/fedokawaii-widevine/_platform_specific/linux_x64/libwidevinecdm.so"
   echo '{"version":"4.10.1"}' >"$W/usr/local/lib/fedokawaii-widevine/manifest.json"
   # ble.sh built from its pinned commit, the commit recorded

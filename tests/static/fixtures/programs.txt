@@ -291,3 +291,4 @@ wayland-info        manifest  wayland-utils      # wayland-utils: the report lis
 desktop-file-validate optional -                 # desktop-file-utils: the report validates the launcher's
                                                  # entries with it where it is installed (guarded)
 tesseract           manifest  tesseract          # Super+Shift+Print: a region's text (kawa-screenshot text)
+stoat               built     install_stoat # lib/upstream.sh: its release, an Electron folder (~/.local/share/stoat), linked from ~/.local/bin

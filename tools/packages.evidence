@@ -210,3 +210,4 @@ gdk-pixbuf2-devel|fedora|https://packages.fedoraproject.org/search?query=gdk-pix
 fcft-devel|fedora|https://packages.fedoraproject.org/search?query=fcft-devel|2026-11-06|manifest 2026-11-06 (foot's build)
 tllist-devel|fedora|https://packages.fedoraproject.org/search?query=tllist-devel|2026-11-06|manifest 2026-11-06 (foot's build)
 utf8proc-devel|fedora|https://packages.fedoraproject.org/search?query=utf8proc-devel|2026-11-06|manifest 2026-11-06 (foot's build)
+upstream:stoat|github:stoatchat/for-desktop|https://github.com/stoatchat/for-desktop/releases/download/v1.5.4/Stoat-linux-x64-1.5.4.zip|2026-11-07|sha256 28a08289fd39… matches the pin (downloaded and measured; the release digest agrees; the newest release, Electron folder)

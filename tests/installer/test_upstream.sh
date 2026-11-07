@@ -333,6 +333,17 @@ case_ "…no network: said, the one there kept; setup goes on (s_widevine: never
 widevine_release 4.10.2 "$dl"; fkh net off; up "install_widevine"; eq "$RC" 1; has "$OUT" "does not answer"; eq "$(jq -r .version "$wv/manifest.json")" 4.10.2
 up 'eval "$(sed -n "/^contained() {/,/^}/p;/^s_widevine() {/,/^}/p" "$REPO_DIR/setup.sh")"; s_widevine'; eq "$RC" 0; has "$OUT" "Widevine is not installed yet"; rm -f "$FKH/net"
 
+# ── Stoat: an Electron folder, kept whole ──────────────────────────────────────────────
+case_ "install_stoat: the folder whole in ~/.local/share/stoat, yours; stoat points into it; its tag recorded"
+back start; up "install_stoat"; eq "$RC" 0 "$OUT"
+has "$OUT" "✔ Stoat v1.5.4 → ~/.local/share/stoat (stoat)"
+[[ -x $W$H/.local/share/stoat/stoat-desktop && -f $W$H/.local/share/stoat/resources.pak && -f $W$H/.local/share/stoat/resources/app.asar ]] \
+  && _ok || _no "the folder is not whole: $(cd "$W$H/.local/share/stoat" 2>/dev/null && find . | tr '\n' ' ')"
+eq "$(readlink "$W$H/.local/bin/stoat")" ../share/stoat/stoat-desktop
+eq "$(fk stat -c %U "$H/.local/share/stoat/stoat-desktop")" fkuser
+eq "$(cat "$W$H/.local/share/fedokawaii/upstream/stoat")" v1.5.4
+reset_calls; up "install_stoat"; eq "$RC" 0; has "$OUT" "Stoat v1.5.4 — in place"; not_called 'curl'
+
 # ── LocalSend: a release that is a whole folder ─────────────────────────────────────────
 case_ "install_localsend: the folder whole in ~/.local/share/localsend, yours; localsend points into it; its tag recorded"
 back start; up "install_localsend"; eq "$RC" 0 "$OUT"

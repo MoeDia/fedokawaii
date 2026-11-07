@@ -1427,6 +1427,7 @@ s_upstream() {
   install_term_face
   install_faces
   s_localsend
+  s_stoat
   s_fixer
 }
 # The local AI fixer (system/kawa-fixer, lib/fixer.sh): its program, and, on a machine with the card
@@ -1444,6 +1445,11 @@ s_fixer() {
 s_localsend() {
   contained install_localsend
   ((CONTAINED_RC == 0)) || log "LocalSend is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
+}
+# Stoat (lib/upstream.sh): the same
+s_stoat() {
+  contained install_stoat
+  ((CONTAINED_RC == 0)) || log "Stoat is not installed yet (why: above, or $LOG_FILE) — update and repair try again"
 }
 # Widevine (lib/upstream.sh): never a reason to stop — update and repair try again
 s_widevine() {
@@ -2110,6 +2116,7 @@ s_gate() {
   tfc_current || s_filechooser
   syncplay_current || s_syncplay
   localsend_current || s_localsend
+  stoat_current || s_stoat
   blesh_current || s_blesh
   [[ -x $FIXER ]] && as_user "$FIXER" status --home "$TARGET_HOME" >/dev/null 2>&1 || s_fixer
   # (and neovim's plugins: 3.09 is done once nvim has run, even when GitHub let some clones
@@ -2950,6 +2957,7 @@ update_steps() {
   step_on "the desktop's face (Sumi UI)" install_faces
   step_on "Syncplay" install_syncplay
   step_on "LocalSend" install_localsend
+  step_on "Stoat" install_stoat
   step_on "the local AI fixer" install_fixer
   step_on "Widevine (Spotify's player)" install_widevine
   step_on "ble.sh" install_blesh
@@ -3295,6 +3303,7 @@ r_upstream() {   # release binaries and fonts present (each is a no-op when curr
   install_syncplay || rc=1
   install_blesh || rc=1
   install_localsend || rc=1
+  install_stoat || rc=1
   install_widevine || rc=1
   return "$rc"
 }

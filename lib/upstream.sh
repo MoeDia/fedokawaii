@@ -82,6 +82,13 @@ SYNCPLAY_PATCH=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/src/syncplay/syn
 LOCALSEND_TAG=v1.18.2
 LOCALSEND_ASSET=LocalSend-1.18.2-linux-x86-64.tar.gz
 LOCALSEND_SHA256=287690a9a8eb6da9c83cc97b3e3030ac67daf32a7331fcf307d0939300658d16
+# Stoat — the chat that replaces Discord (stoat.chat; its desktop app: github.com/stoatchat/for-desktop).
+# No Fedora package, and Flatpak is Asobi's alone: its Linux release is an Electron folder,
+# kept whole in ~/.local/share/stoat; ~/.local/bin/stoat points into it.
+# 1.5.4 — file and SHA-256 measured 2026-11-07 (downloaded; the release's own digest agrees)
+STOAT_TAG=v1.5.4
+STOAT_ASSET=Stoat-linux-x64-1.5.4.zip
+STOAT_SHA256=28a08289fd396568f69af47d77c26a538419258baa80fc037756694659b2f71a
 BLESH_REPO=https://github.com/akinomyoga/ble.sh.git
 BLESH_COMMIT=d81fd54feb0d996fdff20dca27eaf0201f7015cc
 
@@ -199,6 +206,29 @@ install_localsend() {   # the pinned release, whole, into ~/.local/share/localse
   ok "LocalSend $LOCALSEND_TAG → ~/.local/share/localsend (localsend)"
 }
 localsend_current() { [[ $(up_tag localsend) == "$LOCALSEND_TAG" && -x $(localsend_dir)/localsend_app ]]; }
+
+stoat_dir() { echo "$TARGET_HOME/.local/share/stoat"; }
+install_stoat() {   # the pinned release, whole, into ~/.local/share/stoat (yours)
+  local dir bin=stoat-desktop src; dir=$(stoat_dir)
+  if [[ $(up_tag stoat) == "$STOAT_TAG" && -x $dir/$bin && -L $TARGET_HOME/.local/bin/stoat ]] \
+     && [[ -z $(missing_libs "$dir/$bin") ]]; then
+    log "Stoat $STOAT_TAG — in place"; return 0
+  fi
+  fetch_pinned "https://github.com/stoatchat/for-desktop/releases/download/$STOAT_TAG/$STOAT_ASSET" "$STOAT_SHA256" || return 1
+  src=$(find "$REL_DIR/x" -type f -name "$bin" -print -quit)
+  [[ -n $src ]] || { log "$bin not found inside the Stoat $STOAT_TAG archive"; return 1; }
+  libs_for "$src" || return 1
+  as_user rm -rf -- "$dir.new" && as_user mkdir -p -- "$dir.new" || return 1
+  (cd "${src%/*}" && tar -cf - .) | as_user tar -xf - -C "$dir.new" --no-same-owner \
+    || { as_user rm -rf -- "$dir.new"; log "could not write ${dir/#$TARGET_HOME/\~} (is the disk full?)"; return 1; }
+  as_user chmod 0755 "$dir.new/$bin"
+  as_user rm -rf -- "$dir" && as_user mv -T -- "$dir.new" "$dir" || return 1
+  as_user mkdir -p "$TARGET_HOME/.local/bin"
+  as_user ln -sfn "../share/stoat/$bin" "$TARGET_HOME/.local/bin/stoat" || return 1
+  record_tag stoat "$STOAT_TAG"; rm -rf "$REL_DIR"
+  ok "Stoat $STOAT_TAG → ~/.local/share/stoat (stoat)"
+}
+stoat_current() { [[ $(up_tag stoat) == "$STOAT_TAG" && -x $(stoat_dir)/stoat-desktop ]]; }
 
 # Widevine: Google's module for protected media (Spotify's web player plays nothing without it).
 # Helium ships none (its site: Google licenses it to partners) and loads it from the folder its

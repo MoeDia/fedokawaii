@@ -618,6 +618,16 @@ esac
 localsend_libs_ok() {   # (ldd runs as you: the file is yours, and root never runs what is in your home)
   U test -x "$(localsend_dir)/localsend_app" && [[ -z $(missing_libs "$(localsend_dir)/localsend_app") ]]
 }
+stoat_libs_ok() {
+  U test -x "$(stoat_dir)/stoat-desktop" && [[ -z $(missing_libs "$(stoat_dir)/stoat-desktop") ]]
+}
+case $(up_tag stoat) in
+  "") warn "Stoat not installed yet" "update and repair fetch it" ;;
+  "$STOAT_TAG")
+    check "Stoat $STOAT_TAG finds every library it needs" stoat_libs_ok
+    check "stoat starts it (~/.local/bin/stoat)" test "$(readlink -f "$TARGET_HOME/.local/bin/stoat")" = "$(stoat_dir)/stoat-desktop" ;;
+  *) fail "Stoat is not the pinned $STOAT_TAG" "update and repair put it in" ;;
+esac
 case $(up_tag localsend) in
   "") warn "LocalSend not installed yet" "update and repair fetch it (sending to a phone waits till then)" ;;
   "$LOCALSEND_TAG")
