@@ -205,3 +205,18 @@ ACCURACY TO THE DOT
 - Before a lesson is marked done, a separate review pass (fresh context, opus) checks it for accuracy, plain language and S18's rules; fixes go in before it ships.
 SCOPE BY THE DEADLINE
 - The full syllabus, the concept map and the glossary; the first 14 days of lessons finished to this standard (pictures, checkers, review passed); the rest written ahead of him later, always at least 7 days ahead, through the same gates. Quality over quantity: never ship a lesson that has not passed the checks.
+
+## S21 2026-11-07 13:10
+The owner (12:58):
+1. The lessons' look must never distract: super minimal, all the care in colours, fonts, spacing and alignment, following the theme in both moods, his eyes comfortable for long reading. Concretely:
+   - generous spacing everywhere; text column about 60-70 characters wide; line height about 1.6; a larger body size (around 18-20 px); the chosen programming font for code, a calm reading font for text; everything aligned to one grid;
+   - soft contrast from the theme (no pure black on pure white, no glaring accents), comfortable but clearly readable (WCAG AA at least);
+   - pictures in the same muted theme colours, only where they teach (S20); nothing moves by itself: step-by-step pictures advance when he clicks; respect reduced motion;
+   - the dojo rank and streak stay quiet in a corner or on their own page, never in the lesson's way.
+   This replaces anything flashier in S20.
+2. Add the C language. Claude's decision on the level and the place:
+   - Place: after Python and Bash, SQL and the web, and before Rust. C shows how the machine really handles memory (and how easily it goes wrong); Rust then shows how it prevents those mistakes, so ownership makes sense.
+   - Level: solid foundations, not expert: read and write small C programs; types, arrays, strings as bytes, pointers, structs, the stack and the heap, malloc and free; how source becomes a program (preprocess, compile, link) with gcc and make; debugging with gdb; catching memory bugs with AddressSanitizer and valgrind. The goal project: read his own dwl's config.h and a small patch, change it, rebuild and run it in a nested session.
+   - Modern C only: C23 as Fedora's current gcc supports it, every example compiled with -std=c23 -Wall -Wextra -Werror and run under AddressSanitizer in the test suite. Check against current, solid sources: Jens Gustedt's "Modern C" (C23 edition), cppreference's C pages, Beej's Guide to C, the gcc manual; not old K&R-style code.
+   - Its "behind the scenes" part ties into S19's concepts 1 and 5 (the machine, memory).
+The full order of Part 2 is now: Python and Bash, then SQL and the web (with Textual TUIs), then C, then Rust; the basics underneath (S19) woven through. Accuracy gates (S20) apply to all of it.
