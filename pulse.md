@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 08:14 (Dubai)
+# round 28 pulse · Sat 07 08:44 (Dubai)
 
-pace: 69/160 done (43%) · time used 32% · ahead 11.4 h · ETA Sun 08 22:26 · left 83 · blocked 1 · owner 7
+pace: 69/160 done (43%) · time used 32% · ahead 10.9 h · ETA Sun 08 23:32 · left 83 · blocked 1 · owner 7
 alerts: 1 blocked; 1 errors in 2 h
-run: conductor active · passes 1 (oldest 15 min) · last activity 15 min ago · commits since start 93 · hold False
-machine: load 0.49 0.42 0.39/12 · mem free 18.5 GB · disk free 611 GB · up 32.0 h · cpu tccd1 56° · cpu tctl 60° · gpu edge 38° · gpu junction 31° · gpu mem 52° · ssd composite 37° · ssd sensor 1 36° · ssd sensor 2 36°
+run: conductor active · passes 1 (oldest 45 min) · last activity 5 min ago · commits since start 93 · hold False
+machine: load 0.77 0.57 0.47/12 · mem free 19.1 GB · disk free 611 GB · up 32.5 h · cpu tccd1 43° · cpu tctl 45° · gpu edge 37° · gpu junction 31° · gpu mem 52° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 38°
 dark: True (active) · pulse timer active
-tokens since start: out 1,779,140 · in 2,810 · cache write 5,740,975 · cache read 103,335,498 · msgs 1330 · out last 6 h 17,159
-out by model: last 6 h claude-haiku-5-5 17,159 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 24,021 · claude-sonnet-5-5 7,909
+tokens since start: out 1,780,595 · in 2,822 · cache write 5,743,592 · cache read 103,552,941 · msgs 1335 · out last 6 h 18,614
+out by model: last 6 h claude-haiku-5-5 18,614 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 25,476 · claude-sonnet-5-5 7,909
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
