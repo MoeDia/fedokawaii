@@ -140,7 +140,7 @@ P=$REPO/bin/kawa-panel
 grep -qx 'APP_ICON = 16 .*' "$P" && _ok || _no "an entry's icon is not 16 px"
 grep -qF 'theme.lookup_by_gicon(g, APP_ICON, Gtk.IconLookupFlags.FORCE_SIZE)' "$P" && _ok || _no "the icons not loaded at the row's size, forced"
 seal=$(sed -n '/elif it.kind == "app":/,/elif it.kind == "row":/p' "$P")
-has "$seal" 'glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")' "ours: accent_text in the icon column (on the cursor: the cursor's ink)"
+has "$seal" 'glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["edge"] else "accent_text")' "ours: accent_text in the icon column (on the cursor: the cursor's ink)"
 has "$seal" 'pic_ = ic["calc"] if it.app is None else it.app.pic' "the answer's row: the calculator's icon"
 lacks "$seal" 'frame(cr, ix, iy' "no box round it (§4: never a second frame)"
 has "$seal" 'Gdk.cairo_set_source_pixbuf(cr, pic_, ix, iy)' "an app's own icon as it is, centred in the row"

@@ -247,8 +247,8 @@ eq "$(t 'STATE + "sharesound\tdesktop\n"' sharesound)" "@share-sound | share sou
 eq "$(py 'fresh(); print(p.item("sharesound"), [m[4] for m in p.marks if m[0] == "label"])')" "None ['screen', 'connect', 'capture', 'power']" "not reported: no row, no label"
 eq "$(py 'g = kp.quick_rows(kp.parse_state(STATE + "sharesound\toff\n")); print([l for l, _ in g])')" "['screen', 'sound', 'connect', 'capture', 'power']"
 eq "$(py 'fresh(STATE + "sharesound\toff\n"); p.request(); u.answer(STATE + "sharesound\toff\n"); u.calls.clear(); p.activate("sharesound"); print(u.calls[-1], p.visible)')" "launch kawa-quick --do sharesound False"
-case_ "held down by the pointer the tint is twice as deep, until let go; only that row redrawn"
-eq "$(py 'i = kp.Item("k", "row", 0, 0, 10, 10, 0, name="x"); print(kp.look(i, True, False)["fill"], kp.look(i, True, False, True)["fill"], kp.look(i, False, False, True)["fill"])')" "select select_hi None"
+case_ "held down by the pointer: no band, the ink goes strong, until let go; only that row redrawn"
+eq "$(py 'i = kp.Item("k", "row", 0, 0, 10, 10, 0, name="x"); print(kp.look(i, True, False)["fill"], kp.look(i, True, False, True)["fill"], kp.look(i, False, False, True)["fill"])')" "None None None"
 eq "$(py 'opened("quick", STATE); p.hover(*mid("night")); p.press(*mid("night")); a = p.pressed; u.drawn.clear(); p.release(*mid("night")); print(a, p.pressed, u.drawn[0])')" "night None ['night']"
 case_ "the lights (the case's fans, the cooler, the keyboard): a switch, its row and seal once kawa-quick reports them, in the power section, done in place"
 eq "$(t 'STATE + "rgb\ton\n"' rgb)" "@ember | lights |  | True | g | lit"
@@ -656,7 +656,7 @@ eq "$(py 'opened("quick", STATE); p.hover(*seg("sound", 3)); u.drawn.clear(); p.
 eq "$(py 'opened("quick", STATE); p.hover(*mid("night")); u.drawn.clear(); p.hover(5, 5); print(u.drawn, p.focus)')" "[['night']] night" "onto the frame: the one left, the cursor stays"
 eq "$(py 'fresh(); p.focus = "theme"; u.drawn.clear(); p.key("Down"); print(u.drawn)')" "[['theme', 'night']]" "the keys: the cursor's two"
 
-case_ "how each item is drawn (look): the cursor tints the item's place with the seal's red and gives it a 2 px edge, its name and icon the strongest ink, its state its own; at rest the place is bare — a thing that is on: its icon and its state strong, a value muted (faint when it says nothing is there), its name text"
+case_ "how each item is drawn (look): the cursor gives the item a 2 px edge of the seal's red and turns its name and icon vermilion (no band), its state its own; at rest the place is bare — a thing that is on: its icon and its state strong, a value muted (faint when it says nothing is there), its name text"
 lk() { py "fresh(${4:-}); i = p.item('$1'); l = kp.look(i, $2, $3); print(l['fill'], l['edge'], l['frame'], l['glyph'], l['label'], l['value'])"; }
 eq "$(lk night False False)" "None None None strong text strong" "a row that is on"
 eq "$(lk devices False False)" "None None None muted text faint" "a row with nothing there"
@@ -671,13 +671,13 @@ for k in night devices wallpaper power sound brightness; do
   eq "$(lk $k False True)" "$(lk $k False False)" "$k under the pointer: drawn as at rest (it has the cursor then)"
 done
 for k in devices wallpaper power sound brightness; do
-  eq "$(lk $k True False)" "select select_edge None strong text_on_select text" "$k the cursor: the tint, the edge, the strongest ink"
-  eq "$(lk $k True True)" "select select_edge None strong text_on_select text" "$k the cursor and under the pointer: the same"
+  eq "$(lk $k True False)" "None select_edge None text_on_select text_on_select text" "$k the cursor: the edge, the ink vermilion, no band"
+  eq "$(lk $k True True)" "None select_edge None text_on_select text_on_select text" "$k the cursor and under the pointer: the same"
 done
-eq "$(lk night True False)" "select select_edge None strong text_on_select strong" "an item that is on, under the cursor: its state stays strong (the band swallows nothing)"
+eq "$(lk night True False)" "None select_edge None text_on_select text_on_select strong" "an item that is on, under the cursor: its state stays strong"
 eq "$(py 'fresh(); print(sorted({kp.look(i, False, True) == kp.look(i, False, False) for i in p.items}))')" "[True]" \
   "no item is drawn differently under the pointer: no tint, no frame of its own"
-eq "$(py 'i = kp.Item("k", "key", 0, 0, 10, 10, 0, name="x"); a, b = kp.look(i, False, False), kp.look(i, True, False); print(a["fill"], a["frame"], a["glyph"], "|", b["fill"], b["frame"], b["edge"], b["label"])')" "key edge text | select select_edge None text_on_select" "a key at rest on its own fill in a 1 px frame; under the cursor the tint and a frame in the seal's red"
+eq "$(py 'i = kp.Item("k", "key", 0, 0, 10, 10, 0, name="x"); a, b = kp.look(i, False, False), kp.look(i, True, False); print(a["fill"], a["frame"], a["glyph"], "|", b["fill"], b["frame"], b["edge"], b["label"])')" "key edge text | key select_edge None text_on_select" "a key at rest on its own fill in a 1 px frame; under the cursor the tint and a frame in the seal's red"
 eq "$(py 'i = kp.Item("k", "hint", 0, 0, 10, 10, -1, name="x"); a, b = kp.look(i, False, False), kp.look(i, True, False); print(a["fill"], a["glyph"], a["label"], "|", b["fill"], b["glyph"], b["label"])')" "None muted muted | None strong strong" "a footer's hint: muted, the strong ink under the pointer; never a band"
 case_ "draw() takes every colour from look(): the cursor (the pointer moves it), nothing else decides"
 src=$(sed -n '/    def draw(widget, cr):/,/^    def on_key/p' "$REPO/bin/kawa-panel")
@@ -911,9 +911,9 @@ eq "$(py 'H = ("HDMI / DisplayPort", "HDMI 0"); print(kp.device_names([("output"
   "['HDMI · Navi 48', 'HDMI · Radeon', 'X', 'X 2']"
 case_ "every short name fits its row whole (the row's 314 px — 44 columns of Sumi UI's 7 px —, from its name's cell to the chosen dot's two cells of air, the dot and the row's inset) — no …"
 eq "$(py 's = kp.parse_sound(SOUND); print(max(kp.px_of(n) for _, _, n in s["outputs"] + s["inputs"]) <= kp.INNER - kp.NAME_X - kp.RIGHT_IN - 2 * kp.CELL - kp.DOT == 314)')" True
-case_ "a row's look: the one in use (lit) in strong ink, the others quiet; the pointer adds nothing (it moves the cursor), the cursor tints the row"
+case_ "a row's look: the one in use (lit) in strong ink, the others quiet; the pointer adds nothing (it moves the cursor), the cursor turns it vermilion"
 eq "$(py 'opened("sound", SOUND); a, b = p.item("out:62"), p.item("out:73"); print(*[" ".join(str(v) for v in kp.look(i, f, h).values()) for i, f, h in ((a, False, False), (b, False, False), (b, False, True), (b, True, False))], sep=" | ")')" \
-  "None None None strong strong muted text | None None None muted text muted text | None None None muted text muted text | select select_edge None strong text_on_select text text"
+  "None None None strong strong muted text | None None None muted text muted text | None None None muted text muted text | None select_edge None text_on_select text_on_select text text"
 case_ "another output picked (a click or Enter): the default (kawa-quick --do output ID: wpctl set-default), the panel stays and reads again"
 eq "$(py 'opened("sound", SOUND); p.press(200, 203); print(u.calls[-1]); u.answer(); print(u.calls[-1], p.visible)')" \
   "$(printf '%s\n' 'run kawa-quick --do output 73' 'run kawa-quick --state sound True')"

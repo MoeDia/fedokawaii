@@ -61,8 +61,8 @@ return {
           -- what is selected (the completion menu's row, the wild menu's): the seal's tint with the
           -- strongest ink on it, as every menu has it (gruvbox's blue held 3.3 : 1 on paper)
           local sel = vim.o.background == "light"
-            and { bg = "#e2d0ae", fg = "#121b1b" }
-            or { bg = "#2e1f19", fg = "#f5ecc2" }
+            and { bg = "#e8e3c2", fg = "#713724" }
+            or { bg = "#181715", fg = "#f8a17a" }
           vim.api.nvim_set_hl(0, "PmenuSel", sel)
           vim.api.nvim_set_hl(0, "WildMenu", sel)
           -- the first screen (snacks.lua) as a text screen: the heading's icon vermilion, its

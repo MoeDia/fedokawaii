@@ -45,14 +45,14 @@ unset_alt   = { fg = "darkgray" }
 
 # the row under the cursor: the lacquer, every ink on it text_on_select (§4: what is selected),
 # as fzf's cursor; a place in another folder — the one you are in, in the parent column, and
-# where you would land in the preview's — the edge behind it, quiet, its words strong (the
+# where you would land in the preview's — no band, its words strong (the
 # kinds' colours stay on the rows at rest: on a band, a folder's blue falls under 4.5 : 1).
 # padding: the bar's first and last cells, drawn in the bar's colour — a full block keeps the
 # row's name in the same column as its neighbours' ("" would pull it one column left)
 [indicator]
-parent  = { bg = "18", fg = "23" }
+parent  = { fg = "23" }
 current = { bg = "24", fg = "25" }
-preview = { bg = "18", fg = "23" }
+preview = { fg = "23" }
 padding = { open = "█", close = "█" }
 
 [status]

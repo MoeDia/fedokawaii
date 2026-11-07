@@ -49,7 +49,7 @@ out=$(python3 -I "$G3/tools/contrast.py" --apca --quiet 2>&1); rc=$?
 eq "$rc" 1 "a 10-Lc step passed"
 has "$out" "strong over text"
 
-case_ "every menu's selected row is the seal's tint, its 2 px edge the pointer: fzf's bg+ 24 (select), fg+ 25 (text_on_select), pointer 16 (accent), every other ink its own (no :strip)"
+case_ "every menu's selected row is a colour change on the ground (select is the ground: no band), its pointer: fzf's bg+ 24 (select), fg+ 25 (text_on_select), pointer 16 (accent), every other ink its own (no :strip)"
 has "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" "fg+:25:regular,bg:-1,bg+:24"
 has "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" "pointer:16"
 has "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" "--pointer='@ICON_BAND_EDGE@'"
@@ -57,8 +57,8 @@ lacks "$(cat "$REPO/configs/home/.config/fedokawaii/fzf.opts")" ":strip"
 
 case_ "quick settings' cursor draws with the names contrast.py measures"
 src=$(cat "$REPO/bin/kawa-panel")
-has "$src" '"label": "text_on_select"'
-has "$src" '"fill": "select_hi" if pressed else "select"'
+has "$src" '"label": "strong" if pressed else "text_on_select"'
+has "$src" '"glyph": "strong" if pressed else "text_on_select"'
 has "$src" '"edge": "select_edge" if bare'
 lacks "$src" '"fill": "accent", "frame": None'
 

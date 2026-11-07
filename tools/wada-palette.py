@@ -121,10 +121,13 @@ def dark():
     # the keyboard's place on a row (the owner's page, 4 Nov, 00f RIGHT): a 12 % tint of the seal's red
     # and a 2 px edge of it, the strongest ink on it (13 : 1) — a red "on" icon and a red value keep
     # their red there, which the full lacquer swallowed; every other ink stays its own
-    p["select"] = mix(p["ground"], "Jasper Red", 0.12, "dark.select")
+    # r28-sa15b (the owner's rule, 7 Nov 17:35): what is selected changes COLOUR — its words and
+    # picture take a lifted vermilion — and has no band: `select` is the ground itself
+    p["select"] = p["ground"]
+    RECIPE["dark.select"] = "ground (no band)"
     p["select_hi"] = mix(p["ground"], "Jasper Red", 0.24, "dark.select_hi")   # (held down by the pointer)
     p["select_edge"] = p["accent"]
-    p["text_on_select"] = p["strong"]
+    p["text_on_select"] = mix(p["accent_hi"], p["strong"], 0.32, "dark.text_on_select")   # (7 : 1 and over on every ground)
     # the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there): the
     # same deep lacquer in both themes (漆, one grammar), the strongest cream on it (8 : 1)
     p["lacquer"] = w("Vandyke Red", "dark.lacquer")
@@ -169,10 +172,11 @@ def light():
     p["accent_lo"] = mix("Brick Red", "Vandyke Red", 0.5, "light.accent_lo")
     p["accent_text"] = w("Brick Red", "light.accent_text")
     p["text_on_accent"] = p["key"]
-    p["select"] = mix(p["ground"], "Brick Red", 0.12, "light.select")   # (as the dark's: the seal's own red)
+    p["select"] = p["ground"]                                            # (no band, as the dark's)
+    RECIPE["light.select"] = "ground (no band)"
     p["select_hi"] = mix(p["ground"], "Brick Red", 0.24, "light.select_hi")
     p["select_edge"] = p["accent"]
-    p["text_on_select"] = p["strong"]
+    p["text_on_select"] = mix(p["accent_text"], p["strong"], 0.35, "light.text_on_select")   # (7 : 1 on the ground)
     p["lacquer"] = w("Vandyke Red", "light.lacquer")   # (the dark theme's lacquer: 8.5 : 1 under the key's cream)
     p["text_on_lacquer"] = p["key"]
     p["lit"], p["lit_text"], p["lit_hi"], p["lit_lo"] = p["text"], p["key"], p["muted"], p["strong"]

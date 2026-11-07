@@ -57,10 +57,10 @@ colour anywhere, in either mood. (`--doc` prints the hex columns of this table.)
 | `accent_lo` | `82241f` Vandyke Red | `953321` Brick Red → Vandyke Red 0.5 | dim vermilion: an unlit segment on a vermilion fill |
 | `accent_text` | `f47b58` = `accent_hi` | `a84222` Brick Red | vermilion ink: a heading's icon, the day's kanji, the date's slashes, US, a failure's mark — never words to be read (no red on sumi reaches Lc 60: the words beside the mark are `text`) |
 | `text_on_accent` | `111314` | `f8f3d8` | ink on vermilion |
-| `select` | `2e1f19` 181715 → Jasper Red 0.12 | `e2d0ae` e8e3c2 → Brick Red 0.12 | what is selected: the keyboard's cursor on a row (§4) — a 12 % tint of the seal's own red, every ink on it its own |
+| `select` | `181715` ground (no band) | `e8e3c2` ground (no band) | what is selected (§4): NO band — it is the ground itself; the cursor changes colour (`text_on_select`), it does not fill (the owner, 7 Nov 17:35) |
 | `select_hi` | `46271d` 181715 → Jasper Red 0.24 | `dcbd9b` e8e3c2 → Brick Red 0.24 | … held down by the pointer: 24 % |
 | `select_edge` | `eb5324` | `a84222` | … its 2 px edge at the row's left: the seal's red |
-| `text_on_select` | `f5ecc2` | `121b1b` | … the name and the picture on it: the strongest ink (13 : 1) |
+| `text_on_select` | `f8a17a` f47b58 → f5ecc2 0.32 | `713724` a84222 → 121b1b 0.35 | … the name and picture of what is selected: a vermilion lifted to ≥ 7 : 1 on every ground (APCA Lc 60) |
 | `lacquer` | `82241f` Vandyke Red | `82241f` Vandyke Red | the toolkits' own selection and default button (GTK, Qt: no edge can be drawn there) and a failed command's code in the prompt: the lacquer (漆), one in both moods |
 | `text_on_lacquer` | `f5ecc2` | `f8f3d8` | every ink on the lacquer |
 | `asagi` | `82c1b4` Venice Green → Ecru 0.25 | `00726a` Light Porcelain Green → Dusky Green 0.45 | lit: a bar tile under the pointer or open; a meter's lit segments; something asking for you |
@@ -132,8 +132,8 @@ Lc · ratio:
 | light `tile` | 53 · 3.0 | 75 · 5.7 | 96 · 14.4 | 98 · 16.0 | 73 · 5.5 | 72 · 5.3 |
 
 Ink on vermilion (`text_on_accent` on `accent`): 5.1 dark, 5.4 light — a mark's (the bar's seal), never
-a row's. What is selected is the seal's tint, its words ≥ 7 : 1 (`text_on_select` on `select`: 13 dark,
-12 light; the lacquer's, in the toolkits: 8.0, 8.5): `tools/contrast.py` measures every selected and highlighted state of every surface from
+a row's. What is selected changes colour and has no band: its words and picture `text_on_select` on the ground, ≥ 7 : 1 (`select` is the ground; 8.7 dark,
+7.1 light; the lacquer's, in the toolkits: 8.0, 8.5): `tools/contrast.py` measures every selected and highlighted state of every surface from
 the files the desktop ships (words ≥ 7, icons and matched letters ≥ 4.5, a large glyph or a
 meter's level or a shape ≥ 3) — and by APCA (`--apca`: the roles above, the selected states at Lc 60 for
 words and 45 for marks; the workspace seal's black numeral is measured and kept by the owner's
@@ -261,7 +261,7 @@ screen and the bar's paper share one rhythm.
 - **Cursor** (the keyboard's place; the owner's page, 00f RIGHT): the row's place — the content's width, the heading's
   own, so band and rule end on one line — tinted `select`, its first 2 px `select_edge`; the name and the picture
   `text_on_select`; everything else keeps its own ink, so a thing that is on stays so and red never fights a band. Held
-  down by the pointer the tint is twice as deep (`select_hi`).
+  down by the pointer the ink goes strong (no band).
 - **Keycap** (wherever a key is named): a small tile, `key` paper in a 1 px `edge2` frame with its corners left out, a
   lip of `edge2` under it, its label in `muted` centred by its ink. Super is the torii, Shift its arrow, 10 × 8 and 8 × 8,
   pictures of `panel-art.txt`; a letter as the sheet writes it (case is meaning); the other keys a short word (enter, tab,
@@ -346,7 +346,7 @@ screen and the bar's paper share one rhythm.
 |---|---|---|---|
 | rest | §4 | §7 | §8 |
 | hover (the pointer) | the cursor goes to the row under it — one light, never two | the same (a mouse click acts as Enter) | the tile lit: icon and words `asagi`; a vermilion tile's fill `accent_hi` |
-| cursor (the keyboard) | the row tinted `select`, its 2 px edge `select_edge`, its name and picture `text_on_select`, every other ink its own; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, the pointer a 2 px glyph in 16) | — |
+| cursor (the keyboard) | the row bare (no band), its 2 px edge `select_edge`, its name and picture `text_on_select`, every other ink its own; a menu opens with it on its first choice, Enter acts at once | the same (fzf: bg+ 24, fg+ 25, the pointer a 2 px glyph in 16) | — |
 | chosen | the vermilion dot (§4) | `●` in `accent_text`, in the value column | — |
 | on · off | §4's seal, inked or blank; a row's icon `strong` on, `muted` off | the words `strong` "on" · `faint` "off" | — |
 | absent | `faint`, and the word says why ("none", "no DDC/CI") | the same | the tile is not there |

@@ -1332,8 +1332,8 @@ def look(it, focused, hot, pressed=False):
     none of its own), edge (the cursor's: 2 px at the band's left), frame (None: none), glyph (its
     icon or picture), label (its name), value (its words; a meter's words when it has no level),
     detail (a menu row's second column).
-    The cursor — the keyboard's place, and the pointer's: one light, never two — tints the item with
-    the seal's red, 12 %, a 2 px edge of it at its left, its name and icon the strongest ink; a thing that
+    The cursor — the keyboard's place, and the pointer's: one light, never two — gives a row a 2 px
+    edge of the seal's red at its left and turns its name and icon vermilion (no band behind them); a thing that
     is on keeps its state, every other ink its own; held down by the pointer, the tint twice as deep. At rest: a row's icon muted, its name text (the one
     in use, a thing that is on: strong, its state strong); a key on its own fill in a 1 px frame; a
     footer's hint in muted."""
@@ -1342,8 +1342,9 @@ def look(it, focused, hot, pressed=False):
         ink = "strong" if focused else "muted"
         return {"fill": None, "edge": None, "frame": None, "glyph": ink, "label": ink, "value": ink, "detail": ink}
     if focused:
-        return {"fill": "select_hi" if pressed else "select", "edge": "select_edge" if bare else None, "frame": None if bare else "select_edge",
-                "glyph": "strong", "label": "text_on_select", "value": "strong" if it.on else "text", "detail": "text"}
+        return {"fill": None if bare else "key", "edge": "select_edge" if bare else None,
+                "frame": None if bare else "select_edge",
+                "glyph": "strong" if pressed else "text_on_select", "label": "strong" if pressed else "text_on_select", "value": "strong" if it.on else "text", "detail": "text"}
     return {"fill": None if bare else "key", "edge": None, "frame": None if bare else "edge",
             "glyph": "strong" if it.lit or it.on else ("muted" if bare else "text"),
             "label": "strong" if it.lit else "text", "value": "strong" if it.on else "faint" if it.absent else "muted", "detail": "text"}
@@ -3401,8 +3402,9 @@ def main(argv):
         focused = it.key == panel.focus
         lk = look(it, focused, it.key == panel.hot, it.key == panel.pressed)
         if it.kind in ("row", "app", "meter"):
-            if lk["fill"]:                        # (the cursor: the row's tint, its edge at the left)
+            if lk["fill"]:                        # (held down by the pointer: the ink goes to the strongest cream)
                 box(cr, it.x, it.y, it.w, it.h, lk["fill"])
+            if lk["edge"]:                        # (the cursor: its edge at the left; the words and picture change colour)
                 box(cr, it.x, it.y, EDGE_W, it.h, lk["edge"])
         elif it.kind in ("key",):
             if lk["fill"]:
@@ -3446,14 +3448,14 @@ def main(argv):
             ix, iy = it.x + GLYPH_X, it.y + (it.h - APP_ICON) // 2
             pic_ = ic["calc"] if it.app is None else it.app.pic
             if isinstance(pic_, str):             # (one of ours: a character of the icon font)
-                glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["fill"] else "accent_text")
+                glyph(cr, it.x + GLYPH_X, ty, pic_, lk["glyph"] if lk["edge"] else "accent_text")
             else:
                 Gdk.cairo_set_source_pixbuf(cr, pic_, ix, iy)
                 cr.paint()
             right = it.x + it.w - RIGHT_IN
             if it.value:
                 right -= text(cr, right, ty, it.value, lk["value"], right=True) + 2 * CELL
-            text(cr, it.x + NAME_X, ty, it.name, "strong" if it.app is None and not lk["fill"] else lk["label"],
+            text(cr, it.x + NAME_X, ty, it.name, "strong" if it.app is None and not lk["edge"] else lk["label"],
                  width=right - (it.x + NAME_X))
         elif it.kind == "row":
             g = it.glyph if it.glyph is not None else ic[it.icon]
