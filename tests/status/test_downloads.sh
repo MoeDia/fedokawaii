@@ -90,6 +90,8 @@ printf 'a.zip\t1600\t1600\t/tmp/a.zip\n' >"$XDG_RUNTIME_DIR/kawa-downloads/pack.
 has "$(mark)" "$I""62<span"
 rm -f "$XDG_RUNTIME_DIR/kawa-downloads/pack.$job"; world; : >"$D/b.crdownload"
 has "$(mark)" '"bare"'
+B=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_DL_0_BAR")   # (its bar twin: the 20 px drawing, no air)
+has "$(mark)" "\"text\": \"$B\"" "the mark alone: its bar twin"
 case_ "…under 10 %: an unseen digit before it, so the tile keeps its width as the percent grows"
 world; dl Hades 80 1600; has "$(mark)" "$I<span fgalpha='1'>0</span>5<span"
 world; dl Hades 400 1600; lacks "$(mark)" "fgalpha='1'"

@@ -306,3 +306,4 @@ they break.
 | r28-sa15b2 | GTK 3/4 selected rows change colour on a transparent ground; words selected in a field keep the lacquer | tests/static/test_contrast.sh "every menu's selected row is a colour change on the ground" |
 | r28-sa15d2a | kanagu brass corners on dwl windows: four scene buffers per window, art composed once per theme, brass from dwl.colors | tests/session/test_dwl_anim.sh "the picture composed as the scene draws it" |
 | r28-sa20c | the noellipsis test skips the yubi pointer's pixel rows; a quoted row is never text | tests/static/test_noellipsis.sh "nothing asks a toolkit to ellipsize" |
+| r28-sa25b4 | the bar's layout mark and the bare download mark drawn by their bar twins (20 px, Sumi Icons Bar); a 20 px spiral | tests/session/test_dwlstatus.sh "each of dwl's layout symbols as its pixel icon" · tests/status/test_downloads.sh "the mark: the percent of all" |

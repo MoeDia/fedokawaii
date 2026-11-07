@@ -275,7 +275,7 @@ def bar_json(items, ic, frame=0, lit=False):
     # (icons.sh's bar_dl_N, no space, before a value: exactly 8 px from its ink to the value's)
     # (under 10 % an unseen digit before it: the tile keeps its width as the percent grows)
     pad = "<span fgalpha='1'>0</span>" if p is not None and p < 10 else ""
-    text = ic[f"dl_{frame}"] if p is None else f'{under}{ic[f"bar_dl_{frame}"]}{pad}{p}<span fgalpha=\'55%\'>%</span>'
+    text = ic[f"dl_{frame}_bar"] if p is None else f'{under}{ic[f"bar_dl_{frame}"]}{pad}{p}<span fgalpha=\'55%\'>%</span>'
     cls = ["downloading", "bare"] if p is None else ["downloading"]
     if lit:
         cls.append("active")

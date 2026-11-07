@@ -76,7 +76,7 @@ LOCPID=$!; BG_PIDS+=("$LOCPID")
 case_ "a whole recorded session (one monitor, real dwl): the bar ends where dwl did, every file valid JSON"
 rc 0 status "$F/one-monitor.status"
 eq "$(tagrow)" "1:emp 2:sel 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "after quitting: no windows, workspace 2 shown"
-eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":[\"spiral\",\"alone\"]}" "no window: the mark alone in the tile (it takes the tile's 8 px of paper after it)"
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL_BAR\",\"class\":[\"spiral\",\"alone\"]}" "no window: the mark alone in the tile (it takes the tile's 8 px of paper after it)"
 eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
 eq "$(bar kb)" '{"text":"us","class":"first"}'
 eq "$(json_ok)" ""
@@ -91,7 +91,7 @@ rm -rf "$BAR"; blk "$F/one-monitor.status" "layout [2]" | kawa-dwlstatus
 eq "$(bar layout)" '{"text":"[2]","class":"other"}'
 eq "$(title_is 'bell &lt;b&gt;&amp;amp; "q" \x $(id) `id`')" "" "a title with markup, quotes, \$(…) and backticks: shown as typed"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "layout ><>" | kawa-dwlstatus
-eq "$(bar layout)" "{\"text\":\"$ICON_FLOAT\",\"class\":\"float\"}"
+eq "$(bar layout)" "{\"text\":\"$ICON_FLOAT_BAR\",\"class\":\"float\"}"
 case_ "recorded: Alt+Shift to Arabic shows AR, back to US"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "kblayout 1" | kawa-dwlstatus
 eq "$(bar kb)" '{"text":"ar","class":"other"}'
@@ -153,7 +153,7 @@ eq "$(json_ok)" ""
 
 # ── the layout ───────────────────────────────────────────────────────────────
 case_ "each of dwl's layout symbols as its pixel icon (a window's name beside it: the mark not alone)"
-for t in "(@)#$ICON_SPIRAL#spiral" "|||#$ICON_TILE#columns" "><>#$ICON_FLOAT#float"; do
+for t in "(@)#$ICON_SPIRAL_BAR#spiral" "|||#$ICON_TILE_BAR#columns" "><>#$ICON_FLOAT_BAR#float"; do
   IFS='#' read -r sym icon cls <<<"$t"
   rm -rf "$BAR"; block DP-1 1 1 1 0 "$sym" 0 x | kawa-dwlstatus
   eq "$(bar layout)" "{\"text\":\"$icon\",\"class\":\"$cls\"}" "layout $sym"
@@ -275,7 +275,7 @@ rm -rf "$BAR"
 { block DP-1 1 3 2 0 '(@)' 1 "before"
   printf 'DP-1 layout []DP-1 kblayout 0\nDP-1 kblayout 1DP-1 title x\nDP-1 tags 3 2DP-1 layout []=\nDP-1 layout [DP-1 title y\n'
   printf 'DP-1 tags 7 1 1 0\nDP-1 kblayout 1\n'; } | kawa-dwlstatus
-eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}" "the layout stays the last good one"
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL_BAR\",\"class\":\"spiral\"}" "the layout stays the last good one"
 eq "$(bar kb)" '{"text":"ar","class":"other"}' "the keyboard stays the last good one"
 eq "$(tagrow)" "1:sel 2:occ 3:occ 4:- 5:- 6:- 7:- 8:- 9:-" "the next whole tags line counts"
 eq "$(json_ok)" ""
@@ -381,7 +381,7 @@ eq "$(bar title)" '{"text":"<span line_height='"'"'14336'"'"'>lo-fi beats</span>
 case_ "a home folder with a space"
 mkdir -p "$TMP/my home/.config/fedokawaii"; cp "$HOME/.config/fedokawaii/icons.sh" "$HOME/.config/fedokawaii/width.sh" "$TMP/my home/.config/fedokawaii/"
 rm -rf "$BAR"; HOME="$TMP/my home" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "home")
-eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL\",\"class\":\"spiral\"}"
+eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL_BAR\",\"class\":\"spiral\"}"
 case_ "the cat: lit only while quick settings' marker holds a live pid (a pid that died, an empty or broken marker, a dropdown's: dark)"
 cat_ex=$(wbexec custom/menu)
 lit_=$(. "$HOME/.config/fedokawaii/icons.sh"; printf '{"text":"%s","class":"active"}' "$ICON_FACE_OPEN")

@@ -127,12 +127,12 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
       else put "${at}tag$i" '{"text":""}' && tg=1; fi
     done
   done
-  # the layout as a pixel icon (dwl's symbols: (@) spiral, ||| columns, ><> floating)
+  # the layout as a pixel icon, its bar twin (dwl's symbols: (@) spiral, ||| columns, ><> floating)
   local lt=${LAYOUT[$mon]:-(@)} icon cls title
   case $lt in
-    '(@)')       icon=$ICON_SPIRAL cls=spiral ;;
-    '|||')       icon=$ICON_TILE cls=columns ;;
-    '><>')       icon=$ICON_FLOAT cls=float ;;
+    '(@)')       icon=$ICON_SPIRAL_BAR cls=spiral ;;
+    '|||')       icon=$ICON_TILE_BAR cls=columns ;;
+    '><>')       icon=$ICON_FLOAT_BAR cls=float ;;
     *)           icon=$lt cls=other ;;
   esac
   # the title: 60 letters at most, cut at a word's end — never "…" (waybar's max-length
