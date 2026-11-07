@@ -105,8 +105,8 @@ fi
 if ((repo_art)); then
   # (the installed fonts but the icons, which are the repository's; its icons.sh and themes)
   mkdir -p "$h/.local/share/fonts"
-  for f in "$HOME/.local/share/fonts"/*; do [[ ${f##*/} == SumiIcons* ]] || ln -s "$f" "$h/.local/share/fonts/"; done
-  cp "$repo"/configs/home/.local/share/fonts/SumiIcons*.ttf "$h/.local/share/fonts/"
+  for f in "$HOME/.local/share/fonts"/*; do [[ ${f##*/} == Sumi@(Icons|UI16)* ]] || ln -s "$f" "$h/.local/share/fonts/"; done
+  cp "$repo"/configs/home/.local/share/fonts/Sumi{Icons,UI16}*.ttf "$h/.local/share/fonts/"
   cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
   cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$repo/configs/home/.config/fedokawaii/panel-art.txt" "$h/.config/fedokawaii/"
   mkdir -p "$h/.bashrc.d" && cp "$repo/configs/home/.bashrc.d/fedokawaii.sh" "$h/.bashrc.d/"

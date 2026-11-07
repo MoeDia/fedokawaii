@@ -48,13 +48,15 @@ if python3 -c 'import fontTools' 2>/dev/null; then
   same
 else skipped "python3-fonttools is not installed (dnf install python3-fonttools)"; fi
 
-case_ "build-fonts.py on a copy: Sumi UI and width.sh's air tables, byte for byte (from FEDOKAWAII_FONT_SOURCES: JF Dot Shinonome 14, Cozette 1.30.0)"
+case_ "build-fonts.py on a copy: Sumi UI, Sumi UI 16 (and Bold) and width.sh's air tables, byte for byte (from FEDOKAWAII_FONT_SOURCES: JF Dot Shinonome 14, 16, 16B, Cozette 1.30.0)"
 FS=${FEDOKAWAII_FONT_SOURCES:-}
-if python3 -c 'import fontTools, PIL' 2>/dev/null && [[ -n $FS && -f $FS/JF-Dot-Shinonome14.ttf && -f $FS/CozetteVector.ttf ]]; then
+if python3 -c 'import fontTools, PIL' 2>/dev/null && [[ -n $FS && -f $FS/JF-Dot-Shinonome14.ttf && -f $FS/JF-Dot-Shinonome16.ttf && -f $FS/JF-Dot-Shinonome16B.ttf && -f $FS/CozetteVector.ttf ]]; then
   copy
-  (cd "$G" && python3 tools/build-fonts.py ui "$FS/JF-Dot-Shinonome14.ttf" "$FS/CozetteVector.ttf") >"$TMP/log" 2>&1 \
-    && _ok || _no "it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
-  for f in system/fonts/SumiUI.ttf configs/home/.config/fedokawaii/width.sh; do
+  for k in ui:14 ui16:16 ui16b:16B; do
+    (cd "$G" && python3 tools/build-fonts.py "${k%%:*}" "$FS/JF-Dot-Shinonome${k#*:}.ttf" "$FS/CozetteVector.ttf") >"$TMP/log" 2>&1 \
+      && _ok || _no "${k%%:*}: it failed: $(tail -n 4 "$TMP/log" | tr '\n' ' ')"
+  done
+  for f in system/fonts/SumiUI.ttf configs/home/.local/share/fonts/SumiUI16{,-Bold}.ttf configs/home/.config/fedokawaii/width.sh; do
     cmp -s "$REPO/$f" "$G/$f" && _ok || _no "$f differs from what build-fonts.py makes"
   done
 else skipped "FEDOKAWAII_FONT_SOURCES does not hold the two sources (or python3-fonttools / pillow missing)"; fi

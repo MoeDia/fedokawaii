@@ -2,6 +2,7 @@
 """tools/build-fonts.py — the desktop's own face, Sumi UI, from a classic Japanese dot font.
 
     python3 tools/build-fonts.py ui SHINONOME14.ttf COZETTEVECTOR.ttf
+    python3 tools/build-fonts.py ui16 SHINONOME16.ttf COZETTEVECTOR.ttf     (ui16b: SHINONOME16B.ttf)
 
 Writes (committed, so an install needs neither the sources nor Python's fontTools; setup.sh
 puts it in /usr/local/share/fonts/fedokawaii, for every account — the login screen too):
@@ -9,6 +10,9 @@ puts it in /usr/local/share/fonts/fedokawaii, for every account — the login sc
         login — 東雲 (Shinonome) Gothic 14, the regular weight (every stroke one pixel): a 14 px
         em, a 7 px cell (a kanji or kana 14), capitals 10 px tall (docs/design-system.md §2);
         and the air tables of configs/home/.config/fedokawaii/width.sh, measured from it
+    configs/home/.local/share/fonts/SumiUI16.ttf, SumiUI16-Bold.ttf   "Sumi UI 16": the bar's
+        words, Shinonome Gothic 16 and 16 Bold on the bar's 20-row line (16 up, 4 down), the
+        same way; their air tables in width.sh (__AIR16_*, __AIR16B_*)
 (The terminal's face, Sumi Term, is UDEV Gothic NF as it comes: lib/upstream.sh.)
 
 It is drawn for its one size and nothing else: every pixel of the source becomes one square
@@ -53,8 +57,15 @@ PX = 100                                    # units a pixel
 
 # the faces: their size, cell, rows above the baseline (asc) and below (desc), the row of
 # the baseline in a picture Pillow draws at y 0 (its own ascent), and the hand-drawn signs
+HOME_FONTS = ROOT / "configs/home/.local/share/fonts"
 FACES = {
     "ui": dict(family="Sumi UI", file="SumiUI.ttf", size=14, cell=7, asc=12, desc=2, base=13),
+    # the bar's words (its 20-row line: 16 up, 4 down; capitals 13 tall, rows 1–13): Shinonome
+    # Gothic 16 and its bold, in the home (the bar is the account's own)
+    "ui16": dict(family="Sumi UI 16", file="SumiUI16.ttf", size=16, cell=8, asc=16, desc=4, base=14,
+                 out=HOME_FONTS, style="Regular", air="__AIR16"),
+    "ui16b": dict(family="Sumi UI 16", file="SumiUI16-Bold.ttf", size=16, cell=8, asc=16, desc=4, base=14,
+                  out=HOME_FONTS, air="__AIR16B"),
 }
 # the signs, drawn on the face's grid (row 0 = the line's top, as Pillow draws it), in its
 # weight. "~" sits on the minus's row.
@@ -64,6 +75,18 @@ HAND = {
         '"': (3, ["..#.#..", "..#.#..", "..#.#.."]),
         "`": (3, ["..#....", "...#...", "....#.."]),
         "~": (None, [".##..#.", "#..##.."]),
+    },
+    "ui16": {
+        "'": (1, ["...#....", "...#....", "...#...."]),
+        '"': (1, ["..#.#...", "..#.#...", "..#.#..."]),
+        "`": (1, ["..#.....", "...#....", "....#..."]),
+        "~": (None, [".##..#..", "#..##..."]),
+    },
+    "ui16b": {                                       # (its strokes two pixels across)
+        "'": (1, ["..##....", "..##....", "..##...."]),
+        '"': (1, [".##.##..", ".##.##..", ".##.##.."]),
+        "`": (1, [".##.....", "..##....", "...##..."]),
+        "~": (None, [".###.##.", "##.###.."]),
     },
 }
 RUN_ON_BLOCKS = [(0x2500, 0x259F), (0x2800, 0x28FF)]   # box lines, blocks, braille: as drawn
@@ -200,10 +223,11 @@ def write_font(kind, glyphs, notice, licence, licence_url):
     fb.setupHorizontalMetrics(met)
     A, D = asc * PX, -desc * PX
     fb.setupHorizontalHeader(ascent=A, descent=D, lineGap=0)
-    fam = c["family"]
+    fam, sty = c["family"], c.get("style", "Bold")
+    bold = sty == "Bold"
     fb.setupNameTable({
-        "familyName": fam, "styleName": "Bold", "uniqueFontIdentifier": fam + " Bold",
-        "fullName": fam + " Bold", "psName": fam.replace(" ", "") + "-Bold", "version": "Version 2.0",
+        "familyName": fam, "styleName": sty, "uniqueFontIdentifier": f"{fam} {sty}",
+        "fullName": f"{fam} {sty}", "psName": fam.replace(" ", "") + "-" + sty, "version": "Version 2.0",
         "copyright": notice,
         "licenseDescription": licence,
         "licenseInfoURL": licence_url,
@@ -213,13 +237,13 @@ def write_font(kind, glyphs, notice, licence, licence_url):
     fb.setupOS2(sTypoAscender=A, sTypoDescender=D, sTypoLineGap=0, usWinAscent=A,
                 usWinDescent=-D, sxHeight=(base - xh[0]) * PX, sCapHeight=(base - cap[0]) * PX,
                 achVendID="SUMI", fsType=0, xAvgCharWidth=cell * PX,
-                usWeightClass=700, fsSelection=0x20)
-    # The face is drawn in one weight (Shinonome's regular, every stroke a pixel) and
+                usWeightClass=700 if bold else 400, fsSelection=0x20 if bold else 0x40)
+    # Sumi UI is drawn in one weight (Shinonome's regular, every stroke a pixel) and
     # declared bold: a toolkit asking for bold (a GTK button,
     # <b> in a notification) finds it as it is, and fontconfig's 90-synthetic.conf never smears
     # it a pixel wider — its only face serves regular too.
     fb.setupPost(isFixedPitch=1)
-    fb.setupHead(unitsPerEm=size * PX, fontRevision=2.0, macStyle=1)
+    fb.setupHead(unitsPerEm=size * PX, fontRevision=2.0, macStyle=int(bold))
     fpgm = newTable("fpgm")             # "hinted by itself": FreeType's autohinter keeps out
     fpgm.program = ttProgram.Program()
     fpgm.program.fromAssembly(["SVTCA[0]"])
@@ -228,8 +252,9 @@ def write_font(kind, glyphs, notice, licence, licence_url):
     gasp.version = 1
     gasp.gaspRange = {0xFFFF: 0}
     fb.font["gasp"] = gasp
-    OUT.mkdir(parents=True, exist_ok=True)
-    fb.save(str(OUT / c["file"]))
+    out = c.get("out", OUT)
+    out.mkdir(parents=True, exist_ok=True)
+    fb.save(str(out / c["file"]))
     return len(glyphs)
 
 
@@ -274,10 +299,11 @@ def mark_on(pix, mark, name):
     return out
 
 
-def build_ui(face_path, cozette_path):
+def build_ui(kind, face_path, cozette_path):
     """Sumi UI: Shinonome Gothic 14 (regular), the signs drawn for it, Latin Extended-A composed
-    from its own letters, and Cozette for what else a line holds (the doc string's list)."""
-    kind = "ui"
+    from its own letters, and Cozette for what else a line holds (the doc string's list). Sumi
+    UI 16 (kind ui16, ui16b): Shinonome Gothic 16 or 16 Bold the same way, without the signs and
+    Latin Extended-A drawn for the 14 (Cozette has those)."""
     c = FACES[kind]
     size, cell, asc, desc, base = c["size"], c["cell"], c["asc"], c["desc"], c["base"]
     top = base - asc
@@ -304,6 +330,8 @@ def build_ui(face_path, cozette_path):
         if not in_line(pix, adv):
             sys.exit(f"build-fonts: Sumi UI: U+{cp:04X} leaves its cell")
         glyphs[cp] = (adv, pix)
+    if kind == "ui16b":                              # (the bold's low line as the regular's: a column of air)
+        glyphs[ord("_")] = (cell, {(x, y) for x, y in glyphs[ord("_")][1] if x < cell - 1})
     # 2. the five signs, by hand
     minus = sorted({y for x, y in glyphs[ord("-")][1]})
     mid = minus[len(minus) // 2]
@@ -318,37 +346,40 @@ def build_ui(face_path, cozette_path):
     # (T among them: Ť Ţ are made from that T)
     for ch, rows in signs(kind, cell).items():
         glyphs[ord(ch)] = (cell, rows)
-    # 4. Latin Extended-A from the face's own letters
-    dotless = {(x, y) for x, y in glyphs[ord("i")][1] if y > 4}
-    glyphs[0x131] = (cell, dotless)                  # ı
-    for cp in range(0x100, 0x180):
-        if cp in glyphs:
-            continue
-        d = unicodedata.decomposition(chr(cp)).split()
-        if len(d) != 2 or d[0].startswith("<"):
-            continue
-        b, m = chr(int(d[0], 16)), int(d[1], 16)
-        if m not in MARKS or ord(b) not in glyphs:
-            continue
-        if b in SHORT and MARKS[m][0] == "above" and ord(SHORT[b]) in glyphs:
-            letter = {(x, y) for x, y in glyphs[ord(SHORT[b])][1] if y >= 4}   # (the face's own, a row shorter)
-        elif b == "i" and MARKS[m][0] == "above":
-            letter, b = dotless, "ı"
-        else:
-            letter = glyphs[ord(b)][1]
-        if m == 0x030C and b in "dltL":              # (ď ľ ť Ľ: the caron a small stroke at the right)
-            x1 = max(x for x, y in letter if y <= 6) + 1
-            glyphs[cp] = (cell, set(letter) | {(min(x1 + (b == "L") * 2, cell - 1), 3), (min(x1 + (b == "L") * 2, cell - 1), 4)})
-            continue
-        if m == 0x0327 and b == "g":                 # (ģ: the comma turned, above)
-            glyphs[cp] = (cell, mark_on(letter, 0x0301, b))
-            continue
-        glyphs[cp] = (cell, mark_on(letter, m, b))
-    glyphs[0x142] = (cell, glyphs[ord("l")][1] | {(2, 8), (4, 6)})          # ł
-    glyphs[0x141] = (cell, glyphs[ord("L")][1] | {(1, 7), (2, 6)})          # Ł
-    glyphs[0x111] = (cell, glyphs[ord("d")][1] | {(3, 4), (4, 4), (5, 4)})  # đ
+    # 4. Latin Extended-A from the face's own letters (the 14's rows)
+    if kind == "ui":
+        dotless = {(x, y) for x, y in glyphs[ord("i")][1] if y > 4}
+        glyphs[0x131] = (cell, dotless)                  # ı
+        for cp in range(0x100, 0x180):
+            if cp in glyphs:
+                continue
+            d = unicodedata.decomposition(chr(cp)).split()
+            if len(d) != 2 or d[0].startswith("<"):
+                continue
+            b, m = chr(int(d[0], 16)), int(d[1], 16)
+            if m not in MARKS or ord(b) not in glyphs:
+                continue
+            if b in SHORT and MARKS[m][0] == "above" and ord(SHORT[b]) in glyphs:
+                letter = {(x, y) for x, y in glyphs[ord(SHORT[b])][1] if y >= 4}   # (the face's own, a row shorter)
+            elif b == "i" and MARKS[m][0] == "above":
+                letter, b = dotless, "ı"
+            else:
+                letter = glyphs[ord(b)][1]
+            if m == 0x030C and b in "dltL":              # (ď ľ ť Ľ: the caron a small stroke at the right)
+                x1 = max(x for x, y in letter if y <= 6) + 1
+                glyphs[cp] = (cell, set(letter) | {(min(x1 + (b == "L") * 2, cell - 1), 3), (min(x1 + (b == "L") * 2, cell - 1), 4)})
+                continue
+            if m == 0x0327 and b == "g":                 # (ģ: the comma turned, above)
+                glyphs[cp] = (cell, mark_on(letter, 0x0301, b))
+                continue
+            glyphs[cp] = (cell, mark_on(letter, m, b))
+        glyphs[0x142] = (cell, glyphs[ord("l")][1] | {(2, 8), (4, 6)})          # ł
+        glyphs[0x141] = (cell, glyphs[ord("L")][1] | {(1, 7), (2, 6)})          # Ł
+        glyphs[0x111] = (cell, glyphs[ord("d")][1] | {(3, 4), (4, 4), (5, 4)})  # đ
     # 5. Cozette: what else a line holds, one cell wide — its baseline (after its row 9) on
-    # the face's (after row 12); a third row of descender (its y p g in Greek, Cyrillic) cut
+    # the face's (the 14's after row 12: a third row of descender, its y p g in Greek and
+    # Cyrillic, cut), in the cell's middle
+    dx, dy = (cell - 6) // 2, base - 10
     for a, b in COZETTE_BLOCKS:
         for cp in range(a, b + 1):
             ch = chr(cp)
@@ -359,7 +390,7 @@ def build_ui(face_path, cozette_path):
                 continue
             if round(coz.getlength(ch)) != 6:
                 continue
-            pix = {(x, y + 3) for x, y in picture(coz, ch, 8, 14) if x < 6 and y + 3 <= base + desc - 1}
+            pix = {(x + dx, y + dy) for x, y in picture(coz, ch, 8, 14) if x < 6 and y + dy <= base + desc - 1}
             if pix and in_line(pix, cell):
                 glyphs[cp] = (cell, pix)
     # 6. a column of air after every letter (the face's own already keep one; a kanji with no
@@ -387,34 +418,35 @@ def build_ui(face_path, cozette_path):
     glyphs[0x20] = (cell, set())
     glyphs[0xA0] = (cell, set())
     glyphs[0x3000] = (2 * cell, set())
-    write_air(glyphs, cell)
+    write_air(glyphs, cell, c.get("air", "__AIR"))
     coz_notice = TTFont(cozette_path, lazy=True)["name"].getDebugName(13) or ""
     return write_font(kind, glyphs,
-                      "Shinonome Gothic 14 (public domain, via JF Dot fonts 2015-05-27) and Cozette "
+                      f"Shinonome Gothic {size}{' Bold' * (kind == 'ui16b')} (public domain, via JF Dot fonts 2015-05-27) and Cozette "
                       "1.30.0 (MIT License, Copyright (c) 2020, Ines <ines@moonwit.ch>).",
                       "This font: the MIT License, as Cozette's (the Shinonome parts are in the public "
                       "domain).\n\n" + coz_notice, "https://github.com/the-moonwitch/Cozette/blob/master/LICENSE")
 
 
-def write_air(glyphs, cell):
+def write_air(glyphs, cell, name):
     """width.sh's air tables (the bar's l/r classes): each printable ASCII letter's empty
     columns before its ink and after it, 0–3 px."""
     L = "".join(str(min(min(x for x, _ in glyphs[cp][1]), 3)) for cp in range(33, 127))
     R = "".join(str(min(cell - 1 - max(x for x, _ in glyphs[cp][1]), 3)) for cp in range(33, 127))
     f = ROOT / "configs/home/.config/fedokawaii/width.sh"
     t = f.read_text()
-    t2 = re.sub(r"^__AIR_L=\d+$", "__AIR_L=" + L, t, flags=re.M)
-    t2 = re.sub(r"^__AIR_R=\d+$", "__AIR_R=" + R, t2, flags=re.M)
-    if t2.count("__AIR_L=" + L) != 1 or t2.count("__AIR_R=" + R) != 1:
-        sys.exit("build-fonts: width.sh has no __AIR_L/__AIR_R line to write")
+    t2 = re.sub(rf"^{name}_L=\d+$", f"{name}_L=" + L, t, flags=re.M)
+    t2 = re.sub(rf"^{name}_R=\d+$", f"{name}_R=" + R, t2, flags=re.M)
+    if t2.count(f"{name}_L=" + L) != 1 or t2.count(f"{name}_R=" + R) != 1:
+        sys.exit(f"build-fonts: width.sh has no {name}_L/{name}_R line to write")
     f.write_text(t2)
 
 
 def main(argv):
-    if len(argv) != 3 or argv[0] != "ui":
+    if len(argv) != 3 or argv[0] not in FACES:
         sys.exit(__doc__.split("\n\n")[1])
-    n = build_ui(argv[1], argv[2])
-    print(f"Sumi UI: {n} characters → {OUT / FACES['ui']['file']}")
+    c = FACES[argv[0]]
+    n = build_ui(argv[0], argv[1], argv[2])
+    print(f"{c['family']} {c.get('style', 'Bold')}: {n} characters → {c.get('out', OUT) / c['file']}")
 
 
 if __name__ == "__main__":
