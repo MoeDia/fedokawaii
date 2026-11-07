@@ -58,6 +58,8 @@ for p in sorted(files):
             if s.startswith("#") or s.startswith("//") or s.startswith("/*") or s.startswith("*"):
                 continue
             code = re.sub(r"\s#\s.*$", "", l)
+        if re.fullmatch(r'\s*(\w+ = \()?"[.#ohs]*[#ohs][.#ohs]*"[,)]*\s*', code):
+            continue                                  # (a pixel row of a picture: "#o#....." is ink, not text)
         if not dots.search(code):
             continue
         if re.search(r"usage|>&2|file=sys\.stderr|2>&1 \|", code):
