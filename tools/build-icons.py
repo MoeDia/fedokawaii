@@ -12,6 +12,8 @@ Outputs (all committed, so a normal install needs neither Python nor fontTools):
         two: foot draws it from its cell's left edge, into the space after it) and its middle
         on the capitals' middle (11.6 px tall: a 12 px icon from the baseline up)
     configs/home/.config/fedokawaii/icons.sh
+    configs/home/.local/share/fonts/SumiIconsBar.ttf    "Sumi Icons Bar": art/icons-bar.txt, the bar's
+        own drawings on its 16 px grid (r28 sa25), each at the bar twin of the icon it is named after
 
 The font copies Sumi UI's grid: 1400 units per em, 100 units per pixel, so at 14 px (or 28,
 42…) every pixel of the drawing lands on exactly one screen pixel.
@@ -44,6 +46,10 @@ CELLS = 0xFF000                   # whole terminal cells at fixed places, for wh
                                   # patched yazi, its Lua, a script): the frame's ring (art/icons.txt, cp=) and
                                   # the keycaps: U+FF000 + a key's ASCII code, its ends U+FF001 and U+FF002 (§7)
 BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of the grid)
+BAR_SRC = ROOT / "art" / "icons-bar.txt"
+BAR_TTF = ROOT / "configs/home/.local/share/fonts/SumiIconsBar.ttf"
+BAR_UPM, BAR_ASC, BAR_DESC = 1600, 1600, -400     # the bar's 16 px em, its line: 16 up, 4 down (20 rows)
+BAR_MIDDLE = 6                    # the bar's icon's middle over the baseline (art/icons-bar.txt)
 MIDDLE = 5                        # an icon's middle in pixels above the baseline: the middle of
                                   # Sumi UI's capitals (10 px tall on it)
 
@@ -124,9 +130,9 @@ def rectangles(rows):
     return out
 
 
-def glyph(ic, raise_px=0):
+def glyph(ic, raise_px=0, middle=MIDDLE):
     pen = TTGlyphPen(None)
-    top = MIDDLE + raise_px + ic["h"] // 2   # pixel row 0 sits just below this line
+    top = middle + raise_px + ic["h"] // 2   # pixel row 0 sits just below this line
     x = ic["x"]
     for x0, y0, x1, y1 in rectangles(ic["rows"]):
         L, R = (x + x0) * PX, (x + x1) * PX
@@ -139,7 +145,7 @@ def glyph(ic, raise_px=0):
     return pen.glyph()
 
 
-def build(icons, path=TTF, family="Sumi Icons", raise_px=0, cell=0, upm=UPM, asc=ASC, desc=DESC):
+def build(icons, path=TTF, family="Sumi Icons", raise_px=0, cell=0, upm=UPM, asc=ASC, desc=DESC, middle=MIDDLE):
     names = [".notdef", "space"] + ["i_" + ic["name"].replace("-", "_") for ic in icons]
     fb = FontBuilder(upm, isTTF=True)
     fb.setupGlyphOrder(names)
@@ -161,7 +167,7 @@ def build(icons, path=TTF, family="Sumi Icons", raise_px=0, cell=0, upm=UPM, asc
         if cell:                             # (centred in whole cells of the terminal's face)
             adv = -(-ic["w"] // cell) * cell
             ic = {**ic, "adv": adv, "x": (adv - ic["w"]) // 2}
-        glyphs[name] = glyph(ic, raise_px)
+        glyphs[name] = glyph(ic, raise_px, middle)
         metrics[name] = (ic["adv"] * PX, ic["x"] * PX)
     fb.setupGlyf(glyphs)
     glyf = fb.font["glyf"]
@@ -321,6 +327,20 @@ def twins(icons):
                     for k, ic in enumerate(icons) if not ic["name"].startswith("gap")] + fixed + key_cells()
 
 
+def bar_icons(icons):
+    """art/icons-bar.txt's drawings at the bar twins' places of the icons they are named after (an
+    icon's own code for the gaps): ink from the pen, no air, as the twins are"""
+    place = {ic["name"]: ic for ic in icons if not ic.get("twin")}
+    out = []
+    for ic in parse(BAR_SRC.read_text(), "icons-bar.txt"):
+        if ic["name"] not in place:
+            sys.exit(f"icons-bar.txt:{ic['line']}: {ic['name']} is no icon of icons.txt")
+        cols = [i for r in ic["rows"] for i, v in enumerate(r) if v == "#"]
+        out.append({**ic, "x": -min(cols), "adv": max(cols) - min(cols) + 1,
+                    "code": TWIN + place[ic["name"]]["code"] - FIRST})
+    return out + [{**place[g]} for g in ("gap", "gap1")]
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     ap.add_argument("--preview", metavar="PNG")
@@ -328,8 +348,11 @@ def main():
     icons = twins(parse(SRC.read_text()))
     build(icons)
     build(icons, TERM_TTF, "Sumi Icons Term", TERM_RAISE, TERM_CELL, TERM_UPM, TERM_ASC, TERM_DESC)
+    bar = bar_icons(icons)
+    build(bar, BAR_TTF, "Sumi Icons Bar", upm=BAR_UPM, asc=BAR_ASC, desc=BAR_DESC, middle=BAR_MIDDLE)
     write_sh(icons)
-    print(f"{len(icons)} icons → {TTF.relative_to(ROOT)}, {TERM_TTF.relative_to(ROOT)}, {SH.relative_to(ROOT)}")
+    print(f"{len(icons)} icons → {TTF.relative_to(ROOT)}, {TERM_TTF.relative_to(ROOT)}, {SH.relative_to(ROOT)}; "
+          f"{len(bar)} → {BAR_TTF.relative_to(ROOT)}")
     if a.preview:
         preview(icons, a.preview)
 
