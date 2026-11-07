@@ -753,3 +753,110 @@ CLAUDE (monitoring the run for the owner, S15): The owner (09:40): his Mac will 
 1. Order the work so nothing ever waits on him or on Claude. Rows that need a pick or a note are parked; there is always a next row that needs nobody (engineering, apps, learning, nvim, repo, ISO and installer, tests). A design row waiting for a pick: build the strongest option behind a switch (S8) and move on; swap when the pick comes.
 2. A self-audit every 6 passes (cheap, on haiku), the checks Claude would otherwise send by hand: (a) pace against the plan and the ETA trend; (b) no daily row before its day, no long job repeated; (c) the model mix (sonnet should carry most rows); (d) any pass over 90 minutes, any idle gap between passes; (e) a blocked row older than 6 hours gets one fresh attempt with a different approach; (f) the design track not crowding out the rest. Fix what it finds and note it in the plan.
 3. Claude's notes still arrive through steer.md whenever his Mac is awake. Treat them as his voice, never wait for them.
+
+## 2026-11-07 12:45 — in the plan: sa26, sa27, sa28, sa29
+CLAUDE (monitoring the run for the owner, S16): The owner (12:43), in order of size:
+1. Packages: add smartmontools and LocalSend only (he declined Syncthing and Tailscale).
+   - smartmontools: smartd watches the disks; a warning becomes a notification and a line in Super+U's inventory/health; part of the self-maintenance.
+   - LocalSend: from its official release (RPM or AppImage, self-updating like the other release apps; NOT Flatpak, Flatpak stays inside ASOBI); its port (53317, TCP and UDP) open in the home/LAN zone only; in the launcher and Super+U's inventory.
+2. Neovim colours: no third-party colorscheme. Generate our own colorscheme ("kawa") straight from the theme tokens in tools/build-themes.py, for both moods, following the mood switch live as now; drop the gruvbox plugin (one plugin fewer).
+3. Rust in Neovim: keep what is there (rust-analyzer with clippy on save, rustfmt, taplo, Space r keys, codelldb), and add inlay hints for Rust (types shown in the code, a key to toggle them), which help a learner most. crates.nvim only if it stays tiny.
+4. The daily lessons, Part 2: make him a well-rounded programmer, still about 30 minutes a day, tiny steps:
+   - Bash scripting as its own track, early: his desktop is built of shell scripts.
+   - Python stays the main language. Connect it to the SQL he already uses at work (SQLite from Python).
+   - Simple, solid frontends: HTML and CSS, a little JavaScript, and HTMX with a small Python backend (FastAPI); and terminal UIs with Textual (Python), later ratatui (Rust), matching his desktop's look.
+   - Rust after the Python basics, with Rustlings-style tiny exercises.
+   - Short units on the basics underneath: the command line, regex, HTTP and networking, data structures; git, testing, debugging and security as planned.
+   - Order: Python and Bash first, then web and TUI frontends, then Rust. Write the track list into the lessons' table of contents.
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S17): The owner (12:48), correcting S16: he does NOT use SQL at work (that was a mix-up); he learns it from zero. And more love for the web track.
+1. SQL with PostgreSQL, a full track like the others, from zero: Fedora's current PostgreSQL server installed, started on demand (not always running), a learning database, psql. Tiny steps: SELECT and WHERE, sorting, JOINs, GROUP BY, then designing tables, keys, indexes, transactions, backups; then Postgres from Python with psycopg 3. Drop "SQLite from Python because he knows SQL" from S16.
+2. Nothing outdated, anywhere in the lessons: check every lesson against the current official docs and tools as of November 2026 (current Python and uv, Rust 2024 edition, current PostgreSQL, psycopg 3 not psycopg2, modern CSS, modern JavaScript, HTMX 2), and end each lesson with a "checked against" line naming the doc and its version.
+3. The web track, more love: simple, solid websites, modern, minimal and quick. Semantic HTML; modern CSS without frameworks first (custom properties, flexbox, grid, container queries, :has(), nesting, clamp() type); a little modern JavaScript (modules, fetch, no var, no jQuery); HTMX with a small Python backend for interactivity; speed (tiny pages, few requests, optimised images, at most one web font) and accessibility basics; publishing a static site. Project-based: he builds his own personal site step by step across the track.
+4. He pointed again to the YouTuber Hayyoth: use your Hayyoth findings (r28-hayyoth.md) for the web track's look and teaching style.
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S18): The owner (12:49): the learning in fedokawaii is SUPER important to him. He is a slow learner, learns by examples and practice, and dislikes complex words used without their definitions. Rules for every lesson (Part 1 and Part 2), applied to the lessons already written too:
+- Example first, then the idea: show a small working example, then explain it, then let him try a variation.
+- Practice is most of the lesson: about 2 parts doing, 1 part reading. Every lesson has a hands-on exercise with an expected result he can check himself, a hint, and the answer hidden until he asks.
+- One new idea per lesson; slow, tiny steps; repeat earlier ideas in later exercises so they stick (a short "remember?" warm-up from an earlier lesson).
+- Plain words. Any term he may not know gets a friendly one-line definition the first time it appears in that lesson, in a small box like "venv: a private folder of Python packages for one project", plus a glossary page that collects them all.
+- Short sentences, no jargon chains, no walls of text; real, relatable examples (his folders, his notes, his books, his desktop).
+- End each lesson with a 3-question check and one line on what comes next.
+Rewrite the lessons written so far to these rules before writing new ones. This track gets opus (design he will judge) and a final read-through for plain language.
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S19): The owner (12:51): go deeper on what happens behind the scenes, and DRILL the critical concepts into him fully. Claude chose the theory below; keep S18's rules (example first, plain words, every term defined, mostly practice).
+HOW
+- Every lesson gets a "Behind the scenes" part: what really happens underneath, a simple drawing (boxes and arrows in text), and a hands-on peek with a real tool (ps, strace, ss, curl -v, dig, git cat-file, EXPLAIN, the browser's dev tools, rust's borrow checker errors).
+- Drilling: a 5-minute daily review at the start of each day (inside the ~30 minutes): flashcards and tiny exercises on earlier concepts, spaced out (again after 1, 3, 7, 14 days); a concept counts as learned after 3 right answers on different days. A "concept map" page shows each concept as new, practising or learned.
+- A small project each week that uses the week's concepts together.
+THE CONCEPTS TO DRILL (in this order, woven into the tracks where they fit)
+1. The machine: CPU, RAM and disk; a program vs a process; what happens when he types a command (the shell, PATH, a new process, the exit code); files, permissions, users and sudo; stdin, stdout, stderr, pipes and redirection; bytes, text and UTF-8; binary and why 0.1 + 0.2 is not 0.3.
+2. His system: how Linux boots; systemd services; packages and dependencies, versions; the filesystem layout; how his Wayland desktop draws windows (the compositor, dwl).
+3. Programming: values, names and references; mutable vs immutable; functions, scope and the call stack; recursion; errors and how to read a traceback; a debugging method (reproduce, isolate, fix, test).
+4. Data structures and cost: list, dict (a hash map, why lookup is fast), set, stack, queue; how work grows with data (big-O in plain words).
+5. Memory: stack vs heap; Python's garbage collection vs Rust's ownership, borrowing and lifetimes (drilled hard); static vs dynamic types; Option and Result instead of null and exceptions.
+6. Networks: IP addresses, ports, DNS, TCP vs UDP; HTTP request and response, methods and status codes; HTTPS and TLS in plain words; what happens when he opens a website.
+7. The web: the browser's path from HTML to the DOM, CSS, layout and paint; the box model; the cascade and specificity; responsive layouts; the JavaScript event loop; client vs server; cookies, sessions and caching.
+8. Databases: tables, rows and keys; relations and JOINs; designing tables without repeating data (normalisation in plain words); indexes (why they make lookups fast); transactions (all or nothing); EXPLAIN.
+9. Git underneath: snapshots, commits as a chain, branches as pointers, merge and rebase.
+10. Security: secrets never in code; input validation; SQL injection and XSS shown and then prevented; hashing vs encryption; least privilege.
+11. Later: concurrency (threads vs async) and how tests protect a program (unit vs integration).
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S20): The owner (12:54): learning is the most important part of fedokawaii, "no joke". Visuals wherever they help, nothing held back, more research, and information accurate to the dot. On top of S18 and S19:
+VISUALS
+- Wherever a picture explains faster than words, draw one: simple, calm, big labels, one idea per picture, in the desktop's style, crisp in both moods (SVG). Step-by-step pictures for processes (a command becoming a process, an HTTP request travelling, the call stack growing and shrinking, a git history changing, a JOIN matching rows, Rust moving and borrowing a value), animated or as numbered frames he can step through.
+- The lessons open as local pages (Helium, offline) when pictures matter, launched by kawa-learn; your call on the exact viewer, as long as pictures, code and exercises sit together.
+LEARNING SCIENCE (research it properly and apply it, cite what you used in the lessons' about page)
+- Worked examples first, then the help fades step by step until he solves it alone.
+- Retrieval practice and spaced review (S19), interleaving older topics into new exercises, words plus pictures together.
+- "Explain it back": every few lessons he explains a concept in his own words in ~/notes, with a checklist to compare against.
+- Instant feedback: exercises come with a checker (a small script that runs his answer and says what is right and what is not, kindly). A "common mistakes" box in each lesson.
+- Motivation in the desktop's game style: a dojo rank that grows with practice, a streak, a weekly look back. Calm, never nagging.
+CURRICULA TO ALIGN WITH (use as structure and checking sources, write our own lessons, no copying): MIT's "Missing Semester" (shell, git, tools), MDN's "Learn web development" (HTML, CSS, JS), the Python tutorial and the Rust Book (with Rustlings exercises), the PostgreSQL tutorial, and Julia Evans' style of visual explanations of Linux and networking (inspiration only).
+ACCURACY TO THE DOT
+- Every code example in every lesson is run by the test suite with its expected output, so no example can be wrong or go stale.
+- Every fact is checked against the primary docs (S17's "checked against" line); when unsure, check, never guess.
+- Before a lesson is marked done, a separate review pass (fresh context, opus) checks it for accuracy, plain language and S18's rules; fixes go in before it ships.
+SCOPE BY THE DEADLINE
+- The full syllabus, the concept map and the glossary; the first 14 days of lessons finished to this standard (pictures, checkers, review passed); the rest written ahead of him later, always at least 7 days ahead, through the same gates. Quality over quantity: never ship a lesson that has not passed the checks.
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S21): The owner (12:58):
+1. The lessons' look must never distract: super minimal, all the care in colours, fonts, spacing and alignment, following the theme in both moods, his eyes comfortable for long reading. Concretely:
+   - generous spacing everywhere; text column about 60-70 characters wide; line height about 1.6; a larger body size (around 18-20 px); the chosen programming font for code, a calm reading font for text; everything aligned to one grid;
+   - soft contrast from the theme (no pure black on pure white, no glaring accents), comfortable but clearly readable (WCAG AA at least);
+   - pictures in the same muted theme colours, only where they teach (S20); nothing moves by itself: step-by-step pictures advance when he clicks; respect reduced motion;
+   - the dojo rank and streak stay quiet in a corner or on their own page, never in the lesson's way.
+   This replaces anything flashier in S20.
+2. Add the C language. Claude's decision on the level and the place:
+   - Place: after Python and Bash, SQL and the web, and before Rust. C shows how the machine really handles memory (and how easily it goes wrong); Rust then shows how it prevents those mistakes, so ownership makes sense.
+   - Level: solid foundations, not expert: read and write small C programs; types, arrays, strings as bytes, pointers, structs, the stack and the heap, malloc and free; how source becomes a program (preprocess, compile, link) with gcc and make; debugging with gdb; catching memory bugs with AddressSanitizer and valgrind. The goal project: read his own dwl's config.h and a small patch, change it, rebuild and run it in a nested session.
+   - Modern C only: C23 as Fedora's current gcc supports it, every example compiled with -std=c23 -Wall -Wextra -Werror and run under AddressSanitizer in the test suite. Check against current, solid sources: Jens Gustedt's "Modern C" (C23 edition), cppreference's C pages, Beej's Guide to C, the gcc manual; not old K&R-style code.
+   - Its "behind the scenes" part ties into S19's concepts 1 and 5 (the machine, memory).
+The full order of Part 2 is now: Python and Bash, then SQL and the web (with Textual TUIs), then C, then Rust; the basics underneath (S19) woven through. Accuracy gates (S20) apply to all of it.
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S22): The owner (13:03):
+1. No learning project may affect his PC in any way. Everything a lesson or project runs is contained and sandboxed:
+   - One "dojo" sandbox (rootless podman containers, or bubblewrap where a container is too heavy) that sees only ~/dojo, nothing else of his home, no sudo, no system changes; servers bound to localhost only; the checkers run inside it too.
+   - PostgreSQL runs in a container inside the dojo, not as a system service (this replaces S17's "Fedora's PostgreSQL server").
+   - The C project on dwl works on a copy inside the dojo, built and run as a nested session inside the sandbox; it never touches the real dwl, its config or the system.
+   - A reset command puts the dojo back to clean in one step.
+2. Projects more fun and interesting, in the desktop's retro game spirit, for example: a samurai text adventure (Bash or Python), a terminal roguelike or a chess-puzzle trainer in Textual, a pixel-art generator, a small HTML canvas game on his site, a Postgres database of his books with a tiny HTMX page, a snake game in C, a terminal Tetris or a fast file finder in Rust. Your call, as long as each one practises that week's concepts.
+3. The old learning book is gone for good: the Learn PDF, its sources, the book cover, its build and assets. Harvest the useful knowledge into the new lessons, then remove all of it (f27 started this; finish it, including any cover art, references and menu entries).
+4. Plan a purge for the FINAL repo edit: list every leftover that a clean repo does not need (old books and covers, retired scripts, unused assets and renders, round-only tools, stale notes) in .claude/notes/r28-final-purge.md, and remove them in the final edit after the questionnaire. Keep CLAUDE.md working.
+5. Make the terminal and Neovim coding experience even better: a minimal but truly effective setup for a human. Start from the twenty things a programmer does every day (open a file by name, search the project, go to a definition, rename, see and fix errors, format, complete code, run, test, debug, git status and commit, switch files, splits, a terminal, undo history, find recent files...) and make sure each has one obvious key in one consistent pattern (Space + a letter per topic: f find, g git, c code, r run, t test, d debug), all shown by which-key and on one cheat-sheet page. Add only what is missing (for example built-in LSP completion if it is not on, a terminal toggle, persistent undo); nothing decorative. It gets lessons of its own (Neovim with his config, S18's rules).
+
+## 2026-11-07 13:15 — open
+CLAUDE (monitoring the run for the owner, S23): The owner (13:11):
+1. Projects: fun, but serious and useful, good enough for a future programming portfolio. Each track ends in one real project he would actually use and could show: a clear README with a screenshot or short demo, tests, a clean git history, a licence, sensible structure. Ideas (your call): a captures organiser CLI in Python (renames by date, finds duplicates); a bookshelf app (PostgreSQL + a fast, minimal HTMX site with search and reading progress); his personal portfolio site itself; a Textual TUI (a habit and lesson tracker, or a chess-puzzle trainer on open puzzle data); a C terminal game plus the sandboxed dwl patch; a Rust duplicate-file finder with a benchmark against his Python version. The fun stays (game touches, his desktop's style); the quality is portfolio-grade.
+   Publishing to GitHub happens only when he decides, from outside the dojo, with his own account; the dojo never holds his credentials.
+2. The dojo sandbox, made precise:
+   - "dojo" (a command, a launcher entry and Super+U) opens a terminal inside the box; Neovim's run, test and debug keys (Space r, Space t, Space d) run inside the box for any file under ~/dojo.
+   - Editing happens with his normal Neovim on the host (only text files change); running happens inside the box.
+   - Pages served inside open in Helium at localhost.
+   - "dojo reset" rebuilds the box (tools, packages, the database) but NEVER deletes his project files; wiping files is a separate command that asks first.

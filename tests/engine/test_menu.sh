@@ -33,7 +33,7 @@ case_ "an unknown command: exit 2, and how to get help"
 out=$(fedokawaii frobnicate 2>&1); eq "$?" 2; has "$out" 'unknown command "frobnicate"'; has "$out" "fedokawaii help"
 rc 2 fedokawaii -x; rc 2 fedokawaii "up date"; rc 2 fedokawaii $'update\nrepair'
 case_ "a command given more than it takes: exit 2, root's side never asked"
-for c in update verify repair theme drift snapshots backup log status copy diff apply learn settings; do
+for c in update verify repair theme drift snapshots backup log inventory status copy diff apply learn settings; do
   rc 2 fedokawaii "$c" extra
 done
 rc 2 fedokawaii upgrade now; rc 2 fedokawaii upgrade --now extra
@@ -106,7 +106,7 @@ out=$(fedokawaii update 2>&1); eq "$?" 0; has "$out" "the update on the running 
 case_ "rows: five sections, each its entries in order, each fitting the 38-column list"
 fresh; rec last-update-done "$(ago_s 10)"; rec snapshots 14; rec last-verify "$(ago_s 1) 180 2 0"
 for s in $SECS; do printf '%s: %s\n' "$s" "$(WAYLAND_DISPLAY=wayland-1 fedokawaii --rows "$s" | cut -f1 | tr '\n' ' ')"; done >"$TMP/secs"
-eq "$(cat "$TMP/secs")" "system: status verify repair drift change asobi theme settings remind log 
+eq "$(cat "$TMP/secs")" "system: status verify repair drift change asobi theme settings remind log inventory 
 update: update held 
 snapshots: snapshots file 
 backups: backup restore drive carry stick bring 
@@ -126,7 +126,7 @@ done
 has "$(row update)" "in 4 days"; has "$(row snapshots)" "14"; has "$(row verify)" "2 to fix"; has "$(row remind)" "every 14 days"
 lacks "$(row status)" "Fedora" "status: no value (the pane beside it is the status: the release is its first line)"; eq "$(row upgrade)" "" "the move is the update's: no row of its own"
 case_ "rows: away from the desktop (a text console, ssh) — change, keys and the to-do are screens of the desktop"
-eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log "
+eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows system | cut -f1 | tr '\n' ' ')" "status verify repair drift theme settings remind log inventory "
 eq "$(env -u WAYLAND_DISPLAY fedokawaii --rows learning | cut -f1 | tr '\n' ' ')" "learn " "(the to-do is the notes' window: the desktop's, as change and keys)"
 case_ "fzf's items: NUL-ended, one a row, no headings in the list (the tab bar heads it)"
 eq "$(fedokawaii --items update | tr '\0' '\n' | cut -f1 | tr '\n' ' ')" "update held "
@@ -212,7 +212,7 @@ case_ "Super+U's popup (--popup): the menu closes for a job too (fzf becomes the
 fresh; stub fzf 'cat >/dev/null; exit 130'
 on_tty "" fedokawaii --popup >/dev/null
 called "enter:transform:case \\{1\\} in held\\) ;; learn\\|keys\\|change\\|asobi\\|chess\\|typing\\) echo 'execute-silent\\([^)]* --run \\{1\\}\\)\\+execute-silent\\(kawa-warm system\\)' ;; remind\\) "
-called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|chess\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|carry\|stick\|bring\|settings\|log\) echo .become\('
+called 'remind\) echo .execute-silent\([^)]* --run \{1\}\)\+reload-sync\([^)]* --items\). ;; change\|keys\|chess\|update\|verify\|repair\|theme\|drift\|snapshots\|file\|backup\|restore\|drive\|carry\|stick\|bring\|settings\|log\|inventory\) echo .become\('
 reset_calls; on_tty "" fedokawaii >/dev/null; called 'enter:transform:case \{1\} in held\) ;; remind\) echo .execute-silent\([^)]*\)\+reload-sync\([^)]*\). ;; change\|keys\|chess\) echo .become\('
 called 'esc,ctrl-c,ctrl-g,ctrl-q:abort' "(outside the warm window: Esc only ends it)"
 case_ "…in the warm window (KAWA_WARM=system): Esc, q and a job's become put it away first — while the menu is still drawn (dwl's ghost of it fades, never a page fzf wiped)"
@@ -278,7 +278,7 @@ rec last-verify "$(ago_s 365) 1800 0 12"; echo 6.17.10-1300.fc45.x86_64 >"$R/new
 echo "2000000000000 12000000000" >"$R/df"; printf '%s\n' a-very-long-package-name another-long-one >"$R/state/unavailable"
 printf '/etc/x.rpmnew\n' >"$R/state/rpmnew"
 setting BACKUP_TARGET "a drive with a long name"; backed_up 1000
-for a in status update verify repair snapshots backup theme drift change settings remind log keys learn; do
+for a in status update verify repair snapshots backup theme drift change settings remind log inventory keys learn; do
   out=$(FZF_PREVIEW_LINES=16 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain "$a")
   (( $(wc -l <<<"$out") <= 16 )) && _ok || _no "$a: $(wc -l <<<"$out") lines"
   heading_ok "$(sed -n 1p <<<"$out")" 49 "$a: the pane's heading (level with the tab bar)"
@@ -625,18 +625,18 @@ tty_free fedokawaii --run settings </dev/null >/dev/null 2>&1; has "$(cat "$R/to
 unset VISUAL
 
 # ── the plain menu (no fzf, a text console) ──────────────────────────────────
-case_ "plain menu: the status, eighteen numbered entries; q, Q, Enter and end of input all leave"
+case_ "plain menu: the status, nineteen numbered entries; q, Q, Enter and end of input all leave"
 console
 for k in q Q "" ; do out=$(printf '%s\n' "$k" | tty_free fedokawaii 2>&1); eq "$?" 0 "[$k]"; done
 out=$(tty_free fedokawaii </dev/null 2>&1); eq "$?" 0 "end of input"
-has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 45"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  update"; has "$out" "10  go back"
-has "$out" "11  a file, back"; has "$out" "12  back up now"; has "$out" "13  restore"; has "$out" "14  the drive"; has "$out" "15  before you wipe"; has "$out" "16  the installer"; has "$out" "17  bring back"; has "$out" "18  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
+has "$out" "FEDOKAWAII"; has "$out" "release   Fedora 45"; has "$out" " 1  status"; has "$out" " 8  log"; has "$out" " 9  inventory"; has "$out" "10  update"; has "$out" "11  go back"
+has "$out" "12  a file, back"; has "$out" "13  back up now"; has "$out" "14  restore"; has "$out" "15  the drive"; has "$out" "16  before you wipe"; has "$out" "17  the installer"; has "$out" "18  bring back"; has "$out" "19  lessons"; lacks "$out" "soon" "nothing that is not built yet"; has "$out" "backup    no drive"
 case_ "plain menu: a number runs its entry, then the menu again"
-out=$(printf '9\nq\n' | tty_free fedokawaii 2>&1)
+out=$(printf '10\nq\n' | tty_free fedokawaii 2>&1)
 eq "$(front_calls)" "front update"; eq "$(grep -c FEDOKAWAII <<<"$out")" 2
 case_ "plain menu: a wrong answer says what is wanted, and runs nothing"
-console; out=$(printf '0\n19\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
-eq "$(grep -c '1–18, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
+console; out=$(printf '0\n20\nx\n1x\n-1\n\n' | tty_free fedokawaii 2>&1)
+eq "$(grep -c '1–19, or q' <<<"$out")" 5 "each of the five wrong answers"; eq "$(front_calls)" ""
 case_ "plain menu on the text console: no characters the console font may lack"
 console; out=$(printf 'q\n' | TERM=linux tty_free fedokawaii 2>&1)
 lacks "$out" "·"; lacks "$out" "—"; lacks "$out" "…"; lacks "$out" "→"; has "$out" "status"
@@ -645,10 +645,10 @@ case_ "Fedora 45's text consoles are kmscon's (TERM=kmscon, TERM_SESSION_TYPE=km
 out=$(TERM=kmscon fedokawaii status); lacks "$out" "·"
 out=$(TERM=xterm-256color TERM_SESSION_TYPE=fb fedokawaii status); lacks "$out" "·" "kmscon under another TERM"
 console; stub fzf 'cat >/dev/null; exit 130'
-out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "18  lessons"; lacks "$out" "·"; not_called '^fzf'
+out=$(TERM=kmscon TERM_SESSION_TYPE=kms on_tty "q"$'\n' fedokawaii); has "$out" "19  lessons"; lacks "$out" "·"; not_called '^fzf'
 case_ "plain menu when fzf cannot run (old fzf: exit 2) on a terminal"
 console; stub fzf 'exit 2'
-out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "18  lessons"
+out=$(on_tty "q"$'\n' fedokawaii); has "$out" "FEDOKAWAII"; has "$out" "19  lessons"
 case_ "fzf menu: Esc closes it (exit 0)"
 stub fzf 'cat >/dev/null; exit 130'; on_tty "" fedokawaii >/dev/null; eq "$?" 0; called '^fzf --read0 --ansi'
 case_ "Super+U: the menu in a warm window of its own (a popup: kawa-warm's toggle)"

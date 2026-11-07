@@ -1,0 +1,52 @@
+#!/usr/bin/env bash
+# kawa-inventory — every app the manifest installs, its version, where it comes from and what
+# updates it: one table, read live (Super+U → system → inventory). Generated from lib/manifest.sh,
+# lib/upstream.sh and lib/asobi.sh, never a list of its own; versions from rpm and the pins.
+#   kawa-inventory         the table, aligned
+#   kawa-inventory --tsv   NAME<TAB>VERSION<TAB>FROM<TAB>UPDATED BY
+set -u
+TK=${KAWA_TOOLKIT:-/usr/local/lib/fedokawaii}
+STATE_DIR=${STATE_DIR:-/var/lib/fedokawaii}
+# shellcheck source=/dev/null
+. "$TK/lib/manifest.sh"
+# shellcheck source=/dev/null
+. "$TK/lib/upstream.sh"
+# shellcheck source=/dev/null
+. "$TK/lib/asobi.sh" 2>/dev/null || ASOBI_APPS=()
+
+rows() {
+  local gpu=${GPU:-amd} n v f p l
+  declare -A ver from
+  # (dnf5's --qf writes \t literally: a bar parts the fields)
+  while IFS='|' read -r n v f; do ver[$n]=$v; from[$n]=$f; done \
+    < <(dnf5 repoquery --installed --qf '%{name}|%{version}|%{from_repo}\n' 2>/dev/null)
+  while IFS= read -r p; do
+    [[ -n $p ]] || continue
+    n=${p%%[[:space:]]*}
+    [[ -n ${ver[$n]:-} ]] || continue
+    f=${from[$n]}
+    # (installed by a transaction dnf stored: the repository is in the brackets)
+    [[ $f == @stored_transaction\(*\) ]] && f=${f#@stored_transaction(} f=${f%)}
+    case $f in
+      copr:*) l=${f#copr:copr.fedorainfracloud.org:}; f="COPR ${l/:/\/}" ;;
+      rpmfusion*) f="RPM Fusion" ;;
+      updates|fedora|fedora-*|updates-*|anaconda) f="Fedora" ;;
+      ""|@*) f="a repository of its own" ;;
+      *) f="its repository ($f)" ;;
+    esac
+    printf '%s\t%s\t%s\t%s\n' "$n" "${ver[$n]}" "$f" "fedokawaii update (dnf)"
+  done < <(manifest_all "$gpu" | sort -u)
+  for p in "${UPSTREAM[@]}"; do
+    n=${p%%|*}; l=${p#*|}; l=${l%%|*}; v=${p#*|*|}; v=${v%%|*}
+    printf '%s\t%s\t%s\t%s\n' "$n" "${v#v}" "github.com/$l release" "pinned; changes with the desktop"
+  done
+  for p in "${ASOBI_APPS[@]}"; do
+    printf '%s\t%s\t%s\t%s\n' "${p##*.}" "-" "Flathub (in ASOBI)" "asobi"
+  done
+}
+
+case ${1:-} in
+  --tsv) rows ;;
+  "")    rows | column -t -s $'\t' ;;
+  *)     echo "usage: kawa-inventory [--tsv]" >&2; exit 2 ;;
+esac

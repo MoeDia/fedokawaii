@@ -104,8 +104,8 @@ d1c	Fri 6	done	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth,
 sa11	Sat 7	done	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo	Sat 7 Nov 12:40	4 Part 2 lessons (days 34-37: nvim-never-stuck, nvim-his-config, nvim-moves, nvim-use-cases) in wip/; each parses, fails before / passes after in an empty dojo; ask proof greps his config	sonnet
 sa12	Sat 7	done	every lesson's check run by a test; order and pairing proven	2026-11-07 12:42	96 lessons in 26 days checked; day 46 was 31 min, rust-ownership now 19; 24 Part 1 lessons still pending (later sa rows)	sonnet
 d3	Fri 6	done	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab	Sat 7 Nov 12:46 +04	lessons done (kawa-learn caps); menus/cheat sheets already keycaps (kawa-panel, kawa-help); power menu and Helium wait for sa16/sa20 -> d3b	sonnet
-sa17	Sat 7	now	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest			sonnet
-sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests			sonnet
+sa17	Sat 7	done	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest	Sat 7 Nov 13:27 +0400	kawa-inventory + Super+U system → inventory (206 rows); test_inventory 13, test_menu 732, static all pass	sonnet
+sa18	Sat 7	now	the inventory: every menu we created, every app we modified and how; tests			sonnet
 d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins while the menu is open, stops when it closes, cheap, follows the mood; CPU measured		the gear takes the quick-settings click and glyph; the Fedora head stays on the bar (S2 wants both): a tile of its own	opus
 sa19	Sat 7	todo	Helium configured and optimised: settings, flags, a solid symmetrical minimal toolbar, a few essential extensions beyond uBlock Origin, chosen from official sources; Proton Pass among the pre-installed extensions (S2)			sonnet
 sa21	Sat 7	todo	Stoat (the Discord replacement) checked at its official source, installed by the installer, manifest rows			sonnet
@@ -123,6 +123,10 @@ sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volu
 sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2	opus
 sa20	Sat 7	todo	Helium themed: his pick i 2 mokuroku, made far more TUI-feeling: lines, toolbar and left tab section heavily redone; following the switch; in the installer; tests		S2	opus
 sa25	Sat 7	todo	the bar bigger: one set of metrics, icons drawn at real size, right hinting, no scaling; every gap measured		his pick f: 3 jikusaki; icons very clean, well spaced, super accurate, tight (S2)	opus
+sa26	Sat 7	todo	packages: smartmontools (smartd warns by notification and a line in the inventory/health) and LocalSend from its official release, not Flatpak, self-updating, port 53317 TCP+UDP in the home/LAN zone only; launcher, inventory, manifest checklist; tests		his 12:43 (inbox S16)	sonnet
+sa27	Sat 7	todo	Neovim: our own colorscheme kawa generated from tools/build-themes.py tokens, both moods, following the live switch; gruvbox plugin dropped		his 12:43 (inbox S16)	sonnet
+sa28	Sat 7	todo	Neovim Rust: keep rust-analyzer/clippy/rustfmt/taplo/Space r/codelldb; add inlay hints with a toggle key; crates.nvim only if tiny		his 12:43 (inbox S16)	sonnet
+sa29	Sat 7	todo	Part 2 lessons re-ordered ~30 min/day: Python and Bash first (Bash its own early track, Python+SQLite), then web (HTML/CSS/JS, HTMX+FastAPI) and TUI (Textual, ratatui), then Rust (Rustlings-style); short units: CLI, regex, HTTP, data structures, git, testing, debugging, security; track list in the lessons' table of contents		his 12:43 (inbox S16)	opus
 d3b	Sat 7	todo	keycaps in the power menu (after sa16) and Helium new tab (after sa20)		after sa16, sa20	sonnet
 sa26	Sat 7	todo	the bar's clock in a scroll with bigger dominant ends, seconds kept, no band; regress bar checks		his pick f: 3 jikusaki (S2)	opus
 sa27	Sat 7	todo	dwl: menus open and close as his pick c 2 omori, under ASan headless, frames looked at		S4	opus
