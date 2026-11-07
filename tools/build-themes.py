@@ -1287,7 +1287,20 @@ def panel_conf(m, p):
             + f"yubi_rim={p['lo'] if m == 'dark' else p['key']}\n"
             + "".join(f"{n}={v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), brass, strict=True))
             + "".join(f"{n}={v}\n" for n, v in zip(("hp", "hp_hi", "hp_lo", "hp_fire", "hp_fire_hi", "hp_fire_lo", "hp_trough", "hp_rim"), hp_inks(m, p), strict=True))
+            + "".join(f"{n}={v}\n" for n, v in zip(("rod_end", "rod_lo", "rod", "rod_hi", "cap", "cap_lo", "cap_hi"), rod_inks(m, p), strict=True))
             + "".join(f"{n}={''.join(f'{c:02x}' for c in v)}\n" for n, v in frame.items()))
+
+
+def rod_inks(m, p):
+    """The power dialog's scroll rods (sa16, his pick g 1 jiku): lacquer on the ink, olive wood on the paper — the bands from
+    each end in (end, lo, body, the light down its middle) — and their gold caps (ring, knob, a glint)."""
+    def mix(a, b, t):
+        return "".join(f"{round(int(a[i:i + 2], 16) + (int(b[i:i + 2], 16) - int(a[i:i + 2], 16)) * t):02x}" for i in (0, 2, 4))
+    if m == "dark":
+        bands = [p["lo"], p["accent_lo"], p["lacquer"], mix(p["lacquer"], p["accent_hi"], .45)]
+    else:
+        bands = [p["art_ink"], p["art_umber"], p["art_olive"], mix(p["art_olive"], p["hi"], .4)]
+    return bands + [p["gold"], mix(p["gold"], p["lo"] if m == "dark" else p["art_ink"], .45), mix(p["gold"], "ffffff", .3)]
 
 
 def saver_conf(m, p):

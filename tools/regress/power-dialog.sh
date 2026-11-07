@@ -2,7 +2,8 @@
 # tools/regress/power-dialog.sh — never an accidental power-off (the owner's page 14, §4): the power dialog in the kit, its
 # systemctl a stand-in that only writes down what it was asked. Shut down's first press does nothing but ask, in the foot's
 # place; a second at once is no press, nor is any repeat of a key held down; moving away takes it back; the second press after the hold
-# does it, once. The dialog centred on the screen to the pixel over the desktop dimmed 40 %.
+# does it, once. The dialog centred on the screen to the pixel over the desktop dimmed 40 %; a seal's own letter
+# (d: shut down) asks too.
 #   bash tools/regress/power-dialog.sh [KIT OPTION…]
 # Exit 0 held · 1 broken (said) · 2 the kit could not run
 set -u
@@ -28,6 +29,11 @@ key Right; nap 0.5; key Return; nap 0.8; key Return
 for _ in $(seq 40); do [[ -s $KIT_OUT/asked ]] && break; nap 0.1; done
 say "after the second press: $(cat "$KIT_OUT/asked")"
 shot done
+: >"$KIT_OUT/asked"
+setsid -f kawa-power; nap 1.2
+key d; nap 0.3; shot key-d
+say "after its letter: $(cat "$KIT_OUT/asked")"
+key Escape; nap 0.5
 PLAY
 for mood in dark light; do
   bash "$here/../kit.sh" --theme "$mood" --time 280 "$@" --out "$out/$mood" --play "$out/play.sh" play >"$out/$mood.log" 2>&1 \
@@ -35,6 +41,7 @@ for mood in dark light; do
   grep -q '^after a held key: $' "$out/$mood/play.log" || { echo "power-dialog: Enter held did it ($mood): $(cat "$out/$mood/play.log")" >&2; exit 1; }
   grep -q '^after the first press: $' "$out/$mood/play.log" || { echo "power-dialog: the first press did something ($mood): $(cat "$out/$mood/play.log")" >&2; exit 1; }
   grep -q '^after the second press: poweroff$' "$out/$mood/play.log" || { echo "power-dialog: the second press ($mood): $(grep second "$out/$mood/play.log")" >&2; exit 1; }
+  grep -q '^after its letter: $' "$out/$mood/play.log" || { echo "power-dialog: d did it at once ($mood): $(grep letter "$out/$mood/play.log")" >&2; exit 1; }
 done
 python3 -I - "$out" <<'PY'
 import sys
@@ -54,10 +61,13 @@ for mood in ("dark", "light"):
     diff = (op != d).any(axis=2)
     diff[:40] = False
     ys, xs = np.nonzero(diff)
-    # (what differs ends on the shadow's column and its second row: the frame's right hairline a column in, its foot two rows up)
-    left, right, top, foot = int(xs.min()), 1920 - (int(xs.max()) - 1) - 1, int(ys.min()), 1080 - (int(ys.max()) - 2) - 1
+    # (a hanging scroll, sa16: its rods and their caps either side, the same past each end, over the shadow — the window's
+    # every edge drawn, so what differs is the frame's box with the same air either side)
+    left, right, top, foot = int(xs.min()), 1919 - int(xs.max()), int(ys.min()), 1079 - int(ys.max())
     if left != right or top != foot:
         bad.append(f"{mood}: the frame's margins {left} {right} · {top} {foot}")
+    if not (load("key-d") != op).any():
+        bad.append(f"{mood}: d (shut down's letter) asked nothing")
     if not (asked != away).any():
         bad.append(f"{mood}: the first press changed nothing to see, or moving away took nothing back")
 print("power-dialog: " + ("; ".join(bad) if bad else "held: the first press asks, a key held down never does it, the second press does it once; centred to the pixel on the dimmed desktop"))

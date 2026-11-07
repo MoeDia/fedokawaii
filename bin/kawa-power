@@ -50,11 +50,11 @@ else w=$((d / 7)) r=$((d % 7)); ((w > 99)) && w=99 r=6        # (as far as it ca
      printf -v t 'up %02dw %02dd' "$w" "$r"; fi
 rows=()
 line() { local IFS=$'\t'; rows+=("$*"); }
-line seal @t-lock lock
-line seal @t-sleep sleep
-line seal @t-logout "log out"
-line seal @t-restart restart "press again to restart"
-line seal @t-off "shut down" "press again to shut down"
+line seal @t-lock lock "" l
+line seal @t-sleep sleep "" s
+line seal @t-logout "log out" "" o
+line seal @t-restart restart "press again to restart" r
+line seal @t-off "shut down" "press again to shut down" d
 line foot "$t"
 
 i=$(printf '%s\n' "${rows[@]}" | kawa-menu --index --dim) || exit 0

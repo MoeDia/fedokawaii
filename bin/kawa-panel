@@ -191,6 +191,11 @@ CAP_MIN = 14                         # … at least: a single letter's
 CAP_GAP = 2                          # … 2 px between the caps of one chord
 TILE, TILE_GAP = 64, 12              # a seal tile (the power dialog): 64 square, 12 apart (the longest word fits under it)
 TILE_PIC = 40                        # … its picture, 12 px of paper round it
+TILE_APART = 28                      # … before the first that asks for a second press: what cannot be undone stands apart
+TILE_IN = 6                          # … at least this much air either side of the row, in the content (23 px from the frame's edge or more)
+ROD_W, ROD_CAP = 14, 6               # a dialog is a hanging scroll (sa16, his pick g 1 jiku): a rod 14 wide either side
+                                     # of its frame, its gold caps 6 rows past the frame's top and bottom
+SILK = 2                             # … the gold silk's edge inside the hairline, left and right
 WAKE_MS = 340                        # quick settings' head wakes as its scroll lands (dwl's unroll: 300 ms)
 ARM_HOLD = 0.35                      # a choice that needs a second press: none counts sooner after the last (a double click)
 # the level display (design-system §9): one row — the icon in its column, the meter from cell 3,
@@ -670,8 +675,10 @@ class Layout:
 #     hint  KEY    NAME             the panel's footer (§4): KEY's cap and what it does in muted ink; hints one
 #                                   after another share a row. KEY (a key's name: t, Left, more apart by |:
 #                                   the first drawn) or a click chooses it; the cursor never lands there
-#     seal  PIC    NAME [ASK]       a dialog's tile (§4): the picture on a square seal, the word under it, a row of
-#                                   them; ASK: what the foot says at the first press, the second does it
+#     seal  PIC    NAME [ASK [KEY]] a dialog's tile (§4): the picture on a square seal, the word under it, a row of
+#                                   them; ASK: what the foot says at the first press, the second does it; KEY: a
+#                                   letter of NAME that chooses it, underlined (the first such letter). The
+#                                   dialog hangs as a scroll between two rods (sa16), the asking ones apart
 #     foot  TEXT                    the dialog's foot, centred, quiet (a seal's ASK takes its place)
 #     sand  END    TOTAL            a running timer: a sand bar running out as END (epoch seconds) nears,
 #                                   TOTAL seconds long, and the time left beside it
@@ -737,7 +744,8 @@ class Menu:
         need = [NAME_X + px_of(title_parts(self.title)[1]) if self.title else 0, vright + RIGHT_IN if vright else 0]
         seals = [f for _, k, f in self.lines if k == "seal"]
         if seals:
-            need.append(len(seals) * TILE + (len(seals) - 1) * TILE_GAP)
+            need.append(len(seals) * TILE + (len(seals) - 1) * TILE_GAP + 2 * TILE_IN
+                        + (TILE_APART - TILE_GAP if any(fld(f, 2) for f in seals[1:]) else 0))
         hints = [f for _, k, f in self.lines if k == "hint"]
         if hints:
             need.append(2 * CELL + sum(hint_w(f) for f in hints) + (len(hints) - 1) * 2 * CELL)
@@ -980,9 +988,16 @@ def layout_menu(m):
                 run.append(lines[k])
                 k += 1
             k -= 1
+            asks = any(fld(g, 2) for _, _, g in run[1:])
+            rw = len(run) * TILE + (len(run) - 1) * TILE_GAP + (TILE_APART - TILE_GAP if asks else 0)
+            xx, apart = x0 + (w - rw) // 2, False    # (centred: the content is whole cells, the row not)
             for c, (j, _, g) in enumerate(run):
-                items.append(Item(str(j), "seal", x0 + c * (TILE + TILE_GAP), y, TILE, TILE + GAP + ROW, r,
-                                  glyph=g[0], name=fld(g, 1), confirm=fld(g, 2)))
+                if c and fld(g, 2) and not apart:  # (the first that asks: apart from the rest)
+                    xx += TILE_APART - TILE_GAP
+                    apart = True
+                items.append(Item(str(j), "seal", xx, y, TILE, TILE + GAP + ROW, r,
+                                  glyph=g[0], name=fld(g, 1), confirm=fld(g, 2), accel=fld(g, 3)))
+                xx += TILE + TILE_GAP
             y += TILE + GAP + ROW
             r += 1
             prev = "seal"
@@ -1405,6 +1420,7 @@ class Panel:
         self.queued = []         # keys pressed meanwhile: each one done on the page as it comes
         self.scroll = 0          # how far a menu's list is scrolled (px)
         self.ox = 0              # the frame's air in its window (a middle menu: a column, §4)
+        self.rods = False        # (a dialog: a hanging scroll, its rods either side of the frame — sa16)
         self.oy = 0              # … above it (a menu in the middle of the screen: as many rows as its shadow's under it)
         self.woke = False        # quick settings' head: awake (it wakes as the panel lands)
         self.pressed = None      # the item the pointer holds down (its tint deeper until let go)
@@ -1453,7 +1469,17 @@ class Panel:
         # before it (a menu from the bar's middle: a column as wide as the shadow's, so dwl,
         # centring the window, centres the frame to the pixel)
         self.dy = 0
-        self.win = (self.ox + self.size[0] + SHADOW_R, self.oy + self.size[1] + SHADOW_B)
+        self.rods = any(it.kind == "seal" for it in self.items)
+        self.fit_win()
+
+    def fit_win(self):
+        """The window round the frame: a hanging scroll (a dialog's seals) its rods and caps either side,
+        symmetric (they cover the shadow's column and rows), else the shadow and ox, oy of air."""
+        if self.rods:
+            self.ox, self.oy = ROD_W, ROD_CAP
+            self.win = (self.size[0] + 2 * ROD_W, self.size[1] + 2 * ROD_CAP)
+        else:
+            self.win = (self.ox + self.size[0] + SHADOW_R, self.oy + self.size[1] + SHADOW_B)
 
     # the state
     def refresh(self, mode=None):
@@ -1624,11 +1650,9 @@ class Panel:
     def at_place(self):
         """The frame's air in the window for where it hangs: so dwl, centring the window, centres the frame
         to the pixel (a middle one: a column before it; in the middle of the screen: two rows above it too)."""
-        ox = SHADOW_R if self.place[0] == "middle" else 0
-        oy = SHADOW_B if self.place[0] == "centre" else 0
-        if (ox, oy) != (self.ox, self.oy):
-            self.ox, self.oy = ox, oy
-            self.win = (self.ox + self.size[0] + SHADOW_R, self.oy + self.size[1] + SHADOW_B)
+        self.ox = SHADOW_R if self.place[0] == "middle" else 0
+        self.oy = SHADOW_B if self.place[0] == "centre" else 0
+        self.fit_win()
 
     def answer(self, rc, text=""):
         """The menu's caller told, once."""
@@ -1888,6 +1912,8 @@ class Panel:
         # (a row's own key, a footer's: at once; with Ctrl, Alt or Super held it is some other key)
         hit = None if mods else next((i for i in self.items if i.accel and name in i.accel.split("|")), None)
         if hit:
+            if hit.kind == "seal":                # (a seal's letter: the cursor goes to it — one seal lit, never two)
+                self.focus = hit.key
             self.activate(hit.key)
             return
         if self.view and not self.items:
@@ -2927,6 +2953,21 @@ def main(argv):
         box(cr, x, y + t, t, h - 2 * t, name)
         box(cr, x + w - t, y + t, t, h - 2 * t, name)
 
+    def rod(cr, x, H):
+        """A scroll's rod (sa16, g 1 jiku): 14 px of lacquer (wood on the paper) in bands — its ends dark, the
+        light down its middle — from 2 rows inside the frame's top to 2 inside its bottom; a gold cap past
+        each end: a ring 4 rows high, 14 wide, the knob 10 wide beyond it, a glint 4 wide on both."""
+        y = 2
+        h = H - 4
+        for name, w in (("rod_end", 1), ("rod_lo", 2), ("rod", 3), ("rod_hi", 2), ("rod", 3), ("rod_lo", 2), ("rod_end", 1)):
+            box(cr, x, y, w, h, name)
+            x += w
+        x -= ROD_W
+        for ring, knob in ((y - 4, y - 8), (y + h, y + h + 4)):
+            box(cr, x, ring, ROD_W, 4, "cap")
+            box(cr, x + 2, knob, ROD_W - 4, 4, "cap_lo")
+            box(cr, x + 5, min(ring, knob), 4, 4, "cap_hi")
+
     def kanagu(cr, W, H):
         """P3 (owner's pick, 6 Nov): a brass fitting off an old chest in each corner of a frame, on the hairline."""
         ink = {"h": "kanagu_hi", "o": "kanagu", "s": "kanagu_lo", "#": "kanagu_rivet"}
@@ -3264,10 +3305,16 @@ def main(argv):
         # the second a pixel further right) and a column at its right from its third row down
         cr.set_operator(cairo.OPERATOR_SOURCE)
         frame(cr, 0, 0, W, H, "hair", cut=True)
-        kanagu(cr, W, H)
         box(cr, HAIR, H, W - HAIR, 1, "shadow1")
         box(cr, 2 * HAIR, H + 1, W - HAIR, 1, "shadow2")
         box(cr, W, 2 * HAIR, 1, H - 2 * HAIR, "shadow2")
+        if panel.rods:                            # (a hanging scroll: its silk's gold edges, its rods; their caps its metal)
+            box(cr, HAIR, HAIR, SILK, H - 2 * HAIR, "cap")
+            box(cr, W - HAIR - SILK, HAIR, SILK, H - 2 * HAIR, "cap")
+            rod(cr, -ROD_W, H)
+            rod(cr, W, H)
+        else:
+            kanagu(cr, W, H)
         cr.set_operator(cairo.OPERATOR_OVER)
         return True
 
@@ -3593,8 +3640,14 @@ def main(argv):
         s = pic_surface(it.glyph[1:], ink) if it.glyph.startswith("@") else None
         if s is not None:
             pic(cr, it.glyph[1:], x + (S - s.get_width()) // 2, y + (S - s.get_height()) // 2, ink)
-        lw = text_layout(cr, it.name).get_pixel_extents()[0]
-        text(cr, x + (S - lw.width) // 2 - lw.x, y + S + GAP + (ROW - LINE) // 2, it.name, "strong" if focused else "text")
+        lay = text_layout(cr, it.name)
+        lw = lay.get_pixel_extents()[0]
+        tx, ty = x + (S - lw.width) // 2 - lw.x, y + S + GAP + (ROW - LINE) // 2
+        text(cr, tx, ty, it.name, "strong" if focused else "text")
+        i = it.name.find(it.accel) if it.accel else -1
+        if i >= 0:                                # (its key: one rule under its letter, 2 rows under the baseline)
+            a = lay.index_to_pos(len(it.name[:i].encode()))
+            box(cr, tx + a.x // Pango.SCALE, ty + baseline(cr) + 2, a.width // Pango.SCALE - 1, 1, "accent_text")
 
     drawing.append(True)                          # (from here on, every layout measured)
     panel.relayout()

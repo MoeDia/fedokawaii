@@ -20,7 +20,7 @@ power() {   # power [SECONDS] — kawa-power, the machine up for SECONDS (defaul
 # ── the choices ───────────────────────────────────────────────────────────────────────
 case_ "the dialog: five seals, each its drawn picture and its word, the uptime in its foot; the desktop dimmed; centred; restart and shut down ask for a second press"
 setup; answer esc; power
-eq "$(fz_rows | sed '$d' | tr '\n' '|')" "seal	@t-lock	lock|seal	@t-sleep	sleep|seal	@t-logout	log out|seal	@t-restart	restart	press again to restart|seal	@t-off	shut down	press again to shut down|" "a seal a choice"
+eq "$(fz_rows | sed '$d' | tr '\n' '|')" "seal	@t-lock	lock		l|seal	@t-sleep	sleep		s|seal	@t-logout	log out		o|seal	@t-restart	restart	press again to restart	r|seal	@t-off	shut down	press again to shut down	d|" "a seal a choice, its letter underlined"
 eq "$(fz_rows | tail -n1 | cut -f1)" foot; eq "$(fz_rows | tail -n1 | cut -f2 | cut -c1-3)" "up " "the uptime in its foot"
 eq "$(fz_arg select)" "" "it opens on lock, the first"
 eq "$(fz_arg dim)" set "the desktop dimmed"
