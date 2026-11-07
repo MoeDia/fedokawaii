@@ -135,3 +135,18 @@ The owner (09:40): his Mac will sleep, so Claude's notes can arrive hours late, 
 1. Order the work so nothing ever waits on him or on Claude. Rows that need a pick or a note are parked; there is always a next row that needs nobody (engineering, apps, learning, nvim, repo, ISO and installer, tests). A design row waiting for a pick: build the strongest option behind a switch (S8) and move on; swap when the pick comes.
 2. A self-audit every 6 passes (cheap, on haiku), the checks Claude would otherwise send by hand: (a) pace against the plan and the ETA trend; (b) no daily row before its day, no long job repeated; (c) the model mix (sonnet should carry most rows); (d) any pass over 90 minutes, any idle gap between passes; (e) a blocked row older than 6 hours gets one fresh attempt with a different approach; (f) the design track not crowding out the rest. Fix what it finds and note it in the plan.
 3. Claude's notes still arrive through steer.md whenever his Mac is awake. Treat them as his voice, never wait for them.
+
+## S16 2026-11-07 12:55
+The owner (12:43), in order of size:
+1. Packages: add smartmontools and LocalSend only (he declined Syncthing and Tailscale).
+   - smartmontools: smartd watches the disks; a warning becomes a notification and a line in Super+U's inventory/health; part of the self-maintenance.
+   - LocalSend: from its official release (RPM or AppImage, self-updating like the other release apps; NOT Flatpak, Flatpak stays inside ASOBI); its port (53317, TCP and UDP) open in the home/LAN zone only; in the launcher and Super+U's inventory.
+2. Neovim colours: no third-party colorscheme. Generate our own colorscheme ("kawa") straight from the theme tokens in tools/build-themes.py, for both moods, following the mood switch live as now; drop the gruvbox plugin (one plugin fewer).
+3. Rust in Neovim: keep what is there (rust-analyzer with clippy on save, rustfmt, taplo, Space r keys, codelldb), and add inlay hints for Rust (types shown in the code, a key to toggle them), which help a learner most. crates.nvim only if it stays tiny.
+4. The daily lessons, Part 2: make him a well-rounded programmer, still about 30 minutes a day, tiny steps:
+   - Bash scripting as its own track, early: his desktop is built of shell scripts.
+   - Python stays the main language. Connect it to the SQL he already uses at work (SQLite from Python).
+   - Simple, solid frontends: HTML and CSS, a little JavaScript, and HTMX with a small Python backend (FastAPI); and terminal UIs with Textual (Python), later ratatui (Rust), matching his desktop's look.
+   - Rust after the Python basics, with Rustlings-style tiny exercises.
+   - Short units on the basics underneath: the command line, regex, HTTP and networking, data structures; git, testing, debugging and security as planned.
+   - Order: Python and Bash first, then web and TUI frontends, then Rust. Write the track list into the lessons' table of contents.
