@@ -792,7 +792,9 @@ state stepped by a small rule, not a long drawn loop: it costs little and never 
   cursor), `%` a level's (lit from below), one letter a role for a second ink. Every one centred by its ink.
 - One ink: an icon takes its words' ink (state colours from §5); art pieces (the head, the masters,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
-  from the palette only.
+  from the palette only. Quick settings' row pictures are art pieces too (s12c2): `#` keeps the state's ink and each
+  takes one second ink of its own, a few pixels with a meaning (the moon's star and the sun's disc gold, the screensaver's z's
+  and the wave's curl asagi, the power stem a lit wick in flame …); red only for on (recording's lamp).
 - **Kanji appear in three places only**: the workspace stamps (一–九), the bar's day kanji, and
   the lock's quote. Everywhere else — headings, menus, TUIs, the launcher — a pixel icon.
 - Each thing its own picture: no two icons alike (the weather's sun is not brightness's).
