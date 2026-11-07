@@ -18,10 +18,12 @@
 P=$REPO/src/dwl/dwl.patch CH=$REPO/src/dwl/config.h
 added() { sed -n "/^+$1(/,/^+}/p" "$P"; }
 
-case_ "config.h and config.def.h: on, opening 450 ms, closing 400, a move 450 with its wave, the lock leaving 420; how far a window rises and sinks"
-for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -q '^static const int animations *= 1;' <<<"$c" && grep -q '^static const unsigned int anim_open_ms *= 450;' <<<"$c" \
-    && grep -q '^static const unsigned int anim_close_ms *= 400;' <<<"$c" && grep -q '^static const unsigned int anim_tag_ms *= 450;' <<<"$c" \
+case_ "config.h and config.def.h: on, opening 300 ms and closing 220 (mozaiku; config.def.h the hop's 450 and 400), a move 450 with its wave, the lock leaving 420; how far a window rises and sinks"
+for u in "300 220 $CH" "450 400"; do
+  if [[ $u == "450 400" ]]; then c=$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//'); else c=$(cat "${u##* }"); fi
+  o=${u%% *} u=${u#* }; x=${u%% *}
+  grep -q '^static const int animations *= 1;' <<<"$c" && grep -q "^static const unsigned int anim_open_ms *= $o;" <<<"$c" \
+    && grep -q "^static const unsigned int anim_close_ms *= $x;" <<<"$c" && grep -q '^static const unsigned int anim_tag_ms *= 450;' <<<"$c" \
     && grep -q '^static const unsigned int anim_unlock_ms *= 420;' <<<"$c" \
     && grep -q '^static const int anim_hop_low *= 120;' <<<"$c" && grep -q '^static const int anim_fall *= 64;' <<<"$c" \
     && grep -q '^static const unsigned int anim_tag_wave *= 48;' <<<"$c" \
@@ -284,10 +286,9 @@ grep -A2 'if (washcursor && cursor->x >= m->m.x' <(added washframe) | grep -q 'w
 has "$(added washend)" 'if (washcursor && !washing()) {'
 case_ "the fifo: \"wash cover PATH\", \"wash go\", \"wash drop\"; locking drops it; a GPU reset and a monitor going end it"
 has "$(sed -n '/^+warmcmd(/,/^+}/p' "$P")" 'washcmd(line + 5);'
-case_ "a window's motion is one switch: the hop stands, seal, shoji and kasumi a word away; shoji cuts whole pixels, kasumi uses the dissolve's cells"
-for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -q '^static const int anim_motion *= MotionHop;' <<<"$c" && _ok || _no "anim_motion, the hop"
-done
+case_ "a window's motion is one switch: mozaiku (his pick a-5), the hop, seal, shoji, kasumi and the others a word away; shoji cuts whole pixels, kasumi uses the dissolve's cells"
+grep -q '^static const int anim_motion *= MotionMozaiku;' "$CH" && _ok || _no "anim_motion, his pick a-5 mozaiku (sa28)"
+grep -q '^static const int anim_motion *= MotionHop;' <(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//') && _ok || _no "config.def.h: the hop"
 grep -q '^+enum { MotionHop, MotionSeal, MotionShoji, MotionKasumi, ' "$P" && grep -q '^+	MotionMado, MotionMozaiku, MotionKushi, MotionMon };' "$P" && _ok || _no "the eight motions"
 c=$(added shojishow)
 has "$c" 'wlr_scene_buffer_set_source_box(d->node, &(struct wlr_fbox){ x, 0, cw, h });'; has "$c" 'wlr_scene_buffer_set_dest_size(d->node, cw, h);'

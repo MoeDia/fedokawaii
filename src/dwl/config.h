@@ -60,7 +60,7 @@ static const float fullscreen_bg[]         = {0.059f, 0.055f, 0.047f, 1.0f};
  * screen; never a full-screen window; unlocked, the lock screen dissolves off the desktop (locking: at
  * once). 0: everything at once */
 static const int animations                = 1;
-static const int anim_motion               = MotionHop; /* how a window comes and goes, with its ms:
+static const int anim_motion               = MotionMozaiku; /* (his pick a-5, sa28) how a window comes and goes, with its ms:
                                                     * MotionHop 450/400 · MotionSeal 150/110, a stamp ·
                                                     * MotionShoji 190/150, a door parting in whole
                                                     * pixels · MotionKasumi 220/170, cell by cell ·
@@ -68,10 +68,10 @@ static const int anim_motion               = MotionHop; /* how a window comes an
                                                     * MotionMozaiku 300/220, a Super Famicom's mosaic ·
                                                     * MotionKushi 240/180, two combs of rows, interlaced ·
                                                     * MotionMon 300/200, a castle's gate in clunks */
-static const unsigned int anim_open_ms     = 450;  /* a window opening */
+static const unsigned int anim_open_ms     = 300;  /* a window opening */
 static const int anim_hop_low              = 120;  /* px below its place it starts */
 static const double anim_hop_small         = 0.18; /* how much smaller it starts */
-static const unsigned int anim_close_ms    = 400;  /* …closing */
+static const unsigned int anim_close_ms    = 220;  /* …closing */
 static const int anim_fall                 = 64;   /* px it sinks */
 static const int anim_tag_motion           = TagStrip; /* how a workspace comes, with its ms and wave:
                                                     * TagStrip 450/48 · TagHayate 220/0, a gust ·
