@@ -329,12 +329,16 @@ def twins(icons):
 
 def bar_icons(icons):
     """art/icons-bar.txt's drawings at the bar twins' places of the icons they are named after (an
-    icon's own code for the gaps): ink from the pen, no air, as the twins are"""
+    icon's own code for the gaps and the overlays, laid as drawn): ink from the pen, no air, as the
+    twins are"""
     place = {ic["name"]: ic for ic in icons if not ic.get("twin")}
     out = []
     for ic in parse(BAR_SRC.read_text(), "icons-bar.txt"):
         if ic["name"] not in place:
             sys.exit(f"icons-bar.txt:{ic['line']}: {ic['name']} is no icon of icons.txt")
+        if place[ic["name"]]["adv"] == 0:       # an overlay (dl-fill-N): at its own code, laid by
+            out.append({**ic, "code": place[ic["name"]]["code"]})   # the pixel as drawn
+            continue
         cols = [i for r in ic["rows"] for i, v in enumerate(r) if v == "#"]
         out.append({**ic, "x": -min(cols), "adv": max(cols) - min(cols) + 1,
                     "code": TWIN + place[ic["name"]]["code"] - FIRST})
