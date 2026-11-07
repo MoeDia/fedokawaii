@@ -6,7 +6,7 @@ art/fedora-head.txt, the blood and the light below; one drawing a size, never a 
     python3 tools/build-head.py [--sheet DIR]
 
     art/icons.txt @head-*                     the prompt's glyphs, one ink, 24 × 20 (16 + 8 wide)
-    themes/MOOD/face.png, face-open.png       the bar's end tile, 22 × 20, its ink on rows 1–18
+    themes/MOOD/head-32.png, head-32-open.png the bar's end tile, 32 × 30 (the paper's rows), the disc 26 across
     themes/MOOD/head-48.png, head-48-open.png quick settings' masthead
     .local/share/fedokawaii/MOOD/head.six     fetch's picture: the 48 at 6 × 6, 288 × 300, 36 cells × 15 lines
 
@@ -35,12 +35,17 @@ LIGHTY = {"disc": "8cc4e6", "shade": "5d9cc6", "lit": "b4dcf2", "shine": "e4f4fb
 # below the disc). GLOSS: the wet shine on the disc's upper left. The light: runs of pixels from the canvas's own edge, (x, y, dx, dy, length, ink).
 DRIPS = {
     16: {"shut": ((3, 1), (7, 2)), "open": ((3, 2), (7, 2), (11, 1)), "drop": None},
+    26: {"shut": ((5, 1), (9, 2)), "open": ((5, 2), (9, 2), (13, 1), (18, 2)), "drop": (20, 3)},
     40: {"shut": ((8, 1), (14, 3), (29, 2)), "open": ((8, 3), (14, 3), (20, 1), (29, 5)), "drop": (34, 5)},
 }
-GLOSS = {16: ((4, 3), (5, 2)), 40: ((9, 10), (9, 11), (10, 9), (11, 8), (12, 7), (13, 6), (14, 6), (10, 10), (11, 9), (12, 8), (13, 7))}
+GLOSS = {16: ((4, 3), (5, 2)), 26: ((6, 8), (6, 7), (7, 6), (8, 5), (9, 4), (7, 7), (8, 6)), 40: ((9, 10), (9, 11), (10, 9), (11, 8), (12, 7), (13, 6), (14, 6), (10, 10), (11, 9), (12, 8), (13, 7))}
 RAYS = {
     16: {"shut": ((1, 2, 1, 1, 1), (20, 2, -1, 1, 1), (0, 9, 1, 0, 2), (20, 9, 1, 0, 2)),
          "open": ((1, 1, 1, 1, 2), (20, 1, -1, 1, 2), (0, 9, 1, 0, 2), (20, 9, 1, 0, 2), (1, 16, 1, -1, 1), (20, 16, -1, -1, 1), (10, 1, 1, 0, 2), (10, 18, 1, 0, 2))},
+    26: {"shut": ((0, 14, 1, 0, 2), (0, 15, 1, 0, 2), (30, 14, 1, 0, 2), (30, 15, 1, 0, 2),   # (none above or below: the paper's
+                  (4, 3, 1, 1, 1), (27, 3, -1, 1, 1), (27, 26, -1, -1, 1)),                    #  edge rows touch the hairlines)
+         "open": ((0, 13, 1, 0, 2), (0, 14, 1, 0, 2), (0, 15, 1, 0, 2), (0, 16, 1, 0, 2), (30, 13, 1, 0, 2), (30, 14, 1, 0, 2), (30, 15, 1, 0, 2), (30, 16, 1, 0, 2),
+                  (3, 2, 1, 1, 2), (28, 2, -1, 1, 2), (28, 27, -1, -1, 2), (0, 8, 1, 0, 1), (31, 8, -1, 0, 1), (31, 21, -1, 0, 1))},
     40: {"shut": ((23, 0, 0, 1, 3), (24, 0, 0, 1, 3), (0, 23, 1, 0, 3), (0, 24, 1, 0, 3), (45, 23, 1, 0, 3), (45, 24, 1, 0, 3), (23, 45, 0, 1, 3), (24, 45, 0, 1, 3),
                   (7, 7, 1, 1, 3), (40, 7, -1, 1, 3), (40, 40, -1, -1, 3)),
          "open": ((22, 0, 0, 1, 3), (23, 0, 0, 1, 3), (24, 0, 0, 1, 3), (25, 0, 0, 1, 3), (0, 22, 1, 0, 3), (0, 23, 1, 0, 3), (0, 24, 1, 0, 3), (0, 25, 1, 0, 3),
@@ -86,7 +91,7 @@ def blood(size, disc, state):
     run, bead, drops = set(), set(), set()
     for col, far in DRIPS[size][state]:
         bottom = max(y for x, y in disc if x == col)
-        for w in range(2 if size == 40 else 1):
+        for w in range(2 if size >= 26 else 1):
             for y in range(bottom + 1, bottom + 1 + far):
                 run.add((col + w, y))
         if size == 40:
@@ -101,7 +106,7 @@ def blood(size, disc, state):
 
 def rim(size, disc, f, side):
     """the disc's pixels within a band of its outer edge (the f is no edge), along a diagonal: (−1, −1) the light, (1, 1) the shade"""
-    band = 1 if size == 16 else 3
+    band = {16: 1, 26: 2}.get(size, 3)
     dx, dy = side
     whole = disc | f
     return {(x, y) for x, y in disc if any((x + dx * k, y + dy * k) not in whole for k in range(1, band + 1))}
@@ -125,13 +130,13 @@ def drawn(mood, size, state, w, h, ox, oy):
         for p in run | bead:
             put(p, ink["disc"])
         for x, y in run:
-            if size == 40 and (x + 1, y) not in run:
+            if size >= 26 and (x + 1, y) not in run:
                 put((x, y), ink["shade"])
         for p in drops:
             put(p, ink["disc"])
         for p in f:
             put(p, ink["f"])
-        if size == 40:                     # (the f's shadow side)
+        if size >= 26:                     # (the f's shadow side)
             for x, y in f:
                 if (x + 1, y + 1) in disc:
                     put((x, y), ink["f_shade"])
@@ -216,7 +221,7 @@ def write_all():
     for mood in ("dark", "light"):
         d = THEMES / mood
         for suffix, state in (("", "shut"), ("-open", "open")):
-            picture(mood, 16, state, 22, 20).save(d / f"face{suffix}.png", optimize=True)
+            picture(mood, 26, state, 32, 30).save(d / f"head-32{suffix}.png", optimize=True)
             picture(mood, 40, state, 48, 48).save(d / f"head-48{suffix}.png", optimize=True)
         (SHARE / mood / "head.six").write_text(sixel(fetch_picture(mood)), encoding="ascii")
     write_glyphs()
@@ -227,7 +232,7 @@ def sheet(d):
     d.mkdir(parents=True, exist_ok=True)
     grounds = {"dark": ("181715", "26211b"), "light": ("e8e3c2", "f9f5df")}
     for mood, (term, tile) in grounds.items():
-        ims = [(picture(mood, 16, s, 22, 20), tile) for s in ("shut", "open")] + [(picture(mood, 40, s, 48, 48), tile) for s in ("shut", "open")]
+        ims = [(picture(mood, 26, s, 32, 30), tile) for s in ("shut", "open")] + [(picture(mood, 40, s, 48, 48), tile) for s in ("shut", "open")]
         glyphs = []
         for s in ("shut", "open"):
             g = Image.new("RGBA", (24, 20), AIR)

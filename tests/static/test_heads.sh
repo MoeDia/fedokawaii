@@ -11,7 +11,7 @@ import sys
 import numpy as np
 from PIL import Image
 themes = f"{sys.argv[1]}/configs/home/.config/fedokawaii/themes"
-for name, size, most in (("face", (22, 20), 12), ("head-48", (48, 48), 12)):
+for name, size, most in (("head-32", (32, 30), 12), ("head-48", (48, 48), 12)):
     shut = {}
     for mood in ("dark", "light"):
         states = []
@@ -23,7 +23,7 @@ for name, size, most in (("face", (22, 20), 12), ("head-48", (48, 48), 12)):
             a = np.asarray(im)
             states.append(a)
             rows = np.nonzero(a[..., 3].max(1))[0]
-            if name == "face" and (rows[0] < 1 or rows[-1] > 18):
+            if name == "head-32" and (rows[0] < 1 or rows[-1] > 28):   # (a row of paper before each hairline)
                 print("AIR", n, rows[0], rows[-1])
             if set(np.unique(a[..., 3])) != {0, 255}:
                 print("ALPHA", n)

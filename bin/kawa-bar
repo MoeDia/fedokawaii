@@ -122,9 +122,10 @@ case $item in
                  || IFS= read -r l <"$XDG_RUNTIME_DIR/dwl-bar/layout.json"; } 2>/dev/null
          lit_json "$l" ;;
   cat)   # quick settings: the head, the Fedora logo (bloody by night, lighty by day: the bar's
-         # style draws its picture, these glyphs are unseen), its open frame while its panel is open
-         if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_FACE_OPEN" "$cls"
-         else printf '{"text":"%s"}\n' "$ICON_FACE"; fi ;;
+         # style draws its picture; these glyphs, the disc's 26 columns, are unseen), its open frame
+         # while its panel is open
+         if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_FACE_OPEN_BAR" "$cls"
+         else printf '{"text":"%s"}\n' "$ICON_FACE_BAR"; fi ;;
   gear)  # quick settings: the gear (the bar's style draws it, turning while lit; the glyph is unseen,
          # it keeps the tile's width)
          printf '{"text":"%s"%s}\n' "$ICON_FACE" "$cls" ;;

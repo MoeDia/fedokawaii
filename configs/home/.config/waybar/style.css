@@ -82,17 +82,17 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 }
 #custom-torii { margin-left: 8px; padding-right: 10px; }  /* (its 20 px drawing: ink from the pen, no air) */
 #custom-gear  { margin-left: 11px; }
-#custom-menu  { margin-left: 3px; margin-right: 7px; }    /* (its right hairline on x 1911) */
-/* the mood's head (tools/build-head.py: 22 × 20, on the line's rows),
-   on the tile's own paper over its fibre: across its 29 px box leaves an odd pixel — to the right, as
-   every word's. The emblem's glyph keeps the tile's width, unseen */
+#custom-menu  { margin-left: 3px; margin-right: 7px; padding-right: 10px; }    /* (its right hairline on x 1911) */
+/* the mood's head (tools/build-head.py: 32 × 30, the paper's rows; the disc 26 across from its
+   column 3), on the tile's own paper over its fibre: 10 px of paper either side of the disc, the
+   46 px paper set by the emblem's glyph (the disc's 26 columns, from the pen), unseen */
 #custom-menu {
-  background-image: url("../fedokawaii/current/face.png"), url("../fedokawaii/current/kami-fibre.png");
+  background-image: url("../fedokawaii/current/head-32.png"), url("../fedokawaii/current/kami-fibre.png");
   background-repeat: no-repeat, repeat;
-  background-position: 6px 5px, 0 0;   /* (22 × 20 on the 37 × 30 paper: 7 · 8 across, 5 · 5 down) */
+  background-position: 6px 0, 0 0;   /* (the disc on the paper's columns 10–35, the canvas on its rows 0–29) */
   color: transparent;
 }
-#custom-menu.active { background-image: url("../fedokawaii/current/face-open.png"), url("../fedokawaii/current/kami-fibre.png"); }
+#custom-menu.active { background-image: url("../fedokawaii/current/head-32-open.png"), url("../fedokawaii/current/kami-fibre.png"); }
 /* quick settings' gear (tools/build-gear.py: 16 × 16 poses 40 rows apart, so the paper's 20 rows only
    ever hold one): at rest still, its hub a rivet; while they are open it turns, a tooth (45°) in four
    poses of 125 ms, its hub the seal's ink — a picture stepped up 40 rows a pose, nothing redrawn
