@@ -186,3 +186,22 @@ THE CONCEPTS TO DRILL (in this order, woven into the tracks where they fit)
 9. Git underneath: snapshots, commits as a chain, branches as pointers, merge and rebase.
 10. Security: secrets never in code; input validation; SQL injection and XSS shown and then prevented; hashing vs encryption; least privilege.
 11. Later: concurrency (threads vs async) and how tests protect a program (unit vs integration).
+
+## S20 2026-11-07 13:05
+The owner (12:54): learning is the most important part of fedokawaii, "no joke". Visuals wherever they help, nothing held back, more research, and information accurate to the dot. On top of S18 and S19:
+VISUALS
+- Wherever a picture explains faster than words, draw one: simple, calm, big labels, one idea per picture, in the desktop's style, crisp in both moods (SVG). Step-by-step pictures for processes (a command becoming a process, an HTTP request travelling, the call stack growing and shrinking, a git history changing, a JOIN matching rows, Rust moving and borrowing a value), animated or as numbered frames he can step through.
+- The lessons open as local pages (Helium, offline) when pictures matter, launched by kawa-learn; your call on the exact viewer, as long as pictures, code and exercises sit together.
+LEARNING SCIENCE (research it properly and apply it, cite what you used in the lessons' about page)
+- Worked examples first, then the help fades step by step until he solves it alone.
+- Retrieval practice and spaced review (S19), interleaving older topics into new exercises, words plus pictures together.
+- "Explain it back": every few lessons he explains a concept in his own words in ~/notes, with a checklist to compare against.
+- Instant feedback: exercises come with a checker (a small script that runs his answer and says what is right and what is not, kindly). A "common mistakes" box in each lesson.
+- Motivation in the desktop's game style: a dojo rank that grows with practice, a streak, a weekly look back. Calm, never nagging.
+CURRICULA TO ALIGN WITH (use as structure and checking sources, write our own lessons, no copying): MIT's "Missing Semester" (shell, git, tools), MDN's "Learn web development" (HTML, CSS, JS), the Python tutorial and the Rust Book (with Rustlings exercises), the PostgreSQL tutorial, and Julia Evans' style of visual explanations of Linux and networking (inspiration only).
+ACCURACY TO THE DOT
+- Every code example in every lesson is run by the test suite with its expected output, so no example can be wrong or go stale.
+- Every fact is checked against the primary docs (S17's "checked against" line); when unsure, check, never guess.
+- Before a lesson is marked done, a separate review pass (fresh context, opus) checks it for accuracy, plain language and S18's rules; fixes go in before it ships.
+SCOPE BY THE DEADLINE
+- The full syllabus, the concept map and the glossary; the first 14 days of lessons finished to this standard (pictures, checkers, review passed); the rest written ahead of him later, always at least 7 days ahead, through the same gates. Quality over quantity: never ship a lesson that has not passed the checks.
