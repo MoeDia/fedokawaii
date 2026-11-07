@@ -4,9 +4,9 @@
 
     python3 tools/build-gear.py [--sheet DIR]
 
-    themes/MOOD/gear.png        16 × 160: the gear at rest on rows 0–15
-    themes/MOOD/gear-turn.png   16 × 160: four poses of a turning gear, 40 rows apart (a tooth is 45°, a pose
-                                11.25° on): style.css steps the picture up 40 rows a pose, so the tile's 20 rows of
+    themes/MOOD/gear.png        20 × 160: the gear at rest on rows 0–19 (r28 sa25d3c: the bar's 20 px icons)
+    themes/MOOD/gear-turn.png   20 × 160: four poses of a turning gear, 40 rows apart (a tooth is 45°, a pose
+                                11.25° on): style.css steps the picture up 40 rows a pose, so the tile's 30 rows of
                                 paper only ever hold one
 
 Each pose is drawn from the gear's outline at 8 × 8 samples a pixel, a pixel inked when half of it is brass: the
@@ -27,8 +27,9 @@ AIR = (0, 0, 0, 0)
 BRASS = {"dark": ("d6c09a", "c5a56e", "746346", "111314"), "light": ("ebcb79", "e2b540", "957d38", "f8f3d8")}
 HUB = {"dark": "eb5324", "light": "a84222"}
 PAPER = {"dark": "25201a", "light": "f9f5de"}
-SIZE, POSES, PITCH = 16, 4, 40
-TEETH, R_TIP, R_ROOT, R_HOLE = 8, 8.0, 5.4, 1.9
+SIZE, POSES, PITCH = 20, 4, 40
+TEETH, R_TIP, R_ROOT, R_HOLE = 8, 10.0, 6.75, 2.9
+R_RIVET = 1.2                             # the hub: the rivet (its four middle pixels) in a ring to R_HOLE
 TOOTH_TIP, TOOTH_ROOT = 0.50, 0.70        # the tooth's half-width at the tip and the root, as a share of its 45°
 
 
@@ -67,18 +68,19 @@ def pose(turn, mood, turning):
     for x, y in m:
         edge = any((x + dx, y + dy) not in m for dx, dy in ((1, 0), (-1, 0), (0, 1), (0, -1)))
         r = math.hypot(x + 0.5 - SIZE / 2, y + 0.5 - SIZE / 2)
-        if edge and r > R_HOLE + 1.2:                          # the outer outline (the hole's rim is the hub's)
+        if edge and r > R_HOLE + 1.5:                          # the outer outline (the hole's rim is the hub's)
             ink = shade
-        elif (x + 0.5 - SIZE / 2) + (y + 0.5 - SIZE / 2) < -2.5 and r > R_ROOT - 2.2:
+        elif (x + 0.5 - SIZE / 2) + (y + 0.5 - SIZE / 2) < -3.1 and r > R_ROOT - 2.75:
             ink = lit                                         # the lit upper left of the wheel and its teeth
         else:
             ink = body
         img.putpixel((x, y), ink)
-    # the hub: a rivet ring round the hole at rest, the seal's ink while it turns (its four pixels round the middle)
-    for x, y in ((7, 6), (8, 6), (6, 7), (9, 7), (6, 8), (9, 8), (7, 9), (8, 9)):
-        img.putpixel((x, y), rgba(HUB[mood]) if turning else shade)
-    for x, y in ((7, 7), (8, 7), (7, 8), (8, 8)):
-        img.putpixel((x, y), rgba(HUB[mood]) if turning else rivet)
+    # the hub: a rivet in its ring at rest, the seal's ink while it turns (the hole's pixels, a disc of R_HOLE)
+    for y in range(SIZE):
+        for x in range(SIZE):
+            r = math.hypot(x + 0.5 - SIZE / 2, y + 0.5 - SIZE / 2)
+            if r <= R_HOLE:
+                img.putpixel((x, y), rgba(HUB[mood]) if turning else (rivet if r <= R_RIVET else shade))
     return img
 
 

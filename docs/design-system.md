@@ -604,7 +604,7 @@ and the time to the second (the owner, 4 Nov 21:46).
 | 35 | the hairline |
 | 36–37 | the shadow, a pixel further right each row; the finials down to 38 |
 | 10–29 | the icons (Sumi Icons Bar, 20 px) on the line's rows |
-| 12–27 | the gear (16 × 16) and, until they are drawn at the new size, the stamp's seal (16) and the skies (14) on the paper's middle |
+| 10–29 | the gear (20 × 20) and the skies (20 × 20) on the line's rows, as an icon |
 
 Across: the outer tiles' hairlines on x 8 and x 1911 — the windows' edges (§12); 10 px from the
 paper's edge to the ink on both sides of every tile, and 10 from an icon's ink to its value's (words
@@ -623,8 +623,8 @@ the tiles of a group, 12 px between groups.
 | the keyboard | `us` in `accent_text`, `ar` in `blue` — capitals while Caps Lock is on (dwl's `kbcaps`); a click switches |
 | do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
-| the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (14 × 14, a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 10 px in on the paper's middle, the temperature 10 px after it |
-| quick settings | the gear's tile, 4 px before the right end's: a brass gear of eight teeth (16 × 16, the kanagu brass, `tools/build-gear.py`), still at rest, its hub a rivet; while quick settings are open it turns, a tooth in four poses of 125 ms (a picture stepped, nothing between: waybar 0.4 % of a core), its hub the seal's ink; under the pointer its first pose. The click is the gear's |
+| the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (20 × 20, the bar's weather icons filled: a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 10 px in on the paper's middle, the temperature 10 px after it |
+| quick settings | the gear's tile, 4 px before the right end's: a brass gear of eight teeth (20 × 20, the kanagu brass, `tools/build-gear.py`), still at rest, its hub a rivet; while quick settings are open it turns, a tooth in four poses of 125 ms (a picture stepped, nothing between: waybar 0.4 % of a core), its hub the seal's ink; under the pointer its first pose. The click is the gear's |
 | the head | the right end's tile: the Fedora head, bloody (dark) or lighty (light), its emblem — its own 26 px drawing (`art/fedora-head.txt` @26, `tools/build-head.py`: 32 × 30 on the paper's rows, 10 px of paper either side of the disc, the paper 46 wide; the light's rays only at the sides and corners, a row of paper before each hairline); no click of its own; open with quick settings (the blood runs, a drop lets go; the light spreads) |
 | lit | under the pointer, or while what it opened is on screen: `asagi` at once (a vermilion tile: `accent_hi`) |
 

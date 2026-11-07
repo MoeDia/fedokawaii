@@ -401,18 +401,18 @@ has "$(grep -E '^#custom-menu\.active \{' "$S_")" 'url("../fedokawaii/current/he
 case_ "quick settings' gear (d4, tools/build-gear.py): still at rest, four poses 40 rows apart while open, stepped (no frame between), both moods"
 for th in dark light; do
   for f in gear gear-turn; do
-    eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "16 160 6" "$th/$f.png: 16 × 160 with alpha"
+    eq "$(python3 -I -c 'import struct,sys; d=open(sys.argv[1],"rb").read(); print(*struct.unpack(">II", d[16:24]), d[25])' "$REPO/configs/home/.config/fedokawaii/themes/$th/$f.png")" "20 160 6" "$th/$f.png: 20 × 160 with alpha"
   done
 done
 has "$(grep -A4 -E '^#custom-gear \{$' "$S_")" 'url("../fedokawaii/current/gear.png")'
 grep -A4 -E '^#custom-gear \{$' "$S_" | grep -q animation && _no "the gear turns at rest" || _ok
 has "$(grep -A3 -E '^#custom-gear\.active \{$' "$S_")" "animation: kawa-gear 500ms steps(4, start) infinite;" "four poses, 125 ms each, nothing between"
-has "$(grep -E '^@keyframes kawa-gear' "$S_")" "from { background-position: 9px 7px, 0 0; }" "its 16 rows on the jikusaki paper's middle (7 above), 10 px in"
-[[ $(grep -E '^@keyframes kawa-gear' "$S_") =~ to\ \{\ background-position:\ [89]px\ -153px,\ 0\ 0\;\ \} ]] && _ok || _no "4 × 40 rows up (the 8 or 9 across: sa25d3's kit)"
+has "$(grep -E '^@keyframes kawa-gear' "$S_")" "from { background-position: 9px 5px, 0 0; }" "its 20 rows the line's (5 above), 10 px in"
+has "$(grep -E '^@keyframes kawa-gear' "$S_")" "to { background-position: 9px -155px, 0 0; }" "4 × 40 rows up, never a step across"
 setup; setrun
 gear_ex=$(wbexec custom/gear)
-eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_FACE\"}" "at rest: not lit"
+eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_SUN_BAR\"}" "at rest: not lit (the glyph unseen, 20 columns)"
 echo $$ >"$R/kawa-panel.open"
-eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_FACE\",\"class\":\"active\"}" "quick settings open: turning"
+eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_SUN_BAR\",\"class\":\"active\"}" "quick settings open: turning"
 rm -f "$R/kawa-panel.open"
 done_

@@ -93,16 +93,18 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   color: transparent;
 }
 #custom-menu.active { background-image: url("../fedokawaii/current/head-32-open.png"), url("../fedokawaii/current/kami-fibre.png"); }
-/* quick settings' gear (tools/build-gear.py: 16 × 16 poses 40 rows apart, so the paper's 20 rows only
+/* quick settings' gear (tools/build-gear.py: 20 × 20 poses 40 rows apart, so the paper's 30 rows only
    ever hold one): at rest still, its hub a rivet; while they are open it turns, a tooth (45°) in four
    poses of 125 ms, its hub the seal's ink — a picture stepped up 40 rows a pose, nothing redrawn
-   between; under the pointer its first pose, still (GTK 3 reads steps(4, start) as CSS's
-   steps(4, end): pose 1 first, each held its 125 ms). Its 16 columns on the paper: 10 to
-   the left, the odd pixel to the right, as the head's; its 16 rows on the paper's middle (7 above) */
+   between, never a step across; under the pointer its first pose, still (GTK 3 reads steps(4, start)
+   as CSS's steps(4, end): pose 1 first, each held its 125 ms). Its 20 columns 10 px from the paper
+   either side (the 20 px of an unseen 20-column drawing, the sun's bar twin, set the tile); its 20
+   rows on the line's (5 above) */
 #custom-gear {
   background-image: url("../fedokawaii/current/gear.png"), url("../fedokawaii/current/kami-fibre.png");
   background-repeat: no-repeat, repeat;
-  background-position: 9px 7px, 0 0;
+  background-position: 9px 5px, 0 0;
+  padding-right: 10px;
   color: transparent;
 }
 #custom-gear:hover { background-image: url("../fedokawaii/current/gear-turn.png"), url("../fedokawaii/current/kami-fibre.png"); }
@@ -110,7 +112,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-image: url("../fedokawaii/current/gear-turn.png"), url("../fedokawaii/current/kami-fibre.png");
   animation: kawa-gear 500ms steps(4, start) infinite;
 }
-@keyframes kawa-gear { from { background-position: 9px 7px, 0 0; } to { background-position: 8px -153px, 0 0; } }
+@keyframes kawa-gear { from { background-position: 9px 5px, 0 0; } to { background-position: 9px -155px, 0 0; } }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
 .tag { color: @faint; padding-right: 10px; }   /* (the numerals: 16 × 16, no air of their own) */
@@ -182,17 +184,17 @@ button, button:hover, button:active, button:checked { background: none; box-shad
                                                                      column's 2 px of air, not M's 1) */
 
 /* ── the right: what the computer is doing, a tile each · the face ─────────────────── */
-/* the weather: its sky drawn (tools/build-themes.py SKY: 14 × 14, a few inks of the palette), laid
-   on the tile's paper by kawa-weather's class — on the paper's middle (8 rows above), 10 px from the paper's
+/* the weather: its sky drawn (tools/build-themes.py SKY: 20 × 20, a few inks of the palette), laid
+   on the tile's paper by kawa-weather's class — on the line's rows (5 of paper above), 10 px from the paper's
    edge (its first column is the border's: 9 here), the temperature's ink 10 px after it (a 0, 1
    or 2 first has a column of air of its own: l1) */
 #custom-weather {
-  background-position: 9px 8px, 0 0;
+  background-position: 9px 5px, 0 0;
   background-repeat: no-repeat, repeat;
-  padding-left: 33px;
+  padding-left: 39px;
   padding-right: 7px;   /* (° has 3 px of air) */
 }
-#custom-weather.l1 { padding-left: 32px; }
+#custom-weather.l1 { padding-left: 38px; }
 #custom-weather.sky-clear        { background-image: url("../fedokawaii/current/sky-clear.png"), url("../fedokawaii/current/kami-fibre.png"); }
 #custom-weather.sky-clear-night  { background-image: url("../fedokawaii/current/sky-clear-night.png"), url("../fedokawaii/current/kami-fibre.png"); }
 #custom-weather.sky-partly       { background-image: url("../fedokawaii/current/sky-partly.png"), url("../fedokawaii/current/kami-fibre.png"); }

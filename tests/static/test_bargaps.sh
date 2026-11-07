@@ -200,16 +200,16 @@ for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", 
                   ("#custom-timer", 0, air("5")[1]), ("#custom-mode", 0, 0)):
     want(f"{sel}: the paper → its ink", L(sel, l), PAD)
     want(f"{sel}: its ink → the paper", R(sel, r), PAD)
-# the weather: its sky a picture (14 × 14, by its class) on the paper's middle, 10 px from the
+# the weather: its sky a picture (20 × 20, by its class) on the line's rows, 10 px from the
 # paper's edge; the temperature's ink 10 px after it (a 0, 1 or 2 first: l1), 10 to the paper's end
 wp = box("#custom-weather")[3].get("background-position", "").split(",")[0].split()
 wx, wy = px(wp[0]), px(wp[1])
 want("#custom-weather: the paper → its sky", 1 + wx, PAD)
-want("#custom-weather: its sky (14) on the paper's middle", wy, 8)
-want("#custom-weather: its sky → the temperature's ink", (1 + box("#custom-weather")[0][3] + air("5")[0]) - (1 + wx + 14), PAD)
-want("#custom-weather.l1: its sky → a 1's ink", (1 + box("#custom-weather.l1")[0][3] + air("1")[0]) - (1 + wx + 14), PAD)
-want("#custom-weather.l1: its sky → a 2's ink", (1 + box("#custom-weather.l1")[0][3] + air("2")[0]) - (1 + wx + 14), PAD)
-want("#custom-weather: its sky → a minus's ink", (1 + box("#custom-weather")[0][3] + air("-")[0]) - (1 + wx + 14), PAD)
+want("#custom-weather: its sky (20) on the line's rows (5 of paper above)", wy, 5)
+want("#custom-weather: its sky → the temperature's ink", (1 + box("#custom-weather")[0][3] + air("5")[0]) - (1 + wx + 20), PAD)
+want("#custom-weather.l1: its sky → a 1's ink", (1 + box("#custom-weather.l1")[0][3] + air("1")[0]) - (1 + wx + 20), PAD)
+want("#custom-weather.l1: its sky → a 2's ink", (1 + box("#custom-weather.l1")[0][3] + air("2")[0]) - (1 + wx + 20), PAD)
+want("#custom-weather: its sky → a minus's ink", (1 + box("#custom-weather")[0][3] + air("-")[0]) - (1 + wx + 20), PAD)
 want("#custom-weather: its ink → the paper", R("#custom-weather", air("°")[1]), PAD)
 # the layout's mark and the window's name in one tile: the mark 8 from the paper, the name 8
 # after the mark (less its first letter's air: the classes l1–l3), 8 to the paper's end
@@ -240,11 +240,11 @@ for sel in [f"#custom-tag{k}" for k in range(2, 10)] + ["#custom-timer", "#custo
     want(f"→ {sel} (within a group)", gap(sel), 4)
 for sel in ("#custom-menu",):
     want(f"→ {sel} (within a group: the gear's)", gap(sel), 4)
-# the gear: a picture, its 16 columns 8 px from the paper (the padding box one column in), the odd
-# pixel to the right as the head's; its 16 rows on the paper's middle, 12–27 (7 of paper above)
+# the gear: a picture, its 20 columns 10 px from the paper (the padding box one column in) either
+# side; its 20 rows the line's, 10–29 (5 of paper above)
 gp = box("#custom-gear")[3].get("background-position", "").split(",")[0].split()
 want("#custom-gear: the paper → its ink", 1 + px(gp[0]), PAD)
-want("#custom-gear: its rows (12–27)", 5 + px(gp[1]), 12)
+want("#custom-gear: its rows (10–29)", 5 + px(gp[1]), 10)
 for sel in ("#custom-tag1", "#focused", "#custom-gear"):
     want(f"→ {sel} (between groups)", gap(sel), 12)
 want("the screen's left edge → the torii's hairline (x 8)", box("#custom-torii")[1][3], 8)

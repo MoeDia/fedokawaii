@@ -57,12 +57,12 @@ def want(table, surface, what, got, need):
 
 def quick(a, table, th, ground, cursor=None):
     s = f"quick settings ({th})"
-    # the frame: the right hairline on x 1911, the top on y 33 (§6)
+    # the frame: the right hairline on x 1911, the top on y 44 (§6)
     col = [y for y in range(28, a.shape[0]) if colour(a, 1600, y) != ground]
     fy = col[0]
     row = [x for x in range(a.shape[1]) if colour(a, x, 300) != ground]
     fx = row[0]
-    want(table, s, "top hairline y", fy, 33)
+    want(table, s, "top hairline y", fy, 44)
     fw = 410
     want(table, s, "right hairline x", fx + fw - 1, 1911)
     x0 = fx + X0
@@ -188,7 +188,7 @@ def calendar(a, table, th, conf, ground):
         return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
     x0_, y0_, x1_, y1_ = box_of(a, ground)
     W = 362
-    want(table, s, "the frame's top y", y0_, 33)
+    want(table, s, "the frame's top y", y0_, 44)
     want(table, s, "the frame's width", x1_ - x0_, W)
     want(table, s, "centred on the screen's middle: left, right of the frame", x0_, 1920 - x0_ - W)
     # the grid: 40 × 20, 8 apart
@@ -226,7 +226,7 @@ def notice(a, table, th, conf, ground):
         return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
     x0_, y0_, x1_, y1_ = box_of(a, ground, 28)
     want(table, s, "the right hairline x", x1_ - 1, 1911)
-    want(table, s, "the top hairline y", y0_, 33)
+    want(table, s, "the top hairline y", y0_, 44)
     run = [x for x in range(x0_, x0_ + 12) if colour(a, x, y0_ + 30) == rgb("accent")]
     want(table, s, "the left: its hairline and the 3 px bar", len(run), 4)
     reg = a[y0_ + 10:y0_ + 45, x0_ + 8:x0_ + 50]
@@ -268,7 +268,7 @@ def main():
         quick(a, table, th, g)
         c = load(f"{d}/quick-cursor.png")
         fx = [x for x in range(c.shape[1]) if colour(c, x, 300) != colour(c, 1600, 300)][0]
-        band(c, table, f"the cursor ({th})", fx, 33 + 193, colour(c, 1600, 300), rgb("select"), rgb("select_edge"))
+        band(c, table, f"the cursor ({th})", fx, 44 + 193, colour(c, 1600, 300), rgb("select"), rgb("select_edge"))
         power(load(f"{d}/power.png"), table, th, conf)
         kit = rgb("ground")
         calendar(load(f"{d}/calendar.png"), table, th, conf, kit)

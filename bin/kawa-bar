@@ -127,8 +127,8 @@ case $item in
          if ((lit)); then printf '{"text":"%s"%s}\n' "$ICON_FACE_OPEN_BAR" "$cls"
          else printf '{"text":"%s"}\n' "$ICON_FACE_BAR"; fi ;;
   gear)  # quick settings: the gear (the bar's style draws it, turning while lit; the glyph is unseen,
-         # it keeps the tile's width)
-         printf '{"text":"%s"%s}\n' "$ICON_FACE" "$cls" ;;
+         # it keeps the tile's width: a 20-column drawing of Sumi Icons Bar, the gear's own 20)
+         printf '{"text":"%s"%s}\n' "$ICON_SUN_BAR" "$cls" ;;
   date)  # DD∕MM∕YYYY, its two slashes our own (Sumi UI's ∕: a clean stair on the figures' ten
          # rows — art/signs.txt) in vermilion: the same width every day, figures only
          # shellcheck source=/dev/null
