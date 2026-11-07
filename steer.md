@@ -167,3 +167,22 @@ The owner (12:49): the learning in fedokawaii is SUPER important to him. He is a
 - Short sentences, no jargon chains, no walls of text; real, relatable examples (his folders, his notes, his books, his desktop).
 - End each lesson with a 3-question check and one line on what comes next.
 Rewrite the lessons written so far to these rules before writing new ones. This track gets opus (design he will judge) and a final read-through for plain language.
+
+## S19 2026-11-07 13:00
+The owner (12:51): go deeper on what happens behind the scenes, and DRILL the critical concepts into him fully. Claude chose the theory below; keep S18's rules (example first, plain words, every term defined, mostly practice).
+HOW
+- Every lesson gets a "Behind the scenes" part: what really happens underneath, a simple drawing (boxes and arrows in text), and a hands-on peek with a real tool (ps, strace, ss, curl -v, dig, git cat-file, EXPLAIN, the browser's dev tools, rust's borrow checker errors).
+- Drilling: a 5-minute daily review at the start of each day (inside the ~30 minutes): flashcards and tiny exercises on earlier concepts, spaced out (again after 1, 3, 7, 14 days); a concept counts as learned after 3 right answers on different days. A "concept map" page shows each concept as new, practising or learned.
+- A small project each week that uses the week's concepts together.
+THE CONCEPTS TO DRILL (in this order, woven into the tracks where they fit)
+1. The machine: CPU, RAM and disk; a program vs a process; what happens when he types a command (the shell, PATH, a new process, the exit code); files, permissions, users and sudo; stdin, stdout, stderr, pipes and redirection; bytes, text and UTF-8; binary and why 0.1 + 0.2 is not 0.3.
+2. His system: how Linux boots; systemd services; packages and dependencies, versions; the filesystem layout; how his Wayland desktop draws windows (the compositor, dwl).
+3. Programming: values, names and references; mutable vs immutable; functions, scope and the call stack; recursion; errors and how to read a traceback; a debugging method (reproduce, isolate, fix, test).
+4. Data structures and cost: list, dict (a hash map, why lookup is fast), set, stack, queue; how work grows with data (big-O in plain words).
+5. Memory: stack vs heap; Python's garbage collection vs Rust's ownership, borrowing and lifetimes (drilled hard); static vs dynamic types; Option and Result instead of null and exceptions.
+6. Networks: IP addresses, ports, DNS, TCP vs UDP; HTTP request and response, methods and status codes; HTTPS and TLS in plain words; what happens when he opens a website.
+7. The web: the browser's path from HTML to the DOM, CSS, layout and paint; the box model; the cascade and specificity; responsive layouts; the JavaScript event loop; client vs server; cookies, sessions and caching.
+8. Databases: tables, rows and keys; relations and JOINs; designing tables without repeating data (normalisation in plain words); indexes (why they make lookups fast); transactions (all or nothing); EXPLAIN.
+9. Git underneath: snapshots, commits as a chain, branches as pointers, merge and rebase.
+10. Security: secrets never in code; input validation; SQL injection and XSS shown and then prevented; hashing vs encryption; least privilege.
+11. Later: concurrency (threads vs async) and how tests protect a program (unit vs integration).
