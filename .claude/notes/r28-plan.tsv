@@ -99,7 +99,7 @@ sa08	Sat 7	done	Part 2 lessons: git properly	Sat 7 Nov 12:14	5 Part 2 lessons (d
 l4b	Fri 6	done	the lock pack again (S2): set L by l4's note (keep the marks row at 243 as l3 proved it, or widen ROW); motion by m1 where it fits; picker.json; seen in the pulse	Sat 7 Nov 11:38	done by l4 (S2): the pack delivered, m1 step-clock not used: the real lock at real speed is the point	opus
 sa09	Sat 7	done	Part 2 lessons: testing, deployment basics, basic security, reading docs	Sat 7 Nov 12:22	6 Part 2 lessons (days 38-43: tests-first to reading-docs) in wip/; each parses, fails before / passes after in an empty dojo; tests-pytest runs uvx pytest (not installed)	sonnet
 sa10	Sat 7	done	Part 2 lessons: Rust, first steps	Sat 7 Nov 12:23	2 Part 2 lessons (days 44-45: rust-first-steps, rust-variables) in wip/; each parses, fails before / passes after in an empty dojo (rustc)	sonnet
-sa10b	Sat 7	todo	Part 2 lessons: Rust days 46-48 (ownership, errors, small tool)			sonnet
+sa10b	Sat 7	now	Part 2 lessons: Rust days 46-48 (ownership, errors, small tool)			sonnet
 d1c	Fri 6	todo	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth, the ISO's crest and console, cover art, the old lock's leftovers, Guide and Learn text; each with the Fedora head or the world's other art; design system; tests		the old lock's files go with sa31 if the old lock still needs them	opus
 sa11	Sat 7	todo	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo			sonnet
 sa12	Sat 7	todo	every lesson's check run by a test; order and pairing proven			sonnet
