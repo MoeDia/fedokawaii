@@ -677,7 +677,7 @@ class Layout:
 #                                   the first drawn) or a click chooses it; the cursor never lands there
 #     seal  PIC    NAME [ASK [KEY]] a dialog's tile (§4): the picture on a square seal, the word under it, a row of
 #                                   them; ASK: what the foot says at the first press, the second does it; KEY: a
-#                                   letter of NAME that chooses it, underlined (the first such letter). The
+#                                   letter of NAME that chooses it, in red (the first such letter). The
 #                                   dialog hangs as a scroll between two rods (sa16), the asking ones apart
 #     foot  TEXT                    the dialog's foot, centred, quiet (a seal's ASK takes its place)
 #     sand  END    TOTAL            a running timer: a sand bar running out as END (epoch seconds) nears,
@@ -3661,11 +3661,15 @@ def main(argv):
         lay = text_layout(cr, it.name)
         lw = lay.get_pixel_extents()[0]
         tx, ty = x + (S - lw.width) // 2 - lw.x, y + S + GAP + (ROW - LINE) // 2
-        text(cr, tx, ty, it.name, "strong" if focused else "text")
         i = it.name.find(it.accel) if it.accel else -1
-        if i >= 0:                                # (its key: one rule under its letter, 2 rows under the baseline)
-            a = lay.index_to_pos(len(it.name[:i].encode()))
-            box(cr, tx + a.x // Pango.SCALE, ty + baseline(cr) + 2, a.width // Pango.SCALE - 1, 1, "accent_text")
+        ink = "strong" if focused else "text"
+        if i < 0:
+            text(cr, tx, ty, it.name, ink)
+        else:                                     # (its key: that letter alone in the seal's red, no rule under it)
+            n = len(it.accel)
+            ax = tx + text(cr, tx, ty, it.name[:i], ink) if i else tx
+            ax += text(cr, ax, ty, it.name[i:i + n], ink if focused else "accent_text")
+            text(cr, ax, ty, it.name[i + n:], ink)
 
     drawing.append(True)                          # (from here on, every layout measured)
     panel.relayout()
