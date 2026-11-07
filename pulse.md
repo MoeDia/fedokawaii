@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 04:44 (Dubai)
+# round 28 pulse · Sat 07 05:14 (Dubai)
 
-pace: 67/160 done (42%) · time used 28% · ahead 13.6 h · ETA Sun 08 16:34 · left 85 · blocked 1 · owner 7
-alerts: quiet for 67 min; 1 blocked
-run: conductor active · passes 1 (oldest 67 min) · last activity 67 min ago · commits since start 91 · hold False
-machine: load 1.05 1.19 1.07/12 · mem free 18.7 GB · disk free 611 GB · up 28.5 h · cpu tccd1 64° · cpu tctl 53° · gpu edge 39° · gpu junction 32° · gpu mem 54° · ssd composite 38° · ssd sensor 1 38° · ssd sensor 2 38°
+pace: 67/160 done (42%) · time used 29% · ahead 13.1 h · ETA Sun 08 17:42 · left 85 · blocked 1 · owner 7
+alerts: quiet for 97 min; 1 blocked
+run: conductor active · passes 1 (oldest 97 min) · last activity 97 min ago · commits since start 91 · hold False
+machine: load 0.26 0.46 0.79/12 · mem free 23.4 GB · disk free 623 GB · up 29.0 h · cpu tccd1 35° · cpu tctl 50° · gpu edge 37° · gpu junction 32° · gpu mem 52° · ssd composite 44° · ssd sensor 1 44° · ssd sensor 2 46°
 dark: True (active) · pulse timer active
-tokens since start: out 1,766,219 · in 2,708 · cache write 5,635,951 · cache read 101,602,996 · msgs 1287 · out last 6 h 127,352
-out by model: last 6 h claude-opus-5-5 108,343 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909
+tokens since start: out 1,766,219 · in 2,708 · cache write 5,635,951 · cache read 101,602,996 · msgs 1287 · out last 6 h 116,814
+out by model: last 6 h claude-opus-5-5 97,805 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
