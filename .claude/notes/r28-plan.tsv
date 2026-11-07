@@ -101,8 +101,8 @@ sa09	Sat 7	done	Part 2 lessons: testing, deployment basics, basic security, read
 sa10	Sat 7	done	Part 2 lessons: Rust, first steps	Sat 7 Nov 12:23	2 Part 2 lessons (days 44-45: rust-first-steps, rust-variables) in wip/; each parses, fails before / passes after in an empty dojo (rustc)	sonnet
 sa10b	Sat 7	done	Part 2 lessons: Rust days 46-48 (ownership, errors, small tool)	Sat 7 Nov 12:24	3 Part 2 lessons (days 46-48: rust-ownership, rust-errors, rust-small-tool) in wip/; each parses, fails before / passes after in an empty dojo (rustc)	sonnet
 d1c	Fri 6	done	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth, the ISO's crest and console, cover art, the old lock's leftovers, Guide and Learn text; each with the Fedora head or the world's other art; design system; tests	Sat 7 Nov 12:39	hands a ronin's and a priest's; splash and crest the head; boot menu on shiro; kawa-fixer has no art; no cover exists in the tree; saver, greeter, old lock's files: d1d	opus
-sa11	Sat 7	now	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo			sonnet
-sa12	Sat 7	todo	every lesson's check run by a test; order and pairing proven			sonnet
+sa11	Sat 7	done	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo	Sat 7 Nov 12:40	4 Part 2 lessons (days 34-37: nvim-never-stuck, nvim-his-config, nvim-moves, nvim-use-cases) in wip/; each parses, fails before / passes after in an empty dojo; ask proof greps his config	sonnet
+sa12	Sat 7	now	every lesson's check run by a test; order and pairing proven			sonnet
 d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built	sonnet
 sa17	Sat 7	todo	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest			sonnet
 sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests			sonnet
