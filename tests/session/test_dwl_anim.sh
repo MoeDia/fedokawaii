@@ -272,6 +272,8 @@ has "$(added washframe)" 't = t * t * t * (t * (t * 6 - 15) + 10);' "smootherste
 has "$(added washframe)" 'p = (float)(t * (1.0 + 2 * WASH_RIM) - WASH_RIM);'
 has "$(added animframe)" 'left |= washframe(m, now, held);' "driven by the screen's frames, held with the rest"
 has "$(sed -n '/^+loadcolours(/,/^+}/p' "$P")" 'if (!strcmp(key, "ink")) {' "the ink from dwl.colors"
+has "$(sed -n '/^+loadcolours(/,/^+}/p' "$P")" '"kanagu_rivet"' "the kanagu brass from dwl.colors"
+for t in dark light; do grep -q '^kanagu_rivet [0-9a-f]\{6\}$' "$REPO/configs/home/.config/fedokawaii/themes/$t/dwl.colors" && _ok || _no "$t: no kanagu in dwl.colors"; done
 for t in dark light; do grep -q '^ink [0-9a-f]\{6\}ff$' "$REPO/configs/home/.config/fedokawaii/themes/$t/dwl.colors" && _ok || _no "$t: no ink in dwl.colors"; done
 case_ "the pointer takes a theme switch's new pointer as the ink reaches it (washcursor), or as the wash ends; none waits without a wash"
 has "$(sed -n '/^+reloadcursors(/,/^+}/p' "$P")" 'if (washing())' "under a wash: it waits"

@@ -1237,6 +1237,9 @@ def check_copies():
         raise SystemExit("colours outside the palettes:\n  " + "\n  ".join(bad))
 
 
+BRASS = {"dark": ("d6c09a", "c5a56e", "746346", "111314"), "light": ("ebcb79", "e2b540", "957d38", "f8f3d8")}   # P3 kanagu: the chest fittings in each corner (lit, body, shade, rivet)
+
+
 def panel_conf(m, p):
     """kawa-panel, quick settings: it draws itself (every square and segment on the pixel grid),
     so it takes the colours by name rather than as CSS — and its frame's, as the bar's tiles have
@@ -1245,7 +1248,7 @@ def panel_conf(m, p):
             "accent_text", "accent_hi", "accent_lo", "text_on_accent", "select", "select_hi", "select_edge", "text_on_select",
             "asagi", "flame", "gold")
     k = KAMI[m]   # (accent_hi: a tile's seal the moment it is stamped — design-system §11)
-    brass = {"dark": ("d6c09a", "c5a56e", "746346", "111314"), "light": ("ebcb79", "e2b540", "957d38", "f8f3d8")}[m]   # P3 kanagu: the chest fittings in each corner
+    brass = BRASS[m]
     frame = {"hair": k["hair"], "shadow1": k["shadow"][0], "shadow2": k["shadow"][1], "dim": (0x11, 0x13, 0x14, 0x66)}
     # (sand: a running timer's bar; ai: a Saturday's indigo; yubi_rim: the pointer's rim, the darkest ink on ink, the brightest paper on paper; the dim: Wada's Black at 40 %, a dialog's, in either mood)
     return (f"# {header('~/.config/fedokawaii/current/panel.conf', 'quick settings in ' + NAMES[m])}\n"
@@ -1288,7 +1291,8 @@ def dwl_colors(m, p):
     ink = min(inks, key=lambda c: sum(int(c[i:i + 2], 16) for i in (0, 2, 4)))
     return (f"# {header('~/.config/fedokawaii/current/dwl.colors', 'the window frames in ' + NAMES[m])}\n"
             f"focus {p['accent']}ff\nborder {hx(k['hair'])}\nurgent {p['asagi']}ff\n"
-            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['lacquer']}ff\n")
+            f"shadow1 {hx(k['shadow'][0])}\nshadow2 {hx(k['shadow'][1])}\nink {ink}ff\nlacquer {p['lacquer']}ff\n"
+            + "".join(f"{n} {v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), BRASS[m])))
 
 
 FILES = {

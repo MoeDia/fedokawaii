@@ -243,7 +243,7 @@ screen and the bar's paper share one rhythm.
   pixel in to under the right hairline, the second, lighter, a pixel further right — and one
   column, lighter, right of the right hairline from its second row down. The hairline's ink: dark — `text` at 50 %; light — `strong` at 84 %; the shadow's: dark —
   Black at 67 % then 31 %; light — umber at 43 % then 19 % (`KAMI` in `tools/wada-palette.py`).
-  Panels and the level display carry **kanagu** (owner's pick P3, 6 Nov): a 12 × 12 brass chest fitting in each corner on the hairline, one arm along each edge, a 2 px rivet in the crook (`kanagu_hi`, `kanagu`, `kanagu_lo`, `kanagu_rivet` in panel.conf; `KANAGU` in kawa-panel). Bar tiles, windows and notices keep the plain frame until their pass.
+  Panels and the level display carry **kanagu** (owner's pick P3, 6 Nov): a 12 × 12 brass chest fitting in each corner on the hairline, one arm along each edge, a 2 px rivet in the crook (`kanagu_hi`, `kanagu`, `kanagu_lo`, `kanagu_rivet` in panel.conf; `KANAGU` in kawa-panel). Windows carry them too (dwl: four 12 px scene buffers over the hairline, the brass read from dwl.colors, composed once per theme; the pointer goes through them; a dissolve and a closing ghost take them along). Bar tiles and notices keep the plain frame until their pass.
   Never rounded, never a second frame inside (no inner rule, no bevel).
 - **Panel**: `ground` at the terminals' see-through (kawa-glass, the owner's transparency: what
   lies under it — the wallpaper, a window and its words — shows faintly, at 4 %; everything the
