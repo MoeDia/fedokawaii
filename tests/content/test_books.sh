@@ -94,7 +94,7 @@ has "$(field 2 <<<"$r" | plain)" "$ICON_READ$(times "$ICON_READ_OFF" 9)       37
 eq "$(field 3 <<<"$r")" "read 3 days ago"; eq "$(field 5 <<<"$r")" 37
 case_ "new: no meter (not begun), 'new', what it is"
 r=$(row "New Comic.cbz")
-[[ $(field 2 <<<"$r" | plain) =~ New\ Comic\ {44}new\ $ ]] && _ok || _no "not the title, its column's spaces, a blank meter, then new: [$(field 2 <<<"$r" | plain)]"
+[[ $(field 2 <<<"$r" | plain) =~ New\ Comic\ {28}new\ $ ]] && _ok || _no "not the title, its column's spaces, a blank meter, then new: [$(field 2 <<<"$r" | plain)]"
 lacks "$(field 2 <<<"$r")" "$ICON_READ_OFF" "no meter for a book not begun"
 has "$(field 4 <<<"$r")" "cbz · 3 pages · " "the pictures counted, not the text file"
 case_ "the order: being read, most recent first; then the new ones, newest first"
@@ -112,8 +112,8 @@ case_ "every row is exactly the list's width, CJK counted as two (fzf 100 wide, 
 eq "$(FZF_COLUMNS=100 kawa-books --rows | widths)" "59 "
 eq "$(FZF_COLUMNS=300 kawa-books --rows | widths)" "259 "
 eq "$(FZF_COLUMNS=71 kawa-books --rows | widths)" "30 "
-eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "61 " "too narrow to trust: the window's own width"
-eq "$(kawa-books --rows | widths)" "61 "
+eq "$(FZF_COLUMNS=40 kawa-books --rows | widths)" "45 " "too narrow to trust: the window's own width"
+eq "$(kawa-books --rows | widths)" "45 "
 case_ "a title longer than its column is cut at a word's end — never with …"
 mk pdf "$B/$(printf 'word %.0s' {1..30}).pdf" 1
 t=$(FZF_COLUMNS=85 kawa-books --rows | grep 'word word' | field 2 | plain)
@@ -210,7 +210,7 @@ eq "$n" 500; t1=$(( (${e/./} - ${s/./}) / 1000 ))
 s=$EPOCHREALTIME; n=$(kawa-books --rows | wc -l); e=$EPOCHREALTIME
 eq "$n" 500; t2=$(( (${e/./} - ${s/./}) / 1000 ))
 ((t2 < 2000)) && _ok || _no "second listing took $t2 ms"
-eq "$(kawa-books --rows | widths)" "61 "
+eq "$(kawa-books --rows | widths)" "45 "
 printf '    (500 books: %d ms the first time, %d ms after)\n' "$t1" "$t2"
 
 # ── the cover ────────────────────────────────────────────────────────────────
@@ -368,7 +368,7 @@ fi
 # ── the window ───────────────────────────────────────────────────────────────
 case_ "Super+R: the floating window, once"
 setup; reset_calls; kawa-books
-called "^kawa-term --float --once books books 104x29 -- $REPO/bin/kawa-books --tui\$"
+called "^kawa-term --float --once books books 88x29 -- $REPO/bin/kawa-books --tui\$"
 case_ "inside: the list, its count in the title, the keys"
 library; kawa-books --tui
 eq "$(cat "$FZF_IN")" "$(kawa-books --rows)"

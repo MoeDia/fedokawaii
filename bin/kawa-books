@@ -197,7 +197,7 @@ PY
 # column is right however late the window got its final size (the list is asked for again
 # once fzf is up, and whenever the window changes size)
 rows() {
-  local w=${KAWA_BOOKS_W:-61}   # (the 104-column window)
+  local w=${KAWA_BOOKS_W:-45}   # (the 88-column window)
   [[ ${FZF_COLUMNS:-} =~ ^[0-9]+$ ]] && ((FZF_COLUMNS > 70)) && w=$((FZF_COLUMNS - 41))   # (the cursor's fill a column past the text each side)
   ICON_BOOK=$ICON_BOOK ICON_READ=$ICON_READ ICON_READ_OFF=$ICON_READ_OFF \
     python3 -I -c "$ROWS" "$BOOKS" "$CACHE" "$DB" "$w" "${EXT[@]}"
@@ -389,13 +389,13 @@ case ${1:-} in
     gio trash -- "$2" 2>/dev/null || notify-send -a desktop -- "$ICON_BOOK  books" "could not move ${2##*/} to the trash"
     exit 0 ;;
   --add)        # books elsewhere in your home → ~/books (moved; a name taken gets " (2)")
-    # (the window's 104 columns: rows and heading 100 wide; the picked rows filled, as fzf.opts has it)
+    # (the window's 88 columns: rows and heading 84 wide; the picked rows filled, as fzf.opts has it)
     args=(); for e in "${EXT[@]}"; do args+=(-e "$e"); done
     mapfile -t pick < <(fd -t f -i "${args[@]}" . \
         "$HOME/downloads" 2>/dev/null \
       | while IFS= read -r p; do [[ $p == "$BOOKS"/* ]] || printf '%s\t %s%s%s  %s\n' "$p" "$INK_MUTED" "$ICON_BOOK" "$INK_OFF" "${p/#"$HOME"/\~}"; done \
       | fzf --ansi --multi --height=100% --no-clear --delimiter=$'\t' --with-nth=2 \
-          --header="$(screen_heading "$ICON_BOOK" "add books" 100)"$'\n ' --ghost=' from ~/downloads' \
+          --header="$(screen_heading "$ICON_BOOK" "add books" 84)"$'\n ' --ghost=' from ~/downloads' \
           --footer=$'\n'"$(screen_keys tab mark '')" \
       | cut -f1)
     for p in "${pick[@]}"; do
@@ -408,7 +408,7 @@ case ${1:-} in
   --tui) ;;
   -h|--help) sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; exit 0 ;;
   "")           # Super+R: the window, once (a second press while it is open does nothing)
-    exec kawa-term --float --once books books 104x29 -- "$0" --tui ;;
+    exec kawa-term --float --once books books 88x29 -- "$0" --tui ;;
   *) echo "usage: kawa-books   (Super+R: your books)" >&2; exit 2 ;;
 esac
 
@@ -419,7 +419,7 @@ find "$CACHE" -maxdepth 1 \( -name '*.six' -o -name '*.lay' \) -mtime +90 -delet
 find "$CACHE" -maxdepth 1 \( -name 'cover.*' -o -name '*.six.*' -o -name '*.lay.*' -o -name 'pages.json.*' \) \
   -mmin +1 -delete 2>/dev/null
 KAWA_CELL=$(kawa-cell) || exit 1
-read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=104   # (the window kawa-term --float opens: 104 columns)
+read -r _ c < <(stty size 2>/dev/null); [[ ${c:-} =~ ^[0-9]+$ ]] && ((c > 70)) || c=88   # (the window kawa-term --float opens: 88 columns)
 KAWA_BOOKS_W=$((c - 43))   # (fzf's width is the window's less its margins: as FZF_COLUMNS - 41)
 export KAWA_CELL KAWA_BOOKS_W
 mapfile -t list < <(rows)
