@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 17:15 (Dubai)
+# round 28 pulse · Sat 07 17:45 (Dubai)
 
-pace: 122/210 done (58%) · time used 41% · ahead 17.3 h · ETA Sun 08 20:18 · left 81 · blocked 0 · owner 7
+pace: 122/210 done (58%) · time used 41% · ahead 16.8 h · ETA Sun 08 21:08 · left 81 · blocked 0 · owner 7
 alerts: usage limit hit 5× (last 2026-11-07T12:09 UTC)
-run: conductor active · passes 1 (oldest 39 min) · last activity 2 min ago · commits since start 147 · hold False
-machine: load 1.24 1.13 1.15/12 · mem free 18.4 GB · disk free 610 GB · up 41.0 h · cpu tccd1 52° · cpu tctl 59° · gpu edge 43° · gpu junction 36° · gpu mem 56° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 41°
+run: conductor active · passes 1 (oldest 69 min) · last activity 3 min ago · commits since start 147 · hold False
+machine: load 0.99 1.21 1.20/12 · mem free 18.5 GB · disk free 610 GB · up 41.5 h · cpu tccd1 61° · cpu tctl 60° · gpu edge 44° · gpu junction 36° · gpu mem 56° · ssd composite 40° · ssd sensor 1 40° · ssd sensor 2 42°
 dark: True (active) · pulse timer active
-tokens since start: out 2,404,222 · in 5,052 · cache write 8,719,740 · cache read 166,292,744 · msgs 2440 · out last 6 h 487,549
-out by model: last 6 h claude-sonnet-5-5 295,385 · claude-opus-5-5 183,945 · claude-haiku-5-5 8,219 · since start claude-opus-5-5 2,028,219 · claude-sonnet-5-5 329,398 · claude-haiku-5-5 46,605
+tokens since start: out 2,404,755 · in 5,058 · cache write 8,720,369 · cache read 166,487,623 · msgs 2443 · out last 6 h 488,082
+out by model: last 6 h claude-sonnet-5-5 295,918 · claude-opus-5-5 183,945 · claude-haiku-5-5 8,219 · since start claude-opus-5-5 2,028,219 · claude-sonnet-5-5 329,931 · claude-haiku-5-5 46,605
 
 ## now / blocked / owner
 - [now] sa26 packages: smartmontools (smartd warns by notification and a line in the inventory/health) and LocalSend from its official release, not Flatpak, self-updating, port 53317 TCP+UDP in the home/LAN zone only; launcher, inventory, manifest checklist; tests — his 12:43 (inbox S16)
