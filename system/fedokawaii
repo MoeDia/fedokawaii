@@ -754,12 +754,12 @@ rows() {
   [[ -n $desk ]] && e learning keys "${ICON_KEYCAP:-·}" keys ""
   return 0
 }
-# how far the lessons are: the file kawa-learn keeps — DONE<TAB>TOTAL<TAB>NEXT<TAB>ITS MINUTES<TAB>MINUTES LEFT;
+# how far the lessons are: the file kawa-learn keeps — DAY<TAB>DAYS<TAB>NEXT<TAB>ITS MINUTES<TAB>MINUTES LEFT;
 # read, never a program started (the row is drawn at every look at the menu)
 LEARN_PLACE=${XDG_STATE_HOME:-$HOME/.local/state}/fedokawaii/learn.place
 learn_place() {
   local d t _
-  IFS=$'\t' read -r d t _ 2>/dev/null <"$LEARN_PLACE" && num "$d" && num "$t" && printf '%s of %s' "$d" "$t"
+  IFS=$'\t' read -r d t _ 2>/dev/null <"$LEARN_PLACE" && num "$d" && num "$t" && printf 'day %s of %s' "$d" "$t"
   return 0
 }
 # what the updates hold back: "NAME VERSION<TAB>WHY", a line a family (lib/common.sh's
@@ -933,12 +933,12 @@ explain() {
     [[ -s $six ]] || return 0
     cat -- "$six"; printf '\n\n'                                         # (the picture leaves the cursor on its last row)
   }
-  learn_rows() {   # the lessons: how far, the next (its name in pieces at its words, never cut), how long is left
+  learn_rows() {   # the lessons: the day, today's next (its name in pieces at its words, never cut), how long is left
     local d="" t="" nx="" m="" lf="" h l
     IFS=$'\t' read -r d t nx m lf 2>/dev/null <"$LEARN_PLACE"
     num "$d" && num "$t" || { kawa-learn --place >/dev/null 2>&1; IFS=$'\t' read -r d t nx m lf 2>/dev/null <"$LEARN_PLACE"; }
     num "$d" && num "$t" || return 0
-    printf '   %s%-9s%s %s of %s\n' "$G" stamped "$O" "$d" "$t"
+    printf '   %s%-9s%s %s of %s\n' "$G" day "$O" "$d" "$t"
     if [[ -n $nx ]]; then
       h=next; while IFS= read -r l; do printf '   %s%-9s%s %s\n' "$G" "$h" "$O" "$l"; h=""; done < <(fold -sw 34 <<<"$nx" | sed 's/ *$//')
       printf '   %s%-9s%s %s min\n' "$G" takes "$O" "$m"
@@ -1370,10 +1370,10 @@ backup_drive() {   # another drive for the backups, from those plugged in (kawa-
 }
 learn() {   # the lessons: a window of their own on the desktop, tiled — what a lesson asks you to
   # type goes in the terminal beside it; on a text console, the next one as text
-  [[ -r $TK/docs/learn/index.tsv ]] || { echo "  the lessons are missing: $TK/docs/learn — fedokawaii repair puts them back" >&2; return 1; }
+  [[ -r $TK/docs/lessons/days.tsv ]] || { echo "  the lessons are missing: $TK/docs/lessons — fedokawaii repair puts them back" >&2; return 1; }
   command -v kawa-learn >/dev/null || { echo "  kawa-learn is missing — fedokawaii repair puts it back" >&2; return 1; }
-  if [[ -z ${WAYLAND_DISPLAY:-} ]]; then KAWA_LEARN=$TK/docs/learn kawa-learn --text; return; fi
-  setsid -f kawa-term --app kawa-learn lessons kawa-learn >/dev/null 2>&1 </dev/null
+  if [[ -z ${WAYLAND_DISPLAY:-} ]]; then KAWA_TOOLKIT=$TK kawa-learn --text; return; fi
+  KAWA_TOOLKIT=$TK setsid -f kawa-term --app kawa-learn lessons kawa-learn >/dev/null 2>&1 </dev/null
 }
 
 menu_fzf() {   # → fzf's exit status (2: it could not run — the plain menu takes over)

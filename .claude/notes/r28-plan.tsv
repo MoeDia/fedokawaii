@@ -79,10 +79,10 @@ s12e	Sun 8	todo	the lock l4b retried with a fresh approach on opus, before Sunda
 dsun2	Sun 8	todo	daily (S11/S13/S14): suite + clean-install VM, only on Sun 8 Dubai time, skipped if the last daily passed under 12 h ago with no system-level change since; VM as its own background unit		S13,S14	haiku
 dmon2	Mon 9	todo	daily (S11/S13/S14): as dsun2, only on Mon 9		S13,S14	haiku
 dtue2	Tue 10	todo	daily (S11/S13/S14): as dsun2, only on Tue 10		S13,S14	haiku
-s13a	Sat 7	todo	model mix (S13): check that open rows carry sonnet/haiku per S11 and that the loop passes --model (message.model in the latest transcript); fix what is off		S13	haiku
+s13a	Sat 7	now	model mix (S13): check that open rows carry sonnet/haiku per S11 and that the loop passes --model (message.model in the latest transcript); fix what is off		S13	haiku
 s14a	Sat 7	todo	pace (S14): long jobs as their own systemd user units, the pass marks the row running and goes on; no idle between passes (loop sleep, conductor interval); daily rows gated by day and 12 h		S14	sonnet
 s15a	Sat 7	todo	self-audit every 6 passes on haiku (S15): pace/ETA, no daily before its day, model mix, passes over 90 min and idle gaps, blocked rows over 6 h get a fresh try, design track not crowding out the rest; notes in the plan		S15	haiku
-f26	Fri 6	now	kawa-learn rebuilt on it: today's pair, progress, next, in Super+U's Learning; both moods, many sizes; tests			opus
+f26	Fri 6	done	kawa-learn rebuilt on it: today's pair, progress, next, in Super+U's Learning; both moods, many sizes; tests	Sat 7 Nov 11:08	the day on lib/lessons.py: pair, next, meters, checks that stamp; empty until sa01; both moods rendered, grid held, test_learn 147, test_menu 730	opus
 f27	Fri 6	todo	the book retired: Learn PDF, its build and every entry that opens it gone; its content kept as the source of the lessons; tests			sonnet
 m9	Fri 6	todo	P4 n 4: tairyoku with a better colour combination, dark and light (S4)		his pick P4: 1 tairyoku	opus
 sa01	Sat 7	todo	Part 1 syllabus, day by day, paired with Part 2's so they complement each other			sonnet

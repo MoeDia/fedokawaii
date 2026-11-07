@@ -518,33 +518,35 @@ content, inside its margin of one cell:
   end (the first key is a word, never a command), the pen's room kept as the notes' however
   long the list; esc gives the list, where space ticks, and an item left with no words goes;
   its footer names the keys of the moment.
-- **The lessons** (Super+U → learning → lessons, the launcher's Lessons: `bin/kawa-learn`; a window tiled beside a
-  terminal, because a lesson is done by typing, from a narrow tile to the whole screen). The list: **Tabs**, the book's
-  parts, with the place (`12 of 259`, `muted`) at the list's last column; a chapter a **Heading**, its number `muted`
-  before its name, once one of its lessons is stamped `n of m` `muted` after the rule; a lesson a **Row**: its mark in
-  the icon column (✓ `muted` stamped, the seal `accent_text` on the next, nothing else), its number right-aligned on
-  columns 4–6 (`faint`; stamped `muted`), its name from column 9 (`text`; stamped `muted`), the time right-aligned
-  (`muted`; stamped `faint`). Projects (a chapter's ★★★ and ★★★★: when you have the time, never counted, never "next"):
-  a star in the number's place, words `muted`. From 99 columns of content the pane, 50 as Super+U's: the lesson's
-  **Heading**, its **Facts** (lesson, stamped, takes, needs), the sections it holds, its stamp or the ring waiting for it,
-  and at the pane's foot two **Meters** and what is left. `/` a **Search line** in the tabs' place: found by words in every
-  lesson, a lesson's name first. It opens on the next lesson, the one thing to do.
-  A lesson: a page of 88 columns at most, centred; its **Heading** (the chapter's icon, the name — with the section's
-  number when it is one section —, the rule `accent` as far as you have read, `edge2` the rest, the place `muted`), a
-  row of paper that never scrolls, the words, a row of paper, the screen's own keys (`enter  stamp it`, `enter
-  next: NAME`, `s  solutions  on`) on the last line. Paragraphs at column 0, `**strong**` in `strong`, an aside
-  (`*…*`) `muted` italic, a word of code on the band (`ansi0`, §1). A section: its number `muted` in a heading's icon
-  place, its name `strong`, the rule. A box (a new word, a checkpoint, careful, in this chapter): its icon `accent_text`
-  at column 0, its words from 3. A list at column 1, its words from 3. Code: a rail `│` `edge2` at column 0, the code from
-  2 in bat's colours (its theme "ansi": the palette), what you type `strong` and what the computer answers `muted`, a
-  line too long going on under `↳` `faint`, nothing cut. A table: the head `muted`, the solid rule, columns two apart;
-  too narrow for columns, each row a small block. An exercise: its number `muted`, its stars `accent_text` (Sumi Icons'
-  `star`, one cell: UDEV Gothic's ★ takes two and overlaps what follows), its name `strong`. Under the last words the
-  stamp's place: the ring in `edge2`, Enter stamps it (§11) — the mood's seal in `accent`, 56 × 56 in one ink, its
-  halves mirrored (`docs/learn/seals.txt`: the oni, the lotus over water; a sixel, so the theme's words reach it through
-  foot's mode 2031). A lesson opening unrolls in the window (§11): its rows come from the top behind a rod (`▂` in `select`,
-  a row wide, in the characters' grain), any key ending it at once. Nothing asks the mouse of a page (the terminal's
-  selection stays yours; the wheel comes as arrows).
+- **The lessons** (Super+U → learning → lessons, the launcher's Lessons: `bin/kawa-learn`, on `lib/lessons.py`'s days; a
+  window tiled beside a terminal, because a lesson is done by typing, from a narrow tile to the whole screen). A day is
+  one lesson of Part 1 and one of Part 2; it opens on today's pair, the one thing to do. The day: a **Heading**
+  (`today`, or the date a day before was finished on; `day 4 of 120` `muted` after the rule); the pair, two **Rows**:
+  the mark in the icon column (✓ `muted` done, the seal `accent_text` on the next, nothing else), the part's icon at
+  column 6 (`accent_text`, done `muted`), the name from column 9 (`text`; done `muted`), the time right-aligned (`muted`;
+  done `faint`). Under them, where it fits, **Heading** `next` with the next day's pair, told and not offered: no mark,
+  words `muted`, no cursor reaches them (one day a date; `← →` walk the days before). From 99 columns of content
+  the pane, 50 as Super+U's: the lesson's **Heading**, its **Facts** (part, takes, check, stamped, needs), the idea's first
+  paragraph when it fits whole, its stamp or the ring waiting for it, and at the pane's foot three **Meters** (system,
+  coding, days) and what is left; narrower, the days' Meter alone. No streak, no score: a day missed costs nothing.
+  A lesson: a page of 88 columns at most, centred; its **Heading** (the part's icon, the name, the rule `accent` as far as
+  you have read, `edge2` the rest, `day 4` `muted`), a row of paper that never scrolls, the idea, then `exercise` and
+  `check` as **Headings** with their icons, a row of paper, the screen's own keys (`enter  answer it`, `enter  run it`,
+  `enter  next: NAME`, `enter  the day`, `s  answer`) on the last line. Paragraphs at column 0, `**strong**` in `strong`, an
+  aside (`*…*`) `muted` italic, a word of code on the band (`ansi0`, §1). A box (a new word, careful): its icon
+  `accent_text` at column 0, its words from 3. A list at column 1, its words from 3. Code: a rail `│` `edge2` at column 0,
+  the code from 2 in bat's colours (its theme "ansi": the palette), what you type `strong` and what the computer answers
+  `muted`, a line too long going on under `↳` `faint`, nothing cut. A table: the head `muted`, the solid rule, columns two
+  apart; too narrow for columns, each row a small block.
+  The check: Enter at the page's end. A question: the keys' line becomes the answer's (`›` `accent_text`, the cursor),
+  any case or spacing accepted. A run: in `~/dojo/FOLDER`, ten seconds at most. Wrong: a **Heading** `not yet`
+  (`careful`) under the check says what you said or what it printed, nothing else changes; `s` the answer under it, its
+  steps as blocks. Passed: the stamp (§11) — the mood's seal in `accent`, 56 × 56 in one ink, its halves mirrored
+  (`docs/lessons/seals.txt`: the oni, the lotus over water; a sixel, so the theme's words reach it through foot's mode
+  2031), in the ring's place under the last words. A stamp is never taken off: the record is only added to. A lesson
+  opening unrolls in the window (§11): its rows come from the top behind a rod (`▂` in `select`, a row wide, in the
+  characters' grain), any key ending it at once. Nothing asks the mouse of a page (the terminal's selection stays yours;
+  the wheel comes as arrows).
 - **The prompt**: the mood's head, then one short line of paper blocks, a strip of stamps. The head (§0's crest in one
   ink, the terminal's whole 20 rows, three cells: two glyphs of `art/icons.txt`, 16 px and 8, foot letting a glyph
   spill into one blank cell only): bloody in the vermilion ink (`accent_text`, foot's slot 20) in the dark mood, lighty in the terminal's bright blue (slot 12) in the
@@ -832,7 +834,7 @@ numbers here against its files.
 | help | Super+/ | `bin/kawa-help` | T23 |
 | torrents | the launcher, a magnet link, the bar's mark | `bin/kawa-torrents` (`.local/lib/fedokawaii/kawa-torrents`) | T29 |
 | the prompt | every terminal | `configs/home/.bashrc.d/` | T24 |
-| the lessons | Super+U → learning, the launcher | `bin/kawa-learn`, cut by `tools/learn-pieces.py` | T27 |
+| the lessons | Super+U → learning, the launcher | `bin/kawa-learn`, on `lib/lessons.py` and `docs/lessons/` | r28-f26 |
 | the play world's app (ASOBI, the koma; its own screen is Steam's and gamescope's) | Super+G, Super+U → asobi | `bin/kawa-asobi`, `system/asobi/` | T33 |
 
 ## 15. The grill list

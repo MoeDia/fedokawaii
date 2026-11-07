@@ -82,7 +82,7 @@ case_ "no old head on the head's surfaces"
 for f in bin/kawa-bar bin/fetch bin/kawa-theme configs/home/.bashrc.d/fedokawaii.sh configs/home/.config/waybar/config.jsonc configs/home/.config/fedokawaii/icons.sh art/icons.txt \
          configs/home/.local/lib/fedokawaii/kawa-chess/syllabus.py configs/home/.local/lib/fedokawaii/kawa-chess/home.py \
          configs/home/.local/lib/fedokawaii/kawa-chess/play.py configs/home/.local/share/fedokawaii/chess/faces.txt \
-         docs/learn/chess/README.md docs/learn/seals.txt; do
+         docs/learn/chess/README.md docs/lessons/seals.txt; do
   out=$(grep -n -i -E 'demon|angel|\boni\b|tennin|HEAD_ONI|ICON_ONI' "$REPO/$f" | grep -v -E 'head-(oni|angel)' || true)
   eq "$out" "" "$f"
 done

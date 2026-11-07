@@ -46,7 +46,11 @@ Run alone, `python3 lib/lessons.py [FOLDER]` holds a folder to all this: says th
 """
 import os
 import re
+import select
+import signal
+import subprocess
 import sys
+import time
 
 ID = re.compile(r"[a-z0-9]+(?:-[a-z0-9]+)*")
 DATE = re.compile(r"\d{4}-\d\d-\d\d")
@@ -57,6 +61,8 @@ WORDS = {"idea": 200, "exercise": 120}
 TITLE = 46
 LESSON_MINUTES = (5, 25)
 DAY_MINUTES = (25, 30)
+RUN_SECONDS = 10    # a run check at most: what never ends is stopped, and said
+RUN_BYTES = 65536   # what it prints, kept at most: past it, it is stopped
 
 
 class Fault(Exception):
@@ -321,6 +327,46 @@ def place(course, done, today):
         return None, None, finished
     after = course["days"][first_open[0]:first_open[0] + 1]
     return first_open, after[0] if after else None, finished
+
+
+def same_answer(said, answer):
+    """an ask's answer, whatever its case, spaces or quotes: Super+U is super + u"""
+    plain = lambda s: re.sub(r"[\s`'\"]+", "", s).casefold().rstrip(".")
+    return bool(plain(said)) and plain(said) == plain(answer)
+
+
+def run_check(check, dojo):
+    """a run check on what is in dojo/FOLDER: {passed, out, err, status}. Its output must be expect,
+    whole, and its status exit; status None: stopped, "no folder": nothing to run in"""
+    folder = os.path.join(dojo, check["in"])
+    if not os.path.isdir(folder):
+        return {"passed": False, "out": "", "err": "", "status": "no folder"}
+    p = subprocess.Popen(["bash", "-c", check["run"]], cwd=folder, stdin=subprocess.DEVNULL, stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE, start_new_session=True)
+    got = {p.stdout: b"", p.stderr: b""}
+    end, stopped = time.monotonic() + RUN_SECONDS, False
+    while any(not f.closed for f in got):
+        ready, _, _ = select.select([f for f in got if not f.closed], [], [], max(0, end - time.monotonic()))
+        for f in ready:
+            data = os.read(f.fileno(), 4096)
+            got[f] += data
+            if not data:
+                f.close()
+        if not ready or sum(map(len, got.values())) > RUN_BYTES:
+            stopped = True
+            break
+    try:            # (what shut its output may still run)
+        p.wait(0 if stopped else max(0, end - time.monotonic()))
+    except subprocess.TimeoutExpired:
+        stopped = True
+    if stopped:     # (its whole group: what it started goes with it)
+        os.killpg(p.pid, signal.SIGKILL)
+    status = p.wait()
+    out, err = (got[f].decode("utf-8", "replace") for f in (p.stdout, p.stderr))
+    for f in got:
+        f.close()
+    passed = not stopped and status == check["exit"] and out.rstrip("\n") == check["expect"].rstrip("\n")
+    return {"passed": passed, "out": out, "err": err, "status": None if stopped else status}
 
 
 def history(done):

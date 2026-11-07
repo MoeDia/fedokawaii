@@ -183,7 +183,7 @@ built_lessons() {   # §7: the page's 88 columns, the pane's 50 (Super+U's), the
   has "$(sed -n '/\*\*The lessons\*\*/,/\*\*The prompt\*\*/p' "$DOC")" "the pane, 50 as Super+U's"
   has "$(cat "$k")" "MEASURE = 88"; has "$(cat "$k")" "PANE = 50"
   grep -q '^PANE=50$' "$REPO/system/fedokawaii" && _ok || _no "Super+U's pane is not 50"
-  python3 -I - "$REPO/docs/learn/seals.txt" <<'PY' && _ok || _no "the seals: not 56 x 56, or not mirrored"
+  python3 -I - "$REPO/docs/lessons/seals.txt" <<'PY' && _ok || _no "the seals: not 56 x 56, or not mirrored"
 import sys
 seals, cur = {}, None
 for row in open(sys.argv[1], encoding="utf-8").read().split("\n"):

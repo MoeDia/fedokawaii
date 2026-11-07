@@ -1,17 +1,14 @@
-# the lessons (Super+U → learning → lessons): the Learn book, cut into pieces done one by one
-# source: bin/kawa-learn (key_list, key_page)
-── lessons: the list ──────────────────────────────────────────────
-↑ / ↓                   the lesson before / after
-← / → / Tab             the part before / after
+# the lessons (Super+U → learning → lessons): one of the system and one of programming a day
+# source: bin/kawa-learn (key_day, key_page)
+── lessons: the day ───────────────────────────────────────────────
+↑ / ↓ / Tab             the other of the pair
 Enter                   open it
-Space                   stamp it, or take its stamp off
-/                       find in every lesson's words (Esc ends it)
-b                       the whole book, as a PDF
+← / →                   the days before (the next waits for its date)
 Esc / q                 close
 ── lesson: its page ───────────────────────────────────────────────
 ↑ / ↓ / the wheel       a line
 Space / PgUp / PgDn     a page
-Enter                   a page; at its end the stamp, then the next lesson
-s                       the solutions, under each exercise
-← / →                   the lesson before / after
-Esc / q                 back to the list
+Enter                   a page; at its end the check, passed it stamps
+s                       its answer
+← / →                   the other of the pair
+Esc / q                 back to the day

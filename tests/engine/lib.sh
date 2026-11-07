@@ -50,7 +50,7 @@ engine_world() {
   export FEDOKAWAII_OS_RELEASE=$R/os-release
   # the toolkit: what the engine reads of it (its front is a stand-in unless front_world)
   cp "$REPO/fedokawaii.conf" "$R/toolkit/"; cp "$REPO/lib/common.sh" "$R/toolkit/lib/"   # (the engine reads settings with its parser)
-  mkdir -p "$R/toolkit/docs/learn"; printf 'P\tzero\tfrom zero\tenso\n' >"$R/toolkit/docs/learn/index.tsv"
+  mkdir -p "$R/toolkit/docs/learn" "$R/toolkit/docs/lessons"; : >"$R/toolkit/docs/lessons/days.tsv"
   printf '#!/usr/bin/env bash\necho setup\n' >"$R/toolkit/setup.sh"
   printf '[main]\nfont=x\n' >"$R/toolkit/configs/home/.config/foot/foot.ini"
   # root's front, as a stand-in: says what it was asked, answers with $R/rc-ACTION (0)

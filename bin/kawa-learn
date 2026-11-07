@@ -1,20 +1,20 @@
 #!/usr/bin/python3
-"""kawa-learn — the lessons: the Learn book cut into pieces you do one by one, beside a terminal
-(Super+U → learning → lessons; the launcher's Lessons). A window of its own, tiled, so what a lesson
-asks you to type goes in the terminal next to it (Super+Enter). docs/design-system.md §7.
+"""kawa-learn — the daily lessons: one of Part 1 (the system) and one of Part 2 (programming) a day, about
+30 minutes together (Super+U → learning → lessons; the launcher's Lessons). A window of its own, tiled, so
+what a lesson asks you to type goes in the terminal next to it (Super+Enter). docs/design-system.md §7.
 
-    kawa-learn            the list: the parts as tabs, the cursor on the next lesson
+    kawa-learn            the day: today's pair, how far, what comes next
     kawa-learn ID         that lesson
-    kawa-learn --text [ID] [--cols N]  a lesson as plain text: the next, or that one (a text
-                          console: fedokawaii learn); on a terminal, in less, then a key to stamp it
+    kawa-learn --text [ID] [--cols N]  a lesson as plain text: today's next, or that one (a text
+                          console: fedokawaii learn); on a terminal, in less, then its check
     kawa-learn --place    how far you are, a line of words (and the file Super+U's row reads)
 
-The list: ↑ ↓ the lessons, ← → Tab the parts, Enter opens, Space stamps or unstamps, / finds in the
-lessons' words, b the whole book as a PDF. A lesson: ↑ ↓ the wheel, Space a page, Enter a page and at
-its end the stamp, then the next; ← → the lesson before, after; s the solutions; Esc back.
-The source: docs/fedokawaii-learn.md, cut by tools/learn-pieces.py into docs/learn/ — read from
-$KAWA_LEARN (the toolkit's by default). Kept: ~/.local/state/fedokawaii/learn (what is stamped: a line
-"ID<TAB>YYYY-MM-DD" each), learn.at (where you stopped), learn.place (Super+U's row).
+The day: ↑ ↓ Tab the pair, Enter opens, ← → the days before (the next one waits for its date).
+A lesson: ↑ ↓ the wheel, Space a page, Enter a page and at its end the check; a check passed stamps
+the lesson, Enter then goes on; ← → the other of the pair; s its answer; Esc back.
+The source: docs/lessons, its format and the record's in lib/lessons.py, both in the toolkit
+($KAWA_TOOLKIT; $KAWA_LEARN another folder of lessons). Kept: ~/.local/state/fedokawaii/days (the
+record), learn.at (where you stopped), learn.place (Super+U's row).
 Exit 0 · 1 the lessons cannot be read (said) · 2 misuse."""
 import math
 import os
@@ -28,10 +28,19 @@ import time
 import tty
 import unicodedata
 
-LEARN = os.environ.get("KAWA_LEARN") or "/usr/local/lib/fedokawaii/docs/learn"
+TOOLKIT = os.environ.get("KAWA_TOOLKIT") or "/usr/local/lib/fedokawaii"
+LIB = TOOLKIT + "/lib"
+LEARN = os.environ.get("KAWA_LEARN") or TOOLKIT + "/docs/lessons"
 HOME = os.path.expanduser("~")
 STATE = os.path.join(os.environ.get("XDG_STATE_HOME") or HOME + "/.local/state", "fedokawaii")
 CONFIG = os.environ.get("XDG_CONFIG_HOME") or HOME + "/.config"
+DOJO = HOME + "/dojo"
+sys.dont_write_bytecode = True
+sys.path.insert(0, LIB)
+try:
+    import lessons
+except ImportError:
+    lessons = None
 MEASURE = 88        # the page's columns at most: a line you can read
 PANE = 50           # the list's pane, as Super+U's
 LIST_MIN = 46       # the list's columns at least, where a pane beside it is drawn
@@ -44,6 +53,8 @@ UNROLL = 0.30       # a lesson opening, seconds (§11: a scroll, 300)
 ACCENT, ON_ACCENT, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = \
     "38;5;16", "38;5;17", "38;5;19", "38;5;20", "38;5;21", "38;5;22", "38;5;23", "48;5;24", "38;5;25"
 BAND = "48;5;0"     # the terminal's black: what a code word lies on (§1: it carries text, strong)
+PART_ICON = {1: "TERMINAL", 2: "CODE"}
+PART_NAME = {1: "system", 2: "coding"}
 LACQUER = "38;5;24"  # select as an ink: a rod (§11; foot draws ▂ itself: 5 px of the cell's 20, on its foot)
 ITALIC = "3"
 
@@ -76,7 +87,6 @@ def split_cols(s, n):
 
 
 # ── runs: a line is a list of (text, sgr) ─────────────────────────────────────────────────
-STAR = "★"          # (the terminal's own is two cells wide and overlaps what follows: ours, read at the start)
 
 
 def ansi(runs):
@@ -88,7 +98,7 @@ def ansi(runs):
         out.append(text)
     if cur:
         out.append("\x1b[0m")
-    return "".join(out).replace("★", STAR)
+    return "".join(out)
 
 
 def plain(runs):
@@ -183,17 +193,9 @@ class Line:
 
 
 FENCE = re.compile(r"^```(\S*)$")
-EXERCISE = re.compile(r"^\*\*(\d+\.\d+) (★+) ?(.*?)\*\*(.*)$", re.S)
-SOLUTION = re.compile(r"^<!-- solution (\S+) -->$")
-BOXES = (("Word — ", "BOOK"), ("Checkpoint", "CHECK"), ("Careful", "CAREFUL"), ("In this chapter", "ORDER"))
+BOXES = (("Word — ", "BOOK"), ("Careful", "CAREFUL"))
+HEADING_ICON = {"exercise": "PEN", "check": "CHECK", "not yet": "CAREFUL", "answer": "NOTE"}
 BAT_LANG = {"python": "python", "rust": "rust", "sh": "bash", "json": "json", "toml": "toml", "markdown": "markdown"}
-
-
-def body_of(path):
-    with open(path, encoding="utf-8") as f:
-        text = f.read()
-    m = re.match(r"^---\n.*?\n---\n\n?", text, re.S)
-    return text[m.end():] if m else text
 
 
 def highlight(blocks):
@@ -256,25 +258,22 @@ def console_runs(text):
 
 class Page:
     """a piece laid out for a width: lines (runs at the page's own columns); each line knows its
-    block, so a new width, or the solutions shown, keep what was at the top of the page"""
+    block, so a new width keeps what was at the top of the page"""
 
     def __init__(self, text, icons, title):
         self.text, self.icons, self.title = text, icons, title
         self.hl = None
 
-    def has_solutions(self):
-        return "<!-- solution " in self.text
-
     def blocks(self):
         return [m for m in re.finditer(r"^```(\S*)\n(.*?)\n```$", self.text, re.M | re.S)]
 
-    def layout(self, width, solutions=False):
+    def layout(self, width):
         if self.hl is None:
             self.hl = highlight([(m[1], m[2]) for m in self.blocks()])
         lines = []
         self.block = 0
         self.pending_blank = 0
-        self.render(self.text.split("\n"), lines, width, solutions, 0, True)
+        self.render(self.text.split("\n"), lines, width, 0)
         return lines
 
     def ink_icon(self, name, ink=ACCENT_TEXT):
@@ -374,22 +373,19 @@ class Page:
             self.gap(1)
 
     def heading(self, lines, name, width, indent, icon=None):
-        """a part of the page (§7, two blank lines above, one under): the section's number where a
-        heading's icon stands, muted (the page's own heading has the icon), or an icon of its own"""
+        """a part of the page (§7, two blank lines above, one under): its icon, its name, the rule"""
         self.gap(2)
-        sec = re.match(r"^(\d+\.\d+) (.*)$", name)
-        start = [self.ink_icon(icon), ("  ", "")] if icon else [(sec[1] + " ", MUTED)] if sec else []
+        start = [self.ink_icon(icon), ("  ", "")] if icon else []
         room = width - indent - run_cols(start)
-        fit = wrap([(sec[2] if sec else name, STRONG)], max(1, room - 3))
+        fit = wrap([(name, STRONG)], max(1, room - 3))
         for i, ln in enumerate(fit):
             rule = room - run_cols(ln) - 1
             self.put(lines, (start if i == 0 else [(" " * run_cols(start), "")]) + ln
                      + ([(" ", ""), ("─" * rule, EDGE2)] if i == len(fit) - 1 and rule > 0 else []), indent)
         self.gap(1)
 
-    def render(self, src, lines, width, solutions, indent, top):
+    def render(self, src, lines, width, indent):
         i, n = 0, len(src)
-        first_block = top
         while i < n:
             x = src[i]
             if not x.strip():
@@ -404,35 +400,18 @@ class Page:
                 self.gap(1)
                 self.code(lines, m[1], "\n".join(src[i + 1:j]), indent, width)
                 self.gap(1)
-                i, first_block = j + 1, False
+                i = j + 1
                 continue
             h = re.match(r"^(#{2,3}) (.*)$", x)
             if h:
                 name = h[2]
-                sec = re.match(r"^(\d+\.\d+) (.*)$", name)
-                # (a lesson of one section: the page's own heading has said it)
-                if not (first_block and sec and sec[2] == self.title):
-                    if len(h[1]) == 2 or name == "exercises":
-                        self.heading(lines, name, width, indent, "PEN" if name == "exercises" else None)
-                    else:
-                        self.gap(1)
-                        self.para(lines, inline(name, STRONG), indent, width)
-                        self.gap(1)
-                i, first_block = i + 1, False
-                continue
-            s = SOLUTION.match(x)
-            if s:
-                j = i + 1
-                while j < n and src[j] != "<!-- /solution -->":
-                    j += 1
-                if solutions:
+                if len(h[1]) == 2:
+                    self.heading(lines, name, width, indent, HEADING_ICON.get(name))
+                else:
                     self.gap(1)
-                    self.para(lines, [("solution", MUTED)], indent, width, first=[self.ink_icon("CHECK"), ("  ", "")], hang=3)
+                    self.para(lines, inline(name, STRONG), indent, width)
                     self.gap(1)
-                    self.render(src[i + 1:j], lines, width, solutions, indent + 3, False)
-                    self.gap(1)
-                i = j + 1
-                first_block = False
+                i += 1
                 continue
             if x.startswith("<!--"):
                 while i < n and "-->" not in src[i]:
@@ -446,14 +425,14 @@ class Page:
                 self.gap(1)
                 self.table(lines, src[i:j], indent, width)
                 self.gap(1)
-                i, first_block = j, False
+                i = j
                 continue
             if x.startswith(">"):
                 j = i
                 while j < n and src[j].startswith(">"):
                     j += 1
                 self.box(lines, [q[1:].lstrip(" ") if len(q) > 1 else "" for q in src[i:j]], indent, width)
-                i, first_block = j, False
+                i = j
                 continue
             li = re.match(r"^([-*]|\d+\.) (.*)$", x)
             if li:
@@ -466,7 +445,7 @@ class Page:
                         j += 1
                     self.item(lines, " ".join(item), indent, width)
                 self.gap(1)
-                i, first_block = j, False
+                i = j
                 continue
             j = i
             para = []
@@ -476,7 +455,7 @@ class Page:
                 j += 1
             self.paragraph(lines, " ".join(para), indent, width)
             self.gap(1)
-            i, first_block = j, False
+            i = j
 
     def item(self, lines, text, indent, width):
         m = re.match(r"^([-*]|\d+\.) (.*)$", text)
@@ -485,13 +464,6 @@ class Page:
         self.para(lines, inline(m[2]), indent + 1, width, first=[(mark, MUTED), (" ", "")], hang=w)
 
     def paragraph(self, lines, text, indent, width):
-        e = EXERCISE.match(text)
-        if e:
-            first = [(e[1], MUTED), (" ", ""), (e[2], ACCENT_TEXT), (" ", "")]
-            if e[3]:
-                first += [(e[3], STRONG)]
-            self.para(lines, first + inline(e[4]), indent, width)
-            return
         self.para(lines, inline(text), indent, width)
 
     def box(self, lines, quote, indent, width):
@@ -526,8 +498,6 @@ class Page:
                 self.gap(1)
             if first and text.startswith("**Word — "):
                 text = "**" + text[len("**Word — "):]
-            elif first and text.startswith("**In this chapter**"):
-                text = "**in this chapter**" + text[len("**In this chapter**"):]
             if item:
                 mark = "•" if item[1] in "-*" else item[1]
                 self.para(lines, inline(item[2]), indent + 3, width, first=[(mark, MUTED), (" ", "")], hang=cols(mark) + 1)
@@ -537,81 +507,53 @@ class Page:
             first = False
         self.gap(1)
 
-
-# ── the lessons: the index, what is stamped ────────────────────────────────────────────────
+# ── the course: lib/lessons.py's, and what was done ────────────────────────────────────────
 class Course:
     def __init__(self):
-        self.parts, self.chapters, self.lessons, self.by_id = [], {}, [], {}
-        with open(os.path.join(LEARN, "index.tsv"), encoding="utf-8") as f:
-            for row in f.read().split("\n"):
-                c = row.split("\t")
-                if c[0] == "P":
-                    self.parts.append({"id": c[1], "name": c[2], "icon": c[3], "lessons": []})
-                elif c[0] == "C":
-                    self.chapters[c[1]] = {"n": c[1], "part": c[2], "name": c[3], "icon": c[4], "lessons": []}
-                elif c[0] == "L":
-                    le = {"id": c[1], "file": c[2], "place": int(c[3]), "part": c[4], "chapter": c[5], "title": c[6],
-                          "minutes": int(c[7]), "needs": c[8].split(), "sections": c[9].split("|") if c[9] else [],
-                          "i": len(self.lessons)}
-                    self.lessons.append(le)
-                    self.by_id[le["id"]] = le
-                    self.chapters[le["chapter"]]["lessons"].append(le)
-                    next(p for p in self.parts if p["id"] == le["part"])["lessons"].append(le)
-        self.required = [le for le in self.lessons if le["place"]]
-        self.done = {}
-        self.read_state()
+        self.whole = lessons.load(LEARN)
+        self.days, self.by_id = self.whole["days"], self.whole["lessons"]
+        self.record = os.path.join(STATE, "days")
+        self.done = lessons.read_record(self.record)
 
-    def read_state(self):
-        # (a line it cannot read is passed over, never the whole file lost: it stays until a stamp is taken off)
-        self.done = {}
-        try:
-            with open(os.path.join(STATE, "learn"), encoding="utf-8", errors="replace") as f:
-                for row in f:
-                    c = row.rstrip("\n").split("\t")
-                    if len(c) == 2 and re.fullmatch(r"[a-z0-9-]+", c[0]) and re.fullmatch(r"\d{4}-\d\d-\d\d", c[1]):
-                        self.done[c[0]] = c[1]
-        except OSError:
-            pass
-
-    def write_state(self):
-        self.write(os.path.join(STATE, "learn"), "".join(f"{k}\t{v}\n" for k, v in self.done.items()))
-
-    @staticmethod
-    def write(path, text):
-        tmp = f"{path}.{os.getpid()}"
-        try:
-            os.makedirs(os.path.dirname(path), exist_ok=True)
-            with open(tmp, "w", encoding="utf-8") as f:
-                f.write(text)
-            os.replace(tmp, path)
-        except OSError:          # (a disk that is full: the page goes on, the stamp is not kept)
+    def stamp(self, lid):
+        self.done = lessons.read_record(self.record)      # (another window of it may have stamped meanwhile)
+        if lid not in self.done:
+            today = time.strftime("%Y-%m-%d")
+            self.done[lid] = today
             try:
-                os.unlink(tmp)
-            except OSError:
+                lessons.add_record(self.record, lid, today)
+            except OSError:      # (a disk that is full: the page goes on, the stamp is not kept)
                 pass
-
-    def stamp(self, le, on=True):
-        self.read_state()                 # (another window of it may have stamped meanwhile)
-        if on:
-            self.done[le["id"]] = time.strftime("%Y-%m-%d")
-        else:
-            self.done.pop(le["id"], None)
-        self.write_state()
         self.write_place()
 
-    def count(self):
-        return sum(1 for le in self.required if le["id"] in self.done)
+    def place(self):
+        return lessons.place(self.whole, self.done, time.strftime("%Y-%m-%d"))
+
+    def pair(self, day):
+        return [self.by_id[day[1]], self.by_id[day[2]]]
+
+    def day_of(self, le):
+        return next(d for d in self.days if le["id"] in d[1:])
 
     def next_lesson(self):
-        return next((le for le in self.required if le["id"] not in self.done), None)
+        """the one thing to do: the first of the day shown that is not done; none once it is"""
+        show = self.place()[0]
+        return next((le for le in self.pair(show) if le["id"] not in self.done), None) if show else None
+
+    def count(self, part):
+        ids = [d[part] for d in self.days]
+        return sum(1 for i in ids if i in self.done), len(ids)
 
     def left(self):
-        return sum(le["minutes"] for le in self.required if le["id"] not in self.done)
+        return sum(le["minutes"] for le in self.by_id.values() if le["id"] not in self.done)
 
     def write_place(self):
+        """DAY<TAB>DAYS<TAB>NEXT<TAB>ITS MINUTES<TAB>MINUTES LEFT"""
+        show, _, _ = self.place()
         n = self.next_lesson()
-        self.write(os.path.join(STATE, "learn.place"), "\t".join(
-            (str(self.count()), str(len(self.required)), n["title"] if n else "", str(n["minutes"]) if n else "0", str(self.left()))) + "\n")
+        write_file(os.path.join(STATE, "learn.place"), "\t".join(
+            (str(show[0] if show else len(self.days)), str(len(self.days)), n["title"] if n else "",
+             str(n["minutes"]) if n else "0", str(self.left()))) + "\n")
 
     def where(self):
         try:
@@ -624,7 +566,84 @@ class Course:
         return None, 0
 
     def keep_where(self, le, block):
-        self.write(os.path.join(STATE, "learn.at"), f"{le['id']}\t{block}\n")
+        write_file(os.path.join(STATE, "learn.at"), f"{le['id']}\t{block}\n")
+
+
+def write_file(path, text):
+    tmp = f"{path}.{os.getpid()}"
+    try:
+        os.makedirs(os.path.dirname(path), exist_ok=True)
+        with open(tmp, "w", encoding="utf-8") as f:
+            f.write(text)
+        os.replace(tmp, path)
+    except OSError:
+        try:
+            os.unlink(tmp)
+        except OSError:
+            pass
+
+
+FILE_LANG = {".py": "python", ".rs": "rust", ".sh": "sh", ".json": "json", ".toml": "toml", ".md": "markdown"}
+
+
+def answer_text(le):
+    """a lesson's answer for the page: an ask's the words, a run's its prose with each step a block
+    (a `file NAME` fence: its name, the file in its language's colours; a `do`: commands typed)"""
+    if le["check"]["kind"] == "ask":
+        return "`" + le["check"]["answer"] + "`"
+    out = []
+    for row in le["answer"].split("\n"):
+        m = re.fullmatch(r"```(do|file (\S+))", row)
+        if m and m[2]:
+            out += ["**" + m[2] + "**", "", "```" + FILE_LANG.get(os.path.splitext(m[2])[1], "text")]
+        elif m:
+            out += ["```do"]
+        else:
+            out.append(row)
+    text = "\n".join(out)
+    # (a do's commands, each with its prompt: what is typed, §7)
+    return re.sub(r"^```do\n(.*?)\n```$", lambda b: "```text\n" + "\n".join("$ " + x for x in b[1].split("\n")) + "\n```",
+                  text, flags=re.M | re.S)
+
+
+def check_text(le):
+    c = le["check"]
+    if c["kind"] == "ask":
+        return c["ask"]
+    said = ["$ cd ~/dojo/" + c["in"], "$ " + c["run"]] + c["expect"].split("\n")
+    if c["exit"]:
+        said.append(f"(exit status {c['exit']})")
+    return "```text\n" + "\n".join(said) + "\n```"
+
+
+def said_text(said):
+    """what the last try of the check came to, for the page: `not yet`, and why"""
+    if "words" in said:
+        return f"You said `{said['words']}`."
+    out = []
+    if said["status"] == "no folder":
+        return f"`~/dojo/{said['in']}` is not there yet."
+    if said["status"] is None:
+        out.append(f"Still running after {lessons.RUN_SECONDS} seconds: stopped.")
+    elif said["status"] != said["exit"]:
+        out.append(f"It ended with status {said['status']}, not {said['exit']}.")
+    for what in (said["out"], said["err"]):
+        if what.strip("\n"):
+            out.append("```text\n" + what.strip("\n").replace("```", "'''") + "\n```")
+    if not said["out"].strip("\n") and not said["err"].strip("\n"):
+        out.append("It printed nothing.")
+    return "\n\n".join(out)
+
+
+def page_text(le, answer=False, said=None):
+    """a lesson as the page shows it: the idea under the page's own heading, the exercise, the
+    check; under them what the last try said, and the answer when asked for"""
+    out = [le["idea"], "## exercise", le["exercise"], "## check", check_text(le)]
+    if said:
+        out += ["## not yet", said_text(said)]
+    if answer:
+        out += ["## answer", answer_text(le)]
+    return "\n\n".join(out) + "\n"
 
 
 def read_icons():
@@ -670,7 +689,7 @@ def theme_colours():
 def read_seals():
     seals, cur = {}, None
     try:
-        with open(os.path.join(LEARN, "seals.txt"), encoding="utf-8") as f:
+        with open(os.path.join(TOOLKIT, "docs/lessons/seals.txt"), encoding="utf-8") as f:
             for row in f:
                 row = row.rstrip("\n")
                 if row.startswith("@"):
@@ -840,29 +859,24 @@ def decode(data):
         i += 1
     return out
 
-
 class App:
     def __init__(self, course):
-        global STAR
         self.course = course
         self.icons = read_icons()
-        STAR = self.icons.get("STAR", STAR)
         self.seals = read_seals()
         self.colours = theme_colours()
         self.term = Term()
-        self.screen = "list"
-        self.part = 0
+        self.screen = "day"
+        self.day = None
         self.cursor = None
-        self.top = 0
-        self.rows_shown = []
-        self.query = None
-        self.found = []
-        self.haystack = None
+        self.hits = {}
         self.lesson = None
         self.page = None
         self.lines = []
         self.ptop = 0
-        self.solutions = False
+        self.answer = False
+        self.said = None
+        self.asking = None
         self.seal_at = None
         self.seal_drawn = None
         self.thump = 0
@@ -870,83 +884,34 @@ class App:
         self.running = True
         self.mouse = None
         self.pane_seal = None
-        n = course.next_lesson() or course.lessons[0]
-        self.go_part(next(i for i, p in enumerate(course.parts) if p["id"] == n["part"]), n)
+        self.go_day(self.last_day())
 
     def icon(self, name):
         return self.icons.get(icon_key(name), "·")
 
-    # ── the list ─────────────────────────────────────────────────────────────────────────
-    def go_part(self, i, lesson=None):
-        self.part = i
-        p = self.course.parts[i]
-        self.cursor = lesson or next((le for le in p["lessons"] if le["place"] and le["id"] not in self.course.done),
-                                     p["lessons"][0])
-        self.top = 0
-        self.fit_list()
+    # ── the day ──────────────────────────────────────────────────────────────────────────
+    def last_day(self):
+        """how far the days go: the one to do now, or the last of all once all are done"""
+        return self.course.place()[0] or self.course.days[-1]
+
+    def go_day(self, day, lesson=None):
+        self.day = day
+        pair = self.course.pair(day)
+        self.cursor = lesson or next((le for le in pair if le["id"] not in self.course.done), pair[0])
 
     def shape(self):
-        """columns: (left of the block, the list's width, the pane's, or 0) for this window"""
+        """columns: (left of the block, the pair's width, the pane's, or 0) for this window"""
         room = self.term.cols - 4
         if room >= LIST_MIN + 3 + PANE:
             block = min(room, BLOCK)
             return 2 + (room - block) // 2, block - PANE - 3, PANE
         return 2, max(8, room), 0
 
-    def list_rows(self):
-        """the list's rows for the part shown: a chapter's heading, a blank under it, its lessons,
-        two blanks before the next (§3); or what a search found"""
-        rows = []
-        if self.query is not None:
-            return [("lesson", le) for le in self.found]
-        p = self.course.parts[self.part]
-        seen = []
-        for le in p["lessons"]:
-            if le["chapter"] not in seen:
-                seen.append(le["chapter"])
-        for k, ch in enumerate(seen):
-            if k:
-                rows += [("blank",), ("blank",)]
-            rows += [("chapter", self.course.chapters[ch]), ("blank",)]
-            rows += [("lesson", le) for le in self.course.chapters[ch]["lessons"]]
-        return rows
-
-    def fit_list(self):
-        rows = self.list_rows()
-        self.rows_shown = rows
-        view = self.list_height()
-        at = next((i for i, r in enumerate(rows) if r[0] == "lesson" and r[1] is self.cursor), 0)
-        # (the heading of the first lesson comes along when it fits: where a list starts is said)
-        lead = at
-        while lead > 0 and rows[lead - 1][0] != "lesson" and at - (lead - 1) < view - 1:
-            lead -= 1
-        margin = 2
-        if lead < self.top + (0 if lead == at else margin):
-            self.top = max(0, lead if lead != at else at - margin)
-        if at >= self.top + view - margin:
-            self.top = at - view + margin + 1
-        self.top = max(0, min(self.top, max(0, len(rows) - view)))
-
-    def list_height(self):
-        return max(1, self.term.rows - 5)
-
-    def move(self, step):
-        rows = [r[1] for r in self.list_rows() if r[0] == "lesson"]
-        if not rows:
-            return
-        try:
-            i = next(k for k, le in enumerate(rows) if le is self.cursor)
-        except StopIteration:
-            i = 0
-        self.cursor = rows[max(0, min(len(rows) - 1, i + step))]
-        self.fit_list()
-
-    def draw_list(self):
+    def draw_day(self):
         rows = self.term.rows
         x0, lw, pw = self.shape()
         lines = [[] for _ in range(rows)]
         course = self.course
-        place = f"{course.count()} of {len(course.required)}"
 
         def put(r, col, runs):
             if 0 <= r < rows:
@@ -955,73 +920,62 @@ class App:
                     lines[r].append((" " * (col - used), ""))
                 lines[r].extend(runs)
 
-        if self.query is None:
-            top, under, at = [], [], 0
-            for i, p in enumerate(course.parts):
-                ico = self.icon(p["icon"])
-                if i == self.part:
-                    top += [(ico, ACCENT_TEXT), ("  ", ""), (p["name"], STRONG)]
-                    under += [(" " * (at + 3 - run_cols(under)), ""), ("▔" * cols(p["name"]), ACCENT)]
-                    at += 3 + cols(p["name"])
-                else:
-                    top += [(ico, MUTED), (" ", "")]
-                    at += 2
-                if i < len(course.parts) - 1:
-                    top.append(("   ", ""))
-                    at += 3
-            put(1, x0, top)
-            put(1, x0 + lw - cols(place), [(place, MUTED)])
-            put(2, x0, under)
-        else:
-            q = self.query
-            put(1, x0 + 1, [(self.icon("CHEVRON_RIGHT"), ACCENT_TEXT)])
-            put(1, x0 + 4, [(q, "")] if q else [("find in the lessons", FAINT)])
-            count = str(len(self.found)) if q else ""
-            put(1, x0 + lw - cols(count), [(count, MUTED)])
-        view = self.list_height()
-        for k, row in enumerate(self.rows_shown[self.top:self.top + view]):
-            r = 4 + k
-            if row[0] == "chapter":
-                ch = row[1]
-                name = [(ch["n"] + " ", MUTED)] if ch["n"] != "0" else []
-                name += [(ch["name"], STRONG)]
-                ls = [le for le in ch["lessons"] if le["place"]]
-                d = sum(1 for le in ls if le["id"] in course.done)
-                value = f"{d} of {len(ls)}" if d and ls else ""
-                used = 3 + run_cols(name)
-                rule = lw - used - 1 - (cols(value) + 1 if value else 0)
-                head = [(self.icon(ch["icon"]), ACCENT_TEXT), ("  ", "")] + name
-                if rule >= 1:
-                    head += [(" ", ""), ("─" * rule, EDGE2)]
-                if value and rule >= 1:
-                    head += [(" ", ""), (value, MUTED)]
-                put(r, x0, head)
-            elif row[0] == "lesson":
-                put(r, x0 - 1 if row[1] is self.cursor else x0, self.lesson_row(row[1], lw))
+        self.heading_row(put, 1, x0, lw, "MORTARBOARD", self.day_name(), f"day {self.day[0]} of {len(course.days)}")
+        pair = course.pair(self.day)
+        self.hits = {}
+        for i, le in enumerate(pair):
+            self.hits[3 + i] = le
+            put(3 + i, x0 - 1 if le is self.cursor else x0, self.lesson_row(le, lw))
+        # what comes after today's, its date not yet come: told, never offered
+        after = course.place()[1] if self.day is self.last_day() else None
+        if after and rows >= 12:
+            self.heading_row(put, 6, x0, lw, "CHEVRON_RIGHT", "next", f"day {after[0]}")
+            for i, le in enumerate(course.pair(after)):
+                put(8 + i, x0, self.lesson_row(le, lw, quiet=True))
         if pw:
             self.draw_pane(put, x0 + lw + 3, pw, rows)
-        out = [ansi(x) for x in lines]
-        spot = self.pane_seal if pw and self.cursor else None
-        if self.query is not None and rows > 1:
-            tail = f"\x1b[2;{x0 + 5 + cols(self.query)}H\x1b[?25h"
-        else:
-            tail = "\x1b[?25l"
+        elif rows >= 16:
+            self.meter(put, rows - 4, x0 - 3, "days", *self.days_done())
+        foot = [("enter", ""), ("  ", ""), ("open", MUTED)]
+        if len(course.days) > 1 and self.last_day()[0] > 1:
+            foot += [("    ", ""), ("← →", ""), ("  ", ""), ("another day", MUTED)]
+        if rows > 6:
+            put(rows - 2, x0, foot)
         self.term.write("\x1b[?1000;1003;1006h")
-        self.show(out, (spot[0] + 1, spot[1] + 1) if spot else None, bool(self.cursor) and self.cursor["id"] in course.done, tail)
+        spot = self.pane_seal if pw else None
+        self.show([ansi(x) for x in lines], (spot[0] + 1, spot[1] + 1) if spot else None,
+                  self.cursor["id"] in course.done, "\x1b[?25l")
 
-    def lesson_row(self, le, lw):
-        """a row (§7): its mark at column 1, the number at 4, its name, the time right-aligned at
-        the list's last column. Under the cursor every ink is the lacquer's, from the cursor's
-        column to the one past the content"""
-        course = self.course
-        done = le["id"] in course.done
+    def day_name(self):
+        """today, or the date a day before was finished on"""
+        dates = [self.course.done.get(i) for i in self.day[1:]]
+        if time.strftime("%Y-%m-%d") in dates or None in dates:
+            return "today"
+        return pretty_date(max(dates))
+
+    def days_done(self):
+        return self.course.place()[2], len(self.course.days)
+
+    def heading_row(self, put, r, x, w, icon, name, value):
+        """a **Heading** (§3): the icon, the name, the rule as far as the value, the value muted"""
+        rule = w - 3 - cols(name) - 1 - cols(value) - 1
+        runs = [(self.icon(icon), ACCENT_TEXT), ("  ", ""), (name, STRONG)]
+        if rule >= 1:
+            runs += [(" ", ""), ("─" * rule, EDGE2), (" ", ""), (value, MUTED)]
+        put(r, x, runs)
+
+    def lesson_row(self, le, lw, quiet=False):
+        """a row (§7): its mark at column 1, its part's icon at 6, its name at 9, the time right-aligned
+        at the last column. Under the cursor every ink is the lacquer's, from the cursor's column to
+        the one past the content; quiet: what comes next, told, not to do yet"""
+        done = le["id"] in self.course.done
         if done:
             mark, ink = self.icon("CHECK"), MUTED
-        elif le is course.next_lesson():
+        elif le is self.course.next_lesson():
             mark, ink = self.icon("SEAL"), ACCENT_TEXT
         else:
             mark, ink = " ", ""
-        num = f"{le['place']:>3}" if le["place"] else "  ★"
+        part = self.icon(PART_ICON[le["part"]])
         value = how_long(le["minutes"])
         room = lw - 9 - cols(value) - 2
         # (a narrow tile: the name's end goes, at a word, nothing in its place; the time stays)
@@ -1029,21 +983,19 @@ class App:
         pad = " " * max(2, lw - 9 - cols(title) - cols(value))
         if le is self.cursor:
             s = mix(SELECT, ON_SELECT)
-            return [("  ", s), (mark, s), ("  ", s), (num, s), ("  ", s), (title, s), (pad, s), (value, s), (" ", s)]
-        quiet = done or not le["place"]
-        return [(" ", ""), (mark, ink), ("  ", ""), (num, MUTED if quiet else FAINT), ("  ", ""), (title, MUTED if quiet else ""),
+            return [("  ", s), (mark, s), ("    ", s), (part, s), ("  ", s), (title, s), (pad, s), (value, s), (" ", s)]
+        if quiet:
+            return [("      ", ""), (part, FAINT), ("  ", ""), (title, MUTED), (pad, ""), (value, FAINT)]
+        return [(" ", ""), (mark, ink), ("    ", ""), (part, MUTED if done else ACCENT_TEXT), ("  ", ""), (title, MUTED if done else ""),
                 (pad, ""), (value, FAINT if done else MUTED)]
 
     def draw_pane(self, put, x, w, rows):
         le = self.cursor
-        if not le:
-            return
         course = self.course
-        ch = course.chapters[le["chapter"]]
-        name = [(le["title"], STRONG)]
-        rule = max(0, w - 3 - run_cols(name) - 1)
-        put(1, x, [(self.icon(ch["icon"]), ACCENT_TEXT), ("  ", "")] + name + ([(" ", ""), ("─" * rule, EDGE2)] if rule else []))
-        r = 4
+        rule = max(0, w - 3 - cols(le["title"]) - 1)
+        put(1, x, [(self.icon(PART_ICON[le["part"]]), ACCENT_TEXT), ("  ", ""), (le["title"], STRONG)]
+            + ([(" ", ""), ("─" * rule, EDGE2)] if rule else []))
+        r = 3
         key = 8
 
         def fact(k, runs):
@@ -1052,177 +1004,77 @@ class App:
             put(r, x + 3 + key + 1, runs)
             r += 1
 
-        if le["place"]:
-            fact("lesson", [(f"{le['place']} of {len(course.required)}", "")])
-        else:
-            fact("lesson", [("when you have the time", "")])
+        fact("part", [(f"{le['part']}  {PART_NAME[le['part']]}", "")])
+        fact("takes", [(how_long(le["minutes"]), "")])
+        fact("check", [("you answer" if le["check"]["kind"] == "ask" else "you run it", "")])
         if le["id"] in course.done:
             fact("stamped", [(pretty_date(course.done[le["id"]]), "")])
-        fact("takes", [(how_long(le["minutes"]), "")])
         for i, need in enumerate(le["needs"]):
             n = course.by_id[need]
-            done = need in course.done
-            words = n["title"] if n["chapter"] == le["chapter"] else f"{n['chapter']} {course.chapters[n['chapter']]['name']}"
-            mark = self.icon("CHECK") if done else self.icon("BOX_OFF")
-            for k, ln in enumerate(wrap([(words, MUTED if done else "")], w - 3 - key - 1 - 3)):
+            mark = self.icon("CHECK") if need in course.done else self.icon("BOX_OFF")
+            for k, ln in enumerate(wrap([(n["title"], MUTED if need in course.done else "")], w - 3 - key - 1 - 3)):
                 fact("needs" if i == 0 and k == 0 else "", ([(mark, MUTED)] if k == 0 else [(" ", "")]) + [("  ", "")] + ln)
-        if le["sections"]:
+        # how far, at the pane's foot (§7 Meter); between it and the facts, what fits whole: the
+        # idea's first words, and the lesson's stamp or the ring waiting for it
+        foot = rows - 7
+        para = le["idea"].split("\n\n")[0]
+        words = wrap(inline(" ".join(para.split("\n"))), w - 3) if "```" not in para else []
+        if words and r + 1 + len(words) < foot:
             r += 1
-            for sec in le["sections"]:
-                for k, ln in enumerate(wrap([(sec, "")], w - 3)):
-                    put(r, x + 3 + (5 if k else 0), [(plain(ln), MUTED)])
-                    r += 1
-        # how far: the part's meter and the whole's (§7 Meter), at the pane's foot; between them and
-        # what is told above, where it fits, the lesson's stamp or the ring waiting for it
-        p = next(q for q in course.parts if q["id"] == le["part"])
-        foot = rows - 5
-        self.pane_seal = (r + 2, x + 4) if foot - (r + 1) >= SEAL_ROWS + 1 else None
+            for ln in words:
+                put(r, x + 3, ln)
+                r += 1
+        self.pane_seal = (r + 1, x + 4) if foot - (r + 1) >= SEAL_ROWS + 1 else None
         if foot > r:
-            req = [q for q in p["lessons"] if q["place"]]
-            d = sum(1 for q in req if q["id"] in course.done)
-            self.meter(put, foot, x, key, "part", d, len(req))
-            self.meter(put, foot + 1, x, key, "all", course.count(), len(course.required))
-            left = course.left()
-            if left:
-                put(foot + 2, x + 3, [("left", MUTED)])
-                put(foot + 2, x + 3 + key + 1, [(how_long(left), "")])
+            for i, (name, part) in enumerate(((PART_NAME[1], 1), (PART_NAME[2], 2))):
+                self.meter(put, foot + i, x, name, *course.count(part))
+            self.meter(put, foot + 2, x, "days", *self.days_done())
+            put(foot + 3, x + 3, [("left", MUTED)])
+            put(foot + 3, x + 3 + key + 1, [(how_long(course.left()), "")])
 
-    def meter(self, put, r, x, key, name, done, total):
+    def meter(self, put, r, x, name, done, total):
         n = (done * 10 + total - 1) // total if total else 0
         put(r, x + 3, [(name, MUTED)])
         whole = done == total and total
         lit, off = self.icon("READ"), self.icon("READ_OFF")
-        put(r, x + 3 + key + 1, [(lit * n, MUTED if whole else ACCENT_TEXT), (off * (10 - n), EDGE2), (f"  {done} of {total}", MUTED)])
+        put(r, x + 3 + 9, [(lit * n, MUTED if whole else ACCENT_TEXT), (off * (10 - n), EDGE2), (f"  {done} of {total}", MUTED)])
 
-    def key_list(self, k):
-        rows = self.list_height()
+    def key_day(self, k):
         if isinstance(k, tuple):
-            if k[0] == "mouse":
-                self.mouse_list(k)
-            return
-        if self.query is not None:
-            if k == "esc":
-                self.query, self.found = None, []
-                self.go_part(self.part, self.cursor)
-                return
-            if k in ("up", "down", "pgup", "pgdn", "enter"):
-                pass
-            elif k == "backspace":
-                self.query = self.query[:-1]
-                self.search()
-                return
-            elif k == "clear":
-                self.query = ""
-                self.search()
-                return
-            elif isinstance(k, str) and len(k) == 1:
-                self.query += k
-                self.search()
-                return
-            elif k != "quit":
-                return
+            return self.mouse_day(k)
+        pair = self.course.pair(self.day)
         if k in ("q", "esc", "quit"):
             self.running = False
-        elif k in ("j", "down"):
-            self.move(1)
-        elif k in ("k", "up"):
-            self.move(-1)
-        elif k == "pgdn":
-            self.move(rows - 2)
-        elif k == "pgup":
-            self.move(-(rows - 2))
+        elif k in ("j", "down", "k", "up", "tab", "btab"):
+            self.cursor = pair[0 if self.cursor is pair[1] else 1]
         elif k in ("g", "home"):
-            self.move(-10**6)
+            self.cursor = pair[0]
         elif k in ("G", "end"):
-            self.move(10**6)
-        elif k in ("l", "right", "tab"):
-            self.go_part((self.part + 1) % len(self.course.parts))
-        elif k in ("h", "left", "btab"):
-            self.go_part((self.part - 1) % len(self.course.parts))
+            self.cursor = pair[1]
+        elif k in ("h", "left") and self.day[0] > 1:
+            self.go_day(self.course.days[self.day[0] - 2])
+        elif k in ("l", "right") and self.day[0] < self.last_day()[0]:
+            self.go_day(self.course.days[self.day[0]])
         elif k == "enter":
-            if self.cursor and (self.query is None or self.found):
-                self.open_lesson(self.cursor)
-        elif k == " " and self.cursor:
-            self.course.stamp(self.cursor, self.cursor["id"] not in self.course.done)
-            self.thump = time.monotonic() + 0.06
-        elif k == "/":
-            self.query = ""
-            self.search()
-        elif k == "b":
-            self.open_book()
-
-    def open_book(self):
-        pdf = os.path.join(os.path.dirname(LEARN), "Fedokawaii-Learn.pdf")
-        if os.path.exists(pdf):
-            subprocess.Popen(["setsid", "-f", "zathura", pdf], stdin=subprocess.DEVNULL,
-                             stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-
-    def tab_at(self, x):
-        x0 = self.shape()[0]
-        at = x0
-        for i, p in enumerate(self.course.parts):
-            w = 3 + cols(p["name"]) if i == self.part else 2
-            if at <= x < at + w:
-                return i
-            at += w + 3
+            self.open_lesson(self.cursor)
         return None
 
-    def mouse_list(self, k):
+    def mouse_day(self, k):
         _, b, x, y, press = k
         if b & 64:                  # the wheel
             if press:
-                self.move(-1 if b & 1 == 0 else 1)
+                self.cursor = self.course.pair(self.day)[0 if b & 1 == 0 else 1]
             return
-        hit = None
         x0, lw, _ = self.shape()
-        if 4 <= y < 4 + self.list_height() and x0 - 1 <= x <= x0 + lw:     # (the list's rows, not the pane beside them)
-            at = self.top + y - 4
-            if at < len(self.rows_shown) and self.rows_shown[at][0] == "lesson":
-                hit = self.rows_shown[at][1]
-        moved = b & 32
-        if moved:
-            # (motion alone: one light — the cursor goes to the row under the pointer; no scroll)
+        hit = self.hits.get(y) if x0 - 1 <= x <= x0 + lw else None
+        if b & 32:
+            # (motion alone: one light — the cursor goes to the row under the pointer)
             if hit is not None and self.mouse != (x, y):
                 self.cursor = hit
             self.mouse = (x, y)
-            return
-        if press and b & 3 == 0:
-            if y == 1 and self.query is None:
-                t = self.tab_at(x)
-                if t is not None:
-                    self.go_part(t)
-                return
-            if hit is not None:
-                self.cursor = hit
-                self.open_lesson(hit)
-
-    def search(self):
-        q = (self.query or "").lower().split()
-        if self.haystack is None:
-            self.haystack = []
-            for le in self.course.lessons:
-                try:
-                    body = body_of(os.path.join(LEARN, "pieces", le["file"])).lower()
-                except OSError:
-                    body = ""
-                self.haystack.append((le, le["title"].lower(), " ".join(le["sections"]).lower(), body))
-        if not q:
-            self.found = []
-            self.cursor = None
-            self.top = 0
-            self.rows_shown = []
-            return
-        scored = []
-        for le, title, sections, body in self.haystack:
-            if all(w in title or w in sections or w in body for w in q):
-                score = sum(100 if w in title else 40 if w in sections else 0 for w in q)
-                score += min(30, sum(body.count(w) for w in q))
-                scored.append((-score, le["i"], le))
-        scored.sort(key=lambda t: t[:2])
-        self.found = [t[2] for t in scored]
-        self.cursor = self.found[0] if self.found else None
-        self.top = 0
-        self.rows_shown = [("lesson", le) for le in self.found]
+        elif press and b & 3 == 0 and hit is not None:
+            self.cursor = hit
+            self.open_lesson(hit)
 
     # ── a lesson ──────────────────────────────────────────────────────────────────────────
     def page_shape(self):
@@ -1234,12 +1086,9 @@ class App:
         self.lesson = le
         self.cursor = le
         self.screen = "page"
-        self.solutions = False
-        try:
-            text = body_of(os.path.join(LEARN, "pieces", le["file"]))
-        except OSError as e:
-            text = f"This lesson cannot be read: {e.strerror}. `fedokawaii repair` puts it back."
-        self.page = Page(text, self.icons, le["title"])
+        self.answer = False
+        self.said = None
+        self.asking = None
         self.relayout()
         self.ptop = 0
         self.unroll = time.monotonic()
@@ -1254,7 +1103,8 @@ class App:
 
     def relayout(self):
         _, w = self.page_shape()
-        self.lines = self.page.layout(w, self.solutions)
+        self.page = Page(page_text(self.lesson, self.answer, self.said), self.icons, self.lesson["title"])
+        self.lines = self.page.layout(w)
         # the place for the stamp, its rows blank: the seal is drawn over them while they are all in sight
         self.lines.extend(Line([], self.page.block) for _ in range(2))
         self.seal_at = len(self.lines)
@@ -1281,25 +1131,19 @@ class App:
         rows = self.term.rows
         x0, w = self.page_shape()
         le = self.lesson
-        ch = self.course.chapters[le["chapter"]]
         view = self.body_height()
         total = max(1, len(self.lines))
         lines = [""] * rows
         margin = " " * x0
-        # the heading: its icon, the lesson's name, the rule — vermilion as far as you have read — and its place
-        place = f"{le['place']} of {len(self.course.required)}" if le["place"] else ""
-        # (a lesson of one section: its number too, its own heading in the page left out)
-        sec = re.match(r"^(\d+\.\d+) (.*)$", le["sections"][0]) if len(le["sections"]) == 1 else None
-        num = sec[1] if sec and sec[2] == le["title"] else ""
-        lead = cols(num) + 1 if num else 0
-        name = plain(wrap([(le["title"], "")], max(1, w - 3 - lead - (cols(place) + 3 if place else 2)))[0])
-        room = max(0, w - 3 - lead - cols(name) - 1 - (cols(place) + 1 if place else 0))
+        # the heading: its part's icon, the lesson's name, the rule — vermilion as far as you have read — and its day
+        place = f"day {self.course.day_of(le)[0]}"
+        name = plain(wrap([(le["title"], "")], max(1, w - 3 - (cols(place) + 3)))[0])
+        room = w - 3 - cols(name) - 1 - (cols(place) + 1)
         seen = min(1.0, (self.ptop + view) / total)
         red = room if self.at_end() else int(room * seen)
-        head = [(self.icon(ch["icon"]), ACCENT_TEXT), ("  ", "")] + ([(num + " ", MUTED)] if num else []) \
-            + [(name, STRONG), (" ", ""), ("─" * red, ACCENT), ("─" * (room - red), EDGE2)]
-        if place:
-            head += [(" ", ""), (place, MUTED)]
+        head = [(self.icon(PART_ICON[le["part"]]), ACCENT_TEXT), ("  ", ""), (name, STRONG)]
+        if room >= 1:      # (a tile too narrow for them: the name alone)
+            head += [(" ", ""), ("─" * red, ACCENT), ("─" * (room - red), EDGE2), (" ", ""), (place, MUTED)]
         if rows > 1:
             lines[1] = margin + ansi(head)
         # opening (§11: a scroll unrolling, on a spring: from rest, flowing, settling): the rows come
@@ -1318,15 +1162,17 @@ class App:
             r = 3 + k
             if r < rows and at < total:
                 lines[r] = margin + ansi(self.lines[at].runs)
-        foot = self.footer()
         if shown < view:
             if rod and 3 + shown < rows:
                 lines[3 + shown] = margin + ansi([("▂" * w, LACQUER)])
-            self.show(lines, None, False)
+            self.show(lines, None, False, "\x1b[?25l")
             return
-        if rows > 4 and foot:
-            lines[rows - 2] = margin + ansi(foot)
-        self.show(lines, self.seal_at_page(x0, view), self.lesson["id"] in self.course.done)
+        tail = "\x1b[?25l"
+        if rows > 4:
+            lines[rows - 2] = margin + ansi(self.footer(w))
+            if self.asking is not None:
+                tail = f"\x1b[{rows - 1};{x0 + 4 + cols(self.typed(w))}H\x1b[?25h"
+        self.show(lines, self.seal_at_page(x0, view), le["id"] in self.course.done, tail)
 
     def show(self, lines, pos, done, tail=""):
         """the frame, and the stamp at (row, column), 1-based, or none: the empty ring, or the seal in
@@ -1370,7 +1216,16 @@ class App:
         except OSError:
             return "dark"
 
-    def footer(self):
+    def typed(self, w):
+        """what was typed, its end when it is longer than the line"""
+        s = self.asking
+        while cols(s) > max(1, w - 4):
+            s = s[1:]
+        return s
+
+    def footer(self, w):
+        if self.asking is not None:
+            return [(self.icon("CHEVRON_RIGHT"), ACCENT_TEXT), ("  ", ""), (self.typed(w), "")]
         le = self.lesson
         done = le["id"] in self.course.done
         out = []
@@ -1384,23 +1239,23 @@ class App:
 
         if self.at_end():
             if not done:
-                key("enter", "stamp it")
+                key("enter", "answer it" if le["check"]["kind"] == "ask" else "run it")
             else:
                 n = self.after(le)
-                if n:
-                    key("enter", "next: " + n["title"])
-        if self.page.has_solutions():
-            key("s", "solutions", "on" if self.solutions else "")
+                key("enter", "next: " + n["title"] if n else "the day")
+        key("s", "answer", "on" if self.answer else "")
         return out
 
     def after(self, le):
-        rest = [x for x in self.course.lessons[le["i"] + 1:] if x["place"] and x["id"] not in self.course.done]
-        return rest[0] if rest else self.course.next_lesson()
+        """the other of its pair, while that one waits"""
+        return next((x for x in self.course.pair(self.course.day_of(le)) if x["id"] not in self.course.done), None)
 
     def key_page(self, k):
+        if self.asking is not None:
+            return self.key_asking(k)
         view = self.body_height()
         if isinstance(k, tuple):
-            return
+            return None
         if k in ("q", "esc", "quit"):
             if k == "quit":
                 self.running = False
@@ -1425,41 +1280,75 @@ class App:
             if not self.at_end():
                 self.ptop += max(1, view - 2)
             elif self.lesson["id"] not in self.course.done:
-                self.course.stamp(self.lesson, True)
-                self.thump = time.monotonic() + 0.06
+                self.check()
             else:
                 n = self.after(self.lesson)
+                self.course.keep_where(self.lesson, 0)
                 if n:
-                    self.course.keep_where(self.lesson, 0)
                     self.open_lesson(n)
-        elif k in ("n", "right", "l"):
-            self.step(1)
-        elif k in ("p", "left", "h"):
-            self.step(-1)
-        elif k == "s" and self.page.has_solutions():
-            block = self.top_block()
-            self.solutions = not self.solutions
-            self.relayout()
-            self.to_block(block)
+                else:
+                    self.leave_page()
+        elif k in ("n", "right", "l", "p", "left", "h"):
+            self.other()
+        elif k == "s":
+            self.answer = not self.answer
+            self.again(self.top_block())
         self.clamp()
+        return None
 
-    def step(self, by):
-        ls = self.course.lessons
-        i = self.lesson["i"] + by
-        if 0 <= i < len(ls):
-            self.course.keep_where(self.lesson, self.top_block())
-            self.open_lesson(ls[i], at_block=0)
+    def key_asking(self, k):
+        if k in ("esc", "quit"):
+            self.asking = None
+        elif k == "enter":
+            words, self.asking = self.asking, None
+            if words.strip():
+                self.judge(lessons.same_answer(words, self.lesson["check"]["answer"]), {"words": words})
+        elif k == "backspace":
+            self.asking = self.asking[:-1]
+        elif k == "clear":
+            self.asking = ""
+        elif isinstance(k, str) and len(k) == 1:
+            self.asking += k
+
+    def check(self):
+        le = self.lesson
+        if le["check"]["kind"] == "ask":
+            self.asking = ""
+            return
+        # (it takes the moment it takes, ten seconds at most: said on the footer's line meanwhile)
+        self.term.write(f"\x1b[{self.term.rows - 1};{self.page_shape()[0] + 1}H" + ansi([("running", MUTED)]) + "\x1b[K")
+        got = lessons.run_check(le["check"], DOJO)
+        self.judge(got["passed"], {**got, "in": le["check"]["in"], "exit": le["check"]["exit"]})
+
+    def judge(self, passed, said):
+        if passed:
+            self.said = None
+            self.course.stamp(self.lesson["id"])
+            self.thump = time.monotonic() + 0.06
+        else:
+            self.said = said
+        self.again(self.page.block + 1)
+        self.ptop = len(self.lines)
+
+    def again(self, block):
+        """the page laid out anew, the words at the top kept"""
+        self.relayout()
+        self.seal_drawn = None
+        self.term.wiped = True
+        self.to_block(block)
+
+    def other(self):
+        pair = self.course.pair(self.course.day_of(self.lesson))
+        self.course.keep_where(self.lesson, self.top_block())
+        self.open_lesson(pair[0 if self.lesson is pair[1] else 1], at_block=0)
 
     def leave_page(self):
         self.course.keep_where(self.lesson, self.top_block())
-        self.screen = "list"
+        self.screen = "day"
         self.seal_drawn = None
         self.term.wiped = True
         self.term.write("\x1b]2;lessons\x1b\\")
-        if self.query is None:
-            self.part = next(i for i, p in enumerate(self.course.parts) if p["id"] == self.lesson["part"])
-        self.cursor = self.lesson
-        self.fit_list()
+        self.go_day(self.course.day_of(self.lesson), self.lesson)
 
     # ── running ───────────────────────────────────────────────────────────────────────────
     def resize(self):
@@ -1470,12 +1359,10 @@ class App:
             block = self.top_block()
             self.relayout()
             self.to_block(block)
-        else:
-            self.fit_list()
 
     def draw(self):
-        if self.screen == "list":
-            self.draw_list()
+        if self.screen == "day":
+            self.draw_day()
         else:
             self.draw_page()
 
@@ -1521,8 +1408,8 @@ class App:
                         if isinstance(k, tuple) and k[0] == "theme":
                             self.colours = theme_colours()
                             self.seal_drawn = None
-                        elif self.screen == "list":
-                            self.key_list(k)
+                        elif self.screen == "day":
+                            self.key_day(k)
                         else:
                             self.key_page(k)
             if self.screen == "page":
@@ -1531,17 +1418,45 @@ class App:
 
 
 # ── plain text: a text console ──────────────────────────────────────────────────────────────
-CONSOLE = str.maketrans({"★": "*", "—": "-", "–": "-", "·": "-", "•": "*", "→": "->", "←": "<-", "↳": ">", "│": "|", "─": "-",
-                         "\u2026": "." * 3, "×": "x", "✓": "v", "✗": "x", "“": '"', "”": '"', "‘": "'", "’": "'", "§": "s."})
+CONSOLE = str.maketrans({"—": "-", "–": "-", "·": "-", "•": "*", "→": "->", "←": "<-", "↳": ">", "│": "|", "─": "-",
+                         "×": "x", "✓": "v", "✗": "x", "“": '"', "”": '"', "‘": "'", "’": "'", "§": "s."})
 
 
-def text_lesson(course, le, width):
-    page = Page(body_of(os.path.join(LEARN, "pieces", le["file"])), {}, le["title"])
+def text_lesson(course, le, width, answer=False):
+    page = Page(page_text(le, answer), {}, le["title"])
     page.hl = {}
-    place = f"lesson {le['place']} of {len(course.required)}" if le["place"] else "when you have the time"
-    out = "\n".join([f"{le['title']} — {place}", ""] + [plain(ln.runs).rstrip() for ln in page.layout(width, True)]) + "\n"
+    place = f"day {course.day_of(le)[0]} of {len(course.days)}"
+    out = "\n".join([f"{le['title']} — {place}", ""] + [plain(ln.runs).rstrip() for ln in page.layout(width)]) + "\n"
     # (a text console's font has few of these signs; a terminal has them all)
     return out.translate(CONSOLE) if os.environ.get("TERM") == "linux" else out
+
+
+def text_check(course, le, width):
+    """the check on a console: True when it passed and is stamped, False when you stopped"""
+    c = le["check"]
+    while True:
+        print(c["ask"] + " (? its answer, q stops) " if c["kind"] == "ask" else
+              f"{le['title']}: enter runs its check (? its answer, q stops) ", end="", flush=True)
+        try:
+            words = sys.stdin.readline()
+        except KeyboardInterrupt:
+            return False
+        words = words.strip()
+        if not sys.stdin.isatty() or words == "q":
+            return False
+        if words == "?":
+            print(answer_text(le))
+            continue
+        if c["kind"] == "ask":
+            passed = lessons.same_answer(words, c["answer"])
+            said = {"words": words}
+        else:
+            got = lessons.run_check(c, DOJO)
+            passed, said = got["passed"], {**got, "in": c["in"], "exit": c["exit"]}
+        if passed:
+            course.stamp(le["id"])
+            return True
+        print("not yet. " + said_text(said))
 
 
 def text_mode(course, args):
@@ -1562,7 +1477,7 @@ def text_mode(course, args):
         print(f"kawa-learn: no lesson {args[0]}", file=sys.stderr)
         return 1
     if not le:
-        print("every lesson is stamped.")
+        print("nothing to do today.")
         return 0
     if width is None:
         try:
@@ -1570,22 +1485,15 @@ def text_mode(course, args):
         except OSError:
             width = 80
     width = max(8, min(width, MEASURE))
-    words = text_lesson(course, le, width)
     if not sys.stdout.isatty():
-        sys.stdout.write(words)
+        sys.stdout.write(text_lesson(course, le, width))
         return 0
     while le:
         subprocess.run(["less", "-c"], input=text_lesson(course, le, width), text=True, check=False)
-        print(f"{le['title']}: enter stamps it and goes on, q stops ", end="", flush=True)
-        try:
-            ans = sys.stdin.readline().strip()
-        except KeyboardInterrupt:
-            ans = "q"
-        if ans == "q" or not sys.stdin.isatty():
+        if not text_check(course, le, width):
             return 0
-        course.stamp(le, True)
         le = course.next_lesson()
-    print("every lesson is stamped.")
+    print("nothing more today.")
     return 0
 
 
@@ -1593,20 +1501,24 @@ def main(args):
     if args[:1] in (["-h"], ["--help"]):
         print(__doc__)
         return 0
+    if lessons is None:
+        print(f"kawa-learn: {LIB}/lessons.py cannot be read — fedokawaii repair puts it back", file=sys.stderr)
+        return 1
     try:
         course = Course()
-    except (OSError, IndexError, ValueError, StopIteration, KeyError) as e:
+    except (OSError, lessons.Fault) as e:
         print(f"kawa-learn: the lessons cannot be read ({LEARN}: {e}) — fedokawaii repair puts them back", file=sys.stderr)
         return 1
-    if not course.lessons:
+    if not course.days:
         print(f"kawa-learn: no lessons in {LEARN} — fedokawaii repair puts them back", file=sys.stderr)
         return 1
     if args[:1] == ["--text"]:
         return text_mode(course, args[1:])
     if args[:1] == ["--place"]:
         course.write_place()
+        show = course.place()[0]
         n = course.next_lesson()
-        print(f"{course.count()} of {len(course.required)}" + (f" · next: {n['title']}" if n else ""))
+        print(f"day {show[0] if show else len(course.days)} of {len(course.days)}" + (f" · next: {n['title']}" if n else ""))
         return 0
     start = None
     if args:

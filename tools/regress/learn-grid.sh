@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # tools/regress/learn-grid.sh — never again (T27): the lessons on the design system's grid, to the pixel, in both
-# moods. A headless kit (the real GPU, nothing of the session): the list and a lesson in a window of 118 × 40. From the
+# moods. A headless kit (the real GPU, nothing of the session): the day and a lesson in a window of 118 × 40. From the
 # window's left hairline: the cursor's lacquer at +17 (§7), a heading's icon at +25, a row's mark at +33; a row 20 px;
 # a heading's rule on its row's pixel 10, ending where the rows' times do; the list and its pane unmoved between the
 # moods (a theme is inks, never geometry); a lesson's seal painted whole, in the mood's accent, its halves mirrored,
@@ -14,11 +14,11 @@ out=$(mktemp -d /dev/shm/regress-learn.XXXXXX)
 [[ ${KEEP:-} == 1 ]] || trap 'rm -rf "$out"' EXIT   # (KEEP=1: the shots kept, the folder said)
 cat >"$out/play.sh" <<PLAY
 mkdir -p "\$HOME/.local/state/fedokawaii"
-printf 'how-to-read\t2026-11-01\nthe-plan\t2026-11-01\n' >"\$HOME/.local/state/fedokawaii/learn"
-footclient -a float -T lessons -W 118x41 -- env KAWA_LEARN=$repo/docs/learn kawa-learn >/dev/null 2>&1 &
+printf '%s\tthe-panel\n' "\$(date +%F)" >"\$HOME/.local/state/fedokawaii/days"
+footclient -a float -T lessons -W 118x41 -- env KAWA_TOOLKIT=$repo KAWA_LEARN=$repo/tests/content/fixtures/lessons kawa-learn >/dev/null 2>&1 &
 nap 1.5
 shot list
-key Up; key Up; nap 0.4
+key Up; nap 0.4
 shot stamped
 key Return; nap 0.6
 key End; nap 0.4
@@ -62,7 +62,7 @@ for th in ("dark", "light"):
     lac_end = max(x for x in range(lac_x, W) if hexs(px[x, lac_y]) == pal["SELECT"])
     # a heading's rule: the edge2 run on a row above, its pixel 10
     rule = None
-    for j in range(H - 1, lac_y, -1):         # (the lowest heading: no stamp yet in its chapter, nothing after its rule)
+    for j in range(H - 1, lac_y, -1):         # (the lowest heading: "next" with its rule)
         run = [x for x in range(lac_x, lac_end + 1) if hexs(px[x, j]) == pal["EDGE2"]]
         if len(run) > 60:
             rule = (j, run[0], run[-1]); break
@@ -71,19 +71,19 @@ for th in ("dark", "light"):
     else:
         if (rule[0] - top - 9) % 20 != 9:     # (counted from 0: §3's row 10, foot's box drawing)
             bad.append(f"{th}: the rule on pixel {(rule[0] - top - 9) % 20} of its row, not 9")
-        if lac_end - rule[2] != 8:
-            bad.append(f"{th}: the rule ends {lac_end - rule[2]} px before the lacquer's end, not one cell (8)")
+        if lac_end - rule[2] != 8 + 6 * 8:   # (its value, \"day 2\", and a blank after the rule)
+            bad.append(f"{th}: the rule ends {lac_end - rule[2]} px before the lacquer's end, not its value and a cell")
     # a heading's icon at +25: the accent_text ink starts there (on its row, its 12 px icon centred in 16)
     head = rule[0] if rule else lac_y
     ink = [x for x in range(left + 2, left + 60) for j in range(head - 8, head + 8) if hexs(px[x, j]) == pal["ACCENT_TEXT"]]
-    if not ink or not 25 <= min(ink) - left <= 29:
+    if not ink or not 25 <= min(ink) - left <= 31:   # (the lowest is next's chevron, narrow in its 16)
         bad.append(f"{th}: the heading's icon at +{min(ink) - left if ink else 'none'}, not in its column at +25")
     # the seal beside the list: the accent ink, whole and mirrored
     # (the pane's middle: not the window's hairline, not its heading's icon, which in the light mood are this ink)
     # (a sixel's colours are whole percents: within two of it)
     want = tuple(int(pal["ACCENT"][i:i + 2], 16) for i in (0, 2, 4))
     near = lambda p: all(abs(a - b) <= 2 for a, b in zip(p, want))
-    pane = [(x, j) for j in range(top + 60, top + 700) for x in range(left + 500, left + 900) if near(px[x, j])]
+    pane = [(x, j) for j in range(top + 60, top + 600) for x in range(left + 500, left + 900) if near(px[x, j])]
     if not pane:
         bad.append(f"{th}: no stamp beside a stamped lesson")
     else:
