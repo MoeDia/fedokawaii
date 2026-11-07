@@ -12,9 +12,12 @@ what a lesson asks you to type goes in the terminal next to it (Super+Enter). do
 The day: ↑ ↓ Tab the pair, Enter opens, ← → the days before (the next one waits for its date).
 A lesson: ↑ ↓ the wheel, Space a page, Enter a page and at its end the check; a check passed stamps
 the lesson, Enter then goes on; ← → the other of the pair; s its answer; Esc back.
+The day, too: r the daily review (five cards, a question, Space shows the answer, y right, n wrong),
+m the concept map, a the week and the rank, e the explain-it-back note of the lesson under the cursor
+(~/notes/explain-ID.md, a checklist, opened in $EDITOR). Spaced as docs/lesson-standard.md says.
 The source: docs/lessons, its format and the record's in lib/lessons.py, both in the toolkit
 ($KAWA_TOOLKIT; $KAWA_LEARN another folder of lessons). Kept: ~/.local/state/fedokawaii/days (the
-record), learn.at (where you stopped), learn.place (Super+U's row).
+record), learn.at (where you stopped), learn.place (Super+U's row), reviews (every answer of the review).
 Exit 0 · 1 the lessons cannot be read (said) · 2 misuse."""
 import math
 import os
@@ -39,8 +42,9 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, LIB)
 try:
     import lessons
+    import review
 except ImportError:
-    lessons = None
+    lessons = review = None
 MEASURE = 88        # the page's columns at most: a line you can read
 PANE = 50           # the list's pane, as Super+U's
 LIST_MIN = 46       # the list's columns at least, where a pane beside it is drawn
@@ -536,6 +540,42 @@ class Course:
         self.days, self.by_id = self.whole["days"], self.whole["lessons"]
         self.record = os.path.join(STATE, "days")
         self.done = lessons.read_record(self.record)
+        self.reviews_path = os.path.join(STATE, "reviews")
+        self.deck = review.cards(self.whole)
+
+    def reviews(self):
+        return review.read_reviews(self.reviews_path)
+
+    def due(self, limit=None):
+        return review.due(self.deck, self.done, self.reviews(), time.strftime("%Y-%m-%d"), limit or review.SESSION)
+
+    def answer(self, card, right):
+        try:
+            review.add_review(self.reviews_path, card, right, time.strftime("%Y-%m-%d"))
+        except OSError:      # (a disk that is full: the review goes on, the answer is not kept)
+            pass
+
+    def corner(self):
+        """the quiet line of the day: cards due, the belt, the streak"""
+        rows = self.reviews()
+        n = len(self.due(10 ** 6))
+        run = review.streak(self.done, rows, time.strftime("%Y-%m-%d"))
+        parts = [f"{n} due" if n else "nothing due", review.rank(self.done, rows)[0]]
+        if run > 1:
+            parts.append(f"{run} days in a row")
+        return "  ·  ".join(parts)
+
+    def note_path(self, lid):
+        return os.path.join(HOME, "notes", f"explain-{lid}.md")
+
+    def make_note(self, le):
+        """the explain-it-back note: written once, never over your words"""
+        path = self.note_path(le["id"])
+        if not os.path.exists(path):
+            write_file(path, f"# {le['title']}\n\nExplain it back, in your own words, as if to a friend who has never seen it.\n\n"
+                       "## Checklist\n- [ ] I wrote it without looking at the lesson\n- [ ] I used no word I cannot explain\n"
+                       "- [ ] I gave one example of my own\n- [ ] I said what goes wrong without it\n\n## My words\n\n")
+        return path
 
     def stamp(self, lid):
         self.done = lessons.read_record(self.record)      # (another window of it may have stamped meanwhile)
@@ -906,6 +946,7 @@ class App:
         self.running = True
         self.mouse = None
         self.pane_seal = None
+        self.rv = None
         self.go_day(self.last_day())
 
     def icon(self, name):
@@ -961,8 +1002,14 @@ class App:
         foot = [("enter", ""), ("  ", ""), ("open", MUTED)]
         if len(course.days) > 1 and self.last_day()[0] > 1:
             foot += [("    ", ""), ("← →", ""), ("  ", ""), ("another day", MUTED)]
+        for k, what in (("r", "review"), ("m", "map"), ("a", "week")):
+            more = [("    ", ""), (k, ""), ("  ", ""), (what, MUTED)]
+            if x0 + run_cols(foot + more) < self.term.cols:      # (what does not fit whole is left out)
+                foot += more
         if rows > 6:
             put(rows - 2, x0, foot)
+        if rows > 8:
+            put(rows - 3, x0, wrap([(course.corner(), FAINT)], max(1, self.term.cols - x0 - 1))[0])
         self.term.write("\x1b[?1000;1003;1006h")
         spot = self.pane_seal if pw else None
         self.show([ansi(x) for x in lines], (spot[0] + 1, spot[1] + 1) if spot else None,
@@ -1079,7 +1126,28 @@ class App:
             self.go_day(self.course.days[self.day[0]])
         elif k == "enter":
             self.open_lesson(self.cursor)
+        elif k == "r":
+            self.go_aside("review")
+        elif k == "m":
+            self.go_aside("map")
+        elif k == "a":
+            self.go_aside("about")
+        elif k == "e":
+            self.explain(self.cursor)
         return None
+
+    def explain(self, le):
+        """the explain-it-back note of a lesson done, in $EDITOR (the page waits)"""
+        if le["id"] not in self.course.done:
+            return
+        path = self.course.make_note(le)
+        self.term.__exit__()
+        try:
+            subprocess.run([os.environ.get("EDITOR") or "nvim", path], check=False)
+        except OSError:
+            pass
+        self.term.__enter__()
+        self.term.wiped = True
 
     def mouse_day(self, k):
         _, b, x, y, press = k
@@ -1385,8 +1453,108 @@ class App:
     def draw(self):
         if self.screen == "day":
             self.draw_day()
+        elif self.screen in ("review", "map", "about"):
+            self.draw_aside()
         else:
             self.draw_page()
+
+    # ── the review, the map, the week (sb03b) ────────────────────────────────────────────
+    def go_aside(self, screen):
+        self.screen = screen
+        self.term.wiped = True
+        self.seal_drawn = None
+        if screen == "review":
+            self.rv = {"cards": self.course.due(), "i": 0, "shown": False, "right": 0, "wrong": 0}
+
+    def leave_aside(self):
+        self.screen = "day"
+        self.term.wiped = True
+        self.rv = None
+
+    def aside_lines(self, w):
+        """(icon, name, value, body): the screen's heading and its lines of runs"""
+        c = self.course
+        rows = c.reviews()
+        body = []
+        if self.screen == "review":
+            rv = self.rv
+            if not rv["cards"]:
+                return ("SEAL", "review", "", wrap([("Nothing is due. Come back tomorrow: a day missed costs nothing.", MUTED)], w))
+            if rv["i"] >= len(rv["cards"]):
+                body = [[(f"{rv['right']} right, {rv['wrong']} to see again soon.", "")], [],
+                        [("A wrong one comes back tomorrow; a right one waits longer each time.", MUTED)]]
+                return ("SEAL", "review", "done", body)
+            q, a, lid = c.deck[rv["cards"][rv["i"]]]
+            body = [[(c.by_id[lid]["title"], MUTED)], []] + wrap(inline(q), w)
+            if rv["shown"]:
+                body += [[], [("─" * min(w, 24), EDGE2)], []] + wrap(inline(a), w)
+            return ("SEAL", "review", f"{rv['i'] + 1} of {len(rv['cards'])}", body)
+        if self.screen == "map":
+            st = review.concepts(c.deck, c.done, rows)
+            st = {lid: st.get(lid, "done" if lid in c.done else "new") for d in c.days for lid in d[1:]}   # (no cards: done or not)
+            mark = {"new": self.icon("BOX_OFF"), "practising": self.icon("READ"), "learned": self.icon("CHECK"), "done": self.icon("CHECK")}
+            ink = {"new": FAINT, "practising": ACCENT_TEXT, "learned": MUTED, "done": MUTED}
+            for d in c.days:
+                for lid in d[1:]:
+                    body.append([(mark[st[lid]], ink[st[lid]]), ("  ", ""), (c.by_id[lid]["title"], "" if st[lid] != "new" else FAINT),
+                                 ("  " + st[lid], MUTED)])
+            return ("MORTARBOARD", "concept map", f"{sum(1 for v in st.values() if v == 'learned')} learned", body)
+        wk = review.look_back(c.done, rows, time.strftime("%Y-%m-%d"))
+        belt, pts = review.rank(c.done, rows)
+        body = [[("this week", STRONG)],
+                [(f"{wk['lessons']} lessons  ·  {wk['right']} right  ·  {wk['wrong']} to see again  ·  {wk['days']} of 7 days", "")], [],
+                [("rank", STRONG)], [(f"{belt}, {pts} points: a lesson five, a right answer one. It only grows.", "")], [],
+                [("why it works", STRONG)]]
+        for t in ("Worked examples first (Sweller and Cooper, 1985).",
+                  "Asking yourself beats rereading (Roediger and Karpicke, 2006).",
+                  "Review after 1, 3, 7, 14 days (Cepeda and others, 2006).",
+                  "Words and pictures together (Mayer, Multimedia Learning)."):
+            body += wrap([("· " + t, MUTED)], w)
+        return ("MORTARBOARD", "this week", "", body)
+
+    def draw_aside(self):
+        rows, w = self.term.rows, max(1, min(MEASURE, self.term.cols - 4))
+        x0 = max(1, (self.term.cols - w) // 2)
+        icon, name, value, body = self.aside_lines(w)
+        body = [ln for runs in body for ln in (wrap(runs, w) if runs else [[]])]
+        name = plain(wrap([(name, "")], max(1, w - 3))[0])
+        lines = [""] * rows
+        margin = " " * x0
+        rule = w - 3 - cols(name) - 1 - cols(value) - 1
+        head = [(self.icon(icon), ACCENT_TEXT), ("  ", ""), (name, STRONG)]
+        if rule >= 1:
+            head += [(" ", ""), ("─" * rule, EDGE2), (" ", ""), (value, MUTED)]
+        if rows > 1:
+            lines[1] = margin + ansi(head)
+        for k, runs in enumerate(body[:max(0, rows - 6)]):
+            lines[3 + k] = margin + ansi(runs)
+        if rows > 4:
+            lines[rows - 2] = margin + ansi(wrap([(self.aside_keys(), MUTED)], w)[0])
+        self.term.draw(lines, "\x1b[?25l")
+
+    def aside_keys(self):
+        rv = self.rv
+        if self.screen != "review" or not rv["cards"] or rv["i"] >= len(rv["cards"]):
+            return "Esc back"
+        return "y right  ·  n wrong  ·  Esc back" if rv["shown"] else "think of the answer first  ·  Space shows it  ·  Esc back"
+
+    def key_aside(self, k):
+        if isinstance(k, tuple):
+            return
+        if k in ("q", "esc", "quit") or (k == "enter" and self.screen != "review"):
+            self.leave_aside()
+            return
+        rv = self.rv
+        if self.screen != "review" or not rv["cards"] or rv["i"] >= len(rv["cards"]):
+            return
+        if not rv["shown"]:
+            if k in (" ", "enter"):
+                rv["shown"] = True
+        elif k in ("y", "n"):
+            self.course.answer(rv["cards"][rv["i"]], k == "y")
+            rv["right" if k == "y" else "wrong"] += 1
+            rv["i"] += 1
+            rv["shown"] = False
 
     def run(self, start=None):
         r, w = os.pipe()
@@ -1432,6 +1600,8 @@ class App:
                             self.seal_drawn = None
                         elif self.screen == "day":
                             self.key_day(k)
+                        elif self.screen != "page":
+                            self.key_aside(k)
                         else:
                             self.key_page(k)
             if self.screen == "page":
