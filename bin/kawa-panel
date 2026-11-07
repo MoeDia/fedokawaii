@@ -995,10 +995,10 @@ def layout_menu(m):
                 if c and fld(g, 2) and not apart:  # (the first that asks: apart from the rest)
                     xx += TILE_APART - TILE_GAP
                     apart = True
-                items.append(Item(str(j), "seal", xx, y, TILE, TILE + GAP + ROW, r,
+                items.append(Item(str(j), "seal", xx, y, TILE, TILE + GAP + 2 * ROW, r,
                                   glyph=g[0], name=fld(g, 1), confirm=fld(g, 2), accel=fld(g, 3)))
                 xx += TILE + TILE_GAP
-            y += TILE + GAP + ROW
+            y += TILE + GAP + 2 * ROW
             r += 1
             prev = "seal"
         elif kind == "foot":
@@ -3648,7 +3648,8 @@ def main(argv):
     def seal_tile(cr, it, focused):
         """A dialog's tile (§4): a square seal 64 px, its corners stepped. Inked under the cursor — the seal's
         red, the picture carved out in the paper's ink; blank else — the key's paper in a 2 px rim, the picture in
-        its muted ink; the first press of one that asks for a second: lit, the foot asks. The word under it."""
+        its muted ink; the first press of one that asks for a second: lit, the foot asks. The word under it, its
+        key's cap under that."""
         x, y, S = it.x, it.y, TILE
         armed = panel.armed == it.key
         fill = "accent_hi" if armed else "accent" if focused else "key"
@@ -3669,15 +3670,10 @@ def main(argv):
         lay = text_layout(cr, it.name)
         lw = lay.get_pixel_extents()[0]
         tx, ty = x + (S - lw.width) // 2 - lw.x, y + S + GAP + (ROW - LINE) // 2
-        i = it.name.find(it.accel) if it.accel else -1
-        ink = "strong" if focused else "text"
-        if i < 0:
-            text(cr, tx, ty, it.name, ink)
-        else:                                     # (its key: that letter alone in the seal's red, no rule under it)
-            n = len(it.accel)
-            ax = tx + text(cr, tx, ty, it.name[:i], ink) if i else tx
-            ax += text(cr, ax, ty, it.name[i:i + n], ink if focused else "accent_text")
-            text(cr, ax, ty, it.name[i + n:], ink)
+        text(cr, tx, ty, it.name, "strong" if focused else "text")
+        if it.accel:                              # (its key under the word: a keycap, as every menu shows one, §4)
+            cw = cap_w(it.accel)
+            cap(cr, x + (S - cw) // 2, y + S + GAP + ROW, it.accel, cw, "text" if focused else "muted")
 
     drawing.append(True)                          # (from here on, every layout measured)
     panel.relayout()

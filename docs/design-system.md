@@ -316,7 +316,8 @@ screen and the bar's paper share one rhythm.
   the one in use with the hanko's dot · at the input's foot mute microphone and test mic (n, t).
 - **Dialog** (the power menu, Super+Shift+E): centred on the screen, the desktop dimmed 40 % behind it (Wada's Black, a window
   of its own, no key, no click). Five seal tiles in a row (lock, sleep, log out, restart, shut down), their pictures carved
-  at 40 × 40 in 2 px strokes, the word under each. Under the cursor a tile is inked (`accent`, its picture carved out in
+  at 40 × 40 in 2 px strokes, the word under each and its key's keycap under the word (l s o r d, `muted`; `text`
+  on the tile under the cursor). Under the cursor a tile is inked (`accent`, its picture carved out in
   `text_on_accent`); blank else (`key` paper in a 2 px `edge2` rim, its corners stepped, its picture `muted`); both chipped
   by one hand. Its foot: how long the machine has been up, `muted`, centred. What cannot be undone asks twice: the first
   press lights the seal (`accent_hi`) and says "press again to shut down" in the foot's place, `strong`; moving away takes

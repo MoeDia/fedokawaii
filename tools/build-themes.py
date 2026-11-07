@@ -1508,7 +1508,8 @@ def dwl_colors(m, p):
 # a text screen of ours (design system §7) in Sumi Term, both moods in one page — Helium's pages
 # follow the portal's dark/light, so the page follows every switch live. The head is the quick
 # settings' masthead; the hour in the section line ticks once a minute (ntp.js: an extension page
-# runs no inline script); the rows are Chromium's own keys, the ones a new tab is for.
+# runs no inline script); the rows are Chromium's own keys, the ones a new tab is for, each a keycap
+# as the panel draws one (§4: 16 rows from the row's row 2, its corners out, a lip under it).
 NTP_ROWS = [("ICON_CHEVRON", "a place or a search", "ctrl l"), ("ICON_WINDOW", "a new tab", "ctrl t"),
             ("ICON_RESTART", "the tab just closed", "ctrl shift t"), ("ICON_HOURGLASS", "history", "ctrl h"),
             ("ICON_FOLDER", "downloads", "ctrl j")]
@@ -1523,8 +1524,9 @@ def ntp_html():
     def mood(m):
         p = P[m]
         return (f"--ground:#{p['ground']};--text:#{p['text']};--strong:#{p['strong']};--muted:#{p['muted']};"
-                f"--faint:#{p['faint']};--edge:#{p['edge2']};--accent:#{p['accent_text']};--head:url(head-{m}.png)")
-    rows = "".join(f'<div class="row"><i>{_icon(i)}</i><b>{n}</b><kbd>{k}</kbd></div>' for i, n, k in NTP_ROWS)
+                f"--faint:#{p['faint']};--edge:#{p['edge2']};--key:#{p['key']};--accent:#{p['accent_text']};--head:url(head-{m}.png)")
+    caps = lambda k: "".join(f"<span>{c}</span>" for c in k.split())
+    rows = "".join(f'<div class="row"><i>{_icon(i)}</i><b>{n}</b><kbd>{caps(k)}</kbd></div>' for i, n, k in NTP_ROWS)
     return f"""<!doctype html>
 <!-- {header("~/.local/share/fedokawaii/browser/ntp.html", "Helium's new tab, both moods")} -->
 <meta charset="utf-8"><title>new tab</title><meta name="color-scheme" content="light dark">
@@ -1539,7 +1541,11 @@ i{{font:normal 16px/20px "Sumi Icons Term";width:24px;flex:none}}
 .head s{{flex:1;text-decoration:none;height:1px;background:var(--edge);margin:10px 8px 0}}
 .head time{{color:var(--muted)}}
 .row{{display:flex;padding:0 8px}} .row i{{color:var(--muted)}} .row b{{font-weight:normal}}
-kbd{{margin-left:auto;font:inherit;color:var(--faint)}}
+kbd{{margin-left:auto;display:flex;gap:2px;font:inherit;color:var(--muted)}}
+kbd span{{margin-top:2px;height:17px;padding:0 4px;font-size:14px;line-height:14px;background:
+ linear-gradient(var(--edge),var(--edge)) 1px 0/calc(100% - 2px) 1px,linear-gradient(var(--edge),var(--edge)) 0 1px/1px 14px,
+ linear-gradient(var(--edge),var(--edge)) 100% 1px/1px 14px,linear-gradient(var(--edge),var(--edge)) 1px 15px/calc(100% - 2px) 2px,
+ linear-gradient(var(--key),var(--key)) 1px 1px/calc(100% - 2px) 14px;background-repeat:no-repeat}}
 </style>
 <main><div class="face"></div><div class="head"><i>{_icon("ICON_BRANCH")}</i>today<s></s><time id="t"></time></div>
 {rows}</main><script src="ntp.js"></script>
