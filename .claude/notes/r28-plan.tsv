@@ -84,8 +84,8 @@ s14a	Sat 7	done	pace (S14): long jobs as their own systemd user units, the pass 
 s15a	Sat 7	done	self-audit every 6 passes on haiku (S15): pace/ETA, no daily before its day, model mix, passes over 90 min and idle gaps, blocked rows over 6 h get a fresh try, design track not crowding out the rest; notes in the plan	Sat 07 Nov 11:11	audit: pace 74/171 done, model mix ok (sonnet carries the open rows), passes since 09:00 back-to-back, no idle gap; FIXED: dsun, dmon, dtue ran early on Sat (reopened for their days); l4 blocked 17h, fresh try queued; next f27 now	haiku
 f26	Fri 6	done	kawa-learn rebuilt on it: today's pair, progress, next, in Super+U's Learning; both moods, many sizes; tests	Sat 7 Nov 11:08	the day on lib/lessons.py: pair, next, meters, checks that stamp; empty until sa01; both moods rendered, grid held, test_learn 147, test_menu 730	opus
 f27	Fri 6	done	the book retired: Learn PDF, its build and every entry that opens it gone; its content kept as the source of the lessons; tests	Sat 7 Nov 11:24	Learn PDF, build (learn/handbook/pdfpack), cover + tools, kawa-books row, Super+U cover pane gone; source md kept	sonnet
-m9	Fri 6	now	P4 n 4: tairyoku with a better colour combination, dark and light (S4)		his pick P4: 1 tairyoku	opus
-sa01	Sat 7	todo	Part 1 syllabus, day by day, paired with Part 2's so they complement each other			sonnet
+m9	Fri 6	done	P4 n 4: tairyoku with a better colour combination, dark and light (S4)	Sat 7 Nov 11:48	urushi: gold and vermilion on lacquer (dark), ai and vermilion on washed paper (light); P4-4, P4m-4 in hi/, picker.json entry is m10's	opus
+sa01	Sat 7	now	Part 1 syllabus, day by day, paired with Part 2's so they complement each other			sonnet
 sa02	Sat 7	todo	Part 1 lessons: using it, keys, menus			sonnet
 tr1	Fri 6	todo	translucency a little more opaque, 6 to 8 points more alpha, one shared value per mood from the theme, every surface that has it (S7)			sonnet
 sa03	Sat 7	todo	Part 1 lessons: updates, snapshots, backups, keeping it healthy			sonnet

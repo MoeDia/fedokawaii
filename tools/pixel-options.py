@@ -7,6 +7,7 @@ P5 small accents; PA all together, the favourite; P2m, P4m, P5m what moves, as M
     python3 tools/pixel-options.py WORK HI  # WORK/wall-MOOD.png, WORK/MOOD/{quick,notice}.png, HI/{h1-1,g-1,f-3}-MOOD.png → HI/P?-N-MOOD.png, HI/PA-MOOD.png
     python3 tools/pixel-options.py games WORK HI     # S4, the game-like options: HI/P1-{4..7}-MOOD.png, nothing else rewritten
     python3 tools/pixel-options.py accents WORK HI   # S4, the game-like accents: HI/P5-{4..7}-MOOD.png, HI/P5m-{4..7}-MOOD: .mp4, -slow.mp4, -strip.png, .png; prints "measured"; exit 1: a video off by over a frame
+    python3 tools/pixel-options.py urushi WORK HI    # S4, tairyoku's better colours: HI/P4-4-MOOD.png, HI/P4m-4-MOOD: .mp4 and a key frame .png
     python3 tools/pixel-options.py motions WORK HI   # HI/P2m-1-MOOD, P4m-N-MOOD, P5m-2-MOOD, P5m-3-MOOD: .mp4 and a key frame .png
     python3 tools/pixel-options.py picker HI         # HI/picker.json: the sets P1 to P5 and their motions, after the motions of S1
     # (the kit: quick by a play, kawa-quick then the pointer at 1672 216, the row hovered; notice by its scene, alone)
@@ -32,6 +33,16 @@ TOKENS = {
     "light": {"edge2": "d7bc8c", "ink": "96865e", "accent": "a84222", "accent_hi": "cb6336", "outline": "f8f3d8", "select": "e2d0ae",
               "edge": "dfcc9c", "asagi": "00726a", "flame": "a84222", "brass": "e2b540", "brass_hi": "ebcb79", "brass_lo": "957d38", "tile": "343a35",
               "asagi_hi": "2c9d92", "asagi_lo": "00524c", "flame_hi": "cb6336", "flame_lo": "7c2f18"},
+}
+# P4 n 4, the owner's "better colour combination" for tairyoku: palette tokens only, two moods, two ideas. Dark, maki-e: gold and
+# vermilion on black lacquer, the torches' colours. Light, a print: Hokusai's indigo and the seal's red on washed paper, a keyline round it
+URUSHI = {
+    "dark": {"asagi": "e2b540", "asagi_hi": "fbe6a0", "asagi_lo": "986f2d",     # ansi yellow, bright yellow, the light mood's yellow
+             "flame": "eb5324", "flame_hi": "f47b58", "flame_lo": "82241f",     # accent, accent_hi, accent_lo
+             "edge": "111314", "edge2": "3c2f22", "outline": "111314"},         # lo, edge2, lo
+    "light": {"asagi": "005b8d", "asagi_hi": "006eb8", "asagi_lo": "064f6e",    # ai (the Saturday of the calendar), blue, bright teal
+              "flame": "a84222", "flame_hi": "cb6336", "flame_lo": "82241f",    # accent, accent_hi, lacquer
+              "edge": "f8f3d8", "edge2": "96865e", "outline": "f8f3d8"},        # key, lo, key
 }
 # what comes from where: the window's box in its shot, and where it sits on the page
 SUPER_U = ((56, 56, 762, 334), (20, 60))
@@ -611,8 +622,8 @@ def label(page, x, y, words, ink, anchor="ls"):
 
 
 def p4(page, mood, n, levels=(0.62, 0.15, 0.38)):
-    t = {k: rgb(v) for k, v in TOKENS[mood].items()}
-    draw = (segments, tairyoku, hishi, katana)[n]
+    t = {k: rgb(v) for k, v in dict(TOKENS[mood], **(URUSHI[mood] if n == 4 else {})).items()}
+    draw = (segments, tairyoku, hishi, katana, tairyoku)[n]
     ground = np.asarray(page.crop((1568, 108, 1640, 124))).astype(np.int16)    # the word's own colour, off the shot
     far = np.abs(ground - ground[0, 0]).sum(axis=2)
     text = tuple(int(v) for v in ground[np.unravel_index(far.argmax(), far.shape)])
@@ -860,6 +871,16 @@ def main(work, hi):
         save(page, pathlib.Path(hi) / f"PA-{m}.png")
 
 
+def urushi(work, hi):
+    hi = pathlib.Path(hi)
+    for m in MOODS:
+        ground = base(work, hi, m)
+        page = ground.copy()
+        p4(page, m, 4)
+        save(page, hi / f"P4-4-{m}.png")
+        clip(meter_frames(ground, m, 4), CROP_LEVELS, hi / f"P4m-4-{m}", 75)
+
+
 def games(work, hi):
     for m in MOODS:
         for n in range(4, 8):
@@ -906,6 +927,17 @@ def clip(frames, crop, base_out, key):
     print(pathlib.Path(str(base_out) + ".mp4").name, count, "frames", pathlib.Path(str(base_out) + ".mp4").stat().st_size)
 
 
+def meter_frames(ground, m, n):
+    frames = []
+    for f in range(270):                            # up to the top, into the fire, back to its level; the download steady; 4.5 s
+        s = f / 60
+        vol = ease(s / 1.5) if s < 1.5 else 1.0 if s < 1.9 else 1 - 0.38 * ease((s - 1.9) / 0.7)
+        page = ground.copy()
+        p4(page, m, n, (vol, 0.15, min(s / 3.4, 1.0)))
+        frames.append((page, 1))
+    return frames
+
+
 def motions(work, hi):
     hi = pathlib.Path(hi)
     for m in MOODS:
@@ -917,15 +949,7 @@ def motions(work, hi):
             frames.append((page, 9))
         clip(frames, CROP_U, hi / f"P2m-1-{m}", 0)
         for n in range(4):
-            ground = base(work, hi, m)
-            frames = []
-            for f in range(270):                    # up to the top, into the fire, back to its level; the download steady; 4.5 s
-                s = f / 60
-                vol = ease(s / 1.5) if s < 1.5 else 1.0 if s < 1.9 else 1 - 0.38 * ease((s - 1.9) / 0.7)
-                page = ground.copy()
-                p4(page, m, n, (vol, 0.15, min(s / 3.4, 1.0)))
-                frames.append((page, 1))
-            clip(frames, CROP_LEVELS, hi / f"P4m-{n}-{m}", 75)
+            clip(meter_frames(base(work, hi, m), m, n), CROP_LEVELS, hi / f"P4m-{n}-{m}", 75)
         ground = base(work, hi, m)
         frames = []
         for size, hold in ((1, 4), (2, 4), (3, 6), (2, 4), (1, 4), (0, 138)) * 2:   # a glint, 22 frames, then rest; 4 seconds
@@ -1104,6 +1128,8 @@ if __name__ == "__main__":
         games(*sys.argv[2:])
     elif sys.argv[1] == "accents":
         accents(*sys.argv[2:])
+    elif sys.argv[1] == "urushi":
+        urushi(*sys.argv[2:])
     elif sys.argv[1] == "motions":
         motions(*sys.argv[2:])
     elif sys.argv[1] == "picker":
