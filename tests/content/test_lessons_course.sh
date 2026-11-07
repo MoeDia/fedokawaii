@@ -14,7 +14,7 @@ eq "$(grep -c '^FAIL' <<<"$out")" 0 "$(grep '^FAIL' <<<"$out" | head -n 5)"
 case_ "a broken lesson is caught: a check that already passes, a need not taught yet, a day too long"
 W=$TMP/course; mkdir -p "$W"; cp "$F"/*.md "$W/"
 sed -i '/^needs:/d; s/^part: 2$/part: 2\nneeds: [triad]/' "$W/first-print.md"
-sed -i 's/^minutes: .*/minutes: 25/' "$W/rust-ownership.md"
+sed -i 's/^minutes: .*/minutes: 25/' "$W/variables.md"
 out=$(python3 -B -I "$C/lessons_course.py" "$W" "$REPO/docs/lessons/syllabus.tsv" "$REPO" 2>&1)
 has "$out" "first-print needs triad" "no complaint about the need"
 has "$out" "minutes, a day is" "no complaint about the day"

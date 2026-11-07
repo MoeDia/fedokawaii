@@ -1,7 +1,21 @@
-# the syllabus (sa01): DAY<TAB>PART-1-ID<TAB>PART-2-ID<TAB>HOW THEY COMPLEMENT EACH OTHER
+# the syllabus (sa01, re-ordered in sa29): DAY<TAB>PART-1-ID<TAB>PART-2-ID<TAB>HOW THEY COMPLEMENT EACH OTHER
 # Not read by lib/lessons.py: sa02 to sa11 write each lesson, the last one of each day writes days.tsv from this.
-# Part 1 = the system (ends with triad, kept for the very end of the round); Part 2 = programming, Python first, then Rust, then Neovim.
-# A day is 25 to 30 minutes together. Rule of pairing: what Part 1 shows the hands doing, Part 2 shows the mind doing, the same day.
+# Part 1 = the system (ends with triad, kept for the very end of the round); a day is 25 to 30 minutes together.
+# Rule of pairing: what Part 1 shows the hands doing, Part 2 shows the mind doing, the same day.
+# From day 49 Part 1 is done: "-" in its place, the day is Part 2 alone (sb04 writes those lessons to 25 to 30 minutes).
+# Part 2's tracks (programming, about 30 minutes a day, tiny steps), in order:
+#   Python, the basics ........ days 1 to 11   (first-print to dictionaries)
+#   Bash scripting ............ days 12 to 19  (beside Part 1's terminal days: the desktop is built of shell scripts)
+#   Python, functions, files .. days 20 to 36  (review-1 to small-project; short units: data structures, JSON and CSV, CLI, regex, HTTP)
+#   Debugging ................. days 37 to 41
+#   git ....................... days 42 to 46
+#   Neovim .................... days 47 to 50
+#   Testing, deployment ....... days 51 to 53
+#   Security, reading docs .... days 54 to 56
+#   Web: HTML, CSS, JS, HTMX .. days 57 to 60  (sb06 grows it: his personal site)
+#   TUI with Textual .......... days 61 to 62
+#   Rust, Rustlings-style ..... days 63 to 67, then ratatui (day 68)
+# SQL with PostgreSQL (sb05) and C (sb07) join as tracks of their own.
 1	login-and-screen	first-print	the screen you see; the first thing the machine says for you
 2	six-keys	variables	keys are names for actions; a variable is a name for a value
 3	tiling-windows	numbers	windows share the screen by a rule; numbers share work by a rule
@@ -13,40 +27,60 @@
 9	clipboard	loops	paste history again and again; a loop does again and again
 10	screenshots-recordings	loops-2	capture what happened; step through what happened
 11	calculator-downloads	dictionaries	small tools of the desk; the dictionary, a small tool of data
-12	terminal-first-steps	review-1	where am I, what is here; a review of days 1 to 11, no new idea
-13	files-and-paths	functions	paths name a place; a function names a piece of work
-14	copy-move-remove	function-arguments	three verbs on files; arguments as nouns for a verb
-15	reading-errors	reading-tracebacks	an error read last line first in both worlds
-16	help-man-tldr	return-values	ask the system for help; a function answers
-17	tab-history-ctrl-r	scope	typing less, remembering less; a name lives in a place
-18	bash-moves	files-reading	the shell's moves; reading a file
-19	fzf-fd-ripgrep	files-writing	finding anything; writing something down
-20	zoxide-eza-bat	paths-in-code	moving and reading; the same paths, in a program
-21	yazi	errors-exceptions	the files, with a manager; a failure, with a name
-22	snapshots	try-except	an undo for the whole system; an undo for one failed step
-23	backups	small-project	snapshots are not backups; a small project from days 1 to 22
-24	updates	debugging-method	how an update runs, A to Z; a bug found by method, not by luck
-25	health-report	debugging-prints	read the report; read what the program says while it runs
-26	when-a-notice-asks	debugging-bisect	a notice that needs you; cut the problem in halves
-27	doors-and-security-1	debugging-tools	who can reach the machine; the debugger as a door into a program
-28	keeping-it-healthy	debugging-review	a month's routine; a month's bugs, together
-29	asobi-first-look	git-why	the fedokawaii game launcher; why history is kept
-30	asobi-daily-use	git-commit	use it daily; a commit, one idea
-31	helium-keys	git-log-diff	Helium without the mouse; reading what changed
-32	helium-search-tabs	git-branches	tabs and search, efficient; a branch as a safe experiment
-33	helium-extensions-privacy	git-remote	few extensions, few leaks; sharing a repo, with a key not a password
-34	syncplay-and-mpv	nvim-never-stuck	a shared screening and its connection; never stuck in the editor
-35	books-and-notes	nvim-his-config	the reading and note menus; his editor config, line by line
-36	repair-and-verify	nvim-moves	the repair tool; the editor's moves
-37	inventory-menu	nvim-use-cases	the inventory menu; editing real files
-38	theme-and-wallpapers	tests-first	two moods, one design; a test written before the code
-39	lock-screen	tests-pytest	the lock and its guard; pytest runs the tests
-40	power-and-session	deployment-basics	leaving and returning; a program leaves your machine
-41	home-folders	security-basics-1	the few folders and why; secrets, input, trust
-42	local-model	security-basics-2	what the local model can and cannot do; keys and permissions
-43	menus-all-together	reading-docs	the whole system as one; reading documentation without fear
-44	snapshots-in-practice	rust-first-steps	roll back for real once; a new language, from the first print
-45	helium-reading-mode	rust-variables	long reading, calm; types, which Python never asked for
-46	asobi-review	rust-ownership	a month of play; ownership, Rust's one big idea
-47	system-review	rust-errors	the system's year in one page; Result and Option, errors as values
-48	triad	rust-small-tool	triad, the last piece (needs it installed); a small Rust tool, as Python's day 23
+12	terminal-first-steps	bash-first-script	the terminal opens; a script is the terminal's orders in a file
+13	files-and-paths	bash-variables-quotes	paths name places; variables name values, quotes keep them whole
+14	copy-move-remove	bash-exit-codes	copy, move, remove report back; every command answers with an exit code
+15	reading-errors	bash-if-test	an error message tells what went wrong; test and if decide what to do with it
+16	help-man-tldr	bash-loops	help pages show the options; a loop runs a command over many things
+17	tab-history-ctrl-r	bash-pipes-redirects	history repeats a command; pipes and redirects join commands
+18	bash-moves	bash-functions-args	bash's own moves at the prompt; functions and arguments in a script
+19	fzf-fd-ripgrep	bash-small-script	fzf, fd and ripgrep find things; a small script of his own that uses them
+20	zoxide-eza-bat	review-1	small tools that replace old ones; back to Python: everything so far, once more
+21	yazi	functions	yazi moves between files; a function moves a job into one name
+22	snapshots	function-arguments	snapshots keep the system's state; arguments hand a function its state
+23	backups	reading-tracebacks	backups when things break; a traceback when Python breaks
+24	updates	return-values	updates bring new versions; a function brings back a value
+25	health-report	scope	the health report reads the system; scope: which names a function can see
+26	when-a-notice-asks	data-structures	a notice asks for an answer; sets and tuples, the other ways to hold data
+27	doors-and-security-1	files-reading	doors open and close; a file opens and is read
+28	keeping-it-healthy	files-writing	keeping the system healthy over time; a file written to keep data over time
+29	asobi-first-look	json-and-csv	first look at asobi; JSON and CSV, data other programs can read
+30	asobi-daily-use	paths-in-code	asobi every day; paths in code, from anywhere
+31	helium-keys	cli-arguments	helium's keys; command-line arguments, a script's keys
+32	helium-search-tabs	regex-basics	helium's search finds a page; a pattern (regex) finds text
+33	helium-extensions-privacy	http-basics	helium's extensions and privacy; HTTP, how a browser and a server talk
+34	syncplay-and-mpv	errors-exceptions	syncplay and mpv, when a stream fails; errors in a program, by name
+35	books-and-notes	try-except	books and notes; try and except, catching what can fail
+36	repair-and-verify	small-project	repair and verify; a small project that keeps working
+37	inventory-menu	debugging-method	the inventory menu lists everything; a method for finding a bug
+38	theme-and-wallpapers	debugging-prints	theme and wallpapers change what is seen; prints show what a program sees
+39	lock-screen	debugging-bisect	the lock screen; halve the search until the bug is found
+40	power-and-session	debugging-tools	power and session; the debugger, a tool that stops time
+41	home-folders	debugging-review	home folders kept in order; debugging, everything so far
+42	local-model	git-why	the local model; git: why keep the history at all
+43	menus-all-together	git-commit	the menus together; a commit, one saved step
+44	snapshots-in-practice	git-log-diff	snapshots in practice, rolling back; git log and diff, looking back
+45	helium-reading-mode	git-branches	helium's reading mode; branches, trying without risk
+46	asobi-review	git-remote	asobi again; a remote, the code kept somewhere else
+47	system-review	nvim-never-stuck	the whole system once more; Neovim, never stuck
+48	triad	nvim-his-config	triad, the last piece (needs it installed); Neovim as he set it up
+49	-	nvim-moves	Part 2 alone: moving in Neovim
+50	-	nvim-use-cases	Part 2 alone: Neovim for the jobs of every day
+51	-	tests-first	Part 2 alone: a test written before the code
+52	-	tests-pytest	Part 2 alone: pytest runs every test
+53	-	deployment-basics	Part 2 alone: a program put where it runs
+54	-	security-basics-1	Part 2 alone: security, the basics
+55	-	security-basics-2	Part 2 alone: security, secrets and inputs
+56	-	reading-docs	Part 2 alone: reading official docs
+57	-	html-first-page	Part 2 alone: web track, a first page of semantic HTML
+58	-	css-layout	Part 2 alone: web track, modern CSS lays the page out
+59	-	js-first-script	Part 2 alone: web track, a little modern JavaScript
+60	-	htmx-fastapi	Part 2 alone: web track, HTMX and a small FastAPI backend
+61	-	textual-first-app	Part 2 alone: terminal UIs, a first Textual app
+62	-	textual-widgets	Part 2 alone: terminal UIs, Textual widgets in his desktop's look
+63	-	rust-first-steps	Part 2 alone: Rust, first steps
+64	-	rust-variables	Part 2 alone: Rust, variables
+65	-	rust-ownership	Part 2 alone: Rust, ownership
+66	-	rust-errors	Part 2 alone: Rust, errors
+67	-	rust-small-tool	Part 2 alone: Rust, a small tool, as Python's small project
+68	-	ratatui-first-app	Part 2 alone: terminal UIs again, a first ratatui app in Rust

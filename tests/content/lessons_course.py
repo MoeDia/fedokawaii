@@ -1,7 +1,7 @@
 """tests/content/lessons_course.py FOLDER SYLLABUS REPO — holds every lesson in FOLDER to its day.
 
 Prints one line a finding, "ok ..." or "FAIL ...". The order is the SYLLABUS's (DAY, PART-1-ID,
-PART-2-ID); a lesson not written yet is "pending" (said, not a failure). Held: every lesson reads and
+PART-2-ID; "-" for Part 1 once it is done); a lesson not written yet is "pending" (said, not a failure). Held: every lesson reads and
 sits in its syllabus day and part; what it needs is taught before it (or in Part 1 of its day); a day
 with both lessons is 25 to 30 minutes; Part 2's runs replayed in day order from an empty dojo each fail
 before their own steps and pass after; every ask's proof passes from REPO's root, and its answer is
@@ -38,6 +38,8 @@ taught, dojo = set(), tempfile.mkdtemp(prefix="dojo-")
 pending = []
 for day, one, two in days:
     for lid, part in ((one, 1), (two, 2)):
+        if lid == "-":  # Part 1 done: the day is Part 2 alone
+            continue
         r = course.get(lid)
         if not r:
             pending.append(lid)
