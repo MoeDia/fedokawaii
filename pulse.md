@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 09:45 (Dubai)
+# round 28 pulse · Sat 07 10:15 (Dubai)
 
-pace: 69/160 done (43%) · time used 33% · ahead 9.9 h · ETA Mon 09 01:44 · left 83 · blocked 1 · owner 7
-alerts: 1 blocked; 1 errors in 2 h
-run: conductor active · passes 1 (oldest 105 min) · last activity 7 min ago · commits since start 93 · hold False
-machine: load 0.90 1.03 0.98/12 · mem free 17.9 GB · disk free 611 GB · up 33.5 h · cpu tccd1 40° · cpu tctl 58° · gpu edge 42° · gpu junction 34° · gpu mem 55° · ssd composite 39° · ssd sensor 1 39° · ssd sensor 2 40°
+pace: 69/160 done (43%) · time used 34% · ahead 9.4 h · ETA Mon 09 02:50 · left 83 · blocked 1 · owner 7
+alerts: 1 blocked
+run: conductor active · passes 1 (oldest 135 min) · last activity 3 min ago · commits since start 93 · hold False
+machine: load 0.93 0.75 0.92/12 · mem free 23.4 GB · disk free 624 GB · up 34.0 h · cpu tccd1 63° · cpu tctl 61° · gpu edge 40° · gpu junction 34° · gpu mem 54° · ssd composite 41° · ssd sensor 1 41° · ssd sensor 2 43°
 dark: True (active) · pulse timer active
-tokens since start: out 1,782,148 · in 2,838 · cache write 5,746,100 · cache read 103,877,444 · msgs 1342 · out last 6 h 15,929
-out by model: last 6 h claude-haiku-5-5 15,929 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 27,029 · claude-sonnet-5-5 7,909
+tokens since start: out 1,783,383 · in 2,848 · cache write 5,747,680 · cache read 104,117,804 · msgs 1347 · out last 6 h 17,164
+out by model: last 6 h claude-haiku-5-5 17,164 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 28,264 · claude-sonnet-5-5 7,909
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
@@ -40,7 +40,6 @@ out by model: last 6 h claude-haiku-5-5 15,929 · since start claude-opus-5-5 1,
 ## repairs
 
 ## errors (2 h)
-- End of file while reading data: Input/output error
 
-steering received: S4 S5 S6 S7 S8 S9 S10 S11
+steering received: S8 S9 S10 S11 S12 S13 S14 S15
 options: a1-window.jpg, b1-workspace.jpg, c1-scroll.jpg, d1-prompt.jpg, e1-lock.jpg, e2-lock.jpg, f1-bar.jpg, g1-power.jpg, h1-menus.jpg, h2-menus.jpg, i1-helium.jpg
