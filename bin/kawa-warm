@@ -24,7 +24,7 @@ NAMES=(notes clip system)
 spec() {   # spec NAME — its window's title and size, and what runs in it ($cmd)
   case $1 in
     notes)  title=notes     size=64x40  cmd=(kawa-notes --inside) ;;   # (a page: portrait, the notebook's)
-    clip)   title=clipboard size=80x27  cmd=(kawa-clip --tui) ;;
+    clip)   title=clipboard size=88x27  cmd=(kawa-clip --tui) ;;
     system) title=system    size=88x15  cmd=(fedokawaii --popup) ;;
     *) echo "kawa-warm: no warm window \"$1\" (${NAMES[*]})" >&2; return 2 ;;
   esac

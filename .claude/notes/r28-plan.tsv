@@ -114,8 +114,10 @@ sa22	Sat 7	done	Stoat themed; every web app (WhatsApp and the like) removed; lau
 sa23	Sat 7	done	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has	Sat 7 13:50	console roster line + Enter toggles ready (patch 7); applied at install, not on the live PC	sonnet
 sa13	Sat 7	done	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U	Sat 7 Nov 14:23 +0400	his pick h1 ichimai built: 88x15 (723x320, 66% of 819x380; 86 crowded the snapshots tab), 2-line tabs, no footer, status in 3 groups; grid in design-system §7; test_menu 737, test_warm 90, static pass; kit, 5 tabs x 2 moods	opus
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes			sonnet
-sa14	Sat 7	now	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)	sonnet
-sa14r	Sat 7	todo	regress README: rows for r28-sa04 and r28-tr1, line 65's check named as a case (items.py check clean)		found in sa13	haiku
+sa14	Sat 7	done	menus as one unit: Super+R, Super+V, Super+W to the same grid	Sat 7 Nov 14:31	Super+V only (clipboard 80x27 -> 88x27, rule 84); W and R split off as sa14w, sa14b	sonnet
+sa14r	Sat 7	now	regress README: rows for r28-sa04 and r28-tr1, line 65's check named as a case (items.py check clean)		found in sa13	haiku
+sa14w	Sat 7	todo	Super+W wallpaper picker to the 88-column grid (WIN_COLS 80, W 76, 80x37 float; rows' cols)		split from sa14	sonnet
+sa14b	Sat 7	todo	Super+R books to the 88-column grid (104x29 float; cover maths, pane)		split from sa14	sonnet
 sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods			sonnet
 sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35	sonnet
 sa15c	Sat 7	todo	the selection marker built: his pick P2 1 yubi, the bobbing pointer; cheap, frames looked at (S4)			opus

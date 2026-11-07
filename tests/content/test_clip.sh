@@ -42,8 +42,8 @@ binary | python3 -I "$C/fake_cliphist.py" store
 raw=$(kawa-clip --list); out=$(rows <<<"$raw")
 case_ "the list: newest first, each row its cliphist id, a tab, and what it shows"
 eq "$(cut -f1 <<<"$out" | tr '\n' ' ')" "6 5 4 3 2 1 "
-case_ "a row as every text screen's (screen.sh): a space, the glyph in muted, two spaces, the name; a value right-aligned at the window's 75th column (a column inside the band, as the glyph is), muted"
-eq "$(grep $'^4\t' <<<"$raw" | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 75
+case_ "a row as every text screen's (screen.sh): a space, the glyph in muted, two spaces, the name; a value right-aligned at the window's 83rd column (a column inside the band, as the glyph is), muted"
+eq "$(grep $'^4\t' <<<"$raw" | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 83
 has "$raw" $'4\t \e[38;5;21m'"$ICON_PICTURE"$'\e[0m  png picture  '
 grep -Eqa $'^3\t {1,2}\e\\[38;5;21m'"$ICON_CLIPBOARD"$'\e\\[0m  日本語' <<<"$raw" && _ok || _no "a text row: its glyph in muted, two spaces, the text — in $(grep -a '^3' <<<"$raw")"
 eq "$(FZF_COLUMNS=60 kawa-clip --list | grep $'^4\t' | cut -f2 | sed -e $'s/\e\\[[0-9;]*m//g' | LC_ALL=C.UTF-8 wc -L)" 57 "a reload: fzf's width less a column each side, and the value's own inset"
@@ -110,8 +110,8 @@ head -c 100 /dev/zero | python3 -I "$C/fake_cliphist.py" store
 eq "$(prev "$(newest)")" "  $ICON_BOX_OFF application/octet-stream, 100 bytes" "zero bytes"
 
 case_ "the preview's first line: the rule under the list, from the content's first column to its last as the heading's (fzf's border ran a column past each end — T19m pass 1); held as the text scrolls; the text under the list's names"
-first=$(FZF_PREVIEW_COLUMNS=78 FZF_PREVIEW_LINES=10 KAWA_CELL=9x21 kawa-clip --preview 1 | head -n1)
-eq "$(sed 's/\x1b\[[0-9;]*m//g' <<<"$first")" " $(printf '─%.0s' {1..76})" "(a space, then 76 columns: the heading's 76)"
+first=$(FZF_PREVIEW_COLUMNS=86 FZF_PREVIEW_LINES=10 KAWA_CELL=9x21 kawa-clip --preview 1 | head -n1)
+eq "$(sed 's/\x1b\[[0-9;]*m//g' <<<"$first")" " $(printf '─%.0s' {1..84})" "(a space, then 84 columns: the heading's 84)"
 has "$first" $'\e[38;5;19m' "(in the rule's ink, edge2)"
 case_ "no XDG_RUNTIME_DIR (a shell outside the session): the preview and the copy still work"
 eq "$(env -u XDG_RUNTIME_DIR FZF_PREVIEW_COLUMNS=74 FZF_PREVIEW_LINES=10 kawa-clip --preview 1 2>&1 | sed 1d)" $'     line one\n     \tline two\twith tab\n     line three'
@@ -383,7 +383,7 @@ case_ "Super+V's own command (kawa-clip): the warm window shown or put away — 
 setup; reset_calls; stub kawa-warm
 kawa-clip
 called "^kawa-warm clip\$"; not_called '^fzf'
-grep -q 'clip) *title=clipboard size=80x27 *cmd=(kawa-clip --tui)' "$REPO/bin/kawa-warm" && _ok || _no "kawa-warm's clipboard window is not 80×27 on --tui"
+grep -q 'clip) *title=clipboard size=88x27 *cmd=(kawa-clip --tui)' "$REPO/bin/kawa-warm" && _ok || _no "kawa-warm's clipboard window is not 88×27 on --tui"
 
 case_ "inside: fzf with the desktop's options file, the list, the cell size for the previews"
 setup; put 'one'; put 'two'

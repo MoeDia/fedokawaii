@@ -67,7 +67,7 @@ case_ "--start (login): the three windows, app-ids warm-NAME, their titles and s
 setup; python3 -I -c 'import socket, sys; socket.socket(socket.AF_UNIX).bind(sys.argv[1])' "$XDG_RUNTIME_DIR/foot-wayland-test.sock"
 rc 0 kawa-warm --start
 for w in "warm-notes -T notes -W 64x40 -- $REPO/bin/kawa-warm --inside notes" \
-         "warm-clip -T clipboard -W 80x27 -- $REPO/bin/kawa-warm --inside clip" \
+         "warm-clip -T clipboard -W 88x27 -- $REPO/bin/kawa-warm --inside clip" \
          "warm-system -T system -W 88x15 -- $REPO/bin/kawa-warm --inside system"; do
   called "^footclient -a $w\$"
 done
@@ -126,7 +126,7 @@ loop=$(cat "$XDG_RUNTIME_DIR/kawa-warm-clip.pid"); run=$(head -n1 "$TMP/runs")
 rc 0 kawa-warm --renew system clip
 ! kill -0 "$loop" 2>/dev/null && _ok || _no "the clipboard's loop still runs"
 ! kill -0 "$run" 2>/dev/null && _ok || _no "what ran in it still runs"
-called "^footclient --no-wait -a warm-clip -T clipboard -W 80x27 -- $REPO/bin/kawa-warm --inside clip\$"
+called "^footclient --no-wait -a warm-clip -T clipboard -W 88x27 -- $REPO/bin/kawa-warm --inside clip\$"
 not_called "^footclient --no-wait -a warm-system" "the system menu, showing: left as it is"
 wait "$W" 2>/dev/null
 setup; out=$(kawa-warm --renew clip notes 2>&1); eq "$?" 2; has "$out" "the notes hold your page"; not_called '^footclient'
