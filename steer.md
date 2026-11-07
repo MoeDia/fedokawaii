@@ -129,3 +129,9 @@ The owner (09:25): make up for the hours lost (the four daily suites back to bac
 3. Daily rows run only on their own day (S13), and a daily run is skipped when the previous one passed less than 12 hours earlier with no system-level change since.
 4. Sonnet for every row S11 allows; by tonight the pulse's model split should show sonnet doing most of the rows.
 5. Target: the ETA back to Sunday noon or earlier. Nothing may break; S8's balance stays.
+
+## S15 2026-11-07 09:45
+The owner (09:40): his Mac will sleep, so Claude's notes can arrive hours late, and he will change nothing on GitHub. Steer yourself:
+1. Order the work so nothing ever waits on him or on Claude. Rows that need a pick or a note are parked; there is always a next row that needs nobody (engineering, apps, learning, nvim, repo, ISO and installer, tests). A design row waiting for a pick: build the strongest option behind a switch (S8) and move on; swap when the pick comes.
+2. A self-audit every 6 passes (cheap, on haiku), the checks Claude would otherwise send by hand: (a) pace against the plan and the ETA trend; (b) no daily row before its day, no long job repeated; (c) the model mix (sonnet should carry most rows); (d) any pass over 90 minutes, any idle gap between passes; (e) a blocked row older than 6 hours gets one fresh attempt with a different approach; (f) the design track not crowding out the rest. Fix what it finds and note it in the plan.
+3. Claude's notes still arrive through steer.md whenever his Mac is awake. Treat them as his voice, never wait for them.
