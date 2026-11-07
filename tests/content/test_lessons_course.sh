@@ -11,11 +11,13 @@ out=$(python3 -B -I "$C/lessons_course.py" "$F" "$REPO/docs/lessons/syllabus.tsv
 eq "$(grep -c '^FAIL' <<<"$out")" 0 "$(grep '^FAIL' <<<"$out" | head -n 5)"
 [[ $(grep -c '^ok day [0-9]* [a-z0-9-]*: ' <<<"$out") -gt 40 ]] && _ok || _no "too few checks ran: $out"
 
-case_ "a broken lesson is caught: a check that already passes, a need not taught yet, a day too long"
+case_ "a broken lesson is caught: a check that already passes, a need not taught yet, a day too long, an example that prints otherwise"
 W=$TMP/course; mkdir -p "$W"; cp "$F"/*.md "$W/"
-sed -i '/^needs:/d; s/^part: 2$/part: 2\nneeds: [triad]/' "$W/first-print.md"
-sed -i 's/^minutes: .*/minutes: 25/' "$W/variables.md"
+sed -i 's/^needs: .*/needs: [triad]/' "$W/variables.md"
+sed -i 's/^minutes: .*/minutes: 25/' "$W/numbers.md"
+sed -i 's/^I am learning Python$/I am learning C/' "$W/first-print.md"
 out=$(python3 -B -I "$C/lessons_course.py" "$W" "$REPO/docs/lessons/syllabus.tsv" "$REPO" 2>&1)
-has "$out" "first-print needs triad" "no complaint about the need"
+has "$out" "variables needs triad" "no complaint about the need"
 has "$out" "minutes, a day is" "no complaint about the day"
+has "$out" "FAIL day 1 first-print: example prints its output: printed" "no complaint about the example"
 done_
