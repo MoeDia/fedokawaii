@@ -4475,7 +4475,7 @@ remember it.
   | Agents · Torrents · Syncplay | herdr · torrra · Syncplay (ch. 20, §15.7) | `claude` · `torrent` · `together` |
 
   The rest — Helium, LibreOffice, Xournal++, Easy Effects, LocalSend,
-  LACT, Spotify and WhatsApp — are windows of their own. What has no entry is a
+  LACT, Stoat and Spotify — are windows of their own. What has no entry is a
   command you type (`gh`, `rg`, `magick`…), a part of the desktop reached from the bar or a
   key (the calendar, the timer, the weather, the power menu), or a library;
   `tests/look/fixtures/not-launched.txt` in the toolkit says why for each.
@@ -4493,7 +4493,7 @@ remember it.
   | agents | Agents | calc | Calculator | download | Torrents |
   | branch | Git | usage | Disk usage | search | Prowlarr |
   | note | Notes | sheet | Tables | music | Spotify |
-  | clipboard | Clipboard | cpu | System monitor | speech | WhatsApp |
+  | clipboard | Clipboard | cpu | System monitor | speech | Stoat |
   |  |  | sliders | Volume mixer |  |  |
 
   Each entry names its icon itself, on an `X-Fedokawaii-Icon=` line of its `.desktop`
@@ -4503,10 +4503,9 @@ remember it.
   by entries of the same name in `~/.local/share/applications` (`NoDisplay=true`); the
   programs still work, and films and documents still open in them. **Spotify** is its web
   player in a Helium app window (§15.4).
-* **WhatsApp** is WhatsApp Web, `web.whatsapp.com`, in a Helium app window the same way, with
-  its seal 話 (WhatsApp makes no Linux app, so no WhatsApp icon is installed): type
-  `whatsapp` in the launcher, scan its code once with your phone (WhatsApp → *Linked
-  devices*), and Helium keeps it linked. Its messages arrive as the desktop's notices.
+* **Stoat** is the chat that replaces Discord (stoat.chat): its own desktop program, installed by
+  the toolkit into `~/.local/share/stoat`; type `stoat` in the launcher. There are no chat web
+  apps any more (WhatsApp's was removed).
 * **Git** lists your repositories — every folder with a `.git` in `~/dojo` or your home,
   the one you worked in last at the top, each with its branch — and **Enter** opens lazygit
   in the one you pick (ch. 41). With none yet, it says so and offers two keys: **c** clones

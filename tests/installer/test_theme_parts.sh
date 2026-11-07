@@ -152,19 +152,21 @@ has "$(cat "$W$H/.config/mpv/mpv.conf")" "# scaling: mpv's own defaults"
 has "$(cat "$W/etc/vconsole.conf")" 'FONT="ter-v16b"'
 
 
-case_ "Spotify and WhatsApp: their web apps in Helium app windows (our icons); the older entry for Spotify's app and lpf's hidden ones replaced or retired"
+case_ "Spotify: its web player in a Helium app window (our icon); Stoat's entry; an earlier WhatsApp web app retired; the older entry for Spotify's app and lpf's hidden ones replaced or retired"
 back plain; a=$W$H/.local/share/applications; mkdir -p "$a"
 printf '[Desktop Entry]\n# Spotify (lpf)\nName=Spotify\nExec=spotify --ozone-platform=wayland %%U\n' >"$a/spotify.desktop"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do printf '[Desktop Entry]\n# with lpf-spotify-client\nName=%s\nNoDisplay=true\n' "$e" >"$a/$e.desktop"; done
 printf '[Desktop Entry]\n# mine\nName=lpf\n' >"$a/lpf-mine.desktop"
+printf '[Desktop Entry]\nName=WhatsApp\nExec=kawa-browser --app=https://web.whatsapp.com\n' >"$a/whatsapp.desktop"
 fk_perms; theme; eq "$RC" 0
 eq "$(sed -n 's/^Exec=//p' "$a/spotify.desktop")" "$H/.local/bin/kawa-browser --app=https://open.spotify.com"
 eq "$(sed -n 's/^X-Fedokawaii-Icon=//p' "$a/spotify.desktop")" "music" "our icon (music), the launcher draws it"
 eq "$(grep -c '^Icon=' "$a/spotify.desktop")" 0 "no picture of its own"
 lacks "$(cat "$a/spotify.desktop")" "MimeType" "no spotify: links (nothing here opens them)"
-eq "$(sed -n 's/^Exec=//p' "$a/whatsapp.desktop")" "$H/.local/bin/kawa-browser --app=https://web.whatsapp.com" "WhatsApp: WhatsApp Web in a Helium app window"
-eq "$(sed -n 's/^X-Fedokawaii-Icon=//p' "$a/whatsapp.desktop")" "speech" "WhatsApp: our icon (speech), the launcher draws it"
-eq "$(grep -c '^Icon=' "$a/whatsapp.desktop")" 0 "WhatsApp: no picture of its own"
+eq "$(sed -n 's/^Exec=//p' "$a/stoat.desktop")" "$H/.local/bin/stoat" "Stoat: its own program"
+eq "$(sed -n 's/^X-Fedokawaii-Icon=//p' "$a/stoat.desktop")" "speech" "Stoat: our icon (speech), the launcher draws it"
+eq "$(grep -c '^Icon=' "$a/stoat.desktop")" 0 "Stoat: no picture of its own"
+[[ ! -e $a/whatsapp.desktop ]] && _ok || _no "whatsapp.desktop still there (a retired web app)"
 for e in lpf lpf-gui lpf-notify lpf-spotify-client; do [[ ! -e $a/$e.desktop ]] && _ok || _no "$e.desktop left"; done
 has "$OUT" "lpf-spotify-client.desktop (retired)"; [[ -e $a/lpf-mine.desktop ]] && _ok || _no "an entry of yours taken"
 theme --check; lacks "$OUT" "lpf" "in sync without lpf's entries"

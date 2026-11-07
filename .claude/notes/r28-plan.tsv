@@ -110,8 +110,8 @@ d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins 
 sa19	Sat 7	done	Helium configured and optimised: settings, flags, a solid symmetrical minimal toolbar, a few essential extensions beyond uBlock Origin, chosen from official sources; Proton Pass among the pre-installed extensions (S2)	Sat 7 Nov 13:41	managed policy configs/system/etc/chromium/policies/managed/fedokawaii.json: Proton Pass pinned + Vimium force-installed (IDs from proton.me/support/deploy-browser-extension, chromewebstore); not proven in a live Helium (policy path is system-level; VM proof in sa33)	sonnet
 sa21	Sat 7	done	Stoat (the Discord replacement) checked at its official source, installed by the installer, manifest rows	Sat 7 Nov 13:45	pinned v1.5.4 zip (Electron folder), no RPM/Flathub route used; launcher+theme in sa22	sonnet
 d5	Fri 6	todo	Super+U's dense info lines (S2): "updated ..." and the like better spaced, easy to read and absorb; measured, both moods		with sa13	opus
-sa22	Sat 7	now	Stoat themed; every web app (WhatsApp and the like) removed; launcher and tests			sonnet
-sa23	Sat 7	todo	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has			sonnet
+sa22	Sat 7	done	Stoat themed; every web app (WhatsApp and the like) removed; launcher and tests	Sat 7 Nov 13:49	WhatsApp entry removed (retired on the PC by theme); Stoat entry (stoat.desktop, speech icon); Spotify kept: a music player, the bar and SPOT checks depend on it; Stoat in-app theme not automatable (Electron, no theme file)	sonnet
+sa23	Sat 7	now	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has			sonnet
 sa13	Sat 7	todo	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		his pick h1: 1 ichimai (S2)	opus
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes			sonnet
 sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)	sonnet
@@ -182,6 +182,12 @@ t02	Tue 10	todo	the final ISO built twice, compared, checksummed			opus
 t03	Tue 10	todo	the final VM install from it: verify, desktop smoke, a day's lessons, the update button			opus
 t04	Tue 10	todo	r28-handover.md: what is done, what waits for him, how to install; push; the hold file and the conductor stopped		rule 9	sonnet
 c1b	Tue 10	owner	his eyes on the cooler's display with the PC dark: no 99 (S6)		only he can see it; assumed: dark. If it still blinks: the steady real temperature instead (S6)	sonnet
+sb11	Sat 7	todo	S24.1 dojo solid: pinned versioned base image, offline, limits (mem/CPU/pids/disk, checker time limits), dojo doctor (auto on start), stale cleanup, tests (python, bash, gcc ASan, cargo, psql, localhost page, reset keeps files)		inbox S24	opus
+sb12	Sat 7	todo	S24.2 top bar font one weight heavier, same size; T pack set BW (n 0 today, n 1 new), dark and light		inbox S24	sonnet
+sb13	Sat 7	todo	S24.3 lessons: every step spelled out (window, key, what to type, what he sees); exercises warm-up/real/stretch with thinking puzzles; layered hints		inbox S24, with S19	opus
+sb14	Sat 7	todo	S25.1 lesson keys drawn as h2's keycaps, both moods		inbox S25	sonnet
+sb15	Sat 7	todo	S25.2 Part 1 covers everything: .claude/notes/r28-lesson-coverage.md (item -> lesson); self-audit S15 checks daily		inbox S25	opus
+sb16	Sat 7	todo	S26 cooler display real off: USB runtime suspend of 1a2c:4184 only (default if kernel confirms), then usbhid unbind, authorized 0, ff bytes; kawa-cooler-test guided; restore both ways		inbox S26	opus
 o01	Tue 10	owner	his picks on the options pack, relayed by Claude; each pick built, the others dropped		assumed meanwhile: my strongest, each in r28-questionnaire.md part A	opus
 o02	Tue 10	owner	the RAM: restart, Delete, F7, OC, DRAM Frequency DDR5-4800, F10; then ram-check three copies for 20 minutes		still 5600 MT/s on 6 Nov; wrong bits measured, ledger r27-note-flips-2; say it before he installs anything built here	sonnet
 o03	Tue 10	owner	Phase E: his answers to the questionnaire applied: the last edit of the repo		then the ISO again	sonnet

@@ -212,6 +212,7 @@ kawa-foryou                     what only you can do: a notice at login and Supe
 kawa-glass                      a switch: Super+U → transparency
 kawa-help                       a menu: Super+/
 kawa-hush                       notices held back while sharing or while the play world is in front
+kawa-inventory                  a table in a terminal: every app, its version, where it came from (Super+U)
 kawa-idle                       what happens while you are away
 kawa-lock                       the lock: Super+Escape
 kawa-mem                        the bar's memory

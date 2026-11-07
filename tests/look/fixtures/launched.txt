@@ -37,6 +37,7 @@ lazygit                kawa-git                                lazygit
 herdr                  kawa-agents                             herdr
 localsend              localsend                               localsend
 syncplay               syncplay                                kawa-together
+stoat                  stoat                                   stoat
 # installed by setup.sh another way
 prowlarr               kawa-prowlarr                           prowlarr
 # the desktop's own helpers that open a window of their own

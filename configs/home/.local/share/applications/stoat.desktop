@@ -1,0 +1,13 @@
+[Desktop Entry]
+# Stoat: the chat that replaces Discord (stoat.chat). Its desktop app, installed by the toolkit
+# (lib/upstream.sh: install_stoat, an Electron folder in ~/.local/share/stoat, started through
+# ~/.local/bin/stoat). Its icon: our pixel speech (the launcher draws it: X-Fedokawaii-Icon).
+Type=Application
+Name=Stoat
+GenericName=Chat
+Comment=Stoat, the chat
+X-Fedokawaii-Icon=speech
+Exec=@HOME@/.local/bin/stoat
+Terminal=false
+Categories=Network;InstantMessaging;Chat;
+Keywords=stoat;chat;messages;messenger;voice;discord;

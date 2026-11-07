@@ -860,3 +860,26 @@ CLAUDE (monitoring the run for the owner, S23): The owner (13:11):
    - Editing happens with his normal Neovim on the host (only text files change); running happens inside the box.
    - Pages served inside open in Helium at localhost.
    - "dojo reset" rebuilds the box (tools, packages, the database) but NEVER deletes his project files; wiping files is a separate command that asks first.
+
+## 2026-11-07 13:45 — in the plan: sb11-sb16
+CLAUDE (monitoring the run for the owner, S24): The owner (13:17):
+1. The dojo must be super solid and hard to break:
+   - a pinned, versioned base image built from Fedora's current release; rebuilt reproducibly; works offline once set up; survives system updates and reboots (proved in the VM);
+   - limits so a runaway program can never hurt the PC: memory, CPU, process count and disk caps, and time limits on the checkers;
+   - "dojo doctor": checks the box, the database and the mounts, fixes what it can by itself, and says in plain words what it did; run automatically when "dojo" starts if something looks wrong;
+   - stale containers and images cleaned automatically; its own tests in the suite (start, run Python, Bash, gcc with AddressSanitizer, cargo, psql, a web page on localhost, reset keeps his files).
+2. The top bar's font a little thicker: one weight step heavier, same size, crisp. Show it with the T pack as set "BW" (bar weight): n 0 today, n 1 the new weight, dark and light, so he can confirm.
+3. The lessons' steps: spell out every step as if he has never seen it: which window, which key, exactly what to type, and what he should see after each step ("press Space r; a panel opens at the bottom; it shows 'hello'"). Never skip an "obvious" step. But the THINKING must be challenging: easy to follow, hard to answer. Each lesson's exercises go warm-up, then real, then stretch, with puzzles that make him think (predict the output before running it, find the bug, fill in the missing line, choose between two designs and say why); hints come in layers (a nudge, then a bigger hint, then the answer). Drill the ideas until they stick (S19).
+
+## 2026-11-07 13:45 — in the plan: sb11-sb16
+CLAUDE (monitoring the run for the owner, S25): The owner (13:20), last for now:
+1. The keycap style he loves (h2's "ctrl + a" keys, S2) is used in the lessons too: every key or shortcut in a lesson is drawn as those keycaps, in the theme, both moods.
+2. Part 1 (the system) must cover EVERYTHING about his own desktop that he needs to know: go through every feature, menu, keybind, app, tool and maintenance routine in the repo (the inventory, PACKAGES.md, the keys files, the menus, the quick settings, updates and snapshots, backups and restore, the dojo, the lock, Helium, Stoat, Syncplay, LocalSend, the inventory menu, the RGB and cooler, the boot menu rollback, how to recover when something breaks) and make a coverage list in .claude/notes/r28-lesson-coverage.md: each item and the lesson that teaches it. Nothing may be missing; the self-audit (S15) checks this list against the repo each day and adds lessons for anything new.
+3. He is leaving the run alone now. Do SOLID work: the learning experience is the most important part. Go.
+
+## 2026-11-07 13:45 — in the plan: sb11-sb16
+CLAUDE (monitoring the run for the owner, S26): The owner (13:35): the cooler display no longer blinks, but now shows a STATIC 99. c1's "off" (digits 0x0a, 0x0a, 0x0a every second, kawa-rgb.c disp_out) does not blank it; the firmware shows 99 for digits it does not know. Find a real off:
+1. First, USB runtime suspend (the kernel can confirm it, no eyes needed): when the lights go off, kawa-rgb releases the display's hidraw, sets the display's USB device power/control to "auto" with autosuspend_delay_ms 0 (and its interfaces), and checks power/runtime_status says "suspended"; a suspended USB device may draw only 2.5 mA, so a USB-powered display should go dark. Back on: power/control "on", reopen, send digits. If the kernel cannot suspend it (usbhid holding it, no remote-wakeup), try unbinding usbhid from that one interface first, then suspend; rebind on the way back. Only this device (1a2c:4184), never the K617 or any other.
+2. Last resorts, in this order: "authorized" 0 on that one USB device (1 on the way back); other values in the report's two ff bytes (a brightness or mode field?) with the digits blank, only with the allow-list care of S6.
+3. Only eyes can tell whether the digits are really dark. Build kawa-cooler-test: a guided test he runs once in a terminal; it tries each candidate for 8 seconds and asks "is the cooler display dark now? y/n", logs the answers, and makes the first one that works kawa-rgb's off path. When it is ready, say so on its plan row (Claude will tell him the one command). Make method 1 the default meanwhile if the kernel confirms the suspend.
+Restore everything on the way back (lights on, resume from sleep), tested both ways; never leave the device unusable.

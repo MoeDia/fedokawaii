@@ -30,8 +30,8 @@ sound is kept out of what is sent. Share a **tab**: they hear that tab alone. Fo
 only send a microphone: quick settings → *share sound* gives it a microphone that carries your voice
 and the desktop's sound, or one program's. Its own sound stays out there too.
 
-Downloads show on the bar: its arrow, the tray filling, the percent. Spotify and WhatsApp in the
-launcher are its windows too, signed in once.
+Downloads show on the bar: its arrow, the tray filling, the percent. Spotify in the
+launcher is its window too, signed in once.
 
 ### exercises
 

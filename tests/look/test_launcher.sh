@@ -44,6 +44,7 @@ installed=$(bash -c '. "$1/lib/manifest.sh"; . "$1/lib/upstream.sh"; STATE_DIR=/
   manifest_all amd; printf "%s\n" "${PKG_GPU_intel[@]}"; for u in "${UPSTREAM[@]}"; do echo "${u%%|*}"; done' _ "$REPO"
   grep -q '^LOCALSEND_TAG=' "$REPO/lib/upstream.sh" && echo localsend
   grep -q '^SYNCPLAY_TAG=' "$REPO/lib/upstream.sh" && echo syncplay
+  grep -q '^STOAT_TAG=' "$REPO/lib/upstream.sh" && echo stoat
   [[ -f $REPO/system/prowlarr.container ]] && echo prowlarr
   for b in "$REPO"/bin/kawa-*; do echo "${b##*/}"; done)
 installed=$(LC_ALL=C sort -u <<<"$installed")
@@ -102,7 +103,7 @@ OURS="kawa-asobi:koma kawa-typing:keyboard footclient:terminal kawa-edit:code ka
   kawa-notes:note kawa-clip:clipboard kawa-books:book kawa-learn:mortarboard kawa-chess:knight kawa-wallpaper:picture kawa-backup:archive
   kawa-calc:calc kawa-disk:usage kawa-tables:sheet btop:cpu kawa-mixer:sliders
   kawa-network:globe kawa-bluetooth:bluetooth kawa-file:tools kawa-torrents:download
-  kawa-prowlarr:search spotify:music whatsapp:speech"
+  kawa-prowlarr:search spotify:music stoat:speech"
 for f in "$A"/*.desktop; do
   [[ $(key "$f" NoDisplay) == true ]] && continue
   i=$(key "$f" Icon) k=$(key "$f" X-Fedokawaii-Icon) n=${f##*/}
@@ -148,7 +149,8 @@ lacks "$(cat "$P")" '"窓"' "no kanji for a window any more"
 has "$(key "$A/syncplay.desktop" Icon)" "/.local/share/fedokawaii/syncplay/syncplay/resources/hicolor/" "Syncplay's own, from its copy"
 has "$(key "$A/localsend.desktop" Icon)" "/.local/share/localsend/data/flutter_assets/assets/img/logo-" "LocalSend's own, from its release"
 eq "$(key "$A/spotify.desktop" Exec)" "@HOME@/.local/bin/kawa-browser --app=https://open.spotify.com" "Spotify: a Helium app window"
-eq "$(key "$A/whatsapp.desktop" Exec)" "@HOME@/.local/bin/kawa-browser --app=https://web.whatsapp.com" "WhatsApp: a Helium app window"
+eq "$(key "$A/stoat.desktop" Exec)" "@HOME@/.local/bin/stoat" "Stoat: its own program, not a web app"
+[[ ! -e $A/whatsapp.desktop ]] && _ok || _no "a WhatsApp web app is still shipped"
 
 case_ "no icon pack: nothing names Papirus (the manifest only to retire it, the report to see it gone), the launcher's icons from GTK's own theme (Adwaita, then hicolor)"
 bad=$(grep -rli papirus "$REPO"/{configs,bin,lib,tools,system,theme.sh,setup.sh,verify.sh} 2>/dev/null | grep -v '__pycache__' \

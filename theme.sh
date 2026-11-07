@@ -311,6 +311,7 @@ retire .visidatarc 'VisiData (vd, the Tables window)'
 #   ~/.local/share/applications/lpf*.desktop — lpf's entries, hidden while lpf built Spotify's
 #   app here (Spotify is its web player now, and lpf is gone: setup.sh)
 for LPF_ENTRY in lpf lpf-gui lpf-notify lpf-spotify-client; do retire ".local/share/applications/$LPF_ENTRY.desktop" 'lpf-spotify-client'; done
+retire .local/share/applications/whatsapp.desktop 'web.whatsapp.com'
 #   fuzzel — the launcher and every menu are kawa-panel's now (its sums worked out as you type):
 #   fuzzel's settings, its colours and the launcher's pictures of each theme (the app seals,
 #   which the panel draws itself; the heading's colour fonts); and the bar's pictures of
