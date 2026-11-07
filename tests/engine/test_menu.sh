@@ -296,7 +296,8 @@ for k in running moved updated due verified dnf backup kernel disk retired compa
 lacks "$out" "   support " "its support made way too"
 eq "$(sed -n '3,$p' <<<"$out" | grep -c '^$')" 0 "no room for the groups' paper: none"
 has "$(grep '^ *kernel ' <<<"$out")" "restart for it" "the kernel kept: a restart waits for it"
-has "$(grep '^ *disk ' <<<"$out")" "· low" "the disk kept: it runs low"
+has "$(grep '^ *disk ' <<<"$out")" "·  low" "the disk kept: it runs low (its parts two columns apart, S2)"
+has "$(grep '^ *updated ' <<<"$out")" "  ·  " "a dense line in parts: two columns of air each side of its dot (S2, d5)"
 lacks "$out" "   release " "the release made way (the kernel and the disk asking for you)"
 out=$(plain "$(FZF_PREVIEW_LINES=40 WAYLAND_DISPLAY=wayland-1 fedokawaii --explain status)")
 has "$out" "   release "; has "$out" "   support " "room enough (a taller pane): every line"

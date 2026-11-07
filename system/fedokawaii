@@ -893,6 +893,21 @@ explain() {
     status|update|verify|repair|remind) kv=$(status_kv) ;;
     *) kv=$(j=$(running_job) && printf 'running\037%s, now\n' "$(running_words "$j")") ;;
   esac
+  parts() {   # parts LINE → a status line's value read in parts (S2, d5): what it is in `text`, what
+    # follows (when, how long, where to go) `muted`, unless it asks something of you; the dots
+    # `faint`, two columns of air each side (the Files footer's) where the line fits the pane, else one
+    local l=$1 n=$((3 + ${#G} + 9 + ${#O} + 1)) head v t p sep=' · ' F=${INK_FAINT:-} out
+    [[ $l == *" · "* ]] || { printf '%s' "$l"; return 0; }
+    head=${l:0:n} v=${l:n} t=${v//' · '/·}   # (the key's part, padded, then the value)
+    ((2 * ${#v} - ${#t} <= pw - 14)) && sep='  ·  '   # (each dot two columns more)
+    out=${v%% · *} v=${v#* · }
+    while :; do
+      p=${v%% · *}
+      if [[ $p == @(low|restart for it|repair|waits*|*failed*) ]]; then out+="$F$sep$O$p"; else out+="$F$sep$G$p$O"; fi
+      [[ $v == *" · "* ]] || break; v=${v#* · }
+    done
+    printf '%s%s' "$head" "$out"
+  }
   pick() {   # pick 'KEY|KEY…' [ROOM [grouped]] → those lines of the status (with their continuations), less
     # what the list beside it says already (due's "in N days": update's).
     # More than ROOM lines (the rare ones all at once): the routine ones make way — the kernel
@@ -915,6 +930,7 @@ explain() {
       done
       ks=("${ks[@]}"); ls=("${ls[@]}")
     done
+    for i in "${!ls[@]}"; do ls[i]=$(parts "${ls[i]}"); done
     out=("${ls[@]}")
     if [[ ${3:-} == grouped ]]; then
       out=()

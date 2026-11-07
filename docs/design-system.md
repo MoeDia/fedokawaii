@@ -403,6 +403,9 @@ content, inside its margin of one cell:
   one cell in (column 1), as rows; the key that closes or goes back, at column 0 again.
 - **Facts** (a key and its value: status, the backup's and the drive's panes): the key from the
   heading's name (column 3) in `muted`, padded to the longest, two columns, the value in `text`.
+  A value in parts ("1 Nov 2026 · 6 days ago"): what it is in `text`, what follows — when, how long, where to
+  go — `muted` unless it asks something of you (low, restart for it, repair); the dots `faint`, two columns of air
+  each side where the line fits, else one.
 - **Search line** (a list long enough to filter): the chevron in `accent_text` at the rows' icon
   column (1), what is typed — or the ghost words saying what the list holds, `faint` — at their
   names' (4); the count right-aligned to the last column, `muted`. A short list has none (Super+U,
