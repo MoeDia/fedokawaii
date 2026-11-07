@@ -164,7 +164,8 @@ emit() {   # emit MONITOR — its files (and the focused one's at the top), then
   if ((${#KBNAMES[@]} > 1)); then
     name=${KBNAMES[k]:-?}; name=${name:0:2}; ((k)) && which=other
     if [[ ${CAPS[$mon]:-0} == 1 ]]; then name=${name^^}; else name=${name,,}; fi
-    put kb "{\"text\":\"$name\",\"class\":\"$which\"}" && kc=1
+    air "$name"   # (its letters' own air: the tile's 10 px of paper to the ink whatever the name)
+    put kb "{\"text\":\"$name\",\"class\":[\"$which\",\"${__air/ /\",\"}\"]}" && kc=1
   else
     put kb '{"text":""}' && kc=1
   fi

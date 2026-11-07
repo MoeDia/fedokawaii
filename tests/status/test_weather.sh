@@ -105,8 +105,8 @@ for t in 29.5:30 29.4:29 -0.4:0 -0.5:0 -5.5:-5 -5.6:-6 0:0; do
   setup; forecast ".current.temperature_2m = ${t%:*}"; kawa-weather >/dev/null; fetched
   eq "$(text_of "$(bar)")" "${t#*:}°" "${t%:*}"
 done
-case_ "a temperature starting with a 1 or a minus: l1 (its first column of air taken back), no other"
-for t in 33:no 15:l1 100:l1 -5:l1 0:no 9:no 21:no; do
+case_ "a temperature starting with a 0, 1 or 2: l1 (its first column of air taken back), no other"
+for t in 33:no 15:l1 100:l1 -5:no 0:l1 9:no 21:l1 -12:no; do
   setup; forecast ".current.temperature_2m = ${t%:*}"; kawa-weather >/dev/null; fetched
   c=$(jq -c .class <<<"$(bar)")
   if [[ ${t#*:} == l1 ]]; then has "$c" '"l1"' "${t%:*}"; else lacks "$c" '"l1"' "${t%:*}"; fi

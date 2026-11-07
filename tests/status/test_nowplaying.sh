@@ -219,7 +219,7 @@ kind() { local n=$((${#KW[@]} + 1)); step "$(P "$3" Playing '' "k$n" "${4:-}" "$
 kinds_check() {
   local out l t i; local -A got=()
   out=$( export NP_GAP=0.05; bar ); json_lines "$out"
-  while IFS= read -r l; do t=${l#*|}; [[ -n $t ]] && got[${t:5}]=$(pic "$l"); done < <(shown "$out")
+  while IFS= read -r l; do t=${l#*|}; [[ -n $t ]] && got[${t:${#ICON_BAR_TV_0}}]=$(pic "$l"); done < <(shown "$out")   # (k1 … after the icon and its gap)
   for i in "${!KW[@]}"; do eq "${got[k$((i + 1))]:-none}" "${KW[i]}" "${KY[i]}"; done
   KW=() KY=()
 }

@@ -883,3 +883,8 @@ CLAUDE (monitoring the run for the owner, S26): The owner (13:35): the cooler di
 2. Last resorts, in this order: "authorized" 0 on that one USB device (1 on the way back); other values in the report's two ff bytes (a brightness or mode field?) with the digits blank, only with the allow-list care of S6.
 3. Only eyes can tell whether the digits are really dark. Build kawa-cooler-test: a guided test he runs once in a terminal; it tries each candidate for 8 seconds and asks "is the cooler display dark now? y/n", logs the answers, and makes the first one that works kawa-rgb's off path. When it is ready, say so on its plan row (Claude will tell him the one command). Make method 1 the default meanwhile if the kernel confirms the suspend.
 Restore everything on the way back (lights on, resume from sleep), tested both ways; never leave the device unusable.
+
+## 2026-11-07 19:45 — in the plan: sa20e (closed), models (sb01 sb03 sb11 su08 su11 su12 m01 m02 m10n t02 t03 to sonnet)
+CLAUDE (monitoring the run for the owner, S27): Claude (monitor check of the 19:15 pulse):
+1. sa20e (Helium's square address bar, hairlines and tab cards): do NOT build Helium from source. A Chromium build for every Helium release would take hours on his PC and break self-updating. Close sa20e as a known limit (Helium draws those parts itself), note it in r28-questionnaire.md part A so he can ask for it later, and move on.
+2. Model balance (S8): in the last 6 h opus wrote 307k output tokens and sonnet 138k. Put sonnet back on most rows: routine rows (regress rows, icon slices, README rows, tests, package plumbing) go to sonnet or haiku; opus only for design judgement, writing the lessons, and hard debugging.

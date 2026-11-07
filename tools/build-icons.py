@@ -45,7 +45,7 @@ TWIN = 0xFE800                    # its bar twin at TWIN + the same place: a ran
 CELLS = 0xFF000                   # whole terminal cells at fixed places, for what cannot read icons.sh (a
                                   # patched yazi, its Lua, a script): the frame's ring (art/icons.txt, cp=) and
                                   # the keycaps: U+FF000 + a key's ASCII code, its ends U+FF001 and U+FF002 (§7)
-BAR_GAP = 8                       # the bar: from an icon's ink to its value's (a column of the grid)
+BAR_GAP = 10                      # the bar: from an icon's ink to its value's (a column of the grid)
 BAR_SRC = ROOT / "art" / "icons-bar.txt"
 BAR_TTF = ROOT / "configs/home/.local/share/fonts/SumiIconsBar.ttf"
 BAR_UPM, BAR_ASC, BAR_DESC = 1600, 1600, -400     # the bar's 16 px em, its line: 16 up, 4 down (20 rows)

@@ -78,7 +78,7 @@ rc 0 status "$F/one-monitor.status"
 eq "$(tagrow)" "1:emp 2:sel 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "after quitting: no windows, workspace 2 shown"
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL_BAR\",\"class\":[\"spiral\",\"alone\"]}" "no window: the mark alone in the tile (it takes the tile's 8 px of paper after it)"
 eq "$(bar title)" '{"text":"","class":["l0","r0"]}'
-eq "$(bar kb)" '{"text":"us","class":"first"}'
+eq "$(bar kb)" '{"text":"us","class":["first","l1","r1"]}'
 eq "$(json_ok)" ""
 eq "$(find "$BAR" -name '*.tmp' | wc -l)" 0 "no half-written file left"
 
@@ -94,9 +94,9 @@ rm -rf "$BAR"; blk "$F/one-monitor.status" "layout ><>" | kawa-dwlstatus
 eq "$(bar layout)" "{\"text\":\"$ICON_FLOAT_BAR\",\"class\":\"float\"}"
 case_ "recorded: Alt+Shift to Arabic shows AR, back to US"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "kblayout 1" | kawa-dwlstatus
-eq "$(bar kb)" '{"text":"ar","class":"other"}'
+eq "$(bar kb)" '{"text":"ar","class":["other","l0","r2"]}'
 rm -rf "$BAR"; blk "$F/one-monitor.status" "kblayout 1" 1 | kawa-dwlstatus
-eq "$(bar kb)" '{"text":"us","class":"first"}'
+eq "$(bar kb)" '{"text":"us","class":["first","l1","r1"]}'
 case_ "recorded: a 2048-character title (foot's limit) and a title emptied by its program"
 rm -rf "$BAR"; blk "$F/one-monitor.status" "title xxxxxxxxxx" | kawa-dwlstatus
 eq "$(jtext title | wc -c)" 61 "60 letters at most (one word: cut there), never an …"
@@ -195,19 +195,19 @@ eq "$(json_ok)" ""
 
 # ── the keyboard layout ──────────────────────────────────────────────────────
 case_ "us,ara: us then ar (Caps Lock off: small); a third layout's index past the list: ?; a single layout: nothing shown"
-rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":"first"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"ar","class":"other"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"?","class":"other"}'
-rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | XKB_DEFAULT_LAYOUT=de,us,ara kawa-dwlstatus; eq "$(bar kb)" '{"text":"ar","class":"other"}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":["first","l1","r1"]}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"ar","class":["other","l0","r2"]}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"?","class":["other","l0","r1"]}'
+rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 2 x | XKB_DEFAULT_LAYOUT=de,us,ara kawa-dwlstatus; eq "$(bar kb)" '{"text":"ar","class":["other","l0","r2"]}'
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | XKB_DEFAULT_LAYOUT=us kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
 case_ "Caps Lock (owner, 14:27): the layout in capitals while it is on — US, AR — small again when it is off, at once (dwl's kbcaps line, before kblayout)"
-rm -rf "$BAR"; CAPS=1 block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"US","class":"first"}'
-rm -rf "$BAR"; CAPS=1 block DP-1 1 1 1 0 '(@)' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":"other"}'
-rm -rf "$BAR"; { CAPS=1 block DP-1 1 1 1 0 '(@)' 0 x; CAPS=0 block DP-1 1 1 1 0 '(@)' 0 x; } | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":"first"}' "off again: small"
+rm -rf "$BAR"; CAPS=1 block DP-1 1 1 1 0 '(@)' 0 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"US","class":["first","l0","r1"]}'
+rm -rf "$BAR"; CAPS=1 block DP-1 1 1 1 0 '(@)' 1 x | kawa-dwlstatus; eq "$(bar kb)" '{"text":"AR","class":["other","l0","r1"]}'
+rm -rf "$BAR"; { CAPS=1 block DP-1 1 1 1 0 '(@)' 0 x; CAPS=0 block DP-1 1 1 1 0 '(@)' 0 x; } | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":["first","l1","r1"]}' "off again: small"
 case_ "the focused window's app id, beside the bar's files (Super+/ reads it: that program's keys first) — the focused monitor's at the top, each monitor's in its folder; no window: empty"
 rm -rf "$BAR"; { block DP-1 1 1 1 0 '(@)' 0 x; block HDMI-A-1 0 1 1 0 '(@)' 0; } | kawa-dwlstatus
 eq "$(jtext appid)" foot "(the focused monitor's)"; eq "$(jtext DP-1/appid)" foot; eq "$(jtext HDMI-A-1/appid)" "" "(a monitor with no window)"
-rm -rf "$BAR"; { block DP-1 1 1 1 0 '(@)' 0 x; printf 'DP-1 kbcaps 7\nDP-1 kblayout 0\n'; } | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":"first"}' "a value that is no 0 or 1: passed over"
+rm -rf "$BAR"; { block DP-1 1 1 1 0 '(@)' 0 x; printf 'DP-1 kbcaps 7\nDP-1 kblayout 0\n'; } | kawa-dwlstatus; eq "$(bar kb)" '{"text":"us","class":["first","l1","r1"]}' "a value that is no 0 or 1: passed over"
 grep -q '^+		printf("%s kbcaps %d\\n", m->wlr_output->name, last_kbcaps);' "$REPO/src/dwl/dwl.patch" && _ok || _no "dwl.patch prints no kbcaps line"
 grep -q '^+		int caps = !!(mods->locked & WLR_MODIFIER_CAPS);' "$REPO/src/dwl/dwl.patch" && _ok || _no "dwl.patch does not read Caps Lock from the keyboards' locked modifiers"
 rm -rf "$BAR"; block DP-1 1 1 1 0 '(@)' 0 x | env -u XKB_DEFAULT_LAYOUT kawa-dwlstatus; eq "$(bar kb)" '{"text":""}'
@@ -224,10 +224,10 @@ for loc in tr_TR.UTF-8 ar_EG.UTF-8 tr_TR.UTF-8:locale-tr; do
   l=${loc%%:*} d=locale; [[ $loc == *:* ]] && d=${loc#*:}
   rm -rf "$BAR"
   { block HDMI-A-1 1 1 1 0 '(@)' 1 "قائمة — liste ışık"; } | XKB_DEFAULT_LAYOUT=fi,ir LOCPATH=$TMP/$d LC_ALL=$l kawa-dwlstatus 2>/dev/null
-  eq "$(bar kb)" '{"text":"ir","class":"other"}' "$loc"
+  eq "$(bar kb)" '{"text":"ir","class":["other","l2","r2"]}' "$loc"
   rm -rf "$BAR"
   { CAPS=1 block HDMI-A-1 1 1 1 0 '(@)' 1 "قائمة — liste ışık"; } | XKB_DEFAULT_LAYOUT=fi,ir LOCPATH=$TMP/$d LC_ALL=$l kawa-dwlstatus 2>/dev/null
-  eq "$(bar kb)" '{"text":"IR","class":"other"}' "$loc, Caps Lock"
+  eq "$(bar kb)" '{"text":"IR","class":["other","l2","r1"]}' "$loc, Caps Lock"
   eq "$(title_is "قائمة — liste ışık")" "" "$loc"
   eq "$(tagrow HDMI-A-1/)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-" "$loc: HDMI-A-1 (an i in its name) has its own files"
 done
@@ -243,8 +243,8 @@ for m in tag1 tag5 layout title; do
   eq "$(env -u WAYBAR_OUTPUT_NAME sh -c "$ex")" "$(bar "HDMI-A-1/$m")" "$m with no name: the focused monitor's"
   eq "$(WAYBAR_OUTPUT_NAME=DP-3 sh -c "$ex")" "$(bar "HDMI-A-1/$m")" "$m on a monitor not reported yet"
 done
-eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"<span line_height='"'"'14336'"'"'>on the left</span>","class":["l0","r1"]}'
-eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/kb)")" '{"text":"us","class":"first"}' "the keyboard: one for all"
+eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/title)")" '{"text":"<span line_height='"'"'14336'"'"'>on the left</span>","class":["l0","r2"]}'
+eq "$(WAYBAR_OUTPUT_NAME=DP-1 sh -c "$(wbexec custom/kb)")" '{"text":"us","class":["first","l1","r1"]}' "the keyboard: one for all"
 case_ "the focus moves to the other monitor: the top files follow it, in either order dwl lists them"
 rm -rf "$BAR"
 { block DP-1 0 3 1 0 '(@)' 0 "left"; block HDMI-A-1 1 1 1 0 '><>' 0 "right"
@@ -276,7 +276,7 @@ rm -rf "$BAR"
   printf 'DP-1 layout []DP-1 kblayout 0\nDP-1 kblayout 1DP-1 title x\nDP-1 tags 3 2DP-1 layout []=\nDP-1 layout [DP-1 title y\n'
   printf 'DP-1 tags 7 1 1 0\nDP-1 kblayout 1\n'; } | kawa-dwlstatus
 eq "$(bar layout)" "{\"text\":\"$ICON_SPIRAL_BAR\",\"class\":\"spiral\"}" "the layout stays the last good one"
-eq "$(bar kb)" '{"text":"ar","class":"other"}' "the keyboard stays the last good one"
+eq "$(bar kb)" '{"text":"ar","class":["other","l0","r2"]}' "the keyboard stays the last good one"
 eq "$(tagrow)" "1:sel 2:occ 3:occ 4:- 5:- 6:- 7:- 8:- 9:-" "the next whole tags line counts"
 eq "$(json_ok)" ""
 case_ "a burst of 1125 lines (125 title changes at once): all read, the last one shown, quickly"
@@ -353,7 +353,7 @@ block DP-1 1 1 1 0 '(@)' 0 "same" >&7; exec 7>&-; wait "$sp"
 eq "$(jtext title)" "same"; eq "$(tagrow)" "1:sel 2:emp 3:emp 4:- 5:- 6:- 7:- 8:- 9:-"
 case_ "a runtime folder with a space in its path"
 mkdir -p "$TMP/run time"; XDG_RUNTIME_DIR="$TMP/run time" kawa-dwlstatus < <(block DP-1 1 1 1 0 '(@)' 0 "spaced")
-eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"<span line_height='"'"'14336'"'"'>spaced</span>","class":["l0","r1"]}'
+eq "$(cat "$TMP/run time/dwl-bar/title.json")" '{"text":"<span line_height='"'"'14336'"'"'>spaced</span>","class":["l1","r1"]}'
 case_ "icons.sh missing (a theme run that never finished): no made-up symbols — it stops, said (autostart drains dwl's pipe meanwhile)"
 mv "$HOME/.config/fedokawaii/icons.sh" "$TMP/icons.sh"; rm -rf "$BAR"
 err=$({ block DP-1 1 1 1 0 '(@)' 0 "second"; } | kawa-dwlstatus 2>&1 >/dev/null); r=$?

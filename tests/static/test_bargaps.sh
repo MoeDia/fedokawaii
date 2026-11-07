@@ -2,7 +2,7 @@
 # tests/static/test_bargaps.sh — the bar's spacing, worked out from the drawings and the style,
 # to the pixel (the numbers style.css's header promises, and the bar measures on screen):
 #   · an icon before a value (icons.sh's ICON_BAR_*): its ink from the module's edge (no air
-#     before it), exactly 8 px from its ink to the value's, whatever the icon's own air
+#     before it), exactly 10 px from its ink to the value's, whatever the icon's own air
 #   · every module with an icon and a value draws it with ICON_BAR_*, never "icon value"
 #   · no module holds a fixed width (which would put cloth after the value)
 #   · the tiles (紙 kami): each a border-image of its theme's picture (kami-tile, kami-red at
@@ -17,7 +17,7 @@
 # (tools/regress/bar-geometry.sh measures the same on a real bar, headless.)
 . "$(dirname "$0")/../lib/harness.sh"
 
-case_ "ICON_BAR_*: each icon's ink from the pen, 8 px from it to the value's"
+case_ "ICON_BAR_*: each icon's ink from the pen, 10 px from it to the value's"
 out=$(python3 -I - "$REPO" 2>&1 <<'EOF'
 import re, sys
 root = sys.argv[1]
@@ -44,7 +44,7 @@ for line in open(root + "/configs/home/.config/fedokawaii/icons.sh"):
     name = m.group(1).lower()
     if first != 0:
         bad.append(f"{name}: its ink starts {first} px from the pen")
-    if x - ink[1] - 1 != g["BAR_GAP"] or g["BAR_GAP"] != 8:
+    if x - ink[1] - 1 != g["BAR_GAP"] or g["BAR_GAP"] != 10:
         bad.append(f"{name}: {x - ink[1] - 1} px to the value")
 if n < 40:
     bad.append(f"only {n} ICON_BAR_* found")
@@ -127,11 +127,15 @@ src = open(root + "/tools/build-icons.py").read().split("if __name__")[0]
 g = {"__name__": "bi", "__file__": root + "/tools/build-icons.py"}
 exec(compile(src, "build-icons", "exec"), g)
 ic = {i["name"]: i for i in g["parse"](open(root + "/art/icons.txt").read())}
-IL = lambda n: g["left_air"](ic[n]); IR = lambda n: g["right_air"](ic[n])
-SUMI = ImageFont.truetype(root + "/system/fonts/SumiUI.ttf", 14)
+SUMI = ImageFont.truetype(root + "/configs/home/.local/share/fonts/SumiUI16.ttf", 16)   # (the bar's words)
+# what the bar draws of an icon: its 20 px drawing (art/icons-bar.txt, ink from the pen: no air) where
+# there is one and the module prints its twin, else the icon with its own air
+BAR = {i["name"] for i in g["bar_icons"](g["twins"](g["parse"](open(root + "/art/icons.txt").read())))}
+IL = lambda n: 0 if n in BAR else g["left_air"](ic[n]); IR = lambda n: 0 if n in BAR else g["right_air"](ic[n])
+PAD, PARTS = 10, 18   # (paper to ink in a tile; the clock's parts apart)
 def air(ch):
-    im = Image.new("L", (48, 24)); ImageDraw.Draw(im).text((8, 0), ch, font=SUMI, fill=255)
-    xs = [x for x in range(48) for y in range(24) if im.getpixel((x, y)) > 128]
+    im = Image.new("L", (64, 28)); ImageDraw.Draw(im).text((8, 0), ch, font=SUMI, fill=255)
+    xs = [x for x in range(64) for y in range(28) if im.getpixel((x, y)) > 128]
     return min(xs) - 8, int(SUMI.getlength(ch)) - (max(xs) - 8) - 1
 T = root + "/configs/home/.config/fedokawaii/themes/"
 cfg = re.sub(r"^\s*//.*$", "", open(root + "/configs/home/.config/waybar/config.jsonc").read(), flags=re.M)
@@ -191,35 +195,37 @@ R = lambda s, ink: ink + box(s)[0][1]
 for sel, l, r in (("#custom-torii", IL("torii"), IR("torii")), ("#custom-menu", IL("face"), IR("face")),
                   ("#custom-tag1", IL("ws-1"), IR("ws-1")), ("#custom-tag4", IL("ws-4"), IR("ws-4")),
                   ("#custom-volume", 0, air("%")[1]), ("#custom-mem", 0, air("G")[1]),
-                  ("#custom-kb", air("u")[0], air("s")[1]), ("#custom-kb", air("U")[0], air("S")[1]),   # (us, and US with Caps Lock)
+                  ("#custom-kb.l1.r1", air("u")[0], air("s")[1]), ("#custom-kb.l0.r1", air("U")[0], air("S")[1]),   # (us, and US with Caps Lock:
+                  ("#custom-kb.l0.r2", air("a")[0], air("r")[1]), ("#custom-kb.l2.r2", air("i")[0], air("r")[1]),  #  their air, width.sh's classes)
                   ("#custom-timer", 0, air("5")[1]), ("#custom-mode", 0, 0)):
-    want(f"{sel}: the paper → its ink", L(sel, l), 8)
-    want(f"{sel}: its ink → the paper", R(sel, r), 8)
-# the weather: its sky a picture (14 × 14, by its class) on the paper's rows 3–16, 8 px from the
-# paper's edge; the temperature's ink 8 px after it (a 1 or a minus first: l1), 8 to the paper's end
+    want(f"{sel}: the paper → its ink", L(sel, l), PAD)
+    want(f"{sel}: its ink → the paper", R(sel, r), PAD)
+# the weather: its sky a picture (14 × 14, by its class) on the paper's middle, 10 px from the
+# paper's edge; the temperature's ink 10 px after it (a 0, 1 or 2 first: l1), 10 to the paper's end
 wp = box("#custom-weather")[3].get("background-position", "").split(",")[0].split()
 wx, wy = px(wp[0]), px(wp[1])
-want("#custom-weather: the paper → its sky", 1 + wx, 8)
+want("#custom-weather: the paper → its sky", 1 + wx, PAD)
 want("#custom-weather: its sky (14) on the paper's middle", wy, 8)
-want("#custom-weather: its sky → the temperature's ink", (1 + box("#custom-weather")[0][3] + air("2")[0]) - (1 + wx + 14), 8)
-want("#custom-weather.l1: its sky → a 1's ink", (1 + box("#custom-weather.l1")[0][3] + air("1")[0]) - (1 + wx + 14), 8)
-want("#custom-weather.l1: its sky → a minus's ink", (1 + box("#custom-weather.l1")[0][3] + air("-")[0]) - (1 + wx + 14), 8)
-want("#custom-weather: its ink → the paper", R("#custom-weather", air("°")[1]), 8)
+want("#custom-weather: its sky → the temperature's ink", (1 + box("#custom-weather")[0][3] + air("5")[0]) - (1 + wx + 14), PAD)
+want("#custom-weather.l1: its sky → a 1's ink", (1 + box("#custom-weather.l1")[0][3] + air("1")[0]) - (1 + wx + 14), PAD)
+want("#custom-weather.l1: its sky → a 2's ink", (1 + box("#custom-weather.l1")[0][3] + air("2")[0]) - (1 + wx + 14), PAD)
+want("#custom-weather: its sky → a minus's ink", (1 + box("#custom-weather")[0][3] + air("-")[0]) - (1 + wx + 14), PAD)
+want("#custom-weather: its ink → the paper", R("#custom-weather", air("°")[1]), PAD)
 # the layout's mark and the window's name in one tile: the mark 8 from the paper, the name 8
 # after the mark (less its first letter's air: the classes l1–l3), 8 to the paper's end
-want("#custom-layout: the paper → the mark", 1 + box("#custom-layout")[0][3] + IL("spiral"), 8)
-want("#custom-layout.alone: the mark → the paper", IR("spiral") + box("#custom-layout.alone")[0][1], 8)
-want("the mark → the name", IR("spiral") + box("#custom-layout")[0][1] + box("#custom-title")[0][3], 8)
+want("#custom-layout: the paper → the mark", 1 + box("#custom-layout")[0][3] + IL("spiral"), PAD)
+want("#custom-layout.alone: the mark → the paper", IR("spiral") + box("#custom-layout.alone")[0][1], PAD)
+want("the mark → the name", IR("spiral") + box("#custom-layout")[0][1] + box("#custom-title")[0][3], PAD)
 for n in (1, 2, 3):
-    want(f"#custom-title.l{n}: the mark → its ink", IR("spiral") + box("#custom-layout")[0][1] + box(f"#custom-title.l{n}")[0][3] + n, 8)
-    want(f"#custom-title.r{n}: its ink → the paper", n + box(f"#custom-title.r{n}")[0][1], 8)
+    want(f"#custom-title.l{n}: the mark → its ink", IR("spiral") + box("#custom-layout")[0][1] + box(f"#custom-title.l{n}")[0][3] + n, PAD)
+    want(f"#custom-title.r{n}: its ink → the paper", n + box(f"#custom-title.r{n}")[0][1], PAD)
 # the stamp: its seal 16 px laid 4 7 into the padding box — centred on the numeral's 10 × 10
 # (the numeral 8 px into the paper: the padding box starts one column in), on the paper's
 # middle (7 rows above and below it; the seal 26 is sa25d2b's)
 p_ = box("#custom-tag1")[0]
 sp = box(".tag.selected")[3].get("background-position", "").split(",")[0].split()
 sx, sy = px(sp[0]), px(sp[1])
-want("the seal across: centred on the numeral", (1 + sx) + 8, 1 + p_[3] + 5)
+want("the seal across: centred on the numeral", (1 + sx) + 8, 1 + p_[3] + IL("ws-1") + 5)
 want("the seal down: rows 12–27 (7 of paper above it)", 5 + sy, 12)
 # its thump as it lands (§11 the stamp): 18 px laid a pixel up and left — the same middle, rows 11–28
 kf = re.search(r"@keyframes kawa-stamp \{\s*from\s+\{([^}]*)\}\s*to\s+\{([^}]*)\}", css)
@@ -237,7 +243,7 @@ for sel in ("#custom-menu",):
 # the gear: a picture, its 16 columns 8 px from the paper (the padding box one column in), the odd
 # pixel to the right as the head's; its 16 rows on the paper's middle, 12–27 (7 of paper above)
 gp = box("#custom-gear")[3].get("background-position", "").split(",")[0].split()
-want("#custom-gear: the paper → its ink", 1 + px(gp[0]), 8)
+want("#custom-gear: the paper → its ink", 1 + px(gp[0]), PAD)
 want("#custom-gear: its rows (12–27)", 5 + px(gp[1]), 12)
 for sel in ("#custom-tag1", "#focused", "#custom-gear"):
     want(f"→ {sel} (between groups)", gap(sel), 12)
@@ -249,22 +255,22 @@ want("the face's hairline → the screen's right edge (x 1911: 8 px of air, the 
 o = box("#when")[3]
 if "kami-scroll.png" not in o.get("border-image", "") or "5 22 4 22" not in o.get("border-image", ""): bad.append(f"#when: {o.get('border-image')}")
 want("#when's border", box("#when")[2], [5, 22, 4, 22])
-want("the left band → the date's ink: 8, and the 7 the time is longer", 0 + box("#when")[0][3] + box("#custom-date")[0][3] + air("2")[0], 15)
-want("the time's ink → the right band", air("M")[1] + box("#custom-time")[0][1] + box("#when")[0][1], 8)
-want("the time 7 px longer than the date (11 figures and letters, 10)", (len("09:14:08 PM") - len("27∕10∕2026")) * 7, 7)
+want("the left band → the date's ink: 8, and the 7 the time is longer", 0 + box("#when")[0][3] + box("#custom-date")[0][3] + air("2")[0], PAD + 8)
+want("the time's ink → the right band", air("M")[1] + box("#custom-time")[0][1] + box("#when")[0][1], PAD)
+want("the time 8 px longer than the date (11 figures and letters, 10)", (len("09:14:08 PM") - len("27∕10∕2026")) * int(SUMI.getlength("0")), 8)
 # each day's kanji: 14 px to the date and to the time (its own air taken back by its class)
 for k, cls in (("火", ""), ("水", ""), ("木", ""), ("金", ""), ("土", ""), ("月", ".mon"), ("日", ".sun")):
     d = box("#custom-day" + cls); al, ar = air(k)
-    want(f"the date → {k}", air("6")[1] + box("#custom-date")[0][1] + d[1][3] + d[0][3] + al, 14)
-    want(f"{k} → the time", ar + d[0][1] + box("#custom-time")[0][3] + air("0")[0], 14)
+    want(f"the date → {k}", air("6")[1] + box("#custom-date")[0][1] + d[1][3] + d[0][3] + al, PARTS)
+    want(f"{k} → the time", ar + d[0][1] + box("#custom-time")[0][3] + air("0")[0], PARTS)
 t1 = box("#custom-time.l1")
-want("{kanji} → the time from 10 to 12 o'clock (its 1's air)", air("火")[1] + box("#custom-day")[0][1] + t1[1][3] + t1[0][3] + air("1")[0], 14)
+want("{kanji} → the time from 10 to 12 o'clock (its 1's air)", air("火")[1] + box("#custom-day")[0][1] + t1[1][3] + t1[0][3] + air("1")[0], PARTS)
 want("…and the time's box as wide as at any other hour", t1[1][3] + t1[0][1], 0)
 # the wings (while music plays): 14 px to the date and from the time, their columns' air counted
-want("the left wing → the date", IR("eq-0") + box("#custom-wing-left")[0][1] + air("2")[0], 14)
-want("the time → the right wing", air("M")[1] + box("#custom-wing-right")[0][3] + IL("eq-0"), 14)
-want("the left band → the left wing's ink", 0 + box("#when")[0][3] + box("#custom-wing-left")[1][3] + IL("eq-0"), 15)
-want("the right wing's ink → the right band", IR("eq-0") + box("#custom-wing-right")[1][1] + box("#when")[0][1], 8)
+want("the left wing → the date", IR("eq-0") + box("#custom-wing-left")[0][1] + air("2")[0], PARTS)
+want("the time → the right wing", air("M")[1] + box("#custom-wing-right")[0][3] + IL("eq-0"), PARTS)
+want("the left band → the left wing's ink", 0 + box("#when")[0][3] + box("#custom-wing-left")[1][3] + IL("eq-0"), PAD + 8)
+want("the right wing's ink → the right band", IR("eq-0") + box("#custom-wing-right")[1][1] + box("#when")[0][1], PAD)
 print("\n".join(bad))
 EOF
 )

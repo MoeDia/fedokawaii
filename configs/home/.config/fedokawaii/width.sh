@@ -19,8 +19,8 @@ cut_cols() {
   printf '%s' "${t%"${t##*[! ]}"}"
 }
 # air TEXT → __air: "lN rM", the bar's classes for TEXT on a tile — the empty columns of Sumi
-# UI before its first letter's ink (N) and after its last's (M), 0–3 px, so style.css
-# pads each tile to exactly 8 px of paper to the ink at both ends, whatever the words. From
+# UI 16 (the bar's words; __AIR_* are Sumi UI's at 14) before its first letter's ink (N) and after its last's (M), 0–3 px, so style.css
+# pads each tile to exactly 10 px of paper to the ink at both ends, whatever the words. From
 # the face itself (tools/build-fonts.py measures it and checks these against it); a letter
 # past ASCII (a kanji, an icon): 0
 __AIR_L=3210003211121200100000000221010000000000200000000001001010201002000000002102100000000110002310
@@ -32,7 +32,7 @@ __AIR16B_R=221111312113131131111111122111111111111121111111111111111111311311111
 air() {
   local a=${1:0:1} z=${1: -1} i j l=0 r=0
   printf -v i '%d' "'${a:- }"; printf -v j '%d' "'${z:- }"
-  ((i > 32 && i < 127)) && l=${__AIR_L:i-33:1}
-  ((j > 32 && j < 127)) && r=${__AIR_R:j-33:1}
+  ((i > 32 && i < 127)) && l=${__AIR16_L:i-33:1}
+  ((j > 32 && j < 127)) && r=${__AIR16_R:j-33:1}
   __air="l$l r$r"
 }

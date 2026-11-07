@@ -602,9 +602,10 @@ and the time to the second (the owner, 4 Nov 21:46).
 | 10–29 | the icons (Sumi Icons Bar, 20 px) on the line's rows |
 | 12–27 | the gear (16 × 16) and, until they are drawn at the new size, the stamp's seal (16) and the skies (14) on the paper's middle |
 
-Across: the outer tiles' hairlines on x 8 and x 1911 — the windows' edges (§12); 8 px from the
-paper's edge to the ink on both sides of every tile (words that change carry their first and
-last letters' own air, `width.sh`'s `air`, so the 8 px holds whatever the words); 4 px between
+Across: the outer tiles' hairlines on x 8 and x 1911 — the windows' edges (§12); 10 px from the
+paper's edge to the ink on both sides of every tile, and 10 from an icon's ink to its value's (words
+that change carry their first and last letters' own air in Sumi UI 16, `width.sh`'s `air`, so the
+10 px holds whatever the words); 4 px between
 the tiles of a group, 12 px between groups.
 
 | part | look |
@@ -612,13 +613,13 @@ the tiles of a group, 12 px between groups.
 | the torii (the launcher) | on a vermilion tile (`accent`), its emblem in `text_on_accent` |
 | a workspace | a tile each, its numeral (10 × 10) `faint` when empty, `text` holding windows; the one you are on: the stamp, its numeral Black; one asking for you `asagi` |
 | the layout and the title | one tile: the layout's mark (an icon alone) `muted`, the window's name `text` |
-| the clock | a hanging scroll (`kami-scroll.png`: the paper between two lacquered rods, gold caps) centred on the screen: the date `DD/MM/YYYY` in `text` with slashes of our own in `accent_text` (`art/signs.txt`), the day's kanji `accent_text` exactly on the screen's centre line, the time `strong`; 14 px between them, the shorter side padded so the kanji stays centred |
+| the clock | a hanging scroll (`kami-scroll.png`: the paper between two lacquered rods, gold caps) centred on the screen: the date `DD/MM/YYYY` in `text` with slashes of our own in `accent_text` (`art/signs.txt`), the day's kanji `accent_text` exactly on the screen's centre line, the time `strong`; 18 px between them, 10 to the bands, the shorter side padded so the kanji stays centred |
 | the music's wings | while something plays, inside the scroll either side of the clock: 8 columns a side (2 px wide, 4 apart, 1–10 px tall on the capitals' rows), the lowest notes nearest the clock; inked by height from `accent_lo` to `accent` — our red, rising |
 | what plays | the first tile on the right: its icon moving (§13: a television with its antenna for a video, the cassette for sound), the title `text`, a red rule (1 × 10 px, `accent_text`, on the capitals' rows, 8 px either side), the channel or episode `faint`; paused: still, the title `muted` |
 | the keyboard | `us` in `accent_text`, `ar` in `blue` — capitals while Caps Lock is on (dwl's `kbcaps`); a click switches |
 | do not disturb | its icon (the quiet bell) only while on; a click opens its own dropdown — off · for an hour · until the morning · on, the one in force marked (§4 chosen); a timed one ends by itself |
 | downloads | while something downloads: its icon moving |
-| the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (14 × 14, a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 8 px in on the line's rows, the temperature 8 px after it |
+| the others | timer, recording, drives, memory, volume, brightness, the weather — each its own tile, icon and value; the weather's icon is a picture of its sky (14 × 14, a few inks: the sun vermilion with gold rays, the moon gold with its star, clouds in two tones, rain and snow blue, lightning gold — clear and partly cloudy by day and by night, cloud, fog, rain, snow, storm), laid on the paper 10 px in on the paper's middle, the temperature 10 px after it |
 | quick settings | the gear's tile, 4 px before the right end's: a brass gear of eight teeth (16 × 16, the kanagu brass, `tools/build-gear.py`), still at rest, its hub a rivet; while quick settings are open it turns, a tooth in four poses of 125 ms (a picture stepped, nothing between: waybar 0.4 % of a core), its hub the seal's ink; under the pointer its first pose. The click is the gear's |
 | the head | the right end's tile: the Fedora head, bloody (dark) or lighty (light), its emblem; no click of its own; open with quick settings (the blood runs, the light spreads) |
 | lit | under the pointer, or while what it opened is on screen: `asagi` at once (a vermilion tile: `accent_hi`) |

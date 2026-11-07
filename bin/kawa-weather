@@ -157,10 +157,10 @@ if [[ $mode != menu ]]; then
   ((${#now[@]})) && sky "${now[1]}" "${now[2]}"
   if [[ $mode == bar ]]; then
     if [[ -z $icon ]]; then echo '{"text":""}'; exit 0; fi           # (nothing known yet: no module)
-    # (the sky is the tile's picture, by its class — the words alone are the text; a 1 or a minus
-    # first has a column of air of its own: l1 takes it back, so the picture → the ink stays 8 px)
+    # (the sky is the tile's picture, by its class — the words alone are the text; a 0, 1 or 2
+    # first has a column of air of its own: l1 takes it back, so the picture → the ink stays 10 px)
     tip="$WEATHER_CITY · $words" class="\"sky\",\"sky-$pic\""
-    [[ ${now[0]} == [1-]* ]] && class+=',"l1"'
+    [[ ${now[0]} == [012]* ]] && class+=',"l1"'
     if ((age > OLD)); then old "$age"; tip+=" · ${failed:+$failed · }$old"; class+=',"stale"'; fi
     jq -cn --arg t "${now[0]}°" --arg tip "$tip" --argjson c "[$class]" '{text: $t, tooltip: $tip, class: $c}'
   elif [[ -n $icon ]]; then

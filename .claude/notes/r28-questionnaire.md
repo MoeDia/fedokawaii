@@ -30,6 +30,8 @@ Nothing here is applied to this PC; a build lands in the tree and the ISO, the o
   assumed: hon, 707 by 360, as wide as Super+U's ichimai.
 - A11. Helium's theme (`i1-helium.jpg`): tsuitate, mokuroku or noren?
   assumed: tsuitate. It follows the mood switch live, 2 keys each side; noren would have to be swapped.
+- A11b. Helium's square address bar, its hairlines and square tab and hover cards (sa20e): Helium draws these itself (no preference, no GTK CSS reaches them); only a Helium built from source would, a Chromium build for every release (hours on this PC) and no more self-updating. Want it anyway?
+  assumed: no; closed as a known limit (S27), the theme's colours and the rest of tsuitate stay.
 
 ## B. Known flaws in the sheets
 Mock-ups, to be fixed in whichever option is built; say if any of them is worse than it looks.

@@ -13,7 +13,7 @@
                              ink while it holds windows, asagi while it asks for you; the one
                              you are on stamped with the round vermilion seal (16 px), its
                              numeral Black, wholly inside it
-     the layout, the title   one tile: the layout's mark, 8 px, the window's name
+     the layout, the title   one tile: the layout's mark, 10 px, the window's name
      the clock               mounted as a hanging scroll: brocade bands on rods with turned
                              gold finials (軸先 jikusaki) either side:
                              the date · the day's kanji in vermilion · the time — and while
@@ -26,8 +26,8 @@
    over a border of 5 2 4 2: the air and the hairline · the hairline and the shadow's column ·
    the hairline, the shadow's rows and a row of air · the hairline and the paper's first column) round the
    paper's colour and its fibres.
-   Across: 8 px from the paper's edge to the ink, both sides of every tile (each glyph's own air
-   counted: the paper's first column is in the picture, so the padding is 7 on the left, 8 less
+   Across: 10 px from the paper's edge to the ink, both sides of every tile (each glyph's own air
+   counted: the paper's first column is in the picture, so the padding is 9 on the left, 10 less
    the last glyph's air on the right); 4 px hairline to hairline between the tiles of a group
    (the shadow's column and 3), 12 between groups; the outer tiles' hairlines on x 8 and x 1911,
    where the windows' edges are (§12). The bar's exclusive zone ends on its lower hairline
@@ -67,10 +67,10 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-position: 0 0;
   background-clip: padding-box;
   background-origin: padding-box;
-  /* the 20-row line on the paper's rows 5–24 (the bar's 10–29); 8 px paper to ink:
-     one column of it in the picture, 7 here — and on the right 8 less the last glyph's own
-     column of air (every figure and letter of Sumi UI has one) */
-  padding: 5px 7px 5px 7px;
+  /* the 20-row line on the paper's rows 5–24 (the bar's 10–29); 10 px paper to ink:
+     one column of it in the picture, 9 here — and on the right 10 less the last glyph's own
+     column of air (every figure and letter of Sumi UI 16 has one) */
+  padding: 5px 9px 5px 9px;
   margin: 0 0 0 3px;
 }
 /* the left end's vermilion tile: the torii, its emblem in the ground's ink */
@@ -80,7 +80,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-image: none;
   color: @strong-on-accent;
 }
-#custom-torii { margin-left: 8px; padding-right: 8px; }   /* (the torii's ink fills its 16 columns) */
+#custom-torii { margin-left: 8px; padding-right: 10px; }  /* (its 20 px drawing: ink from the pen, no air) */
 #custom-gear  { margin-left: 11px; }
 #custom-menu  { margin-left: 3px; margin-right: 7px; }    /* (its right hairline on x 1911) */
 /* the mood's head (tools/build-head.py: 22 × 20, on the line's rows),
@@ -97,12 +97,12 @@ button, button:hover, button:active, button:checked { background: none; box-shad
    ever hold one): at rest still, its hub a rivet; while they are open it turns, a tooth (45°) in four
    poses of 125 ms, its hub the seal's ink — a picture stepped up 40 rows a pose, nothing redrawn
    between; under the pointer its first pose, still (GTK 3 reads steps(4, start) as CSS's
-   steps(4, end): pose 1 first, each held its 125 ms). Its 16 columns on the 31 of paper: 8 to
+   steps(4, end): pose 1 first, each held its 125 ms). Its 16 columns on the paper: 10 to
    the left, the odd pixel to the right, as the head's; its 16 rows on the paper's middle (7 above) */
 #custom-gear {
   background-image: url("../fedokawaii/current/gear.png"), url("../fedokawaii/current/kami-fibre.png");
   background-repeat: no-repeat, repeat;
-  background-position: 7px 7px, 0 0;
+  background-position: 9px 7px, 0 0;
   color: transparent;
 }
 #custom-gear:hover { background-image: url("../fedokawaii/current/gear-turn.png"), url("../fedokawaii/current/kami-fibre.png"); }
@@ -110,19 +110,19 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-image: url("../fedokawaii/current/gear-turn.png"), url("../fedokawaii/current/kami-fibre.png");
   animation: kawa-gear 500ms steps(4, start) infinite;
 }
-@keyframes kawa-gear { from { background-position: 7px 7px, 0 0; } to { background-position: 6px -153px, 0 0; } }
+@keyframes kawa-gear { from { background-position: 9px 7px, 0 0; } to { background-position: 8px -153px, 0 0; } }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
-.tag { color: @faint; padding-right: 8px; }   /* (the numerals: 10 × 10, no air of their own) */
+.tag { color: @faint; padding-right: 10px; }   /* (the numerals: 10 × 10, no air of their own) */
 #custom-tag1 { margin-left: 11px; }
 .tag.occupied { color: @text; }
 .tag.urgent   { color: @asagi; }
-/* where you are: the seal centred on the numeral (its ink on the paper's columns 8–17, the
-   seal's 16 on 5–20, on the paper's middle: 7 rows above and below it), the numeral on it in Black */
+/* where you are: the seal centred on the numeral (its ink on the paper's columns 10–19, the
+   seal's 16 on 7–22, on the paper's middle: 7 rows above and below it), the numeral on it in Black */
 .tag.selected {
   color: @seal-ink;
   background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
-  background-position: 4px 7px, 0 0;
+  background-position: 6px 7px, 0 0;
   background-repeat: no-repeat, repeat;
   animation: kawa-stamp 60ms steps(1, start);
 }
@@ -132,27 +132,27 @@ button, button:hover, button:active, button:checked { background: none; box-shad
    state held to the end — measured, 606 ms at 600; steps(1, end) jumped after one frame) */
 @keyframes kawa-stamp {
   from { background-image: url("../fedokawaii/current/kami-seal-thump.png"), url("../fedokawaii/current/kami-fibre.png");
-         background-position: 3px 6px, 0 0; }
+         background-position: 5px 6px, 0 0; }
   to   { background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
-         background-position: 4px 7px, 0 0; }
+         background-position: 6px 7px, 0 0; }
 }
 
 /* ── the layout's mark and the window's name: one tile ─────────────────────────────── */
 #focused { margin-left: 11px; padding: 0; }
 #custom-layout, #custom-title { padding: 5px 0 5px 0; margin: 0; background: none; border: none; }
-#custom-layout { color: @muted; padding-left: 7px; }        /* (an icon alone: 14 px, no air) */
-#custom-layout.alone { padding-right: 8px; }                 /* (no window: the mark alone) */
-#custom-title { color: @text; padding-left: 8px; padding-right: 8px; }
+#custom-layout { color: @muted; padding-left: 9px; }        /* (an icon alone: 20 px, no air) */
+#custom-layout.alone { padding-right: 10px; }                 /* (no window: the mark alone) */
+#custom-title { color: @text; padding-left: 10px; padding-right: 10px; }
 /* the name's first and last letters' own air (kawa-dwlstatus: width.sh's air) taken from the
-   pad, so the mark to the ink and the ink to the paper's edge are 8 px whatever the words */
-#custom-title.l1 { padding-left: 7px; }   #custom-title.r1, #custom-nowplaying.r1 { padding-right: 7px; }
-#custom-title.l2 { padding-left: 6px; }   #custom-title.r2, #custom-nowplaying.r2 { padding-right: 6px; }
-#custom-title.l3 { padding-left: 5px; }   #custom-title.r3, #custom-nowplaying.r3 { padding-right: 5px; }
+   pad, so the mark to the ink and the ink to the paper's edge are 10 px whatever the words */
+#custom-title.l1 { padding-left: 9px; }   #custom-title.r1, #custom-nowplaying.r1 { padding-right: 9px; }
+#custom-title.l2 { padding-left: 8px; }   #custom-title.r2, #custom-nowplaying.r2 { padding-right: 8px; }
+#custom-title.l3 { padding-left: 7px; }   #custom-title.r3, #custom-nowplaying.r3 { padding-right: 7px; }
 
 /* ── the middle: the clock, a hanging scroll ───────────────────────────────────────── */
-/* DD∕MM∕YYYY · the day's kanji · HH:MM:SS AM, 14 px of air between them (each glyph's own air
-   counted), 8 px from the time to the right rod; the time is 7 px longer than the date, so the
-   date's side has 7 more (15 to the rod) and the kanji stands on the screen's middle — the
+/* DD∕MM∕YYYY · the day's kanji · HH:MM:SS AM, 18 px of air between them (each glyph's own air
+   counted), 10 px from the time to the right band; the time is 8 px longer than the date, so the
+   date's side has 8 more (18 to the band) and the kanji stands on the screen's middle — the
    scroll is centred, and the two sides of the kanji weigh the same, whatever the day or hour */
 #when {
   border-style: solid;
@@ -164,34 +164,32 @@ button, button:hover, button:active, button:checked { background: none; box-shad
   background-repeat: repeat;
   background-clip: padding-box;
   background-origin: padding-box;
-  padding: 0 7px 0 15px;   /* (the paper from the band's edge, none in the picture: 15 to the
-                              ink at the left; at the right 7 and M's own column: 8) */
+  padding: 0 9px 0 17px;   /* (the paper from the band's edge, none in the picture: 17 and the
+                              date's first figure's column, 18; at the right 9 and M's: 10) */
 }
 #custom-wing-left, #custom-date, #custom-day, #custom-time, #custom-wing-right {
   padding: 5px 0 5px 0; margin: 0; background: none; border: none;
 }
-#custom-wing-left  { margin-left: -2px; padding-right: 12px; }   /* (its columns' air: 2 px either side) */
-#custom-date       { padding-right: 13px; }                       /* (the year's last figure: 1 px of air) */
-#custom-day        { padding-right: 13px; }                       /* (火 水 木 金 土: none before, 1 after) */
-#custom-day.mon    { margin-left: -1px; padding-right: 12px; }    /* (月: 1 before, 2 after) */
-#custom-day.sun    { margin-left: -3px; padding-right: 12px; }    /* (日: 3 before, 2 after) */
-#custom-time.l1    { margin-left: -1px; padding-right: 1px; }     /* (10–12 o'clock: the 1's air; the
-                                                                     same width, so nothing moves) */
-#custom-wing-right { padding-left: 11px; margin-right: -1px; }    /* (M's air and the column's; its last
+#custom-wing-left  { margin-left: -1px; padding-right: 15px; }   /* (its columns' air: 2 px either side) */
+#custom-date       { padding-right: 17px; }                       /* (the year's last figure: 1 px of air) */
+#custom-day        { padding-right: 16px; }                       /* (火 水 木 金 土: none before, 1 after) */
+#custom-day.mon    { margin-left: -1px; padding-right: 14px; }    /* (月: 1 before, 3 after) */
+#custom-day.sun    { margin-left: -4px; padding-right: 14px; }    /* (日: 4 before, 3 after) */
+#custom-wing-right { padding-left: 15px; margin-right: -1px; }    /* (M's air and the column's; its last
                                                                      column's 2 px of air, not M's 1) */
 
 /* ── the right: what the computer is doing, a tile each · the face ─────────────────── */
 /* the weather: its sky drawn (tools/build-themes.py SKY: 14 × 14, a few inks of the palette), laid
-   on the tile's paper by kawa-weather's class — on the paper's middle (8 rows above), 8 px from the paper's
-   edge (its first column is the border's: 7 here), the temperature's ink 8 px after it (a 1 or a
-   minus first has a column of air of its own: l1) */
+   on the tile's paper by kawa-weather's class — on the paper's middle (8 rows above), 10 px from the paper's
+   edge (its first column is the border's: 9 here), the temperature's ink 10 px after it (a 0, 1
+   or 2 first has a column of air of its own: l1) */
 #custom-weather {
-  background-position: 7px 8px, 0 0;
+  background-position: 9px 8px, 0 0;
   background-repeat: no-repeat, repeat;
-  padding-left: 29px;
-  padding-right: 6px;   /* (° has 2 px of air) */
+  padding-left: 33px;
+  padding-right: 7px;   /* (° has 3 px of air) */
 }
-#custom-weather.l1 { padding-left: 28px; }
+#custom-weather.l1 { padding-left: 32px; }
 #custom-weather.sky-clear        { background-image: url("../fedokawaii/current/sky-clear.png"), url("../fedokawaii/current/kami-fibre.png"); }
 #custom-weather.sky-clear-night  { background-image: url("../fedokawaii/current/sky-clear-night.png"), url("../fedokawaii/current/kami-fibre.png"); }
 #custom-weather.sky-partly       { background-image: url("../fedokawaii/current/sky-partly.png"), url("../fedokawaii/current/kami-fibre.png"); }
@@ -209,6 +207,9 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-downloads    { color: @text; }
 #custom-kb           { color: @accent-text; }    /* US in vermilion */
 #custom-kb.other     { color: @blue; }           /* AR in blue */
+/* (its letters' own air, kawa-dwlstatus: width.sh's air) */
+#custom-kb.l1 { padding-left: 8px; }   #custom-kb.l2 { padding-left: 7px; }   #custom-kb.l3 { padding-left: 6px; }
+#custom-kb.r2 { padding-right: 8px; }  #custom-kb.r3 { padding-right: 7px; }
 #custom-mem          { color: @muted; }
 #custom-mem.high     { color: @accent-text; }
 #custom-volume       { color: @text; }
@@ -218,7 +219,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-weather.stale { color: @muted; }   /* a forecast over an hour old: said quietly */
 /* the mode — the quiet bell, the sharing monitor — an icon alone: quiet in muted ink, a shared
    screen in vermilion */
-#custom-mode       { padding-right: 8px; }
+#custom-mode       { padding-right: 10px; }
 #custom-mode.dnd   { color: @muted; }
 #custom-mode.share { color: @accent-text; }
 /* recording: its dot and the time gone by in vermilion (a click stops it) */
