@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """tools/panel-measure.py RAW — the menus' and panels' pixels measured from their shots (tools/panel-review.sh's raw/THEME/*.png),
 against docs/design-system.md §3–§4: each surface's frame on the screen, each row's ink — its picture, name, value, marks — from the
-frame and from the band. Prints a markdown table of what was measured and what the design asks; exit 1 if any differs.
+frame and from the row's place; the cursor's yubi. Prints a markdown table of what was measured and what the design asks; exit 1 if any differs.
 Needs numpy and Pillow."""
 import os
 import sys
@@ -71,7 +71,7 @@ def quick(a, table, th, ground, cursor=None):
             "bluetooth": 389, "devices": 409, "drives": 429, "backup": 449, "screenshot": 497, "record": 517, "ocr": 537, "rgb": 585,
             "screenoff": 605, "power": 625}
     labels = (153, 301, 349, 477, 565)
-    if cursor is not None:                 # (a row with the cursor stands on the tint: the band's own checks, band())
+    if cursor is not None:                 # (a row with the cursor: yubi's own checks, yubi())
         rows = {k: v for k, v in rows.items() if v != cursor}
     left, names, right, cys = [], [], [], []
     for ry in rows.values():
@@ -87,10 +87,10 @@ def quick(a, table, th, ground, cursor=None):
         nxs = [v for v in xs if x0 + 28 <= v < x0 + 36]
         names.append(min(nxs) - x0 if nxs else None)
         right.append(x0 + 376 - 1 - sp[-1][1])
-    want(table, s, "rows: a picture's ink from the band's left, least", min(left), 8)
+    want(table, s, "rows: a picture's ink from the row's left, least", min(left), 8)
     want(table, s, "rows: a picture's ink within the 16 px column", max(left) <= 16, True)
     want(table, s, "rows: the words' first ink, x0 + (one column; a letter's own bearing, 32–34)", set(int(n) for n in names if n is not None) <= {32, 33, 34}, True)
-    want(table, s, "rows: the marks' or value's end, from the band's right", min(right), 8)
+    want(table, s, "rows: the marks' or value's end, from the row's right", min(right), 8)
     want(table, s, "rows: a picture's ink centred on the row, ±1 of 9.5", all(abs(c - 9.5) <= 1 for c in cys), True)
     # the instrument's ink
     y = fy + 65
@@ -100,7 +100,7 @@ def quick(a, table, th, ground, cursor=None):
     my = y + 23 + 2
     run = [x for x in range(x0, x0 + 376) if colour(a, x, my) != ground and x >= x0 + 48]
     want(table, s, "the meter's first segment x0 +", run[0] - x0, 50)
-    want(table, s, "the meter's last ink, from the band's right", x0 + 376 - 1 - run[-1], 8)
+    want(table, s, "the meter's last ink, from the row's right", x0 + 376 - 1 - run[-1], 8)
     xs, _ = ink(a, x0 + 48, y, 60, 20, [ground])
     want(table, s, "the name's first ink, x0 + (over the meter's first segment)", int(xs.min()) - x0, 50)
     # the masthead: the plate 10 px out of the content, the head in it, the words on the meter's first segment
@@ -125,26 +125,45 @@ def quick(a, table, th, ground, cursor=None):
             sp = spans(xs, gap=1)
             fill[k] = (sp[-2][1] - sp[-2][0] + 1, sp[-1][0] - sp[-2][1] - 1, x0 + 376 - 1 - sp[-1][1])
         for k, got in fill.items():
-            want(table, s, f"{k}: the seal's width, its gap to the key, the key's end from the band's right", got, (16, 2, 8))
+            want(table, s, f"{k}: the seal's width, its gap to the key, the key's end from the row's right", got, (16, 2, 8))
         ends = sorted({x0 + 376 - 1 - spans(ink(a, x0 + 300, fy + rows[k], 76, 20, [ground])[0], gap=1)[-1][1] for k in rows})
-        want(table, s, "every row's key ends on one column, from the band's right", ends, [8])
-    # labels: the rule ends on the band's end
+        want(table, s, "every row's key ends on one column, from the row's right", ends, [8])
+    # labels: the rule ends on the row's end
     for y in labels:
         rule_y = fy + y + 10
         rx = [x for x in range(x0, x0 + 376) if colour(a, x, rule_y) != ground]
         want(table, s, f"the label at {y}: the rule's end, x0 +", rx[-1] - x0 + 1, 376)
 
 
-def band(a, table, s, fx, y, ground, tint, edge):
-    """A row with the cursor at y: the band, its edge."""
+YUBI = ("##......",                       # kawa-panel's YUBI: "#" yubi_rim, "o" select_edge, "h" accent_hi, "." the ground
+        "#o#.....",
+        "#oh#....",
+        "#ooh#...",
+        "#oooo#..",
+        "#ooo#...",
+        "#oo#....",
+        "#o#.....",
+        "##......")
+
+
+def yubi(a, table, s, fx, y, ground, conf):
+    """A row with the cursor at y: no band (select is the ground, §2); yubi, the 8 x 9 pointer, x0 - 11 + its pose (0 1 2 1)
+    on the row's rows 6-14, and the row's name in text_on_select."""
+    def rgb(k):
+        return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
     x0 = fx + X0
-    want(table, s, "the band's left, x0 +", [x for x in range(fx, fx + 410) if colour(a, x, y + 1) == edge][0] - x0, 0)
-    ex = [x for x in range(fx, fx + 410) if colour(a, x, y + 1) == edge]
-    want(table, s, "the edge's width", ex[-1] - ex[0] + 1 if ex[-1] - ex[0] < 5 else len([v for v in ex if v < x0 + 5]), 2)
-    tx = [x for x in range(fx, fx + 410) if colour(a, x, y + 1) == tint]
-    want(table, s, "the band's right, x0 +", tx[-1] - x0 + 1, 376)
-    tys = [q for q in range(y - 4, y + 24) if colour(a, x0, q) == edge]
-    want(table, s, "the band's rows", len(tys), 20)
+    want(table, s, "no band: select is the ground", rgb("select"), ground)
+    ink_of = {"#": rgb("yubi_rim"), "o": rgb("select_edge"), "h": rgb("accent_hi"), ".": ground}
+    def drawn(x):
+        return all(colour(a, x + i, y + 6 + j) == ink_of[c] for j, ln in enumerate(YUBI) for i, c in enumerate(ln))
+    pose = [b for b in (0, 1, 2) if drawn(x0 - 11 + b)]
+    want(table, s, "yubi drawn whole, its left x0 - 11 + a pose (0 1 2)", len(pose) == 1, True)
+    if pose:                                 # (its gutter beside it: only the ground, the 2 px either side of the pose)
+        gx = [x for x in range(x0 - 13, x0) if not x0 - 11 + pose[0] <= x < x0 - 3 + pose[0]]
+        want(table, s, "yubi's gutter, the rest: the ground", all(colour(a, x, q) == ground for x in gx for q in range(y, y + 20)), True)
+    xs, ys = ink(a, x0, y, 376, 20, [ground])
+    cols = {colour(a, int(x), int(q)) for x, q in zip(xs, ys, strict=True)}
+    want(table, s, "the row's ink: text_on_select in it", rgb("text_on_select") in cols, True)
 
 
 def box_of(a, ground, top=28):
@@ -186,7 +205,7 @@ def calendar(a, table, th, conf, ground):
     s = f"the calendar ({th})"
     def rgb(k):
         return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
-    x0_, y0_, x1_, y1_ = box_of(a, ground)
+    x0_, y0_, x1_, y1_ = box_of(a, ground, 44)
     W = 362
     want(table, s, "the frame's top y", y0_, 44)
     want(table, s, "the frame's width", x1_ - x0_, W)
@@ -217,42 +236,61 @@ def calendar(a, table, th, conf, ground):
 
 
 def rows_of(a, table, s, fx, fy, keys, ground):
-    """A menu's rows at y (from the frame's top): the marks' or the values' end from the band's right, the pictures' start from its left."""
+    """A menu's rows at y (from the frame's top): the marks' or the values' end from the row's right, the pictures' start from its left."""
 
 
 def notice(a, table, th, conf, ground):
     s = f"the critical notice ({th})"
     def rgb(k):
         return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
-    x0_, y0_, x1_, y1_ = box_of(a, ground, 28)
-    want(table, s, "the right hairline x", x1_ - 1, 1911)
+    xs, _ = ink(a, 0, 44, a.shape[1], a.shape[0] - 44, [ground])
+    if not len(xs):                          # (no notice: the kit's mako is older than configs/home/.config/mako)
+        want(table, s, "drawn (panel-review --mako: a build of src/mako/mako.patch)", False, True)
+        return
+    x0_, y0_, x1_, y1_ = box_of(a, ground, 44)
+    hx = [x for x in range(x1_ - 4, x1_ + 1) if colour(a, x, y0_ + 30) == rgb("accent")]       # (a column of shadow beyond)
+    want(table, s, "the right hairline x", hx[-1] if hx else None, 1911)
     want(table, s, "the top hairline y", y0_, 44)
     run = [x for x in range(x0_, x0_ + 12) if colour(a, x, y0_ + 30) == rgb("accent")]
     want(table, s, "the left: its hairline and the 3 px bar", len(run), 4)
     reg = a[y0_ + 10:y0_ + 45, x0_ + 8:x0_ + 50]
     ys, xs = np.nonzero(np.all(reg == np.array(rgb("accent"), dtype=np.int16), axis=2))
-    want(table, s, "the title's seal", (int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)), (18, 18))
+    want(table, s, "the title's seal", (int(xs.max() - xs.min() + 1), int(ys.max() - ys.min() + 1)) if len(xs) else None, (18, 18))
 
 
 def system(a, table, th, conf, ground):
     s = f"Super+U ({th})"
     def rgb(k):
         return tuple(int(conf[k][i:i + 2], 16) for i in (0, 2, 4))
-    # the band: the row under the cursor, its tint and edge; the value's inset
-    h, w = a.shape[:2]
-    reg = a[:, :, :]
-    ys, xs = np.nonzero(np.all(reg == np.array(rgb("select"), dtype=np.int16), axis=2))
-    y0, y1 = int(ys.min()), int(ys.max())
-    x0, x1 = int(xs.min()), int(xs.max())
-    want(table, s, "the band's rows", y1 - y0 + 1, 20)
-    edge = [x for x in range(x0 - 8, x0 + 8) if colour(a, x, y0 + 5) == rgb("select_edge")]
-    want(table, s, "the edge's width", len(edge), 2)
-    band_l = edge[0]
-    xs2, _ = ink(a, band_l + 2, y0, x1 - band_l - 1, 20, [rgb("select")])
+    # the cursor: a terminal list's, no band (select is the ground); a 2 px edge, 20 rows, at its first column (§4, §10)
+    m = np.all(a == np.array(rgb("select_edge"), dtype=np.int16), axis=2)
+    xs, ys = ink(a, 0, 44, a.shape[1], a.shape[0] - 44, [ground])
+    wx = int(xs.min())                       # (the window's left hairline: the edge stands in its first columns, not a red word)
+    m[:44] = False                           # (the bar's)
+    m[:, :wx + 2] = False
+    m[:, wx + 40:] = False
+    two = m[:, 1:-2] & m[:, 2:-1] & ~m[:, :-3] & ~m[:, 3:]
+    runs = []                                # (x, top, rows) of each column's runs: the edge a long one, a red picture's strokes short
+    for x in sorted(set(np.nonzero(two)[1].tolist())):
+        col = two[:, x]
+        y = 0
+        while y < len(col):
+            if col[y]:
+                y1 = y
+                while y1 < len(col) and col[y1]:
+                    y1 += 1
+                runs.append((x, y, y1 - y))
+                y = y1
+            y += 1
+    long = [r for r in runs if r[2] >= 10]
+    want(table, s, "the cursor's edge: one, 2 px wide", len(long), 1)
+    if not long:
+        return
+    band_l, y0, rows = long[0][0] + 1, long[0][1], long[0][2]
+    want(table, s, "the edge's rows", rows, 20)
+    xs2, _ = ink(a, band_l + 2, y0, 400, 20, [ground])
     sp = spans(xs2, gap=9)
-    want(table, s, "the icon's first ink from the band's left (two cells)", sp[0][0] - band_l >= 16, True)
-    return band_l, x1
-
+    want(table, s, "the icon's first ink from the edge's left (two cells)", sp[0][0] - band_l >= 16, True)
 
 
 def main():
@@ -268,19 +306,13 @@ def main():
         quick(a, table, th, g)
         c = load(f"{d}/quick-cursor.png")
         fx = [x for x in range(c.shape[1]) if colour(c, x, 300) != colour(c, 1600, 300)][0]
-        band(c, table, f"the cursor ({th})", fx, 44 + 193, colour(c, 1600, 300), rgb("select"), rgb("select_edge"))
+        yubi(c, table, f"the cursor ({th})", fx, 44 + 193, colour(c, 1600, 300), conf)
         power(load(f"{d}/power.png"), table, th, conf)
         kit = rgb("ground")
         calendar(load(f"{d}/calendar.png"), table, th, conf, kit)
         notice(load(f"{d}/notice-critical.png"), table, th, conf, kit)
         for n in ("system", "system-1", "system-3", "system-4"):
-            band_l, band_r = system(load(f"{d}/{n}.png"), table, th, conf, kit)
-        # a value's end against the icon's start, in Super+U (updates: "in 87 days", backups: "none")
-        u = load(f"{d}/system-3.png")
-        ys, xs = np.nonzero(np.all(u == np.array(rgb("select"), dtype=np.int16), axis=2))
-        y0, x1 = int(ys.min()), int(xs.max())
-        ix, _ = ink(u, band_l + 2, y0, x1 - band_l - 1, 20, [rgb("select")])
-        table.append((f"Super+U ({th})", "the value's end from the band's right; the icon's start from its left", int(x1 - ix.max()), int(ix.min() - band_l), "the same, within 2 px" if abs(int(x1 - ix.max()) - int(ix.min() - band_l)) <= 2 else "✘"))
+            system(load(f"{d}/{n}.png"), table, th, conf, kit)
     print("| surface | what | measured | design | |\n|---|---|---|---|---|")
     for r in table:
         print("| " + " | ".join(str(v) for v in r) + " |")
