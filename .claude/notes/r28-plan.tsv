@@ -123,7 +123,10 @@ sa15b	Sat 7	done	everywhere: what is highlighted or selected changes COLOUR (tex
 sa15b2	Sat 7	done	GTK 3/4 and Qt selected rows still the lacquer band (toolkits): CSS/QPalette colour-only where the toolkit allows; frames not yet looked at in a headless render of panel+yazi (S4)	Sat 7 Nov 15:14 +0400	GTK rows done; Qt kept band (palette Highlight also paints text selection)	sonnet
 sa15c	Sat 7	done	the selection marker built: his pick P2 1 yubi, the bobbing pointer; cheap, frames looked at (S4)	Sat 7 Nov 15:20	yubi in kawa-panel (quick settings, sound, every menu): 6x9 px in the gutter, 0 1 2 1 px, 150 ms; only its gutter redrawn; yubi_rim token; kit frames both moods	opus
 sa15d	Sat 7	done	corners and frames built: his pick P3 3 kanagu, every panel, both moods (S4)	15:23 7 Nov	panels and level display only; tiles, windows, notices -> sa15d2	sonnet
-sa15d2	Sat 7	now	kanagu on bar tiles, dwl windows and notices (S4)			sonnet
+sa15d2	Sat 7	done	kanagu on bar tiles, dwl windows and notices (S4)	Sat 7 Nov 15:30	split: tiles are 20 px paper on a 4 2 3 2 border-image (a 12 px fitting does not fit: needs a 6 px variant, a design call), windows are dwl scene rects (scratch tree needed), notices are mako C; three rows	sonnet
+sa15d2a	Sat 7	now	kanagu on dwl windows: 4 corner fittings as scene rects over the 3 px border (scratch tree per dwl-tree-is-stale, headless frames both moods) (S4)			sonnet
+sa15d2b	Sat 7	todo	kanagu on mako notices: mako.patch draws the same KANAGU in the corners (S4)			sonnet
+sa15d2c	Sat 7	todo	kanagu on bar tiles: a 6 px variant for the 20 px paper, kami-*.png slices (S4)			sonnet
 sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volume, brightness, battery, downloads (S4)			sonnet
 sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2	opus
 sa20	Sat 7	todo	Helium themed: his pick i 2 mokuroku, made far more TUI-feeling: lines, toolbar and left tab section heavily redone; following the switch; in the installer; tests		S2	opus
