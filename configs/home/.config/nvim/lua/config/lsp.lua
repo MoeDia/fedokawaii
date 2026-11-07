@@ -75,6 +75,11 @@ vim.api.nvim_create_autocmd("LspAttach", {
   callback = function(ev)
     local client = assert(vim.lsp.get_client_by_id(ev.data.client_id))
     if client:supports_method("textDocument/completion") then vim.lsp.completion.enable(true, client.id, ev.buf) end
+    -- Rust shows what it worked out (the types, the parameter names) in grey inside the code;
+    -- Space c h hides them, or shows them in any language whose server has them.
+    if vim.bo[ev.buf].filetype == "rust" and client:supports_method("textDocument/inlayHint") then
+      vim.lsp.inlay_hint.enable(true, { bufnr = ev.buf })
+    end
   end,
 })
 

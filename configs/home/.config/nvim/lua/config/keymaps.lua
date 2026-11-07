@@ -39,5 +39,9 @@ map("n", "<leader>gg", function() Snacks.lazygit({ cwd = root() }) end, { desc =
 map("n", "<leader>ft", function() Snacks.terminal(nil, { cwd = root() }) end, { desc = "a terminal" })
 -- Format this file, whatever its kind has a server for.
 map({ "n", "x" }, "<leader>cf", function() vim.lsp.buf.format() end, { desc = "format" })
+-- The server's hints inside the code (Rust's types and parameter names): on, off.
+map("n", "<leader>ch", function()
+  vim.lsp.inlay_hint.enable(not vim.lsp.inlay_hint.is_enabled({ bufnr = 0 }), { bufnr = 0 })
+end, { desc = "hints on/off" })
 -- The plugin manager's window.
 map("n", "<leader>l", "<Cmd>Lazy<CR>", { desc = "the plugins" })

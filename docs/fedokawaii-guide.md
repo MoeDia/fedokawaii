@@ -6339,6 +6339,7 @@ by its description — type *split* or *comment*.
 | Space f t | a terminal under the code; the same key hides it |
 | Space b d · Space q q | close the buffer · quit everything |
 | Space c f | format the file, or the selection |
+| Space c h | the hints inside the code on or off (Rust's types and parameter names, on by itself) |
 | Space f d · Space f k · Space f h | every problem · every key · neovim's help, each in a picker |
 | Space l | the plugins (Lazy) |
 | Space r … · Space d … | run and debug your code (§43.7) |
