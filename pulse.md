@@ -1,12 +1,12 @@
-# round 28 pulse · Sat 07 03:44 (Dubai)
+# round 28 pulse · Sat 07 04:14 (Dubai)
 
-pace: 67/160 done (42%) · time used 27% · ahead 14.6 h · ETA Sun 08 14:18 · left 85 · blocked 1 · owner 7
+pace: 67/160 done (42%) · time used 28% · ahead 14.1 h · ETA Sun 08 15:26 · left 85 · blocked 1 · owner 7
 alerts: 1 blocked
-run: conductor active · passes 1 (oldest 7 min) · last activity 7 min ago · commits since start 91 · hold False
-machine: load 0.05 0.32 0.66/12 · mem free 19.1 GB · disk free 611 GB · up 27.5 h · cpu tccd1 35° · cpu tctl 56° · gpu edge 37° · gpu junction 32° · gpu mem 52° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 36°
+run: conductor active · passes 1 (oldest 37 min) · last activity 37 min ago · commits since start 91 · hold False
+machine: load 0.49 0.43 0.44/12 · mem free 19.1 GB · disk free 611 GB · up 28.0 h · cpu tccd1 35° · cpu tctl 47° · gpu edge 38° · gpu junction 31° · gpu mem 52° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 37°
 dark: True (active) · pulse timer active
-tokens since start: out 1,766,219 · in 2,708 · cache write 5,635,951 · cache read 101,602,996 · msgs 1287 · out last 6 h 293,540
-out by model: last 6 h claude-opus-5-5 274,531 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909
+tokens since start: out 1,766,219 · in 2,708 · cache write 5,635,951 · cache read 101,602,996 · msgs 1287 · out last 6 h 127,352
+out by model: last 6 h claude-opus-5-5 108,343 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
