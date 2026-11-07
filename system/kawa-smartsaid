@@ -1,0 +1,4 @@
+#!/bin/sh
+# kawa-smartsaid — smartd's -M exec: hands its warning (SMARTD_* in the environment) to the
+# toolkit, which leaves the desktop a notice kept until clicked. Never fails (smartd goes on).
+exec /usr/bin/bash /usr/local/lib/fedokawaii/setup.sh --smart-said

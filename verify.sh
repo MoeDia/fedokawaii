@@ -780,6 +780,8 @@ if ((PRE == 0)); then
             else fail "the disk's layout: /home inside the system" "fedokawaii repair arms the split; the next start makes it"; fi ;;
     *)      fail "the disk's layout" "$lay" ;;
   esac
+  check "smartd watches the drives"                  systemctl is-enabled --quiet smartd.service
+  check "smartd speaks to the desktop"               grep -qs kawa-smartsaid /etc/smartmontools/smartd.conf
   # the monthly scrub: on, and what the last one found (a disk going bad shows up here first)
   if [[ $(findmnt -no FSTYPE / 2>/dev/null) == btrfs ]]; then
     check "the monthly Btrfs scrub is on"              systemctl is-enabled --quiet fedokawaii-scrub.timer

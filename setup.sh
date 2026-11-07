@@ -45,7 +45,7 @@ for a in "$@"; do
     --toolkit) MODE=toolkit ;;  --kernels) MODE=kernels ;;  --layout) MODE=layout ;;  --home-snapshots) MODE=home-snapshots ;;
     --upgrade) MODE=upgrade ;;  --now) UPGRADE_FLAG=--now ;;  --after-upgrade) MODE="after-upgrade" ;;
     --after-dnf) MODE="after-dnf" ;;  --update-resume) MODE=update-resume ;;  --boot-good) MODE=boot-good ;;
-    --scrub-said) MODE=scrub-said ;;
+    --scrub-said) MODE=scrub-said ;;  --smart-said) MODE=smart-said ;;
     --trial) MODE=trial ;;     # (tools/container-trial.sh's, inside its container only)
     --no-reboot) NO_REBOOT=1 ;;
     -h|--help) sed -n '3,/^# ═/p' "$0" | sed '$d'; exit 0 ;;
@@ -99,7 +99,7 @@ if [[ $MODE == status ]]; then        # read-only, so it works while another run
 fi
 if [[ $MODE == @(kernels|home-snapshots|update-resume) ]]; then     # (the boot's own runs: never wait — another run is on, so next start)
   exec 9<>"$STATE_DIR/lock"; flock -n 9 || exit 0; lock_hand_over
-elif [[ $MODE == scrub-said ]]; then :                # (reads a status and leaves a notice: never in anyone's way)
+elif [[ $MODE == @(scrub-said|smart-said) ]]; then :                # (reads a status and leaves a notice: never in anyone's way)
 elif [[ $MODE == @(after-dnf|boot-good) ]]; then   # (after a dnf run, a start marked good: waits for an update or repair to end first)
   exec 9<>"$STATE_DIR/lock"; flock 9; lock_hand_over
 else take_lock "$STATE_DIR/lock"; fi
@@ -2240,6 +2240,23 @@ scrub_said() {   # what a scrub found, said once, only when it found something (
     as_user kawa-foryou add disk-damage "the disk's check repaired damage" "the disk or the memory may be failing: make a backup soon: quick settings → backup"
   fi
 }
+# s_smart — smartd watches every drive's own health data (SMART): a drive that starts to fail
+# (reallocated sectors, a failing self-assessment, an NVMe critical warning) is said once, in a
+# notice kept until clicked (smart_said), long before a file is lost. Idle: it wakes every 30 min.
+s_smart() {
+  install -m 0755 "$REPO_DIR/system/kawa-smartsaid" /usr/local/sbin/kawa-smartsaid
+  write_file /etc/smartmontools/smartd.conf <<'CONF'
+# installed by setup.sh — every drive, every health attribute (-a), the SMART tests' automatic
+# offline collection on (-o on), a sleeping drive left asleep (-n standby), no mail (-m <nomailer>):
+# the warning goes to the desktop (kawa-smartsaid → setup.sh --smart-said)
+DEVICESCAN -a -o on -n standby,q -m <nomailer> -M exec /usr/local/sbin/kawa-smartsaid
+CONF
+  systemctl enable --now smartd.service
+}
+smart_said() {   # what smartd found (its environment), as a notice kept until clicked
+  [[ -n ${SMARTD_MESSAGE:-} ]] || return 0
+  as_user kawa-foryou add "drive-${SMARTD_FAILTYPE:-health}" "a drive reports a problem (${SMARTD_DEVICE:-unknown})" "${SMARTD_MESSAGE:0:160} · make a backup now: quick settings → backup"
+}
 # s_report — the machine's health in one file (fedokawaii-report: ~/fedokawaii-report.txt),
 # made by itself once, at the first start of the finished desktop: it waits for your session,
 # reads everything (the install, verify, the journal, the session's parts, the network)
@@ -2400,6 +2417,7 @@ s_finalize() {
   systemctl enable --now snapper-timeline.timer snapper-cleanup.timer
   systemctl enable --now fstrim.timer              # weekly TRIM (Fedora's preset, made explicit)
   s_scrub                                          # the monthly Btrfs scrub
+  s_smart                                          # smartd: a failing drive said at once
   s_report                                         # the health report, after the first start
   # the tidying before the baseline (a snapshot would keep every cached download for good) and
   # before the snapshot hooks (its autoremove is no change worth a snapshot); none of it can
@@ -3239,6 +3257,7 @@ r_system() {     # failed units cleared, the session's own system pieces in plac
   s_layout || log "the disk's layout: not done (the line above says why) — the next repair tries again"
   guard_hooks
   s_scrub
+  s_smart
   s_report                         # (the first-start report's unit: an install that lost it runs it next start)
   s_tuning
 }
@@ -3530,6 +3549,7 @@ case $MODE in
   update-resume) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_boot; exit 0 ;;
   boot-good) [[ $(phase) == 'done' ]] && on_the_system || exit 0; up_probation_close; exit 0 ;;
   scrub-said) [[ $(phase) == 'done' ]] && on_the_system || exit 0; scrub_said || log "the scrub's notice could not be left"; exit 0 ;;
+  smart-said) [[ $(phase) == 'done' ]] && on_the_system || exit 0; smart_said || log "the drive's notice could not be left"; exit 0 ;;
   kernels) [[ $(phase) == 'done' ]] && on_the_system || exit 0
            # (a restore cut short after its exchange: finished first — its snapshots back, its default)
            /usr/local/sbin/kawa-snap finish >/dev/null 2>&1 || log "kawa-snap could not finish a restore that was cut short (sudo kawa-snap finish says why)"

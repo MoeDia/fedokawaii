@@ -558,6 +558,7 @@ built() {
   mkdir -p "$W/etc/grub.d" "$W/etc/systemd/system/snapper-cleanup.service.d" "$W/boot/grub2"
   printf '#!/bin/sh\nexit 0\n' >"$W/etc/grub.d/41_snapshots-btrfs"; chmod 755 "$W/etc/grub.d/41_snapshots-btrfs"
   printf '[Service]\nExecStartPost=-/usr/local/sbin/kawa-snap boot\n' >"$W/etc/systemd/system/snapper-cleanup.service.d/fedokawaii.conf"
+  mkdir -p "$W/etc/smartmontools"; echo "DEVICESCAN -M exec /usr/local/sbin/kawa-smartsaid" >"$W/etc/smartmontools/smartd.conf"
   grep -qs grub-btrfs.cfg "$W/boot/grub2/grub.cfg" || echo 'configfile "${prefix}/grub-btrfs.cfg"' >>"$W/boot/grub2/grub.cfg"
   # dnf's guard (lib/guard.sh: guard_hooks), its records and its unit
   install -m 0755 "$REPO/system/kawa-dnf-guard" "$W/usr/local/sbin/kawa-dnf-guard"
@@ -598,7 +599,7 @@ built() {
   { printf '%s\n' bash sudo NetworkManager; cat "$TMP/manifest"; echo amd-ucode-firmware; } | sort -u | sed 's/$/ User/' >"$FKH/userinstalled"
   echo amd-ucode-firmware >"$S/hardware-pkgs"
   printf 'enabled %s\n' greetd.service bluetooth.service snapper-timeline.timer snapper-cleanup.timer fstrim.timer lactd.service \
-    fedokawaii-scrub.timer fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service \
+    fedokawaii-scrub.timer smartd.service fedokawaii-kernels.timer fedokawaii-report.service tuned.service firewalld.service fedokawaii-after-dnf.service \
     fedokawaii-boot-good.path fedokawaii-update-resume.service >>"$FKH/units"
   sed -i '/ sshd.service$/d; /^global-enabled grub-boot-success\.timer$/d' "$FKH/units"   # (that timer: the desktop starts it)
   rm -f "$W/usrbin/nano" "$W/usrbin/vi"                     # (setup took them out)

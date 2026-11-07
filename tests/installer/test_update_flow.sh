@@ -454,5 +454,8 @@ rm -f "$W/home/fkuser/.foryou"; fkh scrub-status $'Scrub started: x\nError summa
 has "$(cat "$W/home/fkuser/.foryou")" "the disk's check repaired damage"
 rm -f "$W/home/fkuser/.foryou"; fkh scrub-status $'Scrub started: x\nError summary:    no errors found'; scrub; [[ ! -e $W/home/fkuser/.foryou ]] && _ok || _no "said on a clean scrub"
 rm -f "$FKH/scrub-status"; scrub; [[ ! -e $W/home/fkuser/.foryou ]] && _ok || _no "said with no scrub at all"
+rm -f "$W/home/fkuser/.foryou"; fkrun env SMARTD_MESSAGE="Device: /dev/sda, 8 Currently unreadable sectors" SMARTD_DEVICE=/dev/sda SMARTD_FAILTYPE=CurrentPendingSector bash "$TK/setup.sh" --smart-said; eq "$RC" 0 "$OUT"
+has "$(cat "$W/home/fkuser/.foryou")" "add drive-CurrentPendingSector a drive reports a problem (/dev/sda)"; has "$(cat "$W/home/fkuser/.foryou")" "unreadable sectors"
+rm -f "$W/home/fkuser/.foryou"; fkrun bash "$TK/setup.sh" --smart-said; [[ ! -e $W/home/fkuser/.foryou ]] && _ok || _no "said with nothing from smartd"
 
 done_

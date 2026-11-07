@@ -29,6 +29,7 @@ PKG_BASE=(
   bash-completion       # tab completion for every CLI below
   neovim                # the only editor
   tuned                 # the performance profile of an always-plugged desktop (system/tuned.conf)
+  smartmontools         # smartd: a drive that starts to fail is said at once (s_smart); smartctl -a reads it
   fwupd                 # firmware inside the devices (SSD, motherboard, dock…) from the LVFS:
                         #   update lists what is new, fwupdmgr update applies it — when you choose
   pciutils usbutils     # lspci · lsusb: which device is which, and which driver holds it

@@ -25,6 +25,7 @@ bash-completion                 the shell's tab completion
 tuned                           a service: the performance profile
 fwupd                           firmware updates: `update` lists them, fwupdmgr applies them
 pciutils                        lspci, a command
+smartmontools                   smartd, a service: its warnings arrive as notices
 usbutils                        lsusb, a command
 rpmfusion-free-release          a repository
 rpmfusion-nonfree-release       a repository

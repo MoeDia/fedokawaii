@@ -126,6 +126,7 @@ python3-pyOpenSSL|fedora|https://packages.fedoraproject.org/search?query=python3
 python3-pillow|fedora|https://packages.fedoraproject.org/pkgs/python-pillow/python3-pillow/|2026-11-04|python3-pillow-12.3.0-7.fc45 from updates (dnf repoquery)
 python3-pyte|fedora|https://packages.fedoraproject.org/pkgs/python-pyte/python3-pyte/|2026-11-04|python3-pyte-0.8.2-17.fc45 from fedora (dnf repoquery)
 stockfish|fedora|https://packages.fedoraproject.org/pkgs/stockfish/stockfish/|2026-11-05|stockfish-19-1.fc45 from updates (dnf repoquery); UCI_Elo 1320–3190, Skill Level 0–20 by its own `uci`); net embedded (99 MB binary)
+smartmontools|fedora|https://packages.fedoraproject.org/pkgs/smartmontools/smartmontools/|2026-11-07|smartmontools-7.5-11.fc45 from updates (dnf repoquery --releasever=45)
 systemd-container|fedora|https://packages.fedoraproject.org/pkgs/systemd/systemd-container/|2026-11-04|systemd-container-262.1-1.fc45 from updates (dnf repoquery)
 wlrctl|fedora|https://packages.fedoraproject.org/pkgs/wlrctl/wlrctl/|2026-11-04|wlrctl-0.2.2-7.fc45 from fedora (dnf repoquery)
 python3-twisted|fedora|https://packages.fedoraproject.org/pkgs/python-twisted/python3-twisted/|2026-11-04|python3-twisted-26.4.0-3.fc45 from fedora (dnf repoquery)

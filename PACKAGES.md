@@ -181,6 +181,7 @@ before setup started plus the manifest — anything else is reported by name.
 | ntsync-autoload | Proton's faster synchronisation (in the play world) |
 | steam-devices | Valve's rules that let a game open a controller (Bluetooth or USB); Steam in its Flatpak cannot install them, so the desktop does — listed so dnf's clean-up can never take it |
 | kbd | `chvt`: the screen back on the desktop when the play world ends |
+| smartmontools | a drive that starts to fail is said at once (smartd → a notice), smartctl -a reads it |
 | fwupd, pciutils, usbutils | firmware inside the devices (SSD, motherboard, dock), offered by update and applied by you · which device is which, and which driver holds it |
 | exfatprogs, dosfstools, ntfs-3g | the USB drives: check, repair and name exFAT and FAT sticks; NTFS opens whatever NTFS driver the kernel has |
 | python3, glib2, fontconfig | already there as other packages' dependencies; listed so they are never assumed: the helpers' Python parts and the self-tests · `gsettings`, `gio` · `fc-match`, `fc-cache` |
