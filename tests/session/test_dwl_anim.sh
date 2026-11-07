@@ -18,15 +18,15 @@
 P=$REPO/src/dwl/dwl.patch CH=$REPO/src/dwl/config.h
 added() { sed -n "/^+$1(/,/^+}/p" "$P"; }
 
-case_ "config.h and config.def.h: on, opening 300 ms and closing 220 (mozaiku; config.def.h the hop's 450 and 400), a move 450 with its wave, the lock leaving 420; how far a window rises and sinks"
-for u in "300 220 $CH" "450 400"; do
-  if [[ $u == "450 400" ]]; then c=$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//'); else c=$(cat "${u##* }"); fi
-  o=${u%% *} u=${u#* }; x=${u%% *}
+case_ "config.h and config.def.h: on, opening 300 ms and closing 220 (mozaiku), a move 360 with no wave (heya; config.def.h the hop's 450 and 400, the strip's 450 and 48), the lock leaving 420; how far a window rises and sinks"
+for u in "300 220 360 0 $CH" "450 400 450 48"; do
+  if [[ $u == "450 400 450 48" ]]; then c=$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//'); else c=$(cat "${u##* }"); fi
+  read -r o x t w _ <<<"$u"
   grep -q '^static const int animations *= 1;' <<<"$c" && grep -q "^static const unsigned int anim_open_ms *= $o;" <<<"$c" \
-    && grep -q "^static const unsigned int anim_close_ms *= $x;" <<<"$c" && grep -q '^static const unsigned int anim_tag_ms *= 450;' <<<"$c" \
+    && grep -q "^static const unsigned int anim_close_ms *= $x;" <<<"$c" && grep -q "^static const unsigned int anim_tag_ms *= $t;" <<<"$c" \
     && grep -q '^static const unsigned int anim_unlock_ms *= 420;' <<<"$c" \
     && grep -q '^static const int anim_hop_low *= 120;' <<<"$c" && grep -q '^static const int anim_fall *= 64;' <<<"$c" \
-    && grep -q '^static const unsigned int anim_tag_wave *= 48;' <<<"$c" \
+    && grep -q "^static const unsigned int anim_tag_wave *= $w;" <<<"$c" \
     && ! grep -q 'anim_rise\|anim_drift\|anim_tag_each_ms\|anim_hop_over\|anim_tag_back' <<<"$c" && _ok || _no "animations, anim_*_ms, the rise, the sink, the wave"
 done
 
@@ -302,10 +302,9 @@ has "$(added gameshow)" 'kushishow(d, pass, ox, oy, w, h, moncell(m), f);'
 has "$(added monshow)" 'int step = 4 * cell'
 has "$(added ghostapply)" 'anim_motion == MotionMon ? 1.0 - t * t : 1.0 - t'
 
-case_ "a workspace's motion is one switch: the strip stands, hayate, the scroll and the doors a word away; the doors part over the next room, nothing crossing"
-for c in "$(cat "$CH")" "$(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//')"; do
-  grep -q '^static const int anim_tag_motion *= TagStrip;' <<<"$c" && _ok || _no "anim_tag_motion, the strip"
-done
+case_ "a workspace's motion is one switch: heya (his pick b-4), the strip, hayate, the scroll, the doors and the others a word away; the doors part over the next room, nothing crossing"
+grep -q '^static const int anim_tag_motion *= TagHeya;' "$CH" && _ok || _no "anim_tag_motion, his pick b-4 heya (sa29)"
+grep -q '^static const int anim_tag_motion *= TagStrip;' <(sed -n '/^+++ b\/config.def.h/,/^--- /p' "$P" | sed 's/^+//') && _ok || _no "config.def.h: the strip"
 grep -q '^+enum { TagStrip, TagHayate, TagScroll, TagFusuma, ' "$P" && grep -q '^+	TagHeya, TagHitomi, TagHishi, TagSuna };' "$P" && _ok || _no "the eight motions"
 has "$(added tagat)" 'if (anim_tag_motion == TagHeya) '
 has "$(added tagsnap)" 'return (int)lround(x / cell) * cell;'
