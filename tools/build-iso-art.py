@@ -6,10 +6,10 @@
 
 Writes (tools/build-iso.sh calls it, with SOURCE_DATE_EPOCH set; nothing here reads the clock):
     OUTDIR/console/sumi-console.psf   Sumi UI ×2 (design system §2: the installer's screens) as a
-        Linux console font, a 14 × 28 cell, with our icons, the demon as a crest of 1-bit tiles and
+        Linux console font, a 14 × 28 cell, with our icons, the head as a crest of 1-bit tiles and
         the screens' own tiles in the Private Use Area
     OUTDIR/console/glyphs.py          the names of those tiles, the palette's roles, for iso/screens/
-    OUTDIR/grub/…                     the boot menu's theme: the dark lock's painting dimmed behind
+    OUTDIR/grub/…                     the boot menu's theme: shiro, the castle at night (the lock's map) dimmed behind
         an ink plate, PNG only, words too (under Secure Boot Fedora's GRUB refuses any font but the
         Unifont inside its signed image: iso-research.md §5)
     OUTDIR/plymouth/…                 the boot splash of the first stage: system/plymouth/sumi
@@ -21,7 +21,7 @@ import pathlib
 import struct
 import sys
 
-from PIL import Image, ImageDraw, ImageFilter, ImageFont
+from PIL import Image, ImageDraw, ImageFont
 
 sys.dont_write_bytecode = True
 ROOT = pathlib.Path(__file__).resolve().parent.parent
@@ -30,8 +30,7 @@ themes = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(themes)
 P = themes.P["dark"]
 FONT = ROOT / "system/fonts/SumiUI.ttf"
-SCENE = ROOT / "configs/home/.local/share/fedokawaii/dark/lock-scene.png"      # the dark lock's painting
-MASK = ROOT / "system/plymouth/sumi/mask.png"                                  # the splash's demon, cut from it
+SCENE = ROOT / "configs/home/.local/share/fedokawaii/dark/lock-map-shiro.png"  # the castle at night, 640 × 360
 CELL_W, CELL_H = 14, 28           # Sumi UI's fixed 7 px letter on its 14 px em, twice
 UI = ImageFont.truetype(str(FONT), 14)
 
@@ -124,16 +123,22 @@ CREST_COLS, CREST_ROWS = 21, 9    # (the console keeps 256 glyphs: the largest w
 
 
 def crest():
-    """The splash's demon as the console can hold it, an engraving in one ink: cut to its ink, the size of
-    the tiles, sharpened so the lines survive, a hard threshold."""
-    src = Image.open(MASK).convert("L")
-    cut = src.crop(src.point(lambda v: 255 if v > 90 else 0).getbbox())
+    """The splash's head as the console can hold it, one ink: the bloody Fedora logo's own pixels ×5 (the disc and its
+    blood; the f the air it encloses), centred on the tiles."""
+    spec = importlib.util.spec_from_file_location("build_head", ROOT / "tools/build-head.py")
+    head = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(head)
+    disc, _ = head.silhouettes()[40]
+    run, bead, _ = head.blood(40, disc, "shut")
+    ink = disc | run | bead
+    k = 5
     w, h = CREST_COLS * CELL_W, CREST_ROWS * CELL_H
-    a = min(w / cut.width, h / cut.height)
-    tw, th = round(cut.width * a), round(cut.height * a)
-    small = cut.resize((tw, th), Image.LANCZOS).filter(ImageFilter.UnsharpMask(radius=1.2, percent=160, threshold=0))
+    ox = (w - 40 * k) // 2
+    oy = (h - (max(y for _, y in ink) + 1) * k) // 2
     im = Image.new("1", (w, h), 0)
-    im.paste(small.point(lambda v: 255 if v > 92 else 0).convert("1"), ((w - tw) // 2, (h - th) // 2))
+    d = ImageDraw.Draw(im)
+    for x, y in ink:
+        d.rectangle([ox + x * k, oy + y * k, ox + x * k + k - 1, oy + y * k + k - 1], fill=1)
     return im
 
 
@@ -161,7 +166,7 @@ def console(out):
 
     for name in ICONS:
         add(name, tiles(icon(name), 2, 1))
-    # the demon: a tile once however often it comes, an empty one the space
+    # the head: a tile once however often it comes, an empty one the space
     seen, line = {}, []
     for t in tiles(crest(), CREST_COLS, CREST_ROWS):
         key = t.tobytes()
@@ -215,11 +220,9 @@ def solid(path, w, h, colour):
 
 
 def backdrop(path):
-    """The dark lock's painting at a quarter of its light, on the ground's ink so it never goes blacker
-    than the screens around it. An older lock's pixel scene, at whole pixels."""
-    im = Image.open(SCENE).convert("RGB")
-    if im.size != (1920, 1080):
-        im = im.resize((1920, 1080), Image.NEAREST)
+    """The castle at night at a quarter of its light, on the ground's ink so it never goes blacker
+    than the screens around it. Whole pixels, ×3."""
+    im = Image.open(SCENE).convert("RGB").resize((1920, 1080), Image.NEAREST)
     lut = []
     for g in rgb(P["ground"]):
         lut += [round(g + v * 0.25 * (1 - g / 255)) for v in range(256)]

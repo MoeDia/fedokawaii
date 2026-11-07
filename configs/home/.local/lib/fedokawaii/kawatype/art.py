@@ -216,8 +216,8 @@ def _table(mapping):
 
 
 SKIN = {
-    True: {'o': 'lo', 'h': 'accent', 'b': 'accent', 's': 'accent_lo', 'd': 'edge2', 'k': 'lo', 'n': 'gold', 'N': 'edge2', 'i': 'edge2', 'g': 'gold', 'y': 'yellow'},
-    False: {'o': 'muted', 'h': 'hi', 'b': 'hi', 's': 'key', 'd': 'edge', 'k': 'edge2', 'n': 'edge', 'N': 'edge', 'g': 'gold', 'r': 'asagi', 'e': 'teal', 'i': 'gold'},
+    True: {'o': 'lo', 'h': 'accent', 'b': 'accent', 's': 'accent_lo', 'd': 'edge2', 'k': 'lo', 'n': 'gold', 'i': 'edge2', 'g': 'gold'},
+    False: {'o': 'muted', 'h': 'hi', 'b': 'hi', 's': 'key', 'd': 'edge', 'k': 'edge2', 'n': 'edge', 'r': 'asagi', 'e': 'teal', 'c': 'accent'},
 }
 SWAP = str.maketrans('hd', 'dh')
 
@@ -228,7 +228,7 @@ class Hands:
 
     def __init__(self, dark):
         self.dark = dark
-        self.mood = 'oni' if dark else 'tennin'
+        self.mood = 'ronin' if dark else 'priest'
         self.table = _table(SKIN[dark])
         self.pose = {}
         self.lit = set()
@@ -238,14 +238,14 @@ class Hands:
     def _lit_table(self, finger):
         token = FINGER_TOKEN[finger]
         nail = 'strong' if self.dark else 'key'
-        return _table({'o': 'paper_ink', 'k': 'paper_ink', 'h': token, 'b': token, 's': token, 'd': token, 'n': nail, 'N': nail, 'g': 'paper_ink'})
+        return _table({'o': 'paper_ink', 'k': 'paper_ink', 'h': token, 'b': token, 's': token, 'd': token, 'n': nail, 'g': 'paper_ink'})
 
     def _bad_table(self):
-        return _table({'o': 'accent_lo', 'k': 'accent_lo', 'h': 'accent', 'b': 'accent', 's': 'accent', 'd': 'accent', 'n': 'text_on_accent', 'N': 'text_on_accent', 'g': 'text_on_accent'})
+        return _table({'o': 'accent_lo', 'k': 'accent_lo', 'h': 'accent', 'b': 'accent', 's': 'accent', 'd': 'accent', 'n': 'accent_hi', 'g': 'text_on_accent'})
 
     def _rest_table(self, finger):
-        """at rest: the nail or claw wears the finger's paper, so the colours are learned before they are needed"""
-        return _table({**SKIN[self.dark], 'n': FINGER_TOKEN[finger], 'N': FINGER_TOKEN[finger]})
+        """at rest: the nail or finger cap wears the finger's paper, so the colours are learned before they are needed"""
+        return _table({**SKIN[self.dark], 'n': FINGER_TOKEN[finger]})
 
     def _finger(self, pic, name, finger, k, ox, oy):
         right = finger >= 5
@@ -259,7 +259,7 @@ class Hands:
             rows = [r[::-1].translate(SWAP) for r in rows]
         tx += dx
         n = max(len(rows) + up, 8)
-        cap = min(8, len(rows) // 2)         # (the tip and its claw keep their shape; the length is the shaft's)
+        cap = min(8, len(rows) // 2)         # (the tip keeps its shape; the length is the shaft's)
         table = (self._bad_table() if finger in self.wrong else self._lit_table(finger) if finger in self.lit else self._rest_table(finger))
         for i in range(n):
             src = i if i < cap else cap + (i - cap) * (len(rows) - cap) // max(n - cap, 1)
@@ -306,7 +306,7 @@ class Hands:
 
 class Motes:
     """What a clean run wakes around the hands, one more for every EVERY keys without a slip, MOST at a time: on the dark embers
-    rising off the demon's palms, past the fingers; on the light petals drifting down past the angel's. A slip and they are gone.
+    rising off the palms, past the fingers; on the light petals drifting down past them. A slip and they are gone.
     Their own little loop, a dozen steps a second, on 1× grid pixels."""
     EVERY, MOST = 20, 8
     STEP = 0.08
@@ -414,7 +414,7 @@ EYE_INKS = {True: {'L': 'accent_text', 'w': 'accent_lo', 'g': 'gold', 'k': 'lo'}
 
 
 def paint_eye(pic, x, y, k, dark):
-    """the eye that opens under the text (Yechiam 2003's signal): the demon's slit in gold, the angel's calm one"""
+    """the eye that opens under the text (Yechiam 2003's signal): the fox's slit in gold, the priest's calm one"""
     inks = EYE_INKS[dark]
     for j, row in enumerate(EYE[dark]):
         for i, c in enumerate(row):

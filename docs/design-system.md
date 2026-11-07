@@ -13,7 +13,7 @@ The sections keep their numbers (scripts cite them: §7 is "text screens" wherev
 Not one design recoloured — two places, each with its own light, art and character. The parts,
 the grid and the motion are shared; the mood decides the inks, the art and the story.
 
-| | 鬼 dark — the demon's dungeon | 天 light — the angel's temple |
+| | 鬼 dark — the dungeon | 天 light — the temple |
 |---|---|---|
 | ground | sumi ink on stone: Wada's Black, warmed with Vandyke Brown | paper in daylight: Sulpher Yellow, cooled with Neutral Gray |
 | words | parchment: Ecru → Ivory Buff → Sulpher Yellow | ink: Deep Slate Green → Black |
@@ -25,6 +25,7 @@ the grid and the motion are shared; the mood decides the inks, the art and the s
 | its quote | 口は禍の門 — the mouth is the gate of misfortune | 言わぬが花 — better left unsaid |
 | the lock's samurai (owner, 6 Nov; art/samurai.txt, tools/build-samurai.py: 72 × 64 cells, the lock's grid, whole pixels; states idle, start, ready, three cuts in turn for a key, delete, right, wrong: never which key; the right one plays before the unlock, 0.71 s dark, 1.14 s light) | a small man in red lacquer and indigo, a brass kuwagata: he shouts, cuts with a flame's arc, is knocked to one knee when wrong, leaps with the blade high when right | a gentle woman in white and vermilion, black hair tied, her blade and scabbard slim and unlined: petals where he has sparks; she bows when right, kneels with a tear and smiles again when wrong |
 | the lock's maps (owner, 6 Nov; rooms laid by hand in tools/build-lockmap.py, props in art/lockmap.txt: 640 × 360, the lock's grid, whole pixels; a letter a room on 16 × 10; the corner's map is the world's own rooms; his room Z the same in all 8, floor at row 318, the rope and two posts, joined by doors only; no demon, no angel) | shiro, the castle at night; kozan, the mine; suichu, the sunken temple; kaji, the sword forge in the volcano | haru, a spring town under cherry trees; kumo, pavilions in the clouds under a rainbow; yu, the hot-spring mountain; yuki, the snow shrine |
+| the hands of the typing app (owner, 6 Nov: no demon or angel but the wallpapers; `tools/build-typing-art.py`) | a ronin's gauntlets: red lacquer, laced lames, a gold rivet on the tekko, a studded iron cuff, chain mail; each finger's cap wears its colour | a shrine priest's bare hands, an almond nail in each finger's colour, the sleeve of asagi tied back with a red cord |
 | the head (quick settings' tile on the bar, the prompt, fetch, the masthead; owner, 6 Nov: no demon or angel anywhere but the wallpapers; docs/art/heads.md, `tools/build-head.py`) | the Fedora logo, bloody: blood-red, bone f, a wet gloss, blood hanging under it; open: it runs, a drop lets go | the Fedora logo, lighty: bright sky, white f, soft gold points of light; open: the light spreads |
 
 Both quotes are proverbs about keeping words in — the right thing to read where a password is
@@ -542,7 +543,7 @@ content, inside its margin of one cell:
   any case or spacing accepted. A run: in `~/dojo/FOLDER`, ten seconds at most. Wrong: a **Heading** `not yet`
   (`careful`) under the check says what you said or what it printed, nothing else changes; `s` the answer under it, its
   steps as blocks. Passed: the stamp (§11) — the mood's seal in `accent`, 56 × 56 in one ink, its halves mirrored
-  (`docs/lessons/seals.txt`: the oni, the lotus over water; a sixel, so the theme's words reach it through foot's mode
+  (`docs/lessons/seals.txt`: the kabuto, the lotus over water; a sixel, so the theme's words reach it through foot's mode
   2031), in the ring's place under the last words. A stamp is never taken off: the record is only added to. A lesson
   opening unrolls in the window (§11): its rows come from the top behind a rod (`▂` in `select`, a row wide, in the
   characters' grain), any key ending it at once. Nothing asks the mouse of a page (the terminal's selection stays yours;
@@ -680,8 +681,8 @@ the tiles of a group, 12 px between groups.
   The screens dark: no step, no frame, no CPU.
 - **Boot**: GRUB's menu and the boot splash (plymouth) in Sumi UI ×2 on the mood's ground, the
   vermilion seal and the same frame; the installer's screens likewise.
-- **The installer** (`iso/`, always the dark mood: nobody has chosen one yet): the boot menu's torii exactly
-  where the splash has it, so it stays still from the menu on; its words PNG (Secure Boot loads no font), three
+- **The installer** (`iso/`, always the dark mood: nobody has chosen one yet): the boot menu on shiro, the castle at
+  night (the lock's map, ×3, a quarter of its light); the splash is the bloody head at ×8 (`head.png`, past the half of the boot `head-open.png`: its blood runs), the console's crest the same head at ×5 in one ink; its words PNG (Secure Boot loads no font), three
   lines, a 2 px bar counting down under a panel of the same width. Then the Linux console on a VT of its
   own: Sumi UI ×2 as a font, a 14 × 28 cell, §7's grammar in those cells on a page 72 columns wide, centred:
   torii (7 × 4 cells) and name, a heading with its rule, rows one column in, the lacquer on the row with the
@@ -769,7 +770,7 @@ state stepped by a small rule, not a long drawn loop: it costs little and never 
   **16 px** grid, in 1 px strokes, an instrument's 32 wide, a seal tile's 40 × 40, the seals, the keys' pictures, the months' flowers) are
   drawn by kawa-panel pixel for pixel in the theme's inks: `#` the row's ink (`muted` at rest, `strong` on or under the
   cursor), `%` a level's (lit from below), one letter a role for a second ink. Every one centred by its ink.
-- One ink: an icon takes its words' ink (state colours from §5); art pieces (the demon, the angel,
+- One ink: an icon takes its words' ink (state colours from §5); art pieces (the head, the masters,
   the seals' numerals, the weather's pictures on the bar: tools/build-themes.py SKY) may use more,
   from the palette only.
 - **Kanji appear in three places only**: the workspace stamps (一–九), the bar's day kanji, and
@@ -808,7 +809,7 @@ numbers here against its files.
 | windows' frames; notices; the level display; tooltips | — | `src/dwl/`; `src/mako/mako.patch` (the desktop's mako: the frame, the title's icon ink, the hanging indent, no "…") + mako's `config`; `bin/kawa-osd` | T15 |
 | neovim's font, 2 px over the terminal's (18 of 16; rows 23 px, 44 of them, 8 px left under the last at full height: only 24 px fits exactly, too big) | — | `src/foot/foot.patch` (the escape `OSC 7700;N`) + `configs/home/.config/nvim/lua/plugins/colorscheme.lua` (the notes page not) | f24b |
 | books, wallpapers, clipboard, the launcher | Super+R, W, V, Space | `bin/kawa-books`, `bin/kawa-wallpaper`, `bin/kawa-clip`, `bin/kawa-menu` | T16 |
-| art: wallpapers (the old masters as pixel art), the lock's scenes, quick settings' face | — | `tools/build-masters.py` (art/masters), `tools/build-art.py`, art/icons.txt (oni, tennin) | T18 |
+| art: wallpapers (the old masters as pixel art), the lock's scenes, quick settings' face | — | `tools/build-masters.py` (art/masters), `tools/build-art.py`, art/fedora-head.txt (`tools/build-head.py`) | T18 |
 | motion | — | `src/dwl/`, the private wlroots, `src/kawa-saver` | T19 |
 | lock, login, screensaver | idle, Super+Escape, boot | `bin/kawa-lock`, `src/kawa-lockmod`, `system/kawa-greet`, `src/kawa-saver` | T20 |
 | notes and the to-do list | Super+N | `bin/kawa-notes` | T21 |

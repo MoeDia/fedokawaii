@@ -29,7 +29,7 @@ curl -fsS -m 2 --unix-socket "$sock" http://fixer/health >/dev/null 2>&1 || { ec
 # (it generates for the whole run: long answers, one after another, a long prompt now and then)
 ( while :; do
     curl -fsS -m 120 --unix-socket "$sock" http://fixer/v1/chat/completions -H 'Content-Type: application/json' \
-      -d "{\"messages\":[{\"role\":\"user\",\"content\":\"Write a very long story about a demon and an angel. $(head -c 6000 /usr/share/doc/foot/CHANGELOG.md | tr -cd 'a-zA-Z ' )\"}],\"max_tokens\":1500,\"cache_prompt\":false}" >/dev/null 2>&1 || sleep 1
+      -d "{\"messages\":[{\"role\":\"user\",\"content\":\"Write a very long story about a ronin and a shrine priest. $(head -c 6000 /usr/share/doc/foot/CHANGELOG.md | tr -cd 'a-zA-Z ' )\"}],\"max_tokens\":1500,\"cache_prompt\":false}" >/dev/null 2>&1 || sleep 1
   done ) &
 gen=$!
 trap 'kill "$gen" 2>/dev/null; kill "$srv" 2>/dev/null; wait "$srv" 2>/dev/null' EXIT

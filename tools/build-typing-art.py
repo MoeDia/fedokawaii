@@ -3,7 +3,7 @@
 
     inks.txt    token, dark, light: the palette's tokens the app paints with (tools/wada-palette.py, the one truth)
     glyphs.txt  Sumi UI's letters as bitmaps (7 × 14): a key's legend is the desktop's own face
-    hands.txt   the two pairs of hands: the demon's (dark) and the angel's (light), fingers and palm apart
+    hands.txt   the two pairs of hands: a ronin's in red-lacquered armour (dark), a shrine priest's (light), fingers and palm apart
 
     python3 -I tools/build-typing-art.py [--out DIR]
 
@@ -54,8 +54,8 @@ def write_glyphs():
 
 # ── the hands ────────────────────────────────────────────────────────────────
 # Each finger a sprite upright, tip first, in ink letters; the app leans it from its base to its tip.
-#   o outline   h the lit side   s skin   d the shaded side   b a lit knuckle   k a crease   n nail or claw (the finger's paper)
-#   N the claw's dark side       g gold   i iron               y the tiger's pelt   r the robe   e the robe's dark side
+#   o outline   h the lit side   s skin   d the shaded side   b a lit knuckle   k a crease   n nail or finger cap (the finger's paper)
+#   g gold   i iron   c the red cord   r the sleeve   e the sleeve's dark side
 # Light falls from the upper left on both hands (docs/design-system.md §4: the bar's shadow): when the app mirrors
 # the right hand it swaps h and d.
 def profile(rows, base_w, tip_w, knuckles=(), bulge=0.8, round_rows=4):
@@ -118,39 +118,24 @@ def crease(g, y, inset=1, length=None):
             g[y][x] = 'k'
 
 
-def oni_claw(g):
-    """a hooked claw of horn grown out of the fingertip"""
-    w = len(g[0])
-    mid = w // 2
-    top = []
-    widths = (0.0, 0.5, 1.0, 1.5, 1.9, 2.3, 2.7)
-    for y, hw in enumerate(widths):
-        row = ['.'] * w
-        lean = (len(widths) - 1 - y) * 0.45                # (hooked inward at its point)
-        a, b = mid - round(hw) + round(lean), mid + round(hw) + round(lean)
-        for x in range(max(a, 0), min(b + 1, w)):
-            row[x] = 'n'
-        if b - a >= 1 and b < w:
-            row[b] = 'N'
-        top.append(row)
-    return top + g
-
-
-def oni_finger(rows, base_w, tip_w, knuckles):
-    g = outlined(shape(profile(rows, base_w, tip_w, knuckles, bulge=0.9)))
+def ronin_finger(rows, base_w, tip_w, lames):
+    """a finger of the red-lacquered gauntlet: its nail a capped plate, the lames (the plates laced down it) each with a seam and a lit lip"""
+    g = outlined(shape(profile(rows, base_w, tip_w, (), round_rows=4)))
     g = shaded(g, lit=2, dark=2)
-    for k in knuckles:
-        y = int(k * (rows - 1))
-        crease(g, y - 1, 2)
-        crease(g, y + 1, 2)
-        # (the knuckle catches the torch)
+    for y in range(1, 7):
         xs = [x for x, c in enumerate(g[y]) if c in 'shd']
-        for x in xs[2:len(xs) // 2 + 1]:
-            g[y][x] = 'b'
-    return oni_claw(g)
+        for x in xs:
+            g[y][x] = 'n'
+    for k in lames:
+        y = int(k * (rows - 1))
+        crease(g, y, 1)
+        xs = [x for x, c in enumerate(g[y + 1]) if c in 'shd']
+        for x in xs[1:len(xs) // 2 + 1]:
+            g[y + 1][x] = 'b'
+    return g
 
 
-def tennin_finger(rows, base_w, tip_w, ring=False):
+def priest_finger(rows, base_w, tip_w):
     g = outlined(shape(profile(rows, base_w, tip_w, (), round_rows=5)))
     g = shaded(g, lit=0, dark=1)
     # the nail: an almond of the finger's paper
@@ -161,12 +146,6 @@ def tennin_finger(rows, base_w, tip_w, ring=False):
                 g[y][x] = 'n'
     for k in (0.42, 0.68):
         crease(g, int(k * (rows - 1)), 2, 3)
-    if ring:
-        y = int(0.8 * (rows - 1))
-        for yy in (y, y + 1):
-            xs = [x for x, c in enumerate(g[yy]) if c in 'shd']
-            for x in xs:
-                g[yy][x] = 'g'
     return g
 
 
@@ -186,15 +165,15 @@ def build_hands():
     for f, (tx, ty, bx, by) in LEFT.items():
         text.append(f'place {f} {tx} {ty + OFFSET} {bx} {by + OFFSET}\n')
     for f, (_, ty, _, by) in LEFT.items():
-        rows = by - ty - 1
+        rows = by - ty + 2
         base, tip = {'little': (11, 8), 'ring': (13, 9), 'middle': (14, 10), 'index': (14, 10), 'thumb': (16, 11)}[f]
-        text.append(to_text('oni.' + f, oni_finger(rows, base, tip, (0.34, 0.68) if f != 'thumb' else (0.5,))))
+        text.append(to_text('ronin.' + f, ronin_finger(rows, base, tip, (0.42, 0.66, 0.86) if f != 'thumb' else (0.5, 0.78))))
     for f, (_, ty, _, by) in LEFT.items():
         rows = by - ty + 2
         base, tip = {'little': (9, 5), 'ring': (10, 6), 'middle': (10, 6), 'index': (10, 6), 'thumb': (11, 7)}[f]
-        text.append(to_text('tennin.' + f, tennin_finger(rows, base, tip, ring=f == 'ring')))
-    text.append(palm('oni'))
-    text.append(palm('tennin'))
+        text.append(to_text('priest.' + f, priest_finger(rows, base, tip)))
+    text.append(palm('ronin'))
+    text.append(palm('priest'))
     return ''.join(text)
 
 
@@ -206,7 +185,7 @@ def palm(mood):
     W, H = PALM_W, PALM_H
     im = Image.new('L', (W, H), 0)
     d = ImageDraw.Draw(im)
-    if mood == 'oni':
+    if mood == 'ronin':
         d.polygon([(12, 39), (26, 36), (46, 36), (60, 38), (69, 46), (68, 54), (58, 60), (56, 66), (24, 66), (20, 58), (12, 50)], fill=255)
     else:
         d.polygon([(16, 44), (17, 41), (21, 39), (28, 38), (46, 38), (53, 39), (58, 41), (62, 44), (65, 48), (64, 52), (60, 56), (55, 60), (52, 66),
@@ -214,34 +193,29 @@ def palm(mood):
     px = im.load()
     g = [['s' if px[x, y] else '.' for x in range(W)] for y in range(H)]
     g = outlined(g, open_below=False)
-    if mood == 'oni':
+    if mood == 'ronin':
         g = shaded(g, lit=2, dark=3)
-        # four knuckles along its top, each lit from the left; a vein or two
+        # four knuckle plates along its top, each lit from the left
         for kx in (17, 30, 42, 54):
             for y, x0, x1 in ((39, kx, kx + 6), (40, kx - 1, kx + 7), (41, kx - 1, kx + 7), (42, kx, kx + 6)):
                 for x in range(x0, x1):
                     if g[y][x] in 'shd':
                         g[y][x] = 'b' if x < kx + 3 else 's'
-            for y in (44,):
-                for x in range(kx + 1, kx + 6):
-                    if g[y][x] in 'shd':
-                        g[y][x] = 'k'
-        for (x, y) in ((31, 49), (32, 50), (33, 51), (34, 52), (35, 53), (47, 48), (46, 49), (45, 50), (44, 51), (43, 52), (43, 53)):
-            if g[y][x] == 's':
-                g[y][x] = 'k'
+            for x in range(kx + 1, kx + 6):
+                if g[44][x] in 'shd':
+                    g[44][x] = 'k'
+        # the tekko, the plate on the back of the hand: one gold rivet, a lozenge, at its middle
+        for y, x0, x1 in ((47, 40, 41), (48, 39, 42), (49, 38, 43), (50, 38, 43), (51, 39, 42), (52, 40, 41)):
+            for x in range(x0, x1 + 1):
+                g[y][x] = 'g'
     else:
         g = shaded(g, lit=0, dark=2)
         for kx in (21, 33, 44):
             for x in range(kx, kx + 3):
                 if g[43][x] in 'shd':
                     g[43][x] = 'k'
-        # a lotus of gold leaf on the back of the hand
-        for y, x0, x1 in ((48, 39, 40), (49, 38, 41), (50, 36, 43), (51, 37, 42), (52, 38, 41)):
-            for x in range(x0, x1 + 1):
-                if g[y][x] in 'shd':
-                    g[y][x] = 'g'
-    if mood == 'oni':
-        # an iron cuff with gold studs, then the tiger's pelt, torn at the edge
+    if mood == 'ronin':
+        # an iron cuff with gold studs, then the sleeve's chain mail, widening
         x0, x1 = 19, 62
         for y in range(59, 65):
             for x in range(x0, x1):
@@ -251,22 +225,21 @@ def palm(mood):
         for y in range(65, 72):
             a, b = x0 - 2 - (y - 65) // 2, x1 + 1 + (y - 65) // 2
             for x in range(a, b):
-                stripe = (x + (y // 2)) % 8
-                g[y][x] = 'o' if stripe < 2 else 'y'
+                g[y][x] = 'i' if (x + y) % 3 else 'o'
     else:
-        # three gold bangles, then the sleeve of the feather robe, opening as it falls, gold at its hem
+        # the red cord that ties the sleeve back, wound three times, then the sleeve of asagi, opening as it falls
         x0, x1 = 24, 54
         for y in range(60, 65):
             for x in range(x0 - (1 if y % 2 else 0), x1 + (1 if y % 2 else 0)):
-                g[y][x] = 'g' if y % 2 else 'o'
+                g[y][x] = 'c' if y % 2 else 'o'
         for y in range(65, 72):
             a, b = x0 - 3 - (y - 65) * 2, x1 + 3 + (y - 65) * 2
             for x in range(max(a, 0), min(b, W)):
                 g[y][x] = 'r'
             if a >= 0:
-                g[y][a] = g[y][a + 1] = 'g'
+                g[y][a] = g[y][a + 1] = 'o'
             if b <= W:
-                g[y][b - 1] = g[y][b - 2] = 'g'
+                g[y][b - 1] = g[y][b - 2] = 'o'
             for x in range(a + 5, b - 5, 11):      # (a crease of the silk)
                 if 0 <= x < W and g[y][x] == 'r':
                     g[y][x] = 'e'

@@ -1,6 +1,7 @@
-# /usr/share/plymouth/themes/sumi/sumi.script — the boot splash, after the boot menu: the demon of
-# the lock, where the lock has it, alone in the sumi ink with the hall still dark; "fedokawaii" under
-# it, and one slim line: red as far as the boot has come, a coal running on along the rest. At a
+# /usr/share/plymouth/themes/sumi/sumi.script — the boot splash, after the boot menu: the head
+# (the Fedora logo, bloody, whole pixels ×8), alone in the sumi ink; "fedokawaii" under it, and one
+# slim line: red as far as the boot has come, a coal running on along the rest; past the half its
+# blood runs and a drop lets go. At a
 # power-off or a restart the same splash comes back with its own words: "shutting down", "restarting"
 # (Plymouth.GetMode: plymouth-poweroff/-reboot.service start plymouthd in those modes).
 # A disk that asks for its password gets the lock screen's box: "the disk's password", and a vermilion ◆ for each character typed.
@@ -14,21 +15,26 @@ cy = Math.Int(Window.GetHeight() / 2);
 k = 1;                                                  # (the picture is for 1080 rows: less than that, it shrinks)
 if (Window.GetHeight() < 1080) k = Window.GetHeight() / 1080;
 
-mask.image = Image("mask.png");                         # 1120 × 960, the painting's own top
-if (k < 1) mask.image = mask.image.Scale(Math.Int(mask.image.GetWidth() * k), Math.Int(mask.image.GetHeight() * k));
-mask.sprite = Sprite(mask.image);
-mask.sprite.SetPosition(cx - Math.Int(mask.image.GetWidth() / 2), cy - Math.Int(540 * k), 0);
+head.image = Image("head.png");                         # 384 × 400: the 48 × 50 canvas ×8, its disc 320 across
+head.open = Image("head-open.png");
+if (k < 1) {
+  head.image = head.image.Scale(Math.Int(384 * k), Math.Int(400 * k));
+  head.open = head.open.Scale(Math.Int(384 * k), Math.Int(400 * k));
+}
+head.sprite = Sprite(head.image);
+head.sprite.SetPosition(cx - Math.Int(192 * k), cy - Math.Int(252 * k), 0);
+head.running = 0;
 
 mode = Plymouth.GetMode();
 if (mode == "shutdown") words.image = Image("stopping.png");
 else if (mode == "reboot") words.image = Image("restarting.png");
 else words.image = Image("starting.png");
 words.sprite = Sprite(words.image);
-words.sprite.SetPosition(cx - Math.Int(words.image.GetWidth() / 2), cy + Math.Int(404 * k), 1);
+words.sprite.SetPosition(cx - Math.Int(words.image.GetWidth() / 2), cy + Math.Int(180 * k), 1);
 
 # the line: 320 × 2, under the word
 line_x = cx - 160;
-line_y = cy + Math.Int(466 * k);
+line_y = cy + Math.Int(242 * k);
 track = Sprite(Image("line-off.png"));
 track.SetPosition(line_x, line_y, 1);
 filled.image = Image("line-on.png");
@@ -48,6 +54,12 @@ Plymouth.SetBootProgressFunction(boot_progress_callback);
 
 fun refresh_callback () {
   frame++;
+  if (head.running == 0) {
+    if (progress > 0.5) {
+      head.sprite.SetImage(head.open);
+      head.running = 1;
+    }
+  }
   n = Math.Int(progress * 320);
   if (n > 320) n = 320;
   if (n > drawn) {
@@ -63,11 +75,11 @@ Plymouth.SetRefreshFunction(refresh_callback);
 # ── a disk's password (an encrypted disk): the lock screen's box, in the word's and the line's place ──
 ask.image = Image("password.png");
 ask.sprite = Sprite(ask.image);
-ask.sprite.SetPosition(cx - Math.Int(ask.image.GetWidth() / 2), cy + Math.Int(404 * k), 2);
+ask.sprite.SetPosition(cx - Math.Int(ask.image.GetWidth() / 2), cy + Math.Int(180 * k), 2);
 ask.sprite.SetOpacity(0);
 box.image = Image("box.png");                            # 288 × 44
 box.sprite = Sprite(box.image);
-box.sprite.SetPosition(cx - 144, cy + Math.Int(432 * k), 2);
+box.sprite.SetPosition(cx - 144, cy + Math.Int(208 * k), 2);
 box.sprite.SetOpacity(0);
 diamond = Image("diamond.png");                          # 22 × 22, set 24 apart as the lock's are
 for (i = 0; i < 10; i++) {
@@ -91,7 +103,7 @@ fun display_password_callback (prompt, bullets) {
   left = cx - Math.Int((shown * 24 - 2) / 2);
   for (i = 0; i < 10; i++) {
     if (i < shown) {
-      marks[i].SetPosition(left + i * 24, cy + Math.Int(432 * k) + 11, 3);    # (the box's middle: 22 − 11)
+      marks[i].SetPosition(left + i * 24, cy + Math.Int(208 * k) + 11, 3);    # (the box's middle: 22 − 11)
       marks[i].SetOpacity(1);
     }
     else marks[i].SetOpacity(0);

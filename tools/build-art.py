@@ -6,7 +6,7 @@ words (the lock's and login's scenes are tools/build-lock.py's).
 
 Writes (committed, so installing needs neither Python nor Pillow):
     system/plymouth/sumi/*.png   the boot splash's pictures (always ink-dark, like the boot
-        menu), around mask.png (the demon cut from the dark lock's painting, not made here):
+        menu), the head (tools/build-head.py's bloody Fedora logo, ×8; its blood runs as the boot goes on):
         "fedokawaii" (and, as the machine goes down, "shutting down" or "restarting") in Sumi UI
         ×3 — no kanji: the desktop keeps them to the workspace stamps, the lock's quote and the
         clock's day — the slim line with its ember, and for a disk password: its words, the box,
@@ -76,6 +76,13 @@ def text_png(font, parts, pad=0):
     return im
 
 
+def themes_head():
+    spec = importlib.util.spec_from_file_location("build_head", ROOT / "tools/build-head.py")
+    m = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(m)
+    return m
+
+
 def splash(font):
     """The boot splash's pictures, in the dark palette (the boot is always ink)."""
     p = P["dark"]
@@ -96,6 +103,10 @@ def splash(font):
             x += ch.width + 2
         return im.resize((im.width * n, im.height * n), Image.NEAREST)
 
+    head = themes_head()
+    for state, name in (("shut", "head.png"), ("open", "head-open.png")):
+        im = head.picture("dark", 40, state, 48, 50)
+        im.resize((im.width * 8, im.height * 8), Image.NEAREST).save(out / name, optimize=True)
     big("fedokawaii", p["text"]).save(out / "starting.png", optimize=True)
     big("shutting down", p["text"]).save(out / "stopping.png", optimize=True)
     big("restarting", p["text"]).save(out / "restarting.png", optimize=True)

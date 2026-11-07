@@ -5,12 +5,12 @@ launcher. Twenty minutes a day; the first row always knows what comes next.
 
 ## What you see
 
-One stage on every screen: the keyboard (your own: the K617, 61 keys) and two hands stay where they are, the demon's in the
-dark, the angel's in the light; what the screen is about stands over them: the list, the text you type, a result. The next key
+One stage on every screen: the keyboard (your own: the K617, 61 keys) and two hands stay where they are, a ronin's gauntlets in the
+dark, a shrine priest's in the light; what the screen is about stands over them: the list, the text you type, a result. The next key
 is lit, and the finger that goes to it wears the same colour: little pink, ring yellow, middle green, index blue, on both
 hands; the thumbs gold, for the space bar. A capital lights two keys: its own, and the shift of the other hand. Keys held on
-the real keyboard go down on the screen. A wrong key flashes red. A run with no slip lifts embers from the demon's hands,
-petals from the angel's.
+the real keyboard go down on the screen. A wrong key flashes red. A run with no slip lifts embers from the gauntlets,
+petals past the priest's hands.
 
 ## Keys
 

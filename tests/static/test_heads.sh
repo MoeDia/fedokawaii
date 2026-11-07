@@ -82,8 +82,38 @@ case_ "no old head on the head's surfaces"
 for f in bin/kawa-bar bin/fetch bin/kawa-theme configs/home/.bashrc.d/fedokawaii.sh configs/home/.config/waybar/config.jsonc configs/home/.config/fedokawaii/icons.sh art/icons.txt \
          configs/home/.local/lib/fedokawaii/kawa-chess/syllabus.py configs/home/.local/lib/fedokawaii/kawa-chess/home.py \
          configs/home/.local/lib/fedokawaii/kawa-chess/play.py configs/home/.local/share/fedokawaii/chess/faces.txt \
-         docs/learn/chess/README.md docs/lessons/seals.txt; do
+         docs/learn/chess/README.md docs/lessons/seals.txt docs/learn/typing/README.md docs/learn/pieces/011-the-bar.md \
+         configs/home/.local/lib/fedokawaii/kawatype/art.py configs/home/.local/lib/fedokawaii/kawatype/hands.txt tools/build-typing-art.py \
+         system/plymouth/sumi/sumi.script system/plymouth/sumi/sumi.plymouth tools/build-art.py tools/build-iso-art.py iso/screens/console.py; do
   out=$(grep -n -i -E 'demon|angel|\boni\b|tennin|HEAD_ONI|ICON_ONI' "$REPO/$f" | grep -v -E 'head-(oni|angel)' || true)
   eq "$out" "" "$f"
 done
+done_
+
+case_ "the boot splash and the ISO's crest are the head's own pixels, whole ×8 and ×5, and the splash's old painting is gone"
+[[ ! -e $REPO/system/plymouth/sumi/mask.png ]] && _ok || _no "mask.png is back"
+out=$(cd "$REPO" && python3 -I -B - <<'PY'
+import importlib.util
+from PIL import Image
+spec = importlib.util.spec_from_file_location("bh", "tools/build-head.py")
+bh = importlib.util.module_from_spec(spec)
+spec.loader.exec_module(bh)
+for name, state in (("head", "shut"), ("head-open", "open")):
+    im = Image.open(f"system/plymouth/sumi/{name}.png").convert("RGBA")
+    want = bh.picture("dark", 40, state, 48, 50)
+    print(name, im.size, im.tobytes() == want.resize((384, 400), Image.NEAREST).tobytes())
+PY
+)
+eq "$out" "$(printf '%s\n' 'head (384, 400) True' 'head-open (384, 400) True')"
+tmp=$(mktemp -d)
+python3 -I -B "$REPO/tools/build-iso-art.py" --console "$tmp" >/dev/null
+out=$(python3 -I -B - "$tmp/console/glyphs.py" <<'PY'
+import runpy, sys
+g = runpy.run_path(sys.argv[1])
+print(g["CREST_COLS"], g["CREST_ROWS"], len(g["G"]["crest"]))
+PY
+)
+eq "$out" "21 9 189" "the crest's tiles fill its 21 × 9"
+rm -rf "$tmp"
+grep -q 'lock-map-shiro.png' "$REPO/tools/build-iso.sh" && ! grep -q 'lock-scene' "$REPO/tools/build-iso.sh" && _ok || _no "tools/build-iso.sh still takes the lock's painting"
 done_

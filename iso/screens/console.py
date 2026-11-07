@@ -31,7 +31,7 @@ FAINT, MUTED, TEXT, STRONG, ACCENT_TEXT, ASAGI, _14, ON_SELECT = range(8, 16)
 KDSETMODE, KD_TEXT = 0x4B3A, 0
 KDSKBMODE, K_UNICODE = 0x4B45, 3
 VT_ACTIVATE, VT_LOCKSWITCH = 0x5606, 0x560B
-WIDTH = 73                       # the content's columns: odd, for 1080p's 137 cells: truly centred, as the demon
+WIDTH = 73                       # the content's columns: odd, for 1080p's 137 cells: truly centred, as the head
 
 
 def active():
@@ -170,18 +170,18 @@ class Screen:
 
     @property
     def head(self):
-        """A page's heading, in rows under the page's top: the demon when the screen holds it and the longest
+        """A page's heading, in rows under the page's top: the head when the screen holds it and the longest
         page (the form), our name always."""
         return (CREST_ROWS if self.rows >= CREST_ROWS + 15 else 0) + 2
 
     def crest(self, row):
-        """The demon of the splash, in the one ink a cell has, centred, and our name under it."""
+        """The head of the splash, in the one ink a cell has, centred, and our name under it."""
         if self.head > 2:
             col = (self.cols - CREST_COLS) // 2
             for r in range(CREST_ROWS):
                 self.at(row, col, G["crest"][r * CREST_COLS:(r + 1) * CREST_COLS], STRONG)
                 row += 1
-        name = " ".join("fedokawaii")     # (tracked, an odd count of cells: on the demon's axis)
+        name = " ".join("fedokawaii")     # (tracked, an odd count of cells: on the head's axis)
         self.at(row, (self.cols - len(name)) // 2, name, MUTED)
 
     def heading(self, row, icon, name, width=WIDTH, col=None):
@@ -226,7 +226,7 @@ class Screen:
 
 
 def message_page(s, icon, title, lines):
-    """A page of its own: the demon, a heading, a paragraph at the heading's column."""
+    """A page of its own: the head, a heading, a paragraph at the heading's column."""
     s.clear()
     top = max(1, (s.rows - s.head - 2 - len(lines)) // 2)
     s.crest(top)

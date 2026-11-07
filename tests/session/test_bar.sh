@@ -34,7 +34,7 @@ case_ "the items at rest: the torii, the cat, the date DD∕MM∕YYYY (its slash
 setup; setrun
 eq "$(kawa-bar torii)" "{\"text\":\"$ICON_TORII\"}"
 eq "$(kawa-bar cat)" "{\"text\":\"$ICON_FACE\"}" "the dark mood: the head's unseen glyph"
-# (the light mood: the angel's — the theme's own colors.sh says which mood: THEME)
+# (the light mood: lighty — the theme's own colors.sh says which mood: THEME)
 sed -i 's/^THEME=dark$/THEME=light/' "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
 eq "$(kawa-bar cat)" "{\"text\":\"$ICON_FACE\"}" "the light mood: the same glyph, the theme's own picture"
 sed -i 's/^THEME=light$/THEME=dark/' "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null

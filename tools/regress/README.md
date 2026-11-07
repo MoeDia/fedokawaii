@@ -62,7 +62,7 @@ they break.
 | r27-found-1 | no waybar zombies: nothing sends SIGUSR2 | tests/static/test_barreload.sh "no program, config, installer step" |
 | r27-53-timer | the bar's idle cost: the clock's loop starts no process | tests/menus/test_timer.sh "the bar's loop starts no process" |
 | r27-19k-4 | the weather and the sections drawn anew; the head's picture on the bar | tests/status/test_weather.sh "every sky the bar can show has its picture" · tests/session/test_bar.sh "the mood's head: the Fedora logo" · tools/regress/bar-geometry.sh |
-| r27-1919-1 r27-dec-4g | the bar's far right: demon in dark, angel in light, serious art | open T19q: lane-art redraws them (his verdict of 4 Nov 17:16); today tests/session/test_bar.sh holds the file |
+| r27-1919-1 r27-dec-4g | the bar's far right: was the demon and angel, now the Fedora head (r28-d1) | tests/static/test_heads.sh, tests/session/test_bar.sh |
 | r27-1919-2 | every custom icon alive, unique | open T19q: his design review; the drawn icons' checks are tests/static/test_generated.sh |
 | r27-1919-4 r27-19k-5 | the to-do's own icon | tests/content/test_notes.sh "its heading (the tanzaku, to-do, the rule)" |
 | r24-13 r25-3 r27-bug-3 r27-13a | dropdown rows answer the pointer from the first frame, no click first; static rows never selectable | tools/regress/menu-first-click.sh · tests/menus/test_panel.sh "it opens under the pointer" · tests/menus/test_panel.sh "one light in every panel and menu" |
@@ -280,6 +280,7 @@ they break.
 | r28-f20 | no script or config the desktop ships names an old home folder; only kawa-tidy and its table in lib/common.sh do | tests/static/test_home.sh |
 | r28-d1 | the head is the Fedora logo, bloody in dark, lighty in light, in the bar, the prompt, fetch and the masthead; no old head on those surfaces | tests/static/test_heads.sh |
 | r28-c1 | with the lights off the cooler's display is told it is out once a second, not every ten: left alone its firmware blinks a 99 | tests/status/test_rgb.sh |
+| r28-d1c | no demon or angel in the typing hands, the boot splash or the ISO's crest and boot menu: a ronin's and a priest's hands; the head's own pixels on the splash (×8) and crest (×5); shiro behind the boot menu | tests/static/test_heads.sh · tests/content/test_typing.sh |
 | r28-d2 | sketching gone: no FireAlpaca, no Sketch, no tablet in the desktop, dwl or the lessons | tests/regress/test_gone.sh "sketching stays gone" |
 | r28-d2b | the to-do's heading wears its own tanzaku after d1's new icon numbers; the saver's scene built on the lock's art as it is | tests/content/test_notes.sh · tests/look/test_saver.sh |
 | r28-f20b | xdg-user-dirs' Projects is the dojo, an old ~/Projects moves there | tests/static/test_home.sh "Projects is the dojo" |

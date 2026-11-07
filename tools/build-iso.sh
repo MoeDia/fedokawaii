@@ -63,7 +63,7 @@ done
 # ── the pictures ─────────────────────────────────────────────────────────────
 # (from the commit, not the working tree: the same bytes whatever lies around)
 mkdir "$work/src"
-git -C "$repo" archive "$commit" -- art system tools iso lib configs/home/.local/share/fedokawaii/dark/lock-scene.png | tar -xf - -C "$work/src"
+git -C "$repo" archive "$commit" -- art system tools iso lib configs/home/.local/share/fedokawaii/dark/lock-map-shiro.png | tar -xf - -C "$work/src"
 python3 -B "$work/src/tools/build-iso-art.py" "$work/art" "fedokawaii $(date -u -d "@$SOURCE_DATE_EPOCH" +%Y.%m.%d) · ${commit:0:7} · Fedora $ISO_RELEASE"
 
 # reproducible <dir> <out>: a directory as a newc cpio, sorted, its times the commit's, root's
