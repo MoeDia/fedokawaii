@@ -186,12 +186,12 @@ theme --check; lacks "$OUT" "helium.desktop" "in sync once made"
 rm -f "$u/helium.desktop"
 theme --check; has "$OUT" "helium.desktop" "a missing copy is drift"
 
-case_ "the browser's first start answered before it runs: GTK colours, compact, square, its first-start page done, once; your choice afterwards stays"
+case_ "the browser's first start answered before it runs: GTK colours, mokuroku (tabs a list at the left, the address centred), square, its first-start page done, once; your choice afterwards stays"
 back plain; pf=$W$H/.config/net.imput.helium/Default/Preferences; rm -rf "$W$H/.config/net.imput.helium"; theme
-eq "$(jq -c '[.extensions.theme.system_theme,.helium.completed_onboarding,.helium.services.user_consented,.helium.browser.layout,.helium.browser.rounded_frame,.helium.browser.show_avatar_button]' "$pf")" '[1,true,true,1,false,false]'
+eq "$(jq -c '[.extensions.theme.system_theme,.helium.completed_onboarding,.helium.services.user_consented,.helium.browser.layout,.helium.browser.rounded_frame,.helium.browser.show_avatar_button,.helium.browser.centered_location_bar,.helium.browser.show_vertical_tabs_collapse_button,.helium.browser.show_extensions_button]' "$pf")" '[1,true,true,2,false,false,true,false,true]'
 eq "$(stat -c %a "$pf")" 600 "private, as Chromium keeps it"
-jq '.helium.browser.layout = 2 | .extensions.theme.system_theme = 0' "$pf" >"$pf.n" && cat "$pf.n" >"$pf" && rm "$pf.n"
-theme; eq "$(jq -c '[.helium.browser.layout,.extensions.theme.system_theme]' "$pf")" '[2,0]' "your choice kept"
+jq '.helium.browser.layout = 1 | .extensions.theme.system_theme = 0' "$pf" >"$pf.n" && cat "$pf.n" >"$pf" && rm "$pf.n"
+theme; eq "$(jq -c '[.helium.browser.layout,.extensions.theme.system_theme]' "$pf")" '[1,0]' "your choice kept"
 
 case_ "old windows never come back: a start opens one new window; a profile that brought them back (T31a, one evening) moves once; your choice afterwards stays"
 back plain; pf=$W$H/.config/net.imput.helium/Default/Preferences; rm -rf "$W$H/.config/net.imput.helium"; theme

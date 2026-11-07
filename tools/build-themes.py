@@ -1339,6 +1339,60 @@ def dwl_colors(m, p):
             + "".join(f"{n} {v}\n" for n, v in zip(("kanagu_hi", "kanagu", "kanagu_lo", "kanagu_rivet"), BRASS[m], strict=True)))
 
 
+# Helium's new tab (the desktop's extension, ~/.local/share/fedokawaii/browser: chrome_url_overrides):
+# a text screen of ours (design system §7) in Sumi Term, both moods in one page — Helium's pages
+# follow the portal's dark/light, so the page follows every switch live. The head is the quick
+# settings' masthead; the hour in the section line ticks once a minute (ntp.js: an extension page
+# runs no inline script); the rows are Chromium's own keys, the ones a new tab is for.
+NTP_ROWS = [("ICON_CHEVRON", "a place or a search", "ctrl l"), ("ICON_WINDOW", "a new tab", "ctrl t"),
+            ("ICON_RESTART", "the tab just closed", "ctrl shift t"), ("ICON_HOURGLASS", "history", "ctrl h"),
+            ("ICON_FOLDER", "downloads", "ctrl j")]
+
+
+def _icon(name):
+    m = re.search(rf"^{name}=\$'((?:\\x[0-9a-f]{{2}})+)'", (HOME / ".config/fedokawaii/icons.sh").read_text(), re.M)
+    return bytes.fromhex(m[1].replace("\\x", "")).decode()
+
+
+def ntp_html():
+    def mood(m):
+        p = P[m]
+        return (f"--ground:#{p['ground']};--text:#{p['text']};--strong:#{p['strong']};--muted:#{p['muted']};"
+                f"--faint:#{p['faint']};--edge:#{p['edge2']};--accent:#{p['accent_text']};--head:url(head-{m}.png)")
+    rows = "".join(f'<div class="row"><i>{_icon(i)}</i><b>{n}</b><kbd>{k}</kbd></div>' for i, n, k in NTP_ROWS)
+    return f"""<!doctype html>
+<!-- {header("~/.local/share/fedokawaii/browser/ntp.html", "Helium's new tab, both moods")} -->
+<meta charset="utf-8"><title>new tab</title><meta name="color-scheme" content="light dark">
+<style>
+:root{{{mood("light")}}}
+@media (prefers-color-scheme: dark){{:root{{{mood("dark")}}}}}
+html,body{{height:100%;margin:0;background:var(--ground);color:var(--text);font:16px/20px "Sumi Term";-webkit-font-smoothing:none}}
+main{{position:absolute;left:50%;top:50%;width:448px;margin:-120px 0 0 -224px}}
+.face{{width:48px;height:48px;margin:0 0 20px;background:var(--head);image-rendering:pixelated}}
+i{{font:normal 16px/20px "Sumi Icons Term";width:24px;flex:none}}
+.head{{display:flex;color:var(--strong);margin-bottom:20px}} .head i{{color:var(--accent)}}
+.head s{{flex:1;text-decoration:none;height:1px;background:var(--edge);margin:10px 8px 0}}
+.head time{{color:var(--muted)}}
+.row{{display:flex;padding:0 8px}} .row i{{color:var(--muted)}} .row b{{font-weight:normal}}
+kbd{{margin-left:auto;font:inherit;color:var(--faint)}}
+</style>
+<main><div class="face"></div><div class="head"><i>{_icon("ICON_BRANCH")}</i>today<s></s><time id="t"></time></div>
+{rows}</main><script src="ntp.js"></script>
+"""
+
+
+NTP_JS = """// Helium's new tab: the hour in the section line, to the minute (tools/build-themes.py writes this)
+const t = document.getElementById("t");
+const tick = () => {
+  const d = new Date();
+  t.textContent = d.toLocaleDateString("en-GB", {weekday: "short", day: "numeric", month: "short"}).toLowerCase()
+    + "  " + d.toTimeString().slice(0, 5);
+  setTimeout(tick, 60000 - d.getSeconds() * 1000 - d.getMilliseconds());
+};
+tick();
+"""
+
+
 FILES = {
     "colors.sh": colors_sh, "waybar.css": waybar_css, "foot.ini": foot_mode,
     "mako": mako, "qt6ct-colors.conf": qt_colors, "btop.theme": btop_theme,
@@ -1383,6 +1437,12 @@ def main():
         (t / "gtk-3.0").mkdir(parents=True, exist_ok=True)
         (t / "gtk-3.0/gtk.css").write_text(gtk3_theme(m, p))
         (t / "index.theme").write_text(gtk3_index(m, p))
+    ext = HOME / ".local/share/fedokawaii/browser"
+    ext.mkdir(parents=True, exist_ok=True)
+    (ext / "ntp.html").write_text(ntp_html())
+    (ext / "ntp.js").write_text(NTP_JS)
+    for m in P:
+        (ext / f"head-{m}.png").write_bytes((ROOT / "configs/home/.config/fedokawaii/themes" / m / "head-48.png").read_bytes())
     (HOME / ".config/nvim/lua/plugins").mkdir(parents=True, exist_ok=True)
     (HOME / ".config/nvim/lua/plugins/colorscheme.lua").write_text(nvim_colorscheme())
     if trial:

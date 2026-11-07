@@ -761,9 +761,10 @@ retire .local/share/applications/com.brave.Origin.desktop 'brave'
 # ── 4c. The browser: the desktop's colours, its first start ──────────────────
 # Chromium's GTK theme mode paints Helium's tab strip, toolbar, menus and dialogs from the GTK
 # theme (Fedokawaii / -dark: the .chromium rules there are for the browser alone) and follows
-# every switch live; web pages follow the portal's dark/light. The layout is Helium's compact one
-# (the address and the tabs on one row: more page on one monitor), square, no profile or puzzle
-# button (what a key or its menu reaches stays in its menu). Its first-start page is answered:
+# every switch live; web pages follow the portal's dark/light, its new tab too (the desktop's
+# extension below). The layout is mokuroku (his pick, r28 sa20): the tabs a list at the left, as
+# an index (Helium's vertical tabs, no collapse button), the address centred between three keys
+# each side (the extensions' key among them), square, no profile button. Its first-start page is answered:
 # Helium's services on (its web store, uBlock's lists, the spelling dictionaries, all through its
 # anonymous proxy: helium.computer). Its seed colour, what its own pages and focus rings are made
 # from, the desktop's shu (#C73E1D, as Chromium keeps it: a signed ARGB number), never its blue. Old
@@ -774,12 +775,13 @@ retire .local/share/applications/com.brave.Origin.desktop 'brave'
 BROWSER_DIR="$TARGET_HOME/.config/net.imput.helium"
 BROWSER_SET='.extensions.theme.system_theme = 1
   | .helium.completed_onboarding = true | .helium.services.user_consented = true | .helium.services.schema_version = 1
-  | .helium.browser.layout = 1 | .helium.browser.rounded_frame = false
-  | .helium.browser.show_avatar_button = false | .helium.browser.show_extensions_button = false
+  | .helium.browser.layout = 2 | .helium.browser.centered_location_bar = true | .helium.browser.rounded_frame = false
+  | .helium.browser.show_vertical_tabs_collapse_button = false
+  | .helium.browser.show_avatar_button = false | .helium.browser.show_extensions_button = true
   | .browser.theme.user_color2 = -3719651 | .browser.theme.is_grayscale2 = false
   | .ntp.shortcust_visible = false | .session.restore_on_startup = 5'
-BROWSER_OK='.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true and .helium.browser.layout == 1 and .session.restore_on_startup == 5'
-BROWSER_MARK="compact · square · GTK · shu · services on · no old windows"      # what the marker below records (a new one: set again)
+BROWSER_OK='.extensions.theme.system_theme == 1 and .helium.completed_onboarding == true and .helium.browser.layout == 2 and .session.restore_on_startup == 5'
+BROWSER_MARK="mokuroku · square · GTK · shu · services on · no old windows"      # what the marker below records (a new one: set again)
 BROWSER_PREFS=()
 for BP in "$BROWSER_DIR"/Default/Preferences "$BROWSER_DIR"/Profile\ */Preferences; do
   [[ -f $BP ]] && BROWSER_PREFS+=("$BP")
@@ -807,7 +809,7 @@ for BP in "${BROWSER_PREFS[@]}"; do
     fi
     uinstall 0600 "$BT" "$BP"; rm -f "$BT"
     printf '%s\n' "$BROWSER_MARK" | U tee "$BM" >/dev/null
-    CHANGED+=("$BP (the browser: the desktop's colours, its compact layout)")
+    CHANGED+=("$BP (the browser: the desktop's colours, its mokuroku layout)")
   fi
 done
 

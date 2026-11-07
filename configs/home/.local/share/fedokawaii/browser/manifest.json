@@ -2,9 +2,10 @@
   "manifest_version": 3,
   "name": "fedokawaii",
   "version": "1.0",
-  "description": "How big a download will be, told to the desktop's bar",
+  "description": "How big a download will be, told to the desktop's bar; the new tab, a text screen of ours",
   "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEA69xIcqzT0SwCRjnaW9fUSWWKoMqfaSmT+iFCKBQULsxd5qEg18SvtaQ7G4wTaSExZ3TY4gG7G58NaoMf/pz4WihfERElvvHnPv0JPVzePd+2DcbqN+VykUJPofH7wu1yHtwxKE00OtymhzKHQqgeHdal+EYNJynYKtuxtgKoK0IZ0vt4Wh10Omjfm30/2DyOZ8aTejCh8bEbp46N35LQVU3+Il8Zapj8uXIUmse2VihOuwJ5CSZPRrwyC39VHwWbCc4gC/skzsEDOcPyPfOq5Th0+f2OVmVcxsA+ls9c6QqXwd4fvUoxAcdhQoiA+drf1q7FBkWePgGcfZJJ1EdrZQIDAQAB",
   "minimum_chrome_version": "120",
   "permissions": ["downloads", "nativeMessaging"],
+  "chrome_url_overrides": { "newtab": "ntp.html" },
   "background": { "service_worker": "worker.js" }
 }

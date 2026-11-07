@@ -4,6 +4,7 @@
 # of the session or of the real home is written (its fonts are read). The window is 960 by 600, half
 # the monitor, so that the sheet can show it 1:1.
 #   bash tools/helium-options.sh OUT.jpg
+#   OPTIONS=built bash tools/helium-options.sh -   (what theme.sh builds, r28 sa20: shots in /dev/shm/r28/f15/run/MOOD/built.png)
 # Exit 0 · 1 a shot missing
 set -u
 here=$(cd "$(dirname "$0")" && pwd)
@@ -19,7 +20,8 @@ mkdir -p "$XDG_DATA_HOME/themes" "$XDG_CONFIG_HOME/gtk-3.0" "$XDG_CONFIG_HOME/gt
 ln -sfn "$REPO/configs/home/.local/share/themes/$gtk" "$XDG_DATA_HOME/themes/$gtk"
 ln -sfn "$REAL_HOME/.local/share/fonts" "$XDG_DATA_HOME/fonts"
 for v in 3 4; do printf '[Settings]\ngtk-theme-name=%s\ngtk-font-name=Sumi UI 10.5\n' "$gtk" >"$XDG_CONFIG_HOME/gtk-$v.0/settings.ini"; done
-for v in 3 4; do printf 'window, widget, * { font-family: "Sumi UI"; font-size: 14px; }\n' >"$XDG_CONFIG_HOME/gtk-$v.0/gtk.css"; done
+# (built, r28 sa20: what the desktop gives Helium, no gtk.css of the home: its chrome in the GTK font)
+[ "$OPTION" = built ] || for v in 3 4; do printf 'window, widget, * { font-family: "Sumi UI"; font-size: 14px; }\n' >"$XDG_CONFIG_HOME/gtk-$v.0/gtk.css"; done
 # (GTK on Wayland takes its font from GSettings, which the system's dconf answers: a keyfile of this home's instead)
 export GSETTINGS_BACKEND=keyfile
 mkdir -p "$XDG_CONFIG_HOME/glib-2.0/settings"
@@ -61,6 +63,7 @@ case $OPTION in
   tsuitate) one tsuitate "$gtkmode | $two | .helium.browser.layout = 3 | .helium.browser.show_extensions_button = false" "$ntp" ;;
   mokuroku) one mokuroku "$gtkmode | $centre | .helium.browser.layout = 2 | .helium.browser.show_vertical_tabs_collapse_button = false | .helium.browser.show_extensions_button = true" "$ntp" ;;
   noren) one noren "$centre | .helium.browser.layout = 0 | .helium.browser.show_extensions_button = true" "$ntp,$OUT/$MOOD/noren" ;;
+  built) one built "$gtkmode | $centre | .helium.browser.layout = 2 | .helium.browser.show_vertical_tabs_collapse_button = false | .helium.browser.show_extensions_button = true" "$REPO/configs/home/.local/share/fedokawaii/browser" ;;
 esac
 INSIDE
 export REAL_HOME=$HOME

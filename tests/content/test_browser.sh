@@ -212,5 +212,11 @@ k = json.load(open(sys.argv[1]))["key"]; d = hashlib.sha256(base64.b64decode(k))
 print("".join(chr(97 + int(c, 16)) for c in d))' "$HOME/.local/share/fedokawaii/browser/manifest.json")
 eq "$(jq -r '.allowed_origins[0]' "$C/NativeMessagingHosts/fedokawaii.downloads.json")" "chrome-extension://$id/" "only this extension, by the key in its manifest"
 eq "$(jq -c .permissions "$HOME/.local/share/fedokawaii/browser/manifest.json")" '["downloads","nativeMessaging"]' "nothing more than it needs"
+x=$REPO/configs/home/.local/share/fedokawaii/browser
+eq "$(jq -r .chrome_url_overrides.newtab "$x/manifest.json")" ntp.html "the new tab is ours (r28 sa20)"
+for f in ntp.html ntp.js head-dark.png head-light.png; do [[ -s $x/$f ]] && _ok || _no "the new tab's $f missing"; done
+has "$(cat "$x/ntp.html")" "prefers-color-scheme: dark" "both moods in one page: it follows the switch"
+lacks "$(cat "$x/ntp.html")" "<script>" "no inline script (an extension page runs none)"
+has "$(cat "$x/ntp.html")" '<script src="ntp.js">'
 
 done_
