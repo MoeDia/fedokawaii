@@ -769,14 +769,14 @@ CLAUDE (monitoring the run for the owner, S16): The owner (12:43), in order of s
    - Short units on the basics underneath: the command line, regex, HTTP and networking, data structures; git, testing, debugging and security as planned.
    - Order: Python and Bash first, then web and TUI frontends, then Rust. Write the track list into the lessons' table of contents.
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S17): The owner (12:48), correcting S16: he does NOT use SQL at work (that was a mix-up); he learns it from zero. And more love for the web track.
 1. SQL with PostgreSQL, a full track like the others, from zero: Fedora's current PostgreSQL server installed, started on demand (not always running), a learning database, psql. Tiny steps: SELECT and WHERE, sorting, JOINs, GROUP BY, then designing tables, keys, indexes, transactions, backups; then Postgres from Python with psycopg 3. Drop "SQLite from Python because he knows SQL" from S16.
 2. Nothing outdated, anywhere in the lessons: check every lesson against the current official docs and tools as of November 2026 (current Python and uv, Rust 2024 edition, current PostgreSQL, psycopg 3 not psycopg2, modern CSS, modern JavaScript, HTMX 2), and end each lesson with a "checked against" line naming the doc and its version.
 3. The web track, more love: simple, solid websites, modern, minimal and quick. Semantic HTML; modern CSS without frameworks first (custom properties, flexbox, grid, container queries, :has(), nesting, clamp() type); a little modern JavaScript (modules, fetch, no var, no jQuery); HTMX with a small Python backend for interactivity; speed (tiny pages, few requests, optimised images, at most one web font) and accessibility basics; publishing a static site. Project-based: he builds his own personal site step by step across the track.
 4. He pointed again to the YouTuber Hayyoth: use your Hayyoth findings (r28-hayyoth.md) for the web track's look and teaching style.
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S18): The owner (12:49): the learning in fedokawaii is SUPER important to him. He is a slow learner, learns by examples and practice, and dislikes complex words used without their definitions. Rules for every lesson (Part 1 and Part 2), applied to the lessons already written too:
 - Example first, then the idea: show a small working example, then explain it, then let him try a variation.
 - Practice is most of the lesson: about 2 parts doing, 1 part reading. Every lesson has a hands-on exercise with an expected result he can check himself, a hint, and the answer hidden until he asks.
@@ -786,7 +786,7 @@ CLAUDE (monitoring the run for the owner, S18): The owner (12:49): the learning 
 - End each lesson with a 3-question check and one line on what comes next.
 Rewrite the lessons written so far to these rules before writing new ones. This track gets opus (design he will judge) and a final read-through for plain language.
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S19): The owner (12:51): go deeper on what happens behind the scenes, and DRILL the critical concepts into him fully. Claude chose the theory below; keep S18's rules (example first, plain words, every term defined, mostly practice).
 HOW
 - Every lesson gets a "Behind the scenes" part: what really happens underneath, a simple drawing (boxes and arrows in text), and a hands-on peek with a real tool (ps, strace, ss, curl -v, dig, git cat-file, EXPLAIN, the browser's dev tools, rust's borrow checker errors).
@@ -805,7 +805,7 @@ THE CONCEPTS TO DRILL (in this order, woven into the tracks where they fit)
 10. Security: secrets never in code; input validation; SQL injection and XSS shown and then prevented; hashing vs encryption; least privilege.
 11. Later: concurrency (threads vs async) and how tests protect a program (unit vs integration).
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S20): The owner (12:54): learning is the most important part of fedokawaii, "no joke". Visuals wherever they help, nothing held back, more research, and information accurate to the dot. On top of S18 and S19:
 VISUALS
 - Wherever a picture explains faster than words, draw one: simple, calm, big labels, one idea per picture, in the desktop's style, crisp in both moods (SVG). Step-by-step pictures for processes (a command becoming a process, an HTTP request travelling, the call stack growing and shrinking, a git history changing, a JOIN matching rows, Rust moving and borrowing a value), animated or as numbered frames he can step through.
@@ -824,7 +824,7 @@ ACCURACY TO THE DOT
 SCOPE BY THE DEADLINE
 - The full syllabus, the concept map and the glossary; the first 14 days of lessons finished to this standard (pictures, checkers, review passed); the rest written ahead of him later, always at least 7 days ahead, through the same gates. Quality over quantity: never ship a lesson that has not passed the checks.
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S21): The owner (12:58):
 1. The lessons' look must never distract: super minimal, all the care in colours, fonts, spacing and alignment, following the theme in both moods, his eyes comfortable for long reading. Concretely:
    - generous spacing everywhere; text column about 60-70 characters wide; line height about 1.6; a larger body size (around 18-20 px); the chosen programming font for code, a calm reading font for text; everything aligned to one grid;
@@ -839,7 +839,7 @@ CLAUDE (monitoring the run for the owner, S21): The owner (12:58):
    - Its "behind the scenes" part ties into S19's concepts 1 and 5 (the machine, memory).
 The full order of Part 2 is now: Python and Bash, then SQL and the web (with Textual TUIs), then C, then Rust; the basics underneath (S19) woven through. Accuracy gates (S20) apply to all of it.
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S22): The owner (13:03):
 1. No learning project may affect his PC in any way. Everything a lesson or project runs is contained and sandboxed:
    - One "dojo" sandbox (rootless podman containers, or bubblewrap where a container is too heavy) that sees only ~/dojo, nothing else of his home, no sudo, no system changes; servers bound to localhost only; the checkers run inside it too.
@@ -851,7 +851,7 @@ CLAUDE (monitoring the run for the owner, S22): The owner (13:03):
 4. Plan a purge for the FINAL repo edit: list every leftover that a clean repo does not need (old books and covers, retired scripts, unused assets and renders, round-only tools, stale notes) in .claude/notes/r28-final-purge.md, and remove them in the final edit after the questionnaire. Keep CLAUDE.md working.
 5. Make the terminal and Neovim coding experience even better: a minimal but truly effective setup for a human. Start from the twenty things a programmer does every day (open a file by name, search the project, go to a definition, rename, see and fix errors, format, complete code, run, test, debug, git status and commit, switch files, splits, a terminal, undo history, find recent files...) and make sure each has one obvious key in one consistent pattern (Space + a letter per topic: f find, g git, c code, r run, t test, d debug), all shown by which-key and on one cheat-sheet page. Add only what is missing (for example built-in LSP completion if it is not on, a terminal toggle, persistent undo); nothing decorative. It gets lessons of its own (Neovim with his config, S18's rules).
 
-## 2026-11-07 13:15 — open
+## 2026-11-07 13:15 — in the plan: sb01-sb10
 CLAUDE (monitoring the run for the owner, S23): The owner (13:11):
 1. Projects: fun, but serious and useful, good enough for a future programming portfolio. Each track ends in one real project he would actually use and could show: a clear README with a screenshot or short demo, tests, a clean git history, a licence, sensible structure. Ideas (your call): a captures organiser CLI in Python (renames by date, finds duplicates); a bookshelf app (PostgreSQL + a fast, minimal HTMX site with search and reading progress); his personal portfolio site itself; a Textual TUI (a habit and lesson tracker, or a chess-puzzle trainer on open puzzle data); a C terminal game plus the sandboxed dwl patch; a Rust duplicate-file finder with a benchmark against his Python version. The fun stays (game touches, his desktop's style); the quality is portfolio-grade.
    Publishing to GitHub happens only when he decides, from outside the dojo, with his own account; the dojo never holds his credentials.
