@@ -121,3 +121,11 @@ The owner's picks and notes from his page (00:47), his words kept:
 Claude, watching the pulse (Sat 03:44):
 - All four daily rows (dsat, dsun, dmon, dtue) ran back to back on Saturday morning, about two hours each; the ETA slipped from Sun 11:47 to about Sun 22:30. Let dtue finish (do not kill a VM mid-install). Then add one new daily row for each remaining calendar day (Sun 8, Mon 9, Tue 10), each run only on its own day, Dubai time, and never one straight after another; the loop must not pick a daily row before its day. Go on with the plan.
 - S11's model mix is not biting yet: in the last 6 hours opus wrote 275k output tokens, haiku 11k, sonnet 8k. Check that the open rows really carry sonnet or haiku where S11's rules say (most coding, configs, apps, tests and docs are sonnet; sweeps, checks and runs like the daily suite are haiku), and that the loop really passes --model (look at message.model in the latest transcript). Opus stays for design he judges, dwl/C, the lock, the ISO/installer and security.
+
+## S14 2026-11-07 09:35
+The owner (09:25): make up for the hours lost (the four daily suites back to back, and steering that waited for his Mac). Boost the pace a little more, still one agent at a time, still cheap:
+1. Long machine jobs (a VM install, the full suite, the ISO build, renders) run in the background as their own systemd user units (still one VM at a time). The pass starts the job, marks it "running" in the plan, and goes on with the next row that does not touch the same files or the VM; a later pass reads the result. No pass sits waiting on a VM.
+2. No idle time between passes: check the loop's sleep or back-off and the conductor's interval, and start the next pass as soon as one ends (keep the wait for a usage-limit reset).
+3. Daily rows run only on their own day (S13), and a daily run is skipped when the previous one passed less than 12 hours earlier with no system-level change since.
+4. Sonnet for every row S11 allows; by tonight the pulse's model split should show sonnet doing most of the rows.
+5. Target: the ETA back to Sunday noon or earlier. Nothing may break; S8's balance stays.
