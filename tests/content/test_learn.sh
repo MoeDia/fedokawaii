@@ -192,6 +192,19 @@ eq "$(awk '{ if (length($0) > 60) print }' <<<"$out" | wc -l)" 0 "wider than ask
 out=$(kawa-learn --text nonsense 2>&1); eq "$?" 1; has "$out" "no lesson nonsense"
 out=$(TERM=linux kawa-learn --text the-panel --cols 40); lacks "$out" "—"; lacks "$out" "│"
 
+case_ "as a page (sb02b): a standard-2 lesson written offline with the theme's sheet and given to Helium; a standard-1 one said"
+clean; out=$(kawa-learn --page the-panel 2>&1); eq "$?" 1; has "$out" "standard-1 lesson: it has no page"
+cp -r "$FIX" "$TMP/l2"; sed -n '/^  cat >"\$L\/std-two.md" <</,/^STD2_LESSON_END/p' "$C/test_lessons.sh" | sed '1d;$d;s/^needs: \[panel\]/needs: [the-panel]/' >"$TMP/l2/std-two.md"
+sed 's/^id: std-two/id: std-one/; s/^part: 2/part: 1/; s/^```term list/```term row/' "$TMP/l2/std-two.md" >"$TMP/l2/std-one.md"
+printf '4\tstd-one\tstd-two\n' >>"$TMP/l2/days.tsv"
+mkdir -p "$XDG_DATA_HOME/fedokawaii/learn"; cp "$REPO/configs/home/.local/share/fedokawaii/learn/lesson.css" "$XDG_DATA_HOME/fedokawaii/learn/"
+stub helium 'printf "%s\n" "$@" >"$TMP/helium.args"'
+out=$(KAWA_LEARN=$TMP/l2 kawa-learn --page std-two 2>&1); eq "$?" 0 "$out"; eq "$out" "$XDG_CACHE_HOME/fedokawaii/learn/std-two.html"
+for _ in {1..50}; do [[ -s $TMP/helium.args ]] && break; sleep 0.1; done
+eq "$(cat "$TMP/helium.args")" "file://$XDG_CACHE_HOME/fedokawaii/learn/std-two.html" "Helium opens the file"
+has "$(cat "$out")" '<section class="quiz">'; has "$(cat "$out")" "--accent-text:#" "the sheet is inside"
+out=$(KAWA_LEARN=$TMP/l2 kawa-learn --page std-two extra 2>&1); eq "$?" 2
+
 case_ "the lessons missing: said, with what puts them back; none yet: said; no terminal: said"
 out=$(KAWA_LEARN=$TMP/none kawa-learn 2>&1); eq "$?" 1; has "$out" "fedokawaii repair"
 out=$(KAWA_LEARN=$REPO/docs/lessons kawa-learn --place 2>&1); rc=$?; [[ $rc == 0 || $out == *"no lessons in"* ]] && _ok || _no "$out"

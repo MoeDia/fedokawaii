@@ -1567,6 +1567,79 @@ tick();
 """
 
 
+
+# the calm lesson page (docs/lesson-standard.md "The page", S21): kawa-learn puts this in a standard-2
+# lesson's page (lib/lessonpage.py). Body 20/32 in Noto Sans (the UI sans: 1.6 exactly, on the 4 px grid),
+# code 16/24 in Sumi Term, a 66-character column; the theme's soft inks, every pair that carries text
+# measured here against WCAG 2.2 AA (4.5:1; 3:1 for the 28 px title) and the build stops below it.
+LESSON_PAIRS = (("text", "ground", 4.5), ("strong", "ground", 3.0), ("muted", "ground", 4.5),
+                ("accent_text", "ground", 4.5), ("text", "surface", 4.5), ("muted", "surface", 4.5),
+                ("muted", "key", 4.5))
+
+
+def contrast(a, b):
+    """WCAG 2.2's contrast ratio of two RRGGBB colours"""
+    def lum(c):
+        ch = [int(c[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+        ch = [x / 12.92 if x <= 0.04045 else ((x + 0.055) / 1.055) ** 2.4 for x in ch]
+        return 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2]
+    hi, lo = sorted((lum(a), lum(b)), reverse=True)
+    return (hi + 0.05) / (lo + 0.05)
+
+
+def lesson_css():
+    for m, p in P.items():
+        for fg, bg, need in LESSON_PAIRS:
+            r = contrast(p[fg], p[bg])
+            if r < need:
+                raise SystemExit(f"lesson.css: {m} {fg} on {bg} is {r:.2f}:1, WCAG AA needs {need}:1")
+    def mood(p):
+        return ";".join(f"--{k.replace('_', '-')}:#{p[k]}" for k in
+                        ("ground", "surface", "key", "edge", "edge2", "faint", "muted", "text", "strong", "accent_text"))
+    e = "var(--edge2)"
+    return f"""/* {header("~/.local/share/fedokawaii/learn/lesson.css", "the calm lesson page, both moods")} */
+:root{{{mood(P["light"])}}}
+@media (prefers-color-scheme: dark){{:root{{{mood(P["dark"])}}}}}
+html{{background:var(--ground);color:var(--text);font:20px/32px "Noto Sans";text-rendering:optimizeLegibility}}
+body{{margin:0;padding:64px 32px 96px}}
+main{{max-width:66ch;margin:0 auto}}
+header{{margin:0 0 48px}}
+.part{{margin:0;color:var(--muted);font-size:16px;line-height:24px}}
+h1{{margin:8px 0 0;color:var(--strong);font-size:28px;line-height:40px;font-weight:600}}
+section{{margin:0 0 48px}}
+h2{{margin:0 0 16px;padding:0 0 7px;border-bottom:1px solid var(--edge2);color:var(--muted);font-size:16px;line-height:24px;font-weight:400}}
+p{{margin:0 0 16px}} ul{{margin:0 0 16px;padding:0 0 0 24px}}
+strong{{color:var(--strong);font-weight:600}} em{{color:var(--muted)}}
+a{{color:var(--accent-text);text-decoration:underline 1px;text-underline-offset:4px}}
+code,pre,.lang{{font-family:"Sumi Term"}}
+code{{font-size:16px;padding:2px 4px;background:var(--surface);border-radius:0}}
+.code{{margin:0 0 16px;padding:12px 16px;background:var(--surface);border-left:4px solid var(--edge2)}}
+.code pre{{margin:0;font-size:16px;line-height:24px;white-space:pre-wrap}}
+.lang{{display:block;color:var(--muted);font-size:14px;line-height:20px;margin:0 0 4px}}
+.output{{background:var(--ground);border:1px solid var(--edge2);border-left-width:4px;padding:11px 15px 11px 16px}}
+.term{{margin:0 0 16px;padding:12px 16px;border:1px solid var(--edge2)}} .term dt{{color:var(--strong);font-weight:600}} .term dd{{margin:0}}
+.level b{{color:var(--strong);font-weight:600}}
+details{{margin:0 0 16px}} summary{{cursor:pointer;color:var(--muted)}} details[open] summary{{margin:0 0 8px}}
+.q summary{{color:var(--text)}} .q p{{color:var(--muted);padding-left:24px}}
+figure{{margin:0 0 16px;padding:16px;border:1px solid var(--edge2)}}
+figure svg{{display:block;max-width:100%;height:auto;margin:0 auto}}
+.drawing{{margin:0;font-size:16px;line-height:24px}}
+.steps{{cursor:pointer;outline:none}} .steps:focus-visible{{border-color:var(--muted)}}
+.count{{margin:8px 0 0;color:var(--muted);font:14px/20px "Sumi Term";text-align:right}}
+svg .ink{{fill:var(--text);stroke:var(--text)}} svg .soft{{fill:var(--muted);stroke:var(--muted)}}
+svg .line{{fill:none;stroke:var(--edge2)}} svg .mark{{fill:var(--accent-text);stroke:var(--accent-text)}}
+svg text[class]{{font:16px "Sumi Term";stroke:none}}
+[data-step]{{opacity:0;transition:opacity .2s ease-out}} [data-step].on{{opacity:1}}
+@media (prefers-reduced-motion: reduce){{[data-step]{{transition:none}}}}
+.src{{font-size:16px;line-height:24px;color:var(--muted)}}
+kbd{{display:inline-flex;gap:2px;vertical-align:-2px;font:14px/14px "Sumi Term";color:var(--muted)}}
+kbd span{{height:17px;padding:0 4px;background:
+ linear-gradient({e},{e}) 1px 0/calc(100% - 2px) 1px,linear-gradient({e},{e}) 0 1px/1px 14px,
+ linear-gradient({e},{e}) 100% 1px/1px 14px,linear-gradient({e},{e}) 1px 15px/calc(100% - 2px) 2px,
+ linear-gradient(var(--key),var(--key)) 1px 1px/calc(100% - 2px) 14px;background-repeat:no-repeat}}
+"""
+
+
 FILES = {
     "colors.sh": colors_sh, "waybar.css": waybar_css, "foot.ini": foot_mode,
     "mako": mako, "qt6ct-colors.conf": qt_colors, "btop.theme": btop_theme,
@@ -1615,6 +1688,8 @@ def main():
     ext.mkdir(parents=True, exist_ok=True)
     (ext / "ntp.html").write_text(ntp_html())
     (ext / "ntp.js").write_text(NTP_JS)
+    (HOME / ".local/share/fedokawaii/learn").mkdir(parents=True, exist_ok=True)
+    (HOME / ".local/share/fedokawaii/learn/lesson.css").write_text(lesson_css())
     for m in P:
         (ext / f"head-{m}.png").write_bytes((ROOT / "configs/home/.config/fedokawaii/themes" / m / "head-48.png").read_bytes())
     (HOME / ".config/nvim/lua/plugins").mkdir(parents=True, exist_ok=True)

@@ -8,13 +8,15 @@ what a lesson asks you to type goes in the terminal next to it (Super+Enter). do
     kawa-learn --text [ID] [--cols N]  a lesson as plain text: today's next, or that one (a text
                           console: fedokawaii learn); on a terminal, in less, then its check
     kawa-learn --place    how far you are, a line of words (and the file Super+U's row reads)
+    kawa-learn --page [ID]  a standard-2 lesson as a calm local page in Helium (lib/lessonpage.py): today's
+                          next, or that one; written to ~/.cache/fedokawaii/learn/ID.html, offline
 
 The day: ↑ ↓ Tab the pair, Enter opens, ← → the days before (the next one waits for its date).
 A lesson: ↑ ↓ the wheel, Space a page, Enter a page and at its end the check; a check passed stamps
 the lesson, Enter then goes on; ← → the other of the pair; s its answer; Esc back.
 The day, too: r the daily review (five cards, a question, Space shows the answer, y right, n wrong),
 m the concept map, a the week and the rank, e the explain-it-back note of the lesson under the cursor
-(~/notes/explain-ID.md, a checklist, opened in $EDITOR). Spaced as docs/lesson-standard.md says.
+(~/notes/explain-ID.md, a checklist, opened in $EDITOR), p its page in Helium (standard 2). Spaced as docs/lesson-standard.md says.
 The source: docs/lessons, its format and the record's in lib/lessons.py, both in the toolkit
 ($KAWA_TOOLKIT; $KAWA_LEARN another folder of lessons). Kept: ~/.local/state/fedokawaii/days (the
 record), learn.at (where you stopped), learn.place (Super+U's row), reviews (every answer of the review).
@@ -41,10 +43,11 @@ DOJO = HOME + "/dojo"
 sys.dont_write_bytecode = True
 sys.path.insert(0, LIB)
 try:
+    import lessonpage
     import lessons
     import review
 except ImportError:
-    lessons = review = None
+    lessonpage = lessons = review = None
 MEASURE = 88        # the page's columns at most: a line you can read
 PANE = 50           # the list's pane, as Super+U's
 LIST_MIN = 46       # the list's columns at least, where a pane beside it is drawn
@@ -1134,6 +1137,8 @@ class App:
             self.go_aside("about")
         elif k == "e":
             self.explain(self.cursor)
+        elif k == "p" and self.cursor.get("standard") == 2:
+            open_page(self.cursor)
         return None
 
     def explain(self, le):
@@ -1651,6 +1656,48 @@ def text_check(course, le, width):
         print("not yet. " + said_text(said))
 
 
+def write_page(le):
+    """the lesson's page, the theme's lesson.css inside it: its path"""
+    share = os.environ.get("XDG_DATA_HOME") or HOME + "/.local/share"
+    with open(os.path.join(share, "fedokawaii/learn/lesson.css"), encoding="utf-8") as f:
+        css = f.read()
+    folder = os.path.join(os.environ.get("XDG_CACHE_HOME") or HOME + "/.cache", "fedokawaii/learn")
+    os.makedirs(folder, exist_ok=True)
+    path = os.path.join(folder, le["id"] + ".html")
+    write_file(path, lessonpage.render(le, css))
+    return path
+
+
+def open_page(le):
+    """the page in Helium, on its own (Helium follows the mood; the page holds both)"""
+    path = write_page(le)
+    subprocess.Popen(["helium", "file://" + path], stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
+                     stderr=subprocess.DEVNULL, start_new_session=True)
+    return path
+
+
+def page_mode(course, args):
+    if len(args) > 1:
+        print("usage: kawa-learn --page [ID]", file=sys.stderr)
+        return 2
+    le = course.by_id.get(args[0]) if args else course.next_lesson()
+    if args and not le:
+        print(f"kawa-learn: no lesson {args[0]}", file=sys.stderr)
+        return 1
+    if not le:
+        print("nothing to do today.")
+        return 0
+    if le["standard"] != 2:
+        print(f"kawa-learn: {le['id']} is a standard-1 lesson: it has no page yet (sb04 rewrites it)", file=sys.stderr)
+        return 1
+    try:
+        print(open_page(le))
+    except OSError as e:
+        print(f"kawa-learn: the page cannot be opened ({e}) — fedokawaii repair puts it back", file=sys.stderr)
+        return 1
+    return 0
+
+
 def text_mode(course, args):
     width = None
     if "--cols" in args:
@@ -1706,6 +1753,8 @@ def main(args):
         return 1
     if args[:1] == ["--text"]:
         return text_mode(course, args[1:])
+    if args[:1] == ["--page"]:
+        return page_mode(course, args[1:])
     if args[:1] == ["--place"]:
         course.write_place()
         show = course.place()[0]
@@ -1716,7 +1765,7 @@ def main(args):
     if args:
         start = course.by_id.get(args[0])
         if not start or len(args) > 1:
-            print("usage: kawa-learn [ID | --text [ID] | --place]", file=sys.stderr)
+            print("usage: kawa-learn [ID | --text [ID] | --page [ID] | --place]", file=sys.stderr)
             return 2
     if not (sys.stdin.isatty() and sys.stdout.isatty()):
         print("kawa-learn: it needs a terminal (--text prints a lesson)", file=sys.stderr)

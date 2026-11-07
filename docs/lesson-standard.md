@@ -44,13 +44,19 @@ So: easy to follow, hard to answer. Every step is spelled out; the thinking is t
 ## The page (sb02b builds it; S21)
 Lessons open as a calm local page (offline, in Helium, launched by kawa-learn), pictures, code and
 exercises together. Nothing in the page's look may distract:
-- a text column of 66 characters, line height 1.6, body 19 px in the reading face, code in Sumi Term;
-  everything on one 4 px grid; generous space between sections;
+- a text column of 66 characters, line height 1.6, body 20/32 px in Noto Sans (the UI sans; 20 not 19 so
+  1.6 lands on the grid), code 16/24 in Sumi Term; everything on one 4 px grid; 48 px between sections;
 - the theme's soft contrast in both moods (never pure black on pure white, no glaring accent);
   every text/background pair WCAG AA at least (4.5:1 body, 3:1 large), measured by the build;
 - pictures (SVG) in the theme's muted inks, one idea each, only where they teach; step-by-step
   pictures advance on a click or a key, never by themselves; `prefers-reduced-motion` honoured;
 - the dojo rank and streak (sb03) quiet in a corner or on their own page, never in the lesson's way.
+
+Built: `lib/lessonpage.py` renders it, `tools/build-themes.py` writes the sheet
+(`~/.local/share/fedokawaii/learn/lesson.css`, both moods) and stops if a text pair falls under AA;
+`kawa-learn --page [ID]` (or `p` on the day) writes `~/.cache/fedokawaii/learn/ID.html` and opens it in
+Helium. A step picture is an ```` ```picture ```` holding `<svg>`, its parts `data-step="N"`, its inks the
+classes `ink`, `soft`, `line`, `mark`; the rank and streak stay on kawa-learn's own pages (a, r).
 
 ## The learning science it follows
 - Worked examples first, then the help fades (Sweller & Cooper 1985; Renkl & Atkinson 2003).

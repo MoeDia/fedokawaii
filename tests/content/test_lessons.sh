@@ -289,6 +289,31 @@ swap "$L/std-two.md" "A list holds values in order." "$many"; swap "$L/std-two.m
 fresh2; sed 's/^id: std-two/id: std-three/; s/kept in the order you put them in/another meaning/' "$L/std-two.md" >"$L/std-three.md"
 one_ask panel3 10; printf '3\tpanel3\tstd-three\n' >>"$L/days.tsv"; refused "std-three: list means another thing in std-two"
 
+case_ "standard 2's page (sb02b): one offline file, every section in order, keycaps, step pictures, both moods measured"
+fresh2; swap "$L/std-two.md" '```picture
+books -> [ 0 | 1 | 2 ]' '```picture
+<svg viewBox="0 0 40 8"><rect class="line" width="8" height="8"/><rect class="line" x="16" width="8" height="8" data-step="1"/></svg>'
+page=$(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1] + "/lib"); import lessons, lessonpage
+c = lessons.load(sys.argv[2]); print(lessonpage.render(c["lessons"]["std-two"], open(sys.argv[3]).read()))' \
+  "$REPO" "$L" "$REPO/configs/home/.local/share/fedokawaii/learn/lesson.css")
+order=$(grep -o '<section class="[a-z]*"' <<<"$page" | cut -d'"' -f2 | tr '\n' ' ')
+eq "$order" "remember example idea exercise check behind mistakes quiz next checked " "the standard's order"
+has "$page" "<kbd><span>super</span><span>U</span></kbd>" "[[Super+U]] is the panel's keycaps"
+has "$page" '<figure class="steps" tabindex="0"><svg' "a picture with data-step advances on a click or a key"
+has "$page" "prefers-color-scheme: dark" "both moods in one page"
+has "$page" "prefers-reduced-motion: reduce" "reduced motion honoured"
+has "$page" "max-width:66ch" "a 66-character column"
+lacks "$page" "http://" "nothing fetched: the only addresses are the checked docs' links"
+lacks "$page" "<link" "no stylesheet from elsewhere"
+out=$(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1] + "/lib"); import lessons, lessonpage
+try: lessonpage.render(lessons.load(sys.argv[2])["lessons"]["panel"], "")
+except ValueError as e: print(e)' "$REPO" "$L")
+eq "$out" "panel: only a standard-2 lesson has a page" "a standard-1 lesson has no page"
+out=$(python3 -B -c 'import importlib.util as u, sys; s = u.spec_from_file_location("t", sys.argv[1] + "/tools/build-themes.py")
+m = u.module_from_spec(s); s.loader.exec_module(m)
+print(min(m.contrast(p[f], p[b]) / n for p in m.P.values() for f, b, n in m.LESSON_PAIRS) >= 1, round(m.contrast("000000", "ffffff"), 1))' "$REPO")
+eq "$out" "True 21.0" "every text pair WCAG AA in both moods (the build stops below it)"
+
 case_ "the record: dated lines, the first date kept, what cannot be read passed over, an old id uncounted"
 out=$(python3 -B -c 'import sys; sys.path.insert(0, sys.argv[1] + "/lib"); import lessons
 p = sys.argv[2] + "/state/days"; lessons.add_record(p, "a", "2026-11-08"); lessons.add_record(p, "b", "2026-11-09")
