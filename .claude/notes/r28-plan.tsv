@@ -92,9 +92,9 @@ sa03	Sat 7	done	Part 1 lessons: updates, snapshots, backups, keeping it healthy	
 sa04	Sat 7	done	Part 1 lessons: ASOBI, Helium used efficiently (a short chapter)	Sat 7 Nov 12:07	7 Part 1 lessons (days 29-33, 45, 46: asobi-first-look, asobi-daily-use, helium-keys, helium-search-tabs, helium-extensions-privacy, helium-reading-mode, asobi-review) in wip/; all parse, proofs exit 0	sonnet
 tr2	Fri 6	done	set T, Transparency, still, dark and light: n 0 today, n 1 the new value on the same real screen, for the next pack (S7)	Sat 7 Nov 12:09	set T stills in img/hi T-0/T-1 dark+light and t1-transparency.jpg: today is 0.96 (so +6 to 8 would be opaque): n 1 is 0.99; tr1 sets that value	sonnet
 sa05	Sat 7	done	Part 2 lessons: Python, first steps, tiny steps with repetition	Sat 7 Nov 12:11	12 Part 2 lessons (days 1-12: first-print to review-1) in wip/; each parses, fails before its steps and passes after, replayed in an empty dojo	sonnet
-sa06	Sat 7	now	Part 2 lessons: Python, functions, files, errors			sonnet
+sa06	Sat 7	done	Part 2 lessons: Python, functions, files, errors	Sat 7 Nov 12:12	11 Part 2 lessons (days 13-23: functions to small-project) in wip/; debugging-method (day 24) is left to sa07	sonnet
 m10	Fri 6	todo	the pack: picker.json sets a, b, P1, P5 (0 and 4 to 7, "measured" per motion), P4 n 4, c-2; a, b, P1, P5 options 1 to 3 and decided sets cleared; hi/ 90 MB at most; seen in the pulse (S4, S5)		before the lock pack	sonnet
-sa07	Sat 7	todo	Part 2 lessons: debugging, the important one			sonnet
+sa07	Sat 7	now	Part 2 lessons: debugging, the important one			sonnet
 sa08	Sat 7	todo	Part 2 lessons: git properly			sonnet
 l4b	Fri 6	done	the lock pack again (S2): set L by l4's note (keep the marks row at 243 as l3 proved it, or widen ROW); motion by m1 where it fits; picker.json; seen in the pulse	Sat 7 Nov 11:38	done by l4 (S2): the pack delivered, m1 step-clock not used: the real lock at real speed is the point	opus
 sa09	Sat 7	todo	Part 2 lessons: testing, deployment basics, basic security, reading docs			sonnet
