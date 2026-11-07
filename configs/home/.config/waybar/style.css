@@ -9,9 +9,9 @@
      the torii               a vermilion tile at the left end (lit: the brighter vermilion)
      the gear                quick settings' brass gear on its tile, turning while they are open
      the head                the mood's on the paper of the right end's tile
-     the workspaces          a tile each: its numeral (10 × 10) faint while empty, the text's
+     the workspaces          a tile each: its numeral (16 × 16) faint while empty, the text's
                              ink while it holds windows, asagi while it asks for you; the one
-                             you are on stamped with the round vermilion seal (16 px), its
+                             you are on stamped with the round vermilion seal (26 px), its
                              numeral Black, wholly inside it
      the layout, the title   one tile: the layout's mark, 10 px, the window's name
      the clock               mounted as a hanging scroll: brocade bands on rods with turned
@@ -113,16 +113,16 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 @keyframes kawa-gear { from { background-position: 9px 7px, 0 0; } to { background-position: 8px -153px, 0 0; } }
 
 /* ── the workspaces ─────────────────────────────────────────────────────────────────── */
-.tag { color: @faint; padding-right: 10px; }   /* (the numerals: 10 × 10, no air of their own) */
+.tag { color: @faint; padding-right: 10px; }   /* (the numerals: 16 × 16, no air of their own) */
 #custom-tag1 { margin-left: 11px; }
 .tag.occupied { color: @text; }
 .tag.urgent   { color: @asagi; }
-/* where you are: the seal centred on the numeral (its ink on the paper's columns 10–19, the
-   seal's 16 on 7–22, on the paper's middle: 7 rows above and below it), the numeral on it in Black */
+/* where you are: the seal centred on the numeral (its ink on the paper's columns 10–25, the
+   seal's 26 on 5–30: 5 of paper either side; on the paper's middle, rows 2–27), the numeral on it in Black */
 .tag.selected {
   color: @seal-ink;
   background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
-  background-position: 6px 7px, 0 0;
+  background-position: 4px 2px, 0 0;
   background-repeat: no-repeat, repeat;
   animation: kawa-stamp 60ms steps(1, start);
 }
@@ -132,9 +132,9 @@ button, button:hover, button:active, button:checked { background: none; box-shad
    state held to the end — measured, 606 ms at 600; steps(1, end) jumped after one frame) */
 @keyframes kawa-stamp {
   from { background-image: url("../fedokawaii/current/kami-seal-thump.png"), url("../fedokawaii/current/kami-fibre.png");
-         background-position: 5px 6px, 0 0; }
+         background-position: 3px 1px, 0 0; }
   to   { background-image: url("../fedokawaii/current/kami-seal.png"), url("../fedokawaii/current/kami-fibre.png");
-         background-position: 6px 7px, 0 0; }
+         background-position: 4px 2px, 0 0; }
 }
 
 /* ── the layout's mark and the window's name: one tile ─────────────────────────────── */

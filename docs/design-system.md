@@ -229,7 +229,7 @@ screen and the bar's paper share one rhythm.
 | instrument | 2 rows | 40 cells of meter | a level (§4): a picture 32 wide in the first columns, its name and number, the meter (318 px) on the second row, from x 50 of the content to its right inset |
 | masthead | 2 rows | — | quick settings' title plate: the content's width, `key` paper in a 1 px `edge2` frame, its corners out, a lip under it; the mood's head centred on x 24 (32 or 48 px), the name and a quiet line at x 50; its right end the mood's pattern, 224 × 38, dissolving toward the words; 7 px of air under the lip |
 | seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
-| stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
+| stamp | 26 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 16 × 16 inside (thump 28) |
 | app icon | 16 × 16 | — | the launcher's: an app's own icon at its native 16 px, centred in the row |
 | bar | 39 | — | 4 air, hairline, 30 paper, hairline, 2 shadow, 1 air (the clock's finials: rows 1–38) (§8) |
 | window gap | 8 | 1 | 8 px between hairlines: window and window, window and the screen's edge, the bar and a window (the windows' tops on y 44) |
@@ -326,8 +326,8 @@ screen and the bar's paper share one rhythm.
 - **The timer**: the hourglass in the heading alone. While one runs, under it, alive, each second: a timer's sand bar (`sand`,
   running out) and its time, a stopwatch's picture and its time. Then the lengths, aligned, no icons, the unit `muted`, each
   with its key (1–5); the stopwatch with its own picture (s); cancel while one runs (c).
-- **Stamp** (the bar's workspace seal): a round vermilion seal 16 px across, clean-edged, its
-  numeral (一 to 九, drawn 10 × 10 for it) in Black, wholly inside the circle.
+- **Stamp** (the bar's workspace seal): a round vermilion seal 26 px across (28 as it lands), clean-edged, its
+  numeral (一 to 九, drawn 16 × 16 for it) in Black, wholly inside the circle.
 - **Chosen** (one of several: an output, a mode): a vermilion dot, 6 px round, in the row's
   value column — the hanko's mark.
 - **Tooltip**: a panel one row high on the solid `surface`, pad 8, words only (the bar's: GTK's

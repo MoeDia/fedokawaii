@@ -219,9 +219,9 @@ def kami_fibre(m, fill, s=1):
     return png(12 * s, 7 * s, _scaled(c, s))
 
 
-def kami_seal(m, d=16, ink=None):
+def kami_seal(m, d=26, ink=None):
     """The seal of the workspace you are on (§4 Stamp): vermilion, round, clean-edged, d px
-    across — style.css lays it on the paper centred on the numeral (10 × 10, Black, wholly
+    across — style.css lays it on the paper centred on the numeral (16 × 16, Black, wholly
     inside it). Its thump as it lands on a new workspace (§11 the stamp): a pixel larger all
     round, d + 2, in accent_hi, for the stamp's 60 ms (kami-seal-thump.png)."""
     k = KAMI[m]
@@ -498,7 +498,7 @@ def ornaments(m, p):
         "kami-fibre.png": kami_fibre(m, fill),
         "kami-tip.png": kami_tip(m, p["surface"]),
         "kami-seal.png": kami_seal(m),
-        "kami-seal-thump.png": kami_seal(m, 18, p["accent_hi"]),
+        "kami-seal-thump.png": kami_seal(m, 28, p["accent_hi"]),
         **{f"sky-{n}.png": sky(m, p, a) for n, a in SKY.items()},
         "kami-scroll.png": kami_knob(m, fill, p),
         # the lock and login screens' scroll (sliced 12 16 12 16), until T20 draws them anew

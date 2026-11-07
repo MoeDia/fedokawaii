@@ -161,9 +161,9 @@ for th in ("dark", "light"):
                 and a(w - 1, 6) == s2 and not a(w - 1, 5)[3]):
             bad.append(f"{th}/{n}: not §4's shadow (two rows, the second a pixel further right; the column from the hairline's second row)")
     seal = Image.open(T + th + "/kami-seal.png").convert("RGBA")
-    want(f"{th}/kami-seal.png: its size", seal.size, (16, 16))
+    want(f"{th}/kami-seal.png: its size", seal.size, (26, 26))
     thump = Image.open(T + th + "/kami-seal-thump.png").convert("RGBA")
-    want(f"{th}/kami-seal-thump.png: a pixel larger all round", thump.size, (18, 18))
+    want(f"{th}/kami-seal-thump.png: a pixel larger all round", thump.size, (28, 28))
     lit = Image.open(T + th + "/kami-red-lit.png").convert("RGBA").getpixel((1, 10))   # (accent_hi: the lit tile's fill)
     want(f"{th}/kami-seal-thump.png: one ink, the lit vermilion", sorted(c for _, c in thump.getcolors() if c[3]), [lit])
     for old in ("kami-seal-narrow.png", "washi.png", "hems.png", "seam.png", "cell-bare-36.png", "clock.png", "stitch.png", "hem.png"):
@@ -219,15 +219,15 @@ want("the mark → the name", IR("spiral") + box("#custom-layout")[0][1] + box("
 for n in (1, 2, 3):
     want(f"#custom-title.l{n}: the mark → its ink", IR("spiral") + box("#custom-layout")[0][1] + box(f"#custom-title.l{n}")[0][3] + n, PAD)
     want(f"#custom-title.r{n}: its ink → the paper", n + box(f"#custom-title.r{n}")[0][1], PAD)
-# the stamp: its seal 16 px laid 4 7 into the padding box — centred on the numeral's 10 × 10
-# (the numeral 8 px into the paper: the padding box starts one column in), on the paper's
-# middle (7 rows above and below it; the seal 26 is sa25d2b's)
+# the stamp: its seal 26 px laid 4 2 into the padding box — centred on the numeral's 16 × 16
+# (the numeral 10 px into the paper: the padding box starts one column in), on the paper's
+# middle (2 rows above and below it)
 p_ = box("#custom-tag1")[0]
 sp = box(".tag.selected")[3].get("background-position", "").split(",")[0].split()
 sx, sy = px(sp[0]), px(sp[1])
-want("the seal across: centred on the numeral", (1 + sx) + 8, 1 + p_[3] + IL("ws-1") + 5)
-want("the seal down: rows 12–27 (7 of paper above it)", 5 + sy, 12)
-# its thump as it lands (§11 the stamp): 18 px laid a pixel up and left — the same middle, rows 11–28
+want("the seal across: centred on the numeral", (1 + sx) + 13, 1 + p_[3] + IL("ws-1") + 8)
+want("the seal down: rows 7–32 (2 of paper above and below it)", 5 + sy, 7)
+# its thump as it lands (§11 the stamp): 28 px laid a pixel up and left — the same middle, rows 6–33
 kf = re.search(r"@keyframes kawa-stamp \{\s*from\s+\{([^}]*)\}\s*to\s+\{([^}]*)\}", css)
 fr = kf and re.search(r"background-position: *([0-9]+)px ([0-9]+)px", kf.group(1))
 want("the thump: kami-seal-thump.png, a pixel up and left of the seal", bool(kf) and "kami-seal-thump.png" in kf.group(1)
