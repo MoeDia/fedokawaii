@@ -81,8 +81,10 @@ case_ "the mark: the percent of all, bytes over bytes (no count, no sizes); the 
 world; dl Hades 400 1600
 I=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_BAR_DL_0")   # (at rest: the arrow's first frame)
 F=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_DL_FILL_5")   # (25 %: five steps of the tray's fill)
-T=$(sed -n 's/^C_TEAL=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
-eq "$(mark)" '{"text": "<span color='"'#$T'"'>'"$F"'</span>'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
+T=$(sed -n 's/^C_HP_HI=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
+H=$(sed -n 's/^C_HP=\([0-9a-f]*\).*/\1/p' "$HOME/.config/fedokawaii/current/colors.sh")
+F4=$(. "$HOME/.config/fedokawaii/icons.sh"; printf %s "$ICON_DL_FILL_4")
+eq "$(mark)" '{"text": "<span color='"'#$T'"'>'"$F"'</span><span color='"'#$H'"'>'"$F4"'</span>'"$I"'25<span fgalpha='"'"'55%'"'"'>%</span>", "class": "downloading"}'
 : >"$D/a.crdownload"
 out=$(mark); has "$out" "$I""25<span"; lacks "$out" count
 sleep 600 & job=$!; on_exit "kill $job 2>/dev/null"; mkdir -p "$XDG_RUNTIME_DIR/kawa-downloads"
@@ -101,21 +103,21 @@ has "$(mark)" '"active"'
 printf '%s kawa-weather\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"; lacks "$(mark)" '"active"' "another script's menu: not lit"
 rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
 
-case_ "the percent inside the mark: its tray filled from the left, 5 % a step (dl_fill_N, no advance, before the mark) in a meter's inks — asagi, the 17th–18th step flame, the 19th–20th the accent; none under 5 %; strong while lit"
+case_ "the percent inside the mark: its tray filled from the left, 5 % a step (dl_fill_N, no advance, before the mark) in tairyoku's inks — its front column hp_hi under the body's whole columns in hp, no fire; none under 5 %; strong while lit"
 fills() { python3 -I -c 'import json, re, sys
 t = json.loads(sys.stdin.read())["text"]
 print(" ".join(f"{c}:{ord(g):X}" for c, g in re.findall(r"<span color=.#([0-9a-f]+).>(.)</span>", t)) or "none")'; }
 code() { (. "$HOME/.config/fedokawaii/icons.sh"; v=ICON_DL_FILL_$1; printf '%X' "'${!v}"); }
 col() { sed -n "s/^$1=\([0-9a-f]*\).*/\1/p" "$HOME/.config/fedokawaii/current/colors.sh"; }
-world; T=$(col C_TEAL) FL=$(col C_FLAME) A=$(col C_ACCENT) S=$(col C_STRONG)
-[[ -n $FL ]] && _ok || _no "no C_FLAME in colors.sh"
+world; T=$(col C_HP_HI) H=$(col C_HP) S=$(col C_STRONG)
+[[ -n $T && -n $H ]] && _ok || _no "no C_HP, C_HP_HI in colors.sh"
 world; dl Hades 40 1600; eq "$(mark | fills)" none "2 %: no fill yet"
-world; dl Hades 80 1600; eq "$(mark | fills)" "$T:$(code 1)" "5 %: the first step (the first column's bottom pixel)"
-world; dl Hades 1000 1600; eq "$(mark | fills)" "$T:$(code 12)" "62 %: twelve steps"
-world; dl Hades 1280 1600; eq "$(mark | fills)" "$T:$(code 16)" "80 %: sixteen, all asagi"
-world; dl Hades 1360 1600; eq "$(mark | fills)" "$FL:$(code 17) $T:$(code 16)" "85 %: the flame beneath, asagi over it"
-world; dl Hades 1599 1600; eq "$(mark | fills)" "$A:$(code 19) $FL:$(code 18) $T:$(code 16)" "99 %: one short of full, its last column the accent's"
-world; dl Hades 1600 1600; eq "$(mark | fills)" "$A:$(code 20) $FL:$(code 18) $T:$(code 16)" "100 %: all twenty"
+world; dl Hades 80 1600; eq "$(mark | fills)" "$T:$(code 1)" "5 %: the first step (the first column's bottom pixel), the front"
+world; dl Hades 160 1600; eq "$(mark | fills)" "$T:$(code 2)" "10 %: one column, all front"
+world; dl Hades 240 1600; eq "$(mark | fills)" "$T:$(code 3) $H:$(code 2)" "15 %: the body's first column, the front's bottom pixel"
+world; dl Hades 1000 1600; eq "$(mark | fills)" "$T:$(code 12) $H:$(code 10)" "62 %: twelve steps, the sixth column the front"
+world; dl Hades 1360 1600; eq "$(mark | fills)" "$T:$(code 17) $H:$(code 16)" "85 %: no fire (nearly done is no danger)"
+world; dl Hades 1600 1600; eq "$(mark | fills)" "$T:$(code 20) $H:$(code 18)" "100 %: all twenty"
 world; dl Hades 1000 1600; sleep 600 & p=$!; on_exit "kill $p 2>/dev/null"
 printf '%s kawa-downloads\n' "$p" >"$XDG_RUNTIME_DIR/kawa-drop.open"; eq "$(mark | fills)" "$S:$(code 12)" "lit (its icon teal): the fill strong"
 rm -f "$XDG_RUNTIME_DIR/kawa-drop.open"
@@ -129,7 +131,7 @@ kawa-downloads bar --follow >"$TMP/follow" & f=$!; on_exit "kill $f 2>/dev/null"
 sleep 1.2
 n=$(grep -c . "$TMP/follow"); ((n >= 7 && n <= 12)) && _ok || _no "$n lines in 1.2 s (8 a second: about 9)"
 frames=$(python3 -I -c 'import json, re, sys
-for l in open(sys.argv[1]): print(re.sub(r"^<span [^>]*>.</span>", "", json.loads(l)["text"])[0])' "$TMP/follow" | sort -u | wc -l)
+for l in open(sys.argv[1]): print(re.sub(r"^(<span [^>]*>.</span>)*", "", json.loads(l)["text"])[0])' "$TMP/follow" | sort -u | wc -l)
 eq "$frames" 6 "all six frames shown (the arrow after the tray's fill)"
 has "$(head -n1 "$TMP/follow")" "$ICON_BAR_DL_0""25<span" "the first at rest, then the percent"
 case_ "…the files looked at every 2 s while moving (not 8 times a second): the percent follows"

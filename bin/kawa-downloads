@@ -260,16 +260,16 @@ def bar_json(items, ic, frame=0, lit=False):
     """The mark: its frame (0: at rest), the percent after it, "active" while its menu is open.
     The percent is drawn in the mark too: its tray fills from the left (dl_fill_N, 5 % a step:
     a column's bottom pixel, then its top), laid before the mark with no advance of its own — in
-    a meter's inks (design-system: asagi; the 17th–18th step flame, the 19th–20th accent, so its
-    last columns redden), each laid over the one before; in strong while the tile is lit (its
-    icon is teal then)."""
+    tairyoku's inks (design-system §3's meter: the fill hp, its front column hp_hi; no fire, a
+    download nearly done is no danger), the body laid over the front; in strong while the tile is
+    lit (its icon is teal then)."""
     if not items:
         return '{"text":""}'
     p = percent(items)
     n = min(20, p // 5) if p else 0
     c, under = inks() if n else {}, ""
-    # (the last steps first: asagi lies over the flame, the flame over the accent)
-    for name, last in [("C_STRONG", n)] if lit else [("C_ACCENT", n)] * (n > 18) + [("C_FLAME", min(n, 18))] * (n > 16) + [("C_TEAL", min(n, 16))]:
+    # (the front first: the body's whole columns, two steps each, lie over it)
+    for name, last in [("C_STRONG", n)] if lit else [("C_HP_HI", n)] + [("C_HP", (n - 1) // 2 * 2)] * (n > 2):
         if n and c.get(name) and ic.get(f"dl_fill_{last}"):
             under += f"<span color='#{c[name]}'>{ic[f'dl_fill_{last}']}</span>"
     # (icons.sh's bar_dl_N, no space, before a value: exactly 8 px from its ink to the value's)

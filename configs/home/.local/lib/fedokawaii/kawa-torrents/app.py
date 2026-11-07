@@ -17,7 +17,7 @@ import time
 
 import common
 from common import cells, cut, duration, eta, pad, reading, size, speed
-from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, MUTED, ON_SELECT, SELECT, STRONG, Term
+from term import ACCENT, ACCENT_TEXT, EDGE, EDGE2, FAINT, HP, HP_HI, MUTED, ON_SELECT, SELECT, STRONG, Term
 
 ANIM = 0.125                                       # 8 a second: the moving icons (design-system §13)
 PANE_MIN = 132                                     # columns from which the details stand beside the list
@@ -659,13 +659,16 @@ class App:
         return self.icon("READ_OFF" if level <= 0 else "READ" if level >= 8 else f"READ_{level}")
 
     def meter(self, fraction, inks):
-        """Ten segments: those done solid, the next part-way (its inside coming in as a dissolve does), the rest hollow."""
+        """Ten segments: those done solid, the next part-way (its inside coming in as a dissolve does), the rest hollow.
+        inks: the body, the hollow, and the front (tairyoku's lit front: the part-way one, else the last solid)."""
         tenths = max(0.0, min(1.0, fraction)) * 10
         done = int(tenths)
-        spans = [(self.segment(8) * done, inks[0])]
+        part = int((tenths - done) * 8) if done < 10 else 0
+        front = inks[2 if len(inks) > 2 else 0]
+        lead = done - (not part and done > 0)       # (whole segments in the body; the front one apart)
+        spans = [(self.segment(8) * lead, inks[0])] + [(self.segment(8), front)] * (lead < done)
         if done < 10:
-            part = int((tenths - done) * 8)
-            spans.append((self.segment(part), inks[0] if part else inks[1]))
+            spans.append((self.segment(part), front if part else inks[1]))
             spans.append((self.segment(0) * (9 - done), inks[1]))
         return spans
 
@@ -779,7 +782,7 @@ class App:
         for v in vals:
             spans.append("  ")
             if v[0] == "METER":
-                spans += self.meter(v[1], (MUTED, EDGE2) if r["word"] == "paused" else (ACCENT_TEXT, EDGE2))
+                spans += self.meter(v[1], (MUTED, EDGE2) if r["word"] == "paused" else (HP, EDGE2, HP_HI))
             else:
                 spans.append(v)
         return spans

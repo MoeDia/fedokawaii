@@ -308,6 +308,9 @@ screen and the bar's paper share one rhythm.
   2 px at the top and the foot of the trough: `hp_rim` where unlit, `hp_trough` where the fill passes. Muted: the fill hollow (its top and
   foot rows only). The cursor's tint changes no ink of it. A click or a drag anywhere on it sets the smallest level that lights the pixel under the
   pointer (the brass: 0 or 100). The level display (kawa-osd) draws the same bar to the pixel.
+  Where a meter is glyphs, not pixels, it keeps tairyoku's inks without the brass: the downloads mark's tray in the bar
+  (`C_HP`, its front column `C_HP_HI`) and the ten cells of a text screen's meter (Super+R's books, torrents: foot's 34 the
+  fill, 35 the front cell, 19 `edge2` the hollow). Progress never takes the fire: nearly done is no danger.
 - **The sound panel**: sound — the level as quick settings has it, mute and the mixer as rows with their keys (m, x) ·
   output and input — a row a device under its own short name and picture (a screen, a jack, headphones, a microphone),
   the one in use with the hanko's dot · at the input's foot mute microphone and test mic (n, t).

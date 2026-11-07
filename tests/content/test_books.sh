@@ -80,13 +80,13 @@ times() { local s="" i; for ((i = 0; i < $2; i++)); do s+=$1; done; printf '%s' 
 case_ "reading: page and total, a meter in tenths (read solid, to read hollow: the shapes say it on the cursor's row too), read today"
 r=$(row "Reading Now.pdf")
 has "$(field 2 <<<"$r" | plain)" "$(times "$ICON_READ" 7)$(times "$ICON_READ_OFF" 3)     87/120"
-has "$(field 2 <<<"$r")" $'\e[38;5;20m'"$ICON_READ" "read: accent_text"; has "$(field 2 <<<"$r")" $'\e[38;5;19m'"$ICON_READ_OFF" "to read: edge2"
+has "$(field 2 <<<"$r")" $'\e[38;5;34m'"$(times "$ICON_READ" 6)"$'\e[38;5;35m'"$ICON_READ"$'\e[38;5;19m' "read: tairyoku's fill (34), its front tenth lit (35)"; has "$(field 2 <<<"$r")" $'\e[38;5;19m'"$ICON_READ_OFF" "to read: edge2"
 eq "$(field 3 <<<"$r")" "read today" "when (the page is the list's)"
 eq "$(field 4 <<<"$r")" "pdf · 25.4 KB" "the caption: no page count, the list's 87/120 says it"
 eq "$(field 5 <<<"$r")" "" "found by its own path: zathura opens it where it was"
 case_ "finished: 'done', a full meter in muted, when"
 r=$(row "Done Book.pdf")
-has "$(field 2 <<<"$r" | plain)" "$(times "$ICON_READ" 10)       done"; has "$(field 2 <<<"$r")" $'\e[38;5;21m'"$ICON_READ"
+has "$(field 2 <<<"$r" | plain)" "$(times "$ICON_READ" 10)       done"; has "$(field 2 <<<"$r")" $'\e[38;5;21m'"$(times "$ICON_READ" 10)"$'\e[38;5;19m'
 eq "$(field 3 <<<"$r")" "read 2 weeks ago" "when (done is the list's)"
 case_ "moved since zathura saw it: found by name, the page kept, opened there (field 5)"
 r=$(row "Flow.epub")

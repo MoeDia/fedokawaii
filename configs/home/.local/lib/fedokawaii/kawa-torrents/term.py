@@ -15,6 +15,7 @@ from common import cells
 
 # foot's colours past the sixteen (tools/build-themes.py): docs/design-system.md §1, screen.sh
 ACCENT, EDGE, EDGE2, ACCENT_TEXT, MUTED, FAINT, STRONG, SELECT, ON_SELECT = 16, 18, 19, 20, 21, 22, 23, 24, 25
+HP, HP_HI = 34, 35                   # (tairyoku: a meter's fill and its front, foot.ini)
 
 _SEQ = re.compile(rb"\x1b\[([?<>=]?)([0-9;:]*)([ -/]*)([@-~])")
 _KEYS = {b"A": "up", b"B": "down", b"C": "right", b"D": "left", b"H": "home", b"F": "end", b"Z": "shift-tab"}

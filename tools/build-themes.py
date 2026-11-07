@@ -67,8 +67,9 @@ def colors_sh(m, p):
              "# shellcheck shell=bash disable=SC2034",
              f"THEME={m}"]
     lines += [f"C_{k.upper()}={p[k]}" for k in keys]
-    lines.append(f"C_TEAL={p['asagi']}   # asagi: the level display")
-    lines.append(f"C_FLAME={p['flame']}   # a meter over 80 %")
+    hp = hp_inks(m, p)   # (tairyoku's body and its lit front: the bar's download mark)
+    lines.append(f"C_HP={hp[0]}   # tairyoku, a meter's fill")
+    lines.append(f"C_HP_HI={hp[1]}   # tairyoku, its front column")
     wing = " ".join(_mixc(p["accent_lo"], p["accent"], i / 9) for i in range(10))
     lines.append(f'C_WING="{wing}"   # the music meter (the clock\'s wings): 1 … 10 px, accent_lo rising to accent')
     lines.append(f'C_ANSI="{" ".join(ansi(p))}"   # the 16 terminal colours (theme.sh: console palette)')
@@ -557,6 +558,8 @@ def foot_block():
         # 33 the hairline of what floats (§4: dark, text at 50 %; light, strong at 84 %), for a frame a text
         # screen draws itself: the ring of yazi's pop-ups (the patched yazi, its theme.toml)
         out += [f"33={_mixc(p['ground'], p['text'], 0.5) if m == 'dark' else _mixc(p['ground'], p['strong'], 0.84)}"]
+        # 34, 35: tairyoku's fill and its front (§3's meter) for a text screen's meters (Super+R's books, torrents)
+        out += [f"34={hp_inks(m, p)[0]}", f"35={hp_inks(m, p)[1]}"]
     out.append("# <<< colours")
     return "\n".join(out)
 

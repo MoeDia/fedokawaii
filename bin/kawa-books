@@ -152,6 +152,7 @@ def size(n):
 
 # screen.sh's inks (foot's colours past the sixteen): accent_text, muted, edge2, the words' own
 K, G, E, O = "\033[38;5;20m", "\033[38;5;21m", "\033[38;5;19m", "\033[0m"
+HP, HP_HI = "\033[38;5;34m", "\033[38;5;35m"    # (tairyoku's fill and its front: foot's 34, 35)
 glyph = f" {G}{os.environ['ICON_BOOK']}{O}  "       # (a row, §7: a column in, the glyph, two columns)
 LIT, OFF = os.environ["ICON_READ"], os.environ["ICON_READ_OFF"]   # (a tenth each: solid, hollow)
 rows = []
@@ -170,7 +171,8 @@ for path, kind in found:
         # the meter: how much is read, in tenths — at least one once begun (a book without a
         # page count shows just that one: begun, how far unknown); a done book's all ten, muted
         n = 10 if done else max(round(10 * page / pages) if pages else 1, 1)
-        bar = (G if done else K) + LIT * n + E + OFF * (10 - n) + O
+        # (tairyoku's inks: the body, its front tenth lit; a done book's all muted)
+        bar = (G + LIT * n if done else HP + LIT * (n - 1) + HP_HI + LIT) + E + OFF * (10 - n) + O
         # where you are, one way for every book: "87/120" — "37/–" where the book has no
         # fixed pages (an EPUB's depend on the window); "done"
         mark = "done" if done else (f"{page}/{pages}" if pages else f"{page}/–")
