@@ -40,7 +40,7 @@ stills() {
   power_play
   # the mocks' words and the throw-away prompt font
   python3 -B "$here/prompt-options.py" gen "$W/prompt"
-  pdftoppm -f 1 -l 1 -singlefile -png -r 72 "$repo/docs/Fedokawaii-Learn.pdf" "$W/cover"
+  pdftoppm -f 1 -l 1 -singlefile -png -r 72 <(magick -size 595x842 xc:white pdf:-) "$W/cover"
   local m n f o
   for m in dark light; do
     kit --theme "$m" --wall "$W/wall-$m.png" --out "$W/$m" --time 150 --play "$W/power.sh" bar play || return 1

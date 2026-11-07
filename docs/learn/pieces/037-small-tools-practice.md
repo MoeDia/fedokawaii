@@ -17,8 +17,8 @@ in VisiData, sort by amount, and find the total (on the amount column: **z+** th
 
 *Expected:* one number: neovim's stars on GitHub.
 
-**20.4 ★★ A booklet.** Take pages 1–3 of this guide (`docs/Fedokawaii-Learn.pdf` in your working
-copy) and pages 1–2 of another PDF, merge them into one file, rotate its second page, lock it
+**20.4 ★★ A booklet.** Take pages 1–3 of a PDF you have (any book in `~/books`) and pages 1–2 of another PDF, merge them into one file,
+rotate its second page, lock it
 with a password, and shrink it.
 
 *Expected:* zathura asks for the password; `ls -l` shows the shrunk file smaller.

@@ -214,15 +214,6 @@ assert l.run_check({**c, "in": "g", "run": "true"}, d)["status"] == "no folder"
 ' "$REPO" && _ok || _no "the checks"
 case_ "the design's page: the stamp's inks are the mood's own"
 has "$(cat "$REPO/bin/kawa-learn")" '"accent_hi" if hot else "accent" if done else "edge2"'
-case_ "the cover: the book's first page, full bleed, the picture alone, and no words of the old cover's; the other pages untouched in number; the pane's small one its shape"
-pdf=$REPO/docs/Fedokawaii-Learn.pdf
-eq "$(identify -format '%wx%h' "$REPO/docs/learn/cover.jpg")" "1654x2340"; eq "$(identify -format '%wx%h' "$REPO/docs/learn/cover-thumb.png")" "336x475"
-eq "$(pdftotext -f 1 -l 1 "$pdf" - | tr -d '[:space:]')" "" "page 1 has no words of its own"
-eq "$(pdfimages -f 1 -l 1 -list "$pdf" | awk 'NR>2{print $4"x"$5}')" "1654x2340" "page 1 is that picture"
-eq "$(pdfinfo "$pdf" | awk '/^Title/{$1="";print}' | sed 's/^ *//')" "Fedokawaii — learn"
-[[ $(pdfinfo -f 1 -l 2 "$pdf" | awk '/^Page +[12] size/{print $4 "x" $6}' | sort -u | wc -l) == 1 ]] && _ok || _no "the cover's page is not the book's size"
-grep -q "docs/learn/cover.jpg" "$REPO/docs/build/handbook.py" && _ok || _no "a rebuild of the book would lose the cover"
-grep -q "FEDOKAWAII_COVER\|cover.*ink-ridges-night\|ink-ridges-night.*cover" "$REPO/docs/build/handbook.py" "$REPO/docs/build/README.md" && _no "the old cover is still named" || _ok
 case_ "ten seconds of anything: keys, the mouse, sizes from one cell to the whole screen — no Traceback"
 out=$(pty 118x40 '!fuzz' 10 "$RANDOM" 2>&1); r=$?; ((r == 0)) && _ok || _no "exit $r: ${out: -600}"
 

@@ -55,7 +55,7 @@ D=$HOME/demo/fedokawaii; mkdir -p "$D"/{art/masters,bin,configs,docs,lib,src/dwl
 ( cd "$D" || exit
   for i in 1 2 3 4 5 6; do echo x >art/$i.txt; done; echo x >art/masters/a
   for f in kawa-bar kawa-calc kawa-books kawa-menu kawa-panel; do printf '#!/bin/sh\n' >bin/$f; chmod +x bin/$f; done
-  head -c 3000 /dev/urandom >docs/guide.pdf; cp "$REPO/docs/Fedokawaii-Learn.pdf" docs/learn.pdf; echo hello >.gitignore; echo x >.shellcheckrc
+  head -c 3000 /dev/urandom >docs/guide.pdf; magick -size 595x842 xc:white docs/learn.pdf; echo hello >.gitignore; echo x >.shellcheckrc
   head -c 40000 /dev/urandom >blob.bin; : >empty.txt; printf '#!/bin/sh\necho hi\n' >setup.sh; chmod +x setup.sh
   cp "$REPO/README.md" README.md; cp "$REPO/CLAUDE.md" CLAUDE.md; cp "$REPO/fedokawaii.conf" fedokawaii.conf; cp "$REPO/theme.sh" theme.sh
   printf 'x' >"a file with a rather long name that goes on and on and on and on and on and on and on and on and on and on and on.txt"

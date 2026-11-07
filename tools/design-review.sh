@@ -89,7 +89,7 @@ nap 3; shot saver
 key space; nap 1.2; shot lock
 text "ab"; nap 0.3; shot lock-typed
 PLAY
-cp "$repo/docs/Fedokawaii-Learn.pdf" "$W/book.pdf"
+magick -size 595x842 xc:white "$W/book.pdf"
 sed -i "1i PACK=$W" "$W/desk.sh"
 sed -i "1i PACK=$W REAL=$HOME" "$W/surf.sh"
 sed -i "1i REAL=$HOME" "$W/lock.sh"

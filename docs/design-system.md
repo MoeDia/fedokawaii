@@ -691,26 +691,10 @@ the tiles of a group, 12 px between groups.
 
 ## 10. The books and the Learn pieces
 
-The Learn book has two forms from one source (`docs/fedokawaii-learn.md`): the lessons, its pieces in the
-order that teaches best (`docs/learn/syllabus.txt`; cut by `tools/learn-pieces.py`; §7 the lessons), and its
-PDF (`docs/build/learn.py`), the same parts in print: headings as icon + name + rule, the palette's ink and
-paper, Sumi UI for headings and labels at whole multiples, tables ruled with the solid rule, square corners
-everywhere. Each lesson shows its place (`12 of 259`, stamped ✓). `docs/fedokawaii-guide.md`, the technical
+The Learn book is retired (no PDF, no cover). Its text, `docs/fedokawaii-learn.md`, is the source of the
+lessons: its pieces in the order that teaches best (`docs/learn/syllabus.txt`; cut by `tools/learn-pieces.py`;
+§7 the lessons). Each lesson shows its place (`12 of 259`, stamped ✓). `docs/fedokawaii-guide.md`, the technical
 reference, stays in the repository and has no PDF.
-
-**The cover** (`tools/build-cover.py`, its parts in `art/cover/SOURCES.md`) is the one page with no pixel face: a full-bleed
-engraving, the angel and the demon facing each other across the two moods, Hokusai's wave and sakura between them, the title
-in EB Garamond on a cartouche with the red hanko. Drawn once, for all three places it shows: the book's first page (A4, 200 dpi);
-Super+R's cover pane, where the book is always on the shelf, as the book's own first page; Super+U → learning → lessons, over
-the **Facts**: its left edge on the words' column, its top level with the list's first row, one row of paper under it. It is never
-recoloured for a mood: it holds both.
-
-**The cover** (`tools/build-cover.py`, its parts in `art/cover/SOURCES.md`) is the one page with no pixel face: a full-bleed
-engraving, the angel and the demon facing each other across the two moods, Hokusai's wave and sakura between them, the title
-in EB Garamond on a cartouche with the red hanko. Drawn once, for all three places it shows: the book's first page (A4, 200 dpi);
-Super+R's cover pane, where the book is always on the shelf, as the book's own first page; Super+U → learning → lessons, over
-the **Facts**: its left edge on the words' column, its top level with the list's first row, one row of paper under it. It is never
-recoloured for a mood: it holds both.
 
 ## 11. Motion
 

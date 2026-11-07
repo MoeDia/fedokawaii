@@ -19,7 +19,7 @@ mkdir -p "$KIT_OUT/stub" "$HOME/books" "$HOME/dojo/demo"
 printf '#!/bin/sh\nexit 0\n' >"$KIT_OUT/stub/zathura"; chmod +x "$KIT_OUT/stub/zathura"
 rm -rf "$HOME/.config/yazi"; cp -a "$REPO/configs/home/.config/yazi" "$HOME/.config/yazi"
 cp "$REPO/configs/home/.config/fedokawaii/screen.sh" "$HOME/.config/fedokawaii/screen.sh"
-for b in One Two Three; do cp "$REPO/docs/Fedokawaii-Learn.pdf" "$HOME/books/$b.pdf"; done
+for b in One Two Three; do magick -size 595x842 xc:white "$HOME/books/$b.pdf"; done
 git -C "$HOME/dojo/demo" init -q 2>/dev/null
 panel; nap 0.5
 rec() { wf-recorder -y -c ffv1 -f "$KIT_OUT/$1.mkv" >/dev/null 2>&1 & R=$!; nap 0.8; }

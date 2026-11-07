@@ -913,26 +913,6 @@ explain() {
     return 0
   }
   say() { local l; for l; do printf '   %s%s%s\n' "$G" "$l" "$O"; done; }   # (muted, three columns in)
-  learn_cover() {   # the book's cover (tools/build-cover.py) over the words: as tall as they leave room for, never
-    # the pane's last row (a picture touching it scrolls the window: fzf #2544), its left edge on the words' column.
-    # Drawn once for a cell, a room and a mood's ground, then kept: the pane follows the cursor
-    local pic=$TK/docs/learn/cover-thumb.png cell=${KAWA_CELL:-} room=$(( ${FZF_PREVIEW_LINES:-0} - 3 - 5 )) cw ch h w six C_GROUND=""
-    [[ $cell =~ ^[1-9][0-9]*x[1-9][0-9]*$ && -r $pic ]] && ((room >= 6)) || return 0
-    # shellcheck source=/dev/null
-    . "$HOME/.config/fedokawaii/current/colors.sh" 2>/dev/null
-    cw=${cell%x*} ch=${cell#*x}
-    h=$(( room * ch / 6 * 6 )) w=$(( h * 336 / 475 ))
-    six=$CACHE/learn-cover.$cell.$room.$C_GROUND.$(stat -c %Y -- "$pic").six
-    if [[ ! -s $six ]]; then
-      mkdir -p -- "$CACHE" 2>/dev/null
-      rm -f -- "$CACHE"/learn-cover.*.six 2>/dev/null                   # (another size's, another mood's: one kept)
-      LC_ALL=C magick -size "$(( 3 * cw + w ))x$h" "xc:#$C_GROUND" \( "$pic" -resize "${w}x${h}!" \) -geometry "+$(( 3 * cw ))+0" -composite png:- 2>/dev/null \
-        | kawa-sixel "$C_GROUND" >"$six.$$" && mv -f -- "$six.$$" "$six"
-      rm -f -- "$six.$$"
-    fi
-    [[ -s $six ]] || return 0
-    cat -- "$six"; printf '\n\n'                                         # (the picture leaves the cursor on its last row)
-  }
   learn_rows() {   # the lessons: the day, today's next (its name in pieces at its words, never cut), how long is left
     local d="" t="" nx="" m="" lf="" h l
     IFS=$'\t' read -r d t nx m lf 2>/dev/null <"$LEARN_PLACE"
@@ -1050,7 +1030,7 @@ explain() {
                    "their own, on a screen of their own, your" \
                    "desktop safe behind it. Super+G goes in, and" \
                    "back; only the drop folder is shared." ;;
-    learn)     pick 'running'; learn_cover; learn_rows ;;
+    learn)     pick 'running'; learn_rows ;;
     chess)     pick 'running'
                say "chess from the first move to 1800: a lesson," \
                    "two games with their reviews, ten minutes of" \

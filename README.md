@@ -45,11 +45,11 @@ tools/             generators: build-fonts.py (Sumi UI and Sumi Term → system/
 tests/             the self-tests: every helper, the engine and the installer, edge case by edge
                    case, against stand-ins for the hardware (bash tests/run.sh — see §6)
 docs/              the Learn book (every key and program, Python and Rust from zero to AI, then
-                   working with AI and Claude Code as a professional): fedokawaii-learn.md, its
-                   PDF, and learn/ — the lessons Super+U opens, the book cut into pieces by
+                   working with AI and Claude Code as a professional): fedokawaii-learn.md (the
+                   source of the lessons), and learn/ — the lessons Super+U opens, the book cut into pieces by
                    tools/learn-pieces.py · fedokawaii-guide.md, the full handbook, the technical
-                   reference, in this repository alone · build/ (how the PDF and its real
-                   screenshots were made: docs/build/README.md)
+                   reference, in this repository alone · build/ (how the real
+                   screenshots are made: docs/build/README.md)
 PACKAGES.md        what is installed, from where, and why
 ```
 
