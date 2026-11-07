@@ -107,3 +107,17 @@ The owner (00:49): speed things up a little while spending FEWER tokens. Be smar
 4. Tests: per task, only the checks for what changed; the full suite and a full VM install once a day and before the ISO is cut, not after every task.
 5. Let Claude see the mix: extend ~/.local/bin/r28-track so pulse.md's tokens line also splits output tokens by model (message.model in the transcripts), last 6 hours and since the start (keep its CLI and page working; restart r28-track).
 Everything else stays: S8's balance, commit and push per task, nothing may break.
+
+## S12 2026-11-07 02:45
+The owner's picks and notes from his page (00:47), his words kept:
+- P1 separators: 4 waku. BUT "top bar, notifications, power menu: these places don't need a separator line; use it smartly and avoid it to keep things nicer and more tidy, and be very careful about its thickness, don't make it too thick."
+- Highlights, everywhere: no red background band behind the selected option, and no underline like the one under "status" in Super+U. A selected or highlighted item changes its colour only (as S4 said). "Be careful."
+- The quick-settings menu: "don't forget to give it some love like we discussed before" (round 27's ask), together with the spinning gear (S2).
+- c menus (omori): "the menu and all other similar menus should keep the scroll design even after the open, not switch back to the normal border; it needs to look consistent and legit." The scroll's rods and edges stay for as long as the menu is open, in every menu of that kind.
+- P5's new accents (zeni, bikkuri, shuriken, chochin) are on his page; no pick yet.
+- The lock (l4) is his top design item and has been blocked since Friday evening: retry it with a fresh approach, on opus, before Sunday's ISO work.
+
+## S13 2026-11-07 04:15
+Claude, watching the pulse (Sat 03:44):
+- All four daily rows (dsat, dsun, dmon, dtue) ran back to back on Saturday morning, about two hours each; the ETA slipped from Sun 11:47 to about Sun 22:30. Let dtue finish (do not kill a VM mid-install). Then add one new daily row for each remaining calendar day (Sun 8, Mon 9, Tue 10), each run only on its own day, Dubai time, and never one straight after another; the loop must not pick a daily row before its day. Go on with the plan.
+- S11's model mix is not biting yet: in the last 6 hours opus wrote 275k output tokens, haiku 11k, sonnet 8k. Check that the open rows really carry sonnet or haiku where S11's rules say (most coding, configs, apps, tests and docs are sonnet; sweeps, checks and runs like the daily suite are haiku), and that the loop really passes --model (look at message.model in the latest transcript). Opus stays for design he judges, dwl/C, the lock, the ISO/installer and security.
