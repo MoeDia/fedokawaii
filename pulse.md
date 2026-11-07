@@ -1,16 +1,16 @@
-# round 28 pulse · Sat 07 05:14 (Dubai)
+# round 28 pulse · Sat 07 05:44 (Dubai)
 
-pace: 67/160 done (42%) · time used 29% · ahead 13.1 h · ETA Sun 08 17:42 · left 85 · blocked 1 · owner 7
-alerts: quiet for 97 min; 1 blocked
-run: conductor active · passes 1 (oldest 97 min) · last activity 97 min ago · commits since start 91 · hold False
-machine: load 0.26 0.46 0.79/12 · mem free 23.4 GB · disk free 623 GB · up 29.0 h · cpu tccd1 35° · cpu tctl 50° · gpu edge 37° · gpu junction 32° · gpu mem 52° · ssd composite 44° · ssd sensor 1 44° · ssd sensor 2 46°
+pace: 68/160 done (42%) · time used 29% · ahead 13.3 h · ETA Sun 08 17:52 · left 84 · blocked 1 · owner 7
+alerts: 1 blocked
+run: conductor active · passes 1 (oldest 10 min) · last activity 0 min ago · commits since start 92 · hold False
+machine: load 0.17 0.28 0.62/12 · mem free 19.0 GB · disk free 611 GB · up 29.5 h · cpu tccd1 34° · cpu tctl 44° · gpu edge 37° · gpu junction 31° · gpu mem 52° · ssd composite 37° · ssd sensor 1 37° · ssd sensor 2 35°
 dark: True (active) · pulse timer active
-tokens since start: out 1,766,219 · in 2,708 · cache write 5,635,951 · cache read 101,602,996 · msgs 1287 · out last 6 h 116,814
-out by model: last 6 h claude-opus-5-5 97,805 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 11,100 · claude-sonnet-5-5 7,909
+tokens since start: out 1,770,155 · in 2,732 · cache write 5,698,701 · cache read 101,996,881 · msgs 1298 · out last 6 h 120,750
+out by model: last 6 h claude-opus-5-5 97,805 · claude-haiku-5-5 15,036 · claude-sonnet-5-5 7,909 · since start claude-opus-5-5 1,747,210 · claude-haiku-5-5 15,036 · claude-sonnet-5-5 7,909
 
 ## now / blocked / owner
 - [blocked] l4 the lock (S2): set L for his pick: 4 + 4 stills and short reaction videos in hi/, picker.json, seen in the pulse — BLOCKED: 3 proof runs failed, all on my own change (marks row moved off the rope to y 252, so a wrong try's marks and sparks enter his cell). Unblock: /dev/shm/r28/l4-wip/ has lock-picker.sh, .py and proof.diff; in the d
-- [now] dsun daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why — 
+- [now] dmon daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why — 
 - [owner] c1b his eyes on the cooler's display with the PC dark: no 99 (S6) — only he can see it; assumed: dark. If it still blinks: the steady real temperature instead (S6)
 - [owner] o01 his picks on the options pack, relayed by Claude; each pick built, the others dropped — assumed meanwhile: my strongest, each in r28-questionnaire.md part A
 - [owner] o02 the RAM: restart, Delete, F7, OC, DRAM Frequency DDR5-4800, F10; then ram-check three copies for 20 minutes — still 5600 MT/s on 6 Nov; wrong bits measured, ledger r27-note-flips-2; say it before he installs anything built here
@@ -20,14 +20,15 @@ out by model: last 6 h claude-opus-5-5 97,805 · claude-haiku-5-5 11,100 · clau
 - [owner] o06 triad, his private repo fluvia4ai/triad: a read-only deploy key's public key posted for him, added with his OK; installed by default, self-updating, taught in Part 1 — the last line, owner 00:24
 
 ## last done
-- s11a the plan: a column "model" (opus, sonnet, haiku; default sonnet) on every open row by S11's rules; the two rows named m10 get different ids (Sat 7 Nov 01:33)
 - s11b r27-lane-loop passes --model from the now row, effort medium (low for haiku); the old line commented beside it; tested on one pass; a pass failed on a cheaper model sends the row back to opus (S11) (Sat 7 Nov 01:36)
 - s11c .claude/notes/r28-brief.md, under 150 lines: the rules, the current task, where things are; read at a pass's start instead of the long notes; big files by grep and line ranges; two or three tiny related rows may share a pass, never a big one (S11) (Sat 7 01:37)
 - s11d tests: per task only the checks for what changed; the full suite and a full VM install once a day and before the ISO is cut, written into the brief, with the daily rows in the plan (S11) (Sat 7 Nov 01:38)
 - s11e ~/.local/bin/r28-track: pulse.md's tokens line also splits output tokens by model (message.model), last 6 hours and since the start; its CLI and page keep working; restarted (S11) (Sat 7 Nov 01:45)
 - dsat daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why (Sat 7 Nov 03:36 +04)
+- dsun daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why (Sat 7 Nov 05:34 +04)
 
 ## commits
+- Sat 05:34 ff846836 r28-dsun done: full suite (164/165, test_list ledger id fixed) and f45 VM smoke green; dmon now
 - Sat 03:36 d93eb898 r28-dsat done: full suite and f45 clean-install VM green; dsun now
 - Sat 01:38 978ceb5a s11e done: pulse tokens split by model; dsat now
 - Sat 01:38 d011900c s11d done: per-task checks, daily full suite and VM rows (dsat..dtue); s11e now
@@ -35,7 +36,6 @@ out by model: last 6 h claude-opus-5-5 97,805 · claude-haiku-5-5 11,100 · clau
 - Sat 01:36 ec3f96ec s11b done: each pass's model from the plan's now row; s11c now
 - Sat 01:33 ac08d887 s11a: the plan's model column itself, the stray m10 copy dropped
 - Sat 01:33 e4569d01 s11a done: a model column on every open row; Monday's m10 is m10n; s11b now
-- Sat 01:31 8d491cba m8 done: P5 accents 4 to 7, zeni, bikkuri, shuriken, chochin, measured; S11 in the plan; s11a now
 
 ## repairs
 
