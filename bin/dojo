@@ -1,0 +1,218 @@
+#!/usr/bin/env bash
+# dojo — the sandbox every lesson and learning project runs in. A rootless podman box (no sudo,
+# no root on the host) that sees ONE folder of yours, ~/dojo, and nothing else of your home:
+# not ~/.ssh, not your browser, not the desktop's configs. The box can hurt neither the PC nor
+# your files outside ~/dojo; servers inside bind 127.0.0.1 only; memory, CPU, processes and
+# time are capped. You edit in your normal Neovim (only text files change); running happens
+# inside the box (Space r, Space t, Space d in Neovim do that for any file under ~/dojo).
+#
+#   dojo                 a shell inside the box, in ~/dojo (builds the box the first time)
+#   dojo shell [DIR]     the same, in DIR (a folder under ~/dojo)
+#   dojo run [-t SEC] [--] CMD…   run CMD in the box, in the current folder (under ~/dojo); stops
+#                        after SEC seconds (default 120: the checkers' limit)
+#   dojo db              start PostgreSQL inside the box (127.0.0.1:5432, user dojo, no password
+#                        needed from inside; the data lives in the box, reset drops it)
+#   dojo open [PORT]     open http://localhost:PORT (default 8000) in Helium
+#   dojo status          what is built and running, in a few lines
+#   dojo doctor          check the box, the database and the mounts; fix what it can, say what it did
+#   dojo build           build the image now (it is built once, from Fedora's own release;
+#                        offline afterwards)
+#   dojo reset           rebuild the box from clean (tools, packages, the database). Your files in
+#                        ~/dojo are never touched.
+#   dojo wipe            delete everything inside ~/dojo — asks first, you type "wipe"
+#
+# Caps (override in the environment): DOJO_MEM=4g DOJO_CPUS=4 DOJO_PIDS=1024 DOJO_DISK_GB=30
+# (a warning when ~/dojo is bigger). DOJO_BASE=the base image (default: this Fedora's release).
+#
+# Exit: 0 ok · 1 the box could not be made or run · 2 misuse · 3 outside ~/dojo.
+set -u
+IFS=$'\n\t'
+DOJO_HOME=$HOME/dojo
+NAME=dojo
+VOL_HOME=dojo-home VOL_PG=dojo-pg
+MEM=${DOJO_MEM:-4g} CPUS=${DOJO_CPUS:-4} PIDS=${DOJO_PIDS:-1024} DISK_GB=${DOJO_DISK_GB:-30}
+RELEASE=$(. /etc/os-release 2>/dev/null; echo "${VERSION_ID:-45}")
+BASE=${DOJO_BASE:-registry.fedoraproject.org/fedora:$RELEASE}
+IMAGE=localhost/dojo:f$RELEASE
+PORTS=${DOJO_PORTS:-8000-8099}
+
+die()  { echo "dojo: $*" >&2; exit "${2:-1}"; }
+say()  { echo "dojo: $*"; }
+need() { command -v podman >/dev/null || die "podman is missing — fedokawaii repair puts it back"; }
+
+usage() { sed -n '2,/^set -u/{/^set -u/d;s/^# \{0,1\}//;p}' "$0"; }
+
+# ── the image: one Containerfile, here, so the box is the same everywhere ────────────────────
+containerfile() {
+  cat <<EOF
+FROM $BASE
+LABEL dojo=1
+RUN dnf -y --setopt=install_weak_deps=False install \\
+      bash gcc gcc-c++ make gdb valgrind libasan libubsan python3 python3-pytest uv \\
+      rust cargo clippy rustfmt git postgresql-server postgresql procps-ng findutils which \\
+      shellcheck ShellCheck tar gzip less nano \\
+    && dnf clean all && rm -rf /var/cache/dnf
+ENV LANG=C.UTF-8
+CMD ["sleep", "infinity"]
+EOF
+}
+have_image() { podman image exists "$IMAGE"; }
+build() {
+  need
+  say "building the box from $BASE (once; it needs the network this time)"
+  local ctx; ctx=$(mktemp -d) || die "no temporary folder"
+  containerfile | podman build --quiet --pull=missing --label dojo=1 -t "$IMAGE" -f - "$ctx" >/dev/null \
+    || { rmdir "$ctx"; die "the build failed — run it again, or: dojo doctor"; }
+  rmdir "$ctx"
+  say "built $IMAGE"
+}
+
+# ── the container ────────────────────────────────────────────────────────────────────────────
+running() { [[ $(podman inspect -f '{{.State.Running}}' "$NAME" 2>/dev/null) == true ]]; }
+start() {
+  need
+  mkdir -p "$DOJO_HOME" || die "cannot make $DOJO_HOME"
+  have_image || build
+  running && return 0
+  podman rm -f "$NAME" >/dev/null 2>&1
+  # no capabilities, no new privileges, the host's user id inside (so files stay yours), the
+  # home is a volume of its own, ~/dojo the only host folder, ports only on 127.0.0.1
+  podman run -d --name "$NAME" --label dojo=1 \
+    --userns=keep-id --user "$(id -u):$(id -g)" \
+    --cap-drop=all --security-opt no-new-privileges \
+    --memory "$MEM" --memory-swap "$MEM" --cpus "$CPUS" --pids-limit "$PIDS" \
+    --stop-timeout 2 --hostname dojo -e HOME="$HOME" -e USER="${USER:-dojo}" \
+    -v "$VOL_HOME:$HOME:U" -v "$VOL_PG:$HOME/pgdata:U" \
+    -v "$DOJO_HOME:$DOJO_HOME:Z" -w "$DOJO_HOME" \
+    -p "127.0.0.1:$PORTS:$PORTS" -p 127.0.0.1:5432:5432 \
+    "$IMAGE" >/dev/null || die "the box would not start — dojo doctor"
+}
+# a path under ~/dojo, or exit 3
+under() {
+  local p; p=$(realpath -m -- "$1")
+  [[ $p == "$DOJO_HOME" || $p == "$DOJO_HOME"/* ]] || die "$p is outside ~/dojo — the box sees only ~/dojo" 3
+  printf '%s' "$p"
+}
+size_warn() {
+  local gb; gb=$(( $(du -sk "$DOJO_HOME" 2>/dev/null | cut -f1) / 1048576 ))
+  ((gb >= DISK_GB)) && say "warning: ~/dojo is ${gb} GB (the cap is ${DISK_GB} GB) — clear what you do not need"
+  return 0
+}
+
+# ── doctor ───────────────────────────────────────────────────────────────────────────────────
+quick_ok() { running && have_image && podman exec "$NAME" true 2>/dev/null; }
+doctor() {
+  need
+  local fixed=0 bad=0
+  [[ -d $DOJO_HOME ]] || { mkdir -p "$DOJO_HOME" && say "made ~/dojo (it was missing)"; fixed=1; }
+  if ! have_image; then say "the image is missing — building it"; build && fixed=1 || bad=1; fi
+  # stale: stopped dojo containers other than ours, and dangling dojo images
+  local stale; stale=$(podman ps -a --filter label=dojo=1 --filter status=exited --filter status=created --format '{{.Names}}' 2>/dev/null)
+  if [[ -n $stale ]]; then mapfile -t _s <<<"$stale"; podman rm -f "${_s[@]}" >/dev/null 2>&1; say "removed stopped containers: ${stale//$'\n'/ }"; fixed=1; fi
+  local old; old=$(podman images --filter label=dojo=1 --format '{{.Repository}}:{{.Tag}}' 2>/dev/null | grep -vx "$IMAGE" | grep -v '<none>')
+  if [[ -n $old ]]; then mapfile -t _o <<<"$old"; podman rmi "${_o[@]}" >/dev/null 2>&1 && { say "removed old images: ${old//$'\n'/ }"; fixed=1; }; fi
+  podman image prune -f --filter label=dojo=1 >/dev/null 2>&1
+  if ! running; then say "the box was not running — starting it"; start && fixed=1 || bad=1; fi
+  if running; then
+    # exactly one host folder of the home may be mounted: ~/dojo
+    if podman inspect -f '{{range .Mounts}}{{if eq .Type "bind"}}{{.Source}}{{"\n"}}{{end}}{{end}}' "$NAME" | grep -vx "$DOJO_HOME" | grep -q .; then
+      say "the box has a mount besides ~/dojo — rebuilding it"; podman rm -f "$NAME" >/dev/null; start && fixed=1 || bad=1
+    fi
+    podman exec "$NAME" true 2>/dev/null || { say "the box does not answer"; bad=1; }
+    if podman exec "$NAME" test -f "$HOME/pgdata/PG_VERSION" 2>/dev/null \
+       && ! podman exec "$NAME" pg_isready -q -h 127.0.0.1 2>/dev/null; then
+      say "the database is stopped — start it with: dojo db"
+    fi
+  fi
+  size_warn
+  ((bad)) && die "the box is not healthy; the lines above say why" 1
+  ((fixed)) || say "all well: the image, the box, the mounts"
+  return 0
+}
+
+# ── commands ─────────────────────────────────────────────────────────────────────────────────
+ensure() { quick_ok || doctor || exit 1; }
+tty_flags() { if [[ -t 0 && -t 1 ]]; then TTY=(-it); else TTY=(-i); fi; }
+cmd_shell() {
+  local d=${1:-$DOJO_HOME}; d=$(under "$d") || exit 3
+  ensure
+  size_warn
+  tty_flags
+  exec podman exec "${TTY[@]}" -w "$d" -e TERM="${TERM:-xterm-256color}" "$NAME" bash -l
+}
+cmd_run() {
+  local t=120
+  while [[ ${1:-} == -* ]]; do
+    case $1 in
+      -t) t=${2:-}; [[ $t =~ ^[0-9]+$ ]] || die "usage: dojo run [-t SEC] [--] CMD…" 2; shift 2 ;;
+      --) shift; break ;;
+      *) die "usage: dojo run [-t SEC] [--] CMD…" 2 ;;
+    esac
+  done
+  (($#)) || die "usage: dojo run [-t SEC] [--] CMD…" 2
+  local d; d=$(under "$PWD") || exit 3
+  ensure
+  tty_flags
+  exec podman exec "${TTY[@]}" -w "$d" -e TERM="${TERM:-xterm-256color}" "$NAME" timeout --foreground -k 5 "$t" "$@"
+}
+cmd_db() {
+  ensure
+  podman exec "$NAME" bash -c '
+    set -e
+    D=$HOME/pgdata
+    [[ -f $D/PG_VERSION ]] || { initdb -D "$D" --auth=trust --username=dojo >/dev/null; }
+    pg_isready -q -h 127.0.0.1 && exit 0
+    pg_ctl -D "$D" -l "$HOME/pg.log" -o "-c listen_addresses=127.0.0.1 -c unix_socket_directories=/tmp" -w start >/dev/null
+    psql -h 127.0.0.1 -U dojo -d postgres -tc "select 1 from pg_database where datname=\$\$dojo\$\$" | grep -q 1 \
+      || createdb -h 127.0.0.1 -U dojo dojo' || die "PostgreSQL would not start — look: podman exec dojo tail ~/pg.log"
+  say "PostgreSQL is up on 127.0.0.1:5432 — psql -h 127.0.0.1 -U dojo dojo"
+}
+cmd_open() {
+  local port=${1:-8000}
+  [[ $port =~ ^[0-9]+$ ]] || die "usage: dojo open [PORT]" 2
+  command -v helium >/dev/null || die "helium is missing — fedokawaii repair puts it back"
+  setsid -f helium "http://localhost:$port" >/dev/null 2>&1
+}
+cmd_status() {
+  need
+  echo "image   $(have_image && echo "$IMAGE" || echo "not built")"
+  echo "box     $(running && echo running || echo stopped)"
+  echo "files   $DOJO_HOME  $(du -sh "$DOJO_HOME" 2>/dev/null | cut -f1)"
+  echo "caps    ${MEM} memory, ${CPUS} cpus, ${PIDS} processes, ${DISK_GB} GB of files"
+  running && { podman exec "$NAME" pg_isready -q -h 127.0.0.1 2>/dev/null && echo "db      up" || echo "db      not started"; }
+  return 0
+}
+cmd_reset() {
+  need
+  say "resetting the box: tools, packages and the database go; ~/dojo stays as it is"
+  podman rm -f "$NAME" >/dev/null 2>&1
+  podman volume rm -f "$VOL_HOME" "$VOL_PG" >/dev/null 2>&1
+  podman rmi -f "$IMAGE" >/dev/null 2>&1
+  build && start && say "clean box ready"
+}
+# shellcheck disable=SC2088  # (~/dojo is how the text names the folder)
+cmd_wipe() {
+  [[ -d $DOJO_HOME ]] || { say "~/dojo is not there"; return 0; }
+  local n; n=$(find "$DOJO_HOME" -mindepth 1 2>/dev/null | wc -l)
+  ((n)) || { say "~/dojo is empty"; return 0; }
+  [[ -t 0 ]] || die "wipe asks you at a terminal" 2
+  echo "This deletes everything in ~/dojo: $n files and folders ($(du -sh "$DOJO_HOME" | cut -f1)). Your repositories there go too."
+  read -r -p 'Type "wipe" to do it, anything else to stop: ' a
+  [[ $a == wipe ]] || { say "nothing deleted"; return 0; }
+  running && podman exec "$NAME" true 2>/dev/null && podman stop -t 2 "$NAME" >/dev/null 2>&1
+  find "$DOJO_HOME" -mindepth 1 -delete && say "~/dojo is empty"
+}
+
+case ${1:-} in
+  -h|--help|help) usage ;;
+  ""|shell) shift 2>/dev/null; cmd_shell "${1:-}" ;;
+  run) shift; cmd_run "$@" ;;
+  db) cmd_db ;;
+  open) shift; cmd_open "${1:-}" ;;
+  status) cmd_status ;;
+  doctor) doctor ;;
+  build) build ;;
+  reset) cmd_reset ;;
+  wipe) cmd_wipe ;;
+  *) die "usage: dojo [shell|run|db|open|status|doctor|build|reset|wipe] — dojo --help" 2 ;;
+esac

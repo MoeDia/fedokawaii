@@ -1,0 +1,12 @@
+[Desktop Entry]
+# The dojo (bin/dojo): a terminal inside the learning sandbox — a rootless podman box that sees
+# only ~/dojo. kawa-term gives it a window of its own (app-id kawa-dojo).
+Type=Application
+Name=Dojo
+GenericName=Learning sandbox
+Comment=A shell inside the sandbox: your lessons and projects run here and touch nothing else
+X-Fedokawaii-Icon=lantern
+Exec=@HOME@/.local/bin/kawa-term --app kawa-dojo Dojo @HOME@/.local/bin/dojo
+Terminal=false
+Categories=Development;
+Keywords=dojo;sandbox;container;podman;practice;learn;code;

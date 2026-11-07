@@ -232,6 +232,7 @@ zoxide              manifest  zoxide
 shellcheck          manifest  ShellCheck
 snapper             manifest  snapper
 restic              manifest  restic
+podman              manifest  podman            # dojo, the learning sandbox (rootless), and Prowlarr
 fusermount3         manifest  fuse3             # f45: /usr/bin/fusermount3 (Super+U → restore: a backup unmounted)
 helium              manifest  helium-bin        # (its COPR, imput/helium)
 claude              manifest  claude-code       # (Anthropic's own repo; herdr's Ctrl+B a)

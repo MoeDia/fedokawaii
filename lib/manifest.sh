@@ -171,7 +171,7 @@ PKG_APPS=(
   uv rustup                                         # Python and Rust to learn with: uv installs a current
                                                     #   CPython and its packages, rustup-init the stable Rust
                                                     #   (+ rust-analyzer, clippy, rustfmt) — both in your home (setup.sh: s_dev)
-  podman                                            # Prowlarr's container
+  podman                                            # the dojo (bin/dojo, rootless) and Prowlarr's container
   rb_libtorrent-python3                             # torrents: the engine of kawa-torrents, on Fedora's python3
 )
 PKG_VIRT=(              # virtual machines: the games VM (Windows with the graphics card passed
