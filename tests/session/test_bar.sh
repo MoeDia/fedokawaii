@@ -392,7 +392,7 @@ for th in dark light; do
   done
 done
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" 'url("../fedokawaii/current/face.png")'
-has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 3px 0, 0 0;" "(29 px of box, 20 of paper: the odd pixel right)"
+has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 3px 5px, 0 0;" "(29 px of box, the 20 rows on the 30 of paper's middle: the odd pixel right)"
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "color: transparent;" "the emblem's glyph keeps the width, unseen"
 has "$(grep -E '^#custom-menu\.active \{' "$S_")" 'url("../fedokawaii/current/face-open.png")'
 
@@ -405,7 +405,8 @@ done
 has "$(grep -A4 -E '^#custom-gear \{$' "$S_")" 'url("../fedokawaii/current/gear.png")'
 grep -A4 -E '^#custom-gear \{$' "$S_" | grep -q animation && _no "the gear turns at rest" || _ok
 has "$(grep -A3 -E '^#custom-gear\.active \{$' "$S_")" "animation: kawa-gear 500ms steps(4, start) infinite;" "four poses, 125 ms each, nothing between"
-has "$(grep -E '^@keyframes kawa-gear' "$S_")" "to { background-position: 7px -158px, 0 0; }" "4 × 40 rows up"
+has "$(grep -E '^@keyframes kawa-gear' "$S_")" "from { background-position: 7px 7px, 0 0; }" "its 16 rows on the jikusaki paper's middle (7 above)"
+[[ $(grep -E '^@keyframes kawa-gear' "$S_") =~ to\ \{\ background-position:\ [67]px\ -153px,\ 0\ 0\;\ \} ]] && _ok || _no "4 × 40 rows up (the 6 or 7 across: sa25d3's kit)"
 setup; setrun
 gear_ex=$(wbexec custom/gear)
 eq "$(sh -c "$gear_ex")" "{\"text\":\"$ICON_FACE\"}" "at rest: not lit"

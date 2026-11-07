@@ -96,7 +96,7 @@ adv = {round(f.getlength(c)) for c in "Hil0@~"} | {round(f.getlength("漢")) // 
 print(len(table), bad, sorted(adv))
 PY
 )" "5 [] [7]" "the em's rows and the cell, read from the doc's table, measured on the font"
-  has "$(cat "$REPO/configs/home/.config/waybar/style.css")" "font-size: 14px;" "the bar"
+  has "$(cat "$REPO/configs/home/.config/waybar/style.css")" "font-size: 16px;" "the bar (Sumi UI 16 and Sumi Icons Bar, round 28)"
   has "$(cat "$REPO/configs/home/.config/mako/config")" "14px" "the notices"
   eq "$(sed -n 's/^LINE = \([0-9]*\).*/\1/p; s/^COL = \([0-9]*\).*/\1/p' "$REPO/bin/kawa-panel" | paste -sd ' ')" "7 14" "kawa-panel's COL and LINE"
 }
@@ -137,11 +137,11 @@ PY
 built_bar() {   # §3, §8, §12: the bar's rows and spacing — the doc's numbers in waybar's config, its style and its pictures
   local doc cfg css
   doc=$(cat "$DOC"); cfg=$(sed 's#^ *//.*##' "$REPO/configs/home/.config/waybar/config.jsonc"); css=$(cat "$REPO/configs/home/.config/waybar/style.css")
-  has "$doc" "| bar | 27 | — | 3 air, hairline, 20 paper, hairline, 2 shadow (§8) |" "the doc's bar: 27 rows"
-  has "$cfg" '"height": 27,' "waybar's height: 27"
-  has "$cfg" '"margin-bottom": -2,' "its zone ends on the lower hairline (the windows' tops on y 33)"
+  has "$doc" "| bar | 39 | — | 4 air, hairline, 30 paper, hairline, 2 shadow, 1 air (the clock's finials: rows 1–38) (§8) |" "the doc's bar: 39 rows"
+  has "$cfg" '"height": 39,' "waybar's height: 39"
+  has "$cfg" '"margin-bottom": -3,' "its zone ends on the lower hairline (the windows' tops on y 44)"
   has "$(cat "$REPO/src/dwl/config.h")" "outergappx       = 8;" "dwl's outer gap: the doc's 8 (§12)"
-  eq "$(python3 -I -c 'from PIL import Image; import sys; print(Image.open(sys.argv[1]).size[1])' "$REPO/configs/home/.config/fedokawaii/themes/dark/kami-tile.png")" 27 "the tile's picture: 27 rows"
+  eq "$(python3 -I -c 'from PIL import Image; import sys; print(Image.open(sys.argv[1]).size[1])' "$REPO/configs/home/.config/fedokawaii/themes/dark/kami-tile.png")" 39 "the tile's picture: 39 rows"
   has "$doc" "4 px between
 the tiles of a group, 12 px between groups" "the doc's gaps"
   has "$css" "margin: 0 0 0 3px;" "within a group: 3 and the shadow's column (4)"

@@ -205,7 +205,7 @@ grep -q '^+			if (VISIBLEON(c, m) && client_is_x11(c) && !client_is_unmanaged(c)
 case_ "Super+Q on a warm window (notes, the clipboard, the system menu) puts it away, its page saved — never ends it mid-line"
 k=$(sed -n '/^[ +]killclient(const Arg \*arg)$/,/^[ +]}$/p' "$P")
 grep -q 'if (sel && iswarm(sel))' <<<"$k" && grep -q 'warmhide(sel, 1);' <<<"$k" && _ok || _no "killclient closes a warm window"
-case_ "windows 8 px from the screen's edges and from the bar's lower hairline (outergappx: their edges on the bar's outer tiles' hairlines, x 8 and 1911; their tops on y 33), 8 apart (gappx)"
+case_ "windows 8 px from the screen's edges and from the bar's lower hairline (outergappx: their edges on the bar's outer tiles' hairlines, x 8 and 1911; their tops on y 44), 8 apart (gappx)"
 grep -q '^static const unsigned int outergappx *= 8;' "$CH" && grep -q '^static const unsigned int gappx *= 8;' "$CH" \
   && grep -q 'int n = 0, gap = (int)outergappx;' "$P" && _ok || _no "the edge gap"
 

@@ -41,9 +41,9 @@ static const unsigned int borderpx         = 1;  /* the hairline (dwl.patch: app
 static const unsigned int gappx            = 8;  /* gap between windows (dwl.patch) */
 static const unsigned int outergappx       = 8;  /* …and from the screen's edges and the bar's hairline
                                                     (its exclusive zone ends there: waybar's margin-bottom
-                                                    -2 leaves the shadow out): the windows' outer edges on
+                                                    -3 leaves the shadow out): the windows' outer edges on
                                                     x 8 and 1911, the bar's outer tiles' hairlines, and
-                                                    their tops on y 33 (dwl.patch) */
+                                                    their tops on y 44 (dwl.patch) */
 static const unsigned int snap             = 16; /* snap pixel */
 static const float rootcolor[]             = COLOR(SUMI);
 /* { the hairline, the shadow's first row, its second row and column } */

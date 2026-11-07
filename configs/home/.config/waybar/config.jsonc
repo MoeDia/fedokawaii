@@ -44,13 +44,13 @@
 {
   "layer": "top",
   "position": "top",
-  // 27 px: air on rows 0–2, a tile's hairline on 3, its paper 4–23, the hairline on 24, the
-  // shadow 25–26 (style.css: the rows)
-  "height": 27,
-  // its exclusive zone ends on the tiles' lower hairline (row 24): the shadow's two rows lie in
-  // the windows' 8 px gap (gtk-layer-shell's auto zone: the height plus this margin), so the
-  // windows' tops are on y 33 (dwl's outergappx 8) — docs/design-system.md §3, §12
-  "margin-bottom": -2,
+  // 39 px (the jikusaki bar): air on rows 0–3, a tile's hairline on 4, its paper 5–34, the
+  // hairline on 35, the shadow 36–37, the clock's finials down to 38 (style.css: the rows)
+  "height": 39,
+  // its exclusive zone ends on the tiles' lower hairline (row 35): the shadow's two rows and the
+  // finials' last row lie in the windows' 8 px gap (gtk-layer-shell's auto zone: the height plus
+  // this margin), so the windows' tops are on y 44 (dwl's outergappx 8) — docs/design-system.md §3, §12
+  "margin-bottom": -3,
   "spacing": 0,
   "reload_style_on_change": true,
 

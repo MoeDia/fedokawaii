@@ -231,8 +231,8 @@ screen and the bar's paper share one rhythm.
 | seal tile | 64 × 64 | 8 | a dialog's choice (§4): 12 apart, its picture 40 × 40, the word's row 8 under it |
 | stamp | 16 Ø | — | the workspace's vermilion seal on the bar (an emblem), its numeral 10 × 10 inside |
 | app icon | 16 × 16 | — | the launcher's: an app's own icon at its native 16 px, centred in the row |
-| bar | 27 | — | 3 air, hairline, 20 paper, hairline, 2 shadow (§8) |
-| window gap | 8 | 1 | 8 px between hairlines: window and window, window and the screen's edge, the bar and a window (the windows' tops on y 33) |
+| bar | 39 | — | 4 air, hairline, 30 paper, hairline, 2 shadow, 1 air (the clock's finials: rows 1–38) (§8) |
+| window gap | 8 | 1 | 8 px between hairlines: window and window, window and the screen's edge, the bar and a window (the windows' tops on y 44) |
 
 ## 4. Parts
 
@@ -368,7 +368,7 @@ Motion — how any of these changes over time — is §11.
 
 - **One at a time**: opening any menu, panel or popup (the bar's dropdowns, quick settings, the
   launcher, Super+U/V/W/N/C/R//) closes whichever is open.
-- **Where it opens**: from a bar tile — centred under it, its top hairline on y 33 (the windows'
+- **Where it opens**: from a bar tile — centred under it, its top hairline on y 44 (the windows'
   tops), kept 8 px inside the screen; the date's own (the calendar, the timer) centred under the
   bar's middle, a click or a key alike (`kawa-menu --drop --middle`); from a key — at its own
   place: quick settings and the bar's right-hand dropdowns under the right end (their right
@@ -590,19 +590,17 @@ workspaces: one tile each; its numeral (一–九) faint while empty, the words'
 asks; the one you are on stamped with the red seal, its numeral black inside it. The clock shows the date, the day's kanji
 and the time to the second (the owner, 4 Nov 21:46).
 
-27 rows, every tile alike:
+39 rows (the jikusaki bar, round 28), every tile alike:
 
 | rows | what |
 |---|---|
-| 0–2 | air (the wallpaper) |
-| 3 | the hairline (its corners left out) |
-| 4–23 | the paper: one row of 20 |
-| 24 | the hairline |
-| 25–26 | the shadow, a pixel further right each row |
-| 7–20 | the em: kanji 7–20, capitals 9–18 — five rows of paper above them and five below |
-| 8–19 | an icon beside words (12 px, centred on the capitals) |
-| 7–20 | an icon alone (14 px) |
-| 6–21 | the emblems (16 × 16): the torii, the stamp (its numeral on 9–18); quick settings' face, a picture 18 × 18 on 5–22 (§3 face) |
+| 0–3 | air (the wallpaper); the clock's finials from row 1 |
+| 4 | the hairline (its corners left out) |
+| 5–34 | the paper: Sumi UI 16's 20-row line on 10–29, five rows of paper above it and five below |
+| 35 | the hairline |
+| 36–37 | the shadow, a pixel further right each row; the finials down to 38 |
+| 10–29 | the icons (Sumi Icons Bar, 20 px) on the line's rows |
+| 12–27 | the gear (16 × 16) and, until they are drawn at the new size, the stamp's seal (16) and the skies (14) on the paper's middle |
 
 Across: the outer tiles' hairlines on x 8 and x 1911 — the windows' edges (§12); 8 px from the
 paper's edge to the ink on both sides of every tile (words that change carry their first and
@@ -628,7 +626,7 @@ the tiles of a group, 12 px between groups.
 ## 9. Notices, the level display, the lock, login, screensaver, boot
 
 - **Notice** (mako): a panel 47 cells wide (410 px), at the top right — its right hairline on
-  x 1911, its top on y 33 — the next one 8 below; solid `surface`; its first row the app's icon
+  x 1911, its top on y 44 — the next one 8 below; solid `surface`; its first row the app's icon
   (12 px, `accent_text`) and the title in `strong`, then the body in `text` on 20 px lines,
   aligned with the title; progress: the meter (§4). Critical — it stays until dismissed: the hairline `accent`, a 3 px bar
   of it inside the left one, the title's icon `text_on_accent` in a filled seal (18 px square on the title's row, its corners
@@ -776,7 +774,7 @@ state stepped by a small rule, not a long drawn loop: it costs little and never 
   The focused window's hairline `accent`; the others' the hairline ink; one asking for you
   `asagi`; a fullscreen window none.
 - Gaps: 8 px between hairlines — window and window, window and the screen's edge, the bar's
-  hairline and a window's (the shadows fall inside them): the windows' tops on y 33, their outer
+  hairline and a window's (the shadows fall inside them): the windows' tops on y 44, their outer
   hairlines on x 8 and x 1911 — exactly the bar's tiles' outer edges: the windows are as wide as
   the bar.
 - No title bars, no client-side decorations, no rounded corners.
