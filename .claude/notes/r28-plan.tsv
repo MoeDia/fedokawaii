@@ -72,15 +72,15 @@ dsun	Sun 8	done	daily (S11): the full suite (bash tests/run.sh) and a full clean
 dmon	Mon 9	done	daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why	Sat 7 Nov 07:59 +04	suite 165 of 165 green; f45 VM smoke green, verify 271 checks, 4 named skips, desktop up in 26 min	haiku
 dtue	Tue 10	done	daily (S11): the full suite (bash tests/run.sh) and a full clean-install VM run (tools/vm-smoke.sh f45, one VM at a time, own unit); red fixed or blocked with why	Sat 7 Nov 10:36 +04	full suite 165/165 green (log /dev/shm/r28-dtue-suite.log); f45 VM green, verify 271 checks, 4 named skips	haiku
 s12a	Sun 8	todo	separators (S12): P1 4 waku built; none in the top bar, the notifications or the power menu; used smartly elsewhere, thin (1 px of the grid), both moods, measured		S12	opus
-s12b	Sun 8	todo	highlights everywhere (S12): no red band behind the selected option, no underline like Super+U's status; colour change only (folds into sa15b: check both)		S12	opus
+s12b	Sun 8	todo	highlights everywhere (S12): no red band behind the selected option, no underline like Super+U's status; colour change only (folds into sa15b: check both)		S12	sonnet
 s12c	Sun 8	todo	quick settings given love (S12, round 27's ask) with the spinning gear (d4): sa15 and d4 done together, both moods		S12	opus
 s12d	Sun 8	todo	omori menus keep the scroll's rods and edges for as long as open, in every menu of that kind, never back to the plain border (S12; into sa27)		S12	opus
 s12e	Sun 8	todo	the lock l4b retried with a fresh approach on opus, before Sunday's ISO rows (S12)		S12; l4b is the row	opus
 dsun2	Sun 8	todo	daily (S11/S13/S14): suite + clean-install VM, only on Sun 8 Dubai time, skipped if the last daily passed under 12 h ago with no system-level change since; VM as its own background unit		S13,S14	haiku
 dmon2	Mon 9	todo	daily (S11/S13/S14): as dsun2, only on Mon 9		S13,S14	haiku
 dtue2	Tue 10	todo	daily (S11/S13/S14): as dsun2, only on Tue 10		S13,S14	haiku
-s13a	Sat 7	now	model mix (S13): check that open rows carry sonnet/haiku per S11 and that the loop passes --model (message.model in the latest transcript); fix what is off		S13	haiku
-s14a	Sat 7	todo	pace (S14): long jobs as their own systemd user units, the pass marks the row running and goes on; no idle between passes (loop sleep, conductor interval); daily rows gated by day and 12 h		S14	sonnet
+s13a	Sat 7	done	model mix (S13): check that open rows carry sonnet/haiku per S11 and that the loop passes --model (message.model in the latest transcript); fix what is off	Sat 7 Nov 11:10	loop passes --model right (message.model per row: haiku, sonnet, opus); 13 rows to sonnet (d3 sa14 sa15 sa15b sa15d sa15e s12b sa30 m03-m07), todo now sonnet 51 haiku 10 opus 29; a haiku pass read head -80, missed this row on line 82, false opus: START now names the awk	opus
+s14a	Sat 7	now	pace (S14): long jobs as their own systemd user units, the pass marks the row running and goes on; no idle between passes (loop sleep, conductor interval); daily rows gated by day and 12 h		S14	sonnet
 s15a	Sat 7	todo	self-audit every 6 passes on haiku (S15): pace/ETA, no daily before its day, model mix, passes over 90 min and idle gaps, blocked rows over 6 h get a fresh try, design track not crowding out the rest; notes in the plan		S15	haiku
 f26	Fri 6	done	kawa-learn rebuilt on it: today's pair, progress, next, in Super+U's Learning; both moods, many sizes; tests	Sat 7 Nov 11:08	the day on lib/lessons.py: pair, next, meters, checks that stamp; empty until sa01; both moods rendered, grid held, test_learn 147, test_menu 730	opus
 f27	Fri 6	todo	the book retired: Learn PDF, its build and every entry that opens it gone; its content kept as the source of the lessons; tests			sonnet
@@ -102,7 +102,7 @@ sa10	Sat 7	todo	Part 2 lessons: Rust, first steps			sonnet
 d1c	Fri 6	todo	d1b's rest: the typing art, kawa-fixer, saver, greeter, plymouth, the ISO's crest and console, cover art, the old lock's leftovers, Guide and Learn text; each with the Fedora head or the world's other art; design system; tests		the old lock's files go with sa31 if the old lock still needs them	opus
 sa11	Sat 7	todo	Part 2 lessons: Neovim to its max with his config, line by line; exercises in ~/dojo			sonnet
 sa12	Sat 7	todo	every lesson's check run by a test; order and pairing proven			sonnet
-d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built	opus
+d3	Fri 6	todo	Super+R's keycaps everywhere (S2): menus, cheat sheets, lessons, the power menu, Helium's new tab		after sa16, sa20 where those are built	sonnet
 sa17	Sat 7	todo	the inventory, a new Super+U menu: a live table of every installed app and where it updates from, generated from the manifest			sonnet
 sa18	Sat 7	todo	the inventory: every menu we created, every app we modified and how; tests			sonnet
 d4	Fri 6	todo	the quick-settings icon (S2): a custom retro Japanese gear, spins while the menu is open, stops when it closes, cheap, follows the mood; CPU measured		the gear takes the quick-settings click and glyph; the Fedora head stays on the bar (S2 wants both): a tile of its own	opus
@@ -113,12 +113,12 @@ sa22	Sat 7	todo	Stoat themed; every web app (WhatsApp and the like) removed; lau
 sa23	Sat 7	todo	Syncplay TUI in our theme: who joined, left, is ready, a ready toggle as the GUI client has			sonnet
 sa13	Sat 7	todo	menus as one unit: the grid measured and written (design-system): wasted space cut in Super+U		his pick h1: 1 ichimai (S2)	opus
 sa24	Sat 7	todo	Syncplay TUI: tests against a real local server, both moods, sizes			sonnet
-sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)	opus
-sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods			opus
-sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35	opus
+sa14	Sat 7	todo	menus as one unit: Super+R, Super+V, Super+W to the same grid		his pick h2: 1 hon (S2)	sonnet
+sa15	Sat 7	todo	menus as one unit: quick settings, calendar, timer, dropdowns; every highlight measured by WCAG, both moods			sonnet
+sa15b	Sat 7	todo	everywhere: what is highlighted or selected changes COLOUR (text, icon), no full band behind it; every list; WCAG measured, both moods; design system (S4)		his rule, 17:35	sonnet
 sa15c	Sat 7	todo	the selection marker built: his pick P2 1 yubi, the bobbing pointer; cheap, frames looked at (S4)			opus
-sa15d	Sat 7	todo	corners and frames built: his pick P3 3 kanagu, every panel, both moods (S4)			opus
-sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volume, brightness, battery, downloads (S4)			opus
+sa15d	Sat 7	todo	corners and frames built: his pick P3 3 kanagu, every panel, both moods (S4)			sonnet
+sa15e	Sat 7	todo	meters built: his pick P4 1 tairyoku in the colours of m9: volume, brightness, battery, downloads (S4)			sonnet
 sa16	Sat 7	todo	the power menu built: his pick g 1 jiku, without the reddish area behind restart and shut down; the others gone		S2	opus
 sa20	Sat 7	todo	Helium themed: his pick i 2 mokuroku, made far more TUI-feeling: lines, toolbar and left tab section heavily redone; following the switch; in the installer; tests		S2	opus
 sa25	Sat 7	todo	the bar bigger: one set of metrics, icons drawn at real size, right hinting, no scaling; every gap measured		his pick f: 3 jikusaki; icons very clean, well spaced, super accurate, tight (S2)	opus
@@ -126,7 +126,7 @@ sa26	Sat 7	todo	the bar's clock in a scroll with bigger dominant ends, seconds k
 sa27	Sat 7	todo	dwl: menus open and close as his pick c 2 omori, under ASan headless, frames looked at		S4	opus
 sa28	Sat 7	todo	dwl: window open and close built: his pick a 5 mozaiku as the default, behind the same switch, the others one switch away (S9)		picked from the frame-exact videos, S9; MotionMozaiku 300/220	opus
 sa29	Sat 7	todo	dwl: the workspace move built: his pick b 4 heya as the default, the others one switch away (S10)		picked S10	opus
-sa30	Sat 7	todo	the prompt built: his pick d 3 rakkan, the head a Fedora logo (d1), the icon inside the ribbon; test_shell		S2	opus
+sa30	Sat 7	todo	the prompt built: his pick d 3 rakkan, the head a Fedora logo (d1), the icon inside the ribbon; test_shell		S2	sonnet
 sa31	Sat 7	todo	the lock built from his pick of set L (l1 to l4), the greeter its twin; lock checks in the kit; VM proof: a real ext-session-lock, unlock never breaks, the password never shown or logged		S2 replaces e, e2; his pick pending: strongest meanwhile	opus
 sa32	Sat 7	todo	motion performance measured on the real GPU headless: workspace moves and window spawns, dwl's frame log, before and after numbers in the ledger			sonnet
 sa33	Sat 7	todo	a clean-install smoke of main in the Fedora 45 VM: Friday and Saturday's work whole		one VM at a time	haiku
@@ -146,11 +146,11 @@ su13	Sun 8	todo	VM: the Super+U update on Fedora 45, a broken package injected: 
 su14	Sun 8	todo	VM: tools/vm-inject/fixer-candidate.sh, the fixer's real path, never run yet		lane-fixer's note	sonnet
 m01	Mon 9	todo	VM: install from the ISO on a wiped disk and a slow network			opus
 m02	Mon 9	todo	VM: power pulled mid-install, then again: it finishes, nothing asked twice			opus
-m03	Mon 9	todo	full scan: bar and menus, both moods, nothing in the old style			opus
-m04	Mon 9	todo	full scan: lock, greeter, saver, notices, OSD, boot			opus
-m05	Mon 9	todo	full scan: TUI apps: yazi, notes, to-do, books, clipboard, calculator, help, torrents			opus
-m06	Mon 9	todo	full scan: chess, typing, learning, inventory, Syncplay, Helium, Stoat			opus
-m07	Mon 9	todo	the scan's fixes			opus
+m03	Mon 9	todo	full scan: bar and menus, both moods, nothing in the old style			sonnet
+m04	Mon 9	todo	full scan: lock, greeter, saver, notices, OSD, boot			sonnet
+m05	Mon 9	todo	full scan: TUI apps: yazi, notes, to-do, books, clipboard, calculator, help, torrents			sonnet
+m06	Mon 9	todo	full scan: chess, typing, learning, inventory, Syncplay, Helium, Stoat			sonnet
+m07	Mon 9	todo	the scan's fixes			sonnet
 m08	Mon 9	todo	the 17 bugs of round 27 re-verified in the VM or headless, one ledger line each		plan.md T51	sonnet
 m09	Mon 9	todo	tools/regress/run.sh and fedokawaii selftest --sandbox clean in the VM			haiku
 m10n	Mon 9	todo	network: tools/portscan.sh and tools/net-proof.sh against the VM			opus

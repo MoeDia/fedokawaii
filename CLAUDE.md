@@ -109,7 +109,7 @@ A 100-hour unattended run, Fri 6 Nov 00:30 to Tue 10 Nov 04:30 Dubai, on a very 
 
 **On START, one small task, nothing else:**
 1. `.claude/inbox.md`: a block headed "— open" becomes lines in the plan; its heading becomes "— in the plan: IDS".
-2. `.claude/notes/r28-plan.tsv` (tabs: id, day, status, task, when, note, model; status now, todo, done, blocked, owner; model opus, sonnet, haiku by S11; exactly one `now`): do the `now` row. Read only what it needs; tail or grep logs; no long research.
+2. `.claude/notes/r28-plan.tsv` (tabs: id, day, status, task, when, note, model; status now, todo, done, blocked, owner; model opus, sonnet, haiku by S11; exactly one `now`, anywhere in the file: find it with `awk -F'\t' '$3=="now"' .claude/notes/r28-plan.tsv`, never `head`): do the `now` row, whatever its model column says. Read only what it needs; tail or grep logs; no long research.
 3. Verify it. Then: `done` with the time from `date` in "when", the next row `now`, a one-line note where useful, a ledger line (`r28-<id>`, how verified). Failed twice: roll back, `blocked` with why and what would unblock it, next row. Needs him: `owner`, and a question goes into `.claude/notes/r28-questionnaire.md` with "assumed: …", and you carry on. New work found: a new line.
 4. Commit the task and the plan by name (never `git add -A`; `tools/claude-loop.sh` stays uncommitted), `git branch -f r27 HEAD`, push. A pass ends there: the conductor starts the next (`--effort medium`).
 A long job of yours is running (a suite, a VM): wait for it inside the pass, in one `until` loop that does not poll you (Bash `run_in_background`), or start the next row beside it if nothing depends on it. Never end a pass just to look again: each pass costs tokens.
