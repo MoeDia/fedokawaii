@@ -89,7 +89,7 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 #custom-menu {
   background-image: url("../fedokawaii/current/face.png"), url("../fedokawaii/current/kami-fibre.png");
   background-repeat: no-repeat, repeat;
-  background-position: 3px 5px, 0 0;
+  background-position: 6px 5px, 0 0;   /* (22 × 20 on the 37 × 30 paper: 7 · 8 across, 5 · 5 down) */
   color: transparent;
 }
 #custom-menu.active { background-image: url("../fedokawaii/current/face-open.png"), url("../fedokawaii/current/kami-fibre.png"); }
@@ -173,6 +173,8 @@ button, button:hover, button:active, button:checked { background: none; box-shad
 }
 #custom-wing-left  { margin-left: -1px; padding-right: 15px; }   /* (its columns' air: 2 px either side) */
 #custom-date       { padding-right: 17px; }                       /* (the year's last figure: 1 px of air) */
+#custom-date.r4    { padding-left: 3px; padding-right: 14px; }    /* (a year ending in 1: 4 px of air; the 3 go
+                                                                     before the date, the kanji stays on 960) */
 #custom-day        { padding-right: 16px; }                       /* (火 水 木 金 土: none before, 1 after) */
 #custom-day.mon    { margin-left: -1px; padding-right: 14px; }    /* (月: 1 before, 3 after) */
 #custom-day.sun    { margin-left: -4px; padding-right: 14px; }    /* (日: 4 before, 3 after) */

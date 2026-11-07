@@ -42,6 +42,8 @@ sed -i 's/^THEME=light$/THEME=dark/' "$HOME/.config/fedokawaii/current/colors.sh
 eq "$(LC_ALL=tr_TR.UTF-8 kawa-bar date)" "{\"text\":\"$(date +%d)$SL$(date +%m)$SL$(date +%Y)\"}" "today, in figures whatever the language"
 eq "$(TZ=UTC0 FAKETIME= bash -c 'printf() { if [[ $1 == -v ]]; then builtin printf -v "$2" "$3" 1767225600 1767225600 1767225600; else builtin printf "$@"; fi; }; export -f printf; kawa-bar date')" \
   "{\"text\":\"01${SL}01${SL}2026\"}" "1 January 2026: two figures each, the year whole"
+eq "$(TZ=UTC0 FAKETIME= bash -c 'printf() { if [[ $1 == -v && $3 == *"%("* ]]; then builtin printf -v "$2" "$3" 1924992000 1924992000 1924992000; else builtin printf "$@"; fi; }; export -f printf; kawa-bar date')" \
+  "{\"text\":\"01${SL}01${SL}2031\",\"class\":\"r4\"}" "2031: a year ending in 1, its 4 px of air (style.css keeps 18 to the kanji)"
 k=(月 火 水 木 金 土 日); d=$(kawa-bar day); u=$(date +%u)
 case $u in 1) eq "$d" '{"text":"月","class":"mon"}' ;; 7) eq "$d" '{"text":"日","class":"sun"}' ;; *) eq "$d" "{\"text\":\"${k[u - 1]}\"}" ;; esac
 # (each weekday in turn: the clock's day stood in for — printf's %(%u)T, kawa-bar's only clock)
@@ -392,7 +394,7 @@ for th in dark light; do
   done
 done
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" 'url("../fedokawaii/current/face.png")'
-has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 3px 5px, 0 0;" "(29 px of box, the 20 rows on the 30 of paper's middle: the odd pixel right)"
+has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "background-position: 6px 5px, 0 0;" "(22 × 20 on the 37 × 30 paper: 7 · 8 across, the odd pixel right; 5 · 5 down)"
 has "$(grep -A5 -E '^#custom-menu \{$' "$S_")" "color: transparent;" "the emblem's glyph keeps the width, unseen"
 has "$(grep -E '^#custom-menu\.active \{' "$S_")" 'url("../fedokawaii/current/face-open.png")'
 

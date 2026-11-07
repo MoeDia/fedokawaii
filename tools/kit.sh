@@ -24,8 +24,9 @@
 #                own: /usr/local/bin/dwl)
 #     --repo-art the repository's drawn files in place of the installed ones: icons.sh, the icon
 #                fonts, the theme folders (what build-icons.py and build-themes.py just wrote),
-#                Sumi UI (build-fonts.py's), waybar's and mako's configs, the text screens'
-#                grammar (screen.sh, fzf.opts), the shell's prompt
+#                Sumi UI (build-fonts.py's) and its air (width.sh), the pixel faces' fontconfig
+#                rules, waybar's and mako's configs, the text screens' grammar (screen.sh,
+#                fzf.opts), the shell's prompt
 #     --wall     FILE, a picture of the screen's size, in place of the flat ground
 #     --tree     DIR (tools/kit-tree.sh makes it) the tree with nothing applied: DIR/home in place
 #                of the installed home, DIR/bin's dwl, mako, foot and yazi, the repository's fonts
@@ -108,7 +109,7 @@ if ((repo_art)); then
   for f in "$HOME/.local/share/fonts"/*; do [[ ${f##*/} == Sumi@(Icons|UI16)* ]] || ln -s "$f" "$h/.local/share/fonts/"; done
   cp "$repo"/configs/home/.local/share/fonts/Sumi{Icons,UI16}*.ttf "$h/.local/share/fonts/"
   cp "$repo/configs/home/.config/fedokawaii/icons.sh" "$h/.config/fedokawaii/icons.sh"
-  cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$repo/configs/home/.config/fedokawaii/panel-art.txt" "$h/.config/fedokawaii/"
+  cp "$repo/configs/home/.config/fedokawaii/screen.sh" "$repo/configs/home/.config/fedokawaii/width.sh" "$repo/configs/home/.config/fedokawaii/panel-art.txt" "$h/.config/fedokawaii/"
   mkdir -p "$h/.bashrc.d" && cp "$repo/configs/home/.bashrc.d/fedokawaii.sh" "$h/.bashrc.d/"
   # (fzf.opts as theme.sh writes it: its prompt's chevron filled in)
   sed -e "s|@ICON_CHEVRON_RIGHT@|$(. "$repo/configs/home/.config/fedokawaii/icons.sh"; printf '%s' "$ICON_CHEVRON_RIGHT")|g" \
@@ -156,7 +157,7 @@ done
     echo "<selectfont><rejectfont><glob>/usr/local/share/fonts/fedokawaii/SumiUI.ttf</glob></rejectfont></selectfont>"
     echo "<dir>$repo/system/fonts</dir>"
   fi
-  [[ -n $tree ]] && echo "<include>$repo/system/60-fedokawaii-pixel.conf</include>"
+  ((repo_art)) || [[ -n $tree ]] && echo "<include>$repo/system/60-fedokawaii-pixel.conf</include>"
   echo "<cachedir>$K/fc-cache</cachedir>"
   for f in "${fonts[@]}"; do
     printf '<match target="pattern"><test name="family"><string>%s</string></test><edit name="family" mode="prepend_first" binding="strong"><string>%s</string></edit></match>\n' "${f%%=*}" "${f#*=}"

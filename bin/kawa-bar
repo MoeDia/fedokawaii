@@ -134,8 +134,12 @@ case $item in
          . "$HOME/.config/fedokawaii/current/colors.sh"
          s="<span color='#$C_ACCENT_TEXT'>∕</span>"
          printf -v d "%(%d)T$s%(%m)T$s%(%Y)T" -1 -1 -1
-         if ((lit)); then printf '{"text":"%s","class":"active"}\n' "$d"
-         else printf '{"text":"%s"}\n' "$d"; fi ;;
+         # (a year ending in 1 has 4 px of air after it, not 1: "r4", style.css keeps 18 to the kanji)
+         # shellcheck source=/dev/null
+         . "$HOME/.config/fedokawaii/width.sh"; __air=''; air "${d: -1}"; c=${__air#* }; [[ $c == r4 ]] || c=""
+         if ((lit)) && [[ -n $c ]]; then printf '{"text":"%s","class":["%s","active"]}\n' "$d" "$c"
+         elif ((lit)); then printf '{"text":"%s","class":"active"}\n' "$d"
+         else printf '{"text":"%s"%s}\n' "$d" "${c:+,\"class\":\"$c\"}"; fi ;;
   day)   # the day of the week as its kanji: 月 火 水 木 金 土 日, Monday first
          # (月 and 日 have more air of their own than the others: a class each, so style.css
          # keeps 14 px to the date and to the time)

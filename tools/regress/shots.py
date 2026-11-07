@@ -108,9 +108,9 @@ def bar(f, fibre):
     """The bar's tiles, rows, gaps and clock as numbers (see the module's doc)."""
     im = load(f)
     fib = {tuple(int(v) for v in c) for c in np.asarray(Image.open(fibre).convert("RGB")).reshape(-1, 3)}
-    # (a tile's columns: its top hairline or its middle row, never the ground — art may hold the
-    # ground's colour on the middle row, the demon's mouth; the hairline leaves out its corners)
-    in_tile = (im[13] != GROUND).any(axis=1) | (im[3] != GROUND).any(axis=1)
+    # (a tile's columns: its top hairline (row 4) or its middle row (20), never the ground — art may
+    # hold the ground's colour on the middle row, the demon's mouth; the hairline leaves out its corners)
+    in_tile = (im[20] != GROUND).any(axis=1) | (im[4] != GROUND).any(axis=1)
     out, tiles, x = [], [], 0
     while x < im.shape[1]:
         if in_tile[x]:
@@ -120,15 +120,19 @@ def bar(f, fibre):
             tiles.append((x0, x - 1))
         else:
             x += 1
-    def paper_of(a, b, ink_set):
-        return [(c, y) for c in range(a, b + 1) for y in range(4, 24)
+    rods = [t for t in tiles if t[1] - t[0] < 12]      # (the clock's two rods, standing apart: knob and finials)
+    def paper_of(a, b, ink_set, scroll):
+        return [(c, y) for c in range(a, b + 1) for y in range(5, 35)
                 if tuple(int(v) for v in im[y, c]) not in ink_set
-                and not (min(c - a + 1, b - c) <= 6 and min(y - 3, 24 - y) <= 5 and not (b - a) > 150)]   # (the brass fittings, 6 px in each corner, are no ink)
+                and not (min(c - a + 1, b - c) <= 6 and min(y - 4, 35 - y) <= 5 and not scroll)]   # (the brass fittings, 6 px in each corner, are no ink)
     for a, b in tiles:
-        scroll = (b - a) > 150                       # (the clock: rods 4 px, no shadow column)
-        L, R = (a + 3, b - 3) if scroll else (a, b - 1)   # (the scroll: the rods, 4 px, are its edges)
-        paper = fib | {tuple(int(v) for v in im[13, L + 1])}
-        ink = paper_of(L + 1, R - 1, paper)
+        if (a, b) in rods:
+            out.append(f"rod {a} {b}")
+            continue
+        scroll = any(0 < a - r[1] <= 3 for r in rods)   # (the scroll's paper: its silk bands, 10 px, are its edges)
+        L, R = (a + 9, b - 9) if scroll else (a, b - 1)
+        paper = fib | {tuple(int(v) for v in im[20, L + 1])}
+        ink = paper_of(L + 1, R - 1, paper, scroll)
         if not ink:
             out.append(f"tile {a} {b} paper {L + 1} {R - 1} ink none")
             continue
@@ -146,13 +150,17 @@ def bar(f, fibre):
                     parts.append([c, c])
             out.append("clock " + " ".join(f"{p0}-{p1}" for p0, p1 in parts)
                        + " gaps " + " ".join(str(q[0] - p[1] - 1) for p, q in zip(parts, parts[1:], strict=False)))
+        elif b - a == 38 and max(xs) - min(xs) == 25:  # (a stamp: the seal is its ink; its numeral, the darkest ink inside)
+            dark = min({tuple(int(v) for v in im[y, c]) for c, y in ink}, key=sum)
+            nx = [c for c, y in ink if tuple(int(v) for v in im[y, c]) == dark]
+            out.append(f"numeral {min(nx)} {max(nx)} left {min(nx) - (L + 1)} right {(R - 1) - max(nx)}")
     t0 = tiles[0][0]
-    paper0 = tuple(int(v) for v in im[13, t0 + 1])
-    col = np.array([paper0 if tuple(int(v) for v in im[y, t0 + 7]) in fib else im[y, t0 + 7] for y in range(27)])   # (a column between the fittings; the fibres are paper)
+    paper0 = tuple(int(v) for v in im[20, t0 + 1])
+    col = np.array([paper0 if tuple(int(v) for v in im[y, t0 + 7]) in fib else im[y, t0 + 7] for y in range(39)])   # (a column between the fittings; the fibres are paper)
     runs, y = [], 0
-    while y < 27:
+    while y < 39:
         y0 = y
-        while y < 27 and (col[y] == col[y0]).all():
+        while y < 39 and (col[y] == col[y0]).all():
             y += 1
         runs.append(f"{y0}+{y - y0}")
     out.append("rows " + " ".join(runs))
